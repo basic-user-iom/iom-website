@@ -160,14 +160,13 @@
         window.matchMedia('(max-width: 768px)').matches ||
         window.matchMedia('(pointer: coarse)').matches
 
-      // Prebuilt LOD assets from scripts/build-mobile-raven.mjs.
-      // Note: the raven is many small skinned feather cards, so mesh decimation is
-      // limited — the meaningful savings between presets come from texture resolution
-      // and download size. Tri counts are read live from the loaded model.
+      // Prebuilt LOD assets from scripts/build-mobile-raven.mjs (run build:ravens).
+      // Full baseline is always single-bird desktop GLTF (~72k tris). Presets reduce
+      // geometry via meshopt simplify; Mobile also halves texture resolution.
       const QUALITY_PRESETS = {
         Full: { url: RAVEN_URL_DESKTOP, label: 'desktop GLTF', sizeMB: 16.8, tex: 'source' },
         Medium: { url: RAVEN_URL_MEDIUM, label: 'medium GLB', sizeMB: 15.3, tex: '1024px' },
-        Mobile: { url: RAVEN_URL_MOBILE, label: 'mobile GLB', sizeMB: 11.2, tex: '512px' },
+        Mobile: { url: RAVEN_URL_MOBILE, label: 'mobile GLB', sizeMB: 10.8, tex: '512px' },
         Coarse: { url: RAVEN_URL_COARSE, label: 'coarse GLB', sizeMB: 10.4, tex: '512px' },
       }
       const QUALITY_KEYS = Object.keys(QUALITY_PRESETS)
@@ -198,6 +197,7 @@
       let highlightedMeshes = []
       let polyStats = { triangles: 0, vertices: 0, meshes: 0, skinned: 0, drawCalls: 0 }
       let baselineTris = 0
+      let baselineReady = false
       let polyStatsLabel = null
       let polyDetailLabel = null
       let sizeHintLabel = null
@@ -318,7 +318,7 @@
         useMobileModel: DEFAULT_USE_MOBILE,
         modelLabel: DEFAULT_USE_MOBILE ? 'mobile GLB' : 'desktop GLTF',
         simplifyRatio: 0.5,
-        note: 'Skinned meshes keep bones; static-only runtime simplify.',
+        note: 'All raven meshes are skinned — runtime simplify cannot run. Use Quality presets.',
       }
 
       const sceneState = {
@@ -437,7 +437,7 @@
         window.addEventListener('resize', onWindowResize)
 
         clock = new THREE.Clock()
-        loadRaven()
+        Promise.all([loadRaven(), ensureFullBaseline()])
           .then(() => {
             baseStatusMessage = 'Raven loaded · drag path points · tune in editor panel'
             refreshPathStatus()
@@ -660,7 +660,8 @@
         geometryFolder
           .add(geometryState, 'simplifyRatio', 0.1, 0.95, 0.05)
           .name('Static simplify ratio')
-        geometryFolder.add(params, 'applyRuntimeSimplify').name('Apply optimization')
+          .disable()
+        geometryFolder.add(params, 'applyRuntimeSimplify').name('Apply (skinned: N/A)')
         geometryFolder.add(geometryState, 'note').name('Note').disable()
 
         const animationFolder = guiInstance.addFolder('Animation')
@@ -1360,8 +1361,8 @@
           sizeHintLabel.size = preset ? `~${preset.sizeMB.toFixed(1)} MB${tex}` : '—'
         }
         if (compareLabel) {
-          if (!baselineTris) {
-            compareLabel.compare = `${polyStats.triangles.toLocaleString()} tris (baseline)`
+          if (!baselineReady) {
+            compareLabel.compare = 'measuring Full baseline…'
           } else {
             const delta = polyStats.triangles - baselineTris
             const pct = baselineTris ? Math.round((delta / baselineTris) * 100) : 0
@@ -1577,6 +1578,18 @@
         materialCatalog = []
       }
 
+      /** Always measure single-bird Full desktop GLTF — never the active preset. */
+      async function ensureFullBaseline() {
+        if (baselineReady) return baselineTris
+        const loader = new GLTFLoader()
+        const gltf = await loader.loadAsync(RAVEN_URL_DESKTOP)
+        hideSecondRaven(gltf.scene)
+        baselineTris = countMeshStats(gltf.scene).triangles
+        baselineReady = true
+        updatePolyStatsLabel()
+        return baselineTris
+      }
+
       async function loadRaven() {
         disposeRaven()
         const loader = new GLTFLoader()
@@ -1612,9 +1625,6 @@
         }
 
         polyStats = countMeshStats(ravenModel)
-        if (geometryState.quality === 'Full' || !baselineTris) {
-          baselineTris = polyStats.triangles
-        }
         updatePolyStatsLabel()
         geometryState.modelLabel = QUALITY_PRESETS[geometryState.quality]?.label ?? geometryState.modelLabel
         refreshMaterialPicker()
@@ -1678,7 +1688,7 @@
         updatePolyStatsLabel()
         if (simplifiedMeshes === 0) {
           setStatus(
-            `Nothing to simplify at runtime — all ${skippedSkinned} raven meshes are skinned (bones would break). Use Quality presets instead.`,
+            `Runtime simplify unavailable — all ${skippedSkinned} raven mesh(es) are skinned; edge collapse would break wing-flap bones. Switch Quality preset instead.`,
           )
         } else {
           setStatus(

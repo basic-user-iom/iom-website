@@ -2,7 +2,7 @@
  * Build raven LOD variants from the desktop GLTF.
  *
  * Outputs (all single-raven — second bird + props pruned):
- *   - common-ravens-mobile.glb : 512px textures, full geometry  (phones/tablets)
+ *   - common-ravens-mobile.glb : 512px textures, geometry simplified to ~75%
  *   - common-ravens-medium.glb : 1024px textures, geometry simplified to ~60%
  *   - common-ravens-coarse.glb : 512px textures, geometry simplified to ~35%
  *
@@ -25,7 +25,7 @@ const input = join(root, 'public/assets/ravens/common-ravens.gltf')
 const outDir = join(root, 'public/assets/ravens')
 
 const VARIANTS = [
-  { name: 'mobile', file: 'common-ravens-mobile.glb', resize: [512, 512], ratio: 1, error: 0 },
+  { name: 'mobile', file: 'common-ravens-mobile.glb', resize: [512, 512], ratio: 0.75, error: 0.25 },
   { name: 'medium', file: 'common-ravens-medium.glb', resize: [1024, 1024], ratio: 0.6, error: 0.5 },
   { name: 'coarse', file: 'common-ravens-coarse.glb', resize: [512, 512], ratio: 0.35, error: 1 },
 ]
@@ -34,14 +34,21 @@ function shouldRemoveNode(name) {
   return name.includes('.001') || name === 'props_g'
 }
 
+/** Count render triangles (handles TRIANGLE_STRIP primitives correctly). */
 function countTriangles(document) {
   let triangles = 0
   for (const mesh of document.getRoot().listMeshes()) {
     for (const prim of mesh.listPrimitives()) {
+      const mode = prim.getMode()
       const indices = prim.getIndices()
       const position = prim.getAttribute('POSITION')
-      if (indices) triangles += indices.getCount() / 3
-      else if (position) triangles += position.getCount() / 3
+      if (indices) {
+        const n = indices.getCount()
+        // glTF: 4 = TRIANGLES, 5 = TRIANGLE_STRIP
+        triangles += mode === 5 ? Math.max(0, n - 2) : n / 3
+      } else if (position) {
+        triangles += position.getCount() / 3
+      }
     }
   }
   return Math.round(triangles)
@@ -58,13 +65,13 @@ async function buildVariant(io, variant) {
     if (shouldRemoveNode(mesh.getName())) mesh.dispose()
   }
 
-  const transforms = [weld(), dedup(), flatten(), prune()]
-
-  if (variant.ratio < 1) {
-    transforms.push(
-      simplify({ simplifier: MeshoptSimplifier, ratio: variant.ratio, error: variant.error }),
-    )
-  }
+  const transforms = [
+    weld(),
+    dedup(),
+    flatten(),
+    prune(),
+    simplify({ simplifier: MeshoptSimplifier, ratio: variant.ratio, error: variant.error }),
+  ]
 
   transforms.push(
     textureCompress({
