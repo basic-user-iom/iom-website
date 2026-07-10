@@ -2,12 +2,13 @@
  * Build raven LOD variants from the desktop GLTF.
  *
  * Outputs (all single-raven — second bird + props pruned):
- *   - common-ravens-mobile.glb : 512px textures, geometry simplified to ~75%
- *   - common-ravens-medium.glb : 1024px textures, geometry simplified to ~60%
- *   - common-ravens-coarse.glb : 512px textures, geometry simplified to ~35%
+ *   - common-ravens-mobile.glb : 512px textures, ~30k tris (ratio 0.75, from ~72k Full)
+ *   - common-ravens-medium.glb : 1024px textures, ~28k tris (ratio 0.6)
+ *   - common-ravens-coarse.glb : 512px textures, ~22k tris (ratio 0.35)
  *
- * Skinned meshes keep their joints/weights through meshopt simplify, so wing-flap
- * skeletal animation continues to play — aggressive ratios can distort silhouettes.
+ * Pipeline: weld → dedup → flatten (merge by material) → prune → meshopt simplify.
+ * Feather cards merge before simplify so decimation can actually reduce triangle count.
+ * Skinned meshes keep joints/weights — wing-flap animation should still play.
  *
  * Run: node scripts/build-mobile-raven.mjs
  */

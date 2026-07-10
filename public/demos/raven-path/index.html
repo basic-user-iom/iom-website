@@ -152,22 +152,26 @@
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
       import { SimplifyModifier } from 'three/addons/modifiers/SimplifyModifier.js'
 
-      const RAVEN_URL_DESKTOP = '/assets/ravens/common-ravens.gltf'
-      const RAVEN_URL_MOBILE = '/assets/ravens/common-ravens-mobile.glb'
-      const RAVEN_URL_MEDIUM = '/assets/ravens/common-ravens-medium.glb'
-      const RAVEN_URL_COARSE = '/assets/ravens/common-ravens-coarse.glb'
+      /** Bump when LOD GLBs change — busts immutable CDN cache (max-age=1y). */
+      const RAVEN_LOD_VERSION = '20260710b'
+      const ravenAsset = (path) => `${path}?v=${RAVEN_LOD_VERSION}`
+
+      const RAVEN_URL_DESKTOP = ravenAsset('/assets/ravens/common-ravens.gltf')
+      const RAVEN_URL_MOBILE = ravenAsset('/assets/ravens/common-ravens-mobile.glb')
+      const RAVEN_URL_MEDIUM = ravenAsset('/assets/ravens/common-ravens-medium.glb')
+      const RAVEN_URL_COARSE = ravenAsset('/assets/ravens/common-ravens-coarse.glb')
       const DEFAULT_USE_MOBILE =
         window.matchMedia('(max-width: 768px)').matches ||
         window.matchMedia('(pointer: coarse)').matches
 
       // Prebuilt LOD assets from scripts/build-mobile-raven.mjs (run build:ravens).
-      // Full baseline is always single-bird desktop GLTF (~72k tris). Presets reduce
-      // geometry via meshopt simplify; Mobile also halves texture resolution.
+      // Full baseline is always single-bird desktop GLTF (~72k tris). Presets run
+      // weld → flatten → meshopt simplify at build time; Mobile also halves textures.
       const QUALITY_PRESETS = {
-        Full: { url: RAVEN_URL_DESKTOP, label: 'desktop GLTF', sizeMB: 16.8, tex: 'source' },
-        Medium: { url: RAVEN_URL_MEDIUM, label: 'medium GLB', sizeMB: 15.3, tex: '1024px' },
-        Mobile: { url: RAVEN_URL_MOBILE, label: 'mobile GLB', sizeMB: 10.8, tex: '512px' },
-        Coarse: { url: RAVEN_URL_COARSE, label: 'coarse GLB', sizeMB: 10.4, tex: '512px' },
+        Full: { url: RAVEN_URL_DESKTOP, label: 'desktop GLTF', sizeMB: 16.8, tris: 72269, tex: 'source' },
+        Medium: { url: RAVEN_URL_MEDIUM, label: 'medium GLB', sizeMB: 15.3, tris: 27545, tex: '1024px' },
+        Mobile: { url: RAVEN_URL_MOBILE, label: 'mobile GLB', sizeMB: 10.8, tris: 30373, tex: '512px' },
+        Coarse: { url: RAVEN_URL_COARSE, label: 'coarse GLB', sizeMB: 10.4, tris: 21975, tex: '512px' },
       }
       const QUALITY_KEYS = Object.keys(QUALITY_PRESETS)
 
@@ -318,7 +322,7 @@
         useMobileModel: DEFAULT_USE_MOBILE,
         modelLabel: DEFAULT_USE_MOBILE ? 'mobile GLB' : 'desktop GLTF',
         simplifyRatio: 0.5,
-        note: 'All raven meshes are skinned — runtime simplify cannot run. Use Quality presets.',
+        note: 'Skinned — runtime simplify N/A. LOD presets bake meshopt decimation at build time.',
       }
 
       const sceneState = {
@@ -1364,10 +1368,16 @@
           if (!baselineReady) {
             compareLabel.compare = 'measuring Full baseline…'
           } else {
-            const delta = polyStats.triangles - baselineTris
-            const pct = baselineTris ? Math.round((delta / baselineTris) * 100) : 0
-            const sign = delta > 0 ? '+' : ''
-            compareLabel.compare = `${baselineTris.toLocaleString()} → ${polyStats.triangles.toLocaleString()} (${sign}${pct}%)`
+            const triDelta = polyStats.triangles - baselineTris
+            const triPct = baselineTris ? Math.round((triDelta / baselineTris) * 100) : 0
+            const triSign = triDelta > 0 ? '+' : ''
+            const fullSize = QUALITY_PRESETS.Full.sizeMB
+            const curSize = preset?.sizeMB ?? fullSize
+            const sizePct = fullSize ? Math.round(((curSize - fullSize) / fullSize) * 100) : 0
+            const sizeSign = sizePct > 0 ? '+' : ''
+            compareLabel.compare =
+              `${baselineTris.toLocaleString()} → ${polyStats.triangles.toLocaleString()} tris (${triSign}${triPct}%) · ` +
+              `${fullSize.toFixed(1)} → ${curSize.toFixed(1)} MB (${sizeSign}${sizePct}%)`
           }
         }
       }

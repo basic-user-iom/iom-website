@@ -27,8 +27,12 @@ import {
   HERO_TRAVEL_SPEED,
 } from './heroCloudShader'
 
-const RAVEN_MODEL_URL = '/assets/ravens/common-ravens.gltf'
-const RAVEN_MODEL_URL_MOBILE = '/assets/ravens/common-ravens-mobile.glb'
+/** Bump when LOD GLBs change — busts immutable CDN cache (max-age=1y). */
+const RAVEN_LOD_VERSION = '20260710b'
+const ravenAsset = (path: string) => `${path}?v=${RAVEN_LOD_VERSION}`
+
+const RAVEN_MODEL_URL = ravenAsset('/assets/ravens/common-ravens.gltf')
+const RAVEN_MODEL_URL_MOBILE = ravenAsset('/assets/ravens/common-ravens-mobile.glb')
 /** Abort raven load on mobile if still pending after this (clouds-only fallback). */
 const RAVEN_LOAD_TIMEOUT_MS = 5000
 const RAVEN_SCALE_BASE = 0.0468
