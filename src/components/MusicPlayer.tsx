@@ -8,7 +8,8 @@ import {
   readStoredVolume,
 } from '../utils/audioPrefs'
 import { getDeviceProfile } from '../utils/device'
-import { MusicPlayerVisualizer } from '../utils/musicPlayerVisualizer'
+import { createMusicPlayerVisualizer } from '../utils/createMusicPlayerVisualizer'
+import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
 
 interface MusicPlayerProps {
   tracks: Project[]
@@ -324,8 +325,9 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const visualRef = useRef<HTMLDivElement>(null)
   const visualWrapRef = useRef<HTMLDivElement>(null)
   const visualContainerRef = useRef<HTMLDivElement>(null)
-  const visualizerRef = useRef(new MusicPlayerVisualizer())
+  const visualizerRef = useRef<MusicPlayerVisualizerLike | null>(null)
   const visualizerMountedRef = useRef(false)
+  const [visualizerReady, setVisualizerReady] = useState(false)
   const audioARef = useRef<HTMLAudioElement | null>(null)
   const audioBRef = useRef<HTMLAudioElement | null>(null)
   const activeSlotRef = useRef<'a' | 'b'>('a')
@@ -349,7 +351,6 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const [tabVisible, setTabVisible] = useState(
     () => typeof document === 'undefined' || !document.hidden,
   )
-  const [gpuReady, setGpuReady] = useState(false)
   const isFullscreen = nativeFullscreen || pseudoFullscreen
   const viewportEngaged = inViewport || isFullscreen
   const shouldAnimateVisualizer =
@@ -359,13 +360,14 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
   const resizeVisualizer = useCallback(() => {
     const container = visualRef.current
-    if (!container) return
+    const visualizer = visualizerRef.current
+    if (!container || !visualizer) return
     const rect = container.getBoundingClientRect()
-    visualizerRef.current.resize(rect.width, rect.height)
+    visualizer.resize(rect.width, rect.height)
   }, [])
 
   const drawVisualizer = useCallback((delta: number, time: number) => {
-    visualizerRef.current.update(delta, time, isPlaying, analyserRef.current)
+    visualizerRef.current?.update(delta, time, isPlaying, analyserRef.current)
   }, [isPlaying])
 
   const visualizerTargetFps =
@@ -910,42 +912,61 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   }, [])
 
   useEffect(() => {
+    let cancelled = false
+    void createMusicPlayerVisualizer().then(({ visualizer }) => {
+      if (cancelled) {
+        visualizer.dispose()
+        return
+      }
+      visualizerRef.current = visualizer
+      setVisualizerReady(true)
+    })
+    return () => {
+      cancelled = true
+      visualizerRef.current?.dispose()
+      visualizerRef.current = null
+      setVisualizerReady(false)
+    }
+  }, [])
+
+  useEffect(() => {
     if (shouldAnimateVisualizer) {
-      visualizerRef.current.resume()
+      visualizerRef.current?.resume()
       startVisualizer()
     } else {
       stopVisualizer()
-      visualizerRef.current.pause()
+      visualizerRef.current?.pause()
     }
     return stopVisualizer
   }, [shouldAnimateVisualizer, startVisualizer, stopVisualizer, activeTrack?.id])
 
   useEffect(() => {
-    visualizerRef.current.setFullscreenMode(isFullscreen)
-  }, [isFullscreen])
+    visualizerRef.current?.setFullscreenMode(isFullscreen)
+  }, [isFullscreen, visualizerReady])
 
   useEffect(() => {
-    if (shouldAnimateVisualizer) setGpuReady(true)
-  }, [shouldAnimateVisualizer])
-
-  useEffect(() => {
-    if (!gpuReady) return
+    if (!visualizerReady) return
 
     const container = visualRef.current
-    if (!container) return
+    const visualizer = visualizerRef.current
+    if (!container || !visualizer) return
 
-    visualizerRef.current.mount(container)
-    visualizerMountedRef.current = true
+    let cancelled = false
+    void Promise.resolve(visualizer.mount(container)).then(() => {
+      if (cancelled) return
+      visualizerMountedRef.current = true
+      resizeVisualizer()
+      visualizer.update(0.016, performance.now() / 1000, false, null)
+    })
 
-    resizeVisualizer()
     const observer = new ResizeObserver(resizeVisualizer)
     observer.observe(container)
     return () => {
+      cancelled = true
       observer.disconnect()
-      visualizerRef.current.dispose()
       visualizerMountedRef.current = false
     }
-  }, [gpuReady, resizeVisualizer])
+  }, [visualizerReady, resizeVisualizer])
 
   useEffect(() => {
     const syncNativeFullscreen = () => {
@@ -999,11 +1020,11 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       if (rect.width <= 0 || rect.height <= 0) return
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       const y = -(((event.clientY - rect.top) / rect.height) * 2 - 1)
-      visualizerRef.current.setPointer(x, y)
+      visualizerRef.current?.setPointer(x, y)
     }
 
     const onPointerLeave = () => {
-      visualizerRef.current.resetPointer()
+      visualizerRef.current?.resetPointer()
     }
 
     visual.addEventListener('pointermove', onPointerMove)
@@ -1032,7 +1053,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     const attachOrientation = () => {
       if (attached) return
       orientationListener = (event: DeviceOrientationEvent) => {
-        visualizerRef.current.setDeviceOrientation(event.beta, event.gamma)
+        visualizerRef.current?.setDeviceOrientation(event.beta, event.gamma)
       }
       window.addEventListener('deviceorientation', orientationListener, { passive: true })
       attached = true
@@ -1044,7 +1065,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
         orientationListener = null
       }
       attached = false
-      visualizerRef.current.clearDeviceOrientation()
+      visualizerRef.current?.clearDeviceOrientation()
     }
 
     const requestOrientation = async () => {
@@ -1054,7 +1075,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
           const state = await OrientCtor.requestPermission()
           if (state === 'granted') attachOrientation()
         } catch {
-          visualizerRef.current.clearDeviceOrientation()
+          visualizerRef.current?.clearDeviceOrientation()
         }
         return
       }
@@ -1147,7 +1168,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
                 <div ref={visualRef} className="music-player-visual-mount" aria-hidden="true" />
                 {!isPlaying ? (
                   <div className="music-player-visual-overlay">
-                    <p className="music-player-visual-note">Press play to sync terrain</p>
+                    <p className="music-player-visual-note">Press play to sync the sea</p>
                   </div>
                 ) : null}
               </div>

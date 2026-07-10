@@ -1,5 +1,6 @@
 import * as THREE from 'three'
 import { getDeviceProfile } from './device'
+import type { MusicPlayerVisualizerLike } from './musicPlayerVisualizerTypes'
 
 const MOON_SPOTLIGHT_TEXTURE = '/assets/textures/moon-spotlight.png'
 
@@ -86,7 +87,7 @@ float terrainHeight(vec2 xz) {
   float ridges = abs(snoise(vec3(xz * 0.95, t * 0.018 + 1.4)));
   ridges = pow(1.0 - ridges, 1.6) * (0.02 + uMids * 0.06);
   float h = base * 0.62 + detail + ridges - craterA - craterB;
-  float amp = 0.82 + uBass * 1.25 + uEnergy * 0.28;
+  float amp = 0.55 + uBass * 0.85 + uEnergy * 0.18;
   return h * amp;
 }
 
@@ -195,9 +196,9 @@ float causticPattern(vec2 xz, float t) {
     c = 1.0 - min(a, b);
     c = pow(c, 3.8);
     float ripple = abs(snoise(vec3(p * 2.8 + vec2(time * 0.18, -time * 0.14), time * 0.35)));
-    c += pow(1.0 - ripple, 5.0) * (0.22 + uDetail * 0.18);
+    c += pow(1.0 - ripple, 5.0) * (0.077 + uDetail * 0.063);
   }
-  return clamp(c * (1.15 + uMids * 0.32 + uHighs * 0.18), 0.0, 1.6);
+  return clamp(c * (1.15 + uMids * 0.32 + uHighs * 0.18) * 0.35, 0.0, 0.56);
 }
 
 vec3 evalMoonSpotlight(vec3 hit, vec3 moonDir, vec3 spotGround) {
@@ -213,7 +214,7 @@ vec3 evalMoonSpotlight(vec3 hit, vec3 moonDir, vec3 spotGround) {
   if (along <= 0.4) return vec3(0.0);
 
   vec3 L = normalize(toHit);
-  float halfAngle = radians(9.8 + uBass * 0.72 + uEnergy * 0.36);
+  float halfAngle = radians(4.9 + uBass * 0.36 + uEnergy * 0.18);
   float cosOuter = cos(halfAngle * 1.45);
   float cosInner = cos(halfAngle * 0.22);
   float cosTheta = dot(spotAxis, L);
@@ -230,13 +231,13 @@ vec3 evalMoonSpotlight(vec3 hit, vec3 moonDir, vec3 spotGround) {
   vec2 centered = planar / tanHalf; // -1..1 across the cone footprint
 
   float radial = length(centered);
-  float discMask = 1.0 - smoothstep(0.94, 1.08, radial);
+  float discMask = 1.0 - smoothstep(0.47, 0.54, radial);
   if (discMask < 0.001) return vec3(0.0);
 
   // moon-spotlight.png is a right-side crescent (868²) — map the full lit arc
   // into the cone footprint. Soft edge fade replaces hard UV rejection that
   // clipped the top/right of the crescent.
-  vec2 uv = centered * vec2(0.34, 0.46) + vec2(0.66, 0.5);
+  vec2 uv = centered * vec2(0.17, 0.23) + vec2(0.66, 0.5);
   vec2 edgeFade = smoothstep(vec2(0.0), vec2(0.035), uv)
     * smoothstep(vec2(0.0), vec2(0.035), vec2(1.0) - uv);
   float uvMask = edgeFade.x * edgeFade.y;
@@ -252,7 +253,7 @@ vec3 evalMoonSpotlight(vec3 hit, vec3 moonDir, vec3 spotGround) {
   moonTex = pow(max(moonTex, vec3(0.0)), vec3(0.78)) * 1.35;
 
   float distFalloff = 1.0 / (1.0 + along * along * 0.00006);
-  float intensity = 0.78 + uMids * 0.12 + uEnergy * 0.1 + uHighs * 0.06;
+  float intensity = 1.15 + uMids * 0.18 + uEnergy * 0.14 + uHighs * 0.1;
 
   return moonTex * cone * discMask * alpha * uvMask * distFalloff * intensity;
 }
@@ -263,7 +264,7 @@ vec3 seabedShading(vec2 xz, float t, vec3 moonDir, vec3 moonCol) {
   float floorVar = fbm(vec3(xz * 0.38, t * 0.012), 2);
   vec3 floorCol = mix(sand, rock, smoothstep(-0.08, 0.22, floorVar));
   float caust = causticPattern(xz, t);
-  floorCol += moonCol * caust * (0.42 + uMids * 0.22 + uEnergy * 0.12);
+  floorCol += moonCol * caust * (0.294 + uMids * 0.154 + uEnergy * 0.084);
   float moonReach = max(dot(normalize(vec3(moonDir.x, -0.35, moonDir.z)), vec3(0.0, 1.0, 0.0)), 0.0);
   floorCol *= 0.55 + moonReach * 0.35;
   return floorCol;
@@ -288,13 +289,13 @@ void main() {
   bool terrainHit = (t < 55.0) && (surfaceDist < 0.08 || map(hit) < 0.05);
 
   // Moonlit night sea — deep navy water, dark sky, silver crest highlights.
-  vec3 skyHigh = vec3(0.006, 0.008, 0.014);
-  vec3 skyLow = vec3(0.012, 0.016, 0.028);
-  vec3 deepWater = vec3(0.039, 0.082, 0.125);
-  vec3 midWater = vec3(0.05, 0.10, 0.15);
-  vec3 crestCol = vec3(0.55, 0.62, 0.70);
-  vec3 moonCol = vec3(0.72, 0.76, 0.82);
-  vec3 fogColor = vec3(0.015, 0.022, 0.035);
+  vec3 skyHigh = vec3(0.02, 0.028, 0.048);
+  vec3 skyLow = vec3(0.035, 0.048, 0.072);
+  vec3 deepWater = vec3(0.055, 0.11, 0.165);
+  vec3 midWater = vec3(0.08, 0.15, 0.22);
+  vec3 crestCol = vec3(0.72, 0.8, 0.9);
+  vec3 moonCol = vec3(0.88, 0.92, 0.98);
+  vec3 fogColor = vec3(0.03, 0.045, 0.065);
 
   float skyFade = smoothstep(-0.85, 0.85, rd.y);
   vec3 bg = mix(skyLow, skyHigh, skyFade);
@@ -316,7 +317,7 @@ void main() {
       moonDir.z + uInteract.y * 0.06
     ));
     float ndotl = max(dot(normal, lightDir), 0.0);
-    float shade = clamp(0.08 + ndotl * (0.42 + uMids * 0.12), 0.0, 1.0);
+    float shade = clamp(0.22 + ndotl * (0.62 + uMids * 0.18), 0.0, 1.0);
 
     float crest = smoothstep(-0.15, 0.55, hit.y + uBass * 0.1);
     vec3 water = mix(deepWater, midWater, crest);
@@ -333,7 +334,7 @@ void main() {
 
     // animated caustic ripples on the surface and through the water column
     float surfaceCaustics = causticPattern(hit.xz * 1.08 + vec2(animTime * 0.04, -animTime * 0.03), animTime);
-    surfaceColor += moonCol * surfaceCaustics * (0.1 + uMids * 0.08 + uHighs * 0.05) * (0.55 + crest * 0.45);
+    surfaceColor += moonCol * surfaceCaustics * (0.07 + uMids * 0.056 + uHighs * 0.035) * (0.55 + crest * 0.45);
 
     // moon texture projected through spotlight cone onto the water.
     // Anchor the lit patch where the view center ray meets the water plane so
@@ -346,20 +347,20 @@ void main() {
     // silver moon specular on wave crests
     float spec = pow(max(dot(reflect(-lightDir, normal), viewDir), 0.0), 52.0 + uHighs * 16.0);
     surfaceColor += crestCol * spec * (0.18 + uHighs * 0.35) * crest;
-    surfaceColor += crestCol * surfaceCaustics * spec * 0.14;
+    surfaceColor += crestCol * surfaceCaustics * spec * 0.098;
 
     // Fresnel: low f0 keeps center clearer, edges pick up sky reflection
-    float fresnel = fresnelSchlick(viewDir, normal, 0.012);
+    float fresnel = fresnelSchlick(viewDir, normal, 0.007);
     float grazing = pow(fresnel, 0.9);
 
     // seabed + caustics visible through transparent water
     vec3 seabed = seabedShading(hit.xz, animTime, moonDir, moonCol);
     float viewThrough = max(dot(normal, viewDir), 0.0);
     float depthReveal = smoothstep(0.12, 0.78, viewThrough);
-    vec3 deepColumn = mix(seabed, deepWater * 0.28, 0.55);
-    deepColumn += moonCol * surfaceCaustics * 0.06 * depthReveal;
-    float waterOpacity = mix(0.32, 0.88, grazing);
-    waterOpacity = mix(waterOpacity, waterOpacity * 0.72, depthReveal * 0.55);
+    vec3 deepColumn = mix(seabed, deepWater * 0.22, 0.42);
+    deepColumn += moonCol * surfaceCaustics * 0.042 * depthReveal;
+    float waterOpacity = mix(0.22, 0.74, grazing);
+    waterOpacity = mix(waterOpacity, waterOpacity * 0.58, depthReveal * 0.62);
     color = mix(deepColumn, surfaceColor, waterOpacity);
 
     vec3 refl = sampleSkyReflection(reflect(-viewDir, normal));
@@ -369,19 +370,19 @@ void main() {
     color += rim * vec3(0.12, 0.14, 0.18);
 
     float dist = length(hit - uCamPos);
-    float fog = clamp(1.0 - exp(-dist * 0.055), 0.0, 0.82);
+    float fog = clamp(1.0 - exp(-dist * 0.032), 0.0, 0.72);
     color = mix(color, fogColor, fog);
 
     // Add exactly one surface projection after fog so it remains coherent
     // instead of ghosting through several water, seabed, and post-fog layers.
-    color += moonSpot * (0.58 + crest * 0.08);
+    color += moonSpot * (0.92 + crest * 0.14);
 
     // center more transparent, edges more opaque — keep alpha above floor to avoid holes
-    alpha = clamp(mix(0.44, 0.92, grazing), 0.4, 0.95);
-    alpha = mix(alpha, alpha * 0.82, depthReveal * 0.4);
+    alpha = clamp(mix(0.34, 0.84, grazing), 0.32, 0.9);
+    alpha = mix(alpha, alpha * 0.72, depthReveal * 0.52);
   }
 
-  color = acesTone(color * (0.92 + uEnergy * 0.06));
+  color = acesTone(color * (1.18 + uEnergy * 0.1));
   gl_FragColor = vec4(color, alpha);
 }
 `
@@ -516,7 +517,7 @@ function createRenderTarget(width: number, height: number) {
   })
 }
 
-export class MusicPlayerVisualizer {
+export class MusicPlayerVisualizer implements MusicPlayerVisualizerLike {
   private renderer: THREE.WebGLRenderer | null = null
   private scene: THREE.Scene | null = null
   private camera: THREE.OrthographicCamera | null = null
