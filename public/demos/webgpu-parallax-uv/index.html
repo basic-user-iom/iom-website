@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU Parallax UV — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_parallax_uv"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — Parallax UV</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        TSL parallax UV mapping on an ice ground plane — layered ambientCG textures with HDR
+        environment lighting. Textures by
+        <a href="https://ambientcg.com/" target="_blank" rel="noopener noreferrer">ambientCG</a>.
+        HDR by
+        <a href="https://hdri-skies.com/" target="_blank" rel="noopener noreferrer">HDRI Skies</a>.
+        Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_parallax_uv"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU parallax UV example</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_parallax_uv.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU node materials with TSL parallax UV mapping. Open it in a browser
+        with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">
+      Orbit drag · scroll zoom · auto-rotate · tune parallax scale, UV scale, and background blur in
+      Scene settings
+    </div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import { texture, parallaxUV, blendOverlay, uv, normalMap, uniform } from 'three/tsl'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
+      import { Inspector } from 'three/addons/inspector/Inspector.js'
+
+      const ASSET_BASE = 'https://threejs.org/examples/'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      let camera, scene, renderer, controls
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        scene = new THREE.Scene()
+
+        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100)
+        camera.position.set(15, 7, 15)
+
+        setStatus('Loading HDR environment…')
+
+        const environmentTexture = await new HDRLoader()
+          .setCrossOrigin('anonymous')
+          .loadAsync(`${ASSET_BASE}textures/equirectangular/752-hdri-skies-com_1k.hdr`)
+
+        environmentTexture.mapping = THREE.EquirectangularReflectionMapping
+        scene.environment = environmentTexture
+        scene.background = environmentTexture
+        scene.backgroundBlurriness = 0.4
+
+        setStatus('Loading ice textures…')
+
+        const loader = new THREE.TextureLoader().setPath(`${ASSET_BASE}textures/`).setCrossOrigin('anonymous')
+
+        const topTexture = await loader.loadAsync('ambientcg/Ice002_1K-JPG_Color.jpg')
+        topTexture.colorSpace = THREE.SRGBColorSpace
+        topTexture.wrapS = THREE.RepeatWrapping
+        topTexture.wrapT = THREE.RepeatWrapping
+
+        const roughnessTexture = await loader.loadAsync('ambientcg/Ice002_1K-JPG_Roughness.jpg')
+        roughnessTexture.colorSpace = THREE.NoColorSpace
+        roughnessTexture.wrapS = THREE.RepeatWrapping
+        roughnessTexture.wrapT = THREE.RepeatWrapping
+
+        const normalTexture = await loader.loadAsync('ambientcg/Ice002_1K-JPG_NormalGL.jpg')
+        normalTexture.colorSpace = THREE.NoColorSpace
+        normalTexture.wrapS = THREE.RepeatWrapping
+        normalTexture.wrapT = THREE.RepeatWrapping
+
+        const displaceTexture = await loader.loadAsync('ambientcg/Ice002_1K-JPG_Displacement.jpg')
+        displaceTexture.colorSpace = THREE.NoColorSpace
+        displaceTexture.wrapS = THREE.RepeatWrapping
+        displaceTexture.wrapT = THREE.RepeatWrapping
+
+        const bottomTexture = await loader.loadAsync('ambientcg/Ice003_1K-JPG_Color.jpg')
+        bottomTexture.colorSpace = THREE.SRGBColorSpace
+        bottomTexture.wrapS = THREE.RepeatWrapping
+        bottomTexture.wrapT = THREE.RepeatWrapping
+
+        const scaleUV = uniform(3)
+        const scaledUV = uv().mul(scaleUV)
+
+        const parallaxScale = uniform(0.5)
+        const offsetUV = texture(displaceTexture, scaledUV).mul(parallaxScale)
+
+        const parallaxUVOffset = parallaxUV(scaledUV, offsetUV)
+        const parallaxResult = texture(bottomTexture, parallaxUVOffset)
+
+        const iceNode = blendOverlay(texture(topTexture, scaledUV), parallaxResult)
+
+        const material = new THREE.MeshStandardNodeMaterial()
+        material.colorNode = iceNode.mul(5)
+        material.roughnessNode = texture(roughnessTexture, scaledUV)
+        material.normalNode = normalMap(texture(normalTexture, scaledUV))
+        material.metalness = 0
+
+        const geometry = new THREE.CircleGeometry(25, 64)
+        const ground = new THREE.Mesh(geometry, material)
+        ground.rotateX(-Math.PI / 2)
+        scene.add(ground)
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.toneMapping = THREE.ReinhardToneMapping
+        renderer.toneMappingExposure = 6
+        renderer.inspector = new Inspector()
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        const gui = renderer.inspector.createParameters('Scene')
+        gui.add(scene, 'backgroundBlurriness', 0, 1).name('Background Blurriness')
+        gui.add(parallaxScale, 'value', 0.2, 0.5).name('Parallax Scale')
+        gui.add(scaleUV, 'value', 1, 5).name('UV Scale')
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.target.set(0, 0, 0)
+        controls.maxDistance = 40
+        controls.minDistance = 10
+        controls.autoRotate = true
+        controls.autoRotateSpeed = -1
+        controls.enableDamping = true
+        controls.update()
+
+        window.addEventListener('resize', onWindowResize)
+
+        setStatus('WebGPU parallax UV · orbit to explore')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        controls?.update()
+        renderer.render(scene, camera)
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "name": "iom-website",
+  "private": true,
+  "version": "1.0.0",
+  "description": "IOM — Interactive Object Media agency website",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:ravens && tsc -b && vite build",
+    "build:streets-gl": "node scripts/build-streets-gl.mjs",
+    "build:ravens": "node scripts/sync-raven-assets.mjs && node scripts/build-mobile-raven.mjs",
+    "build:mobile-raven": "node scripts/build-mobile-raven.mjs",
+    "build:favicons": "node scripts/build-favicons.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.4.1",
+    "@gltf-transform/functions": "^4.4.1",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/three": "^0.181.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "playwright": "^1.61.1",
+    "sharp": "^0.35.3",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0"
+  }
+}

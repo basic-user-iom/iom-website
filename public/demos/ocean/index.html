@@ -1,0 +1,1646 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Three.js Ocean — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: system-ui, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+
+      /* Dark cinematic lil-gui theme */
+      .lil-gui {
+        --background-color: rgba(8, 8, 12, 0.82);
+        --text-color: rgba(255, 255, 255, 0.88);
+        --title-background-color: rgba(255, 255, 255, 0.06);
+        --title-text-color: rgba(255, 255, 255, 0.92);
+        --widget-color: rgba(255, 255, 255, 0.12);
+        --hover-color: rgba(255, 255, 255, 0.18);
+        --focus-color: rgba(255, 255, 255, 0.24);
+        --number-color: rgba(180, 210, 255, 0.95);
+        --string-color: rgba(180, 210, 255, 0.95);
+        --font-size: 11px;
+        --font-family: system-ui, -apple-system, sans-serif;
+        --widget-border-radius: 3px;
+        --name-width: 45%;
+        --slider-knob-width: 3px;
+        --slider-input-width: 27%;
+        --input-font-weight: 400;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+      }
+      .lil-gui.root {
+        top: 12px;
+        right: 12px;
+        z-index: 10;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgl_shaders_ocean"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — webgl ocean</a
+        >
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgl_shaders_ocean.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+    <div id="container"></div>
+    <script type="module">
+      import * as THREE from 'three'
+      import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { Water } from 'three/addons/objects/Water.js'
+      import { Sky } from 'three/addons/objects/Sky.js'
+      import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+      import { FontLoader, Font } from 'three/addons/loaders/FontLoader.js'
+      import { TTFLoader } from 'three/addons/loaders/TTFLoader.js'
+      import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
+
+      const THREE_FONT_BASE =
+        'https://cdn.jsdelivr.net/npm/three@0.183.0/examples/fonts/'
+
+      const FONT_CATALOG = [
+        { label: 'Helvetiker Bold', kind: 'typeface', url: `${THREE_FONT_BASE}helvetiker_bold.typeface.json` },
+        { label: 'Helvetiker Regular', kind: 'typeface', url: `${THREE_FONT_BASE}helvetiker_regular.typeface.json` },
+        { label: 'Gentilis Bold', kind: 'typeface', url: `${THREE_FONT_BASE}gentilis_bold.typeface.json` },
+        { label: 'Gentilis Regular', kind: 'typeface', url: `${THREE_FONT_BASE}gentilis_regular.typeface.json` },
+        { label: 'Optimer Bold', kind: 'typeface', url: `${THREE_FONT_BASE}optimer_bold.typeface.json` },
+        { label: 'Droid Sans Bold', kind: 'typeface', url: `${THREE_FONT_BASE}droid/droid_sans_bold.typeface.json` },
+        { label: 'Droid Serif Bold', kind: 'typeface', url: `${THREE_FONT_BASE}droid/droid_serif_bold.typeface.json` },
+        { label: 'Roboto', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-700-normal.ttf' },
+        { label: 'Oswald', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/oswald@latest/latin-700-normal.ttf' },
+        { label: 'Bebas Neue', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/bebas-neue@latest/latin-400-normal.ttf' },
+        { label: 'Playfair Display', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/playfair-display@latest/latin-700-normal.ttf' },
+        { label: 'Montserrat', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/montserrat@latest/latin-700-normal.ttf' },
+        { label: 'Raleway', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/raleway@latest/latin-700-normal.ttf' },
+        { label: 'Lora', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/lora@latest/latin-700-normal.ttf' },
+        { label: 'Anton', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/anton@latest/latin-400-normal.ttf' },
+        { label: 'Pacifico', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/pacifico@latest/latin-400-normal.ttf' },
+        { label: 'Dancing Script', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/dancing-script@latest/latin-700-normal.ttf' },
+        { label: 'Merriweather', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/merriweather@latest/latin-700-normal.ttf' },
+      ]
+
+      const ICON_PRESETS = [
+        { label: 'None', value: 'none' },
+        { label: 'Raven', value: 'raven', imageUrl: './assets/raven-logo.jpg' },
+        { label: 'Wave', value: 'wave', emoji: '🌊' },
+        { label: 'Star', value: 'star', emoji: '⭐' },
+        { label: 'Heart', value: 'heart', emoji: '❤️' },
+        { label: 'Sun', value: 'sun', emoji: '☀️' },
+        { label: 'Moon', value: 'moon', emoji: '🌙' },
+        { label: 'Sparkle', value: 'sparkle', emoji: '✨' },
+        { label: 'Custom upload', value: 'custom' },
+      ]
+
+      const container = document.getElementById('container')
+
+      const maxDpr = Math.min(window.devicePixelRatio, 1.5)
+      const targetFps = window.self !== window.top ? 30 : 60
+      const RECORD_FPS = 60
+      const frameInterval = 1000 / targetFps
+      const renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        powerPreference: 'low-power',
+        outputBufferType: THREE.HalfFloatType,
+        preserveDrawingBuffer: true,
+      })
+      renderer.setPixelRatio(maxDpr)
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 0.1
+      container.appendChild(renderer.domElement)
+
+      let bloomPass = null
+      const bloomSettings = { enabled: false, strength: 0.1, radius: 0 }
+      const bloomBufferSize = new THREE.Vector2()
+
+      function syncBloomPassSize() {
+        if (!bloomPass) return
+        renderer.getDrawingBufferSize(bloomBufferSize)
+        bloomPass.setSize(bloomBufferSize.x, bloomBufferSize.y)
+      }
+
+      function syncBloomEffects() {
+        if (bloomSettings.enabled) {
+          if (!bloomPass) {
+            renderer.getDrawingBufferSize(bloomBufferSize)
+            bloomPass = new UnrealBloomPass(
+              bloomBufferSize.clone(),
+              1.5,
+              0.4,
+              0.85,
+            )
+            bloomPass.threshold = 0
+          }
+          bloomPass.strength = bloomSettings.strength
+          bloomPass.radius = bloomSettings.radius
+          renderer.setEffects([bloomPass])
+          syncBloomPassSize()
+        } else {
+          renderer.setEffects([])
+        }
+      }
+
+      renderer.localClippingEnabled = true
+
+      const SUNSET_SKY_DEFAULTS = {
+        elevation: 3,
+        azimuth: 145,
+        exposure: 0.18,
+      }
+
+      // Camera aligned with default sunset sun direction (elevation 3°, azimuth 145°).
+      const DEFAULT_CAMERA = {
+        camX: -57.3,
+        camY: 4.8,
+        camZ: 81.8,
+        targetX: 0,
+        targetY: 10,
+        targetZ: 0,
+      }
+
+      const scene = new THREE.Scene()
+      const camera = new THREE.PerspectiveCamera(
+        55,
+        window.innerWidth / window.innerHeight,
+        1,
+        20000,
+      )
+      camera.position.set(DEFAULT_CAMERA.camX, DEFAULT_CAMERA.camY, DEFAULT_CAMERA.camZ)
+
+      const sun = new THREE.Vector3()
+
+      const waterGeometry = new THREE.PlaneGeometry(10000, 10000)
+
+      const waterNormals = new THREE.TextureLoader().load(
+        './textures/waternormals.jpg',
+        (texture) => {
+          texture.wrapS = texture.wrapT = THREE.RepeatWrapping
+          texture.colorSpace = THREE.NoColorSpace
+        },
+      )
+      waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
+      waterNormals.colorSpace = THREE.NoColorSpace
+
+      const water = new Water(waterGeometry, {
+        textureWidth: 512,
+        textureHeight: 512,
+        waterNormals,
+        sunDirection: new THREE.Vector3(),
+        sunColor: 0xffffff,
+        waterColor: 0x001e0f,
+        distortionScale: 3.7,
+        fog: scene.fog !== undefined,
+      })
+      water.rotation.x = -Math.PI / 2
+      scene.add(water)
+
+      const waterUniforms = water.material.uniforms
+      waterUniforms.size.value = 1.0
+      waterUniforms.distortionScale.value = 3.7
+      waterUniforms.time.value = 0
+
+      const sky = new Sky()
+      sky.scale.setScalar(10000)
+      scene.add(sky)
+
+      const skyUniforms = sky.material.uniforms
+      skyUniforms.turbidity.value = 10
+      skyUniforms.rayleigh.value = 2
+      skyUniforms.mieCoefficient.value = 0.005
+      skyUniforms.mieDirectionalG.value = 0.8
+      skyUniforms.cloudCoverage.value = 0.4
+      skyUniforms.cloudDensity.value = 0.5
+      skyUniforms.cloudElevation.value = 0.5
+
+      const DEFAULT_VISIBLE_ICON_PRESET = 'heart'
+
+      const parameters = {
+        ...SUNSET_SKY_DEFAULTS,
+      }
+
+      const messageParams = {
+        message: '',
+        show3DText: false,
+        textSize: 4,
+        textColor: '#ffffff',
+        textPositionY: 15,
+        textSubmerge: 6,
+        textBobSpeed: 0.6,
+        textBobAmount: 4,
+        autoBob: false,
+        fontFamily: FONT_CATALOG[0].label,
+        textOpacity: 0.85,
+        textMetalness: 0.1,
+        textRoughness: 0.12,
+        textTransmission: 0.65,
+      }
+
+      const ICON_PLACEMENTS = ['left', 'right', 'top', 'above']
+
+      const iconParams = {
+        showIcon: false,
+        iconPreset: 'none',
+        iconPlacement: 'above',
+        iconScale: 4,
+        iconOffsetY: 3,
+        iconOpacity: 0.85,
+        iconMetalness: 0.1,
+        iconRoughness: 0.12,
+        iconTransmission: 0.65,
+      }
+
+      const videoParams = {
+        videoDuration: 10,
+      }
+
+      const SHARE_DEFAULTS = {
+        ...SUNSET_SKY_DEFAULTS,
+        message: '',
+        show3DText: false,
+        textSize: 4,
+        textColor: '#ffffff',
+        textPositionY: 15,
+        textSubmerge: 6,
+        textBobSpeed: 0.6,
+        textBobAmount: 4,
+        autoBob: false,
+        fontIndex: 0,
+        textOpacity: 0.85,
+        textMetalness: 0.1,
+        textRoughness: 0.12,
+        textTransmission: 0.65,
+        showIcon: false,
+        iconPreset: 'none',
+        iconPlacement: 'above',
+        iconScale: 4,
+        iconOffsetY: 3,
+        iconOpacity: 0.85,
+        iconMetalness: 0.1,
+        iconRoughness: 0.12,
+        iconTransmission: 0.65,
+        bloomEnabled: false,
+        bloomStrength: 0.1,
+        bloomRadius: 0,
+        cloudCoverage: 0.4,
+        cloudDensity: 0.5,
+        cloudElevation: 0.5,
+        distortionScale: 3.7,
+        waterSize: 1,
+        ...DEFAULT_CAMERA,
+      }
+
+      const ICON_PRESET_VALUES = new Set(ICON_PRESETS.map((preset) => preset.value))
+
+      function clampNumber(value, min, max, fallback) {
+        if (value === null || value === undefined || value === '') return fallback
+        const parsed = Number(value)
+        if (!Number.isFinite(parsed)) return fallback
+        return Math.min(max, Math.max(min, parsed))
+      }
+
+      function parseShareBool(value, fallback) {
+        if (value === '1' || value === 'true') return true
+        if (value === '0' || value === 'false') return false
+        return fallback
+      }
+
+      function parseShareColor(value, fallback) {
+        if (typeof value !== 'string') return fallback
+        const hex = value.replace(/^#/, '')
+        if (!/^[0-9a-fA-F]{6}$/.test(hex)) return fallback
+        return `#${hex.toLowerCase()}`
+      }
+
+      function getShareParam(params, key, aliases = []) {
+        for (const candidate of [key, ...aliases]) {
+          if (params.has(candidate)) return params.get(candidate)
+        }
+        return null
+      }
+
+      function formatShareNumber(value, decimals = 2) {
+        const rounded = Number(value.toFixed(decimals))
+        return String(rounded)
+      }
+
+      function shareFloatsDiffer(a, b, decimals = 1) {
+        return formatShareNumber(a, decimals) !== formatShareNumber(b, decimals)
+      }
+
+      let sharedCameraState = null
+
+      function getCurrentShareSnapshot() {
+        const fontIndex = Math.max(
+          0,
+          FONT_CATALOG.findIndex((font) => font.label === messageParams.fontFamily),
+        )
+        return {
+          elevation: parameters.elevation,
+          azimuth: parameters.azimuth,
+          exposure: parameters.exposure,
+          message: messageParams.message,
+          show3DText: messageParams.show3DText,
+          textSize: messageParams.textSize,
+          textColor: messageParams.textColor,
+          textPositionY: messageParams.textPositionY,
+          textSubmerge: messageParams.textSubmerge,
+          textBobSpeed: messageParams.textBobSpeed,
+          textBobAmount: messageParams.textBobAmount,
+          autoBob: messageParams.autoBob,
+          fontIndex,
+          textOpacity: messageParams.textOpacity,
+          textMetalness: messageParams.textMetalness,
+          textRoughness: messageParams.textRoughness,
+          textTransmission: messageParams.textTransmission,
+          showIcon: iconParams.showIcon,
+          iconPreset: iconParams.iconPreset,
+          iconPlacement: iconParams.iconPlacement,
+          iconScale: iconParams.iconScale,
+          iconOffsetY: iconParams.iconOffsetY,
+          iconOpacity: iconParams.iconOpacity,
+          iconMetalness: iconParams.iconMetalness,
+          iconRoughness: iconParams.iconRoughness,
+          iconTransmission: iconParams.iconTransmission,
+          bloomEnabled: bloomSettings.enabled,
+          bloomStrength: bloomSettings.strength,
+          bloomRadius: bloomSettings.radius,
+          cloudCoverage: skyUniforms.cloudCoverage.value,
+          cloudDensity: skyUniforms.cloudDensity.value,
+          cloudElevation: skyUniforms.cloudElevation.value,
+          distortionScale: waterUniforms.distortionScale.value,
+          waterSize: waterUniforms.size.value,
+          camX: camera.position.x,
+          camY: camera.position.y,
+          camZ: camera.position.z,
+          targetX: controls.target.x,
+          targetY: controls.target.y,
+          targetZ: controls.target.z,
+        }
+      }
+
+      function buildShareUrl() {
+        const snapshot = getCurrentShareSnapshot()
+        const iconPreset =
+          snapshot.showIcon && snapshot.iconPreset === 'none'
+            ? DEFAULT_VISIBLE_ICON_PRESET
+            : snapshot.iconPreset
+        const params = new URLSearchParams()
+
+        const addIfChanged = (key, value, defaultValue, formatter = String) => {
+          if (value !== defaultValue) params.set(key, formatter(value))
+        }
+
+        const addFloatIfChanged = (key, value, defaultValue, decimals = 1) => {
+          if (shareFloatsDiffer(value, defaultValue, decimals)) {
+            params.set(key, formatShareNumber(value, decimals))
+          }
+        }
+
+        addIfChanged('el', snapshot.elevation, SHARE_DEFAULTS.elevation, (v) => formatShareNumber(v, 1))
+        addIfChanged('az', snapshot.azimuth, SHARE_DEFAULTS.azimuth, (v) => formatShareNumber(v, 1))
+        addIfChanged('exp', snapshot.exposure, SHARE_DEFAULTS.exposure, (v) => formatShareNumber(v, 4))
+        if (snapshot.message) params.set('msg', snapshot.message)
+        addIfChanged('t3d', snapshot.show3DText, SHARE_DEFAULTS.show3DText, (v) => (v ? '1' : '0'))
+        addIfChanged('ts', snapshot.textSize, SHARE_DEFAULTS.textSize, (v) => formatShareNumber(v, 1))
+        addIfChanged('tc', snapshot.textColor, SHARE_DEFAULTS.textColor, (v) => v.replace(/^#/, ''))
+        addIfChanged('ty', snapshot.textPositionY, SHARE_DEFAULTS.textPositionY, (v) => formatShareNumber(v, 1))
+        addIfChanged('tsub', snapshot.textSubmerge, SHARE_DEFAULTS.textSubmerge, (v) => formatShareNumber(v, 1))
+        addIfChanged('tbs', snapshot.textBobSpeed, SHARE_DEFAULTS.textBobSpeed, (v) => formatShareNumber(v, 2))
+        addIfChanged('tba', snapshot.textBobAmount, SHARE_DEFAULTS.textBobAmount, (v) => formatShareNumber(v, 2))
+        addIfChanged('ab', snapshot.autoBob, SHARE_DEFAULTS.autoBob, (v) => (v ? '1' : '0'))
+        addIfChanged('ff', snapshot.fontIndex, SHARE_DEFAULTS.fontIndex)
+        addIfChanged('to', snapshot.textOpacity, SHARE_DEFAULTS.textOpacity, (v) => formatShareNumber(v, 2))
+        addIfChanged('tm', snapshot.textMetalness, SHARE_DEFAULTS.textMetalness, (v) => formatShareNumber(v, 2))
+        addIfChanged('tr', snapshot.textRoughness, SHARE_DEFAULTS.textRoughness, (v) => formatShareNumber(v, 2))
+        addIfChanged('tt', snapshot.textTransmission, SHARE_DEFAULTS.textTransmission, (v) => formatShareNumber(v, 2))
+        const hasVisibleIcon = snapshot.showIcon && iconPreset !== 'none'
+        addIfChanged('si', hasVisibleIcon, SHARE_DEFAULTS.showIcon, (v) => (v ? '1' : '0'))
+        addIfChanged('ip', iconPreset, SHARE_DEFAULTS.iconPreset)
+        addIfChanged('ipl', snapshot.iconPlacement, SHARE_DEFAULTS.iconPlacement)
+        addIfChanged('isc', snapshot.iconScale, SHARE_DEFAULTS.iconScale, (v) => formatShareNumber(v, 2))
+        addIfChanged('ioy', snapshot.iconOffsetY, SHARE_DEFAULTS.iconOffsetY, (v) => formatShareNumber(v, 2))
+        addIfChanged('io', snapshot.iconOpacity, SHARE_DEFAULTS.iconOpacity, (v) => formatShareNumber(v, 2))
+        addIfChanged('im', snapshot.iconMetalness, SHARE_DEFAULTS.iconMetalness, (v) => formatShareNumber(v, 2))
+        addIfChanged('ir', snapshot.iconRoughness, SHARE_DEFAULTS.iconRoughness, (v) => formatShareNumber(v, 2))
+        addIfChanged('it', snapshot.iconTransmission, SHARE_DEFAULTS.iconTransmission, (v) => formatShareNumber(v, 2))
+        addIfChanged('bl', snapshot.bloomEnabled, SHARE_DEFAULTS.bloomEnabled, (v) => (v ? '1' : '0'))
+        addIfChanged('bs', snapshot.bloomStrength, SHARE_DEFAULTS.bloomStrength, (v) => formatShareNumber(v, 2))
+        addIfChanged('br', snapshot.bloomRadius, SHARE_DEFAULTS.bloomRadius, (v) => formatShareNumber(v, 2))
+        addIfChanged('cc', snapshot.cloudCoverage, SHARE_DEFAULTS.cloudCoverage, (v) => formatShareNumber(v, 2))
+        addIfChanged('cd', snapshot.cloudDensity, SHARE_DEFAULTS.cloudDensity, (v) => formatShareNumber(v, 2))
+        addIfChanged('ce', snapshot.cloudElevation, SHARE_DEFAULTS.cloudElevation, (v) => formatShareNumber(v, 2))
+        addIfChanged('ds', snapshot.distortionScale, SHARE_DEFAULTS.distortionScale, (v) => formatShareNumber(v, 1))
+        addIfChanged('ws', snapshot.waterSize, SHARE_DEFAULTS.waterSize, (v) => formatShareNumber(v, 1))
+        addFloatIfChanged('cx', snapshot.camX, SHARE_DEFAULTS.camX)
+        addFloatIfChanged('cy', snapshot.camY, SHARE_DEFAULTS.camY)
+        addFloatIfChanged('cz', snapshot.camZ, SHARE_DEFAULTS.camZ)
+        addFloatIfChanged('tx', snapshot.targetX, SHARE_DEFAULTS.targetX)
+        addFloatIfChanged('ty', snapshot.targetY, SHARE_DEFAULTS.targetY)
+        addFloatIfChanged('tz', snapshot.targetZ, SHARE_DEFAULTS.targetZ)
+
+        const query = params.toString()
+        return query ? `${location.origin}${location.pathname}?${query}` : `${location.origin}${location.pathname}`
+      }
+
+      function applyShareStateFromUrl() {
+        const params = new URLSearchParams(location.search)
+        if (!params.toString()) return false
+
+        parameters.elevation = clampNumber(
+          getShareParam(params, 'el'),
+          0,
+          90,
+          SHARE_DEFAULTS.elevation,
+        )
+        parameters.azimuth = clampNumber(
+          getShareParam(params, 'az'),
+          -180,
+          180,
+          SHARE_DEFAULTS.azimuth,
+        )
+        parameters.exposure = clampNumber(
+          getShareParam(params, 'exp'),
+          0,
+          1,
+          SHARE_DEFAULTS.exposure,
+        )
+
+        if (params.has('msg')) messageParams.message = params.get('msg') ?? ''
+        messageParams.show3DText = parseShareBool(
+          getShareParam(params, 't3d', ['f3d']),
+          messageParams.show3DText,
+        )
+        messageParams.textSize = clampNumber(
+          getShareParam(params, 'ts', ['fs']),
+          1,
+          12,
+          messageParams.textSize,
+        )
+        messageParams.textColor = parseShareColor(getShareParam(params, 'tc'), messageParams.textColor)
+        messageParams.textPositionY = clampNumber(
+          getShareParam(params, 'ty', ['fy']),
+          -10,
+          50,
+          messageParams.textPositionY,
+        )
+        messageParams.textSubmerge = clampNumber(
+          getShareParam(params, 'tsub', ['fsub']),
+          0,
+          20,
+          messageParams.textSubmerge,
+        )
+        messageParams.textBobSpeed = clampNumber(
+          getShareParam(params, 'tbs', ['fbs']),
+          0.1,
+          3,
+          messageParams.textBobSpeed,
+        )
+        messageParams.textBobAmount = clampNumber(
+          getShareParam(params, 'tba', ['fba']),
+          0,
+          15,
+          messageParams.textBobAmount,
+        )
+        messageParams.autoBob = parseShareBool(getShareParam(params, 'ab'), messageParams.autoBob)
+
+        const fontIndex = clampNumber(getShareParam(params, 'ff'), 0, FONT_CATALOG.length - 1, 0)
+        messageParams.fontFamily = FONT_CATALOG[Math.floor(fontIndex)].label
+
+        messageParams.textOpacity = clampNumber(getShareParam(params, 'to'), 0.05, 1, messageParams.textOpacity)
+        messageParams.textMetalness = clampNumber(
+          getShareParam(params, 'tm', ['fm']),
+          0,
+          1,
+          messageParams.textMetalness,
+        )
+        messageParams.textRoughness = clampNumber(
+          getShareParam(params, 'tr', ['fr']),
+          0,
+          1,
+          messageParams.textRoughness,
+        )
+        messageParams.textTransmission = clampNumber(getShareParam(params, 'tt'), 0, 1, messageParams.textTransmission)
+
+        iconParams.showIcon = parseShareBool(getShareParam(params, 'si'), iconParams.showIcon)
+        const iconPreset = getShareParam(params, 'ip')
+        if (iconPreset && ICON_PRESET_VALUES.has(iconPreset) && iconPreset !== 'custom') {
+          iconParams.iconPreset = iconPreset
+        } else if (iconPreset === 'custom') {
+          iconParams.iconPreset = 'none'
+          iconParams.showIcon = false
+        } else if (iconParams.showIcon && iconParams.iconPreset === 'none') {
+          iconParams.iconPreset = DEFAULT_VISIBLE_ICON_PRESET
+        }
+        const placement = getShareParam(params, 'ipl', ['pl'])
+        if (placement && ICON_PLACEMENTS.includes(placement)) {
+          iconParams.iconPlacement = placement
+        }
+        iconParams.iconScale = clampNumber(getShareParam(params, 'isc'), 1, 12, iconParams.iconScale)
+        iconParams.iconOffsetY = clampNumber(getShareParam(params, 'ioy'), -5, 20, iconParams.iconOffsetY)
+        iconParams.iconOpacity = clampNumber(getShareParam(params, 'io'), 0.05, 1, iconParams.iconOpacity)
+        iconParams.iconMetalness = clampNumber(getShareParam(params, 'im'), 0, 1, iconParams.iconMetalness)
+        iconParams.iconRoughness = clampNumber(getShareParam(params, 'ir'), 0, 1, iconParams.iconRoughness)
+        iconParams.iconTransmission = clampNumber(getShareParam(params, 'it'), 0, 1, iconParams.iconTransmission)
+
+        bloomSettings.enabled = parseShareBool(params.get('bl'), bloomSettings.enabled)
+        bloomSettings.strength = clampNumber(params.get('bs'), 0, 3, bloomSettings.strength)
+        bloomSettings.radius = clampNumber(params.get('br'), 0, 1, bloomSettings.radius)
+
+        skyUniforms.cloudCoverage.value = clampNumber(
+          params.get('cc'),
+          0,
+          1,
+          skyUniforms.cloudCoverage.value,
+        )
+        skyUniforms.cloudDensity.value = clampNumber(
+          params.get('cd'),
+          0,
+          1,
+          skyUniforms.cloudDensity.value,
+        )
+        skyUniforms.cloudElevation.value = clampNumber(
+          params.get('ce'),
+          0,
+          1,
+          skyUniforms.cloudElevation.value,
+        )
+
+        waterUniforms.distortionScale.value = clampNumber(
+          params.get('ds'),
+          0,
+          8,
+          waterUniforms.distortionScale.value,
+        )
+        waterUniforms.size.value = clampNumber(params.get('ws'), 0.1, 10, waterUniforms.size.value)
+
+        const hasCameraParam = ['cx', 'cy', 'cz', 'tx', 'ty', 'tz'].some((key) => params.has(key))
+        if (hasCameraParam) {
+          sharedCameraState = {
+            camX: clampNumber(getShareParam(params, 'cx'), -1000, 1000, SHARE_DEFAULTS.camX),
+            camY: clampNumber(getShareParam(params, 'cy'), -100, 1000, SHARE_DEFAULTS.camY),
+            camZ: clampNumber(getShareParam(params, 'cz'), -1000, 1000, SHARE_DEFAULTS.camZ),
+            targetX: clampNumber(getShareParam(params, 'tx'), -1000, 1000, SHARE_DEFAULTS.targetX),
+            targetY: clampNumber(getShareParam(params, 'ty'), -100, 500, SHARE_DEFAULTS.targetY),
+            targetZ: clampNumber(getShareParam(params, 'tz'), -1000, 1000, SHARE_DEFAULTS.targetZ),
+          }
+        }
+
+        renderer.toneMappingExposure = parameters.exposure
+        return true
+      }
+
+      function iconPresetToGuiLabel(value) {
+        const preset = ICON_PRESETS.find((entry) => entry.value === value)
+        return preset?.label ?? 'None'
+      }
+
+      const recordState = {
+        status: 'Ready',
+        progress: '0%',
+      }
+
+      let textHalfHeight = 2
+      let textHalfWidth = 4
+      let isRecording = false
+      let recordStartTime = 0
+      let recordEndTime = 0
+      let mediaRecorder = null
+      let recordVideoTrack = null
+      let recordedChunks = []
+      let recordMimeType = 'video/webm'
+      let savedRecordSettings = null
+      const waterClipPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0)
+
+      const pmremGenerator = new THREE.PMREMGenerator(renderer)
+      const sceneEnv = new THREE.Scene()
+      let renderTarget
+
+      function updateSun() {
+        const phi = THREE.MathUtils.degToRad(90 - parameters.elevation)
+        const theta = THREE.MathUtils.degToRad(parameters.azimuth)
+        sun.setFromSphericalCoords(1, phi, theta)
+
+        sky.material.uniforms.sunPosition.value.copy(sun)
+        water.material.uniforms.sunDirection.value.copy(sun).normalize()
+
+        if (renderTarget !== undefined) renderTarget.dispose()
+
+        sceneEnv.add(sky)
+        renderTarget = pmremGenerator.fromScene(sceneEnv)
+        scene.add(sky)
+        scene.environment = renderTarget.texture
+      }
+
+      function smoothstep01(t) {
+        const x = Math.max(0, Math.min(1, t))
+        return x * x * (3 - 2 * x)
+      }
+
+      function refreshGui(folder) {
+        folder.controllers.forEach((controller) => controller.updateDisplay())
+        folder.folders.forEach(refreshGui)
+      }
+
+      function applySunsetPreset() {
+        parameters.elevation = 3
+        parameters.azimuth = 145
+        parameters.exposure = 0.18
+        skyUniforms.turbidity.value = 10
+        skyUniforms.rayleigh.value = 3
+        skyUniforms.mieCoefficient.value = 0.005
+        skyUniforms.cloudCoverage.value = 0.35
+        skyUniforms.cloudDensity.value = 0.45
+        skyUniforms.cloudElevation.value = 0.55
+        renderer.toneMappingExposure = parameters.exposure
+        updateSun()
+        refreshGui(gui)
+      }
+
+      let sharedStateLoaded = applyShareStateFromUrl()
+      updateSun()
+      syncBloomEffects()
+
+      let textMesh = null
+      let iconMesh = null
+
+      const waterMirrorBase = water.onBeforeRender
+      function updateWaterMirror() {
+        const textVisible = textMesh?.visible ?? false
+        const iconVisible = iconMesh?.visible ?? false
+        if (textMesh) textMesh.visible = false
+        if (iconMesh) iconMesh.visible = false
+        waterMirrorBase.call(water, renderer, scene, camera)
+        if (textMesh) textMesh.visible = textVisible
+        if (iconMesh) iconMesh.visible = iconVisible
+      }
+      // Mirror is updated once per frame in render(), before output/bloom compositing.
+      water.onBeforeRender = function () {}
+      let iconTexture = null
+      let customIconObjectUrl = null
+      let loadedFont = null
+      let fontLoadToken = 0
+      const fontLoader = new FontLoader()
+      const ttfLoader = new TTFLoader()
+      const iconFileInput = document.createElement('input')
+      iconFileInput.type = 'file'
+      iconFileInput.accept = 'image/png,image/jpeg,image/webp,image/svg+xml'
+      iconFileInput.hidden = true
+      document.body.appendChild(iconFileInput)
+
+      function disposeIconMesh() {
+        if (!iconMesh) return
+        iconMesh.geometry.dispose()
+        iconMesh.material.map?.dispose()
+        iconMesh.material.dispose()
+        scene.remove(iconMesh)
+        iconMesh = null
+      }
+
+      function disposeIconTexture() {
+        if (!iconTexture) return
+        iconTexture.dispose()
+        iconTexture = null
+      }
+
+      function createEmojiTexture(emoji, size = 128) {
+        const canvas = document.createElement('canvas')
+        canvas.width = size
+        canvas.height = size
+        const ctx = canvas.getContext('2d')
+        ctx.clearRect(0, 0, size, size)
+        ctx.font = `${Math.round(size * 0.72)}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(emoji, size / 2, size / 2 + size * 0.04)
+        const texture = new THREE.CanvasTexture(canvas)
+        texture.colorSpace = THREE.SRGBColorSpace
+        texture.userData.aspect = 1
+        return texture
+      }
+
+      function loadImageTexture(url) {
+        return new Promise((resolve, reject) => {
+          const img = new Image()
+          img.crossOrigin = 'anonymous'
+          img.onload = () => {
+            const width = Math.max(img.width, 1)
+            const height = Math.max(img.height, 1)
+            const canvas = document.createElement('canvas')
+            canvas.width = width
+            canvas.height = height
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(img, 0, 0, width, height)
+            const texture = new THREE.CanvasTexture(canvas)
+            texture.colorSpace = THREE.SRGBColorSpace
+            texture.userData.aspect = width / height
+            resolve(texture)
+          }
+          img.onerror = reject
+          img.src = url
+        })
+      }
+
+      async function resolveIconTexture() {
+        if (!iconParams.showIcon || iconParams.iconPreset === 'none') return null
+
+        const preset = ICON_PRESETS.find((entry) => entry.value === iconParams.iconPreset)
+        if (!preset) return null
+
+        if (preset.value === 'custom') {
+          if (!customIconObjectUrl) return null
+          return loadImageTexture(customIconObjectUrl)
+        }
+
+        if (preset.emoji) return createEmojiTexture(preset.emoji)
+        if (preset.imageUrl) return loadImageTexture(preset.imageUrl)
+        return null
+      }
+
+      function createIconMaterial(texture) {
+        return new THREE.MeshPhysicalMaterial({
+          map: texture,
+          metalness: iconParams.iconMetalness,
+          roughness: iconParams.iconRoughness,
+          transmission: iconParams.iconTransmission,
+          thickness: 0.35,
+          ior: 1.45,
+          envMapIntensity: 1.35,
+          transparent: true,
+          opacity: iconParams.iconOpacity,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        })
+      }
+
+      function syncIconMaterial() {
+        if (!iconMesh) return
+        const material = iconMesh.material
+        material.metalness = iconParams.iconMetalness
+        material.roughness = iconParams.iconRoughness
+        material.transmission = iconParams.iconTransmission
+        syncIconSubmergeFade(performance.now() * 0.001)
+      }
+
+      function getIconHalfExtents() {
+        const aspect = iconTexture?.userData.aspect ?? 1
+        const halfHeight = iconParams.iconScale * 0.5
+        return {
+          halfWidth: halfHeight * aspect,
+          halfHeight,
+        }
+      }
+
+      function getIconPlacementOffset(time) {
+        const y = getTextWorldY(time)
+        const gap = iconParams.iconOffsetY
+        const { halfWidth: iconHalfWidth, halfHeight: iconHalfHeight } = getIconHalfExtents()
+
+        switch (iconParams.iconPlacement) {
+          case 'left':
+            return {
+              x: -(textHalfWidth + iconHalfWidth + gap),
+              y,
+            }
+          case 'right':
+            return {
+              x: textHalfWidth + iconHalfWidth + gap,
+              y,
+            }
+          case 'top':
+            return {
+              x: 0,
+              y,
+            }
+          case 'above':
+          default:
+            return {
+              x: 0,
+              y: y + textHalfHeight + iconHalfHeight + gap,
+            }
+        }
+      }
+
+      function syncIconSubmergeFade(time) {
+        if (!iconMesh) return
+
+        const { y } = getIconPlacementOffset(time)
+        const { halfHeight: iconHalfHeight } = getIconHalfExtents()
+        const iconBottom = y - iconHalfHeight
+        const submergedDepth = Math.max(0, -iconBottom)
+        const fadeRange = Math.max(iconParams.iconScale * 2.5, 1)
+        const submergeRatio = smoothstep01(submergedDepth / fadeRange)
+
+        iconMesh.material.opacity = iconParams.iconOpacity * (1 - submergeRatio * 0.5)
+        iconMesh.material.transmission =
+          iconParams.iconTransmission * (1 - submergeRatio * 0.35)
+      }
+
+      async function updateIconMesh() {
+        disposeIconMesh()
+        disposeIconTexture()
+
+        if (!iconParams.showIcon || iconParams.iconPreset === 'none') return
+
+        try {
+          iconTexture = await resolveIconTexture()
+        } catch (err) {
+          console.error('Icon texture failed to load', err)
+          return
+        }
+
+        if (!iconTexture) return
+
+        const aspect = iconTexture.userData.aspect ?? 1
+        const geometry = new THREE.PlaneGeometry(aspect, 1)
+        const material = createIconMaterial(iconTexture)
+        iconMesh = new THREE.Mesh(geometry, material)
+        iconMesh.renderOrder = 2
+        scene.add(iconMesh)
+        updateIconPosition(performance.now() * 0.001)
+      }
+
+      function updateIconPosition(time) {
+        if (!iconMesh) return
+
+        const shouldShow =
+          iconParams.showIcon &&
+          iconParams.iconPreset !== 'none' &&
+          messageParams.show3DText &&
+          messageParams.message.trim().length > 0
+
+        iconMesh.visible = shouldShow
+        if (!shouldShow) return
+
+        const { x, y } = getIconPlacementOffset(time)
+        iconMesh.position.set(x, y, 0)
+        iconMesh.scale.set(iconParams.iconScale, iconParams.iconScale, 1)
+        iconMesh.lookAt(camera.position)
+        syncIconSubmergeFade(time)
+      }
+
+      function loadFontByLabel(label) {
+        const entry = FONT_CATALOG.find((font) => font.label === label)
+        if (!entry) return
+
+        const token = ++fontLoadToken
+        messageParams.fontFamily = entry.label
+
+        const onFontReady = (font) => {
+          if (token !== fontLoadToken) return
+          loadedFont = font
+          updateTextMesh()
+        }
+
+        const onFontError = (err) => {
+          if (token !== fontLoadToken) return
+          console.error(`Font "${entry.label}" failed to load`, err)
+          if (entry.kind === 'ttf' && entry.label !== FONT_CATALOG[0].label) {
+            loadFontByLabel(FONT_CATALOG[0].label)
+          }
+        }
+
+        if (entry.kind === 'typeface') {
+          fontLoader.load(entry.url, onFontReady, undefined, onFontError)
+        } else {
+          ttfLoader.load(
+            entry.url,
+            (json) => onFontReady(new Font(json)),
+            undefined,
+            onFontError,
+          )
+        }
+      }
+
+      function createTextMaterial() {
+        return new THREE.MeshPhysicalMaterial({
+          color: messageParams.textColor,
+          metalness: messageParams.textMetalness,
+          roughness: messageParams.textRoughness,
+          transmission: messageParams.textTransmission,
+          thickness: messageParams.textSize * 0.45,
+          ior: 1.45,
+          envMapIntensity: 1.35,
+          transparent: true,
+          opacity: messageParams.textOpacity,
+          clippingPlanes: [waterClipPlane],
+          clipShadows: true,
+        })
+      }
+
+      function syncTextMaterial() {
+        if (!textMesh) return
+        const material = textMesh.material
+        material.color.set(messageParams.textColor)
+        material.metalness = messageParams.textMetalness
+        material.roughness = messageParams.textRoughness
+        material.transmission = messageParams.textTransmission
+        material.thickness = messageParams.textSize * 0.45
+        updateTextWaterEffect(performance.now() * 0.001)
+      }
+
+      function disposeTextMesh() {
+        if (!textMesh) return
+        textMesh.geometry.dispose()
+        textMesh.material.dispose()
+        scene.remove(textMesh)
+        textMesh = null
+      }
+
+      function updateTextMesh() {
+        const shouldShow =
+          messageParams.show3DText && messageParams.message.trim().length > 0 && loadedFont
+
+        if (!shouldShow) {
+          if (textMesh) textMesh.visible = false
+          return
+        }
+
+        disposeTextMesh()
+
+        const geometry = new TextGeometry(messageParams.message, {
+          font: loadedFont,
+          size: messageParams.textSize,
+          depth: messageParams.textSize * 0.18,
+          curveSegments: 12,
+          bevelEnabled: true,
+          bevelThickness: messageParams.textSize * 0.04,
+          bevelSize: messageParams.textSize * 0.025,
+          bevelSegments: 3,
+        })
+        geometry.center()
+
+        const material = createTextMaterial()
+
+        geometry.computeBoundingBox()
+        if (geometry.boundingBox) {
+          textHalfHeight = (geometry.boundingBox.max.y - geometry.boundingBox.min.y) * 0.5
+          textHalfWidth = (geometry.boundingBox.max.x - geometry.boundingBox.min.x) * 0.5
+        } else {
+          textHalfHeight = messageParams.textSize
+          textHalfWidth = messageParams.textSize * 2
+        }
+
+        textMesh = new THREE.Mesh(geometry, material)
+        textMesh.renderOrder = 2
+        textMesh.position.set(0, messageParams.textPositionY, 0)
+        scene.add(textMesh)
+        updateTextWaterEffect(performance.now() * 0.001)
+        updateIconPosition(performance.now() * 0.001)
+      }
+
+      function computeTextBob(time) {
+        const phase = time * messageParams.textBobSpeed
+        const primary = Math.sin(phase)
+        const secondary = Math.sin(phase * 2.037 + 0.7) * 0.12
+        const wave = primary + secondary
+        const submergeBlend = smoothstep01(0.5 * (1 - primary))
+        return { wave, submergeBlend }
+      }
+
+      function getTextWorldY(time) {
+        if (!messageParams.autoBob) {
+          return messageParams.textPositionY
+        }
+
+        const { wave, submergeBlend } = computeTextBob(time)
+        return (
+          messageParams.textPositionY +
+          wave * messageParams.textBobAmount -
+          submergeBlend * messageParams.textSubmerge
+        )
+      }
+
+      function updateTextWaterEffect(time) {
+        if (textMesh && textMesh.visible) {
+          const y = getTextWorldY(time)
+          textMesh.position.y = y
+          textMesh.rotation.y = Math.sin(time * 0.25) * 0.08
+
+          const textBottom = y - textHalfHeight
+          const submergedDepth = Math.max(0, -textBottom)
+          const fadeRange = Math.max(textHalfHeight * 2.5, 1)
+          const submergeRatio = smoothstep01(submergedDepth / fadeRange)
+
+          textMesh.material.opacity = messageParams.textOpacity * (1 - submergeRatio * 0.5)
+          textMesh.material.transmission =
+            messageParams.textTransmission * (1 - submergeRatio * 0.35)
+          textMesh.material.emissive.setHex(0x0a2840)
+          textMesh.material.emissiveIntensity = submergeRatio * 0.35
+        }
+
+        updateIconPosition(time)
+      }
+
+      loadFontByLabel(messageParams.fontFamily)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.maxPolarAngle = Math.PI * 0.495
+      controls.target.set(DEFAULT_CAMERA.targetX, DEFAULT_CAMERA.targetY, DEFAULT_CAMERA.targetZ)
+      controls.minDistance = 40
+      controls.maxDistance = 200
+      controls.update()
+
+      if (sharedCameraState) {
+        camera.position.set(
+          sharedCameraState.camX,
+          sharedCameraState.camY,
+          sharedCameraState.camZ,
+        )
+        controls.target.set(
+          sharedCameraState.targetX,
+          sharedCameraState.targetY,
+          sharedCameraState.targetZ,
+        )
+        controls.update()
+      }
+
+      const gui = new GUI({ title: 'Controls' })
+
+      const shareState = { status: 'Ready' }
+      let shareStatusCtrl = null
+      const shareActions = {
+        copyShareLink: async () => {
+          const url = buildShareUrl()
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(url)
+            } else {
+              const textarea = document.createElement('textarea')
+              textarea.value = url
+              textarea.style.position = 'fixed'
+              textarea.style.left = '-9999px'
+              document.body.appendChild(textarea)
+              textarea.select()
+              document.execCommand('copy')
+              document.body.removeChild(textarea)
+            }
+            shareState.status = 'Link copied!'
+          } catch (err) {
+            console.error('Copy share link failed', err)
+            shareState.status = 'Copy failed'
+          }
+          shareStatusCtrl?.updateDisplay()
+          window.setTimeout(() => {
+            shareState.status = 'Ready'
+            shareStatusCtrl?.updateDisplay()
+          }, 2200)
+        },
+      }
+      const folderShare = gui.addFolder('Share')
+      folderShare.add(shareActions, 'copyShareLink').name('Copy share link')
+      shareStatusCtrl = folderShare.add(shareState, 'status').name('link status').disable()
+      folderShare.open()
+
+      const folderMessage = gui.addFolder('Message')
+      folderMessage.add(messageParams, 'message').name('message').onChange(updateTextMesh)
+      folderMessage.add(messageParams, 'show3DText').name('show 3D text').onChange(updateTextMesh)
+      folderMessage
+        .add(messageParams, 'fontFamily', FONT_CATALOG.map((font) => font.label))
+        .name('font')
+        .onChange((label) => loadFontByLabel(label))
+      folderMessage.add(messageParams, 'textSize', 1, 12, 0.1).name('text size').onChange(updateTextMesh)
+      folderMessage.addColor(messageParams, 'textColor').name('text color').onChange(syncTextMaterial)
+      folderMessage
+        .add(messageParams, 'textOpacity', 0.05, 1, 0.01)
+        .name('glass opacity')
+        .onChange(syncTextMaterial)
+      folderMessage
+        .add(messageParams, 'textMetalness', 0, 1, 0.01)
+        .name('metalness')
+        .onChange(syncTextMaterial)
+      folderMessage
+        .add(messageParams, 'textRoughness', 0, 1, 0.01)
+        .name('roughness')
+        .onChange(syncTextMaterial)
+      folderMessage
+        .add(messageParams, 'textTransmission', 0, 1, 0.01)
+        .name('transmission')
+        .onChange(syncTextMaterial)
+      const textHeightCtrl = folderMessage
+        .add(messageParams, 'textPositionY', -10, 50, 0.5)
+        .name('text height')
+        .onChange(() => {
+          if (!messageParams.autoBob && textMesh) {
+            textMesh.position.y = messageParams.textPositionY
+            updateTextWaterEffect(performance.now() * 0.001)
+          }
+        })
+      folderMessage
+        .add(messageParams, 'textSubmerge', 0, 20, 0.5)
+        .name('submerge depth')
+        .onChange(() => updateTextWaterEffect(performance.now() * 0.001))
+      folderMessage
+        .add(messageParams, 'textBobSpeed', 0.1, 3, 0.05)
+        .name('bob speed')
+      folderMessage
+        .add(messageParams, 'textBobAmount', 0, 15, 0.25)
+        .name('bob amount')
+      folderMessage
+        .add(messageParams, 'autoBob')
+        .name('auto bob')
+        .onChange((value) => {
+          textHeightCtrl.enable(!value)
+        })
+      folderMessage
+        .add(
+          {
+            saveScreenshot: () => downloadScreenshot(),
+          },
+          'saveScreenshot',
+        )
+        .name('Save wallpaper')
+
+      const iconPresetOptions = Object.fromEntries(
+        ICON_PRESETS.map((preset) => [preset.label, preset.value]),
+      )
+      const iconGuiState = { iconSelection: 'None' }
+      const folderIcon = gui.addFolder('Icon')
+      folderIcon
+        .add(iconParams, 'showIcon')
+        .name('show icon')
+        .onChange(() => updateIconMesh())
+      folderIcon
+        .add(iconGuiState, 'iconSelection', Object.keys(iconPresetOptions))
+        .name('icon')
+        .onChange((label) => {
+          iconParams.iconPreset = iconPresetOptions[label] ?? 'none'
+          if (iconParams.iconPreset === 'custom') {
+            iconFileInput.click()
+            return
+          }
+          updateIconMesh()
+        })
+      folderIcon
+        .add(iconParams, 'iconOpacity', 0.05, 1, 0.01)
+        .name('glass opacity')
+        .onChange(syncIconMaterial)
+      folderIcon
+        .add(iconParams, 'iconMetalness', 0, 1, 0.01)
+        .name('metalness')
+        .onChange(syncIconMaterial)
+      folderIcon
+        .add(iconParams, 'iconRoughness', 0, 1, 0.01)
+        .name('roughness')
+        .onChange(syncIconMaterial)
+      folderIcon
+        .add(iconParams, 'iconTransmission', 0, 1, 0.01)
+        .name('transmission')
+        .onChange(syncIconMaterial)
+      folderIcon
+        .add(iconParams, 'iconPlacement', ICON_PLACEMENTS)
+        .name('placement')
+        .onChange(() => updateIconPosition(performance.now() * 0.001))
+      folderIcon
+        .add(iconParams, 'iconScale', 1, 12, 0.25)
+        .name('icon size')
+        .onChange(() => updateIconPosition(performance.now() * 0.001))
+      folderIcon
+        .add(iconParams, 'iconOffsetY', -5, 20, 0.25)
+        .name('icon gap')
+        .onChange(() => updateIconPosition(performance.now() * 0.001))
+      folderIcon
+        .add({ uploadIcon: () => iconFileInput.click() }, 'uploadIcon')
+        .name('upload image')
+      folderIcon.open()
+
+      iconFileInput.addEventListener('change', () => {
+        const file = iconFileInput.files?.[0]
+        iconFileInput.value = ''
+        if (!file) return
+
+        if (customIconObjectUrl) URL.revokeObjectURL(customIconObjectUrl)
+        customIconObjectUrl = URL.createObjectURL(file)
+        iconParams.iconPreset = 'custom'
+        iconParams.showIcon = true
+        iconGuiState.iconSelection = 'Custom upload'
+        refreshGui(folderIcon)
+        updateIconMesh()
+      })
+
+      const videoDurationCtrl = folderMessage
+        .add(videoParams, 'videoDuration', 1, 30, 1)
+        .name('video length (s)')
+      const recordProgressCtrl = folderMessage.add(recordState, 'progress').name('record progress').disable()
+      const recordStatusCtrl = folderMessage.add(recordState, 'status').name('status').disable()
+
+      let recordButtonCtrl = null
+      let stopButtonCtrl = null
+
+      const videoActions = {
+        startRecording: () => startVideoRecording(),
+        stopRecording: () => stopVideoRecording(),
+      }
+
+      recordButtonCtrl = folderMessage.add(videoActions, 'startRecording').name('Record video')
+      stopButtonCtrl = folderMessage.add(videoActions, 'stopRecording').name('Stop recording')
+      stopButtonCtrl.disable()
+      folderMessage.open()
+
+      const folderSky = gui.addFolder('Sky')
+      folderSky.add(parameters, 'elevation', 0, 90, 0.1).onChange(updateSun)
+      folderSky.add(parameters, 'azimuth', -180, 180, 0.1).onChange(updateSun)
+      folderSky
+        .add(parameters, 'exposure', 0, 1, 0.0001)
+        .onChange((value) => {
+          renderer.toneMappingExposure = value
+        })
+      folderSky.add({ sunset: applySunsetPreset }, 'sunset').name('Sunset preset')
+      folderSky.open()
+
+      const folderWater = gui.addFolder('Water')
+      folderWater.add(waterUniforms.distortionScale, 'value', 0, 8, 0.1).name('distortionScale')
+      folderWater.add(waterUniforms.size, 'value', 0.1, 10, 0.1).name('size')
+      folderWater.open()
+
+      const folderBloom = gui.addFolder('Bloom')
+      folderBloom
+        .add(bloomSettings, 'enabled')
+        .name('enabled')
+        .onChange(() => syncBloomEffects())
+      folderBloom
+        .add(bloomSettings, 'strength', 0, 3, 0.01)
+        .onChange(() => syncBloomEffects())
+      folderBloom
+        .add(bloomSettings, 'radius', 0, 1, 0.01)
+        .onChange(() => syncBloomEffects())
+
+      const folderClouds = gui.addFolder('Clouds')
+      folderClouds.add(skyUniforms.cloudCoverage, 'value', 0, 1, 0.01).name('coverage')
+      folderClouds.add(skyUniforms.cloudDensity, 'value', 0, 1, 0.01).name('density')
+      folderClouds.add(skyUniforms.cloudElevation, 'value', 0, 1, 0.01).name('elevation')
+      folderClouds.open()
+
+      if (sharedStateLoaded) {
+        iconGuiState.iconSelection = iconPresetToGuiLabel(iconParams.iconPreset)
+        textHeightCtrl.enable(!messageParams.autoBob)
+        refreshGui(gui)
+        updateIconMesh()
+      }
+
+      window.addEventListener('resize', onWindowResize)
+
+      renderer.domElement.addEventListener('webglcontextlost', (event) => {
+        event.preventDefault()
+        stopLoop()
+      })
+      renderer.domElement.addEventListener('webglcontextrestored', () => {
+        onWindowResize()
+        syncLoop()
+      })
+
+      function onWindowResize() {
+        if (isRecording) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setPixelRatio(maxDpr)
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        syncBloomPassSize()
+      }
+
+      function getRecordingDpr() {
+        return Math.min(Math.max(window.devicePixelRatio, 1) * 2, 3)
+      }
+
+      function getRecordingBufferSize() {
+        const cssW = window.innerWidth
+        const cssH = window.innerHeight
+        const dpr = getRecordingDpr()
+        return {
+          cssW,
+          cssH,
+          dpr,
+          bufferW: Math.round(cssW * dpr),
+          bufferH: Math.round(cssH * dpr),
+        }
+      }
+
+      function getRecordingBitrate(mimeType, bufferW, bufferH) {
+        const pixels = bufferW * bufferH
+        const estimated = Math.round(pixels * RECORD_FPS * 0.08)
+        if (mimeType.includes('vp9')) {
+          return Math.min(50_000_000, Math.max(25_000_000, estimated))
+        }
+        return Math.min(35_000_000, Math.max(20_000_000, estimated))
+      }
+
+      function formatBitrate(bps) {
+        return `${Math.round(bps / 1_000_000)} Mbps`
+      }
+
+      function enterRecordingQuality() {
+        const { cssW, cssH, dpr, bufferW, bufferH } = getRecordingBufferSize()
+        savedRecordSettings = { dpr: renderer.getPixelRatio(), cssW, cssH }
+        renderer.setPixelRatio(dpr)
+        renderer.setSize(cssW, cssH)
+        camera.aspect = cssW / cssH
+        camera.updateProjectionMatrix()
+        syncBloomPassSize()
+        return { bufferW, bufferH, dpr }
+      }
+
+      function exitRecordingQuality() {
+        if (!savedRecordSettings) return
+        const { dpr, cssW, cssH } = savedRecordSettings
+        renderer.setPixelRatio(dpr)
+        renderer.setSize(cssW, cssH)
+        camera.aspect = cssW / cssH
+        camera.updateProjectionMatrix()
+        syncBloomPassSize()
+        savedRecordSettings = null
+      }
+
+      const timer = new THREE.Timer()
+
+      function render() {
+        const time = performance.now() * 0.001
+        const delta = timer.getDelta()
+
+        updateTextWaterEffect(time)
+
+        water.material.uniforms.sunDirection.value.copy(sun).normalize()
+        water.material.uniforms.time.value += delta
+        sky.material.uniforms.time.value = time
+
+        updateWaterMirror()
+        renderer.render(scene, camera)
+
+        if (isRecording && recordVideoTrack?.requestFrame) {
+          recordVideoTrack.requestFrame()
+        }
+
+        if (isRecording) {
+          const now = performance.now()
+          const elapsed = now - recordStartTime
+          const durationMs = videoParams.videoDuration * 1000
+          const pct = Math.min(100, (elapsed / durationMs) * 100)
+          recordState.progress = `${Math.round(pct)}%`
+          recordProgressCtrl.updateDisplay()
+
+          if (now >= recordEndTime) {
+            stopVideoRecording()
+          }
+        }
+      }
+
+      function downloadScreenshot() {
+        const width = window.innerWidth
+        const height = window.innerHeight
+        const prevDpr = renderer.getPixelRatio()
+        const screenshotScale = 2
+        const captureDpr = Math.min(prevDpr * screenshotScale, 3)
+
+        renderer.setPixelRatio(captureDpr)
+        renderer.setSize(width, height)
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+        syncBloomPassSize()
+
+        timer.update()
+        render()
+
+        const link = document.createElement('a')
+        const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+        link.download = `iom-ocean-message-${stamp}.png`
+        link.href = renderer.domElement.toDataURL('image/png')
+        link.click()
+
+        renderer.setPixelRatio(prevDpr)
+        renderer.setSize(width, height)
+        camera.aspect = width / height
+        camera.updateProjectionMatrix()
+        syncBloomPassSize()
+      }
+
+      function pickVideoMimeType() {
+        const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm']
+        for (const type of candidates) {
+          if (MediaRecorder.isTypeSupported(type)) return type
+        }
+        return ''
+      }
+
+      function setRecordingUi(active) {
+        isRecording = active
+        recordButtonCtrl.disable(active)
+        stopButtonCtrl.enable(active)
+        videoDurationCtrl.disable(active)
+        recordStatusCtrl.updateDisplay()
+        recordProgressCtrl.updateDisplay()
+      }
+
+      function startVideoRecording() {
+        if (isRecording || typeof MediaRecorder === 'undefined') {
+          recordState.status = 'Recording not supported'
+          recordStatusCtrl.updateDisplay()
+          return
+        }
+
+        recordMimeType = pickVideoMimeType()
+        if (!recordMimeType) {
+          recordState.status = 'No WebM codec available'
+          recordStatusCtrl.updateDisplay()
+          return
+        }
+
+        const { bufferW, bufferH } = enterRecordingQuality()
+        const codecLabel = recordMimeType.includes('vp9')
+          ? 'VP9'
+          : recordMimeType.includes('vp8')
+            ? 'VP8'
+            : 'WebM'
+        const bitrate = getRecordingBitrate(recordMimeType, bufferW, bufferH)
+        // Manual frame capture: captureStream(fps) races the water mirror pass and
+        // tone-mapping compositor, producing intermittent black rectangles in recordings.
+        const stream = renderer.domElement.captureStream(0)
+        recordVideoTrack = stream.getVideoTracks()[0] ?? null
+        recordedChunks = []
+
+        try {
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: recordMimeType,
+            videoBitsPerSecond: bitrate,
+          })
+        } catch (err) {
+          recordVideoTrack?.stop()
+          recordVideoTrack = null
+          exitRecordingQuality()
+          recordState.status = 'Recorder failed to start'
+          recordStatusCtrl.updateDisplay()
+          console.error(err)
+          return
+        }
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) recordedChunks.push(event.data)
+        }
+
+        mediaRecorder.onstop = () => {
+          recordVideoTrack?.stop()
+          recordVideoTrack = null
+          exitRecordingQuality()
+          const blob = new Blob(recordedChunks, { type: recordMimeType })
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')
+          link.download = `iom-ocean-${stamp}.webm`
+          link.href = url
+          link.click()
+          URL.revokeObjectURL(url)
+          recordedChunks = []
+          recordState.status = 'Ready'
+          recordState.progress = '0%'
+          setRecordingUi(false)
+        }
+
+        mediaRecorder.onerror = () => {
+          recordVideoTrack?.stop()
+          recordVideoTrack = null
+          exitRecordingQuality()
+          recordState.status = 'Recording error'
+          setRecordingUi(false)
+        }
+
+        recordStartTime = performance.now()
+        recordEndTime = recordStartTime + videoParams.videoDuration * 1000
+        recordState.status = `Recording ${bufferW}×${bufferH} @ ${RECORD_FPS}fps ${codecLabel} ${formatBitrate(bitrate)}`
+        recordState.progress = '0%'
+        setRecordingUi(true)
+
+        timer.update()
+        render()
+
+        mediaRecorder.start(200)
+        if (!animationId) startLoop()
+      }
+
+      function stopVideoRecording() {
+        if (!mediaRecorder || mediaRecorder.state === 'inactive') return
+        recordState.status = 'Encoding…'
+        recordStatusCtrl.updateDisplay()
+        mediaRecorder.stop()
+        mediaRecorder = null
+        recordEndTime = 0
+        if (!isRecording) {
+          recordVideoTrack?.stop()
+          recordVideoTrack = null
+        }
+      }
+
+      let animationId = 0
+      let tabVisible = !document.hidden
+      let canvasVisible = true
+      let lastRenderTime = 0
+
+      const shouldRun = () => isRecording || (tabVisible && canvasVisible)
+
+      const stopLoop = () => {
+        if (!animationId) return
+        cancelAnimationFrame(animationId)
+        animationId = 0
+      }
+
+      const startLoop = () => {
+        if (animationId || !shouldRun()) return
+        lastRenderTime = 0
+        const tick = (timestamp) => {
+          if (!shouldRun()) {
+            animationId = 0
+            return
+          }
+          animationId = requestAnimationFrame(tick)
+
+          const elapsed = timestamp - lastRenderTime
+          if (!isRecording && lastRenderTime > 0 && elapsed < frameInterval) return
+          lastRenderTime = isRecording ? timestamp : timestamp - (elapsed % frameInterval)
+
+          timer.update()
+          render()
+        }
+        animationId = requestAnimationFrame(tick)
+      }
+
+      const syncLoop = () => {
+        if (shouldRun()) {
+          startLoop()
+        } else {
+          stopLoop()
+        }
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        tabVisible = !document.hidden
+        syncLoop()
+      })
+
+      const visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          const ratio = entry?.intersectionRatio ?? 0
+          canvasVisible = Boolean(entry?.isIntersecting && ratio >= 0.08)
+          syncLoop()
+        },
+        { threshold: [0, 0.08, 0.25, 0.5] },
+      )
+      visibilityObserver.observe(renderer.domElement)
+
+      syncLoop()
+    </script>
+  </body>
+</html>

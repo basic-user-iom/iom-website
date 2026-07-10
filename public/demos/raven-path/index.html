@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Raven Path — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #0a0c10;
+        color: #e8eaef;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      .hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        white-space: nowrap;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        left: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(320px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      .demo-attribution {
+        border-color: rgba(255, 255, 255, 0.16);
+        background: rgba(0, 0, 0, 0.55);
+        color: rgba(255, 255, 255, 0.78);
+      }
+      .demo-attribution a {
+        color: rgba(255, 255, 255, 0.92);
+      }
+      .demo-attribution-credits {
+        color: rgba(255, 255, 255, 0.62);
+      }
+      .lil-gui {
+        --background-color: rgba(12, 14, 18, 0.9);
+        --text-color: rgba(232, 234, 239, 0.92);
+        --title-background-color: rgba(255, 255, 255, 0.06);
+        --title-text-color: rgba(255, 255, 255, 0.95);
+        --widget-color: rgba(255, 255, 255, 0.08);
+        --hover-color: rgba(255, 255, 255, 0.12);
+        --focus-color: rgba(255, 255, 255, 0.18);
+        --number-color: rgba(120, 200, 255, 0.95);
+        --string-color: rgba(120, 200, 255, 0.95);
+        --font-size: 11px;
+        --font-family: system-ui, -apple-system, sans-serif;
+        --widget-border-radius: 3px;
+        --name-width: 48%;
+        --slider-knob-width: 3px;
+        --slider-input-width: 27%;
+        --input-font-weight: 400;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
+      }
+      .lil-gui.root {
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+      }
+      @media (max-width: 640px) {
+        .hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a href="/demos/spline-editor/" target="_blank" rel="noopener noreferrer"
+          >IOM — Raven path animation</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        Animated raven GLB following a Catmull-Rom spline — combines the
+        <a href="/demos/spline-editor/" target="_blank" rel="noopener noreferrer">spline editor</a>
+        with path controls (speed, easing, reverse, tangent rotation) and skeletal wing-flap
+        playback.
+      </p>
+    </aside>
+    <div id="container"></div>
+    <p class="hint">Click control points · drag gizmo · orbit with right mouse</p>
+    <div id="status">Loading raven…</div>
+
+    <script type="module">
+      import * as THREE from 'three'
+      import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { TransformControls } from 'three/addons/controls/TransformControls.js'
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+      import { SimplifyModifier } from 'three/addons/modifiers/SimplifyModifier.js'
+
+      const RAVEN_URL_DESKTOP = '/assets/ravens/common-ravens.gltf'
+      const RAVEN_URL_MOBILE = '/assets/ravens/common-ravens-mobile.glb'
+      const RAVEN_URL_MEDIUM = '/assets/ravens/common-ravens-medium.glb'
+      const RAVEN_URL_COARSE = '/assets/ravens/common-ravens-coarse.glb'
+      const DEFAULT_USE_MOBILE =
+        window.matchMedia('(max-width: 768px)').matches ||
+        window.matchMedia('(pointer: coarse)').matches
+
+      // Prebuilt LOD assets from scripts/build-mobile-raven.mjs.
+      // Note: the raven is many small skinned feather cards, so mesh decimation is
+      // limited — the meaningful savings between presets come from texture resolution
+      // and download size. Tri counts are read live from the loaded model.
+      const QUALITY_PRESETS = {
+        Full: { url: RAVEN_URL_DESKTOP, label: 'desktop GLTF', sizeMB: 16.8, tex: 'source' },
+        Medium: { url: RAVEN_URL_MEDIUM, label: 'medium GLB', sizeMB: 15.3, tex: '1024px' },
+        Mobile: { url: RAVEN_URL_MOBILE, label: 'mobile GLB', sizeMB: 11.2, tex: '512px' },
+        Coarse: { url: RAVEN_URL_COARSE, label: 'coarse GLB', sizeMB: 10.4, tex: '512px' },
+      }
+      const QUALITY_KEYS = Object.keys(QUALITY_PRESETS)
+
+      const ARC_SEGMENTS = 200
+      const DEFAULT_RAVEN_SCALE = 0.85
+      /** Matches useHeroScene prepareRavenModel — raven mesh faces +X, not glTF +Z. */
+      const DEFAULT_FORWARD_AXIS = '+x'
+      const FORWARD_AXIS_OPTIONS = {
+        '+Z (glTF)': '+z',
+        '+X (raven)': '+x',
+        '-X': '-x',
+        '-Z': '-z',
+        '+Y (debug)': '+y',
+      }
+      const FEATHER_BODY_NAMES = new Set(['feather', 'body'])
+
+      const container = document.getElementById('container')
+      const statusEl = document.getElementById('status')
+
+      let camera, scene, renderer, controls, transformControl
+      let curve, splineLine
+      let pathRoot, pathPivot, ravenModel, mixer, wingAction, forwardArrowHelper
+      let keyLight, fillLight, ambientLight
+      let clock
+      let materialEntries = []
+      let materialCatalog = []
+      let highlightedMeshes = []
+      let polyStats = { triangles: 0, vertices: 0, meshes: 0, skinned: 0, drawCalls: 0 }
+      let baselineTris = 0
+      let polyStatsLabel = null
+      let polyDetailLabel = null
+      let sizeHintLabel = null
+      let compareLabel = null
+      let materialInfoLabel = null
+      let selectedMeshLabel = null
+      let wingAnimInfoLabel = null
+      let guiInstance = null
+      let objectGuiControllers = []
+      let orientationGuiControllers = []
+      let materialGuiControllers = []
+
+      const splineHelperObjects = []
+      let splinePointsLength = 4
+      const positions = []
+      const point = new THREE.Vector3()
+      const tangent = new THREE.Vector3()
+      const lookTarget = new THREE.Vector3()
+      const pathCenter = new THREE.Vector3()
+
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+      const onUpPosition = new THREE.Vector2()
+      const onDownPosition = new THREE.Vector2()
+
+      const pathState = {
+        closed: false,
+        rotateX: 0,
+        rotateY: 0,
+        rotateZ: 0,
+        translateX: 0,
+        translateY: 0,
+        translateZ: 0,
+        pointSize: 0.2,
+        pointOpacity: 0.42,
+      }
+
+      let controlPointGeometry = null
+      let controlPointMaterial = null
+
+      const animState = {
+        playPath: true,
+        playWings: true,
+        pathSpeed: 0.08,
+        wingSpeed: 1.0,
+        easeIn: 0.18,
+        easeOut: 0.18,
+        reverse: false,
+        loop: true,
+        alignToTangent: true,
+        progress: 0,
+      }
+
+      const wingAnimInfo = {
+        clipName: '—',
+      }
+
+      const objectState = {
+        scale: DEFAULT_RAVEN_SCALE,
+        offsetX: 0,
+        offsetY: 0,
+        offsetZ: 0,
+        rotationX: 0,
+        rotationY: 0,
+        rotationZ: 0,
+        headingOffsetDeg: 0,
+        pitchOffsetDeg: 0,
+        bankOffsetDeg: 0,
+        visible: true,
+      }
+
+      const orientationState = {
+        forwardAxisLabel: '+X (raven)',
+        forwardAxis: DEFAULT_FORWARD_AXIS,
+        flip180: false,
+        showForwardArrow: false,
+      }
+
+      const textureState = {
+        brightness: 1,
+        roughnessMul: 1,
+        metalnessMul: 1,
+        normalScale: 1,
+        envMapIntensity: 0.25,
+        clearcoatEnabled: false,
+        clearcoatIntensity: 0,
+        sheenEnabled: false,
+        sheenIntensity: 0,
+        specularEnabled: false,
+        specularIntensity: 0,
+        stripFeatherExtensions: true,
+      }
+
+      const materialPickerState = {
+        names: ['All (global)'],
+        selected: 'All (global)',
+      }
+
+      const selectedMaterialEdit = {
+        colorR: 1,
+        colorG: 1,
+        colorB: 1,
+        roughness: 0.5,
+        metalness: 0,
+        normalScale: 1,
+        opacity: 1,
+        stripExtensions: true,
+      }
+
+      const editState = {
+        target: 'path',
+        manualEdit: false,
+        transformMode: 'translate',
+      }
+
+      const geometryState = {
+        quality: DEFAULT_USE_MOBILE ? 'Mobile' : 'Full',
+        useMobileModel: DEFAULT_USE_MOBILE,
+        modelLabel: DEFAULT_USE_MOBILE ? 'mobile GLB' : 'desktop GLTF',
+        simplifyRatio: 0.5,
+        note: 'Skinned meshes keep bones; static-only runtime simplify.',
+      }
+
+      const sceneState = {
+        keyIntensity: 1.1,
+        fillIntensity: 0.45,
+        ambientIntensity: 0.55,
+        fogNear: 40,
+        fogFar: 220,
+      }
+
+      const params = {
+        addPoint: addPoint,
+        removePoint: removePoint,
+        resetPath: resetPath,
+        exportSpline: exportSpline,
+        resetPathTransform: resetPathTransform,
+        resetObject: resetObject,
+        resetPathProgress: resetPathProgress,
+        reapplyMaterials: reapplyMaterials,
+        swapModelQuality: swapModelQuality,
+        applyRuntimeSimplify: applyRuntimeSimplify,
+        applyToAllFeather: () => applyMaterialGroup('feather'),
+        applyToAllBody: () => applyMaterialGroup('body'),
+        setTranslateMode: () => setRavenTransformMode('translate'),
+        setRotateMode: () => setRavenTransformMode('rotate'),
+        fixSidewaysOrientation: fixSidewaysOrientation,
+        flipOrientation180: flipOrientation180,
+      }
+
+      init()
+
+      function setStatus(text) {
+        statusEl.textContent = text
+      }
+
+      let baseStatusMessage = 'Loading raven…'
+
+      function formatPathStatus() {
+        const u = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
+        const pathLabel = animState.playPath ? 'ON' : 'off'
+        const wingLabel = animState.playWings ? 'ON' : 'off'
+        return `${baseStatusMessage} · u=${u.toFixed(3)} · path ${pathLabel} · wings ${wingLabel}`
+      }
+
+      function refreshPathStatus() {
+        setStatus(formatPathStatus())
+      }
+
+      function init() {
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x0a0c10)
+        scene.fog = new THREE.Fog(0x0a0c10, sceneState.fogNear, sceneState.fogFar)
+
+        camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 500)
+        camera.position.set(0, 18, 42)
+        scene.add(camera)
+
+        ambientLight = new THREE.AmbientLight(0x8899aa, sceneState.ambientIntensity)
+        scene.add(ambientLight)
+        keyLight = new THREE.DirectionalLight(0x9ec8e8, sceneState.keyIntensity)
+        keyLight.position.set(12, 28, 16)
+        scene.add(keyLight)
+        fillLight = new THREE.DirectionalLight(0x6688cc, sceneState.fillIntensity)
+        fillLight.position.set(-18, 10, -8)
+        scene.add(fillLight)
+
+        const ground = new THREE.Mesh(
+          new THREE.PlaneGeometry(300, 300),
+          new THREE.MeshStandardMaterial({ color: 0x141820, roughness: 0.95, metalness: 0 }),
+        )
+        ground.rotation.x = -Math.PI / 2
+        ground.position.y = -0.02
+        ground.receiveShadow = true
+        scene.add(ground)
+
+        const grid = new THREE.GridHelper(200, 80, 0x2a3340, 0x1a2028)
+        grid.position.y = 0.01
+        scene.add(grid)
+
+        renderer = new THREE.WebGLRenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.shadowMap.enabled = true
+        container.appendChild(renderer.domElement)
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.target.set(0, 8, 0)
+        controls.enableDamping = true
+        controls.dampingFactor = 0.06
+
+        transformControl = new TransformControls(camera, renderer.domElement)
+        transformControl.addEventListener('dragging-changed', (event) => {
+          controls.enabled = !event.value
+        })
+        transformControl.addEventListener('objectChange', onTransformObjectChange)
+        scene.add(transformControl.getHelper())
+
+        pathRoot = new THREE.Group()
+        scene.add(pathRoot)
+
+        for (let i = 0; i < splinePointsLength; i++) {
+          addSplineObject(positions[i])
+        }
+        positions.length = 0
+        for (let i = 0; i < splinePointsLength; i++) {
+          positions.push(splineHelperObjects[i].position)
+        }
+
+        loadDefaultPath()
+        rebuildCurve()
+        buildGui()
+
+        document.addEventListener('pointerdown', onPointerDown)
+        document.addEventListener('pointerup', onPointerUp)
+        document.addEventListener('pointermove', onPointerMove)
+        window.addEventListener('resize', onWindowResize)
+
+        clock = new THREE.Clock()
+        loadRaven()
+          .then(() => {
+            baseStatusMessage = 'Raven loaded · drag path points · tune in editor panel'
+            refreshPathStatus()
+          })
+          .catch((err) => {
+            console.error('Raven model failed to load:', getRavenUrl(), err)
+            baseStatusMessage = `Raven failed to load (${getRavenUrl()}) — check console`
+            setStatus(baseStatusMessage)
+          })
+          .finally(() => {
+            // Discard load-time elapsed so the first frame does not jump path progress.
+            clock.getDelta()
+            animate()
+          })
+      }
+
+      function getRavenUrl() {
+        const preset = QUALITY_PRESETS[geometryState.quality] ?? QUALITY_PRESETS.Full
+        return preset.url
+      }
+
+      function buildGui() {
+        guiInstance = new GUI({ title: 'Raven Path Editor', width: 300 })
+
+        const editFolder = guiInstance.addFolder('Edit mode')
+        editFolder
+          .add(editState, 'target', { 'Edit path': 'path', 'Edit raven': 'raven' })
+          .name('Gizmo target')
+          .onChange(onEditTargetChange)
+        editFolder.add(editState, 'manualEdit').name('Manual edit').onChange(onManualEditChange)
+        editFolder.add(params, 'setTranslateMode').name('Move gizmo')
+        editFolder.add(params, 'setRotateMode').name('Rotate gizmo')
+
+        const pathFolder = guiInstance.addFolder('Path')
+        pathFolder.add(pathState, 'closed').name('Closed loop').onChange(rebuildCurve)
+        pathFolder.add(pathState, 'rotateY', -Math.PI, Math.PI, 0.01).name('Rotate Y').onChange(applyPathRootTransform)
+        pathFolder.add(pathState, 'rotateX', -Math.PI, Math.PI, 0.01).name('Rotate X').onChange(applyPathRootTransform)
+        pathFolder.add(pathState, 'rotateZ', -Math.PI, Math.PI, 0.01).name('Rotate Z').onChange(applyPathRootTransform)
+        pathFolder.add(pathState, 'translateX', -60, 60, 0.5).name('Origin X').onChange(applyPathRootTransform)
+        pathFolder.add(pathState, 'translateY', -30, 30, 0.5).name('Origin Y').onChange(applyPathRootTransform)
+        pathFolder.add(pathState, 'translateZ', -60, 60, 0.5).name('Origin Z').onChange(applyPathRootTransform)
+        pathFolder.add(params, 'addPoint').name('Add point')
+        pathFolder.add(params, 'removePoint').name('Remove point')
+        pathFolder.add(params, 'resetPath').name('Reset points')
+        pathFolder.add(params, 'resetPathTransform').name('Reset transform')
+        pathFolder.add(params, 'exportSpline').name('Export points')
+        pathFolder
+          .add(pathState, 'pointSize', 0.08, 0.5, 0.01)
+          .name('Point size')
+          .onChange(rebuildControlPointGeometry)
+        pathFolder
+          .add(pathState, 'pointOpacity', 0.1, 1, 0.01)
+          .name('Point opacity')
+          .onChange(updateControlPointOpacity)
+
+        const objectFolder = guiInstance.addFolder('Object')
+        objectGuiControllers = [
+          objectFolder.add(objectState, 'scale', 0.1, 3, 0.01).name('Scale').onChange(applyObjectTransform),
+          objectFolder.add(objectState, 'offsetX', -10, 10, 0.05).name('Offset X').onChange(applyObjectTransform),
+          objectFolder.add(objectState, 'offsetY', -10, 10, 0.05).name('Offset Y').onChange(applyObjectTransform),
+          objectFolder.add(objectState, 'offsetZ', -10, 10, 0.05).name('Offset Z').onChange(applyObjectTransform),
+          objectFolder
+            .add(objectState, 'rotationX', -Math.PI, Math.PI, 0.01)
+            .name('Rot X')
+            .onChange(applyObjectTransform),
+          objectFolder
+            .add(objectState, 'rotationY', -Math.PI, Math.PI, 0.01)
+            .name('Rot Y')
+            .onChange(applyObjectTransform),
+          objectFolder
+            .add(objectState, 'rotationZ', -Math.PI, Math.PI, 0.01)
+            .name('Rot Z')
+            .onChange(applyObjectTransform),
+          objectFolder.add(animState, 'alignToTangent').name('Align to path'),
+          objectFolder
+            .add(objectState, 'visible')
+            .name('Visible')
+            .onChange(() => {
+              if (pathPivot) pathPivot.visible = objectState.visible
+            }),
+        ]
+
+        const orientationFolder = objectFolder.addFolder('Orientation')
+        orientationGuiControllers = [
+          orientationFolder
+            .add(orientationState, 'forwardAxisLabel', Object.keys(FORWARD_AXIS_OPTIONS))
+            .name('Forward axis')
+            .onChange((label) => {
+              orientationState.forwardAxis = FORWARD_AXIS_OPTIONS[label] ?? DEFAULT_FORWARD_AXIS
+              applyObjectTransform()
+              refreshObjectGui()
+            }),
+          orientationFolder
+            .add(objectState, 'headingOffsetDeg', -180, 180, 1)
+            .name('Heading offset °')
+            .onChange(() => updateRavenOnPath(0)),
+          orientationFolder
+            .add(objectState, 'pitchOffsetDeg', -90, 90, 1)
+            .name('Pitch offset °')
+            .onChange(() => updateRavenOnPath(0)),
+          orientationFolder
+            .add(objectState, 'bankOffsetDeg', -90, 90, 1)
+            .name('Bank offset °')
+            .onChange(() => updateRavenOnPath(0)),
+          orientationFolder.add(orientationState, 'flip180').name('Flip 180°').onChange(() => updateRavenOnPath(0)),
+          orientationFolder
+            .add(orientationState, 'showForwardArrow')
+            .name('Show forward arrow')
+            .onChange(updateForwardArrow),
+        ]
+        orientationFolder.add(params, 'flipOrientation180').name('Toggle flip 180°')
+        orientationFolder.add(params, 'fixSidewaysOrientation').name('Fix sideways')
+        objectFolder.add(params, 'resetObject').name('Reset object')
+
+        const texturesFolder = guiInstance.addFolder('Textures')
+        texturesFolder
+          .add(materialPickerState, 'selected', materialPickerState.names)
+          .name('Material')
+          .onChange(onMaterialPickerChange)
+        selectedMeshLabel = { meshes: '—' }
+        texturesFolder.add(selectedMeshLabel, 'meshes').name('Meshes').disable()
+        texturesFolder.add(params, 'applyToAllFeather').name('Apply → all feather')
+        texturesFolder.add(params, 'applyToAllBody').name('Apply → all body')
+
+        materialGuiControllers = [
+          texturesFolder
+            .add(selectedMaterialEdit, 'colorR', 0, 2, 0.01)
+            .name('Tint R')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'colorG', 0, 2, 0.01)
+            .name('Tint G')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'colorB', 0, 2, 0.01)
+            .name('Tint B')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'roughness', 0, 1, 0.01)
+            .name('Roughness')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'metalness', 0, 1, 0.01)
+            .name('Metalness')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'normalScale', 0, 3, 0.01)
+            .name('Normal scale')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(selectedMaterialEdit, 'opacity', 0, 1, 0.01)
+            .name('Opacity')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder
+            .add(textureState, 'brightness', 0.2, 2.5, 0.01)
+            .name('Brightness')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'roughnessMul', 0, 2, 0.01)
+            .name('Roughness ×')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'metalnessMul', 0, 2, 0.01)
+            .name('Metalness ×')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'normalScale', 0, 3, 0.01)
+            .name('Normal ×')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'envMapIntensity', 0, 2, 0.01)
+            .name('Env intensity')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'stripFeatherExtensions')
+            .name('Strip extensions')
+            .onChange(applyTextureOverrides),
+          texturesFolder
+            .add(selectedMaterialEdit, 'stripExtensions')
+            .name('Strip (material)')
+            .onChange(onSelectedMaterialEdit),
+          texturesFolder.add(textureState, 'clearcoatEnabled').name('Clearcoat').onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'clearcoatIntensity', 0, 1, 0.01)
+            .name('Clearcoat amt')
+            .onChange(applyTextureOverrides),
+          texturesFolder.add(textureState, 'sheenEnabled').name('Sheen').onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'sheenIntensity', 0, 1, 0.01)
+            .name('Sheen amt')
+            .onChange(applyTextureOverrides),
+          texturesFolder.add(textureState, 'specularEnabled').name('Specular').onChange(applyTextureOverrides),
+          texturesFolder
+            .add(textureState, 'specularIntensity', 0, 1, 0.01)
+            .name('Specular amt')
+            .onChange(applyTextureOverrides),
+        ]
+        materialInfoLabel = { info: '—' }
+        texturesFolder.add(materialInfoLabel, 'info').name('Maps loaded').disable()
+        texturesFolder.add(params, 'reapplyMaterials').name('Reapply materials')
+
+        const geometryFolder = guiInstance.addFolder('Geometry / Optimize')
+        geometryFolder
+          .add(geometryState, 'quality', QUALITY_KEYS)
+          .name('Quality preset')
+          .onChange((value) => {
+            geometryState.useMobileModel = value === 'Mobile'
+            geometryState.modelLabel = QUALITY_PRESETS[value]?.label ?? value
+            swapModelQuality()
+          })
+        polyStatsLabel = { stats: '—' }
+        geometryFolder.add(polyStatsLabel, 'stats').name('Poly count').disable().listen()
+        polyDetailLabel = { detail: '—' }
+        geometryFolder.add(polyDetailLabel, 'detail').name('Meshes / draws').disable().listen()
+        sizeHintLabel = { size: '—' }
+        geometryFolder.add(sizeHintLabel, 'size').name('Est. download').disable().listen()
+        compareLabel = { compare: '—' }
+        geometryFolder.add(compareLabel, 'compare').name('Full → current').disable().listen()
+        geometryFolder.add(geometryState, 'modelLabel').name('Active model').disable().listen()
+        geometryFolder
+          .add(geometryState, 'simplifyRatio', 0.1, 0.95, 0.05)
+          .name('Static simplify ratio')
+        geometryFolder.add(params, 'applyRuntimeSimplify').name('Apply optimization')
+        geometryFolder.add(geometryState, 'note').name('Note').disable()
+
+        const animationFolder = guiInstance.addFolder('Animation')
+
+        const pathMotionFolder = animationFolder.addFolder('Path motion')
+        pathMotionFolder.add(animState, 'playPath').name('Play path')
+        pathMotionFolder.add(animState, 'pathSpeed', 0.01, 0.35, 0.01).name('Path speed')
+        pathMotionFolder.add(animState, 'easeIn', 0, 0.45, 0.01).name('Ease in')
+        pathMotionFolder.add(animState, 'easeOut', 0, 0.45, 0.01).name('Ease out')
+        pathMotionFolder.add(animState, 'reverse').name('Reverse')
+        pathMotionFolder.add(animState, 'loop').name('Loop')
+        pathMotionFolder.add(params, 'resetPathProgress').name('Reset to start')
+
+        const wingFlapFolder = animationFolder.addFolder('Wing flap')
+        wingFlapFolder.add(animState, 'playWings').name('Play wings')
+        wingFlapFolder.add(animState, 'wingSpeed', 0, 3, 0.05).name('Wing speed')
+        wingAnimInfoLabel = wingAnimInfo
+        wingFlapFolder.add(wingAnimInfoLabel, 'clipName').name('Clip').disable()
+
+        const sceneFolder = guiInstance.addFolder('Scene / Lighting')
+        sceneFolder
+          .add(sceneState, 'keyIntensity', 0, 3, 0.05)
+          .name('Key light')
+          .onChange(() => {
+            keyLight.intensity = sceneState.keyIntensity
+          })
+        sceneFolder
+          .add(sceneState, 'fillIntensity', 0, 2, 0.05)
+          .name('Fill light')
+          .onChange(() => {
+            fillLight.intensity = sceneState.fillIntensity
+          })
+        sceneFolder
+          .add(sceneState, 'ambientIntensity', 0, 2, 0.05)
+          .name('Ambient')
+          .onChange(() => {
+            ambientLight.intensity = sceneState.ambientIntensity
+          })
+        sceneFolder
+          .add(sceneState, 'fogNear', 5, 120, 1)
+          .name('Fog near')
+          .onChange(() => {
+            scene.fog.near = sceneState.fogNear
+          })
+        sceneFolder
+          .add(sceneState, 'fogFar', 40, 400, 1)
+          .name('Fog far')
+          .onChange(() => {
+            scene.fog.far = sceneState.fogFar
+          })
+
+        updateMaterialGuiVisibility()
+
+        // Collapse every folder (nested first via foldersRecursive), then the root panel.
+        for (const folder of guiInstance.foldersRecursive()) {
+          folder.close()
+        }
+        guiInstance.close()
+      }
+
+      function onTransformObjectChange() {
+        if (editState.target === 'raven' && ravenModel && transformControl.object === ravenModel) {
+          syncObjectStateFromRavenModel()
+          refreshObjectGui()
+        } else {
+          updateSplineOutline()
+        }
+      }
+
+      function syncObjectStateFromRavenModel() {
+        if (!ravenModel) return
+        objectState.offsetX = ravenModel.position.x
+        objectState.offsetY = ravenModel.position.y
+        objectState.offsetZ = ravenModel.position.z
+        const base = getForwardAxisBaseRotation(orientationState.forwardAxis)
+        objectState.rotationX = ravenModel.rotation.x - base.x
+        objectState.rotationY = ravenModel.rotation.y - base.y
+        objectState.rotationZ = ravenModel.rotation.z - base.z
+      }
+
+      function refreshObjectGui() {
+        for (const controller of objectGuiControllers) controller.updateDisplay()
+        for (const controller of orientationGuiControllers) controller.updateDisplay()
+      }
+
+      /** Base model rotation so mesh forward axis aligns with parent -Z (Three.js lookAt forward). */
+      function getForwardAxisBaseRotation(axis) {
+        switch (axis) {
+          case '+z':
+            return { x: 0, y: Math.PI, z: 0 }
+          case '+x':
+            return { x: 0, y: Math.PI * 0.5, z: 0 }
+          case '-x':
+            return { x: 0, y: -Math.PI * 0.5, z: 0 }
+          case '-z':
+            return { x: 0, y: 0, z: 0 }
+          case '+y':
+            return { x: -Math.PI * 0.5, y: 0, z: 0 }
+          default:
+            return { x: 0, y: Math.PI * 0.5, z: 0 }
+        }
+      }
+
+      function detectForwardAxisFromBBox(model) {
+        model.updateMatrixWorld(true)
+        const box = new THREE.Box3()
+        model.traverse((child) => {
+          if (child.isMesh && child.visible) box.expandByObject(child, true)
+        })
+        if (box.isEmpty()) return DEFAULT_FORWARD_AXIS
+        const size = box.getSize(new THREE.Vector3())
+        const max = Math.max(size.x, size.y, size.z)
+        const eps = max * 0.02
+        if (size.x >= max - eps) return '+x'
+        if (size.z >= max - eps) return '+z'
+        if (size.y >= max - eps) return '+y'
+        return DEFAULT_FORWARD_AXIS
+      }
+
+      function setForwardAxisLabel(axis) {
+        const label =
+          Object.entries(FORWARD_AXIS_OPTIONS).find(([, value]) => value === axis)?.[0] ??
+          '+X (raven)'
+        orientationState.forwardAxisLabel = label
+        orientationState.forwardAxis = axis
+      }
+
+      function fixSidewaysOrientation() {
+        if (!ravenModel) return
+        const detected = detectForwardAxisFromBBox(ravenModel)
+        setForwardAxisLabel(detected)
+        objectState.rotationX = 0
+        objectState.rotationY = 0
+        objectState.rotationZ = 0
+        objectState.headingOffsetDeg = 0
+        objectState.pitchOffsetDeg = 0
+        objectState.bankOffsetDeg = 0
+        orientationState.flip180 = false
+        applyObjectTransform()
+        updateRavenOnPath(0)
+        refreshObjectGui()
+        setStatus(
+          `Orientation fixed — forward axis ${orientationState.forwardAxisLabel} (hero scene uses +X + 90° Y)`,
+        )
+      }
+
+      function flipOrientation180() {
+        orientationState.flip180 = !orientationState.flip180
+        updateRavenOnPath(0)
+        refreshObjectGui()
+      }
+
+      function ensureForwardArrow() {
+        if (!pathPivot) return null
+        if (!forwardArrowHelper) {
+          forwardArrowHelper = new THREE.ArrowHelper(
+            new THREE.Vector3(0, 0, -1),
+            new THREE.Vector3(0, 0, 0),
+            2.5,
+            0xff6644,
+            0.55,
+            0.28,
+          )
+          forwardArrowHelper.name = 'forwardArrowHelper'
+          pathPivot.add(forwardArrowHelper)
+        }
+        return forwardArrowHelper
+      }
+
+      function updateForwardArrow() {
+        const arrow = ensureForwardArrow()
+        if (arrow) arrow.visible = orientationState.showForwardArrow
+      }
+
+      function onEditTargetChange() {
+        if (editState.target === 'raven') {
+          editState.manualEdit = true
+          attachRavenTransform()
+        } else {
+          editState.manualEdit = false
+          if (transformControl.object === ravenModel) transformControl.detach()
+        }
+        updateEditHint()
+        if (guiInstance) {
+          const manualController = guiInstance.controllersRecursive().find((c) => c.property === 'manualEdit')
+          manualController?.updateDisplay()
+        }
+      }
+
+      function onManualEditChange() {
+        if (editState.manualEdit) {
+          editState.target = 'raven'
+          attachRavenTransform()
+        } else if (editState.target === 'raven') {
+          editState.target = 'path'
+          if (transformControl.object === ravenModel) transformControl.detach()
+        }
+        updateEditHint()
+        if (guiInstance) {
+          const targetController = guiInstance.controllersRecursive().find((c) => c.property === 'target')
+          targetController?.updateDisplay()
+        }
+      }
+
+      function attachRavenTransform() {
+        if (!ravenModel) return
+        transformControl.setMode(editState.transformMode)
+        transformControl.attach(ravenModel)
+      }
+
+      function setRavenTransformMode(mode) {
+        editState.transformMode = mode
+        if (editState.target === 'raven' || editState.manualEdit) {
+          transformControl.setMode(mode)
+          attachRavenTransform()
+        }
+      }
+
+      function updateEditHint() {
+        const hint = document.querySelector('.hint')
+        if (!hint) return
+        if (editState.target === 'raven' || editState.manualEdit) {
+          hint.textContent =
+            'Edit raven · drag move/rotate gizmo · orbit with right mouse · switch to Edit path for spline points'
+        } else {
+          hint.textContent = 'Click control points · drag gizmo · orbit with right mouse'
+        }
+      }
+
+      function getMaterialOverride(material) {
+        if (!material.userData._ravenPerMaterialOverride) {
+          material.userData._ravenPerMaterialOverride = {}
+        }
+        return material.userData._ravenPerMaterialOverride
+      }
+
+      function shouldStripExtensions(material) {
+        const override = material.userData._ravenPerMaterialOverride
+        if (override && override.stripExtensions !== undefined) {
+          return override.stripExtensions
+        }
+        return textureState.stripFeatherExtensions
+      }
+
+      function getMapsLoaded(material) {
+        const mapsLoaded = []
+        if (material.map) mapsLoaded.push('baseColor')
+        if (material.normalMap) mapsLoaded.push('normal')
+        if (material.metalnessMap || material.roughnessMap) mapsLoaded.push('metallicRoughness')
+        if (material.aoMap) mapsLoaded.push('ao')
+        if (material.clearcoatNormalMap) mapsLoaded.push('clearcoatNormal')
+        if (material.specularIntensityMap || material.specularColorMap) mapsLoaded.push('specular')
+        return mapsLoaded
+      }
+
+      function collectMaterialCatalog(root) {
+        const byName = new Map()
+        root.traverse((child) => {
+          if (!child.isMesh || !child.visible) return
+          const meshMaterials = Array.isArray(child.material) ? child.material : [child.material]
+          for (const material of meshMaterials) {
+            if (!material.isMeshStandardMaterial) continue
+            const name = material.name || 'unnamed'
+            if (!byName.has(name)) {
+              byName.set(name, {
+                name,
+                material,
+                meshes: [],
+                mapsLoaded: getMapsLoaded(material),
+              })
+            }
+            const entry = byName.get(name)
+            const meshName = child.name || 'unnamed mesh'
+            if (!entry.meshes.includes(meshName)) entry.meshes.push(meshName)
+          }
+        })
+        return [...byName.values()].sort((a, b) => a.name.localeCompare(b.name))
+      }
+
+      function refreshMaterialPicker() {
+        if (!ravenModel) {
+          materialCatalog = []
+          materialPickerState.names = ['All (global)']
+          materialPickerState.selected = 'All (global)'
+          return
+        }
+        materialCatalog = collectMaterialCatalog(ravenModel)
+        materialPickerState.names = ['All (global)', ...materialCatalog.map((e) => e.name)]
+        if (!materialPickerState.names.includes(materialPickerState.selected)) {
+          materialPickerState.selected = 'All (global)'
+        }
+        if (guiInstance) {
+          const pickerController = guiInstance.controllersRecursive().find((c) => c.property === 'selected')
+          if (pickerController) {
+            pickerController.options(materialPickerState.names)
+            pickerController.updateDisplay()
+          }
+        }
+        onMaterialPickerChange()
+      }
+
+      function onMaterialPickerChange() {
+        clearMaterialHighlight()
+        updateMaterialGuiVisibility()
+        if (materialPickerState.selected === 'All (global)') {
+          if (selectedMeshLabel) selectedMeshLabel.meshes = 'all materials'
+          updateMaterialInfoLabel()
+          return
+        }
+        const entry = materialCatalog.find((e) => e.name === materialPickerState.selected)
+        if (!entry) return
+        syncGuiFromSelectedMaterial(entry.material)
+        highlightMaterialMeshes(entry.meshes)
+        if (selectedMeshLabel) selectedMeshLabel.meshes = entry.meshes.join(', ')
+        if (materialInfoLabel) {
+          materialInfoLabel.info = entry.mapsLoaded.length ? entry.mapsLoaded.join(', ') : 'none'
+        }
+        if (guiInstance) {
+          const meshController = guiInstance.controllersRecursive().find((c) => c.property === 'meshes')
+          meshController?.updateDisplay()
+          const infoController = guiInstance.controllersRecursive().find((c) => c.property === 'info')
+          infoController?.updateDisplay()
+        }
+      }
+
+      function updateMaterialGuiVisibility() {
+        const isPerMaterial = materialPickerState.selected !== 'All (global)'
+        const entry = materialCatalog.find((e) => e.name === materialPickerState.selected)
+        const canStrip = entry && FEATHER_BODY_NAMES.has(entry.name)
+        const perMaterialProps = new Set([
+          'colorR',
+          'colorG',
+          'colorB',
+          'roughness',
+          'metalness',
+          'normalScale',
+          'opacity',
+          'stripExtensions',
+        ])
+        for (const controller of materialGuiControllers) {
+          if (perMaterialProps.has(controller.property)) {
+            const show =
+              isPerMaterial && (controller.property !== 'stripExtensions' || canStrip)
+            controller.domElement.style.display = show ? '' : 'none'
+          }
+        }
+      }
+
+      function syncGuiFromSelectedMaterial(material) {
+        const baseline = material.userData._ravenPbrBaseline
+        const override = material.userData._ravenPerMaterialOverride || {}
+        if (baseline) {
+          const tint = override.colorTint || { r: 1, g: 1, b: 1 }
+          selectedMaterialEdit.colorR = tint.r
+          selectedMaterialEdit.colorG = tint.g
+          selectedMaterialEdit.colorB = tint.b
+          selectedMaterialEdit.roughness =
+            override.roughness ?? Math.min(1, baseline.roughness * textureState.roughnessMul + 0.1)
+          selectedMaterialEdit.metalness =
+            override.metalness ?? Math.min(1, baseline.metalness * textureState.metalnessMul)
+          selectedMaterialEdit.normalScale = override.normalScale ?? textureState.normalScale
+        }
+        selectedMaterialEdit.opacity = override.opacity ?? material.opacity ?? 1
+        selectedMaterialEdit.stripExtensions = shouldStripExtensions(material)
+        for (const controller of materialGuiControllers) controller.updateDisplay()
+      }
+
+      function onSelectedMaterialEdit() {
+        if (materialPickerState.selected === 'All (global)') return
+        const entry = materialCatalog.find((e) => e.name === materialPickerState.selected)
+        if (!entry) return
+        const override = getMaterialOverride(entry.material)
+        override.colorTint = {
+          r: selectedMaterialEdit.colorR,
+          g: selectedMaterialEdit.colorG,
+          b: selectedMaterialEdit.colorB,
+        }
+        override.roughness = selectedMaterialEdit.roughness
+        override.metalness = selectedMaterialEdit.metalness
+        override.normalScale = selectedMaterialEdit.normalScale
+        override.opacity = selectedMaterialEdit.opacity
+        if (FEATHER_BODY_NAMES.has(entry.name)) {
+          override.stripExtensions = selectedMaterialEdit.stripExtensions
+        }
+        applyTextureOverrides()
+        syncGuiFromSelectedMaterial(entry.material)
+      }
+
+      function applyMaterialGroup(groupName) {
+        if (materialPickerState.selected === 'All (global)') return
+        const source = materialCatalog.find((e) => e.name === materialPickerState.selected)
+        if (!source) return
+        const sourceOverride = { ...(source.material.userData._ravenPerMaterialOverride || {}) }
+        for (const entry of materialCatalog) {
+          if (entry.name !== groupName) continue
+          entry.material.userData._ravenPerMaterialOverride = { ...sourceOverride }
+        }
+        applyTextureOverrides()
+        onMaterialPickerChange()
+      }
+
+      function clearMaterialHighlight() {
+        for (const mesh of highlightedMeshes) {
+          const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+          for (const mat of mats) {
+            if (mat.userData._ravenHighlightEmissive) {
+              mat.emissive.copy(mat.userData._ravenHighlightEmissive)
+              mat.emissiveIntensity = mat.userData._ravenHighlightIntensity ?? 0
+              delete mat.userData._ravenHighlightEmissive
+              delete mat.userData._ravenHighlightIntensity
+            }
+          }
+        }
+        highlightedMeshes = []
+      }
+
+      function highlightMaterialMeshes(meshNames) {
+        if (!ravenModel) return
+        const nameSet = new Set(meshNames)
+        ravenModel.traverse((child) => {
+          if (!child.isMesh || !nameSet.has(child.name)) return
+          highlightedMeshes.push(child)
+          const mats = Array.isArray(child.material) ? child.material : [child.material]
+          for (const mat of mats) {
+            if (!mat.userData._ravenHighlightEmissive) {
+              mat.userData._ravenHighlightEmissive = mat.emissive.clone()
+              mat.userData._ravenHighlightIntensity = mat.emissiveIntensity ?? 0
+            }
+            mat.emissive.set(0.15, 0.35, 0.55)
+            mat.emissiveIntensity = 0.45
+          }
+        })
+      }
+
+      function applyPathRootTransform() {
+        pathRoot.rotation.set(pathState.rotateX, pathState.rotateY, pathState.rotateZ)
+        pathRoot.position.set(pathState.translateX, pathState.translateY, pathState.translateZ)
+        updateRavenOnPath(0)
+      }
+
+      function resetPathTransform() {
+        pathState.rotateX = 0
+        pathState.rotateY = 0
+        pathState.rotateZ = 0
+        pathState.translateX = 0
+        pathState.translateY = 0
+        pathState.translateZ = 0
+        applyPathRootTransform()
+      }
+
+      function applyObjectTransform() {
+        if (!ravenModel) return
+        ravenModel.scale.setScalar(objectState.scale)
+        ravenModel.position.set(objectState.offsetX, objectState.offsetY, objectState.offsetZ)
+        const base = getForwardAxisBaseRotation(orientationState.forwardAxis)
+        ravenModel.rotation.set(
+          base.x + objectState.rotationX,
+          base.y + objectState.rotationY,
+          base.z + objectState.rotationZ,
+        )
+      }
+
+      function resetObject() {
+        objectState.scale = DEFAULT_RAVEN_SCALE
+        objectState.offsetX = 0
+        objectState.offsetY = 0
+        objectState.offsetZ = 0
+        objectState.rotationX = 0
+        objectState.rotationY = 0
+        objectState.rotationZ = 0
+        objectState.headingOffsetDeg = 0
+        objectState.pitchOffsetDeg = 0
+        objectState.bankOffsetDeg = 0
+        objectState.visible = true
+        setForwardAxisLabel(DEFAULT_FORWARD_AXIS)
+        orientationState.flip180 = false
+        applyObjectTransform()
+        if (pathPivot) pathPivot.visible = true
+        updateRavenOnPath(0)
+        refreshObjectGui()
+      }
+
+      function fixTextureColorSpace(material) {
+        const colorMaps = ['map', 'emissiveMap', 'sheenColorMap']
+        const dataMaps = [
+          'normalMap',
+          'roughnessMap',
+          'metalnessMap',
+          'aoMap',
+          'clearcoatNormalMap',
+          'clearcoatRoughnessMap',
+          'specularColorMap',
+          'specularIntensityMap',
+          'transmissionMap',
+          'thicknessMap',
+        ]
+        for (const key of colorMaps) {
+          if (material[key]) material[key].colorSpace = THREE.SRGBColorSpace
+        }
+        for (const key of dataMaps) {
+          if (material[key]) material[key].colorSpace = THREE.NoColorSpace
+        }
+      }
+
+      function stripPhysicalExtensions(material) {
+        if (!material.isMeshPhysicalMaterial) return
+        material.clearcoat = 0
+        material.clearcoatRoughness = 1
+        material.clearcoatNormalMap = null
+        material.clearcoatNormalScale?.set(1, 1)
+        material.sheen = 0
+        material.sheenRoughness = 1
+        material.sheenColor?.set(0, 0, 0)
+        material.sheenColorMap = null
+        material.specularIntensity = 0
+        material.specularColor?.set(0, 0, 0)
+        material.specularColorMap = null
+        material.specularIntensityMap = null
+        material.transmission = 0
+      }
+
+      function applyPhysicalToggles(material) {
+        if (!material.isMeshPhysicalMaterial) return
+        const saved = material.userData._ravenExtBaseline
+        if (!saved) return
+
+        if (shouldStripExtensions(material) && FEATHER_BODY_NAMES.has(material.name)) {
+          stripPhysicalExtensions(material)
+          return
+        }
+
+        material.clearcoat = textureState.clearcoatEnabled
+          ? saved.clearcoat * textureState.clearcoatIntensity
+          : 0
+        material.clearcoatRoughness = textureState.clearcoatEnabled
+          ? saved.clearcoatRoughness
+          : 1
+        material.clearcoatNormalMap = textureState.clearcoatEnabled ? saved.clearcoatNormalMap : null
+
+        material.sheen = textureState.sheenEnabled ? saved.sheen * textureState.sheenIntensity : 0
+        material.sheenColorMap = textureState.sheenEnabled ? saved.sheenColorMap : null
+
+        material.specularIntensity = textureState.specularEnabled
+          ? saved.specularIntensity * textureState.specularIntensity
+          : 0
+        material.specularColorMap = textureState.specularEnabled ? saved.specularColorMap : null
+        material.specularIntensityMap = textureState.specularEnabled
+          ? saved.specularIntensityMap
+          : null
+      }
+
+      function applyCinematicRavenMaterials(root) {
+        materialEntries = []
+        root.traverse((child) => {
+          if (!child.isMesh) return
+          child.frustumCulled = true
+          const meshMaterials = Array.isArray(child.material) ? child.material : [child.material]
+          for (const material of meshMaterials) {
+            if (!material.isMeshStandardMaterial) continue
+
+            fixTextureColorSpace(material)
+
+            if (!material.userData._ravenExtBaseline) {
+              material.userData._ravenExtBaseline = {
+                clearcoat: material.clearcoat ?? 0,
+                clearcoatRoughness: material.clearcoatRoughness ?? 0,
+                clearcoatNormalMap: material.clearcoatNormalMap ?? null,
+                sheen: material.sheen ?? 0,
+                sheenColorMap: material.sheenColorMap ?? null,
+                specularIntensity: material.specularIntensity ?? 1,
+                specularColorMap: material.specularColorMap ?? null,
+                specularIntensityMap: material.specularIntensityMap ?? null,
+              }
+            }
+
+            if (!material.userData._ravenPbrBaseline) {
+              material.userData._ravenPbrBaseline = {
+                roughness: material.roughness,
+                metalness: material.metalness,
+                color: material.color.clone(),
+              }
+            }
+
+            const mapsLoaded = getMapsLoaded(material)
+
+            const baseline = material.userData._ravenPbrBaseline
+            const override = material.userData._ravenPerMaterialOverride || {}
+            const brightness = override.brightness ?? textureState.brightness
+            const roughnessMul = override.roughnessMul ?? textureState.roughnessMul
+            const metalnessMul = override.metalnessMul ?? textureState.metalnessMul
+            const normalScale = override.normalScale ?? textureState.normalScale
+            const tint = override.colorTint || { r: 1, g: 1, b: 1 }
+
+            material.envMapIntensity = textureState.envMapIntensity
+            material.roughness =
+              override.roughness !== undefined
+                ? override.roughness
+                : Math.min(1, baseline.roughness * roughnessMul + 0.1)
+            material.metalness =
+              override.metalness !== undefined
+                ? override.metalness
+                : Math.min(1, baseline.metalness * metalnessMul)
+            material.normalScale.set(normalScale, normalScale)
+            material.opacity = override.opacity !== undefined ? override.opacity : 1
+            material.transparent = material.opacity < 0.999
+            material.depthWrite = material.opacity >= 0.999
+            material.color
+              .copy(baseline.color)
+              .multiplyScalar(brightness)
+              .multiply(new THREE.Color(tint.r, tint.g, tint.b))
+
+            if (FEATHER_BODY_NAMES.has(material.name)) {
+              material.side = THREE.FrontSide
+            }
+
+            applyPhysicalToggles(material)
+            material.needsUpdate = true
+
+            materialEntries.push({
+              material,
+              name: material.name || 'unnamed',
+              meshName: child.name || 'unnamed mesh',
+              mapsLoaded,
+            })
+          }
+        })
+        materialCatalog = collectMaterialCatalog(root)
+        updateMaterialInfoLabel()
+        if (materialPickerState.selected !== 'All (global)') {
+          onMaterialPickerChange()
+        }
+      }
+
+      function applyTextureOverrides() {
+        if (!ravenModel) return
+        applyCinematicRavenMaterials(ravenModel)
+      }
+
+      function reapplyMaterials() {
+        if (!ravenModel) return
+        ravenModel.traverse((child) => {
+          if (!child.isMesh) return
+          const meshMaterials = Array.isArray(child.material) ? child.material : [child.material]
+          for (const material of meshMaterials) {
+            delete material.userData._ravenExtBaseline
+            delete material.userData._ravenPbrBaseline
+            delete material.userData._ravenPerMaterialOverride
+          }
+        })
+        applyCinematicRavenMaterials(ravenModel)
+      }
+
+      function updateMaterialInfoLabel() {
+        if (!materialInfoLabel) return
+        if (materialPickerState.selected !== 'All (global)') return
+        const names = [...new Set(materialEntries.map((e) => e.name))].sort()
+        const mapSets = names.map((name) => {
+          const entry = materialEntries.find((e) => e.name === name)
+          return `${name}: ${entry?.mapsLoaded.join(', ') || 'none'}`
+        })
+        materialInfoLabel.info = mapSets.join(' · ') || 'none'
+      }
+
+      function countMeshStats(root) {
+        let triangles = 0
+        let vertices = 0
+        let meshes = 0
+        let skinned = 0
+        let drawCalls = 0
+        root.traverse((child) => {
+          if (!child.isMesh || !child.visible) return
+          meshes++
+          if (child.isSkinnedMesh) skinned++
+          const geo = child.geometry
+          // Each material group (or the whole mesh) is one draw call.
+          drawCalls += geo.groups && geo.groups.length > 0 ? geo.groups.length : 1
+          const vertCount = geo.attributes.position?.count ?? 0
+          vertices += vertCount
+          if (geo.index) {
+            triangles += geo.index.count / 3
+          } else {
+            triangles += vertCount / 3
+          }
+        })
+        return { triangles: Math.round(triangles), vertices, meshes, skinned, drawCalls }
+      }
+
+      function updatePolyStatsLabel() {
+        if (!polyStatsLabel) return
+        const preset = QUALITY_PRESETS[geometryState.quality]
+        polyStatsLabel.stats = `${polyStats.triangles.toLocaleString()} tris · ${polyStats.vertices.toLocaleString()} verts`
+        if (polyDetailLabel) {
+          polyDetailLabel.detail = `${polyStats.meshes} meshes · ${polyStats.skinned} skinned · ~${polyStats.drawCalls} draws`
+        }
+        if (sizeHintLabel) {
+          const tex = preset?.tex ? ` · ${preset.tex} tex` : ''
+          sizeHintLabel.size = preset ? `~${preset.sizeMB.toFixed(1)} MB${tex}` : '—'
+        }
+        if (compareLabel) {
+          if (!baselineTris) {
+            compareLabel.compare = `${polyStats.triangles.toLocaleString()} tris (baseline)`
+          } else {
+            const delta = polyStats.triangles - baselineTris
+            const pct = baselineTris ? Math.round((delta / baselineTris) * 100) : 0
+            const sign = delta > 0 ? '+' : ''
+            compareLabel.compare = `${baselineTris.toLocaleString()} → ${polyStats.triangles.toLocaleString()} (${sign}${pct}%)`
+          }
+        }
+      }
+
+      function loadDefaultPath() {
+        const defaults = [
+          new THREE.Vector3(-24, 6, -10),
+          new THREE.Vector3(-8, 14, 8),
+          new THREE.Vector3(10, 10, 14),
+          new THREE.Vector3(26, 16, -4),
+        ]
+        for (let i = 0; i < defaults.length; i++) {
+          positions[i].copy(defaults[i])
+        }
+      }
+
+      function rebuildCurve() {
+        if (splineLine) {
+          pathRoot.remove(splineLine)
+          splineLine.geometry.dispose()
+          splineLine.material.dispose()
+        }
+
+        curve = new THREE.CatmullRomCurve3(positions)
+        curve.curveType = 'centripetal'
+        curve.closed = pathState.closed
+        curve.updateArcLengths()
+
+        const lineGeometry = new THREE.BufferGeometry()
+        lineGeometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(new Float32Array(ARC_SEGMENTS * 3), 3),
+        )
+        splineLine = new THREE.Line(
+          lineGeometry,
+          new THREE.LineBasicMaterial({ color: 0x66ccff, transparent: true, opacity: 0.55 }),
+        )
+        pathRoot.add(splineLine)
+        updateSplineOutline()
+      }
+
+      function ensureControlPointResources() {
+        if (!controlPointGeometry) {
+          controlPointGeometry = new THREE.SphereGeometry(pathState.pointSize, 14, 14)
+        }
+        if (!controlPointMaterial) {
+          controlPointMaterial = new THREE.MeshBasicMaterial({
+            color: 0x66ccff,
+            transparent: true,
+            opacity: pathState.pointOpacity,
+            depthWrite: false,
+          })
+        }
+      }
+
+      function rebuildControlPointGeometry() {
+        if (controlPointGeometry) controlPointGeometry.dispose()
+        controlPointGeometry = new THREE.SphereGeometry(pathState.pointSize, 14, 14)
+        splineHelperObjects.forEach((obj) => {
+          obj.geometry = controlPointGeometry
+        })
+      }
+
+      function updateControlPointOpacity() {
+        if (controlPointMaterial) {
+          controlPointMaterial.opacity = pathState.pointOpacity
+        }
+      }
+
+      function addSplineObject(position) {
+        ensureControlPointResources()
+        const object = new THREE.Mesh(controlPointGeometry, controlPointMaterial)
+        if (position) {
+          object.position.copy(position)
+        } else {
+          object.position.set(
+            (Math.random() - 0.5) * 30,
+            4 + Math.random() * 12,
+            (Math.random() - 0.5) * 30,
+          )
+        }
+        pathRoot.add(object)
+        splineHelperObjects.push(object)
+        return object
+      }
+
+      function addPoint() {
+        splinePointsLength++
+        positions.push(addSplineObject().position)
+        rebuildCurve()
+      }
+
+      function removePoint() {
+        if (splinePointsLength <= 2) return
+        const pointObj = splineHelperObjects.pop()
+        splinePointsLength--
+        positions.pop()
+        if (transformControl.object === pointObj) transformControl.detach()
+        pathRoot.remove(pointObj)
+        rebuildCurve()
+      }
+
+      function resetPath() {
+        while (splinePointsLength > 4) removePoint()
+        while (splinePointsLength < 4) addPoint()
+        loadDefaultPath()
+        rebuildCurve()
+        animState.progress = 0
+      }
+
+      function resetPathProgress() {
+        animState.progress = 0
+        updateRavenOnPath(0)
+      }
+
+      function updateSplineOutline() {
+        if (!curve || !splineLine) return
+        curve.updateArcLengths()
+        const positionAttr = splineLine.geometry.attributes.position
+        for (let i = 0; i < ARC_SEGMENTS; i++) {
+          const t = i / (ARC_SEGMENTS - 1)
+          curve.getPointAt(t, point)
+          positionAttr.setXYZ(i, point.x, point.y, point.z)
+        }
+        positionAttr.needsUpdate = true
+        updateRavenOnPath(0)
+      }
+
+      function exportSpline() {
+        const rows = positions.map(
+          (p) => `new THREE.Vector3(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`,
+        )
+        const code = `[\n\t${rows.join(',\n\t')}\n]`
+        console.log(code)
+        prompt('Copy path points', code)
+      }
+
+      function collectSkinnedMeshes(root) {
+        const skinnedMeshes = []
+        root.traverse((child) => {
+          if (child.isSkinnedMesh) skinnedMeshes.push(child)
+        })
+        return skinnedMeshes.sort((a, b) => a.name.localeCompare(b.name))
+      }
+
+      /** Keep raven 1; hide raven 2 (.001 nodes and second skinned-mesh set). */
+      function hideSecondRaven(root) {
+        root.traverse((child) => {
+          if (child.name.includes('.001')) {
+            child.visible = false
+            return
+          }
+          if (child.name.startsWith('raven_')) {
+            child.visible = true
+          }
+        })
+
+        const skinnedMeshes = collectSkinnedMeshes(root)
+        if (skinnedMeshes.length === 10) {
+          skinnedMeshes.slice(0, 5).forEach((mesh) => {
+            mesh.visible = true
+          })
+          skinnedMeshes.slice(5).forEach((mesh) => {
+            mesh.visible = false
+          })
+        }
+      }
+
+      function centerModelOnPivot(model) {
+        model.updateMatrixWorld(true)
+        const box = new THREE.Box3()
+        model.traverse((child) => {
+          if (child.isMesh && child.visible) {
+            box.expandByObject(child, true)
+          }
+        })
+        if (box.isEmpty()) return
+        const center = box.getCenter(new THREE.Vector3())
+        if (model.parent) model.parent.worldToLocal(center)
+        model.position.sub(center)
+      }
+
+      function disposeRaven() {
+        clearMaterialHighlight()
+        if (mixer) {
+          mixer.stopAllAction()
+          mixer = null
+        }
+        wingAction = null
+        if (transformControl?.object === ravenModel) transformControl.detach()
+        if (forwardArrowHelper) {
+          forwardArrowHelper.parent?.remove(forwardArrowHelper)
+          forwardArrowHelper = null
+        }
+        if (pathPivot) {
+          pathRoot.remove(pathPivot)
+          pathPivot.traverse((child) => {
+            if (child.isMesh) {
+              child.geometry?.dispose()
+              const mats = Array.isArray(child.material) ? child.material : [child.material]
+              for (const mat of mats) mat.dispose()
+            }
+          })
+          pathPivot = null
+        }
+        ravenModel = null
+        materialEntries = []
+        materialCatalog = []
+      }
+
+      async function loadRaven() {
+        disposeRaven()
+        const loader = new GLTFLoader()
+        const url = getRavenUrl()
+        const gltf = await loader.loadAsync(url)
+        ravenModel = gltf.scene
+        hideSecondRaven(ravenModel)
+        applyCinematicRavenMaterials(ravenModel)
+        centerModelOnPivot(ravenModel)
+        applyObjectTransform()
+
+        pathPivot = new THREE.Group()
+        pathPivot.visible = objectState.visible
+        pathRoot.add(pathPivot)
+        pathPivot.add(ravenModel)
+        updateForwardArrow()
+
+        if (gltf.animations.length > 0) {
+          mixer = new THREE.AnimationMixer(ravenModel)
+          const clip =
+            gltf.animations.find((a) => a.name.toLowerCase().includes('animation')) ??
+            gltf.animations[0]
+          wingAction = mixer.clipAction(clip)
+          wingAction.setLoop(THREE.LoopRepeat, Infinity)
+          wingAction.play()
+          wingAnimInfo.clipName = clip.name || 'unnamed'
+        } else {
+          wingAnimInfo.clipName = 'none'
+        }
+        if (guiInstance) {
+          const clipController = guiInstance.controllersRecursive().find((c) => c.property === 'clipName')
+          clipController?.updateDisplay()
+        }
+
+        polyStats = countMeshStats(ravenModel)
+        if (geometryState.quality === 'Full' || !baselineTris) {
+          baselineTris = polyStats.triangles
+        }
+        updatePolyStatsLabel()
+        geometryState.modelLabel = QUALITY_PRESETS[geometryState.quality]?.label ?? geometryState.modelLabel
+        refreshMaterialPicker()
+        if (editState.target === 'raven' || editState.manualEdit) {
+          attachRavenTransform()
+        }
+        updateRavenOnPath(0)
+      }
+
+      async function swapModelQuality() {
+        setStatus(`Swapping to ${geometryState.modelLabel}…`)
+        try {
+          await loadRaven()
+          baseStatusMessage = `Loaded ${geometryState.modelLabel} · ${polyStatsLabel?.stats ?? ''}`
+          refreshPathStatus()
+        } catch (err) {
+          console.error('Model swap failed:', getRavenUrl(), err)
+          setStatus(
+            `${geometryState.modelLabel} missing — run "node scripts/build-mobile-raven.mjs" to build LODs`,
+          )
+          if (geometryState.quality !== 'Full') {
+            geometryState.quality = 'Full'
+            geometryState.useMobileModel = false
+            geometryState.modelLabel = QUALITY_PRESETS.Full.label
+            refreshGuiControllers()
+            await loadRaven().catch((e) => console.error('Fallback to Full failed:', e))
+          }
+        }
+      }
+
+      /**
+       * Runtime decimation for NON-skinned meshes only. Skinned raven meshes are
+       * skipped because collapsing edges breaks the skeleton/bone bindings, so the
+       * wing-flap animation would tear. Use the Quality presets for the raven itself.
+       */
+      function applyRuntimeSimplify() {
+        if (!ravenModel) return
+        const modifier = new SimplifyModifier()
+        const ratio = geometryState.simplifyRatio
+        let simplifiedMeshes = 0
+        let skippedSkinned = 0
+        const trisBefore = polyStats.triangles
+        ravenModel.traverse((child) => {
+          if (!child.isMesh || !child.visible) return
+          if (child.isSkinnedMesh) {
+            skippedSkinned++
+            return
+          }
+          const geo = child.geometry
+          const posCount = geo.attributes.position?.count ?? 0
+          if (posCount < 12) return
+          const target = Math.max(3, Math.floor(posCount * ratio))
+          try {
+            child.geometry = modifier.modify(geo, posCount - target)
+            simplifiedMeshes++
+          } catch (err) {
+            console.warn('Simplify failed for mesh', child.name, err)
+          }
+        })
+        polyStats = countMeshStats(ravenModel)
+        updatePolyStatsLabel()
+        if (simplifiedMeshes === 0) {
+          setStatus(
+            `Nothing to simplify at runtime — all ${skippedSkinned} raven meshes are skinned (bones would break). Use Quality presets instead.`,
+          )
+        } else {
+          setStatus(
+            `Simplified ${simplifiedMeshes} static mesh(es): ${trisBefore.toLocaleString()} → ${polyStats.triangles.toLocaleString()} tris (${skippedSkinned} skinned skipped).`,
+          )
+        }
+      }
+
+      function refreshGuiControllers() {
+        if (!guiInstance) return
+        guiInstance.controllersRecursive().forEach((controller) => controller.updateDisplay())
+      }
+
+      function clamp01(v) {
+        return Math.max(0, Math.min(1, v))
+      }
+
+      function smoothstep(edge0, edge1, x) {
+        const t = clamp01((x - edge0) / (edge1 - edge0))
+        return t * t * (3 - 2 * t)
+      }
+
+      /** Ease-in/out as a speed multiplier per lap — keeps arc-length position continuous at loop seams. */
+      function lapSpeedFactor(lapFrac) {
+        const t = clamp01(lapFrac)
+        const easeIn = animState.easeIn
+        const easeOut = animState.easeOut
+        if (easeIn <= 0 && easeOut <= 0) return 1
+
+        let factor = 1
+        if (easeIn > 0 && t < easeIn) {
+          factor = smoothstep(0, 1, t / easeIn)
+        } else if (easeOut > 0 && t > 1 - easeOut) {
+          factor = smoothstep(0, 1, (1 - t) / easeOut)
+        }
+        return Math.max(factor, 0.35)
+      }
+
+      function wrap01(v) {
+        return ((v % 1) + 1) % 1
+      }
+
+      function updateRavenOnPath(dt) {
+        if (!pathPivot || !curve) return
+
+        if (dt > 0 && animState.playPath) {
+          const direction = animState.reverse ? -1 : 1
+          const lapFrac = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
+          const speedFactor = lapSpeedFactor(lapFrac)
+          animState.progress += dt * animState.pathSpeed * speedFactor * direction
+
+          if (animState.loop) {
+            if (Math.abs(animState.progress) > 1e4) animState.progress = wrap01(animState.progress)
+          } else {
+            animState.progress = clamp01(animState.progress)
+          }
+        }
+
+        const u = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
+        curve.getPointAt(u, point)
+
+        const tangentEps = 0.002
+        const tangentU = curve.closed ? wrap01(u + tangentEps) : Math.min(u + tangentEps, 1 - 1e-6)
+        curve.getTangentAt(tangentU, tangent)
+
+        // pathPivot lives under pathRoot — same local space as the cyan spline line
+        pathPivot.position.copy(point)
+        pathPivot.updateMatrixWorld(true)
+
+        if (animState.alignToTangent && tangent.lengthSq() > 1e-8) {
+          lookTarget.copy(point).add(tangent)
+          pathRoot.localToWorld(lookTarget)
+          pathPivot.lookAt(lookTarget)
+          const headingRad = THREE.MathUtils.degToRad(objectState.headingOffsetDeg)
+          const pitchRad = THREE.MathUtils.degToRad(objectState.pitchOffsetDeg)
+          const bankRad = THREE.MathUtils.degToRad(objectState.bankOffsetDeg)
+          const flipRad = orientationState.flip180 ? Math.PI : 0
+          pathPivot.rotateY(headingRad + flipRad)
+          pathPivot.rotateX(pitchRad)
+          pathPivot.rotateZ(bankRad)
+        } else {
+          const headingRad = THREE.MathUtils.degToRad(objectState.headingOffsetDeg)
+          const pitchRad = THREE.MathUtils.degToRad(objectState.pitchOffsetDeg)
+          const bankRad = THREE.MathUtils.degToRad(objectState.bankOffsetDeg)
+          const flipRad = orientationState.flip180 ? Math.PI : 0
+          pathPivot.rotation.set(pitchRad, headingRad + flipRad, bankRad)
+        }
+        updateForwardArrow()
+        refreshPathStatus()
+      }
+
+      function onPointerDown(event) {
+        onDownPosition.x = event.clientX
+        onDownPosition.y = event.clientY
+      }
+
+      function onPointerUp(event) {
+        onUpPosition.x = event.clientX
+        onUpPosition.y = event.clientY
+        if (onDownPosition.distanceTo(onUpPosition) === 0 && editState.target === 'path' && !editState.manualEdit) {
+          transformControl.detach()
+        }
+      }
+
+      function onPointerMove(event) {
+        if (editState.target === 'raven' || editState.manualEdit) return
+        pointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(splineHelperObjects, false)
+        if (intersects.length > 0) {
+          const object = intersects[0].object
+          if (object !== transformControl.object) {
+            transformControl.attach(object)
+          }
+        }
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        requestAnimationFrame(animate)
+        const dt = clock.getDelta()
+        controls.update()
+
+        if (animState.playWings && mixer) {
+          mixer.timeScale = animState.wingSpeed
+          mixer.update(dt)
+        }
+
+        updateRavenOnPath(dt)
+        renderer.render(scene, camera)
+      }
+    </script>
+  </body>
+</html>

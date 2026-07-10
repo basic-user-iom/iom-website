@@ -1,0 +1,8 @@
+Model Information:
+* title:	Pagani Utopia 2023
+* source:	https://sketchfab.com/3d-models/pagani-utopia-2023-4787fa901db1454bb971ba83739d1de6
+* author:	zirodesign (https://sketchfab.com/zirodesign)
+
+Model License:
+* license type:	Standard (https://sketchfab.com/licenses)
+* requirements:	see https://sketchfab.com/licenses

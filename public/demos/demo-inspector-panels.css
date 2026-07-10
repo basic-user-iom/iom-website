@@ -1,0 +1,258 @@
+/* Shared inspector-style side panels for IOM WebGPU demos */
+
+.inspector-side-panel {
+  --inspector-bg: rgba(30, 30, 36, 0.85);
+  --inspector-header-bg: rgba(42, 42, 51, 0.67);
+  --inspector-border: #4a4a5a;
+  --text-primary: #e0e0e0;
+  --text-secondary: #9a9aab;
+  --color-accent: #00aaff;
+  --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-mono: 'Courier New', Courier, monospace;
+
+  position: fixed;
+  top: 52px;
+  left: 12px;
+  z-index: 1002;
+  width: min(300px, calc(100vw - 24px));
+  max-height: min(480px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(74, 74, 90, 0.33);
+  border-radius: 8px;
+  background: var(--inspector-bg);
+  backdrop-filter: blur(8px);
+  color: var(--text-primary);
+  font: 400 11px/1.5 var(--font-family);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+}
+
+.inspector-side-panel.ui-chrome-hidden,
+.inspector-side-panel[hidden] {
+  display: none !important;
+}
+
+.inspector-side-panel .panel-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--inspector-border);
+  background: var(--inspector-header-bg);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.inspector-side-panel .panel-header:hover {
+  background: rgba(42, 42, 51, 0.9);
+}
+
+.inspector-side-panel .panel-header .item-toggler {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1;
+  font-family: var(--font-mono);
+}
+
+.inspector-side-panel.is-open .panel-header .item-toggler::before {
+  content: '−';
+}
+
+.inspector-side-panel:not(.is-open) .panel-header .item-toggler::before {
+  content: '+';
+}
+
+.inspector-side-panel .panel-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.inspector-side-panel .panel-badge {
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: rgba(0, 170, 255, 0.15);
+  color: var(--color-accent);
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.inspector-side-panel .panel-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.inspector-side-panel:not(.is-open) .panel-body {
+  display: none;
+}
+
+.inspector-side-panel .panel-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(74, 74, 90, 0.45);
+}
+
+.inspector-side-panel .panel-toolbar button,
+.inspector-side-panel .panel-toolbar label.panel-import {
+  flex: 1 1 calc(50% - 3px);
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid rgba(74, 74, 90, 0.5);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font: 500 11px var(--font-family);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.inspector-side-panel .panel-toolbar button:hover,
+.inspector-side-panel .panel-toolbar label.panel-import:hover {
+  border-color: var(--color-accent);
+  background: rgba(0, 170, 255, 0.08);
+}
+
+.inspector-side-panel .panel-toolbar button.is-playing {
+  border-color: rgba(76, 175, 80, 0.55);
+  background: rgba(76, 175, 80, 0.14);
+  color: #b8f0c0;
+}
+
+.inspector-side-panel .panel-toolbar button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.inspector-side-panel .panel-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 10px 8px;
+  border-bottom: 1px solid rgba(74, 74, 90, 0.45);
+  color: var(--text-secondary);
+}
+
+.inspector-side-panel .panel-row select {
+  flex: 1;
+  padding: 4px 6px;
+  border: 1px solid rgba(74, 74, 90, 0.5);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+  font: 400 11px var(--font-family);
+}
+
+.inspector-side-panel .panel-row select:focus {
+  outline: none;
+  border-color: var(--color-accent);
+}
+
+.inspector-side-panel .panel-list {
+  flex: 1;
+  overflow: auto;
+  padding: 4px 6px;
+}
+
+.inspector-side-panel .panel-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.inspector-side-panel .panel-list::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.inspector-side-panel .panel-empty {
+  padding: 14px 10px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.inspector-side-panel .panel-list-item {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  gap: 6px;
+  align-items: center;
+  padding: 4px 8px;
+  margin-bottom: 2px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  cursor: pointer;
+  min-height: 21px;
+}
+
+.inspector-side-panel .panel-list-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.inspector-side-panel .panel-list-item.is-selected {
+  background: rgba(0, 170, 255, 0.1);
+  box-shadow: inset 2px 0 0 rgba(0, 170, 255, 0.55);
+}
+
+.inspector-side-panel .panel-list-index {
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 10px;
+}
+
+.inspector-side-panel .panel-list-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.inspector-side-panel .panel-list-delete {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #f44336;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.inspector-side-panel .panel-list-delete:hover {
+  background: rgba(244, 67, 54, 0.16);
+}
+
+.inspector-side-panel .panel-hint {
+  padding: 6px 10px 8px;
+  border-top: 1px solid rgba(74, 74, 90, 0.45);
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+  flex-shrink: 0;
+}
+
+body.demo-ui-chrome-hidden .profiler-mini-panel {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}

@@ -1,0 +1,2350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Volumetric Lighting — Rect Area — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      .lil-gui {
+        --background-color: rgba(8, 8, 12, 0.82);
+        --text-color: rgba(255, 255, 255, 0.88);
+        --title-background-color: rgba(255, 255, 255, 0.06);
+        --title-text-color: rgba(255, 255, 255, 0.92);
+        --widget-color: rgba(255, 255, 255, 0.12);
+        --hover-color: rgba(255, 255, 255, 0.18);
+        --focus-color: rgba(255, 255, 255, 0.24);
+        --number-color: rgba(180, 210, 255, 0.95);
+        --string-color: rgba(180, 210, 255, 0.95);
+        --font-size: 11px;
+        --font-family: system-ui, -apple-system, sans-serif;
+        --widget-border-radius: 3px;
+        --name-width: 48%;
+        --slider-knob-width: 3px;
+        --slider-input-width: 27%;
+        --input-font-weight: 400;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+      }
+      .lil-gui.root {
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+        .lil-gui.root {
+          max-height: calc(100vh - 80px);
+          overflow: auto;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="../demo-inspector-panels.css" />
+        background: rgba(120, 180, 255, 0.1);
+        box-shadow: inset 2px 0 0 rgba(120, 180, 255, 0.55);
+      }
+      .list-item-row.object-list-row .list-item-cell:first-child {
+        cursor: pointer;
+      }
+      .list-item-row.object-list-row.is-effectively-hidden .object-list-label {
+        opacity: 0.42;
+      }
+      .object-list-row-inner {
+        display: flex;
+        align-items: center;
+        min-width: 0;
+        gap: 2px;
+      }
+      .object-list-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        border: none;
+        padding: 0;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.55);
+        cursor: pointer;
+        font-size: 9px;
+        line-height: 1;
+      }
+      .object-list-chevron:hover {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .object-list-chevron.is-placeholder {
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .object-list-label {
+        display: inline;
+        min-width: 0;
+      }
+      .object-list-type {
+        color: var(--text-secondary, #9a9aab);
+        font-size: 10px;
+        font-weight: 500;
+        margin-left: 6px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .object-badge {
+        display: inline-block;
+        margin-left: 5px;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        vertical-align: middle;
+      }
+      .object-badge.is-hidden {
+        background: rgba(255, 160, 96, 0.16);
+        color: #ffc9a8;
+      }
+      .object-badge.is-locked {
+        background: rgba(255, 196, 96, 0.16);
+        color: #ffe0a8;
+      }
+      .object-info-meta {
+        color: var(--text-secondary, #9a9aab);
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.45;
+      }
+      .list-item-row.object-section-label {
+        cursor: default;
+        min-height: 28px;
+        opacity: 0.92;
+      }
+      .list-item-row.object-section-label .list-item-cell {
+        font-weight: 600;
+        font-size: 11px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--text-secondary, #9a9aab);
+      }
+      .list-item-row.object-transform-subsection {
+        cursor: default;
+        min-height: 22px;
+        opacity: 0.88;
+      }
+      .list-item-row.object-transform-subsection .list-item-cell {
+        padding-left: 8px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.52);
+      }
+      .list-item-row.object-transform-row .list-item-cell:first-child {
+        padding-left: 16px;
+        min-width: 28px;
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: rgba(180, 210, 255, 0.72);
+      }
+      .object-transform-row .param-control {
+        width: 100%;
+        min-width: 0;
+      }
+      .object-transform-row .param-control input[type='number'] {
+        width: 100%;
+        min-width: 0;
+        padding: 3px 6px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(180, 210, 255, 0.95);
+        font: 400 11px/1.3 system-ui, sans-serif;
+      }
+      .object-transform-row .param-control input[type='number']:focus {
+        outline: none;
+        border-color: rgba(120, 180, 255, 0.55);
+        background: rgba(255, 255, 255, 0.1);
+      }
+      #container canvas.pick-cursor {
+        cursor: crosshair;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_volume_lighting_rectarea"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — Volumetric Lighting Rect Area</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        Rect area lights with volumetric fog via a post-processing pass. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_volume_lighting_rectarea"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js volumetric lighting example</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_volume_lighting_rectarea.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU volumetric lighting with rect area lights. Open it in a browser with WebGPU
+        support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <aside id="camera-views-panel" class="inspector-side-panel is-open" aria-label="Camera views">
+      <div class="panel-header" role="button" tabindex="0" aria-expanded="true">
+        <span class="item-toggler" aria-hidden="true"></span>
+        <span class="panel-title">Camera views</span>
+        <span class="panel-badge" id="camera-views-count">0</span>
+      </div>
+      <div class="panel-body">
+        <div class="panel-toolbar">
+          <button type="button" id="camera-record-btn" title="Record current camera (Ctrl+Shift+S)">Record</button>
+          <button type="button" id="camera-play-btn" title="Play path between keyframes" disabled>Play</button>
+          <button type="button" id="camera-export-btn" title="Export keyframes as JSON" disabled>Export</button>
+          <button type="button" id="camera-clear-btn" title="Clear all keyframes" disabled>Clear</button>
+          <label class="panel-import" title="Import keyframes from JSON">
+            Import
+            <input id="camera-import-input" type="file" accept=".json,application/json" hidden />
+          </label>
+        </div>
+        <div class="panel-row">
+          <span>Playback speed</span>
+          <select id="camera-playback-speed">
+            <option value="0.5">0.5×</option>
+            <option value="1" selected>1×</option>
+            <option value="1.5">1.5×</option>
+            <option value="2">2×</option>
+          </select>
+        </div>
+        <div class="panel-list" id="camera-views-list">
+          <div class="panel-empty">No keyframes yet. Position the camera and click Record.</div>
+        </div>
+        <div class="panel-hint">Ctrl+Shift+S record · Click a view to go · Orbit drag to frame shots</div>
+      </div>
+    </aside>
+
+    <div id="container"></div>
+    <div id="hint">Orbit drag · Objects panel (right) · T/R/S gizmo · Ctrl+Shift+S camera keyframe</div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import {
+        vec3,
+        Fn,
+        time,
+        texture3D,
+        screenUV,
+        uniform,
+        screenCoordinate,
+        pass,
+        checker,
+        uv,
+      } from 'three/tsl'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+      import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js'
+      import { RectAreaLightTexturesLib } from 'three/addons/lights/RectAreaLightTexturesLib.js'
+      import { Inspector } from 'three/addons/inspector/Inspector.js'
+      import { Item } from 'three/addons/inspector/ui/Item.js'
+      import { ValueButton, ValueCheckbox, ValueNumber } from 'three/addons/inspector/ui/Values.js'
+      import { createValueSpan } from 'three/addons/inspector/ui/utils.js'
+      import { initCameraViewsPanelCollapse, initDemoUiChrome } from '../demo-ui-chrome.js'
+      import { TransformControls } from 'three/addons/controls/TransformControls.js'
+      import { bayer16 } from 'three/addons/tsl/math/Bayer.js'
+      import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      // The Pagani asset is imported tilted (~1.8° pitch baked into the Sketchfab root
+      // node), so its wheels are not coplanar with the world floor. Snapping the whole
+      // turntable container to the floor only lands one tire. To fix this we first find
+      // the pitch/roll that makes the four tire contact patches coplanar (level the car),
+      // apply that as a rotation on an inner correction group, and only then drop the
+      // leveled car onto the floor.
+      function computeLevelingQuaternion(object) {
+        object.updateMatrixWorld(true)
+
+        const worldVertex = new THREE.Vector3()
+        const points = []
+        object.traverse((child) => {
+          if (!child.isMesh) return
+          const positionAttr = child.geometry?.getAttribute?.('position')
+          if (!positionAttr) return
+          // Subsample: a few thousand points is plenty to fit the ground plane.
+          const stride = Math.max(1, Math.floor(positionAttr.count / 1200))
+          for (let i = 0; i < positionAttr.count; i += stride) {
+            worldVertex
+              .set(positionAttr.getX(i), positionAttr.getY(i), positionAttr.getZ(i))
+              .applyMatrix4(child.matrixWorld)
+            points.push(worldVertex.x, worldVertex.y, worldVertex.z)
+          }
+        })
+
+        const count = points.length / 3
+        if (count < 12) return new THREE.Quaternion()
+
+        const xs = new Array(count)
+        const zs = new Array(count)
+        for (let i = 0; i < count; i++) {
+          xs[i] = points[i * 3]
+          zs[i] = points[i * 3 + 2]
+        }
+        xs.sort((a, b) => a - b)
+        zs.sort((a, b) => a - b)
+        const medianX = xs[count >> 1]
+        const medianZ = zs[count >> 1]
+
+        // Score = height spread of the lowest point in each footprint quadrant. When the
+        // car is level, all four tire contacts share the same height, so spread ≈ 0.
+        const cornerSpread = (pitch, roll) => {
+          const cx = Math.cos(pitch)
+          const sx = Math.sin(pitch)
+          const cz = Math.cos(roll)
+          const sz = Math.sin(roll)
+          const corner = [Infinity, Infinity, Infinity, Infinity]
+          for (let i = 0; i < count; i++) {
+            const x = points[i * 3]
+            const y = points[i * 3 + 1]
+            const z = points[i * 3 + 2]
+            const yPitched = cx * y - sx * z
+            const yLeveled = sz * x + cz * yPitched
+            const quadrant = (x >= medianX ? 1 : 0) + (z >= medianZ ? 2 : 0)
+            if (yLeveled < corner[quadrant]) corner[quadrant] = yLeveled
+          }
+          return Math.max(...corner) - Math.min(...corner)
+        }
+
+        const deg = Math.PI / 180
+        let best = { spread: Infinity, pitch: 0, roll: 0 }
+        for (let pitch = -8; pitch <= 8; pitch += 0.5) {
+          for (let roll = -8; roll <= 8; roll += 0.5) {
+            const spread = cornerSpread(pitch * deg, roll * deg)
+            if (spread < best.spread) best = { spread, pitch, roll }
+          }
+        }
+        for (let pitch = best.pitch - 0.5; pitch <= best.pitch + 0.5; pitch += 0.05) {
+          for (let roll = best.roll - 0.5; roll <= best.roll + 0.5; roll += 0.05) {
+            const spread = cornerSpread(pitch * deg, roll * deg)
+            if (spread < best.spread) best = { spread, pitch, roll }
+          }
+        }
+
+        const qPitch = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(1, 0, 0),
+          best.pitch * deg,
+        )
+        const qRoll = new THREE.Quaternion().setFromAxisAngle(
+          new THREE.Vector3(0, 0, 1),
+          best.roll * deg,
+        )
+        // Apply pitch first, then roll: v' = qRoll * qPitch * v.
+        return qRoll.multiply(qPitch)
+      }
+
+      function fitModelToFloor(object, targetLength) {
+        // 1. Align rotation to floor first: level the car via an inner correction group.
+        const levelQuaternion = computeLevelingQuaternion(object)
+        const levelGroup = new THREE.Group()
+        levelGroup.name = 'Pagani Leveling'
+        levelGroup.quaternion.copy(levelQuaternion)
+        levelGroup.add(object)
+        levelGroup.updateMatrixWorld(true)
+
+        // 2. Scale the leveled car so its longest axis matches the target length.
+        const leveledBox = new THREE.Box3().setFromObject(levelGroup)
+        const leveledSize = leveledBox.getSize(new THREE.Vector3())
+        const scale = targetLength / Math.max(leveledSize.x, leveledSize.y, leveledSize.z)
+        levelGroup.scale.setScalar(scale)
+
+        // 3. Turntable pivot spins about world Y. Center the leveled car on the pivot axis
+        //    (X/Z) and drop it so the tires rest exactly on the floor (min.y = 0).
+        const pivotRoot = new THREE.Group()
+        pivotRoot.name = 'Pagani Turntable'
+        pivotRoot.add(levelGroup)
+        pivotRoot.updateMatrixWorld(true)
+
+        const fitted = new THREE.Box3().setFromObject(levelGroup)
+        const center = fitted.getCenter(new THREE.Vector3())
+        levelGroup.position.set(-center.x, -fitted.min.y, -center.z)
+        pivotRoot.updateMatrixWorld(true)
+
+        return pivotRoot
+      }
+
+      function createTexture3D() {
+        let i = 0
+        const size = 128
+        const data = new Uint8Array(size * size * size)
+        const scale = 10
+        const perlin = new ImprovedNoise()
+        const repeatFactor = 5.0
+
+        for (let z = 0; z < size; z++) {
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              const nx = (x / size) * repeatFactor
+              const ny = (y / size) * repeatFactor
+              const nz = (z / size) * repeatFactor
+              const noiseValue = perlin.noise(nx * scale, ny * scale, nz * scale)
+              data[i] = 128 + 128 * noiseValue
+              i++
+            }
+          }
+        }
+
+        const texture = new THREE.Data3DTexture(data, size, size, size)
+        texture.format = THREE.RedFormat
+        texture.minFilter = THREE.LinearFilter
+        texture.magFilter = THREE.LinearFilter
+        texture.wrapS = THREE.RepeatWrapping
+        texture.wrapT = THREE.RepeatWrapping
+        texture.unpackAlignment = 1
+        texture.needsUpdate = true
+        return texture
+      }
+
+      const PAGANI_MODEL_URL = './models/pagani/Pagani Utopia 2023.gltf'
+      const PAGANI_TARGET_LENGTH = 11
+      const PAGANI_ROTATION_SPEED = 0.2 // rad/s — gentle turntable on Y axis
+      // Offset car away from rect lights orbiting around (0, 6, 5) on the +Z side.
+      const PAGANI_POSITION_OFFSET = new THREE.Vector3(0, 0, -14)
+
+      const CAMERA_KEYFRAMES_STORAGE_KEY = 'volume-lighting-camera-keyframes'
+      const CAMERA_TRANSITION_MS = 1000
+      const CAMERA_HOLD_MS = 1500
+      const DEFAULT_CAMERA_ROTATION_ORDER = 'XYZ'
+
+      let renderer, scene, camera, controls
+      let paganiRoot
+      let mshStdFloor
+      let volumetricMesh
+      let rectLight1, rectLight2, rectLight3
+      let shadowSpot1, shadowSpot2, shadowSpot3
+      let timer
+      let renderPipeline
+      let scenePass
+      let volumetricPass
+      let blurredVolumetricPass
+      let volumetricLightingIntensity
+      let denoiseStrength
+      let smokeAmount
+      let volumetricMaterial
+
+      let objectsGui = null
+      let demoUiChrome = null
+      let transformControls = null
+      let gizmoSelectedObject = null
+      let selectedObjectRef = null
+      let selectedObjectKey = null
+      let gizmoEnabledEditor = null
+      let gizmoEnabledController = null
+      let gizmoModeController = null
+      const objectInfoItems = []
+      let objectsInfoPositionEl = null
+      let objectsTransformEditors = null
+      const DEG2RAD = Math.PI / 180
+      const objectWorldPosition = new THREE.Vector3()
+      const objectFocusBounds = new THREE.Box3()
+      const objectFocusCenter = new THREE.Vector3()
+      const objectFocusSize = new THREE.Vector3()
+      const objectFocusDirection = new THREE.Vector3()
+      const gizmoRaycaster = new THREE.Raycaster()
+      const gizmoPointerNdc = new THREE.Vector2()
+
+      const runtimeParams = {
+        gizmoEnabled: false,
+        gizmoMode: 'translate',
+        objectsPanelCollapsed: true,
+      }
+
+      const OBJECT_HIERARCHY_DEFAULT_EXPAND_DEPTH = 1
+      const objectHierarchyExpandedKeys = new Set()
+      const objectHierarchyCollapsedKeys = new Set()
+
+      function isEditorExcludedObject(object) {
+        if (!object) return true
+        if (object === volumetricMesh) return true
+        if (isTransformControlsHelperObject(object)) return true
+        if (object.isSpotLight || object.isAmbientLight) return true
+        if (object.type === 'Object3D' && object.parent?.isRectAreaLight) return true
+        return false
+      }
+
+      function isTransformControlsHelperObject(object) {
+        const helper = transformControls?.getHelper()
+        if (!helper || !object) return false
+
+        let current = object
+        while (current) {
+          if (current === helper) return true
+          current = current.parent
+        }
+        return false
+      }
+
+      function isObjectDescendantOf(object, ancestor) {
+        if (!object || !ancestor) return false
+        let current = object
+        while (current) {
+          if (current === ancestor) return true
+          current = current.parent
+        }
+        return false
+      }
+
+      function isUnderPagani(object) {
+        if (!object || !paganiRoot) return false
+        return object === paganiRoot || isObjectDescendantOf(object, paganiRoot)
+      }
+
+      function getObjectKey(object) {
+        return object?.uuid ?? null
+      }
+
+      function findObjectByKey(key) {
+        if (!key || !scene) return null
+
+        const roots = [paganiRoot, mshStdFloor, rectLight1, rectLight2, rectLight3].filter(Boolean)
+        for (const root of roots) {
+          if (getObjectKey(root) === key) return root
+          let found = null
+          root.traverse((object) => {
+            if (object.uuid === key) found = object
+          })
+          if (found) return found
+        }
+        return null
+      }
+
+      function getObjectListLabel(object) {
+        if (!object) return 'Object'
+        if (object === paganiRoot) return 'Pagani Turntable'
+        if (object === mshStdFloor) return 'Floor'
+        if (object === rectLight1) return 'Red Light'
+        if (object === rectLight2) return 'Green Light'
+        if (object === rectLight3) return 'Blue Light'
+        if (object === volumetricMesh) return 'Volumetric Fog'
+        if (object.name) return object.name
+        return object.type || 'Object'
+      }
+
+      function getObjectCategoryTag(object) {
+        if (!object) return ''
+        if (object === paganiRoot || isObjectDescendantOf(object, paganiRoot)) return 'Vehicle'
+        if (object === mshStdFloor) return 'Environment'
+        if (object.isRectAreaLight) return 'Light'
+        if (object.isMesh) return 'Mesh'
+        if (object.isGroup || isObjectListContainer(object)) return 'Group'
+        return object.type || ''
+      }
+
+      function isObjectLocked(object) {
+        return Boolean(object?.userData?.locked)
+      }
+
+      function setObjectLocked(object, locked) {
+        if (!object) return
+        if (locked) object.userData.locked = true
+        else delete object.userData.locked
+
+        if (locked && gizmoSelectedObject === object) {
+          gizmoSelectedObject = null
+          updateTransformGizmo()
+        }
+
+        updateObjectListSelectionUi()
+        rebuildObjectInfoSection()
+      }
+
+      function isObjectEffectivelyVisible(object) {
+        if (!object) return false
+        let current = object
+        while (current) {
+          if (!current.visible) return false
+          current = current.parent
+        }
+        return true
+      }
+
+      function isObjectListContainer(object) {
+        return Boolean(object?.isObject3D && object.children?.length)
+      }
+
+      function shouldIncludeInObjectList(object) {
+        if (!object) return false
+        if (isEditorExcludedObject(object)) return false
+        if (object.isGroup || object.isMesh) return true
+        // GLTF hierarchy nodes are Object3D containers, not THREE.Group.
+        return isObjectListContainer(object)
+      }
+
+      function objectHasListChildren(object) {
+        if (!object?.children?.length) return false
+
+        for (const child of object.children) {
+          if (shouldIncludeInObjectList(child)) return true
+          if (
+            (child.isGroup || isObjectListContainer(child)) &&
+            !isEditorExcludedObject(child)
+          ) {
+            if (objectHasListChildren(child)) return true
+          }
+        }
+
+        return false
+      }
+
+      function isObjectHierarchyExpanded(key, depth) {
+        if (objectHierarchyCollapsedKeys.has(key)) return false
+        return depth < OBJECT_HIERARCHY_DEFAULT_EXPAND_DEPTH || objectHierarchyExpandedKeys.has(key)
+      }
+
+      function toggleObjectHierarchyExpanded(key, depth) {
+        const defaultExpanded = depth < OBJECT_HIERARCHY_DEFAULT_EXPAND_DEPTH
+        if (defaultExpanded) {
+          if (objectHierarchyCollapsedKeys.has(key)) {
+            objectHierarchyCollapsedKeys.delete(key)
+          } else {
+            objectHierarchyCollapsedKeys.add(key)
+          }
+        } else if (objectHierarchyExpandedKeys.has(key)) {
+          objectHierarchyExpandedKeys.delete(key)
+        } else {
+          objectHierarchyExpandedKeys.add(key)
+        }
+        rebuildObjectsPanel()
+      }
+
+      function collectObjectListEntries(parent, childDepth, entries) {
+        if (!parent?.children?.length) return
+
+        const parentDepth = childDepth - 1
+        const parentKey = getObjectKey(parent)
+        const parentExpanded = isObjectHierarchyExpanded(parentKey, parentDepth)
+
+        for (const child of parent.children) {
+          if (!shouldIncludeInObjectList(child)) {
+            if (
+              parentExpanded &&
+              (child.isGroup || isObjectListContainer(child)) &&
+              !isEditorExcludedObject(child)
+            ) {
+              collectObjectListEntries(child, childDepth, entries)
+            }
+            continue
+          }
+
+          const childKey = getObjectKey(child)
+          entries.push({
+            object: child,
+            depth: childDepth,
+            label: getObjectListLabel(child),
+            key: childKey,
+            hasChildren: objectHasListChildren(child),
+          })
+
+          if (
+            parentExpanded &&
+            isObjectHierarchyExpanded(childKey, childDepth) &&
+            objectHasListChildren(child)
+          ) {
+            collectObjectListEntries(child, childDepth + 1, entries)
+          }
+        }
+      }
+
+      function getObjectsPanelEntries() {
+        const entries = []
+
+        if (paganiRoot) {
+          const paganiKey = getObjectKey(paganiRoot)
+          entries.push({
+            object: paganiRoot,
+            depth: 0,
+            label: getObjectListLabel(paganiRoot),
+            key: paganiKey,
+            hasChildren: objectHasListChildren(paganiRoot),
+          })
+          collectObjectListEntries(paganiRoot, 1, entries)
+        }
+
+        if (mshStdFloor) {
+          entries.push({
+            object: mshStdFloor,
+            depth: 0,
+            label: getObjectListLabel(mshStdFloor),
+            key: getObjectKey(mshStdFloor),
+            hasChildren: false,
+          })
+        }
+
+        entries.push({ isCategory: true, label: 'Rect Lights' })
+        for (const light of [rectLight1, rectLight2, rectLight3]) {
+          if (!light) continue
+          entries.push({
+            object: light,
+            depth: 1,
+            label: getObjectListLabel(light),
+            key: getObjectKey(light),
+          })
+        }
+
+        return entries
+      }
+
+      function createObjectSectionLabel(text) {
+        const label = createValueSpan()
+        label.textContent = text
+        const item = new Item(label)
+        item.itemRow.classList.add('object-section-label', 'hint-row', 'no-hover')
+        item.itemRow.style.gridTemplateColumns = '1fr'
+        return item
+      }
+
+      function createObjectInfoRow(label, valueNode) {
+        const item = new Item(label, valueNode)
+        item.itemRow.classList.add('actionable')
+        objectInfoItems.push(item)
+        return item
+      }
+
+      function clearObjectInfoSection(objectsRoot) {
+        for (const item of objectInfoItems) {
+          objectsRoot.remove(item)
+        }
+        objectInfoItems.length = 0
+        objectsInfoPositionEl = null
+        objectsTransformEditors = null
+      }
+
+      function isTransformInputFocused() {
+        if (!objectsTransformEditors) return false
+        const active = document.activeElement
+        for (const group of ['position', 'rotation', 'scale']) {
+          for (const axis of ['x', 'y', 'z']) {
+            if (objectsTransformEditors[group]?.[axis]?.input === active) return true
+          }
+        }
+        return false
+      }
+
+      function createObjectTransformAxisRow(label, editor, { locked = false } = {}) {
+        const item = new Item(label, editor.domElement)
+        item.itemRow.classList.add('actionable', 'object-transform-row')
+        if (locked) {
+          item.itemRow.style.opacity = '0.45'
+          item.itemRow.style.pointerEvents = 'none'
+        }
+        objectInfoItems.push(item)
+        return item
+      }
+
+      function createObjectTransformSubsectionLabel(text) {
+        const label = createValueSpan()
+        label.textContent = text
+        const item = new Item(label)
+        item.itemRow.classList.add('object-transform-subsection', 'hint-row', 'no-hover')
+        item.itemRow.style.gridTemplateColumns = '1fr'
+        objectInfoItems.push(item)
+        return item
+      }
+
+      function addObjectTransformSection(objectsRoot, object) {
+        const sectionLabel = createObjectSectionLabel('Transform (local)')
+        objectsRoot.add(sectionLabel)
+        objectInfoItems.push(sectionLabel)
+
+        const locked = isObjectLocked(object)
+        const editors = { position: {}, rotation: {}, scale: {} }
+
+        const addAxisGroup = (subsectionLabel, groupKey, { getValue, setValue, step, min, max, digits }) => {
+          const subsection = createObjectTransformSubsectionLabel(subsectionLabel)
+          objectsRoot.add(subsection)
+
+          for (const axis of ['x', 'y', 'z']) {
+            const editor = new ValueNumber({
+              value: Number(getValue(axis).toFixed(digits)),
+              step,
+              min,
+              max,
+            })
+            if (!locked) {
+              editor.addEventListener('change', () => {
+                setValue(axis, editor.getValue())
+                object.updateMatrixWorld(true)
+                updateWorldPositionDisplay()
+              })
+            }
+            editors[groupKey][axis] = editor
+            objectsRoot.add(createObjectTransformAxisRow(axis.toUpperCase(), editor, { locked }))
+          }
+        }
+
+        addAxisGroup('Position', 'position', {
+          getValue: (axis) => object.position[axis],
+          setValue: (axis, value) => {
+            object.position[axis] = value
+          },
+          step: 0.01,
+          min: -1000,
+          max: 1000,
+          digits: 3,
+        })
+
+        addAxisGroup('Rotation (deg)', 'rotation', {
+          getValue: (axis) => THREE.MathUtils.radToDeg(object.rotation[axis]),
+          setValue: (axis, value) => {
+            object.rotation[axis] = value * DEG2RAD
+          },
+          step: 0.1,
+          min: -360,
+          max: 360,
+          digits: 2,
+        })
+
+        addAxisGroup('Scale', 'scale', {
+          getValue: (axis) => object.scale[axis],
+          setValue: (axis, value) => {
+            object.scale[axis] = Math.max(0.001, value)
+          },
+          step: 0.01,
+          min: 0.001,
+          max: 100,
+          digits: 3,
+        })
+
+        objectsTransformEditors = editors
+
+        if (object === paganiRoot || isUnderPagani(object)) {
+          const hint = createValueSpan()
+          hint.className = 'object-info-meta'
+          hint.textContent =
+            object === paganiRoot
+              ? 'Editing the Pagani turntable root. Turntable spin pauses while you edit transforms or use the gizmo.'
+              : 'Transforms apply to the selected node. Turntable spin pauses while this object is being edited.'
+          const hintItem = new Item(hint)
+          hintItem.itemRow.classList.add('hint-row', 'no-hover')
+          hintItem.itemRow.style.gridTemplateColumns = '1fr'
+          objectsRoot.add(hintItem)
+          objectInfoItems.push(hintItem)
+        }
+      }
+
+      function syncTransformEditorsFromObject(object) {
+        if (!objectsTransformEditors || !object) return
+
+        for (const axis of ['x', 'y', 'z']) {
+          objectsTransformEditors.position[axis].setValue(Number(object.position[axis].toFixed(3)))
+          objectsTransformEditors.rotation[axis].setValue(
+            Number(THREE.MathUtils.radToDeg(object.rotation[axis]).toFixed(2)),
+          )
+          objectsTransformEditors.scale[axis].setValue(Number(object.scale[axis].toFixed(3)))
+        }
+      }
+
+      function updateWorldPositionDisplay() {
+        if (!selectedObjectRef || !objectsInfoPositionEl) return
+
+        selectedObjectRef.updateMatrixWorld(true)
+        selectedObjectRef.getWorldPosition(objectWorldPosition)
+        objectsInfoPositionEl.textContent = `${objectWorldPosition.x.toFixed(3)}, ${objectWorldPosition.y.toFixed(3)}, ${objectWorldPosition.z.toFixed(3)}`
+      }
+
+      function enhanceInspectorControl(editor) {
+        const row = editor.domElement?.closest('.list-item-wrapper')
+        return Object.assign(editor, {
+          show() {
+            if (row) row.style.display = ''
+          },
+          hide() {
+            if (row) row.style.display = 'none'
+          },
+          disable() {
+            if (row) {
+              row.style.opacity = '0.45'
+              row.style.pointerEvents = 'none'
+            }
+          },
+          enable() {
+            if (row) {
+              row.style.opacity = ''
+              row.style.pointerEvents = ''
+            }
+          },
+        })
+      }
+
+      function rebuildObjectInfoSection() {
+        if (!objectsGui) return
+
+        const objectsRoot = objectsGui.paramList
+        clearObjectInfoSection(objectsRoot)
+
+        const infoLabel = createObjectSectionLabel('Information')
+        objectsRoot.add(infoLabel)
+        objectInfoItems.push(infoLabel)
+
+        if (!selectedObjectRef) {
+          const hint = createValueSpan()
+          hint.className = 'object-info-meta'
+          hint.textContent = 'Select an object in the hierarchy to view details and actions.'
+          const hintItem = new Item(hint)
+          hintItem.itemRow.classList.add('hint-row', 'no-hover')
+          hintItem.itemRow.style.gridTemplateColumns = '1fr'
+          objectsRoot.add(hintItem)
+          objectInfoItems.push(hintItem)
+          return
+        }
+
+        const object = selectedObjectRef
+        object.updateMatrixWorld(true)
+        object.getWorldPosition(objectWorldPosition)
+
+        const visibleEditor = new ValueCheckbox({ value: object.visible })
+        visibleEditor.addEventListener('change', ({ value }) => {
+          object.visible = value
+          updateObjectListSelectionUi()
+          rebuildObjectInfoSection()
+          setStatus(`"${getObjectListLabel(object)}" ${value ? 'shown' : 'hidden'}.`)
+        })
+        objectsRoot.add(createObjectInfoRow('Visible', visibleEditor.domElement))
+
+        const focusButton = new ValueButton({
+          text: 'Focus camera',
+          value: () => focusCameraOnObject(object),
+        })
+        objectsRoot.add(createObjectInfoRow('Focus', focusButton.domElement))
+
+        const lockEditor = new ValueCheckbox({ value: isObjectLocked(object) })
+        lockEditor.addEventListener('change', ({ value }) => {
+          setObjectLocked(object, value)
+          setStatus(
+            value
+              ? `"${getObjectListLabel(object)}" locked — gizmo cannot move it.`
+              : `"${getObjectListLabel(object)}" unlocked.`,
+          )
+        })
+        objectsRoot.add(createObjectInfoRow('Lock', lockEditor.domElement))
+
+        const addMetaRow = (label, text) => {
+          const value = createValueSpan()
+          value.className = 'object-info-meta'
+          value.textContent = text
+          objectsRoot.add(createObjectInfoRow(label, value))
+        }
+
+        addMetaRow('Name', getObjectListLabel(object))
+        addMetaRow('Type', object.type || 'Object')
+        addMetaRow('Category', getObjectCategoryTag(object) || '—')
+        addMetaRow('Parent', object.parent?.name || object.parent?.type || '—')
+
+        addObjectTransformSection(objectsRoot, object)
+
+        const positionValue = createValueSpan()
+        positionValue.className = 'object-info-meta'
+        positionValue.textContent = `${objectWorldPosition.x.toFixed(3)}, ${objectWorldPosition.y.toFixed(3)}, ${objectWorldPosition.z.toFixed(3)}`
+        objectsInfoPositionEl = positionValue
+        objectsRoot.add(createObjectInfoRow('World position', positionValue))
+      }
+
+      function setGizmoMode(mode, { updateStatus = true } = {}) {
+        runtimeParams.gizmoMode = mode
+        transformControls?.setMode(mode)
+        gizmoModeController?.setValue?.(mode)
+        if (updateStatus) setStatus(`Gizmo mode: ${mode}`)
+      }
+
+      function updateObjectListSelectionUi() {
+        if (!objectsGui) return
+
+        const rows = objectsGui.paramList.domElement.querySelectorAll('.object-list-row')
+        rows.forEach((row) => {
+          const isSelected = row.dataset.objectKey === selectedObjectKey
+          row.classList.toggle('is-selected', isSelected)
+
+          const object = findObjectByKey(row.dataset.objectKey)
+          row.classList.toggle('is-effectively-hidden', object ? !isObjectEffectivelyVisible(object) : false)
+
+          const hiddenBadge = row.querySelector('.object-badge.is-hidden')
+          if (hiddenBadge) hiddenBadge.hidden = Boolean(object?.visible)
+          const lockedBadge = row.querySelector('.object-badge.is-locked')
+          if (lockedBadge) lockedBadge.hidden = !isObjectLocked(object)
+        })
+      }
+
+      function selectPanelObject(object, { fromGizmo = false, attachGizmo = true } = {}) {
+        if (!object) return
+
+        selectedObjectRef = object
+        selectedObjectKey = getObjectKey(object)
+        updateObjectListSelectionUi()
+        rebuildObjectInfoSection()
+
+        if (fromGizmo) return
+
+        if (attachGizmo && runtimeParams.gizmoEnabled) {
+          if (isObjectLocked(object)) {
+            if (gizmoSelectedObject) {
+              gizmoSelectedObject = null
+              updateTransformGizmo()
+            }
+            setStatus(
+              `"${getObjectListLabel(object)}" is locked — viewing info only. Unlock to use the gizmo.`,
+              true,
+            )
+          } else {
+            selectGizmoObject(object)
+          }
+        }
+      }
+
+      function focusCameraOnObject(object) {
+        if (!object || !controls) {
+          setStatus('No object selected to focus.', true)
+          return
+        }
+
+        object.updateMatrixWorld(true)
+        objectFocusBounds.setFromObject(object)
+
+        if (objectFocusBounds.isEmpty()) {
+          object.getWorldPosition(objectFocusCenter)
+          objectFocusSize.set(1, 1, 1)
+        } else {
+          objectFocusBounds.getCenter(objectFocusCenter)
+          objectFocusBounds.getSize(objectFocusSize)
+        }
+
+        const maxDim = Math.max(objectFocusSize.x, objectFocusSize.y, objectFocusSize.z, 0.1)
+        const fovRadians = (camera.fov * Math.PI) / 180
+        const distance = (maxDim * 1.35) / Math.tan(fovRadians * 0.5)
+
+        objectFocusDirection.subVectors(camera.position, controls.target)
+        if (objectFocusDirection.lengthSq() < 1e-6) {
+          objectFocusDirection.set(0.45, 0.32, 0.84).normalize()
+        } else {
+          objectFocusDirection.normalize()
+        }
+
+        controls.target.copy(objectFocusCenter)
+        camera.position.copy(objectFocusCenter).addScaledVector(objectFocusDirection, Math.max(distance, 0.35))
+        controls.update()
+        camera.updateProjectionMatrix()
+
+        setStatus(`Camera focused on ${getObjectListLabel(object)}.`)
+      }
+
+      function updateObjectInfoLiveFields() {
+        if (!selectedObjectRef) return
+
+        updateWorldPositionDisplay()
+        if (isTransformInputFocused()) return
+        syncTransformEditorsFromObject(selectedObjectRef)
+      }
+
+      function getGizmoPickRaycastMeshes() {
+        const meshes = []
+
+        const addPickable = (root) => {
+          if (!root) return
+          root.traverse((object) => {
+            if (
+              (object.isMesh || object.isGroup) &&
+              object.visible &&
+              !isEditorExcludedObject(object)
+            ) {
+              meshes.push(object)
+            }
+          })
+        }
+
+        addPickable(paganiRoot)
+        if (mshStdFloor) meshes.push(mshStdFloor)
+
+        for (const light of [rectLight1, rectLight2, rectLight3]) {
+          if (!light) continue
+          light.traverse((object) => {
+            if (object.isMesh && object.visible && !isEditorExcludedObject(object)) {
+              meshes.push(object)
+            }
+          })
+        }
+
+        return meshes
+      }
+
+      function resolveGizmoPickTarget(hit) {
+        if (!hit?.object) return null
+
+        const object = hit.object
+        if (isEditorExcludedObject(object)) return null
+        if (isTransformControlsHelperObject(object)) return null
+
+        if (object === paganiRoot || isObjectDescendantOf(object, paganiRoot)) {
+          return hit.object.isMesh ? hit.object : paganiRoot
+        }
+
+        if (object === mshStdFloor) return mshStdFloor
+
+        for (const light of [rectLight1, rectLight2, rectLight3]) {
+          if (object === light || isObjectDescendantOf(object, light)) return light
+        }
+
+        if (object.isMesh || object.isGroup) return object
+
+        let current = object.parent
+        while (current) {
+          if (current === scene) break
+          if (current.isMesh || current.isGroup || current.isRectAreaLight) return current
+          current = current.parent
+        }
+
+        return null
+      }
+
+      function raycastGizmoSurface(clientX, clientY) {
+        const targets = getGizmoPickRaycastMeshes()
+        if (!targets.length) return null
+
+        const rect = renderer.domElement.getBoundingClientRect()
+        gizmoPointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        gizmoPointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        gizmoRaycaster.setFromCamera(gizmoPointerNdc, camera)
+        const hits = gizmoRaycaster.intersectObjects(targets, false)
+        for (const hit of hits) {
+          const target = resolveGizmoPickTarget(hit)
+          if (target) return { hit, target }
+        }
+        return null
+      }
+
+      function getGizmoObjectLabel(object) {
+        return getObjectListLabel(object)
+      }
+
+      function deselectGizmoObject({ updateStatus = true, clearPanel = true } = {}) {
+        if (!gizmoSelectedObject) {
+          if (clearPanel && selectedObjectRef) {
+            selectedObjectRef = null
+            selectedObjectKey = null
+            updateObjectListSelectionUi()
+            rebuildObjectInfoSection()
+          }
+          return
+        }
+
+        gizmoSelectedObject = null
+        updateTransformGizmo()
+
+        if (clearPanel) {
+          selectedObjectRef = null
+          selectedObjectKey = null
+          updateObjectListSelectionUi()
+          rebuildObjectInfoSection()
+        }
+
+        if (updateStatus && runtimeParams.gizmoEnabled) {
+          setStatus('Transform gizmo: selection cleared. Click an object to select it.')
+        }
+      }
+
+      function selectGizmoObject(object) {
+        if (!object || object === gizmoSelectedObject) return
+
+        if (isObjectLocked(object)) {
+          selectPanelObject(object, { fromGizmo: true, attachGizmo: false })
+          setStatus(
+            `"${getObjectListLabel(object)}" is locked and cannot be moved with the gizmo. Unlock it in the Objects panel.`,
+            true,
+          )
+          return
+        }
+
+        gizmoSelectedObject = object
+        updateTransformGizmo()
+        selectPanelObject(object, { fromGizmo: true, attachGizmo: false })
+        setStatus(
+          `Transform gizmo attached to ${getGizmoObjectLabel(object)}. Drag handles to move/rotate; T/R/S switch mode; Esc deselect.`,
+        )
+      }
+
+      function selectGizmoFromClick(event) {
+        const pick = raycastGizmoSurface(event.clientX, event.clientY)
+        if (!pick) {
+          deselectGizmoObject()
+          setStatus('No object hit. Click visible geometry to select it for the transform gizmo.', true)
+          return
+        }
+
+        if (isObjectLocked(pick.target)) {
+          selectPanelObject(pick.target, { fromGizmo: true, attachGizmo: false })
+          setStatus(
+            `"${getObjectListLabel(pick.target)}" is locked. Unlock in the Objects panel to transform.`,
+            true,
+          )
+          return
+        }
+
+        selectGizmoObject(pick.target)
+      }
+
+      function onGizmoEnabledToggle(enabled) {
+        runtimeParams.gizmoEnabled = enabled
+
+        if (!enabled) {
+          deselectGizmoObject({ updateStatus: false })
+        }
+
+        updateTransformGizmo()
+        updatePickModeUi()
+
+        setStatus(
+          enabled
+            ? 'Transform gizmo on. Click an object to select it; drag handles to move/rotate; T/R/S switch mode; Esc deselect.'
+            : 'Transform gizmo off. Select objects from the hierarchy or turn the gizmo back on.',
+        )
+      }
+
+      function updatePickModeUi() {
+        const pickingGizmo = runtimeParams.gizmoEnabled
+        renderer.domElement.classList.toggle('pick-cursor', pickingGizmo)
+      }
+
+      function updateTransformGizmo() {
+        if (!transformControls) return
+
+        if (!runtimeParams.gizmoEnabled) {
+          transformControls.detach()
+          transformControls.enabled = false
+          transformControls.getHelper().visible = false
+          gizmoModeController?.disable()
+          return
+        }
+
+        setGizmoMode(runtimeParams.gizmoMode, { updateStatus: false })
+        transformControls.enabled = true
+        gizmoModeController?.[runtimeParams.gizmoEnabled ? 'enable' : 'disable']()
+
+        if (gizmoSelectedObject?.parent && !isObjectLocked(gizmoSelectedObject)) {
+          if (transformControls.object !== gizmoSelectedObject) {
+            transformControls.attach(gizmoSelectedObject)
+          }
+          transformControls.getHelper().visible = true
+        } else {
+          if (gizmoSelectedObject) gizmoSelectedObject = null
+          transformControls.detach()
+          transformControls.getHelper().visible = false
+        }
+      }
+
+      function onGizmoKeyDown(event) {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+        if (event.repeat) return
+
+        if (event.code === 'Escape' && runtimeParams.gizmoEnabled && gizmoSelectedObject) {
+          event.preventDefault()
+          deselectGizmoObject()
+          return
+        }
+
+        if (!runtimeParams.gizmoEnabled || !transformControls?.enabled) return
+        if (event.ctrlKey || event.metaKey || event.altKey) return
+
+        let nextMode = null
+        if (event.code === 'KeyT') nextMode = 'translate'
+        else if (event.code === 'KeyR') nextMode = 'rotate'
+        else if (event.code === 'KeyS') nextMode = 'scale'
+
+        if (!nextMode) return
+
+        event.preventDefault()
+        setGizmoMode(nextMode)
+      }
+
+      function onCanvasPointerDown(event) {
+        if (event.target !== renderer.domElement) return
+        if (event.button !== 0) return
+        if (!runtimeParams.gizmoEnabled) return
+        if (transformControls?.dragging || transformControls?.axis) return
+
+        event.preventDefault()
+        selectGizmoFromClick(event)
+      }
+
+      function rebuildObjectsPanel() {
+        if (!objectsGui) return
+
+        const objectsRoot = objectsGui.paramList
+        while (objectsRoot.children.length) {
+          objectsRoot.remove(objectsRoot.children[0])
+        }
+        clearObjectInfoSection(objectsRoot)
+
+        const entries = getObjectsPanelEntries()
+
+        if (selectedObjectKey && !entries.some((entry) => entry.key === selectedObjectKey)) {
+          selectedObjectKey = null
+          selectedObjectRef = null
+        } else if (selectedObjectKey && !selectedObjectRef) {
+          selectedObjectRef = findObjectByKey(selectedObjectKey)
+        }
+
+        gizmoEnabledEditor = new ValueCheckbox({ value: runtimeParams.gizmoEnabled })
+        gizmoEnabledEditor.addEventListener('change', ({ value }) => {
+          onGizmoEnabledToggle(value)
+        })
+        const gizmoItem = new Item('Transform gizmo', gizmoEnabledEditor.domElement)
+        gizmoItem.itemRow.classList.add('actionable')
+        objectsRoot.add(gizmoItem)
+        gizmoEnabledController = enhanceInspectorControl({ domElement: gizmoItem.itemRow })
+        gizmoEnabledController.setValue = (value) => {
+          gizmoEnabledEditor.setValue(value)
+        }
+
+        const hint = createValueSpan()
+        hint.className = 'object-info-meta'
+        hint.innerHTML =
+          'Enable <strong>Transform gizmo</strong> to click meshes or use the hierarchy. Use the mode dropdown or T/R/S keys. Visible, Focus, and Lock are in Information.'
+        const hintItem = new Item(hint)
+        hintItem.itemRow.classList.add('hint-row', 'no-hover')
+        hintItem.itemRow.style.gridTemplateColumns = '1fr'
+        objectsRoot.add(hintItem)
+
+        objectsRoot.add(createObjectSectionLabel('Hierarchy'))
+
+        for (const entry of entries) {
+          if (entry.isCategory) {
+            const categoryItem = createObjectSectionLabel(entry.label)
+            categoryItem.itemRow.querySelector('.list-item-cell').style.paddingLeft = '8px'
+            objectsRoot.add(categoryItem)
+            continue
+          }
+
+          const rowInner = document.createElement('div')
+          rowInner.className = 'object-list-row-inner'
+          rowInner.style.paddingLeft = `${8 + entry.depth * 14}px`
+
+          const chevron = document.createElement('button')
+          chevron.type = 'button'
+          chevron.className = 'object-list-chevron'
+          if (entry.hasChildren) {
+            const expanded = isObjectHierarchyExpanded(entry.key, entry.depth)
+            chevron.textContent = expanded ? '▼' : '▶'
+            chevron.setAttribute('aria-label', expanded ? 'Collapse' : 'Expand')
+            chevron.addEventListener('click', (event) => {
+              event.stopPropagation()
+              toggleObjectHierarchyExpanded(entry.key, entry.depth)
+            })
+          } else {
+            chevron.classList.add('is-placeholder')
+            chevron.textContent = '▶'
+            chevron.tabIndex = -1
+          }
+          rowInner.appendChild(chevron)
+
+          const label = createValueSpan()
+          label.className = 'object-list-label'
+          label.textContent = entry.label
+
+          const typeTag = document.createElement('span')
+          typeTag.className = 'object-list-type'
+          typeTag.textContent = getObjectCategoryTag(entry.object)
+          label.appendChild(typeTag)
+
+          if (!entry.object.visible) {
+            const hiddenBadge = document.createElement('span')
+            hiddenBadge.className = 'object-badge is-hidden'
+            hiddenBadge.textContent = 'Hidden'
+            label.appendChild(hiddenBadge)
+          }
+
+          if (isObjectLocked(entry.object)) {
+            const lockedBadge = document.createElement('span')
+            lockedBadge.className = 'object-badge is-locked'
+            lockedBadge.textContent = 'Locked'
+            label.appendChild(lockedBadge)
+          }
+
+          rowInner.appendChild(label)
+
+          const rowItem = new Item(rowInner)
+          rowItem.itemRow.classList.add('actionable', 'object-list-row')
+          rowItem.itemRow.dataset.objectKey = entry.key
+          if (entry.key === selectedObjectKey) {
+            rowItem.itemRow.classList.add('is-selected')
+          }
+          if (!isObjectEffectivelyVisible(entry.object)) {
+            rowItem.itemRow.classList.add('is-effectively-hidden')
+          }
+
+          rowItem.itemRow.addEventListener('click', () => {
+            selectPanelObject(entry.object)
+          })
+          objectsRoot.add(rowItem)
+        }
+
+        rebuildObjectInfoSection()
+        setObjectsPanelCollapsed(runtimeParams.objectsPanelCollapsed, { persist: false })
+        updateTransformGizmo()
+      }
+
+      function setObjectsPanelCollapsed(collapsed, { persist = true } = {}) {
+        runtimeParams.objectsPanelCollapsed = collapsed
+        if (!objectsGui) return
+
+        const objectsRoot = objectsGui.paramList
+        if (collapsed && objectsRoot.isOpen) {
+          objectsRoot.close()
+        } else if (!collapsed && !objectsRoot.isOpen) {
+          objectsRoot.toggle()
+        }
+
+        if (persist) {
+          try {
+            sessionStorage.setItem('volume-lighting-objects-panel-collapsed', collapsed ? '1' : '0')
+          } catch {
+            // ignore storage failures
+          }
+        }
+      }
+
+      function initObjectsGui() {
+        if (!objectsGui) return
+
+        let collapsed = true
+        try {
+          const stored = sessionStorage.getItem('volume-lighting-objects-panel-collapsed')
+          if (stored !== null) collapsed = stored === '1'
+        } catch {
+          collapsed = true
+        }
+
+        runtimeParams.objectsPanelCollapsed = collapsed
+
+        objectsGui.paramList.itemRow.addEventListener('click', () => {
+          requestAnimationFrame(() => {
+            setObjectsPanelCollapsed(!objectsGui.paramList.isOpen, { persist: true })
+          })
+        })
+
+        gizmoModeController = enhanceInspectorControl(
+          objectsGui
+            .add(runtimeParams, 'gizmoMode', { Translate: 'translate', Rotate: 'rotate', Scale: 'scale' })
+            .name('Gizmo mode')
+            .onChange((value) => {
+              setGizmoMode(value, { updateStatus: false })
+              setStatus(`Gizmo mode: ${value}`)
+            }),
+        )
+        gizmoModeController.disable()
+
+        rebuildObjectsPanel()
+      }
+
+      function initTransformControls() {
+        transformControls = new TransformControls(camera, renderer.domElement)
+        transformControls.setMode(runtimeParams.gizmoMode)
+        transformControls.addEventListener('mouseDown', () => {
+          controls.enabled = false
+        })
+        transformControls.addEventListener('objectChange', () => {
+          if (gizmoSelectedObject === selectedObjectRef) {
+            updateObjectInfoLiveFields()
+          }
+        })
+        transformControls.addEventListener('mouseUp', () => {
+          controls.enabled = true
+        })
+        scene.add(transformControls.getHelper())
+      }
+
+      function registerSceneObjectNames() {
+        if (mshStdFloor) mshStdFloor.name = 'Floor'
+        if (rectLight1) rectLight1.name = 'Red Light'
+        if (rectLight2) rectLight2.name = 'Green Light'
+        if (rectLight3) rectLight3.name = 'Blue Light'
+        if (volumetricMesh) volumetricMesh.name = 'Volumetric Fog'
+      }
+
+      let cameraKeyframes = []
+      let cameraPlaybackActive = false
+      let cameraPlaybackTimer = null
+      let cameraPlaybackSpeed = 1
+      let selectedCameraKeyframeId = null
+      let cameraTransitionFrame = null
+      let cameraViewsListEl = null
+      let cameraViewsCountEl = null
+      let cameraRecordBtn = null
+      let cameraPlayBtn = null
+      let cameraExportBtn = null
+      let cameraClearBtn = null
+      let cameraPlaybackSpeedSelect = null
+
+      function formatRoundedVector(vector, digits = 3) {
+        return {
+          x: Number(vector.x.toFixed(digits)),
+          y: Number(vector.y.toFixed(digits)),
+          z: Number(vector.z.toFixed(digits)),
+        }
+      }
+
+      function createCameraKeyframeId() {
+        return `cv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      }
+
+      function captureCurrentCameraKeyframe(name) {
+        const position = formatRoundedVector(camera.position)
+        const rotation = formatRoundedVector(camera.rotation)
+        const target = formatRoundedVector(controls.target)
+        const rotationOrder = camera.rotation.order || DEFAULT_CAMERA_ROTATION_ORDER
+
+        return {
+          id: createCameraKeyframeId(),
+          name: name || `View ${cameraKeyframes.length + 1}`,
+          createdAt: Date.now(),
+          position,
+          rotation: { ...rotation, order: rotationOrder },
+          target,
+        }
+      }
+
+      function loadCameraKeyframesFromStorage() {
+        try {
+          const raw = localStorage.getItem(CAMERA_KEYFRAMES_STORAGE_KEY)
+          if (!raw) return
+          const parsed = JSON.parse(raw)
+          if (!Array.isArray(parsed)) return
+
+          cameraKeyframes = parsed.filter((entry) => entry?.position && entry?.target)
+          selectedCameraKeyframeId = cameraKeyframes[0]?.id ?? null
+        } catch {
+          // ignore storage failures
+        }
+      }
+
+      function saveCameraKeyframesToStorage() {
+        try {
+          localStorage.setItem(CAMERA_KEYFRAMES_STORAGE_KEY, JSON.stringify(cameraKeyframes))
+        } catch {
+          // ignore storage failures
+        }
+      }
+
+      function cancelCameraTransition() {
+        if (cameraTransitionFrame) {
+          cancelAnimationFrame(cameraTransitionFrame)
+          cameraTransitionFrame = null
+        }
+      }
+
+      function setCameraKeyframeState(keyframe, animate = true) {
+        if (!keyframe?.position || !keyframe?.target || !controls) return
+
+        cancelCameraTransition()
+
+        const position = new THREE.Vector3(keyframe.position.x, keyframe.position.y, keyframe.position.z)
+        const target = new THREE.Vector3(keyframe.target.x, keyframe.target.y, keyframe.target.z)
+        const rotation = keyframe.rotation || {}
+        const rotationOrder = rotation.order || DEFAULT_CAMERA_ROTATION_ORDER
+
+        if (!animate) {
+          camera.position.copy(position)
+          if (rotation.x !== undefined) {
+            camera.rotation.set(rotation.x, rotation.y, rotation.z, rotationOrder)
+          }
+          controls.target.copy(target)
+          controls.update()
+          return
+        }
+
+        const startPos = camera.position.clone()
+        const startTarget = controls.target.clone()
+        const startTime = performance.now()
+
+        const step = (now) => {
+          const elapsed = now - startTime
+          const progress = Math.min(elapsed / CAMERA_TRANSITION_MS, 1)
+          const eased =
+            progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2
+
+          camera.position.lerpVectors(startPos, position, eased)
+          controls.target.lerpVectors(startTarget, target, eased)
+          controls.update()
+
+          if (progress < 1) {
+            cameraTransitionFrame = requestAnimationFrame(step)
+          } else {
+            camera.position.copy(position)
+            if (rotation.x !== undefined) {
+              camera.rotation.set(rotation.x, rotation.y, rotation.z, rotationOrder)
+            }
+            controls.target.copy(target)
+            controls.update()
+            cameraTransitionFrame = null
+          }
+        }
+
+        cameraTransitionFrame = requestAnimationFrame(step)
+      }
+
+      function addCameraKeyframe(name) {
+        if (!controls) return
+
+        const keyframe = captureCurrentCameraKeyframe(name)
+        cameraKeyframes.push(keyframe)
+        selectedCameraKeyframeId = keyframe.id
+        saveCameraKeyframesToStorage()
+        renderCameraKeyframesList()
+        updateCameraViewsPanelUi()
+        setStatus(`Recorded "${keyframe.name}" (${cameraKeyframes.length} view${cameraKeyframes.length === 1 ? '' : 's'})`)
+      }
+
+      function removeCameraKeyframe(id) {
+        const index = cameraKeyframes.findIndex((entry) => entry.id === id)
+        if (index < 0) return
+
+        const removed = cameraKeyframes[index]
+        cameraKeyframes.splice(index, 1)
+        if (selectedCameraKeyframeId === id) {
+          selectedCameraKeyframeId = cameraKeyframes[Math.min(index, cameraKeyframes.length - 1)]?.id ?? null
+        }
+        saveCameraKeyframesToStorage()
+        renderCameraKeyframesList()
+        updateCameraViewsPanelUi()
+        setStatus(`Deleted "${removed.name}"`)
+      }
+
+      function clearCameraKeyframes({ confirm: shouldConfirm = false } = {}) {
+        if (!cameraKeyframes.length) return
+        if (shouldConfirm && !window.confirm('Clear all recorded camera keyframes?')) return
+
+        stopCameraPlayback()
+        cameraKeyframes = []
+        selectedCameraKeyframeId = null
+        saveCameraKeyframesToStorage()
+        renderCameraKeyframesList()
+        updateCameraViewsPanelUi()
+        setStatus('Cleared all camera views')
+      }
+
+      function goToCameraKeyframe(id, animate = true) {
+        const keyframe = cameraKeyframes.find((entry) => entry.id === id)
+        if (!keyframe) return
+
+        stopCameraPlayback()
+        selectedCameraKeyframeId = id
+        setCameraKeyframeState(keyframe, animate)
+        renderCameraKeyframesList()
+        setStatus(`Camera moved to "${keyframe.name}"`)
+      }
+
+      function stopCameraPlayback() {
+        cameraPlaybackActive = false
+        if (cameraPlaybackTimer) {
+          clearTimeout(cameraPlaybackTimer)
+          cameraPlaybackTimer = null
+        }
+        updateCameraViewsPanelUi()
+      }
+
+      function toggleCameraPlayback() {
+        if (!controls) return
+
+        if (cameraPlaybackActive) {
+          stopCameraPlayback()
+          setStatus('Camera path playback stopped')
+          return
+        }
+
+        if (cameraKeyframes.length < 2) {
+          setStatus('Add at least 2 camera views to play a path', true)
+          return
+        }
+
+        cameraPlaybackActive = true
+        let index = selectedCameraKeyframeId
+          ? cameraKeyframes.findIndex((entry) => entry.id === selectedCameraKeyframeId)
+          : 0
+        if (index < 0) index = 0
+
+        const playNext = () => {
+          if (!cameraPlaybackActive) return
+
+          const keyframe = cameraKeyframes[index]
+          selectedCameraKeyframeId = keyframe.id
+          setCameraKeyframeState(keyframe, true)
+          renderCameraKeyframesList()
+
+          index = (index + 1) % cameraKeyframes.length
+          const waitMs = (CAMERA_TRANSITION_MS + CAMERA_HOLD_MS) / cameraPlaybackSpeed
+          cameraPlaybackTimer = setTimeout(playNext, waitMs)
+        }
+
+        playNext()
+        updateCameraViewsPanelUi()
+        setStatus(
+          `Playing camera path (${cameraKeyframes.length} views, ${cameraPlaybackSpeed}×) — click Stop to end`,
+        )
+      }
+
+      function exportCameraKeyframesJson() {
+        if (!cameraKeyframes.length) {
+          setStatus('No camera views to export', true)
+          return
+        }
+
+        const payload = cameraKeyframes.map((keyframe) => ({
+          name: keyframe.name,
+          createdAt: keyframe.createdAt,
+          cameraPosition: keyframe.position,
+          cameraTarget: keyframe.target,
+          cameraRotation: keyframe.rotation,
+          position: keyframe.position,
+          rotation: keyframe.rotation,
+          target: keyframe.target,
+        }))
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `camera-views-${new Date().toISOString().split('T')[0]}.json`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        setStatus(`Exported ${cameraKeyframes.length} camera view(s) as JSON`)
+      }
+
+      async function importCameraKeyframesFromFile(file) {
+        if (!file) return
+
+        try {
+          const text = await file.text()
+          const imported = JSON.parse(text)
+          const entries = Array.isArray(imported) ? imported : [imported]
+          let importedCount = 0
+
+          entries.forEach((entry, index) => {
+            const position = entry.position || entry.cameraPosition
+            const target = entry.target || entry.cameraTarget
+            const rotation = entry.rotation || entry.cameraRotation
+            if (!position || !target) return
+
+            cameraKeyframes.push({
+              id: createCameraKeyframeId(),
+              name: entry.name || `Imported ${index + 1}`,
+              createdAt: entry.createdAt || Date.now(),
+              position: {
+                x: Number(position.x),
+                y: Number(position.y),
+                z: Number(position.z),
+              },
+              rotation: {
+                x: Number(rotation?.x ?? 0),
+                y: Number(rotation?.y ?? 0),
+                z: Number(rotation?.z ?? 0),
+                order: rotation?.order || DEFAULT_CAMERA_ROTATION_ORDER,
+              },
+              target: {
+                x: Number(target.x),
+                y: Number(target.y),
+                z: Number(target.z),
+              },
+            })
+            importedCount++
+          })
+
+          if (!importedCount) {
+            setStatus('No valid camera views found in file', true)
+            return
+          }
+
+          selectedCameraKeyframeId = cameraKeyframes[cameraKeyframes.length - 1]?.id ?? null
+          saveCameraKeyframesToStorage()
+          renderCameraKeyframesList()
+          updateCameraViewsPanelUi()
+          setStatus(`Imported ${importedCount} camera view(s)`)
+        } catch (error) {
+          console.warn('[camera] import failed', error)
+          setStatus('Could not import camera views JSON', true)
+        }
+      }
+
+      function renderCameraKeyframesList() {
+        if (!cameraViewsListEl) return
+
+        cameraViewsListEl.replaceChildren()
+
+        if (!cameraKeyframes.length) {
+          const empty = document.createElement('div')
+          empty.className = 'panel-empty'
+          empty.textContent = 'No keyframes yet. Position the camera and click Record.'
+          cameraViewsListEl.appendChild(empty)
+          return
+        }
+
+        cameraKeyframes.forEach((keyframe, index) => {
+          const item = document.createElement('div')
+          item.className = `panel-list-item${selectedCameraKeyframeId === keyframe.id ? ' is-selected' : ''}`
+          item.title = keyframe.name
+
+          const number = document.createElement('div')
+          number.className = 'panel-list-index'
+          number.textContent = String(index + 1)
+
+          const name = document.createElement('div')
+          name.className = 'panel-list-label'
+          name.textContent = keyframe.name
+
+          const removeBtn = document.createElement('button')
+          removeBtn.type = 'button'
+          removeBtn.className = 'panel-list-delete'
+          removeBtn.textContent = '×'
+          removeBtn.title = 'Delete keyframe'
+          removeBtn.addEventListener('click', (event) => {
+            event.stopPropagation()
+            removeCameraKeyframe(keyframe.id)
+          })
+
+          item.appendChild(number)
+          item.appendChild(name)
+          item.appendChild(removeBtn)
+          item.addEventListener('click', () => goToCameraKeyframe(keyframe.id, true))
+          cameraViewsListEl.appendChild(item)
+        })
+      }
+
+      function updateCameraViewsPanelUi() {
+        if (cameraViewsCountEl) cameraViewsCountEl.textContent = String(cameraKeyframes.length)
+        if (cameraPlayBtn) {
+          cameraPlayBtn.disabled = cameraKeyframes.length < 2
+          cameraPlayBtn.textContent = cameraPlaybackActive ? 'Stop' : 'Play'
+          cameraPlayBtn.classList.toggle('is-playing', cameraPlaybackActive)
+        }
+        if (cameraExportBtn) cameraExportBtn.disabled = cameraKeyframes.length === 0
+        if (cameraClearBtn) cameraClearBtn.disabled = cameraKeyframes.length === 0
+      }
+
+      function initCameraViewsPanel() {
+        cameraViewsListEl = document.getElementById('camera-views-list')
+        cameraViewsCountEl = document.getElementById('camera-views-count')
+        cameraRecordBtn = document.getElementById('camera-record-btn')
+        cameraPlayBtn = document.getElementById('camera-play-btn')
+        cameraExportBtn = document.getElementById('camera-export-btn')
+        cameraClearBtn = document.getElementById('camera-clear-btn')
+        cameraPlaybackSpeedSelect = document.getElementById('camera-playback-speed')
+        const cameraImportInput = document.getElementById('camera-import-input')
+
+        cameraRecordBtn?.addEventListener('click', () => addCameraKeyframe())
+        cameraPlayBtn?.addEventListener('click', () => toggleCameraPlayback())
+        cameraExportBtn?.addEventListener('click', () => exportCameraKeyframesJson())
+        cameraClearBtn?.addEventListener('click', () => clearCameraKeyframes({ confirm: true }))
+        cameraPlaybackSpeedSelect?.addEventListener('change', (event) => {
+          cameraPlaybackSpeed = Number(event.target.value) || 1
+        })
+        cameraImportInput?.addEventListener('change', async (event) => {
+          const file = event.target.files?.[0]
+          await importCameraKeyframesFromFile(file)
+          event.target.value = ''
+        })
+      }
+
+      function onCameraRecordKeyDown(event) {
+        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
+
+        const key = event.key.toLowerCase()
+        const isCtrl = event.ctrlKey || event.metaKey
+        if (key === 's' && isCtrl && event.shiftKey) {
+          event.preventDefault()
+          addCameraKeyframe()
+        }
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        THREE.RectAreaLightNode.setLTC(RectAreaLightTexturesLib.init())
+
+        const LAYER_VOLUMETRIC_LIGHTING = 10
+
+        timer = new THREE.Timer()
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.toneMapping = THREE.NeutralToneMapping
+        renderer.toneMappingExposure = 2
+        renderer.shadowMap.enabled = true
+        renderer.inspector = new Inspector()
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x06060a)
+
+        // Fill so shadowed regions on the car/floor are not pure black.
+        scene.add(new THREE.AmbientLight(0x2a2a32, 0.65))
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 250)
+        camera.position.set(0, 5, -15)
+
+        const noiseTexture3D = createTexture3D()
+
+        smokeAmount = uniform(2)
+
+        volumetricMaterial = new THREE.VolumeNodeMaterial()
+        volumetricMaterial.steps = 12
+        volumetricMaterial.offsetNode = bayer16(screenCoordinate)
+        volumetricMaterial.scatteringNode = Fn(({ positionRay }) => {
+          const timeScaled = vec3(time, 0, time.mul(0.3))
+
+          const sampleGrain = (scale, timeScale = 1) =>
+            texture3D(noiseTexture3D, positionRay.add(timeScaled.mul(timeScale)).mul(scale).mod(1), 0)
+              .r.add(0.5)
+
+          let density = sampleGrain(0.1)
+          density = density.mul(sampleGrain(0.05, 1))
+          density = density.mul(sampleGrain(0.02, 2))
+
+          return smokeAmount.mix(1, density)
+        })
+
+        volumetricMesh = new THREE.Mesh(new THREE.BoxGeometry(50, 40, 50), volumetricMaterial)
+        volumetricMesh.receiveShadow = true
+        volumetricMesh.position.y = 20
+        volumetricMesh.layers.disableAll()
+        volumetricMesh.layers.enable(LAYER_VOLUMETRIC_LIGHTING)
+        scene.add(volumetricMesh)
+
+        const configureVolumetricRectLight = (rectLight) => {
+          // RectAreaLight cannot cast shadows; keep it on the volumetric layer only so
+          // spotlight proxies are the sole illuminators (with shadow maps) for the car/floor.
+          rectLight.layers.disableAll()
+          rectLight.layers.enable(LAYER_VOLUMETRIC_LIGHTING)
+        }
+
+        rectLight1 = new THREE.RectAreaLight(0xff0000, 5, 4, 10)
+        configureVolumetricRectLight(rectLight1)
+        rectLight1.position.set(-5, 6, 5)
+        scene.add(rectLight1)
+
+        rectLight2 = new THREE.RectAreaLight(0x00ff00, 5, 4, 10)
+        configureVolumetricRectLight(rectLight2)
+        rectLight2.position.set(0, 6, 5)
+        scene.add(rectLight2)
+
+        rectLight3 = new THREE.RectAreaLight(0x0000ff, 5, 4, 10)
+        configureVolumetricRectLight(rectLight3)
+        rectLight3.position.set(5, 6, 5)
+        scene.add(rectLight3)
+
+        const createRectLightMesh = (rectLight) => {
+          const geometry = new THREE.PlaneGeometry(4, 10)
+          const frontMaterial = new THREE.MeshBasicMaterial({ color: rectLight.color, side: THREE.BackSide })
+          const backMaterial = new THREE.MeshStandardMaterial({ color: 0x111111 })
+
+          const backSide = new THREE.Mesh(geometry, backMaterial)
+          backSide.position.set(0, 0, 0.08)
+
+          const frontSide = new THREE.Mesh(geometry, frontMaterial)
+          frontSide.position.set(0, 0, 0.01)
+
+          rectLight.add(backSide)
+          rectLight.add(frontSide)
+        }
+
+        createRectLightMesh(rectLight1)
+        createRectLightMesh(rectLight2)
+        createRectLightMesh(rectLight3)
+
+        // RectAreaLight cannot cast shadows in Three.js (WebGL or WebGPU). Use wide
+        // spotlight proxies on the default layer as the scene illuminators + shadow casters.
+        const attachShadowCastingSpot = (rectLight) => {
+          const spot = new THREE.SpotLight(rectLight.color, 95)
+          spot.position.set(0, 0, 0)
+          spot.angle = Math.PI / 2.35
+          spot.penumbra = 0.55
+          spot.decay = 1.25
+          spot.distance = 80
+          spot.castShadow = true
+          spot.shadow.mapSize.set(2048, 2048)
+          spot.shadow.bias = -0.0002
+          spot.shadow.normalBias = 0.03
+          spot.shadow.radius = 1
+          spot.shadow.camera.near = 2
+          spot.shadow.camera.far = 45
+
+          const target = new THREE.Object3D()
+          target.position.set(0, -0.35, -24)
+          rectLight.add(target)
+          rectLight.add(spot)
+          spot.target = target
+          return { spot, target }
+        }
+
+        const aimShadowSpotAt = (rectLight, targetObj, worldPoint) => {
+          const local = rectLight.worldToLocal(worldPoint.clone())
+          targetObj.position.copy(local)
+          targetObj.updateMatrixWorld(true)
+        }
+
+        const shadowProxy1 = attachShadowCastingSpot(rectLight1)
+        const shadowProxy2 = attachShadowCastingSpot(rectLight2)
+        const shadowProxy3 = attachShadowCastingSpot(rectLight3)
+        shadowSpot1 = shadowProxy1.spot
+        shadowSpot2 = shadowProxy2.spot
+        shadowSpot3 = shadowProxy3.spot
+
+        const geoFloor = new THREE.BoxGeometry(2000, 0.1, 2000)
+        const matStdFloor = new THREE.MeshStandardMaterial({ color: 0x444444 })
+        matStdFloor.roughnessNode = checker(uv().mul(400))
+        mshStdFloor = new THREE.Mesh(geoFloor, matStdFloor)
+        mshStdFloor.position.y = -0.05
+        mshStdFloor.receiveShadow = true
+        scene.add(mshStdFloor)
+
+        setStatus('Loading Pagani model…')
+        try {
+          const gltf = await new GLTFLoader().loadAsync(PAGANI_MODEL_URL)
+          const paganiModel = gltf.scene
+          paganiModel.name = 'Pagani Utopia'
+          paganiModel.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              if (!child.name) {
+                const materialName = child.material?.name
+                child.name = materialName ? `Body — ${materialName}` : `Mesh ${child.id}`
+              }
+              if (child.material && !Array.isArray(child.material)) {
+                child.material.shadowSide = THREE.DoubleSide
+              }
+            }
+          })
+          paganiRoot = fitModelToFloor(paganiModel, PAGANI_TARGET_LENGTH)
+          paganiRoot.position.add(PAGANI_POSITION_OFFSET)
+          paganiRoot.updateMatrixWorld(true)
+          const paganiBounds = new THREE.Box3().setFromObject(paganiRoot)
+          scene.add(paganiRoot)
+
+          const paganiCenter = paganiBounds.getCenter(new THREE.Vector3())
+          const paganiSize = paganiBounds.getSize(new THREE.Vector3())
+          const paganiHeight = paganiSize.y
+          const paganiMaxDim = Math.max(paganiSize.x, paganiSize.y, paganiSize.z)
+
+          const shadowAimPoint = paganiCenter.clone()
+          shadowAimPoint.y = paganiBounds.min.y + paganiHeight * 0.2
+          aimShadowSpotAt(rectLight1, shadowProxy1.target, shadowAimPoint)
+          aimShadowSpotAt(rectLight2, shadowProxy2.target, shadowAimPoint)
+          aimShadowSpotAt(rectLight3, shadowProxy3.target, shadowAimPoint)
+
+          controls = new OrbitControls(camera, renderer.domElement)
+          controls.enableDamping = true
+          controls.minDistance = paganiMaxDim * 0.35
+          controls.maxDistance = 200
+          controls.target.set(paganiCenter.x, paganiCenter.y + paganiHeight * 0.15, paganiCenter.z)
+          camera.position.set(
+            paganiCenter.x,
+            paganiCenter.y + paganiHeight * 0.75,
+            paganiCenter.z - paganiMaxDim * 1.65
+          )
+          controls.addEventListener('start', () => {
+            if (cameraPlaybackActive) stopCameraPlayback()
+            cancelCameraTransition()
+          })
+          controls.update()
+
+          initCameraViewsPanel()
+          loadCameraKeyframesFromStorage()
+          renderCameraKeyframesList()
+          updateCameraViewsPanelUi()
+          document.addEventListener('keydown', onCameraRecordKeyDown, true)
+        } catch (err) {
+          console.error(err)
+          setStatus('Failed to load Pagani model', true)
+          return
+        }
+
+        renderPipeline = new THREE.RenderPipeline(renderer)
+
+        volumetricLightingIntensity = uniform(1)
+
+        const volumetricLayer = new THREE.Layers()
+        volumetricLayer.disableAll()
+        volumetricLayer.enable(LAYER_VOLUMETRIC_LIGHTING)
+
+        scenePass = pass(scene, camera)
+        const sceneDepth = scenePass.getTextureNode('depth')
+
+        volumetricMaterial.depthNode = sceneDepth.sample(screenUV)
+
+        volumetricPass = pass(scene, camera, { depthBuffer: false })
+        volumetricPass.setLayers(volumetricLayer)
+        volumetricPass.setResolutionScale(0.25)
+
+        denoiseStrength = uniform(0.6)
+
+        blurredVolumetricPass = gaussianBlur(volumetricPass, denoiseStrength)
+
+        const scenePassColor = scenePass.add(blurredVolumetricPass.mul(volumetricLightingIntensity))
+
+        renderPipeline.outputNode = scenePassColor
+
+        const params = {
+          resolution: volumetricPass.getResolutionScale(),
+          denoise: true,
+        }
+
+        const gui = renderer.inspector.createParameters('Volumetric Lighting')
+
+        const rayMarching = gui.addFolder('Ray Marching')
+        rayMarching
+          .add(params, 'resolution', 0.1, 1)
+          .onChange((resolution) => {
+            volumetricPass.setResolutionScale(resolution)
+          })
+        rayMarching.add(volumetricMaterial, 'steps', 2, 16).name('step count')
+        rayMarching.add(denoiseStrength, 'value', 0, 1).name('denoise strength')
+        rayMarching.add(params, 'denoise').onChange((denoise) => {
+          const volumetric = denoise ? blurredVolumetricPass : volumetricPass
+          renderPipeline.outputNode = scenePass.add(volumetric.mul(volumetricLightingIntensity))
+          renderPipeline.needsUpdate = true
+        })
+
+        const lighting = gui.addFolder('Lighting / Scene')
+        lighting.add(volumetricLightingIntensity, 'value', 0, 2).name('fog intensity')
+        lighting.add(smokeAmount, 'value', 0, 3).name('smoke amount')
+
+        registerSceneObjectNames()
+        initTransformControls()
+        objectsGui = renderer.inspector.createParameters('Objects')
+        initObjectsGui()
+
+        initCameraViewsPanelCollapse('volume-lighting-camera-views-collapsed')
+        demoUiChrome = initDemoUiChrome(renderer, {
+          storageKey: 'volume-lighting-ui-chrome-visible',
+        })
+
+        document.addEventListener('keydown', onGizmoKeyDown, true)
+        renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown)
+
+        window.addEventListener('resize', onWindowResize)
+
+        window.__volumeLightingTest = {
+          getState: () => ({
+            hasCanvas: Boolean(renderer?.domElement),
+            hasPagani: Boolean(paganiRoot),
+            steps: volumetricMaterial.steps,
+            denoise: params.denoise,
+            fogIntensity: volumetricLightingIntensity.value,
+            smokeAmount: smokeAmount.value,
+            shadowMapEnabled: Boolean(renderer?.shadowMap?.enabled),
+            shadowCasters: [shadowSpot1, shadowSpot2, shadowSpot3].filter(Boolean).map((light) => ({
+              castShadow: light.castShadow,
+              intensity: light.intensity,
+            })),
+            gizmoEnabled: runtimeParams.gizmoEnabled,
+            gizmoMode: runtimeParams.gizmoMode,
+            selectedObject: selectedObjectRef ? getObjectListLabel(selectedObjectRef) : null,
+            objectCount: getObjectsPanelEntries().filter((entry) => entry.object).length,
+          }),
+        }
+
+        setStatus('Volumetric lighting · WebGPU')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        timer.update()
+        const delta = timer.getDelta()
+
+        if (rectLight1 && rectLight2 && rectLight3) {
+          rectLight1.rotation.y += -delta
+          rectLight2.rotation.y += delta * 0.5
+          rectLight3.rotation.y += delta
+        }
+
+        if (paganiRoot) {
+          const pauseTurntable =
+            (runtimeParams.gizmoEnabled && gizmoSelectedObject && isUnderPagani(gizmoSelectedObject)) ||
+            (selectedObjectRef &&
+              isUnderPagani(selectedObjectRef) &&
+              (isTransformInputFocused() || transformControls?.dragging))
+          if (!pauseTurntable) {
+            paganiRoot.rotation.y += PAGANI_ROTATION_SPEED * delta
+          }
+        }
+
+        controls?.update()
+        updateObjectInfoLiveFields()
+        renderPipeline?.render()
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        setStatus('Demo failed to start', true)
+      })
+    </script>
+  </body>
+</html>

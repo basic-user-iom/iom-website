@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU TSL Raging Sea — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_raging_sea"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — Raging Sea</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        Procedural ocean surface with TSL wave displacement, computed normals, and emissive crest
+        highlights — layered large sine waves plus fractal noise. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_raging_sea"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU TSL raging sea example</a
+        >
+        and the
+        <a href="https://threejs-journey.com/lessons/raging-sea" target="_blank" rel="noopener noreferrer"
+          >Three.js Journey raging sea lesson</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_tsl_raging_sea.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU node materials with TSL procedural wave displacement. Open it in a
+        browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU
+        enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">
+      Orbit drag · scroll zoom · tune wave speed, frequency, and emissive crest color in Parameters
+    </div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import {
+        float,
+        mx_noise_float,
+        Loop,
+        color,
+        positionLocal,
+        sin,
+        vec2,
+        vec3,
+        mul,
+        time,
+        uniform,
+        Fn,
+        transformNormalToView,
+      } from 'three/tsl'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { Inspector } from 'three/addons/inspector/Inspector.js'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      let camera, scene, renderer, controls
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 10)
+        camera.position.set(1.25, 1.25, 1.25)
+
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x06060a)
+
+        const directionalLight = new THREE.DirectionalLight('#ffffff', 3)
+        directionalLight.position.set(-4, 2, 0)
+        scene.add(directionalLight)
+
+        const material = new THREE.MeshStandardNodeMaterial({ color: '#271442', roughness: 0.15 })
+
+        const emissiveColor = uniform(color('#ff0a81'))
+        const emissiveLow = uniform(-0.25)
+        const emissiveHigh = uniform(0.2)
+        const emissivePower = uniform(7)
+        const largeWavesFrequency = uniform(vec2(3, 1))
+        const largeWavesSpeed = uniform(1.25)
+        const largeWavesMultiplier = uniform(0.15)
+        const smallWavesIterations = uniform(3)
+        const smallWavesFrequency = uniform(2)
+        const smallWavesSpeed = uniform(0.3)
+        const smallWavesMultiplier = uniform(0.18)
+        const normalComputeShift = uniform(0.01)
+
+        const wavesElevation = Fn(([position]) => {
+          const elevation = mul(
+            sin(position.x.mul(largeWavesFrequency.x).add(time.mul(largeWavesSpeed))),
+            sin(position.z.mul(largeWavesFrequency.y).add(time.mul(largeWavesSpeed))),
+            largeWavesMultiplier,
+          ).toVar()
+
+          Loop({ start: float(1), end: smallWavesIterations.add(1) }, ({ i }) => {
+            const noiseInput = vec3(
+              position.xz.add(2).mul(smallWavesFrequency).mul(i),
+              time.mul(smallWavesSpeed),
+            )
+
+            const wave = mx_noise_float(noiseInput, 1, 0)
+              .mul(smallWavesMultiplier)
+              .div(i)
+              .abs()
+
+            elevation.subAssign(wave)
+          })
+
+          return elevation
+        })
+
+        const elevation = wavesElevation(positionLocal)
+        const position = positionLocal.add(vec3(0, elevation, 0))
+
+        material.positionNode = position
+
+        let positionA = positionLocal.add(vec3(normalComputeShift, 0, 0))
+        let positionB = positionLocal.add(vec3(0, 0, normalComputeShift.negate()))
+
+        positionA = positionA.add(vec3(0, wavesElevation(positionA), 0))
+        positionB = positionB.add(vec3(0, wavesElevation(positionB), 0))
+
+        const toA = positionA.sub(position).normalize()
+        const toB = positionB.sub(position).normalize()
+        const normal = toA.cross(toB)
+
+        material.normalNode = transformNormalToView(normal)
+
+        const emissive = elevation.remap(emissiveHigh, emissiveLow).pow(emissivePower)
+        material.emissiveNode = emissiveColor.mul(emissive)
+
+        const geometry = new THREE.PlaneGeometry(2, 2, 256, 256)
+        geometry.rotateX(-Math.PI * 0.5)
+        const mesh = new THREE.Mesh(geometry, material)
+        scene.add(mesh)
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.inspector = new Inspector()
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.target.y = -0.25
+        controls.enableDamping = true
+        controls.minDistance = 0.1
+        controls.maxDistance = 50
+
+        const gui = renderer.inspector.createParameters('Parameters')
+
+        gui
+          .addColor({ color: material.color.getHex(THREE.SRGBColorSpace) }, 'color')
+          .name('color')
+          .onChange((value) => material.color.set(value))
+        gui.add(material, 'roughness', 0, 1, 0.001)
+
+        const colorGui = gui.addFolder('emissive')
+        colorGui
+          .addColor({ color: emissiveColor.value.getHex(THREE.SRGBColorSpace) }, 'color')
+          .name('color')
+          .onChange((value) => emissiveColor.value.set(value))
+        colorGui.add(emissiveLow, 'value', -1, 0, 0.001).name('low')
+        colorGui.add(emissiveHigh, 'value', 0, 1, 0.001).name('high')
+        colorGui.add(emissivePower, 'value', 1, 10, 1).name('power')
+
+        const wavesGui = gui.addFolder('waves')
+        wavesGui.add(largeWavesSpeed, 'value', 0, 5).name('largeSpeed')
+        wavesGui.add(largeWavesMultiplier, 'value', 0, 1).name('largeMultiplier')
+        wavesGui.add(largeWavesFrequency.value, 'x', 0, 10).name('largeFrequencyX')
+        wavesGui.add(largeWavesFrequency.value, 'y', 0, 10).name('largeFrequencyY')
+        wavesGui.add(smallWavesIterations, 'value', 0, 5, 1).name('smallIterations')
+        wavesGui.add(smallWavesFrequency, 'value', 0, 10).name('smallFrequency')
+        wavesGui.add(smallWavesSpeed, 'value', 0, 1).name('smallSpeed')
+        wavesGui.add(smallWavesMultiplier, 'value', 0, 1).name('smallMultiplier')
+        wavesGui.add(normalComputeShift, 'value', 0, 0.1, 0.0001).name('normalComputeShift')
+
+        window.addEventListener('resize', onWindowResize)
+
+        setStatus('WebGPU raging sea · orbit to explore')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        controls?.update()
+        renderer.render(scene, camera)
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

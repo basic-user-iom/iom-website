@@ -1,0 +1,67 @@
+/* Three.js-style attribution — shared across standalone demos */
+.demo-attribution {
+  position: fixed;
+  bottom: 12px;
+  left: 12px;
+  z-index: 1000;
+  max-width: min(22rem, calc(100vw - 24px));
+  padding: 8px 11px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(6px);
+  color: rgba(255, 255, 255, 0.72);
+  font: 400 12px/1.45 system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.01em;
+}
+
+.demo-attribution a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+}
+
+.demo-attribution a:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+.demo-attribution-title {
+  margin: 0 0 4px;
+  font-size: 12px;
+}
+
+.demo-attribution-credits {
+  margin: 0 0 6px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.58);
+}
+
+.demo-attribution-credits a {
+  color: rgba(200, 220, 255, 0.92);
+}
+
+.demo-attribution-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.demo-attribution-icon {
+  font-family: ui-monospace, 'Cascadia Code', 'Segoe UI Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  opacity: 0.85;
+}
+
+@media (max-width: 640px) {
+  .demo-attribution {
+    bottom: auto;
+    top: 48px;
+    left: 12px;
+    max-width: calc(100vw - 24px);
+  }
+}

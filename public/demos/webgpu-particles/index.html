@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU Particles — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_particles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — Particles</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        Fire and smoke instanced sprites with TSL node materials — animated life cycles, rotating
+        smoke texture, additive fire blending, and optional indirect draw. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_particles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU particles example</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_particles.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU sprite node materials with TSL particle animation. Open it in a
+        browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU
+        enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">Orbit drag · scroll zoom · tune particle speed in Parameters</div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import { range, texture, mix, uv, color, rotateUV, positionLocal, time, uniform } from 'three/tsl'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { Inspector } from 'three/addons/inspector/Inspector.js'
+
+      const SMOKE_TEXTURE_URL = 'https://threejs.org/examples/textures/opengameart/smoke1.png'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      let camera, scene, renderer, controls
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 5000)
+        camera.position.set(1300, 500, 0)
+
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x333333)
+
+        const textureLoader = new THREE.TextureLoader()
+        const map = textureLoader.load(SMOKE_TEXTURE_URL)
+
+        const lifeRange = range(0.1, 1)
+        const offsetRange = range(new THREE.Vector3(-2, 3, -2), new THREE.Vector3(2, 5, 2))
+
+        const speed = uniform(0.2)
+        const scaledTime = time.add(5).mul(speed)
+
+        const lifeTime = scaledTime.mul(lifeRange).mod(1)
+        const scaleRange = range(0.3, 2)
+        const rotateRange = range(0.1, 4)
+
+        const life = lifeTime.div(lifeRange)
+
+        const fakeLightEffect = positionLocal.y.oneMinus().max(0.2)
+
+        const textureNode = texture(map, rotateUV(uv(), scaledTime.mul(rotateRange)))
+
+        const opacityNode = textureNode.a.mul(life.oneMinus())
+
+        const smokeColor = mix(color(0x2c1501), color(0x222222), positionLocal.y.mul(3).clamp())
+
+        const smokeNodeMaterial = new THREE.SpriteNodeMaterial()
+        smokeNodeMaterial.colorNode = mix(color(0xf27d0c), smokeColor, life.mul(2.5).min(1)).mul(
+          fakeLightEffect,
+        )
+        smokeNodeMaterial.opacityNode = opacityNode
+        smokeNodeMaterial.positionNode = offsetRange.mul(lifeTime)
+        smokeNodeMaterial.scaleNode = scaleRange.mul(lifeTime.max(0.3))
+        smokeNodeMaterial.depthWrite = false
+
+        const smokeInstancedSprite = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), smokeNodeMaterial)
+        smokeInstancedSprite.scale.setScalar(400)
+        smokeInstancedSprite.count = 2000
+        scene.add(smokeInstancedSprite)
+
+        const fireGeometry = new THREE.PlaneGeometry(1, 1)
+        const fireCount = 1000
+
+        const fireNodeMaterial = new THREE.SpriteNodeMaterial()
+        fireNodeMaterial.colorNode = mix(color(0xb72f17), color(0xb72f17), life)
+        fireNodeMaterial.positionNode = range(new THREE.Vector3(-1, 1, -1), new THREE.Vector3(1, 2, 1)).mul(
+          lifeTime,
+        )
+        fireNodeMaterial.scaleNode = smokeNodeMaterial.scaleNode
+        fireNodeMaterial.opacityNode = opacityNode.mul(0.5)
+        fireNodeMaterial.blending = THREE.AdditiveBlending
+        fireNodeMaterial.transparent = true
+        fireNodeMaterial.depthWrite = false
+
+        const fireInstancedSprite = new THREE.Mesh(fireGeometry, fireNodeMaterial)
+        fireInstancedSprite.scale.setScalar(400)
+        fireInstancedSprite.count = fireCount
+        fireInstancedSprite.position.y = -100
+        fireInstancedSprite.renderOrder = 1
+        scene.add(fireInstancedSprite)
+
+        const helper = new THREE.GridHelper(3000, 40, 0x444444, 0x444444)
+        helper.position.y = -75
+        scene.add(helper)
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.inspector = new Inspector()
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.maxDistance = 2700
+        controls.target.set(0, 500, 0)
+        controls.enableDamping = true
+        controls.update()
+
+        const gui = renderer.inspector.createParameters('Parameters')
+        gui.add(speed, 'value', 0, 1, 0.01).name('speed')
+
+        window.addEventListener('resize', onWindowResize)
+
+        setStatus('WebGPU particles · orbit to explore')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        controls?.update()
+        renderer.render(scene, camera)
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

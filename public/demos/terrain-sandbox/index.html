@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Terrain Sandbox — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #08080c;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.62);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 520px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(280px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      .place-cursor #container canvas {
+        cursor: crosshair;
+      }
+      .lil-gui {
+        --background-color: rgba(8, 8, 12, 0.82);
+        --text-color: rgba(255, 255, 255, 0.88);
+        --title-background-color: rgba(255, 255, 255, 0.06);
+        --title-text-color: rgba(255, 255, 255, 0.92);
+        --widget-color: rgba(255, 255, 255, 0.12);
+        --hover-color: rgba(255, 255, 255, 0.18);
+        --focus-color: rgba(255, 255, 255, 0.24);
+        --number-color: rgba(180, 210, 255, 0.95);
+        --string-color: rgba(180, 210, 255, 0.95);
+        --font-size: 11px;
+        --font-family: system-ui, -apple-system, sans-serif;
+        --widget-border-radius: 3px;
+        --name-width: 48%;
+        --slider-knob-width: 3px;
+        --slider-input-width: 27%;
+        --input-font-weight: 400;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+      }
+      .lil-gui.root {
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+        .lil-gui.root {
+          max-height: calc(100vh - 80px);
+          overflow: auto;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">Terrain Sandbox — procedural heightmap</p>
+      <p class="demo-attribution-credits">
+        Generate terrain from layered noise, then click to place trees, rocks, and markers.
+        Real-world DEM via MapTiler / procedural-gl.js can follow later — no API key required for this demo.
+      </p>
+    </aside>
+    <div id="container"></div>
+    <div id="hint">Orbit drag · scroll zoom · click terrain to place</div>
+    <div id="status">Ready</div>
+
+    <script type="module">
+      import * as THREE from 'three'
+      import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+
+      // --- Compact 2D simplex noise (public-domain style) ---
+      const F2 = 0.5 * (Math.sqrt(3) - 1)
+      const G2 = (3 - Math.sqrt(3)) / 6
+      const grad2 = [
+        [1, 1],
+        [-1, 1],
+        [1, -1],
+        [-1, -1],
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+      ]
+
+      function buildPerm(seed) {
+        const p = new Uint8Array(256)
+        for (let i = 0; i < 256; i++) p[i] = i
+        let s = seed >>> 0 || 1
+        for (let i = 255; i > 0; i--) {
+          s = (s * 1664525 + 1013904223) >>> 0
+          const j = s % (i + 1)
+          const t = p[i]
+          p[i] = p[j]
+          p[j] = t
+        }
+        const perm = new Uint8Array(512)
+        const permMod8 = new Uint8Array(512)
+        for (let i = 0; i < 512; i++) {
+          perm[i] = p[i & 255]
+          permMod8[i] = perm[i] % 8
+        }
+        return { perm, permMod8 }
+      }
+
+      function simplex2(x, y, tables) {
+        const { perm, permMod8 } = tables
+        const s = (x + y) * F2
+        const i = Math.floor(x + s)
+        const j = Math.floor(y + s)
+        const t = (i + j) * G2
+        const x0 = x - (i - t)
+        const y0 = y - (j - t)
+        const i1 = x0 > y0 ? 1 : 0
+        const j1 = x0 > y0 ? 0 : 1
+        const x1 = x0 - i1 + G2
+        const y1 = y0 - j1 + G2
+        const x2 = x0 - 1 + 2 * G2
+        const y2 = y0 - 1 + 2 * G2
+        const ii = i & 255
+        const jj = j & 255
+        let n = 0
+        let t0 = 0.5 - x0 * x0 - y0 * y0
+        if (t0 >= 0) {
+          const g = grad2[permMod8[ii + perm[jj]]]
+          t0 *= t0
+          n += t0 * t0 * (g[0] * x0 + g[1] * y0)
+        }
+        let t1 = 0.5 - x1 * x1 - y1 * y1
+        if (t1 >= 0) {
+          const g = grad2[permMod8[ii + i1 + perm[jj + j1]]]
+          t1 *= t1
+          n += t1 * t1 * (g[0] * x1 + g[1] * y1)
+        }
+        let t2 = 0.5 - x2 * x2 - y2 * y2
+        if (t2 >= 0) {
+          const g = grad2[permMod8[ii + 1 + perm[jj + 1]]]
+          t2 *= t2
+          n += t2 * t2 * (g[0] * x2 + g[1] * y2)
+        }
+        return 70 * n
+      }
+
+      function fbm2(x, y, tables, octaves, roughness) {
+        let amp = 1
+        let freq = 1
+        let sum = 0
+        let norm = 0
+        const gain = THREE.MathUtils.clamp(roughness, 0.2, 0.95)
+        for (let o = 0; o < octaves; o++) {
+          sum += amp * simplex2(x * freq, y * freq, tables)
+          norm += amp
+          amp *= gain
+          freq *= 2
+        }
+        return sum / norm
+      }
+
+      // --- Scene setup ---
+      const container = document.getElementById('container')
+      const statusEl = document.getElementById('status')
+      const maxDpr = Math.min(window.devicePixelRatio || 1, 1.75)
+      const targetFps = window.self !== window.top ? 30 : 60
+      const frameInterval = 1000 / targetFps
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
+      renderer.setPixelRatio(maxDpr)
+      renderer.setSize(window.innerWidth, window.innerHeight)
+      renderer.toneMapping = THREE.ACESFilmicToneMapping
+      renderer.toneMappingExposure = 1.05
+      renderer.shadowMap.enabled = true
+      renderer.shadowMap.type = THREE.PCFShadowMap
+      container.appendChild(renderer.domElement)
+
+      const scene = new THREE.Scene()
+      scene.background = new THREE.Color(0x0c1018)
+      scene.fog = new THREE.Fog(0x0c1018, 80, 280)
+
+      const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 800)
+      camera.position.set(42, 22, 48)
+
+      const controls = new OrbitControls(camera, renderer.domElement)
+      controls.enableDamping = true
+      controls.dampingFactor = 0.06
+      controls.maxPolarAngle = Math.PI * 0.48
+      controls.minDistance = 8
+      controls.maxDistance = 220
+      controls.target.set(0, 8, 0)
+
+      const hemi = new THREE.HemisphereLight(0xb8d0ff, 0x2a2418, 0.55)
+      scene.add(hemi)
+      const sun = new THREE.DirectionalLight(0xfff2d6, 1.35)
+      sun.position.set(40, 70, 20)
+      sun.castShadow = true
+      sun.shadow.mapSize.set(2048, 2048)
+      sun.shadow.camera.near = 1
+      sun.shadow.camera.far = 200
+      sun.shadow.camera.left = -90
+      sun.shadow.camera.right = 90
+      sun.shadow.camera.top = 90
+      sun.shadow.camera.bottom = -90
+      sun.shadow.bias = -0.0002
+      scene.add(sun)
+
+      const fill = new THREE.DirectionalLight(0x6a8cff, 0.25)
+      fill.position.set(-30, 20, -40)
+      scene.add(fill)
+
+      // --- Terrain state ---
+      const params = {
+        seed: 42,
+        heightScale: 24,
+        roughness: 0.58,
+        size: 100,
+        resolution: 128,
+        octaves: 6,
+        placeType: 'Tree',
+        clearObjects: () => clearPlaced(),
+        regenerate: () => regenerateTerrain(true),
+        randomSeed: () => {
+          params.seed = (Math.random() * 1e9) | 0
+          gui.controllersRecursive().forEach((c) => c.updateDisplay())
+          regenerateTerrain(true)
+        },
+      }
+
+      let terrainMesh = null
+      let heightTables = buildPerm(params.seed)
+      const placedGroup = new THREE.Group()
+      scene.add(placedGroup)
+
+      const raycaster = new THREE.Raycaster()
+      const pointer = new THREE.Vector2()
+      let pointerDown = null
+
+      const terrainMat = new THREE.MeshStandardMaterial({
+        vertexColors: true,
+        roughness: 0.92,
+        metalness: 0.02,
+        flatShading: false,
+      })
+
+      function heightAt(x, z) {
+        const half = params.size * 0.5
+        const u = (x + half) / params.size
+        const v = (z + half) / params.size
+        if (u < 0 || u > 1 || v < 0 || v > 1) return 0
+        const nx = u * 3.2
+        const nz = v * 3.2
+        const n = fbm2(nx, nz, heightTables, params.octaves, params.roughness)
+        // Soft edge falloff so islands sit in the void
+        const edge = Math.min(u, v, 1 - u, 1 - v)
+        // Three.js smoothstep is (x, min, max) — not GLSL (edge0, edge1, x)
+        const mask = THREE.MathUtils.smoothstep(edge, 0, 0.12)
+        return Math.max(0, (n * 0.55 + 0.3) * params.heightScale * mask)
+      }
+
+      function colorForHeight(h, maxH) {
+        const t = maxH > 0 ? h / maxH : 0
+        const c = new THREE.Color()
+        if (t < 0.12) c.setHSL(0.55, 0.35, 0.22)
+        else if (t < 0.35) c.setHSL(0.28, 0.42, 0.28)
+        else if (t < 0.65) c.setHSL(0.22, 0.38, 0.32)
+        else if (t < 0.85) c.setHSL(0.08, 0.25, 0.38)
+        else c.setHSL(0.0, 0.05, 0.78)
+        return c
+      }
+
+      function buildTerrainGeometry() {
+        const segs = params.resolution
+        const geo = new THREE.PlaneGeometry(params.size, params.size, segs, segs)
+        geo.rotateX(-Math.PI / 2)
+        const pos = geo.attributes.position
+        const colors = new Float32Array(pos.count * 3)
+        let maxH = 0
+        const heights = new Float32Array(pos.count)
+        for (let i = 0; i < pos.count; i++) {
+          const x = pos.getX(i)
+          const z = pos.getZ(i)
+          const h = heightAt(x, z)
+          heights[i] = h
+          if (h > maxH) maxH = h
+        }
+        for (let i = 0; i < pos.count; i++) {
+          const h = heights[i]
+          pos.setY(i, h)
+          const c = colorForHeight(h, maxH || 1)
+          colors[i * 3] = c.r
+          colors[i * 3 + 1] = c.g
+          colors[i * 3 + 2] = c.b
+        }
+        geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+        pos.needsUpdate = true
+        geo.computeVertexNormals()
+        geo.computeBoundingSphere()
+        return geo
+      }
+
+      function regenerateTerrain(clearPlacedObjects) {
+        heightTables = buildPerm(params.seed >>> 0)
+        const geo = buildTerrainGeometry()
+        if (terrainMesh) {
+          terrainMesh.geometry.dispose()
+          terrainMesh.geometry = geo
+        } else {
+          terrainMesh = new THREE.Mesh(geo, terrainMat)
+          terrainMesh.receiveShadow = true
+          terrainMesh.castShadow = true
+          terrainMesh.name = 'terrain'
+          scene.add(terrainMesh)
+        }
+        if (clearPlacedObjects) clearPlaced()
+        else snapPlacedToTerrain()
+        setStatus(`Terrain · seed ${params.seed} · ${params.resolution + 1}² verts`)
+      }
+
+      function snapPlacedToTerrain() {
+        for (const obj of placedGroup.children) {
+          snapObjectBottomToGround(obj, heightAt(obj.position.x, obj.position.z))
+        }
+      }
+
+      // --- Placeable objects (simple procedural meshes) ---
+      function makeTree() {
+        const g = new THREE.Group()
+        const trunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.18, 0.28, 1.4, 6),
+          new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.95 }),
+        )
+        trunk.position.y = 0.7
+        trunk.castShadow = true
+        const foliage = new THREE.Mesh(
+          new THREE.ConeGeometry(1.1, 2.4, 7),
+          new THREE.MeshStandardMaterial({ color: 0x2f6b3a, roughness: 0.85 }),
+        )
+        foliage.position.y = 2.2
+        foliage.castShadow = true
+        foliage.receiveShadow = true
+        g.add(trunk, foliage)
+        g.userData.kind = 'tree'
+        return g
+      }
+
+      function makeRock() {
+        const radius = 0.48 + Math.random() * 0.14
+        const geo = new THREE.DodecahedronGeometry(radius, 0)
+        geo.computeVertexNormals()
+        const mesh = new THREE.Mesh(
+          geo,
+          new THREE.MeshStandardMaterial({
+            color: 0x6e6a64,
+            roughness: 0.95,
+            metalness: 0.02,
+            flatShading: false,
+          }),
+        )
+        mesh.castShadow = true
+        mesh.receiveShadow = true
+        mesh.userData.kind = 'rock'
+        return mesh
+      }
+
+      function applyRockScale(obj) {
+        const s = 0.85 + Math.random() * 0.4
+        obj.scale.set(
+          s * (0.88 + Math.random() * 0.24),
+          s * (0.68 + Math.random() * 0.28),
+          s * (0.88 + Math.random() * 0.24),
+        )
+      }
+
+      const _snapBox = new THREE.Box3()
+      function snapObjectBottomToGround(obj, groundY) {
+        _snapBox.setFromObject(obj)
+        obj.position.y += groundY - _snapBox.min.y + 0.02
+      }
+
+      function makeMarker() {
+        const g = new THREE.Group()
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.06, 0.08, 1.8, 8),
+          new THREE.MeshStandardMaterial({ color: 0xd8d8e0, metalness: 0.4, roughness: 0.35 }),
+        )
+        pole.position.y = 0.9
+        pole.castShadow = true
+        const flag = new THREE.Mesh(
+          new THREE.BoxGeometry(0.7, 0.4, 0.04),
+          new THREE.MeshStandardMaterial({ color: 0xff5a4a, roughness: 0.55, emissive: 0x401010 }),
+        )
+        flag.position.set(0.35, 1.55, 0)
+        flag.castShadow = true
+        g.add(pole, flag)
+        g.userData.kind = 'marker'
+        return g
+      }
+
+      function createObject(type) {
+        if (type === 'Rock') return makeRock()
+        if (type === 'Marker') return makeMarker()
+        return makeTree()
+      }
+
+      function clearPlaced() {
+        while (placedGroup.children.length) {
+          const obj = placedGroup.children[0]
+          placedGroup.remove(obj)
+          obj.traverse((c) => {
+            if (c.geometry) c.geometry.dispose()
+            if (c.material) {
+              if (Array.isArray(c.material)) c.material.forEach((m) => m.dispose())
+              else c.material.dispose()
+            }
+          })
+        }
+        setStatus('Cleared placed objects')
+      }
+
+      function setStatus(msg) {
+        statusEl.textContent = msg
+      }
+
+      function placeAtEvent(clientX, clientY) {
+        if (!terrainMesh) return
+        const rect = renderer.domElement.getBoundingClientRect()
+        pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+        raycaster.setFromCamera(pointer, camera)
+        const hits = raycaster.intersectObject(terrainMesh, false)
+        if (!hits.length) {
+          setStatus('Missed terrain — click the ground')
+          return
+        }
+        const hit = hits[0]
+        const obj = createObject(params.placeType)
+        obj.position.copy(hit.point)
+        obj.rotation.y = Math.random() * Math.PI * 2
+        if (params.placeType === 'Rock') applyRockScale(obj)
+        else obj.scale.setScalar(0.85 + Math.random() * 0.4)
+        snapObjectBottomToGround(obj, hit.point.y)
+        placedGroup.add(obj)
+        setStatus(`Placed ${params.placeType.toLowerCase()} · ${placedGroup.children.length} total`)
+      }
+
+      renderer.domElement.addEventListener('pointerdown', (e) => {
+        if (e.button !== 0) return
+        pointerDown = { x: e.clientX, y: e.clientY, t: performance.now() }
+      })
+      renderer.domElement.addEventListener('pointerup', (e) => {
+        if (e.button !== 0 || !pointerDown) return
+        const dx = e.clientX - pointerDown.x
+        const dy = e.clientY - pointerDown.y
+        const dt = performance.now() - pointerDown.t
+        pointerDown = null
+        if (dx * dx + dy * dy > 16 || dt > 450) return
+        placeAtEvent(e.clientX, e.clientY)
+      })
+
+      // --- GUI ---
+      const gui = new GUI({ title: 'Terrain Sandbox' })
+      const terrainFolder = gui.addFolder('Terrain')
+      terrainFolder.add(params, 'seed').name('Seed').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'heightScale', 2, 40, 0.5).name('Height').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'roughness', 0.35, 0.85, 0.01).name('Roughness').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'size', 40, 160, 1).name('Size').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'resolution', 32, 192, 8).name('Resolution').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'octaves', 2, 7, 1).name('Octaves').onFinishChange(() => regenerateTerrain(true))
+      terrainFolder.add(params, 'regenerate').name('Regenerate')
+      terrainFolder.add(params, 'randomSeed').name('Random seed')
+      terrainFolder.open()
+
+      const placeFolder = gui.addFolder('Place')
+      placeFolder.add(params, 'placeType', ['Tree', 'Rock', 'Marker']).name('Object').onChange((v) => {
+        document.body.classList.toggle('place-cursor', true)
+        setStatus(`Place mode · ${v} — click terrain`)
+      })
+      placeFolder.add(params, 'clearObjects').name('Clear objects')
+      placeFolder.open()
+
+      document.body.classList.add('place-cursor')
+
+      regenerateTerrain(false)
+
+      // Seed a few starter objects so the card preview isn't empty
+      ;[
+        [8, -6, 'Tree'],
+        [-12, 10, 'Tree'],
+        [4, 14, 'Rock'],
+        [-6, -10, 'Marker'],
+      ].forEach(([x, z, type]) => {
+        const y = heightAt(x, z)
+        if (y <= 0.2) return
+        const obj = createObject(type)
+        obj.position.set(x, y, z)
+        obj.rotation.y = Math.random() * Math.PI * 2
+        if (type === 'Rock') applyRockScale(obj)
+        else obj.scale.setScalar(0.85 + Math.random() * 0.4)
+        snapObjectBottomToGround(obj, y)
+        placedGroup.add(obj)
+      })
+      setStatus(`Terrain ready · ${placedGroup.children.length} starter objects`)
+
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      })
+
+      let last = performance.now()
+      function tick(now) {
+        requestAnimationFrame(tick)
+        if (now - last < frameInterval) return
+        last = now
+        controls.update()
+        renderer.render(scene, camera)
+      }
+      requestAnimationFrame(tick)
+    </script>
+  </body>
+</html>

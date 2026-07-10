@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU Curve Modifier — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_modifier_curve"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — Curve Modifier</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        Deform extruded text along a closed Catmull-Rom spline using GPU curve modifiers — drag
+        control handles to reshape the path while the mesh flows along it. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_modifier_curve"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU curve modifier example</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_modifier_curve.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU curve modifiers to deform mesh geometry along a spline. Open it in a
+        browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU
+        enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">Click a handle to select · drag to reshape the curve · text animates along the path</div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import { TransformControls } from 'three/addons/controls/TransformControls.js'
+      import { Flow } from 'three/addons/modifiers/CurveModifierGPU.js'
+      import { FontLoader } from 'three/addons/loaders/FontLoader.js'
+      import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
+
+      const ASSET_BASE = 'https://threejs.org/examples/'
+
+      const ACTION_SELECT = 1
+      const ACTION_NONE = 0
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      const curveHandles = []
+      const mouse = new THREE.Vector2()
+
+      let scene
+      let camera
+      let renderer
+      let rayCaster
+      let control
+      let flow
+      let action = ACTION_NONE
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        scene = new THREE.Scene()
+        scene.background = new THREE.Color(0x06060a)
+
+        camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 1000)
+        camera.position.set(2, 2, 4)
+        camera.lookAt(scene.position)
+
+        const initialPoints = [
+          { x: 1, y: 0, z: -1 },
+          { x: 1, y: 0, z: 1 },
+          { x: -1, y: 0, z: 1 },
+          { x: -1, y: 0, z: -1 },
+        ]
+
+        const boxGeometry = new THREE.BoxGeometry(0.1, 0.1, 0.1)
+        const boxMaterial = new THREE.MeshBasicNodeMaterial()
+
+        for (const handlePos of initialPoints) {
+          const handle = new THREE.Mesh(boxGeometry, boxMaterial)
+          handle.position.copy(handlePos)
+          curveHandles.push(handle)
+          scene.add(handle)
+        }
+
+        const curve = new THREE.CatmullRomCurve3(curveHandles.map((handle) => handle.position))
+        curve.curveType = 'centripetal'
+        curve.closed = true
+
+        const points = curve.getPoints(50)
+        const line = new THREE.Line(
+          new THREE.BufferGeometry().setFromPoints(points),
+          new THREE.LineBasicMaterial({ color: 0x00ff00 }),
+        )
+        scene.add(line)
+
+        const light = new THREE.DirectionalLight(0xffaa33, 3)
+        light.position.set(-10, 10, 10)
+        scene.add(light)
+
+        const light2 = new THREE.AmbientLight(0x003973, 3)
+        scene.add(light2)
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        renderer.domElement.addEventListener('pointerdown', onPointerDown)
+
+        rayCaster = new THREE.Raycaster()
+        control = new TransformControls(camera, renderer.domElement)
+        control.addEventListener('dragging-changed', (event) => {
+          if (!event.value) {
+            const nextPoints = curve.getPoints(50)
+            line.geometry.setFromPoints(nextPoints)
+            if (flow) flow.updateCurve(0, curve)
+          }
+        })
+
+        window.addEventListener('resize', onWindowResize)
+
+        setStatus('Loading font…')
+
+        new FontLoader().setCrossOrigin('anonymous').load(
+          `${ASSET_BASE}fonts/helvetiker_regular.typeface.json`,
+          (font) => {
+            const geometry = new TextGeometry('Hello three.js!', {
+              font,
+              size: 0.2,
+              depth: 0.05,
+              curveSegments: 12,
+              bevelEnabled: true,
+              bevelThickness: 0.02,
+              bevelSize: 0.01,
+              bevelOffset: 0,
+              bevelSegments: 5,
+            })
+
+            geometry.rotateX(Math.PI)
+
+            const material = new THREE.MeshStandardNodeMaterial({
+              color: 0x99ffff,
+            })
+
+            const objectToCurve = new THREE.Mesh(geometry, material)
+
+            flow = new Flow(objectToCurve)
+            flow.updateCurve(0, curve)
+            scene.add(flow.object3D)
+
+            setStatus('WebGPU curve modifier · drag handles to reshape')
+          },
+          undefined,
+          (err) => {
+            console.error('Failed to load font', err)
+            setStatus('Font load failed — check network/CORS', true)
+          },
+        )
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function onPointerDown(event) {
+        action = ACTION_SELECT
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1
+      }
+
+      function animate() {
+        if (action === ACTION_SELECT) {
+          rayCaster.setFromCamera(mouse, camera)
+          action = ACTION_NONE
+          const intersects = rayCaster.intersectObjects(curveHandles, false)
+          if (intersects.length) {
+            const target = intersects[0].object
+            control.attach(target)
+            scene.add(control.getHelper())
+          }
+        }
+
+        if (flow) {
+          flow.moveAlongCurve(0.001)
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

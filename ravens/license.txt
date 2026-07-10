@@ -1,0 +1,8 @@
+Model Information:
+* title:	a pair of Common Ravens
+* source:	https://sketchfab.com/3d-models/a-pair-of-common-ravens-5d89ff18f59048e79c259c524d0b850c
+* author:	Nestaeric (https://sketchfab.com/Nestaeric)
+
+Model License:
+* license type:	see viewerUrl (https://sketchfab.com/3d-models/a-pair-of-common-ravens-5d89ff18f59048e79c259c524d0b850c)
+* requirements:	see https://sketchfab.com/3d-models/a-pair-of-common-ravens-5d89ff18f59048e79c259c524d0b850c

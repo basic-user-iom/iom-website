@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU TSL Linked Particles — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 620px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(320px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_vfx_linkedparticles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — VFX linked particles</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        WebGPU TSL compute particles with nearest-neighbor link ribbons, turbulence, hue rotation,
+        and bloom post-processing. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_vfx_linkedparticles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU TSL VFX linked particles example</a
+        >
+        and the original experiment by Christophe Choffel.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_tsl_vfx_linkedparticles.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU compute buffers and TSL post-processing. Open it in a browser with
+        WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU enabled).
+      </p>
+      <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">
+      Move pointer to draw linked particles · orbit drag · scroll zoom · tune spawn, turbulence, and
+      bloom in Parameters
+    </div>
+    <div id="status">Initializing…</div>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import {
+        atan,
+        cos,
+        float,
+        max,
+        min,
+        mix,
+        PI,
+        TWO_PI,
+        sin,
+        vec2,
+        vec3,
+        color,
+        Fn,
+        hash,
+        hue,
+        If,
+        instanceIndex,
+        Loop,
+        mx_fractal_noise_float,
+        mx_fractal_noise_vec3,
+        pass,
+        pcurve,
+        storage,
+        deltaTime,
+        time,
+        uv,
+        uniform,
+        step,
+      } from 'three/tsl'
+      import { bloom } from 'three/addons/tsl/display/BloomNode.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { Inspector } from 'three/addons/inspector/Inspector.js'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+
+      let camera, scene, renderer, renderPipeline, controls, timer, light
+      let updateParticles, spawnParticles, getInstanceColor
+      let framesRendered = 0
+
+      const screenPointer = new THREE.Vector2()
+      const scenePointer = new THREE.Vector3()
+      const raycastPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+      const raycaster = new THREE.Raycaster()
+
+      const nbParticles = Math.pow(2, 13)
+
+      const timeScale = uniform(1.0)
+      const particleLifetime = uniform(0.5)
+      const particleSize = uniform(1.0)
+      const linksWidth = uniform(0.005)
+
+      const colorOffset = uniform(0.0)
+      const colorVariance = uniform(2.0)
+      const colorRotationSpeed = uniform(1.0)
+
+      const spawnIndex = uniform(0)
+      const nbToSpawn = uniform(5)
+      const spawnPosition = uniform(vec3(0.0))
+      const previousSpawnPosition = uniform(vec3(0.0))
+
+      const turbFrequency = uniform(0.5)
+      const turbAmplitude = uniform(0.5)
+      const turbOctaves = uniform(2)
+      const turbLacunarity = uniform(2.0)
+      const turbGain = uniform(0.5)
+      const turbFriction = uniform(0.01)
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        const adapter = await navigator.gpu.requestAdapter()
+        if (!adapter) {
+          showFallback()
+          setStatus('WebGPU adapter not available', true)
+          return
+        }
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
+        camera.position.set(0, 0, 10)
+
+        scene = new THREE.Scene()
+
+        timer = new THREE.Timer()
+        timer.connect(document)
+
+        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer.setClearColor(0x14171a)
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.inspector = new Inspector()
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        getInstanceColor = Fn(([i]) => {
+          return hue(
+            color(0x0000ff),
+            colorOffset.add(mx_fractal_noise_float(i.toFloat().mul(0.1), 2, 2.0, 0.5, colorVariance)),
+          )
+        })
+
+        const particlePositions = storage(
+          new THREE.StorageInstancedBufferAttribute(nbParticles, 4),
+          'vec4',
+          nbParticles,
+        )
+        const particleVelocities = storage(
+          new THREE.StorageInstancedBufferAttribute(nbParticles, 4),
+          'vec4',
+          nbParticles,
+        )
+
+        renderer.compute(
+          Fn(() => {
+            particlePositions.element(instanceIndex).xyz.assign(vec3(10000.0))
+            particlePositions.element(instanceIndex).w.assign(float(-1.0))
+          })().compute(nbParticles),
+        )
+
+        const particleQuadSize = 0.05
+        const particleGeom = new THREE.PlaneGeometry(particleQuadSize, particleQuadSize)
+
+        const particleMaterial = new THREE.SpriteNodeMaterial()
+        particleMaterial.blending = THREE.AdditiveBlending
+        particleMaterial.depthWrite = false
+        particleMaterial.positionNode = particlePositions.toAttribute()
+        particleMaterial.scaleNode = vec2(particleSize)
+        particleMaterial.rotationNode = atan(
+          particleVelocities.toAttribute().y,
+          particleVelocities.toAttribute().x,
+        )
+
+        particleMaterial.colorNode = Fn(() => {
+          const life = particlePositions.toAttribute().w
+          const modLife = pcurve(life.oneMinus(), 8.0, 1.0)
+          const pulse = pcurve(
+            sin(hash(instanceIndex).mul(TWO_PI).add(time.mul(0.5).mul(TWO_PI)))
+              .mul(0.5)
+              .add(0.5),
+            0.25,
+            0.25,
+          )
+            .mul(10.0)
+            .add(1.0)
+
+          return getInstanceColor(instanceIndex).mul(pulse.mul(modLife))
+        })()
+
+        particleMaterial.opacityNode = Fn(() => {
+          const circle = step(uv().xy.sub(0.5).length(), 0.5)
+          const life = particlePositions.toAttribute().w
+
+          return circle.mul(life)
+        })()
+
+        const particleMesh = new THREE.InstancedMesh(particleGeom, particleMaterial, nbParticles)
+        particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+        particleMesh.frustumCulled = false
+        scene.add(particleMesh)
+
+        const linksIndices = []
+        for (let i = 0; i < nbParticles; i++) {
+          const baseIndex = i * 8
+          for (let j = 0; j < 2; j++) {
+            const offset = baseIndex + j * 4
+            linksIndices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3)
+          }
+        }
+
+        const nbVertices = nbParticles * 8
+        const linksVerticesSBA = new THREE.StorageBufferAttribute(nbVertices, 4)
+        const linksColorsSBA = new THREE.StorageBufferAttribute(nbVertices, 4)
+
+        const linksGeom = new THREE.BufferGeometry()
+        linksGeom.setAttribute('position', linksVerticesSBA)
+        linksGeom.setAttribute('color', linksColorsSBA)
+        linksGeom.setIndex(linksIndices)
+
+        const linksMaterial = new THREE.MeshBasicNodeMaterial()
+        linksMaterial.vertexColors = true
+        linksMaterial.side = THREE.DoubleSide
+        linksMaterial.transparent = true
+        linksMaterial.depthWrite = false
+        linksMaterial.depthTest = false
+        linksMaterial.blending = THREE.AdditiveBlending
+        linksMaterial.opacityNode = storage(linksColorsSBA, 'vec4', linksColorsSBA.count).toAttribute().w
+
+        const linksMesh = new THREE.Mesh(linksGeom, linksMaterial)
+        linksMesh.frustumCulled = false
+        scene.add(linksMesh)
+
+        updateParticles = Fn(() => {
+          const position = particlePositions.element(instanceIndex).xyz
+          const life = particlePositions.element(instanceIndex).w
+          const velocity = particleVelocities.element(instanceIndex).xyz
+          const dt = deltaTime.mul(0.1).mul(timeScale)
+
+          If(life.greaterThan(0.0), () => {
+            const localVel = mx_fractal_noise_vec3(
+              position.mul(turbFrequency),
+              turbOctaves,
+              turbLacunarity,
+              turbGain,
+              turbAmplitude,
+            ).mul(life.add(0.01))
+            velocity.addAssign(localVel)
+            velocity.mulAssign(turbFriction.oneMinus())
+            position.addAssign(velocity.mul(dt))
+
+            life.subAssign(dt.mul(particleLifetime.reciprocal()))
+
+            const closestDist1 = float(10000.0).toVar()
+            const closestPos1 = vec3(0.0).toVar()
+            const closestLife1 = float(0.0).toVar()
+            const closestDist2 = float(10000.0).toVar()
+            const closestPos2 = vec3(0.0).toVar()
+            const closestLife2 = float(0.0).toVar()
+
+            Loop(nbParticles, ({ i }) => {
+              const otherPart = particlePositions.element(i)
+
+              If(i.notEqual(instanceIndex).and(otherPart.w.greaterThan(0.0)), () => {
+                const otherPosition = otherPart.xyz
+                const dist = position.sub(otherPosition).lengthSq()
+                const moreThanZero = dist.greaterThan(0.0)
+
+                If(dist.lessThan(closestDist1).and(moreThanZero), () => {
+                  closestDist1.assign(dist)
+                  closestPos1.assign(otherPosition.xyz)
+                  closestLife1.assign(otherPart.w)
+                }).ElseIf(dist.lessThan(closestDist2).and(moreThanZero), () => {
+                  closestDist2.assign(dist)
+                  closestPos2.assign(otherPosition.xyz)
+                  closestLife2.assign(otherPart.w)
+                })
+              })
+            })
+
+            const linksPositions = storage(linksVerticesSBA, 'vec4', linksVerticesSBA.count)
+            const linksColors = storage(linksColorsSBA, 'vec4', linksColorsSBA.count)
+            const firstLinkIndex = instanceIndex.mul(8)
+            const secondLinkIndex = firstLinkIndex.add(4)
+
+            linksPositions.element(firstLinkIndex).xyz.assign(position)
+            linksPositions.element(firstLinkIndex).y.addAssign(linksWidth)
+            linksPositions.element(firstLinkIndex.add(1)).xyz.assign(position)
+            linksPositions.element(firstLinkIndex.add(1)).y.addAssign(linksWidth.negate())
+            linksPositions.element(firstLinkIndex.add(2)).xyz.assign(closestPos1)
+            linksPositions.element(firstLinkIndex.add(2)).y.addAssign(linksWidth.negate())
+            linksPositions.element(firstLinkIndex.add(3)).xyz.assign(closestPos1)
+            linksPositions.element(firstLinkIndex.add(3)).y.addAssign(linksWidth)
+
+            linksPositions.element(secondLinkIndex).xyz.assign(position)
+            linksPositions.element(secondLinkIndex).y.addAssign(linksWidth)
+            linksPositions.element(secondLinkIndex.add(1)).xyz.assign(position)
+            linksPositions.element(secondLinkIndex.add(1)).y.addAssign(linksWidth.negate())
+            linksPositions.element(secondLinkIndex.add(2)).xyz.assign(closestPos2)
+            linksPositions.element(secondLinkIndex.add(2)).y.addAssign(linksWidth.negate())
+            linksPositions.element(secondLinkIndex.add(3)).xyz.assign(closestPos2)
+            linksPositions.element(secondLinkIndex.add(3)).y.addAssign(linksWidth)
+
+            const linkColor = getInstanceColor(instanceIndex)
+            const l1 = max(0.0, min(closestLife1, life)).pow(0.8)
+            const l2 = max(0.0, min(closestLife2, life)).pow(0.8)
+
+            Loop(4, ({ i }) => {
+              linksColors.element(firstLinkIndex.add(i)).xyz.assign(linkColor)
+              linksColors.element(firstLinkIndex.add(i)).w.assign(l1)
+              linksColors.element(secondLinkIndex.add(i)).xyz.assign(linkColor)
+              linksColors.element(secondLinkIndex.add(i)).w.assign(l2)
+            })
+          })
+        })()
+          .compute(nbParticles)
+          .setName('Update Particles')
+
+        spawnParticles = Fn(() => {
+          const particleIndex = spawnIndex.add(instanceIndex).mod(nbParticles).toInt()
+          const position = particlePositions.element(particleIndex).xyz
+          const life = particlePositions.element(particleIndex).w
+          const velocity = particleVelocities.element(particleIndex).xyz
+
+          life.assign(1.0)
+
+          const rRange = float(0.01)
+          const rTheta = hash(particleIndex).mul(TWO_PI)
+          const rPhi = hash(particleIndex.add(1)).mul(PI)
+          const rx = sin(rTheta).mul(cos(rPhi))
+          const ry = sin(rTheta).mul(sin(rPhi))
+          const rz = cos(rTheta)
+          const rDir = vec3(rx, ry, rz)
+
+          const pos = mix(
+            previousSpawnPosition,
+            spawnPosition,
+            instanceIndex.toFloat().div(nbToSpawn.sub(1).toFloat()).clamp(),
+          )
+          position.assign(pos.add(rDir.mul(rRange)))
+          velocity.assign(rDir.mul(5.0))
+        })()
+          .compute(nbToSpawn.value)
+          .setName('Spawn Particles')
+
+        const backgroundGeom = new THREE.IcosahedronGeometry(100, 5).applyMatrix4(
+          new THREE.Matrix4().makeScale(-1, 1, 1),
+        )
+        const backgroundMaterial = new THREE.MeshStandardNodeMaterial()
+        backgroundMaterial.roughness = 0.4
+        backgroundMaterial.metalness = 0.9
+        backgroundMaterial.flatShading = true
+        backgroundMaterial.colorNode = color(0x0)
+
+        const backgroundMesh = new THREE.Mesh(backgroundGeom, backgroundMaterial)
+        scene.add(backgroundMesh)
+
+        light = new THREE.PointLight(0xffffff, 3000)
+        scene.add(light)
+
+        renderPipeline = new THREE.RenderPipeline(renderer)
+
+        const scenePass = pass(scene, camera)
+        const scenePassColor = scenePass.getTextureNode('output')
+        const bloomPass = bloom(scenePassColor, 0.75, 0.1, 0.5)
+        renderPipeline.outputNode = scenePassColor.add(bloomPass)
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.autoRotate = true
+        controls.maxDistance = 75
+
+        window.addEventListener('resize', onWindowResize)
+        container.addEventListener('pointermove', onPointerMove)
+
+        const gui = renderer.inspector.createParameters('Parameters')
+        gui.add(controls, 'autoRotate').name('Auto Rotate')
+        gui.add(controls, 'autoRotateSpeed', -10.0, 10.0, 0.01).name('Auto Rotate Speed')
+
+        const partFolder = gui.addFolder('Particles')
+        partFolder.add(timeScale, 'value', 0.0, 4.0, 0.01).name('timeScale')
+        partFolder.add(nbToSpawn, 'value', 1, 100, 1).name('Spawn rate')
+        partFolder.add(particleSize, 'value', 0.01, 3.0, 0.01).name('Size')
+        partFolder.add(particleLifetime, 'value', 0.01, 2.0, 0.01).name('Lifetime')
+        partFolder.add(linksWidth, 'value', 0.001, 0.1, 0.001).name('Links width')
+        partFolder.add(colorVariance, 'value', 0.0, 10.0, 0.01).name('Color variance')
+        partFolder.add(colorRotationSpeed, 'value', 0.0, 5.0, 0.01).name('Color rotation speed')
+
+        const turbFolder = gui.addFolder('Turbulence')
+        turbFolder.add(turbFriction, 'value', 0.0, 0.3, 0.01).name('Friction')
+        turbFolder.add(turbFrequency, 'value', 0.0, 1.0, 0.01).name('Frequency')
+        turbFolder.add(turbAmplitude, 'value', 0.0, 10.0, 0.01).name('Amplitude')
+        turbFolder.add(turbOctaves, 'value', 1, 9, 1).name('Octaves')
+        turbFolder.add(turbLacunarity, 'value', 1.0, 5.0, 0.01).name('Lacunarity')
+        turbFolder.add(turbGain, 'value', 0.0, 1.0, 0.01).name('Gain')
+
+        const bloomFolder = gui.addFolder('Bloom')
+        bloomFolder.add(bloomPass.threshold, 'value', 0, 2.0, 0.01).name('Threshold')
+        bloomFolder.add(bloomPass.strength, 'value', 0, 10, 0.01).name('Strength')
+        bloomFolder.add(bloomPass.radius, 'value', 0, 1, 0.01).name('Radius')
+
+        setStatus('WebGPU linked particles · move pointer to draw')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function onPointerMove(event) {
+        if (event.isPrimary === false) return
+        screenPointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        screenPointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+      }
+
+      function updatePointer() {
+        raycaster.setFromCamera(screenPointer, camera)
+        raycaster.ray.intersectPlane(raycastPlane, scenePointer)
+      }
+
+      function animate() {
+        if (!renderer || !renderPipeline || !updateParticles || !spawnParticles) return
+
+        timer.update()
+
+        renderer.compute(updateParticles)
+        renderer.compute(spawnParticles)
+
+        spawnIndex.value = (spawnIndex.value + nbToSpawn.value) % nbParticles
+
+        raycastPlane.normal.set(0, 0, 1).applyEuler(camera.rotation)
+        updatePointer()
+
+        previousSpawnPosition.value.copy(spawnPosition.value)
+        spawnPosition.value.lerp(scenePointer, 0.1)
+
+        colorOffset.value += timer.getDelta() * colorRotationSpeed.value * timeScale.value
+
+        const elapsedTime = timer.getElapsed()
+        light.position.set(
+          Math.sin(elapsedTime * 0.5) * 30,
+          Math.cos(elapsedTime * 0.3) * 30,
+          Math.sin(elapsedTime * 0.2) * 30,
+        )
+
+        controls.update()
+        renderPipeline.render()
+
+        framesRendered += 1
+        if (framesRendered === 30) {
+          setStatus('WebGPU linked particles · move pointer to draw')
+        }
+      }
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

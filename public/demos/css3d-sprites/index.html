@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CSS3D Sprites — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #08080c;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      .hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.183.0/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.0/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#css3d_sprites"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js css3d — sprites</a
+        >
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/css3d_sprites.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+    <div id="container"></div>
+    <p class="hint">Drag to orbit · 512 CSS3D sprites morph between formations</p>
+
+    <script type="module">
+      import * as THREE from 'three'
+      import TWEEN from 'three/addons/libs/tween.module.js'
+      import { TrackballControls } from 'three/addons/controls/TrackballControls.js'
+      import { CSS3DRenderer, CSS3DSprite } from 'three/addons/renderers/CSS3DRenderer.js'
+
+      const container = document.getElementById('container')
+
+      const targetFps = window.self !== window.top ? 30 : 60
+      const frameInterval = 1000 / targetFps
+
+      const particlesTotal = 512
+      const positions = []
+      const objects = []
+      let current = 0
+
+      let camera, scene, renderer, controls
+      let animationId = 0
+      let tabVisible = !document.hidden
+      let canvasVisible = true
+      let lastRenderTime = 0
+      let transitionActive = false
+
+      function init() {
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 5000)
+        camera.position.set(600, 400, 1500)
+        camera.lookAt(0, 0, 0)
+
+        scene = new THREE.Scene()
+
+        const image = document.createElement('img')
+        image.addEventListener('load', function () {
+          for (let i = 0; i < particlesTotal; i++) {
+            const object = new CSS3DSprite(image.cloneNode())
+            object.position.x = Math.random() * 4000 - 2000
+            object.position.y = Math.random() * 4000 - 2000
+            object.position.z = Math.random() * 4000 - 2000
+            scene.add(object)
+            objects.push(object)
+          }
+
+          transition()
+        })
+        image.src = './textures/sprite.png'
+
+        // Plane formation
+        const amountX = 16
+        const amountZ = 32
+        const separationPlane = 150
+        const offsetX = ((amountX - 1) * separationPlane) / 2
+        const offsetZ = ((amountZ - 1) * separationPlane) / 2
+
+        for (let i = 0; i < particlesTotal; i++) {
+          const x = (i % amountX) * separationPlane
+          const z = Math.floor(i / amountX) * separationPlane
+          const y = (Math.sin(x * 0.5) + Math.sin(z * 0.5)) * 200
+          positions.push(x - offsetX, y, z - offsetZ)
+        }
+
+        // Cube formation
+        const amount = 8
+        const separationCube = 150
+        const offset = ((amount - 1) * separationCube) / 2
+
+        for (let i = 0; i < particlesTotal; i++) {
+          const x = (i % amount) * separationCube
+          const y = Math.floor((i / amount) % amount) * separationCube
+          const z = Math.floor(i / (amount * amount)) * separationCube
+          positions.push(x - offset, y - offset, z - offset)
+        }
+
+        // Random formation
+        for (let i = 0; i < particlesTotal; i++) {
+          positions.push(
+            Math.random() * 4000 - 2000,
+            Math.random() * 4000 - 2000,
+            Math.random() * 4000 - 2000,
+          )
+        }
+
+        // Sphere formation
+        const radius = 750
+
+        for (let i = 0; i < particlesTotal; i++) {
+          const phi = Math.acos(-1 + (2 * i) / particlesTotal)
+          const theta = Math.sqrt(particlesTotal * Math.PI) * phi
+          positions.push(
+            radius * Math.cos(theta) * Math.sin(phi),
+            radius * Math.sin(theta) * Math.sin(phi),
+            radius * Math.cos(phi),
+          )
+        }
+
+        renderer = new CSS3DRenderer()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        container.appendChild(renderer.domElement)
+
+        controls = new TrackballControls(camera, renderer.domElement)
+        controls.rotateSpeed = 0.5
+        controls.zoomSpeed = 0.8
+
+        window.addEventListener('resize', onWindowResize)
+
+        syncLoop()
+      }
+
+      function onWindowResize() {
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function transition() {
+        if (!shouldRun()) {
+          transitionActive = true
+          return
+        }
+
+        transitionActive = false
+        const offset = current * particlesTotal * 3
+        const duration = 2000
+
+        for (let i = 0, j = offset; i < particlesTotal; i++, j += 3) {
+          const object = objects[i]
+
+          new TWEEN.Tween(object.position)
+            .to(
+              {
+                x: positions[j],
+                y: positions[j + 1],
+                z: positions[j + 2],
+              },
+              Math.random() * duration + duration,
+            )
+            .easing(TWEEN.Easing.Exponential.InOut)
+            .start()
+        }
+
+        new TWEEN.Tween({})
+          .to({}, duration * 3)
+          .onComplete(transition)
+          .start()
+
+        current = (current + 1) % 4
+      }
+
+      function render() {
+        TWEEN.update()
+        controls.update()
+
+        const time = performance.now()
+
+        for (let i = 0, l = objects.length; i < l; i++) {
+          const object = objects[i]
+          const scale = Math.sin((Math.floor(object.position.x) + time) * 0.002) * 0.3 + 1
+          object.scale.set(scale, scale, scale)
+        }
+
+        renderer.render(scene, camera)
+      }
+
+      const shouldRun = () => tabVisible && canvasVisible
+
+      const stopLoop = () => {
+        if (!animationId) return
+        cancelAnimationFrame(animationId)
+        animationId = 0
+        TWEEN.removeAll()
+      }
+
+      const startLoop = () => {
+        if (animationId || !shouldRun()) return
+        lastRenderTime = 0
+
+        if (transitionActive && objects.length === particlesTotal) {
+          transition()
+        }
+
+        const tick = (timestamp) => {
+          if (!shouldRun()) {
+            animationId = 0
+            return
+          }
+          animationId = requestAnimationFrame(tick)
+
+          const elapsed = timestamp - lastRenderTime
+          if (lastRenderTime > 0 && elapsed < frameInterval) return
+          lastRenderTime = timestamp - (elapsed % frameInterval)
+
+          render()
+        }
+        animationId = requestAnimationFrame(tick)
+      }
+
+      const syncLoop = () => {
+        if (shouldRun()) {
+          startLoop()
+        } else {
+          stopLoop()
+        }
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        tabVisible = !document.hidden
+        syncLoop()
+      })
+
+      const visibilityObserver = new IntersectionObserver(
+        ([entry]) => {
+          const ratio = entry?.intersectionRatio ?? 0
+          canvasVisible = Boolean(entry?.isIntersecting && ratio >= 0.08)
+          syncLoop()
+        },
+        { threshold: [0, 0.08, 0.25, 0.5] },
+      )
+      init()
+
+      if (renderer?.domElement) {
+        visibilityObserver.observe(renderer.domElement)
+      } else {
+        visibilityObserver.observe(container)
+      }
+    </script>
+  </body>
+</html>
