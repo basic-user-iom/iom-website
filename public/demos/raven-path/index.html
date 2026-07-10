@@ -210,6 +210,8 @@
       let selectedMeshLabel = null
       let wingAnimInfoLabel = null
       let guiInstance = null
+      let playPathGuiController = null
+      let driftBackwardsGuiController = null
       let objectGuiControllers = []
       let orientationGuiControllers = []
       let materialGuiControllers = []
@@ -253,7 +255,8 @@
         loop: true,
         driftBackwards: false,
         driftSpeed: 0.05,
-        loopDrift: true,
+        keepForwardFacing: true,
+        returnForwardAtStart: true,
         alignToTangent: true,
         progress: 0,
       }
@@ -364,12 +367,7 @@
       let baseStatusMessage = 'Loading raven…'
 
       function formatPathStatus() {
-        const u =
-          animState.driftBackwards && animState.loopDrift
-            ? wrap01(animState.progress)
-            : animState.loop
-              ? wrap01(animState.progress)
-              : clamp01(animState.progress)
+        const u = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
         const pathLabel = animState.driftBackwards ? 'drift' : animState.playPath ? 'ON' : 'off'
         const wingLabel = animState.playWings ? 'ON' : 'off'
         return `${baseStatusMessage} · u=${u.toFixed(3)} · path ${pathLabel} · wings ${wingLabel}`
@@ -679,12 +677,12 @@
         const animationFolder = guiInstance.addFolder('Animation')
 
         const pathMotionFolder = animationFolder.addFolder('Path motion')
-        pathMotionFolder
+        playPathGuiController = pathMotionFolder
           .add(animState, 'playPath')
           .name('Play path')
           .onChange((enabled) => {
             if (enabled) animState.driftBackwards = false
-            refreshGuiControllers()
+            syncPathDriftGui()
           })
         pathMotionFolder.add(animState, 'pathSpeed', 0.01, 0.35, 0.01).name('Path speed')
         pathMotionFolder.add(animState, 'easeIn', 0, 0.45, 0.01).name('Ease in')
@@ -694,17 +692,26 @@
         pathMotionFolder.add(params, 'resetPathProgress').name('Reset to start')
 
         const driftFolder = animationFolder.addFolder('Drift / Wind')
-        driftFolder
+        driftBackwardsGuiController = driftFolder
           .add(animState, 'driftBackwards')
           .name('Drift backwards')
           .onChange((enabled) => {
-            if (enabled) animState.playPath = false
-            refreshGuiControllers()
+            if (enabled) {
+              animState.playPath = false
+              if (animState.keepForwardFacing === undefined) animState.keepForwardFacing = true
+            }
+            syncPathDriftGui()
           })
         driftFolder.add(animState, 'driftSpeed', 0.01, 0.5, 0.01).name('Drift speed')
-        driftFolder.add(animState, 'loopDrift').name('Loop drift')
+        driftFolder.add(animState, 'keepForwardFacing').name('Keep forward facing')
+        driftFolder.add(animState, 'returnForwardAtStart').name('Return forward at start')
         driftFolder
-          .add({ note: 'Bird stays on path, pushed backward like wind' }, 'note')
+          .add(
+            {
+              note: 'Wind pushes the bird backward along the path; orientation can stay forward-facing',
+            },
+            'note',
+          )
           .name('Note')
           .disable()
 
@@ -1741,6 +1748,11 @@
         guiInstance.controllersRecursive().forEach((controller) => controller.updateDisplay())
       }
 
+      function syncPathDriftGui() {
+        playPathGuiController?.updateDisplay()
+        driftBackwardsGuiController?.updateDisplay()
+      }
+
       function clamp01(v) {
         return Math.max(0, Math.min(1, v))
       }
@@ -1774,16 +1786,17 @@
         if (!pathPivot || !curve) return
 
         if (dt > 0 && animState.driftBackwards) {
-          const lapFrac = animState.loopDrift
-            ? wrap01(animState.progress)
-            : clamp01(animState.progress)
+          const lapFrac = clamp01(animState.progress)
           const speedFactor = lapSpeedFactor(lapFrac)
           animState.progress -= dt * animState.driftSpeed * speedFactor
 
-          if (animState.loopDrift) {
-            if (Math.abs(animState.progress) > 1e4) animState.progress = wrap01(animState.progress)
-          } else {
-            animState.progress = Math.max(0, animState.progress)
+          if (animState.progress <= 0) {
+            animState.progress = 0
+            if (animState.returnForwardAtStart) {
+              animState.driftBackwards = false
+              animState.playPath = true
+              syncPathDriftGui()
+            }
           }
         } else if (dt > 0 && animState.playPath) {
           const direction = animState.reverse ? -1 : 1
@@ -1798,18 +1811,13 @@
           }
         }
 
-        const u =
-          animState.driftBackwards && animState.loopDrift
-            ? wrap01(animState.progress)
-            : animState.loop
-              ? wrap01(animState.progress)
-              : clamp01(animState.progress)
+        const u = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
         curve.getPointAt(u, point)
 
         const tangentEps = 0.002
         const tangentU = curve.closed ? wrap01(u + tangentEps) : Math.min(u + tangentEps, 1 - 1e-6)
         curve.getTangentAt(tangentU, tangent)
-        if (animState.driftBackwards) tangent.negate()
+        if (animState.driftBackwards && !animState.keepForwardFacing) tangent.negate()
 
         // pathPivot lives under pathRoot — same local space as the cyan spline line
         pathPivot.position.copy(point)
