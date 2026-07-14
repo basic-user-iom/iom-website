@@ -133,6 +133,32 @@
           overflow: auto;
         }
       }
+      /* Three inspector defaults to Courier — force readable UI fonts */
+      .profiler-mini-panel {
+        width: min(380px, calc(100vw - 24px));
+      }
+      .mini-panel-content {
+        font-family: system-ui, -apple-system, 'Segoe UI', sans-serif !important;
+        letter-spacing: 0.01em;
+        line-height: 1.45;
+      }
+      .mini-panel-content .list-item-row {
+        min-height: 26px;
+        padding: 3px 8px;
+      }
+      .list-item-row.hint-row {
+        align-items: flex-start;
+        min-height: 0;
+        height: auto;
+        white-space: normal;
+      }
+      .list-item-row.hint-row .list-item-cell {
+        white-space: normal !important;
+        overflow: visible !important;
+        text-overflow: unset !important;
+        line-height: 1.45;
+        padding-block: 4px;
+      }
       .list-item-row.object-list-row.is-selected {
         background: rgba(120, 180, 255, 0.1);
         box-shadow: inset 2px 0 0 rgba(120, 180, 255, 0.55);
@@ -147,27 +173,34 @@
         display: flex;
         align-items: center;
         min-width: 0;
-        gap: 4px;
+        gap: 6px;
       }
-      /* Hierarchy expand/collapse — CSS triangles (unicode ▶/▼ misaligns in inspector rows) */
+      /* Hierarchy expand/collapse — CSS triangles (avoid system button chrome) */
       .object-list-chevron {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
         flex-shrink: 0;
         margin: 0;
         padding: 0;
-        border: none;
-        border-radius: 2px;
+        border: 0;
+        border-radius: 4px;
         background: transparent;
-        color: rgba(255, 255, 255, 0.62);
+        color: rgba(255, 255, 255, 0.55);
         cursor: pointer;
         appearance: none;
         -webkit-appearance: none;
+        -moz-appearance: none;
+        box-shadow: none;
         font: inherit;
         line-height: 0;
+        color-scheme: dark;
+      }
+      .object-list-chevron::-moz-focus-inner {
+        border: 0;
+        padding: 0;
       }
       .object-list-chevron::before {
         content: '';
@@ -185,7 +218,7 @@
       }
       .object-list-chevron:hover {
         color: rgba(0, 229, 255, 0.95);
-        background: rgba(0, 170, 255, 0.1);
+        background: rgba(0, 170, 255, 0.12);
       }
       .object-list-chevron.is-placeholder {
         visibility: hidden;
@@ -195,27 +228,45 @@
         display: none;
       }
       .object-list-label {
-        display: inline;
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px;
+        min-width: 0;
+        font-size: 12px;
+        font-weight: 500;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .object-list-name {
         min-width: 0;
       }
       .object-list-type {
-        color: var(--text-secondary, #9a9aab);
-        font-size: 10px;
-        font-weight: 500;
-        margin-left: 6px;
+        display: inline-flex;
+        align-items: center;
+        margin: 0;
+        padding: 1px 6px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(170, 200, 255, 0.88);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.05em;
         text-transform: uppercase;
-        letter-spacing: 0.04em;
+        line-height: 1.35;
+        white-space: nowrap;
       }
       .object-badge {
-        display: inline-block;
-        margin-left: 5px;
-        padding: 1px 5px;
-        border-radius: 3px;
+        display: inline-flex;
+        align-items: center;
+        margin: 0;
+        padding: 1px 6px;
+        border-radius: 999px;
         font-size: 9px;
         font-weight: 600;
         letter-spacing: 0.04em;
         text-transform: uppercase;
-        vertical-align: middle;
+        line-height: 1.35;
       }
       .object-badge.is-hidden {
         background: rgba(255, 160, 96, 0.16);
@@ -230,16 +281,18 @@
         font-size: 11px;
         font-weight: 400;
         line-height: 1.45;
+        white-space: normal;
       }
       .list-item-row.object-section-label {
         cursor: default;
         min-height: 28px;
+        margin-top: 4px;
         opacity: 0.92;
       }
       .list-item-row.object-section-label .list-item-cell {
         font-weight: 600;
-        font-size: 11px;
-        letter-spacing: 0.06em;
+        font-size: 10px;
+        letter-spacing: 0.07em;
         text-transform: uppercase;
         color: var(--text-secondary, #9a9aab);
       }
@@ -697,9 +750,10 @@
         if (!object) return 'Object'
         if (object === paganiRoot) return 'Pagani Turntable'
         if (object === mshStdFloor) return 'Floor'
-        if (object === rectLight1) return 'Red Light'
-        if (object === rectLight2) return 'Green Light'
-        if (object === rectLight3) return 'Blue Light'
+        // Keep short names — category pill already says Rect (avoids "Red LightLight")
+        if (object === rectLight1) return 'Red'
+        if (object === rectLight2) return 'Green'
+        if (object === rectLight3) return 'Blue'
         if (object === volumetricMesh) return 'Volumetric Fog'
         if (object.userData?.importedLabel) return object.userData.importedLabel
         if (object.name) return object.name
@@ -712,8 +766,8 @@
         if (importedModelRoots.some((root) => object === root || isObjectDescendantOf(object, root))) {
           return 'Import'
         }
-        if (object === mshStdFloor) return 'Environment'
-        if (object.isRectAreaLight) return 'Light'
+        if (object === mshStdFloor) return 'Env'
+        if (object.isRectAreaLight) return 'Rect'
         if (object.isMesh) return 'Mesh'
         if (object.isGroup || isObjectListContainer(object)) return 'Group'
         return object.type || ''
@@ -1083,7 +1137,7 @@
         if (!selectedObjectRef) {
           const hint = createValueSpan()
           hint.className = 'object-info-meta'
-          hint.textContent = 'Select an object in the hierarchy to view details and actions.'
+          hint.textContent = 'Select an object in the hierarchy to view details.'
           const hintItem = new Item(hint)
           hintItem.itemRow.classList.add('hint-row', 'no-hover')
           hintItem.itemRow.style.gridTemplateColumns = '1fr'
@@ -1501,7 +1555,7 @@
         const hint = createValueSpan()
         hint.className = 'object-info-meta'
         hint.innerHTML =
-          'Enable <strong>Transform gizmo</strong> to click meshes or use the hierarchy. Use the mode dropdown or T/R/S keys. Visible, Focus, and Lock are in Information.'
+          'Enable <strong>Transform gizmo</strong> to pick meshes in the viewport. Use T / R / S for mode. Details stay under Information.'
         const hintItem = new Item(hint)
         hintItem.itemRow.classList.add('hint-row', 'no-hover')
         hintItem.itemRow.style.gridTemplateColumns = '1fr'
@@ -1549,12 +1603,19 @@
 
           const label = createValueSpan()
           label.className = 'object-list-label'
-          label.textContent = entry.label
 
-          const typeTag = document.createElement('span')
-          typeTag.className = 'object-list-type'
-          typeTag.textContent = getObjectCategoryTag(entry.object)
-          label.appendChild(typeTag)
+          const nameSpan = document.createElement('span')
+          nameSpan.className = 'object-list-name'
+          nameSpan.textContent = entry.label
+          label.appendChild(nameSpan)
+
+          const typeText = getObjectCategoryTag(entry.object)
+          if (typeText) {
+            const typeTag = document.createElement('span')
+            typeTag.className = 'object-list-type'
+            typeTag.textContent = typeText
+            label.appendChild(typeTag)
+          }
 
           if (!entry.object.visible) {
             const hiddenBadge = document.createElement('span')
@@ -1775,9 +1836,9 @@
 
       function registerSceneObjectNames() {
         if (mshStdFloor) mshStdFloor.name = 'Floor'
-        if (rectLight1) rectLight1.name = 'Red Light'
-        if (rectLight2) rectLight2.name = 'Green Light'
-        if (rectLight3) rectLight3.name = 'Blue Light'
+        if (rectLight1) rectLight1.name = 'Red'
+        if (rectLight2) rectLight2.name = 'Green'
+        if (rectLight3) rectLight3.name = 'Blue'
         if (volumetricMesh) volumetricMesh.name = 'Volumetric Fog'
       }
 
