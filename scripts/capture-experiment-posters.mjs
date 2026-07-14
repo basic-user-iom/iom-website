@@ -35,6 +35,8 @@ const TARGETS = [
     settleMs: 6000,
   },
   { id: 'spline-editor', path: '/demos/spline-editor/', settleMs: 2000 },
+  { id: 'fft-ocean', path: '/demos/fft-ocean/', settleMs: 8000 },
+  { id: 'spout', path: '/demos/spout/', settleMs: 5000, hideChrome: true },
   {
     id: 'raven-path',
     path: '/demos/raven-path/index.html',
@@ -315,6 +317,66 @@ async function waitForStreetsGlIframe(page) {
   })
 }
 
+/** Spout — WebGL2 raymarch; wait until lit scene pixels (not clear color). */
+async function waitForSpout(page) {
+  await waitForCanvas(page)
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('#container canvas')
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 16) return false
+      const gl = canvas.getContext('webgl2') ?? canvas.getContext('webgl')
+      if (!gl) return false
+      const pixels = new Uint8Array(4)
+      gl.readPixels(
+        Math.floor(canvas.width * 0.42),
+        Math.floor(canvas.height * 0.52),
+        1,
+        1,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        pixels,
+      )
+      return pixels[0] + pixels[1] + pixels[2] > 40
+    },
+    { timeout: 90000 },
+  )
+}
+
+/** FFT ocean — legacy three.js demo with ship model and skybox cubemap. */
+async function waitForFftOcean(page) {
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('canvas')
+      return canvas instanceof HTMLCanvasElement && canvas.width > 0 && canvas.height > 0
+    },
+    { timeout: 120000 },
+  )
+  await page.waitForFunction(
+    () => {
+      const status = document.getElementById('status')
+      return status?.textContent?.includes('orbit to explore')
+    },
+    { timeout: 120000 },
+  )
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('canvas')
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 16) return false
+      const tmp = document.createElement('canvas')
+      tmp.width = 1
+      tmp.height = 1
+      const ctx = tmp.getContext('2d')
+      if (!ctx) return false
+      const sx = Math.floor(canvas.width * 0.5)
+      const sy = Math.floor(canvas.height * 0.42)
+      ctx.drawImage(canvas, sx, sy, 1, 1, 0, 0, 1, 1)
+      const pixels = ctx.getImageData(0, 0, 1, 1).data
+      return pixels[0] + pixels[1] + pixels[2] > 24
+    },
+    { timeout: 60000 },
+  )
+}
+
 async function capturePoster(browser, target) {
   const url = `${baseUrl.replace(/\/$/, '')}${target.path}`
   const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } })
@@ -348,6 +410,10 @@ async function capturePoster(browser, target) {
       await waitForRavenPath(page)
     } else if (target.id === 'terrain-sandbox') {
       await waitForTerrainSandbox(page)
+    } else if (target.id === 'fft-ocean') {
+      await waitForFftOcean(page)
+    } else if (target.id === 'spout') {
+      await waitForSpout(page)
     } else if (target.pagani) {
       await waitForVolumeLightingPagani(page)
     } else {

@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Spout — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #020408;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+      }
+      #container canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
+        cursor: grab;
+      }
+      #container canvas.is-dragging {
+        cursor: grabbing;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      .hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 5;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        text-align: center;
+        color: rgba(255, 255, 255, 0.75);
+        background: #020408;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+      #fallback.is-visible {
+        display: flex;
+      }
+      @media (max-width: 640px) {
+        .hint {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a href="https://www.shadertoy.com/view/lsXGzH" target="_blank" rel="noopener noreferrer"
+          >Spout</a
+        >
+        — raymarched pipe water
+      </p>
+      <p class="demo-attribution-credits">
+        Original by
+        <a href="https://www.shadertoy.com/user/P_Malin" target="_blank" rel="noopener noreferrer"
+          >P_Malin</a
+        >
+        on Shadertoy (CC BY-NC-SA 3.0). Self-hosted WebGL2 port for IOM Experiments.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://www.shadertoy.com/view/lsXGzH"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View on Shadertoy
+      </a>
+    </aside>
+    <p class="hint">Drag to orbit · water refraction demo</p>
+    <div id="fallback" role="alert">
+      WebGL2 is required to run this demo. Try a current Chromium, Firefox, or Safari browser.
+    </div>
+    <div id="container"></div>
+    <script type="module">
+      const VERT = `#version 300 es
+in vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}`
+
+      const HEADER = `#version 300 es
+precision highp float;
+precision highp int;
+uniform vec3 iResolution;
+uniform float iTime;
+uniform float iTimeDelta;
+uniform float iFrame;
+uniform vec4 iMouse;
+uniform sampler2D iChannel0;
+out vec4 outColor;
+`
+
+      const FOOTER = `
+void main() {
+  vec4 color = vec4(0.0);
+  mainImage(color, gl_FragCoord.xy);
+  outColor = color;
+}
+`
+
+      async function loadShaderSource() {
+        const res = await fetch('./shader.glsl', { cache: 'no-cache' })
+        if (!res.ok) throw new Error(`Failed to load shader.glsl (${res.status})`)
+        let src = await res.text()
+        // Drop VR entry — not used by this fullscreen runner.
+        const vrIdx = src.indexOf('void mainVR')
+        if (vrIdx >= 0) src = src.slice(0, vrIdx)
+        return src
+      }
+
+      function compile(gl, type, source) {
+        const shader = gl.createShader(type)
+        gl.shaderSource(shader, source)
+        gl.compileShader(shader)
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          const log = gl.getShaderInfoLog(shader) || 'compile failed'
+          gl.deleteShader(shader)
+          throw new Error(log)
+        }
+        return shader
+      }
+
+      function createProgram(gl, vertSrc, fragSrc) {
+        const program = gl.createProgram()
+        const vs = compile(gl, gl.VERTEX_SHADER, vertSrc)
+        const fs = compile(gl, gl.FRAGMENT_SHADER, fragSrc)
+        gl.attachShader(program, vs)
+        gl.attachShader(program, fs)
+        gl.linkProgram(program)
+        gl.deleteShader(vs)
+        gl.deleteShader(fs)
+        if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+          const log = gl.getProgramInfoLog(program) || 'link failed'
+          gl.deleteProgram(program)
+          throw new Error(log)
+        }
+        return program
+      }
+
+      /** Solid white 1×1 — wall path uses textureless tiles, but sampler stays bound. */
+      function createDummyTexture(gl) {
+        const tex = gl.createTexture()
+        gl.bindTexture(gl.TEXTURE_2D, tex)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]))
+        return tex
+      }
+
+      async function main() {
+        const container = document.getElementById('container')
+        const fallback = document.getElementById('fallback')
+        const canvas = document.createElement('canvas')
+        container.appendChild(canvas)
+
+        const gl = canvas.getContext('webgl2', {
+          antialias: false,
+          alpha: false,
+          powerPreference: 'high-performance',
+        })
+        if (!gl) {
+          fallback.classList.add('is-visible')
+          return
+        }
+
+        let toySrc
+        try {
+          toySrc = await loadShaderSource()
+        } catch (err) {
+          fallback.textContent = String(err?.message || err)
+          fallback.classList.add('is-visible')
+          return
+        }
+
+        let program
+        try {
+          program = createProgram(gl, VERT, HEADER + toySrc + FOOTER)
+        } catch (err) {
+          console.error(err)
+          fallback.textContent = 'Shader compile error — see console for details.'
+          fallback.classList.add('is-visible')
+          return
+        }
+
+        const buffer = gl.createBuffer()
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer)
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW)
+
+        const posLoc = gl.getAttribLocation(program, 'position')
+        const vao = gl.createVertexArray()
+        gl.bindVertexArray(vao)
+        gl.enableVertexAttribArray(posLoc)
+        gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0)
+
+        const uResolution = gl.getUniformLocation(program, 'iResolution')
+        const uTime = gl.getUniformLocation(program, 'iTime')
+        const uTimeDelta = gl.getUniformLocation(program, 'iTimeDelta')
+        const uFrame = gl.getUniformLocation(program, 'iFrame')
+        const uMouse = gl.getUniformLocation(program, 'iMouse')
+        const uChannel0 = gl.getUniformLocation(program, 'iChannel0')
+
+        const channel0 = createDummyTexture(gl)
+
+        const mouse = { x: 0, y: 0, z: 0, w: 0, down: false }
+        let frame = 0
+        let prevTs = performance.now()
+        let dpr = Math.min(window.devicePixelRatio || 1, 2)
+
+        function resize() {
+          dpr = Math.min(window.devicePixelRatio || 1, 2)
+          const w = Math.max(1, Math.floor(container.clientWidth * dpr))
+          const h = Math.max(1, Math.floor(container.clientHeight * dpr))
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w
+            canvas.height = h
+          }
+          gl.viewport(0, 0, canvas.width, canvas.height)
+        }
+
+        function pointerPos(event) {
+          const rect = canvas.getBoundingClientRect()
+          const x = ((event.clientX - rect.left) / rect.width) * canvas.width
+          const y = (1 - (event.clientY - rect.top) / rect.height) * canvas.height
+          return { x, y }
+        }
+
+        canvas.addEventListener('pointerdown', (event) => {
+          canvas.setPointerCapture(event.pointerId)
+          canvas.classList.add('is-dragging')
+          const p = pointerPos(event)
+          mouse.down = true
+          mouse.x = p.x
+          mouse.y = p.y
+          mouse.z = p.x
+          mouse.w = p.y
+        })
+
+        canvas.addEventListener('pointermove', (event) => {
+          if (!mouse.down) return
+          const p = pointerPos(event)
+          mouse.x = p.x
+          mouse.y = p.y
+        })
+
+        const endDrag = (event) => {
+          if (!mouse.down) return
+          mouse.down = false
+          canvas.classList.remove('is-dragging')
+          // Negative z signals "not currently dragging" (Shadertoy convention).
+          mouse.z = -Math.abs(mouse.z)
+          mouse.w = -Math.abs(mouse.w)
+          try {
+            canvas.releasePointerCapture(event.pointerId)
+          } catch {
+            /* ignore */
+          }
+        }
+
+        canvas.addEventListener('pointerup', endDrag)
+        canvas.addEventListener('pointercancel', endDrag)
+        window.addEventListener('resize', resize)
+        resize()
+
+        gl.useProgram(program)
+        gl.bindVertexArray(vao)
+        gl.activeTexture(gl.TEXTURE0)
+        gl.bindTexture(gl.TEXTURE_2D, channel0)
+        if (uChannel0) gl.uniform1i(uChannel0, 0)
+
+        function frameFn(ts) {
+          const dt = Math.min(0.05, Math.max(0.001, (ts - prevTs) / 1000))
+          prevTs = ts
+          frame += 1
+
+          gl.uniform3f(uResolution, canvas.width, canvas.height, 1)
+          gl.uniform1f(uTime, ts * 0.001)
+          gl.uniform1f(uTimeDelta, dt)
+          gl.uniform1f(uFrame, frame)
+          gl.uniform4f(uMouse, mouse.x, mouse.y, mouse.z, mouse.w)
+
+          gl.drawArrays(gl.TRIANGLES, 0, 3)
+          requestAnimationFrame(frameFn)
+        }
+
+        requestAnimationFrame(frameFn)
+      }
+
+      main().catch((err) => {
+        console.error(err)
+        const fallback = document.getElementById('fallback')
+        fallback.textContent = String(err?.message || err)
+        fallback.classList.add('is-visible')
+      })
+    </script>
+  </body>
+</html>

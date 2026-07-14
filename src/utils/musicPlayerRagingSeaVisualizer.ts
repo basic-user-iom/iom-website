@@ -5,8 +5,7 @@ import type { MusicPlayerVisualizerLike } from './musicPlayerVisualizerTypes'
 import { MusicPlayerAudioDriver, clamp, lerp } from './musicPlayerVisualizerAudio'
 import { getDeviceProfile } from './device'
 
-const MOON_SPOTLIGHT_TEXTURE = '/assets/textures/moon-spotlight.png'
-const MOON_DIR = { x: 0.28, y: 0.88, z: -0.35 }
+const EVENING_LIGHT_DIR = { x: -0.28, y: 0.52, z: -0.38 }
 
 type SeaOptions = {
   lowPower: boolean
@@ -31,8 +30,6 @@ type SeaUniforms = {
   uMids: { value: number }
   uHighs: { value: number }
   uEnergy: { value: number }
-  uMoonMapReady: { value: number }
-  uSpotGround: { value: { set: (x: number, y: number, z: number) => void } }
 }
 
 export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike {
@@ -40,8 +37,7 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
   private camera: import('three').PerspectiveCamera | null = null
   private scene: import('three').Scene | null = null
   private seaMesh: import('three').Mesh | null = null
-  private moonBillboard: import('three').Mesh | null = null
-  private moonLight: import('three').DirectionalLight | null = null
+  private eveningLight: import('three').DirectionalLight | null = null
   private seaUniforms: SeaUniforms | null = null
   private container: HTMLElement | null = null
   private audio = new MusicPlayerAudioDriver()
@@ -148,21 +144,13 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
       uniform,
       Fn,
       transformNormalToView,
-      texture: tslTexture,
       dot,
       normalize,
       cross,
-      smoothstep,
       pow,
       max,
-      length,
-      tan,
-      radians,
-      cos,
       reflect,
       add,
-      sub,
-      div,
       cameraPosition,
     } = await import('three/tsl')
 
@@ -175,15 +163,19 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
     scene.fog = new THREE.FogExp2(0x101828, 0.028)
     this.scene = scene
 
-    const moonLight = new THREE.DirectionalLight(0xe8f0ff, 5.5)
-    moonLight.position.set(MOON_DIR.x * 8, MOON_DIR.y * 8, MOON_DIR.z * 8)
-    scene.add(moonLight)
-    this.moonLight = moonLight
+    const eveningLight = new THREE.DirectionalLight(0x8898b8, 1.15)
+    eveningLight.position.set(
+      EVENING_LIGHT_DIR.x * 8,
+      EVENING_LIGHT_DIR.y * 8,
+      EVENING_LIGHT_DIR.z * 8,
+    )
+    scene.add(eveningLight)
+    this.eveningLight = eveningLight
 
-    const ambient = new THREE.AmbientLight(0x3a4a68, 1.35)
+    const ambient = new THREE.AmbientLight(0x2a3548, 0.95)
     scene.add(ambient)
 
-    const hemi = new THREE.HemisphereLight(0x4a5a78, 0x0a1420, 0.85)
+    const hemi = new THREE.HemisphereLight(0x3a4558, 0x0a1420, 0.62)
     scene.add(hemi)
 
     const material = new THREE.MeshStandardNodeMaterial({
@@ -208,9 +200,9 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
     const uMids = uniform(0)
     const uHighs = uniform(0)
     const uEnergy = uniform(0)
-    const uMoonMapReady = uniform(0)
-    const uSpotGround = uniform(vec3(0, 0, 0))
-    const moonDir = uniform(normalize(vec3(MOON_DIR.x, MOON_DIR.y, MOON_DIR.z)))
+    const keyLightDir = uniform(
+      normalize(vec3(EVENING_LIGHT_DIR.x, EVENING_LIGHT_DIR.y, EVENING_LIGHT_DIR.z)),
+    )
 
     this.seaUniforms = {
       emissiveColor,
@@ -228,8 +220,6 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
       uMids,
       uHighs,
       uEnergy,
-      uMoonMapReady,
-      uSpotGround,
     }
 
     const wavesElevation = Fn(([position]) => {
@@ -273,72 +263,15 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
       .pow(emissivePower)
       .mul(emissiveColor)
 
-    const moonMapNode = tslTexture(new THREE.Texture())
-    const evalMoonSpotlight = Fn(([hit, spotGround]) => {
-      const spotOrigin = spotGround.add(moonDir.mul(60.0))
-      const spotAxis = moonDir.negate()
-      const toHit = hit.sub(spotOrigin)
-      const along = dot(toHit, spotAxis)
-      const alongMask = smoothstep(float(0.4), float(0.5), along)
-
-      const L = normalize(toHit)
-      const halfAngle = radians(
-        float(4.9).add(uBass.mul(0.36)).add(uEnergy.mul(0.18)),
-      )
-      const cosOuter = cos(halfAngle.mul(1.45))
-      const cosInner = cos(halfAngle.mul(0.22))
-      const cosTheta = dot(spotAxis, L)
-      const cone = smoothstep(cosOuter, cosInner, cosTheta)
-
-      const worldUp = vec3(0, 1, 0)
-      const spotRight = normalize(cross(worldUp, spotAxis))
-      const spotUp = cross(spotAxis, spotRight)
-
-      const invProj = div(float(1.0), along)
-      const planar = vec2(dot(toHit, spotRight), dot(toHit, spotUp)).mul(invProj)
-      const tanHalf = tan(halfAngle)
-      const centered = div(planar, tanHalf)
-
-      const radial = length(centered)
-      const discMask = sub(float(1.0), smoothstep(float(0.47), float(0.54), radial))
-
-      const uv = centered.mul(vec2(0.17, 0.23)).add(vec2(0.66, 0.5))
-      const edgeFade = smoothstep(vec2(0.0), vec2(0.035), uv).mul(
-        smoothstep(vec2(0.0), vec2(0.035), sub(float(1.0), uv)),
-      )
-      const uvMask = edgeFade.x.mul(edgeFade.y)
-
-      const moonSample = moonMapNode.sample(uv)
-      const alpha = moonSample.a
-      const moonTex = moonSample.rgb.mul(alpha).pow(vec3(0.78)).mul(1.35)
-
-      const distFalloff = div(float(1.0), add(float(1.0), along.mul(along).mul(0.00006)))
-      const intensity = float(1.45)
-        .add(uMids.mul(0.22))
-        .add(uEnergy.mul(0.18))
-        .add(uHighs.mul(0.12))
-
-      return moonTex
-        .mul(cone)
-        .mul(discMask)
-        .mul(alpha)
-        .mul(uvMask)
-        .mul(distFalloff)
-        .mul(intensity)
-        .mul(alongMask)
-        .mul(uMoonMapReady)
-    })
-
-    const moonSpot = evalMoonSpotlight(positionWorld, uSpotGround)
     const viewDir = normalize(cameraPosition.sub(positionWorld))
-    const lightDir = moonDir
+    const lightDir = keyLightDir
     const spec = pow(
       max(dot(reflect(lightDir.negate(), surfaceNormal), viewDir), float(0.0)),
       float(48),
     )
-    const specTint = vec3(0.72, 0.8, 0.92).mul(spec).mul(0.38).mul(uHighs.mul(0.35).add(0.32))
+    const specTint = vec3(0.52, 0.58, 0.68).mul(spec).mul(0.22).mul(uHighs.mul(0.35).add(0.28))
 
-    material.emissiveNode = add(add(crestEmissive, moonSpot.mul(1.65)), specTint)
+    material.emissiveNode = add(crestEmissive, specTint)
 
     const segments = this.options.seaSegments
     const geometry = new THREE.PlaneGeometry(this.planeExtent, this.planeExtent, segments, segments)
@@ -346,15 +279,6 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
     const mesh = new THREE.Mesh(geometry, material)
     scene.add(mesh)
     this.seaMesh = mesh
-
-    const moonBillboard = new THREE.Mesh(
-      new THREE.CircleGeometry(0.14, 48),
-      new THREE.MeshBasicMaterial({ color: 0xf0f4ff, fog: false }),
-    )
-    moonBillboard.position.set(MOON_DIR.x * 12, MOON_DIR.y * 12, MOON_DIR.z * 12)
-    moonBillboard.lookAt(0, 0, 0)
-    scene.add(moonBillboard)
-    this.moonBillboard = moonBillboard
 
     const renderer = new THREE.WebGPURenderer({
       antialias: !this.options.lowPower,
@@ -371,27 +295,6 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
     await renderer.init()
     if (this.disposed) return
     this.webgpuReady = true
-
-    const moonLoader = new THREE.TextureLoader()
-    moonLoader.load(
-      MOON_SPOTLIGHT_TEXTURE,
-      (tex) => {
-        if (this.disposed) {
-          tex.dispose()
-          return
-        }
-        tex.colorSpace = THREE.SRGBColorSpace
-        tex.minFilter = THREE.LinearFilter
-        tex.magFilter = THREE.LinearFilter
-        tex.generateMipmaps = false
-        moonMapNode.value = tex
-        uMoonMapReady.value = 1
-      },
-      undefined,
-      () => {
-        uMoonMapReady.value = 0
-      },
-    )
 
     this.resize(container.clientWidth, container.clientHeight)
   }
@@ -534,12 +437,8 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
       this.seaMesh.position.z = Math.floor(this.camPos.z / half) * half
     }
 
-    if (uniforms) {
-      uniforms.uSpotGround.value.set(this.camTarget.x, 0, this.camTarget.z)
-    }
-
-    if (this.moonLight) {
-      this.moonLight.intensity = 4.2 + audio.mids * 0.85 + audio.energy * 0.55
+    if (this.eveningLight) {
+      this.eveningLight.intensity = 0.85 + audio.mids * 0.28 + audio.energy * 0.18
     }
 
     try {
@@ -570,10 +469,6 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
     ;(this.seaMesh?.material as import('three').Material | undefined)?.dispose()
     this.seaMesh = null
 
-    this.moonBillboard?.geometry.dispose()
-    ;(this.moonBillboard?.material as import('three').Material | undefined)?.dispose()
-    this.moonBillboard = null
-
     if (this.renderer) {
       this.renderer.dispose()
       if (this.renderer.domElement.parentElement) {
@@ -584,7 +479,7 @@ export class MusicPlayerRagingSeaVisualizer implements MusicPlayerVisualizerLike
 
     this.scene = null
     this.camera = null
-    this.moonLight = null
+    this.eveningLight = null
     this.container = null
   }
 }

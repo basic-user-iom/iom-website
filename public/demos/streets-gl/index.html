@@ -81,6 +81,70 @@
           display: none;
         }
       }
+      /* Collapsible attribution — top-right so left/bottom map controls stay visible.
+         Double-class selectors raise specificity above the shared attribution.css
+         `.demo-attribution` rules, which are linked after this block and would
+         otherwise re-pin the panel to bottom/left and stretch it full-height. */
+      .demo-attribution.demo-attribution--streets-gl {
+        bottom: auto;
+        /* Sit below Streets GL's own top-right buttons (search / settings / info)
+           so none of the native map controls are covered. */
+        top: 120px;
+        left: auto;
+        right: 12px;
+        width: auto;
+        height: auto;
+        max-width: min(20rem, calc(100vw - 24px));
+        z-index: 100;
+        padding: 0;
+      }
+      .demo-attribution--streets-gl .demo-attribution-details {
+        margin: 0;
+      }
+      .demo-attribution--streets-gl .demo-attribution-summary {
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 6px 10px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .demo-attribution--streets-gl .demo-attribution-summary::-webkit-details-marker {
+        display: none;
+      }
+      .demo-attribution--streets-gl .demo-attribution-compact-label {
+        font-size: 11px;
+        line-height: 1.35;
+        color: rgba(255, 255, 255, 0.72);
+      }
+      .demo-attribution--streets-gl .demo-attribution-more {
+        flex-shrink: 0;
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.42);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+      }
+      .demo-attribution--streets-gl .demo-attribution-details[open] .demo-attribution-more {
+        color: rgba(255, 255, 255, 0.58);
+      }
+      .demo-attribution--streets-gl .demo-attribution-panel {
+        padding: 0 11px 8px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .demo-attribution--streets-gl .demo-attribution-panel .demo-attribution-title {
+        margin-top: 8px;
+      }
+      @media (max-width: 640px) {
+        .demo-attribution.demo-attribution--streets-gl {
+          top: 112px;
+          right: 12px;
+          left: auto;
+          bottom: auto;
+          max-width: min(18rem, calc(100vw - 24px));
+        }
+      }
     </style>
   </head>
   <body>
@@ -88,31 +152,46 @@
     <header class="demo-chrome" aria-label="Demo navigation">
       <a class="back-link" href="/">← IOM</a>
     </header>
-    <aside class="demo-attribution" aria-label="Attribution">
-      <p class="demo-attribution-title">
-        <a href="https://streets.gl/" target="_blank" rel="noopener noreferrer">Streets GL</a>
-        — OpenStreetMap 3D renderer
-      </p>
-      <p class="demo-attribution-credits">
-        Open-source WebGL2 map renderer (MIT) by
-        <a href="https://github.com/StrandedKitty" target="_blank" rel="noopener noreferrer"
-          >StrandedKitty</a
-        >. Vector tiles from
-        <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer"
-          >OpenStreetMap</a
-        >
-        contributors; terrain elevation via Esri Terrain 3D; tiles served from tiles.streets.gl. No
-        API key required for this embed.
-      </p>
-      <a
-        class="demo-attribution-source"
-        href="https://github.com/StrandedKitty/streets-gl"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
-        View source code on GitHub
-      </a>
+    <aside class="demo-attribution demo-attribution--streets-gl" aria-label="Attribution">
+      <details class="demo-attribution-details">
+        <summary class="demo-attribution-summary">
+          <span class="demo-attribution-compact-label">
+            <a href="https://streets.gl/" target="_blank" rel="noopener noreferrer">Streets GL</a>
+            ·
+            <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer"
+              >OpenStreetMap</a
+            >
+            3D
+          </span>
+          <span class="demo-attribution-more" aria-hidden="true">Credits</span>
+        </summary>
+        <div class="demo-attribution-panel">
+          <p class="demo-attribution-title">
+            <a href="https://streets.gl/" target="_blank" rel="noopener noreferrer">Streets GL</a>
+            — OpenStreetMap 3D renderer
+          </p>
+          <p class="demo-attribution-credits">
+            Open-source WebGL2 map renderer (MIT) by
+            <a href="https://github.com/StrandedKitty" target="_blank" rel="noopener noreferrer"
+              >StrandedKitty</a
+            >. Vector tiles from
+            <a href="https://www.openstreetmap.org/" target="_blank" rel="noopener noreferrer"
+              >OpenStreetMap</a
+            >
+            contributors; terrain elevation via Esri Terrain 3D; tiles served from tiles.streets.gl. No
+            API key required for this embed.
+          </p>
+          <a
+            class="demo-attribution-source"
+            href="https://github.com/StrandedKitty/streets-gl"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+            View source code on GitHub
+          </a>
+        </div>
+      </details>
     </aside>
     <iframe
       id="map-frame"

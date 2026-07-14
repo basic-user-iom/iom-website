@@ -55,9 +55,9 @@ iom_website/
 
 | Section      | Contents                                      |
 |-------------|-----------------------------------------------|
-| Software    | 3D Viewer, Web Export Kit, Streets GL Bridge  |
-| 3D          | Shader Archive, Object Registry               |
-| 360 Tours   | Panorama Suite, Atelier Interior (samples)    |
+| Software    | 3D Viewer, Streets GL Bridge, 360° Panorama Tour Editor, CRM Demo, Raven Path Animation  |
+| 3D          | Art Gallery SSR, Dream — Ocean narrative, Volumetric Lighting  |
+| 360 Tours   | The Black Witness — 360° Tour                 |
 | Photography | Concrete & Light, Night Grid (samples)      |
 | Music       | Tidal Score, Room Tone (samples)            |
 | Experiments | IOM-Three (logo, Dream — Ocean ch. 1/9, weather runtime, shaders) |

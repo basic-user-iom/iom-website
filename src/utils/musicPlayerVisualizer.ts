@@ -2,8 +2,6 @@ import * as THREE from 'three'
 import { getDeviceProfile } from './device'
 import type { MusicPlayerVisualizerLike } from './musicPlayerVisualizerTypes'
 
-const MOON_SPOTLIGHT_TEXTURE = '/assets/textures/moon-spotlight.png'
-
 const SHARED_NOISE_GLSL = /* glsl */ `
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
 vec4 mod289(vec4 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -118,8 +116,6 @@ uniform int uFbmOctaves;
 uniform int uCausticOctaves;
 uniform float uLowQuality;
 uniform vec2 uInteract;
-uniform sampler2D uMoonMap;
-uniform float uMoonMapReady;
 
 ${SHARED_NOISE_GLSL}
 
@@ -155,12 +151,12 @@ vec3 acesTone(vec3 x) {
 
 vec3 sampleSkyReflection(vec3 reflDir) {
   float horizon = smoothstep(-0.08, 0.42, reflDir.y);
-  vec3 zenith = vec3(0.008, 0.01, 0.018);
-  vec3 horizonCol = vec3(0.012, 0.016, 0.028);
+  vec3 zenith = vec3(0.05, 0.07, 0.12);
+  vec3 horizonCol = vec3(0.09, 0.12, 0.18);
   vec3 sky = mix(horizonCol, zenith, horizon);
-  vec3 moonDir = normalize(vec3(0.28, 0.88, -0.35));
-  float moonGlow = pow(max(dot(reflDir, moonDir), 0.0), 96.0);
-  sky += vec3(0.18, 0.2, 0.24) * moonGlow * 0.12;
+  vec3 twilightDir = normalize(vec3(-0.22, 0.55, -0.42));
+  float twilightGlow = pow(max(dot(reflDir, twilightDir), 0.0), 36.0);
+  sky += vec3(0.22, 0.24, 0.32) * twilightGlow * 0.55;
   return sky;
 }
 
@@ -196,77 +192,19 @@ float causticPattern(vec2 xz, float t) {
     c = 1.0 - min(a, b);
     c = pow(c, 3.8);
     float ripple = abs(snoise(vec3(p * 2.8 + vec2(time * 0.18, -time * 0.14), time * 0.35)));
-    c += pow(1.0 - ripple, 5.0) * (0.077 + uDetail * 0.063);
+    c += pow(1.0 - ripple, 5.0) * (0.062 + uDetail * 0.050);
   }
-  return clamp(c * (1.15 + uMids * 0.32 + uHighs * 0.18) * 0.35, 0.0, 0.56);
+  return clamp(c * (1.15 + uMids * 0.32 + uHighs * 0.18) * 0.28, 0.0, 0.448);
 }
 
-vec3 evalMoonSpotlight(vec3 hit, vec3 moonDir, vec3 spotGround) {
-  if (uMoonMapReady < 0.5) return vec3(0.0);
-
-  // Cone origin sits high above the target ground patch, aimed straight down
-  // the moon direction. spotGround tracks the camera so the projection stays
-  // in view during the endless forward glide.
-  vec3 spotOrigin = spotGround + moonDir * 60.0;
-  vec3 spotAxis = -moonDir;
-  vec3 toHit = hit - spotOrigin;
-  float along = dot(toHit, spotAxis);
-  if (along <= 0.4) return vec3(0.0);
-
-  vec3 L = normalize(toHit);
-  float halfAngle = radians(4.9 + uBass * 0.36 + uEnergy * 0.18);
-  float cosOuter = cos(halfAngle * 1.45);
-  float cosInner = cos(halfAngle * 0.22);
-  float cosTheta = dot(spotAxis, L);
-  float cone = smoothstep(cosOuter, cosInner, cosTheta);
-  if (cone < 0.001) return vec3(0.0);
-
-  vec3 worldUp = abs(spotAxis.y) > 0.94 ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
-  vec3 spotRight = normalize(cross(worldUp, spotAxis));
-  vec3 spotUp = cross(spotAxis, spotRight);
-
-  float invProj = 1.0 / along;
-  vec2 planar = vec2(dot(toHit, spotRight), dot(toHit, spotUp)) * invProj;
-  float tanHalf = tan(halfAngle);
-  vec2 centered = planar / tanHalf; // -1..1 across the cone footprint
-
-  float radial = length(centered);
-  float discMask = 1.0 - smoothstep(0.47, 0.54, radial);
-  if (discMask < 0.001) return vec3(0.0);
-
-  // moon-spotlight.png is a right-side crescent (868²) — map the full lit arc
-  // into the cone footprint. Soft edge fade replaces hard UV rejection that
-  // clipped the top/right of the crescent.
-  vec2 uv = centered * vec2(0.17, 0.23) + vec2(0.66, 0.5);
-  vec2 edgeFade = smoothstep(vec2(0.0), vec2(0.035), uv)
-    * smoothstep(vec2(0.0), vec2(0.035), vec2(1.0) - uv);
-  float uvMask = edgeFade.x * edgeFade.y;
-  if (uvMask < 0.001) return vec3(0.0);
-
-  vec4 moonSample = texture2D(uMoonMap, uv);
-  float alpha = moonSample.a;
-  if (alpha < 0.05) return vec3(0.0);
-
-  // Premultiply RGB by alpha so hidden black pixels in transparent areas
-  // do not paint dark crescent/rectangle artifacts on the water.
-  vec3 moonTex = moonSample.rgb * alpha;
-  moonTex = pow(max(moonTex, vec3(0.0)), vec3(0.78)) * 1.35;
-
-  float distFalloff = 1.0 / (1.0 + along * along * 0.00006);
-  float intensity = 1.15 + uMids * 0.18 + uEnergy * 0.14 + uHighs * 0.1;
-
-  return moonTex * cone * discMask * alpha * uvMask * distFalloff * intensity;
-}
-
-vec3 seabedShading(vec2 xz, float t, vec3 moonDir, vec3 moonCol) {
+vec3 seabedShading(vec2 xz, float t, vec3 lightCol) {
   vec3 sand = vec3(0.024, 0.038, 0.055);
   vec3 rock = vec3(0.014, 0.022, 0.036);
   float floorVar = fbm(vec3(xz * 0.38, t * 0.012), 2);
   vec3 floorCol = mix(sand, rock, smoothstep(-0.08, 0.22, floorVar));
   float caust = causticPattern(xz, t);
-  floorCol += moonCol * caust * (0.294 + uMids * 0.154 + uEnergy * 0.084);
-  float moonReach = max(dot(normalize(vec3(moonDir.x, -0.35, moonDir.z)), vec3(0.0, 1.0, 0.0)), 0.0);
-  floorCol *= 0.55 + moonReach * 0.35;
+  floorCol += lightCol * caust * (0.235 + uMids * 0.123 + uEnergy * 0.067);
+  floorCol *= 0.62 + 0.18;
   return floorCol;
 }
 
@@ -288,23 +226,20 @@ void main() {
   // stopped inside the terrain band, so we never fall back to a black frame.
   bool terrainHit = (t < 55.0) && (surfaceDist < 0.08 || map(hit) < 0.05);
 
-  // Moonlit night sea — deep navy water, dark sky, silver crest highlights.
-  vec3 skyHigh = vec3(0.02, 0.028, 0.048);
-  vec3 skyLow = vec3(0.035, 0.048, 0.072);
-  vec3 deepWater = vec3(0.055, 0.11, 0.165);
-  vec3 midWater = vec3(0.08, 0.15, 0.22);
-  vec3 crestCol = vec3(0.72, 0.8, 0.9);
-  vec3 moonCol = vec3(0.88, 0.92, 0.98);
-  vec3 fogColor = vec3(0.03, 0.045, 0.065);
+  // Evening sea — deep navy water with visible ambient fill and silver crest highlights.
+  vec3 skyHigh = vec3(0.08, 0.11, 0.17);
+  vec3 skyLow = vec3(0.14, 0.18, 0.28);
+  vec3 deepWater = vec3(0.1, 0.18, 0.28);
+  vec3 midWater = vec3(0.14, 0.24, 0.34);
+  vec3 crestCol = vec3(0.72, 0.78, 0.86);
+  vec3 ambCol = vec3(0.55, 0.62, 0.72);
+  vec3 fogColor = vec3(0.08, 0.11, 0.16);
+  vec3 ambientFill = vec3(0.12, 0.15, 0.2);
+  vec3 keyLightDir = normalize(vec3(-0.28, 0.52, -0.38));
 
   float skyFade = smoothstep(-0.85, 0.85, rd.y);
   vec3 bg = mix(skyLow, skyHigh, skyFade);
-  vec3 moonDir = normalize(vec3(0.28, 0.88, -0.35));
-  // There is no sky moon geometry; this analytical disc is still faded
-  // defensively when the camera is looking almost straight down.
-  float skyMoonVisibility = smoothstep(-0.42, -0.12, forward.y);
-  float moonDisc = pow(max(dot(rd, moonDir), 0.0), 180.0);
-  bg += moonCol * moonDisc * 0.08 * skyMoonVisibility;
+  bg += ambientFill * 0.55;
 
   vec3 color = bg;
   float alpha = 0.0;
@@ -312,77 +247,61 @@ void main() {
   if (terrainHit) {
     vec3 normal = terrainNormal(hit.xz);
     vec3 lightDir = normalize(vec3(
-      moonDir.x + uInteract.x * 0.08,
-      moonDir.y,
-      moonDir.z + uInteract.y * 0.06
+      keyLightDir.x + uInteract.x * 0.06,
+      keyLightDir.y,
+      keyLightDir.z + uInteract.y * 0.05
     ));
     float ndotl = max(dot(normal, lightDir), 0.0);
-    float shade = clamp(0.22 + ndotl * (0.62 + uMids * 0.18), 0.0, 1.0);
+    float hemi = 0.5 + 0.5 * normal.y;
+    float shade = clamp(0.38 + ndotl * (0.28 + uMids * 0.12) + hemi * 0.14, 0.0, 1.0);
 
     float crest = smoothstep(-0.15, 0.55, hit.y + uBass * 0.1);
     vec3 water = mix(deepWater, midWater, crest);
-    vec3 surfaceColor = water * shade;
+    vec3 surfaceColor = water * shade + ambientFill * 0.22;
 
     vec3 viewDir = normalize(uCamPos - hit);
     float animTime = uTime * uAnim;
 
-    // pointer spotlight — water surface only, no sky contribution
-    vec2 lightFocus = hit.xz + uInteract * vec2(2.5, 2.5);
-    float spotDist = length(hit.xz - lightFocus);
-    float spot = exp(-spotDist * spotDist * 0.06);
-    surfaceColor += moonCol * spot * (0.06 + uEnergy * 0.08 + uMids * 0.04);
-
     // animated caustic ripples on the surface and through the water column
     float surfaceCaustics = causticPattern(hit.xz * 1.08 + vec2(animTime * 0.04, -animTime * 0.03), animTime);
-    surfaceColor += moonCol * surfaceCaustics * (0.07 + uMids * 0.056 + uHighs * 0.035) * (0.55 + crest * 0.45);
+    surfaceColor += ambCol * surfaceCaustics * (0.056 + uMids * 0.045 + uHighs * 0.028) * (0.55 + crest * 0.45);
 
-    // moon texture projected through spotlight cone onto the water.
-    // Anchor the lit patch where the view center ray meets the water plane so
-    // the projection stays framed ahead during low forward glide.
-    float moonGroundT = uCamPos.y / max(-forward.y, 0.01);
-    vec3 moonGround = uCamPos + forward * (moonGroundT * 1.12 + 2.0);
-    moonGround.y = 0.0;
-    vec3 moonSpot = evalMoonSpotlight(hit, moonDir, moonGround);
-
-    // silver moon specular on wave crests
+    // soft specular on wave crests
     float spec = pow(max(dot(reflect(-lightDir, normal), viewDir), 0.0), 52.0 + uHighs * 16.0);
-    surfaceColor += crestCol * spec * (0.18 + uHighs * 0.35) * crest;
-    surfaceColor += crestCol * surfaceCaustics * spec * 0.098;
+    surfaceColor += crestCol * spec * (0.1 + uHighs * 0.22) * crest;
+    surfaceColor += crestCol * surfaceCaustics * spec * 0.05;
 
     // Fresnel: low f0 keeps center clearer, edges pick up sky reflection
-    float fresnel = fresnelSchlick(viewDir, normal, 0.007);
+    float fresnel = fresnelSchlick(viewDir, normal, 0.003);
     float grazing = pow(fresnel, 0.9);
 
     // seabed + caustics visible through transparent water
-    vec3 seabed = seabedShading(hit.xz, animTime, moonDir, moonCol);
+    vec3 seabed = seabedShading(hit.xz, animTime, ambCol);
     float viewThrough = max(dot(normal, viewDir), 0.0);
     float depthReveal = smoothstep(0.12, 0.78, viewThrough);
     vec3 deepColumn = mix(seabed, deepWater * 0.22, 0.42);
-    deepColumn += moonCol * surfaceCaustics * 0.042 * depthReveal;
-    float waterOpacity = mix(0.22, 0.74, grazing);
-    waterOpacity = mix(waterOpacity, waterOpacity * 0.58, depthReveal * 0.62);
+    deepColumn += ambCol * surfaceCaustics * 0.034 * depthReveal;
+    float waterOpacity = mix(0.12, 0.52, grazing);
+    waterOpacity = mix(waterOpacity, waterOpacity * 0.42, depthReveal * 0.62);
     color = mix(deepColumn, surfaceColor, waterOpacity);
 
     vec3 refl = sampleSkyReflection(reflect(-viewDir, normal));
-    color = mix(color, refl, grazing * (0.38 + uHighs * 0.1));
+    color = mix(color, refl, grazing * (0.32 + uHighs * 0.08));
 
-    float rim = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.5) * (0.04 + uHighs * 0.06);
-    color += rim * vec3(0.12, 0.14, 0.18);
+    float rim = pow(1.0 - max(dot(normal, viewDir), 0.0), 3.5) * (0.03 + uHighs * 0.05);
+    color += rim * vec3(0.1, 0.12, 0.16);
 
     float dist = length(hit - uCamPos);
     float fog = clamp(1.0 - exp(-dist * 0.032), 0.0, 0.72);
     color = mix(color, fogColor, fog);
 
-    // Add exactly one surface projection after fog so it remains coherent
-    // instead of ghosting through several water, seabed, and post-fog layers.
-    color += moonSpot * (0.92 + crest * 0.14);
-
     // center more transparent, edges more opaque — keep alpha above floor to avoid holes
-    alpha = clamp(mix(0.34, 0.84, grazing), 0.32, 0.9);
-    alpha = mix(alpha, alpha * 0.72, depthReveal * 0.52);
+    alpha = clamp(mix(0.22, 0.68, grazing), 0.2, 0.78);
+    alpha = mix(alpha, alpha * 0.58, depthReveal * 0.52);
   }
 
-  color = acesTone(color * (1.18 + uEnergy * 0.1));
+  color = acesTone(color * (1.55 + uEnergy * 0.14));
+  color = max(color, vec3(0.04, 0.05, 0.07));
   gl_FragColor = vec4(color, alpha);
 }
 `
@@ -529,7 +448,6 @@ export class MusicPlayerVisualizer implements MusicPlayerVisualizerLike {
   private blurMesh: THREE.Mesh | null = null
   private bloomExtractMaterial: THREE.ShaderMaterial | null = null
   private blurMaterial: THREE.ShaderMaterial | null = null
-  private moonTexture: THREE.Texture | null = null
   private sceneTarget: THREE.WebGLRenderTarget | null = null
   private bloomTargetA: THREE.WebGLRenderTarget | null = null
   private bloomTargetB: THREE.WebGLRenderTarget | null = null
@@ -674,8 +592,6 @@ export class MusicPlayerVisualizer implements MusicPlayerVisualizerLike {
       uCausticOctaves: { value: this.options.causticOctaves },
       uLowQuality: { value: this.options.lowQuality },
       uInteract: { value: new THREE.Vector2() },
-      uMoonMap: { value: null as THREE.Texture | null },
-      uMoonMapReady: { value: 0 },
     }
 
     const raymarchMaterial = new THREE.ShaderMaterial({
@@ -689,31 +605,6 @@ export class MusicPlayerVisualizer implements MusicPlayerVisualizerLike {
     this.raymarchMaterial = raymarchMaterial
     this.raymarchMesh = createFullscreenQuad(raymarchMaterial)
     scene.add(this.raymarchMesh)
-
-    this.moonTexture?.dispose()
-    this.moonTexture = null
-    raymarchUniforms.uMoonMapReady.value = 0
-    const moonLoader = new THREE.TextureLoader()
-    moonLoader.load(
-      MOON_SPOTLIGHT_TEXTURE,
-      (texture) => {
-        if (this.disposed || this.raymarchMaterial !== raymarchMaterial) {
-          texture.dispose()
-          return
-        }
-        texture.colorSpace = THREE.SRGBColorSpace
-        texture.minFilter = THREE.LinearFilter
-        texture.magFilter = THREE.LinearFilter
-        texture.generateMipmaps = false
-        this.moonTexture = texture
-        raymarchUniforms.uMoonMap.value = texture
-        raymarchUniforms.uMoonMapReady.value = 1
-      },
-      undefined,
-      () => {
-        raymarchUniforms.uMoonMapReady.value = 0
-      },
-    )
 
     this.bloomExtractMaterial = new THREE.ShaderMaterial({
       uniforms: {
@@ -1154,10 +1045,6 @@ export class MusicPlayerVisualizer implements MusicPlayerVisualizerLike {
     if (this.blurMaterial) {
       this.blurMaterial.dispose()
       this.blurMaterial = null
-    }
-    if (this.moonTexture) {
-      this.moonTexture.dispose()
-      this.moonTexture = null
     }
     this.sceneTarget?.dispose()
     this.bloomTargetA?.dispose()

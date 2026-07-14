@@ -245,7 +245,8 @@ export function Hero() {
                       void enterFullscreen()
                     }}
                   >
-                    FULLSCREEN
+                    <span className="label-long">FULLSCREEN</span>
+                    <span className="label-short">FS</span>
                   </button>
                 )}
                 <span className="orbit-label">{useStaticHero ? '◉ STATIC' : '◉ LIVE'}</span>

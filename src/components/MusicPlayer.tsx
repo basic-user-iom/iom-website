@@ -37,8 +37,13 @@ interface MusicAlbumThumbProps {
 }
 
 function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
-  const poster = track.posterUrl ?? track.thumbnail
+  const isMobile = getDeviceProfile().isMobile
+  const posterSrc = isMobile
+    ? (track.mobilePosterUrl ?? track.posterUrl ?? track.thumbnail)
+    : (track.posterUrl ?? track.thumbnail)
+  const [posterFailed, setPosterFailed] = useState(false)
   const disabled = !track.audioUrl || !onSelect
+  const showPoster = Boolean(posterSrc) && !posterFailed
 
   return (
     <button
@@ -49,13 +54,14 @@ function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
       aria-pressed={isActive}
       aria-label={track.audioUrl ? `Load ${track.title}` : track.title}
     >
-      {poster ? (
+      {showPoster ? (
         <img
           className="music-player-album-thumb-poster"
-          src={poster}
+          src={posterSrc}
           alt=""
           loading="lazy"
           decoding="async"
+          onError={() => setPosterFailed(true)}
         />
       ) : (
         <span className="music-player-album-thumb-fallback" aria-hidden="true">
@@ -337,11 +343,17 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const autoAdvanceTriggeredRef = useRef(false)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const gainNodeRef = useRef<GainNode | null>(null)
   const sourceConnectedRef = useRef(false)
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
   const [muted, setMuted] = useState(() => readStoredMute('music'))
   const [volume, setVolume] = useState(() => readStoredVolume('music'))
+  const mutedRef = useRef(muted)
+  const volumeRef = useRef(volume)
+  mutedRef.current = muted
+  volumeRef.current = volume
+  const [playbackError, setPlaybackError] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
@@ -369,6 +381,10 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const drawVisualizer = useCallback((delta: number, time: number) => {
     visualizerRef.current?.update(delta, time, isPlaying, analyserRef.current)
   }, [isPlaying])
+
+  const notifyVisualizerTrackChange = useCallback((trackId: string) => {
+    visualizerRef.current?.setActiveTrackId?.(trackId)
+  }, [])
 
   const visualizerTargetFps =
     isFullscreen && !deviceProfile.isMobile
@@ -422,17 +438,45 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     return activeSlotRef.current === 'a' ? 'b' : 'a'
   }, [])
 
-  const getUserVolume = useCallback(() => {
-    return muted ? 0 : volume / 100
-  }, [muted, volume])
+  const getAudibleVolume = useCallback(() => {
+    return mutedRef.current ? 0 : volumeRef.current / 100
+  }, [])
 
   const applyUserVolume = useCallback(
-    (audio: HTMLAudioElement) => {
-      audio.muted = muted
-      audio.volume = getUserVolume()
+    (audio: HTMLAudioElement, options: { forceUnmuted?: boolean } = {}) => {
+      const effectiveMuted = options.forceUnmuted ? false : mutedRef.current
+      audio.muted = effectiveMuted
+      audio.volume = volumeRef.current / 100
     },
-    [getUserVolume, muted],
+    [],
   )
+
+  const applyOutputGain = useCallback((options: { forceUnmuted?: boolean } = {}) => {
+    const effectiveMuted = options.forceUnmuted ? false : mutedRef.current
+    const audible = effectiveMuted ? 0 : volumeRef.current / 100
+    const gain = gainNodeRef.current
+    if (gain) {
+      gain.gain.value = audible
+    }
+  }, [])
+
+  const applyVolumeToAllOutputs = useCallback(
+    (options: { forceUnmuted?: boolean } = {}) => {
+      applyOutputGain(options)
+      const audioA = audioARef.current
+      const audioB = audioBRef.current
+      if (audioA) applyUserVolume(audioA, options)
+      if (audioB) applyUserVolume(audioB, options)
+    },
+    [applyOutputGain, applyUserVolume],
+  )
+
+  const unlockAudioContext = useCallback(() => {
+    const ctx = audioContextRef.current
+    if (ctx?.state === 'suspended') {
+      void ctx.resume()
+    }
+  }, [])
 
   const cancelCrossfade = useCallback(() => {
     if (crossfadeRafRef.current != null) {
@@ -444,12 +488,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
     const active = getActiveAudio()
     const inactive = getAudioForSlot(getInactiveSlot())
-    if (active) applyUserVolume(active)
+    if (active) applyVolumeToAllOutputs()
     if (inactive) {
       inactive.pause()
       applyUserVolume(inactive)
     }
-  }, [applyUserVolume, getActiveAudio, getAudioForSlot, getInactiveSlot])
+  }, [applyUserVolume, applyVolumeToAllOutputs, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   const ensureAudioGraph = useCallback(() => {
     if (sourceConnectedRef.current) return
@@ -473,13 +517,18 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     analyser.maxDecibels = -12
     analyserRef.current = analyser
 
+    const gain = context.createGain()
+    gain.gain.value = getAudibleVolume()
+    gainNodeRef.current = gain
+
     const sourceA = context.createMediaElementSource(audioA)
     const sourceB = context.createMediaElementSource(audioB)
     sourceA.connect(analyser)
     sourceB.connect(analyser)
-    analyser.connect(context.destination)
+    analyser.connect(gain)
+    gain.connect(context.destination)
     sourceConnectedRef.current = true
-  }, [])
+  }, [getAudibleVolume])
 
   const transitionToTrack = useCallback(
     async (trackId: string, options: { crossfade?: boolean; fromAutoAdvance?: boolean } = {}) => {
@@ -506,14 +555,13 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
         applyUserVolume(outgoing)
         playingTrackIdRef.current = trackId
         onActiveTrackChange(trackId)
+        notifyVisualizerTrackChange(trackId)
         setCurrentTime(0)
         setDuration(0)
 
         if (fromAutoAdvance) {
           ensureAudioGraph()
-          if (audioContextRef.current?.state === 'suspended') {
-            await audioContextRef.current.resume()
-          }
+          unlockAudioContext()
           try {
             await outgoing.play()
             setIsPlaying(true)
@@ -531,16 +579,15 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
       playingTrackIdRef.current = trackId
       onActiveTrackChange(trackId)
+      notifyVisualizerTrackChange(trackId)
 
       incoming.src = track.audioUrl
       incoming.currentTime = 0
+      applyUserVolume(incoming)
       incoming.volume = 0
-      incoming.muted = muted
 
       ensureAudioGraph()
-      if (audioContextRef.current?.state === 'suspended') {
-        await audioContextRef.current.resume()
-      }
+      unlockAudioContext()
 
       try {
         await incoming.play()
@@ -551,7 +598,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
         return
       }
 
-      const targetVol = getUserVolume()
+      const targetVol = getAudibleVolume()
       const startOutVol = outgoing.volume
       const startTime = performance.now()
       const durationMs = CROSSFADE_DURATION_SEC * 1000
@@ -571,7 +618,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
         outgoing.pause()
         outgoing.currentTime = 0
         applyUserVolume(outgoing)
-        incoming.volume = targetVol
+        applyUserVolume(incoming)
         activeSlotRef.current = incomingSlot
         isCrossfadingRef.current = false
         autoAdvanceTriggeredRef.current = false
@@ -588,11 +635,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       getActiveAudio,
       getAudioForSlot,
       getInactiveSlot,
-      getUserVolume,
-      muted,
+      getAudibleVolume,
+      notifyVisualizerTrackChange,
       onActiveTrackChange,
       playableTracks,
       cancelCrossfade,
+      unlockAudioContext,
     ],
   )
 
@@ -602,61 +650,126 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const playableTracksRef = useRef(playableTracks)
   playableTracksRef.current = playableTracks
 
-  const handlePlay = useCallback(async () => {
-    const audio = getActiveAudio()
-    if (!audio?.src) return
+  const activeTrackRef = useRef(activeTrack)
+  activeTrackRef.current = activeTrack
 
-    ensureAudioGraph()
-    if (audioContextRef.current?.state === 'suspended') {
-      await audioContextRef.current.resume()
+  const ensureTrackRef = useCallback(() => {
+    if (!playingTrackIdRef.current && activeTrackRef.current?.id) {
+      playingTrackIdRef.current = activeTrackRef.current.id
+    }
+  }, [])
+
+  const resolveLoadedAudio = useCallback(() => {
+    ensureTrackRef()
+    const audio = getActiveAudio()
+    if (!audio) return null
+
+    const trackId = playingTrackIdRef.current ?? activeTrackRef.current?.id ?? null
+    const track = trackId
+      ? playableTracksRef.current.find((item) => item.id === trackId)
+      : null
+    if (!track?.audioUrl) return null
+
+    if (!audio.currentSrc) {
+      const resumeTime = audio.paused ? currentTime : 0
+      audio.src = track.audioUrl
+      audio.load()
+      applyUserVolume(audio)
+      playingTrackIdRef.current = track.id
+      if (resumeTime > 0 && Number.isFinite(resumeTime)) {
+        audio.currentTime = resumeTime
+      }
     }
 
+    return audio
+  }, [applyUserVolume, currentTime, ensureTrackRef, getActiveAudio])
+
+  const handlePlay = useCallback(() => {
+    const audio = resolveLoadedAudio()
+    if (!audio) {
+      setPlaybackError('No track loaded')
+      return
+    }
+
+    setPlaybackError(null)
     autoAdvanceTriggeredRef.current = false
 
-    try {
-      await audio.play()
-    } catch {
-      setIsPlaying(false)
+    // Connect graph + resume context synchronously inside the user gesture.
+    ensureAudioGraph()
+    unlockAudioContext()
+
+    const shouldUnmute = mutedRef.current && volumeRef.current > 0
+    if (shouldUnmute) {
+      setMuted(false)
+      persistMute('music', false)
     }
-  }, [ensureAudioGraph, getActiveAudio])
+    applyUserVolume(audio, { forceUnmuted: shouldUnmute })
+    applyOutputGain({ forceUnmuted: shouldUnmute })
+
+    const playAttempt = audio.play()
+    if (!playAttempt) {
+      setIsPlaying(true)
+      return
+    }
+
+    playAttempt
+      .then(() => {
+        setIsPlaying(true)
+        unlockAudioContext()
+      })
+      .catch((err: unknown) => {
+        console.warn('[music-player] play() rejected:', err)
+        setIsPlaying(false)
+        setPlaybackError('Tap Play again to start audio')
+      })
+  }, [applyOutputGain, applyUserVolume, ensureAudioGraph, resolveLoadedAudio, unlockAudioContext])
 
   const handlePause = useCallback(() => {
     cancelCrossfade()
     getActiveAudio()?.pause()
     getAudioForSlot(getInactiveSlot())?.pause()
+    setIsPlaying(false)
+    setPlaybackError(null)
   }, [cancelCrossfade, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   const handleStop = useCallback(() => {
     cancelCrossfade()
+    ensureTrackRef()
     const active = getActiveAudio()
-    const inactive = getAudioForSlot(getInactiveSlot())
-    active?.pause()
-    inactive?.pause()
     if (active) {
+      active.pause()
       active.currentTime = 0
       applyUserVolume(active)
     }
-    if (inactive) {
-      inactive.currentTime = 0
-      applyUserVolume(inactive)
-    }
+    const inactive = getAudioForSlot(getInactiveSlot())
+    inactive?.pause()
     setCurrentTime(0)
+    setIsPlaying(false)
+    setPlaybackError(null)
     autoAdvanceTriggeredRef.current = false
-  }, [applyUserVolume, cancelCrossfade, getActiveAudio, getAudioForSlot, getInactiveSlot])
+  }, [applyUserVolume, cancelCrossfade, ensureTrackRef, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   const toggleMute = useCallback(() => {
+    unlockAudioContext()
     setMuted((current) => {
       const next = !current
       persistMute('music', next)
       return next
     })
-  }, [])
+    setPlaybackError(null)
+  }, [unlockAudioContext])
 
   const handleVolumeChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const next = clamp(Number(event.target.value), 0, 100)
     setVolume(next)
     persistVolume('music', next)
-  }, [])
+    unlockAudioContext()
+    if (next > 0 && mutedRef.current) {
+      setMuted(false)
+      persistMute('music', false)
+    }
+    setPlaybackError(null)
+  }, [unlockAudioContext])
 
   const handleScrub = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const audio = getActiveAudio()
@@ -835,7 +948,13 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     }
 
     return () => {
-      cancelCrossfade()
+      if (crossfadeRafRef.current != null) {
+        cancelAnimationFrame(crossfadeRafRef.current)
+        crossfadeRafRef.current = null
+      }
+      isCrossfadingRef.current = false
+      autoAdvanceTriggeredRef.current = false
+
       for (const audio of [audioA, audioB]) {
         audio.removeEventListener('loadedmetadata', onLoaded)
         audio.removeEventListener('timeupdate', onTimeUpdate)
@@ -847,8 +966,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       }
       audioARef.current = null
       audioBRef.current = null
+      sourceConnectedRef.current = false
+      gainNodeRef.current = null
+      analyserRef.current = null
     }
-  }, [applyUserVolume, cancelCrossfade])
+    // Mount audio elements once — volume/mute updates go through applyVolumeToAllOutputs.
+  }, [])
 
   useEffect(() => {
     if (!activeTrack?.audioUrl) {
@@ -860,19 +983,23 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     }
 
     if (isCrossfadingRef.current) return
-    if (playingTrackIdRef.current === activeTrack.id) return
 
     const audio = getActiveAudio()
     if (!audio) return
+
+    const sameTrack = playingTrackIdRef.current === activeTrack.id
+    if (sameTrack && audio.currentSrc) return
 
     audio.src = activeTrack.audioUrl
     audio.load()
     applyUserVolume(audio)
     playingTrackIdRef.current = activeTrack.id
-    setCurrentTime(0)
-    setDuration(0)
-    setIsPlaying(false)
-    autoAdvanceTriggeredRef.current = false
+    if (!sameTrack) {
+      setCurrentTime(0)
+      setDuration(0)
+      setIsPlaying(false)
+      autoAdvanceTriggeredRef.current = false
+    }
   }, [activeTrack?.audioUrl, activeTrack?.id, applyUserVolume, getActiveAudio])
 
   useEffect(() => {
@@ -880,15 +1007,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     const audioB = audioBRef.current
     if (!audioA || !audioB) return
 
-    audioA.muted = muted
-    audioB.muted = muted
-
     if (!isCrossfadingRef.current) {
-      const nextVolume = volume / 100
-      audioA.volume = nextVolume
-      audioB.volume = nextVolume
+      applyVolumeToAllOutputs()
+    } else {
+      applyOutputGain()
     }
-  }, [muted, volume])
+  }, [applyOutputGain, applyVolumeToAllOutputs, muted, volume])
 
   useEffect(() => {
     const root = playerRef.current
@@ -913,12 +1037,15 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
   useEffect(() => {
     let cancelled = false
-    void createMusicPlayerVisualizer().then(({ visualizer }) => {
+    void createMusicPlayerVisualizer().then(({ visualizer, kind }) => {
       if (cancelled) {
         visualizer.dispose()
         return
       }
       visualizerRef.current = visualizer
+      ;(window as Window & { __musicVisualizerKind?: string }).__musicVisualizerKind = kind
+      const mount = visualRef.current
+      if (mount) mount.dataset.visualizerKind = kind
       setVisualizerReady(true)
     })
     return () => {
@@ -1225,6 +1352,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
           ) : null}
 
           {!isFullscreen ? <TransportControls {...transportProps} /> : null}
+
+          {playbackError ? (
+            <p className="music-player-playback-error" role="status">
+              {playbackError}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>

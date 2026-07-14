@@ -94,6 +94,21 @@
       .pick-cursor {
         cursor: crosshair !important;
       }
+      .teleport-cursor {
+        cursor: pointer !important;
+      }
+      #teleport-fade {
+        position: fixed;
+        inset: 0;
+        z-index: 1000;
+        background: #000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.18s ease;
+      }
+      #teleport-fade.is-active {
+        opacity: 0.42;
+      }
       .list-item-row.hint-row {
         cursor: default;
         height: auto;
@@ -328,6 +343,202 @@
       #container canvas.pick-cursor {
         cursor: crosshair;
       }
+      #nav-mode-bar {
+        position: fixed;
+        top: 12px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1002;
+        display: flex;
+        gap: 0;
+        border: 1px solid rgba(0, 229, 255, 0.28);
+        border-radius: 6px;
+        background: rgba(0, 0, 0, 0.42);
+        backdrop-filter: blur(6px);
+        overflow: hidden;
+        box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+        max-width: calc(100vw - 24px);
+      }
+      .nav-mode-btn {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 8px 14px;
+        border: none;
+        border-right: 1px solid rgba(0, 229, 255, 0.18);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.78);
+        font: 500 12px/1 system-ui, sans-serif;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        transition:
+          background 0.15s ease,
+          color 0.15s ease;
+      }
+      .nav-mode-btn:last-child {
+        border-right: none;
+      }
+      .nav-mode-btn:hover {
+        color: #fff;
+        background: rgba(0, 229, 255, 0.08);
+      }
+      .nav-mode-btn:focus-visible {
+        outline: 2px solid rgba(0, 229, 255, 0.65);
+        outline-offset: -2px;
+      }
+      .nav-mode-btn.is-active {
+        background: rgba(0, 229, 255, 0.18);
+        color: #00e5ff;
+        box-shadow: inset 0 -2px 0 #00e5ff;
+      }
+      @media (max-width: 640px) {
+        #nav-mode-bar {
+          top: auto;
+          bottom: 88px;
+          left: 50%;
+          transform: translateX(-50%);
+        }
+        .nav-mode-btn {
+          padding: 8px 12px;
+          font-size: 11px;
+        }
+      }
+      #intro-popup {
+        position: fixed;
+        inset: 0;
+        z-index: 3200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        background: rgba(0, 12, 16, 0.72);
+        backdrop-filter: blur(6px);
+      }
+      #intro-popup.is-visible {
+        display: flex;
+      }
+      .intro-popup-panel {
+        width: min(440px, calc(100vw - 32px));
+        max-height: min(86vh, 640px);
+        overflow: auto;
+        padding: 20px 20px 16px;
+        border: 1px solid rgba(0, 229, 255, 0.28);
+        border-radius: 10px;
+        background: linear-gradient(165deg, rgba(8, 28, 32, 0.96), rgba(4, 14, 18, 0.97));
+        color: rgba(255, 255, 255, 0.9);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+      }
+      .intro-popup-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .intro-popup-title {
+        font: 600 16px/1.3 system-ui, sans-serif;
+        letter-spacing: 0.02em;
+        color: #e8fdff;
+      }
+      .intro-popup-close {
+        flex-shrink: 0;
+        width: 36px;
+        height: 36px;
+        margin: -6px -6px 0 0;
+        border: 1px solid rgba(0, 229, 255, 0.22);
+        border-radius: 6px;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.72);
+        font: 500 18px/1 system-ui, sans-serif;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .intro-popup-close:hover {
+        color: #00e5ff;
+        border-color: rgba(0, 229, 255, 0.45);
+        background: rgba(0, 229, 255, 0.08);
+      }
+      .intro-popup-lead {
+        margin-bottom: 14px;
+        font: 400 13px/1.5 system-ui, sans-serif;
+        color: rgba(255, 255, 255, 0.68);
+      }
+      .intro-popup-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin: 0 0 16px;
+        padding: 0;
+        list-style: none;
+      }
+      .intro-popup-list li {
+        font: 400 13px/1.45 system-ui, sans-serif;
+        color: rgba(255, 255, 255, 0.78);
+      }
+      .intro-popup-list strong {
+        display: block;
+        margin-bottom: 2px;
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        color: #00e5ff;
+      }
+      .intro-popup-footer {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-top: 4px;
+        border-top: 1px solid rgba(0, 229, 255, 0.14);
+      }
+      .intro-popup-dont-show {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font: 400 12px/1.3 system-ui, sans-serif;
+        color: rgba(255, 255, 255, 0.62);
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .intro-popup-dont-show input {
+        width: 16px;
+        height: 16px;
+        accent-color: #00e5ff;
+        cursor: pointer;
+      }
+      .intro-popup-got-it {
+        min-height: 40px;
+        min-width: 96px;
+        padding: 8px 16px;
+        border: 1px solid rgba(0, 229, 255, 0.4);
+        border-radius: 6px;
+        background: rgba(0, 229, 255, 0.16);
+        color: #00e5ff;
+        font: 600 13px/1 system-ui, sans-serif;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      .intro-popup-got-it:hover {
+        background: rgba(0, 229, 255, 0.26);
+        color: #fff;
+      }
+      @media (max-width: 640px) {
+        .intro-popup-panel {
+          padding: 16px 14px 14px;
+          max-height: min(88vh, 720px);
+        }
+        .intro-popup-footer {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .intro-popup-got-it {
+          width: 100%;
+        }
+      }
     </style>
     <link rel="stylesheet" href="../demo-inspector-panels.css" />
     <script type="importmap">
@@ -344,6 +555,62 @@
   <body>
     <link rel="stylesheet" href="../attribution.css" />
     <a class="back-link" href="/">← IOM</a>
+    <nav id="nav-mode-bar" aria-label="Navigation mode">
+      <button type="button" class="nav-mode-btn is-active" data-nav-mode="Teleport" aria-pressed="true">
+        Teleport
+      </button>
+      <button type="button" class="nav-mode-btn" data-nav-mode="Walk" aria-pressed="false">Explore</button>
+      <button type="button" class="nav-mode-btn" data-nav-mode="Inspect" aria-pressed="false">Inspect</button>
+    </nav>
+    <div
+      id="intro-popup"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="intro-popup-title"
+      hidden
+    >
+      <div class="intro-popup-panel">
+        <div class="intro-popup-header">
+          <h2 id="intro-popup-title" class="intro-popup-title">How to navigate</h2>
+          <button type="button" class="intro-popup-close" id="intro-popup-close" aria-label="Close">
+            ×
+          </button>
+        </div>
+        <p class="intro-popup-lead">
+          Three ways to move through the gallery — you start in Teleport; switch anytime from the
+          top bar.
+        </p>
+        <ul class="intro-popup-list">
+          <li>
+            <strong>Teleport</strong>
+            (starting mode) Short-click the floor to move (Matterport-style). Drag to look around.
+            Hold or drag without a short click to orbit only.
+          </li>
+          <li>
+            <strong>Explore</strong>
+            First-person walk with an on-screen character. Click to lock the pointer, then use WASD
+            (Shift to run) and the mouse to look.
+          </li>
+          <li>
+            <strong>Inspect</strong>
+            Nodal look-around from a fixed eye point. Drag to orbit, WASD to move, record camera
+            keyframes, and pick materials or objects with the transform gizmo.
+          </li>
+          <li>
+            <strong>Advanced settings</strong>
+            Open the inspector panels for SSR quality, Scene controls (mode, spawn, import, share),
+            Materials and Objects editing, Denoise / Temporal Reproject tuning, and Light position.
+          </li>
+        </ul>
+        <div class="intro-popup-footer">
+          <label class="intro-popup-dont-show">
+            <input type="checkbox" id="intro-popup-dont-show" />
+            Don’t show again
+          </label>
+          <button type="button" class="intro-popup-got-it" id="intro-popup-got-it">Got it</button>
+        </div>
+      </div>
+    </div>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
         <a
@@ -378,9 +645,10 @@
     </aside>
     <div id="container"></div>
     <div id="compare-hint" hidden>Hold Shift and move the mouse to scrub the comparison</div>
-    <div id="walk-hint" hidden>Walk mode: enable “Place spawn” to click a floor point, or click the scene to lock the pointer. WASD move, Shift to run, Space jump, Esc release.</div>
+    <div id="walk-hint" hidden>Click to play · WASD to move · Shift run · Space jump · Esc release pointer</div>
     <div id="coord-toast" role="status" aria-live="polite" hidden></div>
-    <div id="runtime-status" aria-live="polite">Ready. Import GLB/GLTF/FBX (file, multi-file, folder, or drag-drop) or HDR/EXR. Inspect: record camera keyframes (panel top-left), enable Transform gizmo in Objects (T/R/S), or Pick coordinates in Scene controls.</div>
+    <div id="teleport-fade" aria-hidden="true"></div>
+    <div id="runtime-status" aria-live="polite">Ready. Teleport mode: short-click the gallery floor to move. Drag to look around. Switch to Explore or Inspect from the top bar.</div>
     <aside id="camera-views-panel" class="inspector-side-panel is-open" aria-label="Camera views">
       <div class="panel-header" role="button" tabindex="0" aria-expanded="true">
         <span class="item-toggler" aria-hidden="true"></span>
@@ -559,9 +827,55 @@
       const SPAWN_CLEARANCE_SAMPLES = 14
       const WALK_COLLISION_MODES = { Full: 'full', 'Ground+walls': 'shell', Off: 'off' }
       const DEFAULT_MODEL_URL = './models/vr_art_gallery_2020.glb'
-      const DEFAULT_CAMERA_POSITION = new THREE.Vector3(1.157, 0.187, 0.749)
-      const DEFAULT_CAMERA_ROTATION = new THREE.Euler(0.01, 0.149, 0, 'YXZ')
-      const DEFAULT_ORBIT_TARGET = new THREE.Vector3(0.876, 0.205, -1.121)
+      const DEFAULT_CAMERA_POSITION = new THREE.Vector3(1.15, 0.289, 0.536)
+      const DEFAULT_CAMERA_ROTATION = new THREE.Euler(-0.038, 6.5, 0, 'YXZ')
+      // Inspect uses Teleport-style nodal orbit: target === eye, camera sits a tiny
+      // fixed distance behind the look direction (no large-radius swing through walls).
+      const DEFAULT_ORBIT_TARGET = DEFAULT_CAMERA_POSITION.clone()
+      const TELEPORT_RETICLE_FILL_RADIUS = 0.017
+      const TELEPORT_RETICLE_RING_INNER = 0.015
+      const TELEPORT_RETICLE_RING_OUTER = 0.021
+      const TELEPORT_RETICLE_SURFACE_EPSILON = 0.01
+      const TELEPORT_RETICLE_DEFAULT_NORMAL = new THREE.Vector3(0, 0, 1)
+      const TELEPORT_FLOOR_NORMAL_MIN = 0.7
+      // Interior walk/inspect floors stay near the model base; roof/exterior decks sit higher.
+      const INTERIOR_FLOOR_HEIGHT_FRACTION = 0.22
+      const INTERIOR_FLOOR_HEIGHT_MIN = 0.12
+      const TELEPORT_PROBE_RADIUS_SCALE = 0.5
+      const TELEPORT_PROBE_MIN_RADIUS = 0.028
+      const TELEPORT_WALL_BLOCK_DEPTH = 0.004
+      const TELEPORT_BOUNDS_MARGIN_SCALE = 0.28
+      const TELEPORT_ORBIT_DISTANCE = 0.045
+      // Teleport look-drag: 30% slower than OrbitControls default (1.0), plus slightly
+      // lower dampingFactor so each frame applies less delta (smoother / less snappy).
+      const TELEPORT_ORBIT_ROTATE_SPEED = 0.7
+      const TELEPORT_ORBIT_DAMPING_FACTOR = 0.055
+      const TELEPORT_CLICK_DRAG_THRESHOLD = 6
+      // Inspect look-around matches Teleport nodal distance (eye pivot, fixed radius).
+      const INSPECT_ORBIT_DISTANCE = TELEPORT_ORBIT_DISTANCE
+      const INSPECT_ORBIT_MIN_DISTANCE = INSPECT_ORBIT_DISTANCE
+      const INSPECT_ORBIT_MAX_DISTANCE = INSPECT_ORBIT_DISTANCE
+      const INSPECT_ORBIT_ROTATE_SPEED = TELEPORT_ORBIT_ROTATE_SPEED
+      const INSPECT_ORBIT_DAMPING_FACTOR = TELEPORT_ORBIT_DAMPING_FACTOR
+      const INSPECT_PITCH_LOOK_DOWN_MAX = 0.9
+      const INSPECT_PITCH_LOOK_UP_MAX = 1.25
+      const STANDING_EYE_HEIGHT_RATIO = 0.88
+      const TELEPORT_EYE_HEIGHT_SCALE = 0.8
+      const TELEPORT_PITCH_LOOK_DOWN_MAX = 0.35
+      const TELEPORT_PITCH_LOOK_UP_MAX = 0.95
+      // Full standing-body capsule for Inspect — matches Explore player size so the nodal
+      // eye cannot sit inside walls while a tiny ankle probe still reads clear.
+      const INSPECT_PROBE_RADIUS_SCALE = 0.92
+      const INSPECT_PROBE_MIN_RADIUS = 0.035
+      const INSPECT_PROBE_HEIGHT_SCALE = 1
+      const INSPECT_ESCAPE_PROBE_RADIUS_SCALE = 1.06
+      const INSPECT_WALL_BLOCK_DEPTH = 0.0025
+      const INSPECT_DEEP_PENETRATION_DEPTH = 0.035
+      const INSPECT_PUSH_OUT_MAX = 0.9
+      const INSPECT_DEEP_PUSH_OUT_MAX = 1.35
+      const INSPECT_STUCK_AUTO_NUDGE_SEC = 0.5
+      const INSPECT_MOVE_RESOLVE_ITERS = 12
+      const SSR_DENOISE_DEBUG = false
       const DEFAULT_SPAWN = new THREE.Vector3(0.960, 0.050, 0.098)
       const LEGACY_DEFAULT_SPAWNS = [
         new THREE.Vector3(1.221, 0.050, 0.341),
@@ -599,8 +913,46 @@
           clearcoatRoughness: 0,
           envMapIntensity: 1.6,
         },
+        '01': {
+          metalness: 0,
+          emissiveIntensity: 1,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          envMapIntensity: 1,
+        },
+        '02': {
+          metalness: 0,
+          emissiveIntensity: 1,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          envMapIntensity: 1,
+        },
         '05': {
           metalness: 0.65,
+          emissiveIntensity: 1,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          envMapIntensity: 1,
+        },
+        '07': {
+          metalness: 0.23,
+          emissiveIntensity: 1,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          envMapIntensity: 1,
+        },
+        projector: {
+          glass: 'manual',
+          color: '#f0f0f0',
+          emissive: '#000000',
+          roughness: 0.34,
+          metalness: 0,
+          doubleSided: true,
+          opacity: 0,
+          transparent: true,
+          transmission: 0.65,
+          ior: 1.77,
+          thickness: 0.01,
           emissiveIntensity: 1,
           clearcoat: 0,
           clearcoatRoughness: 0,
@@ -610,8 +962,11 @@
 
       const compareHint = document.getElementById('compare-hint')
       const walkHint = document.getElementById('walk-hint')
+      const navModeBar = document.getElementById('nav-mode-bar')
+      const navModeButtons = navModeBar ? [...navModeBar.querySelectorAll('.nav-mode-btn')] : []
       const coordToast = document.getElementById('coord-toast')
       const runtimeStatus = document.getElementById('runtime-status')
+      const teleportFadeEl = document.getElementById('teleport-fade')
       let materialsGui = null
       const materialTransparencyEditors = new Map()
       const materialEditorItems = []
@@ -632,6 +987,12 @@
       const loadingOverlay = document.getElementById('loading-overlay')
       const loadingMessage = document.getElementById('loading-message')
       const loadingProgress = document.getElementById('loading-progress')
+      const introPopup = document.getElementById('intro-popup')
+      const introPopupGotIt = document.getElementById('intro-popup-got-it')
+      const introPopupClose = document.getElementById('intro-popup-close')
+      const introPopupDontShow = document.getElementById('intro-popup-dont-show')
+      const INTRO_POPUP_SESSION_KEY = 'ssr-denoise-intro-dismissed'
+      const INTRO_POPUP_HIDE_KEY = 'ssr-denoise-intro-hide'
       const modelFileInput = document.getElementById('model-file-input')
       const modelFolderInput = document.getElementById('model-folder-input')
       const envFileInput = document.getElementById('env-file-input')
@@ -702,14 +1063,14 @@
           intensity: 22.24,
         },
         runtime: {
-          navigationMode: 'Inspect',
+          navigationMode: 'Teleport',
           movementSpeed: 0.06,
           placeSpawn: false,
           pickCoordinates: false,
           gizmoEnabled: false,
           gizmoMode: 'translate',
           skipCollision: false,
-          walkCollisionMode: 'off',
+          walkCollisionMode: 'full',
           showWalkCollision: false,
           boundaryMarginScale: 1,
           pickMaterials: false,
@@ -724,6 +1085,7 @@
       const DEFAULT_PARAMS = structuredClone(params)
       const DEFAULT_CHARACTER_COLOR = '#545454'
       const SHARE_PARAM_KEY = 's'
+      const NAVIGATION_MODE_PARAM = 'mode'
       const SHARE_STATE_VERSION = 1
       const SHARE_FLOAT_EPS = 0.0005
       const PLAYER_SPAWN_STORAGE_KEY = 'ssr-player-spawn'
@@ -731,6 +1093,7 @@
       const CAMERA_KEYFRAMES_STORAGE_KEY = 'ssr-camera-keyframes'
       const CAMERA_TRANSITION_MS = 1000
       const CAMERA_HOLD_MS = 1500
+      const TELEPORT_TRANSITION_MS = 420
       // Scene-specific material/object overrides from tuned share state (stable for default gallery + Xbot).
       const DEFAULT_SHARE_STATE = {
         v: SHARE_STATE_VERSION,
@@ -743,6 +1106,34 @@
             cr: 0,
             ev: 1.6,
           },
+          '01': {
+            c: 'ffffff',
+            e: '000000',
+            r: 1,
+            m: 0,
+            ds: 1,
+            x: 0,
+            i: 1.5,
+            h: 0,
+            ei: 1,
+            cc: 0,
+            cr: 0,
+            ev: 1,
+          },
+          '02': {
+            c: 'ffffff',
+            e: '000000',
+            r: 1,
+            m: 0,
+            ds: 1,
+            x: 0,
+            i: 1.5,
+            h: 0,
+            ei: 1,
+            cc: 0,
+            cr: 0,
+            ev: 1,
+          },
           '05': {
             r: 1,
             m: 0.65,
@@ -750,6 +1141,37 @@
             x: 0,
             i: 1.5,
             h: 0,
+            ei: 1,
+            cc: 0,
+            cr: 0,
+            ev: 1,
+          },
+          '07': {
+            c: 'ffffff',
+            e: '000000',
+            r: 1,
+            m: 0.23,
+            ds: 1,
+            x: 0,
+            i: 1.52,
+            h: 0.022,
+            ei: 1,
+            cc: 0,
+            cr: 0,
+            ev: 1,
+          },
+          projector: {
+            g: 'manual',
+            c: 'f0f0f0',
+            e: '000000',
+            r: 0.34,
+            m: 0,
+            ds: 1,
+            o: 0,
+            t: 1,
+            x: 0.65,
+            i: 1.77,
+            h: 0.01,
             ei: 1,
             cc: 0,
             cr: 0,
@@ -1008,7 +1430,14 @@
         const state = { v: SHARE_STATE_VERSION }
 
         const paramsPatch = diffShareParams(params, DEFAULT_PARAMS)
-        if (paramsPatch) state.p = paramsPatch
+        if (paramsPatch) {
+          if (paramsPatch.runtime) {
+            delete paramsPatch.runtime.navigationMode
+            delete paramsPatch.runtime.walkCollisionMode
+            delete paramsPatch.runtime.skipCollision
+          }
+          state.p = paramsPatch
+        }
 
         const materials = {}
         enumerateModelMaterials().forEach((entry) => {
@@ -1096,6 +1525,9 @@
 
         if (patch.g === 'manual' || patch.g === 'auto') {
           setMaterialGlassByUuid(uuid, true, { refreshPanel: false })
+          // Glass configure overwrites transmission/IOR/opacity — restore name-keyed physics
+          // defaults before the share patch so tuned values win over the glass template.
+          mutateMaterialByUuid(uuid, (material) => applyMaterialPhysicsDefaults(material, { applyGlass: false }))
         } else if (patch.g === null) {
           setMaterialGlassByUuid(uuid, false, { refreshPanel: false })
         }
@@ -1103,53 +1535,45 @@
         mutateMaterialByUuid(
           uuid,
           (material) => {
-            if (patch.c && material.color) material.color.set(`#${patch.c}`)
+            const needsPhysical =
+              patch.x !== undefined ||
+              patch.i !== undefined ||
+              patch.h !== undefined ||
+              patch.cc !== undefined ||
+              patch.cr !== undefined
+            const next = needsPhysical ? ensureEditablePhysicalMaterial(material) : material
+
+            if (patch.c && next.color) next.color.set(`#${patch.c}`)
             if (patch.e) {
-              if (!material.emissive) material.emissive = new THREE.Color()
-              material.emissive.set(`#${patch.e}`)
+              if (!next.emissive) next.emissive = new THREE.Color()
+              next.emissive.set(`#${patch.e}`)
             }
-            if (patch.r !== undefined && 'roughness' in material) material.roughness = patch.r
-            if (patch.m !== undefined && 'metalness' in material) material.metalness = patch.m
-            if (patch.o !== undefined) material.opacity = patch.o
-            if (patch.t !== undefined) material.transparent = Boolean(patch.t)
-            if (patch.x !== undefined) {
-              const physical = ensureEditablePhysicalMaterial(material)
-              physical.transmission = patch.x
-              return physical
-            }
-            if (patch.i !== undefined) {
-              const physical = ensureEditablePhysicalMaterial(material)
-              physical.ior = patch.i
-              return physical
-            }
-            if (patch.h !== undefined) {
-              const physical = ensureEditablePhysicalMaterial(material)
-              physical.thickness = patch.h
-              return physical
-            }
-            if (patch.ei !== undefined) material.emissiveIntensity = patch.ei
+            if (patch.r !== undefined && 'roughness' in next) next.roughness = patch.r
+            if (patch.m !== undefined && 'metalness' in next) next.metalness = patch.m
+            if (patch.o !== undefined) next.opacity = patch.o
+            if (patch.t !== undefined) next.transparent = Boolean(patch.t)
+            if (patch.x !== undefined) next.transmission = patch.x
+            if (patch.i !== undefined) next.ior = patch.i
+            if (patch.h !== undefined) next.thickness = patch.h
+            if (patch.ei !== undefined) next.emissiveIntensity = patch.ei
             if (patch.ns !== undefined) {
-              if (!material.normalScale) material.normalScale = new THREE.Vector2(1, 1)
-              material.normalScale.set(patch.ns, patch.ns)
+              if (!next.normalScale) next.normalScale = new THREE.Vector2(1, 1)
+              next.normalScale.set(patch.ns, patch.ns)
             }
-            if (patch.cc !== undefined) {
-              const physical = ensureEditablePhysicalMaterial(material)
-              physical.clearcoat = patch.cc
-              return physical
-            }
-            if (patch.cr !== undefined) {
-              const physical = ensureEditablePhysicalMaterial(material)
-              physical.clearcoatRoughness = patch.cr
-              return physical
-            }
-            if (patch.ev !== undefined && 'envMapIntensity' in material) material.envMapIntensity = patch.ev
-            if (patch.at !== undefined) material.alphaTest = patch.at
+            if (patch.cc !== undefined) next.clearcoat = patch.cc
+            if (patch.cr !== undefined) next.clearcoatRoughness = patch.cr
+            if (patch.ev !== undefined && 'envMapIntensity' in next) next.envMapIntensity = patch.ev
+            if (patch.at !== undefined) next.alphaTest = patch.at
             if (patch.ds !== undefined) {
               const side = patch.ds ? THREE.DoubleSide : THREE.FrontSide
-              material.side = side
-              material.shadowSide = side
+              next.side = side
+              next.shadowSide = side
             }
-            return material
+            if (next.opacity < 1 || (patch.x !== undefined && patch.x > 0)) {
+              next.transparent = true
+            }
+            if (patch.x !== undefined && patch.x > 0) next.depthWrite = false
+            return next
           },
           {
             refreshTransparency:
@@ -1197,7 +1621,15 @@
 
         const previousNavigationMode = params.runtime.navigationMode
 
-        if (state.p) applySharePatch(params, state.p)
+        if (state.p) {
+          const paramsPatch = structuredClone(state.p)
+          if (paramsPatch.runtime) {
+            delete paramsPatch.runtime.navigationMode
+            delete paramsPatch.runtime.walkCollisionMode
+            delete paramsPatch.runtime.skipCollision
+          }
+          applySharePatch(params, paramsPatch)
+        }
         if (state.m) {
           for (const [uuid, patch] of Object.entries(state.m)) {
             applyMaterialSharePatch(uuid, patch)
@@ -1273,10 +1705,15 @@
           setNavigationMode(params.runtime.navigationMode)
         } else if (params.runtime.navigationMode === 'Walk') {
           resetPlayerSpawn()
+        } else if (params.runtime.navigationMode === 'Inspect' && state.cam) {
+          validateInspectStartPlacement({
+            preferredTarget: controls?.target?.clone?.() ?? DEFAULT_ORBIT_TARGET.clone(),
+            preferredCamera: camera.position.clone(),
+          })
         }
 
         if (spawnFromShare && playerCollider) {
-          setPlayerCapsuleAtPoint(spawnFromShare, { resolveOverlap: false })
+          setPlayerCapsuleAtPoint(spawnFromShare, { resolveOverlap: true })
           playerCollisions()
           savePlayerSpawnToStorage({ force: true })
         }
@@ -1308,6 +1745,2198 @@
           captureModelBaselines()
         }
         return applied
+      }
+
+      function resolveInitialNavigationMode() {
+        const mode = new URLSearchParams(window.location.search).get(NAVIGATION_MODE_PARAM)?.toLowerCase()
+        if (mode === 'explore' || mode === 'walk') return 'Walk'
+        if (mode === 'inspect') return 'Inspect'
+        if (mode === 'teleport') return 'Teleport'
+        return 'Teleport'
+      }
+
+      function isExploreMode() {
+        return params.runtime.navigationMode === 'Walk'
+      }
+
+      function isInspectMode() {
+        return params.runtime.navigationMode === 'Inspect'
+      }
+
+      function isTeleportMode() {
+        return params.runtime.navigationMode === 'Teleport'
+      }
+
+      function isOrbitNavigationMode() {
+        return isInspectMode() || isTeleportMode()
+      }
+
+      function isPointerLocked() {
+        return document.pointerLockElement === renderer.domElement
+      }
+
+      function isInspectPickingActive() {
+        return (
+          params.runtime.navigationMode === 'Inspect' &&
+          (params.runtime.pickCoordinates || params.runtime.pickMaterials || params.runtime.gizmoEnabled)
+        )
+      }
+
+      function isInspectMaterialEditingActive() {
+        return (
+          isInspectMode() &&
+          (!params.runtime.materialsPanelCollapsed || selectedMaterialUuid !== null)
+        )
+      }
+
+      // Hard camera freeze only while Pick materials is on (orbit/soft-correct/WASD pinned).
+      function isInspectCameraFrozenForMaterials() {
+        return isInspectMode() && params.runtime.pickMaterials
+      }
+
+      function allowsPlayerMovement() {
+        return isExploreMode()
+      }
+
+      function allowsInspectCameraMovement() {
+        return isInspectMode() && !isInspectPickingActive()
+      }
+
+      function allowsWalkInput() {
+        return allowsPlayerMovement() || allowsInspectCameraMovement()
+      }
+
+      function shouldShowPlayerAvatar() {
+        return isExploreMode()
+      }
+
+      function updatePlayerAvatarVisibility() {
+        const visible = shouldShowPlayerAvatar()
+        if (playerTransformPivot) playerTransformPivot.visible = visible
+        if (playerMesh) playerMesh.visible = visible
+        if (playerCharacterModel) playerCharacterModel.visible = visible
+        if (playerCapsuleFallback) playerCapsuleFallback.visible = visible && !playerCharacterModel
+      }
+
+      function shouldUseWalkCamera() {
+        return isExploreMode()
+      }
+
+      function getMovementYaw() {
+        if (shouldUseWalkCamera()) return yaw
+        if (controls) {
+          const offset = new THREE.Vector3().subVectors(controls.target, camera.position)
+          offset.y = 0
+          if (offset.lengthSq() > 1e-8) {
+            offset.normalize()
+            return Math.atan2(-offset.x, -offset.z)
+          }
+        }
+        return yaw
+      }
+
+      function syncOrbitTargetToPlayer() {
+        if (!controls || !playerCollider || !isTeleportMode()) return
+        if (isPointerLocked()) return
+
+        const eye = getPlayerEyePosition()
+        if (eye) controls.target.copy(eye)
+      }
+
+      function getInspectMovementYaw() {
+        if (isPointerLocked()) return yaw
+        return getMovementYaw()
+      }
+
+      function getStandingEyeHeight(metrics = getPlayerCapsuleMetrics()) {
+        return metrics.radius + metrics.height * STANDING_EYE_HEIGHT_RATIO
+      }
+
+      function getInspectEyeHeight(metrics = getPlayerCapsuleMetrics()) {
+        return getStandingEyeHeight(metrics)
+      }
+
+      function getPlayerFloorPoint(out = new THREE.Vector3()) {
+        if (!playerCollider) return null
+        return out.set(
+          playerCollider.start.x,
+          playerCollider.start.y - playerCollider.radius,
+          playerCollider.start.z,
+        )
+      }
+
+      function getTeleportEyeHeight(metrics = getPlayerCapsuleMetrics()) {
+        return getStandingEyeHeight(metrics) * TELEPORT_EYE_HEIGHT_SCALE
+      }
+
+      function clampTeleportPitch(value) {
+        return THREE.MathUtils.clamp(
+          value,
+          -TELEPORT_PITCH_LOOK_UP_MAX,
+          TELEPORT_PITCH_LOOK_DOWN_MAX,
+        )
+      }
+
+      function clampInspectPitch(value) {
+        return THREE.MathUtils.clamp(
+          value,
+          -INSPECT_PITCH_LOOK_UP_MAX,
+          INSPECT_PITCH_LOOK_DOWN_MAX,
+        )
+      }
+
+      function getPlayerEyePosition(out = new THREE.Vector3()) {
+        const floor = getPlayerFloorPoint()
+        if (!floor) return null
+        return out.set(floor.x, floor.y + getTeleportEyeHeight(), floor.z)
+      }
+
+      function getInspectNodalEyePosition(out = new THREE.Vector3()) {
+        if (!controls) return null
+        out.copy(controls.target)
+        // Keep nodal eye on standing height over interior floor (Teleport anchors on capsule eye).
+        const floorHit = raycastGalleryFloorAt(out.x, out.z)
+        if (floorHit) {
+          const targetY = floorHit.point.y + getInspectEyeHeight()
+          const yDelta = targetY - out.y
+          // Refuse large upward snaps onto roof / exterior decks.
+          if (yDelta <= 0.55) out.y = targetY
+        }
+        return out
+      }
+
+      function getInspectProbeMetrics() {
+        const { radius, height } = getPlayerCapsuleMetrics()
+        const probeRadius = Math.max(radius * INSPECT_PROBE_RADIUS_SCALE, INSPECT_PROBE_MIN_RADIUS)
+        return {
+          radius: probeRadius,
+          height: Math.max(height * INSPECT_PROBE_HEIGHT_SCALE, probeRadius * 2.5),
+        }
+      }
+
+      function getInspectEscapeProbeMetrics() {
+        const { radius, height } = getPlayerCapsuleMetrics()
+        const escapeRadius = Math.max(
+          radius * INSPECT_ESCAPE_PROBE_RADIUS_SCALE,
+          INSPECT_PROBE_MIN_RADIUS,
+        )
+        return {
+          radius: escapeRadius,
+          height: Math.max(height * INSPECT_PROBE_HEIGHT_SCALE, escapeRadius * 2.5),
+        }
+      }
+
+      function getInspectWalkBoundsMargin() {
+        return Math.max(getInspectProbeMetrics().radius * 1.1, 0.012)
+      }
+
+      // Standing-body capsule aligned with Explore playerCollisions (floor → head height).
+      // Small floor embed keeps floor normals below the wall-skip threshold while sides
+      // still report wall overlap at eye level.
+      function makeInspectMoveCapsule(floorPoint, metrics = getInspectProbeMetrics()) {
+        const { radius, height } = metrics
+        const embed = Math.min(radius * 0.12, 0.008)
+        const floorY = floorPoint.y + embed
+        return new Capsule(
+          new THREE.Vector3(floorPoint.x, floorY + radius, floorPoint.z),
+          new THREE.Vector3(floorPoint.x, floorY + height, floorPoint.z),
+          radius,
+        )
+      }
+
+      function probeInspectFloorCollision(floorPoint, metrics = getInspectProbeMetrics()) {
+        if (
+          !floorPoint ||
+          !worldOctree ||
+          params.runtime.walkCollisionMode === 'off' ||
+          params.runtime.skipCollision
+        ) {
+          return null
+        }
+        return probeCapsuleCollision(makeInspectMoveCapsule(floorPoint, metrics))
+      }
+
+      function getInspectWallHit(floorPoint, metrics = getInspectProbeMetrics()) {
+        const hit = probeInspectFloorCollision(floorPoint, metrics)
+        if (!hit || hit.onFloor) return null
+        return hit
+      }
+
+      function getInspectFloorPenetrationDepth(floorPoint, metrics = getInspectProbeMetrics()) {
+        const hit = getInspectWallHit(floorPoint, metrics)
+        return hit ? hit.depth : 0
+      }
+
+      function isInspectFloorBlocked(
+        floorPoint,
+        { minDepth = INSPECT_WALL_BLOCK_DEPTH, metrics = getInspectProbeMetrics() } = {},
+      ) {
+        return getInspectFloorPenetrationDepth(floorPoint, metrics) > minDepth
+      }
+
+      // Explore-style capsule resolve: push horizontally out of walls (skip floor normals).
+      function resolveInspectCapsuleHorizontal(
+        floorPoint,
+        metrics = getInspectProbeMetrics(),
+        {
+          maxDistance = INSPECT_PUSH_OUT_MAX,
+          iterations = INSPECT_MOVE_RESOLVE_ITERS,
+          pushMultiplier = null,
+        } = {},
+      ) {
+        if (!floorPoint || !worldOctree) return floorPoint?.clone() ?? null
+
+        const capsule = makeInspectMoveCapsule(floorPoint, metrics)
+        const originX = (capsule.start.x + capsule.end.x) * 0.5
+        const originZ = (capsule.start.z + capsule.end.z) * 0.5
+
+        for (let i = 0; i < iterations; i++) {
+          const result = worldOctree.capsuleIntersect(capsule)
+          if (!result || result.depth <= 1e-10) break
+          // Floor contacts are ignored — movement is floor-snapped separately.
+          if (result.normal.y >= 0.35) continue
+
+          const nx = result.normal.x
+          const nz = result.normal.z
+          const horizontal = Math.hypot(nx, nz)
+          const mult =
+            pushMultiplier ??
+            (result.depth > INSPECT_DEEP_PENETRATION_DEPTH ? 1.45 : 1.2)
+          const push = result.depth * mult
+
+          if (horizontal < 1e-8) {
+            // Corner / vertical-ish contact: Explore-style full-normal push.
+            capsule.translate(result.normal.clone().multiplyScalar(push))
+          } else {
+            capsule.translate(
+              new THREE.Vector3((nx / horizontal) * push, 0, (nz / horizontal) * push),
+            )
+          }
+
+          const cx = (capsule.start.x + capsule.end.x) * 0.5
+          const cz = (capsule.start.z + capsule.end.z) * 0.5
+          if (Math.hypot(cx - originX, cz - originZ) > maxDistance) break
+        }
+
+        const x = (capsule.start.x + capsule.end.x) * 0.5
+        const z = (capsule.start.z + capsule.end.z) * 0.5
+        const floor = getInspectFloorPointAt(x, z)
+        if (floor) return floor
+        return floorPoint.clone().set(x, floorPoint.y, z)
+      }
+
+      // Push the floor anchor horizontally out of wall geometry (Explore playerCollisions port).
+      function pushOutInspectFloorPoint(
+        floorPoint,
+        metrics = getInspectProbeMetrics(),
+        options = {},
+      ) {
+        return resolveInspectCapsuleHorizontal(floorPoint, metrics, options)
+      }
+
+      function getInspectWallEscapeNormal(floorPoint, metrics = getInspectProbeMetrics()) {
+        if (!floorPoint || !worldOctree) return null
+        const hit = getInspectWallHit(floorPoint, metrics)
+        if (!hit || hit.depth <= INSPECT_WALL_BLOCK_DEPTH) return null
+        const nx = hit.normal[0]
+        const nz = hit.normal[2]
+        const horizontal = Math.hypot(nx, nz)
+        if (horizontal < 1e-8) return null
+        return new THREE.Vector3(nx / horizontal, 0, nz / horizontal)
+      }
+
+      function applyInspectFloorAnchorDelta(dx, dz) {
+        if (!controls) return
+        if (Math.abs(dx) < 1e-12 && Math.abs(dz) < 1e-12) return
+        controls.target.x += dx
+        controls.target.z += dz
+        camera.position.x += dx
+        camera.position.z += dz
+      }
+
+      function recordInspectClearFloor(floorPoint) {
+        if (!floorPoint) return
+        if (!inspectLastClearFloor) inspectLastClearFloor = floorPoint.clone()
+        else inspectLastClearFloor.copy(floorPoint)
+        inspectStuckTimer = 0
+      }
+
+      function nudgeInspectUnstuck(deltaTime) {
+        const floor = getInspectFloorAnchor()
+        if (!floor) return false
+
+        const metrics = getInspectEscapeProbeMetrics()
+        if (!isInspectFloorBlocked(floor, { metrics: getInspectProbeMetrics() })) {
+          recordInspectClearFloor(floor)
+          return false
+        }
+
+        inspectStuckTimer += deltaTime
+        if (inspectStuckTimer < INSPECT_STUCK_AUTO_NUDGE_SEC) return false
+
+        const center =
+          !activeBounds.isEmpty()
+            ? getInspectFloorPointAt(
+                (activeBounds.min.x + activeBounds.max.x) * 0.5,
+                (activeBounds.min.z + activeBounds.max.z) * 0.5,
+              )
+            : null
+        const target =
+          inspectLastClearFloor?.clone() ??
+          center ??
+          pushOutInspectFloorPoint(floor, metrics, { maxDistance: INSPECT_PUSH_OUT_MAX })
+
+        if (!target) return false
+
+        const dx = target.x - floor.x
+        const dz = target.z - floor.z
+        const len = Math.hypot(dx, dz)
+        if (len < 1e-8) return false
+
+        // Step a short distance toward last clear / gallery center each stuck frame.
+        const step = Math.min(len, Math.max(metrics.radius * 2.5, 0.02))
+        const dest = getInspectFloorPointAt(
+          floor.x + (dx / len) * step,
+          floor.z + (dz / len) * step,
+        )
+        if (!dest) return false
+
+        applyInspectFloorAnchorDelta(dest.x - floor.x, dest.z - floor.z)
+        snapInspectTargetToFloor()
+        return true
+      }
+
+      function shouldRunInspectDepenetration() {
+        if (!controls || !isInspectMode()) return false
+        if (params.runtime.walkCollisionMode === 'off' || params.runtime.skipCollision) return false
+        if (!worldOctree || !walkCollisionMeshes.length) return false
+        if (isInspectPickingActive() || isInspectCameraFrozenForMaterials()) return false
+        return true
+      }
+
+      // Every-frame depenetration (Explore playerCollisions analogue) — not only on WASD.
+      function runInspectContinuousDepenetration(deltaTime = 0) {
+        if (!shouldRunInspectDepenetration()) return false
+
+        const floor = getInspectFloorAnchor()
+        if (!floor) return false
+
+        const metrics = getInspectProbeMetrics()
+        const depth = getInspectFloorPenetrationDepth(floor, metrics)
+        if (depth <= INSPECT_WALL_BLOCK_DEPTH) {
+          recordInspectClearFloor(floor)
+          inspectStuckTimer = 0
+          return false
+        }
+
+        const isDeep = depth > INSPECT_DEEP_PENETRATION_DEPTH
+        const escapeMetrics = getInspectEscapeProbeMetrics()
+        const pushed = pushOutInspectFloorPoint(floor, escapeMetrics, {
+          maxDistance: isDeep ? INSPECT_DEEP_PUSH_OUT_MAX : INSPECT_PUSH_OUT_MAX,
+          iterations: isDeep ? INSPECT_MOVE_RESOLVE_ITERS * 2 : INSPECT_MOVE_RESOLVE_ITERS,
+        })
+
+        if (pushed && pushed.distanceToSquared(floor) > 1e-10) {
+          applyInspectFloorAnchorDelta(pushed.x - floor.x, pushed.z - floor.z)
+          snapInspectTargetToFloor()
+          if (!orbitControlsDragging) applyInspectOrbitCamera(0)
+          const after = getInspectFloorAnchor()
+          if (after && !isInspectFloorBlocked(after, { metrics })) {
+            recordInspectClearFloor(after)
+          }
+          inspectStuckTimer = 0
+          return true
+        }
+
+        if (deltaTime > 0) nudgeInspectUnstuck(deltaTime)
+        return false
+      }
+
+      function getInspectOrbitDistance() {
+        if (!controls) return 0
+        return camera.position.distanceTo(controls.target)
+      }
+
+      function clampInspectOrbitDistance() {
+        if (!controls || !isInspectMode() || isPointerLocked()) return
+
+        inspectOrbitOffset.subVectors(camera.position, controls.target)
+        const distance = inspectOrbitOffset.length()
+        if (distance < 1e-8) return
+
+        const clamped = THREE.MathUtils.clamp(
+          distance,
+          INSPECT_ORBIT_MIN_DISTANCE,
+          INSPECT_ORBIT_MAX_DISTANCE,
+        )
+        if (Math.abs(clamped - distance) <= 1e-6) return
+
+        inspectOrbitOffset.multiplyScalar(clamped / distance)
+        camera.position.copy(controls.target).add(inspectOrbitOffset)
+        syncYawPitchFromOrbitCamera()
+      }
+
+      function enforceMinCameraFloorHeight() {
+        if (!controls) return
+
+        const minClearance = Math.max(getPlayerCapsuleMetrics().radius * 0.45, 0.035)
+        // Inspect must never treat roof/exterior as the floor under the camera.
+        const camFloor = isInspectMode()
+          ? raycastGalleryFloorAt(camera.position.x, camera.position.z)
+          : raycastWalkFloorAt(camera.position.x, camera.position.z)
+        if (camFloor && camera.position.y < camFloor.point.y + minClearance) {
+          camera.position.y = camFloor.point.y + minClearance
+        }
+
+        if (isInspectMode()) snapInspectTargetToFloor()
+      }
+
+      function isCameraInsideWalkBoundsXZ(margin = getWalkBoundsMargin()) {
+        if (activeBounds.isEmpty()) return true
+        return isInsideWalkBounds(camera.position.x, camera.position.z, margin)
+      }
+
+      function fitInspectOrbitRigToGalleryBounds() {
+        if (!controls || !isInspectMode() || activeBounds.isEmpty()) return false
+
+        const margin = getWalkBoundsMargin()
+        const minX = activeBounds.min.x + margin
+        const maxX = activeBounds.max.x - margin
+        const minZ = activeBounds.min.z + margin
+        const maxZ = activeBounds.max.z - margin
+
+        const prevX = controls.target.x
+        const prevZ = controls.target.z
+        controls.target.x = THREE.MathUtils.clamp(controls.target.x, minX, maxX)
+        controls.target.z = THREE.MathUtils.clamp(controls.target.z, minZ, maxZ)
+        const moved =
+          Math.abs(controls.target.x - prevX) > 1e-6 ||
+          Math.abs(controls.target.z - prevZ) > 1e-6
+
+        // Nodal rig: rebuild camera on the tiny sphere around the clamped eye.
+        syncYawPitchFromOrbitCamera()
+        applyInspectOrbitCamera(0)
+        return moved
+      }
+
+      function clampOrbitCameraToGalleryBounds() {
+        if (!controls || !isOrbitNavigationMode()) return
+
+        const margin = getWalkBoundsMargin()
+        if (activeBounds.isEmpty()) {
+          if (isInspectMode()) snapInspectTargetToFloor()
+          enforceMinCameraFloorHeight()
+          return
+        }
+
+        const minX = activeBounds.min.x + margin
+        const maxX = activeBounds.max.x - margin
+        const minZ = activeBounds.min.z + margin
+        const maxZ = activeBounds.max.z - margin
+
+        const targetDx = THREE.MathUtils.clamp(controls.target.x, minX, maxX) - controls.target.x
+        const targetDz = THREE.MathUtils.clamp(controls.target.z, minZ, maxZ) - controls.target.z
+        if (targetDx !== 0 || targetDz !== 0) {
+          controls.target.x += targetDx
+          controls.target.z += targetDz
+          camera.position.x += targetDx
+          camera.position.z += targetDz
+        }
+
+        if (isInspectMode() && !isCameraInsideWalkBoundsXZ(margin)) {
+          fitInspectOrbitRigToGalleryBounds()
+        } else if (!isInspectMode()) {
+          const camDx = THREE.MathUtils.clamp(camera.position.x, minX, maxX) - camera.position.x
+          const camDz = THREE.MathUtils.clamp(camera.position.z, minZ, maxZ) - camera.position.z
+          if (camDx !== 0 || camDz !== 0) {
+            camera.position.x += camDx
+            camera.position.z += camDz
+            controls.target.x += camDx
+            controls.target.z += camDz
+          }
+        }
+
+        if (isInspectMode()) {
+          snapInspectTargetToFloor()
+          if (!isPointerLocked()) clampInspectOrbitDistance()
+        }
+
+        enforceMinCameraFloorHeight()
+      }
+
+      function clampInspectOrbitBoundsLight() {
+        if (!controls || !isInspectMode() || activeBounds.isEmpty()) return
+
+        const margin = getWalkBoundsMargin()
+        const minX = activeBounds.min.x + margin
+        const maxX = activeBounds.max.x - margin
+        const minZ = activeBounds.min.z + margin
+        const maxZ = activeBounds.max.z - margin
+
+        const targetDx = THREE.MathUtils.clamp(controls.target.x, minX, maxX) - controls.target.x
+        const targetDz = THREE.MathUtils.clamp(controls.target.z, minZ, maxZ) - controls.target.z
+        if (targetDx === 0 && targetDz === 0) return
+
+        controls.target.x += targetDx
+        controls.target.z += targetDz
+        camera.position.x += targetDx
+        camera.position.z += targetDz
+      }
+
+      function isCameraPathActive() {
+        return cameraPlaybackActive || cameraTransitionFrame !== null
+      }
+
+      function shouldSkipInspectSoftCorrect() {
+        // WASD owns translation — soft-correct must never freeze / rewrite the eye mid-walk.
+        return (
+          isCameraPathActive() ||
+          suppressInspectSoftCorrect ||
+          (isInspectMode() && isInspectWasdHeld())
+        )
+      }
+
+      function holdInspectSoftCorrectSuppression() {
+        suppressInspectSoftCorrect = true
+      }
+
+      function releaseInspectSoftCorrectSuppression() {
+        suppressInspectSoftCorrect = false
+      }
+
+      function enforceInspectCameraConstraints({ duringOrbitDrag = false } = {}) {
+        if (
+          !controls ||
+          !isInspectMode() ||
+          shouldSkipInspectSoftCorrect() ||
+          isInspectPickingActive() ||
+          isInspectMaterialEditingActive() ||
+          isInspectCameraFrozenForMaterials()
+        ) {
+          return
+        }
+
+        // Nodal orbit: eye stays put while looking; only clamp eye bounds / floor.
+        if (duringOrbitDrag) {
+          clampInspectOrbitDuringDrag()
+          return
+        }
+
+        snapInspectTargetToFloor()
+
+        // Continuous depenetration every frame — catches idle overlap and post-orbit drift.
+        if (runInspectContinuousDepenetration()) {
+          if (inspectRigOwnedByUser && isInspectWasdHeld()) {
+            clampInspectOrbitBoundsLight()
+            applyInspectOrbitCamera(0)
+            return
+          }
+        }
+
+        // Owned WASD must never be frozen by soft-correct / orbit-rig hunting.
+        // Only push out of walls; leave look + position otherwise alone.
+        if (inspectRigOwnedByUser && isInspectWasdHeld()) {
+          const floor = getInspectFloorAnchor()
+          if (floor && isInspectFloorBlocked(floor)) {
+            const pushed = pushOutInspectFloorPoint(floor, getInspectEscapeProbeMetrics(), {
+              maxDistance: INSPECT_PUSH_OUT_MAX,
+              iterations: INSPECT_MOVE_RESOLVE_ITERS,
+            })
+            if (pushed && pushed.distanceToSquared(floor) > 1e-10) {
+              applyInspectFloorAnchorDelta(pushed.x - floor.x, pushed.z - floor.z)
+              snapInspectTargetToFloor()
+            }
+          }
+          clampInspectOrbitBoundsLight()
+          applyInspectOrbitCamera(0)
+          return
+        }
+
+        if (
+          worldOctree &&
+          walkCollisionMeshes.length &&
+          !canInspectEyeAtPosition(controls.target)
+        ) {
+          if (!inspectRigOwnedByUser && inspectAwaitingCollisionPlacement) {
+            resetInspectView()
+            return
+          }
+
+          if (inspectRigOwnedByUser) {
+            clampInspectOrbitBoundsLight()
+            if (canInspectEyeAtPosition(controls.target)) {
+              applyInspectOrbitCamera(0)
+              return
+            }
+
+            // Prefer wall push-out over freezing — even a partial relief unsticks WASD.
+            const floor = getInspectFloorAnchor()
+            if (floor && isInspectFloorBlocked(floor)) {
+              const startDepth = getInspectFloorPenetrationDepth(floor)
+              const pushed = pushOutInspectFloorPoint(floor, getInspectEscapeProbeMetrics(), {
+                maxDistance: INSPECT_PUSH_OUT_MAX,
+                iterations: INSPECT_MOVE_RESOLVE_ITERS,
+              })
+              if (
+                pushed &&
+                pushed.distanceToSquared(floor) > 1e-10 &&
+                isInsideWalkBounds(pushed.x, pushed.z, getInspectWalkBoundsMargin())
+              ) {
+                const pushedDepth = getInspectFloorPenetrationDepth(pushed)
+                if (pushedDepth < startDepth - 1e-5 || !isInspectFloorBlocked(pushed)) {
+                  const eye = getInspectEyeFromFloorPoint(pushed)
+                  controls.target.x = eye.x
+                  controls.target.y = eye.y
+                  controls.target.z = eye.z
+                  applyInspectOrbitCamera(0)
+                  if (canInspectEyeAtPosition(controls.target) || pushedDepth < startDepth - 1e-5) {
+                    return
+                  }
+                }
+              }
+            }
+
+            const preferredTarget = controls.target.clone()
+            const preferredCamera = camera.position.clone()
+            const rig = resolveValidInspectOrbitRig({
+              preferredTarget,
+              preferredCamera,
+            })
+            const maxJumpSq = 0.45 * 0.45
+            const jumpedFar =
+              !rig ||
+              rig.usedFallback ||
+              rig.target.distanceToSquared(preferredTarget) > maxJumpSq ||
+              rig.camera.distanceToSquared(preferredCamera) > maxJumpSq
+            if (!jumpedFar) {
+              applyInspectOrbitRig(rig)
+              return
+            }
+            // Stay put with nodal look — do not freeze by inventing a remote spawn.
+            clampInspectOrbitBoundsLight()
+            applyInspectOrbitCamera(0)
+            return
+          }
+        }
+
+        if (!isPointerLocked()) clampInspectOrbitDistance()
+        clampOrbitCameraToGalleryBounds()
+      }
+
+      // Keep OrbitControls' internal spherical radius aligned after pull-in so the next
+      // controls.update() does not restore a through-wall distance.
+      function syncOrbitControlsSphericalRadiusFromCamera() {
+        if (!controls?._spherical) return
+        const distance = camera.position.distanceTo(controls.target)
+        if (distance < 1e-8) return
+        controls._spherical.radius = THREE.MathUtils.clamp(
+          distance,
+          controls.minDistance,
+          controls.maxDistance,
+        )
+        if (typeof controls._scale === 'number') controls._scale = 1
+      }
+
+      // Nodal look-around: keep fixed tiny radius + interior bounds. Large-radius
+      // wall pull-in is unnecessary when orbit distance ≈ Teleport (no through-wall swing).
+      function clampInspectOrbitDuringDrag() {
+        if (!controls || !isInspectMode()) return
+
+        if (!isPointerLocked()) clampInspectOrbitDistance()
+        clampInspectOrbitBoundsLight()
+        syncOrbitControlsSphericalRadiusFromCamera()
+
+        if (!activeBounds.isEmpty() && !isCameraInsideWalkBoundsXZ()) {
+          fitInspectOrbitRigToGalleryBounds()
+        }
+
+        runInspectContinuousDepenetration()
+      }
+
+      function clampInspectOrbitWallCollision() {
+        // Retained for call sites; nodal Inspect radius cannot bridge walls.
+        if (!controls || !isInspectMode()) return
+        if (!isPointerLocked()) clampInspectOrbitDistance()
+      }
+
+      function resolveClearInspectFloorPoint(preferred) {
+        const margin = getWalkBoundsMargin()
+        let point = preferred.clone()
+
+        // Gallery-floor only — never snap clear seeds onto roof/ceiling/exterior.
+        const floorHit = raycastGalleryFloorAt(point.x, point.z)
+        if (floorHit) point.copy(floorHit.point)
+
+        if (!isInsideWalkBounds(point.x, point.z, margin) && !activeBounds.isEmpty()) {
+          point.x = THREE.MathUtils.clamp(
+            point.x,
+            activeBounds.min.x + margin,
+            activeBounds.max.x - margin,
+          )
+          point.z = THREE.MathUtils.clamp(
+            point.z,
+            activeBounds.min.z + margin,
+            activeBounds.max.z - margin,
+          )
+          const clampedFloor = raycastGalleryFloorAt(point.x, point.z)
+          if (clampedFloor) point.copy(clampedFloor.point)
+        }
+
+        if (canInspectMoveToFloorPoint(point)) return point
+
+        // Avoid player-capsule spawn hunting here: it can relocate across the gallery
+        // and is the root cause of Inspect "reset to overview" after WASD.
+        if (!inspectRigOwnedByUser) {
+          const cleared = findClearSpawnPoint(point)
+          if (cleared) return cleared.point
+        }
+
+        const metrics = getPlayerCapsuleMetrics()
+        const step = Math.max(metrics.radius * 1.6, 0.05)
+        for (const [dx, dz] of buildSpawnSearchOffsets(step)) {
+          const candidate = point.clone()
+          candidate.x += dx
+          candidate.z += dz
+          if (!isInsideWalkBounds(candidate.x, candidate.z, margin)) continue
+
+          const candidateFloor = raycastGalleryFloorAt(candidate.x, candidate.z)
+          if (!candidateFloor) continue
+          candidate.copy(candidateFloor.point)
+          if (canInspectMoveToFloorPoint(candidate)) return candidate
+        }
+
+        // Owned soft-correct: keep the local seed rather than inventing a roof stand-in.
+        return point
+      }
+
+      function ensureInspectFloorAnchor(preferredTarget = controls?.target) {
+        if (!controls || !isInspectMode()) return
+
+        validateInspectStartPlacement({
+          preferredTarget: preferredTarget ?? DEFAULT_ORBIT_TARGET,
+          preferredCamera: camera.position,
+        })
+      }
+
+      let inspectStartPlacementLogged = false
+      let inspectAwaitingCollisionPlacement = false
+      let inspectRigOwnedByUser = false
+      // After record / keyframe restore, keep Inspect soft-correct from rewriting angles
+      // until the user orbits or WASD-moves again.
+      let suppressInspectSoftCorrect = false
+      let inspectStuckTimer = 0
+      let inspectLastClearFloor = null
+
+      function markInspectRigOwnedByUser() {
+        inspectRigOwnedByUser = true
+        inspectAwaitingCollisionPlacement = false
+      }
+
+      function normalizeInspectPlacementOptions(options) {
+        if (options instanceof THREE.Vector3) {
+          return {
+            preferredTarget: options,
+            preferredCamera: inspectRigOwnedByUser ? camera.position : DEFAULT_CAMERA_POSITION,
+            fromDefaults: false,
+          }
+        }
+
+        const preferredTarget = options?.preferredTarget ?? DEFAULT_ORBIT_TARGET
+        const fromDefaults = Boolean(options?.fromDefaults)
+        return {
+          preferredTarget,
+          preferredCamera:
+            options?.preferredCamera ??
+            (fromDefaults ? DEFAULT_CAMERA_POSITION : camera.position),
+          fromDefaults,
+        }
+      }
+
+      function logInspectPlacement(context, { preferredTarget, preferredCamera, rig, rigValid, fromDefaults = false }) {
+        if (!SSR_DENOISE_DEBUG) return
+
+        const margin = getWalkBoundsMargin()
+        console.info(`[ssr-denoise] Inspect placement (${context})`, {
+          navigationMode: params.runtime.navigationMode,
+          fromDefaults,
+          preferredTarget: preferredTarget.toArray(),
+          preferredCamera: preferredCamera.toArray(),
+          defaultCamera: DEFAULT_CAMERA_POSITION.toArray(),
+          defaultTarget: DEFAULT_ORBIT_TARGET.toArray(),
+          finalCamera: camera.position.toArray(),
+          finalTarget: controls.target.toArray(),
+          playerCapsule: playerCollider
+            ? playerCollider.start.clone().lerp(playerCollider.end, 0.5).toArray()
+            : null,
+          rigValid,
+          usedFallback: Boolean(rig?.usedFallback),
+          walkBounds: activeBounds.isEmpty()
+            ? null
+            : { min: activeBounds.min.toArray(), max: activeBounds.max.toArray() },
+          walkBoundsMargin: margin,
+        })
+      }
+
+      function validateInspectStartPlacement(options = DEFAULT_ORBIT_TARGET) {
+        if (!controls || !isInspectMode()) return
+
+        const { preferredTarget, preferredCamera, fromDefaults } =
+          normalizeInspectPlacementOptions(options)
+
+        const rig = resolveValidInspectOrbitRig({
+          preferredTarget,
+          preferredCamera,
+        })
+        applyInspectOrbitRig(rig)
+        runInspectContinuousDepenetration()
+
+        const rigValid = isInspectOrbitRigValid(controls.target, camera.position)
+        if (fromDefaults) {
+          inspectRigOwnedByUser = false
+          inspectAwaitingCollisionPlacement = false
+        }
+
+        if (!inspectStartPlacementLogged) {
+          inspectStartPlacementLogged = true
+          logInspectPlacement('init', {
+            preferredTarget,
+            preferredCamera,
+            rig,
+            rigValid,
+            fromDefaults,
+          })
+        }
+
+        if (!rigValid) {
+          console.warn('[ssr-denoise] Inspect orbit rig still invalid after placement correction')
+        }
+      }
+
+      function snapInspectTargetToFloor() {
+        if (!controls || !isInspectMode()) return
+
+        // Keep-current when no interior gallery floor exists at this XZ (floor gaps,
+        // exterior overhangs). Never lift the rig onto roof/ceiling hits.
+        const floorHit = raycastGalleryFloorAt(controls.target.x, controls.target.z)
+        if (!floorHit) return
+
+        const targetY = floorHit.point.y + getInspectEyeHeight()
+        const yDelta = targetY - controls.target.y
+        if (Math.abs(yDelta) <= 1e-5) return
+        // Refuse large upward snaps (roof / exterior deck). Downward corrections toward
+        // the true interior floor are allowed so a bad prior pose can recover.
+        if (yDelta > 0.55) return
+
+        controls.target.y = targetY
+        camera.position.y += yDelta
+      }
+
+      function getInspectFloorAnchor() {
+        const anchorX = controls?.target?.x ?? camera.position.x
+        const anchorZ = controls?.target?.z ?? camera.position.z
+        const floorHit = raycastGalleryFloorAt(anchorX, anchorZ)
+        if (floorHit) return floorHit.point.clone()
+
+        const y = activeBounds.isEmpty() ? 0 : activeBounds.min.y
+        return new THREE.Vector3(anchorX, y, anchorZ)
+      }
+
+      function canInspectMoveToFloorPoint(floorPoint, { metrics = getInspectProbeMetrics() } = {}) {
+        if (!floorPoint) return false
+
+        const margin = getInspectWalkBoundsMargin()
+        if (!isInsideWalkBounds(floorPoint.x, floorPoint.z, margin)) return false
+
+        // Require a real interior gallery floor at this XZ so WASD cannot step onto
+        // roof/exterior patches where only an upper deck is hit.
+        const galleryFloor = raycastGalleryFloorAt(floorPoint.x, floorPoint.z)
+        if (!galleryFloor) return false
+        if (Math.abs(galleryFloor.point.y - floorPoint.y) > 0.45) return false
+
+        if (
+          params.runtime.walkCollisionMode === 'off' ||
+          params.runtime.skipCollision ||
+          !worldOctree
+        ) {
+          return true
+        }
+
+        return !isInspectFloorBlocked(galleryFloor.point, { metrics })
+      }
+
+      function getInspectFloorPointAt(x, z) {
+        const hit = raycastGalleryFloorAt(x, z)
+        return hit?.point ?? null
+      }
+
+      function getInspectEyeFromFloorPoint(floorPoint, out = inspectRigScratchA) {
+        return out.set(
+          floorPoint.x,
+          floorPoint.y + getStandingEyeHeight(),
+          floorPoint.z,
+        )
+      }
+
+      function canInspectEyeAtPosition(eyePoint) {
+        if (!eyePoint) return false
+
+        const margin = getInspectWalkBoundsMargin()
+        if (!isInsideWalkBounds(eyePoint.x, eyePoint.z, margin)) return false
+
+        const floor = getInspectFloorPointAt(eyePoint.x, eyePoint.z)
+        if (!floor) return false
+
+        const expectedEyeY = floor.y + getStandingEyeHeight()
+        if (Math.abs(eyePoint.y - expectedEyeY) > 0.35) return false
+
+        return canInspectMoveToFloorPoint(floor)
+      }
+
+      // Orbit camera may sit above/below standing eye height (look-down / look-up).
+      // Requiring eye-height on the camera flattens recorded Inspect angles on soft-correct.
+      function canInspectOrbitCameraAtPosition(cameraEye) {
+        if (!cameraEye) return false
+
+        const margin = getWalkBoundsMargin()
+        if (!isInsideWalkBounds(cameraEye.x, cameraEye.z, margin)) return false
+
+        const floor = getInspectFloorPointAt(cameraEye.x, cameraEye.z)
+        if (!floor) return false
+
+        const minClearance = Math.max(getPlayerCapsuleMetrics().radius * 0.45, 0.035)
+        return cameraEye.y >= floor.y + minClearance - 1e-4
+      }
+
+      function snapInspectEyeToFloor(eyePoint, out = inspectRigScratchB) {
+        const floor = getInspectFloorPointAt(eyePoint.x, eyePoint.z)
+        if (!floor) return out.copy(eyePoint)
+        return getInspectEyeFromFloorPoint(floor, out)
+      }
+
+      function keepInspectOrbitCameraAboveFloor(cameraEye, out = inspectRigScratchB) {
+        out.copy(cameraEye)
+        const floor = getInspectFloorPointAt(out.x, out.z)
+        if (!floor) return out
+        const minClearance = Math.max(getPlayerCapsuleMetrics().radius * 0.45, 0.035)
+        const minY = floor.y + minClearance
+        if (out.y < minY) out.y = minY
+        return out
+      }
+
+      function isInspectOrbitSegmentClear(targetEye, cameraEye) {
+        if (!walkCollisionMeshes.length) return true
+
+        inspectOrbitOffset.subVectors(cameraEye, targetEye)
+        const distance = inspectOrbitOffset.length()
+        if (distance < 1e-6) return true
+
+        inspectRigScratchC.copy(inspectOrbitOffset).multiplyScalar(1 / distance)
+        walkRaycaster.set(targetEye, inspectRigScratchC)
+        walkRaycaster.far = distance
+        activeModelRoot?.updateMatrixWorld(true)
+
+        const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        if (!hits.length) return true
+
+        const clearance = getInspectProbeMetrics().radius * 1.15
+        return hits[0].distance >= distance - clearance
+      }
+
+      function isInspectOrbitRigValid(targetEye, cameraEye) {
+        return (
+          canInspectEyeAtPosition(targetEye) &&
+          canInspectOrbitCameraAtPosition(cameraEye) &&
+          isInspectOrbitSegmentClear(targetEye, cameraEye)
+        )
+      }
+
+      function tryInspectOrbitRigAtFloorSeed(floorSeed, offsetDirection, preferredDistance) {
+        const clearFloor = resolveClearInspectFloorPoint(floorSeed)
+        // Soft-correct must never stand on roof/exterior — require interior gallery floor.
+        if (!raycastGalleryFloorAt(clearFloor.x, clearFloor.z)) return null
+        // Owned soft-correct: reject clears that wandered away from the seed (spawn-hunt).
+        if (
+          inspectRigOwnedByUser &&
+          clearFloor.distanceToSquared(floorSeed) > 0.45 * 0.45
+        ) {
+          return null
+        }
+        const targetEye = getInspectEyeFromFloorPoint(clearFloor, inspectRigScratchA)
+        // Nodal Inspect always uses the Teleport-sized orbit radius.
+        const distance = INSPECT_ORBIT_DISTANCE
+        void preferredDistance
+        const dir =
+          offsetDirection.lengthSq() > 1e-12
+            ? inspectRigScratchC.copy(offsetDirection).normalize()
+            : inspectRigScratchC.set(0, 0, 1)
+        const cameraEye = keepInspectOrbitCameraAboveFloor(
+          inspectRigScratchB.copy(targetEye).addScaledVector(dir, distance),
+          inspectRigScratchB,
+        )
+
+        if (isInspectOrbitRigValid(targetEye, cameraEye)) {
+          return {
+            target: targetEye.clone(),
+            camera: cameraEye.clone(),
+          }
+        }
+
+        return null
+      }
+
+      function keepCurrentInspectOrbitRigLocal(preferredTarget, preferredCamera) {
+        // Soft-correct must never relocate onto roof/exterior. If there is no interior
+        // gallery floor at this XZ, keep the current eye height instead of climbing.
+        const localFloor = getInspectFloorPointAt(preferredTarget.x, preferredTarget.z)
+        const keptTarget = localFloor
+          ? getInspectEyeFromFloorPoint(localFloor).clone()
+          : preferredTarget.clone()
+        // Keep the user's orbit elevation / look angle; only lift if below the floor.
+        const keptCamera = localFloor
+          ? keepInspectOrbitCameraAboveFloor(preferredCamera.clone()).clone()
+          : preferredCamera.clone()
+
+        if (!activeBounds.isEmpty()) {
+          const margin = getWalkBoundsMargin()
+          const minX = activeBounds.min.x + margin
+          const maxX = activeBounds.max.x - margin
+          const minZ = activeBounds.min.z + margin
+          const maxZ = activeBounds.max.z - margin
+
+          const targetDx = THREE.MathUtils.clamp(keptTarget.x, minX, maxX) - keptTarget.x
+          const targetDz = THREE.MathUtils.clamp(keptTarget.z, minZ, maxZ) - keptTarget.z
+          if (targetDx !== 0 || targetDz !== 0) {
+            keptTarget.x += targetDx
+            keptTarget.z += targetDz
+            keptCamera.x += targetDx
+            keptCamera.z += targetDz
+          }
+
+          const cameraDx = THREE.MathUtils.clamp(keptCamera.x, minX, maxX) - keptCamera.x
+          const cameraDz = THREE.MathUtils.clamp(keptCamera.z, minZ, maxZ) - keptCamera.z
+          if (cameraDx !== 0 || cameraDz !== 0) {
+            keptCamera.x += cameraDx
+            keptCamera.z += cameraDz
+            keptTarget.x += cameraDx
+            keptTarget.z += cameraDz
+          }
+        }
+
+        return {
+          target: keptTarget,
+          camera: keptCamera,
+          usedFallback: true,
+        }
+      }
+
+      function resolveValidInspectOrbitRig({
+        preferredTarget = DEFAULT_ORBIT_TARGET,
+        preferredCamera = DEFAULT_CAMERA_POSITION,
+      } = {}) {
+        let resolvedTarget = preferredTarget
+        inspectOrbitOffset.subVectors(preferredCamera, preferredTarget)
+        let preferredDistance = inspectOrbitOffset.length()
+
+        // Collapse legacy large-radius orbits to Teleport-style nodal (eye = viewpoint).
+        if (preferredDistance > INSPECT_ORBIT_DISTANCE * 2.5) {
+          const nodal = normalizeInspectNodalRig(preferredCamera, preferredTarget)
+          resolvedTarget = nodal.eye
+          preferredCamera = nodal.camera
+          inspectOrbitOffset.subVectors(preferredCamera, resolvedTarget)
+          preferredDistance = inspectOrbitOffset.length()
+        }
+
+        // target === position: place camera on the nodal sphere behind look-forward.
+        if (preferredDistance <= 1e-8) {
+          const lookRotation =
+            camera?.rotation?.order === 'YXZ' ? camera.rotation : DEFAULT_CAMERA_ROTATION
+          const forward = inspectRigScratchC.set(0, 0, -1).applyEuler(lookRotation)
+          resolvedTarget = preferredCamera.clone()
+          preferredCamera = preferredCamera
+            .clone()
+            .addScaledVector(forward, -INSPECT_ORBIT_DISTANCE)
+          inspectOrbitOffset.subVectors(preferredCamera, resolvedTarget)
+          preferredDistance = inspectOrbitOffset.length()
+        }
+
+        const offsetDirection = inspectOrbitOffset
+          .clone()
+          .multiplyScalar(1 / Math.max(preferredDistance, 1e-8))
+        // Lock to nodal radius (same as Teleport).
+        preferredCamera = resolvedTarget
+          .clone()
+          .addScaledVector(offsetDirection, INSPECT_ORBIT_DISTANCE)
+        preferredDistance = INSPECT_ORBIT_DISTANCE
+
+        // Keep the requested inspect view when already valid, or when collision is
+        // not ready yet (avoid spawn-hunt teleport that would destroy the capture).
+        if (
+          !worldOctree ||
+          !walkCollisionMeshes.length ||
+          canInspectEyeAtPosition(resolvedTarget)
+        ) {
+          return {
+            target: resolvedTarget.clone(),
+            camera: preferredCamera.clone(),
+          }
+        }
+
+        const floorSeeds = []
+        const seedFloorY = activeBounds.isEmpty() ? DEFAULT_SPAWN.y : activeBounds.min.y
+        const pushSeed = (point) => {
+          if (!point) return
+          const seed = new THREE.Vector3(point.x, seedFloorY, point.z)
+          if (!floorSeeds.some((entry) => entry.distanceToSquared(seed) < 1e-6)) {
+            floorSeeds.push(seed)
+          }
+        }
+
+        // Prefer current/local seeds first so owned soft-correct never teleports across the gallery.
+        pushSeed(resolvedTarget)
+        pushSeed(preferredCamera)
+
+        const metrics = getPlayerCapsuleMetrics()
+        const searchStep = Math.max(metrics.radius * 1.6, 0.05)
+        for (const [dx, dz] of buildSpawnSearchOffsets(searchStep)) {
+          pushSeed(
+            inspectRigScratchA.set(
+              resolvedTarget.x + dx,
+              seedFloorY,
+              resolvedTarget.z + dz,
+            ),
+          )
+        }
+        for (const [dx, dz] of buildSpawnSearchOffsets(searchStep)) {
+          pushSeed(
+            inspectRigScratchA.set(
+              preferredCamera.x + dx,
+              seedFloorY,
+              preferredCamera.z + dz,
+            ),
+          )
+        }
+
+        if (!inspectRigOwnedByUser) {
+          // Unowned initial placement may hunt default overview / spawn.
+          pushSeed(findWalkSpawnPoint(resolvedTarget.clone().setY(seedFloorY)))
+          pushSeed(findWalkSpawnPoint(preferredCamera.clone().setY(seedFloorY)))
+          pushSeed(DEFAULT_ORBIT_TARGET)
+          pushSeed(DEFAULT_CAMERA_POSITION)
+          pushSeed(DEFAULT_SPAWN)
+          pushSeed(findWalkSpawnPoint(DEFAULT_SPAWN.clone()))
+        }
+
+        for (const seed of floorSeeds) {
+          const rig = tryInspectOrbitRigAtFloorSeed(seed, offsetDirection, preferredDistance)
+          if (rig) return rig
+        }
+
+        if (inspectRigOwnedByUser) {
+          return keepCurrentInspectOrbitRigLocal(resolvedTarget, preferredCamera)
+        }
+
+        const cleared = findClearSpawnPoint(DEFAULT_SPAWN.clone())
+        if (cleared) {
+          const rig = tryInspectOrbitRigAtFloorSeed(cleared, offsetDirection, preferredDistance)
+          if (rig) return rig
+        }
+
+        const fallbackTarget = getInspectEyeFromFloorPoint(DEFAULT_SPAWN.clone(), inspectRigScratchA)
+        const fallbackCamera = fallbackTarget
+          .clone()
+          .addScaledVector(offsetDirection, INSPECT_ORBIT_DISTANCE)
+
+        return {
+          target: fallbackTarget.clone(),
+          camera: fallbackCamera,
+          usedFallback: true,
+        }
+      }
+
+      function applyInspectOrbitRig(rig) {
+        if (!controls || !rig) return
+
+        const nodal = normalizeInspectNodalRig(rig.camera, rig.target)
+        controls.target.copy(nodal.eye)
+        camera.position.copy(nodal.camera)
+        syncYawPitchFromOrbitCamera()
+        applyInspectOrbitCamera(0)
+      }
+
+      // Explore-style: apply intended delta, then resolve capsule vs walls (slide preserved).
+      // Prior fix pre-validated destinations and only accepted depth reductions while
+      // overlapping — parallel slides kept the same depth and were rejected → total WASD lock.
+      function resolveInspectMovementWithCapsule(startFloor, moveX, moveZ, metrics) {
+        if (!startFloor) return null
+
+        const margin = getInspectWalkBoundsMargin()
+        let x = startFloor.x + moveX
+        let z = startFloor.z + moveZ
+
+        if (!activeBounds.isEmpty()) {
+          x = THREE.MathUtils.clamp(
+            x,
+            activeBounds.min.x + margin,
+            activeBounds.max.x - margin,
+          )
+          z = THREE.MathUtils.clamp(
+            z,
+            activeBounds.min.z + margin,
+            activeBounds.max.z - margin,
+          )
+        }
+
+        let floor =
+          getInspectFloorPointAt(x, z) ??
+          startFloor.clone().set(x, startFloor.y, z)
+
+        if (!worldOctree || params.runtime.walkCollisionMode === 'off' || params.runtime.skipCollision) {
+          if (!raycastGalleryFloorAt(floor.x, floor.z)) return null
+          return new THREE.Vector3(floor.x - startFloor.x, 0, floor.z - startFloor.z)
+        }
+
+        const capsule = makeInspectMoveCapsule(floor, metrics)
+        for (let i = 0; i < INSPECT_MOVE_RESOLVE_ITERS; i++) {
+          const result = worldOctree.capsuleIntersect(capsule)
+          if (!result || result.depth <= 1e-10) break
+          // Skip floor contacts — do not abort wall resolve (prior break froze slides).
+          if (result.normal.y >= 0.35) continue
+
+          const nx = result.normal.x
+          const nz = result.normal.z
+          const horizontal = Math.hypot(nx, nz)
+          const mult = result.depth > INSPECT_DEEP_PENETRATION_DEPTH ? 1.45 : 1.2
+          const push = result.depth * mult
+
+          if (horizontal < 1e-8) {
+            capsule.translate(result.normal.clone().multiplyScalar(push))
+          } else {
+            // Explore playerCollisions: push by normal*depth (horizontal for floor walk).
+            capsule.translate(
+              new THREE.Vector3((nx / horizontal) * push, 0, (nz / horizontal) * push),
+            )
+          }
+        }
+
+        const cx = (capsule.start.x + capsule.end.x) * 0.5
+        const cz = (capsule.start.z + capsule.end.z) * 0.5
+        if (!activeBounds.isEmpty()) {
+          const bx = THREE.MathUtils.clamp(
+            cx,
+            activeBounds.min.x + margin,
+            activeBounds.max.x - margin,
+          )
+          const bz = THREE.MathUtils.clamp(
+            cz,
+            activeBounds.min.z + margin,
+            activeBounds.max.z - margin,
+          )
+          floor = getInspectFloorPointAt(bx, bz) ?? floor.clone().set(bx, floor.y, bz)
+        } else {
+          floor = getInspectFloorPointAt(cx, cz) ?? floor.clone().set(cx, floor.y, cz)
+        }
+
+        if (!raycastGalleryFloorAt(floor.x, floor.z)) return null
+
+        const out = new THREE.Vector3(floor.x - startFloor.x, 0, floor.z - startFloor.z)
+        if (out.lengthSq() < 1e-14) return null
+        return out
+      }
+
+      function resolveInspectMovementDelta(delta) {
+        if (delta.lengthSq() < 1e-12) return null
+
+        const startFloor = getInspectFloorAnchor()
+        if (!startFloor) return null
+
+        const metrics = getInspectProbeMetrics()
+        const escapeMetrics = getInspectEscapeProbeMetrics()
+        const startDepth = getInspectFloorPenetrationDepth(startFloor, metrics)
+        const startOverlapping = startDepth > INSPECT_WALL_BLOCK_DEPTH
+        const wallNormal = getInspectWallEscapeNormal(startFloor, metrics)
+
+        // Prefer a depenetrated seed so slide resolution does not start inside geometry.
+        let seed = startFloor
+        if (startOverlapping) {
+          const pushed = pushOutInspectFloorPoint(startFloor, escapeMetrics, {
+            maxDistance: INSPECT_PUSH_OUT_MAX,
+            iterations: INSPECT_MOVE_RESOLVE_ITERS,
+          })
+          if (pushed) seed = pushed
+        }
+
+        const scoreMove = (move) => {
+          if (!move) return null
+          const dest = startFloor.clone().set(
+            startFloor.x + move.x,
+            startFloor.y,
+            startFloor.z + move.z,
+          )
+          const destFloor = getInspectFloorPointAt(dest.x, dest.z) ?? dest
+          const destDepth = getInspectFloorPenetrationDepth(destFloor, escapeMetrics)
+          const relief = startDepth - destDepth
+          const away =
+            wallNormal && startOverlapping
+              ? move.x * wallNormal.x + move.z * wallNormal.z
+              : 0
+          return { move, destDepth, relief, away, len: move.lengthSq() }
+        }
+
+        let best = null
+        const consider = (move) => {
+          const scored = scoreMove(move)
+          if (!scored) return
+
+          // While overlapping: always prefer escape (away from wall / depth relief).
+          // Never commit a move that digs further into the wall unless it also escapes along the normal.
+          if (startOverlapping) {
+            if (scored.relief < -1e-4 && scored.away <= 1e-6) return
+
+            const escapes =
+              scored.relief > 1e-6 || scored.away > 1e-6 || scored.destDepth <= INSPECT_WALL_BLOCK_DEPTH
+            if (!best) {
+              best = scored
+              return
+            }
+            if (escapes && !(best.relief > 1e-6 || best.away > 1e-6)) {
+              best = scored
+              return
+            }
+            if (scored.relief > best.relief + 1e-6) {
+              best = scored
+              return
+            }
+            if (Math.abs(scored.relief - best.relief) <= 1e-6 && scored.away > best.away + 1e-6) {
+              best = scored
+              return
+            }
+            if (
+              Math.abs(scored.relief - best.relief) <= 1e-6 &&
+              Math.abs(scored.away - best.away) <= 1e-6 &&
+              scored.len > best.len
+            ) {
+              best = scored
+            }
+            return
+          }
+
+          if (!best || scored.len > best.len) best = scored
+        }
+
+        // Full move + axis slides from (possibly pushed) seed, measured vs original start.
+        const fromSeed = (mx, mz) => {
+          const resolved = resolveInspectMovementWithCapsule(seed, mx, mz, metrics)
+          if (!resolved) return null
+          // Convert seed-relative resolve into startFloor-relative delta.
+          return new THREE.Vector3(
+            seed.x + resolved.x - startFloor.x,
+            0,
+            seed.z + resolved.z - startFloor.z,
+          )
+        }
+
+        consider(fromSeed(delta.x, delta.z))
+        consider(fromSeed(delta.x, 0))
+        consider(fromSeed(0, delta.z))
+
+        // Sequential axis commit (Explore slide): X then Z, and Z then X.
+        {
+          const xMove = resolveInspectMovementWithCapsule(seed, delta.x, 0, metrics)
+          const afterX = xMove
+            ? seed.clone().set(seed.x + xMove.x, seed.y, seed.z + xMove.z)
+            : seed
+          const zMove = resolveInspectMovementWithCapsule(afterX, 0, delta.z, metrics)
+          if (xMove || zMove) {
+            const fx = afterX.x + (zMove?.x ?? 0) - startFloor.x
+            const fz = afterX.z + (zMove?.z ?? 0) - startFloor.z
+            consider(new THREE.Vector3(fx, 0, fz))
+          }
+        }
+        {
+          const zMove = resolveInspectMovementWithCapsule(seed, 0, delta.z, metrics)
+          const afterZ = zMove
+            ? seed.clone().set(seed.x + zMove.x, seed.y, seed.z + zMove.z)
+            : seed
+          const xMove = resolveInspectMovementWithCapsule(afterZ, delta.x, 0, metrics)
+          if (xMove || zMove) {
+            const fx = afterZ.x + (xMove?.x ?? 0) - startFloor.x
+            const fz = afterZ.z + (xMove?.z ?? 0) - startFloor.z
+            consider(new THREE.Vector3(fx, 0, fz))
+          }
+        }
+
+        // Escape while overlapping: any step along / away from wall normal must win.
+        if (startOverlapping) {
+          const stepLen = Math.max(escapeMetrics.radius * 1.8, 0.012)
+          const dirs = []
+          if (wallNormal) {
+            dirs.push([wallNormal.x, wallNormal.z])
+            dirs.push([-wallNormal.z, wallNormal.x])
+            dirs.push([wallNormal.z, -wallNormal.x])
+          }
+          const dLen = Math.hypot(delta.x, delta.z)
+          if (dLen > 1e-10) {
+            dirs.push([delta.x / dLen, delta.z / dLen])
+            dirs.push([-delta.x / dLen, -delta.z / dLen])
+            dirs.push([delta.x / dLen, 0])
+            dirs.push([0, delta.z / dLen])
+            dirs.push([-delta.x / dLen, 0])
+            dirs.push([0, -delta.z / dLen])
+          }
+
+          for (const [ex, ez] of dirs) {
+            const len = Math.hypot(ex, ez)
+            if (len < 1e-10) continue
+            consider(fromSeed((ex / len) * stepLen, (ez / len) * stepLen))
+            // Also try raw offset without capsule resolve (guaranteed unstick if floor exists).
+            const rawDest = getInspectFloorPointAt(
+              startFloor.x + (ex / len) * stepLen,
+              startFloor.z + (ez / len) * stepLen,
+            )
+            if (!rawDest) continue
+            const rawDepth = getInspectFloorPenetrationDepth(rawDest, escapeMetrics)
+            const away =
+              wallNormal != null
+                ? ((ex / len) * wallNormal.x + (ez / len) * wallNormal.z) * stepLen
+                : 0
+            if (rawDepth + 1e-5 < startDepth || away > 1e-6) {
+              consider(
+                new THREE.Vector3(rawDest.x - startFloor.x, 0, rawDest.z - startFloor.z),
+              )
+            }
+          }
+        }
+
+        return best?.move?.clone() ?? null
+      }
+
+      function updateInspectCameraMovement(deltaTime) {
+        if (!controls || !allowsInspectCameraMovement() || isCameraPathActive()) return
+
+        ensureWalkCollisionEnabled({ rebuild: false })
+        syncInspectOrbitRotateWithWasd()
+
+        // Orbit drag owns look; do not rebuild from yaw while OrbitControls is active.
+        if (orbitControlsDragging) return
+
+        const shiftHeld = keyStates.ShiftLeft || keyStates.ShiftRight
+        const speed =
+          params.runtime.movementSpeed * deltaTime * (shiftHeld ? 2.4 : 1) * 3.25
+        const movementYaw = getInspectMovementYaw()
+        const sin = Math.sin(movementYaw)
+        const cos = Math.cos(movementYaw)
+        const forward = new THREE.Vector3(-sin, 0, -cos)
+        const right = new THREE.Vector3(cos, 0, -sin)
+        const delta = new THREE.Vector3()
+
+        if (keyStates.KeyW || keyStates.ArrowUp) delta.addScaledVector(forward, speed)
+        if (keyStates.KeyS || keyStates.ArrowDown) delta.addScaledVector(forward, -speed)
+        if (keyStates.KeyA || keyStates.ArrowLeft) delta.addScaledVector(right, -speed)
+        if (keyStates.KeyD || keyStates.ArrowRight) delta.addScaledVector(right, speed)
+        if (delta.lengthSq() < 1e-8) {
+          runInspectContinuousDepenetration(deltaTime)
+          return
+        }
+
+        // Ownership must be marked even when motion is fully blocked, so soft-correct
+        // never falls back to DEFAULT_SPAWN / overview after the user has tried to walk.
+        releaseInspectSoftCorrectSuppression()
+        markInspectRigOwnedByUser()
+
+        // Strong pre-WASD push-out when overlapping (Explore depenetration every frame).
+        let didPushOut = false
+        const startFloor = getInspectFloorAnchor()
+        if (startFloor && isInspectFloorBlocked(startFloor)) {
+          const pushed = pushOutInspectFloorPoint(startFloor, getInspectEscapeProbeMetrics(), {
+            maxDistance: INSPECT_PUSH_OUT_MAX,
+            iterations: INSPECT_MOVE_RESOLVE_ITERS,
+          })
+          if (pushed && pushed.distanceToSquared(startFloor) > 1e-10) {
+            applyInspectFloorAnchorDelta(pushed.x - startFloor.x, pushed.z - startFloor.z)
+            snapInspectTargetToFloor()
+            didPushOut = true
+          }
+        }
+
+        const resolvedDelta = resolveInspectMovementDelta(delta)
+        if (!resolvedDelta) {
+          if (didPushOut) {
+            applyInspectOrbitCamera(0)
+          } else {
+            nudgeInspectUnstuck(deltaTime)
+          }
+          // Soft-correct skipped while WASD held (push-out only) — do not call full enforce.
+          return
+        }
+
+        // Move the nodal eye; look direction stays (Teleport-style in-place rotation).
+        applyInspectFloorAnchorDelta(resolvedDelta.x, resolvedDelta.z)
+        snapInspectTargetToFloor()
+        applyInspectOrbitCamera(0)
+        clampInspectOrbitBoundsLight()
+        runInspectContinuousDepenetration()
+
+        const afterFloor = getInspectFloorAnchor()
+        if (afterFloor && !isInspectFloorBlocked(afterFloor)) {
+          recordInspectClearFloor(afterFloor)
+        }
+        // Do not auto-nudge while a slide is progressing — only when WASD fully blocks.
+      }
+
+      function applyInspectPointerLockCamera() {
+        // `yaw` uses the WASD/movement convention (forward = (-sin,0,-cos)).
+        // Three.js YXZ camera.rotation.y is the opposite sign for the same look.
+        camera.rotation.order = 'YXZ'
+        camera.rotation.y = -yaw
+        camera.rotation.x = pitch
+        camera.rotation.z = 0
+
+        if (!controls) return
+
+        // No Y-bias toward the current eye — that previously preferred roof/upper decks.
+        const floorHit = raycastGalleryFloorAt(camera.position.x, camera.position.z)
+        if (!floorHit) return
+        const eyeY = floorHit.point.y + getStandingEyeHeight()
+        controls.target.set(camera.position.x, eyeY, camera.position.z)
+        camera.position.y = eyeY
+      }
+
+      // Derive FPS yaw/pitch from the on-screen look so pointer-lock entry is continuous
+      // (no 180° flip from orbit-azimuth atan2 used as camera.rotation.y).
+      function syncYawPitchFromCameraOrientation() {
+        inspectYawPitchEuler.setFromQuaternion(camera.quaternion, 'YXZ')
+        // Convert camera euler → movement yaw (same convention as getMovementYaw / WASD).
+        yaw = -inspectYawPitchEuler.y
+        pitch = clampInspectPitch(inspectYawPitchEuler.x)
+      }
+
+      function syncYawPitchFromOrbitCamera() {
+        // Nodal orbit yaw/pitch MUST match applyInspectOrbitCamera / applyTeleportOrbitCamera:
+        // camera = eye + (sin(yaw)*d*cosPitch, d*sinPitch, cos(yaw)*d*cosPitch).
+        // Do NOT use syncYawPitchFromCameraOrientation here — that yields yaw = -euler.y
+        // (pointer-lock convention) and flips the view on mouse-up / every WASD frame.
+        if (isInspectMode() && controls) {
+          const eye = controls.target
+          const offsetX = camera.position.x - eye.x
+          const offsetY = camera.position.y - eye.y
+          const offsetZ = camera.position.z - eye.z
+          const horizontal = Math.hypot(offsetX, offsetZ)
+          if (horizontal < 1e-6) return
+          yaw = Math.atan2(offsetX, offsetZ)
+          pitch = clampInspectPitch(Math.atan2(offsetY, horizontal))
+          return
+        }
+
+        if (!playerCollider) return
+
+        // Teleport orbit is anchored on the eye (controls.target), not capsule center.
+        // Syncing from center falsely reports look-down and fights horizon leveling.
+        const pivot = isTeleportMode()
+          ? getPlayerEyePosition() ?? controls?.target
+          : playerCollider.start.clone().lerp(playerCollider.end, 0.5)
+        if (!pivot) return
+
+        const offset = camera.position.clone().sub(pivot)
+        const horizontal = Math.hypot(offset.x, offset.z)
+        if (horizontal < 1e-6) return
+
+        yaw = Math.atan2(offset.x, offset.z)
+        pitch = isTeleportMode()
+          ? clampTeleportPitch(Math.atan2(offset.y, horizontal))
+          : clampInspectPitch(Math.atan2(offset.y, horizontal))
+      }
+
+      function isInspectWasdHeld() {
+        return Boolean(
+          keyStates.KeyW ||
+            keyStates.KeyS ||
+            keyStates.KeyA ||
+            keyStates.KeyD ||
+            keyStates.ArrowUp ||
+            keyStates.ArrowDown ||
+            keyStates.ArrowLeft ||
+            keyStates.ArrowRight,
+        )
+      }
+
+      // While WASD is held, OrbitControls must not own the camera at all. enableRotate
+      // alone is not enough — an in-progress drag keeps mutating on pointermove until
+      // controls.enabled is false (otherwise WASD apply* and orbit fight every frame).
+      function syncInspectOrbitRotateWithWasd() {
+        if (!controls || !isInspectMode()) return
+        if (isInspectPickingActive() || isInspectCameraFrozenForMaterials()) return
+        if (isPointerLocked()) {
+          controls.enabled = false
+          controls.enableRotate = false
+          return
+        }
+        const wasdHeld = isInspectWasdHeld()
+        if (wasdHeld) {
+          if (orbitControlsDragging) {
+            orbitControlsDragging = false
+            clearOrbitControlsInertia()
+            syncYawPitchFromOrbitCamera()
+            applyInspectOrbitCamera(0)
+          }
+          controls.enabled = false
+          controls.enableRotate = false
+          return
+        }
+        controls.enabled = true
+        controls.enableRotate = true
+        controls.enablePan = false
+        controls.enableZoom = false
+      }
+
+      function clearOrbitControlsInertia() {
+        if (!controls) return
+        // OrbitControls keeps residual spherical/pan deltas after a look-drag. Inspect
+        // idle frames often skip controls.update(), so those deltas freeze and the next
+        // update() (record, keyframe play, or pointerdown) applies a stale nudge.
+        controls._sphericalDelta?.set?.(0, 0, 0)
+        controls._panOffset?.set?.(0, 0, 0)
+        controls._scale = 1
+      }
+
+      function clearTeleportOrbitDamping() {
+        clearOrbitControlsInertia()
+      }
+
+      // Sync OrbitControls spherical + camera lookAt to the current position/target
+      // without applying leftover damping (capture must match what's on screen).
+      function syncOrbitControlsToCurrentView() {
+        if (!controls) return
+        const wasDamping = controls.enableDamping
+        controls.enableDamping = false
+        clearOrbitControlsInertia()
+        controls.update()
+        controls.enableDamping = wasDamping
+      }
+
+      // Position + target are the source of truth for Inspect OrbitControls views.
+      // Legacy keyframes may store a large orbit radius; collapse to nodal eye pivot.
+      function normalizeInspectNodalRig(position, target) {
+        const cameraPos = position?.clone?.()
+          ? position.clone()
+          : new THREE.Vector3(position.x, position.y, position.z)
+        const lookTarget = target?.clone?.()
+          ? target.clone()
+          : new THREE.Vector3(target.x, target.y, target.z)
+        const distance = cameraPos.distanceTo(lookTarget)
+
+        // Already Teleport/Inspect nodal (tiny radius): target is the eye.
+        if (distance <= INSPECT_ORBIT_DISTANCE * 2.5) {
+          return { eye: lookTarget, camera: cameraPos }
+        }
+
+        // Legacy large-radius orbit: viewpoint was camera.position looking at target.
+        const lookDir = inspectRigScratchC.subVectors(lookTarget, cameraPos)
+        if (lookDir.lengthSq() < 1e-12) {
+          lookDir.set(0, 0, -1).applyEuler(DEFAULT_CAMERA_ROTATION)
+        } else {
+          lookDir.normalize()
+        }
+        const eye = cameraPos.clone()
+        const nodalCamera = cameraPos.clone().addScaledVector(lookDir, -INSPECT_ORBIT_DISTANCE)
+        return { eye, camera: nodalCamera }
+      }
+
+      function applyOrbitControlsView(position, target) {
+        if (!controls || !position || !target) return
+        const wasDamping = controls.enableDamping
+        controls.enableDamping = false
+        clearOrbitControlsInertia()
+
+        if (isInspectMode()) {
+          const rig = normalizeInspectNodalRig(position, target)
+          controls.target.copy(rig.eye)
+          camera.position.copy(rig.camera)
+          camera.lookAt(controls.target)
+          // Offset-based sync matches applyInspectOrbitCamera (not pointer-lock euler).
+          syncYawPitchFromOrbitCamera()
+          applyInspectOrbitCamera(0)
+        } else {
+          camera.position.set(position.x, position.y, position.z)
+          controls.target.set(target.x, target.y, target.z)
+          controls.update()
+        }
+
+        controls.enableDamping = wasDamping
+      }
+
+      function applyTeleportOrbitCamera(deltaTime = 0.016) {
+        if (!controls) return
+
+        pitch = clampTeleportPitch(pitch)
+
+        const eye = getPlayerEyePosition()
+        if (!eye) return
+
+        controls.target.copy(eye)
+
+        const distance = TELEPORT_ORBIT_DISTANCE
+        const cosPitch = Math.cos(pitch)
+        const sinPitch = Math.sin(pitch)
+        const desired = new THREE.Vector3(
+          eye.x + Math.sin(yaw) * distance * cosPitch,
+          eye.y + distance * sinPitch,
+          eye.z + Math.cos(yaw) * distance * cosPitch,
+        )
+
+        if (deltaTime <= 0) {
+          camera.position.copy(desired)
+        } else {
+          const blend = 1 - Math.exp(-14 * deltaTime)
+          camera.position.lerp(desired, blend)
+        }
+
+        // Position-only updates leave camera.quaternion stale (OrbitControls normally
+        // lookAt in update()). Without this, pitch→0 during teleport moves the rig but
+        // the view stays tilted until the next orbit interaction.
+        if (!orbitControlsDragging) clearTeleportOrbitDamping()
+        clampOrbitCameraToGalleryBounds()
+        camera.lookAt(controls.target)
+      }
+
+      // Inspect look-around: same nodal orbit as Teleport (eye pivot, fixed tiny radius).
+      function applyInspectOrbitCamera(deltaTime = 0.016) {
+        if (!controls || !isInspectMode()) return
+
+        pitch = clampInspectPitch(pitch)
+
+        const eye = getInspectNodalEyePosition()
+        if (!eye) return
+
+        controls.target.copy(eye)
+
+        const distance = INSPECT_ORBIT_DISTANCE
+        const cosPitch = Math.cos(pitch)
+        const sinPitch = Math.sin(pitch)
+        const desired = new THREE.Vector3(
+          eye.x + Math.sin(yaw) * distance * cosPitch,
+          eye.y + distance * sinPitch,
+          eye.z + Math.cos(yaw) * distance * cosPitch,
+        )
+
+        if (deltaTime <= 0) {
+          camera.position.copy(desired)
+        } else {
+          const blend = 1 - Math.exp(-14 * deltaTime)
+          camera.position.lerp(desired, blend)
+        }
+
+        if (!orbitControlsDragging) clearOrbitControlsInertia()
+        clampOrbitCameraToGalleryBounds()
+        camera.lookAt(controls.target)
+      }
+
+      function getMaxInteriorWalkFloorY() {
+        if (activeBounds.isEmpty()) return Number.POSITIVE_INFINITY
+        return (
+          activeBounds.min.y +
+          Math.max(activeSize.y * INTERIOR_FLOOR_HEIGHT_FRACTION, INTERIOR_FLOOR_HEIGHT_MIN)
+        )
+      }
+
+      function isGalleryFloorSurfaceHit(hit) {
+        if (!hit?.normal || hit.normal.y < TELEPORT_FLOOR_NORMAL_MIN) return false
+        if (!isInsideWalkBounds(hit.point.x, hit.point.z, getTeleportBoundsMargin())) return false
+        // Reject roof / exterior / mezzanine tops even when named like a floor mesh.
+        if (hit.point.y > getMaxInteriorWalkFloorY()) return false
+
+        const materialName = String(hit.object?.material?.name || '').toLowerCase()
+        const meshName = String(hit.object?.name || '').toLowerCase()
+        if (materialName === 'floor' || meshName.includes('floor')) return true
+
+        if (!activeBounds.isEmpty()) {
+          const groundBand = activeBounds.min.y + Math.max(activeSize.y * 0.12, 0.08)
+          if (hit.point.y <= groundBand + 0.02 && hit.normal.y > 0.9) return true
+        }
+
+        return false
+      }
+
+      function raycastGalleryFloorAt(x, z, referenceY = null) {
+        if (!activeModelRoot || !walkCollisionMeshes.length) return null
+
+        activeModelRoot.updateMatrixWorld(true)
+        refreshModelBounds()
+
+        const rayOrigin = new THREE.Vector3(x, activeBounds.max.y + 2, z)
+        walkRaycaster.set(rayOrigin, new THREE.Vector3(0, -1, 0))
+        walkRaycaster.far = Math.max(activeSize.y + 8, 10)
+
+        const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        const floorHits = hits.filter((hit) => isGalleryFloorSurfaceHit(hit))
+        return pickWalkFloorHit(floorHits, referenceY)
+      }
+
+      function createTeleportFloorReticle() {
+        const group = new THREE.Group()
+        group.name = 'teleport-floor-reticle'
+        group.visible = false
+        group.renderOrder = 999
+
+        const fillMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.14,
+          depthTest: true,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        })
+        const ringMaterial = new THREE.MeshBasicMaterial({
+          color: 0xffffff,
+          transparent: true,
+          opacity: 0.55,
+          depthTest: true,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        })
+
+        const fill = new THREE.Mesh(
+          new THREE.CircleGeometry(TELEPORT_RETICLE_FILL_RADIUS, 32),
+          fillMaterial,
+        )
+        fill.renderOrder = 999
+
+        const ring = new THREE.Mesh(
+          new THREE.RingGeometry(
+            TELEPORT_RETICLE_RING_INNER,
+            TELEPORT_RETICLE_RING_OUTER,
+            32,
+          ),
+          ringMaterial,
+        )
+        ring.renderOrder = 1000
+
+        group.add(fill, ring)
+        scene.add(group)
+        return group
+      }
+
+      function hideTeleportFloorReticle() {
+        if (teleportFloorReticle) teleportFloorReticle.visible = false
+      }
+
+      function updateTeleportFloorReticle(clientX, clientY) {
+        if (!teleportFloorReticle) return
+
+        if (!isTeleportMode() || teleportTransitionActive) {
+          hideTeleportFloorReticle()
+          return
+        }
+
+        const hit = raycastGalleryFloor(clientX, clientY)
+        if (!hit?.normal) {
+          hideTeleportFloorReticle()
+          return
+        }
+
+        const destination = resolveGalleryFloorPoint(hit.point)
+        if (!destination) {
+          hideTeleportFloorReticle()
+          return
+        }
+
+        const floorNormal = hit.normal.clone().normalize()
+        teleportFloorReticle.quaternion.setFromUnitVectors(
+          TELEPORT_RETICLE_DEFAULT_NORMAL,
+          floorNormal,
+        )
+        teleportFloorReticle.scale.setScalar(1)
+        teleportFloorReticle.visible = true
+        teleportFloorReticle.position.set(
+          destination.x,
+          destination.y + TELEPORT_RETICLE_SURFACE_EPSILON,
+          destination.z,
+        )
+      }
+
+      function onTeleportPointerMove(event) {
+        if (event.target !== renderer.domElement) return
+        updateTeleportFloorReticle(event.clientX, event.clientY)
+      }
+
+      function clearTeleportPointerGesture() {
+        teleportPointerDown = null
+      }
+
+      function clearInspectPointerGesture() {
+        inspectPointerDown = null
+      }
+
+      function onCanvasPointerUp(event) {
+        onTeleportPointerUp(event)
+        onInspectPointerUp(event)
+      }
+
+      function onCanvasPointerCancel() {
+        clearTeleportPointerGesture()
+        clearInspectPointerGesture()
+      }
+
+      function onInspectPointerUp(event) {
+        if (!inspectPointerDown || event.pointerId !== inspectPointerDown.pointerId) return
+
+        const start = inspectPointerDown
+        clearInspectPointerGesture()
+
+        if (!isInspectMode() || event.button !== 0) return
+        if (isInspectPickingActive()) return
+        if (document.pointerLockElement === renderer.domElement) return
+
+        const distance = Math.hypot(event.clientX - start.clientX, event.clientY - start.clientY)
+        if (distance > TELEPORT_CLICK_DRAG_THRESHOLD) return
+
+        // Preserve the current on-screen look before FPS pointer-lock takes over.
+        syncYawPitchFromCameraOrientation()
+        renderer.domElement.focus({ preventScroll: true })
+        renderer.domElement.requestPointerLock()
+      }
+
+      function onPointerLockChange() {
+        if (document.pointerLockElement === renderer.domElement && isInspectMode()) {
+          // Entering lock: re-sync from quaternion in case orbit damping moved the view
+          // between click and the lock callback.
+          syncYawPitchFromCameraOrientation()
+          clearOrbitControlsInertia()
+          syncInspectOrbitRotateWithWasd()
+        } else if (isInspectMode() && controls) {
+          // Leaving lock: pointer-lock stores yaw as -euler.y; nodal apply* needs orbit yaw
+          // (= euler.y). Offset sync is useless here (eye == camera under pointer lock).
+          inspectYawPitchEuler.setFromQuaternion(camera.quaternion, 'YXZ')
+          yaw = inspectYawPitchEuler.y
+          pitch = clampInspectPitch(inspectYawPitchEuler.x)
+          applyInspectOrbitCamera(0)
+          syncOrbitControlsToCurrentView()
+          syncInspectOrbitRotateWithWasd()
+        }
+        updateWalkHint()
+      }
+
+      function onTeleportPointerDown(event) {
+        // Allow recording clicks during an in-flight teleport so the next short-click can
+        // interrupt/replace the transition instead of being swallowed by horizon leveling.
+        if (!isTeleportMode() || event.button !== 0) return
+        // Capture floor hit on press so a short-click still teleports even if
+        // OrbitControls lookAt / horizon sync shifts the camera before pointerup.
+        const floorHit = raycastGalleryFloor(event.clientX, event.clientY)
+        teleportPointerDown = {
+          clientX: event.clientX,
+          clientY: event.clientY,
+          pointerId: event.pointerId,
+          floorPoint: floorHit?.point?.clone?.() ?? null,
+        }
+      }
+
+      function onTeleportPointerUp(event) {
+        if (!teleportPointerDown || event.pointerId !== teleportPointerDown.pointerId) return
+
+        const start = teleportPointerDown
+        clearTeleportPointerGesture()
+
+        if (!isTeleportMode() || event.button !== 0) return
+
+        const distance = Math.hypot(event.clientX - start.clientX, event.clientY - start.clientY)
+        if (distance > TELEPORT_CLICK_DRAG_THRESHOLD) return
+
+        if (start.floorPoint) {
+          teleportPlayerToPoint(start.floorPoint)
+          return
+        }
+
+        teleportFromClick(event)
+      }
+
+      function configureShadowMapForNavigationMode() {
+        if (!directionalLight) return
+
+        const exploreWithAvatar = isExploreMode() && shouldShowPlayerAvatar()
+        directionalLight.shadow.autoUpdate = exploreWithAvatar
+        if (exploreWithAvatar) {
+          updateShadowCameraForPlayer()
+        } else {
+          directionalLight.target.position.set(0, 0, 0)
+          directionalLight.target.updateMatrixWorld()
+          directionalLight.shadow.needsUpdate = true
+        }
+      }
+
+      function updateShadowCameraForPlayer() {
+        if (!directionalLight || !isExploreMode() || !playerCollider) return
+
+        const center = playerCollider.start.clone().lerp(playerCollider.end, 0.5)
+        directionalLight.target.position.set(center.x, center.y, center.z)
+        directionalLight.target.updateMatrixWorld()
+        directionalLight.shadow.needsUpdate = true
+      }
+
+      function cancelTeleportTransition() {
+        // Do not clear teleportPointerDown here — cancel runs at the start of a new
+        // teleport from pointerup, after the gesture was already consumed.
+        if (teleportTransitionFrame) {
+          cancelAnimationFrame(teleportTransitionFrame)
+          teleportTransitionFrame = null
+        }
+        teleportTransitionActive = false
+        teleportFadeEl?.classList.remove('is-active')
+      }
+
+      function isValidTeleportDestination(point) {
+        if (!point) return false
+        if (!isInsideWalkBounds(point.x, point.z, getTeleportBoundsMargin())) return false
+
+        const floorHit = raycastGalleryFloorAt(point.x, point.z, point.y)
+        if (!floorHit) return false
+
+        const snapPoint = floorHit.point
+        if (!worldOctree) return true
+
+        const probe = makeCapsuleAtPoint(snapPoint, getTeleportProbeMetrics())
+        return !isCapsuleBlocked(probe, { minDepth: TELEPORT_WALL_BLOCK_DEPTH })
+      }
+
+      function resolveGalleryFloorPoint(point) {
+        if (!point) return null
+
+        const floorHit = raycastGalleryFloorAt(point.x, point.z, point.y)
+        const candidates = []
+        if (floorHit) candidates.push(floorHit.point)
+        candidates.push(point)
+
+        for (const candidate of candidates) {
+          if (isValidTeleportDestination(candidate)) return candidate.clone()
+        }
+
+        const preferred = floorHit?.point ?? point
+        const metrics = getTeleportProbeMetrics()
+        const step = Math.max(metrics.radius * 1.1, 0.025)
+        for (const [dx, dz] of buildSpawnSearchOffsets(step).slice(0, 48)) {
+          const candidate = preferred.clone()
+          candidate.x += dx
+          candidate.z += dz
+
+          const candidateFloor = raycastGalleryFloorAt(candidate.x, candidate.z, candidate.y)
+          if (candidateFloor) candidate.copy(candidateFloor.point)
+          if (isValidTeleportDestination(candidate)) return candidate
+        }
+
+        return null
+      }
+
+      function raycastGalleryFloor(clientX, clientY) {
+        if (!walkCollisionMeshes.length) return null
+
+        const rect = renderer.domElement.getBoundingClientRect()
+        walkPointerNdc.x = ((clientX - rect.left) / rect.width) * 2 - 1
+        walkPointerNdc.y = -((clientY - rect.top) / rect.height) * 2 + 1
+
+        walkRaycaster.setFromCamera(walkPointerNdc, camera)
+        const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        if (!hits.length) return null
+
+        activeModelRoot?.updateMatrixWorld(true)
+        refreshModelBounds()
+
+        const galleryFloorHits = hits.filter((hit) => isGalleryFloorSurfaceHit(hit))
+        const floorHit = pickWalkFloorHit(galleryFloorHits)
+        if (!floorHit) return null
+
+        return resolveGalleryFloorPoint(floorHit.point) ? floorHit : null
+      }
+
+      function teleportPlayerToPoint(point, { animate = true } = {}) {
+        if (!playerCollider) return false
+
+        const destination = resolveGalleryFloorPoint(point)
+        if (!destination) {
+          setRuntimeStatus(
+            'Cannot teleport there — click an open gallery floor inside the walls.',
+            true,
+          )
+          return false
+        }
+
+        cancelTeleportTransition()
+        playerVelocity.set(0, 0, 0)
+
+        const startCenter = playerCollider.start.clone().lerp(playerCollider.end, 0.5)
+        const targetPoint = destination.clone()
+        const teleportStartPitch = pitch
+
+        if (!animate) {
+          pitch = 0
+          setPlayerCapsuleAtPoint(targetPoint, { alignYawToCamera: false, resolveOverlap: true })
+          playerCollisions()
+          savePlayerSpawnToStorage({ force: true })
+          clearTeleportOrbitDamping()
+          applyTeleportOrbitCamera(0)
+          clampOrbitCameraToGalleryBounds()
+          return true
+        }
+
+        teleportTransitionActive = true
+        teleportFadeEl?.classList.add('is-active')
+        const startTime = performance.now()
+
+        const step = (now) => {
+          const elapsed = now - startTime
+          const progress = Math.min(elapsed / TELEPORT_TRANSITION_MS, 1)
+          const eased =
+            progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2
+
+          const interp = startCenter.clone().lerp(targetPoint, eased)
+          setPlayerCapsuleAtPoint(interp, { alignYawToCamera: false, resolveOverlap: false })
+          pitch = teleportStartPitch * (1 - eased)
+          applyTeleportOrbitCamera(1)
+
+          if (progress < 1) {
+            teleportTransitionFrame = requestAnimationFrame(step)
+            return
+          }
+
+          pitch = 0
+          setPlayerCapsuleAtPoint(targetPoint, { alignYawToCamera: false, resolveOverlap: true })
+          playerCollisions()
+          savePlayerSpawnToStorage({ force: true })
+          clearTeleportOrbitDamping()
+          applyTeleportOrbitCamera(0)
+          clampOrbitCameraToGalleryBounds()
+          teleportTransitionActive = false
+          teleportTransitionFrame = null
+          teleportFadeEl?.classList.remove('is-active')
+          setRuntimeStatus(
+            `Teleported to gallery floor (${targetPoint.x.toFixed(2)}, ${targetPoint.y.toFixed(2)}, ${targetPoint.z.toFixed(2)}).`,
+          )
+        }
+
+        teleportTransitionFrame = requestAnimationFrame(step)
+        return true
+      }
+
+      function teleportFromClick(event) {
+        // Do not gate on teleportTransitionActive — teleportPlayerToPoint cancels any
+        // in-flight transition. Blocking here made the first post-tilt / mid-fade click
+        // appear to only level the horizon while skipping the move.
+        const hit = raycastGalleryFloor(event.clientX, event.clientY)
+        if (!hit) {
+          setRuntimeStatus(
+            'Click the gallery floor to teleport. Walls, ceilings, and artworks are not valid targets.',
+            true,
+          )
+          return
+        }
+
+        teleportPlayerToPoint(hit.point)
+      }
+
+      function applyInitialNavigationMode({ syncUi = true } = {}) {
+        ensureWalkCollisionEnabled({ rebuild: Boolean(activeModelRoot) })
+        const mode = resolveInitialNavigationMode()
+        params.runtime.navigationMode = mode
+        if (syncUi) navigationModeController?.setValue(mode)
+        setNavigationMode(mode)
       }
 
       async function buildShareUrl() {
@@ -1371,8 +4000,13 @@
         postProcessing,
         ssrNode,
         temporalReprojectNode,
-        denoiseNode
+        denoiseNode,
+        traaNode
       let controls
+      // After a camera cut/keyframe apply, force temporal SSR/TRAA history restart so
+      // stale specular history cannot produce a one-frame overbright "neon" flash.
+      let temporalHistoryResetPending = false
+      let temporalHistoryMuteFrames = 0
       let transformControls
       let directionalLight
       let scenePassNode, combinedOutputNode, scenePassDepth, scenePassVelocity
@@ -1415,6 +4049,12 @@
       const activeSize = new THREE.Vector3()
       const activeCenter = new THREE.Vector3()
       const keyStates = {}
+      const inspectOrbitOffset = new THREE.Vector3()
+      const inspectRigScratchA = new THREE.Vector3()
+      const inspectRigScratchB = new THREE.Vector3()
+      const inspectRigScratchC = new THREE.Vector3()
+      const inspectMovementScratch = new THREE.Vector3()
+      const inspectMovementScratch2 = new THREE.Vector3()
       const customModelUrls = []
       const importedModelRoots = []
       const importPlacementForward = new THREE.Vector3()
@@ -1423,6 +4063,8 @@
       let importedModelSerial = 0
       let yaw = 0
       let pitch = -0.22
+      let inspectPointerDown = null
+      const inspectYawPitchEuler = new THREE.Euler()
       let lastCustomModelRoot = null
       let placeSpawnController = null
       let pickCoordinatesController = null
@@ -1431,6 +4073,9 @@
       let gizmoEnabledController = null
       let gizmoEnabledEditor = null
       let gizmoModeController = null
+      let navigationModeController = null
+      let walkCollisionModeController = null
+      let skipCollisionController = null
       let coordToastTimer = null
       let collisionBuildToken = null
       let collisionDebugRevision = 0
@@ -1448,6 +4093,8 @@
       let cameraPlaybackSpeed = 1
       let selectedCameraKeyframeId = null
       let cameraTransitionFrame = null
+      let teleportTransitionActive = false
+      let teleportTransitionFrame = null
       let cameraViewsListEl = null
       let cameraViewsCountEl = null
       let cameraRecordBtn = null
@@ -1455,6 +4102,14 @@
       let cameraExportBtn = null
       let cameraClearBtn = null
       let cameraPlaybackSpeedSelect = null
+      let orbitControlsDragging = false
+      let pickMaterialsCameraSnapshot = null
+      let restoringPickMaterialsCamera = false
+      // When Pick material enables, sibling setValue(false) must not re-enter updatePickModeUi
+      // before the camera snapshot/freeze completes (that path was moving the camera).
+      let suppressPickModeUiReentry = false
+      let teleportFloorReticle = null
+      let teleportPointerDown = null
 
       function hasShareUrlOverride() {
         return new URLSearchParams(window.location.search).has(SHARE_PARAM_KEY)
@@ -1718,6 +4373,7 @@
         // wall/floor contact seams (peter-panning) without detaching contact shadows.
         directionalLight.shadow.normalBias = 0.02
         scene.add(directionalLight)
+        scene.add(directionalLight.target)
 
         try {
           await renderer.init()
@@ -1819,9 +4475,74 @@
 
         controls = new OrbitControls(camera, renderer.domElement)
         controls.addEventListener('start', () => {
+          // Material pick/edit must never start an orbit gesture or drop soft-correct hold.
+          if (isInspectCameraFrozenForMaterials()) {
+            orbitControlsDragging = false
+            freezeOrbitControlsForInspectPicking()
+            return
+          }
+          // WASD owns translation+look rebuild — refuse concurrent OrbitControls drag.
+          if (isInspectMode() && isInspectWasdHeld()) {
+            orbitControlsDragging = false
+            clearOrbitControlsInertia()
+            controls.enableRotate = false
+            return
+          }
+          orbitControlsDragging = true
+          releaseInspectSoftCorrectSuppression()
+          if (isInspectMode()) markInspectRigOwnedByUser()
           if (cameraPlaybackActive) stopCameraPlayback()
         })
+        controls.addEventListener('end', () => {
+          orbitControlsDragging = false
+          if (isInspectCameraFrozenForMaterials()) {
+            freezeOrbitControlsForInspectPicking()
+            return
+          }
+          if (isInspectMode()) markInspectRigOwnedByUser()
+          // Freeze the on-screen pose: Inspect idle skips controls.update(), so leftover
+          // damping must be discarded or Record/play will apply a stale angular nudge.
+          if (isInspectMode()) clearOrbitControlsInertia()
+          if (!isOrbitNavigationMode() || isPointerLocked() || teleportTransitionActive) return
+          // Single handoff: read OrbitControls pose into yaw/pitch, then own look via apply*.
+          syncYawPitchFromOrbitCamera()
+          if (isTeleportMode()) {
+            clearTeleportOrbitDamping()
+            applyTeleportOrbitCamera(0)
+          } else if (isInspectMode()) {
+            applyInspectOrbitCamera(0)
+            // Keep OrbitControls spherical aligned with the yaw/pitch we just committed
+            // so the next drag does not start from a stale internal offset.
+            syncOrbitControlsToCurrentView()
+            syncInspectOrbitRotateWithWasd()
+          }
+        })
+        controls.addEventListener('change', () => {
+          if (restoringPickMaterialsCamera) return
+          if (isInspectCameraFrozenForMaterials()) {
+            // Undo any OrbitControls mutation that slipped through before freeze.
+            if (pickMaterialsCameraSnapshot) {
+              restoreInspectCameraSnapshot(pickMaterialsCameraSnapshot)
+            } else {
+              freezeOrbitControlsForInspectPicking()
+            }
+            return
+          }
+          if (isInspectMode() && !isPointerLocked()) {
+            markInspectRigOwnedByUser()
+          }
+          if (!orbitControlsDragging) return
+          if (!isOrbitNavigationMode() || isPointerLocked() || teleportTransitionActive) return
+          // Teleport: keep yaw live for any non-orbit consumers during drag.
+          // Inspect: yaw/pitch sync only on end — OrbitControls is sole look authority mid-drag.
+          if (isTeleportMode()) syncYawPitchFromOrbitCamera()
+        })
+        controls.autoRotate = false
         controls.enableDamping = true
+        controls.dampingFactor = INSPECT_ORBIT_DAMPING_FACTOR
+        controls.rotateSpeed = INSPECT_ORBIT_ROTATE_SPEED
+        controls.screenSpacePanning = false
+        controls.target.copy(DEFAULT_ORBIT_TARGET)
         controls.update()
 
         transformControls = new TransformControls(camera, renderer.domElement)
@@ -1836,8 +4557,9 @@
           }
         })
         transformControls.addEventListener('mouseUp', () => {
+          // Respect pick-mode freeze — never blindly re-enable orbit after gizmo drag.
           if (params.runtime.navigationMode === 'Inspect') {
-            controls.enabled = true
+            configureOrbitControlsForNavigationMode()
           }
           if (isPlayerGizmoTarget(gizmoSelectedObject)) {
             syncPlayerColliderFromPlayerTransformPivot()
@@ -1853,15 +4575,19 @@
         })
         scene.add(transformControls.getHelper())
 
-        resetInspectView()
         createPlayerAvatar()
-        resetPlayerSpawn()
+        teleportFloorReticle = createTeleportFloorReticle()
+        updatePlayerAvatarVisibility()
         captureModelBaselines()
 
         window.addEventListener('resize', onWindowResize)
         renderer.domElement.addEventListener('pointermove', onComparePointerMove)
-        renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown)
-        document.addEventListener('pointerlockchange', updateWalkHint)
+        renderer.domElement.addEventListener('pointermove', onTeleportPointerMove)
+        renderer.domElement.addEventListener('pointerleave', hideTeleportFloorReticle)
+        renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown, { capture: true })
+        renderer.domElement.addEventListener('pointerup', onCanvasPointerUp)
+        renderer.domElement.addEventListener('pointercancel', onCanvasPointerCancel)
+        document.addEventListener('pointerlockchange', onPointerLockChange)
         document.addEventListener('mousemove', onWalkPointerMove)
         document.addEventListener('keydown', onWalkKeyDown, true)
         document.addEventListener('keyup', onWalkKeyUp, true)
@@ -1898,7 +4624,10 @@
           'Accumulation Speed (Alpha)': 6,
         }
 
-        const ssrGui = renderer.inspector.createParameters('SSR settings')
+        const advancedGui = renderer.inspector.createParameters('Advanced settings')
+        advancedGui.close()
+
+        const ssrGui = advancedGui.addFolder('SSR settings')
         ssrGui.add(params, 'output', outputTypes).onChange(updateOutputNode)
         ssrGui.add(params.ssr, 'quality', 0, 1).name('quality').onChange(applyParams)
         ssrGui.add(params.ssr, 'mirrorBias', 0, 1).name('mirror bias').onChange(applyParams)
@@ -1920,11 +4649,12 @@
         })
         ssrGui.close()
 
-        const sceneGui = renderer.inspector.createParameters('Scene controls')
-        sceneGui
-          .add(params.runtime, 'navigationMode', { Inspect: 'Inspect', Walk: 'Walk' })
+        const sceneGui = advancedGui.addFolder('Scene controls')
+        navigationModeController = sceneGui
+          .add(params.runtime, 'navigationMode', { Teleport: 'Teleport', Explore: 'Walk', Inspect: 'Inspect' })
           .name('mode')
           .onChange(setNavigationMode)
+        initNavModeButtons()
         gizmoModeController = enhanceInspectorControl(
           sceneGui
             .add(params.runtime, 'gizmoMode', { Translate: 'translate', Rotate: 'rotate', Scale: 'scale' })
@@ -1953,13 +4683,13 @@
         sceneGui.add(runtimeActions, 'exportCameraKeyframes').name('Export camera path')
         sceneGui.add(runtimeActions, 'clearCameraKeyframes').name('Clear camera keyframes')
         sceneGui.add(runtimeActions, 'copyShareLink').name('Copy share link')
-        sceneGui
+        walkCollisionModeController = sceneGui
           .add(params.runtime, 'walkCollisionMode', WALK_COLLISION_MODES)
           .name('walk collision')
           .onChange(() => {
             if (activeModelRoot) scheduleWalkCollisionRebuild()
           })
-        sceneGui
+        skipCollisionController = sceneGui
           .add(params.runtime, 'skipCollision')
           .name('skip mesh collision')
           .onChange(() => {
@@ -1983,13 +4713,13 @@
         sceneGui.add(runtimeActions, 'pasteSettings').name('Paste settings')
         sceneGui.close()
 
-        materialsGui = renderer.inspector.createParameters('Materials')
+        materialsGui = advancedGui.addFolder('Materials')
         initMaterialsGui()
 
-        objectsGui = renderer.inspector.createParameters('Objects')
+        objectsGui = advancedGui.addFolder('Objects')
         initObjectsGui()
 
-        const denoiseGui = renderer.inspector.createParameters('Denoise settings')
+        const denoiseGui = advancedGui.addFolder('Denoise settings')
         denoiseGui.add(params.denoise, 'enabled').name('enabled').onChange(applyParams)
         denoiseGui.add(params.denoise, 'lumaPhi', 0, 3).name('luma phi').onChange(applyParams)
         denoiseGui.add(params.denoise, 'depthPhi', 0, 50).name('depth phi').onChange(applyParams)
@@ -2000,7 +4730,7 @@
         denoiseGui.add(params.denoise, 'adapt', 0, 1).name('adapt').onChange(applyParams)
         denoiseGui.close()
 
-        const temporalReprojectGui = renderer.inspector.createParameters('Temporal Reproject settings')
+        const temporalReprojectGui = advancedGui.addFolder('Temporal Reproject settings')
         temporalReprojectGui
           .add(params.temporalReproject, 'maxFrames', 1, 128, 1)
           .name('max frames')
@@ -2019,7 +4749,7 @@
           .onChange(applyParams)
         temporalReprojectGui.close()
 
-        const lightGui = renderer.inspector.createParameters('Light').close()
+        const lightGui = advancedGui.addFolder('Light').close()
         ;['x', 'y', 'z'].forEach((axis) => {
           lightGui
             .add(params.light, axis, -30, 30)
@@ -2039,7 +4769,7 @@
         initCameraViewsPanelCollapse('ssr-denoise-camera-views-collapsed')
         demoUiChrome = initDemoUiChrome(renderer, {
           storageKey: 'ssr-denoise-ui-chrome-visible',
-          shouldHideCameraViews: () => params.runtime.navigationMode === 'Walk',
+          shouldHideCameraViews: () => params.runtime.navigationMode === 'Walk' || isTeleportMode(),
         })
 
         const visibilityObserver = new IntersectionObserver(
@@ -2056,10 +4786,18 @@
         updateTransformGizmo()
         updatePickModeUi()
         updateSceneControlAvailability()
-        syncRenderLoop()
 
-        await applyDefaultShareState()
+        const appliedDefaults = applyDefaultShareState()
         await applyShareStateFromUrl()
+        applyInitialNavigationMode()
+
+        // Fresh gallery load: keep projector selected + glass-checked so the Material Editor
+        // matches the default glass showcase (share state sets g:'manual' + transmission/IOR).
+        if (appliedDefaults && !new URLSearchParams(window.location.search).get(SHARE_PARAM_KEY)) {
+          selectMaterial('projector')
+        }
+
+        syncRenderLoop()
 
         if (new URLSearchParams(window.location.search).has('walkTest')) {
           window.__shareState = {
@@ -2109,6 +4847,7 @@
             setPlaceSpawn: (enabled) => onPlaceSpawnToggle(enabled),
             setKey: (code, down) => {
               keyStates[code] = down
+              if (isInspectMode()) syncInspectOrbitRotateWithWasd()
             },
             setYaw: (value) => {
               yaw = value
@@ -2132,6 +4871,64 @@
             },
             probeCollision: () => probeCapsuleCollision(),
             gatherCollisionInfo,
+            getInspectState: () => ({
+              orbitDistance: getInspectOrbitDistance(),
+              eyeHeight: getStandingEyeHeight(),
+              floorAnchor: getInspectFloorAnchor()?.toArray() ?? null,
+              floorBlocked: (() => {
+                const anchor = getInspectFloorAnchor()
+                return anchor ? !canInspectMoveToFloorPoint(anchor) : null
+              })(),
+              cameraBlocked: !canInspectEyeAtPosition(camera.position),
+              targetBlocked: controls?.target ? !canInspectEyeAtPosition(controls.target) : null,
+              orbitSegmentClear: controls?.target
+                ? isInspectOrbitSegmentClear(controls.target, camera.position)
+                : null,
+              rigValid: controls?.target
+                ? isInspectOrbitRigValid(controls.target, camera.position)
+                : null,
+              rigOwnedByUser: inspectRigOwnedByUser,
+              target: controls?.target?.toArray() ?? null,
+              camera: camera.position.toArray(),
+              defaultCamera: DEFAULT_CAMERA_POSITION.toArray(),
+              defaultTarget: DEFAULT_ORBIT_TARGET.toArray(),
+              allowsInspectMovement: allowsInspectCameraMovement(),
+            }),
+            getTeleportState: () => ({
+              eyePosition: getPlayerEyePosition()?.toArray() ?? null,
+              floorPosition: getPlayerFloorPoint()?.toArray() ?? null,
+              orbitDistance: controls ? camera.position.distanceTo(controls.target) : null,
+              reticleVisible: Boolean(teleportFloorReticle?.visible),
+              pitch,
+              yaw,
+              transitionActive: teleportTransitionActive,
+              cameraRotationX: camera.rotation.x,
+            }),
+            teleportTo: (x, y, z) => teleportPlayerToPoint(new THREE.Vector3(x, y, z)),
+            setPitch: (value) => {
+              pitch = clampTeleportPitch(value)
+              applyTeleportOrbitCamera(0)
+            },
+            probeInspectMove: (dx = 0, dz = 0.05) => {
+              const delta = new THREE.Vector3(dx, 0, dz)
+              return resolveInspectMovementDelta(delta)?.toArray() ?? null
+            },
+            probeFloorAt: (x, z) => {
+              const gallery = raycastGalleryFloorAt(x, z)
+              const walk = raycastWalkFloorAt(x, z)
+              return {
+                galleryY: gallery?.point.y ?? null,
+                walkY: walk?.point.y ?? null,
+                maxInteriorFloorY: getMaxInteriorWalkFloorY(),
+                boundsMinY: activeBounds.isEmpty() ? null : activeBounds.min.y,
+                boundsMaxY: activeBounds.isEmpty() ? null : activeBounds.max.y,
+              }
+            },
+            ensureInspectFloorAnchor: () => ensureInspectFloorAnchor(),
+            validateInspectStartPlacement: (target) => validateInspectStartPlacement(target),
+            clampInspectOrbitDistance: () => clampInspectOrbitDistance(),
+            enforceInspectCameraConstraints: () => enforceInspectCameraConstraints(),
+            clampOrbitCameraToGalleryBounds: () => clampOrbitCameraToGalleryBounds(),
             getAvatarFrustumState,
             getPlayerGizmoPivotState,
             selectPlayerGizmo: () => {
@@ -2148,6 +4945,8 @@
             },
           }
         }
+
+        maybeShowIntroPopup()
       }
 
       function isPlayerGizmoTarget(object) {
@@ -2440,9 +5239,17 @@
       }
 
       function captureCurrentCameraKeyframe(name) {
-        const position = formatRoundedVector(camera.position)
-        const rotation = formatRoundedVector(camera.rotation)
-        const target = formatRoundedVector(controls?.target ?? DEFAULT_ORBIT_TARGET)
+        // Capture the on-screen Inspect view. Never call controls.update() while
+        // sphericalDelta remains — that applies one damping step and records the wrong angle.
+        holdInspectSoftCorrectSuppression()
+        syncOrbitControlsToCurrentView()
+
+        // Gallery world units are small; 5 digits keeps look angles faithful on replay.
+        const position = formatRoundedVector(camera.position, 5)
+        const target = formatRoundedVector(controls?.target ?? DEFAULT_ORBIT_TARGET, 5)
+        // Rotation is derived from position→target (OrbitControls lookAt); stored for
+        // export/share only. Playback drives the view from position + target.
+        const rotation = formatRoundedVector(camera.rotation, 5)
         const rotationOrder = camera.rotation.order || DEFAULT_CAMERA_ROTATION.order
 
         return {
@@ -2486,28 +5293,69 @@
         }
       }
 
+      function invalidateTemporalHistoryTargets() {
+        // TemporalReproject / RecurrentDenoise / TRAA restart history when their
+        // internal RT size mismatches the drawing buffer. Shrink to force a clean seed
+        // on the next postProcessing.render() — prevents one-frame overbright flashes
+        // when the camera jumps between keyframes.
+        const shrink = (rt) => {
+          if (rt && typeof rt.setSize === 'function' && (rt.width > 1 || rt.height > 1)) {
+            rt.setSize(1, 1)
+          }
+        }
+        shrink(temporalReprojectNode?._historyRenderTarget)
+        shrink(temporalReprojectNode?._resolveRenderTarget)
+        shrink(denoiseNode?._renderTarget ?? denoiseNode?.getRenderTarget?.())
+        shrink(traaNode?._historyRenderTarget)
+        shrink(traaNode?._resolveRenderTarget)
+        temporalHistoryResetPending = true
+        temporalHistoryMuteFrames = 2
+      }
+
+      function applyCameraKeyframeView(keyframe) {
+        if (!keyframe?.position || !keyframe?.target || !controls) return
+
+        holdInspectSoftCorrectSuppression()
+        applyOrbitControlsView(keyframe.position, keyframe.target)
+        syncYawPitchFromOrbitCamera()
+        markInspectRigOwnedByUser()
+        invalidateTemporalHistoryTargets()
+      }
+
       function setCameraKeyframeState(keyframe, animate = true) {
         if (!keyframe?.position || !keyframe?.target || !controls) return
 
         cancelCameraTransition()
+        holdInspectSoftCorrectSuppression()
 
-        const position = new THREE.Vector3(keyframe.position.x, keyframe.position.y, keyframe.position.z)
-        const target = new THREE.Vector3(keyframe.target.x, keyframe.target.y, keyframe.target.z)
-        const rotation = keyframe.rotation || {}
-        const rotationOrder = rotation.order || DEFAULT_CAMERA_ROTATION.order
+        const rawPosition = new THREE.Vector3(keyframe.position.x, keyframe.position.y, keyframe.position.z)
+        const rawTarget = new THREE.Vector3(keyframe.target.x, keyframe.target.y, keyframe.target.z)
+        const endNodal = normalizeInspectNodalRig(rawPosition, rawTarget)
+        const position = endNodal.camera
+        const target = endNodal.eye
+        const startNodal = normalizeInspectNodalRig(camera.position, controls.target)
+        const restoreDamping = controls.enableDamping
+        controls.enableDamping = false
+        clearOrbitControlsInertia()
+
+        const finishKeyframeTransition = () => {
+          applyCameraKeyframeView(keyframe)
+          controls.enableDamping = restoreDamping
+          cameraTransitionFrame = null
+        }
 
         if (!animate) {
-          camera.position.copy(position)
-          if (rotation.x !== undefined) {
-            camera.rotation.set(rotation.x, rotation.y, rotation.z, rotationOrder)
-          }
-          controls.target.copy(target)
-          controls.update()
+          applyCameraKeyframeView(keyframe)
+          controls.enableDamping = restoreDamping
           return
         }
 
-        const startPos = camera.position.clone()
-        const startTarget = controls.target.clone()
+        // Starting a path cut also invalidates history so the first frames of the
+        // lerp do not composite against the previous keyframe's specular buffer.
+        invalidateTemporalHistoryTargets()
+
+        const startPos = startNodal.camera.clone()
+        const startTarget = startNodal.eye.clone()
         const startTime = performance.now()
 
         const step = (now) => {
@@ -2518,18 +5366,16 @@
 
           camera.position.lerpVectors(startPos, position, eased)
           controls.target.lerpVectors(startTarget, target, eased)
-          controls.update()
+          clearOrbitControlsInertia()
+          camera.lookAt(controls.target)
+          // Keep yaw/pitch in orbit-offset convention so idle applyInspectOrbitCamera
+          // during path hold does not flip the lerped view.
+          syncYawPitchFromOrbitCamera()
 
           if (progress < 1) {
             cameraTransitionFrame = requestAnimationFrame(step)
           } else {
-            camera.position.copy(position)
-            if (rotation.x !== undefined) {
-              camera.rotation.set(rotation.x, rotation.y, rotation.z, rotationOrder)
-            }
-            controls.target.copy(target)
-            controls.update()
-            cameraTransitionFrame = null
+            finishKeyframeTransition()
           }
         }
 
@@ -2541,6 +5387,11 @@
           setRuntimeStatus('Switch to Inspect mode to record camera keyframes.', true)
           return
         }
+
+        // Never start playback or jump the camera when recording — especially when the
+        // Play button becomes enabled as length goes 1 → 2.
+        if (cameraPlaybackActive) stopCameraPlayback()
+        cancelCameraTransition()
 
         const keyframe = captureCurrentCameraKeyframe(name)
         cameraKeyframes.push(keyframe)
@@ -2616,10 +5467,9 @@
         }
 
         cameraPlaybackActive = true
-        let index = selectedCameraKeyframeId
-          ? cameraKeyframes.findIndex((entry) => entry.id === selectedCameraKeyframeId)
-          : 0
-        if (index < 0) index = 0
+        // Always begin the path at the first keyframe so Play after recording view 2
+        // does not start mid-path (selected id is the newest keyframe).
+        let index = 0
 
         const playNext = () => {
           if (!cameraPlaybackActive) return
@@ -3053,16 +5903,75 @@
         playerVelocity.set(0, 0, 0)
       }
 
+      function captureInspectCameraSnapshot() {
+        if (!camera || !controls) return null
+        return {
+          position: camera.position.clone(),
+          quaternion: camera.quaternion.clone(),
+          target: controls.target.clone(),
+        }
+      }
+
+      function inspectCameraSnapshotDrifted(snapshot, epsilon = 1e-5) {
+        if (!snapshot || !camera || !controls) return false
+        const quatDot = snapshot.quaternion
+          ? Math.abs(camera.quaternion.dot(snapshot.quaternion))
+          : 1
+        return (
+          camera.position.distanceToSquared(snapshot.position) > epsilon * epsilon ||
+          controls.target.distanceToSquared(snapshot.target) > epsilon * epsilon ||
+          quatDot < 1 - 1e-7
+        )
+      }
+
+      function restoreInspectCameraSnapshot(snapshot) {
+        if (!snapshot || !camera || !controls || restoringPickMaterialsCamera) return
+        restoringPickMaterialsCamera = true
+        try {
+          // Exact pose restore — never call controls.update() here. OrbitControls.update()
+          // reclamps spherical/minDistance and is what moved the camera on Pick enable.
+          camera.position.copy(snapshot.position)
+          controls.target.copy(snapshot.target)
+          if (snapshot.quaternion) {
+            camera.quaternion.copy(snapshot.quaternion)
+          } else {
+            camera.lookAt(controls.target)
+          }
+          clearOrbitControlsInertia()
+        } finally {
+          restoringPickMaterialsCamera = false
+        }
+      }
+
+      function freezeOrbitControlsForInspectPicking() {
+        if (!controls) return
+        orbitControlsDragging = false
+        clearOrbitControlsInertia()
+        // Do NOT sync via controls.update() — that recomputes position from spherical and
+        // can rotate/dolly the camera the moment Pick material is enabled.
+        controls.enabled = false
+        controls.enableRotate = false
+        controls.enableZoom = false
+        controls.enablePan = false
+        controls.enableDamping = false
+      }
+
       function updatePickModeUi() {
+        if (suppressPickModeUiReentry) return
+
         const inspectMode = params.runtime.navigationMode === 'Inspect'
         const pickingCoords = inspectMode && params.runtime.pickCoordinates
         const pickingMaterials = inspectMode && params.runtime.pickMaterials
         const pickingGizmo = inspectMode && params.runtime.gizmoEnabled
 
         renderer.domElement.classList.toggle('pick-cursor', pickingCoords || pickingMaterials || pickingGizmo)
+        renderer.domElement.classList.toggle('teleport-cursor', isTeleportMode())
 
         if (inspectMode) {
+          // Reconfigure orbit so pick/gizmo modes fully disable rotate/zoom (not a no-op).
           setWalkControlsEnabled(!pickingCoords && !pickingMaterials && !pickingGizmo)
+        } else if (isTeleportMode()) {
+          setWalkControlsEnabled(true)
         }
       }
 
@@ -3096,12 +6005,12 @@
       }
 
       function updateSceneControlAvailability() {
-        const inspectMode = params.runtime.navigationMode === 'Inspect'
-        const walking = !inspectMode
+        const inspectMode = isInspectMode()
+        const exploreMode = isExploreMode()
 
         pickCoordinatesController?.[inspectMode ? 'show' : 'hide']()
         pickMaterialsController?.[inspectMode ? 'show' : 'hide']()
-        placeSpawnController?.[walking ? 'show' : 'hide']()
+        placeSpawnController?.[exploreMode ? 'show' : 'hide']()
 
         gizmoEnabledController?.[inspectMode ? 'show' : 'hide']()
         gizmoModeController?.[inspectMode ? 'show' : 'hide']()
@@ -3117,8 +6026,11 @@
         if (enabled) {
           params.runtime.placeSpawn = false
           placeSpawnController?.setValue(false)
-          params.runtime.pickMaterials = false
-          pickMaterialsController?.setValue(false)
+          if (params.runtime.pickMaterials) {
+            params.runtime.pickMaterials = false
+            pickMaterialsController?.setValue(false)
+            endPickMaterialsCameraFreeze()
+          }
           params.runtime.gizmoEnabled = false
           gizmoEnabledController?.setValue(false)
           deselectGizmoObject({ updateStatus: false })
@@ -3127,6 +6039,7 @@
 
         updatePickModeUi()
         updateSceneControlAvailability()
+        updateWalkHint()
 
         if (params.runtime.navigationMode === 'Inspect') {
           setRuntimeStatus(
@@ -3137,20 +6050,67 @@
         }
       }
 
+      function endPickMaterialsCameraFreeze() {
+        if (isInspectMode() && pickMaterialsCameraSnapshot && inspectCameraSnapshotDrifted(pickMaterialsCameraSnapshot)) {
+          restoreInspectCameraSnapshot(pickMaterialsCameraSnapshot)
+        }
+        pickMaterialsCameraSnapshot = null
+        if (controls && isInspectMode()) {
+          clearOrbitControlsInertia()
+          syncOrbitControlsToCurrentView()
+        }
+      }
+
       function onPickMaterialsToggle(enabled) {
-        params.runtime.pickMaterials = enabled
+        // Call chain that still moved the camera on production (pre-fix):
+        //   checkbox change → onPickMaterialsToggle
+        //     → pickCoordinatesController.setValue(false) → onPickCoordinatesToggle
+        //       and/or gizmoEnabledController.setValue(false) → onGizmoEnabledToggle
+        //         → updatePickModeUi → setWalkControlsEnabled(false)
+        //           → configureOrbitControlsForNavigationMode
+        //             → freezeOrbitControlsForInspectPicking
+        //               → syncOrbitControlsToCurrentView → controls.update()/lookAt
+        //     → captureInspectCameraSnapshot()  ← too late; snapshot locked the jumped pose
+        // Fix: snapshot + pickMaterials=true + flag-freeze (no controls.update) FIRST,
+        // suppress nested updatePickModeUi during sibling UI sync, restore after reconfigure.
+        if (enabled && isInspectMode()) {
+          markInspectRigOwnedByUser()
+          pickMaterialsCameraSnapshot = captureInspectCameraSnapshot()
+          params.runtime.pickMaterials = true
+          freezeOrbitControlsForInspectPicking()
+        } else {
+          params.runtime.pickMaterials = enabled
+        }
 
         if (enabled) {
-          params.runtime.pickCoordinates = false
-          pickCoordinatesController?.setValue(false)
-          params.runtime.gizmoEnabled = false
-          gizmoEnabledController?.setValue(false)
-          deselectGizmoObject({ updateStatus: false })
-          updateTransformGizmo()
+          suppressPickModeUiReentry = true
+          try {
+            params.runtime.pickCoordinates = false
+            // Prefer display-only sync — setValue fires onChange → updatePickModeUi.
+            if (typeof pickCoordinatesController?.updateDisplay === 'function') {
+              pickCoordinatesController.updateDisplay()
+            } else if (typeof pickCoordinatesController?.setValue === 'function') {
+              pickCoordinatesController.setValue(false)
+            }
+            params.runtime.gizmoEnabled = false
+            setInspectorCheckboxSilently(gizmoEnabledEditor, false)
+            deselectGizmoObject({ updateStatus: false })
+            updateTransformGizmo()
+          } finally {
+            suppressPickModeUiReentry = false
+          }
+        } else if (isInspectMode()) {
+          endPickMaterialsCameraFreeze()
         }
 
         updatePickModeUi()
         updateSceneControlAvailability()
+        updateWalkHint()
+
+        if (enabled && isInspectMode() && pickMaterialsCameraSnapshot) {
+          restoreInspectCameraSnapshot(pickMaterialsCameraSnapshot)
+          freezeOrbitControlsForInspectPicking()
+        }
 
         if (params.runtime.navigationMode === 'Inspect') {
           setRuntimeStatus(
@@ -3165,8 +6125,11 @@
         params.runtime.gizmoEnabled = enabled
 
         if (enabled) {
-          params.runtime.pickMaterials = false
-          pickMaterialsController?.setValue(false)
+          if (params.runtime.pickMaterials) {
+            params.runtime.pickMaterials = false
+            pickMaterialsController?.setValue(false)
+            endPickMaterialsCameraFreeze()
+          }
           params.runtime.pickCoordinates = false
           pickCoordinatesController?.setValue(false)
         } else {
@@ -3176,6 +6139,7 @@
         updateTransformGizmo()
         updatePickModeUi()
         updateSceneControlAvailability()
+        updateWalkHint()
 
         if (params.runtime.navigationMode === 'Inspect') {
           setRuntimeStatus(
@@ -3210,6 +6174,53 @@
         loadingOverlay.hidden = true
         loadingProgress.textContent = ''
       }
+
+      function shouldShowIntroPopup() {
+        try {
+          if (localStorage.getItem(INTRO_POPUP_HIDE_KEY) === '1') return false
+          if (sessionStorage.getItem(INTRO_POPUP_SESSION_KEY) === '1') return false
+        } catch {
+          // Ignore storage access errors (private mode, etc.)
+        }
+        return true
+      }
+
+      function dismissIntroPopup({ persistHide = false } = {}) {
+        if (!introPopup) return
+        introPopup.classList.remove('is-visible')
+        introPopup.hidden = true
+        try {
+          sessionStorage.setItem(INTRO_POPUP_SESSION_KEY, '1')
+          if (persistHide) localStorage.setItem(INTRO_POPUP_HIDE_KEY, '1')
+        } catch {
+          // Ignore storage access errors
+        }
+      }
+
+      function maybeShowIntroPopup() {
+        if (!introPopup || !shouldShowIntroPopup()) return
+        introPopup.hidden = false
+        introPopup.classList.add('is-visible')
+      }
+
+      function bindIntroPopup() {
+        if (!introPopup) return
+        const onDismiss = () => {
+          dismissIntroPopup({ persistHide: Boolean(introPopupDontShow?.checked) })
+        }
+        introPopupGotIt?.addEventListener('click', onDismiss)
+        introPopupClose?.addEventListener('click', onDismiss)
+        introPopup.addEventListener('click', (event) => {
+          if (event.target === introPopup) onDismiss()
+        })
+        document.addEventListener('keydown', (event) => {
+          if (event.key !== 'Escape') return
+          if (!introPopup.classList.contains('is-visible')) return
+          onDismiss()
+        })
+      }
+
+      bindIntroPopup()
 
       function yieldToMain() {
         return new Promise((resolve) => {
@@ -3270,13 +6281,37 @@
         return false
       }
 
+      function getMaterialNameKey(material) {
+        return String(material?.name || '').trim().toLowerCase()
+      }
+
       function getMaterialGlassKey(material) {
         if (!material) return null
+        const nameKey = getMaterialNameKey(material)
+        // Always prefer the stable material name when present. Legacy code locked glassKey to the
+        // pre-upgrade MeshStandardMaterial uuid, which broke DEFAULT_SHARE_STATE.m.projector.
+        if (nameKey) {
+          material.userData.glassKey = nameKey
+          return nameKey
+        }
         if (!material.userData.glassKey) {
-          const nameKey = String(material.name || '').trim().toLowerCase()
-          material.userData.glassKey = nameKey || material.uuid
+          material.userData.glassKey = material.uuid
         }
         return material.userData.glassKey
+      }
+
+      // Share defaults are keyed by stable material name; also accept glassKey / uuid matches.
+      function materialMatchesShareKey(material, key) {
+        if (!material || key == null || key === '') return false
+        const normalized = String(key).trim().toLowerCase()
+        const nameKey = getMaterialNameKey(material)
+        // Heal legacy uuid-locked glassKeys so name-keyed share/physics defaults keep matching.
+        if (nameKey && nameKey === normalized) {
+          material.userData.glassKey = nameKey
+          return true
+        }
+        const glassKey = getMaterialGlassKey(material)
+        return glassKey === key || glassKey === normalized
       }
 
       function isPlayerCharacterMaterial(material) {
@@ -3454,8 +6489,12 @@
           roughness: material.roughness ?? params.roughness,
         })
         physical.userData = { ...(material.userData || {}) }
+        // Prefer stable lowercase material name (matches DEFAULT_SHARE_STATE / physics defaults).
+        // Never lock glassKey to the pre-upgrade MeshStandardMaterial uuid — that broke name-keyed
+        // share patches like m.projector after GLB materials were upgraded to MeshPhysicalMaterial.
         if (!physical.userData.glassKey) {
-          physical.userData.glassKey = material.userData?.glassKey || material.uuid
+          const nameKey = getMaterialNameKey(physical) || getMaterialNameKey(material)
+          physical.userData.glassKey = nameKey || physical.uuid
         }
 
         if (material.isMeshPhongMaterial || material.isMeshLambertMaterial) {
@@ -3523,7 +6562,9 @@
         physical.thickness = 0.01
         physical.metalness = 0
         physical.transparent = true
-        physical.opacity = 1
+        // Do not force opacity=1 — tuned glass (e.g. projector) keeps opacity from
+        // MATERIAL_PHYSICS_DEFAULTS / share state; opaque materials already have opacity 1.
+        if (physical.opacity < 1) physical.transparent = true
         physical.depthWrite = false
         physical.depthTest = true
 
@@ -3592,11 +6633,13 @@
         traverseMaterialRoots((object) => {
           const materials = Array.isArray(object.material) ? object.material : [object.material]
           materials.forEach((material, index) => {
-            if (getMaterialGlassKey(material) !== uuid) return
+            if (!materialMatchesShareKey(material, uuid)) return
 
             let next
             if (enabled) {
               next = applyManualGlassToMaterial(material, true)
+              // Glass template must not wipe name-keyed physics (projector opacity/IOR/etc.).
+              next = applyMaterialPhysicsDefaults(next, { applyGlass: false })
             } else if (isManualGlassMaterial(material)) {
               next = applyManualGlassToMaterial(material, false)
               next = applyAutoGlassProfile(next, object.name)
@@ -3640,7 +6683,7 @@
         traverseMaterialRoots((object) => {
           const materials = Array.isArray(object.material) ? object.material : [object.material]
           materials.forEach((material, index) => {
-            if (getMaterialGlassKey(material) !== uuid) return
+            if (!materialMatchesShareKey(material, uuid)) return
 
             const next = mutator(material) ?? material
             next.needsUpdate = true
@@ -3673,6 +6716,18 @@
         selectedMaterialUuid = uuid || null
         if (uuid && params.runtime.materialsPanelCollapsed) {
           setMaterialsPanelCollapsed(false, { persist: true })
+        }
+        if (uuid && isInspectMode()) {
+          // Selecting a material must never relocate/rotate Inspect camera.
+          markInspectRigOwnedByUser()
+          if (isInspectCameraFrozenForMaterials()) {
+            freezeOrbitControlsForInspectPicking()
+            if (!pickMaterialsCameraSnapshot) {
+              pickMaterialsCameraSnapshot = captureInspectCameraSnapshot()
+            } else if (inspectCameraSnapshotDrifted(pickMaterialsCameraSnapshot)) {
+              restoreInspectCameraSnapshot(pickMaterialsCameraSnapshot)
+            }
+          }
         }
         updateMaterialListSelectionUi()
         if (rebuildEditor) rebuildMaterialEditorSection()
@@ -4187,6 +7242,7 @@
         if (collapsed && materialsRoot.isOpen) {
           materialsRoot.close()
         } else if (!collapsed && !materialsRoot.isOpen) {
+          if (isInspectMode()) markInspectRigOwnedByUser()
           materialsRoot.toggle()
         }
 
@@ -4834,6 +7890,15 @@
       }
 
       function selectMaterialFromClick(event) {
+        // Never sync yaw/pitch or lookAt from pick clicks — only resolve materials.
+        if (isInspectMode()) {
+          markInspectRigOwnedByUser()
+          freezeOrbitControlsForInspectPicking()
+          if (!pickMaterialsCameraSnapshot) {
+            pickMaterialsCameraSnapshot = captureInspectCameraSnapshot()
+          }
+        }
+
         const hit = raycastModelSurface(event.clientX, event.clientY)
         if (!hit) {
           setRuntimeStatus('No model surface hit. Click visible geometry to pick a material.', true)
@@ -5008,7 +8073,8 @@
           physical.side = THREE.DoubleSide
           physical.shadowSide = THREE.DoubleSide
         }
-        applyMaterialPhysicsDefaults(physical)
+        physical = applyMaterialPhysicsDefaults(physical)
+        if (physical.opacity < 1) physical.transparent = true
         sanitizeMaterialForWebGPU(physical)
 
         physical.needsUpdate = true
@@ -5022,34 +8088,74 @@
         if (value !== undefined) material.metalness = value
       }
 
-      function applyMaterialPhysicsDefaults(material) {
+      function applyMaterialPhysicsDefaults(material, { applyGlass = true } = {}) {
         if (!material) return material
 
-        const key = String(material.name || '').trim().toLowerCase()
+        const key = getMaterialNameKey(material)
         const defaults = MATERIAL_PHYSICS_DEFAULTS[key]
         if (!defaults) return material
 
-        if (defaults.metalness !== undefined && 'metalness' in material) {
-          material.metalness = defaults.metalness
-        }
-        if (defaults.emissiveIntensity !== undefined && 'emissiveIntensity' in material) {
-          material.emissiveIntensity = defaults.emissiveIntensity
-        }
-        if (defaults.normalScale !== undefined) {
-          if (!material.normalScale) material.normalScale = new THREE.Vector2(1, 1)
-          material.normalScale.set(defaults.normalScale, defaults.normalScale)
-        }
-        if (defaults.clearcoat !== undefined && 'clearcoat' in material) {
-          material.clearcoat = defaults.clearcoat
-        }
-        if (defaults.clearcoatRoughness !== undefined && 'clearcoatRoughness' in material) {
-          material.clearcoatRoughness = defaults.clearcoatRoughness
-        }
-        if (defaults.envMapIntensity !== undefined && 'envMapIntensity' in material) {
-          material.envMapIntensity = defaults.envMapIntensity
+        let next = material
+        if (applyGlass && defaults.glass === 'manual' && !isManualGlassMaterial(next)) {
+          next = configureManualGlassMaterial(next)
         }
 
-        return material
+        if (defaults.color && next.color) next.color.set(defaults.color)
+        if (defaults.emissive) {
+          if (!next.emissive) next.emissive = new THREE.Color()
+          next.emissive.set(defaults.emissive)
+        }
+        if (defaults.roughness !== undefined && 'roughness' in next) {
+          next.roughness = defaults.roughness
+        }
+        if (defaults.metalness !== undefined && 'metalness' in next) {
+          next.metalness = defaults.metalness
+        }
+        if (defaults.emissiveIntensity !== undefined && 'emissiveIntensity' in next) {
+          next.emissiveIntensity = defaults.emissiveIntensity
+        }
+        if (defaults.normalScale !== undefined) {
+          if (!next.normalScale) next.normalScale = new THREE.Vector2(1, 1)
+          next.normalScale.set(defaults.normalScale, defaults.normalScale)
+        }
+        if (defaults.clearcoat !== undefined && 'clearcoat' in next) {
+          next.clearcoat = defaults.clearcoat
+        }
+        if (defaults.clearcoatRoughness !== undefined && 'clearcoatRoughness' in next) {
+          next.clearcoatRoughness = defaults.clearcoatRoughness
+        }
+        if (defaults.envMapIntensity !== undefined && 'envMapIntensity' in next) {
+          next.envMapIntensity = defaults.envMapIntensity
+        }
+        if (defaults.transmission !== undefined && 'transmission' in next) {
+          next.transmission = defaults.transmission
+        }
+        if (defaults.ior !== undefined && 'ior' in next) {
+          next.ior = defaults.ior
+        }
+        if (defaults.thickness !== undefined && 'thickness' in next) {
+          next.thickness = defaults.thickness
+        }
+        if (defaults.opacity !== undefined) {
+          next.opacity = defaults.opacity
+        }
+        if (defaults.transparent !== undefined) {
+          next.transparent = defaults.transparent
+        }
+        if (next.opacity < 1 || (defaults.transmission !== undefined && defaults.transmission > 0)) {
+          next.transparent = true
+        }
+        if (defaults.transmission !== undefined && defaults.transmission > 0) {
+          next.depthWrite = false
+        }
+        if (defaults.doubleSided !== undefined) {
+          const side = defaults.doubleSided ? THREE.DoubleSide : THREE.FrontSide
+          next.side = side
+          next.shadowSide = side
+        }
+
+        next.needsUpdate = true
+        return next
       }
 
       function prepareMeshMaterials(mesh) {
@@ -5748,19 +8854,18 @@
         }
       }
 
-      function isCapsuleBlocked(capsule = playerCollider) {
+      function isCapsuleBlocked(capsule = playerCollider, { minDepth = 1e-6 } = {}) {
         const hit = probeCapsuleCollision(capsule)
-        return Boolean(hit && !hit.onFloor && hit.depth > 1e-6)
+        return Boolean(hit && !hit.onFloor && hit.depth > minDepth)
       }
 
       function makeCapsuleAtPoint(point, metrics = getPlayerCapsuleMetrics()) {
         const { radius, height } = metrics
         const floorY = point.y
-        const embed = Math.min(radius * 0.2, 0.012)
 
         return new Capsule(
-          new THREE.Vector3(point.x, floorY + radius - embed, point.z),
-          new THREE.Vector3(point.x, floorY + height - embed, point.z),
+          new THREE.Vector3(point.x, floorY + radius, point.z),
+          new THREE.Vector3(point.x, floorY + height, point.z),
           radius,
         )
       }
@@ -6124,7 +9229,43 @@
 
           if (token.cancelled) return
 
-          resetPlayerSpawn()
+          // Keep the live Explore/Teleport capsule in place across mid-session rebuilds.
+          // Only fall back to saved/default spawn when there is no seated capsule yet.
+          const liveFloor = getPlayerFloorPoint()?.clone()
+          if (liveFloor && (isExploreMode() || isTeleportMode())) {
+            setPlayerCapsuleAtPoint(liveFloor, {
+              resolveOverlap: true,
+              alignYawToCamera: false,
+            })
+            playerCollisions()
+            if (isTeleportMode()) {
+              pitch = clampTeleportPitch(pitch)
+              applyTeleportOrbitCamera(0)
+              clampOrbitCameraToGalleryBounds()
+            }
+          } else {
+            resetPlayerSpawn()
+          }
+
+          if (isInspectMode()) {
+            if (!inspectRigOwnedByUser && inspectAwaitingCollisionPlacement) {
+              resetInspectView()
+            } else {
+              runInspectContinuousDepenetration()
+              if (
+                inspectRigOwnedByUser &&
+                worldOctree &&
+                walkCollisionMeshes.length &&
+                !isInspectOrbitRigValid(controls.target, camera.position)
+              ) {
+                snapInspectTargetToFloor()
+                runInspectContinuousDepenetration()
+                clampInspectOrbitWallCollision()
+                clampOrbitCameraToGalleryBounds()
+                applyInspectOrbitCamera(0)
+              }
+            }
+          }
           collisionDebugRevision += 1
           rebuildWalkCollisionDebug()
 
@@ -6321,7 +9462,7 @@
 
         updatePlayerAvatar()
 
-        if (params.runtime.navigationMode === 'Walk') {
+        if (shouldUseWalkCamera()) {
           applyWalkThirdPersonCameraRig(walkCameraDesired, walkCameraLookTarget)
           walkCameraPosition.copy(walkCameraDesired)
           camera.position.copy(walkCameraPosition)
@@ -6360,7 +9501,21 @@
       }
 
       function getWalkBoundsMargin() {
-        return Math.max((playerCollider?.radius ?? getPlayerCapsuleMetrics().radius) * 1.75, 0.06)
+        return Math.max((playerCollider?.radius ?? getPlayerCapsuleMetrics().radius) * 1.25, 0.04)
+      }
+
+      function getTeleportBoundsMargin() {
+        const radius = playerCollider?.radius ?? getPlayerCapsuleMetrics().radius
+        return Math.max(radius * TELEPORT_BOUNDS_MARGIN_SCALE, 0.02)
+      }
+
+      function getTeleportProbeMetrics() {
+        const { radius, height } = getPlayerCapsuleMetrics()
+        const probeRadius = Math.max(radius * TELEPORT_PROBE_RADIUS_SCALE, TELEPORT_PROBE_MIN_RADIUS)
+        return {
+          radius: probeRadius,
+          height: Math.max(height * 0.85, probeRadius * 3.2),
+        }
       }
 
       function isInsideWalkBounds(x, z, margin = 0) {
@@ -6377,19 +9532,31 @@
       function pickWalkFloorHit(hits, referenceY = null) {
         if (!hits.length) return null
 
-        const upwardHits = hits.filter((hit) => hit.normal && hit.normal.y > 0.35)
-        const candidates = upwardHits.length ? upwardHits : hits
+        // Never fall back to ceilings / downward faces — that pulled Inspect onto roofs.
+        let candidates = hits.filter((hit) => hit.normal && hit.normal.y > 0.35)
+        if (!candidates.length) return null
+
+        if (!activeBounds.isEmpty()) {
+          const maxInteriorFloorY = getMaxInteriorWalkFloorY()
+          const interior = candidates.filter((hit) => hit.point.y <= maxInteriorFloorY)
+          if (!interior.length) return null
+          candidates = interior
+        }
 
         if (referenceY != null) {
           const nearReference = candidates.filter((hit) => hit.point.y <= referenceY + 0.2)
-          const pool = nearReference.length ? nearReference : candidates
-          return pool.reduce((best, hit) => {
-            const bestDistance = Math.abs(best.point.y - referenceY)
-            const hitDistance = Math.abs(hit.point.y - referenceY)
-            return hitDistance < bestDistance ? hit : best
-          })
+          if (nearReference.length) {
+            return nearReference.reduce((best, hit) => {
+              const bestDistance = Math.abs(best.point.y - referenceY)
+              const hitDistance = Math.abs(hit.point.y - referenceY)
+              return hitDistance < bestDistance ? hit : best
+            })
+          }
+          // No floor at/below the reference — prefer lowest interior floor, never jump up.
+          return candidates.reduce((lowest, hit) => (hit.point.y < lowest.point.y ? hit : lowest))
         }
 
+        // Default: lowest valid upward-facing interior floor at this XZ.
         return candidates.reduce((lowest, hit) => (hit.point.y < lowest.point.y ? hit : lowest))
       }
 
@@ -6404,6 +9571,11 @@
         walkRaycaster.far = Math.max(activeSize.y + 8, 10)
 
         const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        if (!hits.length) return null
+
+        // Prefer named/ground-band gallery floors so Inspect/walk never snap to roof decks.
+        const galleryHits = hits.filter((hit) => isGalleryFloorSurfaceHit(hit))
+        if (galleryHits.length) return pickWalkFloorHit(galleryHits, referenceY)
         return pickWalkFloorHit(hits, referenceY)
       }
 
@@ -6549,7 +9721,7 @@
         if (savedYaw !== null) yaw = savedYaw
 
         setPlayerCapsuleAtPoint(resolvePlayerSpawnPoint(preferred), {
-          resolveOverlap: false,
+          resolveOverlap: true,
           alignYawToCamera: savedYaw === null,
         })
         playerCollisions()
@@ -6557,24 +9729,123 @@
 
       function resetInspectView() {
         camera.fov = 35
-        camera.position.copy(DEFAULT_CAMERA_POSITION)
-        camera.rotation.copy(DEFAULT_CAMERA_ROTATION)
 
         if (controls) {
-          controls.target.copy(DEFAULT_ORBIT_TARGET)
-          controls.update()
+          // Nodal eye at the default camera position; tiny offset behind default look.
+          controls.target.copy(DEFAULT_CAMERA_POSITION)
+          inspectAwaitingCollisionPlacement = Boolean(
+            activeModelRoot && (!worldOctree || !walkCollisionMeshes.length),
+          )
+          const lookDir = inspectRigScratchC
+            .set(0, 0, -1)
+            .applyEuler(DEFAULT_CAMERA_ROTATION)
+            .normalize()
+          camera.position
+            .copy(DEFAULT_CAMERA_POSITION)
+            .addScaledVector(lookDir, -INSPECT_ORBIT_DISTANCE)
+          camera.lookAt(controls.target)
+          syncYawPitchFromOrbitCamera()
+          applyInspectOrbitCamera(0)
+          validateInspectStartPlacement({
+            preferredTarget: DEFAULT_CAMERA_POSITION,
+            preferredCamera: camera.position.clone(),
+            fromDefaults: true,
+          })
+        } else {
+          camera.position.copy(DEFAULT_CAMERA_POSITION)
+          camera.rotation.copy(DEFAULT_CAMERA_ROTATION)
         }
 
         camera.updateProjectionMatrix()
+        syncYawPitchFromOrbitCamera()
+      }
+
+      function logNavigationModeTransition(fromMode, toMode) {
+        if (!SSR_DENOISE_DEBUG) return
+
+        console.info('[ssr-denoise] Navigation mode', {
+          from: fromMode,
+          to: toMode,
+          camera: camera?.position?.toArray?.() ?? null,
+          target: controls?.target?.toArray?.() ?? null,
+          playerCapsule: playerCollider
+            ? playerCollider.start.clone().lerp(playerCollider.end, 0.5).toArray()
+            : null,
+        })
+      }
+
+      function configureOrbitControlsForNavigationMode() {
+        if (!controls) return
+
+        const explore = isExploreMode()
+        const inspect = isInspectMode()
+        const teleport = isTeleportMode()
+        const orbitMode = isOrbitNavigationMode()
+        // Pick / gizmo clicks must not start OrbitControls rotate — freeze interaction.
+        const pickingFreeze = inspect && isInspectPickingActive()
+        const materialsFreeze = isInspectCameraFrozenForMaterials()
+
+        controls.enabled = !explore && !pickingFreeze && !(inspect && isInspectWasdHeld())
+        controls.enableRotate = !explore && !pickingFreeze && !(inspect && isInspectWasdHeld())
+        controls.enablePan = false
+        controls.enableZoom = false
+
+        if (materialsFreeze || pickingFreeze) {
+          // Flags only — never soft-correct or controls.update() while pick is active.
+          freezeOrbitControlsForInspectPicking()
+          return
+        }
+
+        if (teleport) {
+          controls.minDistance = TELEPORT_ORBIT_DISTANCE
+          controls.maxDistance = TELEPORT_ORBIT_DISTANCE
+          controls.zoomSpeed = 0
+          controls.enableZoom = false
+          controls.minPolarAngle = Math.PI / 2 - TELEPORT_PITCH_LOOK_DOWN_MAX
+          controls.maxPolarAngle = Math.PI / 2 + TELEPORT_PITCH_LOOK_UP_MAX
+          controls.enableDamping = true
+          controls.rotateSpeed = TELEPORT_ORBIT_ROTATE_SPEED
+          controls.dampingFactor = TELEPORT_ORBIT_DAMPING_FACTOR
+        } else if (inspect) {
+          // Same nodal orbit as Teleport: fixed tiny radius around the eye.
+          controls.minDistance = INSPECT_ORBIT_DISTANCE
+          controls.maxDistance = INSPECT_ORBIT_DISTANCE
+          controls.zoomSpeed = 0
+          controls.enableZoom = false
+          controls.minPolarAngle = Math.PI / 2 - INSPECT_PITCH_LOOK_DOWN_MAX
+          controls.maxPolarAngle = Math.PI / 2 + INSPECT_PITCH_LOOK_UP_MAX
+          controls.enableDamping = true
+          controls.rotateSpeed = INSPECT_ORBIT_ROTATE_SPEED
+          controls.dampingFactor = INSPECT_ORBIT_DAMPING_FACTOR
+          // Never soft-correct while any Inspect pick/edit mode is active.
+          if (
+            !isInspectPickingActive() &&
+            !isInspectMaterialEditingActive() &&
+            !isInspectCameraFrozenForMaterials()
+          ) {
+            applyInspectOrbitCamera(0)
+          }
+          syncInspectOrbitRotateWithWasd()
+        } else {
+          controls.minDistance = 0
+          controls.maxDistance = Infinity
+          controls.minPolarAngle = 0
+          controls.maxPolarAngle = Math.PI
+          controls.rotateSpeed = INSPECT_ORBIT_ROTATE_SPEED
+          controls.dampingFactor = INSPECT_ORBIT_DAMPING_FACTOR
+        }
       }
 
       function setWalkControlsEnabled(enabled) {
-        if (!controls) return
-
-        controls.enabled = enabled
-        controls.enableRotate = enabled
-        controls.enablePan = enabled
-        controls.enableZoom = enabled
+        // While Pick material freezes the camera, ignore reconfigure requests that would
+        // otherwise rewrite orbit min/max distance and soft-correct the view.
+        if (isInspectCameraFrozenForMaterials()) {
+          void enabled
+          freezeOrbitControlsForInspectPicking()
+          return
+        }
+        void enabled
+        configureOrbitControlsForNavigationMode()
       }
 
       function onPlaceSpawnToggle(enabled) {
@@ -6588,22 +9859,54 @@
         if (params.runtime.navigationMode === 'Walk') {
           setRuntimeStatus(
             enabled
-              ? 'Place spawn on: click the floor to teleport the character. Turn off to lock the pointer and walk.'
+              ? 'Place spawn on: click the floor to teleport the character. Turn off to lock the pointer and explore.'
               : 'Place spawn off: click the scene to lock the pointer, then use WASD and Space.',
           )
         }
       }
 
-      function setNavigationMode(value) {
-        params.runtime.navigationMode = value
-        const walking = value === 'Walk'
+      function ensureWalkCollisionEnabled({ rebuild = true } = {}) {
+        let changed = false
 
-        if (walking) {
+        if (params.runtime.walkCollisionMode === 'off') {
+          params.runtime.walkCollisionMode = 'full'
+          walkCollisionModeController?.setValue('full')
+          changed = true
+        }
+
+        if (params.runtime.skipCollision) {
+          params.runtime.skipCollision = false
+          skipCollisionController?.setValue(false)
+          changed = true
+        }
+
+        if (changed && rebuild && activeModelRoot) {
+          scheduleWalkCollisionRebuild()
+        }
+
+        return changed
+      }
+
+      function setNavigationMode(value) {
+        const previousMode = params.runtime.navigationMode
+        params.runtime.navigationMode = value
+        const explore = value === 'Walk'
+        const teleport = value === 'Teleport'
+        const inspect = value === 'Inspect'
+
+        ensureWalkCollisionEnabled()
+        cancelTeleportTransition()
+        clearTeleportPointerGesture()
+        hideTeleportFloorReticle()
+
+        if (explore) {
           stopCameraPlayback()
           params.runtime.pickCoordinates = false
           pickCoordinatesController?.setValue(false)
+          const wasPickingMaterials = params.runtime.pickMaterials
           params.runtime.pickMaterials = false
           pickMaterialsController?.setValue(false)
+          if (wasPickingMaterials) endPickMaterialsCameraFreeze()
           params.runtime.gizmoEnabled = false
           gizmoEnabledController?.setValue(false)
           deselectGizmoObject({ updateStatus: false })
@@ -6612,25 +9915,45 @@
           placeSpawnController?.setValue(false)
         }
 
-        setWalkControlsEnabled(!walking)
-        demoUiChrome?.applyUiChrome()
-        if (playerTransformPivot) playerTransformPivot.visible = true
-        if (playerMesh) playerMesh.visible = true
-
-        if (walking) {
-          resetPlayerSpawn()
-          renderer.domElement.focus({ preventScroll: true })
-          setRuntimeStatus(
-            params.runtime.placeSpawn
-              ? 'Walk mode active. Enable placement clicks in Scene controls, or turn Place spawn off to lock the pointer.'
-              : 'Walk mode active. Click the scene for pointer lock, then use WASD and Space.',
-          )
-        } else {
+        if (inspect) {
           if (document.pointerLockElement === renderer.domElement) document.exitPointerLock()
           Object.keys(keyStates).forEach((code) => {
             keyStates[code] = false
           })
+          clearInspectPointerGesture()
           resetInspectView()
+        }
+
+        setWalkControlsEnabled(!explore)
+        demoUiChrome?.applyUiChrome()
+        updatePlayerAvatarVisibility()
+
+        if (explore) {
+          clearInspectPointerGesture()
+          resetPlayerSpawn()
+          renderer.domElement.focus({ preventScroll: true })
+          setRuntimeStatus(
+            params.runtime.placeSpawn
+              ? 'Explore mode active. Enable placement clicks in Scene controls, or turn Place spawn off to lock the pointer.'
+              : 'Explore mode active. Click the scene for pointer lock, then use WASD and Space.',
+          )
+        } else if (teleport) {
+          if (document.pointerLockElement === renderer.domElement) document.exitPointerLock()
+          Object.keys(keyStates).forEach((code) => {
+            keyStates[code] = false
+          })
+          clearInspectPointerGesture()
+          resetPlayerSpawn()
+          syncYawPitchFromOrbitCamera()
+          pitch = clampTeleportPitch(pitch)
+          applyTeleportOrbitCamera(0)
+          hideTeleportFloorReticle()
+          renderer.domElement.focus({ preventScroll: true })
+          setRuntimeStatus(
+            'Teleport mode active. Short-click the gallery floor to move. Drag to look around.',
+          )
+        } else {
+          renderer.domElement.focus({ preventScroll: true })
           setRuntimeStatus(
             params.runtime.pickMaterials
               ? 'Inspect mode active. Pick material on — click surfaces to select materials for editing (Glass checkboxes are separate).'
@@ -6638,14 +9961,39 @@
                 ? 'Inspect mode active. Pick coordinates on — click geometry to copy world XYZ.'
                 : params.runtime.gizmoEnabled
                   ? 'Inspect mode active. Transform gizmo on — click an object to select it; T/R/S switch mode.'
-                  : 'Inspect mode active. Enable Pick material in Materials, Transform gizmo in Objects, or Pick coordinates in Scene controls.',
+                  : 'Inspect mode active. Drag to look around, WASD to move through the gallery. Click for pointer lock.',
           )
         }
 
+        logNavigationModeTransition(previousMode, value)
+
+        configureShadowMapForNavigationMode()
         updateWalkHint()
+        updateNavModeButtons()
         updatePickModeUi()
         updateSceneControlAvailability()
         updateTransformGizmo()
+      }
+
+      function updateNavModeButtons() {
+        const mode = params.runtime.navigationMode
+        navModeButtons.forEach((btn) => {
+          const btnMode = btn.dataset.navMode
+          const active = btnMode === mode
+          btn.classList.toggle('is-active', active)
+          btn.setAttribute('aria-pressed', String(active))
+        })
+      }
+
+      function initNavModeButtons() {
+        navModeButtons.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            const mode = btn.dataset.navMode
+            if (!mode || mode === params.runtime.navigationMode) return
+            navigationModeController?.setValue(mode)
+          })
+        })
+        updateNavModeButtons()
       }
 
       function updateTransformGizmo() {
@@ -6745,25 +10093,55 @@
       function onCanvasPointerDown(event) {
         if (event.target !== renderer.domElement) return
 
+        if (isTeleportMode()) {
+          onTeleportPointerDown(event)
+          return
+        }
+
         if (params.runtime.navigationMode === 'Inspect') {
           if (event.button !== 0) return
+          markInspectRigOwnedByUser()
+          inspectAwaitingCollisionPlacement = false
           if (params.runtime.pickMaterials) {
             if (transformControls?.dragging || transformControls?.axis) return
+            // Capture-phase stop so OrbitControls never sees this as a rotate drag.
             event.preventDefault()
+            event.stopImmediatePropagation()
+            freezeOrbitControlsForInspectPicking()
             selectMaterialFromClick(event)
             return
           }
           if (params.runtime.gizmoEnabled) {
             if (transformControls?.dragging || transformControls?.axis) return
             event.preventDefault()
+            event.stopImmediatePropagation()
             selectGizmoFromClick(event)
             return
           }
-          if (!params.runtime.pickCoordinates) return
-          if (transformControls?.dragging || transformControls?.axis) return
+          if (params.runtime.pickCoordinates) {
+            if (transformControls?.dragging || transformControls?.axis) return
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            void copyCoordinatesFromClick(event)
+            return
+          }
 
-          event.preventDefault()
-          void copyCoordinatesFromClick(event)
+          // Drag = orbit (OrbitControls). Short-click = optional pointer lock.
+          // Never lock on pointerdown — that stole the first drag and applied stale yaw.
+          // WASD + left-click must not start orbit drag (frame fight with applyInspectOrbitCamera).
+          if (isInspectWasdHeld()) {
+            event.preventDefault()
+            event.stopImmediatePropagation()
+            syncInspectOrbitRotateWithWasd()
+            return
+          }
+          if (document.pointerLockElement !== renderer.domElement) {
+            inspectPointerDown = {
+              clientX: event.clientX,
+              clientY: event.clientY,
+              pointerId: event.pointerId,
+            }
+          }
           return
         }
 
@@ -6784,7 +10162,13 @@
       }
 
       function updateWalkHint() {
-        if (params.runtime.navigationMode !== 'Walk') {
+        if (isTeleportMode()) {
+          walkHint.hidden = false
+          walkHint.textContent = 'Short-click floor to teleport · Drag to look around'
+          return
+        }
+
+        if (!allowsWalkInput()) {
           walkHint.hidden = true
           return
         }
@@ -6792,27 +10176,36 @@
         walkHint.hidden = false
         if (params.runtime.placeSpawn) {
           walkHint.textContent =
-            'Place spawn on: click walkable geometry to teleport the character. Turn Place spawn off to lock the pointer and walk.'
+            'Place spawn on: click walkable geometry to teleport the character. Turn Place spawn off to lock the pointer and explore.'
         } else if (document.pointerLockElement === renderer.domElement) {
           walkHint.hidden = true
-        } else {
+        } else if (isExploreMode()) {
           walkHint.textContent =
-            'Click the scene to lock the pointer. WASD move, Shift to run, Space jump, Esc releases the pointer.'
+            'Click to play · WASD to move · Shift run · Space jump · Esc release pointer'
+        } else if (isInspectMode()) {
+          walkHint.textContent =
+            'Drag to look around · WASD to move · Click to lock pointer · Shift run'
+        } else {
+          walkHint.hidden = true
         }
       }
 
       function onWalkPointerMove(event) {
-        if (params.runtime.navigationMode !== 'Walk') return
+        if (!allowsWalkInput()) return
         if (document.pointerLockElement !== renderer.domElement) return
 
         yaw -= event.movementX / 500
-        pitch = THREE.MathUtils.clamp(pitch - event.movementY / 650, -1.25, 0.9)
+        pitch = clampInspectPitch(pitch - event.movementY / 650)
       }
 
       function onWalkKeyDown(event) {
-        if (params.runtime.navigationMode !== 'Walk') return
+        if (!allowsWalkInput()) return
         if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return
         if (event.repeat) return
+
+        if (isInspectMode() && document.activeElement !== renderer.domElement) {
+          renderer.domElement.focus({ preventScroll: true })
+        }
 
         keyStates[event.code] = true
 
@@ -6831,23 +10224,42 @@
             'ArrowRight',
           ].includes(event.code)
         ) {
+          if (
+            isInspectMode() &&
+            (
+              event.code === 'KeyW' ||
+              event.code === 'KeyA' ||
+              event.code === 'KeyS' ||
+              event.code === 'KeyD' ||
+              event.code === 'ArrowUp' ||
+              event.code === 'ArrowDown' ||
+              event.code === 'ArrowLeft' ||
+              event.code === 'ArrowRight'
+            )
+          ) {
+            markInspectRigOwnedByUser()
+            syncInspectOrbitRotateWithWasd()
+          }
           event.preventDefault()
           event.stopPropagation()
         }
       }
 
       function onWalkKeyUp(event) {
-        if (params.runtime.navigationMode !== 'Walk') return
+        if (!allowsWalkInput()) return
         keyStates[event.code] = false
+        if (isInspectMode()) syncInspectOrbitRotateWithWasd()
       }
 
       function getForwardVector() {
-        playerDirection.set(-Math.sin(yaw), 0, -Math.cos(yaw)).normalize()
+        const movementYaw = getMovementYaw()
+        playerDirection.set(-Math.sin(movementYaw), 0, -Math.cos(movementYaw)).normalize()
         return playerDirection
       }
 
       function getSideVector() {
-        playerDirection.set(Math.cos(yaw), 0, -Math.sin(yaw)).normalize()
+        const movementYaw = getMovementYaw()
+        playerDirection.set(Math.cos(movementYaw), 0, -Math.sin(movementYaw)).normalize()
         return playerDirection
       }
 
@@ -6935,7 +10347,9 @@
         playerCollisions()
         clampPlayerToScene()
         updatePlayerAvatar()
-        updateThirdPersonCamera(deltaTime)
+        if (shouldUseWalkCamera()) {
+          updateThirdPersonCamera(deltaTime)
+        }
         updatePlayerCharacterAnimation(deltaTime)
       }
 
@@ -6999,20 +10413,22 @@
 
         playerTransformPivot.position.set(centerX, floorY, centerZ)
         playerTransformPivot.rotation.y = yaw
-        playerTransformPivot.visible = true
+
+        if (isExploreMode()) {
+          updateShadowCameraForPlayer()
+        }
 
         if (playerCharacterModel && playerCharacterMetrics) {
           const scale =
             THREE.MathUtils.clamp(capsuleHeight / playerCharacterMetrics.height, 0.02, 8) *
             PLAYER_CHARACTER_VISUAL_SCALE
-          playerCharacterModel.visible = true
           playerCharacterModel.scale.setScalar(scale)
           playerCharacterModel.position.y = -playerCharacterMetrics.feetY * scale - PLAYER_CHARACTER_FLOOR_SINK
           playerCharacterModel.rotation.y = PLAYER_CHARACTER_YAW_OFFSET
           playerMesh.position.set(0, 0, 0)
           playerMesh.rotation.set(0, 0, 0)
           playerMesh.scale.setScalar(1)
-          playerMesh.visible = true
+          updatePlayerAvatarVisibility()
           return
         }
 
@@ -7020,6 +10436,7 @@
         playerMesh.rotation.set(0, 0, 0)
         const scale = playerCollider.radius / 0.045
         playerMesh.scale.setScalar(scale)
+        updatePlayerAvatarVisibility()
       }
 
       function updateThirdPersonCamera(deltaTime, smoothFactor = 14) {
@@ -7140,7 +10557,8 @@
       }
 
       function applyPostProcessing(source) {
-        return sharpen(traa(applyGrading(source), scenePassDepth, scenePassVelocity, camera), 0)
+        traaNode = traa(applyGrading(source), scenePassDepth, scenePassVelocity, camera)
+        return sharpen(traaNode, 0)
       }
 
       function applyPost() {
@@ -7222,14 +10640,76 @@
         runtimeTimer.update(timestamp)
         const deltaTime = Math.min(0.05, runtimeTimer.getDelta())
 
-        if (params.runtime.navigationMode === 'Walk') {
+        if (allowsPlayerMovement()) {
           updateWalk(deltaTime)
           savePlayerSpawnToStorage()
-        } else {
-          controls.update()
         }
 
-        if (playerCharacterMixer) {
+        if (allowsInspectCameraMovement()) {
+          updateInspectCameraMovement(deltaTime)
+        }
+
+        if (isExploreMode()) {
+          // Explore mode always uses the walk camera rig from updateWalkPlayer.
+        } else if (isTeleportMode() && !isPointerLocked() && !teleportTransitionActive) {
+          syncOrbitTargetToPlayer()
+          if (orbitControlsDragging) {
+            controls.update()
+            clampOrbitCameraToGalleryBounds()
+          } else {
+            applyTeleportOrbitCamera(deltaTime)
+          }
+        } else if (isInspectMode() && isInspectCameraFrozenForMaterials()) {
+          // Pick materials ON: zero camera mutation — no soft-correct, clamp, or orbit update.
+          if (orbitControlsDragging) orbitControlsDragging = false
+          if (controls) clearOrbitControlsInertia()
+          if (
+            pickMaterialsCameraSnapshot &&
+            inspectCameraSnapshotDrifted(pickMaterialsCameraSnapshot)
+          ) {
+            restoreInspectCameraSnapshot(pickMaterialsCameraSnapshot)
+          }
+        } else if (isInspectMode() && isPointerLocked() && !isCameraPathActive()) {
+          // Pointer-lock look is explicit user control — drop keyframe soft-correct hold.
+          releaseInspectSoftCorrectSuppression()
+          applyInspectPointerLockCamera()
+          markInspectRigOwnedByUser()
+          runInspectContinuousDepenetration(deltaTime)
+          enforceInspectCameraConstraints()
+        } else if (isInspectMode() && !teleportTransitionActive && !shouldSkipInspectSoftCorrect()) {
+          runInspectContinuousDepenetration(deltaTime)
+          // Other pick modes (coords/gizmo): never run drag clamps / soft-correct.
+          if (isInspectPickingActive()) {
+            if (orbitControlsDragging) {
+              orbitControlsDragging = false
+              clearOrbitControlsInertia()
+            }
+          } else if (orbitControlsDragging) {
+            // Same as Teleport: OrbitControls rotates around the eye; no large-radius pull-in.
+            // Do not syncYawPitch / applyInspectOrbitCamera mid-drag — that fought controls.update().
+            controls.update()
+            clampOrbitCameraToGalleryBounds()
+          } else if (isInspectWasdHeld()) {
+            // WASD already applied translation this frame — keep nodal look only.
+            // Never call full soft-correct here (it froze near-wall slides).
+            applyInspectOrbitCamera(0)
+            clampInspectOrbitBoundsLight()
+          } else {
+            applyInspectOrbitCamera(deltaTime)
+            enforceInspectCameraConstraints()
+          }
+        } else if (isInspectMode() && shouldSkipInspectSoftCorrect() && controls) {
+          // Keep OrbitControls spherical/lookAt in sync during path playback / held keyframe
+          // views without running Inspect soft-correct that would rewrite angles.
+          if (!orbitControlsDragging) clearOrbitControlsInertia()
+          if (isPointerLocked()) {
+            applyInspectPointerLockCamera()
+          } else {
+            applyInspectOrbitCamera(0)
+          }
+        }
+
+        if (playerCharacterMixer && shouldShowPlayerAvatar()) {
           playerCharacterMixer.update(deltaTime)
         }
 
@@ -7238,6 +10718,22 @@
         }
 
         updateObjectInfoLiveFields()
+
+        if (temporalHistoryMuteFrames > 0 && ssrNode) {
+          // Mute SSR add for 1–2 frames while temporal/TRAA history reseeds after a cut.
+          // Avoids a single-frame overbright specular composite ("broken neon" flash).
+          ssrNode.intensity.value = 0
+          if (temporalReprojectNode?.maxFrames) temporalReprojectNode.maxFrames.value = 1
+          temporalHistoryMuteFrames -= 1
+          temporalHistoryResetPending = false
+        } else if (temporalHistoryResetPending) {
+          temporalHistoryResetPending = false
+        } else if (ssrNode && ssrNode.intensity.value !== params.ssr.intensity) {
+          ssrNode.intensity.value = params.ssr.intensity
+          if (temporalReprojectNode?.maxFrames) {
+            temporalReprojectNode.maxFrames.value = params.temporalReproject.maxFrames
+          }
+        }
 
         if (window.self !== window.top) {
           const elapsed = timestamp - lastRenderTime

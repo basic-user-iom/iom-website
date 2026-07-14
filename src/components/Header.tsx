@@ -33,9 +33,11 @@ export function Header() {
     return () => document.removeEventListener('visibilitychange', onVisibility)
   }, [profile.prefersReducedMotion])
 
+  const closeMenu = () => setMenuOpen(false)
+
   return (
     <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
-      <a href="#" className="header-brand" aria-label="IOM home">
+      <a href="/" className="header-brand" aria-label="IOM home">
         <div className="raven-mascot-wrap">
           <video
             ref={videoRef}
@@ -49,66 +51,37 @@ export function Header() {
             preload={profile.prefersReducedMotion ? 'none' : 'metadata'}
             aria-hidden="true"
           />
-
         </div>
-
         <div className="brand-text">
-
           <span className="brand-name">IOM</span>
-
           <span className="brand-tag">Interactive Object Media</span>
-
         </div>
-
       </a>
 
-
-
       <button
-
         type="button"
-
         className="nav-toggle"
-
         aria-expanded={menuOpen}
-
         aria-controls="site-nav"
-
         onClick={() => setMenuOpen((o) => !o)}
-
       >
-
         <span className="sr-only">Menu</span>
-
         {menuOpen ? '✕' : '☰'}
-
       </button>
 
-
-
       <nav id="site-nav" className={`header-nav${menuOpen ? ' is-open' : ''}`}>
-
         {SECTIONS.map((s) => (
-
-          <a key={s.id} href={`#${s.id}`} onClick={() => setMenuOpen(false)}>
-
+          <a key={s.id} href={`/#${s.id}`} onClick={closeMenu}>
             {s.label}
-
           </a>
-
         ))}
-
-        <a href="#contact" onClick={() => setMenuOpen(false)}>
-
+        <a href="/#contact" onClick={closeMenu}>
           Contact
-
         </a>
-
+        <a href="/client-login" onClick={closeMenu}>
+          Client Login
+        </a>
       </nav>
-
     </header>
-
   )
-
 }
-

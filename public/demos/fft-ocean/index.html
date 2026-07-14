@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FFT Ocean — IOM</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #env-selector {
+        position: fixed;
+        left: 12px;
+        top: 48px;
+        z-index: 15;
+        max-width: calc(100vw - 24px);
+      }
+      #env-selector,
+      #env-selector ul {
+        padding: 0;
+        margin: 0;
+      }
+      #env-selector ul li {
+        display: inline;
+        padding: 0;
+        margin: 0;
+      }
+      #env-selector ul li a {
+        display: inline-block;
+        text-decoration: none;
+        background-color: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        opacity: 0.75;
+        padding: 5px 7px;
+        font-size: 12px;
+        cursor: pointer;
+        margin: 0 4px 4px 0;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 3px;
+        transition: background-color 0.25s, color 0.25s;
+      }
+      #env-selector ul li a:hover {
+        background-color: rgba(255, 255, 255, 0.92);
+        color: #000;
+        opacity: 1;
+      }
+      #env-selector ul li.selected a {
+        background-color: rgba(51, 51, 204, 0.92);
+        color: #fff;
+        opacity: 1;
+        border-color: rgba(120, 140, 255, 0.5);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 560px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(300px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      /* dat.gui — keep clear of attribution */
+      .dg.main {
+        margin-right: 12px !important;
+      }
+      @media (max-width: 640px) {
+        #hint {
+          display: none;
+        }
+        #env-selector {
+          top: 44px;
+          right: 12px;
+          left: auto;
+          text-align: right;
+        }
+      }
+    </style>
+    <link href="js/libs/messg.css" rel="stylesheet" />
+    <link rel="stylesheet" href="../attribution.css" />
+  </head>
+  <body>
+    <a class="back-link" href="/">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://github.com/jbouny/fft-ocean"
+          target="_blank"
+          rel="noopener noreferrer"
+          >fft-ocean</a
+        >
+        — WebGL FFT ocean
+      </p>
+      <p class="demo-attribution-credits">
+        Fast Fourier Transform ocean rendering for Three.js by
+        <a href="https://github.com/jbouny" target="_blank" rel="noopener noreferrer">jbouny</a>.
+        Screen-space projected grid with displacement and normal maps, skyboxes, clouds, rain, and
+        the Black Pearl ship.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/jbouny/fft-ocean"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="env-selector">
+      <ul>
+        <li key="night">Night</li>
+        <li key="morning">Morning</li>
+        <li key="day">Day</li>
+        <li key="cloudy">Cloudy</li>
+        <li key="sunset">Sunset</li>
+        <li key="interstellar">Interstellar</li>
+        <li key="apocalypse">Apocalypse</li>
+      </ul>
+    </div>
+
+    <div id="hint">
+      WASD to sail · orbit with mouse · pick environment above · press H for controls
+    </div>
+    <div id="status">Loading ocean…</div>
+
+    <script src="js/libs/three.min.js"></script>
+    <script src="js/libs/dat.gui.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jquery@2.1.4/dist/jquery.min.js"></script>
+    <script src="js/libs/messg.min.js"></script>
+    <script src="js/controls/OrbitControls.js"></script>
+    <script src="js/shaders/ScreenSpaceShader.js"></script>
+    <script src="js/shaders/FFTOceanShader.js"></script>
+    <script src="js/shaders/OceanShader.js"></script>
+    <script src="js/effects/MirrorRenderer.js"></script>
+    <script src="js/shaders/CloudShader2.js"></script>
+    <script src="js/shaders/RainShader.js"></script>
+    <script src="js/loaders/OBJMTLLoader.js"></script>
+    <script src="js/loaders/MTLLoader.js"></script>
+    <script src="js/effects/Ocean.js"></script>
+    <script src="js/demo.js"></script>
+
+    <script>
+      const statusEl = document.getElementById('status')
+      var lastTime = new Date().getTime()
+
+      const WINDOW = {
+        ms_Width: 0,
+        ms_Height: 0,
+        ms_Callbacks: {
+          70: 'WINDOW.ToggleFullScreen()',
+        },
+
+        Initialize: function () {
+          this.UpdateSize()
+          document.onkeydown = function (inEvent) {
+            WINDOW.CallAction(inEvent.keyCode)
+          }
+          window.onresize = function () {
+            WINDOW.UpdateSize()
+            WINDOW.ResizeCallback(WINDOW.ms_Width, WINDOW.ms_Height)
+          }
+        },
+
+        UpdateSize: function () {
+          this.ms_Width = window.innerWidth
+          this.ms_Height = window.innerHeight
+        },
+
+        CallAction: function (inId) {
+          if (inId in this.ms_Callbacks) {
+            eval(this.ms_Callbacks[inId])
+            return false
+          }
+        },
+
+        ToggleFullScreen: function () {
+          if (
+            !document.fullscreenElement &&
+            !document.mozFullScreenElement &&
+            !document.webkitFullscreenElement
+          ) {
+            if (document.documentElement.requestFullscreen) {
+              document.documentElement.requestFullscreen()
+            } else if (document.documentElement.mozRequestFullScreen) {
+              document.documentElement.mozRequestFullScreen()
+            } else if (document.documentElement.webkitRequestFullscreen) {
+              document.documentElement.webkitRequestFullscreen(Element.ALLOW_KEYBOARD_INPUT)
+            }
+          } else {
+            if (document.cancelFullScreen) {
+              document.cancelFullScreen()
+            } else if (document.mozCancelFullScreen) {
+              document.mozCancelFullScreen()
+            } else if (document.webkitCancelFullScreen) {
+              document.webkitCancelFullScreen()
+            }
+          }
+        },
+        ResizeCallback: function () {},
+      }
+
+      WINDOW.Initialize()
+      DEMO.Initialize()
+
+      const origOnLoad = DEMO.ms_Loader.onLoad
+      DEMO.ms_Loader.onLoad = function () {
+        if (origOnLoad) origOnLoad()
+        statusEl.textContent = 'FFT ocean · orbit to explore'
+      }
+
+      const origOnError = DEMO.ms_Loader.onError
+      DEMO.ms_Loader.onError = function () {
+        if (origOnError) origOnError()
+        statusEl.textContent = 'Loading error'
+        statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
+        statusEl.style.color = '#ffd2d2'
+      }
+
+      WINDOW.ResizeCallback = function (inWidth, inHeight) {
+        DEMO.Resize(inWidth, inHeight)
+      }
+      DEMO.Resize(WINDOW.ms_Width, WINDOW.ms_Height)
+
+      const render = function () {
+        requestAnimationFrame(render)
+        DEMO.Update()
+      }
+
+      render()
+    </script>
+  </body>
+</html>

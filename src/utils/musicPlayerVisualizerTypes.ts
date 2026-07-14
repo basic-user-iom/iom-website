@@ -5,7 +5,7 @@ export type MusicPlayerVisualizerBands = {
   phase: number
 }
 
-/** Shared surface API for raymarch and WebGPU raging-sea visualizers. */
+/** Shared surface API for music player visualizers (FFT ocean, raymarch, raging sea). */
 export interface MusicPlayerVisualizerLike {
   mount(container: HTMLElement): void | Promise<void>
   resize(width: number, height: number): void
@@ -19,5 +19,7 @@ export interface MusicPlayerVisualizerLike {
   setDeviceOrientation(beta: number | null, gamma: number | null): void
   clearDeviceOrientation(): void
   getBandLevels(): MusicPlayerVisualizerBands
+  /** Called when the active track id changes (new song, not pause/resume). */
+  setActiveTrackId?(trackId: string): void
   dispose(): void
 }

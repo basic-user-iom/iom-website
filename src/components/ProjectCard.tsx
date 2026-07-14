@@ -65,7 +65,9 @@ export const ProjectCard = memo(function ProjectCard({
   const mountedRef = useRef(true)
 
   const profile = getDeviceProfile()
-  const { isPending: isComingSoon, label: countdownLabel } = useCountdown(project.availableAt)
+  const { isPending: isCountdownPending, label: countdownLabel } = useCountdown(project.availableAt)
+  const isComingSoon = isCountdownPending || Boolean(project.comingSoonOverlay)
+  const comingSoonLabel = project.comingSoonLabel ?? 'Coming Soon'
   const initials = project.title
     .split(/[\s-]+/)
     .map((w) => w[0])
@@ -272,31 +274,39 @@ export const ProjectCard = memo(function ProjectCard({
           <h3 className="card-title">{project.title}</h3>
           <p className="card-desc">{project.description}</p>
           <div className="card-footer">
-            <span>{project.year}</span>
-            <span className="card-footer-links">
-              {project.sourceUrl ? (
-                <a
-                  className="card-source-link"
-                  href={project.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  Source
-                </a>
+            <div className="card-footer-meta">
+              <span className="card-year">{project.year}</span>
+              {project.sourceUrl || project.referenceUrls?.length ? (
+                <span className="card-footer-links">
+                  {project.sourceUrl ? (
+                    <a
+                      className="card-source-link"
+                      href={project.sourceUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title="Source"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Source
+                    </a>
+                  ) : null}
+                  {project.referenceUrls?.map((reference) => (
+                    <a
+                      key={reference.url}
+                      className="card-source-link"
+                      href={reference.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={reference.label}
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      {reference.label}
+                    </a>
+                  ))}
+                </span>
               ) : null}
-              {project.referenceUrls?.map((reference) => (
-                <a
-                  key={reference.url}
-                  className="card-source-link"
-                  href={reference.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {reference.label}
-                </a>
-              ))}
+            </div>
+            <div className="card-footer-action">
               {project.url ? (
                 <span className="card-link">Open →</span>
               ) : hasGallery ? (
@@ -304,16 +314,18 @@ export const ProjectCard = memo(function ProjectCard({
               ) : hasMusicTrack ? (
                 <span className="card-link">{musicActive ? 'Selected' : 'Load track →'}</span>
               ) : (
-                <span>Sample</span>
+                <span className="card-footer-note">Sample</span>
               )}
-            </span>
+            </div>
           </div>
         </div>
       </div>
       {isComingSoon ? (
         <div className="card-coming-soon-overlay" aria-hidden="true">
-          <span className="card-coming-soon-label">Coming Soon</span>
-          <span className="card-coming-soon-countdown">{countdownLabel}</span>
+          <span className="card-coming-soon-label">{comingSoonLabel}</span>
+          {isCountdownPending ? (
+            <span className="card-coming-soon-countdown">{countdownLabel}</span>
+          ) : null}
         </div>
       ) : null}
     </>
@@ -359,7 +371,7 @@ export const ProjectCard = memo(function ProjectCard({
         role={isComingSoon ? undefined : hasGallery || hasMusicTrack ? 'button' : undefined}
         aria-label={
           isComingSoon
-            ? `${project.title} — coming soon`
+            ? `${project.title} — ${comingSoonLabel.toLowerCase()}`
             : hasGallery
               ? `View ${project.title} gallery`
               : hasMusicTrack

@@ -1,0 +1,562 @@
+[
+  {
+    "company_name": "C&G Partners",
+    "website": "https://www.cgpartnersllc.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://www.cgpartnersllc.com/about/contact/"
+      },
+      {
+        "label": "New Business",
+        "url": "https://www.cgpartnersllc.com/new-business/"
+      },
+      {
+        "label": "Firm and Team",
+        "url": "https://www.cgpartnersllc.com/about/the-firm/"
+      },
+      {
+        "label": "Work",
+        "url": "https://www.cgpartnersllc.com/work/"
+      }
+    ],
+    "contact_name": "Carlos Solis-Keyser",
+    "contact_role": "Head of Business Development",
+    "email": "newbusiness@cgpartnersllc.com",
+    "emails": [
+      {
+        "label": "New Business",
+        "email": "newbusiness@cgpartnersllc.com"
+      },
+      {
+        "label": "General",
+        "email": "info@cgpartnersllc.com"
+      },
+      {
+        "label": "Press",
+        "email": "press@cgpartnersllc.com"
+      }
+    ],
+    "phone": "+1 212 532 4460",
+    "offer": "Specialist and overflow production support for C&G Partners projects that need interactive 3D, optimized browser assets, architectural visualization, photogrammetry, virtual reconstruction, 360-degree environments, custom Three.js modules or standalone web presentations. IOM can work inside C&G's concept, UX and exhibition direction and take ownership of technically demanding 3D and spatial deliverables.",
+    "company_focus": "A New York creative studio dedicated to design for culture, combining exhibitions, digital experiences, branding, environmental graphics, wayfinding, websites and multidisciplinary storytelling for museums, cultural organizations, public institutions and mission-driven clients.",
+    "notes": "Fit: C&G's cultural, exhibition and digital work strongly matches IOM's museum, spatial and browser-based capabilities. Positioning: approach as a specialist production partner, not as another experience-design agency; emphasize reliable ownership of defined 3D, reconstruction, 360 and web modules. Atlas rationale: can_hire_us 4 because it handles multidisciplinary client projects and has a dedicated business-development function; thinks_like_us 4 and creative_compatibility 5 because both practices combine storytelling, space and technology; technical_compatibility 4 because C&G already has technologists and programmers but may need specialist capacity; commercial_potential 4, relationship_potential 4 and strategic_value 4 because a successful assignment could lead to repeat cultural-sector work. Sources: https://www.cgpartnersllc.com/about/the-firm/, https://www.cgpartnersllc.com/about/contact/, https://www.cgpartnersllc.com/new-business/ ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 4,
+      "commercial_potential": 4,
+      "creative_compatibility": 5,
+      "technical_compatibility": 4,
+      "relationship_potential": 4,
+      "strategic_value": 4
+    },
+    "initial_email_subject": "Specialist 3D support for C&G cultural projects",
+    "initial_email_body": "Hi Carlos,\n\nI recently explored C&G Partners' work across exhibitions, digital experiences and design for culture, and I wanted to introduce IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio focused on interactive 3D software, Three.js development, optimized real-time environments, architectural visualization, photogrammetry and 360-degree spatial experiences.\n\nBecause C&G already leads strategy, content and experience design, I am not proposing an overlapping full-service offer. IOM could work as a specialist production partner when a project needs a virtual reconstruction, browser-based 3D module, optimized model pipeline, interactive architectural environment, 360-degree component or standalone web presentation. I can take responsibility for a clearly defined technical package while working within your team's concept, UX and visual direction.\n\nYou can see an overview of my work at https://iobjectm.com/.\n\nI would be glad to share a focused set of relevant examples and learn whether C&G sometimes brings in independent 3D or real-time specialists for project-specific support.\n\nWould you be open to a brief introductory conversation?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/New_York",
+    "client_city": "New York",
+    "client_country": "United States",
+    "client_address": "116 East 16th Street, 10th Floor, New York, NY 10003, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "HUSH",
+    "website": "https://www.heyhush.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://www.heyhush.com/contact"
+      },
+      {
+        "label": "People",
+        "url": "https://www.heyhush.com/people"
+      },
+      {
+        "label": "Work",
+        "url": "https://www.heyhush.com/work"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/company/hush-studios-inc/"
+      }
+    ],
+    "contact_name": "Sarah Crooks",
+    "contact_role": "Director of Growth",
+    "email": "sales@heyhush.com",
+    "emails": [
+      {
+        "label": "Sales",
+        "email": "sales@heyhush.com"
+      },
+      {
+        "label": "General",
+        "email": "info@heyhush.com"
+      },
+      {
+        "label": "Press and Speaking",
+        "email": "comms@heyhush.com"
+      }
+    ],
+    "phone": "+1 718 422 1537",
+    "offer": "Overflow real-time 3D and spatial-production support for HUSH experience centers, workplace installations and data-driven environments. IOM can provide optimized 3D environments, architectural visualization, interactive Three.js components, photogrammetry, 360-degree spatial capture, custom model viewers and rapid WebGL/WebGPU prototypes that integrate into HUSH-led experiences.",
+    "company_focus": "A Brooklyn experience-design studio creating technology-led physical spaces, workplace and executive experience centers, interactive installations, media environments and data-driven brand experiences.",
+    "notes": "Fit: HUSH works at the intersection of architecture, content, interactivity and technology, making IOM's real-time 3D and spatial-production skills directly relevant. Positioning: offer modular production capacity under HUSH's strategic and creative leadership, especially for web-based extensions, visualization, previsualization, optimized environments and capture or reconstruction. Atlas rationale: can_hire_us 4 due to established commercial experience work and a Director of Growth; thinks_like_us 4, creative_compatibility 5 and technical_compatibility 5 because both studios treat digital systems as part of space; commercial_potential 4 and strategic_value 4 because projects are likely substantial but competition is high; relationship_potential 4 because a successful specialist engagement could recur. Sources: https://www.heyhush.com/people, https://www.heyhush.com/contact, https://www.heyhush.com/work ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 4,
+      "commercial_potential": 4,
+      "creative_compatibility": 5,
+      "technical_compatibility": 5,
+      "relationship_potential": 4,
+      "strategic_value": 4
+    },
+    "initial_email_subject": "Real-time 3D support for HUSH experiences",
+    "initial_email_body": "Hi Sarah,\n\nI recently looked through HUSH's work in experience centers, interactive spaces and data-driven environments, and I wanted to introduce IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio focused on interactive 3D, Three.js, WebGL/WebGPU, architectural visualization, photogrammetry, 360-degree environments and custom browser or desktop viewers.\n\nHUSH already leads the broader strategy, design and integration of complex experiences, so I see the strongest fit as specialist production support. IOM could take ownership of a defined package such as an optimized real-time environment, architectural previsualization, browser-based 3D extension, spatial reconstruction, 360-degree component or rapid interactive prototype, while following HUSH's creative and technical direction.\n\nAn overview of my work is available at https://iobjectm.com/.\n\nI would be happy to share a concise selection of relevant examples and learn whether HUSH collaborates with independent real-time 3D specialists when projects need additional capacity.\n\nWould you be open to a short introductory call?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/New_York",
+    "client_city": "Brooklyn",
+    "client_country": "United States",
+    "client_address": "141 Flushing Avenue, Building 77, Suite 602, Brooklyn, NY 11205, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "BRC Imagination Arts",
+    "website": "https://www.brcweb.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://www.brcweb.com/contact/"
+      },
+      {
+        "label": "Team",
+        "url": "https://www.brcweb.com/meet-the-brc-team/"
+      },
+      {
+        "label": "Donna Davidson",
+        "url": "https://www.brcweb.com/meet-the-brc-team/donna-davidson/"
+      },
+      {
+        "label": "Services",
+        "url": "https://www.brcweb.com/services/"
+      },
+      {
+        "label": "Work",
+        "url": "https://www.brcweb.com/work/"
+      }
+    ],
+    "contact_name": "Donna Davidson",
+    "contact_role": "Executive Development Director",
+    "email": "brc@brcweb.com",
+    "emails": [
+      {
+        "label": "General and Projects",
+        "email": "brc@brcweb.com"
+      }
+    ],
+    "phone": "+1 818 841 8084",
+    "offer": "Project-specific interactive and spatial-production support for BRC's museums, brand homes, attractions and cultural experiences. IOM can deliver virtual reconstructions, architectural environments, optimized GLB assets, photogrammetry, 360-degree capture and tours, Three.js companion experiences, custom 3D viewers and technical previsualization for larger BRC-led projects.",
+    "company_focus": "A global experience-design and production company creating museums, brand homes, cultural attractions, immersive media, sports and music experiences, innovation centers and world-exposition projects through strategy, storytelling, design and production.",
+    "notes": "Fit: BRC develops large narrative visitor experiences where specialized 3D, spatial capture, reconstruction and browser components can become discrete subcontracted packages. Positioning: lead with dependable execution under BRC's storytelling and creative direction; avoid suggesting that IOM can replace BRC's end-to-end team. Atlas rationale: can_hire_us 4 because BRC has global, production-heavy projects and an Executive Development Director; commercial_potential 5 and strategic_value 5 because even a limited package could be significant and highly credible; thinks_like_us 4, creative_compatibility 5 and technical_compatibility 4 because the storytelling alignment is strong while BRC already has broad production capability; relationship_potential 4 because supplier relationships can repeat across projects. Sources: https://www.brcweb.com/meet-the-brc-team/, https://www.brcweb.com/meet-the-brc-team/donna-davidson/, https://www.brcweb.com/contact/, https://www.brcweb.com/services/ ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 4,
+      "commercial_potential": 5,
+      "creative_compatibility": 5,
+      "technical_compatibility": 4,
+      "relationship_potential": 4,
+      "strategic_value": 5
+    },
+    "initial_email_subject": "Specialist 3D production for BRC visitor experiences",
+    "initial_email_body": "Hi Donna,\n\nI recently explored BRC Imagination Arts' work across museums, brand homes and immersive visitor attractions, and I wanted to introduce IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio specializing in interactive 3D software, real-time environments, architectural visualization, photogrammetry, 360-degree experiences and browser-based Three.js development.\n\nBRC already provides the strategy, storytelling, design and full experience framework, so I am reaching out as a potential specialist production partner. IOM could take responsibility for a defined component such as a virtual reconstruction, optimized architectural environment, photogrammetry asset, interactive 3D companion experience, 360-degree tour or technical previsualization package, while working within BRC's creative and production process.\n\nYou can see an overview of my work at https://iobjectm.com/.\n\nI would be glad to share a focused set of relevant examples and learn whether BRC maintains a network of independent 3D and real-time production specialists for overflow or project-specific needs.\n\nWould you be open to a brief introduction?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/Los_Angeles",
+    "client_city": "Burbank",
+    "client_country": "United States",
+    "client_address": "3400 West Olive Avenue, Suite 220, Burbank, CA 91505, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "G&A",
+    "website": "https://gallagherdesign.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://gallagherdesign.com/contact/"
+      },
+      {
+        "label": "Who We Are",
+        "url": "https://gallagherdesign.com/who-we-are/"
+      },
+      {
+        "label": "Projects",
+        "url": "https://gallagherdesign.com/all-projects/"
+      },
+      {
+        "label": "Press and Awards",
+        "url": "https://gallagherdesign.com/press-awards/"
+      }
+    ],
+    "contact_name": "Scott Wickstrom",
+    "contact_role": "CEO",
+    "email": "hello@gallagherdesign.com",
+    "emails": [
+      {
+        "label": "General and Project Inquiries",
+        "email": "hello@gallagherdesign.com"
+      },
+      {
+        "label": "Careers",
+        "email": "hr@gallagherdesign.com"
+      },
+      {
+        "label": "Asia",
+        "email": "gaa@gallagherdesign.com"
+      }
+    ],
+    "phone": "+1 212 951 0800",
+    "offer": "Specialist production support for G&A museum, cultural and branded-environment projects requiring interactive 3D, WebGL/WebGPU development, optimized spatial models, virtual reconstruction, architectural visualization, photogrammetry, 360-degree media or custom browser-based presentation modules.",
+    "company_focus": "An interdisciplinary experience-design studio creating museums, cultural destinations, branded environments and public experiences through content development, digital media, physical experience design, strategy, wayfinding and interactive design.",
+    "notes": "Fit: G&A regularly combines physical and digital experience design and has credited external media and interactive partners on major projects, indicating a collaboration model compatible with IOM. Positioning: propose clearly bounded technical packages under G&A's experience and content direction; emphasize 3D optimization, browser delivery and spatial reconstruction rather than general exhibit design. Atlas rationale: can_hire_us 4 because it handles large multidisciplinary projects and works with specialist partners; thinks_like_us 4, creative_compatibility 5 and technical_compatibility 5 because its work explicitly synthesizes physical and digital worlds; commercial_potential 4 and strategic_value 5 because museum references would be valuable; relationship_potential 4 due to repeatable project modules. Sources: https://gallagherdesign.com/who-we-are/, https://gallagherdesign.com/contact/, https://gallagherdesign.com/all-projects/, https://gallagherdesign.com/project/usopm/ ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 4,
+      "commercial_potential": 4,
+      "creative_compatibility": 5,
+      "technical_compatibility": 5,
+      "relationship_potential": 4,
+      "strategic_value": 5
+    },
+    "initial_email_subject": "Interactive 3D support for G&A projects",
+    "initial_email_body": "Hi Scott,\n\nI recently reviewed G&A's museum and cultural work, particularly the way your projects integrate content, physical design and digital media, and I wanted to introduce IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio focused on interactive 3D, Three.js, WebGL/WebGPU, architectural visualization, photogrammetry, virtual reconstruction and 360-degree spatial experiences.\n\nI am not approaching G&A with a competing exhibit-design offer. The potential fit I see is as a specialist production partner for a defined part of a larger G&A-led project: an optimized real-time environment, browser-based 3D module, virtual reconstruction, architectural model, photogrammetry package, 360-degree experience or custom standalone presentation.\n\nI can work within an established content, UX and visual direction and take ownership of the production-heavy technical deliverable through testing and handoff.\n\nYou can see an overview of my work at https://iobjectm.com/.\n\nI would be happy to share a concise selection of relevant examples and learn whether G&A collaborates with independent 3D and real-time specialists for selected projects.\n\nWould you be open to a brief conversation?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/New_York",
+    "client_city": "New York",
+    "client_country": "United States",
+    "client_address": "141 West 28th Street, 7th Floor, New York, NY 10001, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "DE-YAN",
+    "website": "https://de-yan.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://www.de-yan.com/contact"
+      },
+      {
+        "label": "Studio",
+        "url": "https://www.de-yan.com/studio"
+      },
+      {
+        "label": "Capabilities",
+        "url": "https://de-yan.com/capabilities"
+      },
+      {
+        "label": "Work",
+        "url": "https://www.de-yan.com/work"
+      },
+      {
+        "label": "Dejan Jovanovic — LinkedIn",
+        "url": "https://www.linkedin.com/in/dejan-jovanovic-62860b5b"
+      }
+    ],
+    "contact_name": "Dejan Jovanovic",
+    "contact_role": "Founder and CEO",
+    "email": "hello@de-yan.com",
+    "emails": [
+      {
+        "label": "Projects and General",
+        "email": "hello@de-yan.com"
+      }
+    ],
+    "phone": "",
+    "offer": "White-label or overflow technical production for DE-YAN brand experiences, launches, retail environments and immersive activations. IOM can supply optimized real-time 3D environments, architectural visualization, Blender-to-GLB pipelines, Three.js and WebGL/WebGPU modules, photogrammetry, 360-degree content, virtual extensions and fast functional prototypes under DE-YAN's creative direction.",
+    "company_focus": "A global brand-experience studio combining strategy, creative technology, motion, architecture and production for luxury, fashion, consumer technology, automotive, gaming, entertainment, retail and live experiences.",
+    "notes": "Fit: DE-YAN explicitly states that it can work with existing agencies and partners and offers white-label production, while its work spans creative technology, CGI, spatial prototypes and custom software. Positioning: propose a narrow, white-label technical capability that can plug into a DE-YAN team during peak demand; avoid broad agency language. A practical connection is that DE-YAN has both a New York headquarters and a Belgrade office. Atlas rationale: can_hire_us 5 because it openly supports specialist-partner models and has active production demand; thinks_like_us 4, creative_compatibility 5 and technical_compatibility 5 because both value making, prototyping and integrated technology; commercial_potential 5 and strategic_value 5 because clients and project scales are substantial; relationship_potential 4 because the fit is strong but vendor competition will be high. Sources: https://www.de-yan.com/studio, https://de-yan.com/capabilities, https://www.de-yan.com/contact, https://www.commarts.com/features/de-yan ",
+    "atlas_eval": {
+      "can_hire_us": 5,
+      "thinks_like_us": 4,
+      "commercial_potential": 5,
+      "creative_compatibility": 5,
+      "technical_compatibility": 5,
+      "relationship_potential": 4,
+      "strategic_value": 5
+    },
+    "initial_email_subject": "White-label real-time 3D support for DE-YAN",
+    "initial_email_body": "Hi Dejan,\n\nI recently explored DE-YAN's brand-experience work and your integrated approach across strategy, creative technology, architecture and production. I also noticed that DE-YAN is comfortable working as, and with, specialist production partners.\n\nI run IOM — Interactive Object Media, a small creative and technical studio focused on interactive 3D software, Three.js, WebGL/WebGPU, optimized GLB workflows, architectural visualization, photogrammetry and 360-degree environments.\n\nThe potential fit I see is white-label or overflow support for a defined production package rather than an overlapping agency offer. IOM could take ownership of an optimized real-time environment, browser-based 3D layer, architectural previsualization, interactive prototype, photogrammetry asset, 360-degree component or standalone digital extension, following DE-YAN's established creative and technical direction.\n\nI am based in Serbia, which may also make collaboration with your Belgrade and New York teams practical across time zones.\n\nYou can see an overview of my work at https://iobjectm.com/.\n\nI would be glad to send a focused selection of examples and learn whether DE-YAN keeps a roster of independent technical specialists for peak production periods or unusual builds.\n\nWould you be open to a short introduction?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/New_York",
+    "client_city": "New York",
+    "client_country": "United States",
+    "client_address": "224 Centre Street, Suite 3E, New York, NY 10013, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "Dimensional Innovations",
+    "website": "https://dimin.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://dimin.com/contact"
+      },
+      {
+        "label": "About",
+        "url": "https://dimin.com/about"
+      },
+      {
+        "label": "Work",
+        "url": "https://dimin.com/work"
+      },
+      {
+        "label": "Chad Hutson",
+        "url": "https://dimin.com/about/teammember/chad-hutson"
+      },
+      {
+        "label": "Capabilities",
+        "url": "https://dimin.com/capabilities"
+      }
+    ],
+    "contact_name": "Chad Hutson",
+    "contact_role": "Chief Strategy Officer",
+    "email": "info@dimin.com",
+    "emails": [
+      {
+        "label": "General",
+        "email": "info@dimin.com"
+      },
+      {
+        "label": "Media",
+        "email": "media@dimin.com"
+      },
+      {
+        "label": "Careers",
+        "email": "HR@dimin.com"
+      }
+    ],
+    "phone": "+1 913 384 3488",
+    "offer": "Overflow digital and 3D production for Dimensional Innovations' experience-design, sports, museum, workplace and branded-environment projects. IOM can create optimized real-time environments, browser-based Three.js modules, architectural visualizations, photogrammetry assets, 360-degree experiences, standalone interactive presentations and rapid technical prototypes that complement DI's physical design, fabrication and immersive-technology teams.",
+    "company_focus": "An employee-owned experience design, build and technology firm combining strategy, design, immersive technology, content and fabrication for sports venues, museums, brands, workplaces, healthcare, education and public spaces.",
+    "notes": "Fit: DI combines physical design, fabrication, content and immersive technology at significant scale, while IOM can supply portable browser and desktop components and specialist 3D pipelines. Positioning: focus on project overflow and modules that are easier to subcontract, such as model optimization, web-based extensions, photogrammetry, 360 tours and visualization; do not compete with DI's integrated design-build offer. Atlas rationale: can_hire_us 4 because DI has established commercial operations and a strategy leader with business-development experience; thinks_like_us 4, creative_compatibility 4 and technical_compatibility 5 because both combine space and digital systems; commercial_potential 5 due to project scale; relationship_potential 4 and strategic_value 4 because repeat work is plausible but DI has strong in-house capability. The primary info address is public in DI's privacy page; project inquiries are also accepted through the official contact form. Sources: https://dimin.com/about, https://dimin.com/contact, https://dimin.com/about/teammember/chad-hutson, https://dimin.com/privacy, https://dimin.com/work ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 4,
+      "commercial_potential": 5,
+      "creative_compatibility": 4,
+      "technical_compatibility": 5,
+      "relationship_potential": 4,
+      "strategic_value": 4
+    },
+    "initial_email_subject": "Specialist 3D support for DI experience projects",
+    "initial_email_body": "Hi Chad,\n\nI recently explored Dimensional Innovations' work across experience design, immersive technology, fabrication and digital content, and I wanted to introduce IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio focused on real-time 3D, Three.js, WebGL/WebGPU, optimized model pipelines, architectural visualization, photogrammetry and 360-degree spatial experiences.\n\nDI already delivers complete design-build-technology programs, so I see IOM as specialist capacity for defined technical packages rather than as a competing provider. I could support a project with an optimized real-time environment, browser-based 3D extension, architectural previsualization, photogrammetry asset, 360-degree walkthrough, custom model viewer or rapid interactive prototype, working within DI's established creative and technical framework.\n\nAn overview of my work is available at https://iobjectm.com/.\n\nI would be happy to share a concise set of relevant examples and learn whether DI uses independent real-time 3D specialists when internal teams need overflow support or a project has an unusual browser-based requirement.\n\nWould you be open to a brief introductory conversation?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/Chicago",
+    "client_city": "Overland Park",
+    "client_country": "United States",
+    "client_address": "3421 Merriam Drive, Overland Park, KS 66203, United States",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "Tellart",
+    "website": "https://www.tellart.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://www.tellart.com/contact/"
+      },
+      {
+        "label": "Working Together",
+        "url": "https://www.tellart.com/working-together/"
+      },
+      {
+        "label": "Team",
+        "url": "https://www.tellart.com/team/"
+      },
+      {
+        "label": "Projects",
+        "url": "https://www.tellart.com/projects/"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/company/tellart/"
+      }
+    ],
+    "contact_name": "Paul Skinner",
+    "contact_role": "Partner",
+    "email": "projects@tellart.com",
+    "emails": [
+      {
+        "label": "Business and Partnerships",
+        "email": "projects@tellart.com"
+      },
+      {
+        "label": "Media",
+        "email": "press@tellart.com"
+      }
+    ],
+    "phone": "+31 20 370 1633",
+    "offer": "Specialist and overflow real-time 3D production for Tellart's narrative installations, exhibitions and multisensory experiences. IOM can contribute optimized web and desktop 3D environments, Three.js/WebGL/WebGPU modules, spatial reconstruction, photogrammetry, architectural visualization, 360-degree content, procedural visuals and rapid functional prototypes within Tellart-led projects.",
+    "company_focus": "An Amsterdam narrative-experience design studio and production house creating interactive installations, exhibitions and multisensory environments through storytelling, design, custom software, robotics, 3D, sound, projection and emerging technology.",
+    "notes": "Fit: Tellart's combination of narrative, physical experience and custom technology closely matches IOM's approach, while its public business inbox explicitly welcomes partnerships. Positioning: present IOM as a small, craft-focused specialist for a defined real-time 3D or spatial module, not as a general experience studio. Atlas rationale: can_hire_us 4 because Tellart undertakes international production and provides a partnership contact; thinks_like_us 5, creative_compatibility 5 and technical_compatibility 5 because the philosophical and making-oriented overlap is unusually strong; commercial_potential 4 because project scope may vary; relationship_potential 5 and strategic_value 5 because it is a close peer fit that could lead to repeated collaboration and strong portfolio work. Sources: https://www.tellart.com/working-together/, https://www.tellart.com/team/, https://www.tellart.com/contact/, https://www.tellart.com/projects/ ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 5,
+      "commercial_potential": 4,
+      "creative_compatibility": 5,
+      "technical_compatibility": 5,
+      "relationship_potential": 5,
+      "strategic_value": 5
+    },
+    "initial_email_subject": "Possible real-time 3D collaboration with Tellart",
+    "initial_email_body": "Hi Paul,\n\nI recently spent time exploring Tellart's narrative installations and the way your team combines storytelling, physical space, custom software and emerging technology. The work feels closely aligned with the kind of practice I am building through IOM — Interactive Object Media.\n\nIOM is a small creative and technical studio focused on interactive 3D software, Three.js, WebGL/WebGPU, photogrammetry, architectural visualization, 360-degree environments and rapid functional prototypes.\n\nI am not proposing a parallel full-service experience offer. The fit I see is as a flexible specialist for a defined production component: an optimized real-time environment, browser-based 3D layer, spatial reconstruction, procedural visual system, interactive model presentation, 360-degree scene or technical prototype that sits inside a larger Tellart-led experience.\n\nYou can see an overview of my work at https://iobjectm.com/.\n\nI would be glad to share a focused set of relevant experiments and production examples and learn how Tellart works with independent technical collaborators when a project needs additional capacity.\n\nWould you be open to a brief introductory call?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "Europe/Amsterdam",
+    "client_city": "Amsterdam",
+    "client_country": "Netherlands",
+    "client_address": "Arie Biemondstraat 111, 1054 PD Amsterdam, Netherlands",
+    "client_lat": null,
+    "client_lon": null
+  },
+  {
+    "company_name": "Moment Factory",
+    "website": "https://momentfactory.com/",
+    "links": [
+      {
+        "label": "Contact",
+        "url": "https://momentfactory.com/pages/contact"
+      },
+      {
+        "label": "About",
+        "url": "https://momentfactory.com/pages/about"
+      },
+      {
+        "label": "Projects",
+        "url": "https://momentfactory.com/collections/all"
+      },
+      {
+        "label": "Custom Experiences",
+        "url": "https://momentfactory.com/pages/custom-experiences"
+      },
+      {
+        "label": "LinkedIn",
+        "url": "https://www.linkedin.com/company/moment-factory/"
+      }
+    ],
+    "contact_name": "Sakchin Bessette",
+    "contact_role": "Co-Founder and Executive Creative Director",
+    "email": "dev@momentfactory.com",
+    "emails": [
+      {
+        "label": "Project Inquiries",
+        "email": "dev@momentfactory.com"
+      },
+      {
+        "label": "General",
+        "email": "info@momentfactory.com"
+      },
+      {
+        "label": "Media",
+        "email": "media@momentfactory.com"
+      },
+      {
+        "label": "Suppliers",
+        "email": "vendors@momentfactory.com"
+      },
+      {
+        "label": "New York Studio",
+        "email": "nyc@momentfactory.com"
+      },
+      {
+        "label": "Europe Studio",
+        "email": "europe@momentfactory.com"
+      },
+      {
+        "label": "Tokyo Studio",
+        "email": "tokyo@momentfactory.com"
+      },
+      {
+        "label": "Singapore Studio",
+        "email": "singapore@momentfactory.com"
+      },
+      {
+        "label": "GCC Studios",
+        "email": "gcc@momentfactory.com"
+      }
+    ],
+    "phone": "+1 514 843 8433",
+    "offer": "Project-specific and overflow production for Moment Factory's custom experiences and immersive environments, including real-time 3D previsualization, optimized interactive web environments, architectural visualization, photogrammetry and spatial reconstruction, 360-degree capture, procedural WebGL/WebGPU systems, standalone companion experiences and reusable digital assets.",
+    "company_focus": "A Montreal-headquartered multidisciplinary entertainment studio creating large-scale immersive environments, custom experiences and ticketed attractions by combining video, lighting, architecture, sound, interactivity, special effects, storytelling and extensive prototyping.",
+    "notes": "Fit: Moment Factory's work combines space, media, technology and collective experience at a scale where external collaborators and suppliers are normal; its current growth strategy explicitly emphasizes partnerships. Positioning: offer a precise, low-friction production package that complements its large internal team, especially real-time previsualization, web companions, optimized 3D assets, spatial capture and reusable digital extensions. Atlas rationale: can_hire_us 4 because it has international project volume, a public project-inquiry channel and a supplier channel; thinks_like_us 5, creative_compatibility 5 and technical_compatibility 5 because the creative-technology alignment is exceptional; commercial_potential 5 and strategic_value 5 because project scale and reputation are high; relationship_potential 4 because there is strong upside but substantial supplier competition. Sources: https://momentfactory.com/pages/about, https://momentfactory.com/pages/contact, https://momentfactory.com/collections/all, https://momentfactory.com/blogs/news/moment-factory-global-expansion ",
+    "atlas_eval": {
+      "can_hire_us": 4,
+      "thinks_like_us": 5,
+      "commercial_potential": 5,
+      "creative_compatibility": 5,
+      "technical_compatibility": 5,
+      "relationship_potential": 4,
+      "strategic_value": 5
+    },
+    "initial_email_subject": "Specialist real-time 3D support for Moment Factory",
+    "initial_email_body": "Hi Sakchin,\n\nI recently explored Moment Factory's custom experiences and the way your teams bring together architecture, sound, light, storytelling and interactive technology. I was also interested in the studio's emphasis on prototyping and collaboration.\n\nI run IOM — Interactive Object Media, a small creative and technical studio focused on interactive 3D software, Three.js, WebGL/WebGPU, optimized model pipelines, architectural visualization, photogrammetry and 360-degree spatial experiences.\n\nMoment Factory already has deep multidisciplinary capability, so I am reaching out as a potential project-specific or overflow specialist. IOM could take ownership of a defined component such as a real-time previsualization environment, browser-based companion experience, optimized 3D asset package, spatial reconstruction, 360-degree capture or procedural interactive prototype, working within your established creative and technical framework.\n\nAn overview of my work is available at https://iobjectm.com/.\n\nI would be happy to send a focused selection of relevant examples and learn whether Moment Factory maintains a roster of independent real-time 3D specialists or suppliers for particular project phases.\n\nWould you be open to a brief introduction?\n\nBest regards,\n\nMirjan Čubrić\nIOM — Interactive Object Media\nhttps://iobjectm.com/\niom-production@proton.me",
+    "initial_email_drafted_at": null,
+    "initial_email_sent_at": null,
+    "temperature": "warm",
+    "status": "new",
+    "next_follow_up": null,
+    "estimated_value": null,
+    "value_emoji": "🤝",
+    "client_timezone": "America/Toronto",
+    "client_city": "Montreal",
+    "client_country": "Canada",
+    "client_address": "6250 Park Avenue, Montreal, Quebec H2V 4H8, Canada",
+    "client_lat": null,
+    "client_lon": null
+  }
+]

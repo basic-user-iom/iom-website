@@ -10,8 +10,16 @@ const port = Number(process.env.PORT || 4176)
 const types = {
   '.html': 'text/html',
   '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+  '.webp': 'image/webp',
+  '.svg': 'image/svg+xml',
   '.glb': 'model/gltf-binary',
   '.hdr': 'application/octet-stream',
+  '.360project': 'application/json',
 }
 
 createServer((req, res) => {

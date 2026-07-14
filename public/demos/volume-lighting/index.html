@@ -133,8 +133,7 @@
           overflow: auto;
         }
       }
-    </style>
-    <link rel="stylesheet" href="../demo-inspector-panels.css" />
+      .list-item-row.object-list-row.is-selected {
         background: rgba(120, 180, 255, 0.1);
         box-shadow: inset 2px 0 0 rgba(120, 180, 255, 0.55);
       }
@@ -148,29 +147,52 @@
         display: flex;
         align-items: center;
         min-width: 0;
-        gap: 2px;
+        gap: 4px;
       }
+      /* Hierarchy expand/collapse — CSS triangles (unicode ▶/▼ misaligns in inspector rows) */
       .object-list-chevron {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 14px;
-        height: 14px;
+        width: 16px;
+        height: 16px;
         flex-shrink: 0;
-        border: none;
+        margin: 0;
         padding: 0;
+        border: none;
+        border-radius: 2px;
         background: transparent;
-        color: rgba(255, 255, 255, 0.55);
+        color: rgba(255, 255, 255, 0.62);
         cursor: pointer;
-        font-size: 9px;
-        line-height: 1;
+        appearance: none;
+        -webkit-appearance: none;
+        font: inherit;
+        line-height: 0;
+      }
+      .object-list-chevron::before {
+        content: '';
+        display: block;
+        width: 0;
+        height: 0;
+        border-style: solid;
+        border-width: 4px 0 4px 6px;
+        border-color: transparent transparent transparent currentColor;
+        transform-origin: 40% 50%;
+        transition: transform 0.12s ease;
+      }
+      .object-list-chevron.is-expanded::before {
+        transform: rotate(90deg);
       }
       .object-list-chevron:hover {
-        color: rgba(255, 255, 255, 0.9);
+        color: rgba(0, 229, 255, 0.95);
+        background: rgba(0, 170, 255, 0.1);
       }
       .object-list-chevron.is-placeholder {
         visibility: hidden;
         pointer-events: none;
+      }
+      .runtime-file-input {
+        display: none;
       }
       .object-list-label {
         display: inline;
@@ -265,6 +287,7 @@
         cursor: crosshair;
       }
     </style>
+    <link rel="stylesheet" href="../demo-inspector-panels.css" />
     <script type="importmap">
       {
         "imports": {
@@ -350,8 +373,15 @@
       </div>
     </aside>
 
+    <input
+      id="model-file-input"
+      class="runtime-file-input"
+      type="file"
+      accept=".glb,.gltf,.fbx"
+    />
+
     <div id="container"></div>
-    <div id="hint">Orbit drag · Objects panel (right) · T/R/S gizmo · Ctrl+Shift+S camera keyframe</div>
+    <div id="hint">Orbit drag · Objects panel · Import GLB/GLTF/FBX · T/R/S gizmo · Ctrl+Shift+S camera</div>
     <div id="status">Initializing…</div>
 
     <script type="module">
@@ -370,6 +400,7 @@
       } from 'three/tsl'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+      import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
       import { ImprovedNoise } from 'three/addons/math/ImprovedNoise.js'
       import { RectAreaLightTexturesLib } from 'three/addons/lights/RectAreaLightTexturesLib.js'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
@@ -582,6 +613,10 @@
       const objectInfoItems = []
       let objectsInfoPositionEl = null
       let objectsTransformEditors = null
+      const importedModelRoots = []
+      let modelLoadInProgress = false
+      const modelObjectUrls = []
+      const modelFileInput = document.getElementById('model-file-input')
       const DEG2RAD = Math.PI / 180
       const objectWorldPosition = new THREE.Vector3()
       const objectFocusBounds = new THREE.Box3()
@@ -644,7 +679,9 @@
       function findObjectByKey(key) {
         if (!key || !scene) return null
 
-        const roots = [paganiRoot, mshStdFloor, rectLight1, rectLight2, rectLight3].filter(Boolean)
+        const roots = [paganiRoot, mshStdFloor, rectLight1, rectLight2, rectLight3, ...importedModelRoots].filter(
+          Boolean,
+        )
         for (const root of roots) {
           if (getObjectKey(root) === key) return root
           let found = null
@@ -664,6 +701,7 @@
         if (object === rectLight2) return 'Green Light'
         if (object === rectLight3) return 'Blue Light'
         if (object === volumetricMesh) return 'Volumetric Fog'
+        if (object.userData?.importedLabel) return object.userData.importedLabel
         if (object.name) return object.name
         return object.type || 'Object'
       }
@@ -671,6 +709,9 @@
       function getObjectCategoryTag(object) {
         if (!object) return ''
         if (object === paganiRoot || isObjectDescendantOf(object, paganiRoot)) return 'Vehicle'
+        if (importedModelRoots.some((root) => object === root || isObjectDescendantOf(object, root))) {
+          return 'Import'
+        }
         if (object === mshStdFloor) return 'Environment'
         if (object.isRectAreaLight) return 'Light'
         if (object.isMesh) return 'Mesh'
@@ -806,6 +847,21 @@
             hasChildren: objectHasListChildren(paganiRoot),
           })
           collectObjectListEntries(paganiRoot, 1, entries)
+        }
+
+        if (importedModelRoots.length) {
+          entries.push({ isCategory: true, label: 'Imported' })
+          for (const root of importedModelRoots) {
+            const key = getObjectKey(root)
+            entries.push({
+              object: root,
+              depth: 0,
+              label: getObjectListLabel(root),
+              key,
+              hasChildren: objectHasListChildren(root),
+            })
+            collectObjectListEntries(root, 1, entries)
+          }
         }
 
         if (mshStdFloor) {
@@ -1451,6 +1507,14 @@
         hintItem.itemRow.style.gridTemplateColumns = '1fr'
         objectsRoot.add(hintItem)
 
+        const importButton = new ValueButton({
+          text: 'Import GLB / GLTF / FBX',
+          value: () => modelFileInput?.click(),
+        })
+        const importItem = new Item('Import model', importButton.domElement)
+        importItem.itemRow.classList.add('actionable')
+        objectsRoot.add(importItem)
+
         objectsRoot.add(createObjectSectionLabel('Hierarchy'))
 
         for (const entry of entries) {
@@ -1470,7 +1534,7 @@
           chevron.className = 'object-list-chevron'
           if (entry.hasChildren) {
             const expanded = isObjectHierarchyExpanded(entry.key, entry.depth)
-            chevron.textContent = expanded ? '▼' : '▶'
+            if (expanded) chevron.classList.add('is-expanded')
             chevron.setAttribute('aria-label', expanded ? 'Collapse' : 'Expand')
             chevron.addEventListener('click', (event) => {
               event.stopPropagation()
@@ -1478,8 +1542,8 @@
             })
           } else {
             chevron.classList.add('is-placeholder')
-            chevron.textContent = '▶'
             chevron.tabIndex = -1
+            chevron.setAttribute('aria-hidden', 'true')
           }
           rowInner.appendChild(chevron)
 
@@ -1597,6 +1661,116 @@
           controls.enabled = true
         })
         scene.add(transformControls.getHelper())
+      }
+
+      function getFileExtension(name) {
+        return name.split('.').pop()?.toLowerCase() || ''
+      }
+
+      function releaseModelObjectUrls() {
+        while (modelObjectUrls.length) {
+          URL.revokeObjectURL(modelObjectUrls.pop())
+        }
+      }
+
+      function prepareImportedMeshes(root) {
+        root.traverse((child) => {
+          if (!child.isMesh) return
+          child.castShadow = true
+          child.receiveShadow = true
+          if (!child.name) {
+            const materialName = child.material?.name
+            child.name = materialName ? `Mesh — ${materialName}` : `Mesh ${child.id}`
+          }
+          if (child.material && !Array.isArray(child.material)) {
+            child.material.shadowSide = THREE.DoubleSide
+          }
+        })
+      }
+
+      function fitImportedModelToScene(object, targetLength = 8) {
+        const wrapper = new THREE.Group()
+        wrapper.add(object)
+        wrapper.updateMatrixWorld(true)
+
+        const box = new THREE.Box3().setFromObject(wrapper)
+        const size = box.getSize(new THREE.Vector3())
+        const maxDim = Math.max(size.x, size.y, size.z, 0.001)
+        wrapper.scale.setScalar(targetLength / maxDim)
+        wrapper.updateMatrixWorld(true)
+
+        const fitted = new THREE.Box3().setFromObject(wrapper)
+        const center = fitted.getCenter(new THREE.Vector3())
+        object.position.set(
+          object.position.x - center.x / wrapper.scale.x,
+          object.position.y - fitted.min.y / wrapper.scale.y,
+          object.position.z - center.z / wrapper.scale.z,
+        )
+        wrapper.updateMatrixWorld(true)
+
+        // Place beside the car (or near origin) so both stay lit by the rect lights.
+        wrapper.position.set(paganiRoot ? 10 : 0, 0, paganiRoot ? PAGANI_POSITION_OFFSET.z : -8)
+        return wrapper
+      }
+
+      function addImportedModelToScene(root, fileName) {
+        const label = fileName.replace(/\.[^.]+$/, '') || 'Imported model'
+        root.name = label
+        root.userData.importedLabel = label
+        root.userData.isImportedModel = true
+
+        scene.add(root)
+        importedModelRoots.push(root)
+        rebuildObjectsPanel()
+        selectPanelObject(root)
+        if (runtimeParams.gizmoEnabled) {
+          // Prefer gizmo on the import root so the whole model moves together.
+          if (!isObjectLocked(root)) {
+            gizmoSelectedObject = root
+            updateTransformGizmo()
+          }
+        }
+        setStatus(`Imported "${label}" — enable Transform gizmo to move it.`)
+      }
+
+      async function importModelFromFile(file) {
+        if (!file || modelLoadInProgress || !scene) return
+
+        const extension = getFileExtension(file.name)
+        if (!['glb', 'gltf', 'fbx'].includes(extension)) {
+          setStatus('Choose a .glb, .gltf, or .fbx file.', true)
+          return
+        }
+
+        modelLoadInProgress = true
+        setStatus(`Loading ${file.name}…`)
+
+        const objectUrl = URL.createObjectURL(file)
+        modelObjectUrls.push(objectUrl)
+
+        try {
+          let loadedRoot
+          if (extension === 'fbx') {
+            loadedRoot = await new FBXLoader().loadAsync(objectUrl)
+          } else {
+            const gltf = await new GLTFLoader().loadAsync(objectUrl)
+            loadedRoot = gltf.scene
+          }
+
+          if (!loadedRoot) throw new Error('File did not contain a renderable scene.')
+
+          prepareImportedMeshes(loadedRoot)
+          const wrapped = fitImportedModelToScene(loadedRoot)
+          addImportedModelToScene(wrapped, file.name)
+        } catch (error) {
+          console.warn('[import] model load failed', error)
+          setStatus(error?.message || `Failed to load ${file.name}`, true)
+          URL.revokeObjectURL(objectUrl)
+          const idx = modelObjectUrls.indexOf(objectUrl)
+          if (idx >= 0) modelObjectUrls.splice(idx, 1)
+        } finally {
+          modelLoadInProgress = false
+        }
       }
 
       function registerSceneObjectNames() {
@@ -2275,6 +2449,12 @@
         objectsGui = renderer.inspector.createParameters('Objects')
         initObjectsGui()
 
+        modelFileInput?.addEventListener('change', async (event) => {
+          const file = event.target.files?.[0]
+          await importModelFromFile(file)
+          event.target.value = ''
+        })
+
         initCameraViewsPanelCollapse('volume-lighting-camera-views-collapsed')
         demoUiChrome = initDemoUiChrome(renderer, {
           storageKey: 'volume-lighting-ui-chrome-visible',
@@ -2289,6 +2469,7 @@
           getState: () => ({
             hasCanvas: Boolean(renderer?.domElement),
             hasPagani: Boolean(paganiRoot),
+            importedCount: importedModelRoots.length,
             steps: volumetricMaterial.steps,
             denoise: params.denoise,
             fogIntensity: volumetricLightingIntensity.value,

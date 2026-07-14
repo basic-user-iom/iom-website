@@ -187,7 +187,7 @@ async function main() {
     console.log('Pivot:', pivotProbe)
     console.log('Running:', { isRunning: running.isRunning, runWeight: running.runWeight, runDistance })
 
-    if (before.navigationMode !== 'Inspect') throw new Error('Expected initial Inspect mode')
+    if (before.navigationMode !== 'Walk') throw new Error('Expected initial Explore (Walk) mode')
     if (before.movementSpeed !== 0.06) throw new Error(`Expected default walk speed 0.06, got ${before.movementSpeed}`)
     if (spawned.navigationMode !== 'Walk') throw new Error('Failed to enter Walk mode')
     if (!hasCollision) throw new Error('Walk octree has no collision triangles')
@@ -249,14 +249,17 @@ async function main() {
         `Player gizmo pivot not near character soles (pivotToFeetDelta=${pivotProbe.pivotToFeetDelta})`,
       )
     }
-    const expectedSpawn = [1.221, 0.051, 0.341]
+    const expectedSpawn = [0.96, 0.051, 0.098]
     const spawnDistFromExpected = spawned.playerPosition
       ? Math.hypot(
           spawned.playerPosition[0] - expectedSpawn[0],
           spawned.playerPosition[2] - expectedSpawn[2],
         )
       : Infinity
-    if (spawnDistFromExpected > 0.15) {
+    const spawnYDelta = spawned.playerPosition
+      ? Math.abs(spawned.playerPosition[1] - expectedSpawn[1])
+      : Infinity
+    if (spawnDistFromExpected > 0.15 || spawnYDelta > 0.2) {
       throw new Error(
         `Player spawned far from default spawn (dist=${spawnDistFromExpected.toFixed(3)}, pos=${JSON.stringify(spawned.playerPosition)}, expected=${JSON.stringify(expectedSpawn)})`,
       )
