@@ -841,10 +841,11 @@
       // Interior walk/inspect floors stay near the model base; roof/exterior decks sit higher.
       const INTERIOR_FLOOR_HEIGHT_FRACTION = 0.22
       const INTERIOR_FLOOR_HEIGHT_MIN = 0.12
-      const TELEPORT_PROBE_RADIUS_SCALE = 0.5
-      const TELEPORT_PROBE_MIN_RADIUS = 0.028
-      const TELEPORT_WALL_BLOCK_DEPTH = 0.004
-      const TELEPORT_BOUNDS_MARGIN_SCALE = 0.28
+      const TELEPORT_PROBE_RADIUS_SCALE = 0.92
+      const TELEPORT_PROBE_MIN_RADIUS = 0.04
+      const TELEPORT_WALL_BLOCK_DEPTH = 0.002
+      // Keep eye inside the same XZ band used by nodal orbit clamp (see getWalkBoundsMargin).
+      const TELEPORT_BOUNDS_MARGIN_SCALE = 1.05
       const TELEPORT_ORBIT_DISTANCE = 0.045
       // Teleport look-drag: 30% slower than OrbitControls default (1.0), plus slightly
       // lower dampingFactor so each frame applies less delta (smoother / less snappy).
@@ -2222,7 +2223,9 @@
       function clampOrbitCameraToGalleryBounds() {
         if (!controls || !isOrbitNavigationMode()) return
 
-        const margin = getWalkBoundsMargin()
+        // Teleport eye is the player capsule — use teleport margin so clamp never
+        // fights destinations that isValidTeleportDestination already accepted.
+        const margin = isTeleportMode() ? getTeleportBoundsMargin() : getWalkBoundsMargin()
         if (activeBounds.isEmpty()) {
           if (isInspectMode()) snapInspectTargetToFloor()
           enforceMinCameraFloorHeight()
@@ -2234,6 +2237,8 @@
         const minZ = activeBounds.min.z + margin
         const maxZ = activeBounds.max.z - margin
 
+        // Clamp the eye (orbit target) and translate the camera with it so the
+        // look offset / OrbitControls spherical stay intact.
         const targetDx = THREE.MathUtils.clamp(controls.target.x, minX, maxX) - controls.target.x
         const targetDz = THREE.MathUtils.clamp(controls.target.z, minZ, maxZ) - controls.target.z
         if (targetDx !== 0 || targetDz !== 0) {
@@ -2241,19 +2246,21 @@
           controls.target.z += targetDz
           camera.position.x += targetDx
           camera.position.z += targetDz
+          // Teleport eye === player capsule — keep them together or the next
+          // syncOrbitTargetToPlayer() undoes the clamp and freezes look-around.
+          if (isTeleportMode() && playerCollider) {
+            playerCollider.translate(new THREE.Vector3(targetDx, 0, targetDz))
+            updatePlayerAvatar()
+          }
         }
 
         if (isInspectMode() && !isCameraInsideWalkBoundsXZ(margin)) {
           fitInspectOrbitRigToGalleryBounds()
-        } else if (!isInspectMode()) {
-          const camDx = THREE.MathUtils.clamp(camera.position.x, minX, maxX) - camera.position.x
-          const camDz = THREE.MathUtils.clamp(camera.position.z, minZ, maxZ) - camera.position.z
-          if (camDx !== 0 || camDz !== 0) {
-            camera.position.x += camDx
-            camera.position.z += camDz
-            controls.target.x += camDx
-            controls.target.z += camDz
-          }
+        } else if (isTeleportMode()) {
+          // Nodal teleport (tiny radius): never slide the eye by clamping the camera
+          // offset. The old cam+target clamp fought syncOrbitTargetToPlayer every frame
+          // near walls and froze look-around / blocked floor clicks to escape.
+          syncOrbitControlsSphericalRadiusFromCamera()
         }
 
         if (isInspectMode()) {
@@ -9506,7 +9513,12 @@
 
       function getTeleportBoundsMargin() {
         const radius = playerCollider?.radius ?? getPlayerCapsuleMetrics().radius
-        return Math.max(radius * TELEPORT_BOUNDS_MARGIN_SCALE, 0.02)
+        // Stay at/above walk margin so nodal orbit clamp and teleport seats agree.
+        return Math.max(
+          radius * TELEPORT_BOUNDS_MARGIN_SCALE,
+          getWalkBoundsMargin() * 0.85,
+          0.04,
+        )
       }
 
       function getTeleportProbeMetrics() {
@@ -9514,7 +9526,7 @@
         const probeRadius = Math.max(radius * TELEPORT_PROBE_RADIUS_SCALE, TELEPORT_PROBE_MIN_RADIUS)
         return {
           radius: probeRadius,
-          height: Math.max(height * 0.85, probeRadius * 3.2),
+          height: Math.max(height * 0.92, probeRadius * 3.2),
         }
       }
 
