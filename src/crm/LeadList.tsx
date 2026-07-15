@@ -2,7 +2,7 @@ import { AtlasEvalCompact } from './AtlasEvalFields'
 import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
-import { initialEmailPending } from './outreach'
+import { initialEmailPending, initialEmailSent } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmUser, Lead, StaffProfile } from './types'
 import { resolveLeadOwner } from './types'
@@ -33,6 +33,17 @@ export function LeadList({
         month: 'short',
         day: 'numeric',
         year: 'numeric',
+      }).format(new Date(iso))
+    } catch {
+      return iso.slice(0, 10)
+    }
+  }
+
+  const formatSentAt = (iso: string) => {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
       }).format(new Date(iso))
     } catch {
       return iso.slice(0, 10)
@@ -75,11 +86,20 @@ export function LeadList({
                     <span className="crm-lead-company">
                       {lead.company_name || lead.contact_name || t('list.untitled')}
                     </span>
-                    {initialEmailPending(lead) && (
+                    {initialEmailSent(lead) ? (
+                      <span
+                        className="crm-outreach-badge crm-outreach-badge--sent"
+                        title={t('outreach.badgeSentAt', {
+                          date: formatSentAt(lead.initial_email_sent_at!),
+                        })}
+                      >
+                        {t('outreach.badgeSent')}
+                      </span>
+                    ) : initialEmailPending(lead) ? (
                       <span className="crm-outreach-badge" title={t('outreach.pendingAlert')}>
                         {t('outreach.badgePending')}
                       </span>
-                    )}
+                    ) : null}
                     <span className="crm-lead-row-top-end">
                       <LeadClientLocal lead={lead} compact />
                       <span className={`crm-temp crm-temp--${lead.temperature}`}>

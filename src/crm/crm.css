@@ -443,15 +443,25 @@
   cursor: grabbing;
 }
 
-.crm-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+.crm-stats-row {
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   margin-bottom: 1.25rem;
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.crm-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(5.25rem, 6.75rem));
+  gap: 0.5rem;
+  margin-bottom: 0;
+  flex: 0 0 auto;
 }
 
 .crm-stat {
-  padding: 1rem 1.1rem;
+  padding: 0.65rem 0.75rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -460,17 +470,134 @@
 .crm-stat-value {
   display: block;
   font-family: var(--display);
-  font-size: 1.6rem;
+  font-size: 1.35rem;
   font-weight: 700;
   color: var(--accent);
   line-height: 1.1;
 }
 
 .crm-stat-label {
-  font-size: 0.75rem;
+  font-size: 0.68rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
+  line-height: 1.25;
+}
+
+.crm-calendar {
+  flex: 0 1 17.5rem;
+  min-width: min(100%, 15rem);
+  max-width: 17.5rem;
+  margin-left: auto;
+  padding: 0.65rem 0.75rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.crm-calendar-header {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.55rem;
+}
+
+.crm-calendar-title {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crm-calendar-nav {
+  min-width: 1.75rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.crm-calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.15rem;
+  margin-bottom: 0.25rem;
+}
+
+.crm-calendar-weekday {
+  font-size: 0.62rem;
+  text-align: center;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.crm-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.15rem;
+}
+
+.crm-calendar-cell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.65rem;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.crm-calendar-cell.is-empty {
+  pointer-events: none;
+}
+
+.crm-calendar-cell.is-today {
+  border-color: var(--border-accent);
+}
+
+.crm-calendar-cell.is-selected {
+  background: var(--accent);
+  color: var(--bg);
+  border-color: var(--accent);
+}
+
+.crm-calendar-cell.has-follow-up:not(.is-selected) {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.crm-calendar-day {
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.crm-calendar-dot {
+  position: absolute;
+  bottom: 0.12rem;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.crm-calendar-cell.is-selected .crm-calendar-dot {
+  background: var(--bg);
+}
+
+.crm-calendar-clear {
+  width: 100%;
+  margin-top: 0.45rem;
+  padding: 0.35rem 0.5rem;
+  font-size: 0.68rem;
 }
 
 .crm-toolbar {
@@ -2001,6 +2128,12 @@
   white-space: nowrap;
 }
 
+.crm-outreach-badge--sent {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 .crm-outreach-subject {
   margin: 0 0 0.5rem;
 }
@@ -3033,8 +3166,19 @@
 }
 
 @media (max-width: 560px) {
+  .crm-stats-row {
+    flex-direction: column;
+  }
+
   .crm-stats {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .crm-calendar {
+    max-width: none;
+    width: 100%;
+    margin-left: 0;
   }
 
   .crm-music-volume {

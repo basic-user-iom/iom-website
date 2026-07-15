@@ -9,6 +9,11 @@ export function initialEmailPending(lead: Lead): boolean {
   return hasInitialEmailDraft(lead) && !lead.initial_email_sent_at
 }
 
+/** Initial outreach was marked sent in CRM. */
+export function initialEmailSent(lead: Lead): boolean {
+  return !!lead.initial_email_sent_at
+}
+
 export type InitialEmailStatus = 'none' | 'pending' | 'drafted' | 'sent'
 
 export function initialEmailStatus(lead: Lead): InitialEmailStatus {

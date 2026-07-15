@@ -7,7 +7,7 @@ import {
   emailsSchemaKnownMissing,
   getCurrentUser,
   linksSchemaKnownMissing,
-  listLeads,
+  listLeads as fetchLeads,
   listStaffProfiles,
   onAuthChange,
   preserveAtlasEvalFields,
@@ -30,6 +30,7 @@ import {
 } from './api'
 import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
 import { DEMO_USER, resetDemoStore } from './demoStore'
+import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
 import {
@@ -273,6 +274,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [emailsSchemaMissing, setEmailsSchemaMissing] = useState(false)
   const [atlasEvalSchemaMissing, setAtlasEvalSchemaMissing] = useState(false)
   const [outreachSchemaMissing, setOutreachSchemaMissing] = useState(false)
+  const [followUpDate, setFollowUpDate] = useState<string | null>(null)
 
   const openProject = useCallback((projectId: string) => {
     setFocusProjectId(projectId)
@@ -378,7 +380,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setOutreachSchemaMissing(!outreachOk)
       setStaffById(staff)
       // Load without owner filter so the "who added" dropdown stays complete.
-      const catalog = await listLeads({ ...filters, owner: 'all' })
+      const catalog = await fetchLeads({ ...filters, owner: 'all' })
       setOwnerOptions(collectOwnerOptions(catalog, user, staff))
       const rows =
         filters.owner === 'all'
@@ -445,8 +447,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!user) return
     void refreshLeads()
   }, [user?.id, refreshLeads])
-
-  const selected = leads.find((l) => l.id === selectedId) ?? null
 
   const handleCreate = async (input: LeadInput) => {
     const lead = await createLead(input)
@@ -572,7 +572,18 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const openCount = leads.filter(
     (l) => l.status !== 'closed_won' && l.status !== 'closed_lost',
   ).length
-  const workspaceEmpty = !loading && leads.length === 0
+  const listLeads = followUpDate
+    ? leads.filter((l) => followUpDateKey(l.next_follow_up) === followUpDate)
+    : leads
+  const workspaceEmpty = !loading && listLeads.length === 0
+
+  const handleFollowUpDate = (date: string | null) => {
+    setFollowUpDate(date)
+    if (!date) return
+    const matching = leads.filter((l) => followUpDateKey(l.next_follow_up) === date)
+    if (matching.length > 0) setSelectedId(matching[0].id)
+  }
+  const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
   const sectionTitle =
     section === 'projects'
@@ -711,19 +722,26 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         hidden={section !== 'leads'}
         aria-hidden={section !== 'leads'}
       >
-          <div className="crm-stats">
-            <div className="crm-stat">
-              <span className="crm-stat-value">{leads.length}</span>
-              <span className="crm-stat-label">{t('stats.visible')}</span>
+          <div className="crm-stats-row">
+            <div className="crm-stats">
+              <div className="crm-stat">
+                <span className="crm-stat-value">{listLeads.length}</span>
+                <span className="crm-stat-label">{t('stats.visible')}</span>
+              </div>
+              <div className="crm-stat">
+                <span className="crm-stat-value">{openCount}</span>
+                <span className="crm-stat-label">{t('stats.open')}</span>
+              </div>
+              <div className="crm-stat">
+                <span className="crm-stat-value">{hotCount}</span>
+                <span className="crm-stat-label">{t('stats.hot')}</span>
+              </div>
             </div>
-            <div className="crm-stat">
-              <span className="crm-stat-value">{openCount}</span>
-              <span className="crm-stat-label">{t('stats.open')}</span>
-            </div>
-            <div className="crm-stat">
-              <span className="crm-stat-value">{hotCount}</span>
-              <span className="crm-stat-label">{t('stats.hot')}</span>
-            </div>
+            <CrmFollowUpCalendar
+              leads={leads}
+              selectedDate={followUpDate}
+              onSelectDate={handleFollowUpDate}
+            />
           </div>
 
           <div className="crm-toolbar">
@@ -822,7 +840,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <div className={`crm-workspace${workspaceEmpty ? ' crm-workspace--empty' : ''}`}>
               <aside className="crm-sidebar">
                 <LeadList
-                  leads={leads}
+                  leads={listLeads}
                   selectedId={selectedId}
                   onSelect={setSelectedId}
                   loading={loading}
