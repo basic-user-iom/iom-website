@@ -2,6 +2,7 @@ import { AtlasEvalCompact } from './AtlasEvalFields'
 import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
+import { initialEmailPending } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmUser, Lead, StaffProfile } from './types'
 import { resolveLeadOwner } from './types'
@@ -74,6 +75,11 @@ export function LeadList({
                     <span className="crm-lead-company">
                       {lead.company_name || lead.contact_name || t('list.untitled')}
                     </span>
+                    {initialEmailPending(lead) && (
+                      <span className="crm-outreach-badge" title={t('outreach.pendingAlert')}>
+                        {t('outreach.badgePending')}
+                      </span>
+                    )}
                     <span className="crm-lead-row-top-end">
                       <LeadClientLocal lead={lead} compact />
                       <span className={`crm-temp crm-temp--${lead.temperature}`}>

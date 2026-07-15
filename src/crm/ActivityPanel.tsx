@@ -1,10 +1,29 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { createActivity, deleteActivity, listActivities } from './api'
+import {
+  createActivity,
+  deleteActivity,
+  listActivities,
+  updateActivity,
+} from './api'
 import { ACTIVITY_TYPE_VALUES, useCrmI18n } from './i18n'
 import type { Activity, ActivityType } from './types'
 
 interface ActivityPanelProps {
   leadId: string
+}
+
+function toDatetimeLocalValue(iso: string): string {
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function fromDatetimeLocalValue(value: string): string {
+  if (!value.trim()) return new Date().toISOString()
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return new Date().toISOString()
+  return d.toISOString()
 }
 
 export function ActivityPanel({ leadId }: ActivityPanelProps) {
@@ -16,6 +35,12 @@ export function ActivityPanel({ leadId }: ActivityPanelProps) {
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
   const [busy, setBusy] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editType, setEditType] = useState<ActivityType>('note')
+  const [editSubject, setEditSubject] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [editWhen, setEditWhen] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
 
   const formatWhen = (iso: string): string => {
     try {
@@ -68,10 +93,48 @@ export function ActivityPanel({ leadId }: ActivityPanelProps) {
     }
   }
 
+  const startEdit = (activity: Activity) => {
+    setEditingId(activity.id)
+    setEditType(activity.type)
+    setEditSubject(activity.subject)
+    setEditBody(activity.body)
+    setEditWhen(toDatetimeLocalValue(activity.occurred_at))
+    setError('')
+  }
+
+  const cancelEdit = () => {
+    setEditingId(null)
+    setEditSubject('')
+    setEditBody('')
+    setEditWhen('')
+  }
+
+  const handleSaveEdit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!editingId || !editSubject.trim()) return
+    setEditBusy(true)
+    setError('')
+    try {
+      await updateActivity(editingId, {
+        type: editType,
+        subject: editSubject.trim(),
+        body: editBody.trim(),
+        occurred_at: fromDatetimeLocalValue(editWhen),
+      })
+      cancelEdit()
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('act.editFailed'))
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm(t('act.deleteConfirm'))) return
     try {
       await deleteActivity(id)
+      if (editingId === id) cancelEdit()
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('act.deleteFailed'))
@@ -141,21 +204,98 @@ export function ActivityPanel({ leadId }: ActivityPanelProps) {
         <ul className="crm-activity-list">
           {items.map((a) => (
             <li key={a.id} className="crm-activity-item">
-              <div className="crm-activity-meta">
-                <span className={`crm-activity-type crm-activity-type--${a.type}`}>
-                  {activityLabel(a.type)}
-                </span>
-                <time dateTime={a.occurred_at}>{formatWhen(a.occurred_at)}</time>
-              </div>
-              <strong className="crm-activity-subject">{a.subject}</strong>
-              {a.body && <p className="crm-activity-body">{a.body}</p>}
-              <button
-                type="button"
-                className="crm-link-btn"
-                onClick={() => void handleDelete(a.id)}
-              >
-                {t('act.delete')}
-              </button>
+              {editingId === a.id ? (
+                <form className="crm-form crm-activity-edit" onSubmit={handleSaveEdit}>
+                  <div className="crm-form-grid crm-form-grid--compact">
+                    <label className="crm-field">
+                      <span className="crm-label">{t('act.type')}</span>
+                      <select
+                        className="crm-input"
+                        value={editType}
+                        onChange={(e) => setEditType(e.target.value as ActivityType)}
+                        disabled={editBusy}
+                      >
+                        {ACTIVITY_TYPE_VALUES.map((value) => (
+                          <option key={value} value={value}>
+                            {activityLabel(value)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="crm-field">
+                      <span className="crm-label">{t('act.when')}</span>
+                      <input
+                        className="crm-input"
+                        type="datetime-local"
+                        value={editWhen}
+                        onChange={(e) => setEditWhen(e.target.value)}
+                        disabled={editBusy}
+                        required
+                      />
+                    </label>
+                    <label className="crm-field crm-field--span2">
+                      <span className="crm-label">{t('act.subject')}</span>
+                      <input
+                        className="crm-input"
+                        value={editSubject}
+                        onChange={(e) => setEditSubject(e.target.value)}
+                        required
+                        disabled={editBusy}
+                      />
+                    </label>
+                  </div>
+                  <label className="crm-field">
+                    <span className="crm-label">{t('act.details')}</span>
+                    <textarea
+                      className="crm-input crm-textarea"
+                      rows={3}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      disabled={editBusy}
+                    />
+                  </label>
+                  <div className="crm-activity-item-actions">
+                    <button type="submit" className="btn btn-primary" disabled={editBusy}>
+                      {editBusy ? t('act.saving') : t('act.save')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={editBusy}
+                      onClick={cancelEdit}
+                    >
+                      {t('act.cancel')}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <>
+                  <div className="crm-activity-meta">
+                    <span className={`crm-activity-type crm-activity-type--${a.type}`}>
+                      {activityLabel(a.type)}
+                    </span>
+                    <time dateTime={a.occurred_at}>{formatWhen(a.occurred_at)}</time>
+                  </div>
+                  <strong className="crm-activity-subject">{a.subject}</strong>
+                  {a.body && <p className="crm-activity-body">{a.body}</p>}
+                  <div className="crm-activity-item-actions">
+                    <button
+                      type="button"
+                      className="crm-link-btn"
+                      onClick={() => startEdit(a)}
+                    >
+                      {t('act.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      className="crm-link-btn"
+                      onClick={() => void handleDelete(a.id)}
+                    >
+                      {t('act.delete')}
+                    </button>
+                  </div>
+                </>
+              )}
             </li>
           ))}
         </ul>

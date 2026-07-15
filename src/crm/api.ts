@@ -14,6 +14,7 @@ import {
 import type {
   Activity,
   ActivityInput,
+  ActivityUpdate,
   CrmUser,
   Lead,
   LeadEmail,
@@ -222,6 +223,82 @@ function isMissingAtlasEvalColumn(message: string): boolean {
   )
 }
 
+function isMissingOutreachColumn(message: string): boolean {
+  const m = message.toLowerCase()
+  const mentions =
+    m.includes('initial_email_subject') ||
+    m.includes('initial_email_body') ||
+    m.includes('initial_email_drafted_at') ||
+    m.includes('initial_email_sent_at') ||
+    m.includes('contact_role') ||
+    m.includes('company_focus') ||
+    m.includes('client_address')
+  return (
+    mentions &&
+    (m.includes('does not exist') ||
+      m.includes('could not find') ||
+      m.includes('schema cache'))
+  )
+}
+
+const OUTREACH_KEYS = [
+  'contact_role',
+  'company_focus',
+  'client_address',
+  'initial_email_subject',
+  'initial_email_body',
+  'initial_email_drafted_at',
+  'initial_email_sent_at',
+] as const
+
+type OutreachFields = Pick<
+  Lead,
+  | 'contact_role'
+  | 'company_focus'
+  | 'client_address'
+  | 'initial_email_subject'
+  | 'initial_email_body'
+  | 'initial_email_drafted_at'
+  | 'initial_email_sent_at'
+>
+
+function stripOutreachFields<T extends Record<string, unknown>>(input: T): T {
+  const next = { ...input }
+  for (const key of OUTREACH_KEYS) {
+    delete next[key]
+  }
+  return next
+}
+
+function pickOutreachFields(
+  source: Partial<OutreachFields> | null | undefined,
+): OutreachFields {
+  return {
+    contact_role: source?.contact_role ?? '',
+    company_focus: source?.company_focus ?? '',
+    client_address: source?.client_address ?? '',
+    initial_email_subject: source?.initial_email_subject ?? '',
+    initial_email_body: source?.initial_email_body ?? '',
+    initial_email_drafted_at: source?.initial_email_drafted_at ?? null,
+    initial_email_sent_at: source?.initial_email_sent_at ?? null,
+  }
+}
+
+function mergeOutreachFields(
+  row: Lead,
+  source: Partial<OutreachFields> | null | undefined,
+): Lead {
+  if (!source) return normalizeLead(row)
+  const hasAny = OUTREACH_KEYS.some((key) => {
+    const v = source[key]
+    if (v == null) return false
+    if (typeof v === 'string') return v.trim() !== ''
+    return true
+  })
+  if (!hasAny) return normalizeLead(row)
+  return normalizeLead({ ...row, ...pickOutreachFields(source) })
+}
+
 const CLIENT_LOCALE_KEYS = [
   'client_timezone',
   'client_city',
@@ -413,8 +490,15 @@ function normalizeLead(row: Lead): Lead {
     client_timezone: row.client_timezone ?? '',
     client_city: row.client_city ?? '',
     client_country: row.client_country ?? '',
+    client_address: row.client_address ?? '',
     client_lat: row.client_lat ?? null,
     client_lon: row.client_lon ?? null,
+    contact_role: row.contact_role ?? '',
+    company_focus: row.company_focus ?? '',
+    initial_email_subject: row.initial_email_subject ?? '',
+    initial_email_body: row.initial_email_body ?? '',
+    initial_email_drafted_at: row.initial_email_drafted_at ?? null,
+    initial_email_sent_at: row.initial_email_sent_at ?? null,
     owner_email: row.owner_email ?? null,
     owner_avatar_url: row.owner_avatar_url ?? null,
   }
@@ -813,6 +897,8 @@ let valueEmojiColumnPresent: boolean | null = null
 let emailsColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.atlas_eval jsonb column. */
 let atlasEvalColumnPresent: boolean | null = null
+/** Cached probe for outreach / initial email columns on crm_leads. */
+let outreachColumnsPresent: boolean | null = null
 
 function markClientLocaleColumnsMissing(): void {
   clientLocaleColumnsPresent = false
@@ -854,6 +940,14 @@ function markAtlasEvalColumnPresent(): void {
   atlasEvalColumnPresent = true
 }
 
+function markOutreachColumnsMissing(): void {
+  outreachColumnsPresent = false
+}
+
+function markOutreachColumnsPresent(): void {
+  outreachColumnsPresent = true
+}
+
 /** True when a prior probe/update learned client_* columns are absent. */
 export function clientLocaleSchemaKnownMissing(): boolean {
   return clientLocaleColumnsPresent === false
@@ -877,6 +971,11 @@ export function emailsSchemaKnownMissing(): boolean {
 /** True when a prior probe/update learned atlas_eval column is absent. */
 export function atlasEvalSchemaKnownMissing(): boolean {
   return atlasEvalColumnPresent === false
+}
+
+/** True when outreach / initial email columns are absent. */
+export function outreachSchemaKnownMissing(): boolean {
+  return outreachColumnsPresent === false
 }
 
 /**
@@ -972,6 +1071,23 @@ export function preserveAtlasEvalFields(
     const prevEval = normalizeAtlasEval(prev.atlas_eval)
     if (!Object.values(prevEval).some((v) => v > 0)) return row
     return mergeAtlasEval(row, prev)
+  })
+}
+
+/** When list rows omit outreach fields (missing columns), keep optimistic values. */
+export function preserveOutreachFields(incoming: Lead[], previous: Lead[]): Lead[] {
+  if (incoming.length === 0 || previous.length === 0) return incoming
+  const prevById = new Map(previous.map((l) => [l.id, l]))
+  return incoming.map((row) => {
+    const hasIncoming =
+      !!row.initial_email_subject?.trim() ||
+      !!row.initial_email_body?.trim() ||
+      !!row.contact_role?.trim() ||
+      !!row.company_focus?.trim()
+    if (hasIncoming) return row
+    const prev = prevById.get(row.id)
+    if (!prev) return row
+    return mergeOutreachFields(row, prev)
   })
 }
 
@@ -1105,6 +1221,34 @@ export async function probeAtlasEvalSchema(): Promise<boolean> {
     return true
   }
   markAtlasEvalColumnPresent()
+  return true
+}
+
+/**
+ * Probe whether initial outreach / extended lead columns exist on `crm_leads`.
+ */
+export async function probeOutreachSchema(): Promise<boolean> {
+  if (!useLiveCrmBackend()) {
+    markOutreachColumnsPresent()
+    return true
+  }
+  if (outreachColumnsPresent != null) return outreachColumnsPresent
+
+  const supabase = getSupabase()!
+  const { error } = await supabase
+    .from('crm_leads')
+    .select('initial_email_subject, contact_role')
+    .limit(1)
+
+  if (error && isMissingOutreachColumn(error.message)) {
+    markOutreachColumnsMissing()
+    return false
+  }
+  if (error) {
+    console.warn('Could not probe outreach columns:', error.message)
+    return true
+  }
+  markOutreachColumnsPresent()
   return true
 }
 
@@ -1348,23 +1492,35 @@ function buildLeadSelect(opts?: {
   valueEmoji?: boolean
   atlasEval?: boolean
   clientLocale?: boolean
+  outreach?: boolean
 }): string {
   const links = opts?.links ?? linksColumnPresent !== false
   const emails = opts?.emails ?? emailsColumnPresent !== false
   const valueEmoji = opts?.valueEmoji ?? valueEmojiColumnPresent !== false
   const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
   const clientLocale = opts?.clientLocale ?? clientLocaleColumnsPresent !== false
+  const outreach = opts?.outreach ?? outreachColumnsPresent !== false
   const cols = [
     'id',
     'company_name',
     'website',
     ...(links ? (['links'] as const) : []),
     'contact_name',
+    ...(outreach ? (['contact_role'] as const) : []),
     'email',
     ...(emails ? (['emails'] as const) : []),
     'phone',
     'offer',
+    ...(outreach ? (['company_focus'] as const) : []),
     'notes',
+    ...(outreach
+      ? ([
+          'initial_email_subject',
+          'initial_email_body',
+          'initial_email_drafted_at',
+          'initial_email_sent_at',
+        ] as const)
+      : []),
     'temperature',
     'status',
     'next_follow_up',
@@ -1376,6 +1532,7 @@ function buildLeadSelect(opts?: {
           'client_timezone',
           'client_city',
           'client_country',
+          ...(outreach ? (['client_address'] as const) : []),
           'client_lat',
           'client_lon',
         ] as const)
@@ -1400,6 +1557,7 @@ function stripOptionalLeadFields<T extends Record<string, unknown>>(body: T): T 
   if (valueEmojiColumnPresent === false) next = stripValueEmojiField(next)
   if (atlasEvalColumnPresent === false) next = stripAtlasEvalField(next)
   if (clientLocaleColumnsPresent === false) next = stripClientLocaleFields(next)
+  if (outreachColumnsPresent === false) next = stripOutreachFields(next)
   return next as T
 }
 
@@ -1444,6 +1602,14 @@ function markOptionalColumnMissing(message: string): boolean {
     )
     return true
   }
+  if (isMissingOutreachColumn(message)) {
+    markOutreachColumnsMissing()
+    console.warn(
+      'crm_leads outreach columns missing — run crm import migration or add initial_email_* columns',
+      message,
+    )
+    return true
+  }
   return false
 }
 
@@ -1467,6 +1633,9 @@ function mergeStrippedOptionalFields(
   }
   if (atlasEvalColumnPresent === false) {
     result = mergeAtlasEval(result, source)
+  }
+  if (outreachColumnsPresent === false) {
+    result = mergeOutreachFields(result, source)
   }
   return result
 }
@@ -1494,6 +1663,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
         if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
         if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
+        if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
         break
       }
       if (markOptionalColumnMissing(error.message)) continue
@@ -1615,6 +1785,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
+    if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
     return mergeStrippedOptionalFields(data as unknown as Lead, normalizedInput)
   }
 
@@ -1671,6 +1842,7 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
+    if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
     return mergeStrippedOptionalFields(data as unknown as Lead, patch)
   }
 
@@ -1775,4 +1947,45 @@ export async function deleteActivity(id: string): Promise<void> {
     ACTIVITIES_KEY,
     readLocal<Activity[]>(ACTIVITIES_KEY, []).filter((a) => a.id !== id),
   )
+}
+
+export async function updateActivity(id: string, patch: ActivityUpdate): Promise<Activity> {
+  const body = {
+    type: patch.type,
+    subject: patch.subject.trim(),
+    body: patch.body.trim(),
+    occurred_at: patch.occurred_at,
+  }
+
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_activities')
+      .update(body)
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    const activity = data as Activity
+    await supabase
+      .from('crm_leads')
+      .update({ updated_at: nowIso() })
+      .eq('id', activity.lead_id)
+    return activity
+  }
+
+  const activities = readLocal<Activity[]>(ACTIVITIES_KEY, [])
+  const idx = activities.findIndex((a) => a.id === id)
+  if (idx < 0) throw new Error('Activity not found.')
+  const updated: Activity = { ...activities[idx], ...body }
+  activities[idx] = updated
+  writeLocal(ACTIVITIES_KEY, activities)
+
+  const leads = readLocal<Lead[]>(LEADS_KEY, [])
+  const leadIdx = leads.findIndex((l) => l.id === updated.lead_id)
+  if (leadIdx >= 0) {
+    leads[leadIdx] = { ...leads[leadIdx], updated_at: nowIso() }
+    writeLocal(LEADS_KEY, leads)
+  }
+  return updated
 }

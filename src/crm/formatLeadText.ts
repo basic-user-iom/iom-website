@@ -7,6 +7,7 @@ import {
   type AtlasEval,
 } from './atlasEval'
 import type { Activity, ActivityType, CrmProject, Lead, LeadStatus, LeadTemperature } from './types'
+import { hasInitialEmailDraft } from './outreach'
 import { formatLeadEstimatedValue } from './valueEmoji'
 
 type TranslateFn = (key: string, vars?: Record<string, string | number>) => string
@@ -134,8 +135,11 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
     `=== ${ctx.t('detail.kicker').toUpperCase()}: ${company} ===`,
     '',
     field(ctx.t('detail.contact'), orDash(lead.contact_name)),
-    field(ctx.t('detail.email'), orDash(lead.email)),
   ]
+  if (lead.contact_role?.trim()) {
+    lines.push(field(ctx.t('outreach.contactRole'), lead.contact_role.trim()))
+  }
+  lines.push(field(ctx.t('detail.email'), orDash(lead.email)))
 
   if (emails.length > 0) {
     lines.push(`${ctx.t('detail.emails')}:`)
@@ -190,6 +194,21 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
   const sections = [
     section(ctx.t('locale.title'), localeLines),
     hasAtlasEval(lead.atlas_eval) ? section(ctx.t('atlas.title'), formatAtlasBlock(atlas, ctx.t)) : '',
+    lead.company_focus?.trim()
+      ? section(ctx.t('outreach.companyFocus'), [lead.company_focus.trim()])
+      : '',
+    hasInitialEmailDraft(lead)
+      ? section(ctx.t('outreach.title'), [
+          field(ctx.t('outreach.subject'), lead.initial_email_subject.trim()),
+          lead.initial_email_body.trim(),
+          field(
+            ctx.t('outreach.sentAt'),
+            lead.initial_email_sent_at
+              ? formatWhen(lead.initial_email_sent_at, ctx.locale)
+              : ctx.t('outreach.statusPending'),
+          ),
+        ])
+      : '',
     section(ctx.t('detail.offer'), [lead.offer?.trim() || ctx.t('detail.offerEmpty')]),
     section(ctx.t('detail.notes'), lead.notes?.trim() ? [lead.notes.trim()] : []),
   ]

@@ -36,13 +36,25 @@ export interface Lead {
   /** Named links beyond the primary website (jsonb in Supabase). */
   links: LeadLink[]
   contact_name: string
+  /** Job title / role of primary contact (optional). */
+  contact_role: string
   /** Primary contact email. */
   email: string
   /** Labeled department emails beyond primary (jsonb in Supabase). */
   emails: LeadEmail[]
   phone: string
   offer: string
+  /** What the company does — context for outreach (distinct from offer). */
+  company_focus: string
   notes: string
+  /** Draft subject for first outreach email. */
+  initial_email_subject: string
+  /** Draft body for first outreach email. */
+  initial_email_body: string
+  /** When the draft was last marked ready (null = not marked). */
+  initial_email_drafted_at: string | null
+  /** When initial outreach was marked sent (null = not sent). */
+  initial_email_sent_at: string | null
   temperature: LeadTemperature
   status: LeadStatus
   next_follow_up: string | null
@@ -57,6 +69,8 @@ export interface Lead {
   client_city: string
   /** Country used with city for geocoding */
   client_country: string
+  /** Street address for client location (optional). */
+  client_address: string
   /** Cached geocode latitude (optional) */
   client_lat: number | null
   /** Cached geocode longitude (optional) */
@@ -186,6 +200,7 @@ export type LeadInput = Omit<
   | 'owner_avatar_url'
 >
 export type ActivityInput = Omit<Activity, 'id' | 'created_at' | 'owner_id'>
+export type ActivityUpdate = Pick<ActivityInput, 'type' | 'subject' | 'body' | 'occurred_at'>
 
 export interface CrmUser {
   id: string

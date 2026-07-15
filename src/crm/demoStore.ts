@@ -85,6 +85,18 @@ function emptyAtlas() {
   }
 }
 
+function emptyOutreach() {
+  return {
+    contact_role: '',
+    company_focus: '',
+    client_address: '',
+    initial_email_subject: '',
+    initial_email_body: '',
+    initial_email_drafted_at: null as string | null,
+    initial_email_sent_at: null as string | null,
+  }
+}
+
 function buildSeed(): Store {
   const guide = DEMO_USER.id
   const guideEmail = DEMO_USER.email
@@ -101,6 +113,7 @@ function buildSeed(): Store {
       { label: 'Case study', url: 'https://northwind-arcade.example/work/booth' },
     ],
     contact_name: 'Jordan Blake',
+    contact_role: 'Head of Partnerships',
     email: 'jordan.blake@northwind-arcade.example',
     emails: [
       { label: 'Sales', email: 'sales@northwind-arcade.example' },
@@ -109,8 +122,15 @@ function buildSeed(): Store {
     ],
     phone: '+381 11 555 0101',
     offer: 'Interactive 360° showroom + lead capture for trade events',
+    company_focus:
+      'Trade-show interactive booths, arcade licensing, and event lead capture for B2B brands.',
     notes:
       'DEMO SAMPLE — fictional brand. Hot interest in web presentations + weather sky presets. Atlas scores are sample rankings only.',
+    initial_email_subject: 'Interactive 360° showroom for Northwind trade events',
+    initial_email_body:
+      'Hi Jordan,\n\nI wanted to introduce IOM — Interactive Object Media. We build browser-based 360° showrooms and interactive lead capture for trade events.\n\nWould you be open to a brief call to explore fit for Northwind Arcade Labs?\n\nBest,\nMirjan',
+    initial_email_drafted_at: daysAgo(2),
+    initial_email_sent_at: null,
     temperature: 'hot',
     status: 'proposal',
     next_follow_up: daysAgo(-3, 14),
@@ -128,6 +148,7 @@ function buildSeed(): Store {
     client_timezone: 'Europe/Belgrade',
     client_city: 'Belgrade',
     client_country: 'Serbia',
+    client_address: 'Belgrade, Serbia',
     client_lat: 44.7866,
     client_lon: 20.4489,
     owner_id: guide,
@@ -146,6 +167,7 @@ function buildSeed(): Store {
       { label: 'Contact', url: 'https://harborpine.example/contact' },
     ],
     contact_name: 'Samira Okonkwo',
+    ...emptyOutreach(),
     email: 'samira@harborpine.example',
     emails: [
       { label: 'General', email: 'hello@harborpine.example' },
@@ -189,6 +211,7 @@ function buildSeed(): Store {
       { label: 'Festival map', url: 'https://auroragrove.example/festival' },
     ],
     contact_name: 'Elliot Marsh',
+    ...emptyOutreach(),
     email: 'elliot@auroragrove.example',
     emails: [{ label: 'Community', email: 'hello@auroragrove.example' }],
     phone: '+1 415 555 0199',
@@ -226,6 +249,7 @@ function buildSeed(): Store {
     website: 'https://lumencircuit.example',
     links: [{ label: 'Showreel', url: 'https://lumencircuit.example/reel' }],
     contact_name: 'Priya Natarajan',
+    ...emptyOutreach(),
     email: 'priya@lumencircuit.example',
     emails: [
       { label: 'New Business', email: 'newbiz@lumencircuit.example' },
@@ -265,6 +289,7 @@ function buildSeed(): Store {
       { label: 'Partnerships', url: 'https://copperlantern.example/partners' },
     ],
     contact_name: 'Noah Castillo',
+    ...emptyOutreach(),
     email: 'noah.castillo@copperlantern.example',
     emails: [
       { label: 'Partnerships', email: 'partners@copperlantern.example' },
@@ -305,6 +330,7 @@ function buildSeed(): Store {
     website: 'https://tideframe.example',
     links: [{ label: 'Portfolio', url: 'https://tideframe.example/work' }],
     contact_name: 'Mei Chen',
+    ...emptyOutreach(),
     email: 'mei.chen@tideframe.example',
     emails: [{ label: 'Production', email: 'production@tideframe.example' }],
     phone: '+44 20 7946 0958',

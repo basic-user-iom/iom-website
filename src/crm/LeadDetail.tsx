@@ -6,6 +6,7 @@ import { LeadClientLocal } from './LeadClientLocal'
 import { AtlasEvalFields } from './AtlasEvalFields'
 import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
 import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
+import { InitialOutreachPanel } from './InitialOutreachPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
 import { UserAvatar } from './UserProfileMenu'
@@ -46,6 +47,8 @@ interface LeadDetailProps {
   staffById?: Map<string, StaffProfile> | null
   /** DB missing client_timezone / client_city / … columns */
   clientLocaleSchemaMissing?: boolean
+  /** DB missing initial_email_* / contact_role columns */
+  outreachSchemaMissing?: boolean
   /** Called after save/claim; may receive the updated lead for immediate UI merge. */
   onChanged: (updated?: Lead) => void
   onDeleted: () => void
@@ -58,6 +61,7 @@ export function LeadDetail({
   currentUser,
   staffById,
   clientLocaleSchemaMissing = false,
+  outreachSchemaMissing = false,
   onChanged,
   onDeleted,
   onOpenProject,
@@ -389,7 +393,12 @@ export function LeadDetail({
       <dl className="crm-facts">
         <div>
           <dt>{t('detail.contact')}</dt>
-          <dd>{lead.contact_name || '—'}</dd>
+          <dd>
+            {lead.contact_name || '—'}
+            {lead.contact_role?.trim() ? (
+              <span className="crm-muted"> · {lead.contact_role}</span>
+            ) : null}
+          </dd>
         </div>
         <div>
           <dt>{t('detail.email')}</dt>
@@ -533,6 +542,12 @@ export function LeadDetail({
       </dl>
 
       <LeadClientLocal lead={lead} schemaMissing={clientLocaleSchemaMissing} />
+
+      <InitialOutreachPanel
+        lead={lead}
+        onChanged={onChanged}
+        schemaMissing={outreachSchemaMissing}
+      />
 
       {hasAtlasEval(lead.atlas_eval) && (
         <section className="crm-offer-block crm-atlas-detail">

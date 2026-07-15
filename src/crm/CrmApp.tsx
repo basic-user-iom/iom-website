@@ -14,13 +14,16 @@ import {
   preserveClientLocaleFields,
   preserveLeadEmailsFields,
   preserveLeadLinksFields,
+  preserveOutreachFields,
   preserveValueEmojiFields,
   probeAtlasEvalSchema,
   probeClientLocaleSchema,
   probeEmailsSchema,
   probeLinksSchema,
+  probeOutreachSchema,
   probeOwnerAttributionSchema,
   probeValueEmojiSchema,
+  outreachSchemaKnownMissing,
   valueEmojiSchemaKnownMissing,
   signOut,
   storageMode,
@@ -269,6 +272,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [valueEmojiSchemaMissing, setValueEmojiSchemaMissing] = useState(false)
   const [emailsSchemaMissing, setEmailsSchemaMissing] = useState(false)
   const [atlasEvalSchemaMissing, setAtlasEvalSchemaMissing] = useState(false)
+  const [outreachSchemaMissing, setOutreachSchemaMissing] = useState(false)
 
   const openProject = useCallback((projectId: string) => {
     setFocusProjectId(projectId)
@@ -352,7 +356,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!soft) setLoading(true)
     setError('')
     try {
-      const [schema, staff, clientLocaleOk, linksOk, valueEmojiOk, emailsOk, atlasOk] =
+      const [schema, staff, clientLocaleOk, linksOk, valueEmojiOk, emailsOk, atlasOk, outreachOk] =
         await Promise.all([
           probeOwnerAttributionSchema(),
           listStaffProfiles(),
@@ -361,6 +365,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           probeValueEmojiSchema(),
           probeEmailsSchema(),
           probeAtlasEvalSchema(),
+          probeOutreachSchema(),
         ])
       setOwnerSchemaMissing(
         !schema.ownerSnapshotColumns || !schema.staffProfiles,
@@ -370,6 +375,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setValueEmojiSchemaMissing(!valueEmojiOk)
       setEmailsSchemaMissing(!emailsOk)
       setAtlasEvalSchemaMissing(!atlasOk)
+      setOutreachSchemaMissing(!outreachOk)
       setStaffById(staff)
       // Load without owner filter so the "who added" dropdown stays complete.
       const catalog = await listLeads({ ...filters, owner: 'all' })
@@ -401,6 +407,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         }
         if (atlasEvalSchemaKnownMissing() || !atlasOk) {
           next = preserveAtlasEvalFields(next, prev)
+        }
+        if (outreachSchemaKnownMissing() || !outreachOk) {
+          next = preserveOutreachFields(next, prev)
         }
         return next
       })
@@ -690,6 +699,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         </p>
       )}
 
+      {!sandboxed && outreachSchemaMissing && (
+        <p className="crm-feedback crm-feedback--error" role="status">
+          {t('error.outreachSchemaMissing')}
+        </p>
+      )}
+
       {/* Keep Leads mounted across tab switches so cards don't remount/flash. */}
       <div
         className="crm-section-panel"
@@ -822,6 +837,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                     currentUser={user}
                     staffById={staffById}
                     clientLocaleSchemaMissing={clientLocaleSchemaMissing}
+                    outreachSchemaMissing={outreachSchemaMissing}
                     onChanged={handleLeadChanged}
                     onDeleted={() => {
                       setSelectedId(null)
