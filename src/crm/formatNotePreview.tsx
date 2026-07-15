@@ -46,7 +46,7 @@ export function extractNoteSections(body: string): NoteSection[] {
   }))
 }
 
-/** Split note body into intro text and ## / ### sections. */
+/** Split note body into intro text and ## / ### sections (or name+URL blocks). */
 export function parseNoteDocument(body: string): {
   introLines: string[]
   sections: ParsedNoteSection[]
@@ -74,6 +74,52 @@ export function parseNoteDocument(body: string): {
     }
     if (current) current.lines.push(line)
     else introLines.push(line)
+  }
+  if (current) sections.push(current)
+
+  if (sections.length > 0) {
+    return { introLines, sections }
+  }
+
+  return parseNameUrlSections(introLines, slugCounts)
+}
+
+/** Legacy format: Name on one line, URL on the next → collapsible sections. */
+function parseNameUrlSections(
+  lines: string[],
+  slugCounts: Map<string, number>,
+): { introLines: string[]; sections: ParsedNoteSection[] } {
+  const introLines: string[] = []
+  const sections: ParsedNoteSection[] = []
+  let current: ParsedNoteSection | null = null
+  let i = 0
+
+  while (i < lines.length) {
+    const trimmed = lines[i].trim()
+    const nextTrimmed = i + 1 < lines.length ? lines[i + 1].trim() : ''
+
+    if (!trimmed) {
+      if (current) current.lines.push(lines[i])
+      else introLines.push(lines[i])
+      i++
+      continue
+    }
+
+    if (!isUrl(trimmed) && nextTrimmed && isUrl(nextTrimmed)) {
+      if (current) sections.push(current)
+      current = {
+        id: nextSectionId(trimmed, slugCounts),
+        title: trimmed,
+        level: 2,
+        lines: [lines[i + 1]],
+      }
+      i += 2
+      continue
+    }
+
+    if (current) current.lines.push(lines[i])
+    else introLines.push(lines[i])
+    i++
   }
   if (current) sections.push(current)
 
