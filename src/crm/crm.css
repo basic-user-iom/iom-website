@@ -2662,6 +2662,140 @@
   flex: 1 1 10rem;
 }
 
+.crm-notes-header-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.crm-notes-title-input {
+  font-family: var(--display);
+  font-size: 1.35rem;
+  font-weight: 600;
+  margin-top: 0.15rem;
+}
+
+.crm-notes-save-hint {
+  margin: 0.35rem 0 0;
+  font-size: 0.72rem;
+}
+
+.crm-notes-actions {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.crm-notes-mode-tabs {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.crm-notes-mode-tab {
+  padding: 0.4rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.crm-notes-mode-tab.is-active {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.crm-notes-mode-tab:not(.is-active):hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  color: var(--text);
+}
+
+.crm-notes-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.85rem;
+}
+
+.crm-notes-links .crm-input {
+  flex: 1 1 12rem;
+  min-width: 0;
+}
+
+.crm-notes-body {
+  width: 100%;
+  min-height: 22rem;
+  resize: vertical;
+  line-height: 1.55;
+  font-family: inherit;
+  font-size: 0.92rem;
+}
+
+.crm-notes-preview {
+  min-height: 22rem;
+  padding: 1rem 1.1rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.crm-note-paragraph {
+  margin: 0 0 0.65rem;
+}
+
+.crm-note-paragraph:last-child {
+  margin-bottom: 0;
+}
+
+.crm-note-entry {
+  margin: 0 0 0.85rem;
+  padding: 0.55rem 0.7rem;
+  border-left: 2px solid var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.crm-note-entry-name {
+  display: block;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.crm-note-entry-name:hover {
+  text-decoration: underline;
+}
+
+.crm-note-entry-url {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  word-break: break-all;
+  text-decoration: none;
+}
+
+.crm-note-entry-url:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.crm-note-entry-url--solo {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+}
+
+.crm-note-sidebar-preview {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
 .crm-tool-toolbar .btn {
   flex: 0 0 auto;
   white-space: nowrap;

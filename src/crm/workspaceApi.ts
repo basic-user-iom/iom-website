@@ -11,6 +11,8 @@ import type {
   MindNode,
   ProjectInput,
   ProjectStatus,
+  ResearchNote,
+  ResearchNoteInput,
   TaskInput,
   TaskPriority,
   TimeEntry,
@@ -23,6 +25,7 @@ const TASKS_KEY = 'iom-crm-tasks'
 const TIME_KEY = 'iom-crm-time-entries'
 const MAPS_KEY = 'iom-crm-mind-maps'
 const NODES_KEY = 'iom-crm-mind-nodes'
+const NOTES_KEY = 'iom-crm-research-notes'
 
 const DEFAULT_COLUMNS = [
   { name: 'Backlog', color: '#64748b' },
@@ -1005,6 +1008,113 @@ export async function deleteMindNode(id: string): Promise<void> {
   writeLocal(
     NODES_KEY,
     nodes.filter((n) => !toRemove.has(n.id)),
+  )
+}
+
+/* ── Research notes ───────────────────────────────────── */
+
+export function isResearchNotesSchemaMissing(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err)
+  return (
+    msg.includes('crm_research_notes') ||
+    msg.includes('does not exist') ||
+    msg.includes('schema cache')
+  )
+}
+
+export async function listResearchNotes(filters?: {
+  leadId?: string
+  projectId?: string
+}): Promise<ResearchNote[]> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    let query = supabase
+      .from('crm_research_notes')
+      .select('*')
+      .order('updated_at', { ascending: false })
+    if (filters?.leadId) query = query.eq('lead_id', filters.leadId)
+    if (filters?.projectId) query = query.eq('project_id', filters.projectId)
+    const { data, error } = await query
+    if (error) throw new Error(error.message)
+    return (data ?? []) as ResearchNote[]
+  }
+  return readLocal<ResearchNote[]>(NOTES_KEY, [])
+    .filter((n) => {
+      if (filters?.leadId && n.lead_id !== filters.leadId) return false
+      if (filters?.projectId && n.project_id !== filters.projectId) return false
+      return true
+    })
+    .sort(
+      (a, b) =>
+        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
+    )
+}
+
+export async function createResearchNote(
+  input: ResearchNoteInput,
+): Promise<ResearchNote> {
+  const user = await getCurrentUser()
+  const stamp = nowIso()
+
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_research_notes')
+      .insert({
+        ...input,
+        owner_id: user?.id ?? null,
+      })
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data as ResearchNote
+  }
+
+  const note: ResearchNote = {
+    ...input,
+    id: uid(),
+    owner_id: user?.id ?? null,
+    created_at: stamp,
+    updated_at: stamp,
+  }
+  writeLocal(NOTES_KEY, [note, ...readLocal<ResearchNote[]>(NOTES_KEY, [])])
+  return note
+}
+
+export async function updateResearchNote(
+  id: string,
+  input: Partial<ResearchNoteInput>,
+): Promise<ResearchNote> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_research_notes')
+      .update({ ...input, updated_at: nowIso() })
+      .eq('id', id)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    return data as ResearchNote
+  }
+  const notes = readLocal<ResearchNote[]>(NOTES_KEY, [])
+  const idx = notes.findIndex((n) => n.id === id)
+  if (idx < 0) throw new Error('Note not found.')
+  const updated: ResearchNote = { ...notes[idx], ...input, updated_at: nowIso() }
+  notes[idx] = updated
+  writeLocal(NOTES_KEY, notes)
+  return updated
+}
+
+export async function deleteResearchNote(id: string): Promise<void> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { error } = await supabase.from('crm_research_notes').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return
+  }
+  writeLocal(
+    NOTES_KEY,
+    readLocal<ResearchNote[]>(NOTES_KEY, []).filter((n) => n.id !== id),
   )
 }
 

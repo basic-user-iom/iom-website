@@ -253,6 +253,7 @@ const en: Dict = {
   'nav.projects': 'Projects',
   'nav.time': 'Time',
   'nav.ideas': 'Ideas',
+  'nav.notes': 'Notes',
 
   'music.aria': 'Music player',
   'music.play': 'Play',
@@ -369,6 +370,35 @@ const en: Dict = {
   'ideas.saveFailed': 'Could not save topic.',
   'ideas.styleSchemaMissing':
     'Color, link, and emphasis need a database update. In Supabase → SQL Editor, paste and Run crm_mind_node_style_migration.sql, then hard-refresh.',
+
+  'notes.kicker': 'Research notes',
+  'notes.create': '+ New note',
+  'notes.newPlaceholder': 'Note title…',
+  'notes.titlePlaceholder': 'Note title',
+  'notes.bodyPlaceholder':
+    'Write research notes here — one name per line with the URL on the next line, or paste free-form text…',
+  'notes.linkLead': 'Link to lead',
+  'notes.linkProject': 'Link to project',
+  'notes.noLead': 'No lead link',
+  'notes.noProject': 'No project link',
+  'notes.loading': 'Loading notes…',
+  'notes.empty':
+    'No research notes yet. Create one for artist lists, market research, or follow-up ideas.',
+  'notes.select': 'Select a note or create one.',
+  'notes.loadFailed': 'Failed to load notes.',
+  'notes.createFailed': 'Could not create note.',
+  'notes.saveFailed': 'Could not save note.',
+  'notes.deleteFailed': 'Could not delete note.',
+  'notes.untitled': 'Untitled note',
+  'notes.noBody': 'Empty note',
+  'notes.deleteConfirm': 'Delete note “{name}”?',
+  'notes.edit': 'Edit',
+  'notes.preview': 'Preview',
+  'notes.saving': 'Saving…',
+  'notes.saved': 'Saved',
+  'notes.autosaveHint': 'Edits save automatically',
+  'notes.schemaMissing':
+    'Research notes table is missing. In Supabase → SQL Editor, paste and Run crm_research_notes_migration.sql, then hard-refresh.',
 
   'form.company': 'Company / account',
   'form.website': 'Website',
@@ -881,6 +911,7 @@ const sr: Dict = {
   'nav.projects': 'Projekti',
   'nav.time': 'Vreme',
   'nav.ideas': 'Ideje',
+  'nav.notes': 'Beleške',
 
   'music.aria': 'Muzički plejer',
   'music.play': 'Pusti',
@@ -999,6 +1030,35 @@ const sr: Dict = {
   'ideas.saveFailed': 'Čuvanje teme nije uspelo.',
   'ideas.styleSchemaMissing':
     'Boja, link i naglašavanje traže ažuriranje baze. U Supabase → SQL Editor nalepite i pokrenite crm_mind_node_style_migration.sql, zatim hard-refresh.',
+
+  'notes.kicker': 'Istraživačke beleške',
+  'notes.create': '+ Nova beleška',
+  'notes.newPlaceholder': 'Naslov beleške…',
+  'notes.titlePlaceholder': 'Naslov beleške',
+  'notes.bodyPlaceholder':
+    'Pišite istraživačke beleške — ime u jednom redu, URL u sledećem, ili slobodan tekst…',
+  'notes.linkLead': 'Poveži sa leadom',
+  'notes.linkProject': 'Poveži sa projektom',
+  'notes.noLead': 'Bez leada',
+  'notes.noProject': 'Bez projekta',
+  'notes.loading': 'Učitavanje beleški…',
+  'notes.empty':
+    'Još nema istraživačkih beleški. Kreirajte za liste umetnika, istraživanje tržišta ili ideje za follow-up.',
+  'notes.select': 'Izaberite belešku ili kreirajte novu.',
+  'notes.loadFailed': 'Učitavanje beleški nije uspelo.',
+  'notes.createFailed': 'Kreiranje beleške nije uspelo.',
+  'notes.saveFailed': 'Čuvanje beleške nije uspelo.',
+  'notes.deleteFailed': 'Brisanje beleške nije uspelo.',
+  'notes.untitled': 'Beleška bez naziva',
+  'notes.noBody': 'Prazna beleška',
+  'notes.deleteConfirm': 'Obrisati belešku „{name}”?',
+  'notes.edit': 'Izmena',
+  'notes.preview': 'Pregled',
+  'notes.saving': 'Čuvanje…',
+  'notes.saved': 'Sačuvano',
+  'notes.autosaveHint': 'Izmene se automatski čuvaju',
+  'notes.schemaMissing':
+    'Tabela za istraživačke beleške nedostaje. U Supabase → SQL Editor nalepite i pokrenite crm_research_notes_migration.sql, zatim hard-refresh.',
 
   'form.company': 'Firma / nalog',
   'form.website': 'Sajt',

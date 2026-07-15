@@ -45,6 +45,7 @@ import {
   useCrmI18n,
 } from './i18n'
 import { IdeasView } from './IdeasView'
+import { NotesView } from './NotesView'
 import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
 import { LeadList } from './LeadList'
@@ -66,7 +67,7 @@ import { collectOwnerOptions } from './types'
 import './crm.css'
 
 type View = 'list' | 'create'
-type CrmSection = 'leads' | 'projects' | 'time' | 'ideas'
+type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes'
 
 interface CrmAppProps {
   /** Public sandbox — sample data only, no live CRM backend. */
@@ -592,7 +593,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         ? t('nav.time')
         : section === 'ideas'
           ? t('nav.ideas')
-          : t('topbar.title')
+          : section === 'notes'
+            ? t('nav.notes')
+            : t('topbar.title')
 
   return (
     <div className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}`}>
@@ -657,6 +660,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['projects', 'nav.projects'],
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
+              ['notes', 'nav.notes'],
             ] as const
           ).map(([id, key]) => (
             <button
@@ -888,6 +892,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
       {section === 'ideas' && (
         <IdeasView
+          initialLeadId={focusIdeaLeadId}
+          initialProjectId={focusIdeaProjectId}
+        />
+      )}
+
+      {section === 'notes' && (
+        <NotesView
           initialLeadId={focusIdeaLeadId}
           initialProjectId={focusIdeaProjectId}
         />

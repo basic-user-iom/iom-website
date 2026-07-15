@@ -13,6 +13,7 @@ import type {
   Lead,
   MindMap,
   MindNode,
+  ResearchNote,
   StaffProfile,
   TimeEntry,
 } from './types'
@@ -56,6 +57,7 @@ export const DEMO_KEYS = {
   time: 'iom-crm-time-entries',
   maps: 'iom-crm-mind-maps',
   nodes: 'iom-crm-mind-nodes',
+  notes: 'iom-crm-research-notes',
 } as const
 
 type Store = Record<string, unknown>
@@ -647,6 +649,35 @@ function buildSeed(): Store {
     },
   ]
 
+  const researchNotes: ResearchNote[] = [
+    {
+      id: 'demo-note-artists',
+      title: 'Artists to follow — research notes',
+      body: `Here is a list of artists I would like you to follow. 😊
+The idea is not to contact them immediately, but rather to monitor where they exhibit, who they collaborate with, which galleries and production studios are involved in producing their projects, and where potential opportunities for future connections may appear.
+
+Rafael Lozano-Hemmer
+https://www.lozano-hemmer.com/
+Daito Manabe
+https://daito.ws/en/
+Joanie Lemercier
+https://joanielemercier.com/
+Memo Akten
+https://www.memo.tv/
+Ryoji Ikeda
+https://www.ryojiikeda.com/?lang=en
+Quayola
+https://quayola.com/
+Chris Salter
+https://chrissalter.com/`,
+      lead_id: null,
+      project_id: null,
+      owner_id: guide,
+      created_at: daysAgo(2),
+      updated_at: hoursAgo(4),
+    },
+  ]
+
   const activities: Activity[] = [
     {
       id: 'demo-act-1',
@@ -714,6 +745,7 @@ function buildSeed(): Store {
     [DEMO_KEYS.time]: timeEntries,
     [DEMO_KEYS.maps]: [mindMap, mindMap2],
     [DEMO_KEYS.nodes]: nodes,
+    [DEMO_KEYS.notes]: researchNotes,
   }
 }
 

@@ -188,7 +188,23 @@ export type TimeEntryInput = {
 }
 export type MindMapInput = Pick<MindMap, 'title' | 'lead_id' | 'project_id'>
 
-export type CrmSection = 'leads' | 'projects' | 'time' | 'ideas'
+export interface ResearchNote {
+  id: string
+  title: string
+  body: string
+  lead_id: string | null
+  project_id: string | null
+  owner_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type ResearchNoteInput = Pick<
+  ResearchNote,
+  'title' | 'body' | 'lead_id' | 'project_id'
+>
+
+export type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes'
 
 export type LeadInput = Omit<
   Lead,
