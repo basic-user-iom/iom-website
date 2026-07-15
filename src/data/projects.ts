@@ -34,6 +34,10 @@ export interface Project {
   featured?: boolean
   /** ISO timestamp — card shows coming-soon overlay until this time */
   availableAt?: string
+  /** Force coming-soon overlay even without availableAt */
+  comingSoonOverlay?: boolean
+  /** Label shown on the coming-soon overlay (default: Coming Soon) */
+  comingSoonLabel?: string
   archiveId: string
 }
 
