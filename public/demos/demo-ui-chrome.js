@@ -4,12 +4,15 @@
  * - Parameters button toggles all overlay panels (camera views + inspector mini-panel)
  */
 
-export function initCameraViewsPanelCollapse(storageKey = 'demo-camera-views-collapsed') {
+export function initCameraViewsPanelCollapse(
+  storageKey = 'demo-camera-views-collapsed',
+  { defaultCollapsed = false } = {},
+) {
   const panel = document.getElementById('camera-views-panel')
   const header = panel?.querySelector('.panel-header')
   if (!panel || !header) return null
 
-  let collapsed = false
+  let collapsed = defaultCollapsed
   try {
     const stored = localStorage.getItem(storageKey)
     if (stored !== null) collapsed = stored === '1'

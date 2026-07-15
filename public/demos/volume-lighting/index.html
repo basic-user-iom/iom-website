@@ -417,8 +417,8 @@
       <a class="back-link" href="/" style="position: static; margin-top: 8px">← Back to IOM</a>
     </div>
 
-    <aside id="camera-views-panel" class="inspector-side-panel is-open" aria-label="Camera views">
-      <div class="panel-header" role="button" tabindex="0" aria-expanded="true">
+    <aside id="camera-views-panel" class="inspector-side-panel" aria-label="Camera views">
+      <div class="panel-header" role="button" tabindex="0" aria-expanded="false">
         <span class="item-toggler" aria-hidden="true"></span>
         <span class="panel-title">Camera views</span>
         <span class="panel-badge" id="camera-views-count">0</span>
@@ -2713,7 +2713,9 @@
           event.target.value = ''
         })
 
-        initCameraViewsPanelCollapse('volume-lighting-camera-views-collapsed')
+        initCameraViewsPanelCollapse('volume-lighting-camera-views-collapsed-v2', {
+          defaultCollapsed: true,
+        })
         demoUiChrome = initDemoUiChrome(renderer, {
           storageKey: 'volume-lighting-ui-chrome-visible',
         })
