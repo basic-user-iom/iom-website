@@ -2732,14 +2732,122 @@
   font-size: 0.92rem;
 }
 
+.crm-notes-preview-wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  min-height: 22rem;
+}
+
+.crm-notes-preview-wrap.has-toc {
+  grid-template-columns: minmax(0, 1fr) minmax(9rem, 11rem);
+  align-items: start;
+}
+
 .crm-notes-preview {
   min-height: 22rem;
+  max-height: min(70vh, 42rem);
+  overflow: auto;
   padding: 1rem 1.1rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   line-height: 1.6;
   font-size: 0.92rem;
+  scroll-behavior: smooth;
+}
+
+.crm-notes-toc {
+  position: sticky;
+  top: 0.5rem;
+  max-height: min(70vh, 42rem);
+  overflow: auto;
+  padding: 0.65rem 0.75rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.crm-notes-toc-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.crm-notes-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.crm-notes-toc-item.is-sub {
+  padding-left: 0.65rem;
+}
+
+.crm-notes-toc-link {
+  display: block;
+  width: 100%;
+  padding: 0.28rem 0.35rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-notes-toc-link:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.crm-notes-toc-link.is-active {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 600;
+}
+
+.crm-note-section-heading {
+  margin: 1.25rem 0 0.55rem;
+  font-family: var(--display);
+  scroll-margin-top: 0.75rem;
+}
+
+.crm-note-section-heading:first-child {
+  margin-top: 0;
+}
+
+.crm-note-section-heading--h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.crm-note-section-heading--h3 {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.crm-note-inline-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  word-break: break-all;
+}
+
+.crm-note-inline-link:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .crm-note-paragraph {
@@ -3455,5 +3563,15 @@
 
   .crm-music-kicker {
     display: none;
+  }
+
+  .crm-notes-preview-wrap.has-toc {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-notes-toc {
+    position: static;
+    max-height: none;
+    order: -1;
   }
 }

@@ -656,20 +656,33 @@ function buildSeed(): Store {
       body: `Here is a list of artists I would like you to follow. 😊
 The idea is not to contact them immediately, but rather to monitor where they exhibit, who they collaborate with, which galleries and production studios are involved in producing their projects, and where potential opportunities for future connections may appear.
 
-Rafael Lozano-Hemmer
+## Rafael Lozano-Hemmer
 https://www.lozano-hemmer.com/
-Daito Manabe
+Large-scale interactive installations. Watch for gallery partnerships and festival commissions.
+
+## Daito Manabe
 https://daito.ws/en/
-Joanie Lemercier
+Rhizomatiks — motion, data, and stage work. Note collaborators on live events.
+
+## Joanie Lemercier
 https://joanielemercier.com/
-Memo Akten
+Light sculptures and architectural projection. Follow gallery roster changes.
+
+## Memo Akten
 https://www.memo.tv/
-Ryoji Ikeda
+AI / generative art research. Academic and commercial crossover.
+
+## Ryoji Ikeda
 https://www.ryojiikeda.com/?lang=en
-Quayola
+Audiovisual minimalism — museums, opera houses, and tech festivals.
+
+## Quayola
 https://quayola.com/
-Chris Salter
-https://chrissalter.com/`,
+Computational sculpture and classical remix. Production studio credits on site.
+
+## Chris Salter
+https://chrissalter.com/
+Media art + academic — books, labs, and exhibition networks.`,
       lead_id: null,
       project_id: null,
       owner_id: guide,

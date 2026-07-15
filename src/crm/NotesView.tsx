@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listLeads } from './api'
-import { renderNoteBody } from './formatNotePreview'
+import { NotePreview } from './NotePreview'
 import { useCrmI18n } from './i18n'
 import type { CrmProject, Lead, ResearchNote } from './types'
 import {
@@ -31,7 +31,7 @@ export function NotesView({
   const [linkProjectId, setLinkProjectId] = useState(initialProjectId ?? '')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [mode, setMode] = useState<'edit' | 'preview'>('edit')
+  const [mode, setMode] = useState<'edit' | 'preview'>('preview')
   const [draftTitle, setDraftTitle] = useState('')
   const [draftBody, setDraftBody] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
@@ -97,6 +97,7 @@ export function NotesView({
     skipSave.current = true
     setDraftTitle(selected.title)
     setDraftBody(selected.body)
+    setMode(selected.body.trim() ? 'preview' : 'edit')
     setSaveState('idle')
     window.setTimeout(() => {
       skipSave.current = false
@@ -261,7 +262,7 @@ export function NotesView({
                     className={`crm-lead-row${selectedId === n.id ? ' is-selected' : ''}`}
                     onClick={() => {
                       setSelectedId(n.id)
-                      setMode('edit')
+                      setMode(n.body.trim() ? 'preview' : 'edit')
                     }}
                   >
                     <div className="crm-lead-row-body">
@@ -309,7 +310,9 @@ export function NotesView({
                         ? t('notes.saved')
                         : saveState === 'error'
                           ? t('notes.saveFailed')
-                          : t('notes.autosaveHint')}
+                          : mode === 'edit'
+                            ? t('notes.editHint')
+                            : t('notes.previewHint')}
                   </p>
                 </div>
                 <div className="crm-detail-actions crm-notes-actions">
@@ -385,7 +388,7 @@ export function NotesView({
                   onChange={(e) => setDraftBody(e.target.value)}
                 />
               ) : (
-                <div className="crm-notes-preview">{renderNoteBody(draftBody)}</div>
+                <NotePreview body={draftBody} />
               )}
             </>
           )}
