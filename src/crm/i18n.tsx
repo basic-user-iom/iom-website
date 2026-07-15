@@ -378,8 +378,9 @@ const en: Dict = {
   'notes.bodyPlaceholder':
     'Use ## Section title for jump links in Preview. Name on one line + URL on the next, or paste free-form text…',
   'notes.editHint': 'Use ## Section title to create jump links · Edits save automatically',
-  'notes.previewHint': 'Links are clickable · Sections start collapsed — click to expand · Use the index to jump',
+  'notes.previewHint': 'Click Expand to open preview · Sections collapse individually inside',
   'notes.tocLabel': 'On this page',
+  'notes.tocCount': '{count} sections',
   'notes.tocAria': 'Note sections',
   'notes.linkLead': 'Link to lead',
   'notes.linkProject': 'Link to project',
@@ -1108,8 +1109,9 @@ const sr: Dict = {
   'notes.bodyPlaceholder':
     'Koristite ## Naslov sekcije za skokove u Pregledu. Ime u jednom redu + URL u sledećem, ili slobodan tekst…',
   'notes.editHint': 'Koristite ## Naslov sekcije za skokove · Izmene se automatski čuvaju',
-  'notes.previewHint': 'Linkovi su klikabilni · Sekcije su skupljene — kliknite da proširite · Indeks za skok',
+  'notes.previewHint': 'Kliknite Proširi za pregled · Sekcije se skupljaju unutar pregleda',
   'notes.tocLabel': 'Na ovoj stranici',
+  'notes.tocCount': '{count} sekcija',
   'notes.tocAria': 'Sekcije beleške',
   'notes.linkLead': 'Poveži sa leadom',
   'notes.linkProject': 'Poveži sa projektom',

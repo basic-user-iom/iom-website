@@ -33,6 +33,7 @@ export function NotesView({
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [mode, setMode] = useState<'edit' | 'preview'>('preview')
+  const [previewExpanded, setPreviewExpanded] = useState(false)
   const [draftTitle, setDraftTitle] = useState('')
   const [draftBody, setDraftBody] = useState('')
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
@@ -99,6 +100,7 @@ export function NotesView({
     setDraftTitle(selected.title)
     setDraftBody(selected.body)
     setMode(selected.body.trim() ? 'preview' : 'edit')
+    setPreviewExpanded(false)
     setSaveState('idle')
     window.setTimeout(() => {
       skipSave.current = false
@@ -195,6 +197,35 @@ export function NotesView({
     }
   }
 
+  const previewSnippet =
+    draftBody.trim().split('\n').find((line) => line.trim()) ?? t('notes.noBody')
+
+  const modeTabs = (
+    <div className="crm-notes-mode-tabs" role="tablist">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'edit'}
+        className={`crm-notes-mode-tab${mode === 'edit' ? ' is-active' : ''}`}
+        onClick={() => setMode('edit')}
+      >
+        {t('notes.edit')}
+      </button>
+      <button
+        type="button"
+        role="tab"
+        aria-selected={mode === 'preview'}
+        className={`crm-notes-mode-tab${mode === 'preview' ? ' is-active' : ''}`}
+        onClick={() => {
+          setMode('preview')
+          setPreviewExpanded(false)
+        }}
+      >
+        {t('notes.preview')}
+      </button>
+    </div>
+  )
+
   return (
     <div className="crm-tool-panel">
       <div className="crm-tool-toolbar crm-tool-toolbar--wrap">
@@ -264,6 +295,7 @@ export function NotesView({
                     onClick={() => {
                       setSelectedId(n.id)
                       setMode(n.body.trim() ? 'preview' : 'edit')
+                      setPreviewExpanded(false)
                     }}
                   >
                     <div className="crm-lead-row-body">
@@ -288,6 +320,35 @@ export function NotesView({
         <main className="crm-main">
           {!selected ? (
             <p className="crm-empty crm-muted">{t('notes.select')}</p>
+          ) : mode === 'preview' && !previewExpanded ? (
+            <div className="crm-detail crm-detail--collapsed">
+              <div className="crm-detail-summary">
+                <div className="crm-detail-summary-main">
+                  <div className="crm-detail-summary-body">
+                    <div className="crm-detail-summary-top">
+                      <span className="crm-lead-company">
+                        {draftTitle || t('notes.untitled')}
+                      </span>
+                    </div>
+                    <div className="crm-lead-row-meta">
+                      <span className="crm-note-sidebar-preview">{previewSnippet}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="crm-detail-actions crm-detail-actions--compact">
+                  {modeTabs}
+                  <button
+                    type="button"
+                    className="btn btn-ghost crm-collapse-btn"
+                    aria-expanded={false}
+                    aria-label={t('detail.expandAria')}
+                    onClick={() => setPreviewExpanded(true)}
+                  >
+                    {t('detail.expand')}
+                  </button>
+                </div>
+              </div>
+            </div>
           ) : (
             <>
               <header className="crm-detail-header">
@@ -317,26 +378,18 @@ export function NotesView({
                   </p>
                 </div>
                 <div className="crm-detail-actions crm-notes-actions">
-                  <div className="crm-notes-mode-tabs" role="tablist">
+                  {modeTabs}
+                  {mode === 'preview' && (
                     <button
                       type="button"
-                      role="tab"
-                      aria-selected={mode === 'edit'}
-                      className={`crm-notes-mode-tab${mode === 'edit' ? ' is-active' : ''}`}
-                      onClick={() => setMode('edit')}
+                      className="btn btn-ghost crm-collapse-btn"
+                      aria-expanded
+                      aria-label={t('detail.collapseAria')}
+                      onClick={() => setPreviewExpanded(false)}
                     >
-                      {t('notes.edit')}
+                      {t('detail.collapse')}
                     </button>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={mode === 'preview'}
-                      className={`crm-notes-mode-tab${mode === 'preview' ? ' is-active' : ''}`}
-                      onClick={() => setMode('preview')}
-                    >
-                      {t('notes.preview')}
-                    </button>
-                  </div>
+                  )}
                   <button
                     type="button"
                     className="btn btn-ghost crm-danger"
