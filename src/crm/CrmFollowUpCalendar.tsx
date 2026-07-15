@@ -40,6 +40,7 @@ export function CrmFollowUpCalendar({
   onSelectDate,
 }: CrmFollowUpCalendarProps) {
   const { t, locale } = useCrmI18n()
+  const [expanded, setExpanded] = useState(false)
   const [view, setView] = useState(() => {
     const now = new Date()
     return { year: now.getFullYear(), month: now.getMonth() }
@@ -72,6 +73,23 @@ export function CrmFollowUpCalendar({
     [locale, view.month, view.year],
   )
 
+  const monthShortLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric' }).format(
+        new Date(view.year, view.month, 1),
+      ),
+    [locale, view.month, view.year],
+  )
+
+  const followUpsInMonth = useMemo(() => {
+    const prefix = `${view.year}-${String(view.month + 1).padStart(2, '0')}-`
+    let total = 0
+    for (const [key, count] of countsByDate) {
+      if (key.startsWith(prefix)) total += count
+    }
+    return total
+  }, [countsByDate, view.month, view.year])
+
   const cells = useMemo(() => {
     const first = new Date(view.year, view.month, 1)
     const daysInMonth = new Date(view.year, view.month + 1, 0).getDate()
@@ -93,8 +111,34 @@ export function CrmFollowUpCalendar({
     })
   }
 
+  if (!expanded) {
+    return (
+      <button
+        type="button"
+        className={`crm-calendar crm-calendar-toggle${selectedDate ? ' has-filter' : ''}`}
+        aria-label={t('calendar.expand')}
+        aria-expanded={false}
+        onClick={() => setExpanded(true)}
+      >
+        <span className="crm-stat-value">{monthShortLabel}</span>
+        <span className="crm-stat-label">{t('calendar.title')}</span>
+        {followUpsInMonth > 0 && (
+          <span className="crm-calendar-toggle-count" aria-hidden="true">
+            {followUpsInMonth}
+          </span>
+        )}
+        <span className="crm-calendar-chevron" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+    )
+  }
+
   return (
-    <section className="crm-calendar" aria-label={t('calendar.title')}>
+    <section
+      className="crm-calendar is-expanded"
+      aria-label={t('calendar.title')}
+    >
       <div className="crm-calendar-header">
         <button
           type="button"
@@ -112,6 +156,14 @@ export function CrmFollowUpCalendar({
           aria-label={t('calendar.next')}
         >
           ›
+        </button>
+        <button
+          type="button"
+          className="btn btn-ghost crm-calendar-collapse"
+          onClick={() => setExpanded(false)}
+          aria-label={t('calendar.collapse')}
+        >
+          ▴
         </button>
       </div>
 

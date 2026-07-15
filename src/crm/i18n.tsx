@@ -55,6 +55,8 @@ const en: Dict = {
   'stats.hot': 'Hot leads',
 
   'calendar.title': 'Follow-up calendar',
+  'calendar.expand': 'Expand follow-up calendar',
+  'calendar.collapse': 'Collapse follow-up calendar',
   'calendar.prev': 'Previous month',
   'calendar.next': 'Next month',
   'calendar.day': 'Day {day}',
@@ -680,6 +682,8 @@ const sr: Dict = {
   'stats.hot': 'Vrući leadovi',
 
   'calendar.title': 'Kalendar follow-up-a',
+  'calendar.expand': 'Proširi kalendar follow-up-a',
+  'calendar.collapse': 'Smanji kalendar follow-up-a',
   'calendar.prev': 'Prethodni mesec',
   'calendar.next': 'Sledeći mesec',
   'calendar.day': 'Dan {day}',
