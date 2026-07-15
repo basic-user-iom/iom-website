@@ -1172,6 +1172,7 @@
       const folderShare = gui.addFolder('Share')
       folderShare.add(shareActions, 'copyShareLink').name('Copy share link')
       shareStatusCtrl = folderShare.add(shareState, 'status').name('link status').disable()
+      folderShare.close()
 
       const folderMessage = gui.addFolder('Message')
       folderMessage.add(messageParams, 'message').name('message').onChange(updateTextMesh)
@@ -1283,6 +1284,7 @@
       folderIcon
         .add({ uploadIcon: () => iconFileInput.click() }, 'uploadIcon')
         .name('upload image')
+      folderIcon.close()
 
       iconFileInput.addEventListener('change', () => {
         const file = iconFileInput.files?.[0]
@@ -1315,6 +1317,7 @@
       recordButtonCtrl = folderMessage.add(videoActions, 'startRecording').name('Record video')
       stopButtonCtrl = folderMessage.add(videoActions, 'stopRecording').name('Stop recording')
       stopButtonCtrl.disable()
+      folderMessage.close()
 
       const folderSky = gui.addFolder('Sky')
       folderSky.add(parameters, 'elevation', 0, 90, 0.1).onChange(updateSun)
@@ -1325,10 +1328,12 @@
           renderer.toneMappingExposure = value
         })
       folderSky.add({ sunset: applySunsetPreset }, 'sunset').name('Sunset preset')
+      folderSky.close()
 
       const folderWater = gui.addFolder('Water')
       folderWater.add(waterUniforms.distortionScale, 'value', 0, 8, 0.1).name('distortionScale')
       folderWater.add(waterUniforms.size, 'value', 0.1, 10, 0.1).name('size')
+      folderWater.close()
 
       const folderBloom = gui.addFolder('Bloom')
       folderBloom
@@ -1341,11 +1346,13 @@
       folderBloom
         .add(bloomSettings, 'radius', 0, 1, 0.01)
         .onChange(() => syncBloomEffects())
+      folderBloom.close()
 
       const folderClouds = gui.addFolder('Clouds')
       folderClouds.add(skyUniforms.cloudCoverage, 'value', 0, 1, 0.01).name('coverage')
       folderClouds.add(skyUniforms.cloudDensity, 'value', 0, 1, 0.01).name('density')
       folderClouds.add(skyUniforms.cloudElevation, 'value', 0, 1, 0.01).name('elevation')
+      folderClouds.close()
 
       textHeightCtrl.enable(!messageParams.autoBob)
       if (sharedStateLoaded) {
