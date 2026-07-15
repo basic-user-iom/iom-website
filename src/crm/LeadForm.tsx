@@ -246,6 +246,8 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         ...form,
         company_name: form.company_name.trim(),
         contact_name: form.contact_name.trim(),
+        contact_role: form.contact_role.trim(),
+        company_focus: form.company_focus.trim(),
         website: form.website.trim(),
         links,
         emails,
@@ -253,6 +255,12 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         phone: form.phone.trim(),
         offer: form.offer.trim(),
         notes: form.notes.trim(),
+        initial_email_subject: form.initial_email_subject.trim(),
+        initial_email_body: form.initial_email_body.trim(),
+        initial_email_drafted_at:
+          form.initial_email_subject.trim() && form.initial_email_body.trim()
+            ? form.initial_email_drafted_at ?? new Date().toISOString()
+            : form.initial_email_drafted_at,
         next_follow_up: form.next_follow_up || null,
         estimated_value:
           form.estimated_value === null || Number.isNaN(form.estimated_value)
@@ -305,6 +313,16 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
             value={form.contact_name}
             onChange={(e) => set('contact_name')(e.target.value)}
             required
+            disabled={busy}
+          />
+        </label>
+        <label className="crm-field">
+          <span className="crm-label">{t('form.contactRole')}</span>
+          <input
+            className="crm-input"
+            value={form.contact_role}
+            onChange={(e) => set('contact_role')(e.target.value)}
+            placeholder={t('form.contactRolePlaceholder')}
             disabled={busy}
           />
         </label>
@@ -530,6 +548,43 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
         >
           {t('form.linkAdd')}
         </button>
+      </fieldset>
+
+      <fieldset className="crm-outreach-fieldset" disabled={busy}>
+        <legend className="crm-label">{t('form.outreachSection')}</legend>
+        <p className="crm-muted crm-outreach-hint">{t('form.outreachHint')}</p>
+        <label className="crm-field">
+          <span className="crm-label">{t('outreach.companyFocus')}</span>
+          <textarea
+            className="crm-input crm-textarea"
+            rows={2}
+            value={form.company_focus}
+            onChange={(e) => set('company_focus')(e.target.value)}
+            placeholder={t('form.companyFocusPlaceholder')}
+            disabled={busy}
+          />
+        </label>
+        <label className="crm-field">
+          <span className="crm-label">{t('outreach.subject')}</span>
+          <input
+            className="crm-input"
+            value={form.initial_email_subject}
+            onChange={(e) => set('initial_email_subject')(e.target.value)}
+            placeholder={t('form.initialEmailSubjectPlaceholder')}
+            disabled={busy}
+          />
+        </label>
+        <label className="crm-field">
+          <span className="crm-label">{t('outreach.body')}</span>
+          <textarea
+            className="crm-input crm-textarea"
+            rows={8}
+            value={form.initial_email_body}
+            onChange={(e) => set('initial_email_body')(e.target.value)}
+            placeholder={t('form.initialEmailBodyPlaceholder')}
+            disabled={busy}
+          />
+        </label>
       </fieldset>
 
       <fieldset className="crm-atlas-fieldset" disabled={busy}>

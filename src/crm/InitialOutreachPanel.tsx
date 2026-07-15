@@ -37,13 +37,6 @@ export function InitialOutreachPanel({
 
   const status = initialEmailStatus(lead)
   const pending = initialEmailPending(lead)
-  const visible =
-    hasInitialEmailDraft(lead) ||
-    !!lead.contact_role?.trim() ||
-    !!lead.company_focus?.trim() ||
-    editing
-
-  if (!visible) return null
 
   const formatWhen = (iso: string | null): string => {
     if (!iso) return '—'

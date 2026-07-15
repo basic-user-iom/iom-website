@@ -358,6 +358,8 @@ const en: Dict = {
   'form.linkUrlRequired': 'Each link needs a URL (or clear the row).',
   'form.linkUrlInvalid': 'Enter a valid http(s) URL for each link.',
   'form.contact': 'Contact name',
+  'form.contactRole': 'Contact role',
+  'form.contactRolePlaceholder': 'e.g. Creative Director',
   'form.email': 'Email (primary)',
   'form.emailsSection': 'Department emails',
   'form.emailsHint':
@@ -408,6 +410,14 @@ const en: Dict = {
   'form.followUp': 'Next follow-up',
   'form.offer': 'What to offer',
   'form.offerPlaceholder': 'Product, package, or pitch for this lead',
+  'form.outreachSection': 'Initial outreach email',
+  'form.outreachHint':
+    'Draft the first email you plan to send. Saved with the lead so you can copy it, open in your mail app, or mark as sent later.',
+  'form.companyFocus': 'What the company does',
+  'form.companyFocusPlaceholder': 'Brief context — their product, audience, or why you reached out',
+  'form.initialEmailSubjectPlaceholder': 'e.g. Interactive 360° tour for your trade booth',
+  'form.initialEmailBodyPlaceholder':
+    'Write the full email here — greeting, pitch, and sign-off. You can refine it on the lead detail page later.',
   'form.notes': 'Internal notes',
   'form.localeSection': 'Client location & timezone',
   'form.localeHint':
@@ -949,6 +959,8 @@ const sr: Dict = {
   'form.linkUrlRequired': 'Svaki link treba URL (ili obrišite red).',
   'form.linkUrlInvalid': 'Unesite ispravan http(s) URL za svaki link.',
   'form.contact': 'Ime kontakta',
+  'form.contactRole': 'Uloga kontakta',
+  'form.contactRolePlaceholder': 'npr. kreativni direktor',
   'form.email': 'Email (primarni)',
   'form.emailsSection': 'Emailovi po odeljenju',
   'form.emailsHint':
@@ -1000,6 +1012,14 @@ const sr: Dict = {
   'form.followUp': 'Sledeći follow-up',
   'form.offer': 'Šta ponuditi',
   'form.offerPlaceholder': 'Proizvod, paket ili pitch za ovaj lead',
+  'form.outreachSection': 'Inicijalni outreach email',
+  'form.outreachHint':
+    'Draft prvog emaila koji planirate da pošaljete. Čuva se uz lead — možete ga kopirati, otvoriti u mail aplikaciji ili kasnije označiti kao poslat.',
+  'form.companyFocus': 'Čime se firma bavi',
+  'form.companyFocusPlaceholder': 'Kratak kontekst — proizvod, publika ili zašto ste ih kontaktirali',
+  'form.initialEmailSubjectPlaceholder': 'npr. Interaktivna 360° tura za vaš sajamski štand',
+  'form.initialEmailBodyPlaceholder':
+    'Napišite ceo email ovde — pozdrav, pitch i potpis. Možete ga doraditi kasnije na stranici leada.',
   'form.notes': 'Interne beleške',
   'form.localeSection': 'Lokacija i vremenska zona klijenta',
   'form.localeHint':
