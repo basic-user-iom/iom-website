@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
   extractNoteSections,
-  renderNoteBody,
+  parseNoteDocument,
+  renderNoteLines,
   scrollToNoteSection,
+  sectionSummaryUrl,
 } from './formatNotePreview'
 import { useCrmI18n } from './i18n'
 
@@ -71,6 +73,52 @@ export function NoteTableOfContents({ body, previewRef }: NoteTableOfContentsPro
   )
 }
 
+function NotePreviewBody({ body }: { body: string }) {
+  const { t } = useCrmI18n()
+  const { introLines, sections } = useMemo(() => parseNoteDocument(body), [body])
+  const intro = renderNoteLines(introLines, 'intro')
+
+  return (
+    <>
+      {intro.length > 0 && <div className="crm-note-intro">{intro}</div>}
+      {sections.map((section) => {
+        const url = sectionSummaryUrl(section.lines)
+        return (
+          <details
+            key={section.id}
+            id={`note-section-${section.id}`}
+            className={`crm-note-section${section.level === 3 ? ' crm-note-section--sub' : ''}`}
+          >
+            <summary className="crm-note-section-summary">
+              <span className="crm-note-section-title">{section.title}</span>
+              {url ? (
+                <a
+                  className="crm-note-section-url"
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                </a>
+              ) : null}
+              <span className="crm-note-section-chevron" aria-hidden="true">
+                ▾
+              </span>
+            </summary>
+            <div className="crm-note-section-body">
+              {renderNoteLines(section.lines, section.id)}
+            </div>
+          </details>
+        )
+      })}
+      {sections.length === 0 && intro.length === 0 && (
+        <p className="crm-muted">{t('notes.noBody')}</p>
+      )}
+    </>
+  )
+}
+
 interface NotePreviewProps {
   body: string
 }
@@ -84,7 +132,7 @@ export function NotePreview({ body }: NotePreviewProps) {
       className={`crm-notes-preview-wrap${sections.length >= 2 ? ' has-toc' : ''}`}
     >
       <div ref={previewRef} className="crm-notes-preview">
-        {renderNoteBody(body)}
+        <NotePreviewBody body={body} />
       </div>
       <NoteTableOfContents body={body} previewRef={previewRef} />
     </div>

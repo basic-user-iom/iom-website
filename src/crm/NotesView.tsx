@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { listLeads } from './api'
+import { NoteChatGptPanel } from './NoteChatGptPanel'
 import { NotePreview } from './NotePreview'
 import { useCrmI18n } from './i18n'
 import type { CrmProject, Lead, ResearchNote } from './types'
@@ -378,6 +379,16 @@ export function NotesView({
                   ))}
                 </select>
               </div>
+
+              {mode === 'edit' && (
+                <NoteChatGptPanel
+                  seedHint={draftTitle}
+                  onImport={(data) => {
+                    setDraftTitle(data.title)
+                    setDraftBody(data.body)
+                  }}
+                />
+              )}
 
               {mode === 'edit' ? (
                 <textarea

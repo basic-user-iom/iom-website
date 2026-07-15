@@ -104,12 +104,18 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
           <GuideSection
             heading={t('guide.whatHeading')}
             text={t('guide.whatText')}
-            items={[t('guide.what1'), t('guide.what2'), t('guide.what3'), t('guide.what4')]}
+            items={[t('guide.what1'), t('guide.what2'), t('guide.what3'), t('guide.what4'), t('guide.what5')]}
           />
           <GuideSection
             heading={t('guide.navHeading')}
             text={t('guide.navText')}
-            items={[t('guide.nav1'), t('guide.nav2'), t('guide.nav3'), t('guide.nav4')]}
+            items={[
+              t('guide.nav1'),
+              t('guide.nav2'),
+              t('guide.nav3'),
+              t('guide.nav4'),
+              t('guide.nav5'),
+            ]}
           />
           <GuideSection
             heading={t('guide.leadHeading')}
@@ -142,6 +148,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.start2'),
               t('guide.start3'),
               t('guide.start4'),
+              t('guide.start5'),
             ]}
           />
           <GuideSection
@@ -151,7 +158,18 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.pipe2'),
               t('guide.pipe3'),
               t('guide.pipe4'),
+              t('guide.pipe5'),
             ]}
+          />
+          <GuideSection
+            heading={t('guide.outreachHeading')}
+            text={t('guide.outreachText')}
+            items={[t('guide.outreach1'), t('guide.outreach2'), t('guide.outreach3')]}
+          />
+          <GuideSection
+            heading={t('guide.calendarHeading')}
+            text={t('guide.calendarText')}
+            items={[t('guide.calendar1'), t('guide.calendar2'), t('guide.calendar3')]}
           />
           <GuideSection
             heading={t('guide.commHeading')}
@@ -160,6 +178,11 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
           <GuideSection
             heading={t('guide.findHeading')}
             items={[t('guide.find1'), t('guide.find2'), t('guide.find3')]}
+          />
+          <GuideSection
+            heading={t('guide.chatgptHeading')}
+            text={t('guide.chatgptText')}
+            items={[t('guide.chatgpt1'), t('guide.chatgpt2'), t('guide.chatgpt3')]}
           />
           <GuideSection
             heading={t('guide.projectsHeading')}
@@ -190,6 +213,17 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.ideas2'),
               t('guide.ideas3'),
               t('guide.ideas4'),
+            ]}
+          />
+          <GuideSection
+            heading={t('guide.notesHeading')}
+            text={t('guide.notesText')}
+            items={[
+              t('guide.notes1'),
+              t('guide.notes2'),
+              t('guide.notes3'),
+              t('guide.notes4'),
+              t('guide.notes5'),
             ]}
           />
           <GuideSection

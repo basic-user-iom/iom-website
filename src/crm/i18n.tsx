@@ -378,7 +378,7 @@ const en: Dict = {
   'notes.bodyPlaceholder':
     'Use ## Section title for jump links in Preview. Name on one line + URL on the next, or paste free-form text…',
   'notes.editHint': 'Use ## Section title to create jump links · Edits save automatically',
-  'notes.previewHint': 'Links are clickable · Use the section index to jump',
+  'notes.previewHint': 'Links are clickable · Sections start collapsed — click to expand · Use the index to jump',
   'notes.tocLabel': 'On this page',
   'notes.tocAria': 'Note sections',
   'notes.linkLead': 'Link to lead',
@@ -403,6 +403,26 @@ const en: Dict = {
   'notes.autosaveHint': 'Edits save automatically',
   'notes.schemaMissing':
     'Research notes table is missing. In Supabase → SQL Editor, paste and Run crm_research_notes_migration.sql, then hard-refresh.',
+
+  'notesChatgpt.title': 'ChatGPT note assist',
+  'notesChatgpt.blurb':
+    'Copy a research prompt into ChatGPT, paste the JSON back, and load title + sections into this note.',
+  'notesChatgpt.copyPrompt': 'Copy ChatGPT prompt',
+  'notesChatgpt.step1':
+    'Copy the prompt and tell ChatGPT what to research (e.g. artists to follow, market list, lead targets).',
+  'notesChatgpt.step2': 'Ask ChatGPT to return the JSON object only.',
+  'notesChatgpt.step3': 'Paste JSON below → Load into note → switch to Preview to check links and sections.',
+  'notesChatgpt.pasteLabel': 'Paste ChatGPT JSON',
+  'notesChatgpt.pastePlaceholder':
+    'Paste JSON from ChatGPT here (with or without ```json fences)…',
+  'notesChatgpt.loadIntoNote': 'Load into note',
+  'notesChatgpt.loadSuccess': 'Note loaded — review in Preview; edits save automatically.',
+  'notesChatgpt.copyFailed': 'Could not copy prompt to clipboard.',
+  'notesChatgpt.pasteEmpty': 'Paste ChatGPT JSON first.',
+  'notesChatgpt.missingTitle': 'JSON must include a title.',
+  'notesChatgpt.missingBody': 'JSON must include body text or a sections array.',
+  'notesChatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object only.',
+  'notesChatgpt.importFailed': 'Could not load note data.',
 
   'form.company': 'Company / account',
   'form.website': 'Website',
@@ -583,12 +603,14 @@ const en: Dict = {
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
   'guide.what3': 'Time — start/stop timers, manual entries, and reports',
   'guide.what4': 'Ideas — mind maps standalone or linked to a lead / project',
+  'guide.what5': 'Notes — long-form research lists (artists, markets, follow-ups) with sections and links',
   'guide.navHeading': 'Navigation',
-  'guide.navText': 'Tabs under the header switch tools: Leads | Projects | Time | Ideas.',
+  'guide.navText': 'Tabs under the header: Leads | Projects | Time | Ideas | Notes.',
   'guide.nav1': 'Leads — Salesforce-style CRM for potential clients',
   'guide.nav2': 'Projects — Monday-style boards for delivery work',
   'guide.nav3': 'Time — Clockify-style timers, logs, and reports',
   'guide.nav4': 'Ideas — MindMeister-style maps for brainstorming',
+  'guide.nav5': 'Notes — research documents with sections, clickable links, and ChatGPT assist',
   'guide.leadHeading': 'Leads — what is a lead?',
   'guide.leadText':
     'A lead is a potential client or contact you are trying to win — not a closed deal yet.',
@@ -623,12 +645,34 @@ const en: Dict = {
   'guide.start2': 'Fill the contact fields and what you plan to offer',
   'guide.start3': 'Set temperature (Hot / Warm / Cold) and starting pipeline stage',
   'guide.start4': 'Optional: next follow-up date and estimated value',
+  'guide.start5':
+    'ChatGPT lead assist (+ Add lead): copy prompt → research in ChatGPT → paste JSON → Load into form',
   'guide.pipeHeading': 'Working the pipeline',
   'guide.pipe1': 'Select a lead in the left list to open its detail panel',
   'guide.pipe2':
     'Update stage as you progress: New → Contacted → Qualified → Proposal → Negotiation → Closed Won / Lost',
   'guide.pipe3': 'Change Hot / Warm / Cold anytime as interest shifts',
   'guide.pipe4': 'Edit details, offer text, and notes as conversations evolve',
+  'guide.pipe5':
+    'Copy as text — export the full lead (contact, outreach, activities) for ChatGPT or email drafts',
+  'guide.outreachHeading': 'Initial outreach email',
+  'guide.outreachText':
+    'Draft and track first-contact emails without leaving the CRM.',
+  'guide.outreach1':
+    'On + Add lead or Edit, fill initial email subject and body — or let ChatGPT generate them in the JSON import',
+  'guide.outreach2':
+    'On lead detail, the Initial outreach panel shows the draft; mark Email sent when you have sent it',
+  'guide.outreach3':
+    'Lead list cards show Email pending / Email sent badges so you see outreach status at a glance',
+  'guide.calendarHeading': 'Stats & follow-up calendar',
+  'guide.calendarText':
+    'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
+  'guide.calendar1':
+    'Stats pills: Visible leads, Open pipeline, and Hot leads for your current filters',
+  'guide.calendar2':
+    'Follow-up calendar starts collapsed — click the pill to expand, pick a date to filter leads',
+  'guide.calendar3':
+    'Days with follow-ups show a dot; clear the date filter to see all leads again',
   'guide.commHeading': 'Activity log',
   'guide.comm1':
     'On a lead, log a Call, Email, Meeting, Note, or Task in the activity panel',
@@ -639,7 +683,16 @@ const en: Dict = {
   'guide.find2':
     'Filter by pipeline stage, temperature (Hot / Warm / Cold), and who added the lead',
   'guide.find3':
-    'Sort by last updated, who added, or pipeline stage; stats show counts for the current filters',
+    'Sort by last updated, who added, or pipeline stage; use stats pills and the follow-up calendar to filter by date',
+  'guide.chatgptHeading': 'ChatGPT assist',
+  'guide.chatgptText':
+    'Speed up research with copy-paste ChatGPT workflows — no API key in the CRM; you run ChatGPT yourself.',
+  'guide.chatgpt1':
+    'Add lead: ChatGPT lead assist builds company, contact, outreach email, Atlas scores, and more from one JSON paste',
+  'guide.chatgpt2':
+    'Notes (Edit mode): ChatGPT note assist generates title + body with ## sections for artist/lead research lists',
+  'guide.chatgpt3':
+    'Copy as text on a lead exports everything for pasting into ChatGPT when you need a fresh analysis',
   'guide.projectsHeading': 'Projects',
   'guide.projectsText':
     'Monday-style boards for delivery — columns, tasks, and project status.',
@@ -673,6 +726,19 @@ const en: Dict = {
     'Build a tree: add child ideas, edit titles inline, nest as deep as you need',
   'guide.ideas4':
     'In online mode, maps are shared with all signed-in staff — the team sees the same boards',
+  'guide.notesHeading': 'Notes',
+  'guide.notesText':
+    'Research notebooks for lists you monitor over time — artists, venues, competitors, warm intros.',
+  'guide.notes1':
+    'Notes tab → + New note; optionally link to a lead or project',
+  'guide.notes2':
+    'Edit / Preview: URLs become clickable; use ## Section title for each person or topic',
+  'guide.notes3':
+    'Preview shows an On this page index when you have 2+ sections — jump without scrolling',
+  'guide.notes4':
+    'ChatGPT note assist (Edit): copy prompt, paste JSON, Load into note — review in Preview, then autosave',
+  'guide.notes5':
+    'Format: intro paragraph, then ## Name, URL on next line, then your monitoring notes per section',
   'guide.photoHeading': 'Profile photo',
   'guide.photo1': 'Click your avatar or email in the top bar to open your photo menu',
   'guide.photo2':
@@ -684,7 +750,7 @@ const en: Dict = {
     'Help (header, next to Sign out) reopens this guide anytime',
   'guide.ui2': 'Flag button switches the whole CRM between English and Serbian',
   'guide.hint':
-    'Tabs: Leads · Projects · Time · Ideas. Reopen this guide with Help. Flag = English ↔ Serbian.',
+    'Tabs: Leads · Projects · Time · Ideas · Notes. Help reopens this guide. Flag = English ↔ Serbian.',
 }
 
 const sr: Dict = {
@@ -1042,7 +1108,7 @@ const sr: Dict = {
   'notes.bodyPlaceholder':
     'Koristite ## Naslov sekcije za skokove u Pregledu. Ime u jednom redu + URL u sledećem, ili slobodan tekst…',
   'notes.editHint': 'Koristite ## Naslov sekcije za skokove · Izmene se automatski čuvaju',
-  'notes.previewHint': 'Linkovi su klikabilni · Koristite indeks sekcija za skok',
+  'notes.previewHint': 'Linkovi su klikabilni · Sekcije su skupljene — kliknite da proširite · Indeks za skok',
   'notes.tocLabel': 'Na ovoj stranici',
   'notes.tocAria': 'Sekcije beleške',
   'notes.linkLead': 'Poveži sa leadom',
@@ -1067,6 +1133,26 @@ const sr: Dict = {
   'notes.autosaveHint': 'Izmene se automatski čuvaju',
   'notes.schemaMissing':
     'Tabela za istraživačke beleške nedostaje. U Supabase → SQL Editor nalepite i pokrenite crm_research_notes_migration.sql, zatim hard-refresh.',
+
+  'notesChatgpt.title': 'ChatGPT pomoć za beleške',
+  'notesChatgpt.blurb':
+    'Kopirajte istraživački prompt u ChatGPT, nalepite JSON nazad i učitajte naslov + sekcije u ovu belešku.',
+  'notesChatgpt.copyPrompt': 'Kopiraj ChatGPT prompt',
+  'notesChatgpt.step1':
+    'Kopirajte prompt i recite ChatGPT-u šta da istraži (npr. umetnici za praćenje, tržišna lista, lead ciljevi).',
+  'notesChatgpt.step2': 'Zatražite samo JSON objekat kao odgovor.',
+  'notesChatgpt.step3': 'Nalepite JSON ispod → Učitaj u belešku → prebacite na Pregled da proverite linkove i sekcije.',
+  'notesChatgpt.pasteLabel': 'Nalepite ChatGPT JSON',
+  'notesChatgpt.pastePlaceholder':
+    'Nalepite JSON iz ChatGPT-a ovde (sa ili bez ```json ograda)…',
+  'notesChatgpt.loadIntoNote': 'Učitaj u belešku',
+  'notesChatgpt.loadSuccess': 'Beleška učitana — proverite u Pregledu; izmene se automatski čuvaju.',
+  'notesChatgpt.copyFailed': 'Kopiranje prompta u clipboard nije uspelo.',
+  'notesChatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON.',
+  'notesChatgpt.missingTitle': 'JSON mora sadržati title (naslov).',
+  'notesChatgpt.missingBody': 'JSON mora sadržati body tekst ili niz sections.',
+  'notesChatgpt.parseFailed': 'JSON nije parsiran — zatražite samo jedan JSON objekat.',
+  'notesChatgpt.importFailed': 'Učitavanje beleške nije uspelo.',
 
   'form.company': 'Firma / nalog',
   'form.website': 'Sajt',
@@ -1248,12 +1334,14 @@ const sr: Dict = {
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
   'guide.what3': 'Vreme — start/stop tajmeri, ručni unosi i izveštaji',
   'guide.what4': 'Ideje — mape uma samostalno ili povezane sa leadom / projektom',
+  'guide.what5': 'Beleške — istraživačke liste (umetnici, tržišta, follow-up) sa sekcijama i linkovima',
   'guide.navHeading': 'Navigacija',
-  'guide.navText': 'Kartice ispod zaglavlja menjaju alate: Leadovi | Projekti | Vreme | Ideje.',
+  'guide.navText': 'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške.',
   'guide.nav1': 'Leadovi — CRM u Salesforce stilu za potencijalne klijente',
   'guide.nav2': 'Projekti — table u Monday stilu za rad na isporuci',
   'guide.nav3': 'Vreme — tajmeri, unosi i izveštaji u Clockify stilu',
   'guide.nav4': 'Ideje — mape uma u MindMeister stilu za brainstorming',
+  'guide.nav5': 'Beleške — istraživački dokumenti sa sekcijama, linkovima i ChatGPT pomoći',
   'guide.leadHeading': 'Leadovi — šta je lead?',
   'guide.leadText':
     'Lead je potencijalni klijent ili kontakt kog pokušavate da osvojite — još ne zatvoren posao.',
@@ -1288,12 +1376,34 @@ const sr: Dict = {
   'guide.start2': 'Popunite kontakt polja i šta planirate da ponudite',
   'guide.start3': 'Podesite temperaturu (Vruć / Topao / Hladan) i početnu fazu pipeline-a',
   'guide.start4': 'Opciono: datum sledećeg follow-up-a i procenjena vrednost',
+  'guide.start5':
+    'ChatGPT pomoć za lead (+ Dodaj lead): kopiraj prompt → istraži u ChatGPT → nalepi JSON → Učitaj u formu',
   'guide.pipeHeading': 'Rad sa pipeline-om',
   'guide.pipe1': 'Izaberite lead u levoj listi da otvorite panel sa detaljima',
   'guide.pipe2':
     'Ažurirajte fazu kako napredujete: Novi → Kontaktiran → Kvalifikovan → Ponuda → Pregovori → Dobijen / Izgubljen',
   'guide.pipe3': 'Menjajte Vruć / Topao / Hladan kad god se interesovanje promeni',
   'guide.pipe4': 'Izmenite detalje, tekst ponude i beleške kako razgovori napreduju',
+  'guide.pipe5':
+    'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, aktivnosti) za ChatGPT ili email draftove',
+  'guide.outreachHeading': 'Inicijalni outreach email',
+  'guide.outreachText':
+    'Pišite i pratite prve emailove bez napuštanja CRM-a.',
+  'guide.outreach1':
+    'Na + Dodaj lead ili Izmeni popunite subject i telo inicijalnog emaila — ili neka ChatGPT generiše u JSON importu',
+  'guide.outreach2':
+    'Na detalju leada panel Inicijalni outreach prikazuje draft; označite Email poslat kad pošaljete',
+  'guide.outreach3':
+    'Kartice u listi leadova pokazuju Email na čekanju / Email poslat badge',
+  'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
+  'guide.calendarText':
+    'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',
+  'guide.calendar1':
+    'Statističke pilule: Vidljivi leadovi, Otvoreni pipeline, Vrući leadovi za trenutne filtere',
+  'guide.calendar2':
+    'Kalendar follow-up-a je skupljen — kliknite pilulu da proširite, izaberite datum da filtrirate leadove',
+  'guide.calendar3':
+    'Dani sa follow-up-ima imaju tačku; uklonite filter datuma da vidite sve leadove',
   'guide.commHeading': 'Dnevnik aktivnosti',
   'guide.comm1':
     'Na leadu zabeležite Poziv, Email, Sastanak, Belešku ili Zadatak u panelu aktivnosti',
@@ -1304,7 +1414,16 @@ const sr: Dict = {
   'guide.find2':
     'Filtrirajte po fazi pipeline-a, temperaturi (Vruć / Topao / Hladan) i po tome ko je dodao lead',
   'guide.find3':
-    'Sortirajte po poslednjoj izmeni, ko je dodao ili fazi; statistika pokazuje brojeve za trenutne filtere',
+    'Sortirajte po poslednjoj izmeni, ko je dodao ili fazi; koristite statistiku i kalendar follow-up-a za filter po datumu',
+  'guide.chatgptHeading': 'ChatGPT pomoć',
+  'guide.chatgptText':
+    'Ubrzajte istraživanje copy-paste ChatGPT tokom — nema API ključa u CRM-u; ChatGPT pokrećete vi sami.',
+  'guide.chatgpt1':
+    'Dodaj lead: ChatGPT pomoć popunjava firmu, kontakt, outreach email, Atlas ocene i više iz jednog JSON paste-a',
+  'guide.chatgpt2':
+    'Beleške (režim Izmena): ChatGPT pomoć generiše naslov + telo sa ## sekcijama za liste umetnika/leadova',
+  'guide.chatgpt3':
+    'Kopiraj kao tekst na leadu izvozi sve za paste u ChatGPT kad treba nova analiza',
   'guide.projectsHeading': 'Projekti',
   'guide.projectsText':
     'Table u Monday stilu za isporuku — kolone, zadaci i status projekta.',
@@ -1338,6 +1457,19 @@ const sr: Dict = {
     'Gradite stablo: dodajte podideje, menjajte naslove na mestu, ugnezdite po potrebi',
   'guide.ideas4':
     'U online režimu mape su deljene sa svim prijavljenim zaposlenima — tim vidi iste table',
+  'guide.notesHeading': 'Beleške',
+  'guide.notesText':
+    'Istraživački notesi za liste koje pratite — umetnici, venue-i, konkurencija, tople veze.',
+  'guide.notes1':
+    'Kartica Beleške → + Nova beleška; opciono povežite sa leadom ili projektom',
+  'guide.notes2':
+    'Izmena / Pregled: URL-ovi su klikabilni; koristite ## Naslov sekcije za svaku osobu ili temu',
+  'guide.notes3':
+    'Pregled prikazuje indeks Na ovoj stranici kad imate 2+ sekcije — skok bez skrolovanja',
+  'guide.notes4':
+    'ChatGPT pomoć (Izmena): kopiraj prompt, nalepi JSON, Učitaj u belešku — proverite u Pregledu, autosave',
+  'guide.notes5':
+    'Format: uvod, zatim ## Ime, URL u sledećem redu, zatim beleške za praćenje po sekciji',
   'guide.photoHeading': 'Profilna fotografija',
   'guide.photo1': 'Kliknite avatar ili email u gornjoj traci da otvorite meni fotografije',
   'guide.photo2':
@@ -1349,7 +1481,7 @@ const sr: Dict = {
     'Pomoć (zaglavlje, pored Odjava) ponovo otvara ovaj vodič bilo kada',
   'guide.ui2': 'Dugme sa zastavom prebacuje ceo CRM između engleskog i srpskog',
   'guide.hint':
-    'Kartice: Leadovi · Projekti · Vreme · Ideje. Ponovo otvorite vodič dugmetom Pomoć. Zastava = Engleski ↔ Srpski.',
+    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške. Pomoć ponovo otvara vodič. Zastava = Engleski ↔ Srpski.',
 }
 
 const dictionaries: Record<'en' | 'sr', Dict> = { en, sr }

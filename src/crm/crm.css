@@ -2822,6 +2822,89 @@
   scroll-margin-top: 0.75rem;
 }
 
+.crm-note-intro {
+  margin-bottom: 0.85rem;
+}
+
+.crm-note-section {
+  margin: 0 0 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
+  overflow: hidden;
+}
+
+.crm-note-section--sub {
+  margin-left: 0.75rem;
+}
+
+.crm-note-section-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.crm-note-section-summary::-webkit-details-marker {
+  display: none;
+}
+
+.crm-note-section-title {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.crm-note-section--sub .crm-note-section-title {
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.crm-note-section-url {
+  flex-shrink: 1;
+  max-width: 40%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.crm-note-section-url:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.crm-note-section-chevron {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.crm-note-section[open] .crm-note-section-chevron {
+  transform: rotate(180deg);
+}
+
+.crm-note-section-body {
+  padding: 0 0.85rem 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.crm-note-section-body .crm-note-entry {
+  margin-top: 0.35rem;
+  border-left-width: 0;
+  background: transparent;
+  padding-left: 0;
+}
+
 .crm-note-section-heading:first-child {
   margin-top: 0;
 }

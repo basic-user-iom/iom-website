@@ -6,6 +6,13 @@ export interface NoteSection {
   level: 2 | 3
 }
 
+export interface ParsedNoteSection {
+  id: string
+  title: string
+  level: 2 | 3
+  lines: string[]
+}
+
 const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?"')\]}>])/gi
 
 export function isUrl(line: string): boolean {
@@ -22,24 +29,55 @@ function slugify(title: string): string {
   )
 }
 
+function nextSectionId(title: string, slugCounts: Map<string, number>): string {
+  let id = slugify(title)
+  const n = (slugCounts.get(id) ?? 0) + 1
+  slugCounts.set(id, n)
+  if (n > 1) id = `${id}-${n}`
+  return id
+}
+
 /** Headings from lines starting with ## or ### */
 export function extractNoteSections(body: string): NoteSection[] {
-  const sections: NoteSection[] = []
-  const used = new Map<string, number>()
+  return parseNoteDocument(body).sections.map(({ id, title, level }) => ({
+    id,
+    title,
+    level,
+  }))
+}
 
-  for (const line of body.split('\n')) {
-    const match = line.match(/^(#{2,3})\s+(.+)$/)
-    if (!match) continue
-    const level = match[1].length as 2 | 3
-    const title = match[2].trim()
-    let id = slugify(title)
-    const n = (used.get(id) ?? 0) + 1
-    used.set(id, n)
-    if (n > 1) id = `${id}-${n}`
-    sections.push({ id, title, level })
+/** Split note body into intro text and ## / ### sections. */
+export function parseNoteDocument(body: string): {
+  introLines: string[]
+  sections: ParsedNoteSection[]
+} {
+  const lines = body.split('\n')
+  const introLines: string[] = []
+  const sections: ParsedNoteSection[] = []
+  const slugCounts = new Map<string, number>()
+  let current: ParsedNoteSection | null = null
+
+  for (const line of lines) {
+    const trimmed = line.trim()
+    const headingMatch = trimmed.match(/^(#{2,3})\s+(.+)$/)
+    if (headingMatch) {
+      if (current) sections.push(current)
+      const level = headingMatch[1].length as 2 | 3
+      const title = headingMatch[2].trim()
+      current = {
+        id: nextSectionId(title, slugCounts),
+        title,
+        level,
+        lines: [],
+      }
+      continue
+    }
+    if (current) current.lines.push(line)
+    else introLines.push(line)
   }
+  if (current) sections.push(current)
 
-  return sections
+  return { introLines, sections }
 }
 
 function linkifyText(text: string, keyPrefix: string): ReactNode[] {
@@ -80,11 +118,9 @@ function renderParagraph(line: string, key: string): ReactNode {
   )
 }
 
-/** Render plain-text research notes with sections, name+URL pairs, and auto-linked URLs. */
-export function renderNoteBody(body: string): ReactNode[] {
-  const lines = body.split('\n')
+/** Render a block of plain lines (intro or section body). */
+export function renderNoteLines(lines: string[], keyPrefix: string): ReactNode[] {
   const out: ReactNode[] = []
-  const slugCounts = new Map<string, number>()
   let i = 0
 
   while (i < lines.length) {
@@ -92,30 +128,7 @@ export function renderNoteBody(body: string): ReactNode[] {
     const trimmed = line.trim()
 
     if (!trimmed) {
-      out.push(<br key={`br-${i}`} />)
-      i++
-      continue
-    }
-
-    const headingMatch = trimmed.match(/^(#{2,3})\s+(.+)$/)
-    if (headingMatch) {
-      const level = headingMatch[1].length as 2 | 3
-      const title = headingMatch[2].trim()
-      let id = slugify(title)
-      const n = (slugCounts.get(id) ?? 0) + 1
-      slugCounts.set(id, n)
-      if (n > 1) id = `${id}-${n}`
-
-      const Tag = level === 2 ? 'h2' : 'h3'
-      out.push(
-        <Tag
-          key={`h-${i}`}
-          id={`note-section-${id}`}
-          className={`crm-note-section-heading crm-note-section-heading--h${level}`}
-        >
-          {title}
-        </Tag>,
-      )
+      out.push(<br key={`${keyPrefix}-br-${i}`} />)
       i++
       continue
     }
@@ -123,7 +136,7 @@ export function renderNoteBody(body: string): ReactNode[] {
     const nextTrimmed = i + 1 < lines.length ? lines[i + 1].trim() : ''
     if (!isUrl(trimmed) && nextTrimmed && isUrl(nextTrimmed)) {
       out.push(
-        <div key={`entry-${i}`} className="crm-note-entry">
+        <div key={`${keyPrefix}-entry-${i}`} className="crm-note-entry">
           <a
             className="crm-note-entry-name"
             href={nextTrimmed}
@@ -149,7 +162,7 @@ export function renderNoteBody(body: string): ReactNode[] {
     if (isUrl(trimmed)) {
       out.push(
         <a
-          key={`url-${i}`}
+          key={`${keyPrefix}-url-${i}`}
           className="crm-note-entry-url crm-note-entry-url--solo"
           href={trimmed}
           target="_blank"
@@ -159,7 +172,7 @@ export function renderNoteBody(body: string): ReactNode[] {
         </a>,
       )
     } else {
-      out.push(renderParagraph(line, `p-${i}`))
+      out.push(renderParagraph(line, `${keyPrefix}-p-${i}`))
     }
     i++
   }
@@ -167,8 +180,21 @@ export function renderNoteBody(body: string): ReactNode[] {
   return out
 }
 
+export function sectionSummaryUrl(lines: string[]): string | null {
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim()
+    if (!trimmed) continue
+    if (isUrl(trimmed)) return trimmed
+    const next = i + 1 < lines.length ? lines[i + 1].trim() : ''
+    if (next && isUrl(next)) return next
+    return null
+  }
+  return null
+}
+
 export function scrollToNoteSection(id: string) {
   const el = document.getElementById(`note-section-${id}`)
   if (!el) return
+  if (el instanceof HTMLDetailsElement) el.open = true
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
