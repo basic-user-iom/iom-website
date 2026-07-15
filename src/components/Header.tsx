@@ -79,7 +79,7 @@ export function Header() {
           Contact
         </a>
         <a href="/client-login" onClick={closeMenu}>
-          Client Login
+          Login
         </a>
       </nav>
     </header>
