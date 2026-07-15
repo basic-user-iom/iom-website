@@ -24,7 +24,19 @@ export function LeadList({
   currentUser,
   staffById,
 }: LeadListProps) {
-  const { t, statusLabel, tempLabel } = useCrmI18n()
+  const { t, statusLabel, tempLabel, locale } = useCrmI18n()
+
+  const formatFollowUp = (iso: string) => {
+    try {
+      return new Intl.DateTimeFormat(locale, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      }).format(new Date(iso))
+    } catch {
+      return iso.slice(0, 10)
+    }
+  }
 
   // Keep existing cards visible during soft refetch — only show the loading
   // placeholder when we have nothing to display yet.
@@ -105,7 +117,7 @@ export function LeadList({
                     )}
                     {lead.next_follow_up && (
                       <span>
-                        {t('list.followUp')} {lead.next_follow_up}
+                        {t('list.followUp')} {formatFollowUp(lead.next_follow_up)}
                       </span>
                     )}
                   </div>

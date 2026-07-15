@@ -9,6 +9,8 @@
   --crm-card-min-h: calc(var(--crm-control-h) + (var(--crm-card-pad-y) * 2));
   min-height: 100vh;
   min-height: 100dvh;
+  max-width: 100%;
+  overflow-x: clip;
   padding: calc(var(--header-h) + 1.5rem) clamp(1rem, 4vw, 3rem) 3rem;
   background:
     radial-gradient(ellipse 70% 40% at 20% 0%, var(--accent-glow), transparent 55%),
@@ -503,6 +505,8 @@
   gap: 1rem;
   align-items: stretch;
   min-height: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .crm-workspace:not(.crm-workspace--empty) {
@@ -583,11 +587,21 @@
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.crm-lead-list > li {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .crm-lead-row,
 .crm-lead-item {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   display: flex;
   align-items: center;
   text-align: left;
@@ -649,6 +663,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .crm-lead-company {
@@ -663,13 +678,12 @@
 
 .crm-lead-row-meta {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.45rem 0.75rem;
   margin-top: 0.25rem;
   font-size: 0.75rem;
   color: var(--text-muted);
   min-width: 0;
-  overflow: hidden;
 }
 
 .crm-lead-row-meta > span {
@@ -677,6 +691,14 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  max-width: 100%;
+}
+
+.crm-lead-row-meta > .crm-atlas-compact {
+  flex: 1 1 100%;
+  overflow: visible;
+  white-space: normal;
+  max-width: 100%;
 }
 
 .crm-lead-owner {
@@ -766,8 +788,12 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 0.65rem;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: var(--crm-card-min-h);
   text-align: left;
   padding: var(--crm-card-pad-y) var(--crm-card-pad-x);
@@ -794,7 +820,7 @@
   justify-content: space-between;
   gap: 0.5rem;
   align-items: center;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .crm-detail-badges--compact {
@@ -931,11 +957,12 @@
 /* Collapsed lead/project summary: WARM/ACTIVE + EXPAND share --crm-control-h */
 .crm-detail-summary > .crm-detail-actions.crm-detail-actions--compact {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   align-items: center;
   align-self: center;
   justify-content: flex-end;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
   gap: 0.5rem;
   min-height: var(--crm-control-h);
   height: var(--crm-control-h);
@@ -1277,7 +1304,10 @@
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
-  flex-shrink: 0;
+  flex-shrink: 1;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .crm-locale-fieldset {
@@ -2757,6 +2787,11 @@
 }
 
 @media (max-width: 900px) {
+  .crm-shell {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
   .crm-toolbar {
     flex-direction: column;
   }
@@ -2805,6 +2840,12 @@
 
   .crm-sidebar {
     max-height: 280px;
+    overflow-x: hidden;
+  }
+
+  .crm-detail-summary > .crm-detail-actions.crm-detail-actions--compact {
+    width: 100%;
+    justify-content: flex-end;
   }
 
   .crm-workspace--empty .crm-sidebar {
