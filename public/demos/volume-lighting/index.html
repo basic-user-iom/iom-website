@@ -2702,6 +2702,11 @@
         lighting.add(volumetricLightingIntensity, 'value', 0, 2).name('fog intensity')
         lighting.add(smokeAmount, 'value', 0, 3).name('smoke amount')
 
+        // Start collapsed — scene first, open panels when needed.
+        rayMarching.close()
+        lighting.close()
+        gui.close()
+
         registerSceneObjectNames()
         initTransformControls()
         objectsGui = renderer.inspector.createParameters('Objects')
