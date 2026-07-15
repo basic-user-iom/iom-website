@@ -284,10 +284,14 @@
         white-space: normal;
       }
       .list-item-row.object-section-label {
-        cursor: default;
+        cursor: pointer;
         min-height: 28px;
-        margin-top: 4px;
-        opacity: 0.92;
+        margin-top: 6px;
+        opacity: 0.96;
+        user-select: none;
+      }
+      .list-item-row.object-section-label:hover {
+        background: rgba(255, 255, 255, 0.04);
       }
       .list-item-row.object-section-label .list-item-cell {
         font-weight: 600;
@@ -295,6 +299,25 @@
         letter-spacing: 0.07em;
         text-transform: uppercase;
         color: var(--text-secondary, #9a9aab);
+      }
+      .object-section-header-inner {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 0;
+        width: 100%;
+      }
+      .object-section-title {
+        flex: 1;
+        min-width: 0;
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        color: var(--text-secondary, #9a9aab);
+      }
+      .list-item-row.object-section-body-hidden {
+        display: none !important;
       }
       .list-item-row.object-transform-subsection {
         cursor: default;
@@ -689,6 +712,66 @@
       const OBJECT_HIERARCHY_DEFAULT_EXPAND_DEPTH = 1
       const objectHierarchyExpandedKeys = new Set()
       const objectHierarchyCollapsedKeys = new Set()
+      const OBJECTS_SECTION_STORAGE_KEY = 'volume-lighting-objects-sections'
+      const objectsSectionExpanded = {
+        hierarchy: true,
+        imported: true,
+        'rect-lights': true,
+        information: true,
+      }
+
+      function loadObjectsSectionState() {
+        try {
+          const raw = sessionStorage.getItem(OBJECTS_SECTION_STORAGE_KEY)
+          if (!raw) return
+          const parsed = JSON.parse(raw)
+          for (const key of Object.keys(objectsSectionExpanded)) {
+            if (typeof parsed[key] === 'boolean') objectsSectionExpanded[key] = parsed[key]
+          }
+        } catch {
+          // ignore storage failures
+        }
+      }
+
+      function persistObjectsSectionState() {
+        try {
+          sessionStorage.setItem(OBJECTS_SECTION_STORAGE_KEY, JSON.stringify(objectsSectionExpanded))
+        } catch {
+          // ignore storage failures
+        }
+      }
+
+      function isObjectsSectionExpanded(sectionId) {
+        return objectsSectionExpanded[sectionId] !== false
+      }
+
+      function applyObjectsSectionVisibility(sectionId) {
+        const expanded = isObjectsSectionExpanded(sectionId)
+        document.querySelectorAll(`[data-objects-section-body="${sectionId}"]`).forEach((row) => {
+          row.classList.toggle('object-section-body-hidden', !expanded)
+        })
+        document.querySelectorAll(`[data-objects-section-toggle="${sectionId}"]`).forEach((row) => {
+          const chevron = row.querySelector('.object-list-chevron')
+          if (chevron) chevron.classList.toggle('is-expanded', expanded)
+          row.setAttribute('aria-expanded', expanded ? 'true' : 'false')
+        })
+      }
+
+      function toggleObjectsSection(sectionId) {
+        objectsSectionExpanded[sectionId] = !isObjectsSectionExpanded(sectionId)
+        persistObjectsSectionState()
+        applyObjectsSectionVisibility(sectionId)
+      }
+
+      function markObjectsSectionBody(item, sectionId) {
+        const row = item?.itemRow
+        if (!row) return item
+        row.dataset.objectsSectionBody = sectionId
+        if (!isObjectsSectionExpanded(sectionId)) {
+          row.classList.add('object-section-body-hidden')
+        }
+        return item
+      }
 
       function isEditorExcludedObject(object) {
         if (!object) return true
@@ -851,7 +934,7 @@
         rebuildObjectsPanel()
       }
 
-      function collectObjectListEntries(parent, childDepth, entries) {
+      function collectObjectListEntries(parent, childDepth, entries, sectionId = 'hierarchy') {
         if (!parent?.children?.length) return
 
         const parentDepth = childDepth - 1
@@ -865,7 +948,7 @@
               (child.isGroup || isObjectListContainer(child)) &&
               !isEditorExcludedObject(child)
             ) {
-              collectObjectListEntries(child, childDepth, entries)
+              collectObjectListEntries(child, childDepth, entries, sectionId)
             }
             continue
           }
@@ -877,6 +960,7 @@
             label: getObjectListLabel(child),
             key: childKey,
             hasChildren: objectHasListChildren(child),
+            sectionId,
           })
 
           if (
@@ -884,7 +968,7 @@
             isObjectHierarchyExpanded(childKey, childDepth) &&
             objectHasListChildren(child)
           ) {
-            collectObjectListEntries(child, childDepth + 1, entries)
+            collectObjectListEntries(child, childDepth + 1, entries, sectionId)
           }
         }
       }
@@ -900,23 +984,9 @@
             label: getObjectListLabel(paganiRoot),
             key: paganiKey,
             hasChildren: objectHasListChildren(paganiRoot),
+            sectionId: 'hierarchy',
           })
-          collectObjectListEntries(paganiRoot, 1, entries)
-        }
-
-        if (importedModelRoots.length) {
-          entries.push({ isCategory: true, label: 'Imported' })
-          for (const root of importedModelRoots) {
-            const key = getObjectKey(root)
-            entries.push({
-              object: root,
-              depth: 0,
-              label: getObjectListLabel(root),
-              key,
-              hasChildren: objectHasListChildren(root),
-            })
-            collectObjectListEntries(root, 1, entries)
-          }
+          collectObjectListEntries(paganiRoot, 1, entries, 'hierarchy')
         }
 
         if (mshStdFloor) {
@@ -926,10 +996,27 @@
             label: getObjectListLabel(mshStdFloor),
             key: getObjectKey(mshStdFloor),
             hasChildren: false,
+            sectionId: 'hierarchy',
           })
         }
 
-        entries.push({ isCategory: true, label: 'Rect Lights' })
+        if (importedModelRoots.length) {
+          entries.push({ isCategory: true, label: 'Imported', sectionId: 'imported' })
+          for (const root of importedModelRoots) {
+            const key = getObjectKey(root)
+            entries.push({
+              object: root,
+              depth: 0,
+              label: getObjectListLabel(root),
+              key,
+              hasChildren: objectHasListChildren(root),
+              sectionId: 'imported',
+            })
+            collectObjectListEntries(root, 1, entries, 'imported')
+          }
+        }
+
+        entries.push({ isCategory: true, label: 'Rect Lights', sectionId: 'rect-lights' })
         for (const light of [rectLight1, rectLight2, rectLight3]) {
           if (!light) continue
           entries.push({
@@ -937,24 +1024,65 @@
             depth: 1,
             label: getObjectListLabel(light),
             key: getObjectKey(light),
+            sectionId: 'rect-lights',
           })
         }
 
         return entries
       }
 
-      function createObjectSectionLabel(text) {
-        const label = createValueSpan()
-        label.textContent = text
-        const item = new Item(label)
-        item.itemRow.classList.add('object-section-label', 'hint-row', 'no-hover')
+      function createObjectSectionLabel(text, { sectionId = null, collapsible = Boolean(sectionId) } = {}) {
+        if (!collapsible || !sectionId) {
+          const label = createValueSpan()
+          label.textContent = text
+          const item = new Item(label)
+          item.itemRow.classList.add('object-section-label', 'hint-row', 'no-hover')
+          item.itemRow.style.gridTemplateColumns = '1fr'
+          return item
+        }
+
+        const expanded = isObjectsSectionExpanded(sectionId)
+        const rowInner = document.createElement('div')
+        rowInner.className = 'object-section-header-inner'
+
+        const chevron = document.createElement('button')
+        chevron.type = 'button'
+        chevron.className = 'object-list-chevron'
+        if (expanded) chevron.classList.add('is-expanded')
+        chevron.setAttribute('aria-label', expanded ? `Collapse ${text}` : `Expand ${text}`)
+        chevron.tabIndex = -1
+        rowInner.appendChild(chevron)
+
+        const title = document.createElement('span')
+        title.className = 'object-section-title'
+        title.textContent = text
+        rowInner.appendChild(title)
+
+        const item = new Item(rowInner)
+        item.itemRow.classList.add('object-section-label', 'object-section-toggle', 'hint-row')
         item.itemRow.style.gridTemplateColumns = '1fr'
+        item.itemRow.dataset.objectsSectionToggle = sectionId
+        item.itemRow.setAttribute('role', 'button')
+        item.itemRow.setAttribute('aria-expanded', expanded ? 'true' : 'false')
+        item.itemRow.tabIndex = 0
+        item.itemRow.title = `Click to ${expanded ? 'collapse' : 'expand'} ${text}`
+
+        const onToggle = (event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          toggleObjectsSection(sectionId)
+        }
+        item.itemRow.addEventListener('click', onToggle)
+        item.itemRow.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') onToggle(event)
+        })
         return item
       }
 
-      function createObjectInfoRow(label, valueNode) {
+      function createObjectInfoRow(label, valueNode, sectionId = 'information') {
         const item = new Item(label, valueNode)
         item.itemRow.classList.add('actionable')
+        markObjectsSectionBody(item, sectionId)
         objectInfoItems.push(item)
         return item
       }
@@ -986,6 +1114,7 @@
           item.itemRow.style.opacity = '0.45'
           item.itemRow.style.pointerEvents = 'none'
         }
+        markObjectsSectionBody(item, 'information')
         objectInfoItems.push(item)
         return item
       }
@@ -996,12 +1125,14 @@
         const item = new Item(label)
         item.itemRow.classList.add('object-transform-subsection', 'hint-row', 'no-hover')
         item.itemRow.style.gridTemplateColumns = '1fr'
+        markObjectsSectionBody(item, 'information')
         objectInfoItems.push(item)
         return item
       }
 
       function addObjectTransformSection(objectsRoot, object) {
         const sectionLabel = createObjectSectionLabel('Transform (local)')
+        markObjectsSectionBody(sectionLabel, 'information')
         objectsRoot.add(sectionLabel)
         objectInfoItems.push(sectionLabel)
 
@@ -1131,7 +1262,7 @@
         const objectsRoot = objectsGui.paramList
         clearObjectInfoSection(objectsRoot)
 
-        const infoLabel = createObjectSectionLabel('Information')
+        const infoLabel = createObjectSectionLabel('Information', { sectionId: 'information' })
         objectsRoot.add(infoLabel)
         objectInfoItems.push(infoLabel)
 
@@ -1142,6 +1273,7 @@
           const hintItem = new Item(hint)
           hintItem.itemRow.classList.add('hint-row', 'no-hover')
           hintItem.itemRow.style.gridTemplateColumns = '1fr'
+          markObjectsSectionBody(hintItem, 'information')
           objectsRoot.add(hintItem)
           objectInfoItems.push(hintItem)
           return
@@ -1578,16 +1710,20 @@
         importNoteItem.itemRow.style.gridTemplateColumns = '1fr'
         objectsRoot.add(importNoteItem)
 
-        objectsRoot.add(createObjectSectionLabel('Hierarchy'))
+        objectsRoot.add(createObjectSectionLabel('Hierarchy', { sectionId: 'hierarchy' }))
 
         for (const entry of entries) {
           if (entry.isCategory) {
-            const categoryItem = createObjectSectionLabel(entry.label)
-            categoryItem.itemRow.querySelector('.list-item-cell').style.paddingLeft = '8px'
+            const sectionId = entry.sectionId || 'hierarchy'
+            if (!(sectionId in objectsSectionExpanded)) {
+              objectsSectionExpanded[sectionId] = true
+            }
+            const categoryItem = createObjectSectionLabel(entry.label, { sectionId })
             objectsRoot.add(categoryItem)
             continue
           }
 
+          const sectionId = entry.sectionId || 'hierarchy'
           const rowInner = document.createElement('div')
           rowInner.className = 'object-list-row-inner'
           rowInner.style.paddingLeft = `${8 + entry.depth * 14}px`
@@ -1645,6 +1781,7 @@
           const rowItem = new Item(rowInner)
           rowItem.itemRow.classList.add('actionable', 'object-list-row')
           rowItem.itemRow.dataset.objectKey = entry.key
+          markObjectsSectionBody(rowItem, sectionId)
           if (entry.key === selectedObjectKey) {
             rowItem.itemRow.classList.add('is-selected')
           }
@@ -1685,6 +1822,8 @@
 
       function initObjectsGui() {
         if (!objectsGui) return
+
+        loadObjectsSectionState()
 
         let collapsed = true
         try {
