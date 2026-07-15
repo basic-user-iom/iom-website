@@ -444,52 +444,56 @@
 }
 
 .crm-stats-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
   gap: 0.75rem;
   margin-bottom: 1.25rem;
-  align-items: stretch;
-  justify-content: space-between;
+  align-items: start;
 }
 
 .crm-stats {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(5.25rem, 6.75rem));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
+  align-items: center;
+  align-content: start;
   margin-bottom: 0;
-  flex: 0 0 auto;
 }
 
 .crm-stat {
-  padding: 0.65rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.45rem 0.85rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 999px;
+  min-height: 0;
 }
 
 .crm-stat-value {
-  display: block;
+  display: inline;
   font-family: var(--display);
-  font-size: 1.35rem;
+  font-size: 1.15rem;
   font-weight: 700;
   color: var(--accent);
-  line-height: 1.1;
+  line-height: 1;
 }
 
 .crm-stat-label {
+  display: inline;
   font-size: 0.68rem;
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  line-height: 1.25;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .crm-calendar {
-  flex: 0 1 17.5rem;
-  min-width: min(100%, 15rem);
-  max-width: 17.5rem;
-  margin-left: auto;
-  padding: 0.65rem 0.75rem 0.75rem;
+  width: 100%;
+  min-width: 0;
+  padding: 0.75rem 1rem 0.85rem;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -538,7 +542,7 @@
 .crm-calendar-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 0.15rem;
+  gap: 0.2rem;
 }
 
 .crm-calendar-cell {
@@ -546,10 +550,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 1.65rem;
+  aspect-ratio: 1;
+  min-height: 0;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: 8px;
   background: transparent;
   color: var(--text);
   font: inherit;
@@ -575,7 +580,7 @@
 }
 
 .crm-calendar-day {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 600;
   line-height: 1;
 }
@@ -3165,20 +3170,33 @@
   }
 }
 
+@media (max-width: 900px) {
+  .crm-stats-row {
+    grid-template-columns: 1fr;
+  }
+
+  .crm-calendar {
+    max-width: 28rem;
+  }
+}
+
 @media (max-width: 560px) {
   .crm-stats-row {
-    flex-direction: column;
+    grid-template-columns: 1fr;
   }
 
   .crm-stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     width: 100%;
+  }
+
+  .crm-stat {
+    flex: 1 1 calc(50% - 0.25rem);
+    justify-content: center;
   }
 
   .crm-calendar {
     max-width: none;
     width: 100%;
-    margin-left: 0;
   }
 
   .crm-music-volume {
