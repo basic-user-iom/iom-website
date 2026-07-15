@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import { claimLeadOwner, deleteLead, updateLead } from './api'
+import { claimLeadOwner, deleteLead, listActivities, updateLead } from './api'
 import { ActivityPanel } from './ActivityPanel'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { AtlasEvalFields } from './AtlasEvalFields'
 import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
+import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
 import { UserAvatar } from './UserProfileMenu'
@@ -62,12 +63,14 @@ export function LeadDetail({
   onOpenProject,
   onOpenIdeas,
 }: LeadDetailProps) {
-  const { t, statusLabel, tempLabel, locale } = useCrmI18n()
+  const { t, statusLabel, tempLabel, activityLabel, locale } = useCrmI18n()
   const [editing, setEditing] = useState(false)
   const [expanded, setExpanded] = useState(readDetailExpanded)
   const [error, setError] = useState('')
   const [claiming, setClaiming] = useState(false)
   const [sending, setSending] = useState(false)
+  const [copying, setCopying] = useState(false)
+  const [copied, setCopied] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const autoHealKey = useRef<string | null>(null)
@@ -195,6 +198,38 @@ export function LeadDetail({
     }
   }
 
+  const handleCopyAsText = async () => {
+    setError('')
+    setCopying(true)
+    try {
+      const activities = await listActivities(lead.id)
+      const text = formatLeadAsPlainText(lead, {
+        t,
+        statusLabel,
+        tempLabel,
+        activityLabel,
+        locale,
+        owner: { name: ownerLabel, email: owner.email },
+        valueLabels: {
+          fromTheHeart: t('detail.valueFromHeart'),
+          noCharge: t('detail.valueNoCharge'),
+        },
+        activities,
+        linkedProjects,
+        ideaCount,
+      })
+      await copyTextToClipboard(text)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('detail.copyFailed'))
+    } finally {
+      setCopying(false)
+    }
+  }
+
+  const copyButtonLabel = copying ? t('detail.copying') : copied ? t('detail.copied') : t('detail.copyAsText')
+
   if (editing) {
     return (
       <div className="crm-detail">
@@ -241,6 +276,14 @@ export function LeadDetail({
             <span className={`crm-temp crm-temp--${lead.temperature}`}>
               {tempLabel(lead.temperature)}
             </span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={copying}
+              onClick={() => void handleCopyAsText()}
+            >
+              {copyButtonLabel}
+            </button>
             <button
               type="button"
               className="btn btn-ghost crm-collapse-btn"
@@ -311,6 +354,14 @@ export function LeadDetail({
           )}
         </div>
         <div className="crm-detail-actions">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            disabled={copying}
+            onClick={() => void handleCopyAsText()}
+          >
+            {copyButtonLabel}
+          </button>
           <button
             type="button"
             className="btn btn-ghost crm-collapse-btn"
