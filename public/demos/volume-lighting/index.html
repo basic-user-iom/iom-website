@@ -365,7 +365,8 @@
         >
       </p>
       <p class="demo-attribution-credits">
-        Rect area lights with volumetric fog via a post-processing pass. Based on the
+        Rect area lights with volumetric fog via a post-processing pass. Import your own GLB, GLTF, or FBX from the
+        Objects panel — that replaces the Pagani. Based on the
         <a
           href="https://threejs.org/examples/#webgpu_volume_lighting_rectarea"
           target="_blank"
@@ -434,7 +435,7 @@
     />
 
     <div id="container"></div>
-    <div id="hint">Orbit drag · Objects panel · Import GLB/GLTF/FBX · T/R/S gizmo · Ctrl+Shift+S camera</div>
+    <div id="hint">Orbit drag · Objects panel · Import GLB/GLTF/FBX (replaces car) · T/R/S gizmo · Ctrl+Shift+S camera</div>
     <div id="status">Initializing…</div>
 
     <script type="module">
@@ -1555,7 +1556,7 @@
         const hint = createValueSpan()
         hint.className = 'object-info-meta'
         hint.innerHTML =
-          'Enable <strong>Transform gizmo</strong> to pick meshes in the viewport. Use T / R / S for mode. Details stay under Information.'
+          'Enable <strong>Transform gizmo</strong> to pick meshes. Import your own <strong>GLB / GLTF / FBX</strong> — that replaces the Pagani. T / R / S change mode.'
         const hintItem = new Item(hint)
         hintItem.itemRow.classList.add('hint-row', 'no-hover')
         hintItem.itemRow.style.gridTemplateColumns = '1fr'
@@ -1565,9 +1566,17 @@
           text: 'Import GLB / GLTF / FBX',
           value: () => modelFileInput?.click(),
         })
-        const importItem = new Item('Import model', importButton.domElement)
+        const importItem = new Item('Your model', importButton.domElement)
         importItem.itemRow.classList.add('actionable')
         objectsRoot.add(importItem)
+
+        const importNote = createValueSpan()
+        importNote.className = 'object-info-meta'
+        importNote.textContent = 'Adds your model and removes the stock car from the scene.'
+        const importNoteItem = new Item(importNote)
+        importNoteItem.itemRow.classList.add('hint-row', 'no-hover')
+        importNoteItem.itemRow.style.gridTemplateColumns = '1fr'
+        objectsRoot.add(importNoteItem)
 
         objectsRoot.add(createObjectSectionLabel('Hierarchy'))
 
@@ -1734,6 +1743,53 @@
         }
       }
 
+      function disposeObjectTree(root) {
+        if (!root) return
+        root.traverse((child) => {
+          if (child.geometry) child.geometry.dispose?.()
+          const materials = child.material
+            ? Array.isArray(child.material)
+              ? child.material
+              : [child.material]
+            : []
+          for (const material of materials) {
+            material?.dispose?.()
+          }
+        })
+      }
+
+      /** Import replaces the stock Pagani — keep the scene to one vehicle/model at a time. */
+      function removePaganiFromScene() {
+        if (!paganiRoot) return
+        if (selectedObjectRef && isUnderPagani(selectedObjectRef)) {
+          selectedObjectRef = null
+          selectedObjectKey = null
+        }
+        if (gizmoSelectedObject && isUnderPagani(gizmoSelectedObject)) {
+          gizmoSelectedObject = null
+        }
+        scene.remove(paganiRoot)
+        disposeObjectTree(paganiRoot)
+        paganiRoot = null
+        updateTransformGizmo()
+      }
+
+      function clearImportedModels() {
+        while (importedModelRoots.length) {
+          const root = importedModelRoots.pop()
+          if (selectedObjectRef === root || isObjectDescendantOf(selectedObjectRef, root)) {
+            selectedObjectRef = null
+            selectedObjectKey = null
+          }
+          if (gizmoSelectedObject === root || isObjectDescendantOf(gizmoSelectedObject, root)) {
+            gizmoSelectedObject = null
+          }
+          scene.remove(root)
+          disposeObjectTree(root)
+        }
+        updateTransformGizmo()
+      }
+
       function prepareImportedMeshes(root) {
         root.traverse((child) => {
           if (!child.isMesh) return
@@ -1749,7 +1805,7 @@
         })
       }
 
-      function fitImportedModelToScene(object, targetLength = 8) {
+      function fitImportedModelToScene(object, targetLength = PAGANI_TARGET_LENGTH) {
         const wrapper = new THREE.Group()
         wrapper.add(object)
         wrapper.updateMatrixWorld(true)
@@ -1769,8 +1825,8 @@
         )
         wrapper.updateMatrixWorld(true)
 
-        // Place beside the car (or near origin) so both stay lit by the rect lights.
-        wrapper.position.set(paganiRoot ? 10 : 0, 0, paganiRoot ? PAGANI_POSITION_OFFSET.z : -8)
+        // Same stage spot as the stock car (which is removed on import).
+        wrapper.position.copy(PAGANI_POSITION_OFFSET)
         return wrapper
       }
 
@@ -1791,7 +1847,7 @@
             updateTransformGizmo()
           }
         }
-        setStatus(`Imported "${label}" — enable Transform gizmo to move it.`)
+        setStatus(`Imported "${label}" — Pagani removed. Enable Transform gizmo to move it.`)
       }
 
       async function importModelFromFile(file) {
@@ -1820,6 +1876,8 @@
 
           if (!loadedRoot) throw new Error('File did not contain a renderable scene.')
 
+          removePaganiFromScene()
+          clearImportedModels()
           prepareImportedMeshes(loadedRoot)
           const wrapped = fitImportedModelToScene(loadedRoot)
           addImportedModelToScene(wrapped, file.name)

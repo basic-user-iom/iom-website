@@ -774,7 +774,7 @@ export const PROJECTS: Project[] = [
     section: '3d',
     tags: ['webgpu', 'lighting', 'camera', 'import', 'scene', 'three.js'],
     description:
-      'Record camera views, move lights, and test different objects and light settings — move the car or import your own model. WebGPU volumetric lighting with rect area lights.',
+      'Record camera views, move lights, and test lighting on different objects — import your own GLB, GLTF, or FBX (replaces the stock car). WebGPU volumetric lighting with rect area lights.',
     year: '2026',
     url: '/demos/volume-lighting/',
     embedUrl: '/demos/volume-lighting/',
