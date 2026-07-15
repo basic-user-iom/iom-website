@@ -12,6 +12,8 @@ import { CitySearchField } from './CitySearchField'
 import { geocodeClientLocation, type CitySuggestion } from './clientWeather'
 import { EMPTY_LEAD_INPUT } from './constants'
 import { LEAD_STATUS_VALUES, LEAD_TEMP_VALUES, useCrmI18n } from './i18n'
+import { LeadChatGptPanel } from './LeadChatGptPanel'
+import { mergeLeadImport } from './leadChatGpt'
 import {
   COMMON_TIMEZONES,
   filterTimezones,
@@ -284,6 +286,17 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
 
   return (
     <form className="crm-form crm-lead-form" onSubmit={(e) => void handleSubmit(e)}>
+      {!initial && (
+        <LeadChatGptPanel
+          seedHint={form.company_name || form.website}
+          onImport={(data) => {
+            setForm((prev) => mergeLeadImport(prev, data))
+            if (data.client_timezone?.trim()) setTzQuery(data.client_timezone.trim())
+            setError('')
+          }}
+        />
+      )}
+
       <div className="crm-form-grid">
         <label className="crm-field">
           <span className="crm-label">{t('form.company')}</span>

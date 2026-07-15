@@ -77,6 +77,24 @@ const en: Dict = {
   'toolbar.backToList': 'Back to list',
 
   'create.title': 'Add potential client',
+
+  'chatgpt.title': 'ChatGPT lead assist',
+  'chatgpt.blurb':
+    'Copy a research prompt into ChatGPT, paste the JSON response back, and load the form in one click.',
+  'chatgpt.copyPrompt': 'Copy ChatGPT prompt',
+  'chatgpt.step1': 'Copy the prompt and paste it into ChatGPT (add the company name or URL in your message).',
+  'chatgpt.step2': 'Ask ChatGPT to return the JSON object only.',
+  'chatgpt.step3': 'Paste the JSON below and click Load into form — review, then save.',
+  'chatgpt.pasteLabel': 'Paste ChatGPT JSON',
+  'chatgpt.pastePlaceholder': 'Paste JSON from ChatGPT here (with or without ```json fences)…',
+  'chatgpt.loadIntoForm': 'Load into form',
+  'chatgpt.loadSuccess': 'Lead fields loaded — review and save when ready.',
+  'chatgpt.copyFailed': 'Could not copy prompt to clipboard.',
+  'chatgpt.pasteEmpty': 'Paste ChatGPT JSON first.',
+  'chatgpt.missingIdentity': 'JSON must include company_name or contact_name.',
+  'chatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object only.',
+  'chatgpt.importFailed': 'Could not load lead data.',
+
   'empty.select': 'Select a lead or add a new one.',
   'empty.selectLead': 'Select a lead or add a new one.',
   'empty.loading': 'Loading leads…',
@@ -684,6 +702,24 @@ const sr: Dict = {
   'toolbar.backToList': 'Nazad na listu',
 
   'create.title': 'Dodaj potencijalnog klijenta',
+
+  'chatgpt.title': 'ChatGPT pomoć za lead',
+  'chatgpt.blurb':
+    'Kopirajte prompt u ChatGPT, nalepite JSON odgovor nazad i učitajte formu jednim klikom.',
+  'chatgpt.copyPrompt': 'Kopiraj ChatGPT prompt',
+  'chatgpt.step1': 'Kopirajte prompt u ChatGPT (u poruci dodajte naziv firme ili URL).',
+  'chatgpt.step2': 'Zatražite od ChatGPT-a da vrati samo JSON objekat.',
+  'chatgpt.step3': 'Nalepite JSON ispod i kliknite Učitaj u formu — proverite, pa sačuvajte.',
+  'chatgpt.pasteLabel': 'Nalepi ChatGPT JSON',
+  'chatgpt.pastePlaceholder': 'Nalepite JSON od ChatGPT-a ovde (sa ili bez ```json)…',
+  'chatgpt.loadIntoForm': 'Učitaj u formu',
+  'chatgpt.loadSuccess': 'Polja leada učitana — proverite i sačuvajte.',
+  'chatgpt.copyFailed': 'Kopiranje prompta nije uspelo.',
+  'chatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON.',
+  'chatgpt.missingIdentity': 'JSON mora sadržati company_name ili contact_name.',
+  'chatgpt.parseFailed': 'JSON nije moguće parsirati — tražite od ChatGPT-a samo JSON objekat.',
+  'chatgpt.importFailed': 'Učitavanje podataka leada nije uspelo.',
+
   'empty.select': 'Izaberite lead ili dodajte novi.',
   'empty.selectLead': 'Izaberite lead ili dodajte novi.',
   'empty.loading': 'Učitavanje leadova…',
