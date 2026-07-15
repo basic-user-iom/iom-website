@@ -12,7 +12,9 @@
     "build:ravens": "node scripts/sync-raven-assets.mjs && node scripts/build-mobile-raven.mjs",
     "build:mobile-raven": "node scripts/build-mobile-raven.mjs",
     "build:favicons": "node scripts/build-favicons.mjs",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy:check": "node scripts/pre-deploy-check.mjs",
+    "deploy:prod": "node scripts/pre-deploy-check.mjs && npm run build && git push origin master && npx vercel --prod --yes"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",

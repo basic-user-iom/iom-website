@@ -35,6 +35,16 @@ npm run build
 npm run preview
 ```
 
+## Deploy to production
+
+**Always commit and push before deploying.** See **[DEPLOY.md](./DEPLOY.md)** for the full checklist.
+
+```bash
+npm run deploy:prod
+```
+
+This runs `pre-deploy-check.mjs` (blocks uncommitted/unpushed changes), builds, pushes `master`, and deploys to Vercel (`https://iobjectm.com`).
+
 ## Project structure
 
 ```

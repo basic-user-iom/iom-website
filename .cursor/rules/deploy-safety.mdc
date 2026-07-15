@@ -1,0 +1,39 @@
+---
+description: Prevent deploy/git overwrites on iobjectm.com
+alwaysApply: true
+---
+
+# IOM website — deploy & git safety
+
+Repo: `F:\iom_website` → production **https://iobjectm.com** (Vercel, `master`).
+
+## Deploy protocol
+
+1. **Commit before deploy** — never run `npx vercel --prod` with uncommitted tracked changes.
+2. **Push before deploy** — `git push origin master` so git matches production.
+3. **Use** `npm run deploy:prod` (runs `pre-deploy-check.mjs`, build, push, Vercel).
+4. Read **DEPLOY.md** for the full checklist and post-deploy verification.
+
+## Git — never without user approval
+
+- Do **not** run `git stash -u`, `git stash push -u`, or `git reset --hard`.
+- Do **not** drop stash unless the user asked and stash was inspected vs HEAD.
+- Prefer commit + push over deploy-only from a dirty tree.
+
+## High-conflict files
+
+Touch with care; always commit after edits:
+
+- `src/data/projects.ts` — cards/sections (Web Export Kit, CRM Demo, demos)
+- `src/utils/createMusicPlayerVisualizer.ts` / `musicPlayerFftOceanVisualizer.ts` — music animation
+- `public/demos/**/index.html` — standalone demos (ssr-denoise, volume-lighting, etc.)
+- `src/crm/**` — CRM demo + client login UI
+
+## Panorama rebuild
+
+Viewer source: `F:\3d-viever-backup\v3.18`. After viewer changes, run `npm run build:panorama-360` and commit `public/demos/panorama-360/`.
+
+## CRM surfaces
+
+- `/client-login` — Supabase (real data)
+- `/crm-demo` — in-memory sandbox only
