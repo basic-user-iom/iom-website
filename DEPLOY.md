@@ -2,7 +2,25 @@
 
 Production: **https://iobjectm.com** (Vercel, branch `master`).
 
-The Jul 14, 2026 incident happened because agents deployed from the working folder while **git stayed on an old commit**. Vercel uploaded untracked files; a later `git stash -u` wiped days of work. Follow this checklist every time.
+## For you (site owner)
+
+You do **not** need to remember deploy commands. In any Cursor chat on this project, say:
+
+> **Deploy the site** / **Go live** / **Update iobjectm.com**
+
+The agent will run `npm run deploy` automatically. A project hook **blocks** unsafe direct `vercel --prod` commands.
+
+The Jul 14, 2026 incident happened because agents deployed from the working folder while **git stayed on an old commit**. Safeguards now prevent that.
+
+## One command (agents & manual)
+
+```bash
+npm run deploy
+```
+
+This automatically: git safety check → build → push `master` → Vercel production.
+
+(`npm run deploy:prod` is the same; `deploy` is the short alias.)
 
 ## Before you change anything
 
@@ -15,7 +33,7 @@ The Jul 14, 2026 incident happened because agents deployed from the working fold
 Run the automated gate (recommended):
 
 ```bash
-npm run deploy:prod
+npm run deploy
 ```
 
 Or manually:

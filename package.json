@@ -14,7 +14,8 @@
     "build:favicons": "node scripts/build-favicons.mjs",
     "preview": "vite preview",
     "predeploy:check": "node scripts/pre-deploy-check.mjs",
-    "deploy:prod": "node scripts/pre-deploy-check.mjs && npm run build && git push origin master && npx vercel --prod --yes"
+    "deploy:prod": "node scripts/pre-deploy-check.mjs && npm run build && git push origin master && npx vercel --prod --yes",
+    "deploy": "npm run deploy:prod"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",

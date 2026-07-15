@@ -1,39 +1,43 @@
 ---
-description: Prevent deploy/git overwrites on iobjectm.com
+description: Prevent deploy/git overwrites on iobjectm.com — auto-deploy rules for agents
 alwaysApply: true
 ---
 
-# IOM website — deploy & git safety
+# IOM website — deploy & git safety (automatic)
 
-Repo: `F:\iom_website` → production **https://iobjectm.com** (Vercel, `master`).
+Repo: `F:\iom_website` → **https://iobjectm.com** (Vercel, branch `master`).
 
-## Deploy protocol
+## When the user wants the site live
 
-1. **Commit before deploy** — never run `npx vercel --prod` with uncommitted tracked changes.
-2. **Push before deploy** — `git push origin master` so git matches production.
-3. **Use** `npm run deploy:prod` (runs `pre-deploy-check.mjs`, build, push, Vercel).
-4. Read **DEPLOY.md** for the full checklist and post-deploy verification.
+Run **only**:
 
-## Git — never without user approval
+```bash
+npm run deploy
+```
 
-- Do **not** run `git stash -u`, `git stash push -u`, or `git reset --hard`.
-- Do **not** drop stash unless the user asked and stash was inspected vs HEAD.
-- Prefer commit + push over deploy-only from a dirty tree.
+Do **not** run `npx vercel --prod` — the project hook **blocks** it. `npm run deploy` runs git checks, build, push, and Vercel automatically.
+
+If the user says "deploy", "go live", "update the website", or "push to production" → run `npm run deploy` without asking them to remember commands.
+
+Read **AGENTS.md** and **DEPLOY.md** if unsure.
+
+## Git — never without explicit user approval
+
+- Do **not** run `git stash -u`, `git stash push -u`, or `git reset --hard` (hook-blocked).
+- Always **commit + push** before deploy; `npm run deploy` enforces this.
 
 ## High-conflict files
 
-Touch with care; always commit after edits:
+Commit after editing:
 
-- `src/data/projects.ts` — cards/sections (Web Export Kit, CRM Demo, demos)
-- `src/utils/createMusicPlayerVisualizer.ts` / `musicPlayerFftOceanVisualizer.ts` — music animation
-- `public/demos/**/index.html` — standalone demos (ssr-denoise, volume-lighting, etc.)
-- `src/crm/**` — CRM demo + client login UI
+- `src/data/projects.ts`
+- `src/utils/createMusicPlayerVisualizer.ts` / `musicPlayerFftOceanVisualizer.ts`
+- `public/demos/**/index.html`
+- `src/crm/**`
 
-## Panorama rebuild
+Panorama viewer source: `F:\3d-viever-backup\v3.18` → rebuild with `npm run build:panorama-360`.
 
-Viewer source: `F:\3d-viever-backup\v3.18`. After viewer changes, run `npm run build:panorama-360` and commit `public/demos/panorama-360/`.
-
-## CRM surfaces
+## CRM
 
 - `/client-login` — Supabase (real data)
 - `/crm-demo` — in-memory sandbox only

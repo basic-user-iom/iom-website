@@ -37,13 +37,15 @@ npm run preview
 
 ## Deploy to production
 
-**Always commit and push before deploying.** See **[DEPLOY.md](./DEPLOY.md)** for the full checklist.
+You do **not** need to remember commands — tell any Cursor agent: **"deploy the site"**.
+
+Agents must run:
 
 ```bash
-npm run deploy:prod
+npm run deploy
 ```
 
-This runs `pre-deploy-check.mjs` (blocks uncommitted/unpushed changes), builds, pushes `master`, and deploys to Vercel (`https://iobjectm.com`).
+See **[DEPLOY.md](./DEPLOY.md)** and **[AGENTS.md](./AGENTS.md)**. Direct `npx vercel --prod` is blocked by a project hook.
 
 ## Project structure
 
