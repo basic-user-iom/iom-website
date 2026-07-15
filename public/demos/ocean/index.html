@@ -135,6 +135,20 @@
         { label: 'Pacifico', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/pacifico@latest/latin-400-normal.ttf' },
         { label: 'Dancing Script', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/dancing-script@latest/latin-700-normal.ttf' },
         { label: 'Merriweather', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/merriweather@latest/latin-700-normal.ttf' },
+        { label: 'Poppins', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/poppins@latest/latin-700-normal.ttf' },
+        { label: 'Space Grotesk', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/space-grotesk@latest/latin-700-normal.ttf' },
+        { label: 'Orbitron', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/orbitron@latest/latin-700-normal.ttf' },
+        { label: 'Cinzel', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/cinzel@latest/latin-700-normal.ttf' },
+        { label: 'Lobster', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/lobster@latest/latin-400-normal.ttf' },
+        { label: 'Josefin Sans', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/josefin-sans@latest/latin-700-normal.ttf' },
+        { label: 'Archivo Black', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/archivo-black@latest/latin-400-normal.ttf' },
+        { label: 'Great Vibes', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/great-vibes@latest/latin-400-normal.ttf' },
+        { label: 'Russo One', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/russo-one@latest/latin-400-normal.ttf' },
+        { label: 'Comfortaa', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/comfortaa@latest/latin-700-normal.ttf' },
+        { label: 'Bangers', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/bangers@latest/latin-400-normal.ttf' },
+        { label: 'Indie Flower', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/indie-flower@latest/latin-400-normal.ttf' },
+        { label: 'Alegreya', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/alegreya@latest/latin-700-normal.ttf' },
+        { label: 'Syncopate', kind: 'ttf', url: 'https://cdn.jsdelivr.net/fontsource/fonts/syncopate@latest/latin-700-normal.ttf' },
       ]
 
       const ICON_PRESETS = [
@@ -206,11 +220,11 @@
         exposure: 0.18,
       }
 
-      // Camera aligned with default sunset sun direction (elevation 3°, azimuth 145°).
+      // Default framing for the "Hello There !" glass text preset.
       const DEFAULT_CAMERA = {
-        camX: -57.3,
-        camY: 4.8,
-        camZ: 81.8,
+        camX: -13.1,
+        camY: 10.9,
+        camZ: 58.4,
         targetX: 0,
         targetY: 10,
         targetZ: 0,
@@ -276,17 +290,19 @@
         ...SUNSET_SKY_DEFAULTS,
       }
 
+      const DEFAULT_FONT_INDEX = 16 // Dancing Script
+
       const messageParams = {
-        message: '',
-        show3DText: false,
-        textSize: 4,
+        message: 'Hello There !',
+        show3DText: true,
+        textSize: 9.6,
         textColor: '#ffffff',
-        textPositionY: 15,
-        textSubmerge: 6,
+        textPositionY: 18,
+        textSubmerge: 9,
         textBobSpeed: 0.6,
         textBobAmount: 4,
-        autoBob: false,
-        fontFamily: FONT_CATALOG[0].label,
+        autoBob: true,
+        fontFamily: FONT_CATALOG[DEFAULT_FONT_INDEX].label,
         textOpacity: 0.85,
         textMetalness: 0.1,
         textRoughness: 0.12,
@@ -313,16 +329,16 @@
 
       const SHARE_DEFAULTS = {
         ...SUNSET_SKY_DEFAULTS,
-        message: '',
-        show3DText: false,
-        textSize: 4,
+        message: 'Hello There !',
+        show3DText: true,
+        textSize: 9.6,
         textColor: '#ffffff',
-        textPositionY: 15,
-        textSubmerge: 6,
+        textPositionY: 18,
+        textSubmerge: 9,
         textBobSpeed: 0.6,
         textBobAmount: 4,
-        autoBob: false,
-        fontIndex: 0,
+        autoBob: true,
+        fontIndex: DEFAULT_FONT_INDEX,
         textOpacity: 0.85,
         textMetalness: 0.1,
         textRoughness: 0.12,
@@ -457,7 +473,11 @@
         addIfChanged('el', snapshot.elevation, SHARE_DEFAULTS.elevation, (v) => formatShareNumber(v, 1))
         addIfChanged('az', snapshot.azimuth, SHARE_DEFAULTS.azimuth, (v) => formatShareNumber(v, 1))
         addIfChanged('exp', snapshot.exposure, SHARE_DEFAULTS.exposure, (v) => formatShareNumber(v, 4))
-        if (snapshot.message) params.set('msg', snapshot.message)
+        if (snapshot.message && snapshot.message !== SHARE_DEFAULTS.message) {
+          params.set('msg', snapshot.message)
+        } else if (!snapshot.message && SHARE_DEFAULTS.message) {
+          params.set('msg', '')
+        }
         addIfChanged('t3d', snapshot.show3DText, SHARE_DEFAULTS.show3DText, (v) => (v ? '1' : '0'))
         addIfChanged('ts', snapshot.textSize, SHARE_DEFAULTS.textSize, (v) => formatShareNumber(v, 1))
         addIfChanged('tc', snapshot.textColor, SHARE_DEFAULTS.textColor, (v) => v.replace(/^#/, ''))
@@ -561,7 +581,12 @@
         )
         messageParams.autoBob = parseShareBool(getShareParam(params, 'ab'), messageParams.autoBob)
 
-        const fontIndex = clampNumber(getShareParam(params, 'ff'), 0, FONT_CATALOG.length - 1, 0)
+        const fontIndex = clampNumber(
+          getShareParam(params, 'ff'),
+          0,
+          FONT_CATALOG.length - 1,
+          DEFAULT_FONT_INDEX,
+        )
         messageParams.fontFamily = FONT_CATALOG[Math.floor(fontIndex)].label
 
         messageParams.textOpacity = clampNumber(getShareParam(params, 'to'), 0.05, 1, messageParams.textOpacity)
@@ -1147,7 +1172,6 @@
       const folderShare = gui.addFolder('Share')
       folderShare.add(shareActions, 'copyShareLink').name('Copy share link')
       shareStatusCtrl = folderShare.add(shareState, 'status').name('link status').disable()
-      folderShare.open()
 
       const folderMessage = gui.addFolder('Message')
       folderMessage.add(messageParams, 'message').name('message').onChange(updateTextMesh)
@@ -1259,7 +1283,6 @@
       folderIcon
         .add({ uploadIcon: () => iconFileInput.click() }, 'uploadIcon')
         .name('upload image')
-      folderIcon.open()
 
       iconFileInput.addEventListener('change', () => {
         const file = iconFileInput.files?.[0]
@@ -1292,7 +1315,6 @@
       recordButtonCtrl = folderMessage.add(videoActions, 'startRecording').name('Record video')
       stopButtonCtrl = folderMessage.add(videoActions, 'stopRecording').name('Stop recording')
       stopButtonCtrl.disable()
-      folderMessage.open()
 
       const folderSky = gui.addFolder('Sky')
       folderSky.add(parameters, 'elevation', 0, 90, 0.1).onChange(updateSun)
@@ -1303,12 +1325,10 @@
           renderer.toneMappingExposure = value
         })
       folderSky.add({ sunset: applySunsetPreset }, 'sunset').name('Sunset preset')
-      folderSky.open()
 
       const folderWater = gui.addFolder('Water')
       folderWater.add(waterUniforms.distortionScale, 'value', 0, 8, 0.1).name('distortionScale')
       folderWater.add(waterUniforms.size, 'value', 0.1, 10, 0.1).name('size')
-      folderWater.open()
 
       const folderBloom = gui.addFolder('Bloom')
       folderBloom
@@ -1326,11 +1346,10 @@
       folderClouds.add(skyUniforms.cloudCoverage, 'value', 0, 1, 0.01).name('coverage')
       folderClouds.add(skyUniforms.cloudDensity, 'value', 0, 1, 0.01).name('density')
       folderClouds.add(skyUniforms.cloudElevation, 'value', 0, 1, 0.01).name('elevation')
-      folderClouds.open()
 
+      textHeightCtrl.enable(!messageParams.autoBob)
       if (sharedStateLoaded) {
         iconGuiState.iconSelection = iconPresetToGuiLabel(iconParams.iconPreset)
-        textHeightCtrl.enable(!messageParams.autoBob)
         refreshGui(gui)
         updateIconMesh()
       }

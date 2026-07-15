@@ -793,7 +793,7 @@ export const PROJECTS: Project[] = [
   {
     id: 'threejs-ocean',
     title: 'Three.js Ocean',
-    section: 'experiments',
+    section: '3d',
     tags: ['webgl', 'shader', 'three.js', 'water'],
     description:
       'Gerstner-wave ocean with procedural sky and sunset preset — glass 3D text with Google Fonts, decorative icons, wallpaper screenshots, or up to 30 seconds of WebGL video export.',
