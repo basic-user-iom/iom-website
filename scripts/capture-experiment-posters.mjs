@@ -36,6 +36,12 @@ const TARGETS = [
   },
   { id: 'spline-editor', path: '/demos/spline-editor/', settleMs: 2000 },
   { id: 'fft-ocean', path: '/demos/fft-ocean/', settleMs: 8000 },
+  {
+    id: 'ocean',
+    path: '/demos/ocean/',
+    settleMs: 5000,
+    hideChrome: true,
+  },
   { id: 'spout', path: '/demos/spout/', settleMs: 5000, hideChrome: true },
   {
     id: 'raven-path',
@@ -342,6 +348,29 @@ async function waitForSpout(page) {
   )
 }
 
+/** Three.js Gerstner ocean — wait for canvas + glass text font/mesh settle. */
+async function waitForOcean(page) {
+  await waitForCanvas(page)
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('#container canvas')
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 16) return false
+      const tmp = document.createElement('canvas')
+      tmp.width = 1
+      tmp.height = 1
+      const ctx = tmp.getContext('2d')
+      if (!ctx) return false
+      // Sample near center where the default "Hello There !" text sits.
+      const sx = Math.floor(canvas.width * 0.5)
+      const sy = Math.floor(canvas.height * 0.48)
+      ctx.drawImage(canvas, sx, sy, 1, 1, 0, 0, 1, 1)
+      const pixels = ctx.getImageData(0, 0, 1, 1).data
+      return pixels[0] + pixels[1] + pixels[2] > 40
+    },
+    { timeout: 60000 },
+  )
+}
+
 /** FFT ocean — legacy three.js demo with ship model and skybox cubemap. */
 async function waitForFftOcean(page) {
   await page.waitForFunction(
@@ -412,6 +441,8 @@ async function capturePoster(browser, target) {
       await waitForTerrainSandbox(page)
     } else if (target.id === 'fft-ocean') {
       await waitForFftOcean(page)
+    } else if (target.id === 'ocean') {
+      await waitForOcean(page)
     } else if (target.id === 'spout') {
       await waitForSpout(page)
     } else if (target.pagani) {
