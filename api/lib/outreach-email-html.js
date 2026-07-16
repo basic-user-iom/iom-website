@@ -11,6 +11,8 @@ const LOGO_GIF = `${SITE}/assets/email/iom-raven.gif`
 const LOGO_PNG = `${SITE}/assets/email/iom-raven.png`
 /** Narrow raven-flight strip above footer (Outlook shows first frame). */
 const FLIGHT_GIF = `${SITE}/assets/email/iom-raven-flight.gif`
+/** Soft cloud header bg sampled from same flight recording. */
+const HEADER_BG = `${SITE}/assets/email/iom-email-header-bg.png`
 const FONT_DISPLAY = "'Syne', Arial, Helvetica, sans-serif"
 const FONT_BODY = "'IBM Plex Sans', Arial, Helvetica, sans-serif"
 
@@ -75,9 +77,9 @@ export function renderOutreachEmailHtml(opts) {
     <tr>
       <td align="center" style="padding:28px 16px;">
         <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;background-color:#f7f7fa;border:1px solid #d8d8e0;">
-          <!-- Header: raven + IOM (matches site header layout) -->
+          <!-- Header: raven + IOM (cloud gradient matching flight strip) -->
           <tr>
-            <td style="padding:22px 28px;background-color:#08080a;border-bottom:1px solid rgba(0,229,255,0.18);">
+            <td background="${HEADER_BG}" bgcolor="#0a1420" style="padding:22px 28px;background-color:#0a1420;background-image:linear-gradient(165deg,#060a10 0%,#0c1828 42%,#163048 100%),url('${HEADER_BG}');background-size:cover;background-position:center;border-bottom:1px solid rgba(0,229,255,0.18);">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
                 <tr>
                   <td width="56" valign="middle" style="padding-right:14px;">
@@ -87,7 +89,7 @@ export function renderOutreachEmailHtml(opts) {
                   </td>
                   <td valign="middle">
                     <p style="margin:0;font-family:${FONT_DISPLAY};font-size:22px;font-weight:800;letter-spacing:0.06em;line-height:1.1;color:#ececf2;">IOM</p>
-                    <p style="margin:4px 0 0;font-family:${FONT_BODY};font-size:11px;font-weight:500;letter-spacing:0.08em;line-height:1.3;color:#8b8b9a;text-transform:uppercase;">Interactive Object Media</p>
+                    <p style="margin:4px 0 0;font-family:${FONT_BODY};font-size:11px;font-weight:500;letter-spacing:0.08em;line-height:1.3;color:#a8b0bc;text-transform:uppercase;">Interactive Object Media</p>
                   </td>
                 </tr>
               </table>
