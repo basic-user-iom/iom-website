@@ -49,6 +49,14 @@ function Sparkline({ daily }: { daily: AnalyticsSummary['daily'] }) {
   )
 }
 
+function formatDuration(sec: number): string {
+  if (!sec || sec < 1) return '—'
+  if (sec < 60) return `${sec}s`
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  return `${m}m ${s}s`
+}
+
 export function SeoView({ demo = false }: SeoViewProps) {
   const { t } = useCrmI18n()
   const [range, setRange] = useState<AnalyticsRange>(RANGES[1])
@@ -141,12 +149,20 @@ export function SeoView({ demo = false }: SeoViewProps) {
                 <span className="crm-stat-label">{t('seo.pageviews')}</span>
               </div>
               <div className="crm-stat">
-                <span className="crm-stat-value">{summary.visitors.toLocaleString()}</span>
-                <span className="crm-stat-label">{t('seo.visitors')}</span>
+                <span className="crm-stat-value">{summary.humanVisitors.toLocaleString()}</span>
+                <span className="crm-stat-label">{t('seo.humans')}</span>
+              </div>
+              <div className="crm-stat">
+                <span className="crm-stat-value">{summary.botVisitors.toLocaleString()}</span>
+                <span className="crm-stat-label">{t('seo.bots')}</span>
               </div>
               <div className="crm-stat">
                 <span className="crm-stat-value">{summary.liveVisitors.toLocaleString()}</span>
                 <span className="crm-stat-label">{t('seo.liveVisitors')}</span>
+              </div>
+              <div className="crm-stat">
+                <span className="crm-stat-value">{formatDuration(summary.avgTimeOnPageSec)}</span>
+                <span className="crm-stat-label">{t('seo.avgTime')}</span>
               </div>
               <div className="crm-stat">
                 <span className="crm-stat-value">{summary.bounceRate}%</span>
@@ -198,17 +214,58 @@ export function SeoView({ demo = false }: SeoViewProps) {
               </div>
             </div>
 
-            <div className="crm-seo-columns">
+            <div className="crm-seo-columns crm-seo-columns--4">
               <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topPages')}</h4>
+                <h4 className="crm-seo-subtitle">{t('seo.topSources')}</h4>
+                <p className="crm-muted crm-seo-col-note">{t('seo.topSourcesNote')}</p>
                 <ul className="crm-seo-list">
-                  {summary.topPages.map((row) => (
-                    <li key={row.path} className="crm-seo-list-row">
-                      <span className="crm-seo-list-label">{row.path}</span>
-                      <span className="crm-seo-list-value">{row.views}</span>
-                      <MiniBar value={row.views} max={summary.topPages[0]?.views ?? 1} />
-                    </li>
-                  ))}
+                  {summary.topSources.length === 0 ? (
+                    <li className="crm-muted">{t('seo.noSources')}</li>
+                  ) : (
+                    summary.topSources.map((row) => (
+                      <li key={row.source} className="crm-seo-list-row">
+                        <span className="crm-seo-list-label">{row.source}</span>
+                        <span className="crm-seo-list-value">{row.views}</span>
+                        <MiniBar value={row.views} max={summary.topSources[0]?.views ?? 1} />
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div className="crm-seo-col">
+                <h4 className="crm-seo-subtitle">{t('seo.topKeywords')}</h4>
+                <p className="crm-muted crm-seo-col-note">{t('seo.topKeywordsNote')}</p>
+                <ul className="crm-seo-list">
+                  {summary.topKeywords.length === 0 ? (
+                    <li className="crm-muted">{t('seo.noKeywords')}</li>
+                  ) : (
+                    summary.topKeywords.map((row) => (
+                      <li key={row.keyword} className="crm-seo-list-row">
+                        <span className="crm-seo-list-label">{row.keyword}</span>
+                        <span className="crm-seo-list-value">{row.views}</span>
+                        <MiniBar value={row.views} max={summary.topKeywords[0]?.views ?? 1} />
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+              <div className="crm-seo-col">
+                <h4 className="crm-seo-subtitle">{t('seo.topLinks')}</h4>
+                <p className="crm-muted crm-seo-col-note">{t('seo.topLinksNote')}</p>
+                <ul className="crm-seo-list">
+                  {summary.topLinks.length === 0 ? (
+                    <li className="crm-muted">{t('seo.noLinks')}</li>
+                  ) : (
+                    summary.topLinks.map((row) => (
+                      <li key={row.url} className="crm-seo-list-row">
+                        <span className="crm-seo-list-label" title={row.url}>
+                          {row.label || row.url}
+                        </span>
+                        <span className="crm-seo-list-value">{row.clicks}</span>
+                        <MiniBar value={row.clicks} max={summary.topLinks[0]?.clicks ?? 1} />
+                      </li>
+                    ))
+                  )}
                 </ul>
               </div>
               <div className="crm-seo-col">
@@ -219,6 +276,21 @@ export function SeoView({ demo = false }: SeoViewProps) {
                       <span className="crm-seo-list-label">{row.referrer}</span>
                       <span className="crm-seo-list-value">{row.views}</span>
                       <MiniBar value={row.views} max={summary.topReferrers[0]?.views ?? 1} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="crm-seo-columns">
+              <div className="crm-seo-col">
+                <h4 className="crm-seo-subtitle">{t('seo.topPages')}</h4>
+                <ul className="crm-seo-list">
+                  {summary.topPages.map((row) => (
+                    <li key={row.path} className="crm-seo-list-row">
+                      <span className="crm-seo-list-label">{row.path}</span>
+                      <span className="crm-seo-list-value">{row.views}</span>
+                      <MiniBar value={row.views} max={summary.topPages[0]?.views ?? 1} />
                     </li>
                   ))}
                 </ul>

@@ -1,3 +1,5 @@
+export type AnalyticsEventType = 'pageview' | 'engage' | 'click'
+
 export interface AnalyticsEventInput {
   session_id: string
   path: string
@@ -5,9 +7,15 @@ export interface AnalyticsEventInput {
   utm_source: string
   utm_medium: string
   utm_campaign: string
+  utm_term?: string
+  search_keyword?: string
   device_type: 'desktop' | 'mobile' | 'tablet' | 'unknown'
   viewport_w?: number
   viewport_h?: number
+  event_type?: AnalyticsEventType
+  duration_ms?: number
+  link_url?: string
+  link_label?: string
 }
 
 export interface AnalyticsDailyRow {
@@ -31,8 +39,14 @@ export interface AnalyticsSummary {
   visitors: number
   bounceRate: number
   avgPagesPerSession: number
+  avgTimeOnPageSec: number
+  humanVisitors: number
+  botVisitors: number
   topPages: { path: string; views: number }[]
   topReferrers: { referrer: string; views: number }[]
+  topSources: { source: string; views: number }[]
+  topKeywords: { keyword: string; views: number }[]
+  topLinks: { url: string; label: string; clicks: number }[]
   deviceBreakdown: { device: string; views: number }[]
   topCountries: { country: string; label: string; views: number }[]
   geoPoints: AnalyticsGeoPoint[]

@@ -199,10 +199,10 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
       root.rotation.y += autoSpin
       for (const child of markers.children) {
         if (child.userData.pulse) {
-          const s = 1 + Math.sin(t * 0.0045) * 0.45
+          const s = 1 + Math.sin(t * 0.0045) * 0.2
           child.scale.setScalar(s)
           const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial
-          mat.opacity = 0.2 + (Math.sin(t * 0.0045) * 0.5 + 0.5) * 0.35
+          mat.opacity = 0.15 + (Math.sin(t * 0.0045) * 0.5 + 0.5) * 0.2
         }
       }
       renderer.render(scene, camera)

@@ -15,8 +15,6 @@ const DEMO_GEO: AnalyticsGeoPoint[] = [
   { lat: -33.9, lon: 151.2, country: 'AU', city: 'Sydney', visitors: 41, live: false },
   { lat: 1.35, lon: 103.8, country: 'SG', city: 'Singapore', visitors: 55, live: false },
   { lat: 52.4, lon: 4.9, country: 'NL', city: 'Amsterdam', visitors: 88, live: true },
-  { lat: 41.9, lon: 12.5, country: 'IT', city: 'Rome', visitors: 37, live: false },
-  { lat: 19.4, lon: -99.1, country: 'MX', city: 'Mexico City', visitors: 29, live: false },
 ]
 
 const DEMO_SUMMARY: AnalyticsSummary = {
@@ -24,21 +22,35 @@ const DEMO_SUMMARY: AnalyticsSummary = {
   visitors: 912,
   bounceRate: 42,
   avgPagesPerSession: 3.1,
+  avgTimeOnPageSec: 74,
+  humanVisitors: 880,
+  botVisitors: 32,
   liveVisitors: 5,
   topPages: [
     { path: '/', views: 1240 },
     { path: '/demos/panorama-360/', views: 412 },
     { path: '/demos/ssr-denoise/', views: 318 },
-    { path: '/demos/streets-gl/', views: 276 },
-    { path: '/demos/raven-path/', views: 201 },
-    { path: '/crm-demo', views: 156 },
   ],
   topReferrers: [
     { referrer: 'google.com', views: 980 },
     { referrer: 'direct', views: 742 },
     { referrer: 'github.com', views: 318 },
-    { referrer: 'linkedin.com', views: 156 },
-    { referrer: 'threejs.org', views: 89 },
+  ],
+  topSources: [
+    { source: 'google / organic', views: 820 },
+    { source: 'direct / none', views: 742 },
+    { source: 'linkedin / social', views: 156 },
+    { source: 'newsletter / email', views: 94 },
+  ],
+  topKeywords: [
+    { keyword: '360 virtual tour editor', views: 48 },
+    { keyword: 'webgpu ssr denoise', views: 31 },
+    { keyword: 'interactive object media', views: 22 },
+  ],
+  topLinks: [
+    { url: 'https://3dbviewer.com/', label: '3D Viewer', clicks: 186 },
+    { url: '/demos/panorama-360/', label: '360° Panorama Tour Editor', clicks: 142 },
+    { url: '/demos/ssr-denoise/', label: 'WebGPU SSR + Denoise', clicks: 98 },
   ],
   deviceBreakdown: [
     { device: 'desktop', views: 1820 },
@@ -49,9 +61,7 @@ const DEMO_SUMMARY: AnalyticsSummary = {
     { country: 'US', label: 'United States', views: 366 },
     { country: 'DE', label: 'Germany', views: 124 },
     { country: 'GB', label: 'United Kingdom', views: 98 },
-    { country: 'NL', label: 'Netherlands', views: 88 },
     { country: 'RS', label: 'Serbia', views: 86 },
-    { country: 'FR', label: 'France', views: 72 },
   ],
   geoPoints: DEMO_GEO,
   daily: Array.from({ length: 14 }, (_, i) => {
@@ -59,11 +69,7 @@ const DEMO_SUMMARY: AnalyticsSummary = {
     d.setUTCDate(d.getUTCDate() - (13 - i))
     const day = d.toISOString().slice(0, 10)
     const base = 120 + Math.round(Math.sin(i / 2) * 40 + i * 8)
-    return {
-      day,
-      pageviews: base + 40,
-      visitors: Math.round(base * 0.38),
-    }
+    return { day, pageviews: base + 40, visitors: Math.round(base * 0.38) }
   }),
 }
 
@@ -84,9 +90,15 @@ function emptySummary(): AnalyticsSummary {
     visitors: 0,
     bounceRate: 0,
     avgPagesPerSession: 0,
+    avgTimeOnPageSec: 0,
+    humanVisitors: 0,
+    botVisitors: 0,
     liveVisitors: 0,
     topPages: [],
     topReferrers: [],
+    topSources: [],
+    topKeywords: [],
+    topLinks: [],
     deviceBreakdown: [],
     topCountries: [],
     geoPoints: [],
@@ -104,6 +116,16 @@ type EventRow = {
   city?: string | null
   latitude?: number | null
   longitude?: number | null
+  event_type?: string | null
+  is_bot?: boolean | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  utm_term?: string | null
+  search_keyword?: string | null
+  duration_ms?: number | null
+  link_url?: string | null
+  link_label?: string | null
 }
 
 export async function fetchAnalyticsSummary(
@@ -119,37 +141,43 @@ export async function fetchAnalyticsSummary(
   const fromIso = from.toISOString()
   const toIso = to.toISOString()
 
+  const selectFull =
+    'session_id, path, referrer, device_type, created_at, country, city, latitude, longitude, event_type, is_bot, utm_source, utm_medium, utm_campaign, utm_term, search_keyword, duration_ms, link_url, link_label'
+
   let events: EventRow[] | null = null
   let error: { message: string; code?: string } | null = null
 
-  const withGeo = await sb
+  const withAll = await sb
     .from('site_analytics_events')
-    .select('session_id, path, referrer, device_type, created_at, country, city, latitude, longitude')
+    .select(selectFull)
     .gte('created_at', fromIso)
     .lte('created_at', toIso)
     .order('created_at', { ascending: false })
-    .limit(10000)
+    .limit(12000)
 
-  if (withGeo.error) {
-    const geoMissing =
-      withGeo.error.message.includes('country') ||
-      withGeo.error.message.includes('latitude') ||
-      withGeo.error.code === '42703'
-    if (geoMissing) {
-      const fallback = await sb
+  if (withAll.error) {
+    const fallback = await sb
+      .from('site_analytics_events')
+      .select('session_id, path, referrer, device_type, created_at, country, city, latitude, longitude')
+      .gte('created_at', fromIso)
+      .lte('created_at', toIso)
+      .order('created_at', { ascending: false })
+      .limit(12000)
+    if (fallback.error) {
+      const basic = await sb
         .from('site_analytics_events')
         .select('session_id, path, referrer, device_type, created_at')
         .gte('created_at', fromIso)
         .lte('created_at', toIso)
         .order('created_at', { ascending: false })
-        .limit(10000)
-      events = fallback.data
-      error = fallback.error
+        .limit(12000)
+      events = basic.data
+      error = basic.error
     } else {
-      error = withGeo.error
+      events = fallback.data
     }
   } else {
-    events = withGeo.data
+    events = withAll.data
   }
 
   if (error) {
@@ -160,13 +188,23 @@ export async function fetchAnalyticsSummary(
     return { data: null, schemaMissing: missing }
   }
 
-  if (!events?.length) {
-    return { data: emptySummary(), schemaMissing: false }
-  }
+  if (!events?.length) return { data: emptySummary(), schemaMissing: false }
+
+  const pageviewsRows = events.filter((e) => (e.event_type || 'pageview') === 'pageview')
+  const engageRows = events.filter((e) => e.event_type === 'engage')
+  const clickRows = events.filter((e) => e.event_type === 'click')
+
+  const humanPageviews = pageviewsRows.filter((e) => !e.is_bot)
+  const statsRows = humanPageviews.length ? humanPageviews : pageviewsRows
 
   const sessions = new Map<string, number>()
+  const humanSessions = new Set<string>()
+  const botSessions = new Set<string>()
   const pageCounts = new Map<string, number>()
   const refCounts = new Map<string, number>()
+  const sourceCounts = new Map<string, number>()
+  const keywordCounts = new Map<string, number>()
+  const linkCounts = new Map<string, { url: string; label: string; clicks: number }>()
   const deviceCounts = new Map<string, number>()
   const countryCounts = new Map<string, number>()
   const dailyMap = new Map<string, { pageviews: number; sessions: Set<string> }>()
@@ -177,12 +215,19 @@ export async function fetchAnalyticsSummary(
   const liveSessions = new Set<string>()
   const now = Date.now()
 
-  for (const row of events) {
+  for (const row of statsRows) {
     sessions.set(row.session_id, (sessions.get(row.session_id) ?? 0) + 1)
     pageCounts.set(row.path, (pageCounts.get(row.path) ?? 0) + 1)
 
     const ref = normalizeReferrer(row.referrer)
     refCounts.set(ref, (refCounts.get(ref) ?? 0) + 1)
+
+    const source = acquisitionLabel(row)
+    sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1)
+
+    const kw = (row.search_keyword || row.utm_term || '').trim().toLowerCase()
+    if (kw) keywordCounts.set(kw, (keywordCounts.get(kw) ?? 0) + 1)
+
     deviceCounts.set(row.device_type, (deviceCounts.get(row.device_type) ?? 0) + 1)
 
     const country = (row.country || '').toUpperCase()
@@ -217,11 +262,40 @@ export async function fetchAnalyticsSummary(
     if (isLive) geo.live = true
   }
 
-  const pageviews = events.length
+  for (const row of pageviewsRows) {
+    if (row.is_bot) botSessions.add(row.session_id)
+    else humanSessions.add(row.session_id)
+  }
+
+  for (const row of clickRows) {
+    if (row.is_bot) continue
+    const url = (row.link_url || '').trim()
+    if (!url) continue
+    const label = (row.link_label || url).trim()
+    const key = url
+    const prev = linkCounts.get(key)
+    if (prev) prev.clicks += 1
+    else linkCounts.set(key, { url, label: label.slice(0, 80), clicks: 1 })
+  }
+
+  let totalDuration = 0
+  let durationSamples = 0
+  for (const row of engageRows) {
+    if (row.is_bot) continue
+    if (typeof row.duration_ms === 'number' && row.duration_ms > 0) {
+      totalDuration += row.duration_ms
+      durationSamples += 1
+    }
+  }
+
+  const pageviews = statsRows.length
   const visitors = sessions.size
   const singlePageSessions = [...sessions.values()].filter((n) => n === 1).length
   const bounceRate = visitors ? Math.round((singlePageSessions / visitors) * 100) : 0
   const avgPagesPerSession = visitors ? Math.round((pageviews / visitors) * 10) / 10 : 0
+  const avgTimeOnPageSec = durationSamples
+    ? Math.round(totalDuration / durationSamples / 1000)
+    : 0
 
   const geoPoints: AnalyticsGeoPoint[] = [...geoBuckets.values()]
     .map((g) => ({
@@ -241,9 +315,17 @@ export async function fetchAnalyticsSummary(
       visitors,
       bounceRate,
       avgPagesPerSession,
+      avgTimeOnPageSec,
+      humanVisitors: humanSessions.size,
+      botVisitors: botSessions.size,
       liveVisitors: liveSessions.size,
       topPages: topN(pageCounts, 8).map(([path, views]) => ({ path, views })),
       topReferrers: topN(refCounts, 6).map(([referrer, views]) => ({ referrer, views })),
+      topSources: topN(sourceCounts, 6).map(([source, views]) => ({ source, views })),
+      topKeywords: topN(keywordCounts, 8).map(([keyword, views]) => ({ keyword, views })),
+      topLinks: [...linkCounts.values()]
+        .sort((a, b) => b.clicks - a.clicks)
+        .slice(0, 8),
       deviceBreakdown: topN(deviceCounts, 4).map(([device, views]) => ({ device, views })),
       topCountries: topN(countryCounts, 8).map(([country, views]) => ({
         country,
@@ -261,6 +343,22 @@ export async function fetchAnalyticsSummary(
     },
     schemaMissing: false,
   }
+}
+
+function acquisitionLabel(row: EventRow): string {
+  const source = (row.utm_source || '').trim()
+  const medium = (row.utm_medium || '').trim()
+  if (source || medium) return `${source || '(direct)'} / ${medium || '(none)'}`
+  const ref = normalizeReferrer(row.referrer)
+  if (ref === 'direct') return 'direct / none'
+  if (ref.includes('google.')) return 'google / organic'
+  if (ref.includes('bing.')) return 'bing / organic'
+  if (ref.includes('duckduckgo.')) return 'duckduckgo / organic'
+  if (ref.includes('linkedin.') || ref.includes('twitter.') || ref.includes('x.com') || ref.includes('facebook.')) {
+    return `${ref} / social`
+  }
+  if (ref.includes('github.')) return 'github / referral'
+  return `${ref} / referral`
 }
 
 function topN(map: Map<string, number>, n: number): [string, number][] {
