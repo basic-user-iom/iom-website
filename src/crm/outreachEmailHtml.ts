@@ -5,6 +5,7 @@
 
 const SITE = 'https://iobjectm.com'
 const LOGO_GIF = `${SITE}/assets/email/iom-raven.gif`
+const FLIGHT_GIF = `${SITE}/assets/email/iom-raven-flight.gif`
 const FONT_DISPLAY = "'Syne', Arial, Helvetica, sans-serif"
 const FONT_BODY = "'IBM Plex Sans', Arial, Helvetica, sans-serif"
 
@@ -77,7 +78,7 @@ export function renderOutreachEmailHtml(opts: {
             <td style="padding:28px 32px 8px;">${bodyHtml}</td>
           </tr>
           <tr>
-            <td style="padding:8px 32px 28px;">
+            <td style="padding:8px 32px 20px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" style="background-color:#08080a;border:1px solid rgba(0,229,255,0.35);">
@@ -85,6 +86,11 @@ export function renderOutreachEmailHtml(opts: {
                   </td>
                 </tr>
               </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0;line-height:0;font-size:0;background-color:#08080a;">
+              <img src="${FLIGHT_GIF}" width="560" height="61" alt="" style="display:block;border:0;width:100%;max-width:600px;height:auto;" />
             </td>
           </tr>
           <tr>
