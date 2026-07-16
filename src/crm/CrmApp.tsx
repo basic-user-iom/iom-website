@@ -46,6 +46,7 @@ import {
 } from './i18n'
 import { IdeasView } from './IdeasView'
 import { NotesView } from './NotesView'
+import { SeoView } from './SeoView'
 import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
 import { LeadList } from './LeadList'
@@ -67,7 +68,7 @@ import { collectOwnerOptions } from './types'
 import './crm.css'
 
 type View = 'list' | 'create'
-type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes'
+type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes' | 'seo'
 
 interface CrmAppProps {
   /** Public sandbox — sample data only, no live CRM backend. */
@@ -595,7 +596,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           ? t('nav.ideas')
           : section === 'notes'
             ? t('nav.notes')
-            : t('topbar.title')
+            : section === 'seo'
+              ? t('nav.seo')
+              : t('topbar.title')
 
   return (
     <div className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}`}>
@@ -661,6 +664,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
+              ['seo', 'nav.seo'],
             ] as const
           ).map(([id, key]) => (
             <button
@@ -903,6 +907,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           initialProjectId={focusIdeaProjectId}
         />
       )}
+
+      {section === 'seo' && <SeoView demo={demoMode} />}
     </div>
   )
 }

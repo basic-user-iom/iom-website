@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:ravens && npm run build:panorama-360 && tsc -b && vite build",
+    "build": "npm run build:ravens && npm run build:panorama-360 && node scripts/generate-sitemap.mjs && tsc -b && vite build",
+    "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "build:panorama-360": "node scripts/build-panorama-360.mjs",
     "build:streets-gl": "node scripts/build-streets-gl.mjs",
     "build:ravens": "node scripts/sync-raven-assets.mjs && node scripts/build-mobile-raven.mjs",

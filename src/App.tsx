@@ -11,7 +11,9 @@ import {
   isCrmDemoMode,
   isCrmDemoPath,
 } from './crm/demoMode'
+import { initAnalytics } from './analytics/track'
 import { SECTIONS } from './data/projects'
+import { usePageMeta } from './seo/usePageMeta'
 
 function usePathname(): string {
   const [path, setPath] = useState(() => window.location.pathname)
@@ -43,6 +45,12 @@ export default function App() {
   const isCrmDemo = isCrmDemoPath(path)
 
   syncCrmDemoFlag(isCrmDemo)
+
+  usePageMeta(path)
+
+  useEffect(() => {
+    return initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
+  }, [])
 
   useEffect(() => {
     return () => {
