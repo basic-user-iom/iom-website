@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchAnalyticsSummary } from '../analytics/api'
 import type { AnalyticsRange, AnalyticsSummary } from '../analytics/types'
 import {
@@ -9,6 +9,10 @@ import {
 } from '../seo'
 import { SITE_ORIGIN } from '../seo/siteConfig'
 import { useCrmI18n } from './i18n'
+
+const AnalyticsGlobe = lazy(() =>
+  import('./AnalyticsGlobe').then((m) => ({ default: m.AnalyticsGlobe })),
+)
 
 interface SeoViewProps {
   demo?: boolean
@@ -56,7 +60,6 @@ export function SeoView({ demo = false }: SeoViewProps) {
   const inventory = useMemo(() => contentInventory(), [])
 
   const load = useCallback(async () => {
-    setLoading(true)
     const { data, schemaMissing: missing } = await fetchAnalyticsSummary(range, demo)
     setSummary(data)
     setSchemaMissing(missing)
@@ -64,7 +67,15 @@ export function SeoView({ demo = false }: SeoViewProps) {
   }, [range, demo])
 
   useEffect(() => {
+    setLoading(true)
     void load()
+  }, [load])
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void load()
+    }, 25_000)
+    return () => window.clearInterval(id)
   }, [load])
 
   return (
@@ -84,7 +95,12 @@ export function SeoView({ demo = false }: SeoViewProps) {
           >
             {t('seo.openSite')}
           </a>
-          <a href={`${SITE_ORIGIN}/sitemap.xml`} className="btn btn-ghost" target="_blank" rel="noreferrer">
+          <a
+            href={`${SITE_ORIGIN}/sitemap.xml`}
+            className="btn btn-ghost"
+            target="_blank"
+            rel="noreferrer"
+          >
             {t('seo.sitemap')}
           </a>
         </div>
@@ -115,7 +131,7 @@ export function SeoView({ demo = false }: SeoViewProps) {
           </div>
         </div>
 
-        {loading ? (
+        {loading && !summary ? (
           <p className="crm-muted">{t('seo.loading')}</p>
         ) : summary ? (
           <>
@@ -129,6 +145,10 @@ export function SeoView({ demo = false }: SeoViewProps) {
                 <span className="crm-stat-label">{t('seo.visitors')}</span>
               </div>
               <div className="crm-stat">
+                <span className="crm-stat-value">{summary.liveVisitors.toLocaleString()}</span>
+                <span className="crm-stat-label">{t('seo.liveVisitors')}</span>
+              </div>
+              <div className="crm-stat">
                 <span className="crm-stat-value">{summary.bounceRate}%</span>
                 <span className="crm-stat-label">{t('seo.bounce')}</span>
               </div>
@@ -138,12 +158,45 @@ export function SeoView({ demo = false }: SeoViewProps) {
               </div>
             </div>
 
-            {summary.daily.length > 0 && (
-              <div className="crm-seo-chart-wrap">
-                <p className="crm-seo-chart-label">{t('seo.dailyTrend')}</p>
-                <Sparkline daily={summary.daily} />
+            <div className="crm-seo-map-row">
+              <div className="crm-seo-globe-panel">
+                <h4 className="crm-seo-subtitle">{t('seo.globeTitle')}</h4>
+                <p className="crm-muted crm-seo-globe-blurb">{t('seo.globeBlurb')}</p>
+                <Suspense fallback={<p className="crm-muted">{t('seo.globeLoading')}</p>}>
+                  <AnalyticsGlobe
+                    points={summary.geoPoints}
+                    liveVisitors={summary.liveVisitors}
+                  />
+                </Suspense>
               </div>
-            )}
+              <div className="crm-seo-map-side">
+                {summary.daily.length > 0 && (
+                  <div className="crm-seo-chart-wrap">
+                    <p className="crm-seo-chart-label">{t('seo.dailyTrend')}</p>
+                    <Sparkline daily={summary.daily} />
+                  </div>
+                )}
+                <h4 className="crm-seo-subtitle">{t('seo.topCountries')}</h4>
+                <ul className="crm-seo-list">
+                  {summary.topCountries.length === 0 ? (
+                    <li className="crm-muted">{t('seo.noGeo')}</li>
+                  ) : (
+                    summary.topCountries.map((row) => (
+                      <li key={row.country} className="crm-seo-list-row">
+                        <span className="crm-seo-list-label">
+                          {row.label} <span className="crm-seo-cc">{row.country}</span>
+                        </span>
+                        <span className="crm-seo-list-value">{row.views}</span>
+                        <MiniBar
+                          value={row.views}
+                          max={summary.topCountries[0]?.views ?? 1}
+                        />
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </div>
+            </div>
 
             <div className="crm-seo-columns">
               <div className="crm-seo-col">
@@ -177,7 +230,10 @@ export function SeoView({ demo = false }: SeoViewProps) {
                     <li key={row.device} className="crm-seo-list-row">
                       <span className="crm-seo-list-label">{row.device}</span>
                       <span className="crm-seo-list-value">{row.views}</span>
-                      <MiniBar value={row.views} max={summary.deviceBreakdown[0]?.views ?? 1} />
+                      <MiniBar
+                        value={row.views}
+                        max={summary.deviceBreakdown[0]?.views ?? 1}
+                      />
                     </li>
                   ))}
                 </ul>
@@ -210,7 +266,10 @@ export function SeoView({ demo = false }: SeoViewProps) {
                   <span className="crm-seo-upgrade-badge">{item.status}</span>
                 </div>
                 <p className="crm-muted">{item.description}</p>
-                <span className="crm-seo-upgrade-meta">{item.category}{item.date ? ` · ${item.date}` : ''}</span>
+                <span className="crm-seo-upgrade-meta">
+                  {item.category}
+                  {item.date ? ` · ${item.date}` : ''}
+                </span>
               </li>
             ))}
           </ul>
@@ -228,7 +287,9 @@ export function SeoView({ demo = false }: SeoViewProps) {
                     {target.priority}
                   </span>
                 </div>
-                <p className="crm-muted">{target.intent} · {target.pages.join(', ')}</p>
+                <p className="crm-muted">
+                  {target.intent} · {target.pages.join(', ')}
+                </p>
                 {target.notes && <p className="crm-seo-target-notes">{target.notes}</p>}
               </li>
             ))}

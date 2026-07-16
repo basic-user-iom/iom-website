@@ -3773,6 +3773,107 @@
   margin-bottom: 1rem;
 }
 
+.crm-seo-map-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 0.9fr);
+  gap: 1rem;
+  margin-bottom: 1.15rem;
+  align-items: stretch;
+}
+
+.crm-seo-globe-panel,
+.crm-seo-map-side {
+  min-width: 0;
+}
+
+.crm-seo-globe-blurb {
+  margin: 0 0 0.65rem;
+  font-size: 0.82rem;
+}
+
+.crm-seo-globe {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 45%, rgba(0, 229, 255, 0.08), transparent 65%),
+    color-mix(in srgb, var(--bg) 80%, transparent);
+  overflow: hidden;
+  min-height: 300px;
+}
+
+.crm-seo-globe-canvas {
+  width: 100%;
+  height: 320px;
+  touch-action: none;
+  cursor: grab;
+}
+
+.crm-seo-globe-canvas:active {
+  cursor: grabbing;
+}
+
+.crm-seo-globe-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.crm-seo-globe-hud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  padding: 0.55rem 0.75rem 0.7rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.crm-seo-globe-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crm-seo-globe-pulse {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.55);
+  animation: crm-seo-pulse 1.6s ease-out infinite;
+}
+
+@keyframes crm-seo-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.5);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 229, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
+  }
+}
+
+.crm-seo-cc {
+  opacity: 0.55;
+  font-size: 0.75em;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 960px) {
+  .crm-seo-map-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .crm-seo-chart-wrap {
   margin-bottom: 1rem;
 }

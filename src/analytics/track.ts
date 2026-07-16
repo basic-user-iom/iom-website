@@ -53,6 +53,21 @@ function buildEvent(pathname: string): AnalyticsEventInput {
   }
 }
 
+async function sendPageview(event: AnalyticsEventInput): Promise<void> {
+  try {
+    const res = await fetch('/api/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+      keepalive: true,
+    })
+    if (res.ok || res.status === 204) return
+  } catch {
+    /* fall through — local Vite has no /api */
+  }
+  void insertPageview(event)
+}
+
 /** Record a pageview once per distinct path per tab session. */
 export function trackPageView(pathname: string): void {
   if (!shouldTrack(pathname)) return
@@ -66,7 +81,7 @@ export function trackPageView(pathname: string): void {
     /* continue */
   }
 
-  void insertPageview(buildEvent(pathname))
+  void sendPageview(buildEvent(pathname))
 }
 
 /** Start SPA route tracking — call once from App. */

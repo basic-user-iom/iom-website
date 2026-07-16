@@ -95,6 +95,15 @@ export const SEO_UPGRADES: SeoUpgrade[] = [
     date: '2026-07-16',
   },
   {
+    id: 'realtime-globe',
+    title: 'Realtime visitor globe',
+    description:
+      'GA-style globe in IOM-SEO with Vercel geo (country/city) and live pins for the last 30 minutes.',
+    status: 'done',
+    category: 'analytics',
+    date: '2026-07-16',
+  },
+  {
     id: 'social-sameas',
     title: 'Social profile sameAs links',
     description: 'Add LinkedIn / GitHub / YouTube to Organization schema when ready.',

@@ -16,6 +16,16 @@ export interface AnalyticsDailyRow {
   visitors: number
 }
 
+export interface AnalyticsGeoPoint {
+  lat: number
+  lon: number
+  country: string
+  city: string
+  visitors: number
+  /** True when seen in the last ~30 minutes */
+  live?: boolean
+}
+
 export interface AnalyticsSummary {
   pageviews: number
   visitors: number
@@ -24,6 +34,9 @@ export interface AnalyticsSummary {
   topPages: { path: string; views: number }[]
   topReferrers: { referrer: string; views: number }[]
   deviceBreakdown: { device: string; views: number }[]
+  topCountries: { country: string; label: string; views: number }[]
+  geoPoints: AnalyticsGeoPoint[]
+  liveVisitors: number
   daily: AnalyticsDailyRow[]
 }
 

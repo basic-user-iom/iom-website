@@ -4,7 +4,11 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/((?!assets/|demos/).*)",
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    },
+    {
+      "source": "/((?!assets/|demos/|api/).*)",
       "destination": "/index.html"
     }
   ],
