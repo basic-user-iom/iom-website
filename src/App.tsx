@@ -61,6 +61,12 @@ export default function App() {
     }
   }, [])
 
+  useEffect(() => {
+    const onCrm = isClientLogin || isCrmDemo
+    document.body.classList.toggle('crm-route', onCrm)
+    return () => document.body.classList.remove('crm-route')
+  }, [isClientLogin, isCrmDemo])
+
   if (isClientLogin || isCrmDemo) {
     return (
       <>

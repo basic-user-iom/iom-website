@@ -2606,14 +2606,35 @@ body.music-player-fs-lock {
   transform: translateY(0);
 }
 
-/* Mobile */
-@media (max-width: 900px) {
-  .site-header {
-    backdrop-filter: none;
-    background: rgba(8, 8, 10, 0.96);
-    padding-top: env(safe-area-inset-top);
-    height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+@media (max-width: 1100px) {
+  /* Compact fixed site chrome on CRM — reclaim vertical space for panes */
+  body.crm-route {
+    --header-h: 56px;
   }
+
+  body.crm-route .raven-mascot-wrap {
+    width: 36px;
+    height: 36px;
+  }
+
+  body.crm-route .brand-tag {
+    font-size: 0.55rem;
+  }
+
+  body.crm-route .header-brand {
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 700px) {
+  body.crm-route {
+    --header-h: 52px;
+  }
+
+  body.crm-route .brand-tag {
+    display: none;
+  }
+}
 
   .site-header.is-scrolled {
     background: rgba(8, 8, 10, 0.98);

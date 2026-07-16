@@ -648,13 +648,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <span className="crm-help-btn-icon" aria-hidden="true">
               ?
             </span>
-            {t('topbar.help')}
+            <span className="crm-topbar-btn-label">{t('topbar.help')}</span>
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => void handleSignOut()}>
-            {demoMode ? t('demo.exit') : t('topbar.signOut')}
+            <span className="crm-topbar-btn-label">
+              {demoMode ? t('demo.exit') : t('topbar.signOut')}
+            </span>
           </button>
-          <a href="/" className="btn btn-ghost">
-            {t('topbar.backSite')}
+          <a href="/" className="btn btn-ghost crm-topbar-back">
+            <span className="crm-topbar-btn-label">{t('topbar.backSite')}</span>
           </a>
         </div>
       </header>
