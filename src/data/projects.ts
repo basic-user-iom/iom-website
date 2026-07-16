@@ -50,17 +50,20 @@ export const SECTIONS: { id: ProjectSection; label: string; blurb: string }[] = 
   {
     id: 'software',
     label: 'Software',
-    blurb: 'Tools and platforms for viewing, presenting, and publishing interactive 3D.',
+    blurb:
+      'Browser 3D model viewers, 360° virtual tour editors, and tools for presenting interactive media.',
   },
   {
     id: '3d',
     label: '3D',
-    blurb: 'Real-time visuals, procedural worlds, and object-driven storytelling.',
+    blurb:
+      'Real-time WebGPU and WebGL scenes — reflections, volumetric light, oceans, and object-driven storytelling.',
   },
   {
     id: '360',
     label: '360 Tours',
-    blurb: 'Immersive panoramas and spatial walkthroughs for architecture and place.',
+    blurb:
+      'Immersive 360° panorama architecture tours and spatial walkthroughs for place and exhibition.',
   },
   {
     id: 'photography',
@@ -75,7 +78,8 @@ export const SECTIONS: { id: ProjectSection; label: string; blurb: string }[] = 
   {
     id: 'experiments',
     label: 'Experiments',
-    blurb: 'R&D, shaders, motion studies, and prototypes in progress.',
+    blurb:
+      'WebGPU real-time rendering R&D — compute particles, lighting, fog, curves, and motion studies.',
   },
 ]
 
@@ -86,7 +90,7 @@ export const PROJECTS: Project[] = [
     section: 'software',
     tags: ['web', 'desktop', 'three.js', 'product'],
     description:
-      'Modern client-side 3D model viewer for the browser and Windows desktop. Load GLTF, FBX, OBJ, IFC, and more — inspect with orbit controls, GPU path tracing, HDR lighting, hotspots, and export standalone web presentations.',
+      'Browser 3D model viewer for the web and Windows desktop. Load GLTF, FBX, OBJ, IFC, and more — inspect with orbit controls, GPU path tracing, HDR lighting, hotspots, and export standalone web presentations.',
     year: '2024–26',
     url: 'https://3dbviewer.com/',
     embedUrl: 'https://3dbviewer.com/',
@@ -126,7 +130,7 @@ export const PROJECTS: Project[] = [
     section: 'software',
     tags: ['web', 'three.js', 'equirectangular', 'hotspots', 'tour', 'webgpu', 'birds'],
     description:
-      'Browser-based 360° virtual tour editor — opens on The Black Witness by default. Load equirectangular panoramas (JPG, PNG, WebP, HDR, EXR, KTX2), place link/info/URL hotspots with optional iframe popups, build multi-scene tours, add a WebGPU birds flock effect, and save or load .360project files.',
+      '360° virtual tour editor in the browser — opens on The Black Witness by default. Load equirectangular panoramas (JPG, PNG, WebP, HDR, EXR, KTX2), place link/info/URL hotspots with optional iframe popups, build multi-scene tours, add a WebGPU birds flock effect, and save or load .360project files.',
     year: '2026',
     url: '/demos/panorama-360/',
     embedUrl: '/demos/panorama-360/',
@@ -738,7 +742,7 @@ export const PROJECTS: Project[] = [
     section: '3d',
     tags: ['webgpu', 'ssr', 'denoise', 'three.js', 'postprocessing'],
     description:
-      'Screen-space reflections with spatiotemporal denoising on Three.js WebGPU — load custom GLTF/FBX models, swap HDR/EXR panoramas, explore in third-person walk mode, and compare raw vs denoised reflections.',
+      'WebGPU real-time rendering of screen-space reflections with spatiotemporal denoising — load custom GLTF/FBX models, swap HDR/EXR panoramas, explore in third-person walk mode, and compare raw vs denoised reflections.',
     year: '2026',
     url: '/demos/ssr-denoise/',
     embedUrl: '/demos/ssr-denoise/',

@@ -62,9 +62,20 @@ export const SEO_UPGRADES: SeoUpgrade[] = [
   {
     id: 'demo-meta-batch',
     title: 'Demo page meta tags',
-    description: 'Add description + OG tags to all /demos/* static pages.',
-    status: 'planned',
+    description:
+      'Description, canonical, and Open Graph tags on all /demos/* pages; section blurbs tuned for keyword targets.',
+    status: 'done',
     category: 'content',
+    date: '2026-07-16',
+  },
+  {
+    id: 'keyword-onpage-pass',
+    title: 'On-page keyword pass',
+    description:
+      'Homepage section blurbs, About copy, and featured project descriptions aligned to primary keyword targets.',
+    status: 'done',
+    category: 'content',
+    date: '2026-07-16',
   },
   {
     id: 'gsc-integration',

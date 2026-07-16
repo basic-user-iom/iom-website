@@ -35,7 +35,7 @@ export const SEO_TARGETS: SeoTarget[] = [
     intent: 'topic',
     pages: ['/#experiments'],
     priority: 'high',
-    notes: 'Multiple WebGPU demos — strong technical differentiator.',
+    notes: 'Section blurb + experiment demos meta now emphasize WebGPU real-time rendering.',
   },
   {
     id: 'topic-threejs',

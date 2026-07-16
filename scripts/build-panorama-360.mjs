@@ -65,6 +65,9 @@ async function main() {
     await rename(builtHtml, indexHtml)
   }
 
+  // Re-apply SEO meta (vite build may strip or reset head tags)
+  run('node', [join(ROOT, 'scripts', 'patch-demo-seo.mjs')], ROOT)
+
   console.log('Done. Serve at /demos/panorama-360/')
 }
 
