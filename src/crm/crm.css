@@ -3610,6 +3610,8 @@
   .crm-shell {
     --crm-control-h: 2.35rem;
     --crm-control-pad-x: 0.75rem;
+    --crm-card-pad-y: 0.55rem;
+    --crm-card-pad-x: 0.7rem;
     padding-top: calc(var(--header-h) + 0.55rem);
     padding-bottom: 1.25rem;
   }
@@ -3654,13 +3656,18 @@
   }
 
   .crm-section-nav {
-    margin-bottom: 0.65rem;
-    padding: 0.2rem;
-    gap: 0.4rem 0.65rem;
+    margin-bottom: 0.55rem;
+    padding: 0.15rem;
+    gap: 0.35rem 0.55rem;
   }
 
   .crm-section-tab {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
+  }
+
+  .crm-music-player {
+    gap: 0.35rem;
+    padding: 0.1rem 0.25rem 0.1rem 0.35rem;
   }
 
   .crm-demo-banner {
@@ -3672,6 +3679,88 @@
 
   .crm-shell--leads {
     padding-bottom: 0.65rem;
+  }
+
+  /* Leads chrome: reclaim height for list + detail panes */
+  .crm-stats-row {
+    gap: 0.45rem;
+    margin-bottom: 0.55rem;
+    grid-template-columns: minmax(0, 1fr) minmax(12rem, 17rem);
+  }
+
+  .crm-stats {
+    gap: 0.35rem;
+  }
+
+  .crm-stat {
+    gap: 0.4rem;
+    padding: 0.28rem 0.65rem;
+  }
+
+  .crm-stat-value {
+    font-size: 1rem;
+  }
+
+  .crm-stat-label {
+    font-size: 0.6rem;
+    letter-spacing: 0.04em;
+  }
+
+  .crm-calendar-toggle {
+    padding: 0.28rem 0.65rem;
+    gap: 0.4rem;
+  }
+
+  .crm-toolbar {
+    gap: 0.4rem;
+    margin-bottom: 0.55rem;
+  }
+
+  .crm-workspace {
+    gap: 0.65rem;
+    grid-template-columns: minmax(200px, 280px) 1fr;
+  }
+
+  .crm-main,
+  .crm-create-panel {
+    padding: 0.85rem 0.95rem 1.1rem;
+  }
+
+  .crm-sidebar {
+    padding: 0.35rem;
+  }
+
+  .crm-lead-list {
+    gap: 0.25rem;
+  }
+
+  .crm-lead-company {
+    font-size: 0.9rem;
+  }
+
+  .crm-lead-row-meta {
+    font-size: 0.7rem;
+  }
+
+  .crm-detail-header {
+    gap: 0.55rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .crm-detail-title {
+    font-size: 1.2rem;
+  }
+
+  .crm-detail-actions {
+    gap: 0.4rem;
+  }
+
+  .crm-outreach-preview-frame {
+    min-height: 220px;
+  }
+
+  .crm-facts {
+    gap: 0.55rem 1rem;
   }
 }
 
@@ -3735,19 +3824,32 @@
   }
 
   .crm-toolbar {
-    flex-direction: column;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.4rem;
+    margin-bottom: 0.65rem;
   }
 
-  .crm-toolbar .crm-search,
-  .crm-toolbar .crm-input:not(.crm-search),
+  .crm-toolbar .crm-search {
+    flex: 1 1 100%;
+    width: auto;
+  }
+
+  .crm-toolbar .crm-input:not(.crm-search) {
+    flex: 1 1 calc(50% - 0.2rem);
+    width: auto;
+    min-width: 0;
+  }
+
   .crm-toolbar .btn {
-    flex: 1 1 auto;
-    width: 100%;
+    flex: 1 1 100%;
+    width: auto;
   }
 
   .crm-workspace {
     grid-template-columns: 1fr;
     min-height: 0;
+    gap: 0.75rem;
   }
 
   /* Stacked leads layout: allow normal page scroll instead of locked dual panes */
@@ -3756,7 +3858,7 @@
     max-height: none;
     overflow-x: clip;
     overflow-y: visible;
-    padding-bottom: 3rem;
+    padding-bottom: 2rem;
   }
 
   .crm-shell--leads .crm-section-panel,
@@ -3773,13 +3875,13 @@
 
   .crm-sidebar,
   .crm-main {
-    min-height: 14rem;
+    min-height: 0;
     max-height: none;
   }
 
   .crm-workspace:not(.crm-workspace--empty) .crm-sidebar,
   .crm-workspace:not(.crm-workspace--empty) .crm-main {
-    min-height: 14rem;
+    min-height: 0;
     max-height: none;
   }
 
@@ -3802,13 +3904,31 @@
   }
 
   .crm-sidebar {
-    max-height: 280px;
-    overflow-x: hidden;
+    max-height: min(42vh, 22rem);
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .crm-main {
+    padding: 0.85rem 0.9rem 1.15rem;
   }
 
   .crm-detail-summary > .crm-detail-actions.crm-detail-actions--compact {
     width: 100%;
     justify-content: flex-end;
+  }
+
+  .crm-detail-actions {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .crm-outreach-actions {
+    gap: 0.4rem;
+  }
+
+  .crm-outreach-preview-frame {
+    min-height: 200px;
   }
 
   .crm-workspace--empty .crm-sidebar {
@@ -3846,10 +3966,6 @@
     grid-template-columns: 1fr;
   }
 
-  .crm-client-local-grid {
-    grid-template-columns: 1fr;
-  }
-
   .crm-music-player {
     width: 100%;
     margin-left: 0;
@@ -3862,11 +3978,10 @@
     flex: 1;
     max-width: none;
   }
-}
 
-@media (max-width: 900px) {
   .crm-stats-row {
     grid-template-columns: 1fr;
+    margin-bottom: 0.55rem;
   }
 
   .crm-calendar.is-expanded {
@@ -3890,6 +4005,12 @@
   .crm-stat {
     flex: 1 1 calc(50% - 0.25rem);
     justify-content: center;
+    padding: 0.3rem 0.5rem;
+  }
+
+  .crm-stat-label {
+    white-space: normal;
+    text-align: center;
   }
 
   .crm-calendar.is-expanded {
@@ -3900,6 +4021,27 @@
   .crm-calendar-toggle {
     width: 100%;
     justify-content: center;
+  }
+
+  .crm-toolbar .crm-input:not(.crm-search) {
+    flex: 1 1 100%;
+  }
+
+  .crm-sidebar {
+    max-height: min(38vh, 18rem);
+  }
+
+  .crm-main,
+  .crm-create-panel {
+    padding: 0.75rem 0.75rem 1rem;
+  }
+
+  .crm-detail-title {
+    font-size: 1.1rem;
+  }
+
+  .crm-lead-row-meta > span {
+    font-size: 0.65rem;
   }
 
   .crm-music-volume {
