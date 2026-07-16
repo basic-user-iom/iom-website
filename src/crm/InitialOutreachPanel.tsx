@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { createActivity, normalizeLeadEmails, updateLead } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { copyTextToClipboard } from './formatLeadText'
@@ -62,6 +62,7 @@ export function InitialOutreachPanel({
   const [body, setBody] = useState(lead.initial_email_body)
   const [extraSubject, setExtraSubject] = useState('')
   const [extraBody, setExtraBody] = useState('')
+  const previewFrameRef = useRef<HTMLIFrameElement>(null)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
 
@@ -307,6 +308,39 @@ export function InitialOutreachPanel({
       ? renderOutreachEmailHtml({ subject: previewSubject, body: previewBody })
       : ''
 
+  useEffect(() => {
+    if (!showHtmlPreview || !previewHtml) return
+    const frame = previewFrameRef.current
+    if (!frame) return
+
+    const fitHeight = () => {
+      try {
+        const doc = frame.contentDocument
+        if (!doc?.body) return
+        const h = Math.ceil(
+          Math.max(
+            doc.body.scrollHeight,
+            doc.documentElement?.scrollHeight ?? 0,
+          ),
+        )
+        if (h > 0) frame.style.height = `${h + 8}px`
+      } catch {
+        /* cross-origin / sandbox — keep CSS fallback height */
+      }
+    }
+
+    frame.addEventListener('load', fitHeight)
+    // srcDoc may already be loaded when effect runs
+    fitHeight()
+    const t1 = window.setTimeout(fitHeight, 80)
+    const t2 = window.setTimeout(fitHeight, 400)
+    return () => {
+      frame.removeEventListener('load', fitHeight)
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [showHtmlPreview, previewHtml])
+
   const mailto = buildMailtoUrl(
     toEmail || lead.email,
     editing ? subject : lead.initial_email_subject,
@@ -420,9 +454,11 @@ export function InitialOutreachPanel({
                 <span className="crm-muted">{t('outreach.subject')}:</span>{' '}
                 <strong>{lead.initial_email_subject}</strong>
               </p>
-              <pre className="crm-outreach-body">
-                {formatDraftPreview(lead.initial_email_body, 2000)}
-              </pre>
+              {!showHtmlPreview && (
+                <pre className="crm-outreach-body">
+                  {formatDraftPreview(lead.initial_email_body, 2000)}
+                </pre>
+              )}
               {(lead.initial_email_drafted_at || lead.initial_email_sent_at) && (
                 <dl className="crm-facts crm-facts--compact">
                   <div>
@@ -544,10 +580,12 @@ export function InitialOutreachPanel({
                     <strong>{previewSubject}</strong>
                   </p>
                   <iframe
+                    ref={previewFrameRef}
                     className="crm-outreach-preview-frame"
                     title={t('outreach.previewTitle')}
-                    sandbox=""
+                    sandbox="allow-same-origin"
                     srcDoc={previewHtml}
+                    scrolling="no"
                   />
                 </div>
               )}

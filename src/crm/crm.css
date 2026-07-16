@@ -2260,8 +2260,9 @@
   font-size: 0.85rem;
   line-height: 1.5;
   white-space: pre-wrap;
-  max-height: 16rem;
-  overflow: auto;
+  /* No inner scroll — page/detail pane scrolls instead */
+  max-height: none;
+  overflow: visible;
 }
 
 .crm-outreach-actions {
@@ -2292,10 +2293,14 @@
 .crm-outreach-preview-frame {
   display: block;
   width: 100%;
-  height: min(640px, 70vh);
+  /* Height set from content via JS — avoids nested scrollbar inside detail pane */
+  height: 480px;
+  min-height: 280px;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: #ececf2;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .crm-outreach-meta {
