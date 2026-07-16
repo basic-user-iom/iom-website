@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { fetchAnalyticsSummary } from '../analytics/api'
 import type { AnalyticsRange, AnalyticsSummary } from '../analytics/types'
 import {
@@ -25,11 +25,51 @@ const RANGES: AnalyticsRange[] = [
 ]
 
 function MiniBar({ value, max }: { value: number; max: number }) {
-  const pct = max > 0 ? Math.round((value / max) * 100) : 0
+  const pct =
+    max > 0 && value > 0 ? Math.max(6, Math.round((value / max) * 100)) : 0
   return (
     <div className="crm-seo-bar" aria-hidden="true">
       <span className="crm-seo-bar-fill" style={{ width: `${pct}%` }} />
     </div>
+  )
+}
+
+function RankList({
+  empty,
+  children,
+}: {
+  empty?: string
+  children?: ReactNode
+}) {
+  if (!children) {
+    return (
+      <div className="crm-seo-empty" role="status">
+        {empty}
+      </div>
+    )
+  }
+  return <ul className="crm-seo-list">{children}</ul>
+}
+
+function RankRow({
+  label,
+  value,
+  max,
+  title,
+}: {
+  label: string
+  value: number
+  max: number
+  title?: string
+}) {
+  return (
+    <li className="crm-seo-list-row">
+      <span className="crm-seo-list-label" title={title ?? label}>
+        {label}
+      </span>
+      <MiniBar value={value} max={max} />
+      <span className="crm-seo-list-value">{value.toLocaleString()}</span>
+    </li>
   )
 }
 
@@ -193,123 +233,133 @@ export function SeoView({ demo = false }: SeoViewProps) {
                   </div>
                 )}
                 <h4 className="crm-seo-subtitle">{t('seo.topCountries')}</h4>
-                <ul className="crm-seo-list">
-                  {summary.topCountries.length === 0 ? (
-                    <li className="crm-muted">{t('seo.noGeo')}</li>
-                  ) : (
-                    summary.topCountries.map((row) => (
-                      <li key={row.country} className="crm-seo-list-row">
-                        <span className="crm-seo-list-label">
-                          {row.label} <span className="crm-seo-cc">{row.country}</span>
-                        </span>
-                        <span className="crm-seo-list-value">{row.views}</span>
-                        <MiniBar
+                <RankList empty={t('seo.noGeo')}>
+                  {summary.topCountries.length > 0
+                    ? summary.topCountries.map((row) => (
+                        <RankRow
+                          key={row.country}
+                          label={`${row.label} (${row.country})`}
                           value={row.views}
                           max={summary.topCountries[0]?.views ?? 1}
                         />
-                      </li>
-                    ))
-                  )}
-                </ul>
+                      ))
+                    : undefined}
+                </RankList>
               </div>
             </div>
 
-            <div className="crm-seo-columns crm-seo-columns--4">
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topSources')}</h4>
-                <p className="crm-muted crm-seo-col-note">{t('seo.topSourcesNote')}</p>
-                <ul className="crm-seo-list">
-                  {summary.topSources.length === 0 ? (
-                    <li className="crm-muted">{t('seo.noSources')}</li>
-                  ) : (
-                    summary.topSources.map((row) => (
-                      <li key={row.source} className="crm-seo-list-row">
-                        <span className="crm-seo-list-label">{row.source}</span>
-                        <span className="crm-seo-list-value">{row.views}</span>
-                        <MiniBar value={row.views} max={summary.topSources[0]?.views ?? 1} />
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topKeywords')}</h4>
-                <p className="crm-muted crm-seo-col-note">{t('seo.topKeywordsNote')}</p>
-                <ul className="crm-seo-list">
-                  {summary.topKeywords.length === 0 ? (
-                    <li className="crm-muted">{t('seo.noKeywords')}</li>
-                  ) : (
-                    summary.topKeywords.map((row) => (
-                      <li key={row.keyword} className="crm-seo-list-row">
-                        <span className="crm-seo-list-label">{row.keyword}</span>
-                        <span className="crm-seo-list-value">{row.views}</span>
-                        <MiniBar value={row.views} max={summary.topKeywords[0]?.views ?? 1} />
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topLinks')}</h4>
-                <p className="crm-muted crm-seo-col-note">{t('seo.topLinksNote')}</p>
-                <ul className="crm-seo-list">
-                  {summary.topLinks.length === 0 ? (
-                    <li className="crm-muted">{t('seo.noLinks')}</li>
-                  ) : (
-                    summary.topLinks.map((row) => (
-                      <li key={row.url} className="crm-seo-list-row">
-                        <span className="crm-seo-list-label" title={row.url}>
-                          {row.label || row.url}
-                        </span>
-                        <span className="crm-seo-list-value">{row.clicks}</span>
-                        <MiniBar value={row.clicks} max={summary.topLinks[0]?.clicks ?? 1} />
-                      </li>
-                    ))
-                  )}
-                </ul>
-              </div>
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topReferrers')}</h4>
-                <ul className="crm-seo-list">
-                  {summary.topReferrers.map((row) => (
-                    <li key={row.referrer} className="crm-seo-list-row">
-                      <span className="crm-seo-list-label">{row.referrer}</span>
-                      <span className="crm-seo-list-value">{row.views}</span>
-                      <MiniBar value={row.views} max={summary.topReferrers[0]?.views ?? 1} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
+            <div className="crm-seo-breakdown">
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.topSources')}</h4>
+                  <p className="crm-muted crm-seo-col-note">{t('seo.topSourcesNote')}</p>
+                </header>
+                <RankList empty={t('seo.noSources')}>
+                  {summary.topSources.length > 0
+                    ? summary.topSources.map((row) => (
+                        <RankRow
+                          key={row.source}
+                          label={row.source}
+                          value={row.views}
+                          max={summary.topSources[0]?.views ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
 
-            <div className="crm-seo-columns">
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.topPages')}</h4>
-                <ul className="crm-seo-list">
-                  {summary.topPages.map((row) => (
-                    <li key={row.path} className="crm-seo-list-row">
-                      <span className="crm-seo-list-label">{row.path}</span>
-                      <span className="crm-seo-list-value">{row.views}</span>
-                      <MiniBar value={row.views} max={summary.topPages[0]?.views ?? 1} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="crm-seo-col">
-                <h4 className="crm-seo-subtitle">{t('seo.devices')}</h4>
-                <ul className="crm-seo-list">
-                  {summary.deviceBreakdown.map((row) => (
-                    <li key={row.device} className="crm-seo-list-row">
-                      <span className="crm-seo-list-label">{row.device}</span>
-                      <span className="crm-seo-list-value">{row.views}</span>
-                      <MiniBar
-                        value={row.views}
-                        max={summary.deviceBreakdown[0]?.views ?? 1}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.topKeywords')}</h4>
+                  <p className="crm-muted crm-seo-col-note">{t('seo.topKeywordsNote')}</p>
+                </header>
+                <RankList empty={t('seo.noKeywords')}>
+                  {summary.topKeywords.length > 0
+                    ? summary.topKeywords.map((row) => (
+                        <RankRow
+                          key={row.keyword}
+                          label={row.keyword}
+                          value={row.views}
+                          max={summary.topKeywords[0]?.views ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
+
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.topLinks')}</h4>
+                  <p className="crm-muted crm-seo-col-note">{t('seo.topLinksNote')}</p>
+                </header>
+                <RankList empty={t('seo.noLinks')}>
+                  {summary.topLinks.length > 0
+                    ? summary.topLinks.map((row) => (
+                        <RankRow
+                          key={row.url}
+                          label={row.label || row.url}
+                          title={row.url}
+                          value={row.clicks}
+                          max={summary.topLinks[0]?.clicks ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
+
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.topReferrers')}</h4>
+                </header>
+                <RankList empty={t('seo.noReferrers')}>
+                  {summary.topReferrers.length > 0
+                    ? summary.topReferrers.map((row) => (
+                        <RankRow
+                          key={row.referrer}
+                          label={row.referrer}
+                          value={row.views}
+                          max={summary.topReferrers[0]?.views ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
+
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.topPages')}</h4>
+                </header>
+                <RankList empty={t('seo.noPages')}>
+                  {summary.topPages.length > 0
+                    ? summary.topPages.map((row) => (
+                        <RankRow
+                          key={row.path}
+                          label={row.path}
+                          value={row.views}
+                          max={summary.topPages[0]?.views ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
+
+              <article className="crm-seo-card">
+                <header className="crm-seo-card-head">
+                  <h4 className="crm-seo-subtitle">{t('seo.devices')}</h4>
+                </header>
+                <RankList empty={t('seo.noDevices')}>
+                  {summary.deviceBreakdown.length > 0
+                    ? summary.deviceBreakdown.map((row) => (
+                        <RankRow
+                          key={row.device}
+                          label={row.device}
+                          value={row.views}
+                          max={summary.deviceBreakdown[0]?.views ?? 1}
+                        />
+                      ))
+                    : undefined}
+                </RankList>
+              </article>
             </div>
 
             {demo && (
