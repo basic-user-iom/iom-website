@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createActivity, updateLead } from './api'
+import { isCrmDemoMode } from './demoMode'
 import { copyTextToClipboard } from './formatLeadText'
 import { useCrmI18n } from './i18n'
 import {
@@ -8,6 +9,8 @@ import {
   initialEmailPending,
   initialEmailStatus,
 } from './outreach'
+import { sendOutreachEmail } from './sendOutreachEmail'
+import { useLiveCrmBackend } from './supabaseClient'
 import type { Lead } from './types'
 
 interface InitialOutreachPanelProps {
@@ -95,34 +98,80 @@ export function InitialOutreachPanel({
     }
   }
 
+  const markSentLocally = async (activityBody: string) => {
+    const stamp = new Date().toISOString()
+    const patch: Partial<import('./types').LeadInput> = { initial_email_sent_at: stamp }
+    if (!lead.initial_email_drafted_at) {
+      patch.initial_email_drafted_at = stamp
+    }
+    if (lead.status === 'new') {
+      patch.status = 'contacted'
+    }
+    const updated = await updateLead(lead.id, patch)
+    await createActivity({
+      lead_id: lead.id,
+      type: 'email',
+      subject: lead.initial_email_subject.trim() || t('outreach.defaultActivitySubject'),
+      body: activityBody,
+      occurred_at: stamp,
+    })
+    onChanged(updated)
+  }
+
   const handleMarkSent = async () => {
     if (!confirm(t('outreach.sentConfirm'))) return
     setError('')
     setBusy(true)
     try {
-      const stamp = new Date().toISOString()
-      const patch: Partial<import('./types').LeadInput> = { initial_email_sent_at: stamp }
-      if (!lead.initial_email_drafted_at) {
-        patch.initial_email_drafted_at = stamp
-      }
-      if (lead.status === 'new') {
-        patch.status = 'contacted'
-      }
-      const updated = await updateLead(lead.id, patch)
-      await createActivity({
-        lead_id: lead.id,
-        type: 'email',
-        subject: lead.initial_email_subject.trim() || t('outreach.defaultActivitySubject'),
-        body: t('outreach.sentActivityBody'),
-        occurred_at: stamp,
-      })
-      onChanged(updated)
+      await markSentLocally(t('outreach.sentActivityBody'))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('outreach.markFailed'))
     } finally {
       setBusy(false)
     }
   }
+
+  const handleSendFromCrm = async () => {
+    const to = lead.email.trim()
+    const subj = lead.initial_email_subject.trim()
+    const text = lead.initial_email_body.trim()
+    if (!to || !subj || !text) {
+      setError(t('outreach.sendMissing'))
+      return
+    }
+    if (isCrmDemoMode()) {
+      setError(t('outreach.sendDemoBlocked'))
+      return
+    }
+    if (!useLiveCrmBackend()) {
+      setError(t('outreach.sendLiveRequired'))
+      return
+    }
+    if (!confirm(t('outreach.sendConfirm', { email: to }))) return
+
+    setError('')
+    setBusy(true)
+    try {
+      await sendOutreachEmail({
+        to,
+        subject: subj,
+        body: text,
+        leadId: lead.id,
+      })
+      await markSentLocally(t('outreach.sentViaCrmActivityBody'))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.sendFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const canSendFromCrm =
+    useLiveCrmBackend() &&
+    !isCrmDemoMode() &&
+    !!lead.email.trim() &&
+    hasInitialEmailDraft(lead) &&
+    !lead.initial_email_sent_at
 
   const handleCopy = async () => {
     setError('')
@@ -269,6 +318,16 @@ export function InitialOutreachPanel({
               </button>
               {!lead.initial_email_sent_at && (
                 <>
+                  {canSendFromCrm && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={busy}
+                      onClick={() => void handleSendFromCrm()}
+                    >
+                      {busy ? t('outreach.sending') : t('outreach.sendFromCrm')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-ghost"
@@ -279,7 +338,7 @@ export function InitialOutreachPanel({
                   </button>
                   <button
                     type="button"
-                    className="btn btn-primary"
+                    className="btn btn-ghost"
                     disabled={busy}
                     onClick={() => void handleMarkSent()}
                   >

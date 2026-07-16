@@ -620,6 +620,14 @@ const en: Dict = {
   'outreach.openMail': 'Open in mail app',
   'outreach.markDrafted': 'Mark drafted',
   'outreach.markSent': 'Mark as sent',
+  'outreach.sendFromCrm': 'Send from CRM',
+  'outreach.sending': 'Sending…',
+  'outreach.sendConfirm':
+    'Send this email now to {email} from contact@iobjectm.com? It will be wrapped in the IOM HTML template and marked as sent.',
+  'outreach.sendMissing': 'Recipient, subject, and body are required to send.',
+  'outreach.sendFailed': 'Could not send email via Proton.',
+  'outreach.sendDemoBlocked': 'Sending is disabled in CRM demo mode.',
+  'outreach.sendLiveRequired': 'Sign in to the live CRM to send email.',
   'outreach.sentConfirm': 'Mark initial outreach as sent? This logs an email activity and moves New leads to Contacted.',
   'outreach.draftedAt': 'Marked drafted',
   'outreach.sentAt': 'Marked sent',
@@ -629,6 +637,8 @@ const en: Dict = {
   'outreach.markFailed': 'Could not update outreach status.',
   'outreach.defaultActivitySubject': 'Initial outreach email sent',
   'outreach.sentActivityBody': 'Marked initial outreach email as sent from CRM.',
+  'outreach.sentViaCrmActivityBody':
+    'Sent initial outreach email from CRM via contact@iobjectm.com (Proton SMTP).',
 
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
@@ -1411,6 +1421,14 @@ const sr: Dict = {
   'outreach.openMail': 'Otvori u mail aplikaciji',
   'outreach.markDrafted': 'Označi draft',
   'outreach.markSent': 'Označi kao poslat',
+  'outreach.sendFromCrm': 'Pošalji iz CRM-a',
+  'outreach.sending': 'Slanje…',
+  'outreach.sendConfirm':
+    'Poslati ovaj email sada na {email} sa contact@iobjectm.com? Biće u IOM HTML šablonu i označen kao poslat.',
+  'outreach.sendMissing': 'Primaoc, naslov i tekst su obavezni za slanje.',
+  'outreach.sendFailed': 'Slanje emaila preko Proton-a nije uspelo.',
+  'outreach.sendDemoBlocked': 'Slanje je isključeno u CRM demo režimu.',
+  'outreach.sendLiveRequired': 'Prijavite se u live CRM da biste slali email.',
   'outreach.sentConfirm': 'Označiti inicijalni outreach kao poslat? Ovo beleži email aktivnost i prebacuje New leadove u Contacted.',
   'outreach.draftedAt': 'Označen draft',
   'outreach.sentAt': 'Označen poslat',
@@ -1420,6 +1438,8 @@ const sr: Dict = {
   'outreach.markFailed': 'Ažuriranje outreach statusa nije uspelo.',
   'outreach.defaultActivitySubject': 'Inicijalni outreach email poslat',
   'outreach.sentActivityBody': 'Inicijalni outreach email označen kao poslat iz CRM-a.',
+  'outreach.sentViaCrmActivityBody':
+    'Inicijalni outreach email poslat iz CRM-a preko contact@iobjectm.com (Proton SMTP).',
 
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',
