@@ -630,20 +630,21 @@ const en: Dict = {
   'outreach.additionalSubjectHint': 'Follow-up subject…',
   'outreach.sendAdditional': 'Send additional email',
   'outreach.recipient': 'Send to',
+  'outreach.from': 'Send from',
   'outreach.noRecipient': 'Add an email address on this lead to send from CRM.',
   'outreach.sending': 'Sending…',
   'outreach.sendConfirm':
-    'Send this email now to {email} from contact@iobjectm.com? It will be wrapped in the IOM HTML template and marked as sent.',
+    'Send this email now to {email} from {from}? It will be wrapped in the IOM HTML template and marked as sent.',
   'outreach.resendConfirm':
-    'Resend this outreach to {email} from contact@iobjectm.com? This logs another email activity.',
+    'Resend this outreach to {email} from {from}? This logs another email activity.',
   'outreach.additionalConfirm':
-    'Send this additional email to {email} from contact@iobjectm.com?',
+    'Send this additional email to {email} from {from}?',
   'outreach.sendDemoConfirm':
-    'Simulate sending this email to {email}? No real message leaves this browser — the lead and activity log update with fake data only.',
+    'Simulate sending this email to {email} from {from}? No real message leaves this browser — the lead and activity log update with fake data only.',
   'outreach.resendDemoConfirm':
-    'Simulate a resend to {email}? No real email is delivered — activity is logged in this demo only.',
+    'Simulate a resend to {email} from {from}? No real email is delivered — activity is logged in this demo only.',
   'outreach.additionalDemoConfirm':
-    'Simulate sending this additional email to {email}? Fake data only — nothing is delivered.',
+    'Simulate sending this additional email to {email} from {from}? Fake data only — nothing is delivered.',
   'outreach.demoSendNote':
     'Demo mode: Send from CRM simulates delivery with fake data. No Proton SMTP or real inbox is used.',
   'outreach.sendMissing': 'Recipient, subject, and body are required to send.',
@@ -660,11 +661,11 @@ const en: Dict = {
   'outreach.defaultActivitySubject': 'Initial outreach email sent',
   'outreach.sentActivityBody': 'Marked initial outreach email as sent from CRM.',
   'outreach.sentViaCrmActivityBody':
-    'Sent initial outreach email from CRM via contact@iobjectm.com (Proton SMTP).',
+    'Sent initial outreach email from CRM via {from} (Proton SMTP).',
   'outreach.resendActivityBody':
-    'Resent outreach email from CRM to {email} via contact@iobjectm.com.',
+    'Resent outreach email from CRM to {email} via {from}.',
   'outreach.additionalActivityBody':
-    'Sent additional email from CRM to {email} via contact@iobjectm.com.',
+    'Sent additional email from CRM to {email} via {from}.',
 
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
@@ -1472,20 +1473,21 @@ const sr: Dict = {
   'outreach.additionalSubjectHint': 'Naslov follow-up-a…',
   'outreach.sendAdditional': 'Pošalji dodatni email',
   'outreach.recipient': 'Pošalji na',
+  'outreach.from': 'Pošalji sa',
   'outreach.noRecipient': 'Dodajte email adresu na lead da biste slali iz CRM-a.',
   'outreach.sending': 'Slanje…',
   'outreach.sendConfirm':
-    'Poslati ovaj email sada na {email} sa contact@iobjectm.com? Biće u IOM HTML šablonu i označen kao poslat.',
+    'Poslati ovaj email sada na {email} sa {from}? Biće u IOM HTML šablonu i označen kao poslat.',
   'outreach.resendConfirm':
-    'Ponovo poslati ovaj outreach na {email} sa contact@iobjectm.com? Beleži se nova email aktivnost.',
+    'Ponovo poslati ovaj outreach na {email} sa {from}? Beleži se nova email aktivnost.',
   'outreach.additionalConfirm':
-    'Poslati ovaj dodatni email na {email} sa contact@iobjectm.com?',
+    'Poslati ovaj dodatni email na {email} sa {from}?',
   'outreach.sendDemoConfirm':
-    'Simulirati slanje na {email}? Nijedna prava poruka ne napušta ovaj pregledač — lead i aktivnosti se ažuriraju samo lažnim podacima.',
+    'Simulirati slanje na {email} sa {from}? Nijedna prava poruka ne napušta ovaj pregledač — lead i aktivnosti se ažuriraju samo lažnim podacima.',
   'outreach.resendDemoConfirm':
-    'Simulirati ponovno slanje na {email}? Email se ne isporučuje — aktivnost se beleži samo u ovom demu.',
+    'Simulirati ponovno slanje na {email} sa {from}? Email se ne isporučuje — aktivnost se beleži samo u ovom demu.',
   'outreach.additionalDemoConfirm':
-    'Simulirati slanje ovog dodatnog emaila na {email}? Samo lažni podaci — ništa se ne isporučuje.',
+    'Simulirati slanje ovog dodatnog emaila na {email} sa {from}? Samo lažni podaci — ništa se ne isporučuje.',
   'outreach.demoSendNote':
     'Demo režim: Pošalji iz CRM-a simulira isporuku lažnim podacima. Ne koristi se Proton SMTP ni pravi sandučić.',
   'outreach.sendMissing': 'Primaoc, naslov i tekst su obavezni za slanje.',
@@ -1502,11 +1504,11 @@ const sr: Dict = {
   'outreach.defaultActivitySubject': 'Inicijalni outreach email poslat',
   'outreach.sentActivityBody': 'Inicijalni outreach email označen kao poslat iz CRM-a.',
   'outreach.sentViaCrmActivityBody':
-    'Inicijalni outreach email poslat iz CRM-a preko contact@iobjectm.com (Proton SMTP).',
+    'Inicijalni outreach email poslat iz CRM-a preko {from} (Proton SMTP).',
   'outreach.resendActivityBody':
-    'Outreach email ponovo poslat iz CRM-a na {email} preko contact@iobjectm.com.',
+    'Outreach email ponovo poslat iz CRM-a na {email} preko {from}.',
   'outreach.additionalActivityBody':
-    'Dodatni email poslat iz CRM-a na {email} preko contact@iobjectm.com.',
+    'Dodatni email poslat iz CRM-a na {email} preko {from}.',
 
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',

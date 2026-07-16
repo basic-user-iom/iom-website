@@ -9,6 +9,12 @@ import {
   initialEmailPending,
   initialEmailStatus,
 } from './outreach'
+import {
+  OUTREACH_FROM_IDENTITIES,
+  readStoredOutreachFrom,
+  writeStoredOutreachFrom,
+  type OutreachFromIdentityId,
+} from './outreachFromIdentities'
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
@@ -65,6 +71,12 @@ export function InitialOutreachPanel({
   const previewFrameRef = useRef<HTMLIFrameElement>(null)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
+  const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
+    readStoredOutreachFrom(),
+  )
+  const fromMeta =
+    OUTREACH_FROM_IDENTITIES.find((i) => i.id === fromIdentity) ??
+    OUTREACH_FROM_IDENTITIES[0]
 
   const status = initialEmailStatus(lead)
   const pending = initialEmailPending(lead)
@@ -219,7 +231,7 @@ export function InitialOutreachPanel({
         : mode === 'additional'
           ? 'outreach.additionalConfirm'
           : 'outreach.sendConfirm'
-    if (!confirm(t(confirmKey, { email: to }))) return
+    if (!confirm(t(confirmKey, { email: to, from: fromMeta.email }))) return
 
     setError('')
     setBusy(true)
@@ -229,6 +241,7 @@ export function InitialOutreachPanel({
         subject: subj,
         body: text,
         leadId: lead.id,
+        fromIdentity,
       })
 
       const stamp = new Date().toISOString()
@@ -243,7 +256,10 @@ export function InitialOutreachPanel({
             : undefined
         await logEmailActivity(
           subj,
-          t('outreach.additionalActivityBody', { email: to }),
+          t('outreach.additionalActivityBody', {
+            email: to,
+            from: fromMeta.email,
+          }),
           stamp,
         )
         setComposeExtra(false)
@@ -256,13 +272,16 @@ export function InitialOutreachPanel({
         })
         await logEmailActivity(
           subj,
-          t('outreach.resendActivityBody', { email: to }),
+          t('outreach.resendActivityBody', {
+            email: to,
+            from: fromMeta.email,
+          }),
           stamp,
         )
         onChanged(updated)
       } else {
         await markSentLocally(
-          t('outreach.sentViaCrmActivityBody'),
+          t('outreach.sentViaCrmActivityBody', { from: fromMeta.email }),
           subj,
         )
       }
@@ -348,6 +367,28 @@ export function InitialOutreachPanel({
     toEmail || lead.email,
     editing ? subject : lead.initial_email_subject,
     editing ? body : lead.initial_email_body,
+  )
+
+  const fromSelect = (
+    <label className="crm-field crm-outreach-from">
+      <span className="crm-label">{t('outreach.from')}</span>
+      <select
+        className="crm-input"
+        value={fromIdentity}
+        disabled={busy}
+        onChange={(e) => {
+          const next = e.target.value as OutreachFromIdentityId
+          setFromIdentity(next)
+          writeStoredOutreachFrom(next)
+        }}
+      >
+        {OUTREACH_FROM_IDENTITIES.map((i) => (
+          <option key={i.id} value={i.id}>
+            {i.label} ({i.email})
+          </option>
+        ))}
+      </select>
+    </label>
   )
 
   const recipientSelect =
@@ -479,7 +520,12 @@ export function InitialOutreachPanel({
 
           {!editing && (
             <>
-              {sendUiOk && recipientSelect}
+              {sendUiOk && (
+                <>
+                  {fromSelect}
+                  {recipientSelect}
+                </>
+              )}
 
               {demoMode && sendUiOk && (
                 <p className="crm-muted crm-outreach-demo-note" role="note">
@@ -604,6 +650,7 @@ export function InitialOutreachPanel({
                   <p className="crm-outreach-focus-label">
                     {t('outreach.additionalTitle')}
                   </p>
+                  {fromSelect}
                   {recipientSelect}
                   <label className="crm-field">
                     <span className="crm-label">{t('outreach.subject')}</span>
