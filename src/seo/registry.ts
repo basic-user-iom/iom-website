@@ -69,9 +69,10 @@ export const SEO_UPGRADES: SeoUpgrade[] = [
   {
     id: 'gsc-integration',
     title: 'Google Search Console',
-    description: 'Verify domain and submit sitemap in Search Console.',
-    status: 'pending',
+    description: 'Domain verified; sitemap submitted (24 URLs discovered).',
+    status: 'done',
     category: 'technical',
+    date: '2026-07-16',
   },
   {
     id: 'social-sameas',
