@@ -87,14 +87,14 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
       },
     )
 
-    // Subtle cyan grid overlay so it still feels like IOM
+    // Soft cyan grid — thin lines so land stays readable
     const wire = new THREE.Mesh(
       new THREE.SphereGeometry(GLOBE_RADIUS * 1.003, 28, 20),
       new THREE.MeshBasicMaterial({
         color: ACCENT,
         wireframe: true,
         transparent: true,
-        opacity: 0.07,
+        opacity: 0.04,
       }),
     )
     root.add(wire)
@@ -105,25 +105,28 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     const maxVisitors = Math.max(...points.map((p) => p.visitors), 1)
 
     for (const point of points) {
-      const pos = latLonToVec3(point.lat, point.lon, GLOBE_RADIUS * 1.02)
-      const size = 0.045 + (point.visitors / maxVisitors) * 0.09
+      const pos = latLonToVec3(point.lat, point.lon, GLOBE_RADIUS * 1.015)
+      // Keep markers pin-sized relative to the globe (~1/10 of previous)
+      const size = 0.005 + (point.visitors / maxVisitors) * 0.009
 
-      // Beam from surface for visibility
+      // Thin beam from surface — length stays readable, thickness reduced
+      const beamLen = 0.11 + (point.visitors / maxVisitors) * 0.06
       const beam = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.008, 0.02, size * 4.5, 8),
+        new THREE.CylinderGeometry(0.0012, 0.0028, beamLen, 6),
         new THREE.MeshBasicMaterial({
           color: point.live ? 0xffffff : ACCENT,
           transparent: true,
-          opacity: point.live ? 0.9 : 0.65,
+          opacity: point.live ? 0.95 : 0.7,
         }),
       )
-      beam.position.copy(pos.clone().multiplyScalar(1.02))
+      const beamPos = pos.clone().normalize().multiplyScalar(GLOBE_RADIUS + beamLen * 0.5)
+      beam.position.copy(beamPos)
       beam.lookAt(new THREE.Vector3(0, 0, 0))
       beam.rotateX(Math.PI / 2)
       markers.add(beam)
 
       const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(size, 14, 14),
+        new THREE.SphereGeometry(size, 12, 12),
         new THREE.MeshBasicMaterial({
           color: point.live ? 0xffffff : ACCENT,
           transparent: true,
@@ -134,11 +137,11 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
       markers.add(dot)
 
       const halo = new THREE.Mesh(
-        new THREE.SphereGeometry(size * (point.live ? 2.8 : 2.1), 14, 14),
+        new THREE.SphereGeometry(size * (point.live ? 2.6 : 2.0), 12, 12),
         new THREE.MeshBasicMaterial({
           color: ACCENT,
           transparent: true,
-          opacity: point.live ? 0.35 : 0.18,
+          opacity: point.live ? 0.4 : 0.22,
         }),
       )
       halo.position.copy(pos)
