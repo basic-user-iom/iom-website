@@ -89,6 +89,8 @@ export function NotesView({
 
   const selected = notes.find((n) => n.id === selectedId) ?? null
 
+  // Reset editor only when switching notes — not when autosave updates title/body
+  // (that was collapsing preview and kicking users out of edit mid-typing).
   useEffect(() => {
     if (!selected) {
       setDraftTitle('')
@@ -105,7 +107,9 @@ export function NotesView({
     window.setTimeout(() => {
       skipSave.current = false
     }, 0)
-  }, [selected?.id, selected?.title, selected?.body])
+    // intentionally only selected?.id — title/body sync from autosave must not reset UI
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- see above
+  }, [selected?.id])
 
   useEffect(() => {
     if (!selected || skipSave.current) return

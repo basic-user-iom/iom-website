@@ -86,6 +86,15 @@ export const SEO_UPGRADES: SeoUpgrade[] = [
     date: '2026-07-16',
   },
   {
+    id: 'mobile-seo-parity',
+    title: 'Mobile SEO parity check',
+    description:
+      'Verified viewport meta, identical titles/blurbs/descriptions on mobile vs desktop; demos share the same head tags on all devices.',
+    status: 'done',
+    category: 'technical',
+    date: '2026-07-16',
+  },
+  {
     id: 'social-sameas',
     title: 'Social profile sameAs links',
     description: 'Add LinkedIn / GitHub / YouTube to Organization schema when ready.',
