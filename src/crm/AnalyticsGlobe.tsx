@@ -8,7 +8,7 @@ interface AnalyticsGlobeProps {
 }
 
 const ACCENT = 0x00e5ff
-const GLOBE_RADIUS = 1.65
+const GLOBE_RADIUS = 1.45
 const EARTH_MAP = '/assets/seo/earth-map.jpg'
 
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
@@ -30,11 +30,12 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
 
     let disposed = false
     const width = mount.clientWidth || 480
-    const height = mount.clientHeight || 320
+    const height = Math.max(mount.clientHeight || 360, 280)
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100)
-    camera.position.set(0, 0.2, 4.85)
+    // Pull back + slight upward look so the full sphere clears the HUD
+    camera.position.set(0, 0.05, 5.6)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -184,7 +185,7 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
 
     const onResize = () => {
       const w = mount.clientWidth || 480
-      const h = mount.clientHeight || 320
+      const h = Math.max(mount.clientHeight || 360, 280)
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
