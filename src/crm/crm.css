@@ -2338,6 +2338,12 @@
   margin: 0.75rem 0 0.35rem;
 }
 
+.crm-outreach-demo-note {
+  margin: 0.35rem 0 0.65rem;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 .crm-outreach-additional {
   margin-top: 1rem;
   padding-top: 1rem;

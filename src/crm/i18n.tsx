@@ -137,7 +137,7 @@ const en: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM Demo',
   'demo.banner':
-    'Interactive sample workspace with fictional companies. Edits stay in this browser tab and never touch live client data.',
+    'Interactive sample workspace with fictional companies. Send from CRM, SEO analytics, and edits stay in this browser — nothing touches live clients or real inboxes.',
   'demo.reset': 'Reset sample data',
   'demo.exit': 'Exit demo',
 
@@ -638,6 +638,14 @@ const en: Dict = {
     'Resend this outreach to {email} from contact@iobjectm.com? This logs another email activity.',
   'outreach.additionalConfirm':
     'Send this additional email to {email} from contact@iobjectm.com?',
+  'outreach.sendDemoConfirm':
+    'Simulate sending this email to {email}? No real message leaves this browser — the lead and activity log update with fake data only.',
+  'outreach.resendDemoConfirm':
+    'Simulate a resend to {email}? No real email is delivered — activity is logged in this demo only.',
+  'outreach.additionalDemoConfirm':
+    'Simulate sending this additional email to {email}? Fake data only — nothing is delivered.',
+  'outreach.demoSendNote':
+    'Demo mode: Send from CRM simulates delivery with fake data. No Proton SMTP or real inbox is used.',
   'outreach.sendMissing': 'Recipient, subject, and body are required to send.',
   'outreach.sendFailed': 'Could not send email via Proton.',
   'outreach.sendDemoBlocked': 'Sending is disabled in CRM demo mode.',
@@ -685,19 +693,22 @@ const en: Dict = {
   'guide.gotIt': 'Got it',
   'guide.whatHeading': 'What this tool is',
   'guide.whatText':
-    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, and MindMeister-style idea maps. In online mode, signed-in staff share the same data.',
+    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
   'guide.what1': 'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, activity log',
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
   'guide.what3': 'Time — start/stop timers, manual entries, and reports',
   'guide.what4': 'Ideas — mind maps standalone or linked to a lead / project',
   'guide.what5': 'Notes — long-form research lists (artists, markets, follow-ups) with sections and links',
+  'guide.what6': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
   'guide.navHeading': 'Navigation',
-  'guide.navText': 'Tabs under the header: Leads | Projects | Time | Ideas | Notes.',
+  'guide.navText':
+    'Tabs under the header: Leads | Projects | Time | Ideas | Notes, plus SEO on the right.',
   'guide.nav1': 'Leads — Salesforce-style CRM for potential clients',
   'guide.nav2': 'Projects — Monday-style boards for delivery work',
   'guide.nav3': 'Time — Clockify-style timers, logs, and reports',
   'guide.nav4': 'Ideas — MindMeister-style maps for brainstorming',
   'guide.nav5': 'Notes — research documents with sections, clickable links, and ChatGPT assist',
+  'guide.nav6': 'SEO — content inventory, search upgrades, and analytics (live traffic when signed in; sample data in demo)',
   'guide.leadHeading': 'Leads — what is a lead?',
   'guide.leadText':
     'A lead is a potential client or contact you are trying to win — not a closed deal yet.',
@@ -742,15 +753,17 @@ const en: Dict = {
   'guide.pipe4': 'Edit details, offer text, and notes as conversations evolve',
   'guide.pipe5':
     'Copy as text — export the full lead (contact, outreach, activities) for ChatGPT or email drafts',
-  'guide.outreachHeading': 'Initial outreach email',
+  'guide.outreachHeading': 'Outreach email from CRM',
   'guide.outreachText':
-    'Draft and track first-contact emails without leaving the CRM.',
+    'Draft, preview, and send first-contact emails in the IOM HTML template — plus resend and follow-ups — without leaving the CRM.',
   'guide.outreach1':
     'On + Add lead or Edit, fill initial email subject and body — or let ChatGPT generate them in the JSON import',
   'guide.outreach2':
-    'On lead detail, the Initial outreach panel shows the draft; mark Email sent when you have sent it',
+    'On lead detail: Preview formatted email, Send from CRM (Proton when signed in; simulated with fake data in the public demo), Resend, or Compose another email',
   'guide.outreach3':
-    'Lead list cards show Email pending / Email sent badges so you see outreach status at a glance',
+    'Pick the recipient from the lead’s emails; each send logs an Email activity and marks New leads as Contacted',
+  'guide.outreach4':
+    'Lead list cards show Email pending / Email sent badges; you can still Open in mail app or Mark as sent manually',
   'guide.calendarHeading': 'Stats & follow-up calendar',
   'guide.calendarText':
     'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
@@ -826,6 +839,15 @@ const en: Dict = {
     'ChatGPT note assist (Edit): copy prompt, paste JSON, Load into note — review in Preview, then autosave',
   'guide.notes5':
     'Format: intro paragraph, then ## Name, URL on next line, then your monitoring notes per section',
+  'guide.seoHeading': 'SEO & analytics',
+  'guide.seoText':
+    'The SEO tab tracks site content readiness and visitor traffic — the same tools staff use after login.',
+  'guide.seo1':
+    'Review SEO targets, upgrade checklist, and content inventory for the public site',
+  'guide.seo2':
+    'Analytics: pageviews, sources, keywords, devices, countries, and a globe of visitor cities',
+  'guide.seo3':
+    'Signed-in CRM uses live site analytics; the public demo shows realistic fake sample traffic only',
   'guide.photoHeading': 'Profile photo',
   'guide.photo1': 'Click your avatar or email in the top bar to open your photo menu',
   'guide.photo2':
@@ -835,9 +857,10 @@ const en: Dict = {
   'guide.uiHeading': 'Help & language',
   'guide.ui1':
     'Help (header, next to Sign out) reopens this guide anytime',
-  'guide.ui2': 'Flag button switches the whole CRM between English and Serbian',
+  'guide.ui2':
+    'Flag button: staff CRM switches English ↔ Serbian; the public demo offers EN · DE · NL · FR · IT',
   'guide.hint':
-    'Tabs: Leads · Projects · Time · Ideas · Notes. Help reopens this guide. Flag = English ↔ Serbian.',
+    'Tabs: Leads · Projects · Time · Ideas · Notes · SEO. Help reopens this guide. Flag switches language.',
 }
 
 const sr: Dict = {
@@ -952,7 +975,7 @@ const sr: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM demo',
   'demo.banner':
-    'Interaktivni uzorak sa izmišljenim firmama. Izmene ostaju u ovom tabu i nikad ne diraju žive klijentske podatke.',
+    'Interaktivni uzorak sa izmišljenim firmama. Slanje iz CRM-a, SEO analitika i izmene ostaju u ovom pregledaču — ništa ne dira žive klijente ni prave sandučiće.',
   'demo.reset': 'Resetuj uzorke',
   'demo.exit': 'Izađi iz dema',
 
@@ -1457,6 +1480,14 @@ const sr: Dict = {
     'Ponovo poslati ovaj outreach na {email} sa contact@iobjectm.com? Beleži se nova email aktivnost.',
   'outreach.additionalConfirm':
     'Poslati ovaj dodatni email na {email} sa contact@iobjectm.com?',
+  'outreach.sendDemoConfirm':
+    'Simulirati slanje na {email}? Nijedna prava poruka ne napušta ovaj pregledač — lead i aktivnosti se ažuriraju samo lažnim podacima.',
+  'outreach.resendDemoConfirm':
+    'Simulirati ponovno slanje na {email}? Email se ne isporučuje — aktivnost se beleži samo u ovom demu.',
+  'outreach.additionalDemoConfirm':
+    'Simulirati slanje ovog dodatnog emaila na {email}? Samo lažni podaci — ništa se ne isporučuje.',
+  'outreach.demoSendNote':
+    'Demo režim: Pošalji iz CRM-a simulira isporuku lažnim podacima. Ne koristi se Proton SMTP ni pravi sandučić.',
   'outreach.sendMissing': 'Primaoc, naslov i tekst su obavezni za slanje.',
   'outreach.sendFailed': 'Slanje emaila preko Proton-a nije uspelo.',
   'outreach.sendDemoBlocked': 'Slanje je isključeno u CRM demo režimu.',
@@ -1504,19 +1535,23 @@ const sr: Dict = {
   'guide.gotIt': 'Razumem',
   'guide.whatHeading': 'Šta je ovaj alat',
   'guide.whatText':
-    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu i mape uma u MindMeister stilu. U online režimu prijavljeni zaposleni dele iste podatke.',
+    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
   'guide.what1': 'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, dnevnik aktivnosti',
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
   'guide.what3': 'Vreme — start/stop tajmeri, ručni unosi i izveštaji',
   'guide.what4': 'Ideje — mape uma samostalno ili povezane sa leadom / projektom',
   'guide.what5': 'Beleške — istraživačke liste (umetnici, tržišta, follow-up) sa sekcijama i linkovima',
+  'guide.what6': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
   'guide.navHeading': 'Navigacija',
-  'guide.navText': 'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške.',
+  'guide.navText':
+    'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške, plus SEO desno.',
   'guide.nav1': 'Leadovi — CRM u Salesforce stilu za potencijalne klijente',
   'guide.nav2': 'Projekti — table u Monday stilu za rad na isporuci',
   'guide.nav3': 'Vreme — tajmeri, unosi i izveštaji u Clockify stilu',
   'guide.nav4': 'Ideje — mape uma u MindMeister stilu za brainstorming',
   'guide.nav5': 'Beleške — istraživački dokumenti sa sekcijama, linkovima i ChatGPT pomoći',
+  'guide.nav6':
+    'SEO — inventar sadržaja, SEO unapređenja i analitika (živi saobraćaj kad ste prijavljeni; uzorak u demu)',
   'guide.leadHeading': 'Leadovi — šta je lead?',
   'guide.leadText':
     'Lead je potencijalni klijent ili kontakt kog pokušavate da osvojite — još ne zatvoren posao.',
@@ -1561,15 +1596,17 @@ const sr: Dict = {
   'guide.pipe4': 'Izmenite detalje, tekst ponude i beleške kako razgovori napreduju',
   'guide.pipe5':
     'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, aktivnosti) za ChatGPT ili email draftove',
-  'guide.outreachHeading': 'Inicijalni outreach email',
+  'guide.outreachHeading': 'Outreach email iz CRM-a',
   'guide.outreachText':
-    'Pišite i pratite prve emailove bez napuštanja CRM-a.',
+    'Pišite, pregledajte i šaljite prve emailove u IOM HTML šablonu — plus ponovno slanje i follow-up — bez napuštanja CRM-a.',
   'guide.outreach1':
     'Na + Dodaj lead ili Izmeni popunite subject i telo inicijalnog emaila — ili neka ChatGPT generiše u JSON importu',
   'guide.outreach2':
-    'Na detalju leada panel Inicijalni outreach prikazuje draft; označite Email poslat kad pošaljete',
+    'Na detalju leada: Pregled formatiranog emaila, Pošalji iz CRM-a (Proton kad ste prijavljeni; simulacija lažnim podacima u javnom demu), Pošalji ponovo ili Napiši još jedan email',
   'guide.outreach3':
-    'Kartice u listi leadova pokazuju Email na čekanju / Email poslat badge',
+    'Izaberite primaoca iz emailova leada; svako slanje beleži Email aktivnost i New leadove prebacuje u Contacted',
+  'guide.outreach4':
+    'Kartice u listi pokazuju Email na čekanju / Email poslat; i dalje možete Otvoriti u mail app-u ili ručno Označiti kao poslat',
   'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
   'guide.calendarText':
     'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',
@@ -1645,6 +1682,15 @@ const sr: Dict = {
     'ChatGPT pomoć (Izmena): kopiraj prompt, nalepi JSON, Učitaj u belešku — proverite u Pregledu, autosave',
   'guide.notes5':
     'Format: uvod, zatim ## Ime, URL u sledećem redu, zatim beleške za praćenje po sekciji',
+  'guide.seoHeading': 'SEO i analitika',
+  'guide.seoText':
+    'Kartica SEO prati spremnost sadržaja sajta i saobraćaj posetilaca — isti alati koje zaposleni koriste posle prijave.',
+  'guide.seo1':
+    'Pregledajte SEO ciljeve, checklistu unapređenja i inventar sadržaja javnog sajta',
+  'guide.seo2':
+    'Analitika: pregledi, izvori, ključne reči, uređaji, zemlje i globus gradova posetilaca',
+  'guide.seo3':
+    'Prijavljeni CRM koristi živu analitiku sajta; javni demo prikazuje samo realistične lažne uzorke saobraćaja',
   'guide.photoHeading': 'Profilna fotografija',
   'guide.photo1': 'Kliknite avatar ili email u gornjoj traci da otvorite meni fotografije',
   'guide.photo2':
@@ -1654,9 +1700,10 @@ const sr: Dict = {
   'guide.uiHeading': 'Pomoć i jezik',
   'guide.ui1':
     'Pomoć (zaglavlje, pored Odjava) ponovo otvara ovaj vodič bilo kada',
-  'guide.ui2': 'Dugme sa zastavom prebacuje ceo CRM između engleskog i srpskog',
+  'guide.ui2':
+    'Zastava: staff CRM prebacuje Engleski ↔ Srpski; javni demo nudi EN · DE · NL · FR · IT',
   'guide.hint':
-    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške. Pomoć ponovo otvara vodič. Zastava = Engleski ↔ Srpski.',
+    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške · SEO. Pomoć ponovo otvara vodič. Zastava menja jezik.',
 }
 
 const dictionaries: Record<'en' | 'sr', Dict> = { en, sr }

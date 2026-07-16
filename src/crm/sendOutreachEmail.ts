@@ -15,11 +15,24 @@ export type SendOutreachEmailResult = {
   to: string
 }
 
+/** Simulated CRM send for /crm-demo — never hits Proton SMTP. */
+async function sendDemoOutreachEmail(
+  input: SendOutreachEmailInput,
+): Promise<SendOutreachEmailResult> {
+  await new Promise((r) => window.setTimeout(r, 350))
+  return {
+    ok: true,
+    messageId: `demo-${Date.now()}`,
+    from: 'contact@iobjectm.com',
+    to: input.to.trim(),
+  }
+}
+
 export async function sendOutreachEmail(
   input: SendOutreachEmailInput,
 ): Promise<SendOutreachEmailResult> {
   if (isCrmDemoMode()) {
-    throw new Error('Sending email is disabled in CRM demo mode.')
+    return sendDemoOutreachEmail(input)
   }
   if (!useLiveCrmBackend()) {
     throw new Error('Live CRM backend is required to send email.')

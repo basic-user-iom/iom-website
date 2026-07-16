@@ -12,7 +12,7 @@ export const DEFAULT_DESCRIPTION =
 
 export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-image.svg`
 
-export const CONTACT_EMAIL = 'iom-production@proton.me'
+export const CONTACT_EMAIL = 'contact@iobjectm.com'
 
 /** Social / entity profiles for Organization schema (extend as profiles are added). */
 export const SAME_AS: string[] = [

@@ -8,7 +8,7 @@ export const Footer = memo(function Footer() {
       <div className="footer-links">
         <a href="/client-login">Login</a>
         <a href="/crm-demo">CRM Demo</a>
-        <a href="mailto:iom-production@proton.me">iom-production@proton.me</a>
+        <a href="mailto:contact@iobjectm.com">contact@iobjectm.com</a>
         <span>© {year} IOM. All rights reserved.</span>
       </div>
     </footer>

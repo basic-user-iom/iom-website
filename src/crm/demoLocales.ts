@@ -78,7 +78,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'CRM-Demo',
     'demo.banner':
-      'Interaktiver Beispiel-Arbeitsbereich mit fiktiven Firmen. Änderungen bleiben in diesem Tab und berühren keine Live-Kundendaten.',
+      'Interaktiver Beispiel-Arbeitsbereich mit fiktiven Firmen. CRM-Versand, SEO-Analytik und Änderungen bleiben in diesem Browser — keine Live-Kunden und keine echten Postfächer.',
     'demo.reset': 'Beispieldaten zurücksetzen',
     'demo.exit': 'Demo beenden',
 
@@ -269,7 +269,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'CRM-demo',
     'demo.banner':
-      'Interactieve voorbeeldomgeving met fictieve bedrijven. Wijzigingen blijven in dit tabblad en raken geen live klantdata.',
+      'Interactieve voorbeeldomgeving met fictieve bedrijven. CRM-verzending, SEO-analytics en wijzigingen blijven in deze browser — geen live klanten en geen echte inboxen.',
     'demo.reset': 'Voorbeelddata resetten',
     'demo.exit': 'Demo verlaten',
 
@@ -460,7 +460,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DÉMO',
     'demo.kicker': 'Démo CRM',
     'demo.banner':
-      'Espace d’exemple interactif avec des entreprises fictives. Les modifications restent dans cet onglet et ne touchent jamais les données clients live.',
+      'Espace d’exemple interactif avec des entreprises fictives. Envoi CRM, analytics SEO et modifications restent dans ce navigateur — aucun client live ni vraie boîte mail.',
     'demo.reset': 'Réinitialiser les données d’exemple',
     'demo.exit': 'Quitter la démo',
 
@@ -651,7 +651,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'Demo CRM',
     'demo.banner':
-      'Area di prova interattiva con aziende fittizie. Le modifiche restano in questa scheda e non toccano i dati clienti live.',
+      'Area di prova interattiva con aziende fittizie. Invio CRM, analytics SEO e modifiche restano in questo browser — nessun cliente live né caselle reali.',
     'demo.reset': 'Reimposta dati di esempio',
     'demo.exit': 'Esci dalla demo',
 

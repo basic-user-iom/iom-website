@@ -69,7 +69,9 @@ export function InitialOutreachPanel({
   const status = initialEmailStatus(lead)
   const pending = initialEmailPending(lead)
   const alreadySent = !!lead.initial_email_sent_at
-  const liveSendOk = useLiveCrmBackend() && !isCrmDemoMode()
+  const demoMode = isCrmDemoMode()
+  /** Live Proton send, or simulated send in /crm-demo (fake data only). */
+  const sendUiOk = demoMode || useLiveCrmBackend()
 
   useEffect(() => {
     setSubject(lead.initial_email_subject)
@@ -201,17 +203,18 @@ export function InitialOutreachPanel({
       setError(t('outreach.sendMissing'))
       return
     }
-    if (isCrmDemoMode()) {
-      setError(t('outreach.sendDemoBlocked'))
-      return
-    }
-    if (!useLiveCrmBackend()) {
+    if (!demoMode && !useLiveCrmBackend()) {
       setError(t('outreach.sendLiveRequired'))
       return
     }
 
-    const confirmKey =
-      mode === 'resend'
+    const confirmKey = demoMode
+      ? mode === 'resend'
+        ? 'outreach.resendDemoConfirm'
+        : mode === 'additional'
+          ? 'outreach.additionalDemoConfirm'
+          : 'outreach.sendDemoConfirm'
+      : mode === 'resend'
         ? 'outreach.resendConfirm'
         : mode === 'additional'
           ? 'outreach.additionalConfirm'
@@ -271,12 +274,12 @@ export function InitialOutreachPanel({
   }
 
   const canSendDraft =
-    liveSendOk &&
+    sendUiOk &&
     !!toEmail.trim() &&
     hasInitialEmailDraft(lead)
 
   const canSendAdditional =
-    liveSendOk &&
+    sendUiOk &&
     !!toEmail.trim() &&
     !!extraSubject.trim() &&
     !!extraBody.trim()
@@ -476,7 +479,13 @@ export function InitialOutreachPanel({
 
           {!editing && (
             <>
-              {liveSendOk && recipientSelect}
+              {sendUiOk && recipientSelect}
+
+              {demoMode && sendUiOk && (
+                <p className="crm-muted crm-outreach-demo-note" role="note">
+                  {t('outreach.demoSendNote')}
+                </p>
+              )}
 
               <div className="crm-detail-actions crm-outreach-actions">
                 <button
@@ -553,7 +562,7 @@ export function InitialOutreachPanel({
                   </button>
                 )}
 
-                {liveSendOk && (
+                {sendUiOk && (
                   <button
                     type="button"
                     className="btn btn-ghost"
@@ -590,7 +599,7 @@ export function InitialOutreachPanel({
                 </div>
               )}
 
-              {composeExtra && liveSendOk && (
+              {composeExtra && sendUiOk && (
                 <div className="crm-form crm-outreach-form crm-outreach-additional">
                   <p className="crm-outreach-focus-label">
                     {t('outreach.additionalTitle')}

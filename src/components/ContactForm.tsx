@@ -354,7 +354,7 @@ export const ContactForm = memo(function ContactForm() {
 
         or{' '}
 
-        <a href="mailto:iom-production@proton.me" className="contact-form-mailto">
+        <a href="mailto:contact@iobjectm.com" className="contact-form-mailto">
 
           email us directly
 
