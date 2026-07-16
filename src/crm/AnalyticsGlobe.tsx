@@ -8,7 +8,8 @@ interface AnalyticsGlobeProps {
 }
 
 const ACCENT = 0x00e5ff
-const GLOBE_RADIUS = 1.6
+const GLOBE_RADIUS = 1.65
+const EARTH_MAP = '/assets/seo/earth-map.jpg'
 
 function latLonToVec3(lat: number, lon: number, radius: number): THREE.Vector3 {
   const phi = (90 - lat) * (Math.PI / 180)
@@ -27,12 +28,13 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     const mount = mountRef.current
     if (!mount) return
 
+    let disposed = false
     const width = mount.clientWidth || 480
     const height = mount.clientHeight || 320
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100)
-    camera.position.set(0, 0.35, 5.2)
+    camera.position.set(0, 0.2, 4.85)
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
@@ -41,66 +43,60 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     mount.appendChild(renderer.domElement)
 
     const root = new THREE.Group()
+    // Offset so Europe/Africa face camera initially (texture origin is Pacific-centered)
+    root.rotation.y = -0.4
     scene.add(root)
 
-    // Atmosphere glow shell
     const atmosphere = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 1.08, 48, 48),
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.06, 64, 64),
       new THREE.MeshBasicMaterial({
         color: ACCENT,
         transparent: true,
-        opacity: 0.06,
+        opacity: 0.08,
         side: THREE.BackSide,
       }),
     )
     root.add(atmosphere)
 
-    // Wireframe earth
+    const earthGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 64, 48)
+    const earthMat = new THREE.MeshBasicMaterial({
+      color: 0x0a1a22,
+      transparent: true,
+      opacity: 1,
+    })
+    const earth = new THREE.Mesh(earthGeo, earthMat)
+    root.add(earth)
+
+    const loader = new THREE.TextureLoader()
+    loader.load(
+      EARTH_MAP,
+      (texture) => {
+        if (disposed) {
+          texture.dispose()
+          return
+        }
+        texture.colorSpace = THREE.SRGBColorSpace
+        earthMat.map = texture
+        earthMat.color = new THREE.Color(0xffffff)
+        earthMat.needsUpdate = true
+      },
+      undefined,
+      () => {
+        /* keep solid fallback */
+      },
+    )
+
+    // Subtle cyan grid overlay so it still feels like IOM
     const wire = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS, 36, 28),
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.003, 28, 20),
       new THREE.MeshBasicMaterial({
         color: ACCENT,
         wireframe: true,
         transparent: true,
-        opacity: 0.18,
+        opacity: 0.07,
       }),
     )
     root.add(wire)
-
-    // Soft filled sphere for depth
-    const fill = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 0.995, 48, 36),
-      new THREE.MeshBasicMaterial({
-        color: 0x061018,
-        transparent: true,
-        opacity: 0.92,
-      }),
-    )
-    root.add(fill)
-
-    // Equator / meridian hints
-    const ringMat = new THREE.LineBasicMaterial({ color: ACCENT, transparent: true, opacity: 0.22 })
-    for (const [rx, ry, rz] of [
-      [Math.PI / 2, 0, 0],
-      [0, 0, Math.PI / 2],
-      [0, 0, 0],
-    ] as const) {
-      const ring = new THREE.LineLoop(
-        new THREE.BufferGeometry().setFromPoints(
-          Array.from({ length: 96 }, (_, i) => {
-            const a = (i / 96) * Math.PI * 2
-            return new THREE.Vector3(
-              Math.cos(a) * GLOBE_RADIUS * 1.002,
-              Math.sin(a) * GLOBE_RADIUS * 1.002,
-              0,
-            )
-          }),
-        ),
-        ringMat,
-      )
-      ring.rotation.set(rx, ry, rz)
-      root.add(ring)
-    }
 
     const markers = new THREE.Group()
     root.add(markers)
@@ -108,47 +104,63 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     const maxVisitors = Math.max(...points.map((p) => p.visitors), 1)
 
     for (const point of points) {
-      const pos = latLonToVec3(point.lat, point.lon, GLOBE_RADIUS * 1.01)
-      const size = 0.025 + (point.visitors / maxVisitors) * 0.055
-      const color = point.live ? 0xffffff : ACCENT
+      const pos = latLonToVec3(point.lat, point.lon, GLOBE_RADIUS * 1.02)
+      const size = 0.045 + (point.visitors / maxVisitors) * 0.09
+
+      // Beam from surface for visibility
+      const beam = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.008, 0.02, size * 4.5, 8),
+        new THREE.MeshBasicMaterial({
+          color: point.live ? 0xffffff : ACCENT,
+          transparent: true,
+          opacity: point.live ? 0.9 : 0.65,
+        }),
+      )
+      beam.position.copy(pos.clone().multiplyScalar(1.02))
+      beam.lookAt(new THREE.Vector3(0, 0, 0))
+      beam.rotateX(Math.PI / 2)
+      markers.add(beam)
 
       const dot = new THREE.Mesh(
-        new THREE.SphereGeometry(size, 12, 12),
-        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: point.live ? 1 : 0.85 }),
+        new THREE.SphereGeometry(size, 14, 14),
+        new THREE.MeshBasicMaterial({
+          color: point.live ? 0xffffff : ACCENT,
+          transparent: true,
+          opacity: 1,
+        }),
       )
       dot.position.copy(pos)
       markers.add(dot)
 
-      if (point.live) {
-        const halo = new THREE.Mesh(
-          new THREE.SphereGeometry(size * 2.4, 12, 12),
-          new THREE.MeshBasicMaterial({
-            color: ACCENT,
-            transparent: true,
-            opacity: 0.28,
-          }),
-        )
-        halo.position.copy(pos)
-        halo.userData.pulse = true
-        halo.userData.baseScale = 1
-        markers.add(halo)
-      }
+      const halo = new THREE.Mesh(
+        new THREE.SphereGeometry(size * (point.live ? 2.8 : 2.1), 14, 14),
+        new THREE.MeshBasicMaterial({
+          color: ACCENT,
+          transparent: true,
+          opacity: point.live ? 0.35 : 0.18,
+        }),
+      )
+      halo.position.copy(pos)
+      halo.userData.pulse = point.live
+      markers.add(halo)
     }
 
     let dragging = false
     let prevX = 0
-    let autoSpin = 0.0018
+    let prevY = 0
+    let autoSpin = 0.0015
     let raf = 0
 
     const onPointerDown = (e: PointerEvent) => {
       dragging = true
       prevX = e.clientX
+      prevY = e.clientY
       autoSpin = 0
       mount.setPointerCapture(e.pointerId)
     }
     const onPointerUp = (e: PointerEvent) => {
       dragging = false
-      autoSpin = 0.0012
+      autoSpin = 0.001
       try {
         mount.releasePointerCapture(e.pointerId)
       } catch {
@@ -158,8 +170,11 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     const onPointerMove = (e: PointerEvent) => {
       if (!dragging) return
       const dx = e.clientX - prevX
+      const dy = e.clientY - prevY
       prevX = e.clientX
+      prevY = e.clientY
       root.rotation.y += dx * 0.005
+      root.rotation.x = Math.max(-0.7, Math.min(0.7, root.rotation.x + dy * 0.004))
     }
 
     mount.addEventListener('pointerdown', onPointerDown)
@@ -180,10 +195,10 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
       root.rotation.y += autoSpin
       for (const child of markers.children) {
         if (child.userData.pulse) {
-          const s = 1 + Math.sin(t * 0.004) * 0.35
+          const s = 1 + Math.sin(t * 0.0045) * 0.45
           child.scale.setScalar(s)
           const mat = (child as THREE.Mesh).material as THREE.MeshBasicMaterial
-          mat.opacity = 0.18 + (Math.sin(t * 0.004) * 0.5 + 0.5) * 0.22
+          mat.opacity = 0.2 + (Math.sin(t * 0.0045) * 0.5 + 0.5) * 0.35
         }
       }
       renderer.render(scene, camera)
@@ -192,6 +207,7 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
     raf = requestAnimationFrame(tick)
 
     return () => {
+      disposed = true
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
       mount.removeEventListener('pointerdown', onPointerDown)
@@ -199,10 +215,11 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
       mount.removeEventListener('pointercancel', onPointerUp)
       mount.removeEventListener('pointermove', onPointerMove)
       renderer.dispose()
+      earthGeo.dispose()
+      earthMat.map?.dispose()
+      earthMat.dispose()
       wire.geometry.dispose()
       ;(wire.material as THREE.Material).dispose()
-      fill.geometry.dispose()
-      ;(fill.material as THREE.Material).dispose()
       atmosphere.geometry.dispose()
       ;(atmosphere.material as THREE.Material).dispose()
       markers.traverse((obj) => {
@@ -220,12 +237,23 @@ export function AnalyticsGlobe({ points, liveVisitors }: AnalyticsGlobeProps) {
   return (
     <div className="crm-seo-globe">
       <div className="crm-seo-globe-canvas" ref={mountRef} />
+      {points.length === 0 && (
+        <div className="crm-seo-globe-empty" role="status">
+          <strong>No mapped locations yet</strong>
+          <span>
+            Run the geo SQL migration, then visit the public site — new pageviews get country/city
+            pins. Demo mode shows sample cities.
+          </span>
+        </div>
+      )}
       <div className="crm-seo-globe-hud">
         <span className="crm-seo-globe-live">
           <span className="crm-seo-globe-pulse" aria-hidden="true" />
           {liveVisitors} live
         </span>
-        <span className="crm-seo-globe-hint">Drag to rotate · last 30 min = live</span>
+        <span className="crm-seo-globe-hint">
+          {points.length} location{points.length === 1 ? '' : 's'} · drag to rotate
+        </span>
       </div>
     </div>
   )
