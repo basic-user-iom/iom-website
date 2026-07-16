@@ -2636,6 +2636,15 @@ body.music-player-fs-lock {
   }
 }
 
+/* Mobile */
+@media (max-width: 900px) {
+  .site-header {
+    backdrop-filter: none;
+    background: rgba(8, 8, 10, 0.96);
+    padding-top: env(safe-area-inset-top);
+    height: calc(var(--header-h) + env(safe-area-inset-top, 0px));
+  }
+
   .site-header.is-scrolled {
     background: rgba(8, 8, 10, 0.98);
   }
