@@ -664,7 +664,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
-              ['seo', 'nav.seo'],
             ] as const
           ).map(([id, key]) => (
             <button
@@ -677,7 +676,16 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             </button>
           ))}
         </div>
-        <CrmMusicPlayer />
+        <div className="crm-section-nav-right">
+          <button
+            type="button"
+            className={`crm-section-tab crm-section-tab--seo${section === 'seo' ? ' is-active' : ''}`}
+            onClick={() => setSection('seo')}
+          >
+            {t('nav.seo')}
+          </button>
+          <CrmMusicPlayer />
+        </div>
       </nav>
 
       <CrmWelcomeGuide open={guideOpen} onClose={dismissGuide} />

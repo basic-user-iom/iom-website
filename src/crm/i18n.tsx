@@ -254,7 +254,7 @@ const en: Dict = {
   'nav.time': 'Time',
   'nav.ideas': 'Ideas',
   'nav.notes': 'Notes',
-  'nav.seo': 'SEO',
+  'nav.seo': 'IOM-SEO',
 
   'seo.kicker': 'Website',
   'seo.title': 'SEO & traffic',
@@ -1020,7 +1020,7 @@ const sr: Dict = {
   'nav.time': 'Vreme',
   'nav.ideas': 'Ideje',
   'nav.notes': 'Beleške',
-  'nav.seo': 'SEO',
+  'nav.seo': 'IOM-SEO',
 
   'seo.kicker': 'Veb sajt',
   'seo.title': 'SEO i saobraćaj',

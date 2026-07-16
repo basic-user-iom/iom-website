@@ -2503,6 +2503,14 @@
   min-width: 0;
 }
 
+.crm-section-nav-right {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin-left: auto;
+}
+
 .crm-section-tab {
   appearance: none;
   border: 0;
@@ -2516,6 +2524,10 @@
   transition: background 0.15s, color 0.15s;
   text-transform: none;
   letter-spacing: normal;
+}
+
+.crm-section-tab--seo {
+  letter-spacing: 0.04em;
 }
 
 .crm-section-tab:hover {
