@@ -77,6 +77,7 @@ export function LeadDetail({
   const [copied, setCopied] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
+  const [activityTick, setActivityTick] = useState(0)
   const autoHealKey = useRef<string | null>(null)
   const owner = resolveLeadOwner(lead, currentUser, staffById)
   const showOwner = !!(owner.name || owner.email || owner.avatar_url)
@@ -545,7 +546,10 @@ export function LeadDetail({
 
       <InitialOutreachPanel
         lead={lead}
-        onChanged={onChanged}
+        onChanged={(updated) => {
+          setActivityTick((n) => n + 1)
+          onChanged(updated)
+        }}
         schemaMissing={outreachSchemaMissing}
       />
 
@@ -607,7 +611,7 @@ export function LeadDetail({
         )}
       </div>
 
-      <ActivityPanel leadId={lead.id} />
+      <ActivityPanel leadId={lead.id} refreshToken={activityTick} />
     </div>
   )
 }

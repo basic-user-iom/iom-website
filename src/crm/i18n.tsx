@@ -621,9 +621,20 @@ const en: Dict = {
   'outreach.markDrafted': 'Mark drafted',
   'outreach.markSent': 'Mark as sent',
   'outreach.sendFromCrm': 'Send from CRM',
+  'outreach.resend': 'Resend from CRM',
+  'outreach.composeAdditional': 'Compose another email',
+  'outreach.additionalTitle': 'Additional email',
+  'outreach.additionalSubjectHint': 'Follow-up subject…',
+  'outreach.sendAdditional': 'Send additional email',
+  'outreach.recipient': 'Send to',
+  'outreach.noRecipient': 'Add an email address on this lead to send from CRM.',
   'outreach.sending': 'Sending…',
   'outreach.sendConfirm':
     'Send this email now to {email} from contact@iobjectm.com? It will be wrapped in the IOM HTML template and marked as sent.',
+  'outreach.resendConfirm':
+    'Resend this outreach to {email} from contact@iobjectm.com? This logs another email activity.',
+  'outreach.additionalConfirm':
+    'Send this additional email to {email} from contact@iobjectm.com?',
   'outreach.sendMissing': 'Recipient, subject, and body are required to send.',
   'outreach.sendFailed': 'Could not send email via Proton.',
   'outreach.sendDemoBlocked': 'Sending is disabled in CRM demo mode.',
@@ -639,6 +650,10 @@ const en: Dict = {
   'outreach.sentActivityBody': 'Marked initial outreach email as sent from CRM.',
   'outreach.sentViaCrmActivityBody':
     'Sent initial outreach email from CRM via contact@iobjectm.com (Proton SMTP).',
+  'outreach.resendActivityBody':
+    'Resent outreach email from CRM to {email} via contact@iobjectm.com.',
+  'outreach.additionalActivityBody':
+    'Sent additional email from CRM to {email} via contact@iobjectm.com.',
 
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
@@ -1422,9 +1437,20 @@ const sr: Dict = {
   'outreach.markDrafted': 'Označi draft',
   'outreach.markSent': 'Označi kao poslat',
   'outreach.sendFromCrm': 'Pošalji iz CRM-a',
+  'outreach.resend': 'Pošalji ponovo iz CRM-a',
+  'outreach.composeAdditional': 'Napiši još jedan email',
+  'outreach.additionalTitle': 'Dodatni email',
+  'outreach.additionalSubjectHint': 'Naslov follow-up-a…',
+  'outreach.sendAdditional': 'Pošalji dodatni email',
+  'outreach.recipient': 'Pošalji na',
+  'outreach.noRecipient': 'Dodajte email adresu na lead da biste slali iz CRM-a.',
   'outreach.sending': 'Slanje…',
   'outreach.sendConfirm':
     'Poslati ovaj email sada na {email} sa contact@iobjectm.com? Biće u IOM HTML šablonu i označen kao poslat.',
+  'outreach.resendConfirm':
+    'Ponovo poslati ovaj outreach na {email} sa contact@iobjectm.com? Beleži se nova email aktivnost.',
+  'outreach.additionalConfirm':
+    'Poslati ovaj dodatni email na {email} sa contact@iobjectm.com?',
   'outreach.sendMissing': 'Primaoc, naslov i tekst su obavezni za slanje.',
   'outreach.sendFailed': 'Slanje emaila preko Proton-a nije uspelo.',
   'outreach.sendDemoBlocked': 'Slanje je isključeno u CRM demo režimu.',
@@ -1440,6 +1466,10 @@ const sr: Dict = {
   'outreach.sentActivityBody': 'Inicijalni outreach email označen kao poslat iz CRM-a.',
   'outreach.sentViaCrmActivityBody':
     'Inicijalni outreach email poslat iz CRM-a preko contact@iobjectm.com (Proton SMTP).',
+  'outreach.resendActivityBody':
+    'Outreach email ponovo poslat iz CRM-a na {email} preko contact@iobjectm.com.',
+  'outreach.additionalActivityBody':
+    'Dodatni email poslat iz CRM-a na {email} preko contact@iobjectm.com.',
 
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',

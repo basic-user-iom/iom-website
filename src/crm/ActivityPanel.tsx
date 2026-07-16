@@ -10,6 +10,8 @@ import type { Activity, ActivityType } from './types'
 
 interface ActivityPanelProps {
   leadId: string
+  /** Bump to reload the activity list (e.g. after CRM email send). */
+  refreshToken?: number
 }
 
 function toDatetimeLocalValue(iso: string): string {
@@ -26,7 +28,7 @@ function fromDatetimeLocalValue(value: string): string {
   return d.toISOString()
 }
 
-export function ActivityPanel({ leadId }: ActivityPanelProps) {
+export function ActivityPanel({ leadId, refreshToken = 0 }: ActivityPanelProps) {
   const { t, activityLabel, locale } = useCrmI18n()
   const [items, setItems] = useState<Activity[]>([])
   const [loading, setLoading] = useState(true)
@@ -67,7 +69,7 @@ export function ActivityPanel({ leadId }: ActivityPanelProps) {
 
   useEffect(() => {
     void refresh()
-  }, [leadId])
+  }, [leadId, refreshToken])
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault()

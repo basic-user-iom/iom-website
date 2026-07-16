@@ -2268,6 +2268,16 @@
   margin-top: 0.75rem;
 }
 
+.crm-outreach-recipient {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.crm-outreach-additional {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .crm-outreach-meta {
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
