@@ -668,37 +668,38 @@ function buildSeed(): Store {
   const researchNotes: ResearchNote[] = [
     {
       id: 'demo-note-artists',
-      title: 'Artists to follow — research notes',
-      body: `Here is a list of artists I would like you to follow. 😊
-The idea is not to contact them immediately, but rather to monitor where they exhibit, who they collaborate with, which galleries and production studios are involved in producing their projects, and where potential opportunities for future connections may appear.
+      title: 'DEMO — artists & studios to watch',
+      body: `DEMO SAMPLE — fictional research list only. Names and URLs below are invented for the public CRM demo; nothing here is a real contact list.
 
-## Rafael Lozano-Hemmer
-https://www.lozano-hemmer.com/
-Large-scale interactive installations. Watch for gallery partnerships and festival commissions.
+Monitor exhibition calendars, fictional gallery partners, and production studios for practice — do not treat these as live outreach targets.
 
-## Daito Manabe
-https://daito.ws/en/
-Rhizomatiks — motion, data, and stage work. Note collaborators on live events.
+## Nova Helix Collective
+https://nova-helix.example/work
+Kinetic light + sound rooms. Watch for museum residency announcements (sample).
 
-## Joanie Lemercier
-https://joanielemercier.com/
-Light sculptures and architectural projection. Follow gallery roster changes.
+## Amber Circuit Studio
+https://ambercircuit.example
+Browser-based generative sculpture. Note software collaborators on show pages.
 
-## Memo Akten
-https://www.memo.tv/
-AI / generative art research. Academic and commercial crossover.
+## Tideglass Atelier
+https://tideglass.example/projects
+Architectural projection mockups. Follow fictional festival circuit listings.
 
-## Ryoji Ikeda
-https://www.ryojiikeda.com/?lang=en
-Audiovisual minimalism — museums, opera houses, and tech festivals.
+## Soft Orbit Lab
+https://softorbit.example
+AI sketch tools for spatial storytelling. Academic crossover notes (demo).
 
-## Quayola
-https://quayola.com/
-Computational sculpture and classical remix. Production studio credits on site.
+## Lumen Drift Works
+https://lumendrift.example
+Minimal AV installations — sample museum / opera house partnerships.
 
-## Chris Salter
-https://chrissalter.com/
-Media art + academic — books, labs, and exhibition networks.`,
+## Cobalt Frame Projects
+https://cobaltframe.example/reel
+Computational sculpture reels. Production studio credits are placeholders.
+
+## Harbor Signal Group
+https://harborsignal.example
+Media-art research lab — books and workshops listed for demo structure only.`,
       lead_id: null,
       project_id: null,
       owner_id: guide,
