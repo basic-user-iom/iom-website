@@ -1,8 +1,8 @@
 ﻿/* Client Login / CRM ? matches IOM cinematic dark theme */
 
 .crm-shell {
-  --crm-control-h: 2.75rem;
-  --crm-control-pad-x: 1.15rem;
+  --crm-control-h: 2.45rem;
+  --crm-control-pad-x: 0.95rem;
   --crm-card-pad-y: 0.85rem;
   --crm-card-pad-x: 0.9rem;
   /* Title + meta row, or a single control — keeps list cards & collapsed summaries even */
@@ -11,7 +11,7 @@
   min-height: 100dvh;
   max-width: 100%;
   overflow-x: clip;
-  padding: calc(var(--header-h) + 1.5rem) clamp(1rem, 4vw, 3rem) 3rem;
+  padding: calc(var(--header-h) + 0.85rem) clamp(1rem, 4vw, 3rem) 3rem;
   background:
     radial-gradient(ellipse 70% 40% at 20% 0%, var(--accent-glow), transparent 55%),
     var(--bg);
@@ -136,19 +136,21 @@
 }
 
 .crm-kicker {
-  margin: 0 0 0.35rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
+  margin: 0 0 0.15rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--accent);
+  line-height: 1.2;
 }
 
 .crm-title {
   margin: 0;
   font-family: var(--display);
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  font-size: clamp(1.25rem, 2.2vw, 1.55rem);
   font-weight: 700;
   letter-spacing: -0.02em;
+  line-height: 1.15;
 }
 
 .crm-muted {
@@ -159,17 +161,17 @@
 .crm-topbar {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 0.45rem 0.85rem;
+  margin-bottom: 0.75rem;
 }
 
 .crm-topbar-right {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.4rem;
 }
 
 .crm-profile {
@@ -196,7 +198,7 @@
 }
 
 .crm-user {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: var(--text-muted);
 }
 
@@ -224,10 +226,10 @@
 }
 
 .crm-mode-chip {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  padding: 0.25rem 0.55rem;
+  padding: 0.2rem 0.5rem;
   border: 1px solid var(--border-accent);
   border-radius: 999px;
   color: var(--accent);
@@ -2439,15 +2441,15 @@
 .crm-help-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.35rem;
   min-height: var(--crm-control-h);
   height: var(--crm-control-h);
   max-height: var(--crm-control-h);
-  padding: 0 0.85rem;
+  padding: 0 0.7rem;
   border-radius: 999px;
   border: 1px solid var(--border-accent);
   color: var(--accent);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -2595,9 +2597,9 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.55rem 1rem;
-  margin: 0 0 1.25rem;
-  padding: 0.3rem;
+  gap: 0.45rem 0.85rem;
+  margin: 0 0 0.85rem;
+  padding: 0.25rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: rgba(255, 255, 255, 0.02);
