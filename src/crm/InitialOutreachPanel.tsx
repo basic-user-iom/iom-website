@@ -9,6 +9,7 @@ import {
   initialEmailPending,
   initialEmailStatus,
 } from './outreach'
+import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
 import type { Lead, LeadInput } from './types'
@@ -53,6 +54,7 @@ export function InitialOutreachPanel({
   const { t, locale } = useCrmI18n()
   const [editing, setEditing] = useState(false)
   const [composeExtra, setComposeExtra] = useState(false)
+  const [showHtmlPreview, setShowHtmlPreview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
@@ -290,6 +292,21 @@ export function InitialOutreachPanel({
     }
   }
 
+  const previewSubject = composeExtra
+    ? extraSubject.trim() || lead.initial_email_subject.trim()
+    : editing
+      ? subject.trim()
+      : lead.initial_email_subject.trim()
+  const previewBody = composeExtra
+    ? extraBody.trim() || lead.initial_email_body.trim()
+    : editing
+      ? body.trim()
+      : lead.initial_email_body.trim()
+  const previewHtml =
+    previewSubject && previewBody
+      ? renderOutreachEmailHtml({ subject: previewSubject, body: previewBody })
+      : ''
+
   const mailto = buildMailtoUrl(
     toEmail || lead.email,
     editing ? subject : lead.initial_email_subject,
@@ -429,6 +446,16 @@ export function InitialOutreachPanel({
                 <button
                   type="button"
                   className="btn btn-ghost"
+                  disabled={busy || !previewHtml}
+                  onClick={() => setShowHtmlPreview((v) => !v)}
+                >
+                  {showHtmlPreview
+                    ? t('outreach.hidePreview')
+                    : t('outreach.showPreview')}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
                   disabled={busy}
                   onClick={() => void handleCopy()}
                 >
@@ -506,6 +533,24 @@ export function InitialOutreachPanel({
                   </button>
                 )}
               </div>
+
+              {showHtmlPreview && previewHtml && (
+                <div className="crm-outreach-html-preview">
+                  <p className="crm-outreach-focus-label">
+                    {t('outreach.previewTitle')}
+                  </p>
+                  <p className="crm-outreach-preview-subject">
+                    <span className="crm-muted">{t('outreach.subject')}:</span>{' '}
+                    <strong>{previewSubject}</strong>
+                  </p>
+                  <iframe
+                    className="crm-outreach-preview-frame"
+                    title={t('outreach.previewTitle')}
+                    sandbox=""
+                    srcDoc={previewHtml}
+                  />
+                </div>
+              )}
 
               {composeExtra && liveSendOk && (
                 <div className="crm-form crm-outreach-form crm-outreach-additional">

@@ -2278,6 +2278,26 @@
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.crm-outreach-html-preview {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.crm-outreach-preview-subject {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+}
+
+.crm-outreach-preview-frame {
+  display: block;
+  width: 100%;
+  height: min(640px, 70vh);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #ececf2;
+}
+
 .crm-outreach-meta {
   margin: 0 0 0.5rem;
   font-size: 0.85rem;
