@@ -17,6 +17,71 @@
     var(--bg);
 }
 
+/*
+ * Leads master–detail: lock shell to the viewport so only the list + detail
+ * panes scroll (no nested page scroll + pane scroll).
+ */
+.crm-shell--leads {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 1rem;
+}
+
+.crm-shell--leads .crm-topbar,
+.crm-shell--leads .crm-section-nav,
+.crm-shell--leads .crm-demo-banner,
+.crm-shell--leads > .crm-feedback {
+  flex-shrink: 0;
+}
+
+.crm-shell--leads .crm-section-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.crm-shell--leads .crm-section-panel[hidden] {
+  display: none !important;
+}
+
+.crm-shell--leads .crm-stats-row,
+.crm-shell--leads .crm-toolbar,
+.crm-shell--leads .crm-section-panel > .crm-feedback {
+  flex-shrink: 0;
+}
+
+.crm-shell--leads .crm-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.crm-shell--leads .crm-workspace:not(.crm-workspace--empty) {
+  min-height: 0;
+}
+
+.crm-shell--leads .crm-workspace:not(.crm-workspace--empty) .crm-sidebar,
+.crm-shell--leads .crm-workspace:not(.crm-workspace--empty) .crm-main {
+  min-height: 0;
+  max-height: none;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.crm-shell--leads .crm-create-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 /* Shared toolbar / filter / action control size */
 .crm-control,
 .crm-toolbar .btn,
@@ -3554,6 +3619,27 @@
   .crm-workspace {
     grid-template-columns: 1fr;
     min-height: 0;
+  }
+
+  /* Stacked leads layout: allow normal page scroll instead of locked dual panes */
+  .crm-shell--leads {
+    height: auto;
+    max-height: none;
+    overflow-x: clip;
+    overflow-y: visible;
+    padding-bottom: 3rem;
+  }
+
+  .crm-shell--leads .crm-section-panel,
+  .crm-shell--leads .crm-workspace,
+  .crm-shell--leads .crm-create-panel {
+    flex: none;
+    min-height: 0;
+  }
+
+  .crm-shell--leads .crm-workspace:not(.crm-workspace--empty) .crm-sidebar,
+  .crm-shell--leads .crm-workspace:not(.crm-workspace--empty) .crm-main {
+    overflow: visible;
   }
 
   .crm-sidebar,

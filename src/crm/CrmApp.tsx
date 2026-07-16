@@ -601,7 +601,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               : t('topbar.title')
 
   return (
-    <div className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}`}>
+    <div
+      className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}${
+        section === 'leads' ? ' crm-shell--leads' : ''
+      }`}
+    >
       {demoMode && (
         <div className="crm-demo-banner" role="status">
           <strong>{t('demo.badge')}</strong>
