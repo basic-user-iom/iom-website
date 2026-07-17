@@ -11,11 +11,17 @@ export type ClientDemo = {
   password?: string
   blurb: string
   tags: string[]
-  cover: string
+  /** Paths under the demo — shown in CRM so the pitch card has real site imagery */
+  images: string[]
 }
 
 function demoUrl(path: string): string {
   return `${SITE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`
+}
+
+function assetUrl(path: string): string {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  return demoUrl(path)
 }
 
 /** Private client demos — not listed on the public site. */
@@ -30,7 +36,16 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     blurb:
       'Private demo for a client pitch: light portfolio shell, Stills / Motion / Exhibitions, and a WebGL Clouds chapter with fly-through navigation. Not linked from the public homepage.',
     tags: ['Portfolio', 'WebGL', 'Exhibitions'],
-    cover: '/demo/icm/clouds.jpg',
+    images: [
+      '/demo/icm/clouds.jpg',
+      '/demo/icm/still-01.jpg',
+      '/demo/icm/still-02.jpg',
+      '/demo/icm/still-05.jpg',
+      '/demo/icm/motion-01.jpg',
+      '/demo/icm/g-01.jpg',
+      '/demo/icm/g-04.jpg',
+      '/demo/icm/ex-02.jpg',
+    ],
   },
 ]
 
@@ -57,16 +72,28 @@ export function DemosView() {
       <ul className="crm-demos-list">
         {CLIENT_DEMOS.map((demo) => {
           const url = demoUrl(demo.path)
+          const cover = assetUrl(demo.images[0])
+          const strip = demo.images.slice(1).map(assetUrl)
+          const embedSrc = `${demo.path}?crmEmbed=1`
           return (
-            <li key={demo.id} className="crm-demos-card">
-              <a
-                className="crm-demos-card-media"
-                href={url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                <img src={demo.cover} alt="" loading="lazy" />
-              </a>
+            <li key={demo.id} className="crm-demos-card crm-demos-card--full">
+              <div className="crm-demos-card-preview">
+                <iframe
+                  className="crm-demos-card-embed"
+                  src={embedSrc}
+                  title={`${demo.name} website preview`}
+                  loading="lazy"
+                  referrerPolicy="same-origin"
+                />
+                <a
+                  className="crm-demos-card-media"
+                  href={url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <img src={cover} alt="" />
+                </a>
+              </div>
               <div className="crm-demos-card-body">
                 <div className="crm-demos-card-top">
                   <div>
@@ -83,6 +110,17 @@ export function DemosView() {
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
+
+                {strip.length > 0 ? (
+                  <div className="crm-demos-card-strip" aria-label={t('demos.gallery')}>
+                    {strip.map((src) => (
+                      <a key={src} href={url} target="_blank" rel="noreferrer">
+                        <img src={src} alt="" />
+                      </a>
+                    ))}
+                  </div>
+                ) : null}
+
                 <div className="crm-demos-card-meta">
                   <p className="crm-demos-card-url">
                     <span>{t('demos.url')}</span>
@@ -106,7 +144,12 @@ export function DemosView() {
                   >
                     {t('demos.open')}
                   </a>
-                  <a className="crm-demos-card-local" href={demo.path} target="_blank" rel="noreferrer">
+                  <a
+                    className="crm-demos-card-local"
+                    href={demo.path}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
                     {t('demos.openLocal')}
                   </a>
                 </div>

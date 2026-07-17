@@ -4838,7 +4838,7 @@
 /* —— Client demos (private pitch sites) —— */
 .crm-demos-view {
   padding: 1.25rem 1.25rem 2.5rem;
-  max-width: 56rem;
+  max-width: 72rem;
 }
 
 .crm-demos-header {
@@ -4890,10 +4890,34 @@
 }
 
 @media (min-width: 720px) {
-  .crm-demos-card {
+  .crm-demos-card:not(.crm-demos-card--full) {
     flex-direction: row;
     align-items: stretch;
   }
+}
+
+.crm-demos-card--full {
+  flex-direction: column;
+}
+
+.crm-demos-card-preview {
+  position: relative;
+  width: 100%;
+  background: #f4f4f2;
+  border-bottom: 1px solid var(--border);
+}
+
+.crm-demos-card-embed {
+  display: block;
+  width: 100%;
+  height: min(70vh, 42rem);
+  border: 0;
+  background: #f4f4f2;
+}
+
+/* Fallback cover if iframe is blocked / still loading */
+.crm-demos-card--full .crm-demos-card-media {
+  display: none;
 }
 
 .crm-demos-card-media {
@@ -4907,7 +4931,7 @@
 }
 
 @media (min-width: 720px) {
-  .crm-demos-card-media {
+  .crm-demos-card:not(.crm-demos-card--full) .crm-demos-card-media {
     width: 15.5rem;
     max-width: 38%;
     aspect-ratio: auto;
@@ -5001,6 +5025,33 @@
   border: 1px solid var(--border);
   border-radius: calc(var(--radius) - 2px);
   color: var(--text-muted);
+}
+
+.crm-demos-card-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.crm-demos-card-strip a {
+  display: block;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  border-radius: calc(var(--radius) - 2px);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.crm-demos-card-strip img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.crm-demos-card-strip a:hover img {
+  transform: scale(1.04);
 }
 
 .crm-demos-card-meta {

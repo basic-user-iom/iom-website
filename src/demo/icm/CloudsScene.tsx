@@ -87,14 +87,15 @@ function applySkyPhotoTransform(
   const x = (xPct / 100) * layerW
   const y = (yPct / 100) * layerH
   const scale = 0.55 + proximity * 0.7
-  const opacity = abs < 0.28 ? 0.15 + proximity * 0.85 : 0
-  const interactive = proximity > 0.35
+  // Keep nearby photos readable on bright sky (was too easy to miss at low opacity)
+  const opacity = abs < 0.32 ? 0.42 + proximity * 0.58 : 0
+  const interactive = proximity > 0.28
 
   el.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -50%) scale(${scale})`
   el.style.opacity = String(opacity)
   el.style.zIndex = String(Math.round(proximity * 20))
   el.style.pointerEvents = interactive ? 'auto' : 'none'
-  el.style.visibility = opacity < 0.04 ? 'hidden' : 'visible'
+  el.style.visibility = opacity < 0.08 ? 'hidden' : 'visible'
   el.classList.toggle('is-active', photo.chapterId === activeChapterId && proximity > 0.45)
 }
 

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react'
-import { isIcmDemoUnlocked, lockIcmDemo, unlockIcmDemo } from './auth'
+import { isIcmDemoUnlocked, lockIcmDemo, tryCrmEmbedUnlock, unlockIcmDemo } from './auth'
 import { EXHIBITIONS, MOTION, STILLS, type StillProject, type ViewMode } from './data'
 import { CloudsScene } from './CloudsScene'
 import { Lightbox, type LightboxState } from './Lightbox'
@@ -118,7 +118,7 @@ function StillPlaceholders({
             className="icm-work-card icm-clickable"
             onClick={() => onOpen(item)}
           >
-            <div className="icm-work-card__frame">
+            <div className={`icm-work-card__frame icm-work-card__frame--${item.aspect}`}>
               <img className="icm-work-card__img" src={item.cover} alt="" loading="lazy" />
             </div>
             <p className="icm-work-card__title">{item.title}</p>
@@ -182,7 +182,9 @@ function CloudsPage({
 
 export function IcmDemoApp() {
   const [path, setPath] = useState(() => window.location.pathname)
-  const [unlocked, setUnlocked] = useState(() => isIcmDemoUnlocked())
+  const [unlocked, setUnlocked] = useState(
+    () => tryCrmEmbedUnlock() || isIcmDemoUnlocked(),
+  )
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)

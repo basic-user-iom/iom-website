@@ -6,6 +6,18 @@ body.icm-route {
   --icm-line: rgba(0, 0, 0, 0.12);
   --icm-soft: #e8e8e4;
   --icm-header-h: 64px;
+  /* Fluid media scales: clamp(min, preferred, max) — never tiny on phone, never huge on ultrawide */
+  --icm-content-max: 72rem;
+  /* List: fill most of a phone, grow on tablet, hard-cap on desktop (~GSP scale) */
+  --icm-media-list-landscape: clamp(15.5rem, 58vw, 40rem);
+  --icm-media-list-portrait: clamp(11.5rem, 38vw, 26rem);
+  --icm-media-list-square: clamp(13rem, 46vw, 30rem);
+  --icm-media-motion: clamp(17rem, 86vw, 52rem);
+  --icm-media-exhibit-thumb: clamp(7.5rem, 22vw, 11.5rem);
+  --icm-media-sky-landscape: clamp(9.5rem, 34vw, 21rem);
+  --icm-media-sky-portrait: clamp(7.5rem, 24vw, 14.5rem);
+  --icm-media-lightbox: min(100%, 68rem);
+  --icm-media-lightbox-h: min(78vh, 52rem);
   background: var(--icm-bg);
   color: var(--icm-ink);
   font-family: 'IBM Plex Sans', system-ui, sans-serif;
@@ -114,6 +126,8 @@ body.icm-route::before {
   top: 0;
   z-index: 20;
   height: var(--icm-header-h);
+  width: min(100%, var(--icm-content-max));
+  margin-inline: auto;
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
@@ -246,12 +260,15 @@ body.icm-route::before {
 
 /* —— Main —— */
 .icm-main {
-  padding: 1.5rem 1.25rem 4rem;
+  width: min(100%, var(--icm-content-max));
+  margin-inline: auto;
+  padding: 1.5rem clamp(1rem, 3vw, 2rem) 4rem;
+  box-sizing: border-box;
 }
 
 @media (min-width: 900px) {
   .icm-main {
-    padding: 2rem 2rem 5rem;
+    padding: 2rem clamp(1.5rem, 3vw, 2.5rem) 5rem;
   }
 }
 
@@ -279,7 +296,7 @@ body.icm-route::before {
 .icm-work-list {
   display: flex;
   flex-direction: column;
-  gap: 3.5rem;
+  gap: clamp(2.25rem, 5vw, 4.5rem);
 }
 
 .icm-work-item {
@@ -287,6 +304,8 @@ body.icm-route::before {
   grid-template-columns: 1fr;
   gap: 0.75rem;
   text-align: center;
+  align-items: center;
+  justify-items: center;
 }
 
 .icm-work-item__meta-left,
@@ -297,25 +316,31 @@ body.icm-route::before {
 }
 
 .icm-work-item__frame {
-  width: min(100%, 520px);
+  /* Fluid list media — scales with viewport, hard min/max so it never looks lost or oversized */
+  width: var(--icm-media-list-landscape);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
+  justify-self: center;
   background: var(--icm-soft);
   position: relative;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .icm-work-item__frame--landscape {
   aspect-ratio: 3 / 2;
+  width: var(--icm-media-list-landscape);
 }
 
 .icm-work-item__frame--portrait {
   aspect-ratio: 2 / 3;
-  width: min(100%, 360px);
+  width: var(--icm-media-list-portrait);
 }
 
 .icm-work-item__frame--square {
   aspect-ratio: 1;
-  width: min(100%, 400px);
+  width: var(--icm-media-list-square);
 }
 
 .icm-work-item__img,
@@ -339,7 +364,9 @@ body.icm-route::before {
   text-align: inherit;
   font: inherit;
   display: block;
-  width: 100%;
+  /* Do not force width:100% — list frames use clamp(); cards set their own width */
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .icm-clickable:hover .icm-work-item__img,
@@ -361,40 +388,60 @@ body.icm-route::before {
 
 @media (min-width: 900px) {
   .icm-work-item {
-    grid-template-columns: 120px 1fr 160px;
+    /* Cluster meta beside the photo — avoid pinning captions to the page edges */
+    grid-template-columns: max-content auto max-content;
+    justify-content: center;
     align-items: center;
+    justify-items: center;
     text-align: left;
-    gap: 1.5rem;
+    gap: clamp(1.25rem, 2.5vw, 2.75rem);
+    width: 100%;
   }
 
   .icm-work-item__meta-left {
-    justify-self: start;
+    justify-self: end;
+    text-align: right;
+    max-width: 8rem;
   }
 
   .icm-work-item__meta-right {
-    justify-self: end;
-    text-align: right;
+    justify-self: start;
+    text-align: left;
+    max-width: 10rem;
   }
 
   .icm-work-item__frame {
-    margin: 0 auto;
+    margin: 0;
+    justify-self: center;
   }
 
   .icm-work-item__title {
     display: none;
+  }
+
+  .icm-work-item > div:nth-child(2) {
+    width: auto;
   }
 }
 
 .icm-work-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
+  gap: clamp(0.75rem, 2vw, 1.5rem);
 }
 
 @media (min-width: 900px) {
   .icm-work-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 1.5rem;
+  }
+}
+
+@media (min-width: 1200px) {
+  .icm-work-grid {
+    /* Keep tiles readable — avoid postage-stamp cells on ultrawide */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 64rem;
+    margin-inline: auto;
   }
 }
 
@@ -402,13 +449,33 @@ body.icm-route::before {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  min-width: 0;
+  width: 100%;
+  text-align: left;
 }
 
 .icm-work-card__frame {
+  width: 100%;
   aspect-ratio: 3 / 2;
   background: var(--icm-soft);
   position: relative;
   overflow: hidden;
+}
+
+.icm-work-card__frame--portrait {
+  aspect-ratio: 2 / 3;
+}
+
+.icm-work-card__frame--square {
+  aspect-ratio: 1;
+}
+
+.icm-work-item > div:nth-child(2) {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .icm-work-card__meta {
@@ -426,18 +493,21 @@ body.icm-route::before {
 .icm-motion-list {
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: clamp(1.75rem, 4vw, 3rem);
+  align-items: center;
 }
 
 .icm-motion-item {
   display: grid;
   gap: 0.75rem;
+  width: var(--icm-media-motion);
+  max-width: 100%;
 }
 
 .icm-motion-item__frame {
   aspect-ratio: 16 / 9;
-  width: min(100%, 920px);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   background: #111;
   color: rgba(255, 255, 255, 0.45);
   position: relative;
@@ -453,7 +523,7 @@ body.icm-route::before {
   text-align: center;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  font-size: 0.75rem;
+  font-size: clamp(0.68rem, 1.2vw, 0.78rem);
   color: #fff;
   background: rgba(0, 0, 0, 0.28);
   transition: background 0.25s ease;
@@ -464,8 +534,8 @@ body.icm-route::before {
 }
 
 .icm-motion-item__meta {
-  width: min(100%, 920px);
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -492,28 +562,28 @@ body.icm-route::before {
 .icm-exhibit-row {
   display: grid;
   gap: 0.75rem;
-  padding: 1.5rem 0;
+  padding: clamp(1.1rem, 2.5vw, 1.6rem) 0;
   background: var(--icm-bg);
 }
 
 .icm-exhibit-row__thumb {
   position: relative;
   aspect-ratio: 3 / 2;
-  width: min(100%, 220px);
+  width: var(--icm-media-exhibit-thumb);
+  max-width: 100%;
   overflow: hidden;
   background: var(--icm-soft);
 }
 
 @media (min-width: 800px) {
   .icm-exhibit-row {
-    grid-template-columns: 140px 1.1fr 1fr auto;
+    grid-template-columns: var(--icm-media-exhibit-thumb) minmax(0, 1.1fr) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 1.5rem;
-    padding: 1.5rem 0;
+    gap: clamp(1rem, 2.5vw, 1.75rem);
   }
 
   .icm-exhibit-row__thumb {
-    width: 140px;
+    width: 100%;
   }
 }
 
@@ -637,12 +707,14 @@ body.icm-route::before {
 }
 
 .icm-clouds-gl__photo--landscape {
-  width: min(40vw, 360px);
+  width: var(--icm-media-sky-landscape);
+  max-width: 42vw;
   aspect-ratio: 3 / 2;
 }
 
 .icm-clouds-gl__photo--portrait {
-  width: min(28vw, 240px);
+  width: var(--icm-media-sky-portrait);
+  max-width: 30vw;
   aspect-ratio: 2 / 3;
 }
 
@@ -652,6 +724,8 @@ body.icm-route::before {
   object-fit: cover;
   display: block;
   pointer-events: none;
+  /* Soft edge so pale photos separate from the sky */
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .icm-clouds-gl__photo-label {
@@ -762,8 +836,8 @@ body.icm-route::before {
 }
 
 .icm-clouds-gl__chapter-thumb {
-  width: 40px;
-  height: 40px;
+  width: clamp(2.25rem, 4.5vw, 3rem);
+  height: clamp(2.25rem, 4.5vw, 3rem);
   border-radius: 50%;
   overflow: hidden;
   opacity: 0.65;
@@ -967,7 +1041,8 @@ body.icm-route::before {
 .icm-lightbox__chrome {
   position: relative;
   z-index: 1;
-  width: min(1100px, 100%);
+  width: var(--icm-media-lightbox);
+  max-width: calc(100vw - 2rem);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -1011,7 +1086,7 @@ body.icm-route::before {
 
 .icm-lightbox__img {
   max-width: 100%;
-  max-height: min(72vh, 820px);
+  max-height: var(--icm-media-lightbox-h);
   width: auto;
   height: auto;
   object-fit: contain;
@@ -1048,8 +1123,8 @@ body.icm-route::before {
 
 .icm-lightbox__thumb {
   flex: 0 0 auto;
-  width: 64px;
-  height: 48px;
+  width: clamp(3.25rem, 8vw, 4.5rem);
+  height: clamp(2.4rem, 6vw, 3.35rem);
   overflow: hidden;
   opacity: 0.45;
   border: 1px solid transparent;
