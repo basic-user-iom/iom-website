@@ -111,7 +111,6 @@ export function CloudsScene({ onOpenChapter }: Props) {
   const onOpenRef = useRef(onOpenChapter)
   onOpenRef.current = onOpenChapter
 
-  const [progress, setProgress] = useState(0.12)
   const [activeId, setActiveId] = useState(MARKERS[0].id)
   const [ready, setReady] = useState(false)
 
@@ -237,7 +236,6 @@ export function CloudsScene({ onOpenChapter }: Props) {
 
     let visible = !document.hidden
     let uiActive = ''
-    let uiProgressHud = -1
     let becameReady = false
     const onVis = () => {
       visible = !document.hidden
@@ -292,12 +290,10 @@ export function CloudsScene({ onOpenChapter }: Props) {
       // Photos + progress fill: every frame (smooth)
       syncPhotoLayer(p)
 
-      // React HUD (markers/labels): only when chapter changes or rarely for bar fallback
-      if (near.id !== uiActive || Math.abs(p - uiProgressHud) > 0.02) {
+      // React HUD (markers/labels): only when chapter changes
+      if (near.id !== uiActive) {
         uiActive = near.id
-        uiProgressHud = p
         setActiveId(near.id)
-        setProgress(p)
       }
 
       // WebGL can run at capped FPS without hitching photo motion
