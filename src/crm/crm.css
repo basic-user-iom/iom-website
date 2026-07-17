@@ -2390,6 +2390,106 @@
   color: var(--text-muted);
 }
 
+.crm-email-thread {
+  border-color: color-mix(in srgb, var(--accent) 28%, var(--border));
+}
+
+.crm-email-thread-count {
+  font-size: 0.8rem;
+}
+
+.crm-email-thread-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.crm-email-msg {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  padding: 0.65rem 0.75rem;
+}
+
+.crm-email-msg--outbound {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+}
+
+.crm-email-msg--inbound {
+  border-color: color-mix(in srgb, #6bcf8e 45%, var(--border));
+}
+
+.crm-email-msg-toggle {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.crm-email-msg-dir {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+.crm-email-msg--outbound .crm-email-msg-dir {
+  color: var(--accent);
+}
+
+.crm-email-msg--inbound .crm-email-msg-dir {
+  color: #6bcf8e;
+}
+
+.crm-email-msg-subject {
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.crm-email-msg-meta {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.crm-email-msg-snippet {
+  margin: 0.45rem 0 0;
+  font-family: inherit;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  color: var(--text-muted);
+}
+
+.crm-email-msg-body {
+  margin-top: 0.55rem;
+}
+
+.crm-email-msg-body .crm-outreach-body {
+  margin-bottom: 0.65rem;
+}
+
+.crm-email-thread-actions {
+  margin-top: 0.85rem;
+}
+
+.crm-email-reply-compose {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
 .crm-facts--compact {
   margin-top: 0.5rem;
   font-size: 0.85rem;

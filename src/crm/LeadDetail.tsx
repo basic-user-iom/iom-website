@@ -6,6 +6,7 @@ import { LeadClientLocal } from './LeadClientLocal'
 import { AtlasEvalFields } from './AtlasEvalFields'
 import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
 import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
+import { EmailThreadPanel } from './EmailThreadPanel'
 import { InitialOutreachPanel } from './InitialOutreachPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
@@ -78,6 +79,7 @@ export function LeadDetail({
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const [activityTick, setActivityTick] = useState(0)
+  const [messageTick, setMessageTick] = useState(0)
   const autoHealKey = useRef<string | null>(null)
   const owner = resolveLeadOwner(lead, currentUser, staffById)
   const showOwner = !!(owner.name || owner.email || owner.avatar_url)
@@ -548,9 +550,20 @@ export function LeadDetail({
         lead={lead}
         onChanged={(updated) => {
           setActivityTick((n) => n + 1)
+          setMessageTick((n) => n + 1)
           onChanged(updated)
         }}
         schemaMissing={outreachSchemaMissing}
+      />
+
+      <EmailThreadPanel
+        lead={lead}
+        refreshToken={messageTick}
+        onChanged={(updated) => {
+          setActivityTick((n) => n + 1)
+          setMessageTick((n) => n + 1)
+          onChanged(updated)
+        }}
       />
 
       {hasAtlasEval(lead.atlas_eval) && (

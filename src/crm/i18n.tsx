@@ -667,6 +667,29 @@ const en: Dict = {
   'outreach.additionalActivityBody':
     'Sent additional email from CRM to {email} via {from}.',
 
+  'thread.title': 'Email conversation',
+  'thread.blurb':
+    'Outbound CRM sends and mirrored client replies. Mail still lives in Proton — this is the lead thread mirror.',
+  'thread.loading': 'Loading…',
+  'thread.count': '{n} messages',
+  'thread.empty': 'No messages in this thread yet. Send the initial outreach or a reply to start.',
+  'thread.schemaMissing':
+    'Email conversation table is missing. Run supabase/crm_lead_messages_migration.sql in Supabase, then refresh.',
+  'thread.loadFailed': 'Could not load email conversation.',
+  'thread.outbound': 'Sent',
+  'thread.inbound': 'Received',
+  'thread.noSubject': '(no subject)',
+  'thread.composeReply': 'Compose reply',
+  'thread.replyTitle': 'Reply / follow-up',
+  'thread.sendReply': 'Send reply',
+  'thread.logInbound': 'Log client reply',
+  'thread.logInboundFromHint': 'Client From email:',
+  'thread.logInboundSubjectHint': 'Subject:',
+  'thread.logInboundBodyHint': 'Paste the client reply body:',
+  'thread.inboundDefaultSubject': 'Client reply',
+  'thread.logInboundActivityBody': 'Logged client reply from {email} into CRM.',
+  'thread.logFailed': 'Could not log client reply.',
+
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
   'profile.yourPhoto': 'Your photo',
@@ -756,15 +779,15 @@ const en: Dict = {
     'Copy as text — export the full lead (contact, outreach, activities) for ChatGPT or email drafts',
   'guide.outreachHeading': 'Outreach email from CRM',
   'guide.outreachText':
-    'Draft, preview, and send first-contact emails in the IOM HTML template — plus resend and follow-ups — without leaving the CRM.',
+    'Draft, preview, and send first-contact emails in the IOM HTML template. Replies and the conversation thread live in Email conversation below.',
   'guide.outreach1':
     'On + Add lead or Edit, fill initial email subject and body — or let ChatGPT generate them in the JSON import',
   'guide.outreach2':
-    'On lead detail: Preview formatted email, Send from CRM (Proton when signed in; simulated with fake data in the public demo), Resend, or Compose another email',
+    'On lead detail: Preview and Send from CRM for the initial email (Proton when signed in; simulated in the public demo). Resend keeps the same first-contact draft',
   'guide.outreach3':
-    'Pick the recipient from the lead’s emails; each send logs an Email activity and marks New leads as Contacted',
+    'Use Email conversation below for replies — preview shows only the reply you are writing. Client replies can be logged manually or mirrored via Proton keep-copy forward',
   'guide.outreach4':
-    'Lead list cards show Email pending / Email sent badges; you can still Open in mail app or Mark as sent manually',
+    'Lead list cards show Email pending / Email sent badges; mail still lives in Proton Sent/Inbox while CRM stores the thread mirror',
   'guide.calendarHeading': 'Stats & follow-up calendar',
   'guide.calendarText':
     'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
@@ -1510,6 +1533,29 @@ const sr: Dict = {
   'outreach.additionalActivityBody':
     'Dodatni email poslat iz CRM-a na {email} preko {from}.',
 
+  'thread.title': 'Email konverzacija',
+  'thread.blurb':
+    'CRM slanja i kopije odgovora klijenata. Pravi sandučić ostaje u Protonu — ovo je ogledalo niti za lead.',
+  'thread.loading': 'Učitavanje…',
+  'thread.count': '{n} poruka',
+  'thread.empty': 'Još nema poruka u ovoj niti. Pošaljite inicijalni outreach ili odgovor da počnete.',
+  'thread.schemaMissing':
+    'Tabela za email konverzaciju nedostaje. Pokrenite supabase/crm_lead_messages_migration.sql u Supabase-u, pa osvežite.',
+  'thread.loadFailed': 'Učitavanje email konverzacije nije uspelo.',
+  'thread.outbound': 'Poslato',
+  'thread.inbound': 'Primljeno',
+  'thread.noSubject': '(bez naslova)',
+  'thread.composeReply': 'Napiši odgovor',
+  'thread.replyTitle': 'Odgovor / follow-up',
+  'thread.sendReply': 'Pošalji odgovor',
+  'thread.logInbound': 'Zabeleži odgovor klijenta',
+  'thread.logInboundFromHint': 'Email klijenta (From):',
+  'thread.logInboundSubjectHint': 'Naslov:',
+  'thread.logInboundBodyHint': 'Nalepi tekst odgovora klijenta:',
+  'thread.inboundDefaultSubject': 'Odgovor klijenta',
+  'thread.logInboundActivityBody': 'Odgovor klijenta od {email} zabeležen u CRM.',
+  'thread.logFailed': 'Beleženje odgovora klijenta nije uspelo.',
+
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',
   'profile.yourPhoto': 'Vaša fotografija',
@@ -1600,15 +1646,15 @@ const sr: Dict = {
     'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, aktivnosti) za ChatGPT ili email draftove',
   'guide.outreachHeading': 'Outreach email iz CRM-a',
   'guide.outreachText':
-    'Pišite, pregledajte i šaljite prve emailove u IOM HTML šablonu — plus ponovno slanje i follow-up — bez napuštanja CRM-a.',
+    'Pišite, pregledajte i šaljite prve emailove u IOM HTML šablonu. Odgovori i konverzacija su u Email konverzaciji ispod.',
   'guide.outreach1':
     'Na + Dodaj lead ili Izmeni popunite subject i telo inicijalnog emaila — ili neka ChatGPT generiše u JSON importu',
   'guide.outreach2':
-    'Na detalju leada: Pregled formatiranog emaila, Pošalji iz CRM-a (Proton kad ste prijavljeni; simulacija lažnim podacima u javnom demu), Pošalji ponovo ili Napiši još jedan email',
+    'Na detalju leada: Pregled i Pošalji iz CRM-a za inicijalni email (Proton kad ste prijavljeni; simulacija u javnom demu). Ponovno slanje koristi isti prvi draft',
   'guide.outreach3':
-    'Izaberite primaoca iz emailova leada; svako slanje beleži Email aktivnost i New leadove prebacuje u Contacted',
+    'Za odgovore koristite Email konverzaciju ispod — pregled pokazuje samo odgovor koji pišete. Odgovore klijenata možete zabeležiti ručno ili ogledati preko Proton keep-copy forward-a',
   'guide.outreach4':
-    'Kartice u listi pokazuju Email na čekanju / Email poslat; i dalje možete Otvoriti u mail app-u ili ručno Označiti kao poslat',
+    'Kartice pokazuju Email na čekanju / Email poslat; pravi sandučić ostaje u Protonu, a CRM čuva ogledalo niti',
   'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
   'guide.calendarText':
     'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',

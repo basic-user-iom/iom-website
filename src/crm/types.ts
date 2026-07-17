@@ -95,6 +95,34 @@ export interface Activity {
   owner_id: string | null
 }
 
+export type LeadMessageDirection = 'outbound' | 'inbound'
+
+/** Mirrored email in a lead conversation (Proton remains the mailbox). */
+export interface LeadMessage {
+  id: string
+  lead_id: string
+  direction: LeadMessageDirection
+  from_email: string
+  to_email: string
+  subject: string
+  body_text: string
+  body_html: string | null
+  message_id: string | null
+  in_reply_to: string | null
+  references_header: string | null
+  occurred_at: string
+  created_at: string
+  owner_id: string | null
+  raw_headers: Record<string, unknown>
+}
+
+export type LeadMessageInput = Omit<
+  LeadMessage,
+  'id' | 'created_at' | 'owner_id' | 'raw_headers'
+> & {
+  raw_headers?: Record<string, unknown>
+}
+
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 
 export interface CrmProject {
@@ -217,6 +245,7 @@ export type LeadInput = Omit<
 >
 export type ActivityInput = Omit<Activity, 'id' | 'created_at' | 'owner_id'>
 export type ActivityUpdate = Pick<ActivityInput, 'type' | 'subject' | 'body' | 'occurred_at'>
+export type LeadMessageCreate = LeadMessageInput
 
 export interface CrmUser {
   id: string

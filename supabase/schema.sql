@@ -74,6 +74,33 @@ create table if not exists public.crm_activities (
   owner_id uuid references auth.users (id) on delete set null
 );
 
+-- Email thread mirror (Proton remains the mailbox; CRM stores correspondence)
+create table if not exists public.crm_lead_messages (
+  id uuid primary key default gen_random_uuid(),
+  lead_id uuid not null references public.crm_leads (id) on delete cascade,
+  direction text not null
+    check (direction in ('outbound', 'inbound')),
+  from_email text not null default '',
+  to_email text not null default '',
+  subject text not null default '',
+  body_text text not null default '',
+  body_html text,
+  message_id text,
+  in_reply_to text,
+  references_header text,
+  occurred_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  owner_id uuid references auth.users (id) on delete set null,
+  raw_headers jsonb not null default '{}'::jsonb
+);
+
+create index if not exists crm_lead_messages_lead_idx
+  on public.crm_lead_messages (lead_id, occurred_at asc);
+
+create unique index if not exists crm_lead_messages_message_id_uidx
+  on public.crm_lead_messages (message_id)
+  where message_id is not null and message_id <> '';
+
 -- Future: project organization linked to leads/clients
 create table if not exists public.crm_projects (
   id uuid primary key default gen_random_uuid(),
@@ -127,6 +154,7 @@ create trigger crm_projects_updated_at
 
 alter table public.crm_leads enable row level security;
 alter table public.crm_activities enable row level security;
+alter table public.crm_lead_messages enable row level security;
 alter table public.crm_projects enable row level security;
 
 -- Authenticated staff can manage ALL CRM rows (shared team tool — not owner-scoped).
@@ -140,7 +168,7 @@ begin
     select schemaname, tablename, policyname
     from pg_policies
     where schemaname = 'public'
-      and tablename in ('crm_leads', 'crm_activities', 'crm_projects')
+      and tablename in ('crm_leads', 'crm_activities', 'crm_lead_messages', 'crm_projects')
   loop
     execute format(
       'drop policy if exists %I on %I.%I',
@@ -164,6 +192,12 @@ create policy "crm_activities_auth_all"
   using (true)
   with check (true);
 
+create policy "crm_lead_messages_auth_all"
+  on public.crm_lead_messages for all
+  to authenticated
+  using (true)
+  with check (true);
+
 create policy "crm_projects_auth_all"
   on public.crm_projects for all
   to authenticated
@@ -172,6 +206,7 @@ create policy "crm_projects_auth_all"
 
 grant select, insert, update, delete on public.crm_leads to authenticated;
 grant select, insert, update, delete on public.crm_activities to authenticated;
+grant select, insert, update, delete on public.crm_lead_messages to authenticated;
 grant select, insert, update, delete on public.crm_projects to authenticated;
 
 -- ── Staff profile photos (safe to re-run) ──────────────────────────────────

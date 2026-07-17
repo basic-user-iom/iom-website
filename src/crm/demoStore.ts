@@ -11,6 +11,7 @@ import type {
   CrmTask,
   CrmUser,
   Lead,
+  LeadMessage,
   MindMap,
   MindNode,
   ResearchNote,
@@ -50,6 +51,7 @@ export const DEMO_PARTNER_STAFF: StaffProfile = {
 export const DEMO_KEYS = {
   leads: 'iom-crm-leads',
   activities: 'iom-crm-activities',
+  messages: 'iom-crm-lead-messages',
   session: 'iom-crm-local-session',
   projects: 'iom-crm-projects',
   columns: 'iom-crm-board-columns',
@@ -771,9 +773,48 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     },
   ]
 
+  const messages: LeadMessage[] = [
+    {
+      id: 'demo-msg-1',
+      lead_id: lead5.id,
+      direction: 'outbound',
+      from_email: 'contact@iobjectm.com',
+      to_email: 'noah.castillo@copperlantern.example',
+      subject: lead5.initial_email_subject,
+      body_text: lead5.initial_email_body,
+      body_html: null,
+      message_id: '<demo-outbound-copperlantern@iobjectm.com>',
+      in_reply_to: null,
+      references_header: null,
+      occurred_at: daysAgo(12, 14),
+      created_at: daysAgo(12, 14),
+      owner_id: partner,
+      raw_headers: {},
+    },
+    {
+      id: 'demo-msg-2',
+      lead_id: lead5.id,
+      direction: 'inbound',
+      from_email: 'noah.castillo@copperlantern.example',
+      to_email: 'contact@iobjectm.com',
+      subject: `Re: ${lead5.initial_email_subject}`,
+      body_text:
+        'Hi Mirjan,\n\nThanks for the outline — the board liked the guided companion angle. Can you send a rough timeline for photogrammetry capture vs. web delivery?\n\nBest,\nNoah\n\n(DEMO SAMPLE — fictional client reply mirrored into CRM.)',
+      body_html: null,
+      message_id: '<demo-inbound-copperlantern@copperlantern.example>',
+      in_reply_to: '<demo-outbound-copperlantern@iobjectm.com>',
+      references_header: '<demo-outbound-copperlantern@iobjectm.com>',
+      occurred_at: daysAgo(10, 11),
+      created_at: daysAgo(10, 11),
+      owner_id: null,
+      raw_headers: {},
+    },
+  ]
+
   return {
     [DEMO_KEYS.leads]: [lead1, lead2, lead3, lead4, lead5, lead6],
     [DEMO_KEYS.activities]: activities,
+    [DEMO_KEYS.messages]: messages,
     [DEMO_KEYS.session]: {
       id: DEMO_USER.id,
       email: DEMO_USER.email,

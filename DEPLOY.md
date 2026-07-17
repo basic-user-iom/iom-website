@@ -79,5 +79,7 @@ Verify on production (hard refresh or private window):
 
 - **`/client-login`** — real Supabase CRM (client data).
 - **`/crm-demo`** — in-memory sandbox only.
+- Email conversation table: run `supabase/crm_lead_messages_migration.sql` in Supabase.
+- Client reply mirror (Proton keep-copy → CRM): see [`docs/crm-email-inbound-setup.md`](docs/crm-email-inbound-setup.md).
 
 Schema/SQL changes need Supabase migrations run separately; they are not deployed by Vercel.

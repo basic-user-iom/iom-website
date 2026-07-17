@@ -21,6 +21,8 @@ import type {
   LeadFilters,
   LeadInput,
   LeadLink,
+  LeadMessage,
+  LeadMessageCreate,
   LeadSort,
   LeadStatus,
   StaffProfile,
@@ -30,6 +32,7 @@ import { normalizeValueEmoji } from './valueEmoji'
 
 const LEADS_KEY = 'iom-crm-leads'
 const ACTIVITIES_KEY = 'iom-crm-activities'
+const MESSAGES_KEY = 'iom-crm-lead-messages'
 const LOCAL_SESSION_KEY = 'iom-crm-local-session'
 /** Staff profile photos (not lead/contact photos) */
 const AVATAR_BUCKET = 'crm-user-avatars'
@@ -1875,6 +1878,137 @@ export async function deleteLead(id: string): Promise<void> {
     ACTIVITIES_KEY,
     readLocal<Activity[]>(ACTIVITIES_KEY, []).filter((a) => a.lead_id !== id),
   )
+  writeLocal(
+    MESSAGES_KEY,
+    readLocal<LeadMessage[]>(MESSAGES_KEY, []).filter((m) => m.lead_id !== id),
+  )
+}
+
+/* ── Lead email messages (conversation mirror) ────────── */
+
+function normalizeLeadMessage(row: Record<string, unknown>): LeadMessage {
+  const raw = row.raw_headers
+  return {
+    id: String(row.id ?? ''),
+    lead_id: String(row.lead_id ?? ''),
+    direction: row.direction === 'inbound' ? 'inbound' : 'outbound',
+    from_email: String(row.from_email ?? ''),
+    to_email: String(row.to_email ?? ''),
+    subject: String(row.subject ?? ''),
+    body_text: String(row.body_text ?? ''),
+    body_html:
+      row.body_html == null || row.body_html === ''
+        ? null
+        : String(row.body_html),
+    message_id:
+      row.message_id == null || row.message_id === ''
+        ? null
+        : String(row.message_id),
+    in_reply_to:
+      row.in_reply_to == null || row.in_reply_to === ''
+        ? null
+        : String(row.in_reply_to),
+    references_header:
+      row.references_header == null || row.references_header === ''
+        ? null
+        : String(row.references_header),
+    occurred_at: String(row.occurred_at ?? nowIso()),
+    created_at: String(row.created_at ?? nowIso()),
+    owner_id: row.owner_id == null ? null : String(row.owner_id),
+    raw_headers:
+      raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {},
+  }
+}
+
+export function isLeadMessagesSchemaMissing(err: unknown): boolean {
+  const m = err instanceof Error ? err.message : String(err ?? '')
+  return (
+    m.includes('crm_lead_messages') ||
+    m.includes('schema cache') ||
+    (m.includes('relation') && m.includes('does not exist'))
+  )
+}
+
+export async function listLeadMessages(leadId: string): Promise<LeadMessage[]> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_lead_messages')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('occurred_at', { ascending: true })
+    if (error) {
+      if (isLeadMessagesSchemaMissing(error)) return []
+      throw new Error(error.message)
+    }
+    return (data ?? []).map((row) =>
+      normalizeLeadMessage(row as Record<string, unknown>),
+    )
+  }
+
+  return readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+    .filter((m) => m.lead_id === leadId)
+    .sort(
+      (a, b) =>
+        new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime(),
+    )
+}
+
+export async function createLeadMessage(
+  input: LeadMessageCreate,
+): Promise<LeadMessage> {
+  const user = await getCurrentUser()
+  const stamp = nowIso()
+  const payload = {
+    lead_id: input.lead_id,
+    direction: input.direction,
+    from_email: input.from_email.trim().toLowerCase(),
+    to_email: input.to_email.trim().toLowerCase(),
+    subject: input.subject.trim(),
+    body_text: input.body_text,
+    body_html: input.body_html ?? null,
+    message_id: input.message_id?.trim() || null,
+    in_reply_to: input.in_reply_to?.trim() || null,
+    references_header: input.references_header?.trim() || null,
+    occurred_at: input.occurred_at || stamp,
+    raw_headers: input.raw_headers ?? {},
+    owner_id: user?.id ?? null,
+  }
+
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_lead_messages')
+      .insert(payload)
+      .select('*')
+      .single()
+    if (error) throw new Error(error.message)
+    await supabase
+      .from('crm_leads')
+      .update({ updated_at: stamp })
+      .eq('id', input.lead_id)
+    return normalizeLeadMessage(data as Record<string, unknown>)
+  }
+
+  const message: LeadMessage = {
+    ...payload,
+    id: uid(),
+    created_at: stamp,
+    owner_id: user?.id ?? null,
+    raw_headers: payload.raw_headers,
+  }
+  const messages = readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+  writeLocal(MESSAGES_KEY, [...messages, message])
+
+  const leads = readLocal<Lead[]>(LEADS_KEY, [])
+  const idx = leads.findIndex((l) => l.id === input.lead_id)
+  if (idx >= 0) {
+    leads[idx] = { ...leads[idx], updated_at: stamp }
+    writeLocal(LEADS_KEY, leads)
+  }
+  return message
 }
 
 /* ── Activities ───────────────────────────────────────── */

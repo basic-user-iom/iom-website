@@ -11,14 +11,23 @@ export type SendOutreachEmailInput = {
   body: string
   leadId?: string
   fromIdentity?: OutreachFromIdentityId
+  /** Parent Message-ID for replies (In-Reply-To). */
+  inReplyTo?: string | null
+  /** Prior References chain (space-separated Message-IDs). */
+  references?: string | null
+  /** When false, API skips writing crm_lead_messages (client will persist). */
+  persistMessage?: boolean
 }
 
 export type SendOutreachEmailResult = {
   ok: true
   messageId: string | null
+  storedMessageId?: string | null
   from: string
   fromIdentity?: OutreachFromIdentityId
   to: string
+  inReplyTo?: string | null
+  references?: string | null
 }
 
 function resolveFromEmail(id: OutreachFromIdentityId | undefined): string {
@@ -32,12 +41,17 @@ async function sendDemoOutreachEmail(
 ): Promise<SendOutreachEmailResult> {
   await new Promise((r) => window.setTimeout(r, 350))
   const fromIdentity = input.fromIdentity || 'contact'
+  const parent = input.inReplyTo?.trim() || null
   return {
     ok: true,
-    messageId: `demo-${Date.now()}`,
+    messageId: `<demo-${Date.now()}@iom-showcase.example>`,
     from: resolveFromEmail(fromIdentity),
     fromIdentity,
     to: input.to.trim(),
+    inReplyTo: parent,
+    references: parent
+      ? [input.references?.trim(), parent].filter(Boolean).join(' ')
+      : input.references?.trim() || null,
   }
 }
 
@@ -72,6 +86,9 @@ export async function sendOutreachEmail(
       body: input.body.trim(),
       leadId: input.leadId,
       fromIdentity,
+      inReplyTo: input.inReplyTo || undefined,
+      references: input.references || undefined,
+      persistMessage: input.persistMessage,
     }),
   })
 

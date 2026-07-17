@@ -2,11 +2,19 @@
  * Authenticated CRM outreach send via Proton SMTP Submission.
  * POST /api/crm-send-email
  * Authorization: Bearer <supabase access token>
- * Body: { to, subject, body, leadId?, fromIdentity? }
+ * Body: {
+ *   to, subject, body, leadId?, fromIdentity?,
+ *   inReplyTo?, references?, persistMessage? (default true when leadId)
+ * }
  * fromIdentity: 'contact' | 'visual' | 'projects' (default contact)
  */
 
 import nodemailer from 'nodemailer'
+import {
+  buildReferencesHeader,
+  insertLeadMessage,
+  normalizeMessageId,
+} from './lib/crm-lead-messages.js'
 import {
   renderOutreachEmailHtml,
   renderOutreachPlainText,
@@ -65,6 +73,9 @@ export default async function handler(req, res) {
   const textBody = String(body.body || '').trim()
   const leadId = body.leadId ? String(body.leadId).slice(0, 64) : null
   const fromIdentity = String(body.fromIdentity || 'contact').trim().toLowerCase()
+  const inReplyToRaw = body.inReplyTo ? String(body.inReplyTo).trim() : ''
+  const referencesRaw = body.references ? String(body.references).trim() : ''
+  const persistMessage = body.persistMessage !== false
 
   if (!EMAIL_RE.test(to)) return res.status(400).json({ error: 'Invalid recipient email' })
   if (!subject) return res.status(400).json({ error: 'Subject is required' })
@@ -88,6 +99,10 @@ export default async function handler(req, res) {
 
   const html = renderOutreachEmailHtml({ subject, body: textBody })
   const text = renderOutreachPlainText(textBody)
+  const inReplyTo = inReplyToRaw ? normalizeMessageId(inReplyToRaw) : ''
+  const references = inReplyTo
+    ? buildReferencesHeader(referencesRaw, inReplyTo)
+    : referencesRaw
 
   try {
     const transporter = nodemailer.createTransport({
@@ -98,27 +113,71 @@ export default async function handler(req, res) {
       auth: { user: identity.user, pass: identity.pass },
     })
 
+    const mailHeaders = {}
+    if (leadId) {
+      mailHeaders['X-IOM-CRM-Lead'] = leadId
+      mailHeaders['X-IOM-CRM-User'] = String(authUser.id).slice(0, 64)
+      mailHeaders['X-IOM-CRM-From'] = identity.id
+    }
+
     const info = await transporter.sendMail({
       from: identity.fromHeader,
       to,
       subject,
       text,
       html,
-      headers: leadId
-        ? {
-            'X-IOM-CRM-Lead': leadId,
-            'X-IOM-CRM-User': String(authUser.id).slice(0, 64),
-            'X-IOM-CRM-From': identity.id,
-          }
-        : undefined,
+      inReplyTo: inReplyTo || undefined,
+      references: references || undefined,
+      headers: Object.keys(mailHeaders).length ? mailHeaders : undefined,
     })
+
+    const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
+    let storedMessageId = null
+
+    if (persistMessage && leadId) {
+      try {
+        const stamp = new Date().toISOString()
+        const row = await insertLeadMessage({
+          supabaseUrl,
+          key: anonKey,
+          userToken: token,
+          row: {
+            lead_id: leadId,
+            direction: 'outbound',
+            from_email: identity.email,
+            to_email: to,
+            subject,
+            body_text: textBody,
+            body_html: html,
+            message_id: messageId,
+            in_reply_to: inReplyTo || null,
+            references_header: references || null,
+            occurred_at: stamp,
+            owner_id: authUser.id,
+            raw_headers: {
+              fromIdentity: identity.id,
+              smtpResponse: info.response || null,
+            },
+          },
+        })
+        storedMessageId = row?.id || null
+      } catch (persistErr) {
+        console.error(
+          '[crm-send-email] persist message failed',
+          persistErr instanceof Error ? persistErr.message : persistErr,
+        )
+      }
+    }
 
     return res.status(200).json({
       ok: true,
-      messageId: info.messageId || null,
+      messageId,
+      storedMessageId,
       from: identity.email,
       fromIdentity: identity.id,
       to,
+      inReplyTo: inReplyTo || null,
+      references: references || null,
     })
   } catch (err) {
     console.error('[crm-send-email]', err instanceof Error ? err.message : err)

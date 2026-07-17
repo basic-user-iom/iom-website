@@ -16,6 +16,7 @@ import {
   type OutreachFromIdentityId,
 } from './outreachFromIdentities'
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
+import { persistOutboundMessage } from './persistOutboundMessage'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
 import type { Lead, LeadInput } from './types'
@@ -26,7 +27,7 @@ interface InitialOutreachPanelProps {
   schemaMissing?: boolean
 }
 
-type SendMode = 'initial' | 'resend' | 'additional'
+type SendMode = 'initial' | 'resend'
 
 function formatDraftPreview(body: string, max = 280): string {
   const trimmed = body.trim()
@@ -59,15 +60,12 @@ export function InitialOutreachPanel({
 }: InitialOutreachPanelProps) {
   const { t, locale } = useCrmI18n()
   const [editing, setEditing] = useState(false)
-  const [composeExtra, setComposeExtra] = useState(false)
   const [showHtmlPreview, setShowHtmlPreview] = useState(false)
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
   const [subject, setSubject] = useState(lead.initial_email_subject)
   const [body, setBody] = useState(lead.initial_email_body)
-  const [extraSubject, setExtraSubject] = useState('')
-  const [extraBody, setExtraBody] = useState('')
   const previewFrameRef = useRef<HTMLIFrameElement>(null)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
@@ -204,12 +202,8 @@ export function InitialOutreachPanel({
 
   const sendViaCrm = async (mode: SendMode) => {
     const to = toEmail.trim()
-    const subj =
-      mode === 'additional'
-        ? extraSubject.trim()
-        : lead.initial_email_subject.trim()
-    const text =
-      mode === 'additional' ? extraBody.trim() : lead.initial_email_body.trim()
+    const subj = lead.initial_email_subject.trim()
+    const text = lead.initial_email_body.trim()
 
     if (!to || !subj || !text) {
       setError(t('outreach.sendMissing'))
@@ -223,20 +217,16 @@ export function InitialOutreachPanel({
     const confirmKey = demoMode
       ? mode === 'resend'
         ? 'outreach.resendDemoConfirm'
-        : mode === 'additional'
-          ? 'outreach.additionalDemoConfirm'
-          : 'outreach.sendDemoConfirm'
+        : 'outreach.sendDemoConfirm'
       : mode === 'resend'
         ? 'outreach.resendConfirm'
-        : mode === 'additional'
-          ? 'outreach.additionalConfirm'
-          : 'outreach.sendConfirm'
+        : 'outreach.sendConfirm'
     if (!confirm(t(confirmKey, { email: to, from: fromMeta.email }))) return
 
     setError('')
     setBusy(true)
     try {
-      await sendOutreachEmail({
+      const result = await sendOutreachEmail({
         to,
         subject: subj,
         body: text,
@@ -244,29 +234,17 @@ export function InitialOutreachPanel({
         fromIdentity,
       })
 
+      await persistOutboundMessage({
+        leadId: lead.id,
+        subject: subj,
+        body: text,
+        bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
+        sendResult: result,
+        alreadyStored: !!result.storedMessageId,
+      })
+
       const stamp = new Date().toISOString()
-      if (mode === 'additional') {
-        const patch: Partial<LeadInput> = {}
-        if (!lead.initial_email_sent_at) patch.initial_email_sent_at = stamp
-        if (!lead.initial_email_drafted_at) patch.initial_email_drafted_at = stamp
-        if (lead.status === 'new') patch.status = 'contacted'
-        const updated =
-          Object.keys(patch).length > 0
-            ? await updateLead(lead.id, patch)
-            : undefined
-        await logEmailActivity(
-          subj,
-          t('outreach.additionalActivityBody', {
-            email: to,
-            from: fromMeta.email,
-          }),
-          stamp,
-        )
-        setComposeExtra(false)
-        setExtraSubject('')
-        setExtraBody('')
-        onChanged(updated)
-      } else if (mode === 'resend') {
+      if (mode === 'resend') {
         const updated = await updateLead(lead.id, {
           initial_email_sent_at: stamp,
         })
@@ -293,15 +271,7 @@ export function InitialOutreachPanel({
   }
 
   const canSendDraft =
-    sendUiOk &&
-    !!toEmail.trim() &&
-    hasInitialEmailDraft(lead)
-
-  const canSendAdditional =
-    sendUiOk &&
-    !!toEmail.trim() &&
-    !!extraSubject.trim() &&
-    !!extraBody.trim()
+    sendUiOk && !!toEmail.trim() && hasInitialEmailDraft(lead)
 
   const handleCopy = async () => {
     setError('')
@@ -315,16 +285,11 @@ export function InitialOutreachPanel({
     }
   }
 
-  const previewSubject = composeExtra
-    ? extraSubject.trim() || lead.initial_email_subject.trim()
-    : editing
-      ? subject.trim()
-      : lead.initial_email_subject.trim()
-  const previewBody = composeExtra
-    ? extraBody.trim() || lead.initial_email_body.trim()
-    : editing
-      ? body.trim()
-      : lead.initial_email_body.trim()
+  // Initial outreach preview: draft fields only (never reply composer).
+  const previewSubject = editing
+    ? subject.trim()
+    : lead.initial_email_subject.trim()
+  const previewBody = editing ? body.trim() : lead.initial_email_body.trim()
   const previewHtml =
     previewSubject && previewBody
       ? renderOutreachEmailHtml({ subject: previewSubject, body: previewBody })
@@ -352,7 +317,6 @@ export function InitialOutreachPanel({
     }
 
     frame.addEventListener('load', fitHeight)
-    // srcDoc may already be loaded when effect runs
     fitHeight()
     const t1 = window.setTimeout(fitHeight, 80)
     const t2 = window.setTimeout(fitHeight, 400)
@@ -607,22 +571,6 @@ export function InitialOutreachPanel({
                     {busy ? t('outreach.sending') : t('outreach.resend')}
                   </button>
                 )}
-
-                {sendUiOk && (
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      setComposeExtra((v) => !v)
-                      setError('')
-                    }}
-                  >
-                    {composeExtra
-                      ? t('form.cancel')
-                      : t('outreach.composeAdditional')}
-                  </button>
-                )}
               </div>
 
               {showHtmlPreview && previewHtml && (
@@ -642,48 +590,6 @@ export function InitialOutreachPanel({
                     srcDoc={previewHtml}
                     scrolling="no"
                   />
-                </div>
-              )}
-
-              {composeExtra && sendUiOk && (
-                <div className="crm-form crm-outreach-form crm-outreach-additional">
-                  <p className="crm-outreach-focus-label">
-                    {t('outreach.additionalTitle')}
-                  </p>
-                  {fromSelect}
-                  {recipientSelect}
-                  <label className="crm-field">
-                    <span className="crm-label">{t('outreach.subject')}</span>
-                    <input
-                      className="crm-input"
-                      value={extraSubject}
-                      onChange={(e) => setExtraSubject(e.target.value)}
-                      disabled={busy}
-                      placeholder={t('outreach.additionalSubjectHint')}
-                    />
-                  </label>
-                  <label className="crm-field">
-                    <span className="crm-label">{t('outreach.body')}</span>
-                    <textarea
-                      className="crm-input crm-textarea"
-                      rows={8}
-                      value={extraBody}
-                      onChange={(e) => setExtraBody(e.target.value)}
-                      disabled={busy}
-                    />
-                  </label>
-                  <div className="crm-detail-actions">
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      disabled={busy || !canSendAdditional}
-                      onClick={() => void sendViaCrm('additional')}
-                    >
-                      {busy
-                        ? t('outreach.sending')
-                        : t('outreach.sendAdditional')}
-                    </button>
-                  </div>
                 </div>
               )}
             </>
