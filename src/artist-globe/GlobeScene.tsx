@@ -57,13 +57,19 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     const isMobile =
       typeof window !== 'undefined' &&
       window.matchMedia('(hover: none), (pointer: coarse), (max-width: 900px)').matches
-    const width = mount.clientWidth || 800
-    const height = Math.max(mount.clientHeight || 600, isMobile ? 320 : 400)
     const sphereSegW = isMobile ? 64 : 96
     const sphereSegH = isMobile ? 48 : 72
 
+    const readSize = () => {
+      const w = Math.max(1, mount.clientWidth || 1)
+      const h = Math.max(1, mount.clientHeight || 1)
+      return { w, h }
+    }
+
+    let { w: width, h: height } = readSize()
+
     const scene = new THREE.Scene()
-    const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100)
+    const camera = new THREE.PerspectiveCamera(42, width / Math.max(height, 1), 0.1, 100)
     camera.position.set(0, 0.12, 4.35)
 
     const renderer = new THREE.WebGLRenderer({
@@ -72,7 +78,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
       powerPreference: isMobile ? 'low-power' : 'high-performance',
     })
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2))
-    renderer.setSize(width, height)
+    renderer.setSize(width, height, true)
     renderer.setClearColor(0x000000, 0)
     mount.appendChild(renderer.domElement)
 
@@ -469,12 +475,11 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     mount.addEventListener('pointerleave', onPointerLeave)
 
     const onResize = () => {
-      const w = mount.clientWidth || 800
-      const h = Math.max(mount.clientHeight || 600, isMobile ? 320 : 400)
+      const { w, h } = readSize()
       if (w < 2 || h < 2) return
       camera.aspect = w / h
       camera.updateProjectionMatrix()
-      renderer.setSize(w, h)
+      renderer.setSize(w, h, true)
     }
     window.addEventListener('resize', onResize)
     const resizeObserver =

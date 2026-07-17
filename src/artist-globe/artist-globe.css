@@ -349,8 +349,8 @@ body.artist-globe-embed #root {
 
 .ag-globe-canvas canvas {
   display: block;
-  width: 100% !important;
-  height: 100% !important;
+  /* Keep buffer aspect = CSS box; stretching 100%/100% deforms the sphere */
+  max-width: none;
 }
 
 .ag-globe-hud {
