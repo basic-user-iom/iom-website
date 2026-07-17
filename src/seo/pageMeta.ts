@@ -25,6 +25,15 @@ export function pageMetaForPath(pathname: string): PageMeta {
     }
   }
 
+  if (path === '/demo/icm' || path.startsWith('/demo/icm/')) {
+    return {
+      title: 'ICM — Private preview',
+      description: 'Password-protected client demo for ICM photography and film portfolio.',
+      canonical: `${SITE_ORIGIN}/demo/icm`,
+      robots: 'noindex, nofollow',
+    }
+  }
+
   if (path === '/artist-globe') {
     return {
       title: `${SITE_NAME} — Artist Globe`,
@@ -40,6 +49,19 @@ export function pageMetaForPath(pathname: string): PageMeta {
         'artist portfolio map',
         'photographer map',
       ],
+    }
+  }
+
+  if (path === '/blog' || path.startsWith('/blog/')) {
+    const isVerify = path === '/blog/verify'
+    return {
+      title: isVerify ? `${SITE_NAME} — Confirm comment` : `${SITE_NAME} — Blog`,
+      description: isVerify
+        ? 'Confirm your email to submit a blog comment.'
+        : 'IOM Journal is coming soon — case studies and immersive media notes from Interactive Object Media.',
+      canonical: `${SITE_ORIGIN}/blog`,
+      robots: path === '/blog' ? 'index, follow' : 'noindex, nofollow',
+      keywords: ['IOM blog', 'immersive media', 'coming soon'],
     }
   }
 

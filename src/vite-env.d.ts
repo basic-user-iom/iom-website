@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_CRM_LOCAL_PASSWORD?: string
   /** Artist Globe admin unlock password (default: iom-globe-admin) */
   readonly VITE_ARTIST_GLOBE_ADMIN_PASSWORD?: string
+  /** ICM client demo unlock password (default: volimte) */
+  readonly VITE_ICM_DEMO_PASSWORD?: string
 }
 
 interface ImportMeta {

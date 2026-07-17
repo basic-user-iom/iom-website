@@ -18,6 +18,7 @@ import type {
   StaffProfile,
   TimeEntry,
 } from './types'
+import type { BlogAudience, BlogCommentAdmin, BlogPost } from '../blog/types'
 
 /** Public demo guide — not a real person / mailbox. */
 export const DEMO_USER: CrmUser = {
@@ -60,6 +61,9 @@ export const DEMO_KEYS = {
   maps: 'iom-crm-mind-maps',
   nodes: 'iom-crm-mind-nodes',
   notes: 'iom-crm-research-notes',
+  blogPosts: 'iom-crm-blog-posts',
+  blogComments: 'iom-crm-blog-comments',
+  blogAudience: 'iom-crm-blog-audience',
 } as const
 
 type Store = Record<string, unknown>
@@ -811,6 +815,173 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     },
   ]
 
+  const blogPost1: BlogPost = {
+    id: 'demo-blog-360-showrooms',
+    slug: 'browser-360-showrooms-that-convert',
+    title: 'Browser 360° showrooms that convert',
+    excerpt:
+      'How immersive panoramas turn trade-booth curiosity into qualified leads — without an app install.',
+    body: `# Browser 360° showrooms that convert
+
+Trade visitors remember experiences. A guided [360° panorama](/demos/panorama-360/) lets them walk a booth, product line, or venue from any device.
+
+## What works
+
+- Clear **call-to-action** hotspots that open contact or brochure links
+- Short narration or captions — not a wall of text
+- Fast loads on mid-range phones
+
+## Internal next steps
+
+Explore our [interactive work](/#interactive) or [get in touch](/#contact) if you want a showroom scoped for your next event.
+
+DEMO SAMPLE — fictional editorial for CRM sandbox.`,
+    cover_image_url: '',
+    status: 'published',
+    published_at: daysAgo(5, 11),
+    seo_title: 'Browser 360° showrooms that convert — IOM',
+    seo_description:
+      'Immersive panorama showrooms for trade events: guided tours, lead capture, and WebGL delivery without apps.',
+    author_name: 'IOM',
+    tags: ['360', 'showroom', 'lead capture'],
+    owner_id: guide,
+    created_at: daysAgo(6, 9),
+    updated_at: daysAgo(5, 11),
+  }
+
+  const blogPost2: BlogPost = {
+    id: 'demo-blog-case-copper',
+    slug: 'case-study-guided-museum-companion',
+    title: 'Case study: guided museum companion',
+    excerpt:
+      'A fictional walkthrough of how a spatial web companion helped Copper Lantern Museum extend visits beyond the gallery floor.',
+    body: `## The brief
+
+Copper Lantern needed a **browser companion** visitors could open on their phones — waypoints, short stories, and a calm visual language.
+
+## What we shipped
+
+- Photogrammetry-backed spaces previewed in WebGL
+- A lightweight path UI inspired by our [raven path](/demos/raven-path/) experiments
+- Analytics hooks so the museum team could see which stops held attention
+
+## Outcome (sample)
+
+Dwell time on featured exhibits rose; staff reported fewer “where do I go next?” questions.
+
+See more [immersive projects](/#immersive) or [contact IOM](/#contact).
+
+DEMO SAMPLE — fictional case study.`,
+    cover_image_url: '',
+    status: 'published',
+    published_at: daysAgo(12, 15),
+    seo_title: 'Case study: guided museum companion — IOM',
+    seo_description:
+      'How a browser-based guided companion extended museum visits with spatial storytelling and WebGL.',
+    author_name: 'IOM',
+    tags: ['case study', 'museum', 'WebGL'],
+    owner_id: partner,
+    created_at: daysAgo(14, 10),
+    updated_at: daysAgo(12, 15),
+  }
+
+  const blogPost3: BlogPost = {
+    id: 'demo-blog-webgpu-particles',
+    slug: 'why-webgpu-particles-matter-for-brands',
+    title: 'Why WebGPU particles matter for brands',
+    excerpt:
+      'Field notes on real-time particle systems as atmospheric brand moments — not just tech demos.',
+    body: `Real-time particles used to mean native apps. With [WebGPU particle demos](/demos/webgpu-particles/), brands can ship atmosphere in the browser.
+
+## When to use them
+
+- Product launches that need motion without video files
+- Spatial identity moments on a landing page
+- Live audio-reactive visuals (see our ocean / FFT experiments)
+
+Draft in progress — link to a [project](/#interactive) or CTA when you publish.
+
+DEMO SAMPLE — draft article.`,
+    cover_image_url: '',
+    status: 'draft',
+    published_at: null,
+    seo_title: 'Why WebGPU particles matter for brands — IOM',
+    seo_description:
+      'Field notes on WebGPU particle systems as atmospheric brand experiences on the web.',
+    author_name: 'IOM',
+    tags: ['WebGPU', 'particles', 'brand'],
+    owner_id: guide,
+    created_at: daysAgo(2, 16),
+    updated_at: daysAgo(1, 12),
+  }
+
+  const blogComments: BlogCommentAdmin[] = [
+    {
+      id: 'demo-blog-c1',
+      post_id: blogPost1.id,
+      parent_id: null,
+      author_name: 'Sam Okonkwo',
+      author_email: 'sam.okonkwo@eventlab.example',
+      body: 'We ran a panorama booth last year — curious how you handle offline fallbacks on venue Wi‑Fi.',
+      created_at: daysAgo(3, 14),
+      status: 'approved',
+      email_verified_at: daysAgo(3, 14),
+      marketing_opt_in: false,
+      verify_expires_at: null,
+    },
+    {
+      id: 'demo-blog-c2',
+      post_id: blogPost1.id,
+      parent_id: 'demo-blog-c1',
+      author_name: 'IOM Studio',
+      author_email: 'contact@iobjectm.com',
+      body: 'Great question — we pre-cache critical tiles and degrade hotspots first when bandwidth drops.',
+      created_at: daysAgo(3, 16),
+      status: 'approved',
+      email_verified_at: daysAgo(3, 16),
+      marketing_opt_in: false,
+      verify_expires_at: null,
+    },
+    {
+      id: 'demo-blog-c3',
+      post_id: blogPost2.id,
+      parent_id: null,
+      author_name: 'Priya Nair',
+      author_email: 'priya.nair@culturetech.example',
+      body: 'Would love a follow-up on accessibility for screen readers in guided companions.',
+      created_at: daysAgo(1, 11),
+      status: 'pending_moderation',
+      email_verified_at: daysAgo(1, 11),
+      marketing_opt_in: true,
+      verify_expires_at: null,
+    },
+  ]
+
+  const blogAudience: BlogAudience[] = [
+    {
+      id: 'demo-aud-1',
+      email: 'sam.okonkwo@eventlab.example',
+      name: 'Sam Okonkwo',
+      source: 'comment',
+      marketing_opt_in: false,
+      verified_at: daysAgo(3, 14),
+      last_comment_at: daysAgo(3, 14),
+      notes: '',
+      created_at: daysAgo(3, 14),
+    },
+    {
+      id: 'demo-aud-2',
+      email: 'priya.nair@culturetech.example',
+      name: 'Priya Nair',
+      source: 'comment',
+      marketing_opt_in: true,
+      verified_at: daysAgo(1, 11),
+      last_comment_at: daysAgo(1, 11),
+      notes: 'Interested in a11y follow-up post',
+      created_at: daysAgo(1, 11),
+    },
+  ]
+
   return {
     [DEMO_KEYS.leads]: [lead1, lead2, lead3, lead4, lead5, lead6],
     [DEMO_KEYS.activities]: activities,
@@ -827,6 +998,9 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     [DEMO_KEYS.maps]: [mindMap, mindMap2],
     [DEMO_KEYS.nodes]: nodes,
     [DEMO_KEYS.notes]: researchNotes,
+    [DEMO_KEYS.blogPosts]: [blogPost1, blogPost2, blogPost3],
+    [DEMO_KEYS.blogComments]: blogComments,
+    [DEMO_KEYS.blogAudience]: blogAudience,
   }
 }
 

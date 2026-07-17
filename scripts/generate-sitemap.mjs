@@ -59,7 +59,50 @@ function demoUrls() {
   }
 }
 
-function collectEntries() {
+function sampleBlogSlugs() {
+  try {
+    const src = readFileSync(join(root, 'src', 'blog', 'samplePosts.ts'), 'utf8')
+    const slugs = []
+    const re = /^\s*slug:\s*['"]([^'"]+)['"]/gm
+    let m
+    while ((m = re.exec(src)) !== null) slugs.push(m[1])
+    return slugs
+  } catch {
+    return []
+  }
+}
+
+async function fetchPublishedBlogSlugs() {
+  const url = (process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '').replace(
+    /\/+$/,
+    '',
+  )
+  const key =
+    process.env.VITE_SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_ANON_KEY ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    ''
+  if (!url || !key) return []
+  try {
+    const res = await fetch(
+      `${url}/rest/v1/blog_posts?status=eq.published&select=slug`,
+      {
+        headers: {
+          apikey: key,
+          Authorization: `Bearer ${key}`,
+        },
+      },
+    )
+    if (!res.ok) return []
+    const rows = await res.json()
+    if (!Array.isArray(rows)) return []
+    return rows.map((r) => String(r.slug || '')).filter(Boolean)
+  } catch {
+    return []
+  }
+}
+
+async function collectEntries() {
   const seen = new Set()
   const entries = []
 
@@ -71,9 +114,24 @@ function collectEntries() {
   }
 
   add(`${SITE_ORIGIN}/`, 1)
+  // Public journal hub (coming-soon until BLOG_PUBLIC_ENABLED)
+  add('/blog/', 0.8)
 
   for (const url of parseProjectUrls()) add(url)
   for (const url of demoUrls()) add(url)
+
+  // Only include article URLs when the public blog is live
+  let blogPublic = false
+  try {
+    const flags = readFileSync(join(root, 'src', 'blog', 'publicFlags.ts'), 'utf8')
+    blogPublic = /BLOG_PUBLIC_ENABLED\s*=\s*true/.test(flags)
+  } catch {
+    blogPublic = false
+  }
+  if (blogPublic) {
+    const slugs = new Set([...sampleBlogSlugs(), ...(await fetchPublishedBlogSlugs())])
+    for (const slug of slugs) add(`/blog/${slug}/`, 0.8)
+  }
 
   return entries.sort((a, b) => b.priority - a.priority)
 }
@@ -97,6 +155,6 @@ ${body}
 `
 }
 
-const entries = collectEntries()
+const entries = await collectEntries()
 writeFileSync(outPath, toXml(entries), 'utf8')
 console.log(`✓ sitemap.xml — ${entries.length} URLs → public/sitemap.xml`)

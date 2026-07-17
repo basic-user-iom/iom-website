@@ -4702,3 +4702,111 @@
   }
 }
 
+/* ── Blog CRM ───────────────────────────────────────────── */
+.crm-blog {
+  padding: 1rem 1.25rem 2rem;
+}
+
+.crm-blog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+}
+
+.crm-blog-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.crm-blog-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.crm-blog-post-list,
+.crm-blog-comment-list,
+.crm-blog-email-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.crm-blog-post-row,
+.crm-blog-comment-row,
+.crm-blog-email-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.08));
+  background: var(--crm-elevated, rgba(255, 255, 255, 0.03));
+}
+
+.crm-blog-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.crm-blog-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-width: 52rem;
+}
+
+.crm-blog-editor-tip {
+  margin: 0;
+}
+
+.crm-blog-editor .crm-field textarea {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+}
+
+.crm-field--inline {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.crm-blog-manual {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.crm-blog-manual input {
+  min-width: 10rem;
+  flex: 1;
+}
+
+.crm-blog-notes {
+  width: 100%;
+  margin-top: 0.5rem;
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.08));
+  padding: 0.4rem 0.5rem;
+}
+
+.crm-check {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+

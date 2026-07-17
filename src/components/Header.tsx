@@ -34,6 +34,8 @@ export function Header() {
   }, [profile.prefersReducedMotion])
 
   const closeMenu = () => setMenuOpen(false)
+  const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
+  const onBlog = path === '/blog' || path.startsWith('/blog/')
 
   return (
     <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
@@ -75,6 +77,9 @@ export function Header() {
             {s.label}
           </a>
         ))}
+        <a href="/blog" className={onBlog ? 'is-active' : undefined} onClick={closeMenu}>
+          Blog
+        </a>
         <a href="/#contact" onClick={closeMenu}>
           Contact
         </a>

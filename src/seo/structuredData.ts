@@ -81,6 +81,20 @@ export function buildFeaturedProjectsStructuredData(): Record<string, unknown> {
 
 export function structuredDataScripts(pathname: string): Record<string, unknown>[] {
   const path = pathname.replace(/\/+$/, '') || '/'
+  if (path === '/blog') {
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Blog',
+        name: `${SITE_SHORT_NAME} Blog`,
+        url: `${SITE_ORIGIN}/blog`,
+        description:
+          'Case studies, immersive media notes, and field articles from Interactive Object Media.',
+        publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+        inLanguage: 'en',
+      },
+    ]
+  }
   if (path === '/artist-globe') {
     return [
       {

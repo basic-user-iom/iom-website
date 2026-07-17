@@ -30,6 +30,7 @@ import {
 } from './api'
 import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
 import { DEMO_USER, resetDemoStore } from './demoStore'
+import { BlogView } from './BlogView'
 import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
@@ -68,7 +69,7 @@ import { collectOwnerOptions } from './types'
 import './crm.css'
 
 type View = 'list' | 'create'
-type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes' | 'seo'
+type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes' | 'seo' | 'blog'
 
 interface CrmAppProps {
   /** Public sandbox — sample data only, no live CRM backend. */
@@ -598,7 +599,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             ? t('nav.notes')
             : section === 'seo'
               ? t('nav.seo')
-              : t('topbar.title')
+              : section === 'blog'
+                ? t('nav.blog')
+                : t('topbar.title')
 
   return (
     <div
@@ -670,6 +673,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
+              ['blog', 'nav.blog'],
             ] as const
           ).map(([id, key]) => (
             <button
@@ -921,6 +925,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           initialProjectId={focusIdeaProjectId}
         />
       )}
+
+      {section === 'blog' && <BlogView />}
 
       {section === 'seo' && <SeoView demo={demoMode} />}
     </div>

@@ -5,7 +5,9 @@ import { ProjectSectionBlock } from './components/ProjectSectionBlock'
 import { About } from './components/About'
 import { Footer } from './components/Footer'
 import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
+import { BlogApp, isBlogPath } from './blog/BlogApp'
 import { CrmApp } from './crm/CrmApp'
+import { IcmDemoApp, isIcmDemoPath } from './demo/icm/IcmDemoApp'
 import {
   disableCrmDemoMode,
   enableCrmDemoMode,
@@ -45,6 +47,8 @@ export default function App() {
   const isClientLogin = path === '/client-login'
   const isCrmDemo = isCrmDemoPath(path)
   const isArtistGlobe = isArtistGlobePath(path)
+  const isBlog = isBlogPath(path)
+  const isIcmDemo = isIcmDemoPath(path)
 
   syncCrmDemoFlag(isCrmDemo)
 
@@ -71,6 +75,14 @@ export default function App() {
 
   if (isArtistGlobe) {
     return <ArtistGlobeApp />
+  }
+
+  if (isIcmDemo) {
+    return <IcmDemoApp />
+  }
+
+  if (isBlog) {
+    return <BlogApp />
   }
 
   if (isClientLogin || isCrmDemo) {
