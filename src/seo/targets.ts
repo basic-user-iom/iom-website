@@ -66,6 +66,14 @@ export const SEO_TARGETS: SeoTarget[] = [
     priority: 'medium',
   },
   {
+    id: 'product-artist-globe',
+    phrase: 'interactive artist globe map',
+    intent: 'product',
+    pages: ['/artist-globe', '/#3d'],
+    priority: 'high',
+    notes: 'Public Artist Globe demo — WebGL map of practitioners with submit flow.',
+  },
+  {
     id: 'service-studio',
     phrase: 'interactive media studio',
     intent: 'brand',

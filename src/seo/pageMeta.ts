@@ -25,6 +25,39 @@ export function pageMetaForPath(pathname: string): PageMeta {
     }
   }
 
+  if (path === '/artist-globe') {
+    return {
+      title: `${SITE_NAME} — Artist Globe`,
+      description:
+        'Interactive WebGL artist globe — explore photographers, painters, sculptors, and sound artists on a living map. Filter by practice, open portfolios, and submit a profile for review.',
+      canonical: `${SITE_ORIGIN}/artist-globe`,
+      ogImage: `${SITE_ORIGIN}/assets/posters/artist-globe.jpg`,
+      keywords: [
+        'artist globe',
+        'WebGL globe',
+        'interactive artist map',
+        'Three.js globe',
+        'artist portfolio map',
+        'photographer map',
+      ],
+    }
+  }
+
+  if (path.startsWith('/artist-globe/')) {
+    const privateRoute =
+      path.startsWith('/artist-globe/admin') ||
+      path.startsWith('/artist-globe/me') ||
+      path.startsWith('/artist-globe/invite')
+    return {
+      title: `${SITE_NAME} — Artist Globe`,
+      description:
+        'Interactive WebGL artist globe — explore photographers, painters, sculptors, and sound artists on a living map.',
+      canonical: `${SITE_ORIGIN}/artist-globe`,
+      ogImage: `${SITE_ORIGIN}/assets/posters/artist-globe.jpg`,
+      robots: privateRoute ? 'noindex, nofollow' : 'index, follow',
+    }
+  }
+
   if (path === '/') {
     return {
       title: DEFAULT_TITLE,

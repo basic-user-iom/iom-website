@@ -737,6 +737,21 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0143',
   },
   {
+    id: 'artist-globe',
+    title: 'Artist Globe',
+    section: '3d',
+    tags: ['webgl', 'three.js', 'globe', 'artists', 'map', 'portfolio'],
+    description:
+      'Interactive WebGL globe of photographers, painters, sculptors, sound artists, and more — filter by practice, open portfolios, highlight countries, and submit a profile for review.',
+    year: '2026',
+    url: '/artist-globe',
+    posterUrl: '/assets/posters/artist-globe.jpg?v=20260717',
+    mobilePosterUrl: '/assets/posters/artist-globe.jpg?v=20260717',
+    thumbnail: '/assets/posters/artist-globe.jpg?v=20260717',
+    featured: true,
+    archiveId: 'OBJ-0150',
+  },
+  {
     id: 'ssr-denoise',
     title: 'Art Gallery Space — WebGPU SSR + Denoise',
     section: '3d',

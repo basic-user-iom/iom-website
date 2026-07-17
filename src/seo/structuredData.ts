@@ -80,6 +80,24 @@ export function buildFeaturedProjectsStructuredData(): Record<string, unknown> {
 }
 
 export function structuredDataScripts(pathname: string): Record<string, unknown>[] {
-  if (pathname !== '/' && pathname !== '') return []
+  const path = pathname.replace(/\/+$/, '') || '/'
+  if (path === '/artist-globe') {
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebApplication',
+        name: 'Artist Globe',
+        applicationCategory: 'MultimediaApplication',
+        operatingSystem: 'Web',
+        url: `${SITE_ORIGIN}/artist-globe`,
+        description:
+          'Interactive WebGL globe of photographers, painters, sculptors, and sound artists — filter by practice, open portfolios, and submit a profile for review.',
+        image: `${SITE_ORIGIN}/assets/posters/artist-globe.jpg`,
+        publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+        inLanguage: 'en',
+      },
+    ]
+  }
+  if (path !== '/' && path !== '') return []
   return [buildHomeStructuredData(), buildFeaturedProjectsStructuredData()]
 }

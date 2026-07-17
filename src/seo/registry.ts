@@ -86,6 +86,15 @@ export const SEO_UPGRADES: SeoUpgrade[] = [
     date: '2026-07-16',
   },
   {
+    id: 'artist-globe-seo',
+    title: 'Artist Globe public SEO',
+    description:
+      'Indexable /artist-globe meta, OG poster, sitemap via projects.ts, keyword target; admin/me/invite remain noindex.',
+    status: 'done',
+    category: 'content',
+    date: '2026-07-17',
+  },
+  {
     id: 'mobile-seo-parity',
     title: 'Mobile SEO parity check',
     description:

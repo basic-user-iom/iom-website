@@ -5,8 +5,8 @@ const SESSION_KEY = 'iom-analytics-session'
 const LAST_PATH_KEY = 'iom-analytics-last-path'
 const PAGE_START_KEY = 'iom-analytics-page-start'
 
-/** Routes excluded from tracking (private CRM). */
-const EXCLUDED_PREFIXES = ['/client-login', '/crm-demo']
+/** Routes excluded from tracking (private CRM / admin surfaces). */
+const EXCLUDED_PREFIXES = ['/client-login', '/crm-demo', '/artist-globe/admin']
 
 function shouldTrack(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, '') || '/'

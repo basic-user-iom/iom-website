@@ -4,6 +4,7 @@ import { Hero } from './components/Hero'
 import { ProjectSectionBlock } from './components/ProjectSectionBlock'
 import { About } from './components/About'
 import { Footer } from './components/Footer'
+import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
 import { CrmApp } from './crm/CrmApp'
 import {
   disableCrmDemoMode,
@@ -43,6 +44,7 @@ export default function App() {
   const path = usePathname()
   const isClientLogin = path === '/client-login'
   const isCrmDemo = isCrmDemoPath(path)
+  const isArtistGlobe = isArtistGlobePath(path)
 
   syncCrmDemoFlag(isCrmDemo)
 
@@ -66,6 +68,10 @@ export default function App() {
     document.body.classList.toggle('crm-route', onCrm)
     return () => document.body.classList.remove('crm-route')
   }, [isClientLogin, isCrmDemo])
+
+  if (isArtistGlobe) {
+    return <ArtistGlobeApp />
+  }
 
   if (isClientLogin || isCrmDemo) {
     return (
