@@ -1,13 +1,15 @@
 export type ViewMode = 'list' | 'grid'
 
+const A = '/demo/icm'
+
 export type StillProject = {
   id: string
   title: string
   client: string
   year: string
-  imageCount: number
   aspect: 'portrait' | 'landscape' | 'square'
-  tone: string
+  cover: string
+  images: string[]
 }
 
 export type MotionProject = {
@@ -16,7 +18,7 @@ export type MotionProject = {
   role: string
   year: string
   duration: string
-  tone: string
+  cover: string
 }
 
 export type Exhibition = {
@@ -27,6 +29,8 @@ export type Exhibition = {
   mode: 'clouds' | 'editorial'
   photoCount: number
   blurb: string
+  cover: string
+  images: string[]
 }
 
 export const STILLS: StillProject[] = [
@@ -35,54 +39,54 @@ export const STILLS: StillProject[] = [
     title: 'Horizon Studies',
     client: 'Placeholder series',
     year: '2025',
-    imageCount: 12,
     aspect: 'landscape',
-    tone: '#c8c2b8',
+    cover: `${A}/still-01.jpg`,
+    images: [`${A}/still-01.jpg`, `${A}/g-01.jpg`, `${A}/g-05.jpg`, `${A}/g-07.jpg`],
   },
   {
     id: 'still-02',
     title: 'Portrait Room',
     client: 'Placeholder series',
     year: '2025',
-    imageCount: 8,
     aspect: 'portrait',
-    tone: '#b7b0a6',
+    cover: `${A}/still-02.jpg`,
+    images: [`${A}/still-02.jpg`, `${A}/g-10.jpg`, `${A}/g-11.jpg`, `${A}/g-12.jpg`],
   },
   {
     id: 'still-03',
     title: 'Night Roads',
     client: 'Placeholder series',
     year: '2024',
-    imageCount: 16,
     aspect: 'landscape',
-    tone: '#9a958c',
+    cover: `${A}/still-03.jpg`,
+    images: [`${A}/still-03.jpg`, `${A}/g-03.jpg`, `${A}/g-08.jpg`, `${A}/ex-03.jpg`],
   },
   {
     id: 'still-04',
     title: 'Studio Notes',
     client: 'Placeholder series',
     year: '2024',
-    imageCount: 6,
     aspect: 'square',
-    tone: '#d2cdc4',
+    cover: `${A}/still-04.jpg`,
+    images: [`${A}/still-04.jpg`, `${A}/g-09.jpg`, `${A}/g-12.jpg`, `${A}/g-10.jpg`],
   },
   {
     id: 'still-05',
     title: 'Coast Line',
     client: 'Placeholder series',
     year: '2023',
-    imageCount: 10,
     aspect: 'landscape',
-    tone: '#aea89f',
+    cover: `${A}/still-05.jpg`,
+    images: [`${A}/still-05.jpg`, `${A}/g-04.jpg`, `${A}/g-06.jpg`, `${A}/g-02.jpg`],
   },
   {
     id: 'still-06',
     title: 'Quiet Cities',
     client: 'Placeholder series',
     year: '2023',
-    imageCount: 14,
     aspect: 'portrait',
-    tone: '#8f8a82',
+    cover: `${A}/still-06.jpg`,
+    images: [`${A}/still-06.jpg`, `${A}/g-08.jpg`, `${A}/ex-02.jpg`, `${A}/g-01.jpg`],
   },
 ]
 
@@ -93,7 +97,7 @@ export const MOTION: MotionProject[] = [
     role: 'Director / DoP',
     year: '2025',
     duration: '02:40',
-    tone: '#1a1a1a',
+    cover: `${A}/motion-01.jpg`,
   },
   {
     id: 'motion-02',
@@ -101,7 +105,7 @@ export const MOTION: MotionProject[] = [
     role: 'Director',
     year: '2024',
     duration: '01:15',
-    tone: '#2a2a2a',
+    cover: `${A}/motion-02.jpg`,
   },
   {
     id: 'motion-03',
@@ -109,7 +113,7 @@ export const MOTION: MotionProject[] = [
     role: 'DoP',
     year: '2024',
     duration: '00:45',
-    tone: '#111111',
+    cover: `${A}/motion-03.jpg`,
   },
 ]
 
@@ -123,6 +127,8 @@ export const EXHIBITIONS: Exhibition[] = [
     photoCount: 360,
     blurb:
       'Enter through a WebGL sky. Drift between cloud clusters to open chapters, then browse each group in a calm gallery.',
+    cover: `${A}/clouds.jpg`,
+    images: [`${A}/clouds.jpg`, `${A}/g-04.jpg`, `${A}/g-01.jpg`, `${A}/g-05.jpg`, `${A}/g-06.jpg`],
   },
   {
     id: 'exhibition-02',
@@ -132,6 +138,8 @@ export const EXHIBITIONS: Exhibition[] = [
     mode: 'editorial',
     photoCount: 48,
     blurb: 'Placeholder for a large stills exhibition in scroll / chapter form.',
+    cover: `${A}/ex-02.jpg`,
+    images: [`${A}/ex-02.jpg`, `${A}/g-02.jpg`, `${A}/g-07.jpg`, `${A}/g-03.jpg`],
   },
   {
     id: 'exhibition-03',
@@ -141,5 +149,30 @@ export const EXHIBITIONS: Exhibition[] = [
     mode: 'editorial',
     photoCount: 72,
     blurb: 'Placeholder for another body of work presented as named sections.',
+    cover: `${A}/ex-03.jpg`,
+    images: [`${A}/ex-03.jpg`, `${A}/g-08.jpg`, `${A}/still-01.jpg`, `${A}/g-05.jpg`],
+  },
+]
+
+export const CLOUD_CHAPTERS = [
+  {
+    id: 'dawn',
+    title: 'Dawn',
+    images: [`${A}/clouds.jpg`, `${A}/g-01.jpg`, `${A}/g-05.jpg`, `${A}/still-05.jpg`],
+  },
+  {
+    id: 'midday',
+    title: 'Midday',
+    images: [`${A}/g-04.jpg`, `${A}/g-06.jpg`, `${A}/g-02.jpg`, `${A}/ex-02.jpg`],
+  },
+  {
+    id: 'storm',
+    title: 'Storm',
+    images: [`${A}/still-03.jpg`, `${A}/g-03.jpg`, `${A}/ex-03.jpg`, `${A}/g-08.jpg`],
+  },
+  {
+    id: 'dusk',
+    title: 'Dusk',
+    images: [`${A}/g-07.jpg`, `${A}/still-01.jpg`, `${A}/clouds.jpg`, `${A}/g-01.jpg`],
   },
 ]

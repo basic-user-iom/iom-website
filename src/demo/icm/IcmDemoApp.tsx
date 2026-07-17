@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent, type MouseEvent } from 'react'
 import { isIcmDemoUnlocked, lockIcmDemo, unlockIcmDemo } from './auth'
-import { EXHIBITIONS, MOTION, STILLS, type ViewMode } from './data'
+import { EXHIBITIONS, MOTION, STILLS, type StillProject, type ViewMode } from './data'
+import { CloudsScene } from './CloudsScene'
+import { Lightbox, type LightboxState } from './Lightbox'
 import './icm-demo.css'
 
 const BASE = '/demo/icm'
@@ -99,20 +101,31 @@ function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
   )
 }
 
-function StillPlaceholders({ mode }: { mode: ViewMode }) {
+function StillPlaceholders({
+  mode,
+  onOpen,
+}: {
+  mode: ViewMode
+  onOpen: (project: StillProject) => void
+}) {
   if (mode === 'grid') {
     return (
       <div className="icm-work-grid">
         {STILLS.map((item) => (
-          <article key={item.id} className="icm-work-card">
-            <div className="icm-work-card__frame" style={{ background: item.tone }}>
-              <div className="icm-work-item__placeholder">Image</div>
+          <button
+            key={item.id}
+            type="button"
+            className="icm-work-card icm-clickable"
+            onClick={() => onOpen(item)}
+          >
+            <div className="icm-work-card__frame">
+              <img className="icm-work-card__img" src={item.cover} alt="" loading="lazy" />
             </div>
             <p className="icm-work-card__title">{item.title}</p>
             <div className="icm-work-card__meta">
-              {item.imageCount} images · {item.year}
+              {item.images.length} images · {item.year}
             </div>
-          </article>
+          </button>
         ))}
       </div>
     )
@@ -122,14 +135,15 @@ function StillPlaceholders({ mode }: { mode: ViewMode }) {
     <div className="icm-work-list">
       {STILLS.map((item) => (
         <article key={item.id} className="icm-work-item">
-          <div className="icm-work-item__meta-left">{item.imageCount} Images</div>
+          <div className="icm-work-item__meta-left">{item.images.length} Images</div>
           <div>
-            <div
-              className={`icm-work-item__frame icm-work-item__frame--${item.aspect}`}
-              style={{ background: item.tone }}
+            <button
+              type="button"
+              className={`icm-work-item__frame icm-work-item__frame--${item.aspect} icm-clickable`}
+              onClick={() => onOpen(item)}
             >
-              <div className="icm-work-item__placeholder">Image placeholder</div>
-            </div>
+              <img className="icm-work-item__img" src={item.cover} alt="" loading="lazy" />
+            </button>
             <p className="icm-work-item__title">{item.title}</p>
           </div>
           <div className="icm-work-item__meta-right">
@@ -142,42 +156,26 @@ function StillPlaceholders({ mode }: { mode: ViewMode }) {
   )
 }
 
-function CloudsPage() {
-  const chapters = [
-    { title: 'Dawn', count: '72 photos' },
-    { title: 'Midday', count: '96 photos' },
-    { title: 'Storm', count: '84 photos' },
-    { title: 'Dusk', count: '108 photos' },
-  ]
-
+function CloudsPage({
+  onOpenChapter,
+}: {
+  onOpenChapter: (title: string, images: string[], imageIndex?: number) => void
+}) {
   return (
     <div className="icm-clouds">
-      <a className="icm-back" href={hrefFor('exhibitions')} onClick={(e) => {
-        e.preventDefault()
-        navigate(hrefFor('exhibitions'))
-      }}>
-        ← Exhibitions
-      </a>
-      <div className="icm-clouds__stage">
-        <div className="icm-clouds__drift icm-clouds__drift--a" />
-        <div className="icm-clouds__drift icm-clouds__drift--b" />
-        <div className="icm-clouds__drift icm-clouds__drift--c" />
-        <div className="icm-clouds__overlay">
-          <h1>Clouds</h1>
-          <p>
-            WebGL sky navigation comes next. For now: atmospheric stub + chapter entry points.
-            Opening a chapter will lead to a normal gallery of that group.
-          </p>
-        </div>
+      <div className="icm-clouds__back-wrap">
+        <a
+          className="icm-back"
+          href={hrefFor('exhibitions')}
+          onClick={(e) => {
+            e.preventDefault()
+            navigate(hrefFor('exhibitions'))
+          }}
+        >
+          ← Exhibitions
+        </a>
       </div>
-      <div className="icm-clouds__chapters">
-        {chapters.map((c) => (
-          <button key={c.title} type="button" className="icm-clouds__chapter">
-            <strong>{c.title}</strong>
-            <span>{c.count} · gallery soon</span>
-          </button>
-        ))}
-      </div>
+      <CloudsScene onOpenChapter={onOpenChapter} />
     </div>
   )
 }
@@ -188,6 +186,7 @@ export function IcmDemoApp() {
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [menuOpen, setMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [lightbox, setLightbox] = useState<LightboxState | null>(null)
 
   const page = useMemo(() => parsePage(path), [path])
   const showViewToggle = page === 'home' || page === 'stills'
@@ -215,6 +214,10 @@ export function IcmDemoApp() {
     window.scrollTo(0, 0)
   }, [page])
 
+  const openGallery = (title: string, images: string[], index = 0) => {
+    setLightbox({ title, images, index })
+  }
+
   if (!unlocked) {
     return <PasswordGate onUnlock={() => setUnlocked(true)} />
   }
@@ -227,7 +230,7 @@ export function IcmDemoApp() {
   const activeNav = page === 'clouds' ? 'exhibitions' : page
 
   return (
-    <div className="icm-app">
+    <div className={`icm-app${page === 'clouds' ? ' icm-app--clouds' : ''}`}>
       <header className={`icm-header${scrolled ? ' icm-header--scrolled' : ''}`}>
         <a className="icm-brand" href={BASE} onClick={go('home')}>
           ICM
@@ -295,9 +298,12 @@ export function IcmDemoApp() {
           <>
             <div className="icm-page-intro">
               <h1>Selected work</h1>
-              <p>Placeholder stills for the ICM preview. Replace with client photography via the image prep flow.</p>
+              <p>Click any image to open the series. Sample stock photos for layout preview only.</p>
             </div>
-            <StillPlaceholders mode={viewMode} />
+            <StillPlaceholders
+              mode={viewMode}
+              onOpen={(p) => openGallery(p.title, p.images)}
+            />
           </>
         )}
 
@@ -305,9 +311,12 @@ export function IcmDemoApp() {
           <>
             <div className="icm-page-intro">
               <h1>Stills</h1>
-              <p>Series placeholders — list and grid views, GSP-quiet layout.</p>
+              <p>Click a series to browse. List and grid use the same galleries.</p>
             </div>
-            <StillPlaceholders mode={viewMode} />
+            <StillPlaceholders
+              mode={viewMode}
+              onOpen={(p) => openGallery(p.title, p.images)}
+            />
           </>
         )}
 
@@ -315,17 +324,22 @@ export function IcmDemoApp() {
           <>
             <div className="icm-page-intro">
               <h1>Motion</h1>
-              <p>Film and directed work. Placeholders until cuts and embeds are provided.</p>
+              <p>Poster frames for now — click to enlarge. Film embeds come later.</p>
             </div>
             <div className="icm-motion-list">
               {MOTION.map((item) => (
                 <article key={item.id} className="icm-motion-item">
-                  <div className="icm-motion-item__frame" style={{ background: item.tone }}>
-                    <div className="icm-motion-item__placeholder">
-                      <span>Film placeholder</span>
+                  <button
+                    type="button"
+                    className="icm-motion-item__frame icm-clickable"
+                    onClick={() => openGallery(item.title, [item.cover])}
+                  >
+                    <img className="icm-motion-item__img" src={item.cover} alt="" loading="lazy" />
+                    <div className="icm-motion-item__play">
+                      <span>View still</span>
                       <span>{item.duration}</span>
                     </div>
-                  </div>
+                  </button>
                   <div className="icm-motion-item__meta">
                     <strong>{item.title}</strong>
                     <span>
@@ -342,11 +356,21 @@ export function IcmDemoApp() {
           <>
             <div className="icm-page-intro">
               <h1>Exhibitions</h1>
-              <p>Large bodies of work as chapters. Clouds uses 3D sky navigation; others stay editorial.</p>
+              <p>Clouds opens the sky chapter. Other exhibitions open sample galleries.</p>
             </div>
             <div className="icm-exhibit-list">
               {EXHIBITIONS.map((ex) => (
                 <article key={ex.id} className="icm-exhibit-row">
+                  <button
+                    type="button"
+                    className="icm-exhibit-row__thumb icm-clickable"
+                    onClick={() => {
+                      if (ex.mode === 'clouds') navigate(hrefFor('clouds'))
+                      else openGallery(ex.title, ex.images)
+                    }}
+                  >
+                    <img className="icm-exhibit-row__img" src={ex.cover} alt="" loading="lazy" />
+                  </button>
                   <div>
                     <h2>{ex.title}</h2>
                     <p className="icm-exhibit-row__sub">
@@ -363,9 +387,13 @@ export function IcmDemoApp() {
                       Enter
                     </a>
                   ) : (
-                    <span className="icm-exhibit-row__cta" style={{ opacity: 0.45 }}>
-                      Soon
-                    </span>
+                    <button
+                      type="button"
+                      className="icm-exhibit-row__cta"
+                      onClick={() => openGallery(ex.title, ex.images)}
+                    >
+                      Open
+                    </button>
                   )}
                 </article>
               ))}
@@ -373,7 +401,13 @@ export function IcmDemoApp() {
           </>
         )}
 
-        {page === 'clouds' && <CloudsPage />}
+        {page === 'clouds' && (
+          <CloudsPage
+            onOpenChapter={(title, images, imageIndex) =>
+              openGallery(`Clouds — ${title}`, images, imageIndex ?? 0)
+            }
+          />
+        )}
 
         {page === 'about' && (
           <>
@@ -386,8 +420,8 @@ export function IcmDemoApp() {
                 portfolio shaped around stills, motion, and large exhibitions.
               </p>
               <p>
-                Copy, portrait, and credits will replace this text. The site shell is ready for
-                client images once they are prepared (EXIF stripped, resized, compressed).
+                Images here are temporary stock placeholders so you can judge layout and interaction.
+                Client photography will replace them after EXIF strip, resize, and compress.
               </p>
             </div>
           </>
@@ -415,24 +449,34 @@ export function IcmDemoApp() {
         )}
       </main>
 
-      <footer className="icm-footer">
-        <span>ICM · private demo</span>
-        <span>
-          <a href="/tools/image-prep" onClick={(e) => e.preventDefault()} title="Coming next">
-            Prep images
-          </a>
-          {' · '}
-          <button
-            type="button"
-            onClick={() => {
-              lockIcmDemo()
-              setUnlocked(false)
-            }}
-          >
-            Lock
-          </button>
-        </span>
-      </footer>
+      {page !== 'clouds' ? (
+        <footer className="icm-footer">
+          <span>ICM · private demo</span>
+          <span>
+            <a href="/tools/image-prep" onClick={(e) => e.preventDefault()} title="Coming next">
+              Prep images
+            </a>
+            {' · '}
+            <button
+              type="button"
+              onClick={() => {
+                lockIcmDemo()
+                setUnlocked(false)
+              }}
+            >
+              Lock
+            </button>
+          </span>
+        </footer>
+      ) : null}
+
+      {lightbox ? (
+        <Lightbox
+          state={lightbox}
+          onClose={() => setLightbox(null)}
+          onIndex={(index) => setLightbox((prev) => (prev ? { ...prev, index } : prev))}
+        />
+      ) : null}
     </div>
   )
 }

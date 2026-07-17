@@ -815,6 +815,8 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     },
   ]
 
+  // Blog sandbox — mirrors live CRM Blog tabs (Posts / Comments / Emails).
+  // Public /blog stays “Coming soon” until BLOG_PUBLIC_ENABLED; demo still drafts here.
   const blogPost1: BlogPost = {
     id: 'demo-blog-360-showrooms',
     slug: 'browser-360-showrooms-that-convert',
@@ -831,11 +833,11 @@ Trade visitors remember experiences. A guided [360° panorama](/demos/panorama-3
 - Short narration or captions — not a wall of text
 - Fast loads on mid-range phones
 
-## Internal next steps
+## Internal links (SEO)
 
-Explore our [interactive work](/#interactive) or [get in touch](/#contact) if you want a showroom scoped for your next event.
+Explore our [360 Tours](/#360) work or [get in touch](/#contact) if you want a showroom for your next event.
 
-DEMO SAMPLE — fictional editorial for CRM sandbox.`,
+DEMO SAMPLE — fictional editorial for CRM Blog sandbox.`,
     cover_image_url: '',
     status: 'published',
     published_at: daysAgo(5, 11),
@@ -854,10 +856,10 @@ DEMO SAMPLE — fictional editorial for CRM sandbox.`,
     slug: 'case-study-guided-museum-companion',
     title: 'Case study: guided museum companion',
     excerpt:
-      'A fictional walkthrough of how a spatial web companion helped Copper Lantern Museum extend visits beyond the gallery floor.',
+      'How a spatial web companion for Copper Lantern Museums extended visits beyond the gallery floor (fictional case study tied to the demo lead).',
     body: `## The brief
 
-Copper Lantern needed a **browser companion** visitors could open on their phones — waypoints, short stories, and a calm visual language.
+[Copper Lantern Museums](/crm-demo) (demo lead) needed a **browser companion** visitors could open on their phones — waypoints, short stories, and a calm visual language.
 
 ## What we shipped
 
@@ -869,9 +871,9 @@ Copper Lantern needed a **browser companion** visitors could open on their phone
 
 Dwell time on featured exhibits rose; staff reported fewer “where do I go next?” questions.
 
-See more [immersive projects](/#immersive) or [contact IOM](/#contact).
+See [3D work](/#3d) or [contact IOM](/#contact).
 
-DEMO SAMPLE — fictional case study.`,
+DEMO SAMPLE — case study style post for Blog → Posts.`,
     cover_image_url: '',
     status: 'published',
     published_at: daysAgo(12, 15),
@@ -897,11 +899,15 @@ DEMO SAMPLE — fictional case study.`,
 
 - Product launches that need motion without video files
 - Spatial identity moments on a landing page
-- Live audio-reactive visuals (see our ocean / FFT experiments)
+- Live audio-reactive visuals (see [FFT ocean](/demos/fft-ocean/) and music experiments)
 
-Draft in progress — link to a [project](/#interactive) or CTA when you publish.
+## Before publish
 
-DEMO SAMPLE — draft article.`,
+- Add internal links to [Experiments](/#experiments) and a CTA to [/#contact](/#contact)
+- Fill SEO title + description in the Blog editor
+- Public site stays **Coming soon** until staff flip \`BLOG_PUBLIC_ENABLED\`
+
+DEMO SAMPLE — draft waiting in Blog → Posts.`,
     cover_image_url: '',
     status: 'draft',
     published_at: null,
@@ -913,6 +919,38 @@ DEMO SAMPLE — draft article.`,
     owner_id: guide,
     created_at: daysAgo(2, 16),
     updated_at: daysAgo(1, 12),
+  }
+
+  const blogPost4: BlogPost = {
+    id: 'demo-blog-internal-links',
+    slug: 'how-we-use-the-iom-journal-for-seo',
+    title: 'How we use the IOM Journal for SEO',
+    excerpt:
+      'Short playbook: case studies, service explainers, and verified comments that grow an email list without publishing addresses.',
+    body: `## Why a studio blog
+
+Search and AI answers reward useful depth. The Journal is where we publish:
+
+1. Service explainers (360°, WebGL, immersive)
+2. Client-style success stories
+3. Field notes with links into [demos](/demos/panorama-360/) and [/#contact](/#contact)
+
+## Comment emails stay private
+
+Readers must verify a real email. Addresses never appear on the public page — they land in **Blog → Emails** for the team.
+
+DEMO SAMPLE — SEO / process post for Blog sandbox.`,
+    cover_image_url: '',
+    status: 'published',
+    published_at: daysAgo(8, 10),
+    seo_title: 'How we use the IOM Journal for SEO — IOM',
+    seo_description:
+      'How IOM uses case studies, service articles, and private verified comments to support search and lead capture.',
+    author_name: 'IOM',
+    tags: ['SEO', 'journal', 'process'],
+    owner_id: guide,
+    created_at: daysAgo(9, 9),
+    updated_at: daysAgo(8, 10),
   }
 
   const blogComments: BlogCommentAdmin[] = [
@@ -955,6 +993,45 @@ DEMO SAMPLE — draft article.`,
       marketing_opt_in: true,
       verify_expires_at: null,
     },
+    {
+      id: 'demo-blog-c4',
+      post_id: blogPost4.id,
+      parent_id: null,
+      author_name: 'Jordan Blake',
+      author_email: 'jordan.blake@northwind-arcade.example',
+      body: 'Useful SEO framing — do you publish drafts to CRM only before the public Journal goes live?',
+      created_at: hoursAgo(6),
+      status: 'pending_moderation',
+      email_verified_at: hoursAgo(6),
+      marketing_opt_in: true,
+      verify_expires_at: null,
+    },
+    {
+      id: 'demo-blog-c5',
+      post_id: blogPost1.id,
+      parent_id: null,
+      author_name: 'Botty McSpam',
+      author_email: 'promo@cheap-leads.example',
+      body: 'Buy followers cheap!!! http://spam.example http://spam2.example http://spam3.example',
+      created_at: daysAgo(4, 9),
+      status: 'spam',
+      email_verified_at: null,
+      marketing_opt_in: false,
+      verify_expires_at: null,
+    },
+    {
+      id: 'demo-blog-c6',
+      post_id: blogPost4.id,
+      parent_id: null,
+      author_name: 'Mei Chen',
+      author_email: 'mei.chen@tideframe.example',
+      body: 'Clicked comment but have not confirmed email yet — should stay hidden until verify.',
+      created_at: hoursAgo(2),
+      status: 'pending_verify',
+      email_verified_at: null,
+      marketing_opt_in: false,
+      verify_expires_at: new Date(Date.now() + 48 * 3600_000).toISOString(),
+    },
   ]
 
   const blogAudience: BlogAudience[] = [
@@ -966,7 +1043,7 @@ DEMO SAMPLE — draft article.`,
       marketing_opt_in: false,
       verified_at: daysAgo(3, 14),
       last_comment_at: daysAgo(3, 14),
-      notes: '',
+      notes: 'Event / trade-show contact — comment only, no marketing opt-in',
       created_at: daysAgo(3, 14),
     },
     {
@@ -977,8 +1054,30 @@ DEMO SAMPLE — draft article.`,
       marketing_opt_in: true,
       verified_at: daysAgo(1, 11),
       last_comment_at: daysAgo(1, 11),
-      notes: 'Interested in a11y follow-up post',
+      notes: 'Wants a11y follow-up post — marketing opt-in from comment checkbox',
       created_at: daysAgo(1, 11),
+    },
+    {
+      id: 'demo-aud-3',
+      email: 'jordan.blake@northwind-arcade.example',
+      name: 'Jordan Blake',
+      source: 'comment',
+      marketing_opt_in: true,
+      verified_at: hoursAgo(6),
+      last_comment_at: hoursAgo(6),
+      notes: 'Also a Leads demo contact (Northwind) — keep Blog list separate from sales pipeline',
+      created_at: hoursAgo(6),
+    },
+    {
+      id: 'demo-aud-4',
+      email: 'press@museum-partners.example',
+      name: 'Museum Partners Press',
+      source: 'manual',
+      marketing_opt_in: true,
+      verified_at: daysAgo(7, 12),
+      last_comment_at: null,
+      notes: 'Added manually in Blog → Emails for launch announcement list',
+      created_at: daysAgo(7, 12),
     },
   ]
 
@@ -998,7 +1097,7 @@ DEMO SAMPLE — draft article.`,
     [DEMO_KEYS.maps]: [mindMap, mindMap2],
     [DEMO_KEYS.nodes]: nodes,
     [DEMO_KEYS.notes]: researchNotes,
-    [DEMO_KEYS.blogPosts]: [blogPost1, blogPost2, blogPost3],
+    [DEMO_KEYS.blogPosts]: [blogPost1, blogPost2, blogPost3, blogPost4],
     [DEMO_KEYS.blogComments]: blogComments,
     [DEMO_KEYS.blogAudience]: blogAudience,
   }

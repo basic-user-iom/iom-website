@@ -232,7 +232,15 @@ export type ResearchNoteInput = Pick<
   'title' | 'body' | 'lead_id' | 'project_id'
 >
 
-export type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes' | 'blog'
+export type CrmSection =
+  | 'leads'
+  | 'projects'
+  | 'time'
+  | 'ideas'
+  | 'notes'
+  | 'blog'
+  | 'demos'
+  | 'seo'
 
 export type LeadInput = Omit<
   Lead,

@@ -144,6 +144,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Zeit',
     'nav.ideas': 'Ideen',
     'nav.notes': 'Notizen',
+    'nav.demos': 'Demo',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':
@@ -335,6 +336,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Tijd',
     'nav.ideas': 'Ideeën',
     'nav.notes': 'Notities',
+    'nav.demos': 'Demo',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':
@@ -526,6 +528,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Temps',
     'nav.ideas': 'Idées',
     'nav.notes': 'Notes',
+    'nav.demos': 'Demo',
 
     'time.timerTitle': 'Minuteur',
     'time.timerBlurb':
@@ -717,6 +720,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Tempo',
     'nav.ideas': 'Idee',
     'nav.notes': 'Note',
+    'nav.demos': 'Demo',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':

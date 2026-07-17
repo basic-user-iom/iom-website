@@ -31,6 +31,7 @@ import {
 import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
 import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
+import { DemosView } from './DemosView'
 import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
@@ -69,7 +70,15 @@ import { collectOwnerOptions } from './types'
 import './crm.css'
 
 type View = 'list' | 'create'
-type CrmSection = 'leads' | 'projects' | 'time' | 'ideas' | 'notes' | 'seo' | 'blog'
+type CrmSection =
+  | 'leads'
+  | 'projects'
+  | 'time'
+  | 'ideas'
+  | 'notes'
+  | 'blog'
+  | 'demos'
+  | 'seo'
 
 interface CrmAppProps {
   /** Public sandbox — sample data only, no live CRM backend. */
@@ -601,7 +610,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ? t('nav.seo')
               : section === 'blog'
                 ? t('nav.blog')
-                : t('topbar.title')
+                : section === 'demos'
+                  ? t('nav.demos')
+                  : t('topbar.title')
 
   return (
     <div
@@ -673,7 +684,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
-              ['blog', 'nav.blog'],
+              ['demos', 'nav.demos'],
             ] as const
           ).map(([id, key]) => (
             <button
@@ -687,13 +698,22 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           ))}
         </div>
         <div className="crm-section-nav-right">
-          <button
-            type="button"
-            className={`crm-section-tab crm-section-tab--seo${section === 'seo' ? ' is-active' : ''}`}
-            onClick={() => setSection('seo')}
-          >
-            {t('nav.seo')}
-          </button>
+          <div className="crm-section-nav-tools" role="group" aria-label={t('nav.toolsAria')}>
+            <button
+              type="button"
+              className={`crm-section-tab${section === 'blog' ? ' is-active' : ''}`}
+              onClick={() => setSection('blog')}
+            >
+              {t('nav.blog')}
+            </button>
+            <button
+              type="button"
+              className={`crm-section-tab crm-section-tab--seo${section === 'seo' ? ' is-active' : ''}`}
+              onClick={() => setSection('seo')}
+            >
+              {t('nav.seo')}
+            </button>
+          </div>
           <CrmMusicPlayer />
         </div>
       </nav>
@@ -927,6 +947,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       )}
 
       {section === 'blog' && <BlogView />}
+
+      {section === 'demos' && <DemosView />}
 
       {section === 'seo' && <SeoView demo={demoMode} />}
     </div>

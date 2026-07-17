@@ -137,7 +137,7 @@ const en: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM Demo',
   'demo.banner':
-    'Interactive sample workspace with fictional companies. Try Email conversation (e.g. Copper Lantern), Compose reply, and Log client reply — all simulated in this browser. Nothing touches live clients or real inboxes.',
+    'Interactive sample workspace with fictional companies. Try Email conversation (e.g. Copper Lantern), Blog (posts / comments / emails), and Log client reply — all simulated in this browser. Nothing touches live clients or real inboxes.',
   'demo.reset': 'Reset sample data',
   'demo.exit': 'Exit demo',
 
@@ -255,7 +255,21 @@ const en: Dict = {
   'nav.ideas': 'Ideas',
   'nav.notes': 'Notes',
   'nav.blog': 'Blog',
+  'nav.demos': 'Demo',
   'nav.seo': 'IOM-SEO',
+  'nav.toolsAria': 'Blog and SEO',
+
+  'demos.kicker': 'Private client demos',
+  'demos.title': 'Demo',
+  'demos.intro':
+    'Demos we build for clients that are not on the public site. Password-gated links for pitches and reviews.',
+  'demos.open': 'Open demo',
+  'demos.openLocal': 'Open on this site',
+  'demos.url': 'Website',
+  'demos.password': 'Password',
+  'demos.status.preview': 'Preview',
+  'demos.status.draft': 'Draft',
+  'demos.status.live': 'Live',
 
   'seo.kicker': 'Website',
   'seo.title': 'SEO & traffic',
@@ -476,7 +490,7 @@ const en: Dict = {
   'blog.tabComments': 'Comments',
   'blog.tabEmails': 'Emails',
   'blog.postsHint':
-    'Write articles that promote services, case studies, and field topics. Link to demos and /#contact for SEO.',
+    'Write articles that promote services, case studies, and field topics. Link to demos and /#contact for SEO. Public /blog stays Coming soon until BLOG_PUBLIC_ENABLED is turned on.',
   'blog.newPost': '+ New post',
   'blog.demoComment': 'Add sample comment',
   'blog.untitled': 'Untitled',
@@ -780,23 +794,31 @@ const en: Dict = {
   'guide.gotIt': 'Got it',
   'guide.whatHeading': 'What this tool is',
   'guide.whatText':
-    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
+    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, public Journal (Blog), and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
   'guide.what1':
     'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, Email conversation, activity log',
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
   'guide.what3': 'Time — start/stop timers, manual entries, and reports',
   'guide.what4': 'Ideas — mind maps standalone or linked to a lead / project',
   'guide.what5': 'Notes — long-form research lists (artists, markets, follow-ups) with sections and links',
-  'guide.what6': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
+  'guide.what6':
+    'Demo — private client demos not listed on the public site (password links for pitches)',
+  'guide.what7':
+    'Blog — Journal posts, comment moderation, and a private blog email list (addresses never shown publicly)',
+  'guide.what8': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
   'guide.navHeading': 'Navigation',
   'guide.navText':
-    'Tabs under the header: Leads | Projects | Time | Ideas | Notes, plus SEO on the right.',
+    'Tabs under the header: Leads | Projects | Time | Ideas | Notes | Demo; Blog and SEO sit on the right (before the music player).',
   'guide.nav1': 'Leads — Salesforce-style CRM for potential clients',
   'guide.nav2': 'Projects — Monday-style boards for delivery work',
   'guide.nav3': 'Time — Clockify-style timers, logs, and reports',
   'guide.nav4': 'Ideas — MindMeister-style maps for brainstorming',
   'guide.nav5': 'Notes — research documents with sections, clickable links, and ChatGPT assist',
-  'guide.nav6': 'SEO — content inventory, search upgrades, and analytics (live traffic when signed in; sample data in demo)',
+  'guide.nav6':
+    'Demo — catalogue of private client demos (e.g. ICM) not on the public homepage',
+  'guide.nav7':
+    'Blog — write/publish Journal posts, moderate verified comments, manage blog emails',
+  'guide.nav8': 'SEO — content inventory, search upgrades, and analytics (live traffic when signed in; sample data in demo)',
   'guide.leadHeading': 'Leads — what is a lead?',
   'guide.leadText':
     'A lead is a potential client or contact you are trying to win — not a closed deal yet.',
@@ -943,6 +965,40 @@ const en: Dict = {
     'ChatGPT note assist (Edit): copy prompt, paste JSON, Load into note — review in Preview, then autosave',
   'guide.notes5':
     'Format: intro paragraph, then ## Name, URL on next line, then your monitoring notes per section',
+  'guide.demosHeading': 'Demo (private client sites)',
+  'guide.demosText':
+    'A short catalogue of demos built for clients that stay off the public portfolio — open links, share passwords, track pitch status.',
+  'guide.demos1':
+    'ICM is the first entry: https://iobjectm.com/demo/icm (password in the card)',
+  'guide.demos2':
+    'Use Open demo for the live URL; Open on this site for the same path on the current host',
+  'guide.demos3':
+    'Add more client demos here as you build them — they should not appear in the public Experiments list',
+  'guide.blogHeading': 'Blog (IOM Journal)',
+  'guide.blogText':
+    'Author public Journal posts from CRM, moderate comments that require a verified email (never shown on the site), and keep a separate Blog email list — not the same as sales Leads.',
+  'guide.blog1':
+    'Posts — draft or publish Markdown articles with slug, excerpt, SEO title/description, tags, and cover URL',
+  'guide.blog2':
+    'Link into demos and /#contact for SEO; required excerpt powers listings and meta',
+  'guide.blog3':
+    'Comments — readers confirm email via magic link; first comments wait for Approve / Reject / Spam',
+  'guide.blog4':
+    'Emails — verified commenters land here; marketing opt-in only if they checked the box',
+  'guide.blog5':
+    'Public /blog stays Coming soon until you set BLOG_PUBLIC_ENABLED = true in src/blog/publicFlags.ts and redeploy',
+  'guide.blogDemoText':
+    'In this demo, Blog uses fictional posts, comments, and emails only. Reset sample data restores them. Nothing is published to the live Journal.',
+  'guide.blogDemo1':
+    'Open Blog → Posts: sample published articles plus a draft (WebGPU particles)',
+  'guide.blogDemo2':
+    'Comments tab: try Approve on Pending moderation; filter Spam / Pending email verify',
+  'guide.blogDemo3':
+    'Emails tab: commenter list + a manually added press contact; notes are editable',
+  'guide.blogDemo4':
+    'Add sample comment creates a new pending item on a published post',
+  'guide.blogDemo5':
+    'View opens /blog/… locally; production Journal stays Coming soon until staff enable it',
   'guide.seoHeading': 'SEO & analytics',
   'guide.seoText':
     'The SEO tab tracks site content readiness and visitor traffic — the same tools staff use after login.',
@@ -964,7 +1020,7 @@ const en: Dict = {
   'guide.ui2':
     'Flag button: staff CRM switches English ↔ Serbian; the public demo offers EN · DE · NL · FR · IT',
   'guide.hint':
-    'Tabs: Leads · Projects · Time · Ideas · Notes · SEO. Help reopens this guide. Flag switches language.',
+    'Tabs: Leads · Projects · Time · Ideas · Notes · Demo — Blog · SEO on the right. Help reopens this guide. Flag switches language.',
 }
 
 const sr: Dict = {
@@ -1079,7 +1135,7 @@ const sr: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM demo',
   'demo.banner':
-    'Interaktivni uzorak sa izmišljenim firmama. Isprobajte Email konverzaciju (npr. Copper Lantern), Napiši odgovor i Zabeleži odgovor klijenta — sve je simulacija u ovom pregledaču. Ništa ne dira žive klijente ni prave sandučiće.',
+    'Interaktivni uzorak sa izmišljenim firmama. Isprobajte Email konverzaciju (npr. Copper Lantern), Blog (članci / komentari / emailovi) i Zabeleži odgovor klijenta — sve je simulacija u ovom pregledaču. Ništa ne dira žive klijente ni prave sandučiće.',
   'demo.reset': 'Resetuj uzorke',
   'demo.exit': 'Izađi iz dema',
 
@@ -1197,7 +1253,21 @@ const sr: Dict = {
   'nav.ideas': 'Ideje',
   'nav.notes': 'Beleške',
   'nav.blog': 'Blog',
+  'nav.demos': 'Demo',
   'nav.seo': 'IOM-SEO',
+  'nav.toolsAria': 'Blog i SEO',
+
+  'demos.kicker': 'Privatni demoi za klijente',
+  'demos.title': 'Demo',
+  'demos.intro':
+    'Demoi koje gradimo za klijente, a nisu na javnom sajtu. Linkovi sa lozinkom za pitch i pregled.',
+  'demos.open': 'Otvori demo',
+  'demos.openLocal': 'Otvori na ovom sajtu',
+  'demos.url': 'Vebsajt',
+  'demos.password': 'Lozinka',
+  'demos.status.preview': 'Pregled',
+  'demos.status.draft': 'Nacrt',
+  'demos.status.live': 'Uživo',
 
   'seo.kicker': 'Veb sajt',
   'seo.title': 'SEO i saobraćaj',
@@ -1421,7 +1491,7 @@ const sr: Dict = {
   'blog.tabComments': 'Komentari',
   'blog.tabEmails': 'Emailovi',
   'blog.postsHint':
-    'Pišite članke o uslugama, case study-ima i temi. Linkujte na demo i /#contact zbog SEO-a.',
+    'Pišite članke o uslugama, case study-ima i temi. Linkujte na demo i /#contact zbog SEO-a. Javni /blog ostaje Coming soon dok se ne uključi BLOG_PUBLIC_ENABLED.',
   'blog.newPost': '+ Novi članak',
   'blog.demoComment': 'Dodaj demo komentar',
   'blog.untitled': 'Bez naslova',
@@ -1726,23 +1796,31 @@ const sr: Dict = {
   'guide.gotIt': 'Razumem',
   'guide.whatHeading': 'Šta je ovaj alat',
   'guide.whatText':
-    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
+    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške, javni Journal (Blog) i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
   'guide.what1':
     'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, Email konverzacija, dnevnik aktivnosti',
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
   'guide.what3': 'Vreme — start/stop tajmeri, ručni unosi i izveštaji',
   'guide.what4': 'Ideje — mape uma samostalno ili povezane sa leadom / projektom',
   'guide.what5': 'Beleške — istraživačke liste (umetnici, tržišta, follow-up) sa sekcijama i linkovima',
-  'guide.what6': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
+  'guide.what6':
+    'Demo — privatni demoi za klijente koji nisu na javnom sajtu (linkovi sa lozinkom za pitch)',
+  'guide.what7':
+    'Blog — Journal članci, moderacija komentara i privatna blog email lista (adrese se ne prikazuju javno)',
+  'guide.what8': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
   'guide.navHeading': 'Navigacija',
   'guide.navText':
-    'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške, plus SEO desno.',
+    'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške | Demo; Blog i SEO su desno (ispred muzičkog plejera).',
   'guide.nav1': 'Leadovi — CRM u Salesforce stilu za potencijalne klijente',
   'guide.nav2': 'Projekti — table u Monday stilu za rad na isporuci',
   'guide.nav3': 'Vreme — tajmeri, unosi i izveštaji u Clockify stilu',
   'guide.nav4': 'Ideje — mape uma u MindMeister stilu za brainstorming',
   'guide.nav5': 'Beleške — istraživački dokumenti sa sekcijama, linkovima i ChatGPT pomoći',
   'guide.nav6':
+    'Demo — katalog privatnih demoa za klijente (npr. ICM) koji nisu na javnoj početnoj',
+  'guide.nav7':
+    'Blog — pisanje/objava Journal članaka, moderacija verifikovanih komentara, blog emailovi',
+  'guide.nav8':
     'SEO — inventar sadržaja, SEO unapređenja i analitika (živi saobraćaj kad ste prijavljeni; uzorak u demu)',
   'guide.leadHeading': 'Leadovi — šta je lead?',
   'guide.leadText':
@@ -1890,6 +1968,40 @@ const sr: Dict = {
     'ChatGPT pomoć (Izmena): kopiraj prompt, nalepi JSON, Učitaj u belešku — proverite u Pregledu, autosave',
   'guide.notes5':
     'Format: uvod, zatim ## Ime, URL u sledećem redu, zatim beleške za praćenje po sekciji',
+  'guide.demosHeading': 'Demo (privatni klijentski sajtovi)',
+  'guide.demosText':
+    'Kratak katalog demoa za klijente koji ostaju van javnog portfolija — otvorite linkove, delite lozinke, pratite status pitch-a.',
+  'guide.demos1':
+    'ICM je prvi unos: https://iobjectm.com/demo/icm (lozinka je na kartici)',
+  'guide.demos2':
+    'Otvori demo za živi URL; Otvori na ovom sajtu za isti path na trenutnom hostu',
+  'guide.demos3':
+    'Dodajte nove klijentske demoe ovde kako ih gradite — ne treba da budu u javnoj listi Experiments',
+  'guide.blogHeading': 'Blog (IOM Journal)',
+  'guide.blogText':
+    'Pišite javne Journal članke iz CRM-a, moderišite komentare koji zahtevaju verifikovan email (nikad na sajtu) i vodite posebnu Blog email listu — nije isto što i Leadovi za prodaju.',
+  'guide.blog1':
+    'Članci — nacrt ili objava Markdown tekstova sa slugom, izvodom, SEO naslovom/opisom, tagovima i cover URL-om',
+  'guide.blog2':
+    'Linkujte na demo i /#contact zbog SEO-a; obavezan izvod ide u liste i meta',
+  'guide.blog3':
+    'Komentari — čitaoci potvrđuju email magic linkom; prvi komentari čekaju Odobri / Odbij / Spam',
+  'guide.blog4':
+    'Emailovi — verifikovani komentatori idu ovde; marketing opt-in samo ako su čekirali polje',
+  'guide.blog5':
+    'Javni /blog ostaje Coming soon dok ne postavite BLOG_PUBLIC_ENABLED = true u src/blog/publicFlags.ts i ponovo deploy-ujete',
+  'guide.blogDemoText':
+    'U ovom demu Blog koristi samo izmišljene članke, komentare i emailove. Reset uzoraka ih vraća. Ništa se ne objavljuje na živom Journal-u.',
+  'guide.blogDemo1':
+    'Otvorite Blog → Članci: uzorak objavljenih tekstova plus nacrt (WebGPU particles)',
+  'guide.blogDemo2':
+    'Kartica Komentari: Odobri na Čeka moderaciju; filter Spam / Čeka email verifikaciju',
+  'guide.blogDemo3':
+    'Kartica Emailovi: lista komentatora + ručno dodat press kontakt; beleške se menjaju',
+  'guide.blogDemo4':
+    'Dodaj demo komentar kreira novu stavku na čekanju na objavljenom članku',
+  'guide.blogDemo5':
+    'Pogledaj otvara /blog/… lokalno; produkcijski Journal ostaje Coming soon dok staff ne uključi',
   'guide.seoHeading': 'SEO i analitika',
   'guide.seoText':
     'Kartica SEO prati spremnost sadržaja sajta i saobraćaj posetilaca — isti alati koje zaposleni koriste posle prijave.',
@@ -1911,7 +2023,7 @@ const sr: Dict = {
   'guide.ui2':
     'Zastava: staff CRM prebacuje Engleski ↔ Srpski; javni demo nudi EN · DE · NL · FR · IT',
   'guide.hint':
-    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške · SEO. Pomoć ponovo otvara vodič. Zastava menja jezik.',
+    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške · Demo — Blog · SEO desno. Pomoć ponovo otvara vodič. Zastava menja jezik.',
 }
 
 const dictionaries: Record<'en' | 'sr', Dict> = { en, sr }
