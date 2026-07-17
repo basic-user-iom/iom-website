@@ -118,13 +118,10 @@ function StillPlaceholders({
             className="icm-work-card icm-clickable"
             onClick={() => onOpen(item)}
           >
-            <div className={`icm-work-card__frame icm-work-card__frame--${item.aspect}`}>
+            <div className="icm-work-card__frame">
               <img className="icm-work-card__img" src={item.cover} alt="" loading="lazy" />
             </div>
             <p className="icm-work-card__title">{item.title}</p>
-            <div className="icm-work-card__meta">
-              {item.images.length} images · {item.year}
-            </div>
           </button>
         ))}
       </div>
@@ -136,16 +133,14 @@ function StillPlaceholders({
       {STILLS.map((item) => (
         <article key={item.id} className="icm-work-item">
           <div className="icm-work-item__meta-left">{item.images.length} Images</div>
-          <div>
-            <button
-              type="button"
-              className={`icm-work-item__frame icm-work-item__frame--${item.aspect} icm-clickable`}
-              onClick={() => onOpen(item)}
-            >
-              <img className="icm-work-item__img" src={item.cover} alt="" loading="lazy" />
-            </button>
-            <p className="icm-work-item__title">{item.title}</p>
-          </div>
+          <button
+            type="button"
+            className="icm-work-item__frame icm-clickable"
+            onClick={() => onOpen(item)}
+            aria-label={item.title}
+          >
+            <img className="icm-work-item__img" src={item.cover} alt="" loading="lazy" />
+          </button>
           <div className="icm-work-item__meta-right">
             <div>{item.client}</div>
             <div>{item.year}</div>
