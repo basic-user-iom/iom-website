@@ -1,19 +1,4 @@
-﻿# Keep Vercel uploads lean — Dream source extras live under _source/
-public/demos/dreams-iom/**
-!public/demos/dreams-iom/index.html
-!public/demos/dreams-iom/css/
-!public/demos/dreams-iom/css/**
-!public/demos/dreams-iom/js/
-!public/demos/dreams-iom/js/**
-!public/demos/dreams-iom/audio-suno/
-!public/demos/dreams-iom/audio-suno/Warm.mp3
-!public/demos/dreams-iom/audio/
-!public/demos/dreams-iom/audio/.gitkeep
-!public/demos/dreams-iom/images/
-!public/demos/dreams-iom/images/01/
-!public/demos/dreams-iom/images/01/Final-1-ver2.mp4
-!public/demos/dreams-iom/images/01/final.jpg
-
+﻿# Local-only paths — Dream public folder is already runtime-only
 _source/
 360/
 video/
