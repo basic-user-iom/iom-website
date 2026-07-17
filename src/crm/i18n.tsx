@@ -137,7 +137,7 @@ const en: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM Demo',
   'demo.banner':
-    'Interactive sample workspace with fictional companies. Send from CRM, SEO analytics, and edits stay in this browser — nothing touches live clients or real inboxes.',
+    'Interactive sample workspace with fictional companies. Try Email conversation (e.g. Copper Lantern), Compose reply, and Log client reply — all simulated in this browser. Nothing touches live clients or real inboxes.',
   'demo.reset': 'Reset sample data',
   'demo.exit': 'Exit demo',
 
@@ -669,7 +669,7 @@ const en: Dict = {
 
   'thread.title': 'Email conversation',
   'thread.blurb':
-    'Outbound CRM sends and mirrored client replies. Mail still lives in Proton — this is the lead thread mirror.',
+    'Outbound CRM sends and mirrored client replies (Proton keep-copy → Resend → CRM). Mail still lives in Proton — this is the lead thread mirror.',
   'thread.loading': 'Loading…',
   'thread.count': '{n} messages',
   'thread.empty': 'No messages in this thread yet. Send the initial outreach or a reply to start.',
@@ -718,7 +718,8 @@ const en: Dict = {
   'guide.whatHeading': 'What this tool is',
   'guide.whatText':
     'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
-  'guide.what1': 'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, activity log',
+  'guide.what1':
+    'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, Email conversation, activity log',
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
   'guide.what3': 'Time — start/stop timers, manual entries, and reports',
   'guide.what4': 'Ideas — mind maps standalone or linked to a lead / project',
@@ -777,17 +778,31 @@ const en: Dict = {
   'guide.pipe4': 'Edit details, offer text, and notes as conversations evolve',
   'guide.pipe5':
     'Copy as text — export the full lead (contact, outreach, activities) for ChatGPT or email drafts',
-  'guide.outreachHeading': 'Outreach email from CRM',
+  'guide.outreachHeading': 'Outreach & email conversation',
   'guide.outreachText':
-    'Draft, preview, and send first-contact emails in the IOM HTML template. Replies and the conversation thread live in Email conversation below.',
+    'Mail still lives in Proton. The CRM drafts, sends, and mirrors the lead thread so you can correspond without leaving /client-login.',
   'guide.outreach1':
-    'On + Add lead or Edit, fill initial email subject and body — or let ChatGPT generate them in the JSON import',
+    'Initial outreach: draft subject/body on the lead (or via ChatGPT JSON), Preview formatted email, then Send from CRM (Proton SMTP). You will also see it in Proton Sent',
   'guide.outreach2':
-    'On lead detail: Preview and Send from CRM for the initial email (Proton when signed in; simulated in the public demo). Resend keeps the same first-contact draft',
+    'Email conversation (below): full Sent / Received timeline. Use Compose reply for follow-ups — preview shows only that reply, never the initial draft by mistake',
   'guide.outreach3':
-    'Use Email conversation below for replies — preview shows only the reply you are writing. Client replies can be logged manually or mirrored via Proton keep-copy forward',
+    'Client replies: Proton keeps the real Inbox. A keep-copy forward to Resend mirrors them into CRM automatically. Until then (or for one-offs), use Log client reply',
   'guide.outreach4':
-    'Lead list cards show Email pending / Email sent badges; mail still lives in Proton Sent/Inbox while CRM stores the thread mirror',
+    'Matching: CRM attaches inbound mail by reply thread (In-Reply-To) or by the sender matching the lead’s email addresses',
+  'guide.outreach5':
+    'List badges show Email pending / Email sent. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
+  'guide.outreachDemoText':
+    'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
+  'guide.outreachDemo1':
+    'Open Copper Lantern Museums (negotiation) — it already has a Sent message and a sample Received client reply',
+  'guide.outreachDemo2':
+    'Initial outreach: Preview and Send from CRM update the lead and thread with fake data only — nothing is delivered',
+  'guide.outreachDemo3':
+    'Email conversation → Compose reply: write a follow-up; preview shows only that reply. Send reply logs another outbound message in the demo thread',
+  'guide.outreachDemo4':
+    'Log client reply: paste a fictional inbound message to practice the mirror without real email',
+  'guide.outreachDemo5':
+    'Reset sample data (banner) restores the original demo leads and the Copper Lantern thread',
   'guide.calendarHeading': 'Stats & follow-up calendar',
   'guide.calendarText':
     'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
@@ -798,8 +813,10 @@ const en: Dict = {
   'guide.calendar3':
     'Days with follow-ups show a dot; clear the date filter to see all leads again',
   'guide.commHeading': 'Activity log',
+  'guide.commText':
+    'Use the activity panel for calls, meetings, notes, and tasks. Full email bodies live in Email conversation above — not only as short activity stubs.',
   'guide.comm1':
-    'On a lead, log a Call, Email, Meeting, Note, or Task in the activity panel',
+    'On a lead, log a Call, Meeting, Note, or Task (and optional Email notes) in the activity panel',
   'guide.comm2': 'Add a short subject and optional body so the timeline stays useful',
   'guide.comm3': 'Review past activity on the same lead before your next outreach',
   'guide.findHeading': 'Search & filters',
@@ -999,7 +1016,7 @@ const sr: Dict = {
   'demo.badge': 'DEMO',
   'demo.kicker': 'CRM demo',
   'demo.banner':
-    'Interaktivni uzorak sa izmišljenim firmama. Slanje iz CRM-a, SEO analitika i izmene ostaju u ovom pregledaču — ništa ne dira žive klijente ni prave sandučiće.',
+    'Interaktivni uzorak sa izmišljenim firmama. Isprobajte Email konverzaciju (npr. Copper Lantern), Napiši odgovor i Zabeleži odgovor klijenta — sve je simulacija u ovom pregledaču. Ništa ne dira žive klijente ni prave sandučiće.',
   'demo.reset': 'Resetuj uzorke',
   'demo.exit': 'Izađi iz dema',
 
@@ -1535,7 +1552,7 @@ const sr: Dict = {
 
   'thread.title': 'Email konverzacija',
   'thread.blurb':
-    'CRM slanja i kopije odgovora klijenata. Pravi sandučić ostaje u Protonu — ovo je ogledalo niti za lead.',
+    'CRM slanja i ogledani odgovori klijenata (Proton keep-copy → Resend → CRM). Pravi sandučić ostaje u Protonu — ovo je ogledalo niti za lead.',
   'thread.loading': 'Učitavanje…',
   'thread.count': '{n} poruka',
   'thread.empty': 'Još nema poruka u ovoj niti. Pošaljite inicijalni outreach ili odgovor da počnete.',
@@ -1584,7 +1601,8 @@ const sr: Dict = {
   'guide.whatHeading': 'Šta je ovaj alat',
   'guide.whatText':
     'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
-  'guide.what1': 'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, dnevnik aktivnosti',
+  'guide.what1':
+    'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, Email konverzacija, dnevnik aktivnosti',
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
   'guide.what3': 'Vreme — start/stop tajmeri, ručni unosi i izveštaji',
   'guide.what4': 'Ideje — mape uma samostalno ili povezane sa leadom / projektom',
@@ -1644,17 +1662,31 @@ const sr: Dict = {
   'guide.pipe4': 'Izmenite detalje, tekst ponude i beleške kako razgovori napreduju',
   'guide.pipe5':
     'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, aktivnosti) za ChatGPT ili email draftove',
-  'guide.outreachHeading': 'Outreach email iz CRM-a',
+  'guide.outreachHeading': 'Outreach i email konverzacija',
   'guide.outreachText':
-    'Pišite, pregledajte i šaljite prve emailove u IOM HTML šablonu. Odgovori i konverzacija su u Email konverzaciji ispod.',
+    'Pravi sandučić ostaje u Protonu. CRM piše, šalje i ogleda nit leada da možete da korespondirate bez napuštanja /client-login.',
   'guide.outreach1':
-    'Na + Dodaj lead ili Izmeni popunite subject i telo inicijalnog emaila — ili neka ChatGPT generiše u JSON importu',
+    'Inicijalni outreach: draft subject/telo na leadu (ili preko ChatGPT JSON), Pregled formatiranog emaila, zatim Pošalji iz CRM-a (Proton SMTP). Poruka se vidi i u Proton Sent',
   'guide.outreach2':
-    'Na detalju leada: Pregled i Pošalji iz CRM-a za inicijalni email (Proton kad ste prijavljeni; simulacija u javnom demu). Ponovno slanje koristi isti prvi draft',
+    'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno. Za follow-up koristite Napiši odgovor — pregled pokazuje samo taj odgovor, nikad greškom inicijalni draft',
   'guide.outreach3':
-    'Za odgovore koristite Email konverzaciju ispod — pregled pokazuje samo odgovor koji pišete. Odgovore klijenata možete zabeležiti ručno ili ogledati preko Proton keep-copy forward-a',
+    'Odgovori klijenata: Proton čuva pravi Inbox. Keep-copy forward ka Resend ih automatski ogleda u CRM. Do tada (ili jednokratno) koristite Zabeleži odgovor klijenta',
   'guide.outreach4':
-    'Kartice pokazuju Email na čekanju / Email poslat; pravi sandučić ostaje u Protonu, a CRM čuva ogledalo niti',
+    'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To) ili po tome što se From poklapa sa email adresama leada',
+  'guide.outreach5':
+    'Kartice pokazuju Email na čekanju / Email poslat. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
+  'guide.outreachDemoText':
+    'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
+  'guide.outreachDemo1':
+    'Otvorite Copper Lantern Museums (pregovori) — već ima Poslato poruku i uzorak Primljenog odgovora klijenta',
+  'guide.outreachDemo2':
+    'Inicijalni outreach: Pregled i Pošalji iz CRM-a ažuriraju lead i nit samo lažnim podacima — ništa se ne isporučuje',
+  'guide.outreachDemo3':
+    'Email konverzacija → Napiši odgovor: napišite follow-up; pregled pokazuje samo taj odgovor. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
+  'guide.outreachDemo4':
+    'Zabeleži odgovor klijenta: nalepite fiktivnu dolaznu poruku da vežbate ogledalo bez pravog emaila',
+  'guide.outreachDemo5':
+    'Resetuj uzorke (baner) vraća originalne demo leadove i Copper Lantern nit',
   'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
   'guide.calendarText':
     'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',
@@ -1665,8 +1697,10 @@ const sr: Dict = {
   'guide.calendar3':
     'Dani sa follow-up-ima imaju tačku; uklonite filter datuma da vidite sve leadove',
   'guide.commHeading': 'Dnevnik aktivnosti',
+  'guide.commText':
+    'Panel aktivnosti koristite za pozive, sastanke, beleške i zadatke. Pun tekst emailova je u Email konverzaciji iznad — ne samo kao kratke stavke aktivnosti.',
   'guide.comm1':
-    'Na leadu zabeležite Poziv, Email, Sastanak, Belešku ili Zadatak u panelu aktivnosti',
+    'Na leadu zabeležite Poziv, Sastanak, Belešku ili Zadatak (i opcione Email beleške) u panelu aktivnosti',
   'guide.comm2': 'Dodajte kratak naslov i opcione detalje da vremenska linija ostane korisna',
   'guide.comm3': 'Pregledajte prošle aktivnosti na istom leadu pre sledećeg kontakta',
   'guide.findHeading': 'Pretraga i filteri',

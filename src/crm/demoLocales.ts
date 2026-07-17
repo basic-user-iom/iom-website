@@ -78,7 +78,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'CRM-Demo',
     'demo.banner':
-      'Interaktiver Beispiel-Arbeitsbereich mit fiktiven Firmen. CRM-Versand, SEO-Analytik und Änderungen bleiben in diesem Browser — keine Live-Kunden und keine echten Postfächer.',
+      'Interaktiver Beispiel-Arbeitsbereich mit fiktiven Firmen. Email-Konversation (z. B. Copper Lantern), Antwort verfassen und Kundenantwort protokollieren — alles simuliert in diesem Browser. Keine Live-Kunden und keine echten Postfächer.',
     'demo.reset': 'Beispieldaten zurücksetzen',
     'demo.exit': 'Demo beenden',
 
@@ -269,7 +269,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'CRM-demo',
     'demo.banner':
-      'Interactieve voorbeeldomgeving met fictieve bedrijven. CRM-verzending, SEO-analytics en wijzigingen blijven in deze browser — geen live klanten en geen echte inboxen.',
+      'Interactieve voorbeeldomgeving met fictieve bedrijven. Emailconversatie (bijv. Copper Lantern), antwoord opstellen en klantantwoord loggen — alles gesimuleerd in deze browser. Geen live klanten en geen echte inboxen.',
     'demo.reset': 'Voorbeelddata resetten',
     'demo.exit': 'Demo verlaten',
 
@@ -460,7 +460,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DÉMO',
     'demo.kicker': 'Démo CRM',
     'demo.banner':
-      'Espace d’exemple interactif avec des entreprises fictives. Envoi CRM, analytics SEO et modifications restent dans ce navigateur — aucun client live ni vraie boîte mail.',
+      'Espace d’exemple interactif avec des entreprises fictives. Conversation e-mail (ex. Copper Lantern), rédiger une réponse et journaliser une réponse client — tout est simulé dans ce navigateur. Aucun client live ni vraie boîte mail.',
     'demo.reset': 'Réinitialiser les données d’exemple',
     'demo.exit': 'Quitter la démo',
 
@@ -651,7 +651,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'demo.badge': 'DEMO',
     'demo.kicker': 'Demo CRM',
     'demo.banner':
-      'Area di prova interattiva con aziende fittizie. Invio CRM, analytics SEO e modifiche restano in questo browser — nessun cliente live né caselle reali.',
+      'Area di prova interattiva con aziende fittizie. Conversazione email (es. Copper Lantern), scrivi risposta e registra risposta cliente — tutto simulato in questo browser. Nessun cliente live né caselle reali.',
     'demo.reset': 'Reimposta dati di esempio',
     'demo.exit': 'Esci dalla demo',
 

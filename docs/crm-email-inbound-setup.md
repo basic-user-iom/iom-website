@@ -77,7 +77,10 @@ When you want `crm@inbound.iobjectm.com` instead of `@….resend.app`:
 
 ## Manual fallback
 
-Until Resend + Proton forward are live: **Log client reply** on the lead’s Email conversation panel.
+**Log client reply** on the lead’s Email conversation panel (also covered in CRM Help).
+
+Staff Help (**Help** in `/client-login`) documents the live Proton → Resend → CRM flow.  
+Public demo Help (`/crm-demo`) explains the simulated Copper Lantern thread.
 
 ## Matching rules
 

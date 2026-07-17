@@ -47,7 +47,7 @@ function GuideSection({
 }
 
 export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
-  const { t } = useCrmI18n()
+  const { t, demo } = useCrmI18n()
   const titleId = useId()
   const closeRef = useRef<HTMLButtonElement>(null)
 
@@ -171,13 +171,24 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
           />
           <GuideSection
             heading={t('guide.outreachHeading')}
-            text={t('guide.outreachText')}
-            items={[
-              t('guide.outreach1'),
-              t('guide.outreach2'),
-              t('guide.outreach3'),
-              t('guide.outreach4'),
-            ]}
+            text={demo ? t('guide.outreachDemoText') : t('guide.outreachText')}
+            items={
+              demo
+                ? [
+                    t('guide.outreachDemo1'),
+                    t('guide.outreachDemo2'),
+                    t('guide.outreachDemo3'),
+                    t('guide.outreachDemo4'),
+                    t('guide.outreachDemo5'),
+                  ]
+                : [
+                    t('guide.outreach1'),
+                    t('guide.outreach2'),
+                    t('guide.outreach3'),
+                    t('guide.outreach4'),
+                    t('guide.outreach5'),
+                  ]
+            }
           />
           <GuideSection
             heading={t('guide.calendarHeading')}
@@ -186,6 +197,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
           />
           <GuideSection
             heading={t('guide.commHeading')}
+            text={t('guide.commText')}
             items={[t('guide.comm1'), t('guide.comm2'), t('guide.comm3')]}
           />
           <GuideSection
