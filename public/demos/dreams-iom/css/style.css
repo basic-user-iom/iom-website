@@ -1,0 +1,583 @@
+/* Reset and base – no margin/padding so fullscreen canvas has no black frame (Perplexity) */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* Hide SVG filters element */
+.svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+html {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  overflow: hidden;
+}
+body {
+  width: 100%;
+  height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  color: rgba(255, 255, 255, 0.9);
+  background: #050810;  /* matches reference image deep water */
+}
+
+/* Fullscreen water-colored backdrop – matches reference image dark ocean */
+.water-backdrop {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  z-index: 1;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+  background: #050810;
+  background: linear-gradient(
+    180deg,
+    #151e28 0%,      /* sky - dark blue-gray */
+    #1a2530 20%,     /* horizon */
+    #0c1018 45%,     /* water surface */
+    #080c10 65%,     /* deep water */
+    #050810 100%     /* abyss */
+  );
+}
+
+/* Dream container: no padding so intro can be full viewport */
+.dream {
+  display: block;
+  margin: 0;
+  padding: 0;
+}
+
+/* Each chapter = full viewport */
+.chapter {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 2rem;
+  scroll-snap-align: start;
+  overflow: hidden;
+}
+
+/* Intro (first slide): fullscreen fixed; z-index 3 so text/play sit above water bg, below overlay */
+.chapter--intro {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  z-index: 3;
+}
+
+/* A) Water canvases: direct on body, forced fullscreen (no wrapper so no centering) */
+.intro-ripples,
+.intro-ripples-overlay {
+  position: fixed !important;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none;
+  outline: none;
+  display: block !important;
+  pointer-events: none;
+  z-index: 2;
+  transition: opacity 1.8s ease;
+}
+
+.intro-ripples-overlay {
+  z-index: 4;
+  /* overlay blend creates visible water caustics on text */
+  mix-blend-mode: overlay;
+  opacity: 0.9;
+}
+
+/* (Wrappers removed from HTML – canvases are direct on body) */
+
+/* Gentlerain-style surface: soft gradient + floating blobs */
+.intro-surface {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.intro-gradient {
+  position: absolute;
+  inset: -50%;
+  background:
+    radial-gradient(ellipse 90% 70% at 20% 30%, rgba(20, 45, 85, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse 80% 60% at 85% 60%, rgba(15, 40, 75, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse 70% 80% at 50% 90%, rgba(10, 30, 60, 0.35) 0%, transparent 45%);
+  animation: intro-gradient-shift 18s ease-in-out infinite;
+}
+
+@keyframes intro-gradient-shift {
+  0%, 100% { transform: scale(1) translate(0, 0) rotate(0deg); opacity: 1; }
+  33% { transform: scale(1.05) translate(2%, -1%) rotate(1deg); opacity: 0.95; }
+  66% { transform: scale(0.98) translate(-1%, 2%) rotate(-0.5deg); opacity: 1; }
+}
+
+.intro-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.intro-blob--1 {
+  width: min(70vw, 420px);
+  height: min(70vw, 420px);
+  left: -10%;
+  top: -15%;
+  background: rgba(30, 70, 120, 0.5);
+  animation: intro-blob-float 22s ease-in-out infinite;
+}
+
+.intro-blob--2 {
+  width: min(50vw, 320px);
+  height: min(50vw, 320px);
+  right: -15%;
+  bottom: 10%;
+  background: rgba(25, 55, 100, 0.45);
+  animation: intro-blob-float 26s ease-in-out infinite 3s;
+}
+
+.intro-blob--3 {
+  width: min(40vw, 260px);
+  height: min(40vw, 260px);
+  left: 30%;
+  bottom: -10%;
+  background: rgba(20, 50, 90, 0.4);
+  animation: intro-blob-float 20s ease-in-out infinite 1.5s;
+}
+
+@keyframes intro-blob-float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  25% { transform: translate(5%, -8%) scale(1.08); }
+  50% { transform: translate(-4%, 4%) scale(0.95); }
+  75% { transform: translate(3%, 6%) scale(1.02); }
+}
+
+.intro-black {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgba(0, 0, 0, 0.75);
+  pointer-events: none;
+  transition: opacity 1.8s ease;
+}
+
+/* When play is hit: effect and darkness fade so video emerges; no side padding so video fills width */
+.chapter--intro.intro--playing {
+  padding-left: 0;
+  padding-right: 0;
+}
+/* When video is playing: hide water canvases and backdrop */
+body.dream--video-playing .water-backdrop,
+body.dream--video-playing .intro-ripples,
+body.dream--video-playing .intro-ripples-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.8s ease;
+}
+
+.chapter--intro.intro--playing .intro-black {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.chapter--intro.intro--playing .intro-content {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.8s ease;
+}
+
+/* Text + play button as cohesive centered unit (best practice: 24-40px gap) */
+.intro-content {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;  /* 24px - recommended spacing between text and CTA */
+  transition: opacity 1.8s ease;
+}
+
+/* Logo link – no underline, inherits logo look */
+.intro-logo-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.intro-logo-link:hover,
+.intro-logo-link:focus {
+  text-decoration: none;
+  color: inherit;
+}
+
+.intro-logo-link:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 0.25rem;
+}
+
+/* Logo with water distortion effect */
+.intro-logo {
+  margin: 0;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: clamp(2rem, 8vw, 4rem);
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.95);
+  text-transform: uppercase;
+  /* Same water distortion as tagline */
+  filter: url(#water-distort);
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 16px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(255, 255, 255, 0.35),
+    0 0 40px rgba(255, 255, 255, 0.2);
+}
+
+.intro-text-wrapper {
+  visibility: visible;
+  padding: 0.4em;
+  overflow: visible;
+}
+
+/* Text with water distortion filter and glow */
+.intro-text {
+  margin: 0;
+  font-family: 'EB Garamond', Georgia, serif;
+  font-size: clamp(1rem, 3vw, 1.4rem);
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.95);
+  text-align: center;
+  max-width: 90vw;
+  opacity: 1;
+  transition: opacity 2.8s ease;
+  /* Water distortion effect - text ripples like underwater */
+  filter: url(#water-distort);
+  /* Multi-layer text-shadow for glow on dark background */
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 0 12px rgba(255, 255, 255, 0.4),
+    0 0 24px rgba(255, 255, 255, 0.25),
+    0 0 40px rgba(255, 255, 255, 0.15);
+}
+
+.intro-text::first-line {
+  font-size: 1.18em;
+}
+
+.intro-text.intro-text--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.intro-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-width: 100%;
+  min-height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 1;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  pointer-events: none;
+}
+
+.intro-video.intro-video--visible {
+  opacity: 1;
+  z-index: 2;
+}
+
+.intro-audio {
+  display: none;
+}
+
+/* Controls on video screen: pause/play and audio toggle */
+.intro-controls {
+  position: absolute;
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  max-width: min(96vw, 36rem);
+  padding: 0 0.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.35s ease;
+}
+
+.chapter--intro.intro--playing .intro-controls {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.intro-controls[hidden] {
+  display: none !important;
+}
+
+.intro-control-btn {
+  padding: 0.65rem 1rem;
+  min-height: 44px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.95);
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+  touch-action: manipulation;
+}
+
+.intro-control-btn:hover {
+  background: rgba(0, 0, 0, 0.55);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+.intro-control-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 2px;
+}
+
+.intro-control-volume-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.intro-volume-label {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
+.intro-control-volume {
+  width: 5rem;
+  height: 0.5rem;
+  accent-color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+
+.intro-fullscreen-btn {
+  flex-shrink: 0;
+}
+
+/* Play button: cohesive with text, gentle visual cue (calm aesthetic) */
+/* Best practice: button feels like gentle nudge, not aggressive CTA */
+.intro-play-btn {
+  width: 3.5rem;
+  height: 3.5rem;
+  min-width: 3.5rem;
+  min-height: 3.5rem;
+  margin: 0;  /* spacing handled by parent gap */
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+  position: relative;
+  z-index: 4;
+  color: rgba(255, 255, 255, 0.9);
+  /* Flexbox to center the triangle */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Breathing animation - slow like calm breathing */
+  animation: play-btn-breathe 4s ease-in-out infinite;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))
+          drop-shadow(0 0 16px rgba(255, 255, 255, 0.15));
+}
+
+/* Breathing/pulsating animation */
+@keyframes play-btn-breathe {
+  0%, 100% {
+    transform: scale(1);
+    border-color: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+  }
+  50% {
+    transform: scale(1.08);
+    border-color: rgba(255, 255, 255, 0.3);
+    box-shadow: 0 0 20px 4px rgba(255, 255, 255, 0.1);
+  }
+}
+
+.intro-play-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.35);
+  /* Pause breathing on hover, scale up slightly */
+  animation-play-state: paused;
+  transform: scale(1.12);
+}
+
+.intro-play-btn::before {
+  content: "";
+  display: block;
+  width: 0;
+  height: 0;
+  /* Optical centering: triangle points right, so shift slightly right */
+  margin-left: 0.2rem;
+  border-style: solid;
+  border-width: 0.5rem 0 0.5rem 0.8rem;
+  border-color: transparent transparent transparent currentColor;
+}
+.intro-play-btn:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.7);
+  outline-offset: 4px;
+}
+.intro-play-btn:disabled,
+.intro-play-btn.intro-play-btn--played {
+  cursor: default;
+}
+
+/* Debug panel: press D to toggle */
+.debug-panel {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
+  max-height: 40vh;
+  overflow: auto;
+  z-index: 9999;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #e0e0e0;
+  background: rgba(0, 0, 0, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  pointer-events: auto;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.debug-panel--hidden {
+  opacity: 0;
+  transform: translateY(0.5rem);
+  pointer-events: none;
+}
+.debug-panel .debug-section {
+  margin-bottom: 0.5rem;
+}
+.debug-panel .debug-section:last-child {
+  margin-bottom: 0;
+}
+.debug-panel .debug-label {
+  color: #8af;
+  font-weight: 600;
+}
+.debug-panel .debug-warn {
+  color: #fa8;
+}
+.debug-panel .debug-ok {
+  color: #8f8;
+}
+
+.dream-back-link {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: max(12px, env(safe-area-inset-left));
+  z-index: 30;
+  color: rgba(255, 255, 255, 0.85);
+  text-decoration: none;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 6px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+  touch-action: manipulation;
+}
+
+.dream-back-link:hover {
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.45);
+}
+
+@media (max-width: 640px) {
+  .intro-play-btn {
+    width: 3.75rem;
+    height: 3.75rem;
+    min-width: 3.75rem;
+    min-height: 3.75rem;
+  }
+
+  .intro-control-volume-wrap {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .intro-control-volume {
+    width: min(10rem, 50vw);
+  }
+
+  .intro-fullscreen-btn {
+    /* Fullscreen is unreliable on many phones — keep available but not primary. */
+    order: 4;
+  }
+
+  .intro-blob {
+    filter: blur(48px);
+    opacity: 0.16;
+  }
+
+  .intro-logo,
+  .intro-text {
+    /* Cheaper than animated SVG displacement on mobile GPUs */
+    filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .intro-gradient,
+  .intro-blob,
+  .intro-play-btn {
+    animation: none !important;
+  }
+}
+
+

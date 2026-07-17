@@ -781,8 +781,8 @@ export const PROJECTS: Project[] = [
     description:
       'Scroll narrative through still dark water, rain, distant land, and shore (procedural distortion with optional ambient audio crossfade), standalone weather runtime (dynamic sky, cloud layers, day/night sync), and shader-driven surface studies. Chapter 1 of 9 · work in progress.',
     year: '2025–26',
-    url: 'https://iom-three.vercel.app/',
-    embedUrl: 'https://iom-three.vercel.app/',
+    url: '/demos/dreams-iom/',
+    embedUrl: '/demos/dreams-iom/',
     posterUrl: '/assets/posters/iom-three.jpg',
     mobilePosterUrl: '/assets/posters/iom-three.jpg',
     archiveId: 'OBJ-0017',
