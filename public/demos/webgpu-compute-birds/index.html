@@ -116,7 +116,8 @@
       }
       @media (max-width: 640px) {
         #hint {
-          display: none;
+          bottom: 64px;
+          font-size: 11px;
         }
       }
     </style>
@@ -133,6 +134,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -144,8 +146,8 @@
         >
       </p>
       <p class="demo-attribution-credits">
-        GPU flocking simulation with 8,192 instanced birds — separation, alignment, and cohesion
-        forces computed on the GPU. Move the mouse to disturb the flock. Based on the
+        GPU flocking simulation with instanced birds — separation, alignment, and cohesion
+        forces computed on the GPU. Move the pointer to disturb the flock. Based on the
         <a
           href="https://threejs.org/examples/#webgpu_compute_birds"
           target="_blank"
@@ -174,7 +176,7 @@
     </div>
 
     <div id="container"></div>
-    <div id="hint">Move mouse to disturb birds · orbit drag · scroll zoom · tune flocking in Birds settings</div>
+    <div id="hint">Move pointer to disturb · orbit drag · scroll zoom · on phones: Orbit / Disturb</div>
     <div id="status">Initializing…</div>
 
     <script type="module">
@@ -210,10 +212,16 @@
       } from 'three/tsl'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
 
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
 
       let camera, scene, renderer
       let last = performance.now()
@@ -221,8 +229,12 @@
       let computeVelocity, computePosition, effectController
       let controls
       let framesRendered = 0
+      let pointerActive = false
+      let touchMode = null
 
-      const BIRDS = 8192
+      const isMobile = prefersMobileExperience()
+      // O(n²) velocity kernel — keep mobile flock small enough to stay interactive.
+      const BIRDS = isMobile ? 1024 : 8192
       const SPEED_LIMIT = 9.0
       const BOUNDS = 800
       const BOUNDS_HALF = BOUNDS / 2
@@ -296,11 +308,11 @@
         scene.add(skyMesh)
 
         renderer = new THREE.WebGPURenderer({
-          antialias: true,
+          antialias: !isMobile,
           forceWebGL: false,
           requiredLimits: { maxStorageBuffersInVertexStage: 3 },
         })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(render)
         renderer.toneMapping = THREE.NeutralToneMapping
@@ -319,6 +331,29 @@
         controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
         controls.update()
+
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'disturb', label: 'Disturb' },
+          ],
+          defaultMode: 'orbit',
+          hintEl,
+          hints: {
+            orbit: 'Orbit mode · drag to rotate · pinch/scroll to zoom',
+            disturb: 'Disturb mode · drag to scare the flock',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+            if (mode === 'orbit') {
+              pointerActive = false
+              pointer.y = 10
+            }
+          },
+        })
+        if (touchMode.isOrbit()) controls.enabled = true
+        // Desktop: always allow disturb via pointer move while orbiting.
+        if (!isMobile) controls.enabled = true
 
         const positionArray = new Float32Array(BIRDS * 3)
         const velocityArray = new Float32Array(BIRDS * 3)
@@ -519,6 +554,9 @@
         scene.add(birdMesh)
 
         container.addEventListener('pointermove', onPointerMove)
+        container.addEventListener('pointerdown', onPointerDown)
+        container.addEventListener('pointerup', onPointerUp)
+        container.addEventListener('pointercancel', onPointerUp)
         window.addEventListener('resize', onWindowResize)
 
         const gui = renderer.inspector.createParameters('Birds settings')
@@ -531,7 +569,11 @@
         effectController.alignment.value = 20.0
         effectController.cohesion.value = 20.0
 
-        setStatus('WebGPU compute birds · move mouse to disturb')
+        setStatus(
+          isMobile
+            ? `WebGPU compute birds · ${BIRDS} flock · Orbit / Disturb`
+            : 'WebGPU compute birds · move pointer to disturb',
+        )
       }
 
       function onWindowResize() {
@@ -541,10 +583,30 @@
         renderer.setSize(window.innerWidth, window.innerHeight)
       }
 
-      function onPointerMove(event) {
+      function canDisturb() {
+        return !isMobile || !touchMode || touchMode.mode === 'disturb'
+      }
+
+      function onPointerDown(event) {
         if (event.isPrimary === false) return
+        if (!canDisturb()) return
+        pointerActive = true
         pointer.x = (event.clientX / window.innerWidth) * 2.0 - 1.0
         pointer.y = 1.0 - (event.clientY / window.innerHeight) * 2.0
+      }
+
+      function onPointerUp(event) {
+        if (event.isPrimary === false) return
+        pointerActive = false
+        pointer.y = 10
+      }
+
+      function onPointerMove(event) {
+        if (event.isPrimary === false) return
+        if (!canDisturb()) return
+        pointer.x = (event.clientX / window.innerWidth) * 2.0 - 1.0
+        pointer.y = 1.0 - (event.clientY / window.innerHeight) * 2.0
+        pointerActive = true
       }
 
       function render() {
@@ -553,12 +615,20 @@
         if (deltaTime > 1) deltaTime = 1
         last = now
 
-        raycaster.setFromCamera(pointer, camera)
+        if (pointerActive && canDisturb()) {
+          raycaster.setFromCamera(pointer, camera)
+          effectController.rayOrigin.value.copy(raycaster.ray.origin)
+          effectController.rayDirection.value.copy(raycaster.ray.direction)
+        } else {
+          // Park the disturb ray far away when idle / orbiting.
+          pointer.y = 10
+          raycaster.setFromCamera(pointer, camera)
+          effectController.rayOrigin.value.copy(raycaster.ray.origin)
+          effectController.rayDirection.value.copy(raycaster.ray.direction)
+        }
 
         effectController.now.value = now
         effectController.deltaTime.value = deltaTime
-        effectController.rayOrigin.value.copy(raycaster.ray.origin)
-        effectController.rayDirection.value.copy(raycaster.ray.direction)
 
         renderer.compute(computeVelocity)
         renderer.compute(computePosition)
@@ -568,10 +638,19 @@
 
         framesRendered += 1
         if (framesRendered === 30) {
-          setStatus('WebGPU compute birds · move mouse to disturb')
+          setStatus(
+            isMobile
+              ? `WebGPU compute birds · ${BIRDS} flock`
+              : 'WebGPU compute birds · move pointer to disturb',
+          )
         }
 
-        pointer.y = 10
+        // Desktop: only disturb on active pointer motion frames.
+        if (!isMobile && !pointerActive) {
+          pointer.y = 10
+        } else if (!isMobile) {
+          pointerActive = false
+        }
       }
 
       init().catch((err) => {

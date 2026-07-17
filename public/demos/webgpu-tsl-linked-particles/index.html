@@ -116,7 +116,8 @@
       }
       @media (max-width: 640px) {
         #hint {
-          display: none;
+          bottom: 64px;
+          font-size: 11px;
         }
       }
     </style>
@@ -133,6 +134,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -176,8 +178,7 @@
 
     <div id="container"></div>
     <div id="hint">
-      Move pointer to draw linked particles · orbit drag · scroll zoom · tune spawn, turbulence, and
-      bloom in Parameters
+      Move pointer to draw · orbit drag · scroll zoom · on phones: Orbit / Draw
     </div>
     <div id="status">Initializing…</div>
 
@@ -216,25 +217,36 @@
       import { bloom } from 'three/addons/tsl/display/BloomNode.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
 
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
 
       let camera, scene, renderer, renderPipeline, controls, timer, light
       let updateParticles, spawnParticles, getInstanceColor
       let framesRendered = 0
+      let touchMode = null
+      let drawingActive = false
+
+      const isMobile = prefersMobileExperience()
 
       const screenPointer = new THREE.Vector2()
       const scenePointer = new THREE.Vector3()
       const raycastPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
       const raycaster = new THREE.Raycaster()
 
-      const nbParticles = Math.pow(2, 13)
+      // 8192 desktop / 2048 mobile — link mesh scales with particle count.
+      const nbParticles = isMobile ? Math.pow(2, 11) : Math.pow(2, 13)
 
       const timeScale = uniform(1.0)
       const particleLifetime = uniform(0.5)
-      const particleSize = uniform(1.0)
+      const particleSize = uniform(isMobile ? 1.15 : 1.0)
       const linksWidth = uniform(0.005)
 
       const colorOffset = uniform(0.0)
@@ -242,13 +254,13 @@
       const colorRotationSpeed = uniform(1.0)
 
       const spawnIndex = uniform(0)
-      const nbToSpawn = uniform(5)
+      const nbToSpawn = uniform(isMobile ? 3 : 5)
       const spawnPosition = uniform(vec3(0.0))
       const previousSpawnPosition = uniform(vec3(0.0))
 
       const turbFrequency = uniform(0.5)
       const turbAmplitude = uniform(0.5)
-      const turbOctaves = uniform(2)
+      const turbOctaves = uniform(isMobile ? 1 : 2)
       const turbLacunarity = uniform(2.0)
       const turbGain = uniform(0.5)
       const turbFriction = uniform(0.01)
@@ -285,9 +297,9 @@
         timer = new THREE.Timer()
         timer.connect(document)
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
         renderer.setClearColor(0x14171a)
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.inspector = new Inspector()
@@ -536,11 +548,36 @@
 
         controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
-        controls.autoRotate = true
+        controls.autoRotate = !isMobile
         controls.maxDistance = 75
+
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'draw', label: 'Draw' },
+          ],
+          defaultMode: 'orbit',
+          hintEl,
+          hints: {
+            orbit: 'Orbit mode · drag to rotate · pinch/scroll to zoom',
+            draw: 'Draw mode · drag to spawn linked particle trails',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+            if (mode === 'orbit') {
+              drawingActive = false
+              controls.autoRotate = false
+            } else {
+              controls.autoRotate = false
+            }
+          },
+        })
 
         window.addEventListener('resize', onWindowResize)
         container.addEventListener('pointermove', onPointerMove)
+        container.addEventListener('pointerdown', onPointerDown)
+        container.addEventListener('pointerup', onPointerUp)
+        container.addEventListener('pointercancel', onPointerUp)
 
         const gui = renderer.inspector.createParameters('Parameters')
         gui.add(controls, 'autoRotate').name('Auto Rotate')
@@ -568,7 +605,11 @@
         bloomFolder.add(bloomPass.strength, 'value', 0, 10, 0.01).name('Strength')
         bloomFolder.add(bloomPass.radius, 'value', 0, 1, 0.01).name('Radius')
 
-        setStatus('WebGPU linked particles · move pointer to draw')
+        setStatus(
+          isMobile
+            ? `WebGPU linked particles · ${nbParticles} · Orbit / Draw`
+            : 'WebGPU linked particles · move pointer to draw',
+        )
       }
 
       function onWindowResize() {
@@ -578,10 +619,29 @@
         renderer.setSize(window.innerWidth, window.innerHeight)
       }
 
-      function onPointerMove(event) {
+      function canDraw() {
+        return !isMobile || !touchMode || touchMode.mode === 'draw'
+      }
+
+      function onPointerDown(event) {
         if (event.isPrimary === false) return
+        if (!canDraw()) return
+        drawingActive = true
         screenPointer.x = (event.clientX / window.innerWidth) * 2 - 1
         screenPointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+      }
+
+      function onPointerUp(event) {
+        if (event.isPrimary === false) return
+        drawingActive = false
+      }
+
+      function onPointerMove(event) {
+        if (event.isPrimary === false) return
+        if (!canDraw()) return
+        screenPointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        screenPointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        drawingActive = true
       }
 
       function updatePointer() {
@@ -594,13 +654,17 @@
 
         timer.update()
 
-        renderer.compute(updateParticles)
-        renderer.compute(spawnParticles)
-
-        spawnIndex.value = (spawnIndex.value + nbToSpawn.value) % nbParticles
+        const shouldSpawn = !isMobile || drawingActive
+        if (shouldSpawn) {
+          renderer.compute(updateParticles)
+          renderer.compute(spawnParticles)
+          spawnIndex.value = (spawnIndex.value + nbToSpawn.value) % nbParticles
+        } else {
+          renderer.compute(updateParticles)
+        }
 
         raycastPlane.normal.set(0, 0, 1).applyEuler(camera.rotation)
-        updatePointer()
+        if (shouldSpawn) updatePointer()
 
         previousSpawnPosition.value.copy(spawnPosition.value)
         spawnPosition.value.lerp(scenePointer, 0.1)
@@ -619,8 +683,14 @@
 
         framesRendered += 1
         if (framesRendered === 30) {
-          setStatus('WebGPU linked particles · move pointer to draw')
+          setStatus(
+            isMobile
+              ? `WebGPU linked particles · ${nbParticles}`
+              : 'WebGPU linked particles · move pointer to draw',
+          )
         }
+
+        if (!isMobile) drawingActive = false
       }
 
       init().catch((err) => {

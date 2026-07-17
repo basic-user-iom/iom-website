@@ -4559,3 +4559,46 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* Mobile touch polish */
+@media (max-width: 640px) {
+  .crm-shell,
+  .crm-app {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .crm-tool-toolbar,
+  .crm-detail-actions {
+    gap: 0.45rem;
+  }
+
+  .crm-tool-toolbar .btn,
+  .crm-detail-actions .btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .crm-board {
+    grid-auto-columns: minmax(78vw, 1fr);
+    scroll-snap-type: x mandatory;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-inline: 0.25rem;
+  }
+
+  .crm-board-col {
+    scroll-snap-align: start;
+    min-height: 14rem;
+  }
+
+  .crm-outreach-preview-frame {
+    height: min(480px, 50vh) !important;
+  }
+
+  .crm-section-nav .crm-music-player {
+    display: none;
+  }
+}
+

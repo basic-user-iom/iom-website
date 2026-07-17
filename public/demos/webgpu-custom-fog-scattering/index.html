@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -115,7 +116,9 @@
       }
       @media (max-width: 640px) {
         #hint {
-          display: none;
+          bottom: 150px;
+          font-size: 11px;
+          max-width: min(88vw, 420px);
         }
       }
     </style>
@@ -132,6 +135,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -174,7 +178,7 @@
 
     <div id="container"></div>
     <div id="hint">
-      WASD move · drag to look · tune fog density and scattering factor in Settings
+      WASD move · drag to look · on phones use the Move stick · tune fog in Settings
     </div>
     <div id="status">Initializing…</div>
 
@@ -185,13 +189,17 @@
       import { FirstPersonControls } from 'three/addons/controls/FirstPersonControls.js'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
       import { TreeGenerator } from 'three/addons/generators/TreeGenerator.js'
+      import { createVirtualJoystick, mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
 
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
 
       let camera, scene, renderer, renderPipeline, controls
+      let joystick = { active: false, update() {}, destroy() {} }
       const timer = new THREE.Timer()
+      const isMobile = prefersMobileExperience()
 
       const params = {
         scatteringEnabled: true,
@@ -253,8 +261,8 @@
 
         const placements = variants.map(() => [])
         const dummy = new THREE.Object3D()
-        const cols = 13
-        const rows = 12
+        const cols = isMobile ? 9 : 13
+        const rows = isMobile ? 8 : 12
         const spacing = 1.9
 
         for (let i = 0; i < cols; i++) {
@@ -303,8 +311,8 @@
         )
         scene.add(ground)
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.inspector = new Inspector()
@@ -320,9 +328,14 @@
         }
 
         controls = new FirstPersonControls(camera, renderer.domElement)
-        controls.movementSpeed = 2
-        controls.lookSpeed = 0.1
+        controls.movementSpeed = isMobile ? 1.6 : 2
+        controls.lookSpeed = isMobile ? 0.08 : 0.1
         controls.lookAt(-0.2, 1.7, -8)
+
+        joystick = createVirtualJoystick()
+        if (joystick.active && hintEl) {
+          hintEl.textContent = 'Drag to look · use Move stick to walk · tune fog in Settings'
+        }
 
         renderPipeline = new THREE.RenderPipeline(renderer)
 
@@ -363,7 +376,11 @@
 
         window.addEventListener('resize', onWindowResize)
 
-        setStatus('WebGPU fog scattering · WASD to walk')
+        setStatus(
+          joystick.active
+            ? 'WebGPU fog scattering · stick to walk'
+            : 'WebGPU fog scattering · WASD to walk',
+        )
       }
 
       function onWindowResize() {
@@ -377,7 +394,9 @@
         if (!renderPipeline) return
 
         timer.update()
-        controls.update(timer.getDelta())
+        const dt = timer.getDelta()
+        joystick.update(controls)
+        controls.update(dt)
         renderPipeline.render()
       }
 

@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -115,9 +116,6 @@
         z-index: 20;
       }
       @media (max-width: 640px) {
-        #hint {
-          display: none;
-        }
         .lil-gui.root {
           max-height: calc(100vh - 80px);
           overflow: auto;
@@ -135,6 +133,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">Terrain Sandbox — procedural heightmap</p>
@@ -151,6 +150,9 @@
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
 
       // --- Compact 2D simplex noise (public-domain style) ---
       const F2 = 0.5 * (Math.sqrt(3) - 1)
@@ -242,12 +244,11 @@
       // --- Scene setup ---
       const container = document.getElementById('container')
       const statusEl = document.getElementById('status')
-      const maxDpr = Math.min(window.devicePixelRatio || 1, 1.75)
       const targetFps = window.self !== window.top ? 30 : 60
       const frameInterval = 1000 / targetFps
 
-      const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' })
-      renderer.setPixelRatio(maxDpr)
+      const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, powerPreference: 'high-performance' })
+      renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
       renderer.setSize(window.innerWidth, window.innerHeight)
       renderer.toneMapping = THREE.ACESFilmicToneMapping
       renderer.toneMappingExposure = 1.05
@@ -275,7 +276,7 @@
       const sun = new THREE.DirectionalLight(0xfff2d6, 1.35)
       sun.position.set(40, 70, 20)
       sun.castShadow = true
-      sun.shadow.mapSize.set(2048, 2048)
+      sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048)
       sun.shadow.camera.near = 1
       sun.shadow.camera.far = 200
       sun.shadow.camera.left = -90
@@ -295,7 +296,7 @@
         heightScale: 24,
         roughness: 0.58,
         size: 100,
-        resolution: 128,
+        resolution: isMobile ? 96 : 128,
         octaves: 6,
         placeType: 'Tree',
         clearObjects: () => clearPlaced(),

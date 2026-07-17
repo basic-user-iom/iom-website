@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -569,6 +570,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <nav id="nav-mode-bar" aria-label="Navigation mode">
       <button type="button" class="nav-mode-btn is-active" data-nav-mode="Teleport" aria-pressed="true">
@@ -660,7 +662,7 @@
     </aside>
     <div id="container"></div>
     <div id="compare-hint" hidden>Hold Shift and move the mouse to scrub the comparison</div>
-    <div id="walk-hint" hidden>Click to play · WASD to move · Shift run · Space jump · Esc release pointer</div>
+    <div id="walk-hint" hidden>Tap floor to teleport · Drag to look around</div>
     <div id="coord-toast" role="status" aria-live="polite" hidden></div>
     <div id="teleport-fade" aria-hidden="true"></div>
     <div id="runtime-status" aria-live="polite">Ready. Teleport mode: short-click the gallery floor to move. Drag to look around. Switch to Explore or Inspect from the top bar.</div>
@@ -802,6 +804,11 @@
       import { ValueButton, ValueCheckbox, ValueSlider } from 'three/addons/inspector/ui/Values.js'
       import { createValueSpan } from 'three/addons/inspector/ui/utils.js'
       import { initCameraViewsPanelCollapse, initDemoUiChrome } from '../demo-ui-chrome.js'
+      import {
+        createVirtualJoystick,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
       import { HDRLoader } from 'three/addons/loaders/HDRLoader.js'
       import { EXRLoader } from 'three/addons/loaders/EXRLoader.js'
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
@@ -844,6 +851,10 @@
       const DEFAULT_MODEL_URL = './models/vr_art_gallery_2020.glb'
       const DEFAULT_CAMERA_POSITION = new THREE.Vector3(1.15, 0.289, 0.536)
       const DEFAULT_CAMERA_ROTATION = new THREE.Euler(-0.038, 6.5, 0, 'YXZ')
+      const isMobile = prefersMobileExperience()
+      let walkJoystick = { active: false, applyToKeyStates() {}, setVisible() {}, destroy() {} }
+      let mobileExploreLookPointerId = null
+      let mobileExploreLookLast = null
       // Inspect uses Teleport-style nodal orbit: target === eye, camera sits a tiny
       // fixed distance behind the look direction (no large-radius swing through walls).
       const DEFAULT_ORBIT_TARGET = DEFAULT_CAMERA_POSITION.clone()
@@ -1035,8 +1046,8 @@
         output: 0,
         roughness: 1,
         ssr: {
-          resolutionScale: 1,
-          quality: 0.25,
+          resolutionScale: isMobile ? 0.55 : 1,
+          quality: isMobile ? 0.2 : 0.25,
           mirrorBias: 0.5,
           maxDistance: 3.63,
           intensity: 2.08,
@@ -3689,13 +3700,41 @@
       }
 
       function onCanvasPointerUp(event) {
+        endMobileExploreLook(event)
         onTeleportPointerUp(event)
         onInspectPointerUp(event)
       }
 
       function onCanvasPointerCancel() {
+        endMobileExploreLook()
         clearTeleportPointerGesture()
         clearInspectPointerGesture()
+      }
+
+      function endMobileExploreLook(event) {
+        if (mobileExploreLookPointerId == null) return
+        if (event && event.pointerId !== mobileExploreLookPointerId) return
+        try {
+          renderer?.domElement?.releasePointerCapture?.(mobileExploreLookPointerId)
+        } catch {
+          // ignore
+        }
+        mobileExploreLookPointerId = null
+        mobileExploreLookLast = null
+      }
+
+      function onMobileExploreLookMove(event) {
+        if (!isMobile || !isExploreMode()) return
+        if (mobileExploreLookPointerId == null || event.pointerId !== mobileExploreLookPointerId) return
+        if (!mobileExploreLookLast) {
+          mobileExploreLookLast = { x: event.clientX, y: event.clientY }
+          return
+        }
+        const dx = event.clientX - mobileExploreLookLast.x
+        const dy = event.clientY - mobileExploreLookLast.y
+        mobileExploreLookLast = { x: event.clientX, y: event.clientY }
+        yaw -= dx / 500
+        pitch = clampInspectPitch(pitch - dy / 650)
       }
 
       function onInspectPointerUp(event) {
@@ -3707,6 +3746,8 @@
         if (!isInspectMode() || event.button !== 0) return
         if (isInspectPickingActive()) return
         if (document.pointerLockElement === renderer.domElement) return
+        // Phones: keep orbit drag look — pointer lock is unreliable.
+        if (isMobile) return
 
         const distance = Math.hypot(event.clientX - start.clientX, event.clientY - start.clientY)
         if (distance > TELEPORT_CLICK_DRAG_THRESHOLD) return
@@ -4359,8 +4400,9 @@
         await fitModelToWalkableStage(defaultModelRoot)
         setActiveModel(defaultModelRoot, { disposePrevious: false })
 
-        renderer = new THREE.WebGPURenderer()
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
         renderer.inspector = new Inspector()
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.toneMapping = THREE.AgXToneMapping
         renderer.toneMappingExposure = params.post.grading.exposure
@@ -4382,8 +4424,8 @@
         directionalLight.castShadow = true
         directionalLight.shadow.autoUpdate = false
         directionalLight.shadow.needsUpdate = true
-        directionalLight.shadow.mapSize.width = 4096
-        directionalLight.shadow.mapSize.height = 4096
+        directionalLight.shadow.mapSize.width = isMobile ? 1024 : 4096
+        directionalLight.shadow.mapSize.height = isMobile ? 1024 : 4096
         directionalLight.shadow.camera.left = -1.75
         directionalLight.shadow.camera.right = 1.75
         directionalLight.shadow.camera.top = 1.75
@@ -4605,6 +4647,7 @@
         window.addEventListener('resize', onWindowResize)
         renderer.domElement.addEventListener('pointermove', onComparePointerMove)
         renderer.domElement.addEventListener('pointermove', onTeleportPointerMove)
+        renderer.domElement.addEventListener('pointermove', onMobileExploreLookMove)
         renderer.domElement.addEventListener('pointerleave', hideTeleportFloorReticle)
         renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown, { capture: true })
         renderer.domElement.addEventListener('pointerup', onCanvasPointerUp)
@@ -4677,6 +4720,9 @@
           .name('mode')
           .onChange(setNavigationMode)
         initNavModeButtons()
+        walkJoystick = createVirtualJoystick()
+        walkJoystick.setVisible(false)
+        syncMobileWalkJoystick()
         gizmoModeController = enhanceInspectorControl(
           sceneGui
             .add(params.runtime, 'gizmoMode', { Translate: 'translate', Rotate: 'rotate', Scale: 'scale' })
@@ -9960,9 +10006,11 @@
           resetPlayerSpawn()
           renderer.domElement.focus({ preventScroll: true })
           setRuntimeStatus(
-            params.runtime.placeSpawn
-              ? 'Explore mode active. Enable placement clicks in Scene controls, or turn Place spawn off to lock the pointer.'
-              : 'Explore mode active. Click the scene for pointer lock, then use WASD and Space.',
+            isMobile
+              ? 'Explore mode: use Move stick to walk · drag scene to look · Space jump (keyboard)'
+              : params.runtime.placeSpawn
+                ? 'Explore mode active. Enable placement clicks in Scene controls, or turn Place spawn off to lock the pointer.'
+                : 'Explore mode active. Click the scene for pointer lock, then use WASD and Space.',
           )
         } else if (teleport) {
           if (document.pointerLockElement === renderer.domElement) document.exitPointerLock()
@@ -9988,7 +10036,9 @@
                 ? 'Inspect mode active. Pick coordinates on — click geometry to copy world XYZ.'
                 : params.runtime.gizmoEnabled
                   ? 'Inspect mode active. Transform gizmo on — click an object to select it; T/R/S switch mode.'
-                  : 'Inspect mode active. Drag to look around, WASD to move through the gallery. Click for pointer lock.',
+                  : isMobile
+                    ? 'Inspect mode: drag to look · Move stick to walk'
+                    : 'Inspect mode active. Drag to look around, WASD to move through the gallery. Click for pointer lock.',
           )
         }
 
@@ -10000,6 +10050,17 @@
         updatePickModeUi()
         updateSceneControlAvailability()
         updateTransformGizmo()
+        syncMobileWalkJoystick()
+      }
+
+      function syncMobileWalkJoystick() {
+        if (!walkJoystick?.active) return
+        const needsStick = isExploreMode() || isInspectMode()
+        walkJoystick.setVisible(needsStick)
+        if (!needsStick) {
+          mobileExploreLookPointerId = null
+          mobileExploreLookLast = null
+        }
       }
 
       function updateNavModeButtons() {
@@ -10181,6 +10242,20 @@
           return
         }
 
+        // Phones: no pointer lock — drag looks, Move stick walks.
+        if (isMobile) {
+          event.preventDefault()
+          renderer.domElement.focus({ preventScroll: true })
+          mobileExploreLookPointerId = event.pointerId
+          mobileExploreLookLast = { x: event.clientX, y: event.clientY }
+          try {
+            renderer.domElement.setPointerCapture(event.pointerId)
+          } catch {
+            // ignore
+          }
+          return
+        }
+
         if (document.pointerLockElement !== renderer.domElement) {
           event.preventDefault()
           renderer.domElement.focus({ preventScroll: true })
@@ -10191,7 +10266,9 @@
       function updateWalkHint() {
         if (isTeleportMode()) {
           walkHint.hidden = false
-          walkHint.textContent = 'Short-click floor to teleport · Drag to look around'
+          walkHint.textContent = isMobile
+            ? 'Tap floor to teleport · Drag to look around'
+            : 'Short-click floor to teleport · Drag to look around'
           return
         }
 
@@ -10207,11 +10284,13 @@
         } else if (document.pointerLockElement === renderer.domElement) {
           walkHint.hidden = true
         } else if (isExploreMode()) {
-          walkHint.textContent =
-            'Click to play · WASD to move · Shift run · Space jump · Esc release pointer'
+          walkHint.textContent = isMobile
+            ? 'Move stick to walk · Drag to look · keyboard Space jumps'
+            : 'Click to play · WASD to move · Shift run · Space jump · Esc release pointer'
         } else if (isInspectMode()) {
-          walkHint.textContent =
-            'Drag to look around · WASD to move · Click to lock pointer · Shift run'
+          walkHint.textContent = isMobile
+            ? 'Drag to look · Move stick to walk'
+            : 'Drag to look around · WASD to move · Click to lock pointer · Shift run'
         } else {
           walkHint.hidden = true
         }
@@ -10666,6 +10745,14 @@
       function animate(timestamp = 0) {
         runtimeTimer.update(timestamp)
         const deltaTime = Math.min(0.05, runtimeTimer.getDelta())
+
+        if (walkJoystick?.active && (isExploreMode() || isInspectMode())) {
+          walkJoystick.applyToKeyStates(keyStates)
+          if (isInspectMode() && (keyStates.KeyW || keyStates.KeyA || keyStates.KeyS || keyStates.KeyD)) {
+            markInspectRigOwnedByUser()
+            syncInspectOrbitRotateWithWasd()
+          }
+        }
 
         if (allowsPlayerMovement()) {
           updateWalk(deltaTime)

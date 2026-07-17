@@ -37,6 +37,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -124,11 +125,6 @@
         right: 12px;
         z-index: 20;
       }
-      @media (max-width: 640px) {
-        .hint {
-          display: none;
-        }
-      }
     </style>
     <script type="importmap">
       {
@@ -141,6 +137,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -156,7 +153,7 @@
       </p>
     </aside>
     <div id="container"></div>
-    <p class="hint">Click control points · drag gizmo · orbit with right mouse</p>
+    <p class="hint">Drag to orbit · tap point · drag gizmo · phones: Orbit / Edit</p>
     <div id="status">Loading raven…</div>
 
     <script type="module">
@@ -166,6 +163,13 @@
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
       import { SimplifyModifier } from 'three/addons/modifiers/SimplifyModifier.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
 
       /** Bump when LOD GLBs change — busts immutable CDN cache (max-age=1y). */
       const RAVEN_LOD_VERSION = '20260710b'
@@ -175,10 +179,6 @@
       const RAVEN_URL_MOBILE = ravenAsset('/assets/ravens/common-ravens-mobile.glb')
       const RAVEN_URL_MEDIUM = ravenAsset('/assets/ravens/common-ravens-medium.glb')
       const RAVEN_URL_COARSE = ravenAsset('/assets/ravens/common-ravens-coarse.glb')
-      const DEFAULT_USE_MOBILE =
-        window.matchMedia('(max-width: 768px)').matches ||
-        window.matchMedia('(pointer: coarse)').matches
-
       // Prebuilt LOD assets from scripts/build-mobile-raven.mjs (run build:ravens).
       // Full baseline is always single-bird desktop GLTF (~72k tris). Presets run
       // weld → flatten → meshopt simplify at build time; Mobile also halves textures.
@@ -224,6 +224,7 @@
       let materialInfoLabel = null
       let selectedMeshLabel = null
       let wingAnimInfoLabel = null
+      let touchMode = null
       let guiInstance = null
       let playPathGuiController = null
       let driftBackwardsGuiController = null
@@ -252,7 +253,7 @@
         translateX: 0,
         translateY: 0,
         translateZ: 0,
-        pointSize: 0.2,
+        pointSize: isMobile ? 0.35 : 0.2,
         pointOpacity: 0.42,
       }
 
@@ -339,9 +340,9 @@
       }
 
       const geometryState = {
-        quality: DEFAULT_USE_MOBILE ? 'Mobile' : 'Full',
-        useMobileModel: DEFAULT_USE_MOBILE,
-        modelLabel: DEFAULT_USE_MOBILE ? 'mobile GLB' : 'desktop GLTF',
+        quality: isMobile ? 'Mobile' : 'Full',
+        useMobileModel: isMobile,
+        modelLabel: isMobile ? 'mobile GLB' : 'desktop GLTF',
         simplifyRatio: 0.5,
         note: 'Skinned — runtime simplify N/A. LOD presets bake meshopt decimation at build time.',
       }
@@ -416,17 +417,17 @@
         )
         ground.rotation.x = -Math.PI / 2
         ground.position.y = -0.02
-        ground.receiveShadow = true
+        ground.receiveShadow = !isMobile
         scene.add(ground)
 
         const grid = new THREE.GridHelper(200, 80, 0x2a3340, 0x1a2028)
         grid.position.y = 0.01
         scene.add(grid)
 
-        renderer = new THREE.WebGLRenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGLRenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
-        renderer.shadowMap.enabled = true
+        renderer.shadowMap.enabled = !isMobile
         container.appendChild(renderer.domElement)
 
         controls = new OrbitControls(camera, renderer.domElement)
@@ -436,7 +437,11 @@
 
         transformControl = new TransformControls(camera, renderer.domElement)
         transformControl.addEventListener('dragging-changed', (event) => {
-          controls.enabled = !event.value
+          if (event.value) {
+            controls.enabled = false
+          } else {
+            controls.enabled = isMobile ? (touchMode?.isOrbit?.() ?? false) : true
+          }
         })
         transformControl.addEventListener('objectChange', onTransformObjectChange)
         scene.add(transformControl.getHelper())
@@ -455,6 +460,24 @@
         loadDefaultPath()
         rebuildCurve()
         buildGui()
+
+        const hintEl = document.querySelector('.hint')
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'edit', label: 'Edit' },
+          ],
+          defaultMode: 'orbit',
+          hintEl,
+          hints: {
+            orbit:
+              'Orbit · drag to rotate · pinch/scroll zoom · switch to Edit for path points',
+            edit: 'Edit · tap control point · drag gizmo · switch to Orbit to navigate',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+          },
+        })
 
         document.addEventListener('pointerdown', onPointerDown)
         document.addEventListener('pointerup', onPointerUp)
@@ -938,11 +961,12 @@
       function updateEditHint() {
         const hint = document.querySelector('.hint')
         if (!hint) return
+        if (isMobile && touchMode) return
         if (editState.target === 'raven' || editState.manualEdit) {
           hint.textContent =
-            'Edit raven · drag move/rotate gizmo · orbit with right mouse · switch to Edit path for spline points'
+            'Edit raven · drag move/rotate gizmo · switch to Edit path for spline points'
         } else {
-          hint.textContent = 'Click control points · drag gizmo · orbit with right mouse'
+          hint.textContent = 'Drag to orbit · tap point · drag gizmo'
         }
       }
 
@@ -1642,6 +1666,12 @@
       /** Always measure single-bird Full desktop GLTF — never the active preset. */
       async function ensureFullBaseline() {
         if (baselineReady) return baselineTris
+        if (isMobile) {
+          baselineTris = QUALITY_PRESETS.Full.tris
+          baselineReady = true
+          updatePolyStatsLabel()
+          return baselineTris
+        }
         const loader = new GLTFLoader()
         const gltf = await loader.loadAsync(RAVEN_URL_DESKTOP)
         hideSecondRaven(gltf.scene)
@@ -1860,6 +1890,21 @@
         refreshPathStatus()
       }
 
+      function selectAtPointer(clientX, clientY) {
+        pointer.x = (clientX / window.innerWidth) * 2 - 1
+        pointer.y = -(clientY / window.innerHeight) * 2 + 1
+        raycaster.setFromCamera(pointer, camera)
+        const intersects = raycaster.intersectObjects(splineHelperObjects, false)
+        if (intersects.length > 0) {
+          const object = intersects[0].object
+          if (object !== transformControl.object) {
+            transformControl.attach(object)
+          }
+          return true
+        }
+        return false
+      }
+
       function onPointerDown(event) {
         onDownPosition.x = event.clientX
         onDownPosition.y = event.clientY
@@ -1868,23 +1913,18 @@
       function onPointerUp(event) {
         onUpPosition.x = event.clientX
         onUpPosition.y = event.clientY
-        if (onDownPosition.distanceTo(onUpPosition) === 0 && editState.target === 'path' && !editState.manualEdit) {
+        if (onDownPosition.distanceTo(onUpPosition) >= 8) return
+        if (isMobile && touchMode?.isOrbit()) return
+        if (editState.target === 'raven' || editState.manualEdit) return
+        if (!selectAtPointer(event.clientX, event.clientY)) {
           transformControl.detach()
         }
       }
 
       function onPointerMove(event) {
+        if (isMobile) return
         if (editState.target === 'raven' || editState.manualEdit) return
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
-        raycaster.setFromCamera(pointer, camera)
-        const intersects = raycaster.intersectObjects(splineHelperObjects, false)
-        if (intersects.length > 0) {
-          const object = intersects[0].object
-          if (object !== transformControl.object) {
-            transformControl.attach(object)
-          }
-        }
+        selectAtPointer(event.clientX, event.clientY)
       }
 
       function onWindowResize() {

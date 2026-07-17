@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -140,9 +141,6 @@
         z-index: 20;
       }
       @media (max-width: 640px) {
-        #hint {
-          display: none;
-        }
         .lil-gui.root {
           max-height: calc(100vh - 80px);
           overflow: auto;
@@ -392,6 +390,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -503,10 +502,18 @@
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
       import { bayer16 } from 'three/addons/tsl/math/Bayer.js'
       import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
 
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
+
+      const isMobile = prefersMobileExperience()
 
       function setStatus(text, isError = false) {
         statusEl.textContent = text
@@ -702,6 +709,7 @@
       let gizmoEnabledEditor = null
       let gizmoEnabledController = null
       let gizmoModeController = null
+      let touchMode = null
       const objectInfoItems = []
       let objectsInfoPositionEl = null
       let objectsTransformEditors = null
@@ -1665,6 +1673,7 @@
         if (event.button !== 0) return
         if (!runtimeParams.gizmoEnabled) return
         if (transformControls?.dragging || transformControls?.axis) return
+        if (isMobile && touchMode?.isOrbit()) return
 
         event.preventDefault()
         selectGizmoFromClick(event)
@@ -1882,7 +1891,11 @@
           }
         })
         transformControls.addEventListener('mouseUp', () => {
-          controls.enabled = true
+          if (isMobile) {
+            controls.enabled = touchMode?.isOrbit() ?? false
+          } else {
+            controls.enabled = true
+          }
         })
         scene.add(transformControls.getHelper())
       }
@@ -2462,8 +2475,8 @@
 
         timer = new THREE.Timer()
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.toneMapping = THREE.NeutralToneMapping
@@ -2495,7 +2508,7 @@
         smokeAmount = uniform(2)
 
         volumetricMaterial = new THREE.VolumeNodeMaterial()
-        volumetricMaterial.steps = 12
+        volumetricMaterial.steps = isMobile ? 8 : 12
         volumetricMaterial.offsetNode = bayer16(screenCoordinate)
         volumetricMaterial.scatteringNode = Fn(({ positionRay }) => {
           const timeScaled = vec3(time, 0, time.mul(0.3))
@@ -2655,6 +2668,26 @@
             cancelCameraTransition()
           })
           controls.update()
+
+          touchMode = createTouchModeToggle({
+            modes: [
+              { id: 'orbit', label: 'Orbit' },
+              { id: 'gizmo', label: 'Gizmo' },
+            ],
+            defaultMode: 'orbit',
+            hintEl,
+            hints: {
+              orbit:
+                'Orbit · drag to rotate · pinch/scroll zoom · enable Transform gizmo in Objects · switch to Gizmo to pick',
+              gizmo:
+                'Gizmo · tap mesh to select · drag handles to transform · T/R/S in inspector · switch to Orbit to navigate',
+            },
+            onChange(mode) {
+              controls.enabled = mode === 'orbit'
+            },
+          })
+          if (touchMode.isOrbit()) controls.enabled = true
+          if (!isMobile) controls.enabled = true
 
           initCameraViewsPanel()
           loadCameraKeyframesFromStorage()

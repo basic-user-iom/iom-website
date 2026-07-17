@@ -59,9 +59,18 @@
 
 @media (max-width: 640px) {
   .demo-attribution {
-    bottom: auto;
-    top: 48px;
+    /* Stay bottom-left — top placement collided with ← IOM / Inspector */
+    bottom: 12px;
     left: 12px;
-    max-width: calc(100vw - 24px);
+    max-width: min(16rem, calc(100vw - 24px));
+    max-height: 28vh;
+    overflow: auto;
+  }
+
+  .demo-attribution-credits {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 }

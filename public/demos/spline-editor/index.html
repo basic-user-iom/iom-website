@@ -37,6 +37,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -119,6 +120,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -140,13 +142,17 @@
       </a>
     </aside>
     <div id="container"></div>
-    <p class="hint">Click control points · drag gizmo · orbit with right mouse</p>
+    <p class="hint">Drag to orbit · tap point · drag gizmo</p>
 
     <script type="module">
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
+      import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
+      const pointSize = isMobile ? 32 : 20
 
       const container = document.getElementById('container')
 
@@ -161,7 +167,7 @@
       const onUpPosition = new THREE.Vector2()
       const onDownPosition = new THREE.Vector2()
 
-      const geometry = new THREE.BoxGeometry(20, 20, 20)
+      const geometry = new THREE.BoxGeometry(pointSize, pointSize, pointSize)
       let transformControl
 
       const ARC_SEGMENTS = 200
@@ -215,8 +221,8 @@
         helper.material.transparent = true
         scene.add(helper)
 
-        renderer = new THREE.WebGLRenderer({ antialias: true })
-        renderer.setPixelRatio(window.devicePixelRatio)
+        renderer = new THREE.WebGLRenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.shadowMap.enabled = true
         container.appendChild(renderer.domElement)
@@ -419,24 +425,9 @@
         renderer.render(scene, camera)
       }
 
-      function onPointerDown(event) {
-        onDownPosition.x = event.clientX
-        onDownPosition.y = event.clientY
-      }
-
-      function onPointerUp(event) {
-        onUpPosition.x = event.clientX
-        onUpPosition.y = event.clientY
-
-        if (onDownPosition.distanceTo(onUpPosition) === 0) {
-          transformControl.detach()
-          render()
-        }
-      }
-
-      function onPointerMove(event) {
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+      function selectAtPointer(clientX, clientY) {
+        pointer.x = (clientX / window.innerWidth) * 2 - 1
+        pointer.y = -(clientY / window.innerHeight) * 2 + 1
 
         raycaster.setFromCamera(pointer, camera)
 
@@ -448,7 +439,33 @@
           if (object !== transformControl.object) {
             transformControl.attach(object)
           }
+          return true
         }
+
+        return false
+      }
+
+      function onPointerDown(event) {
+        onDownPosition.x = event.clientX
+        onDownPosition.y = event.clientY
+      }
+
+      function onPointerUp(event) {
+        onUpPosition.x = event.clientX
+        onUpPosition.y = event.clientY
+
+        if (onDownPosition.distanceTo(onUpPosition) < 8) {
+          if (!selectAtPointer(event.clientX, event.clientY)) {
+            transformControl.detach()
+          }
+          render()
+        }
+      }
+
+      function onPointerMove(event) {
+        if (isMobile) return
+
+        selectAtPointer(event.clientX, event.clientY)
       }
 
       function onWindowResize() {

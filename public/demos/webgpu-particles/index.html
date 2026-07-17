@@ -114,11 +114,6 @@
         font-size: 0.92rem;
         color: rgba(255, 255, 255, 0.62);
       }
-      @media (max-width: 640px) {
-        #hint {
-          display: none;
-        }
-      }
     </style>
     <script type="importmap">
       {
@@ -133,6 +128,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -183,6 +179,11 @@
       import { range, texture, mix, uv, color, rotateUV, positionLocal, time, uniform } from 'three/tsl'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
+      import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
+      const smokeCount = isMobile ? 1000 : 2000
+      const fireCount = isMobile ? 500 : 1000
 
       const SMOKE_TEXTURE_URL = 'https://threejs.org/examples/textures/opengameart/smoke1.png'
 
@@ -249,11 +250,10 @@
 
         const smokeInstancedSprite = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), smokeNodeMaterial)
         smokeInstancedSprite.scale.setScalar(400)
-        smokeInstancedSprite.count = 2000
+        smokeInstancedSprite.count = smokeCount
         scene.add(smokeInstancedSprite)
 
         const fireGeometry = new THREE.PlaneGeometry(1, 1)
-        const fireCount = 1000
 
         const fireNodeMaterial = new THREE.SpriteNodeMaterial()
         fireNodeMaterial.colorNode = mix(color(0xb72f17), color(0xb72f17), life)
@@ -277,8 +277,8 @@
         helper.position.y = -75
         scene.add(helper)
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.inspector = new Inspector()

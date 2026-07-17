@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -141,10 +142,11 @@
       }
       @media (max-width: 640px) {
         #hint {
-          display: none;
+          bottom: 64px;
+          font-size: 11px;
         }
         .lil-gui.root {
-          max-height: calc(100vh - 80px);
+          max-height: min(38vh, 280px);
           overflow: auto;
         }
       }
@@ -162,6 +164,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -203,7 +206,7 @@
     </div>
 
     <div id="container"></div>
-    <div id="hint">Orbit drag · scroll zoom · pick a shape · Release to drop · particles scatter on ground · move mouse to push · Reset to reform</div>
+    <div id="hint">Orbit drag · scroll zoom · Release to drop · move pointer to push · on phones: Orbit / Push</div>
     <div id="status">Initializing…</div>
 
     <script type="module">
@@ -223,6 +226,11 @@
       import { StorageInstancedBufferAttribute } from 'three/webgpu'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
 
       const SHAPES = ['cube', 'sphere', 'torus', 'cone', 'pyramid', 'ring', 'heart']
       const PARTICLE_PRESETS = [25000, 50000, 100000, 200000]
@@ -237,13 +245,15 @@
       const RELEASE_FALLING = 1
       const RELEASE_SCATTERED = 2
 
+      const isMobile = prefersMobileExperience()
+
       const params = {
         shape: 'sphere',
-        particlePreset: '100k',
+        particlePreset: isMobile ? '25k' : '100k',
         gravity: -0.00098,
         bounce: 0.72,
         friction: 0.992,
-        size: 0.1,
+        size: isMobile ? 0.12 : 0.1,
         tint: '#88bbff',
         released: false,
         releasePhase: RELEASE_FORMED,
@@ -252,6 +262,8 @@
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
+      let touchMode = null
 
       function setStatus(text, isError = false) {
         statusEl.textContent = text
@@ -430,7 +442,7 @@
       let clickPositionUniform, shapeCenterUniform
       let hitPlane, raycaster, pointer
       let isOrbitControlsActive = false
-      let particleCount = 100000
+      let particleCount = particleCountFromPreset(params.particlePreset)
       let disposed = false
       let fallFramesRemaining = 0
 
@@ -472,8 +484,8 @@
         floor.position.y = 0
         scene.add(floor)
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         container.appendChild(renderer.domElement)
@@ -500,10 +512,27 @@
         controls.addEventListener('end', () => {
           isOrbitControlsActive = false
         })
+        // Restore one-finger orbit; Push mode disables orbit on phones.
         controls.touches = {
-          ONE: null,
+          ONE: THREE.TOUCH.ROTATE,
           TWO: THREE.TOUCH.DOLLY_PAN,
         }
+
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'push', label: 'Push' },
+          ],
+          defaultMode: 'orbit',
+          hintEl,
+          hints: {
+            orbit: 'Orbit mode · drag to rotate · Release to drop particles',
+            push: 'Push mode · drag to shove scattered particles',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+          },
+        })
 
         const hitPlaneGeo = new THREE.PlaneGeometry(80, 80)
         hitPlaneGeo.rotateX(-Math.PI / 2)
@@ -729,7 +758,9 @@
 
       function setupPointerInteraction() {
         function onPointerMove(event) {
-          if (isOrbitControlsActive || params.releasePhase !== RELEASE_SCATTERED) return
+          if (params.releasePhase !== RELEASE_SCATTERED) return
+          if (isMobile && touchMode && touchMode.mode !== 'push') return
+          if (!isMobile && isOrbitControlsActive) return
 
           pointer.set(
             (event.clientX / window.innerWidth) * 2 - 1,

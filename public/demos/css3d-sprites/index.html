@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -80,6 +81,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -101,20 +103,22 @@
       </a>
     </aside>
     <div id="container"></div>
-    <p class="hint">Drag to orbit · 512 CSS3D sprites morph between formations</p>
+    <p class="hint">Drag to orbit · CSS3D sprites morph between formations</p>
 
     <script type="module">
       import * as THREE from 'three'
       import TWEEN from 'three/addons/libs/tween.module.js'
       import { TrackballControls } from 'three/addons/controls/TrackballControls.js'
       import { CSS3DRenderer, CSS3DSprite } from 'three/addons/renderers/CSS3DRenderer.js'
+      import { prefersMobileExperience } from '../demo-mobile.js'
 
       const container = document.getElementById('container')
 
+      const isMobile = prefersMobileExperience()
       const targetFps = window.self !== window.top ? 30 : 60
       const frameInterval = 1000 / targetFps
 
-      const particlesTotal = 512
+      const particlesTotal = isMobile ? 192 : 512
       const positions = []
       const objects = []
       let current = 0
@@ -149,8 +153,8 @@
         image.src = './textures/sprite.png'
 
         // Plane formation
-        const amountX = 16
-        const amountZ = 32
+        const amountX = isMobile ? 12 : 16
+        const amountZ = isMobile ? 16 : 32
         const separationPlane = 150
         const offsetX = ((amountX - 1) * separationPlane) / 2
         const offsetZ = ((amountZ - 1) * separationPlane) / 2
@@ -163,7 +167,7 @@
         }
 
         // Cube formation
-        const amount = 8
+        const amount = isMobile ? 6 : 8
         const separationCube = 150
         const offset = ((amount - 1) * separationCube) / 2
 

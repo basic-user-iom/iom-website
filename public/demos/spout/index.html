@@ -36,12 +36,14 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       #container canvas {
         display: block;
         width: 100%;
         height: 100%;
         cursor: grab;
+        touch-action: none;
       }
       #container canvas.is-dragging {
         cursor: grabbing;
@@ -94,15 +96,11 @@
       #fallback.is-visible {
         display: flex;
       }
-      @media (max-width: 640px) {
-        .hint {
-          display: none;
-        }
-      }
     </style>
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -134,6 +132,8 @@
     </div>
     <div id="container"></div>
     <script type="module">
+      import { mobilePixelRatio } from '../demo-mobile.js'
+
       const VERT = `#version 300 es
 in vec2 position;
 void main() {
@@ -268,10 +268,10 @@ void main() {
         const mouse = { x: 0, y: 0, z: 0, w: 0, down: false }
         let frame = 0
         let prevTs = performance.now()
-        let dpr = Math.min(window.devicePixelRatio || 1, 2)
+        let dpr = mobilePixelRatio(2, 1.15)
 
         function resize() {
-          dpr = Math.min(window.devicePixelRatio || 1, 2)
+          dpr = mobilePixelRatio(2, 1.15)
           const w = Math.max(1, Math.floor(container.clientWidth * dpr))
           const h = Math.max(1, Math.floor(container.clientHeight * dpr))
           if (canvas.width !== w || canvas.height !== h) {

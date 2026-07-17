@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -96,6 +97,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -127,6 +129,9 @@
       import { FontLoader, Font } from 'three/addons/loaders/FontLoader.js'
       import { TTFLoader } from 'three/addons/loaders/TTFLoader.js'
       import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
+      import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
 
       const THREE_FONT_BASE =
         'https://cdn.jsdelivr.net/npm/three@0.183.0/examples/fonts/'
@@ -180,7 +185,7 @@
 
       const container = document.getElementById('container')
 
-      const maxDpr = Math.min(window.devicePixelRatio, 1.5)
+      const maxDpr = mobilePixelRatio(1.5, 1.15)
       const targetFps = window.self !== window.top ? 30 : 60
       const RECORD_FPS = 60
       const frameInterval = 1000 / targetFps
@@ -268,9 +273,10 @@
       waterNormals.wrapS = waterNormals.wrapT = THREE.RepeatWrapping
       waterNormals.colorSpace = THREE.NoColorSpace
 
+      const waterTextureSize = isMobile ? 256 : 512
       const water = new Water(waterGeometry, {
-        textureWidth: 512,
-        textureHeight: 512,
+        textureWidth: waterTextureSize,
+        textureHeight: waterTextureSize,
         waterNormals,
         sunDirection: new THREE.Vector3(),
         sunColor: 0xffffff,

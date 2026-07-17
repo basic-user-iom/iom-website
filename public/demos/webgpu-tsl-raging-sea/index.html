@@ -36,6 +36,7 @@
       #container {
         width: 100%;
         height: 100%;
+        touch-action: none;
       }
       .back-link {
         position: fixed;
@@ -113,11 +114,6 @@
         font-size: 0.92rem;
         color: rgba(255, 255, 255, 0.62);
       }
-      @media (max-width: 640px) {
-        #hint {
-          display: none;
-        }
-      }
     </style>
     <script type="importmap">
       {
@@ -132,6 +128,7 @@
   </head>
   <body>
     <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
     <a class="back-link" href="/">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -202,6 +199,10 @@
       } from 'three/tsl'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
+      import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      const isMobile = prefersMobileExperience()
+      const seaSegments = isMobile ? 96 : 256
 
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
@@ -295,13 +296,13 @@
         const emissive = elevation.remap(emissiveHigh, emissiveLow).pow(emissivePower)
         material.emissiveNode = emissiveColor.mul(emissive)
 
-        const geometry = new THREE.PlaneGeometry(2, 2, 256, 256)
+        const geometry = new THREE.PlaneGeometry(2, 2, seaSegments, seaSegments)
         geometry.rotateX(-Math.PI * 0.5)
         const mesh = new THREE.Mesh(geometry, material)
         scene.add(mesh)
 
-        renderer = new THREE.WebGPURenderer({ antialias: true })
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.inspector = new Inspector()
