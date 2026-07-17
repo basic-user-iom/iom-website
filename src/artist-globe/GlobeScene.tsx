@@ -54,15 +54,24 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     if (!mount) return
 
     let disposed = false
+    const isMobile =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(hover: none), (pointer: coarse), (max-width: 900px)').matches
     const width = mount.clientWidth || 800
-    const height = Math.max(mount.clientHeight || 600, 400)
+    const height = Math.max(mount.clientHeight || 600, isMobile ? 320 : 400)
+    const sphereSegW = isMobile ? 64 : 96
+    const sphereSegH = isMobile ? 48 : 72
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, width / height, 0.1, 100)
     camera.position.set(0, 0.12, 4.35)
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    const renderer = new THREE.WebGLRenderer({
+      antialias: !isMobile,
+      alpha: true,
+      powerPreference: isMobile ? 'low-power' : 'high-performance',
+    })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2))
     renderer.setSize(width, height)
     renderer.setClearColor(0x000000, 0)
     mount.appendChild(renderer.domElement)
@@ -72,7 +81,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     scene.add(root)
 
     const atmosphere = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 1.038, 96, 96),
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.038, sphereSegW, sphereSegH),
       new THREE.MeshBasicMaterial({
         color: 0x7eb8d8,
         transparent: true,
@@ -82,7 +91,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     )
     root.add(atmosphere)
 
-    const earthGeo = new THREE.SphereGeometry(GLOBE_RADIUS, 96, 72)
+    const earthGeo = new THREE.SphereGeometry(GLOBE_RADIUS, sphereSegW, sphereSegH)
     const earthMat = new THREE.MeshBasicMaterial({
       color: 0x0a1520,
       transparent: true,
@@ -100,7 +109,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
           return
         }
         texture.colorSpace = THREE.SRGBColorSpace
-        texture.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
+        texture.anisotropy = Math.min(isMobile ? 2 : 8, renderer.capabilities.getMaxAnisotropy())
         earthMat.map = texture
         earthMat.color = new THREE.Color(0xffffff)
         earthMat.needsUpdate = true
@@ -112,7 +121,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     )
 
     const wire = new THREE.Mesh(
-      new THREE.SphereGeometry(GLOBE_RADIUS * 1.001, 48, 32),
+      new THREE.SphereGeometry(GLOBE_RADIUS * 1.001, isMobile ? 32 : 48, isMobile ? 24 : 32),
       new THREE.MeshBasicMaterial({
         color: 0x8fa4bc,
         wireframe: true,
@@ -461,12 +470,19 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
 
     const onResize = () => {
       const w = mount.clientWidth || 800
-      const h = Math.max(mount.clientHeight || 600, 400)
+      const h = Math.max(mount.clientHeight || 600, isMobile ? 320 : 400)
+      if (w < 2 || h < 2) return
       camera.aspect = w / h
       camera.updateProjectionMatrix()
       renderer.setSize(w, h)
     }
     window.addEventListener('resize', onResize)
+    const resizeObserver =
+      typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => onResize()) : null
+    resizeObserver?.observe(mount)
+    // Embed iframes often mount at 0×0 then gain size after CSS height chain settles
+    requestAnimationFrame(() => onResize())
+    window.setTimeout(onResize, 120)
 
     const tick = (t: number) => {
       // Pause idle spin while pressing, hovering a pin, popup locked, or panel open
@@ -501,6 +517,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
       borders = null
       cancelAnimationFrame(raf)
       window.removeEventListener('resize', onResize)
+      resizeObserver?.disconnect()
       mount.removeEventListener('pointerdown', onPointerDown)
       mount.removeEventListener('pointerup', onPointerUp)
       mount.removeEventListener('pointercancel', onPointerCancel)

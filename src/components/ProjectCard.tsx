@@ -185,8 +185,10 @@ export const ProjectCard = memo(function ProjectCard({
             className="card-preview-thumb"
             src={staticPreviewUrl ?? project.posterUrl ?? ''}
             alt=""
-            loading="lazy"
+            /* Featured cards use display:contents — native lazy often never fires */
+            loading={project.featured ? 'eager' : 'lazy'}
             decoding="async"
+            {...(project.featured ? { fetchPriority: 'high' as const } : {})}
           />
           {hasGallery ? (
             <span className="card-preview-overlay" aria-hidden="true">
@@ -205,8 +207,9 @@ export const ProjectCard = memo(function ProjectCard({
               className={`card-preview-poster${posterHidden ? ' is-hidden' : ''}`}
               src={posterUrl}
               alt=""
-              loading="lazy"
+              loading={project.featured ? 'eager' : 'lazy'}
               decoding="async"
+              {...(project.featured ? { fetchPriority: 'high' as const } : {})}
             />
           ) : (
             <span className="card-preview-glyph card-preview-glyph--embed" aria-hidden="true">
