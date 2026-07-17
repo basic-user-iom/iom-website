@@ -83,17 +83,20 @@ export function DemosView() {
                     <span key={tag}>{tag}</span>
                   ))}
                 </div>
-                <p className="crm-demos-card-url">
-                  <span>{t('demos.url')}</span>
-                  <a href={url} target="_blank" rel="noreferrer">
-                    {url}
-                  </a>
-                </p>
-                {demo.password ? (
-                  <p className="crm-demos-card-pass">
-                    {t('demos.password')}: <code>{demo.password}</code>
+                <div className="crm-demos-card-meta">
+                  <p className="crm-demos-card-url">
+                    <span>{t('demos.url')}</span>
+                    <a href={url} target="_blank" rel="noreferrer">
+                      {url}
+                    </a>
                   </p>
-                ) : null}
+                  {demo.password ? (
+                    <p className="crm-demos-card-pass">
+                      <span>{t('demos.password')}</span>
+                      <code>{demo.password}</code>
+                    </p>
+                  ) : null}
+                </div>
                 <div className="crm-demos-card-actions">
                   <a
                     className="btn btn-primary"

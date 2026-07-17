@@ -4835,14 +4835,14 @@
   font-size: 0.9rem;
 }
 
-/* —— Client demos (fictional pitch sites) —— */
+/* —— Client demos (private pitch sites) —— */
 .crm-demos-view {
   padding: 1.25rem 1.25rem 2.5rem;
-  max-width: 960px;
+  max-width: 56rem;
 }
 
 .crm-demos-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.35rem;
 }
 
 .crm-demos-kicker {
@@ -4850,19 +4850,20 @@
   font-size: 0.72rem;
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.45));
+  color: var(--text-muted);
 }
 
 .crm-demos-title {
   margin: 0 0 0.45rem;
   font-size: 1.45rem;
   font-weight: 600;
+  color: var(--text);
 }
 
 .crm-demos-intro {
   margin: 0;
   max-width: 40rem;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.55));
+  color: var(--text-muted);
   line-height: 1.5;
   font-size: 0.95rem;
 }
@@ -4877,30 +4878,50 @@
 }
 
 .crm-demos-card {
-  display: grid;
-  gap: 1rem;
-  padding: 0.85rem;
-  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.08));
-  background: var(--crm-elevated, rgba(255, 255, 255, 0.03));
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+  isolation: isolate;
 }
 
 @media (min-width: 720px) {
   .crm-demos-card {
-    grid-template-columns: 220px 1fr;
+    flex-direction: row;
     align-items: stretch;
   }
 }
 
 .crm-demos-card-media {
+  position: relative;
   display: block;
-  aspect-ratio: 3 / 2;
+  flex: 0 0 auto;
+  width: 100%;
+  aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+@media (min-width: 720px) {
+  .crm-demos-card-media {
+    width: 15.5rem;
+    max-width: 38%;
+    aspect-ratio: auto;
+    align-self: stretch;
+    min-height: 12rem;
+  }
 }
 
 .crm-demos-card-media img {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
+  max-width: none;
   object-fit: cover;
   display: block;
   transition: transform 0.4s ease;
@@ -4911,10 +4932,15 @@
 }
 
 .crm-demos-card-body {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.65rem;
+  flex: 1 1 auto;
   min-width: 0;
+  padding: 1rem 1.1rem 1.1rem;
+  background: var(--bg-elevated);
 }
 
 .crm-demos-card-top {
@@ -4928,12 +4954,13 @@
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
+  color: var(--text);
 }
 
 .crm-demos-card-client {
-  margin: 0.2rem 0 0;
+  margin: 0.25rem 0 0;
   font-size: 0.85rem;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.5));
+  color: var(--text-muted);
 }
 
 .crm-demos-status {
@@ -4941,21 +4968,24 @@
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  padding: 0.3rem 0.45rem;
-  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.14));
-  color: var(--crm-muted, rgba(255, 255, 255, 0.65));
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .crm-demos-status--preview {
-  border-color: rgba(0, 229, 255, 0.35);
-  color: var(--accent, #00e5ff);
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  color: var(--accent);
 }
 
 .crm-demos-card-blurb {
   margin: 0;
   font-size: 0.92rem;
-  line-height: 1.5;
-  color: var(--crm-text, rgba(255, 255, 255, 0.82));
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 48ch;
 }
 
 .crm-demos-card-tags {
@@ -4968,29 +4998,42 @@
   font-size: 0.72rem;
   letter-spacing: 0.04em;
   padding: 0.2rem 0.45rem;
-  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.1));
-  color: var(--crm-muted, rgba(255, 255, 255, 0.55));
+  border: 1px solid var(--border);
+  border-radius: calc(var(--radius) - 2px);
+  color: var(--text-muted);
+}
+
+.crm-demos-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.15rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(0, 0, 0, 0.22);
 }
 
 .crm-demos-card-url {
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.2rem;
   font-size: 0.85rem;
 }
 
-.crm-demos-card-url > span {
+.crm-demos-card-url > span,
+.crm-demos-card-pass > span {
   font-size: 0.68rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.45));
+  color: var(--text-muted);
 }
 
 .crm-demos-card-url a {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: 0.88rem;
-  color: var(--accent, #00e5ff);
+  font-size: 0.86rem;
+  color: var(--accent);
   word-break: break-all;
 }
 
@@ -5000,29 +5043,34 @@
 
 .crm-demos-card-pass {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
   font-size: 0.85rem;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.55));
+  color: var(--text-muted);
 }
 
 .crm-demos-card-pass code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--crm-text, #ececf2);
+  color: var(--text);
+  font-size: 0.9rem;
 }
 
 .crm-demos-card-actions {
   margin-top: auto;
+  padding-top: 0.35rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1rem;
+  gap: 0.65rem 1rem;
 }
 
 .crm-demos-card-local {
   font-size: 0.8rem;
-  color: var(--crm-muted, rgba(255, 255, 255, 0.5));
+  color: var(--text-muted);
 }
 
 .crm-demos-card-local:hover {
-  color: var(--crm-text, #ececf2);
+  color: var(--text);
 }
 
