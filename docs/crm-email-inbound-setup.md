@@ -1,75 +1,88 @@
-# CRM email inbound setup (Proton + CRM)
+# CRM email inbound setup (Proton + Resend + CRM)
 
-Outbound CRM sends already appear in **Proton Sent** (Proton SMTP). This guide mirrors **client replies** into the CRM while keeping them in Proton Inbox.
+Outbound CRM sends already appear in **Proton Sent**. This guide mirrors **client replies** into the CRM while keeping them in Proton Inbox.
 
-## 1. Database
+```text
+Client reply → Proton Inbox (kept)
+            → Proton forward copy → Resend Receiving
+            → webhook → /api/crm-resend-inbound → CRM Email conversation
+```
 
-In Supabase → SQL Editor, run:
+## Already done
 
-[`supabase/crm_lead_messages_migration.sql`](../supabase/crm_lead_messages_migration.sql)
+- [x] `crm_lead_messages` table in Supabase
+- [x] `CRM_INBOUND_EMAIL_SECRET` on Vercel
+- [x] `SUPABASE_SERVICE_ROLE_KEY` on Vercel
+- [x] Resend adapter code: `/api/crm-resend-inbound`
 
-## 2. Vercel env vars
+## A. Resend account (start here — no DNS yet)
 
-| Variable | Purpose |
+1. Create/sign in at [https://resend.com](https://resend.com)
+2. Open **Emails → Receiving** (or Domains → Receiving)
+3. Copy your Resend receiving address — it looks like:  
+   `something@xxxxx.resend.app`  
+   (any local-part works, e.g. `crm@xxxxx.resend.app`)
+4. Create an API key: **API Keys → Create** → copy `re_…`
+5. Add webhook:
+   - **Webhooks → Add Webhook**
+   - URL: `https://iobjectm.com/api/crm-resend-inbound`
+   - Event: **`email.received`**
+   - After create, copy the **Signing secret** (`whsec_…`)
+
+## B. Vercel env vars
+
+Add (Production + Preview):
+
+| Variable | Value |
 | --- | --- |
-| `CRM_INBOUND_EMAIL_SECRET` | Shared secret for `POST /api/crm-inbound-email` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Service role (inbound ingest bypasses RLS) |
+| `RESEND_API_KEY` | `re_…` |
+| `RESEND_WEBHOOK_SECRET` | `whsec_…` |
 
-Redeploy after setting env vars.
+Then redeploy (`npm run deploy` or ask the agent).
 
-## 3. Inbound catch address → webhook
+## C. Proton keep-copy forward
 
-Use any email→webhook path that can POST JSON to:
+In Proton Mail (paid plan with forwarding):
 
-`https://iobjectm.com/api/crm-inbound-email`
+1. **Settings → All settings → Filters** (or **Forward and auto-reply**)
+2. Add a filter / sieve that **forwards a copy** of incoming mail to your Resend address, e.g. `crm@xxxxx.resend.app`
+3. Use **keep / `:copy`** so the message **stays in Proton Inbox**
 
-Headers:
+Example Sieve (Filters → Add sieve filter):
 
-```http
-Authorization: Bearer <CRM_INBOUND_EMAIL_SECRET>
-Content-Type: application/json
+```sieve
+require ["copy"];
+redirect :copy "crm@xxxxx.resend.app";
 ```
 
-JSON body example:
+Apply for `contact@`, `visual@`, and/or `projects@` as needed.
 
-```json
-{
-  "from": "client@example.com",
-  "to": "contact@iobjectm.com",
-  "subject": "Re: …",
-  "text": "Thanks for your email…",
-  "html": null,
-  "messageId": "<abc@example.com>",
-  "inReplyTo": "<outbound@iobjectm.com>",
-  "references": "<outbound@iobjectm.com>",
-  "date": "2026-07-17T12:00:00.000Z",
-  "headers": {}
-}
-```
+## D. Test
 
-Cloudflare Email Routing + Worker, or a similar inbound parser, works well.
+1. From an external address, email a lead address that exists on a CRM lead (or reply to a CRM-sent thread).
+2. Confirm the message is still in **Proton Inbox**.
+3. Hard-refresh `/client-login` → open the lead → **Email conversation** should show **Received**.
 
-## 4. Proton keep-copy forward
+If matching fails (404 in webhook logs), either:
+- the sender email is not on the lead, or
+- there is no prior outbound `message_id` to thread against — use **Log client reply** once, or send from CRM first.
 
-In Proton Mail (for `contact@`, `visual@`, `projects@` as needed):
+## Optional later: branded subdomain
 
-1. Create a filter / auto-forward rule for incoming mail.
-2. **Keep a copy in Inbox** (do not delete).
-3. Forward a copy to your inbound catch address from step 3.
+When you want `crm@inbound.iobjectm.com` instead of `@….resend.app`:
 
-Result:
+1. In Resend: add domain `inbound.iobjectm.com` and enable **Receiving**
+2. In Vercel DNS for `iobjectm.com`: add **only** the MX (and any other) records Resend shows for the **subdomain** `inbound` — do **not** change root `@` MX (those stay Proton)
+3. Point Proton forward to `crm@inbound.iobjectm.com`
 
-- Client replies stay in Proton.
-- The same replies appear on the lead’s **Email conversation** panel in `/client-login`.
+## Manual fallback
 
-## 5. Matching
+Until Resend + Proton forward are live: **Log client reply** on the lead’s Email conversation panel.
+
+## Matching rules
 
 Inbound messages attach to a lead by:
 
 1. `X-IOM-CRM-Lead` / explicit `leadId` (if present)
 2. `In-Reply-To` / `References` matching a stored outbound `message_id`
 3. Sender address matching the lead’s primary or department emails
-
-## Manual fallback
-
-Until auto-forward is live, use **Log client reply** on the lead’s Email conversation panel.
