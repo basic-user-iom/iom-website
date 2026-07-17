@@ -37,6 +37,9 @@ function navigate(to: string) {
 export function ArtistGlobeApp() {
   const [path, setPath] = useState(() => window.location.pathname)
   const { view, inviteToken } = parseView(path)
+  const isEmbed =
+    typeof window !== 'undefined' &&
+    (new URLSearchParams(window.location.search).has('embed') || window.self !== window.top)
 
   const [artists, setArtists] = useState<Artist[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -84,8 +87,12 @@ export function ArtistGlobeApp() {
 
   useEffect(() => {
     document.body.classList.add('artist-globe-route')
-    return () => document.body.classList.remove('artist-globe-route')
-  }, [])
+    if (isEmbed) document.body.classList.add('artist-globe-embed')
+    return () => {
+      document.body.classList.remove('artist-globe-route')
+      document.body.classList.remove('artist-globe-embed')
+    }
+  }, [isEmbed])
 
   const reload = useCallback(async () => {
     const list = await fetchLiveArtists()
@@ -134,7 +141,8 @@ export function ArtistGlobeApp() {
   }
 
   return (
-    <div className="ag-app">
+    <div className={`ag-app${isEmbed ? ' ag-app--embed' : ''}`}>
+      {isEmbed ? null : (
       <header className="ag-top">
         <div className="ag-brand">
           <a href="/artist-globe" className="ag-brand-link" onClick={(e) => {
@@ -162,9 +170,12 @@ export function ArtistGlobeApp() {
           </button>
         </nav>
       </header>
+      )}
 
       {view === 'globe' ? (
         <div className="ag-main">
+          {isEmbed ? null : (
+          <>
           {filtersOpen ? (
             <button
               type="button"
@@ -252,8 +263,11 @@ export function ArtistGlobeApp() {
               </div>
             ) : null}
           </aside>
+          </>
+          )}
 
           <div className="ag-stage">
+            {isEmbed ? null : (
             <div className="ag-stage-tools">
               <button
                 type="button"
@@ -273,7 +287,8 @@ export function ArtistGlobeApp() {
                   : ''}
               </button>
             </div>
-            {portfolioOpen && selected ? (
+            )}
+            {portfolioOpen && selected && !isEmbed ? (
               <PortfolioShowcase
                 artist={selected}
                 onClose={() => {
@@ -285,16 +300,17 @@ export function ArtistGlobeApp() {
               <>
                 <GlobeScene
                   artists={filtered}
-                  selectedId={selected?.id ?? null}
+                  selectedId={isEmbed ? null : selected?.id ?? null}
                   onSelect={(id) => {
+                    if (isEmbed) return
                     setSelectedId(id)
                     setPortfolioOpen(false)
                     setFiltersOpen(false)
                     if (id) rememberOpened(id)
                   }}
-                  onOpenPortfolio={openPortfolio}
+                  onOpenPortfolio={isEmbed ? () => {} : openPortfolio}
                 />
-                {selected && !portfolioOpen ? (
+                {!isEmbed && selected && !portfolioOpen ? (
                   <ArtistSlidePanel
                     artist={selected}
                     recent={recentArtists}

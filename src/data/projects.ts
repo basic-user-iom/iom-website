@@ -745,6 +745,7 @@ export const PROJECTS: Project[] = [
       'Interactive WebGL globe of photographers, painters, sculptors, sound artists, and more — filter by practice, open portfolios, highlight countries, and submit a profile for review.',
     year: '2026',
     url: '/artist-globe',
+    embedUrl: '/artist-globe?embed=1',
     posterUrl: '/assets/posters/artist-globe.jpg?v=20260717-2',
     mobilePosterUrl: '/assets/posters/artist-globe.jpg?v=20260717-2',
     thumbnail: '/assets/posters/artist-globe.jpg?v=20260717-2',
