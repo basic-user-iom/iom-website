@@ -60,17 +60,34 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
     const sphereSegW = isMobile ? 64 : 96
     const sphereSegH = isMobile ? 48 : 72
 
+    const BASE_CAM_Z = 4.35
+    const BASE_CAM_Y = 0.12
+    const GLOBE_FIT_RADIUS = GLOBE_RADIUS * 1.12 // atmosphere + pin tips
+
     const readSize = () => {
       const w = Math.max(1, mount.clientWidth || 1)
       const h = Math.max(1, mount.clientHeight || 1)
       return { w, h }
     }
 
+    /** Keep the sphere circular and fully framed — pull back when the narrow axis would clip it. */
+    const fitCamera = (aspect: number) => {
+      const vFov = THREE.MathUtils.degToRad(camera.fov)
+      const hFov = 2 * Math.atan(Math.tan(vFov / 2) * Math.max(aspect, 0.05))
+      const halfLimiting = Math.min(vFov, hFov) / 2
+      const dist = GLOBE_FIT_RADIUS / Math.sin(halfLimiting)
+      const z = Math.max(BASE_CAM_Z, dist)
+      camera.position.set(0, BASE_CAM_Y * (z / BASE_CAM_Z), z)
+      camera.near = Math.max(0.05, z - GLOBE_FIT_RADIUS * 4)
+      camera.far = z + GLOBE_FIT_RADIUS * 6
+      camera.updateProjectionMatrix()
+    }
+
     let { w: width, h: height } = readSize()
 
     const scene = new THREE.Scene()
     const camera = new THREE.PerspectiveCamera(42, width / Math.max(height, 1), 0.1, 100)
-    camera.position.set(0, 0.12, 4.35)
+    fitCamera(camera.aspect)
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !isMobile,
@@ -478,7 +495,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
       const { w, h } = readSize()
       if (w < 2 || h < 2) return
       camera.aspect = w / h
-      camera.updateProjectionMatrix()
+      fitCamera(camera.aspect)
       renderer.setSize(w, h, true)
     }
     window.addEventListener('resize', onResize)
