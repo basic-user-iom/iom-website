@@ -375,6 +375,29 @@
       #container canvas.pick-cursor {
         cursor: crosshair;
       }
+      #camera-views-panel .panel-list-item.has-hold {
+        grid-template-columns: 22px minmax(0, 1fr) 54px auto;
+        gap: 4px;
+      }
+      #camera-views-panel .panel-hold-input {
+        width: 100%;
+        min-width: 0;
+        padding: 3px 4px;
+        border: 1px solid rgba(74, 74, 90, 0.55);
+        border-radius: 3px;
+        background: rgba(0, 0, 0, 0.35);
+        color: rgba(180, 210, 255, 0.95);
+        font: 400 10px/1.2 system-ui, sans-serif;
+        text-align: right;
+      }
+      #camera-views-panel .panel-hold-input:focus {
+        outline: none;
+        border-color: rgba(0, 170, 255, 0.65);
+      }
+      #camera-views-panel .panel-toolbar.panel-project-toolbar button,
+      #camera-views-panel .panel-toolbar.panel-project-toolbar label.panel-import {
+        flex: 1 1 calc(50% - 3px);
+      }
     </style>
     <link rel="stylesheet" href="../demo-inspector-panels.css" />
     <script type="importmap">
@@ -448,6 +471,13 @@
             <input id="camera-import-input" type="file" accept=".json,application/json" hidden />
           </label>
         </div>
+        <div class="panel-toolbar panel-project-toolbar">
+          <button type="button" id="project-save-btn" title="Save full project (cameras, lights, fog)">Save project</button>
+          <label class="panel-import" title="Load a saved project JSON">
+            Load project
+            <input id="project-load-input" type="file" accept=".json,.vlproject,application/json" hidden />
+          </label>
+        </div>
         <div class="panel-row">
           <span>Playback speed</span>
           <select id="camera-playback-speed">
@@ -460,7 +490,9 @@
         <div class="panel-list" id="camera-views-list">
           <div class="panel-empty">No keyframes yet. Position the camera and click Record.</div>
         </div>
-        <div class="panel-hint">Ctrl+Shift+S record · Click a view to go · Orbit drag to frame shots</div>
+        <div class="panel-hint">
+          Ctrl+Shift+S record · Stay (sec) per view · Save/Load project · Orbit to frame shots
+        </div>
       </div>
     </aside>
 
@@ -681,8 +713,15 @@
 
       const CAMERA_KEYFRAMES_STORAGE_KEY = 'volume-lighting-camera-keyframes'
       const CAMERA_TRANSITION_MS = 1000
-      const CAMERA_HOLD_MS = 1500
+      const DEFAULT_CAMERA_HOLD_SEC = 1.5
       const DEFAULT_CAMERA_ROTATION_ORDER = 'XYZ'
+      const PROJECT_TYPE = 'volume-lighting-project'
+      const PROJECT_VERSION = 1
+
+      let volumetricParams = {
+        resolution: 0.25,
+        denoise: true,
+      }
 
       let renderer, scene, camera, controls
       let paganiRoot
@@ -2093,6 +2132,42 @@
         return `cv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       }
 
+      function normalizeHoldSec(value) {
+        const n = Number(value)
+        if (!Number.isFinite(n)) return DEFAULT_CAMERA_HOLD_SEC
+        return Math.min(120, Math.max(0, Math.round(n * 10) / 10))
+      }
+
+      function normalizeCameraKeyframe(entry, index = 0) {
+        const position = entry?.position || entry?.cameraPosition
+        const target = entry?.target || entry?.cameraTarget
+        const rotation = entry?.rotation || entry?.cameraRotation
+        if (!position || !target) return null
+
+        return {
+          id: entry.id || createCameraKeyframeId(),
+          name: entry.name || `View ${index + 1}`,
+          createdAt: entry.createdAt || Date.now(),
+          holdSec: normalizeHoldSec(entry.holdSec ?? entry.staySec ?? entry.durationSec),
+          position: {
+            x: Number(position.x),
+            y: Number(position.y),
+            z: Number(position.z),
+          },
+          rotation: {
+            x: Number(rotation?.x ?? 0),
+            y: Number(rotation?.y ?? 0),
+            z: Number(rotation?.z ?? 0),
+            order: rotation?.order || DEFAULT_CAMERA_ROTATION_ORDER,
+          },
+          target: {
+            x: Number(target.x),
+            y: Number(target.y),
+            z: Number(target.z),
+          },
+        }
+      }
+
       function captureCurrentCameraKeyframe(name) {
         const position = formatRoundedVector(camera.position)
         const rotation = formatRoundedVector(camera.rotation)
@@ -2103,6 +2178,7 @@
           id: createCameraKeyframeId(),
           name: name || `View ${cameraKeyframes.length + 1}`,
           createdAt: Date.now(),
+          holdSec: DEFAULT_CAMERA_HOLD_SEC,
           position,
           rotation: { ...rotation, order: rotationOrder },
           target,
@@ -2116,7 +2192,9 @@
           const parsed = JSON.parse(raw)
           if (!Array.isArray(parsed)) return
 
-          cameraKeyframes = parsed.filter((entry) => entry?.position && entry?.target)
+          cameraKeyframes = parsed
+            .map((entry, index) => normalizeCameraKeyframe(entry, index))
+            .filter(Boolean)
           selectedCameraKeyframeId = cameraKeyframes[0]?.id ?? null
         } catch {
           // ignore storage failures
@@ -2277,7 +2355,8 @@
           renderCameraKeyframesList()
 
           index = (index + 1) % cameraKeyframes.length
-          const waitMs = (CAMERA_TRANSITION_MS + CAMERA_HOLD_MS) / cameraPlaybackSpeed
+          const holdMs = normalizeHoldSec(keyframe.holdSec) * 1000
+          const waitMs = (CAMERA_TRANSITION_MS + holdMs) / cameraPlaybackSpeed
           cameraPlaybackTimer = setTimeout(playNext, waitMs)
         }
 
@@ -2297,6 +2376,7 @@
         const payload = cameraKeyframes.map((keyframe) => ({
           name: keyframe.name,
           createdAt: keyframe.createdAt,
+          holdSec: normalizeHoldSec(keyframe.holdSec),
           cameraPosition: keyframe.position,
           cameraTarget: keyframe.target,
           cameraRotation: keyframe.rotation,
@@ -2323,36 +2403,25 @@
         try {
           const text = await file.text()
           const imported = JSON.parse(text)
-          const entries = Array.isArray(imported) ? imported : [imported]
+          if (imported?.type === PROJECT_TYPE) {
+            await applyProjectData(imported, { confirmReplace: true })
+            return
+          }
+
+          const entries = Array.isArray(imported)
+            ? imported
+            : Array.isArray(imported?.cameraKeyframes)
+              ? imported.cameraKeyframes
+              : [imported]
           let importedCount = 0
 
           entries.forEach((entry, index) => {
-            const position = entry.position || entry.cameraPosition
-            const target = entry.target || entry.cameraTarget
-            const rotation = entry.rotation || entry.cameraRotation
-            if (!position || !target) return
-
-            cameraKeyframes.push({
-              id: createCameraKeyframeId(),
-              name: entry.name || `Imported ${index + 1}`,
-              createdAt: entry.createdAt || Date.now(),
-              position: {
-                x: Number(position.x),
-                y: Number(position.y),
-                z: Number(position.z),
-              },
-              rotation: {
-                x: Number(rotation?.x ?? 0),
-                y: Number(rotation?.y ?? 0),
-                z: Number(rotation?.z ?? 0),
-                order: rotation?.order || DEFAULT_CAMERA_ROTATION_ORDER,
-              },
-              target: {
-                x: Number(target.x),
-                y: Number(target.y),
-                z: Number(target.z),
-              },
-            })
+            const keyframe = normalizeCameraKeyframe(
+              { ...entry, id: createCameraKeyframeId() },
+              cameraKeyframes.length + index,
+            )
+            if (!keyframe) return
+            cameraKeyframes.push(keyframe)
             importedCount++
           })
 
@@ -2372,6 +2441,264 @@
         }
       }
 
+      function serializeObjectTransform(object) {
+        if (!object) return null
+        return {
+          position: formatRoundedVector(object.position),
+          rotation: {
+            ...formatRoundedVector(object.rotation),
+            order: object.rotation.order || DEFAULT_CAMERA_ROTATION_ORDER,
+          },
+          scale: formatRoundedVector(object.scale),
+        }
+      }
+
+      function applyObjectTransform(object, data) {
+        if (!object || !data) return
+        if (data.position) {
+          object.position.set(
+            Number(data.position.x) || 0,
+            Number(data.position.y) || 0,
+            Number(data.position.z) || 0,
+          )
+        }
+        if (data.rotation) {
+          object.rotation.set(
+            Number(data.rotation.x) || 0,
+            Number(data.rotation.y) || 0,
+            Number(data.rotation.z) || 0,
+            data.rotation.order || DEFAULT_CAMERA_ROTATION_ORDER,
+          )
+        }
+        if (data.scale) {
+          object.scale.set(
+            Number(data.scale.x) || 1,
+            Number(data.scale.y) || 1,
+            Number(data.scale.z) || 1,
+          )
+        }
+        object.updateMatrixWorld?.(true)
+      }
+
+      function serializeRectLight(light, id) {
+        if (!light) return null
+        return {
+          id,
+          color: light.color.getHex(),
+          intensity: light.intensity,
+          width: light.width,
+          height: light.height,
+          ...serializeObjectTransform(light),
+        }
+      }
+
+      function applyRectLightState(light, data) {
+        if (!light || !data) return
+        if (data.color != null) {
+          const hex = Number(data.color)
+          if (Number.isFinite(hex)) {
+            light.color.setHex(hex)
+            light.traverse((child) => {
+              if (child.isMesh && child.material?.color) {
+                child.material.color.setHex(hex)
+              }
+            })
+          }
+        }
+        if (data.intensity != null && Number.isFinite(Number(data.intensity))) {
+          light.intensity = Number(data.intensity)
+        }
+        if (data.width != null && Number.isFinite(Number(data.width))) {
+          light.width = Number(data.width)
+        }
+        if (data.height != null && Number.isFinite(Number(data.height))) {
+          light.height = Number(data.height)
+        }
+        applyObjectTransform(light, data)
+      }
+
+      function setDenoiseEnabled(denoise) {
+        volumetricParams.denoise = Boolean(denoise)
+        if (!renderPipeline || !scenePass || !volumetricPass || !volumetricLightingIntensity) return
+        const volumetric = volumetricParams.denoise
+          ? blurredVolumetricPass || volumetricPass
+          : volumetricPass
+        renderPipeline.outputNode = scenePass.add(volumetric.mul(volumetricLightingIntensity))
+        renderPipeline.needsUpdate = true
+      }
+
+      function applyVolumetricSettings(settings = {}) {
+        if (settings.fogIntensity != null && volumetricLightingIntensity) {
+          volumetricLightingIntensity.value = Number(settings.fogIntensity)
+        }
+        if (settings.smokeAmount != null && smokeAmount) {
+          smokeAmount.value = Number(settings.smokeAmount)
+        }
+        if (settings.steps != null && volumetricMaterial) {
+          volumetricMaterial.steps = Math.max(2, Math.min(16, Number(settings.steps) || 2))
+        }
+        if (settings.denoiseStrength != null && denoiseStrength) {
+          denoiseStrength.value = Number(settings.denoiseStrength)
+        }
+        if (settings.resolution != null && volumetricPass) {
+          const resolution = Math.max(0.1, Math.min(1, Number(settings.resolution) || 0.25))
+          volumetricParams.resolution = resolution
+          volumetricPass.setResolutionScale(resolution)
+        }
+        if (settings.denoise != null) {
+          setDenoiseEnabled(settings.denoise)
+        }
+      }
+
+      function buildProjectData() {
+        return {
+          type: PROJECT_TYPE,
+          version: PROJECT_VERSION,
+          savedAt: new Date().toISOString(),
+          cameraPlaybackSpeed,
+          cameraKeyframes: cameraKeyframes.map((keyframe) => ({
+            name: keyframe.name,
+            createdAt: keyframe.createdAt,
+            holdSec: normalizeHoldSec(keyframe.holdSec),
+            position: keyframe.position,
+            rotation: keyframe.rotation,
+            target: keyframe.target,
+          })),
+          camera: controls
+            ? {
+                position: formatRoundedVector(camera.position),
+                target: formatRoundedVector(controls.target),
+                rotation: {
+                  ...formatRoundedVector(camera.rotation),
+                  order: camera.rotation.order || DEFAULT_CAMERA_ROTATION_ORDER,
+                },
+              }
+            : null,
+          lights: {
+            red: serializeRectLight(rectLight1, 'red'),
+            green: serializeRectLight(rectLight2, 'green'),
+            blue: serializeRectLight(rectLight3, 'blue'),
+          },
+          objects: {
+            pagani: serializeObjectTransform(paganiRoot),
+            floor: serializeObjectTransform(mshStdFloor),
+            volumetricFog: serializeObjectTransform(volumetricMesh),
+          },
+          volumetric: {
+            fogIntensity: volumetricLightingIntensity?.value ?? 1,
+            smokeAmount: smokeAmount?.value ?? 2,
+            steps: volumetricMaterial?.steps ?? 8,
+            denoiseStrength: denoiseStrength?.value ?? 0.6,
+            resolution: volumetricParams.resolution,
+            denoise: volumetricParams.denoise,
+          },
+        }
+      }
+
+      function saveProjectToFile() {
+        if (!controls) {
+          setStatus('Scene not ready to save yet', true)
+          return
+        }
+
+        const payload = buildProjectData()
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `volume-lighting-${new Date().toISOString().split('T')[0]}.vlproject.json`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+        setStatus(
+          `Saved project (${payload.cameraKeyframes.length} camera view${
+            payload.cameraKeyframes.length === 1 ? '' : 's'
+          })`,
+        )
+      }
+
+      async function applyProjectData(project, { confirmReplace = true } = {}) {
+        if (!project || project.type !== PROJECT_TYPE) {
+          setStatus('Not a volume-lighting project file', true)
+          return false
+        }
+
+        if (
+          confirmReplace &&
+          !window.confirm(
+            'Load this project? Camera views, lights, and fog settings will be replaced.',
+          )
+        ) {
+          return false
+        }
+
+        stopCameraPlayback()
+
+        const frames = Array.isArray(project.cameraKeyframes) ? project.cameraKeyframes : []
+        cameraKeyframes = frames
+          .map((entry, index) =>
+            normalizeCameraKeyframe({ ...entry, id: createCameraKeyframeId() }, index),
+          )
+          .filter(Boolean)
+        selectedCameraKeyframeId = cameraKeyframes[0]?.id ?? null
+
+        if (project.cameraPlaybackSpeed != null) {
+          cameraPlaybackSpeed = Number(project.cameraPlaybackSpeed) || 1
+          if (cameraPlaybackSpeedSelect) {
+            cameraPlaybackSpeedSelect.value = String(cameraPlaybackSpeed)
+          }
+        }
+
+        applyVolumetricSettings(project.volumetric || {})
+
+        const lights = project.lights || {}
+        applyRectLightState(rectLight1, lights.red)
+        applyRectLightState(rectLight2, lights.green)
+        applyRectLightState(rectLight3, lights.blue)
+
+        const objects = project.objects || {}
+        applyObjectTransform(paganiRoot, objects.pagani)
+        applyObjectTransform(mshStdFloor, objects.floor)
+        applyObjectTransform(volumetricMesh, objects.volumetricFog)
+
+        if (project.camera?.position && project.camera?.target) {
+          setCameraKeyframeState(
+            {
+              position: project.camera.position,
+              target: project.camera.target,
+              rotation: project.camera.rotation,
+            },
+            false,
+          )
+        } else if (cameraKeyframes[0]) {
+          setCameraKeyframeState(cameraKeyframes[0], false)
+        }
+
+        saveCameraKeyframesToStorage()
+        renderCameraKeyframesList()
+        updateCameraViewsPanelUi()
+        setStatus(
+          `Loaded project (${cameraKeyframes.length} camera view${
+            cameraKeyframes.length === 1 ? '' : 's'
+          })`,
+        )
+        return true
+      }
+
+      async function loadProjectFromFile(file) {
+        if (!file) return
+
+        try {
+          const text = await file.text()
+          const project = JSON.parse(text)
+          await applyProjectData(project, { confirmReplace: true })
+        } catch (error) {
+          console.warn('[project] load failed', error)
+          setStatus('Could not load project file', true)
+        }
+      }
+
       function renderCameraKeyframesList() {
         if (!cameraViewsListEl) return
 
@@ -2387,8 +2714,10 @@
 
         cameraKeyframes.forEach((keyframe, index) => {
           const item = document.createElement('div')
-          item.className = `panel-list-item${selectedCameraKeyframeId === keyframe.id ? ' is-selected' : ''}`
-          item.title = keyframe.name
+          item.className = `panel-list-item has-hold${
+            selectedCameraKeyframeId === keyframe.id ? ' is-selected' : ''
+          }`
+          item.title = `${keyframe.name} · stay ${normalizeHoldSec(keyframe.holdSec)}s`
 
           const number = document.createElement('div')
           number.className = 'panel-list-index'
@@ -2397,6 +2726,25 @@
           const name = document.createElement('div')
           name.className = 'panel-list-label'
           name.textContent = keyframe.name
+
+          const holdInput = document.createElement('input')
+          holdInput.type = 'number'
+          holdInput.className = 'panel-hold-input'
+          holdInput.min = '0'
+          holdInput.max = '120'
+          holdInput.step = '0.1'
+          holdInput.value = String(normalizeHoldSec(keyframe.holdSec))
+          holdInput.title = 'Stay on this camera (seconds)'
+          holdInput.setAttribute('aria-label', `Stay on ${keyframe.name} in seconds`)
+          holdInput.addEventListener('click', (event) => event.stopPropagation())
+          holdInput.addEventListener('pointerdown', (event) => event.stopPropagation())
+          holdInput.addEventListener('change', () => {
+            keyframe.holdSec = normalizeHoldSec(holdInput.value)
+            holdInput.value = String(keyframe.holdSec)
+            item.title = `${keyframe.name} · stay ${keyframe.holdSec}s`
+            saveCameraKeyframesToStorage()
+            setStatus(`"${keyframe.name}" stay set to ${keyframe.holdSec}s`)
+          })
 
           const removeBtn = document.createElement('button')
           removeBtn.type = 'button'
@@ -2410,6 +2758,7 @@
 
           item.appendChild(number)
           item.appendChild(name)
+          item.appendChild(holdInput)
           item.appendChild(removeBtn)
           item.addEventListener('click', () => goToCameraKeyframe(keyframe.id, true))
           cameraViewsListEl.appendChild(item)
@@ -2436,17 +2785,25 @@
         cameraClearBtn = document.getElementById('camera-clear-btn')
         cameraPlaybackSpeedSelect = document.getElementById('camera-playback-speed')
         const cameraImportInput = document.getElementById('camera-import-input')
+        const projectSaveBtn = document.getElementById('project-save-btn')
+        const projectLoadInput = document.getElementById('project-load-input')
 
         cameraRecordBtn?.addEventListener('click', () => addCameraKeyframe())
         cameraPlayBtn?.addEventListener('click', () => toggleCameraPlayback())
         cameraExportBtn?.addEventListener('click', () => exportCameraKeyframesJson())
         cameraClearBtn?.addEventListener('click', () => clearCameraKeyframes({ confirm: true }))
+        projectSaveBtn?.addEventListener('click', () => saveProjectToFile())
         cameraPlaybackSpeedSelect?.addEventListener('change', (event) => {
           cameraPlaybackSpeed = Number(event.target.value) || 1
         })
         cameraImportInput?.addEventListener('change', async (event) => {
           const file = event.target.files?.[0]
           await importCameraKeyframesFromFile(file)
+          event.target.value = ''
+        })
+        projectLoadInput?.addEventListener('change', async (event) => {
+          const file = event.target.files?.[0]
+          await loadProjectFromFile(file)
           event.target.value = ''
         })
       }
@@ -2725,25 +3082,21 @@
 
         renderPipeline.outputNode = scenePassColor
 
-        const params = {
-          resolution: volumetricPass.getResolutionScale(),
-          denoise: true,
-        }
+        volumetricParams.resolution = volumetricPass.getResolutionScale()
+        volumetricParams.denoise = true
 
         const gui = renderer.inspector.createParameters('Volumetric Lighting')
 
         const rayMarching = gui.addFolder('Ray Marching')
         rayMarching
-          .add(params, 'resolution', 0.1, 1)
+          .add(volumetricParams, 'resolution', 0.1, 1)
           .onChange((resolution) => {
             volumetricPass.setResolutionScale(resolution)
           })
         rayMarching.add(volumetricMaterial, 'steps', 2, 16).name('step count')
         rayMarching.add(denoiseStrength, 'value', 0, 1).name('denoise strength')
-        rayMarching.add(params, 'denoise').onChange((denoise) => {
-          const volumetric = denoise ? blurredVolumetricPass : volumetricPass
-          renderPipeline.outputNode = scenePass.add(volumetric.mul(volumetricLightingIntensity))
-          renderPipeline.needsUpdate = true
+        rayMarching.add(volumetricParams, 'denoise').onChange((denoise) => {
+          setDenoiseEnabled(denoise)
         })
 
         const lighting = gui.addFolder('Lighting / Scene')
@@ -2784,7 +3137,7 @@
             hasPagani: Boolean(paganiRoot),
             importedCount: importedModelRoots.length,
             steps: volumetricMaterial.steps,
-            denoise: params.denoise,
+            denoise: volumetricParams.denoise,
             fogIntensity: volumetricLightingIntensity.value,
             smokeAmount: smokeAmount.value,
             shadowMapEnabled: Boolean(renderer?.shadowMap?.enabled),
@@ -2796,7 +3149,11 @@
             gizmoMode: runtimeParams.gizmoMode,
             selectedObject: selectedObjectRef ? getObjectListLabel(selectedObjectRef) : null,
             objectCount: getObjectsPanelEntries().filter((entry) => entry.object).length,
+            cameraKeyframeCount: cameraKeyframes.length,
+            projectType: PROJECT_TYPE,
           }),
+          buildProjectData,
+          normalizeHoldSec,
         }
 
         setStatus('Volumetric lighting · WebGPU')
