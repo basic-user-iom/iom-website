@@ -27,6 +27,7 @@ import {
   type BlogPostInput,
   type BlogPostStatus,
 } from '../blog/types'
+import { BLOG_ASSET_CACHE_V } from '../blog/posts/demoPostBuilder'
 import '../blog/blog.css'
 
 type BlogTab = 'pending' | 'posts' | 'comments' | 'emails'
@@ -255,15 +256,23 @@ export function BlogView() {
     }
   }, [refresh, t])
 
-  // First open with an empty CRM blog: pull all catalog posts into Pending Review.
+  // Empty CRM → import catalog. Existing catalog posts with stale image URLs
+  // (missing ?v= cache bust) → sync bodies/covers so CRM preview shows new stills.
   const autoImportTried = useRef(false)
   useEffect(() => {
     if (loading || autoImportTried.current || importing) return
-    if (posts.length > 0 || missingCatalog <= 0) return
+    const cacheMarker = `?v=${BLOG_ASSET_CACHE_V}`
+    const needsCacheBust = posts.some(
+      (p) =>
+        p.cover_image_url.includes('/assets/blog/') &&
+        !p.cover_image_url.includes(cacheMarker),
+    )
+    if (posts.length > 0 && !needsCacheBust && missingCatalog <= 0) return
+    if (posts.length === 0 && missingCatalog <= 0) return
     autoImportTried.current = true
     setTab('pending')
     void handleImportCatalog()
-  }, [loading, posts.length, missingCatalog, importing, handleImportCatalog])
+  }, [loading, posts, missingCatalog, importing, handleImportCatalog])
 
   const openPreviewInEditor = (post: BlogPost) => {
     openEdit(post)

@@ -59,10 +59,16 @@ const SECTION_LABEL: Record<DemoSection, string> = {
   experiments: 'Experiments',
 }
 
+/**
+ * Bump when recapturing blog stills. Vercel serves /assets/* with
+ * max-age=1y immutable — same path keeps old bytes in the browser.
+ */
+export const BLOG_ASSET_CACHE_V = '20260718c'
+
 export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const sectionLink = SECTION_ANCHOR[spec.section]
   const sectionLabel = SECTION_LABEL[spec.section]
-  const asset = (file: string) => `/assets/blog/${spec.id}/${file}`
+  const asset = (file: string) => `/assets/blog/${spec.id}/${file}?v=${BLOG_ASSET_CACHE_V}`
 
   const asBullet = (s: string) => {
     const t = String(s).trim()
