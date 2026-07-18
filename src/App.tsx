@@ -75,6 +75,42 @@ export default function App() {
     return () => document.body.classList.remove('crm-route')
   }, [isClientLogin, isCrmDemo])
 
+  /** Deep-link hashes (e.g. /#image-prep) after SPA mount — browser may miss the target. */
+  useEffect(() => {
+    if (path !== '/') return
+
+    const scrollToHash = () => {
+      const id = window.location.hash.replace(/^#/, '')
+      if (!id) return true
+      const el = document.getElementById(id)
+      if (!el) return false
+      el.classList.add('is-visible')
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      return true
+    }
+
+    if (scrollToHash()) return
+
+    const started = Date.now()
+    const timer = window.setInterval(() => {
+      if (scrollToHash() || Date.now() - started > 2500) {
+        window.clearInterval(timer)
+      }
+    }, 50)
+
+    const onHash = () => {
+      window.requestAnimationFrame(() => {
+        scrollToHash()
+      })
+    }
+    window.addEventListener('hashchange', onHash)
+
+    return () => {
+      window.clearInterval(timer)
+      window.removeEventListener('hashchange', onHash)
+    }
+  }, [path])
+
   if (isArtistGlobe) {
     return <ArtistGlobeApp />
   }

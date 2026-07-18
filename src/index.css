@@ -574,6 +574,7 @@ body.hero-viewer-fs-lock {
 .section-block {
   padding: clamp(4rem, 10vw, 7rem) clamp(1rem, 4vw, 3rem);
   border-top: 1px solid var(--border);
+  scroll-margin-top: var(--header-h);
 }
 
 .section-header {
@@ -620,6 +621,7 @@ body.hero-viewer-fs-lock {
   flex-direction: column;
   height: 100%;
   min-height: 0;
+  scroll-margin-top: calc(var(--header-h) + 1rem);
   background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: var(--radius);

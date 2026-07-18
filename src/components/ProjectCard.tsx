@@ -339,6 +339,7 @@ export const ProjectCard = memo(function ProjectCard({
   if (project.url && !isComingSoon) {
     return (
       <a
+        id={project.id}
         href={project.url}
         className={className}
         style={style}
@@ -353,6 +354,7 @@ export const ProjectCard = memo(function ProjectCard({
   return (
     <>
       <article
+        id={project.id}
         className={className}
         style={style}
         onClick={isComingSoon ? undefined : hasGallery ? openGallery : hasMusicTrack ? selectMusicTrack : undefined}
