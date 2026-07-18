@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.110.5",
+    "jszip": "^3.10.1",
+    "node-unrar-js": "^2.0.2",
     "nodemailer": "^9.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@gltf-transform/core": "^4.4.1",
     "@gltf-transform/functions": "^4.4.1",
+    "@types/jszip": "^3.4.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@types/three": "^0.181.0",
