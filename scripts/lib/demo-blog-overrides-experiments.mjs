@@ -414,8 +414,8 @@ Standalone flocking proves the tech; the tour proves the **product pattern** —
       '**GPU:** bloom + compute want a bit of headroom — close other heavy tabs if needed',
       '**Input:** mouse or trackpad; touch may vary by device',
     ],
-    viewA: { file: 'view-a.jpg', caption: 'Drawn trail — particles and neighbor link ribbons' },
-    viewB: { file: 'view-b.jpg', caption: 'Bloom pass — glowing clusters after motion' },
+    viewA: { file: 'view-a.jpg', caption: 'Dense left cluster — magenta links with cyan accents' },
+    viewB: { file: 'view-b.jpg', caption: 'Closer mesh — bloomed nodes and neighbor ribbons' },
     alsoCan: [
       'Map pointer to touch / wand for installations',
       'Recolor hue cycle to brand palette',
