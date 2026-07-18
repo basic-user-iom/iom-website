@@ -478,8 +478,8 @@ Standalone flocking proves the tech; the tour proves the **product pattern** —
       '**Controls:** keyboard / pointer as implemented in the demo UI',
       '**GPU:** comfortable on modern laptops; lower resolution if motion blurs',
     ],
-    viewA: { file: 'view-a.jpg', caption: 'Path view — pines stepping into exponential fog' },
-    viewB: { file: 'view-b.jpg', caption: 'Dense scatter — soft distant silhouettes' },
+    viewA: { file: 'view-a.jpg', caption: 'Walk deeper — denser trunks as the haze closes in' },
+    viewB: { file: 'view-b.jpg', caption: 'Close trunk — scattering softens the forest behind' },
     alsoCan: [
       'Retint fog for dawn / night brand moods',
       'Swap silhouettes for architecture masses',

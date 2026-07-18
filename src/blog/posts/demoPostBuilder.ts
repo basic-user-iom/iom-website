@@ -63,7 +63,7 @@ const SECTION_LABEL: Record<DemoSection, string> = {
  * Bump when recapturing blog stills. Vercel serves /assets/* with
  * max-age=1y immutable — same path keeps old bytes in the browser.
  */
-export const BLOG_ASSET_CACHE_V = '20260718g'
+export const BLOG_ASSET_CACHE_V = '20260718h'
 
 export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const sectionLink = SECTION_ANCHOR[spec.section]
