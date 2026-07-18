@@ -4890,36 +4890,34 @@
   isolation: isolate;
 }
 
-/* Collapsed: same footprint as project/lead summary cards */
+/* Collapsed: same bar as project/lead summary (title + Preview + Expand) */
 .crm-demos-card--collapsed {
-  width: min(100%, 20rem);
-  flex: 0 1 20rem;
+  width: 100%;
+  flex: 1 1 100%;
   border-color: var(--border-accent);
   background: var(--accent-glow);
 }
 
 .crm-demos-summary {
-  appearance: none;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.65rem;
   width: 100%;
   min-width: 0;
   min-height: var(--crm-card-min-h);
   margin: 0;
   padding: var(--crm-card-pad-y) var(--crm-card-pad-x);
-  border: 0;
-  border-radius: inherit;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
+  box-sizing: border-box;
 }
 
-.crm-demos-summary:hover {
-  background: rgba(255, 255, 255, 0.03);
+.crm-demos-summary-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
 }
 
 .crm-demos-summary-name {
@@ -4938,6 +4936,32 @@
   color: var(--text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-demos-summary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  flex-shrink: 0;
+  gap: 0.5rem;
+  min-height: var(--crm-control-h);
+}
+
+.crm-demos-summary-actions .btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--crm-control-h);
+  height: var(--crm-control-h);
+  margin: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: var(--crm-control-pad-x);
+  padding-right: var(--crm-control-pad-x);
+  line-height: 1;
   white-space: nowrap;
 }
 

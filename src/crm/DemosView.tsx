@@ -90,16 +90,31 @@ export function DemosView() {
           if (!expanded) {
             return (
               <li key={demo.id} className="crm-demos-card crm-demos-card--collapsed">
-                <button
-                  type="button"
-                  className="crm-demos-summary"
-                  aria-expanded={false}
-                  aria-label={t('demos.expandAria', { name: demo.name })}
-                  onClick={() => setExpanded(demo.id, true)}
-                >
-                  <span className="crm-demos-summary-name">{demo.name}</span>
-                  <span className="crm-demos-summary-blurb">{demo.blurb}</span>
-                </button>
+                <div className="crm-demos-summary">
+                  <div className="crm-demos-summary-body">
+                    <span className="crm-demos-summary-name">{demo.name}</span>
+                    <span className="crm-demos-summary-blurb">{demo.blurb}</span>
+                  </div>
+                  <div className="crm-demos-summary-actions">
+                    <a
+                      className="btn btn-primary"
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t('demos.preview')}
+                    </a>
+                    <button
+                      type="button"
+                      className="btn btn-ghost crm-collapse-btn"
+                      aria-expanded={false}
+                      aria-label={t('demos.expandAria', { name: demo.name })}
+                      onClick={() => setExpanded(demo.id, true)}
+                    >
+                      {t('demos.expand')}
+                    </button>
+                  </div>
+                </div>
               </li>
             )
           }
