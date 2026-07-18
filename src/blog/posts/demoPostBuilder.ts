@@ -63,7 +63,7 @@ const SECTION_LABEL: Record<DemoSection, string> = {
  * Bump when recapturing blog stills. Vercel serves /assets/* with
  * max-age=1y immutable — same path keeps old bytes in the browser.
  */
-export const BLOG_ASSET_CACHE_V = '20260718c'
+export const BLOG_ASSET_CACHE_V = '20260718d'
 
 export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const sectionLink = SECTION_ANCHOR[spec.section]
@@ -98,7 +98,19 @@ It lives in our [${sectionLabel} section](${sectionLink}) as **${spec.title}**. 
 **[→ Launch ${spec.demoLabel}](${spec.demoUrl})**
 
 No install required for the in-browser builds. If a feature needs a newer GPU API, the page will say so instead of failing silently.
+${
+  spec.tourBridge
+    ? `
+## Also in the 360° guided tour
 
+${spec.tourBridge.body}
+
+![${spec.tourBridge.stepLabel}](${asset('tour-bridge.jpg')})
+
+**[→ Open Panorama 360](https://iobjectm.com/demos/panorama-360/)** — click **Play guided tour**, then jump to Step ${spec.tourBridge.step} in the editor STEPS list (or watch the sequence in [visitor preview](https://iobjectm.com/demos/panorama-360/?mode=preview)).
+`
+    : ''
+}
 ## Why this matters (even if you are not a developer)
 
 ${why}
@@ -136,19 +148,7 @@ ${also}
 ## How it works
 
 ${spec.howWorks}
-${
-  spec.tourBridge
-    ? `
-## In the 360° guided tour
 
-${spec.tourBridge.body}
-
-![${spec.tourBridge.stepLabel}](${asset('tour-bridge.jpg')})
-
-Open the live build: **[→ Panorama 360 — Play guided tour](/demos/panorama-360/?mode=preview)** (steps are listed in the editor under **GUIDED TOUR**).
-`
-    : ''
-}
 ## FAQ
 
 ${faq}

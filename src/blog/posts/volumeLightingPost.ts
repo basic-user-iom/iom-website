@@ -51,7 +51,7 @@ In film and games, those beams usually take a long time to render, or need a hea
 5. Optional: open **Objects** → import a small GLB to replace or sit beside the stock car
 6. Hit **Play** in Camera views to step between any views you recorded
 
-![Where to click — Camera views (left), Volumetric Lighting and Objects (right)](/assets/blog/volume-lighting/ui.jpg?v=20260718c)
+![Where to click — Camera views (left), Volumetric Lighting and Objects (right)](/assets/blog/volume-lighting/ui.jpg?v=20260718d)
 
 ## Requirements and performance
 
@@ -64,9 +64,9 @@ In film and games, those beams usually take a long time to render, or need a hea
 
 Two more angles from the same scene (stock Pagani Utopia under rotating RGB rect lights). The cover image is the first camera; these continue the walkthrough:
 
-![Through the beams — looking past the rect-area panels into the fog volume](/assets/blog/volume-lighting/beams.jpg?v=20260718c)
+![Through the beams — looking past the rect-area panels into the fog volume](/assets/blog/volume-lighting/beams.jpg?v=20260718d)
 
-![Low side profile — metallic body, floor shadows, and volumetric haze](/assets/blog/volume-lighting/profile.jpg?v=20260718c)
+![Low side profile — metallic body, floor shadows, and volumetric haze](/assets/blog/volume-lighting/profile.jpg?v=20260718d)
 
 Also in the demo:
 
@@ -119,7 +119,7 @@ Yes — share the [demo link](/demos/volume-lighting/). For a polished pitch, we
 ## Related on IOM
 
 Browse more realtime work in [3D](/#3d) and [Experiments](/#experiments), or [contact us](/#contact) if you want volumetric lighting or WebGPU product viz scoped for a client pitch.`,
-  cover_image_url: '/assets/blog/volume-lighting/cover.jpg?v=20260718c',
+  cover_image_url: '/assets/blog/volume-lighting/cover.jpg?v=20260718d',
   status: 'published',
   published_at: '2026-07-18T12:00:00.000Z',
   seo_title: 'Volumetric Lighting with WebGPU Rect Area Lights — IOM',
