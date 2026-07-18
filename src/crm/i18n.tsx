@@ -261,9 +261,12 @@ const en: Dict = {
   'nav.toolsAria': 'Blog, Links and SEO',
 
   'links.kicker': 'Shared resource library',
+  'links.kickerDemo': 'Sample resource library',
   'links.title': 'Links',
   'links.intro':
     'Useful YouTube channels, webpages, forums, and blog posts we want to keep handy. Filter by type, search by topic — every entry has a short note so the “why” stays clear.',
+  'links.introDemo':
+    'Sample bookmarks for the public CRM demo — YouTube, webpages, forums, and blog posts. Try search and type filters; Reset sample data does not change this list.',
   'links.open': 'Open',
   'links.copy': 'Copy',
   'links.copied': 'Copied',
@@ -1038,6 +1041,27 @@ const en: Dict = {
     'Add sample comment creates a new pending item on a published post',
   'guide.blogDemo5':
     'View opens /blog/… locally; production Journal stays Coming soon until staff enable it',
+  'guide.linksHeading': 'Links (shared library)',
+  'guide.linksText':
+    'A private bookmark shelf for both of you — YouTube channels, webpages, forums, and interesting blog posts, grouped by type with a short “why keep this” note.',
+  'guide.links1':
+    'Open Links (right tools group, between Blog and SEO) to browse the shared library',
+  'guide.links2':
+    'Filter by type: YouTube, Webpage, Forum, Blog post — or search title, note, and tags',
+  'guide.links3':
+    'Use Copy for the URL or Open to visit in a new tab',
+  'guide.links4':
+    'Staff add new entries in the catalogue file; keep categories few and notes short',
+  'guide.linksDemoText':
+    'In this demo, Links shows a sample resource library only (public URLs with sample notes). It is separate from the staff library after real login.',
+  'guide.linksDemo1':
+    'Open Links — sample YouTube, webpage, forum, and blog bookmarks are already filled in',
+  'guide.linksDemo2':
+    'Try All / YouTube / Webpage / Forum / Blog post filters and the search box',
+  'guide.linksDemo3':
+    'Copy or Open any sample link — real public pages open in a new tab',
+  'guide.linksDemo4':
+    'Reset sample data does not clear Links; the sample catalogue is fixed for the demo',
   'guide.seoHeading': 'SEO & analytics',
   'guide.seoText':
     'The SEO tab tracks site content readiness and visitor traffic — the same tools staff use after login.',
@@ -1047,6 +1071,14 @@ const en: Dict = {
     'Analytics: pageviews, sources, keywords, devices, countries, and a globe of visitor cities',
   'guide.seo3':
     'Signed-in CRM uses live site analytics; the public demo shows realistic fake sample traffic only',
+  'guide.seoDemoText':
+    'In this demo, SEO shows sample content inventory and fake visitor traffic only — not live iobjectm.com analytics.',
+  'guide.seoDemo1':
+    'Browse SEO targets, upgrade checklist, and content inventory with sample readiness data',
+  'guide.seoDemo2':
+    'Analytics pane: sample pageviews, sources, keywords, devices, countries, and visitor globe',
+  'guide.seoDemo3':
+    'Reset sample data restores the fake traffic set; signed-in CRM uses live analytics instead',
   'guide.photoHeading': 'Profile photo',
   'guide.photo1': 'Click your avatar or email in the top bar to open your photo menu',
   'guide.photo2':
@@ -1298,9 +1330,12 @@ const sr: Dict = {
   'nav.toolsAria': 'Blog, Linkovi i SEO',
 
   'links.kicker': 'Zajednička biblioteka resursa',
+  'links.kickerDemo': 'Uzorak biblioteke resursa',
   'links.title': 'Linkovi',
   'links.intro':
     'Korisni YouTube kanali, veb stranice, forumi i blog postovi koje želimo da imamo pri ruci. Filtriraj po tipu, pretraži po temi — kratka napomena čuva zašto je link važan.',
+  'links.introDemo':
+    'Uzorak bookmarkova za javni CRM demo — YouTube, veb stranice, forumi i blog postovi. Isprobajte pretragu i filter tipova; Reset uzoraka ne menja ovu listu.',
   'links.open': 'Otvori',
   'links.copy': 'Kopiraj',
   'links.copied': 'Kopirano',
@@ -2080,6 +2115,27 @@ const sr: Dict = {
     'Dodaj demo komentar kreira novu stavku na čekanju na objavljenom članku',
   'guide.blogDemo5':
     'Pogledaj otvara /blog/… lokalno; produkcijski Journal ostaje Coming soon dok staff ne uključi',
+  'guide.linksHeading': 'Linkovi (zajednička biblioteka)',
+  'guide.linksText':
+    'Privatna polica bookmarkova za oboje — YouTube kanali, veb stranice, forumi i zanimljivi blog postovi, grupisani po tipu sa kratkom napomenom zašto čuvamo link.',
+  'guide.links1':
+    'Otvorite Linkovi (desna grupa alata, između Blog i SEO) da pregledate zajedničku biblioteku',
+  'guide.links2':
+    'Filtrirajte po tipu: YouTube, Veb stranica, Forum, Blog post — ili pretražite naslov, napomenu i tagove',
+  'guide.links3':
+    'Koristite Kopiraj za URL ili Otvori da posetite u novom tabu',
+  'guide.links4':
+    'Zaposleni dodaju unose u katalog fajlu; držite malo kategorija i kratke napomene',
+  'guide.linksDemoText':
+    'U ovom demu Linkovi prikazuju samo uzorak biblioteke (javni URL-ovi sa demo napomenama). To nije ista lista kao u pravom client-login CRM-u.',
+  'guide.linksDemo1':
+    'Otvorite Linkovi — uzorak YouTube, veb, forum i blog bookmarkova je već popunjen',
+  'guide.linksDemo2':
+    'Isprobajte filtere Sve / YouTube / Veb stranica / Forum / Blog post i polje za pretragu',
+  'guide.linksDemo3':
+    'Kopirajte ili otvorite bilo koji uzorak — prave javne stranice se otvaraju u novom tabu',
+  'guide.linksDemo4':
+    'Reset uzoraka ne briše Linkove; demo katalog je fiksiran za javni sandbox',
   'guide.seoHeading': 'SEO i analitika',
   'guide.seoText':
     'Kartica SEO prati spremnost sadržaja sajta i saobraćaj posetilaca — isti alati koje zaposleni koriste posle prijave.',
@@ -2089,6 +2145,14 @@ const sr: Dict = {
     'Analitika: pregledi, izvori, ključne reči, uređaji, zemlje i globus gradova posetilaca',
   'guide.seo3':
     'Prijavljeni CRM koristi živu analitiku sajta; javni demo prikazuje samo realistične lažne uzorke saobraćaja',
+  'guide.seoDemoText':
+    'U ovom demu SEO prikazuje samo uzorak inventara sadržaja i lažni saobraćaj — ne živu analitiku iobjectm.com.',
+  'guide.seoDemo1':
+    'Pregledajte SEO ciljeve, checklistu i inventar sa uzorkom spremnosti',
+  'guide.seoDemo2':
+    'Analitika: uzorak pregleda, izvora, ključnih reči, uređaja, zemalja i globusa posetilaca',
+  'guide.seoDemo3':
+    'Reset uzoraka vraća lažni saobraćaj; prijavljeni CRM koristi živu analitiku',
   'guide.photoHeading': 'Profilna fotografija',
   'guide.photo1': 'Kliknite avatar ili email u gornjoj traci da otvorite meni fotografije',
   'guide.photo2':

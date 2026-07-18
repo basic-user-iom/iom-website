@@ -959,7 +959,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
       {section === 'blog' && <BlogView />}
 
-      {section === 'links' && <LinksView />}
+      {section === 'links' && <LinksView demo={demoMode} />}
 
       {section === 'demos' && <DemosView />}
 

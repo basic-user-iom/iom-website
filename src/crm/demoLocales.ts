@@ -145,6 +145,23 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.ideas': 'Ideen',
     'nav.notes': 'Notizen',
     'nav.demos': 'Demo',
+    'nav.blog': 'Blog',
+    'nav.links': 'Links',
+    'nav.seo': 'IOM-SEO',
+    'nav.toolsAria': 'Blog, Links und SEO',
+
+    'links.kickerDemo': 'Beispiel-Ressourcenbibliothek',
+    'links.title': 'Links',
+    'links.introDemo':
+      'Beispiel-Lesezeichen für die öffentliche CRM-Demo — YouTube, Webseiten, Foren und Blogbeiträge. Filter und Suche ausprobieren.',
+    'links.open': 'Öffnen',
+    'links.copy': 'Kopieren',
+    'links.copied': 'Kopiert',
+    'links.filter.all': 'Alle',
+    'links.category.youtube': 'YouTube',
+    'links.category.webpage': 'Webseite',
+    'links.category.forum': 'Forum',
+    'links.category.blog': 'Blogbeitrag',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':
@@ -337,6 +354,23 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.ideas': 'Ideeën',
     'nav.notes': 'Notities',
     'nav.demos': 'Demo',
+    'nav.blog': 'Blog',
+    'nav.links': 'Links',
+    'nav.seo': 'IOM-SEO',
+    'nav.toolsAria': 'Blog, Links en SEO',
+
+    'links.kickerDemo': 'Voorbeeld-bronnenbibliotheek',
+    'links.title': 'Links',
+    'links.introDemo':
+      'Voorbeeld-bookmarks voor de openbare CRM-demo — YouTube, webpagina’s, forums en blogposts. Probeer filters en zoeken.',
+    'links.open': 'Openen',
+    'links.copy': 'Kopiëren',
+    'links.copied': 'Gekopieerd',
+    'links.filter.all': 'Alles',
+    'links.category.youtube': 'YouTube',
+    'links.category.webpage': 'Webpagina',
+    'links.category.forum': 'Forum',
+    'links.category.blog': 'Blogpost',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':
@@ -529,6 +563,23 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.ideas': 'Idées',
     'nav.notes': 'Notes',
     'nav.demos': 'Demo',
+    'nav.blog': 'Blog',
+    'nav.links': 'Liens',
+    'nav.seo': 'IOM-SEO',
+    'nav.toolsAria': 'Blog, Liens et SEO',
+
+    'links.kickerDemo': 'Bibliothèque d’exemples',
+    'links.title': 'Liens',
+    'links.introDemo':
+      'Signets d’exemple pour la démo CRM publique — YouTube, pages web, forums et articles. Essayez les filtres et la recherche.',
+    'links.open': 'Ouvrir',
+    'links.copy': 'Copier',
+    'links.copied': 'Copié',
+    'links.filter.all': 'Tout',
+    'links.category.youtube': 'YouTube',
+    'links.category.webpage': 'Page web',
+    'links.category.forum': 'Forum',
+    'links.category.blog': 'Article',
 
     'time.timerTitle': 'Minuteur',
     'time.timerBlurb':
@@ -721,6 +772,23 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.ideas': 'Idee',
     'nav.notes': 'Note',
     'nav.demos': 'Demo',
+    'nav.blog': 'Blog',
+    'nav.links': 'Link',
+    'nav.seo': 'IOM-SEO',
+    'nav.toolsAria': 'Blog, Link e SEO',
+
+    'links.kickerDemo': 'Libreria risorse di esempio',
+    'links.title': 'Link',
+    'links.introDemo':
+      'Segnalibri di esempio per la demo CRM pubblica — YouTube, pagine, forum e post. Prova filtri e ricerca.',
+    'links.open': 'Apri',
+    'links.copy': 'Copia',
+    'links.copied': 'Copiato',
+    'links.filter.all': 'Tutti',
+    'links.category.youtube': 'YouTube',
+    'links.category.webpage': 'Pagina web',
+    'links.category.forum': 'Forum',
+    'links.category.blog': 'Post blog',
 
     'time.timerTitle': 'Timer',
     'time.timerBlurb':

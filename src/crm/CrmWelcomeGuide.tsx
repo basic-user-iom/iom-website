@@ -284,9 +284,32 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
             }
           />
           <GuideSection
+            heading={t('guide.linksHeading')}
+            text={demo ? t('guide.linksDemoText') : t('guide.linksText')}
+            items={
+              demo
+                ? [
+                    t('guide.linksDemo1'),
+                    t('guide.linksDemo2'),
+                    t('guide.linksDemo3'),
+                    t('guide.linksDemo4'),
+                  ]
+                : [
+                    t('guide.links1'),
+                    t('guide.links2'),
+                    t('guide.links3'),
+                    t('guide.links4'),
+                  ]
+            }
+          />
+          <GuideSection
             heading={t('guide.seoHeading')}
-            text={t('guide.seoText')}
-            items={[t('guide.seo1'), t('guide.seo2'), t('guide.seo3')]}
+            text={demo ? t('guide.seoDemoText') : t('guide.seoText')}
+            items={
+              demo
+                ? [t('guide.seoDemo1'), t('guide.seoDemo2'), t('guide.seoDemo3')]
+                : [t('guide.seo1'), t('guide.seo2'), t('guide.seo3')]
+            }
           />
           <GuideSection
             heading={t('guide.photoHeading')}

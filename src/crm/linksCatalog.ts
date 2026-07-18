@@ -23,6 +23,7 @@ export const LINK_CATEGORIES: LinkCategory[] = [
   'blog',
 ]
 
+/** Staff CRM — real shared library (edit here to add entries). */
 export const USEFUL_LINKS: UsefulLink[] = [
   {
     id: 'ai-search-youtube',
@@ -89,3 +90,70 @@ export const USEFUL_LINKS: UsefulLink[] = [
     tags: ['threejs', 'webgpu'],
   },
 ]
+
+/**
+ * Public CRM demo — sample library so visitors can try filters/search.
+ * Uses public URLs; notes read as sample bookmarks (not the live staff list).
+ */
+export const DEMO_USEFUL_LINKS: UsefulLink[] = [
+  {
+    id: 'demo-ai-search',
+    title: 'AI Search',
+    url: 'https://www.youtube.com/@theAIsearch/videos',
+    category: 'youtube',
+    note: 'Sample YouTube bookmark — AI tools channel for scanning new product walkthroughs.',
+    tags: ['ai', 'tools', 'sample'],
+  },
+  {
+    id: 'demo-threejs-docs',
+    title: 'three.js docs',
+    url: 'https://threejs.org/docs/',
+    category: 'webpage',
+    note: 'Sample webpage — official API docs (renderer, materials, loaders, TSL).',
+    tags: ['threejs', 'docs', 'sample'],
+  },
+  {
+    id: 'demo-threejs-examples',
+    title: 'three.js examples',
+    url: 'https://threejs.org/examples/',
+    category: 'webpage',
+    note: 'Sample webpage — live demos with source for WebGL / WebGPU patterns.',
+    tags: ['threejs', 'webgpu', 'sample'],
+  },
+  {
+    id: 'demo-mdn-webgpu',
+    title: 'MDN — WebGPU API',
+    url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API',
+    category: 'webpage',
+    note: 'Sample webpage — browser WebGPU reference below the three.js layer.',
+    tags: ['webgpu', 'docs', 'sample'],
+  },
+  {
+    id: 'demo-threejs-forum',
+    title: 'three.js forum',
+    url: 'https://discourse.threejs.org/',
+    category: 'forum',
+    note: 'Sample forum — community Q&A for shaders, performance, and migrations.',
+    tags: ['threejs', 'community', 'sample'],
+  },
+  {
+    id: 'demo-tsl-thread',
+    title: 'Intro to WebGPU and TSL',
+    url: 'https://discourse.threejs.org/t/three-js-introduction-to-webgpu-and-tsl/78205',
+    category: 'forum',
+    note: 'Sample forum thread — TSL + WebGPU with maintainer clarifications.',
+    tags: ['threejs', 'webgpu', 'tsl', 'sample'],
+  },
+  {
+    id: 'demo-migration-blog',
+    title: 'WebGPU + three.js migration checklist',
+    url: 'https://www.utsubo.com/blog/webgpu-threejs-migration-guide',
+    category: 'blog',
+    note: 'Sample blog post — 2026 migration checklist and common failure modes.',
+    tags: ['threejs', 'webgpu', 'sample'],
+  },
+]
+
+export function usefulLinksForMode(demo: boolean): UsefulLink[] {
+  return demo ? DEMO_USEFUL_LINKS : USEFUL_LINKS
+}

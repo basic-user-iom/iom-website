@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import {
   LINK_CATEGORIES,
-  USEFUL_LINKS,
+  usefulLinksForMode,
   type LinkCategory,
   type UsefulLink,
 } from './linksCatalog'
@@ -86,20 +86,26 @@ function LinkRow({
   )
 }
 
-export function LinksView() {
+interface LinksViewProps {
+  /** Public sandbox — sample bookmarks only. */
+  demo?: boolean
+}
+
+export function LinksView({ demo = false }: LinksViewProps) {
   const { t } = useCrmI18n()
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
+  const catalog = useMemo(() => usefulLinksForMode(demo), [demo])
   const normalizedQuery = query.trim().toLowerCase()
 
   const filtered = useMemo(() => {
-    return USEFUL_LINKS.filter((link) => {
+    return catalog.filter((link) => {
       if (filter !== 'all' && link.category !== filter) return false
       return matchesQuery(link, normalizedQuery)
     })
-  }, [filter, normalizedQuery])
+  }, [catalog, filter, normalizedQuery])
 
   const grouped = useMemo(() => {
     if (filter !== 'all') return null
@@ -117,13 +123,13 @@ export function LinksView() {
       forum: 0,
       blog: 0,
     }
-    for (const link of USEFUL_LINKS) {
+    for (const link of catalog) {
       if (!matchesQuery(link, normalizedQuery)) continue
       map.all += 1
       map[link.category] += 1
     }
     return map
-  }, [normalizedQuery])
+  }, [catalog, normalizedQuery])
 
   async function handleCopy(link: UsefulLink) {
     try {
@@ -140,9 +146,13 @@ export function LinksView() {
   return (
     <div className="crm-links-view">
       <header className="crm-links-header">
-        <p className="crm-links-kicker">{t('links.kicker')}</p>
+        <p className="crm-links-kicker">
+          {demo ? t('links.kickerDemo') : t('links.kicker')}
+        </p>
         <h2 className="crm-links-title">{t('links.title')}</h2>
-        <p className="crm-links-intro">{t('links.intro')}</p>
+        <p className="crm-links-intro">
+          {demo ? t('links.introDemo') : t('links.intro')}
+        </p>
       </header>
 
       <div className="crm-links-toolbar">
