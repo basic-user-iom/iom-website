@@ -12,6 +12,21 @@ const SITE_ORIGIN = 'https://iobjectm.com'
 const BUILD_DATE = new Date().toISOString().slice(0, 10)
 const outPath = join(root, 'public', 'sitemap.xml')
 
+/** Load .env so published blog slugs resolve during `npm run build`. */
+function loadEnvFile() {
+  try {
+    const raw = readFileSync(join(root, '.env'), 'utf8')
+    for (const line of raw.split(/\r?\n/)) {
+      const m = line.match(/^([A-Z0-9_]+)=(.*)$/)
+      if (!m || process.env[m[1]]) continue
+      process.env[m[1]] = m[2].replace(/^['"]|['"]$/g, '')
+    }
+  } catch {
+    /* optional */
+  }
+}
+loadEnvFile()
+
 function escapeXml(value) {
   return value
     .replace(/&/g, '&amp;')
