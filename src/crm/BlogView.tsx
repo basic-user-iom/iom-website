@@ -248,6 +248,10 @@ export function BlogView() {
           .replace('{skipped}', String(skipped)),
       )
       setTab('pending')
+      // Leave the editor — otherwise the open draft keeps stale body/cover forever.
+      setMode('list')
+      setEditingId(null)
+      setDraft(emptyDraft())
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.importFailed'))
@@ -256,8 +260,7 @@ export function BlogView() {
     }
   }, [refresh, t])
 
-  // Empty CRM → import catalog. Existing catalog posts with stale image URLs
-  // (missing ?v= cache bust) → sync bodies/covers so CRM preview shows new stills.
+  // Empty CRM → import catalog. Stale covers / missing panorama copy → force sync.
   const autoImportTried = useRef(false)
   useEffect(() => {
     if (loading || autoImportTried.current || importing) return
@@ -267,7 +270,13 @@ export function BlogView() {
         p.cover_image_url.includes('/assets/blog/') &&
         !p.cover_image_url.includes(cacheMarker),
     )
-    if (posts.length > 0 && !needsCacheBust && missingCatalog <= 0) return
+    const spoutStale = posts.some(
+      (p) =>
+        p.slug === 'spout' &&
+        (!p.body.includes('Also in the 360') ||
+          !p.body.includes('iobjectm.com/demos/panorama-360')),
+    )
+    if (posts.length > 0 && !needsCacheBust && !spoutStale && missingCatalog <= 0) return
     if (posts.length === 0 && missingCatalog <= 0) return
     autoImportTried.current = true
     setTab('pending')
