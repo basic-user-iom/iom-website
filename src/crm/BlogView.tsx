@@ -239,8 +239,13 @@ export function BlogView() {
     setError('')
     setInfo('')
     try {
-      const { created, skipped } = await importCatalogBlogPosts()
-      setInfo(t('blog.importResult').replace('{created}', String(created)).replace('{skipped}', String(skipped)))
+      const { created, skipped, updated } = await importCatalogBlogPosts()
+      setInfo(
+        t('blog.importResult')
+          .replace('{created}', String(created))
+          .replace('{updated}', String(updated))
+          .replace('{skipped}', String(skipped)),
+      )
       setTab('pending')
       await refresh()
     } catch (err) {
@@ -352,7 +357,7 @@ export function BlogView() {
               <button
                 type="button"
                 className="btn btn-primary"
-                disabled={importing || missingCatalog === 0}
+                disabled={importing}
                 onClick={() => void handleImportCatalog()}
               >
                 {importing
@@ -440,7 +445,7 @@ export function BlogView() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                disabled={importing || missingCatalog === 0}
+                disabled={importing}
                 onClick={() => void handleImportCatalog()}
               >
                 {importing

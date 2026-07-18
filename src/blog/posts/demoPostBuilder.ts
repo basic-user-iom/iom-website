@@ -30,6 +30,15 @@ export type DemoPostSpec = {
   viewC?: { file: string; caption: string }
   alsoCan: string[]
   howWorks: string
+  /**
+   * Optional bridge to /demos/panorama-360/ guided-tour steps
+   * (particles = 2, spout = 3, birds = 4). Image lives at tour-bridge.jpg.
+   */
+  tourBridge?: {
+    step: 2 | 3 | 4
+    stepLabel: string
+    body: string
+  }
   faq: { q: string; a: string }[]
   reading: { label: string; url: string }[]
   related: { label: string; url: string }[]
@@ -121,7 +130,19 @@ ${also}
 ## How it works
 
 ${spec.howWorks}
+${
+  spec.tourBridge
+    ? `
+## In the 360° guided tour
 
+${spec.tourBridge.body}
+
+![${spec.tourBridge.stepLabel}](${asset('tour-bridge.jpg')})
+
+Open the live build: **[→ Panorama 360 — Play guided tour](/demos/panorama-360/?mode=preview)** (steps are listed in the editor under **GUIDED TOUR**).
+`
+    : ''
+}
 ## FAQ
 
 ${faq}

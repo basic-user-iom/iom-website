@@ -172,10 +172,10 @@ export const DEMO_BLOG_OVERRIDES = {
     alsoCan: [
       'Chain multiple panoramas into a guided multi-scene tour',
       'Add URL or iframe popups on hotspots for product pages or embeds',
-      'Toggle WebGPU birds as a living atmospheric layer',
+      'Layer [particles](/blog/webgpu-particles), [spout](/blog/spout), and [birds](/blog/webgpu-compute-birds) on guided steps 2–4',
     ],
     howWorks:
-      'Panoramas are mapped onto a sphere (or cube pipeline) so the camera sits at the center — the classic web 360 approach powered by [Three.js](https://threejs.org/) and modern browser APIs ([WebGL](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API) / optional [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)). Hotspots are scene metadata: position, type, and target. Visitor preview is the same engine without editor chrome — see [The Black Witness tour](/blog/panorama-suite).',
+      'Panoramas are mapped onto a sphere (or cube pipeline) so the camera sits at the center — the classic web 360 approach powered by [Three.js](https://threejs.org/) and modern browser APIs ([WebGL](https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API) / optional [WebGPU](https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API)). Hotspots are scene metadata: position, type, and target. Guided-tour steps on The Black Witness wire the same effect demos into interactive beats — Step 2 \`+particles\` ([WebGPU Particles](/blog/webgpu-particles)), Step 3 \`+particles/spout\` ([Spout](/blog/spout)), Step 4 \`+birds\` ([WebGPU Compute Birds](/blog/webgpu-compute-birds)) — each with \`hotspot+popup\` so motion and clickable story land together. Visitor preview is the same engine without editor chrome — see [The Black Witness tour](/blog/panorama-suite).',
     faq: [
       {
         q: 'Do guests need an app?',
@@ -184,6 +184,10 @@ export const DEMO_BLOG_OVERRIDES = {
       {
         q: 'Can we use our own panoramas?',
         a: 'Yes — load equirectangular stills into the editor and build hotspots around your venue or product.',
+      },
+      {
+        q: 'How do particles, spout, and birds connect to the tour?',
+        a: 'They are optional effect layers on guided steps 2–4. Each step pairs a camera stop with an effect and a hotspot popup — explore the standalone demos, then Play guided tour in /demos/panorama-360/.',
       },
     ],
     reading: [
@@ -197,7 +201,9 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     related: [
       { label: 'The Black Witness — 360° Tour', url: '/blog/panorama-suite' },
-      { label: 'Raven Path Animation', url: '/blog/raven-path' },
+      { label: 'WebGPU Particles', url: '/blog/webgpu-particles' },
+      { label: 'Spout', url: '/blog/spout' },
+      { label: 'WebGPU Compute Birds', url: '/blog/webgpu-compute-birds' },
     ],
   },
 
@@ -701,10 +707,10 @@ export const DEMO_BLOG_OVERRIDES = {
     alsoCan: [
       'Jump to the [editor](/demos/panorama-360/) when you need to author hotspots',
       'Reuse the deep-link pattern for branded first views on other projects',
-      'Pair with the photographic series narrative behind The Black Witness',
+      'Follow the effects stack: [particles](/blog/webgpu-particles) → [spout](/blog/spout) → [birds](/blog/webgpu-compute-birds)',
     ],
     howWorks:
-      'Preview reuses the same panorama engine as the [360° Tour Editor](/blog/panorama-360-tour), but URL flags hide authoring chrome and set the initial camera (`yaw`, `pitch`). Hotspots and guided steps are project data over equirectangular scenes — [Three.js](https://threejs.org/) for the sphere camera, optional [WebGPU](https://en.wikipedia.org/wiki/WebGPU) layers for atmosphere.',
+      'Preview reuses the same panorama engine as the [360° Tour Editor](/blog/panorama-360-tour), but URL flags hide authoring chrome and set the initial camera (`yaw`, `pitch`). Hotspots and guided steps are project data over equirectangular scenes — [Three.js](https://threejs.org/) for the sphere camera, optional [WebGPU](https://en.wikipedia.org/wiki/WebGPU) layers for atmosphere. On The Black Witness, Step 2 layers [particles](/blog/webgpu-particles), Step 3 [spout](/blog/spout), and Step 4 [birds](/blog/webgpu-compute-birds) — each with hotspot+popup so guests get motion timed to a clickable story beat.',
     faq: [
       {
         q: 'Why does my view start in a specific direction?',
@@ -713,6 +719,10 @@ export const DEMO_BLOG_OVERRIDES = {
       {
         q: 'Can I edit hotspots from this URL?',
         a: 'Not in preview. Use the [tour editor](/demos/panorama-360/) (or ask us for a production authoring build).',
+      },
+      {
+        q: 'What are the effect layers on steps 2–4?',
+        a: 'Step 2 particles, Step 3 spout/water, Step 4 birds — each paired with a hotspot popup. The standalone experiment pages document the same tech.',
       },
     ],
     reading: [
@@ -726,7 +736,9 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     related: [
       { label: '360° Panorama Tour Editor', url: '/blog/panorama-360-tour' },
-      { label: 'Raven Path Animation', url: '/blog/raven-path' },
+      { label: 'WebGPU Particles', url: '/blog/webgpu-particles' },
+      { label: 'Spout', url: '/blog/spout' },
+      { label: 'WebGPU Compute Birds', url: '/blog/webgpu-compute-birds' },
     ],
   },
 }

@@ -222,10 +222,18 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
     alsoCan: [
       'Retune forces for calmer vs chaotic brand moods',
       'Use as a background layer behind UI (with care for contrast)',
+      'Layer the flock into a [360° guided tour](/demos/panorama-360/) sky beat (Step 4)',
       'Compare [webgpu_compute_birds](https://threejs.org/examples/#webgpu_compute_birds) on threejs.org',
     ],
     howWorks:
       'Each frame a WebGPU compute pass applies flocking forces and writes new transforms; instanced drawing renders the birds. Upstream: [webgpu_compute_birds](https://threejs.org/examples/#webgpu_compute_birds) ([source](https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_compute_birds.html)). Older WebGL “GPGPU birds” examples exist in three.js history; this IOM page follows the WebGPU compute edition.',
+    tourBridge: {
+      step: 4,
+      stepLabel: 'Guided tour Step 4 — birds layer + hotspot popup on The Black Witness',
+      body: `In the [360° Panorama Tour](/demos/panorama-360/), **Step 4** is authored as \`cam · +birds · hotspot+popup\`: the camera tips toward the sky, the WebGPU birds layer brings the atmosphere to life, and a hotspot/popup keeps the story clickable.
+
+Standalone flocking proves the tech; the tour proves the **product pattern** — living GPU layers timed to a guided stop so guests feel motion *and* can still drag to look and tap to learn. Earlier beats use [WebGPU Particles](/blog/webgpu-particles) (Step 2) and [Spout](/blog/spout) (Step 3) the same way.`,
+    },
     faq: [
       {
         q: 'Why so many birds?',
@@ -235,15 +243,21 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
         q: 'Can birds follow a path or logo?',
         a: 'Guiding fields and attractors are common extensions for client stories.',
       },
+      {
+        q: 'Where do the birds appear in the 360 tour?',
+        a: 'Guided-tour Step 4 on The Black Witness — birds layer with a hotspot popup. Open /demos/panorama-360/ and Play guided tour.',
+      },
     ],
     reading: [
       { label: 'three.js — compute birds', url: 'https://threejs.org/examples/#webgpu_compute_birds' },
+      { label: '360° Panorama Tour Editor', url: '/demos/panorama-360/' },
       { label: 'Boids — Wikipedia', url: 'https://en.wikipedia.org/wiki/Boids' },
       { label: 'WebGPU — MDN', url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API' },
     ],
     related: [
-      { label: 'Shape Particles', url: '/blog/compute-particles' },
-      { label: 'WebGPU TSL Linked Particles', url: '/blog/webgpu-tsl-linked-particles' },
+      { label: '360° Panorama Tour Editor', url: '/blog/panorama-360-tour' },
+      { label: 'WebGPU Particles', url: '/blog/webgpu-particles' },
+      { label: 'Spout', url: '/blog/spout' },
     ],
   },
 
@@ -594,10 +608,18 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
     alsoCan: [
       'Recolor flames for brand-safe heat',
       'Layer under a product silhouette for launch films',
+      'Drop the same particle language into a [360° guided tour](/demos/panorama-360/) beat (Step 2)',
       'Open [webgpu_particles](https://threejs.org/examples/#webgpu_particles)',
     ],
     howWorks:
       'Instanced sprites sample fire/smoke textures; TSL node materials animate life, rotation, and blending; WebGPURenderer composites the frame. Upstream: [webgpu_particles](https://threejs.org/examples/#webgpu_particles) ([source](https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_particles.html)). WebGL particle systems remain widely used for broader support — pick the API to match the audience devices.',
+    tourBridge: {
+      step: 2,
+      stepLabel: 'Guided tour Step 2 — particles + hotspot popup on The Black Witness',
+      body: `Standalone fire/smoke is only half the story. In the [360° Panorama Tour](/demos/panorama-360/), **Step 2** is authored as \`cam · +particles · hotspot+popup\`: the camera lands on a rooftop beat, a particle layer sells heat/atmosphere, and a hotspot opens a popup so guests get story + agency in one stop.
+
+That connection is the interactivity benefit — particles are not a background wallpaper; they mark a **moment you can stop on, look around, and click**. The same VFX craft you explore in this demo becomes a guided beat inside a shareable tour. See also [Spout](/blog/spout) (Step 3) and [WebGPU Compute Birds](/blog/webgpu-compute-birds) (Step 4).`,
+    },
     faq: [
       {
         q: 'Is this real fluid simulation?',
@@ -607,15 +629,21 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
         q: 'How is this different from linked particles?',
         a: 'This is fire/smoke sprites. Linked particles emphasize pointer trails and neighbor ribbons.',
       },
+      {
+        q: 'Where do these particles appear in the 360 tour?',
+        a: 'Guided-tour Step 2 on The Black Witness — particles layered with a hotspot popup. Open /demos/panorama-360/ and Play guided tour.',
+      },
     ],
     reading: [
       { label: 'three.js — WebGPU particles', url: 'https://threejs.org/examples/#webgpu_particles' },
+      { label: '360° Panorama Tour Editor', url: '/demos/panorama-360/' },
       { label: 'Three.js', url: 'https://threejs.org/' },
       { label: 'WebGPU — MDN', url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebGPU_API' },
     ],
     related: [
-      { label: 'WebGPU TSL Linked Particles', url: '/blog/webgpu-tsl-linked-particles' },
-      { label: 'Shape Particles', url: '/blog/compute-particles' },
+      { label: '360° Panorama Tour Editor', url: '/blog/panorama-360-tour' },
+      { label: 'Spout', url: '/blog/spout' },
+      { label: 'WebGPU Compute Birds', url: '/blog/webgpu-compute-birds' },
     ],
   },
 
@@ -908,10 +936,18 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
     alsoCan: [
       'Retune palette for brand metals and fluid tint',
       'Use stills as look-dev references for product liquids',
+      'Drop the water beat into a [360° guided tour](/demos/panorama-360/) stop (Step 3)',
       'Credit and study P_Malin’s [Shadertoy](https://www.shadertoy.com/view/lsXGzH)',
     ],
     howWorks:
       'A full-screen (or mesh-bound) WebGL2 fragment shader raymarches SDFs for the pipe and water, applying refraction, transparency, and reflections. IOM hosts a port of P_Malin’s Shadertoy experiment [lsXGzH](https://www.shadertoy.com/view/lsXGzH) under `/demos/spout/`. This is classic shader art on **WebGL2**, complementary to Three.js scene demos and distinct from WebGPU TSL water.',
+    tourBridge: {
+      step: 3,
+      stepLabel: 'Guided tour Step 3 — spout / water particles + hotspot popup on The Black Witness',
+      body: `In the [360° Panorama Tour](/demos/panorama-360/), **Step 3** is authored as \`cam · +particles/spout · hotspot+popup\`: the guided camera lands on the rooftop water beat, the spout/water layer sells liquid motion in place, and a hotspot popup keeps the narrative interactive.
+
+That is how a standalone shader study becomes tour UX — guests do not only watch refraction; they arrive at a **timed stop**, can still drag to look around, and can click the hotspot for meaning. Pair with [WebGPU Particles](/blog/webgpu-particles) (Step 2) and [WebGPU Compute Birds](/blog/webgpu-compute-birds) (Step 4) for the full effects stack.`,
+    },
     faq: [
       {
         q: 'Is the water simulated with physics?',
@@ -919,17 +955,23 @@ export const DEMO_BLOG_OVERRIDES_EXPERIMENTS = {
       },
       {
         q: 'Can this run inside a Three.js product scene?',
-        a: 'Often as a screen pass or localized effect — we scope integration per project.',
+        a: 'Often as a screen pass or localized effect — we scope integration per project. The panorama tour is one production example.',
+      },
+      {
+        q: 'Where does Spout show up in the 360 tour?',
+        a: 'Guided-tour Step 3 on The Black Witness — spout/water with a hotspot popup. Open /demos/panorama-360/ and Play guided tour.',
       },
     ],
     reading: [
       { label: 'Shadertoy — Spout (P_Malin)', url: 'https://www.shadertoy.com/view/lsXGzH' },
+      { label: '360° Panorama Tour Editor', url: '/demos/panorama-360/' },
       { label: 'Ray marching — Wikipedia', url: 'https://en.wikipedia.org/wiki/Ray_marching' },
       { label: 'WebGL2 — MDN', url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebGL2RenderingContext' },
     ],
     related: [
-      { label: 'WebGPU TSL Raging Sea', url: '/blog/webgpu-tsl-raging-sea' },
+      { label: '360° Panorama Tour Editor', url: '/blog/panorama-360-tour' },
       { label: 'WebGPU Particles', url: '/blog/webgpu-particles' },
+      { label: 'WebGPU Compute Birds', url: '/blog/webgpu-compute-birds' },
     ],
   },
 }

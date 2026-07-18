@@ -263,24 +263,35 @@ function catalogToInput(post: BlogPost): BlogPostInput {
 }
 
 /**
- * Insert catalog demo posts as pending_review, skipping slugs that already exist.
- * Returns how many were created.
+ * Insert missing catalog posts as pending_review, and refresh body/SEO for
+ * catalog slugs that already exist (keeps status + published_at).
  */
-export async function importCatalogBlogPosts(): Promise<{ created: number; skipped: number }> {
+export async function importCatalogBlogPosts(): Promise<{
+  created: number
+  skipped: number
+  updated: number
+}> {
   const existing = await listBlogPosts()
-  const have = new Set(existing.map((p) => p.slug))
+  const bySlug = new Map(existing.map((p) => [p.slug, p]))
   let created = 0
-  let skipped = 0
+  let updated = 0
   for (const post of ALL_DEMO_BLOG_POSTS) {
-    if (have.has(post.slug)) {
-      skipped++
+    const current = bySlug.get(post.slug)
+    if (current) {
+      const next = catalogToInput(post)
+      await updateBlogPost(current.id, {
+        ...next,
+        status: current.status,
+        published_at: current.published_at,
+      })
+      updated++
       continue
     }
     await createBlogPost(catalogToInput(post))
-    have.add(post.slug)
+    bySlug.set(post.slug, post)
     created++
   }
-  return { created, skipped }
+  return { created, skipped: 0, updated }
 }
 
 export function catalogImportMissingCount(posts: BlogPost[]): number {

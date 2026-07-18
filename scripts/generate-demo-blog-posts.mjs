@@ -114,7 +114,11 @@ function emitSpec(id, o, meta) {
     viewB: ${JSON.stringify(o.viewB)},
 ${o.viewC ? `    viewC: ${JSON.stringify(o.viewC)},\n` : ''}    alsoCan: ${JSON.stringify(o.alsoCan)},
     howWorks: \`${esc(o.howWorks)}\`,
-    faq: ${JSON.stringify(o.faq)},
+${
+  o.tourBridge
+    ? `    tourBridge: ${JSON.stringify(o.tourBridge)},\n`
+    : ''
+}    faq: ${JSON.stringify(o.faq)},
     reading: ${JSON.stringify(o.reading)},
     related: ${JSON.stringify(o.related)},
   }`
