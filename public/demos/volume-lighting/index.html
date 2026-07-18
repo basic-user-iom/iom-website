@@ -375,24 +375,51 @@
       #container canvas.pick-cursor {
         cursor: crosshair;
       }
+      #camera-views-panel .panel-list-columns,
       #camera-views-panel .panel-list-item.has-hold {
-        grid-template-columns: 22px minmax(0, 1fr) 54px auto;
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr) 72px 22px;
         gap: 4px;
+        align-items: center;
+      }
+      #camera-views-panel .panel-list-columns {
+        padding: 4px 8px 2px;
+        color: var(--text-secondary, #9a9aab);
+        font-size: 9px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      #camera-views-panel .panel-list-columns span:nth-child(3) {
+        text-align: center;
+      }
+      #camera-views-panel .panel-hold-wrap {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        min-width: 0;
       }
       #camera-views-panel .panel-hold-input {
         width: 100%;
         min-width: 0;
-        padding: 3px 4px;
-        border: 1px solid rgba(74, 74, 90, 0.55);
+        padding: 4px 5px;
+        border: 1px solid rgba(0, 170, 255, 0.35);
         border-radius: 3px;
-        background: rgba(0, 0, 0, 0.35);
-        color: rgba(180, 210, 255, 0.95);
-        font: 400 10px/1.2 system-ui, sans-serif;
+        background: rgba(0, 0, 0, 0.4);
+        color: rgba(180, 210, 255, 0.98);
+        font: 500 11px/1.2 system-ui, sans-serif;
         text-align: right;
       }
       #camera-views-panel .panel-hold-input:focus {
         outline: none;
-        border-color: rgba(0, 170, 255, 0.65);
+        border-color: rgba(0, 170, 255, 0.85);
+        background: rgba(0, 40, 60, 0.55);
+      }
+      #camera-views-panel .panel-hold-unit {
+        flex-shrink: 0;
+        color: var(--text-secondary, #9a9aab);
+        font-size: 10px;
+        font-weight: 600;
       }
       #camera-views-panel .panel-toolbar.panel-project-toolbar button,
       #camera-views-panel .panel-toolbar.panel-project-toolbar label.panel-import {
@@ -488,10 +515,12 @@
           </select>
         </div>
         <div class="panel-list" id="camera-views-list">
-          <div class="panel-empty">No keyframes yet. Position the camera and click Record.</div>
+          <div class="panel-empty">
+            No keyframes yet. Record a view, then set Stay (sec) next to it for how long playback holds there.
+          </div>
         </div>
         <div class="panel-hint">
-          Ctrl+Shift+S record · Stay (sec) per view · Save/Load project · Orbit to frame shots
+          Record a view → edit Stay (sec) beside it · Ctrl+Shift+S · Save/Load project
         </div>
       </div>
     </aside>
@@ -2707,10 +2736,16 @@
         if (!cameraKeyframes.length) {
           const empty = document.createElement('div')
           empty.className = 'panel-empty'
-          empty.textContent = 'No keyframes yet. Position the camera and click Record.'
+          empty.textContent =
+            'No keyframes yet. Record a view, then set Stay (sec) next to it for how long playback holds there.'
           cameraViewsListEl.appendChild(empty)
           return
         }
+
+        const columns = document.createElement('div')
+        columns.className = 'panel-list-columns'
+        columns.innerHTML = '<span>#</span><span>View</span><span>Stay</span><span></span>'
+        cameraViewsListEl.appendChild(columns)
 
         cameraKeyframes.forEach((keyframe, index) => {
           const item = document.createElement('div')
@@ -2727,6 +2762,9 @@
           name.className = 'panel-list-label'
           name.textContent = keyframe.name
 
+          const holdWrap = document.createElement('div')
+          holdWrap.className = 'panel-hold-wrap'
+
           const holdInput = document.createElement('input')
           holdInput.type = 'number'
           holdInput.className = 'panel-hold-input'
@@ -2734,7 +2772,7 @@
           holdInput.max = '120'
           holdInput.step = '0.1'
           holdInput.value = String(normalizeHoldSec(keyframe.holdSec))
-          holdInput.title = 'Stay on this camera (seconds)'
+          holdInput.title = 'How long playback stays on this camera (seconds)'
           holdInput.setAttribute('aria-label', `Stay on ${keyframe.name} in seconds`)
           holdInput.addEventListener('click', (event) => event.stopPropagation())
           holdInput.addEventListener('pointerdown', (event) => event.stopPropagation())
@@ -2745,6 +2783,14 @@
             saveCameraKeyframesToStorage()
             setStatus(`"${keyframe.name}" stay set to ${keyframe.holdSec}s`)
           })
+
+          const holdUnit = document.createElement('span')
+          holdUnit.className = 'panel-hold-unit'
+          holdUnit.textContent = 's'
+          holdUnit.setAttribute('aria-hidden', 'true')
+
+          holdWrap.appendChild(holdInput)
+          holdWrap.appendChild(holdUnit)
 
           const removeBtn = document.createElement('button')
           removeBtn.type = 'button'
@@ -2758,7 +2804,7 @@
 
           item.appendChild(number)
           item.appendChild(name)
-          item.appendChild(holdInput)
+          item.appendChild(holdWrap)
           item.appendChild(removeBtn)
           item.addEventListener('click', () => goToCameraKeyframe(keyframe.id, true))
           cameraViewsListEl.appendChild(item)
