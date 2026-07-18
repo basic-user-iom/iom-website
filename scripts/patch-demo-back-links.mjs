@@ -37,36 +37,6 @@ const DEMO_SECTION = {
   spout: 'experiments',
 }
 
-const BACK_STYLE = `
-      .back-link {
-        position: fixed;
-        top: 12px;
-        left: 12px;
-        z-index: 10050;
-        color: rgba(255, 255, 255, 0.85);
-        text-decoration: none;
-        font: 13px/1.2 system-ui, -apple-system, sans-serif;
-        letter-spacing: 0.04em;
-        padding: 6px 10px;
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 4px;
-        background: rgba(0, 0, 0, 0.35);
-        backdrop-filter: blur(6px);
-      }
-      .back-link:hover {
-        color: #fff;
-        border-color: rgba(255, 255, 255, 0.45);
-      }`
-
-const PANORAMA_SCRIPT = `
-    <script>
-      (function () {
-        var a = document.getElementById('iom-back');
-        if (!a) return;
-        if (/[?&]mode=preview(?:&|$)/.test(location.search)) a.href = '/#360';
-      })();
-    </script>`
-
 function setHref(tag, href) {
   if (/\bhref=/i.test(tag)) {
     return tag.replace(/\bhref=(["'])[^"']*\1/i, `href=$1${href}$1`)
@@ -92,26 +62,25 @@ function patchBackHrefs(html, section) {
   return out
 }
 
-function ensurePanoramaBack(html) {
-  if (/id=["']iom-back["']/.test(html) || /\bclass=["'][^"']*\bback-link\b/.test(html)) {
-    return patchBackHrefs(html, 'software')
-  }
-
+/**
+ * Panorama SPA owns its ← IOM control. Strip any HTML-injected duplicate
+ * left by older patch runs (id=iom-back / body-level .back-link).
+ */
+function stripPanoramaInjectedBack(html) {
   let out = html
-  if (!/\.back-link\s*\{/.test(out)) {
-    out = out.replace(/<\/style>/i, `${BACK_STYLE}\n    </style>`)
-  }
-
-  const link = `<a class="back-link" id="iom-back" href="/#software" aria-label="Back to Software section">← IOM</a>`
-  if (/<div id="root"><\/div>/i.test(out)) {
-    out = out.replace(
-      /<div id="root"><\/div>/i,
-      `${link}\n    <div id="root"></div>${PANORAMA_SCRIPT}`,
-    )
-  } else {
-    out = out.replace(/<body([^>]*)>/i, `<body$1>\n    ${link}${PANORAMA_SCRIPT}`)
-  }
-
+  out = out.replace(
+    /\s*<a\b[^>]*\bid=["']iom-back["'][^>]*>\s*←\s*IOM\s*<\/a>\s*/gi,
+    '\n',
+  )
+  out = out.replace(
+    /\s*<script>\s*\(function\s*\(\)\s*\{\s*var a = document\.getElementById\('iom-back'\);[\s\S]*?<\/script>\s*/gi,
+    '\n',
+  )
+  // Remove injected .back-link CSS block if present
+  out = out.replace(
+    /\n\s*\.back-link\s*\{[\s\S]*?\.back-link:hover\s*\{[\s\S]*?\}\s*/i,
+    '\n',
+  )
   return out
 }
 
@@ -137,11 +106,16 @@ for (const dir of dirs) {
     continue
   }
 
-  const next = slug === 'panorama-360' ? ensurePanoramaBack(html) : patchBackHrefs(html, section)
+  const next =
+    slug === 'panorama-360' ? stripPanoramaInjectedBack(html) : patchBackHrefs(html, section)
 
   if (next !== html) {
     writeFileSync(indexPath, next, 'utf8')
-    console.log(`✓ ${slug} → /#${section}`)
+    console.log(
+      slug === 'panorama-360'
+        ? `✓ ${slug} — removed HTML duplicate (app owns ← IOM)`
+        : `✓ ${slug} → /#${section}`,
+    )
     patched++
   } else {
     console.log(`· ${slug} unchanged`)
