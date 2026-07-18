@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { SITE_ORIGIN } from '../seo/siteConfig'
 import { useCrmI18n } from './i18n'
 
@@ -60,6 +61,15 @@ function statusLabel(
 
 export function DemosView() {
   const { t } = useCrmI18n()
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({})
+
+  function isExpanded(id: string): boolean {
+    return expandedIds[id] === true
+  }
+
+  function setExpanded(id: string, next: boolean) {
+    setExpandedIds((prev) => ({ ...prev, [id]: next }))
+  }
 
   return (
     <div className="crm-demos-view">
@@ -75,6 +85,25 @@ export function DemosView() {
           const cover = assetUrl(demo.images[0])
           const strip = demo.images.slice(1).map(assetUrl)
           const embedSrc = `${demo.path}?crmEmbed=1`
+          const expanded = isExpanded(demo.id)
+
+          if (!expanded) {
+            return (
+              <li key={demo.id} className="crm-demos-card crm-demos-card--collapsed">
+                <button
+                  type="button"
+                  className="crm-demos-summary"
+                  aria-expanded={false}
+                  aria-label={t('demos.expandAria', { name: demo.name })}
+                  onClick={() => setExpanded(demo.id, true)}
+                >
+                  <span className="crm-demos-summary-name">{demo.name}</span>
+                  <span className="crm-demos-summary-blurb">{demo.blurb}</span>
+                </button>
+              </li>
+            )
+          }
+
           return (
             <li key={demo.id} className="crm-demos-card crm-demos-card--full">
               <div className="crm-demos-card-preview">
@@ -100,9 +129,20 @@ export function DemosView() {
                     <h3 className="crm-demos-card-name">{demo.name}</h3>
                     <p className="crm-demos-card-client">{demo.client}</p>
                   </div>
-                  <span className={`crm-demos-status crm-demos-status--${demo.status}`}>
-                    {statusLabel(demo.status, t)}
-                  </span>
+                  <div className="crm-demos-card-top-actions">
+                    <span className={`crm-demos-status crm-demos-status--${demo.status}`}>
+                      {statusLabel(demo.status, t)}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost crm-collapse-btn"
+                      aria-expanded={true}
+                      aria-label={t('demos.collapseAria', { name: demo.name })}
+                      onClick={() => setExpanded(demo.id, false)}
+                    >
+                      {t('demos.collapse')}
+                    </button>
+                  </div>
                 </div>
                 <p className="crm-demos-card-blurb">{demo.blurb}</p>
                 <div className="crm-demos-card-tags">
