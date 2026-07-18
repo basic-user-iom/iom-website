@@ -5297,6 +5297,18 @@
   margin-bottom: 1.25rem;
 }
 
+.crm-links-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.crm-links-search {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
 .crm-links-search input {
   width: 100%;
   max-width: 24rem;
@@ -5307,6 +5319,38 @@
   color: var(--text);
   font: inherit;
   font-size: 0.92rem;
+}
+
+.crm-links-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.crm-links-form .crm-input {
+  flex: 1 1 10rem;
+  min-width: 8rem;
+}
+
+.crm-links-form-note {
+  flex: 2 1 14rem !important;
+}
+
+.crm-links-form select.crm-input {
+  flex: 0 1 9rem;
+  cursor: pointer;
+}
+
+.crm-links-remove {
+  color: var(--text-muted);
+}
+
+.crm-links-remove:hover {
+  color: #f87171;
 }
 
 .crm-links-search input::placeholder {

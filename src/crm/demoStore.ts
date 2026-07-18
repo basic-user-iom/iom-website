@@ -19,6 +19,8 @@ import type {
   TimeEntry,
 } from './types'
 import type { BlogAudience, BlogCommentAdmin, BlogPost } from '../blog/types'
+import { ALL_DEMO_BLOG_POSTS } from '../blog/posts'
+import { DEMO_USEFUL_LINKS } from './linksCatalog'
 
 /** Public demo guide — not a real person / mailbox. */
 export const DEMO_USER: CrmUser = {
@@ -64,6 +66,7 @@ export const DEMO_KEYS = {
   blogPosts: 'iom-crm-blog-posts',
   blogComments: 'iom-crm-blog-comments',
   blogAudience: 'iom-crm-blog-audience',
+  usefulLinks: 'iom-crm-useful-links',
 } as const
 
 type Store = Record<string, unknown>
@@ -817,6 +820,15 @@ Media-art research lab — books and workshops listed for demo structure only.`,
 
   // Blog sandbox — mirrors live CRM Blog tabs (Posts / Comments / Emails).
   // Public /blog stays “Coming soon” until BLOG_PUBLIC_ENABLED; demo still drafts here.
+  const demoCardBlogPosts: BlogPost[] = ALL_DEMO_BLOG_POSTS.map((post, index) => ({
+    ...post,
+    id: `demo-blog-${post.slug}`,
+    owner_id: guide,
+    published_at: daysAgo(1 + (index % 10), 12),
+    created_at: daysAgo(2 + (index % 10), 10),
+    updated_at: daysAgo(1 + (index % 10), 12),
+  }))
+
   const blogPost1: BlogPost = {
     id: 'demo-blog-360-showrooms',
     slug: 'browser-360-showrooms-that-convert',
@@ -1097,9 +1109,10 @@ DEMO SAMPLE — SEO / process post for Blog sandbox.`,
     [DEMO_KEYS.maps]: [mindMap, mindMap2],
     [DEMO_KEYS.nodes]: nodes,
     [DEMO_KEYS.notes]: researchNotes,
-    [DEMO_KEYS.blogPosts]: [blogPost1, blogPost2, blogPost3, blogPost4],
+    [DEMO_KEYS.blogPosts]: [...demoCardBlogPosts, blogPost1, blogPost2, blogPost3, blogPost4],
     [DEMO_KEYS.blogComments]: blogComments,
     [DEMO_KEYS.blogAudience]: blogAudience,
+    [DEMO_KEYS.usefulLinks]: structuredClone(DEMO_USEFUL_LINKS),
   }
 }
 

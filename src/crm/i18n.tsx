@@ -264,12 +264,26 @@ const en: Dict = {
   'links.kickerDemo': 'Sample resource library',
   'links.title': 'Links',
   'links.intro':
-    'Useful YouTube channels, webpages, forums, and blog posts we want to keep handy. Filter by type, search by topic — every entry has a short note so the “why” stays clear.',
+    'Useful YouTube channels, webpages, forums, and blog posts we want to keep handy. Add your own, filter by type, search by topic — every entry can carry a short “why” note.',
   'links.introDemo':
-    'Sample bookmarks for the public CRM demo — YouTube, webpages, forums, and blog posts. Try search and type filters; Reset sample data does not change this list.',
+    'Sample bookmarks for the public CRM demo — add, remove, search, and filter freely. Reset sample data restores the original sample list.',
   'links.open': 'Open',
   'links.copy': 'Copy',
   'links.copied': 'Copied',
+  'links.remove': 'Remove',
+  'links.add': '+ Add link',
+  'links.cancelAdd': 'Cancel',
+  'links.save': 'Save link',
+  'links.saving': 'Saving…',
+  'links.loading': 'Loading links…',
+  'links.loadFailed': 'Could not load links.',
+  'links.createFailed': 'Could not add link.',
+  'links.deleteFailed': 'Could not remove link.',
+  'links.deleteConfirm': 'Remove “{name}” from Links?',
+  'links.form.title': 'Title',
+  'links.form.url': 'https://…',
+  'links.form.category': 'Type',
+  'links.form.note': 'Why keep this? (optional)',
   'links.empty': 'No links in this category yet.',
   'links.emptySearch': 'No links match that search.',
   'links.searchPlaceholder': 'Search title, note, tag…',
@@ -1049,19 +1063,19 @@ const en: Dict = {
   'guide.links2':
     'Filter by type: YouTube, Webpage, Forum, Blog post — or search title, note, and tags',
   'guide.links3':
-    'Use Copy for the URL or Open to visit in a new tab',
+    'Use + Add link for title, URL, type, and optional note; Copy / Open / Remove on each row',
   'guide.links4':
-    'Staff add new entries in the catalogue file; keep categories few and notes short',
+    'Keep categories few and notes short — shared staff storage uses Supabase when the useful-links table is installed, otherwise this browser',
   'guide.linksDemoText':
-    'In this demo, Links shows a sample resource library only (public URLs with sample notes). It is separate from the staff library after real login.',
+    'In this demo, Links starts with sample bookmarks. You can add and remove freely; Reset sample data restores the original sample list.',
   'guide.linksDemo1':
     'Open Links — sample YouTube, webpage, forum, and blog bookmarks are already filled in',
   'guide.linksDemo2':
-    'Try All / YouTube / Webpage / Forum / Blog post filters and the search box',
+    'Try + Add link, then filters and search; Remove deletes a row after confirm',
   'guide.linksDemo3':
-    'Copy or Open any sample link — real public pages open in a new tab',
+    'Copy or Open any link — real public pages open in a new tab',
   'guide.linksDemo4':
-    'Reset sample data does not clear Links; the sample catalogue is fixed for the demo',
+    'Reset sample data restores the original sample Links list (your demo adds/removes are cleared)',
   'guide.seoHeading': 'SEO & analytics',
   'guide.seoText':
     'The SEO tab tracks site content readiness and visitor traffic — the same tools staff use after login.',
@@ -1091,7 +1105,7 @@ const en: Dict = {
   'guide.ui2':
     'Flag button: staff CRM switches English ↔ Serbian; the public demo offers EN · DE · NL · FR · IT',
   'guide.hint':
-    'Tabs: Leads · Projects · Time · Ideas · Notes · Demo — Blog · SEO on the right. Help reopens this guide. Flag switches language.',
+    'Tabs: Leads · Projects · Time · Ideas · Notes · Demo — Blog · Links · SEO on the right. Help reopens this guide. Flag switches language.',
 }
 
 const sr: Dict = {
@@ -1333,12 +1347,26 @@ const sr: Dict = {
   'links.kickerDemo': 'Uzorak biblioteke resursa',
   'links.title': 'Linkovi',
   'links.intro':
-    'Korisni YouTube kanali, veb stranice, forumi i blog postovi koje želimo da imamo pri ruci. Filtriraj po tipu, pretraži po temi — kratka napomena čuva zašto je link važan.',
+    'Korisni YouTube kanali, veb stranice, forumi i blog postovi koje želimo da imamo pri ruci. Dodajte svoje, filtrirajte po tipu, pretražite — kratka napomena čuva zašto je link važan.',
   'links.introDemo':
-    'Uzorak bookmarkova za javni CRM demo — YouTube, veb stranice, forumi i blog postovi. Isprobajte pretragu i filter tipova; Reset uzoraka ne menja ovu listu.',
+    'Uzorak bookmarkova za javni CRM demo — slobodno dodajte, uklonite, pretražite i filtrirajte. Reset uzoraka vraća originalnu listu.',
   'links.open': 'Otvori',
   'links.copy': 'Kopiraj',
   'links.copied': 'Kopirano',
+  'links.remove': 'Ukloni',
+  'links.add': '+ Dodaj link',
+  'links.cancelAdd': 'Otkaži',
+  'links.save': 'Sačuvaj link',
+  'links.saving': 'Čuvanje…',
+  'links.loading': 'Učitavanje linkova…',
+  'links.loadFailed': 'Nije moguće učitati linkove.',
+  'links.createFailed': 'Nije moguće dodati link.',
+  'links.deleteFailed': 'Nije moguće ukloniti link.',
+  'links.deleteConfirm': 'Ukloniti „{name}“ iz Linkova?',
+  'links.form.title': 'Naslov',
+  'links.form.url': 'https://…',
+  'links.form.category': 'Tip',
+  'links.form.note': 'Zašto čuvamo? (opciono)',
   'links.empty': 'Još nema linkova u ovoj kategoriji.',
   'links.emptySearch': 'Nema linkova za tu pretragu.',
   'links.searchPlaceholder': 'Pretraži naslov, napomenu, tag…',
@@ -2123,19 +2151,19 @@ const sr: Dict = {
   'guide.links2':
     'Filtrirajte po tipu: YouTube, Veb stranica, Forum, Blog post — ili pretražite naslov, napomenu i tagove',
   'guide.links3':
-    'Koristite Kopiraj za URL ili Otvori da posetite u novom tabu',
+    'Koristite + Dodaj link za naslov, URL, tip i opcionu napomenu; Kopiraj / Otvori / Ukloni na svakom redu',
   'guide.links4':
-    'Zaposleni dodaju unose u katalog fajlu; držite malo kategorija i kratke napomene',
+    'Držite malo kategorija i kratke napomene — zajedničko čuvanje ide preko Supabase kad je tabela instalirana, inače ovaj pregledač',
   'guide.linksDemoText':
-    'U ovom demu Linkovi prikazuju samo uzorak biblioteke (javni URL-ovi sa demo napomenama). To nije ista lista kao u pravom client-login CRM-u.',
+    'U ovom demu Linkovi počinju sa uzorkom bookmarkova. Možete slobodno dodavati i uklanjati; Reset uzoraka vraća originalnu listu.',
   'guide.linksDemo1':
     'Otvorite Linkovi — uzorak YouTube, veb, forum i blog bookmarkova je već popunjen',
   'guide.linksDemo2':
-    'Isprobajte filtere Sve / YouTube / Veb stranica / Forum / Blog post i polje za pretragu',
+    'Isprobajte + Dodaj link, zatim filtere i pretragu; Ukloni briše red posle potvrde',
   'guide.linksDemo3':
-    'Kopirajte ili otvorite bilo koji uzorak — prave javne stranice se otvaraju u novom tabu',
+    'Kopirajte ili otvorite bilo koji link — prave javne stranice se otvaraju u novom tabu',
   'guide.linksDemo4':
-    'Reset uzoraka ne briše Linkove; demo katalog je fiksiran za javni sandbox',
+    'Reset uzoraka vraća originalnu listu Linkova (vaša demo dodavanja/uklanjanja se brišu)',
   'guide.seoHeading': 'SEO i analitika',
   'guide.seoText':
     'Kartica SEO prati spremnost sadržaja sajta i saobraćaj posetilaca — isti alati koje zaposleni koriste posle prijave.',
@@ -2165,7 +2193,7 @@ const sr: Dict = {
   'guide.ui2':
     'Zastava: staff CRM prebacuje Engleski ↔ Srpski; javni demo nudi EN · DE · NL · FR · IT',
   'guide.hint':
-    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške · Demo — Blog · SEO desno. Pomoć ponovo otvara vodič. Zastava menja jezik.',
+    'Kartice: Leadovi · Projekti · Vreme · Ideje · Beleške · Demo — Blog · Linkovi · SEO desno. Pomoć ponovo otvara vodič. Zastava menja jezik.',
 }
 
 const dictionaries: Record<'en' | 'sr', Dict> = { en, sr }

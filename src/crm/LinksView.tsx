@@ -1,8 +1,12 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useCrmI18n } from './i18n'
 import {
+  createUsefulLink,
+  deleteUsefulLink,
+  listUsefulLinks,
+} from './linksApi'
+import {
   LINK_CATEGORIES,
-  usefulLinksForMode,
   type LinkCategory,
   type UsefulLink,
 } from './linksCatalog'
@@ -40,11 +44,15 @@ function LinkRow({
   t,
   copiedId,
   onCopy,
+  onRemove,
+  removing,
 }: {
   link: UsefulLink
   t: (key: string) => string
   copiedId: string | null
   onCopy: (link: UsefulLink) => void
+  onRemove: (link: UsefulLink) => void
+  removing: boolean
 }) {
   return (
     <li className="crm-links-item">
@@ -62,7 +70,7 @@ function LinkRow({
             {link.title}
           </a>
         </div>
-        <p className="crm-links-item-note">{link.note}</p>
+        {link.note ? <p className="crm-links-item-note">{link.note}</p> : null}
         <p className="crm-links-item-host">{hostname(link.url)}</p>
       </div>
       <div className="crm-links-item-actions">
@@ -81,6 +89,14 @@ function LinkRow({
         >
           {t('links.open')}
         </a>
+        <button
+          type="button"
+          className="btn btn-ghost crm-links-remove"
+          disabled={removing}
+          onClick={() => onRemove(link)}
+        >
+          {t('links.remove')}
+        </button>
       </div>
     </li>
   )
@@ -93,11 +109,36 @@ interface LinksViewProps {
 
 export function LinksView({ demo = false }: LinksViewProps) {
   const { t } = useCrmI18n()
+  const [catalog, setCatalog] = useState<UsefulLink[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [query, setQuery] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [removingId, setRemovingId] = useState<string | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  const [draftTitle, setDraftTitle] = useState('')
+  const [draftUrl, setDraftUrl] = useState('')
+  const [draftNote, setDraftNote] = useState('')
+  const [draftCategory, setDraftCategory] = useState<LinkCategory>('webpage')
 
-  const catalog = useMemo(() => usefulLinksForMode(demo), [demo])
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    try {
+      setCatalog(await listUsefulLinks())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('links.loadFailed'))
+    } finally {
+      setLoading(false)
+    }
+  }, [t])
+
+  useEffect(() => {
+    void refresh()
+  }, [refresh])
+
   const normalizedQuery = query.trim().toLowerCase()
 
   const filtered = useMemo(() => {
@@ -143,6 +184,46 @@ export function LinksView({ demo = false }: LinksViewProps) {
     }
   }
 
+  async function handleRemove(link: UsefulLink) {
+    if (!confirm(t('links.deleteConfirm', { name: link.title }))) return
+    setRemovingId(link.id)
+    setError('')
+    try {
+      await deleteUsefulLink(link.id)
+      setCatalog((prev) => prev.filter((item) => item.id !== link.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('links.deleteFailed'))
+    } finally {
+      setRemovingId(null)
+    }
+  }
+
+  async function handleAdd(event: FormEvent) {
+    event.preventDefault()
+    setAdding(true)
+    setError('')
+    try {
+      const created = await createUsefulLink({
+        title: draftTitle,
+        url: draftUrl,
+        category: draftCategory,
+        note: draftNote,
+      })
+      setCatalog((prev) => [created, ...prev])
+      setDraftTitle('')
+      setDraftUrl('')
+      setDraftNote('')
+      setDraftCategory('webpage')
+      setFormOpen(false)
+      setFilter('all')
+      setQuery('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('links.createFailed'))
+    } finally {
+      setAdding(false)
+    }
+  }
+
   return (
     <div className="crm-links-view">
       <header className="crm-links-header">
@@ -156,16 +237,68 @@ export function LinksView({ demo = false }: LinksViewProps) {
       </header>
 
       <div className="crm-links-toolbar">
-        <label className="crm-links-search">
-          <span className="crm-sr-only">{t('links.searchAria')}</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('links.searchPlaceholder')}
-            autoComplete="off"
-          />
-        </label>
+        <div className="crm-links-toolbar-row">
+          <label className="crm-links-search">
+            <span className="crm-sr-only">{t('links.searchAria')}</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('links.searchPlaceholder')}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => setFormOpen((open) => !open)}
+            aria-expanded={formOpen}
+          >
+            {formOpen ? t('links.cancelAdd') : t('links.add')}
+          </button>
+        </div>
+
+        {formOpen ? (
+          <form className="crm-links-form" onSubmit={(event) => void handleAdd(event)}>
+            <input
+              className="crm-input"
+              value={draftTitle}
+              onChange={(event) => setDraftTitle(event.target.value)}
+              placeholder={t('links.form.title')}
+              required
+              autoFocus
+            />
+            <input
+              className="crm-input"
+              value={draftUrl}
+              onChange={(event) => setDraftUrl(event.target.value)}
+              placeholder={t('links.form.url')}
+              required
+              inputMode="url"
+            />
+            <select
+              className="crm-input"
+              value={draftCategory}
+              onChange={(event) => setDraftCategory(event.target.value as LinkCategory)}
+              aria-label={t('links.form.category')}
+            >
+              {LINK_CATEGORIES.map((category) => (
+                <option key={category} value={category}>
+                  {categoryLabel(category, t)}
+                </option>
+              ))}
+            </select>
+            <input
+              className="crm-input crm-links-form-note"
+              value={draftNote}
+              onChange={(event) => setDraftNote(event.target.value)}
+              placeholder={t('links.form.note')}
+            />
+            <button type="submit" className="btn btn-primary" disabled={adding}>
+              {adding ? t('links.saving') : t('links.save')}
+            </button>
+          </form>
+        ) : null}
 
         <div className="crm-links-filters" role="tablist" aria-label={t('links.filtersAria')}>
           <button
@@ -194,7 +327,15 @@ export function LinksView({ demo = false }: LinksViewProps) {
         </div>
       </div>
 
-      {filtered.length === 0 ? (
+      {error ? (
+        <p className="crm-feedback crm-feedback--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+
+      {loading ? (
+        <p className="crm-links-empty">{t('links.loading')}</p>
+      ) : filtered.length === 0 ? (
         <p className="crm-links-empty">
           {normalizedQuery ? t('links.emptySearch') : t('links.empty')}
         </p>
@@ -214,6 +355,8 @@ export function LinksView({ demo = false }: LinksViewProps) {
                     t={t}
                     copiedId={copiedId}
                     onCopy={handleCopy}
+                    onRemove={handleRemove}
+                    removing={removingId === link.id}
                   />
                 ))}
               </ul>
@@ -229,6 +372,8 @@ export function LinksView({ demo = false }: LinksViewProps) {
               t={t}
               copiedId={copiedId}
               onCopy={handleCopy}
+              onRemove={handleRemove}
+              removing={removingId === link.id}
             />
           ))}
         </ul>
