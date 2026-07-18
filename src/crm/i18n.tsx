@@ -567,6 +567,26 @@ const en: Dict = {
     'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg',
   'blog.coverHint':
     'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL. No upload bucket yet.',
+  'blog.attachTitle': 'Attached images',
+  'blog.attachHint':
+    'Cover + images from body markdown. Replace by URL (put files in public/assets/blog/<slug>/). No upload bucket yet.',
+  'blog.attachEmpty': 'No images yet. Add a cover URL, or insert a body image slot below.',
+  'blog.attachCover': 'Cover',
+  'blog.attachBody': 'Body image {n}',
+  'blog.attachReplace': 'Replace',
+  'blog.attachBust': 'Bust cache',
+  'blog.attachBustTitle': 'Append a fresh ?v= so browsers pick up the new file',
+  'blog.attachNewUrl': 'Image URL',
+  'blog.attachPathHint': 'File on disk: {path}',
+  'blog.attachApply': 'Apply',
+  'blog.attachCancel': 'Cancel',
+  'blog.attachPickFile': 'Use filename…',
+  'blog.attachFileHint':
+    'URL set from filename. Copy the file into {path}, then Save. (No cloud upload yet.)',
+  'blog.attachAddCover': '+ Add cover',
+  'blog.attachAddBody': '+ Insert body image',
+  'blog.attachBodyInserted':
+    'Inserted markdown image. Place the file at {path} (or change the URL), then Save.',
   'blog.insertDemoCta': 'Insert demo CTA',
   'blog.bodyPane': 'Body editor',
   'blog.paneEdit': 'Edit',
@@ -1672,6 +1692,26 @@ const sr: Dict = {
     'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg',
   'blog.coverHint':
     'Preferirajte assete pod /assets/blog/<slug>/ — ili pun https:// URL. Upload još nije dostupan.',
+  'blog.attachTitle': 'Priložene slike',
+  'blog.attachHint':
+    'Naslovna + slike iz Markdown tela. Zamena preko URL-a (fajlovi u public/assets/blog/<slug>/). Upload još nije dostupan.',
+  'blog.attachEmpty': 'Još nema slika. Dodajte URL naslovne, ili ubacite slot za sliku u tekstu.',
+  'blog.attachCover': 'Naslovna',
+  'blog.attachBody': 'Slika u tekstu {n}',
+  'blog.attachReplace': 'Zameni',
+  'blog.attachBust': 'Osveži keš',
+  'blog.attachBustTitle': 'Dodaje novi ?v= da pregledači učitaju novi fajl',
+  'blog.attachNewUrl': 'URL slike',
+  'blog.attachPathHint': 'Fajl na disku: {path}',
+  'blog.attachApply': 'Primeni',
+  'blog.attachCancel': 'Otkaži',
+  'blog.attachPickFile': 'Ime fajla…',
+  'blog.attachFileHint':
+    'URL postavljen iz imena fajla. Stavite fajl u {path}, pa Sačuvaj. (Cloud upload još nije dostupan.)',
+  'blog.attachAddCover': '+ Dodaj naslovnu',
+  'blog.attachAddBody': '+ Ubaci sliku u tekst',
+  'blog.attachBodyInserted':
+    'Ubačena Markdown slika. Stavite fajl na {path} (ili promenite URL), pa Sačuvaj.',
   'blog.insertDemoCta': 'Ubaci demo CTA',
   'blog.bodyPane': 'Editor teksta',
   'blog.paneEdit': 'Izmena',

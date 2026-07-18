@@ -68,6 +68,62 @@ const emptyDraft = (): BlogPostInput => ({
   tags: [],
 })
 
+/** Markdown image: ![alt](url) or ![alt](url "title") */
+const MD_IMG_RE = /!\[([^\]]*)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g
+
+type BlogAttachment = {
+  id: string
+  kind: 'cover' | 'body'
+  label: string
+  alt: string
+  url: string
+  /** Index among body markdown images (0-based), only for kind=body */
+  bodyIndex?: number
+}
+
+function filenameFromUrl(url: string): string {
+  try {
+    const path = url.split('?')[0] || url
+    const seg = path.split('/').filter(Boolean).pop()
+    return seg || 'image.jpg'
+  } catch {
+    return 'image.jpg'
+  }
+}
+
+function withCacheBust(url: string, version = String(Date.now())): string {
+  const trimmed = url.trim()
+  if (!trimmed) return trimmed
+  const [base, hash = ''] = trimmed.split('#')
+  const bare = (base || '').replace(/([?&])v=[^&]*&?/g, '$1').replace(/[?&]$/, '')
+  const joiner = bare.includes('?') ? '&' : '?'
+  return `${bare}${joiner}v=${version}${hash ? `#${hash}` : ''}`
+}
+
+function extractBodyImages(body: string): { alt: string; url: string; start: number; end: number }[] {
+  const out: { alt: string; url: string; start: number; end: number }[] = []
+  const re = new RegExp(MD_IMG_RE.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = re.exec(body)) !== null) {
+    out.push({
+      alt: m[1] || '',
+      url: (m[2] || '').trim(),
+      start: m.index,
+      end: m.index + m[0].length,
+    })
+  }
+  return out
+}
+
+function replaceBodyImageUrl(body: string, bodyIndex: number, newUrl: string): string {
+  const images = extractBodyImages(body)
+  const hit = images[bodyIndex]
+  if (!hit) return body
+  const slice = body.slice(hit.start, hit.end)
+  const replaced = slice.replace(/\(([^)\s]+)((?:\s+"[^"]*")?)\)/, `(${newUrl}$2)`)
+  return body.slice(0, hit.start) + replaced + body.slice(hit.end)
+}
+
 export function BlogView() {
   const { t } = useCrmI18n()
   const demo = isCrmDemoMode()
@@ -87,6 +143,8 @@ export function BlogView() {
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null)
   const [bodyPane, setBodyPane] = useState<BodyPane>('edit')
   const bodyPreviewHtml = useMemo(() => renderBlogMarkdown(draft.body), [draft.body])
+  const [replacingId, setReplacingId] = useState<string | null>(null)
+  const [replaceUrlDraft, setReplaceUrlDraft] = useState('')
   const [commentFilter, setCommentFilter] = useState<BlogCommentStatus | 'all'>(
     'pending_moderation',
   )
@@ -140,11 +198,105 @@ export function BlogView() {
     return m
   }, [posts])
 
+  const attachments = useMemo((): BlogAttachment[] => {
+    const list: BlogAttachment[] = []
+    const cover = draft.cover_image_url.trim()
+    if (cover) {
+      list.push({
+        id: 'cover',
+        kind: 'cover',
+        label: t('blog.attachCover'),
+        alt: draft.title || t('blog.attachCover'),
+        url: cover,
+      })
+    }
+    const bodyImgs = extractBodyImages(draft.body)
+    bodyImgs.forEach((img, i) => {
+      const file = filenameFromUrl(img.url)
+      const fromFile = file.replace(/\.[^.]+$/, '').replace(/[-_]/g, ' ')
+      list.push({
+        id: `body-${i}`,
+        kind: 'body',
+        label: t('blog.attachBody', { n: i + 1 }),
+        alt: img.alt || fromFile || t('blog.attachBody', { n: i + 1 }),
+        url: img.url,
+        bodyIndex: i,
+      })
+    })
+    return list
+  }, [draft.body, draft.cover_image_url, draft.title, t])
+
+  const beginReplace = (att: BlogAttachment) => {
+    setReplacingId(att.id)
+    setReplaceUrlDraft(att.url)
+  }
+
+  const cancelReplace = () => {
+    setReplacingId(null)
+    setReplaceUrlDraft('')
+  }
+
+  const applyReplaceUrl = (att: BlogAttachment, nextUrl: string) => {
+    const url = nextUrl.trim()
+    if (!url) return
+    if (att.kind === 'cover') {
+      setDraft((d) => ({ ...d, cover_image_url: url }))
+    } else if (att.bodyIndex != null) {
+      setDraft((d) => ({ ...d, body: replaceBodyImageUrl(d.body, att.bodyIndex!, url) }))
+    }
+    setReplacingId(null)
+    setReplaceUrlDraft('')
+  }
+
+  const bustAttachmentCache = (att: BlogAttachment) => {
+    applyReplaceUrl(att, withCacheBust(att.url))
+  }
+
+  const assetSlug = () => (draft.slug || 'your-slug').trim() || 'your-slug'
+
+  const onPickLocalFile = (slotId: string, file: File | undefined) => {
+    if (!file) return
+    const slug = assetSlug()
+    const suggested = withCacheBust(`/assets/blog/${slug}/${file.name}`)
+    setReplaceUrlDraft(suggested)
+    setReplacingId(slotId)
+    setInfo(t('blog.attachFileHint', { path: `public/assets/blog/${slug}/${file.name}` }))
+  }
+
+  const beginAddCover = () => {
+    const slug = assetSlug()
+    setReplacingId('add-cover')
+    setReplaceUrlDraft(`/assets/blog/${slug}/cover.jpg`)
+  }
+
+  const applyAddCover = (nextUrl: string) => {
+    const url = nextUrl.trim()
+    if (!url) return
+    setDraft((d) => ({ ...d, cover_image_url: url }))
+    setReplacingId(null)
+    setReplaceUrlDraft('')
+  }
+
+  const insertBodyImageSnippet = () => {
+    const slug = assetSlug()
+    const n = extractBodyImages(draft.body).length + 1
+    const url = `/assets/blog/${slug}/view-${n}.jpg`
+    const block = `![Caption](${url})`
+    setDraft((d) => {
+      const body = d.body.trim() ? `${d.body.replace(/\s*$/, '')}\n\n${block}\n` : `${block}\n`
+      return { ...d, body }
+    })
+    setBodyPane('edit')
+    setInfo(t('blog.attachBodyInserted', { path: `public/assets/blog/${slug}/view-${n}.jpg` }))
+  }
+
   const openCreate = () => {
     setEditingId(null)
     setDraft(emptyDraft())
     setTagsText('')
     setBodyPane('edit')
+    setReplacingId(null)
+    setReplaceUrlDraft('')
     setMode('edit')
   }
 
@@ -165,6 +317,8 @@ export function BlogView() {
     })
     setTagsText(post.tags.join(', '))
     setBodyPane('edit')
+    setReplacingId(null)
+    setReplaceUrlDraft('')
     setMode('edit')
   }
 
@@ -597,6 +751,8 @@ export function BlogView() {
               onClick={() => {
                 setMode('list')
                 setBodyPane('edit')
+                setReplacingId(null)
+                setReplaceUrlDraft('')
               }}
             >
               {t('blog.backList')}
@@ -610,141 +766,308 @@ export function BlogView() {
               {saving ? t('blog.saving') : t('blog.save')}
             </button>
           </div>
-          <p className="crm-muted crm-blog-editor-tip">{t('blog.editorTip')}</p>
-          <p className="crm-muted crm-blog-editor-tip">{t('blog.markdownHint')}</p>
-          <label className="crm-field">
-            {t('blog.fieldTitle')}
-            <input
-              value={draft.title}
-              onChange={(e) => {
-                const title = e.target.value
-                setDraft((d) => ({
-                  ...d,
-                  title,
-                  slug: d.slug || slugifyTitle(title),
-                  seo_title: d.seo_title || title,
-                }))
-              }}
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldSlug')}
-            <input
-              value={draft.slug}
-              onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldExcerpt')}
-            <textarea
-              rows={2}
-              value={draft.excerpt}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  excerpt: e.target.value,
-                  seo_description: d.seo_description || e.target.value,
-                }))
-              }
-            />
-          </label>
-          <div className="crm-field crm-blog-body-field">
-            <div className="crm-blog-body-toolbar">
-              <span>{t('blog.fieldBody')}</span>
-              <div className="crm-blog-body-toolbar-actions">
-                <button type="button" className="btn btn-ghost" onClick={insertDemoCta}>
-                  {t('blog.insertDemoCta')}
-                </button>
-                <div className="crm-blog-pane-toggle" role="group" aria-label={t('blog.bodyPane')}>
-                  <button
-                    type="button"
-                    className={`btn btn-ghost${bodyPane === 'edit' ? ' is-active' : ''}`}
-                    aria-pressed={bodyPane === 'edit'}
-                    onClick={() => setBodyPane('edit')}
-                  >
-                    {t('blog.paneEdit')}
-                  </button>
-                  <button
-                    type="button"
-                    className={`btn btn-ghost${bodyPane === 'preview' ? ' is-active' : ''}`}
-                    aria-pressed={bodyPane === 'preview'}
-                    onClick={() => setBodyPane('preview')}
-                  >
-                    {t('blog.panePreview')}
-                  </button>
+
+          <div className="crm-blog-editor-layout">
+            <div className="crm-blog-editor-form">
+              <p className="crm-muted crm-blog-editor-tip">{t('blog.editorTip')}</p>
+              <p className="crm-muted crm-blog-editor-tip">{t('blog.markdownHint')}</p>
+              <label className="crm-field">
+                {t('blog.fieldTitle')}
+                <input
+                  value={draft.title}
+                  onChange={(e) => {
+                    const title = e.target.value
+                    setDraft((d) => ({
+                      ...d,
+                      title,
+                      slug: d.slug || slugifyTitle(title),
+                      seo_title: d.seo_title || title,
+                    }))
+                  }}
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldSlug')}
+                <input
+                  value={draft.slug}
+                  onChange={(e) => setDraft((d) => ({ ...d, slug: e.target.value }))}
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldExcerpt')}
+                <textarea
+                  rows={2}
+                  value={draft.excerpt}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      excerpt: e.target.value,
+                      seo_description: d.seo_description || e.target.value,
+                    }))
+                  }
+                />
+              </label>
+              <div className="crm-field crm-blog-body-field">
+                <div className="crm-blog-body-toolbar">
+                  <span>{t('blog.fieldBody')}</span>
+                  <div className="crm-blog-body-toolbar-actions">
+                    <button type="button" className="btn btn-ghost" onClick={insertDemoCta}>
+                      {t('blog.insertDemoCta')}
+                    </button>
+                    <div className="crm-blog-pane-toggle" role="group" aria-label={t('blog.bodyPane')}>
+                      <button
+                        type="button"
+                        className={`btn btn-ghost${bodyPane === 'edit' ? ' is-active' : ''}`}
+                        aria-pressed={bodyPane === 'edit'}
+                        onClick={() => setBodyPane('edit')}
+                      >
+                        {t('blog.paneEdit')}
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-ghost${bodyPane === 'preview' ? ' is-active' : ''}`}
+                        aria-pressed={bodyPane === 'preview'}
+                        onClick={() => setBodyPane('preview')}
+                      >
+                        {t('blog.panePreview')}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+                {bodyPane === 'edit' ? (
+                  <textarea
+                    rows={16}
+                    value={draft.body}
+                    onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
+                    placeholder={t('blog.bodyPlaceholder')}
+                  />
+                ) : (
+                  <div
+                    className="crm-blog-md-preview blog-prose"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        bodyPreviewHtml ||
+                        `<p class="crm-muted">${t('blog.previewEmpty')}</p>`,
+                    }}
+                  />
+                )}
               </div>
+              <label className="crm-field">
+                {t('blog.fieldCover')}
+                <input
+                  value={draft.cover_image_url}
+                  onChange={(e) => setDraft((d) => ({ ...d, cover_image_url: e.target.value }))}
+                  placeholder="/assets/blog/your-slug/cover.jpg"
+                />
+              </label>
+              <p className="crm-muted crm-blog-editor-tip">{t('blog.coverHint')}</p>
+              <label className="crm-field">
+                {t('blog.fieldAuthor')}
+                <input
+                  value={draft.author_name}
+                  onChange={(e) => setDraft((d) => ({ ...d, author_name: e.target.value }))}
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldTags')}
+                <input
+                  value={tagsText}
+                  onChange={(e) => setTagsText(e.target.value)}
+                  placeholder="360, WebGL, case study"
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldSeoTitle')}
+                <input
+                  value={draft.seo_title}
+                  onChange={(e) => setDraft((d) => ({ ...d, seo_title: e.target.value }))}
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldSeoDesc')}
+                <textarea
+                  rows={2}
+                  value={draft.seo_description}
+                  onChange={(e) => setDraft((d) => ({ ...d, seo_description: e.target.value }))}
+                />
+              </label>
+              <label className="crm-field">
+                {t('blog.fieldStatus')}
+                <select
+                  value={draft.status}
+                  onChange={(e) =>
+                    setDraft((d) => ({
+                      ...d,
+                      status: e.target.value as BlogPostStatus,
+                    }))
+                  }
+                >
+                  <option value="pending_review">{t('blog.statusPendingReview')}</option>
+                  <option value="draft">{t('blog.statusDraft')}</option>
+                  <option value="published">{t('blog.statusPublished')}</option>
+                  <option value="hidden">{t('blog.statusHidden')}</option>
+                </select>
+              </label>
             </div>
-            {bodyPane === 'edit' ? (
-              <textarea
-                rows={16}
-                value={draft.body}
-                onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
-                placeholder={t('blog.bodyPlaceholder')}
-              />
-            ) : (
-              <div
-                className="crm-blog-md-preview blog-prose"
-                dangerouslySetInnerHTML={{ __html: bodyPreviewHtml || `<p class="crm-muted">${t('blog.previewEmpty')}</p>` }}
-              />
-            )}
+
+            <aside className="crm-blog-attachments" aria-label={t('blog.attachTitle')}>
+              <div className="crm-blog-attachments-head">
+                <h3 className="crm-blog-attachments-title">{t('blog.attachTitle')}</h3>
+                <p className="crm-muted crm-blog-attachments-hint">{t('blog.attachHint')}</p>
+              </div>
+
+              {attachments.length === 0 && replacingId !== 'add-cover' && (
+                <div className="crm-blog-attachments-empty">
+                  <p className="crm-muted">{t('blog.attachEmpty')}</p>
+                </div>
+              )}
+
+              <ul className="crm-blog-attach-list">
+                {attachments.map((att) => {
+                  const editing = replacingId === att.id
+                  return (
+                    <li key={att.id} className="crm-blog-attach-card">
+                      <div className="crm-blog-attach-thumb-wrap">
+                        <img
+                          className="crm-blog-attach-thumb"
+                          src={att.url}
+                          alt={att.alt}
+                          loading="lazy"
+                          onError={(e) => {
+                            ;(e.currentTarget as HTMLImageElement).style.opacity = '0.35'
+                          }}
+                        />
+                      </div>
+                      <div className="crm-blog-attach-meta">
+                        <div className="crm-blog-attach-label">{att.label}</div>
+                        {att.alt && att.kind === 'body' ? (
+                          <div className="crm-muted crm-blog-attach-alt">{att.alt}</div>
+                        ) : null}
+                        <code className="crm-blog-attach-url" title={att.url}>
+                          {att.url}
+                        </code>
+                        {!editing ? (
+                          <div className="crm-blog-attach-actions">
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              onClick={() => beginReplace(att)}
+                            >
+                              {t('blog.attachReplace')}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn btn-ghost"
+                              onClick={() => bustAttachmentCache(att)}
+                              title={t('blog.attachBustTitle')}
+                            >
+                              {t('blog.attachBust')}
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="crm-blog-attach-replace">
+                            <label className="crm-field">
+                              {t('blog.attachNewUrl')}
+                              <input
+                                value={replaceUrlDraft}
+                                onChange={(e) => setReplaceUrlDraft(e.target.value)}
+                                placeholder="/assets/blog/slug/file.jpg"
+                              />
+                            </label>
+                            <p className="crm-muted crm-blog-attach-path-hint">
+                              {t('blog.attachPathHint', {
+                                path: `public/assets/blog/${assetSlug()}/${filenameFromUrl(replaceUrlDraft || att.url)}`,
+                              })}
+                            </p>
+                            <div className="crm-blog-attach-actions">
+                              <button
+                                type="button"
+                                className="btn btn-primary"
+                                onClick={() => applyReplaceUrl(att, replaceUrlDraft)}
+                              >
+                                {t('blog.attachApply')}
+                              </button>
+                              <button type="button" className="btn btn-ghost" onClick={cancelReplace}>
+                                {t('blog.attachCancel')}
+                              </button>
+                              <label className="btn btn-ghost crm-blog-attach-file">
+                                {t('blog.attachPickFile')}
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  hidden
+                                  onChange={(e) => {
+                                    onPickLocalFile(att.id, e.target.files?.[0])
+                                    e.target.value = ''
+                                  }}
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+
+              {replacingId === 'add-cover' && (
+                <div className="crm-blog-attach-card crm-blog-attach-card--add">
+                  <div className="crm-blog-attach-meta">
+                    <div className="crm-blog-attach-label">{t('blog.attachCover')}</div>
+                    <label className="crm-field">
+                      {t('blog.attachNewUrl')}
+                      <input
+                        value={replaceUrlDraft}
+                        onChange={(e) => setReplaceUrlDraft(e.target.value)}
+                        placeholder="/assets/blog/your-slug/cover.jpg"
+                      />
+                    </label>
+                    <p className="crm-muted crm-blog-attach-path-hint">
+                      {t('blog.attachPathHint', {
+                        path: `public/assets/blog/${assetSlug()}/${filenameFromUrl(replaceUrlDraft || 'cover.jpg')}`,
+                      })}
+                    </p>
+                    <div className="crm-blog-attach-actions">
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        onClick={() => applyAddCover(replaceUrlDraft)}
+                      >
+                        {t('blog.attachApply')}
+                      </button>
+                      <button type="button" className="btn btn-ghost" onClick={cancelReplace}>
+                        {t('blog.attachCancel')}
+                      </button>
+                      <label className="btn btn-ghost crm-blog-attach-file">
+                        {t('blog.attachPickFile')}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={(e) => {
+                            onPickLocalFile('add-cover', e.target.files?.[0])
+                            e.target.value = ''
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="crm-blog-attachments-add">
+                {!draft.cover_image_url.trim() && replacingId !== 'add-cover' && (
+                  <button type="button" className="btn btn-ghost" onClick={beginAddCover}>
+                    {t('blog.attachAddCover')}
+                  </button>
+                )}
+                <button type="button" className="btn btn-ghost" onClick={insertBodyImageSnippet}>
+                  {t('blog.attachAddBody')}
+                </button>
+              </div>
+            </aside>
           </div>
-          <label className="crm-field">
-            {t('blog.fieldCover')}
-            <input
-              value={draft.cover_image_url}
-              onChange={(e) => setDraft((d) => ({ ...d, cover_image_url: e.target.value }))}
-              placeholder="/assets/blog/your-slug/cover.jpg"
-            />
-          </label>
-          <p className="crm-muted crm-blog-editor-tip">{t('blog.coverHint')}</p>
-          <label className="crm-field">
-            {t('blog.fieldAuthor')}
-            <input
-              value={draft.author_name}
-              onChange={(e) => setDraft((d) => ({ ...d, author_name: e.target.value }))}
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldTags')}
-            <input
-              value={tagsText}
-              onChange={(e) => setTagsText(e.target.value)}
-              placeholder="360, WebGL, case study"
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldSeoTitle')}
-            <input
-              value={draft.seo_title}
-              onChange={(e) => setDraft((d) => ({ ...d, seo_title: e.target.value }))}
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldSeoDesc')}
-            <textarea
-              rows={2}
-              value={draft.seo_description}
-              onChange={(e) => setDraft((d) => ({ ...d, seo_description: e.target.value }))}
-            />
-          </label>
-          <label className="crm-field">
-            {t('blog.fieldStatus')}
-            <select
-              value={draft.status}
-              onChange={(e) =>
-                setDraft((d) => ({
-                  ...d,
-                  status: e.target.value as BlogPostStatus,
-                }))
-              }
-            >
-              <option value="pending_review">{t('blog.statusPendingReview')}</option>
-              <option value="draft">{t('blog.statusDraft')}</option>
-              <option value="published">{t('blog.statusPublished')}</option>
-              <option value="hidden">{t('blog.statusHidden')}</option>
-            </select>
-          </label>
         </div>
       )}
 
