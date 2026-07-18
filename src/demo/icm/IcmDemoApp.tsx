@@ -450,9 +450,7 @@ export function IcmDemoApp() {
         <footer className="icm-footer">
           <span>ICM · private demo</span>
           <span>
-            <a href="/tools/image-prep" onClick={(e) => e.preventDefault()} title="Coming next">
-              Prep images
-            </a>
+            <a href="/tools/image-prep?from=icm">Prep images</a>
             {' · '}
             <button
               type="button"

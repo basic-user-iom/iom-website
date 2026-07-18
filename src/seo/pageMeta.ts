@@ -34,6 +34,17 @@ export function pageMetaForPath(pathname: string): PageMeta {
     }
   }
 
+  if (path === '/tools/image-prep') {
+    return {
+      title: `${SITE_NAME} — Image prep`,
+      description:
+        'Resize, compress, and strip EXIF from photos in your browser — for portfolio and client demo delivery.',
+      canonical: `${SITE_ORIGIN}/tools/image-prep`,
+      robots: 'index, follow',
+      keywords: ['image resize', 'EXIF strip', 'compress photos', 'web image prep'],
+    }
+  }
+
   if (path === '/artist-globe') {
     return {
       title: `${SITE_NAME} — Artist Globe`,

@@ -8,6 +8,7 @@ import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp
 import { BlogApp, isBlogPath } from './blog/BlogApp'
 import { CrmApp } from './crm/CrmApp'
 import { IcmDemoApp, isIcmDemoPath } from './demo/icm/IcmDemoApp'
+import { ImagePrepApp, isImagePrepPath } from './tools/image-prep/ImagePrepApp'
 import {
   disableCrmDemoMode,
   enableCrmDemoMode,
@@ -49,6 +50,7 @@ export default function App() {
   const isArtistGlobe = isArtistGlobePath(path)
   const isBlog = isBlogPath(path)
   const isIcmDemo = isIcmDemoPath(path)
+  const isImagePrep = isImagePrepPath(path)
 
   syncCrmDemoFlag(isCrmDemo)
 
@@ -79,6 +81,10 @@ export default function App() {
 
   if (isIcmDemo) {
     return <IcmDemoApp />
+  }
+
+  if (isImagePrep) {
+    return <ImagePrepApp />
   }
 
   if (isBlog) {

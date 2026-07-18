@@ -51,7 +51,7 @@ export const SECTIONS: { id: ProjectSection; label: string; blurb: string }[] = 
     id: 'software',
     label: 'Software',
     blurb:
-      'Browser 3D model viewers, 360° virtual tour editors, and tools for presenting interactive media.',
+      'Browser 3D model viewers, 360° virtual tour editors, image prep, and tools for presenting interactive media.',
   },
   {
     id: '3d',
@@ -151,6 +151,20 @@ export const PROJECTS: Project[] = [
     mobilePosterUrl: '/assets/posters/crm-demo.jpg?v=20260715-2',
     thumbnail: '/assets/posters/crm-demo.jpg?v=20260715-2',
     archiveId: 'OBJ-0147',
+  },
+  {
+    id: 'image-prep',
+    title: 'Image Prep',
+    section: 'software',
+    tags: ['photos', 'exif', 'resize', 'compress', 'web'],
+    description:
+      'Browser photo prep for the web — resize to portfolio presets, compress JPEG/WebP/PNG, and strip EXIF camera and GPS data. Files stay on your device until you download them.',
+    year: '2026',
+    url: '/tools/image-prep',
+    posterUrl: '/assets/posters/image-prep.jpg?v=20260718-1',
+    mobilePosterUrl: '/assets/posters/image-prep.jpg?v=20260718-1',
+    thumbnail: '/assets/posters/image-prep.jpg?v=20260718-1',
+    archiveId: 'OBJ-0151',
   },
   {
     id: 'raven-path',
