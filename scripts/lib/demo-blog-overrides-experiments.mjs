@@ -606,7 +606,7 @@ Standalone flocking proves the tech; the tour proves the **product pattern** —
       '**GPU:** fine on most modern laptops at default counts',
       '**Display:** darker UI backgrounds showcase additive fire best',
     ],
-    viewA: { file: 'view-a.jpg', caption: 'Rooftop Step 2 — fire/smoke with Animated fire popup' },
+    viewA: { file: 'view-a.jpg', caption: 'Rooftop fire walkthrough — animated plume over the city' },
     viewB: { file: 'view-b.jpg', caption: 'Closer heat — particle plume over the city skyline' },
     alsoCan: [
       'Recolor flames for brand-safe heat',
