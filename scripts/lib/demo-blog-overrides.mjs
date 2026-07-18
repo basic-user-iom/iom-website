@@ -168,7 +168,7 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     viewA: { file: 'view-a.jpg', caption: 'Step 2 — animated fire hotspot and particle popup' },
     viewB: { file: 'view-b.jpg', caption: 'Step 3 — water / spout beat on the rooftop' },
-    viewC: { file: 'view-c.jpg', caption: 'Step 4 — sky look for the interactive birds layer' },
+    viewC: { file: 'view-c.jpg', caption: 'Step 4 — Animated birds popup with the flock against the storm sky' },
     alsoCan: [
       'Chain multiple panoramas into a guided multi-scene tour',
       'Add URL or iframe popups on hotspots for product pages or embeds',
@@ -710,7 +710,7 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     viewA: { file: 'view-a.jpg', caption: 'Step 2 — animated fire hotspot and particle popup' },
     viewB: { file: 'view-b.jpg', caption: 'Step 3 — water / spout beat on the rooftop' },
-    viewC: { file: 'view-c.jpg', caption: 'Step 4 — sky look for the interactive birds layer' },
+    viewC: { file: 'view-c.jpg', caption: 'Step 4 — Animated birds popup with the flock against the storm sky' },
     alsoCan: [
       'Jump to the [editor](/demos/panorama-360/) when you need to author hotspots',
       'Reuse the deep-link pattern for branded first views on other projects',
