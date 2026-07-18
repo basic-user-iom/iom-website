@@ -256,7 +256,7 @@ export function ImagePrepApp() {
     <>
       <Header />
       <main className="imgprep">
-        <a href="/#image-prep" className="imgprep__back" aria-label="Back to Image Prep in Software">
+        <a href="/#software" className="imgprep__back" aria-label="Back to Software section">
           ← IOM
         </a>
         <header className="imgprep__hero">
