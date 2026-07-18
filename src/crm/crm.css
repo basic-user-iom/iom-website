@@ -4808,20 +4808,29 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
-  max-width: none;
+  /* Form (~52rem) + attachments (~22rem) + gap — keeps compose area tight */
+  max-width: 76rem;
+  width: 100%;
+}
+
+.crm-blog-editor > .crm-blog-toolbar {
+  /* Keep Back / Save next to the form, not at the viewport edge */
+  justify-content: flex-start;
+  margin-bottom: 0;
 }
 
 .crm-blog-editor-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(16rem, 22rem);
+  display: flex;
+  flex-wrap: wrap;
   gap: 1.25rem;
-  align-items: start;
+  align-items: flex-start;
 }
 
 .crm-blog-editor-form {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 1 1 28rem;
   min-width: 0;
   max-width: 52rem;
 }
@@ -4832,6 +4841,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  flex: 0 1 22rem;
+  width: min(22rem, 100%);
   min-width: 0;
   padding: 0.85rem 0.9rem;
   border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.1));
@@ -4955,15 +4966,19 @@
 
 @media (max-width: 960px) {
   .crm-blog-editor-layout {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .crm-blog-attachments {
     position: static;
     order: 2;
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: none;
   }
 
   .crm-blog-editor-form {
+    flex: 1 1 auto;
     max-width: none;
   }
 }
