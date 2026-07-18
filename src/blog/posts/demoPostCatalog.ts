@@ -693,7 +693,7 @@ export const DEMO_POST_SPECS: DemoPostSpec[] = [
     demoUrl: "/demos/procedural-gl/",
     demoLabel: "Procedural GL Terrain",
     hook: `Real landscapes streamed as GPU LOD terrain — our page embeds the official [procedural.eu](https://www.procedural.eu/map/) map powered by procedural-gl.js (MPL-2.0). First step: the live upstream demo; a self-hosted MapTiler build can follow.`,
-    coverNote: "The cover shows real-world terrain from the procedural-gl / procedural.eu experience.",
+    coverNote: "The cover is a live still from the procedural.eu map embed — real MapTiler elevation/imagery tiles in 3D, not a noise sandbox.",
     whyBullets: ["- **Real places** — elevation from map tiles, not only noise","- **GPU LOD** — detail where you look, lighter meshes farther out","- **Open-source core** — procedural-gl.js under MPL-2.0","- **Bridge to production** — embed now; self-host later with your key"],
     whyUses: "site context for architecture, location pitches, and geo storytelling on the web.",
     beginner: `Instead of inventing hills, this viewer loads real terrain tiles so you can fly over actual geography in 3D — closer to a lightweight Earth view than a game level made of noise.`,

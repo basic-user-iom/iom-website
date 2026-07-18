@@ -1,35 +1,18 @@
 /**
- * Recapture procedural-gl blog stills with clearly different camera angles.
- * Falls back to aggressive poster crops if iframe orbit stays near-identical.
+ * Capture distinct, high-quality procedural-gl blog stills from procedural.eu
+ * (direct page — iframe embeds often stay blank in headless Chromium).
  */
-import { mkdir, writeFile, readFile } from 'node:fs/promises'
-import { existsSync } from 'node:fs'
+import { mkdir, writeFile, readFile, copyFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
+import { tmpdir } from 'node:os'
 import { fileURLToPath } from 'node:url'
 import sharp from 'sharp'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = join(__dirname, '..', 'public', 'assets', 'blog', 'procedural-gl')
-const POSTER = join(__dirname, '..', 'public', 'assets', 'posters', 'procedural-gl.jpg')
-const base = (process.argv[2] ?? 'https://iobjectm.com').replace(/\/$/, '')
+const TMP = join(tmpdir(), `procedural-gl-capture-${Date.now()}`)
+const MAP = 'https://www.procedural.eu/map/'
 
-async function hideChrome(page) {
-  await page.evaluate(() => {
-    for (const sel of ['.back-link', '.hint', '#hint', '.demo-chrome', '.demo-attribution']) {
-      document.querySelectorAll(sel).forEach((el) => el.style.setProperty('display', 'none', 'important'))
-    }
-  })
-}
-
-async function shot(page, name) {
-  const path = join(OUT, name)
-  await page.screenshot({ path, type: 'jpeg', quality: 88 })
-  const buf = await readFile(path)
-  console.log(`  ${name} ${buf.length}`)
-  return buf
-}
-
-/** Mean absolute RGB diff on a small resample — higher = more different. */
 async function meanAbsDiff(a, b) {
   const size = 64
   const [ra, rb] = await Promise.all([
@@ -41,144 +24,191 @@ async function meanAbsDiff(a, b) {
   return sum / ra.length
 }
 
-async function seedAggressiveCrops() {
-  if (!existsSync(POSTER)) throw new Error('missing poster')
-  await mkdir(OUT, { recursive: true })
-  const meta = await sharp(POSTER).metadata()
-  const w = meta.width || 1600
-  const h = meta.height || 900
-  // Three clearly different regions of the poster
-  const crops = [
-    { left: 0, top: 0, width: Math.floor(w * 0.72), height: Math.floor(h * 0.78) },
-    { left: Math.floor(w * 0.28), top: Math.floor(h * 0.08), width: Math.floor(w * 0.72), height: Math.floor(h * 0.78) },
-    { left: Math.floor(w * 0.12), top: Math.floor(h * 0.22), width: Math.floor(w * 0.76), height: Math.floor(h * 0.72) },
-  ]
-  const names = ['cover.jpg', 'view-a.jpg', 'view-b.jpg']
-  for (let i = 0; i < 3; i++) {
-    const c = crops[i]
-    const buf = await sharp(POSTER)
-      .extract({
-        left: Math.max(0, c.left),
-        top: Math.max(0, c.top),
-        width: Math.min(c.width, w - c.left),
-        height: Math.min(c.height, h - c.top),
-      })
-      .resize(1280, 800, { fit: 'cover' })
-      .jpeg({ quality: 88 })
-      .toBuffer()
-    await writeFile(join(OUT, names[i]), buf)
-    console.log(`  crop ${names[i]} ${buf.length}`)
-  }
+async function hideChrome(page) {
+  await page.evaluate(() => {
+    const kill = /cookie|consent|newsletter|subscribe|accept all/i
+    document.querySelectorAll('button, a, div, aside, section').forEach((el) => {
+      const t = (el.textContent || '').trim()
+      if (t.length && t.length < 80 && kill.test(t)) {
+        el.style.setProperty('display', 'none', 'important')
+      }
+    })
+  })
 }
 
-async function captureLive(browser) {
-  const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-  await mkdir(OUT, { recursive: true })
-  try {
-    await page.goto(`${base}/demos/procedural-gl/`, {
-      waitUntil: 'networkidle',
-      timeout: 120000,
-    })
-    await page.waitForTimeout(10000)
-    await hideChrome(page)
-
-    const iframe = page.locator('iframe').first()
-    const box = await iframe.boundingBox()
-    if (!box) throw new Error('no iframe')
-
-    const cover = await shot(page, 'cover.jpg')
-
-    // Prefer official rotate controls inside the embed (top-right stack).
-    const frame = page.frameLocator('iframe').first()
-    let rotated = false
-    for (const sel of [
-      'button:has-text("↻")',
-      'button[aria-label*="rotate" i]',
-      'button[title*="rotate" i]',
-      '[class*="rotate"]',
-    ]) {
-      try {
-        const btn = frame.locator(sel).first()
-        if ((await btn.count()) > 0) {
-          await btn.click({ timeout: 2000 })
-          await page.waitForTimeout(1500)
-          rotated = true
-          break
-        }
-      } catch {
-        /* try next */
+async function waitForTerrain(page) {
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('canvas')
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 64) return false
+      const tmp = document.createElement('canvas')
+      tmp.width = 32
+      tmp.height = 32
+      const ctx = tmp.getContext('2d')
+      if (!ctx) return false
+      ctx.drawImage(canvas, 0, 0, 32, 32)
+      const d = ctx.getImageData(0, 0, 32, 32).data
+      let sum = 0
+      let greens = 0
+      for (let i = 0; i < d.length; i += 4) {
+        sum += d[i] + d[i + 1] + d[i + 2]
+        if (d[i + 1] > d[i] + 8 && d[i + 1] > 40) greens++
       }
+      const avg = sum / (32 * 32)
+      return avg > 55 && greens > 40
+    },
+    { timeout: 120000 },
+  )
+}
+
+async function shot(page, name) {
+  // Prefer canvas-only crop if large enough; else full page
+  const clip = await page.evaluate(() => {
+    const canvas = document.querySelector('canvas')
+    if (!(canvas instanceof HTMLCanvasElement)) return null
+    const r = canvas.getBoundingClientRect()
+    if (r.width < 400 || r.height < 300) return null
+    return {
+      x: Math.max(0, r.left),
+      y: Math.max(0, r.top),
+      width: Math.min(r.width, window.innerWidth - Math.max(0, r.left)),
+      height: Math.min(r.height, window.innerHeight - Math.max(0, r.top)),
     }
+  })
+  const raw =
+    clip && clip.width > 200 && clip.height > 200
+      ? await page.screenshot({ type: 'jpeg', quality: 92, clip })
+      : await page.screenshot({ type: 'jpeg', quality: 92 })
+  // Normalize to 1280×800
+  const buf = await sharp(raw)
+    .resize(1280, 800, { fit: 'cover', position: 'centre' })
+    .jpeg({ quality: 90 })
+    .toBuffer()
+  const finalPath = join(TMP, `final-${name}`)
+  await writeFile(finalPath, buf)
+  console.log(`  ${name} ${buf.length}`)
+  return buf
+}
 
-    const cx = box.x + box.width * 0.55
-    const cy = box.y + box.height * 0.5
-
-    // Strong orbit + zoom for view-a
-    await page.mouse.move(cx, cy)
-    await page.mouse.down()
-    await page.mouse.move(cx + 320, cy + 20, { steps: 28 })
-    await page.mouse.up()
-    await page.mouse.wheel(0, -900)
-    await page.waitForTimeout(1800)
-    if (!rotated) {
-      // Second rotate via drag if UI buttons unavailable
-      await page.mouse.move(cx, cy)
-      await page.mouse.down()
-      await page.mouse.move(cx + 280, cy - 40, { steps: 24 })
-      await page.mouse.up()
-      await page.waitForTimeout(1200)
+async function clickRotate(page, times = 1) {
+  const selectors = [
+    'button[aria-label*="Rotate" i]',
+    'button[title*="Rotate" i]',
+    'button[aria-label*="orbit" i]',
+    '[class*="rotate"] button',
+    'button:has-text("↻")',
+    'button:has-text("↺")',
+  ]
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first()
+      if ((await btn.count()) === 0) continue
+      for (let i = 0; i < times; i++) {
+        await btn.click({ timeout: 1500 })
+        await page.waitForTimeout(900)
+      }
+      return true
+    } catch {
+      /* next */
     }
-    const viewA = await shot(page, 'view-a.jpg')
-
-    // Opposite orbit + zoom out for view-b
-    await page.mouse.move(cx, cy)
-    await page.mouse.down()
-    await page.mouse.move(cx - 360, cy + 120, { steps: 30 })
-    await page.mouse.up()
-    await page.mouse.wheel(0, 1200)
-    await page.waitForTimeout(1800)
-    const viewB = await shot(page, 'view-b.jpg')
-
-    const dCoverA = await meanAbsDiff(cover, viewA)
-    const dAB = await meanAbsDiff(viewA, viewB)
-    const dCoverB = await meanAbsDiff(cover, viewB)
-    console.log(`  diffs cover↔a=${dCoverA.toFixed(1)} a↔b=${dAB.toFixed(1)} cover↔b=${dCoverB.toFixed(1)}`)
-    return { dCoverA, dAB, dCoverB }
-  } finally {
-    await page.close()
   }
+  // Fallback: drag orbit
+  const box = await page.evaluate(() => {
+    const c = document.querySelector('canvas')
+    if (!c) return null
+    const r = c.getBoundingClientRect()
+    return { x: r.left + r.width * 0.55, y: r.top + r.height * 0.5 }
+  })
+  if (!box) return false
+  for (let i = 0; i < times; i++) {
+    await page.mouse.move(box.x, box.y)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 240, box.y + (i % 2 === 0 ? 20 : -30), { steps: 28 })
+    await page.mouse.up()
+    await page.waitForTimeout(1200)
+  }
+  return true
+}
+
+async function zoom(page, delta) {
+  const box = await page.evaluate(() => {
+    const c = document.querySelector('canvas')
+    if (!c) return null
+    const r = c.getBoundingClientRect()
+    return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.5 }
+  })
+  if (!box) return
+  await page.mouse.move(box.x, box.y)
+  await page.mouse.wheel(0, delta)
+  await page.waitForTimeout(2000)
+  await waitForTerrain(page).catch(() => {})
 }
 
 async function main() {
-  console.log('procedural-gl recapture from', base)
+  console.log('procedural-gl — live capture from', MAP)
+  await mkdir(TMP, { recursive: true })
+  await mkdir(OUT, { recursive: true })
   const { chromium } = await import('playwright')
   const browser = await chromium.launch({
     headless: true,
     channel: 'chrome',
-    args: ['--ignore-gpu-blocklist'],
+    args: ['--ignore-gpu-blocklist', '--use-gl=angle', '--enable-webgl'],
   })
-  let diffs
+  const page = await browser.newPage({
+    viewport: { width: 1440, height: 900 },
+    deviceScaleFactor: 1,
+  })
   try {
-    diffs = await captureLive(browser)
-  } catch (err) {
-    console.warn('live capture failed:', err.message || err)
-    diffs = null
-  } finally {
-    await browser.close()
-  }
+    await page.goto(MAP, { waitUntil: 'domcontentloaded', timeout: 120000 })
+    await page.waitForTimeout(4000)
+    await hideChrome(page)
+    console.log('  waiting for terrain tiles…')
+    await waitForTerrain(page)
+    await page.waitForTimeout(5000) // let LOD refine
+    await hideChrome(page)
 
-  const tooSimilar = !diffs || diffs.dAB < 8 || diffs.dCoverA < 6 || diffs.dCoverB < 6
-  if (tooSimilar) {
-    console.warn('live angles too similar — using aggressive poster crops')
-    await seedAggressiveCrops()
-    const [c, a, b] = await Promise.all([
-      readFile(join(OUT, 'cover.jpg')),
-      readFile(join(OUT, 'view-a.jpg')),
-      readFile(join(OUT, 'view-b.jpg')),
-    ])
-    console.log(
-      `  crop diffs cover↔a=${(await meanAbsDiff(c, a)).toFixed(1)} a↔b=${(await meanAbsDiff(a, b)).toFixed(1)} cover↔b=${(await meanAbsDiff(c, b)).toFixed(1)}`,
-    )
+    const cover = await shot(page, 'cover.jpg')
+
+    await zoom(page, -1200)
+    await page.waitForTimeout(3000)
+    await clickRotate(page, 2)
+    await page.waitForTimeout(2500)
+    const viewA = await shot(page, 'view-a.jpg')
+
+    await zoom(page, 800)
+    await clickRotate(page, 3)
+    // Pan to a different region
+    const box = await page.evaluate(() => {
+      const c = document.querySelector('canvas')
+      if (!c) return null
+      const r = c.getBoundingClientRect()
+      return { x: r.left + r.width * 0.5, y: r.top + r.height * 0.55 }
+    })
+    if (box) {
+      await page.mouse.move(box.x, box.y)
+      await page.mouse.down()
+      await page.mouse.move(box.x - 280, box.y + 140, { steps: 30 })
+      await page.mouse.up()
+      await page.waitForTimeout(3000)
+    }
+    await waitForTerrain(page).catch(() => {})
+    const viewB = await shot(page, 'view-b.jpg')
+
+    const dCA = await meanAbsDiff(cover, viewA)
+    const dAB = await meanAbsDiff(viewA, viewB)
+    const dCB = await meanAbsDiff(cover, viewB)
+    console.log(`  diffs cover↔a=${dCA.toFixed(1)} a↔b=${dAB.toFixed(1)} cover↔b=${dCB.toFixed(1)}`)
+    if (dAB < 10 || cover.length < 80000) {
+      console.warn('  WARNING: stills may still be weak — check visually')
+    }
+
+    // Copy tmp → public (avoids Windows locks on live assets)
+    for (const name of ['cover.jpg', 'view-a.jpg', 'view-b.jpg']) {
+      await copyFile(join(TMP, `final-${name}`), join(OUT, name))
+    }
+  } finally {
+    await page.close()
+    await browser.close()
   }
   console.log('done →', OUT)
 }
