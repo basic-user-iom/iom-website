@@ -425,6 +425,23 @@
       #camera-views-panel .panel-toolbar.panel-project-toolbar label.panel-import {
         flex: 1 1 calc(50% - 3px);
       }
+      .object-gizmo-mode-select {
+        width: 100%;
+        min-width: 0;
+        padding: 3px 6px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(180, 210, 255, 0.95);
+        font: 400 11px/1.3 system-ui, sans-serif;
+      }
+      .object-gizmo-mode-select:focus {
+        outline: none;
+        border-color: rgba(120, 180, 255, 0.55);
+      }
+      .object-gizmo-mode-select:disabled {
+        opacity: 0.55;
+      }
     </style>
     <link rel="stylesheet" href="../demo-inspector-panels.css" />
     <script type="importmap">
@@ -452,8 +469,8 @@
         >
       </p>
       <p class="demo-attribution-credits">
-        Rect area lights with volumetric fog via a post-processing pass. Import your own GLB, GLTF, or FBX from the
-        Objects panel — that replaces the Pagani. Based on the
+        Rect area lights with volumetric fog via a post-processing pass. Import GLB, GLTF, or FBX objects from the
+        Objects panel (keep or remove the Pagani). Based on the
         <a
           href="https://threejs.org/examples/#webgpu_volume_lighting_rectarea"
           target="_blank"
@@ -499,7 +516,13 @@
           </label>
         </div>
         <div class="panel-toolbar panel-project-toolbar">
-          <button type="button" id="project-save-btn" title="Save full project (cameras, lights, fog)">Save project</button>
+          <button
+            type="button"
+            id="project-save-btn"
+            title="Save full project (cameras, lights, fog, Pagani, and all imported objects)"
+          >
+            Save project
+          </button>
           <label class="panel-import" title="Load a saved project JSON">
             Load project
             <input id="project-load-input" type="file" accept=".json,.vlproject,application/json" hidden />
@@ -530,10 +553,11 @@
       class="runtime-file-input"
       type="file"
       accept=".glb,.gltf,.fbx"
+      multiple
     />
 
     <div id="container"></div>
-    <div id="hint">Orbit drag · Objects panel · Import GLB/GLTF/FBX (replaces car) · T/R/S gizmo · Ctrl+Shift+S camera</div>
+    <div id="hint">Orbit drag · Objects panel · Import models · Gizmo Move/Rotate/Scale · Ctrl+Shift+S camera</div>
     <div id="status">Initializing…</div>
 
     <script type="module">
@@ -745,12 +769,15 @@
       const DEFAULT_CAMERA_HOLD_SEC = 1.5
       const DEFAULT_CAMERA_ROTATION_ORDER = 'XYZ'
       const PROJECT_TYPE = 'volume-lighting-project'
-      const PROJECT_VERSION = 1
+      const PROJECT_VERSION = 3
+      const IMPORT_SPAWN_GAP = 4
 
       let volumetricParams = {
         resolution: 0.25,
         denoise: true,
       }
+      /** @type {Map<string, ArrayBuffer>} */
+      const importedModelBuffers = new Map()
 
       let renderer, scene, camera, controls
       let paganiRoot
@@ -785,6 +812,7 @@
       let modelLoadInProgress = false
       const modelObjectUrls = []
       const modelFileInput = document.getElementById('model-file-input')
+      let stockPaganiLoadPromise = null
       const DEG2RAD = Math.PI / 180
       const objectWorldPosition = new THREE.Vector3()
       const objectFocusBounds = new THREE.Box3()
@@ -797,6 +825,7 @@
       const runtimeParams = {
         gizmoEnabled: false,
         gizmoMode: 'translate',
+        removeCarOnImport: false,
         objectsPanelCollapsed: true,
       }
 
@@ -1400,6 +1429,15 @@
         })
         objectsRoot.add(createObjectInfoRow('Lock', lockEditor.domElement))
 
+        const deletableRoot = getDeletableSceneRoot(object)
+        if (deletableRoot) {
+          const deleteButton = new ValueButton({
+            text: deletableRoot === paganiRoot ? 'Delete Pagani' : 'Delete object',
+            value: () => deleteSelectedSceneObject(),
+          })
+          objectsRoot.add(createObjectInfoRow('Delete', deleteButton.domElement))
+        }
+
         const addMetaRow = (label, text) => {
           const value = createValueSpan()
           value.className = 'object-info-meta'
@@ -1422,10 +1460,15 @@
       }
 
       function setGizmoMode(mode, { updateStatus = true } = {}) {
-        runtimeParams.gizmoMode = mode
-        transformControls?.setMode(mode)
-        gizmoModeController?.setValue?.(mode)
-        if (updateStatus) setStatus(`Gizmo mode: ${mode}`)
+        const nextMode = ['translate', 'rotate', 'scale'].includes(mode) ? mode : 'translate'
+        runtimeParams.gizmoMode = nextMode
+        transformControls?.setMode(nextMode)
+        gizmoModeController?.setValue?.(nextMode)
+        if (updateStatus) {
+          const label =
+            nextMode === 'rotate' ? 'Rotate' : nextMode === 'scale' ? 'Scale' : 'Move'
+          setStatus(`Gizmo mode: ${label}`)
+        }
       }
 
       function updateObjectListSelectionUi() {
@@ -1777,26 +1820,72 @@
           gizmoEnabledEditor.setValue(value)
         }
 
+        const gizmoModeSelect = document.createElement('select')
+        gizmoModeSelect.className = 'object-gizmo-mode-select'
+        gizmoModeSelect.innerHTML = `
+          <option value="translate">Move</option>
+          <option value="rotate">Rotate</option>
+          <option value="scale">Scale</option>
+        `
+        gizmoModeSelect.value = runtimeParams.gizmoMode
+        gizmoModeSelect.disabled = !runtimeParams.gizmoEnabled
+        gizmoModeSelect.title = 'Choose gizmo tool: Move, Rotate, or Scale (also T / R / S keys)'
+        gizmoModeSelect.addEventListener('change', () => {
+          setGizmoMode(gizmoModeSelect.value, { updateStatus: true })
+        })
+        const gizmoModeItem = new Item('Gizmo mode', gizmoModeSelect)
+        gizmoModeItem.itemRow.classList.add('actionable')
+        objectsRoot.add(gizmoModeItem)
+        const gizmoModeRow = enhanceInspectorControl({ domElement: gizmoModeItem.itemRow })
+        gizmoModeController = {
+          setValue: (value) => {
+            gizmoModeSelect.value = value
+          },
+          disable: () => {
+            gizmoModeSelect.disabled = true
+            gizmoModeRow.disable()
+          },
+          enable: () => {
+            gizmoModeSelect.disabled = false
+            gizmoModeRow.enable()
+          },
+        }
+        if (!runtimeParams.gizmoEnabled) gizmoModeController.disable()
+
         const hint = createValueSpan()
         hint.className = 'object-info-meta'
         hint.innerHTML =
-          'Enable <strong>Transform gizmo</strong> to pick meshes. Import your own <strong>GLB / GLTF / FBX</strong> — that replaces the Pagani. T / R / S change mode.'
+          'Enable <strong>Transform gizmo</strong>, pick a mode (<strong>Move / Rotate / Scale</strong>), then click meshes. Import multiple <strong>GLB / GLTF / FBX</strong> objects. T / R / S also switch mode.'
         const hintItem = new Item(hint)
         hintItem.itemRow.classList.add('hint-row', 'no-hover')
         hintItem.itemRow.style.gridTemplateColumns = '1fr'
         objectsRoot.add(hintItem)
 
+        const removeCarEditor = new ValueCheckbox({ value: runtimeParams.removeCarOnImport })
+        removeCarEditor.addEventListener('change', ({ value }) => {
+          runtimeParams.removeCarOnImport = Boolean(value)
+          setStatus(
+            value
+              ? 'Next import will remove the stock Pagani.'
+              : 'Next import will keep the stock Pagani and add objects beside it.',
+          )
+        })
+        const removeCarItem = new Item('Remove car on import', removeCarEditor.domElement)
+        removeCarItem.itemRow.classList.add('actionable')
+        objectsRoot.add(removeCarItem)
+
         const importButton = new ValueButton({
           text: 'Import GLB / GLTF / FBX',
           value: () => modelFileInput?.click(),
         })
-        const importItem = new Item('Your model', importButton.domElement)
+        const importItem = new Item('Add objects', importButton.domElement)
         importItem.itemRow.classList.add('actionable')
         objectsRoot.add(importItem)
 
         const importNote = createValueSpan()
         importNote.className = 'object-info-meta'
-        importNote.textContent = 'Adds your model and removes the stock car from the scene.'
+        importNote.textContent =
+          'You can select multiple files. Uncheck “Remove car on import” to keep the Pagani and add chairs/props beside it.'
         const importNoteItem = new Item(importNote)
         importNoteItem.itemRow.classList.add('hint-row', 'no-hover')
         importNoteItem.itemRow.style.gridTemplateColumns = '1fr'
@@ -1933,17 +2022,6 @@
           })
         })
 
-        gizmoModeController = enhanceInspectorControl(
-          objectsGui
-            .add(runtimeParams, 'gizmoMode', { Translate: 'translate', Rotate: 'rotate', Scale: 'scale' })
-            .name('Gizmo mode')
-            .onChange((value) => {
-              setGizmoMode(value, { updateStatus: false })
-              setStatus(`Gizmo mode: ${value}`)
-            }),
-        )
-        gizmoModeController.disable()
-
         rebuildObjectsPanel()
       }
 
@@ -1978,6 +2056,30 @@
         }
       }
 
+      function arrayBufferToBase64(buffer) {
+        const bytes = new Uint8Array(buffer)
+        let binary = ''
+        const chunk = 0x8000
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk))
+        }
+        return btoa(binary)
+      }
+
+      function base64ToArrayBuffer(base64) {
+        const binary = atob(base64)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        return bytes.buffer
+      }
+
+      function mimeTypeForModelExtension(extension) {
+        if (extension === 'glb') return 'model/gltf-binary'
+        if (extension === 'gltf') return 'model/gltf+json'
+        if (extension === 'fbx') return 'application/octet-stream'
+        return 'application/octet-stream'
+      }
+
       function disposeObjectTree(root) {
         if (!root) return
         root.traverse((child) => {
@@ -2009,20 +2111,115 @@
         updateTransformGizmo()
       }
 
+      function createImportedModelId() {
+        return `imp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+      }
+
+      function getImportedRootForObject(object) {
+        if (!object) return null
+        for (const root of importedModelRoots) {
+          if (object === root || isObjectDescendantOf(object, root)) return root
+        }
+        return null
+      }
+
+      function getDeletableSceneRoot(object) {
+        if (!object) return null
+        if (object === paganiRoot || isUnderPagani(object)) return paganiRoot
+        return getImportedRootForObject(object)
+      }
+
       function clearImportedModels() {
         while (importedModelRoots.length) {
-          const root = importedModelRoots.pop()
-          if (selectedObjectRef === root || isObjectDescendantOf(selectedObjectRef, root)) {
-            selectedObjectRef = null
-            selectedObjectKey = null
-          }
-          if (gizmoSelectedObject === root || isObjectDescendantOf(gizmoSelectedObject, root)) {
-            gizmoSelectedObject = null
-          }
-          scene.remove(root)
-          disposeObjectTree(root)
+          removeImportedModelRoot(importedModelRoots[importedModelRoots.length - 1], {
+            rebuild: false,
+            quiet: true,
+          })
         }
+        importedModelBuffers.clear()
         updateTransformGizmo()
+      }
+
+      function removeImportedModelRoot(root, { rebuild = true, quiet = false } = {}) {
+        if (!root) return false
+        const index = importedModelRoots.indexOf(root)
+        if (index < 0) return false
+
+        const label = getObjectListLabel(root)
+        const importId = root.userData?.importedId
+        if (importId) importedModelBuffers.delete(importId)
+
+        if (selectedObjectRef === root || isObjectDescendantOf(selectedObjectRef, root)) {
+          selectedObjectRef = null
+          selectedObjectKey = null
+        }
+        if (gizmoSelectedObject === root || isObjectDescendantOf(gizmoSelectedObject, root)) {
+          gizmoSelectedObject = null
+        }
+
+        importedModelRoots.splice(index, 1)
+        scene.remove(root)
+        disposeObjectTree(root)
+        updateTransformGizmo()
+        if (rebuild) rebuildObjectsPanel()
+        if (!quiet) setStatus(`Deleted "${label}"`)
+        return true
+      }
+
+      function deleteSelectedSceneObject() {
+        const root = getDeletableSceneRoot(selectedObjectRef)
+        if (!root) {
+          setStatus('Select an imported model or the Pagani to delete.', true)
+          return
+        }
+
+        const label = getObjectListLabel(root)
+        if (!window.confirm(`Delete "${label}" from the scene?`)) return
+
+        if (root === paganiRoot) {
+          removePaganiFromScene()
+          rebuildObjectsPanel()
+          setStatus('Removed Pagani from the scene')
+          return
+        }
+
+        removeImportedModelRoot(root)
+      }
+
+      async function loadStockPaganiIntoScene() {
+        if (paganiRoot) return paganiRoot
+        if (stockPaganiLoadPromise) return stockPaganiLoadPromise
+
+        stockPaganiLoadPromise = (async () => {
+          const gltf = await new GLTFLoader().loadAsync(PAGANI_MODEL_URL)
+          const paganiModel = gltf.scene
+          paganiModel.name = 'Pagani Utopia'
+          paganiModel.traverse((child) => {
+            if (child.isMesh) {
+              child.castShadow = true
+              child.receiveShadow = true
+              if (!child.name) {
+                const materialName = child.material?.name
+                child.name = materialName ? `Body — ${materialName}` : `Mesh ${child.id}`
+              }
+              if (child.material && !Array.isArray(child.material)) {
+                child.material.shadowSide = THREE.DoubleSide
+              }
+            }
+          })
+          paganiRoot = fitModelToFloor(paganiModel, PAGANI_TARGET_LENGTH)
+          paganiRoot.position.add(PAGANI_POSITION_OFFSET)
+          paganiRoot.updateMatrixWorld(true)
+          scene.add(paganiRoot)
+          rebuildObjectsPanel()
+          return paganiRoot
+        })()
+
+        try {
+          return await stockPaganiLoadPromise
+        } finally {
+          stockPaganiLoadPromise = null
+        }
       }
 
       function prepareImportedMeshes(root) {
@@ -2040,7 +2237,19 @@
         })
       }
 
-      function fitImportedModelToScene(object, targetLength = PAGANI_TARGET_LENGTH) {
+      function getNextImportSpawnPosition() {
+        return new THREE.Vector3(
+          PAGANI_POSITION_OFFSET.x + importedModelRoots.length * IMPORT_SPAWN_GAP,
+          PAGANI_POSITION_OFFSET.y,
+          PAGANI_POSITION_OFFSET.z,
+        )
+      }
+
+      function fitImportedModelToScene(
+        object,
+        targetLength = PAGANI_TARGET_LENGTH,
+        { position = null, applySpawn = true } = {},
+      ) {
         const wrapper = new THREE.Group()
         wrapper.add(object)
         wrapper.updateMatrixWorld(true)
@@ -2060,49 +2269,66 @@
         )
         wrapper.updateMatrixWorld(true)
 
-        // Same stage spot as the stock car (which is removed on import).
-        wrapper.position.copy(PAGANI_POSITION_OFFSET)
+        if (position) {
+          wrapper.position.copy(position)
+        } else if (applySpawn) {
+          wrapper.position.copy(getNextImportSpawnPosition())
+        }
         return wrapper
       }
 
-      function addImportedModelToScene(root, fileName) {
+      function addImportedModelToScene(root, fileName, { quiet = false, importId = null, extension = '' } = {}) {
         const label = fileName.replace(/\.[^.]+$/, '') || 'Imported model'
+        const id = importId || createImportedModelId()
         root.name = label
         root.userData.importedLabel = label
         root.userData.isImportedModel = true
+        root.userData.importedFileName = fileName
+        root.userData.importedExtension = extension || getFileExtension(fileName)
+        root.userData.importedId = id
 
         scene.add(root)
         importedModelRoots.push(root)
         rebuildObjectsPanel()
         selectPanelObject(root)
         if (runtimeParams.gizmoEnabled) {
-          // Prefer gizmo on the import root so the whole model moves together.
           if (!isObjectLocked(root)) {
             gizmoSelectedObject = root
             updateTransformGizmo()
           }
         }
-        setStatus(`Imported "${label}" — Pagani removed. Enable Transform gizmo to move it.`)
+        if (!quiet) {
+          const carNote = paganiRoot
+            ? ' · Pagani kept'
+            : ' · Pagani removed'
+          setStatus(`Imported "${label}"${carNote}. Enable Transform gizmo to move it.`)
+        }
+        return root
       }
 
-      async function importModelFromFile(file) {
-        if (!file || modelLoadInProgress || !scene) return
+      async function loadImportedModelFromBuffer({
+        fileName,
+        extension,
+        buffer,
+        transform = null,
+        quiet = false,
+        removeCar = false,
+        spawnPosition = null,
+      }) {
+        if (!scene || !buffer) throw new Error('No model data to load.')
 
-        const extension = getFileExtension(file.name)
-        if (!['glb', 'gltf', 'fbx'].includes(extension)) {
-          setStatus('Choose a .glb, .gltf, or .fbx file.', true)
-          return
+        const ext = (extension || getFileExtension(fileName || '')).toLowerCase()
+        if (!['glb', 'gltf', 'fbx'].includes(ext)) {
+          throw new Error('Imported model must be .glb, .gltf, or .fbx.')
         }
 
-        modelLoadInProgress = true
-        setStatus(`Loading ${file.name}…`)
-
-        const objectUrl = URL.createObjectURL(file)
+        const blob = new Blob([buffer], { type: mimeTypeForModelExtension(ext) })
+        const objectUrl = URL.createObjectURL(blob)
         modelObjectUrls.push(objectUrl)
 
         try {
           let loadedRoot
-          if (extension === 'fbx') {
+          if (ext === 'fbx') {
             loadedRoot = await new FBXLoader().loadAsync(objectUrl)
           } else {
             const gltf = await new GLTFLoader().loadAsync(objectUrl)
@@ -2111,20 +2337,83 @@
 
           if (!loadedRoot) throw new Error('File did not contain a renderable scene.')
 
-          removePaganiFromScene()
-          clearImportedModels()
+          if (removeCar) removePaganiFromScene()
+
           prepareImportedMeshes(loadedRoot)
-          const wrapped = fitImportedModelToScene(loadedRoot)
-          addImportedModelToScene(wrapped, file.name)
+          const wrapped = fitImportedModelToScene(loadedRoot, PAGANI_TARGET_LENGTH, {
+            position: spawnPosition,
+            applySpawn: !transform,
+          })
+          if (transform) applyObjectTransform(wrapped, transform)
+
+          const importId = createImportedModelId()
+          importedModelBuffers.set(importId, buffer.slice(0))
+          addImportedModelToScene(wrapped, fileName || `imported.${ext}`, {
+            quiet,
+            importId,
+            extension: ext,
+          })
+          return wrapped
         } catch (error) {
-          console.warn('[import] model load failed', error)
-          setStatus(error?.message || `Failed to load ${file.name}`, true)
           URL.revokeObjectURL(objectUrl)
           const idx = modelObjectUrls.indexOf(objectUrl)
           if (idx >= 0) modelObjectUrls.splice(idx, 1)
+          throw error
+        }
+      }
+
+      async function importModelsFromFiles(fileList) {
+        const files = [...(fileList || [])].filter(Boolean)
+        if (!files.length || modelLoadInProgress || !scene) return
+
+        modelLoadInProgress = true
+        let importedCount = 0
+        let removedCar = false
+
+        try {
+          for (let i = 0; i < files.length; i++) {
+            const file = files[i]
+            const extension = getFileExtension(file.name)
+            if (!['glb', 'gltf', 'fbx'].includes(extension)) {
+              setStatus(`Skipped "${file.name}" — use .glb, .gltf, or .fbx.`, true)
+              continue
+            }
+
+            setStatus(`Loading ${file.name}…`)
+            const buffer = await file.arrayBuffer()
+            const shouldRemoveCar = runtimeParams.removeCarOnImport && !removedCar && Boolean(paganiRoot)
+            await loadImportedModelFromBuffer({
+              fileName: file.name,
+              extension,
+              buffer,
+              removeCar: shouldRemoveCar,
+              quiet: files.length > 1,
+            })
+            if (shouldRemoveCar) removedCar = true
+            importedCount++
+          }
+
+          if (!importedCount) {
+            setStatus('No valid .glb / .gltf / .fbx files to import', true)
+            return
+          }
+
+          const carNote = removedCar ? ' · Pagani removed' : paganiRoot ? ' · Pagani kept' : ''
+          setStatus(
+            importedCount === 1
+              ? `Imported 1 object${carNote}`
+              : `Imported ${importedCount} objects${carNote}`,
+          )
+        } catch (error) {
+          console.warn('[import] model load failed', error)
+          setStatus(error?.message || 'Failed to import model(s)', true)
         } finally {
           modelLoadInProgress = false
         }
+      }
+
+      async function importModelFromFile(file) {
+        await importModelsFromFiles(file ? [file] : [])
       }
 
       function registerSceneObjectNames() {
@@ -2579,7 +2868,30 @@
         }
       }
 
+      function serializeImportedModelsForProject() {
+        return importedModelRoots
+          .map((root) => {
+            const importId = root.userData?.importedId
+            const buffer = importId ? importedModelBuffers.get(importId) : null
+            if (!buffer) return null
+            const fileName = root.userData?.importedFileName || `${root.name || 'imported'}.glb`
+            const extension =
+              root.userData?.importedExtension || getFileExtension(fileName) || 'glb'
+            return {
+              id: importId,
+              fileName,
+              extension,
+              byteLength: buffer.byteLength,
+              dataBase64: arrayBufferToBase64(buffer),
+              transform: serializeObjectTransform(root),
+            }
+          })
+          .filter(Boolean)
+      }
+
       function buildProjectData() {
+        const importedModels = serializeImportedModelsForProject()
+        const paganiPresent = Boolean(paganiRoot)
         return {
           type: PROJECT_TYPE,
           version: PROJECT_VERSION,
@@ -2609,9 +2921,18 @@
             blue: serializeRectLight(rectLight3, 'blue'),
           },
           objects: {
-            pagani: serializeObjectTransform(paganiRoot),
+            vehicle: paganiPresent
+              ? importedModels.length
+                ? 'both'
+                : 'pagani'
+              : importedModels.length
+                ? 'imported'
+                : 'none',
+            paganiPresent,
+            pagani: paganiPresent ? serializeObjectTransform(paganiRoot) : null,
             floor: serializeObjectTransform(mshStdFloor),
             volumetricFog: serializeObjectTransform(volumetricMesh),
+            importedModels,
           },
           volumetric: {
             fogIntensity: volumetricLightingIntensity?.value ?? 1,
@@ -2630,21 +2951,83 @@
           return
         }
 
-        const payload = buildProjectData()
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `volume-lighting-${new Date().toISOString().split('T')[0]}.vlproject.json`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(url)
-        setStatus(
-          `Saved project (${payload.cameraKeyframes.length} camera view${
-            payload.cameraKeyframes.length === 1 ? '' : 's'
-          })`,
-        )
+        try {
+          const totalBytes = [...importedModelBuffers.values()].reduce(
+            (sum, buffer) => sum + (buffer?.byteLength || 0),
+            0,
+          )
+          setStatus(
+            totalBytes > 0
+              ? `Saving project with ${importedModelBuffers.size} imported object(s) (${Math.max(1, Math.round(totalBytes / (1024 * 1024)))} MB)…`
+              : 'Saving project…',
+          )
+          const payload = buildProjectData()
+          const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+          const url = URL.createObjectURL(blob)
+          const link = document.createElement('a')
+          link.href = url
+          link.download = `volume-lighting-${new Date().toISOString().split('T')[0]}.vlproject.json`
+          document.body.appendChild(link)
+          link.click()
+          document.body.removeChild(link)
+          URL.revokeObjectURL(url)
+
+          const importedCount = payload.objects?.importedModels?.length || 0
+          const parts = []
+          if (payload.objects?.paganiPresent) parts.push('Pagani')
+          if (importedCount > 0) {
+            parts.push(`${importedCount} imported object${importedCount === 1 ? '' : 's'}`)
+          }
+          const modelNote = parts.length ? ` · ${parts.join(' + ')}` : ''
+          setStatus(
+            `Saved project (${payload.cameraKeyframes.length} camera view${
+              payload.cameraKeyframes.length === 1 ? '' : 's'
+            }${modelNote})`,
+          )
+        } catch (error) {
+          console.warn('[project] save failed', error)
+          setStatus(error?.message || 'Could not save project', true)
+        }
+      }
+
+      async function restoreProjectSceneObjects(objects = {}) {
+        clearImportedModels()
+
+        const importedModels = Array.isArray(objects.importedModels)
+          ? objects.importedModels.filter((entry) => entry?.dataBase64)
+          : []
+        const wantsPagani =
+          objects.paganiPresent === true ||
+          objects.vehicle === 'pagani' ||
+          objects.vehicle === 'both' ||
+          (objects.paganiPresent !== false &&
+            objects.vehicle !== 'imported' &&
+            Boolean(objects.pagani) &&
+            importedModels.length === 0)
+
+        if (wantsPagani) {
+          await loadStockPaganiIntoScene()
+          applyObjectTransform(paganiRoot, objects.pagani)
+        } else {
+          removePaganiFromScene()
+        }
+
+        for (let i = 0; i < importedModels.length; i++) {
+          const entry = importedModels[i]
+          setStatus(
+            `Loading imported object ${i + 1}/${importedModels.length}: ${entry.fileName || 'model'}…`,
+          )
+          const buffer = base64ToArrayBuffer(entry.dataBase64)
+          await loadImportedModelFromBuffer({
+            fileName: entry.fileName || `imported.${entry.extension || 'glb'}`,
+            extension: entry.extension || getFileExtension(entry.fileName || ''),
+            buffer,
+            transform: entry.transform || null,
+            removeCar: false,
+            quiet: true,
+          })
+        }
+
       }
 
       async function applyProjectData(project, { confirmReplace = true } = {}) {
@@ -2656,63 +3039,89 @@
         if (
           confirmReplace &&
           !window.confirm(
-            'Load this project? Camera views, lights, and fog settings will be replaced.',
+            'Load this project? Camera views, lights, fog, Pagani, and imported objects will be replaced.',
           )
         ) {
           return false
         }
 
+        if (modelLoadInProgress) {
+          setStatus('Wait for the current model import to finish', true)
+          return false
+        }
+
         stopCameraPlayback()
+        modelLoadInProgress = true
 
-        const frames = Array.isArray(project.cameraKeyframes) ? project.cameraKeyframes : []
-        cameraKeyframes = frames
-          .map((entry, index) =>
-            normalizeCameraKeyframe({ ...entry, id: createCameraKeyframeId() }, index),
-          )
-          .filter(Boolean)
-        selectedCameraKeyframeId = cameraKeyframes[0]?.id ?? null
+        try {
+          const frames = Array.isArray(project.cameraKeyframes) ? project.cameraKeyframes : []
+          cameraKeyframes = frames
+            .map((entry, index) =>
+              normalizeCameraKeyframe({ ...entry, id: createCameraKeyframeId() }, index),
+            )
+            .filter(Boolean)
+          selectedCameraKeyframeId = cameraKeyframes[0]?.id ?? null
 
-        if (project.cameraPlaybackSpeed != null) {
-          cameraPlaybackSpeed = Number(project.cameraPlaybackSpeed) || 1
-          if (cameraPlaybackSpeedSelect) {
-            cameraPlaybackSpeedSelect.value = String(cameraPlaybackSpeed)
+          if (project.cameraPlaybackSpeed != null) {
+            cameraPlaybackSpeed = Number(project.cameraPlaybackSpeed) || 1
+            if (cameraPlaybackSpeedSelect) {
+              cameraPlaybackSpeedSelect.value = String(cameraPlaybackSpeed)
+            }
           }
-        }
 
-        applyVolumetricSettings(project.volumetric || {})
+          applyVolumetricSettings(project.volumetric || {})
 
-        const lights = project.lights || {}
-        applyRectLightState(rectLight1, lights.red)
-        applyRectLightState(rectLight2, lights.green)
-        applyRectLightState(rectLight3, lights.blue)
+          const lights = project.lights || {}
+          applyRectLightState(rectLight1, lights.red)
+          applyRectLightState(rectLight2, lights.green)
+          applyRectLightState(rectLight3, lights.blue)
 
-        const objects = project.objects || {}
-        applyObjectTransform(paganiRoot, objects.pagani)
-        applyObjectTransform(mshStdFloor, objects.floor)
-        applyObjectTransform(volumetricMesh, objects.volumetricFog)
+          const objects = project.objects || {}
+          await restoreProjectSceneObjects(objects)
+          applyObjectTransform(mshStdFloor, objects.floor)
+          applyObjectTransform(volumetricMesh, objects.volumetricFog)
 
-        if (project.camera?.position && project.camera?.target) {
-          setCameraKeyframeState(
-            {
-              position: project.camera.position,
-              target: project.camera.target,
-              rotation: project.camera.rotation,
-            },
-            false,
+          if (project.camera?.position && project.camera?.target) {
+            setCameraKeyframeState(
+              {
+                position: project.camera.position,
+                target: project.camera.target,
+                rotation: project.camera.rotation,
+              },
+              false,
+            )
+          } else if (cameraKeyframes[0]) {
+            setCameraKeyframeState(cameraKeyframes[0], false)
+          }
+
+          saveCameraKeyframesToStorage()
+          renderCameraKeyframesList()
+          updateCameraViewsPanelUi()
+          rebuildObjectsPanel()
+
+          const parts = []
+          if (paganiRoot) parts.push('Pagani')
+          if (importedModelRoots.length) {
+            parts.push(
+              `${importedModelRoots.length} imported object${
+                importedModelRoots.length === 1 ? '' : 's'
+              }`,
+            )
+          }
+          const vehicleNote = parts.length ? ` · ${parts.join(' + ')}` : ''
+          setStatus(
+            `Loaded project (${cameraKeyframes.length} camera view${
+              cameraKeyframes.length === 1 ? '' : 's'
+            }${vehicleNote})`,
           )
-        } else if (cameraKeyframes[0]) {
-          setCameraKeyframeState(cameraKeyframes[0], false)
+          return true
+        } catch (error) {
+          console.warn('[project] apply failed', error)
+          setStatus(error?.message || 'Could not load project model data', true)
+          return false
+        } finally {
+          modelLoadInProgress = false
         }
-
-        saveCameraKeyframesToStorage()
-        renderCameraKeyframesList()
-        updateCameraViewsPanelUi()
-        setStatus(
-          `Loaded project (${cameraKeyframes.length} camera view${
-            cameraKeyframes.length === 1 ? '' : 's'
-          })`,
-        )
-        return true
       }
 
       async function loadProjectFromFile(file) {
@@ -3023,27 +3432,8 @@
 
         setStatus('Loading Pagani model…')
         try {
-          const gltf = await new GLTFLoader().loadAsync(PAGANI_MODEL_URL)
-          const paganiModel = gltf.scene
-          paganiModel.name = 'Pagani Utopia'
-          paganiModel.traverse((child) => {
-            if (child.isMesh) {
-              child.castShadow = true
-              child.receiveShadow = true
-              if (!child.name) {
-                const materialName = child.material?.name
-                child.name = materialName ? `Body — ${materialName}` : `Mesh ${child.id}`
-              }
-              if (child.material && !Array.isArray(child.material)) {
-                child.material.shadowSide = THREE.DoubleSide
-              }
-            }
-          })
-          paganiRoot = fitModelToFloor(paganiModel, PAGANI_TARGET_LENGTH)
-          paganiRoot.position.add(PAGANI_POSITION_OFFSET)
-          paganiRoot.updateMatrixWorld(true)
+          await loadStockPaganiIntoScene()
           const paganiBounds = new THREE.Box3().setFromObject(paganiRoot)
-          scene.add(paganiRoot)
 
           const paganiCenter = paganiBounds.getCenter(new THREE.Vector3())
           const paganiSize = paganiBounds.getSize(new THREE.Vector3())
@@ -3160,8 +3550,8 @@
         initObjectsGui()
 
         modelFileInput?.addEventListener('change', async (event) => {
-          const file = event.target.files?.[0]
-          await importModelFromFile(file)
+          const files = event.target.files
+          await importModelsFromFiles(files)
           event.target.value = ''
         })
 
@@ -3182,6 +3572,21 @@
             hasCanvas: Boolean(renderer?.domElement),
             hasPagani: Boolean(paganiRoot),
             importedCount: importedModelRoots.length,
+            importedNames: importedModelRoots.map(
+              (root) => root.userData?.importedFileName || root.name,
+            ),
+            importedByteLength: [...importedModelBuffers.values()].reduce(
+              (sum, buffer) => sum + (buffer?.byteLength || 0),
+              0,
+            ),
+            removeCarOnImport: runtimeParams.removeCarOnImport,
+            vehicle: paganiRoot
+              ? importedModelRoots.length
+                ? 'both'
+                : 'pagani'
+              : importedModelRoots.length
+                ? 'imported'
+                : 'none',
             steps: volumetricMaterial.steps,
             denoise: volumetricParams.denoise,
             fogIntensity: volumetricLightingIntensity.value,
@@ -3197,6 +3602,7 @@
             objectCount: getObjectsPanelEntries().filter((entry) => entry.object).length,
             cameraKeyframeCount: cameraKeyframes.length,
             projectType: PROJECT_TYPE,
+            projectVersion: PROJECT_VERSION,
           }),
           buildProjectData,
           normalizeHoldSec,
