@@ -541,7 +541,8 @@ export const DEMO_BLOG_OVERRIDES = {
     pageTitle: 'Dream — Ocean scroll narrative',
     demoLabel: 'Dream — Ocean scroll',
     hook: 'Not every 3D piece should be an orbit cube. Dream is a scroll narrative through still dark water, rain, distant land, and shore — procedural distortion, optional ambient audio, and a weather runtime with sky, clouds, and day/night sync. Chapter 1 of 9; work in progress.',
-    coverNote: 'The cover shows a still from the Dream ocean scroll chapter.',
+    coverNote:
+      'The cover is the Dream start screen — title, calm line, and the play control before the scroll begins.',
     whyBullets: [
       '- **Scroll as camera** — the page motion tells the chapter, not only a drag orbit',
       '- **Atmosphere first** — water, rain, and weather set the emotional beat',
@@ -560,8 +561,8 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     trySteps: [
       'Open the [Dream — Ocean scroll demo](/demos/dreams-iom/)',
-      'Scroll slowly through the first beats — water, rain, distant land',
-      'Pause where the shore reads clearest; notice sky / weather shifts',
+      'Tap play on the start screen, then scroll slowly through the first water beats',
+      'Pause on the floating figure — notice ripples, sky, and weather mood',
       'If audio is enabled in your build, unmute and scroll again for the crossfade',
     ],
     requirements: [
@@ -569,8 +570,14 @@ export const DEMO_BLOG_OVERRIDES = {
       '**Motion:** desktop scroll or trackpad gives the intended pacing',
       '**Audio:** optional — some browsers require a click before sound starts',
     ],
-    viewA: { file: 'view-a.jpg', caption: 'Dark water chapter — still surface and weather cue' },
-    viewB: { file: 'view-b.jpg', caption: 'Shore approach — land mass and sky transition' },
+    viewA: {
+      file: 'view-a.jpg',
+      caption: 'Start screen — DREAM., calm line, and play to enter the scroll',
+    },
+    viewB: {
+      file: 'view-b.jpg',
+      caption: 'After play — floating figure on still dark water',
+    },
     alsoCan: [
       'Treat it as a mood board for a longer multi-chapter launch',
       'Pair with the [Three.js Ocean](/blog/threejs-ocean) study for surface technique contrast',
