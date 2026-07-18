@@ -152,7 +152,7 @@
         {
           "id": "gts-1784059080592-nk0r3nv",
           "label": "Step 4",
-          "durationSec": 1.5,
+          "durationSec": 6,
           "camera": {
             "yaw": 0.18519047193128865,
             "pitch": 0.9117297097846433,
@@ -165,7 +165,7 @@
               "hotspotId": "hs-1784059192358-xsgg86x",
               "visible": true,
               "openPopup": true,
-              "popupDurationSec": 4
+              "popupDurationSec": 6
             }
           ],
           "effects": {

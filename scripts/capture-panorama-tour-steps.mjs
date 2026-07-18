@@ -1,8 +1,13 @@
 /**
- * Capture blog shots from the 4 Black Witness guided-tour steps on production.
- * Waits for the "Step N" UI label so frames match the walkthrough exactly.
+ * Capture blog shots from the 4 Black Witness guided-tour steps.
+ * Waits for the "Step N" UI label, then extra settle so effect layers
+ * (particles / spout / birds) have time to paint after enable.
  *
- * Usage: node scripts/capture-panorama-tour-steps.mjs
+ * Prefers production (reliable WebGPU) but accepts a local base URL arg.
+ *
+ * Usage:
+ *   node scripts/capture-panorama-tour-steps.mjs
+ *   node scripts/capture-panorama-tour-steps.mjs http://localhost:5177
  */
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join, dirname } from 'node:path'
@@ -10,7 +15,16 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const OUT = join(__dirname, '..', 'public', 'assets', 'blog')
-const BASE = 'https://iobjectm.com/demos/panorama-360/'
+const BASE = (process.argv[2] ?? 'https://iobjectm.com').replace(/\/$/, '')
+const DEMO = `${BASE}/demos/panorama-360/`
+
+/** Extra settle after Step N label — effects enable during camera, then need GPU warm-up. */
+const SETTLE_BY_STEP = {
+  1: 2200,
+  2: 6500, // particles
+  3: 5500, // particles + spout
+  4: 2500, // birds — keep short so Step 4 label stays on screen
+}
 
 async function hideNoise(page) {
   await page.evaluate(() => {
@@ -24,7 +38,7 @@ async function hideNoise(page) {
   })
 }
 
-async function waitForStep(page, n, timeoutMs = 45000) {
+async function waitForStep(page, n, timeoutMs = 60000) {
   await page.waitForFunction(
     (step) => {
       const text = document.body?.innerText || ''
@@ -33,29 +47,47 @@ async function waitForStep(page, n, timeoutMs = 45000) {
     n,
     { timeout: timeoutMs },
   )
-  // Let camera + popup settle after the label flips
-  await page.waitForTimeout(1800)
+
+  // Step 4: capture as soon as birds mount while the Step label is still up.
+  if (n === 4) {
+    await page
+      .waitForFunction(() => {
+        const text = document.body?.innerText || ''
+        const onStep = /Step\s*4\b/i.test(text)
+        const birds = !!document.querySelector('.panorama-360-birds-overlay')
+        return onStep && birds
+      }, { timeout: 15000 })
+      .catch(() => {})
+    await page.waitForTimeout(SETTLE_BY_STEP[4])
+  } else {
+    await page.waitForTimeout(SETTLE_BY_STEP[n] ?? 2500)
+  }
   await hideNoise(page)
 }
 
 async function main() {
   const { chromium } = await import('playwright')
+  // Keep WebGPU on so particles/birds can paint. Spout is WebGL either way.
   const browser = await chromium.launch({
     headless: true,
     channel: 'chrome',
-    args: ['--disable-features=WebGPU,Vulkan', '--ignore-gpu-blocklist'],
+    args: [
+      '--enable-features=Vulkan,WebGPU',
+      '--ignore-gpu-blocklist',
+      '--enable-webgpu-developer-features',
+    ],
   })
 
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
   const shots = []
 
   try {
-    await page.goto(`${BASE}?mode=preview`, { waitUntil: 'networkidle', timeout: 120000 })
+    await page.goto(`${DEMO}?mode=preview`, { waitUntil: 'networkidle', timeout: 120000 })
     await page.waitForTimeout(8000)
     await hideNoise(page)
 
     await page.getByRole('button', { name: /play guided tour/i }).first().click({ timeout: 15000 })
-    console.log('tour started')
+    console.log('tour started @', DEMO)
 
     for (let n = 1; n <= 4; n++) {
       await waitForStep(page, n)
@@ -63,9 +95,15 @@ async function main() {
         const m = (document.body.innerText || '').match(/Step\s*\d+[^\n]{0,40}/i)
         return m?.[0] ?? '?'
       })
+      const effectHint = await page.evaluate(() => {
+        const birds = !!document.querySelector('.panorama-360-birds-overlay')
+        const particles = !!document.querySelector('.panorama-360-particles-overlay')
+        const spout = !!document.querySelector('.panorama-360-spout-overlay')
+        return { birds, particles, spout }
+      })
       const buf = await page.screenshot({ type: 'jpeg', quality: 92 })
       shots.push(buf)
-      console.log(`  captured ${label.trim()} → ${buf.length} bytes`)
+      console.log(`  captured ${label.trim()} → ${buf.length} bytes`, JSON.stringify(effectHint))
     }
   } finally {
     await page.close()
@@ -82,7 +120,7 @@ async function main() {
     await writeFile(join(raw, `step-${i + 1}.jpg`), shots[i])
   }
 
-  // Blog: cover / view-a / view-b / view-c = steps 1–4
+  // Blog: cover / view-a / view-b / view-c = steps 1–4 (effects visible on 2–4)
   const files = ['cover.jpg', 'view-a.jpg', 'view-b.jpg', 'view-c.jpg']
   for (const id of ['panorama-360-tour', 'panorama-suite']) {
     const dir = join(OUT, id)
@@ -93,7 +131,7 @@ async function main() {
     }
   }
 
-  console.log('done — 4 walkthrough positions saved')
+  console.log('done — 4 walkthrough positions saved with effect settle')
 }
 
 main().catch((e) => {

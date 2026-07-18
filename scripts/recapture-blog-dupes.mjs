@@ -219,43 +219,18 @@ async function capturePanoramaPair(browser) {
   }
   console.log('  suite synced from _panorama-tour-steps')
 
-  console.log('panorama-360-tour — editor chrome + preview orbits')
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: HEIGHT } })
-  const dir = join(OUT, 'panorama-360-tour')
-  try {
-    await page.goto(`${baseUrl}/demos/panorama-360/index.html`, {
-      waitUntil: 'networkidle',
-      timeout: 120000,
-    })
-    await page.waitForTimeout(8000)
-    await page.evaluate(() => {
-      for (const sel of ['.back-link', '.hint', '#hint']) {
-        document.querySelectorAll(sel).forEach((el) => {
-          el.style.setProperty('display', 'none', 'important')
-        })
-      }
-    })
-    await saveShot(page, dir, 'cover.jpg')
-
-    // Preview angles for in-article variety (different from suite step stills)
-    await page.goto(
-      `${baseUrl}/demos/panorama-360/index.html?mode=preview&yaw=40&pitch=-12`,
-      { waitUntil: 'networkidle', timeout: 120000 },
-    )
-    await page.waitForTimeout(5000)
-    await hideChrome(page)
-    await saveShot(page, dir, 'view-a.jpg')
-
-    await page.goto(
-      `${baseUrl}/demos/panorama-360/index.html?mode=preview&yaw=-120&pitch=8`,
-      { waitUntil: 'networkidle', timeout: 120000 },
-    )
-    await page.waitForTimeout(5000)
-    await hideChrome(page)
-    await saveShot(page, dir, 'view-b.jpg')
-  } finally {
-    await page.close()
+  // Keep editor post on the same guided-step stills (effects on steps 2–4).
+  // Idle preview orbits hide particles/birds/spout and confuse the blog story.
+  console.log('panorama-360-tour — sync guided-tour step stills (same as suite)')
+  const tour = join(OUT, 'panorama-360-tour')
+  await mkdir(tour, { recursive: true })
+  await copyFile(join(STEPS, 'step-1.jpg'), join(tour, 'cover.jpg'))
+  await copyFile(join(STEPS, 'step-2.jpg'), join(tour, 'view-a.jpg'))
+  await copyFile(join(STEPS, 'step-3.jpg'), join(tour, 'view-b.jpg'))
+  if (existsSync(join(STEPS, 'step-4.jpg'))) {
+    await copyFile(join(STEPS, 'step-4.jpg'), join(tour, 'view-c.jpg'))
   }
+  console.log('  tour synced from _panorama-tour-steps')
 }
 
 async function captureComputeParticles() {
