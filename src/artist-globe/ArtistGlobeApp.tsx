@@ -145,6 +145,9 @@ export function ArtistGlobeApp() {
       {isEmbed ? null : (
       <header className="ag-top">
         <div className="ag-brand">
+          <a href="/#3d" className="ag-back" aria-label="Back to 3D section">
+            ← IOM
+          </a>
           <a href="/artist-globe" className="ag-brand-link" onClick={(e) => {
             e.preventDefault()
             navigate('/artist-globe')
