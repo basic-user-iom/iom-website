@@ -99,7 +99,7 @@ async function hideChrome(page) {
   })
 }
 
-async function orbitDrag(page, dx = 220, dy = 40) {
+async function orbitDrag(page, dx = 220, dy = 40, { hold = false } = {}) {
   const box = await page.evaluate(() => {
     const canvas = document.querySelector('canvas')
     if (!canvas) return null
@@ -110,8 +110,34 @@ async function orbitDrag(page, dx = 220, dy = 40) {
   await page.mouse.move(box.x, box.y)
   await page.mouse.down()
   await page.mouse.move(box.x + dx, box.y + dy, { steps: 18 })
-  await page.mouse.up()
-  await page.waitForTimeout(700)
+  if (!hold) {
+    await page.mouse.up()
+    await page.waitForTimeout(700)
+  } else {
+    // Shadertoy-style demos (e.g. Spout) only keep the orbit while iMouse.z > 0.
+    await page.waitForTimeout(400)
+  }
+}
+
+/**
+ * Spout resets the camera when the mouse is released (shader default UV).
+ * Park the pointer at a canvas UV and keep the button down for the shot.
+ */
+async function holdSpoutUv(page, uvX, uvY) {
+  const box = await page.evaluate(() => {
+    const canvas = document.querySelector('#container canvas, canvas')
+    if (!canvas) return null
+    const r = canvas.getBoundingClientRect()
+    return { x: r.left, y: r.top, w: r.width, h: r.height }
+  })
+  if (!box) return
+  // Match spout pointerPos: GL Y is bottom-up.
+  const x = box.x + box.w * uvX
+  const y = box.y + box.h * (1 - uvY)
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x + 2, y + 1, { steps: 2 })
+  await page.waitForTimeout(400)
 }
 
 async function captureTarget(browser, target) {
@@ -134,8 +160,18 @@ async function captureTarget(browser, target) {
     if (target.hideChrome) await hideChrome(page)
 
     const shots = ['cover.jpg', 'view-a.jpg', 'view-b.jpg']
+    // Spout: hold distinct UVs while shooting — release snaps camera to default.
+    const spoutUvs = [
+      [0.2, 0.8],
+      [0.55, 0.55],
+      [0.88, 0.35],
+    ]
     for (let i = 0; i < shots.length; i++) {
-      if (i > 0 && target.orbit) {
+      if (target.id === 'spout') {
+        await holdSpoutUv(page, spoutUvs[i][0], spoutUvs[i][1])
+        if (target.hideChrome) await hideChrome(page)
+        await page.waitForTimeout(i === 0 ? 800 : 500)
+      } else if (i > 0 && target.orbit) {
         await orbitDrag(page, i === 1 ? 240 : -180, i === 1 ? 30 : 70)
         if (target.hideChrome) await hideChrome(page)
       } else if (i > 0 && target.spa) {
@@ -143,6 +179,7 @@ async function captureTarget(browser, target) {
         await page.waitForTimeout(600)
       }
       const buf = await page.screenshot({ type: 'jpeg', quality: 88, fullPage: false })
+      if (target.id === 'spout') await page.mouse.up()
       await writeFile(join(outDir, shots[i]), buf)
       console.log(`  → ${shots[i]} (${buf.length} bytes)`)
     }
