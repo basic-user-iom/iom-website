@@ -239,6 +239,7 @@ export type CrmSection =
   | 'ideas'
   | 'notes'
   | 'blog'
+  | 'links'
   | 'demos'
   | 'seo'
 

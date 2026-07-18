@@ -32,6 +32,7 @@ import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
 import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
 import { DemosView } from './DemosView'
+import { LinksView } from './LinksView'
 import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
@@ -77,6 +78,7 @@ type CrmSection =
   | 'ideas'
   | 'notes'
   | 'blog'
+  | 'links'
   | 'demos'
   | 'seo'
 
@@ -610,9 +612,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ? t('nav.seo')
               : section === 'blog'
                 ? t('nav.blog')
-                : section === 'demos'
-                  ? t('nav.demos')
-                  : t('topbar.title')
+                : section === 'links'
+                  ? t('nav.links')
+                  : section === 'demos'
+                    ? t('nav.demos')
+                    : t('topbar.title')
 
   return (
     <div
@@ -705,6 +709,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               onClick={() => setSection('blog')}
             >
               {t('nav.blog')}
+            </button>
+            <button
+              type="button"
+              className={`crm-section-tab${section === 'links' ? ' is-active' : ''}`}
+              onClick={() => setSection('links')}
+            >
+              {t('nav.links')}
             </button>
             <button
               type="button"
@@ -947,6 +958,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       )}
 
       {section === 'blog' && <BlogView />}
+
+      {section === 'links' && <LinksView />}
 
       {section === 'demos' && <DemosView />}
 

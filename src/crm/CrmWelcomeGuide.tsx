@@ -113,6 +113,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.what6'),
               t('guide.what7'),
               t('guide.what8'),
+              t('guide.what9'),
             ]}
           />
           <GuideSection
@@ -127,6 +128,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.nav6'),
               t('guide.nav7'),
               t('guide.nav8'),
+              t('guide.nav9'),
             ]}
           />
           <GuideSection

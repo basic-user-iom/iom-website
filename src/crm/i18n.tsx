@@ -255,9 +255,28 @@ const en: Dict = {
   'nav.ideas': 'Ideas',
   'nav.notes': 'Notes',
   'nav.blog': 'Blog',
+  'nav.links': 'Links',
   'nav.demos': 'Demo',
   'nav.seo': 'IOM-SEO',
-  'nav.toolsAria': 'Blog and SEO',
+  'nav.toolsAria': 'Blog, Links and SEO',
+
+  'links.kicker': 'Shared resource library',
+  'links.title': 'Links',
+  'links.intro':
+    'Useful YouTube channels, webpages, forums, and blog posts we want to keep handy. Filter by type, search by topic — every entry has a short note so the “why” stays clear.',
+  'links.open': 'Open',
+  'links.copy': 'Copy',
+  'links.copied': 'Copied',
+  'links.empty': 'No links in this category yet.',
+  'links.emptySearch': 'No links match that search.',
+  'links.searchPlaceholder': 'Search title, note, tag…',
+  'links.searchAria': 'Search links',
+  'links.filtersAria': 'Filter links by type',
+  'links.filter.all': 'All',
+  'links.category.youtube': 'YouTube',
+  'links.category.webpage': 'Webpage',
+  'links.category.forum': 'Forum',
+  'links.category.blog': 'Blog post',
 
   'demos.kicker': 'Private client demos',
   'demos.title': 'Demo',
@@ -510,11 +529,21 @@ const en: Dict = {
   'blog.saving': 'Saving…',
   'blog.editorTip':
     'Required: title + excerpt. Use Markdown. Include internal links to demos or /#contact.',
+  'blog.markdownHint':
+    'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg',
+  'blog.coverHint':
+    'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL. No upload bucket yet.',
+  'blog.insertDemoCta': 'Insert demo CTA',
+  'blog.bodyPane': 'Body editor',
+  'blog.paneEdit': 'Edit',
+  'blog.panePreview': 'Preview',
+  'blog.previewEmpty': 'Nothing to preview yet.',
   'blog.fieldTitle': 'Title',
   'blog.fieldSlug': 'URL slug',
   'blog.fieldExcerpt': 'Excerpt',
   'blog.fieldBody': 'Body (Markdown)',
-  'blog.bodyPlaceholder': '## Heading\n\nParagraph with a [link](/demos/panorama-360/)…',
+  'blog.bodyPlaceholder':
+    '## Heading\n\nParagraph with a [link](/demos/panorama-360/).\n\n![Camera view](/assets/blog/volume-lighting/hero.jpg)',
   'blog.fieldCover': 'Cover image URL',
   'blog.fieldAuthor': 'Author name',
   'blog.fieldTags': 'Tags (comma-separated)',
@@ -800,7 +829,7 @@ const en: Dict = {
   'guide.gotIt': 'Got it',
   'guide.whatHeading': 'What this tool is',
   'guide.whatText':
-    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, public Journal (Blog), and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
+    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, public Journal (Blog), a shared Links library, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
   'guide.what1':
     'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, Email conversation, activity log',
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
@@ -811,10 +840,12 @@ const en: Dict = {
     'Demo — private client demos not listed on the public site (password links for pitches)',
   'guide.what7':
     'Blog — Journal posts, comment moderation, and a private blog email list (addresses never shown publicly)',
-  'guide.what8': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
+  'guide.what8':
+    'Links — curated YouTube channels, webpages, forums, and blog posts worth keeping for both of us',
+  'guide.what9': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
   'guide.navHeading': 'Navigation',
   'guide.navText':
-    'Tabs under the header: Leads | Projects | Time | Ideas | Notes | Demo; Blog and SEO sit on the right (before the music player).',
+    'Tabs under the header: Leads | Projects | Time | Ideas | Notes | Demo; Blog, Links and SEO sit on the right (before the music player).',
   'guide.nav1': 'Leads — Salesforce-style CRM for potential clients',
   'guide.nav2': 'Projects — Monday-style boards for delivery work',
   'guide.nav3': 'Time — Clockify-style timers, logs, and reports',
@@ -824,7 +855,9 @@ const en: Dict = {
     'Demo — catalogue of private client demos (e.g. ICM) not on the public homepage',
   'guide.nav7':
     'Blog — write/publish Journal posts, moderate verified comments, manage blog emails',
-  'guide.nav8': 'SEO — content inventory, search upgrades, and analytics (live traffic when signed in; sample data in demo)',
+  'guide.nav8':
+    'Links — shared library of useful channels, pages, forums, and posts (filter by type)',
+  'guide.nav9': 'SEO — content inventory, search upgrades, and analytics (live traffic when signed in; sample data in demo)',
   'guide.leadHeading': 'Leads — what is a lead?',
   'guide.leadText':
     'A lead is a potential client or contact you are trying to win — not a closed deal yet.',
@@ -1259,9 +1292,28 @@ const sr: Dict = {
   'nav.ideas': 'Ideje',
   'nav.notes': 'Beleške',
   'nav.blog': 'Blog',
+  'nav.links': 'Linkovi',
   'nav.demos': 'Demo',
   'nav.seo': 'IOM-SEO',
-  'nav.toolsAria': 'Blog i SEO',
+  'nav.toolsAria': 'Blog, Linkovi i SEO',
+
+  'links.kicker': 'Zajednička biblioteka resursa',
+  'links.title': 'Linkovi',
+  'links.intro':
+    'Korisni YouTube kanali, veb stranice, forumi i blog postovi koje želimo da imamo pri ruci. Filtriraj po tipu, pretraži po temi — kratka napomena čuva zašto je link važan.',
+  'links.open': 'Otvori',
+  'links.copy': 'Kopiraj',
+  'links.copied': 'Kopirano',
+  'links.empty': 'Još nema linkova u ovoj kategoriji.',
+  'links.emptySearch': 'Nema linkova za tu pretragu.',
+  'links.searchPlaceholder': 'Pretraži naslov, napomenu, tag…',
+  'links.searchAria': 'Pretraži linkove',
+  'links.filtersAria': 'Filtriraj linkove po tipu',
+  'links.filter.all': 'Sve',
+  'links.category.youtube': 'YouTube',
+  'links.category.webpage': 'Veb stranica',
+  'links.category.forum': 'Forum',
+  'links.category.blog': 'Blog post',
 
   'demos.kicker': 'Privatni demoi za klijente',
   'demos.title': 'Demo',
@@ -1517,11 +1569,21 @@ const sr: Dict = {
   'blog.saving': 'Čuvanje…',
   'blog.editorTip':
     'Obavezno: naslov + izvod. Markdown. Uključite interne linkove ka demou ili /#contact.',
+  'blog.markdownHint':
+    'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg',
+  'blog.coverHint':
+    'Preferirajte assete pod /assets/blog/<slug>/ — ili pun https:// URL. Upload još nije dostupan.',
+  'blog.insertDemoCta': 'Ubaci demo CTA',
+  'blog.bodyPane': 'Editor teksta',
+  'blog.paneEdit': 'Izmena',
+  'blog.panePreview': 'Pregled',
+  'blog.previewEmpty': 'Još nema sadržaja za pregled.',
   'blog.fieldTitle': 'Naslov',
   'blog.fieldSlug': 'URL slug',
   'blog.fieldExcerpt': 'Izvod',
   'blog.fieldBody': 'Tekst (Markdown)',
-  'blog.bodyPlaceholder': '## Naslov\n\nPasus sa [linkom](/demos/panorama-360/)…',
+  'blog.bodyPlaceholder':
+    '## Naslov\n\nPasus sa [linkom](/demos/panorama-360/).\n\n![Pogled kamere](/assets/blog/volume-lighting/hero.jpg)',
   'blog.fieldCover': 'URL naslovne slike',
   'blog.fieldAuthor': 'Autor',
   'blog.fieldTags': 'Tagovi (zarez)',
@@ -1808,7 +1870,7 @@ const sr: Dict = {
   'guide.gotIt': 'Razumem',
   'guide.whatHeading': 'Šta je ovaj alat',
   'guide.whatText':
-    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške, javni Journal (Blog) i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
+    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške, javni Journal (Blog), zajednička biblioteka Linkova i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
   'guide.what1':
     'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, Email konverzacija, dnevnik aktivnosti',
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
@@ -1819,10 +1881,12 @@ const sr: Dict = {
     'Demo — privatni demoi za klijente koji nisu na javnom sajtu (linkovi sa lozinkom za pitch)',
   'guide.what7':
     'Blog — Journal članci, moderacija komentara i privatna blog email lista (adrese se ne prikazuju javno)',
-  'guide.what8': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
+  'guide.what8':
+    'Linkovi — kurirani YouTube kanali, veb stranice, forumi i blog postovi koje čuvamo za oboje',
+  'guide.what9': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
   'guide.navHeading': 'Navigacija',
   'guide.navText':
-    'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške | Demo; Blog i SEO su desno (ispred muzičkog plejera).',
+    'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške | Demo; Blog, Linkovi i SEO su desno (ispred muzičkog plejera).',
   'guide.nav1': 'Leadovi — CRM u Salesforce stilu za potencijalne klijente',
   'guide.nav2': 'Projekti — table u Monday stilu za rad na isporuci',
   'guide.nav3': 'Vreme — tajmeri, unosi i izveštaji u Clockify stilu',
@@ -1833,6 +1897,8 @@ const sr: Dict = {
   'guide.nav7':
     'Blog — pisanje/objava Journal članaka, moderacija verifikovanih komentara, blog emailovi',
   'guide.nav8':
+    'Linkovi — zajednička biblioteka korisnih kanala, stranica, foruma i postova (filter po tipu)',
+  'guide.nav9':
     'SEO — inventar sadržaja, SEO unapređenja i analitika (živi saobraćaj kad ste prijavljeni; uzorak u demu)',
   'guide.leadHeading': 'Leadovi — šta je lead?',
   'guide.leadText':
