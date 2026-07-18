@@ -818,13 +818,13 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     },
   ]
 
-  // Blog sandbox — mirrors live CRM Blog tabs (Posts / Comments / Emails).
-  // Public /blog stays “Coming soon” until BLOG_PUBLIC_ENABLED; demo still drafts here.
+  // Blog sandbox — catalog posts start in Pending Review (match live CRM workflow).
   const demoCardBlogPosts: BlogPost[] = ALL_DEMO_BLOG_POSTS.map((post, index) => ({
     ...post,
     id: `demo-blog-${post.slug}`,
+    status: 'pending_review' as const,
+    published_at: null,
     owner_id: guide,
-    published_at: daysAgo(1 + (index % 10), 12),
     created_at: daysAgo(2 + (index % 10), 10),
     updated_at: daysAgo(1 + (index % 10), 12),
   }))

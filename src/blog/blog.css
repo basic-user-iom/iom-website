@@ -400,6 +400,44 @@
   padding: 0;
 }
 
+.blog-prose .blog-figure,
+.blog-prose figure.blog-figure {
+  margin: 0 0 1.5rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-card);
+  overflow: hidden;
+}
+
+.blog-prose .blog-figure img,
+.blog-prose figure.blog-figure img,
+.blog-prose p > img {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: #0a0a10;
+}
+
+.blog-prose p > img {
+  margin: 0 0 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.blog-prose .blog-figure figcaption,
+.blog-prose figure.blog-figure figcaption {
+  margin: 0;
+  padding: 0.65rem 0.9rem 0.8rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+
 /* Soft CTA — same spirit as about / accent strip */
 .blog-cta {
   margin: 3rem 0 0;

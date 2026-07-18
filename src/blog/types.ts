@@ -1,4 +1,11 @@
-export type BlogPostStatus = 'draft' | 'published'
+export type BlogPostStatus = 'draft' | 'pending_review' | 'published' | 'hidden'
+
+const BLOG_POST_STATUSES: BlogPostStatus[] = ['draft', 'pending_review', 'published', 'hidden']
+
+export function normalizeBlogPostStatus(value: unknown): BlogPostStatus {
+  const s = String(value || '')
+  return (BLOG_POST_STATUSES as string[]).includes(s) ? (s as BlogPostStatus) : 'draft'
+}
 
 export type BlogCommentStatus =
   | 'pending_verify'
@@ -89,7 +96,7 @@ export function rowToPost(row: Record<string, unknown>): BlogPost {
     excerpt: String(row.excerpt ?? ''),
     body: String(row.body ?? ''),
     cover_image_url: String(row.cover_image_url ?? ''),
-    status: (row.status as BlogPostStatus) || 'draft',
+    status: normalizeBlogPostStatus(row.status),
     published_at: row.published_at ? String(row.published_at) : null,
     seo_title: String(row.seo_title ?? ''),
     seo_description: String(row.seo_description ?? ''),
@@ -121,11 +128,22 @@ export function renderBlogMarkdown(src: string): string {
     }
   }
 
+  const safeUrl = (url: string) => /^(https?:\/\/|\/)/.test(url)
+
   const inline = (text: string) => {
     let t = escapeHtml(text)
+    t = t.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g, (_m, alt, url) => {
+      if (!safeUrl(url)) return escapeHtml(`![${alt}](${url})`)
+      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" />`
+    })
     t = t.replace(
       /\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g,
-      '<a href="$2">$1</a>',
+      (_m, label, url) => {
+        // External + demo pages open in a new tab; site sections stay in-place.
+        const newTab = /^(https?:\/\/|\/demos\/)/.test(url)
+        const rel = newTab ? ' target="_blank" rel="noopener noreferrer"' : ''
+        return `<a href="${url}"${rel}>${label}</a>`
+      },
     )
     t = t.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     t = t.replace(/\*([^*]+)\*/g, '<em>$1</em>')
@@ -153,6 +171,21 @@ export function renderBlogMarkdown(src: string): string {
     const line = raw.trimEnd()
     if (!line.trim()) {
       closeLists()
+      continue
+    }
+
+    const figureMatch = line
+      .trim()
+      .match(/^!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)$/)
+    if (figureMatch && safeUrl(figureMatch[2])) {
+      closeLists()
+      const alt = escapeHtml(figureMatch[1])
+      const src = escapeHtml(figureMatch[2])
+      html.push(
+        `<figure class="blog-figure"><img src="${src}" alt="${alt}" loading="lazy" />${
+          figureMatch[1] ? `<figcaption>${alt}</figcaption>` : ''
+        }</figure>`,
+      )
       continue
     }
 

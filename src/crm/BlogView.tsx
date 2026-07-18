@@ -1,23 +1,57 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   addBlogAudienceManual,
+  catalogImportMissingCount,
   createBlogPost,
   deleteBlogPost,
   demoAddPendingComment,
+  importCatalogBlogPosts,
   isBlogSchemaMissing,
   listBlogAudience,
   listBlogComments,
   listBlogPosts,
   setBlogCommentStatus,
+  setBlogPostStatus,
   updateBlogAudienceNotes,
   updateBlogPost,
 } from './blogApi'
 import { isCrmDemoMode } from './demoMode'
 import { useCrmI18n } from './i18n'
-import { slugifyTitle, type BlogAudience, type BlogCommentAdmin, type BlogCommentStatus, type BlogPost, type BlogPostInput } from '../blog/types'
+import {
+  renderBlogMarkdown,
+  slugifyTitle,
+  type BlogAudience,
+  type BlogCommentAdmin,
+  type BlogCommentStatus,
+  type BlogPost,
+  type BlogPostInput,
+  type BlogPostStatus,
+} from '../blog/types'
+import '../blog/blog.css'
 
-type BlogTab = 'posts' | 'comments' | 'emails'
+type BlogTab = 'pending' | 'posts' | 'comments' | 'emails'
 type EditorMode = 'list' | 'edit'
+type BodyPane = 'edit' | 'preview'
+
+function statusLabelKey(status: BlogPostStatus): string {
+  switch (status) {
+    case 'pending_review':
+      return 'blog.statusPendingReview'
+    case 'published':
+      return 'blog.statusPublished'
+    case 'hidden':
+      return 'blog.statusHidden'
+    default:
+      return 'blog.statusDraft'
+  }
+}
+
+const DEMO_CTA_SNIPPET = `## Try the demo
+
+Open the live build: [Try the demo](/demos/YOUR-DEMO/).
+
+See more in [3D](/#3d) or [get in touch](/#contact).
+`
 
 const emptyDraft = (): BlogPostInput => ({
   slug: '',
@@ -36,17 +70,22 @@ const emptyDraft = (): BlogPostInput => ({
 export function BlogView() {
   const { t } = useCrmI18n()
   const demo = isCrmDemoMode()
-  const [tab, setTab] = useState<BlogTab>('posts')
+  const [tab, setTab] = useState<BlogTab>('pending')
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [comments, setComments] = useState<BlogCommentAdmin[]>([])
   const [audience, setAudience] = useState<BlogAudience[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [mode, setMode] = useState<EditorMode>('list')
   const [editingId, setEditingId] = useState<string | null>(null)
   const [draft, setDraft] = useState<BlogPostInput>(emptyDraft())
   const [tagsText, setTagsText] = useState('')
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [statusBusyId, setStatusBusyId] = useState<string | null>(null)
+  const [bodyPane, setBodyPane] = useState<BodyPane>('edit')
+  const bodyPreviewHtml = useMemo(() => renderBlogMarkdown(draft.body), [draft.body])
   const [commentFilter, setCommentFilter] = useState<BlogCommentStatus | 'all'>(
     'pending_moderation',
   )
@@ -54,6 +93,16 @@ export function BlogView() {
   const [marketingOnly, setMarketingOnly] = useState(false)
   const [manualEmail, setManualEmail] = useState('')
   const [manualName, setManualName] = useState('')
+
+  const pendingPosts = useMemo(
+    () => posts.filter((p) => p.status === 'pending_review'),
+    [posts],
+  )
+  const libraryPosts = useMemo(
+    () => posts.filter((p) => p.status !== 'pending_review'),
+    [posts],
+  )
+  const missingCatalog = useMemo(() => catalogImportMissingCount(posts), [posts])
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -94,6 +143,7 @@ export function BlogView() {
     setEditingId(null)
     setDraft(emptyDraft())
     setTagsText('')
+    setBodyPane('edit')
     setMode('edit')
   }
 
@@ -113,7 +163,17 @@ export function BlogView() {
       tags: post.tags,
     })
     setTagsText(post.tags.join(', '))
+    setBodyPane('edit')
     setMode('edit')
+  }
+
+  const insertDemoCta = () => {
+    setDraft((d) => {
+      const block = DEMO_CTA_SNIPPET.trim()
+      const body = d.body.trim() ? `${d.body.replace(/\s*$/, '')}\n\n${block}\n` : `${block}\n`
+      return { ...d, body }
+    })
+    setBodyPane('edit')
   }
 
   const handleSave = async () => {
@@ -139,6 +199,9 @@ export function BlogView() {
       if (editingId) await updateBlogPost(editingId, input)
       else await createBlogPost(input)
       setMode('list')
+      setBodyPane('edit')
+      if (input.status === 'pending_review') setTab('pending')
+      else setTab('posts')
       await refresh()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.saveFailed'))
@@ -155,6 +218,51 @@ export function BlogView() {
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.deleteFailed'))
     }
+  }
+
+  const handleSetStatus = async (id: string, status: BlogPostStatus) => {
+    setStatusBusyId(id)
+    setError('')
+    setInfo('')
+    try {
+      await setBlogPostStatus(id, status)
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('blog.statusFailed'))
+    } finally {
+      setStatusBusyId(null)
+    }
+  }
+
+  const handleImportCatalog = useCallback(async () => {
+    setImporting(true)
+    setError('')
+    setInfo('')
+    try {
+      const { created, skipped } = await importCatalogBlogPosts()
+      setInfo(t('blog.importResult').replace('{created}', String(created)).replace('{skipped}', String(skipped)))
+      setTab('pending')
+      await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('blog.importFailed'))
+    } finally {
+      setImporting(false)
+    }
+  }, [refresh, t])
+
+  // First open with an empty CRM blog: pull all catalog posts into Pending Review.
+  const autoImportTried = useRef(false)
+  useEffect(() => {
+    if (loading || autoImportTried.current || importing) return
+    if (posts.length > 0 || missingCatalog <= 0) return
+    autoImportTried.current = true
+    setTab('pending')
+    void handleImportCatalog()
+  }, [loading, posts.length, missingCatalog, importing, handleImportCatalog])
+
+  const openPreviewInEditor = (post: BlogPost) => {
+    openEdit(post)
+    setBodyPane('preview')
   }
 
   const handleCommentStatus = async (id: string, status: BlogCommentStatus) => {
@@ -201,6 +309,7 @@ export function BlogView() {
       <div className="crm-blog-tabs" role="tablist">
         {(
           [
+            ['pending', `${t('blog.tabPending')}${pendingPosts.length ? ` (${pendingPosts.length})` : ''}`],
             ['posts', t('blog.tabPosts')],
             ['comments', t('blog.tabComments')],
             ['emails', t('blog.tabEmails')],
@@ -215,6 +324,7 @@ export function BlogView() {
             onClick={() => {
               setTab(id)
               setMode('list')
+              setInfo('')
             }}
           >
             {label}
@@ -227,13 +337,118 @@ export function BlogView() {
           {error}
         </p>
       )}
+      {info && (
+        <p className="crm-feedback" role="status">
+          {info}
+        </p>
+      )}
       {loading && <p className="crm-muted">{t('blog.loading')}</p>}
+
+      {!loading && tab === 'pending' && mode === 'list' && (
+        <div className="crm-blog-panel">
+          <div className="crm-blog-toolbar">
+            <p className="crm-muted">{t('blog.pendingHint')}</p>
+            <div className="crm-blog-toolbar-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={importing || missingCatalog === 0}
+                onClick={() => void handleImportCatalog()}
+              >
+                {importing
+                  ? t('blog.importing')
+                  : missingCatalog > 0
+                    ? t('blog.importCatalog').replace('{count}', String(missingCatalog))
+                    : t('blog.importCatalogDone')}
+              </button>
+            </div>
+          </div>
+          {missingCatalog > 0 && pendingPosts.length === 0 && (
+            <div className="crm-blog-import-banner">
+              <p>{t('blog.noPendingImport')}</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={importing}
+                onClick={() => void handleImportCatalog()}
+              >
+                {importing
+                  ? t('blog.importing')
+                  : t('blog.importCatalog').replace('{count}', String(missingCatalog))}
+              </button>
+            </div>
+          )}
+          <ul className="crm-blog-post-list">
+            {pendingPosts.map((post) => (
+              <li key={post.id} className="crm-blog-post-row">
+                <div>
+                  <strong>{post.title || t('blog.untitled')}</strong>
+                  <span className="crm-muted">
+                    {' '}
+                    /{post.slug} · {t(statusLabelKey(post.status))}
+                  </span>
+                </div>
+                <div className="crm-blog-row-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => openPreviewInEditor(post)}
+                  >
+                    {t('blog.preview')}
+                  </button>
+                  <button type="button" className="btn btn-ghost" onClick={() => openEdit(post)}>
+                    {t('blog.edit')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={statusBusyId === post.id}
+                    onClick={() => void handleSetStatus(post.id, 'published')}
+                  >
+                    {t('blog.publish')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={statusBusyId === post.id}
+                    onClick={() => void handleSetStatus(post.id, 'hidden')}
+                  >
+                    {t('blog.hide')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => void handleDelete(post.id)}
+                  >
+                    {t('blog.delete')}
+                  </button>
+                </div>
+              </li>
+            ))}
+            {pendingPosts.length === 0 && missingCatalog === 0 && (
+              <li className="crm-muted">{t('blog.noPending')}</li>
+            )}
+          </ul>
+        </div>
+      )}
 
       {!loading && tab === 'posts' && mode === 'list' && (
         <div className="crm-blog-panel">
           <div className="crm-blog-toolbar">
             <p className="crm-muted">{t('blog.postsHint')}</p>
             <div className="crm-blog-toolbar-actions">
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={importing || missingCatalog === 0}
+                onClick={() => void handleImportCatalog()}
+              >
+                {importing
+                  ? t('blog.importing')
+                  : missingCatalog > 0
+                    ? t('blog.importCatalog').replace('{count}', String(missingCatalog))
+                    : t('blog.importCatalogDone')}
+              </button>
               {demo && (
                 <button type="button" className="btn btn-ghost" onClick={() => void handleDemoComment()}>
                   {t('blog.demoComment')}
@@ -244,14 +459,29 @@ export function BlogView() {
               </button>
             </div>
           </div>
+          {missingCatalog > 0 && libraryPosts.length === 0 && (
+            <div className="crm-blog-import-banner">
+              <p>{t('blog.noPendingImport')}</p>
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={importing}
+                onClick={() => void handleImportCatalog()}
+              >
+                {importing
+                  ? t('blog.importing')
+                  : t('blog.importCatalog').replace('{count}', String(missingCatalog))}
+              </button>
+            </div>
+          )}
           <ul className="crm-blog-post-list">
-            {posts.map((post) => (
+            {libraryPosts.map((post) => (
               <li key={post.id} className="crm-blog-post-row">
                 <div>
                   <strong>{post.title || t('blog.untitled')}</strong>
                   <span className="crm-muted">
                     {' '}
-                    /{post.slug} · {post.status}
+                    /{post.slug} · {t(statusLabelKey(post.status))}
                     {post.published_at
                       ? ` · ${new Date(post.published_at).toLocaleDateString()}`
                       : ''}
@@ -268,9 +498,58 @@ export function BlogView() {
                       {t('blog.viewLive')}
                     </a>
                   )}
+                  {post.status !== 'published' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => openPreviewInEditor(post)}
+                    >
+                      {t('blog.preview')}
+                    </button>
+                  )}
                   <button type="button" className="btn btn-ghost" onClick={() => openEdit(post)}>
                     {t('blog.edit')}
                   </button>
+                  {post.status !== 'published' && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      disabled={statusBusyId === post.id}
+                      onClick={() => void handleSetStatus(post.id, 'published')}
+                    >
+                      {t('blog.publish')}
+                    </button>
+                  )}
+                  {post.status === 'published' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={statusBusyId === post.id}
+                      onClick={() => void handleSetStatus(post.id, 'pending_review')}
+                    >
+                      {t('blog.unpublish')}
+                    </button>
+                  )}
+                  {post.status !== 'hidden' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={statusBusyId === post.id}
+                      onClick={() => void handleSetStatus(post.id, 'hidden')}
+                    >
+                      {t('blog.hide')}
+                    </button>
+                  )}
+                  {post.status === 'hidden' && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={statusBusyId === post.id}
+                      onClick={() => void handleSetStatus(post.id, 'pending_review')}
+                    >
+                      {t('blog.restoreReview')}
+                    </button>
+                  )}
                   <button
                     type="button"
                     className="btn btn-ghost"
@@ -281,15 +560,22 @@ export function BlogView() {
                 </div>
               </li>
             ))}
-            {posts.length === 0 && <li className="crm-muted">{t('blog.noPosts')}</li>}
+            {libraryPosts.length === 0 && <li className="crm-muted">{t('blog.noPosts')}</li>}
           </ul>
         </div>
       )}
 
-      {!loading && tab === 'posts' && mode === 'edit' && (
+      {!loading && (tab === 'posts' || tab === 'pending') && mode === 'edit' && (
         <div className="crm-blog-editor">
           <div className="crm-blog-toolbar">
-            <button type="button" className="btn btn-ghost" onClick={() => setMode('list')}>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setMode('list')
+                setBodyPane('edit')
+              }}
+            >
               {t('blog.backList')}
             </button>
             <button
@@ -302,6 +588,7 @@ export function BlogView() {
             </button>
           </div>
           <p className="crm-muted crm-blog-editor-tip">{t('blog.editorTip')}</p>
+          <p className="crm-muted crm-blog-editor-tip">{t('blog.markdownHint')}</p>
           <label className="crm-field">
             {t('blog.fieldTitle')}
             <input
@@ -338,23 +625,56 @@ export function BlogView() {
               }
             />
           </label>
-          <label className="crm-field">
-            {t('blog.fieldBody')}
-            <textarea
-              rows={16}
-              value={draft.body}
-              onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
-              placeholder={t('blog.bodyPlaceholder')}
-            />
-          </label>
+          <div className="crm-field crm-blog-body-field">
+            <div className="crm-blog-body-toolbar">
+              <span>{t('blog.fieldBody')}</span>
+              <div className="crm-blog-body-toolbar-actions">
+                <button type="button" className="btn btn-ghost" onClick={insertDemoCta}>
+                  {t('blog.insertDemoCta')}
+                </button>
+                <div className="crm-blog-pane-toggle" role="group" aria-label={t('blog.bodyPane')}>
+                  <button
+                    type="button"
+                    className={`btn btn-ghost${bodyPane === 'edit' ? ' is-active' : ''}`}
+                    aria-pressed={bodyPane === 'edit'}
+                    onClick={() => setBodyPane('edit')}
+                  >
+                    {t('blog.paneEdit')}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-ghost${bodyPane === 'preview' ? ' is-active' : ''}`}
+                    aria-pressed={bodyPane === 'preview'}
+                    onClick={() => setBodyPane('preview')}
+                  >
+                    {t('blog.panePreview')}
+                  </button>
+                </div>
+              </div>
+            </div>
+            {bodyPane === 'edit' ? (
+              <textarea
+                rows={16}
+                value={draft.body}
+                onChange={(e) => setDraft((d) => ({ ...d, body: e.target.value }))}
+                placeholder={t('blog.bodyPlaceholder')}
+              />
+            ) : (
+              <div
+                className="crm-blog-md-preview blog-prose"
+                dangerouslySetInnerHTML={{ __html: bodyPreviewHtml || `<p class="crm-muted">${t('blog.previewEmpty')}</p>` }}
+              />
+            )}
+          </div>
           <label className="crm-field">
             {t('blog.fieldCover')}
             <input
               value={draft.cover_image_url}
               onChange={(e) => setDraft((d) => ({ ...d, cover_image_url: e.target.value }))}
-              placeholder="https://…"
+              placeholder="/assets/blog/your-slug/cover.jpg"
             />
           </label>
+          <p className="crm-muted crm-blog-editor-tip">{t('blog.coverHint')}</p>
           <label className="crm-field">
             {t('blog.fieldAuthor')}
             <input
@@ -392,12 +712,14 @@ export function BlogView() {
               onChange={(e) =>
                 setDraft((d) => ({
                   ...d,
-                  status: e.target.value === 'published' ? 'published' : 'draft',
+                  status: e.target.value as BlogPostStatus,
                 }))
               }
             >
+              <option value="pending_review">{t('blog.statusPendingReview')}</option>
               <option value="draft">{t('blog.statusDraft')}</option>
               <option value="published">{t('blog.statusPublished')}</option>
+              <option value="hidden">{t('blog.statusHidden')}</option>
             </select>
           </label>
         </div>

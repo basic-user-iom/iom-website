@@ -1,3 +1,4 @@
+import { BLOG_PUBLIC_ENABLED } from '../blog/publicFlags'
 import {
   CONTACT_EMAIL,
   DEFAULT_DESCRIPTION,
@@ -65,14 +66,23 @@ export function pageMetaForPath(pathname: string): PageMeta {
 
   if (path === '/blog' || path.startsWith('/blog/')) {
     const isVerify = path === '/blog/verify'
+    const isPost = path.startsWith('/blog/') && !isVerify
     return {
       title: isVerify ? `${SITE_NAME} — Confirm comment` : `${SITE_NAME} — Blog`,
       description: isVerify
         ? 'Confirm your email to submit a blog comment.'
-        : 'IOM Journal is coming soon — case studies and immersive media notes from Interactive Object Media.',
-      canonical: `${SITE_ORIGIN}/blog`,
-      robots: path === '/blog' ? 'index, follow' : 'noindex, nofollow',
-      keywords: ['IOM blog', 'immersive media', 'coming soon'],
+        : BLOG_PUBLIC_ENABLED
+          ? 'Case studies and immersive media notes from Interactive Object Media — WebGPU, Three.js, 360° tours, and experiments.'
+          : 'IOM Journal is coming soon — case studies and immersive media notes from Interactive Object Media.',
+      canonical: isPost ? `${SITE_ORIGIN}${path}` : `${SITE_ORIGIN}/blog`,
+      robots: isVerify
+        ? 'noindex, nofollow'
+        : BLOG_PUBLIC_ENABLED || path === '/blog'
+          ? 'index, follow'
+          : 'noindex, nofollow',
+      keywords: BLOG_PUBLIC_ENABLED
+        ? ['IOM blog', 'immersive media', 'WebGPU', 'Three.js', '360 tour']
+        : ['IOM blog', 'immersive media', 'coming soon'],
     }
   }
 

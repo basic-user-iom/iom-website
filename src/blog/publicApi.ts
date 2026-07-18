@@ -34,9 +34,8 @@ export async function fetchPublishedPosts(): Promise<BlogPost[]> {
       4000,
     )
     if (error) throw error
-    const rows = (data || []).map((r: Record<string, unknown>) => rowToPost(r))
-    // Empty DB before migration/publish — show samples for local review
-    return rows.length > 0 ? rows : SAMPLE_PUBLISHED_POSTS
+    // Successful query: only CRM-published posts (empty list while reviewing is correct)
+    return (data || []).map((r: Record<string, unknown>) => rowToPost(r))
   } catch {
     return SAMPLE_PUBLISHED_POSTS
   }
@@ -57,10 +56,10 @@ export async function fetchPublishedPostBySlug(slug: string): Promise<BlogPost |
       )
       if (error) throw error
       if (data) return rowToPost(data as Record<string, unknown>)
-      // Table works but slug missing — try samples for local review URLs
-      return SAMPLE_PUBLISHED_POSTS.find((p) => p.slug === slug) ?? null
+      // Successful query, slug not published — do not fall back to samples
+      return null
     } catch {
-      /* fall through to samples */
+      /* fall through to samples when Supabase errors */
     }
   }
 

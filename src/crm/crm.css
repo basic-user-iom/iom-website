@@ -4754,6 +4754,26 @@
   gap: 0.5rem;
 }
 
+.crm-blog-import-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 1.25rem;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid rgba(0, 212, 255, 0.35);
+  border-radius: 10px;
+  background: rgba(0, 212, 255, 0.08);
+}
+
+.crm-blog-import-banner p {
+  margin: 0;
+  max-width: 40rem;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.45;
+}
+
 .crm-blog-post-list,
 .crm-blog-comment-list,
 .crm-blog-email-list {

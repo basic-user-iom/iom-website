@@ -2,6 +2,7 @@ import { getCurrentUser } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { DEMO_KEYS, demoRead, demoWrite } from './demoStore'
 import { getSupabase, useLiveCrmBackend } from './supabaseClient'
+import { ALL_DEMO_BLOG_POSTS } from '../blog/posts'
 import {
   rowToPost,
   slugifyTitle,
@@ -10,6 +11,7 @@ import {
   type BlogCommentStatus,
   type BlogPost,
   type BlogPostInput,
+  type BlogPostStatus,
 } from '../blog/types'
 
 function uid(): string {
@@ -218,6 +220,72 @@ export async function deleteBlogPost(id: string): Promise<void> {
     DEMO_KEYS.blogComments,
     demoRead<BlogCommentAdmin[]>(DEMO_KEYS.blogComments, []).filter((c) => c.post_id !== id),
   )
+}
+
+/** Quick status change without opening the full editor. Keeps published_at history. */
+export async function setBlogPostStatus(id: string, status: BlogPostStatus): Promise<BlogPost> {
+  const existing = await getBlogPost(id)
+  if (!existing) throw new Error('Post not found')
+  const stamp = nowIso()
+  let publishedAt = existing.published_at
+  if (status === 'published' && !publishedAt) publishedAt = stamp
+
+  const input: BlogPostInput = {
+    slug: existing.slug,
+    title: existing.title,
+    excerpt: existing.excerpt,
+    body: existing.body,
+    cover_image_url: existing.cover_image_url,
+    status,
+    published_at: publishedAt,
+    seo_title: existing.seo_title,
+    seo_description: existing.seo_description,
+    author_name: existing.author_name,
+    tags: existing.tags,
+  }
+  return updateBlogPost(id, input)
+}
+
+function catalogToInput(post: BlogPost): BlogPostInput {
+  return {
+    slug: post.slug,
+    title: post.title,
+    excerpt: post.excerpt,
+    body: post.body,
+    cover_image_url: post.cover_image_url,
+    status: 'pending_review',
+    published_at: null,
+    seo_title: post.seo_title,
+    seo_description: post.seo_description,
+    author_name: post.author_name || 'IOM',
+    tags: post.tags,
+  }
+}
+
+/**
+ * Insert catalog demo posts as pending_review, skipping slugs that already exist.
+ * Returns how many were created.
+ */
+export async function importCatalogBlogPosts(): Promise<{ created: number; skipped: number }> {
+  const existing = await listBlogPosts()
+  const have = new Set(existing.map((p) => p.slug))
+  let created = 0
+  let skipped = 0
+  for (const post of ALL_DEMO_BLOG_POSTS) {
+    if (have.has(post.slug)) {
+      skipped++
+      continue
+    }
+    await createBlogPost(catalogToInput(post))
+    have.add(post.slug)
+    created++
+  }
+  return { created, skipped }
+}
+
+export function catalogImportMissingCount(posts: BlogPost[]): number {
+  const have = new Set(posts.map((p) => p.slug))
+  return ALL_DEMO_BLOG_POSTS.filter((p) => !have.has(p.slug)).length
 }
 
 /* ── Comments ──────────────────────────────────────────── */

@@ -12,7 +12,7 @@ create table if not exists public.blog_posts (
   body text not null default '',
   cover_image_url text not null default '',
   status text not null default 'draft'
-    check (status in ('draft', 'published')),
+    check (status in ('draft', 'pending_review', 'published', 'hidden')),
   published_at timestamptz,
   seo_title text not null default '',
   seo_description text not null default '',
