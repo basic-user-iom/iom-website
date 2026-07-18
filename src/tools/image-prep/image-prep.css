@@ -1,8 +1,8 @@
 /* Image prep tool — uses site tokens from index.css */
 .imgprep {
   --imgprep-panel: var(--bg-elevated);
-  min-height: calc(100vh - var(--header-h));
-  padding: 2rem clamp(1.25rem, 4vw, 3rem) 4rem;
+  min-height: 100vh;
+  padding: calc(var(--header-h) + 2rem) clamp(1.25rem, 4vw, 3rem) 4rem;
   max-width: 72rem;
   margin-inline: auto;
 }
