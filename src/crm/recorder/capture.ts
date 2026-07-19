@@ -7,10 +7,21 @@ export interface ActiveCapture {
   stream: MediaStream
   canvas: HTMLCanvasElement
   stop: () => void
+  /** Pick a new tab/window/screen (typically while paused). Keeps mic/camera. */
+  changeDisplaySource: () => Promise<void>
 }
 
 const PIP_SIZE = 220
 const PIP_MARGIN = 24
+
+const DISPLAY_CONSTRAINTS: DisplayMediaStreamOptions = {
+  video: {
+    frameRate: 30,
+    width: { ideal: 1920 },
+    height: { ideal: 1080 },
+  },
+  audio: false,
+}
 
 /**
  * Screen + optional camera / static PiP + processed mic audio.
@@ -18,14 +29,7 @@ const PIP_MARGIN = 24
 export async function startCapture(
   options: CaptureOptions,
 ): Promise<ActiveCapture> {
-  const display = await navigator.mediaDevices.getDisplayMedia({
-    video: {
-      frameRate: 30,
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
-    },
-    audio: false,
-  })
+  let display = await navigator.mediaDevices.getDisplayMedia(DISPLAY_CONSTRAINTS)
 
   const useStaticPip =
     options.appearance === 'static' && Boolean(options.staticAvatarUrl?.trim())
@@ -51,6 +55,18 @@ export async function startCapture(
     canvasStream?.getTracks().forEach((t) => t.stop())
     if (screenVideo) screenVideo.srcObject = null
     if (cameraVideo) cameraVideo.srcObject = null
+  }
+
+  const changeDisplaySource = async () => {
+    if (!running || !screenVideo) {
+      throw new Error('Capture is not active')
+    }
+    const next = await navigator.mediaDevices.getDisplayMedia(DISPLAY_CONSTRAINTS)
+    const prev = display
+    display = next
+    screenVideo.srcObject = display
+    await screenVideo.play()
+    prev.getTracks().forEach((t) => t.stop())
   }
 
   try {
@@ -172,6 +188,7 @@ export async function startCapture(
     return {
       stream,
       canvas,
+      changeDisplaySource,
       stop: () => {
         running = false
         stream.getTracks().forEach((t) => t.stop())

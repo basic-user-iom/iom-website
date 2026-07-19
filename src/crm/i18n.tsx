@@ -271,6 +271,11 @@ const en: Dict = {
   'recorder.stop': 'Stop',
   'recorder.pause': 'Pause',
   'recorder.resume': 'Resume',
+  'recorder.changeScreen': 'Change screen / tab',
+  'recorder.changeScreen.hint':
+    'While paused you can switch to another tab, window, or screen, then resume.',
+  'recorder.changeScreen.busy': 'Waiting for screen pick…',
+  'recorder.changeScreen.failed': 'Could not change screen. Keep the current one or try again.',
   'recorder.mic': 'Microphone',
   'recorder.camera': 'Camera (PiP)',
   'recorder.noise': 'Noise suppression',
@@ -1537,6 +1542,12 @@ const sr: Dict = {
   'recorder.stop': 'Zaustavi',
   'recorder.pause': 'Pauza',
   'recorder.resume': 'Nastavi',
+  'recorder.changeScreen': 'Promeni ekran / tab',
+  'recorder.changeScreen.hint':
+    'Dok je pauzirano možete preći na drugi tab, prozor ili ekran, pa nastaviti snimanje.',
+  'recorder.changeScreen.busy': 'Čeka se izbor ekrana…',
+  'recorder.changeScreen.failed':
+    'Nije moguće promeniti ekran. Zadržite trenutni ili pokušajte ponovo.',
   'recorder.mic': 'Mikrofon',
   'recorder.camera': 'Kamera (PiP)',
   'recorder.noise': 'Suzbijanje šuma',

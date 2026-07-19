@@ -115,6 +115,7 @@ export function ScreenRecorderView() {
     h: number
   } | null>(null)
   const [postBlurBusy, setPostBlurBusy] = useState(false)
+  const [changingScreen, setChangingScreen] = useState(false)
 
   const [localRecs, setLocalRecs] = useState<LocalRecording[]>([])
   const [onlineRecs, setOnlineRecs] = useState<CrmRecording[]>([])
@@ -377,8 +378,26 @@ export function ScreenRecorderView() {
   }
 
   const resumeRecording = () => {
+    if (changingScreen) return
     recorderRef.current?.resume()
     setStatus('recording')
+  }
+
+  const changeScreenWhilePaused = async () => {
+    if (status !== 'paused' || !captureRef.current || changingScreen) return
+    setChangingScreen(true)
+    setError('')
+    try {
+      await captureRef.current.changeDisplaySource()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      // User cancelled the picker — keep current source, no error spam.
+      if (!/Permission|NotAllowed|Abort|cancel/i.test(msg)) {
+        setError(t('recorder.changeScreen.failed'))
+      }
+    } finally {
+      setChangingScreen(false)
+    }
   }
 
   const stopRecording = async () => {
@@ -1019,24 +1038,41 @@ export function ScreenRecorderView() {
                 </button>
               )}
               {status === 'paused' && (
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  onClick={resumeRecording}
-                >
-                  {t('recorder.resume')}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => void changeScreenWhilePaused()}
+                    disabled={changingScreen}
+                  >
+                    {changingScreen
+                      ? t('recorder.changeScreen.busy')
+                      : t('recorder.changeScreen')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={resumeRecording}
+                    disabled={changingScreen}
+                  >
+                    {t('recorder.resume')}
+                  </button>
+                </>
               )}
               {recording && (
                 <button
                   type="button"
                   className="btn btn-primary crm-recorder-stop"
                   onClick={() => void stopRecording()}
+                  disabled={changingScreen}
                 >
                   {t('recorder.stop')}
                 </button>
               )}
             </div>
+            {status === 'paused' && (
+              <span className="crm-recorder-hint">{t('recorder.changeScreen.hint')}</span>
+            )}
           </div>
         </div>
       )}
