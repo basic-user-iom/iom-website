@@ -151,84 +151,17 @@ export async function applyBlurToVideoBlob(
   strength: BlurStrength = 'medium',
 ): Promise<Blob> {
   if (!regions.length) return videoBlob
-
-  const url = URL.createObjectURL(videoBlob)
   try {
-    const video = document.createElement('video')
-    video.src = url
-    video.muted = true
-    video.playsInline = true
-    await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve()
-      video.onerror = () => reject(new Error('Video load failed'))
+    const { processVideoBlob } = await import('./videoEdit')
+    const { blob } = await processVideoBlob(videoBlob, {
+      trimStartMs: 0,
+      trimEndMs: 0,
+      volume: 1,
+      blurRegions: regions,
+      blurStrength: strength,
     })
-
-    const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth || 1280
-    canvas.height = video.videoHeight || 720
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return videoBlob
-
-    const vStream = canvas.captureStream(30)
-    // Keep original audio if present
-    let audioTracks: MediaStreamTrack[] = []
-    try {
-      const media = (video as HTMLVideoElement & { captureStream?: () => MediaStream })
-        .captureStream?.()
-      if (media) audioTracks = media.getAudioTracks()
-    } catch {
-      /* ignore */
-    }
-
-    const combined = new MediaStream([
-      ...vStream.getVideoTracks(),
-      ...audioTracks,
-    ])
-
-    const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-      ? 'video/webm;codecs=vp9,opus'
-      : 'video/webm'
-    const chunks: BlobPart[] = []
-    const recorder = new MediaRecorder(combined, { mimeType: mime })
-    const done = new Promise<Blob>((resolve) => {
-      recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunks.push(e.data)
-      }
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mime }))
-    })
-
-    let raf = 0
-    const paint = () => {
-      if (!video.paused && !video.ended) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-        applyBlurRegions(ctx, canvas, regions, strength)
-        raf = requestAnimationFrame(paint)
-      }
-    }
-
-    recorder.start(250)
-    video.currentTime = 0
-    await video.play()
-    paint()
-
-    await new Promise<void>((resolve) => {
-      const finish = () => {
-        video.removeEventListener('ended', finish)
-        resolve()
-      }
-      video.addEventListener('ended', finish)
-      window.setTimeout(finish, (video.duration || 60) * 1000 + 2000)
-    })
-
-    cancelAnimationFrame(raf)
-    recorder.stop()
-    video.pause()
-    vStream.getTracks().forEach((t) => t.stop())
-    audioTracks.forEach((t) => t.stop())
-    return await done
+    return blob
   } catch {
     return videoBlob
-  } finally {
-    URL.revokeObjectURL(url)
   }
 }

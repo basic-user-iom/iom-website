@@ -169,6 +169,51 @@ export async function updateRecordingTitle(
   if (error) throw new Error(error.message)
 }
 
+/** Overwrite the video file in place; share slug / password stay the same. */
+export async function replaceRecordingBlob(
+  rec: CrmRecording,
+  blob: Blob,
+  durationMs: number,
+): Promise<CrmRecording> {
+  if (!useLiveCrmBackend()) {
+    throw new Error('Online replace requires the live CRM')
+  }
+  const sb = getSupabase()
+  if (!sb) throw new Error('Supabase not configured')
+
+  const mime = blob.type || rec.mime_type || 'video/webm'
+  const { error: upErr } = await sb.storage
+    .from(BUCKET)
+    .upload(rec.storage_path, blob, {
+      contentType: mime,
+      upsert: true,
+    })
+  if (upErr) {
+    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
+    throw new Error(upErr.message)
+  }
+
+  const { data, error } = await sb
+    .from('crm_recordings')
+    .update({
+      mime_type: mime,
+      file_size: blob.size,
+      duration_ms: Math.round(durationMs),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', rec.id)
+    .select(
+      'id, owner_id, title, storage_path, mime_type, duration_ms, file_size, share_slug, password_hash, created_at, updated_at',
+    )
+    .single()
+
+  if (error) {
+    if (isRecordingsSchemaMissing(error)) markSchemaMissing()
+    throw new Error(error.message)
+  }
+  return mapRow(data as Record<string, unknown>)
+}
+
 export async function getRecordingSignedUrl(
   storagePath: string,
 ): Promise<string> {

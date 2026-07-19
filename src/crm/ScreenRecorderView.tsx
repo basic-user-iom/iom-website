@@ -31,18 +31,24 @@ import type {
   SaveDestination,
   VoicePreset,
 } from './recorder/types'
+import { RecordingEditor } from './RecordingEditor'
 import {
   deleteRecording,
   embedSnippetForSlug,
   getRecordingSignedUrl,
   isRecordingsSchemaMissing,
   listRecordings,
+  replaceRecordingBlob,
   setRecordingPassword,
   shareUrlForSlug,
   uploadRecording,
 } from './recordingsApi'
 import { useLiveCrmBackend } from './supabaseClient'
 import type { CrmRecording } from './types'
+
+type EditorTarget =
+  | { kind: 'local'; id: string; title: string; blob: Blob }
+  | { kind: 'online'; rec: CrmRecording; blob: Blob }
 
 type Panel = 'record' | 'library'
 
@@ -86,6 +92,8 @@ export function ScreenRecorderView() {
   const [libError, setLibError] = useState('')
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [passwordDraft, setPasswordDraft] = useState<Record<string, string>>({})
+  const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null)
+  const [editorBusyId, setEditorBusyId] = useState<string | null>(null)
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const recorderRef = useRef<RecordingHandle | null>(null)
@@ -430,6 +438,65 @@ export function ScreenRecorderView() {
     } catch (err) {
       setLibError(err instanceof Error ? err.message : t('recorder.error.save'))
     }
+  }
+
+  const openLocalEditor = (rec: LocalRecording) => {
+    setEditorTarget({
+      kind: 'local',
+      id: rec.id,
+      title: rec.title,
+      blob: rec.blob,
+    })
+  }
+
+  const openOnlineEditor = async (rec: CrmRecording) => {
+    setEditorBusyId(rec.id)
+    setLibError('')
+    try {
+      const url = await getRecordingSignedUrl(rec.storage_path)
+      const res = await fetch(url)
+      if (!res.ok) throw new Error(t('recorder.edit.loadFailed'))
+      const blob = await res.blob()
+      setEditorTarget({ kind: 'online', rec, blob })
+    } catch (err) {
+      setLibError(
+        err instanceof Error ? err.message : t('recorder.edit.loadFailed'),
+      )
+    } finally {
+      setEditorBusyId(null)
+    }
+  }
+
+  const handleEditorSaved = async (result: {
+    blob: Blob
+    durationMs: number
+  }) => {
+    if (!editorTarget) return
+    if (editorTarget.kind === 'local') {
+      const id = editorTarget.id
+      setLocalRecs((prev) =>
+        prev.map((r) => {
+          if (r.id !== id) return r
+          URL.revokeObjectURL(r.objectUrl)
+          return {
+            ...r,
+            blob: result.blob,
+            mimeType: result.blob.type || r.mimeType,
+            durationMs: result.durationMs,
+            objectUrl: URL.createObjectURL(result.blob),
+          }
+        }),
+      )
+      setEditorTarget(null)
+      return
+    }
+    await replaceRecordingBlob(
+      editorTarget.rec,
+      result.blob,
+      result.durationMs,
+    )
+    setEditorTarget(null)
+    await refreshLibrary()
   }
 
   return (
@@ -783,6 +850,13 @@ export function ScreenRecorderView() {
                       <button
                         type="button"
                         className="btn btn-ghost"
+                        onClick={() => openLocalEditor(rec)}
+                      >
+                        {t('recorder.edit')}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
                         onClick={() =>
                           downloadBlob(
                             rec.blob,
@@ -876,6 +950,16 @@ export function ScreenRecorderView() {
                     <button
                       type="button"
                       className="btn btn-ghost"
+                      disabled={editorBusyId === rec.id}
+                      onClick={() => void openOnlineEditor(rec)}
+                    >
+                      {editorBusyId === rec.id
+                        ? t('recorder.edit.loading')
+                        : t('recorder.edit')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
                       onClick={() => void downloadOnline(rec)}
                     >
                       {t('recorder.download')}
@@ -925,6 +1009,20 @@ export function ScreenRecorderView() {
             </ul>
           </section>
         </div>
+      )}
+
+      {editorTarget && (
+        <RecordingEditor
+          title={
+            editorTarget.kind === 'local'
+              ? editorTarget.title
+              : editorTarget.rec.title
+          }
+          sourceBlob={editorTarget.blob}
+          canSaveOnline={editorTarget.kind === 'online'}
+          onCancel={() => setEditorTarget(null)}
+          onSaved={handleEditorSaved}
+        />
       )}
     </div>
   )
