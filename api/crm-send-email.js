@@ -14,16 +14,16 @@ import {
   buildReferencesHeader,
   insertLeadMessage,
   normalizeMessageId,
-} from './lib/crm-lead-messages.js'
+} from './_lib/crm-lead-messages.js'
 import {
   renderOutreachEmailHtml,
   renderOutreachPlainText,
-} from './lib/outreach-email-html.js'
+} from './_lib/outreach-email-html.js'
 import {
   EMAIL_RE,
   listProtonIdentities,
   resolveProtonIdentity,
-} from './lib/proton-identities.js'
+} from './_lib/proton-identities.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*')

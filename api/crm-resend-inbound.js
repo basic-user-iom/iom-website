@@ -17,7 +17,7 @@ import {
   extractEmail,
   headerValue,
   ingestInboundEmail,
-} from './lib/crm-inbound-ingest.js'
+} from './_lib/crm-inbound-ingest.js'
 
 /** Keep raw body for Svix signature verification. */
 export const config = {

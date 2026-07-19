@@ -11,7 +11,7 @@ import {
   sb,
   siteOrigin,
   supabaseConfig,
-} from './lib/blog-helpers.js'
+} from './_lib/blog-helpers.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*')

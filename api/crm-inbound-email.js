@@ -8,7 +8,7 @@
  * Prefer /api/crm-resend-inbound when using Resend Receiving.
  */
 
-import { ingestInboundEmail } from './lib/crm-inbound-ingest.js'
+import { ingestInboundEmail } from './_lib/crm-inbound-ingest.js'
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*')

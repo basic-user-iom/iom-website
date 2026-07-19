@@ -13,7 +13,7 @@ import {
   safeJson,
   sb,
   supabaseConfig,
-} from './lib/blog-helpers.js'
+} from './_lib/blog-helpers.js'
 
 const BUCKET = 'crm-screen-recordings'
 const SIGNED_SECONDS = 60 * 60 * 2
