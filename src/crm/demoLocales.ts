@@ -144,7 +144,31 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Zeit',
     'nav.ideas': 'Ideen',
     'nav.notes': 'Notizen',
+    'nav.recordings': 'Recorder',
     'nav.demos': 'Demo',
+    'recorder.tab.record': 'Aufnehmen',
+    'recorder.tab.screenshot': 'Screenshot',
+    'recorder.tab.library': 'Bibliothek',
+    'recorder.introDemo':
+      'Demo-Sandbox — Aufnahmen und Screenshots bleiben nur in diesem Browser. Online-Speichern und dauerhafte Share-Links brauchen das Live-CRM (/client-login).',
+    'recorder.screenshot.intro':
+      'Tab, Fenster oder Bildschirm als PNG erfassen. Lokal speichern (Online braucht Live-CRM).',
+    'recorder.screenshot.capture': 'Screenshot aufnehmen',
+    'guide.recordingsHeading': 'Recorder',
+    'guide.recordingsDemoText':
+      'In der öffentlichen Demo funktionieren Aufnehmen und Screenshot nur in diesem Browser. Online-Speichern und /r/…-Links brauchen das Live-CRM.',
+    'guide.recordingsDemo1':
+      'Probieren Sie Aufnehmen und Screenshot — Dateien erscheinen unter Bibliothek (lokal) und werden heruntergeladen',
+    'guide.recordingsDemo2':
+      'Während der Aufnahme pausieren, Bildschirm/Tab wechseln, dann fortsetzen',
+    'guide.recordingsDemo3':
+      'Lokale Videos bearbeiten (Trim / Blur / IOM-Musik). Online-Speichern ist in der Demo aus',
+    'guide.recordingsDemo4':
+      'Bei /client-login anmelden für Online-Bibliothek, Share-Links und Bilder für Blogs',
+    'guide.nav6':
+      'Recorder — Aufnehmen / Screenshot / Bibliothek: Video oder PNG, Stimme & Aussehen, Bearbeiten, Teilen unter /r/…',
+    'guide.what10':
+      'Recorder — Bildschirmvideo und PNG-Screenshots, Stimme/Avatar, Bibliothek mit Share-Links',
     'nav.blog': 'Blog',
     'nav.links': 'Links',
     'nav.seo': 'IOM-SEO',
@@ -353,7 +377,31 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Tijd',
     'nav.ideas': 'Ideeën',
     'nav.notes': 'Notities',
+    'nav.recordings': 'Recorder',
     'nav.demos': 'Demo',
+    'recorder.tab.record': 'Opnemen',
+    'recorder.tab.screenshot': 'Screenshot',
+    'recorder.tab.library': 'Bibliotheek',
+    'recorder.introDemo':
+      'Demo-sandbox — opnames en screenshots blijven alleen in deze browser. Online opslaan en blijvende deel-links vragen om de live CRM (/client-login).',
+    'recorder.screenshot.intro':
+      'Leg een tab, venster of scherm vast als PNG. Lokaal opslaan (online vereist live CRM).',
+    'recorder.screenshot.capture': 'Screenshot maken',
+    'guide.recordingsHeading': 'Recorder',
+    'guide.recordingsDemoText':
+      'In de openbare demo werken Opnemen en Screenshot alleen in deze browser. Online opslaan en /r/…-links vragen om de live CRM.',
+    'guide.recordingsDemo1':
+      'Probeer Opnemen en Screenshot — bestanden verschijnen onder Bibliotheek (lokaal) en worden gedownload',
+    'guide.recordingsDemo2':
+      'Pauzeer tijdens opnemen om scherm/tab te wisselen, hervat daarna',
+    'guide.recordingsDemo3':
+      'Bewerk lokale video’s (trim / blur / IOM-muziek). Online opslaan staat uit in de demo',
+    'guide.recordingsDemo4':
+      'Log in op /client-login voor online bibliotheek, deel-links en beelden voor blogs',
+    'guide.nav6':
+      'Recorder — Opnemen / Screenshot / Bibliotheek: video of PNG, stem & uiterlijk, bewerken, delen via /r/…',
+    'guide.what10':
+      'Recorder — schermvideo en PNG-screenshots, stem/avatar, bibliotheek met deel-links',
     'nav.blog': 'Blog',
     'nav.links': 'Links',
     'nav.seo': 'IOM-SEO',
@@ -562,7 +610,31 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Temps',
     'nav.ideas': 'Idées',
     'nav.notes': 'Notes',
+    'nav.recordings': 'Enregistreur',
     'nav.demos': 'Demo',
+    'recorder.tab.record': 'Enregistrer',
+    'recorder.tab.screenshot': 'Capture',
+    'recorder.tab.library': 'Bibliothèque',
+    'recorder.introDemo':
+      'Sandbox démo — enregistrements et captures restent dans ce navigateur. L’enregistrement en ligne et les liens /r/… durables nécessitent le CRM live (/client-login).',
+    'recorder.screenshot.intro':
+      'Capturez un onglet, une fenêtre ou un écran en PNG. Enregistrement local (en ligne = CRM live).',
+    'recorder.screenshot.capture': 'Prendre une capture',
+    'guide.recordingsHeading': 'Enregistreur',
+    'guide.recordingsDemoText':
+      'Dans la démo publique, Enregistrer et Capture fonctionnent seulement dans ce navigateur. Sauvegarde en ligne et pages /r/… = CRM live.',
+    'guide.recordingsDemo1':
+      'Essayez Enregistrer et Capture — les fichiers apparaissent dans Bibliothèque (local) et se téléchargent',
+    'guide.recordingsDemo2':
+      'Mettez en pause pour changer d’écran/onglet, puis reprenez',
+    'guide.recordingsDemo3':
+      'Éditez les vidéos locales (trim / flou / musique IOM). Sauvegarde en ligne désactivée en démo',
+    'guide.recordingsDemo4':
+      'Connectez-vous sur /client-login pour la bibliothèque en ligne, les liens de partage et les images pour les blogs',
+    'guide.nav6':
+      'Enregistreur — Enregistrer / Capture / Bibliothèque : vidéo ou PNG, voix & apparence, édition, partage /r/…',
+    'guide.what10':
+      'Enregistreur — vidéo d’écran et captures PNG, voix/avatar, bibliothèque avec liens de partage',
     'nav.blog': 'Blog',
     'nav.links': 'Liens',
     'nav.seo': 'IOM-SEO',
@@ -771,7 +843,31 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
     'nav.time': 'Tempo',
     'nav.ideas': 'Idee',
     'nav.notes': 'Note',
+    'nav.recordings': 'Recorder',
     'nav.demos': 'Demo',
+    'recorder.tab.record': 'Registra',
+    'recorder.tab.screenshot': 'Screenshot',
+    'recorder.tab.library': 'Libreria',
+    'recorder.introDemo':
+      'Sandbox demo — registrazioni e screenshot restano solo in questo browser. Salvataggio online e link /r/… duraturi richiedono il CRM live (/client-login).',
+    'recorder.screenshot.intro':
+      'Cattura tab, finestra o schermo come PNG. Salva in locale (online richiede CRM live).',
+    'recorder.screenshot.capture': 'Cattura screenshot',
+    'guide.recordingsHeading': 'Recorder',
+    'guide.recordingsDemoText':
+      'Nella demo pubblica, Registra e Screenshot funzionano solo in questo browser. Salvataggio online e pagine /r/… richiedono il CRM live.',
+    'guide.recordingsDemo1':
+      'Prova Registra e Screenshot — i file compaiono in Libreria (locale) e vengono scaricati',
+    'guide.recordingsDemo2':
+      'Metti in pausa per cambiare schermo/tab, poi riprendi',
+    'guide.recordingsDemo3':
+      'Modifica i video locali (trim / blur / musica IOM). Salvataggio online disattivato in demo',
+    'guide.recordingsDemo4':
+      'Accedi su /client-login per libreria online, link di condivisione e immagini per i blog',
+    'guide.nav6':
+      'Recorder — Registra / Screenshot / Libreria: video o PNG, voce e aspetto, modifica, condivisione /r/…',
+    'guide.what10':
+      'Recorder — video dello schermo e screenshot PNG, voce/avatar, libreria con link di condivisione',
     'nav.blog': 'Blog',
     'nav.links': 'Link',
     'nav.seo': 'IOM-SEO',

@@ -9,6 +9,10 @@ export interface ActiveCapture {
   stop: () => void
   /** Pick a new tab/window/screen (typically while paused). Keeps mic/camera. */
   changeDisplaySource: () => Promise<void>
+  /** Show/hide camera or static PiP overlay while recording. */
+  setCameraPip: (on: boolean) => Promise<void>
+  isCameraPipOn: () => boolean
+  canToggleCameraPip: boolean
 }
 
 const PIP_SIZE = 220
@@ -31,11 +35,11 @@ export async function startCapture(
 ): Promise<ActiveCapture> {
   let display = await navigator.mediaDevices.getDisplayMedia(DISPLAY_CONSTRAINTS)
 
-  const useStaticPip =
-    options.appearance === 'static' && Boolean(options.staticAvatarUrl?.trim())
-  const useLivePip =
-    options.camera && options.appearance !== 'static'
-  const usePip = useStaticPip || useLivePip
+  const appearanceMode = options.appearance
+  const staticUrl = options.staticAvatarUrl?.trim() || ''
+  const useStaticPip = appearanceMode === 'static' && Boolean(staticUrl)
+  const wantLivePip =
+    appearanceMode !== 'static' && Boolean(options.camera)
 
   let cameraStream: MediaStream | null = null
   let cameraVideo: HTMLVideoElement | null = null
@@ -45,6 +49,10 @@ export async function startCapture(
   let running = false
   let screenVideo: HTMLVideoElement | null = null
   let canvasStream: MediaStream | null = null
+  let pipVisible = useStaticPip || wantLivePip
+
+  const canToggleCameraPip =
+    appearanceMode === 'static' ? Boolean(staticUrl) : true
 
   const cleanup = () => {
     running = false
@@ -57,6 +65,40 @@ export async function startCapture(
     if (cameraVideo) cameraVideo.srcObject = null
   }
 
+  const ensureAppearance = () => {
+    if (!appearance) {
+      appearance = createAppearanceRenderer(staticUrl || null)
+    }
+    if (!pipCanvas) {
+      pipCanvas = document.createElement('canvas')
+      pipCanvas.width = PIP_SIZE
+      pipCanvas.height = PIP_SIZE
+    }
+  }
+
+  const ensureLiveCamera = async () => {
+    if (cameraStream && cameraVideo) {
+      cameraStream.getVideoTracks().forEach((t) => {
+        t.enabled = true
+      })
+      return
+    }
+    cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: 'user',
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+      },
+      audio: false,
+    })
+    cameraVideo = document.createElement('video')
+    cameraVideo.srcObject = cameraStream
+    cameraVideo.muted = true
+    cameraVideo.playsInline = true
+    await cameraVideo.play()
+    ensureAppearance()
+  }
+
   const changeDisplaySource = async () => {
     if (!running || !screenVideo) {
       throw new Error('Capture is not active')
@@ -67,30 +109,49 @@ export async function startCapture(
     screenVideo.srcObject = display
     await screenVideo.play()
     prev.getTracks().forEach((t) => t.stop())
+    wireDisplayEnded()
+  }
+
+  const wireDisplayEnded = () => {
+    const track = display.getVideoTracks()[0]
+    if (!track) return
+    track.onended = () => {
+      options.onDisplayEnded?.()
+    }
+  }
+  wireDisplayEnded()
+
+  const setCameraPip = async (on: boolean) => {
+    if (!canToggleCameraPip) return
+    if (appearanceMode === 'static') {
+      ensureAppearance()
+      pipVisible = on
+      return
+    }
+    if (on) {
+      await ensureLiveCamera()
+      pipVisible = true
+    } else {
+      pipVisible = false
+      cameraStream?.getVideoTracks().forEach((t) => {
+        t.enabled = false
+      })
+    }
+  }
+
+  const isCameraPipOn = () => {
+    if (!pipVisible) return false
+    if (appearanceMode === 'static') return Boolean(staticUrl)
+    return Boolean(
+      cameraStream?.getVideoTracks().some((t) => t.enabled && t.readyState === 'live'),
+    )
   }
 
   try {
-    if (useLivePip) {
-      cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 480 },
-        },
-        audio: false,
-      })
-      cameraVideo = document.createElement('video')
-      cameraVideo.srcObject = cameraStream
-      cameraVideo.muted = true
-      cameraVideo.playsInline = true
-      await cameraVideo.play()
-    }
-
-    if (usePip) {
-      appearance = createAppearanceRenderer(options.staticAvatarUrl)
-      pipCanvas = document.createElement('canvas')
-      pipCanvas.width = PIP_SIZE
-      pipCanvas.height = PIP_SIZE
+    if (wantLivePip) {
+      await ensureLiveCamera()
+    } else if (useStaticPip) {
+      ensureAppearance()
     }
 
     if (options.mic) {
@@ -116,7 +177,6 @@ export async function startCapture(
     if (!ctx) throw new Error('Canvas unavailable')
 
     running = true
-    const appearanceMode = options.appearance
 
     const draw = () => {
       if (!running || !screenVideo) return
@@ -129,8 +189,14 @@ export async function startCapture(
         }
         ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
 
-        if (appearance && pipCanvas && usePip) {
-          appearance.draw(cameraVideo, pipCanvas, appearanceMode)
+        const showPip =
+          pipVisible &&
+          appearance &&
+          pipCanvas &&
+          (appearanceMode === 'static' || Boolean(cameraVideo))
+
+        if (showPip) {
+          appearance!.draw(cameraVideo, pipCanvas!, appearanceMode)
           const x = canvas.width - PIP_SIZE - PIP_MARGIN
           const y = canvas.height - PIP_SIZE - PIP_MARGIN
           ctx.save()
@@ -148,7 +214,7 @@ export async function startCapture(
           )
           ctx.closePath()
           ctx.clip()
-          ctx.drawImage(pipCanvas, x, y, PIP_SIZE, PIP_SIZE)
+          ctx.drawImage(pipCanvas!, x, y, PIP_SIZE, PIP_SIZE)
           ctx.restore()
           ctx.strokeStyle = 'rgba(255,255,255,0.85)'
           ctx.lineWidth = 3
@@ -189,6 +255,9 @@ export async function startCapture(
       stream,
       canvas,
       changeDisplaySource,
+      setCameraPip,
+      isCameraPipOn,
+      canToggleCameraPip,
       stop: () => {
         running = false
         stream.getTracks().forEach((t) => t.stop())

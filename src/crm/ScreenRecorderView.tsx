@@ -18,6 +18,10 @@ import {
 } from './recorder/blurRegions'
 import { startCapture, type ActiveCapture } from './recorder/capture'
 import {
+  openRecorderFloatControls,
+  type FloatControlsHandle,
+} from './recorder/floatControls'
+import {
   captureDisplayScreenshot,
   isImageMime,
 } from './recorder/screenshot'
@@ -25,6 +29,7 @@ import {
   downloadBlob,
   formatBytes,
   formatDuration,
+  isSuspiciouslySmallRecording,
   startMediaRecorder,
   type RecordingHandle,
 } from './recorder/mediaRecorder'
@@ -122,6 +127,7 @@ export function ScreenRecorderView() {
   } | null>(null)
   const [postBlurBusy, setPostBlurBusy] = useState(false)
   const [changingScreen, setChangingScreen] = useState(false)
+  const [cameraPipOn, setCameraPipOn] = useState(true)
 
   const [localRecs, setLocalRecs] = useState<LocalRecording[]>([])
   const [onlineRecs, setOnlineRecs] = useState<CrmRecording[]>([])
@@ -134,6 +140,7 @@ export function ScreenRecorderView() {
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const recorderRef = useRef<RecordingHandle | null>(null)
+  const floatControlsRef = useRef<FloatControlsHandle | null>(null)
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const timerRef = useRef<number | null>(null)
   const blurRegionsRef = useRef<BlurRegion[]>([])
@@ -311,14 +318,20 @@ export function ScreenRecorderView() {
         onFrame: paintPreview,
         getBlurRegions: () => blurRegionsRef.current,
         getBlurStrength: () => blurStrengthRef.current,
+        onDisplayEnded: () => {
+          setError(t('recorder.error.shareEnded'))
+          void stopRecordingRef.current()
+        },
       })
       captureRef.current = capture
       recorderRef.current = startMediaRecorder(capture.stream)
+      setCameraPipOn(capture.isCameraPipOn())
       setStatus('recording')
       setElapsed(0)
       timerRef.current = window.setInterval(() => {
         setElapsed(recorderRef.current?.getElapsedMs() ?? 0)
       }, 250)
+      // Floating controls open only via button (needs a fresh user gesture).
     } catch (err) {
       const msg = err instanceof Error ? err.message : ''
       if (/display|Permission|share/i.test(msg)) {
@@ -381,7 +394,118 @@ export function ScreenRecorderView() {
   const pauseRecording = () => {
     recorderRef.current?.pause()
     setStatus('paused')
+    syncFloatControls('paused', cameraPipOn)
   }
+
+  const resumeRecording = () => {
+    if (changingScreen) return
+    recorderRef.current?.resume()
+    setStatus('recording')
+    syncFloatControls('recording', cameraPipOn)
+  }
+
+  const closeFloatControls = () => {
+    floatControlsRef.current?.close()
+    floatControlsRef.current = null
+  }
+
+  const stopRecordingRef = useRef<() => Promise<void>>(async () => undefined)
+  const recordStatusRef = useRef<'recording' | 'paused'>('recording')
+
+  const floatLabels = useCallback(
+    () => ({
+      title: t('recorder.float.title'),
+      pause: t('recorder.pause'),
+      resume: t('recorder.resume'),
+      cameraOn: t('recorder.float.cameraOn'),
+      cameraOff: t('recorder.float.cameraOff'),
+      stop: t('recorder.stop'),
+      hint: t('recorder.float.hint'),
+      statusRecording: t('recorder.status.recording'),
+      statusPaused: t('recorder.status.paused'),
+    }),
+    [t],
+  )
+
+  const syncFloatControls = useCallback(
+    (nextStatus: 'recording' | 'paused', nextCameraOn: boolean) => {
+      recordStatusRef.current = nextStatus
+      floatControlsRef.current?.update({
+        status: nextStatus,
+        cameraOn: nextCameraOn,
+        canToggleCamera: captureRef.current?.canToggleCameraPip ?? false,
+        labels: floatLabels(),
+      })
+    },
+    [floatLabels],
+  )
+
+  const openFloatControls = useCallback(
+    async (forcedStatus?: 'recording' | 'paused') => {
+      const st =
+        forcedStatus ??
+        (status === 'paused'
+          ? 'paused'
+          : status === 'recording'
+            ? 'recording'
+            : null)
+      if (!st) return
+      closeFloatControls()
+      recordStatusRef.current = st
+      try {
+        const handle = await openRecorderFloatControls(
+          {
+            status: st,
+            cameraOn:
+              captureRef.current?.isCameraPipOn() ?? cameraPipOn,
+            canToggleCamera: captureRef.current?.canToggleCameraPip ?? false,
+            labels: floatLabels(),
+          },
+          {
+            onPause: () => {
+              recorderRef.current?.pause()
+              setStatus('paused')
+              syncFloatControls(
+                'paused',
+                captureRef.current?.isCameraPipOn() ?? cameraPipOn,
+              )
+            },
+            onResume: () => {
+              recorderRef.current?.resume()
+              setStatus('recording')
+              syncFloatControls(
+                'recording',
+                captureRef.current?.isCameraPipOn() ?? cameraPipOn,
+              )
+            },
+            onToggleCamera: () => {
+              void (async () => {
+                const capture = captureRef.current
+                if (!capture?.canToggleCameraPip) return
+                const next = !capture.isCameraPipOn()
+                try {
+                  await capture.setCameraPip(next)
+                  const on = capture.isCameraPipOn()
+                  setCameraPipOn(on)
+                  setCamera(on)
+                  syncFloatControls(recordStatusRef.current, on)
+                } catch {
+                  setError(t('recorder.error.camera'))
+                }
+              })()
+            },
+            onStop: () => {
+              void stopRecordingRef.current()
+            },
+          },
+        )
+        floatControlsRef.current = handle
+      } catch {
+        setError(t('recorder.float.blocked'))
+      }
+    },
+    [cameraPipOn, floatLabels, status, syncFloatControls, t],
+  )
 
   const captureScreenshot = async () => {
     setError('')
@@ -441,12 +565,6 @@ export function ScreenRecorderView() {
     }
   }
 
-  const resumeRecording = () => {
-    if (changingScreen) return
-    recorderRef.current?.resume()
-    setStatus('recording')
-  }
-
   const changeScreenWhilePaused = async () => {
     if (status !== 'paused' || !captureRef.current || changingScreen) return
     setChangingScreen(true)
@@ -466,6 +584,7 @@ export function ScreenRecorderView() {
 
   const stopRecording = async () => {
     if (!recorderRef.current) return
+    closeFloatControls()
     if (timerRef.current) {
       window.clearInterval(timerRef.current)
       timerRef.current = null
@@ -477,6 +596,12 @@ export function ScreenRecorderView() {
       captureRef.current?.stop()
       captureRef.current = null
       recorderRef.current = null
+
+      if (isSuspiciouslySmallRecording(blob, durationMs)) {
+        setError(t('recorder.error.emptyRecording'))
+        setStatus('idle')
+        return
+      }
 
       if (voice === 'ai') {
         if (aiAvailable) {
@@ -546,6 +671,15 @@ export function ScreenRecorderView() {
       setStatus('idle')
     }
   }
+
+  stopRecordingRef.current = stopRecording
+
+  useEffect(() => {
+    return () => {
+      floatControlsRef.current?.close()
+      floatControlsRef.current = null
+    }
+  }, [])
 
   const applyPostBlur = async () => {
     const source = lastBlobRef.current
@@ -1145,6 +1279,20 @@ export function ScreenRecorderView() {
               {recording && (
                 <button
                   type="button"
+                  className="btn btn-ghost"
+                  onClick={() =>
+                    void openFloatControls(
+                      status === 'paused' ? 'paused' : 'recording',
+                    )
+                  }
+                  disabled={changingScreen}
+                >
+                  {t('recorder.float.open')}
+                </button>
+              )}
+              {recording && (
+                <button
+                  type="button"
                   className="btn btn-primary crm-recorder-stop"
                   onClick={() => void stopRecording()}
                   disabled={changingScreen}
@@ -1153,6 +1301,9 @@ export function ScreenRecorderView() {
                 </button>
               )}
             </div>
+            {recording && (
+              <span className="crm-recorder-hint">{t('recorder.float.hint')}</span>
+            )}
             {status === 'paused' && (
               <span className="crm-recorder-hint">{t('recorder.changeScreen.hint')}</span>
             )}

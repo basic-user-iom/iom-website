@@ -25,6 +25,13 @@ export function recordingSlugFromPath(path: string): string | null {
   return m ? decodeURIComponent(m[1]) : null
 }
 
+function videoMime(mime: string): string {
+  if (!mime) return 'video/webm'
+  // Some browsers refuse <video type="video/webm;codecs=…">
+  if (mime.startsWith('video/')) return mime.split(';')[0].trim()
+  return mime
+}
+
 export function RecordingSharePage({ slug }: { slug: string }) {
   const embed =
     typeof window !== 'undefined' &&
@@ -36,35 +43,40 @@ export function RecordingSharePage({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true)
   const [unlocking, setUnlocking] = useState(false)
   const [error, setError] = useState('')
+  const [mediaError, setMediaError] = useState(false)
 
   useEffect(() => {
-    let cancelled = false
+    let alive = true
 
-    async function unlock(pw: string) {
+    async function unlock(pw: string): Promise<boolean> {
+      if (!alive) return false
       setUnlocking(true)
       setError('')
+      setMediaError(false)
       try {
         const res = await fetch('/api/crm-recorder?action=share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug, password: pw }),
         })
-        if (cancelled) return
+        if (!alive) return false
         if (res.status === 401) {
           setError('password')
-          return
+          return false
         }
         if (res.status === 404) {
           setError('notfound')
-          return
+          return false
         }
         if (!res.ok) throw new Error('Unlock failed')
         const data = (await res.json()) as UnlockResult
         setPlayback(data)
+        return true
       } catch {
-        if (!cancelled) setError('load')
+        if (alive) setError('load')
+        return false
       } finally {
-        if (!cancelled) setUnlocking(false)
+        if (alive) setUnlocking(false)
       }
     }
 
@@ -72,11 +84,12 @@ export function RecordingSharePage({ slug }: { slug: string }) {
       setLoading(true)
       setError('')
       setPlayback(null)
+      setMediaError(false)
       try {
         const res = await fetch(
           `/api/crm-recorder?action=share&slug=${encodeURIComponent(slug)}`,
         )
-        if (cancelled) return
+        if (!alive) return
         if (res.status === 404) {
           setError('notfound')
           return
@@ -88,20 +101,21 @@ export function RecordingSharePage({ slug }: { slug: string }) {
           await unlock('')
         }
       } catch {
-        if (!cancelled) setError('load')
+        if (alive) setError('load')
       } finally {
-        if (!cancelled) setLoading(false)
+        if (alive) setLoading(false)
       }
     })()
 
     return () => {
-      cancelled = true
+      alive = false
     }
   }, [slug])
 
   async function unlockFromForm(pw: string) {
     setUnlocking(true)
     setError('')
+    setMediaError(false)
     try {
       const res = await fetch('/api/crm-recorder?action=share', {
         method: 'POST',
@@ -126,10 +140,7 @@ export function RecordingSharePage({ slug }: { slug: string }) {
     }
   }
 
-  const showBoot =
-    loading || (unlocking && meta !== null && !meta.hasPassword && !playback)
-
-  if (showBoot) {
+  if (loading) {
     return (
       <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
         <p className="rec-share-msg">Loading…</p>
@@ -141,6 +152,24 @@ export function RecordingSharePage({ slug }: { slug: string }) {
     return (
       <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
         <p className="rec-share-msg">Not found</p>
+      </div>
+    )
+  }
+
+  if (error === 'load' && meta && !playback) {
+    return (
+      <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
+        <p className="rec-share-kicker">IOM · Shared media</p>
+        <h1 className="rec-share-title">{meta.title}</h1>
+        <p className="rec-share-msg">Could not load this file. Try again.</p>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={unlocking}
+          onClick={() => void unlockFromForm('')}
+        >
+          {unlocking ? '…' : 'Retry'}
+        </button>
       </div>
     )
   }
@@ -197,16 +226,34 @@ export function RecordingSharePage({ slug }: { slug: string }) {
       )}
       <div className="rec-share-player">
         {playback.mimeType.startsWith('image/') ? (
-          <img src={playback.playbackUrl} alt={playback.title} />
+          <img
+            src={playback.playbackUrl}
+            alt={playback.title}
+            onError={() => setMediaError(true)}
+          />
         ) : (
           <video
+            key={playback.playbackUrl}
             src={playback.playbackUrl}
             controls
             playsInline
+            preload="metadata"
             autoPlay={embed}
-          />
+            onError={() => setMediaError(true)}
+          >
+            <source
+              src={playback.playbackUrl}
+              type={videoMime(playback.mimeType)}
+            />
+          </video>
         )}
       </div>
+      {mediaError && (
+        <p className="rec-share-error" role="alert">
+          This recording file looks empty or unreadable. Try recording again and
+          keep the screen-share bar active until you press Stop.
+        </p>
+      )}
     </div>
   )
 }

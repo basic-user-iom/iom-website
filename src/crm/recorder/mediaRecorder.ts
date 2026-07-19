@@ -97,3 +97,18 @@ export function formatBytes(n: number): string {
   if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
   return `${(n / (1024 * 1024)).toFixed(1)} MB`
 }
+
+/**
+ * MediaRecorder can finish with a near-empty WebM if the display track died
+ * early (share ended / stream interrupted) while the timer kept running.
+ */
+export function isSuspiciouslySmallRecording(
+  blob: Blob,
+  durationMs: number,
+): boolean {
+  if (blob.size < 8_000) return true
+  if (durationMs < 2_500) return false
+  // Healthy screen capture is typically >> 50 KB/s; empty shells are ~KB total.
+  const bytesPerSec = blob.size / (durationMs / 1000)
+  return bytesPerSec < 2_000
+}

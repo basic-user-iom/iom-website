@@ -28,8 +28,8 @@ export function pageMetaForPath(pathname: string): PageMeta {
 
   if (path.startsWith('/r/')) {
     return {
-      title: `${SITE_NAME} — Shared recording`,
-      description: 'Password-protected shared screen recording.',
+      title: `${SITE_NAME} — Shared media`,
+      description: 'Password-protected shared screen recording or screenshot.',
       canonical: `${SITE_ORIGIN}${path}`,
       robots: 'noindex, nofollow',
     }

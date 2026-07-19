@@ -110,6 +110,14 @@
     (head often ~150–250&nbsp;px) · Silhouette and beak must read clearly when small.
   </div>
 
+  <div class="box">
+    <strong>AI / Meshy generation:</strong> Prompt and reference images must show a
+    <strong>clearly open beak</strong> (visible gap between upper and lower beak).
+    A closed beak usually fuses into one solid mesh and is hard to animate.
+    Final delivered GLB may rest closed, but the open shape must exist as bones or
+    a <code>jawOpen</code>/<code>beakOpen</code> morph (0 = closed, 1 = open).
+  </div>
+
   <h2>2. Deliverables</h2>
   <h3>Required — Head</h3>
   <ul>
@@ -132,7 +140,8 @@
   <h3>Include</h3>
   <ul>
     <li>Head + neck only (cut at mid-neck / collar)</li>
-    <li>Clear beak, eyes, crown</li>
+    <li>Clear beak, eyes, crown — <strong>beak must be separable for speaking</strong></li>
+    <li>For AI sculpt: generate with <strong>beak open</strong> (gap visible); then rig so closed = rest</li>
     <li>PBR (baseColor + optional roughness/metal/normal)</li>
   </ul>
   <h3>Avoid</h3>
@@ -140,6 +149,7 @@
     <li>Full body in this file</li>
     <li>Heavy hair cards / special shaders</li>
     <li>Baked speech animation</li>
+    <li>Closed fused beak with no gap / no separate upper–lower parts</li>
     <li>Huge textures (prefer total ≤ 2–4&nbsp;MB; 1K–2K maps)</li>
   </ul>
   <h3>Rigging — pick A or B (A preferred)</h3>
@@ -261,14 +271,19 @@
     <li>Flight / walk cycles (unless explicitly requested later)</li>
   </ul>
 
-  <h2>8. Paste-ready prompt for designer</h2>
+  <h2>8. Paste-ready prompt for designer / Meshy</h2>
   <div class="prompt">Design and deliver realtime WebGL raven assets for a screen-recorder PiP.
 
-Required: raven-head.glb — head + neck only, PBR, 3k–15k tris, under ~5 MB, facing camera. Controllable speaking beak via bones (BeakUpper/BeakLower) or morph jawOpen/beakOpen (0=closed, 1=open). No baked speech.
+Required: raven-head.glb — head + neck only, PBR, 3k–15k tris, under ~5 MB, facing camera.
+
+CRITICAL — speaking beak: Generate / sculpt with the beak CLEARLY OPEN (visible gap between upper and lower beak). Deliver controllable open–close via bones (BeakUpper/BeakLower) or morph jawOpen/beakOpen (0=closed, 1=fully open). Do not fuse the beak into one solid closed shape. No baked speech animation.
 
 Optional Phase 2: raven-full.glb — full body, folded wings, standing/perched, same style/scale as head, 15k–40k tris, under ~10–20 MB. Same beak controls. Optional subtle looping Idle clip. Root at ground/perch. Y-up, +Z toward camera.
 
-Deliver GLBs + a short note listing bone/morph names and beak open axis. Test in Don McCurdy’s glTF viewer before handoff.</div>
+Deliver GLBs + a short note listing bone/morph names and beak open axis. Test in Don McCurdy’s glTF viewer before handoff.
+
+Meshy Text to 3D prompt:
+Stylized common raven head and neck only, cut at mid-neck, no body no wings no legs. Side three-quarter view. Beak CLEARLY OPEN with a visible gap between upper and lower beak, large readable beak for speaking puppet. Sharp silhouette, dark black feathers with subtle blue sheen, simple game-ready look, clean topology, solid color not sketch, white background, no text no watermark</div>
 
   <h2>9. References (client to attach)</h2>
   <ul>

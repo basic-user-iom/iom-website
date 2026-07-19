@@ -35,4 +35,6 @@ export interface CaptureOptions {
   /** Live blur boxes (normalized). Read each frame so UI can update mid-recording. */
   getBlurRegions?: () => import('./blurRegions').BlurRegion[]
   getBlurStrength?: () => import('./blurRegions').BlurStrength
+  /** Fired when the user stops screen share from the browser chrome. */
+  onDisplayEnded?: () => void
 }

@@ -6,15 +6,18 @@ import {
 import type { AppearanceMode } from './types'
 
 let landmarkerPromise: Promise<FaceLandmarker | null> | null = null
+/** Shared instance — do not .close() per recording or later sessions break. */
+let sharedLandmarker: FaceLandmarker | null = null
 
 async function loadFaceLandmarker(): Promise<FaceLandmarker | null> {
+  if (sharedLandmarker) return sharedLandmarker
   if (landmarkerPromise) return landmarkerPromise
   landmarkerPromise = (async () => {
     try {
       const resolver = await FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm',
       )
-      return await FaceLandmarker.createFromOptions(resolver, {
+      const lm = await FaceLandmarker.createFromOptions(resolver, {
         baseOptions: {
           modelAssetPath:
             'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
@@ -24,8 +27,11 @@ async function loadFaceLandmarker(): Promise<FaceLandmarker | null> {
         numFaces: 1,
         outputFaceBlendshapes: true,
       })
+      sharedLandmarker = lm
+      return lm
     } catch (err) {
       console.warn('[recorder] MediaPipe load failed', err)
+      landmarkerPromise = null
       return null
     }
   })()
@@ -208,11 +214,8 @@ export function createAppearanceRenderer(
       drawStylizedAvatar(ctx, w, h, lastLandmarks, blend)
     },
     dispose() {
-      try {
-        landmarker?.close()
-      } catch {
-        /* ignore */
-      }
+      // Keep the shared FaceLandmarker alive for the next recording.
+      // Closing it destroys the WebGL graph and breaks Filters/Avatar until reload.
       landmarker = null
       staticImg = null
       staticUrl = null

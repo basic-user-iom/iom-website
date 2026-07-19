@@ -278,9 +278,9 @@ const en: Dict = {
   'recorder.copyImageUrlHint':
     'Signed URL (expires in ~2h). Prefer share link for lasting access.',
   'recorder.intro':
-    'Capture screen, mic, and optional camera. Change voice, swap your face for an avatar, save locally or online, then share with a password-protected link.',
+    'Record video or capture screenshots. Use mic, camera PiP, voice presets or AI morph, static/avatar appearance, then save locally or online and share with a password-protected /r/… link.',
   'recorder.introDemo':
-    'Demo sandbox — recordings stay in this browser only. Online save and share links need the live CRM.',
+    'Demo sandbox — recordings and screenshots stay in this browser only. Online save and lasting share links need the live CRM (/client-login).',
   'recorder.start': 'Start recording',
   'recorder.stop': 'Stop',
   'recorder.pause': 'Pause',
@@ -290,6 +290,18 @@ const en: Dict = {
     'While paused you can switch to another tab, window, or screen, then resume.',
   'recorder.changeScreen.busy': 'Waiting for screen pick…',
   'recorder.changeScreen.failed': 'Could not change screen. Keep the current one or try again.',
+  'recorder.float.title': 'IOM Recorder',
+  'recorder.float.open': 'Floating controls',
+  'recorder.float.hint':
+    'After Start, click Floating controls for an always-on-top Pause / Camera / Stop panel (needs a click — not automatic).',
+  'recorder.float.cameraOn': 'Camera PiP on',
+  'recorder.float.cameraOff': 'Camera PiP off',
+  'recorder.float.blocked':
+    'Could not open floating controls (allow popups). Pause and Stop still work in this CRM tab.',
+  'recorder.error.shareEnded':
+    'Screen sharing ended. Recording stopped — click Start to record again.',
+  'recorder.error.emptyRecording':
+    'Recording file is empty or nearly empty. Keep the Chrome “Sharing…” bar active until you press Stop, then try again.',
   'recorder.mic': 'Microphone',
   'recorder.camera': 'Camera (PiP)',
   'recorder.noise': 'Noise suppression',
@@ -1051,7 +1063,7 @@ const en: Dict = {
   'guide.gotIt': 'Got it',
   'guide.whatHeading': 'What this tool is',
   'guide.whatText':
-    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, public Journal (Blog), a shared Links library, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
+    'Your private IOM workspace — leads and pipeline, Monday-style project boards, Clockify-style time tracking, MindMeister-style idea maps, research notes, Recorder (video + screenshots), public Journal (Blog), a shared Links library, and SEO / traffic analytics. In online mode, signed-in staff share the same data. The public CRM demo uses fictional sample data only.',
   'guide.what1':
     'Leads — companies to pitch, Hot / Warm / Cold, pipeline stages, Email conversation, activity log',
   'guide.what2': 'Projects — kanban boards with columns and tasks for delivery',
@@ -1065,6 +1077,8 @@ const en: Dict = {
   'guide.what8':
     'Links — curated YouTube channels, webpages, forums, and blog posts worth keeping for both of us',
   'guide.what9': 'SEO — site inventory, upgrade checklist, and traffic analytics with a visitor globe',
+  'guide.what10':
+    'Recorder — screen video and PNG screenshots, voice/avatar options, library with share links for blogs and clients',
   'guide.navHeading': 'Navigation',
   'guide.navText':
     'Tabs under the header: Leads | Projects | Time | Ideas | Notes | Recorder | Demo; Blog, Links and SEO sit on the right (before the music player).',
@@ -1074,7 +1088,7 @@ const en: Dict = {
   'guide.nav4': 'Ideas — MindMeister-style maps for brainstorming',
   'guide.nav5': 'Notes — research documents with sections, clickable links, and ChatGPT assist',
   'guide.nav6':
-    'Recorder — screen, mic, and camera capture; voice/avatar options; local or online storage with share links',
+    'Recorder — Record / Screenshot / Library: video or PNG capture, voice & appearance, edit with trim/blur/music, share at /r/…',
   'guide.nav7':
     'Demo — catalogue of private client demos (e.g. ICM) not on the public homepage',
   'guide.nav8':
@@ -1230,13 +1244,27 @@ const en: Dict = {
     'Format: intro paragraph, then ## Name, URL on next line, then your monitoring notes per section',
   'guide.recordingsHeading': 'Recorder',
   'guide.recordingsText':
-    'Record your screen with optional mic, camera picture-in-picture, voice presets or AI morph, and avatar/filters — then save locally or online and share with a password.',
+    'Capture screen video or still screenshots, optionally with mic, camera PiP, voice presets / AI morph, and appearance modes — then save locally or online and share with a password.',
   'guide.recordings1':
-    'Recorder tab → choose mic/camera, voice, appearance, and local vs online save',
+    'Record tab → mic/camera, voice, appearance, local vs online → Start, pick a screen/window, Pause to change tab/screen, then Stop',
   'guide.recordings2':
-    'Start recording, pick a screen/window, then Stop — online files appear in Library',
+    'Screenshot tab → title + Save to → Capture screenshot (tab/window/screen) → PNG lands in Library',
   'guide.recordings3':
-    'Copy share link or embed code; set a password so clients unlock at /r/…',
+    'Library → Edit videos (trim, blur, volume, IOM music bed or upload) · screenshots skip the video editor',
+  'guide.recordings4':
+    'Copy share link (/r/…) for lasting access to video or image; optional password; embed or Copy image URL for drafts',
+  'guide.recordings5':
+    'Online files stay until you delete them — signed image URLs expire in ~2h, but the share page keeps working',
+  'guide.recordingsDemoText':
+    'In the public demo, Record and Screenshot work in this browser only. Online save, share links, and lasting /r/… pages need the live CRM.',
+  'guide.recordingsDemo1':
+    'Try Record and Screenshot — files appear under Library (local) and download to your device',
+  'guide.recordingsDemo2':
+    'Pause while recording to change screen/tab, then Resume — same as live CRM',
+  'guide.recordingsDemo3':
+    'Edit local videos (trim / blur / music from IOM tracks). Online save is disabled in demo',
+  'guide.recordingsDemo4':
+    'Sign in at /client-login for online Library, share links, and images you can send for blogs',
   'guide.demosHeading': 'Demo (private client sites)',
   'guide.demosText':
     'A short catalogue of demos built for clients that stay off the public portfolio — open links, share passwords, track pitch status.',
@@ -1578,9 +1606,9 @@ const sr: Dict = {
   'recorder.copyImageUrlHint':
     'Potpisani URL (ističe za ~2h). Za trajni pristup koristite share link.',
   'recorder.intro':
-    'Snimite ekran, mikrofon i opciono kameru. Promenite glas, zamenite lice avatarom, sačuvajte lokalno ili online, pa podelite linkom sa lozinkom.',
+    'Snimite video ili uhvatite screenshot. Mikrofon, kamera PiP, glasovni preseti ili AI morf, statični/avatar izgled — sačuvajte lokalno ili online i podelite linkom sa lozinkom (/r/…).',
   'recorder.introDemo':
-    'Demo sandbox — snimci ostaju samo u ovom pregledaču. Online čuvanje i linkovi zahtevaju live CRM.',
+    'Demo sandbox — snimci i screenshot-ovi ostaju samo u ovom pregledaču. Online čuvanje i trajni share linkovi zahtevaju live CRM (/client-login).',
   'recorder.start': 'Počni snimanje',
   'recorder.stop': 'Zaustavi',
   'recorder.pause': 'Pauza',
@@ -1591,6 +1619,18 @@ const sr: Dict = {
   'recorder.changeScreen.busy': 'Čeka se izbor ekrana…',
   'recorder.changeScreen.failed':
     'Nije moguće promeniti ekran. Zadržite trenutni ili pokušajte ponovo.',
+  'recorder.float.title': 'IOM Snimač',
+  'recorder.float.open': 'Lebdeće kontrole',
+  'recorder.float.hint':
+    'Posle Počni kliknite Lebdeće kontrole za panel Pauza / Kamera / Zaustavi (potreban je klik — nije automatski).',
+  'recorder.float.cameraOn': 'Kamera PiP uključena',
+  'recorder.float.cameraOff': 'Kamera PiP isključena',
+  'recorder.float.blocked':
+    'Lebdeće kontrole nisu otvorene (dozvolite iskačuće prozore). Pauza i Zaustavi i dalje rade u CRM kartici.',
+  'recorder.error.shareEnded':
+    'Deljenje ekrana je prekinuto. Snimanje je zaustavljeno — kliknite Počni da snimate ponovo.',
+  'recorder.error.emptyRecording':
+    'Snimak je prazan ili skoro prazan. Držite Chrome traku „Sharing…” aktivnom dok ne pritisnete Stop, pa pokušajte ponovo.',
   'recorder.mic': 'Mikrofon',
   'recorder.camera': 'Kamera (PiP)',
   'recorder.noise': 'Suzbijanje šuma',
@@ -2356,7 +2396,7 @@ const sr: Dict = {
   'guide.gotIt': 'Razumem',
   'guide.whatHeading': 'Šta je ovaj alat',
   'guide.whatText':
-    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške, javni Journal (Blog), zajednička biblioteka Linkova i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
+    'Vaš privatni IOM radni prostor — leadovi i pipeline, table projekata u Monday stilu, praćenje vremena u Clockify stilu, mape uma, istraživačke beleške, Snimač (video + screenshot-ovi), javni Journal (Blog), zajednička biblioteka Linkova i SEO / analitika saobraćaja. U online režimu prijavljeni zaposleni dele iste podatke. Javni CRM demo koristi samo izmišljene uzorke.',
   'guide.what1':
     'Leadovi — firme za pitch, Vruć / Topao / Hladan, faze pipeline-a, Email konverzacija, dnevnik aktivnosti',
   'guide.what2': 'Projekti — kanban table sa kolonama i zadacima za isporuku',
@@ -2370,6 +2410,8 @@ const sr: Dict = {
   'guide.what8':
     'Linkovi — kurirani YouTube kanali, veb stranice, forumi i blog postovi koje čuvamo za oboje',
   'guide.what9': 'SEO — inventar sajta, checklista unapređenja i analitika sa globusom posetilaca',
+  'guide.what10':
+    'Snimač — video ekrana i PNG screenshot-ovi, glas/avatar opcije, biblioteka sa share linkovima za blogove i klijente',
   'guide.navHeading': 'Navigacija',
   'guide.navText':
     'Kartice ispod zaglavlja: Leadovi | Projekti | Vreme | Ideje | Beleške | Snimač | Demo; Blog, Linkovi i SEO su desno (ispred muzičkog plejera).',
@@ -2379,7 +2421,7 @@ const sr: Dict = {
   'guide.nav4': 'Ideje — mape uma u MindMeister stilu za brainstorming',
   'guide.nav5': 'Beleške — istraživački dokumenti sa sekcijama, linkovima i ChatGPT pomoći',
   'guide.nav6':
-    'Snimač — ekran, mikrofon i kamera; glas/avatar; lokalno ili online sa share linkovima',
+    'Snimač — Snimanje / Screenshot / Biblioteka: video ili PNG, glas i izgled, izmena (trim/blur/muzika), share na /r/…',
   'guide.nav7':
     'Demo — katalog privatnih demoa za klijente (npr. ICM) koji nisu na javnoj početnoj',
   'guide.nav8':
@@ -2536,13 +2578,27 @@ const sr: Dict = {
     'Format: uvod, zatim ## Ime, URL u sledećem redu, zatim beleške za praćenje po sekciji',
   'guide.recordingsHeading': 'Snimač',
   'guide.recordingsText':
-    'Snimite ekran sa opcionim mikrofonom, kamerom (PiP), glasovnim presetima ili AI morfom i avatarom/filterima — sačuvajte lokalno ili online i podelite lozinkom.',
+    'Snimite video ekrana ili screenshot-ove, opciono sa mikrofonom, kamerom (PiP), glasovnim presetima / AI morfom i režimima izgleda — sačuvajte lokalno ili online i podelite lozinkom.',
   'guide.recordings1':
-    'Kartica Snimač → izaberite mikrofon/kameru, glas, izgled i lokalno vs online',
+    'Kartica Snimanje → mikrofon/kamera, glas, izgled, lokalno vs online → Počni, izaberite ekran, Pauza da promenite tab/ekran, pa Zaustavi',
   'guide.recordings2':
-    'Počnite snimanje, izaberite ekran/prozor, pa Zaustavi — online fajlovi su u Biblioteci',
+    'Kartica Screenshot → naslov + Sačuvaj u → Uhvati screenshot (tab/prozor/ekran) → PNG ide u Biblioteku',
   'guide.recordings3':
-    'Kopirajte share link ili embed; postavite lozinku da klijenti otključaju na /r/…',
+    'Biblioteka → Izmena videa (trim, blur, jačina, IOM muzika ili upload) · screenshot-ovi nemaju video editor',
+  'guide.recordings4':
+    'Kopirajte share link (/r/…) za trajni pristup videu ili slici; opciona lozinka; embed ili Kopiraj URL slike za nacrte',
+  'guide.recordings5':
+    'Online fajlovi ostaju dok ih ne obrišete — potpisani URL slike ističe za ~2h, ali share stranica i dalje radi',
+  'guide.recordingsDemoText':
+    'U javnom demu Snimanje i Screenshot rade samo u ovom pregledaču. Online čuvanje, share linkovi i trajne /r/… stranice zahtevaju live CRM.',
+  'guide.recordingsDemo1':
+    'Probajte Snimanje i Screenshot — fajlovi su u Biblioteci (lokalno) i preuzimaju se na uređaj',
+  'guide.recordingsDemo2':
+    'Pauzirajte snimanje da promenite ekran/tab, pa Nastavi — isto kao u live CRM-u',
+  'guide.recordingsDemo3':
+    'Izmenite lokalne video snimke (trim / blur / IOM muzika). Online čuvanje je isključeno u demu',
+  'guide.recordingsDemo4':
+    'Prijavite se na /client-login za online Biblioteku, share linkove i slike za blogove',
   'guide.demosHeading': 'Demo (privatni klijentski sajtovi)',
   'guide.demosText':
     'Kratak katalog demoa za klijente koji ostaju van javnog portfolija — otvorite linkove, delite lozinke, pratite status pitch-a.',
