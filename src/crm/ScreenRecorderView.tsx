@@ -245,6 +245,18 @@ export function ScreenRecorderView() {
   const startRecording = async () => {
     setError('')
     setPreviewUrl(null)
+    if (!mic || !camera) {
+      const missing = [
+        !mic ? t('recorder.mic') : null,
+        !camera ? t('recorder.camera') : null,
+      ]
+        .filter(Boolean)
+        .join(', ')
+      const ok = window.confirm(
+        t('recorder.warn.inputsOff').replace('{items}', missing),
+      )
+      if (!ok) return
+    }
     try {
       const capture = await startCapture({
         mic,
@@ -574,6 +586,31 @@ export function ScreenRecorderView() {
                 playsInline
               />
             )}
+            <div
+              className="crm-recorder-hud"
+              role="status"
+              aria-live="polite"
+            >
+              <span
+                className={`crm-recorder-hud-pill${mic ? ' is-on' : ' is-off'}`}
+              >
+                <span className="crm-recorder-hud-dot" aria-hidden />
+                {mic ? t('recorder.hud.micOn') : t('recorder.hud.micOff')}
+              </span>
+              <span
+                className={`crm-recorder-hud-pill${camera ? ' is-on' : ' is-off'}`}
+              >
+                <span className="crm-recorder-hud-dot" aria-hidden />
+                {camera
+                  ? t('recorder.hud.cameraOn')
+                  : t('recorder.hud.cameraOff')}
+              </span>
+              {recording && (
+                <span className="crm-recorder-hud-pill is-live">
+                  {t('recorder.hud.live')}
+                </span>
+              )}
+            </div>
             <div className="crm-recorder-status-bar">
               <span
                 className={`crm-recorder-dot${recording ? ' is-live' : ''}`}

@@ -5799,6 +5799,69 @@
   background: linear-gradient(transparent, rgba(0, 0, 0, 0.78));
   color: #fff;
   font-size: 0.82rem;
+  z-index: 2;
+}
+
+.crm-recorder-hud {
+  position: absolute;
+  top: 0.65rem;
+  left: 0.65rem;
+  right: 0.65rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  pointer-events: none;
+}
+
+.crm-recorder-hud-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(8, 10, 14, 0.82);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.crm-recorder-hud-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.85;
+}
+
+.crm-recorder-hud-pill.is-on {
+  border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+  color: var(--accent);
+}
+
+.crm-recorder-hud-pill.is-off {
+  border-color: rgba(255, 120, 100, 0.45);
+  color: #ffb4a8;
+}
+
+.crm-recorder-hud-pill.is-live {
+  border-color: rgba(255, 77, 77, 0.55);
+  background: rgba(120, 20, 20, 0.75);
+  color: #ffd0d0;
+  animation: crm-recorder-hud-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes crm-recorder-hud-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
 }
 
 .crm-recorder-dot {

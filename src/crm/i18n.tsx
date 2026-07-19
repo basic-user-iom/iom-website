@@ -276,6 +276,13 @@ const en: Dict = {
   'recorder.noise': 'Noise suppression',
   'recorder.noiseHint':
     'Uses the browser’s mic noise filter (Chrome/Edge work best). Turn off if music or ambience sounds muffled.',
+  'recorder.hud.micOn': 'Mic on',
+  'recorder.hud.micOff': 'Mic off',
+  'recorder.hud.cameraOn': 'Camera on',
+  'recorder.hud.cameraOff': 'Camera off',
+  'recorder.hud.live': 'REC',
+  'recorder.warn.inputsOff':
+    '{items} are turned off. Continue without them?\n\nTip: check Microphone / Camera before Start — the Chrome tab picker only shares the screen, not your mic or face cam.',
   'recorder.voice': 'Voice',
   'recorder.voice.natural': 'Natural',
   'recorder.voice.deep': 'Deep',
@@ -1516,6 +1523,13 @@ const sr: Dict = {
   'recorder.noise': 'Suzbijanje šuma',
   'recorder.noiseHint':
     'Koristi filter šuma pregledača (najbolje Chrome/Edge). Isključite ako muzika ili ambijent zvuče prigušeno.',
+  'recorder.hud.micOn': 'Mic uključen',
+  'recorder.hud.micOff': 'Mic isključen',
+  'recorder.hud.cameraOn': 'Kamera uključena',
+  'recorder.hud.cameraOff': 'Kamera isključena',
+  'recorder.hud.live': 'SNIMA',
+  'recorder.warn.inputsOff':
+    '{items} su isključeni. Nastaviti bez njih?\n\nSavet: uključite Mikrofon / Kameru pre Start — Chrome birač taba deli samo ekran, ne i mic ili kameru.',
   'recorder.voice': 'Glas',
   'recorder.voice.natural': 'Prirodan',
   'recorder.voice.deep': 'Dubok',
