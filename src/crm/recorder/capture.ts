@@ -1,5 +1,6 @@
 import { createAppearanceRenderer, type AppearanceRenderer } from './appearance'
 import { createAudioPipeline, type AudioPipeline } from './audioPipeline'
+import { applyBlurRegions } from './blurRegions'
 import type { CaptureOptions } from './types'
 
 export interface ActiveCapture {
@@ -68,7 +69,9 @@ export async function startCapture(
     }
 
     if (options.mic) {
-      audio = await createAudioPipeline(options.voice)
+      audio = await createAudioPipeline(options.voice, {
+        noiseSuppression: options.noiseSuppression !== false,
+      })
     }
 
     screenVideo = document.createElement('video')
@@ -135,6 +138,16 @@ export async function startCapture(
             Math.PI * 2,
           )
           ctx.stroke()
+        }
+
+        const regions = options.getBlurRegions?.() ?? []
+        if (regions.length) {
+          applyBlurRegions(
+            ctx,
+            canvas,
+            regions,
+            options.getBlurStrength?.() ?? 'medium',
+          )
         }
       }
       options.onFrame?.(canvas)

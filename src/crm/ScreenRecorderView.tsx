@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from 'react'
 import { getCurrentUser } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { useCrmI18n } from './i18n'
@@ -8,6 +8,14 @@ import {
   probeAiVoiceAvailable,
   type ElevenLabsVoiceOption,
 } from './recorder/audioPipeline'
+import {
+  applyBlurToVideoBlob,
+  normalizeRect,
+  pointerToNormalized,
+  strokeBlurRegions,
+  type BlurRegion,
+  type BlurStrength,
+} from './recorder/blurRegions'
 import { startCapture, type ActiveCapture } from './recorder/capture'
 import {
   downloadBlob,
@@ -46,6 +54,7 @@ export function ScreenRecorderView() {
   const [panel, setPanel] = useState<Panel>('record')
   const [mic, setMic] = useState(true)
   const [camera, setCamera] = useState(true)
+  const [noiseSuppression, setNoiseSuppression] = useState(true)
   const [voice, setVoice] = useState<VoicePreset>('natural')
   const [appearance, setAppearance] = useState<AppearanceMode>('real')
   const [destination, setDestination] = useState<SaveDestination>(
@@ -60,6 +69,16 @@ export function ScreenRecorderView() {
   const [aiVoiceId, setAiVoiceId] = useState('')
   const [aiVoicesLoading, setAiVoicesLoading] = useState(false)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [blurTool, setBlurTool] = useState(false)
+  const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([])
+  const [blurStrength, setBlurStrength] = useState<BlurStrength>('medium')
+  const [blurDraft, setBlurDraft] = useState<{
+    x: number
+    y: number
+    w: number
+    h: number
+  } | null>(null)
+  const [postBlurBusy, setPostBlurBusy] = useState(false)
 
   const [localRecs, setLocalRecs] = useState<LocalRecording[]>([])
   const [onlineRecs, setOnlineRecs] = useState<CrmRecording[]>([])
@@ -72,6 +91,26 @@ export function ScreenRecorderView() {
   const recorderRef = useRef<RecordingHandle | null>(null)
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const timerRef = useRef<number | null>(null)
+  const blurRegionsRef = useRef<BlurRegion[]>([])
+  const blurStrengthRef = useRef<BlurStrength>('medium')
+  const blurDraftRef = useRef<{
+    x: number
+    y: number
+    w: number
+    h: number
+  } | null>(null)
+  const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+  const lastBlobRef = useRef<Blob | null>(null)
+
+  useEffect(() => {
+    blurRegionsRef.current = blurRegions
+  }, [blurRegions])
+  useEffect(() => {
+    blurStrengthRef.current = blurStrength
+  }, [blurStrength])
+  useEffect(() => {
+    blurDraftRef.current = blurDraft
+  }, [blurDraft])
 
   useEffect(() => {
     void probeAiVoiceAvailable().then(setAiAvailable)
@@ -142,8 +181,53 @@ export function ScreenRecorderView() {
       dest.height = source.height
     }
     const ctx = dest.getContext('2d')
-    ctx?.drawImage(source, 0, 0)
+    if (!ctx) return
+    ctx.drawImage(source, 0, 0)
+    strokeBlurRegions(
+      ctx,
+      dest,
+      blurRegionsRef.current,
+      blurDraftRef.current,
+    )
   }, [])
+
+  const onPreviewPointerDown = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (!blurTool) return
+    const canvas = previewCanvasRef.current
+    if (!canvas) return
+    const pt = pointerToNormalized(canvas, e.clientX, e.clientY)
+    if (!pt) return
+    canvas.setPointerCapture(e.pointerId)
+    dragStartRef.current = pt
+    setBlurDraft({ x: pt.x, y: pt.y, w: 0, h: 0 })
+  }
+
+  const onPreviewPointerMove = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (!blurTool || !dragStartRef.current) return
+    const canvas = previewCanvasRef.current
+    if (!canvas) return
+    const pt = pointerToNormalized(canvas, e.clientX, e.clientY)
+    if (!pt) return
+    const start = dragStartRef.current
+    setBlurDraft(normalizeRect(start.x, start.y, pt.x, pt.y))
+  }
+
+  const onPreviewPointerUp = (e: PointerEvent<HTMLCanvasElement>) => {
+    if (!blurTool || !dragStartRef.current) return
+    const canvas = previewCanvasRef.current
+    if (!canvas) return
+    const pt = pointerToNormalized(canvas, e.clientX, e.clientY)
+    const start = dragStartRef.current
+    dragStartRef.current = null
+    setBlurDraft(null)
+    if (!pt) return
+    const box = normalizeRect(start.x, start.y, pt.x, pt.y)
+    if (box.w < 0.02 || box.h < 0.02) return
+    setBlurRegions((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), ...box },
+    ])
+  }
 
   const startRecording = async () => {
     setError('')
@@ -152,9 +236,12 @@ export function ScreenRecorderView() {
       const capture = await startCapture({
         mic,
         camera,
+        noiseSuppression,
         voice: voice === 'ai' ? 'natural' : voice,
         appearance,
         onFrame: paintPreview,
+        getBlurRegions: () => blurRegionsRef.current,
+        getBlurStrength: () => blurStrengthRef.current,
       })
       captureRef.current = capture
       recorderRef.current = startMediaRecorder(capture.stream)
@@ -226,6 +313,8 @@ export function ScreenRecorderView() {
           timeStyle: 'short',
         })}`
 
+      lastBlobRef.current = blob
+
       if (destination === 'local' || demoMode || !live) {
         const objectUrl = URL.createObjectURL(blob)
         const local: LocalRecording = {
@@ -266,6 +355,29 @@ export function ScreenRecorderView() {
         err instanceof Error ? err.message : t('recorder.error.upload'),
       )
       setStatus('idle')
+    }
+  }
+
+  const applyPostBlur = async () => {
+    const source = lastBlobRef.current
+    if (!source || !blurRegionsRef.current.length) return
+    setPostBlurBusy(true)
+    setError('')
+    try {
+      const next = await applyBlurToVideoBlob(
+        source,
+        blurRegionsRef.current,
+        blurStrengthRef.current,
+      )
+      lastBlobRef.current = next
+      if (previewUrl) URL.revokeObjectURL(previewUrl)
+      const url = URL.createObjectURL(next)
+      setPreviewUrl(url)
+      downloadBlob(next, `recording-blurred.webm`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('recorder.error.save'))
+    } finally {
+      setPostBlurBusy(false)
     }
   }
 
@@ -358,8 +470,15 @@ export function ScreenRecorderView() {
           <div className="crm-recorder-preview-wrap">
             <canvas
               ref={previewCanvasRef}
-              className="crm-recorder-preview"
+              className={`crm-recorder-preview${blurTool ? ' is-blur-tool' : ''}`}
               aria-label={t('recorder.preview')}
+              onPointerDown={onPreviewPointerDown}
+              onPointerMove={onPreviewPointerMove}
+              onPointerUp={onPreviewPointerUp}
+              onPointerCancel={() => {
+                dragStartRef.current = null
+                setBlurDraft(null)
+              }}
             />
             {!recording && !previewUrl && (
               <div className="crm-recorder-preview-placeholder">
@@ -388,6 +507,7 @@ export function ScreenRecorderView() {
             <label className="crm-recorder-field">
               <span>{t('recorder.title')}</span>
               <input
+                className="crm-input"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -396,7 +516,7 @@ export function ScreenRecorderView() {
               />
             </label>
 
-            <div className="crm-recorder-toggles">
+            <div className="crm-recorder-toggles" role="group" aria-label={t('recorder.mic')}>
               <label className="crm-recorder-check">
                 <input
                   type="checkbox"
@@ -404,7 +524,7 @@ export function ScreenRecorderView() {
                   onChange={(e) => setMic(e.target.checked)}
                   disabled={recording || busy}
                 />
-                {t('recorder.mic')}
+                <span>{t('recorder.mic')}</span>
               </label>
               <label className="crm-recorder-check">
                 <input
@@ -413,13 +533,98 @@ export function ScreenRecorderView() {
                   onChange={(e) => setCamera(e.target.checked)}
                   disabled={recording || busy}
                 />
-                {t('recorder.camera')}
+                <span>{t('recorder.camera')}</span>
+              </label>
+              <label
+                className="crm-recorder-check"
+                title={t('recorder.noiseHint')}
+              >
+                <input
+                  type="checkbox"
+                  checked={noiseSuppression}
+                  onChange={(e) => setNoiseSuppression(e.target.checked)}
+                  disabled={recording || busy || !mic}
+                />
+                <span>{t('recorder.noise')}</span>
+              </label>
+              <label className="crm-recorder-check">
+                <input
+                  type="checkbox"
+                  checked={blurTool}
+                  onChange={(e) => setBlurTool(e.target.checked)}
+                  disabled={busy}
+                />
+                <span>{t('recorder.blur.tool')}</span>
               </label>
             </div>
+
+            {(blurTool || blurRegions.length > 0) && (
+              <div className="crm-recorder-blur-panel">
+                <label className="crm-recorder-field">
+                  <span>{t('recorder.blur.strength')}</span>
+                  <select
+                    className="crm-input"
+                    value={blurStrength}
+                    onChange={(e) =>
+                      setBlurStrength(e.target.value as BlurStrength)
+                    }
+                    disabled={busy}
+                  >
+                    <option value="light">{t('recorder.blur.light')}</option>
+                    <option value="medium">{t('recorder.blur.medium')}</option>
+                    <option value="strong">{t('recorder.blur.strong')}</option>
+                  </select>
+                </label>
+                <p className="crm-recorder-hint">{t('recorder.blur.hint')}</p>
+                <p className="crm-recorder-hint crm-recorder-hint--meta">
+                  {t('recorder.blur.count').replace(
+                    '{n}',
+                    String(blurRegions.length),
+                  )}
+                </p>
+                <div className="crm-recorder-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={!blurRegions.length || busy}
+                    onClick={() =>
+                      setBlurRegions((prev) => prev.slice(0, -1))
+                    }
+                  >
+                    {t('recorder.blur.undo')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={!blurRegions.length || busy}
+                    onClick={() => setBlurRegions([])}
+                  >
+                    {t('recorder.blur.clear')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={
+                      !lastBlobRef.current ||
+                      !blurRegions.length ||
+                      busy ||
+                      recording ||
+                      postBlurBusy
+                    }
+                    onClick={() => void applyPostBlur()}
+                  >
+                    {postBlurBusy
+                      ? t('recorder.blur.applying')
+                      : t('recorder.blur.applyPost')}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <label className="crm-recorder-field">
               <span>{t('recorder.voice')}</span>
               <select
+                className="crm-input"
                 value={voice}
                 onChange={(e) => setVoice(e.target.value as VoicePreset)}
                 disabled={recording || busy}
@@ -434,6 +639,7 @@ export function ScreenRecorderView() {
                 <label className="crm-recorder-field crm-recorder-field--nested">
                   <span>{t('recorder.voice.aiPick')}</span>
                   <select
+                    className="crm-input"
                     value={aiVoiceId}
                     onChange={(e) => setAiVoiceId(e.target.value)}
                     disabled={
@@ -458,18 +664,19 @@ export function ScreenRecorderView() {
                   </select>
                 </label>
               )}
-              <span className="crm-recorder-hint">
-                {voice === 'ai'
-                  ? aiAvailable
+              {voice === 'ai' && (
+                <span className="crm-recorder-hint">
+                  {aiAvailable
                     ? t('recorder.voice.aiHint')
-                    : t('recorder.voice.aiUnavailable')
-                  : t('recorder.voice.aiHint')}
-              </span>
+                    : t('recorder.voice.aiUnavailable')}
+                </span>
+              )}
             </label>
 
             <label className="crm-recorder-field">
               <span>{t('recorder.appearance')}</span>
               <select
+                className="crm-input"
                 value={appearance}
                 onChange={(e) =>
                   setAppearance(e.target.value as AppearanceMode)
@@ -485,6 +692,7 @@ export function ScreenRecorderView() {
             <label className="crm-recorder-field">
               <span>{t('recorder.destination')}</span>
               <select
+                className="crm-input"
                 value={destination}
                 onChange={(e) =>
                   setDestination(e.target.value as SaveDestination)
@@ -674,6 +882,7 @@ export function ScreenRecorderView() {
                     </button>
                     <div className="crm-recorder-password-row">
                       <input
+                        className="crm-input"
                         type="password"
                         placeholder={t('recorder.passwordPlaceholder')}
                         value={passwordDraft[rec.id] ?? ''}

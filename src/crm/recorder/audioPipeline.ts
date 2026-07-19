@@ -12,11 +12,13 @@ export interface AudioPipeline {
  */
 export async function createAudioPipeline(
   voice: VoicePreset,
+  options?: { noiseSuppression?: boolean },
 ): Promise<AudioPipeline> {
+  const noiseSuppression = options?.noiseSuppression !== false
   const mic = await navigator.mediaDevices.getUserMedia({
     audio: {
       echoCancellation: true,
-      noiseSuppression: true,
+      noiseSuppression,
       autoGainControl: true,
     },
     video: false,
