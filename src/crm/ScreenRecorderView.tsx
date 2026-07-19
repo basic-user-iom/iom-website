@@ -47,8 +47,13 @@ import { useLiveCrmBackend } from './supabaseClient'
 import type { CrmRecording } from './types'
 
 type EditorTarget =
-  | { kind: 'local'; id: string; title: string; blob: Blob }
-  | { kind: 'online'; rec: CrmRecording; blob: Blob }
+  | { kind: 'local'; id: string; title: string; blob: Blob; durationMs: number }
+  | {
+      kind: 'online'
+      rec: CrmRecording
+      blob: Blob
+      previewUrl: string
+    }
 
 type Panel = 'record' | 'library'
 
@@ -446,6 +451,7 @@ export function ScreenRecorderView() {
       id: rec.id,
       title: rec.title,
       blob: rec.blob,
+      durationMs: rec.durationMs,
     })
   }
 
@@ -456,8 +462,16 @@ export function ScreenRecorderView() {
       const url = await getRecordingSignedUrl(rec.storage_path)
       const res = await fetch(url)
       if (!res.ok) throw new Error(t('recorder.edit.loadFailed'))
-      const blob = await res.blob()
-      setEditorTarget({ kind: 'online', rec, blob })
+      const raw = await res.blob()
+      const mime =
+        rec.mime_type?.startsWith('video/')
+          ? rec.mime_type
+          : raw.type.startsWith('video/')
+            ? raw.type
+            : 'video/webm'
+      const blob =
+        raw.type === mime ? raw : new Blob([raw], { type: mime })
+      setEditorTarget({ kind: 'online', rec, blob, previewUrl: url })
     } catch (err) {
       setLibError(
         err instanceof Error ? err.message : t('recorder.edit.loadFailed'),
@@ -1019,6 +1033,16 @@ export function ScreenRecorderView() {
               : editorTarget.rec.title
           }
           sourceBlob={editorTarget.blob}
+          previewUrl={
+            editorTarget.kind === 'online'
+              ? editorTarget.previewUrl
+              : undefined
+          }
+          fallbackDurationMs={
+            editorTarget.kind === 'local'
+              ? editorTarget.durationMs
+              : editorTarget.rec.duration_ms ?? undefined
+          }
           canSaveOnline={editorTarget.kind === 'online'}
           onCancel={() => setEditorTarget(null)}
           onSaved={handleEditorSaved}

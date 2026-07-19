@@ -69,7 +69,11 @@ export async function processVideoBlob(
   source: Blob,
   options: VideoEditOptions,
 ): Promise<{ blob: Blob; durationMs: number }> {
-  const url = URL.createObjectURL(source)
+  const typed =
+    source.type && source.type.startsWith('video/')
+      ? source
+      : new Blob([source], { type: 'video/webm' })
+  const url = URL.createObjectURL(typed)
   let audioCtx: AudioContext | null = null
   let raf = 0
 

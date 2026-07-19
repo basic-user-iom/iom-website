@@ -24,6 +24,10 @@ export interface RecordingEditorResult {
 interface RecordingEditorProps {
   title: string
   sourceBlob: Blob
+  /** Prefer for online files — signed URL streams more reliably than blob URLs. */
+  previewUrl?: string
+  /** Fallback when WebM metadata has no duration (common with MediaRecorder). */
+  fallbackDurationMs?: number
   /** When true, primary action overwrites the online file. */
   canSaveOnline: boolean
   onCancel: () => void
@@ -40,9 +44,75 @@ function slugify(s: string): string {
   )
 }
 
+/** Ensure browsers can decode MediaRecorder / storage blobs. */
+export function asPlayableVideoBlob(
+  blob: Blob,
+  preferredType = 'video/webm',
+): Blob {
+  const type =
+    blob.type && blob.type.startsWith('video/')
+      ? blob.type
+      : preferredType
+  if (blob.type === type) return blob
+  return new Blob([blob], { type })
+}
+
+/**
+ * MediaRecorder WebM often reports duration as Infinity until a seek.
+ * Returns duration in ms, or 0 if unknown.
+ */
+async function resolveVideoDurationMs(
+  video: HTMLVideoElement,
+): Promise<number> {
+  const finite = () => {
+    const d = video.duration
+    return Number.isFinite(d) && d > 0 ? Math.round(d * 1000) : 0
+  }
+  const known = finite()
+  if (known > 0) return known
+
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ms: number) => {
+      if (settled) return
+      settled = true
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('seeked', onSeeked)
+      resolve(ms)
+    }
+    const onTimeUpdate = () => {
+      const ms = finite()
+      if (ms > 0) {
+        const onReset = () => {
+          video.removeEventListener('seeked', onReset)
+          finish(ms)
+        }
+        video.addEventListener('seeked', onReset)
+        video.currentTime = 0
+      }
+    }
+    const onSeeked = () => {
+      const ms = finite()
+      if (ms > 0) finish(ms)
+    }
+    video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('seeked', onSeeked)
+    try {
+      // Chromium trick to force duration calculation for WebM
+      video.currentTime = 1e101
+    } catch {
+      finish(0)
+      return
+    }
+    window.setTimeout(() => finish(finite()), 2500)
+  })
+}
+
 export function RecordingEditor({
   title,
   sourceBlob,
+  previewUrl,
+  fallbackDurationMs,
   canSaveOnline,
   onCancel,
   onSaved,
@@ -51,8 +121,12 @@ export function RecordingEditor({
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const overlayRef = useRef<HTMLCanvasElement | null>(null)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
+  const durationReadyRef = useRef(false)
 
-  const [objectUrl] = useState(() => URL.createObjectURL(sourceBlob))
+  const [objectUrl] = useState(() =>
+    URL.createObjectURL(asPlayableVideoBlob(sourceBlob)),
+  )
+  const videoSrc = previewUrl || objectUrl
   const [durationMs, setDurationMs] = useState(0)
   const [trimStartMs, setTrimStartMs] = useState(0)
   const [trimEndMs, setTrimEndMs] = useState(0)
@@ -71,6 +145,7 @@ export function RecordingEditor({
   const [progress, setProgress] = useState(0)
   const [error, setError] = useState('')
   const [savingOnline, setSavingOnline] = useState(false)
+  const [loadingMeta, setLoadingMeta] = useState(true)
 
   useEffect(() => {
     return () => URL.revokeObjectURL(objectUrl)
@@ -82,6 +157,7 @@ export function RecordingEditor({
     const v = videoRef.current
     if (!v) return
     v.volume = Math.min(1, effectiveVolume)
+    // Keep element unmuted for preview when volume > 0 so users hear audio
     v.muted = effectiveVolume <= 0.001
   }, [effectiveVolume])
 
@@ -108,14 +184,49 @@ export function RecordingEditor({
     paintOverlay()
   }, [paintOverlay, durationMs])
 
+  const applyDuration = useCallback(
+    (ms: number) => {
+      const v = videoRef.current
+      const playable = Boolean(
+        v && (v.videoWidth > 0 || v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA),
+      )
+      const resolved =
+        ms > 0
+          ? ms
+          : fallbackDurationMs && fallbackDurationMs > 0
+            ? fallbackDurationMs
+            : 0
+      if (resolved <= 0) {
+        setLoadingMeta(false)
+        setError(t('recorder.edit.loadFailed'))
+        return
+      }
+      // Duration from DB is ok even if WebM metadata is missing, as long as media loaded
+      if (!playable && ms <= 0 && !fallbackDurationMs) {
+        setLoadingMeta(false)
+        setError(t('recorder.edit.loadFailed'))
+        return
+      }
+      durationReadyRef.current = true
+      setDurationMs(resolved)
+      setTrimStartMs(0)
+      setTrimEndMs(resolved)
+      setLoadingMeta(false)
+      setError('')
+      paintOverlay()
+    },
+    [fallbackDurationMs, paintOverlay, t],
+  )
+
   const onMeta = () => {
     const v = videoRef.current
-    if (!v) return
-    const ms = Math.round((v.duration || 0) * 1000)
-    setDurationMs(ms)
-    setTrimStartMs(0)
-    setTrimEndMs(ms)
-    paintOverlay()
+    if (!v || durationReadyRef.current) return
+    void resolveVideoDurationMs(v).then(applyDuration)
+  }
+
+  const onVideoError = () => {
+    setLoadingMeta(false)
+    setError(t('recorder.edit.loadFailed'))
   }
 
   const clampTrim = (start: number, end: number) => {
@@ -249,10 +360,14 @@ export function RecordingEditor({
           <video
             ref={videoRef}
             className="crm-recorder-editor-video"
-            src={objectUrl}
+            src={videoSrc}
             controls
             playsInline
+            preload="auto"
             onLoadedMetadata={onMeta}
+            onLoadedData={onMeta}
+            onDurationChange={onMeta}
+            onError={onVideoError}
             onTimeUpdate={() => {
               const v = videoRef.current
               if (!v || !durationMs) return
@@ -276,6 +391,11 @@ export function RecordingEditor({
               setBlurDraft(null)
             }}
           />
+          {loadingMeta && !error && (
+            <div className="crm-recorder-editor-loading">
+              {t('recorder.edit.loading')}
+            </div>
+          )}
         </div>
 
         <div className="crm-recorder-editor-controls">

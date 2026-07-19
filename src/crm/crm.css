@@ -6098,15 +6098,31 @@
 
 .crm-recorder-editor-overlay {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  /* Leave native video controls clickable */
+  bottom: 52px;
+  width: auto;
+  height: auto;
   pointer-events: none;
+  background: transparent;
 }
 
 .crm-recorder-editor-overlay.is-blur-tool {
   pointer-events: auto;
   cursor: crosshair;
+}
+
+.crm-recorder-editor-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: var(--text-muted);
+  background: rgba(10, 12, 16, 0.45);
+  font-size: 0.9rem;
 }
 
 .crm-recorder-editor-controls {
