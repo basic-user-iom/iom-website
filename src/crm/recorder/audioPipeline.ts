@@ -138,18 +138,97 @@ export async function listAiVoices(): Promise<{
   }
 }
 
+/** Pull audio-only from a recorded video (ElevenLabs needs audio, not the full file). */
+async function extractAudioBlob(videoBlob: Blob): Promise<Blob> {
+  const url = URL.createObjectURL(
+    videoBlob.type.startsWith('video/') || videoBlob.type.startsWith('audio/')
+      ? videoBlob
+      : new Blob([videoBlob], { type: 'video/webm' }),
+  )
+  try {
+    const video = document.createElement('video')
+    video.src = url
+    video.muted = true
+    video.playsInline = true
+    video.preload = 'auto'
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve()
+      video.onerror = () => reject(new Error('Could not read recording audio'))
+    })
+
+    const media = (
+      video as HTMLVideoElement & { captureStream?: () => MediaStream }
+    ).captureStream?.()
+    const tracks = media?.getAudioTracks() ?? []
+    if (!tracks.length) {
+      throw new Error('No microphone audio in this recording to morph')
+    }
+
+    const audioStream = new MediaStream(tracks)
+    const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+      ? 'audio/webm;codecs=opus'
+      : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/mp4'
+    const chunks: BlobPart[] = []
+    const recorder = new MediaRecorder(audioStream, { mimeType: mime })
+    const done = new Promise<Blob>((resolve, reject) => {
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunks.push(e.data)
+      }
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mime })
+        if (blob.size < 100) reject(new Error('Extracted audio was empty'))
+        else resolve(blob)
+      }
+      recorder.onerror = () => reject(new Error('Audio extract failed'))
+    })
+
+    recorder.start(200)
+    video.currentTime = 0
+    await video.play()
+    await new Promise<void>((resolve) => {
+      const finish = () => {
+        video.removeEventListener('ended', finish)
+        resolve()
+      }
+      video.addEventListener('ended', finish)
+      const ms = Number.isFinite(video.duration)
+        ? video.duration * 1000
+        : 120_000
+      window.setTimeout(finish, ms + 1500)
+    })
+    video.pause()
+    if (recorder.state !== 'inactive') recorder.stop()
+    tracks.forEach((t) => t.stop())
+    return await done
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '')
+      const i = dataUrl.indexOf(',')
+      resolve(i >= 0 ? dataUrl.slice(i + 1) : dataUrl)
+    }
+    reader.onerror = () => reject(new Error('Could not encode audio'))
+    reader.readAsDataURL(blob)
+  })
+}
+
 export async function morphVoiceWithAi(
   videoBlob: Blob,
   voiceId?: string,
 ): Promise<Blob> {
-  const buffer = await videoBlob.arrayBuffer()
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
-  const chunk = 0x8000
-  for (let i = 0; i < bytes.length; i += chunk) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunk))
+  const audioOnly = await extractAudioBlob(videoBlob)
+  if (audioOnly.size > 20 * 1024 * 1024) {
+    throw new Error('Audio too long for AI morph (try a shorter clip)')
   }
-  const audioBase64 = btoa(binary)
+  const audioBase64 = await blobToBase64(audioOnly)
 
   const res = await fetch('/api/crm-recorder?action=morph', {
     method: 'POST',
@@ -157,12 +236,20 @@ export async function morphVoiceWithAi(
     body: JSON.stringify({
       audioBase64,
       voiceId: voiceId || undefined,
-      mimeType: videoBlob.type || 'video/webm',
+      mimeType: audioOnly.type || 'audio/webm',
     }),
   })
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error((err as { error?: string }).error || 'Voice morph failed')
+    const err = (await res.json().catch(() => ({}))) as {
+      error?: string
+      detail?: string
+    }
+    const detail = err.detail?.trim()
+    throw new Error(
+      detail
+        ? `${err.error || 'Voice morph failed'}: ${detail.slice(0, 120)}`
+        : err.error || 'Voice morph failed',
+    )
   }
   const audioBlob = await res.blob()
   return remuxVideoWithAudio(videoBlob, audioBlob)

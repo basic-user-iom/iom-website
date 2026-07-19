@@ -146,7 +146,18 @@ async function handleMorph(req, res) {
   }
 
   const form = new FormData()
-  form.append('audio', new Blob([audioBuf], { type: mimeType }), 'input.webm')
+  const ext = mimeType.includes('mp4')
+    ? 'm4a'
+    : mimeType.includes('mpeg') || mimeType.includes('mp3')
+      ? 'mp3'
+      : mimeType.includes('wav')
+        ? 'wav'
+        : 'webm'
+  form.append(
+    'audio',
+    new Blob([audioBuf], { type: mimeType }),
+    `input.${ext}`,
+  )
   form.append('model_id', 'eleven_multilingual_sts_v2')
 
   const elRes = await fetch(

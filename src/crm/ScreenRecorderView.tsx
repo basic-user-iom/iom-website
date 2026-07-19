@@ -320,10 +320,10 @@ export function ScreenRecorderView() {
             blob = await morphVoiceWithAi(blob, aiVoiceId || undefined)
           } catch (err) {
             console.warn('[recorder] AI morph failed, keeping original', err)
+            const detail =
+              err instanceof Error ? err.message : t('recorder.voice.aiUnavailable')
             setError(
-              err instanceof Error
-                ? err.message
-                : t('recorder.voice.aiUnavailable'),
+              t('recorder.voice.aiFailedKeep').replace('{detail}', detail),
             )
           }
         } else {
@@ -961,6 +961,10 @@ export function ScreenRecorderView() {
                     </span>
                   </div>
                   <div className="crm-recorder-card-actions">
+                    <OnlineRecordingPreview
+                      storagePath={rec.storage_path}
+                      title={rec.title}
+                    />
                     <button
                       type="button"
                       className="btn btn-ghost"
@@ -1096,5 +1100,51 @@ function slugify(s: string): string {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
       .slice(0, 60) || 'recording'
+  )
+}
+
+function OnlineRecordingPreview({
+  storagePath,
+  title,
+}: {
+  storagePath: string
+  title: string
+}) {
+  const { t } = useCrmI18n()
+  const [src, setSrc] = useState<string | null>(null)
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const url = await getRecordingSignedUrl(storagePath)
+        if (!cancelled) setSrc(url)
+      } catch {
+        if (!cancelled) setFailed(true)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [storagePath])
+
+  if (failed) {
+    return (
+      <p className="crm-recorder-hint">{t('recorder.edit.loadFailed')}</p>
+    )
+  }
+  if (!src) {
+    return <p className="crm-recorder-hint">{t('recorder.edit.loading')}</p>
+  }
+  return (
+    <video
+      className="crm-recorder-thumb"
+      src={src}
+      controls
+      playsInline
+      preload="metadata"
+      title={title}
+    />
   )
 }

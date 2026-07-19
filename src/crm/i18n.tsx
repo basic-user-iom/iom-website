@@ -295,6 +295,8 @@ const en: Dict = {
   'recorder.voice.aiHint':
     'AI morph applies after you stop. Voices load from your ElevenLabs account.',
   'recorder.voice.aiUnavailable': 'AI morph unavailable (no API key). Using live preset only.',
+  'recorder.voice.aiFailedKeep':
+    'AI voice morph failed — saved original audio. ({detail})',
   'recorder.appearance': 'Appearance',
   'recorder.appearance.real': 'Real camera',
   'recorder.appearance.filters': 'Filters',
@@ -1542,6 +1544,8 @@ const sr: Dict = {
   'recorder.voice.aiHint':
     'AI morf se primenjuje posle zaustavljanja. Glasovi se učitavaju sa ElevenLabs naloga.',
   'recorder.voice.aiUnavailable': 'AI morf nije dostupan (nema API ključa). Koristi se samo preset.',
+  'recorder.voice.aiFailedKeep':
+    'AI morf glasa nije uspeo — sačuvan je originalni zvuk. ({detail})',
   'recorder.appearance': 'Izgled',
   'recorder.appearance.real': 'Prava kamera',
   'recorder.appearance.filters': 'Filteri',
