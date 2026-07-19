@@ -6227,6 +6227,24 @@
   gap: 0.65rem;
 }
 
+.crm-recorder-music-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  margin: 0.25rem 0 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.crm-recorder-music-upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+}
+
 .crm-recorder-editor-progress {
   position: relative;
   display: flex;

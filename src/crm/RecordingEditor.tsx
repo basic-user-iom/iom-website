@@ -5,6 +5,7 @@ import {
   useState,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { CRM_MUSIC_TRACKS } from './crmMusicTracks'
 import { useCrmI18n } from './i18n'
 import {
   normalizeRect,
@@ -33,6 +34,8 @@ interface RecordingEditorProps {
   onCancel: () => void
   onSaved: (result: RecordingEditorResult) => void | Promise<void>
 }
+
+type MusicSource = 'none' | 'catalog' | 'upload'
 
 function slugify(s: string): string {
   return (
@@ -120,6 +123,9 @@ export function RecordingEditor({
   const { t } = useCrmI18n()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const overlayRef = useRef<HTMLCanvasElement | null>(null)
+  const musicPreviewRef = useRef<HTMLAudioElement | null>(null)
+  const uploadMusicUrlRef = useRef<string | null>(null)
+  const musicFileRef = useRef<HTMLInputElement | null>(null)
   const dragStartRef = useRef<{ x: number; y: number } | null>(null)
   const durationReadyRef = useRef(false)
 
@@ -132,6 +138,13 @@ export function RecordingEditor({
   const [trimEndMs, setTrimEndMs] = useState(0)
   const [volume, setVolume] = useState(1)
   const [muted, setMuted] = useState(false)
+  const [musicSource, setMusicSource] = useState<MusicSource>('none')
+  const [catalogTrackId, setCatalogTrackId] = useState(
+    () => CRM_MUSIC_TRACKS[0]?.id ?? '',
+  )
+  const [uploadMusicUrl, setUploadMusicUrl] = useState<string | null>(null)
+  const [uploadMusicName, setUploadMusicName] = useState('')
+  const [musicVolume, setMusicVolume] = useState(0.35)
   const [blurTool, setBlurTool] = useState(false)
   const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([])
   const [blurStrength, setBlurStrength] = useState<BlurStrength>('medium')
@@ -148,10 +161,24 @@ export function RecordingEditor({
   const [loadingMeta, setLoadingMeta] = useState(true)
 
   useEffect(() => {
-    return () => URL.revokeObjectURL(objectUrl)
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+      if (uploadMusicUrlRef.current) {
+        URL.revokeObjectURL(uploadMusicUrlRef.current)
+      }
+      musicPreviewRef.current?.pause()
+    }
   }, [objectUrl])
 
   const effectiveVolume = muted ? 0 : volume
+
+  const activeMusicUrl =
+    musicSource === 'catalog'
+      ? CRM_MUSIC_TRACKS.find((tr) => tr.id === catalogTrackId)?.audioUrl ||
+        null
+      : musicSource === 'upload'
+        ? uploadMusicUrl
+        : null
 
   useEffect(() => {
     const v = videoRef.current
@@ -160,6 +187,70 @@ export function RecordingEditor({
     // Keep element unmuted for preview when volume > 0 so users hear audio
     v.muted = effectiveVolume <= 0.001
   }, [effectiveVolume])
+
+  // Preview bed music alongside the video player
+  useEffect(() => {
+    const video = videoRef.current
+    let audio = musicPreviewRef.current
+    if (!audio) {
+      audio = document.createElement('audio')
+      audio.preload = 'auto'
+      musicPreviewRef.current = audio
+    }
+
+    const stopMusic = () => {
+      audio!.pause()
+    }
+
+    if (!activeMusicUrl || musicVolume <= 0.001) {
+      stopMusic()
+      audio.removeAttribute('src')
+      return stopMusic
+    }
+
+    const absolute = new URL(activeMusicUrl, window.location.href).href
+    if (audio.src !== absolute) {
+      audio.src = activeMusicUrl
+      audio.loop = true
+    }
+    audio.volume = Math.min(1, musicVolume)
+
+    const syncFromVideo = () => {
+      if (!video || video.paused) {
+        stopMusic()
+        return
+      }
+      const offsetSec = Math.max(0, video.currentTime - trimStartMs / 1000)
+      if (Math.abs(audio!.currentTime - offsetSec) > 0.35) {
+        try {
+          audio!.currentTime = offsetSec
+        } catch {
+          /* ignore seek races */
+        }
+      }
+      if (audio!.paused) void audio!.play().catch(() => undefined)
+    }
+
+    const onPlay = () => syncFromVideo()
+    const onPause = () => stopMusic()
+    const onSeeked = () => {
+      if (video && !video.paused) syncFromVideo()
+    }
+
+    video?.addEventListener('play', onPlay)
+    video?.addEventListener('pause', onPause)
+    video?.addEventListener('seeked', onSeeked)
+    video?.addEventListener('timeupdate', syncFromVideo)
+    if (video && !video.paused) syncFromVideo()
+
+    return () => {
+      video?.removeEventListener('play', onPlay)
+      video?.removeEventListener('pause', onPause)
+      video?.removeEventListener('seeked', onSeeked)
+      video?.removeEventListener('timeupdate', syncFromVideo)
+      stopMusic()
+    }
+  }, [activeMusicUrl, musicVolume, trimStartMs])
 
   const paintOverlay = useCallback(() => {
     const video = videoRef.current
@@ -188,7 +279,9 @@ export function RecordingEditor({
     (ms: number) => {
       const v = videoRef.current
       const playable = Boolean(
-        v && (v.videoWidth > 0 || v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA),
+        v &&
+          (v.videoWidth > 0 ||
+            v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA),
       )
       const resolved =
         ms > 0
@@ -247,6 +340,33 @@ export function RecordingEditor({
     v.currentTime = ms / 1000
   }
 
+  const clearUploadMusic = () => {
+    if (uploadMusicUrlRef.current) {
+      URL.revokeObjectURL(uploadMusicUrlRef.current)
+      uploadMusicUrlRef.current = null
+    }
+    setUploadMusicUrl(null)
+    setUploadMusicName('')
+    if (musicFileRef.current) musicFileRef.current.value = ''
+  }
+
+  const onPickMusicFile = (file: File | null) => {
+    if (!file) return
+    if (!file.type.startsWith('audio/')) {
+      setError(t('recorder.edit.musicBadType'))
+      return
+    }
+    if (uploadMusicUrlRef.current) {
+      URL.revokeObjectURL(uploadMusicUrlRef.current)
+    }
+    const url = URL.createObjectURL(file)
+    uploadMusicUrlRef.current = url
+    setUploadMusicUrl(url)
+    setUploadMusicName(file.name)
+    setMusicSource('upload')
+    setError('')
+  }
+
   const onPointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
     if (!blurTool || busy) return
     const canvas = overlayRef.current
@@ -294,9 +414,16 @@ export function RecordingEditor({
   }
 
   const runEncode = async (): Promise<RecordingEditorResult> => {
+    if (musicSource === 'upload' && !uploadMusicUrl) {
+      throw new Error(t('recorder.edit.musicMissingUpload'))
+    }
+    if (musicSource === 'catalog' && !activeMusicUrl) {
+      throw new Error(t('recorder.edit.musicMissingTrack'))
+    }
     setBusy(true)
     setError('')
     setProgress(0)
+    musicPreviewRef.current?.pause()
     try {
       const result = await processVideoBlob(sourceBlob, {
         trimStartMs,
@@ -304,6 +431,9 @@ export function RecordingEditor({
         volume: effectiveVolume,
         blurRegions,
         blurStrength,
+        music: activeMusicUrl
+          ? { url: activeMusicUrl, volume: musicVolume, loop: true }
+          : null,
         onProgress: setProgress,
       })
       return result
@@ -465,6 +595,114 @@ export function RecordingEditor({
             </span>
           </div>
 
+          <div className="crm-recorder-music-panel">
+            <label className="crm-recorder-field">
+              <span>{t('recorder.edit.music')}</span>
+              <select
+                className="crm-input"
+                value={musicSource}
+                disabled={busy}
+                onChange={(e) => {
+                  const next = e.target.value as MusicSource
+                  setMusicSource(next)
+                  if (next !== 'upload') setError('')
+                }}
+              >
+                <option value="none">{t('recorder.edit.musicNone')}</option>
+                <option
+                  value="catalog"
+                  disabled={CRM_MUSIC_TRACKS.length === 0}
+                >
+                  {t('recorder.edit.musicCatalog')}
+                </option>
+                <option value="upload">{t('recorder.edit.musicUpload')}</option>
+              </select>
+            </label>
+
+            {musicSource === 'catalog' && (
+              <label className="crm-recorder-field">
+                <span>{t('recorder.edit.musicTrack')}</span>
+                <select
+                  className="crm-input"
+                  value={catalogTrackId}
+                  disabled={busy}
+                  onChange={(e) => setCatalogTrackId(e.target.value)}
+                >
+                  {CRM_MUSIC_TRACKS.map((tr) => (
+                    <option key={tr.id} value={tr.id}>
+                      {tr.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            {musicSource === 'upload' && (
+              <div className="crm-recorder-music-upload">
+                <input
+                  ref={musicFileRef}
+                  type="file"
+                  accept="audio/*"
+                  hidden
+                  onChange={(e) =>
+                    onPickMusicFile(e.target.files?.[0] ?? null)
+                  }
+                />
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busy}
+                  onClick={() => musicFileRef.current?.click()}
+                >
+                  {uploadMusicName
+                    ? t('recorder.edit.musicReplace')
+                    : t('recorder.edit.musicChooseFile')}
+                </button>
+                {uploadMusicName && (
+                  <>
+                    <span className="crm-recorder-hint crm-recorder-hint--meta">
+                      {uploadMusicName}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={clearUploadMusic}
+                    >
+                      {t('recorder.edit.musicClear')}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
+            {musicSource !== 'none' && (
+              <>
+                <label className="crm-recorder-field">
+                  <span>{t('recorder.edit.musicVolume')}</span>
+                  <input
+                    className="crm-input"
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={5}
+                    value={Math.round(musicVolume * 100)}
+                    disabled={busy}
+                    onChange={(e) =>
+                      setMusicVolume(Number(e.target.value) / 100)
+                    }
+                  />
+                </label>
+                <p className="crm-recorder-hint">
+                  {t('recorder.edit.musicHint').replace(
+                    '{pct}',
+                    String(Math.round(musicVolume * 100)),
+                  )}
+                </p>
+              </>
+            )}
+          </div>
+
           <div className="crm-recorder-toggles">
             <label className="crm-recorder-check">
               <input
@@ -575,7 +813,12 @@ export function RecordingEditor({
                 disabled={busy || !durationMs}
                 onClick={() => void handleSave()}
               >
-                {busy ? t('recorder.edit.encoding').replace('{pct}', String(Math.round(progress * 100))) : t('recorder.edit.applyLocal')}
+                {busy
+                  ? t('recorder.edit.encoding').replace(
+                      '{pct}',
+                      String(Math.round(progress * 100)),
+                    )
+                  : t('recorder.edit.applyLocal')}
               </button>
             )}
           </div>

@@ -4,6 +4,15 @@ import {
   type BlurStrength,
 } from './blurRegions'
 
+export interface MusicBedOptions {
+  /** Site-root or blob object URL. */
+  url: string
+  /** Linear gain 0..2 (typical bed ~0.25–0.5). */
+  volume: number
+  /** Loop when shorter than the clip (default true). */
+  loop?: boolean
+}
+
 export interface VideoEditOptions {
   trimStartMs: number
   /** Exclusive end; 0 or <= start means use full duration. */
@@ -12,6 +21,8 @@ export interface VideoEditOptions {
   volume: number
   blurRegions: BlurRegion[]
   blurStrength: BlurStrength
+  /** Optional background music mixed under (or instead of) original audio. */
+  music?: MusicBedOptions | null
   onProgress?: (ratio: number) => void
 }
 
@@ -34,6 +45,40 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     video.onloadedmetadata = () => resolve(video)
     video.onerror = () => reject(new Error('Video load failed'))
+  })
+}
+
+function loadMusicElement(url: string): Promise<HTMLAudioElement> {
+  const audio = document.createElement('audio')
+  audio.crossOrigin = 'anonymous'
+  audio.preload = 'auto'
+  audio.src = url
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const ok = () => {
+      if (settled) return
+      settled = true
+      audio.removeEventListener('canplaythrough', ok)
+      audio.removeEventListener('loadeddata', ok)
+      audio.removeEventListener('error', fail)
+      resolve(audio)
+    }
+    const fail = () => {
+      if (settled) return
+      settled = true
+      audio.removeEventListener('canplaythrough', ok)
+      audio.removeEventListener('loadeddata', ok)
+      audio.removeEventListener('error', fail)
+      reject(new Error('Music load failed'))
+    }
+    audio.addEventListener('canplaythrough', ok)
+    audio.addEventListener('loadeddata', ok)
+    audio.addEventListener('error', fail)
+    void audio.load()
+    window.setTimeout(() => {
+      if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) ok()
+      else fail()
+    }, 8000)
   })
 }
 
@@ -63,7 +108,7 @@ function seekVideo(video: HTMLVideoElement, timeSec: number): Promise<void> {
 }
 
 /**
- * Re-encode a video blob with optional trim, region blur, and volume gain.
+ * Re-encode a video blob with optional trim, region blur, volume gain, and music bed.
  */
 export async function processVideoBlob(
   source: Blob,
@@ -75,6 +120,7 @@ export async function processVideoBlob(
       : new Blob([source], { type: 'video/webm' })
   const url = URL.createObjectURL(typed)
   let audioCtx: AudioContext | null = null
+  let musicEl: HTMLAudioElement | null = null
   let raf = 0
 
   try {
@@ -97,8 +143,14 @@ export async function processVideoBlob(
     const volume = Math.max(0, Math.min(2, options.volume))
     const needsVolume = Math.abs(volume - 1) > 0.01
     const needsTrim = startMs > 40 || endMs < fullMs - 40
+    const musicUrl = options.music?.url?.trim() || ''
+    const musicVol = Math.max(
+      0,
+      Math.min(2, options.music?.volume ?? 0.35),
+    )
+    const needsMusic = Boolean(musicUrl) && musicVol > 0.001
 
-    if (!needsBlur && !needsVolume && !needsTrim) {
+    if (!needsBlur && !needsVolume && !needsTrim && !needsMusic) {
       options.onProgress?.(1)
       return { blob: source, durationMs: fullMs || durationMs }
     }
@@ -112,31 +164,54 @@ export async function processVideoBlob(
     const vStream = canvas.captureStream(30)
     const tracks: MediaStreamTrack[] = [...vStream.getVideoTracks()]
 
+    const useGraph = needsMusic || (needsVolume && volume > 0.001)
+
     try {
       const media = (
         video as HTMLVideoElement & { captureStream?: () => MediaStream }
       ).captureStream?.()
       const audioTracks = media?.getAudioTracks() ?? []
-      if (audioTracks.length) {
-        if (volume <= 0.001) {
-          // Mute: omit audio tracks
-        } else if (needsVolume) {
-          audioCtx = new AudioContext()
+
+      if (useGraph) {
+        audioCtx = new AudioContext()
+        const dest = audioCtx.createMediaStreamDestination()
+
+        if (audioTracks.length && volume > 0.001) {
           const src = audioCtx.createMediaStreamSource(
             new MediaStream(audioTracks),
           )
           const gain = audioCtx.createGain()
           gain.gain.value = volume
-          const dest = audioCtx.createMediaStreamDestination()
           src.connect(gain)
           gain.connect(dest)
-          tracks.push(...dest.stream.getAudioTracks())
+        }
+
+        if (needsMusic) {
+          musicEl = await loadMusicElement(musicUrl)
+          musicEl.loop = options.music?.loop !== false
+          musicEl.currentTime = 0
+          const mSrc = audioCtx.createMediaElementSource(musicEl)
+          const mGain = audioCtx.createGain()
+          mGain.gain.value = musicVol
+          mSrc.connect(mGain)
+          mGain.connect(dest)
+        }
+
+        tracks.push(...dest.stream.getAudioTracks())
+      } else if (audioTracks.length) {
+        if (volume <= 0.001) {
+          // Mute: omit audio tracks
         } else {
           tracks.push(...audioTracks)
         }
       }
-    } catch {
-      /* no audio */
+    } catch (err) {
+      if (needsMusic) throw err
+      /* no original audio */
+    }
+
+    if (needsMusic && !tracks.some((t) => t.kind === 'audio')) {
+      throw new Error('Could not mix music into recording')
     }
 
     const combined = new MediaStream(tracks)
@@ -182,6 +257,10 @@ export async function processVideoBlob(
       raf = requestAnimationFrame(paint)
     }
 
+    if (musicEl) {
+      musicEl.currentTime = 0
+      await musicEl.play().catch(() => undefined)
+    }
     await video.play()
     paint()
 
@@ -213,6 +292,11 @@ export async function processVideoBlob(
     })
 
     cancelAnimationFrame(raf)
+    if (musicEl) {
+      musicEl.pause()
+      musicEl.removeAttribute('src')
+      musicEl.load()
+    }
     if (recorder.state !== 'inactive') recorder.stop()
     video.pause()
     vStream.getTracks().forEach((t) => t.stop())
@@ -225,6 +309,11 @@ export async function processVideoBlob(
     return { blob, durationMs }
   } finally {
     cancelAnimationFrame(raf)
+    if (musicEl) {
+      musicEl.pause()
+      musicEl.removeAttribute('src')
+      musicEl.load()
+    }
     void audioCtx?.close().catch(() => undefined)
     URL.revokeObjectURL(url)
   }
