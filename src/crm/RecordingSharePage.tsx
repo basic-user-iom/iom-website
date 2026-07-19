@@ -44,7 +44,7 @@ export function RecordingSharePage({ slug }: { slug: string }) {
       setUnlocking(true)
       setError('')
       try {
-        const res = await fetch('/api/crm-recording-share', {
+        const res = await fetch('/api/crm-recorder?action=share', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ slug, password: pw }),
@@ -74,7 +74,7 @@ export function RecordingSharePage({ slug }: { slug: string }) {
       setPlayback(null)
       try {
         const res = await fetch(
-          `/api/crm-recording-share?slug=${encodeURIComponent(slug)}`,
+          `/api/crm-recorder?action=share&slug=${encodeURIComponent(slug)}`,
         )
         if (cancelled) return
         if (res.status === 404) {
@@ -103,7 +103,7 @@ export function RecordingSharePage({ slug }: { slug: string }) {
     setUnlocking(true)
     setError('')
     try {
-      const res = await fetch('/api/crm-recording-share', {
+      const res = await fetch('/api/crm-recorder?action=share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ slug, password: pw }),

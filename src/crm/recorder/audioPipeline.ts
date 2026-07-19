@@ -103,7 +103,7 @@ function makeDistortionCurve(amount: number): Float32Array {
 /** Probe whether the server has ElevenLabs configured. */
 export async function probeAiVoiceAvailable(): Promise<boolean> {
   try {
-    const res = await fetch('/api/crm-voice-morph', { method: 'OPTIONS' })
+    const res = await fetch('/api/crm-recorder?action=morph', { method: 'OPTIONS' })
     return res.headers.get('x-voice-morph-available') === '1'
   } catch {
     return false
@@ -122,7 +122,7 @@ export async function listAiVoices(): Promise<{
   voices: ElevenLabsVoiceOption[]
   defaultVoiceId: string | null
 }> {
-  const res = await fetch('/api/crm-voice-list')
+  const res = await fetch('/api/crm-recorder?action=voices')
   if (!res.ok) {
     return { voices: [], defaultVoiceId: null }
   }
@@ -149,7 +149,7 @@ export async function morphVoiceWithAi(
   }
   const audioBase64 = btoa(binary)
 
-  const res = await fetch('/api/crm-voice-morph', {
+  const res = await fetch('/api/crm-recorder?action=morph', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
