@@ -293,7 +293,10 @@ const en: Dict = {
   'recorder.voice.aiLoading': 'Loading voices…',
   'recorder.voice.aiEmpty': 'No voices found',
   'recorder.voice.aiHint':
-    'AI morph applies after you stop. Voices load from your ElevenLabs account.',
+    'AI morph applies after you stop. Free ElevenLabs cannot use library voices — pick a cloned/created voice, or upgrade.',
+  'recorder.voice.aiLibraryTag': 'library — needs paid plan',
+  'recorder.voice.aiOwnedHint':
+    'No cloned voices on this ElevenLabs account. Clone a voice at elevenlabs.io, or upgrade to use library voices.',
   'recorder.voice.aiUnavailable': 'AI morph unavailable (no API key). Using live preset only.',
   'recorder.voice.aiFailedKeep':
     'AI voice morph failed — saved original audio. ({detail})',
@@ -1556,7 +1559,10 @@ const sr: Dict = {
   'recorder.voice.aiLoading': 'Učitavanje glasova…',
   'recorder.voice.aiEmpty': 'Nema glasova',
   'recorder.voice.aiHint':
-    'AI morf se primenjuje posle zaustavljanja. Glasovi se učitavaju sa ElevenLabs naloga.',
+    'AI morf se primenjuje posle zaustavljanja. Besplatni ElevenLabs ne može da koristi library glasove — izaberite klonirani/kreirani glas ili nadogradite plan.',
+  'recorder.voice.aiLibraryTag': 'library — potreban plaćeni plan',
+  'recorder.voice.aiOwnedHint':
+    'Nema kloniranih glasova na ovom ElevenLabs nalogu. Klonirajte glas na elevenlabs.io ili nadogradite plan za library glasove.',
   'recorder.voice.aiUnavailable': 'AI morf nije dostupan (nema API ključa). Koristi se samo preset.',
   'recorder.voice.aiFailedKeep':
     'AI morf glasa nije uspeo — sačuvan je originalni zvuk. ({detail})',

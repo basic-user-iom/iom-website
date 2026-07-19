@@ -90,20 +90,43 @@ async function handleVoices(req, res) {
   const data = await elRes.json()
   const raw = Array.isArray(data?.voices) ? data.voices : []
   const voices = raw
-    .map((v) => ({
-      id: String(v.voice_id || ''),
-      name: String(v.name || 'Voice'),
-      category: v.category ? String(v.category) : null,
-      description: v.description ? String(v.description).slice(0, 160) : null,
-      previewUrl: v.preview_url ? String(v.preview_url) : null,
-    }))
+    .map((v) => {
+      const category = v.category ? String(v.category) : null
+      // Free ElevenLabs accounts cannot use premade/library voices for STS.
+      const library =
+        category === 'premade' ||
+        category === 'library' ||
+        Boolean(v.sharing?.status && category === 'premade')
+      return {
+        id: String(v.voice_id || ''),
+        name: String(v.name || 'Voice'),
+        category,
+        description: v.description ? String(v.description).slice(0, 160) : null,
+        previewUrl: v.preview_url ? String(v.preview_url) : null,
+        library,
+      }
+    })
     .filter((v) => v.id)
-    .sort((a, b) => a.name.localeCompare(b.name))
+    .sort((a, b) => {
+      if (a.library !== b.library) return a.library ? 1 : -1
+      return a.name.localeCompare(b.name)
+    })
 
+  const owned = voices.filter((v) => !v.library)
+  const envDefault = process.env.ELEVENLABS_VOICE_ID?.trim() || ''
+  // Prefer owned/cloned voices — free ElevenLabs cannot use premade library voices for STS.
   const defaultVoiceId =
-    process.env.ELEVENLABS_VOICE_ID?.trim() || voices[0]?.id || null
+    (envDefault && owned.some((v) => v.id === envDefault) ? envDefault : null) ||
+    owned[0]?.id ||
+    (envDefault && voices.some((v) => v.id === envDefault) ? envDefault : null) ||
+    voices[0]?.id ||
+    null
 
-  return res.status(200).json({ voices, defaultVoiceId })
+  return res.status(200).json({
+    voices,
+    defaultVoiceId,
+    ownedCount: owned.length,
+  })
 }
 
 async function handleMorph(req, res) {
@@ -129,7 +152,13 @@ async function handleMorph(req, res) {
   const voiceId =
     String(payload.voiceId || '').trim() ||
     process.env.ELEVENLABS_VOICE_ID?.trim() ||
-    '21m00Tcm4TlvDq8ikWAM'
+    ''
+  if (!voiceId) {
+    return res.status(400).json({
+      error:
+        'No ElevenLabs voice selected. Create/clone a voice on your account, or set ELEVENLABS_VOICE_ID.',
+    })
+  }
   const mimeType = String(payload.mimeType || 'audio/webm')
   const b64 = String(payload.audioBase64 || '')
   if (!b64) return res.status(400).json({ error: 'Missing audio' })
@@ -175,8 +204,26 @@ async function handleMorph(req, res) {
   if (!elRes.ok) {
     const text = await elRes.text().catch(() => '')
     console.error('[crm-recorder morph]', elRes.status, text.slice(0, 400))
-    return res.status(502).json({
-      error: 'ElevenLabs speech-to-speech failed',
+    let friendly = 'ElevenLabs speech-to-speech failed'
+    try {
+      const parsed = JSON.parse(text)
+      const detail = parsed?.detail
+      const code = detail?.code || detail?.status || ''
+      const msg = detail?.message || parsed?.message || ''
+      if (
+        code === 'paid_plan_required' ||
+        /paid_plan|free users|library voices/i.test(String(msg))
+      ) {
+        friendly =
+          'ElevenLabs free plan cannot use library voices for voice morph. Pick a voice you cloned/created, or upgrade ElevenLabs.'
+      } else if (msg) {
+        friendly = String(msg).slice(0, 180)
+      }
+    } catch {
+      /* keep friendly default */
+    }
+    return res.status(elRes.status === 402 || elRes.status === 403 ? 402 : 502).json({
+      error: friendly,
       detail: text.slice(0, 200),
     })
   }

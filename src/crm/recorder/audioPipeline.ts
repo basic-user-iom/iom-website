@@ -118,23 +118,32 @@ export interface ElevenLabsVoiceOption {
   category: string | null
   description: string | null
   previewUrl: string | null
+  /** Premade / voice-library — blocked for STS on free ElevenLabs plans. */
+  library?: boolean
 }
 
 export async function listAiVoices(): Promise<{
   voices: ElevenLabsVoiceOption[]
   defaultVoiceId: string | null
+  ownedCount: number
 }> {
   const res = await fetch('/api/crm-recorder?action=voices')
   if (!res.ok) {
-    return { voices: [], defaultVoiceId: null }
+    return { voices: [], defaultVoiceId: null, ownedCount: 0 }
   }
   const data = (await res.json()) as {
     voices?: ElevenLabsVoiceOption[]
     defaultVoiceId?: string | null
+    ownedCount?: number
   }
+  const voices = Array.isArray(data.voices) ? data.voices : []
   return {
-    voices: Array.isArray(data.voices) ? data.voices : [],
+    voices,
     defaultVoiceId: data.defaultVoiceId ?? null,
+    ownedCount:
+      typeof data.ownedCount === 'number'
+        ? data.ownedCount
+        : voices.filter((v) => !v.library).length,
   }
 }
 
@@ -244,12 +253,8 @@ export async function morphVoiceWithAi(
       error?: string
       detail?: string
     }
-    const detail = err.detail?.trim()
-    throw new Error(
-      detail
-        ? `${err.error || 'Voice morph failed'}: ${detail.slice(0, 120)}`
-        : err.error || 'Voice morph failed',
-    )
+    // Prefer the server's friendly message; raw ElevenLabs JSON is noisy.
+    throw new Error(err.error || 'Voice morph failed')
   }
   const audioBlob = await res.blob()
   return remuxVideoWithAudio(videoBlob, audioBlob)

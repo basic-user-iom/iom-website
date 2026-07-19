@@ -103,6 +103,7 @@ export function ScreenRecorderView() {
   const [aiVoices, setAiVoices] = useState<ElevenLabsVoiceOption[]>([])
   const [aiVoiceId, setAiVoiceId] = useState('')
   const [aiVoicesLoading, setAiVoicesLoading] = useState(false)
+  const [aiOwnedCount, setAiOwnedCount] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [blurTool, setBlurTool] = useState(false)
   const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([])
@@ -158,15 +159,20 @@ export function ScreenRecorderView() {
     let cancelled = false
     setAiVoicesLoading(true)
     void listAiVoices()
-      .then(({ voices, defaultVoiceId }) => {
+      .then(({ voices, defaultVoiceId, ownedCount }) => {
         if (cancelled) return
         setAiVoices(voices)
+        setAiOwnedCount(ownedCount)
+        const owned = voices.filter((v) => !v.library)
         setAiVoiceId((prev) => {
-          if (prev && voices.some((v) => v.id === prev)) return prev
-          if (defaultVoiceId && voices.some((v) => v.id === defaultVoiceId)) {
+          if (prev && owned.some((v) => v.id === prev)) return prev
+          if (prev && voices.some((v) => v.id === prev) && owned.length === 0) {
+            return prev
+          }
+          if (defaultVoiceId && owned.some((v) => v.id === defaultVoiceId)) {
             return defaultVoiceId
           }
-          return voices[0]?.id ?? ''
+          return owned[0]?.id ?? voices[0]?.id ?? ''
         })
       })
       .finally(() => {
@@ -863,7 +869,11 @@ export function ScreenRecorderView() {
                     {aiVoices.map((v) => (
                       <option key={v.id} value={v.id}>
                         {v.name}
-                        {v.category ? ` (${v.category})` : ''}
+                        {v.library
+                          ? ` (${t('recorder.voice.aiLibraryTag')})`
+                          : v.category
+                            ? ` (${v.category})`
+                            : ''}
                       </option>
                     ))}
                   </select>
@@ -871,9 +881,11 @@ export function ScreenRecorderView() {
               )}
               {voice === 'ai' && (
                 <span className="crm-recorder-hint">
-                  {aiAvailable
-                    ? t('recorder.voice.aiHint')
-                    : t('recorder.voice.aiUnavailable')}
+                  {!aiAvailable
+                    ? t('recorder.voice.aiUnavailable')
+                    : aiOwnedCount === 0 && aiVoices.length > 0
+                      ? t('recorder.voice.aiOwnedHint')
+                      : t('recorder.voice.aiHint')}
                 </span>
               )}
             </label>
