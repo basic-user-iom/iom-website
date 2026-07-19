@@ -15,7 +15,10 @@ import {
   type BlurStrength,
 } from './recorder/blurRegions'
 import { downloadBlob, formatDuration } from './recorder/mediaRecorder'
-import { processVideoBlob } from './recorder/videoEdit'
+import {
+  processVideoBlob,
+  resolveVideoDurationMs,
+} from './recorder/videoEdit'
 
 export interface RecordingEditorResult {
   blob: Blob
@@ -58,57 +61,6 @@ export function asPlayableVideoBlob(
       : preferredType
   if (blob.type === type) return blob
   return new Blob([blob], { type })
-}
-
-/**
- * MediaRecorder WebM often reports duration as Infinity until a seek.
- * Returns duration in ms, or 0 if unknown.
- */
-async function resolveVideoDurationMs(
-  video: HTMLVideoElement,
-): Promise<number> {
-  const finite = () => {
-    const d = video.duration
-    return Number.isFinite(d) && d > 0 ? Math.round(d * 1000) : 0
-  }
-  const known = finite()
-  if (known > 0) return known
-
-  return new Promise((resolve) => {
-    let settled = false
-    const finish = (ms: number) => {
-      if (settled) return
-      settled = true
-      video.removeEventListener('timeupdate', onTimeUpdate)
-      video.removeEventListener('seeked', onSeeked)
-      resolve(ms)
-    }
-    const onTimeUpdate = () => {
-      const ms = finite()
-      if (ms > 0) {
-        const onReset = () => {
-          video.removeEventListener('seeked', onReset)
-          finish(ms)
-        }
-        video.addEventListener('seeked', onReset)
-        video.currentTime = 0
-      }
-    }
-    const onSeeked = () => {
-      const ms = finite()
-      if (ms > 0) finish(ms)
-    }
-    video.addEventListener('timeupdate', onTimeUpdate)
-    video.addEventListener('seeked', onSeeked)
-    try {
-      // Chromium trick to force duration calculation for WebM
-      video.currentTime = 1e101
-    } catch {
-      finish(0)
-      return
-    }
-    window.setTimeout(() => finish(finite()), 2500)
-  })
 }
 
 export function RecordingEditor({

@@ -2,8 +2,26 @@ import { getSupabase, useLiveCrmBackend } from './supabaseClient'
 import type { CrmRecording } from './types'
 
 const BUCKET = 'crm-screen-recordings'
+/** Reject near-empty MediaRecorder shells (matches client heuristic floor). */
+const MIN_VIDEO_BYTES = 8_000
+const MIN_IMAGE_BYTES = 200
 
 let schemaMissing = false
+
+function assertUploadableBlob(blob: Blob): void {
+  const mime = blob.type || ''
+  if (mime.startsWith('image/')) {
+    if (blob.size < MIN_IMAGE_BYTES) {
+      throw new Error('Screenshot file is empty')
+    }
+    return
+  }
+  if (blob.size < MIN_VIDEO_BYTES) {
+    throw new Error(
+      'Recording file is empty or nearly empty. Keep screen sharing active until Stop.',
+    )
+  }
+}
 
 export function isRecordingsSchemaMissing(err: unknown): boolean {
   if (schemaMissing) return true
@@ -59,6 +77,7 @@ export async function listRecordings(): Promise<CrmRecording[]> {
   const sb = getSupabase()
   if (!sb) return []
 
+  // password_hash is only used to derive has_password; never surface the hash in UI state.
   const { data, error } = await sb
     .from('crm_recordings')
     .select(
@@ -84,6 +103,8 @@ export async function uploadRecording(input: {
   }
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase not configured')
+
+  assertUploadableBlob(input.blob)
 
   const id = crypto.randomUUID()
   const slug = randomSlug()
@@ -181,7 +202,10 @@ export async function updateRecordingTitle(
   if (error) throw new Error(error.message)
 }
 
-/** Overwrite the video file in place; share slug / password stay the same. */
+/**
+ * Replace media for an existing recording.
+ * Uploads to a new path first, then swaps the DB row (share slug / password stay).
+ */
 export async function replaceRecordingBlob(
   rec: CrmRecording,
   blob: Blob,
@@ -193,13 +217,25 @@ export async function replaceRecordingBlob(
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase not configured')
 
+  assertUploadableBlob(blob)
+
   const mime = blob.type || rec.mime_type || 'video/webm'
-  const { error: upErr } = await sb.storage
-    .from(BUCKET)
-    .upload(rec.storage_path, blob, {
-      contentType: mime,
-      upsert: true,
-    })
+  const ext = mime.includes('png')
+    ? 'png'
+    : mime.includes('jpeg') || mime.includes('jpg')
+      ? 'jpg'
+      : mime.includes('webp')
+        ? 'webp'
+        : mime.includes('mp4')
+          ? 'mp4'
+          : 'webm'
+  const oldPath = rec.storage_path
+  const newPath = `${rec.owner_id}/${rec.id}-v${Date.now().toString(36)}.${ext}`
+
+  const { error: upErr } = await sb.storage.from(BUCKET).upload(newPath, blob, {
+    contentType: mime,
+    upsert: false,
+  })
   if (upErr) {
     if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
     throw new Error(upErr.message)
@@ -208,6 +244,7 @@ export async function replaceRecordingBlob(
   const { data, error } = await sb
     .from('crm_recordings')
     .update({
+      storage_path: newPath,
       mime_type: mime,
       file_size: blob.size,
       duration_ms: Math.round(durationMs),
@@ -220,9 +257,15 @@ export async function replaceRecordingBlob(
     .single()
 
   if (error) {
+    await sb.storage.from(BUCKET).remove([newPath]).catch(() => undefined)
     if (isRecordingsSchemaMissing(error)) markSchemaMissing()
     throw new Error(error.message)
   }
+
+  if (oldPath && oldPath !== newPath) {
+    await sb.storage.from(BUCKET).remove([oldPath]).catch(() => undefined)
+  }
+
   return mapRow(data as Record<string, unknown>)
 }
 
@@ -249,8 +292,7 @@ export function embedSnippetForSlug(
   mimeType?: string | null,
 ): string {
   const src = `${window.location.origin}/r/${slug}?embed=1`
-  if (mimeType?.startsWith('image/')) {
-    return `<img src="${src}" alt="Screenshot" style="max-width:100%;height:auto" />`
-  }
-  return `<iframe src="${src}" title="Recording" width="720" height="405" allow="autoplay; fullscreen" style="border:0;max-width:100%;aspect-ratio:16/9"></iframe>`
+  const title = mimeType?.startsWith('image/') ? 'Screenshot' : 'Recording'
+  // Share page is SPA HTML — always iframe (img src would load HTML, not the file).
+  return `<iframe src="${src}" title="${title}" width="720" height="405" allow="autoplay; fullscreen" style="border:0;max-width:100%;aspect-ratio:16/9"></iframe>`
 }

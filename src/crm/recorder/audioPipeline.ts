@@ -1,3 +1,4 @@
+import { getSupabase } from '../supabaseClient'
 import type { VoicePreset } from './types'
 
 export interface AudioPipeline {
@@ -6,9 +7,12 @@ export interface AudioPipeline {
   stop: () => void
 }
 
+/** Keep under Vercel ~4.5MB JSON body after base64. */
+const MAX_MORPH_AUDIO_BYTES = 3 * 1024 * 1024
+
 /**
  * Mic → Web Audio effects → MediaStream destination.
- * Live presets only; AI morph is applied post-record via /api/crm-voice-morph.
+ * Live presets only; AI morph is applied post-record via /api/crm-recorder?action=morph.
  */
 export async function createAudioPipeline(
   voice: VoicePreset,
@@ -25,6 +29,9 @@ export async function createAudioPipeline(
   })
 
   const context = new AudioContext()
+  if (context.state === 'suspended') {
+    await context.resume().catch(() => undefined)
+  }
   const source = context.createMediaStreamSource(mic)
   const destination = context.createMediaStreamDestination()
 
@@ -102,6 +109,15 @@ function makeDistortionCurve(amount: number): Float32Array {
   return curve
 }
 
+async function crmAccessToken(): Promise<string> {
+  const sb = getSupabase()
+  if (!sb) throw new Error('Sign in to use AI voice morph')
+  const { data } = await sb.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Sign in to use AI voice morph')
+  return token
+}
+
 /** Probe whether the server has ElevenLabs configured. */
 export async function probeAiVoiceAvailable(): Promise<boolean> {
   try {
@@ -127,7 +143,15 @@ export async function listAiVoices(): Promise<{
   defaultVoiceId: string | null
   ownedCount: number
 }> {
-  const res = await fetch('/api/crm-recorder?action=voices')
+  let token: string
+  try {
+    token = await crmAccessToken()
+  } catch {
+    return { voices: [], defaultVoiceId: null, ownedCount: 0 }
+  }
+  const res = await fetch('/api/crm-recorder?action=voices', {
+    headers: { Authorization: `Bearer ${token}` },
+  })
   if (!res.ok) {
     return { voices: [], defaultVoiceId: null, ownedCount: 0 }
   }
@@ -147,13 +171,17 @@ export async function listAiVoices(): Promise<{
   }
 }
 
-/** Pull audio-only from a recorded video (ElevenLabs needs audio, not the full file). */
+/**
+ * Pull audio-only from a recorded video.
+ * Prefer Web Audio MediaElementSource (works with muted video in Chromium).
+ */
 async function extractAudioBlob(videoBlob: Blob): Promise<Blob> {
   const url = URL.createObjectURL(
     videoBlob.type.startsWith('video/') || videoBlob.type.startsWith('audio/')
       ? videoBlob
       : new Blob([videoBlob], { type: 'video/webm' }),
   )
+  let audioCtx: AudioContext | null = null
   try {
     const video = document.createElement('video')
     video.src = url
@@ -165,22 +193,31 @@ async function extractAudioBlob(videoBlob: Blob): Promise<Blob> {
       video.onerror = () => reject(new Error('Could not read recording audio'))
     })
 
-    const media = (
-      video as HTMLVideoElement & { captureStream?: () => MediaStream }
-    ).captureStream?.()
-    const tracks = media?.getAudioTracks() ?? []
+    audioCtx = new AudioContext()
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume().catch(() => undefined)
+    }
+    const elSource = audioCtx.createMediaElementSource(video)
+    const dest = audioCtx.createMediaStreamDestination()
+    elSource.connect(dest)
+    // Keep graph alive without audible playback in the tab.
+    const silent = audioCtx.createGain()
+    silent.gain.value = 0
+    elSource.connect(silent)
+    silent.connect(audioCtx.destination)
+
+    const tracks = dest.stream.getAudioTracks()
     if (!tracks.length) {
       throw new Error('No microphone audio in this recording to morph')
     }
 
-    const audioStream = new MediaStream(tracks)
     const mime = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
       ? 'audio/webm;codecs=opus'
       : MediaRecorder.isTypeSupported('audio/webm')
         ? 'audio/webm'
         : 'audio/mp4'
     const chunks: BlobPart[] = []
-    const recorder = new MediaRecorder(audioStream, { mimeType: mime })
+    const recorder = new MediaRecorder(dest.stream, { mimeType: mime })
     const done = new Promise<Blob>((resolve, reject) => {
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data)
@@ -212,6 +249,7 @@ async function extractAudioBlob(videoBlob: Blob): Promise<Blob> {
     tracks.forEach((t) => t.stop())
     return await done
   } finally {
+    if (audioCtx) void audioCtx.close()
     URL.revokeObjectURL(url)
   }
 }
@@ -233,15 +271,19 @@ export async function morphVoiceWithAi(
   videoBlob: Blob,
   voiceId?: string,
 ): Promise<Blob> {
+  const token = await crmAccessToken()
   const audioOnly = await extractAudioBlob(videoBlob)
-  if (audioOnly.size > 20 * 1024 * 1024) {
+  if (audioOnly.size > MAX_MORPH_AUDIO_BYTES) {
     throw new Error('Audio too long for AI morph (try a shorter clip)')
   }
   const audioBase64 = await blobToBase64(audioOnly)
 
   const res = await fetch('/api/crm-recorder?action=morph', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
     body: JSON.stringify({
       audioBase64,
       voiceId: voiceId || undefined,
@@ -253,7 +295,6 @@ export async function morphVoiceWithAi(
       error?: string
       detail?: string
     }
-    // Prefer the server's friendly message; raw ElevenLabs JSON is noisy.
     throw new Error(err.error || 'Voice morph failed')
   }
   const audioBlob = await res.blob()
@@ -288,10 +329,13 @@ async function remuxVideoWithAudio(
     canvas.width = video.videoWidth || 1280
     canvas.height = video.videoHeight || 720
     const ctx = canvas.getContext('2d')
-    if (!ctx) return videoBlob
+    if (!ctx) throw new Error('Canvas unavailable for voice remux')
 
     const vStream = canvas.captureStream(30)
     const audioCtx = new AudioContext()
+    if (audioCtx.state === 'suspended') {
+      await audioCtx.resume().catch(() => undefined)
+    }
     const audioSource = audioCtx.createMediaElementSource(audio)
     const dest = audioCtx.createMediaStreamDestination()
     audioSource.connect(dest)
@@ -307,11 +351,16 @@ async function remuxVideoWithAudio(
     const chunks: BlobPart[] = []
     const recorder = new MediaRecorder(combined, { mimeType: mime })
 
-    const done = new Promise<Blob>((resolve) => {
+    const done = new Promise<Blob>((resolve, reject) => {
       recorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunks.push(e.data)
       }
-      recorder.onstop = () => resolve(new Blob(chunks, { type: mime }))
+      recorder.onstop = () => {
+        const blob = new Blob(chunks, { type: mime })
+        if (blob.size < 1000) reject(new Error('Voice remux produced an empty file'))
+        else resolve(blob)
+      }
+      recorder.onerror = () => reject(new Error('Voice remux failed'))
     })
 
     let raf = 0
@@ -333,18 +382,19 @@ async function remuxVideoWithAudio(
         resolve()
       }
       video.addEventListener('ended', finish)
-      window.setTimeout(finish, (video.duration || 60) * 1000 + 2000)
+      const ms = Number.isFinite(video.duration)
+        ? video.duration * 1000
+        : 60_000
+      window.setTimeout(finish, ms + 2000)
     })
 
     cancelAnimationFrame(raf)
-    recorder.stop()
+    if (recorder.state !== 'inactive') recorder.stop()
     video.pause()
     audio.pause()
     void audioCtx.close()
     vStream.getTracks().forEach((t) => t.stop())
     return await done
-  } catch {
-    return videoBlob
   } finally {
     URL.revokeObjectURL(videoUrl)
     URL.revokeObjectURL(audioUrl)

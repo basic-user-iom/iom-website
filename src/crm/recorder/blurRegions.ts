@@ -15,8 +15,6 @@ const BLUR_PX: Record<BlurStrength, number> = {
   strong: 28,
 }
 
-const scratch = document.createElement('canvas')
-
 /**
  * Blur rectangular regions on an already-drawn frame.
  * Regions are normalized 0–1.
@@ -32,6 +30,9 @@ export function applyBlurRegions(
   const cw = canvas.width
   const ch = canvas.height
   if (!cw || !ch) return
+
+  // Per-call scratch — avoid races between live preview and export.
+  const scratch = document.createElement('canvas')
 
   for (const r of regions) {
     const x = Math.max(0, Math.floor(r.x * cw))

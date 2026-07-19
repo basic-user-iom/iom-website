@@ -302,6 +302,8 @@ const en: Dict = {
     'Screen sharing ended. Recording stopped — click Start to record again.',
   'recorder.error.emptyRecording':
     'Recording file is empty or nearly empty. Keep the Chrome “Sharing…” bar active until you press Stop, then try again.',
+  'recorder.error.tabHidden':
+    'This CRM tab is in the background — the recording may freeze. Keep this tab visible while recording.',
   'recorder.mic': 'Microphone',
   'recorder.camera': 'Camera (PiP)',
   'recorder.noise': 'Noise suppression',
@@ -1631,6 +1633,8 @@ const sr: Dict = {
     'Deljenje ekrana je prekinuto. Snimanje je zaustavljeno — kliknite Počni da snimate ponovo.',
   'recorder.error.emptyRecording':
     'Snimak je prazan ili skoro prazan. Držite Chrome traku „Sharing…” aktivnom dok ne pritisnete Stop, pa pokušajte ponovo.',
+  'recorder.error.tabHidden':
+    'CRM kartica je u pozadini — snimak može da se zamrzne. Držite ovu karticu vidljivom tokom snimanja.',
   'recorder.mic': 'Mikrofon',
   'recorder.camera': 'Kamera (PiP)',
   'recorder.noise': 'Suzbijanje šuma',

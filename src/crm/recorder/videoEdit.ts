@@ -48,6 +48,57 @@ function loadVideo(url: string): Promise<HTMLVideoElement> {
   })
 }
 
+/**
+ * MediaRecorder WebM often reports duration as Infinity until a seek.
+ * Returns duration in ms, or 0 if unknown.
+ */
+export async function resolveVideoDurationMs(
+  video: HTMLVideoElement,
+): Promise<number> {
+  const finite = () => {
+    const d = video.duration
+    return Number.isFinite(d) && d > 0 ? Math.round(d * 1000) : 0
+  }
+  const known = finite()
+  if (known > 0) return known
+
+  return new Promise((resolve) => {
+    let settled = false
+    const finish = (ms: number) => {
+      if (settled) return
+      settled = true
+      video.removeEventListener('timeupdate', onTimeUpdate)
+      video.removeEventListener('seeked', onSeeked)
+      resolve(ms)
+    }
+    const onTimeUpdate = () => {
+      const ms = finite()
+      if (ms > 0) {
+        const onReset = () => {
+          video.removeEventListener('seeked', onReset)
+          finish(ms)
+        }
+        video.addEventListener('seeked', onReset)
+        video.currentTime = 0
+      }
+    }
+    const onSeeked = () => {
+      const ms = finite()
+      if (ms > 0) finish(ms)
+    }
+    video.addEventListener('timeupdate', onTimeUpdate)
+    video.addEventListener('seeked', onSeeked)
+    try {
+      // Chromium trick to force duration calculation for WebM
+      video.currentTime = 1e101
+    } catch {
+      finish(0)
+      return
+    }
+    window.setTimeout(() => finish(finite()), 2500)
+  })
+}
+
 function loadMusicElement(url: string): Promise<HTMLAudioElement> {
   const audio = document.createElement('audio')
   audio.crossOrigin = 'anonymous'
@@ -125,7 +176,16 @@ export async function processVideoBlob(
 
   try {
     const video = await loadVideo(url)
-    const fullMs = Math.round((video.duration || 0) * 1000)
+    const resolvedMs = await resolveVideoDurationMs(video)
+    const fullMs =
+      resolvedMs > 0
+        ? resolvedMs
+        : Number.isFinite(video.duration) && video.duration > 0
+          ? Math.round(video.duration * 1000)
+          : 0
+    if (fullMs < 50) {
+      throw new Error('Could not read recording duration')
+    }
     const startMs = Math.max(0, Math.min(options.trimStartMs, fullMs))
     let endMs =
       options.trimEndMs > startMs

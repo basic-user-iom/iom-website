@@ -140,6 +140,7 @@ export function ScreenRecorderView() {
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const recorderRef = useRef<RecordingHandle | null>(null)
+  const stoppingRef = useRef(false)
   const floatControlsRef = useRef<FloatControlsHandle | null>(null)
   const previewCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const timerRef = useRef<number | null>(null)
@@ -583,19 +584,24 @@ export function ScreenRecorderView() {
   }
 
   const stopRecording = async () => {
-    if (!recorderRef.current) return
+    if (stoppingRef.current || !recorderRef.current) return
+    stoppingRef.current = true
+    const recorder = recorderRef.current
+    const capture = captureRef.current
+    // Clear refs immediately so display-ended / float Stop cannot re-enter.
+    recorderRef.current = null
+    captureRef.current = null
+
     closeFloatControls()
     if (timerRef.current) {
       window.clearInterval(timerRef.current)
       timerRef.current = null
     }
-    const durationMs = recorderRef.current.getElapsedMs()
+    const durationMs = recorder.getElapsedMs()
     setStatus('processing')
     try {
-      let blob = await recorderRef.current.stop()
-      captureRef.current?.stop()
-      captureRef.current = null
-      recorderRef.current = null
+      let blob = await recorder.stop()
+      capture?.stop()
 
       if (isSuspiciouslySmallRecording(blob, durationMs)) {
         setError(t('recorder.error.emptyRecording'))
@@ -669,6 +675,8 @@ export function ScreenRecorderView() {
         err instanceof Error ? err.message : t('recorder.error.upload'),
       )
       setStatus('idle')
+    } finally {
+      stoppingRef.current = false
     }
   }
 
@@ -680,6 +688,19 @@ export function ScreenRecorderView() {
       floatControlsRef.current = null
     }
   }, [])
+
+  useEffect(() => {
+    const onVis = () => {
+      if (
+        document.hidden &&
+        (status === 'recording' || status === 'paused')
+      ) {
+        setError(t('recorder.error.tabHidden'))
+      }
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [status, t])
 
   const applyPostBlur = async () => {
     const source = lastBlobRef.current

@@ -1,31 +1,43 @@
 /**
  * CRM recorder APIs (single function to stay under Hobby plan limit).
  *
- * GET  ?action=voices          → ElevenLabs voice list
- * OPTIONS/POST ?action=morph   → ElevenLabs speech-to-speech
- * GET/POST ?action=share       → recording share meta / unlock
+ * GET  ?action=voices          → ElevenLabs voice list (CRM auth required)
+ * OPTIONS/POST ?action=morph   → ElevenLabs speech-to-speech (POST needs CRM auth)
+ * GET/POST ?action=share       → recording share meta / unlock (public)
  */
 
 import { createHash } from 'node:crypto'
 import {
   clientIp,
+  isAllowedWebOrigin,
   rateLimit,
+  requireSupabaseUser,
   safeJson,
   sb,
+  siteOrigin,
   supabaseConfig,
 } from './_lib/blog-helpers.js'
 
 const BUCKET = 'crm-screen-recordings'
 const SIGNED_SECONDS = 60 * 60 * 2
+/** Keep under Vercel ~4.5MB body after base64 (~3MB raw). */
+const MAX_MORPH_AUDIO_BYTES = 3 * 1024 * 1024
 
 function hasElevenKey() {
   return Boolean(process.env.ELEVENLABS_API_KEY?.trim())
 }
 
-function cors(res, origin, methods = 'GET, POST, OPTIONS') {
-  res.setHeader('Access-Control-Allow-Origin', origin || '*')
-  res.setHeader('Access-Control-Allow-Methods', methods)
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+function cors(res, origin, { allowAuth = false } = {}) {
+  const allowed = isAllowedWebOrigin(origin)
+  // Reflect only known site origins; never bare * for credentialed CRM calls.
+  const acao = allowed ? origin : siteOrigin()
+  res.setHeader('Access-Control-Allow-Origin', acao)
+  res.setHeader('Vary', 'Origin')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    allowAuth ? 'Content-Type, Authorization' : 'Content-Type',
+  )
   res.setHeader('Access-Control-Expose-Headers', 'x-voice-morph-available')
   res.setHeader('x-voice-morph-available', hasElevenKey() ? '1' : '0')
 }
@@ -64,6 +76,10 @@ async function createSignedUrl(url, key, path) {
 
 async function handleVoices(req, res) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
+
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error, voices: [] })
+
   if (!hasElevenKey()) {
     return res.status(503).json({
       error: 'AI voices not configured. Set ELEVENLABS_API_KEY on the server.',
@@ -71,7 +87,7 @@ async function handleVoices(req, res) {
     })
   }
   const ip = clientIp(req)
-  if (!rateLimit(`voice-list:${ip}`, 30, 60_000)) {
+  if (!rateLimit(`voice-list:${auth.user.id}:${ip}`, 30, 60_000)) {
     return res.status(429).json({ error: 'Too many requests', voices: [] })
   }
 
@@ -92,7 +108,6 @@ async function handleVoices(req, res) {
   const voices = raw
     .map((v) => {
       const category = v.category ? String(v.category) : null
-      // Free ElevenLabs accounts cannot use premade/library voices for STS.
       const library =
         category === 'premade' ||
         category === 'library' ||
@@ -114,7 +129,6 @@ async function handleVoices(req, res) {
 
   const owned = voices.filter((v) => !v.library)
   const envDefault = process.env.ELEVENLABS_VOICE_ID?.trim() || ''
-  // Prefer owned/cloned voices — free ElevenLabs cannot use premade library voices for STS.
   const defaultVoiceId =
     (envDefault && owned.some((v) => v.id === envDefault) ? envDefault : null) ||
     owned[0]?.id ||
@@ -133,6 +147,9 @@ async function handleMorph(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+
   if (!hasElevenKey()) {
     return res.status(503).json({
       error: 'AI voice morph is not configured. Set ELEVENLABS_API_KEY on the server.',
@@ -140,7 +157,7 @@ async function handleMorph(req, res) {
   }
 
   const ip = clientIp(req)
-  if (!rateLimit(`voice-morph:${ip}`, 8, 60_000)) {
+  if (!rateLimit(`voice-morph:${auth.user.id}:${ip}`, 8, 60_000)) {
     return res.status(429).json({ error: 'Too many voice morph requests' })
   }
 
@@ -170,8 +187,10 @@ async function handleMorph(req, res) {
     return res.status(400).json({ error: 'Invalid audio encoding' })
   }
   if (audioBuf.length < 100) return res.status(400).json({ error: 'Missing audio' })
-  if (audioBuf.length > 25 * 1024 * 1024) {
-    return res.status(413).json({ error: 'Audio too large (max 25MB)' })
+  if (audioBuf.length > MAX_MORPH_AUDIO_BYTES) {
+    return res.status(413).json({
+      error: 'Audio too large for AI morph on this server (try a shorter clip)',
+    })
   }
 
   const form = new FormData()
@@ -312,7 +331,8 @@ async function handleShare(req, res) {
 
 export default async function handler(req, res) {
   const action = actionOf(req)
-  cors(res, req.headers.origin)
+  const needsAuth = action === 'voices' || action === 'morph'
+  cors(res, req.headers.origin, { allowAuth: needsAuth })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
 

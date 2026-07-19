@@ -8,6 +8,11 @@ export interface RecordingHandle {
 
 export function startMediaRecorder(stream: MediaStream): RecordingHandle {
   const mime = pickMime()
+  if (!mime) {
+    throw new Error(
+      'This browser cannot record WebM video. Use Chrome or Edge for screen recording.',
+    )
+  }
   const chunks: BlobPart[] = []
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,

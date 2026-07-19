@@ -34,6 +34,56 @@ export function siteOrigin() {
   ).replace(/\/+$/, '')
 }
 
+/** Browser origins allowed to call authenticated CRM APIs (morph, email, …). */
+export function isAllowedWebOrigin(origin) {
+  const o = String(origin || '').trim()
+  if (!o) return false
+  const site = siteOrigin()
+  if (o === site) return true
+  if (o === 'https://www.iobjectm.com') return true
+  if (o === 'https://iobjectm.com') return true
+  if (/^https:\/\/[a-z0-9-]+(?:-[a-z0-9]+)*\.vercel\.app$/i.test(o)) return true
+  if (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(o)) return true
+  return false
+}
+
+/**
+ * Verify Supabase access token from Authorization: Bearer …
+ * @returns {Promise<{ ok: true, user: { id: string, email?: string } } | { ok: false, status: number, error: string }>}
+ */
+export async function requireSupabaseUser(req) {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
+  const anonKey =
+    process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+  if (!supabaseUrl || !anonKey) {
+    return { ok: false, status: 503, error: 'Auth is not configured' }
+  }
+  const authHeader = String(req.headers.authorization || '')
+  const token = authHeader.startsWith('Bearer ')
+    ? authHeader.slice(7).trim()
+    : ''
+  if (!token) {
+    return { ok: false, status: 401, error: 'Missing authorization' }
+  }
+  const userRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      apikey: anonKey,
+    },
+  })
+  if (!userRes.ok) {
+    return { ok: false, status: 401, error: 'Invalid or expired session' }
+  }
+  const authUser = await userRes.json().catch(() => null)
+  if (!authUser?.id) {
+    return { ok: false, status: 401, error: 'Invalid session' }
+  }
+  return {
+    ok: true,
+    user: { id: String(authUser.id), email: authUser.email || undefined },
+  }
+}
+
 export function supabaseConfig() {
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const serviceKey =
