@@ -49,6 +49,7 @@ import {
 } from './i18n'
 import { IdeasView } from './IdeasView'
 import { NotesView } from './NotesView'
+import { ScreenRecorderView } from './ScreenRecorderView'
 import { SeoView } from './SeoView'
 import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
@@ -77,6 +78,7 @@ type CrmSection =
   | 'time'
   | 'ideas'
   | 'notes'
+  | 'recordings'
   | 'blog'
   | 'links'
   | 'demos'
@@ -608,15 +610,17 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           ? t('nav.ideas')
           : section === 'notes'
             ? t('nav.notes')
-            : section === 'seo'
-              ? t('nav.seo')
-              : section === 'blog'
-                ? t('nav.blog')
-                : section === 'links'
-                  ? t('nav.links')
-                  : section === 'demos'
-                    ? t('nav.demos')
-                    : t('topbar.title')
+            : section === 'recordings'
+              ? t('nav.recordings')
+              : section === 'seo'
+                ? t('nav.seo')
+                : section === 'blog'
+                  ? t('nav.blog')
+                  : section === 'links'
+                    ? t('nav.links')
+                    : section === 'demos'
+                      ? t('nav.demos')
+                      : t('topbar.title')
 
   return (
     <div
@@ -688,6 +692,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
+              ['recordings', 'nav.recordings'],
               ['demos', 'nav.demos'],
             ] as const
           ).map(([id, key]) => (
@@ -956,6 +961,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           initialProjectId={focusIdeaProjectId}
         />
       )}
+
+      {section === 'recordings' && <ScreenRecorderView />}
 
       {section === 'blog' && <BlogView />}
 

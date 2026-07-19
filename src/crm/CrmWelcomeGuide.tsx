@@ -129,6 +129,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.nav7'),
               t('guide.nav8'),
               t('guide.nav9'),
+              t('guide.nav10'),
             ]}
           />
           <GuideSection
@@ -255,6 +256,15 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
               t('guide.notes3'),
               t('guide.notes4'),
               t('guide.notes5'),
+            ]}
+          />
+          <GuideSection
+            heading={t('guide.recordingsHeading')}
+            text={t('guide.recordingsText')}
+            items={[
+              t('guide.recordings1'),
+              t('guide.recordings2'),
+              t('guide.recordings3'),
             ]}
           />
           <GuideSection

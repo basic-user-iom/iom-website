@@ -238,10 +238,27 @@ export type CrmSection =
   | 'time'
   | 'ideas'
   | 'notes'
+  | 'recordings'
   | 'blog'
   | 'links'
   | 'demos'
   | 'seo'
+
+/** Online screen recording metadata (crm_recordings). */
+export interface CrmRecording {
+  id: string
+  owner_id: string
+  title: string
+  storage_path: string
+  mime_type: string
+  duration_ms: number | null
+  file_size: number | null
+  share_slug: string
+  /** True when a share password is set (hash never exposed to clients). */
+  has_password: boolean
+  created_at: string
+  updated_at: string
+}
 
 export type LeadInput = Omit<
   Lead,

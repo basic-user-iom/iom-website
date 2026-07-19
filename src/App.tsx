@@ -7,6 +7,11 @@ import { Footer } from './components/Footer'
 import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
 import { BlogApp, isBlogPath } from './blog/BlogApp'
 import { CrmApp } from './crm/CrmApp'
+import {
+  RecordingSharePage,
+  isRecordingSharePath,
+  recordingSlugFromPath,
+} from './crm/RecordingSharePage'
 import { IcmDemoApp, isIcmDemoPath } from './demo/icm/IcmDemoApp'
 import { ImagePrepApp, isImagePrepPath } from './tools/image-prep/ImagePrepApp'
 import {
@@ -47,6 +52,8 @@ export default function App() {
   const path = usePathname()
   const isClientLogin = path === '/client-login'
   const isCrmDemo = isCrmDemoPath(path)
+  const isRecordingShare = isRecordingSharePath(path)
+  const recordingSlug = isRecordingShare ? recordingSlugFromPath(path) : null
   const isArtistGlobe = isArtistGlobePath(path)
   const isBlog = isBlogPath(path)
   const isIcmDemo = isIcmDemoPath(path)
@@ -117,6 +124,10 @@ export default function App() {
 
   if (isIcmDemo) {
     return <IcmDemoApp />
+  }
+
+  if (isRecordingShare && recordingSlug) {
+    return <RecordingSharePage slug={recordingSlug} />
   }
 
   if (isImagePrep) {

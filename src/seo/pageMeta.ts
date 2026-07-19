@@ -26,6 +26,15 @@ export function pageMetaForPath(pathname: string): PageMeta {
     }
   }
 
+  if (path.startsWith('/r/')) {
+    return {
+      title: `${SITE_NAME} — Shared recording`,
+      description: 'Password-protected shared screen recording.',
+      canonical: `${SITE_ORIGIN}${path}`,
+      robots: 'noindex, nofollow',
+    }
+  }
+
   if (path === '/demo/icm' || path.startsWith('/demo/icm/')) {
     return {
       title: 'ICM — Private preview',
