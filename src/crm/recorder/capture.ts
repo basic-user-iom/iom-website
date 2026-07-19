@@ -13,7 +13,7 @@ const PIP_SIZE = 220
 const PIP_MARGIN = 24
 
 /**
- * Screen + optional camera PiP (real / filters / avatar) + processed mic audio.
+ * Screen + optional camera / static PiP + processed mic audio.
  */
 export async function startCapture(
   options: CaptureOptions,
@@ -26,6 +26,12 @@ export async function startCapture(
     },
     audio: false,
   })
+
+  const useStaticPip =
+    options.appearance === 'static' && Boolean(options.staticAvatarUrl?.trim())
+  const useLivePip =
+    options.camera && options.appearance !== 'static'
+  const usePip = useStaticPip || useLivePip
 
   let cameraStream: MediaStream | null = null
   let cameraVideo: HTMLVideoElement | null = null
@@ -48,7 +54,7 @@ export async function startCapture(
   }
 
   try {
-    if (options.camera) {
+    if (useLivePip) {
       cameraStream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'user',
@@ -62,7 +68,10 @@ export async function startCapture(
       cameraVideo.muted = true
       cameraVideo.playsInline = true
       await cameraVideo.play()
-      appearance = createAppearanceRenderer()
+    }
+
+    if (usePip) {
+      appearance = createAppearanceRenderer(options.staticAvatarUrl)
       pipCanvas = document.createElement('canvas')
       pipCanvas.width = PIP_SIZE
       pipCanvas.height = PIP_SIZE
@@ -104,7 +113,7 @@ export async function startCapture(
         }
         ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
 
-        if (cameraVideo && appearance && pipCanvas && options.camera) {
+        if (appearance && pipCanvas && usePip) {
           appearance.draw(cameraVideo, pipCanvas, appearanceMode)
           const x = canvas.width - PIP_SIZE - PIP_MARGIN
           const y = canvas.height - PIP_SIZE - PIP_MARGIN

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Raven Avatar Design Brief — IOM Recorder</title>
+  <style>
+    @page { size: A4; margin: 16mm 16mm 18mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.45;
+      color: #1a1d24;
+      margin: 0;
+    }
+    h1 {
+      font-size: 18pt;
+      margin: 0 0 4pt;
+      letter-spacing: -0.02em;
+    }
+    h2 {
+      font-size: 12.5pt;
+      margin: 16pt 0 6pt;
+      padding-bottom: 3pt;
+      border-bottom: 1.5px solid #0a9bb5;
+      color: #0a6f82;
+    }
+    h3 {
+      font-size: 11pt;
+      margin: 12pt 0 4pt;
+      color: #243040;
+    }
+    p, li { margin: 0 0 6pt; }
+    ul, ol { margin: 0 0 8pt; padding-left: 1.2em; }
+    .meta {
+      color: #5a6575;
+      font-size: 9.5pt;
+      margin-bottom: 12pt;
+    }
+    .box {
+      background: #f4f7fa;
+      border: 1px solid #d5dee8;
+      border-radius: 6px;
+      padding: 8pt 10pt;
+      margin: 8pt 0 10pt;
+    }
+    .box strong { color: #0a6f82; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6pt 0 10pt;
+      font-size: 9.5pt;
+    }
+    th, td {
+      border: 1px solid #d0d7e0;
+      padding: 5pt 7pt;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: #e8eef4; }
+    .check { list-style: none; padding-left: 0; }
+    .check li:before { content: "☐ "; }
+    .footer {
+      margin-top: 18pt;
+      padding-top: 8pt;
+      border-top: 1px solid #d0d7e0;
+      font-size: 8.5pt;
+      color: #6a7380;
+    }
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9pt;
+      background: #eef2f6;
+      padding: 0 3pt;
+      border-radius: 3px;
+    }
+    .prompt {
+      white-space: pre-wrap;
+      font-size: 9pt;
+      line-height: 1.4;
+      background: #0f141c;
+      color: #e8eef5;
+      padding: 10pt;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Raven Avatar Design Brief</h1>
+  <p class="meta">
+    IOM — Interactive Object Media · CRM Screen Recorder (PiP)<br />
+    Assets for realtime WebGL · Head required · Body optional (Phase 2)
+  </p>
+
+  <h2>1. Goal</h2>
+  <p>
+    Deliver realtime <strong>3D raven assets</strong> for a browser screen-recorder picture-in-picture:
+  </p>
+  <ol>
+    <li><strong>Head (required)</strong> — speaking beak puppet</li>
+    <li><strong>Body (optional / Phase 2)</strong> — full raven for larger PiP or idle presence</li>
+  </ol>
+  <p>
+    Speech is driven in-app from microphone / face tracking (beak open–close).
+    Do <strong>not</strong> bake talking animations into the file.
+  </p>
+
+  <div class="box">
+    <strong>Use case:</strong> WebGL (Chrome/Edge), ~30&nbsp;fps · Small on-screen size
+    (head often ~150–250&nbsp;px) · Silhouette and beak must read clearly when small.
+  </div>
+
+  <h2>2. Deliverables</h2>
+  <h3>Required — Head</h3>
+  <ul>
+    <li><code>raven-head.glb</code></li>
+    <li>Short note: bone/morph names + beak open axis/direction</li>
+    <li>Optional turntable preview (MP4/GIF)</li>
+  </ul>
+  <h3>Optional — Body (Phase 2)</h3>
+  <ul>
+    <li><code>raven-body.glb</code> or <code>raven-full.glb</code> (head+body)</li>
+    <li>Note: hierarchy, root, wing/leg bones if any</li>
+    <li>Optional idle pose turntable</li>
+  </ul>
+  <p>
+    Prefer <strong>two files</strong> (head-only + full) so the app can use head for tiny PiP
+    and body when space allows.
+  </p>
+
+  <h2>3. Part A — Raven head (required)</h2>
+  <h3>Include</h3>
+  <ul>
+    <li>Head + neck only (cut at mid-neck / collar)</li>
+    <li>Clear beak, eyes, crown</li>
+    <li>PBR (baseColor + optional roughness/metal/normal)</li>
+  </ul>
+  <h3>Avoid</h3>
+  <ul>
+    <li>Full body in this file</li>
+    <li>Heavy hair cards / special shaders</li>
+    <li>Baked speech animation</li>
+    <li>Huge textures (prefer total ≤ 2–4&nbsp;MB; 1K–2K maps)</li>
+  </ul>
+  <h3>Rigging — pick A or B (A preferred)</h3>
+  <table>
+    <tr>
+      <th>A — Bones (preferred)</th>
+      <th>B — Morph targets</th>
+    </tr>
+    <tr>
+      <td>
+        <code>Head</code><br />
+        <code>BeakUpper</code> and/or <code>BeakLower</code> (or single <code>Beak</code>)<br />
+        Rest pose = beak closed<br />
+        Document open rotation axis + direction
+      </td>
+      <td>
+        Exact name: <code>jawOpen</code> or <code>beakOpen</code><br />
+        <code>0</code> = closed, <code>1</code> = fully open<br />
+        Optional: <code>eyeBlinkLeft</code>, <code>eyeBlinkRight</code>
+      </td>
+    </tr>
+  </table>
+  <h3>Naming / scale / origin</h3>
+  <ul>
+    <li>Root e.g. <code>RavenHead</code> · no spaces in names</li>
+    <li>Freeze transforms · facing <strong>+Z toward camera</strong> (or document)</li>
+    <li>Origin at <strong>neck base</strong> or <strong>head center</strong> — state which</li>
+    <li>Rough head height <strong>0.2–0.4&nbsp;m</strong> (1 unit ≈ 1&nbsp;m OK)</li>
+  </ul>
+  <h3>Performance</h3>
+  <ul>
+    <li><strong>3k–15k triangles</strong> (hard cap ~30k)</li>
+    <li>1–2 materials if possible</li>
+    <li>File ideally <strong>under ~5&nbsp;MB</strong> (soft max ~15&nbsp;MB)</li>
+  </ul>
+
+  <h2>4. Part B — Raven body (optional / Phase 2)</h2>
+  <p>
+    Full raven for PiP / mascot. Speech still uses the <strong>beak</strong>;
+    body may get light idle motion in code later — prefer clean bind pose.
+    Optional short idle clip is OK.
+  </p>
+  <h3>Include</h3>
+  <ul>
+    <li>Full body: torso, wings (folded preferred), legs, tail, head + beak</li>
+    <li>Same art style and scale as the head asset</li>
+    <li>PBR · readable silhouette at small size</li>
+  </ul>
+  <h3>Prefer for PiP</h3>
+  <ul>
+    <li><strong>Folded wings</strong> (compact bounds)</li>
+    <li>Neutral standing or perched pose</li>
+    <li>Tight bounding box</li>
+  </ul>
+  <h3>Avoid</h3>
+  <ul>
+    <li>Spread-wing flight as default pose</li>
+    <li>Ultra-dense feathers / 100k+ tris</li>
+    <li>Physics / cloth · many draw calls</li>
+  </ul>
+  <h3>Rigging (body)</h3>
+  <p><strong>Minimum:</strong></p>
+  <ul>
+    <li>Root: <code>RavenRoot</code></li>
+    <li><code>Spine</code> / <code>Chest</code> / <code>Neck</code> / <code>Head</code></li>
+    <li>Beak same as head brief</li>
+    <li>Optional: <code>WingLeft</code>, <code>WingRight</code>, <code>LegLeft</code>, <code>LegRight</code>, <code>Tail</code></li>
+  </ul>
+  <p><strong>Nice to have:</strong> looping clip named <code>Idle</code> (2–4&nbsp;s, subtle breathe/weight shift).</p>
+  <h3>Performance (body)</h3>
+  <ul>
+    <li><strong>15k–40k tris</strong> (cap ~60k)</li>
+    <li>Textures total ideally ≤ 6–8&nbsp;MB</li>
+    <li>File ideally <strong>under ~10&nbsp;MB</strong> (soft max ~20&nbsp;MB)</li>
+    <li>≤ 3–4 materials</li>
+  </ul>
+  <h3>Orientation</h3>
+  <ul>
+    <li>Same as head: <strong>+Z face camera</strong>, Y up</li>
+    <li>Origin at <strong>ground between feet</strong> or <strong>perch contact</strong> — document which</li>
+  </ul>
+
+  <h2>5. Shared export checklist</h2>
+  <ul class="check">
+    <li>Export glTF 2.0 Binary (<code>.glb</code>)</li>
+    <li>Include skins / morphs used</li>
+    <li>Apply modifiers; freeze scale</li>
+    <li>No unused lights/cameras</li>
+    <li>Opens in https://gltf-viewer.donmccurdy.com/</li>
+    <li>Beak open/close works (bone or morph)</li>
+    <li>Looks clear when scaled to ~200&nbsp;px wide</li>
+  </ul>
+
+  <h2>6. Acceptance tests</h2>
+  <table>
+    <tr>
+      <th>Head</th>
+      <th>Body</th>
+    </tr>
+    <tr>
+      <td>
+        Loads alone<br />
+        Beak opens/closes<br />
+        Readable in a small circle crop
+      </td>
+      <td>
+        Loads alone<br />
+        Compact folded pose fits tall PiP<br />
+        Beak still controllable<br />
+        No extreme origin offset
+      </td>
+    </tr>
+  </table>
+
+  <h2>7. Out of scope for designer</h2>
+  <ul>
+    <li>Mic / MediaPipe wiring · recorder UI</li>
+    <li>Phoneme lip-sync (only open/close intensity)</li>
+    <li>Flight / walk cycles (unless explicitly requested later)</li>
+  </ul>
+
+  <h2>8. Paste-ready prompt for designer</h2>
+  <div class="prompt">Design and deliver realtime WebGL raven assets for a screen-recorder PiP.
+
+Required: raven-head.glb — head + neck only, PBR, 3k–15k tris, under ~5 MB, facing camera. Controllable speaking beak via bones (BeakUpper/BeakLower) or morph jawOpen/beakOpen (0=closed, 1=open). No baked speech.
+
+Optional Phase 2: raven-full.glb — full body, folded wings, standing/perched, same style/scale as head, 15k–40k tris, under ~10–20 MB. Same beak controls. Optional subtle looping Idle clip. Root at ground/perch. Y-up, +Z toward camera.
+
+Deliver GLBs + a short note listing bone/morph names and beak open axis. Test in Don McCurdy’s glTF viewer before handoff.</div>
+
+  <h2>9. References (client to attach)</h2>
+  <ul>
+    <li>Brand raven images / existing site raven</li>
+    <li>Style preference: realistic vs stylized mascot</li>
+    <li>Delivery order: head first, body second (recommended)</li>
+  </ul>
+
+  <p class="footer">
+    IOM · Raven Avatar Design Brief · Screen Recorder PiP · Confidential for production partners
+  </p>
+</body>
+</html>

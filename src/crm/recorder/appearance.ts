@@ -32,34 +32,115 @@ async function loadFaceLandmarker(): Promise<FaceLandmarker | null> {
   return landmarkerPromise
 }
 
+function loadImage(url: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('Static avatar failed to load'))
+    img.src = url
+  })
+}
+
+function drawCoverCircle(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  w: number,
+  h: number,
+) {
+  const iw = img.naturalWidth || img.width
+  const ih = img.naturalHeight || img.height
+  if (!iw || !ih) return
+  const scale = Math.max(w / iw, h / ih)
+  const dw = iw * scale
+  const dh = ih * scale
+  const dx = (w - dw) / 2
+  const dy = (h - dh) / 2
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
+  ctx.closePath()
+  ctx.clip()
+  ctx.drawImage(img, dx, dy, dw, dh)
+  ctx.restore()
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)'
+  ctx.lineWidth = 4
+  ctx.beginPath()
+  ctx.ellipse(w / 2, h / 2, w / 2 - 2, h / 2 - 2, 0, 0, Math.PI * 2)
+  ctx.stroke()
+}
+
 export interface AppearanceRenderer {
   draw: (
-    video: HTMLVideoElement,
+    video: HTMLVideoElement | null,
     pip: HTMLCanvasElement,
     mode: AppearanceMode,
   ) => void
+  setStaticImageUrl: (url: string | null) => void
   dispose: () => void
 }
 
-export function createAppearanceRenderer(): AppearanceRenderer {
+export function createAppearanceRenderer(
+  initialStaticUrl?: string | null,
+): AppearanceRenderer {
   let landmarker: FaceLandmarker | null = null
   let lastDetect = 0
   let lastLandmarks: Array<{ x: number; y: number; z: number }> | null = null
   let blend: Record<string, number> = {}
+  let staticImg: HTMLImageElement | null = null
+  let staticUrl: string | null = initialStaticUrl?.trim() || null
 
   void loadFaceLandmarker().then((lm) => {
     landmarker = lm
   })
 
+  if (staticUrl) {
+    void loadImage(staticUrl)
+      .then((img) => {
+        staticImg = img
+      })
+      .catch((err) => console.warn('[recorder] static avatar', err))
+  }
+
   const filterCanvas = document.createElement('canvas')
   const filterCtx = filterCanvas.getContext('2d')
 
   return {
+    setStaticImageUrl(url) {
+      staticUrl = url?.trim() || null
+      staticImg = null
+      if (!staticUrl) return
+      void loadImage(staticUrl)
+        .then((img) => {
+          staticImg = img
+        })
+        .catch((err) => console.warn('[recorder] static avatar', err))
+    },
     draw(video, pip, mode) {
       const w = pip.width
       const h = pip.height
       const ctx = pip.getContext('2d')
-      if (!ctx || !video.videoWidth) return
+      if (!ctx) return
+
+      if (mode === 'static') {
+        ctx.clearRect(0, 0, w, h)
+        if (staticImg?.complete && (staticImg.naturalWidth || staticImg.width)) {
+          drawCoverCircle(ctx, staticImg, w, h)
+        } else {
+          ctx.fillStyle = '#1a1f28'
+          ctx.beginPath()
+          ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = 'rgba(255,255,255,0.45)'
+          ctx.font = '600 14px system-ui,sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText('No image', w / 2, h / 2)
+        }
+        return
+      }
+
+      if (!video?.videoWidth) return
 
       if (mode === 'real') {
         ctx.save()
@@ -133,6 +214,8 @@ export function createAppearanceRenderer(): AppearanceRenderer {
         /* ignore */
       }
       landmarker = null
+      staticImg = null
+      staticUrl = null
     },
   }
 }

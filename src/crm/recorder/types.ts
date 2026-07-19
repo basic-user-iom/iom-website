@@ -1,6 +1,6 @@
 export type VoicePreset = 'natural' | 'deep' | 'high' | 'robot' | 'ai'
 
-export type AppearanceMode = 'real' | 'filters' | 'avatar'
+export type AppearanceMode = 'real' | 'filters' | 'avatar' | 'static'
 
 export type SaveDestination = 'local' | 'online'
 
@@ -26,6 +26,8 @@ export interface CaptureOptions {
   camera: boolean
   voice: VoicePreset
   appearance: AppearanceMode
+  /** Data URL or https URL for Appearance → Static image PiP. */
+  staticAvatarUrl?: string | null
   /** Browser DSP noise suppression on the mic track (default true). */
   noiseSuppression?: boolean
   /** Called each animation frame with the live composite canvas (for preview). */

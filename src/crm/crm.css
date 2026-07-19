@@ -6003,6 +6003,32 @@
   background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
+.crm-recorder-static-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.crm-recorder-static-thumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #0a0c10;
+}
+
+.crm-recorder-static-thumb.is-empty {
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
 .crm-recorder-actions {
   display: flex;
   flex-wrap: wrap;

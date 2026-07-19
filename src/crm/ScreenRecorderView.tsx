@@ -57,6 +57,26 @@ type EditorTarget =
 
 type Panel = 'record' | 'library'
 
+const STATIC_AVATAR_KEY = 'iom-crm-recorder-static-avatar'
+const STATIC_AVATAR_MAX_CHARS = 900_000 // ~keep localStorage sane
+
+function readStoredStaticAvatar(): string {
+  try {
+    return localStorage.getItem(STATIC_AVATAR_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Could not read image'))
+    reader.readAsDataURL(file)
+  })
+}
+
 export function ScreenRecorderView() {
   const { t } = useCrmI18n()
   const demoMode = isCrmDemoMode()
@@ -68,6 +88,8 @@ export function ScreenRecorderView() {
   const [noiseSuppression, setNoiseSuppression] = useState(true)
   const [voice, setVoice] = useState<VoicePreset>('natural')
   const [appearance, setAppearance] = useState<AppearanceMode>('real')
+  const [staticAvatarUrl, setStaticAvatarUrl] = useState(readStoredStaticAvatar)
+  const staticFileRef = useRef<HTMLInputElement | null>(null)
   const [destination, setDestination] = useState<SaveDestination>(
     live ? 'online' : 'local',
   )
@@ -245,10 +267,15 @@ export function ScreenRecorderView() {
   const startRecording = async () => {
     setError('')
     setPreviewUrl(null)
-    if (!mic || !camera) {
+    if (appearance === 'static' && !staticAvatarUrl.trim()) {
+      setError(t('recorder.appearance.staticMissing'))
+      return
+    }
+    const needsCameraWarn = appearance !== 'static' && !camera
+    if (!mic || needsCameraWarn) {
       const missing = [
         !mic ? t('recorder.mic') : null,
-        !camera ? t('recorder.camera') : null,
+        needsCameraWarn ? t('recorder.camera') : null,
       ]
         .filter(Boolean)
         .join(', ')
@@ -264,6 +291,8 @@ export function ScreenRecorderView() {
         noiseSuppression,
         voice: voice === 'ai' ? 'natural' : voice,
         appearance,
+        staticAvatarUrl:
+          appearance === 'static' ? staticAvatarUrl.trim() : null,
         onFrame: paintPreview,
         getBlurRegions: () => blurRegionsRef.current,
         getBlurStrength: () => blurStrengthRef.current,
@@ -287,6 +316,50 @@ export function ScreenRecorderView() {
         setError(msg || t('recorder.error.screen'))
       }
       setStatus('idle')
+    }
+  }
+
+  const persistStaticAvatar = (url: string) => {
+    setStaticAvatarUrl(url)
+    try {
+      if (url) localStorage.setItem(STATIC_AVATAR_KEY, url)
+      else localStorage.removeItem(STATIC_AVATAR_KEY)
+    } catch {
+      /* quota — keep in memory only */
+    }
+  }
+
+  const onPickStaticFile = async (file: File | null) => {
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setError(t('recorder.appearance.staticBadType'))
+      return
+    }
+    try {
+      const dataUrl = await fileToDataUrl(file)
+      if (dataUrl.length > STATIC_AVATAR_MAX_CHARS) {
+        setError(t('recorder.appearance.staticTooLarge'))
+        return
+      }
+      setError('')
+      persistStaticAvatar(dataUrl)
+    } catch {
+      setError(t('recorder.appearance.staticBadType'))
+    }
+  }
+
+  const useProfileStaticAvatar = async () => {
+    try {
+      const user = await getCurrentUser()
+      const url = user?.avatar_url?.trim()
+      if (!url) {
+        setError(t('recorder.appearance.staticNoProfile'))
+        return
+      }
+      setError('')
+      persistStaticAvatar(url)
+    } catch {
+      setError(t('recorder.appearance.staticNoProfile'))
     }
   }
 
@@ -598,12 +671,24 @@ export function ScreenRecorderView() {
                 {mic ? t('recorder.hud.micOn') : t('recorder.hud.micOff')}
               </span>
               <span
-                className={`crm-recorder-hud-pill${camera ? ' is-on' : ' is-off'}`}
+                className={`crm-recorder-hud-pill${
+                  appearance === 'static'
+                    ? staticAvatarUrl
+                      ? ' is-on'
+                      : ' is-off'
+                    : camera
+                      ? ' is-on'
+                      : ' is-off'
+                }`}
               >
                 <span className="crm-recorder-hud-dot" aria-hidden />
-                {camera
-                  ? t('recorder.hud.cameraOn')
-                  : t('recorder.hud.cameraOff')}
+                {appearance === 'static'
+                  ? staticAvatarUrl
+                    ? t('recorder.hud.staticOn')
+                    : t('recorder.hud.staticOff')
+                  : camera
+                    ? t('recorder.hud.cameraOn')
+                    : t('recorder.hud.cameraOff')}
               </span>
               {recording && (
                 <span className="crm-recorder-hud-pill is-live">
@@ -649,7 +734,7 @@ export function ScreenRecorderView() {
                   type="checkbox"
                   checked={camera}
                   onChange={(e) => setCamera(e.target.checked)}
-                  disabled={recording || busy}
+                  disabled={recording || busy || appearance === 'static'}
                 />
                 <span>{t('recorder.camera')}</span>
               </label>
@@ -796,16 +881,73 @@ export function ScreenRecorderView() {
               <select
                 className="crm-input"
                 value={appearance}
-                onChange={(e) =>
-                  setAppearance(e.target.value as AppearanceMode)
-                }
-                disabled={recording || busy || !camera}
+                onChange={(e) => {
+                  const next = e.target.value as AppearanceMode
+                  setAppearance(next)
+                  if (next === 'static') setCamera(false)
+                }}
+                disabled={recording || busy}
               >
                 <option value="real">{t('recorder.appearance.real')}</option>
                 <option value="filters">{t('recorder.appearance.filters')}</option>
                 <option value="avatar">{t('recorder.appearance.avatar')}</option>
+                <option value="static">{t('recorder.appearance.static')}</option>
               </select>
             </label>
+
+            {appearance === 'static' && (
+              <div className="crm-recorder-static-panel">
+                <p className="crm-recorder-hint">{t('recorder.appearance.staticHint')}</p>
+                {staticAvatarUrl ? (
+                  <img
+                    className="crm-recorder-static-thumb"
+                    src={staticAvatarUrl}
+                    alt=""
+                  />
+                ) : (
+                  <div className="crm-recorder-static-thumb is-empty">
+                    {t('recorder.appearance.staticEmpty')}
+                  </div>
+                )}
+                <input
+                  ref={staticFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  hidden
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null
+                    e.target.value = ''
+                    void onPickStaticFile(file)
+                  }}
+                />
+                <div className="crm-recorder-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={recording || busy}
+                    onClick={() => staticFileRef.current?.click()}
+                  >
+                    {t('recorder.appearance.staticUpload')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={recording || busy}
+                    onClick={() => void useProfileStaticAvatar()}
+                  >
+                    {t('recorder.appearance.staticUseProfile')}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={recording || busy || !staticAvatarUrl}
+                    onClick={() => persistStaticAvatar('')}
+                  >
+                    {t('recorder.appearance.staticClear')}
+                  </button>
+                </div>
+              </div>
+            )}
 
             <label className="crm-recorder-field">
               <span>{t('recorder.destination')}</span>
