@@ -303,7 +303,8 @@ const en: Dict = {
   'recorder.appearance.avatar': 'Avatar (animated)',
   'recorder.appearance.static': 'Static image',
   'recorder.appearance.staticHint':
-    'Shows a fixed photo or logo in the corner — no webcam needed. Upload an image or use your CRM profile photo.',
+    'Shows a fixed photo or logo in the corner — no webcam needed. Default is the IOM raven; upload your own or use your CRM profile photo.',
+  'recorder.appearance.staticIomRaven': 'IOM raven',
   'recorder.appearance.staticUpload': 'Upload image',
   'recorder.appearance.staticUseProfile': 'Use profile photo',
   'recorder.appearance.staticClear': 'Clear',
@@ -1565,7 +1566,8 @@ const sr: Dict = {
   'recorder.appearance.avatar': 'Avatar (animirani)',
   'recorder.appearance.static': 'Statična slika',
   'recorder.appearance.staticHint':
-    'Prikazuje fiksnu fotografiju ili logo u uglu — kamera nije potrebna. Otpremite sliku ili koristite CRM profilnu fotografiju.',
+    'Prikazuje fiksnu fotografiju ili logo u uglu — kamera nije potrebna. Podrazumevano je IOM gavran; otpremite svoju ili koristite CRM profilnu.',
+  'recorder.appearance.staticIomRaven': 'IOM gavran',
   'recorder.appearance.staticUpload': 'Otpremi sliku',
   'recorder.appearance.staticUseProfile': 'Koristi profilnu',
   'recorder.appearance.staticClear': 'Obriši',

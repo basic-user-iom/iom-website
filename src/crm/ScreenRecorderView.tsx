@@ -59,6 +59,8 @@ type Panel = 'record' | 'library'
 
 const STATIC_AVATAR_KEY = 'iom-crm-recorder-static-avatar'
 const STATIC_AVATAR_MAX_CHARS = 900_000 // ~keep localStorage sane
+/** Circular low-poly raven (same art as header mascot / favicon). */
+const IOM_RAVEN_STATIC_URL = '/favicon.png'
 
 function readStoredStaticAvatar(): string {
   try {
@@ -884,7 +886,12 @@ export function ScreenRecorderView() {
                 onChange={(e) => {
                   const next = e.target.value as AppearanceMode
                   setAppearance(next)
-                  if (next === 'static') setCamera(false)
+                  if (next === 'static') {
+                    setCamera(false)
+                    if (!staticAvatarUrl.trim()) {
+                      persistStaticAvatar(IOM_RAVEN_STATIC_URL)
+                    }
+                  }
                 }}
                 disabled={recording || busy}
               >
@@ -921,6 +928,17 @@ export function ScreenRecorderView() {
                   }}
                 />
                 <div className="crm-recorder-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={recording || busy}
+                    onClick={() => {
+                      setError('')
+                      persistStaticAvatar(IOM_RAVEN_STATIC_URL)
+                    }}
+                  >
+                    {t('recorder.appearance.staticIomRaven')}
+                  </button>
                   <button
                     type="button"
                     className="btn btn-ghost"
