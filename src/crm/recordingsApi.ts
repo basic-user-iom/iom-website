@@ -87,11 +87,21 @@ export async function uploadRecording(input: {
 
   const id = crypto.randomUUID()
   const slug = randomSlug()
-  const ext = input.blob.type.includes('mp4') ? 'mp4' : 'webm'
+  const mime = input.blob.type || 'video/webm'
+  const ext = mime.includes('png')
+    ? 'png'
+    : mime.includes('jpeg') || mime.includes('jpg')
+      ? 'jpg'
+      : mime.includes('webp')
+        ? 'webp'
+        : mime.includes('mp4')
+          ? 'mp4'
+          : 'webm'
   const path = `${input.ownerId}/${id}.${ext}`
+  const isImage = mime.startsWith('image/')
 
   const { error: upErr } = await sb.storage.from(BUCKET).upload(path, input.blob, {
-    contentType: input.blob.type || 'video/webm',
+    contentType: mime,
     upsert: false,
   })
   if (upErr) {
@@ -104,10 +114,12 @@ export async function uploadRecording(input: {
     .insert({
       id,
       owner_id: input.ownerId,
-      title: input.title.trim() || 'Untitled recording',
+      title:
+        input.title.trim() ||
+        (isImage ? 'Untitled screenshot' : 'Untitled recording'),
       storage_path: path,
-      mime_type: input.blob.type || 'video/webm',
-      duration_ms: Math.round(input.durationMs),
+      mime_type: mime,
+      duration_ms: isImage ? 0 : Math.round(input.durationMs),
       file_size: input.blob.size,
       share_slug: slug,
     })
@@ -232,7 +244,13 @@ export function shareUrlForSlug(slug: string): string {
   return `${window.location.origin}/r/${slug}`
 }
 
-export function embedSnippetForSlug(slug: string): string {
+export function embedSnippetForSlug(
+  slug: string,
+  mimeType?: string | null,
+): string {
   const src = `${window.location.origin}/r/${slug}?embed=1`
+  if (mimeType?.startsWith('image/')) {
+    return `<img src="${src}" alt="Screenshot" style="max-width:100%;height:auto" />`
+  }
   return `<iframe src="${src}" title="Recording" width="720" height="405" allow="autoplay; fullscreen" style="border:0;max-width:100%;aspect-ratio:16/9"></iframe>`
 }

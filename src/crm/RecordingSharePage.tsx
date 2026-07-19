@@ -140,17 +140,22 @@ export function RecordingSharePage({ slug }: { slug: string }) {
   if (error === 'notfound' || (error === 'load' && !meta)) {
     return (
       <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
-        <p className="rec-share-msg">Recording not found</p>
+        <p className="rec-share-msg">Not found</p>
       </div>
     )
   }
 
+  const isImage = Boolean(
+    (playback?.mimeType || meta?.mimeType || '').startsWith('image/'),
+  )
+  const kindLabel = isImage ? 'Shared screenshot' : 'Shared recording'
+
   if (!playback) {
     return (
       <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
-        {!embed && <p className="rec-share-kicker">IOM · Shared recording</p>}
-        <h1 className="rec-share-title">{meta?.title ?? 'Recording'}</h1>
-        <p className="rec-share-msg">This recording is password protected.</p>
+        {!embed && <p className="rec-share-kicker">IOM · {kindLabel}</p>}
+        <h1 className="rec-share-title">{meta?.title ?? 'Media'}</h1>
+        <p className="rec-share-msg">This file is password protected.</p>
         <form
           className="rec-share-form"
           onSubmit={(e) => {
@@ -186,12 +191,21 @@ export function RecordingSharePage({ slug }: { slug: string }) {
     <div className={`rec-share${embed ? ' rec-share--embed' : ''}`}>
       {!embed && (
         <>
-          <p className="rec-share-kicker">IOM · Shared recording</p>
+          <p className="rec-share-kicker">IOM · {kindLabel}</p>
           <h1 className="rec-share-title">{playback.title}</h1>
         </>
       )}
       <div className="rec-share-player">
-        <video src={playback.playbackUrl} controls playsInline autoPlay={embed} />
+        {playback.mimeType.startsWith('image/') ? (
+          <img src={playback.playbackUrl} alt={playback.title} />
+        ) : (
+          <video
+            src={playback.playbackUrl}
+            controls
+            playsInline
+            autoPlay={embed}
+          />
+        )}
       </div>
     </div>
   )

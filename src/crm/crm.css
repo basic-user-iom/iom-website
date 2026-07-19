@@ -6227,6 +6227,47 @@
   gap: 0.65rem;
 }
 
+.crm-recorder-screenshot {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+@media (min-width: 900px) {
+  .crm-recorder-screenshot {
+    grid-template-columns: minmax(0, 1.1fr) minmax(260px, 0.9fr);
+    align-items: start;
+  }
+}
+
+.crm-recorder-shot-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.crm-recorder-shot-img,
+.crm-recorder-thumb--image {
+  display: block;
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  object-fit: contain;
+}
+
+.crm-recorder-kind {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  background: rgba(120, 200, 255, 0.14);
+  color: rgba(180, 220, 255, 0.95);
+}
+
 .crm-recorder-music-panel {
   display: flex;
   flex-direction: column;

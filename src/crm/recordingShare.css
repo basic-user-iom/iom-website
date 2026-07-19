@@ -86,8 +86,15 @@
   align-items: center;
 }
 
-.rec-share--embed .rec-share-player video {
+.rec-share--embed .rec-share-player video,
+.rec-share--embed .rec-share-player img {
   max-height: 100vh;
+}
+
+.rec-share-player img {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .visually-hidden {

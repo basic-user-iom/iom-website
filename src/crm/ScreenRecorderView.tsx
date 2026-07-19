@@ -18,6 +18,10 @@ import {
 } from './recorder/blurRegions'
 import { startCapture, type ActiveCapture } from './recorder/capture'
 import {
+  captureDisplayScreenshot,
+  isImageMime,
+} from './recorder/screenshot'
+import {
   downloadBlob,
   formatBytes,
   formatDuration,
@@ -55,7 +59,7 @@ type EditorTarget =
       previewUrl: string
     }
 
-type Panel = 'record' | 'library'
+type Panel = 'record' | 'screenshot' | 'library'
 
 const STATIC_AVATAR_KEY = 'iom-crm-recorder-static-avatar'
 const STATIC_AVATAR_MAX_CHARS = 900_000 // ~keep localStorage sane
@@ -105,6 +109,8 @@ export function ScreenRecorderView() {
   const [aiVoicesLoading, setAiVoicesLoading] = useState(false)
   const [aiOwnedCount, setAiOwnedCount] = useState(0)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [shotPreviewUrl, setShotPreviewUrl] = useState<string | null>(null)
+  const [shotBusy, setShotBusy] = useState(false)
   const [blurTool, setBlurTool] = useState(false)
   const [blurRegions, setBlurRegions] = useState<BlurRegion[]>([])
   const [blurStrength, setBlurStrength] = useState<BlurStrength>('medium')
@@ -377,6 +383,64 @@ export function ScreenRecorderView() {
     setStatus('paused')
   }
 
+  const captureScreenshot = async () => {
+    setError('')
+    setShotBusy(true)
+    try {
+      const blob = await captureDisplayScreenshot()
+      const recTitle =
+        title.trim() ||
+        `Screenshot ${new Date().toLocaleString(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })}`
+
+      if (shotPreviewUrl) URL.revokeObjectURL(shotPreviewUrl)
+      const previewObjectUrl = URL.createObjectURL(blob)
+      setShotPreviewUrl(previewObjectUrl)
+
+      if (destination === 'local' || demoMode || !live) {
+        const libraryUrl = URL.createObjectURL(blob)
+        const local: LocalRecording = {
+          id: crypto.randomUUID(),
+          title: recTitle,
+          blob,
+          mimeType: blob.type || 'image/png',
+          durationMs: 0,
+          createdAt: new Date().toISOString(),
+          objectUrl: libraryUrl,
+        }
+        setLocalRecs((prev) => [local, ...prev])
+        downloadBlob(blob, `${slugify(recTitle)}.png`)
+        setPanel('library')
+        return
+      }
+
+      setStatus('uploading')
+      const user = await getCurrentUser()
+      if (!user) throw new Error('Not signed in')
+      await uploadRecording({
+        blob,
+        title: recTitle,
+        durationMs: 0,
+        ownerId: user.id,
+      })
+      setStatus('idle')
+      setPanel('library')
+      void refreshLibrary()
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : ''
+      if (/display|Permission|share|Abort|NotAllowed/i.test(msg)) {
+        setError(t('recorder.screenshot.error'))
+      } else {
+        setError(msg || t('recorder.screenshot.error'))
+      }
+      setStatus('idle')
+    } finally {
+      setShotBusy(false)
+    }
+  }
+
   const resumeRecording = () => {
     if (changingScreen) return
     recorderRef.current?.resume()
@@ -551,7 +615,17 @@ export function ScreenRecorderView() {
       const url = await getRecordingSignedUrl(rec.storage_path)
       const res = await fetch(url)
       const blob = await res.blob()
-      downloadBlob(blob, `${slugify(rec.title)}.webm`)
+      const mime = rec.mime_type || blob.type
+      const ext = isImageMime(mime)
+        ? mime.includes('jpeg') || mime.includes('jpg')
+          ? 'jpg'
+          : mime.includes('webp')
+            ? 'webp'
+            : 'png'
+        : mime.includes('mp4')
+          ? 'mp4'
+          : 'webm'
+      downloadBlob(blob, `${slugify(rec.title)}.${ext}`)
     } catch (err) {
       setLibError(err instanceof Error ? err.message : t('recorder.error.save'))
     }
@@ -640,6 +714,15 @@ export function ScreenRecorderView() {
           onClick={() => setPanel('record')}
         >
           {t('recorder.tab.record')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={panel === 'screenshot'}
+          className={`crm-section-tab${panel === 'screenshot' ? ' is-active' : ''}`}
+          onClick={() => setPanel('screenshot')}
+        >
+          {t('recorder.tab.screenshot')}
         </button>
         <button
           type="button"
@@ -1077,6 +1160,71 @@ export function ScreenRecorderView() {
         </div>
       )}
 
+      {panel === 'screenshot' && (
+        <div className="crm-recorder-screenshot">
+          <p className="crm-recorder-hint">{t('recorder.screenshot.intro')}</p>
+          <div className="crm-recorder-controls">
+            <label className="crm-recorder-field">
+              <span>{t('recorder.title')}</span>
+              <input
+                className="crm-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={t('recorder.titlePlaceholder')}
+                disabled={shotBusy || busy}
+              />
+            </label>
+
+            <label className="crm-recorder-field">
+              <span>{t('recorder.destination')}</span>
+              <select
+                className="crm-input"
+                value={destination}
+                onChange={(e) =>
+                  setDestination(e.target.value as SaveDestination)
+                }
+                disabled={shotBusy || busy}
+              >
+                <option value="local">{t('recorder.destination.local')}</option>
+                <option value="online" disabled={!live || demoMode}>
+                  {demoMode || !live
+                    ? t('recorder.destination.onlineDemo')
+                    : t('recorder.destination.online')}
+                </option>
+              </select>
+            </label>
+
+            <div className="crm-recorder-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => void captureScreenshot()}
+                disabled={shotBusy || busy || recording}
+              >
+                {shotBusy
+                  ? status === 'uploading'
+                    ? t('recorder.screenshot.uploading')
+                    : t('recorder.screenshot.capturing')
+                  : t('recorder.screenshot.capture')}
+              </button>
+            </div>
+          </div>
+
+          {shotPreviewUrl && (
+            <div className="crm-recorder-shot-preview">
+              <p className="crm-recorder-hint crm-recorder-hint--meta">
+                {t('recorder.screenshot.preview')}
+              </p>
+              <img
+                className="crm-recorder-shot-img"
+                src={shotPreviewUrl}
+                alt={t('recorder.screenshot.preview')}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {panel === 'library' && (
         <div className="crm-recorder-library">
           {libLoading && <p>{t('recorder.library.loading')}</p>}
@@ -1095,31 +1243,58 @@ export function ScreenRecorderView() {
                     <div className="crm-recorder-card-main">
                       <strong>{rec.title}</strong>
                       <span>
-                        {t('recorder.duration')}: {formatDuration(rec.durationMs)}{' '}
+                        <span className="crm-recorder-kind">
+                          {isImageMime(rec.mimeType)
+                            ? t('recorder.kind.image')
+                            : t('recorder.kind.video')}
+                        </span>
+                        {!isImageMime(rec.mimeType) && (
+                          <>
+                            {' '}
+                            · {t('recorder.duration')}:{' '}
+                            {formatDuration(rec.durationMs)}
+                          </>
+                        )}{' '}
                         · {formatBytes(rec.blob.size)}
                       </span>
                     </div>
                     <div className="crm-recorder-card-actions">
-                      <video
-                        className="crm-recorder-thumb"
-                        src={rec.objectUrl}
-                        controls
-                        playsInline
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={() => openLocalEditor(rec)}
-                      >
-                        {t('recorder.edit')}
-                      </button>
+                      {isImageMime(rec.mimeType) ? (
+                        <img
+                          className="crm-recorder-thumb crm-recorder-thumb--image"
+                          src={rec.objectUrl}
+                          alt={rec.title}
+                        />
+                      ) : (
+                        <video
+                          className="crm-recorder-thumb"
+                          src={rec.objectUrl}
+                          controls
+                          playsInline
+                        />
+                      )}
+                      {!isImageMime(rec.mimeType) && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={() => openLocalEditor(rec)}
+                        >
+                          {t('recorder.edit')}
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="btn btn-ghost"
                         onClick={() =>
                           downloadBlob(
                             rec.blob,
-                            `${slugify(rec.title)}.webm`,
+                            `${slugify(rec.title)}.${
+                              isImageMime(rec.mimeType)
+                                ? 'png'
+                                : rec.blob.type.includes('mp4')
+                                  ? 'mp4'
+                                  : 'webm'
+                            }`,
                           )
                         }
                       >
@@ -1155,13 +1330,25 @@ export function ScreenRecorderView() {
               <p>{t('recorder.library.empty')}</p>
             )}
             <ul className="crm-recorder-list">
-              {onlineRecs.map((rec) => (
+              {onlineRecs.map((rec) => {
+                const image = isImageMime(rec.mime_type)
+                return (
                 <li key={rec.id} className="crm-recorder-card">
                   <div className="crm-recorder-card-main">
                     <strong>{rec.title}</strong>
                     <span>
-                      {t('recorder.duration')}:{' '}
-                      {formatDuration(rec.duration_ms ?? 0)}
+                      <span className="crm-recorder-kind">
+                        {image
+                          ? t('recorder.kind.image')
+                          : t('recorder.kind.video')}
+                      </span>
+                      {!image && (
+                        <>
+                          {' '}
+                          · {t('recorder.duration')}:{' '}
+                          {formatDuration(rec.duration_ms ?? 0)}
+                        </>
+                      )}
                       {rec.file_size != null
                         ? ` · ${formatBytes(rec.file_size)}`
                         : ''}
@@ -1172,6 +1359,7 @@ export function ScreenRecorderView() {
                     <OnlineRecordingPreview
                       storagePath={rec.storage_path}
                       title={rec.title}
+                      mimeType={rec.mime_type}
                     />
                     <button
                       type="button"
@@ -1187,12 +1375,40 @@ export function ScreenRecorderView() {
                         ? t('recorder.copied')
                         : t('recorder.copyShare')}
                     </button>
+                    {image && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        onClick={() => {
+                          void (async () => {
+                            try {
+                              const url = await getRecordingSignedUrl(
+                                rec.storage_path,
+                              )
+                              await navigator.clipboard.writeText(url)
+                              setCopiedId(`imgurl-${rec.id}`)
+                              window.setTimeout(() => setCopiedId(null), 1500)
+                            } catch (err) {
+                              setLibError(
+                                err instanceof Error
+                                  ? err.message
+                                  : t('recorder.error.save'),
+                              )
+                            }
+                          })()
+                        }}
+                      >
+                        {copiedId === `imgurl-${rec.id}`
+                          ? t('recorder.copied')
+                          : t('recorder.copyImageUrl')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-ghost"
                       onClick={() => {
                         void navigator.clipboard.writeText(
-                          embedSnippetForSlug(rec.share_slug),
+                          embedSnippetForSlug(rec.share_slug, rec.mime_type),
                         )
                         setCopiedId(`embed-${rec.id}`)
                         window.setTimeout(() => setCopiedId(null), 1500)
@@ -1210,16 +1426,18 @@ export function ScreenRecorderView() {
                     >
                       {t('recorder.openShare')}
                     </a>
-                    <button
-                      type="button"
-                      className="btn btn-ghost"
-                      disabled={editorBusyId === rec.id}
-                      onClick={() => void openOnlineEditor(rec)}
-                    >
-                      {editorBusyId === rec.id
-                        ? t('recorder.edit.loading')
-                        : t('recorder.edit')}
-                    </button>
+                    {!image && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost"
+                        disabled={editorBusyId === rec.id}
+                        onClick={() => void openOnlineEditor(rec)}
+                      >
+                        {editorBusyId === rec.id
+                          ? t('recorder.edit.loading')
+                          : t('recorder.edit')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="btn btn-ghost"
@@ -1268,7 +1486,8 @@ export function ScreenRecorderView() {
                     </button>
                   </div>
                 </li>
-              ))}
+                )
+              })}
             </ul>
           </section>
         </div>
@@ -1314,13 +1533,16 @@ function slugify(s: string): string {
 function OnlineRecordingPreview({
   storagePath,
   title,
+  mimeType,
 }: {
   storagePath: string
   title: string
+  mimeType?: string
 }) {
   const { t } = useCrmI18n()
   const [src, setSrc] = useState<string | null>(null)
   const [failed, setFailed] = useState(false)
+  const image = isImageMime(mimeType)
 
   useEffect(() => {
     let cancelled = false
@@ -1344,6 +1566,15 @@ function OnlineRecordingPreview({
   }
   if (!src) {
     return <p className="crm-recorder-hint">{t('recorder.edit.loading')}</p>
+  }
+  if (image) {
+    return (
+      <img
+        className="crm-recorder-thumb crm-recorder-thumb--image"
+        src={src}
+        alt={title}
+      />
+    )
   }
   return (
     <video

@@ -262,7 +262,21 @@ const en: Dict = {
   'nav.toolsAria': 'Blog, Links and SEO',
 
   'recorder.tab.record': 'Record',
+  'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Library',
+  'recorder.screenshot.intro':
+    'Capture a tab, window, or screen as a PNG. Save online to share with Cursor for blogs and pages.',
+  'recorder.screenshot.capture': 'Capture screenshot',
+  'recorder.screenshot.capturing': 'Capturing…',
+  'recorder.screenshot.uploading': 'Saving screenshot…',
+  'recorder.screenshot.done': 'Screenshot saved.',
+  'recorder.screenshot.preview': 'Last screenshot',
+  'recorder.screenshot.error': 'Could not capture screenshot. Allow screen share and try again.',
+  'recorder.kind.video': 'Video',
+  'recorder.kind.image': 'Screenshot',
+  'recorder.copyImageUrl': 'Copy image URL',
+  'recorder.copyImageUrlHint':
+    'Signed URL (expires in ~2h). Prefer share link for lasting access.',
   'recorder.intro':
     'Capture screen, mic, and optional camera. Change voice, swap your face for an avatar, save locally or online, then share with a password-protected link.',
   'recorder.introDemo':
@@ -373,7 +387,7 @@ const en: Dict = {
   'recorder.destination.online': 'Save online',
   'recorder.destination.onlineDemo': 'Online save needs live CRM',
   'recorder.title': 'Title',
-  'recorder.titlePlaceholder': 'Recording title',
+  'recorder.titlePlaceholder': 'Recording or screenshot title',
   'recorder.preview': 'Preview',
   'recorder.status.idle': 'Ready',
   'recorder.status.recording': 'Recording…',
@@ -1547,7 +1561,22 @@ const sr: Dict = {
   'nav.toolsAria': 'Blog, Linkovi i SEO',
 
   'recorder.tab.record': 'Snimanje',
+  'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Biblioteka',
+  'recorder.screenshot.intro':
+    'Uhvatite tab, prozor ili ekran kao PNG. Sačuvajte online da podelite sa Cursorom za blogove i stranice.',
+  'recorder.screenshot.capture': 'Uhvati screenshot',
+  'recorder.screenshot.capturing': 'Hvatanje…',
+  'recorder.screenshot.uploading': 'Čuvanje screenshot-a…',
+  'recorder.screenshot.done': 'Screenshot sačuvan.',
+  'recorder.screenshot.preview': 'Poslednji screenshot',
+  'recorder.screenshot.error':
+    'Nije moguće uhvatiti screenshot. Dozvolite deljenje ekrana i pokušajte ponovo.',
+  'recorder.kind.video': 'Video',
+  'recorder.kind.image': 'Screenshot',
+  'recorder.copyImageUrl': 'Kopiraj URL slike',
+  'recorder.copyImageUrlHint':
+    'Potpisani URL (ističe za ~2h). Za trajni pristup koristite share link.',
   'recorder.intro':
     'Snimite ekran, mikrofon i opciono kameru. Promenite glas, zamenite lice avatarom, sačuvajte lokalno ili online, pa podelite linkom sa lozinkom.',
   'recorder.introDemo':
@@ -1659,7 +1688,7 @@ const sr: Dict = {
   'recorder.destination.online': 'Sačuvaj online',
   'recorder.destination.onlineDemo': 'Online čuvanje treba live CRM',
   'recorder.title': 'Naslov',
-  'recorder.titlePlaceholder': 'Naslov snimka',
+  'recorder.titlePlaceholder': 'Naslov snimka ili screenshot-a',
   'recorder.preview': 'Pregled',
   'recorder.status.idle': 'Spremno',
   'recorder.status.recording': 'Snimanje…',
