@@ -95,6 +95,7 @@ export function ScreenRecorderView() {
 
   const [panel, setPanel] = useState<Panel>('record')
   const [mic, setMic] = useState(true)
+  const [shareAudio, setShareAudio] = useState(true)
   const [camera, setCamera] = useState(true)
   const [noiseSuppression, setNoiseSuppression] = useState(true)
   const [voice, setVoice] = useState<VoicePreset>('natural')
@@ -310,6 +311,7 @@ export function ScreenRecorderView() {
     try {
       const capture = await startCapture({
         mic,
+        shareAudio,
         camera,
         noiseSuppression,
         voice: voice === 'ai' ? 'natural' : voice,
@@ -327,6 +329,9 @@ export function ScreenRecorderView() {
       captureRef.current = capture
       recorderRef.current = startMediaRecorder(capture.stream)
       setCameraPipOn(capture.isCameraPipOn())
+      if (shareAudio && !capture.hasShareAudio()) {
+        setError(t('recorder.shareAudio.missing'))
+      }
       setStatus('recording')
       setElapsed(0)
       timerRef.current = window.setInterval(() => {
@@ -937,6 +942,17 @@ export function ScreenRecorderView() {
               </span>
               <span
                 className={`crm-recorder-hud-pill${
+                  shareAudio ? ' is-on' : ' is-off'
+                }`}
+                title={t('recorder.shareAudioHint')}
+              >
+                <span className="crm-recorder-hud-dot" aria-hidden />
+                {shareAudio
+                  ? t('recorder.hud.shareAudioOn')
+                  : t('recorder.hud.shareAudioOff')}
+              </span>
+              <span
+                className={`crm-recorder-hud-pill${
                   appearance === 'static'
                     ? staticAvatarUrl
                       ? ' is-on'
@@ -993,6 +1009,18 @@ export function ScreenRecorderView() {
                   disabled={recording || busy}
                 />
                 <span>{t('recorder.mic')}</span>
+              </label>
+              <label
+                className="crm-recorder-check"
+                title={t('recorder.shareAudioHint')}
+              >
+                <input
+                  type="checkbox"
+                  checked={shareAudio}
+                  onChange={(e) => setShareAudio(e.target.checked)}
+                  disabled={recording || busy}
+                />
+                <span>{t('recorder.shareAudio')}</span>
               </label>
               <label className="crm-recorder-check">
                 <input

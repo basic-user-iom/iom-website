@@ -30,6 +30,11 @@ export interface CaptureOptions {
   staticAvatarUrl?: string | null
   /** Browser DSP noise suppression on the mic track (default true). */
   noiseSuppression?: boolean
+  /**
+   * Request audio from getDisplayMedia (Chrome: “Also share tab audio”).
+   * Needed to record YouTube / tab sound — mic alone does not capture it.
+   */
+  shareAudio?: boolean
   /** Called each animation frame with the live composite canvas (for preview). */
   onFrame?: (canvas: HTMLCanvasElement) => void
   /** Live blur boxes (normalized). Read each frame so UI can update mid-recording. */

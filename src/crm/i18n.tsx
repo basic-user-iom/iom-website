@@ -305,17 +305,24 @@ const en: Dict = {
   'recorder.error.tabHidden':
     'CRM tab is in the background — keep it visible (or use Floating controls) so the recording does not freeze on one frame.',
   'recorder.mic': 'Microphone',
+  'recorder.shareAudio': 'Tab / system audio',
+  'recorder.shareAudioHint':
+    'Records sound from the shared tab or screen (YouTube, demos, etc.). In Chrome, pick a tab and enable “Also share tab audio”.',
+  'recorder.shareAudio.missing':
+    'Tab audio was requested but not shared. Stop and start again — choose a Chrome tab and check “Also share tab audio”.',
   'recorder.camera': 'Camera (PiP)',
   'recorder.noise': 'Noise suppression',
   'recorder.noiseHint':
     'Uses the browser’s mic noise filter (Chrome/Edge work best). Turn off if music or ambience sounds muffled.',
   'recorder.hud.micOn': 'Mic on',
   'recorder.hud.micOff': 'Mic off',
+  'recorder.hud.shareAudioOn': 'Tab audio on',
+  'recorder.hud.shareAudioOff': 'Tab audio off',
   'recorder.hud.cameraOn': 'Camera on',
   'recorder.hud.cameraOff': 'Camera off',
   'recorder.hud.live': 'REC',
   'recorder.warn.inputsOff':
-    '{items} are turned off. Continue without them?\n\nTip: check Microphone / Camera before Start — the Chrome tab picker only shares the screen, not your mic or face cam.',
+    '{items} are turned off. Continue without them?\n\nTip: enable Microphone for your voice, and Tab / system audio for YouTube or demo sound (Chrome: check “Also share tab audio”).',
   'recorder.voice': 'Voice',
   'recorder.voice.natural': 'Natural',
   'recorder.voice.deep': 'Deep',
@@ -1636,17 +1643,24 @@ const sr: Dict = {
   'recorder.error.tabHidden':
     'CRM kartica je u pozadini — držite je vidljivom (ili Lebdeće kontrole) da se snimak ne zamrzne na jednom kadru.',
   'recorder.mic': 'Mikrofon',
+  'recorder.shareAudio': 'Audio taba / sistema',
+  'recorder.shareAudioHint':
+    'Snima zvuk deljenog taba ili ekrana (YouTube, demo…). U Chrome-u izaberite tab i uključite „Also share tab audio”.',
+  'recorder.shareAudio.missing':
+    'Tražen je audio taba, ali nije deljen. Zaustavite i krenite ponovo — izaberite Chrome tab i čekirajte „Also share tab audio”.',
   'recorder.camera': 'Kamera (PiP)',
   'recorder.noise': 'Suzbijanje šuma',
   'recorder.noiseHint':
     'Koristi filter šuma pregledača (najbolje Chrome/Edge). Isključite ako muzika ili ambijent zvuče prigušeno.',
   'recorder.hud.micOn': 'Mic uključen',
   'recorder.hud.micOff': 'Mic isključen',
+  'recorder.hud.shareAudioOn': 'Audio taba uključen',
+  'recorder.hud.shareAudioOff': 'Audio taba isključen',
   'recorder.hud.cameraOn': 'Kamera uključena',
   'recorder.hud.cameraOff': 'Kamera isključena',
   'recorder.hud.live': 'SNIMA',
   'recorder.warn.inputsOff':
-    '{items} su isključeni. Nastaviti bez njih?\n\nSavet: uključite Mikrofon / Kameru pre Start — Chrome birač taba deli samo ekran, ne i mic ili kameru.',
+    '{items} su isključeni. Nastaviti bez njih?\n\nSavet: uključite Mikrofon za svoj glas, i Audio taba / sistema za YouTube ili demo zvuk (Chrome: „Also share tab audio”).',
   'recorder.voice': 'Glas',
   'recorder.voice.natural': 'Prirodan',
   'recorder.voice.deep': 'Dubok',

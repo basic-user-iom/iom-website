@@ -13,18 +13,29 @@ export interface ActiveCapture {
   setCameraPip: (on: boolean) => Promise<void>
   isCameraPipOn: () => boolean
   canToggleCameraPip: boolean
+  /** True when the current share includes live tab/system audio tracks. */
+  hasShareAudio: () => boolean
 }
 
 const PIP_SIZE = 220
 const PIP_MARGIN = 24
 
-const DISPLAY_CONSTRAINTS: DisplayMediaStreamOptions = {
-  video: {
-    frameRate: 30,
-    width: { ideal: 1920 },
-    height: { ideal: 1080 },
-  },
-  audio: false,
+function displayMediaOptions(shareAudio: boolean): DisplayMediaStreamOptions {
+  return {
+    video: {
+      frameRate: 30,
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+    },
+    audio: shareAudio
+      ? {
+          // Prefer raw tab/system audio — don't "phone call" process it.
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        }
+      : false,
+  }
 }
 
 type RvfcVideo = HTMLVideoElement & {
@@ -52,7 +63,10 @@ type CanvasCaptureTrack = MediaStreamTrack & {
 export async function startCapture(
   options: CaptureOptions,
 ): Promise<ActiveCapture> {
-  let display = await navigator.mediaDevices.getDisplayMedia(DISPLAY_CONSTRAINTS)
+  const wantShareAudio = Boolean(options.shareAudio)
+  let display = await navigator.mediaDevices.getDisplayMedia(
+    displayMediaOptions(wantShareAudio),
+  )
 
   const appearanceMode = options.appearance
   const staticUrl = options.staticAvatarUrl?.trim() || ''
@@ -65,6 +79,10 @@ export async function startCapture(
   let appearance: AppearanceRenderer | null = null
   let pipCanvas: HTMLCanvasElement | null = null
   let audio: AudioPipeline | null = null
+  let mixCtx: AudioContext | null = null
+  let mixDest: MediaStreamAudioDestinationNode | null = null
+  let displayAudioNode: MediaStreamAudioSourceNode | null = null
+  let micAudioNode: MediaStreamAudioSourceNode | null = null
   let running = false
   let screenVideo: HTMLVideoElement | null = null
   let canvasStream: MediaStream | null = null
@@ -77,6 +95,24 @@ export async function startCapture(
 
   const canToggleCameraPip =
     appearanceMode === 'static' ? Boolean(staticUrl) : true
+
+  const teardownDisplayAudioNode = () => {
+    try {
+      displayAudioNode?.disconnect()
+    } catch {
+      /* ignore */
+    }
+    displayAudioNode = null
+  }
+
+  const connectDisplayAudio = () => {
+    teardownDisplayAudioNode()
+    if (!wantShareAudio || !mixCtx || !mixDest) return
+    const tracks = display.getAudioTracks().filter((t) => t.readyState === 'live')
+    if (!tracks.length) return
+    displayAudioNode = mixCtx.createMediaStreamSource(new MediaStream(tracks))
+    displayAudioNode.connect(mixDest)
+  }
 
   const cleanup = () => {
     running = false
@@ -92,6 +128,18 @@ export async function startCapture(
         /* ignore */
       }
       rvfcHandle = null
+    }
+    teardownDisplayAudioNode()
+    try {
+      micAudioNode?.disconnect()
+    } catch {
+      /* ignore */
+    }
+    micAudioNode = null
+    if (mixCtx) {
+      void mixCtx.close().catch(() => undefined)
+      mixCtx = null
+      mixDest = null
     }
     display.getTracks().forEach((t) => t.stop())
     cameraStream?.getTracks().forEach((t) => t.stop())
@@ -140,7 +188,9 @@ export async function startCapture(
     if (!running || !screenVideo) {
       throw new Error('Capture is not active')
     }
-    const next = await navigator.mediaDevices.getDisplayMedia(DISPLAY_CONSTRAINTS)
+    const next = await navigator.mediaDevices.getDisplayMedia(
+      displayMediaOptions(wantShareAudio),
+    )
     const prev = display
     display = next
     screenVideo.srcObject = display
@@ -148,6 +198,7 @@ export async function startCapture(
     prev.getTracks().forEach((t) => t.stop())
     wireDisplayEnded()
     restartProcessorPump()
+    connectDisplayAudio()
   }
 
   const wireDisplayEnded = () => {
@@ -196,6 +247,33 @@ export async function startCapture(
       audio = await createAudioPipeline(options.voice, {
         noiseSuppression: options.noiseSuppression !== false,
       })
+    }
+
+    const hasDisplayAudio =
+      wantShareAudio &&
+      display.getAudioTracks().some((t) => t.readyState !== 'ended')
+
+    let outputAudioTracks: MediaStreamTrack[] = []
+    if (audio && hasDisplayAudio) {
+      mixCtx = new AudioContext()
+      if (mixCtx.state === 'suspended') {
+        await mixCtx.resume().catch(() => undefined)
+      }
+      mixDest = mixCtx.createMediaStreamDestination()
+      micAudioNode = mixCtx.createMediaStreamSource(audio.stream)
+      micAudioNode.connect(mixDest)
+      connectDisplayAudio()
+      outputAudioTracks = mixDest.stream.getAudioTracks()
+    } else if (audio) {
+      outputAudioTracks = audio.stream.getAudioTracks()
+    } else if (hasDisplayAudio) {
+      mixCtx = new AudioContext()
+      if (mixCtx.state === 'suspended') {
+        await mixCtx.resume().catch(() => undefined)
+      }
+      mixDest = mixCtx.createMediaStreamDestination()
+      connectDisplayAudio()
+      outputAudioTracks = mixDest.stream.getAudioTracks()
     }
 
     screenVideo = document.createElement('video')
@@ -364,8 +442,10 @@ export async function startCapture(
     running = true
     startProcessorPump()
 
-    const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()]
-    if (audio) tracks.push(...audio.stream.getAudioTracks())
+    const tracks: MediaStreamTrack[] = [
+      ...canvasStream.getVideoTracks(),
+      ...outputAudioTracks,
+    ]
     const stream = new MediaStream(tracks)
 
     return {
@@ -375,6 +455,9 @@ export async function startCapture(
       setCameraPip,
       isCameraPipOn,
       canToggleCameraPip,
+      hasShareAudio: () =>
+        wantShareAudio &&
+        display.getAudioTracks().some((t) => t.readyState === 'live'),
       stop: () => {
         running = false
         stream.getTracks().forEach((t) => t.stop())
