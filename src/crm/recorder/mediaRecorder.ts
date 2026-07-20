@@ -104,8 +104,9 @@ export function formatBytes(n: number): string {
 }
 
 /**
- * MediaRecorder can finish with a near-empty WebM if the display track died
- * early (share ended / stream interrupted) while the timer kept running.
+ * MediaRecorder can finish with a near-empty or “single still” WebM if the
+ * display track died early, or if the CRM tab was backgrounded and the canvas
+ * froze (common when recording YouTube in another tab).
  */
 export function isSuspiciouslySmallRecording(
   blob: Blob,
@@ -113,7 +114,8 @@ export function isSuspiciouslySmallRecording(
 ): boolean {
   if (blob.size < 8_000) return true
   if (durationMs < 2_500) return false
-  // Healthy screen capture is typically >> 50 KB/s; empty shells are ~KB total.
+  // Healthy animated screen capture is typically >> 50 KB/s.
+  // Frozen single-frame VP9 often lands around 5–15 KB/s (e.g. ~400KB / 40s).
   const bytesPerSec = blob.size / (durationMs / 1000)
-  return bytesPerSec < 2_000
+  return bytesPerSec < 25_000
 }

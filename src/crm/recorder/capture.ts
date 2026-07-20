@@ -27,8 +27,23 @@ const DISPLAY_CONSTRAINTS: DisplayMediaStreamOptions = {
   audio: false,
 }
 
+type RvfcVideo = HTMLVideoElement & {
+  requestVideoFrameCallback?: (
+    cb: (now: number, meta: unknown) => void,
+  ) => number
+  cancelVideoFrameCallback?: (handle: number) => void
+}
+
+type TrackProcessorCtor = new (init: {
+  track: MediaStreamTrack
+}) => { readable: ReadableStream<VideoFrame> }
+
 /**
  * Screen + optional camera / static PiP + processed mic audio.
+ *
+ * Frame pump prefers MediaStreamTrackProcessor so compositing keeps running when
+ * the CRM tab is in the background (e.g. user is watching the YouTube tab they
+ * are recording). rAF alone freezes → “only one image” WebMs.
  */
 export async function startCapture(
   options: CaptureOptions,
@@ -50,12 +65,29 @@ export async function startCapture(
   let screenVideo: HTMLVideoElement | null = null
   let canvasStream: MediaStream | null = null
   let pipVisible = useStaticPip || wantLivePip
+  let rvfcHandle: number | null = null
+  let processorReader: ReadableStreamDefaultReader<VideoFrame> | null = null
+  /** Set after the frame pump is created; used when swapping display sources. */
+  let restartProcessorPump: () => void = () => undefined
 
   const canToggleCameraPip =
     appearanceMode === 'static' ? Boolean(staticUrl) : true
 
   const cleanup = () => {
     running = false
+    if (processorReader) {
+      void processorReader.cancel().catch(() => undefined)
+      processorReader = null
+    }
+    const v = screenVideo as RvfcVideo | null
+    if (rvfcHandle != null && v?.cancelVideoFrameCallback) {
+      try {
+        v.cancelVideoFrameCallback(rvfcHandle)
+      } catch {
+        /* ignore */
+      }
+      rvfcHandle = null
+    }
     display.getTracks().forEach((t) => t.stop())
     cameraStream?.getTracks().forEach((t) => t.stop())
     audio?.stop()
@@ -110,6 +142,7 @@ export async function startCapture(
     await screenVideo.play()
     prev.getTracks().forEach((t) => t.stop())
     wireDisplayEnded()
+    restartProcessorPump()
   }
 
   const wireDisplayEnded = () => {
@@ -167,86 +200,161 @@ export async function startCapture(
     await screenVideo.play()
 
     const canvas = document.createElement('canvas')
-    const syncSize = () => {
-      canvas.width = screenVideo!.videoWidth || 1280
-      canvas.height = screenVideo!.videoHeight || 720
+    const syncSize = (w: number, h: number) => {
+      if (!w || !h) return
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
+      }
     }
-    syncSize()
+    syncSize(screenVideo.videoWidth || 1280, screenVideo.videoHeight || 720)
 
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas unavailable')
 
-    running = true
+    const paintOverlays = () => {
+      const showPip =
+        pipVisible &&
+        appearance &&
+        pipCanvas &&
+        (appearanceMode === 'static' || Boolean(cameraVideo))
 
-    const draw = () => {
-      if (!running || !screenVideo) return
-      if (screenVideo.videoWidth) {
-        if (
-          canvas.width !== screenVideo.videoWidth ||
-          canvas.height !== screenVideo.videoHeight
-        ) {
-          syncSize()
-        }
-        ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+      if (showPip) {
+        appearance!.draw(cameraVideo, pipCanvas!, appearanceMode)
+        const x = canvas.width - PIP_SIZE - PIP_MARGIN
+        const y = canvas.height - PIP_SIZE - PIP_MARGIN
+        ctx.save()
+        ctx.shadowColor = 'rgba(0,0,0,0.45)'
+        ctx.shadowBlur = 18
+        ctx.beginPath()
+        ctx.ellipse(
+          x + PIP_SIZE / 2,
+          y + PIP_SIZE / 2,
+          PIP_SIZE / 2,
+          PIP_SIZE / 2,
+          0,
+          0,
+          Math.PI * 2,
+        )
+        ctx.closePath()
+        ctx.clip()
+        ctx.drawImage(pipCanvas!, x, y, PIP_SIZE, PIP_SIZE)
+        ctx.restore()
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+        ctx.lineWidth = 3
+        ctx.beginPath()
+        ctx.ellipse(
+          x + PIP_SIZE / 2,
+          y + PIP_SIZE / 2,
+          PIP_SIZE / 2,
+          PIP_SIZE / 2,
+          0,
+          0,
+          Math.PI * 2,
+        )
+        ctx.stroke()
+      }
 
-        const showPip =
-          pipVisible &&
-          appearance &&
-          pipCanvas &&
-          (appearanceMode === 'static' || Boolean(cameraVideo))
-
-        if (showPip) {
-          appearance!.draw(cameraVideo, pipCanvas!, appearanceMode)
-          const x = canvas.width - PIP_SIZE - PIP_MARGIN
-          const y = canvas.height - PIP_SIZE - PIP_MARGIN
-          ctx.save()
-          ctx.shadowColor = 'rgba(0,0,0,0.45)'
-          ctx.shadowBlur = 18
-          ctx.beginPath()
-          ctx.ellipse(
-            x + PIP_SIZE / 2,
-            y + PIP_SIZE / 2,
-            PIP_SIZE / 2,
-            PIP_SIZE / 2,
-            0,
-            0,
-            Math.PI * 2,
-          )
-          ctx.closePath()
-          ctx.clip()
-          ctx.drawImage(pipCanvas!, x, y, PIP_SIZE, PIP_SIZE)
-          ctx.restore()
-          ctx.strokeStyle = 'rgba(255,255,255,0.85)'
-          ctx.lineWidth = 3
-          ctx.beginPath()
-          ctx.ellipse(
-            x + PIP_SIZE / 2,
-            y + PIP_SIZE / 2,
-            PIP_SIZE / 2,
-            PIP_SIZE / 2,
-            0,
-            0,
-            Math.PI * 2,
-          )
-          ctx.stroke()
-        }
-
-        const regions = options.getBlurRegions?.() ?? []
-        if (regions.length) {
-          applyBlurRegions(
-            ctx,
-            canvas,
-            regions,
-            options.getBlurStrength?.() ?? 'medium',
-          )
-        }
+      const regions = options.getBlurRegions?.() ?? []
+      if (regions.length) {
+        applyBlurRegions(
+          ctx,
+          canvas,
+          regions,
+          options.getBlurStrength?.() ?? 'medium',
+        )
       }
       options.onFrame?.(canvas)
-      requestAnimationFrame(draw)
     }
-    requestAnimationFrame(draw)
 
-    canvasStream = canvas.captureStream(30)
+    const paintFromElement = () => {
+      if (!running || !screenVideo) return
+      if (!screenVideo.videoWidth) {
+        options.onFrame?.(canvas)
+        return
+      }
+      syncSize(screenVideo.videoWidth, screenVideo.videoHeight)
+      ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
+      paintOverlays()
+    }
+
+    const paintFromFrame = (frame: VideoFrame) => {
+      if (!running) {
+        frame.close()
+        return
+      }
+      const w = frame.displayWidth || frame.codedWidth
+      const h = frame.displayHeight || frame.codedHeight
+      syncSize(w || canvas.width, h || canvas.height)
+      try {
+        ctx.drawImage(frame, 0, 0, canvas.width, canvas.height)
+        paintOverlays()
+      } finally {
+        frame.close()
+      }
+    }
+
+    const startLegacyPump = () => {
+      const v = screenVideo as RvfcVideo
+      const tick = () => {
+        if (!running || !screenVideo) return
+        paintFromElement()
+        if (typeof v.requestVideoFrameCallback === 'function') {
+          rvfcHandle = v.requestVideoFrameCallback(() => {
+            rvfcHandle = null
+            tick()
+          })
+        } else {
+          requestAnimationFrame(tick)
+        }
+      }
+      tick()
+    }
+
+    const startProcessorPump = () => {
+      const Processor = (
+        window as unknown as { MediaStreamTrackProcessor?: TrackProcessorCtor }
+      ).MediaStreamTrackProcessor
+      const track = display.getVideoTracks()[0]
+      if (!Processor || !track) {
+        startLegacyPump()
+        return
+      }
+      try {
+        const processor = new Processor({ track })
+        const reader = processor.readable.getReader()
+        processorReader = reader
+        void (async () => {
+          try {
+            while (running) {
+              const { value, done } = await reader.read()
+              if (done || !running) break
+              if (value) paintFromFrame(value)
+            }
+          } catch (err) {
+            console.warn('[recorder] track processor stopped, falling back', err)
+            if (running) startLegacyPump()
+          }
+        })()
+      } catch (err) {
+        console.warn('[recorder] MediaStreamTrackProcessor unavailable', err)
+        startLegacyPump()
+      }
+    }
+
+    restartProcessorPump = () => {
+      if (!processorReader) return
+      void processorReader.cancel().catch(() => undefined)
+      processorReader = null
+      startProcessorPump()
+    }
+
+    running = true
+    startProcessorPump()
+
+    // captureStream(0) pushes a frame whenever the canvas is painted — better than
+    // timer-duplicating a frozen bitmap at 30fps when the tab is backgrounded.
+    canvasStream = canvas.captureStream(0)
     const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()]
     if (audio) tracks.push(...audio.stream.getAudioTracks())
     const stream = new MediaStream(tracks)

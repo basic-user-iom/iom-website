@@ -301,9 +301,9 @@ const en: Dict = {
   'recorder.error.shareEnded':
     'Screen sharing ended. Recording stopped — click Start to record again.',
   'recorder.error.emptyRecording':
-    'Recording file is empty or nearly empty. Keep the Chrome “Sharing…” bar active until you press Stop, then try again.',
+    'Recording looks frozen or empty (often from switching away from the CRM tab). Keep the recorder tab visible, or use Floating controls, then try again.',
   'recorder.error.tabHidden':
-    'This CRM tab is in the background — the recording may freeze. Keep this tab visible while recording.',
+    'CRM tab is in the background — keep it visible (or use Floating controls) so the recording does not freeze on one frame.',
   'recorder.mic': 'Microphone',
   'recorder.camera': 'Camera (PiP)',
   'recorder.noise': 'Noise suppression',
@@ -1632,9 +1632,9 @@ const sr: Dict = {
   'recorder.error.shareEnded':
     'Deljenje ekrana je prekinuto. Snimanje je zaustavljeno — kliknite Počni da snimate ponovo.',
   'recorder.error.emptyRecording':
-    'Snimak je prazan ili skoro prazan. Držite Chrome traku „Sharing…” aktivnom dok ne pritisnete Stop, pa pokušajte ponovo.',
+    'Snimak izgleda zamrznuto ili prazno (često jer ste napustili CRM karticu). Držite karticu snimača vidljivom ili koristite Lebdeće kontrole, pa pokušajte ponovo.',
   'recorder.error.tabHidden':
-    'CRM kartica je u pozadini — snimak može da se zamrzne. Držite ovu karticu vidljivom tokom snimanja.',
+    'CRM kartica je u pozadini — držite je vidljivom (ili Lebdeće kontrole) da se snimak ne zamrzne na jednom kadru.',
   'recorder.mic': 'Mikrofon',
   'recorder.camera': 'Kamera (PiP)',
   'recorder.noise': 'Suzbijanje šuma',
