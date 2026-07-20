@@ -1036,6 +1036,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   }, [])
 
   useEffect(() => {
+    if (!viewportEngaged) return
+    if (visualizerRef.current) {
+      setVisualizerReady(true)
+      return
+    }
+
     let cancelled = false
     void createMusicPlayerVisualizer().then(({ visualizer, kind }) => {
       if (cancelled) {
@@ -1050,6 +1056,11 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     })
     return () => {
       cancelled = true
+    }
+  }, [viewportEngaged])
+
+  useEffect(() => {
+    return () => {
       visualizerRef.current?.dispose()
       visualizerRef.current = null
       setVisualizerReady(false)

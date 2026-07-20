@@ -321,13 +321,24 @@ button {
   border: 1px solid var(--border);
   border-radius: var(--radius);
   overflow: hidden;
-  background: var(--bg);
+  /* Soft sky while WebGL compiles — avoids a blank black box on cold loads */
+  background:
+    radial-gradient(ellipse 120% 80% at 50% 100%, rgba(0, 229, 255, 0.12), transparent 55%),
+    radial-gradient(ellipse 90% 60% at 30% 40%, rgba(80, 120, 160, 0.35), transparent 50%),
+    radial-gradient(ellipse 70% 50% at 70% 55%, rgba(60, 90, 130, 0.28), transparent 45%),
+    linear-gradient(180deg, #0a1018 0%, #08080a 100%);
 }
 
 .hero-canvas-wrap canvas {
   display: block;
   width: 100% !important;
   height: 100% !important;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.hero-canvas-wrap--live canvas {
+  opacity: 1;
 }
 
 .hero-canvas-wrap--static {

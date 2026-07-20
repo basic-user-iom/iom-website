@@ -54,7 +54,7 @@ vec4 raymarch(in vec3 ro, in vec3 rd) {
   float t = 0.0;
 
   for (int i = 0; i < ${steps}; i++) {
-    if (sum.a > 0.99) continue;
+    if (sum.a > 0.99) break;
     vec3 pos = ro + t * rd;
     vec4 col = map(pos);
     ${difExpr}

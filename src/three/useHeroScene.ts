@@ -444,12 +444,19 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       },
     }
 
+    // Cheap first paint (compile + first raymarch), then ramp to device profile quality.
+    const BOOT_CLOUD_STEPS = 18
+    const BOOT_CLOUD_SCALE = 0.45
+    const targetCloudScale = profile.cloudRenderScale
+    const targetCloudSteps = profile.cloudRaySteps
+    const targetSimpleLighting = profile.cloudSimpleLighting
+    let cloudQualityReady = false
+    let cloudUpgradeHandle: number | null = null
+    let framesSinceCloudVisible = 0
+
     const cloudMaterial = new THREE.ShaderMaterial({
       vertexShader: HERO_CLOUD_VERTEX_SHADER,
-      fragmentShader: buildHeroCloudFragmentShader(
-        profile.cloudRaySteps,
-        profile.cloudSimpleLighting,
-      ),
+      fragmentShader: buildHeroCloudFragmentShader(BOOT_CLOUD_STEPS, true),
       uniforms,
       depthWrite: false,
       depthTest: false,
@@ -458,24 +465,23 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
     const cloudQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), cloudMaterial)
     cloudScene.add(cloudQuad)
 
-    const cloudScale = profile.cloudRenderScale
+    let cloudScale = Math.min(BOOT_CLOUD_SCALE, targetCloudScale)
     let cloudRT: THREE.WebGLRenderTarget | null = null
     let blitScene: THREE.Scene | null = null
     let blitMaterial: THREE.ShaderMaterial | null = null
     let blitQuad: THREE.Mesh | null = null
 
-    if (cloudScale < 1) {
-      blitScene = new THREE.Scene()
-      blitMaterial = new THREE.ShaderMaterial({
-        vertexShader: BLIT_VERTEX_SHADER,
-        fragmentShader: BLIT_FRAGMENT_SHADER,
-        uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
-        depthWrite: false,
-        depthTest: false,
-      })
-      blitQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blitMaterial)
-      blitScene.add(blitQuad)
-    }
+    // Always blit from an RT during boot so we can start below full resolution.
+    blitScene = new THREE.Scene()
+    blitMaterial = new THREE.ShaderMaterial({
+      vertexShader: BLIT_VERTEX_SHADER,
+      fragmentShader: BLIT_FRAGMENT_SHADER,
+      uniforms: { tDiffuse: { value: null as THREE.Texture | null } },
+      depthWrite: false,
+      depthTest: false,
+    })
+    blitQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), blitMaterial)
+    blitScene.add(blitQuad)
 
     const ambient = new THREE.AmbientLight(0x1a2430, 0.55)
     const keyLight = new THREE.DirectionalLight(0x9ec8e8, 1.1)
@@ -639,22 +645,42 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
     let height = 1
 
     const syncCloudResolution = (w: number, h: number, dpr: number) => {
-      if (cloudScale < 1) {
-        const rw = Math.max(1, Math.floor(w * dpr * cloudScale))
-        const rh = Math.max(1, Math.floor(h * dpr * cloudScale))
-        if (!cloudRT || cloudRT.width !== rw || cloudRT.height !== rh) {
-          cloudRT?.dispose()
-          cloudRT = new THREE.WebGLRenderTarget(rw, rh, {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.LinearFilter,
-          })
-          if (blitMaterial) {
-            blitMaterial.uniforms.tDiffuse.value = cloudRT.texture
-          }
+      const rw = Math.max(1, Math.floor(w * dpr * cloudScale))
+      const rh = Math.max(1, Math.floor(h * dpr * cloudScale))
+      if (!cloudRT || cloudRT.width !== rw || cloudRT.height !== rh) {
+        cloudRT?.dispose()
+        cloudRT = new THREE.WebGLRenderTarget(rw, rh, {
+          minFilter: THREE.LinearFilter,
+          magFilter: THREE.LinearFilter,
+        })
+        if (blitMaterial) {
+          blitMaterial.uniforms.tDiffuse.value = cloudRT.texture
         }
-        uniforms.iResolution.value.set(rw, rh)
+      }
+      uniforms.iResolution.value.set(rw, rh)
+    }
+
+    const upgradeCloudQuality = () => {
+      if (cloudQualityReady) return
+      cloudQualityReady = true
+      cloudScale = targetCloudScale
+      cloudMaterial.fragmentShader = buildHeroCloudFragmentShader(
+        targetCloudSteps,
+        targetSimpleLighting,
+      )
+      cloudMaterial.needsUpdate = true
+      syncCloudResolution(width, height, renderer.getPixelRatio())
+    }
+
+    const scheduleCloudQualityUpgrade = () => {
+      if (cloudQualityReady || cloudUpgradeHandle !== null) return
+      const win = window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      }
+      if (typeof win.requestIdleCallback === 'function') {
+        cloudUpgradeHandle = win.requestIdleCallback(() => upgradeCloudQuality(), { timeout: 900 })
       } else {
-        uniforms.iResolution.value.set(w * dpr, h * dpr)
+        cloudUpgradeHandle = window.setTimeout(() => upgradeCloudQuality(), 350) as unknown as number
       }
     }
 
@@ -792,7 +818,11 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
 
       if (!cloudFirstFrameDone) {
         cloudFirstFrameDone = true
+        container.classList.add('hero-canvas-wrap--live')
         requestAnimationFrame(() => scheduleRavenLoad())
+      } else if (!cloudQualityReady) {
+        framesSinceCloudVisible += 1
+        if (framesSinceCloudVisible >= 2) scheduleCloudQualityUpgrade()
       }
 
       if (flockMembers.length > 0) {
@@ -855,6 +885,12 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
         container.removeEventListener('pointermove', onMove)
       }
       motionParallax?.dispose()
+      if (cloudUpgradeHandle !== null) {
+        const win = window as Window & { cancelIdleCallback?: (id: number) => void }
+        if (typeof win.cancelIdleCallback === 'function') win.cancelIdleCallback(cloudUpgradeHandle)
+        else window.clearTimeout(cloudUpgradeHandle)
+        cloudUpgradeHandle = null
+      }
       if (ravenIdleHandle !== null) {
         const win = window as Window & {
           cancelIdleCallback?: (id: number) => void
@@ -866,6 +902,7 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       if (ravenLoadTimeout) clearTimeout(ravenLoadTimeout)
       ravenAbortController?.abort()
       ravenLoadAborted = true
+      container.classList.remove('hero-canvas-wrap--live')
       cloudRT?.dispose()
       blitMaterial?.dispose()
       blitQuad?.geometry.dispose()

@@ -26,7 +26,7 @@ function isNativeFullscreenActive(el: HTMLElement | null): boolean {
 
 export function Hero() {
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [sceneReady, setSceneReady] = useState(false)
+  const [sceneReady, setSceneReady] = useState(() => !getDeviceProfile().prefersReducedMotion)
   const [motionStatus, setMotionStatus] = useState<MotionParallaxStatus>('disabled')
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
@@ -54,43 +54,11 @@ export function Hero() {
     }
   }, [])
 
+  // Prefetch hero WebGL chunk immediately — clouds are above-fold and should not wait on idle.
   useEffect(() => {
     if (useStaticHero) return
-
-    const container = canvasRef.current
-    if (!container) return
-
-    let cancelled = false
-
-    const activate = () => {
-      if (!cancelled) setSceneReady(true)
-    }
-
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          activate()
-          io.disconnect()
-        }
-      },
-      { rootMargin: '80px', threshold: 0.05 },
-    )
-    io.observe(container)
-
-    const idleId =
-      typeof requestIdleCallback !== 'undefined'
-        ? requestIdleCallback(activate, { timeout: 1800 })
-        : window.setTimeout(activate, 1200)
-
-    return () => {
-      cancelled = true
-      io.disconnect()
-      if (typeof cancelIdleCallback !== 'undefined' && typeof idleId === 'number') {
-        cancelIdleCallback(idleId)
-      } else {
-        clearTimeout(idleId as number)
-      }
-    }
+    void import('./HeroSceneMount')
+    setSceneReady(true)
   }, [useStaticHero])
 
   useEffect(() => {
