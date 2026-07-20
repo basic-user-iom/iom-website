@@ -2,12 +2,11 @@
  * Build raven LOD variants from the desktop GLTF.
  *
  * Outputs (all single-raven — second bird + props pruned):
- *   - common-ravens-mobile.glb : 512px textures, ~30k tris (ratio 0.75, from ~72k Full)
- *   - common-ravens-medium.glb : 1024px textures, ~28k tris (ratio 0.6)
- *   - common-ravens-coarse.glb : 512px textures, ~22k tris (ratio 0.35)
+ *   - common-ravens-mobile.glb : 512px WebP textures, resampled anim (~3 MB)
+ *   - common-ravens-medium.glb : 1024px WebP textures, resampled anim (~4 MB)
+ *   - common-ravens-coarse.glb : 512px WebP textures, heavier simplify (~3 MB)
  *
- * Pipeline: weld → dedup → flatten (merge by material) → prune → meshopt simplify.
- * Feather cards merge before simplify so decimation can actually reduce triangle count.
+ * Pipeline: weld → dedup → flatten → prune → meshopt simplify → resample → quantize → textureCompress.
  * Skinned meshes keep joints/weights — wing-flap animation should still play.
  *
  * Run: node scripts/build-mobile-raven.mjs
@@ -16,7 +15,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { NodeIO } from '@gltf-transform/core'
-import { dedup, flatten, prune, simplify, textureCompress, weld } from '@gltf-transform/functions'
+import { dedup, flatten, prune, quantize, resample, simplify, textureCompress, weld } from '@gltf-transform/functions'
 import { MeshoptSimplifier } from 'meshoptimizer'
 import sharp from 'sharp'
 
@@ -26,9 +25,10 @@ const input = join(root, 'public/assets/ravens/common-ravens.gltf')
 const outDir = join(root, 'public/assets/ravens')
 
 const VARIANTS = [
-  { name: 'mobile', file: 'common-ravens-mobile.glb', resize: [512, 512], ratio: 0.75, error: 0.25 },
-  { name: 'medium', file: 'common-ravens-medium.glb', resize: [1024, 1024], ratio: 0.6, error: 0.5 },
-  { name: 'coarse', file: 'common-ravens-coarse.glb', resize: [512, 512], ratio: 0.35, error: 1 },
+  // WebP keeps alpha where needed and shrinks LODs vs PNG (were 10–15 MB each).
+  { name: 'mobile', file: 'common-ravens-mobile.glb', resize: [512, 512], ratio: 0.75, error: 0.25, format: 'webp', quality: 72 },
+  { name: 'medium', file: 'common-ravens-medium.glb', resize: [1024, 1024], ratio: 0.6, error: 0.5, format: 'webp', quality: 78 },
+  { name: 'coarse', file: 'common-ravens-coarse.glb', resize: [512, 512], ratio: 0.35, error: 1, format: 'webp', quality: 68 },
 ]
 
 function shouldRemoveNode(name) {
@@ -72,13 +72,18 @@ async function buildVariant(io, variant) {
     flatten(),
     prune(),
     simplify({ simplifier: MeshoptSimplifier, ratio: variant.ratio, error: variant.error }),
+    // Drop redundant baked keyframes — animation was ~9 MB of the LOD.
+    resample({ tolerance: 0.01 }),
+    prune(),
+    quantize(),
   ]
 
   transforms.push(
     textureCompress({
       encoder: sharp,
       resize: variant.resize,
-      targetFormat: 'png',
+      targetFormat: variant.format ?? 'webp',
+      quality: variant.quality ?? 75,
     }),
   )
 

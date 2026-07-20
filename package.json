@@ -17,6 +17,7 @@
     "build:streets-gl": "node scripts/build-streets-gl.mjs",
     "build:ravens": "node scripts/sync-raven-assets.mjs && node scripts/build-mobile-raven.mjs",
     "build:mobile-raven": "node scripts/build-mobile-raven.mjs",
+    "optimize:photos": "node scripts/optimize-photos.mjs",
     "build:favicons": "node scripts/build-favicons.mjs",
     "preview": "vite preview",
     "predeploy:check": "node scripts/pre-deploy-check.mjs",

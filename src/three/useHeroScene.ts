@@ -28,13 +28,15 @@ import {
 } from './heroCloudShader'
 
 /** Bump when LOD GLBs change — busts immutable CDN cache (max-age=1y). */
-const RAVEN_LOD_VERSION = '20260710b'
+const RAVEN_LOD_VERSION = '20260720a'
 const ravenAsset = (path: string) => `${path}?v=${RAVEN_LOD_VERSION}`
 
-const RAVEN_MODEL_URL = ravenAsset('/assets/ravens/common-ravens.gltf')
+/** Desktop: single-file medium LOD. Mid/low power uses coarse. Avoids ~41 MB GLTF+PNG fan-out. */
+const RAVEN_MODEL_URL = ravenAsset('/assets/ravens/common-ravens-medium.glb')
 const RAVEN_MODEL_URL_MOBILE = ravenAsset('/assets/ravens/common-ravens-mobile.glb')
-/** Abort raven load on mobile if still pending after this (clouds-only fallback). */
-const RAVEN_LOAD_TIMEOUT_MS = 5000
+const RAVEN_MODEL_URL_COARSE = ravenAsset('/assets/ravens/common-ravens-coarse.glb')
+/** Soft deadline for raven load; clouds stay visible if exceeded. */
+const RAVEN_LOAD_TIMEOUT_MS = 20000
 const RAVEN_SCALE_BASE = 0.0468
 
 /** Father · largest in the family flock. */
@@ -486,12 +488,18 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
     const ravenAnimations: RavenAnimationState[] = []
     const flockMembers: FlockMember[] = []
 
-    const ravenModelUrl = profile.isMobile ? RAVEN_MODEL_URL_MOBILE : RAVEN_MODEL_URL
+    const ravenModelUrl = profile.isMobile
+      ? RAVEN_MODEL_URL_MOBILE
+      : profile.isLowPower || profile.isMidTier
+        ? RAVEN_MODEL_URL_COARSE
+        : RAVEN_MODEL_URL
     const ravenOrbit = profile.isMobile ? MOBILE_ORBIT : SHARED_ORBIT
     let ravenLoadStarted = false
     let ravenLoadAborted = false
     let cloudFirstFrameDone = false
     let ravenLoadTimeout: ReturnType<typeof setTimeout> | null = null
+    let ravenAbortController: AbortController | null = null
+    let ravenIdleHandle: number | null = null
 
     const loadingManager = new THREE.LoadingManager()
     loadingManager.onError = (url) => {
@@ -523,9 +531,12 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
         })
       }
 
+      // LOD GLBs are already single-raven; dual-bird hide helpers only apply to full GLTF.
+      const isSingleRavenLod = ravenModelUrl.includes('.glb')
+
       if (profile.ravenCount === 1) {
         const fatherModel = cloneSkinnedScene(gltf.scene)
-        hideSecondRaven(fatherModel)
+        if (!isSingleRavenLod) hideSecondRaven(fatherModel)
         const mobileScale = profile.isMobile ? FATHER_SCALE * MOBILE_RAVEN_SCALE_MUL : SON_SCALE
         const mobileOffset = profile.isMobile ? MOBILE_FLOCK_OFFSET : FLOCK_OFFSETS[1]
         addMember(fatherModel, mobileScale, mobileOffset, 0)
@@ -534,15 +545,17 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
 
       const fatherModel = cloneSkinnedScene(gltf.scene)
       const sonModel = cloneSkinnedScene(gltf.scene)
-      hideSecondRaven(fatherModel)
-      hideSecondRaven(sonModel)
+      if (!isSingleRavenLod) {
+        hideSecondRaven(fatherModel)
+        hideSecondRaven(sonModel)
+      }
       addMember(fatherModel, FATHER_SCALE, FLOCK_OFFSETS[0], 0)
       addMember(sonModel, SON_SCALE, FLOCK_OFFSETS[1], 1.2)
 
       if (profile.ravenCount < 3) return
 
       const motherModel = cloneSkinnedScene(gltf.scene)
-      hideFirstRaven(motherModel)
+      if (!isSingleRavenLod) hideFirstRaven(motherModel)
       addMember(motherModel, MOTHER_SCALE, FLOCK_OFFSETS[2], 2.4)
     }
 
@@ -550,30 +563,62 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       if (ravenLoadStarted || profile.ravenCount === 0 || prefersReduced) return
       ravenLoadStarted = true
 
+      ravenAbortController = new AbortController()
+      const abortController = ravenAbortController
+
       ravenLoadTimeout = setTimeout(() => {
         ravenLoadAborted = true
+        abortController.abort()
         console.warn('Hero raven load timed out — clouds-only fallback')
       }, RAVEN_LOAD_TIMEOUT_MS)
 
-      loader.load(
-        ravenModelUrl,
-        (gltf) => {
-          if (ravenLoadTimeout) {
-            clearTimeout(ravenLoadTimeout)
-            ravenLoadTimeout = null
-          }
-          onRavenGltfLoaded(gltf)
-        },
-        undefined,
-        (error) => {
-          if (ravenLoadTimeout) {
-            clearTimeout(ravenLoadTimeout)
-            ravenLoadTimeout = null
-          }
-          ravenLoadAborted = true
-          console.error('Hero raven model failed to load:', ravenModelUrl, error)
-        },
-      )
+      const clearRavenTimeout = () => {
+        if (ravenLoadTimeout) {
+          clearTimeout(ravenLoadTimeout)
+          ravenLoadTimeout = null
+        }
+      }
+
+      const failRavenLoad = (error: unknown) => {
+        clearRavenTimeout()
+        ravenLoadAborted = true
+        if (abortController.signal.aborted) return
+        console.error('Hero raven model failed to load:', ravenModelUrl, error)
+      }
+
+      // GLB is a single file — fetch+abort avoids leaving a multi-MB download running after timeout.
+      const basePath = ravenModelUrl.slice(0, ravenModelUrl.lastIndexOf('/') + 1)
+      void fetch(ravenModelUrl, { signal: abortController.signal })
+        .then((response) => {
+          if (!response.ok) throw new Error(`HTTP ${response.status}`)
+          return response.arrayBuffer()
+        })
+        .then((buffer) => {
+          if (ravenLoadAborted) return
+          loader.parse(
+            buffer,
+            basePath,
+            (gltf) => {
+              clearRavenTimeout()
+              onRavenGltfLoaded(gltf)
+            },
+            failRavenLoad,
+          )
+        })
+        .catch(failRavenLoad)
+    }
+
+    const scheduleRavenLoad = () => {
+      // Let card thumbs claim bandwidth first on cold loads (incognito).
+      const win = window as Window & {
+        requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+        cancelIdleCallback?: (id: number) => void
+      }
+      if (typeof win.requestIdleCallback === 'function') {
+        ravenIdleHandle = win.requestIdleCallback(() => startRavenLoad(), { timeout: 1200 })
+      } else {
+        ravenIdleHandle = window.setTimeout(() => startRavenLoad(), 400) as unknown as number
+      }
     }
 
     const shouldAnimate = () => isVisible && isIntersecting && !embedActive
@@ -747,7 +792,7 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
 
       if (!cloudFirstFrameDone) {
         cloudFirstFrameDone = true
-        requestAnimationFrame(() => startRavenLoad())
+        requestAnimationFrame(() => scheduleRavenLoad())
       }
 
       if (flockMembers.length > 0) {
@@ -810,7 +855,16 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
         container.removeEventListener('pointermove', onMove)
       }
       motionParallax?.dispose()
+      if (ravenIdleHandle !== null) {
+        const win = window as Window & {
+          cancelIdleCallback?: (id: number) => void
+        }
+        if (typeof win.cancelIdleCallback === 'function') win.cancelIdleCallback(ravenIdleHandle)
+        else window.clearTimeout(ravenIdleHandle)
+        ravenIdleHandle = null
+      }
       if (ravenLoadTimeout) clearTimeout(ravenLoadTimeout)
+      ravenAbortController?.abort()
       ravenLoadAborted = true
       cloudRT?.dispose()
       blitMaterial?.dispose()

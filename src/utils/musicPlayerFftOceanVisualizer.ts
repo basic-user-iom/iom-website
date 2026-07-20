@@ -6,7 +6,7 @@ import { FftOceanSimulation, supportsFloatTextures } from './fftOcean'
 import { clamp, lerp, MusicPlayerAudioDriver } from './musicPlayerVisualizerAudio'
 import type { MusicPlayerVisualizerLike } from './musicPlayerVisualizerTypes'
 
-const RAVEN_LOD_VERSION = '20260711c'
+const RAVEN_LOD_VERSION = '20260720a'
 /** Global scene darkening multiplier (30% darker sky/lights). */
 const SCENE_DARKEN = 0.7
 /** Extra darkening for ocean color, sky tint, and HDR exposure only. */
@@ -496,7 +496,9 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
     const profile = getDeviceProfile()
     const url = profile.isMobile
       ? ravenAsset('/assets/ravens/common-ravens-mobile.glb')
-      : ravenAsset('/assets/ravens/common-ravens.gltf')
+      : profile.isLowPower || profile.isMidTier
+        ? ravenAsset('/assets/ravens/common-ravens-coarse.glb')
+        : ravenAsset('/assets/ravens/common-ravens-medium.glb')
 
     const loader = new GLTFLoader()
     loader.load(

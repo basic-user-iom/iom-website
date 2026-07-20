@@ -188,57 +188,57 @@ export const PROJECTS: Project[] = [
     description:
       'A visual study of the same raven moving through city, forest, mountain, and mist — a silent observer crossing natural and built worlds.',
     year: '2023',
-    posterUrl: '/assets/photos/the-black-witness/photo-0.png',
-    mobilePosterUrl: '/assets/photos/the-black-witness/photo-0.png',
+    posterUrl: '/assets/photos/the-black-witness/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/the-black-witness/photo-0.webp',
     galleryAudio: '/assets/audio/the-black-witness.mp3',
     gallery: [
       {
-        src: '/assets/photos/the-black-witness/photo-0.png',
+        src: '/assets/photos/the-black-witness/photo-0.webp',
         caption:
           'Rooftop Distance — A lone raven watches the rain-softened skyline from the far edge of a wet city roof.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-1.png',
+        src: '/assets/photos/the-black-witness/photo-1.webp',
         caption:
           'Alley Crossing — Between brick walls and puddled pavement, the raven moves through the alley like part of the weather.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-2.png',
+        src: '/assets/photos/the-black-witness/photo-2.webp',
         caption:
           'Forest Ground — On a damp forest path, the raven pauses among wet leaves, moss, and low morning fog.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-3.png',
+        src: '/assets/photos/the-black-witness/photo-3.webp',
         caption:
           'Moss Branch — Half-hidden in the old forest, the raven rests on a moss-covered branch while the trees fade into mist.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-4.png',
+        src: '/assets/photos/the-black-witness/photo-4.webp',
         caption:
           'Mountain Ledge — Small against the ridges, the raven stands on wet stone as clouds move through the valley below.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-5.png',
+        src: '/assets/photos/the-black-witness/photo-5.webp',
         caption:
           'Sea Cliff Watch — Above the broken surf, the raven waits on the cliff edge, almost swallowed by mist and rock.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-6.png',
+        src: '/assets/photos/the-black-witness/photo-6.webp',
         caption:
           'Winter Branch — A dark wing opens against the snow, caught for a moment between landing and flight.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-7.png',
+        src: '/assets/photos/the-black-witness/photo-7.webp',
         caption:
           'Abandoned Interior — Inside the ruined concrete shell, the raven appears quietly at the window, framed by water, decay, and gray light.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-8.png',
+        src: '/assets/photos/the-black-witness/photo-8.webp',
         caption:
           'Valley Wall — Perched on an old stone wall, the raven becomes a small mark against the vastness of fog and hills.',
       },
       {
-        src: '/assets/photos/the-black-witness/photo-9.png',
+        src: '/assets/photos/the-black-witness/photo-9.webp',
         caption:
           'Antenna Perch — On a rain-wet rooftop antenna, the raven shifts its wings above the sleeping grid of the city.',
       },
@@ -253,57 +253,57 @@ export const PROJECTS: Project[] = [
     description:
       'A red fox moves from forest edge to city underpass and back again, crossing the shifting boundary between wild habitat and human space.',
     year: '2026',
-    posterUrl: '/assets/photos/between-wild-and-wire/photo-0.png',
-    mobilePosterUrl: '/assets/photos/between-wild-and-wire/photo-0.png',
+    posterUrl: '/assets/photos/between-wild-and-wire/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/between-wild-and-wire/photo-0.webp',
     galleryAudio: '/assets/audio/between-wild-and-wire.mp3',
     gallery: [
       {
-        src: '/assets/photos/between-wild-and-wire/photo-0.png',
+        src: '/assets/photos/between-wild-and-wire/photo-0.webp',
         caption:
           'Forest Edge at Dawn — At first light, the fox pauses where the trees give way to open ground, as if deciding whether to leave the shelter of the forest.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-1.png',
+        src: '/assets/photos/between-wild-and-wire/photo-1.webp',
         caption:
           'Misty Forest Path — On a damp woodland trail, the fox stands alert in the fog, still fully held within the quiet of the forest.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-2.png',
+        src: '/assets/photos/between-wild-and-wire/photo-2.webp',
         caption:
           'Country Path Crossing — Leaving deeper cover behind, the fox crosses a muddy track, stepping into a more open and uncertain landscape.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-3.png',
+        src: '/assets/photos/between-wild-and-wire/photo-3.webp',
         caption:
           'Industrial Edge — Among fence lines, weeds, and abandoned rails, the fox enters the outer margin of the city where nature and industry begin to overlap.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-4.png',
+        src: '/assets/photos/between-wild-and-wire/photo-4.webp',
         caption:
           'Underpass at Dusk — Beneath concrete and sodium light, the fox pauses in the damp underpass, small against the hard geometry of the built world.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-5.png',
+        src: '/assets/photos/between-wild-and-wire/photo-5.webp',
         caption:
           'Alley Crossing — In a rain-dark alley of brick and reflections, the fox moves through the city almost unnoticed, like part of the weather itself.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-6.png',
+        src: '/assets/photos/between-wild-and-wire/photo-6.webp',
         caption:
           'Park After Rain — Between wet paths, bare trees, and lit apartment towers, the fox lingers in the city\'s softer interior spaces.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-7.png',
+        src: '/assets/photos/between-wild-and-wire/photo-7.webp',
         caption:
           'Canal Path — Walking along the misty canal, the fox turns away from the urban core, following water and silence back toward the edges.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-8.png',
+        src: '/assets/photos/between-wild-and-wire/photo-8.webp',
         caption:
           'Frost Meadow — Out beyond the streets, the fox reenters open ground where frost, distance, and sunrise begin to restore the wild.',
       },
       {
-        src: '/assets/photos/between-wild-and-wire/photo-9.png',
+        src: '/assets/photos/between-wild-and-wire/photo-9.webp',
         caption:
           'Forest Return — At dusk, the journey closes as the fox slips back beneath the trees, returning to the dark quiet of the forest.',
       },
@@ -318,57 +318,57 @@ export const PROJECTS: Project[] = [
     description:
       'Concrete after dark — rain, mist, and stray neon moving across brutalist walls, turning silent urban facades into cinematic fragments of light and shadow.',
     year: '2024',
-    posterUrl: '/assets/photos/concrete-after-dark/photo-0.png',
-    mobilePosterUrl: '/assets/photos/concrete-after-dark/photo-0.png',
+    posterUrl: '/assets/photos/concrete-after-dark/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/concrete-after-dark/photo-0.webp',
     galleryAudio: '/assets/audio/concrete-light.mp3',
     gallery: [
       {
-        src: '/assets/photos/concrete-after-dark/photo-0.png',
+        src: '/assets/photos/concrete-after-dark/photo-0.webp',
         caption:
           'Monolithic Corner in Rain — A rain-darkened brutalist corner rises into dusk...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-1.png',
+        src: '/assets/photos/concrete-after-dark/photo-1.webp',
         caption:
           'Repeating Windows in Mist — Rows of recessed windows disappear into blue twilight...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-2.png',
+        src: '/assets/photos/concrete-after-dark/photo-2.webp',
         caption:
           'Stairwell Under Neon Rain — A deserted concrete stairwell becomes a nocturnal passage...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-3.png',
+        src: '/assets/photos/concrete-after-dark/photo-3.webp',
         caption:
           'Slit Window Wall — A massive concrete wall with a narrow glowing window...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-4.png',
+        src: '/assets/photos/concrete-after-dark/photo-4.webp',
         caption:
           'Elevated Walkway After Rain — An empty brutalist walkway stretches through mist...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-5.png',
+        src: '/assets/photos/concrete-after-dark/photo-5.webp',
         caption:
           'Broad Facade at Blue Hour — A low, heavy concrete facade rests under storm clouds...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-6.png',
+        src: '/assets/photos/concrete-after-dark/photo-6.webp',
         caption:
           'Tower in Dark Sky — A brutalist tower cuts into the night sky...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-7.png',
+        src: '/assets/photos/concrete-after-dark/photo-7.webp',
         caption:
           'Curved Concrete in Dusk — Rounded brutalist forms and wet courtyard surfaces...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-8.png',
+        src: '/assets/photos/concrete-after-dark/photo-8.webp',
         caption:
           'Entrance in Shadow — A shadowed concrete entrance waits under rain...',
       },
       {
-        src: '/assets/photos/concrete-after-dark/photo-9.png',
+        src: '/assets/photos/concrete-after-dark/photo-9.webp',
         caption:
           'Concrete Detail with Neon — A close study of wet concrete, dark glass, seams...',
       },
@@ -383,57 +383,57 @@ export const PROJECTS: Project[] = [
     description:
       'City geometry after rain — reflections, sodium vapor, and the rhythm of windows as a modular grid.',
     year: '2023',
-    posterUrl: '/assets/photos/night-grid/photo-0.png',
-    mobilePosterUrl: '/assets/photos/night-grid/photo-0.png',
+    posterUrl: '/assets/photos/night-grid/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/night-grid/photo-0.webp',
     galleryAudio: '/assets/audio/night-grid.mp3',
     gallery: [
       {
-        src: '/assets/photos/night-grid/photo-0.png',
+        src: '/assets/photos/night-grid/photo-0.webp',
         caption:
           'Window Grid After Rain — A strict office facade becomes a grid of warm windows and dark concrete, mirrored across the rain-soaked pavement below.',
       },
       {
-        src: '/assets/photos/night-grid/photo-1.png',
+        src: '/assets/photos/night-grid/photo-1.webp',
         caption:
           'Sodium Vapor Courtyard — Amber streetlights gather in the wet courtyard, turning apartment windows and rain reflections into a quiet urban pattern.',
       },
       {
-        src: '/assets/photos/night-grid/photo-2.png',
+        src: '/assets/photos/night-grid/photo-2.webp',
         caption:
           'Office Grid in Blue Rain — Lit and unlit office windows form an irregular night code across a rain-darkened facade.',
       },
       {
-        src: '/assets/photos/night-grid/photo-3.png',
+        src: '/assets/photos/night-grid/photo-3.webp',
         caption:
           'Underpass Reflection Grid — Beneath the concrete overhang, sodium vapor light and distant windows stretch into a wet corridor of reflections.',
       },
       {
-        src: '/assets/photos/night-grid/photo-4.png',
+        src: '/assets/photos/night-grid/photo-4.webp',
         caption:
           'Modular Housing Block — A lived-in housing block glows through the night, its balconies and windows arranged like a human-scale grid.',
       },
       {
-        src: '/assets/photos/night-grid/photo-5.png',
+        src: '/assets/photos/night-grid/photo-5.webp',
         caption:
           'Reflected High-Rise Pattern — The building repeats itself in the wet plaza, where window light collapses into a fractured mirror of the city.',
       },
       {
-        src: '/assets/photos/night-grid/photo-6.png',
+        src: '/assets/photos/night-grid/photo-6.webp',
         caption:
           'Open Windows at Night — Private rooms interrupt the dark facade with small warm signals, each window becoming one cell in the urban grid.',
       },
       {
-        src: '/assets/photos/night-grid/photo-7.png',
+        src: '/assets/photos/night-grid/photo-7.webp',
         caption:
           'Parking Deck Geometry — Empty concrete levels repeat into the rain, their amber lights reflected as broken horizontal bands.',
       },
       {
-        src: '/assets/photos/night-grid/photo-8.png',
+        src: '/assets/photos/night-grid/photo-8.webp',
         caption:
           'Glass Grid and Concrete Frame — Concrete and dark glass hold the night in place, turning office light into a measured pattern of rectangles.',
       },
       {
-        src: '/assets/photos/night-grid/photo-9.png',
+        src: '/assets/photos/night-grid/photo-9.webp',
         caption:
           'Distant Windows Through Mist — Across the wet rooftop, distant apartment blocks dissolve into mist, their windows fading like amber coordinates in the dark.',
       },
@@ -448,57 +448,57 @@ export const PROJECTS: Project[] = [
     description:
       'Documentary captures of coastal rock, tide, and fog — where wet surfaces, muted horizons, and sea mist reduce the landscape to texture and atmosphere.',
     year: '2026',
-    posterUrl: '/assets/photos/mist-stone-sea/photo-0.png',
-    mobilePosterUrl: '/assets/photos/mist-stone-sea/photo-0.png',
+    posterUrl: '/assets/photos/mist-stone-sea/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/mist-stone-sea/photo-0.webp',
     galleryAudio: '/assets/audio/mist-stone-sea.mp3',
     gallery: [
       {
-        src: '/assets/photos/mist-stone-sea/photo-0.png',
+        src: '/assets/photos/mist-stone-sea/photo-0.webp',
         caption:
           'Rocky Shore at First Light — Mist drifts across a wet stone shoreline as the sea settles into a quiet gray horizon.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-1.png',
+        src: '/assets/photos/mist-stone-sea/photo-1.webp',
         caption:
           'Mist Cliffs — Layered sea cliffs recede into fog, where rock, surf, and sky dissolve into the same cold atmosphere.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-2.png',
+        src: '/assets/photos/mist-stone-sea/photo-2.webp',
         caption:
           'Pebble Beach in Fog — A rain-darkened pebble beach stretches toward the water, its scattered boulders fading into coastal mist.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-3.png',
+        src: '/assets/photos/mist-stone-sea/photo-3.webp',
         caption:
           'Tidal Pools — Black shoreline rocks hold still pools of water, reflecting the pale sky while waves break softly beyond.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-4.png',
+        src: '/assets/photos/mist-stone-sea/photo-4.webp',
         caption:
           'Fog Jetty — A stone breakwater disappears into dense sea fog, turning distance into a quiet line of uncertainty.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-5.png',
+        src: '/assets/photos/mist-stone-sea/photo-5.webp',
         caption:
           'Coastal Outcrop — Wet rock, dry grass, and low mist mark the edge of land before it falls into the gray sea.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-6.png',
+        src: '/assets/photos/mist-stone-sea/photo-6.webp',
         caption:
           'Foam and Stone — Sea foam moves through dark shoreline rocks, tracing the shape of the coast in soft white lines.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-7.png',
+        src: '/assets/photos/mist-stone-sea/photo-7.webp',
         caption:
           'Fog Island — A distant rock island emerges through the mist, barely separating itself from the muted sea and sky.',
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-8.png',
+        src: '/assets/photos/mist-stone-sea/photo-8.webp',
         caption:
           "Layered Rock Ledge — Flat sedimentary stones hold rainwater at the ocean's edge, revealing the coast as a weathered geological surface.",
       },
       {
-        src: '/assets/photos/mist-stone-sea/photo-9.png',
+        src: '/assets/photos/mist-stone-sea/photo-9.webp',
         caption:
           'Blue-Gray Cove — Rounded shoreline stones disappear into blue-gray mist, where the surf softens every edge of the coast.',
       },
@@ -513,57 +513,57 @@ export const PROJECTS: Project[] = [
     description:
       'A solitary octopus moves through deep, half-forgotten spaces beneath the sea — shipwrecks, drowned halls, broken arches, and silent ruins touched only by faint shafts of light.',
     year: '2026',
-    posterUrl: '/assets/photos/below-the-last-light/photo-0.png',
-    mobilePosterUrl: '/assets/photos/below-the-last-light/photo-0.png',
+    posterUrl: '/assets/photos/below-the-last-light/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/below-the-last-light/photo-0.webp',
     galleryAudio: '/assets/audio/below-the-last-light.mp3',
     gallery: [
       {
-        src: '/assets/photos/below-the-last-light/photo-0.png',
+        src: '/assets/photos/below-the-last-light/photo-0.webp',
         caption:
           'Arch in the Gloom — A lone octopus crosses the silted floor of a drowned ruin, moving beneath a broken arch where the last pale light still reaches.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-1.png',
+        src: '/assets/photos/below-the-last-light/photo-1.webp',
         caption:
           'Sunken Corridor — Through the narrow passage of a flooded wreck, the octopus disappears into blue darkness as if following a memory deeper inside.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-2.png',
+        src: '/assets/photos/below-the-last-light/photo-2.webp',
         caption:
           'Ruin Sentinel — Resting on a stone pedestal, the octopus seems less like an animal and more like a quiet keeper of the submerged hall.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-3.png',
+        src: '/assets/photos/below-the-last-light/photo-3.webp',
         caption:
           'Crevice Search — Pressed against the rock wall, the octopus explores a dark seam in the stone, searching for whatever the ruins still conceal.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-4.png',
+        src: '/assets/photos/below-the-last-light/photo-4.webp',
         caption:
           'Wreck Shadow — Suspended beside the sunken ship, the octopus drifts in open water, small against the weight and silence of the wreck.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-5.png',
+        src: '/assets/photos/below-the-last-light/photo-5.webp',
         caption:
           'Stair of Return — Climbing the drowned staircase, the octopus moves upward through drifting particles and thin beams of light, as if ascending into another forgotten chamber.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-6.png',
+        src: '/assets/photos/below-the-last-light/photo-6.webp',
         caption:
           'Chamber of Light — In the center of a vast underwater hall, the octopus becomes a small living mark beneath a single shaft of light.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-7.png',
+        src: '/assets/photos/below-the-last-light/photo-7.webp',
         caption:
           'Carved Passage — Along the wall of an ancient submerged corridor, the octopus lies low against the stone, blending with the ruin as if it belongs there.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-8.png',
+        src: '/assets/photos/below-the-last-light/photo-8.webp',
         caption:
           'Mosaic Threshold — Beside broken mosaic floors and worn steps, the octopus explores the edge of a buried room where the past still clings to the walls.',
       },
       {
-        src: '/assets/photos/below-the-last-light/photo-9.png',
+        src: '/assets/photos/below-the-last-light/photo-9.webp',
         caption:
           'Fallen Figure — Half-hidden among columns and broken statues, the octopus peers out from the rubble like a witness to a world long drowned.',
       },
@@ -578,57 +578,57 @@ export const PROJECTS: Project[] = [
     description:
       'A surreal minimal series following a manta ray adrift through space — crossing planets, rings, ruins, dust, and silence like a creature swimming through the dark between worlds.',
     year: '2026',
-    posterUrl: '/assets/photos/celestial-current/photo-0.png',
-    mobilePosterUrl: '/assets/photos/celestial-current/photo-0.png',
+    posterUrl: '/assets/photos/celestial-current/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/celestial-current/photo-0.webp',
     galleryAudio: '/assets/audio/celestial-current.mp3',
     gallery: [
       {
-        src: '/assets/photos/celestial-current/photo-0.png',
+        src: '/assets/photos/celestial-current/photo-0.webp',
         caption:
           'Space Glide — A solitary manta ray drifts across open space, passing beneath a distant planet like a creature following an invisible current.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-1.png',
+        src: '/assets/photos/celestial-current/photo-1.webp',
         caption:
           'Far Crossing — Small against the scale of the cosmos, the manta becomes a quiet mark moving through vast emptiness.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-2.png',
+        src: '/assets/photos/celestial-current/photo-2.webp',
         caption:
           'Ascension Beam — Caught inside a pale shaft of light, the manta rises as if drawn upward through a celestial tide.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-3.png',
+        src: '/assets/photos/celestial-current/photo-3.webp',
         caption:
           "Eclipse Passage — The ray crosses a dark planet's halo, turning for a moment into a silhouette between light and shadow.",
       },
       {
-        src: '/assets/photos/celestial-current/photo-4.png',
+        src: '/assets/photos/celestial-current/photo-4.webp',
         caption:
           'Monolith Encounter — Suspended before a silent black monolith, the manta seems to pause in recognition of something ancient and unknown.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-5.png',
+        src: '/assets/photos/celestial-current/photo-5.webp',
         caption:
           "Beneath the Rings — Gliding below a ringed giant, the manta moves like a living echo of the planet's curved geometry.",
       },
       {
-        src: '/assets/photos/celestial-current/photo-6.png',
+        src: '/assets/photos/celestial-current/photo-6.webp',
         caption:
           'Direct Approach — Facing the viewer in open space, the manta appears less like an animal and more like a calm intelligence from another realm.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-7.png',
+        src: '/assets/photos/celestial-current/photo-7.webp',
         caption:
           'Lunar Drift — Above a barren moonlit landscape, the manta floats through cold night air as if the laws of gravity no longer apply.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-8.png',
+        src: '/assets/photos/celestial-current/photo-8.webp',
         caption:
           'Starfoam — Surrounded by fields of glowing particles, the manta swims through light as though space itself had become an ocean.',
       },
       {
-        src: '/assets/photos/celestial-current/photo-9.png',
+        src: '/assets/photos/celestial-current/photo-9.webp',
         caption:
           'Nebula Current — Against dark nebula clouds, the manta cuts a clean path through the slow weather of the cosmos.',
       },
@@ -644,8 +644,8 @@ export const PROJECTS: Project[] = [
       'Cross-world raven study — city rain, forest fog, mountain stone, and coastal mist woven into a single ambient field layer.',
     year: '2023',
     audioUrl: '/assets/audio/the-black-witness.mp3',
-    posterUrl: '/assets/photos/the-black-witness/photo-0.png',
-    mobilePosterUrl: '/assets/photos/the-black-witness/photo-0.png',
+    posterUrl: '/assets/photos/the-black-witness/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/the-black-witness/photo-0.webp',
     archiveId: 'OBJ-0096',
   },
   {
@@ -657,8 +657,8 @@ export const PROJECTS: Project[] = [
       'Forest edge to city underpass and back — habitat crossing woven into a single ambient field layer for the fox journey.',
     year: '2026',
     audioUrl: '/assets/audio/between-wild-and-wire.mp3',
-    posterUrl: '/assets/photos/between-wild-and-wire/photo-0.png',
-    mobilePosterUrl: '/assets/photos/between-wild-and-wire/photo-0.png',
+    posterUrl: '/assets/photos/between-wild-and-wire/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/between-wild-and-wire/photo-0.webp',
     archiveId: 'OBJ-0097',
   },
   {
@@ -670,8 +670,8 @@ export const PROJECTS: Project[] = [
       'Rain-darkened brutalist soundscape — distant neon hum, wet concrete resonance, and slow urban drift for gallery and walkthrough beds.',
     year: '2024',
     audioUrl: '/assets/audio/concrete-light.mp3',
-    posterUrl: '/assets/photos/concrete-after-dark/photo-0.png',
-    mobilePosterUrl: '/assets/photos/concrete-after-dark/photo-0.png',
+    posterUrl: '/assets/photos/concrete-after-dark/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/concrete-after-dark/photo-0.webp',
     archiveId: 'OBJ-0090',
   },
   {
@@ -683,8 +683,8 @@ export const PROJECTS: Project[] = [
       'Sodium vapor and window-grid ambience — modular pulses, wet pavement reflections, and long-exposure city haze.',
     year: '2023',
     audioUrl: '/assets/audio/night-grid.mp3',
-    posterUrl: '/assets/photos/night-grid/photo-0.png',
-    mobilePosterUrl: '/assets/photos/night-grid/photo-0.png',
+    posterUrl: '/assets/photos/night-grid/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/night-grid/photo-0.webp',
     archiveId: 'OBJ-0094',
   },
   {
@@ -696,8 +696,8 @@ export const PROJECTS: Project[] = [
       'Coastal field layer — tide wash, fog-damped rock, and muted horizon tones for documentary and spatial experiences.',
     year: '2026',
     audioUrl: '/assets/audio/mist-stone-sea.mp3',
-    posterUrl: '/assets/photos/mist-stone-sea/photo-0.png',
-    mobilePosterUrl: '/assets/photos/mist-stone-sea/photo-0.png',
+    posterUrl: '/assets/photos/mist-stone-sea/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/mist-stone-sea/photo-0.webp',
     archiveId: 'OBJ-0095',
   },
   {
@@ -709,8 +709,8 @@ export const PROJECTS: Project[] = [
       'Submerged ruin ambience — drowned halls, faint light shafts, and the slow drift of a solitary octopus through half-forgotten spaces beneath the sea.',
     year: '2026',
     audioUrl: '/assets/audio/below-the-last-light.mp3',
-    posterUrl: '/assets/photos/below-the-last-light/photo-0.png',
-    mobilePosterUrl: '/assets/photos/below-the-last-light/photo-0.png',
+    posterUrl: '/assets/photos/below-the-last-light/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/below-the-last-light/photo-0.webp',
     archiveId: 'OBJ-0141',
   },
   {
@@ -722,8 +722,8 @@ export const PROJECTS: Project[] = [
       'Cosmic drift ambience — open silence, distant planetary hum, and the slow glide of a manta ray adrift through the dark between worlds.',
     year: '2026',
     audioUrl: '/assets/audio/celestial-current.mp3',
-    posterUrl: '/assets/photos/celestial-current/photo-0.png',
-    mobilePosterUrl: '/assets/photos/celestial-current/photo-0.png',
+    posterUrl: '/assets/photos/celestial-current/photo-0.webp',
+    mobilePosterUrl: '/assets/photos/celestial-current/photo-0.webp',
     archiveId: 'OBJ-0143',
   },
   {
