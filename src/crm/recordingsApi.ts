@@ -282,37 +282,6 @@ async function signedUrlFromR2(storagePath: string): Promise<string | null> {
   }
 }
 
-async function uploadBlob(
-  path: string,
-  blob: Blob,
-  contentType: string,
-): Promise<'r2' | 'supabase'> {
-  if (await isR2RecordingsEnabled()) {
-    try {
-      await uploadBlobToR2(path, blob, contentType)
-      return 'r2'
-    } catch (err) {
-      if (err instanceof Error && err.message === 'R2_DISABLED') {
-        /* fall through to Supabase */
-      } else {
-        throw err
-      }
-    }
-  }
-
-  const sb = getSupabase()
-  if (!sb) throw new Error('Supabase not configured')
-  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, blob, {
-    contentType,
-    upsert: false,
-  })
-  if (upErr) {
-    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
-    throw new Error(friendlyStorageError(upErr.message, blob.size))
-  }
-  return 'supabase'
-}
-
 async function removeBlob(path: string): Promise<void> {
   if (!path) return
   if (await isR2RecordingsEnabled()) {
