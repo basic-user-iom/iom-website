@@ -14,6 +14,11 @@ export function initialEmailSent(lead: Lead): boolean {
   return !!lead.initial_email_sent_at
 }
 
+/** Lead is in the durable priority outreach queue. */
+export function isContactPriority(lead: Lead): boolean {
+  return !!lead.contact_priority
+}
+
 export type InitialEmailStatus = 'none' | 'pending' | 'drafted' | 'sent'
 
 export function initialEmailStatus(lead: Lead): InitialEmailStatus {

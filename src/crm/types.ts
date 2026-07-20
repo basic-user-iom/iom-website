@@ -58,6 +58,11 @@ export interface Lead {
   temperature: LeadTemperature
   status: LeadStatus
   next_follow_up: string | null
+  /**
+   * Priority outreach queue — stays until cleared or initial email marked sent
+   * (does not expire at midnight).
+   */
+  contact_priority: boolean
   estimated_value: number | null
   /** Optional CRM-safe emoticon for estimated value (❤️ pro-bono, 🎁 gift, …). */
   value_emoji: string

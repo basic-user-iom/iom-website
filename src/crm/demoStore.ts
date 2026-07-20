@@ -145,6 +145,7 @@ function buildSeed(): Store {
     temperature: 'hot',
     status: 'proposal',
     next_follow_up: daysAgo(-3, 14),
+    contact_priority: false,
     estimated_value: 18500,
     value_emoji: '',
     atlas_eval: {
@@ -197,6 +198,7 @@ function buildSeed(): Store {
     temperature: 'warm',
     status: 'qualified',
     next_follow_up: daysAgo(-7, 11),
+    contact_priority: false,
     estimated_value: 9200,
     value_emoji: '⭐',
     atlas_eval: {
@@ -239,6 +241,7 @@ function buildSeed(): Store {
     temperature: 'warm',
     status: 'contacted',
     next_follow_up: daysAgo(-1, 16),
+    contact_priority: false,
     estimated_value: 0,
     value_emoji: '❤️',
     atlas_eval: {
@@ -280,6 +283,7 @@ function buildSeed(): Store {
     temperature: 'cold',
     status: 'new',
     next_follow_up: daysAgo(-10, 9),
+    contact_priority: false,
     estimated_value: 6400,
     value_emoji: '',
     atlas_eval: {
@@ -327,6 +331,7 @@ function buildSeed(): Store {
     temperature: 'hot',
     status: 'negotiation',
     next_follow_up: daysAgo(-2, 15),
+    contact_priority: false,
     estimated_value: 42000,
     value_emoji: '🤝',
     atlas_eval: {
@@ -366,6 +371,7 @@ function buildSeed(): Store {
     temperature: 'warm',
     status: 'closed_won',
     next_follow_up: null,
+    contact_priority: false,
     estimated_value: 0,
     value_emoji: '🎁',
     atlas_eval: {

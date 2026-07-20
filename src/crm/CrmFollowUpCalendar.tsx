@@ -35,10 +35,6 @@ export function tomorrowKey(): string {
   return dateKeyFromParts(now.getFullYear(), now.getMonth(), now.getDate())
 }
 
-export function isFollowUpTomorrow(raw: string | null | undefined): boolean {
-  return followUpDateKey(raw) === tomorrowKey()
-}
-
 interface CrmFollowUpCalendarProps {
   leads: Lead[]
   selectedDate: string | null

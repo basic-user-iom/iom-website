@@ -5,12 +5,12 @@ import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { AtlasEvalFields } from './AtlasEvalFields'
 import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
-import { isFollowUpTomorrow, tomorrowKey } from './CrmFollowUpCalendar'
 import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
 import { EmailThreadPanel } from './EmailThreadPanel'
 import { InitialOutreachPanel } from './InitialOutreachPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
+import { isContactPriority } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmProject, CrmUser, Lead, LeadInput, StaffProfile } from './types'
 import { resolveLeadOwner } from './types'
@@ -77,7 +77,7 @@ export function LeadDetail({
   const [sending, setSending] = useState(false)
   const [copying, setCopying] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [tomorrowBusy, setTomorrowBusy] = useState(false)
+  const [priorityBusy, setPriorityBusy] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const [activityTick, setActivityTick] = useState(0)
@@ -86,7 +86,7 @@ export function LeadDetail({
   const owner = resolveLeadOwner(lead, currentUser, staffById)
   const showOwner = !!(owner.name || owner.email || owner.avatar_url)
   const ownerLabel = owner.name || null
-  const queuedTomorrow = isFollowUpTomorrow(lead.next_follow_up)
+  const priorityQueued = isContactPriority(lead)
   const isOwnIncomplete =
     !!currentUser &&
     lead.owner_id === currentUser.id &&
@@ -181,17 +181,18 @@ export function LeadDetail({
     onChanged(updated)
   }
 
-  const handleTomorrow = async () => {
+  const handlePriority = async () => {
     setError('')
-    setTomorrowBusy(true)
+    setPriorityBusy(true)
     try {
-      const next = queuedTomorrow ? null : tomorrowKey()
-      const updated = await updateLead(lead.id, { next_follow_up: next })
+      const updated = await updateLead(lead.id, {
+        contact_priority: !priorityQueued,
+      })
       onChanged(updated)
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('detail.tomorrowFailed'))
+      setError(err instanceof Error ? err.message : t('detail.priorityFailed'))
     } finally {
-      setTomorrowBusy(false)
+      setPriorityBusy(false)
     }
   }
 
@@ -253,9 +254,9 @@ export function LeadDetail({
   }
 
   const copyButtonLabel = copying ? t('detail.copying') : copied ? t('detail.copied') : t('detail.copyAsText')
-  const tomorrowButtonLabel = queuedTomorrow
-    ? t('detail.tomorrowClear')
-    : t('detail.tomorrowSet')
+  const priorityButtonLabel = priorityQueued
+    ? t('detail.priorityClear')
+    : t('detail.prioritySet')
 
   if (editing) {
     return (
@@ -305,13 +306,13 @@ export function LeadDetail({
             </span>
             <button
               type="button"
-              className={`btn btn-ghost crm-tomorrow-btn${queuedTomorrow ? ' is-active' : ''}`}
-              disabled={tomorrowBusy}
-              aria-pressed={queuedTomorrow}
-              title={tomorrowButtonLabel}
-              onClick={() => void handleTomorrow()}
+              className={`btn btn-ghost crm-priority-btn${priorityQueued ? ' is-active' : ''}`}
+              disabled={priorityBusy}
+              aria-pressed={priorityQueued}
+              title={priorityButtonLabel}
+              onClick={() => void handlePriority()}
             >
-              {t('detail.tomorrow')}
+              {t('detail.priority')}
             </button>
             <button
               type="button"
@@ -393,13 +394,13 @@ export function LeadDetail({
         <div className="crm-detail-actions">
           <button
             type="button"
-            className={`btn btn-ghost crm-tomorrow-btn${queuedTomorrow ? ' is-active' : ''}`}
-            disabled={tomorrowBusy}
-            aria-pressed={queuedTomorrow}
-            title={tomorrowButtonLabel}
-            onClick={() => void handleTomorrow()}
+            className={`btn btn-ghost crm-priority-btn${priorityQueued ? ' is-active' : ''}`}
+            disabled={priorityBusy}
+            aria-pressed={priorityQueued}
+            title={priorityButtonLabel}
+            onClick={() => void handlePriority()}
           >
-            {t('detail.tomorrow')}
+            {t('detail.priority')}
           </button>
           <button
             type="button"
@@ -529,8 +530,8 @@ export function LeadDetail({
           <dt>{t('detail.followUp')}</dt>
           <dd className="crm-follow-up-dd">
             {lead.next_follow_up || '—'}
-            {queuedTomorrow && (
-              <span className="crm-tomorrow-badge">{t('detail.tomorrow')}</span>
+            {priorityQueued && (
+              <span className="crm-priority-badge">{t('detail.priority')}</span>
             )}
           </dd>
         </div>

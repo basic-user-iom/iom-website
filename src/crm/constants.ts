@@ -52,6 +52,7 @@ export const EMPTY_LEAD_INPUT = {
   temperature: 'warm' as const,
   status: 'new' as const,
   next_follow_up: null,
+  contact_priority: false,
   estimated_value: null,
   value_emoji: '',
   atlas_eval: { ...EMPTY_ATLAS_EVAL },

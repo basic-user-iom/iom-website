@@ -233,7 +233,10 @@ export function EmailThreadPanel({
 
       const stamp = new Date().toISOString()
       const patch: Partial<LeadInput> = {}
-      if (!lead.initial_email_sent_at) patch.initial_email_sent_at = stamp
+      if (!lead.initial_email_sent_at) {
+        patch.initial_email_sent_at = stamp
+        patch.contact_priority = false
+      }
       if (!lead.initial_email_drafted_at) patch.initial_email_drafted_at = stamp
       if (lead.status === 'new') patch.status = 'contacted'
       const updated =

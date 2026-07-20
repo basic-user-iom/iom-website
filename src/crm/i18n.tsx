@@ -53,9 +53,9 @@ const en: Dict = {
   'stats.visible': 'Visible leads',
   'stats.open': 'Open pipeline',
   'stats.hot': 'Hot leads',
-  'stats.tomorrow': 'Tomorrow',
-  'stats.tomorrowFilter': 'Show leads queued for tomorrow',
-  'stats.tomorrowFilterClear': 'Clear tomorrow filter',
+  'stats.priority': 'Priority',
+  'stats.priorityFilter': 'Show priority outreach leads',
+  'stats.priorityFilterClear': 'Clear priority filter',
 
   'calendar.title': 'Follow-up calendar',
   'calendar.expand': 'Expand follow-up calendar',
@@ -113,6 +113,8 @@ const en: Dict = {
     'Extra named links will not save until you run crm_lead_links_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.valueEmojiSchemaMissing':
     'Value emoticons will not save until you run crm_lead_value_emoji_migration.sql in Supabase → SQL Editor, then hard-refresh.',
+  'error.contactPrioritySchemaMissing':
+    'Priority queue will not save until you run crm_lead_contact_priority_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.emailsSchemaMissing':
     'Department emails will not save until you run crm_lead_emails_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.atlasEvalSchemaMissing':
@@ -165,7 +167,7 @@ const en: Dict = {
   'list.untitled': 'Untitled',
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Added by',
-  'list.tomorrow': 'Tomorrow',
+  'list.priority': 'Priority',
   'list.valueFromHeart': 'From the heart',
   'list.valueNoCharge': 'No charge',
   'list.unknownOwner': 'Unknown',
@@ -191,10 +193,10 @@ const en: Dict = {
   'detail.website': 'Website',
   'detail.links': 'Links',
   'detail.followUp': 'Next follow-up',
-  'detail.tomorrow': 'Tomorrow',
-  'detail.tomorrowSet': 'Queue for tomorrow',
-  'detail.tomorrowClear': 'Clear tomorrow queue',
-  'detail.tomorrowFailed': 'Could not update tomorrow queue.',
+  'detail.priority': 'Priority',
+  'detail.prioritySet': 'Add to priority queue',
+  'detail.priorityClear': 'Remove from priority queue',
+  'detail.priorityFailed': 'Could not update priority queue.',
   'detail.value': 'Estimated value',
   'detail.valueFromHeart': 'From the heart',
   'detail.valueNoCharge': 'No charge',
@@ -1423,9 +1425,9 @@ const sr: Dict = {
   'stats.visible': 'Vidljivi leadovi',
   'stats.open': 'Otvoreni pipeline',
   'stats.hot': 'Vrući leadovi',
-  'stats.tomorrow': 'Sutra',
-  'stats.tomorrowFilter': 'Prikaži leadove zakazane za sutra',
-  'stats.tomorrowFilterClear': 'Ukloni filter za sutra',
+  'stats.priority': 'Prioritet',
+  'stats.priorityFilter': 'Prikaži prioritetne leadove',
+  'stats.priorityFilterClear': 'Ukloni filter prioriteta',
 
   'calendar.title': 'Kalendar follow-up-a',
   'calendar.expand': 'Proširi kalendar follow-up-a',
@@ -1483,6 +1485,8 @@ const sr: Dict = {
     'Dodatni linkovi se neće sačuvati dok ne pokrenete crm_lead_links_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.valueEmojiSchemaMissing':
     'Emotikoni za vrednost se neće sačuvati dok ne pokrenete crm_lead_value_emoji_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
+  'error.contactPrioritySchemaMissing':
+    'Prioritetni red se neće sačuvati dok ne pokrenete crm_lead_contact_priority_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.emailsSchemaMissing':
     'Emailovi po odeljenju se neće sačuvati dok ne pokrenete crm_lead_emails_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.atlasEvalSchemaMissing':
@@ -1536,7 +1540,7 @@ const sr: Dict = {
   'list.untitled': 'Bez naziva',
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Dodao/la',
-  'list.tomorrow': 'Sutra',
+  'list.priority': 'Prioritet',
   'list.valueFromHeart': 'Od srca',
   'list.valueNoCharge': 'Bez naplate',
   'list.unknownOwner': 'Nepoznato',
@@ -1562,10 +1566,10 @@ const sr: Dict = {
   'detail.website': 'Sajt',
   'detail.links': 'Linkovi',
   'detail.followUp': 'Sledeći follow-up',
-  'detail.tomorrow': 'Sutra',
-  'detail.tomorrowSet': 'Zakaži za sutra',
-  'detail.tomorrowClear': 'Ukloni sa liste za sutra',
-  'detail.tomorrowFailed': 'Ažuriranje liste za sutra nije uspelo.',
+  'detail.priority': 'Prioritet',
+  'detail.prioritySet': 'Dodaj u prioritetni red',
+  'detail.priorityClear': 'Ukloni iz prioritetnog reda',
+  'detail.priorityFailed': 'Ažuriranje prioritetnog reda nije uspelo.',
   'detail.value': 'Procenjena vrednost',
   'detail.valueFromHeart': 'Od srca',
   'detail.valueNoCharge': 'Bez naplate',

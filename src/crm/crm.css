@@ -575,7 +575,7 @@
   background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
 }
 
-.crm-tomorrow-badge {
+.crm-priority-badge {
   font-size: 0.62rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -587,7 +587,7 @@
   white-space: nowrap;
 }
 
-.crm-tomorrow-btn.is-active {
+.crm-priority-btn.is-active {
   border-color: color-mix(in srgb, #e8c547 55%, var(--border));
   color: #e8c547;
   background: color-mix(in srgb, #e8c547 12%, transparent);

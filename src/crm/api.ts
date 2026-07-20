@@ -206,6 +206,16 @@ function isMissingValueEmojiColumn(message: string): boolean {
   )
 }
 
+function isMissingContactPriorityColumn(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('contact_priority') &&
+    (m.includes('does not exist') ||
+      m.includes('could not find') ||
+      m.includes('schema cache'))
+  )
+}
+
 function isMissingEmailsColumn(message: string): boolean {
   const m = message.toLowerCase()
   return (
@@ -335,6 +345,12 @@ function stripValueEmojiField<T extends Record<string, unknown>>(input: T): T {
   return next
 }
 
+function stripContactPriorityField<T extends Record<string, unknown>>(input: T): T {
+  const next = { ...input }
+  delete next.contact_priority
+  return next
+}
+
 function stripEmailsField<T extends Record<string, unknown>>(input: T): T {
   const next = { ...input }
   delete next.emails
@@ -457,6 +473,14 @@ function mergeValueEmoji(
   return normalizeLead({ ...row, value_emoji: emoji })
 }
 
+function mergeContactPriority(
+  row: Lead,
+  source: { contact_priority?: boolean | null } | null | undefined,
+): Lead {
+  if (!source || source.contact_priority == null) return normalizeLead(row)
+  return normalizeLead({ ...row, contact_priority: !!source.contact_priority })
+}
+
 function mergeLeadEmails(
   row: Lead,
   source: { emails?: LeadEmail[] | unknown } | null | undefined,
@@ -502,6 +526,7 @@ function normalizeLead(row: Lead): Lead {
     initial_email_body: row.initial_email_body ?? '',
     initial_email_drafted_at: row.initial_email_drafted_at ?? null,
     initial_email_sent_at: row.initial_email_sent_at ?? null,
+    contact_priority: !!row.contact_priority,
     owner_email: row.owner_email ?? null,
     owner_avatar_url: row.owner_avatar_url ?? null,
   }
@@ -896,6 +921,8 @@ let clientLocaleColumnsPresent: boolean | null = null
 let linksColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.value_emoji text column. */
 let valueEmojiColumnPresent: boolean | null = null
+/** Cached probe for crm_leads.contact_priority boolean column. */
+let contactPriorityColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.emails jsonb column. */
 let emailsColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.atlas_eval jsonb column. */
@@ -925,6 +952,14 @@ function markValueEmojiColumnMissing(): void {
 
 function markValueEmojiColumnPresent(): void {
   valueEmojiColumnPresent = true
+}
+
+function markContactPriorityColumnMissing(): void {
+  contactPriorityColumnPresent = false
+}
+
+function markContactPriorityColumnPresent(): void {
+  contactPriorityColumnPresent = true
 }
 
 function markEmailsColumnMissing(): void {
@@ -964,6 +999,11 @@ export function linksSchemaKnownMissing(): boolean {
 /** True when a prior probe/update learned value_emoji column is absent. */
 export function valueEmojiSchemaKnownMissing(): boolean {
   return valueEmojiColumnPresent === false
+}
+
+/** True when a prior probe/update learned contact_priority column is absent. */
+export function contactPrioritySchemaKnownMissing(): boolean {
+  return contactPriorityColumnPresent === false
 }
 
 /** True when a prior probe/update learned emails column is absent. */
@@ -1036,6 +1076,23 @@ export function preserveValueEmojiFields(
     const prev = prevById.get(row.id)
     if (!prev || !normalizeValueEmoji(prev.value_emoji)) return row
     return mergeValueEmoji(row, prev)
+  })
+}
+
+/**
+ * When list rows omit contact_priority (missing column), keep optimistic values.
+ */
+export function preserveContactPriorityFields(
+  incoming: Lead[],
+  previous: Lead[],
+): Lead[] {
+  if (incoming.length === 0 || previous.length === 0) return incoming
+  const prevById = new Map(previous.map((l) => [l.id, l]))
+  return incoming.map((row) => {
+    if (row.contact_priority) return row
+    const prev = prevById.get(row.id)
+    if (!prev?.contact_priority) return row
+    return mergeContactPriority(row, prev)
   })
 }
 
@@ -1172,6 +1229,32 @@ export async function probeValueEmojiSchema(): Promise<boolean> {
     return true
   }
   markValueEmojiColumnPresent()
+  return true
+}
+
+/**
+ * Probe whether `contact_priority` exists on `crm_leads`.
+ * Returns true when column is present (or local mode).
+ */
+export async function probeContactPrioritySchema(): Promise<boolean> {
+  if (!useLiveCrmBackend()) {
+    markContactPriorityColumnPresent()
+    return true
+  }
+  if (contactPriorityColumnPresent != null) return contactPriorityColumnPresent
+
+  const supabase = getSupabase()!
+  const { error } = await supabase.from('crm_leads').select('contact_priority').limit(1)
+
+  if (error && isMissingContactPriorityColumn(error.message)) {
+    markContactPriorityColumnMissing()
+    return false
+  }
+  if (error) {
+    console.warn('Could not probe contact_priority column:', error.message)
+    return true
+  }
+  markContactPriorityColumnPresent()
   return true
 }
 
@@ -1493,6 +1576,7 @@ function buildLeadSelect(opts?: {
   links?: boolean
   emails?: boolean
   valueEmoji?: boolean
+  contactPriority?: boolean
   atlasEval?: boolean
   clientLocale?: boolean
   outreach?: boolean
@@ -1500,6 +1584,7 @@ function buildLeadSelect(opts?: {
   const links = opts?.links ?? linksColumnPresent !== false
   const emails = opts?.emails ?? emailsColumnPresent !== false
   const valueEmoji = opts?.valueEmoji ?? valueEmojiColumnPresent !== false
+  const contactPriority = opts?.contactPriority ?? contactPriorityColumnPresent !== false
   const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
   const clientLocale = opts?.clientLocale ?? clientLocaleColumnsPresent !== false
   const outreach = opts?.outreach ?? outreachColumnsPresent !== false
@@ -1527,6 +1612,7 @@ function buildLeadSelect(opts?: {
     'temperature',
     'status',
     'next_follow_up',
+    ...(contactPriority ? (['contact_priority'] as const) : []),
     'estimated_value',
     ...(valueEmoji ? (['value_emoji'] as const) : []),
     ...(atlasEval ? (['atlas_eval'] as const) : []),
@@ -1558,6 +1644,7 @@ function stripOptionalLeadFields<T extends Record<string, unknown>>(body: T): T 
   if (linksColumnPresent === false) next = stripLinksField(next)
   if (emailsColumnPresent === false) next = stripEmailsField(next)
   if (valueEmojiColumnPresent === false) next = stripValueEmojiField(next)
+  if (contactPriorityColumnPresent === false) next = stripContactPriorityField(next)
   if (atlasEvalColumnPresent === false) next = stripAtlasEvalField(next)
   if (clientLocaleColumnsPresent === false) next = stripClientLocaleFields(next)
   if (outreachColumnsPresent === false) next = stripOutreachFields(next)
@@ -1585,6 +1672,14 @@ function markOptionalColumnMissing(message: string): boolean {
     markValueEmojiColumnMissing()
     console.warn(
       'crm_leads value_emoji column missing — run crm_lead_value_emoji_migration.sql',
+      message,
+    )
+    return true
+  }
+  if (isMissingContactPriorityColumn(message)) {
+    markContactPriorityColumnMissing()
+    console.warn(
+      'crm_leads contact_priority column missing — run crm_lead_contact_priority_migration.sql',
       message,
     )
     return true
@@ -1634,6 +1729,9 @@ function mergeStrippedOptionalFields(
   if (valueEmojiColumnPresent === false) {
     result = mergeValueEmoji(result, source)
   }
+  if (contactPriorityColumnPresent === false) {
+    result = mergeContactPriority(result, source)
+  }
   if (atlasEvalColumnPresent === false) {
     result = mergeAtlasEval(result, source)
   }
@@ -1664,6 +1762,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         if (linksColumnPresent !== false) markLinksColumnPresent()
         if (emailsColumnPresent !== false) markEmailsColumnPresent()
         if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+        if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
         if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
         if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
         if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
@@ -1716,6 +1815,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     links: normalizeLeadLinks(input.links),
     emails: normalizeLeadEmails(input.emails),
     value_emoji: normalizeValueEmoji(input.value_emoji),
+    contact_priority: !!input.contact_priority,
     atlas_eval: normalizeAtlasEval(input.atlas_eval),
   }
 
@@ -1786,6 +1886,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     if (linksColumnPresent !== false) markLinksColumnPresent()
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+    if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
     if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
@@ -1815,6 +1916,9 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
   if (input.value_emoji !== undefined) {
     patch.value_emoji = normalizeValueEmoji(input.value_emoji)
   }
+  if (input.contact_priority !== undefined) {
+    patch.contact_priority = !!input.contact_priority
+  }
   if (input.atlas_eval !== undefined) {
     patch.atlas_eval = normalizeAtlasEval(input.atlas_eval)
   }
@@ -1843,6 +1947,7 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
     if (linksColumnPresent !== false) markLinksColumnPresent()
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+    if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
     if (outreachColumnsPresent !== false) markOutreachColumnsPresent()

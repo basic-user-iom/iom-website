@@ -172,7 +172,10 @@ export function InitialOutreachPanel({
 
   const markSentLocally = async (activityBody: string, emailSubject: string) => {
     const stamp = new Date().toISOString()
-    const patch: Partial<LeadInput> = { initial_email_sent_at: stamp }
+    const patch: Partial<LeadInput> = {
+      initial_email_sent_at: stamp,
+      contact_priority: false,
+    }
     if (!lead.initial_email_drafted_at) {
       patch.initial_email_drafted_at = stamp
     }
@@ -261,6 +264,7 @@ export function InitialOutreachPanel({
       if (mode === 'resend') {
         const updated = await updateLead(lead.id, {
           initial_email_sent_at: stamp,
+          contact_priority: false,
         })
         await logEmailActivity(
           subj,

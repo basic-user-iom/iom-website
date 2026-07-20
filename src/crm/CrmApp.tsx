@@ -3,6 +3,7 @@ import {
   atlasEvalSchemaKnownMissing,
   backfillOwnLeadOwnerSnapshot,
   clientLocaleSchemaKnownMissing,
+  contactPrioritySchemaKnownMissing,
   createLead,
   emailsSchemaKnownMissing,
   getCurrentUser,
@@ -12,12 +13,14 @@ import {
   onAuthChange,
   preserveAtlasEvalFields,
   preserveClientLocaleFields,
+  preserveContactPriorityFields,
   preserveLeadEmailsFields,
   preserveLeadLinksFields,
   preserveOutreachFields,
   preserveValueEmojiFields,
   probeAtlasEvalSchema,
   probeClientLocaleSchema,
+  probeContactPrioritySchema,
   probeEmailsSchema,
   probeLinksSchema,
   probeOutreachSchema,
@@ -33,7 +36,7 @@ import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
 import { DemosView } from './DemosView'
 import { LinksView } from './LinksView'
-import { CrmFollowUpCalendar, followUpDateKey, tomorrowKey } from './CrmFollowUpCalendar'
+import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
 import {
@@ -48,6 +51,7 @@ import {
   useCrmI18n,
 } from './i18n'
 import { IdeasView } from './IdeasView'
+import { isContactPriority } from './outreach'
 import { NotesView } from './NotesView'
 import { ScreenRecorderView } from './ScreenRecorderView'
 import { SeoView } from './SeoView'
@@ -287,10 +291,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     useState(false)
   const [linksSchemaMissing, setLinksSchemaMissing] = useState(false)
   const [valueEmojiSchemaMissing, setValueEmojiSchemaMissing] = useState(false)
+  const [contactPrioritySchemaMissing, setContactPrioritySchemaMissing] =
+    useState(false)
   const [emailsSchemaMissing, setEmailsSchemaMissing] = useState(false)
   const [atlasEvalSchemaMissing, setAtlasEvalSchemaMissing] = useState(false)
   const [outreachSchemaMissing, setOutreachSchemaMissing] = useState(false)
   const [followUpDate, setFollowUpDate] = useState<string | null>(null)
+  const [priorityFilter, setPriorityFilter] = useState(false)
 
   const openProject = useCallback((projectId: string) => {
     setFocusProjectId(projectId)
@@ -374,13 +381,14 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!soft) setLoading(true)
     setError('')
     try {
-      const [schema, staff, clientLocaleOk, linksOk, valueEmojiOk, emailsOk, atlasOk, outreachOk] =
+      const [schema, staff, clientLocaleOk, linksOk, valueEmojiOk, contactPriorityOk, emailsOk, atlasOk, outreachOk] =
         await Promise.all([
           probeOwnerAttributionSchema(),
           listStaffProfiles(),
           probeClientLocaleSchema(),
           probeLinksSchema(),
           probeValueEmojiSchema(),
+          probeContactPrioritySchema(),
           probeEmailsSchema(),
           probeAtlasEvalSchema(),
           probeOutreachSchema(),
@@ -391,6 +399,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setClientLocaleSchemaMissing(!clientLocaleOk)
       setLinksSchemaMissing(!linksOk)
       setValueEmojiSchemaMissing(!valueEmojiOk)
+      setContactPrioritySchemaMissing(!contactPriorityOk)
       setEmailsSchemaMissing(!emailsOk)
       setAtlasEvalSchemaMissing(!atlasOk)
       setOutreachSchemaMissing(!outreachOk)
@@ -419,6 +428,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         }
         if (valueEmojiSchemaKnownMissing() || !valueEmojiOk) {
           next = preserveValueEmojiFields(next, prev)
+        }
+        if (contactPrioritySchemaKnownMissing() || !contactPriorityOk) {
+          next = preserveContactPriorityFields(next, prev)
         }
         if (emailsSchemaKnownMissing() || !emailsOk) {
           next = preserveLeadEmailsFields(next, prev)
@@ -477,6 +489,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (valueEmojiSchemaKnownMissing()) {
       setValueEmojiSchemaMissing(true)
     }
+    if (contactPrioritySchemaKnownMissing()) {
+      setContactPrioritySchemaMissing(true)
+    }
     if (emailsSchemaKnownMissing()) {
       setEmailsSchemaMissing(true)
     }
@@ -489,6 +504,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       clientLocaleSchemaKnownMissing() ||
       linksSchemaKnownMissing() ||
       valueEmojiSchemaKnownMissing() ||
+      contactPrioritySchemaKnownMissing() ||
       emailsSchemaKnownMissing() ||
       atlasEvalSchemaKnownMissing()
     ) {
@@ -511,6 +527,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (valueEmojiSchemaKnownMissing()) {
           setValueEmojiSchemaMissing(true)
         }
+        if (contactPrioritySchemaKnownMissing()) {
+          setContactPrioritySchemaMissing(true)
+        }
         if (emailsSchemaKnownMissing()) {
           setEmailsSchemaMissing(true)
         }
@@ -524,6 +543,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           (clientLocaleSchemaKnownMissing() ||
             linksSchemaKnownMissing() ||
             valueEmojiSchemaKnownMissing() ||
+            contactPrioritySchemaKnownMissing() ||
             emailsSchemaKnownMissing() ||
             atlasEvalSchemaKnownMissing())
         ) {
@@ -588,14 +608,17 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const openCount = leads.filter(
     (l) => l.status !== 'closed_won' && l.status !== 'closed_lost',
   ).length
-  const tomorrow = tomorrowKey()
-  const tomorrowCount = leads.filter(
-    (l) => followUpDateKey(l.next_follow_up) === tomorrow,
-  ).length
-  const tomorrowFilterActive = followUpDate === tomorrow
-  const listLeads = followUpDate
-    ? leads.filter((l) => followUpDateKey(l.next_follow_up) === followUpDate)
-    : leads
+  const priorityCount = leads.filter((l) => isContactPriority(l)).length
+  const listLeads = (() => {
+    let rows = leads
+    if (followUpDate) {
+      rows = rows.filter((l) => followUpDateKey(l.next_follow_up) === followUpDate)
+    }
+    if (priorityFilter) {
+      rows = rows.filter((l) => isContactPriority(l))
+    }
+    return rows
+  })()
   const workspaceEmpty = !loading && listLeads.length === 0
 
   const handleFollowUpDate = (date: string | null) => {
@@ -605,8 +628,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (matching.length > 0) setSelectedId(matching[0].id)
   }
 
-  const handleTomorrowFilter = () => {
-    handleFollowUpDate(tomorrowFilterActive ? null : tomorrow)
+  const handlePriorityFilter = () => {
+    const next = !priorityFilter
+    setPriorityFilter(next)
+    if (!next) return
+    const matching = leads.filter((l) => isContactPriority(l))
+    if (matching.length > 0) setSelectedId(matching[0].id)
   }
   const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
@@ -769,6 +796,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         </p>
       )}
 
+      {!sandboxed && contactPrioritySchemaMissing && (
+        <p className="crm-feedback crm-feedback--error" role="status">
+          {t('error.contactPrioritySchemaMissing')}
+        </p>
+      )}
+
       {!sandboxed && emailsSchemaMissing && (
         <p className="crm-feedback crm-feedback--error" role="status">
           {t('error.emailsSchemaMissing')}
@@ -809,17 +842,17 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               </div>
               <button
                 type="button"
-                className={`crm-stat crm-stat--filter${tomorrowFilterActive ? ' is-active' : ''}`}
-                aria-pressed={tomorrowFilterActive}
+                className={`crm-stat crm-stat--filter${priorityFilter ? ' is-active' : ''}`}
+                aria-pressed={priorityFilter}
                 aria-label={
-                  tomorrowFilterActive
-                    ? t('stats.tomorrowFilterClear')
-                    : t('stats.tomorrowFilter')
+                  priorityFilter
+                    ? t('stats.priorityFilterClear')
+                    : t('stats.priorityFilter')
                 }
-                onClick={handleTomorrowFilter}
+                onClick={handlePriorityFilter}
               >
-                <span className="crm-stat-value">{tomorrowCount}</span>
-                <span className="crm-stat-label">{t('stats.tomorrow')}</span>
+                <span className="crm-stat-value">{priorityCount}</span>
+                <span className="crm-stat-label">{t('stats.priority')}</span>
               </button>
             </div>
             <CrmFollowUpCalendar

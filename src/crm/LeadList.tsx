@@ -1,9 +1,8 @@
 import { AtlasEvalCompact } from './AtlasEvalFields'
 import { normalizeAtlasEval } from './atlasEval'
-import { isFollowUpTomorrow } from './CrmFollowUpCalendar'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
-import { initialEmailPending, initialEmailSent } from './outreach'
+import { initialEmailPending, initialEmailSent, isContactPriority } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmUser, Lead, StaffProfile } from './types'
 import { resolveLeadOwner } from './types'
@@ -101,9 +100,9 @@ export function LeadList({
                         {t('outreach.badgePending')}
                       </span>
                     ) : null}
-                    {isFollowUpTomorrow(lead.next_follow_up) && (
-                      <span className="crm-tomorrow-badge" title={t('detail.tomorrowSet')}>
-                        {t('list.tomorrow')}
+                    {isContactPriority(lead) && (
+                      <span className="crm-priority-badge" title={t('detail.prioritySet')}>
+                        {t('list.priority')}
                       </span>
                     )}
                     <span className="crm-lead-row-top-end">
