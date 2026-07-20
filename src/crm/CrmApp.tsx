@@ -33,7 +33,7 @@ import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
 import { DemosView } from './DemosView'
 import { LinksView } from './LinksView'
-import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
+import { CrmFollowUpCalendar, followUpDateKey, tomorrowKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
 import {
@@ -588,6 +588,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const openCount = leads.filter(
     (l) => l.status !== 'closed_won' && l.status !== 'closed_lost',
   ).length
+  const tomorrow = tomorrowKey()
+  const tomorrowCount = leads.filter(
+    (l) => followUpDateKey(l.next_follow_up) === tomorrow,
+  ).length
+  const tomorrowFilterActive = followUpDate === tomorrow
   const listLeads = followUpDate
     ? leads.filter((l) => followUpDateKey(l.next_follow_up) === followUpDate)
     : leads
@@ -598,6 +603,10 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!date) return
     const matching = leads.filter((l) => followUpDateKey(l.next_follow_up) === date)
     if (matching.length > 0) setSelectedId(matching[0].id)
+  }
+
+  const handleTomorrowFilter = () => {
+    handleFollowUpDate(tomorrowFilterActive ? null : tomorrow)
   }
   const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
@@ -798,6 +807,20 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                 <span className="crm-stat-value">{hotCount}</span>
                 <span className="crm-stat-label">{t('stats.hot')}</span>
               </div>
+              <button
+                type="button"
+                className={`crm-stat crm-stat--filter${tomorrowFilterActive ? ' is-active' : ''}`}
+                aria-pressed={tomorrowFilterActive}
+                aria-label={
+                  tomorrowFilterActive
+                    ? t('stats.tomorrowFilterClear')
+                    : t('stats.tomorrowFilter')
+                }
+                onClick={handleTomorrowFilter}
+              >
+                <span className="crm-stat-value">{tomorrowCount}</span>
+                <span className="crm-stat-label">{t('stats.tomorrow')}</span>
+              </button>
             </div>
             <CrmFollowUpCalendar
               leads={leads}

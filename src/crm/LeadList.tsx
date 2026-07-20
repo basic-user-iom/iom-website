@@ -1,5 +1,6 @@
 import { AtlasEvalCompact } from './AtlasEvalFields'
 import { normalizeAtlasEval } from './atlasEval'
+import { isFollowUpTomorrow } from './CrmFollowUpCalendar'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { initialEmailPending, initialEmailSent } from './outreach'
@@ -100,6 +101,11 @@ export function LeadList({
                         {t('outreach.badgePending')}
                       </span>
                     ) : null}
+                    {isFollowUpTomorrow(lead.next_follow_up) && (
+                      <span className="crm-tomorrow-badge" title={t('detail.tomorrowSet')}>
+                        {t('list.tomorrow')}
+                      </span>
+                    )}
                     <span className="crm-lead-row-top-end">
                       <LeadClientLocal lead={lead} compact />
                       <span className={`crm-temp crm-temp--${lead.temperature}`}>

@@ -200,6 +200,20 @@ export function InitialOutreachPanel({
     }
   }
 
+  const handleMarkNotSent = async () => {
+    if (!confirm(t('outreach.notSentConfirm'))) return
+    setError('')
+    setBusy(true)
+    try {
+      const updated = await updateLead(lead.id, { initial_email_sent_at: null })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.markFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sendViaCrm = async (mode: SendMode) => {
     const to = toEmail.trim()
     const subj = lead.initial_email_subject.trim()
@@ -561,15 +575,27 @@ export function InitialOutreachPanel({
                   </>
                 )}
 
-                {alreadySent && canSendDraft && (
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    disabled={busy}
-                    onClick={() => void sendViaCrm('resend')}
-                  >
-                    {busy ? t('outreach.sending') : t('outreach.resend')}
-                  </button>
+                {alreadySent && (
+                  <>
+                    {canSendDraft && (
+                      <button
+                        type="button"
+                        className="btn btn-primary"
+                        disabled={busy}
+                        onClick={() => void sendViaCrm('resend')}
+                      >
+                        {busy ? t('outreach.sending') : t('outreach.resend')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={() => void handleMarkNotSent()}
+                    >
+                      {t('outreach.markNotSent')}
+                    </button>
+                  </>
                 )}
               </div>
 

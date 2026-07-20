@@ -23,9 +23,20 @@ function dateKeyFromParts(year: number, month: number, day: number): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
-function todayKey(): string {
+export function todayKey(): string {
   const now = new Date()
   return dateKeyFromParts(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+/** Local calendar date for tomorrow (YYYY-MM-DD). */
+export function tomorrowKey(): string {
+  const now = new Date()
+  now.setDate(now.getDate() + 1)
+  return dateKeyFromParts(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+export function isFollowUpTomorrow(raw: string | null | undefined): boolean {
+  return followUpDateKey(raw) === tomorrowKey()
 }
 
 interface CrmFollowUpCalendarProps {

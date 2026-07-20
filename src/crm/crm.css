@@ -557,6 +557,49 @@
   white-space: nowrap;
 }
 
+.crm-stat--filter {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-stat--filter:hover {
+  border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-elevated));
+}
+
+.crm-stat--filter.is-active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-elevated));
+}
+
+.crm-tomorrow-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  color: #e8c547;
+  border: 1px solid color-mix(in srgb, #e8c547 45%, var(--border));
+  background: color-mix(in srgb, #e8c547 10%, transparent);
+  white-space: nowrap;
+}
+
+.crm-tomorrow-btn.is-active {
+  border-color: color-mix(in srgb, #e8c547 55%, var(--border));
+  color: #e8c547;
+  background: color-mix(in srgb, #e8c547 12%, transparent);
+}
+
+.crm-follow-up-dd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
 .crm-calendar {
   width: 100%;
   min-width: 0;

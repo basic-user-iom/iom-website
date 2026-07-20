@@ -5,6 +5,7 @@ import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { AtlasEvalFields } from './AtlasEvalFields'
 import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
+import { isFollowUpTomorrow, tomorrowKey } from './CrmFollowUpCalendar'
 import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
 import { EmailThreadPanel } from './EmailThreadPanel'
 import { InitialOutreachPanel } from './InitialOutreachPanel'
@@ -76,6 +77,7 @@ export function LeadDetail({
   const [sending, setSending] = useState(false)
   const [copying, setCopying] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [tomorrowBusy, setTomorrowBusy] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const [activityTick, setActivityTick] = useState(0)
@@ -84,6 +86,7 @@ export function LeadDetail({
   const owner = resolveLeadOwner(lead, currentUser, staffById)
   const showOwner = !!(owner.name || owner.email || owner.avatar_url)
   const ownerLabel = owner.name || null
+  const queuedTomorrow = isFollowUpTomorrow(lead.next_follow_up)
   const isOwnIncomplete =
     !!currentUser &&
     lead.owner_id === currentUser.id &&
@@ -178,6 +181,20 @@ export function LeadDetail({
     onChanged(updated)
   }
 
+  const handleTomorrow = async () => {
+    setError('')
+    setTomorrowBusy(true)
+    try {
+      const next = queuedTomorrow ? null : tomorrowKey()
+      const updated = await updateLead(lead.id, { next_follow_up: next })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('detail.tomorrowFailed'))
+    } finally {
+      setTomorrowBusy(false)
+    }
+  }
+
   const handleClaim = async () => {
     if (!currentUser || !owner.claimable) return
     if (!confirm(t('detail.claimConfirm'))) return
@@ -236,6 +253,9 @@ export function LeadDetail({
   }
 
   const copyButtonLabel = copying ? t('detail.copying') : copied ? t('detail.copied') : t('detail.copyAsText')
+  const tomorrowButtonLabel = queuedTomorrow
+    ? t('detail.tomorrowClear')
+    : t('detail.tomorrowSet')
 
   if (editing) {
     return (
@@ -283,6 +303,16 @@ export function LeadDetail({
             <span className={`crm-temp crm-temp--${lead.temperature}`}>
               {tempLabel(lead.temperature)}
             </span>
+            <button
+              type="button"
+              className={`btn btn-ghost crm-tomorrow-btn${queuedTomorrow ? ' is-active' : ''}`}
+              disabled={tomorrowBusy}
+              aria-pressed={queuedTomorrow}
+              title={tomorrowButtonLabel}
+              onClick={() => void handleTomorrow()}
+            >
+              {t('detail.tomorrow')}
+            </button>
             <button
               type="button"
               className="btn btn-ghost"
@@ -361,6 +391,16 @@ export function LeadDetail({
           )}
         </div>
         <div className="crm-detail-actions">
+          <button
+            type="button"
+            className={`btn btn-ghost crm-tomorrow-btn${queuedTomorrow ? ' is-active' : ''}`}
+            disabled={tomorrowBusy}
+            aria-pressed={queuedTomorrow}
+            title={tomorrowButtonLabel}
+            onClick={() => void handleTomorrow()}
+          >
+            {t('detail.tomorrow')}
+          </button>
           <button
             type="button"
             className="btn btn-ghost"
@@ -487,7 +527,12 @@ export function LeadDetail({
         )}
         <div>
           <dt>{t('detail.followUp')}</dt>
-          <dd>{lead.next_follow_up || '—'}</dd>
+          <dd className="crm-follow-up-dd">
+            {lead.next_follow_up || '—'}
+            {queuedTomorrow && (
+              <span className="crm-tomorrow-badge">{t('detail.tomorrow')}</span>
+            )}
+          </dd>
         </div>
         <div>
           <dt>{t('detail.value')}</dt>
