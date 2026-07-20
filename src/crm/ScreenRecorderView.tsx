@@ -46,6 +46,7 @@ import {
   embedSnippetForSlug,
   getRecordingSignedUrl,
   isRecordingsSchemaMissing,
+  isUploadTooLargeError,
   listRecordings,
   replaceRecordingBlob,
   setRecordingPassword,
@@ -665,16 +666,49 @@ export function ScreenRecorderView() {
       setStatus('uploading')
       const user = await getCurrentUser()
       if (!user) throw new Error('Not signed in')
-      await uploadRecording({
-        blob,
-        title: recTitle,
-        durationMs,
-        ownerId: user.id,
-      })
-      setPreviewUrl(URL.createObjectURL(blob))
-      setStatus('idle')
-      setPanel('library')
-      void refreshLibrary()
+      try {
+        await uploadRecording({
+          blob,
+          title: recTitle,
+          durationMs,
+          ownerId: user.id,
+        })
+        setPreviewUrl(URL.createObjectURL(blob))
+        setStatus('idle')
+        setPanel('library')
+        void refreshLibrary()
+      } catch (upErr) {
+        // Keep the take — fall back to local download if cloud rejects size.
+        const objectUrl = URL.createObjectURL(blob)
+        const local: LocalRecording = {
+          id: crypto.randomUUID(),
+          title: recTitle,
+          blob,
+          mimeType: blob.type || 'video/webm',
+          durationMs,
+          createdAt: new Date().toISOString(),
+          objectUrl,
+        }
+        setLocalRecs((prev) => [local, ...prev])
+        setPreviewUrl(objectUrl)
+        downloadBlob(
+          blob,
+          `${slugify(recTitle)}.${blob.type.includes('mp4') ? 'mp4' : 'webm'}`,
+        )
+        setPanel('library')
+        setStatus('idle')
+        if (isUploadTooLargeError(upErr)) {
+          const mb = String(upErr instanceof Error ? upErr.message : '').replace(
+            /^FILE_TOO_LARGE:/,
+            '',
+          )
+          setError(t('recorder.error.tooLarge').replace('{mb}', mb || '?'))
+        } else {
+          setError(
+            upErr instanceof Error ? upErr.message : t('recorder.error.upload'),
+          )
+        }
+      }
     } catch (err) {
       setError(
         err instanceof Error ? err.message : t('recorder.error.upload'),

@@ -16,7 +16,8 @@ export function startMediaRecorder(stream: MediaStream): RecordingHandle {
   const chunks: BlobPart[] = []
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,
-    videoBitsPerSecond: 4_000_000,
+    // ~2.5 Mbps ≈ 19 MB/min — keeps typical 10–15 min clips under a 500 MB bucket.
+    videoBitsPerSecond: 2_500_000,
   })
 
   let startedAt = performance.now()

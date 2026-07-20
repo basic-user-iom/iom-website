@@ -129,14 +129,24 @@ $$;
 revoke all on function public.crm_recording_unlock(text, text) from public;
 grant execute on function public.crm_recording_unlock(text, text) to anon, authenticated, service_role;
 
--- Private video bucket (200 MB)
+-- Private video/screenshot bucket (500 MB)
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values (
   'crm-screen-recordings',
   'crm-screen-recordings',
   false,
-  209715200,
-  array['video/webm', 'video/mp4', 'video/quicktime', 'audio/webm', 'audio/mpeg', 'audio/wav']
+  524288000,
+  array[
+    'video/webm',
+    'video/mp4',
+    'video/quicktime',
+    'audio/webm',
+    'audio/mpeg',
+    'audio/wav',
+    'image/png',
+    'image/jpeg',
+    'image/webp'
+  ]
 )
 on conflict (id) do update set
   public = excluded.public,

@@ -23,6 +23,19 @@ function assertUploadableBlob(blob: Blob): void {
   }
 }
 
+function friendlyStorageError(message: string, bytes: number): string {
+  if (/maximum allowed size|Payload too large|entity too large|413|file size/i.test(message)) {
+    const mb = (bytes / (1024 * 1024)).toFixed(1)
+    return `FILE_TOO_LARGE:${mb}`
+  }
+  return message
+}
+
+export function isUploadTooLargeError(err: unknown): boolean {
+  const msg = err instanceof Error ? err.message : String(err ?? '')
+  return msg.startsWith('FILE_TOO_LARGE:')
+}
+
 export function isRecordingsSchemaMissing(err: unknown): boolean {
   if (schemaMissing) return true
   const msg = err instanceof Error ? err.message : String(err ?? '')
@@ -127,7 +140,7 @@ export async function uploadRecording(input: {
   })
   if (upErr) {
     if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
-    throw new Error(upErr.message)
+    throw new Error(friendlyStorageError(upErr.message, input.blob.size))
   }
 
   const { data, error } = await sb
@@ -238,7 +251,7 @@ export async function replaceRecordingBlob(
   })
   if (upErr) {
     if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
-    throw new Error(upErr.message)
+    throw new Error(friendlyStorageError(upErr.message, blob.size))
   }
 
   const { data, error } = await sb

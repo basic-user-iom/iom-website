@@ -428,6 +428,8 @@ const en: Dict = {
   'recorder.error.camera': 'Could not access camera.',
   'recorder.error.save': 'Could not save recording.',
   'recorder.error.upload': 'Could not upload recording.',
+  'recorder.error.tooLarge':
+    'Online save failed — file is {mb} MB (over storage limit). A local copy was downloaded. Use a shorter clip, or raise the CRM recordings bucket limit.',
   'recorder.library.empty': 'No recordings yet.',
   'recorder.library.loading': 'Loading recordings…',
   'recorder.library.schemaMissing':
@@ -1778,6 +1780,8 @@ const sr: Dict = {
   'recorder.error.camera': 'Nije moguće pristupiti kameri.',
   'recorder.error.save': 'Nije moguće sačuvati snimak.',
   'recorder.error.upload': 'Nije moguće otpremiti snimak.',
+  'recorder.error.tooLarge':
+    'Online čuvanje nije uspelo — fajl je {mb} MB (preko limita skladišta). Lokalna kopija je preuzeta. Snimite kraće, ili povećajte limit bucket-a za snimke.',
   'recorder.library.empty': 'Još nema snimaka.',
   'recorder.library.loading': 'Učitavanje snimaka…',
   'recorder.library.schemaMissing':
