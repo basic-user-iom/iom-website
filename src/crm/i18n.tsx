@@ -440,6 +440,10 @@ const en: Dict = {
   'recorder.uploadOnline.busy': 'Uploading…',
   'recorder.uploadOnline.tooLarge':
     'File is {mb} MB — over the online upload limit. Keep local / download, or use Cloudflare R2 for larger clips.',
+  'recorder.uploadAll': 'Upload all online',
+  'recorder.uploadAll.busy': 'Uploading all…',
+  'recorder.uploadAll.tooLarge':
+    'Skipped “{title}” ({mb} MB) — over the online limit. Other items may still upload.',
   'recorder.manualUpload': 'Upload video',
   'recorder.manualUpload.busy': 'Uploading…',
   'recorder.manualUpload.hint':
@@ -1807,6 +1811,10 @@ const sr: Dict = {
   'recorder.uploadOnline.busy': 'Otpremanje…',
   'recorder.uploadOnline.tooLarge':
     'Fajl je {mb} MB — preko online limita. Zadržite lokalno / preuzmite, ili koristite Cloudflare R2 za veće snimke.',
+  'recorder.uploadAll': 'Otpremi sve online',
+  'recorder.uploadAll.busy': 'Otpremanje svega…',
+  'recorder.uploadAll.tooLarge':
+    'Preskočeno “{title}” ({mb} MB) — preko online limita. Ostalo se može otpremiti.',
   'recorder.manualUpload': 'Otpremi video',
   'recorder.manualUpload.busy': 'Otpremanje…',
   'recorder.manualUpload.hint':

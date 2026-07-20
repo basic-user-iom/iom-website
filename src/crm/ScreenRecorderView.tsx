@@ -762,6 +762,63 @@ export function ScreenRecorderView() {
     }
   }
 
+  const uploadAllLocalOnline = async () => {
+    if (!live || demoMode || localRecs.length === 0) return
+    setError('')
+    setManualUploadBusy(true)
+    try {
+      const softMax = await getOnlineUploadSoftMaxBytes()
+      const user = await getCurrentUser()
+      if (!user) throw new Error('Not signed in')
+      const queue = [...localRecs]
+      for (const rec of queue) {
+        if (rec.blob.size > softMax) {
+          const mb = (rec.blob.size / (1024 * 1024)).toFixed(1)
+          setError(
+            t('recorder.uploadAll.tooLarge')
+              .replace('{title}', rec.title)
+              .replace('{mb}', mb),
+          )
+          continue
+        }
+        setEditorBusyId(rec.id)
+        try {
+          await uploadRecording({
+            blob: rec.blob,
+            title: rec.title,
+            durationMs: rec.durationMs,
+            ownerId: user.id,
+          })
+          URL.revokeObjectURL(rec.objectUrl)
+          setLocalRecs((prev) => prev.filter((r) => r.id !== rec.id))
+        } catch (err) {
+          if (isUploadTooLargeError(err)) {
+            const mb = String(err instanceof Error ? err.message : '').replace(
+              /^FILE_TOO_LARGE:/,
+              '',
+            )
+            setError(
+              t('recorder.uploadAll.tooLarge')
+                .replace('{title}', rec.title)
+                .replace('{mb}', mb || '?'),
+            )
+          } else {
+            setError(
+              err instanceof Error ? err.message : t('recorder.error.upload'),
+            )
+          }
+          break
+        }
+      }
+      void refreshLibrary()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('recorder.error.upload'))
+    } finally {
+      setEditorBusyId(null)
+      setManualUploadBusy(false)
+    }
+  }
+
   const probeVideoDurationMs = (blob: Blob): Promise<number> =>
     new Promise((resolve) => {
       const url = URL.createObjectURL(blob)
@@ -1737,7 +1794,21 @@ export function ScreenRecorderView() {
 
           {localRecs.length > 0 && (
             <section className="crm-recorder-lib-section">
-              <h2>{t('recorder.library.local')}</h2>
+              <div className="crm-recorder-actions" style={{ marginBottom: '0.75rem' }}>
+                <h2 style={{ margin: 0, flex: 1 }}>{t('recorder.library.local')}</h2>
+                {live && !demoMode && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={manualUploadBusy || editorBusyId != null}
+                    onClick={() => void uploadAllLocalOnline()}
+                  >
+                    {manualUploadBusy
+                      ? t('recorder.uploadAll.busy')
+                      : t('recorder.uploadAll')}
+                  </button>
+                )}
+              </div>
               <ul className="crm-recorder-list">
                 {localRecs.map((rec) => (
                   <li key={rec.id} className="crm-recorder-card">
