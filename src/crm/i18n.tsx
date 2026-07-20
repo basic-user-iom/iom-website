@@ -328,6 +328,7 @@ const en: Dict = {
   'recorder.hud.shareAudioOff': 'Tab audio off',
   'recorder.hud.cameraOn': 'Camera on',
   'recorder.hud.cameraOff': 'Camera off',
+  'recorder.hud.noAvatar': 'No avatar',
   'recorder.hud.live': 'REC',
   'recorder.warn.inputsOff':
     '{items} are turned off. Continue without them?\n\nTip: enable Microphone for your voice, and Tab / system audio for YouTube or demo sound (Chrome: check “Also share tab audio”).',
@@ -1700,6 +1701,7 @@ const sr: Dict = {
   'recorder.hud.shareAudioOff': 'Audio taba isključen',
   'recorder.hud.cameraOn': 'Kamera uključena',
   'recorder.hud.cameraOff': 'Kamera isključena',
+  'recorder.hud.noAvatar': 'Bez avatara',
   'recorder.hud.live': 'SNIMA',
   'recorder.warn.inputsOff':
     '{items} su isključeni. Nastaviti bez njih?\n\nSavet: uključite Mikrofon za svoj glas, i Audio taba / sistema za YouTube ili demo zvuk (Chrome: „Also share tab audio”).',
