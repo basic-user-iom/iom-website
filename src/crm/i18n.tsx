@@ -440,6 +440,11 @@ const en: Dict = {
   'recorder.uploadOnline.busy': 'Uploading…',
   'recorder.uploadOnline.tooLarge':
     'File is {mb} MB — over the online upload limit. Keep local / download, or use Cloudflare R2 for larger clips.',
+  'recorder.manualUpload': 'Upload video',
+  'recorder.manualUpload.busy': 'Uploading…',
+  'recorder.manualUpload.hint':
+    'Choose a WebM, MP4, or MOV from your computer. Live CRM saves it Online; demo keeps it in this session.',
+  'recorder.manualUpload.invalid': 'Please choose a video file (WebM, MP4, or MOV).',
   'recorder.download': 'Download',
   'recorder.delete': 'Delete',
   'recorder.deleteConfirm': 'Delete “{title}”?',
@@ -1796,6 +1801,11 @@ const sr: Dict = {
   'recorder.uploadOnline.busy': 'Otpremanje…',
   'recorder.uploadOnline.tooLarge':
     'Fajl je {mb} MB — preko online limita. Zadržite lokalno / preuzmite, ili koristite Cloudflare R2 za veće snimke.',
+  'recorder.manualUpload': 'Otpremi video',
+  'recorder.manualUpload.busy': 'Otpremanje…',
+  'recorder.manualUpload.hint':
+    'Izaberite WebM, MP4 ili MOV sa računara. Live CRM čuva Online; demo ostaje u ovoj sesiji.',
+  'recorder.manualUpload.invalid': 'Izaberite video fajl (WebM, MP4 ili MOV).',
   'recorder.download': 'Preuzmi',
   'recorder.delete': 'Obriši',
   'recorder.deleteConfirm': 'Obrisati „{title}“?',

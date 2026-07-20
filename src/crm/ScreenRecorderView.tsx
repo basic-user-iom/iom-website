@@ -140,6 +140,8 @@ export function ScreenRecorderView() {
   const [passwordDraft, setPasswordDraft] = useState<Record<string, string>>({})
   const [editorTarget, setEditorTarget] = useState<EditorTarget | null>(null)
   const [editorBusyId, setEditorBusyId] = useState<string | null>(null)
+  const [manualUploadBusy, setManualUploadBusy] = useState(false)
+  const manualFileRef = useRef<HTMLInputElement | null>(null)
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const recorderRef = useRef<RecordingHandle | null>(null)
@@ -756,6 +758,91 @@ export function ScreenRecorderView() {
       }
     } finally {
       setEditorBusyId(null)
+    }
+  }
+
+  const probeVideoDurationMs = (blob: Blob): Promise<number> =>
+    new Promise((resolve) => {
+      const url = URL.createObjectURL(blob)
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      const finish = (ms: number) => {
+        URL.revokeObjectURL(url)
+        resolve(ms)
+      }
+      video.onloadedmetadata = () => {
+        const sec = video.duration
+        finish(Number.isFinite(sec) && sec > 0 ? Math.round(sec * 1000) : 0)
+      }
+      video.onerror = () => finish(0)
+      video.src = url
+    })
+
+  const handleManualVideoUpload = async (file: File | null) => {
+    if (!file) return
+    setError('')
+    setLibError('')
+    const mime = (file.type || '').toLowerCase()
+    if (!mime.startsWith('video/') && !/\.(webm|mp4|mov|m4v)$/i.test(file.name)) {
+      setError(t('recorder.manualUpload.invalid'))
+      return
+    }
+    setManualUploadBusy(true)
+    try {
+      const contentType =
+        mime.split(';')[0].trim() ||
+        (/\.mp4$/i.test(file.name)
+          ? 'video/mp4'
+          : /\.mov$/i.test(file.name)
+            ? 'video/quicktime'
+            : 'video/webm')
+      const blob = new Blob([await file.arrayBuffer()], { type: contentType })
+      const durationMs = await probeVideoDurationMs(blob)
+      const title =
+        file.name.replace(/\.[^.]+$/, '').trim() ||
+        `Upload ${new Date().toLocaleString()}`
+
+      if (live && !demoMode) {
+        const softMax = await getOnlineUploadSoftMaxBytes()
+        if (blob.size > softMax) {
+          const mb = (blob.size / (1024 * 1024)).toFixed(1)
+          setError(t('recorder.uploadOnline.tooLarge').replace('{mb}', mb))
+          return
+        }
+        const user = await getCurrentUser()
+        if (!user) throw new Error('Not signed in')
+        await uploadRecording({
+          blob,
+          title,
+          durationMs,
+          ownerId: user.id,
+        })
+        void refreshLibrary()
+      } else {
+        const local: LocalRecording = {
+          id: crypto.randomUUID(),
+          title,
+          blob,
+          objectUrl: URL.createObjectURL(blob),
+          durationMs,
+          mimeType: contentType,
+          createdAt: new Date().toISOString(),
+        }
+        setLocalRecs((prev) => [local, ...prev])
+      }
+    } catch (err) {
+      if (isUploadTooLargeError(err)) {
+        const mb = String(err instanceof Error ? err.message : '').replace(
+          /^FILE_TOO_LARGE:/,
+          '',
+        )
+        setError(t('recorder.error.tooLarge').replace('{mb}', mb || '?'))
+      } else {
+        setError(err instanceof Error ? err.message : t('recorder.error.upload'))
+      }
+    } finally {
+      setManualUploadBusy(false)
+      if (manualFileRef.current) manualFileRef.current.value = ''
     }
   }
 
@@ -1499,6 +1586,30 @@ export function ScreenRecorderView() {
 
       {panel === 'library' && (
         <div className="crm-recorder-library">
+          <div className="crm-recorder-actions" style={{ marginBottom: '1rem' }}>
+            <input
+              ref={manualFileRef}
+              type="file"
+              accept="video/*,.webm,.mp4,.mov,.m4v"
+              hidden
+              onChange={(e) =>
+                void handleManualVideoUpload(e.target.files?.[0] ?? null)
+              }
+            />
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={manualUploadBusy}
+              onClick={() => manualFileRef.current?.click()}
+            >
+              {manualUploadBusy
+                ? t('recorder.manualUpload.busy')
+                : t('recorder.manualUpload')}
+            </button>
+            <span className="crm-recorder-hint">
+              {t('recorder.manualUpload.hint')}
+            </span>
+          </div>
           {libLoading && <p>{t('recorder.library.loading')}</p>}
           {libError && (
             <p className="crm-recorder-error" role="alert">
