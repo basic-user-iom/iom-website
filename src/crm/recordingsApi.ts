@@ -208,12 +208,10 @@ async function uploadBlob(
       return 'r2'
     } catch (err) {
       if (err instanceof Error && err.message === 'R2_DISABLED') {
-        /* fall through to Supabase */
+        /* fall through to Supabase when R2 env is missing */
       } else if (isR2NetworkFailure(err)) {
-        // New R2 accounts often lack a working SSL cert for hours — use Supabase
-        // for files that still fit Free (~50 MB) until R2 TLS is ready.
-        console.warn('[recordings] R2 unreachable, falling back to Supabase', err)
-        r2EnabledCache = false
+        // Transient browser/network blip — keep R2 enabled for the next try.
+        console.warn('[recordings] R2 PUT failed, falling back to Supabase once', err)
       } else {
         throw err
       }

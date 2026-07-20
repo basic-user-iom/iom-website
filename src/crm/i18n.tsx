@@ -431,17 +431,17 @@ const en: Dict = {
   'recorder.error.save': 'Could not save recording.',
   'recorder.error.upload': 'Could not upload recording.',
   'recorder.error.tooLarge':
-    'Online save failed — file is {mb} MB (over storage limit). A local copy was downloaded. Use a shorter clip, or finish Cloudflare R2 setup (see docs/r2-recordings-setup.md).',
+    'Online save failed — file is {mb} MB (over the 512 MB limit). A local copy was downloaded. Use a shorter clip.',
   'recorder.library.empty': 'No recordings yet.',
   'recorder.library.loading': 'Loading recordings…',
   'recorder.library.schemaMissing':
     'Recordings storage is not set up yet. Run supabase/crm_recordings_migration.sql in the Supabase SQL Editor.',
   'recorder.library.local': 'This session (local)',
-  'recorder.library.online': 'Online',
+  'recorder.library.online': 'Online (Cloudflare R2)',
   'recorder.uploadOnline': 'Upload online',
   'recorder.uploadOnline.busy': 'Uploading…',
   'recorder.uploadOnline.tooLarge':
-    'File is {mb} MB — over the online upload limit. Keep local / download, or use Cloudflare R2 for larger clips.',
+    'File is {mb} MB — over the 512 MB online limit. Keep local / download, or trim the clip.',
   'recorder.uploadAll': 'Upload all online',
   'recorder.uploadAll.busy': 'Uploading all…',
   'recorder.uploadAll.tooLarge':
@@ -1804,17 +1804,17 @@ const sr: Dict = {
   'recorder.error.save': 'Nije moguće sačuvati snimak.',
   'recorder.error.upload': 'Nije moguće otpremiti snimak.',
   'recorder.error.tooLarge':
-    'Online čuvanje nije uspelo — fajl je {mb} MB (preko limita). Lokalna kopija je preuzeta. Snimite kraće ili završite Cloudflare R2 podešavanje (docs/r2-recordings-setup.md).',
+    'Online čuvanje nije uspelo — fajl je {mb} MB (preko limita 512 MB). Lokalna kopija je preuzeta. Snimite kraće.',
   'recorder.library.empty': 'Još nema snimaka.',
   'recorder.library.loading': 'Učitavanje snimaka…',
   'recorder.library.schemaMissing':
     'Skladište snimaka nije podešeno. Pokrenite supabase/crm_recordings_migration.sql u Supabase SQL Editoru.',
   'recorder.library.local': 'Ova sesija (lokalno)',
-  'recorder.library.online': 'Online',
+  'recorder.library.online': 'Online (Cloudflare R2)',
   'recorder.uploadOnline': 'Otpremi online',
   'recorder.uploadOnline.busy': 'Otpremanje…',
   'recorder.uploadOnline.tooLarge':
-    'Fajl je {mb} MB — preko online limita. Zadržite lokalno / preuzmite, ili koristite Cloudflare R2 za veće snimke.',
+    'Fajl je {mb} MB — preko limita 512 MB. Zadržite lokalno / preuzmite, ili skratite snimak.',
   'recorder.uploadAll': 'Otpremi sve online',
   'recorder.uploadAll.busy': 'Otpremanje svega…',
   'recorder.uploadAll.tooLarge':
