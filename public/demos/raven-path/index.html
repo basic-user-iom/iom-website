@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Raven Path Animation — WebGPU Curve — IOM</title>
 <!-- iom-seo -->
-    <meta name="description" content="Animated raven flight along editable spline paths with WebGPU curve modifier. Interactive Object Media experiment." />
+    <meta name="description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://iobjectm.com/demos/raven-path/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="IOM — Interactive Object Media" />
     <meta property="og:title" content="Raven Path Animation — WebGPU Curve — IOM" />
-    <meta property="og:description" content="Animated raven flight along editable spline paths with WebGPU curve modifier. Interactive Object Media experiment." />
+    <meta property="og:description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
     <meta property="og:url" content="https://iobjectm.com/demos/raven-path/" />
     <meta property="og:image" content="https://iobjectm.com/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Raven Path Animation — WebGPU Curve — IOM" />
-    <meta name="twitter:description" content="Animated raven flight along editable spline paths with WebGPU curve modifier. Interactive Object Media experiment." />
+    <meta name="twitter:description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
     <meta name="twitter:image" content="https://iobjectm.com/og-image.svg" />
     <!-- /iom-seo -->
 <style>
@@ -125,6 +125,9 @@
         right: 12px;
         z-index: 20;
       }
+      .runtime-file-input {
+        display: none;
+      }
     </style>
     <script type="importmap">
       {
@@ -138,7 +141,7 @@
   <body>
     <link rel="stylesheet" href="../attribution.css" />
     <link rel="stylesheet" href="../demo-mobile.css" />
-    <a class="back-link" href="/#software">← IOM</a>
+    <a class="back-link" href="/#3d">← IOM</a>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
         <a href="/demos/spline-editor/" target="_blank" rel="noopener noreferrer"
@@ -149,11 +152,17 @@
         Animated raven GLB following a Catmull-Rom spline — combines the
         <a href="/demos/spline-editor/" target="_blank" rel="noopener noreferrer">spline editor</a>
         with path controls (speed, easing, reverse, tangent rotation) and skeletal wing-flap
-        playback.
+        playback. Import your own GLB, GLTF, or FBX from the editor panel (or drag onto the scene).
       </p>
     </aside>
+    <input
+      id="model-file-input"
+      class="runtime-file-input"
+      type="file"
+      accept=".glb,.gltf,.fbx,model/gltf-binary,model/gltf+json"
+    />
     <div id="container"></div>
-    <p class="hint">Drag to orbit · tap point · drag gizmo · phones: Orbit / Edit</p>
+    <p class="hint">Drag to orbit · import GLB/GLTF/FBX · tap point · drag gizmo · phones: Orbit / Edit</p>
     <div id="status">Loading raven…</div>
 
     <script type="module">
@@ -162,6 +171,7 @@
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
       import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
+      import { FBXLoader } from 'three/addons/loaders/FBXLoader.js'
       import { SimplifyModifier } from 'three/addons/modifiers/SimplifyModifier.js'
       import {
         createTouchModeToggle,
@@ -192,6 +202,8 @@
 
       const ARC_SEGMENTS = 200
       const DEFAULT_RAVEN_SCALE = 0.85
+      /** Target max dimension for imported models before user Scale control. */
+      const IMPORT_TARGET_SIZE = 2.5
       /** Matches useHeroScene prepareRavenModel — raven mesh faces +X, not glTF +Z. */
       const DEFAULT_FORWARD_AXIS = '+x'
       const FORWARD_AXIS_OPTIONS = {
@@ -205,6 +217,7 @@
 
       const container = document.getElementById('container')
       const statusEl = document.getElementById('status')
+      const modelFileInput = document.getElementById('model-file-input')
 
       let camera, scene, renderer, controls, transformControl
       let curve, splineLine
@@ -231,6 +244,10 @@
       let objectGuiControllers = []
       let orientationGuiControllers = []
       let materialGuiControllers = []
+      let modelLoadInProgress = false
+      let usingImportedModel = false
+      let importedObjectUrl = null
+      let importedFileName = null
 
       const splineHelperObjects = []
       let splinePointsLength = 4
@@ -366,6 +383,8 @@
         reapplyMaterials: reapplyMaterials,
         swapModelQuality: swapModelQuality,
         applyRuntimeSimplify: applyRuntimeSimplify,
+        importModel: () => modelFileInput?.click(),
+        restoreStockRaven: restoreStockRaven,
         applyToAllFeather: () => applyMaterialGroup('feather'),
         applyToAllBody: () => applyMaterialGroup('body'),
         setTranslateMode: () => setRavenTransformMode('translate'),
@@ -484,10 +503,29 @@
         document.addEventListener('pointermove', onPointerMove)
         window.addEventListener('resize', onWindowResize)
 
+        modelFileInput?.addEventListener('change', async (event) => {
+          const file = event.target.files?.[0]
+          await importModelFromFile(file)
+          event.target.value = ''
+        })
+
+        container?.addEventListener('dragover', (event) => {
+          event.preventDefault()
+          if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+        })
+        container?.addEventListener('drop', async (event) => {
+          event.preventDefault()
+          const file = [...(event.dataTransfer?.files || [])].find((entry) => {
+            const ext = getFileExtension(entry.name)
+            return ext === 'glb' || ext === 'gltf' || ext === 'fbx'
+          })
+          if (file) await importModelFromFile(file)
+        })
+
         clock = new THREE.Clock()
         Promise.all([loadRaven(), ensureFullBaseline()])
           .then(() => {
-            baseStatusMessage = 'Raven loaded · drag path points · tune in editor panel'
+            baseStatusMessage = 'Raven loaded · drag path points · import GLB/GLTF/FBX · tune in editor'
             refreshPathStatus()
           })
           .catch((err) => {
@@ -688,6 +726,8 @@
         texturesFolder.add(params, 'reapplyMaterials').name('Reapply materials')
 
         const geometryFolder = guiInstance.addFolder('Geometry / Optimize')
+        geometryFolder.add(params, 'importModel').name('Import GLB / GLTF / FBX')
+        geometryFolder.add(params, 'restoreStockRaven').name('Restore stock raven')
         geometryFolder
           .add(geometryState, 'quality', QUALITY_KEYS)
           .name('Quality preset')
@@ -1436,11 +1476,19 @@
           polyDetailLabel.detail = `${polyStats.meshes} meshes · ${polyStats.skinned} skinned · ~${polyStats.drawCalls} draws`
         }
         if (sizeHintLabel) {
-          const tex = preset?.tex ? ` · ${preset.tex} tex` : ''
-          sizeHintLabel.size = preset ? `~${preset.sizeMB.toFixed(1)} MB${tex}` : '—'
+          if (usingImportedModel) {
+            sizeHintLabel.size = importedFileName ? `imported · ${importedFileName}` : 'imported'
+          } else {
+            const tex = preset?.tex ? ` · ${preset.tex} tex` : ''
+            sizeHintLabel.size = preset ? `~${preset.sizeMB.toFixed(1)} MB${tex}` : '—'
+          }
         }
         if (compareLabel) {
-          if (!baselineReady) {
+          if (usingImportedModel) {
+            compareLabel.compare = baselineReady
+              ? `Full ${baselineTris.toLocaleString()} tris → imported ${polyStats.triangles.toLocaleString()} tris`
+              : 'imported model'
+          } else if (!baselineReady) {
             compareLabel.compare = 'measuring Full baseline…'
           } else {
             const triDelta = polyStats.triangles - baselineTris
@@ -1590,6 +1638,51 @@
         prompt('Copy path points', code)
       }
 
+      function getFileExtension(name) {
+        return name.split('.').pop()?.toLowerCase() || ''
+      }
+
+      function mimeTypeForModelExtension(extension) {
+        if (extension === 'glb') return 'model/gltf-binary'
+        if (extension === 'gltf') return 'model/gltf+json'
+        if (extension === 'fbx') return 'application/octet-stream'
+        return 'application/octet-stream'
+      }
+
+      function releaseImportedObjectUrl() {
+        if (importedObjectUrl) {
+          URL.revokeObjectURL(importedObjectUrl)
+          importedObjectUrl = null
+        }
+      }
+
+      function prepareImportedMeshes(root) {
+        root.traverse((child) => {
+          if (!child.isMesh) return
+          child.frustumCulled = true
+          if (!child.name) {
+            const materialName = child.material?.name
+            child.name = materialName ? `Mesh — ${materialName}` : `Mesh ${child.id}`
+          }
+        })
+      }
+
+      /** Normalize imported models to a path-friendly size; scale lives in objectState. */
+      function fitImportedModelScale(model, targetSize = IMPORT_TARGET_SIZE) {
+        model.updateMatrixWorld(true)
+        const box = new THREE.Box3()
+        model.traverse((child) => {
+          if (child.isMesh && child.visible) box.expandByObject(child, true)
+        })
+        if (box.isEmpty()) {
+          objectState.scale = 1
+          return
+        }
+        const size = box.getSize(new THREE.Vector3())
+        const maxDim = Math.max(size.x, size.y, size.z, 0.001)
+        objectState.scale = targetSize / maxDim
+      }
+
       function collectSkinnedMeshes(root) {
         const skinnedMeshes = []
         root.traverse((child) => {
@@ -1663,6 +1756,76 @@
         materialCatalog = []
       }
 
+      function mountPathModel(root, animations = [], { isImported = false, fileName = null } = {}) {
+        const animRoot = root
+        if (isImported) {
+          prepareImportedMeshes(root)
+          // Wrapper owns user Scale/Offset; bake mesh center into the inner root so
+          // applyObjectTransform does not wipe centering (it overwrites .position).
+          const wrapper = new THREE.Group()
+          wrapper.name = (fileName || 'imported').replace(/\.[^.]+$/, '') || 'Imported model'
+          wrapper.add(root)
+          root.updateMatrixWorld(true)
+          const box = new THREE.Box3()
+          root.traverse((child) => {
+            if (child.isMesh && child.visible) box.expandByObject(child, true)
+          })
+          if (!box.isEmpty()) {
+            const center = box.getCenter(new THREE.Vector3())
+            root.position.sub(center)
+          }
+          ravenModel = wrapper
+        } else {
+          hideSecondRaven(root)
+          ravenModel = root
+          centerModelOnPivot(ravenModel)
+        }
+
+        applyCinematicRavenMaterials(animRoot)
+        applyObjectTransform()
+
+        pathPivot = new THREE.Group()
+        pathPivot.visible = objectState.visible
+        pathRoot.add(pathPivot)
+        pathPivot.add(ravenModel)
+        updateForwardArrow()
+
+        const clips = Array.isArray(animations) ? animations : []
+        if (clips.length > 0) {
+          mixer = new THREE.AnimationMixer(animRoot)
+          const clip =
+            clips.find((a) => a.name.toLowerCase().includes('animation')) ?? clips[0]
+          wingAction = mixer.clipAction(clip)
+          wingAction.setLoop(THREE.LoopRepeat, Infinity)
+          wingAction.play()
+          wingAnimInfo.clipName = clip.name || 'unnamed'
+        } else {
+          wingAnimInfo.clipName = 'none'
+        }
+        if (guiInstance) {
+          const clipController = guiInstance.controllersRecursive().find((c) => c.property === 'clipName')
+          clipController?.updateDisplay()
+        }
+
+        polyStats = countMeshStats(ravenModel)
+        updatePolyStatsLabel()
+        if (isImported) {
+          geometryState.modelLabel = fileName || 'imported model'
+          geometryState.note =
+            'Imported model — use Scale / Orientation in Object. Quality presets restore stock raven.'
+        } else {
+          geometryState.modelLabel = QUALITY_PRESETS[geometryState.quality]?.label ?? geometryState.modelLabel
+          geometryState.note =
+            'Skinned — runtime simplify N/A. LOD presets bake meshopt decimation at build time.'
+        }
+        refreshMaterialPicker()
+        if (editState.target === 'raven' || editState.manualEdit) {
+          attachRavenTransform()
+        }
+        updateRavenOnPath(0)
+        refreshGuiControllers()
+      }
+
       /** Always measure single-bird Full desktop GLTF — never the active preset. */
       async function ensureFullBaseline() {
         if (baselineReady) return baselineTris
@@ -1683,46 +1846,96 @@
 
       async function loadRaven() {
         disposeRaven()
+        releaseImportedObjectUrl()
+        usingImportedModel = false
+        importedFileName = null
         const loader = new GLTFLoader()
         const url = getRavenUrl()
         const gltf = await loader.loadAsync(url)
-        ravenModel = gltf.scene
-        hideSecondRaven(ravenModel)
-        applyCinematicRavenMaterials(ravenModel)
-        centerModelOnPivot(ravenModel)
-        applyObjectTransform()
+        objectState.scale = DEFAULT_RAVEN_SCALE
+        setForwardAxisLabel(DEFAULT_FORWARD_AXIS)
+        mountPathModel(gltf.scene, gltf.animations, { isImported: false })
+      }
 
-        pathPivot = new THREE.Group()
-        pathPivot.visible = objectState.visible
-        pathRoot.add(pathPivot)
-        pathPivot.add(ravenModel)
-        updateForwardArrow()
+      async function importModelFromFile(file) {
+        if (!file || modelLoadInProgress || !pathRoot) return
 
-        if (gltf.animations.length > 0) {
-          mixer = new THREE.AnimationMixer(ravenModel)
-          const clip =
-            gltf.animations.find((a) => a.name.toLowerCase().includes('animation')) ??
-            gltf.animations[0]
-          wingAction = mixer.clipAction(clip)
-          wingAction.setLoop(THREE.LoopRepeat, Infinity)
-          wingAction.play()
-          wingAnimInfo.clipName = clip.name || 'unnamed'
-        } else {
-          wingAnimInfo.clipName = 'none'
-        }
-        if (guiInstance) {
-          const clipController = guiInstance.controllersRecursive().find((c) => c.property === 'clipName')
-          clipController?.updateDisplay()
+        const extension = getFileExtension(file.name)
+        if (!['glb', 'gltf', 'fbx'].includes(extension)) {
+          setStatus('Use a .glb, .gltf, or .fbx file')
+          return
         }
 
-        polyStats = countMeshStats(ravenModel)
-        updatePolyStatsLabel()
-        geometryState.modelLabel = QUALITY_PRESETS[geometryState.quality]?.label ?? geometryState.modelLabel
-        refreshMaterialPicker()
-        if (editState.target === 'raven' || editState.manualEdit) {
-          attachRavenTransform()
+        modelLoadInProgress = true
+        setStatus(`Loading ${file.name}…`)
+
+        const buffer = await file.arrayBuffer()
+        const blob = new Blob([buffer], { type: mimeTypeForModelExtension(extension) })
+        const objectUrl = URL.createObjectURL(blob)
+
+        try {
+          let loadedRoot
+          let animations = []
+          if (extension === 'fbx') {
+            loadedRoot = await new FBXLoader().loadAsync(objectUrl)
+            animations = loadedRoot.animations || []
+          } else {
+            const gltf = await new GLTFLoader().loadAsync(objectUrl)
+            loadedRoot = gltf.scene
+            animations = gltf.animations || []
+          }
+
+          if (!loadedRoot) throw new Error('File did not contain a renderable scene.')
+
+          disposeRaven()
+          releaseImportedObjectUrl()
+          importedObjectUrl = objectUrl
+          usingImportedModel = true
+          importedFileName = file.name
+
+          objectState.offsetX = 0
+          objectState.offsetY = 0
+          objectState.offsetZ = 0
+          objectState.rotationX = 0
+          objectState.rotationY = 0
+          objectState.rotationZ = 0
+          objectState.headingOffsetDeg = 0
+          objectState.pitchOffsetDeg = 0
+          objectState.bankOffsetDeg = 0
+          objectState.visible = true
+          orientationState.flip180 = false
+          setForwardAxisLabel('+z')
+          fitImportedModelScale(loadedRoot)
+          mountPathModel(loadedRoot, animations, {
+            isImported: true,
+            fileName: file.name,
+          })
+
+          baseStatusMessage = `Imported "${file.name}" · tune Scale / Orientation · Restore stock raven to go back`
+          refreshPathStatus()
+        } catch (error) {
+          URL.revokeObjectURL(objectUrl)
+          console.warn('[import] model load failed', error)
+          setStatus(error?.message || `Failed to import ${file.name}`)
+        } finally {
+          modelLoadInProgress = false
         }
-        updateRavenOnPath(0)
+      }
+
+      async function restoreStockRaven() {
+        if (modelLoadInProgress) return
+        modelLoadInProgress = true
+        setStatus('Restoring stock raven…')
+        try {
+          await loadRaven()
+          baseStatusMessage = `Restored ${geometryState.modelLabel} · ${polyStatsLabel?.stats ?? ''}`
+          refreshPathStatus()
+        } catch (err) {
+          console.error('Restore stock raven failed:', err)
+          setStatus('Failed to restore stock raven — check console')
+        } finally {
+          modelLoadInProgress = false
+        }
       }
 
       async function swapModelQuality() {

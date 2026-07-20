@@ -167,30 +167,6 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0151',
   },
   {
-    id: 'raven-path',
-    title: 'Raven Path Animation',
-    section: 'software',
-    tags: ['webgl', 'animation', 'spline', 'gltf', 'ravens', 'three.js'],
-    description:
-      'Animated raven GLB following a custom Catmull-Rom path — drag spline control points, tune travel speed, ease-in/out, reverse direction, and toggle tangent-aligned vs fixed orientation while wing-flap skeletal animation plays.',
-    year: '2026',
-    url: '/demos/raven-path/',
-    embedUrl: '/demos/raven-path/',
-    posterUrl: '/assets/posters/raven-path.jpg?v=20260710',
-    mobilePosterUrl: '/assets/posters/raven-path.jpg?v=20260710',
-    referenceUrls: [
-      {
-        label: 'Spline editor',
-        url: '/demos/spline-editor/',
-      },
-      {
-        label: 'WebGPU curve modifier',
-        url: '/demos/webgpu-modifier-curve/',
-      },
-    ],
-    archiveId: 'OBJ-0149',
-  },
-  {
     id: 'panorama-suite',
     title: 'The Black Witness — 360° Tour',
     section: '360',
@@ -822,6 +798,30 @@ export const PROJECTS: Project[] = [
       },
     ],
     archiveId: 'OBJ-0129',
+  },
+  {
+    id: 'raven-path',
+    title: 'Raven Path Animation',
+    section: '3d',
+    tags: ['webgl', 'animation', 'spline', 'gltf', 'ravens', 'three.js', 'import'],
+    description:
+      'Animated raven GLB following a custom Catmull-Rom path — drag spline control points, tune travel speed, ease-in/out, reverse direction, and toggle tangent-aligned vs fixed orientation while wing-flap skeletal animation plays. Import your own GLB, GLTF, or FBX onto the path.',
+    year: '2026',
+    url: '/demos/raven-path/',
+    embedUrl: '/demos/raven-path/',
+    posterUrl: '/assets/posters/raven-path.jpg?v=20260710',
+    mobilePosterUrl: '/assets/posters/raven-path.jpg?v=20260710',
+    referenceUrls: [
+      {
+        label: 'Spline editor',
+        url: '/demos/spline-editor/',
+      },
+      {
+        label: 'WebGPU curve modifier',
+        url: '/demos/webgpu-modifier-curve/',
+      },
+    ],
+    archiveId: 'OBJ-0149',
   },
   {
     id: 'threejs-ocean',

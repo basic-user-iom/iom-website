@@ -20,7 +20,7 @@ const META = {
   'panorama-360-tour': { section: 'software', url: '/demos/panorama-360/', tags: ['software', '360', 'webgpu'] },
   'crm-demo': { section: 'software', url: '/crm-demo', tags: ['software', 'crm'] },
   'image-prep': { section: 'software', url: '/tools/image-prep', tags: ['software', 'photos'] },
-  'raven-path': { section: 'software', url: '/demos/raven-path/', tags: ['software', 'animation', 'three.js'] },
+  'raven-path': { section: '3d', url: '/demos/raven-path/', tags: ['3d', 'animation', 'three.js'] },
   'artist-globe': { section: '3d', url: '/artist-globe', tags: ['3d', 'webgl', 'globe'] },
   'ssr-denoise': { section: '3d', url: '/demos/ssr-denoise/', tags: ['3d', 'webgpu', 'ssr'] },
   'iom-three': { section: '3d', url: '/demos/dreams-iom/', tags: ['3d', 'webgl', 'narrative'] },
