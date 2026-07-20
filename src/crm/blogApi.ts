@@ -393,6 +393,20 @@ export async function updateBlogAudienceNotes(id: string, notes: string): Promis
   demoWrite(DEMO_KEYS.blogAudience, all)
 }
 
+export async function deleteBlogAudience(id: string): Promise<void> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { error } = await supabase.from('blog_audience').delete().eq('id', id)
+    if (error) throw new Error(error.message)
+    return
+  }
+  const all = demoRead<BlogAudience[]>(DEMO_KEYS.blogAudience, [])
+  demoWrite(
+    DEMO_KEYS.blogAudience,
+    all.filter((a) => a.id !== id),
+  )
+}
+
 export async function addBlogAudienceManual(input: {
   email: string
   name: string

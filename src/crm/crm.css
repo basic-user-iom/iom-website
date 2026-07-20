@@ -5048,16 +5048,44 @@
   gap: 0.5rem;
 }
 
+.crm-blog-toolbar--emails {
+  justify-content: flex-start;
+  gap: 0.75rem 1.25rem;
+}
+
+.crm-blog-email-search {
+  width: min(22rem, 100%);
+  flex: 0 1 22rem;
+}
+
 .crm-blog-manual {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  max-width: 36rem;
 }
 
-.crm-blog-manual input {
-  min-width: 10rem;
-  flex: 1;
+.crm-blog-manual .crm-input {
+  flex: 1 1 9rem;
+  min-width: 8rem;
+  max-width: 12rem;
+  width: auto;
+}
+
+.crm-blog-manual .crm-blog-manual-email {
+  flex: 1 1 12rem;
+  max-width: 16rem;
+}
+
+.crm-blog-manual .btn {
+  flex: 0 0 auto;
+}
+
+.crm-blog-email-main {
+  flex: 1 1 16rem;
+  min-width: 0;
 }
 
 .crm-blog-notes {

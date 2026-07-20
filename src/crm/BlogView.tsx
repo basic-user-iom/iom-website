@@ -3,6 +3,7 @@ import {
   addBlogAudienceManual,
   catalogImportMissingCount,
   createBlogPost,
+  deleteBlogAudience,
   deleteBlogPost,
   demoAddPendingComment,
   importCatalogBlogPosts,
@@ -462,6 +463,16 @@ export function BlogView() {
       setManualEmail('')
       setManualName('')
       await refresh()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('blog.audienceFailed'))
+    }
+  }
+
+  const handleDeleteAudience = async (id: string) => {
+    if (!window.confirm(t('blog.deleteAudienceConfirm'))) return
+    try {
+      await deleteBlogAudience(id)
+      setAudience((prev) => prev.filter((a) => a.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.audienceFailed'))
     }
@@ -1141,9 +1152,9 @@ export function BlogView() {
 
       {!loading && tab === 'emails' && (
         <div className="crm-blog-panel">
-          <div className="crm-blog-toolbar">
+          <div className="crm-blog-toolbar crm-blog-toolbar--emails">
             <input
-              className="crm-input"
+              className="crm-input crm-blog-email-search"
               placeholder={t('blog.emailSearch')}
               value={emailSearch}
               onChange={(e) => setEmailSearch(e.target.value)}
@@ -1159,14 +1170,19 @@ export function BlogView() {
           </div>
           <div className="crm-blog-manual">
             <input
+              className="crm-input"
               placeholder={t('blog.manualName')}
               value={manualName}
               onChange={(e) => setManualName(e.target.value)}
+              autoComplete="name"
             />
             <input
+              className="crm-input crm-blog-manual-email"
+              type="email"
               placeholder={t('blog.manualEmail')}
               value={manualEmail}
               onChange={(e) => setManualEmail(e.target.value)}
+              autoComplete="email"
             />
             <button type="button" className="btn btn-ghost" onClick={() => void handleAddManual()}>
               {t('blog.addManual')}
@@ -1175,7 +1191,7 @@ export function BlogView() {
           <ul className="crm-blog-email-list">
             {audience.map((row) => (
               <li key={row.id} className="crm-blog-email-row">
-                <div>
+                <div className="crm-blog-email-main">
                   <strong>{row.email}</strong>
                   {row.name ? <span className="crm-muted"> · {row.name}</span> : null}
                   <div className="crm-muted">
@@ -1198,6 +1214,15 @@ export function BlogView() {
                     }}
                     onBlur={(e) => void updateBlogAudienceNotes(row.id, e.target.value)}
                   />
+                </div>
+                <div className="crm-blog-row-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    onClick={() => void handleDeleteAudience(row.id)}
+                  >
+                    {t('blog.delete')}
+                  </button>
                 </div>
               </li>
             ))}

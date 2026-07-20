@@ -815,6 +815,7 @@ const en: Dict = {
   'blog.manualName': 'Name',
   'blog.manualEmail': 'Email',
   'blog.addManual': 'Add to list',
+  'blog.deleteAudienceConfirm': 'Remove this email from the list?',
   'blog.notesPlaceholder': 'Internal notes…',
   'blog.noEmails': 'No blog emails yet — they appear when comments are verified.',
 
@@ -2156,6 +2157,7 @@ const sr: Dict = {
   'blog.manualName': 'Ime',
   'blog.manualEmail': 'Email',
   'blog.addManual': 'Dodaj na listu',
+  'blog.deleteAudienceConfirm': 'Ukloniti ovaj email sa liste?',
   'blog.notesPlaceholder': 'Interne beleške…',
   'blog.noEmails': 'Još nema blog emailova — pojavljuju se posle verifikacije komentara.',
 
