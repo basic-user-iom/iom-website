@@ -429,13 +429,17 @@ const en: Dict = {
   'recorder.error.save': 'Could not save recording.',
   'recorder.error.upload': 'Could not upload recording.',
   'recorder.error.tooLarge':
-    'Online save failed — file is {mb} MB (over storage limit). A local copy was downloaded. Use a shorter clip, or raise the CRM recordings bucket limit.',
+    'Online save failed — file is {mb} MB. Supabase Free allows max 50 MB per file (Pro needed for larger). A local copy was downloaded — use Save local, or record a shorter clip.',
   'recorder.library.empty': 'No recordings yet.',
   'recorder.library.loading': 'Loading recordings…',
   'recorder.library.schemaMissing':
     'Recordings storage is not set up yet. Run supabase/crm_recordings_migration.sql in the Supabase SQL Editor.',
   'recorder.library.local': 'This session (local)',
   'recorder.library.online': 'Online',
+  'recorder.uploadOnline': 'Upload online',
+  'recorder.uploadOnline.busy': 'Uploading…',
+  'recorder.uploadOnline.tooLarge':
+    'File is {mb} MB — over Supabase Free’s 50 MB limit. Keep local / download, or upgrade Supabase to Pro.',
   'recorder.download': 'Download',
   'recorder.delete': 'Delete',
   'recorder.deleteConfirm': 'Delete “{title}”?',
@@ -1781,13 +1785,17 @@ const sr: Dict = {
   'recorder.error.save': 'Nije moguće sačuvati snimak.',
   'recorder.error.upload': 'Nije moguće otpremiti snimak.',
   'recorder.error.tooLarge':
-    'Online čuvanje nije uspelo — fajl je {mb} MB (preko limita skladišta). Lokalna kopija je preuzeta. Snimite kraće, ili povećajte limit bucket-a za snimke.',
+    'Online čuvanje nije uspelo — fajl je {mb} MB. Supabase Free dozvoljava max 50 MB po fajlu (za veće treba Pro). Lokalna kopija je preuzeta — koristite Sačuvaj lokalno ili snimite kraće.',
   'recorder.library.empty': 'Još nema snimaka.',
   'recorder.library.loading': 'Učitavanje snimaka…',
   'recorder.library.schemaMissing':
     'Skladište snimaka nije podešeno. Pokrenite supabase/crm_recordings_migration.sql u Supabase SQL Editoru.',
   'recorder.library.local': 'Ova sesija (lokalno)',
   'recorder.library.online': 'Online',
+  'recorder.uploadOnline': 'Otpremi online',
+  'recorder.uploadOnline.busy': 'Otpremanje…',
+  'recorder.uploadOnline.tooLarge':
+    'Fajl je {mb} MB — preko limita Supabase Free (50 MB). Zadržite lokalno / preuzmite, ili upgrade na Pro.',
   'recorder.download': 'Preuzmi',
   'recorder.delete': 'Obriši',
   'recorder.deleteConfirm': 'Obrisati „{title}“?',

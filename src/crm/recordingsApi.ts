@@ -122,20 +122,22 @@ export async function uploadRecording(input: {
   const id = crypto.randomUUID()
   const slug = randomSlug()
   const mime = input.blob.type || 'video/webm'
-  const ext = mime.includes('png')
+  // Strip codec params — bucket allow-lists match "video/webm", not "video/webm;codecs=…"
+  const contentType = mime.split(';')[0].trim() || 'video/webm'
+  const ext = contentType.includes('png')
     ? 'png'
-    : mime.includes('jpeg') || mime.includes('jpg')
+    : contentType.includes('jpeg') || contentType.includes('jpg')
       ? 'jpg'
-      : mime.includes('webp')
+      : contentType.includes('webp')
         ? 'webp'
-        : mime.includes('mp4')
+        : contentType.includes('mp4')
           ? 'mp4'
           : 'webm'
   const path = `${input.ownerId}/${id}.${ext}`
-  const isImage = mime.startsWith('image/')
+  const isImage = contentType.startsWith('image/')
 
   const { error: upErr } = await sb.storage.from(BUCKET).upload(path, input.blob, {
-    contentType: mime,
+    contentType,
     upsert: false,
   })
   if (upErr) {
@@ -152,7 +154,7 @@ export async function uploadRecording(input: {
         input.title.trim() ||
         (isImage ? 'Untitled screenshot' : 'Untitled recording'),
       storage_path: path,
-      mime_type: mime,
+      mime_type: contentType,
       duration_ms: isImage ? 0 : Math.round(input.durationMs),
       file_size: input.blob.size,
       share_slug: slug,

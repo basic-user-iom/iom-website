@@ -721,6 +721,42 @@ export function ScreenRecorderView() {
 
   stopRecordingRef.current = stopRecording
 
+  const uploadLocalToOnline = async (rec: LocalRecording) => {
+    if (!live || demoMode) return
+    setError('')
+    setEditorBusyId(rec.id)
+    try {
+      if (rec.blob.size > 48 * 1024 * 1024) {
+        const mb = (rec.blob.size / (1024 * 1024)).toFixed(1)
+        setError(t('recorder.uploadOnline.tooLarge').replace('{mb}', mb))
+        return
+      }
+      const user = await getCurrentUser()
+      if (!user) throw new Error('Not signed in')
+      await uploadRecording({
+        blob: rec.blob,
+        title: rec.title,
+        durationMs: rec.durationMs,
+        ownerId: user.id,
+      })
+      URL.revokeObjectURL(rec.objectUrl)
+      setLocalRecs((prev) => prev.filter((r) => r.id !== rec.id))
+      void refreshLibrary()
+    } catch (err) {
+      if (isUploadTooLargeError(err)) {
+        const mb = String(err instanceof Error ? err.message : '').replace(
+          /^FILE_TOO_LARGE:/,
+          '',
+        )
+        setError(t('recorder.error.tooLarge').replace('{mb}', mb || '?'))
+      } else {
+        setError(err instanceof Error ? err.message : t('recorder.error.upload'))
+      }
+    } finally {
+      setEditorBusyId(null)
+    }
+  }
+
   useEffect(() => {
     return () => {
       floatControlsRef.current?.close()
@@ -1514,6 +1550,18 @@ export function ScreenRecorderView() {
                           onClick={() => openLocalEditor(rec)}
                         >
                           {t('recorder.edit')}
+                        </button>
+                      )}
+                      {live && !demoMode && (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={editorBusyId === rec.id}
+                          onClick={() => void uploadLocalToOnline(rec)}
+                        >
+                          {editorBusyId === rec.id
+                            ? t('recorder.uploadOnline.busy')
+                            : t('recorder.uploadOnline')}
                         </button>
                       )}
                       <button
