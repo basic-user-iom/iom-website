@@ -429,7 +429,7 @@ const en: Dict = {
   'recorder.error.save': 'Could not save recording.',
   'recorder.error.upload': 'Could not upload recording.',
   'recorder.error.tooLarge':
-    'Online save failed — file is {mb} MB. Supabase Free allows max 50 MB per file (Pro needed for larger). A local copy was downloaded — use Save local, or record a shorter clip.',
+    'Online save failed — file is {mb} MB (over storage limit). A local copy was downloaded. Use a shorter clip, or finish Cloudflare R2 setup (see docs/r2-recordings-setup.md).',
   'recorder.library.empty': 'No recordings yet.',
   'recorder.library.loading': 'Loading recordings…',
   'recorder.library.schemaMissing':
@@ -439,7 +439,7 @@ const en: Dict = {
   'recorder.uploadOnline': 'Upload online',
   'recorder.uploadOnline.busy': 'Uploading…',
   'recorder.uploadOnline.tooLarge':
-    'File is {mb} MB — over Supabase Free’s 50 MB limit. Keep local / download, or upgrade Supabase to Pro.',
+    'File is {mb} MB — over the online upload limit. Keep local / download, or use Cloudflare R2 for larger clips.',
   'recorder.download': 'Download',
   'recorder.delete': 'Delete',
   'recorder.deleteConfirm': 'Delete “{title}”?',
@@ -1785,7 +1785,7 @@ const sr: Dict = {
   'recorder.error.save': 'Nije moguće sačuvati snimak.',
   'recorder.error.upload': 'Nije moguće otpremiti snimak.',
   'recorder.error.tooLarge':
-    'Online čuvanje nije uspelo — fajl je {mb} MB. Supabase Free dozvoljava max 50 MB po fajlu (za veće treba Pro). Lokalna kopija je preuzeta — koristite Sačuvaj lokalno ili snimite kraće.',
+    'Online čuvanje nije uspelo — fajl je {mb} MB (preko limita). Lokalna kopija je preuzeta. Snimite kraće ili završite Cloudflare R2 podešavanje (docs/r2-recordings-setup.md).',
   'recorder.library.empty': 'Još nema snimaka.',
   'recorder.library.loading': 'Učitavanje snimaka…',
   'recorder.library.schemaMissing':
@@ -1795,7 +1795,7 @@ const sr: Dict = {
   'recorder.uploadOnline': 'Otpremi online',
   'recorder.uploadOnline.busy': 'Otpremanje…',
   'recorder.uploadOnline.tooLarge':
-    'Fajl je {mb} MB — preko limita Supabase Free (50 MB). Zadržite lokalno / preuzmite, ili upgrade na Pro.',
+    'Fajl je {mb} MB — preko online limita. Zadržite lokalno / preuzmite, ili koristite Cloudflare R2 za veće snimke.',
   'recorder.download': 'Preuzmi',
   'recorder.delete': 'Obriši',
   'recorder.deleteConfirm': 'Obrisati „{title}“?',

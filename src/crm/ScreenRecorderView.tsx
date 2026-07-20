@@ -44,6 +44,7 @@ import { RecordingEditor } from './RecordingEditor'
 import {
   deleteRecording,
   embedSnippetForSlug,
+  getOnlineUploadSoftMaxBytes,
   getRecordingSignedUrl,
   isRecordingsSchemaMissing,
   isUploadTooLargeError,
@@ -726,7 +727,8 @@ export function ScreenRecorderView() {
     setError('')
     setEditorBusyId(rec.id)
     try {
-      if (rec.blob.size > 48 * 1024 * 1024) {
+      const softMax = await getOnlineUploadSoftMaxBytes()
+      if (rec.blob.size > softMax) {
         const mb = (rec.blob.size / (1024 * 1024)).toFixed(1)
         setError(t('recorder.uploadOnline.tooLarge').replace('{mb}', mb))
         return

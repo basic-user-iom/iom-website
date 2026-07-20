@@ -5,8 +5,13 @@ const BUCKET = 'crm-screen-recordings'
 /** Reject near-empty MediaRecorder shells (matches client heuristic floor). */
 const MIN_VIDEO_BYTES = 8_000
 const MIN_IMAGE_BYTES = 200
+/** Soft cap when using Cloudflare R2 (10 GB free total storage). */
+export const R2_CLIENT_MAX_UPLOAD_BYTES = 512 * 1024 * 1024
+/** Soft cap for Supabase Free fallback (~50 MB global upload limit). */
+const SUPABASE_FREE_SOFT_MAX_BYTES = 48 * 1024 * 1024
 
 let schemaMissing = false
+let r2EnabledCache: boolean | null = null
 
 function assertUploadableBlob(blob: Blob): void {
   const mime = blob.type || ''
@@ -24,7 +29,11 @@ function assertUploadableBlob(blob: Blob): void {
 }
 
 function friendlyStorageError(message: string, bytes: number): string {
-  if (/maximum allowed size|Payload too large|entity too large|413|file size/i.test(message)) {
+  if (
+    /maximum allowed size|Payload too large|entity too large|413|file size|FILE_TOO_LARGE/i.test(
+      message,
+    )
+  ) {
     const mb = (bytes / (1024 * 1024)).toFixed(1)
     return `FILE_TOO_LARGE:${mb}`
   }
@@ -85,6 +94,191 @@ function mapRow(row: Record<string, unknown>): CrmRecording {
   }
 }
 
+function stripContentType(mime: string): string {
+  return mime.split(';')[0].trim() || 'video/webm'
+}
+
+function extForContentType(contentType: string): string {
+  if (contentType.includes('png')) return 'png'
+  if (contentType.includes('jpeg') || contentType.includes('jpg')) return 'jpg'
+  if (contentType.includes('webp')) return 'webp'
+  if (contentType.includes('mp4')) return 'mp4'
+  return 'webm'
+}
+
+async function getAccessToken(): Promise<string> {
+  const sb = getSupabase()
+  if (!sb) throw new Error('Supabase not configured')
+  const { data } = await sb.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not signed in')
+  return token
+}
+
+export async function isR2RecordingsEnabled(): Promise<boolean> {
+  if (r2EnabledCache != null) return r2EnabledCache
+  try {
+    const res = await fetch('/api/crm-recorder?action=r2-status')
+    const json = (await res.json().catch(() => null)) as {
+      enabled?: boolean
+    } | null
+    r2EnabledCache = Boolean(res.ok && json?.enabled)
+  } catch {
+    r2EnabledCache = false
+  }
+  return r2EnabledCache
+}
+
+/** Soft max for “Upload online” pre-check (depends on active backend). */
+export async function getOnlineUploadSoftMaxBytes(): Promise<number> {
+  return (await isR2RecordingsEnabled())
+    ? R2_CLIENT_MAX_UPLOAD_BYTES
+    : SUPABASE_FREE_SOFT_MAX_BYTES
+}
+
+async function uploadBlobToR2(
+  path: string,
+  blob: Blob,
+  contentType: string,
+): Promise<void> {
+  const token = await getAccessToken()
+  const presign = await fetch('/api/crm-recorder?action=r2-upload', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      path,
+      contentType,
+      contentLength: blob.size,
+    }),
+  })
+  const body = (await presign.json().catch(() => null)) as {
+    uploadUrl?: string
+    error?: string
+    code?: string
+  } | null
+  if (presign.status === 503 && body?.code === 'r2_disabled') {
+    r2EnabledCache = false
+    throw new Error('R2_DISABLED')
+  }
+  if (!presign.ok || !body?.uploadUrl) {
+    throw new Error(
+      friendlyStorageError(body?.error || 'Could not start R2 upload', blob.size),
+    )
+  }
+
+  const put = await fetch(body.uploadUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': contentType },
+    body: blob,
+  })
+  if (!put.ok) {
+    const text = await put.text().catch(() => '')
+    throw new Error(
+      friendlyStorageError(
+        text.slice(0, 180) || `R2 upload failed (${put.status})`,
+        blob.size,
+      ),
+    )
+  }
+}
+
+async function deleteBlobFromR2(paths: string[]): Promise<void> {
+  if (!paths.length) return
+  const token = await getAccessToken()
+  const res = await fetch('/api/crm-recorder?action=r2-delete', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ paths }),
+  })
+  if (res.status === 503) {
+    r2EnabledCache = false
+    return
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error || 'Could not delete from R2')
+  }
+}
+
+async function signedUrlFromR2(storagePath: string): Promise<string | null> {
+  if (!(await isR2RecordingsEnabled())) return null
+  try {
+    const token = await getAccessToken()
+    const res = await fetch('/api/crm-recorder?action=r2-sign', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ path: storagePath }),
+    })
+    if (res.status === 503) {
+      r2EnabledCache = false
+      return null
+    }
+    if (res.status === 404) return null
+    const body = (await res.json().catch(() => null)) as {
+      signedUrl?: string
+      error?: string
+    } | null
+    if (!res.ok || !body?.signedUrl) return null
+    return body.signedUrl
+  } catch {
+    return null
+  }
+}
+
+async function uploadBlob(
+  path: string,
+  blob: Blob,
+  contentType: string,
+): Promise<'r2' | 'supabase'> {
+  if (await isR2RecordingsEnabled()) {
+    try {
+      await uploadBlobToR2(path, blob, contentType)
+      return 'r2'
+    } catch (err) {
+      if (err instanceof Error && err.message === 'R2_DISABLED') {
+        /* fall through to Supabase */
+      } else {
+        throw err
+      }
+    }
+  }
+
+  const sb = getSupabase()
+  if (!sb) throw new Error('Supabase not configured')
+  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, blob, {
+    contentType,
+    upsert: false,
+  })
+  if (upErr) {
+    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
+    throw new Error(friendlyStorageError(upErr.message, blob.size))
+  }
+  return 'supabase'
+}
+
+async function removeBlob(path: string): Promise<void> {
+  if (!path) return
+  if (await isR2RecordingsEnabled()) {
+    try {
+      await deleteBlobFromR2([path])
+    } catch {
+      /* also try Supabase for legacy objects */
+    }
+  }
+  const sb = getSupabase()
+  if (!sb) return
+  await sb.storage.from(BUCKET).remove([path]).catch(() => undefined)
+}
+
 export async function listRecordings(): Promise<CrmRecording[]> {
   if (!useLiveCrmBackend()) return []
   const sb = getSupabase()
@@ -121,29 +315,12 @@ export async function uploadRecording(input: {
 
   const id = crypto.randomUUID()
   const slug = randomSlug()
-  const mime = input.blob.type || 'video/webm'
-  // Strip codec params — bucket allow-lists match "video/webm", not "video/webm;codecs=…"
-  const contentType = mime.split(';')[0].trim() || 'video/webm'
-  const ext = contentType.includes('png')
-    ? 'png'
-    : contentType.includes('jpeg') || contentType.includes('jpg')
-      ? 'jpg'
-      : contentType.includes('webp')
-        ? 'webp'
-        : contentType.includes('mp4')
-          ? 'mp4'
-          : 'webm'
+  const contentType = stripContentType(input.blob.type || 'video/webm')
+  const ext = extForContentType(contentType)
   const path = `${input.ownerId}/${id}.${ext}`
   const isImage = contentType.startsWith('image/')
 
-  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, input.blob, {
-    contentType,
-    upsert: false,
-  })
-  if (upErr) {
-    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
-    throw new Error(friendlyStorageError(upErr.message, input.blob.size))
-  }
+  await uploadBlob(path, input.blob, contentType)
 
   const { data, error } = await sb
     .from('crm_recordings')
@@ -165,7 +342,7 @@ export async function uploadRecording(input: {
     .single()
 
   if (error) {
-    await sb.storage.from(BUCKET).remove([path]).catch(() => undefined)
+    await removeBlob(path)
     if (isRecordingsSchemaMissing(error)) markSchemaMissing()
     throw new Error(error.message)
   }
@@ -176,7 +353,7 @@ export async function deleteRecording(rec: CrmRecording): Promise<void> {
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase not configured')
 
-  await sb.storage.from(BUCKET).remove([rec.storage_path]).catch(() => undefined)
+  await removeBlob(rec.storage_path)
   const { error } = await sb.from('crm_recordings').delete().eq('id', rec.id)
   if (error) throw new Error(error.message)
 }
@@ -234,33 +411,18 @@ export async function replaceRecordingBlob(
 
   assertUploadableBlob(blob)
 
-  const mime = blob.type || rec.mime_type || 'video/webm'
-  const ext = mime.includes('png')
-    ? 'png'
-    : mime.includes('jpeg') || mime.includes('jpg')
-      ? 'jpg'
-      : mime.includes('webp')
-        ? 'webp'
-        : mime.includes('mp4')
-          ? 'mp4'
-          : 'webm'
+  const contentType = stripContentType(blob.type || rec.mime_type || 'video/webm')
+  const ext = extForContentType(contentType)
   const oldPath = rec.storage_path
   const newPath = `${rec.owner_id}/${rec.id}-v${Date.now().toString(36)}.${ext}`
 
-  const { error: upErr } = await sb.storage.from(BUCKET).upload(newPath, blob, {
-    contentType: mime,
-    upsert: false,
-  })
-  if (upErr) {
-    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
-    throw new Error(friendlyStorageError(upErr.message, blob.size))
-  }
+  await uploadBlob(newPath, blob, contentType)
 
   const { data, error } = await sb
     .from('crm_recordings')
     .update({
       storage_path: newPath,
-      mime_type: mime,
+      mime_type: contentType,
       file_size: blob.size,
       duration_ms: Math.round(durationMs),
       updated_at: new Date().toISOString(),
@@ -272,13 +434,13 @@ export async function replaceRecordingBlob(
     .single()
 
   if (error) {
-    await sb.storage.from(BUCKET).remove([newPath]).catch(() => undefined)
+    await removeBlob(newPath)
     if (isRecordingsSchemaMissing(error)) markSchemaMissing()
     throw new Error(error.message)
   }
 
   if (oldPath && oldPath !== newPath) {
-    await sb.storage.from(BUCKET).remove([oldPath]).catch(() => undefined)
+    await removeBlob(oldPath)
   }
 
   return mapRow(data as Record<string, unknown>)
@@ -287,6 +449,9 @@ export async function replaceRecordingBlob(
 export async function getRecordingSignedUrl(
   storagePath: string,
 ): Promise<string> {
+  const r2Url = await signedUrlFromR2(storagePath)
+  if (r2Url) return r2Url
+
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase not configured')
   const { data, error } = await sb.storage

@@ -4,6 +4,10 @@
  * GET  ?action=voices          → ElevenLabs voice list (CRM auth required)
  * OPTIONS/POST ?action=morph   → ElevenLabs speech-to-speech (POST needs CRM auth)
  * GET/POST ?action=share       → recording share meta / unlock (public)
+ * POST ?action=r2-upload       → presigned PUT URL (CRM auth; browser → R2)
+ * POST ?action=r2-sign         → presigned GET URL (CRM auth; owner playback)
+ * POST ?action=r2-delete       → delete R2 object(s) (CRM auth; path must be owner/)
+ * GET  ?action=r2-status       → whether Cloudflare R2 is configured
  */
 
 import { createHash } from 'node:crypto'
@@ -17,6 +21,13 @@ import {
   siteOrigin,
   supabaseConfig,
 } from './_lib/blog-helpers.js'
+import {
+  createR2PresignedUrl,
+  isR2Configured,
+  r2DeleteObject,
+  r2ObjectExists,
+  R2_MAX_UPLOAD_BYTES,
+} from './_lib/r2.js'
 
 const BUCKET = 'crm-screen-recordings'
 const SIGNED_SECONDS = 60 * 60 * 2
@@ -52,7 +63,7 @@ function actionOf(req) {
   return ''
 }
 
-async function createSignedUrl(url, key, path) {
+async function createSupabaseSignedUrl(url, key, path) {
   const res = await fetch(
     `${url.replace(/\/$/, '')}/storage/v1/object/sign/${BUCKET}/${path}`,
     {
@@ -72,6 +83,164 @@ async function createSignedUrl(url, key, path) {
   const signed = String(json.signedURL)
   if (signed.startsWith('http')) return signed
   return `${url.replace(/\/$/, '')}/storage/v1${signed.startsWith('/') ? '' : '/'}${signed}`
+}
+
+/** Prefer R2 when the object lives there; fall back to Supabase Storage. */
+async function createPlaybackUrl(url, key, path) {
+  if (isR2Configured()) {
+    try {
+      if (await r2ObjectExists(path)) {
+        return createR2PresignedUrl({
+          method: 'GET',
+          key: path,
+          expiresIn: SIGNED_SECONDS,
+        })
+      }
+    } catch (err) {
+      console.warn('[crm-recorder] R2 head failed, trying Supabase', err)
+    }
+  }
+  return createSupabaseSignedUrl(url, key, path)
+}
+
+function assertOwnerPath(userId, path) {
+  const p = String(path || '').replace(/^\/+/, '')
+  const prefix = `${userId}/`
+  if (!p.startsWith(prefix) || p.includes('..')) {
+    return null
+  }
+  return p
+}
+
+async function handleR2Status(_req, res) {
+  return res.status(200).json({
+    enabled: isR2Configured(),
+    maxUploadBytes: R2_MAX_UPLOAD_BYTES,
+  })
+}
+
+async function handleR2Upload(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  if (!isR2Configured()) {
+    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+  }
+
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+
+  const ip = clientIp(req)
+  if (!rateLimit(`r2-upload:${auth.user.id}:${ip}`, 40, 60_000)) {
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+
+  const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
+  const path = assertOwnerPath(auth.user.id, payload?.path)
+  if (!path) {
+    return res.status(403).json({ error: 'Invalid storage path' })
+  }
+  const contentType = String(payload?.contentType || 'application/octet-stream')
+    .split(';')[0]
+    .trim()
+  const contentLength = Number(payload?.contentLength)
+  if (
+    Number.isFinite(contentLength) &&
+    contentLength > R2_MAX_UPLOAD_BYTES
+  ) {
+    const mb = (contentLength / (1024 * 1024)).toFixed(1)
+    return res.status(413).json({
+      error: `FILE_TOO_LARGE:${mb}`,
+      maxUploadBytes: R2_MAX_UPLOAD_BYTES,
+    })
+  }
+
+  const uploadUrl = createR2PresignedUrl({
+    method: 'PUT',
+    key: path,
+    contentType,
+    expiresIn: 60 * 15,
+  })
+  return res.status(200).json({
+    uploadUrl,
+    path,
+    maxUploadBytes: R2_MAX_UPLOAD_BYTES,
+  })
+}
+
+async function handleR2Sign(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  if (!isR2Configured()) {
+    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+  }
+
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+
+  const ip = clientIp(req)
+  if (!rateLimit(`r2-sign:${auth.user.id}:${ip}`, 60, 60_000)) {
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+
+  const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
+  const path = assertOwnerPath(auth.user.id, payload?.path)
+  if (!path) {
+    return res.status(403).json({ error: 'Invalid storage path' })
+  }
+
+  // Legacy clips may still live in Supabase — only sign when the object is on R2.
+  if (!(await r2ObjectExists(path))) {
+    return res.status(404).json({ error: 'Not on R2', code: 'not_on_r2' })
+  }
+
+  const signedUrl = createR2PresignedUrl({
+    method: 'GET',
+    key: path,
+    expiresIn: SIGNED_SECONDS,
+  })
+  return res.status(200).json({ signedUrl, expiresIn: SIGNED_SECONDS })
+}
+
+async function handleR2Delete(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+  if (!isR2Configured()) {
+    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+  }
+
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+
+  const ip = clientIp(req)
+  if (!rateLimit(`r2-delete:${auth.user.id}:${ip}`, 40, 60_000)) {
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+
+  const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
+  const rawPaths = Array.isArray(payload?.paths)
+    ? payload.paths
+    : payload?.path
+      ? [payload.path]
+      : []
+  const paths = []
+  for (const raw of rawPaths) {
+    const path = assertOwnerPath(auth.user.id, raw)
+    if (!path) {
+      return res.status(403).json({ error: 'Invalid storage path' })
+    }
+    paths.push(path)
+  }
+  if (!paths.length) {
+    return res.status(400).json({ error: 'Missing paths' })
+  }
+
+  for (const path of paths) {
+    await r2DeleteObject(path)
+  }
+  return res.status(200).json({ ok: true, deleted: paths.length })
 }
 
 async function handleVoices(req, res) {
@@ -316,7 +485,7 @@ async function handleShare(req, res) {
       return res.status(401).json({ error: 'Wrong password or not found' })
     }
 
-    const playbackUrl = await createSignedUrl(url, key, row.storage_path)
+    const playbackUrl = await createPlaybackUrl(url, key, row.storage_path)
     return res.status(200).json({
       id: row.id,
       title: row.title,
@@ -331,8 +500,13 @@ async function handleShare(req, res) {
 
 export default async function handler(req, res) {
   const action = actionOf(req)
-  const needsAuth = action === 'voices' || action === 'morph'
-  cors(res, req.headers.origin, { allowAuth: needsAuth })
+  const needsAuth =
+    action === 'voices' ||
+    action === 'morph' ||
+    action === 'r2-upload' ||
+    action === 'r2-sign' ||
+    action === 'r2-delete'
+  cors(res, req.headers.origin, { allowAuth: needsAuth || action === 'r2-status' })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
 
@@ -340,8 +514,13 @@ export default async function handler(req, res) {
     if (action === 'voices') return await handleVoices(req, res)
     if (action === 'morph') return await handleMorph(req, res)
     if (action === 'share') return await handleShare(req, res)
+    if (action === 'r2-status') return await handleR2Status(req, res)
+    if (action === 'r2-upload') return await handleR2Upload(req, res)
+    if (action === 'r2-sign') return await handleR2Sign(req, res)
+    if (action === 'r2-delete') return await handleR2Delete(req, res)
     return res.status(400).json({
-      error: 'Missing action. Use ?action=voices|morph|share',
+      error:
+        'Missing action. Use ?action=voices|morph|share|r2-status|r2-upload|r2-sign|r2-delete',
     })
   } catch (err) {
     console.error('[crm-recorder]', action, err)
