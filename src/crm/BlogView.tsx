@@ -431,7 +431,16 @@ export function BlogView() {
         (!p.body.includes('Also in the 360') ||
           !p.body.includes('iobjectm.com/demos/panorama-360')),
     )
-    if (posts.length > 0 && !needsCacheBust && !spoutStale && missingCatalog <= 0) return
+    const ravenPathStale = posts.some(
+      (p) =>
+        p.slug === 'raven-path' &&
+        (!p.body.includes('/#3d') ||
+          !/Export path JSON|path JSON/i.test(p.body) ||
+          !/Import GLB|GLTF|FBX/i.test(p.body) ||
+          p.body.includes('/#software')),
+    )
+    if (posts.length > 0 && !needsCacheBust && !spoutStale && !ravenPathStale && missingCatalog <= 0)
+      return
     if (posts.length === 0 && missingCatalog <= 0) return
     autoImportTried.current = true
     setTab('pending')
