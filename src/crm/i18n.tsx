@@ -265,7 +265,7 @@ const en: Dict = {
   'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Library',
   'recorder.screenshot.intro':
-    'Capture a tab, window, or screen as a PNG. Save online to share with Cursor for blogs and pages.',
+    'Capture a tab, window, or screen as a PNG. Save online, then in Blog → Attached images use Replace / Insert with the image URL (or share link). Same for videos from Record — paste the /r/… share link in the post body.',
   'recorder.screenshot.capture': 'Capture screenshot',
   'recorder.screenshot.capturing': 'Capturing…',
   'recorder.screenshot.uploading': 'Saving screenshot…',
@@ -276,7 +276,7 @@ const en: Dict = {
   'recorder.kind.image': 'Screenshot',
   'recorder.copyImageUrl': 'Copy image URL',
   'recorder.copyImageUrlHint':
-    'Signed URL (expires in ~2h). Prefer share link for lasting access.',
+    'Signed URL (expires in ~2h). Prefer share link for lasting access. Paste into Blog → Attached images → Replace / cover URL.',
   'recorder.intro':
     'Record video or capture screenshots. Use mic, camera PiP, voice presets or AI morph, static/avatar appearance, then save locally or online and share with a password-protected /r/… link.',
   'recorder.introDemo':
@@ -751,12 +751,12 @@ const en: Dict = {
   'blog.editorTip':
     'Required: title + excerpt. Use Markdown. Include internal links to demos or /#contact.',
   'blog.markdownHint':
-    'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg',
+    'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg. Recorder screenshots: paste the image URL into Attached images. Recorder videos: paste the /r/… share link in the body.',
   'blog.coverHint':
-    'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL. No upload bucket yet.',
+    'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL from Recorder → Screenshot (Save online). No upload bucket yet.',
   'blog.attachTitle': 'Attached images',
   'blog.attachHint':
-    'Cover + images from body markdown. Replace by URL (put files in public/assets/blog/<slug>/). No upload bucket yet.',
+    'Cover + images from body markdown. Replace or add via URL: put files in public/assets/blog/<slug>/, or use images from Recorder → Screenshot (Save online → Copy image URL / share link). Videos from Recorder → Record work the same — paste the /r/… share link into the body.',
   'blog.attachEmpty': 'No images yet. Add a cover URL, or insert a body image slot below.',
   'blog.attachCover': 'Cover',
   'blog.attachBody': 'Body image {n}',
@@ -1602,7 +1602,7 @@ const sr: Dict = {
   'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Biblioteka',
   'recorder.screenshot.intro':
-    'Uhvatite tab, prozor ili ekran kao PNG. Sačuvajte online da podelite sa Cursorom za blogove i stranice.',
+    'Uhvatite tab, prozor ili ekran kao PNG. Sačuvajte online, zatim u Blog → Priložene slike koristite Zameni / Ubaci sa URL-om slike (ili share linkom). Isto važi za video iz Snimanje — nalepite /r/… share link u telo članka.',
   'recorder.screenshot.capture': 'Uhvati screenshot',
   'recorder.screenshot.capturing': 'Hvatanje…',
   'recorder.screenshot.uploading': 'Čuvanje screenshot-a…',
@@ -1614,7 +1614,7 @@ const sr: Dict = {
   'recorder.kind.image': 'Screenshot',
   'recorder.copyImageUrl': 'Kopiraj URL slike',
   'recorder.copyImageUrlHint':
-    'Potpisani URL (ističe za ~2h). Za trajni pristup koristite share link.',
+    'Potpisani URL (ističe za ~2h). Za trajni pristup koristite share link. Nalepite u Blog → Priložene slike → Zameni / URL naslovne.',
   'recorder.intro':
     'Snimite video ili uhvatite screenshot. Mikrofon, kamera PiP, glasovni preseti ili AI morf, statični/avatar izgled — sačuvajte lokalno ili online i podelite linkom sa lozinkom (/r/…).',
   'recorder.introDemo':
@@ -2093,12 +2093,12 @@ const sr: Dict = {
   'blog.editorTip':
     'Obavezno: naslov + izvod. Markdown. Uključite interne linkove ka demou ili /#contact.',
   'blog.markdownHint':
-    'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg',
+    'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg. Screenshot iz Snimača: nalepite URL slike u Priložene slike. Video iz Snimača: nalepite /r/… share link u tekst.',
   'blog.coverHint':
-    'Preferirajte assete pod /assets/blog/<slug>/ — ili pun https:// URL. Upload još nije dostupan.',
+    'Preferirajte assete pod /assets/blog/<slug>/ — ili pun https:// URL iz Snimač → Screenshot (Sačuvaj online). Upload još nije dostupan.',
   'blog.attachTitle': 'Priložene slike',
   'blog.attachHint':
-    'Naslovna + slike iz Markdown tela. Zamena preko URL-a (fajlovi u public/assets/blog/<slug>/). Upload još nije dostupan.',
+    'Naslovna + slike iz Markdown tela. Zamenite ili dodajte preko URL-a: fajlovi u public/assets/blog/<slug>/, ili slike iz Snimač → Screenshot (Sačuvaj online → Kopiraj URL slike / share link). Video iz Snimač → Snimanje isto — nalepite /r/… share link u telo članka.',
   'blog.attachEmpty': 'Još nema slika. Dodajte URL naslovne, ili ubacite slot za sliku u tekstu.',
   'blog.attachCover': 'Naslovna',
   'blog.attachBody': 'Slika u tekstu {n}',
