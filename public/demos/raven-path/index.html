@@ -5,18 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Raven Path Animation — WebGPU Curve — IOM</title>
 <!-- iom-seo -->
-    <meta name="description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
+    <meta name="description" content="Animated spline path demo — import GLB/GLTF/FBX, export or reimport path JSON for other software or your next session. Interactive Object Media." />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://iobjectm.com/demos/raven-path/" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="IOM — Interactive Object Media" />
     <meta property="og:title" content="Raven Path Animation — WebGPU Curve — IOM" />
-    <meta property="og:description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
+    <meta property="og:description" content="Animated spline path demo — import GLB/GLTF/FBX, export or reimport path JSON for other software or your next session. Interactive Object Media." />
     <meta property="og:url" content="https://iobjectm.com/demos/raven-path/" />
     <meta property="og:image" content="https://iobjectm.com/og-image.svg" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Raven Path Animation — WebGPU Curve — IOM" />
-    <meta name="twitter:description" content="Animated raven flight along editable spline paths — import your own GLB, GLTF, or FBX. Interactive Object Media experiment." />
+    <meta name="twitter:description" content="Animated spline path demo — import GLB/GLTF/FBX, export or reimport path JSON for other software or your next session. Interactive Object Media." />
     <meta name="twitter:image" content="https://iobjectm.com/og-image.svg" />
     <!-- /iom-seo -->
 <style>
@@ -152,7 +152,8 @@
         Animated raven GLB following a Catmull-Rom spline — combines the
         <a href="/demos/spline-editor/" target="_blank" rel="noopener noreferrer">spline editor</a>
         with path controls (speed, easing, reverse, tangent rotation) and skeletal wing-flap
-        playback. Import your own GLB, GLTF, or FBX from the editor panel (or drag onto the scene).
+        playback. Import GLB/GLTF/FBX models, and export or reimport path JSON for other software
+        or your next visit.
       </p>
     </aside>
     <input
@@ -161,8 +162,16 @@
       type="file"
       accept=".glb,.gltf,.fbx,model/gltf-binary,model/gltf+json"
     />
+    <input
+      id="path-file-input"
+      class="runtime-file-input"
+      type="file"
+      accept=".json,.ravenpath,application/json"
+    />
     <div id="container"></div>
-    <p class="hint">Drag to orbit · import GLB/GLTF/FBX · tap point · drag gizmo · phones: Orbit / Edit</p>
+    <p class="hint">
+      Drag to orbit · import model · export/import path JSON · tap point · phones: Orbit / Edit
+    </p>
     <div id="status">Loading raven…</div>
 
     <script type="module">
@@ -218,6 +227,10 @@
       const container = document.getElementById('container')
       const statusEl = document.getElementById('status')
       const modelFileInput = document.getElementById('model-file-input')
+      const pathFileInput = document.getElementById('path-file-input')
+
+      const PATH_FILE_FORMAT = 'iom-raven-path'
+      const PATH_FILE_VERSION = 1
 
       let camera, scene, renderer, controls, transformControl
       let curve, splineLine
@@ -377,6 +390,8 @@
         removePoint: removePoint,
         resetPath: resetPath,
         exportSpline: exportSpline,
+        exportPathJson: exportPathJson,
+        importPathJson: () => pathFileInput?.click(),
         resetPathTransform: resetPathTransform,
         resetObject: resetObject,
         resetPathProgress: resetPathProgress,
@@ -509,23 +524,39 @@
           event.target.value = ''
         })
 
+        pathFileInput?.addEventListener('change', async (event) => {
+          const file = event.target.files?.[0]
+          await importPathFromFile(file)
+          event.target.value = ''
+        })
+
         container?.addEventListener('dragover', (event) => {
           event.preventDefault()
           if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
         })
         container?.addEventListener('drop', async (event) => {
           event.preventDefault()
-          const file = [...(event.dataTransfer?.files || [])].find((entry) => {
+          const files = [...(event.dataTransfer?.files || [])]
+          const pathFile = files.find((entry) => {
+            const ext = getFileExtension(entry.name)
+            return ext === 'json' || ext === 'ravenpath'
+          })
+          if (pathFile) {
+            await importPathFromFile(pathFile)
+            return
+          }
+          const modelFile = files.find((entry) => {
             const ext = getFileExtension(entry.name)
             return ext === 'glb' || ext === 'gltf' || ext === 'fbx'
           })
-          if (file) await importModelFromFile(file)
+          if (modelFile) await importModelFromFile(modelFile)
         })
 
         clock = new THREE.Clock()
         Promise.all([loadRaven(), ensureFullBaseline()])
           .then(() => {
-            baseStatusMessage = 'Raven loaded · drag path points · import GLB/GLTF/FBX · tune in editor'
+            baseStatusMessage =
+              'Raven loaded · edit path · export/import JSON · import GLB/GLTF/FBX'
             refreshPathStatus()
           })
           .catch((err) => {
@@ -569,7 +600,9 @@
         pathFolder.add(params, 'removePoint').name('Remove point')
         pathFolder.add(params, 'resetPath').name('Reset points')
         pathFolder.add(params, 'resetPathTransform').name('Reset transform')
-        pathFolder.add(params, 'exportSpline').name('Export points')
+        pathFolder.add(params, 'exportPathJson').name('Export path JSON')
+        pathFolder.add(params, 'importPathJson').name('Import path JSON')
+        pathFolder.add(params, 'exportSpline').name('Copy THREE.Vector3')
         pathFolder
           .add(pathState, 'pointSize', 0.08, 0.5, 0.01)
           .name('Point size')
@@ -1629,13 +1662,151 @@
         updateRavenOnPath(0)
       }
 
-      function exportSpline() {
+      function downloadTextFile(filename, text, mimeType = 'application/json') {
+        const blob = new Blob([text], { type: mimeType })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        link.click()
+        URL.revokeObjectURL(url)
+      }
+
+      function buildThreeJsSnippet() {
         const rows = positions.map(
           (p) => `new THREE.Vector3(${p.x.toFixed(3)}, ${p.y.toFixed(3)}, ${p.z.toFixed(3)})`,
         )
-        const code = `[\n\t${rows.join(',\n\t')}\n]`
+        return `[\n\t${rows.join(',\n\t')}\n]`
+      }
+
+      function buildPathExportPayload() {
+        return {
+          format: PATH_FILE_FORMAT,
+          version: PATH_FILE_VERSION,
+          savedAt: new Date().toISOString(),
+          closed: Boolean(pathState.closed),
+          points: positions.map((p) => ({
+            x: Number(p.x.toFixed(6)),
+            y: Number(p.y.toFixed(6)),
+            z: Number(p.z.toFixed(6)),
+          })),
+          pathTransform: {
+            rotateX: pathState.rotateX,
+            rotateY: pathState.rotateY,
+            rotateZ: pathState.rotateZ,
+            translateX: pathState.translateX,
+            translateY: pathState.translateY,
+            translateZ: pathState.translateZ,
+          },
+          // Handy for Blender / Three.js / custom tools — same points as `points`.
+          threeJsSnippet: buildThreeJsSnippet(),
+          note: 'Reimport this JSON in the Raven Path demo, or use points / threeJsSnippet in other software.',
+        }
+      }
+
+      function exportPathJson() {
+        if (positions.length < 2) {
+          setStatus('Need at least 2 path points to export')
+          return
+        }
+        const payload = buildPathExportPayload()
+        const stamp = new Date().toISOString().split('T')[0]
+        downloadTextFile(
+          `raven-path-${stamp}.json`,
+          `${JSON.stringify(payload, null, 2)}\n`,
+          'application/json',
+        )
+        baseStatusMessage = `Exported ${positions.length} points · reimport anytime or use in other software`
+        refreshPathStatus()
+      }
+
+      function exportSpline() {
+        const code = buildThreeJsSnippet()
         console.log(code)
-        prompt('Copy path points', code)
+        prompt('Copy THREE.Vector3 path for other software', code)
+      }
+
+      function parsePathPoint(entry) {
+        if (Array.isArray(entry) && entry.length >= 3) {
+          const x = Number(entry[0])
+          const y = Number(entry[1])
+          const z = Number(entry[2])
+          if ([x, y, z].every(Number.isFinite)) return new THREE.Vector3(x, y, z)
+          return null
+        }
+        if (entry && typeof entry === 'object') {
+          const x = Number(entry.x)
+          const y = Number(entry.y)
+          const z = Number(entry.z)
+          if ([x, y, z].every(Number.isFinite)) return new THREE.Vector3(x, y, z)
+        }
+        return null
+      }
+
+      function extractPathPoints(data) {
+        if (Array.isArray(data)) return data
+        if (!data || typeof data !== 'object') return null
+        if (Array.isArray(data.points)) return data.points
+        if (Array.isArray(data.path)) return data.path
+        if (Array.isArray(data.controlPoints)) return data.controlPoints
+        if (Array.isArray(data.positions)) return data.positions
+        return null
+      }
+
+      function applyImportedPathPoints(pointList, options = {}) {
+        const parsed = pointList.map(parsePathPoint).filter(Boolean)
+        if (parsed.length < 2) {
+          throw new Error('Path JSON needs at least 2 valid points (x, y, z).')
+        }
+
+        while (splinePointsLength > parsed.length) removePoint()
+        while (splinePointsLength < parsed.length) addPoint()
+
+        for (let i = 0; i < parsed.length; i++) {
+          positions[i].copy(parsed[i])
+        }
+
+        if (typeof options.closed === 'boolean') {
+          pathState.closed = options.closed
+        }
+
+        const transform = options.pathTransform
+        if (transform && typeof transform === 'object') {
+          if (Number.isFinite(transform.rotateX)) pathState.rotateX = transform.rotateX
+          if (Number.isFinite(transform.rotateY)) pathState.rotateY = transform.rotateY
+          if (Number.isFinite(transform.rotateZ)) pathState.rotateZ = transform.rotateZ
+          if (Number.isFinite(transform.translateX)) pathState.translateX = transform.translateX
+          if (Number.isFinite(transform.translateY)) pathState.translateY = transform.translateY
+          if (Number.isFinite(transform.translateZ)) pathState.translateZ = transform.translateZ
+          applyPathRootTransform()
+        }
+
+        rebuildCurve()
+        animState.progress = 0
+        updateRavenOnPath(0)
+        refreshGuiControllers()
+        return parsed.length
+      }
+
+      async function importPathFromFile(file) {
+        if (!file) return
+        try {
+          const text = await file.text()
+          const data = JSON.parse(text)
+          const pointList = extractPathPoints(data)
+          if (!pointList) {
+            throw new Error('Unrecognized path file — expected a points array or iom-raven-path JSON.')
+          }
+          const count = applyImportedPathPoints(pointList, {
+            closed: data?.closed,
+            pathTransform: data?.pathTransform,
+          })
+          baseStatusMessage = `Imported path "${file.name}" · ${count} points`
+          refreshPathStatus()
+        } catch (error) {
+          console.warn('[import] path load failed', error)
+          setStatus(error?.message || `Failed to import path from ${file.name}`)
+        }
       }
 
       function getFileExtension(name) {

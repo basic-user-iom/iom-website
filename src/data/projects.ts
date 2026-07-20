@@ -803,9 +803,9 @@ export const PROJECTS: Project[] = [
     id: 'raven-path',
     title: 'Raven Path Animation',
     section: '3d',
-    tags: ['webgl', 'animation', 'spline', 'gltf', 'ravens', 'three.js', 'import'],
+    tags: ['webgl', 'animation', 'spline', 'gltf', 'ravens', 'three.js', 'import', 'export'],
     description:
-      'Animated raven GLB following a custom Catmull-Rom path — drag spline control points, tune travel speed, ease-in/out, reverse direction, and toggle tangent-aligned vs fixed orientation while wing-flap skeletal animation plays. Import your own GLB, GLTF, or FBX onto the path.',
+      'Animated raven GLB following a custom Catmull-Rom path — drag spline control points, tune travel speed, ease-in/out, reverse direction, and toggle tangent-aligned vs fixed orientation while wing-flap skeletal animation plays. Import GLB/GLTF/FBX onto the path, and export or reimport path JSON for other software or your next session.',
     year: '2026',
     url: '/demos/raven-path/',
     embedUrl: '/demos/raven-path/',
