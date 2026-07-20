@@ -185,6 +185,54 @@ async function uploadBlobToR2(
   }
 }
 
+function isR2NetworkFailure(err: unknown): boolean {
+  if (!(err instanceof Error)) return false
+  const msg = err.message || ''
+  // Browser surfaces TLS/CORS/network failures as TypeError: Failed to fetch
+  return (
+    err.name === 'TypeError' ||
+    /failed to fetch|networkerror|ssl|tls|load failed|network request failed/i.test(
+      msg,
+    )
+  )
+}
+
+async function uploadBlob(
+  path: string,
+  blob: Blob,
+  contentType: string,
+): Promise<'r2' | 'supabase'> {
+  if (await isR2RecordingsEnabled()) {
+    try {
+      await uploadBlobToR2(path, blob, contentType)
+      return 'r2'
+    } catch (err) {
+      if (err instanceof Error && err.message === 'R2_DISABLED') {
+        /* fall through to Supabase */
+      } else if (isR2NetworkFailure(err)) {
+        // New R2 accounts often lack a working SSL cert for hours — use Supabase
+        // for files that still fit Free (~50 MB) until R2 TLS is ready.
+        console.warn('[recordings] R2 unreachable, falling back to Supabase', err)
+        r2EnabledCache = false
+      } else {
+        throw err
+      }
+    }
+  }
+
+  const sb = getSupabase()
+  if (!sb) throw new Error('Supabase not configured')
+  const { error: upErr } = await sb.storage.from(BUCKET).upload(path, blob, {
+    contentType,
+    upsert: false,
+  })
+  if (upErr) {
+    if (isRecordingsSchemaMissing(upErr)) markSchemaMissing()
+    throw new Error(friendlyStorageError(upErr.message, blob.size))
+  }
+  return 'supabase'
+}
+
 async function deleteBlobFromR2(paths: string[]): Promise<void> {
   if (!paths.length) return
   const token = await getAccessToken()
