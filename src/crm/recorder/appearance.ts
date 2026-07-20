@@ -128,6 +128,11 @@ export function createAppearanceRenderer(
       const ctx = pip.getContext('2d')
       if (!ctx) return
 
+      if (mode === 'none') {
+        ctx.clearRect(0, 0, w, h)
+        return
+      }
+
       if (mode === 'static') {
         ctx.clearRect(0, 0, w, h)
         if (staticImg?.complete && (staticImg.naturalWidth || staticImg.width)) {

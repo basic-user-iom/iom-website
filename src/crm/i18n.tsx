@@ -349,6 +349,7 @@ const en: Dict = {
   'recorder.voice.aiFailedKeep':
     'AI voice morph failed — saved original audio. ({detail})',
   'recorder.appearance': 'Appearance',
+  'recorder.appearance.none': 'None (no avatar)',
   'recorder.appearance.real': 'Real camera',
   'recorder.appearance.filters': 'Filters',
   'recorder.appearance.avatar': 'Avatar (animated)',
@@ -1720,6 +1721,7 @@ const sr: Dict = {
   'recorder.voice.aiFailedKeep':
     'AI morf glasa nije uspeo — sačuvan je originalni zvuk. ({detail})',
   'recorder.appearance': 'Izgled',
+  'recorder.appearance.none': 'Bez avatara',
   'recorder.appearance.real': 'Prava kamera',
   'recorder.appearance.filters': 'Filteri',
   'recorder.appearance.avatar': 'Avatar (animirani)',

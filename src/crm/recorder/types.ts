@@ -1,6 +1,6 @@
 export type VoicePreset = 'natural' | 'deep' | 'high' | 'robot' | 'ai'
 
-export type AppearanceMode = 'real' | 'filters' | 'avatar' | 'static'
+export type AppearanceMode = 'none' | 'real' | 'filters' | 'avatar' | 'static'
 
 export type SaveDestination = 'local' | 'online'
 

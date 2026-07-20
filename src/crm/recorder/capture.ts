@@ -72,7 +72,9 @@ export async function startCapture(
   const staticUrl = options.staticAvatarUrl?.trim() || ''
   const useStaticPip = appearanceMode === 'static' && Boolean(staticUrl)
   const wantLivePip =
-    appearanceMode !== 'static' && Boolean(options.camera)
+    appearanceMode !== 'static' &&
+    appearanceMode !== 'none' &&
+    Boolean(options.camera)
 
   let cameraStream: MediaStream | null = null
   let cameraVideo: HTMLVideoElement | null = null
@@ -94,7 +96,11 @@ export async function startCapture(
   let restartProcessorPump: () => void = () => undefined
 
   const canToggleCameraPip =
-    appearanceMode === 'static' ? Boolean(staticUrl) : true
+    appearanceMode === 'none'
+      ? false
+      : appearanceMode === 'static'
+        ? Boolean(staticUrl)
+        : true
 
   const teardownDisplayAudioNode = () => {
     try {

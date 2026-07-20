@@ -98,10 +98,10 @@ export function ScreenRecorderView() {
   const [panel, setPanel] = useState<Panel>('record')
   const [mic, setMic] = useState(true)
   const [shareAudio, setShareAudio] = useState(true)
-  const [camera, setCamera] = useState(true)
+  const [camera, setCamera] = useState(false)
   const [noiseSuppression, setNoiseSuppression] = useState(true)
   const [voice, setVoice] = useState<VoicePreset>('natural')
-  const [appearance, setAppearance] = useState<AppearanceMode>('real')
+  const [appearance, setAppearance] = useState<AppearanceMode>('none')
   const [staticAvatarUrl, setStaticAvatarUrl] = useState(readStoredStaticAvatar)
   const staticFileRef = useRef<HTMLInputElement | null>(null)
   const [destination, setDestination] = useState<SaveDestination>(
@@ -300,7 +300,8 @@ export function ScreenRecorderView() {
       setError(t('recorder.appearance.staticMissing'))
       return
     }
-    const needsCameraWarn = appearance !== 'static' && !camera
+    const needsCameraWarn =
+      appearance !== 'static' && appearance !== 'none' && !camera
     if (!mic || needsCameraWarn) {
       const missing = [
         !mic ? t('recorder.mic') : null,
@@ -1267,23 +1268,27 @@ export function ScreenRecorderView() {
               </span>
               <span
                 className={`crm-recorder-hud-pill${
-                  appearance === 'static'
-                    ? staticAvatarUrl
-                      ? ' is-on'
-                      : ' is-off'
-                    : camera
-                      ? ' is-on'
-                      : ' is-off'
+                  appearance === 'none'
+                    ? ' is-off'
+                    : appearance === 'static'
+                      ? staticAvatarUrl
+                        ? ' is-on'
+                        : ' is-off'
+                      : camera
+                        ? ' is-on'
+                        : ' is-off'
                 }`}
               >
                 <span className="crm-recorder-hud-dot" aria-hidden />
-                {appearance === 'static'
-                  ? staticAvatarUrl
-                    ? t('recorder.hud.staticOn')
-                    : t('recorder.hud.staticOff')
-                  : camera
-                    ? t('recorder.hud.cameraOn')
-                    : t('recorder.hud.cameraOff')}
+                {appearance === 'none'
+                  ? t('recorder.hud.noAvatar')
+                  : appearance === 'static'
+                    ? staticAvatarUrl
+                      ? t('recorder.hud.staticOn')
+                      : t('recorder.hud.staticOff')
+                    : camera
+                      ? t('recorder.hud.cameraOn')
+                      : t('recorder.hud.cameraOff')}
               </span>
               {recording && (
                 <span className="crm-recorder-hud-pill is-live">
@@ -1341,7 +1346,12 @@ export function ScreenRecorderView() {
                   type="checkbox"
                   checked={camera}
                   onChange={(e) => setCamera(e.target.checked)}
-                  disabled={recording || busy || appearance === 'static'}
+                  disabled={
+                    recording ||
+                    busy ||
+                    appearance === 'static' ||
+                    appearance === 'none'
+                  }
                 />
                 <span>{t('recorder.camera')}</span>
               </label>
@@ -1497,15 +1507,20 @@ export function ScreenRecorderView() {
                 onChange={(e) => {
                   const next = e.target.value as AppearanceMode
                   setAppearance(next)
-                  if (next === 'static') {
+                  if (next === 'none') {
+                    setCamera(false)
+                  } else if (next === 'static') {
                     setCamera(false)
                     if (!staticAvatarUrl.trim()) {
                       persistStaticAvatar(IOM_RAVEN_STATIC_URL)
                     }
+                  } else {
+                    setCamera(true)
                   }
                 }}
                 disabled={recording || busy}
               >
+                <option value="none">{t('recorder.appearance.none')}</option>
                 <option value="real">{t('recorder.appearance.real')}</option>
                 <option value="filters">{t('recorder.appearance.filters')}</option>
                 <option value="avatar">{t('recorder.appearance.avatar')}</option>
