@@ -38,6 +38,10 @@ type TrackProcessorCtor = new (init: {
   track: MediaStreamTrack
 }) => { readable: ReadableStream<VideoFrame> }
 
+type CanvasCaptureTrack = MediaStreamTrack & {
+  requestFrame?: () => void
+}
+
 /**
  * Screen + optional camera / static PiP + processed mic audio.
  *
@@ -64,6 +68,7 @@ export async function startCapture(
   let running = false
   let screenVideo: HTMLVideoElement | null = null
   let canvasStream: MediaStream | null = null
+  let canvasCaptureTrack: CanvasCaptureTrack | null = null
   let pipVisible = useStaticPip || wantLivePip
   let rvfcHandle: number | null = null
   let processorReader: ReadableStreamDefaultReader<VideoFrame> | null = null
@@ -265,6 +270,8 @@ export async function startCapture(
         )
       }
       options.onFrame?.(canvas)
+      // captureStream(0) only emits when requestFrame() is called after paint.
+      canvasCaptureTrack?.requestFrame?.()
     }
 
     const paintFromElement = () => {
@@ -349,12 +356,14 @@ export async function startCapture(
       startProcessorPump()
     }
 
+    // frameRate 0 + requestFrame() after each paint: real frames while backgrounded.
+    // (captureStream(30) alone can keep re-encoding a frozen bitmap.)
+    canvasStream = canvas.captureStream(0)
+    canvasCaptureTrack = canvasStream.getVideoTracks()[0] as CanvasCaptureTrack
+
     running = true
     startProcessorPump()
 
-    // captureStream(0) pushes a frame whenever the canvas is painted — better than
-    // timer-duplicating a frozen bitmap at 30fps when the tab is backgrounded.
-    canvasStream = canvas.captureStream(0)
     const tracks: MediaStreamTrack[] = [...canvasStream.getVideoTracks()]
     if (audio) tracks.push(...audio.stream.getAudioTracks())
     const stream = new MediaStream(tracks)
