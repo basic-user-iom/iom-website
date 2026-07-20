@@ -142,6 +142,7 @@ export function ScreenRecorderView() {
   const [editorBusyId, setEditorBusyId] = useState<string | null>(null)
   const [manualUploadBusy, setManualUploadBusy] = useState(false)
   const manualFileRef = useRef<HTMLInputElement | null>(null)
+  const manualImageRef = useRef<HTMLInputElement | null>(null)
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const recorderRef = useRef<RecordingHandle | null>(null)
@@ -798,7 +799,8 @@ export function ScreenRecorderView() {
             : 'video/webm')
       const blob = new Blob([await file.arrayBuffer()], { type: contentType })
       const durationMs = await probeVideoDurationMs(blob)
-      const title =
+      const recTitle =
+        title.trim() ||
         file.name.replace(/\.[^.]+$/, '').trim() ||
         `Upload ${new Date().toLocaleString()}`
 
@@ -813,15 +815,16 @@ export function ScreenRecorderView() {
         if (!user) throw new Error('Not signed in')
         await uploadRecording({
           blob,
-          title,
+          title: recTitle,
           durationMs,
           ownerId: user.id,
         })
         void refreshLibrary()
+        setPanel('library')
       } else {
         const local: LocalRecording = {
           id: crypto.randomUUID(),
-          title,
+          title: recTitle,
           blob,
           objectUrl: URL.createObjectURL(blob),
           durationMs,
@@ -829,6 +832,7 @@ export function ScreenRecorderView() {
           createdAt: new Date().toISOString(),
         }
         setLocalRecs((prev) => [local, ...prev])
+        setPanel('library')
       }
     } catch (err) {
       if (isUploadTooLargeError(err)) {
@@ -843,6 +847,100 @@ export function ScreenRecorderView() {
     } finally {
       setManualUploadBusy(false)
       if (manualFileRef.current) manualFileRef.current.value = ''
+    }
+  }
+
+  const handleManualImageUpload = async (file: File | null) => {
+    if (!file) return
+    setError('')
+    const mime = (file.type || '').toLowerCase()
+    if (
+      !mime.startsWith('image/') &&
+      !/\.(png|jpe?g|webp|gif)$/i.test(file.name)
+    ) {
+      setError(t('recorder.manualImage.invalid'))
+      return
+    }
+    setManualUploadBusy(true)
+    try {
+      const contentType =
+        mime.split(';')[0].trim() ||
+        (/\.webp$/i.test(file.name)
+          ? 'image/webp'
+          : /\.jpe?g$/i.test(file.name)
+            ? 'image/jpeg'
+            : /\.gif$/i.test(file.name)
+              ? 'image/gif'
+              : 'image/png')
+      const blob = new Blob([await file.arrayBuffer()], { type: contentType })
+      const recTitle =
+        title.trim() ||
+        file.name.replace(/\.[^.]+$/, '').trim() ||
+        `Screenshot ${new Date().toLocaleString(undefined, {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+        })}`
+
+      if (shotPreviewUrl) URL.revokeObjectURL(shotPreviewUrl)
+      const previewObjectUrl = URL.createObjectURL(blob)
+      setShotPreviewUrl(previewObjectUrl)
+
+      if (destination === 'local' || demoMode || !live) {
+        const libraryUrl = URL.createObjectURL(blob)
+        const local: LocalRecording = {
+          id: crypto.randomUUID(),
+          title: recTitle,
+          blob,
+          mimeType: contentType,
+          durationMs: 0,
+          createdAt: new Date().toISOString(),
+          objectUrl: libraryUrl,
+        }
+        setLocalRecs((prev) => [local, ...prev])
+        const ext = contentType.includes('jpeg')
+          ? 'jpg'
+          : contentType.includes('webp')
+            ? 'webp'
+            : contentType.includes('gif')
+              ? 'gif'
+              : 'png'
+        downloadBlob(blob, `${slugify(recTitle)}.${ext}`)
+        setPanel('library')
+        return
+      }
+
+      const softMax = await getOnlineUploadSoftMaxBytes()
+      if (blob.size > softMax) {
+        const mb = (blob.size / (1024 * 1024)).toFixed(1)
+        setError(t('recorder.uploadOnline.tooLarge').replace('{mb}', mb))
+        return
+      }
+      setStatus('uploading')
+      const user = await getCurrentUser()
+      if (!user) throw new Error('Not signed in')
+      await uploadRecording({
+        blob,
+        title: recTitle,
+        durationMs: 0,
+        ownerId: user.id,
+      })
+      setStatus('idle')
+      setPanel('library')
+      void refreshLibrary()
+    } catch (err) {
+      setStatus('idle')
+      if (isUploadTooLargeError(err)) {
+        const mb = String(err instanceof Error ? err.message : '').replace(
+          /^FILE_TOO_LARGE:/,
+          '',
+        )
+        setError(t('recorder.error.tooLarge').replace('{mb}', mb || '?'))
+      } else {
+        setError(err instanceof Error ? err.message : t('recorder.error.upload'))
+      }
+    } finally {
+      setManualUploadBusy(false)
+      if (manualImageRef.current) manualImageRef.current.value = ''
     }
   }
 
@@ -1558,7 +1656,7 @@ export function ScreenRecorderView() {
                 type="button"
                 className="btn btn-primary"
                 onClick={() => void captureScreenshot()}
-                disabled={shotBusy || busy || recording}
+                disabled={shotBusy || busy || recording || manualUploadBusy}
               >
                 {shotBusy
                   ? status === 'uploading'
@@ -1566,7 +1664,27 @@ export function ScreenRecorderView() {
                     : t('recorder.screenshot.capturing')
                   : t('recorder.screenshot.capture')}
               </button>
+              <input
+                ref={manualImageRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,.png,.jpg,.jpeg,.webp,.gif"
+                hidden
+                onChange={(e) =>
+                  void handleManualImageUpload(e.target.files?.[0] ?? null)
+                }
+              />
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={shotBusy || busy || recording || manualUploadBusy}
+                onClick={() => manualImageRef.current?.click()}
+              >
+                {manualUploadBusy
+                  ? t('recorder.manualImage.busy')
+                  : t('recorder.manualImage')}
+              </button>
             </div>
+            <p className="crm-recorder-hint">{t('recorder.manualImage.hint')}</p>
           </div>
 
           {shotPreviewUrl && (

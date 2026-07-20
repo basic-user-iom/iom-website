@@ -445,6 +445,12 @@ const en: Dict = {
   'recorder.manualUpload.hint':
     'Choose a WebM, MP4, or MOV from your computer. Live CRM saves it Online; demo keeps it in this session.',
   'recorder.manualUpload.invalid': 'Please choose a video file (WebM, MP4, or MOV).',
+  'recorder.manualImage': 'Upload image',
+  'recorder.manualImage.busy': 'Uploading…',
+  'recorder.manualImage.hint':
+    'Or upload a PNG, JPEG, WebP, or GIF from your computer (uses Title + Save to above).',
+  'recorder.manualImage.invalid':
+    'Please choose an image file (PNG, JPEG, WebP, or GIF).',
   'recorder.download': 'Download',
   'recorder.delete': 'Delete',
   'recorder.deleteConfirm': 'Delete “{title}”?',
@@ -1806,6 +1812,12 @@ const sr: Dict = {
   'recorder.manualUpload.hint':
     'Izaberite WebM, MP4 ili MOV sa računara. Live CRM čuva Online; demo ostaje u ovoj sesiji.',
   'recorder.manualUpload.invalid': 'Izaberite video fajl (WebM, MP4 ili MOV).',
+  'recorder.manualImage': 'Otpremi sliku',
+  'recorder.manualImage.busy': 'Otpremanje…',
+  'recorder.manualImage.hint':
+    'Ili otpremite PNG, JPEG, WebP ili GIF sa računara (koristi Naslov + Sačuvaj u iznad).',
+  'recorder.manualImage.invalid':
+    'Izaberite sliku (PNG, JPEG, WebP ili GIF).',
   'recorder.download': 'Preuzmi',
   'recorder.delete': 'Obriši',
   'recorder.deleteConfirm': 'Obrisati „{title}“?',
