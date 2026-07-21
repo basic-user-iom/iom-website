@@ -89,19 +89,19 @@ async function createSupabaseSignedUrl(url, key, path, expiresIn = SIGNED_SECOND
   return `${url.replace(/\/$/, '')}/storage/v1${signed.startsWith('/') ? '' : '/'}${signed}`
 }
 
-/** Prefer R2 when the object lives there; fall back to Supabase Storage. */
+/** Prefer R2 when configured; fall back to Supabase Storage for legacy objects. */
 async function createPlaybackUrl(url, key, path, expiresIn = SIGNED_SECONDS) {
   if (isR2Configured()) {
+    // Do not gate on HEAD — flaky/false HEAD results made us fall through to
+    // Supabase for R2-only objects and return intermittent 500s ("works, then stops").
     try {
-      if (await r2ObjectExists(path)) {
-        return createR2PresignedUrl({
-          method: 'GET',
-          key: path,
-          expiresIn,
-        })
-      }
+      return createR2PresignedUrl({
+        method: 'GET',
+        key: path,
+        expiresIn,
+      })
     } catch (err) {
-      console.warn('[crm-recorder] R2 head failed, trying Supabase', err)
+      console.warn('[crm-recorder] R2 sign failed, trying Supabase', err)
     }
   }
   return createSupabaseSignedUrl(url, key, path, expiresIn)
@@ -489,13 +489,18 @@ async function handleShare(req, res) {
       return res.status(401).json({ error: 'Wrong password or not found' })
     }
 
-    const playbackUrl = await createPlaybackUrl(url, key, row.storage_path)
+    // Prefer lasting media redirect for <video>/<img> — fresh R2 signature on every
+    // request. Direct signed URLs expire and were a source of “works then stops”.
+    const mediaQs = new URLSearchParams({ slug })
+    if (password) mediaQs.set('password', password)
+    const lastingPlayback = `/api/crm-recorder?action=media&${mediaQs}`
+
     return res.status(200).json({
       id: row.id,
       title: row.title,
       mimeType: row.mime_type,
       durationMs: row.duration_ms,
-      playbackUrl,
+      playbackUrl: lastingPlayback,
     })
   }
 

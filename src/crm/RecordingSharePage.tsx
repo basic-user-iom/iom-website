@@ -238,6 +238,7 @@ export function RecordingSharePage({ slug }: { slug: string }) {
             controls
             playsInline
             preload="metadata"
+            muted={embed}
             autoPlay={embed}
             onError={() => setMediaError(true)}
           >
@@ -250,8 +251,9 @@ export function RecordingSharePage({ slug }: { slug: string }) {
       </div>
       {mediaError && (
         <p className="rec-share-error" role="alert">
-          This recording file looks empty or unreadable. Try recording again and
-          keep the screen-share bar active until you press Stop.
+          {playback.mimeType.startsWith('image/')
+            ? 'Could not load this image. The file may be missing or the link expired — open the share page and try again.'
+            : 'Could not play this recording. Refresh the page, or re-save the clip online from Recorder if it stays blank.'}
         </p>
       )}
     </div>
