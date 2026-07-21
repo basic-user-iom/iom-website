@@ -4817,6 +4817,17 @@
   line-height: 1.45;
 }
 
+.crm-blog-attach-signed-warn {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid rgba(255, 170, 60, 0.4);
+  border-radius: 8px;
+  background: rgba(255, 170, 60, 0.1);
+  color: rgba(255, 220, 180, 0.95);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+
 .crm-blog-post-list,
 .crm-blog-comment-list,
 .crm-blog-email-list {

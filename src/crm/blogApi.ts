@@ -118,8 +118,9 @@ export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
         owner_id: user?.id ?? null,
       })
       .select('*')
-      .single()
+      .maybeSingle()
     if (error) throw new Error(error.message)
+    if (!data) throw new Error('Create returned no row — check you are signed in to live CRM.')
     return rowToPost(data as Record<string, unknown>)
   }
 
@@ -175,8 +176,13 @@ export async function updateBlogPost(id: string, input: BlogPostInput): Promise<
       })
       .eq('id', id)
       .select('*')
-      .single()
+      .maybeSingle()
     if (error) throw new Error(error.message)
+    if (!data) {
+      throw new Error(
+        'Update returned no row — check you are signed in to live CRM and the post still exists.',
+      )
+    }
     return rowToPost(data as Record<string, unknown>)
   }
 
@@ -263,21 +269,31 @@ function catalogToInput(post: BlogPost): BlogPostInput {
 }
 
 /**
- * Insert missing catalog posts as pending_review, and refresh body/SEO for
- * catalog slugs that already exist (keeps status + published_at).
+ * Insert missing catalog posts as pending_review.
+ * When `updateExisting` is true (manual “Sync catalog”), also refresh body/SEO
+ * for catalog slugs that already exist (keeps status + published_at).
+ * Auto-import must pass `updateExisting: false` so CRM edits are not wiped.
  */
-export async function importCatalogBlogPosts(): Promise<{
+export async function importCatalogBlogPosts(opts?: {
+  updateExisting?: boolean
+}): Promise<{
   created: number
   skipped: number
   updated: number
 }> {
+  const updateExisting = opts?.updateExisting !== false
   const existing = await listBlogPosts()
   const bySlug = new Map(existing.map((p) => [p.slug, p]))
   let created = 0
   let updated = 0
+  let skipped = 0
   for (const post of ALL_DEMO_BLOG_POSTS) {
     const current = bySlug.get(post.slug)
     if (current) {
+      if (!updateExisting) {
+        skipped++
+        continue
+      }
       const next = catalogToInput(post)
       await updateBlogPost(current.id, {
         ...next,
@@ -291,7 +307,7 @@ export async function importCatalogBlogPosts(): Promise<{
     bySlug.set(post.slug, post)
     created++
   }
-  return { created, skipped: 0, updated }
+  return { created, skipped, updated }
 }
 
 export function catalogImportMissingCount(posts: BlogPost[]): number {

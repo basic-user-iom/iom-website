@@ -746,6 +746,7 @@ const en: Dict = {
     'Blog tables are missing. In Supabase → SQL Editor, paste and Run blog_migration.sql, then hard-refresh.',
   'blog.loadFailed': 'Failed to load blog data.',
   'blog.saveFailed': 'Could not save post.',
+  'blog.saveOk': 'Post saved.',
   'blog.deleteFailed': 'Could not delete post.',
   'blog.moderationFailed': 'Could not update comment.',
   'blog.audienceFailed': 'Could not update email list.',
@@ -791,20 +792,34 @@ const en: Dict = {
     'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL from Recorder → Screenshot (Save online). No upload bucket yet.',
   'blog.attachTitle': 'Attached images',
   'blog.attachHint':
-    'Cover + images from body markdown. Replace or add via URL: put files in public/assets/blog/<slug>/, or use images from Recorder → Screenshot (Save online → Copy lasting image URL). Videos from Recorder → Record — paste the /r/… share link into the body.',
+    'Cover + images from body markdown. Replace via URL, or Upload image (live CRM → Cloudflare R2 lasting link). Save keeps pending Replace URLs even without Apply. Avoid temporary r2.cloudflarestorage.com links.',
   'blog.attachEmpty': 'No images yet. Add a cover URL, or insert a body image slot below.',
   'blog.attachCover': 'Cover',
   'blog.attachBody': 'Body image {n}',
   'blog.attachReplace': 'Replace',
   'blog.attachBust': 'Bust cache',
-  'blog.attachBustTitle': 'Append a fresh ?v= so browsers pick up the new file',
+  'blog.attachBustTitle':
+    'Append a fresh ?v= so browsers pick up the new file (site assets / lasting media URLs only)',
+  'blog.attachBustOk': 'Cache-busted. Save the post when ready.',
+  'blog.attachBustSigned':
+    'This is a temporary Cloudflare R2 signed URL — Bust cache cannot fix it (extra ?v= breaks the signature). Replace with Recorder → Screenshot → Copy lasting image URL (/api/crm-recorder?action=media&slug=…).',
+  'blog.attachSignedWarn':
+    'One or more images use temporary R2 signed links (they expire / break if edited). Replace each with Recorder → Copy lasting image URL.',
+  'blog.previewInCrmHint':
+    'Unpublished posts preview here in CRM (body Preview pane) — they are not on the public /blog site until Published.',
   'blog.attachNewUrl': 'Image URL',
   'blog.attachPathHint': 'File on disk: {path}',
   'blog.attachApply': 'Apply',
   'blog.attachCancel': 'Cancel',
   'blog.attachPickFile': 'Use filename…',
+  'blog.attachUploadFile': 'Upload image…',
+  'blog.attachUploading': 'Uploading image…',
+  'blog.attachUploaded': 'Image uploaded to Cloudflare R2. Save the post to keep it.',
+  'blog.attachUploadFailed': 'Image upload failed.',
+  'blog.attachUploadNeedAuth': 'Sign in to live CRM to upload images.',
+  'blog.attachUploadWait': 'Wait for the image upload to finish, then Save.',
   'blog.attachFileHint':
-    'URL set from filename. Copy the file into {path}, then Save. (No cloud upload yet.)',
+    'URL set from filename. Copy the file into {path}, then Apply + Save. (Demo has no cloud upload.)',
   'blog.attachAddCover': '+ Add cover',
   'blog.attachAddBody': '+ Insert body image',
   'blog.attachBodyInserted':
@@ -2126,6 +2141,7 @@ const sr: Dict = {
     'Blog tabele nedostaju. U Supabase → SQL Editor nalepite i pokrenite blog_migration.sql, zatim hard-refresh.',
   'blog.loadFailed': 'Učitavanje bloga nije uspelo.',
   'blog.saveFailed': 'Čuvanje članka nije uspelo.',
+  'blog.saveOk': 'Članak sačuvan.',
   'blog.deleteFailed': 'Brisanje članka nije uspelo.',
   'blog.moderationFailed': 'Ažuriranje komentara nije uspelo.',
   'blog.audienceFailed': 'Ažuriranje email liste nije uspelo.',
@@ -2171,20 +2187,34 @@ const sr: Dict = {
     'Preferirajte assete pod /assets/blog/<slug>/ — ili trajni URL iz Snimač → Screenshot (Sačuvaj online → Kopiraj trajni URL slike). Upload još nije dostupan.',
   'blog.attachTitle': 'Priložene slike',
   'blog.attachHint':
-    'Naslovna + slike iz Markdown tela. Zamenite ili dodajte preko URL-a: fajlovi u public/assets/blog/<slug>/, ili slike iz Snimač → Screenshot (Sačuvaj online → Kopiraj trajni URL slike). Video iz Snimač → Snimanje — nalepite /r/… share link u telo članka.',
+    'Naslovna + slike iz Markdown tela. Zamenite preko URL-a, ili Upload image (živi CRM → Cloudflare R2 trajni link). Save čuva i Replace URL bez Apply. Izbegavajte privremene r2.cloudflarestorage.com linkove.',
   'blog.attachEmpty': 'Još nema slika. Dodajte URL naslovne, ili ubacite slot za sliku u tekstu.',
   'blog.attachCover': 'Naslovna',
   'blog.attachBody': 'Slika u tekstu {n}',
   'blog.attachReplace': 'Zameni',
   'blog.attachBust': 'Osveži keš',
-  'blog.attachBustTitle': 'Dodaje novi ?v= da pregledači učitaju novi fajl',
+  'blog.attachBustTitle':
+    'Dodaje novi ?v= da pregledači učitaju novi fajl (samo site asseti / trajni media URL-ovi)',
+  'blog.attachBustOk': 'Keš osvežen. Sačuvajte post kad ste spremni.',
+  'blog.attachBustSigned':
+    'Ovo je privremeni Cloudflare R2 potpisani URL — Osveži keš ga ne može popraviti (dodatni ?v= kvari potpis). Zamenite sa Snimač → Screenshot → Kopiraj trajni URL slike (/api/crm-recorder?action=media&slug=…).',
+  'blog.attachSignedWarn':
+    'Jedna ili više slika koristi privremene R2 potpisane linkove (ističu / pucaju ako se menjaju). Zamenite svaku sa Snimač → Kopiraj trajni URL slike.',
+  'blog.previewInCrmHint':
+    'Neobjavljeni postovi se pregledaju ovde u CRM-u (Preview u editoru) — nisu na javnom /blog sajtu dok ne budu Published.',
   'blog.attachNewUrl': 'URL slike',
   'blog.attachPathHint': 'Fajl na disku: {path}',
   'blog.attachApply': 'Primeni',
   'blog.attachCancel': 'Otkaži',
   'blog.attachPickFile': 'Ime fajla…',
+  'blog.attachUploadFile': 'Upload slike…',
+  'blog.attachUploading': 'Upload slike…',
+  'blog.attachUploaded': 'Slika uploadovana na Cloudflare R2. Sačuvajte post da ostane.',
+  'blog.attachUploadFailed': 'Upload slike nije uspeo.',
+  'blog.attachUploadNeedAuth': 'Prijavite se u živi CRM da uploadujete slike.',
+  'blog.attachUploadWait': 'Sačekajte da se upload završi, pa Sačuvaj.',
   'blog.attachFileHint':
-    'URL postavljen iz imena fajla. Stavite fajl u {path}, pa Sačuvaj. (Cloud upload još nije dostupan.)',
+    'URL postavljen iz imena fajla. Stavite fajl u {path}, pa Apply + Sačuvaj. (Demo nema cloud upload.)',
   'blog.attachAddCover': '+ Dodaj naslovnu',
   'blog.attachAddBody': '+ Ubaci sliku u tekst',
   'blog.attachBodyInserted':

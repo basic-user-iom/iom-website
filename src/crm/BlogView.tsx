@@ -16,8 +16,14 @@ import {
   updateBlogAudienceNotes,
   updateBlogPost,
 } from './blogApi'
+import { getCurrentUser } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { useCrmI18n } from './i18n'
+import {
+  lastingMediaUrlForSlug,
+  uploadRecording,
+} from './recordingsApi'
+import { useLiveCrmBackend } from './supabaseClient'
 import {
   renderBlogMarkdown,
   slugifyTitle,
@@ -28,7 +34,6 @@ import {
   type BlogPostInput,
   type BlogPostStatus,
 } from '../blog/types'
-import { BLOG_ASSET_CACHE_V } from '../blog/posts/demoPostBuilder'
 import '../blog/blog.css'
 
 type BlogTab = 'pending' | 'posts' | 'comments' | 'emails'
@@ -92,9 +97,30 @@ function filenameFromUrl(url: string): string {
   }
 }
 
+/** Temporary signed R2 / S3 / Supabase URLs — extra query params break the signature. */
+function isEphemeralSignedUrl(url: string): boolean {
+  const u = url.trim().toLowerCase()
+  if (!u) return false
+  return (
+    u.includes('r2.cloudflarestorage.com') ||
+    u.includes('x-amz-algorithm=') ||
+    u.includes('x-amz-signature=') ||
+    u.includes('/storage/v1/object/sign/') ||
+    u.includes('/object/sign/')
+  )
+}
+
+/** Lasting recorder media redirect — safe to cache-bust with &v=. */
+function isLastingMediaUrl(url: string): boolean {
+  const u = url.trim().toLowerCase()
+  return u.includes('/api/crm-recorder') && u.includes('action=media')
+}
+
 function withCacheBust(url: string, version = String(Date.now())): string {
   const trimmed = url.trim()
   if (!trimmed) return trimmed
+  // Never mutate signed cloud URLs — ?v= / &v= invalidates SigV4 and thumbs go dark.
+  if (isEphemeralSignedUrl(trimmed)) return trimmed
   const [base, hash = ''] = trimmed.split('#')
   const bare = (base || '').replace(/([?&])v=[^&]*&?/g, '$1').replace(/[?&]$/, '')
   const joiner = bare.includes('?') ? '&' : '?'
@@ -121,8 +147,30 @@ function replaceBodyImageUrl(body: string, bodyIndex: number, newUrl: string): s
   const hit = images[bodyIndex]
   if (!hit) return body
   const slice = body.slice(hit.start, hit.end)
-  const replaced = slice.replace(/\(([^)\s]+)((?:\s+"[^"]*")?)\)/, `(${newUrl}$2)`)
+  const replaced = slice.replace(/\(([^)\s]+)((?:\s+"[^"]*")?)\)/, (_m, _url, title) => {
+    return `(${newUrl}${title || ''})`
+  })
   return body.slice(0, hit.start) + replaced + body.slice(hit.end)
+}
+
+/** Merge an in-progress Replace URL into the draft before Save (Apply is optional). */
+function draftWithPendingReplace(
+  draft: BlogPostInput,
+  replacingId: string | null,
+  replaceUrlDraft: string,
+): BlogPostInput {
+  const url = replaceUrlDraft.trim()
+  if (!replacingId || !url) return draft
+  if (replacingId === 'cover' || replacingId === 'add-cover') {
+    return { ...draft, cover_image_url: url }
+  }
+  if (replacingId.startsWith('body-')) {
+    const bodyIndex = Number(replacingId.slice(5))
+    if (Number.isFinite(bodyIndex) && bodyIndex >= 0) {
+      return { ...draft, body: replaceBodyImageUrl(draft.body, bodyIndex, url) }
+    }
+  }
+  return draft
 }
 
 export function BlogView() {
@@ -140,6 +188,7 @@ export function BlogView() {
   const [draft, setDraft] = useState<BlogPostInput>(emptyDraft())
   const [tagsText, setTagsText] = useState('')
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [importing, setImporting] = useState(false)
   const [statusBusyId, setStatusBusyId] = useState<string | null>(null)
   const [bodyPane, setBodyPane] = useState<BodyPane>('edit')
@@ -237,26 +286,73 @@ export function BlogView() {
     setReplaceUrlDraft('')
   }
 
-  const applyReplaceUrl = (att: BlogAttachment, nextUrl: string) => {
+  const applyUrlToSlot = (slotId: string, nextUrl: string) => {
     const url = nextUrl.trim()
     if (!url) return
-    if (att.kind === 'cover') {
+    if (slotId === 'cover' || slotId === 'add-cover') {
       setDraft((d) => ({ ...d, cover_image_url: url }))
-    } else if (att.bodyIndex != null) {
-      setDraft((d) => ({ ...d, body: replaceBodyImageUrl(d.body, att.bodyIndex!, url) }))
+    } else if (slotId.startsWith('body-')) {
+      const bodyIndex = Number(slotId.slice(5))
+      if (Number.isFinite(bodyIndex) && bodyIndex >= 0) {
+        setDraft((d) => ({ ...d, body: replaceBodyImageUrl(d.body, bodyIndex, url) }))
+      }
     }
     setReplacingId(null)
     setReplaceUrlDraft('')
+    if (isEphemeralSignedUrl(url)) {
+      setInfo(t('blog.attachSignedWarn'))
+    }
+  }
+
+  const applyReplaceUrl = (att: BlogAttachment, nextUrl: string) => {
+    applyUrlToSlot(att.id, nextUrl)
   }
 
   const bustAttachmentCache = (att: BlogAttachment) => {
-    applyReplaceUrl(att, withCacheBust(att.url))
+    const url = att.url.trim()
+    if (isEphemeralSignedUrl(url)) {
+      setError('')
+      setInfo(t('blog.attachBustSigned'))
+      return
+    }
+    applyReplaceUrl(att, withCacheBust(url))
+    if (isLastingMediaUrl(url) || url.includes('/assets/blog/')) {
+      setInfo(t('blog.attachBustOk'))
+    }
   }
 
   const assetSlug = () => (draft.slug || 'your-slug').trim() || 'your-slug'
 
-  const onPickLocalFile = (slotId: string, file: File | undefined) => {
+  const onPickLocalFile = async (slotId: string, file: File | undefined) => {
     if (!file) return
+    setError('')
+
+    // Live CRM: upload to Cloudflare R2 and store a lasting media URL in the draft.
+    if (useLiveCrmBackend()) {
+      setUploadingImage(true)
+      setInfo(t('blog.attachUploading'))
+      try {
+        const user = await getCurrentUser()
+        if (!user?.id) throw new Error(t('blog.attachUploadNeedAuth'))
+        const rec = await uploadRecording({
+          blob: file,
+          title: file.name.replace(/\.[^.]+$/, '') || 'Blog image',
+          durationMs: 0,
+          ownerId: user.id,
+        })
+        const url = lastingMediaUrlForSlug(rec.share_slug)
+        applyUrlToSlot(slotId, url)
+        setInfo(t('blog.attachUploaded'))
+      } catch (err) {
+        setInfo('')
+        setError(err instanceof Error ? err.message : t('blog.attachUploadFailed'))
+      } finally {
+        setUploadingImage(false)
+      }
+      return
+    }
+
+    // Demo: only suggest a public/assets path (no cloud upload).
     const slug = assetSlug()
     const suggested = withCacheBust(`/assets/blog/${slug}/${file.name}`)
     setReplaceUrlDraft(suggested)
@@ -271,11 +367,7 @@ export function BlogView() {
   }
 
   const applyAddCover = (nextUrl: string) => {
-    const url = nextUrl.trim()
-    if (!url) return
-    setDraft((d) => ({ ...d, cover_image_url: url }))
-    setReplacingId(null)
-    setReplaceUrlDraft('')
+    applyUrlToSlot('add-cover', nextUrl)
   }
 
   const insertBodyImageSnippet = () => {
@@ -301,7 +393,7 @@ export function BlogView() {
     setMode('edit')
   }
 
-  const openEdit = (post: BlogPost) => {
+  const openEdit = (post: BlogPost, opts?: { bodyPane?: BodyPane }) => {
     setEditingId(post.id)
     setDraft({
       slug: post.slug,
@@ -317,7 +409,7 @@ export function BlogView() {
       tags: post.tags,
     })
     setTagsText(post.tags.join(', '))
-    setBodyPane('edit')
+    setBodyPane(opts?.bodyPane ?? 'edit')
     setReplacingId(null)
     setReplaceUrlDraft('')
     setMode('edit')
@@ -341,11 +433,18 @@ export function BlogView() {
       setError(t('blog.excerptRequired'))
       return
     }
+    if (uploadingImage) {
+      setError(t('blog.attachUploadWait'))
+      return
+    }
     setSaving(true)
     setError('')
+    setInfo('')
+    // Include any in-progress Replace URL even if Apply was not clicked.
+    const merged = draftWithPendingReplace(draft, replacingId, replaceUrlDraft)
     const input: BlogPostInput = {
-      ...draft,
-      slug: (draft.slug || slugifyTitle(draft.title)).trim(),
+      ...merged,
+      slug: (merged.slug || slugifyTitle(merged.title)).trim(),
       tags: tagsText
         .split(',')
         .map((s) => s.trim())
@@ -354,11 +453,16 @@ export function BlogView() {
     try {
       if (editingId) await updateBlogPost(editingId, input)
       else await createBlogPost(input)
+      setDraft(input)
+      setReplacingId(null)
+      setReplaceUrlDraft('')
       setMode('list')
       setBodyPane('edit')
+      setEditingId(null)
       if (input.status === 'pending_review') setTab('pending')
       else setTab('posts')
       await refresh()
+      setInfo(t('blog.saveOk'))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.saveFailed'))
     } finally {
@@ -390,66 +494,64 @@ export function BlogView() {
     }
   }
 
-  const handleImportCatalog = useCallback(async () => {
-    setImporting(true)
-    setError('')
-    setInfo('')
-    try {
-      const { created, skipped, updated } = await importCatalogBlogPosts()
-      setInfo(
-        t('blog.importResult')
-          .replace('{created}', String(created))
-          .replace('{updated}', String(updated))
-          .replace('{skipped}', String(skipped)),
-      )
-      setTab('pending')
-      // Leave the editor — otherwise the open draft keeps stale body/cover forever.
-      setMode('list')
-      setEditingId(null)
-      setDraft(emptyDraft())
-      await refresh()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('blog.importFailed'))
-    } finally {
-      setImporting(false)
-    }
-  }, [refresh, t])
+  const editorModeRef = useRef(mode)
+  editorModeRef.current = mode
 
-  // Empty CRM → import catalog. Stale covers / missing panorama copy → force sync.
+  const handleImportCatalog = useCallback(
+    async (opts?: { updateExisting?: boolean }) => {
+      setImporting(true)
+      setError('')
+      setInfo('')
+      try {
+        const { created, skipped, updated } = await importCatalogBlogPosts({
+          updateExisting: opts?.updateExisting !== false,
+        })
+        setInfo(
+          t('blog.importResult')
+            .replace('{created}', String(created))
+            .replace('{updated}', String(updated))
+            .replace('{skipped}', String(skipped)),
+        )
+        setTab('pending')
+        // Leave the editor only when the user is not mid-edit/preview — otherwise
+        // Preview from the list feels like a no-op page refresh.
+        if (editorModeRef.current !== 'edit') {
+          setMode('list')
+          setEditingId(null)
+          setDraft(emptyDraft())
+        }
+        await refresh()
+      } catch (err) {
+        setError(err instanceof Error ? err.message : t('blog.importFailed'))
+      } finally {
+        setImporting(false)
+      }
+    },
+    [refresh, t],
+  )
+
+  // Empty CRM / missing catalog slugs → create only (never overwrite CRM edits).
+  // Manual “Sync catalog text” still refreshes body/covers from the repo catalog.
   const autoImportTried = useRef(false)
   useEffect(() => {
     if (loading || autoImportTried.current || importing) return
-    const cacheMarker = `?v=${BLOG_ASSET_CACHE_V}`
-    const needsCacheBust = posts.some(
-      (p) =>
-        p.cover_image_url.includes('/assets/blog/') &&
-        !p.cover_image_url.includes(cacheMarker),
-    )
-    const spoutStale = posts.some(
-      (p) =>
-        p.slug === 'spout' &&
-        (!p.body.includes('Also in the 360') ||
-          !p.body.includes('iobjectm.com/demos/panorama-360')),
-    )
-    const ravenPathStale = posts.some(
-      (p) =>
-        p.slug === 'raven-path' &&
-        (!p.body.includes('/#3d') ||
-          !/Export path JSON|path JSON/i.test(p.body) ||
-          !/Import GLB|GLTF|FBX/i.test(p.body) ||
-          p.body.includes('/#software')),
-    )
-    if (posts.length > 0 && !needsCacheBust && !spoutStale && !ravenPathStale && missingCatalog <= 0)
-      return
-    if (posts.length === 0 && missingCatalog <= 0) return
+    // Wait until the list is visible so Preview/Edit is not kicked back to list.
+    if (mode === 'edit') return
+    if (missingCatalog <= 0) return
     autoImportTried.current = true
     setTab('pending')
-    void handleImportCatalog()
-  }, [loading, posts, missingCatalog, importing, handleImportCatalog])
+    void handleImportCatalog({ updateExisting: false })
+  }, [loading, missingCatalog, importing, handleImportCatalog, mode])
+
+  const editorPanelRef = useRef<HTMLDivElement | null>(null)
 
   const openPreviewInEditor = (post: BlogPost) => {
-    openEdit(post)
-    setBodyPane('preview')
+    openEdit(post, { bodyPane: 'preview' })
+    setInfo(t('blog.previewInCrmHint'))
+    // Editor mounts after this tick — wait before scrolling.
+    window.setTimeout(() => {
+      editorPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 60)
   }
 
   const handleCommentStatus = async (id: string, status: BlogCommentStatus) => {
@@ -763,7 +865,7 @@ export function BlogView() {
       )}
 
       {!loading && (tab === 'posts' || tab === 'pending') && mode === 'edit' && (
-        <div className="crm-blog-editor">
+        <div className="crm-blog-editor" ref={editorPanelRef}>
           <div className="crm-blog-toolbar">
             <button
               type="button"
@@ -780,10 +882,10 @@ export function BlogView() {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={saving}
+              disabled={saving || uploadingImage}
               onClick={() => void handleSave()}
             >
-              {saving ? t('blog.saving') : t('blog.save')}
+              {saving ? t('blog.saving') : uploadingImage ? t('blog.attachUploading') : t('blog.save')}
             </button>
           </div>
 
@@ -936,6 +1038,12 @@ export function BlogView() {
                 <p className="crm-muted crm-blog-attachments-hint">{t('blog.attachHint')}</p>
               </div>
 
+              {attachments.some((a) => isEphemeralSignedUrl(a.url)) && (
+                <p className="crm-blog-attach-signed-warn" role="status">
+                  {t('blog.attachSignedWarn')}
+                </p>
+              )}
+
               {attachments.length === 0 && replacingId !== 'add-cover' && (
                 <div className="crm-blog-attachments-empty">
                   <p className="crm-muted">{t('blog.attachEmpty')}</p>
@@ -945,6 +1053,7 @@ export function BlogView() {
               <ul className="crm-blog-attach-list">
                 {attachments.map((att) => {
                   const editing = replacingId === att.id
+                  const signed = isEphemeralSignedUrl(att.url)
                   return (
                     <li key={att.id} className="crm-blog-attach-card">
                       <div className="crm-blog-attach-thumb-wrap">
@@ -979,7 +1088,9 @@ export function BlogView() {
                               type="button"
                               className="btn btn-ghost"
                               onClick={() => bustAttachmentCache(att)}
-                              title={t('blog.attachBustTitle')}
+                              title={
+                                signed ? t('blog.attachBustSigned') : t('blog.attachBustTitle')
+                              }
                             >
                               {t('blog.attachBust')}
                             </button>
@@ -1011,13 +1122,14 @@ export function BlogView() {
                                 {t('blog.attachCancel')}
                               </button>
                               <label className="btn btn-ghost crm-blog-attach-file">
-                                {t('blog.attachPickFile')}
+                                {demo ? t('blog.attachPickFile') : t('blog.attachUploadFile')}
                                 <input
                                   type="file"
                                   accept="image/*"
                                   hidden
+                                  disabled={uploadingImage}
                                   onChange={(e) => {
-                                    onPickLocalFile(att.id, e.target.files?.[0])
+                                    void onPickLocalFile(att.id, e.target.files?.[0])
                                     e.target.value = ''
                                   }}
                                 />
@@ -1060,13 +1172,14 @@ export function BlogView() {
                         {t('blog.attachCancel')}
                       </button>
                       <label className="btn btn-ghost crm-blog-attach-file">
-                        {t('blog.attachPickFile')}
+                        {demo ? t('blog.attachPickFile') : t('blog.attachUploadFile')}
                         <input
                           type="file"
                           accept="image/*"
                           hidden
+                          disabled={uploadingImage}
                           onChange={(e) => {
-                            onPickLocalFile('add-cover', e.target.files?.[0])
+                            void onPickLocalFile('add-cover', e.target.files?.[0])
                             e.target.value = ''
                           }}
                         />
