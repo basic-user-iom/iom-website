@@ -15,7 +15,7 @@ const OVERRIDES = { ...DEMO_BLOG_OVERRIDES, ...DEMO_BLOG_OVERRIDES_EXPERIMENTS }
 
 /** section + fallback url/tags when override omits them */
 const META = {
-  '3d-viewer': { section: 'software', url: 'https://3dbviewer.com/', tags: ['software', 'three.js', 'product'] },
+  '3d-viewer': { section: 'software', url: 'https://3dbviewer.com/', tags: ['software', 'three.js', 'product', 'hdr', 'osm'] },
   'streets-gl-bridge': { section: 'software', url: '/demos/streets-gl/', tags: ['software', 'maps', 'osm'] },
   'panorama-360-tour': { section: 'software', url: '/demos/panorama-360/', tags: ['software', '360', 'webgpu'] },
   'crm-demo': { section: 'software', url: '/crm-demo', tags: ['software', 'crm'] },
@@ -104,7 +104,7 @@ function emitSpec(id, o, meta) {
     demoLabel: ${JSON.stringify(o.demoLabel)},
 ${o.heroRecordingSlug ? `    heroRecordingSlug: ${JSON.stringify(o.heroRecordingSlug)},\n` : ''}    hook: \`${esc(o.hook)}\`,
     coverNote: ${JSON.stringify(o.coverNote)},
-    whyBullets: ${JSON.stringify(o.whyBullets)},
+${o.whatYouSeeIntro ? `    whatYouSeeIntro: ${JSON.stringify(o.whatYouSeeIntro)},\n` : ''}    whyBullets: ${JSON.stringify(o.whyBullets)},
     whyUses: ${JSON.stringify(o.whyUses)},
     beginner: \`${esc(o.beginner)}\`,
     glossary: ${JSON.stringify(o.glossary)},

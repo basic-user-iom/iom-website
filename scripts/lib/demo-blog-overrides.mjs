@@ -7,49 +7,78 @@ export const DEMO_BLOG_OVERRIDES = {
     pageTitle: '3D Viewer — product models in the browser',
     demoLabel: '3D Viewer',
     heroRecordingSlug: '0r5s5i2l3m0e',
-    hook: 'Clients should not need a CAD seat to review a model. Our 3D Viewer puts GLTF, FBX, OBJ, and IFC in a shareable browser (and desktop) window — orbit, inspect materials, path-trace when you need the look, and hotspot the story.',
-    coverNote: 'The cover is a product-review framing from the viewer; the walkthrough video above continues the same pass.',
+    excerpt:
+      'Review GLTF, FBX, OBJ, and IFC in the browser — with 360° HDR ground projection and OSM / Streets GL city context inside the same 3D Viewer.',
+    seo_title: '3D Viewer — HDR, ground projection & Streets GL — IOM',
+    seo_description:
+      'Browser 3D Viewer for product models: 360° HDR lighting with ground projection, OSM 3D / Streets GL city context, and shareable GLTF/FBX/OBJ/IFC review links.',
+    hook: 'Clients should not need a CAD seat to review a model. Our 3D Viewer puts GLTF, FBX, OBJ, and IFC in a shareable browser (and desktop) window — orbit, inspect materials, light with 360° HDR and ground projection, or drop the mesh into OSM / Streets GL city context when location is the story.',
+    coverNote:
+      'The cover and walkthrough video introduce the product pass; the stills below show 360° HDR ground projection and OSM 3D / Streets GL city context inside the same viewer.',
+    whatYouSeeIntro:
+      'Two capabilities that sell the model beyond a grey void — cinematic HDR lighting, then real city fabric:',
     whyBullets: [
       '- **Share a link, not a ZIP** — stakeholders open the model on a laptop during a call',
       '- **One viewer for many formats** — fewer “which app opens this?” emails',
-      '- **Pitch-ready lighting** — path tracing and HDR when the still has to sell',
-      '- **Hotspots for narrative** — call out parts, options, or next steps on the mesh',
+      '- **360° HDR + ground projection** — real lighting and contact shadows so the product sits in the plate',
+      '- **OSM 3D / Streets GL inside the viewer** — combine city context with your own models when the street sells the pitch',
     ],
     whyUses:
-      'product configurators, architecture reviews, trade-show tablets, async client approvals, and standalone web presentations exported from the same pipeline.',
+      'product configurators, architecture and outdoor placements, trade-show tablets, async client approvals, and standalone web presentations exported from the same pipeline.',
     beginner:
-      'A 3D viewer is like a photo of your product that you can spin. Instead of flat images, the real model sits in the page — drag to turn it, zoom into details, and (when enabled) see richer lighting. No install for the web build; a Windows desktop build covers offline or heavier assets.',
+      'A 3D viewer is like a photo of your product that you can spin. Instead of flat images, the real model sits in the page — drag to turn it, zoom into details, wrap it in HDR light, or place it on a real OpenStreetMap city when you need “where does this sit?” No install for the web build; a Windows desktop build covers offline or heavier assets.',
     glossary: [
       { term: 'GLTF / GLB', def: 'common web-friendly 3D file formats ([Khronos glTF](https://www.khronos.org/gltf/))' },
       { term: 'Orbit', def: 'drag to rotate the camera around the model' },
-      { term: 'Path tracing', def: 'slower, more realistic lighting for hero stills' },
+      {
+        term: '360° HDR environment',
+        def: 'a high-dynamic-range wrap that lights the model from a real sky/scene',
+      },
+      {
+        term: 'Ground projection',
+        def: 'projecting the HDR onto the floor plane so shadows and reflections match the environment',
+      },
+      {
+        term: 'OSM 3D / Streets GL',
+        def: 'OpenStreetMap-derived 3D city context you can combine with your models inside the viewer ([streets.gl](https://streets.gl/))',
+      },
       { term: 'Hotspot', def: 'a clickable marker on the model with info or a link' },
-      { term: 'HDR environment', def: 'a high-dynamic-range sky/lighting map that wraps the scene' },
     ],
     trySteps: [
       'Open the [3D Viewer](https://3dbviewer.com/)',
       'Load a sample or your own GLTF/GLB if the build allows import',
-      'Drag to orbit; scroll to zoom; try lighting / environment presets',
-      'If hotspots are present, click one to see how narrative layers work',
+      'Try a 360° HDR environment with ground projection — watch contact shadows lock the product to the plate',
+      'Open OSM 3D / Streets GL and imagine (or place) your model in real city fabric',
     ],
     requirements: [
       '**Browser:** modern Chrome, Edge, or Firefox for the web build',
       '**Files:** prefer GLB/GLTF for web; heavy CAD may need conversion first',
-      '**GPU:** path tracing wants a decent GPU — fall back to raster for light devices',
+      '**GPU:** path tracing and dense city layers want a decent GPU — fall back to lighter modes on soft devices',
     ],
-    viewA: { file: 'view-a.jpg', caption: 'Orbit framing — product readable against a clean ground' },
-    viewB: { file: 'view-b.jpg', caption: 'Closer detail pass — materials, silhouette, and lighting' },
+    viewA: {
+      file: 'view-a.jpg',
+      caption: '360° HDR with ground projection — product lit by the plate, shadows reading on asphalt',
+    },
+    viewB: {
+      file: 'view-b.jpg',
+      caption: 'OSM 3D / Streets GL inside the viewer — city context you can combine with your models',
+    },
     alsoCan: [
-      'Switch environments / HDR for different moods',
+      'Switch HDR environments and time-of-day for different moods',
       'Use path tracing for stills when quality beats real-time speed',
+      'Blend Product / City / Hybrid modes when reviewing outdoor or urban placements',
       'Export a standalone web presentation for client handoff',
     ],
     howWorks:
-      'The viewer is built on the [Three.js](https://threejs.org/) family with a focus on practical review: load meshes, frame them, and present lighting that sells the object. Desktop builds extend the same idea when offline or large assets matter. Format support follows real client pipelines — the goal is always “open, understand, decide.” Live product: [3dbviewer.com](https://3dbviewer.com/).',
+      'The viewer is built on the [Three.js](https://threejs.org/) family with a focus on practical review: load meshes, frame them, light them with HDR + ground projection, and — when the brief needs a street — open OSM 3D / Streets GL city context in the same chrome. Desktop builds extend the same idea when offline or large assets matter. Format support follows real client pipelines — the goal is always “open, understand, decide.” Live product: [3dbviewer.com](https://3dbviewer.com/).',
     faq: [
       {
         q: 'Do clients need CAD software?',
         a: 'No for review — a browser link is enough for most stakeholders.',
+      },
+      {
+        q: 'Can we show the model on a real street?',
+        a: 'Yes — OSM 3D / Streets GL runs inside the viewer so you can combine city context with your GLB/GLTF.',
       },
       {
         q: 'Can we brand it?',
@@ -59,11 +88,12 @@ export const DEMO_BLOG_OVERRIDES = {
     reading: [
       { label: '3D Viewer live', url: 'https://3dbviewer.com/' },
       { label: 'glTF overview — Khronos', url: 'https://www.khronos.org/gltf/' },
+      { label: 'Streets GL live map', url: 'https://streets.gl/' },
       { label: 'Three.js', url: 'https://threejs.org/' },
       { label: 'WebGL — MDN', url: 'https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API' },
     ],
     related: [
-      { label: 'Image Prep', url: '/blog/image-prep' },
+      { label: 'Streets GL Bridge', url: '/blog/streets-gl-bridge' },
       { label: 'Volumetric Lighting', url: '/blog/volume-lighting' },
     ],
   },
