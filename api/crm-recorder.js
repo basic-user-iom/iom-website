@@ -8,6 +8,7 @@
  * POST ?action=r2-sign         → presigned GET URL (CRM auth; owner playback)
  * POST ?action=r2-delete       → delete R2 object(s) (CRM auth; path must be owner/)
  * GET  ?action=r2-status       → whether Cloudflare R2 is configured
+ * GET  ?action=media&slug=…    → 302 to fresh file URL (lasting blog / <img> links)
  */
 
 import { createHash } from 'node:crypto'
@@ -30,7 +31,10 @@ import {
 } from './_lib/r2.js'
 
 const BUCKET = 'crm-screen-recordings'
+/** Short-lived URLs for CRM owner playback / share unlock JSON. */
 const SIGNED_SECONDS = 60 * 60 * 2
+/** Longer target for lasting /media redirects (R2/S3 max is 7 days). */
+const MEDIA_SIGNED_SECONDS = 60 * 60 * 24 * 7
 /** Keep under Vercel ~4.5MB body after base64 (~3MB raw). */
 const MAX_MORPH_AUDIO_BYTES = 3 * 1024 * 1024
 
@@ -63,7 +67,7 @@ function actionOf(req) {
   return ''
 }
 
-async function createSupabaseSignedUrl(url, key, path) {
+async function createSupabaseSignedUrl(url, key, path, expiresIn = SIGNED_SECONDS) {
   const res = await fetch(
     `${url.replace(/\/$/, '')}/storage/v1/object/sign/${BUCKET}/${path}`,
     {
@@ -73,7 +77,7 @@ async function createSupabaseSignedUrl(url, key, path) {
         Authorization: `Bearer ${key}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ expiresIn: SIGNED_SECONDS }),
+      body: JSON.stringify({ expiresIn }),
     },
   )
   const json = await res.json().catch(() => null)
@@ -86,21 +90,21 @@ async function createSupabaseSignedUrl(url, key, path) {
 }
 
 /** Prefer R2 when the object lives there; fall back to Supabase Storage. */
-async function createPlaybackUrl(url, key, path) {
+async function createPlaybackUrl(url, key, path, expiresIn = SIGNED_SECONDS) {
   if (isR2Configured()) {
     try {
       if (await r2ObjectExists(path)) {
         return createR2PresignedUrl({
           method: 'GET',
           key: path,
-          expiresIn: SIGNED_SECONDS,
+          expiresIn,
         })
       }
     } catch (err) {
       console.warn('[crm-recorder] R2 head failed, trying Supabase', err)
     }
   }
-  return createSupabaseSignedUrl(url, key, path)
+  return createSupabaseSignedUrl(url, key, path, expiresIn)
 }
 
 function assertOwnerPath(userId, path) {
@@ -498,6 +502,79 @@ async function handleShare(req, res) {
   return res.status(405).json({ error: 'Method not allowed' })
 }
 
+/**
+ * Permanent public file URL for blog embeds / <img src>.
+ * 302 → fresh signed R2 (or Supabase) URL. Objects stay on Cloudflare until deleted.
+ * Password-protected items need ?password=… (or stay on /r/… share page).
+ */
+async function handleMedia(req, res) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const { url, key, hasService } = supabaseConfig()
+  if (!url || !key) {
+    return res.status(503).json({ error: 'Storage is not configured' })
+  }
+  if (!hasService) {
+    return res.status(503).json({
+      error: 'Media links require SUPABASE_SERVICE_ROLE_KEY',
+    })
+  }
+
+  const ip = clientIp(req)
+  if (!rateLimit(`rec-media:${ip}`, 90, 60_000)) {
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+
+  const slug = String(req.query?.slug || '').trim()
+  const password = String(req.query?.password || '')
+  if (!slug) return res.status(400).json({ error: 'Missing slug' })
+
+  const metaRows = await sb(`rpc/crm_recording_share_meta`, {
+    method: 'POST',
+    body: { p_slug: slug },
+    url,
+    key,
+  })
+  const meta = Array.isArray(metaRows) ? metaRows[0] : null
+  if (!meta) return res.status(404).json({ error: 'Recording not found' })
+
+  if (meta.has_password && !password) {
+    return res.status(401).json({
+      error: 'Password required',
+      code: 'password_required',
+      sharePath: `/r/${encodeURIComponent(slug)}`,
+    })
+  }
+
+  const rows = await sb(`rpc/crm_recording_unlock`, {
+    method: 'POST',
+    body: { p_slug: slug, p_password: password },
+    url,
+    key,
+  })
+  const row = Array.isArray(rows) ? rows[0] : null
+  if (!row) {
+    return res.status(401).json({ error: 'Wrong password or not found' })
+  }
+
+  // Long-lived signed target; redirect itself is never cached so blogs stay valid.
+  const playbackUrl = await createPlaybackUrl(
+    url,
+    key,
+    row.storage_path,
+    MEDIA_SIGNED_SECONDS,
+  )
+
+  res.setHeader('Cache-Control', 'private, no-store')
+  res.setHeader('Location', playbackUrl)
+  if (row.mime_type) {
+    res.setHeader('Content-Type', String(row.mime_type).split(';')[0].trim())
+  }
+  return res.status(302).end()
+}
+
 export default async function handler(req, res) {
   const action = actionOf(req)
   const needsAuth =
@@ -514,13 +591,14 @@ export default async function handler(req, res) {
     if (action === 'voices') return await handleVoices(req, res)
     if (action === 'morph') return await handleMorph(req, res)
     if (action === 'share') return await handleShare(req, res)
+    if (action === 'media') return await handleMedia(req, res)
     if (action === 'r2-status') return await handleR2Status(req, res)
     if (action === 'r2-upload') return await handleR2Upload(req, res)
     if (action === 'r2-sign') return await handleR2Sign(req, res)
     if (action === 'r2-delete') return await handleR2Delete(req, res)
     return res.status(400).json({
       error:
-        'Missing action. Use ?action=voices|morph|share|r2-status|r2-upload|r2-sign|r2-delete',
+        'Missing action. Use ?action=voices|morph|share|media|r2-status|r2-upload|r2-sign|r2-delete',
     })
   } catch (err) {
     console.error('[crm-recorder]', action, err)

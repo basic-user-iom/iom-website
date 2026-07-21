@@ -275,7 +275,7 @@ const en: Dict = {
   'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Library',
   'recorder.screenshot.intro':
-    'Capture a tab, window, or screen as a PNG. Save online, then in Blog → Attached images use Replace / Insert with the image URL (or share link). Same for videos from Record — paste the /r/… share link in the post body.',
+    'Capture a tab, window, or screen as a PNG. Save online (Cloudflare R2 — files stay until you delete them). Then in Blog → Attached images use Replace / Insert with Copy image URL or the /r/… share link. Same for videos from Record — paste the /r/… share link in the post body.',
   'recorder.screenshot.capture': 'Capture screenshot',
   'recorder.screenshot.capturing': 'Capturing…',
   'recorder.screenshot.uploading': 'Saving screenshot…',
@@ -284,13 +284,15 @@ const en: Dict = {
   'recorder.screenshot.error': 'Could not capture screenshot. Allow screen share and try again.',
   'recorder.kind.video': 'Video',
   'recorder.kind.image': 'Screenshot',
-  'recorder.copyImageUrl': 'Copy image URL',
+  'recorder.copyImageUrl': 'Copy lasting image URL',
   'recorder.copyImageUrlHint':
-    'Signed URL (expires in ~2h). Prefer share link for lasting access. Paste into Blog → Attached images → Replace / cover URL.',
+    'Lasting link for Blog covers and markdown — Cloudflare R2 file stays until you delete it. Paste into Blog → Attached images → Replace / cover URL.',
   'recorder.intro':
-    'Record video or capture screenshots. Use mic, camera PiP, voice presets or AI morph, static/avatar appearance, then save locally or online and share with a password-protected /r/… link.',
+    'Record video or capture screenshots. Use mic, camera PiP, voice presets or AI morph, static/avatar appearance, then save locally or online (Cloudflare R2) and share with a password-protected /r/… link.',
   'recorder.introDemo':
     'Demo sandbox — recordings and screenshots stay in this browser only. Online save and lasting share links need the live CRM (/client-login).',
+  'recorder.onlinePersistHint':
+    'Online files are stored on Cloudflare R2 and are not auto-deleted. Use Copy lasting image URL or /r/… share links for blogs — temporary R2 signed links expire in hours.',
   'recorder.start': 'Start recording',
   'recorder.stop': 'Stop',
   'recorder.pause': 'Pause',
@@ -411,7 +413,7 @@ const en: Dict = {
   'recorder.edit.save': 'Save online',
   'recorder.edit.applyLocal': 'Apply to library',
   'recorder.edit.slowHint':
-    'Long clips take a while — editing re-encodes in this browser.',
+    'Uses offline WebCodecs encoding when available (often much faster than real-time on a strong PC). Falls back to real-time encode if needed.',
   'recorder.edit.loading': 'Loading…',
   'recorder.edit.loadFailed': 'Could not load recording for edit.',
   'recorder.edit.error': 'Edit failed. Try again.',
@@ -784,12 +786,12 @@ const en: Dict = {
   'blog.editorTip':
     'Required: title + excerpt. Use Markdown. Include internal links to demos or /#contact.',
   'blog.markdownHint':
-    'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg. Recorder screenshots: paste the image URL into Attached images. Recorder videos: paste the /r/… share link in the body.',
+    'Images: ![Caption](/assets/blog/slug/hero.jpg) on its own line. Links: [label](/demos/…) or https://… Cover path convention: /assets/blog/<slug>/cover.jpg. Recorder screenshots: paste Copy lasting image URL into Attached images. Recorder videos: paste the /r/… share link in the body.',
   'blog.coverHint':
     'Prefer site assets under /assets/blog/<slug>/ — or a full https:// URL from Recorder → Screenshot (Save online). No upload bucket yet.',
   'blog.attachTitle': 'Attached images',
   'blog.attachHint':
-    'Cover + images from body markdown. Replace or add via URL: put files in public/assets/blog/<slug>/, or use images from Recorder → Screenshot (Save online → Copy image URL / share link). Videos from Recorder → Record work the same — paste the /r/… share link into the body.',
+    'Cover + images from body markdown. Replace or add via URL: put files in public/assets/blog/<slug>/, or use images from Recorder → Screenshot (Save online → Copy lasting image URL). Videos from Recorder → Record — paste the /r/… share link into the body.',
   'blog.attachEmpty': 'No images yet. Add a cover URL, or insert a body image slot below.',
   'blog.attachCover': 'Cover',
   'blog.attachBody': 'Body image {n}',
@@ -1298,9 +1300,9 @@ const en: Dict = {
   'guide.recordings3':
     'Library → Edit videos (trim, blur, volume, IOM music bed or upload) · screenshots skip the video editor',
   'guide.recordings4':
-    'Copy share link (/r/…) for lasting access to video or image; optional password; embed or Copy image URL for drafts',
+    'Copy lasting image URL for blog covers/markdown, or /r/… share link / embed for video; optional password',
   'guide.recordings5':
-    'Online files stay until you delete them — signed image URLs expire in ~2h, but the share page keeps working',
+    'Online files stay on Cloudflare R2 until you delete them — lasting image URLs and /r/… share pages keep working',
   'guide.recordingsDemoText':
     'In the public demo, Record and Screenshot work in this browser only. Online save, share links, and lasting /r/… pages need the live CRM.',
   'guide.recordingsDemo1':
@@ -1648,7 +1650,7 @@ const sr: Dict = {
   'recorder.tab.screenshot': 'Screenshot',
   'recorder.tab.library': 'Biblioteka',
   'recorder.screenshot.intro':
-    'Uhvatite tab, prozor ili ekran kao PNG. Sačuvajte online, zatim u Blog → Priložene slike koristite Zameni / Ubaci sa URL-om slike (ili share linkom). Isto važi za video iz Snimanje — nalepite /r/… share link u telo članka.',
+    'Uhvatite tab, prozor ili ekran kao PNG. Sačuvajte online (Cloudflare R2 — fajlovi ostaju dok ih ne obrišete). Zatim u Blog → Priložene slike koristite Zameni / Ubaci sa Kopiraj trajni URL slike ili /r/… share linkom. Isto važi za video iz Snimanje — nalepite /r/… share link u telo članka.',
   'recorder.screenshot.capture': 'Uhvati screenshot',
   'recorder.screenshot.capturing': 'Hvatanje…',
   'recorder.screenshot.uploading': 'Čuvanje screenshot-a…',
@@ -1658,13 +1660,15 @@ const sr: Dict = {
     'Nije moguće uhvatiti screenshot. Dozvolite deljenje ekrana i pokušajte ponovo.',
   'recorder.kind.video': 'Video',
   'recorder.kind.image': 'Screenshot',
-  'recorder.copyImageUrl': 'Kopiraj URL slike',
+  'recorder.copyImageUrl': 'Kopiraj trajni URL slike',
   'recorder.copyImageUrlHint':
-    'Potpisani URL (ističe za ~2h). Za trajni pristup koristite share link. Nalepite u Blog → Priložene slike → Zameni / URL naslovne.',
+    'Trajni link za Blog naslovne i Markdown — fajl na Cloudflare R2 ostaje dok ga ne obrišete. Nalepite u Blog → Priložene slike → Zameni / URL naslovne.',
   'recorder.intro':
-    'Snimite video ili uhvatite screenshot. Mikrofon, kamera PiP, glasovni preseti ili AI morf, statični/avatar izgled — sačuvajte lokalno ili online i podelite linkom sa lozinkom (/r/…).',
+    'Snimite video ili uhvatite screenshot. Mikrofon, kamera PiP, glasovni preseti ili AI morf, statični/avatar izgled — sačuvajte lokalno ili online (Cloudflare R2) i podelite linkom sa lozinkom (/r/…).',
   'recorder.introDemo':
     'Demo sandbox — snimci i screenshot-ovi ostaju samo u ovom pregledaču. Online čuvanje i trajni share linkovi zahtevaju live CRM (/client-login).',
+  'recorder.onlinePersistHint':
+    'Online fajlovi su na Cloudflare R2 i ne brišu se sami. Za blog koristite Kopiraj trajni URL slike ili /r/… share link — privremeni R2 potpisani linkovi ističu za nekoliko sati.',
   'recorder.start': 'Počni snimanje',
   'recorder.stop': 'Zaustavi',
   'recorder.pause': 'Pauza',
@@ -1786,7 +1790,7 @@ const sr: Dict = {
   'recorder.edit.save': 'Sačuvaj online',
   'recorder.edit.applyLocal': 'Primeni u biblioteci',
   'recorder.edit.slowHint':
-    'Dugi snimci traju — izmena se radi u ovom pregledaču.',
+    'Koristi offline WebCodecs kodiranje kada je dostupno (često mnogo brže od realnog vremena na jakom PC-u). Ako zatreba, pada na real-time encode.',
   'recorder.edit.loading': 'Učitavanje…',
   'recorder.edit.loadFailed': 'Nije moguće učitati snimak za izmenu.',
   'recorder.edit.error': 'Izmena nije uspela. Pokušajte ponovo.',
@@ -2162,12 +2166,12 @@ const sr: Dict = {
   'blog.editorTip':
     'Obavezno: naslov + izvod. Markdown. Uključite interne linkove ka demou ili /#contact.',
   'blog.markdownHint':
-    'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg. Screenshot iz Snimača: nalepite URL slike u Priložene slike. Video iz Snimača: nalepite /r/… share link u tekst.',
+    'Slike: ![Opis](/assets/blog/slug/hero.jpg) u posebnom redu. Linkovi: [tekst](/demos/…) ili https://… Naslovna: /assets/blog/<slug>/cover.jpg. Screenshot iz Snimača: nalepite Kopiraj trajni URL slike u Priložene slike. Video iz Snimača: nalepite /r/… share link u tekst.',
   'blog.coverHint':
-    'Preferirajte assete pod /assets/blog/<slug>/ — ili pun https:// URL iz Snimač → Screenshot (Sačuvaj online). Upload još nije dostupan.',
+    'Preferirajte assete pod /assets/blog/<slug>/ — ili trajni URL iz Snimač → Screenshot (Sačuvaj online → Kopiraj trajni URL slike). Upload još nije dostupan.',
   'blog.attachTitle': 'Priložene slike',
   'blog.attachHint':
-    'Naslovna + slike iz Markdown tela. Zamenite ili dodajte preko URL-a: fajlovi u public/assets/blog/<slug>/, ili slike iz Snimač → Screenshot (Sačuvaj online → Kopiraj URL slike / share link). Video iz Snimač → Snimanje isto — nalepite /r/… share link u telo članka.',
+    'Naslovna + slike iz Markdown tela. Zamenite ili dodajte preko URL-a: fajlovi u public/assets/blog/<slug>/, ili slike iz Snimač → Screenshot (Sačuvaj online → Kopiraj trajni URL slike). Video iz Snimač → Snimanje — nalepite /r/… share link u telo članka.',
   'blog.attachEmpty': 'Još nema slika. Dodajte URL naslovne, ili ubacite slot za sliku u tekstu.',
   'blog.attachCover': 'Naslovna',
   'blog.attachBody': 'Slika u tekstu {n}',
@@ -2678,9 +2682,9 @@ const sr: Dict = {
   'guide.recordings3':
     'Biblioteka → Izmena videa (trim, blur, jačina, IOM muzika ili upload) · screenshot-ovi nemaju video editor',
   'guide.recordings4':
-    'Kopirajte share link (/r/…) za trajni pristup videu ili slici; opciona lozinka; embed ili Kopiraj URL slike za nacrte',
+    'Kopirajte trajni URL slike za blog naslovne/Markdown, ili /r/… share link / embed za video; opciona lozinka',
   'guide.recordings5':
-    'Online fajlovi ostaju dok ih ne obrišete — potpisani URL slike ističe za ~2h, ali share stranica i dalje radi',
+    'Online fajlovi ostaju na Cloudflare R2 dok ih ne obrišete — trajni URL slike i /r/… share stranice i dalje rade',
   'guide.recordingsDemoText':
     'U javnom demu Snimanje i Screenshot rade samo u ovom pregledaču. Online čuvanje, share linkovi i trajne /r/… stranice zahtevaju live CRM.',
   'guide.recordingsDemo1':

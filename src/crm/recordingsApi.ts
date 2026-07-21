@@ -185,18 +185,6 @@ async function uploadBlobToR2(
   }
 }
 
-function isR2NetworkFailure(err: unknown): boolean {
-  if (!(err instanceof Error)) return false
-  const msg = err.message || ''
-  // Browser surfaces TLS/CORS/network failures as TypeError: Failed to fetch
-  return (
-    err.name === 'TypeError' ||
-    /failed to fetch|networkerror|ssl|tls|load failed|network request failed/i.test(
-      msg,
-    )
-  )
-}
-
 async function uploadBlob(
   path: string,
   blob: Blob,
@@ -209,11 +197,12 @@ async function uploadBlob(
     } catch (err) {
       if (err instanceof Error && err.message === 'R2_DISABLED') {
         /* fall through to Supabase when R2 env is missing */
-      } else if (isR2NetworkFailure(err)) {
-        // Transient browser/network blip — keep R2 enabled for the next try.
-        console.warn('[recordings] R2 PUT failed, falling back to Supabase once', err)
       } else {
-        throw err
+        // Keep online saves on Cloudflare R2 when it is configured — no silent
+        // Supabase fallback (those files would not match "Online (Cloudflare R2)").
+        throw err instanceof Error
+          ? err
+          : new Error('Could not upload to Cloudflare R2')
       }
     }
   }
@@ -480,6 +469,15 @@ export async function getRecordingSignedUrl(
 
 export function shareUrlForSlug(slug: string): string {
   return `${window.location.origin}/r/${slug}`
+}
+
+/**
+ * Permanent image/file URL for blog covers and markdown.
+ * Redirects to a fresh Cloudflare R2 (or Supabase) signed URL — the object
+ * itself is not deleted; only direct R2 signed links expire.
+ */
+export function lastingMediaUrlForSlug(slug: string): string {
+  return `${window.location.origin}/api/crm-recorder?action=media&slug=${encodeURIComponent(slug)}`
 }
 
 export function embedSnippetForSlug(

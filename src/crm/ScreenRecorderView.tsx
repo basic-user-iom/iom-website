@@ -48,6 +48,7 @@ import {
   getRecordingSignedUrl,
   isRecordingsSchemaMissing,
   isUploadTooLargeError,
+  lastingMediaUrlForSlug,
   listRecordings,
   replaceRecordingBlob,
   setRecordingPassword,
@@ -1925,6 +1926,9 @@ export function ScreenRecorderView() {
                 {t('recorder.destination.onlineDemo')}
               </p>
             )}
+            {live && (
+              <p className="crm-recorder-hint">{t('recorder.onlinePersistHint')}</p>
+            )}
             {live && !libLoading && onlineRecs.length === 0 && !libError && (
               <p>{t('recorder.library.empty')}</p>
             )}
@@ -1975,16 +1979,16 @@ export function ScreenRecorderView() {
                         : t('recorder.copyShare')}
                     </button>
                     {image && (
-                      <button
-                        type="button"
-                        className="btn btn-ghost"
-                        onClick={() => {
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      title={t('recorder.copyImageUrlHint')}
+                      onClick={() => {
                           void (async () => {
                             try {
-                              const url = await getRecordingSignedUrl(
-                                rec.storage_path,
+                              await navigator.clipboard.writeText(
+                                lastingMediaUrlForSlug(rec.share_slug),
                               )
-                              await navigator.clipboard.writeText(url)
                               setCopiedId(`imgurl-${rec.id}`)
                               window.setTimeout(() => setCopiedId(null), 1500)
                             } catch (err) {
