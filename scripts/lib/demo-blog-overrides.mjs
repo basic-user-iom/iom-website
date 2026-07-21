@@ -6,8 +6,9 @@ export const DEMO_BLOG_OVERRIDES = {
   '3d-viewer': {
     pageTitle: '3D Viewer — product models in the browser',
     demoLabel: '3D Viewer',
+    heroRecordingSlug: '0r5s5i2l3m0e',
     hook: 'Clients should not need a CAD seat to review a model. Our 3D Viewer puts GLTF, FBX, OBJ, and IFC in a shareable browser (and desktop) window — orbit, inspect materials, path-trace when you need the look, and hotspot the story.',
-    coverNote: 'The cover shows a typical product-review framing from the viewer.',
+    coverNote: 'The cover is a product-review framing from the viewer; the walkthrough video above continues the same pass.',
     whyBullets: [
       '- **Share a link, not a ZIP** — stakeholders open the model on a laptop during a call',
       '- **One viewer for many formats** — fewer “which app opens this?” emails',

@@ -410,6 +410,16 @@
   overflow: hidden;
 }
 
+.blog-prose .blog-recording-embed {
+  margin: 0 0 2rem;
+}
+
+.blog-prose .blog-recording-embed iframe {
+  display: block;
+  vertical-align: top;
+  background: #0a0a10;
+}
+
 .blog-prose .blog-figure img,
 .blog-prose figure.blog-figure img,
 .blog-prose p > img {

@@ -28,6 +28,11 @@ export type DemoPostSpec = {
   viewB: { file: string; caption: string }
   /** Optional third in-body still (e.g. guided-tour step 4). */
   viewC?: { file: string; caption: string }
+  /**
+   * CRM recording share slug — rendered as an iframe embed at the top of the
+   * body (replaces the cover image when set).
+   */
+  heroRecordingSlug?: string
   alsoCan: string[]
   howWorks: string
   /**
@@ -63,7 +68,7 @@ const SECTION_LABEL: Record<DemoSection, string> = {
  * Bump when recapturing blog stills. Vercel serves /assets/* with
  * max-age=1y immutable — same path keeps old bytes in the browser.
  */
-export const BLOG_ASSET_CACHE_V = '20260719g'
+export const BLOG_ASSET_CACHE_V = '20260721b'
 
 export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const sectionLink = SECTION_ANCHOR[spec.section]
@@ -82,14 +87,18 @@ export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const faq = spec.faq.map((f) => `**${f.q}**  \n${f.a}`).join('\n\n')
   const reading = spec.reading.map((l) => `- [${l.label}](${l.url})`).join('\n')
   const related = spec.related.map((l) => `[${l.label}](${l.url})`).join(', ')
+  const hasHeroRecording = Boolean(spec.heroRecordingSlug?.trim())
   const whatYouSeeIntro = spec.viewC
     ? 'The cover is guided-tour step 1; the stills below continue the same Black Witness walkthrough:'
     : 'Two more angles from the same experience. The cover image is the first view; these continue the walkthrough:'
   const viewCBlock = spec.viewC
     ? `\n![${spec.viewC.caption}](${asset(spec.viewC.file)})\n`
     : ''
+  const heroRecordingBlock = hasHeroRecording
+    ? `/r/${spec.heroRecordingSlug!.trim()}?embed=1\n\n`
+    : ''
 
-  const body = `${spec.hook}
+  const body = `${heroRecordingBlock}${spec.hook}
 
 It lives in our [${sectionLabel} section](${sectionLink}) as **${spec.title}**. ${spec.coverNote}
 

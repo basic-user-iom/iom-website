@@ -108,6 +108,41 @@ export function rowToPost(row: Record<string, unknown>): BlogPost {
   }
 }
 
+/** CRM recording share slug — alphanumeric, typically 12 chars. */
+const RECORDING_SLUG_RE = '[a-zA-Z0-9]{6,32}'
+
+/**
+ * Accept only first-party /r/{slug} recording embeds (relative or iobjectm.com).
+ * Returns embed src path with ?embed=1, or null if unsafe.
+ */
+export function recordingEmbedSrcFromUrl(url: string): string | null {
+  const trimmed = String(url || '').trim()
+  const re = new RegExp(
+    `^(?:https?:\\/\\/(?:www\\.)?iobjectm\\.com)?\\/r\\/(${RECORDING_SLUG_RE})(?:\\?[^\\s#]*)?(?:#.*)?$`,
+    'i',
+  )
+  const m = trimmed.match(re)
+  if (!m) return null
+  return `/r/${m[1]}?embed=1`
+}
+
+function recordingEmbedHtml(src: string, title = 'Recording'): string {
+  const safeSrc = escapeHtml(src)
+  const safeTitle = escapeHtml(title)
+  return `<figure class="blog-figure blog-recording-embed"><iframe src="${safeSrc}" title="${safeTitle}" width="720" height="405" allow="autoplay; fullscreen" loading="lazy" style="border:0;width:100%;max-width:100%;aspect-ratio:16/9;height:auto"></iframe></figure>`
+}
+
+/** Parse a standalone CRM embed iframe line into a safe /r/…?embed=1 src. */
+function recordingEmbedSrcFromIframe(line: string): string | null {
+  const m = line
+    .trim()
+    .match(
+      /^<iframe\b[^>]*\bsrc=["']([^"']+)["'][^>]*(?:\/>|>\s*<\/iframe\s*>|>)\s*$/i,
+    )
+  if (!m) return null
+  return recordingEmbedSrcFromUrl(m[1])
+}
+
 /** Minimal markdown → safe HTML (no external deps). */
 export function renderBlogMarkdown(src: string): string {
   const lines = String(src || '').replace(/\r\n/g, '\n').split('\n')
@@ -171,6 +206,14 @@ export function renderBlogMarkdown(src: string): string {
     const line = raw.trimEnd()
     if (!line.trim()) {
       closeLists()
+      continue
+    }
+
+    const recordingSrc =
+      recordingEmbedSrcFromUrl(line.trim()) || recordingEmbedSrcFromIframe(line)
+    if (recordingSrc) {
+      closeLists()
+      html.push(recordingEmbedHtml(recordingSrc))
       continue
     }
 
