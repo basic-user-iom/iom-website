@@ -3,6 +3,13 @@ import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { initialEmailPending, initialEmailSent, isContactPriority } from './outreach'
+import {
+  formatInContactZone,
+  isScheduledSendArmed,
+  leadContactTimeZone,
+  normalizeScheduledSend,
+} from './scheduledSend'
+import { isValidIanaTimezone } from './timezones'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmUser, Lead, StaffProfile } from './types'
 import { resolveLeadOwner } from './types'
@@ -101,6 +108,28 @@ export function LeadList({
                           {t('outreach.badgePending')}
                         </span>
                       ) : null}
+                      {isScheduledSendArmed(lead) && (
+                        <span
+                          className="crm-schedule-badge"
+                          title={(() => {
+                            const s = normalizeScheduledSend(lead.scheduled_send)
+                            if (!s) return t('list.scheduled')
+                            const tz = leadContactTimeZone(lead)
+                            const when = isValidIanaTimezone(tz)
+                              ? formatInContactZone(s.at, tz, locale)
+                              : formatSentAt(s.at)
+                            return t('outreach.scheduleArmed', {
+                              when,
+                              email: s.to,
+                              tz: isValidIanaTimezone(tz)
+                                ? tz
+                                : t('outreach.scheduleYourTz'),
+                            })
+                          })()}
+                        >
+                          {t('list.scheduled')}
+                        </span>
+                      )}
                       {isContactPriority(lead) && (
                         <span className="crm-priority-badge" title={t('detail.prioritySet')}>
                           {t('list.priority')}

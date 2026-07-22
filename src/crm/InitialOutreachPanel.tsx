@@ -17,8 +17,20 @@ import {
 } from './outreachFromIdentities'
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
+import { formatClientLocalTime } from './clientWeather'
+import {
+  buildScheduledSend,
+  formatInContactZone,
+  isScheduledSendArmed,
+  leadContactPlaceLabel,
+  leadContactTimeZone,
+  normalizeScheduledSend,
+  scheduleIsoToPickerValue,
+  schedulePickerValueToIso,
+} from './scheduledSend'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
+import { isValidIanaTimezone } from './timezones'
 import type { Lead, LeadInput } from './types'
 
 interface InitialOutreachPanelProps {
@@ -72,6 +84,17 @@ export function InitialOutreachPanel({
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
   )
+  const schedule = normalizeScheduledSend(lead.scheduled_send)
+  const scheduledArmed = isScheduledSendArmed(lead)
+  const contactTz = leadContactTimeZone(lead)
+  const contactPlace = leadContactPlaceLabel(lead)
+  const hasContactTz = isValidIanaTimezone(contactTz)
+  const [scheduleAtLocal, setScheduleAtLocal] = useState(() =>
+    schedule
+      ? scheduleIsoToPickerValue(schedule.at, hasContactTz ? contactTz : null)
+      : '',
+  )
+  const [contactNow, setContactNow] = useState(() => new Date())
   const fromMeta =
     OUTREACH_FROM_IDENTITIES.find((i) => i.id === fromIdentity) ??
     OUTREACH_FROM_IDENTITIES[0]
@@ -87,6 +110,22 @@ export function InitialOutreachPanel({
     setSubject(lead.initial_email_subject)
     setBody(lead.initial_email_body)
   }, [lead.id, lead.initial_email_subject, lead.initial_email_body])
+
+  useEffect(() => {
+    const next = normalizeScheduledSend(lead.scheduled_send)
+    setScheduleAtLocal(
+      next
+        ? scheduleIsoToPickerValue(next.at, hasContactTz ? contactTz : null)
+        : '',
+    )
+  }, [lead.id, lead.scheduled_send, contactTz, hasContactTz])
+
+  useEffect(() => {
+    if (!hasContactTz) return
+    setContactNow(new Date())
+    const id = window.setInterval(() => setContactNow(new Date()), 30_000)
+    return () => window.clearInterval(id)
+  }, [hasContactTz, lead.id])
 
   useEffect(() => {
     const list = collectRecipients(lead)
@@ -110,6 +149,27 @@ export function InitialOutreachPanel({
       return iso
     }
   }
+
+  const formatContactWhen = (iso: string | null): string => {
+    if (!iso) return '—'
+    if (!hasContactTz) return formatWhen(iso)
+    return formatInContactZone(iso, contactTz, locale)
+  }
+
+  const contactNowLabel = hasContactTz
+    ? formatClientLocalTime(contactNow, contactTz, locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : ''
+
+  const schedulePreviewIso = scheduleAtLocal
+    ? schedulePickerValueToIso(scheduleAtLocal, hasContactTz ? contactTz : null)
+    : null
 
   const statusLabel = () => {
     switch (status) {
@@ -175,6 +235,7 @@ export function InitialOutreachPanel({
     const patch: Partial<LeadInput> = {
       initial_email_sent_at: stamp,
       contact_priority: false,
+      scheduled_send: null,
     }
     if (!lead.initial_email_drafted_at) {
       patch.initial_email_drafted_at = stamp
@@ -265,6 +326,7 @@ export function InitialOutreachPanel({
         const updated = await updateLead(lead.id, {
           initial_email_sent_at: stamp,
           contact_priority: false,
+          scheduled_send: null,
         })
         await logEmailActivity(
           subj,
@@ -290,6 +352,75 @@ export function InitialOutreachPanel({
 
   const canSendDraft =
     sendUiOk && !!toEmail.trim() && hasInitialEmailDraft(lead)
+
+  const handleScheduleSend = async () => {
+    const to = toEmail.trim()
+    const subj = lead.initial_email_subject.trim()
+    const text = lead.initial_email_body.trim()
+    if (!to || !subj || !text) {
+      setError(t('outreach.sendMissing'))
+      return
+    }
+    if (!hasContactTz) {
+      setError(t('outreach.scheduleNeedTimezone'))
+      return
+    }
+    const iso = schedulePickerValueToIso(scheduleAtLocal, contactTz)
+    if (!iso) {
+      setError(t('outreach.scheduleInvalid'))
+      return
+    }
+    if (new Date(iso).getTime() <= Date.now() - 30_000) {
+      setError(t('outreach.schedulePast'))
+      return
+    }
+    const whenContact = formatContactWhen(iso)
+    const whenYours = formatWhen(iso)
+    if (
+      !confirm(
+        t('outreach.scheduleConfirm', {
+          email: to,
+          when: whenContact,
+          tz: contactTz,
+          whenYours,
+        }),
+      )
+    ) {
+      return
+    }
+    setError('')
+    setBusy(true)
+    try {
+      const updated = await updateLead(lead.id, {
+        scheduled_send: buildScheduledSend({
+          at: iso,
+          to,
+          from: fromIdentity,
+        }),
+        initial_email_drafted_at:
+          lead.initial_email_drafted_at || new Date().toISOString(),
+      })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleCancelSchedule = async () => {
+    if (!confirm(t('outreach.scheduleCancelConfirm'))) return
+    setError('')
+    setBusy(true)
+    try {
+      const updated = await updateLead(lead.id, { scheduled_send: null })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const handleCopy = async () => {
     setError('')
@@ -515,6 +646,85 @@ export function InitialOutreachPanel({
                 </p>
               )}
 
+              {!alreadySent && canSendDraft && (
+                <div className="crm-outreach-schedule">
+                  {hasContactTz ? (
+                    <p className="crm-outreach-schedule-clock" role="status">
+                      <span className="crm-outreach-schedule-clock-label">
+                        {t('outreach.scheduleContactNow')}
+                      </span>{' '}
+                      <strong>{contactNowLabel}</strong>
+                      <span className="crm-muted">
+                        {' '}
+                        · {contactPlace || contactTz}
+                      </span>
+                    </p>
+                  ) : (
+                    <p className="crm-feedback crm-feedback--error" role="status">
+                      {t('outreach.scheduleNeedTimezone')}
+                    </p>
+                  )}
+
+                  {scheduledArmed && schedule ? (
+                    <div className="crm-outreach-schedule-armed" role="status">
+                      <p>
+                        {t('outreach.scheduleArmed', {
+                          when: formatContactWhen(schedule.at),
+                          email: schedule.to,
+                          tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
+                        })}
+                      </p>
+                      {hasContactTz && (
+                        <p className="crm-muted crm-outreach-schedule-yours">
+                          {t('outreach.scheduleYours', {
+                            when: formatWhen(schedule.at),
+                          })}
+                        </p>
+                      )}
+                      {schedule.error ? (
+                        <p className="crm-outreach-schedule-error">
+                          {t('outreach.scheduleError', { error: schedule.error })}
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <label className="crm-field crm-outreach-schedule-when">
+                      <span className="crm-label">
+                        {hasContactTz
+                          ? t('outreach.scheduleAtContact', { tz: contactTz })
+                          : t('outreach.scheduleAt')}
+                      </span>
+                      <input
+                        type="datetime-local"
+                        className="crm-input"
+                        value={scheduleAtLocal}
+                        disabled={busy || !hasContactTz}
+                        onChange={(e) => setScheduleAtLocal(e.target.value)}
+                      />
+                    </label>
+                  )}
+
+                  {!scheduledArmed &&
+                    hasContactTz &&
+                    schedulePreviewIso &&
+                    scheduleAtLocal && (
+                      <p className="crm-muted crm-outreach-schedule-preview">
+                        {t('outreach.schedulePreview', {
+                          when: formatContactWhen(schedulePreviewIso),
+                          tz: contactTz,
+                          whenYours: formatWhen(schedulePreviewIso),
+                        })}
+                      </p>
+                    )}
+
+                  <p className="crm-muted crm-outreach-schedule-hint">
+                    {demoMode
+                      ? t('outreach.scheduleDemoHint')
+                      : t('outreach.scheduleHint')}
+                  </p>
+                </div>
+              )}
+
               <div className="crm-detail-actions crm-outreach-actions">
                 <button
                   type="button"
@@ -560,6 +770,26 @@ export function InitialOutreachPanel({
                         {busy ? t('outreach.sending') : t('outreach.sendFromCrm')}
                       </button>
                     )}
+                    {canSendDraft &&
+                      (scheduledArmed ? (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={busy}
+                          onClick={() => void handleCancelSchedule()}
+                        >
+                          {t('outreach.scheduleCancel')}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={busy || !scheduleAtLocal || !hasContactTz}
+                          onClick={() => void handleScheduleSend()}
+                        >
+                          {t('outreach.schedule')}
+                        </button>
+                      ))}
                     <button
                       type="button"
                       className="btn btn-ghost"

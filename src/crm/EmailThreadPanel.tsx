@@ -236,6 +236,7 @@ export function EmailThreadPanel({
       if (!lead.initial_email_sent_at) {
         patch.initial_email_sent_at = stamp
         patch.contact_priority = false
+        patch.scheduled_send = null
       }
       if (!lead.initial_email_drafted_at) patch.initial_email_drafted_at = stamp
       if (lead.status === 'new') patch.status = 'contacted'

@@ -68,6 +68,7 @@ function leadToForm(initial: Lead): LeadInput {
     status: initial.status,
     next_follow_up: initial.next_follow_up,
     contact_priority: !!initial.contact_priority,
+    scheduled_send: initial.scheduled_send ?? null,
     estimated_value: initial.estimated_value,
     value_emoji: normalizeValueEmoji(initial.value_emoji),
     atlas_eval: normalizeAtlasEval(initial.atlas_eval),

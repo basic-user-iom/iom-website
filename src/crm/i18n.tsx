@@ -116,6 +116,8 @@ const en: Dict = {
     'Value emoticons will not save until you run crm_lead_value_emoji_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.contactPrioritySchemaMissing':
     'Priority queue will not save until you run crm_lead_contact_priority_migration.sql in Supabase → SQL Editor, then hard-refresh.',
+  'error.scheduledSendSchemaMissing':
+    'Scheduled send will not save until you run crm_lead_scheduled_send_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.emailsSchemaMissing':
     'Department emails will not save until you run crm_lead_emails_migration.sql in Supabase → SQL Editor, then hard-refresh.',
   'error.atlasEvalSchemaMissing':
@@ -169,6 +171,7 @@ const en: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Added by',
   'list.priority': 'Priority',
+  'list.scheduled': 'Scheduled',
   'list.valueFromHeart': 'From the heart',
   'list.valueNoCharge': 'No charge',
   'list.unknownOwner': 'Unknown',
@@ -1032,6 +1035,30 @@ const en: Dict = {
   'outreach.markSent': 'Mark as sent',
   'outreach.markNotSent': 'Mark as not sent',
   'outreach.sendFromCrm': 'Send from CRM',
+  'outreach.schedule': 'Schedule send',
+  'outreach.scheduleCancel': 'Cancel schedule',
+  'outreach.scheduleAt': 'Send at',
+  'outreach.scheduleAtContact': 'Send at (contact local — {tz})',
+  'outreach.scheduleContactNow': 'Contact local now',
+  'outreach.scheduleArmed': 'Scheduled for {when} ({tz}) → {email}',
+  'outreach.scheduleYours': 'Your clock: {when}',
+  'outreach.scheduleYourTz': 'your local time',
+  'outreach.schedulePreview':
+    'Will send at {when} for the contact ({tz}). Your clock: {whenYours}.',
+  'outreach.scheduleError': 'Last error: {error}',
+  'outreach.scheduleConfirm':
+    'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. The draft sends automatically; you get an email if it fails.',
+  'outreach.scheduleCancelConfirm': 'Cancel the scheduled send for this lead?',
+  'outreach.scheduleInvalid':
+    'Choose a valid date and time in the contact’s timezone (watch for DST gaps).',
+  'outreach.schedulePast': 'Pick a time in the future (contact local time).',
+  'outreach.scheduleFailed': 'Could not update the schedule.',
+  'outreach.scheduleNeedTimezone':
+    'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
+  'outreach.scheduleHint':
+    'Times are the contact’s local timezone from the lead. Cron sends via Proton about every 5 minutes; staff get an email if delivery fails.',
+  'outreach.scheduleDemoHint':
+    'Picker uses the contact’s timezone. In the demo, due schedules fire when you refresh the lead list — no real email is sent.',
   'outreach.resend': 'Resend from CRM',
   'outreach.composeAdditional': 'Compose another email',
   'outreach.additionalTitle': 'Additional email',
@@ -1216,21 +1243,25 @@ const en: Dict = {
   'guide.outreach4':
     'Matching: CRM attaches inbound mail by reply thread (In-Reply-To) or by the sender matching the lead’s email addresses',
   'guide.outreach5':
-    'List badges show Email pending / Email sent / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
+    'List badges show Email pending / Email sent / Scheduled / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
   'guide.outreach6':
-    'Priority on a lead queues it for outreach (does not expire at midnight). Click the Priority stats pill to focus that list; it clears when you mark the initial email sent, or tap Priority again. Mistaken Sent? Use Mark as not sent on the outreach panel',
+    'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — cron sends via Proton and emails you if it fails. Mistaken Sent? Use Mark as not sent on the outreach panel',
+  'guide.outreach7':
+    'Scheduled sends use the contact’s timezone from the lead (Client local time) — the picker is their clock, not yours. Draft at fire time is what sends. Cancel from the outreach panel, or send now to clear. Max 5 automatic retries',
   'guide.outreachDemoText':
     'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
   'guide.outreachDemo1':
     'Open Copper Lantern Museums (negotiation) — it already has a Sent message and a sample Received client reply',
   'guide.outreachDemo2':
-    'Harbor & Pine is Priority + Email pending — try the Priority stats pill and stage filter Not contacted',
+    'Harbor & Pine is Priority + Email pending + Scheduled (Stockholm local time on the picker) — try Priority pill and Not contacted',
   'guide.outreachDemo3':
-    'Initial outreach: Preview and Send from CRM update the lead and thread with fake data only — nothing is delivered',
+    'Initial outreach: Preview, Send from CRM, or Schedule send — times use the contact timezone; updates are fake data only',
   'guide.outreachDemo4':
     'Email conversation → Compose reply: write a follow-up; preview shows only that reply. Send reply logs another outbound message in the demo thread',
   'guide.outreachDemo5':
     'Log client reply or Reset sample data (banner) to restore the original demo leads and Copper Lantern thread',
+  'guide.outreachDemo6':
+    'Open Harbor outreach: Contact local now + Schedule send. Due schedules fire on lead-list refresh (simulated, no SMTP)',
   'guide.calendarHeading': 'Stats & follow-up calendar',
   'guide.calendarText':
     'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
@@ -1508,6 +1539,8 @@ const sr: Dict = {
     'Emotikoni za vrednost se neće sačuvati dok ne pokrenete crm_lead_value_emoji_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.contactPrioritySchemaMissing':
     'Prioritetni red se neće sačuvati dok ne pokrenete crm_lead_contact_priority_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
+  'error.scheduledSendSchemaMissing':
+    'Zakazano slanje se neće sačuvati dok ne pokrenete crm_lead_scheduled_send_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.emailsSchemaMissing':
     'Emailovi po odeljenju se neće sačuvati dok ne pokrenete crm_lead_emails_migration.sql u Supabase → SQL Editor, pa hard-refresh.',
   'error.atlasEvalSchemaMissing':
@@ -1562,6 +1595,7 @@ const sr: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Dodao/la',
   'list.priority': 'Prioritet',
+  'list.scheduled': 'Zakazano',
   'list.valueFromHeart': 'Od srca',
   'list.valueNoCharge': 'Bez naplate',
   'list.unknownOwner': 'Nepoznato',
@@ -2431,6 +2465,30 @@ const sr: Dict = {
   'outreach.markSent': 'Označi kao poslat',
   'outreach.markNotSent': 'Označi kao nije poslat',
   'outreach.sendFromCrm': 'Pošalji iz CRM-a',
+  'outreach.schedule': 'Zakaži slanje',
+  'outreach.scheduleCancel': 'Otkaži zakazivanje',
+  'outreach.scheduleAt': 'Pošalji u',
+  'outreach.scheduleAtContact': 'Pošalji u (lokalno vreme kontakta — {tz})',
+  'outreach.scheduleContactNow': 'Lokalno vreme kontakta sada',
+  'outreach.scheduleArmed': 'Zakazano za {when} ({tz}) → {email}',
+  'outreach.scheduleYours': 'Vaš sat: {when}',
+  'outreach.scheduleYourTz': 'vaše lokalno vreme',
+  'outreach.schedulePreview':
+    'Šalje se u {when} po vremenu kontakta ({tz}). Vaš sat: {whenYours}.',
+  'outreach.scheduleError': 'Poslednja greška: {error}',
+  'outreach.scheduleConfirm':
+    'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Draft se šalje automatski; dobijate email ako ne uspe.',
+  'outreach.scheduleCancelConfirm': 'Otkazati zakazano slanje za ovaj lead?',
+  'outreach.scheduleInvalid':
+    'Izaberite važeći datum i vreme u vremenskoj zoni kontakta (pazite na DST praznine).',
+  'outreach.schedulePast': 'Izaberite vreme u budućnosti (lokalno vreme kontakta).',
+  'outreach.scheduleFailed': 'Ažuriranje zakazivanja nije uspelo.',
+  'outreach.scheduleNeedTimezone':
+    'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
+  'outreach.scheduleHint':
+    'Vremena su lokalna zona kontakta sa leada. Cron šalje preko Protona oko svakih 5 minuta; tim dobija email ako isporuka ne uspe.',
+  'outreach.scheduleDemoHint':
+    'Birač koristi vremensku zonu kontakta. U demu se dospeli rasporedi okidaju kada osvežite listu leadova — pravi email se ne šalje.',
   'outreach.resend': 'Pošalji ponovo iz CRM-a',
   'outreach.composeAdditional': 'Napiši još jedan email',
   'outreach.additionalTitle': 'Dodatni email',
@@ -2616,21 +2674,25 @@ const sr: Dict = {
   'guide.outreach4':
     'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To) ili po tome što se From poklapa sa email adresama leada',
   'guide.outreach5':
-    'Kartice pokazuju Email na čekanju / Email poslat / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
+    'Kartice pokazuju Email na čekanju / Email poslat / Zakazano / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
   'guide.outreach6':
-    'Prioritet na leadu ga stavlja u red za kontakt (ne ističe u ponoć). Kliknite pilulu Prioritet da fokusirate tu listu; briše se kad označite inicijalni email kao poslat, ili ponovo kliknete Prioritet. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
+    'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — cron šalje preko Protona i šalje vam email ako ne uspe. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
+  'guide.outreach7':
+    'Zakazano slanje koristi vremensku zonu kontakta sa leada (Lokalno vreme klijenta) — birač je njihov sat, ne vaš. Šalje se draft u trenutku okidanja. Otkažite sa panela ili pošaljite odmah. Najviše 5 automatskih pokušaja'
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':
     'Otvorite Copper Lantern Museums (pregovori) — već ima Poslato poruku i uzorak Primljenog odgovora klijenta',
   'guide.outreachDemo2':
-    'Harbor & Pine je Prioritet + Email na čekanju — probajte pilulu Prioritet i filter faze Nije kontaktiran',
+    'Harbor & Pine je Prioritet + Email na čekanju + Zakazano (Stokholm lokalno na biraču) — probajte pilulu Prioritet i Nije kontaktiran',
   'guide.outreachDemo3':
-    'Inicijalni outreach: Pregled i Pošalji iz CRM-a ažuriraju lead i nit samo lažnim podacima — ništa se ne isporučuje',
+    'Inicijalni outreach: Pregled, Pošalji iz CRM-a ili Zakaži slanje — vremena su zona kontakta; ažuriranja su samo lažni podaci',
   'guide.outreachDemo4':
     'Email konverzacija → Napiši odgovor: napišite follow-up; pregled pokazuje samo taj odgovor. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
   'guide.outreachDemo5':
     'Zabeleži odgovor klijenta ili Resetuj uzorke (baner) da vratite originalne demo leadove i Copper Lantern nit',
+  'guide.outreachDemo6':
+    'Otvorite Harbor outreach: Lokalno vreme kontakta + Zakaži slanje. Dospeli rasporedi se okidaju na osvežavanju liste (simulirano, bez SMTP)',
   'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
   'guide.calendarText':
     'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',

@@ -28,6 +28,11 @@ import type {
   StaffProfile,
 } from './types'
 import { ownerDisplayName } from './types'
+import {
+  normalizeScheduledSend,
+  scheduledSendDue,
+  type ScheduledSend,
+} from './scheduledSend'
 import { normalizeValueEmoji } from './valueEmoji'
 
 const LEADS_KEY = 'iom-crm-leads'
@@ -220,6 +225,16 @@ function isMissingContactPriorityColumn(message: string): boolean {
   )
 }
 
+function isMissingScheduledSendColumn(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    m.includes('scheduled_send') &&
+    (m.includes('does not exist') ||
+      m.includes('could not find') ||
+      m.includes('schema cache'))
+  )
+}
+
 function isMissingEmailsColumn(message: string): boolean {
   const m = message.toLowerCase()
   return (
@@ -355,6 +370,12 @@ function stripContactPriorityField<T extends Record<string, unknown>>(input: T):
   return next
 }
 
+function stripScheduledSendField<T extends Record<string, unknown>>(input: T): T {
+  const next = { ...input }
+  delete next.scheduled_send
+  return next
+}
+
 function stripEmailsField<T extends Record<string, unknown>>(input: T): T {
   const next = { ...input }
   delete next.emails
@@ -485,6 +506,17 @@ function mergeContactPriority(
   return normalizeLead({ ...row, contact_priority: !!source.contact_priority })
 }
 
+function mergeScheduledSend(
+  row: Lead,
+  source: { scheduled_send?: ScheduledSend | null | unknown } | null | undefined,
+): Lead {
+  if (!source || source.scheduled_send === undefined) return normalizeLead(row)
+  return normalizeLead({
+    ...row,
+    scheduled_send: normalizeScheduledSend(source.scheduled_send),
+  })
+}
+
 function mergeLeadEmails(
   row: Lead,
   source: { emails?: LeadEmail[] | unknown } | null | undefined,
@@ -531,6 +563,7 @@ function normalizeLead(row: Lead): Lead {
     initial_email_drafted_at: row.initial_email_drafted_at ?? null,
     initial_email_sent_at: row.initial_email_sent_at ?? null,
     contact_priority: !!row.contact_priority,
+    scheduled_send: normalizeScheduledSend(row.scheduled_send),
     owner_email: row.owner_email ?? null,
     owner_avatar_url: row.owner_avatar_url ?? null,
   }
@@ -927,6 +960,8 @@ let linksColumnPresent: boolean | null = null
 let valueEmojiColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.contact_priority boolean column. */
 let contactPriorityColumnPresent: boolean | null = null
+/** Cached probe for crm_leads.scheduled_send jsonb column. */
+let scheduledSendColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.emails jsonb column. */
 let emailsColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.atlas_eval jsonb column. */
@@ -964,6 +999,14 @@ function markContactPriorityColumnMissing(): void {
 
 function markContactPriorityColumnPresent(): void {
   contactPriorityColumnPresent = true
+}
+
+function markScheduledSendColumnMissing(): void {
+  scheduledSendColumnPresent = false
+}
+
+function markScheduledSendColumnPresent(): void {
+  scheduledSendColumnPresent = true
 }
 
 function markEmailsColumnMissing(): void {
@@ -1008,6 +1051,11 @@ export function valueEmojiSchemaKnownMissing(): boolean {
 /** True when a prior probe/update learned contact_priority column is absent. */
 export function contactPrioritySchemaKnownMissing(): boolean {
   return contactPriorityColumnPresent === false
+}
+
+/** True when a prior probe/update learned scheduled_send column is absent. */
+export function scheduledSendSchemaKnownMissing(): boolean {
+  return scheduledSendColumnPresent === false
 }
 
 /** True when a prior probe/update learned emails column is absent. */
@@ -1097,6 +1145,23 @@ export function preserveContactPriorityFields(
     const prev = prevById.get(row.id)
     if (!prev?.contact_priority) return row
     return mergeContactPriority(row, prev)
+  })
+}
+
+/**
+ * When list rows omit scheduled_send (missing column), keep optimistic values.
+ */
+export function preserveScheduledSendFields(
+  incoming: Lead[],
+  previous: Lead[],
+): Lead[] {
+  if (incoming.length === 0 || previous.length === 0) return incoming
+  const prevById = new Map(previous.map((l) => [l.id, l]))
+  return incoming.map((row) => {
+    if (normalizeScheduledSend(row.scheduled_send)) return row
+    const prev = prevById.get(row.id)
+    if (!prev || !normalizeScheduledSend(prev.scheduled_send)) return row
+    return mergeScheduledSend(row, prev)
   })
 }
 
@@ -1259,6 +1324,32 @@ export async function probeContactPrioritySchema(): Promise<boolean> {
     return true
   }
   markContactPriorityColumnPresent()
+  return true
+}
+
+/**
+ * Probe whether `scheduled_send` jsonb exists on `crm_leads`.
+ * Returns true when column is present (or local mode).
+ */
+export async function probeScheduledSendSchema(): Promise<boolean> {
+  if (!useLiveCrmBackend()) {
+    markScheduledSendColumnPresent()
+    return true
+  }
+  if (scheduledSendColumnPresent != null) return scheduledSendColumnPresent
+
+  const supabase = getSupabase()!
+  const { error } = await supabase.from('crm_leads').select('scheduled_send').limit(1)
+
+  if (error && isMissingScheduledSendColumn(error.message)) {
+    markScheduledSendColumnMissing()
+    return false
+  }
+  if (error) {
+    console.warn('Could not probe scheduled_send column:', error.message)
+    return true
+  }
+  markScheduledSendColumnPresent()
   return true
 }
 
@@ -1581,6 +1672,7 @@ function buildLeadSelect(opts?: {
   emails?: boolean
   valueEmoji?: boolean
   contactPriority?: boolean
+  scheduledSend?: boolean
   atlasEval?: boolean
   clientLocale?: boolean
   outreach?: boolean
@@ -1589,6 +1681,7 @@ function buildLeadSelect(opts?: {
   const emails = opts?.emails ?? emailsColumnPresent !== false
   const valueEmoji = opts?.valueEmoji ?? valueEmojiColumnPresent !== false
   const contactPriority = opts?.contactPriority ?? contactPriorityColumnPresent !== false
+  const scheduledSend = opts?.scheduledSend ?? scheduledSendColumnPresent !== false
   const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
   const clientLocale = opts?.clientLocale ?? clientLocaleColumnsPresent !== false
   const outreach = opts?.outreach ?? outreachColumnsPresent !== false
@@ -1617,6 +1710,7 @@ function buildLeadSelect(opts?: {
     'status',
     'next_follow_up',
     ...(contactPriority ? (['contact_priority'] as const) : []),
+    ...(scheduledSend ? (['scheduled_send'] as const) : []),
     'estimated_value',
     ...(valueEmoji ? (['value_emoji'] as const) : []),
     ...(atlasEval ? (['atlas_eval'] as const) : []),
@@ -1649,6 +1743,7 @@ function stripOptionalLeadFields<T extends Record<string, unknown>>(body: T): T 
   if (emailsColumnPresent === false) next = stripEmailsField(next)
   if (valueEmojiColumnPresent === false) next = stripValueEmojiField(next)
   if (contactPriorityColumnPresent === false) next = stripContactPriorityField(next)
+  if (scheduledSendColumnPresent === false) next = stripScheduledSendField(next)
   if (atlasEvalColumnPresent === false) next = stripAtlasEvalField(next)
   if (clientLocaleColumnsPresent === false) next = stripClientLocaleFields(next)
   if (outreachColumnsPresent === false) next = stripOutreachFields(next)
@@ -1684,6 +1779,14 @@ function markOptionalColumnMissing(message: string): boolean {
     markContactPriorityColumnMissing()
     console.warn(
       'crm_leads contact_priority column missing — run crm_lead_contact_priority_migration.sql',
+      message,
+    )
+    return true
+  }
+  if (isMissingScheduledSendColumn(message)) {
+    markScheduledSendColumnMissing()
+    console.warn(
+      'crm_leads scheduled_send column missing — run crm_lead_scheduled_send_migration.sql',
       message,
     )
     return true
@@ -1736,6 +1839,9 @@ function mergeStrippedOptionalFields(
   if (contactPriorityColumnPresent === false) {
     result = mergeContactPriority(result, source)
   }
+  if (scheduledSendColumnPresent === false) {
+    result = mergeScheduledSend(result, source)
+  }
   if (atlasEvalColumnPresent === false) {
     result = mergeAtlasEval(result, source)
   }
@@ -1770,6 +1876,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         if (emailsColumnPresent !== false) markEmailsColumnPresent()
         if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
         if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
+        if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
         if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
         if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
         if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
@@ -1801,8 +1908,63 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     )
   }
 
+  processDueScheduledSendsLocal()
   const leads = readLocal<Lead[]>(LEADS_KEY, []).map(normalizeLead)
   return sortLeads(leads.filter((l) => matchesFilters(l, filters)), filters.sort)
+}
+
+/**
+ * Demo / local: when a schedule is due, simulate the cron send (no SMTP).
+ */
+function processDueScheduledSendsLocal(): void {
+  const leads = readLocal<Lead[]>(LEADS_KEY, [])
+  let changed = false
+  const stamp = nowIso()
+  const next = leads.map((raw) => {
+    const lead = normalizeLead(raw)
+    const schedule = normalizeScheduledSend(lead.scheduled_send)
+    if (!schedule || lead.initial_email_sent_at) return raw
+    if (!scheduledSendDue(schedule)) return raw
+    const subject = lead.initial_email_subject.trim()
+    const body = lead.initial_email_body.trim()
+    if (!subject || !body || !schedule.to) {
+      changed = true
+      return {
+        ...lead,
+        scheduled_send: {
+          ...schedule,
+          error: 'Missing subject, body, or recipient for scheduled send',
+          attempts: schedule.attempts + 1,
+        },
+        updated_at: stamp,
+      }
+    }
+    changed = true
+    const activities = readLocal<Activity[]>(ACTIVITIES_KEY, [])
+    writeLocal(ACTIVITIES_KEY, [
+      ...activities,
+      {
+        id: uid(),
+        lead_id: lead.id,
+        type: 'email' as const,
+        subject: subject.slice(0, 200) || 'Initial outreach email sent',
+        body: `Scheduled outreach sent (demo) to ${schedule.to}.`,
+        occurred_at: stamp,
+        created_at: stamp,
+        owner_id: lead.owner_id,
+      },
+    ])
+    return {
+      ...lead,
+      initial_email_sent_at: stamp,
+      initial_email_drafted_at: lead.initial_email_drafted_at || stamp,
+      contact_priority: false,
+      scheduled_send: null,
+      status: lead.status === 'new' ? 'contacted' : lead.status,
+      updated_at: stamp,
+    }
+  })
+  if (changed) writeLocal(LEADS_KEY, next)
 }
 
 export async function getLead(id: string): Promise<Lead | null> {
@@ -1827,6 +1989,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     emails: normalizeLeadEmails(input.emails),
     value_emoji: normalizeValueEmoji(input.value_emoji),
     contact_priority: !!input.contact_priority,
+    scheduled_send: normalizeScheduledSend(input.scheduled_send),
     atlas_eval: normalizeAtlasEval(input.atlas_eval),
   }
 
@@ -1898,6 +2061,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
     if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
+    if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
     if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
@@ -1930,6 +2094,9 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
   if (input.contact_priority !== undefined) {
     patch.contact_priority = !!input.contact_priority
   }
+  if (input.scheduled_send !== undefined) {
+    patch.scheduled_send = normalizeScheduledSend(input.scheduled_send)
+  }
   if (input.atlas_eval !== undefined) {
     patch.atlas_eval = normalizeAtlasEval(input.atlas_eval)
   }
@@ -1959,6 +2126,7 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
     if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
+    if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
     if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
     if (outreachColumnsPresent !== false) markOutreachColumnsPresent()

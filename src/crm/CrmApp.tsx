@@ -17,6 +17,7 @@ import {
   preserveLeadEmailsFields,
   preserveLeadLinksFields,
   preserveOutreachFields,
+  preserveScheduledSendFields,
   preserveValueEmojiFields,
   probeAtlasEvalSchema,
   probeClientLocaleSchema,
@@ -25,8 +26,10 @@ import {
   probeLinksSchema,
   probeOutreachSchema,
   probeOwnerAttributionSchema,
+  probeScheduledSendSchema,
   probeValueEmojiSchema,
   outreachSchemaKnownMissing,
+  scheduledSendSchemaKnownMissing,
   valueEmojiSchemaKnownMissing,
   signOut,
   storageMode,
@@ -293,6 +296,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [valueEmojiSchemaMissing, setValueEmojiSchemaMissing] = useState(false)
   const [contactPrioritySchemaMissing, setContactPrioritySchemaMissing] =
     useState(false)
+  const [scheduledSendSchemaMissing, setScheduledSendSchemaMissing] =
+    useState(false)
   const [emailsSchemaMissing, setEmailsSchemaMissing] = useState(false)
   const [atlasEvalSchemaMissing, setAtlasEvalSchemaMissing] = useState(false)
   const [outreachSchemaMissing, setOutreachSchemaMissing] = useState(false)
@@ -381,14 +386,25 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!soft) setLoading(true)
     setError('')
     try {
-      const [schema, staff, clientLocaleOk, linksOk, valueEmojiOk, contactPriorityOk, emailsOk, atlasOk, outreachOk] =
-        await Promise.all([
+      const [
+        schema,
+        staff,
+        clientLocaleOk,
+        linksOk,
+        valueEmojiOk,
+        contactPriorityOk,
+        scheduledSendOk,
+        emailsOk,
+        atlasOk,
+        outreachOk,
+      ] = await Promise.all([
           probeOwnerAttributionSchema(),
           listStaffProfiles(),
           probeClientLocaleSchema(),
           probeLinksSchema(),
           probeValueEmojiSchema(),
           probeContactPrioritySchema(),
+          probeScheduledSendSchema(),
           probeEmailsSchema(),
           probeAtlasEvalSchema(),
           probeOutreachSchema(),
@@ -400,6 +416,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setLinksSchemaMissing(!linksOk)
       setValueEmojiSchemaMissing(!valueEmojiOk)
       setContactPrioritySchemaMissing(!contactPriorityOk)
+      setScheduledSendSchemaMissing(!scheduledSendOk)
       setEmailsSchemaMissing(!emailsOk)
       setAtlasEvalSchemaMissing(!atlasOk)
       setOutreachSchemaMissing(!outreachOk)
@@ -431,6 +448,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         }
         if (contactPrioritySchemaKnownMissing() || !contactPriorityOk) {
           next = preserveContactPriorityFields(next, prev)
+        }
+        if (scheduledSendSchemaKnownMissing() || !scheduledSendOk) {
+          next = preserveScheduledSendFields(next, prev)
         }
         if (emailsSchemaKnownMissing() || !emailsOk) {
           next = preserveLeadEmailsFields(next, prev)
@@ -492,6 +512,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (contactPrioritySchemaKnownMissing()) {
       setContactPrioritySchemaMissing(true)
     }
+    if (scheduledSendSchemaKnownMissing()) {
+      setScheduledSendSchemaMissing(true)
+    }
     if (emailsSchemaKnownMissing()) {
       setEmailsSchemaMissing(true)
     }
@@ -505,6 +528,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       linksSchemaKnownMissing() ||
       valueEmojiSchemaKnownMissing() ||
       contactPrioritySchemaKnownMissing() ||
+      scheduledSendSchemaKnownMissing() ||
       emailsSchemaKnownMissing() ||
       atlasEvalSchemaKnownMissing()
     ) {
@@ -530,6 +554,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (contactPrioritySchemaKnownMissing()) {
           setContactPrioritySchemaMissing(true)
         }
+        if (scheduledSendSchemaKnownMissing()) {
+          setScheduledSendSchemaMissing(true)
+        }
         if (emailsSchemaKnownMissing()) {
           setEmailsSchemaMissing(true)
         }
@@ -544,6 +571,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             linksSchemaKnownMissing() ||
             valueEmojiSchemaKnownMissing() ||
             contactPrioritySchemaKnownMissing() ||
+            scheduledSendSchemaKnownMissing() ||
             emailsSchemaKnownMissing() ||
             atlasEvalSchemaKnownMissing())
         ) {
@@ -799,6 +827,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       {!sandboxed && contactPrioritySchemaMissing && (
         <p className="crm-feedback crm-feedback--error" role="status">
           {t('error.contactPrioritySchemaMissing')}
+        </p>
+      )}
+
+      {!sandboxed && scheduledSendSchemaMissing && (
+        <p className="crm-feedback crm-feedback--error" role="status">
+          {t('error.scheduledSendSchemaMissing')}
         </p>
       )}
 

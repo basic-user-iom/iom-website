@@ -587,6 +587,61 @@
   white-space: nowrap;
 }
 
+.crm-schedule-badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  color: #7ec8e3;
+  border: 1px solid color-mix(in srgb, #7ec8e3 45%, var(--border));
+  background: color-mix(in srgb, #7ec8e3 10%, transparent);
+  white-space: nowrap;
+}
+
+.crm-outreach-schedule {
+  margin: 0.75rem 0 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crm-outreach-schedule-clock {
+  margin: 0;
+  font-size: 0.92rem;
+}
+
+.crm-outreach-schedule-clock-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.72rem;
+  color: var(--muted, inherit);
+}
+
+.crm-outreach-schedule-armed {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.crm-outreach-schedule-armed p {
+  margin: 0 0 0.25rem;
+}
+
+.crm-outreach-schedule-yours,
+.crm-outreach-schedule-preview {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.crm-outreach-schedule-error {
+  color: var(--danger, #e07070);
+}
+
+.crm-outreach-schedule-hint {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
 .crm-priority-btn.is-active {
   border-color: color-mix(in srgb, #e8c547 55%, var(--border));
   color: #e8c547;
@@ -1627,6 +1682,7 @@
 
 .crm-lead-row-badges .crm-outreach-badge,
 .crm-lead-row-badges .crm-priority-badge,
+.crm-lead-row-badges .crm-schedule-badge,
 .crm-lead-row-badges .crm-temp {
   flex: 0 0 auto;
   font-size: 0.62rem;

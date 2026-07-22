@@ -188,7 +188,9 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
                     t('guide.outreachDemo3'),
                     t('guide.outreachDemo4'),
                     t('guide.outreachDemo5'),
+                    t('guide.outreachDemo6'),
                     t('guide.outreach6'),
+                    t('guide.outreach7'),
                   ]
                 : [
                     t('guide.outreach1'),
@@ -197,6 +199,7 @@ export function CrmWelcomeGuide({ open, onClose }: CrmWelcomeGuideProps) {
                     t('guide.outreach4'),
                     t('guide.outreach5'),
                     t('guide.outreach6'),
+                    t('guide.outreach7'),
                   ]
             }
           />

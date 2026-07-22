@@ -1,4 +1,5 @@
 import type { AtlasEval } from './atlasEval'
+import type { ScheduledSend } from './scheduledSend'
 
 export type LeadTemperature = 'hot' | 'warm' | 'cold'
 
@@ -63,6 +64,8 @@ export interface Lead {
    * (does not expire at midnight).
    */
   contact_priority: boolean
+  /** Armed auto-send for initial outreach (null = not scheduled). */
+  scheduled_send: ScheduledSend | null
   estimated_value: number | null
   /** Optional CRM-safe emoticon for estimated value (❤️ pro-bono, 🎁 gift, …). */
   value_emoji: string

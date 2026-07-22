@@ -53,6 +53,7 @@ export const EMPTY_LEAD_INPUT = {
   status: 'new' as const,
   next_follow_up: null,
   contact_priority: false,
+  scheduled_send: null,
   estimated_value: null,
   value_emoji: '',
   atlas_eval: { ...EMPTY_ATLAS_EVAL },

@@ -105,6 +105,7 @@ function emptyOutreach() {
     initial_email_body: '',
     initial_email_drafted_at: null as string | null,
     initial_email_sent_at: null as string | null,
+    scheduled_send: null as Lead['scheduled_send'],
   }
 }
 
@@ -146,6 +147,7 @@ function buildSeed(): Store {
     status: 'proposal',
     next_follow_up: daysAgo(-3, 14),
     contact_priority: false,
+    scheduled_send: null,
     estimated_value: 18500,
     value_emoji: '',
     atlas_eval: {
@@ -190,7 +192,7 @@ function buildSeed(): Store {
     phone: '+46 8 555 2200',
     offer: 'Product configurator + CRM handoff for furniture retailers',
     notes:
-      'DEMO SAMPLE — warm pipeline; waiting on fictional scope workshop. Queued as Priority (stays until initial email is marked sent).',
+      'DEMO SAMPLE — Priority + Scheduled send in contact local time (Europe/Stockholm). Open Initial outreach to see Contact local now and the schedule picker.',
     initial_email_subject: 'Product configurator concept for Harbor & Pine',
     initial_email_body:
       'Hi Samira,\n\nFollowing our chat about interactive product experiences — IOM can build a browser configurator with CRM handoff for your retail partners.\n\nHappy to share a short demo reel when useful.\n\nBest,\nMirjan',
@@ -200,6 +202,13 @@ function buildSeed(): Store {
     status: 'qualified',
     next_follow_up: daysAgo(-7, 11),
     contact_priority: true,
+    scheduled_send: {
+      at: daysAgo(-1, 10),
+      to: 'samira@harborpine.example',
+      from: 'contact',
+      error: '',
+      attempts: 0,
+    },
     estimated_value: 9200,
     value_emoji: '⭐',
     atlas_eval: {
@@ -334,6 +343,7 @@ function buildSeed(): Store {
     status: 'negotiation',
     next_follow_up: daysAgo(-2, 15),
     contact_priority: false,
+    scheduled_send: null,
     estimated_value: 42000,
     value_emoji: '🤝',
     atlas_eval: {
