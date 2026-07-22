@@ -115,13 +115,17 @@ ${o.whatYouSeeIntro ? `    whatYouSeeIntro: ${JSON.stringify(o.whatYouSeeIntro)}
 ${o.viewC ? `    viewC: ${JSON.stringify(o.viewC)},\n` : ''}    alsoCan: ${JSON.stringify(o.alsoCan)},
     howWorks: \`${esc(o.howWorks)}\`,
 ${
+  o.whatsNew
+    ? `    whatsNew: ${JSON.stringify(o.whatsNew)},\n`
+    : ''
+}${
   o.tourBridge
     ? `    tourBridge: ${JSON.stringify(o.tourBridge)},\n`
     : ''
 }    faq: ${JSON.stringify(o.faq)},
     reading: ${JSON.stringify(o.reading)},
     related: ${JSON.stringify(o.related)},
-  }`
+${o.published_at ? `    published_at: ${JSON.stringify(o.published_at)},\n` : ''}  }`
 }
 
 async function main() {

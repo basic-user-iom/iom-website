@@ -38,6 +38,14 @@ export type DemoPostSpec = {
   alsoCan: string[]
   howWorks: string
   /**
+   * Optional release / changelog block rendered after “How it works”.
+   * Prefer short, user-facing bullets — not marketing fluff.
+   */
+  whatsNew?: {
+    heading: string
+    body: string
+  }
+  /**
    * Optional bridge to /demos/panorama-360/ guided-tour steps
    * (particles = 2, spout = 3, birds = 4). Image lives at tour-bridge.jpg.
    */
@@ -161,7 +169,15 @@ ${also}
 ## How it works
 
 ${spec.howWorks}
+${
+  spec.whatsNew?.heading && spec.whatsNew?.body
+    ? `
+## ${spec.whatsNew.heading}
 
+${spec.whatsNew.body}
+`
+    : ''
+}
 ## FAQ
 
 ${faq}
