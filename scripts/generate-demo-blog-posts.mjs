@@ -102,7 +102,7 @@ function emitSpec(id, o, meta) {
     seo_description: ${JSON.stringify(seo_description)},
     demoUrl: ${JSON.stringify(demoUrl)},
     demoLabel: ${JSON.stringify(o.demoLabel)},
-${o.heroRecordingSlug ? `    heroRecordingSlug: ${JSON.stringify(o.heroRecordingSlug)},\n` : ''}    hook: \`${esc(o.hook)}\`,
+${o.heroRecordingSlug ? `    heroRecordingSlug: ${JSON.stringify(o.heroRecordingSlug)},\n` : ''}${o.heroVideoFile ? `    heroVideoFile: ${JSON.stringify(o.heroVideoFile)},\n` : ''}${o.heroVideoCaption ? `    heroVideoCaption: ${JSON.stringify(o.heroVideoCaption)},\n` : ''}    hook: \`${esc(o.hook)}\`,
     coverNote: ${JSON.stringify(o.coverNote)},
 ${o.whatYouSeeIntro ? `    whatYouSeeIntro: ${JSON.stringify(o.whatYouSeeIntro)},\n` : ''}    whyBullets: ${JSON.stringify(o.whyBullets)},
     whyUses: ${JSON.stringify(o.whyUses)},

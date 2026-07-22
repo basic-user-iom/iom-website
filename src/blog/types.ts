@@ -126,6 +126,32 @@ export function recordingEmbedSrcFromUrl(url: string): string | null {
   return `/r/${m[1]}?embed=1`
 }
 
+function isBlogVideoUrl(url: string): boolean {
+  return /\.(webm|mp4)(?:$|[?#])/i.test(url)
+}
+
+/** Prefer cover.jpg in the same blog asset folder as a video poster. */
+function videoPosterFromSrc(src: string): string {
+  try {
+    const [pathPart, query = ''] = src.split('?')
+    const replaced = pathPart.replace(/\/[^/]+\.(webm|mp4)$/i, '/cover.jpg')
+    if (replaced === pathPart) return ''
+    return query ? `${replaced}?${query}` : replaced
+  } catch {
+    return ''
+  }
+}
+
+function videoEmbedHtml(src: string, alt = 'Walkthrough'): string {
+  const safeSrc = escapeHtml(src)
+  const safeAlt = escapeHtml(alt)
+  const poster = videoPosterFromSrc(src)
+  const posterAttr = poster ? ` poster="${escapeHtml(poster)}"` : ''
+  return `<figure class="blog-figure blog-video-embed"><video src="${safeSrc}"${posterAttr} controls playsinline preload="none" title="${safeAlt}"></video>${
+    alt ? `<figcaption>${safeAlt}</figcaption>` : ''
+  }</figure>`
+}
+
 function recordingEmbedHtml(src: string, title = 'Recording'): string {
   const safeSrc = escapeHtml(src)
   const safeTitle = escapeHtml(title)
@@ -169,7 +195,8 @@ export function renderBlogMarkdown(src: string): string {
     let t = escapeHtml(text)
     t = t.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g, (_m, alt, url) => {
       if (!safeUrl(url)) return escapeHtml(`![${alt}](${url})`)
-      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" />`
+      if (isBlogVideoUrl(url)) return videoEmbedHtml(url, alt || 'Walkthrough')
+      return `<img src="${escapeHtml(url)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />`
     })
     t = t.replace(
       /\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g,
@@ -222,13 +249,17 @@ export function renderBlogMarkdown(src: string): string {
       .match(/^!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)$/)
     if (figureMatch && safeUrl(figureMatch[2])) {
       closeLists()
-      const alt = escapeHtml(figureMatch[1])
-      const src = escapeHtml(figureMatch[2])
-      html.push(
-        `<figure class="blog-figure"><img src="${src}" alt="${alt}" loading="lazy" />${
-          figureMatch[1] ? `<figcaption>${alt}</figcaption>` : ''
-        }</figure>`,
-      )
+      const alt = figureMatch[1] || ''
+      const src = figureMatch[2]
+      if (isBlogVideoUrl(src)) {
+        html.push(videoEmbedHtml(src, alt || 'Walkthrough'))
+      } else {
+        html.push(
+          `<figure class="blog-figure"><img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" />${
+            alt ? `<figcaption>${escapeHtml(alt)}</figcaption>` : ''
+          }</figure>`,
+        )
+      }
       continue
     }
 

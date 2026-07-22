@@ -144,6 +144,8 @@ function BlogIndex() {
                     src={post.cover_image_url}
                     alt=""
                     loading="lazy"
+                    decoding="async"
+                    sizes="(max-width: 720px) 100vw, 360px"
                   />
                 ) : (
                   <div className="blog-post-card-cover blog-post-card-cover--empty" aria-hidden>
@@ -308,7 +310,13 @@ function BlogPostPage({ slug }: { slug: string }) {
           )}
         </header>
         {post.cover_image_url && (
-          <img className="blog-article-cover" src={post.cover_image_url} alt="" />
+          <img
+            className="blog-article-cover"
+            src={post.cover_image_url}
+            alt=""
+            decoding="async"
+            fetchPriority="high"
+          />
         )}
         <div className="blog-prose" dangerouslySetInnerHTML={{ __html: html }} />
         <aside className="blog-cta">

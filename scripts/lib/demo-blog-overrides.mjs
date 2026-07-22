@@ -6,7 +6,8 @@ export const DEMO_BLOG_OVERRIDES = {
   '3d-viewer': {
     pageTitle: '3D Viewer — product models in the browser',
     demoLabel: '3D Viewer',
-    heroRecordingSlug: '0r5s5i2l3m0e',
+    heroVideoFile: 'walkthrough.webm',
+    heroVideoCaption: 'Product walkthrough — orbit, HDR lighting, and viewer chrome',
     published_at: '2026-07-22T16:00:00.000Z',
     excerpt:
       'v3.19.1 desktop release: security and stability pass, more reliable project load/save, performance work, and Electron 41 — plus GLTF/FBX/OBJ/IFC review with HDR ground projection and Streets GL.',
@@ -15,7 +16,7 @@ export const DEMO_BLOG_OVERRIDES = {
       '3D Viewer v3.19.1 for Windows (Setup + Portable): security and stability hardening, more reliable projects, performance improvements, and Electron 41. Browser review for GLTF/FBX/OBJ/IFC with HDR and Streets GL.',
     hook: 'Clients should not need a CAD seat to review a model. Our 3D Viewer puts GLTF, FBX, OBJ, and IFC in a shareable browser (and desktop) window — orbit, inspect materials, light with 360° HDR and ground projection, or drop the mesh into OSM / Streets GL city context when location is the story.',
     coverNote:
-      'The cover and walkthrough video introduce the product pass; the stills below show 360° HDR ground projection and OSM 3D / Streets GL city context inside the same viewer.',
+      'A short walkthrough leads the post; the stills below show 360° HDR ground projection and OSM 3D / Streets GL city context inside the same viewer.',
     whatYouSeeIntro:
       'Two capabilities that sell the model beyond a grey void — cinematic HDR lighting, then real city fabric:',
     whyBullets: [

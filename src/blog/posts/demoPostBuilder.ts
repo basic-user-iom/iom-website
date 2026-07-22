@@ -31,6 +31,12 @@ export type DemoPostSpec = {
   /** Override the default “What you see” intro above viewA/viewB. */
   whatYouSeeIntro?: string
   /**
+   * Optional local blog video (under /assets/blog/<id>/). Prefer this over
+   * heroRecordingSlug for public posts — avoids multi‑10MB /r/ embeds.
+   */
+  heroVideoFile?: string
+  heroVideoCaption?: string
+  /**
    * CRM recording share slug — rendered as an iframe embed at the top of the
    * body (replaces the cover image when set).
    */
@@ -78,7 +84,7 @@ const SECTION_LABEL: Record<DemoSection, string> = {
  * Bump when recapturing blog stills. Vercel serves /assets/* with
  * max-age=1y immutable — same path keeps old bytes in the browser.
  */
-export const BLOG_ASSET_CACHE_V = '20260721c'
+export const BLOG_ASSET_CACHE_V = '20260722a'
 
 export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const sectionLink = SECTION_ANCHOR[spec.section]
@@ -97,7 +103,8 @@ export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const faq = spec.faq.map((f) => `**${f.q}**  \n${f.a}`).join('\n\n')
   const reading = spec.reading.map((l) => `- [${l.label}](${l.url})`).join('\n')
   const related = spec.related.map((l) => `[${l.label}](${l.url})`).join(', ')
-  const hasHeroRecording = Boolean(spec.heroRecordingSlug?.trim())
+  const hasHeroVideo = Boolean(spec.heroVideoFile?.trim())
+  const hasHeroRecording = !hasHeroVideo && Boolean(spec.heroRecordingSlug?.trim())
   const whatYouSeeIntro =
     spec.whatYouSeeIntro?.trim() ||
     (spec.viewC
@@ -106,11 +113,14 @@ export function buildDemoBlogPost(spec: DemoPostSpec): BlogPost {
   const viewCBlock = spec.viewC
     ? `\n![${spec.viewC.caption}](${asset(spec.viewC.file)})\n`
     : ''
+  const heroVideoBlock = hasHeroVideo
+    ? `![${(spec.heroVideoCaption || 'Walkthrough').trim()}](${asset(spec.heroVideoFile!.trim())})\n\n`
+    : ''
   const heroRecordingBlock = hasHeroRecording
     ? `/r/${spec.heroRecordingSlug!.trim()}?embed=1\n\n`
     : ''
 
-  const body = `${heroRecordingBlock}${spec.hook}
+  const body = `${heroVideoBlock}${heroRecordingBlock}${spec.hook}
 
 It lives in our [${sectionLabel} section](${sectionLink}) as **${spec.title}**. ${spec.coverNote}
 
