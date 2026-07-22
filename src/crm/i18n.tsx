@@ -1217,6 +1217,8 @@ const en: Dict = {
     'Matching: CRM attaches inbound mail by reply thread (In-Reply-To) or by the sender matching the lead’s email addresses',
   'guide.outreach5':
     'List badges show Email pending / Email sent / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
+  'guide.outreach6':
+    'Priority on a lead queues it for outreach (does not expire at midnight). Click the Priority stats pill to focus that list; it clears when you mark the initial email sent, or tap Priority again. Mistaken Sent? Use Mark as not sent on the outreach panel',
   'guide.outreachDemoText':
     'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
   'guide.outreachDemo1':
@@ -2615,6 +2617,8 @@ const sr: Dict = {
     'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To) ili po tome što se From poklapa sa email adresama leada',
   'guide.outreach5':
     'Kartice pokazuju Email na čekanju / Email poslat / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
+  'guide.outreach6':
+    'Prioritet na leadu ga stavlja u red za kontakt (ne ističe u ponoć). Kliknite pilulu Prioritet da fokusirate tu listu; briše se kad označite inicijalni email kao poslat, ili ponovo kliknete Prioritet. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':
