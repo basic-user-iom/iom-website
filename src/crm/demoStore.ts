@@ -189,7 +189,8 @@ function buildSeed(): Store {
     ],
     phone: '+46 8 555 2200',
     offer: 'Product configurator + CRM handoff for furniture retailers',
-    notes: 'DEMO SAMPLE — warm pipeline; waiting on fictional scope workshop.',
+    notes:
+      'DEMO SAMPLE — warm pipeline; waiting on fictional scope workshop. Queued as Priority (stays until initial email is marked sent).',
     initial_email_subject: 'Product configurator concept for Harbor & Pine',
     initial_email_body:
       'Hi Samira,\n\nFollowing our chat about interactive product experiences — IOM can build a browser configurator with CRM handoff for your retail partners.\n\nHappy to share a short demo reel when useful.\n\nBest,\nMirjan',
@@ -198,7 +199,7 @@ function buildSeed(): Store {
     temperature: 'warm',
     status: 'qualified',
     next_follow_up: daysAgo(-7, 11),
-    contact_priority: false,
+    contact_priority: true,
     estimated_value: 9200,
     value_emoji: '⭐',
     atlas_eval: {
@@ -279,7 +280,8 @@ function buildSeed(): Store {
     ],
     phone: '+31 20 555 8844',
     offer: 'Browser WebGPU particles + brand-home companion experience',
-    notes: 'DEMO SAMPLE — new inbound from fictional referral; atlas mostly unset.',
+    notes:
+      'DEMO SAMPLE — new inbound from fictional referral; atlas mostly unset. No initial email yet — shows under Not contacted filter.',
     temperature: 'cold',
     status: 'new',
     next_follow_up: daysAgo(-10, 9),

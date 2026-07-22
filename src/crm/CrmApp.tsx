@@ -68,7 +68,7 @@ import type {
   LeadInput,
   LeadOwnerOption,
   LeadSort,
-  LeadStatus,
+  LeadStatusFilter,
   LeadTemperature,
   StaffProfile,
 } from './types'
@@ -877,11 +877,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               onChange={(e) =>
                 setFilters((f) => ({
                   ...f,
-                  status: e.target.value as LeadStatus | 'all',
+                  status: e.target.value as LeadStatusFilter,
                 }))
               }
             >
               <option value="all">{t('toolbar.allStages')}</option>
+              <option value="not_contacted">{t('toolbar.notContacted')}</option>
               {LEAD_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {statusLabel(value)}

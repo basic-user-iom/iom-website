@@ -54,6 +54,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
 
     'toolbar.search': 'Firma, Kontakt, E-Mail suchen…',
     'toolbar.allStages': 'Alle Phasen',
+    'toolbar.notContacted': 'Nicht kontaktiert',
     'toolbar.allTemps': 'Alle Temperaturen',
     'toolbar.allOwners': 'Alle Ersteller',
     'toolbar.stageFilter': 'Nach Pipeline-Phase filtern',
@@ -287,6 +288,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
 
     'toolbar.search': 'Zoek bedrijf, contact, e-mail…',
     'toolbar.allStages': 'Alle fases',
+    'toolbar.notContacted': 'Niet gecontacteerd',
     'toolbar.allTemps': 'Alle temperaturen',
     'toolbar.allOwners': 'Alle toegevoegd door',
     'toolbar.stageFilter': 'Filter op pipelinefase',
@@ -520,6 +522,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
 
     'toolbar.search': 'Rechercher entreprise, contact, e-mail…',
     'toolbar.allStages': 'Toutes les étapes',
+    'toolbar.notContacted': 'Non contacté',
     'toolbar.allTemps': 'Toutes les températures',
     'toolbar.allOwners': 'Tous les auteurs',
     'toolbar.stageFilter': 'Filtrer par étape',
@@ -753,6 +756,7 @@ export const demoDictionaries: Record<Exclude<DemoLang, 'en'>, Dict> = {
 
     'toolbar.search': 'Cerca azienda, contatto, e-mail…',
     'toolbar.allStages': 'Tutte le fasi',
+    'toolbar.notContacted': 'Non contattato',
     'toolbar.allTemps': 'Tutte le temperature',
     'toolbar.allOwners': 'Tutti gli autori',
     'toolbar.stageFilter': 'Filtra per fase',

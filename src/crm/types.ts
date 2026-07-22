@@ -293,9 +293,12 @@ export interface StaffProfile {
   avatar_url: string | null
 }
 
+/** Stage dropdown value: pipeline status, or outreach filter (initial email not sent). */
+export type LeadStatusFilter = LeadStatus | 'all' | 'not_contacted'
+
 export interface LeadFilters {
   search: string
-  status: LeadStatus | 'all'
+  status: LeadStatusFilter
   temperature: LeadTemperature | 'all'
   /** 'all' | owner_id | owner_email | 'none' */
   owner: string

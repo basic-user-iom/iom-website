@@ -68,6 +68,7 @@ const en: Dict = {
 
   'toolbar.search': 'Search company, contact, email…',
   'toolbar.allStages': 'All stages',
+  'toolbar.notContacted': 'Not contacted',
   'toolbar.allTemps': 'All temperatures',
   'toolbar.allOwners': 'All added by',
   'toolbar.stageFilter': 'Filter by pipeline stage',
@@ -1215,24 +1216,24 @@ const en: Dict = {
   'guide.outreach4':
     'Matching: CRM attaches inbound mail by reply thread (In-Reply-To) or by the sender matching the lead’s email addresses',
   'guide.outreach5':
-    'List badges show Email pending / Email sent. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
+    'List badges show Email pending / Email sent / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
   'guide.outreachDemoText':
     'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
   'guide.outreachDemo1':
     'Open Copper Lantern Museums (negotiation) — it already has a Sent message and a sample Received client reply',
   'guide.outreachDemo2':
-    'Initial outreach: Preview and Send from CRM update the lead and thread with fake data only — nothing is delivered',
+    'Harbor & Pine is Priority + Email pending — try the Priority stats pill and stage filter Not contacted',
   'guide.outreachDemo3':
-    'Email conversation → Compose reply: write a follow-up; preview shows only that reply. Send reply logs another outbound message in the demo thread',
+    'Initial outreach: Preview and Send from CRM update the lead and thread with fake data only — nothing is delivered',
   'guide.outreachDemo4':
-    'Log client reply: paste a fictional inbound message to practice the mirror without real email',
+    'Email conversation → Compose reply: write a follow-up; preview shows only that reply. Send reply logs another outbound message in the demo thread',
   'guide.outreachDemo5':
-    'Reset sample data (banner) restores the original demo leads and the Copper Lantern thread',
+    'Log client reply or Reset sample data (banner) to restore the original demo leads and Copper Lantern thread',
   'guide.calendarHeading': 'Stats & follow-up calendar',
   'guide.calendarText':
     'Compact stats and a collapsible calendar on the Leads tab help you focus on what matters today.',
   'guide.calendar1':
-    'Stats pills: Visible leads, Open pipeline, and Hot leads for your current filters',
+    'Stats pills: Visible, Open, Hot, and Priority (click Priority to show only queued leads)',
   'guide.calendar2':
     'Follow-up calendar starts collapsed — click the pill to expand, pick a date to filter leads',
   'guide.calendar3':
@@ -1247,7 +1248,7 @@ const en: Dict = {
   'guide.findHeading': 'Search & filters',
   'guide.find1': 'Search by company, contact, or email in the top bar',
   'guide.find2':
-    'Filter by pipeline stage, temperature (Hot / Warm / Cold), and who added the lead',
+    'Filter by stage (including Not contacted), temperature (Hot / Warm / Cold), and who added the lead',
   'guide.find3':
     'Sort by last updated, who added, or pipeline stage; use stats pills and the follow-up calendar to filter by date',
   'guide.chatgptHeading': 'ChatGPT assist',
@@ -1457,6 +1458,7 @@ const sr: Dict = {
 
   'toolbar.search': 'Pretraga firme, kontakta, emaila…',
   'toolbar.allStages': 'Sve faze',
+  'toolbar.notContacted': 'Nije kontaktiran',
   'toolbar.allTemps': 'Sve temperature',
   'toolbar.allOwners': 'Svi koji su dodali',
   'toolbar.stageFilter': 'Filter po fazi pipeline-a',
@@ -2612,24 +2614,24 @@ const sr: Dict = {
   'guide.outreach4':
     'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To) ili po tome što se From poklapa sa email adresama leada',
   'guide.outreach5':
-    'Kartice pokazuju Email na čekanju / Email poslat. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
+    'Kartice pokazuju Email na čekanju / Email poslat / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':
     'Otvorite Copper Lantern Museums (pregovori) — već ima Poslato poruku i uzorak Primljenog odgovora klijenta',
   'guide.outreachDemo2':
-    'Inicijalni outreach: Pregled i Pošalji iz CRM-a ažuriraju lead i nit samo lažnim podacima — ništa se ne isporučuje',
+    'Harbor & Pine je Prioritet + Email na čekanju — probajte pilulu Prioritet i filter faze Nije kontaktiran',
   'guide.outreachDemo3':
-    'Email konverzacija → Napiši odgovor: napišite follow-up; pregled pokazuje samo taj odgovor. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
+    'Inicijalni outreach: Pregled i Pošalji iz CRM-a ažuriraju lead i nit samo lažnim podacima — ništa se ne isporučuje',
   'guide.outreachDemo4':
-    'Zabeleži odgovor klijenta: nalepite fiktivnu dolaznu poruku da vežbate ogledalo bez pravog emaila',
+    'Email konverzacija → Napiši odgovor: napišite follow-up; pregled pokazuje samo taj odgovor. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
   'guide.outreachDemo5':
-    'Resetuj uzorke (baner) vraća originalne demo leadove i Copper Lantern nit',
+    'Zabeleži odgovor klijenta ili Resetuj uzorke (baner) da vratite originalne demo leadove i Copper Lantern nit',
   'guide.calendarHeading': 'Statistika i kalendar follow-up-a',
   'guide.calendarText':
     'Kompaktna statistika i sklopivi kalendar na kartici Leadovi pomažu fokusu na današnje zadatke.',
   'guide.calendar1':
-    'Statističke pilule: Vidljivi leadovi, Otvoreni pipeline, Vrući leadovi za trenutne filtere',
+    'Statističke pilule: Vidljivi, Otvoreni, Vrući i Prioritet (kliknite Prioritet da vidite samo red za kontakt)',
   'guide.calendar2':
     'Kalendar follow-up-a je skupljen — kliknite pilulu da proširite, izaberite datum da filtrirate leadove',
   'guide.calendar3':
@@ -2644,7 +2646,7 @@ const sr: Dict = {
   'guide.findHeading': 'Pretraga i filteri',
   'guide.find1': 'Pretražujte po firmi, kontaktu ili emailu u gornjoj traci',
   'guide.find2':
-    'Filtrirajte po fazi pipeline-a, temperaturi (Vruć / Topao / Hladan) i po tome ko je dodao lead',
+    'Filtrirajte po fazi (uključujući Nije kontaktiran), temperaturi (Vruć / Topao / Hladan) i po tome ko je dodao lead',
   'guide.find3':
     'Sortirajte po poslednjoj izmeni, ko je dodao ili fazi; koristite statistiku i kalendar follow-up-a za filter po datumu',
   'guide.chatgptHeading': 'ChatGPT pomoć',

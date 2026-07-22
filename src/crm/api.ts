@@ -87,7 +87,11 @@ const STATUS_SORT_ORDER: LeadStatus[] = [
 ]
 
 function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
-  if (filters.status !== 'all' && lead.status !== filters.status) return false
+  if (filters.status === 'not_contacted') {
+    if (lead.initial_email_sent_at) return false
+  } else if (filters.status !== 'all' && lead.status !== filters.status) {
+    return false
+  }
   if (filters.temperature !== 'all' && lead.temperature !== filters.temperature) {
     return false
   }
@@ -1753,7 +1757,10 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         .from('crm_leads')
         .select(currentLeadSelect())
         .order('updated_at', { ascending: false })
-      if (filters.status !== 'all') query = query.eq('status', filters.status)
+      // Pipeline stages hit PostgREST; "not_contacted" is client-side (no initial email sent).
+      if (filters.status !== 'all' && filters.status !== 'not_contacted') {
+        query = query.eq('status', filters.status)
+      }
       if (filters.temperature !== 'all') query = query.eq('temperature', filters.temperature)
       const result = await query
       data = result.data
@@ -1784,7 +1791,11 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     const leads = ((data ?? []) as unknown as Lead[]).map(normalizeLead)
     return sortLeads(
       leads.filter((l) =>
-        matchesFilters(l, { ...filters, status: 'all', temperature: 'all' }),
+        matchesFilters(l, {
+          ...filters,
+          status: filters.status === 'not_contacted' ? 'not_contacted' : 'all',
+          temperature: 'all',
+        }),
       ),
       filters.sort,
     )

@@ -86,26 +86,26 @@ export function LeadList({
                     <span className="crm-lead-company">
                       {lead.company_name || lead.contact_name || t('list.untitled')}
                     </span>
-                    {initialEmailSent(lead) ? (
-                      <span
-                        className="crm-outreach-badge crm-outreach-badge--sent"
-                        title={t('outreach.badgeSentAt', {
-                          date: formatSentAt(lead.initial_email_sent_at!),
-                        })}
-                      >
-                        {t('outreach.badgeSent')}
-                      </span>
-                    ) : initialEmailPending(lead) ? (
-                      <span className="crm-outreach-badge" title={t('outreach.pendingAlert')}>
-                        {t('outreach.badgePending')}
-                      </span>
-                    ) : null}
-                    {isContactPriority(lead) && (
-                      <span className="crm-priority-badge" title={t('detail.prioritySet')}>
-                        {t('list.priority')}
-                      </span>
-                    )}
-                    <span className="crm-lead-row-top-end">
+                    <span className="crm-lead-row-badges">
+                      {initialEmailSent(lead) ? (
+                        <span
+                          className="crm-outreach-badge crm-outreach-badge--sent"
+                          title={t('outreach.badgeSentAt', {
+                            date: formatSentAt(lead.initial_email_sent_at!),
+                          })}
+                        >
+                          {t('outreach.badgeSent')}
+                        </span>
+                      ) : initialEmailPending(lead) ? (
+                        <span className="crm-outreach-badge" title={t('outreach.pendingAlert')}>
+                          {t('outreach.badgePending')}
+                        </span>
+                      ) : null}
+                      {isContactPriority(lead) && (
+                        <span className="crm-priority-badge" title={t('detail.prioritySet')}>
+                          {t('list.priority')}
+                        </span>
+                      )}
                       <LeadClientLocal lead={lead} compact />
                       <span className={`crm-temp crm-temp--${lead.temperature}`}>
                         {tempLabel(lead.temperature)}

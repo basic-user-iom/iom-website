@@ -962,13 +962,14 @@
 
 .crm-lead-row-top {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.5rem;
-  align-items: center;
+  gap: 0.4rem 0.55rem;
   flex-wrap: wrap;
 }
 
 .crm-lead-company {
+  flex: 1 1 7.5rem;
   font-weight: 600;
   font-size: 0.95rem;
   line-height: 1.25;
@@ -976,6 +977,18 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Keep Email / Priority / Local / Warm as one right-side cluster so they
+   never split onto different rows relative to each other. */
+.crm-lead-row-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  margin-left: auto;
+  max-width: 100%;
 }
 
 .crm-lead-row-meta {
@@ -1610,6 +1623,17 @@
   min-width: 0;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.crm-lead-row-badges .crm-outreach-badge,
+.crm-lead-row-badges .crm-priority-badge,
+.crm-lead-row-badges .crm-temp {
+  flex: 0 0 auto;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.4rem;
+  line-height: 1.2;
 }
 
 .crm-locale-fieldset {
