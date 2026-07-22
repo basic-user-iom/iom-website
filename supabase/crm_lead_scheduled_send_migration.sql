@@ -12,8 +12,10 @@
 --   "attempts": 0
 -- }
 --
--- Cron: GET/POST /api/crm-scheduled-send (Vercel cron + CRM_CRON_SECRET)
--- sends due drafts via Proton, notifies staff on failure.
+-- Worker: GET/POST /api/crm-scheduled-send (CRM_CRON_SECRET / CRON_SECRET)
+-- Vercel Hobby: daily cron in vercel.json; for ~5 min precision use an
+-- external cron ping with Authorization: Bearer <secret>.
+-- Sends due drafts via Proton, notifies staff on failure.
 
 alter table public.crm_leads
   add column if not exists scheduled_send jsonb;

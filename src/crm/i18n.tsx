@@ -1056,7 +1056,7 @@ const en: Dict = {
   'outreach.scheduleNeedTimezone':
     'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
   'outreach.scheduleHint':
-    'Times are the contact’s local timezone from the lead. Cron sends via Proton about every 5 minutes; staff get an email if delivery fails.',
+    'Times are the contact’s local timezone from the lead. A daily server job sends due drafts (or ping /api/crm-scheduled-send every few minutes for tighter timing). Staff get an email if delivery fails.',
   'outreach.scheduleDemoHint':
     'Picker uses the contact’s timezone. In the demo, due schedules fire when you refresh the lead list — no real email is sent.',
   'outreach.resend': 'Resend from CRM',
@@ -2486,7 +2486,7 @@ const sr: Dict = {
   'outreach.scheduleNeedTimezone':
     'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
   'outreach.scheduleHint':
-    'Vremena su lokalna zona kontakta sa leada. Cron šalje preko Protona oko svakih 5 minuta; tim dobija email ako isporuka ne uspe.',
+    'Vremena su lokalna zona kontakta sa leada. Dnevni server job šalje dospele draftove (ili pingujte /api/crm-scheduled-send svakih nekoliko minuta za preciznije vreme). Tim dobija email ako isporuka ne uspe.',
   'outreach.scheduleDemoHint':
     'Birač koristi vremensku zonu kontakta. U demu se dospeli rasporedi okidaju kada osvežite listu leadova — pravi email se ne šalje.',
   'outreach.resend': 'Pošalji ponovo iz CRM-a',
