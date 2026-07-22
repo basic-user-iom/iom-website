@@ -1056,9 +1056,22 @@ const en: Dict = {
   'outreach.scheduleNeedTimezone':
     'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
   'outreach.scheduleHint':
-    'Times are the contact’s local timezone from the lead. A daily server job sends due drafts (or ping /api/crm-scheduled-send every few minutes for tighter timing). Staff get an email if delivery fails.',
+    'Times are the contact’s local timezone. Saving a schedule pings the server (queued — one batch after another, never cancels others). Use Ping now for due sends; daily cron is a backup. Staff get an email if delivery fails.',
   'outreach.scheduleDemoHint':
-    'Picker uses the contact’s timezone. In the demo, due schedules fire when you refresh the lead list — no real email is sent.',
+    'Picker uses the contact’s timezone. Schedule save and Ping now process due demo schedules on refresh — no real email is sent.',
+  'outreach.ping': 'Ping now',
+  'outreach.pinging': 'Pinging…',
+  'outreach.pingTitle':
+    'Process all due scheduled sends now. Safe to run while scheduling several leads — pings queue and never cancel each other.',
+  'outreach.pingOkQueued':
+    'Schedule saved and server pinged ({checked} armed). Nothing due yet — will send at {when} contact time.',
+  'outreach.pingOkIdle':
+    'Server pinged — {checked} armed schedule(s), none due yet.',
+  'outreach.pingOkSent':
+    'Server pinged — sent {sent}, failed {failed} (due {due}). Each lead is handled separately.',
+  'outreach.pingDemoOk': 'Demo pinged — due schedules processed locally (no SMTP).',
+  'outreach.pingFailed': 'Schedule saved, but server ping failed: {error}',
+  'outreach.pingFailedOnly': 'Server ping failed: {error}',
   'outreach.resend': 'Resend from CRM',
   'outreach.composeAdditional': 'Compose another email',
   'outreach.additionalTitle': 'Additional email',
@@ -1247,7 +1260,7 @@ const en: Dict = {
   'guide.outreach6':
     'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — cron sends via Proton and emails you if it fails. Mistaken Sent? Use Mark as not sent on the outreach panel',
   'guide.outreach7':
-    'Scheduled sends use the contact’s timezone from the lead (Client local time) — the picker is their clock, not yours. Draft at fire time is what sends. Cancel from the outreach panel, or send now to clear. Max 5 automatic retries',
+    'Scheduled sends use the contact’s timezone. Saving a schedule (or Ping now) queues a server check — several leads in a row never cancel each other; each due email is sent separately. Draft at fire time is what sends. Max 5 retries',
   'guide.outreachDemoText':
     'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
   'guide.outreachDemo1':
@@ -2486,9 +2499,22 @@ const sr: Dict = {
   'outreach.scheduleNeedTimezone':
     'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
   'outreach.scheduleHint':
-    'Vremena su lokalna zona kontakta sa leada. Dnevni server job šalje dospele draftove (ili pingujte /api/crm-scheduled-send svakih nekoliko minuta za preciznije vreme). Tim dobija email ako isporuka ne uspe.',
+    'Vremena su lokalna zona kontakta. Čuvanje rasporeda pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Ping sada za dospela slanja; dnevni cron je rezervna. Tim dobija email ako ne uspe.',
   'outreach.scheduleDemoHint':
-    'Birač koristi vremensku zonu kontakta. U demu se dospeli rasporedi okidaju kada osvežite listu leadova — pravi email se ne šalje.',
+    'Birač koristi vremensku zonu kontakta. Čuvanje rasporeda i Ping sada obrađuju dospele demo rasporede lokalno — pravi email se ne šalje.',
+  'outreach.ping': 'Ping sada',
+  'outreach.pinging': 'Ping…',
+  'outreach.pingTitle':
+    'Odmah obradi sva dospela zakazana slanja. Bezbedno dok zakazujete više leadova — pingovi idu u red i ne otkazuju jedan drugog.',
+  'outreach.pingOkQueued':
+    'Raspored sačuvan i server pingovan ({checked} na čekanju). Još nije dospelo — šalje se u {when} po vremenu kontakta.',
+  'outreach.pingOkIdle':
+    'Server pingovan — {checked} zakazano, nijedno još nije dospelo.',
+  'outreach.pingOkSent':
+    'Server pingovan — poslato {sent}, neuspelo {failed} (dospelo {due}). Svaki lead se obrađuje posebno.',
+  'outreach.pingDemoOk': 'Demo ping — dospeli rasporedi obrađeni lokalno (bez SMTP).',
+  'outreach.pingFailed': 'Raspored sačuvan, ali ping servera nije uspeo: {error}',
+  'outreach.pingFailedOnly': 'Ping servera nije uspeo: {error}',
   'outreach.resend': 'Pošalji ponovo iz CRM-a',
   'outreach.composeAdditional': 'Napiši još jedan email',
   'outreach.additionalTitle': 'Dodatni email',
@@ -2678,7 +2704,7 @@ const sr: Dict = {
   'guide.outreach6':
     'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — cron šalje preko Protona i šalje vam email ako ne uspe. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreach7':
-    'Zakazano slanje koristi vremensku zonu kontakta sa leada (Lokalno vreme klijenta) — birač je njihov sat, ne vaš. Šalje se draft u trenutku okidanja. Otkažite sa panela ili pošaljite odmah. Najviše 5 automatskih pokušaja',
+    'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja'
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':

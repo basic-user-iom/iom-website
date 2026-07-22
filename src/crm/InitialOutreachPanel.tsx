@@ -18,6 +18,7 @@ import {
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
 import { formatClientLocalTime } from './clientWeather'
+import { enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
   formatInContactZone,
@@ -76,6 +77,8 @@ export function InitialOutreachPanel({
   const [busy, setBusy] = useState(false)
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState('')
+  const [pingNote, setPingNote] = useState('')
+  const [pingBusy, setPingBusy] = useState(false)
   const [subject, setSubject] = useState(lead.initial_email_subject)
   const [body, setBody] = useState(lead.initial_email_body)
   const previewFrameRef = useRef<HTMLIFrameElement>(null)
@@ -389,6 +392,7 @@ export function InitialOutreachPanel({
       return
     }
     setError('')
+    setPingNote('')
     setBusy(true)
     try {
       const updated = await updateLead(lead.id, {
@@ -401,10 +405,74 @@ export function InitialOutreachPanel({
           lead.initial_email_drafted_at || new Date().toISOString(),
       })
       onChanged(updated)
+
+      // Queue server ping — never cancels another in-flight ping/send batch.
+      setPingBusy(true)
+      const ping = await enqueuePingScheduledSends()
+      if (!ping.ok) {
+        setPingNote(t('outreach.pingFailed', { error: ping.error || '—' }))
+      } else if (ping.demo) {
+        setPingNote(t('outreach.pingDemoOk'))
+      } else if (ping.sent > 0 || ping.failed > 0) {
+        setPingNote(
+          t('outreach.pingOkSent', {
+            sent: ping.sent,
+            failed: ping.failed,
+            due: ping.due,
+          }),
+        )
+        onChanged()
+      } else {
+        setPingNote(
+          t('outreach.pingOkQueued', {
+            checked: ping.checked,
+            when: whenContact,
+          }),
+        )
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
     } finally {
       setBusy(false)
+      setPingBusy(false)
+    }
+  }
+
+  const handlePingScheduled = async () => {
+    setError('')
+    setPingNote('')
+    setPingBusy(true)
+    try {
+      const ping = await enqueuePingScheduledSends()
+      if (!ping.ok) {
+        setPingNote(t('outreach.pingFailedOnly', { error: ping.error || '—' }))
+        return
+      }
+      if (ping.demo) {
+        setPingNote(t('outreach.pingDemoOk'))
+        onChanged()
+        return
+      }
+      if (ping.sent > 0 || ping.failed > 0) {
+        setPingNote(
+          t('outreach.pingOkSent', {
+            sent: ping.sent,
+            failed: ping.failed,
+            due: ping.due,
+          }),
+        )
+        onChanged()
+      } else {
+        setPingNote(t('outreach.pingOkIdle', { checked: ping.checked }))
+      }
+    } catch (err) {
+      setPingNote(
+        t('outreach.pingFailedOnly', {
+          error: err instanceof Error ? err.message : '—',
+        }),
+      )
+    } finally {
+      setPingBusy(false)
     }
   }
 
@@ -757,6 +825,17 @@ export function InitialOutreachPanel({
                 >
                   {t('detail.edit')}
                 </button>
+                {sendUiOk && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={busy || pingBusy}
+                    onClick={() => void handlePingScheduled()}
+                    title={t('outreach.pingTitle')}
+                  >
+                    {pingBusy ? t('outreach.pinging') : t('outreach.ping')}
+                  </button>
+                )}
 
                 {!alreadySent && (
                   <>
@@ -863,6 +942,12 @@ export function InitialOutreachPanel({
         >
           {t('outreach.addDraft')}
         </button>
+      )}
+
+      {(pingBusy || pingNote) && (
+        <p className="crm-outreach-ping-note" role="status">
+          {pingBusy && !pingNote ? t('outreach.pinging') : pingNote}
+        </p>
       )}
 
       {error && (

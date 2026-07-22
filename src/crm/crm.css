@@ -642,6 +642,12 @@
   font-size: 0.8rem;
 }
 
+.crm-outreach-ping-note {
+  margin: 0.15rem 0 0;
+  font-size: 0.84rem;
+  color: color-mix(in srgb, #7ec8e3 85%, var(--text, #ddd));
+}
+
 .crm-priority-btn.is-active {
   border-color: color-mix(in srgb, #e8c547 55%, var(--border));
   color: #e8c547;
