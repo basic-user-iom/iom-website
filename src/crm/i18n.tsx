@@ -2704,7 +2704,7 @@ const sr: Dict = {
   'guide.outreach6':
     'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — cron šalje preko Protona i šalje vam email ako ne uspe. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreach7':
-    'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja'
+    'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja',
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':
