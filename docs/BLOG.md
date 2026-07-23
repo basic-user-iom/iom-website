@@ -65,6 +65,14 @@ npm run dev
 6. Open `/blog/{slug}` → leave a comment with a real email → confirm via link
 7. CRM → Blog → Comments (moderate) + Emails (audience; marketing only if checkbox was checked)
 
+### 3D Viewer post (catalog → live CMS)
+
+Live `/blog/3d-viewer` is served from Supabase when published, so catalog-only deploys do not update the page.
+
+1. After editing `scripts/lib/demo-blog-overrides.mjs`, run `npm run blog:generate-posts` then `npm run blog:export-3d-viewer-payload`
+2. Production `npm run build` / `npm run deploy` runs `scripts/sync-3d-viewer-blog.mjs` when `SUPABASE_SERVICE_ROLE_KEY` is available (Vercel build). Locally the sync soft-skips if the key is missing or Vercel-redacted as `[SENSITIVE]`.
+3. Manual sync with a real key: `npm run blog:sync-3d-viewer`
+
 ## 4. SEO
 
 - `/blog` meta + Blog JSON-LD
