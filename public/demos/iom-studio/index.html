@@ -162,6 +162,7 @@
         font-size: 14px;
         font-weight: 650;
         text-decoration: none;
+        cursor: pointer;
       }
 
       .button.primary {
@@ -172,6 +173,94 @@
 
       .button:hover {
         transform: translateY(-1px);
+      }
+
+      dialog {
+        width: min(430px, calc(100% - 32px));
+        border: 1px solid #343b46;
+        border-radius: 15px;
+        background: #14171c;
+        color: #f2f4f7;
+        box-shadow: 0 30px 100px rgb(0 0 0 / 65%);
+        padding: 0;
+      }
+
+      dialog::backdrop {
+        background: rgb(5 6 8 / 78%);
+        backdrop-filter: blur(8px);
+      }
+
+      .login-panel {
+        display: grid;
+        gap: 18px;
+        padding: 30px;
+      }
+
+      .login-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      .login-head h2 {
+        margin: 0 0 7px;
+        font-size: 25px;
+      }
+
+      .login-head p {
+        margin: 0;
+        color: #929ba8;
+        font-size: 14px;
+        line-height: 1.5;
+      }
+
+      .login-close {
+        width: 34px;
+        height: 34px;
+        flex: 0 0 auto;
+        border: 1px solid #343b46;
+        border-radius: 8px;
+        background: transparent;
+        color: #9ba3af;
+        cursor: pointer;
+      }
+
+      .login-panel form {
+        display: grid;
+        gap: 11px;
+      }
+
+      .login-panel label {
+        color: #aeb6c2;
+        font-size: 13px;
+        font-weight: 650;
+      }
+
+      .login-panel input {
+        width: 100%;
+        height: 58px;
+        border: 1px solid #3b4350;
+        border-radius: 8px;
+        outline: 0;
+        background: #0d1015;
+        color: #f2f4f7;
+        padding: 0 18px;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 25px;
+        letter-spacing: 0.45em;
+      }
+
+      .login-panel input:focus {
+        border-color: #7c8cff;
+        box-shadow: 0 0 0 3px rgb(124 140 255 / 13%);
+      }
+
+      .login-panel .error {
+        min-height: 18px;
+        margin: 0;
+        color: #ef7f86;
+        font-size: 13px;
       }
 
       .preview {
@@ -308,11 +397,9 @@
             packs without sending project data to a cloud service.
           </p>
           <div class="actions">
-            <a
-              class="button primary"
-              href="mailto:contact@iobjectm.com?subject=IOM%20Studio%20private%20beta"
-              >Request private-beta access →</a
-            >
+            <button class="button primary demo-login-open" type="button">
+              Try IOM Studio →
+            </button>
             <a class="button" href="#workflow">See the workflow</a>
           </div>
         </section>
@@ -364,15 +451,92 @@
               production workflows are hardened.
             </p>
           </div>
-          <a
-            class="button primary"
-            href="mailto:contact@iobjectm.com?subject=IOM%20Studio%20private%20beta"
-            >Talk to IOM →</a
-          >
+          <button class="button primary demo-login-open" type="button">
+            Open software demo →
+          </button>
         </section>
       </main>
 
       <footer>© 2026 IOM · Interactive Object Media</footer>
     </div>
+
+    <dialog id="demo-login">
+      <section class="login-panel">
+        <div class="login-head">
+          <div>
+            <h2>Try IOM Studio</h2>
+            <p>
+              Enter the four-digit demo code. The workspace uses fictional data
+              and saves changes only in your browser.
+            </p>
+          </div>
+          <button class="login-close" type="button" aria-label="Close">×</button>
+        </div>
+        <form id="demo-login-form">
+          <label for="demo-code">4-digit access code</label>
+          <input
+            id="demo-code"
+            name="code"
+            type="password"
+            inputmode="numeric"
+            pattern="[0-9]*"
+            maxlength="4"
+            autocomplete="one-time-code"
+            required
+          />
+          <p class="error" id="demo-code-error" role="alert"></p>
+          <button class="button primary" type="submit">Open demo</button>
+        </form>
+      </section>
+    </dialog>
+
+    <script>
+      (() => {
+        const AUTH_KEY = 'iom-studio-demo-auth'
+        const DEMO_URL = '/demos/iom-studio-app/'
+        const dialog = document.querySelector('#demo-login')
+        const form = document.querySelector('#demo-login-form')
+        const input = document.querySelector('#demo-code')
+        const error = document.querySelector('#demo-code-error')
+
+        document.querySelectorAll('.demo-login-open').forEach((button) => {
+          button.addEventListener('click', () => {
+            if (sessionStorage.getItem(AUTH_KEY) === 'granted') {
+              window.location.href = DEMO_URL
+              return
+            }
+            error.textContent = ''
+            input.value = ''
+            dialog.showModal()
+            window.setTimeout(() => input.focus(), 0)
+          })
+        })
+
+        document.querySelector('.login-close').addEventListener('click', () => {
+          dialog.close()
+        })
+
+        dialog.addEventListener('click', (event) => {
+          if (event.target === dialog) dialog.close()
+        })
+
+        input.addEventListener('input', () => {
+          input.value = input.value.replace(/\D/g, '').slice(0, 4)
+          error.textContent = ''
+        })
+
+        form.addEventListener('submit', (event) => {
+          event.preventDefault()
+          if (input.value !== '0305') {
+            error.textContent = 'That access code is not valid.'
+            input.value = ''
+            input.focus()
+            return
+          }
+          sessionStorage.setItem(AUTH_KEY, 'granted')
+          window.location.href = DEMO_URL
+        })
+      })()
+    </script>
   </body>
 </html>
