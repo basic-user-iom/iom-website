@@ -51,7 +51,7 @@ export const SECTIONS: { id: ProjectSection; label: string; blurb: string }[] = 
     id: 'software',
     label: 'Software',
     blurb:
-      'Browser 3D model viewers, 360° virtual tour editors, image prep, and tools for presenting interactive media.',
+      'Browser 3D viewers, local-first production workspaces, 360° tour editors, image prep, and tools for presenting interactive media.',
   },
   {
     id: '3d',
@@ -151,6 +151,20 @@ export const PROJECTS: Project[] = [
     mobilePosterUrl: '/assets/posters/crm-demo.jpg?v=20260715-2',
     thumbnail: '/assets/posters/crm-demo.jpg?v=20260715-2',
     archiveId: 'OBJ-0147',
+  },
+  {
+    id: 'iom-studio',
+    title: 'IOM Studio',
+    section: 'software',
+    tags: ['production', 'story', 'ai', '3d', 'local-first'],
+    description:
+      'Local-first production workspace for developing characters, scripts, and shots, then routing each scene through AI generation, Blender, compositing, and delivery. Projects autosave locally and travel as branded .iomstudio files.',
+    year: '2026',
+    url: '/demos/iom-studio/',
+    posterUrl: '/assets/posters/iom-studio.svg?v=20260723-2',
+    mobilePosterUrl: '/assets/posters/iom-studio.svg?v=20260723-2',
+    thumbnail: '/assets/posters/iom-studio.svg?v=20260723-2',
+    archiveId: 'OBJ-0152',
   },
   {
     id: 'image-prep',

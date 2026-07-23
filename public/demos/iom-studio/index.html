@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="IOM Studio is a private, local-first production workspace for developing characters, scripts, shots, AI generations, 3D builds, and delivery packs."
+    />
+    <meta name="theme-color" content="#0b0d11" />
+    <title>IOM Studio — local-first AI + 3D production</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #0b0d11;
+        color: #f2f4f7;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          radial-gradient(circle at 78% 8%, rgb(124 140 255 / 9%), transparent 32rem),
+          radial-gradient(circle at 10% 62%, rgb(245 158 91 / 5%), transparent 30rem),
+          #0b0d11;
+      }
+
+      a {
+        color: inherit;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 40px));
+        margin: 0 auto;
+      }
+
+      header {
+        display: flex;
+        min-height: 76px;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid #252a32;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+      }
+
+      .mark {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        place-items: center;
+        border-radius: 8px;
+        background: #f2f4f7;
+      }
+
+      .mark::before {
+        width: 20px;
+        height: 20px;
+        border: 5px solid #14171c;
+        border-top-color: #f59e5b;
+        border-radius: 50%;
+        content: "";
+      }
+
+      .brand-copy {
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+
+      .brand-copy span {
+        margin-right: 7px;
+        color: #f59e5b;
+      }
+
+      .back {
+        color: #9ca5b2;
+        font-size: 13px;
+        text-decoration: none;
+      }
+
+      .back:hover {
+        color: #f2f4f7;
+      }
+
+      main {
+        padding: 88px 0 110px;
+      }
+
+      .hero-copy {
+        max-width: 830px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        color: #9ba7ff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.13em;
+        text-transform: uppercase;
+      }
+
+      .eyebrow::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #45c7a0;
+        box-shadow: 0 0 14px rgb(69 199 160 / 65%);
+        content: "";
+      }
+
+      h1 {
+        max-width: 900px;
+        margin: 25px 0 26px;
+        font-size: clamp(48px, 8vw, 92px);
+        font-weight: 650;
+        letter-spacing: -0.065em;
+        line-height: 0.94;
+      }
+
+      h1 span {
+        color: #8992a0;
+      }
+
+      .lead {
+        max-width: 760px;
+        margin: 0;
+        color: #a7afba;
+        font-size: clamp(18px, 2vw, 23px);
+        line-height: 1.55;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 34px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 46px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #3a414d;
+        border-radius: 8px;
+        padding: 0 18px;
+        font-size: 14px;
+        font-weight: 650;
+        text-decoration: none;
+      }
+
+      .button.primary {
+        border-color: #7c8cff;
+        background: #7c8cff;
+        color: #0d1020;
+      }
+
+      .button:hover {
+        transform: translateY(-1px);
+      }
+
+      .preview {
+        margin-top: 72px;
+        overflow: hidden;
+        border: 1px solid #2c323c;
+        border-radius: 18px;
+        background: #0d1015;
+        box-shadow: 0 38px 100px rgb(0 0 0 / 45%);
+      }
+
+      .preview img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 78px;
+      }
+
+      .feature {
+        min-height: 190px;
+        border: 1px solid #272d36;
+        border-radius: 14px;
+        background: rgb(19 23 29 / 78%);
+        padding: 26px;
+      }
+
+      .feature-index {
+        display: block;
+        margin-bottom: 30px;
+        color: #f59e5b;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 12px;
+      }
+
+      .feature h2 {
+        margin: 0 0 10px;
+        font-size: 19px;
+      }
+
+      .feature p {
+        margin: 0;
+        color: #929ba8;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .workflow {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 13px;
+        margin-top: 76px;
+        border-block: 1px solid #252a32;
+        padding: 28px 0;
+        color: #9ba3af;
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 12px;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+      }
+
+      .workflow b {
+        color: #4f5865;
+      }
+
+      .close {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 30px;
+        margin-top: 78px;
+        border: 1px solid rgb(245 158 91 / 24%);
+        border-radius: 16px;
+        background: linear-gradient(110deg, rgb(245 158 91 / 9%), transparent 60%);
+        padding: 34px;
+      }
+
+      .close h2 {
+        margin: 0 0 8px;
+        font-size: 26px;
+      }
+
+      .close p {
+        margin: 0;
+        color: #9ba3af;
+      }
+
+      footer {
+        border-top: 1px solid #252a32;
+        padding: 28px 0 44px;
+        color: #707986;
+        font-size: 12px;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding-top: 58px;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .close {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header>
+        <a class="brand" href="/">
+          <span class="mark" aria-hidden="true"></span>
+          <span class="brand-copy"><span>IOM</span>Studio</span>
+        </a>
+        <a class="back" href="/#software">← Software archive</a>
+      </header>
+
+      <main>
+        <section class="hero-copy">
+          <span class="eyebrow">Private beta · Windows</span>
+          <h1>Direct the story.<br /><span>Build the world.</span></h1>
+          <p class="lead">
+            IOM Studio is a local-first production workspace for shaping
+            characters, scripts, shots, AI generations, 3D builds, and delivery
+            packs without sending project data to a cloud service.
+          </p>
+          <div class="actions">
+            <a
+              class="button primary"
+              href="mailto:contact@iobjectm.com?subject=IOM%20Studio%20private%20beta"
+              >Request private-beta access →</a
+            >
+            <a class="button" href="#workflow">See the workflow</a>
+          </div>
+        </section>
+
+        <figure class="preview">
+          <img
+            src="/assets/posters/iom-studio.svg?v=20260723-2"
+            alt="IOM Studio dashboard showing story, shot, AI, and 3D production stages"
+          />
+        </figure>
+
+        <section class="feature-grid" aria-label="IOM Studio features">
+          <article class="feature">
+            <span class="feature-index">01 / STORY</span>
+            <h2>One production source</h2>
+            <p>
+              Keep the style bible, characters, locations, story beats, and shot
+              decisions together instead of spreading intent across documents.
+            </p>
+          </article>
+          <article class="feature">
+            <span class="feature-index">02 / ROUTE</span>
+            <h2>AI and 3D by shot</h2>
+            <p>
+              Route each shot through ordered Blender, generation, compositing,
+              and finishing stages with models and tools attached.
+            </p>
+          </article>
+          <article class="feature">
+            <span class="feature-index">03 / LOCAL</span>
+            <h2>Files you control</h2>
+            <p>
+              Autosave into readable local folders and create branded
+              <code>.iomstudio</code> files for portable backups and handoff.
+            </p>
+          </article>
+        </section>
+
+        <div class="workflow" id="workflow">
+          <span>Bible</span><b>→</b><span>Script</span><b>→</b><span>Shots</span>
+          <b>→</b><span>Production assets</span><b>→</b><span>Deliver</span>
+        </div>
+
+        <section class="close">
+          <div>
+            <h2>Built for real mixed-media pipelines.</h2>
+            <p>
+              The source is currently private while desktop packaging and
+              production workflows are hardened.
+            </p>
+          </div>
+          <a
+            class="button primary"
+            href="mailto:contact@iobjectm.com?subject=IOM%20Studio%20private%20beta"
+            >Talk to IOM →</a
+          >
+        </section>
+      </main>
+
+      <footer>© 2026 IOM · Interactive Object Media</footer>
+    </div>
+  </body>
+</html>
