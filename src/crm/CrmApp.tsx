@@ -741,7 +741,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               {demoMode ? t('demo.exit') : t('topbar.signOut')}
             </span>
           </button>
-          <a href="/#software" className="btn btn-ghost crm-topbar-back">
+          <a href="/#software" className="iom-demo-back-link">
             <span className="crm-topbar-btn-label">
               {demoMode ? '← IOM' : t('topbar.backSite')}
             </span>
