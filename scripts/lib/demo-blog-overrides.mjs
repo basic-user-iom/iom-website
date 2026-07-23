@@ -8,12 +8,12 @@ export const DEMO_BLOG_OVERRIDES = {
     demoLabel: '3D Viewer',
     heroVideoFile: 'walkthrough.webm',
     heroVideoCaption: 'Product walkthrough — orbit, HDR lighting, and viewer chrome',
-    published_at: '2026-07-22T16:00:00.000Z',
+    published_at: '2026-07-23T18:00:00.000Z',
     excerpt:
-      'v3.19.1 desktop release: security and stability pass, more reliable project load/save, performance work, and Electron 41 — plus GLTF/FBX/OBJ/IFC review with HDR ground projection and Streets GL.',
-    seo_title: '3D Viewer v3.19.1 — security, stability & Electron 41 — IOM',
+      'v3.19.2 desktop release: Streets GL reliability and texture quality, Product-mode texture restore after City teardown, unified panel headers — plus GLTF/FBX/OBJ/IFC review with HDR ground projection and Streets GL.',
+    seo_title: '3D Viewer v3.19.2 — Streets GL textures & reliability — IOM',
     seo_description:
-      '3D Viewer v3.19.1 for Windows (Setup + Portable): security and stability hardening, more reliable projects, performance improvements, and Electron 41. Browser review for GLTF/FBX/OBJ/IFC with HDR and Streets GL.',
+      '3D Viewer v3.19.2 for Windows (Setup + Portable): Streets GL vertex-budget/simplify fixes, UV-preserving 4k textures, Product-mode texture restore, and unified floating panel headers. Browser review for GLTF/FBX/OBJ/IFC with HDR and Streets GL.',
     hook: 'Clients should not need a CAD seat to review a model. Our 3D Viewer puts GLTF, FBX, OBJ, and IFC in a shareable browser (and desktop) window — orbit, inspect materials, light with 360° HDR and ground projection, or drop the mesh into OSM / Streets GL city context when location is the story.',
     coverNote:
       'A short walkthrough leads the post; the stills below show 360° HDR ground projection and OSM 3D / Streets GL city context inside the same viewer.',
@@ -47,14 +47,14 @@ export const DEMO_BLOG_OVERRIDES = {
       { term: 'Hotspot', def: 'a clickable marker on the model with info or a link' },
     ],
     trySteps: [
-      'Open the [3D Viewer site](https://3dbviewer.com/) or grab Windows Setup / Portable from the [v3.19.1 release](https://github.com/basic-user-iom/3d/releases/tag/v3.19.1)',
+      'Open the [3D Viewer site](https://3dbviewer.com/) or grab Windows Setup / Portable from the [v3.19.2 release](https://github.com/basic-user-iom/3d/releases/tag/v3.19.2)',
       'Load a sample or your own GLTF/GLB if the build allows import',
       'Try a 360° HDR environment with ground projection — watch contact shadows lock the product to the plate',
       'Open OSM 3D / Streets GL and imagine (or place) your model in real city fabric',
     ],
     requirements: [
       '**Browser:** modern Chrome, Edge, or Firefox for the web build',
-      '**Windows desktop:** Setup or Portable from [GitHub Releases v3.19.1](https://github.com/basic-user-iom/3d/releases/tag/v3.19.1) (Electron 41)',
+      '**Windows desktop:** Setup or Portable from [GitHub Releases v3.19.2](https://github.com/basic-user-iom/3d/releases/tag/v3.19.2) (Electron 41)',
       '**Files:** prefer GLB/GLTF for web; heavy CAD may need conversion first',
       '**GPU:** path tracing and dense city layers want a decent GPU — fall back to lighter modes on soft devices',
     ],
@@ -75,15 +75,15 @@ export const DEMO_BLOG_OVERRIDES = {
     howWorks:
       'The viewer is built on the [Three.js](https://threejs.org/) family with a focus on practical review: load meshes, frame them, light them with HDR + ground projection, and — when the brief needs a street — open OSM 3D / Streets GL city context in the same chrome. Desktop builds extend the same idea when offline or large assets matter. Format support follows real client pipelines — the goal is always “open, understand, decide.” Live product: [3dbviewer.com](https://3dbviewer.com/).',
     whatsNew: {
-      heading: 'What’s new in v3.19.1',
-      body: `A security and stability pass across the desktop app, plus packaging and runtime upgrades:
+      heading: 'What’s new in v3.19.2',
+      body: `Streets GL bridge reliability and texture quality, plus Product-mode polish:
 
-- **Safer by default** — hotspot HTML hardening, safer exports, tighter Electron URL allowlisting, and cleaner token handling
-- **More reliable projects** — fixes for duplicate models on load, atomic project load, and delete/undo edge cases
-- **Snappier idle use** — lighter weather when idle, Objects panel and hotspot work, and leaner UI loading
-- **Electron 41** — Windows desktop rebuilt on Electron 41.10.3 with packaging cleanup
+- **Streets GL sync** — vertex-budget simplify that preserves UVs so cars and large meshes land reliably in city context
+- **Better textures in City** — up to 4k binary texture transfer with automatic payload fit for large Meshy maps
+- **Product-mode restore** — textures no longer disappear after leaving Streets GL / City teardown
+- **Unified panel headers** — shared FloatingPanelHeader chrome across editor panels
 
-**Download (Windows x64):** [Setup](https://github.com/basic-user-iom/3d/releases/download/v3.19.1/3D-Viewer-Setup-3.19.1-x64.exe) | [Portable](https://github.com/basic-user-iom/3d/releases/download/v3.19.1/3D-Viewer-Portable-3.19.1-x64.exe) | [Release notes](https://github.com/basic-user-iom/3d/releases/tag/v3.19.1)`,
+**Download (Windows x64):** [Setup](https://github.com/basic-user-iom/3d/releases/download/v3.19.2/3D-Viewer-Setup-3.19.2-x64.exe) | [Portable](https://github.com/basic-user-iom/3d/releases/download/v3.19.2/3D-Viewer-Portable-3.19.2-x64.exe) | [Release notes](https://github.com/basic-user-iom/3d/releases/tag/v3.19.2)`,
     },
     faq: [
       {
@@ -96,7 +96,7 @@ export const DEMO_BLOG_OVERRIDES = {
       },
       {
         q: 'Where do I get the Windows desktop build?',
-        a: 'Setup and Portable installers are on the [v3.19.1 GitHub release](https://github.com/basic-user-iom/3d/releases/tag/v3.19.1), also linked from [3dbviewer.com](https://3dbviewer.com/).',
+        a: 'Setup and Portable installers are on the [v3.19.2 GitHub release](https://github.com/basic-user-iom/3d/releases/tag/v3.19.2), also linked from [3dbviewer.com](https://3dbviewer.com/).',
       },
       {
         q: 'Can we brand it?',
@@ -105,7 +105,7 @@ export const DEMO_BLOG_OVERRIDES = {
     ],
     reading: [
       { label: '3D Viewer live', url: 'https://3dbviewer.com/' },
-      { label: 'v3.19.1 Windows downloads', url: 'https://github.com/basic-user-iom/3d/releases/tag/v3.19.1' },
+      { label: 'v3.19.2 Windows downloads', url: 'https://github.com/basic-user-iom/3d/releases/tag/v3.19.2' },
       { label: 'glTF overview — Khronos', url: 'https://www.khronos.org/gltf/' },
       { label: 'Streets GL live map', url: 'https://streets.gl/' },
       { label: 'Three.js', url: 'https://threejs.org/' },

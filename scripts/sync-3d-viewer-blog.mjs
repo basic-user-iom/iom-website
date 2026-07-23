@@ -113,9 +113,9 @@ if (existing) {
   console.log('Created published', SLUG)
 }
 
-console.log('has v3.19.1?', /v3\.19\.1/.test(row.body))
-console.log('has Electron 41?', /Electron 41/.test(row.body))
-console.log('has Setup download?', /3D-Viewer-Setup-3\.19\.1/.test(row.body))
+console.log('has v3.19.2?', /v3\.19\.2/.test(row.body))
+console.log('has Streets GL?', /Streets GL/.test(row.body))
+console.log('has Setup download?', /3D-Viewer-Setup-3\.19\.2/.test(row.body))
 
 for (const tmp of [join(ROOT, '.env.vercel.tmp')]) {
   try {
