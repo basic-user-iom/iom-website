@@ -256,6 +256,22 @@
         box-shadow: 0 0 0 3px rgb(124 140 255 / 13%);
       }
 
+      .access-contact {
+        margin: 1px 0 0;
+        color: #929ba8;
+        font-size: 13px;
+      }
+
+      .access-contact a {
+        color: #b9c1ff;
+        font-weight: 650;
+        text-underline-offset: 3px;
+      }
+
+      .access-contact a:hover {
+        color: #d4d8ff;
+      }
+
       .login-panel .error {
         min-height: 18px;
         margin: 0;
@@ -484,6 +500,13 @@
             autocomplete="one-time-code"
             required
           />
+          <p class="access-contact">
+            Need an access code?
+            <a
+              href="mailto:contact@iobjectm.com?subject=IOM%20Studio%20demo%20access%20code"
+              >Contact us</a
+            >.
+          </p>
           <p class="error" id="demo-code-error" role="alert"></p>
           <button class="button primary" type="submit">Open demo</button>
         </form>
