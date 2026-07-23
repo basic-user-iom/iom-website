@@ -742,7 +742,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             </span>
           </button>
           <a href="/#software" className="btn btn-ghost crm-topbar-back">
-            <span className="crm-topbar-btn-label">{t('topbar.backSite')}</span>
+            <span className="crm-topbar-btn-label">
+              {demoMode ? '← IOM' : t('topbar.backSite')}
+            </span>
           </a>
         </div>
       </header>

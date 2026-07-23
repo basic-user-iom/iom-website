@@ -14,6 +14,7 @@ const demosDir = join(root, 'public', 'demos')
 const DEMO_SECTION = {
   'streets-gl': 'software',
   'panorama-360': 'software',
+  'iom-studio': 'software',
   'raven-path': '3d',
   'ssr-denoise': '3d',
   'dreams-iom': '3d',
