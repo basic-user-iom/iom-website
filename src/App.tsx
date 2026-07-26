@@ -3,6 +3,7 @@ import { Header } from './components/Header'
 import { Hero } from './components/Hero'
 import { ProjectSectionBlock } from './components/ProjectSectionBlock'
 import { About } from './components/About'
+import { Clients } from './components/Clients'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
@@ -171,6 +172,7 @@ export default function App() {
             blurb={section.blurb}
           />
         ))}
+        <Clients />
         <About />
       </main>
       <Footer />

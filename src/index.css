@@ -2619,6 +2619,139 @@ body.music-player-fs-lock {
   text-decoration: underline;
 }
 
+/* Clients */
+.clients-block {
+  padding: clamp(3.5rem, 8vw, 5.5rem) clamp(1rem, 4vw, 3rem);
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+.clients-eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
+  margin: 0 0 0.85rem;
+}
+
+.clients-title {
+  font-family: var(--display);
+  font-size: clamp(1.65rem, 3.5vw, 2.35rem);
+  font-weight: 700;
+  max-width: 22ch;
+  margin: 0 auto 0.85rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.clients-text {
+  color: var(--text-muted);
+  max-width: 46ch;
+  margin: 0 auto 1.25rem;
+  font-size: 0.95rem;
+}
+
+.clients-style-toggle {
+  display: inline-flex;
+  gap: 0.35rem;
+  margin: 0 auto 1.75rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.clients-style-toggle button {
+  min-height: 32px;
+  padding: 0.3rem 0.75rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+}
+
+.clients-style-toggle button.is-active {
+  color: var(--bg);
+  background: var(--accent);
+}
+
+.clients-grid {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: stretch;
+  gap: 0.65rem 0.75rem;
+  width: min(100%, 920px);
+}
+
+.clients-mark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.7rem 1.15rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  color: rgba(236, 236, 242, 0.55);
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.clients-mark:hover,
+.clients-mark:focus-visible {
+  color: var(--client-brand, var(--text));
+  border-color: color-mix(in srgb, var(--client-brand, var(--border)) 35%, transparent);
+  background: color-mix(in srgb, var(--client-brand, transparent) 10%, transparent);
+}
+
+.clients-mark-text {
+  font-family: var(--display);
+  font-size: clamp(0.95rem, 2.2vw, 1.15rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 0.22s ease;
+}
+
+.clients-grid--wordmarks .clients-mark:hover .clients-mark-text,
+.clients-grid--wordmarks .clients-mark:focus-visible .clients-mark-text {
+  color: var(--client-brand, var(--text));
+}
+
+.clients-grid--logos .clients-mark {
+  min-height: 4.25rem;
+  min-width: 7.5rem;
+  padding: 0.85rem 1.25rem;
+}
+
+.clients-logo {
+  display: block;
+  height: 2.1rem;
+  width: auto;
+  max-width: 10.5rem;
+  object-fit: contain;
+  /* Muted mono at rest → brand color on hover */
+  filter: grayscale(1);
+  opacity: 0.7;
+  transition: opacity 0.22s ease, filter 0.22s ease;
+}
+
+.clients-mark:hover .clients-logo,
+.clients-mark:focus-visible .clients-logo {
+  filter: none;
+  opacity: 1;
+}
+
+/* Wide wordmarks (e.g. Facebook) need a bit more width */
+.clients-logo[src*='facebook'] {
+  height: 1.35rem;
+  max-width: 8.5rem;
+}
+
 /* About / CTA */
 .about-block {
   padding: clamp(4rem, 10vw, 7rem) clamp(1rem, 4vw, 3rem);

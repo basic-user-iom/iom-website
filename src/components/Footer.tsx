@@ -7,6 +7,7 @@ export const Footer = memo(function Footer() {
       <span className="footer-brand">IOM — Interactive Object Media</span>
       <div className="footer-links">
         <a href="/#about">About</a>
+        <a href="/#clients">Clients</a>
         <a href="/#360">Case Studies</a>
         <a href="/blog">Blog</a>
         <a href="/#contact">Contact</a>
