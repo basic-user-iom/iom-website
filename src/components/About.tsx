@@ -61,11 +61,17 @@ export const About = memo(function About() {
           The team behind the objects
         </h2>
         <p className="about-text">
-          IOM is a studio for interactive media — browser 3D viewers, WebGPU experiments, 360° tour
-          tools, and spatial archives. We combine technical craft with artistic direction so digital
-          objects feel alive — and so clients know exactly who they are hiring.
+          IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
+          experiences, and spatial archives. We combine technical development with artistic
+          direction to create digital objects that feel clear, purposeful, and alive.
+        </p>
+        <p className="about-text about-text--follow">
+          Our public-facing identities are Raven and Fox, but the collaboration is entirely human.
+          Clients meet the real people behind them during calls and work directly with everyone
+          involved in their project.
         </p>
 
+        <p className="about-team-label">Studio identities</p>
         <ul className="about-team">
           {TEAM.map((member) => (
             <TeamCard key={member.id} member={member} />

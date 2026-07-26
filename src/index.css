@@ -2622,7 +2622,19 @@ body.music-player-fs-lock {
 .about-text {
   color: var(--text-muted);
   max-width: 52ch;
-  margin: 0 auto 2rem;
+  margin: 0 auto 1.25rem;
+}
+
+.about-text--follow {
+  margin-bottom: 2rem;
+}
+
+.about-team-label {
+  margin: 0 auto 1rem;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--accent);
 }
 
 .about-team {
