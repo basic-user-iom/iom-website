@@ -7,6 +7,11 @@ import {
   readStoredMute,
   readStoredVolume,
 } from '../utils/audioPrefs'
+import {
+  claimAudioFocus,
+  releaseAudioFocus,
+  subscribeAudioFocus,
+} from '../utils/audioFocus'
 import { getDeviceProfile } from '../utils/device'
 import { createMusicPlayerVisualizer } from '../utils/createMusicPlayerVisualizer'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
@@ -748,6 +753,25 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     setPlaybackError(null)
     autoAdvanceTriggeredRef.current = false
   }, [applyUserVolume, cancelCrossfade, ensureTrackRef, getActiveAudio, getAudioForSlot, getInactiveSlot])
+
+  useEffect(() => {
+    if (isPlaying) {
+      claimAudioFocus('music')
+    } else {
+      releaseAudioFocus('music')
+    }
+    return () => releaseAudioFocus('music')
+  }, [isPlaying])
+
+  useEffect(() => {
+    return subscribeAudioFocus((detail) => {
+      if (!detail.active || detail.actor !== 'gallery') return
+      cancelCrossfade()
+      getActiveAudio()?.pause()
+      getAudioForSlot(getInactiveSlot())?.pause()
+      setIsPlaying(false)
+    })
+  }, [cancelCrossfade, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   const toggleMute = useCallback(() => {
     unlockAudioContext()

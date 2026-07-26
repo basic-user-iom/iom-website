@@ -328,7 +328,7 @@ export const ContactForm = memo(function ContactForm() {
 
           <p className="contact-form-feedback contact-form-feedback--success" role="status">
 
-            Message sent — we&apos;ll get back to you soon.
+            Message sent — we&apos;ll reply within two business days.
 
           </p>
 

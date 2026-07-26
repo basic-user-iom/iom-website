@@ -38,6 +38,8 @@ export interface Project {
   comingSoonOverlay?: boolean
   /** Label shown on the coming-soon overlay (default: Coming Soon) */
   comingSoonLabel?: string
+  /** Internal process case-study path (e.g. /case-studies/3d-viewer) */
+  caseStudyPath?: string
   archiveId: string
 }
 
@@ -61,9 +63,9 @@ export const SECTIONS: { id: ProjectSection; label: string; blurb: string }[] = 
   },
   {
     id: '360',
-    label: '360 Tours',
+    label: 'Case Studies',
     blurb:
-      'Immersive 360° panorama architecture tours and spatial walkthroughs for place and exhibition.',
+      'Process deep-dives — from brief and layout through engineering to the final interactive build clients can open.',
   },
   {
     id: 'photography',
@@ -98,6 +100,20 @@ export const PROJECTS: Project[] = [
     mobilePosterUrl: '/assets/posters/3d-viewer.jpg',
     featured: true,
     archiveId: 'OBJ-0041',
+  },
+  {
+    id: 'case-study-3d-viewer',
+    title: '3D Viewer — from brief to WebGL',
+    section: '360',
+    tags: ['case study', 'three.js', 'product', 'webgl'],
+    description:
+      'How we turn a review problem into a shippable product — layout chrome, engineering, HDR lighting, and Streets GL city context for client decisions.',
+    year: '2024–26',
+    url: '/case-studies/3d-viewer',
+    posterUrl: '/assets/posters/3d-viewer.jpg',
+    mobilePosterUrl: '/assets/posters/3d-viewer.jpg',
+    thumbnail: '/assets/posters/3d-viewer.jpg',
+    archiveId: 'OBJ-CS01',
   },
   {
     id: 'streets-gl-bridge',
@@ -182,16 +198,16 @@ export const PROJECTS: Project[] = [
   },
   {
     id: 'panorama-suite',
-    title: 'The Black Witness — 360° Tour',
+    title: 'The Black Witness — from brief to 360°',
     section: '360',
-    tags: ['equirectangular', 'hotspots', 'guided tour', 'webgpu'],
+    tags: ['case study', 'equirectangular', 'hotspots', 'webgpu'],
     description:
-      'Interactive 360° walkthrough of The Black Witness — hotspots, guided tour steps, and WebGPU effects. Opens in visitor preview (no editor) at yaw −84.7°, pitch −6°.',
+      'Guided 360° storytelling on The Black Witness — brief, hotspot design, WebGPU effect layers, and a shareable visitor preview clients can open without an editor.',
     year: '2026',
-    url: '/demos/panorama-360/?mode=preview&yaw=-84.7&pitch=-6',
-    embedUrl: '/demos/panorama-360/?mode=preview&yaw=-84.7&pitch=-6',
+    url: '/case-studies/black-witness',
     posterUrl: '/assets/posters/panorama-360-tour.jpg?v=20260715-1',
     mobilePosterUrl: '/assets/posters/panorama-360-tour.jpg?v=20260715-1',
+    thumbnail: '/assets/posters/panorama-360-tour.jpg?v=20260715-1',
     archiveId: 'OBJ-0056',
   },
   {

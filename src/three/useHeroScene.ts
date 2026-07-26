@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { clone as cloneSkinnedScene } from 'three/examples/jsm/utils/SkeletonUtils.js'
@@ -402,14 +402,38 @@ function updateFlockMember(
   applyCloudBlend(materials, baseColors, density, z, elapsed)
 }
 
-export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null>) {
+export type HeroSceneLoadStatus = {
+  /** 0–1 approximate load progress for UI */
+  progress: number
+  phase: 'boot' | 'clouds' | 'ravens' | 'ready'
+}
+
+export type UseHeroSceneOptions = {
+  onStatus?: (status: HeroSceneLoadStatus) => void
+}
+
+export function useHeroScene(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+  options?: UseHeroSceneOptions,
+) {
+  const onStatusRef = useRef(options?.onStatus)
+  onStatusRef.current = options?.onStatus
+
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
 
+    const report = (progress: number, phase: HeroSceneLoadStatus['phase']) => {
+      onStatusRef.current?.({ progress: Math.min(1, Math.max(0, progress)), phase })
+    }
+    report(0.05, 'boot')
+
     const profile = getDeviceProfile()
     const prefersReduced = profile.prefersReducedMotion
-    if (prefersReduced) return
+    if (prefersReduced) {
+      report(1, 'ready')
+      return
+    }
     const clock = new THREE.Clock()
     let isVisible = !document.hidden
     let isIntersecting = true
@@ -508,6 +532,10 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
     let ravenIdleHandle: number | null = null
 
     const loadingManager = new THREE.LoadingManager()
+    loadingManager.onProgress = (_url, loaded, total) => {
+      if (total <= 0) return
+      report(0.45 + (loaded / total) * 0.5, 'ravens')
+    }
     loadingManager.onError = (url) => {
       console.error('Hero raven asset failed to load:', url)
     }
@@ -516,6 +544,7 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
 
     const onRavenGltfLoaded = (gltf: GLTF) => {
       if (ravenLoadAborted) return
+      report(0.95, 'ravens')
 
       const addMember = (
         model: THREE.Object3D,
@@ -546,6 +575,7 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
         const mobileScale = profile.isMobile ? FATHER_SCALE * MOBILE_RAVEN_SCALE_MUL : SON_SCALE
         const mobileOffset = profile.isMobile ? MOBILE_FLOCK_OFFSET : FLOCK_OFFSETS[1]
         addMember(fatherModel, mobileScale, mobileOffset, 0)
+        report(1, 'ready')
         return
       }
 
@@ -558,11 +588,15 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       addMember(fatherModel, FATHER_SCALE, FLOCK_OFFSETS[0], 0)
       addMember(sonModel, SON_SCALE, FLOCK_OFFSETS[1], 1.2)
 
-      if (profile.ravenCount < 3) return
+      if (profile.ravenCount < 3) {
+        report(1, 'ready')
+        return
+      }
 
       const motherModel = cloneSkinnedScene(gltf.scene)
       if (!isSingleRavenLod) hideFirstRaven(motherModel)
       addMember(motherModel, MOTHER_SCALE, FLOCK_OFFSETS[2], 2.4)
+      report(1, 'ready')
     }
 
     const startRavenLoad = () => {
@@ -576,7 +610,9 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
         ravenLoadAborted = true
         abortController.abort()
         console.warn('Hero raven load timed out — clouds-only fallback')
+        report(1, 'ready')
       }, RAVEN_LOAD_TIMEOUT_MS)
+      report(0.4, 'ravens')
 
       const clearRavenTimeout = () => {
         if (ravenLoadTimeout) {
@@ -588,6 +624,7 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       const failRavenLoad = (error: unknown) => {
         clearRavenTimeout()
         ravenLoadAborted = true
+        report(1, 'ready')
         if (abortController.signal.aborted) return
         console.error('Hero raven model failed to load:', ravenModelUrl, error)
       }
@@ -819,7 +856,12 @@ export function useHeroScene(containerRef: React.RefObject<HTMLDivElement | null
       if (!cloudFirstFrameDone) {
         cloudFirstFrameDone = true
         container.classList.add('hero-canvas-wrap--live')
-        requestAnimationFrame(() => scheduleRavenLoad())
+        report(0.35, 'clouds')
+        if (profile.ravenCount === 0) {
+          report(1, 'ready')
+        } else {
+          requestAnimationFrame(() => scheduleRavenLoad())
+        }
       } else if (!cloudQualityReady) {
         framesSinceCloudVisible += 1
         if (framesSinceCloudVisible >= 2) scheduleCloudQualityUpgrade()

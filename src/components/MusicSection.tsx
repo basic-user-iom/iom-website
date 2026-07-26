@@ -37,11 +37,20 @@ export const MusicSection = memo(function MusicSection({ index, label, blurb }: 
   }, [])
 
   return (
-    <section className="section-block section-block--music" id="music" ref={sectionRef}>
+    <section
+      className="section-block section-block--music"
+      id="music"
+      ref={sectionRef}
+      aria-labelledby="music-heading"
+    >
       <header className="section-header">
-        <span className="section-index">{index}</span>
+        <span className="section-index" aria-hidden="true">
+          {index}
+        </span>
         <div>
-          <h2 className="section-title">{label}</h2>
+          <h2 className="section-title" id="music-heading">
+            {label}
+          </h2>
           <p className="section-blurb">{blurb}</p>
         </div>
       </header>

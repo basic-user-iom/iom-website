@@ -323,6 +323,12 @@ function BlogPostPage({ slug }: { slug: string }) {
           <p>
             Exploring immersive web, 360°, or interactive 3D for your project?
             <br />
+            {slug === '3d-viewer' ? (
+              <a href="/case-studies/3d-viewer">Process case study</a>
+            ) : null}
+            {slug === 'panorama-suite' || slug === 'panorama-360-tour' ? (
+              <a href="/case-studies/black-witness">Process case study</a>
+            ) : null}
             <a href="/#contact">Talk to IOM</a>
             <a href="/#3d">See our work</a>
           </p>
@@ -431,7 +437,7 @@ export function BlogApp() {
   return (
     <>
       <Header />
-      <main className="blog-main">
+      <main id="main-content" className="blog-main">
         {!BLOG_PUBLIC_ENABLED ? (
           <BlogComingSoon />
         ) : (

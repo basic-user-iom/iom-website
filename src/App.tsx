@@ -4,8 +4,10 @@ import { Hero } from './components/Hero'
 import { ProjectSectionBlock } from './components/ProjectSectionBlock'
 import { About } from './components/About'
 import { Footer } from './components/Footer'
+import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
 import { BlogApp, isBlogPath } from './blog/BlogApp'
+import { CaseStudyApp, isCaseStudyPath } from './case-studies/CaseStudyApp'
 import { CrmApp } from './crm/CrmApp'
 import {
   RecordingSharePage,
@@ -56,6 +58,7 @@ export default function App() {
   const recordingSlug = isRecordingShare ? recordingSlugFromPath(path) : null
   const isArtistGlobe = isArtistGlobePath(path)
   const isBlog = isBlogPath(path)
+  const isCaseStudy = isCaseStudyPath(path)
   const isIcmDemo = isIcmDemoPath(path)
   const isImagePrep = isImagePrepPath(path)
 
@@ -138,11 +141,17 @@ export default function App() {
     return <BlogApp />
   }
 
+  if (isCaseStudy) {
+    return <CaseStudyApp />
+  }
+
   if (isClientLogin || isCrmDemo) {
     return (
       <>
         <Header />
-        <CrmApp demo={isCrmDemo} />
+        <main id="main-content">
+          <CrmApp demo={isCrmDemo} />
+        </main>
       </>
     )
   }
@@ -150,7 +159,8 @@ export default function App() {
   return (
     <>
       <Header />
-      <main>
+      <SiteAmbientAudio />
+      <main id="main-content">
         <Hero />
         {SECTIONS.map((section, i) => (
           <ProjectSectionBlock

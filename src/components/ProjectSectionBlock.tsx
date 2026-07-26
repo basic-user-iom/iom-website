@@ -48,11 +48,20 @@ export const ProjectSectionBlock = memo(function ProjectSectionBlock({
   }
 
   return (
-    <section className="section-block" id={id} ref={sectionRef}>
+    <section
+      className="section-block"
+      id={id}
+      ref={sectionRef}
+      aria-labelledby={`${id}-heading`}
+    >
       <header className="section-header">
-        <span className="section-index">{index}</span>
+        <span className="section-index" aria-hidden="true">
+          {index}
+        </span>
         <div>
-          <h2 className="section-title">{label}</h2>
+          <h2 className="section-title" id={`${id}-heading`}>
+            {label}
+          </h2>
           <p className="section-blurb">{blurb}</p>
         </div>
       </header>

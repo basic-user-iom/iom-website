@@ -110,6 +110,34 @@ export function pageMetaForPath(pathname: string): PageMeta {
     }
   }
 
+  if (path === '/case-studies' || path.startsWith('/case-studies/')) {
+    const isViewer = path === '/case-studies/3d-viewer'
+    const isWitness = path === '/case-studies/black-witness'
+    return {
+      title: isViewer
+        ? `${SITE_NAME} — 3D Viewer case study`
+        : isWitness
+          ? `${SITE_NAME} — Black Witness 360° case study`
+          : `${SITE_NAME} — Case studies`,
+      description: isViewer
+        ? 'From brief to WebGL: how IOM builds the 3D Viewer — layout chrome, engineering, HDR lighting, and Streets GL city context for client review.'
+        : isWitness
+          ? 'From brief to 360°: how The Black Witness becomes a guided panorama tour with hotspots and WebGPU effect layers.'
+          : 'Process case studies from Interactive Object Media — brief to final interactive build.',
+      canonical: `${SITE_ORIGIN}${path}`,
+      ogImage: isWitness
+        ? `${SITE_ORIGIN}/assets/posters/panorama-360-tour.jpg`
+        : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
+      keywords: [
+        'case study',
+        'WebGL',
+        '360 panorama',
+        'Three.js',
+        'interactive media studio',
+      ],
+    }
+  }
+
   if (path === '/') {
     return {
       title: DEFAULT_TITLE,

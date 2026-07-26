@@ -23,9 +23,25 @@ export function collectSitemapEntries(): SitemapEntry[] {
       changefreq: 'weekly',
       priority: 1,
     },
+    {
+      loc: `${SITE_ORIGIN}/case-studies/3d-viewer/`,
+      lastmod: BUILD_DATE,
+      changefreq: 'monthly',
+      priority: 0.85,
+    },
+    {
+      loc: `${SITE_ORIGIN}/case-studies/black-witness/`,
+      lastmod: BUILD_DATE,
+      changefreq: 'monthly',
+      priority: 0.85,
+    },
   ]
 
-  const seen = new Set<string>([`${SITE_ORIGIN}/`])
+  const seen = new Set<string>([
+    `${SITE_ORIGIN}/`,
+    `${SITE_ORIGIN}/case-studies/3d-viewer/`,
+    `${SITE_ORIGIN}/case-studies/black-witness/`,
+  ])
 
   for (const project of PROJECTS) {
     const raw = project.url?.trim()

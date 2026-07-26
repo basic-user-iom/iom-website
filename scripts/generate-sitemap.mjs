@@ -131,6 +131,8 @@ async function collectEntries() {
   add(`${SITE_ORIGIN}/`, 1)
   // Public journal hub (coming-soon until BLOG_PUBLIC_ENABLED)
   add('/blog/', 0.8)
+  add('/case-studies/3d-viewer/', 0.85)
+  add('/case-studies/black-witness/', 0.85)
 
   for (const url of parseProjectUrls()) add(url)
   for (const url of demoUrls()) add(url)

@@ -279,8 +279,18 @@ export const ProjectCard = memo(function ProjectCard({
           <div className="card-footer">
             <div className="card-footer-meta">
               <span className="card-year">{project.year}</span>
-              {project.sourceUrl || project.referenceUrls?.length ? (
+              {project.sourceUrl || project.referenceUrls?.length || project.caseStudyPath ? (
                 <span className="card-footer-links">
+                  {project.caseStudyPath ? (
+                    <a
+                      className="card-source-link"
+                      href={project.caseStudyPath}
+                      title="Case study"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      Case study
+                    </a>
+                  ) : null}
                   {project.sourceUrl ? (
                     <a
                       className="card-source-link"
@@ -310,7 +320,19 @@ export const ProjectCard = memo(function ProjectCard({
               ) : null}
             </div>
             <div className="card-footer-action">
-              {project.url ? (
+              {project.url && project.caseStudyPath ? (
+                <a
+                  className="card-link"
+                  href={project.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  Open →
+                </a>
+              ) : project.url?.startsWith('/case-studies/') ? (
+                <span className="card-link">View study →</span>
+              ) : project.url ? (
                 <span className="card-link">Open →</span>
               ) : hasGallery ? (
                 <span className="card-link">View gallery →</span>
@@ -335,19 +357,34 @@ export const ProjectCard = memo(function ProjectCard({
   )
 
   const className = `project-card reveal${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
+  const hasCaseStudy = Boolean(project.caseStudyPath)
 
-  if (project.url && !isComingSoon) {
+  // Nested links are invalid inside a wrapping <a> — article + footer links when case study exists.
+  if (project.url && !isComingSoon && !hasCaseStudy) {
+    const openInNewTab = project.url.startsWith('http') || project.url.startsWith('/demos/')
     return (
       <a
         id={project.id}
         href={project.url}
         className={className}
         style={style}
-        target="_blank"
-        rel="noopener noreferrer"
+        {...(openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
       >
         {inner}
       </a>
+    )
+  }
+
+  if (project.url && !isComingSoon && hasCaseStudy) {
+    return (
+      <article
+        id={project.id}
+        className={`${className} project-card--multi-link`}
+        style={style}
+        aria-label={`${project.title} — open product or case study`}
+      >
+        {inner}
+      </article>
     )
   }
 

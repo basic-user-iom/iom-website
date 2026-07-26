@@ -6,6 +6,7 @@ import {
 } from '../utils/deviceOrientationParallax'
 import { getDeviceProfile } from '../utils/device'
 import { reportHeroVisibility } from '../utils/embedVisibility'
+import type { HeroSceneLoadStatus } from '../three/useHeroScene'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
 
@@ -17,6 +18,12 @@ type FullscreenDocument = Document & {
 type FullscreenElement = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void>
 }
+
+const LOADER_LINES = [
+  'Objects worth exploring — craft you can open on a call.',
+  'Software, space, and atmosphere — built to ship.',
+  'Digital objects become stories clients can hire.',
+] as const
 
 function isNativeFullscreenActive(el: HTMLElement | null): boolean {
   if (!el) return false
@@ -30,9 +37,22 @@ export function Hero() {
   const [motionStatus, setMotionStatus] = useState<MotionParallaxStatus>('disabled')
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
+  const [loadStatus, setLoadStatus] = useState<HeroSceneLoadStatus>({
+    progress: 0,
+    phase: 'boot',
+  })
+  const [loaderLineIndex, setLoaderLineIndex] = useState(0)
+  const [loaderVisible, setLoaderVisible] = useState(() => !getDeviceProfile().prefersReducedMotion)
   const profile = getDeviceProfile()
   const useStaticHero = profile.prefersReducedMotion
   const isFullscreen = nativeFullscreen || pseudoFullscreen
+
+  const onSceneStatus = useCallback((status: HeroSceneLoadStatus) => {
+    setLoadStatus(status)
+    if (status.phase === 'ready') {
+      window.setTimeout(() => setLoaderVisible(false), 420)
+    }
+  }, [])
 
   // Report hero viewport presence even when WebGL is static/disabled so embed slots work.
   useEffect(() => {
@@ -60,6 +80,14 @@ export function Hero() {
     void import('./HeroSceneMount')
     setSceneReady(true)
   }, [useStaticHero])
+
+  useEffect(() => {
+    if (!loaderVisible || useStaticHero) return
+    const id = window.setInterval(() => {
+      setLoaderLineIndex((i) => (i + 1) % LOADER_LINES.length)
+    }, 2200)
+    return () => window.clearInterval(id)
+  }, [loaderVisible, useStaticHero])
 
   useEffect(() => {
     return subscribeMotionParallaxStatus(setMotionStatus)
@@ -140,11 +168,13 @@ export function Hero() {
   const motionHudLabel =
     motionStatus === 'active' ? 'TILT · LIVE' : showMotionPrompt ? null : 'CAM · ORBIT'
 
+  const progressPct = Math.round(loadStatus.progress * 100)
+
   return (
-    <section className="hero" id="top">
+    <section className="hero" id="top" aria-labelledby="hero-heading">
       <div className="hero-content">
         <p className="hero-eyebrow">Agency · Archive · Objects</p>
-        <h1 className="hero-title">
+        <h1 className="hero-title" id="hero-heading">
           Interactive
           <span>Object Media</span>
         </h1>
@@ -166,12 +196,25 @@ export function Hero() {
         <div
           className={`hero-canvas-wrap${useStaticHero ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}`}
           ref={canvasRef}
+          role="img"
+          aria-label="Decorative WebGL scene: clouds and ravens in atmospheric light. Content is described in the page text."
         >
           {sceneReady && !useStaticHero && (
             <Suspense fallback={null}>
-              <HeroSceneMount containerRef={canvasRef} />
+              <HeroSceneMount containerRef={canvasRef} onStatus={onSceneStatus} />
             </Suspense>
           )}
+          {loaderVisible && !useStaticHero ? (
+            <div className="hero-loader" role="status" aria-live="polite" aria-atomic="true">
+              <p className="hero-loader-line">{LOADER_LINES[loaderLineIndex]}</p>
+              <div className="hero-loader-bar" aria-hidden="true">
+                <span className="hero-loader-bar-fill" style={{ width: `${progressPct}%` }} />
+              </div>
+              <p className="hero-loader-meta">
+                {loadStatus.phase === 'ready' ? 'Ready' : `Loading scene · ${progressPct}%`}
+              </p>
+            </div>
+          ) : null}
           <div className="viewer-chrome">
             <span className="viewer-corner viewer-corner--tl" aria-hidden="true" />
             <span className="viewer-corner viewer-corner--tr" aria-hidden="true" />

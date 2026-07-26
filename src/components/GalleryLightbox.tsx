@@ -6,6 +6,11 @@ import {
   readStoredMute,
   readStoredVolume,
 } from '../utils/audioPrefs'
+import {
+  claimAudioFocus,
+  releaseAudioFocus,
+  subscribeAudioFocus,
+} from '../utils/audioFocus'
 
 interface GalleryLightboxProps {
   title: string
@@ -123,21 +128,39 @@ export function GalleryLightbox({
     audio.muted = readStoredMute('gallery')
     audioRef.current = audio
 
-    const onPlay = () => setIsPlaying(true)
-    const onPause = () => setIsPlaying(false)
+    const onPlay = () => {
+      claimAudioFocus('gallery')
+      setIsPlaying(true)
+    }
+    const onPause = () => {
+      setIsPlaying(false)
+      releaseAudioFocus('gallery')
+    }
 
     audio.addEventListener('play', onPlay)
     audio.addEventListener('pause', onPause)
 
-    void audio.play().catch(() => setIsPlaying(false))
+    const unsubscribeFocus = subscribeAudioFocus((detail) => {
+      if (detail.active && detail.actor === 'music') {
+        audio.pause()
+      }
+    })
+
+    claimAudioFocus('gallery')
+    void audio.play().catch(() => {
+      setIsPlaying(false)
+      releaseAudioFocus('gallery')
+    })
 
     return () => {
+      unsubscribeFocus()
       audio.removeEventListener('play', onPlay)
       audio.removeEventListener('pause', onPause)
       audio.pause()
       audio.src = ''
       audioRef.current = null
       setIsPlaying(false)
+      releaseAudioFocus('gallery')
     }
   }, [audioUrl])
 
