@@ -263,7 +263,7 @@ button:focus:not(:focus-visible) {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  transition: color 0.2s, border-color 0.2s, background 0.2s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
 }
 
 .header-mute:hover,
@@ -272,10 +272,38 @@ button:focus:not(:focus-visible) {
   border-color: var(--border-accent);
 }
 
-.header-mute[aria-pressed='false'] {
+/* Active (sound on): accent chip */
+.header-mute[aria-pressed='true'] {
   color: var(--accent);
   border-color: var(--border-accent);
   background: var(--accent-glow);
+}
+
+/* Idle Listen CTA: soft pulse until the visitor turns sound on */
+.header-mute--listen {
+  color: var(--accent);
+  border-color: rgba(94, 184, 192, 0.55);
+  animation: header-mute-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes header-mute-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(94, 184, 192, 0);
+    border-color: rgba(94, 184, 192, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(94, 184, 192, 0.14);
+    border-color: rgba(94, 184, 192, 0.85);
+    color: #7ec8cf;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-mute--listen {
+    animation: none;
+    box-shadow: 0 0 0 3px rgba(94, 184, 192, 0.12);
+  }
 }
 
 .header-cta {

@@ -111,13 +111,13 @@ export function Header() {
       <div className="header-tools">
         <button
           type="button"
-          className="header-mute"
+          className={`header-mute${siteMuted ? ' header-mute--listen' : ''}`}
           onClick={handleMuteClick}
-          aria-label={siteMuted ? 'Unmute ambient sound' : 'Mute ambient sound'}
-          aria-pressed={siteMuted}
-          title={siteMuted ? 'Unmute ambient sound' : 'Mute ambient sound'}
+          aria-label={siteMuted ? 'Listen to ambient sound' : 'Mute ambient sound'}
+          aria-pressed={!siteMuted}
+          title={siteMuted ? 'Listen to ambient sound' : 'Mute ambient sound'}
         >
-          {siteMuted ? 'Sound off' : 'Mute'}
+          {siteMuted ? 'Listen' : 'Mute'}
         </button>
         <a href="/#contact" className="header-cta" onClick={closeMenu}>
           Get in touch
