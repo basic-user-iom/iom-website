@@ -2682,24 +2682,20 @@ body.music-player-fs-lock {
   margin: 0 auto;
   padding: 1rem 0.5rem 1.35rem;
   overflow: visible;
-  perspective: 1100px;
-  perspective-origin: 50% 42%;
-  transform-style: preserve-3d;
 }
 
-/* Soft light orb — closer / brighter plane than the logo strip */
+/* Soft light orbs — 2D layer above logos (pointer-events none keeps links clickable) */
 .clients-orb {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 5;
-  width: 18px;
-  height: 18px;
-  margin: -9px 0 0 -9px;
+  z-index: 10;
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
   border-radius: 50%;
   pointer-events: none;
   will-change: transform;
-  transform-style: preserve-3d;
   background: radial-gradient(
     circle,
     rgba(255, 255, 255, 1) 0%,
@@ -2709,15 +2705,55 @@ body.music-player-fs-lock {
     transparent 80%
   );
   box-shadow:
-    0 0 12px 4px rgba(255, 255, 255, 0.45),
-    0 0 34px 14px rgba(0, 229, 255, 0.42),
-    0 0 70px 28px rgba(0, 229, 255, 0.16);
-  transition: opacity 0.25s;
+    0 0 6px 2px rgba(255, 255, 255, 0.45),
+    0 0 17px 7px rgba(0, 229, 255, 0.42),
+    0 0 35px 14px rgba(0, 229, 255, 0.16);
+  transition: opacity 0.2s, box-shadow 0.2s;
   filter: blur(0.2px);
+  opacity: 0.92;
 }
 
-.clients-stage.is-paused .clients-orb {
-  opacity: 0.28;
+.clients-orb--1 {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(200, 230, 255, 0.9) 28%,
+    rgba(120, 180, 255, 0.5) 48%,
+    rgba(80, 140, 255, 0.12) 68%,
+    transparent 80%
+  );
+  box-shadow:
+    0 0 6px 2px rgba(255, 255, 255, 0.4),
+    0 0 16px 6px rgba(120, 180, 255, 0.4),
+    0 0 32px 12px rgba(80, 140, 255, 0.14);
+}
+
+.clients-orb--2 {
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 255, 240, 0.88) 28%,
+    rgba(0, 220, 200, 0.48) 48%,
+    rgba(0, 200, 180, 0.1) 68%,
+    transparent 80%
+  );
+  box-shadow:
+    0 0 6px 2px rgba(255, 255, 255, 0.4),
+    0 0 16px 6px rgba(0, 220, 200, 0.38),
+    0 0 32px 12px rgba(0, 200, 180, 0.14);
+}
+
+.clients-orb.is-attending-orb {
+  opacity: 1;
+  filter: blur(0);
+  box-shadow:
+    0 0 8px 3px rgba(255, 255, 255, 0.55),
+    0 0 22px 9px rgba(0, 229, 255, 0.5),
+    0 0 40px 16px rgba(0, 229, 255, 0.22);
+}
+
+.clients-stage.is-attending .clients-orb {
+  z-index: 12;
 }
 
 .clients-stage--static .clients-orb,
@@ -2737,9 +2773,6 @@ body.music-player-fs-lock {
   align-items: stretch;
   gap: 0.75rem 0.85rem;
   width: 100%;
-  /* Logos sit further back in space */
-  transform: translateZ(-56px) scale(0.935);
-  transform-style: preserve-3d;
   filter: brightness(0.9) saturate(0.92);
 }
 
@@ -2748,6 +2781,7 @@ body.music-player-fs-lock {
   --reflect-y: 50%;
   --reflect-i: 0;
   position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2755,23 +2789,35 @@ body.music-player-fs-lock {
   padding: 0.7rem 1.15rem;
   overflow: hidden;
   isolation: isolate;
+  cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.04);
   border-radius: 10px;
-  color: rgba(236, 236, 242, 0.55);
-  background: linear-gradient(165deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 45%, rgba(0, 0, 0, 0.18) 100%);
+  color: color-mix(
+    in srgb,
+    var(--client-brand, rgba(236, 236, 242, 0.9)) calc(var(--reflect-i) * 70%),
+    rgba(236, 236, 242, 0.55)
+  );
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 45%, rgba(0, 0, 0, 0.18) 100%),
+    color-mix(in srgb, var(--client-brand, transparent) calc(var(--reflect-i) * 8%), transparent);
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.04) inset,
     0 -1px 0 rgba(0, 0, 0, 0.35) inset,
     0 10px 22px rgba(0, 0, 0, 0.45),
     0 22px 40px rgba(0, 0, 0, 0.28),
-    0 0 calc(22px * var(--reflect-i)) color-mix(in srgb, var(--accent) calc(45% * var(--reflect-i)), transparent);
-  transform: translateY(0);
+    0 0 calc(14px * var(--reflect-i)) color-mix(in srgb, var(--client-brand, var(--accent)) calc(35% * var(--reflect-i)), transparent);
+  transform: translateY(calc(var(--reflect-i) * -1px));
+  border-color: color-mix(
+    in srgb,
+    var(--client-brand, rgba(255, 255, 255, 0.04)) calc(var(--reflect-i) * 28%),
+    rgba(255, 255, 255, 0.04)
+  );
   transition:
-    color 0.22s,
-    border-color 0.22s,
-    background 0.22s,
-    box-shadow 0.22s,
-    transform 0.22s;
+    color 0.45s ease,
+    border-color 0.45s ease,
+    background 0.45s ease,
+    box-shadow 0.45s ease,
+    transform 0.45s ease;
 }
 
 /* Specular reflection that tracks the orbiting orb */
@@ -2781,7 +2827,7 @@ body.music-player-fs-lock {
   z-index: 2;
   pointer-events: none;
   border-radius: inherit;
-  opacity: calc(0.15 + var(--reflect-i) * 0.85);
+  opacity: calc(0.08 + var(--reflect-i) * 0.55);
   background:
     radial-gradient(
       circle 4.5rem at var(--reflect-x) var(--reflect-y),
@@ -2799,20 +2845,15 @@ body.music-player-fs-lock {
   mix-blend-mode: screen;
 }
 
+/* Hover lifts the tile; color still comes only from --reflect-i (orb inside square). */
 .clients-mark:hover,
 .clients-mark:focus-visible {
-  color: var(--client-brand, var(--text));
-  border-color: color-mix(in srgb, var(--client-brand, var(--border)) 40%, transparent);
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(0, 0, 0, 0.2) 100%),
-    color-mix(in srgb, var(--client-brand, transparent) 12%, transparent);
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.08) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.4) inset,
-    0 14px 28px rgba(0, 0, 0, 0.5),
-    0 28px 48px rgba(0, 0, 0, 0.3),
-    0 2px 8px color-mix(in srgb, var(--client-brand, transparent) 28%, transparent);
-  transform: translateY(-3px) translateZ(8px);
+  transform: translateY(-3px);
+  border-color: color-mix(
+    in srgb,
+    var(--client-brand, var(--border)) calc(18% + var(--reflect-i) * 22%),
+    rgba(255, 255, 255, 0.04)
+  );
 }
 
 .clients-mark-text {
@@ -2825,20 +2866,21 @@ body.music-player-fs-lock {
   text-transform: uppercase;
   white-space: nowrap;
   transform: translateY(0);
+  pointer-events: none;
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.08),
-    0 2px 4px rgba(0, 0, 0, 0.55);
-  transition: color 0.22s ease, text-shadow 0.22s ease, transform 0.22s ease;
+    0 2px 4px rgba(0, 0, 0, 0.55),
+    0 0 calc(12px * var(--reflect-i)) color-mix(in srgb, var(--client-brand, transparent) calc(var(--reflect-i) * 40%), transparent);
+  transition: color 0.18s ease, text-shadow 0.18s ease, transform 0.18s ease;
 }
 
-.clients-grid--wordmarks .clients-mark:hover .clients-mark-text,
-.clients-grid--wordmarks .clients-mark:focus-visible .clients-mark-text {
-  color: var(--client-brand, var(--text));
-  transform: translateY(-1px);
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.12),
-    0 3px 8px rgba(0, 0, 0, 0.55),
-    0 0 14px color-mix(in srgb, var(--client-brand, transparent) 35%, transparent);
+.clients-grid--wordmarks .clients-mark-text {
+  color: color-mix(
+    in srgb,
+    var(--client-brand, rgba(236, 236, 242, 0.9)) calc(var(--reflect-i) * 75%),
+    rgba(236, 236, 242, 0.55)
+  );
+  transition: color 0.45s ease, text-shadow 0.45s ease, transform 0.45s ease;
 }
 
 .clients-grid--logos .clients-mark {
@@ -2855,24 +2897,22 @@ body.music-player-fs-lock {
   width: auto;
   max-width: 10.5rem;
   object-fit: contain;
-  transform: translateY(0);
-  /* Muted mono + soft depth at rest → full color + lift on hover */
+  pointer-events: none;
+  transform: translateY(calc(var(--reflect-i) * -1px)) scale(calc(1 + var(--reflect-i) * 0.02));
+  /* Soft mono → color only while an orb is inside this tile */
   filter:
-    grayscale(1)
+    grayscale(calc(1 - var(--reflect-i) * 0.85))
+    saturate(calc(0.55 + var(--reflect-i) * 0.45))
     drop-shadow(0 1px 1px rgba(0, 0, 0, 0.55))
-    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4));
-  opacity: 0.78;
-  transition: opacity 0.22s ease, filter 0.22s ease, transform 0.22s ease;
+    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.4))
+    drop-shadow(0 0 calc(6px * var(--reflect-i)) color-mix(in srgb, var(--client-brand, transparent) calc(var(--reflect-i) * 22%), transparent));
+  opacity: calc(0.78 + 0.18 * var(--reflect-i));
+  transition: opacity 0.5s ease, filter 0.55s ease, transform 0.45s ease;
 }
 
 .clients-mark:hover .clients-logo,
 .clients-mark:focus-visible .clients-logo {
-  filter:
-    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5))
-    drop-shadow(0 8px 14px rgba(0, 0, 0, 0.45))
-    drop-shadow(0 0 10px color-mix(in srgb, var(--client-brand, transparent) 30%, transparent));
-  opacity: 1;
-  transform: translateY(-2px) scale(1.03);
+  transform: translateY(calc(-2px - var(--reflect-i) * 0.5px)) scale(calc(1.02 + var(--reflect-i) * 0.02));
 }
 
 /* Wide wordmarks (e.g. Facebook) need a bit more width */
@@ -2891,14 +2931,14 @@ body.music-player-fs-lock {
   object-fit: contain;
   object-position: center center;
   /* Capitals sit optically high; nudge down to match crest/wordmark logos */
-  transform: translateY(2px);
+  transform: translateY(calc(2px - var(--reflect-i) * 2px)) scale(calc(1 + var(--reflect-i) * 0.03));
 }
 
 .clients-mark:hover .clients-logo[src*='veolia'],
 .clients-mark:focus-visible .clients-logo[src*='veolia'],
 .clients-mark:hover .clients-logo[src*='aggreko'],
 .clients-mark:focus-visible .clients-logo[src*='aggreko'] {
-  transform: translateY(0) scale(1.03);
+  transform: translateY(calc(1px - var(--reflect-i) * 1px)) scale(calc(1.02 + var(--reflect-i) * 0.02));
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -2966,9 +3006,10 @@ body.music-player-fs-lock {
   margin: 0 auto;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.35rem;
-  width: min(100%, 920px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.15rem;
+  /* ~100px wider per card vs original 1100px row */
+  width: min(100%, 1400px);
   justify-content: center;
   text-align: left;
 }
@@ -2976,7 +3017,10 @@ body.music-player-fs-lock {
 .about-team-card {
   position: relative;
   isolation: isolate;
-  min-height: 390px;
+  display: flex;
+  flex-direction: column;
+  min-height: 420px;
+  height: 100%;
   overflow: hidden;
   border: none;
   border-radius: 10px;
@@ -3089,6 +3133,28 @@ body.music-player-fs-lock {
   );
 }
 
+.about-team-card--octopus .about-team-photo {
+  width: 68%;
+  right: -4%;
+  object-position: 50% 42%;
+  -webkit-mask-image: radial-gradient(
+    ellipse 72% 78% at 56% 46%,
+    #000 0%,
+    #000 42%,
+    rgba(0, 0, 0, 0.75) 58%,
+    rgba(0, 0, 0, 0.25) 74%,
+    transparent 88%
+  );
+  mask-image: radial-gradient(
+    ellipse 72% 78% at 56% 46%,
+    #000 0%,
+    #000 42%,
+    rgba(0, 0, 0, 0.75) 58%,
+    rgba(0, 0, 0, 0.25) 74%,
+    transparent 88%
+  );
+}
+
 .about-team-monogram {
   position: absolute;
   right: 16%;
@@ -3107,10 +3173,11 @@ body.music-player-fs-lock {
   z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 1.15rem;
-  width: min(48%, 250px);
-  min-height: 390px;
-  padding: 1.55rem 0.75rem 1.25rem 1.5rem;
+  gap: 1rem;
+  width: min(54%, 270px);
+  flex: 1;
+  min-height: 420px;
+  padding: 1.55rem 0.85rem 1.25rem 1.5rem;
 }
 
 .about-team-badge {
@@ -3182,10 +3249,13 @@ body.music-player-fs-lock {
 }
 
 .about-team-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  /* Shared vertical slots so name / role / rule / bio / email line up across cards */
+  display: grid;
+  grid-template-rows: auto minmax(2.85em, auto) auto 1fr auto;
+  gap: 0.55rem;
   flex: 1;
+  min-height: 0;
+  align-content: stretch;
 }
 
 .about-team-name {
@@ -3205,7 +3275,9 @@ body.music-player-fs-lock {
   color: var(--accent);
   margin: 0;
   line-height: 1.4;
-  max-width: 21ch;
+  min-height: 2.85em; /* reserve 2 lines so the rule aligns */
+  max-width: none;
+  width: 100%;
 }
 
 .about-team-rule {
@@ -3214,7 +3286,7 @@ body.music-player-fs-lock {
   height: 1.5px;
   background: var(--accent);
   opacity: 0.95;
-  margin: 0.2rem 0 0.15rem;
+  margin: 0.1rem 0 0;
 }
 
 .about-team-philosophy {
@@ -3222,13 +3294,15 @@ body.music-player-fs-lock {
   color: rgba(255, 255, 255, 0.92);
   margin: 0;
   line-height: 1.55;
-  max-width: 24ch;
+  max-width: none;
+  width: 100%;
+  align-self: start;
 }
 
 .about-team-email {
   display: inline-flex;
-  align-self: flex-start;
-  margin-top: 0.4rem;
+  align-self: start;
+  margin-top: 0.35rem;
   font-size: 0.76rem;
   letter-spacing: 0.02em;
   color: var(--accent);
@@ -3252,7 +3326,14 @@ body.music-player-fs-lock {
   color: rgba(139, 139, 154, 0.85);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1400px) {
+  .about-team {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: min(100%, 1120px);
+  }
+}
+
+@media (max-width: 720px) {
   .about-team {
     grid-template-columns: 1fr;
     max-width: 420px;
@@ -3276,13 +3357,13 @@ body.music-player-fs-lock {
   }
 
   .about-team-card--raven .about-team-photo,
-  .about-team-card--fox .about-team-photo {
+  .about-team-card--fox .about-team-photo,
+  .about-team-card--octopus .about-team-photo {
     width: 78%;
   }
 
-  .about-team-philosophy,
-  .about-team-role {
-    max-width: none;
+  .about-team-body {
+    grid-template-rows: auto minmax(2.85em, auto) auto auto auto;
   }
 }
 

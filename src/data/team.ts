@@ -34,6 +34,16 @@ export const TEAM: TeamMember[] = [
     portraitBase: '/assets/team/fox',
     initials: 'F',
   },
+  {
+    id: 'octopus',
+    name: 'Octopus',
+    role: 'Software engineering · WebGL',
+    philosophy:
+      'Builds reliable interactive systems — connecting interfaces, 3D environments, data, and performance.',
+    email: 'octopus@iobjectm.com',
+    portraitBase: '/assets/team/octopus',
+    initials: 'O',
+  },
 ]
 
 export const TEAM_PORTRAIT_EXTS = ['.webp', '.png', '.jpg', '.jpeg'] as const

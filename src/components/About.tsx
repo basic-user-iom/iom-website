@@ -66,9 +66,9 @@ export const About = memo(function About() {
           direction to create digital objects that feel clear, purposeful, and alive.
         </p>
         <p className="about-text about-text--follow">
-          Our public-facing identities are Raven and Fox, but the collaboration is entirely human.
-          Clients meet the real people behind them during calls and work directly with everyone
-          involved in their project.
+          Our public-facing identities are Raven, Fox, and Octopus, but the collaboration is entirely
+          human. Clients meet the real people behind them during calls and work directly with
+          everyone involved in their project.
         </p>
 
         <p className="about-team-label">Studio identities</p>
