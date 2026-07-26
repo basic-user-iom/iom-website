@@ -2951,18 +2951,71 @@ body.music-player-fs-lock {
 }
 
 .about-team-badge {
+  position: relative;
+  z-index: 1;
   display: grid;
   place-items: center;
-  width: 2.55rem;
-  height: 2.55rem;
+  width: 2.7rem;
+  height: 2.7rem;
   border-radius: 50%;
   border: 1.5px solid var(--accent);
   color: var(--accent);
   font-family: var(--display);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.05rem;
   letter-spacing: 0.04em;
-  background: transparent;
+  background: radial-gradient(circle at 50% 45%, rgba(0, 229, 255, 0.18) 0%, rgba(0, 229, 255, 0.04) 48%, transparent 70%);
+  box-shadow:
+    0 0 12px rgba(0, 229, 255, 0.35),
+    0 0 28px rgba(0, 229, 255, 0.12),
+    inset 0 0 10px rgba(0, 229, 255, 0.08);
+  isolation: isolate;
+}
+
+/* Soft concentric pulse rings (same treatment on Raven + Fox) */
+.about-team-badge::before,
+.about-team-badge::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.45);
+  pointer-events: none;
+  z-index: -1;
+  animation: about-badge-ring 2.8s ease-out infinite;
+}
+
+.about-team-badge::after {
+  animation-delay: 1.4s;
+}
+
+@keyframes about-badge-ring {
+  0% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  70% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: scale(2.15);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-team-badge::before,
+  .about-team-badge::after {
+    animation: none;
+    inset: -6px;
+    opacity: 0.22;
+    border-color: rgba(0, 229, 255, 0.28);
+  }
+
+  .about-team-badge::after {
+    inset: -12px;
+    opacity: 0.12;
+  }
 }
 
 .about-team-body {
