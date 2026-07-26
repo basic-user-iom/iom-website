@@ -1,6 +1,9 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useMemo, useRef, useState } from 'react'
 import { RFO, TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
+import { usePathwayOrbs } from '../hooks/usePathwayOrbs'
 import { ContactForm } from './ContactForm'
+
+const PATHWAY_ORB_COUNT = 3
 
 const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const candidates = useMemo(() => {
@@ -56,6 +59,12 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 })
 
 export const About = memo(function About() {
+  const pathwayRef = useRef<HTMLDivElement>(null)
+  const nodeRefs = useRef<(HTMLLIElement | null)[]>([])
+  const hoverIndexRef = useRef<number | null>(null)
+
+  usePathwayOrbs(pathwayRef, nodeRefs, hoverIndexRef)
+
   return (
     <>
       <section className="about-block" id="about" aria-labelledby="about-heading">
@@ -65,48 +74,67 @@ export const About = memo(function About() {
             <span className="about-intro-glow about-intro-glow--a" />
             <span className="about-intro-glow about-intro-glow--b" />
             <span className="about-intro-glow about-intro-glow--c" />
-            <div className="about-intro-rails">
-              <div className="about-intro-rail about-intro-rail--left">
-                {TEAM.map((member) => (
-                  <span key={member.id} className="about-intro-rail-letter">
-                    {member.initials}
-                  </span>
-                ))}
-              </div>
-              <div className="about-intro-rail about-intro-rail--right">
-                {TEAM.map((member) => (
-                  <span key={member.id} className="about-intro-rail-stage">
-                    {member.rfoStage}
-                  </span>
-                ))}
-              </div>
-            </div>
           </div>
 
-          <div className="about-intro-copy">
-            <p className="about-eyebrow">Studio</p>
-            <h2 className="about-title" id="about-heading">
-              The team behind the objects
-            </h2>
-            <p className="about-text">
-              IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
-              experiences, and spatial archives. We combine technical development with artistic
-              direction to create digital objects that feel clear, purposeful, and alive.
-            </p>
-            <p className="about-text about-text--follow">
-              Our public-facing identities are Raven, Fox, and Octopus, but the collaboration is
-              entirely human. Clients meet the real people behind them during calls and work
-              directly with everyone involved in their project.
-            </p>
+          <div className="about-intro-shell">
+            <header className="about-lead">
+              <div className="about-lead-main">
+                <p className="about-eyebrow">Studio</p>
+                <h2 className="about-title" id="about-heading">
+                  The team behind the objects
+                </h2>
+              </div>
+              <div className="about-lead-copy">
+                <p className="about-lead-blurb">
+                  IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
+                  experiences, and spatial archives — technical development and artistic direction
+                  for digital objects that feel clear, purposeful, and alive.
+                </p>
+                <p className="about-lead-note">
+                  Public identities: Raven, Fox, and Octopus. Collaboration stays human — clients
+                  meet the real people on calls and work with everyone on the project.
+                </p>
+              </div>
+            </header>
 
-            <div className="about-rfo" id="rfo" aria-labelledby="rfo-heading">
-              <p className="about-eyebrow">Process</p>
-              <h3 className="about-rfo-title" id="rfo-heading">
-                {RFO.title}
-              </h3>
-              <p className="about-rfo-tagline">{RFO.tagline}</p>
-              <p className="about-text">{RFO.short}</p>
-              <p className="about-text about-text--follow">{RFO.bridge}</p>
+            <div className="about-pathway" id="rfo" ref={pathwayRef} aria-labelledby="rfo-heading">
+              {Array.from({ length: PATHWAY_ORB_COUNT }, (_, i) => (
+                <span key={i} className={`clients-orb clients-orb--${i}`} aria-hidden="true" />
+              ))}
+
+              <div className="about-pathway-head">
+                <p className="about-eyebrow" id="rfo-heading">
+                  Process · {RFO.title}
+                </p>
+                <p className="about-pathway-tagline">{RFO.tagline}</p>
+              </div>
+
+              <ol className="about-pathway-flow" aria-label="RFO stages">
+                {TEAM.map((member, i) => (
+                  <li
+                    key={member.id}
+                    className="about-pathway-item"
+                    ref={(node) => {
+                      nodeRefs.current[i] = node
+                    }}
+                    onPointerEnter={() => {
+                      hoverIndexRef.current = i
+                    }}
+                    onPointerLeave={() => {
+                      if (hoverIndexRef.current === i) hoverIndexRef.current = null
+                    }}
+                  >
+                    <span className="about-pathway-node" aria-hidden="true">
+                      {member.initials}
+                    </span>
+                    <span className="about-pathway-stage">{member.rfoStage}</span>
+                    <span className="about-pathway-who">{member.name}</span>
+                    {i < TEAM.length - 1 ? (
+                      <span className="about-pathway-link" aria-hidden="true" />
+                    ) : null}
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         </div>
@@ -118,25 +146,7 @@ export const About = memo(function About() {
           ))}
         </ul>
 
-        <div className="about-rfo-legend">
-          <ol className="about-rfo-flow" aria-label="RFO stages">
-            {TEAM.map((member) => (
-              <li key={member.id} className="about-rfo-flow-item">
-                <p className="about-rfo-flow-head">
-                  <span className="about-rfo-flow-stage">{member.rfoStage}</span>
-                  <span className="about-rfo-flow-sep" aria-hidden="true">
-                    ·
-                  </span>
-                  <span className="about-rfo-flow-who">{member.name}</span>
-                </p>
-                <p className="about-rfo-flow-text">{member.rfoLine}</p>
-              </li>
-            ))}
-          </ol>
-          <aside className="about-rfo-close" aria-label="About RFO">
-            <p className="about-rfo-close-text">{RFO.close}</p>
-          </aside>
-        </div>
+        <p className="about-rfo-close-text">{RFO.close}</p>
       </section>
 
       <section className="about-block about-block--contact" id="contact" aria-labelledby="contact-heading">

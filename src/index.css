@@ -2973,14 +2973,15 @@ body.music-player-fs-lock {
   padding-top: clamp(2.5rem, 6vw, 4rem);
 }
 
-/* Atmosphere for Studio + Process — same sky recipe as hero / site bg */
+/* Atmosphere + editorial shell — asymmetric like hero, full-bleed wash */
 .about-intro {
   position: relative;
   width: 100vw;
-  margin: -1.5rem calc(50% - 50vw) 2.5rem;
-  padding: clamp(3rem, 7vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(2rem, 5vw, 3.25rem);
+  margin: -1.5rem calc(50% - 50vw) 2.75rem;
+  padding: clamp(3rem, 7vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(2.25rem, 5vw, 3.5rem);
   overflow: hidden;
   isolation: isolate;
+  text-align: left;
 }
 
 .about-intro-fx {
@@ -2991,7 +2992,6 @@ body.music-player-fs-lock {
   overflow: hidden;
 }
 
-/* Matches .hero-canvas-wrap sky + balanced side wells for the empty gutters */
 .about-intro-wash {
   position: absolute;
   inset: 0;
@@ -3000,13 +3000,7 @@ body.music-player-fs-lock {
     radial-gradient(ellipse 48% 78% at 94% 52%, rgba(80, 120, 160, 0.26), transparent 62%),
     radial-gradient(ellipse 120% 80% at 50% 100%, rgba(0, 229, 255, 0.07), transparent 55%),
     radial-gradient(ellipse 70% 50% at 50% 42%, rgba(60, 90, 130, 0.14), transparent 55%),
-    linear-gradient(
-      180deg,
-      var(--bg) 0%,
-      #0a1018 38%,
-      var(--bg) 78%,
-      var(--bg) 100%
-    );
+    linear-gradient(180deg, var(--bg) 0%, #0a1018 38%, var(--bg) 78%, var(--bg) 100%);
   mask-image: linear-gradient(
     180deg,
     transparent 0%,
@@ -3054,80 +3048,213 @@ body.music-player-fs-lock {
   animation: about-intro-drift-a 28s ease-in-out infinite alternate-reverse;
 }
 
-/* Quiet RFO marks in the side gutters — hidden when there is no room */
-.about-intro-rails {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-}
-
-.about-intro-rail {
-  position: absolute;
-  top: 50%;
-  translate: 0 -50%;
+.about-intro-shell {
+  position: relative;
+  z-index: 2;
+  /* Same content width as identity cards below */
+  width: min(100%, 1400px);
+  margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: clamp(1.5rem, 3.5vh, 2.4rem);
-  width: max-content;
+  gap: clamp(2rem, 4vw, 2.75rem);
 }
 
-.about-intro-rail--left {
-  left: clamp(1rem, 5.5vw, 4.5rem);
-  align-items: center;
-  padding-right: 0.85rem;
-  border-right: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+/* Title + copy — same eyebrow pattern as Clients / Contact */
+.about-lead {
+  display: grid;
+  grid-template-columns: minmax(16ch, 0.95fr) minmax(0, 1.15fr);
+  gap: 1.25rem clamp(1.5rem, 3.5vw, 3.5rem);
+  align-items: start;
 }
 
-.about-intro-rail--right {
-  right: clamp(1rem, 5.5vw, 4.5rem);
-  align-items: flex-start;
-  padding-left: 0.85rem;
-  border-left: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+.about-lead-main {
+  min-width: 0;
+}
+
+.about-lead-main .about-eyebrow {
+  margin: 0 0 0.65rem;
+  color: var(--accent);
+}
+
+.about-lead-main .about-title {
+  margin: 0;
+  max-width: 12ch;
+  text-align: left;
+  font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+.about-lead-copy {
+  min-width: 0;
+  padding-top: 1.55rem; /* align with title under eyebrow */
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.about-lead-blurb,
+.about-lead-note {
+  margin: 0;
+  max-width: 48ch;
+  line-height: 1.65;
   text-align: left;
 }
 
-.about-intro-rail-letter {
-  font-family: var(--display);
-  font-size: clamp(1.15rem, 1.7vw, 1.5rem);
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  line-height: 1;
-  color: color-mix(in srgb, var(--accent) 38%, transparent);
+.about-lead-blurb {
+  font-size: 0.98rem;
+  color: var(--text-muted);
 }
 
-.about-intro-rail-stage {
-  font-size: 0.6rem;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-muted) 50%, transparent);
+.about-lead-note {
+  font-size: 0.9rem;
+  color: color-mix(in srgb, var(--text-muted) 88%, var(--text));
 }
 
-@media (max-width: 960px) {
-  .about-intro-rails {
-    display: none;
-  }
+/* Slim RFO pathway — Clients-style light orbs float here while in view */
+.about-pathway {
+  position: relative;
+  padding: 1.5rem 0.5rem 1.75rem;
+  border-top: 1px solid var(--border);
+  overflow: visible;
 }
 
-.about-intro-copy {
+.about-pathway .clients-orb {
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.about-pathway.is-in-view .clients-orb {
+  opacity: 0.92;
+}
+
+.about-pathway.is-attending .clients-orb {
+  z-index: 6;
+}
+
+.about-pathway--static .clients-orb {
+  display: none;
+}
+
+.about-pathway-item.is-lit .about-pathway-node {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 35%, transparent),
+    0 0 22px var(--accent-glow);
+  transform: scale(1.06);
+}
+
+.about-pathway-item.is-lit .about-pathway-stage {
+  color: #fff;
+}
+
+.about-pathway-item.is-lit .about-pathway-who {
+  color: var(--accent);
+}
+
+.about-pathway-head {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.45rem;
+  margin-bottom: 1.5rem;
+}
+
+.about-pathway-head .about-eyebrow {
+  margin: 0;
+  color: var(--accent);
+}
+
+.about-pathway-tagline {
+  margin: 0;
+  max-width: 42ch;
+  font-size: 0.92rem;
+  color: var(--accent);
+  text-align: center;
+}
+
+.about-pathway-flow {
+  list-style: none;
+  margin: 0 auto;
+  padding: 0;
+  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 1.5rem;
+  position: relative;
+}
+
+.about-pathway-item {
   position: relative;
   z-index: 2;
-  width: min(100%, 52ch);
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0 0;
+  cursor: default;
 }
 
-.about-intro-copy .about-title,
-.about-intro-copy .about-text,
-.about-intro-copy .about-rfo {
-  max-width: none;
-  width: 100%;
+.about-pathway-node {
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-bottom: 0.4rem;
+  border: 1px solid var(--border-accent);
+  border-radius: 50%;
+  font-family: var(--display);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  box-shadow: 0 0 20px var(--accent-glow);
+  z-index: 1;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
 }
 
-.about-intro-copy .about-title {
-  max-width: 18ch;
+.about-pathway-stage {
+  font-family: var(--display);
+  font-size: clamp(1.15rem, 1.8vw, 1.35rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
-.about-intro-copy .about-rfo {
-  width: 100%;
+.about-pathway-who {
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.about-pathway-link {
+  position: absolute;
+  top: calc(0.25rem + 1.25rem);
+  left: calc(50% + 1.25rem);
+  width: calc(50% + 0.75rem);
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent) 50%, transparent),
+    var(--border)
+  );
+  pointer-events: none;
+}
+
+.about-lead,
+.about-pathway {
+  animation: about-rise 0.75s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.about-pathway {
+  animation-delay: 0.1s;
 }
 
 @keyframes about-intro-drift-a {
@@ -3148,10 +3275,63 @@ body.music-player-fs-lock {
   }
 }
 
+@keyframes about-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1100px) {
+  .about-lead {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .about-lead-copy {
+    padding-top: 0;
+  }
+
+}
+
+@media (max-width: 720px) {
+  .about-lead {
+    gap: 0.85rem;
+  }
+
+  .about-pathway-flow {
+    width: 100%;
+    grid-template-columns: 1fr;
+    gap: 1.15rem;
+  }
+
+  .about-pathway-item {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    column-gap: 0.75rem;
+    row-gap: 0.15rem;
+  }
+
+  .about-pathway-node {
+    margin-bottom: 0;
+  }
+
+  .about-pathway-link {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .about-intro-glow--a,
   .about-intro-glow--b,
-  .about-intro-glow--c {
+  .about-intro-glow--c,
+  .about-lead,
+  .about-pathway {
     animation: none;
   }
 }
@@ -3182,10 +3362,6 @@ body.music-player-fs-lock {
 
 .about-text--follow {
   margin-bottom: 2rem;
-}
-
-.about-rfo .about-text--follow {
-  margin-bottom: 0;
 }
 
 .about-team-label {
@@ -3567,131 +3743,20 @@ body.music-player-fs-lock {
   color: rgba(139, 139, 154, 0.85);
 }
 
-/* RFO process block inside the atmospheric intro */
-.about-rfo {
-  width: min(100%, 52ch);
-  margin: 0.35rem auto 0;
-  padding-top: 1.75rem;
-  text-align: center;
-  border-top: 1px solid var(--border);
-}
-
-.about-rfo-title {
-  font-family: var(--display);
-  font-size: clamp(1.65rem, 3.4vw, 2.35rem);
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  line-height: 1.15;
-  color: var(--text);
-  margin: 0 auto 0.75rem;
-  max-width: 18ch;
-}
-
-.about-rfo-tagline {
-  margin: 0 auto 1.1rem;
-  max-width: 40ch;
-  font-size: 0.95rem;
-  color: var(--accent);
-}
-
-/* Quiet legend under identity cards — same type system as About body copy */
-.about-rfo-legend {
-  width: min(100%, 1400px);
-  margin: 2.25rem auto 0;
-  padding-top: 1.75rem;
-  border-top: 1px solid var(--border);
-}
-
-.about-rfo-flow {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.5rem 2rem;
-  text-align: left;
-}
-
-.about-rfo-flow-item {
-  position: relative;
-  padding: 0;
-}
-
-.about-rfo-flow-item + .about-rfo-flow-item::before {
-  content: '';
-  position: absolute;
-  left: -1rem;
-  top: 0.35rem;
-  bottom: 0.35rem;
-  width: 1px;
-  background: var(--border);
-}
-
-.about-rfo-flow-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.35rem 0.45rem;
-  margin: 0 0 0.55rem;
-  font-size: 0.7rem;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.about-rfo-flow-stage {
-  color: var(--accent);
-}
-
-.about-rfo-flow-sep {
-  color: var(--text-muted);
-  letter-spacing: 0;
-}
-
-.about-rfo-flow-who {
-  color: var(--text-muted);
-  font-weight: 400;
-}
-
-.about-rfo-flow-text {
-  margin: 0;
-  font-family: var(--sans);
-  font-size: 0.95rem;
-  line-height: 1.6;
-  color: var(--text-muted);
-  max-width: 38ch;
-}
-
-.about-rfo-close {
-  display: block;
-  width: 100%;
-  margin: 1.75rem 0 0;
-  padding: 1.15rem 1.35rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%),
-    var(--bg-elevated);
-  box-shadow:
-    0 0 0 1px rgba(0, 229, 255, 0.06) inset,
-    0 10px 28px rgba(0, 0, 0, 0.25);
-  text-align: center;
-}
-
 .about-rfo-close-text {
-  margin: 0 auto;
-  max-width: 58ch;
-  font-size: 0.95rem;
-  line-height: 1.6;
+  width: min(100%, 58ch);
+  margin: 2.25rem auto 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.92rem;
+  line-height: 1.65;
   color: var(--text-muted);
+  text-align: center;
 }
 
 @media (max-width: 1400px) {
   .about-team {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    width: min(100%, 1120px);
-  }
-
-  .about-rfo-legend {
     width: min(100%, 1120px);
   }
 }
@@ -3700,24 +3765,6 @@ body.music-player-fs-lock {
   .about-team {
     grid-template-columns: 1fr;
     max-width: 420px;
-  }
-
-  .about-rfo-legend {
-    max-width: 420px;
-  }
-
-  .about-rfo-flow {
-    grid-template-columns: 1fr;
-    gap: 1.25rem;
-  }
-
-  .about-rfo-flow-item + .about-rfo-flow-item::before {
-    display: none;
-  }
-
-  .about-rfo-flow-item + .about-rfo-flow-item {
-    padding-top: 1.15rem;
-    border-top: 1px solid var(--border);
   }
 }
 
