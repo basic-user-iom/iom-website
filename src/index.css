@@ -2978,8 +2978,10 @@ body.music-player-fs-lock {
   position: relative;
   width: 100vw;
   margin: -1.5rem calc(50% - 50vw) 2.75rem;
-  padding: clamp(3rem, 7vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(2.25rem, 5vw, 3.5rem);
-  overflow: hidden;
+  padding: clamp(3rem, 7vw, 4.5rem) clamp(1rem, 4vw, 3rem) clamp(2.75rem, 6vw, 4rem);
+  /* Clip wash sideways; keep vertical room so pathway orb bloom is not cut */
+  overflow-x: clip;
+  overflow-y: visible;
   isolation: isolate;
   text-align: left;
 }
@@ -3114,7 +3116,7 @@ body.music-player-fs-lock {
 /* Slim RFO pathway — Clients-style light orbs float here while in view */
 .about-pathway {
   position: relative;
-  padding: 1.5rem 0.5rem 1.75rem;
+  padding: 1.75rem 1.25rem 2.5rem;
   border-top: 1px solid var(--border);
   overflow: visible;
 }
@@ -3123,6 +3125,8 @@ body.music-player-fs-lock {
   z-index: 4;
   opacity: 0;
   transition: opacity 0.35s ease;
+  /* Soften bloom so it stays readable inside the stage */
+  filter: blur(0.2px);
 }
 
 .about-pathway.is-in-view .clients-orb {

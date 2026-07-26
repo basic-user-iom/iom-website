@@ -215,16 +215,30 @@ export function usePathwayOrbs(
 
       const w = stage.clientWidth
       const h = stage.clientHeight
-      const rx = Math.max(48, w * 0.38)
-      const ry = Math.max(36, h * 0.36)
+      // Orbs are 10px + ~40px bloom; keep the full glow inside the stage.
+      const pad = 52
+      const minX = pad
+      const maxX = Math.max(pad, w - pad)
+      const minY = pad
+      const maxY = Math.max(pad, h - pad)
+      const clamp = (x: number, y: number) => ({
+        x: Math.min(maxX, Math.max(minX, x)),
+        y: Math.min(maxY, Math.max(minY, y)),
+      })
+      // Tight free orbit around the RFO nodes (not the full stage height).
+      const rx = Math.max(40, Math.min(w * 0.28, (w / 2 - pad) * 0.85))
+      const ry = Math.max(16, Math.min(h * 0.16, (h / 2 - pad) * 0.55))
       const cx = w / 2
-      const cy = h * 0.58
+      const cy = Math.min(maxY - ry, Math.max(minY + ry, h * 0.62))
 
       for (const b of bodies) {
         b.angle += b.dir * ((Math.PI * 2) / b.period) * dt * FREE_SPEED
       }
 
-      const bases = bodies.map((b) => orbitPoint(cx, cy, rx, ry, b))
+      const bases = bodies.map((b) => {
+        const p = orbitPoint(cx, cy, rx, ry, b)
+        return clamp(p.x, p.y)
+      })
       const targets = bases.map((base, i) => {
         let tx = base.x
         let ty = base.y
@@ -237,7 +251,7 @@ export function usePathwayOrbs(
           tx += dx * pull
           ty += dy * pull
         }
-        return { x: tx, y: ty }
+        return clamp(tx, ty)
       })
 
       if (!seededDisp) {
@@ -259,7 +273,14 @@ export function usePathwayOrbs(
         releaseBlend = 0
         const box = hoverNode.getBoundingClientRect()
         const { x: mx, y: my } = centerInStage(hoverNode, stage)
-        const radius = Math.max(26, Math.min(box.width, box.height) * 0.42)
+        const maxRing = Math.max(
+          10,
+          Math.min(mx - minX, maxX - mx, my - minY, maxY - my) - 4,
+        )
+        const radius = Math.min(
+          maxRing,
+          Math.max(18, Math.min(box.width, box.height) * 0.38),
+        )
 
         if (!wasHovering || hoverNodeIndex !== hoverIndex) {
           let nearest = 0
@@ -297,14 +318,16 @@ export function usePathwayOrbs(
         for (let i = 0; i < bodies.length; i++) {
           const slot = ringSlots[i]
           const angle = hoverPhase + (slot * TAU) / ORB_COUNT
-          const ax = mx + Math.cos(angle) * radius
-          const ay = my + Math.sin(angle) * radius
+          const target = clamp(
+            mx + Math.cos(angle) * radius,
+            my + Math.sin(angle) * radius,
+          )
           prevDisp[i].x = disp[i].x
           prevDisp[i].y = disp[i].y
-          disp[i].x += (ax - disp[i].x) * easeArrive
-          disp[i].y += (ay - disp[i].y) * easeArrive
+          disp[i].x += (target.x - disp[i].x) * easeArrive
+          disp[i].y += (target.y - disp[i].y) * easeArrive
         }
-        displayScale += (1.7 - displayScale) * Math.min(1, easeArrive)
+        displayScale += (1.35 - displayScale) * Math.min(1, easeArrive)
       } else {
         if (wasHovering) {
           wasHovering = false
@@ -332,6 +355,9 @@ export function usePathwayOrbs(
           disp[i].y += coast[i].vy * dt * releaseBlend
           disp[i].x += (targets[i].x - disp[i].x) * Math.min(1, ease * (releaseBlend > 0 ? 1 : 1.25))
           disp[i].y += (targets[i].y - disp[i].y) * Math.min(1, ease * (releaseBlend > 0 ? 1 : 1.25))
+          const c = clamp(disp[i].x, disp[i].y)
+          disp[i].x = c.x
+          disp[i].y = c.y
           prevDisp[i].x = disp[i].x
           prevDisp[i].y = disp[i].y
         }
@@ -341,14 +367,20 @@ export function usePathwayOrbs(
       }
 
       for (let i = 0; i < ORB_COUNT; i++) {
-        bodies[i].x = disp[i].x
-        bodies[i].y = disp[i].y
+        const c = clamp(disp[i].x, disp[i].y)
+        disp[i].x = c.x
+        disp[i].y = c.y
+        bodies[i].x = c.x
+        bodies[i].y = c.y
         const el = orbs[i]
-        const scale = hoverNode
-          ? displayScale
-          : bodies[i].scale + (displayScale - bodies[i].scale) * releaseBlend * 0.35
+        const scale = Math.min(
+          1.35,
+          hoverNode
+            ? displayScale
+            : bodies[i].scale + (displayScale - bodies[i].scale) * releaseBlend * 0.35,
+        )
         el.style.opacity = '0.92'
-        el.style.transform = `translate(${bodies[i].x}px, ${bodies[i].y}px) scale(${scale})`
+        el.style.transform = `translate(${c.x}px, ${c.y}px) scale(${scale})`
         el.classList.toggle('is-attending-orb', hoverNode != null)
       }
 
