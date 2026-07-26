@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from 'react'
-import { TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
+import { RFO, TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
 import { ContactForm } from './ContactForm'
 
 const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
@@ -33,9 +33,12 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 
       <div className="about-team-copy">
         <span className="about-team-badge" aria-hidden="true">
-          {member.initials}
+          <span className="about-team-badge-letter" data-letter={member.initials}>
+            {member.initials}
+          </span>
         </span>
         <div className="about-team-body">
+          <p className="about-team-rfo">{member.rfoStage}</p>
           <h3 className="about-team-name">{member.name}</h3>
           <p className="about-team-role">{member.role}</p>
           <span className="about-team-rule" aria-hidden="true" />
@@ -71,12 +74,42 @@ export const About = memo(function About() {
           everyone involved in their project.
         </p>
 
-        <p className="about-team-label">Studio identities</p>
+        <div className="about-rfo" id="rfo" aria-labelledby="rfo-heading">
+          <p className="about-eyebrow">Process</p>
+          <h3 className="about-rfo-title" id="rfo-heading">
+            {RFO.title}
+          </h3>
+          <p className="about-rfo-tagline">{RFO.tagline}</p>
+          <p className="about-text">{RFO.short}</p>
+          <p className="about-text about-text--follow">{RFO.bridge}</p>
+        </div>
+
+        <p className="about-team-label">Studio identities · R F O</p>
         <ul className="about-team">
           {TEAM.map((member) => (
             <TeamCard key={member.id} member={member} />
           ))}
         </ul>
+
+        <div className="about-rfo-legend">
+          <ol className="about-rfo-flow" aria-label="RFO stages">
+            {TEAM.map((member) => (
+              <li key={member.id} className="about-rfo-flow-item">
+                <p className="about-rfo-flow-head">
+                  <span className="about-rfo-flow-stage">{member.rfoStage}</span>
+                  <span className="about-rfo-flow-sep" aria-hidden="true">
+                    ·
+                  </span>
+                  <span className="about-rfo-flow-who">{member.name}</span>
+                </p>
+                <p className="about-rfo-flow-text">{member.rfoLine}</p>
+              </li>
+            ))}
+          </ol>
+          <aside className="about-rfo-close" aria-label="About RFO">
+            <p className="about-rfo-close-text">{RFO.close}</p>
+          </aside>
+        </div>
       </section>
 
       <section className="about-block about-block--contact" id="contact" aria-labelledby="contact-heading">

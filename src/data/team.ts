@@ -10,6 +10,10 @@ export interface TeamMember {
    */
   portraitBase?: string
   initials: string
+  /** RFO stage this identity carries (Raven→Research, Fox→Form, Octopus→Output). */
+  rfoStage: 'Research' | 'Form' | 'Output'
+  /** Short stage line shown on the identity card. */
+  rfoLine: string
 }
 
 /** Public-facing aliases only — never use legal names on the marketing site. */
@@ -23,6 +27,8 @@ export const TEAM: TeamMember[] = [
     email: 'raven@iobjectm.com',
     portraitBase: '/assets/team/raven',
     initials: 'R',
+    rfoStage: 'Research',
+    rfoLine: 'Understands the client, audience, story, and technical challenge before anything is built.',
   },
   {
     id: 'fox',
@@ -33,6 +39,8 @@ export const TEAM: TeamMember[] = [
     email: 'fox@iobjectm.com',
     portraitBase: '/assets/team/fox',
     initials: 'F',
+    rfoStage: 'Form',
+    rfoLine: 'Turns strategy into experience — visual language, interaction, structure, and technology.',
   },
   {
     id: 'octopus',
@@ -43,7 +51,21 @@ export const TEAM: TeamMember[] = [
     email: 'octopus@iobjectm.com',
     portraitBase: '/assets/team/octopus',
     initials: 'O',
+    rfoStage: 'Output',
+    rfoLine: 'Delivers the finished result people can open, understand, and use.',
   },
 ]
 
 export const TEAM_PORTRAIT_EXTS = ['.webp', '.png', '.jpg', '.jpeg'] as const
+
+/** Compact studio process copy — maps to Raven / Fox / Octopus. */
+export const RFO = {
+  title: 'Research · Form · Output',
+  tagline: 'Research the challenge. Form the experience. Deliver the output.',
+  short:
+    'Research gives the project direction. Form gives it identity. Output makes it real.',
+  bridge:
+    'From the first question to the final interactive experience, RFO connects strategy, design, and technology into one clear process — carried by Raven, Fox, and Octopus.',
+  close:
+    'RFO is not a rigid production formula. It is how we make sure every creative decision has a reason, every technical system supports the experience, and every project reaches a clear and useful final form.',
+} as const
