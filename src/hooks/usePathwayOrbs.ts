@@ -271,16 +271,16 @@ export function usePathwayOrbs(
 
       if (hoverNode) {
         releaseBlend = 0
+        // Orbit the letter circle itself (not the whole RFO column with labels).
         const box = hoverNode.getBoundingClientRect()
         const { x: mx, y: my } = centerInStage(hoverNode, stage)
+        const circleR = Math.min(box.width, box.height) * 0.5
         const maxRing = Math.max(
-          10,
-          Math.min(mx - minX, maxX - mx, my - minY, maxY - my) - 4,
+          12,
+          Math.min(mx - minX, maxX - mx, my - minY, maxY - my) - 6,
         )
-        const radius = Math.min(
-          maxRing,
-          Math.max(18, Math.min(box.width, box.height) * 0.38),
-        )
+        // Ring sits just outside the cyan letter circle.
+        const radius = Math.min(maxRing, Math.max(20, circleR + 14))
 
         if (!wasHovering || hoverNodeIndex !== hoverIndex) {
           let nearest = 0
@@ -385,7 +385,9 @@ export function usePathwayOrbs(
       }
 
       for (let i = 0; i < nodes.length; i++) {
-        nodes[i]?.classList.toggle('is-lit', hoverIndex === i)
+        nodes[i]
+          ?.closest('.about-pathway-item')
+          ?.classList.toggle('is-lit', hoverIndex === i)
       }
 
       raf = window.requestAnimationFrame(tick)

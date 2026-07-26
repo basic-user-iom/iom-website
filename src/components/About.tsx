@@ -60,7 +60,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 
 export const About = memo(function About() {
   const pathwayRef = useRef<HTMLDivElement>(null)
-  const nodeRefs = useRef<(HTMLLIElement | null)[]>([])
+  const nodeRefs = useRef<(HTMLElement | null)[]>([])
   const hoverIndexRef = useRef<number | null>(null)
 
   usePathwayOrbs(pathwayRef, nodeRefs, hoverIndexRef)
@@ -114,9 +114,6 @@ export const About = memo(function About() {
                   <li
                     key={member.id}
                     className="about-pathway-item"
-                    ref={(node) => {
-                      nodeRefs.current[i] = node
-                    }}
                     onPointerEnter={() => {
                       hoverIndexRef.current = i
                     }}
@@ -124,7 +121,13 @@ export const About = memo(function About() {
                       if (hoverIndexRef.current === i) hoverIndexRef.current = null
                     }}
                   >
-                    <span className="about-pathway-node" aria-hidden="true">
+                    <span
+                      className="about-pathway-node"
+                      aria-hidden="true"
+                      ref={(node) => {
+                        nodeRefs.current[i] = node
+                      }}
+                    >
                       {member.initials}
                     </span>
                     <span className="about-pathway-stage">{member.rfoStage}</span>
