@@ -16,6 +16,13 @@ import {
 const AMBIENT_URL = '/assets/audio/mist-stone-sea.mp3'
 const AMBIENT_GAIN = 0.28
 
+type AmbientHandle = {
+  /** Must run inside a user gesture (header Sound tap). */
+  playFromGesture: () => void
+}
+
+let ambientHandle: AmbientHandle | null = null
+
 /**
  * Homepage ambient loop. Mute state is shared via `site` audioPrefs +
  * `iom:site-audio-mute` CustomEvent from the header control.
@@ -25,30 +32,93 @@ export function SiteAmbientAudio() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const userMutedRef = useRef(readStoredMute('site'))
   const duckedRef = useRef(false)
+  const mediaUnlockedRef = useRef(false)
 
   useEffect(() => {
-    const audio = new Audio(AMBIENT_URL)
+    const audio = new Audio()
     audio.loop = true
-    audio.preload = 'none'
+    // `none` breaks iOS: play() starts a fetch, then rejects once the gesture expires.
+    audio.preload = 'auto'
+    audio.src = AMBIENT_URL
+    audio.setAttribute('playsinline', 'true')
+    audio.setAttribute('webkit-playsinline', 'true')
     const volume = readStoredVolume('site') / 100
     audio.volume = Math.min(1, volume * AMBIENT_GAIN)
     userMutedRef.current = readStoredMute('site')
     audio.muted = userMutedRef.current
     audioRef.current = audio
+    try {
+      audio.load()
+    } catch {
+      /* ignore */
+    }
 
     const otherFocusActive = () => {
       const focus = getAudioFocus()
       return focus === 'music' || focus === 'gallery'
     }
 
-    const tryPlay = () => {
+    const canAudiblyPlay = () =>
+      Boolean(audioRef.current) &&
+      !userMutedRef.current &&
+      !duckedRef.current &&
+      !otherFocusActive()
+
+    const playNow = () => {
       const el = audioRef.current
-      if (!el || userMutedRef.current || duckedRef.current || otherFocusActive()) return
+      if (!el || !canAudiblyPlay()) return
+      el.muted = false
       claimAudioFocus('site')
-      void el.play().catch(() => {
-        releaseAudioFocus('site')
-      })
+      void el
+        .play()
+        .then(() => {
+          mediaUnlockedRef.current = true
+        })
+        .catch(() => {
+          releaseAudioFocus('site')
+        })
     }
+
+    /**
+     * Unlock HTMLMediaElement on iOS with a muted play inside a user gesture.
+     * Safe to call while the UI is still "Sound off".
+     */
+    const warmUnlockFromGesture = () => {
+      const el = audioRef.current
+      if (!el || mediaUnlockedRef.current) return
+
+      const resumeAudible = canAudiblyPlay()
+      el.muted = true
+      void el
+        .play()
+        .then(() => {
+          mediaUnlockedRef.current = true
+          if (!resumeAudible) {
+            el.pause()
+            el.currentTime = 0
+            el.muted = userMutedRef.current
+            if (getAudioFocus() === 'site') releaseAudioFocus('site')
+            return
+          }
+          el.muted = false
+          claimAudioFocus('site')
+        })
+        .catch(() => {
+          /* next gesture retries */
+        })
+    }
+
+    const playFromGesture = () => {
+      // Unmute tap: play audibly in this gesture. Do not also warm-unlock muted
+      // in parallel — that races muted/unmuted play() on iOS.
+      if (canAudiblyPlay()) {
+        playNow()
+        return
+      }
+      warmUnlockFromGesture()
+    }
+
+    ambientHandle = { playFromGesture }
 
     const duck = () => {
       duckedRef.current = true
@@ -60,7 +130,7 @@ export function SiteAmbientAudio() {
 
     const unduck = () => {
       duckedRef.current = false
-      tryPlay()
+      playNow()
     }
 
     const onMuteEvent = (event: Event) => {
@@ -73,7 +143,8 @@ export function SiteAmbientAudio() {
         audioRef.current.pause()
         releaseAudioFocus('site')
       } else {
-        tryPlay()
+        // Prefer playFromGesture from toggleSiteMute (same tap stack). This is backup.
+        playNow()
       }
     }
 
@@ -94,27 +165,32 @@ export function SiteAmbientAudio() {
       }
     })
 
-    window.addEventListener('iom:site-audio-mute', onMuteEvent)
-    window.addEventListener('iom:site-audio-volume', onVolumeEvent)
-
-    // Default: muted. If user previously unmuted, wait for a gesture before play.
-    if (!userMutedRef.current) {
-      const unlock = () => {
-        tryPlay()
-        window.removeEventListener('pointerdown', unlock)
-        window.removeEventListener('keydown', unlock)
-      }
-      window.addEventListener('pointerdown', unlock, { once: true })
-      window.addEventListener('keydown', unlock, { once: true })
+    const onFirstGesture = () => {
+      warmUnlockFromGesture()
+      if (canAudiblyPlay()) playNow()
+      window.removeEventListener('pointerdown', onFirstGesture)
+      window.removeEventListener('touchstart', onFirstGesture)
+      window.removeEventListener('keydown', onFirstGesture)
     }
 
+    window.addEventListener('iom:site-audio-mute', onMuteEvent)
+    window.addEventListener('iom:site-audio-volume', onVolumeEvent)
+    window.addEventListener('pointerdown', onFirstGesture, { passive: true })
+    window.addEventListener('touchstart', onFirstGesture, { passive: true })
+    window.addEventListener('keydown', onFirstGesture)
+
     return () => {
+      ambientHandle = null
       unsubscribeFocus()
       window.removeEventListener('iom:site-audio-mute', onMuteEvent)
       window.removeEventListener('iom:site-audio-volume', onVolumeEvent)
+      window.removeEventListener('pointerdown', onFirstGesture)
+      window.removeEventListener('touchstart', onFirstGesture)
+      window.removeEventListener('keydown', onFirstGesture)
       releaseAudioFocus('site')
       audio.pause()
-      audio.src = ''
+      audio.removeAttribute('src')
+      audio.load()
       audioRef.current = null
     }
   }, [])
@@ -126,5 +202,7 @@ export function toggleSiteMute(): boolean {
   const next = !readStoredMute('site')
   persistMute('site', next)
   window.dispatchEvent(new CustomEvent('iom:site-audio-mute', { detail: { muted: next } }))
+  // Keep unlock + play on the same user-gesture stack as the header tap (critical on iOS).
+  if (!next) ambientHandle?.playFromGesture()
   return next
 }

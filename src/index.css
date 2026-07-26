@@ -2654,10 +2654,13 @@ body.music-player-fs-lock {
   isolation: isolate;
   min-height: 390px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  border: none;
   border-radius: 10px;
   background: #0c0e12;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.38);
+  /* Outer ring via shadow — avoids the light 1px hairline border on the flat top edge */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 16px 36px rgba(0, 0, 0, 0.38);
 }
 
 /* Faint topo texture — same plane for copy + subject */
