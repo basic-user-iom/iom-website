@@ -59,29 +59,56 @@ export const About = memo(function About() {
   return (
     <>
       <section className="about-block" id="about" aria-labelledby="about-heading">
-        <p className="about-eyebrow">Studio</p>
-        <h2 className="about-title" id="about-heading">
-          The team behind the objects
-        </h2>
-        <p className="about-text">
-          IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
-          experiences, and spatial archives. We combine technical development with artistic
-          direction to create digital objects that feel clear, purposeful, and alive.
-        </p>
-        <p className="about-text about-text--follow">
-          Our public-facing identities are Raven, Fox, and Octopus, but the collaboration is entirely
-          human. Clients meet the real people behind them during calls and work directly with
-          everyone involved in their project.
-        </p>
+        <div className="about-intro">
+          <div className="about-intro-fx" aria-hidden="true">
+            <span className="about-intro-wash" />
+            <span className="about-intro-glow about-intro-glow--a" />
+            <span className="about-intro-glow about-intro-glow--b" />
+            <span className="about-intro-glow about-intro-glow--c" />
+            <div className="about-intro-rails">
+              <div className="about-intro-rail about-intro-rail--left">
+                {TEAM.map((member) => (
+                  <span key={member.id} className="about-intro-rail-letter">
+                    {member.initials}
+                  </span>
+                ))}
+              </div>
+              <div className="about-intro-rail about-intro-rail--right">
+                {TEAM.map((member) => (
+                  <span key={member.id} className="about-intro-rail-stage">
+                    {member.rfoStage}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
 
-        <div className="about-rfo" id="rfo" aria-labelledby="rfo-heading">
-          <p className="about-eyebrow">Process</p>
-          <h3 className="about-rfo-title" id="rfo-heading">
-            {RFO.title}
-          </h3>
-          <p className="about-rfo-tagline">{RFO.tagline}</p>
-          <p className="about-text">{RFO.short}</p>
-          <p className="about-text about-text--follow">{RFO.bridge}</p>
+          <div className="about-intro-copy">
+            <p className="about-eyebrow">Studio</p>
+            <h2 className="about-title" id="about-heading">
+              The team behind the objects
+            </h2>
+            <p className="about-text">
+              IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
+              experiences, and spatial archives. We combine technical development with artistic
+              direction to create digital objects that feel clear, purposeful, and alive.
+            </p>
+            <p className="about-text about-text--follow">
+              Our public-facing identities are Raven, Fox, and Octopus, but the collaboration is
+              entirely human. Clients meet the real people behind them during calls and work
+              directly with everyone involved in their project.
+            </p>
+
+            <div className="about-rfo" id="rfo" aria-labelledby="rfo-heading">
+              <p className="about-eyebrow">Process</p>
+              <h3 className="about-rfo-title" id="rfo-heading">
+                {RFO.title}
+              </h3>
+              <p className="about-rfo-tagline">{RFO.tagline}</p>
+              <p className="about-text">{RFO.short}</p>
+              <p className="about-text about-text--follow">{RFO.bridge}</p>
+            </div>
+          </div>
         </div>
 
         <p className="about-team-label">Studio identities · R F O</p>
