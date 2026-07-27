@@ -87,4 +87,13 @@ export const CLIENTS: Client[] = [
     brandColor: '#112072',
     logo: '/assets/clients/messe-muenchen.svg',
   },
+  {
+    id: 'rmi',
+    name: 'RMI',
+    mark: 'RMI',
+    href: 'https://rmi.org/',
+    // Teal from official rmi.org logo SVG (#45CFCC)
+    brandColor: '#45CFCC',
+    logo: '/assets/clients/rmi.svg',
+  },
 ]
