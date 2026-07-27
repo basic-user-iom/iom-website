@@ -6,7 +6,10 @@ export const Footer = memo(function Footer() {
   const year = new Date().getFullYear()
   return (
     <footer className="site-footer">
-      <span className="footer-brand">{t('footer.brand')}</span>
+      <div className="footer-brand-block">
+        <span className="footer-brand">{t('footer.brand')}</span>
+        <p className="footer-entity">{t('footer.entity')}</p>
+      </div>
       <div className="footer-links">
         <a href={href('/#about')}>{t('footer.about')}</a>
         <a href={href('/#clients')}>{t('footer.clients')}</a>
@@ -15,6 +18,9 @@ export const Footer = memo(function Footer() {
         <a href={href('/#contact')}>{t('footer.contact')}</a>
         <a href="/client-login">{t('footer.login')}</a>
         <a href="/crm-demo">{t('footer.crmDemo')}</a>
+        <a href={href('/privacy')}>{t('footer.privacy')}</a>
+        <a href={href('/terms')}>{t('footer.terms')}</a>
+        <a href={href('/cookies')}>{t('footer.cookies')}</a>
         <a href="mailto:contact@iobjectm.com">contact@iobjectm.com</a>
         <span>{t('footer.rights', { year })}</span>
       </div>

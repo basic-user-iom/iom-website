@@ -96,6 +96,7 @@ export const About = memo(function About() {
                   Process · {t('rfo.title')}
                 </p>
                 <p className="about-pathway-tagline">{t('rfo.tagline')}</p>
+                <p className="about-pathway-method">{t('rfo.method')}</p>
               </div>
 
               <ol className="about-pathway-flow" aria-label={t('about.rfoAria')}>

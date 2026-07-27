@@ -58,6 +58,8 @@ export const deUi: Dict = {
 
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Die Herausforderung erforschen. Das Erlebnis formen. Das Ergebnis liefern.',
+  'rfo.method':
+    'Kundenprozess: Discovery & Briefing → Konzept → Technische Entwicklung → Finale Lieferung — abgebildet auf Research, Form und Output.',
   'rfo.close':
     'RFO ist keine starre Produktionsformel. Es stellt sicher, dass jede kreative Entscheidung einen Grund hat, jedes technische System das Erlebnis trägt und jedes Projekt eine klare, nützliche Endform erreicht.',
   'team.raven.role': 'Gründer · Interaktive Medien & Engineering',
@@ -99,6 +101,10 @@ export const deUi: Dict = {
   'contact.errGeneric': 'Etwas ist schiefgelaufen. Bitte erneut versuchen oder uns direkt schreiben.',
   'contact.noticeDev':
     'VITE_WEB3FORMS_ACCESS_KEY in .env setzen, um E-Mail-Versand zu aktivieren.',
+  'contact.portal': 'Sicheres Kundenportal für aktive Projekte verfügbar',
+  'contact.portalDemo': 'CRM-Sandbox ausprobieren',
+  'contact.errRequired': 'Bitte füllen Sie dieses Feld aus.',
+  'contact.errEmail': 'Geben Sie eine gültige E-Mail-Adresse ein.',
 
   'card.open': 'Öffnen →',
   'card.viewStudy': 'Case Study →',
@@ -122,7 +128,20 @@ export const deUi: Dict = {
   'footer.contact': 'Kontakt',
   'footer.login': 'Login',
   'footer.crmDemo': 'CRM-Demo',
+  'footer.privacy': 'Datenschutz',
+  'footer.terms': 'AGB',
+  'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. Alle Rechte vorbehalten.',
+  'footer.entity':
+    'IOM ist eine unabhängige Studio-Marke; Verträge stellt die beauftragende Partei aus.',
+
+  'legal.eyebrow': 'Rechtliches',
+  'legal.lastUpdated': 'Zuletzt aktualisiert {date}',
+  'legal.navAria': 'Rechtliche Seiten',
+  'legal.nav.privacy': 'Datenschutzerklärung',
+  'legal.nav.terms': 'Nutzungsbedingungen',
+  'legal.nav.cookies': 'Cookie-Richtlinie',
+  'legal.backHome': '← Startseite',
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
@@ -136,11 +155,25 @@ export const deUi: Dict = {
   'seo.caseWitnessTitle': 'IOM — Black Witness 360° Case Study',
   'seo.caseWitnessDescription':
     'Vom Briefing zu 360°: so wird The Black Witness zu einer geführten Panorama-Tour mit Hotspots und WebGPU-Effektlayern.',
+  'seo.privacyTitle': 'Datenschutz | IOM',
+  'seo.privacyDescription':
+    'Wie Interactive Object Media Kontaktformular-Daten, Analytics und das private Kundenportal handhabt.',
+  'seo.termsTitle': 'Nutzungsbedingungen | IOM',
+  'seo.termsDescription':
+    'Website-Bedingungen für Interactive Object Media — öffentliche Nutzung, Demos und Kundenverträge.',
+  'seo.cookiesTitle': 'Cookie-Richtlinie | IOM',
+  'seo.cookiesDescription':
+    'Cookies und lokaler Speicher auf iobjectm.com — Einstellungen, Analytics und Portal-Login.',
 
   'case.back': 'Alle Arbeiten',
   'case.stagesAria': 'Prozessphasen',
   'case.hireUs': 'Beauftragen',
   'case.stageMeta': 'Phase {index} · {title}',
+  'case.frameworkAria': 'Case-Study-Rahmen',
+  'case.challenge': 'Herausforderung',
+  'case.solution': 'Lösung',
+  'case.deliverables': 'Lieferumfang',
+  'case.deliverablesHeading': 'Lieferumfang',
   'case.ctaTitle': 'Brauchen Sie einen Viewer, eine Tour oder einen Custom-WebGL-Build?',
   'case.ctaText':
     'Wir scopen vom Briefing bis zur Lieferung — Produkt-Review-Tools, 360°-Touren und Echtzeit-Experimente, die dennoch wie Business-Software wirken.',

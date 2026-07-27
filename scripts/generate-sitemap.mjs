@@ -133,13 +133,19 @@ async function collectEntries() {
   add('/blog/', 0.8)
   add('/case-studies/3d-viewer/', 0.85)
   add('/case-studies/black-witness/', 0.85)
+  add('/privacy/', 0.4)
+  add('/terms/', 0.4)
+  add('/cookies/', 0.4)
 
-  // Locale alternates for marketing home, case studies, and blog hub
+  // Locale alternates for marketing home, case studies, blog hub, and legal
   for (const lang of ['de', 'fr', 'nl', 'it', 'es']) {
     add(`/${lang}/`, 0.95)
     add(`/${lang}/case-studies/3d-viewer/`, 0.8)
     add(`/${lang}/case-studies/black-witness/`, 0.8)
     add(`/${lang}/blog/`, 0.75)
+    add(`/${lang}/privacy/`, 0.35)
+    add(`/${lang}/terms/`, 0.35)
+    add(`/${lang}/cookies/`, 0.35)
   }
 
   for (const url of parseProjectUrls()) add(url)
@@ -180,7 +186,10 @@ function toXml(entries) {
       bare === '/case-studies' ||
       bare.startsWith('/case-studies/') ||
       bare === '/blog' ||
-      bare.startsWith('/blog/')
+      bare.startsWith('/blog/') ||
+      bare === '/privacy' ||
+      bare === '/terms' ||
+      bare === '/cookies'
     if (!eligible) return ''
     const links = LOCALES.map(({ code, prefix }) => {
       const loc =

@@ -6,6 +6,7 @@ const isDev = import.meta.env.DEV
 const WEB3FORMS_URL = 'https://api.web3forms.com/submit'
 
 type SubmitState = 'idle' | 'submitting' | 'success' | 'error'
+type FieldErrors = Partial<Record<'name' | 'email' | 'message', string>>
 
 function submitFormNatively(form: HTMLFormElement, accessKey: string) {
   form.action = WEB3FORMS_URL
@@ -32,10 +33,15 @@ function submitFormNatively(form: HTMLFormElement, accessKey: string) {
   HTMLFormElement.prototype.submit.call(form)
 }
 
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
+
 export const ContactForm = memo(function ContactForm() {
   const { t } = useSiteI18n()
   const [state, setState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -48,8 +54,38 @@ export const ContactForm = memo(function ContactForm() {
     window.history.replaceState(null, '', nextUrl)
   }, [])
 
+  const validate = (form: HTMLFormElement): boolean => {
+    const name = (form.elements.namedItem('name') as HTMLInputElement).value.trim()
+    const email = (form.elements.namedItem('email') as HTMLInputElement).value.trim()
+    const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value.trim()
+    const next: FieldErrors = {}
+
+    if (!name) next.name = t('contact.errRequired')
+    if (!email) next.email = t('contact.errRequired')
+    else if (!isValidEmail(email)) next.email = t('contact.errEmail')
+    if (!message) next.message = t('contact.errRequired')
+
+    setFieldErrors(next)
+    return Object.keys(next).length === 0
+  }
+
+  const clearFieldError = (field: keyof FieldErrors) => {
+    setFieldErrors((prev) => {
+      if (!prev[field]) return prev
+      const next = { ...prev }
+      delete next[field]
+      return next
+    })
+  }
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    const form = e.currentTarget
+    if (!validate(form)) {
+      setState('idle')
+      return
+    }
 
     if (!ACCESS_KEY) {
       setState('error')
@@ -60,7 +96,6 @@ export const ContactForm = memo(function ContactForm() {
     setState('submitting')
     setErrorMessage('')
 
-    const form = e.currentTarget
     const formData = new FormData(form)
     formData.append('access_key', ACCESS_KEY)
     formData.append('subject', 'New contact from iobjectm.com')
@@ -84,6 +119,7 @@ export const ContactForm = memo(function ContactForm() {
       if (data.success) {
         setState('success')
         form.reset()
+        setFieldErrors({})
       } else {
         setState('error')
         setErrorMessage(data.message ?? t('contact.errGeneric'))
@@ -101,6 +137,14 @@ export const ContactForm = memo(function ContactForm() {
         </p>
       )}
 
+      <p className="contact-form-portal">
+        <a href="/client-login">{t('contact.portal')}</a>
+        <span className="contact-form-portal-sep" aria-hidden="true">
+          ·
+        </span>
+        <a href="/crm-demo">{t('contact.portalDemo')}</a>
+      </p>
+
       <form className="contact-form" onSubmit={handleSubmit} noValidate>
         <input
           type="checkbox"
@@ -116,11 +160,19 @@ export const ContactForm = memo(function ContactForm() {
           <input
             type="text"
             name="name"
-            className="contact-form-input"
+            className={`contact-form-input${fieldErrors.name ? ' is-invalid' : ''}`}
             required
             autoComplete="name"
             disabled={state === 'submitting'}
+            aria-invalid={fieldErrors.name ? true : undefined}
+            aria-describedby={fieldErrors.name ? 'contact-name-error' : undefined}
+            onInput={() => clearFieldError('name')}
           />
+          {fieldErrors.name ? (
+            <span id="contact-name-error" className="contact-form-field-error" role="alert">
+              {fieldErrors.name}
+            </span>
+          ) : null}
         </label>
 
         <label className="contact-form-field">
@@ -128,22 +180,38 @@ export const ContactForm = memo(function ContactForm() {
           <input
             type="email"
             name="email"
-            className="contact-form-input"
+            className={`contact-form-input${fieldErrors.email ? ' is-invalid' : ''}`}
             required
             autoComplete="email"
             disabled={state === 'submitting'}
+            aria-invalid={fieldErrors.email ? true : undefined}
+            aria-describedby={fieldErrors.email ? 'contact-email-error' : undefined}
+            onInput={() => clearFieldError('email')}
           />
+          {fieldErrors.email ? (
+            <span id="contact-email-error" className="contact-form-field-error" role="alert">
+              {fieldErrors.email}
+            </span>
+          ) : null}
         </label>
 
         <label className="contact-form-field">
           <span className="contact-form-label">{t('contact.message')}</span>
           <textarea
             name="message"
-            className="contact-form-input contact-form-textarea"
+            className={`contact-form-input contact-form-textarea${fieldErrors.message ? ' is-invalid' : ''}`}
             required
             rows={5}
             disabled={state === 'submitting'}
+            aria-invalid={fieldErrors.message ? true : undefined}
+            aria-describedby={fieldErrors.message ? 'contact-message-error' : undefined}
+            onInput={() => clearFieldError('message')}
           />
+          {fieldErrors.message ? (
+            <span id="contact-message-error" className="contact-form-field-error" role="alert">
+              {fieldErrors.message}
+            </span>
+          ) : null}
         </label>
 
         <button

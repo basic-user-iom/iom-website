@@ -58,6 +58,8 @@ export const nlUi: Dict = {
 
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Onderzoek de uitdaging. Vorm de ervaring. Lever het resultaat.',
+  'rfo.method':
+    'Klantproces: Discovery & briefing → Concept → Technische ontwikkeling → Oplevering — gekoppeld aan Research, Form en Output.',
   'rfo.close':
     'RFO is geen starre productieformule. Het zorgt dat elke creatieve beslissing een reden heeft, elk technisch systeem de ervaring ondersteunt, en elk project een heldere, nuttige eindvorm bereikt.',
   'team.raven.role': 'Oprichter · Interactieve media & engineering',
@@ -99,6 +101,10 @@ export const nlUi: Dict = {
   'contact.errGeneric': 'Er ging iets mis. Probeer opnieuw of mail ons direct.',
   'contact.noticeDev':
     'Zet VITE_WEB3FORMS_ACCESS_KEY in .env om e-mailverzending te activeren.',
+  'contact.portal': 'Beveiligd klantenportaal beschikbaar voor actieve projecten',
+  'contact.portalDemo': 'Probeer de CRM-sandbox',
+  'contact.errRequired': 'Vul dit veld in.',
+  'contact.errEmail': 'Voer een geldig e-mailadres in.',
 
   'card.open': 'Open →',
   'card.viewStudy': 'Bekijk study →',
@@ -122,9 +128,31 @@ export const nlUi: Dict = {
   'footer.contact': 'Contact',
   'footer.login': 'Login',
   'footer.crmDemo': 'CRM-demo',
+  'footer.privacy': 'Privacy',
+  'footer.terms': 'Voorwaarden',
+  'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. Alle rechten voorbehouden.',
+  'footer.entity':
+    'IOM is een onafhankelijk studiolabel; contracten worden uitgegeven door de opdrachtgevende partij.',
+
+  'legal.eyebrow': 'Juridisch',
+  'legal.lastUpdated': 'Laatst bijgewerkt {date}',
+  'legal.navAria': 'Juridische pagina’s',
+  'legal.nav.privacy': 'Privacybeleid',
+  'legal.nav.terms': 'Gebruiksvoorwaarden',
+  'legal.nav.cookies': 'Cookiebeleid',
+  'legal.backHome': '← Home',
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
+  'seo.privacyTitle': 'Privacybeleid | IOM',
+  'seo.privacyDescription':
+    'Hoe Interactive Object Media contactformuliergegevens, analytics en het privé-klantenportaal behandelt.',
+  'seo.termsTitle': 'Gebruiksvoorwaarden | IOM',
+  'seo.termsDescription':
+    'Websitevoorwaarden voor Interactive Object Media — openbaar gebruik, demo’s en klantcontracten.',
+  'seo.cookiesTitle': 'Cookiebeleid | IOM',
+  'seo.cookiesDescription':
+    'Cookies en lokale opslag op iobjectm.com — voorkeuren, analytics en portallogin.',
   'seo.homeDescription':
     'IOM bouwt software, 3D-ervaringen, immersieve 360°-tours, fotografie, muziek en WebGPU-experimenten — interactief mediastudio door Mirjan Jovanović.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
@@ -141,6 +169,11 @@ export const nlUi: Dict = {
   'case.stagesAria': 'Procesfasen',
   'case.hireUs': 'Huurt ons in',
   'case.stageMeta': 'Fase {index} · {title}',
+  'case.frameworkAria': 'Case-studykader',
+  'case.challenge': 'Uitdaging',
+  'case.solution': 'Oplossing',
+  'case.deliverables': 'Deliverables',
+  'case.deliverablesHeading': 'Deliverables',
   'case.ctaTitle': 'Een viewer, tour of custom WebGL-build nodig?',
   'case.ctaText':
     'We scoperen van brief tot oplevering — productreview-tools, 360°-tours en real-time experimenten die toch als businesssoftware lezen.',

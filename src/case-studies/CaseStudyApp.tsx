@@ -14,6 +14,8 @@ export function isCaseStudyPath(pathname: string): boolean {
 type Stage = {
   id: string
   index: string
+  /** Challenge | Solution | Deliverables framework label */
+  framework: 'challenge' | 'solution' | 'deliverables'
   title: string
   summary: string
   detail: string
@@ -28,13 +30,15 @@ type CaseStudySpec = {
   primaryCta: { label: string; href: string; external?: boolean }
   secondaryCta?: { label: string; href: string }
   stages: Stage[]
+  deliverables: string[]
 }
 
 const VIEWER_STAGES: Stage[] = [
   {
     id: 'brief',
     index: '01',
-    title: 'Brief',
+    framework: 'challenge',
+    title: 'Challenge',
     summary: 'Stakeholders need to review 3D without a CAD seat.',
     detail:
       'The hiring problem: share a model on a call, not a ZIP. Formats vary (GLTF, FBX, OBJ, IFC), and lighting or city context often sells the pitch as much as the mesh itself.',
@@ -47,7 +51,8 @@ const VIEWER_STAGES: Stage[] = [
   {
     id: 'wire',
     index: '02',
-    title: 'Layout & review chrome',
+    framework: 'solution',
+    title: 'Solution — layout',
     summary: 'Panels, orbit, and a path from open → understand → decide.',
     detail:
       'We shape the interface around review, not authorship: frame the asset, switch environments, and keep hotspots and export paths obvious. Desktop and web share the same mental model.',
@@ -60,7 +65,8 @@ const VIEWER_STAGES: Stage[] = [
   {
     id: 'engineering',
     index: '03',
-    title: 'Engineering',
+    framework: 'solution',
+    title: 'Solution — engineering',
     summary: 'Three.js pipeline, HDR ground projection, Streets GL bridge.',
     detail:
       'Real client pipelines need format coverage, reliable city-context sync, and texture restore when leaving Product ↔ City modes. The engineering story is reliability under messy assets — not a demo void.',
@@ -73,7 +79,8 @@ const VIEWER_STAGES: Stage[] = [
   {
     id: 'final',
     index: '04',
-    title: 'Final WebGL',
+    framework: 'deliverables',
+    title: 'Deliverables',
     summary: 'Shareable browser review and Windows desktop builds.',
     detail:
       'Live at 3dbviewer.com — orbit under 360° HDR with ground projection, or drop into Streets GL when location is the story. Same craft language as our experiments, packaged for decisions.',
@@ -89,7 +96,8 @@ const BLACK_WITNESS_STAGES: Stage[] = [
   {
     id: 'brief',
     index: '01',
-    title: 'Brief',
+    framework: 'challenge',
+    title: 'Challenge',
     summary: 'A raven story that guests can walk, not just watch.',
     detail:
       'The Black Witness began as a photography series. The client-shaped problem: turn that atmosphere into a guided 360° experience — look around, click to learn, share a link without installing an app.',
@@ -102,7 +110,8 @@ const BLACK_WITNESS_STAGES: Stage[] = [
   {
     id: 'wire',
     index: '02',
-    title: 'Tour structure',
+    framework: 'solution',
+    title: 'Solution — tour structure',
     summary: 'Hotspots, guided stops, and a visitor preview path.',
     detail:
       'We author camera beats and hotspot types (info, scene links, popups) so the tour reads as a storyboard. Editor and visitor preview share one project file — build once, share a clean preview URL.',
@@ -115,7 +124,8 @@ const BLACK_WITNESS_STAGES: Stage[] = [
   {
     id: 'engineering',
     index: '03',
-    title: 'Engineering',
+    framework: 'solution',
+    title: 'Solution — engineering',
     summary: 'Equirectangular sphere, WebGPU effect layers, project save format.',
     detail:
       'Panoramas map onto a sphere camera; guided steps layer particles, spout/water, and compute birds timed to hotspots. `.360project` keeps scenes, stops, and effects portable between sessions.',
@@ -128,7 +138,8 @@ const BLACK_WITNESS_STAGES: Stage[] = [
   {
     id: 'final',
     index: '04',
-    title: 'Final 360°',
+    framework: 'deliverables',
+    title: 'Deliverables',
     summary: 'Shareable visitor preview — no editor chrome.',
     detail:
       'Clients open a deep-linked preview (yaw / pitch locked for a shared first frame), play the guided tour, or explore hotspots freely. Same engine as the editor — packaged for guests.',
@@ -144,7 +155,7 @@ const STUDIES: Record<string, CaseStudySpec> = {
   '3d-viewer': {
     slug: '3d-viewer',
     eyebrow: 'Case study · Software',
-    title: '3D Viewer — from brief to WebGL',
+    title: '3D Viewer — challenge to deliverables',
     lead: 'How IOM turns a review problem into a shippable product: wire the chrome, harden the pipeline, then hand clients a link they can open on a call.',
     primaryCta: {
       label: 'Open live viewer',
@@ -153,11 +164,18 @@ const STUDIES: Record<string, CaseStudySpec> = {
     },
     secondaryCta: { label: 'Technical write-up', href: '/blog/3d-viewer' },
     stages: VIEWER_STAGES,
+    deliverables: [
+      'Browser 3D viewer (orbit, HDR environments, hotspots)',
+      'Windows desktop build for offline review',
+      'Multi-format load path (GLTF, FBX, OBJ, IFC, and more)',
+      'Streets GL / OSM city-context bridge for location pitches',
+      'Exportable standalone web presentation',
+    ],
   },
   'black-witness': {
     slug: 'black-witness',
     eyebrow: 'Case study · 360°',
-    title: 'The Black Witness — from brief to 360°',
+    title: 'The Black Witness — challenge to 360°',
     lead: 'How a photography series becomes a guided WebGPU panorama tour — hotspots, effect layers, and a visitor preview clients can share.',
     primaryCta: {
       label: 'Open visitor tour',
@@ -165,6 +183,13 @@ const STUDIES: Record<string, CaseStudySpec> = {
     },
     secondaryCta: { label: 'Technical write-up', href: '/blog/panorama-suite' },
     stages: BLACK_WITNESS_STAGES,
+    deliverables: [
+      'Guided 360° visitor preview (shareable URL, no install)',
+      'Hotspot storyboard (info, scene links, popups)',
+      'WebGPU effect layers (particles, spout, compute birds)',
+      'Portable `.360project` save format for editor ↔ preview',
+      'Deep-link first frame (yaw / pitch) for client walkthroughs',
+    ],
   },
 }
 
@@ -201,7 +226,17 @@ function localizeSpec(spec: CaseStudySpec, lang: SiteLang): CaseStudySpec {
         },
       }
     }),
+    deliverables: overlay.deliverables ?? spec.deliverables,
   }
+}
+
+function frameworkLabel(
+  framework: Stage['framework'],
+  t: (key: string) => string,
+): string {
+  if (framework === 'challenge') return t('case.challenge')
+  if (framework === 'deliverables') return t('case.deliverables')
+  return t('case.solution')
 }
 
 function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
@@ -226,6 +261,11 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
         <p className="case-study-eyebrow">{localized.eyebrow}</p>
         <h1 className="case-study-title">{localized.title}</h1>
         <p className="case-study-lead">{localized.lead}</p>
+        <ul className="case-study-framework" aria-label={t('case.frameworkAria')}>
+          <li>{t('case.challenge')}</li>
+          <li>{t('case.solution')}</li>
+          <li>{t('case.deliverables')}</li>
+        </ul>
         <div className="case-study-hero-actions">
           <a
             className="btn btn-primary"
@@ -259,6 +299,9 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
             >
               <span className="case-study-stage-index">{stage.index}</span>
               <span className="case-study-stage-label">
+                <span className="case-study-stage-framework">
+                  {frameworkLabel(stage.framework, t)}
+                </span>
                 <span className="case-study-stage-title">{stage.title}</span>
                 <span className="case-study-stage-summary">{stage.summary}</span>
               </span>
@@ -268,7 +311,10 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
 
         <article className="case-study-panel" aria-live="polite">
           <p className="case-study-panel-index">
-            {t('case.stageMeta', { index: active.index, title: active.title })}
+            {t('case.stageMeta', {
+              index: active.index,
+              title: frameworkLabel(active.framework, t),
+            })}
           </p>
           <h2 className="case-study-panel-title">{active.summary}</h2>
           <p className="case-study-panel-detail">{active.detail}</p>
@@ -299,6 +345,15 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
           </figure>
         </article>
       </div>
+
+      <section className="case-study-deliverables" aria-labelledby="case-deliverables-heading">
+        <h2 id="case-deliverables-heading">{t('case.deliverablesHeading')}</h2>
+        <ul>
+          {localized.deliverables.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </section>
 
       <section className="case-study-cta" aria-labelledby="case-study-cta-heading">
         <h2 id="case-study-cta-heading">{t('case.ctaTitle')}</h2>

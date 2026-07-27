@@ -3282,6 +3282,15 @@ body.music-player-fs-lock {
   text-align: center;
 }
 
+.about-pathway-method {
+  margin: 0.65rem 0 0;
+  max-width: 52ch;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 .about-pathway-flow {
   list-style: none;
   margin: 0 auto;
@@ -3908,6 +3917,28 @@ body.music-player-fs-lock {
   text-align: left;
 }
 
+.contact-form-portal {
+  margin: 0 0 1.25rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.5rem;
+  align-items: center;
+}
+
+.contact-form-portal a {
+  color: var(--accent);
+}
+
+.contact-form-portal a:hover {
+  text-decoration: underline;
+}
+
+.contact-form-portal-sep {
+  opacity: 0.5;
+}
+
 .contact-form-notice {
   margin: 0 0 1rem;
   padding: 0.75rem 1rem;
@@ -3975,6 +4006,21 @@ body.music-player-fs-lock {
   outline: none;
   border-color: var(--border-accent);
   box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.contact-form-input.is-invalid {
+  border-color: color-mix(in srgb, #c45c5c 70%, var(--border));
+}
+
+.contact-form-input.is-invalid:focus {
+  border-color: #c45c5c;
+  box-shadow: 0 0 0 2px color-mix(in srgb, #c45c5c 35%, transparent);
+}
+
+.contact-form-field-error {
+  display: block;
+  font-size: 0.75rem;
+  color: #c45c5c;
 }
 
 .contact-form-input:disabled {
@@ -4064,6 +4110,21 @@ body.music-player-fs-lock {
   font-family: var(--display);
   font-weight: 600;
   color: var(--text);
+}
+
+.footer-brand-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 28rem;
+}
+
+.footer-entity {
+  margin: 0;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+  max-width: 36ch;
 }
 
 /* Animations */

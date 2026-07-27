@@ -10,6 +10,7 @@ import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
 import { BlogApp, isBlogPath } from './blog/BlogApp'
 import { CaseStudyApp, isCaseStudyPath } from './case-studies/CaseStudyApp'
+import { LegalApp, isLegalPath } from './legal/LegalApp'
 import { CrmApp } from './crm/CrmApp'
 import {
   RecordingSharePage,
@@ -63,6 +64,7 @@ export default function App() {
   const isArtistGlobe = isArtistGlobePath(path)
   const isBlog = isBlogPath(path)
   const isCaseStudy = isCaseStudyPath(path)
+  const isLegal = isLegalPath(path)
   const isIcmDemo = isIcmDemoPath(path)
   const isImagePrep = isImagePrepPath(path)
 
@@ -153,6 +155,14 @@ export default function App() {
     return (
       <SiteI18nProvider lang={lang}>
         <CaseStudyApp path={path} />
+      </SiteI18nProvider>
+    )
+  }
+
+  if (isLegal) {
+    return (
+      <SiteI18nProvider lang={lang}>
+        <LegalApp path={path} />
       </SiteI18nProvider>
     )
   }

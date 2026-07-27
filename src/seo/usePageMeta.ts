@@ -62,7 +62,10 @@ function injectHreflang(pathname: string) {
     p === '/case-studies' ||
     p.startsWith('/case-studies/') ||
     p === '/blog' ||
-    p.startsWith('/blog/')
+    p.startsWith('/blog/') ||
+    p === '/privacy' ||
+    p === '/terms' ||
+    p === '/cookies'
   if (!eligible) return
 
   for (const lang of SITE_LANGS) {

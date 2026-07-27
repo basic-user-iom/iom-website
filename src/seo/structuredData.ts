@@ -112,6 +112,30 @@ export function structuredDataScripts(pathname: string): Record<string, unknown>
       },
     ]
   }
+  if (path === '/privacy' || path === '/terms' || path === '/cookies') {
+    const titles: Record<string, string> = {
+      '/privacy': 'Privacy Policy',
+      '/terms': 'Terms of Service',
+      '/cookies': 'Cookie Policy',
+    }
+    return [
+      {
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: titles[path],
+        url: `${SITE_ORIGIN}${path}`,
+        description:
+          path === '/privacy'
+            ? 'How Interactive Object Media handles contact form data, analytics, and the private client portal.'
+            : path === '/terms'
+              ? 'Website terms for Interactive Object Media — public site use, demos, and client contracts.'
+              : 'Cookies and local storage on iobjectm.com — preferences, analytics, and portal login.',
+        isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+        about: { '@id': `${SITE_ORIGIN}/#organization` },
+        inLanguage: 'en',
+      },
+    ]
+  }
   if (path !== '/' && path !== '') return []
   return [buildHomeStructuredData(), buildFeaturedProjectsStructuredData()]
 }

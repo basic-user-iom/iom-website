@@ -118,6 +118,17 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     }
   }
 
+  if (path === '/privacy' || path === '/terms' || path === '/cookies') {
+    const kind = path.slice(1) as 'privacy' | 'terms' | 'cookies'
+    return {
+      title: seoT(lang, `seo.${kind}Title`),
+      description: seoT(lang, `seo.${kind}Description`),
+      canonical,
+      robots: 'index, follow',
+      keywords: ['IOM', 'Interactive Object Media', kind, 'legal'],
+    }
+  }
+
   if (path === '/case-studies' || path.startsWith('/case-studies/')) {
     const isViewer = path === '/case-studies/3d-viewer'
     const isWitness = path === '/case-studies/black-witness'

@@ -58,6 +58,8 @@ export const enUi: Dict = {
 
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Research the challenge. Form the experience. Deliver the output.',
+  'rfo.method':
+    'Client process: Discovery & briefing → Concept design → Technical development → Final delivery — mapped to Research, Form, and Output.',
   'rfo.close':
     'RFO is not a rigid production formula. It is how we make sure every creative decision has a reason, every technical system supports the experience, and every project reaches a clear and useful final form.',
   'team.raven.role': 'Founder · Interactive media & engineering',
@@ -99,6 +101,10 @@ export const enUi: Dict = {
   'contact.errGeneric': 'Something went wrong. Please try again or email us directly.',
   'contact.noticeDev':
     'Configure VITE_WEB3FORMS_ACCESS_KEY in .env to enable email delivery.',
+  'contact.portal': 'Secure client portal available for active projects',
+  'contact.portalDemo': 'Try the CRM sandbox',
+  'contact.errRequired': 'Please fill in this field.',
+  'contact.errEmail': 'Enter a valid email address.',
 
   'card.open': 'Open →',
   'card.viewStudy': 'View study →',
@@ -122,32 +128,59 @@ export const enUi: Dict = {
   'footer.contact': 'Contact',
   'footer.login': 'Login',
   'footer.crmDemo': 'CRM Demo',
+  'footer.privacy': 'Privacy',
+  'footer.terms': 'Terms',
+  'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. All rights reserved.',
+  'footer.entity':
+    'IOM is an independent studio brand; contracts are issued by the engaging party.',
+
+  'legal.eyebrow': 'Legal',
+  'legal.lastUpdated': 'Last updated {date}',
+  'legal.navAria': 'Legal pages',
+  'legal.nav.privacy': 'Privacy Policy',
+  'legal.nav.terms': 'Terms of Service',
+  'legal.nav.cookies': 'Cookie Policy',
+  'legal.backHome': '← Home',
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
     'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — interactive media studio by Mirjan Jovanović.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
-    'Process case studies from Interactive Object Media — brief to final interactive build.',
+    'Process case studies from Interactive Object Media — challenge, solution, and deliverables.',
   'seo.caseViewerTitle': 'IOM — 3D Viewer case study',
   'seo.caseViewerDescription':
-    'From brief to WebGL: how IOM builds the 3D Viewer — layout chrome, engineering, HDR lighting, and Streets GL city context for client review.',
+    'From challenge to deliverables: how IOM builds the 3D Viewer — layout chrome, engineering, HDR lighting, and Streets GL city context.',
   'seo.caseWitnessTitle': 'IOM — Black Witness 360° case study',
   'seo.caseWitnessDescription':
-    'From brief to 360°: how The Black Witness becomes a guided panorama tour with hotspots and WebGPU effect layers.',
+    'From challenge to deliverables: how The Black Witness becomes a guided panorama tour with hotspots and WebGPU effects.',
+  'seo.privacyTitle': 'Privacy Policy | IOM',
+  'seo.privacyDescription':
+    'How Interactive Object Media handles contact form data, analytics, and the private client portal.',
+  'seo.termsTitle': 'Terms of Service | IOM',
+  'seo.termsDescription':
+    'Website terms for Interactive Object Media — public site use, demos, and how client contracts work.',
+  'seo.cookiesTitle': 'Cookie Policy | IOM',
+  'seo.cookiesDescription':
+    'Cookies and local storage on iobjectm.com — preferences, privacy-friendly analytics, and portal login.',
 
   'case.back': 'All work',
   'case.stagesAria': 'Process stages',
   'case.hireUs': 'Hire us',
   'case.stageMeta': 'Stage {index} · {title}',
+  'case.frameworkAria': 'Case study framework',
+  'case.challenge': 'Challenge',
+  'case.solution': 'Solution',
+  'case.deliverables': 'Deliverables',
+  'case.deliverablesHeading': 'Deliverables',
   'case.ctaTitle': 'Need a viewer, tour, or custom WebGL build?',
   'case.ctaText':
-    'We scope from brief to delivery — product review tools, 360° tours, and real-time experiments that still read as business software.',
+    'We scope from discovery to delivery — product review tools, 360° tours, and real-time experiments that still read as business software.',
   'case.allCaseStudies': 'All case studies',
   'case.listTitle': 'Case studies',
   'case.listLead':
-    'Process deep-dives from Interactive Object Media — brief to final interactive build.',
+    'Narrative case studies from Interactive Object Media — challenge, solution, and deliverables.',
   'case.orReturn': 'Or return to the',
   'case.archive': 'Case Studies archive',
   'case.contactStudio': 'contact the studio',

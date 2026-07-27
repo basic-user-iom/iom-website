@@ -12,6 +12,7 @@ export type CaseStudyOverlay = {
   primaryCtaLabel?: string
   secondaryCtaLabel?: string
   stages?: Record<string, StageOverlay> // keyed by stage id: brief, wire, engineering, final
+  deliverables?: string[]
 }
 
 export type CaseStudiesLocalePack = {

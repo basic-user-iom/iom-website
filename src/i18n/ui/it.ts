@@ -58,6 +58,8 @@ export const itUi: Dict = {
 
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Studia la sfida. Dai forma all’esperienza. Consegna il risultato.',
+  'rfo.method':
+    'Processo cliente: Discovery & briefing → Concept design → Sviluppo tecnico → Consegna finale — mappato su Research, Form e Output.',
   'rfo.close':
     'RFO non è una formula di produzione rigida. È il modo in cui assicuriamo che ogni decisione creativa abbia un motivo, ogni sistema tecnico sostenga l’esperienza e ogni progetto raggiunga una forma finale chiara e utile.',
   'team.raven.role': 'Fondatore · Media interattivi & engineering',
@@ -99,6 +101,10 @@ export const itUi: Dict = {
   'contact.errGeneric': 'Qualcosa è andato storto. Riprova o scrivici direttamente.',
   'contact.noticeDev':
     'Configura VITE_WEB3FORMS_ACCESS_KEY in .env per abilitare l’invio email.',
+  'contact.portal': 'Portale clienti sicuro disponibile per progetti attivi',
+  'contact.portalDemo': 'Prova la sandbox CRM',
+  'contact.errRequired': 'Compila questo campo.',
+  'contact.errEmail': 'Inserisci un indirizzo email valido.',
 
   'card.open': 'Apri →',
   'card.viewStudy': 'Vedi case study →',
@@ -122,9 +128,31 @@ export const itUi: Dict = {
   'footer.contact': 'Contatto',
   'footer.login': 'Login',
   'footer.crmDemo': 'Demo CRM',
+  'footer.privacy': 'Privacy',
+  'footer.terms': 'Termini',
+  'footer.cookies': 'Cookie',
   'footer.rights': '© {year} IOM. Tutti i diritti riservati.',
+  'footer.entity':
+    'IOM è un brand di studio indipendente; i contratti sono emessi dalla parte contraente.',
+
+  'legal.eyebrow': 'Legale',
+  'legal.lastUpdated': 'Ultimo aggiornamento {date}',
+  'legal.navAria': 'Pagine legali',
+  'legal.nav.privacy': 'Informativa sulla privacy',
+  'legal.nav.terms': 'Termini di servizio',
+  'legal.nav.cookies': 'Politica sui cookie',
+  'legal.backHome': '← Home',
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
+  'seo.privacyTitle': 'Privacy | IOM',
+  'seo.privacyDescription':
+    'Come Interactive Object Media gestisce i dati del form, le analytics e il portale clienti privato.',
+  'seo.termsTitle': 'Termini di servizio | IOM',
+  'seo.termsDescription':
+    'Termini del sito Interactive Object Media — uso pubblico, demo e contratti clienti.',
+  'seo.cookiesTitle': 'Politica sui cookie | IOM',
+  'seo.cookiesDescription':
+    'Cookie e archiviazione locale su iobjectm.com — preferenze, analytics e login al portale.',
   'seo.homeDescription':
     'IOM costruisce software, esperienze 3D, tour 360° immersive, fotografia, musica ed esperimenti WebGPU — studio di media interattivi di Mirjan Jovanović.',
   'seo.caseStudiesTitle': 'IOM — Case study',
@@ -141,6 +169,11 @@ export const itUi: Dict = {
   'case.stagesAria': 'Fasi del processo',
   'case.hireUs': 'Incaricaci',
   'case.stageMeta': 'Fase {index} · {title}',
+  'case.frameworkAria': 'Quadro del case study',
+  'case.challenge': 'Sfida',
+  'case.solution': 'Soluzione',
+  'case.deliverables': 'Deliverable',
+  'case.deliverablesHeading': 'Deliverable',
   'case.ctaTitle': 'Serve un viewer, un tour o un build WebGL su misura?',
   'case.ctaText':
     'Scopriamo dal brief alla consegna — strumenti di review prodotto, tour 360° ed esperimenti real-time che restano leggibili come software business.',

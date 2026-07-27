@@ -110,6 +110,13 @@
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/de/case-studies/3d-viewer/</loc>
@@ -246,120 +253,325 @@
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/crm-demo/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/crm-demo/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/image-prep/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/image-prep/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/image-prep/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/raven-path/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/raven-path/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/raven-path/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/iom-three/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/iom-three/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/iom-three/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/panorama-suite/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/panorama-suite/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/panorama-suite/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/streets-gl-bridge/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/streets-gl-bridge/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/streets-gl-bridge/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/artist-globe/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/artist-globe/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/artist-globe/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/css3d-sprites/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/css3d-sprites/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/3d-viewer/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/3d-viewer/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/3d-viewer/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/buffergeometry-drawrange/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/buffergeometry-drawrange/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/buffergeometry-drawrange/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-spotlight/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/webgpu-spotlight/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/webgpu-spotlight/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/spline-editor/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/spline-editor/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/spline-editor/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/terrain-sandbox/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/terrain-sandbox/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/terrain-sandbox/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-parallax-uv/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/webgpu-parallax-uv/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/webgpu-parallax-uv/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/procedural-gl/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/procedural-gl/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/procedural-gl/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/spout/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/spout/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/spout/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-tsl-linked-particles/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/webgpu-tsl-linked-particles/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/webgpu-tsl-linked-particles/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/volume-lighting/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/volume-lighting/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/volume-lighting/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-custom-fog-scattering/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/webgpu-custom-fog-scattering/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/webgpu-custom-fog-scattering/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-modifier-curve/</loc>
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/webgpu-modifier-curve/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/webgpu-modifier-curve/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/de/blog/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/fr/blog/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/nl/blog/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/it/blog/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/es/blog/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/streets-gl/</loc>
@@ -522,5 +734,239 @@
     <lastmod>2026-07-27</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/de/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/de/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/de/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/fr/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/fr/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/fr/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/nl/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/nl/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/nl/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/it/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/it/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/it/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/es/privacy/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/privacy/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/privacy/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/es/terms/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/terms/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/terms/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/terms/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/terms/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/terms/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/terms/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/es/cookies/</loc>
+    <lastmod>2026-07-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/cookies/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/cookies/"/>
   </url>
 </urlset>
