@@ -67,16 +67,16 @@ export const deUi: Dict = {
   'rfo.phasesAria': 'Lieferphasen',
   'rfo.phase1.title': 'Discovery & Briefing',
   'rfo.phase1.text':
-    'Ziele, Rahmenbedingungen und Erfolgskriterien abstimmen. Bei Bedarf NDAs, Referenzmaterial sammeln und den technischen Spielraum klären, bevor gebaut wird.',
+    'Ziele, Rahmenbedingungen und Erfolgskriterien abstimmen. Bei Bedarf NDAs, Referenzmaterial über verschlüsselten Transfer oder sicheren Share sammeln und den technischen Spielraum klären, bevor gebaut wird.',
   'rfo.phase2.title': 'Konzept & Systemdesign',
   'rfo.phase2.text':
     'Erlebnisarchitektur formen — Layout, Interaktionsmodell und WebGL/WebGPU-Ansatz — mit frühen Performance- und Liefergrenzen im Blick.',
   'rfo.phase3.title': 'Produktion',
   'rfo.phase3.text':
-    'Immersive Umgebungen bauen, Assets optimieren, Licht und Motion abstimmen und die UI so verdrahten, dass die Arbeit durchgehend reviewbar bleibt.',
+    'Immersive Umgebungen bauen, Assets optimieren, Licht und Motion abstimmen und die UI so verdrahten, dass die Arbeit auf unindexiertem Staging durchgehend reviewbar bleibt.',
   'rfo.phase4.title': 'Lieferung & QA',
   'rfo.phase4.text':
-    'Cross-Browser- und Mobile-Checks, Hosting und CDN, Ladezeiten und ein klares Client-Sign-off vor dem Go-live.',
+    'Cross-Browser- und Mobile-Checks, Hosting und CDN, Ladezeiten, klares Client-Sign-off, dann Übergabe mit kurzem Post-Launch-Support.',
   'rfo.close':
     'RFO ist keine starre Produktionsformel. Es stellt sicher, dass jede kreative Entscheidung einen Grund hat, jedes technische System das Erlebnis trägt und jedes Projekt eine klare, nützliche Endform erreicht.',
   'team.raven.role': 'Gründer · Interaktive Medien & Engineering',

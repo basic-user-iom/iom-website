@@ -67,16 +67,16 @@ export const enUi: Dict = {
   'rfo.phasesAria': 'Delivery phases',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
-    'Align on goals, constraints, and success criteria. Sign NDAs when needed, gather reference assets, and define the technical envelope before build work starts.',
+    'Align on goals, constraints, and success criteria. Sign NDAs when needed, gather reference assets over encrypted transfer or a secure share, and define the technical envelope before build work starts.',
   'rfo.phase2.title': 'Concept & system design',
   'rfo.phase2.text':
     'Shape the experience architecture — layout, interaction model, and WebGL/WebGPU approach — with early performance and delivery constraints in mind.',
   'rfo.phase3.title': 'Production',
   'rfo.phase3.text':
-    'Build the immersive environments, optimize assets, tune lighting and motion, and wire the UI so the work stays reviewable throughout.',
+    'Build the immersive environments, optimize assets, tune lighting and motion, and wire the UI so the work stays reviewable on unindexed staging throughout.',
   'rfo.phase4.title': 'Delivery & QA',
   'rfo.phase4.text':
-    'Cross-browser and mobile checks, hosting and CDN setup, load-speed tuning, and a clear client sign-off before go-live.',
+    'Cross-browser and mobile checks, hosting and CDN setup, load-speed tuning, clear client sign-off, then handover with short post-launch support.',
   'rfo.close':
     'RFO is not a rigid production formula. It is how we make sure every creative decision has a reason, every technical system supports the experience, and every project reaches a clear and useful final form.',
   'team.raven.role': 'Founder · Interactive media & engineering',

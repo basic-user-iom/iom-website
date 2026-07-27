@@ -67,16 +67,16 @@ export const nlUi: Dict = {
   'rfo.phasesAria': 'Opleveringsfasen',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
-    'Doelen, randvoorwaarden en succescriteria afstemmen. Waar nodig NDAs, referentiemateriaal verzamelen en het technische kader bepalen vóór de build.',
+    'Doelen, randvoorwaarden en succescriteria afstemmen. Waar nodig NDAs, referentiemateriaal via versleutelde transfer of een beveiligde share verzamelen en het technische kader bepalen vóór de build.',
   'rfo.phase2.title': 'Concept & systeemontwerp',
   'rfo.phase2.text':
     'Ervaararchitectuur vormgeven — layout, interactiemodel en WebGL/WebGPU-aanpak — met vroege performance- en leveringsgrenzen in het oog.',
   'rfo.phase3.title': 'Productie',
   'rfo.phase3.text':
-    'Immersieve omgevingen bouwen, assets optimaliseren, licht en motion afstemmen, en de UI zo bedraden dat het werk tijdens het traject reviewbaar blijft.',
+    'Immersieve omgevingen bouwen, assets optimaliseren, licht en motion afstemmen, en de UI zo bedraden dat het werk op niet-geïndexeerde staging tijdens het traject reviewbaar blijft.',
   'rfo.phase4.title': 'Oplevering & QA',
   'rfo.phase4.text':
-    'Cross-browser- en mobiele checks, hosting en CDN, laadsnelheid, en een duidelijke client-sign-off vóór go-live.',
+    'Cross-browser- en mobiele checks, hosting en CDN, laadsnelheid, duidelijke client-sign-off, daarna overdracht met korte post-launch support.',
   'rfo.close':
     'RFO is geen starre productieformule. Het zorgt dat elke creatieve beslissing een reden heeft, elk technisch systeem de ervaring ondersteunt, en elk project een heldere, nuttige eindvorm bereikt.',
   'team.raven.role': 'Oprichter · Interactieve media & engineering',
