@@ -63,8 +63,11 @@ export const nlUi: Dict = {
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Onderzoek de uitdaging. Vorm de ervaring. Lever het resultaat.',
   'rfo.method':
-    'Klantproces: Discovery & briefing → Concept → Technische ontwikkeling → Oplevering — gekoppeld aan Research, Form en Output.',
-  'rfo.phasesAria': 'Opleveringsfasen',
+    'Klantproces gekoppeld aan Research, Form en Output — open elke fase voor hoe Raven, Fox en Octopus de oplevering aanpakken.',
+  'rfo.phaseMore': 'Meer info',
+  'rfo.phaseLess': 'Minder',
+  'rfo.phaseLead': '{who} · {stage}',
+  'rfo.phaseOutput.title': 'Productie & oplevering',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
     'Doelen, randvoorwaarden en succescriteria afstemmen. Waar nodig NDAs, referentiemateriaal via versleutelde transfer of een beveiligde share verzamelen en het technische kader bepalen vóór de build.',

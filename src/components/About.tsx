@@ -100,47 +100,75 @@ export const About = memo(function About() {
               </div>
 
               <ol className="about-pathway-flow" aria-label={t('about.rfoAria')}>
-                {TEAM.map((member, i) => (
-                  <li
-                    key={member.id}
-                    className="about-pathway-item"
-                    onPointerEnter={() => {
-                      orbs?.setHover('rfo', i)
-                    }}
-                    onPointerLeave={() => {
-                      orbs?.setHover(null, null)
-                    }}
-                  >
-                    <span
-                      className="about-pathway-node"
-                      aria-hidden="true"
-                      ref={(node) => {
-                        if (orbs) orbs.rfoNodesRef.current[i] = node
+                {TEAM.map((member, i) => {
+                  const phaseIds =
+                    member.id === 'raven'
+                      ? ([1] as const)
+                      : member.id === 'fox'
+                        ? ([2] as const)
+                        : ([3, 4] as const)
+                  const summaryTitle =
+                    member.id === 'octopus'
+                      ? t('rfo.phaseOutput.title')
+                      : t(`rfo.phase${phaseIds[0]}.title`)
+
+                  return (
+                    <li
+                      key={member.id}
+                      className="about-pathway-item"
+                      onPointerEnter={() => {
+                        orbs?.setHover('rfo', i)
+                      }}
+                      onPointerLeave={() => {
+                        orbs?.setHover(null, null)
                       }}
                     >
-                      {member.initials}
-                    </span>
-                    <span className="about-pathway-stage">{t(`team.${member.id}.rfoStage`)}</span>
-                    <span className="about-pathway-who">{member.name}</span>
-                    {i < TEAM.length - 1 ? (
-                      <span className="about-pathway-link" aria-hidden="true" />
-                    ) : null}
-                  </li>
-                ))}
-              </ol>
+                      <span
+                        className="about-pathway-node"
+                        aria-hidden="true"
+                        ref={(node) => {
+                          if (orbs) orbs.rfoNodesRef.current[i] = node
+                        }}
+                      >
+                        {member.initials}
+                      </span>
+                      <span className="about-pathway-stage">{t(`team.${member.id}.rfoStage`)}</span>
+                      <span className="about-pathway-who">{member.name}</span>
 
-              <ol className="about-pathway-phases" aria-label={t('rfo.phasesAria')}>
-                {([1, 2, 3, 4] as const).map((n) => (
-                  <li key={n} className="about-pathway-phase">
-                    <span className="about-pathway-phase-index" aria-hidden="true">
-                      {String(n).padStart(2, '0')}
-                    </span>
-                    <div className="about-pathway-phase-copy">
-                      <h3 className="about-pathway-phase-title">{t(`rfo.phase${n}.title`)}</h3>
-                      <p className="about-pathway-phase-text">{t(`rfo.phase${n}.text`)}</p>
-                    </div>
-                  </li>
-                ))}
+                      <details className="about-pathway-phase">
+                        <summary className="about-pathway-phase-summary">
+                          <span className="about-pathway-phase-copy">
+                            <span className="about-pathway-phase-title">{summaryTitle}</span>
+                            <span className="about-pathway-phase-more">
+                              <span className="about-pathway-phase-more-open">{t('rfo.phaseMore')}</span>
+                              <span className="about-pathway-phase-more-close">{t('rfo.phaseLess')}</span>
+                            </span>
+                          </span>
+                        </summary>
+                        <div className="about-pathway-phase-body">
+                          <p className="about-pathway-phase-lead">
+                            {t('rfo.phaseLead', {
+                              who: member.name,
+                              stage: t(`team.${member.id}.rfoStage`),
+                            })}
+                          </p>
+                          {phaseIds.map((n) => (
+                            <div key={n} className="about-pathway-phase-block">
+                              {phaseIds.length > 1 ? (
+                                <p className="about-pathway-phase-subtitle">{t(`rfo.phase${n}.title`)}</p>
+                              ) : null}
+                              <p className="about-pathway-phase-text">{t(`rfo.phase${n}.text`)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+
+                      {i < TEAM.length - 1 ? (
+                        <span className="about-pathway-link" aria-hidden="true" />
+                      ) : null}
+                    </li>
+                  )
+                })}
               </ol>
             </div>
           </div>

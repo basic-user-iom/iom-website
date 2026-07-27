@@ -63,8 +63,11 @@ export const enUi: Dict = {
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Research the challenge. Form the experience. Deliver the output.',
   'rfo.method':
-    'Client process: Discovery & briefing → Concept design → Technical development → Final delivery — mapped to Research, Form, and Output.',
-  'rfo.phasesAria': 'Delivery phases',
+    'Client process mapped to Research, Form, and Output — expand each stage for how Raven, Fox, and Octopus work the delivery.',
+  'rfo.phaseMore': 'More info',
+  'rfo.phaseLess': 'Less',
+  'rfo.phaseLead': '{who} · {stage}',
+  'rfo.phaseOutput.title': 'Production & delivery',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
     'Align on goals, constraints, and success criteria. Sign NDAs when needed, gather reference assets over encrypted transfer or a secure share, and define the technical envelope before build work starts.',

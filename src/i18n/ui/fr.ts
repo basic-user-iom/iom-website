@@ -63,8 +63,11 @@ export const frUi: Dict = {
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Étudier le défi. Former l’expérience. Livrer le résultat.',
   'rfo.method':
-    'Processus client : Discovery & briefing → Conception → Développement technique → Livraison finale — aligné sur Research, Form et Output.',
-  'rfo.phasesAria': 'Phases de livraison',
+    'Processus client aligné sur Research, Form et Output — ouvrir chaque étape pour le rôle de Raven, Fox et Octopus.',
+  'rfo.phaseMore': 'Plus d’infos',
+  'rfo.phaseLess': 'Moins',
+  'rfo.phaseLead': '{who} · {stage}',
+  'rfo.phaseOutput.title': 'Production & livraison',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
     'Aligner objectifs, contraintes et critères de succès. Signer des NDA si besoin, rassembler les références via transfert chiffré ou partage sécurisé, et définir le cadre technique avant de construire.',

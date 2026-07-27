@@ -63,8 +63,11 @@ export const itUi: Dict = {
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Studia la sfida. Dai forma all’esperienza. Consegna il risultato.',
   'rfo.method':
-    'Processo cliente: Discovery & briefing → Concept design → Sviluppo tecnico → Consegna finale — mappato su Research, Form e Output.',
-  'rfo.phasesAria': 'Fasi di consegna',
+    'Processo cliente mappato su Research, Form e Output — apri ogni fase per il lavoro di Raven, Fox e Octopus.',
+  'rfo.phaseMore': 'Più info',
+  'rfo.phaseLess': 'Meno',
+  'rfo.phaseLead': '{who} · {stage}',
+  'rfo.phaseOutput.title': 'Produzione e consegna',
   'rfo.phase1.title': 'Discovery & briefing',
   'rfo.phase1.text':
     'Allineare obiettivi, vincoli e criteri di successo. Firmare NDA se serve, raccogliere riferimenti via trasferimento crittografato o share sicuro, e definire il perimetro tecnico prima di costruire.',
