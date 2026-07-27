@@ -6,6 +6,8 @@ export const deCaseStudies: CaseStudiesLocalePack = {
       eyebrow: 'Case Study · Software',
       title: '3D Viewer — vom Briefing zu WebGL',
       lead: 'Wie IOM ein Review-Problem in ein auslieferbares Produkt verwandelt: Chrome verdrahten, Pipeline härten, dann Kunden einen Link geben, den sie im Call öffnen können.',
+      impact:
+        'Stakeholder prüfen komplexe Modelle im Browser — ohne CAD-Lizenz — damit Design- und Sales-Entscheidungen in gemeinsamen Calls vorangehen statt an Datei-Übergaben zu hängen.',
       primaryCtaLabel: 'Live-Viewer öffnen',
       secondaryCtaLabel: 'Technischer Beitrag',
       stages: {
@@ -43,6 +45,8 @@ export const deCaseStudies: CaseStudiesLocalePack = {
       eyebrow: 'Case Study · 360°',
       title: 'The Black Witness — vom Briefing zu 360°',
       lead: 'Wie eine Fotoserie zu einer geführten WebGPU-Panorama-Tour wird — Hotspots, Effekt-Layer und eine Visitor-Preview, die Kunden teilen können.',
+      impact:
+        'Kunden teilen einen geführten 360°-Walkthrough per URL — ohne Installation — damit Stakeholder die Erzählung auf jedem Gerät erleben und Feedback geben, bevor der nächste Shoot oder Launch kommt.',
       primaryCtaLabel: 'Visitor-Tour öffnen',
       secondaryCtaLabel: 'Technischer Beitrag',
       stages: {

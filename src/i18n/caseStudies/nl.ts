@@ -6,6 +6,8 @@ export const nlCaseStudies: CaseStudiesLocalePack = {
       eyebrow: 'Case study · Software',
       title: '3D Viewer — van brief tot WebGL',
       lead: 'Hoe IOM een reviewprobleem omzet in een verscheepbaar product: de chrome bedraden, de pipeline harden, en klanten een link geven die ze in een call kunnen openen.',
+      impact:
+        'Stakeholders reviewen complexe modellen in de browser — zonder CAD-licentie — zodat design- en salesbeslissingen in gedeelde calls vooruitgaan in plaats van vast te lopen op bestandsuitwisseling.',
       primaryCtaLabel: 'Live viewer openen',
       secondaryCtaLabel: 'Technische write-up',
       stages: {
@@ -43,6 +45,8 @@ export const nlCaseStudies: CaseStudiesLocalePack = {
       eyebrow: 'Case study · 360°',
       title: 'The Black Witness — van brief tot 360°',
       lead: 'Hoe een fotografiereeks een geleide WebGPU-panoramatour wordt — hotspots, effectlagen en een visitor-preview die klanten kunnen delen.',
+      impact:
+        'Klanten delen een geleide 360°-walkthrough via URL — zonder installatie — zodat stakeholders het verhaal op elk apparaat ervaren en feedback geven vóór de volgende shoot of launch.',
       primaryCtaLabel: 'Visitor-tour openen',
       secondaryCtaLabel: 'Technische write-up',
       stages: {
