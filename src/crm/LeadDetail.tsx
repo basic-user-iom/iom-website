@@ -8,6 +8,7 @@ import { hasAtlasEval, normalizeAtlasEval } from './atlasEval'
 import { formatLeadAsPlainText, copyTextToClipboard } from './formatLeadText'
 import { EmailThreadPanel } from './EmailThreadPanel'
 import { InitialOutreachPanel } from './InitialOutreachPanel'
+import { LeadNdaPanel } from './LeadNdaPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
 import { isContactPriority } from './outreach'
@@ -600,6 +601,13 @@ export function LeadDetail({
           onChanged(updated)
         }}
         schemaMissing={outreachSchemaMissing}
+      />
+
+      <LeadNdaPanel
+        lead={lead}
+        onLogged={() => {
+          setActivityTick((n) => n + 1)
+        }}
       />
 
       <EmailThreadPanel

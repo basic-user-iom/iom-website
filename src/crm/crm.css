@@ -2481,7 +2481,89 @@
   margin: 0;
 }
 
+.crm-nda {
+  margin-top: 0.25rem;
+}
+
+.crm-nda-blurb {
+  margin: 0 0 0.5rem;
+}
+
+.crm-nda-disclaimer {
+  margin: 0 0 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.crm-nda-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.crm-nda-status {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border, #333);
+}
+
+.crm-nda-status--not_sent {
+  color: var(--text-muted, #8a8a8a);
+}
+
+.crm-nda-status--sent {
+  color: #c9a227;
+  border-color: color-mix(in srgb, #c9a227 45%, transparent);
+}
+
+.crm-nda-status--signed {
+  color: #3d9a6a;
+  border-color: color-mix(in srgb, #3d9a6a 45%, transparent);
+}
+
+.crm-nda-actions,
+.crm-nda-status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.crm-nda-updated {
+  margin: 0 0 0.5rem;
+  font-size: 0.78rem;
+}
+
+.crm-nda-preview {
+  margin: 0.5rem 0 0;
+  max-height: 22rem;
+  overflow: auto;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border, #333);
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--bg, #111) 88%, #000);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 720px) {
+  .crm-nda-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
 .crm-outreach {
+  margin-top: 0.25rem;
   border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
 }
 
