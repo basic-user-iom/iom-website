@@ -128,6 +128,20 @@ export const About = memo(function About() {
                   </li>
                 ))}
               </ol>
+
+              <ol className="about-pathway-phases" aria-label={t('rfo.phasesAria')}>
+                {([1, 2, 3, 4] as const).map((n) => (
+                  <li key={n} className="about-pathway-phase">
+                    <span className="about-pathway-phase-index" aria-hidden="true">
+                      {String(n).padStart(2, '0')}
+                    </span>
+                    <div className="about-pathway-phase-copy">
+                      <h3 className="about-pathway-phase-title">{t(`rfo.phase${n}.title`)}</h3>
+                      <p className="about-pathway-phase-text">{t(`rfo.phase${n}.text`)}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         </div>

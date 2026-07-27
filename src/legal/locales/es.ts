@@ -25,6 +25,14 @@ export const esLegal: LegalLocalePack = {
         ],
       },
       {
+        id: 'confidentiality',
+        heading: 'Confidencialidad del cliente',
+        paragraphs: [
+          'El trabajo de proyecto con clientes es confidencial. Usamos NDAs cuando corresponde y no publicamos sin permiso nombres de clientes, assets propietarios ni detalles de proyecto en este sitio.',
+          'Los case studies y demos públicos describen nuestro proceso y craft en términos generales — o con materiales que el cliente haya autorizado.',
+        ],
+      },
+      {
         id: 'collect',
         heading: 'Información que recopilamos',
         paragraphs: [

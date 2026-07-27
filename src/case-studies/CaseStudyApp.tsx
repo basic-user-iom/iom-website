@@ -27,6 +27,8 @@ type CaseStudySpec = {
   eyebrow: string
   title: string
   lead: string
+  /** One-line business outcome for B2B readers */
+  impact: string
   primaryCta: { label: string; href: string; external?: boolean }
   secondaryCta?: { label: string; href: string }
   stages: Stage[]
@@ -157,6 +159,8 @@ const STUDIES: Record<string, CaseStudySpec> = {
     eyebrow: 'Case study · Software',
     title: '3D Viewer — challenge to deliverables',
     lead: 'How IOM turns a review problem into a shippable product: wire the chrome, harden the pipeline, then hand clients a link they can open on a call.',
+    impact:
+      'Stakeholders review complex models in the browser — no CAD seat required — so design and sales decisions move on shared calls instead of stalled file handoffs.',
     primaryCta: {
       label: 'Open live viewer',
       href: 'https://3dbviewer.com/',
@@ -177,6 +181,8 @@ const STUDIES: Record<string, CaseStudySpec> = {
     eyebrow: 'Case study · 360°',
     title: 'The Black Witness — challenge to 360°',
     lead: 'How a photography series becomes a guided WebGPU panorama tour — hotspots, effect layers, and a visitor preview clients can share.',
+    impact:
+      'Clients share a guided 360° walkthrough by URL — no install — so stakeholders experience the narrative on any device and return feedback before the next shoot or launch.',
     primaryCta: {
       label: 'Open visitor tour',
       href: '/demos/panorama-360/?mode=preview&yaw=-84.7&pitch=-6',
@@ -202,6 +208,7 @@ function localizeSpec(spec: CaseStudySpec, lang: SiteLang): CaseStudySpec {
     eyebrow: overlay.eyebrow ?? spec.eyebrow,
     title: overlay.title ?? spec.title,
     lead: overlay.lead ?? spec.lead,
+    impact: overlay.impact ?? spec.impact,
     primaryCta: {
       ...spec.primaryCta,
       label: overlay.primaryCtaLabel ?? spec.primaryCta.label,
@@ -261,6 +268,10 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
         <p className="case-study-eyebrow">{localized.eyebrow}</p>
         <h1 className="case-study-title">{localized.title}</h1>
         <p className="case-study-lead">{localized.lead}</p>
+        <p className="case-study-impact">
+          <span className="case-study-impact-label">{t('case.impact')}</span>
+          {localized.impact}
+        </p>
         <ul className="case-study-framework" aria-label={t('case.frameworkAria')}>
           <li>{t('case.challenge')}</li>
           <li>{t('case.solution')}</li>

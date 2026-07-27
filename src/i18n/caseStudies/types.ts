@@ -9,6 +9,7 @@ export type CaseStudyOverlay = {
   eyebrow?: string
   title?: string
   lead?: string
+  impact?: string
   primaryCtaLabel?: string
   secondaryCtaLabel?: string
   stages?: Record<string, StageOverlay> // keyed by stage id: brief, wire, engineering, final

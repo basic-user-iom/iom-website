@@ -64,6 +64,19 @@ export const nlUi: Dict = {
   'rfo.tagline': 'Onderzoek de uitdaging. Vorm de ervaring. Lever het resultaat.',
   'rfo.method':
     'Klantproces: Discovery & briefing → Concept → Technische ontwikkeling → Oplevering — gekoppeld aan Research, Form en Output.',
+  'rfo.phasesAria': 'Opleveringsfasen',
+  'rfo.phase1.title': 'Discovery & briefing',
+  'rfo.phase1.text':
+    'Doelen, randvoorwaarden en succescriteria afstemmen. Waar nodig NDAs, referentiemateriaal verzamelen en het technische kader bepalen vóór de build.',
+  'rfo.phase2.title': 'Concept & systeemontwerp',
+  'rfo.phase2.text':
+    'Ervaararchitectuur vormgeven — layout, interactiemodel en WebGL/WebGPU-aanpak — met vroege performance- en leveringsgrenzen in het oog.',
+  'rfo.phase3.title': 'Productie',
+  'rfo.phase3.text':
+    'Immersieve omgevingen bouwen, assets optimaliseren, licht en motion afstemmen, en de UI zo bedraden dat het werk tijdens het traject reviewbaar blijft.',
+  'rfo.phase4.title': 'Oplevering & QA',
+  'rfo.phase4.text':
+    'Cross-browser- en mobiele checks, hosting en CDN, laadsnelheid, en een duidelijke client-sign-off vóór go-live.',
   'rfo.close':
     'RFO is geen starre productieformule. Het zorgt dat elke creatieve beslissing een reden heeft, elk technisch systeem de ervaring ondersteunt, en elk project een heldere, nuttige eindvorm bereikt.',
   'team.raven.role': 'Oprichter · Interactieve media & engineering',
@@ -128,6 +141,7 @@ export const nlUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Over ons',
+  'footer.methodology': 'Methodologie',
   'footer.clients': 'Klanten',
   'footer.caseStudies': 'Case studies',
   'footer.blog': 'Blog',
@@ -179,6 +193,7 @@ export const nlUi: Dict = {
   'case.challenge': 'Uitdaging',
   'case.solution': 'Oplossing',
   'case.deliverables': 'Deliverables',
+  'case.impact': 'Business impact',
   'case.deliverablesHeading': 'Deliverables',
   'case.ctaTitle': 'Een viewer, tour of custom WebGL-build nodig?',
   'case.ctaText':

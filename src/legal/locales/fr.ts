@@ -25,6 +25,14 @@ export const frLegal: LegalLocalePack = {
         ],
       },
       {
+        id: 'confidentiality',
+        heading: 'Confidentialité client',
+        paragraphs: [
+          'Le travail projet client est confidentiel. Nous utilisons des NDA lorsque c’est pertinent et ne publions pas, sans autorisation, de noms de clients, d’assets propriétaires ou de détails de projet sur ce site.',
+          'Les études de cas et démos publiques décrivent notre processus et notre savoir-faire en termes généraux — ou avec des éléments validés par le client.',
+        ],
+      },
+      {
         id: 'collect',
         heading: 'Informations que nous collectons',
         paragraphs: [

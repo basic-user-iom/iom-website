@@ -25,6 +25,14 @@ export const nlLegal: LegalLocalePack = {
         ],
       },
       {
+        id: 'confidentiality',
+        heading: 'Klantvertrouwelijkheid',
+        paragraphs: [
+          'Klantprojectwerk is vertrouwelijk. We gebruiken NDA’s waar dat past en publiceren zonder toestemming geen klantnamen, proprietary assets of projectdetails op deze site.',
+          'Publieke case studies en demo’s beschrijven ons proces en craft in algemene termen — of met materiaal dat de klant heeft vrijgegeven.',
+        ],
+      },
+      {
         id: 'collect',
         heading: 'Welke informatie we verzamelen',
         paragraphs: [

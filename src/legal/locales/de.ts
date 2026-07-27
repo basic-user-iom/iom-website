@@ -25,6 +25,14 @@ export const deLegal: LegalLocalePack = {
         ],
       },
       {
+        id: 'confidentiality',
+        heading: 'Kundenvertraulichkeit',
+        paragraphs: [
+          'Kundenprojektarbeit ist vertraulich. Wir nutzen NDAs, wenn es sinnvoll ist, und veröffentlichen ohne Freigabe keine Kundennamen, proprietären Assets oder Projektdetails auf dieser Website.',
+          'Öffentliche Case Studies und Demos beschreiben unseren Prozess und unser Handwerk allgemein — oder mit Materialien, die der Kunde freigegeben hat.',
+        ],
+      },
+      {
         id: 'collect',
         heading: 'Welche Informationen wir erheben',
         paragraphs: [

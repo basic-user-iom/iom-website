@@ -25,6 +25,14 @@ export const itLegal: LegalLocalePack = {
         ],
       },
       {
+        id: 'confidentiality',
+        heading: 'Riservatezza del cliente',
+        paragraphs: [
+          'Il lavoro di progetto con i clienti è riservato. Usiamo NDA quando serve e non pubblichiamo senza permesso nomi di clienti, asset proprietari o dettagli di progetto su questo sito.',
+          'I case study e le demo pubblici descrivono il nostro processo e craft in termini generali — o con materiali autorizzati dal cliente.',
+        ],
+      },
+      {
         id: 'collect',
         heading: 'Informazioni che raccogliamo',
         paragraphs: [

@@ -64,6 +64,19 @@ export const frUi: Dict = {
   'rfo.tagline': 'Étudier le défi. Former l’expérience. Livrer le résultat.',
   'rfo.method':
     'Processus client : Discovery & briefing → Conception → Développement technique → Livraison finale — aligné sur Research, Form et Output.',
+  'rfo.phasesAria': 'Phases de livraison',
+  'rfo.phase1.title': 'Discovery & briefing',
+  'rfo.phase1.text':
+    'Aligner objectifs, contraintes et critères de succès. Signer des NDA si besoin, rassembler les références et définir le cadre technique avant de construire.',
+  'rfo.phase2.title': 'Concept & architecture système',
+  'rfo.phase2.text':
+    'Former l’architecture d’expérience — layout, modèle d’interaction et approche WebGL/WebGPU — avec les contraintes de performance et de livraison dès le départ.',
+  'rfo.phase3.title': 'Production',
+  'rfo.phase3.text':
+    'Construire les environnements immersifs, optimiser les assets, régler lumière et motion, et câbler l’UI pour que le travail reste reviewable tout au long du projet.',
+  'rfo.phase4.title': 'Livraison & QA',
+  'rfo.phase4.text':
+    'Contrôles multi-navigateurs et mobile, hébergement et CDN, vitesse de chargement, et validation client claire avant la mise en ligne.',
   'rfo.close':
     'RFO n’est pas une formule de production rigide. C’est notre façon de garantir que chaque décision créative a une raison, que chaque système technique soutient l’expérience, et que chaque projet atteint une forme finale claire et utile.',
   'team.raven.role': 'Fondateur · Médias interactifs & ingénierie',
@@ -128,6 +141,7 @@ export const frUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'À propos',
+  'footer.methodology': 'Méthodologie',
   'footer.clients': 'Clients',
   'footer.caseStudies': 'Études de cas',
   'footer.blog': 'Blog',
@@ -179,6 +193,7 @@ export const frUi: Dict = {
   'case.challenge': 'Défi',
   'case.solution': 'Solution',
   'case.deliverables': 'Livrables',
+  'case.impact': 'Impact business',
   'case.deliverablesHeading': 'Livrables',
   'case.ctaTitle': 'Besoin d’un viewer, d’une visite ou d’un build WebGL sur mesure ?',
   'case.ctaText':

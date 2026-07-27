@@ -20,7 +20,7 @@ export type LegalLocalePack = Record<LegalSlug, LegalPage>
 
 export const LEGAL_CONTACT = 'contact@iobjectm.com'
 
-export const LEGAL_LAST_UPDATED = '2026-07-27'
+export const LEGAL_LAST_UPDATED = '2026-07-28'
 
 export const LEGAL_DISCLOSURE_EN =
   'IOM (Interactive Object Media) is an independent studio brand. Contracts for client work are issued by the engaging party.'
@@ -40,6 +40,14 @@ export const LEGAL_PAGES_EN: LegalLocalePack = {
         paragraphs: [
           LEGAL_DISCLOSURE_EN,
           `This site is operated under the Interactive Object Media (IOM) studio brand. For privacy questions, email ${LEGAL_CONTACT}.`,
+        ],
+      },
+      {
+        id: 'confidentiality',
+        heading: 'Client confidentiality',
+        paragraphs: [
+          'Client project work is confidential. We use NDAs when appropriate and do not publish client names, proprietary assets, or project details on this site without permission.',
+          'Public case studies and demos describe our process and craft in general terms — or with materials the client has cleared for presentation.',
         ],
       },
       {

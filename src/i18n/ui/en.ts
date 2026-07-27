@@ -64,6 +64,19 @@ export const enUi: Dict = {
   'rfo.tagline': 'Research the challenge. Form the experience. Deliver the output.',
   'rfo.method':
     'Client process: Discovery & briefing → Concept design → Technical development → Final delivery — mapped to Research, Form, and Output.',
+  'rfo.phasesAria': 'Delivery phases',
+  'rfo.phase1.title': 'Discovery & briefing',
+  'rfo.phase1.text':
+    'Align on goals, constraints, and success criteria. Sign NDAs when needed, gather reference assets, and define the technical envelope before build work starts.',
+  'rfo.phase2.title': 'Concept & system design',
+  'rfo.phase2.text':
+    'Shape the experience architecture — layout, interaction model, and WebGL/WebGPU approach — with early performance and delivery constraints in mind.',
+  'rfo.phase3.title': 'Production',
+  'rfo.phase3.text':
+    'Build the immersive environments, optimize assets, tune lighting and motion, and wire the UI so the work stays reviewable throughout.',
+  'rfo.phase4.title': 'Delivery & QA',
+  'rfo.phase4.text':
+    'Cross-browser and mobile checks, hosting and CDN setup, load-speed tuning, and a clear client sign-off before go-live.',
   'rfo.close':
     'RFO is not a rigid production formula. It is how we make sure every creative decision has a reason, every technical system supports the experience, and every project reaches a clear and useful final form.',
   'team.raven.role': 'Founder · Interactive media & engineering',
@@ -128,6 +141,7 @@ export const enUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'About',
+  'footer.methodology': 'Methodology',
   'footer.clients': 'Clients',
   'footer.caseStudies': 'Case Studies',
   'footer.blog': 'Blog',
@@ -179,6 +193,7 @@ export const enUi: Dict = {
   'case.challenge': 'Challenge',
   'case.solution': 'Solution',
   'case.deliverables': 'Deliverables',
+  'case.impact': 'Business impact',
   'case.deliverablesHeading': 'Deliverables',
   'case.ctaTitle': 'Need a viewer, tour, or custom WebGL build?',
   'case.ctaText':

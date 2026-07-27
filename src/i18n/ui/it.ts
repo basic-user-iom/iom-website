@@ -64,6 +64,19 @@ export const itUi: Dict = {
   'rfo.tagline': 'Studia la sfida. Dai forma all’esperienza. Consegna il risultato.',
   'rfo.method':
     'Processo cliente: Discovery & briefing → Concept design → Sviluppo tecnico → Consegna finale — mappato su Research, Form e Output.',
+  'rfo.phasesAria': 'Fasi di consegna',
+  'rfo.phase1.title': 'Discovery & briefing',
+  'rfo.phase1.text':
+    'Allineare obiettivi, vincoli e criteri di successo. Firmare NDA se serve, raccogliere riferimenti e definire il perimetro tecnico prima di costruire.',
+  'rfo.phase2.title': 'Concept e system design',
+  'rfo.phase2.text':
+    'Dare forma all’architettura dell’esperienza — layout, modello di interazione e approccio WebGL/WebGPU — con performance e consegna in mente fin dall’inizio.',
+  'rfo.phase3.title': 'Produzione',
+  'rfo.phase3.text':
+    'Costruire ambienti immersivi, ottimizzare gli asset, regolare luce e motion e cablare la UI così che il lavoro resti reviewabile per tutto il progetto.',
+  'rfo.phase4.title': 'Consegna & QA',
+  'rfo.phase4.text':
+    'Check cross-browser e mobile, hosting e CDN, velocità di caricamento e un sign-off chiaro del cliente prima del go-live.',
   'rfo.close':
     'RFO non è una formula di produzione rigida. È il modo in cui assicuriamo che ogni decisione creativa abbia un motivo, ogni sistema tecnico sostenga l’esperienza e ogni progetto raggiunga una forma finale chiara e utile.',
   'team.raven.role': 'Fondatore · Media interattivi & engineering',
@@ -128,6 +141,7 @@ export const itUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Chi siamo',
+  'footer.methodology': 'Metodologia',
   'footer.clients': 'Clienti',
   'footer.caseStudies': 'Case study',
   'footer.blog': 'Blog',
@@ -179,6 +193,7 @@ export const itUi: Dict = {
   'case.challenge': 'Sfida',
   'case.solution': 'Soluzione',
   'case.deliverables': 'Deliverable',
+  'case.impact': 'Impatto business',
   'case.deliverablesHeading': 'Deliverable',
   'case.ctaTitle': 'Serve un viewer, un tour o un build WebGL su misura?',
   'case.ctaText':

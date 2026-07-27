@@ -64,6 +64,19 @@ export const deUi: Dict = {
   'rfo.tagline': 'Die Herausforderung erforschen. Das Erlebnis formen. Das Ergebnis liefern.',
   'rfo.method':
     'Kundenprozess: Discovery & Briefing → Konzept → Technische Entwicklung → Finale Lieferung — abgebildet auf Research, Form und Output.',
+  'rfo.phasesAria': 'Lieferphasen',
+  'rfo.phase1.title': 'Discovery & Briefing',
+  'rfo.phase1.text':
+    'Ziele, Rahmenbedingungen und Erfolgskriterien abstimmen. Bei Bedarf NDAs, Referenzmaterial sammeln und den technischen Spielraum klären, bevor gebaut wird.',
+  'rfo.phase2.title': 'Konzept & Systemdesign',
+  'rfo.phase2.text':
+    'Erlebnisarchitektur formen — Layout, Interaktionsmodell und WebGL/WebGPU-Ansatz — mit frühen Performance- und Liefergrenzen im Blick.',
+  'rfo.phase3.title': 'Produktion',
+  'rfo.phase3.text':
+    'Immersive Umgebungen bauen, Assets optimieren, Licht und Motion abstimmen und die UI so verdrahten, dass die Arbeit durchgehend reviewbar bleibt.',
+  'rfo.phase4.title': 'Lieferung & QA',
+  'rfo.phase4.text':
+    'Cross-Browser- und Mobile-Checks, Hosting und CDN, Ladezeiten und ein klares Client-Sign-off vor dem Go-live.',
   'rfo.close':
     'RFO ist keine starre Produktionsformel. Es stellt sicher, dass jede kreative Entscheidung einen Grund hat, jedes technische System das Erlebnis trägt und jedes Projekt eine klare, nützliche Endform erreicht.',
   'team.raven.role': 'Gründer · Interaktive Medien & Engineering',
@@ -128,6 +141,7 @@ export const deUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Über uns',
+  'footer.methodology': 'Methodik',
   'footer.clients': 'Kunden',
   'footer.caseStudies': 'Case Studies',
   'footer.blog': 'Blog',
@@ -179,6 +193,7 @@ export const deUi: Dict = {
   'case.challenge': 'Herausforderung',
   'case.solution': 'Lösung',
   'case.deliverables': 'Lieferumfang',
+  'case.impact': 'Business-Impact',
   'case.deliverablesHeading': 'Lieferumfang',
   'case.ctaTitle': 'Brauchen Sie einen Viewer, eine Tour oder einen Custom-WebGL-Build?',
   'case.ctaText':
