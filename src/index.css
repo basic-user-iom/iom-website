@@ -2946,10 +2946,20 @@ body.music-player-fs-lock {
   transform: translateY(calc(-2px - var(--reflect-i) * 0.5px)) scale(calc(1.02 + var(--reflect-i) * 0.02));
 }
 
-/* Wide wordmarks (e.g. Facebook) need a bit more width */
+/* Wide / dense wordmarks — shrink so optical weight matches crest logos */
 .clients-logo[src*='facebook'] {
   height: 1.35rem;
   max-width: 8.5rem;
+}
+
+.clients-logo[src*='rmi'] {
+  height: 1.55rem;
+  max-width: 8.25rem;
+}
+
+.clients-logo[src*='messe-muenchen'] {
+  height: 1.7rem;
+  max-width: 9rem;
 }
 
 /* Text SVGs — match other logo height and optical center in the tile */
