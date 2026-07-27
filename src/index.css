@@ -2619,6 +2619,35 @@ body.music-player-fs-lock {
   text-decoration: underline;
 }
 
+/* Shared Clients → RFO light orbs (one set, one RAF) */
+.site-orb-zone {
+  position: relative;
+}
+
+.site-orb-zone > .clients-orb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 24;
+  margin: -5px 0 0 -5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.site-orb-zone.is-in-view > .clients-orb,
+.site-orb-zone.is-attending > .clients-orb {
+  opacity: 0.92;
+}
+
+.site-orb-zone.is-attending > .clients-orb {
+  z-index: 26;
+}
+
+.site-orb-zone--static > .clients-orb {
+  display: none;
+}
+
 /* Clients */
 .clients-block {
   padding: clamp(3.5rem, 8vw, 5.5rem) clamp(1rem, 4vw, 3rem);
@@ -2682,6 +2711,8 @@ body.music-player-fs-lock {
   margin: 0 auto;
   padding: 1rem 0.5rem 1.35rem;
   overflow: visible;
+  /* Keep free-orbiting dots above tiles without trapping them */
+  z-index: 1;
 }
 
 /* Soft light orbs — 2D layer above logos (pointer-events none keeps links clickable) */
@@ -3122,22 +3153,6 @@ body.music-player-fs-lock {
 }
 
 .about-pathway .clients-orb {
-  z-index: 4;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-  /* Soften bloom so it stays readable inside the stage */
-  filter: blur(0.2px);
-}
-
-.about-pathway.is-in-view .clients-orb {
-  opacity: 0.92;
-}
-
-.about-pathway.is-attending .clients-orb {
-  z-index: 6;
-}
-
-.about-pathway--static .clients-orb {
   display: none;
 }
 

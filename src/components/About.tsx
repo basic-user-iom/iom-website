@@ -1,9 +1,7 @@
-import { memo, useMemo, useRef, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { RFO, TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
-import { usePathwayOrbs } from '../hooks/usePathwayOrbs'
 import { ContactForm } from './ContactForm'
-
-const PATHWAY_ORB_COUNT = 3
+import { useSiteOrbsOptional } from './SiteOrbZone'
 
 const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const candidates = useMemo(() => {
@@ -59,11 +57,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 })
 
 export const About = memo(function About() {
-  const pathwayRef = useRef<HTMLDivElement>(null)
-  const nodeRefs = useRef<(HTMLElement | null)[]>([])
-  const hoverIndexRef = useRef<number | null>(null)
-
-  usePathwayOrbs(pathwayRef, nodeRefs, hoverIndexRef)
+  const orbs = useSiteOrbsOptional()
 
   return (
     <>
@@ -97,11 +91,7 @@ export const About = memo(function About() {
               </div>
             </header>
 
-            <div className="about-pathway" id="rfo" ref={pathwayRef} aria-labelledby="rfo-heading">
-              {Array.from({ length: PATHWAY_ORB_COUNT }, (_, i) => (
-                <span key={i} className={`clients-orb clients-orb--${i}`} aria-hidden="true" />
-              ))}
-
+            <div className="about-pathway" id="rfo" aria-labelledby="rfo-heading">
               <div className="about-pathway-head">
                 <p className="about-eyebrow" id="rfo-heading">
                   Process · {RFO.title}
@@ -115,17 +105,17 @@ export const About = memo(function About() {
                     key={member.id}
                     className="about-pathway-item"
                     onPointerEnter={() => {
-                      hoverIndexRef.current = i
+                      orbs?.setHover('rfo', i)
                     }}
                     onPointerLeave={() => {
-                      if (hoverIndexRef.current === i) hoverIndexRef.current = null
+                      orbs?.setHover(null, null)
                     }}
                   >
                     <span
                       className="about-pathway-node"
                       aria-hidden="true"
                       ref={(node) => {
-                        nodeRefs.current[i] = node
+                        if (orbs) orbs.rfoNodesRef.current[i] = node
                       }}
                     >
                       {member.initials}

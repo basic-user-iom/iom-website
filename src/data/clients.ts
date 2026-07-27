@@ -78,4 +78,13 @@ export const CLIENTS: Client[] = [
     brandColor: '#1877F2',
     logo: '/assets/clients/facebook.svg',
   },
+  {
+    id: 'messe-muenchen',
+    name: 'Locations of Messe München',
+    mark: 'Messe München',
+    href: 'https://locations.messe-muenchen.de/en/',
+    // Official Dunkelblau from MMW_Logo_quer_Dunkelblau_RGB.svg (#112072)
+    brandColor: '#112072',
+    logo: '/assets/clients/messe-muenchen.svg',
+  },
 ]
