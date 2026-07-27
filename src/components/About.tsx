@@ -1,9 +1,11 @@
 import { memo, useMemo, useState } from 'react'
-import { RFO, TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
+import { TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
 import { ContactForm } from './ContactForm'
 import { useSiteOrbsOptional } from './SiteOrbZone'
+import { useSiteI18n } from '../i18n'
 
 const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
+  const { t } = useSiteI18n()
   const candidates = useMemo(() => {
     if (!member.portraitBase) return [] as string[]
     return TEAM_PORTRAIT_EXTS.map((ext) => `${member.portraitBase}${ext}`)
@@ -12,6 +14,9 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const [index, setIndex] = useState(0)
   const src = candidates[index]
   const showImage = Boolean(src)
+  const role = t(`team.${member.id}.role`)
+  const philosophy = t(`team.${member.id}.philosophy`)
+  const rfoStage = t(`team.${member.id}.rfoStage`)
 
   return (
     <li className={`about-team-card about-team-card--${member.id}`}>
@@ -39,11 +44,11 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
           </span>
         </span>
         <div className="about-team-body">
-          <p className="about-team-rfo">{member.rfoStage}</p>
+          <p className="about-team-rfo">{rfoStage}</p>
           <h3 className="about-team-name">{member.name}</h3>
-          <p className="about-team-role">{member.role}</p>
+          <p className="about-team-role">{role}</p>
           <span className="about-team-rule" aria-hidden="true" />
-          <p className="about-team-philosophy">{member.philosophy}</p>
+          <p className="about-team-philosophy">{philosophy}</p>
           <a className="about-team-email" href={`mailto:${member.email}`}>
             {member.email}
           </a>
@@ -58,6 +63,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 
 export const About = memo(function About() {
   const orbs = useSiteOrbsOptional()
+  const { t } = useSiteI18n()
 
   return (
     <>
@@ -73,33 +79,26 @@ export const About = memo(function About() {
           <div className="about-intro-shell">
             <header className="about-lead">
               <div className="about-lead-main">
-                <p className="about-eyebrow">Studio</p>
+                <p className="about-eyebrow">{t('about.eyebrow')}</p>
                 <h2 className="about-title" id="about-heading">
-                  The team behind the objects
+                  {t('about.title')}
                 </h2>
               </div>
               <div className="about-lead-copy">
-                <p className="about-lead-blurb">
-                  IOM is a studio for interactive media, browser-based 3D, WebGPU experiments, 360°
-                  experiences, and spatial archives — technical development and artistic direction
-                  for digital objects that feel clear, purposeful, and alive.
-                </p>
-                <p className="about-lead-note">
-                  Public identities: Raven, Fox, and Octopus. Collaboration stays human — clients
-                  meet the real people on calls and work with everyone on the project.
-                </p>
+                <p className="about-lead-blurb">{t('about.blurb')}</p>
+                <p className="about-lead-note">{t('about.note')}</p>
               </div>
             </header>
 
             <div className="about-pathway" id="rfo" aria-labelledby="rfo-heading">
               <div className="about-pathway-head">
                 <p className="about-eyebrow" id="rfo-heading">
-                  Process · {RFO.title}
+                  Process · {t('rfo.title')}
                 </p>
-                <p className="about-pathway-tagline">{RFO.tagline}</p>
+                <p className="about-pathway-tagline">{t('rfo.tagline')}</p>
               </div>
 
-              <ol className="about-pathway-flow" aria-label="RFO stages">
+              <ol className="about-pathway-flow" aria-label={t('about.rfoAria')}>
                 {TEAM.map((member, i) => (
                   <li
                     key={member.id}
@@ -120,7 +119,7 @@ export const About = memo(function About() {
                     >
                       {member.initials}
                     </span>
-                    <span className="about-pathway-stage">{member.rfoStage}</span>
+                    <span className="about-pathway-stage">{t(`team.${member.id}.rfoStage`)}</span>
                     <span className="about-pathway-who">{member.name}</span>
                     {i < TEAM.length - 1 ? (
                       <span className="about-pathway-link" aria-hidden="true" />
@@ -132,25 +131,22 @@ export const About = memo(function About() {
           </div>
         </div>
 
-        <p className="about-team-label">Studio identities · R F O</p>
+        <p className="about-team-label">{t('about.teamLabel')}</p>
         <ul className="about-team">
           {TEAM.map((member) => (
             <TeamCard key={member.id} member={member} />
           ))}
         </ul>
 
-        <p className="about-rfo-close-text">{RFO.close}</p>
+        <p className="about-rfo-close-text">{t('rfo.close')}</p>
       </section>
 
       <section className="about-block about-block--contact" id="contact" aria-labelledby="contact-heading">
-        <p className="about-eyebrow">Hire us</p>
+        <p className="about-eyebrow">{t('about.contactEyebrow')}</p>
         <h2 className="about-title" id="contact-heading">
-          Let&apos;s build something worth exploring
+          {t('about.contactTitle')}
         </h2>
-        <p className="about-text">
-          Tell us about the product, place, or experience you need. We reply within two business
-          days with next steps — scope questions, a short call, or a clear “not a fit yet.”
-        </p>
+        <p className="about-text">{t('about.contactText')}</p>
         <ContactForm />
       </section>
     </>

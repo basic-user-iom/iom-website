@@ -134,6 +134,14 @@ async function collectEntries() {
   add('/case-studies/3d-viewer/', 0.85)
   add('/case-studies/black-witness/', 0.85)
 
+  // Locale alternates for marketing home, case studies, and blog hub
+  for (const lang of ['de', 'fr', 'nl', 'it', 'es']) {
+    add(`/${lang}/`, 0.95)
+    add(`/${lang}/case-studies/3d-viewer/`, 0.8)
+    add(`/${lang}/case-studies/black-witness/`, 0.8)
+    add(`/${lang}/blog/`, 0.75)
+  }
+
   for (const url of parseProjectUrls()) add(url)
   for (const url of demoUrls()) add(url)
 
@@ -154,19 +162,52 @@ async function collectEntries() {
 }
 
 function toXml(entries) {
+  const LOCALES = [
+    { code: 'en', prefix: '' },
+    { code: 'de', prefix: '/de' },
+    { code: 'fr', prefix: '/fr' },
+    { code: 'nl', prefix: '/nl' },
+    { code: 'it', prefix: '/it' },
+    { code: 'es', prefix: '/es' },
+  ]
+
+  function alternateLinks(pathname) {
+    // Home, case studies, and blog get hreflang clusters
+    const p = pathname.replace(SITE_ORIGIN, '').replace(/\/+$/, '') || '/'
+    const bare = p.replace(/^\/(de|fr|nl|it|es)(?=\/|$)/, '') || '/'
+    const eligible =
+      bare === '/' ||
+      bare === '/case-studies' ||
+      bare.startsWith('/case-studies/') ||
+      bare === '/blog' ||
+      bare.startsWith('/blog/')
+    if (!eligible) return ''
+    const links = LOCALES.map(({ code, prefix }) => {
+      const loc =
+        bare === '/'
+          ? `${SITE_ORIGIN}${prefix || ''}/`
+          : `${SITE_ORIGIN}${prefix}${bare}/`
+      return `    <xhtml:link rel="alternate" hreflang="${code}" href="${escapeXml(loc)}"/>`
+    })
+    const xDefault = `    <xhtml:link rel="alternate" hreflang="x-default" href="${escapeXml(`${SITE_ORIGIN}${bare === '/' ? '/' : `${bare}/`}`)}"/>`
+    return `\n${links.join('\n')}\n${xDefault}`
+  }
+
   const body = entries
-    .map(
-      (e) => `  <url>
+    .map((e) => {
+      const alts = alternateLinks(e.loc)
+      return `  <url>
     <loc>${escapeXml(e.loc)}</loc>
     <lastmod>${BUILD_DATE}</lastmod>
     <changefreq>${e.priority >= 1 ? 'weekly' : 'monthly'}</changefreq>
-    <priority>${e.priority.toFixed(1)}</priority>
-  </url>`,
-    )
+    <priority>${e.priority.toFixed(1)}</priority>${alts}
+  </url>`
+    })
     .join('\n')
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
 ${body}
 </urlset>
 `

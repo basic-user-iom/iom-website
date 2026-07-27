@@ -1,20 +1,22 @@
 import { memo } from 'react'
+import { useSiteI18n } from '../i18n'
 
 export const Footer = memo(function Footer() {
+  const { t, href } = useSiteI18n()
   const year = new Date().getFullYear()
   return (
     <footer className="site-footer">
-      <span className="footer-brand">IOM — Interactive Object Media</span>
+      <span className="footer-brand">{t('footer.brand')}</span>
       <div className="footer-links">
-        <a href="/#about">About</a>
-        <a href="/#clients">Clients</a>
-        <a href="/#360">Case Studies</a>
-        <a href="/blog">Blog</a>
-        <a href="/#contact">Contact</a>
-        <a href="/client-login">Login</a>
-        <a href="/crm-demo">CRM Demo</a>
+        <a href={href('/#about')}>{t('footer.about')}</a>
+        <a href={href('/#clients')}>{t('footer.clients')}</a>
+        <a href={href('/#360')}>{t('footer.caseStudies')}</a>
+        <a href={href('/blog')}>{t('footer.blog')}</a>
+        <a href={href('/#contact')}>{t('footer.contact')}</a>
+        <a href="/client-login">{t('footer.login')}</a>
+        <a href="/crm-demo">{t('footer.crmDemo')}</a>
         <a href="mailto:contact@iobjectm.com">contact@iobjectm.com</a>
-        <span>© {year} IOM. All rights reserved.</span>
+        <span>{t('footer.rights', { year })}</span>
       </div>
     </footer>
   )

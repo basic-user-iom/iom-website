@@ -1,0 +1,19 @@
+export type StageOverlay = {
+  title?: string
+  summary?: string
+  detail?: string
+  mediaAlt?: string
+}
+
+export type CaseStudyOverlay = {
+  eyebrow?: string
+  title?: string
+  lead?: string
+  primaryCtaLabel?: string
+  secondaryCtaLabel?: string
+  stages?: Record<string, StageOverlay> // keyed by stage id: brief, wire, engineering, final
+}
+
+export type CaseStudiesLocalePack = {
+  studies: Record<string, CaseStudyOverlay> // '3d-viewer' | 'black-witness'
+}

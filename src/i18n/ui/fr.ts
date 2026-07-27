@@ -1,0 +1,176 @@
+import type { Dict } from '../types'
+
+export const frUi: Dict = {
+  'nav.skip': 'Aller au contenu',
+  'nav.homeAria': 'Accueil IOM',
+  'nav.primaryAria': 'Navigation principale',
+  'nav.blog': 'Blog',
+  'nav.about': 'À propos',
+  'nav.contact': 'Nous contacter',
+  'nav.login': 'Connexion',
+  'nav.menu': 'Menu',
+  'nav.mute': 'Muet',
+  'nav.listen': 'Écouter',
+  'nav.muteAria': 'Couper le son d’ambiance',
+  'nav.listenAria': 'Activer le son d’ambiance',
+  'nav.langAria': 'Langue',
+  'nav.brandTag': 'Interactive Object Media',
+
+  'hero.eyebrow': 'Agence · Archive · Objets',
+  'hero.titleLine1': 'Interactive',
+  'hero.titleLine2': 'Object Media',
+  'hero.lead':
+    'Nous créons des logiciels, des expériences 3D, des visites immersives et des expérimentations créatives — des outils et des mondes où les objets numériques deviennent des histoires à explorer.',
+  'hero.ctaWork': 'Voir les projets',
+  'hero.ctaContact': 'Nous contacter',
+  'hero.canvasAria':
+    'Scène WebGL décorative : nuages et corbeaux dans une lumière atmosphérique. Le contenu est décrit dans le texte de la page.',
+  'hero.loader.0': 'Des objets à explorer — un savoir-faire que l’on ouvre en appel.',
+  'hero.loader.1': 'Logiciel, espace et atmosphère — conçus pour être livrés.',
+  'hero.loader.2': 'Les objets numériques deviennent des histoires que les clients engagent.',
+  'hero.loaderReady': 'Prêt',
+  'hero.loaderLoading': 'Chargement de la scène · {pct}%',
+  'hero.motionEnable': 'Appuyer pour activer le mouvement',
+  'hero.motionAria': 'Activer la parallaxe de mouvement',
+  'hero.hudTilt': 'INCLINAISON · LIVE',
+  'hero.hudOrbit': 'CAM · ORBITE',
+  'hero.fsEnter': 'Plein écran',
+  'hero.fsExit': 'Quitter le plein écran',
+  'hero.fsLabel': 'PLEIN ÉCRAN',
+  'hero.fsShort': 'PE',
+  'hero.exit': 'QUITTER',
+  'hero.live': '◉ LIVE',
+  'hero.static': '◉ STATIQUE',
+  'hero.scroll': 'Défiler',
+
+  'about.eyebrow': 'Studio',
+  'about.title': 'L’équipe derrière les objets',
+  'about.blurb':
+    'IOM est un studio de médias interactifs, de 3D navigateur, d’expériences WebGPU, de parcours 360° et d’archives spatiales — développement technique et direction artistique pour des objets numériques clairs, utiles et vivants.',
+  'about.note':
+    'Identités publiques : Raven, Fox et Octopus. La collaboration reste humaine — les clients rencontrent de vraies personnes en appel et travaillent avec toute l’équipe.',
+  'about.rfoAria': 'Étapes RFO',
+  'about.teamLabel': 'Identités du studio · R F O',
+  'about.contactEyebrow': 'Nous engager',
+  'about.contactTitle': 'Construisons quelque chose qui mérite d’être exploré',
+  'about.contactText':
+    'Parlez-nous du produit, du lieu ou de l’expérience dont vous avez besoin. Nous répondons sous deux jours ouvrés avec la suite — questions de périmètre, court appel, ou un « pas encore le bon fit » clair.',
+
+  'rfo.title': 'Research · Form · Output',
+  'rfo.tagline': 'Étudier le défi. Former l’expérience. Livrer le résultat.',
+  'rfo.close':
+    'RFO n’est pas une formule de production rigide. C’est notre façon de garantir que chaque décision créative a une raison, que chaque système technique soutient l’expérience, et que chaque projet atteint une forme finale claire et utile.',
+  'team.raven.role': 'Fondateur · Médias interactifs & ingénierie',
+  'team.raven.philosophy':
+    'Les clients engagent la clarté autant que le savoir-faire — livrer des outils et des expériences que l’on peut ouvrir, comprendre et décider.',
+  'team.raven.rfoStage': 'Research',
+  'team.fox.role': 'Partenariats · Expérience client',
+  'team.fox.philosophy':
+    'Le travail à forte valeur commence par l’écoute — aligner l’ambition technique sur l’histoire que le client doit vraiment raconter.',
+  'team.fox.rfoStage': 'Form',
+  'team.octopus.role': 'Ingénierie logicielle · WebGL',
+  'team.octopus.philosophy':
+    'Construit des systèmes interactifs fiables — relie interfaces, environnements 3D, données et performance.',
+  'team.octopus.rfoStage': 'Output',
+
+  'clients.eyebrow': 'Clients sélectionnés',
+  'clients.title': 'Organisations avec lesquelles nous avons construit',
+  'clients.text':
+    'Hôtels, promoteurs, utilities et plateformes — projets en médias interactifs et expériences numériques.',
+  'clients.toggleAria': 'Afficher les wordmarks ou les logos clients',
+  'clients.wordmarks': 'Wordmarks',
+  'clients.logos': 'Logos',
+  'clients.openSite': '{name} — ouvrir le site',
+  'clients.siteAria': 'Site de {name}',
+
+  'contact.name': 'Nom',
+  'contact.email': 'E-mail',
+  'contact.message': 'Message',
+  'contact.send': 'Envoyer le message',
+  'contact.sending': 'Envoi…',
+  'contact.success': 'Message envoyé — nous répondons sous deux jours ouvrés.',
+  'contact.or': 'ou',
+  'contact.emailDirect': 'écrivez-nous directement',
+  'contact.errConfigDev':
+    'Configurez VITE_WEB3FORMS_ACCESS_KEY dans .env pour activer l’envoi d’e-mails.',
+  'contact.errConfig': 'Le formulaire de contact n’est pas configuré. Écrivez-nous directement.',
+  'contact.errUnexpected':
+    'Réponse inattendue du service mail. Réessayez ou écrivez-nous directement.',
+  'contact.errGeneric': 'Une erreur s’est produite. Réessayez ou écrivez-nous directement.',
+  'contact.noticeDev':
+    'Configurez VITE_WEB3FORMS_ACCESS_KEY dans .env pour activer l’envoi d’e-mails.',
+
+  'card.open': 'Ouvrir →',
+  'card.viewStudy': 'Voir l’étude →',
+  'card.viewGallery': 'Voir la galerie →',
+  'card.loadTrack': 'Charger le titre →',
+  'card.selected': 'Sélectionné',
+  'card.sample': 'Exemple',
+  'card.comingSoon': 'Bientôt',
+  'card.caseStudy': 'Étude de cas',
+  'card.source': 'Source',
+  'card.openAria': '{title} — ouvrir le produit ou l’étude de cas',
+  'card.comingSoonAria': '{title} — {label}',
+  'card.galleryAria': 'Voir la galerie {title}',
+  'card.musicAria': 'Charger {title} dans le lecteur',
+
+  'footer.brand': 'IOM — Interactive Object Media',
+  'footer.about': 'À propos',
+  'footer.clients': 'Clients',
+  'footer.caseStudies': 'Études de cas',
+  'footer.blog': 'Blog',
+  'footer.contact': 'Contact',
+  'footer.login': 'Connexion',
+  'footer.crmDemo': 'Démo CRM',
+  'footer.rights': '© {year} IOM. Tous droits réservés.',
+
+  'seo.homeTitle': 'IOM — Interactive Object Media',
+  'seo.homeDescription':
+    'IOM crée des logiciels, des expériences 3D, des visites 360° immersives, de la photographie, de la musique et des expériences WebGPU — studio de médias interactifs par Mirjan Jovanović.',
+  'seo.caseStudiesTitle': 'IOM — Études de cas',
+  'seo.caseStudiesDescription':
+    'Études de cas processus d’Interactive Object Media — du brief à la version interactive finale.',
+  'seo.caseViewerTitle': 'IOM — Étude de cas 3D Viewer',
+  'seo.caseViewerDescription':
+    'Du brief au WebGL : comment IOM construit le 3D Viewer — chrome d’interface, ingénierie, éclairage HDR et contexte urbain Streets GL pour la revue client.',
+  'seo.caseWitnessTitle': 'IOM — Étude de cas Black Witness 360°',
+  'seo.caseWitnessDescription':
+    'Du brief au 360° : comment The Black Witness devient une visite panorama guidée avec hotspots et couches d’effets WebGPU.',
+
+  'case.back': 'Tous les projets',
+  'case.stagesAria': 'Étapes du processus',
+  'case.hireUs': 'Nous engager',
+  'case.stageMeta': 'Étape {index} · {title}',
+  'case.ctaTitle': 'Besoin d’un viewer, d’une visite ou d’un build WebGL sur mesure ?',
+  'case.ctaText':
+    'Nous cadrons du brief à la livraison — outils de revue produit, visites 360° et expériences temps réel qui restent lisibles comme du logiciel métier.',
+  'case.allCaseStudies': 'Toutes les études de cas',
+  'case.listTitle': 'Études de cas',
+  'case.listLead':
+    'Plongées processus d’Interactive Object Media — du brief à la version interactive finale.',
+  'case.orReturn': 'Ou revenir à',
+  'case.archive': 'l’archive Études de cas',
+  'case.contactStudio': 'contacter le studio',
+
+  'blog.eyebrow': 'IOM Journal',
+  'blog.title': 'Blog',
+  'blog.lead':
+    'Études de cas, notes médias immersives et articles de terrain — le même métier que nos démos, écrit pour clients et partenaires.',
+  'blog.comingSoonLead':
+    'Études de cas, notes médias immersives et articles de terrain arrivent — le même métier que nos démos.',
+  'blog.comingSoon': 'Bientôt',
+  'blog.loading': 'Chargement des articles…',
+  'blog.loadingPost': 'Chargement…',
+  'blog.loadError': 'Impossible de charger les articles',
+  'blog.postLoadError': 'Impossible de charger l’article',
+  'blog.empty':
+    'Pas encore d’articles publiés. Revenez bientôt — ou publiez depuis la section Blog du CRM.',
+  'blog.read': 'Lire',
+  'blog.notFound': 'Article introuvable',
+  'blog.allPosts': '← Tous les articles',
+  'blog.backArticle': '← Retour à l’article',
+  'blog.backBlog': '← Blog',
+  'blog.contact': 'Contact',
+  'blog.seeWork': 'Voir nos travaux',
+  'blog.journalGlyph': '{n} / journal',
+}

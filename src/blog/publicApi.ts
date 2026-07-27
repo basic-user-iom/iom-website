@@ -1,6 +1,16 @@
 import { getBlogSupabase, isBlogSupabaseReady } from './supabaseClient'
 import { SAMPLE_PUBLISHED_POSTS } from './samplePosts'
-import { rowToPost, type BlogCommentPublic, type BlogPost } from './types'
+import { mergeCatalogTranslations } from './catalogTranslations'
+import {
+  applyBlogLocale,
+  isBlogContentLocale,
+  mergeTranslationsFromRows,
+  rowToPost,
+  translationFieldsFromPost,
+  type BlogCommentPublic,
+  type BlogContentLocale,
+  type BlogPost,
+} from './types'
 
 export { isBlogSupabaseReady }
 
@@ -20,9 +30,52 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number): Promise<T> {
   })
 }
 
-export async function fetchPublishedPosts(): Promise<BlogPost[]> {
+async function attachTranslations(posts: BlogPost[]): Promise<BlogPost[]> {
   const supabase = getBlogSupabase()
-  if (!supabase) return SAMPLE_PUBLISHED_POSTS
+  if (!supabase || !posts.length) {
+    return posts.map((p) => mergeCatalogTranslations(p))
+  }
+  try {
+    const { data, error } = await withTimeout(
+      supabase
+        .from('blog_post_translations')
+        .select('post_id, locale, title, excerpt, body, seo_title, seo_description')
+        .in(
+          'post_id',
+          posts.map((p) => p.id),
+        ),
+      4000,
+    )
+    if (error) throw error
+    const byPost = new Map<string, Record<string, unknown>[]>()
+    for (const row of data || []) {
+      const postId = String((row as { post_id: string }).post_id)
+      const list = byPost.get(postId) ?? []
+      list.push(row as Record<string, unknown>)
+      byPost.set(postId, list)
+    }
+    return posts.map((p) => {
+      const rows = byPost.get(p.id)
+      const withDb = rows?.length
+        ? mergeTranslationsFromRows(p, rows)
+        : { ...p, translations: { en: translationFieldsFromPost(p) } }
+      return mergeCatalogTranslations(withDb)
+    })
+  } catch {
+    return posts.map((p) => mergeCatalogTranslations(p))
+  }
+}
+
+function localizeList(posts: BlogPost[], locale: BlogContentLocale): BlogPost[] {
+  return posts.map((p) => applyBlogLocale(p, locale))
+}
+
+export async function fetchPublishedPosts(
+  locale: BlogContentLocale = 'en',
+): Promise<BlogPost[]> {
+  const lang = isBlogContentLocale(locale) ? locale : 'en'
+  const supabase = getBlogSupabase()
+  if (!supabase) return localizeList(SAMPLE_PUBLISHED_POSTS, lang)
 
   try {
     const { data, error } = await withTimeout(
@@ -34,14 +87,19 @@ export async function fetchPublishedPosts(): Promise<BlogPost[]> {
       4000,
     )
     if (error) throw error
-    // Successful query: only CRM-published posts (empty list while reviewing is correct)
-    return (data || []).map((r: Record<string, unknown>) => rowToPost(r))
+    const posts = (data || []).map((r: Record<string, unknown>) => rowToPost(r))
+    const withTr = await attachTranslations(posts)
+    return localizeList(withTr, lang)
   } catch {
-    return SAMPLE_PUBLISHED_POSTS
+    return localizeList(SAMPLE_PUBLISHED_POSTS, lang)
   }
 }
 
-export async function fetchPublishedPostBySlug(slug: string): Promise<BlogPost | null> {
+export async function fetchPublishedPostBySlug(
+  slug: string,
+  locale: BlogContentLocale = 'en',
+): Promise<BlogPost | null> {
+  const lang = isBlogContentLocale(locale) ? locale : 'en'
   const supabase = getBlogSupabase()
   if (supabase) {
     try {
@@ -55,15 +113,19 @@ export async function fetchPublishedPostBySlug(slug: string): Promise<BlogPost |
         4000,
       )
       if (error) throw error
-      if (data) return rowToPost(data as Record<string, unknown>)
-      // Successful query, slug not published — do not fall back to samples
+      if (data) {
+        const post = rowToPost(data as Record<string, unknown>)
+        const [withTr] = await attachTranslations([post])
+        return applyBlogLocale(withTr ?? post, lang)
+      }
       return null
     } catch {
       /* fall through to samples when Supabase errors */
     }
   }
 
-  return SAMPLE_PUBLISHED_POSTS.find((p) => p.slug === slug) ?? null
+  const sample = SAMPLE_PUBLISHED_POSTS.find((p) => p.slug === slug)
+  return sample ? applyBlogLocale(sample, lang) : null
 }
 
 export async function fetchPublicComments(postId: string): Promise<BlogCommentPublic[]> {
@@ -145,3 +207,4 @@ export async function verifyBlogCommentToken(
     message: json.message,
   }
 }
+

@@ -1,4 +1,6 @@
 import { BLOG_PUBLIC_ENABLED } from '../blog/publicFlags'
+import { uiDictionaries } from '../i18n/ui'
+import { localePath, type SiteLang } from '../i18n'
 import {
   CONTACT_EMAIL,
   DEFAULT_DESCRIPTION,
@@ -14,8 +16,14 @@ function normalizePath(path: string): string {
   return p.startsWith('/') ? p : `/${p}`
 }
 
-export function pageMetaForPath(pathname: string): PageMeta {
+function seoT(lang: SiteLang, key: string): string {
+  return uiDictionaries[lang]?.[key] ?? uiDictionaries.en[key] ?? key
+}
+
+export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMeta {
   const path = normalizePath(pathname)
+  const canonicalPath = localePath(lang, path)
+  const canonical = `${SITE_ORIGIN}${canonicalPath === '/' ? '/' : canonicalPath}`
 
   if (path === '/client-login' || path === '/crm-demo') {
     return {
@@ -115,16 +123,16 @@ export function pageMetaForPath(pathname: string): PageMeta {
     const isWitness = path === '/case-studies/black-witness'
     return {
       title: isViewer
-        ? `${SITE_NAME} — 3D Viewer case study`
+        ? seoT(lang, 'seo.caseViewerTitle')
         : isWitness
-          ? `${SITE_NAME} — Black Witness 360° case study`
-          : `${SITE_NAME} — Case studies`,
+          ? seoT(lang, 'seo.caseWitnessTitle')
+          : seoT(lang, 'seo.caseStudiesTitle'),
       description: isViewer
-        ? 'From brief to WebGL: how IOM builds the 3D Viewer — layout chrome, engineering, HDR lighting, and Streets GL city context for client review.'
+        ? seoT(lang, 'seo.caseViewerDescription')
         : isWitness
-          ? 'From brief to 360°: how The Black Witness becomes a guided panorama tour with hotspots and WebGPU effect layers.'
-          : 'Process case studies from Interactive Object Media — brief to final interactive build.',
-      canonical: `${SITE_ORIGIN}${path}`,
+          ? seoT(lang, 'seo.caseWitnessDescription')
+          : seoT(lang, 'seo.caseStudiesDescription'),
+      canonical,
       ogImage: isWitness
         ? `${SITE_ORIGIN}/assets/posters/panorama-360-tour.jpg`
         : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
@@ -140,9 +148,9 @@ export function pageMetaForPath(pathname: string): PageMeta {
 
   if (path === '/') {
     return {
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
-      canonical: `${SITE_ORIGIN}/`,
+      title: seoT(lang, 'seo.homeTitle') || DEFAULT_TITLE,
+      description: seoT(lang, 'seo.homeDescription') || DEFAULT_DESCRIPTION,
+      canonical: lang === 'en' ? `${SITE_ORIGIN}/` : `${SITE_ORIGIN}/${lang}/`,
       ogImage: DEFAULT_OG_IMAGE,
       keywords: [
         'interactive object media',
@@ -155,9 +163,9 @@ export function pageMetaForPath(pathname: string): PageMeta {
   }
 
   return {
-    title: DEFAULT_TITLE,
-    description: DEFAULT_DESCRIPTION,
-    canonical: `${SITE_ORIGIN}${path}`,
+    title: seoT(lang, 'seo.homeTitle') || DEFAULT_TITLE,
+    description: seoT(lang, 'seo.homeDescription') || DEFAULT_DESCRIPTION,
+    canonical,
     ogImage: DEFAULT_OG_IMAGE,
   }
 }

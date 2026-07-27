@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
+import type { SiteLang } from '../i18n'
+import { SITE_LANGS, SITE_LOCALE_TAGS, localePath } from '../i18n'
 import { pageMetaForPath } from './pageMeta'
 import { structuredDataScripts } from './structuredData'
-import { SITE_NAME } from './siteConfig'
+import { SITE_NAME, SITE_ORIGIN } from './siteConfig'
 
 const JSON_LD_ATTR = 'data-iom-seo-jsonld'
+const HREFLANG_ATTR = 'data-iom-hreflang'
 
 function upsertMeta(
   attr: 'name' | 'property',
@@ -22,7 +25,7 @@ function upsertMeta(
 
 function upsertLink(rel: string, href: string | undefined) {
   if (!href) return
-  let el = document.head.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null
+  let el = document.head.querySelector(`link[rel="${rel}"]:not([${HREFLANG_ATTR}])`) as HTMLLinkElement | null
   if (!el) {
     el = document.createElement('link')
     el.rel = rel
@@ -46,11 +49,47 @@ function injectJsonLd(pathname: string) {
   }
 }
 
+function clearHreflang() {
+  document.head.querySelectorAll(`link[${HREFLANG_ATTR}]`).forEach((node) => node.remove())
+}
+
+function injectHreflang(pathname: string) {
+  clearHreflang()
+  // Market pages + blog get alternates
+  const p = pathname.replace(/\/+$/, '') || '/'
+  const eligible =
+    p === '/' ||
+    p === '/case-studies' ||
+    p.startsWith('/case-studies/') ||
+    p === '/blog' ||
+    p.startsWith('/blog/')
+  if (!eligible) return
+
+  for (const lang of SITE_LANGS) {
+    const hrefPath = localePath(lang, p)
+    const href = `${SITE_ORIGIN}${hrefPath === '/' ? '/' : hrefPath}`
+    const link = document.createElement('link')
+    link.rel = 'alternate'
+    link.hreflang = SITE_LOCALE_TAGS[lang]
+    link.href = href
+    link.setAttribute(HREFLANG_ATTR, 'true')
+    document.head.appendChild(link)
+  }
+
+  const xDefault = document.createElement('link')
+  xDefault.rel = 'alternate'
+  xDefault.hreflang = 'x-default'
+  xDefault.href = `${SITE_ORIGIN}${p === '/' ? '/' : p}`
+  xDefault.setAttribute(HREFLANG_ATTR, 'true')
+  document.head.appendChild(xDefault)
+}
+
 /** Apply SEO meta tags and structured data for the current SPA route. */
-export function applyPageMeta(pathname: string) {
-  const meta = pageMetaForPath(pathname)
+export function applyPageMeta(pathname: string, lang: SiteLang = 'en') {
+  const meta = pageMetaForPath(pathname, lang)
 
   document.title = meta.title
+  document.documentElement.lang = SITE_LOCALE_TAGS[lang]
 
   upsertMeta('name', 'description', meta.description)
   upsertMeta('name', 'robots', meta.robots ?? 'index, follow')
@@ -65,6 +104,7 @@ export function applyPageMeta(pathname: string) {
   upsertMeta('property', 'og:title', meta.title)
   upsertMeta('property', 'og:description', meta.description)
   upsertMeta('property', 'og:url', meta.canonical)
+  upsertMeta('property', 'og:locale', SITE_LOCALE_TAGS[lang].replace('-', '_'))
   if (meta.ogImage) upsertMeta('property', 'og:image', meta.ogImage)
 
   upsertMeta('name', 'twitter:card', 'summary_large_image')
@@ -72,11 +112,12 @@ export function applyPageMeta(pathname: string) {
   upsertMeta('name', 'twitter:description', meta.description)
   if (meta.ogImage) upsertMeta('name', 'twitter:image', meta.ogImage)
 
+  injectHreflang(pathname)
   injectJsonLd(pathname)
 }
 
-export function usePageMeta(pathname: string) {
+export function usePageMeta(pathname: string, lang: SiteLang = 'en') {
   useEffect(() => {
-    applyPageMeta(pathname)
-  }, [pathname])
+    applyPageMeta(pathname, lang)
+  }, [pathname, lang])
 }

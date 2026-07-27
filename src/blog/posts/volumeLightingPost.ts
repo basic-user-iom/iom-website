@@ -1,7 +1,9 @@
 import type { BlogPost } from '../types'
+import { translationFieldsFromPost } from '../types'
+import { VOLUME_LIGHTING_LOCALES } from './locales/volumeLightingLocales'
 
 /** Canonical volume-lighting demo post — used in samplePosts for local review. */
-export const VOLUME_LIGHTING_BLOG_POST: BlogPost = {
+const VOLUME_LIGHTING_EN: BlogPost = {
   id: 'sample-blog-volume-lighting',
   slug: 'volume-lighting',
   title: 'Volumetric Lighting — Rect Area lights in the browser',
@@ -130,4 +132,12 @@ Browse more realtime work in [3D](/#3d) and [Experiments](/#experiments), or [co
   owner_id: null,
   created_at: '2026-07-18T10:00:00.000Z',
   updated_at: '2026-07-18T19:05:00.000Z',
+}
+
+export const VOLUME_LIGHTING_BLOG_POST: BlogPost = {
+  ...VOLUME_LIGHTING_EN,
+  translations: {
+    en: translationFieldsFromPost(VOLUME_LIGHTING_EN),
+    ...VOLUME_LIGHTING_LOCALES,
+  },
 }

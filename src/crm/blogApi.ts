@@ -3,15 +3,21 @@ import { isCrmDemoMode } from './demoMode'
 import { DEMO_KEYS, demoRead, demoWrite } from './demoStore'
 import { getSupabase, useLiveCrmBackend } from './supabaseClient'
 import { ALL_DEMO_BLOG_POSTS } from '../blog/posts'
+import { mergeCatalogTranslations } from '../blog/catalogTranslations'
 import {
+  mergeTranslationsFromRows,
   rowToPost,
   slugifyTitle,
+  translationFieldsFromPost,
   type BlogAudience,
   type BlogCommentAdmin,
   type BlogCommentStatus,
+  type BlogContentLocale,
   type BlogPost,
   type BlogPostInput,
   type BlogPostStatus,
+  type BlogPostTranslationFields,
+  type BlogPostTranslations,
 } from '../blog/types'
 
 function uid(): string {
@@ -63,6 +69,120 @@ function rowToAudience(row: Record<string, unknown>): BlogAudience {
 
 /* ── Posts ─────────────────────────────────────────────── */
 
+async function fetchTranslationsForPosts(postIds: string[]): Promise<Map<string, BlogPostTranslations>> {
+  const map = new Map<string, BlogPostTranslations>()
+  if (!postIds.length || !useLiveCrmBackend()) return map
+  const supabase = getSupabase()!
+  const { data, error } = await supabase
+    .from('blog_post_translations')
+    .select('post_id, locale, title, excerpt, body, seo_title, seo_description')
+    .in('post_id', postIds)
+  if (error) {
+    if (isMissingRelation(error)) return map
+    throw new Error(error.message)
+  }
+  for (const raw of data || []) {
+    const row = raw as Record<string, unknown>
+    const postId = String(row.post_id)
+    const locale = String(row.locale ?? '')
+    if (!locale) continue
+    const prev = map.get(postId) ?? {}
+    const merged = mergeTranslationsFromRows(
+      {
+        id: postId,
+        slug: '',
+        title: '',
+        excerpt: '',
+        body: '',
+        cover_image_url: '',
+        status: 'draft',
+        published_at: null,
+        seo_title: '',
+        seo_description: '',
+        author_name: '',
+        tags: [],
+        owner_id: null,
+        created_at: '',
+        updated_at: '',
+        translations: prev,
+      },
+      [row],
+    )
+    map.set(postId, merged.translations ?? prev)
+  }
+  return map
+}
+
+function withDemoTranslations(post: BlogPost): BlogPost {
+  const translations: BlogPostTranslations = {
+    en: translationFieldsFromPost(post),
+    ...(post.translations ?? {}),
+  }
+  if (!translations.en) translations.en = translationFieldsFromPost(post)
+  return { ...post, translations }
+}
+
+function resolveTranslationsForSave(input: BlogPostInput): {
+  en: BlogPostTranslationFields
+  translations: BlogPostTranslations
+} {
+  const locale: BlogContentLocale = input.contentLocale ?? 'en'
+  const current: BlogPostTranslationFields = {
+    title: input.title,
+    excerpt: input.excerpt,
+    body: input.body,
+    seo_title: input.seo_title,
+    seo_description: input.seo_description,
+  }
+  const translations: BlogPostTranslations = { ...(input.translations ?? {}) }
+  translations[locale] = current
+  if (!translations.en) {
+    translations.en = locale === 'en' ? current : emptyOrFromInput(input)
+  }
+  if (locale === 'en') {
+    translations.en = current
+  }
+  const en = translations.en ?? current
+  return { en, translations }
+}
+
+function emptyOrFromInput(input: BlogPostInput): BlogPostTranslationFields {
+  return {
+    title: input.title,
+    excerpt: input.excerpt,
+    body: input.body,
+    seo_title: input.seo_title,
+    seo_description: input.seo_description,
+  }
+}
+
+async function upsertTranslations(
+  postId: string,
+  translations: BlogPostTranslations,
+): Promise<void> {
+  if (!useLiveCrmBackend()) return
+  const supabase = getSupabase()!
+  const rows = Object.entries(translations)
+    .filter(([, fields]) => fields && (fields.title.trim() || fields.body.trim() || fields.excerpt.trim()))
+    .map(([locale, fields]) => ({
+      post_id: postId,
+      locale,
+      title: fields!.title,
+      excerpt: fields!.excerpt,
+      body: fields!.body,
+      seo_title: fields!.seo_title,
+      seo_description: fields!.seo_description,
+    }))
+  if (!rows.length) return
+  const { error } = await supabase.from('blog_post_translations').upsert(rows, {
+    onConflict: 'post_id,locale',
+  })
+  if (error) {
+    if (isMissingRelation(error)) return
+    throw new Error(error.message)
+  }
+}
+
 export async function listBlogPosts(): Promise<BlogPost[]> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
@@ -71,11 +191,22 @@ export async function listBlogPosts(): Promise<BlogPost[]> {
       .select('*')
       .order('updated_at', { ascending: false })
     if (error) throw new Error(error.message)
-    return (data || []).map((r) => rowToPost(r as Record<string, unknown>))
+    const posts = (data || []).map((r) => rowToPost(r as Record<string, unknown>))
+    const trMap = await fetchTranslationsForPosts(posts.map((p) => p.id))
+    return posts.map((p) => {
+      const translations = trMap.get(p.id)
+      const withDb = !translations
+        ? { ...p, translations: { en: translationFieldsFromPost(p) } }
+        : mergeTranslationsFromRows(p, Object.entries(translations).map(([locale, fields]) => ({
+            locale,
+            ...fields,
+          })))
+      return mergeCatalogTranslations(withDb)
+    })
   }
-  return demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, []).sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-  )
+  return demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, [])
+    .map(withDemoTranslations)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 }
 
 export async function getBlogPost(id: string): Promise<BlogPost | null> {
@@ -87,9 +218,20 @@ export async function getBlogPost(id: string): Promise<BlogPost | null> {
       .eq('id', id)
       .maybeSingle()
     if (error) throw new Error(error.message)
-    return data ? rowToPost(data as Record<string, unknown>) : null
+    if (!data) return null
+    const post = rowToPost(data as Record<string, unknown>)
+    const trMap = await fetchTranslationsForPosts([id])
+    const translations = trMap.get(id)
+    const withDb = !translations
+      ? { ...post, translations: { en: translationFieldsFromPost(post) } }
+      : mergeTranslationsFromRows(
+          post,
+          Object.entries(translations).map(([locale, fields]) => ({ locale, ...fields })),
+        )
+    return mergeCatalogTranslations(withDb)
   }
-  return demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, []).find((p) => p.id === id) ?? null
+  const found = demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, []).find((p) => p.id === id)
+  return found ? withDemoTranslations(found) : null
 }
 
 export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
@@ -97,6 +239,7 @@ export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
   const stamp = nowIso()
   const publishedAt =
     input.status === 'published' ? input.published_at || stamp : input.published_at || null
+  const { en, translations } = resolveTranslationsForSave(input)
 
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
@@ -105,14 +248,14 @@ export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
       .from('blog_posts')
       .insert({
         slug,
-        title: input.title,
-        excerpt: input.excerpt,
-        body: input.body,
+        title: en.title,
+        excerpt: en.excerpt,
+        body: en.body,
         cover_image_url: input.cover_image_url,
         status: input.status,
         published_at: publishedAt,
-        seo_title: input.seo_title,
-        seo_description: input.seo_description,
+        seo_title: en.seo_title,
+        seo_description: en.seo_description,
         author_name: input.author_name || 'IOM',
         tags: input.tags,
         owner_id: user?.id ?? null,
@@ -121,25 +264,28 @@ export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
       .maybeSingle()
     if (error) throw new Error(error.message)
     if (!data) throw new Error('Create returned no row — check you are signed in to live CRM.')
-    return rowToPost(data as Record<string, unknown>)
+    const post = rowToPost(data as Record<string, unknown>)
+    await upsertTranslations(post.id, translations)
+    return { ...post, translations }
   }
 
   const post: BlogPost = {
     id: uid(),
     slug,
-    title: input.title,
-    excerpt: input.excerpt,
-    body: input.body,
+    title: en.title,
+    excerpt: en.excerpt,
+    body: en.body,
     cover_image_url: input.cover_image_url,
     status: input.status,
     published_at: publishedAt,
-    seo_title: input.seo_title,
-    seo_description: input.seo_description,
+    seo_title: en.seo_title,
+    seo_description: en.seo_description,
     author_name: input.author_name || 'IOM',
     tags: input.tags,
     owner_id: null,
     created_at: stamp,
     updated_at: stamp,
+    translations,
   }
   const all = demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, [])
   demoWrite(DEMO_KEYS.blogPosts, [post, ...all])
@@ -149,28 +295,26 @@ export async function createBlogPost(input: BlogPostInput): Promise<BlogPost> {
 export async function updateBlogPost(id: string, input: BlogPostInput): Promise<BlogPost> {
   const slug = (input.slug || slugifyTitle(input.title)).trim()
   const stamp = nowIso()
+  const { en, translations } = resolveTranslationsForSave(input)
 
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
     const existing = await getBlogPost(id)
     let publishedAt = input.published_at ?? existing?.published_at ?? null
     if (input.status === 'published' && !publishedAt) publishedAt = stamp
-    if (input.status === 'draft') {
-      /* keep published_at history if was published before */
-    }
 
     const { data, error } = await supabase
       .from('blog_posts')
       .update({
         slug,
-        title: input.title,
-        excerpt: input.excerpt,
-        body: input.body,
+        title: en.title,
+        excerpt: en.excerpt,
+        body: en.body,
         cover_image_url: input.cover_image_url,
         status: input.status,
         published_at: publishedAt,
-        seo_title: input.seo_title,
-        seo_description: input.seo_description,
+        seo_title: en.seo_title,
+        seo_description: en.seo_description,
         author_name: input.author_name || 'IOM',
         tags: input.tags,
       })
@@ -183,7 +327,8 @@ export async function updateBlogPost(id: string, input: BlogPostInput): Promise<
         'Update returned no row — check you are signed in to live CRM and the post still exists.',
       )
     }
-    return rowToPost(data as Record<string, unknown>)
+    await upsertTranslations(id, translations)
+    return { ...rowToPost(data as Record<string, unknown>), translations }
   }
 
   const all = demoRead<BlogPost[]>(DEMO_KEYS.blogPosts, [])
@@ -194,17 +339,21 @@ export async function updateBlogPost(id: string, input: BlogPostInput): Promise<
   const next: BlogPost = {
     ...all[idx],
     slug,
-    title: input.title,
-    excerpt: input.excerpt,
-    body: input.body,
+    title: en.title,
+    excerpt: en.excerpt,
+    body: en.body,
     cover_image_url: input.cover_image_url,
     status: input.status,
     published_at: publishedAt,
-    seo_title: input.seo_title,
-    seo_description: input.seo_description,
+    seo_title: en.seo_title,
+    seo_description: en.seo_description,
     author_name: input.author_name || 'IOM',
     tags: input.tags,
     updated_at: stamp,
+    translations: {
+      ...(all[idx].translations ?? {}),
+      ...translations,
+    },
   }
   all[idx] = next
   demoWrite(DEMO_KEYS.blogPosts, all)
@@ -248,11 +397,15 @@ export async function setBlogPostStatus(id: string, status: BlogPostStatus): Pro
     seo_description: existing.seo_description,
     author_name: existing.author_name,
     tags: existing.tags,
+    contentLocale: 'en',
+    translations: existing.translations ?? { en: translationFieldsFromPost(existing) },
   }
   return updateBlogPost(id, input)
 }
 
 function catalogToInput(post: BlogPost): BlogPostInput {
+  const translations = post.translations ?? { en: translationFieldsFromPost(post) }
+  if (!translations.en) translations.en = translationFieldsFromPost(post)
   return {
     slug: post.slug,
     title: post.title,
@@ -265,6 +418,8 @@ function catalogToInput(post: BlogPost): BlogPostInput {
     seo_description: post.seo_description,
     author_name: post.author_name || 'IOM',
     tags: post.tags,
+    contentLocale: 'en',
+    translations,
   }
 }
 

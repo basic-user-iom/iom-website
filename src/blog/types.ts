@@ -1,5 +1,42 @@
 export type BlogPostStatus = 'draft' | 'pending_review' | 'published' | 'hidden'
 
+/** Content locales for blog posts (marketing-site langs; no Serbian). */
+export type BlogContentLocale = 'en' | 'de' | 'fr' | 'nl' | 'it' | 'es'
+
+export const BLOG_CONTENT_LOCALES: readonly BlogContentLocale[] = [
+  'en',
+  'de',
+  'fr',
+  'nl',
+  'it',
+  'es',
+] as const
+
+export const BLOG_CONTENT_LOCALE_LABELS: Record<BlogContentLocale, string> = {
+  en: 'English',
+  de: 'Deutsch',
+  fr: 'Français',
+  nl: 'Nederlands',
+  it: 'Italiano',
+  es: 'Español',
+}
+
+export function isBlogContentLocale(value: string): value is BlogContentLocale {
+  return (BLOG_CONTENT_LOCALES as readonly string[]).includes(value)
+}
+
+export type BlogPostTranslationFields = {
+  title: string
+  excerpt: string
+  body: string
+  seo_title: string
+  seo_description: string
+}
+
+export type BlogPostTranslations = Partial<
+  Record<BlogContentLocale, BlogPostTranslationFields>
+>
+
 const BLOG_POST_STATUSES: BlogPostStatus[] = ['draft', 'pending_review', 'published', 'hidden']
 
 export function normalizeBlogPostStatus(value: unknown): BlogPostStatus {
@@ -30,6 +67,8 @@ export interface BlogPost {
   owner_id: string | null
   created_at: string
   updated_at: string
+  /** Locale content map; EN is also mirrored on top-level fields. */
+  translations?: BlogPostTranslations
 }
 
 export type BlogPostInput = {
@@ -44,6 +83,92 @@ export type BlogPostInput = {
   seo_description: string
   author_name: string
   tags: string[]
+  /** When set, content fields are written to this locale + parent EN sync. */
+  contentLocale?: BlogContentLocale
+  translations?: BlogPostTranslations
+}
+
+export function emptyTranslationFields(): BlogPostTranslationFields {
+  return {
+    title: '',
+    excerpt: '',
+    body: '',
+    seo_title: '',
+    seo_description: '',
+  }
+}
+
+export function translationFieldsFromPost(post: Pick<
+  BlogPost,
+  'title' | 'excerpt' | 'body' | 'seo_title' | 'seo_description'
+>): BlogPostTranslationFields {
+  return {
+    title: post.title,
+    excerpt: post.excerpt,
+    body: post.body,
+    seo_title: post.seo_title,
+    seo_description: post.seo_description,
+  }
+}
+
+export function isTranslationFilled(fields?: BlogPostTranslationFields | null): boolean {
+  if (!fields) return false
+  return Boolean(fields.title.trim() || fields.excerpt.trim() || fields.body.trim())
+}
+
+/** Apply locale content onto post fields; fall back to EN then top-level. */
+export function applyBlogLocale(post: BlogPost, locale: BlogContentLocale): BlogPost {
+  const map = post.translations ?? {}
+  const en = map.en ?? translationFieldsFromPost(post)
+  const chosen = locale === 'en' ? en : map[locale]
+  if (!chosen || !isTranslationFilled(chosen)) {
+    return {
+      ...post,
+      title: en.title || post.title,
+      excerpt: en.excerpt || post.excerpt,
+      body: en.body || post.body,
+      seo_title: en.seo_title || post.seo_title,
+      seo_description: en.seo_description || post.seo_description,
+      translations: { ...map, en },
+    }
+  }
+  // Per-field fallback: translated title with empty/leftover-empty excerpt used to blank cards.
+  const pick = (field: keyof BlogPostTranslationFields) => {
+    const v = (chosen[field] || '').trim()
+    if (v) return chosen[field]
+    return en[field] || (post as BlogPost)[field] || ''
+  }
+  return {
+    ...post,
+    title: pick('title'),
+    excerpt: pick('excerpt'),
+    body: pick('body'),
+    seo_title: pick('seo_title'),
+    seo_description: pick('seo_description'),
+    translations: { ...map, en },
+  }
+}
+
+export function mergeTranslationsFromRows(
+  post: BlogPost,
+  rows: Array<Record<string, unknown>>,
+): BlogPost {
+  const translations: BlogPostTranslations = { ...(post.translations ?? {}) }
+  for (const row of rows) {
+    const locale = String(row.locale ?? '')
+    if (!isBlogContentLocale(locale)) continue
+    translations[locale] = {
+      title: String(row.title ?? ''),
+      excerpt: String(row.excerpt ?? ''),
+      body: String(row.body ?? ''),
+      seo_title: String(row.seo_title ?? ''),
+      seo_description: String(row.seo_description ?? ''),
+    }
+  }
+  if (!translations.en) {
+    translations.en = translationFieldsFromPost(post)
+  }
+  return { ...post, translations }
 }
 
 export interface BlogCommentPublic {
@@ -322,10 +447,27 @@ function escapeHtml(s: string): string {
     .replace(/"/g, '&quot;')
 }
 
-export function formatBlogDate(iso: string | null | undefined): string {
+export function formatBlogDate(
+  iso: string | null | undefined,
+  locale: string = 'en',
+): string {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    const tag =
+      locale === 'en'
+        ? 'en-GB'
+        : locale === 'de'
+          ? 'de-DE'
+          : locale === 'fr'
+            ? 'fr-FR'
+            : locale === 'nl'
+              ? 'nl-NL'
+              : locale === 'it'
+                ? 'it-IT'
+                : locale === 'es'
+                  ? 'es-ES'
+                  : locale
+    return new Date(iso).toLocaleDateString(tag, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

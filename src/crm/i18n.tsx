@@ -550,7 +550,7 @@ const en: Dict = {
   'seo.kicker': 'Website',
   'seo.title': 'SEO & traffic',
   'seo.intro':
-    'Search visibility, keyword targets, and privacy-friendly analytics for iobjectm.com — extend the registry when adding new content.',
+    'Search visibility, keyword targets, and privacy-friendly analytics for iobjectm.com — extend the registry when adding new content. Blog SEO titles and descriptions are edited per language in the Blog tab.',
   'seo.openSite': 'Open iobjectm.com',
   'seo.sitemap': 'Sitemap',
   'seo.schemaMissing':
@@ -852,6 +852,9 @@ const en: Dict = {
   'blog.fieldTags': 'Tags (comma-separated)',
   'blog.fieldSeoTitle': 'SEO title',
   'blog.fieldSeoDesc': 'SEO description',
+  'blog.localeTabsAria': 'Post content language',
+  'blog.localeTip':
+    'Switch language to edit title, body, and SEO fields for that locale. English is required; other languages fall back to English on the public site until filled. Slug, cover, tags, and status are shared.',
   'blog.fieldStatus': 'Status',
   'blog.statusDraft': 'Draft',
   'blog.statusPendingReview': 'Pending review',
@@ -1398,9 +1401,9 @@ const en: Dict = {
   'guide.blogText':
     'Author public Journal posts from CRM, moderate comments that require a verified email (never shown on the site), and keep a separate Blog email list — not the same as sales Leads.',
   'guide.blog1':
-    'Posts — draft or publish Markdown articles with slug, excerpt, SEO title/description, tags, and cover URL',
+    'Posts — draft or publish Markdown articles with slug, excerpt, per-language SEO title/description, tags, and cover URL',
   'guide.blog2':
-    'Link into demos and /#contact for SEO; required excerpt powers listings and meta',
+    'Use language tabs (EN · DE · FR · NL · IT · ES) for translations; missing locales fall back to English on /{lang}/blog',
   'guide.blog3':
     'Comments — readers confirm email via magic link; first comments wait for Approve / Reject / Spam',
   'guide.blog4':
@@ -1446,9 +1449,9 @@ const en: Dict = {
   'guide.seo1':
     'Review SEO targets, upgrade checklist, and content inventory for the public site',
   'guide.seo2':
-    'Analytics: pageviews, sources, keywords, devices, countries, and a globe of visitor cities',
+    'Analytics: pageviews (including /de/blog/… locale paths), sources, keywords, devices, countries, and a globe of visitor cities',
   'guide.seo3':
-    'Signed-in CRM uses live site analytics; the public demo shows realistic fake sample traffic only',
+    'Blog meta (seo title/description) is per language in the Blog tab — not edited in this SEO panel',
   'guide.seoDemoText':
     'In this demo, SEO shows sample content inventory and fake visitor traffic only — not live iobjectm.com analytics.',
   'guide.seoDemo1':
@@ -1999,7 +2002,7 @@ const sr: Dict = {
   'seo.kicker': 'Veb sajt',
   'seo.title': 'SEO i saobraćaj',
   'seo.intro':
-    'Vidljivost u pretrazi, ciljne fraze i analitika bez kolačića za iobjectm.com — proširite registar pri novom sadržaju.',
+    'Vidljivost u pretrazi, ciljne fraze i analitika bez kolačića za iobjectm.com — proširite registar pri novom sadržaju. Blog SEO naslovi i opisi uređuju se po jeziku u Blog kartici.',
   'seo.openSite': 'Otvori iobjectm.com',
   'seo.sitemap': 'Sitemap',
   'seo.schemaMissing':
@@ -2304,6 +2307,9 @@ const sr: Dict = {
   'blog.fieldTags': 'Tagovi (zarez)',
   'blog.fieldSeoTitle': 'SEO naslov',
   'blog.fieldSeoDesc': 'SEO opis',
+  'blog.localeTabsAria': 'Jezik sadržaja objave',
+  'blog.localeTip':
+    'Prebacite jezik da uredite naslov, telo i SEO polja za taj jezik. Engleski je obavezan; ostali jezici na javnom sajtu koriste engleski dok se ne popune. Slug, cover, tagovi i status su zajednički.',
   'blog.fieldStatus': 'Status',
   'blog.statusDraft': 'Nacrt',
   'blog.statusPendingReview': 'Na pregledu',
@@ -2852,9 +2858,9 @@ const sr: Dict = {
   'guide.blogText':
     'Pišite javne Journal članke iz CRM-a, moderišite komentare koji zahtevaju verifikovan email (nikad na sajtu) i vodite posebnu Blog email listu — nije isto što i Leadovi za prodaju.',
   'guide.blog1':
-    'Članci — nacrt ili objava Markdown tekstova sa slugom, izvodom, SEO naslovom/opisom, tagovima i cover URL-om',
+    'Članci — nacrt ili objava Markdown tekstova sa slugom, izvodom, SEO naslovom/opisom po jeziku, tagovima i cover URL-om',
   'guide.blog2':
-    'Linkujte na demo i /#contact zbog SEO-a; obavezan izvod ide u liste i meta',
+    'Koristite jezičke tabove (EN · DE · FR · NL · IT · ES) za prevode; prazni jezici na /{lang}/blog koriste engleski',
   'guide.blog3':
     'Komentari — čitaoci potvrđuju email magic linkom; prvi komentari čekaju Odobri / Odbij / Spam',
   'guide.blog4':
@@ -2900,9 +2906,9 @@ const sr: Dict = {
   'guide.seo1':
     'Pregledajte SEO ciljeve, checklistu unapređenja i inventar sadržaja javnog sajta',
   'guide.seo2':
-    'Analitika: pregledi, izvori, ključne reči, uređaji, zemlje i globus gradova posetilaca',
+    'Analitika: pregledi (uključujući /de/blog/… putanje), izvori, ključne reči, uređaji, zemlje i globus',
   'guide.seo3':
-    'Prijavljeni CRM koristi živu analitiku sajta; javni demo prikazuje samo realistične lažne uzorke saobraćaja',
+    'Blog meta (SEO naslov/opis) je po jeziku u Blog kartici — ne uređuje se u ovoj SEO kartici',
   'guide.seoDemoText':
     'U ovom demu SEO prikazuje samo uzorak inventara sadržaja i lažni saobraćaj — ne živu analitiku iobjectm.com.',
   'guide.seoDemo1':

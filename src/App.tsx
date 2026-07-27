@@ -25,7 +25,8 @@ import {
   isCrmDemoPath,
 } from './crm/demoMode'
 import { initAnalytics } from './analytics/track'
-import { SECTIONS } from './data/projects'
+import { SiteI18nProvider, parseLocalePath } from './i18n'
+import { localizedSections } from './i18n/projects/localize'
 import { usePageMeta } from './seo/usePageMeta'
 
 function usePathname(): string {
@@ -53,7 +54,8 @@ function syncCrmDemoFlag(isDemoRoute: boolean): void {
 }
 
 export default function App() {
-  const path = usePathname()
+  const rawPath = usePathname()
+  const { lang, path } = parseLocalePath(rawPath)
   const isClientLogin = path === '/client-login'
   const isCrmDemo = isCrmDemoPath(path)
   const isRecordingShare = isRecordingSharePath(path)
@@ -66,7 +68,7 @@ export default function App() {
 
   syncCrmDemoFlag(isCrmDemo)
 
-  usePageMeta(path)
+  usePageMeta(path, lang)
 
   useEffect(() => {
     return initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
@@ -87,7 +89,7 @@ export default function App() {
     return () => document.body.classList.remove('crm-route')
   }, [isClientLogin, isCrmDemo])
 
-  /** Deep-link hashes (e.g. /#image-prep) after SPA mount — browser may miss the target. */
+  /** Deep-link hashes (e.g. /#image-prep or /de/#software) after SPA mount. */
   useEffect(() => {
     if (path !== '/') return
 
@@ -140,11 +142,19 @@ export default function App() {
   }
 
   if (isBlog) {
-    return <BlogApp />
+    return (
+      <SiteI18nProvider lang={lang}>
+        <BlogApp path={path} />
+      </SiteI18nProvider>
+    )
   }
 
   if (isCaseStudy) {
-    return <CaseStudyApp />
+    return (
+      <SiteI18nProvider lang={lang}>
+        <CaseStudyApp path={path} />
+      </SiteI18nProvider>
+    )
   }
 
   if (isClientLogin || isCrmDemo) {
@@ -158,13 +168,15 @@ export default function App() {
     )
   }
 
+  const sections = localizedSections(lang)
+
   return (
-    <>
+    <SiteI18nProvider lang={lang}>
       <Header />
       <SiteAmbientAudio />
       <main id="main-content">
         <Hero />
-        {SECTIONS.map((section, i) => (
+        {sections.map((section, i) => (
           <ProjectSectionBlock
             key={section.id}
             id={section.id}
@@ -179,6 +191,6 @@ export default function App() {
         </SiteOrbZone>
       </main>
       <Footer />
-    </>
+    </SiteI18nProvider>
   )
 }

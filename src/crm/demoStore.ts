@@ -19,6 +19,7 @@ import type {
   TimeEntry,
 } from './types'
 import type { BlogAudience, BlogCommentAdmin, BlogPost } from '../blog/types'
+import { SANDBOX_BLOG_TRANSLATIONS, withSandboxBlogTranslations } from './sandboxBlogTranslations'
 import { ALL_DEMO_BLOG_POSTS } from '../blog/posts'
 import { DEMO_USEFUL_LINKS } from './linksCatalog'
 
@@ -847,7 +848,8 @@ Media-art research lab — books and workshops listed for demo structure only.`,
     updated_at: daysAgo(1 + (index % 10), 12),
   }))
 
-  const blogPost1: BlogPost = {
+  const blogPost1: BlogPost = withSandboxBlogTranslations(
+    {
     id: 'demo-blog-360-showrooms',
     slug: 'browser-360-showrooms-that-convert',
     title: 'Browser 360° showrooms that convert',
@@ -879,9 +881,12 @@ DEMO SAMPLE — fictional editorial for CRM Blog sandbox.`,
     owner_id: guide,
     created_at: daysAgo(6, 9),
     updated_at: daysAgo(5, 11),
-  }
+  },
+    SANDBOX_BLOG_TRANSLATIONS['browser-360-showrooms-that-convert'],
+  )
 
-  const blogPost2: BlogPost = {
+  const blogPost2: BlogPost = withSandboxBlogTranslations(
+    {
     id: 'demo-blog-case-copper',
     slug: 'case-study-guided-museum-companion',
     title: 'Case study: guided museum companion',
@@ -915,9 +920,12 @@ DEMO SAMPLE — case study style post for Blog → Posts.`,
     owner_id: partner,
     created_at: daysAgo(14, 10),
     updated_at: daysAgo(12, 15),
-  }
+  },
+    SANDBOX_BLOG_TRANSLATIONS['case-study-guided-museum-companion'],
+  )
 
-  const blogPost3: BlogPost = {
+  const blogPost3: BlogPost = withSandboxBlogTranslations(
+    {
     id: 'demo-blog-webgpu-particles',
     slug: 'why-webgpu-particles-matter-for-brands',
     title: 'Why WebGPU particles matter for brands',
@@ -949,9 +957,12 @@ DEMO SAMPLE — draft waiting in Blog → Posts.`,
     owner_id: guide,
     created_at: daysAgo(2, 16),
     updated_at: daysAgo(1, 12),
-  }
+  },
+    SANDBOX_BLOG_TRANSLATIONS['why-webgpu-particles-matter-for-brands'],
+  )
 
-  const blogPost4: BlogPost = {
+  const blogPost4: BlogPost = withSandboxBlogTranslations(
+    {
     id: 'demo-blog-internal-links',
     slug: 'how-we-use-the-iom-journal-for-seo',
     title: 'How we use the IOM Journal for SEO',
@@ -981,7 +992,9 @@ DEMO SAMPLE — SEO / process post for Blog sandbox.`,
     owner_id: guide,
     created_at: daysAgo(9, 9),
     updated_at: daysAgo(8, 10),
-  }
+  },
+    SANDBOX_BLOG_TRANSLATIONS['how-we-use-the-iom-journal-for-seo'],
+  )
 
   const blogComments: BlogCommentAdmin[] = [
     {

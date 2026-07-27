@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
+import { getCaseStudyOverlay } from '../i18n/caseStudies'
+import { useSiteI18n, type SiteLang } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
-import { SITE_NAME, SITE_ORIGIN } from '../seo/siteConfig'
 import './caseStudy.css'
 
 export function isCaseStudyPath(pathname: string): boolean {
@@ -167,50 +168,88 @@ const STUDIES: Record<string, CaseStudySpec> = {
   },
 }
 
+function localizeSpec(spec: CaseStudySpec, lang: SiteLang): CaseStudySpec {
+  const overlay = getCaseStudyOverlay(lang, spec.slug)
+  if (!overlay) return spec
+
+  return {
+    ...spec,
+    eyebrow: overlay.eyebrow ?? spec.eyebrow,
+    title: overlay.title ?? spec.title,
+    lead: overlay.lead ?? spec.lead,
+    primaryCta: {
+      ...spec.primaryCta,
+      label: overlay.primaryCtaLabel ?? spec.primaryCta.label,
+    },
+    secondaryCta: spec.secondaryCta
+      ? {
+          ...spec.secondaryCta,
+          label: overlay.secondaryCtaLabel ?? spec.secondaryCta.label,
+        }
+      : undefined,
+    stages: spec.stages.map((stage) => {
+      const so = overlay.stages?.[stage.id]
+      if (!so) return stage
+      return {
+        ...stage,
+        title: so.title ?? stage.title,
+        summary: so.summary ?? stage.summary,
+        detail: so.detail ?? stage.detail,
+        media: {
+          ...stage.media,
+          alt: so.mediaAlt ?? stage.media.alt,
+        },
+      }
+    }),
+  }
+}
+
 function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
-  const [activeId, setActiveId] = useState(spec.stages[0]?.id ?? '')
-  const active = spec.stages.find((s) => s.id === activeId) ?? spec.stages[0]
+  const { t, href, lang } = useSiteI18n()
+  const localized = useMemo(() => localizeSpec(spec, lang), [spec, lang])
+  const [activeId, setActiveId] = useState(localized.stages[0]?.id ?? '')
+  const active = localized.stages.find((s) => s.id === activeId) ?? localized.stages[0]
 
   useEffect(() => {
-    applyPageMeta(`/case-studies/${spec.slug}`)
-  }, [spec.slug])
+    applyPageMeta(`/case-studies/${spec.slug}`, lang)
+  }, [spec.slug, lang])
 
   useEffect(() => {
-    setActiveId(spec.stages[0]?.id ?? '')
-  }, [spec.slug, spec.stages])
+    setActiveId(localized.stages[0]?.id ?? '')
+  }, [spec.slug, localized.stages])
 
   if (!active) return null
 
   return (
     <div className="case-study-page">
       <header className="case-study-hero">
-        <p className="case-study-eyebrow">{spec.eyebrow}</p>
-        <h1 className="case-study-title">{spec.title}</h1>
-        <p className="case-study-lead">{spec.lead}</p>
+        <p className="case-study-eyebrow">{localized.eyebrow}</p>
+        <h1 className="case-study-title">{localized.title}</h1>
+        <p className="case-study-lead">{localized.lead}</p>
         <div className="case-study-hero-actions">
           <a
             className="btn btn-primary"
-            href={spec.primaryCta.href}
-            {...(spec.primaryCta.external
+            href={localized.primaryCta.href}
+            {...(localized.primaryCta.external
               ? { target: '_blank', rel: 'noopener noreferrer' }
               : {})}
           >
-            {spec.primaryCta.label}
+            {localized.primaryCta.label}
           </a>
-          {spec.secondaryCta ? (
-            <a className="btn btn-ghost" href={spec.secondaryCta.href}>
-              {spec.secondaryCta.label}
+          {localized.secondaryCta ? (
+            <a className="btn btn-ghost" href={localized.secondaryCta.href}>
+              {localized.secondaryCta.label}
             </a>
           ) : null}
-          <a className="btn btn-ghost" href="/#contact">
-            Hire us
+          <a className="btn btn-ghost" href={href('/#contact')}>
+            {t('case.hireUs')}
           </a>
         </div>
       </header>
 
       <div className="case-study-layout">
-        <nav className="case-study-stages" aria-label="Process stages">
-          {spec.stages.map((stage) => (
+        <nav className="case-study-stages" aria-label={t('case.stagesAria')}>
+          {localized.stages.map((stage) => (
             <button
               key={stage.id}
               type="button"
@@ -229,7 +268,7 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
 
         <article className="case-study-panel" aria-live="polite">
           <p className="case-study-panel-index">
-            Stage {active.index} · {active.title}
+            {t('case.stageMeta', { index: active.index, title: active.title })}
           </p>
           <h2 className="case-study-panel-title">{active.summary}</h2>
           <p className="case-study-panel-detail">{active.detail}</p>
@@ -262,17 +301,14 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
       </div>
 
       <section className="case-study-cta" aria-labelledby="case-study-cta-heading">
-        <h2 id="case-study-cta-heading">Need a viewer, tour, or custom WebGL build?</h2>
-        <p>
-          We scope from brief to delivery — product review tools, 360° tours, and real-time
-          experiments that still read as business software.
-        </p>
+        <h2 id="case-study-cta-heading">{t('case.ctaTitle')}</h2>
+        <p>{t('case.ctaText')}</p>
         <div className="case-study-hero-actions" style={{ justifyContent: 'center' }}>
-          <a className="btn btn-primary" href="/#contact">
-            Get in touch
+          <a className="btn btn-primary" href={href('/#contact')}>
+            {t('nav.contact')}
           </a>
-          <a className="btn btn-ghost" href="/#360">
-            All case studies
+          <a className="btn btn-ghost" href={href('/#360')}>
+            {t('case.allCaseStudies')}
           </a>
         </div>
       </section>
@@ -280,23 +316,31 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
   )
 }
 
-export function CaseStudyApp() {
-  const [path, setPath] = useState(() => window.location.pathname.replace(/\/+$/, '') || '/')
+export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
+  const { t, href, lang } = useSiteI18n()
+  const [pathState, setPath] = useState(
+    () => pathProp ?? (window.location.pathname.replace(/\/+$/, '') || '/'),
+  )
 
   useEffect(() => {
+    if (pathProp) {
+      setPath(pathProp)
+      return
+    }
     const sync = () => setPath(window.location.pathname.replace(/\/+$/, '') || '/')
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
-  }, [])
+  }, [pathProp])
 
+  const path = pathProp ?? pathState
   const slug = path.replace(/^\/case-studies\/?/, '').replace(/\/+$/, '')
   const spec = slug ? STUDIES[slug] : null
 
   useEffect(() => {
     if (spec) return
-    applyPageMeta(path === '/case-studies' ? '/case-studies' : path)
-    document.title = `${SITE_NAME} — Case studies`
-  }, [path, spec])
+    applyPageMeta(path === '/case-studies' ? '/case-studies' : path, lang)
+    document.title = t('seo.caseStudiesTitle')
+  }, [path, spec, lang, t])
 
   return (
     <>
@@ -307,23 +351,21 @@ export function CaseStudyApp() {
         ) : (
           <div className="case-study-page">
             <header className="case-study-hero">
-              <h1 className="case-study-title">Case studies</h1>
-              <p className="case-study-lead">
-                Process deep-dives from Interactive Object Media — brief to final interactive build.
-              </p>
+              <h1 className="case-study-title">{t('case.listTitle')}</h1>
+              <p className="case-study-lead">{t('case.listLead')}</p>
               <div className="case-study-hero-actions">
-                <a className="btn btn-primary" href="/case-studies/3d-viewer">
-                  3D Viewer — from brief to WebGL
+                <a className="btn btn-primary" href={href('/case-studies/3d-viewer')}>
+                  {localizeSpec(STUDIES['3d-viewer']!, lang).title}
                 </a>
-                <a className="btn btn-ghost" href="/case-studies/black-witness">
-                  The Black Witness — from brief to 360°
+                <a className="btn btn-ghost" href={href('/case-studies/black-witness')}>
+                  {localizeSpec(STUDIES['black-witness']!, lang).title}
                 </a>
               </div>
             </header>
             <p className="case-study-missing">
-              Or return to the{' '}
-              <a href={`${SITE_ORIGIN}/#360`}>Case Studies archive</a> /{' '}
-              <a href="/#contact">contact the studio</a>.
+              {t('case.orReturn')}{' '}
+              <a href={href('/#360')}>{t('case.archive')}</a> /{' '}
+              <a href={href('/#contact')}>{t('case.contactStudio')}</a>.
             </p>
           </div>
         )}

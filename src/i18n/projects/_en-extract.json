@@ -1,0 +1,762 @@
+{
+  "sections": [
+    {
+      "id": "software",
+      "label": "Software",
+      "blurb": "Browser 3D viewers, local-first production workspaces, 360° tour editors, image prep, and tools for presenting interactive media."
+    },
+    {
+      "id": "3d",
+      "label": "3D",
+      "blurb": "Real-time WebGPU and WebGL scenes — reflections, volumetric light, oceans, and object-driven storytelling."
+    },
+    {
+      "id": "360",
+      "label": "Case Studies",
+      "blurb": "Process deep-dives — from brief and layout through engineering to the final interactive build clients can open."
+    },
+    {
+      "id": "photography",
+      "label": "Photography",
+      "blurb": "Still frames, light studies, and documentary capture."
+    },
+    {
+      "id": "music",
+      "label": "Music",
+      "blurb": "Soundscapes, scores, and audio for interactive experiences."
+    },
+    {
+      "id": "experiments",
+      "label": "Experiments",
+      "blurb": "WebGPU real-time rendering R&D — compute particles, lighting, fog, curves, and motion studies."
+    }
+  ],
+  "projects": [
+    {
+      "id": "3d-viewer",
+      "title": "3D Viewer",
+      "description": "Browser 3D model viewer for the web and Windows desktop. Load GLTF, FBX, OBJ, IFC, and more — inspect with orbit controls, GPU path tracing, HDR lighting, hotspots, and export standalone web presentations.",
+      "tags": [
+        "web",
+        "desktop",
+        "three.js",
+        "product"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "case-study-3d-viewer",
+      "title": "3D Viewer — from brief to WebGL",
+      "description": "How we turn a review problem into a shippable product — layout chrome, engineering, HDR lighting, and Streets GL city context for client decisions.",
+      "tags": [
+        "case study",
+        "three.js",
+        "product",
+        "webgl"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "streets-gl-bridge",
+      "title": "Streets GL Bridge",
+      "description": "OpenStreetMap 3D ground layer integration for geolocated model presentation — sync models to real-world coordinates with terrain alignment. Live demo embeds Streets GL (MIT) for real-world OSM buildings, roads, and terrain.",
+      "tags": [
+        "maps",
+        "integration",
+        "osm",
+        "webgl",
+        "open-source"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Live map",
+        "OSM wiki — Simple 3D Buildings"
+      ]
+    },
+    {
+      "id": "panorama-360-tour",
+      "title": "360° Panorama Tour Editor",
+      "description": "360° virtual tour editor in the browser — opens on The Black Witness by default. Load equirectangular panoramas (JPG, PNG, WebP, HDR, EXR, KTX2), place link/info/URL hotspots with optional iframe popups, build multi-scene tours, add a WebGPU birds flock effect, and save or load .360project files.",
+      "tags": [
+        "web",
+        "three.js",
+        "equirectangular",
+        "hotspots",
+        "tour",
+        "webgpu",
+        "birds"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "crm-demo",
+      "title": "CRM Demo",
+      "description": "Interactive sample CRM with fictional companies — lead pipeline, project boards, time tracking, and idea maps. Edits stay in this browser tab and never touch live client data.",
+      "tags": [
+        "crm",
+        "leads",
+        "pipeline",
+        "sandbox"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "iom-studio",
+      "title": "IOM Studio",
+      "description": "Local-first production workspace for developing characters, scripts, and shots, then routing each scene through AI generation, Blender, compositing, and delivery. Projects autosave locally and travel as branded .iomstudio files.",
+      "tags": [
+        "production",
+        "story",
+        "ai",
+        "3d",
+        "local-first"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "image-prep",
+      "title": "Image Prep",
+      "description": "Browser photo prep for the web — resize to portfolio presets, compress JPEG/WebP/PNG, and strip EXIF camera and GPS data. Files stay on your device until you download them.",
+      "tags": [
+        "photos",
+        "exif",
+        "resize",
+        "compress",
+        "web"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "panorama-suite",
+      "title": "The Black Witness — from brief to 360°",
+      "description": "Guided 360° storytelling on The Black Witness — brief, hotspot design, WebGPU effect layers, and a shareable visitor preview clients can open without an editor.",
+      "tags": [
+        "case study",
+        "equirectangular",
+        "hotspots",
+        "webgpu"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "the-black-witness",
+      "title": "The Black Witness",
+      "description": "A visual study of the same raven moving through city, forest, mountain, and mist — a silent observer crossing natural and built worlds.",
+      "tags": [
+        "raven",
+        "documentary",
+        "mist",
+        "urban",
+        "nature"
+      ],
+      "galleryCaptions": [
+        "Rooftop Distance — A lone raven watches the rain-softened skyline from the far edge of a wet city roof.",
+        "Alley Crossing — Between brick walls and puddled pavement, the raven moves through the alley like part of the weather.",
+        "Forest Ground — On a damp forest path, the raven pauses among wet leaves, moss, and low morning fog.",
+        "Moss Branch — Half-hidden in the old forest, the raven rests on a moss-covered branch while the trees fade into mist.",
+        "Mountain Ledge — Small against the ridges, the raven stands on wet stone as clouds move through the valley below.",
+        "Sea Cliff Watch — Above the broken surf, the raven waits on the cliff edge, almost swallowed by mist and rock.",
+        "Winter Branch — A dark wing opens against the snow, caught for a moment between landing and flight.",
+        "Abandoned Interior — Inside the ruined concrete shell, the raven appears quietly at the window, framed by water, decay, and gray light.",
+        "Valley Wall — Perched on an old stone wall, the raven becomes a small mark against the vastness of fog and hills.",
+        "Antenna Perch — On a rain-wet rooftop antenna, the raven shifts its wings above the sleeping grid of the city."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "between-wild-and-wire",
+      "title": "Between Wild and Wire",
+      "description": "A red fox moves from forest edge to city underpass and back again, crossing the shifting boundary between wild habitat and human space.",
+      "tags": [
+        "fox",
+        "documentary",
+        "urban",
+        "forest",
+        "wildlife",
+        "habitat",
+        "city"
+      ],
+      "galleryCaptions": [
+        "Forest Edge at Dawn — At first light, the fox pauses where the trees give way to open ground, as if deciding whether to leave the shelter of the forest.",
+        "Misty Forest Path — On a damp woodland trail, the fox stands alert in the fog, still fully held within the quiet of the forest.",
+        "Country Path Crossing — Leaving deeper cover behind, the fox crosses a muddy track, stepping into a more open and uncertain landscape.",
+        "Industrial Edge — Among fence lines, weeds, and abandoned rails, the fox enters the outer margin of the city where nature and industry begin to overlap.",
+        "Underpass at Dusk — Beneath concrete and sodium light, the fox pauses in the damp underpass, small against the hard geometry of the built world.",
+        "Alley Crossing — In a rain-dark alley of brick and reflections, the fox moves through the city almost unnoticed, like part of the weather itself.",
+        "Park After Rain — Between wet paths, bare trees, and lit apartment towers, the fox lingers in the city's softer interior spaces.",
+        "Canal Path — Walking along the misty canal, the fox turns away from the urban core, following water and silence back toward the edges.",
+        "Frost Meadow — Out beyond the streets, the fox reenters open ground where frost, distance, and sunrise begin to restore the wild.",
+        "Forest Return — At dusk, the journey closes as the fox slips back beneath the trees, returning to the dark quiet of the forest."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "concrete-light",
+      "title": "Concrete after dark",
+      "description": "Concrete after dark — rain, mist, and stray neon moving across brutalist walls, turning silent urban facades into cinematic fragments of light and shadow.",
+      "tags": [
+        "architecture",
+        "brutalism",
+        "night",
+        "rain"
+      ],
+      "galleryCaptions": [
+        "Monolithic Corner in Rain — A rain-darkened brutalist corner rises into dusk...",
+        "Repeating Windows in Mist — Rows of recessed windows disappear into blue twilight...",
+        "Stairwell Under Neon Rain — A deserted concrete stairwell becomes a nocturnal passage...",
+        "Slit Window Wall — A massive concrete wall with a narrow glowing window...",
+        "Elevated Walkway After Rain — An empty brutalist walkway stretches through mist...",
+        "Broad Facade at Blue Hour — A low, heavy concrete facade rests under storm clouds...",
+        "Tower in Dark Sky — A brutalist tower cuts into the night sky...",
+        "Curved Concrete in Dusk — Rounded brutalist forms and wet courtyard surfaces...",
+        "Entrance in Shadow — A shadowed concrete entrance waits under rain...",
+        "Concrete Detail with Neon — A close study of wet concrete, dark glass, seams..."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "night-grid",
+      "title": "Night Grid",
+      "description": "City geometry after rain — reflections, sodium vapor, and the rhythm of windows as a modular grid.",
+      "tags": [
+        "urban",
+        "long exposure",
+        "night",
+        "rain"
+      ],
+      "galleryCaptions": [
+        "Window Grid After Rain — A strict office facade becomes a grid of warm windows and dark concrete, mirrored across the rain-soaked pavement below.",
+        "Sodium Vapor Courtyard — Amber streetlights gather in the wet courtyard, turning apartment windows and rain reflections into a quiet urban pattern.",
+        "Office Grid in Blue Rain — Lit and unlit office windows form an irregular night code across a rain-darkened facade.",
+        "Underpass Reflection Grid — Beneath the concrete overhang, sodium vapor light and distant windows stretch into a wet corridor of reflections.",
+        "Modular Housing Block — A lived-in housing block glows through the night, its balconies and windows arranged like a human-scale grid.",
+        "Reflected High-Rise Pattern — The building repeats itself in the wet plaza, where window light collapses into a fractured mirror of the city.",
+        "Open Windows at Night — Private rooms interrupt the dark facade with small warm signals, each window becoming one cell in the urban grid.",
+        "Parking Deck Geometry — Empty concrete levels repeat into the rain, their amber lights reflected as broken horizontal bands.",
+        "Glass Grid and Concrete Frame — Concrete and dark glass hold the night in place, turning office light into a measured pattern of rectangles.",
+        "Distant Windows Through Mist — Across the wet rooftop, distant apartment blocks dissolve into mist, their windows fading like amber coordinates in the dark."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "mist-stone-sea",
+      "title": "Mist / Stone / Sea",
+      "description": "Documentary captures of coastal rock, tide, and fog — where wet surfaces, muted horizons, and sea mist reduce the landscape to texture and atmosphere.",
+      "tags": [
+        "coastal",
+        "documentary",
+        "mist",
+        "rocks",
+        "sea"
+      ],
+      "galleryCaptions": [
+        "Rocky Shore at First Light — Mist drifts across a wet stone shoreline as the sea settles into a quiet gray horizon.",
+        "Mist Cliffs — Layered sea cliffs recede into fog, where rock, surf, and sky dissolve into the same cold atmosphere.",
+        "Pebble Beach in Fog — A rain-darkened pebble beach stretches toward the water, its scattered boulders fading into coastal mist.",
+        "Tidal Pools — Black shoreline rocks hold still pools of water, reflecting the pale sky while waves break softly beyond.",
+        "Fog Jetty — A stone breakwater disappears into dense sea fog, turning distance into a quiet line of uncertainty.",
+        "Coastal Outcrop — Wet rock, dry grass, and low mist mark the edge of land before it falls into the gray sea.",
+        "Foam and Stone — Sea foam moves through dark shoreline rocks, tracing the shape of the coast in soft white lines.",
+        "Fog Island — A distant rock island emerges through the mist, barely separating itself from the muted sea and sky.",
+        "Blue-Gray Cove — Rounded shoreline stones disappear into blue-gray mist, where the surf softens every edge of the coast."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "below-the-last-light",
+      "title": "Below the Last Light",
+      "description": "A solitary octopus moves through deep, half-forgotten spaces beneath the sea — shipwrecks, drowned halls, broken arches, and silent ruins touched only by faint shafts of light.",
+      "tags": [
+        "octopus",
+        "underwater",
+        "ruins",
+        "documentary",
+        "shipwreck",
+        "sea",
+        "wreck"
+      ],
+      "galleryCaptions": [
+        "Arch in the Gloom — A lone octopus crosses the silted floor of a drowned ruin, moving beneath a broken arch where the last pale light still reaches.",
+        "Sunken Corridor — Through the narrow passage of a flooded wreck, the octopus disappears into blue darkness as if following a memory deeper inside.",
+        "Ruin Sentinel — Resting on a stone pedestal, the octopus seems less like an animal and more like a quiet keeper of the submerged hall.",
+        "Crevice Search — Pressed against the rock wall, the octopus explores a dark seam in the stone, searching for whatever the ruins still conceal.",
+        "Wreck Shadow — Suspended beside the sunken ship, the octopus drifts in open water, small against the weight and silence of the wreck.",
+        "Stair of Return — Climbing the drowned staircase, the octopus moves upward through drifting particles and thin beams of light, as if ascending into another forgotten chamber.",
+        "Chamber of Light — In the center of a vast underwater hall, the octopus becomes a small living mark beneath a single shaft of light.",
+        "Carved Passage — Along the wall of an ancient submerged corridor, the octopus lies low against the stone, blending with the ruin as if it belongs there.",
+        "Mosaic Threshold — Beside broken mosaic floors and worn steps, the octopus explores the edge of a buried room where the past still clings to the walls.",
+        "Fallen Figure — Half-hidden among columns and broken statues, the octopus peers out from the rubble like a witness to a world long drowned."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "celestial-current",
+      "title": "Celestial Current",
+      "description": "A surreal minimal series following a manta ray adrift through space — crossing planets, rings, ruins, dust, and silence like a creature swimming through the dark between worlds.",
+      "tags": [
+        "manta ray",
+        "space",
+        "surreal",
+        "minimal",
+        "cosmos",
+        "nebula",
+        "planets"
+      ],
+      "galleryCaptions": [
+        "Space Glide — A solitary manta ray drifts across open space, passing beneath a distant planet like a creature following an invisible current.",
+        "Far Crossing — Small against the scale of the cosmos, the manta becomes a quiet mark moving through vast emptiness.",
+        "Ascension Beam — Caught inside a pale shaft of light, the manta rises as if drawn upward through a celestial tide.",
+        "Monolith Encounter — Suspended before a silent black monolith, the manta seems to pause in recognition of something ancient and unknown.",
+        "Direct Approach — Facing the viewer in open space, the manta appears less like an animal and more like a calm intelligence from another realm.",
+        "Lunar Drift — Above a barren moonlit landscape, the manta floats through cold night air as if the laws of gravity no longer apply.",
+        "Starfoam — Surrounded by fields of glowing particles, the manta swims through light as though space itself had become an ocean.",
+        "Nebula Current — Against dark nebula clouds, the manta cuts a clean path through the slow weather of the cosmos."
+      ],
+      "referenceLabels": []
+    },
+    {
+      "id": "the-black-witness-score",
+      "title": "The Black Witness",
+      "description": "Cross-world raven study — city rain, forest fog, mountain stone, and coastal mist woven into a single ambient field layer.",
+      "tags": [
+        "ambient",
+        "documentary",
+        "field recording",
+        "raven"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "between-wild-and-wire-score",
+      "title": "Between Wild and Wire",
+      "description": "Forest edge to city underpass and back — habitat crossing woven into a single ambient field layer for the fox journey.",
+      "tags": [
+        "ambient",
+        "documentary",
+        "field recording",
+        "fox",
+        "urban",
+        "forest"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "concrete-light-score",
+      "title": "Concrete after dark",
+      "description": "Rain-darkened brutalist soundscape — distant neon hum, wet concrete resonance, and slow urban drift for gallery and walkthrough beds.",
+      "tags": [
+        "ambient",
+        "architecture",
+        "rain"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "night-grid-score",
+      "title": "Night Grid",
+      "description": "Sodium vapor and window-grid ambience — modular pulses, wet pavement reflections, and long-exposure city haze.",
+      "tags": [
+        "ambient",
+        "urban",
+        "night"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "mist-stone-sea-score",
+      "title": "Mist / Stone / Sea",
+      "description": "Coastal field layer — tide wash, fog-damped rock, and muted horizon tones for documentary and spatial experiences.",
+      "tags": [
+        "ambient",
+        "coastal",
+        "field recording"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "below-the-last-light-score",
+      "title": "Below the Last Light",
+      "description": "Submerged ruin ambience — drowned halls, faint light shafts, and the slow drift of a solitary octopus through half-forgotten spaces beneath the sea.",
+      "tags": [
+        "ambient",
+        "underwater",
+        "field recording",
+        "octopus",
+        "ruins",
+        "shipwreck"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "celestial-current-score",
+      "title": "Celestial Current",
+      "description": "Cosmic drift ambience — open silence, distant planetary hum, and the slow glide of a manta ray adrift through the dark between worlds.",
+      "tags": [
+        "ambient",
+        "space",
+        "cosmos",
+        "manta ray",
+        "surreal",
+        "field recording"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "artist-globe",
+      "title": "Artist Globe",
+      "description": "Interactive WebGL globe of photographers, painters, sculptors, sound artists, and more — filter by practice, open portfolios, highlight countries, and submit a profile for review.",
+      "tags": [
+        "webgl",
+        "three.js",
+        "globe",
+        "artists",
+        "map",
+        "portfolio"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "ssr-denoise",
+      "title": "Art Gallery Space — WebGPU SSR + Denoise",
+      "description": "WebGPU real-time rendering of screen-space reflections with spatiotemporal denoising — load custom GLTF/FBX models, swap HDR/EXR panoramas, explore in third-person walk mode, and compare raw vs denoised reflections.",
+      "tags": [
+        "webgpu",
+        "ssr",
+        "denoise",
+        "three.js",
+        "postprocessing"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Additive skinning"
+      ]
+    },
+    {
+      "id": "iom-three",
+      "title": "Dream — Ocean scroll narrative",
+      "description": "Scroll narrative through still dark water, rain, distant land, and shore (procedural distortion with optional ambient audio crossfade), standalone weather runtime (dynamic sky, cloud layers, day/night sync), and shader-driven surface studies. Chapter 1 of 9 · work in progress.",
+      "tags": [
+        "webgl",
+        "water",
+        "scroll",
+        "narrative",
+        "canvas",
+        "audio",
+        "sky",
+        "clouds",
+        "day/night",
+        "creative"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "volume-lighting",
+      "title": "Volumetric Lighting — Rect Area",
+      "description": "Record camera views, move lights, and test lighting on different objects — import your own GLB, GLTF, or FBX (replaces the stock car). WebGPU volumetric lighting with rect area lights.",
+      "tags": [
+        "webgpu",
+        "lighting",
+        "camera",
+        "import",
+        "scene",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Volumetric lighting rect area"
+      ]
+    },
+    {
+      "id": "raven-path",
+      "title": "Raven Path Animation",
+      "description": "Animated raven GLB following a custom Catmull-Rom path — drag spline control points, tune travel speed, ease-in/out, reverse direction, and toggle tangent-aligned vs fixed orientation while wing-flap skeletal animation plays. Import GLB/GLTF/FBX onto the path, and export or reimport path JSON for other software or your next session.",
+      "tags": [
+        "webgl",
+        "animation",
+        "spline",
+        "gltf",
+        "ravens",
+        "three.js",
+        "import",
+        "export"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Spline editor",
+        "WebGPU curve modifier"
+      ]
+    },
+    {
+      "id": "threejs-ocean",
+      "title": "Three.js Ocean",
+      "description": "Gerstner-wave ocean with procedural sky and sunset preset — glass 3D text with Google Fonts, decorative icons, wallpaper screenshots, or up to 30 seconds of WebGL video export.",
+      "tags": [
+        "webgl",
+        "shader",
+        "three.js",
+        "water"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "css3d-sprites",
+      "title": "CSS3D Sprites",
+      "description": "512 HTML sprites arranged in 3D space with CSS3DRenderer — morphing transitions between plane, cube, random cloud, and sphere formations with pulsing scale animation.",
+      "tags": [
+        "css3d",
+        "three.js",
+        "sprites",
+        "motion"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "compute-particles",
+      "title": "Shape Particles — WebGPU Compute",
+      "description": "GPU compute particles arranged into shape presets — cube, sphere, torus, cone, pyramid, ring, and heart. Press Release to drop them under gravity with floor bounce, then Reset to reform the formation.",
+      "tags": [
+        "webgpu",
+        "compute",
+        "particles",
+        "physics",
+        "tsl",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Compute particles"
+      ]
+    },
+    {
+      "id": "webgpu-spotlight",
+      "title": "WebGPU Spotlight",
+      "description": "WebGPU spot light projecting texture maps onto a scene — orbiting animated spotlight with penumbra, decay, shadow focus, and optional light helpers. Lucy PLY model on a shadow-receiving ground plane.",
+      "tags": [
+        "webgpu",
+        "lighting",
+        "spotlight",
+        "shadows",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU spotlight"
+      ]
+    },
+    {
+      "id": "webgpu-compute-birds",
+      "title": "WebGPU Compute Birds",
+      "description": "GPU flocking simulation with 8,192 instanced birds — separation, alignment, and cohesion forces computed on the GPU. Move the mouse to disturb the flock; tune behavior in Birds settings.",
+      "tags": [
+        "webgpu",
+        "compute",
+        "flocking",
+        "instancing",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU compute birds"
+      ]
+    },
+    {
+      "id": "webgpu-parallax-uv",
+      "title": "WebGPU Parallax UV",
+      "description": "TSL parallax UV mapping on an ice ground plane — layered ambientCG textures with displacement-driven offset, overlay blending, normal and roughness maps, and HDR environment lighting.",
+      "tags": [
+        "webgpu",
+        "materials",
+        "parallax",
+        "tsl",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU parallax UV"
+      ]
+    },
+    {
+      "id": "webgpu-tsl-raging-sea",
+      "title": "WebGPU TSL Raging Sea",
+      "description": "Procedural ocean surface with TSL wave displacement — layered large sine waves plus fractal noise, computed normals, and emissive crest highlights on a high-resolution plane mesh.",
+      "tags": [
+        "webgpu",
+        "tsl",
+        "procedural",
+        "ocean",
+        "waves",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU TSL raging sea",
+        "Three.js Journey — raging sea"
+      ]
+    },
+    {
+      "id": "webgpu-tsl-linked-particles",
+      "title": "WebGPU TSL Linked Particles",
+      "description": "TSL VFX particle sketch with GPU compute spawning, turbulence, nearest-neighbor link ribbons, hue rotation, and bloom post-processing. Move the pointer to draw connected particle trails.",
+      "tags": [
+        "webgpu",
+        "compute",
+        "particles",
+        "tsl",
+        "vfx",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU TSL VFX linked particles"
+      ]
+    },
+    {
+      "id": "webgpu-custom-fog-scattering",
+      "title": "WebGPU Custom Fog Scattering",
+      "description": "Procedural pine forest silhouettes in exponential fog with TSL density-based scattering blur — first-person walk through a cool haze with tunable fog density and scattering factor.",
+      "tags": [
+        "webgpu",
+        "fog",
+        "scattering",
+        "tsl",
+        "procedural",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU custom fog scattering"
+      ]
+    },
+    {
+      "id": "webgpu-modifier-curve",
+      "title": "WebGPU Curve Modifier",
+      "description": "GPU curve modifier deforming extruded text along a closed Catmull-Rom spline — click control handles to select, drag to reshape the path, and watch the mesh flow along the curve.",
+      "tags": [
+        "webgpu",
+        "modifiers",
+        "curves",
+        "geometry",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU curve modifier"
+      ]
+    },
+    {
+      "id": "webgpu-particles",
+      "title": "WebGPU Particles",
+      "description": "Fire and smoke instanced sprites with TSL node materials — animated life cycles, rotating smoke texture sampling, and additive fire blending over a grid ground plane.",
+      "tags": [
+        "webgpu",
+        "particles",
+        "vfx",
+        "tsl",
+        "sprites",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "WebGPU particles"
+      ]
+    },
+    {
+      "id": "buffergeometry-drawrange",
+      "title": "BufferGeometry Draw Range",
+      "description": "Particle network with dynamic line segments — uses BufferGeometry.setDrawRange() to render only active particles and proximity connections, with tunable count, distance, and connection limits.",
+      "tags": [
+        "webgl",
+        "buffergeometry",
+        "particles",
+        "lines",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "BufferGeometry draw range"
+      ]
+    },
+    {
+      "id": "spline-editor",
+      "title": "Catmull Spline Editor",
+      "description": "Interactive Catmull-Rom spline editor — drag control points with transform gizmos, compare uniform, centripetal, and chordal curve types, tune tension, and export Vector3 arrays for paths and camera rails.",
+      "tags": [
+        "webgl",
+        "geometry",
+        "spline",
+        "curves",
+        "three.js"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Spline editor"
+      ]
+    },
+    {
+      "id": "terrain-sandbox",
+      "title": "Terrain Sandbox",
+      "description": "Create procedural 3D terrain from layered noise, then place trees, rocks, and markers on the surface. Orbit, regenerate seed, tune height and roughness — a sandbox MVP toward sculpt brushes, GLTF import, and optional MapTiler real-world DEM.",
+      "tags": [
+        "webgl",
+        "terrain",
+        "procedural",
+        "three.js",
+        "sandbox"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": []
+    },
+    {
+      "id": "procedural-gl",
+      "title": "Procedural GL Terrain",
+      "description": "Interactive 3D real-world terrain viewer via procedural-gl.js (MPL-2.0) — GPU LOD landscapes streamed from map tiles. First step embeds the official demo; a self-hosted MapTiler-backed build can follow (API key stays out of the repo).",
+      "tags": [
+        "webgl",
+        "terrain",
+        "maps",
+        "three.js",
+        "open-source"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Docs"
+      ]
+    },
+    {
+      "id": "spout",
+      "title": "Spout",
+      "description": "Raymarched pipe water with refraction, transparency, and reflections — drag to orbit. Self-hosted WebGL2 port of P_Malin’s classic Shadertoy experiment.",
+      "tags": [
+        "webgl",
+        "shader",
+        "shadertoy",
+        "raymarch",
+        "water",
+        "refraction"
+      ],
+      "galleryCaptions": [],
+      "referenceLabels": [
+        "Shadertoy — Spout",
+        "Author — P_Malin"
+      ]
+    }
+  ]
+}

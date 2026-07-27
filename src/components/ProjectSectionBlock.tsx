@@ -1,5 +1,7 @@
 import { memo, useEffect, useRef } from 'react'
-import { projectsForSection, type ProjectSection } from '../data/projects'
+import { type ProjectSection } from '../data/projects'
+import { useSiteI18n } from '../i18n'
+import { localizedProjectsForSection } from '../i18n/projects/localize'
 import { MusicSection } from './MusicSection'
 import { ProjectCard } from './ProjectCard'
 
@@ -16,8 +18,9 @@ export const ProjectSectionBlock = memo(function ProjectSectionBlock({
   label,
   blurb,
 }: ProjectSectionBlockProps) {
+  const { lang } = useSiteI18n()
   const sectionRef = useRef<HTMLElement>(null)
-  const projects = projectsForSection(id)
+  const projects = localizedProjectsForSection(id, lang)
   const isMusic = id === 'music'
 
   useEffect(() => {

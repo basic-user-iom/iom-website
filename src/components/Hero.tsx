@@ -7,6 +7,7 @@ import {
 import { getDeviceProfile } from '../utils/device'
 import { reportHeroVisibility } from '../utils/embedVisibility'
 import type { HeroSceneLoadStatus } from '../three/useHeroScene'
+import { useSiteI18n } from '../i18n'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
 
@@ -19,11 +20,7 @@ type FullscreenElement = HTMLElement & {
   webkitRequestFullscreen?: () => Promise<void>
 }
 
-const LOADER_LINES = [
-  'Objects worth exploring — craft you can open on a call.',
-  'Software, space, and atmosphere — built to ship.',
-  'Digital objects become stories clients can hire.',
-] as const
+const LOADER_KEYS = ['hero.loader.0', 'hero.loader.1', 'hero.loader.2'] as const
 
 function isNativeFullscreenActive(el: HTMLElement | null): boolean {
   if (!el) return false
@@ -32,6 +29,7 @@ function isNativeFullscreenActive(el: HTMLElement | null): boolean {
 }
 
 export function Hero() {
+  const { t } = useSiteI18n()
   const canvasRef = useRef<HTMLDivElement>(null)
   const [sceneReady, setSceneReady] = useState(() => !getDeviceProfile().prefersReducedMotion)
   const [motionStatus, setMotionStatus] = useState<MotionParallaxStatus>('disabled')
@@ -46,6 +44,7 @@ export function Hero() {
   const profile = getDeviceProfile()
   const useStaticHero = profile.prefersReducedMotion
   const isFullscreen = nativeFullscreen || pseudoFullscreen
+  const loaderLineCount = LOADER_KEYS.length
 
   const onSceneStatus = useCallback((status: HeroSceneLoadStatus) => {
     setLoadStatus(status)
@@ -84,10 +83,10 @@ export function Hero() {
   useEffect(() => {
     if (!loaderVisible || useStaticHero) return
     const id = window.setInterval(() => {
-      setLoaderLineIndex((i) => (i + 1) % LOADER_LINES.length)
+      setLoaderLineIndex((i) => (i + 1) % loaderLineCount)
     }, 2200)
     return () => window.clearInterval(id)
-  }, [loaderVisible, useStaticHero])
+  }, [loaderVisible, useStaticHero, loaderLineCount])
 
   useEffect(() => {
     return subscribeMotionParallaxStatus(setMotionStatus)
@@ -166,28 +165,25 @@ export function Hero() {
     motionStatus === 'needs_permission' || motionStatus === 'denied'
 
   const motionHudLabel =
-    motionStatus === 'active' ? 'TILT · LIVE' : showMotionPrompt ? null : 'CAM · ORBIT'
+    motionStatus === 'active' ? t('hero.hudTilt') : showMotionPrompt ? null : t('hero.hudOrbit')
 
   const progressPct = Math.round(loadStatus.progress * 100)
 
   return (
     <section className="hero" id="top" aria-labelledby="hero-heading">
       <div className="hero-content">
-        <p className="hero-eyebrow">Agency · Archive · Objects</p>
+        <p className="hero-eyebrow">{t('hero.eyebrow')}</p>
         <h1 className="hero-title" id="hero-heading">
-          Interactive
-          <span>Object Media</span>
+          {t('hero.titleLine1')}
+          <span>{t('hero.titleLine2')}</span>
         </h1>
-        <p className="hero-lead">
-          We build software, 3D experiences, immersive tours, and creative experiments —
-          tools and worlds where digital objects become stories you can explore.
-        </p>
+        <p className="hero-lead">{t('hero.lead')}</p>
         <div className="hero-actions">
           <a href="#software" className="btn btn-primary">
-            View work
+            {t('hero.ctaWork')}
           </a>
           <a href="#contact" className="btn btn-ghost">
-            Get in touch
+            {t('hero.ctaContact')}
           </a>
         </div>
       </div>
@@ -197,7 +193,7 @@ export function Hero() {
           className={`hero-canvas-wrap${useStaticHero ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}`}
           ref={canvasRef}
           role="img"
-          aria-label="Decorative WebGL scene: clouds and ravens in atmospheric light. Content is described in the page text."
+          aria-label={t('hero.canvasAria')}
         >
           {sceneReady && !useStaticHero && (
             <Suspense fallback={null}>
@@ -206,12 +202,14 @@ export function Hero() {
           )}
           {loaderVisible && !useStaticHero ? (
             <div className="hero-loader" role="status" aria-live="polite" aria-atomic="true">
-              <p className="hero-loader-line">{LOADER_LINES[loaderLineIndex]}</p>
+              <p className="hero-loader-line">{t(LOADER_KEYS[loaderLineIndex] ?? LOADER_KEYS[0])}</p>
               <div className="hero-loader-bar" aria-hidden="true">
                 <span className="hero-loader-bar-fill" style={{ width: `${progressPct}%` }} />
               </div>
               <p className="hero-loader-meta">
-                {loadStatus.phase === 'ready' ? 'Ready' : `Loading scene · ${progressPct}%`}
+                {loadStatus.phase === 'ready'
+                  ? t('hero.loaderReady')
+                  : t('hero.loaderLoading', { pct: progressPct })}
               </p>
             </div>
           ) : null}
@@ -225,12 +223,12 @@ export function Hero() {
                 <button
                   type="button"
                   className="motion-parallax-prompt"
-                  aria-label="Enable motion parallax"
+                  aria-label={t('hero.motionAria')}
                   onClick={() => {
                     void requestMotionParallaxPermission()
                   }}
                 >
-                  Tap to enable motion
+                  {t('hero.motionEnable')}
                 </button>
               ) : (
                 <span>{motionHudLabel}</span>
@@ -240,27 +238,27 @@ export function Hero() {
                   <button
                     type="button"
                     className="viewer-fullscreen-btn"
-                    aria-label="Exit fullscreen"
+                    aria-label={t('hero.fsExit')}
                     onClick={() => {
                       void exitFullscreen()
                     }}
                   >
-                    EXIT
+                    {t('hero.exit')}
                   </button>
                 ) : (
                   <button
                     type="button"
                     className="viewer-fullscreen-btn"
-                    aria-label="Enter fullscreen"
+                    aria-label={t('hero.fsEnter')}
                     onClick={() => {
                       void enterFullscreen()
                     }}
                   >
-                    <span className="label-long">FULLSCREEN</span>
-                    <span className="label-short">FS</span>
+                    <span className="label-long">{t('hero.fsLabel')}</span>
+                    <span className="label-short">{t('hero.fsShort')}</span>
                   </button>
                 )}
-                <span className="orbit-label">{useStaticHero ? '◉ STATIC' : '◉ LIVE'}</span>
+                <span className="orbit-label">{useStaticHero ? t('hero.static') : t('hero.live')}</span>
               </div>
             </div>
           </div>
@@ -268,7 +266,7 @@ export function Hero() {
       </div>
 
       <div className="scroll-cue" aria-hidden="true">
-        <span>Scroll</span>
+        <span>{t('hero.scroll')}</span>
         <span className="scroll-cue-line" />
       </div>
     </section>

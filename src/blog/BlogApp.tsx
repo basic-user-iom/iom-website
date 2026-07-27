@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
+import { localePath, parseLocalePath, useSiteI18n, type SiteLang } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
 import { SITE_NAME, SITE_ORIGIN } from '../seo/siteConfig'
 import { fetchPublishedPostBySlug, fetchPublishedPosts } from './publicApi'
@@ -8,8 +9,10 @@ import { BLOG_PUBLIC_ENABLED } from './publicFlags'
 import { BlogComments } from './BlogComments'
 import {
   formatBlogDate,
+  isBlogContentLocale,
   isBlogPath,
   renderBlogMarkdown,
+  type BlogContentLocale,
   type BlogPost,
 } from './types'
 import './blog.css'
@@ -23,7 +26,8 @@ function parseBlogRoute(pathname: string): {
   kind: 'index' | 'post' | 'verify'
   slug?: string
 } {
-  const p = pathname.replace(/\/+$/, '') || '/'
+  const { path } = parseLocalePath(pathname)
+  const p = path.replace(/\/+$/, '') || '/'
   if (p === '/blog') return { kind: 'index' }
   if (p === '/blog/verify') return { kind: 'verify' }
   const m = p.match(/^\/blog\/([^/]+)$/)
@@ -31,10 +35,15 @@ function parseBlogRoute(pathname: string): {
   return { kind: 'index' }
 }
 
+function siteLangToBlogLocale(lang: SiteLang): BlogContentLocale {
+  return isBlogContentLocale(lang) ? lang : 'en'
+}
+
 function BlogComingSoon() {
+  const { t, href, lang } = useSiteI18n()
   useEffect(() => {
-    applyPageMeta('/blog')
-  }, [])
+    applyPageMeta('/blog', lang)
+  }, [lang])
 
   return (
     <div className="blog-page">
@@ -44,21 +53,18 @@ function BlogComingSoon() {
             07
           </span>
           <div>
-            <p className="blog-eyebrow">IOM Journal</p>
-            <h1 className="blog-title">Blog</h1>
-            <p className="blog-lead">
-              Case studies, immersive media notes, and field articles are on the way — same craft as
-              our demos, written for clients and collaborators.
-            </p>
+            <p className="blog-eyebrow">{t('blog.eyebrow')}</p>
+            <h1 className="blog-title">{t('blog.title')}</h1>
+            <p className="blog-lead">{t('blog.comingSoonLead')}</p>
             <p className="blog-coming-soon" role="status">
-              Coming soon
+              {t('blog.comingSoon')}
             </p>
             <div className="blog-coming-actions">
-              <a className="btn btn-primary" href="/#contact">
-                Contact
+              <a className="btn btn-primary" href={href('/#contact')}>
+                {t('blog.contact')}
               </a>
-              <a className="btn btn-ghost" href="/#3d">
-                See our work
+              <a className="btn btn-ghost" href={href('/#3d')}>
+                {t('blog.seeWork')}
               </a>
             </div>
           </div>
@@ -69,6 +75,8 @@ function BlogComingSoon() {
 }
 
 function BlogIndex() {
+  const { t, href, lang } = useSiteI18n()
+  const locale = siteLangToBlogLocale(lang)
   const [posts, setPosts] = useState<BlogPost[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -79,11 +87,11 @@ function BlogIndex() {
       setLoading(true)
       setError('')
       try {
-        const rows = await fetchPublishedPosts()
+        const rows = await fetchPublishedPosts(locale)
         if (!cancelled) setPosts(rows)
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load posts')
+          setError(err instanceof Error ? err.message : t('blog.loadError'))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -92,11 +100,11 @@ function BlogIndex() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [locale, t])
 
   useEffect(() => {
-    applyPageMeta('/blog')
-  }, [])
+    applyPageMeta('/blog', lang)
+  }, [lang])
 
   return (
     <div className="blog-page">
@@ -106,76 +114,74 @@ function BlogIndex() {
             07
           </span>
           <div>
-            <p className="blog-eyebrow">IOM Journal</p>
-            <h1 className="blog-title">Blog</h1>
-            <p className="blog-lead">
-              Case studies, immersive media notes, and field articles — the same craft as our demos,
-              written for clients and collaborators.
-            </p>
+            <p className="blog-eyebrow">{t('blog.eyebrow')}</p>
+            <h1 className="blog-title">{t('blog.title')}</h1>
+            <p className="blog-lead">{t('blog.lead')}</p>
           </div>
         </header>
 
-        {loading && <p className="blog-status">Loading posts…</p>}
+        {loading && <p className="blog-status">{t('blog.loading')}</p>}
         {error && (
           <p className="blog-status blog-status--error" role="alert">
             {error}
           </p>
         )}
         {!loading && !error && posts.length === 0 && (
-          <p className="blog-status">
-            No published articles yet. Check back soon — or publish from the CRM Blog section.
-          </p>
+          <p className="blog-status">{t('blog.empty')}</p>
         )}
 
         <ul className="blog-post-list">
-          {posts.map((post, i) => (
-            <li key={post.id}>
-              <a
-                className="blog-post-card"
-                href={`/blog/${encodeURIComponent(post.slug)}`}
-                onClick={(e) => {
-                  e.preventDefault()
-                  navigate(`/blog/${encodeURIComponent(post.slug)}`)
-                }}
-              >
-                {post.cover_image_url ? (
-                  <img
-                    className="blog-post-card-cover"
-                    src={post.cover_image_url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    sizes="(max-width: 720px) 100vw, 360px"
-                  />
-                ) : (
-                  <div className="blog-post-card-cover blog-post-card-cover--empty" aria-hidden>
-                    <span className="blog-post-card-glyph">
-                      {String(i + 1).padStart(2, '0')} / journal
-                    </span>
-                  </div>
-                )}
-                <div className="blog-post-card-body">
-                  <time dateTime={post.published_at || undefined}>
-                    {formatBlogDate(post.published_at)}
-                  </time>
-                  <h2>{post.title}</h2>
-                  <p>{post.excerpt}</p>
-                  {post.tags.length > 0 && (
-                    <ul className="blog-tags">
-                      {post.tags.map((tag) => (
-                        <li key={tag}>{tag}</li>
-                      ))}
-                    </ul>
+          {posts.map((post, i) => {
+            const postHref = href(`/blog/${encodeURIComponent(post.slug)}`)
+            return (
+              <li key={post.id}>
+                <a
+                  className="blog-post-card"
+                  href={postHref}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    navigate(postHref)
+                  }}
+                >
+                  {post.cover_image_url ? (
+                    <img
+                      className="blog-post-card-cover"
+                      src={post.cover_image_url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      sizes="(max-width: 720px) 100vw, 360px"
+                    />
+                  ) : (
+                    <div className="blog-post-card-cover blog-post-card-cover--empty" aria-hidden>
+                      <span className="blog-post-card-glyph">
+                        {t('blog.journalGlyph', { n: String(i + 1).padStart(2, '0') })}
+                      </span>
+                    </div>
                   )}
-                  <div className="blog-card-footer">
-                    <span className="blog-card-link">
-                      Read <span aria-hidden="true">→</span>
-                    </span>
+                  <div className="blog-post-card-body">
+                    <time dateTime={post.published_at || undefined}>
+                      {formatBlogDate(post.published_at, lang)}
+                    </time>
+                    <h2>{post.title}</h2>
+                    <p>{post.excerpt}</p>
+                    {post.tags.length > 0 && (
+                      <ul className="blog-tags">
+                        {post.tags.map((tag) => (
+                          <li key={tag}>{tag}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="blog-card-footer">
+                      <span className="blog-card-link">
+                        {t('blog.read')} <span aria-hidden="true">→</span>
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </a>
-            </li>
-          ))}
+                </a>
+              </li>
+            )
+          })}
         </ul>
       </div>
     </div>
@@ -183,6 +189,8 @@ function BlogIndex() {
 }
 
 function BlogPostPage({ slug }: { slug: string }) {
+  const { t, href, lang } = useSiteI18n()
+  const locale = siteLangToBlogLocale(lang)
   const [post, setPost] = useState<BlogPost | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -194,14 +202,14 @@ function BlogPostPage({ slug }: { slug: string }) {
       setLoading(true)
       setError('')
       try {
-        const row = await fetchPublishedPostBySlug(slug)
+        const row = await fetchPublishedPostBySlug(slug, locale)
         if (!cancelled) {
           setPost(row)
-          if (!row) setError('Post not found')
+          if (!row) setError(t('blog.notFound'))
         }
       } catch (err) {
         if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Could not load post')
+          setError(err instanceof Error ? err.message : t('blog.postLoadError'))
         }
       } finally {
         if (!cancelled) setLoading(false)
@@ -210,7 +218,7 @@ function BlogPostPage({ slug }: { slug: string }) {
     return () => {
       cancelled = true
     }
-  }, [slug])
+  }, [slug, locale, t])
 
   useEffect(() => {
     if (!post) return
@@ -219,10 +227,10 @@ function BlogPostPage({ slug }: { slug: string }) {
     document.title = title
     const desc = document.querySelector('meta[name="description"]') as HTMLMetaElement | null
     if (desc) desc.content = description
+    const canonicalPath = localePath(lang, `/blog/${post.slug}`)
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
-    if (canonical) canonical.href = `${SITE_ORIGIN}/blog/${post.slug}`
+    if (canonical) canonical.href = `${SITE_ORIGIN}${canonicalPath}`
 
-    // Article JSON-LD
     document.head.querySelectorAll('script[data-iom-blog-jsonld]').forEach((n) => n.remove())
     const script = document.createElement('script')
     script.type = 'application/ld+json'
@@ -232,6 +240,7 @@ function BlogPostPage({ slug }: { slug: string }) {
       '@type': 'Article',
       headline: post.title,
       description,
+      inLanguage: lang,
       image: post.cover_image_url || undefined,
       datePublished: post.published_at || undefined,
       dateModified: post.updated_at || undefined,
@@ -241,21 +250,22 @@ function BlogPostPage({ slug }: { slug: string }) {
         name: 'IOM',
         url: SITE_ORIGIN,
       },
-      mainEntityOfPage: `${SITE_ORIGIN}/blog/${post.slug}`,
+      mainEntityOfPage: `${SITE_ORIGIN}${canonicalPath}`,
     })
     document.head.appendChild(script)
     return () => {
       document.head.querySelectorAll('script[data-iom-blog-jsonld]').forEach((n) => n.remove())
     }
-  }, [post])
+  }, [post, lang])
 
   const html = useMemo(() => (post ? renderBlogMarkdown(post.body) : ''), [post])
+  const indexHref = href('/blog')
 
   if (loading) {
     return (
       <div className="blog-page">
         <div className="blog-page-inner">
-          <p className="blog-status">Loading…</p>
+          <p className="blog-status">{t('blog.loadingPost')}</p>
         </div>
       </div>
     )
@@ -265,16 +275,16 @@ function BlogPostPage({ slug }: { slug: string }) {
     return (
       <div className="blog-page">
         <div className="blog-page-inner">
-          <p className="blog-status blog-status--error">{error || 'Post not found'}</p>
+          <p className="blog-status blog-status--error">{error || t('blog.notFound')}</p>
           <a
-            href="/blog"
+            href={indexHref}
             className="blog-back"
             onClick={(e) => {
               e.preventDefault()
-              navigate('/blog')
+              navigate(indexHref)
             }}
           >
-            ← All posts
+            {t('blog.allPosts')}
           </a>
         </div>
       </div>
@@ -285,17 +295,17 @@ function BlogPostPage({ slug }: { slug: string }) {
     <article className="blog-page blog-article">
       <div className="blog-page-inner">
         <a
-          href="/blog"
+          href={indexHref}
           className="blog-back"
           onClick={(e) => {
             e.preventDefault()
-            navigate('/blog')
+            navigate(indexHref)
           }}
         >
-          ← All posts
+          {t('blog.allPosts')}
         </a>
         <header className="blog-article-header">
-          <time dateTime={post.published_at || undefined}>{formatBlogDate(post.published_at)}</time>
+          <time dateTime={post.published_at || undefined}>{formatBlogDate(post.published_at, lang)}</time>
           <h1>{post.title}</h1>
           <p className="blog-article-byline">
             <span>{post.author_name || 'IOM'}</span>
@@ -324,13 +334,13 @@ function BlogPostPage({ slug }: { slug: string }) {
             Exploring immersive web, 360°, or interactive 3D for your project?
             <br />
             {slug === '3d-viewer' ? (
-              <a href="/case-studies/3d-viewer">Process case study</a>
+              <a href={href('/case-studies/3d-viewer')}>Process case study</a>
             ) : null}
             {slug === 'panorama-suite' || slug === 'panorama-360-tour' ? (
-              <a href="/case-studies/black-witness">Process case study</a>
+              <a href={href('/case-studies/black-witness')}>Process case study</a>
             ) : null}
-            <a href="/#contact">Talk to IOM</a>
-            <a href="/#3d">See our work</a>
+            <a href={href('/#contact')}>Talk to IOM</a>
+            <a href={href('/#3d')}>See our work</a>
           </p>
         </aside>
         <BlogComments
@@ -344,6 +354,7 @@ function BlogPostPage({ slug }: { slug: string }) {
 }
 
 function BlogVerifyPage() {
+  const { t, href, lang } = useSiteI18n()
   const params = useMemo(() => new URLSearchParams(window.location.search), [])
   const ok = params.get('ok') === '1'
   const error = params.get('error')
@@ -355,7 +366,7 @@ function BlogVerifyPage() {
   const [msg, setMsg] = useState('')
 
   useEffect(() => {
-    applyPageMeta('/blog/verify')
+    applyPageMeta('/blog/verify', lang)
     if (!token || ok || error) return
     let cancelled = false
     ;(async () => {
@@ -369,7 +380,7 @@ function BlogVerifyPage() {
           status: result.status || 'pending_moderation',
         })
         if (result.slug) q.set('slug', result.slug)
-        navigate(`/blog/verify?${q.toString()}`)
+        navigate(href(`/blog/verify?${q.toString()}`))
       } else {
         setMsg(result.error || 'Verification failed')
       }
@@ -377,7 +388,7 @@ function BlogVerifyPage() {
     return () => {
       cancelled = true
     }
-  }, [token, ok, error])
+  }, [token, ok, error, href, lang])
 
   let body = ''
   if (busy) body = 'Confirming your email…'
@@ -392,30 +403,30 @@ function BlogVerifyPage() {
   return (
     <div className="blog-page">
       <div className="blog-page-inner blog-verify">
-        <p className="blog-eyebrow">IOM Journal</p>
+        <p className="blog-eyebrow">{t('blog.eyebrow')}</p>
         <h1>Comment confirmation</h1>
         <p className="blog-status">{body}</p>
         {slug ? (
           <a
-            href={`/blog/${encodeURIComponent(slug)}`}
+            href={href(`/blog/${encodeURIComponent(slug)}`)}
             className="blog-back"
             onClick={(e) => {
               e.preventDefault()
-              navigate(`/blog/${encodeURIComponent(slug)}`)
+              navigate(href(`/blog/${encodeURIComponent(slug)}`))
             }}
           >
-            ← Back to article
+            {t('blog.backArticle')}
           </a>
         ) : (
           <a
-            href="/blog"
+            href={href('/blog')}
             className="blog-back"
             onClick={(e) => {
               e.preventDefault()
-              navigate('/blog')
+              navigate(href('/blog'))
             }}
           >
-            ← Blog
+            {t('blog.backBlog')}
           </a>
         )}
       </div>
@@ -423,15 +434,22 @@ function BlogVerifyPage() {
   )
 }
 
-export function BlogApp() {
-  const [path, setPath] = useState(() => window.location.pathname)
+export function BlogApp({ path: pathProp }: { path?: string } = {}) {
+  const [pathState, setPath] = useState(
+    () => pathProp ?? (window.location.pathname.replace(/\/+$/, '') || '/'),
+  )
 
   useEffect(() => {
-    const sync = () => setPath(window.location.pathname)
+    if (pathProp) {
+      setPath(pathProp)
+      return
+    }
+    const sync = () => setPath(window.location.pathname.replace(/\/+$/, '') || '/')
     window.addEventListener('popstate', sync)
     return () => window.removeEventListener('popstate', sync)
-  }, [])
+  }, [pathProp])
 
+  const path = pathProp ?? pathState
   const route = parseBlogRoute(path)
 
   return (

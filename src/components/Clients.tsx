@@ -1,6 +1,7 @@
 import { memo, useEffect, useState } from 'react'
 import { CLIENTS } from '../data/clients'
 import { ORB_COUNT, useSiteOrbsOptional } from './SiteOrbZone'
+import { useSiteI18n } from '../i18n'
 
 type ClientsStyle = 'wordmarks' | 'logos'
 
@@ -17,6 +18,7 @@ function readStoredStyle(): ClientsStyle {
 }
 
 export const Clients = memo(function Clients() {
+  const { t } = useSiteI18n()
   const [style, setStyle] = useState<ClientsStyle>(() => readStoredStyle())
   const orbs = useSiteOrbsOptional()
 
@@ -30,23 +32,20 @@ export const Clients = memo(function Clients() {
 
   return (
     <section className="clients-block" id="clients" aria-labelledby="clients-heading">
-      <p className="clients-eyebrow">Selected clients</p>
+      <p className="clients-eyebrow">{t('clients.eyebrow')}</p>
       <h2 className="clients-title" id="clients-heading">
-        Organizations we&apos;ve built with
+        {t('clients.title')}
       </h2>
-      <p className="clients-text">
-        Hotels, developers, utilities, and platforms — project work across interactive media and
-        digital experiences.
-      </p>
+      <p className="clients-text">{t('clients.text')}</p>
 
-      <div className="clients-style-toggle" role="group" aria-label="Show client wordmarks or logos">
+      <div className="clients-style-toggle" role="group" aria-label={t('clients.toggleAria')}>
         <button
           type="button"
           className={style === 'wordmarks' ? 'is-active' : undefined}
           aria-pressed={style === 'wordmarks'}
           onClick={() => setStyle('wordmarks')}
         >
-          Wordmarks
+          {t('clients.wordmarks')}
         </button>
         <button
           type="button"
@@ -54,7 +53,7 @@ export const Clients = memo(function Clients() {
           aria-pressed={style === 'logos'}
           onClick={() => setStyle('logos')}
         >
-          Logos
+          {t('clients.logos')}
         </button>
       </div>
 
@@ -75,8 +74,8 @@ export const Clients = memo(function Clients() {
                 href={client.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                title={`${client.name} — open website`}
-                aria-label={`${client.name} website`}
+                title={t('clients.openSite', { name: client.name })}
+                aria-label={t('clients.siteAria', { name: client.name })}
                 style={{ ['--client-brand' as string]: client.brandColor }}
                 onPointerEnter={() => {
                   orbs?.setHover('client', index)

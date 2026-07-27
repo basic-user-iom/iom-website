@@ -1,5 +1,6 @@
 import { memo, useEffect, useRef, useState } from 'react'
-import { projectsForSection } from '../data/projects'
+import { useSiteI18n } from '../i18n'
+import { localizedProjectsForSection } from '../i18n/projects/localize'
 import { MusicPlayer } from './MusicPlayer'
 
 interface MusicSectionProps {
@@ -9,8 +10,9 @@ interface MusicSectionProps {
 }
 
 export const MusicSection = memo(function MusicSection({ index, label, blurb }: MusicSectionProps) {
+  const { lang } = useSiteI18n()
   const sectionRef = useRef<HTMLElement>(null)
-  const projects = projectsForSection('music')
+  const projects = localizedProjectsForSection('music', lang)
   const playableIds = projects.filter((project) => project.audioUrl).map((project) => project.id)
   const [activeTrackId, setActiveTrackId] = useState<string | null>(() => playableIds[0] ?? null)
 

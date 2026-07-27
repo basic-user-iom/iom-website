@@ -1,5 +1,6 @@
 import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Project } from '../data/projects'
+import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
 import { GalleryLightbox } from './GalleryLightbox'
@@ -53,6 +54,7 @@ export const ProjectCard = memo(function ProjectCard({
   musicActive = false,
   onMusicSelect,
 }: ProjectCardProps) {
+  const { t, href } = useSiteI18n()
   const [embedFailed, setEmbedFailed] = useState(false)
   const [embedLoaded, setEmbedLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -67,7 +69,10 @@ export const ProjectCard = memo(function ProjectCard({
   const profile = getDeviceProfile()
   const { isPending: isCountdownPending, label: countdownLabel } = useCountdown(project.availableAt)
   const isComingSoon = isCountdownPending || Boolean(project.comingSoonOverlay)
-  const comingSoonLabel = project.comingSoonLabel ?? 'Coming Soon'
+  const comingSoonLabel = project.comingSoonLabel ?? t('card.comingSoon')
+  const caseStudyHref = project.caseStudyPath ? href(project.caseStudyPath) : undefined
+  const projectHref =
+    project.url?.startsWith('/case-studies/') ? href(project.url) : project.url
   const initials = project.title
     .split(/[\s-]+/)
     .map((w) => w[0])
@@ -284,11 +289,11 @@ export const ProjectCard = memo(function ProjectCard({
                   {project.caseStudyPath ? (
                     <a
                       className="card-source-link"
-                      href={project.caseStudyPath}
-                      title="Case study"
+                      href={caseStudyHref}
+                      title={t('card.caseStudy')}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      Case study
+                      {t('card.caseStudy')}
                     </a>
                   ) : null}
                   {project.sourceUrl ? (
@@ -297,10 +302,10 @@ export const ProjectCard = memo(function ProjectCard({
                       href={project.sourceUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      title="Source"
+                      title={t('card.source')}
                       onClick={(event) => event.stopPropagation()}
                     >
-                      Source
+                      {t('card.source')}
                     </a>
                   ) : null}
                   {project.referenceUrls?.map((reference) => (
@@ -323,23 +328,25 @@ export const ProjectCard = memo(function ProjectCard({
               {project.url && project.caseStudyPath ? (
                 <a
                   className="card-link"
-                  href={project.url}
+                  href={projectHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  Open →
+                  {t('card.open')}
                 </a>
               ) : project.url?.startsWith('/case-studies/') ? (
-                <span className="card-link">View study →</span>
+                <span className="card-link">{t('card.viewStudy')}</span>
               ) : project.url ? (
-                <span className="card-link">Open →</span>
+                <span className="card-link">{t('card.open')}</span>
               ) : hasGallery ? (
-                <span className="card-link">View gallery →</span>
+                <span className="card-link">{t('card.viewGallery')}</span>
               ) : hasMusicTrack ? (
-                <span className="card-link">{musicActive ? 'Selected' : 'Load track →'}</span>
+                <span className="card-link">
+                  {musicActive ? t('card.selected') : t('card.loadTrack')}
+                </span>
               ) : (
-                <span className="card-footer-note">Sample</span>
+                <span className="card-footer-note">{t('card.sample')}</span>
               )}
             </div>
           </div>
@@ -365,7 +372,7 @@ export const ProjectCard = memo(function ProjectCard({
     return (
       <a
         id={project.id}
-        href={project.url}
+        href={projectHref}
         className={className}
         style={style}
         {...(openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
@@ -381,7 +388,7 @@ export const ProjectCard = memo(function ProjectCard({
         id={project.id}
         className={`${className} project-card--multi-link`}
         style={style}
-        aria-label={`${project.title} — open product or case study`}
+        aria-label={t('card.openAria', { title: project.title })}
       >
         {inner}
       </article>
@@ -413,11 +420,14 @@ export const ProjectCard = memo(function ProjectCard({
         role={isComingSoon ? undefined : hasGallery || hasMusicTrack ? 'button' : undefined}
         aria-label={
           isComingSoon
-            ? `${project.title} — ${comingSoonLabel.toLowerCase()}`
+            ? t('card.comingSoonAria', {
+                title: project.title,
+                label: comingSoonLabel.toLowerCase(),
+              })
             : hasGallery
-              ? `View ${project.title} gallery`
+              ? t('card.galleryAria', { title: project.title })
               : hasMusicTrack
-                ? `Load ${project.title} in music player`
+                ? t('card.musicAria', { title: project.title })
                 : undefined
         }
       >

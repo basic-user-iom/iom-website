@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useSiteI18n } from '../i18n'
 import { fetchPublicComments, submitBlogComment } from './publicApi'
 import { isSampleBlogPostId } from './samplePosts'
 import { formatBlogDate, type BlogCommentPublic } from './types'
@@ -26,6 +27,7 @@ function nestComments(rows: BlogCommentPublic[]) {
 }
 
 export function BlogComments({ postId, onSubmitted }: BlogCommentsProps) {
+  const { lang } = useSiteI18n()
   const sample = isSampleBlogPostId(postId)
   const [comments, setComments] = useState<BlogCommentPublic[]>([])
   const [loading, setLoading] = useState(!sample)
@@ -120,7 +122,7 @@ export function BlogComments({ postId, onSubmitted }: BlogCommentsProps) {
           <li key={c.id} className="blog-comment">
             <div className="blog-comment-meta">
               <strong>{c.author_name}</strong>
-              <time dateTime={c.created_at}>{formatBlogDate(c.created_at)}</time>
+              <time dateTime={c.created_at}>{formatBlogDate(c.created_at, lang)}</time>
             </div>
             <p className="blog-comment-body">{c.body}</p>
             <button
@@ -136,7 +138,7 @@ export function BlogComments({ postId, onSubmitted }: BlogCommentsProps) {
                   <li key={r.id} className="blog-comment">
                     <div className="blog-comment-meta">
                       <strong>{r.author_name}</strong>
-                      <time dateTime={r.created_at}>{formatBlogDate(r.created_at)}</time>
+                      <time dateTime={r.created_at}>{formatBlogDate(r.created_at, lang)}</time>
                     </div>
                     <p className="blog-comment-body">{r.body}</p>
                     <button

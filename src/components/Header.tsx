@@ -1,11 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 
-import { SECTIONS } from '../data/projects'
+import { LanguageSwitcher } from './LanguageSwitcher'
+import { useSiteI18n } from '../i18n'
+import { localizedSections } from '../i18n/projects/localize'
 import { getDeviceProfile } from '../utils/device'
 import { persistMute, readStoredMute } from '../utils/audioPrefs'
 import { toggleSiteMute } from './SiteAmbientAudio'
 
 export function Header() {
+  const { t, href, lang } = useSiteI18n()
+  const sections = localizedSections(lang)
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [siteMuted, setSiteMuted] = useState(() => readStoredMute('site'))
@@ -47,7 +51,7 @@ export function Header() {
 
   const closeMenu = () => setMenuOpen(false)
   const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
-  const onBlog = path === '/blog' || path.startsWith('/blog/')
+  const onBlog = /(?:^|\/)blog(?:\/|$)/.test(path)
 
   const handleMuteClick = () => {
     const next = toggleSiteMute()
@@ -58,9 +62,9 @@ export function Header() {
   return (
     <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
       <a href="#main-content" className="skip-link">
-        Skip to content
+        {t('nav.skip')}
       </a>
-      <a href="/" className="header-brand" aria-label="IOM home">
+      <a href={href('/')} className="header-brand" aria-label={t('nav.homeAria')}>
         <div className="raven-mascot-wrap">
           <video
             ref={videoRef}
@@ -77,53 +81,54 @@ export function Header() {
         </div>
         <div className="brand-text">
           <span className="brand-name">IOM</span>
-          <span className="brand-tag">Interactive Object Media</span>
+          <span className="brand-tag">{t('nav.brandTag')}</span>
         </div>
       </a>
 
-      <nav id="site-nav" className={`header-nav${menuOpen ? ' is-open' : ''}`} aria-label="Primary">
+      <nav id="site-nav" className={`header-nav${menuOpen ? ' is-open' : ''}`} aria-label={t('nav.primaryAria')}>
         <div className="header-nav-group" role="presentation">
-          {SECTIONS.map((s) => (
-            <a key={s.id} href={`/#${s.id}`} onClick={closeMenu}>
+          {sections.map((s) => (
+            <a key={s.id} href={href(`/#${s.id}`)} onClick={closeMenu}>
               {s.label}
             </a>
           ))}
         </div>
         <span className="header-nav-divider" aria-hidden="true" />
         <div className="header-nav-group" role="presentation">
-          <a href="/blog" className={onBlog ? 'is-active' : undefined} onClick={closeMenu}>
-            Blog
+          <a href={href('/blog')} className={onBlog ? 'is-active' : undefined} onClick={closeMenu}>
+            {t('nav.blog')}
           </a>
-          <a href="/#about" onClick={closeMenu}>
-            About
+          <a href={href('/#about')} onClick={closeMenu}>
+            {t('nav.about')}
           </a>
         </div>
         <div className="header-nav-mobile-cta">
-          <a href="/#contact" className="header-cta" onClick={closeMenu}>
-            Get in touch
+          <a href={href('/#contact')} className="header-cta" onClick={closeMenu}>
+            {t('nav.contact')}
           </a>
           <a href="/client-login" className="header-login" onClick={closeMenu}>
-            Login
+            {t('nav.login')}
           </a>
         </div>
       </nav>
 
       <div className="header-tools">
+        <LanguageSwitcher />
         <button
           type="button"
           className={`header-mute${siteMuted ? ' header-mute--listen' : ''}`}
           onClick={handleMuteClick}
-          aria-label={siteMuted ? 'Listen to ambient sound' : 'Mute ambient sound'}
+          aria-label={siteMuted ? t('nav.listenAria') : t('nav.muteAria')}
           aria-pressed={!siteMuted}
-          title={siteMuted ? 'Listen to ambient sound' : 'Mute ambient sound'}
+          title={siteMuted ? t('nav.listenAria') : t('nav.muteAria')}
         >
-          {siteMuted ? 'Listen' : 'Mute'}
+          {siteMuted ? t('nav.listen') : t('nav.mute')}
         </button>
-        <a href="/#contact" className="header-cta" onClick={closeMenu}>
-          Get in touch
+        <a href={href('/#contact')} className="header-cta" onClick={closeMenu}>
+          {t('nav.contact')}
         </a>
         <a href="/client-login" className="header-login" onClick={closeMenu}>
-          Login
+          {t('nav.login')}
         </a>
         <button
           type="button"
@@ -132,7 +137,7 @@ export function Header() {
           aria-controls="site-nav"
           onClick={() => setMenuOpen((o) => !o)}
         >
-          <span className="sr-only">Menu</span>
+          <span className="sr-only">{t('nav.menu')}</span>
           {menuOpen ? '✕' : '☰'}
         </button>
       </div>

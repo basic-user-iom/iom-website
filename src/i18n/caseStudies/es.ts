@@ -1,0 +1,80 @@
+import type { CaseStudiesLocalePack } from './types'
+
+export const esCaseStudies: CaseStudiesLocalePack = {
+  studies: {
+    '3d-viewer': {
+      eyebrow: 'Caso de estudio · Software',
+      title: '3D Viewer — del brief al WebGL',
+      lead: 'Cómo IOM convierte un problema de review en un producto entregable: cablear el chrome, endurecer el pipeline y dar a los clientes un enlace que puedan abrir en una llamada.',
+      primaryCtaLabel: 'Abrir el viewer en vivo',
+      secondaryCtaLabel: 'Artículo técnico',
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Los stakeholders necesitan revisar 3D sin una licencia CAD.',
+          detail:
+            'El problema central: compartir un modelo en una llamada, no un ZIP. Los formatos varían (GLTF, FBX, OBJ, IFC), y la iluminación o el contexto urbano venden el pitch tanto como la malla misma.',
+          mediaAlt: 'Póster del producto 3D Viewer — chrome de órbita alrededor de un modelo iluminado',
+        },
+        wire: {
+          title: 'Layout y chrome de review',
+          summary: 'Paneles, órbita y un camino de abrir → entender → decidir.',
+          detail:
+            'Diseñamos la interfaz alrededor del review, no del authoring: enmarcar el asset, cambiar entornos y mantener hotspots y rutas de exportación evidentes. Desktop y web comparten el mismo modelo mental.',
+          mediaAlt: 'Recorrido del producto — órbita, iluminación HDR y chrome del viewer',
+        },
+        engineering: {
+          title: 'Ingeniería',
+          summary: 'Pipeline Three.js, proyección de suelo HDR, puente Streets GL.',
+          detail:
+            'Los pipelines reales de clientes necesitan cobertura de formatos, sync fiable del contexto urbano y restauración de texturas al salir de Product ↔ City. La historia de ingeniería es fiabilidad ante assets desordenados — no un vacío de demo.',
+          mediaAlt: 'Contexto urbano OSM 3D / Streets GL dentro del viewer',
+        },
+        final: {
+          title: 'WebGL final',
+          summary: 'Review en navegador compartible y builds de escritorio Windows.',
+          detail:
+            'En vivo en 3dbviewer.com — órbita bajo HDR 360° con proyección de suelo, o Streets GL cuando la ubicación es la historia. El mismo lenguaje craft que nuestros experimentos, empaquetado para decidir.',
+          mediaAlt: 'HDR 360° con proyección de suelo — producto iluminado por la environment plate',
+        },
+      },
+    },
+    'black-witness': {
+      eyebrow: 'Caso de estudio · 360°',
+      title: 'The Black Witness — del brief al 360°',
+      lead: 'Cómo una serie fotográfica se convierte en un tour panorama WebGPU guiado — hotspots, capas de efectos y una preview de visitante que los clientes pueden compartir.',
+      primaryCtaLabel: 'Abrir el tour de visitante',
+      secondaryCtaLabel: 'Artículo técnico',
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Una historia de cuervo que los invitados pueden recorrer, no solo mirar.',
+          detail:
+            'The Black Witness empezó como una serie fotográfica. El problema orientado al cliente: convertir esa atmósfera en una experiencia 360° guiada — mirar alrededor, hacer clic para aprender, compartir un enlace sin instalar una app.',
+          mediaAlt: 'The Black Witness — still del cuervo en la azotea que siembra la narrativa 360°',
+        },
+        wire: {
+          title: 'Estructura del tour',
+          summary: 'Hotspots, paradas guiadas y un camino de preview de visitante.',
+          detail:
+            'Diseñamos beats de cámara y tipos de hotspot (info, enlaces de escena, popups) para que el tour se lea como un storyboard. Editor y preview de visitante comparten un mismo archivo de proyecto — construir una vez, compartir una URL de preview limpia.',
+          mediaAlt: 'Tour guiado paso 1 — hotspot de cuervo y popup en The Black Witness',
+        },
+        engineering: {
+          title: 'Ingeniería',
+          summary: 'Esfera equirectangular, capas de efectos WebGPU, formato de guardado del proyecto.',
+          detail:
+            'Los panoramas se mapean sobre una cámara esférica; los pasos guiados apilan partículas, spout/agua y pájaros compute sincronizados con hotspots. `.360project` mantiene escenas, paradas y efectos portables entre sesiones.',
+          mediaAlt: 'Paso 2 — beat de hotspot de partículas / fuego en el tour panorama',
+        },
+        final: {
+          title: '360° final',
+          summary: 'Preview de visitante compartible — sin chrome del editor.',
+          detail:
+            'Los clientes abren una preview con deep link (yaw / pitch bloqueados para un primer frame compartido), reproducen el tour guiado o exploran hotspots libremente. El mismo motor que el editor — empaquetado para invitados.',
+          mediaAlt: 'Paso 4 — capa de pájaros y beat de cielo de tormenta en The Black Witness',
+        },
+      },
+    },
+  },
+}

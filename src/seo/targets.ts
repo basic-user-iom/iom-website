@@ -80,6 +80,14 @@ export const SEO_TARGETS: SeoTarget[] = [
     pages: ['/', '/#contact'],
     priority: 'high',
   },
+  {
+    id: 'content-blog',
+    phrase: 'IOM Journal immersive media blog',
+    intent: 'topic',
+    pages: ['/blog', '/de/blog', '/fr/blog', '/nl/blog', '/it/blog', '/es/blog'],
+    priority: 'medium',
+    notes: 'Public journal — per-language SEO titles/descriptions edited in CRM Blog tabs.',
+  },
 ]
 
 /** Section-level content inventory for the SEO dashboard. */

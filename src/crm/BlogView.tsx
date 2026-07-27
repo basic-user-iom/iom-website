@@ -25,14 +25,21 @@ import {
 } from './recordingsApi'
 import { useLiveCrmBackend } from './supabaseClient'
 import {
+  BLOG_CONTENT_LOCALES,
+  BLOG_CONTENT_LOCALE_LABELS,
+  emptyTranslationFields,
+  isTranslationFilled,
   renderBlogMarkdown,
   slugifyTitle,
+  translationFieldsFromPost,
   type BlogAudience,
   type BlogCommentAdmin,
   type BlogCommentStatus,
+  type BlogContentLocale,
   type BlogPost,
   type BlogPostInput,
   type BlogPostStatus,
+  type BlogPostTranslations,
 } from '../blog/types'
 import '../blog/blog.css'
 
@@ -72,6 +79,8 @@ const emptyDraft = (): BlogPostInput => ({
   seo_description: '',
   author_name: 'IOM',
   tags: [],
+  contentLocale: 'en',
+  translations: { en: emptyTranslationFields() },
 })
 
 /** Markdown image: ![alt](url) or ![alt](url "title") */
@@ -395,24 +404,61 @@ export function BlogView() {
 
   const openEdit = (post: BlogPost, opts?: { bodyPane?: BodyPane }) => {
     setEditingId(post.id)
+    const translations: BlogPostTranslations = {
+      en: translationFieldsFromPost(post),
+      ...(post.translations ?? {}),
+    }
+    if (!translations.en) translations.en = translationFieldsFromPost(post)
+    const locale: BlogContentLocale = 'en'
+    const fields = translations[locale] ?? emptyTranslationFields()
     setDraft({
       slug: post.slug,
-      title: post.title,
-      excerpt: post.excerpt,
-      body: post.body,
+      title: fields.title,
+      excerpt: fields.excerpt,
+      body: fields.body,
       cover_image_url: post.cover_image_url,
       status: post.status,
       published_at: post.published_at,
-      seo_title: post.seo_title,
-      seo_description: post.seo_description,
+      seo_title: fields.seo_title,
+      seo_description: fields.seo_description,
       author_name: post.author_name,
       tags: post.tags,
+      contentLocale: locale,
+      translations,
     })
     setTagsText(post.tags.join(', '))
     setBodyPane(opts?.bodyPane ?? 'edit')
     setReplacingId(null)
     setReplaceUrlDraft('')
     setMode('edit')
+  }
+
+  const switchContentLocale = (next: BlogContentLocale) => {
+    setDraft((d) => {
+      const current: BlogContentLocale = d.contentLocale ?? 'en'
+      if (current === next) return d
+      const translations: BlogPostTranslations = {
+        ...(d.translations ?? {}),
+        [current]: {
+          title: d.title,
+          excerpt: d.excerpt,
+          body: d.body,
+          seo_title: d.seo_title,
+          seo_description: d.seo_description,
+        },
+      }
+      const fields = translations[next] ?? emptyTranslationFields()
+      return {
+        ...d,
+        contentLocale: next,
+        translations,
+        title: fields.title,
+        excerpt: fields.excerpt,
+        body: fields.body,
+        seo_title: fields.seo_title,
+        seo_description: fields.seo_description,
+      }
+    })
   }
 
   const insertDemoCta = () => {
@@ -425,11 +471,23 @@ export function BlogView() {
   }
 
   const handleSave = async () => {
-    if (!draft.title.trim()) {
+    const locale: BlogContentLocale = draft.contentLocale ?? 'en'
+    const translations: BlogPostTranslations = {
+      ...(draft.translations ?? {}),
+      [locale]: {
+        title: draft.title,
+        excerpt: draft.excerpt,
+        body: draft.body,
+        seo_title: draft.seo_title,
+        seo_description: draft.seo_description,
+      },
+    }
+    const en = translations.en ?? emptyTranslationFields()
+    if (!en.title.trim()) {
       setError(t('blog.titleRequired'))
       return
     }
-    if (!draft.excerpt.trim()) {
+    if (!en.excerpt.trim()) {
       setError(t('blog.excerptRequired'))
       return
     }
@@ -444,11 +502,18 @@ export function BlogView() {
     const merged = draftWithPendingReplace(draft, replacingId, replaceUrlDraft)
     const input: BlogPostInput = {
       ...merged,
-      slug: (merged.slug || slugifyTitle(merged.title)).trim(),
+      slug: (merged.slug || slugifyTitle(en.title || merged.title)).trim(),
       tags: tagsText
         .split(',')
         .map((s) => s.trim())
         .filter(Boolean),
+      contentLocale: locale,
+      translations,
+      title: merged.title,
+      excerpt: merged.excerpt,
+      body: merged.body,
+      seo_title: merged.seo_title,
+      seo_description: merged.seo_description,
     }
     try {
       if (editingId) await updateBlogPost(editingId, input)
@@ -891,6 +956,43 @@ export function BlogView() {
 
           <div className="crm-blog-editor-layout">
             <div className="crm-blog-editor-form">
+              <div
+                className="crm-blog-locale-tabs"
+                role="tablist"
+                aria-label={t('blog.localeTabsAria')}
+              >
+                {BLOG_CONTENT_LOCALES.map((code) => {
+                  const active = (draft.contentLocale ?? 'en') === code
+                  const map = {
+                    ...(draft.translations ?? {}),
+                    [draft.contentLocale ?? 'en']: {
+                      title: draft.title,
+                      excerpt: draft.excerpt,
+                      body: draft.body,
+                      seo_title: draft.seo_title,
+                      seo_description: draft.seo_description,
+                    },
+                  }
+                  const filled = isTranslationFilled(map[code])
+                  return (
+                    <button
+                      key={code}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={`crm-blog-locale-tab${active ? ' is-active' : ''}${filled ? ' is-filled' : ''}`}
+                      onClick={() => switchContentLocale(code)}
+                    >
+                      <span className="crm-blog-locale-code">{code.toUpperCase()}</span>
+                      <span className="crm-blog-locale-label">
+                        {BLOG_CONTENT_LOCALE_LABELS[code]}
+                      </span>
+                      <span className="crm-blog-locale-dot" aria-hidden="true" />
+                    </button>
+                  )
+                })}
+              </div>
+              <p className="crm-muted crm-blog-editor-tip">{t('blog.localeTip')}</p>
               <p className="crm-muted crm-blog-editor-tip">{t('blog.editorTip')}</p>
               <p className="crm-muted crm-blog-editor-tip">{t('blog.markdownHint')}</p>
               <label className="crm-field">

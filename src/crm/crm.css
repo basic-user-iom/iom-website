@@ -4965,6 +4965,59 @@
   gap: 0.35rem;
 }
 
+.crm-blog-locale-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.crm-blog-locale-tab {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 1px solid var(--crm-border, rgba(255, 255, 255, 0.12));
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0.78;
+}
+
+.crm-blog-locale-tab:hover,
+.crm-blog-locale-tab.is-active {
+  opacity: 1;
+  border-color: var(--crm-accent, #c4a574);
+}
+
+.crm-blog-locale-tab.is-active {
+  background: rgba(196, 165, 116, 0.12);
+}
+
+.crm-blog-locale-code {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.crm-blog-locale-label {
+  opacity: 0.85;
+}
+
+.crm-blog-locale-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.crm-blog-locale-tab.is-filled .crm-blog-locale-dot {
+  background: #6fbf73;
+}
+
 .crm-blog-editor {
   display: flex;
   flex-direction: column;
