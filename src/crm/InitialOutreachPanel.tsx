@@ -21,13 +21,18 @@ import { formatClientLocalTime } from './clientWeather'
 import { enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
+  emptySchedulePickerParts,
   formatInContactZone,
   isScheduledSendArmed,
+  joinSchedulePickerParts,
   leadContactPlaceLabel,
   leadContactTimeZone,
   normalizeScheduledSend,
+  sanitizeSchedulePart,
   scheduleIsoToPickerValue,
   schedulePickerValueToIso,
+  splitSchedulePickerValue,
+  type SchedulePickerParts,
 } from './scheduledSend'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
@@ -92,11 +97,14 @@ export function InitialOutreachPanel({
   const contactTz = leadContactTimeZone(lead)
   const contactPlace = leadContactPlaceLabel(lead)
   const hasContactTz = isValidIanaTimezone(contactTz)
-  const [scheduleAtLocal, setScheduleAtLocal] = useState(() =>
+  const [scheduleParts, setScheduleParts] = useState<SchedulePickerParts>(() =>
     schedule
-      ? scheduleIsoToPickerValue(schedule.at, hasContactTz ? contactTz : null)
-      : '',
+      ? splitSchedulePickerValue(
+          scheduleIsoToPickerValue(schedule.at, hasContactTz ? contactTz : null),
+        )
+      : emptySchedulePickerParts(),
   )
+  const scheduleAtLocal = joinSchedulePickerParts(scheduleParts)
   const [contactNow, setContactNow] = useState(() => new Date())
   const fromMeta =
     OUTREACH_FROM_IDENTITIES.find((i) => i.id === fromIdentity) ??
@@ -116,10 +124,12 @@ export function InitialOutreachPanel({
 
   useEffect(() => {
     const next = normalizeScheduledSend(lead.scheduled_send)
-    setScheduleAtLocal(
+    setScheduleParts(
       next
-        ? scheduleIsoToPickerValue(next.at, hasContactTz ? contactTz : null)
-        : '',
+        ? splitSchedulePickerValue(
+            scheduleIsoToPickerValue(next.at, hasContactTz ? contactTz : null),
+          )
+        : emptySchedulePickerParts(),
     )
   }, [lead.id, lead.scheduled_send, contactTz, hasContactTz])
 
@@ -756,20 +766,138 @@ export function InitialOutreachPanel({
                       ) : null}
                     </div>
                   ) : (
-                    <label className="crm-field crm-outreach-schedule-when">
+                    <div className="crm-field crm-outreach-schedule-when">
                       <span className="crm-label">
                         {hasContactTz
                           ? t('outreach.scheduleAtContact', { tz: contactTz })
                           : t('outreach.scheduleAt')}
                       </span>
-                      <input
-                        type="datetime-local"
-                        className="crm-input"
-                        value={scheduleAtLocal}
-                        disabled={busy || !hasContactTz}
-                        onChange={(e) => setScheduleAtLocal(e.target.value)}
-                      />
-                    </label>
+                      <div
+                        className="crm-schedule-parts"
+                        role="group"
+                        aria-label={
+                          hasContactTz
+                            ? t('outreach.scheduleAtContact', { tz: contactTz })
+                            : t('outreach.scheduleAt')
+                        }
+                      >
+                        <label className="crm-schedule-part">
+                          <span className="crm-schedule-part-label">
+                            {t('outreach.scheduleDay')}
+                          </span>
+                          <input
+                            className="crm-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="DD"
+                            maxLength={2}
+                            disabled={busy || !hasContactTz}
+                            value={scheduleParts.day}
+                            onChange={(e) =>
+                              setScheduleParts((prev) => ({
+                                ...prev,
+                                day: sanitizeSchedulePart('day', e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="crm-schedule-part">
+                          <span className="crm-schedule-part-label">
+                            {t('outreach.scheduleMonth')}
+                          </span>
+                          <input
+                            className="crm-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="MM"
+                            maxLength={2}
+                            disabled={busy || !hasContactTz}
+                            value={scheduleParts.month}
+                            onChange={(e) =>
+                              setScheduleParts((prev) => ({
+                                ...prev,
+                                month: sanitizeSchedulePart(
+                                  'month',
+                                  e.target.value,
+                                ),
+                              }))
+                            }
+                          />
+                        </label>
+                        <label className="crm-schedule-part crm-schedule-part--year">
+                          <span className="crm-schedule-part-label">
+                            {t('outreach.scheduleYear')}
+                          </span>
+                          <input
+                            className="crm-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="YYYY"
+                            maxLength={4}
+                            disabled={busy || !hasContactTz}
+                            value={scheduleParts.year}
+                            onChange={(e) =>
+                              setScheduleParts((prev) => ({
+                                ...prev,
+                                year: sanitizeSchedulePart('year', e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <span className="crm-schedule-parts-sep" aria-hidden="true">
+                          ·
+                        </span>
+                        <label className="crm-schedule-part crm-schedule-part--time">
+                          <span className="crm-schedule-part-label">
+                            {t('outreach.scheduleHour')}
+                          </span>
+                          <input
+                            className="crm-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="HH"
+                            maxLength={2}
+                            disabled={busy || !hasContactTz}
+                            value={scheduleParts.hour}
+                            onChange={(e) =>
+                              setScheduleParts((prev) => ({
+                                ...prev,
+                                hour: sanitizeSchedulePart('hour', e.target.value),
+                              }))
+                            }
+                          />
+                        </label>
+                        <span className="crm-schedule-parts-sep" aria-hidden="true">
+                          :
+                        </span>
+                        <label className="crm-schedule-part crm-schedule-part--time">
+                          <span className="crm-schedule-part-label">
+                            {t('outreach.scheduleMinute')}
+                          </span>
+                          <input
+                            className="crm-input"
+                            inputMode="numeric"
+                            autoComplete="off"
+                            placeholder="MM"
+                            maxLength={2}
+                            disabled={busy || !hasContactTz}
+                            value={scheduleParts.minute}
+                            onChange={(e) =>
+                              setScheduleParts((prev) => ({
+                                ...prev,
+                                minute: sanitizeSchedulePart(
+                                  'minute',
+                                  e.target.value,
+                                ),
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                      <p className="crm-muted crm-outreach-schedule-format">
+                        {t('outreach.scheduleFormat')}
+                      </p>
+                    </div>
                   )}
 
                   {!scheduledArmed &&

@@ -97,7 +97,8 @@
 .crm-form-stack > .btn,
 .crm-timer-live > .btn,
 .crm-topbar-right > .btn,
-.crm-shell input.crm-input:not(.crm-input--xs),
+/* Native date/time controls break with display:flex — keep them out of this rule. */
+.crm-shell input.crm-input:not(.crm-input--xs):not([type='date']):not([type='time']):not([type='datetime-local']),
 .crm-shell select.crm-input {
   box-sizing: border-box;
   display: inline-flex;
@@ -118,9 +119,27 @@
 .crm-tool-toolbar .crm-input,
 .crm-detail-actions .crm-input,
 .crm-detail-actions select.crm-input,
-.crm-shell input.crm-input:not(.crm-input--xs),
+.crm-shell input.crm-input:not(.crm-input--xs):not([type='date']):not([type='time']):not([type='datetime-local']),
 .crm-shell select.crm-input {
   justify-content: flex-start;
+}
+
+/* datetime-local / date / time: block layout so OS segments stay editable */
+.crm-shell input.crm-input[type='date'],
+.crm-shell input.crm-input[type='time'],
+.crm-shell input.crm-input[type='datetime-local'] {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  min-height: var(--crm-control-h);
+  height: var(--crm-control-h);
+  max-height: none;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: var(--crm-control-pad-x);
+  padding-right: var(--crm-control-pad-x);
+  line-height: var(--crm-control-h);
+  color-scheme: dark;
 }
 
 .crm-section-tab {
@@ -627,6 +646,59 @@
   gap: 0.35rem;
 }
 
+/* Explicit day/month/year + 24h time — avoids OS mm/dd + AM/PM confusion */
+.crm-schedule-parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.45rem 0.55rem;
+}
+
+.crm-schedule-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.crm-schedule-part-label {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+}
+
+.crm-schedule-part .crm-input {
+  width: 3.1rem;
+  min-width: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  display: block;
+  height: var(--crm-control-h);
+  min-height: var(--crm-control-h);
+  max-height: var(--crm-control-h);
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+.crm-schedule-part--year .crm-input {
+  width: 4.2rem;
+}
+
+.crm-schedule-part--time .crm-input {
+  width: 3.1rem;
+}
+
+.crm-schedule-parts-sep {
+  align-self: flex-end;
+  padding-bottom: 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+  line-height: 1;
+  user-select: none;
+}
+
 .crm-outreach-schedule-clock {
   margin: 0;
   font-size: 0.92rem;
@@ -652,6 +724,11 @@
 .crm-outreach-schedule-preview {
   margin: 0;
   font-size: 0.82rem;
+}
+
+.crm-outreach-schedule-format {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
 }
 
 .crm-outreach-schedule-error {

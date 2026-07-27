@@ -204,6 +204,77 @@ export function scheduleIsoToPickerValue(
   return isoToDatetimeLocalValue(iso, contactTimeZone?.trim() || undefined)
 }
 
+/** Explicit day/month/year + 24h fields (avoids OS mm/dd + AM/PM picker). */
+export type SchedulePickerParts = {
+  day: string
+  month: string
+  year: string
+  hour: string
+  minute: string
+}
+
+export function emptySchedulePickerParts(): SchedulePickerParts {
+  return { day: '', month: '', year: '', hour: '', minute: '' }
+}
+
+export function splitSchedulePickerValue(value: string): SchedulePickerParts {
+  const v = value.trim()
+  const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})$/.exec(v)
+  if (!m) return emptySchedulePickerParts()
+  return {
+    year: m[1],
+    month: m[2],
+    day: m[3],
+    hour: m[4],
+    minute: m[5],
+  }
+}
+
+/** Join parts → datetime-local string, or '' while incomplete / invalid. */
+export function joinSchedulePickerParts(parts: SchedulePickerParts): string {
+  const year = parts.year.trim()
+  const month = parts.month.trim()
+  const day = parts.day.trim()
+  const hour = parts.hour.trim()
+  const minute = parts.minute.trim()
+  if (
+    !/^\d{4}$/.test(year) ||
+    !/^\d{1,2}$/.test(month) ||
+    !/^\d{1,2}$/.test(day) ||
+    !/^\d{1,2}$/.test(hour) ||
+    !/^\d{1,2}$/.test(minute)
+  ) {
+    return ''
+  }
+  const y = Number(year)
+  const mo = Number(month)
+  const d = Number(day)
+  const h = Number(hour)
+  const min = Number(minute)
+  if (mo < 1 || mo > 12 || d < 1 || d > 31 || h > 23 || min > 59) return ''
+  const daysInMonth = new Date(Date.UTC(y, mo, 0)).getUTCDate()
+  if (d > daysInMonth) return ''
+  return `${year}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`
+}
+
+export function sanitizeSchedulePart(
+  field: keyof SchedulePickerParts,
+  raw: string,
+): string {
+  const digits = raw.replace(/\D/g, '')
+  switch (field) {
+    case 'year':
+      return digits.slice(0, 4)
+    case 'month':
+    case 'day':
+    case 'hour':
+    case 'minute':
+      return digits.slice(0, 2)
+    default:
+      return digits.slice(0, 2)
+  }
+}
+
 export function leadContactTimeZone(lead: Lead): string {
   return lead.client_timezone?.trim() || ''
 }

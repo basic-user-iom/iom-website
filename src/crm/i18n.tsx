@@ -1053,6 +1053,12 @@ const en: Dict = {
   'outreach.scheduleAt': 'Send at',
   'outreach.scheduleAtContact': 'Send at (contact local — {tz})',
   'outreach.scheduleContactNow': 'Contact local now',
+  'outreach.scheduleDay': 'Day',
+  'outreach.scheduleMonth': 'Month',
+  'outreach.scheduleYear': 'Year',
+  'outreach.scheduleHour': 'Hour',
+  'outreach.scheduleMinute': 'Min',
+  'outreach.scheduleFormat': 'Day / month / year · 24-hour time (contact local).',
   'outreach.scheduleArmed': 'Scheduled for {when} ({tz}) → {email}',
   'outreach.scheduleYours': 'Your clock: {when}',
   'outreach.scheduleYourTz': 'your local time',
@@ -1063,15 +1069,15 @@ const en: Dict = {
     'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. The draft sends automatically; you get an email if it fails.',
   'outreach.scheduleCancelConfirm': 'Cancel the scheduled send for this lead?',
   'outreach.scheduleInvalid':
-    'Choose a valid date and time in the contact’s timezone (watch for DST gaps).',
+    'Enter a valid day, month, year, and 24-hour time in the contact’s timezone (watch for DST gaps).',
   'outreach.schedulePast': 'Pick a time in the future (contact local time).',
   'outreach.scheduleFailed': 'Could not update the schedule.',
   'outreach.scheduleNeedTimezone':
     'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
   'outreach.scheduleHint':
-    'Times are the contact’s local timezone. Saving a schedule pings the server (queued — one batch after another, never cancels others). Use Ping now for due sends; daily cron is a backup. Staff get an email if delivery fails.',
+    'Times are the contact’s local timezone (day/month/year, 24-hour). Saving a schedule pings the server (queued — one batch after another, never cancels others). Use Ping now for due sends; daily cron is a backup. Staff get an email if delivery fails.',
   'outreach.scheduleDemoHint':
-    'Picker uses the contact’s timezone. Schedule save and Ping now process due demo schedules on refresh — no real email is sent.',
+    'Picker uses the contact’s timezone (day/month/year, 24-hour). Schedule save and Ping now process due demo schedules on refresh — no real email is sent.',
   'outreach.ping': 'Ping now',
   'outreach.pinging': 'Pinging…',
   'outreach.pingTitle':
@@ -2509,6 +2515,12 @@ const sr: Dict = {
   'outreach.scheduleAt': 'Pošalji u',
   'outreach.scheduleAtContact': 'Pošalji u (lokalno vreme kontakta — {tz})',
   'outreach.scheduleContactNow': 'Lokalno vreme kontakta sada',
+  'outreach.scheduleDay': 'Dan',
+  'outreach.scheduleMonth': 'Mesec',
+  'outreach.scheduleYear': 'Godina',
+  'outreach.scheduleHour': 'Sat',
+  'outreach.scheduleMinute': 'Min',
+  'outreach.scheduleFormat': 'Dan / mesec / godina · 24-časovno vreme (lokalno kontakta).',
   'outreach.scheduleArmed': 'Zakazano za {when} ({tz}) → {email}',
   'outreach.scheduleYours': 'Vaš sat: {when}',
   'outreach.scheduleYourTz': 'vaše lokalno vreme',
@@ -2519,15 +2531,15 @@ const sr: Dict = {
     'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Draft se šalje automatski; dobijate email ako ne uspe.',
   'outreach.scheduleCancelConfirm': 'Otkazati zakazano slanje za ovaj lead?',
   'outreach.scheduleInvalid':
-    'Izaberite važeći datum i vreme u vremenskoj zoni kontakta (pazite na DST praznine).',
+    'Unesite važeći dan, mesec, godinu i 24-časovno vreme u vremenskoj zoni kontakta (pazite na DST praznine).',
   'outreach.schedulePast': 'Izaberite vreme u budućnosti (lokalno vreme kontakta).',
   'outreach.scheduleFailed': 'Ažuriranje zakazivanja nije uspelo.',
   'outreach.scheduleNeedTimezone':
     'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
   'outreach.scheduleHint':
-    'Vremena su lokalna zona kontakta. Čuvanje rasporeda pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Ping sada za dospela slanja; dnevni cron je rezervna. Tim dobija email ako ne uspe.',
+    'Vremena su lokalna zona kontakta (dan/mesec/godina, 24-časovno). Čuvanje rasporeda pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Ping sada za dospela slanja; dnevni cron je rezervna. Tim dobija email ako ne uspe.',
   'outreach.scheduleDemoHint':
-    'Birač koristi vremensku zonu kontakta. Čuvanje rasporeda i Ping sada obrađuju dospele demo rasporede lokalno — pravi email se ne šalje.',
+    'Birač koristi vremensku zonu kontakta (dan/mesec/godina, 24-časovno). Čuvanje rasporeda i Ping sada obrađuju dospele demo rasporede lokalno — pravi email se ne šalje.',
   'outreach.ping': 'Ping sada',
   'outreach.pinging': 'Ping…',
   'outreach.pingTitle':
