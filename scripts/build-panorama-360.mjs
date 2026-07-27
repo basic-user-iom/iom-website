@@ -68,7 +68,58 @@ async function main() {
   // Re-apply SEO meta (vite build may strip or reset head tags)
   run('node', [join(ROOT, 'scripts', 'patch-demo-seo.mjs')], ROOT)
 
+  // Click-to-start gate: static poster until interaction (build overwrites index.html)
+  await patchPanoramaClickToStart(indexHtml)
+
   console.log('Done. Serve at /demos/panorama-360/')
+}
+
+async function patchPanoramaClickToStart(indexHtml) {
+  const { readFile, writeFile } = await import('node:fs/promises')
+  if (!(await exists(indexHtml))) return
+
+  let html = await readFile(indexHtml, 'utf8')
+  if (html.includes('iomDemoAwaitStart')) {
+    console.log('· panorama-360 click-to-start already present')
+    return
+  }
+
+  const jsMatch = html.match(/src="(\/demos\/panorama-360\/assets\/[^"]+\.js)"/)
+  const cssMatch = html.match(/href="(\/demos\/panorama-360\/assets\/[^"]+\.css)"/)
+  if (!jsMatch || !cssMatch) {
+    console.warn('⚠ panorama-360: could not find built asset URLs — skipped click-to-start patch')
+    return
+  }
+
+  const jsSrc = jsMatch[1]
+  const cssHref = cssMatch[1]
+
+  html = html.replace(
+    /\s*<script type="module"[^>]*src="\/demos\/panorama-360\/assets\/[^"]+\.js"[^>]*><\/script>\s*/i,
+    '\n',
+  )
+
+  if (!html.includes(cssHref)) {
+    html = html.replace('</style>', `</style>\n    <link rel="stylesheet" crossorigin href="${cssHref}">`)
+  }
+
+  html = html.replace(
+    /<body>\s*<div id="root"><\/div>\s*<\/body>/i,
+    `<body>
+    <div id="root"></div>
+    <script src="/demos/iom-click-to-start.js"></script>
+    <script type="module">
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/panorama-360-tour.webp',
+        label: 'Start 360° tour editor',
+      })
+      await import('${jsSrc}')
+    </script>
+  </body>`,
+  )
+
+  await writeFile(indexHtml, html, 'utf8')
+  console.log('✓ panorama-360 click-to-start gate applied')
 }
 
 main().catch((err) => {
