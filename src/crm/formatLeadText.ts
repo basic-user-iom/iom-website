@@ -244,3 +244,62 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
 
   return [...lines, ...sections.filter(Boolean)].join('\n').trim()
 }
+
+export interface FormatLeadsResearchContext {
+  t: TranslateFn
+  statusLabel: (status: LeadStatus) => string
+  tempLabel: (temp: LeadTemperature) => string
+  /** Short label for the active filters, e.g. "Contacted · Warm". */
+  filterSummary: string
+}
+
+function truncateFocus(text: string, max = 280): string {
+  const trimmed = text.trim()
+  if (trimmed.length <= max) return trimmed
+  return `${trimmed.slice(0, max - 1).trimEnd()}…`
+}
+
+/** Compact multi-lead dump for ChatGPT “find similar clients” research. */
+export function formatLeadsForSimilarClientResearch(
+  leads: Lead[],
+  ctx: FormatLeadsResearchContext,
+): string {
+  const header = [
+    `IOM CRM — existing leads (${ctx.filterSummary || 'all'} · ${leads.length})`,
+    '',
+    ctx.t('toolbar.copyVisibleIntro'),
+    '',
+  ]
+
+  if (leads.length === 0) {
+    return [...header, ctx.t('toolbar.copyVisibleEmpty')].join('\n').trim()
+  }
+
+  const blocks = leads.map((lead, i) => {
+    const company = lead.company_name.trim() || ctx.t('detail.untitled')
+    const contact = [lead.contact_name.trim(), lead.contact_role.trim()]
+      .filter(Boolean)
+      .join(' — ')
+    const location = [lead.client_city.trim(), lead.client_country.trim()]
+      .filter(Boolean)
+      .join(', ')
+    const lines = [
+      `${i + 1}. ${company}`,
+      contact ? `   Contact: ${contact}` : '',
+      lead.website.trim() ? `   Website: ${lead.website.trim()}` : '',
+      location
+        ? `   Location: ${location}${lead.client_timezone.trim() ? ` (${lead.client_timezone.trim()})` : ''}`
+        : lead.client_timezone.trim()
+          ? `   Timezone: ${lead.client_timezone.trim()}`
+          : '',
+      `   Temperature: ${ctx.tempLabel(lead.temperature)} · Stage: ${ctx.statusLabel(lead.status)}`,
+      lead.company_focus.trim()
+        ? `   Focus: ${truncateFocus(lead.company_focus)}`
+        : '',
+      lead.offer.trim() ? `   Offer angle: ${truncateFocus(lead.offer, 180)}` : '',
+    ]
+    return lines.filter(Boolean).join('\n')
+  })
+
+  return [...header, ...blocks].join('\n\n').trim()
+}

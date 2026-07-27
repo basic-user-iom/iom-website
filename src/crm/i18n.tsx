@@ -81,6 +81,14 @@ const en: Dict = {
   'toolbar.addLead': '+ Add lead',
   'toolbar.backList': 'Back to list',
   'toolbar.backToList': 'Back to list',
+  'toolbar.copyVisible': 'Copy {count} for ChatGPT',
+  'toolbar.copyVisibleAll': 'All visible',
+  'toolbar.copyVisibleHint':
+    'Copy the currently filtered leads (names + basic info) to find similar clients in ChatGPT. Set stage/temperature filters first — e.g. Contacted, Not contacted, Hot, Warm.',
+  'toolbar.copyVisibleFailed': 'Copy failed',
+  'toolbar.copyVisibleIntro':
+    'Use this list as context: these companies are already in IOM’s CRM. Suggest NEW similar companies or studios (not already listed) that could be good outreach targets for interactive 360° tours, 3D experiences, web presentations, and creative digital production. For each suggestion include: company name, website if known, city/country, why they fit, and a brief outreach angle.',
+  'toolbar.copyVisibleEmpty': 'No leads match the current filters.',
 
   'create.title': 'Add potential client',
 
@@ -981,6 +989,8 @@ const en: Dict = {
   'form.citySuggestions': 'City suggestions',
   'form.country': 'Country',
   'form.countryPlaceholder': 'e.g. Serbia',
+  'form.address': 'Street address',
+  'form.addressPlaceholder': 'Optional street / office address',
   'form.timezone': 'Timezone (IANA)',
   'form.timezonePlaceholder': 'Europe/Belgrade',
   'form.timezoneInvalid': 'Pick a valid IANA timezone (e.g. Europe/Belgrade).',
@@ -1517,6 +1527,14 @@ const sr: Dict = {
   'toolbar.addLead': '+ Dodaj lead',
   'toolbar.backList': 'Nazad na listu',
   'toolbar.backToList': 'Nazad na listu',
+  'toolbar.copyVisible': 'Kopiraj {count} za ChatGPT',
+  'toolbar.copyVisibleAll': 'Svi vidljivi',
+  'toolbar.copyVisibleHint':
+    'Kopira trenutno filtrirane leadove (imena + osnovni podaci) da u ChatGPT-u tražite slične klijente. Prvo postavite filter faze/temperature — npr. Kontaktiran, Nije kontaktiran, Vruć, Topao.',
+  'toolbar.copyVisibleFailed': 'Kopiranje nije uspelo',
+  'toolbar.copyVisibleIntro':
+    'Koristite ovu listu kao kontekst: ove firme su već u IOM CRM-u. Predložite NOVE slične firme ili studije (koje nisu na listi) kao dobre ciljeve za outreach — interaktivne 360° ture, 3D iskustva, web prezentacije i kreativnu digitalnu produkciju. Za svaki predlog uključite: naziv firme, website ako je poznat, grad/državu, zašto odgovara, i kratak ugao za outreach.',
+  'toolbar.copyVisibleEmpty': 'Nijedan lead ne odgovara trenutnim filterima.',
 
   'create.title': 'Dodaj potencijalnog klijenta',
 
@@ -2424,6 +2442,8 @@ const sr: Dict = {
   'form.citySuggestions': 'Predlozi gradova',
   'form.country': 'Država',
   'form.countryPlaceholder': 'npr. Srbija',
+  'form.address': 'Adresa',
+  'form.addressPlaceholder': 'Opciona ulica / adresa kancelarije',
   'form.timezone': 'Vremenska zona (IANA)',
   'form.timezonePlaceholder': 'Europe/Belgrade',
   'form.timezoneInvalid': 'Izaberite ispravnu IANA zonu (npr. Europe/Belgrade).',

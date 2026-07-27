@@ -53,6 +53,10 @@ import {
   LEAD_TEMP_VALUES,
   useCrmI18n,
 } from './i18n'
+import {
+  copyTextToClipboard,
+  formatLeadsForSimilarClientResearch,
+} from './formatLeadText'
 import { IdeasView } from './IdeasView'
 import { isContactPriority } from './outreach'
 import { NotesView } from './NotesView'
@@ -303,6 +307,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [outreachSchemaMissing, setOutreachSchemaMissing] = useState(false)
   const [followUpDate, setFollowUpDate] = useState<string | null>(null)
   const [priorityFilter, setPriorityFilter] = useState(false)
+  const [copyVisibleState, setCopyVisibleState] = useState<
+    'idle' | 'copied' | 'failed'
+  >('idle')
 
   const openProject = useCallback((projectId: string) => {
     setFocusProjectId(projectId)
@@ -663,6 +670,50 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     const matching = leads.filter((l) => isContactPriority(l))
     if (matching.length > 0) setSelectedId(matching[0].id)
   }
+
+  const filterSummaryParts: string[] = []
+  if (filters.status === 'not_contacted') {
+    filterSummaryParts.push(t('toolbar.notContacted'))
+  } else if (filters.status !== 'all') {
+    filterSummaryParts.push(statusLabel(filters.status))
+  }
+  if (filters.temperature !== 'all') {
+    filterSummaryParts.push(tempLabel(filters.temperature))
+  }
+  if (priorityFilter) filterSummaryParts.push(t('stats.priority'))
+  if (followUpDate) filterSummaryParts.push(followUpDate)
+  if (filters.search.trim()) {
+    filterSummaryParts.push(`“${filters.search.trim()}”`)
+  }
+  const filterSummary =
+    filterSummaryParts.length > 0
+      ? filterSummaryParts.join(' · ')
+      : t('toolbar.copyVisibleAll')
+
+  const handleCopyVisibleLeads = async () => {
+    const text = formatLeadsForSimilarClientResearch(listLeads, {
+      t,
+      statusLabel,
+      tempLabel,
+      filterSummary,
+    })
+    try {
+      await copyTextToClipboard(text)
+      setCopyVisibleState('copied')
+      window.setTimeout(() => setCopyVisibleState('idle'), 2000)
+    } catch {
+      setCopyVisibleState('failed')
+      window.setTimeout(() => setCopyVisibleState('idle'), 2500)
+    }
+  }
+
+  const copyVisibleLabel =
+    copyVisibleState === 'copied'
+      ? t('detail.copied')
+      : copyVisibleState === 'failed'
+        ? t('toolbar.copyVisibleFailed')
+        : t('toolbar.copyVisible', { count: listLeads.length })
+
   const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
   const sectionTitle =
@@ -968,6 +1019,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               <option value="owner">{t('toolbar.sortOwner')}</option>
               <option value="status">{t('toolbar.sortStatus')}</option>
             </select>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={view === 'create' || listLeads.length === 0}
+              title={t('toolbar.copyVisibleHint')}
+              onClick={() => void handleCopyVisibleLeads()}
+            >
+              {copyVisibleLabel}
+            </button>
             <button
               type="button"
               className="btn btn-primary"

@@ -636,6 +636,16 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
             />
           </label>
           <label className="crm-field crm-field--span2">
+            <span className="crm-label">{t('form.address')}</span>
+            <input
+              className="crm-input"
+              value={form.client_address}
+              onChange={(e) => set('client_address')(e.target.value)}
+              placeholder={t('form.addressPlaceholder')}
+              autoComplete="street-address"
+            />
+          </label>
+          <label className="crm-field crm-field--span2">
             <span className="crm-label">{t('form.timezone')}</span>
             <input
               className="crm-input"

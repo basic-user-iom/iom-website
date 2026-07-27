@@ -22,6 +22,7 @@ export const EMPTY_ATLAS_EVAL: AtlasEval = {
 export const ATLAS_HEADLINE_KEYS = ['can_hire_us', 'thinks_like_us'] as const
 
 export const ATLAS_CRITERIA_KEYS = [
+  'commercial_potential',
   'creative_compatibility',
   'technical_compatibility',
   'relationship_potential',
@@ -61,6 +62,7 @@ export function hasAtlasEval(eval_: AtlasEval | null | undefined): boolean {
   return (
     e.can_hire_us > 0 ||
     e.thinks_like_us > 0 ||
+    e.commercial_potential > 0 ||
     e.creative_compatibility > 0 ||
     e.technical_compatibility > 0 ||
     e.relationship_potential > 0 ||
