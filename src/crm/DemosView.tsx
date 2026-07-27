@@ -7,21 +7,34 @@ export type ClientDemo = {
   name: string
   client: string
   status: 'preview' | 'draft' | 'live'
-  /** Path on iobjectm.com, e.g. /demo/icm */
+  /**
+   * Same-origin path (e.g. /demo/icm) or absolute external URL
+   * (e.g. https://iom-website-demo.vercel.app).
+   */
   path: string
   password?: string
   blurb: string
   tags: string[]
   /** Paths under the demo — shown in CRM so the pitch card has real site imagery */
   images: string[]
+  /**
+   * External password-gated demos: open in a new tab only — never iframe
+   * (X-Frame-Options / unlock gate break embeds).
+   */
+  external?: boolean
+}
+
+function isAbsoluteUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value)
 }
 
 function demoUrl(path: string): string {
+  if (isAbsoluteUrl(path)) return path
   return `${SITE_ORIGIN}${path.startsWith('/') ? path : `/${path}`}`
 }
 
 function assetUrl(path: string): string {
-  if (path.startsWith('http://') || path.startsWith('https://')) return path
+  if (isAbsoluteUrl(path)) return path
   return demoUrl(path)
 }
 
@@ -47,6 +60,19 @@ export const CLIENT_DEMOS: ClientDemo[] = [
       '/demo/icm/g-04.jpg',
       '/demo/icm/ex-02.jpg',
     ],
+  },
+  {
+    id: 'bas-rutten',
+    name: 'Bas Rutten',
+    client: 'Client pitch — official Bas Rutten website redesign',
+    status: 'preview',
+    path: 'https://iom-website-demo.vercel.app',
+    password: 'rutten',
+    external: true,
+    blurb:
+      'Password-gated Next.js redesign pitch for Bas Rutten — hosted on a separate Vercel project (iom-website-demo). Unlock with the site password on the card; CRM login is separate.',
+    tags: ['Website', 'Next.js', 'Client pitch'],
+    images: [],
   },
 ]
 
@@ -82,9 +108,10 @@ export function DemosView() {
       <ul className="crm-demos-list">
         {CLIENT_DEMOS.map((demo) => {
           const url = demoUrl(demo.path)
-          const cover = assetUrl(demo.images[0])
+          const external = demo.external === true || isAbsoluteUrl(demo.path)
+          const cover = demo.images[0] ? assetUrl(demo.images[0]) : ''
           const strip = demo.images.slice(1).map(assetUrl)
-          const embedSrc = `${demo.path}?crmEmbed=1`
+          const embedSrc = external ? '' : `${demo.path}?crmEmbed=1`
           const expanded = isExpanded(demo.id)
 
           if (!expanded) {
@@ -121,23 +148,29 @@ export function DemosView() {
 
           return (
             <li key={demo.id} className="crm-demos-card crm-demos-card--full">
-              <div className="crm-demos-card-preview">
-                <iframe
-                  className="crm-demos-card-embed"
-                  src={embedSrc}
-                  title={`${demo.name} website preview`}
-                  loading="lazy"
-                  referrerPolicy="same-origin"
-                />
-                <a
-                  className="crm-demos-card-media"
-                  href={url}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <img src={cover} alt="" />
-                </a>
-              </div>
+              {(cover || !external) && (
+                <div className="crm-demos-card-preview">
+                  {!external && embedSrc ? (
+                    <iframe
+                      className="crm-demos-card-embed"
+                      src={embedSrc}
+                      title={`${demo.name} website preview`}
+                      loading="lazy"
+                      referrerPolicy="same-origin"
+                    />
+                  ) : null}
+                  {cover ? (
+                    <a
+                      className="crm-demos-card-media"
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <img src={cover} alt="" />
+                    </a>
+                  ) : null}
+                </div>
+              )}
               <div className="crm-demos-card-body">
                 <div className="crm-demos-card-top">
                   <div>
@@ -199,14 +232,16 @@ export function DemosView() {
                   >
                     {t('demos.open')}
                   </a>
-                  <a
-                    className="crm-demos-card-local"
-                    href={demo.path}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {t('demos.openLocal')}
-                  </a>
+                  {!external ? (
+                    <a
+                      className="crm-demos-card-local"
+                      href={demo.path}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      {t('demos.openLocal')}
+                    </a>
+                  ) : null}
                 </div>
               </div>
             </li>
