@@ -254,8 +254,8 @@
         color: #f2f4f7;
         padding: 0 18px;
         font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
-        font-size: 25px;
-        letter-spacing: 0.45em;
+        font-size: 18px;
+        letter-spacing: 0.08em;
       }
 
       .login-panel input:focus {
@@ -489,22 +489,20 @@
           <div>
             <h2>Try IOM Studio</h2>
             <p>
-              Enter the four-digit demo code. The workspace uses fictional data
+              Enter the demo access code. The workspace uses fictional data
               and saves changes only in your browser.
             </p>
           </div>
           <button class="login-close" type="button" aria-label="Close">×</button>
         </div>
         <form id="demo-login-form">
-          <label for="demo-code">4-digit access code</label>
+          <label for="demo-code">Access code</label>
           <input
             id="demo-code"
             name="code"
             type="password"
-            inputmode="numeric"
-            pattern="[0-9]*"
-            maxlength="4"
-            autocomplete="one-time-code"
+            autocomplete="current-password"
+            spellcheck="false"
             required
           />
           <p class="access-contact">
@@ -551,13 +549,13 @@
         })
 
         input.addEventListener('input', () => {
-          input.value = input.value.replace(/\D/g, '').slice(0, 4)
+          input.value = input.value.trim()
           error.textContent = ''
         })
 
         form.addEventListener('submit', (event) => {
           event.preventDefault()
-          if (input.value !== '0305') {
+          if (input.value !== 'try-iom-2026') {
             error.textContent = 'That access code is not valid.'
             input.value = ''
             input.focus()
