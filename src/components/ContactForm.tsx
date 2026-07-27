@@ -145,6 +145,8 @@ export const ContactForm = memo(function ContactForm() {
         <a href="/crm-demo">{t('contact.portalDemo')}</a>
       </p>
 
+      <p className="contact-form-secure">{t('contact.secure')}</p>
+
       <form className="contact-form" onSubmit={handleSubmit} noValidate>
         <input
           type="checkbox"

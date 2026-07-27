@@ -131,8 +131,14 @@
       WebGL2 is required to run this demo. Try a current Chromium, Firefox, or Safari browser.
     </div>
     <div id="container"></div>
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import { mobilePixelRatio } from '../demo-mobile.js'
+
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/spout.webp',
+        label: 'Start spout',
+      })
 
       const VERT = `#version 300 es
 in vec2 position;

@@ -41,6 +41,10 @@ export const enUi: Dict = {
   'hero.exit': 'EXIT',
   'hero.live': '◉ LIVE',
   'hero.static': '◉ STATIC',
+  'hero.hudPoster': 'POSTER · READY',
+  'hero.start': 'Start live scene',
+  'hero.startHint': 'WebGL loads after you tap',
+  'hero.startAria': 'Start the live WebGL hero scene',
   'hero.scroll': 'Scroll',
 
   'about.eyebrow': 'Studio',
@@ -103,6 +107,8 @@ export const enUi: Dict = {
     'Configure VITE_WEB3FORMS_ACCESS_KEY in .env to enable email delivery.',
   'contact.portal': 'Secure client portal available for active projects',
   'contact.portalDemo': 'Try the CRM sandbox',
+  'contact.secure':
+    'For high-security operations, secure client portals and encrypted channels (Signal / ProtonMail) are available upon request.',
   'contact.errRequired': 'Please fill in this field.',
   'contact.errEmail': 'Enter a valid email address.',
 
@@ -145,7 +151,7 @@ export const enUi: Dict = {
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
-    'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — interactive media studio by Mirjan Jovanović.',
+    'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — Interactive Object Media studio.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Process case studies from Interactive Object Media — challenge, solution, and deliverables.',

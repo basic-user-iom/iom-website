@@ -207,8 +207,9 @@
 
     <div id="container"></div>
     <div id="hint">Orbit drag · scroll zoom · Release to drop · move pointer to push · on phones: Orbit / Push</div>
-    <div id="status">Initializing…</div>
+    <div id="status">Tap to start…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import {
@@ -849,6 +850,10 @@
         renderer.render(scene, camera)
       }
 
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/compute-particles.webp',
+        label: 'Start particles',
+      })
       init()
     </script>
   </body>

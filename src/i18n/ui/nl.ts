@@ -41,6 +41,10 @@ export const nlUi: Dict = {
   'hero.exit': 'EXIT',
   'hero.live': '◉ LIVE',
   'hero.static': '◉ STATISCH',
+  'hero.hudPoster': 'POSTER · KLAAR',
+  'hero.start': 'Live-scène starten',
+  'hero.startHint': 'WebGL laadt na je tik',
+  'hero.startAria': 'Start de live WebGL-hero-scène',
   'hero.scroll': 'Scroll',
 
   'about.eyebrow': 'Studio',
@@ -103,6 +107,8 @@ export const nlUi: Dict = {
     'Zet VITE_WEB3FORMS_ACCESS_KEY in .env om e-mailverzending te activeren.',
   'contact.portal': 'Beveiligd klantenportaal beschikbaar voor actieve projecten',
   'contact.portalDemo': 'Probeer de CRM-sandbox',
+  'contact.secure':
+    'Voor high-security operaties zijn beveiligde klantenportalen en versleutelde kanalen (Signal / ProtonMail) op verzoek beschikbaar.',
   'contact.errRequired': 'Vul dit veld in.',
   'contact.errEmail': 'Voer een geldig e-mailadres in.',
 
@@ -154,7 +160,7 @@ export const nlUi: Dict = {
   'seo.cookiesDescription':
     'Cookies en lokale opslag op iobjectm.com — voorkeuren, analytics en portallogin.',
   'seo.homeDescription':
-    'IOM bouwt software, 3D-ervaringen, immersieve 360°-tours, fotografie, muziek en WebGPU-experimenten — interactief mediastudio door Mirjan Jovanović.',
+    'IOM bouwt software, 3D-ervaringen, immersieve 360°-tours, fotografie, muziek en WebGPU-experimenten — Interactive Object Media studio.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Proces-case studies van Interactive Object Media — van brief tot interactieve eindbuild.',

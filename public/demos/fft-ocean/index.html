@@ -186,24 +186,9 @@
     <div id="hint">
       WASD to sail · orbit with mouse · pick environment above · press H for controls
     </div>
-    <div id="status">Loading ocean…</div>
+    <div id="status">Tap to load ocean…</div>
 
-    <script src="js/libs/three.min.js"></script>
-    <script src="js/libs/dat.gui.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jquery@2.1.4/dist/jquery.min.js"></script>
-    <script src="js/libs/messg.min.js"></script>
-    <script src="js/controls/OrbitControls.js"></script>
-    <script src="js/shaders/ScreenSpaceShader.js"></script>
-    <script src="js/shaders/FFTOceanShader.js"></script>
-    <script src="js/shaders/OceanShader.js"></script>
-    <script src="js/effects/MirrorRenderer.js"></script>
-    <script src="js/shaders/CloudShader2.js"></script>
-    <script src="js/shaders/RainShader.js"></script>
-    <script src="js/loaders/OBJMTLLoader.js"></script>
-    <script src="js/loaders/MTLLoader.js"></script>
-    <script src="js/effects/Ocean.js"></script>
-    <script src="js/demo.js"></script>
-
+    <script src="/demos/iom-click-to-start.js"></script>
     <script>
       const statusEl = document.getElementById('status')
       var lastTime = new Date().getTime()
@@ -264,34 +249,71 @@
         ResizeCallback: function () {},
       }
 
-      WINDOW.Initialize()
-      DEMO.Initialize()
+      const FFT_SCRIPTS = [
+        'js/libs/three.min.js',
+        'js/libs/dat.gui.min.js',
+        'https://cdn.jsdelivr.net/npm/jquery@2.1.4/dist/jquery.min.js',
+        'js/libs/messg.min.js',
+        'js/controls/OrbitControls.js',
+        'js/shaders/ScreenSpaceShader.js',
+        'js/shaders/FFTOceanShader.js',
+        'js/shaders/OceanShader.js',
+        'js/effects/MirrorRenderer.js',
+        'js/shaders/CloudShader2.js',
+        'js/shaders/RainShader.js',
+        'js/loaders/OBJMTLLoader.js',
+        'js/loaders/MTLLoader.js',
+        'js/effects/Ocean.js',
+        'js/demo.js',
+      ]
 
-      const origOnLoad = DEMO.ms_Loader.onLoad
-      DEMO.ms_Loader.onLoad = function () {
-        if (origOnLoad) origOnLoad()
-        statusEl.textContent = 'FFT ocean · orbit to explore'
-      }
+      ;(async function boot() {
+        await window.iomDemoAwaitStart({
+          poster: '/assets/posters/fft-ocean.webp',
+          label: 'Start FFT ocean',
+          hint: 'Tap or click to load live 3D',
+        })
 
-      const origOnError = DEMO.ms_Loader.onError
-      DEMO.ms_Loader.onError = function () {
-        if (origOnError) origOnError()
-        statusEl.textContent = 'Loading error'
-        statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
-        statusEl.style.color = '#ffd2d2'
-      }
+        statusEl.textContent = 'Loading ocean…'
+        try {
+          await window.iomLoadScripts(FFT_SCRIPTS)
+        } catch (err) {
+          console.error(err)
+          statusEl.textContent = 'Failed to load scripts'
+          statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
+          statusEl.style.color = '#ffd2d2'
+          return
+        }
 
-      WINDOW.ResizeCallback = function (inWidth, inHeight) {
-        DEMO.Resize(inWidth, inHeight)
-      }
-      DEMO.Resize(WINDOW.ms_Width, WINDOW.ms_Height)
+        WINDOW.Initialize()
+        DEMO.Initialize()
 
-      const render = function () {
-        requestAnimationFrame(render)
-        DEMO.Update()
-      }
+        const origOnLoad = DEMO.ms_Loader.onLoad
+        DEMO.ms_Loader.onLoad = function () {
+          if (origOnLoad) origOnLoad()
+          statusEl.textContent = 'FFT ocean · orbit to explore'
+        }
 
-      render()
+        const origOnError = DEMO.ms_Loader.onError
+        DEMO.ms_Loader.onError = function () {
+          if (origOnError) origOnError()
+          statusEl.textContent = 'Loading error'
+          statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
+          statusEl.style.color = '#ffd2d2'
+        }
+
+        WINDOW.ResizeCallback = function (inWidth, inHeight) {
+          DEMO.Resize(inWidth, inHeight)
+        }
+        DEMO.Resize(WINDOW.ms_Width, WINDOW.ms_Height)
+
+        const render = function () {
+          requestAnimationFrame(render)
+          DEMO.Update()
+        }
+
+        render()
+      })()
     </script>
   </body>
 </html>

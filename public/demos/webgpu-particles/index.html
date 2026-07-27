@@ -172,8 +172,9 @@
 
     <div id="container"></div>
     <div id="hint">Orbit drag · scroll zoom · tune particle speed in Parameters</div>
-    <div id="status">Initializing…</div>
+    <div id="status">Tap to start…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import { range, texture, mix, uv, color, rotateUV, positionLocal, time, uniform } from 'three/tsl'
@@ -319,6 +320,10 @@
         renderer.render(scene, camera)
       }
 
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-particles.webp',
+        label: 'Start particles',
+      })
       init().catch((err) => {
         console.error(err)
         showFallback()

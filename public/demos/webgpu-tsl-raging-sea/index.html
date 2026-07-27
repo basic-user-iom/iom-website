@@ -178,8 +178,9 @@
     <div id="hint">
       Orbit drag · scroll zoom · tune wave speed, frequency, and emissive crest color in Parameters
     </div>
-    <div id="status">Initializing…</div>
+    <div id="status">Tap to start…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import {
@@ -368,6 +369,10 @@
         renderer.render(scene, camera)
       }
 
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-tsl-raging-sea.webp',
+        label: 'Start raging sea',
+      })
       init().catch((err) => {
         console.error(err)
         showFallback()

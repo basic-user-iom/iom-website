@@ -11,6 +11,8 @@ import { useSiteI18n } from '../i18n'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
 
+const HERO_POSTER_SRC = '/assets/posters/hero-ocean.webp'
+
 type FullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null
   webkitExitFullscreen?: () => Promise<void>
@@ -31,7 +33,10 @@ function isNativeFullscreenActive(el: HTMLElement | null): boolean {
 export function Hero() {
   const { t } = useSiteI18n()
   const canvasRef = useRef<HTMLDivElement>(null)
-  const [sceneReady, setSceneReady] = useState(() => !getDeviceProfile().prefersReducedMotion)
+  const profile = getDeviceProfile()
+  const useStaticHero = profile.prefersReducedMotion
+  const [liveRequested, setLiveRequested] = useState(false)
+  const [sceneReady, setSceneReady] = useState(false)
   const [motionStatus, setMotionStatus] = useState<MotionParallaxStatus>('disabled')
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
@@ -40,11 +45,11 @@ export function Hero() {
     phase: 'boot',
   })
   const [loaderLineIndex, setLoaderLineIndex] = useState(0)
-  const [loaderVisible, setLoaderVisible] = useState(() => !getDeviceProfile().prefersReducedMotion)
-  const profile = getDeviceProfile()
-  const useStaticHero = profile.prefersReducedMotion
+  const [loaderVisible, setLoaderVisible] = useState(false)
   const isFullscreen = nativeFullscreen || pseudoFullscreen
   const loaderLineCount = LOADER_KEYS.length
+  const showPoster = useStaticHero || !liveRequested
+  const showLiveScene = !useStaticHero && liveRequested && sceneReady
 
   const onSceneStatus = useCallback((status: HeroSceneLoadStatus) => {
     setLoadStatus(status)
@@ -52,6 +57,13 @@ export function Hero() {
       window.setTimeout(() => setLoaderVisible(false), 420)
     }
   }, [])
+
+  const startLiveScene = useCallback(() => {
+    if (useStaticHero || liveRequested) return
+    setLiveRequested(true)
+    setLoaderVisible(true)
+    setLoadStatus({ progress: 0, phase: 'boot' })
+  }, [liveRequested, useStaticHero])
 
   // Report hero viewport presence even when WebGL is static/disabled so embed slots work.
   useEffect(() => {
@@ -73,20 +85,25 @@ export function Hero() {
     }
   }, [])
 
-  // Prefetch hero WebGL chunk immediately — clouds are above-fold and should not wait on idle.
+  // Load WebGL only after the visitor asks for the live scene.
   useEffect(() => {
-    if (useStaticHero) return
-    void import('./HeroSceneMount')
-    setSceneReady(true)
-  }, [useStaticHero])
+    if (useStaticHero || !liveRequested) return
+    let cancelled = false
+    void import('./HeroSceneMount').then(() => {
+      if (!cancelled) setSceneReady(true)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [liveRequested, useStaticHero])
 
   useEffect(() => {
-    if (!loaderVisible || useStaticHero) return
+    if (!loaderVisible || useStaticHero || !liveRequested) return
     const id = window.setInterval(() => {
       setLoaderLineIndex((i) => (i + 1) % loaderLineCount)
     }, 2200)
     return () => window.clearInterval(id)
-  }, [loaderVisible, useStaticHero, loaderLineCount])
+  }, [loaderVisible, useStaticHero, liveRequested, loaderLineCount])
 
   useEffect(() => {
     return subscribeMotionParallaxStatus(setMotionStatus)
@@ -190,17 +207,41 @@ export function Hero() {
 
       <div className="hero-viewer">
         <div
-          className={`hero-canvas-wrap${useStaticHero ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}`}
+          className={`hero-canvas-wrap${showPoster ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}`}
           ref={canvasRef}
           role="img"
           aria-label={t('hero.canvasAria')}
         >
-          {sceneReady && !useStaticHero && (
+          {showPoster ? (
+            <>
+              <img
+                className="hero-poster"
+                src={HERO_POSTER_SRC}
+                alt=""
+                width={1600}
+                height={900}
+                decoding="async"
+                fetchPriority="high"
+              />
+              {!useStaticHero ? (
+                <button
+                  type="button"
+                  className="hero-start-btn"
+                  onClick={startLiveScene}
+                  aria-label={t('hero.startAria')}
+                >
+                  <span className="hero-start-label">{t('hero.start')}</span>
+                  <span className="hero-start-hint">{t('hero.startHint')}</span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          {showLiveScene && (
             <Suspense fallback={null}>
               <HeroSceneMount containerRef={canvasRef} onStatus={onSceneStatus} />
             </Suspense>
           )}
-          {loaderVisible && !useStaticHero ? (
+          {loaderVisible && liveRequested && !useStaticHero ? (
             <div className="hero-loader" role="status" aria-live="polite" aria-atomic="true">
               <p className="hero-loader-line">{t(LOADER_KEYS[loaderLineIndex] ?? LOADER_KEYS[0])}</p>
               <div className="hero-loader-bar" aria-hidden="true">
@@ -219,7 +260,7 @@ export function Hero() {
             <span className="viewer-corner viewer-corner--bl" aria-hidden="true" />
             <span className="viewer-corner viewer-corner--br" aria-hidden="true" />
             <div className="viewer-hud">
-              {showMotionPrompt ? (
+              {showMotionPrompt && liveRequested ? (
                 <button
                   type="button"
                   className="motion-parallax-prompt"
@@ -231,7 +272,7 @@ export function Hero() {
                   {t('hero.motionEnable')}
                 </button>
               ) : (
-                <span>{motionHudLabel}</span>
+                <span>{liveRequested ? motionHudLabel : t('hero.hudPoster')}</span>
               )}
               <div className="viewer-hud-right">
                 {isFullscreen ? (
@@ -258,7 +299,9 @@ export function Hero() {
                     <span className="label-short">{t('hero.fsShort')}</span>
                   </button>
                 )}
-                <span className="orbit-label">{useStaticHero ? t('hero.static') : t('hero.live')}</span>
+                <span className="orbit-label">
+                  {useStaticHero || !liveRequested ? t('hero.static') : t('hero.live')}
+                </span>
               </div>
             </div>
           </div>

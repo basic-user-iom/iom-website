@@ -41,6 +41,10 @@ export const itUi: Dict = {
   'hero.exit': 'ESCI',
   'hero.live': '◉ LIVE',
   'hero.static': '◉ STATICO',
+  'hero.hudPoster': 'POSTER · PRONTO',
+  'hero.start': 'Avvia scena live',
+  'hero.startHint': 'WebGL si carica dopo il tocco',
+  'hero.startAria': 'Avvia la scena WebGL live dell’hero',
   'hero.scroll': 'Scorri',
 
   'about.eyebrow': 'Studio',
@@ -103,6 +107,8 @@ export const itUi: Dict = {
     'Configura VITE_WEB3FORMS_ACCESS_KEY in .env per abilitare l’invio email.',
   'contact.portal': 'Portale clienti sicuro disponibile per progetti attivi',
   'contact.portalDemo': 'Prova la sandbox CRM',
+  'contact.secure':
+    'Per operazioni ad alta sicurezza, portali clienti sicuri e canali crittografati (Signal / ProtonMail) sono disponibili su richiesta.',
   'contact.errRequired': 'Compila questo campo.',
   'contact.errEmail': 'Inserisci un indirizzo email valido.',
 
@@ -154,7 +160,7 @@ export const itUi: Dict = {
   'seo.cookiesDescription':
     'Cookie e archiviazione locale su iobjectm.com — preferenze, analytics e login al portale.',
   'seo.homeDescription':
-    'IOM costruisce software, esperienze 3D, tour 360° immersive, fotografia, musica ed esperimenti WebGPU — studio di media interattivi di Mirjan Jovanović.',
+    'IOM costruisce software, esperienze 3D, tour 360° immersive, fotografia, musica ed esperimenti WebGPU — studio Interactive Object Media.',
   'seo.caseStudiesTitle': 'IOM — Case study',
   'seo.caseStudiesDescription':
     'Case study di processo di Interactive Object Media — dal brief alla build interattiva finale.',

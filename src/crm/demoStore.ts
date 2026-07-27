@@ -141,7 +141,7 @@ function buildSeed(): Store {
       'DEMO SAMPLE — fictional brand. Hot interest in web presentations + weather sky presets. Atlas scores are sample rankings only.',
     initial_email_subject: 'Interactive 360° showroom for Northwind trade events',
     initial_email_body:
-      'Hi Jordan,\n\nI wanted to introduce IOM — Interactive Object Media. We build browser-based 360° showrooms and interactive lead capture for trade events.\n\nWould you be open to a brief call to explore fit for Northwind Arcade Labs?\n\nBest,\nMirjan',
+      'Hi Jordan,\n\nI wanted to introduce IOM — Interactive Object Media. We build browser-based 360° showrooms and interactive lead capture for trade events.\n\nWould you be open to a brief call to explore fit for Northwind Arcade Labs?\n\nBest,\nIOM',
     initial_email_drafted_at: daysAgo(2),
     initial_email_sent_at: null,
     temperature: 'hot',
@@ -196,7 +196,7 @@ function buildSeed(): Store {
       'DEMO SAMPLE — Priority + Scheduled send in contact local time (Europe/Stockholm). Open Initial outreach to see Contact local now and the schedule picker.',
     initial_email_subject: 'Product configurator concept for Harbor & Pine',
     initial_email_body:
-      'Hi Samira,\n\nFollowing our chat about interactive product experiences — IOM can build a browser configurator with CRM handoff for your retail partners.\n\nHappy to share a short demo reel when useful.\n\nBest,\nMirjan',
+      'Hi Samira,\n\nFollowing our chat about interactive product experiences — IOM can build a browser configurator with CRM handoff for your retail partners.\n\nHappy to share a short demo reel when useful.\n\nBest,\nIOM',
     initial_email_drafted_at: daysAgo(5),
     initial_email_sent_at: null,
     temperature: 'warm',
@@ -337,7 +337,7 @@ function buildSeed(): Store {
     notes: 'DEMO SAMPLE — negotiation stage with 🤝 partner tag on value.',
     initial_email_subject: 'Guided 360° visitor companion for Copper Lantern',
     initial_email_body:
-      'Hi Noah,\n\nThank you for the intro call. Attached is a short outline of how IOM would deliver a photogrammetry gallery with a guided 360° visitor companion for Copper Lantern Museums.\n\nHappy to iterate on scope before the next board review.\n\nBest,\nMirjan',
+      'Hi Noah,\n\nThank you for the intro call. Attached is a short outline of how IOM would deliver a photogrammetry gallery with a guided 360° visitor companion for Copper Lantern Museums.\n\nHappy to iterate on scope before the next board review.\n\nBest,\nIOM',
     initial_email_drafted_at: daysAgo(14),
     initial_email_sent_at: daysAgo(12),
     temperature: 'hot',
@@ -825,7 +825,7 @@ Media-art research lab — books and workshops listed for demo structure only.`,
       to_email: 'contact@iobjectm.com',
       subject: `Re: ${lead5.initial_email_subject}`,
       body_text:
-        'Hi Mirjan,\n\nThanks for the outline — the board liked the guided companion angle. Can you send a rough timeline for photogrammetry capture vs. web delivery?\n\nBest,\nNoah\n\n(DEMO SAMPLE — fictional client reply mirrored into CRM.)',
+        'Hi IOM,\n\nThanks for the outline — the board liked the guided companion angle. Can you send a rough timeline for photogrammetry capture vs. web delivery?\n\nBest,\nNoah\n\n(DEMO SAMPLE — fictional client reply mirrored into CRM.)',
       body_html: null,
       message_id: '<demo-inbound-copperlantern@copperlantern.example>',
       in_reply_to: '<demo-outbound-copperlantern@iobjectm.com>',

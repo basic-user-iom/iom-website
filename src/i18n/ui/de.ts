@@ -41,6 +41,10 @@ export const deUi: Dict = {
   'hero.exit': 'EXIT',
   'hero.live': '◉ LIVE',
   'hero.static': '◉ STATISCH',
+  'hero.hudPoster': 'POSTER · BEREIT',
+  'hero.start': 'Live-Szene starten',
+  'hero.startHint': 'WebGL lädt nach dem Tippen',
+  'hero.startAria': 'Live-WebGL-Hero-Szene starten',
   'hero.scroll': 'Scrollen',
 
   'about.eyebrow': 'Studio',
@@ -103,6 +107,8 @@ export const deUi: Dict = {
     'VITE_WEB3FORMS_ACCESS_KEY in .env setzen, um E-Mail-Versand zu aktivieren.',
   'contact.portal': 'Sicheres Kundenportal für aktive Projekte verfügbar',
   'contact.portalDemo': 'CRM-Sandbox ausprobieren',
+  'contact.secure':
+    'Für hochsichere Abläufe sind sichere Kundenportale und verschlüsselte Kanäle (Signal / ProtonMail) auf Anfrage verfügbar.',
   'contact.errRequired': 'Bitte füllen Sie dieses Feld aus.',
   'contact.errEmail': 'Geben Sie eine gültige E-Mail-Adresse ein.',
 
@@ -145,7 +151,7 @@ export const deUi: Dict = {
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
-    'IOM baut Software, 3D-Erlebnisse, immersive 360°-Touren, Fotografie, Musik und WebGPU-Experimente — interaktives Medienstudio von Mirjan Jovanović.',
+    'IOM baut Software, 3D-Erlebnisse, immersive 360°-Touren, Fotografie, Musik und WebGPU-Experimente — Interactive Object Media Studio.',
   'seo.caseStudiesTitle': 'IOM — Case Studies',
   'seo.caseStudiesDescription':
     'Prozess-Case-Studies von Interactive Object Media — vom Briefing bis zum interaktiven Endprodukt.',

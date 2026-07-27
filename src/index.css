@@ -629,6 +629,73 @@ button:focus:not(:focus-visible) {
     linear-gradient(180deg, #0a1018 0%, #08080a 100%);
 }
 
+.hero-poster {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-start-btn {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(6, 8, 12, 0.28) 0%,
+    rgba(6, 8, 12, 0.48) 55%,
+    rgba(6, 8, 12, 0.62) 100%
+  );
+  color: var(--text);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hero-start-btn:hover .hero-start-label,
+.hero-start-btn:focus-visible .hero-start-label {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.hero-start-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -6px;
+}
+
+.hero-start-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.6rem;
+  padding: 0.65rem 1.15rem;
+  border: 1px solid var(--border-accent);
+  border-radius: 999px;
+  background: rgba(8, 12, 18, 0.72);
+  font-family: var(--display);
+  font-size: 0.92rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.hero-start-hint {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
 .viewer-chrome {
   --viewer-chrome-inset: 14px;
   --viewer-corner-arm: 18px;
@@ -3937,6 +4004,14 @@ body.music-player-fs-lock {
 
 .contact-form-portal-sep {
   opacity: 0.5;
+}
+
+.contact-form-secure {
+  margin: 0 0 1.1rem;
+  max-width: 42rem;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: var(--muted);
 }
 
 .contact-form-notice {

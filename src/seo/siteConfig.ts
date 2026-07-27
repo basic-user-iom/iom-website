@@ -8,7 +8,7 @@ export const SITE_SHORT_NAME = 'IOM'
 export const DEFAULT_TITLE = 'IOM — Interactive Object Media'
 
 export const DEFAULT_DESCRIPTION =
-  'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — interactive media studio by Mirjan Jovanović.'
+  'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — Interactive Object Media studio.'
 
 export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-image.svg`
 

@@ -558,8 +558,9 @@
 
     <div id="container"></div>
     <div id="hint">Orbit drag · Objects panel · Import models · Gizmo Move/Rotate/Scale · Ctrl+Shift+S camera</div>
-    <div id="status">Initializing…</div>
+    <div id="status">Tap to start…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import {
@@ -3644,6 +3645,10 @@
         renderPipeline?.render()
       }
 
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/volume-lighting.webp',
+        label: 'Start volumetric lighting',
+      })
       init().catch((err) => {
         console.error(err)
         setStatus('Demo failed to start', true)
