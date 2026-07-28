@@ -90,6 +90,8 @@ export const Clients = memo(function Clients() {
                     className="clients-logo"
                     src={client.logo}
                     alt=""
+                    width={168}
+                    height={34}
                     loading="lazy"
                     decoding="async"
                   />

@@ -18,14 +18,10 @@ import {
 import { downloadBlob, formatBytes, processImage } from './processImage'
 import './image-prep.css'
 
-const BASE = '/tools/image-prep'
 const ACCEPT =
   'image/jpeg,image/png,image/webp,image/gif,image/avif,.zip,.rar,application/zip,application/vnd.rar,application/x-rar-compressed'
 
-export function isImagePrepPath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p === BASE
-}
+export { isImagePrepPath } from './paths'
 
 type JobStatus = 'queued' | 'working' | 'done' | 'error'
 

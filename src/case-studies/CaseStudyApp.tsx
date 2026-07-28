@@ -6,10 +6,7 @@ import { useSiteI18n, type SiteLang } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
 import './caseStudy.css'
 
-export function isCaseStudyPath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p === '/case-studies' || p.startsWith('/case-studies/')
-}
+export { isCaseStudyPath } from './paths'
 
 type Stage = {
   id: string

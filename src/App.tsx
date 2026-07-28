@@ -8,23 +8,18 @@ import { SiteOrbZone } from './components/SiteOrbZone'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { isArtistGlobePath } from './artist-globe/paths'
-import { BlogApp, isBlogPath } from './blog/BlogApp'
-import { CaseStudyApp, isCaseStudyPath } from './case-studies/CaseStudyApp'
-import { LegalApp, isLegalPath } from './legal/LegalApp'
-import {
-  RecordingSharePage,
-  isRecordingSharePath,
-  recordingSlugFromPath,
-} from './crm/RecordingSharePage'
+import { isBlogPath } from './blog/types'
+import { isCaseStudyPath } from './case-studies/paths'
+import { isLegalPath } from './legal/paths'
+import { isRecordingSharePath, recordingSlugFromPath } from './crm/recordingSharePaths'
 import { isIcmDemoPath } from './demo/icm/paths'
-import { ImagePrepApp, isImagePrepPath } from './tools/image-prep/ImagePrepApp'
+import { isImagePrepPath } from './tools/image-prep/paths'
 import {
   disableCrmDemoMode,
   enableCrmDemoMode,
   isCrmDemoMode,
   isCrmDemoPath,
 } from './crm/demoMode'
-import { initAnalytics } from './analytics/track'
 import { SiteI18nProvider, parseLocalePath } from './i18n'
 import { localizedSections } from './i18n/projects/localize'
 import { usePageMeta } from './seo/usePageMeta'
@@ -36,6 +31,17 @@ const IcmDemoApp = lazy(() =>
   import('./demo/icm/IcmDemoApp').then((m) => ({ default: m.IcmDemoApp })),
 )
 const CrmApp = lazy(() => import('./crm/CrmApp').then((m) => ({ default: m.CrmApp })))
+const BlogApp = lazy(() => import('./blog/BlogApp').then((m) => ({ default: m.BlogApp })))
+const CaseStudyApp = lazy(() =>
+  import('./case-studies/CaseStudyApp').then((m) => ({ default: m.CaseStudyApp })),
+)
+const LegalApp = lazy(() => import('./legal/LegalApp').then((m) => ({ default: m.LegalApp })))
+const ImagePrepApp = lazy(() =>
+  import('./tools/image-prep/ImagePrepApp').then((m) => ({ default: m.ImagePrepApp })),
+)
+const RecordingSharePage = lazy(() =>
+  import('./crm/RecordingSharePage').then((m) => ({ default: m.RecordingSharePage })),
+)
 
 function usePathname(): string {
   const [path, setPath] = useState(() => window.location.pathname)
@@ -87,10 +93,13 @@ export default function App() {
 
     const start = () => {
       if (cancelled) return
-      cleanup = initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
+      void import('./analytics/track').then(({ initAnalytics }) => {
+        if (cancelled) return
+        cleanup = initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
+      })
     }
 
-    // Keep pageview off the critical path (Lighthouse flagged /api/pageview on cold load).
+    // Keep analytics (+ optional Supabase fallback) off the critical path.
     if (typeof window.requestIdleCallback === 'function') {
       idleId = window.requestIdleCallback(start, { timeout: 2500 })
     } else {
@@ -175,17 +184,27 @@ export default function App() {
   }
 
   if (isRecordingShare && recordingSlug) {
-    return <RecordingSharePage slug={recordingSlug} />
+    return (
+      <Suspense fallback={null}>
+        <RecordingSharePage slug={recordingSlug} />
+      </Suspense>
+    )
   }
 
   if (isImagePrep) {
-    return <ImagePrepApp />
+    return (
+      <Suspense fallback={null}>
+        <ImagePrepApp />
+      </Suspense>
+    )
   }
 
   if (isBlog) {
     return (
       <SiteI18nProvider lang={lang}>
-        <BlogApp path={path} />
+        <Suspense fallback={null}>
+          <BlogApp path={path} />
+        </Suspense>
       </SiteI18nProvider>
     )
   }
@@ -193,7 +212,9 @@ export default function App() {
   if (isCaseStudy) {
     return (
       <SiteI18nProvider lang={lang}>
-        <CaseStudyApp path={path} />
+        <Suspense fallback={null}>
+          <CaseStudyApp path={path} />
+        </Suspense>
       </SiteI18nProvider>
     )
   }
@@ -201,7 +222,9 @@ export default function App() {
   if (isLegal) {
     return (
       <SiteI18nProvider lang={lang}>
-        <LegalApp path={path} />
+        <Suspense fallback={null}>
+          <LegalApp path={path} />
+        </Suspense>
       </SiteI18nProvider>
     )
   }

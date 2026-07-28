@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import './recordingShare.css'
 
+export { isRecordingSharePath, recordingSlugFromPath } from './recordingSharePaths'
+
 interface ShareMeta {
   id: string
   title: string
@@ -14,15 +16,6 @@ interface UnlockResult {
   title: string
   mimeType: string
   playbackUrl: string
-}
-
-export function isRecordingSharePath(path: string): boolean {
-  return /^\/r\/[^/]+$/.test(path.replace(/\/+$/, '') || '/')
-}
-
-export function recordingSlugFromPath(path: string): string | null {
-  const m = /^\/r\/([^/]+)$/.exec(path.replace(/\/+$/, '') || '/')
-  return m ? decodeURIComponent(m[1]) : null
 }
 
 function videoMime(mime: string): string {

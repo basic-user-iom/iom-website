@@ -1,9 +1,12 @@
-import { memo, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import type { Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
-import { GalleryLightbox } from './GalleryLightbox'
+
+const GalleryLightbox = lazy(() =>
+  import('./GalleryLightbox').then((m) => ({ default: m.GalleryLightbox })),
+)
 
 /** Desktop viewport rendered inside embed previews, then CSS-scaled to fit the card pane */
 const EMBED_VIEWPORT = { width: 1280, height: 800 } as const
@@ -95,6 +98,16 @@ export const ProjectCard = memo(function ProjectCard({
   const posterUrl = useStaticEmbed ? project.mobilePosterUrl ?? project.posterUrl : project.posterUrl
   const showPoster = canEmbed && Boolean(posterUrl)
   const posterHidden = showIframe && embedLoaded
+  const thumbSrc = staticPreviewUrl ?? project.posterUrl ?? ''
+  const thumbSrcSet =
+    project.mobilePosterUrl && project.posterUrl && project.mobilePosterUrl !== project.posterUrl
+      ? `${project.mobilePosterUrl} 400w, ${project.posterUrl} 800w`
+      : undefined
+  const posterSrcSet =
+    project.mobilePosterUrl && posterUrl && project.mobilePosterUrl !== posterUrl
+      ? `${project.mobilePosterUrl} 400w, ${posterUrl} 800w`
+      : undefined
+  const posterSizes = '(max-width: 720px) 92vw, 400px'
 
   useEffect(() => {
     mountedRef.current = true
@@ -181,7 +194,9 @@ export const ProjectCard = memo(function ProjectCard({
         <>
           <img
             className="card-preview-thumb"
-            src={staticPreviewUrl ?? project.posterUrl ?? ''}
+            src={thumbSrc}
+            srcSet={thumbSrcSet}
+            sizes={thumbSrcSet ? posterSizes : undefined}
             alt=""
             width={800}
             height={500}
@@ -206,6 +221,8 @@ export const ProjectCard = memo(function ProjectCard({
             <img
               className={`card-preview-poster${posterHidden ? ' is-hidden' : ''}`}
               src={posterUrl}
+              srcSet={posterSrcSet}
+              sizes={posterSrcSet ? posterSizes : undefined}
               alt=""
               width={800}
               height={500}
@@ -419,14 +436,16 @@ export const ProjectCard = memo(function ProjectCard({
         {inner}
       </article>
       {galleryOpen && project.gallery ? (
-        <GalleryLightbox
-          title={project.title}
-          images={project.gallery}
-          index={galleryIndex}
-          onIndexChange={setGalleryIndex}
-          onClose={() => setGalleryOpen(false)}
-          audioUrl={project.galleryAudio}
-        />
+        <Suspense fallback={null}>
+          <GalleryLightbox
+            title={project.title}
+            images={project.gallery}
+            index={galleryIndex}
+            onIndexChange={setGalleryIndex}
+            onClose={() => setGalleryOpen(false)}
+            audioUrl={project.galleryAudio}
+          />
+        </Suspense>
       ) : null}
     </>
   )

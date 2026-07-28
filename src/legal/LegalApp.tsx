@@ -7,12 +7,7 @@ import { getLegalPage } from './getLegalPage'
 import { isLegalSlug, type LegalSlug } from './legalPages'
 import './legal.css'
 
-const LEGAL_PATHS = new Set(['/privacy', '/terms', '/cookies'])
-
-export function isLegalPath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return LEGAL_PATHS.has(p)
-}
+export { isLegalPath } from './paths'
 
 function slugFromPath(pathname: string): LegalSlug | null {
   const p = pathname.replace(/\/+$/, '') || '/'
