@@ -123,15 +123,15 @@ export function createAppearanceRenderer(
   initialStaticUrl?: string | null,
 ): AppearanceRenderer {
   let landmarker: FaceLandmarker | null = null
+  let landmarkerLoading = false
   let lastDetect = 0
   let lastLandmarks: Array<{ x: number; y: number; z: number }> | null = null
   let blend: Record<string, number> = {}
   let staticImg: HTMLImageElement | null = null
   let staticUrl: string | null = initialStaticUrl?.trim() || null
 
-  void loadFaceLandmarker().then((lm) => {
-    landmarker = lm
-  })
+  // Do NOT preload MediaPipe here — WASM + face model (~seconds) freezes the
+  // camera/screen composite when Appearance is Real/Filters. Load only for Avatar.
 
   if (staticUrl) {
     void loadImage(staticUrl)
@@ -142,7 +142,18 @@ export function createAppearanceRenderer(
   }
 
   const filterCanvas = document.createElement('canvas')
-  const filterCtx = filterCanvas.getContext('2d')
+  const filterCtx = filterCanvas.getContext('2d', { alpha: true })
+  let filterVignette: CanvasGradient | null = null
+  let filterVignetteKey = ''
+
+  const ensureLandmarker = () => {
+    if (landmarker || landmarkerLoading) return
+    landmarkerLoading = true
+    void loadFaceLandmarker().then((lm) => {
+      landmarker = lm
+      landmarkerLoading = false
+    })
+  }
 
   return {
     setStaticImageUrl(url) {
@@ -158,7 +169,7 @@ export function createAppearanceRenderer(
     draw(video, pip, mode) {
       const w = pip.width
       const h = pip.height
-      const ctx = pip.getContext('2d')
+      const ctx = pip.getContext('2d', { alpha: true })
       if (!ctx) return
 
       if (mode === 'none') {
@@ -187,6 +198,7 @@ export function createAppearanceRenderer(
       if (!video?.videoWidth) return
 
       if (mode === 'real') {
+        // Fast path: cover-crop only — no MediaPipe, no filters.
         ctx.clearRect(0, 0, w, h)
         drawCoverVideo(ctx, video, w, h, true)
         return
@@ -194,8 +206,11 @@ export function createAppearanceRenderer(
 
       if (mode === 'filters') {
         if (!filterCtx) return
-        filterCanvas.width = w
-        filterCanvas.height = h
+        if (filterCanvas.width !== w || filterCanvas.height !== h) {
+          filterCanvas.width = w
+          filterCanvas.height = h
+          filterVignette = null
+        }
         filterCtx.clearRect(0, 0, w, h)
         filterCtx.save()
         filterCtx.filter = 'contrast(1.1) saturate(1.15) brightness(1.05)'
@@ -207,24 +222,31 @@ export function createAppearanceRenderer(
         ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
         ctx.clip()
         ctx.drawImage(filterCanvas, 0, 0)
-        const g = ctx.createRadialGradient(
-          w / 2,
-          h / 2,
-          w * 0.2,
-          w / 2,
-          h / 2,
-          w * 0.55,
-        )
-        g.addColorStop(0, 'rgba(0,0,0,0)')
-        g.addColorStop(1, 'rgba(20,30,50,0.35)')
-        ctx.fillStyle = g
+        const key = `${w}x${h}`
+        if (!filterVignette || filterVignetteKey !== key) {
+          filterVignette = ctx.createRadialGradient(
+            w / 2,
+            h / 2,
+            w * 0.2,
+            w / 2,
+            h / 2,
+            w * 0.55,
+          )
+          filterVignette.addColorStop(0, 'rgba(0,0,0,0)')
+          filterVignette.addColorStop(1, 'rgba(20,30,50,0.35)')
+          filterVignetteKey = key
+        }
+        ctx.fillStyle = filterVignette
         ctx.fillRect(0, 0, w, h)
         ctx.restore()
         return
       }
 
+      // Avatar mode only — lazy-load MediaPipe so Real camera stays smooth.
+      ensureLandmarker()
       const now = performance.now()
-      if (landmarker && now - lastDetect > 33) {
+      // ~15 Hz detection is enough for the stylized face; saves GPU vs 30 Hz.
+      if (landmarker && now - lastDetect > 66) {
         try {
           const result: FaceLandmarkerResult = landmarker.detectForVideo(
             video,

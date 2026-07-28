@@ -177,9 +177,10 @@ export async function startCapture(
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'user',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 },
+        // PiP is ~280px — high webcam res only burns CPU scaling every frame.
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 24, max: 30 },
       },
       audio: false,
     })
@@ -299,8 +300,18 @@ export async function startCapture(
     }
     syncSize(screenVideo.videoWidth || 1280, screenVideo.videoHeight || 720)
 
-    const ctx = canvas.getContext('2d')
+    const ctx =
+      canvas.getContext('2d', {
+        alpha: false,
+        desynchronized: true,
+      }) || canvas.getContext('2d')
     if (!ctx) throw new Error('Canvas unavailable')
+
+    // Match encode target — TrackProcessor can deliver 60fps and overload the main thread.
+    const MIN_FRAME_MS = 1000 / 30
+    let lastPaintAt = 0
+    let lastPreviewAt = 0
+    const PREVIEW_MIN_MS = 1000 / 12
 
     const paintOverlays = () => {
       const showPip =
@@ -313,9 +324,8 @@ export async function startCapture(
         appearance!.draw(cameraVideo, pipCanvas!, appearanceMode)
         const x = canvas.width - PIP_SIZE - PIP_MARGIN
         const y = canvas.height - PIP_SIZE - PIP_MARGIN
+        // No shadowBlur — soft shadows on a 1080p canvas are very expensive per frame.
         ctx.save()
-        ctx.shadowColor = 'rgba(0,0,0,0.45)'
-        ctx.shadowBlur = 18
         ctx.beginPath()
         ctx.ellipse(
           x + PIP_SIZE / 2,
@@ -354,7 +364,11 @@ export async function startCapture(
           options.getBlurStrength?.() ?? 'medium',
         )
       }
-      options.onFrame?.(canvas)
+      const now = performance.now()
+      if (now - lastPreviewAt >= PREVIEW_MIN_MS) {
+        lastPreviewAt = now
+        options.onFrame?.(canvas)
+      }
       // captureStream(0) only emits when requestFrame() is called after paint.
       canvasCaptureTrack?.requestFrame?.()
     }
@@ -365,6 +379,9 @@ export async function startCapture(
         options.onFrame?.(canvas)
         return
       }
+      const now = performance.now()
+      if (now - lastPaintAt < MIN_FRAME_MS) return
+      lastPaintAt = now
       syncSize(screenVideo.videoWidth, screenVideo.videoHeight)
       ctx.drawImage(screenVideo, 0, 0, canvas.width, canvas.height)
       paintOverlays()
@@ -375,6 +392,12 @@ export async function startCapture(
         frame.close()
         return
       }
+      const now = performance.now()
+      if (now - lastPaintAt < MIN_FRAME_MS) {
+        frame.close()
+        return
+      }
+      lastPaintAt = now
       const w = frame.displayWidth || frame.codedWidth
       const h = frame.displayHeight || frame.codedHeight
       syncSize(w || canvas.width, h || canvas.height)

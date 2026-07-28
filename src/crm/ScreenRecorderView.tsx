@@ -241,13 +241,19 @@ export function ScreenRecorderView() {
   const paintPreview = useCallback((source: HTMLCanvasElement) => {
     const dest = previewCanvasRef.current
     if (!dest) return
-    if (dest.width !== source.width || dest.height !== source.height) {
-      dest.width = source.width
-      dest.height = source.height
+    // Cap preview bitmap size — full 1080p copies every frame were lagging the record loop.
+    const maxW = 960
+    const scale =
+      source.width > maxW ? maxW / source.width : 1
+    const tw = Math.max(1, Math.round(source.width * scale))
+    const th = Math.max(1, Math.round(source.height * scale))
+    if (dest.width !== tw || dest.height !== th) {
+      dest.width = tw
+      dest.height = th
     }
     const ctx = dest.getContext('2d')
     if (!ctx) return
-    ctx.drawImage(source, 0, 0)
+    ctx.drawImage(source, 0, 0, tw, th)
     strokeBlurRegions(
       ctx,
       dest,
