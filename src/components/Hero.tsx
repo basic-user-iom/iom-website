@@ -11,7 +11,7 @@ import { useSiteI18n } from '../i18n'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
 
-const HERO_POSTER_SRC = '/assets/posters/hero-ravens.webp'
+const HERO_POSTER_SRC = '/assets/posters/hero-ravens-sm.webp?v=20260728'
 
 type FullscreenDocument = Document & {
   webkitFullscreenElement?: Element | null
@@ -218,8 +218,8 @@ export function Hero() {
                 className="hero-poster"
                 src={HERO_POSTER_SRC}
                 alt=""
-                width={1600}
-                height={900}
+                width={640}
+                height={540}
                 decoding="async"
                 fetchPriority="high"
               />

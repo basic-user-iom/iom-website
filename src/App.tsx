@@ -80,7 +80,31 @@ export default function App() {
   usePageMeta(path, lang)
 
   useEffect(() => {
-    return initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
+    let cancelled = false
+    let idleId = 0
+    let timeoutId = 0
+    let cleanup: (() => void) | undefined
+
+    const start = () => {
+      if (cancelled) return
+      cleanup = initAnalytics(() => window.location.pathname.replace(/\/+$/, '') || '/')
+    }
+
+    // Keep pageview off the critical path (Lighthouse flagged /api/pageview on cold load).
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(start, { timeout: 2500 })
+    } else {
+      timeoutId = window.setTimeout(start, 1200)
+    }
+
+    return () => {
+      cancelled = true
+      if (idleId && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId) window.clearTimeout(timeoutId)
+      cleanup?.()
+    }
   }, [])
 
   useEffect(() => {

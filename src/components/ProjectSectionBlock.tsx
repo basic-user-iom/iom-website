@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense, useEffect, useRef } from 'react'
+import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
 import { type ProjectSection } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { localizedProjectsForSection } from '../i18n/projects/localize'
@@ -13,6 +13,52 @@ interface ProjectSectionBlockProps {
   index: string
   label: string
   blurb: string
+}
+
+/** Mount music player JS only when the section is near the viewport. */
+function DeferredMusicSection({
+  index,
+  label,
+  blurb,
+}: {
+  index: string
+  label: string
+  blurb: string
+}) {
+  const anchorRef = useRef<HTMLDivElement>(null)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const el = anchorRef.current
+    if (!el) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+        setReady(true)
+        observer.disconnect()
+      },
+      { rootMargin: '240px 0px', threshold: 0.01 },
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={anchorRef}>
+      {ready ? (
+        <Suspense
+          fallback={
+            <section className="section-block section-block--music" id="music" aria-busy="true" />
+          }
+        >
+          <MusicSection index={index} label={label} blurb={blurb} />
+        </Suspense>
+      ) : (
+        <section className="section-block section-block--music" id="music" aria-busy="true" />
+      )}
+    </div>
+  )
 }
 
 export const ProjectSectionBlock = memo(function ProjectSectionBlock({
@@ -50,11 +96,7 @@ export const ProjectSectionBlock = memo(function ProjectSectionBlock({
   }, [isMusic])
 
   if (isMusic) {
-    return (
-      <Suspense fallback={<section className="section-block section-block--music" id="music" aria-busy="true" />}>
-        <MusicSection index={index} label={label} blurb={blurb} />
-      </Suspense>
-    )
+    return <DeferredMusicSection index={index} label={label} blurb={blurb} />
   }
 
   return (
