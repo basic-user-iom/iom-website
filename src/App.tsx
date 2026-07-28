@@ -99,15 +99,25 @@ export default function App() {
       })
     }
 
-    // Keep analytics (+ optional Supabase fallback) off the critical path.
-    if (typeof window.requestIdleCallback === 'function') {
-      idleId = window.requestIdleCallback(start, { timeout: 2500 })
+    // After full load + idle so pageview stays off the LCP / critical-path chain.
+    const armIdle = () => {
+      if (cancelled) return
+      if (typeof window.requestIdleCallback === 'function') {
+        idleId = window.requestIdleCallback(start, { timeout: 6000 })
+      } else {
+        timeoutId = window.setTimeout(start, 3000)
+      }
+    }
+
+    if (document.readyState === 'complete') {
+      armIdle()
     } else {
-      timeoutId = window.setTimeout(start, 1200)
+      window.addEventListener('load', armIdle, { once: true })
     }
 
     return () => {
       cancelled = true
+      window.removeEventListener('load', armIdle)
       if (idleId && typeof window.cancelIdleCallback === 'function') {
         window.cancelIdleCallback(idleId)
       }

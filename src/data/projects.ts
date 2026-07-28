@@ -126,7 +126,7 @@ export const PROJECTS: Project[] = [
     url: '/demos/streets-gl/',
     embedUrl: 'https://streets.gl/',
     posterUrl: '/assets/posters/streets-gl.webp?v=20260728',
-    mobilePosterUrl: '/assets/posters/streets-gl-400.webp?v=20260728',
+    mobilePosterUrl: '/assets/posters/streets-gl-400.webp?v=20260728b',
     sourceUrl: 'https://github.com/StrandedKitty/streets-gl',
     referenceUrls: [
       {

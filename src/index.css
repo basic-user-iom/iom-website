@@ -341,7 +341,7 @@ button:focus:not(:focus-visible) {
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
-  transition: color 0.2s, border-color 0.2s, background 0.2s, box-shadow 0.2s;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
 }
 
 .header-mute:hover,
@@ -357,30 +357,42 @@ button:focus:not(:focus-visible) {
   background: var(--accent-glow);
 }
 
-/* Idle Listen CTA: soft pulse until the visitor turns sound on */
+/* Idle Listen CTA: soft pulse (transform/opacity only — compositor-friendly) */
 .header-mute--listen {
+  position: relative;
   color: var(--accent);
   border-color: rgba(94, 184, 192, 0.55);
+  isolation: isolate;
+}
+
+.header-mute--listen::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(94, 184, 192, 0.55);
+  pointer-events: none;
+  z-index: -1;
   animation: header-mute-pulse 1.8s ease-in-out infinite;
 }
 
 @keyframes header-mute-pulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(94, 184, 192, 0);
-    border-color: rgba(94, 184, 192, 0.4);
+    transform: scale(1);
+    opacity: 0.25;
   }
   50% {
-    box-shadow: 0 0 0 6px rgba(94, 184, 192, 0.14);
-    border-color: rgba(94, 184, 192, 0.85);
-    color: #7ec8cf;
+    transform: scale(1.12);
+    opacity: 0.9;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .header-mute--listen {
+  .header-mute--listen::after {
     animation: none;
-    box-shadow: 0 0 0 3px rgba(94, 184, 192, 0.12);
+    opacity: 0.45;
+    transform: none;
   }
 }
 
