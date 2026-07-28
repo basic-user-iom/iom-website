@@ -48,6 +48,18 @@ function loadImage(url: string): Promise<HTMLImageElement> {
   })
 }
 
+function coverRect(
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number,
+): { dx: number; dy: number; dw: number; dh: number } {
+  const scale = Math.max(dstW / srcW, dstH / srcH)
+  const dw = srcW * scale
+  const dh = srcH * scale
+  return { dx: (dstW - dw) / 2, dy: (dstH - dh) / 2, dw, dh }
+}
+
 function drawCoverCircle(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
@@ -57,11 +69,7 @@ function drawCoverCircle(
   const iw = img.naturalWidth || img.width
   const ih = img.naturalHeight || img.height
   if (!iw || !ih) return
-  const scale = Math.max(w / iw, h / ih)
-  const dw = iw * scale
-  const dh = ih * scale
-  const dx = (w - dw) / 2
-  const dy = (h - dh) / 2
+  const { dx, dy, dw, dh } = coverRect(iw, ih, w, h)
   ctx.save()
   ctx.beginPath()
   ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
@@ -74,6 +82,31 @@ function drawCoverCircle(
   ctx.beginPath()
   ctx.ellipse(w / 2, h / 2, w / 2 - 2, h / 2 - 2, 0, 0, Math.PI * 2)
   ctx.stroke()
+}
+
+/** Object-fit: cover into a circle — keeps face proportions (no stretch into the square PiP). */
+function drawCoverVideo(
+  ctx: CanvasRenderingContext2D,
+  video: HTMLVideoElement,
+  w: number,
+  h: number,
+  mirror: boolean,
+) {
+  const vw = video.videoWidth
+  const vh = video.videoHeight
+  if (!vw || !vh) return
+  const { dx, dy, dw, dh } = coverRect(vw, vh, w, h)
+  ctx.save()
+  ctx.beginPath()
+  ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
+  ctx.closePath()
+  ctx.clip()
+  if (mirror) {
+    ctx.translate(w, 0)
+    ctx.scale(-1, 1)
+  }
+  ctx.drawImage(video, dx, dy, dw, dh)
+  ctx.restore()
 }
 
 export interface AppearanceRenderer {
@@ -154,15 +187,8 @@ export function createAppearanceRenderer(
       if (!video?.videoWidth) return
 
       if (mode === 'real') {
-        ctx.save()
-        ctx.beginPath()
-        ctx.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, Math.PI * 2)
-        ctx.closePath()
-        ctx.clip()
-        ctx.translate(w, 0)
-        ctx.scale(-1, 1)
-        ctx.drawImage(video, 0, 0, w, h)
-        ctx.restore()
+        ctx.clearRect(0, 0, w, h)
+        drawCoverVideo(ctx, video, w, h, true)
         return
       }
 
@@ -170,11 +196,10 @@ export function createAppearanceRenderer(
         if (!filterCtx) return
         filterCanvas.width = w
         filterCanvas.height = h
+        filterCtx.clearRect(0, 0, w, h)
         filterCtx.save()
-        filterCtx.translate(w, 0)
-        filterCtx.scale(-1, 1)
         filterCtx.filter = 'contrast(1.1) saturate(1.15) brightness(1.05)'
-        filterCtx.drawImage(video, 0, 0, w, h)
+        drawCoverVideo(filterCtx, video, w, h, true)
         filterCtx.restore()
         ctx.clearRect(0, 0, w, h)
         ctx.save()

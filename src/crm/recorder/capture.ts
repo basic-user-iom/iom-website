@@ -17,7 +17,7 @@ export interface ActiveCapture {
   hasShareAudio: () => boolean
 }
 
-const PIP_SIZE = 220
+const PIP_SIZE = 280
 const PIP_MARGIN = 24
 
 function displayMediaOptions(shareAudio: boolean): DisplayMediaStreamOptions {
@@ -177,8 +177,9 @@ export async function startCapture(
     cameraStream = await navigator.mediaDevices.getUserMedia({
       video: {
         facingMode: 'user',
-        width: { ideal: 640 },
-        height: { ideal: 480 },
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30 },
       },
       audio: false,
     })

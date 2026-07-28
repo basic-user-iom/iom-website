@@ -16,8 +16,8 @@ export function startMediaRecorder(stream: MediaStream): RecordingHandle {
   const chunks: BlobPart[] = []
   const recorder = new MediaRecorder(stream, {
     mimeType: mime,
-    // ~1.2 Mbps ≈ 9 MB/min — keeps ~5 min clips under Supabase Free’s 50 MB global limit.
-    videoBitsPerSecond: 1_200_000,
+    // ~4 Mbps ≈ 30 MB/min — readable 1080p; R2 allows large uploads (Supabase Free soft-caps ~48 MB).
+    videoBitsPerSecond: 4_000_000,
   })
 
   let startedAt = performance.now()
