@@ -3,6 +3,7 @@
  * Failures on one lead never abort the rest of the batch.
  */
 
+import { hasOutboundLeadMessage } from './crm-lead-messages.js'
 import {
   notifyScheduledSendFailure,
   sendCrmOutreachEmail,
@@ -10,8 +11,8 @@ import {
 
 const MAX_ATTEMPTS = 5
 const MAX_PER_RUN = 25
-/** Skip leads another worker claimed within this window. */
-const LOCK_STALE_MS = 2 * 60 * 1000
+/** Skip leads another worker claimed within this window (must exceed cold-start + SMTP). */
+const LOCK_STALE_MS = 15 * 60 * 1000
 
 /**
  * @param {{ supabaseUrl: string, serviceKey: string }} opts
@@ -68,6 +69,25 @@ export async function processDueScheduledSends(opts) {
         continue
       }
 
+      // Repair path: SMTP already succeeded earlier but mark-as-sent failed.
+      const alreadyOutbound = await hasOutboundLeadMessage({
+        supabaseUrl,
+        serviceKey,
+        leadId: row.id,
+      })
+      if (alreadyOutbound) {
+        const stamp = nowIso
+        await markLeadSent(supabaseUrl, serviceKey, row, stamp)
+        results.push({
+          id: row.id,
+          ok: true,
+          skipped: true,
+          reason: 'already_outbound',
+          repaired: true,
+        })
+        continue
+      }
+
       const subject = String(row.initial_email_subject || '').trim()
       const body = String(row.initial_email_body || '').trim()
       const to = schedule.to || String(row.email || '').trim().toLowerCase()
@@ -107,25 +127,38 @@ export async function processDueScheduledSends(opts) {
         })
 
         const stamp = nowIso
-        await patchLead(supabaseUrl, serviceKey, row.id, {
-          initial_email_sent_at: stamp,
-          initial_email_drafted_at: row.initial_email_drafted_at || stamp,
-          contact_priority: false,
-          scheduled_send: null,
-          status: row.status === 'new' ? 'contacted' : row.status,
-          updated_at: stamp,
-        })
+        let marked = false
+        try {
+          await markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp)
+          marked = true
+        } catch (markErr) {
+          // SMTP already succeeded — do not count as a send failure / notify as such.
+          // Next ping will repair via the outbound-message guard.
+          console.error(
+            '[crm-process-scheduled-sends] SMTP ok but lead still armed after mark retries',
+            row.id,
+            markErr instanceof Error ? markErr.message : markErr,
+          )
+        }
 
-        await insertActivity(supabaseUrl, serviceKey, {
-          lead_id: row.id,
-          type: 'email',
-          subject: subject.slice(0, 200) || 'Initial outreach email sent',
-          body: `Scheduled outreach sent automatically via CRM to ${to} from ${sendResult.from}.`,
-          occurred_at: stamp,
-          owner_id: row.owner_id || null,
-        })
+        if (marked) {
+          await insertActivity(supabaseUrl, serviceKey, {
+            lead_id: row.id,
+            type: 'email',
+            subject: subject.slice(0, 200) || 'Initial outreach email sent',
+            body: `Scheduled outreach sent automatically via CRM to ${to} from ${sendResult.from}.`,
+            occurred_at: stamp,
+            owner_id: row.owner_id || null,
+          })
+        }
 
-        results.push({ id: row.id, ok: true, to, messageId: sendResult.messageId })
+        results.push({
+          id: row.id,
+          ok: true,
+          to,
+          messageId: sendResult.messageId,
+          ...(marked ? {} : { markPending: true }),
+        })
       } catch (err) {
         const error = err instanceof Error ? err.message.slice(0, 400) : 'Send failed'
         const attempts = schedule.attempts + 1
@@ -158,7 +191,7 @@ export async function processDueScheduledSends(opts) {
     }
   }
 
-  const sent = results.filter((r) => r.ok).length
+  const sent = results.filter((r) => r.ok && !r.repaired).length
   const failed = results.filter((r) => !r.ok && !r.skipped).length
 
   return {
@@ -243,6 +276,40 @@ async function claimLead(supabaseUrl, serviceKey, row, schedule) {
   }
   const rows = text ? JSON.parse(text) : []
   return Array.isArray(rows) && rows.length > 0
+}
+
+async function markLeadSent(supabaseUrl, serviceKey, row, stamp) {
+  await patchLead(supabaseUrl, serviceKey, row.id, {
+    initial_email_sent_at: stamp,
+    initial_email_drafted_at: row.initial_email_drafted_at || stamp,
+    contact_priority: false,
+    scheduled_send: null,
+    status: row.status === 'new' ? 'contacted' : row.status,
+    updated_at: stamp,
+  })
+}
+
+/** Mark sent; retry once so a transient patch failure cannot leave the lead armed after SMTP. */
+async function markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp) {
+  try {
+    await markLeadSent(supabaseUrl, serviceKey, row, stamp)
+  } catch (err) {
+    console.error(
+      '[crm-process-scheduled-sends] mark-as-sent failed, retrying',
+      row.id,
+      err instanceof Error ? err.message : err,
+    )
+    try {
+      await markLeadSent(supabaseUrl, serviceKey, row, stamp)
+    } catch (retryErr) {
+      console.error(
+        '[crm-process-scheduled-sends] mark-as-sent retry failed — lead may stay armed; outbound guard will repair',
+        row.id,
+        retryErr instanceof Error ? retryErr.message : retryErr,
+      )
+      throw retryErr
+    }
+  }
 }
 
 async function patchLead(supabaseUrl, serviceKey, id, patch) {

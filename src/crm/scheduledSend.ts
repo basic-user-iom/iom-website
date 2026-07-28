@@ -9,6 +9,11 @@ export type ScheduledSend = {
   /** Last failure message (empty when healthy). */
   error: string
   attempts: number
+  /**
+   * Worker claim timestamp (ISO). Preserved on client round-trips so a UI
+   * updateLead during an in-flight send does not wipe the server lock.
+   */
+  lock?: string
 }
 
 const FROM_IDS = new Set<OutreachFromIdentityId>(['contact', 'visual', 'projects'])
@@ -30,12 +35,17 @@ export function normalizeScheduledSend(raw: unknown): ScheduledSend | null {
       ? Math.max(0, Math.floor(o.attempts))
       : 0
   const error = typeof o.error === 'string' ? o.error.trim() : ''
+  const lockRaw = typeof o.lock === 'string' ? o.lock.trim() : ''
+  const lockAt = lockRaw ? new Date(lockRaw) : null
+  const lock =
+    lockAt && !Number.isNaN(lockAt.getTime()) ? lockAt.toISOString() : undefined
   return {
     at: when.toISOString(),
     to,
     from,
     error,
     attempts,
+    ...(lock ? { lock } : {}),
   }
 }
 
