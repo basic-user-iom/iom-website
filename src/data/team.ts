@@ -9,6 +9,8 @@ export interface TeamMember {
    * The UI tries `.webp`, `.jpg`, then `.png`.
    */
   portraitBase?: string
+  /** Optional hover video (plays on pointer enter; poster stays the static portrait). */
+  portraitVideo?: string
   initials: string
   /** RFO stage this identity carries (Raven→Research, Fox→Form, Octopus→Output). */
   rfoStage: 'Research' | 'Form' | 'Output'
@@ -26,6 +28,7 @@ export const TEAM: TeamMember[] = [
       'Clients hire clarity as much as craft — ship tools and experiences people can open, understand, and decide from.',
     email: 'raven@iobjectm.com',
     portraitBase: '/assets/team/raven',
+    portraitVideo: '/assets/team/raven.mp4?v=20260728c',
     initials: 'R',
     rfoStage: 'Research',
     rfoLine: 'Understands the client, audience, story, and technical challenge before anything is built.',
@@ -38,6 +41,7 @@ export const TEAM: TeamMember[] = [
       'High-value work starts with listening — match technical ambition to the story a client actually needs to tell.',
     email: 'fox@iobjectm.com',
     portraitBase: '/assets/team/fox',
+    portraitVideo: '/assets/team/fox.mp4?v=20260728',
     initials: 'F',
     rfoStage: 'Form',
     rfoLine: 'Turns strategy into experience — visual language, interaction, structure, and technology.',
@@ -50,6 +54,7 @@ export const TEAM: TeamMember[] = [
       'Builds reliable interactive systems — connecting interfaces, 3D environments, data, and performance.',
     email: 'octopus@iobjectm.com',
     portraitBase: '/assets/team/octopus',
+    portraitVideo: '/assets/team/octopus.mp4?v=20260728',
     initials: 'O',
     rfoStage: 'Output',
     rfoLine: 'Delivers the finished result people can open, understand, and use.',

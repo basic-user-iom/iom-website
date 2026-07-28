@@ -1,11 +1,38 @@
-import { memo, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
 import { ContactForm } from './ContactForm'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 import { useSiteI18n } from '../i18n'
 
+function useCanHoverPlay(): boolean {
+  const [canHover, setCanHover] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return (
+      window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
+      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    )
+  })
+
+  useEffect(() => {
+    const hoverMq = window.matchMedia('(hover: hover) and (pointer: fine)')
+    const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setCanHover(hoverMq.matches && !motionMq.matches)
+    sync()
+    hoverMq.addEventListener('change', sync)
+    motionMq.addEventListener('change', sync)
+    return () => {
+      hoverMq.removeEventListener('change', sync)
+      motionMq.removeEventListener('change', sync)
+    }
+  }, [])
+
+  return canHover
+}
+
 const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const { t } = useSiteI18n()
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const canHoverPlay = useCanHoverPlay()
   const candidates = useMemo(() => {
     if (!member.portraitBase) return [] as string[]
     return TEAM_PORTRAIT_EXTS.map((ext) => `${member.portraitBase}${ext}`)
@@ -17,11 +44,40 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const role = t(`team.${member.id}.role`)
   const philosophy = t(`team.${member.id}.philosophy`)
   const rfoStage = t(`team.${member.id}.rfoStage`)
+  const useHoverVideo = Boolean(member.portraitVideo) && canHoverPlay
+
+  const playPortraitVideo = () => {
+    const video = videoRef.current
+    if (!video) return
+    void video.play().catch(() => {})
+  }
+
+  const pausePortraitVideo = () => {
+    const video = videoRef.current
+    if (!video) return
+    video.pause()
+    video.currentTime = 0
+  }
 
   return (
-    <li className={`about-team-card about-team-card--${member.id}`}>
+    <li
+      className={`about-team-card about-team-card--${member.id}`}
+      onPointerEnter={useHoverVideo ? playPortraitVideo : undefined}
+      onPointerLeave={useHoverVideo ? pausePortraitVideo : undefined}
+    >
       <div className="about-team-visual" aria-hidden="true">
-        {showImage ? (
+        {useHoverVideo && member.portraitVideo ? (
+          <video
+            ref={videoRef}
+            className="about-team-photo"
+            src={member.portraitVideo}
+            poster={src || undefined}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : showImage ? (
           <img
             className="about-team-photo"
             src={src}
