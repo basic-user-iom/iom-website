@@ -3805,6 +3805,16 @@ button.card-link:focus-visible {
   );
 }
 
+/* Hover motion sits on top of the still; hidden until playback starts. */
+.about-team-photo--video {
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.about-team-photo--video.is-active {
+  opacity: 1;
+}
+
 .about-team-card--raven .about-team-photo {
   width: 70%;
   right: -6%;

@@ -39,6 +39,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   }, [member.portraitBase])
 
   const [index, setIndex] = useState(0)
+  const [videoActive, setVideoActive] = useState(false)
   const src = candidates[index]
   const showImage = Boolean(src)
   const role = t(`team.${member.id}.role`)
@@ -49,7 +50,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const playPortraitVideo = () => {
     const video = videoRef.current
     if (!video) return
-    void video.play().catch(() => {})
+    void video.play().then(() => setVideoActive(true)).catch(() => {})
   }
 
   const pausePortraitVideo = () => {
@@ -57,6 +58,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
     if (!video) return
     video.pause()
     video.currentTime = 0
+    setVideoActive(false)
   }
 
   return (
@@ -66,18 +68,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
       onPointerLeave={useHoverVideo ? pausePortraitVideo : undefined}
     >
       <div className="about-team-visual" aria-hidden="true">
-        {useHoverVideo && member.portraitVideo ? (
-          <video
-            ref={videoRef}
-            className="about-team-photo"
-            src={member.portraitVideo}
-            poster={src || undefined}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-          />
-        ) : showImage ? (
+        {showImage ? (
           <img
             className="about-team-photo"
             src={src}
@@ -91,6 +82,17 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
         ) : (
           <span className="about-team-monogram">{member.initials}</span>
         )}
+        {useHoverVideo && member.portraitVideo ? (
+          <video
+            ref={videoRef}
+            className={`about-team-photo about-team-photo--video${videoActive ? ' is-active' : ''}`}
+            src={member.portraitVideo}
+            muted
+            loop
+            playsInline
+            preload="metadata"
+          />
+        ) : null}
       </div>
 
       <div className="about-team-copy">
