@@ -70,7 +70,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
       <div className="about-team-visual" aria-hidden="true">
         {showImage ? (
           <img
-            className="about-team-photo"
+            className={`about-team-photo${videoActive ? ' is-dimmed' : ''}`}
             src={src}
             alt=""
             loading="lazy"
