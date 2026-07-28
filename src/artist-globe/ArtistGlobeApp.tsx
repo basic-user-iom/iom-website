@@ -11,10 +11,7 @@ import type { Artist, ArtistCategory } from './types'
 import { CATEGORY_LABELS, PRIMARY_CATEGORIES } from './types'
 import './artist-globe.css'
 
-export function isArtistGlobePath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p === '/artist-globe' || p.startsWith('/artist-globe/')
-}
+export { isArtistGlobePath } from './paths'
 
 type View = 'globe' | 'submit' | 'admin' | 'me' | 'invite'
 

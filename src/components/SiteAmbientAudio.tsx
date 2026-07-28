@@ -27,19 +27,22 @@ let ambientHandle: AmbientHandle | null = null
  * Homepage ambient loop. Mute state is shared via `site` audioPrefs +
  * `iom:site-audio-mute` CustomEvent from the header control.
  * Yields automatically when music or gallery audio takes focus.
+ *
+ * Network: src is attached only when the user asks for sound (Listen), so the
+ * ~4MB bed does not download on cold load. Attach + play stay on the same
+ * gesture stack for iOS.
  */
 export function SiteAmbientAudio() {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const userMutedRef = useRef(readStoredMute('site'))
   const duckedRef = useRef(false)
   const mediaUnlockedRef = useRef(false)
+  const srcAttachedRef = useRef(false)
 
   useEffect(() => {
     const audio = new Audio()
     audio.loop = true
-    // `none` breaks iOS: play() starts a fetch, then rejects once the gesture expires.
-    audio.preload = 'auto'
-    audio.src = AMBIENT_URL
+    audio.preload = 'none'
     audio.setAttribute('playsinline', 'true')
     audio.setAttribute('webkit-playsinline', 'true')
     const volume = readStoredVolume('site') / 100
@@ -47,10 +50,18 @@ export function SiteAmbientAudio() {
     userMutedRef.current = readStoredMute('site')
     audio.muted = userMutedRef.current
     audioRef.current = audio
-    try {
-      audio.load()
-    } catch {
-      /* ignore */
+
+    const ensureSrc = () => {
+      const el = audioRef.current
+      if (!el || srcAttachedRef.current) return
+      el.preload = 'auto'
+      el.src = AMBIENT_URL
+      srcAttachedRef.current = true
+      try {
+        el.load()
+      } catch {
+        /* ignore */
+      }
     }
 
     const otherFocusActive = () => {
@@ -67,6 +78,7 @@ export function SiteAmbientAudio() {
     const playNow = () => {
       const el = audioRef.current
       if (!el || !canAudiblyPlay()) return
+      ensureSrc()
       el.muted = false
       claimAudioFocus('site')
       void el
@@ -81,11 +93,11 @@ export function SiteAmbientAudio() {
 
     /**
      * Unlock HTMLMediaElement on iOS with a muted play inside a user gesture.
-     * Safe to call while the UI is still "Sound off".
+     * Only used when src is already attached (Listen path) — never on random taps.
      */
     const warmUnlockFromGesture = () => {
       const el = audioRef.current
-      if (!el || mediaUnlockedRef.current) return
+      if (!el || mediaUnlockedRef.current || !srcAttachedRef.current) return
 
       const resumeAudible = canAudiblyPlay()
       el.muted = true
@@ -109,8 +121,8 @@ export function SiteAmbientAudio() {
     }
 
     const playFromGesture = () => {
-      // Unmute tap: play audibly in this gesture. Do not also warm-unlock muted
-      // in parallel — that races muted/unmuted play() on iOS.
+      // Attach inside this gesture so iOS can start the fetch + play before it expires.
+      ensureSrc()
       if (canAudiblyPlay()) {
         playNow()
         return
@@ -165,32 +177,19 @@ export function SiteAmbientAudio() {
       }
     })
 
-    const onFirstGesture = () => {
-      warmUnlockFromGesture()
-      if (canAudiblyPlay()) playNow()
-      window.removeEventListener('pointerdown', onFirstGesture)
-      window.removeEventListener('touchstart', onFirstGesture)
-      window.removeEventListener('keydown', onFirstGesture)
-    }
-
     window.addEventListener('iom:site-audio-mute', onMuteEvent)
     window.addEventListener('iom:site-audio-volume', onVolumeEvent)
-    window.addEventListener('pointerdown', onFirstGesture, { passive: true })
-    window.addEventListener('touchstart', onFirstGesture, { passive: true })
-    window.addEventListener('keydown', onFirstGesture)
 
     return () => {
       ambientHandle = null
       unsubscribeFocus()
       window.removeEventListener('iom:site-audio-mute', onMuteEvent)
       window.removeEventListener('iom:site-audio-volume', onVolumeEvent)
-      window.removeEventListener('pointerdown', onFirstGesture)
-      window.removeEventListener('touchstart', onFirstGesture)
-      window.removeEventListener('keydown', onFirstGesture)
       releaseAudioFocus('site')
       audio.pause()
       audio.removeAttribute('src')
       audio.load()
+      srcAttachedRef.current = false
       audioRef.current = null
     }
   }, [])

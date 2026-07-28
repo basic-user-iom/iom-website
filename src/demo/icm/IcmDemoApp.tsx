@@ -3,14 +3,12 @@ import { isIcmDemoUnlocked, lockIcmDemo, tryCrmEmbedUnlock, unlockIcmDemo } from
 import { EXHIBITIONS, MOTION, STILLS, type StillProject, type ViewMode } from './data'
 import { CloudsScene } from './CloudsScene'
 import { Lightbox, type LightboxState } from './Lightbox'
+import { ICM_DEMO_BASE } from './paths'
 import './icm-demo.css'
 
-const BASE = '/demo/icm'
+const BASE = ICM_DEMO_BASE
 
-export function isIcmDemoPath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p === BASE || p.startsWith(`${BASE}/`)
-}
+export { isIcmDemoPath } from './paths'
 
 type Page =
   | 'home'

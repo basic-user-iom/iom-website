@@ -132,8 +132,10 @@ export const About = memo(function About() {
                       >
                         {member.initials}
                       </span>
-                      <span className="about-pathway-stage">{t(`team.${member.id}.rfoStage`)}</span>
-                      <span className="about-pathway-who">{member.name}</span>
+                      <span className="about-pathway-label">
+                        <span className="about-pathway-stage">{t(`team.${member.id}.rfoStage`)}</span>
+                        <span className="about-pathway-who">{member.name}</span>
+                      </span>
 
                       <details className="about-pathway-phase">
                         <summary className="about-pathway-phase-summary">

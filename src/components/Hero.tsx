@@ -228,7 +228,6 @@ export function Hero() {
                   type="button"
                   className="hero-start-btn"
                   onClick={startLiveScene}
-                  aria-label={t('hero.startAria')}
                 >
                   <span className="hero-start-label">{t('hero.start')}</span>
                   <span className="hero-start-hint">{t('hero.startHint')}</span>
@@ -264,7 +263,6 @@ export function Hero() {
                 <button
                   type="button"
                   className="motion-parallax-prompt"
-                  aria-label={t('hero.motionAria')}
                   onClick={() => {
                     void requestMotionParallaxPermission()
                   }}
@@ -279,24 +277,24 @@ export function Hero() {
                   <button
                     type="button"
                     className="viewer-fullscreen-btn"
-                    aria-label={t('hero.fsExit')}
                     onClick={() => {
                       void exitFullscreen()
                     }}
                   >
-                    {t('hero.exit')}
+                    <span>{t('hero.exit')}</span>
+                    <span className="sr-only">{` — ${t('hero.fsExit')}`}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     className="viewer-fullscreen-btn"
-                    aria-label={t('hero.fsEnter')}
                     onClick={() => {
                       void enterFullscreen()
                     }}
                   >
                     <span className="label-long">{t('hero.fsLabel')}</span>
                     <span className="label-short">{t('hero.fsShort')}</span>
+                    <span className="sr-only">{` — ${t('hero.fsEnter')}`}</span>
                   </button>
                 )}
                 <span className="orbit-label">

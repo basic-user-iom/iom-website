@@ -82,6 +82,10 @@ export const ProjectCard = memo(function ProjectCard({
 
   const hasGallery = Boolean(project.gallery?.length)
   const hasMusicTrack = Boolean(project.audioUrl)
+  // Nested <a> inside a wrapping card link is invalid and fails touch-target spacing.
+  const hasSecondaryLinks = Boolean(
+    project.caseStudyPath || project.sourceUrl || (project.referenceUrls?.length ?? 0) > 0,
+  )
   const canEmbed = Boolean(project.embedUrl) && !embedFailed
   const useStaticEmbed = canEmbed && profile.useEmbedStaticFallback
   const showLiveEmbed = canEmbed && !useStaticEmbed
@@ -141,17 +145,6 @@ export const ProjectCard = memo(function ProjectCard({
     if (!hasMusicTrack || !onMusicSelect) return
     onMusicSelect(project.id)
   }, [hasMusicTrack, onMusicSelect, project.id])
-
-  const handleGalleryKeyDown = useCallback(
-    (event: React.KeyboardEvent) => {
-      if (!hasGallery) return
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault()
-        openGallery()
-      }
-    },
-    [hasGallery, openGallery],
-  )
 
   const handleIframeLoad = useCallback(
     (event: React.SyntheticEvent<HTMLIFrameElement>) => {
@@ -325,26 +318,45 @@ export const ProjectCard = memo(function ProjectCard({
               ) : null}
             </div>
             <div className="card-footer-action">
-              {project.url && project.caseStudyPath ? (
+              {project.url && hasSecondaryLinks ? (
                 <a
                   className="card-link"
                   href={projectHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  {...(project.url.startsWith('http') || project.url.startsWith('/demos/')
+                    ? { target: '_blank' as const, rel: 'noopener noreferrer' }
+                    : {})}
                   onClick={(event) => event.stopPropagation()}
                 >
-                  {t('card.open')}
+                  {project.url.startsWith('/case-studies/') && !project.caseStudyPath
+                    ? t('card.viewStudy')
+                    : t('card.open')}
                 </a>
-              ) : project.url?.startsWith('/case-studies/') ? (
-                <span className="card-link">{t('card.viewStudy')}</span>
               ) : project.url ? (
-                <span className="card-link">{t('card.open')}</span>
-              ) : hasGallery ? (
-                <span className="card-link">{t('card.viewGallery')}</span>
-              ) : hasMusicTrack ? (
                 <span className="card-link">
-                  {musicActive ? t('card.selected') : t('card.loadTrack')}
+                  {project.url.startsWith('/case-studies/') ? t('card.viewStudy') : t('card.open')}
                 </span>
+              ) : hasGallery ? (
+                <button
+                  type="button"
+                  className="card-link"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    openGallery()
+                  }}
+                >
+                  {t('card.viewGallery')}
+                </button>
+              ) : hasMusicTrack ? (
+                <button
+                  type="button"
+                  className="card-link"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    selectMusicTrack()
+                  }}
+                >
+                  {musicActive ? t('card.selected') : t('card.loadTrack')}
+                </button>
               ) : (
                 <span className="card-footer-note">{t('card.sample')}</span>
               )}
@@ -364,10 +376,8 @@ export const ProjectCard = memo(function ProjectCard({
   )
 
   const className = `project-card reveal${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
-  const hasCaseStudy = Boolean(project.caseStudyPath)
 
-  // Nested links are invalid inside a wrapping <a> — article + footer links when case study exists.
-  if (project.url && !isComingSoon && !hasCaseStudy) {
+  if (project.url && !isComingSoon && !hasSecondaryLinks) {
     const openInNewTab = project.url.startsWith('http') || project.url.startsWith('/demos/')
     return (
       <a
@@ -382,13 +392,12 @@ export const ProjectCard = memo(function ProjectCard({
     )
   }
 
-  if (project.url && !isComingSoon && hasCaseStudy) {
+  if (project.url && !isComingSoon && hasSecondaryLinks) {
     return (
       <article
         id={project.id}
         className={`${className} project-card--multi-link`}
         style={style}
-        aria-label={t('card.openAria', { title: project.title })}
       >
         {inner}
       </article>
@@ -402,34 +411,6 @@ export const ProjectCard = memo(function ProjectCard({
         className={className}
         style={style}
         onClick={isComingSoon ? undefined : hasGallery ? openGallery : hasMusicTrack ? selectMusicTrack : undefined}
-        onKeyDown={
-          isComingSoon
-            ? undefined
-            : hasGallery
-              ? handleGalleryKeyDown
-              : hasMusicTrack
-                ? (event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault()
-                      selectMusicTrack()
-                    }
-                  }
-                : undefined
-        }
-        tabIndex={isComingSoon ? undefined : hasGallery || hasMusicTrack ? 0 : undefined}
-        role={isComingSoon ? undefined : hasGallery || hasMusicTrack ? 'button' : undefined}
-        aria-label={
-          isComingSoon
-            ? t('card.comingSoonAria', {
-                title: project.title,
-                label: comingSoonLabel.toLowerCase(),
-              })
-            : hasGallery
-              ? t('card.galleryAria', { title: project.title })
-              : hasMusicTrack
-                ? t('card.musicAria', { title: project.title })
-                : undefined
-        }
       >
         {inner}
       </article>

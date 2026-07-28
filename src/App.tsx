@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
 import { ProjectSectionBlock } from './components/ProjectSectionBlock'
@@ -7,17 +7,16 @@ import { Clients } from './components/Clients'
 import { SiteOrbZone } from './components/SiteOrbZone'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
-import { ArtistGlobeApp, isArtistGlobePath } from './artist-globe/ArtistGlobeApp'
+import { isArtistGlobePath } from './artist-globe/paths'
 import { BlogApp, isBlogPath } from './blog/BlogApp'
 import { CaseStudyApp, isCaseStudyPath } from './case-studies/CaseStudyApp'
 import { LegalApp, isLegalPath } from './legal/LegalApp'
-import { CrmApp } from './crm/CrmApp'
 import {
   RecordingSharePage,
   isRecordingSharePath,
   recordingSlugFromPath,
 } from './crm/RecordingSharePage'
-import { IcmDemoApp, isIcmDemoPath } from './demo/icm/IcmDemoApp'
+import { isIcmDemoPath } from './demo/icm/paths'
 import { ImagePrepApp, isImagePrepPath } from './tools/image-prep/ImagePrepApp'
 import {
   disableCrmDemoMode,
@@ -29,6 +28,14 @@ import { initAnalytics } from './analytics/track'
 import { SiteI18nProvider, parseLocalePath } from './i18n'
 import { localizedSections } from './i18n/projects/localize'
 import { usePageMeta } from './seo/usePageMeta'
+
+const ArtistGlobeApp = lazy(() =>
+  import('./artist-globe/ArtistGlobeApp').then((m) => ({ default: m.ArtistGlobeApp })),
+)
+const IcmDemoApp = lazy(() =>
+  import('./demo/icm/IcmDemoApp').then((m) => ({ default: m.IcmDemoApp })),
+)
+const CrmApp = lazy(() => import('./crm/CrmApp').then((m) => ({ default: m.CrmApp })))
 
 function usePathname(): string {
   const [path, setPath] = useState(() => window.location.pathname)
@@ -128,11 +135,19 @@ export default function App() {
   }, [path])
 
   if (isArtistGlobe) {
-    return <ArtistGlobeApp />
+    return (
+      <Suspense fallback={null}>
+        <ArtistGlobeApp />
+      </Suspense>
+    )
   }
 
   if (isIcmDemo) {
-    return <IcmDemoApp />
+    return (
+      <Suspense fallback={null}>
+        <IcmDemoApp />
+      </Suspense>
+    )
   }
 
   if (isRecordingShare && recordingSlug) {
@@ -172,7 +187,9 @@ export default function App() {
       <>
         <Header />
         <main id="main-content">
-          <CrmApp demo={isCrmDemo} />
+          <Suspense fallback={null}>
+            <CrmApp demo={isCrmDemo} />
+          </Suspense>
         </main>
       </>
     )

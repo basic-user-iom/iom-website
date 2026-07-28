@@ -13,7 +13,6 @@ import {
   subscribeAudioFocus,
 } from '../utils/audioFocus'
 import { getDeviceProfile } from '../utils/device'
-import { createMusicPlayerVisualizer } from '../utils/createMusicPlayerVisualizer'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
 
 interface MusicPlayerProps {
@@ -1014,6 +1013,12 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     const sameTrack = playingTrackIdRef.current === activeTrack.id
     if (sameTrack && audio.currentSrc) return
 
+    // Defer the ~MB track fetch until play / transitionToTrack — not on cold mount.
+    if (!audio.currentSrc && !isPlaying) {
+      playingTrackIdRef.current = activeTrack.id
+      return
+    }
+
     audio.src = activeTrack.audioUrl
     audio.load()
     applyUserVolume(audio)
@@ -1024,7 +1029,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       setIsPlaying(false)
       autoAdvanceTriggeredRef.current = false
     }
-  }, [activeTrack?.audioUrl, activeTrack?.id, applyUserVolume, getActiveAudio])
+  }, [activeTrack?.audioUrl, activeTrack?.id, applyUserVolume, getActiveAudio, isPlaying])
 
   useEffect(() => {
     const audioA = audioARef.current
@@ -1067,17 +1072,19 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     }
 
     let cancelled = false
-    void createMusicPlayerVisualizer().then(({ visualizer, kind }) => {
-      if (cancelled) {
-        visualizer.dispose()
-        return
-      }
-      visualizerRef.current = visualizer
-      ;(window as Window & { __musicVisualizerKind?: string }).__musicVisualizerKind = kind
-      const mount = visualRef.current
-      if (mount) mount.dataset.visualizerKind = kind
-      setVisualizerReady(true)
-    })
+    void import('../utils/createMusicPlayerVisualizer')
+      .then(({ createMusicPlayerVisualizer }) => createMusicPlayerVisualizer())
+      .then(({ visualizer, kind }) => {
+        if (cancelled) {
+          visualizer.dispose()
+          return
+        }
+        visualizerRef.current = visualizer
+        ;(window as Window & { __musicVisualizerKind?: string }).__musicVisualizerKind = kind
+        const mount = visualRef.current
+        if (mount) mount.dataset.visualizerKind = kind
+        setVisualizerReady(true)
+      })
     return () => {
       cancelled = true
     }

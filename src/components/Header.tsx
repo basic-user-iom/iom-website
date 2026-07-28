@@ -7,6 +7,9 @@ import { getDeviceProfile } from '../utils/device'
 import { persistMute, readStoredMute } from '../utils/audioPrefs'
 import { toggleSiteMute } from './SiteAmbientAudio'
 
+const RAVEN_POSTER = '/assets/raven_poster.svg'
+const RAVEN_VIDEO = '/assets/raven_crop.mp4'
+
 export function Header() {
   const { t, href, lang } = useSiteI18n()
   const sections = localizedSections(lang)
@@ -15,6 +18,8 @@ export function Header() {
   const [siteMuted, setSiteMuted] = useState(() => readStoredMute('site'))
   const videoRef = useRef<HTMLVideoElement>(null)
   const profile = getDeviceProfile()
+  // Mobile: skip the ~2.4MB autoplay loop — static poster is enough in the 44px badge.
+  const useStaticRaven = profile.isMobile || profile.prefersReducedMotion
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
@@ -27,7 +32,7 @@ export function Header() {
 
   useEffect(() => {
     const video = videoRef.current
-    if (!video || profile.prefersReducedMotion) return
+    if (!video || useStaticRaven) return
 
     const onVisibility = () => {
       if (document.hidden) {
@@ -38,7 +43,7 @@ export function Header() {
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [profile.prefersReducedMotion])
+  }, [useStaticRaven])
 
   useEffect(() => {
     const onMuteEvent = (event: Event) => {
@@ -64,20 +69,32 @@ export function Header() {
       <a href="#main-content" className="skip-link">
         {t('nav.skip')}
       </a>
-      <a href={href('/')} className="header-brand" aria-label={t('nav.homeAria')}>
+      <a href={href('/')} className="header-brand">
         <div className="raven-mascot-wrap">
-          <video
-            ref={videoRef}
-            className="raven-mascot"
-            src="/assets/raven_crop.mp4"
-            poster="/assets/raven_poster.svg"
-            autoPlay={!profile.prefersReducedMotion}
-            loop
-            muted
-            playsInline
-            preload={profile.prefersReducedMotion ? 'none' : 'metadata'}
-            aria-hidden="true"
-          />
+          {useStaticRaven ? (
+            <img
+              className="raven-mascot"
+              src={RAVEN_POSTER}
+              alt=""
+              width={44}
+              height={44}
+              decoding="async"
+              aria-hidden="true"
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              className="raven-mascot"
+              src={RAVEN_VIDEO}
+              poster={RAVEN_POSTER}
+              autoPlay
+              loop
+              muted
+              playsInline
+              preload="metadata"
+              aria-hidden="true"
+            />
+          )}
         </div>
         <div className="brand-text">
           <span className="brand-name">IOM</span>

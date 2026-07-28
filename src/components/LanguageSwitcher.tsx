@@ -57,10 +57,12 @@ export function LanguageSwitcher() {
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
-        aria-label={t('nav.langAria')}
+        aria-label={`${t('nav.langAria')} ${lang.toUpperCase()}`}
         onClick={() => setOpen((v) => !v)}
       >
-        <span className="lang-switcher-code">{lang.toUpperCase()}</span>
+        <span className="lang-switcher-code" aria-hidden="true">
+          {lang.toUpperCase()}
+        </span>
       </button>
       {open ? (
         <ul id={listId} className="lang-switcher-menu" role="listbox" aria-label={t('nav.langAria')}>

@@ -1,17 +1,5 @@
 import type { MusicPlayerVisualizerLike } from './musicPlayerVisualizerTypes'
 
-import { MusicPlayerVisualizer } from './musicPlayerVisualizer'
-
-import {
-  isWebGPUSupported,
-  MusicPlayerRagingSeaVisualizer,
-} from './musicPlayerRagingSeaVisualizer'
-
-import {
-  isFftOceanSupported,
-  MusicPlayerFftOceanVisualizer,
-} from './musicPlayerFftOceanVisualizer'
-
 export type MusicPlayerVisualizerKind = 'fft-ocean' | 'raging-sea' | 'raymarch'
 
 function readCanvasLumaStats(canvas: HTMLCanvasElement) {
@@ -86,6 +74,18 @@ function warnFallback(kind: MusicPlayerVisualizerKind, reason: string) {
   }
 }
 
+async function createRaymarchVisualizer(): Promise<{
+  visualizer: MusicPlayerVisualizerLike
+  kind: MusicPlayerVisualizerKind
+}> {
+  const { MusicPlayerVisualizer } = await import('./musicPlayerVisualizer')
+  return { visualizer: new MusicPlayerVisualizer(), kind: 'raymarch' }
+}
+
+/**
+ * Visualizer factories are dynamically imported so Three.js stays off the
+ * homepage critical path until the music player is near the viewport.
+ */
 export async function createMusicPlayerVisualizer(): Promise<{
   visualizer: MusicPlayerVisualizerLike
   kind: MusicPlayerVisualizerKind
@@ -94,39 +94,52 @@ export async function createMusicPlayerVisualizer(): Promise<{
   const forced = params.get('visualizer')
 
   if (forced === 'raymarch') {
-    return { visualizer: new MusicPlayerVisualizer(), kind: 'raymarch' }
+    return createRaymarchVisualizer()
   }
 
-  if (forced === 'fft-ocean' && (await isFftOceanSupported())) {
-    return { visualizer: new MusicPlayerFftOceanVisualizer(), kind: 'fft-ocean' }
+  if (forced === 'fft-ocean') {
+    const { isFftOceanSupported, MusicPlayerFftOceanVisualizer } = await import(
+      './musicPlayerFftOceanVisualizer'
+    )
+    if (await isFftOceanSupported()) {
+      return { visualizer: new MusicPlayerFftOceanVisualizer(), kind: 'fft-ocean' }
+    }
   }
 
-  if (forced === 'raging-sea' && (await isWebGPUSupported())) {
-    try {
-      const ragingSea = new MusicPlayerRagingSeaVisualizer()
-      const probe = await probeVisualizerMount(ragingSea)
-      if (probe.ok) {
-        return { visualizer: ragingSea, kind: 'raging-sea' }
+  if (forced === 'raging-sea') {
+    const { isWebGPUSupported, MusicPlayerRagingSeaVisualizer } = await import(
+      './musicPlayerRagingSeaVisualizer'
+    )
+    if (await isWebGPUSupported()) {
+      try {
+        const ragingSea = new MusicPlayerRagingSeaVisualizer()
+        const probe = await probeVisualizerMount(ragingSea)
+        if (probe.ok) {
+          return { visualizer: ragingSea, kind: 'raging-sea' }
+        }
+        ragingSea.dispose()
+        warnFallback('raymarch', `raging-sea probe failed (max=${probe.max}, avg=${probe.avg.toFixed(1)})`)
+      } catch (err) {
+        warnFallback('raymarch', `raging-sea init failed: ${String(err)}`)
       }
-      ragingSea.dispose()
-      warnFallback('raymarch', `raging-sea probe failed (max=${probe.max}, avg=${probe.avg.toFixed(1)})`)
-    } catch (err) {
-      warnFallback('raymarch', `raging-sea init failed: ${String(err)}`)
     }
   }
 
-  const fftSupported = await isFftOceanSupported()
+  if (forced !== 'raymarch') {
+    const { isFftOceanSupported, MusicPlayerFftOceanVisualizer } = await import(
+      './musicPlayerFftOceanVisualizer'
+    )
+    const fftSupported = await isFftOceanSupported()
 
-  if (forced !== 'raymarch' && fftSupported) {
-    if (import.meta.env.DEV) {
-      console.info('[music-player] visualizer: fft-ocean (float textures supported)')
+    if (fftSupported) {
+      if (import.meta.env.DEV) {
+        console.info('[music-player] visualizer: fft-ocean (float textures supported)')
+      }
+      return { visualizer: new MusicPlayerFftOceanVisualizer(), kind: 'fft-ocean' }
     }
-    return { visualizer: new MusicPlayerFftOceanVisualizer(), kind: 'fft-ocean' }
-  }
 
-  if (forced !== 'raymarch' && !fftSupported) {
     warnFallback('raymarch', 'float textures unsupported')
   }
 
-  return { visualizer: new MusicPlayerVisualizer(), kind: 'raymarch' }
+  return createRaymarchVisualizer()
 }

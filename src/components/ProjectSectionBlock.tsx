@@ -1,9 +1,12 @@
-import { memo, useEffect, useRef } from 'react'
+import { lazy, memo, Suspense, useEffect, useRef } from 'react'
 import { type ProjectSection } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { localizedProjectsForSection } from '../i18n/projects/localize'
-import { MusicSection } from './MusicSection'
 import { ProjectCard } from './ProjectCard'
+
+const MusicSection = lazy(() =>
+  import('./MusicSection').then((m) => ({ default: m.MusicSection })),
+)
 
 interface ProjectSectionBlockProps {
   id: ProjectSection
@@ -47,7 +50,11 @@ export const ProjectSectionBlock = memo(function ProjectSectionBlock({
   }, [isMusic])
 
   if (isMusic) {
-    return <MusicSection index={index} label={label} blurb={blurb} />
+    return (
+      <Suspense fallback={<section className="section-block section-block--music" id="music" aria-busy="true" />}>
+        <MusicSection index={index} label={label} blurb={blurb} />
+      </Suspense>
+    )
   }
 
   return (
