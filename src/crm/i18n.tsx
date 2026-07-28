@@ -105,7 +105,8 @@ const en: Dict = {
   'chatgpt.loadSuccess': 'Lead fields loaded — review and save when ready.',
   'chatgpt.copyFailed': 'Could not copy prompt to clipboard.',
   'chatgpt.pasteEmpty': 'Paste ChatGPT JSON first.',
-  'chatgpt.missingIdentity': 'JSON must include company_name or contact_name.',
+  'chatgpt.missingIdentity':
+    'JSON needs company_name or contact_name — paste the full ChatGPT object, not only atlas_eval scores.',
   'chatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object only.',
   'chatgpt.importFailed': 'Could not load lead data.',
 
@@ -1588,7 +1589,8 @@ const sr: Dict = {
   'chatgpt.loadSuccess': 'Polja leada učitana — proverite i sačuvajte.',
   'chatgpt.copyFailed': 'Kopiranje prompta nije uspelo.',
   'chatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON.',
-  'chatgpt.missingIdentity': 'JSON mora sadržati company_name ili contact_name.',
+  'chatgpt.missingIdentity':
+    'JSON mora imati company_name ili contact_name — nalepite ceo ChatGPT objekat, ne samo atlas_eval ocene.',
   'chatgpt.parseFailed': 'JSON nije moguće parsirati — tražite od ChatGPT-a samo JSON objekat.',
   'chatgpt.importFailed': 'Učitavanje podataka leada nije uspelo.',
 

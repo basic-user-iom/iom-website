@@ -90,11 +90,13 @@ Return ONLY a single JSON object (no markdown fences, no commentary) with these 
 Rules:
 - temperature: hot = strong fit / active opportunity; warm = promising; cold = long shot or research only
 - status: almost always "new" for a fresh lead
-- atlas_eval scores: integers 0 (unset) or 1–5 stars per field
+- atlas_eval scores: integers 0 (unset) or 1–5 stars per field (include can_hire_us and thinks_like_us)
 - value_emoji: "" or one of ❤️ 🎁 🤝 ⭐ (optional)
 - estimated_value: EUR number or null; use null with ❤️ or 🎁 for pro-bono / gift
 - Write initial_email_body ready to send — professional, concise, specific to their work
-- Include real URLs and emails only if you find them; do not invent contact details`
+- Include real URLs and emails only if you find them; do not invent contact details
+- Do NOT invent NDA status, passwords, or internal CRM workflow fields — NDA is handled later on the lead card after the lead is saved
+- Return the FULL object with company_name and/or contact_name — never atlas_eval scores alone`
 }
 
 function extractJsonObject(raw: string): unknown {
@@ -104,16 +106,25 @@ function extractJsonObject(raw: string): unknown {
   const fenceMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i)
   const candidate = fenceMatch ? fenceMatch[1].trim() : trimmed
 
-  try {
-    return JSON.parse(candidate)
-  } catch {
-    const start = candidate.indexOf('{')
-    const end = candidate.lastIndexOf('}')
-    if (start >= 0 && end > start) {
-      return JSON.parse(candidate.slice(start, end + 1))
+  const tryParse = (text: string): unknown => {
+    try {
+      return JSON.parse(text)
+    } catch {
+      return null
     }
-    throw new Error('invalid_json')
   }
+
+  const direct = tryParse(candidate)
+  if (direct !== null) return direct
+
+  const start = candidate.indexOf('{')
+  const end = candidate.lastIndexOf('}')
+  if (start >= 0 && end > start) {
+    const sliced = tryParse(candidate.slice(start, end + 1))
+    if (sliced !== null) return sliced
+  }
+
+  throw new Error('invalid_json')
 }
 
 function asString(value: unknown): string {
