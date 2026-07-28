@@ -7,7 +7,8 @@ import { getDeviceProfile } from '../utils/device'
 import { persistMute, readStoredMute } from '../utils/audioPrefs'
 import { toggleSiteMute } from './SiteAmbientAudio'
 
-const RAVEN_POSTER = '/assets/raven_poster.svg'
+const RAVEN_POSTER = '/assets/raven_mascot.webp?v=20260728'
+const RAVEN_POSTER_2X = '/assets/raven_mascot@2x.webp?v=20260728'
 const RAVEN_VIDEO = '/assets/raven_crop.mp4'
 
 export function Header() {
@@ -75,6 +76,7 @@ export function Header() {
             <img
               className="raven-mascot"
               src={RAVEN_POSTER}
+              srcSet={`${RAVEN_POSTER} 1x, ${RAVEN_POSTER_2X} 2x`}
               alt=""
               width={44}
               height={44}
