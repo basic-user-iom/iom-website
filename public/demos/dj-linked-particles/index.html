@@ -194,25 +194,92 @@
         contain: strict;
       }
       #css3d-layer.is-hidden { visibility: hidden; }
-      /* Kept small on purpose: this layer is composited every frame, and the
-         panel only covers a few hundred screen pixels while it orbits.
-         Avoid heavy shadows/radius — they make CSS3D orbit stutter on weak GPUs. */
-      .monitor-screen {
-        width: 400px;
-        height: 225px;
-        position: relative;
-        overflow: hidden;
-        background: #000;
-        border: 5px solid #0f1116;
-        border-radius: 4px;
-        box-shadow: 0 0 28px rgba(96, 140, 255, 0.22);
-        will-change: transform, opacity;
-        backface-visibility: hidden;
-      }
-      .monitor-deck {
-        position: absolute;
-        inset: 0;
-      }
+      /* Shell = bezel + fake env reflection + glass glare + audio rim.
+         True scene reflections need a WebGL RT; this fakes surroundings
+         from orbit angle + particle palette without an extra GPU pass. */
+      .monitor-shell {
+        position: relative;
+        width: 424px;
+        height: 249px;
+        padding: 12px;
+        box-sizing: border-box;
+        border-radius: 10px;
+        background:
+          linear-gradient(145deg, #3a3f4a 0%, #12151c 28%, #2a303c 52%, #0a0c10 78%, #4a5568 100%);
+        box-shadow:
+          0 0 0 1px rgba(255, 255, 255, 0.08),
+          0 10px 28px rgba(0, 0, 0, 0.55),
+          0 0 36px var(--monitor-glow, rgba(96, 140, 255, 0.28));
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+        --monitor-glow: rgba(96, 140, 255, 0.28);
+        --monitor-rim: rgba(120, 180, 255, 0.55);
+        --monitor-env: 0deg;
+        --monitor-glare: 18%;
+        --monitor-pulse: 0;
+      }
+      .monitor-shell::before {
+        content: "";
+        position: absolute;
+        inset: 3px;
+        border-radius: 8px;
+        pointer-events: none;
+        background: conic-gradient(
+          from var(--monitor-env),
+          rgba(255, 255, 255, 0.22),
+          rgba(120, 180, 255, 0.08),
+          rgba(255, 120, 200, 0.12),
+          rgba(80, 255, 200, 0.1),
+          rgba(255, 255, 255, 0.05),
+          rgba(255, 255, 255, 0.22)
+        );
+        opacity: 0.55;
+        mix-blend-mode: screen;
+        z-index: 1;
+      }
+      .monitor-shell::after {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 5px;
+        pointer-events: none;
+        box-shadow:
+          inset 0 0 0 1px rgba(255, 255, 255, 0.14),
+          inset 0 0 18px rgba(0, 0, 0, 0.45),
+          0 0 0 calc(1px + var(--monitor-pulse) * 2px) var(--monitor-rim),
+          0 0 calc(18px + var(--monitor-pulse) * 28px) var(--monitor-glow);
+        z-index: 4;
+      }
+      .monitor-glare {
+        position: absolute;
+        inset: 12px;
+        border-radius: 3px;
+        pointer-events: none;
+        z-index: 3;
+        background: linear-gradient(
+          115deg,
+          transparent 0%,
+          transparent calc(var(--monitor-glare) - 8%),
+          rgba(255, 255, 255, 0.16) var(--monitor-glare),
+          transparent calc(var(--monitor-glare) + 10%),
+          transparent 100%
+        );
+        mix-blend-mode: screen;
+      }
+      .monitor-screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #000;
+        border-radius: 3px;
+        z-index: 2;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.65);
+      }
+      .monitor-deck {
+        position: absolute;
+        inset: 0;
+      }
       .monitor-deck iframe,
       .monitor-deck > div {
         width: 100% !important;
@@ -561,11 +628,13 @@
       let updateParticles, spawnParticles, getInstanceColor, bloomPass
       let cssRenderer, cssScene, monitorObject
       const monitorDeckEls = { A: null, B: null }
+      let monitorShellEl = null
       let monitorAngle = 0
       let monitorEnabled = true
       let monitorRaf = 0
       let monitorLastTs = 0
       let monitorFade = -1
+      let monitorFx = { pulse: 0, hue: 210 }
       let touchMode = null
       let drawingActive = false
 
@@ -2054,6 +2123,10 @@
       }
 
       function createOrbitingMonitor() {
+        const shell = document.createElement('div')
+        shell.className = 'monitor-shell'
+        const glare = document.createElement('div')
+        glare.className = 'monitor-glare'
         const screen = document.createElement('div')
         screen.className = 'monitor-screen'
 
@@ -2073,9 +2146,12 @@
           monitorDeckEls[name] = deckEl
         }
         document.querySelector('.dj-players')?.remove()
+        shell.appendChild(screen)
+        shell.appendChild(glare)
+        monitorShellEl = shell
 
         cssScene = new THREE.Scene()
-        monitorObject = new CSS3DObject(screen)
+        monitorObject = new CSS3DObject(shell)
         applyMonitorSize()
         cssScene.add(monitorObject)
 
@@ -2151,32 +2227,71 @@
         monitorRaf = 0
       }
 
-      function renderMonitorFrame(delta) {
-        if (!cssRenderer || !monitorObject || !camera) return
-
-        monitorAngle += delta * MONITOR_SPEED
-        monitorObject.position.set(
-          Math.cos(monitorAngle) * MONITOR_RADIUS,
-          Math.sin(monitorAngle * 0.6) * 0.9,
-          Math.sin(monitorAngle) * MONITOR_RADIUS,
-        )
-        monitorObject.lookAt(camera.position)
-
-        const behind = clamp(
-          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
-            MONITOR_RADIUS,
-          0,
-          1,
-        )
-        const fade = lerp(1, 0.5, behind)
-        if (Math.abs(fade - monitorFade) > 0.015) {
-          monitorFade = fade
-          monitorObject.element.style.opacity = String(fade)
-        }
-
-        cssRenderer.render(cssScene, camera)
-      }
-
+      function updateMonitorFx(delta) {
+        if (!monitorShellEl) return
+        const kick = audioState.onsets?.kick?.pulse || 0
+        const snare = audioState.onsets?.snare?.pulse || 0
+        const hat = audioState.onsets?.hat?.pulse || 0
+        const live = audioState.active && audioState.gateLevel > 0.03
+        const targetPulse = live
+          ? clamp(kick * 0.9 + snare * 0.45 + hat * 0.25 + audioState.beatPulse * 0.35, 0, 1.4)
+          : 0.08
+        monitorFx.pulse = approach(
+          monitorFx.pulse,
+          targetPulse,
+          targetPulse > monitorFx.pulse ? 22 : 7,
+          delta,
+        )
+        // Orbit angle drives the fake environment sweep; audio tints the rim.
+        const hue = live
+          ? (210 + audioState.smoothedBass * 40 + audioState.smoothedHighs * 80 + kick * 30) % 360
+          : 210 + Math.sin(monitorAngle) * 18
+        monitorFx.hue = approach(monitorFx.hue, hue, 4, delta)
+        const glowA = clamp(0.22 + monitorFx.pulse * 0.55, 0.18, 0.85)
+        const rimA = clamp(0.35 + monitorFx.pulse * 0.55, 0.3, 0.95)
+        monitorShellEl.style.setProperty('--monitor-env', ((monitorAngle * 57.3) % 360).toFixed(1) + 'deg')
+        monitorShellEl.style.setProperty(
+          '--monitor-glare',
+          (18 + Math.sin(monitorAngle * 1.7) * 28 + monitorFx.pulse * 12).toFixed(1) + '%',
+        )
+        monitorShellEl.style.setProperty('--monitor-pulse', monitorFx.pulse.toFixed(3))
+        monitorShellEl.style.setProperty(
+          '--monitor-glow',
+          'hsla(' + monitorFx.hue.toFixed(0) + ', 85%, 62%, ' + glowA.toFixed(3) + ')',
+        )
+        monitorShellEl.style.setProperty(
+          '--monitor-rim',
+          'hsla(' + (monitorFx.hue + 40).toFixed(0) + ', 90%, 70%, ' + rimA.toFixed(3) + ')',
+        )
+      }
+
+      function renderMonitorFrame(delta) {
+        if (!cssRenderer || !monitorObject || !camera) return
+
+        monitorAngle += delta * MONITOR_SPEED
+        monitorObject.position.set(
+          Math.cos(monitorAngle) * MONITOR_RADIUS,
+          Math.sin(monitorAngle * 0.6) * 0.9,
+          Math.sin(monitorAngle) * MONITOR_RADIUS,
+        )
+        monitorObject.lookAt(camera.position)
+        updateMonitorFx(delta)
+
+        const behind = clamp(
+          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
+            MONITOR_RADIUS,
+          0,
+          1,
+        )
+        const fade = lerp(1, 0.5, behind)
+        if (Math.abs(fade - monitorFade) > 0.015) {
+          monitorFade = fade
+          monitorObject.element.style.opacity = String(fade)
+        }
+
+        cssRenderer.render(cssScene, camera)
+      }
+
       /** Dial spawn/bloom/pixel-ratio down when frame time stays high. */
       function updateAutoQuality(delta) {
         if (!delta) return
