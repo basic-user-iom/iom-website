@@ -1,38 +1,58 @@
-import { memo, useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
 import { ContactForm } from './ContactForm'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 import { useSiteI18n } from '../i18n'
 
+function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  })
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const sync = () => setReduced(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  return reduced
+}
+
+/** Fine pointer + hover — desktop-style pointer play. */
 function useCanHoverPlay(): boolean {
+  const reduced = usePrefersReducedMotion()
   const [canHover, setCanHover] = useState(() => {
     if (typeof window === 'undefined') return false
-    return (
-      window.matchMedia('(hover: hover) and (pointer: fine)').matches &&
-      !window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    )
+    return window.matchMedia('(hover: hover) and (pointer: fine)').matches
   })
 
   useEffect(() => {
     const hoverMq = window.matchMedia('(hover: hover) and (pointer: fine)')
-    const motionMq = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const sync = () => setCanHover(hoverMq.matches && !motionMq.matches)
+    const sync = () => setCanHover(hoverMq.matches)
     sync()
     hoverMq.addEventListener('change', sync)
-    motionMq.addEventListener('change', sync)
-    return () => {
-      hoverMq.removeEventListener('change', sync)
-      motionMq.removeEventListener('change', sync)
-    }
+    return () => hoverMq.removeEventListener('change', sync)
   }, [])
 
-  return canHover
+  return canHover && !reduced
 }
 
-const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
+type PortraitMode = 'hover' | 'scroll' | 'still'
+
+const TeamCard = memo(function TeamCard({
+  member,
+  mode,
+  scrollActive,
+}: {
+  member: TeamMember
+  mode: PortraitMode
+  scrollActive: boolean
+}) {
   const { t } = useSiteI18n()
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canHoverPlay = useCanHoverPlay()
   const candidates = useMemo(() => {
     if (!member.portraitBase) return [] as string[]
     return TEAM_PORTRAIT_EXTS.map((ext) => `${member.portraitBase}${ext}`)
@@ -45,27 +65,54 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
   const role = t(`team.${member.id}.role`)
   const philosophy = t(`team.${member.id}.philosophy`)
   const rfoStage = t(`team.${member.id}.rfoStage`)
-  const useHoverVideo = Boolean(member.portraitVideo) && canHoverPlay
+  const showVideo = Boolean(member.portraitVideo) && mode !== 'still'
 
-  const playPortraitVideo = () => {
+  const playPortraitVideo = useCallback(() => {
     const video = videoRef.current
     if (!video) return
+    if (video.readyState < 2) {
+      try {
+        video.load()
+      } catch {
+        /* ignore */
+      }
+    }
     void video.play().then(() => setVideoActive(true)).catch(() => {})
-  }
+  }, [])
 
-  const pausePortraitVideo = () => {
+  const pausePortraitVideo = useCallback(() => {
     const video = videoRef.current
     if (!video) return
     video.pause()
-    video.currentTime = 0
+    try {
+      video.currentTime = 0
+    } catch {
+      /* ignore */
+    }
     setVideoActive(false)
-  }
+  }, [])
+
+  // Mobile / coarse: only the card in view plays; neighbors stop.
+  useEffect(() => {
+    if (mode !== 'scroll' || !showVideo) return
+    if (scrollActive) playPortraitVideo()
+    else pausePortraitVideo()
+  }, [mode, scrollActive, showVideo, playPortraitVideo, pausePortraitVideo])
+
+  useEffect(() => {
+    return () => {
+      const video = videoRef.current
+      if (!video) return
+      video.pause()
+    }
+  }, [])
 
   return (
     <li
       className={`about-team-card about-team-card--${member.id}`}
-      onPointerEnter={useHoverVideo ? playPortraitVideo : undefined}
-      onPointerLeave={useHoverVideo ? pausePortraitVideo : undefined}
+      data-member-id={member.id}
+      onPointerEnter={mode === 'hover' ? playPortraitVideo : undefined}
+      onPointerLeave={mode === 'hover' ? pausePortraitVideo : undefined}
     >
       <div className="about-team-visual" aria-hidden="true">
         {showImage ? (
@@ -82,7 +129,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
         ) : (
           <span className="about-team-monogram">{member.initials}</span>
         )}
-        {useHoverVideo && member.portraitVideo ? (
+        {showVideo && member.portraitVideo ? (
           <video
             ref={videoRef}
             className={`about-team-photo about-team-photo--video${videoActive ? ' is-active' : ''}`}
@@ -90,7 +137,7 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
             muted
             loop
             playsInline
-            preload="metadata"
+            preload={mode === 'scroll' ? 'none' : 'metadata'}
           />
         ) : null}
       </div>
@@ -122,6 +169,53 @@ const TeamCard = memo(function TeamCard({ member }: { member: TeamMember }) {
 export const About = memo(function About() {
   const orbs = useSiteOrbsOptional()
   const { t } = useSiteI18n()
+  const canHoverPlay = useCanHoverPlay()
+  const reducedMotion = usePrefersReducedMotion()
+  const portraitMode: PortraitMode = reducedMotion ? 'still' : canHoverPlay ? 'hover' : 'scroll'
+  const [scrollActiveId, setScrollActiveId] = useState<string | null>(null)
+  const teamListRef = useRef<HTMLUListElement>(null)
+
+  useEffect(() => {
+    if (portraitMode !== 'scroll') {
+      setScrollActiveId(null)
+      return
+    }
+
+    const root = teamListRef.current
+    if (!root) return
+
+    const ratios = new Map<string, number>()
+    const pick = () => {
+      let best: string | null = null
+      let bestRatio = 0.45
+      for (const [id, ratio] of ratios) {
+        if (ratio > bestRatio) {
+          bestRatio = ratio
+          best = id
+        }
+      }
+      setScrollActiveId((prev) => (prev === best ? prev : best))
+    }
+
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const id = (entry.target as HTMLElement).dataset.memberId
+          if (!id) continue
+          ratios.set(id, entry.isIntersecting ? entry.intersectionRatio : 0)
+        }
+        pick()
+      },
+      {
+        threshold: [0, 0.25, 0.4, 0.55, 0.7, 0.85, 1],
+        // Bias toward the card centered in the viewport while scrolling the stack.
+        rootMargin: '-18% 0px -28% 0px',
+      },
+    )
+
+    root.querySelectorAll<HTMLElement>('[data-member-id]').forEach((el) => io.observe(el))
+    return () => io.disconnect()
+  }, [portraitMode])
 
   return (
     <>
@@ -235,9 +329,14 @@ export const About = memo(function About() {
         </div>
 
         <p className="about-team-label">{t('about.teamLabel')}</p>
-        <ul className="about-team">
+        <ul className="about-team" ref={teamListRef}>
           {TEAM.map((member) => (
-            <TeamCard key={member.id} member={member} />
+            <TeamCard
+              key={member.id}
+              member={member}
+              mode={portraitMode}
+              scrollActive={portraitMode === 'scroll' && scrollActiveId === member.id}
+            />
           ))}
         </ul>
 

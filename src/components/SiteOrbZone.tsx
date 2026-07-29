@@ -343,6 +343,8 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
     let anchors: OrbitAnchor[] = []
     let heroLive = Boolean(zone.querySelector('.hero-canvas-wrap--live'))
     let evacuateBoost = 0
+    let scrollAttendEl: HTMLElement | null = null
+    let scrollAttendId = ''
 
     const onHeroLive = (event: Event) => {
       const detail = (event as CustomEvent<{ live?: boolean }>).detail
@@ -479,7 +481,38 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
       const dt = dtMs / 1000
 
       // Mobile: skip alternate frames when not hovering to cut main-thread cost.
-      const hoverTarget = resolveHoverTarget()
+      let hoverTarget = resolveHoverTarget()
+      let effectiveHoverKind = hoverRef.current.kind
+
+      // Coarse pointers can't hover — attend the most visible project card instead.
+      if (mobile && !hoverTarget && !heroLive) {
+        if (frame % 6 === 0) {
+          const vhNow = window.innerHeight
+          let bestEl: HTMLElement | null = null
+          let bestRatio = 0
+          zone.querySelectorAll<HTMLElement>('.project-card').forEach((card) => {
+            if (card.classList.contains('project-card--coming-soon')) return
+            const box = card.getBoundingClientRect()
+            const visible = Math.max(0, Math.min(box.bottom, vhNow) - Math.max(box.top, 0))
+            if (visible <= 0) return
+            const ratio = visible / Math.min(box.height, vhNow)
+            if (ratio > bestRatio) {
+              bestRatio = ratio
+              bestEl = card
+            }
+          })
+          scrollAttendEl = bestRatio >= 0.48 ? bestEl : null
+          scrollAttendId = scrollAttendEl?.id ?? ''
+        }
+        if (scrollAttendEl?.isConnected) {
+          hoverTarget = scrollAttendEl
+          effectiveHoverKind = 'card'
+        } else {
+          scrollAttendEl = null
+          scrollAttendId = ''
+        }
+      }
+
       if (mobile && !hoverTarget && frame % 2 === 1) {
         raf = window.requestAnimationFrame(tick)
         return
@@ -589,22 +622,22 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
       }
 
       const easeRelease = 1 - Math.pow(1 - FOLLOW_RELEASE, dtMs / 16.67)
-      const hoverKind = hoverRef.current.kind
+      const hoverKind = effectiveHoverKind
       const key =
-        hoverKind != null
-          ? `${hoverKind}:${hoverRef.current.index ?? ''}:${hoverRef.current.el?.id ?? ''}`
+        hoverTarget != null
+          ? `${hoverKind ?? 'card'}:${hoverRef.current.index ?? ''}:${hoverTarget.id || scrollAttendId}`
           : ''
 
       if (hoverTarget) {
         releaseBlend = 0
         const box = hoverTarget.getBoundingClientRect()
         const { x: mx, y: my } = centerInZone(hoverTarget, zone)
-        // RFO / hero button: hug the control. Client tiles: circular ring.
-        // Cards: follow the rectangular outline (not a circle).
+        // RFO: hug the letter. Cards / hero window: rectangular outline.
+        // Client tiles: circular ring outside the mark.
         let radius = 0
         let rectHalfW = 0
         let rectHalfH = 0
-        const useRectPath = hoverKind === 'card' || hoverKind === 'hero'
+        const useRectPath = hoverKind === 'card' || hoverKind === 'hero' || scrollAttendEl === hoverTarget
         if (hoverKind === 'rfo') {
           const circleR = Math.min(box.width, box.height) * 0.5
           radius = Math.max(20, circleR + 14)
@@ -657,8 +690,13 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
         if (arriveBlend > 0) arriveBlend = Math.max(0, arriveBlend - dtMs / ARRIVE_MS)
 
         const spin = 0.28 + 0.72 * (1 - arriveBlend) ** 1.15
-        // Cards: half-then-slower along the outline. Hero window: same rect path, a bit quicker.
-        const speedScale = hoverKind === 'card' ? 0.375 : hoverKind === 'hero' ? 0.275 : 1
+        // Cards (incl. mobile scroll-attend): slow outline. Hero window: moderate.
+        const speedScale =
+          hoverKind === 'card' || scrollAttendEl === hoverTarget
+            ? 0.375
+            : hoverKind === 'hero'
+              ? 0.275
+              : 1
         hoverPhase += (dtMs / HOVER_ORBIT_MS) * TAU * spin * speedScale
         if (hoverPhase > TAU) hoverPhase -= TAU
 
