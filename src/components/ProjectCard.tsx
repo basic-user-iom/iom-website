@@ -1,8 +1,9 @@
-import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import type { Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
+import { useSiteOrbsOptional } from './SiteOrbZone'
 
 const GalleryLightbox = lazy(() =>
   import('./GalleryLightbox').then((m) => ({ default: m.GalleryLightbox })),
@@ -58,6 +59,7 @@ export const ProjectCard = memo(function ProjectCard({
   onMusicSelect,
 }: ProjectCardProps) {
   const { t, href } = useSiteI18n()
+  const orbs = useSiteOrbsOptional()
   const [embedFailed, setEmbedFailed] = useState(false)
   const [embedLoaded, setEmbedLoaded] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
@@ -99,15 +101,37 @@ export const ProjectCard = memo(function ProjectCard({
   const showPoster = canEmbed && Boolean(posterUrl)
   const posterHidden = showIframe && embedLoaded
   const thumbSrc = staticPreviewUrl ?? project.posterUrl ?? ''
-  const thumbSrcSet =
-    project.mobilePosterUrl && project.posterUrl && project.mobilePosterUrl !== project.posterUrl
-      ? `${project.mobilePosterUrl} 400w, ${project.posterUrl} 800w`
-      : undefined
+  const posterSizes = project.featured
+    ? '(max-width: 720px) 92vw, (min-width: 900px) min(48vw, 720px), 520px'
+    : '(max-width: 720px) 92vw, 400px'
   const posterSrcSet =
     project.mobilePosterUrl && posterUrl && project.mobilePosterUrl !== posterUrl
-      ? `${project.mobilePosterUrl} 400w, ${posterUrl} 800w`
+      ? `${project.mobilePosterUrl} 400w, ${posterUrl} 1280w`
       : undefined
-  const posterSizes = '(max-width: 720px) 92vw, 400px'
+  const thumbSrcSet =
+    project.mobilePosterUrl && project.posterUrl && project.mobilePosterUrl !== project.posterUrl
+      ? `${project.mobilePosterUrl} 400w, ${project.posterUrl} 1280w`
+      : undefined
+
+  const handleOrbEnter = useCallback(
+    (el: HTMLElement) => {
+      orbs?.setHover('card', 0, el)
+    },
+    [orbs],
+  )
+
+  const handleOrbLeave = useCallback(() => {
+    orbs?.setHover(null, null)
+  }, [orbs])
+
+  const orbPointerProps = orbs
+    ? {
+        onPointerEnter: (event: PointerEvent<HTMLElement>) => {
+          handleOrbEnter(event.currentTarget)
+        },
+        onPointerLeave: handleOrbLeave,
+      }
+    : undefined
 
   useEffect(() => {
     mountedRef.current = true
@@ -341,12 +365,11 @@ export const ProjectCard = memo(function ProjectCard({
             <div className="card-footer-action">
               {project.url && hasSecondaryLinks ? (
                 <a
-                  className="card-link"
+                  className="card-link card-link--stretch"
                   href={projectHref}
                   {...(project.url.startsWith('http') || project.url.startsWith('/demos/')
                     ? { target: '_blank' as const, rel: 'noopener noreferrer' }
                     : {})}
-                  onClick={(event) => event.stopPropagation()}
                 >
                   {project.url.startsWith('/case-studies/') && !project.caseStudyPath
                     ? t('card.viewStudy')
@@ -407,6 +430,7 @@ export const ProjectCard = memo(function ProjectCard({
         className={className}
         style={style}
         {...(openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
+        {...orbPointerProps}
       >
         {inner}
       </a>
@@ -419,6 +443,7 @@ export const ProjectCard = memo(function ProjectCard({
         id={project.id}
         className={`${className} project-card--multi-link`}
         style={style}
+        {...orbPointerProps}
       >
         {inner}
       </article>
@@ -432,6 +457,7 @@ export const ProjectCard = memo(function ProjectCard({
         className={className}
         style={style}
         onClick={isComingSoon ? undefined : hasGallery ? openGallery : hasMusicTrack ? selectMusicTrack : undefined}
+        {...orbPointerProps}
       >
         {inner}
       </article>

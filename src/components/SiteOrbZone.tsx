@@ -13,18 +13,19 @@ import { CLIENTS } from '../data/clients'
 
 export const ORB_COUNT = 3
 
-type HoverKind = 'client' | 'rfo' | null
+type HoverKind = 'client' | 'rfo' | 'hero' | 'card' | null
 
 type HoverState = {
   kind: HoverKind
   index: number | null
+  el: HTMLElement | null
 }
 
 type SiteOrbApi = {
   zoneRef: RefObject<HTMLDivElement | null>
   clientMarksRef: RefObject<(HTMLElement | null)[]>
   rfoNodesRef: RefObject<(HTMLElement | null)[]>
-  setHover: (kind: HoverKind, index: number | null) => void
+  setHover: (kind: HoverKind, index: number | null, el?: HTMLElement | null) => void
 }
 
 const SiteOrbContext = createContext<SiteOrbApi | null>(null)
@@ -156,11 +157,105 @@ function centerInZone(el: HTMLElement, zone: HTMLElement): { x: number; y: numbe
   }
 }
 
+/** Orbit around the part of the element currently on screen (tall grids stay in view). */
+function centerInZoneVisible(el: HTMLElement, zone: HTMLElement): {
+  x: number
+  y: number
+  visibleH: number
+  visibleW: number
+} {
+  const er = el.getBoundingClientRect()
+  const zr = zone.getBoundingClientRect()
+  const vh = window.innerHeight
+  const vw = window.innerWidth
+  const top = Math.max(er.top, 0)
+  const bottom = Math.min(er.bottom, vh)
+  const left = Math.max(er.left, 0)
+  const right = Math.min(er.right, vw)
+  const visibleH = Math.max(1, bottom - top)
+  const visibleW = Math.max(1, right - left)
+  return {
+    x: left + visibleW / 2 - zr.left,
+    y: top + visibleH / 2 - zr.top,
+    visibleH,
+    visibleW,
+  }
+}
+
 function normalizeAngle(a: number): number {
   let x = a % TAU
   if (x > Math.PI) x -= TAU
   if (x < -Math.PI) x += TAU
   return x
+}
+
+/** Point on a rectangle outline; t is 0..1 starting at top-left, clockwise. */
+function pointOnRectPerimeter(
+  cx: number,
+  cy: number,
+  halfW: number,
+  halfH: number,
+  t: number,
+): { x: number; y: number } {
+  const w = Math.max(8, halfW * 2)
+  const h = Math.max(8, halfH * 2)
+  const perim = 2 * (w + h)
+  let d = (((t % 1) + 1) % 1) * perim
+  if (d <= w) return { x: cx - halfW + d, y: cy - halfH }
+  d -= w
+  if (d <= h) return { x: cx + halfW, y: cy - halfH + d }
+  d -= h
+  if (d <= w) return { x: cx + halfW - d, y: cy + halfH }
+  d -= w
+  return { x: cx - halfW, y: cy + halfH - d }
+}
+
+/** Nearest perimeter progress (0..1) for a point near a rectangle outline. */
+function rectPerimeterT(
+  cx: number,
+  cy: number,
+  halfW: number,
+  halfH: number,
+  x: number,
+  y: number,
+): number {
+  const left = cx - halfW
+  const right = cx + halfW
+  const top = cy - halfH
+  const bottom = cy + halfH
+  const w = Math.max(8, right - left)
+  const h = Math.max(8, bottom - top)
+  const perim = 2 * (w + h)
+
+  const dl = Math.abs(x - left)
+  const dr = Math.abs(x - right)
+  const dt = Math.abs(y - top)
+  const db = Math.abs(y - bottom)
+  const m = Math.min(dl, dr, dt, db)
+
+  let qx: number
+  let qy: number
+  if (m === dt) {
+    qx = Math.min(right, Math.max(left, x))
+    qy = top
+  } else if (m === dr) {
+    qx = right
+    qy = Math.min(bottom, Math.max(top, y))
+  } else if (m === db) {
+    qx = Math.min(right, Math.max(left, x))
+    qy = bottom
+  } else {
+    qx = left
+    qy = Math.min(bottom, Math.max(top, y))
+  }
+
+  let dist: number
+  if (Math.abs(qy - top) <= 0.5) dist = qx - left
+  else if (Math.abs(qx - right) <= 0.5) dist = w + (qy - top)
+  else if (Math.abs(qy - bottom) <= 0.5) dist = w + h + (right - qx)
+  else dist = w + h + w + (bottom - qy)
+
+  return ((dist / perim) % 1 + 1) % 1
 }
 
 function assignRingSlots(
@@ -195,15 +290,22 @@ function assignRingSlots(
   return bodyToSlot
 }
 
-/** One orb set spanning Clients → RFO. */
+type OrbitKind = 'hero' | 'section' | 'clients' | 'rfo'
+
+type OrbitAnchor = {
+  el: HTMLElement
+  kind: OrbitKind
+}
+
+/** One orb set that follows the page: hero scene → project sections → Clients → RFO. */
 export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: ReactNode }) {
   const zoneRef = useRef<HTMLDivElement>(null)
   const clientMarksRef = useRef<(HTMLElement | null)[]>([])
   const rfoNodesRef = useRef<(HTMLElement | null)[]>([])
-  const hoverRef = useRef<HoverState>({ kind: null, index: null })
+  const hoverRef = useRef<HoverState>({ kind: null, index: null, el: null })
 
-  const setHover = useCallback((kind: HoverKind, index: number | null) => {
-    hoverRef.current = { kind, index }
+  const setHover = useCallback((kind: HoverKind, index: number | null, el?: HTMLElement | null) => {
+    hoverRef.current = { kind, index, el: el ?? null }
   }, [])
 
   const api = useMemo<SiteOrbApi>(
@@ -238,21 +340,130 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
     const prevDisp = bodies.map(() => ({ x: 0, y: 0 }))
     const colorI = CLIENTS.map(() => 0)
     let seededDisp = false
+    let anchors: OrbitAnchor[] = []
+    let heroLive = Boolean(zone.querySelector('.hero-canvas-wrap--live'))
+    let evacuateBoost = 0
+
+    const onHeroLive = (event: Event) => {
+      const detail = (event as CustomEvent<{ live?: boolean }>).detail
+      if (detail?.live === false) {
+        heroLive = false
+        return
+      }
+      heroLive = true
+      evacuateBoost = 1
+      hoverRef.current = { kind: null, index: null, el: null }
+      zone.classList.add('site-orb-zone--hero-live')
+    }
+    window.addEventListener('iom:hero-live', onHeroLive)
 
     const io = new IntersectionObserver(
       ([entry]) => {
         zoneActive = entry?.isIntersecting ?? false
         zone.classList.toggle('is-in-view', zoneActive)
       },
-      { threshold: 0.05, rootMargin: '10% 0px' },
+      { threshold: 0.02, rootMargin: '12% 0px' },
     )
     io.observe(zone)
 
+    const refreshAnchors = () => {
+      const next: OrbitAnchor[] = []
+      const hero = zone.querySelector('.hero-canvas-wrap') as HTMLElement | null
+      if (hero) {
+        if (hero.classList.contains('hero-canvas-wrap--live')) heroLive = true
+        next.push({ el: hero, kind: 'hero' })
+      }
+
+      zone.querySelectorAll<HTMLElement>('.section-block').forEach((section) => {
+        const media =
+          (section.querySelector(
+            '.project-grid, .music-player-visual-wrap, .music-player-shell, .music-player',
+          ) as HTMLElement | null) ?? section
+        next.push({ el: media, kind: 'section' })
+      })
+
+      const clients = zone.querySelector('.clients-stage') as HTMLElement | null
+      if (clients) next.push({ el: clients, kind: 'clients' })
+
+      const rfo = zone.querySelector('#rfo') as HTMLElement | null
+      if (rfo) next.push({ el: rfo, kind: 'rfo' })
+
+      anchors = next
+    }
+    refreshAnchors()
+    if (heroLive) zone.classList.add('site-orb-zone--hero-live')
+
     const resolveHoverTarget = (): HTMLElement | null => {
-      const { kind, index } = hoverRef.current
+      const { kind, index, el } = hoverRef.current
+      if (el?.isConnected) return el
       if (kind == null || index == null) return null
       if (kind === 'client') return clientMarksRef.current[index] ?? null
-      return rfoNodesRef.current[index] ?? null
+      if (kind === 'rfo') return rfoNodesRef.current[index] ?? null
+      return null
+    }
+
+    const visibilityScore = (box: DOMRect, vh: number) => {
+      const top = Math.max(box.top, 0)
+      const bottom = Math.min(box.bottom, vh)
+      const visible = Math.max(0, bottom - top)
+      if (visible <= 0) return 0
+      // Prefer anchors near the middle of the viewport so the handoff feels smooth.
+      const mid = (box.top + box.bottom) / 2
+      const centerBias = 1 - Math.min(1, Math.abs(mid - vh * 0.42) / (vh * 0.7))
+      return visible * (0.55 + 0.45 * centerBias)
+    }
+
+    const applyOrbitFor = (
+      kind: OrbitKind,
+      el: HTMLElement,
+      box: DOMRect,
+      w: number,
+    ): { cx: number; cy: number; rx: number; ry: number } => {
+      if (kind === 'hero') {
+        const c = centerInZone(el, zone)
+        return {
+          cx: c.x,
+          cy: c.y,
+          rx: Math.max(64, box.width * 0.44),
+          ry: Math.max(48, box.height * 0.38),
+        }
+      }
+      if (kind === 'rfo') {
+        const c = centerInZone(el, zone)
+        return {
+          cx: c.x,
+          cy: c.y,
+          rx: Math.max(48, Math.min(w * 0.28, 220)),
+          ry: Math.max(24, Math.min(70, box.height * 0.28)),
+        }
+      }
+      if (kind === 'clients') {
+        const c = centerInZone(el, zone)
+        return {
+          cx: c.x,
+          cy: c.y,
+          rx: Math.max(56, box.width * 0.38),
+          ry: Math.max(40, box.height * 0.34),
+        }
+      }
+      // Project / music media: orbit the visible slice so tall grids stay on-screen.
+      // If the section is still below the fold (hero-live evacuate), aim at its top edge.
+      if (box.top > window.innerHeight * 0.28) {
+        const zr = zone.getBoundingClientRect()
+        return {
+          cx: box.left + box.width * 0.5 - zr.left,
+          cy: box.top + Math.min(90, Math.max(36, box.height * 0.1)) - zr.top,
+          rx: Math.max(64, Math.min(box.width * 0.34, w * 0.34)),
+          ry: Math.max(32, 64),
+        }
+      }
+      const c = centerInZoneVisible(el, zone)
+      return {
+        cx: c.x,
+        cy: c.y,
+        rx: Math.max(72, Math.min(c.visibleW * 0.42, w * 0.4)),
+        ry: Math.max(44, Math.min(c.visibleH * 0.36, 150)),
+      }
     }
 
     const tick = (ts: number) => {
@@ -282,45 +493,74 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
 
       const w = zone.clientWidth
       const h = zone.clientHeight
-      const clientsEl = zone.querySelector('.clients-stage') as HTMLElement | null
-      const rfoEl = zone.querySelector('#rfo') as HTMLElement | null
+      if (frame % 45 === 1) refreshAnchors()
 
-      // Free-orbit around the logo stage (not the whole clients block with titles).
+      // Free-orbit around the most visible page anchor (hero scene, grids, clients, RFO).
       let cx = w / 2
-      let cy = h * 0.22
+      let cy = Math.min(h * 0.35, window.innerHeight * 0.45)
       let rx = Math.max(40, w * 0.42)
       let ry = Math.max(28, Math.min(120, h * 0.08))
+      let freeRect: { halfW: number; halfH: number } | null = null
 
-      const clientsBox = clientsEl?.getBoundingClientRect()
-      const rfoBox = rfoEl?.getBoundingClientRect()
       const vh = window.innerHeight
-      const score = (box: DOMRect | undefined) => {
-        if (!box) return 0
-        const top = Math.max(box.top, 0)
-        const bottom = Math.min(box.bottom, vh)
-        return Math.max(0, bottom - top)
+      let best: OrbitAnchor | null = null
+      let bestScore = 0
+      let bestBox: DOMRect | null = null
+      for (const anchor of anchors) {
+        if (!anchor.el.isConnected) continue
+        // Once the raven live scene starts, leave the hero frame for the page below.
+        if (heroLive && anchor.kind === 'hero') continue
+        if (hoverRef.current.kind === 'hero' && heroLive) {
+          hoverRef.current = { kind: null, index: null, el: null }
+        }
+        const box = anchor.el.getBoundingClientRect()
+        const s = visibilityScore(box, vh)
+        if (s > bestScore) {
+          bestScore = s
+          best = anchor
+          bestBox = box
+        }
       }
-      const clientsScore = score(clientsBox)
-      const rfoScore = score(rfoBox)
-      if (rfoScore > clientsScore && rfoBox && rfoEl) {
-        const c = centerInZone(rfoEl, zone)
-        cx = c.x
-        cy = c.y
-        rx = Math.max(48, Math.min(w * 0.28, 220))
-        ry = Math.max(24, Math.min(70, rfoBox.height * 0.28))
-      } else if (clientsBox && clientsEl) {
-        const c = centerInZone(clientsEl, zone)
-        cx = c.x
-        cy = c.y
-        rx = Math.max(56, clientsBox.width * 0.38)
-        ry = Math.max(40, clientsBox.height * 0.34)
+      if (heroLive && bestScore < 48) {
+        const nextSection = anchors.find((a) => a.kind === 'section' && a.el.isConnected)
+        if (nextSection) {
+          best = nextSection
+          bestBox = nextSection.el.getBoundingClientRect()
+          bestScore = 100
+        }
+      }
+      if (best && bestBox && bestScore > 8) {
+        if (best.kind === 'hero') {
+          const c = centerInZone(best.el, zone)
+          cx = c.x
+          cy = c.y
+          freeRect = {
+            halfW: bestBox.width * 0.5 + 12,
+            halfH: bestBox.height * 0.5 + 12,
+          }
+        } else {
+          const orbit = applyOrbitFor(best.kind, best.el, bestBox, w)
+          cx = orbit.cx
+          cy = orbit.cy
+          rx = orbit.rx
+          ry = orbit.ry
+        }
+      }
+      if (evacuateBoost > 0) {
+        evacuateBoost = Math.max(0, evacuateBoost - dtMs / 1400)
       }
 
       for (const b of bodies) {
-        b.angle += b.dir * ((Math.PI * 2) / b.period) * dt * FREE_SPEED
+        b.angle += b.dir * ((Math.PI * 2) / b.period) * dt * FREE_SPEED * (freeRect ? 0.275 : 1)
       }
 
-      const bases = bodies.map((b) => orbitPoint(cx, cy, rx, ry, b))
+      const bases = bodies.map((b, i) => {
+        if (freeRect) {
+          const t = (((b.angle / TAU) % 1) + 1 + i / ORB_COUNT) % 1
+          return pointOnRectPerimeter(cx, cy, freeRect.halfW, freeRect.halfH, t)
+        }
+        return orbitPoint(cx, cy, rx, ry, b)
+      })
       const targets = bases.map((base, i) => {
         let tx = base.x
         let ty = base.y
@@ -349,22 +589,28 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
       }
 
       const easeRelease = 1 - Math.pow(1 - FOLLOW_RELEASE, dtMs / 16.67)
+      const hoverKind = hoverRef.current.kind
       const key =
-        hoverRef.current.kind != null && hoverRef.current.index != null
-          ? `${hoverRef.current.kind}:${hoverRef.current.index}`
+        hoverKind != null
+          ? `${hoverKind}:${hoverRef.current.index ?? ''}:${hoverRef.current.el?.id ?? ''}`
           : ''
 
       if (hoverTarget) {
         releaseBlend = 0
         const box = hoverTarget.getBoundingClientRect()
         const { x: mx, y: my } = centerInZone(hoverTarget, zone)
-        const kind = hoverRef.current.kind
-        // Clients: ring near tile edge so logo/text stays clear in the center.
-        // RFO: hug the letter circle.
-        let radius: number
-        if (kind === 'rfo') {
+        // RFO / hero button: hug the control. Client tiles: circular ring.
+        // Cards: follow the rectangular outline (not a circle).
+        let radius = 0
+        let rectHalfW = 0
+        let rectHalfH = 0
+        const useRectPath = hoverKind === 'card' || hoverKind === 'hero'
+        if (hoverKind === 'rfo') {
           const circleR = Math.min(box.width, box.height) * 0.5
           radius = Math.max(20, circleR + 14)
+        } else if (useRectPath) {
+          rectHalfW = box.width * 0.5 + 12
+          rectHalfH = box.height * 0.5 + 12
         } else {
           // Orbit just outside the logo tile so brand art/text stays clear.
           const outside = Math.hypot(box.width, box.height) * 0.5 + 12
@@ -381,9 +627,23 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
               nearest = i
             }
           }
-          hoverPhase = Math.atan2(disp[nearest].y - my, disp[nearest].x - mx)
-          ringSlots = assignRingSlots(disp, mx, my, hoverPhase)
-          hoverPhase -= (ringSlots[nearest] * TAU) / ORB_COUNT
+          if (useRectPath) {
+            const nearestT = rectPerimeterT(
+              mx,
+              my,
+              rectHalfW,
+              rectHalfH,
+              disp[nearest].x,
+              disp[nearest].y,
+            )
+            hoverPhase = nearestT * TAU
+            ringSlots = assignRingSlots(disp, mx, my, hoverPhase)
+            hoverPhase -= (ringSlots[nearest] * TAU) / ORB_COUNT
+          } else {
+            hoverPhase = Math.atan2(disp[nearest].y - my, disp[nearest].x - mx)
+            ringSlots = assignRingSlots(disp, mx, my, hoverPhase)
+            hoverPhase -= (ringSlots[nearest] * TAU) / ORB_COUNT
+          }
           wasHovering = true
           hoverKey = key
           arriveBlend = 1
@@ -397,7 +657,9 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
         if (arriveBlend > 0) arriveBlend = Math.max(0, arriveBlend - dtMs / ARRIVE_MS)
 
         const spin = 0.28 + 0.72 * (1 - arriveBlend) ** 1.15
-        hoverPhase += (dtMs / HOVER_ORBIT_MS) * TAU * spin
+        // Cards: half-then-slower along the outline. Hero window: same rect path, a bit quicker.
+        const speedScale = hoverKind === 'card' ? 0.375 : hoverKind === 'hero' ? 0.275 : 1
+        hoverPhase += (dtMs / HOVER_ORBIT_MS) * TAU * spin * speedScale
         if (hoverPhase > TAU) hoverPhase -= TAU
 
         const follow =
@@ -406,9 +668,18 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
 
         for (let i = 0; i < bodies.length; i++) {
           const slot = ringSlots[i]
-          const angle = hoverPhase + (slot * TAU) / ORB_COUNT
-          const ax = mx + Math.cos(angle) * radius
-          const ay = my + Math.sin(angle) * radius
+          let ax: number
+          let ay: number
+          if (useRectPath) {
+            const t = (hoverPhase / TAU + slot / ORB_COUNT) % 1
+            const pt = pointOnRectPerimeter(mx, my, rectHalfW, rectHalfH, t)
+            ax = pt.x
+            ay = pt.y
+          } else {
+            const angle = hoverPhase + (slot * TAU) / ORB_COUNT
+            ax = mx + Math.cos(angle) * radius
+            ay = my + Math.sin(angle) * radius
+          }
           prevDisp[i].x = disp[i].x
           prevDisp[i].y = disp[i].y
           disp[i].x += (ax - disp[i].x) * easeArrive
@@ -422,7 +693,19 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
           releaseBlend = 1
           zone.classList.remove('is-attending')
           for (let i = 0; i < bodies.length; i++) {
-            syncAngleFromPosition(bodies[i], disp[i].x, disp[i].y, cx, cy, rx, ry)
+            if (freeRect) {
+              const t = rectPerimeterT(
+                cx,
+                cy,
+                freeRect.halfW,
+                freeRect.halfH,
+                disp[i].x,
+                disp[i].y,
+              )
+              bodies[i].angle = (t - i / ORB_COUNT) * TAU
+            } else {
+              syncAngleFromPosition(bodies[i], disp[i].x, disp[i].y, cx, cy, rx, ry)
+            }
             const invDt = dt > 0.0001 ? 1 / dt : 60
             coast[i].vx = (disp[i].x - prevDisp[i].x) * invDt * 0.55
             coast[i].vy = (disp[i].y - prevDisp[i].y) * invDt * 0.55
@@ -440,8 +723,19 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
           coast[i].vy *= 0.9 ** (dtMs / 16.67)
           disp[i].x += coast[i].vx * dt * releaseBlend
           disp[i].y += coast[i].vy * dt * releaseBlend
-          disp[i].x += (targets[i].x - disp[i].x) * Math.min(1, ease * (releaseBlend > 0 ? 1 : 1.25))
-          disp[i].y += (targets[i].y - disp[i].y) * Math.min(1, ease * (releaseBlend > 0 ? 1 : 1.25))
+          const dist = Math.hypot(targets[i].x - disp[i].x, targets[i].y - disp[i].y)
+          // Catch up faster when the active section jumps (scroll / section handoff).
+          const catchUp =
+            evacuateBoost > 0
+              ? 3.4
+              : dist > 240
+                ? 2.4
+                : dist > 120
+                  ? 1.7
+                  : 1.25
+          const pull = Math.min(1, ease * (releaseBlend > 0 ? 1 : catchUp))
+          disp[i].x += (targets[i].x - disp[i].x) * pull
+          disp[i].y += (targets[i].y - disp[i].y) * pull
           prevDisp[i].x = disp[i].x
           prevDisp[i].y = disp[i].y
         }
@@ -496,7 +790,13 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
     return () => {
       window.cancelAnimationFrame(raf)
       io.disconnect()
-      zone.classList.remove('is-attending', 'is-in-view', 'site-orb-zone--static')
+      window.removeEventListener('iom:hero-live', onHeroLive)
+      zone.classList.remove(
+        'is-attending',
+        'is-in-view',
+        'site-orb-zone--static',
+        'site-orb-zone--hero-live',
+      )
     }
   }, [])
 

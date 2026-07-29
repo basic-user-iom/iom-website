@@ -259,17 +259,17 @@ export default function App() {
       <Header />
       <SiteAmbientAudio />
       <main id="main-content">
-        <Hero />
-        {sections.map((section, i) => (
-          <ProjectSectionBlock
-            key={section.id}
-            id={section.id}
-            index={String(i + 1).padStart(2, '0')}
-            label={section.label}
-            blurb={section.blurb}
-          />
-        ))}
         <SiteOrbZone>
+          <Hero />
+          {sections.map((section, i) => (
+            <ProjectSectionBlock
+              key={section.id}
+              id={section.id}
+              index={String(i + 1).padStart(2, '0')}
+              label={section.label}
+              blurb={section.blurb}
+            />
+          ))}
           <Clients />
           <About />
         </SiteOrbZone>

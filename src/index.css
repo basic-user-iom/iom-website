@@ -677,8 +677,9 @@ button:focus:not(:focus-visible) {
 
 .hero-start-btn:hover .hero-start-label,
 .hero-start-btn:focus-visible .hero-start-label {
-  border-color: var(--accent);
+  border-color: rgba(94, 184, 192, 0.85);
   color: var(--accent);
+  background: var(--accent-glow);
 }
 
 .hero-start-btn:focus-visible {
@@ -687,18 +688,35 @@ button:focus:not(:focus-visible) {
 }
 
 .hero-start-label {
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 2.6rem;
-  padding: 0.65rem 1.15rem;
-  border: 1px solid var(--border-accent);
-  border-radius: 999px;
+  min-height: 2.55rem;
+  padding: 0.55rem 1.15rem;
+  border: 1px solid rgba(94, 184, 192, 0.55);
+  border-radius: var(--radius);
   background: rgba(8, 12, 18, 0.72);
-  font-family: var(--display);
-  font-size: 0.92rem;
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+/* Same soft pulse ring as the header Listen CTA */
+.hero-start-label::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(94, 184, 192, 0.55);
+  pointer-events: none;
+  z-index: -1;
+  animation: header-mute-pulse 1.8s ease-in-out infinite;
 }
 
 .hero-start-hint {
@@ -706,6 +724,14 @@ button:focus:not(:focus-visible) {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-start-label::after {
+    animation: none;
+    opacity: 0.45;
+    transform: none;
+  }
 }
 
 .viewer-chrome {
@@ -1007,11 +1033,26 @@ body.hero-viewer-fs-lock {
 }
 
 .project-card--multi-link {
-  cursor: default;
+  cursor: pointer;
 }
 
-.project-card--multi-link .card-link {
+.project-card--multi-link .card-link,
+.project-card--multi-link .card-link--stretch {
   color: var(--accent);
+  /* Keep the visible "Open" label in the footer; ::after covers the whole card. */
+  position: static;
+}
+
+.project-card--multi-link .card-link--stretch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.project-card--multi-link .card-source-link {
+  position: relative;
+  z-index: 2;
 }
 
 .project-card--multi-link .card-link:hover {
@@ -2794,16 +2835,17 @@ button.card-link:focus-visible {
   outline-offset: 2px;
 }
 
-/* Shared Clients → RFO light orbs (one set, one RAF) */
+/* Shared page light orbs (hero → sections → Clients → RFO) */
 .site-orb-zone {
   position: relative;
+  overflow: visible;
 }
 
 .site-orb-zone > .clients-orb {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 24;
+  z-index: 12;
   margin: -5px 0 0 -5px;
   pointer-events: none;
   opacity: 0;
@@ -2821,6 +2863,17 @@ button.card-link:focus-visible {
 
 .site-orb-zone--static > .clients-orb {
   display: none;
+}
+
+/* Keep copy above free-orbiting dots so titles stay readable */
+.hero-content,
+.section-header,
+.clients-eyebrow,
+.clients-title,
+.clients-text,
+.about-lead {
+  position: relative;
+  z-index: 20;
 }
 
 /* Clients */

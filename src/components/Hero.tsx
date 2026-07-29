@@ -8,6 +8,7 @@ import { getDeviceProfile } from '../utils/device'
 import { reportHeroVisibility } from '../utils/embedVisibility'
 import type { HeroSceneLoadStatus } from '../three/useHeroScene'
 import { useSiteI18n } from '../i18n'
+import { useSiteOrbsOptional } from './SiteOrbZone'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
 
@@ -32,6 +33,7 @@ function isNativeFullscreenActive(el: HTMLElement | null): boolean {
 
 export function Hero() {
   const { t } = useSiteI18n()
+  const orbs = useSiteOrbsOptional()
   const canvasRef = useRef<HTMLDivElement>(null)
   const profile = getDeviceProfile()
   const useStaticHero = profile.prefersReducedMotion
@@ -63,7 +65,9 @@ export function Hero() {
     setLiveRequested(true)
     setLoaderVisible(true)
     setLoadStatus({ progress: 0, phase: 'boot' })
-  }, [liveRequested, useStaticHero])
+    orbs?.setHover(null, null)
+    window.dispatchEvent(new CustomEvent('iom:hero-live', { detail: { live: true } }))
+  }, [liveRequested, orbs, useStaticHero])
 
   // Report hero viewport presence even when WebGL is static/disabled so embed slots work.
   useEffect(() => {
@@ -228,6 +232,12 @@ export function Hero() {
                   type="button"
                   className="hero-start-btn"
                   onClick={startLiveScene}
+                  onPointerEnter={() => {
+                    orbs?.setHover('hero', 0, canvasRef.current)
+                  }}
+                  onPointerLeave={() => {
+                    orbs?.setHover(null, null)
+                  }}
                 >
                   <span className="hero-start-label">{t('hero.start')}</span>
                   <span className="hero-start-hint">{t('hero.startHint')}</span>

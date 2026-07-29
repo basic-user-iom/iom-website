@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { useSiteI18n } from '../i18n'
@@ -65,12 +65,24 @@ export function Header() {
     persistMute('site', next)
   }
 
+  const handleBrandClick = (e: MouseEvent<HTMLAnchorElement>) => {
+    // Homepage hero (#top) is on this page — smooth-scroll like section nav, don't jump.
+    if (!document.getElementById('top')) return
+    e.preventDefault()
+    closeMenu()
+    const target = href('/#top')
+    if (`${window.location.pathname}${window.location.hash}` !== target) {
+      window.history.pushState(null, '', target)
+    }
+    document.getElementById('top')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   return (
     <header className={`site-header${scrolled ? ' is-scrolled' : ''}`}>
       <a href="#main-content" className="skip-link">
         {t('nav.skip')}
       </a>
-      <a href={href('/')} className="header-brand">
+      <a href={href('/#top')} className="header-brand" onClick={handleBrandClick}>
         <div className="raven-mascot-wrap">
           {useStaticRaven ? (
             <img
