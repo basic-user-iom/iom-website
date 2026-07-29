@@ -1,0 +1,2082 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DJ YouTube Linked Particles — IOM</title>
+<!-- iom-seo -->
+    <meta name="description" content="WebGPU linked-particles music visualizer with YouTube playback, DJ crossfades, and tab-audio reactivity by Interactive Object Media." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://iobjectm.com/demos/dj-linked-particles/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IOM — Interactive Object Media" />
+    <meta property="og:title" content="DJ YouTube Linked Particles — IOM" />
+    <meta property="og:description" content="WebGPU linked-particles music visualizer with YouTube playback, DJ crossfades, and tab-audio reactivity." />
+    <meta property="og:url" content="https://iobjectm.com/demos/dj-linked-particles/" />
+    <meta property="og:image" content="https://iobjectm.com/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="DJ YouTube Linked Particles — IOM" />
+    <meta name="twitter:description" content="WebGPU linked-particles music visualizer with YouTube playback, DJ crossfades, and tab-audio reactivity." />
+    <meta name="twitter:image" content="https://iobjectm.com/og-image.svg" />
+    <!-- /iom-seo -->
+<style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: "Segoe UI", system-ui, sans-serif;
+        color: rgba(255, 255, 255, 0.88);
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 40;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #dj-panel {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 40;
+        width: min(360px, calc(100vw - 24px));
+        max-height: calc(100vh - 24px);
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        border-radius: 8px;
+        background: rgba(8, 10, 14, 0.78);
+        backdrop-filter: blur(10px);
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 12px;
+        line-height: 1.4;
+      }
+      #dj-panel.is-collapsed .dj-body { display: none; }
+      .dj-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .dj-header h1 {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .dj-toggle {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        background: transparent;
+        color: rgba(255, 255, 255, 0.75);
+        border-radius: 4px;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 11px;
+      }
+      .dj-toggle:hover { border-color: rgba(255, 255, 255, 0.45); color: #fff; }
+      label.dj-label {
+        display: block;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 11px;
+        letter-spacing: 0.03em;
+        margin-bottom: 4px;
+      }
+      textarea, input[type="range"] {
+        width: 100%;
+      }
+      textarea {
+        min-height: 72px;
+        resize: vertical;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        color: #fff;
+        padding: 8px;
+        font: 12px/1.4 ui-monospace, Consolas, monospace;
+      }
+      textarea:focus {
+        outline: none;
+        border-color: rgba(120, 180, 255, 0.55);
+      }
+      .dj-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+      .dj-btn {
+        border: 1px solid rgba(255, 255, 255, 0.22);
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(255, 255, 255, 0.9);
+        border-radius: 4px;
+        padding: 7px 10px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .dj-btn:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.12);
+        border-color: rgba(255, 255, 255, 0.4);
+      }
+      .dj-btn:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .dj-btn.primary {
+        background: rgba(70, 130, 220, 0.35);
+        border-color: rgba(120, 170, 255, 0.45);
+      }
+      .dj-btn.danger {
+        border-color: rgba(255, 120, 120, 0.35);
+      }
+      .dj-meta {
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 11px;
+      }
+      .dj-meta strong { color: rgba(255, 255, 255, 0.82); font-weight: 600; }
+      .dj-queue {
+        list-style: none;
+        max-height: 120px;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.25);
+      }
+      .dj-queue li {
+        padding: 6px 8px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        font-family: ui-monospace, Consolas, monospace;
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.65);
+      }
+      .dj-queue li.is-active {
+        background: rgba(70, 130, 220, 0.22);
+        color: #fff;
+      }
+      .dj-queue li:last-child { border-bottom: none; }
+      .dj-players {
+        display: flex;
+        gap: 6px;
+      }
+      .dj-player-wrap {
+        flex: 1;
+        min-width: 0;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+        background: #000;
+        aspect-ratio: 16 / 9;
+      }
+      .dj-player-wrap iframe,
+      .dj-player-wrap > div {
+        width: 100% !important;
+        height: 100% !important;
+      }
+      .dj-hint {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 11px;
+      }
+      .dj-meters {
+        display: grid;
+        grid-template-columns: 28px 1fr;
+        gap: 4px 8px;
+        align-items: center;
+      }
+      .dj-meters span {
+        color: rgba(255, 255, 255, 0.45);
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+      }
+      .dj-meter-track {
+        height: 10px;
+        border-radius: 3px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+      }
+      #beat-flash {
+        position: fixed;
+        inset: 0;
+        z-index: 15;
+        pointer-events: none;
+        background: radial-gradient(circle at center, rgba(120, 200, 255, 0.35), transparent 55%);
+        opacity: 0;
+        transition: opacity 60ms linear;
+      }
+      .dj-meter-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 3px;
+        background: linear-gradient(90deg, #3d7eff, #7cf0ff 55%, #ff6b9a);
+        transition: width 40ms linear;
+      }
+      .dj-meter-fill.is-hot {
+        background: linear-gradient(90deg, #ff6b3d, #ffd36b 50%, #fff);
+      }
+      .dj-signal {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .dj-signal.is-live { color: #7dffa8; }
+      .dj-signal.is-silent { color: #ffb07a; }
+      .dj-signal.is-off { color: rgba(255, 255, 255, 0.4); }
+      #status {
+        position: fixed;
+        left: 12px;
+        bottom: 12px;
+        z-index: 30;
+        max-width: min(360px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      @media (max-width: 720px) {
+        #dj-panel {
+          top: auto;
+          bottom: 56px;
+          right: 8px;
+          left: 8px;
+          width: auto;
+          max-height: 42vh;
+        }
+        .back-link { top: 8px; left: 8px; }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
+    <a class="back-link" href="/#experiments">← IOM</a>
+
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_vfx_linkedparticles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — VFX linked particles</a
+        >
+        · DJ YouTube visualizer
+      </p>
+      <p class="demo-attribution-credits">
+        Music-reactive WebGPU linked particles with YouTube dual-deck crossfades and tab-audio FFT.
+        Particle core based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_vfx_linkedparticles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU TSL VFX linked particles example</a
+        >.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_tsl_vfx_linkedparticles.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View particle source on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert" hidden>
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU compute buffers and TSL post-processing. Open it in Chrome or Edge
+        with WebGPU enabled. Tab-audio reactivity also needs Chrome/Edge (“Also share tab audio”).
+      </p>
+      <a class="back-link" href="/#experiments" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="dj-panel">
+      <div class="dj-header">
+        <h1>DJ deck</h1>
+        <button type="button" class="dj-toggle" id="btn-collapse" aria-expanded="true">Hide</button>
+      </div>
+      <div class="dj-body">
+        <div>
+          <label class="dj-label" for="url-input">YouTube links (one per line) or a playlist URL</label>
+          <textarea
+            id="url-input"
+            placeholder="https://www.youtube.com/watch?v=&#10;https://youtu.be/&#10;or a playlist: https://www.youtube.com/playlist?list=PL…"
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <div class="dj-row">
+          <button type="button" class="dj-btn primary" id="btn-load">Load queue</button>
+          <button type="button" class="dj-btn" id="btn-play" disabled>Play</button>
+          <button type="button" class="dj-btn" id="btn-pause" disabled>Pause</button>
+          <button type="button" class="dj-btn" id="btn-prev" disabled>Prev</button>
+          <button type="button" class="dj-btn" id="btn-next" disabled>Next</button>
+        </div>
+        <div class="dj-row">
+          <button type="button" class="dj-btn primary" id="btn-mic">Listen via mic</button>
+          <button type="button" class="dj-btn" id="btn-capture">Listen via tab</button>
+          <button type="button" class="dj-btn" id="btn-test-tone">Test tone</button>
+          <button type="button" class="dj-btn danger" id="btn-capture-stop" disabled>Stop listen</button>
+        </div>
+        <p class="dj-hint" id="capture-hint">
+          Easiest: play YouTube on <strong>speakers</strong>, then <strong>Listen via mic</strong>.
+          Or use <strong>Listen via tab</strong> (Chrome/Edge: this tab + “Also share tab audio”).
+        </p>
+        <p class="dj-signal is-off" id="signal-status">Signal: off — press Listen via mic while a track plays</p>
+        <div class="dj-meters" aria-hidden="true">
+          <span>Bass</span><div class="dj-meter-track"><div class="dj-meter-fill" id="meter-bass"></div></div>
+          <span>Mids</span><div class="dj-meter-track"><div class="dj-meter-fill" id="meter-mids"></div></div>
+          <span>High</span><div class="dj-meter-track"><div class="dj-meter-fill" id="meter-highs"></div></div>
+          <span>Kick</span><div class="dj-meter-track"><div class="dj-meter-fill" id="meter-kick"></div></div>
+        </div>
+        <div>
+          <label class="dj-label" for="crossfade-range">Crossfade <span id="crossfade-label">4.0</span>s</label>
+          <input id="crossfade-range" type="range" min="1" max="10" step="0.5" value="4" />
+        </div>
+        <div>
+          <label class="dj-label" for="sensitivity-range">
+            Input sensitivity <span id="sensitivity-label">1.0</span>×
+          </label>
+          <input id="sensitivity-range" type="range" min="0.5" max="5" step="0.1" value="1" />
+        </div>
+        <p class="dj-meta" id="now-playing">Queue empty</p>
+        <ul class="dj-queue" id="queue-list" aria-label="Track queue"></ul>
+        <div class="dj-players" aria-hidden="false">
+          <div class="dj-player-wrap"><div id="yt-a"></div></div>
+          <div class="dj-player-wrap"><div id="yt-b"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="container"></div>
+    <div id="beat-flash" aria-hidden="true"></div>
+    <div id="status">Initializing…</div>
+
+    <script>
+      // YouTube IFrame API bootstrap (global callback).
+      window.__ytApiReady = new Promise((resolve) => {
+        window.onYouTubeIframeAPIReady = () => resolve()
+      })
+    </script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import {
+        atan,
+        cos,
+        float,
+        max,
+        min,
+        mix,
+        PI,
+        TWO_PI,
+        sin,
+        vec2,
+        vec3,
+        color,
+        Fn,
+        hash,
+        hue,
+        If,
+        instanceIndex,
+        Loop,
+        mx_fractal_noise_float,
+        mx_fractal_noise_vec3,
+        pass,
+        pcurve,
+        storage,
+        deltaTime,
+        time,
+        uv,
+        uniform,
+        step,
+      } from 'three/tsl'
+      import { bloom } from 'three/addons/tsl/display/BloomNode.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+      const urlInput = document.getElementById('url-input')
+      const queueListEl = document.getElementById('queue-list')
+      const nowPlayingEl = document.getElementById('now-playing')
+      const captureHintEl = document.getElementById('capture-hint')
+      const signalStatusEl = document.getElementById('signal-status')
+      const meterBassEl = document.getElementById('meter-bass')
+      const meterMidsEl = document.getElementById('meter-mids')
+      const meterHighsEl = document.getElementById('meter-highs')
+      const meterKickEl = document.getElementById('meter-kick')
+      const crossfadeRange = document.getElementById('crossfade-range')
+      const crossfadeLabel = document.getElementById('crossfade-label')
+      const sensitivityRange = document.getElementById('sensitivity-range')
+      const sensitivityLabel = document.getElementById('sensitivity-label')
+      const btnCollapse = document.getElementById('btn-collapse')
+      const btnLoad = document.getElementById('btn-load')
+      const btnPlay = document.getElementById('btn-play')
+      const btnPause = document.getElementById('btn-pause')
+      const btnPrev = document.getElementById('btn-prev')
+      const btnNext = document.getElementById('btn-next')
+      const btnCapture = document.getElementById('btn-capture')
+      const btnMic = document.getElementById('btn-mic')
+      const btnTestTone = document.getElementById('btn-test-tone')
+      const btnCaptureStop = document.getElementById('btn-capture-stop')
+      const beatFlashEl = document.getElementById('beat-flash')
+      const panelEl = document.getElementById('dj-panel')
+
+      let camera, scene, renderer, renderPipeline, controls, timer, light
+      let updateParticles, spawnParticles, getInstanceColor, bloomPass
+      let touchMode = null
+      let drawingActive = false
+
+      const isMobile = prefersMobileExperience()
+      const screenPointer = new THREE.Vector2()
+      const scenePointer = new THREE.Vector3()
+      const raycastPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
+      const raycaster = new THREE.Raycaster()
+
+      const nbParticles = isMobile ? Math.pow(2, 11) : Math.pow(2, 13)
+
+      const timeScale = uniform(1.0)
+      const particleLifetime = uniform(0.5)
+      const particleSize = uniform(isMobile ? 1.15 : 1.0)
+      const linksWidth = uniform(0.005)
+      const colorOffset = uniform(0.0)
+      const colorVariance = uniform(2.0)
+      const colorRotationSpeed = uniform(1.0)
+      const spawnIndex = uniform(0)
+      const nbToSpawn = uniform(isMobile ? 3 : 5)
+      const spawnPosition = uniform(vec3(0.0))
+      const previousSpawnPosition = uniform(vec3(0.0))
+      const turbFrequency = uniform(0.5)
+      const turbAmplitude = uniform(0.5)
+      const turbOctaves = uniform(isMobile ? 1 : 2)
+      const turbLacunarity = uniform(2.0)
+      const turbGain = uniform(0.5)
+      const turbFriction = uniform(0.01)
+
+      const BASE = {
+        nbToSpawn: isMobile ? 3 : 5,
+        turbAmplitude: 0.5,
+        timeScale: 1.0,
+        bloomStrength: 0.75,
+        colorRotationSpeed: 1.0,
+      }
+
+      // ——— shared helpers ———
+      function clamp(v, lo, hi) {
+        return Math.min(hi, Math.max(lo, v))
+      }
+      // Frame-rate independent smoothing; factor stays inside (0,1) so fast
+      // attack rates can never overshoot and oscillate between clamp limits.
+      function approach(current, target, rate, delta) {
+        return current + (target - current) * (1 - Math.exp(-rate * delta))
+      }
+      function lerp(a, b, t) {
+        return a + (b - a) * t
+      }
+      function bandAverage(data, start, end) {
+        const from = Math.max(0, Math.floor(start))
+        const to = Math.min(data.length, Math.ceil(end))
+        if (to <= from) return 0
+        let sum = 0
+        for (let i = from; i < to; i += 1) sum += data[i]
+        return sum / (to - from) / 255
+      }
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+      function showFallback() {
+        fallbackEl.removeAttribute('hidden')
+        fallbackEl.classList.add('is-visible')
+      }
+
+      // ——— YouTube URL parsing ———
+      function extractVideoId(raw) {
+        const s = String(raw || '').trim()
+        if (!s) return null
+        if (/^[\w-]{11}$/.test(s)) return s
+        try {
+          const u = new URL(s)
+          const host = u.hostname.replace(/^www\./, '')
+          if (host === 'youtu.be') {
+            const id = u.pathname.split('/').filter(Boolean)[0]
+            return id && /^[\w-]{11}$/.test(id) ? id : null
+          }
+          if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+            const v = u.searchParams.get('v')
+            if (v && /^[\w-]{11}$/.test(v)) return v
+            const parts = u.pathname.split('/').filter(Boolean)
+            if (parts[0] === 'embed' || parts[0] === 'shorts' || parts[0] === 'live' || parts[0] === 'v') {
+              const id = parts[1]
+              if (id && /^[\w-]{11}$/.test(id)) return id
+            }
+          }
+        } catch {
+          /* ignore */
+        }
+        return null
+      }
+
+      function extractPlaylistId(raw) {
+        const s = String(raw || '').trim()
+        if (!s) return null
+        if (/^PL[\w-]+$/.test(s) || /^UU[\w-]+$/.test(s) || /^OL[\w-]+$/.test(s)) return s
+        try {
+          const u = new URL(s)
+          const list = u.searchParams.get('list')
+          if (list && /^(PL|UU|OL|RD)[\w-]+$/.test(list)) return list
+        } catch {
+          /* ignore */
+        }
+        return null
+      }
+
+      function parseInputLines(text) {
+        const lines = String(text || '')
+          .split(/[\n,]+/)
+          .map((l) => l.trim())
+          .filter(Boolean)
+        const videoIds = []
+        let playlistId = null
+        for (const line of lines) {
+          const pl = extractPlaylistId(line)
+          const vid = extractVideoId(line)
+          if (pl && !vid) {
+            playlistId = pl
+            continue
+          }
+          if (pl && vid) {
+            // watch?v=…&list=… → prefer building custom queue from videos; keep first playlist as hint
+            if (!playlistId) playlistId = pl
+          }
+          if (vid && !videoIds.includes(vid)) videoIds.push(vid)
+        }
+        return { videoIds, playlistId }
+      }
+
+      // ——— Audio FFT (mic or tab capture) ———
+      const audioState = {
+        ctx: null,
+        analyser: null,
+        source: null,
+        gain: null,
+        silentSink: null,
+        keepAlive: null,
+        stream: null,
+        freqData: null,
+        timeData: null,
+        active: false,
+        mode: 'off', // 'off' | 'mic' | 'tab'
+        smoothedBass: 0,
+        smoothedMids: 0,
+        smoothedHighs: 0,
+        smoothedTransient: 0,
+        smoothedKick: 0,
+        prevInstantEnergy: 0,
+        phase: 0,
+        rawLevel: 0,
+        silentFrames: 0,
+        lastLiveAt: 0,
+        peakHold: 0.09,
+        beatPulse: 0,
+        emaEnergy: 0.15,
+        noiseFloor: 0.03,
+        gateLevel: 0,
+      }
+
+      let toneCtx = null
+      let tabCaptureSupported = true
+      let inputSensitivity = 1
+
+      function baseInputGain(mode) {
+        return mode === 'mic' ? 2.4 : 3.5
+      }
+
+      function applyInputSensitivity() {
+        if (!audioState.gain) return
+        audioState.gain.gain.value = baseInputGain(audioState.mode) * inputSensitivity
+      }
+
+      function setMeter(el, value, hot = false) {
+        if (!el) return
+        const pct = clamp(value * 100, 0, 100)
+        el.style.width = `${pct.toFixed(1)}%`
+        el.classList.toggle('is-hot', hot && value > 0.55)
+      }
+
+      function setSignalStatus(mode, text) {
+        if (!signalStatusEl) return
+        signalStatusEl.className = `dj-signal is-${mode}`
+        signalStatusEl.textContent = text
+      }
+
+      function updateAudioBands(delta) {
+        const live = Boolean(audioState.active && audioState.analyser)
+        const targetPhase = live ? 1 : 0
+        audioState.phase = clamp(
+          audioState.phase + (targetPhase - audioState.phase) * delta * (targetPhase ? 12 : 8),
+          0,
+          1,
+        )
+
+        let bass = 0
+        let mids = 0
+        let highs = 0
+        let transient = 0
+        let kick = 0
+        let rawLevel = 0
+
+        if (live) {
+          const binCount = audioState.analyser.frequencyBinCount
+          if (!audioState.freqData || audioState.freqData.length !== binCount) {
+            audioState.freqData = new Uint8Array(binCount)
+          }
+          if (!audioState.timeData || audioState.timeData.length !== audioState.analyser.fftSize) {
+            audioState.timeData = new Uint8Array(audioState.analyser.fftSize)
+          }
+
+          audioState.analyser.getByteFrequencyData(audioState.freqData)
+          audioState.analyser.getByteTimeDomainData(audioState.timeData)
+
+          const len = audioState.freqData.length
+          const rawBass = bandAverage(audioState.freqData, 0, Math.max(3, len * 0.1))
+          const rawSub = bandAverage(audioState.freqData, 0, Math.max(2, len * 0.045))
+          const rawMids = bandAverage(audioState.freqData, len * 0.1, len * 0.45)
+          const rawHighs = bandAverage(audioState.freqData, len * 0.42, len)
+
+          let peak = 0
+          let sumSq = 0
+          const td = audioState.timeData
+          for (let i = 0; i < td.length; i += 1) {
+            const v = (td[i] - 128) / 128
+            const a = Math.abs(v)
+            if (a > peak) peak = a
+            sumSq += v * v
+          }
+          const rms = Math.sqrt(sumSq / td.length)
+          rawLevel = clamp(peak * 1.4 + rms * 2.0, 0, 1)
+
+          // Noise-floor tracker: drops quickly to new lows, creeps up slowly and
+          // stays low-capped so actual music is never mistaken for room hiss.
+          audioState.noiseFloor = clamp(
+            approach(audioState.noiseFloor, rawLevel, rawLevel < audioState.noiseFloor ? 2.5 : 0.03, delta),
+            0.004,
+            0.09,
+          )
+          // Ratio gate: steady hiss hovers at its own floor and stays closed,
+          // while music (which swings well above its quiet parts) opens it —
+          // so a faint mic signal still reacts without noise driving the field.
+          const ratio = rawLevel / Math.max(0.012, audioState.noiseFloor)
+          const ratioGate = clamp((ratio - 1.2) / 0.85, 0, 1)
+          // Absolute term too: a quiet room fluctuates around its floor just
+          // like music does, so loudness is what separates the two.
+          const absGate = clamp((rawLevel - 0.085) / 0.09, 0, 1)
+          const gate = ratioGate * absGate
+
+          // Adaptive gain: normalize against recent peak so quiet/loud sources both punch.
+          audioState.peakHold = Math.max(rawLevel, audioState.peakHold * Math.exp(-delta * 0.35))
+          if (audioState.peakHold < 0.09) audioState.peakHold = 0.09
+          const agc = clamp(0.85 / audioState.peakHold, 1, 8)
+
+          const nBass = clamp(rawBass * agc, 0, 1) * gate
+          const nSub = clamp(rawSub * agc, 0, 1) * gate
+          const nMids = clamp(rawMids * agc, 0, 1) * gate
+          const nHighs = clamp(rawHighs * agc, 0, 1) * gate
+          const nPeak = clamp(peak * agc, 0, 1) * gate
+
+          bass = clamp(Math.pow(nBass, 0.5) * 1.9 + Math.pow(nSub, 0.45) * 1.1, 0, 2.4)
+          mids = clamp(Math.pow(nMids, 0.55) * 1.85, 0, 2.2)
+          highs = clamp(Math.pow(nHighs, 0.5) * 1.9, 0, 2.2)
+          kick = clamp(Math.pow(nSub, 0.4) * 2.6 + nPeak * 1.35, 0, 2.6)
+          audioState.gateLevel = gate
+
+          const instant = nBass * 1.55 + nMids * 0.5 + nHighs * 0.75 + nPeak * 1.05
+          transient = Math.max(0, instant - audioState.prevInstantEnergy) * 4.5
+          audioState.prevInstantEnergy = approach(audioState.prevInstantEnergy, instant, 8, delta)
+
+          audioState.emaEnergy = approach(audioState.emaEnergy, instant, 2.2, delta)
+          if (instant > audioState.emaEnergy * 1.28 + 0.04 && transient > 0.08) {
+            const beatHit = clamp((instant - audioState.emaEnergy) * 3.5 + transient, 0, 1.5)
+            audioState.beatPulse = Math.max(audioState.beatPulse, beatHit)
+          }
+
+          if (gate <= 0.03) {
+            audioState.silentFrames += 1
+          } else {
+            audioState.silentFrames = 0
+            audioState.lastLiveAt = performance.now()
+          }
+        } else {
+          // No fake beat motion when not listening — missing signal stays obvious.
+          bass = 0
+          mids = 0
+          highs = 0
+          kick = 0
+          transient = 0
+          rawLevel = 0
+          audioState.prevInstantEnergy = approach(audioState.prevInstantEnergy, 0, 8, delta)
+          audioState.silentFrames = 0
+          audioState.peakHold = approach(audioState.peakHold, 0.09, 2, delta)
+          audioState.gateLevel = 0
+        }
+
+        audioState.beatPulse = Math.max(0, audioState.beatPulse - delta * 3.8)
+
+        const attack = live ? 28 : 12
+        const release = live ? 6 : 8
+        const follow = (cur, target) => approach(cur, target, target > cur ? attack : release, delta)
+        audioState.smoothedBass = follow(audioState.smoothedBass, bass)
+        audioState.smoothedMids = follow(audioState.smoothedMids, mids)
+        audioState.smoothedHighs = follow(audioState.smoothedHighs, highs)
+        audioState.smoothedKick = follow(audioState.smoothedKick, kick)
+        audioState.smoothedTransient = approach(
+          audioState.smoothedTransient,
+          transient,
+          live ? 30 : 10,
+          delta,
+        )
+        audioState.rawLevel = approach(audioState.rawLevel, rawLevel, 20, delta)
+
+        setMeter(meterBassEl, audioState.smoothedBass * 0.42)
+        setMeter(meterMidsEl, audioState.smoothedMids * 0.45)
+        setMeter(meterHighsEl, audioState.smoothedHighs * 0.45)
+        setMeter(
+          meterKickEl,
+          audioState.smoothedKick * 0.35 + audioState.beatPulse * 0.7 + audioState.smoothedTransient * 0.35,
+          true,
+        )
+
+        if (beatFlashEl) {
+          beatFlashEl.style.opacity = String(clamp(audioState.beatPulse * 0.85, 0, 0.75))
+        }
+
+        if (!live) {
+          setSignalStatus(
+            'off',
+            deck.playing
+              ? 'Signal: off — press Listen via mic (speakers) or Listen via tab'
+              : 'Signal: off — play a track, then Listen via mic',
+          )
+        } else if (audioState.silentFrames > 45) {
+          setSignalStatus(
+            'silent',
+            audioState.mode === 'mic'
+              ? 'Signal: no music — use speakers (not headphones) and raise the volume'
+              : audioState.mode === 'test'
+                ? 'Signal: silent — test tone stalled, press Test tone again'
+                : 'Signal: silent — re-share this tab + check “Also share tab audio”',
+          )
+        } else if (audioState.gateLevel > 0.05) {
+          setSignalStatus(
+            'live',
+            `Signal: live (${audioState.mode}) · ${(audioState.rawLevel * 100).toFixed(0)}%`,
+          )
+        } else {
+          setSignalStatus('silent', 'Signal: waiting for audio…')
+        }
+
+        const energy = live
+          ? clamp(
+              audioState.smoothedBass * 0.45 +
+                audioState.smoothedMids * 0.25 +
+                audioState.smoothedHighs * 0.15 +
+                audioState.smoothedTransient * 0.7 +
+                audioState.beatPulse * 0.9,
+              0,
+              3,
+            )
+          : 0
+
+        return {
+          bass: audioState.smoothedBass,
+          mids: audioState.smoothedMids,
+          highs: audioState.smoothedHighs,
+          kick: audioState.smoothedKick,
+          transient: audioState.smoothedTransient,
+          beat: audioState.beatPulse,
+          energy,
+          live,
+          hasSignal: live && audioState.gateLevel > 0.03,
+        }
+      }
+
+      function wireAnalyserFromStream(stream, mode) {
+        const ctx = new AudioContext()
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 2048
+        analyser.smoothingTimeConstant = 0.18
+        analyser.minDecibels = -95
+        analyser.maxDecibels = -18
+        const source = ctx.createMediaStreamSource(stream)
+        const gain = ctx.createGain()
+        gain.gain.value = baseInputGain(mode) * inputSensitivity
+        source.connect(gain)
+        gain.connect(analyser)
+
+        // Chrome only renders graph branches that reach the destination; an
+        // isolated analyser tap can read pure silence. Route through zero gain
+        // so the audio thread keeps pulling data without emitting sound.
+        const silentSink = ctx.createGain()
+        silentSink.gain.value = 0
+        analyser.connect(silentSink)
+        silentSink.connect(ctx.destination)
+
+        // Second pump: MediaStream sources can stay idle until the stream is
+        // consumed by a media element. Muted, so nothing is played back.
+        const keepAlive = new Audio()
+        keepAlive.srcObject = stream
+        keepAlive.muted = true
+        keepAlive.play().catch(() => undefined)
+
+        audioState.ctx = ctx
+        audioState.analyser = analyser
+        audioState.source = source
+        audioState.gain = gain
+        audioState.silentSink = silentSink
+        audioState.keepAlive = keepAlive
+        audioState.stream = stream
+        audioState.active = true
+        audioState.mode = mode
+        audioState.silentFrames = 0
+        audioState.peakHold = 0.09
+        audioState.beatPulse = 0
+        // Start high so the fast-falling floor learns this source's real noise
+        // level instead of blasting the visuals during the first seconds.
+        audioState.noiseFloor = 0.09
+        audioState.gateLevel = 0
+
+        stream.getAudioTracks().forEach((track) => {
+          track.addEventListener('ended', () => {
+            stopAudioInput()
+            captureHintEl.textContent =
+              'Listen stopped. Press Listen via mic or Listen via tab again.'
+            setStatus('Audio listen ended')
+          })
+        })
+
+        btnMic.disabled = true
+        btnCapture.disabled = true
+        btnTestTone.disabled = true
+        btnCaptureStop.disabled = false
+
+        void ctx.resume()
+      }
+
+      /** Silent synthetic kick pattern — proves the visuals react without any permission. */
+      async function startTestTone() {
+        stopAudioInput()
+        const ctx = new AudioContext()
+        const dest = ctx.createMediaStreamDestination()
+        const osc = ctx.createOscillator()
+        osc.type = 'sine'
+        osc.frequency.value = 70
+        const lfo = ctx.createOscillator()
+        lfo.frequency.value = 2
+        const lfoGain = ctx.createGain()
+        lfoGain.gain.value = 0.5
+        const amp = ctx.createGain()
+        amp.gain.value = 0.5
+        lfo.connect(lfoGain)
+        lfoGain.connect(amp.gain)
+        osc.connect(amp)
+        amp.connect(dest)
+        osc.start()
+        lfo.start()
+        await ctx.resume().catch(() => undefined)
+
+        wireAnalyserFromStream(dest.stream, 'test')
+        toneCtx = ctx
+        captureHintEl.textContent =
+          'Test tone running (no sound) — if particles pulse, the visuals work. Then switch to mic or tab.'
+        setStatus('Test tone reactivity on')
+      }
+
+      async function startMicCapture() {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          captureHintEl.textContent = 'Microphone API not available in this browser.'
+          setStatus('Mic unavailable', true)
+          return
+        }
+        stopAudioInput()
+        let stream
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            audio: {
+              echoCancellation: false,
+              noiseSuppression: false,
+              autoGainControl: false,
+              channelCount: 1,
+            },
+            video: false,
+          })
+        } catch (err) {
+          console.warn(err)
+          captureHintEl.textContent = `Mic unavailable (${err.name}: ${err.message}). Allow the mic in the address bar, play on speakers, then try again.`
+          setStatus(`Mic failed: ${err.name}`, true)
+          return
+        }
+        if (!stream.getAudioTracks().length) {
+          stream.getTracks().forEach((t) => t.stop())
+          setStatus('No mic track', true)
+          return
+        }
+        wireAnalyserFromStream(stream, 'mic')
+        captureHintEl.textContent =
+          'Mic listening — play YouTube on speakers (not headphones) so the mic can hear the beat.'
+        setStatus('Mic reactivity on')
+        setSignalStatus('silent', 'Signal: waiting for audio…')
+      }
+
+      async function startTabCapture() {
+        if (!navigator.mediaDevices?.getDisplayMedia) {
+          captureHintEl.textContent =
+            'Screen capture is not available. Use Listen via mic instead.'
+          setStatus('Tab capture unavailable', true)
+          return
+        }
+
+        stopAudioInput()
+
+        const opts = {
+          video: true,
+          audio: {
+            echoCancellation: false,
+            noiseSuppression: false,
+            autoGainControl: false,
+          },
+          preferCurrentTab: true,
+          selfBrowserSurface: 'include',
+          surfaceSwitching: 'exclude',
+          systemAudio: 'exclude',
+        }
+
+        let stream
+        try {
+          stream = await navigator.mediaDevices.getDisplayMedia(opts)
+        } catch (err) {
+          console.warn('getDisplayMedia with preferCurrentTab failed, retrying basic opts', err)
+          try {
+            stream = await navigator.mediaDevices.getDisplayMedia({
+              video: true,
+              audio: {
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+              },
+            })
+          } catch (err2) {
+            console.warn(err2)
+            if (err2.name === 'NotSupportedError') {
+              tabCaptureSupported = false
+              btnCapture.disabled = true
+            }
+            captureHintEl.textContent = `Tab share failed (${err2.name}: ${err2.message}). Try Listen via mic, or open this page in Chrome/Edge directly.`
+            setStatus(`Capture failed: ${err2.name}`, true)
+            return
+          }
+        }
+
+        const audioTracks = stream.getAudioTracks()
+        if (!audioTracks.length) {
+          stream.getTracks().forEach((t) => t.stop())
+          captureHintEl.textContent =
+            'No tab audio shared. Check “Also share tab audio”, or use Listen via mic.'
+          setStatus('No tab audio in capture', true)
+          setSignalStatus('silent', 'Signal: no audio track in capture')
+          return
+        }
+
+        stream.getVideoTracks().forEach((t) => {
+          try {
+            t.enabled = false
+          } catch {
+            /* ignore */
+          }
+        })
+
+        wireAnalyserFromStream(stream, 'tab')
+        captureHintEl.textContent =
+          'Tab audio listening · meters should jump with the beat. If silent, use Listen via mic.'
+        setStatus('Tab reactivity on')
+        setSignalStatus('silent', 'Signal: waiting for audio…')
+      }
+
+      function stopAudioInput() {
+        if (audioState.source) {
+          try {
+            audioState.source.disconnect()
+          } catch {
+            /* ignore */
+          }
+        }
+        if (audioState.gain) {
+          try {
+            audioState.gain.disconnect()
+          } catch {
+            /* ignore */
+          }
+        }
+        if (audioState.silentSink) {
+          try {
+            audioState.silentSink.disconnect()
+          } catch {
+            /* ignore */
+          }
+        }
+        if (audioState.keepAlive) {
+          try {
+            audioState.keepAlive.pause()
+            audioState.keepAlive.srcObject = null
+          } catch {
+            /* ignore */
+          }
+        }
+        if (audioState.stream) {
+          audioState.stream.getTracks().forEach((t) => t.stop())
+        }
+        if (audioState.ctx) {
+          void audioState.ctx.close().catch(() => {})
+        }
+        if (toneCtx) {
+          void toneCtx.close().catch(() => {})
+          toneCtx = null
+        }
+        audioState.ctx = null
+        audioState.analyser = null
+        audioState.source = null
+        audioState.gain = null
+        audioState.silentSink = null
+        audioState.keepAlive = null
+        audioState.stream = null
+        audioState.active = false
+        audioState.mode = 'off'
+        audioState.freqData = null
+        audioState.timeData = null
+        audioState.silentFrames = 0
+        audioState.beatPulse = 0
+        btnMic.disabled = false
+        btnCapture.disabled = !tabCaptureSupported
+        btnTestTone.disabled = false
+        btnCaptureStop.disabled = true
+        setMeter(meterBassEl, 0)
+        setMeter(meterMidsEl, 0)
+        setMeter(meterHighsEl, 0)
+        setMeter(meterKickEl, 0)
+        if (beatFlashEl) beatFlashEl.style.opacity = '0'
+        setSignalStatus('off', 'Signal: off — press Listen via mic while a track plays')
+      }
+
+      // ——— YouTube dual deck ———
+      const YT_PLAYING = 1
+      const YT_ENDED = 0
+
+      const deck = {
+        players: { A: null, B: null },
+        ready: { A: false, B: false },
+        queue: [],
+        index: 0,
+        active: 'A',
+        playing: false,
+        crossfading: false,
+        crossfadeSec: 4,
+        transitionSwell: 0,
+        autoAdvanceArmed: false,
+        pollId: null,
+        pendingPlaylistId: null,
+      }
+
+      function idleDeck() {
+        return deck.active === 'A' ? 'B' : 'A'
+      }
+
+      function playerOf(name) {
+        return deck.players[name]
+      }
+
+      function setVolumeSafe(player, vol) {
+        if (!player || typeof player.setVolume !== 'function') return
+        try {
+          player.setVolume(clamp(Math.round(vol), 0, 100))
+        } catch {
+          /* ignore */
+        }
+      }
+
+      function renderQueue() {
+        queueListEl.innerHTML = ''
+        deck.queue.forEach((id, i) => {
+          const li = document.createElement('li')
+          li.textContent = `${i + 1}. ${id}`
+          if (i === deck.index) li.classList.add('is-active')
+          queueListEl.appendChild(li)
+        })
+        const cur = deck.queue[deck.index]
+        nowPlayingEl.innerHTML = cur
+          ? `Now <strong>${deck.index + 1}/${deck.queue.length}</strong> · <strong>${cur}</strong>`
+          : 'Queue empty'
+        const has = deck.queue.length > 0
+        btnPlay.disabled = !has
+        btnPause.disabled = !has
+        btnPrev.disabled = !has
+        btnNext.disabled = !has
+      }
+
+      function createPlayer(name, elementId) {
+        return new Promise((resolve, reject) => {
+          const YT = window.YT
+          if (!YT?.Player) {
+            reject(new Error('YouTube IFrame API not available'))
+            return
+          }
+          const player = new YT.Player(elementId, {
+            width: 160,
+            height: 90,
+            playerVars: {
+              autoplay: 0,
+              controls: 1,
+              modestbranding: 1,
+              rel: 0,
+              playsinline: 1,
+              origin: window.location.origin,
+            },
+            events: {
+              onReady() {
+                deck.ready[name] = true
+                setVolumeSafe(player, name === deck.active ? 100 : 0)
+                resolve(player)
+              },
+              onStateChange(ev) {
+                if (ev.data === YT_ENDED && name === deck.active && deck.playing && !deck.crossfading) {
+                  void goNext({ force: true })
+                }
+                if (ev.data === YT_PLAYING && name === deck.active) {
+                  deck.playing = true
+                }
+              },
+              onError(ev) {
+                console.warn('YouTube error', name, ev.data)
+                setStatus(`YouTube error on deck ${name} (${ev.data})`, true)
+                if (name === deck.active && deck.queue.length > 1) {
+                  void goNext({ force: true })
+                }
+              },
+            },
+          })
+          deck.players[name] = player
+        })
+      }
+
+      async function ensurePlayers() {
+        await window.__ytApiReady
+        if (!deck.players.A) await createPlayer('A', 'yt-a')
+        if (!deck.players.B) await createPlayer('B', 'yt-b')
+      }
+
+      function loadVideoOn(name, videoId, { autoplay = false, volume = 0 } = {}) {
+        const p = playerOf(name)
+        if (!p || !videoId) return
+        setVolumeSafe(p, volume)
+        try {
+          if (autoplay) {
+            p.loadVideoById({ videoId, startSeconds: 0 })
+          } else {
+            p.cueVideoById({ videoId, startSeconds: 0 })
+          }
+        } catch (err) {
+          console.warn(err)
+        }
+      }
+
+      async function loadQueueFromInput() {
+        const parsed = parseInputLines(urlInput.value)
+        await ensurePlayers()
+
+        if (parsed.videoIds.length > 0) {
+          deck.queue = parsed.videoIds.slice()
+          deck.index = 0
+          deck.pendingPlaylistId = null
+          deck.autoAdvanceArmed = false
+          loadVideoOn('A', deck.queue[0], { autoplay: false, volume: 100 })
+          setVolumeSafe(playerOf('B'), 0)
+          deck.active = 'A'
+          renderQueue()
+          setStatus(`Loaded ${deck.queue.length} track(s)`)
+          return
+        }
+
+        if (parsed.playlistId) {
+          deck.pendingPlaylistId = parsed.playlistId
+          deck.queue = []
+          deck.index = 0
+          deck.autoAdvanceArmed = false
+          const p = playerOf('A')
+          deck.active = 'A'
+          setVolumeSafe(p, 100)
+          setVolumeSafe(playerOf('B'), 0)
+          try {
+            p.cuePlaylist({
+              listType: 'playlist',
+              list: parsed.playlistId,
+              index: 0,
+            })
+          } catch (err) {
+            console.warn(err)
+            setStatus('Failed to cue playlist', true)
+            return
+          }
+
+          // Poll until getPlaylist() returns IDs.
+          let tries = 0
+          const waitPl = setInterval(() => {
+            tries += 1
+            let ids = []
+            try {
+              ids = p.getPlaylist?.() || []
+            } catch {
+              ids = []
+            }
+            if (ids.length) {
+              clearInterval(waitPl)
+              deck.queue = ids.slice()
+              deck.index = 0
+              renderQueue()
+              setStatus(`Playlist loaded · ${deck.queue.length} tracks`)
+            } else if (tries > 40) {
+              clearInterval(waitPl)
+              setStatus('Playlist IDs not available yet — press Play to start, queue may fill in', true)
+              renderQueue()
+            }
+          }, 250)
+          renderQueue()
+          setStatus('Cueing playlist…')
+          return
+        }
+
+        setStatus('No valid YouTube video or playlist URL found', true)
+      }
+
+      function syncPlaylistIfNeeded() {
+        if (deck.queue.length) return
+        const p = playerOf(deck.active)
+        if (!p?.getPlaylist) return
+        try {
+          const ids = p.getPlaylist() || []
+          if (ids.length) {
+            deck.queue = ids.slice()
+            const cur = p.getPlaylistIndex?.() ?? 0
+            deck.index = clamp(cur, 0, deck.queue.length - 1)
+            renderQueue()
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+
+      function runCrossfade(fromName, toName, nextIndex) {
+        if (deck.crossfading) return
+        const from = playerOf(fromName)
+        const to = playerOf(toName)
+        if (!from || !to) return
+
+        deck.crossfading = true
+        deck.autoAdvanceArmed = true
+        deck.transitionSwell = 1
+        deck.index = nextIndex
+        renderQueue()
+
+        try {
+          to.playVideo()
+        } catch {
+          /* ignore */
+        }
+        setVolumeSafe(to, 0)
+        setVolumeSafe(from, 100)
+
+        const durationMs = deck.crossfadeSec * 1000
+        const t0 = performance.now()
+
+        const step = (now) => {
+          const t = clamp((now - t0) / durationMs, 0, 1)
+          // Equal-power-ish curve for smoother DJ blend.
+          const fadeOut = Math.cos(t * 0.5 * Math.PI)
+          const fadeIn = Math.sin(t * 0.5 * Math.PI)
+          setVolumeSafe(from, fadeOut * 100)
+          setVolumeSafe(to, fadeIn * 100)
+          deck.transitionSwell = Math.sin(t * Math.PI)
+
+          if (t < 1) {
+            requestAnimationFrame(step)
+            return
+          }
+
+          setVolumeSafe(from, 0)
+          setVolumeSafe(to, 100)
+          try {
+            from.pauseVideo()
+          } catch {
+            /* ignore */
+          }
+          deck.active = toName
+          deck.crossfading = false
+          deck.transitionSwell = 0
+          deck.autoAdvanceArmed = false
+          setStatus(`Now playing ${deck.queue[deck.index] || ''}`)
+        }
+        requestAnimationFrame(step)
+      }
+
+      async function startOrResume() {
+        await ensurePlayers()
+        syncPlaylistIfNeeded()
+        if (!deck.queue.length && !deck.pendingPlaylistId) {
+          setStatus('Load a queue first', true)
+          return
+        }
+
+        const active = playerOf(deck.active)
+        if (!active) return
+
+        // Playlist still resolving — just play whatever is on the active deck.
+        if (!deck.queue.length) {
+          try {
+            active.playVideo()
+            deck.playing = true
+            setStatus('Playing playlist…')
+            setTimeout(syncPlaylistIfNeeded, 800)
+          } catch (err) {
+            console.warn(err)
+          }
+          return
+        }
+
+        const id = deck.queue[deck.index]
+        if (!id) return
+
+        let currentId = ''
+        let state = -1
+        try {
+          currentId = active.getVideoData?.()?.video_id || ''
+          state = typeof active.getPlayerState === 'function' ? active.getPlayerState() : -1
+        } catch {
+          /* ignore */
+        }
+
+        const sameTrack = currentId === id
+        // 1 playing, 2 paused, 3 buffering — resume in place (do not reload).
+        const canResume = sameTrack && (state === 1 || state === 2 || state === 3)
+
+        if (canResume) {
+          setVolumeSafe(active, 100)
+          try {
+            active.playVideo()
+          } catch {
+            /* ignore */
+          }
+          deck.playing = true
+          setStatus(`Playing ${id}`)
+          renderQueue()
+          return
+        }
+
+        // First start, wrong video, ended (-1/0/5), or empty deck — load then play.
+        loadVideoOn(deck.active, id, { autoplay: true, volume: 100 })
+        try {
+          active.playVideo()
+        } catch {
+          /* ignore */
+        }
+        deck.playing = true
+        setStatus(`Playing ${id}`)
+        renderQueue()
+      }
+
+      function pauseAll() {
+        deck.playing = false
+        if (deck.crossfading) {
+          // Abort an in-progress blend so resume doesn't fight two decks.
+          deck.crossfading = false
+          deck.transitionSwell = 0
+          deck.autoAdvanceArmed = false
+        }
+        ;['A', 'B'].forEach((name) => {
+          const p = playerOf(name)
+          if (!p) return
+          try {
+            p.pauseVideo()
+          } catch {
+            /* ignore */
+          }
+          // Keep idle deck muted; active stays at full volume for clean resume.
+          if (name !== deck.active) setVolumeSafe(p, 0)
+          else setVolumeSafe(p, 100)
+        })
+        setStatus('Paused')
+      }
+
+      async function goNext({ force = false } = {}) {
+        await ensurePlayers()
+        syncPlaylistIfNeeded()
+        if (!deck.queue.length) return
+        if (deck.crossfading) return
+
+        const nextIndex = (deck.index + 1) % deck.queue.length
+        if (nextIndex === deck.index && deck.queue.length === 1) {
+          if (force) {
+            try {
+              playerOf(deck.active).seekTo(0, true)
+              playerOf(deck.active).playVideo()
+            } catch {
+              /* ignore */
+            }
+          }
+          return
+        }
+
+        const nextId = deck.queue[nextIndex]
+        const toName = idleDeck()
+        loadVideoOn(toName, nextId, { autoplay: true, volume: 0 })
+        runCrossfade(deck.active, toName, nextIndex)
+      }
+
+      async function goPrev() {
+        await ensurePlayers()
+        syncPlaylistIfNeeded()
+        if (!deck.queue.length || deck.crossfading) return
+        const prevIndex = (deck.index - 1 + deck.queue.length) % deck.queue.length
+        const prevId = deck.queue[prevIndex]
+        const toName = idleDeck()
+        loadVideoOn(toName, prevId, { autoplay: true, volume: 0 })
+        runCrossfade(deck.active, toName, prevIndex)
+        deck.playing = true
+      }
+
+      function pollAutoAdvance() {
+        if (!deck.playing || deck.crossfading || deck.autoAdvanceArmed) return
+        if (deck.queue.length < 2) return
+        const p = playerOf(deck.active)
+        if (!p?.getDuration || !p.getCurrentTime) return
+        let duration = 0
+        let current = 0
+        try {
+          duration = p.getDuration() || 0
+          current = p.getCurrentTime() || 0
+        } catch {
+          return
+        }
+        if (duration <= 0) return
+        const remaining = duration - current
+        if (remaining > deck.crossfadeSec || remaining <= 0.05) return
+        void goNext({ force: true })
+      }
+
+      // ——— WebGPU particles ———
+      async function initParticles() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return false
+        }
+        const adapter = await navigator.gpu.requestAdapter()
+        if (!adapter) {
+          showFallback()
+          setStatus('WebGPU adapter not available', true)
+          return false
+        }
+
+        camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200)
+        camera.position.set(0, 0, 10)
+        scene = new THREE.Scene()
+        timer = new THREE.Timer()
+        timer.connect(document)
+
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setClearColor(0x14171a)
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setAnimationLoop(animate)
+        renderer.toneMapping = THREE.ACESFilmicToneMapping
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return false
+        }
+
+        getInstanceColor = Fn(([i]) => {
+          return hue(
+            color(0x0000ff),
+            colorOffset.add(mx_fractal_noise_float(i.toFloat().mul(0.1), 2, 2.0, 0.5, colorVariance)),
+          )
+        })
+
+        const particlePositions = storage(
+          new THREE.StorageInstancedBufferAttribute(nbParticles, 4),
+          'vec4',
+          nbParticles,
+        )
+        const particleVelocities = storage(
+          new THREE.StorageInstancedBufferAttribute(nbParticles, 4),
+          'vec4',
+          nbParticles,
+        )
+
+        renderer.compute(
+          Fn(() => {
+            particlePositions.element(instanceIndex).xyz.assign(vec3(10000.0))
+            particlePositions.element(instanceIndex).w.assign(float(-1.0))
+          })().compute(nbParticles),
+        )
+
+        const particleQuadSize = 0.05
+        const particleGeom = new THREE.PlaneGeometry(particleQuadSize, particleQuadSize)
+        const particleMaterial = new THREE.SpriteNodeMaterial()
+        particleMaterial.blending = THREE.AdditiveBlending
+        particleMaterial.depthWrite = false
+        particleMaterial.positionNode = particlePositions.toAttribute()
+        particleMaterial.scaleNode = vec2(particleSize)
+        particleMaterial.rotationNode = atan(
+          particleVelocities.toAttribute().y,
+          particleVelocities.toAttribute().x,
+        )
+        particleMaterial.colorNode = Fn(() => {
+          const life = particlePositions.toAttribute().w
+          const modLife = pcurve(life.oneMinus(), 8.0, 1.0)
+          const pulse = pcurve(
+            sin(hash(instanceIndex).mul(TWO_PI).add(time.mul(0.5).mul(TWO_PI)))
+              .mul(0.5)
+              .add(0.5),
+            0.25,
+            0.25,
+          )
+            .mul(10.0)
+            .add(1.0)
+          return getInstanceColor(instanceIndex).mul(pulse.mul(modLife))
+        })()
+        particleMaterial.opacityNode = Fn(() => {
+          const circle = step(uv().xy.sub(0.5).length(), 0.5)
+          const life = particlePositions.toAttribute().w
+          return circle.mul(life)
+        })()
+
+        const particleMesh = new THREE.InstancedMesh(particleGeom, particleMaterial, nbParticles)
+        particleMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage)
+        particleMesh.frustumCulled = false
+        scene.add(particleMesh)
+
+        const linksIndices = []
+        for (let i = 0; i < nbParticles; i++) {
+          const baseIndex = i * 8
+          for (let j = 0; j < 2; j++) {
+            const offset = baseIndex + j * 4
+            linksIndices.push(offset, offset + 1, offset + 2, offset, offset + 2, offset + 3)
+          }
+        }
+        const nbVertices = nbParticles * 8
+        const linksVerticesSBA = new THREE.StorageBufferAttribute(nbVertices, 4)
+        const linksColorsSBA = new THREE.StorageBufferAttribute(nbVertices, 4)
+        const linksGeom = new THREE.BufferGeometry()
+        linksGeom.setAttribute('position', linksVerticesSBA)
+        linksGeom.setAttribute('color', linksColorsSBA)
+        linksGeom.setIndex(linksIndices)
+
+        const linksMaterial = new THREE.MeshBasicNodeMaterial()
+        linksMaterial.vertexColors = true
+        linksMaterial.side = THREE.DoubleSide
+        linksMaterial.transparent = true
+        linksMaterial.depthWrite = false
+        linksMaterial.depthTest = false
+        linksMaterial.blending = THREE.AdditiveBlending
+        linksMaterial.opacityNode = storage(linksColorsSBA, 'vec4', linksColorsSBA.count).toAttribute().w
+
+        const linksMesh = new THREE.Mesh(linksGeom, linksMaterial)
+        linksMesh.frustumCulled = false
+        scene.add(linksMesh)
+
+        updateParticles = Fn(() => {
+          const position = particlePositions.element(instanceIndex).xyz
+          const life = particlePositions.element(instanceIndex).w
+          const velocity = particleVelocities.element(instanceIndex).xyz
+          const dt = deltaTime.mul(0.1).mul(timeScale)
+
+          If(life.greaterThan(0.0), () => {
+            const localVel = mx_fractal_noise_vec3(
+              position.mul(turbFrequency),
+              turbOctaves,
+              turbLacunarity,
+              turbGain,
+              turbAmplitude,
+            ).mul(life.add(0.01))
+            velocity.addAssign(localVel)
+            velocity.mulAssign(turbFriction.oneMinus())
+            position.addAssign(velocity.mul(dt))
+            life.subAssign(dt.mul(particleLifetime.reciprocal()))
+
+            const closestDist1 = float(10000.0).toVar()
+            const closestPos1 = vec3(0.0).toVar()
+            const closestLife1 = float(0.0).toVar()
+            const closestDist2 = float(10000.0).toVar()
+            const closestPos2 = vec3(0.0).toVar()
+            const closestLife2 = float(0.0).toVar()
+
+            Loop(nbParticles, ({ i }) => {
+              const otherPart = particlePositions.element(i)
+              If(i.notEqual(instanceIndex).and(otherPart.w.greaterThan(0.0)), () => {
+                const otherPosition = otherPart.xyz
+                const dist = position.sub(otherPosition).lengthSq()
+                const moreThanZero = dist.greaterThan(0.0)
+                If(dist.lessThan(closestDist1).and(moreThanZero), () => {
+                  closestDist1.assign(dist)
+                  closestPos1.assign(otherPosition.xyz)
+                  closestLife1.assign(otherPart.w)
+                }).ElseIf(dist.lessThan(closestDist2).and(moreThanZero), () => {
+                  closestDist2.assign(dist)
+                  closestPos2.assign(otherPosition.xyz)
+                  closestLife2.assign(otherPart.w)
+                })
+              })
+            })
+
+            const linksPositions = storage(linksVerticesSBA, 'vec4', linksVerticesSBA.count)
+            const linksColors = storage(linksColorsSBA, 'vec4', linksColorsSBA.count)
+            const firstLinkIndex = instanceIndex.mul(8)
+            const secondLinkIndex = firstLinkIndex.add(4)
+
+            linksPositions.element(firstLinkIndex).xyz.assign(position)
+            linksPositions.element(firstLinkIndex).y.addAssign(linksWidth)
+            linksPositions.element(firstLinkIndex.add(1)).xyz.assign(position)
+            linksPositions.element(firstLinkIndex.add(1)).y.addAssign(linksWidth.negate())
+            linksPositions.element(firstLinkIndex.add(2)).xyz.assign(closestPos1)
+            linksPositions.element(firstLinkIndex.add(2)).y.addAssign(linksWidth.negate())
+            linksPositions.element(firstLinkIndex.add(3)).xyz.assign(closestPos1)
+            linksPositions.element(firstLinkIndex.add(3)).y.addAssign(linksWidth)
+
+            linksPositions.element(secondLinkIndex).xyz.assign(position)
+            linksPositions.element(secondLinkIndex).y.addAssign(linksWidth)
+            linksPositions.element(secondLinkIndex.add(1)).xyz.assign(position)
+            linksPositions.element(secondLinkIndex.add(1)).y.addAssign(linksWidth.negate())
+            linksPositions.element(secondLinkIndex.add(2)).xyz.assign(closestPos2)
+            linksPositions.element(secondLinkIndex.add(2)).y.addAssign(linksWidth.negate())
+            linksPositions.element(secondLinkIndex.add(3)).xyz.assign(closestPos2)
+            linksPositions.element(secondLinkIndex.add(3)).y.addAssign(linksWidth)
+
+            const linkColor = getInstanceColor(instanceIndex)
+            const l1 = max(0.0, min(closestLife1, life)).pow(0.8)
+            const l2 = max(0.0, min(closestLife2, life)).pow(0.8)
+            Loop(4, ({ i }) => {
+              linksColors.element(firstLinkIndex.add(i)).xyz.assign(linkColor)
+              linksColors.element(firstLinkIndex.add(i)).w.assign(l1)
+              linksColors.element(secondLinkIndex.add(i)).xyz.assign(linkColor)
+              linksColors.element(secondLinkIndex.add(i)).w.assign(l2)
+            })
+          })
+        })()
+          .compute(nbParticles)
+          .setName('Update Particles')
+
+        spawnParticles = Fn(() => {
+          const particleIndex = spawnIndex.add(instanceIndex).mod(nbParticles).toInt()
+          const position = particlePositions.element(particleIndex).xyz
+          const life = particlePositions.element(particleIndex).w
+          const velocity = particleVelocities.element(particleIndex).xyz
+          life.assign(1.0)
+          const rRange = float(0.01)
+          const rTheta = hash(particleIndex).mul(TWO_PI)
+          const rPhi = hash(particleIndex.add(1)).mul(PI)
+          const rx = sin(rTheta).mul(cos(rPhi))
+          const ry = sin(rTheta).mul(sin(rPhi))
+          const rz = cos(rTheta)
+          const rDir = vec3(rx, ry, rz)
+          const pos = mix(
+            previousSpawnPosition,
+            spawnPosition,
+            instanceIndex.toFloat().div(nbToSpawn.sub(1).toFloat()).clamp(),
+          )
+          position.assign(pos.add(rDir.mul(rRange)))
+          velocity.assign(rDir.mul(5.0))
+        })()
+          .compute(nbToSpawn.value)
+          .setName('Spawn Particles')
+
+        const backgroundGeom = new THREE.IcosahedronGeometry(100, 5).applyMatrix4(
+          new THREE.Matrix4().makeScale(-1, 1, 1),
+        )
+        const backgroundMaterial = new THREE.MeshStandardNodeMaterial()
+        backgroundMaterial.roughness = 0.4
+        backgroundMaterial.metalness = 0.9
+        backgroundMaterial.flatShading = true
+        backgroundMaterial.colorNode = color(0x0)
+        scene.add(new THREE.Mesh(backgroundGeom, backgroundMaterial))
+
+        light = new THREE.PointLight(0xffffff, 3000)
+        scene.add(light)
+
+        renderPipeline = new THREE.RenderPipeline(renderer)
+        const scenePass = pass(scene, camera)
+        const scenePassColor = scenePass.getTextureNode('output')
+        bloomPass = bloom(scenePassColor, 0.75, 0.1, 0.5)
+        renderPipeline.outputNode = scenePassColor.add(bloomPass)
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.autoRotate = !isMobile
+        controls.maxDistance = 75
+
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'draw', label: 'Draw' },
+          ],
+          defaultMode: 'orbit',
+          hints: {
+            orbit: 'Orbit mode · drag to rotate',
+            draw: 'Draw mode · drag to spawn trails',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+            if (mode === 'orbit') drawingActive = false
+            controls.autoRotate = false
+          },
+        })
+
+        window.addEventListener('resize', onWindowResize)
+        container.addEventListener('pointermove', onPointerMove)
+        container.addEventListener('pointerdown', onPointerDown)
+        container.addEventListener('pointerup', onPointerUp)
+        container.addEventListener('pointercancel', onPointerUp)
+        return true
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        camera.aspect = window.innerWidth / window.innerHeight
+        camera.updateProjectionMatrix()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function canDraw() {
+        return !isMobile || !touchMode || touchMode.mode === 'draw'
+      }
+      function onPointerDown(event) {
+        if (event.isPrimary === false) return
+        if (!canDraw()) return
+        drawingActive = true
+        screenPointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        screenPointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+      }
+      function onPointerUp(event) {
+        if (event.isPrimary === false) return
+        drawingActive = false
+      }
+      function onPointerMove(event) {
+        if (event.isPrimary === false) return
+        if (!canDraw()) return
+        screenPointer.x = (event.clientX / window.innerWidth) * 2 - 1
+        screenPointer.y = -(event.clientY / window.innerHeight) * 2 + 1
+        drawingActive = true
+      }
+      function updatePointer() {
+        raycaster.setFromCamera(screenPointer, camera)
+        raycaster.ray.intersectPlane(raycastPlane, scenePointer)
+      }
+
+      function applyAudioToUniforms(bands, transition, elapsed) {
+        const swell = transition
+        const live = bands.hasSignal
+        const punch = live
+          ? bands.kick * 0.35 + bands.transient * 0.6 + bands.beat * 0.9
+          : 0
+
+        if (!live) {
+          // Free-run visuals identical to the showcase demo: pointer drives the emitter.
+          nbToSpawn.value = BASE.nbToSpawn
+          turbAmplitude.value = BASE.turbAmplitude
+          timeScale.value = BASE.timeScale
+          colorRotationSpeed.value = BASE.colorRotationSpeed
+          particleSize.value = isMobile ? 1.15 : 1.0
+          linksWidth.value = 0.005
+          if (bloomPass) {
+            bloomPass.strength.value = BASE.bloomStrength + swell * 2
+            bloomPass.radius.value = 0.1
+          }
+          if (light) light.intensity = 3000 + swell * 1500
+          return
+        }
+
+        // Scaled so a normal groove sits mid-range and only kicks reach the ceiling.
+        nbToSpawn.value = Math.round(
+          clamp(4 + bands.bass * 14 + punch * 22 + swell * 40, 4, 140),
+        )
+        turbAmplitude.value = clamp(0.4 + bands.bass * 1.0 + punch * 1.4 + swell * 4, 0.2, 10)
+        timeScale.value = clamp(0.6 + bands.mids * 0.7 + punch * 0.35 + swell * 0.8, 0.3, 4)
+        colorRotationSpeed.value = clamp(
+          0.5 + bands.highs * 1.4 + punch * 0.9 + swell * 3.5,
+          0.2,
+          9,
+        )
+        particleSize.value = clamp(
+          (isMobile ? 1.15 : 1.0) + bands.bass * 0.25 + punch * 0.2,
+          0.6,
+          2.4,
+        )
+        linksWidth.value = clamp(0.005 + bands.highs * 0.006 + punch * 0.004, 0.003, 0.04)
+
+        if (bloomPass) {
+          bloomPass.strength.value = clamp(
+            0.5 + bands.highs * 1.2 + punch * 1.1 + swell * 3,
+            0.35,
+            8,
+          )
+          bloomPass.radius.value = clamp(0.1 + bands.mids * 0.12 + punch * 0.1, 0.05, 0.85)
+        }
+
+        if (light) {
+          light.intensity = 2000 + bands.energy * 1200 + punch * 1200 + swell * 2000
+        }
+
+        const r = 0.2 + bands.bass * 1.2 + punch * 0.9
+        const spin = 0.4 + bands.mids * 1.1 + bands.highs * 0.5
+        scenePointer.set(
+          Math.sin(elapsed * spin) * r,
+          Math.cos(elapsed * (spin * 0.78 + 0.2)) * r * 0.75,
+          Math.sin(elapsed * 0.42 + bands.highs) * (0.2 + punch * 1.1),
+        )
+      }
+
+      function animate() {
+        if (!renderer || !renderPipeline || !updateParticles || !spawnParticles) return
+
+        timer.update()
+        const delta = Math.min(timer.getDelta(), 0.05)
+        const elapsed = timer.getElapsed()
+
+        const bands = updateAudioBands(delta)
+        applyAudioToUniforms(bands, deck.transitionSwell, elapsed)
+
+        // Audio drives the emitter only while a real signal is present; otherwise pointer does.
+        const musicSpawn = bands.hasSignal
+        const pointerSpawn = !isMobile || drawingActive
+        const shouldSpawn = musicSpawn || pointerSpawn
+
+        if (shouldSpawn) {
+          const spawnCount = Math.max(1, Math.floor(nbToSpawn.value))
+          spawnParticles.count = spawnCount
+          renderer.compute(updateParticles)
+          renderer.compute(spawnParticles)
+          spawnIndex.value = (spawnIndex.value + spawnCount) % nbParticles
+        } else {
+          renderer.compute(updateParticles)
+        }
+
+        raycastPlane.normal.set(0, 0, 1).applyEuler(camera.rotation)
+        if (!musicSpawn) updatePointer()
+
+        previousSpawnPosition.value.copy(spawnPosition.value)
+        spawnPosition.value.lerp(scenePointer, musicSpawn ? 0.18 : 0.1)
+
+        colorOffset.value += delta * colorRotationSpeed.value * timeScale.value
+
+        light.position.set(
+          Math.sin(elapsed * 0.5) * 30,
+          Math.cos(elapsed * 0.3) * 30,
+          Math.sin(elapsed * 0.2) * 30,
+        )
+
+        controls.update()
+        renderPipeline.render()
+
+        if (!isMobile) drawingActive = false
+      }
+
+      // ——— UI wiring ———
+      btnCollapse.addEventListener('click', () => {
+        const collapsed = panelEl.classList.toggle('is-collapsed')
+        btnCollapse.textContent = collapsed ? 'Show' : 'Hide'
+        btnCollapse.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+      })
+      sensitivityRange.addEventListener('input', () => {
+        inputSensitivity = Number(sensitivityRange.value) || 1
+        sensitivityLabel.textContent = inputSensitivity.toFixed(1)
+        applyInputSensitivity()
+      })
+
+      crossfadeRange.addEventListener('input', () => {
+        deck.crossfadeSec = Number(crossfadeRange.value) || 4
+        crossfadeLabel.textContent = deck.crossfadeSec.toFixed(1)
+      })
+      btnLoad.addEventListener('click', () => {
+        void loadQueueFromInput()
+      })
+      btnPlay.addEventListener('click', () => {
+        void startOrResume()
+      })
+      btnPause.addEventListener('click', () => {
+        pauseAll()
+      })
+      btnNext.addEventListener('click', () => {
+        deck.playing = true
+        void goNext({ force: true })
+      })
+      btnPrev.addEventListener('click', () => {
+        void goPrev()
+      })
+      btnMic.addEventListener('click', () => {
+        void startMicCapture()
+      })
+      btnCapture.addEventListener('click', () => {
+        void startTabCapture()
+      })
+      btnTestTone.addEventListener('click', () => {
+        void startTestTone()
+      })
+      btnCaptureStop.addEventListener('click', () => {
+        stopAudioInput()
+        captureHintEl.textContent =
+          'Listen stopped. Press Listen via mic (speakers) or Listen via tab when ready.'
+        setStatus('Music reactivity off')
+      })
+
+      window.__djAudioDebug = () => ({
+        active: audioState.active,
+        mode: audioState.mode,
+        ctxState: audioState.ctx?.state ?? null,
+        gate: audioState.gateLevel,
+        floor: audioState.noiseFloor,
+        maxBin: audioState.freqData ? Math.max(...audioState.freqData) : null,
+        tracks: audioState.stream
+          ? audioState.stream.getAudioTracks().map((t) => ({
+              label: t.label,
+              readyState: t.readyState,
+              muted: t.muted,
+              enabled: t.enabled,
+            }))
+          : null,
+        rawLevel: audioState.rawLevel,
+        bass: audioState.smoothedBass,
+        mids: audioState.smoothedMids,
+        highs: audioState.smoothedHighs,
+        kick: audioState.smoothedKick,
+        beat: audioState.beatPulse,
+        transient: audioState.smoothedTransient,
+        silentFrames: audioState.silentFrames,
+        playing: deck.playing,
+        nbToSpawn: nbToSpawn.value,
+        turbAmplitude: turbAmplitude.value,
+      })
+
+      window.addEventListener('beforeunload', () => {
+        stopAudioInput()
+        if (deck.pollId) clearInterval(deck.pollId)
+      })
+
+      /**
+       * Tab audio needs real Chrome/Edge: embedded browsers (Cursor, VS Code,
+       * Electron shells) reject getDisplayMedia with NotSupportedError.
+       */
+      function applyEnvironmentLimits() {
+        const ua = navigator.userAgent
+        const embedded = /Electron|Cursor/i.test(ua)
+        const noDisplayMedia = !navigator.mediaDevices?.getDisplayMedia
+        if (!embedded && !noDisplayMedia) return
+
+        tabCaptureSupported = false
+        btnCapture.disabled = true
+        btnCapture.title = 'Tab audio sharing is unavailable in this in-app browser'
+        captureHintEl.innerHTML =
+          'This in-app browser cannot share tab audio. Use <strong>Listen via mic</strong> ' +
+          '(play YouTube on speakers), or open this page in <strong>Chrome/Edge</strong> for ' +
+          '<strong>Listen via tab</strong>.'
+      }
+
+      async function boot() {
+        applyEnvironmentLimits()
+        const ok = await initParticles()
+        if (!ok) return
+        try {
+          await ensurePlayers()
+          setStatus('Paste links · Play · Listen via mic (speakers) for beat sync')
+        } catch (err) {
+          console.warn(err)
+          setStatus('YouTube API failed to load — check network / blockers', true)
+        }
+        deck.pollId = setInterval(pollAutoAdvance, 250)
+        renderQueue()
+      }
+
+      boot().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>
