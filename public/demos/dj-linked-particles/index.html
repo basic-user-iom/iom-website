@@ -85,6 +85,10 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
       }
+      .dj-header-actions {
+        display: flex;
+        gap: 6px;
+      }
       .dj-toggle {
         border: 1px solid rgba(255, 255, 255, 0.2);
         background: transparent;
@@ -352,7 +356,12 @@
     <div id="dj-panel">
       <div class="dj-header">
         <h1>DJ deck</h1>
-        <button type="button" class="dj-toggle" id="btn-collapse" aria-expanded="true">Hide</button>
+        <div class="dj-header-actions">
+          <button type="button" class="dj-toggle" id="btn-fullscreen" title="Full screen (F)">
+            Full screen
+          </button>
+          <button type="button" class="dj-toggle" id="btn-collapse" aria-expanded="true">Hide</button>
+        </div>
       </div>
       <div class="dj-body">
         <div>
@@ -475,6 +484,7 @@
       const sensitivityRange = document.getElementById('sensitivity-range')
       const sensitivityLabel = document.getElementById('sensitivity-label')
       const btnCollapse = document.getElementById('btn-collapse')
+      const btnFullscreen = document.getElementById('btn-fullscreen')
       const btnLoad = document.getElementById('btn-load')
       const btnPlay = document.getElementById('btn-play')
       const btnPause = document.getElementById('btn-pause')
@@ -1958,6 +1968,45 @@
       }
 
       // ——— UI wiring ———
+      function isFullscreen() {
+        return Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+      }
+
+      async function toggleFullscreen() {
+        try {
+          if (isFullscreen()) {
+            await (document.exitFullscreen?.() ?? document.webkitExitFullscreen?.())
+          } else {
+            const root = document.documentElement
+            await (root.requestFullscreen?.() ?? root.webkitRequestFullscreen?.())
+          }
+        } catch (err) {
+          console.warn(err)
+          setStatus(`Full screen unavailable: ${err.name}`, true)
+        }
+      }
+
+      function syncFullscreenButton() {
+        const on = isFullscreen()
+        btnFullscreen.textContent = on ? 'Exit full screen' : 'Full screen'
+        btnFullscreen.title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)'
+      }
+
+      btnFullscreen.addEventListener('click', () => {
+        void toggleFullscreen()
+      })
+      document.addEventListener('fullscreenchange', syncFullscreenButton)
+      document.addEventListener('webkitfullscreenchange', syncFullscreenButton)
+
+      window.addEventListener('keydown', (event) => {
+        if (event.key !== 'f' && event.key !== 'F') return
+        if (event.metaKey || event.ctrlKey || event.altKey) return
+        const tag = document.activeElement?.tagName
+        if (tag === 'INPUT' || tag === 'TEXTAREA') return
+        event.preventDefault()
+        void toggleFullscreen()
+      })
+
       btnCollapse.addEventListener('click', () => {
         const collapsed = panelEl.classList.toggle('is-collapsed')
         btnCollapse.textContent = collapsed ? 'Show' : 'Hide'
