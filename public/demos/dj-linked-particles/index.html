@@ -189,21 +189,25 @@
         z-index: 20;
         overflow: hidden;
         pointer-events: none;
+        /* Own compositor layer so orbit transforms stay smooth while WebGPU works. */
+        transform: translateZ(0);
+        contain: strict;
       }
       #css3d-layer.is-hidden { visibility: hidden; }
       /* Kept small on purpose: this layer is composited every frame, and the
-         panel only covers a few hundred screen pixels while it orbits. */
+         panel only covers a few hundred screen pixels while it orbits.
+         Avoid heavy shadows/radius — they make CSS3D orbit stutter on weak GPUs. */
       .monitor-screen {
-        width: 480px;
-        height: 270px;
+        width: 400px;
+        height: 225px;
         position: relative;
         overflow: hidden;
         background: #000;
-        border: 7px solid #0f1116;
-        border-radius: 12px;
-        box-shadow:
-          0 0 60px rgba(96, 140, 255, 0.3),
-          inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+        border: 5px solid #0f1116;
+        border-radius: 4px;
+        box-shadow: 0 0 28px rgba(96, 140, 255, 0.22);
+        will-change: transform, opacity;
+        backface-visibility: hidden;
       }
       .monitor-deck {
         position: absolute;
@@ -551,16 +555,28 @@
       const monitorDeckEls = { A: null, B: null }
       let monitorAngle = 0
       let monitorEnabled = true
+      let monitorRaf = 0
+      let monitorLastTs = 0
+      let monitorFade = -1
       let touchMode = null
       let drawingActive = false
 
       const isMobile = prefersMobileExperience()
+      // Start conservative on mid/low GPUs; auto quality can step back up if FPS is solid.
+      const lowPowerHint =
+        isMobile ||
+        (typeof navigator !== 'undefined' &&
+          (navigator.hardwareConcurrency || 8) <= 4)
       const screenPointer = new THREE.Vector2()
       const scenePointer = new THREE.Vector3()
       const raycastPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0)
       const raycaster = new THREE.Raycaster()
 
-      const nbParticles = isMobile ? Math.pow(2, 11) : Math.pow(2, 13)
+      const nbParticles = isMobile ? Math.pow(2, 11) : lowPowerHint ? Math.pow(2, 12) : Math.pow(2, 13)
+      let qualityTier = lowPowerHint ? 1 : 2 // 0=lite, 1=balanced, 2=full
+      let fpsEma = 60
+      let qualityCooldown = 0
+      let maxSpawnCap = lowPowerHint ? 70 : 150
 
       const timeScale = uniform(1.0)
       const particleLifetime = uniform(0.5)
@@ -575,7 +591,7 @@
       const previousSpawnPosition = uniform(vec3(0.0))
       const turbFrequency = uniform(0.5)
       const turbAmplitude = uniform(0.5)
-      const turbOctaves = uniform(isMobile ? 1 : 2)
+      const turbOctaves = uniform(isMobile || lowPowerHint ? 1 : 2)
       const turbLacunarity = uniform(2.0)
       const turbGain = uniform(0.5)
       const turbFriction = uniform(0.01)
@@ -1741,9 +1757,15 @@
         timer = new THREE.Timer()
         timer.connect(document)
 
-        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile && qualityTier > 0 })
         renderer.setClearColor(0x14171a)
-        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
+        renderer.setPixelRatio(
+          qualityTier <= 0
+            ? 1
+            : qualityTier === 1
+              ? Math.min(window.devicePixelRatio || 1, 1.25)
+              : mobilePixelRatio(2, 1.25),
+        )
         renderer.setSize(window.innerWidth, window.innerHeight)
         renderer.setAnimationLoop(animate)
         renderer.toneMapping = THREE.ACESFilmicToneMapping
@@ -2012,118 +2034,172 @@
         cssRenderer?.setSize(window.innerWidth, window.innerHeight)
       }
 
-      // ——— Orbiting video panel (CSS3D) ———
-      const MONITOR_SCALE = 1 / 120 // 480×270 CSS px → 4.0 × 2.25 world units
-      const MONITOR_RADIUS = 5.5
-      const MONITOR_SPEED = 0.07 // rad/s ≈ 90 s per orbit
-      // Compositing a transformed video layer is the expensive part, so the
-      // panel's transform is refreshed at a fraction of the render rate. The
-      // orbit is slow enough that this is invisible.
-      const MONITOR_UPDATE_INTERVAL = 1 / 30
-      let monitorAccum = 0
-      let monitorFade = -1
-
-      function createOrbitingMonitor() {
-        const screen = document.createElement('div')
-        screen.className = 'monitor-screen'
-
-        // Re-parent the player hosts while they are still empty divs: moving an
-        // iframe in the DOM reloads it, which would kill playback mid-set.
-        for (const [name, hostId] of [
-          ['A', 'yt-a'],
-          ['B', 'yt-b'],
-        ]) {
-          const host = document.getElementById(hostId)
-          if (!host) continue
-          const deckEl = document.createElement('div')
-          deckEl.className = 'monitor-deck'
-          deckEl.style.opacity = name === deck.active ? '1' : '0'
-          deckEl.appendChild(host)
-          screen.appendChild(deckEl)
-          monitorDeckEls[name] = deckEl
-        }
-        document.querySelector('.dj-players')?.remove()
-
-        cssScene = new THREE.Scene()
-        monitorObject = new CSS3DObject(screen)
-        monitorObject.scale.setScalar(MONITOR_SCALE)
-        cssScene.add(monitorObject)
-
-        cssRenderer = new CSS3DRenderer()
-        cssRenderer.setSize(window.innerWidth, window.innerHeight)
-        css3dLayer.appendChild(cssRenderer.domElement)
-
-        // CSS3DRenderer only attaches object elements on its first render, and
-        // the YouTube API needs its host element to be in the document to claim
-        // it. Render once here — even when the panel starts hidden — otherwise
-        // player creation silently fails.
-        cssRenderer.render(cssScene, camera)
-
-        setMonitorEnabled(!isMobile)
-      }
-
-      function setMonitorEnabled(on) {
-        monitorEnabled = on
-        css3dLayer.classList.toggle('is-hidden', !on)
-        btnMonitor.setAttribute('aria-pressed', on ? 'true' : 'false')
-        btnMonitor.textContent = on ? 'Monitor' : 'Monitor off'
-      }
-
-      /** Active deck fully visible, idle deck hidden (used outside crossfades). */
-      function syncMonitorDecks() {
-        for (const name of ['A', 'B']) {
-          const el = monitorDeckEls[name]
-          if (!el) continue
-          el.style.opacity = name === deck.active ? '1' : '0'
-          el.style.zIndex = name === deck.active ? '1' : '0'
-        }
-      }
-
-      function setMonitorMix(fromName, toName, t) {
-        const from = monitorDeckEls[fromName]
-        const to = monitorDeckEls[toName]
-        if (from) {
-          from.style.opacity = String(1 - t)
-          from.style.zIndex = '0'
-        }
-        if (to) {
-          to.style.opacity = String(t)
-          to.style.zIndex = '1'
-        }
-      }
-
-      function updateMonitor(delta) {
-        if (!cssRenderer || !monitorObject || !monitorEnabled) return
-
-        monitorAngle += delta * MONITOR_SPEED
-        monitorAccum += delta
-        if (monitorAccum < MONITOR_UPDATE_INTERVAL) return
-        monitorAccum = 0
-
-        monitorObject.position.set(
-          Math.cos(monitorAngle) * MONITOR_RADIUS,
-          Math.sin(monitorAngle * 0.6) * 0.9,
-          Math.sin(monitorAngle) * MONITOR_RADIUS,
-        )
-        monitorObject.lookAt(camera.position)
-
-        // The DOM layer always composites over the canvas, so fade the panel as
-        // it swings past the particle core — without it the depth reads wrong.
-        const behind = clamp(
-          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
-            MONITOR_RADIUS,
-          0,
-          1,
-        )
-        const fade = lerp(1, 0.45, behind)
-        if (Math.abs(fade - monitorFade) > 0.02) {
-          monitorFade = fade
-          monitorObject.element.style.opacity = String(fade)
-        }
-
-        cssRenderer.render(cssScene, camera)
-      }
-
+      // ——— Orbiting video panel (CSS3D) ———
+      const MONITOR_SCALE = 1 / 100 // 400×225 CSS px → 4.0 × 2.25 world units
+      const MONITOR_RADIUS = 5.5
+      const MONITOR_SPEED = 0.07 // rad/s ≈ 90 s per orbit
+
+      function createOrbitingMonitor() {
+        const screen = document.createElement('div')
+        screen.className = 'monitor-screen'
+
+        // Re-parent the player hosts while they are still empty divs: moving an
+        // iframe in the DOM reloads it, which would kill playback mid-set.
+        for (const [name, hostId] of [
+          ['A', 'yt-a'],
+          ['B', 'yt-b'],
+        ]) {
+          const host = document.getElementById(hostId)
+          if (!host) continue
+          const deckEl = document.createElement('div')
+          deckEl.className = 'monitor-deck'
+          deckEl.style.opacity = name === deck.active ? '1' : '0'
+          deckEl.appendChild(host)
+          screen.appendChild(deckEl)
+          monitorDeckEls[name] = deckEl
+        }
+        document.querySelector('.dj-players')?.remove()
+
+        cssScene = new THREE.Scene()
+        monitorObject = new CSS3DObject(screen)
+        monitorObject.scale.setScalar(MONITOR_SCALE)
+        cssScene.add(monitorObject)
+
+        cssRenderer = new CSS3DRenderer()
+        cssRenderer.setSize(window.innerWidth, window.innerHeight)
+        cssRenderer.domElement.style.position = 'absolute'
+        cssRenderer.domElement.style.inset = '0'
+        cssRenderer.domElement.style.pointerEvents = 'none'
+        css3dLayer.appendChild(cssRenderer.domElement)
+
+        // CSS3DRenderer only attaches object elements on its first render, and
+        // the YouTube API needs its host element to be in the document to claim
+        // it. Render once here — even when the panel starts hidden — otherwise
+        // player creation silently fails.
+        cssRenderer.render(cssScene, camera)
+
+        setMonitorEnabled(!isMobile)
+      }
+
+      function setMonitorEnabled(on) {
+        monitorEnabled = on
+        css3dLayer.classList.toggle('is-hidden', !on)
+        btnMonitor.setAttribute('aria-pressed', on ? 'true' : 'false')
+        btnMonitor.textContent = on ? 'Monitor' : 'Monitor off'
+        if (on) startMonitorLoop()
+        else stopMonitorLoop()
+      }
+
+      /** Active deck fully visible, idle deck hidden (used outside crossfades). */
+      function syncMonitorDecks() {
+        for (const name of ['A', 'B']) {
+          const el = monitorDeckEls[name]
+          if (!el) continue
+          el.style.opacity = name === deck.active ? '1' : '0'
+          el.style.zIndex = name === deck.active ? '1' : '0'
+        }
+      }
+
+      function setMonitorMix(fromName, toName, t) {
+        const from = monitorDeckEls[fromName]
+        const to = monitorDeckEls[toName]
+        if (from) {
+          from.style.opacity = String(1 - t)
+          from.style.zIndex = '0'
+        }
+        if (to) {
+          to.style.opacity = String(t)
+          to.style.zIndex = '1'
+        }
+      }
+
+      /**
+       * Own rAF loop — not tied to the WebGPU animation loop. Particle compute
+       * hitching used to make the orbit look stepped; this keeps the panel at
+       * display refresh even when the canvas drops frames.
+       */
+      function startMonitorLoop() {
+        if (monitorRaf || !cssRenderer || !monitorObject) return
+        monitorLastTs = performance.now()
+        const tick = (now) => {
+          monitorRaf = requestAnimationFrame(tick)
+          if (!monitorEnabled || !camera || document.hidden) return
+          const delta = Math.min((now - monitorLastTs) / 1000, 0.05)
+          monitorLastTs = now
+          renderMonitorFrame(delta)
+        }
+        monitorRaf = requestAnimationFrame(tick)
+      }
+
+      function stopMonitorLoop() {
+        if (!monitorRaf) return
+        cancelAnimationFrame(monitorRaf)
+        monitorRaf = 0
+      }
+
+      function renderMonitorFrame(delta) {
+        if (!cssRenderer || !monitorObject || !camera) return
+
+        monitorAngle += delta * MONITOR_SPEED
+        monitorObject.position.set(
+          Math.cos(monitorAngle) * MONITOR_RADIUS,
+          Math.sin(monitorAngle * 0.6) * 0.9,
+          Math.sin(monitorAngle) * MONITOR_RADIUS,
+        )
+        monitorObject.lookAt(camera.position)
+
+        const behind = clamp(
+          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
+            MONITOR_RADIUS,
+          0,
+          1,
+        )
+        const fade = lerp(1, 0.5, behind)
+        if (Math.abs(fade - monitorFade) > 0.015) {
+          monitorFade = fade
+          monitorObject.element.style.opacity = String(fade)
+        }
+
+        cssRenderer.render(cssScene, camera)
+      }
+
+      /** Dial spawn/bloom/pixel-ratio down when frame time stays high. */
+      function updateAutoQuality(delta) {
+        if (!delta) return
+        const fps = 1 / delta
+        fpsEma = approach(fpsEma, fps, 1.2, delta)
+        qualityCooldown = Math.max(0, qualityCooldown - delta)
+        if (qualityCooldown > 0) return
+
+        if (fpsEma < 28 && qualityTier > 0) {
+          qualityTier -= 1
+          qualityCooldown = 2.5
+          applyQualityTier()
+        } else if (fpsEma > 52 && qualityTier < 2 && !isMobile) {
+          qualityTier += 1
+          qualityCooldown = 4
+          applyQualityTier()
+        }
+      }
+
+      function applyQualityTier() {
+        if (qualityTier <= 0) {
+          maxSpawnCap = 40
+          turbOctaves.value = 1
+          if (renderer) renderer.setPixelRatio(1)
+          if (bloomPass) bloomPass.radius.value = Math.min(bloomPass.radius.value, 0.2)
+        } else if (qualityTier === 1) {
+          maxSpawnCap = 70
+          turbOctaves.value = 1
+          if (renderer) renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
+        } else {
+          maxSpawnCap = 150
+          turbOctaves.value = isMobile ? 1 : 2
+          if (renderer) renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
+        }
+      }
+
+
       function canDraw() {
         return !isMobile || !touchMode || touchMode.mode === 'draw'
       }
@@ -2179,7 +2255,7 @@
         // Each drum drives what it sounds like: the kick throws mass and
         // turbulence, hats set the shimmer and speed, snares flick the colour.
         nbToSpawn.value = Math.round(
-          clamp(4 + bands.bass * 10 + kickHit * 48 + snareHit * 16 + swell * 40, 4, 150),
+          clamp(4 + bands.bass * 10 + kickHit * 48 + snareHit * 16 + swell * 40, 4, maxSpawnCap),
         )
         turbAmplitude.value = clamp(
           0.4 + bands.bass * 0.8 + kickHit * 2.4 + snareHit * 0.7 + swell * 4,
@@ -2236,6 +2312,7 @@
         timer.update()
         const delta = Math.min(timer.getDelta(), 0.05)
         const elapsed = timer.getElapsed()
+        updateAutoQuality(delta)
 
         const bands = updateAudioBands(delta)
         applyAudioToUniforms(bands, deck.transitionSwell, elapsed)
@@ -2271,7 +2348,6 @@
 
         controls.update()
         renderPipeline.render()
-        updateMonitor(delta)
 
         if (!isMobile) drawingActive = false
       }
@@ -2404,9 +2480,14 @@
         playing: deck.playing,
         nbToSpawn: nbToSpawn.value,
         turbAmplitude: turbAmplitude.value,
+        qualityTier,
+        fpsEma,
+        monitorEnabled,
+        monitorRaf: Boolean(monitorRaf),
       })
 
       window.addEventListener('beforeunload', () => {
+        stopMonitorLoop()
         stopAudioInput()
         if (deck.pollId) clearInterval(deck.pollId)
       })
