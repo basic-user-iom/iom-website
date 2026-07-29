@@ -452,6 +452,12 @@
           </label>
           <input id="punch-range" type="range" min="0" max="2.5" step="0.1" value="1.3" />
         </div>
+        <div>
+          <label class="dj-label" for="monitor-size-range">
+            Monitor size <span id="monitor-size-label">1.0</span>×
+          </label>
+          <input id="monitor-size-range" type="range" min="0.4" max="2.5" step="0.1" value="1" />
+        </div>
         <p class="dj-meta" id="now-playing">Queue empty</p>
         <ul class="dj-queue" id="queue-list" aria-label="Track queue"></ul>
         <div class="dj-players" aria-hidden="false">
@@ -534,6 +540,8 @@
       const sensitivityLabel = document.getElementById('sensitivity-label')
       const punchRange = document.getElementById('punch-range')
       const punchLabel = document.getElementById('punch-label')
+      const monitorSizeRange = document.getElementById('monitor-size-range')
+      const monitorSizeLabel = document.getElementById('monitor-size-label')
       const btnCollapse = document.getElementById('btn-collapse')
       const btnFullscreen = document.getElementById('btn-fullscreen')
       const btnMonitor = document.getElementById('btn-monitor')
@@ -2034,172 +2042,178 @@
         cssRenderer?.setSize(window.innerWidth, window.innerHeight)
       }
 
-      // ——— Orbiting video panel (CSS3D) ———
-      const MONITOR_SCALE = 1 / 100 // 400×225 CSS px → 4.0 × 2.25 world units
-      const MONITOR_RADIUS = 5.5
-      const MONITOR_SPEED = 0.07 // rad/s ≈ 90 s per orbit
-
-      function createOrbitingMonitor() {
-        const screen = document.createElement('div')
-        screen.className = 'monitor-screen'
-
-        // Re-parent the player hosts while they are still empty divs: moving an
-        // iframe in the DOM reloads it, which would kill playback mid-set.
-        for (const [name, hostId] of [
-          ['A', 'yt-a'],
-          ['B', 'yt-b'],
-        ]) {
-          const host = document.getElementById(hostId)
-          if (!host) continue
-          const deckEl = document.createElement('div')
-          deckEl.className = 'monitor-deck'
-          deckEl.style.opacity = name === deck.active ? '1' : '0'
-          deckEl.appendChild(host)
-          screen.appendChild(deckEl)
-          monitorDeckEls[name] = deckEl
-        }
-        document.querySelector('.dj-players')?.remove()
-
-        cssScene = new THREE.Scene()
-        monitorObject = new CSS3DObject(screen)
-        monitorObject.scale.setScalar(MONITOR_SCALE)
-        cssScene.add(monitorObject)
-
-        cssRenderer = new CSS3DRenderer()
-        cssRenderer.setSize(window.innerWidth, window.innerHeight)
-        cssRenderer.domElement.style.position = 'absolute'
-        cssRenderer.domElement.style.inset = '0'
-        cssRenderer.domElement.style.pointerEvents = 'none'
-        css3dLayer.appendChild(cssRenderer.domElement)
-
-        // CSS3DRenderer only attaches object elements on its first render, and
-        // the YouTube API needs its host element to be in the document to claim
-        // it. Render once here — even when the panel starts hidden — otherwise
-        // player creation silently fails.
-        cssRenderer.render(cssScene, camera)
-
-        setMonitorEnabled(!isMobile)
-      }
-
-      function setMonitorEnabled(on) {
-        monitorEnabled = on
-        css3dLayer.classList.toggle('is-hidden', !on)
-        btnMonitor.setAttribute('aria-pressed', on ? 'true' : 'false')
-        btnMonitor.textContent = on ? 'Monitor' : 'Monitor off'
-        if (on) startMonitorLoop()
-        else stopMonitorLoop()
-      }
-
-      /** Active deck fully visible, idle deck hidden (used outside crossfades). */
-      function syncMonitorDecks() {
-        for (const name of ['A', 'B']) {
-          const el = monitorDeckEls[name]
-          if (!el) continue
-          el.style.opacity = name === deck.active ? '1' : '0'
-          el.style.zIndex = name === deck.active ? '1' : '0'
-        }
-      }
-
-      function setMonitorMix(fromName, toName, t) {
-        const from = monitorDeckEls[fromName]
-        const to = monitorDeckEls[toName]
-        if (from) {
-          from.style.opacity = String(1 - t)
-          from.style.zIndex = '0'
-        }
-        if (to) {
-          to.style.opacity = String(t)
-          to.style.zIndex = '1'
-        }
-      }
-
-      /**
-       * Own rAF loop — not tied to the WebGPU animation loop. Particle compute
-       * hitching used to make the orbit look stepped; this keeps the panel at
-       * display refresh even when the canvas drops frames.
-       */
-      function startMonitorLoop() {
-        if (monitorRaf || !cssRenderer || !monitorObject) return
-        monitorLastTs = performance.now()
-        const tick = (now) => {
-          monitorRaf = requestAnimationFrame(tick)
-          if (!monitorEnabled || !camera || document.hidden) return
-          const delta = Math.min((now - monitorLastTs) / 1000, 0.05)
-          monitorLastTs = now
-          renderMonitorFrame(delta)
-        }
-        monitorRaf = requestAnimationFrame(tick)
-      }
-
-      function stopMonitorLoop() {
-        if (!monitorRaf) return
-        cancelAnimationFrame(monitorRaf)
-        monitorRaf = 0
-      }
-
-      function renderMonitorFrame(delta) {
-        if (!cssRenderer || !monitorObject || !camera) return
-
-        monitorAngle += delta * MONITOR_SPEED
-        monitorObject.position.set(
-          Math.cos(monitorAngle) * MONITOR_RADIUS,
-          Math.sin(monitorAngle * 0.6) * 0.9,
-          Math.sin(monitorAngle) * MONITOR_RADIUS,
-        )
-        monitorObject.lookAt(camera.position)
-
-        const behind = clamp(
-          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
-            MONITOR_RADIUS,
-          0,
-          1,
-        )
-        const fade = lerp(1, 0.5, behind)
-        if (Math.abs(fade - monitorFade) > 0.015) {
-          monitorFade = fade
-          monitorObject.element.style.opacity = String(fade)
-        }
-
-        cssRenderer.render(cssScene, camera)
-      }
-
-      /** Dial spawn/bloom/pixel-ratio down when frame time stays high. */
-      function updateAutoQuality(delta) {
-        if (!delta) return
-        const fps = 1 / delta
-        fpsEma = approach(fpsEma, fps, 1.2, delta)
-        qualityCooldown = Math.max(0, qualityCooldown - delta)
-        if (qualityCooldown > 0) return
-
-        if (fpsEma < 28 && qualityTier > 0) {
-          qualityTier -= 1
-          qualityCooldown = 2.5
-          applyQualityTier()
-        } else if (fpsEma > 52 && qualityTier < 2 && !isMobile) {
-          qualityTier += 1
-          qualityCooldown = 4
-          applyQualityTier()
-        }
-      }
-
-      function applyQualityTier() {
-        if (qualityTier <= 0) {
-          maxSpawnCap = 40
-          turbOctaves.value = 1
-          if (renderer) renderer.setPixelRatio(1)
-          if (bloomPass) bloomPass.radius.value = Math.min(bloomPass.radius.value, 0.2)
-        } else if (qualityTier === 1) {
-          maxSpawnCap = 70
-          turbOctaves.value = 1
-          if (renderer) renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
-        } else {
-          maxSpawnCap = 150
-          turbOctaves.value = isMobile ? 1 : 2
-          if (renderer) renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
-        }
-      }
-
-
+      // ——— Orbiting video panel (CSS3D) ———
+      const MONITOR_BASE_SCALE = 1 / 100 // 400×225 CSS px → 4.0 × 2.25 world units at 1×
+      const MONITOR_RADIUS = 5.5
+      const MONITOR_SPEED = 0.07 // rad/s ≈ 90 s per orbit
+      let monitorSizeFactor = 1
+
+      function applyMonitorSize() {
+        if (!monitorObject) return
+        monitorObject.scale.setScalar(MONITOR_BASE_SCALE * monitorSizeFactor)
+      }
+
+      function createOrbitingMonitor() {
+        const screen = document.createElement('div')
+        screen.className = 'monitor-screen'
+
+        // Re-parent the player hosts while they are still empty divs: moving an
+        // iframe in the DOM reloads it, which would kill playback mid-set.
+        for (const [name, hostId] of [
+          ['A', 'yt-a'],
+          ['B', 'yt-b'],
+        ]) {
+          const host = document.getElementById(hostId)
+          if (!host) continue
+          const deckEl = document.createElement('div')
+          deckEl.className = 'monitor-deck'
+          deckEl.style.opacity = name === deck.active ? '1' : '0'
+          deckEl.appendChild(host)
+          screen.appendChild(deckEl)
+          monitorDeckEls[name] = deckEl
+        }
+        document.querySelector('.dj-players')?.remove()
+
+        cssScene = new THREE.Scene()
+        monitorObject = new CSS3DObject(screen)
+        applyMonitorSize()
+        cssScene.add(monitorObject)
+
+        cssRenderer = new CSS3DRenderer()
+        cssRenderer.setSize(window.innerWidth, window.innerHeight)
+        cssRenderer.domElement.style.position = 'absolute'
+        cssRenderer.domElement.style.inset = '0'
+        cssRenderer.domElement.style.pointerEvents = 'none'
+        css3dLayer.appendChild(cssRenderer.domElement)
+
+        // CSS3DRenderer only attaches object elements on its first render, and
+        // the YouTube API needs its host element to be in the document to claim
+        // it. Render once here — even when the panel starts hidden — otherwise
+        // player creation silently fails.
+        cssRenderer.render(cssScene, camera)
+
+        setMonitorEnabled(!isMobile)
+      }
+
+      function setMonitorEnabled(on) {
+        monitorEnabled = on
+        css3dLayer.classList.toggle('is-hidden', !on)
+        btnMonitor.setAttribute('aria-pressed', on ? 'true' : 'false')
+        btnMonitor.textContent = on ? 'Monitor' : 'Monitor off'
+        if (on) startMonitorLoop()
+        else stopMonitorLoop()
+      }
+
+      /** Active deck fully visible, idle deck hidden (used outside crossfades). */
+      function syncMonitorDecks() {
+        for (const name of ['A', 'B']) {
+          const el = monitorDeckEls[name]
+          if (!el) continue
+          el.style.opacity = name === deck.active ? '1' : '0'
+          el.style.zIndex = name === deck.active ? '1' : '0'
+        }
+      }
+
+      function setMonitorMix(fromName, toName, t) {
+        const from = monitorDeckEls[fromName]
+        const to = monitorDeckEls[toName]
+        if (from) {
+          from.style.opacity = String(1 - t)
+          from.style.zIndex = '0'
+        }
+        if (to) {
+          to.style.opacity = String(t)
+          to.style.zIndex = '1'
+        }
+      }
+
+      /**
+       * Own rAF loop — not tied to the WebGPU animation loop. Particle compute
+       * hitching used to make the orbit look stepped; this keeps the panel at
+       * display refresh even when the canvas drops frames.
+       */
+      function startMonitorLoop() {
+        if (monitorRaf || !cssRenderer || !monitorObject) return
+        monitorLastTs = performance.now()
+        const tick = (now) => {
+          monitorRaf = requestAnimationFrame(tick)
+          if (!monitorEnabled || !camera || document.hidden) return
+          const delta = Math.min((now - monitorLastTs) / 1000, 0.05)
+          monitorLastTs = now
+          renderMonitorFrame(delta)
+        }
+        monitorRaf = requestAnimationFrame(tick)
+      }
+
+      function stopMonitorLoop() {
+        if (!monitorRaf) return
+        cancelAnimationFrame(monitorRaf)
+        monitorRaf = 0
+      }
+
+      function renderMonitorFrame(delta) {
+        if (!cssRenderer || !monitorObject || !camera) return
+
+        monitorAngle += delta * MONITOR_SPEED
+        monitorObject.position.set(
+          Math.cos(monitorAngle) * MONITOR_RADIUS,
+          Math.sin(monitorAngle * 0.6) * 0.9,
+          Math.sin(monitorAngle) * MONITOR_RADIUS,
+        )
+        monitorObject.lookAt(camera.position)
+
+        const behind = clamp(
+          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
+            MONITOR_RADIUS,
+          0,
+          1,
+        )
+        const fade = lerp(1, 0.5, behind)
+        if (Math.abs(fade - monitorFade) > 0.015) {
+          monitorFade = fade
+          monitorObject.element.style.opacity = String(fade)
+        }
+
+        cssRenderer.render(cssScene, camera)
+      }
+
+      /** Dial spawn/bloom/pixel-ratio down when frame time stays high. */
+      function updateAutoQuality(delta) {
+        if (!delta) return
+        const fps = 1 / delta
+        fpsEma = approach(fpsEma, fps, 1.2, delta)
+        qualityCooldown = Math.max(0, qualityCooldown - delta)
+        if (qualityCooldown > 0) return
+
+        if (fpsEma < 28 && qualityTier > 0) {
+          qualityTier -= 1
+          qualityCooldown = 2.5
+          applyQualityTier()
+        } else if (fpsEma > 52 && qualityTier < 2 && !isMobile) {
+          qualityTier += 1
+          qualityCooldown = 4
+          applyQualityTier()
+        }
+      }
+
+      function applyQualityTier() {
+        if (qualityTier <= 0) {
+          maxSpawnCap = 40
+          turbOctaves.value = 1
+          if (renderer) renderer.setPixelRatio(1)
+          if (bloomPass) bloomPass.radius.value = Math.min(bloomPass.radius.value, 0.2)
+        } else if (qualityTier === 1) {
+          maxSpawnCap = 70
+          turbOctaves.value = 1
+          if (renderer) renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.25))
+        } else {
+          maxSpawnCap = 150
+          turbOctaves.value = isMobile ? 1 : 2
+          if (renderer) renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
+        }
+      }
+
+
       function canDraw() {
         return !isMobile || !touchMode || touchMode.mode === 'draw'
       }
@@ -2353,35 +2367,116 @@
       }
 
       // ——— UI wiring ———
-      function isFullscreen() {
-        return Boolean(document.fullscreenElement || document.webkitFullscreenElement)
+      function getFullscreenElement() {
+        return (
+          document.fullscreenElement ||
+          document.webkitFullscreenElement ||
+          document.msFullscreenElement ||
+          null
+        )
+      }
+
+      /** True only when the page itself is fullscreen — not a YouTube iframe. */
+      function isPageFullscreen() {
+        const el = getFullscreenElement()
+        return el === document.documentElement || el === document.body
+      }
+
+      async function exitAnyFullscreen() {
+        if (!getFullscreenElement()) return
+        const exit =
+          document.exitFullscreen?.bind(document) ||
+          document.webkitExitFullscreen?.bind(document) ||
+          document.msExitFullscreen?.bind(document)
+        if (exit) await exit()
+      }
+
+      async function enterPageFullscreen() {
+        const targets = [document.documentElement, document.body]
+        let lastErr = null
+        for (const target of targets) {
+          try {
+            if (target.requestFullscreen) {
+              await target.requestFullscreen({ navigationUI: 'hide' })
+              return
+            }
+            if (target.webkitRequestFullscreen) {
+              target.webkitRequestFullscreen()
+              return
+            }
+            if (target.msRequestFullscreen) {
+              target.msRequestFullscreen()
+              return
+            }
+          } catch (err) {
+            lastErr = err
+          }
+        }
+        if (lastErr) throw lastErr
+        throw Object.assign(new Error('Fullscreen API unavailable'), { name: 'NotSupportedError' })
+      }
+
+      function fullscreenLooksReal() {
+        // Tab-audio sharing often leaves browser chrome visible even when
+        // document.fullscreenElement is set — treat that as a failed enter.
+        return (
+          Math.abs(window.innerHeight - screen.height) < 96 ||
+          Math.abs(window.outerHeight - screen.height) < 48
+        )
       }
 
       async function toggleFullscreen() {
         try {
-          if (isFullscreen()) {
-            await (document.exitFullscreen?.() ?? document.webkitExitFullscreen?.())
+          if (isPageFullscreen()) {
+            await exitAnyFullscreen()
           } else {
-            const root = document.documentElement
-            await (root.requestFullscreen?.() ?? root.webkitRequestFullscreen?.())
+            // Clear iframe/other fullscreen first so the page can take over.
+            if (getFullscreenElement()) await exitAnyFullscreen()
+            await enterPageFullscreen()
+            await new Promise((r) => setTimeout(r, 60))
+            if (isPageFullscreen() && !fullscreenLooksReal()) {
+              const tabShareHint =
+                audioState.mode === 'tab'
+                  ? 'Stop listen (tab share blocks full screen), press Full screen, then Listen via tab again.'
+                  : 'Browser UI still visible — close overlays / stop tab sharing, then try Full screen again.'
+              setStatus(tabShareHint, true)
+            }
           }
         } catch (err) {
           console.warn(err)
-          setStatus(`Full screen unavailable: ${err.name}`, true)
+          const tabBlocked = audioState.mode === 'tab'
+          setStatus(
+            tabBlocked
+              ? 'Full screen blocked while tab audio is shared — Stop listen, then Full screen'
+              : `Full screen unavailable: ${err.name || err.message}`,
+            true,
+          )
+        } finally {
+          syncFullscreenButton()
+          onWindowResize()
         }
       }
 
       function syncFullscreenButton() {
-        const on = isFullscreen()
+        const on = isPageFullscreen()
         btnFullscreen.textContent = on ? 'Exit full screen' : 'Full screen'
+        btnFullscreen.setAttribute('aria-pressed', on ? 'true' : 'false')
         btnFullscreen.title = on ? 'Exit full screen (F or Esc)' : 'Full screen (F)'
       }
 
-      btnFullscreen.addEventListener('click', () => {
+      btnFullscreen.addEventListener('click', (event) => {
+        event.preventDefault()
         void toggleFullscreen()
       })
-      document.addEventListener('fullscreenchange', syncFullscreenButton)
-      document.addEventListener('webkitfullscreenchange', syncFullscreenButton)
+      document.addEventListener('fullscreenchange', () => {
+        syncFullscreenButton()
+        onWindowResize()
+      })
+      document.addEventListener('webkitfullscreenchange', () => {
+        syncFullscreenButton()
+        onWindowResize()
+      })
+      syncFullscreenButton()
 
       btnMonitor.addEventListener('click', () => {
         setMonitorEnabled(!monitorEnabled)
@@ -2412,6 +2507,12 @@
       punchRange.addEventListener('input', () => {
         beatPunch = Number(punchRange.value)
         punchLabel.textContent = beatPunch.toFixed(1)
+      })
+
+      monitorSizeRange.addEventListener('input', () => {
+        monitorSizeFactor = Number(monitorSizeRange.value) || 1
+        monitorSizeLabel.textContent = monitorSizeFactor.toFixed(1)
+        applyMonitorSize()
       })
 
       crossfadeRange.addEventListener('input', () => {
