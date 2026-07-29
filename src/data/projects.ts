@@ -979,6 +979,28 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0136',
   },
   {
+    id: 'webgpu-tsl-attractors-particles',
+    title: 'WebGPU TSL Attractors Particles',
+    section: 'experiments',
+    tags: ['webgpu', 'compute', 'particles', 'gravity', 'tsl', 'three.js'],
+    description:
+      'A quarter-million GPU compute particles bound to three gravitational attractors, with spinning force, speed-mapped colour, and looping bounds. Drag the ring gizmos to re-aim each attractor and reshape the orbits live.',
+    year: '2026',
+    url: '/demos/webgpu-tsl-attractors-particles/',
+    embedUrl: '/demos/webgpu-tsl-attractors-particles/',
+    posterUrl: '/assets/posters/webgpu-tsl-attractors-particles.jpg?v=20260729',
+    mobilePosterUrl: '/assets/posters/webgpu-tsl-attractors-particles.jpg?v=20260729',
+    sourceUrl:
+      'https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_tsl_compute_attractors_particles.html',
+    referenceUrls: [
+      {
+        label: 'WebGPU TSL compute attractors particles',
+        url: 'https://threejs.org/examples/#webgpu_tsl_compute_attractors_particles',
+      },
+    ],
+    archiveId: 'OBJ-0153',
+  },
+  {
     id: 'webgpu-custom-fog-scattering',
     title: 'WebGPU Custom Fog Scattering',
     section: 'experiments',

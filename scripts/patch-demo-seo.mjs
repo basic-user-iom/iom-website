@@ -90,6 +90,11 @@ const DEMO_SEO = {
     description:
       'WebGPU TSL linked particle VFX — real-time connected particle system by Interactive Object Media.',
   },
+  'webgpu-tsl-attractors-particles': {
+    title: 'WebGPU TSL Attractors Particles — IOM',
+    description:
+      'WebGPU TSL compute attractors — 260k gravity-bound particles you can re-aim in real time. Interactive Object Media.',
+  },
   'webgpu-custom-fog-scattering': {
     title: 'WebGPU Custom Fog Scattering — IOM',
     description:

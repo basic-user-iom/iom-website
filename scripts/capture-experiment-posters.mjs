@@ -24,6 +24,11 @@ const TARGETS = [
     settleMs: 8000,
   },
   {
+    id: 'webgpu-tsl-attractors-particles',
+    path: '/demos/webgpu-tsl-attractors-particles/',
+    settleMs: 8000,
+  },
+  {
     id: 'webgpu-custom-fog-scattering',
     path: '/demos/webgpu-custom-fog-scattering/',
     settleMs: 6000,
@@ -70,12 +75,14 @@ const TARGETS = [
 
 const onlyId = process.argv[3] ?? process.env.ONLY
 
-const WEBGPU_ARGS = [
-  '--enable-unsafe-webgpu',
-  '--enable-features=Vulkan,WebGPU',
-  '--use-angle=vulkan',
-  '--ignore-gpu-blocklist',
-]
+/**
+ * On some GPUs (NVIDIA + recent Chrome) the ANGLE/Vulkan flags make requestAdapter() return null,
+ * which sends every WebGPU demo into its fallback overlay. Override with e.g.
+ * CHROMIUM_ARGS="--enable-unsafe-webgpu" when that happens.
+ */
+const WEBGPU_ARGS = process.env.CHROMIUM_ARGS
+  ? process.env.CHROMIUM_ARGS.split(' ').filter(Boolean)
+  : ['--enable-unsafe-webgpu', '--enable-features=Vulkan,WebGPU', '--use-angle=vulkan', '--ignore-gpu-blocklist']
 
 async function waitForCanvas(page) {
   await page.waitForFunction(
@@ -226,6 +233,40 @@ async function waitForWebGPULinkedParticles(page) {
       ctx.drawImage(canvas, sx, sy, 1, 1, 0, 0, 1, 1)
       const pixels = ctx.getImageData(0, 0, 1, 1).data
       return pixels[0] + pixels[1] + pixels[2] > 70
+    },
+    { timeout: 90000 },
+  )
+}
+
+/**
+ * WebGPU TSL attractors — additive particles on near-black, so average a downscaled frame instead
+ * of sampling one pixel, and let the swarm accelerate into the attractor discs first.
+ */
+async function waitForWebGPUAttractorsParticles(page) {
+  await waitForCanvas(page)
+  await page.waitForFunction(
+    () => {
+      const status = document.getElementById('status')
+      return status?.textContent?.includes('WebGPU attractors')
+    },
+    { timeout: 120000 },
+  )
+  await page.waitForFunction(
+    () => {
+      const canvas = document.querySelector('#container canvas')
+      if (!(canvas instanceof HTMLCanvasElement) || canvas.width < 16) return false
+      const tmp = document.createElement('canvas')
+      tmp.width = 32
+      tmp.height = 18
+      const ctx = tmp.getContext('2d')
+      if (!ctx) return false
+      ctx.drawImage(canvas, 0, 0, tmp.width, tmp.height)
+      const { data } = ctx.getImageData(0, 0, tmp.width, tmp.height)
+      let sum = 0
+      for (let i = 0; i < data.length; i += 4) {
+        sum += data[i] + data[i + 1] + data[i + 2]
+      }
+      return sum / (data.length / 4) > 18
     },
     { timeout: 90000 },
   )
@@ -423,6 +464,8 @@ async function capturePoster(browser, target) {
       await waitForWebGPUComputeBirds(page)
     } else if (target.id === 'webgpu-tsl-linked-particles') {
       await waitForWebGPULinkedParticles(page)
+    } else if (target.id === 'webgpu-tsl-attractors-particles') {
+      await waitForWebGPUAttractorsParticles(page)
     } else if (target.id === 'webgpu-custom-fog-scattering') {
       await waitForWebGPUCustomFogScattering(page)
     } else if (target.id === 'webgpu-particles') {

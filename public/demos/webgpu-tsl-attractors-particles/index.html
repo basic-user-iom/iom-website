@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WebGPU TSL Attractors Particles — IOM</title>
+<!-- iom-seo -->
+    <meta name="description" content="WebGPU TSL compute attractors — 260k gravity-bound particles you can re-aim in real time. Interactive Object Media." />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://iobjectm.com/demos/webgpu-tsl-attractors-particles/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IOM — Interactive Object Media" />
+    <meta property="og:title" content="WebGPU TSL Attractors Particles — IOM" />
+    <meta property="og:description" content="WebGPU TSL compute attractors — 260k gravity-bound particles you can re-aim in real time. Interactive Object Media." />
+    <meta property="og:url" content="https://iobjectm.com/demos/webgpu-tsl-attractors-particles/" />
+    <meta property="og:image" content="https://iobjectm.com/og-image.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="WebGPU TSL Attractors Particles — IOM" />
+    <meta name="twitter:description" content="WebGPU TSL compute attractors — 260k gravity-bound particles you can re-aim in real time. Interactive Object Media." />
+    <meta name="twitter:image" content="https://iobjectm.com/og-image.svg" />
+    <!-- /iom-seo -->
+<style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background: #06060a;
+        font-family: system-ui, -apple-system, sans-serif;
+      }
+      #container {
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+      }
+      .back-link {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.85);
+        text-decoration: none;
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+      #hint {
+        position: fixed;
+        bottom: 16px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 20;
+        color: rgba(255, 255, 255, 0.58);
+        font-size: 12px;
+        letter-spacing: 0.03em;
+        pointer-events: none;
+        text-align: center;
+        max-width: min(92vw, 620px);
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+      }
+      #status {
+        position: fixed;
+        right: 12px;
+        bottom: 12px;
+        z-index: 20;
+        max-width: min(320px, calc(100vw - 24px));
+        padding: 8px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.42);
+        color: rgba(255, 255, 255, 0.72);
+        font: 400 12px/1.4 system-ui, sans-serif;
+        backdrop-filter: blur(6px);
+        pointer-events: none;
+      }
+      #fallback {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 30;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #06060a;
+        color: rgba(255, 255, 255, 0.82);
+        text-align: center;
+        line-height: 1.55;
+      }
+      #fallback.is-visible {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      #fallback h1 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+      }
+      #fallback p {
+        max-width: 28rem;
+        font-size: 0.92rem;
+        color: rgba(255, 255, 255, 0.62);
+      }
+      .lil-gui {
+        --background-color: rgba(8, 8, 12, 0.82);
+        --text-color: rgba(255, 255, 255, 0.88);
+        --title-background-color: rgba(255, 255, 255, 0.06);
+        --title-text-color: rgba(255, 255, 255, 0.92);
+        --widget-color: rgba(255, 255, 255, 0.12);
+        --hover-color: rgba(255, 255, 255, 0.18);
+        --focus-color: rgba(255, 255, 255, 0.24);
+        --number-color: rgba(180, 210, 255, 0.95);
+        --string-color: rgba(180, 210, 255, 0.95);
+        --font-size: 11px;
+        --font-family: system-ui, -apple-system, sans-serif;
+        --widget-border-radius: 3px;
+        --name-width: 48%;
+        --slider-knob-width: 3px;
+        --slider-input-width: 27%;
+        --input-font-weight: 400;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 4px;
+      }
+      .lil-gui.root {
+        top: 12px;
+        right: 12px;
+        z-index: 20;
+      }
+      @media (max-width: 640px) {
+        #hint {
+          bottom: 64px;
+          font-size: 11px;
+        }
+        .lil-gui.root {
+          max-height: min(38vh, 280px);
+          overflow: auto;
+        }
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+          "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <link rel="stylesheet" href="../attribution.css" />
+    <link rel="stylesheet" href="../demo-mobile.css" />
+    <a class="back-link" href="/#experiments">← IOM</a>
+    <aside class="demo-attribution" aria-label="Attribution">
+      <p class="demo-attribution-title">
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_compute_attractors_particles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >three.js — TSL compute attractors particles</a
+        >
+      </p>
+      <p class="demo-attribution-credits">
+        WebGPU TSL compute particles orbiting three gravitational attractors, with spinning force,
+        speed-mapped colour, and looping bounds. Based on the
+        <a
+          href="https://threejs.org/examples/#webgpu_tsl_compute_attractors_particles"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Three.js WebGPU TSL compute attractors particles example</a
+        >
+        by Bruno Simon.
+      </p>
+      <a
+        class="demo-attribution-source"
+        href="https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_tsl_compute_attractors_particles.html"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span class="demo-attribution-icon" aria-hidden="true">&lt;&gt;</span>
+        View source code on GitHub
+      </a>
+    </aside>
+
+    <div id="fallback" role="alert">
+      <h1>WebGPU required</h1>
+      <p>
+        This demo uses WebGPU compute shaders to simulate hundreds of thousands of particles. Open it
+        in a browser with WebGPU support (Chrome 113+, Edge 113+, or Firefox Nightly with WebGPU
+        enabled).
+      </p>
+      <a class="back-link" href="/#experiments" style="position: static; margin-top: 8px">← Back to IOM</a>
+    </div>
+
+    <div id="container"></div>
+    <div id="hint">
+      Orbit drag · scroll zoom · drag the ring gizmos to re-aim attractors · on phones: Orbit / Aim
+    </div>
+    <div id="status">Tap to start…</div>
+
+    <script src="/demos/iom-click-to-start.js"></script>
+    <script type="module">
+      import * as THREE from 'three/webgpu'
+      import {
+        Fn,
+        If,
+        Loop,
+        PI,
+        color,
+        cos,
+        float,
+        hash,
+        instanceIndex,
+        instancedArray,
+        mix,
+        mod,
+        sin,
+        uint,
+        uniform,
+        uniformArray,
+        vec3,
+        vec4,
+      } from 'three/tsl'
+      import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { TransformControls } from 'three/addons/controls/TransformControls.js'
+      import {
+        createTouchModeToggle,
+        mobilePixelRatio,
+        prefersMobileExperience,
+      } from '../demo-mobile.js'
+
+      const statusEl = document.getElementById('status')
+      const fallbackEl = document.getElementById('fallback')
+      const container = document.getElementById('container')
+      const hintEl = document.getElementById('hint')
+
+      const isMobile = prefersMobileExperience()
+      // 262k particles on desktop, 65k on phones — the update pass is O(particles × attractors).
+      const count = isMobile ? Math.pow(2, 16) : Math.pow(2, 18)
+
+      const DEG = Math.PI / 180
+      const BASE_FOV = 25
+      const BASE_DIRECTION = new THREE.Vector3(3, 5, 8)
+      const BASE_DISTANCE = BASE_DIRECTION.length()
+      // Horizontal world span the upstream framing covers on a 16:9 viewport.
+      const BASE_HALF_WIDTH = BASE_DISTANCE * Math.tan((BASE_FOV * DEG) / 2) * (16 / 9)
+
+      let camera, scene, renderer, controls, gui, updateCompute, initCompute
+      let touchMode = null
+      let renderLoopActive = false
+      let tabVisible = !document.hidden
+      let canvasVisible = true
+      const attractors = []
+      const gizmoState = { mode: 'rotate', visible: !isMobile, helpers: true }
+
+      function setStatus(text, isError = false) {
+        statusEl.textContent = text
+        statusEl.style.borderColor = isError ? 'rgba(255, 96, 96, 0.5)' : 'rgba(255, 255, 255, 0.14)'
+        statusEl.style.color = isError ? '#ffd2d2' : 'rgba(255, 255, 255, 0.72)'
+      }
+
+      function showFallback() {
+        fallbackEl.classList.add('is-visible')
+      }
+
+      function orbitAllowed() {
+        return !isMobile || !touchMode || touchMode.mode === 'orbit'
+      }
+
+      function shouldRender() {
+        return tabVisible && canvasVisible
+      }
+
+      /** Stop the compute + render loop while the tab is hidden or the canvas is scrolled away. */
+      function syncRenderLoop() {
+        if (!renderer) return
+
+        if (shouldRender()) {
+          if (renderLoopActive) return
+          renderer.setAnimationLoop(animate)
+          renderLoopActive = true
+        } else if (renderLoopActive) {
+          renderer.setAnimationLoop(null)
+          renderLoopActive = false
+        }
+      }
+
+      function fovForAspect(aspect) {
+        if (aspect >= 1.5) return BASE_FOV
+        return aspect >= 1 ? 35 : 50
+      }
+
+      /**
+       * Portrait phones see a fraction of the cloud at the upstream 25° fov, so widen the lens and
+       * pull back until the same horizontal span fits.
+       */
+      function applyCameraFraming({ reposition = false } = {}) {
+        const aspect = window.innerWidth / window.innerHeight
+        camera.aspect = aspect
+        camera.fov = fovForAspect(aspect)
+        camera.updateProjectionMatrix()
+
+        if (!reposition) return
+
+        const halfWidth = Math.tan((camera.fov * DEG) / 2) * aspect
+        const distance = Math.min(Math.max(BASE_HALF_WIDTH / halfWidth, BASE_DISTANCE), 45)
+        camera.position.copy(BASE_DIRECTION).setLength(distance)
+      }
+
+      function applyGizmoState() {
+        const active = gizmoState.visible && gizmoState.mode !== 'none'
+        for (const attractor of attractors) {
+          if (gizmoState.mode !== 'none') attractor.controls.mode = gizmoState.mode
+          attractor.controls.visible = active
+          attractor.controls.enabled = active
+          attractor.gizmo.visible = active
+          attractor.helper.visible = gizmoState.helpers
+        }
+      }
+
+      async function init() {
+        if (!navigator.gpu) {
+          showFallback()
+          setStatus('WebGPU not available', true)
+          return
+        }
+
+        const adapter = await navigator.gpu.requestAdapter()
+        if (!adapter) {
+          showFallback()
+          setStatus('WebGPU adapter not available', true)
+          return
+        }
+
+        camera = new THREE.PerspectiveCamera(BASE_FOV, window.innerWidth / window.innerHeight, 0.1, 100)
+        applyCameraFraming({ reposition: true })
+
+        scene = new THREE.Scene()
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5))
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5)
+        directionalLight.position.set(4, 2, 0)
+        scene.add(directionalLight)
+
+        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        renderer.setClearColor(0x06060a)
+        container.appendChild(renderer.domElement)
+
+        try {
+          await renderer.init()
+        } catch (err) {
+          console.error(err)
+          showFallback()
+          setStatus('WebGPU init failed', true)
+          return
+        }
+
+        controls = new OrbitControls(camera, renderer.domElement)
+        controls.enableDamping = true
+        controls.minDistance = 0.1
+        controls.maxDistance = 50
+        controls.autoRotate = false
+        controls.autoRotateSpeed = 0.4
+
+        window.addEventListener('resize', onWindowResize)
+
+        // attractors
+
+        const attractorsPositions = uniformArray([
+          new THREE.Vector3(-1, 0, 0),
+          new THREE.Vector3(1, 0, -0.5),
+          new THREE.Vector3(0, 0.5, 1),
+        ])
+        const attractorsRotationAxes = uniformArray([
+          new THREE.Vector3(0, 1, 0),
+          new THREE.Vector3(0, 1, 0),
+          new THREE.Vector3(1, 0, -0.5).normalize(),
+        ])
+        const attractorsLength = uniform(attractorsPositions.array.length, 'uint')
+
+        const helpersRingGeometry = new THREE.RingGeometry(1, 1.02, 32, 1, 0, Math.PI * 1.5)
+        const helpersArrowGeometry = new THREE.ConeGeometry(0.1, 0.4, 12, 1, false)
+        const helpersMaterial = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide })
+
+        for (let i = 0; i < attractorsPositions.array.length; i++) {
+          const attractor = {}
+
+          attractor.position = attractorsPositions.array[i]
+          attractor.orientation = attractorsRotationAxes.array[i]
+          attractor.reference = new THREE.Object3D()
+          attractor.reference.position.copy(attractor.position)
+          attractor.reference.quaternion.setFromUnitVectors(
+            new THREE.Vector3(0, 1, 0),
+            attractor.orientation,
+          )
+          scene.add(attractor.reference)
+
+          attractor.helper = new THREE.Group()
+          attractor.helper.scale.setScalar(0.325)
+          attractor.reference.add(attractor.helper)
+
+          attractor.ring = new THREE.Mesh(helpersRingGeometry, helpersMaterial)
+          attractor.ring.rotation.x = -Math.PI * 0.5
+          attractor.helper.add(attractor.ring)
+
+          attractor.arrow = new THREE.Mesh(helpersArrowGeometry, helpersMaterial)
+          attractor.arrow.position.x = 1
+          attractor.arrow.position.z = 0.2
+          attractor.arrow.rotation.x = Math.PI * 0.5
+          attractor.helper.add(attractor.arrow)
+
+          attractor.controls = new TransformControls(camera, renderer.domElement)
+          attractor.controls.mode = 'rotate'
+          // Fatter gizmo on touch so the rotate rings stay grabbable with a fingertip.
+          attractor.controls.size = isMobile ? 0.85 : 0.5
+          attractor.controls.attach(attractor.reference)
+          attractor.gizmo = attractor.controls.getHelper()
+          scene.add(attractor.gizmo)
+
+          attractor.controls.addEventListener('dragging-changed', (event) => {
+            controls.enabled = event.value ? false : orbitAllowed()
+          })
+
+          attractor.controls.addEventListener('change', () => {
+            attractor.position.copy(attractor.reference.position)
+            attractor.orientation.copy(
+              new THREE.Vector3(0, 1, 0).applyQuaternion(attractor.reference.quaternion),
+            )
+          })
+
+          attractors.push(attractor)
+        }
+
+        // particles
+
+        const material = new THREE.SpriteNodeMaterial({
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+
+        const attractorMass = uniform(Number(`1e${7}`))
+        const particleGlobalMass = uniform(Number(`1e${4}`))
+        const timeScale = uniform(1)
+        const spinningStrength = uniform(2.75)
+        const maxSpeed = uniform(8)
+        const gravityConstant = 6.67e-11
+        const velocityDamping = uniform(0.1)
+        const scale = uniform(isMobile ? 0.016 : 0.008)
+        const boundHalfExtent = uniform(8)
+        const colorA = uniform(color(0x5900ff))
+        const colorB = uniform(color(0xffa575))
+
+        const positionBuffer = instancedArray(count, 'vec3')
+        const velocityBuffer = instancedArray(count, 'vec3')
+
+        const sphericalToVec3 = Fn(([phi, theta]) => {
+          const sinPhiRadius = sin(phi)
+
+          return vec3(
+            sinPhiRadius.mul(sin(theta)),
+            cos(phi),
+            sinPhiRadius.mul(cos(theta)),
+          )
+        })
+
+        // init compute
+
+        const initFn = Fn(() => {
+          const position = positionBuffer.element(instanceIndex)
+          const velocity = velocityBuffer.element(instanceIndex)
+
+          const basePosition = vec3(
+            hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+            hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+            hash(instanceIndex.add(uint(Math.random() * 0xffffff))),
+          )
+            .sub(0.5)
+            .mul(vec3(5, 0.2, 5))
+          position.assign(basePosition)
+
+          const phi = hash(instanceIndex.add(uint(Math.random() * 0xffffff)))
+            .mul(PI)
+            .mul(2)
+          const theta = hash(instanceIndex.add(uint(Math.random() * 0xffffff))).mul(PI)
+          const baseVelocity = sphericalToVec3(phi, theta).mul(0.05)
+          velocity.assign(baseVelocity)
+        })
+
+        initCompute = initFn().compute(count).setName('Init Particles')
+
+        const reset = () => {
+          renderer.compute(initCompute)
+        }
+
+        reset()
+
+        // update compute
+
+        const particleMassMultiplier = hash(instanceIndex.add(uint(Math.random() * 0xffffff)))
+          .remap(0.25, 1)
+          .toVar()
+        const particleMass = particleMassMultiplier.mul(particleGlobalMass).toVar()
+
+        const update = Fn(() => {
+          // Fixed delta keeps the simulation identical across frame rates.
+          const delta = float(1 / 60).mul(timeScale).toVar()
+          const position = positionBuffer.element(instanceIndex)
+          const velocity = velocityBuffer.element(instanceIndex)
+
+          // force
+
+          const force = vec3(0).toVar()
+
+          Loop(attractorsLength, ({ i }) => {
+            const attractorPosition = attractorsPositions.element(i)
+            const attractorRotationAxis = attractorsRotationAxes.element(i)
+            const toAttractor = attractorPosition.sub(position)
+            const distance = toAttractor.length()
+            const direction = toAttractor.normalize()
+
+            // gravity
+            const gravityStrength = attractorMass
+              .mul(particleMass)
+              .mul(gravityConstant)
+              .div(distance.pow(2))
+              .toVar()
+            const gravityForce = direction.mul(gravityStrength)
+            force.addAssign(gravityForce)
+
+            // spinning
+            const spinningForce = attractorRotationAxis.mul(gravityStrength).mul(spinningStrength)
+            const spinningVelocity = spinningForce.cross(toAttractor)
+            force.addAssign(spinningVelocity)
+          })
+
+          // velocity
+
+          velocity.addAssign(force.mul(delta))
+          const speed = velocity.length()
+          If(speed.greaterThan(maxSpeed), () => {
+            velocity.assign(velocity.normalize().mul(maxSpeed))
+          })
+          velocity.mulAssign(velocityDamping.oneMinus())
+
+          // position
+
+          position.addAssign(velocity.mul(delta))
+
+          // box loop
+
+          const halfHalfExtent = boundHalfExtent.div(2).toVar()
+          position.assign(mod(position.add(halfHalfExtent), boundHalfExtent).sub(halfHalfExtent))
+        })
+
+        updateCompute = update().compute(count).setName('Update Particles')
+
+        // nodes
+
+        material.positionNode = positionBuffer.toAttribute()
+
+        material.colorNode = Fn(() => {
+          const velocity = velocityBuffer.toAttribute()
+          const speed = velocity.length()
+          const colorMix = speed.div(maxSpeed).smoothstep(0, 0.5)
+          const finalColor = mix(colorA, colorB, colorMix)
+
+          return vec4(finalColor, 1)
+        })()
+
+        material.scaleNode = particleMassMultiplier.mul(scale)
+
+        // mesh
+
+        const geometry = new THREE.PlaneGeometry(1, 1)
+        const mesh = new THREE.InstancedMesh(geometry, material, count)
+        mesh.frustumCulled = false
+        scene.add(mesh)
+
+        applyGizmoState()
+
+        touchMode = createTouchModeToggle({
+          modes: [
+            { id: 'orbit', label: 'Orbit' },
+            { id: 'aim', label: 'Aim' },
+          ],
+          defaultMode: 'orbit',
+          hintEl,
+          hints: {
+            orbit: 'Orbit mode · drag to rotate · pinch to zoom',
+            aim: 'Aim mode · drag a ring gizmo to re-aim an attractor',
+          },
+          onChange(mode) {
+            controls.enabled = mode === 'orbit'
+            gizmoState.visible = mode === 'aim'
+            applyGizmoState()
+          },
+        })
+
+        setupGui({
+          attractorMass,
+          particleGlobalMass,
+          maxSpeed,
+          velocityDamping,
+          spinningStrength,
+          scale,
+          boundHalfExtent,
+          colorA,
+          colorB,
+          timeScale,
+          reset,
+        })
+
+        window.__attractorsParticlesTest = {
+          getState: () => ({
+            count,
+            attractors: attractors.length,
+            gizmoMode: gizmoState.mode,
+            gizmosVisible: gizmoState.visible,
+            rendering: renderLoopActive,
+            fov: camera.fov,
+            aspect: Number(camera.aspect.toFixed(3)),
+            distance: Number(camera.position.length().toFixed(2)),
+            hasCanvas: Boolean(renderer?.domElement),
+          }),
+          reset,
+        }
+
+        document.addEventListener('visibilitychange', () => {
+          tabVisible = !document.hidden
+          syncRenderLoop()
+        })
+
+        const visibilityObserver = new IntersectionObserver(
+          ([entry]) => {
+            const ratio = entry?.intersectionRatio ?? 0
+            canvasVisible = Boolean(entry?.isIntersecting && ratio >= 0.08)
+            syncRenderLoop()
+          },
+          { threshold: [0, 0.08, 0.25, 0.5] },
+        )
+        visibilityObserver.observe(renderer.domElement)
+
+        syncRenderLoop()
+
+        setStatus(
+          isMobile
+            ? `WebGPU attractors · ${count.toLocaleString()} particles · Orbit / Aim`
+            : `WebGPU attractors · ${count.toLocaleString()} particles · drag rings to re-aim`,
+        )
+      }
+
+      function setupGui(u) {
+        gui = new GUI({ title: 'Attractors' })
+        if (isMobile) gui.close()
+
+        const params = {
+          attractorMassExponent: u.attractorMass.value.toString().length - 1,
+          particleGlobalMassExponent: u.particleGlobalMass.value.toString().length - 1,
+          colorA: `#${u.colorA.value.getHexString(THREE.SRGBColorSpace)}`,
+          colorB: `#${u.colorB.value.getHexString(THREE.SRGBColorSpace)}`,
+          gizmoMode: gizmoState.mode,
+          helperVisible: gizmoState.helpers,
+        }
+
+        const simFolder = gui.addFolder('Simulation')
+        simFolder
+          .add(params, 'attractorMassExponent', 1, 10, 1)
+          .name('attractor mass 1e^')
+          .onChange((value) => {
+            u.attractorMass.value = Number(`1e${value}`)
+          })
+        simFolder
+          .add(params, 'particleGlobalMassExponent', 1, 10, 1)
+          .name('particle mass 1e^')
+          .onChange((value) => {
+            u.particleGlobalMass.value = Number(`1e${value}`)
+          })
+        simFolder.add(u.maxSpeed, 'value', 0, 10, 0.01).name('max speed')
+        simFolder.add(u.velocityDamping, 'value', 0, 0.1, 0.001).name('velocity damping')
+        simFolder.add(u.spinningStrength, 'value', 0, 10, 0.01).name('spinning strength')
+        simFolder.add(u.timeScale, 'value', 0, 4, 0.01).name('time scale')
+        simFolder.add(u.boundHalfExtent, 'value', 0, 20, 0.01).name('bounds')
+
+        const lookFolder = gui.addFolder('Look')
+        lookFolder.add(u.scale, 'value', 0, 0.1, 0.001).name('particle size')
+        lookFolder.addColor(params, 'colorA').name('slow colour').onChange((value) => {
+          u.colorA.value.set(value)
+        })
+        lookFolder.addColor(params, 'colorB').name('fast colour').onChange((value) => {
+          u.colorB.value.set(value)
+        })
+
+        const gizmoFolder = gui.addFolder('Gizmos')
+        gizmoFolder
+          .add(params, 'gizmoMode', ['rotate', 'translate', 'none'])
+          .name('mode')
+          .onChange((value) => {
+            gizmoState.mode = value
+            // On phones the Orbit / Aim toggle owns visibility, so only desktop reveals on mode change.
+            if (value === 'none') gizmoState.visible = false
+            else if (!isMobile) gizmoState.visible = true
+            applyGizmoState()
+          })
+        gizmoFolder
+          .add(params, 'helperVisible')
+          .name('show rings')
+          .onChange((value) => {
+            gizmoState.helpers = value
+            applyGizmoState()
+          })
+
+        gui.add(controls, 'autoRotate').name('auto rotate')
+        gui.add({ reset: u.reset }, 'reset').name('↺ Reset particles')
+      }
+
+      function onWindowResize() {
+        if (!camera || !renderer) return
+        applyCameraFraming()
+        renderer.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      function animate() {
+        if (!renderer || !updateCompute) return
+
+        controls.update()
+
+        renderer.compute(updateCompute)
+        renderer.render(scene, camera)
+      }
+
+      await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-tsl-attractors-particles.webp',
+        label: 'Start attractors',
+      })
+
+      init().catch((err) => {
+        console.error(err)
+        showFallback()
+        setStatus('Initialization failed', true)
+      })
+    </script>
+  </body>
+</html>

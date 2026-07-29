@@ -28,6 +28,7 @@ const DEMO_SECTION = {
   'webgpu-parallax-uv': 'experiments',
   'webgpu-tsl-raging-sea': 'experiments',
   'webgpu-tsl-linked-particles': 'experiments',
+  'webgpu-tsl-attractors-particles': 'experiments',
   'webgpu-custom-fog-scattering': 'experiments',
   'webgpu-modifier-curve': 'experiments',
   'webgpu-particles': 'experiments',

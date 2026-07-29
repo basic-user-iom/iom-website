@@ -276,6 +276,12 @@ export const itProjects: ProjectsLocalePack = {
       tags: ['webgpu', 'compute', 'particelle', 'tsl', 'vfx', 'three.js'],
       referenceLabels: ['WebGPU TSL VFX linked particles'],
     },
+    'webgpu-tsl-attractors-particles': {
+      title: 'WebGPU TSL Attractors Particles',
+      description: 'Un quarto di milione di particelle GPU compute legate a tre attrattori gravitazionali, con spinning force, colore mappato sulla velocità e bordi in loop. Trascina i gizmo ad anello per riorientare ogni attrattore e rimodellare le orbite in tempo reale.',
+      tags: ['webgpu', 'compute', 'particelle', 'gravità', 'tsl', 'three.js'],
+      referenceLabels: ['WebGPU TSL compute attractors particles'],
+    },
     'webgpu-custom-fog-scattering': {
       title: 'WebGPU Custom Fog Scattering',
       description: 'Silhouette di pineta procedurale in nebbia esponenziale con blur di scattering basato sulla densità TSL — walk in prima persona attraverso una foschia fredda con densità di nebbia e fattore di scattering regolabili.',

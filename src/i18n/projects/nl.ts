@@ -276,6 +276,12 @@ export const nlProjects: ProjectsLocalePack = {
       tags: ['webgpu', 'compute', 'particles', 'tsl', 'vfx', 'three.js'],
       referenceLabels: ['WebGPU TSL VFX linked particles'],
     },
+    'webgpu-tsl-attractors-particles': {
+      title: 'WebGPU TSL Attractors Particles',
+      description: 'Een kwart miljoen GPU compute particles gebonden aan drie gravitatie-attractoren, met spinning force, snelheidsgebonden kleur en loopende grenzen. Sleep de ring-gizmos om elke attractor opnieuw te richten en de banen live te hervormen.',
+      tags: ['webgpu', 'compute', 'particles', 'zwaartekracht', 'tsl', 'three.js'],
+      referenceLabels: ['WebGPU TSL compute attractors particles'],
+    },
     'webgpu-custom-fog-scattering': {
       title: 'WebGPU Custom Fog Scattering',
       description: 'Procedurele dennenbos-silhouetten in exponentiële mist met TSL dichtheidsgebaseerde scattering blur — first-person walk door koele haze met afstelbare mistdichtheid en scattering factor.',
