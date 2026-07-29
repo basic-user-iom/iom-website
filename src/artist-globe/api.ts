@@ -27,6 +27,30 @@ import type {
 import { normalizeTags, slugify } from './types'
 
 const ADMIN_STORAGE_KEY = 'artist-globe-admin'
+/** Set when PostgREST reports artist_globe_* tables are missing (migration not applied). */
+const SCHEMA_MISSING_KEY = 'artist-globe-schema-missing'
+
+function isSchemaMissingCached(): boolean {
+  try {
+    return localStorage.getItem(SCHEMA_MISSING_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markSchemaMissing() {
+  try {
+    localStorage.setItem(SCHEMA_MISSING_KEY, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+function isMissingRelationError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null
+  const message = e?.message ?? (typeof err === 'string' ? err : '')
+  return e?.code === 'PGRST205' || /Could not find the table|schema cache/i.test(message)
+}
 
 export function getAdminPassword(): string {
   return import.meta.env.VITE_ARTIST_GLOBE_ADMIN_PASSWORD?.trim() || 'iom-globe-admin'
@@ -111,10 +135,11 @@ function mergeArtists(remote: Artist[]): Artist[] {
   return [...bySlug.values()].filter((a) => a.status === 'live')
 }
 
-export async function fetchLiveArtists(): Promise<Artist[]> {
+export async function fetchLiveArtists(options?: { skipRemote?: boolean }): Promise<Artist[]> {
+  const local = () => mergeArtists(localListArtists())
   const supabase = getArtistGlobeSupabase()
-  if (!supabase) {
-    return mergeArtists(localListArtists())
+  if (!supabase || options?.skipRemote || isSchemaMissingCached()) {
+    return local()
   }
 
   try {
@@ -124,11 +149,14 @@ export async function fetchLiveArtists(): Promise<Artist[]> {
       .eq('status', 'live')
     if (error) throw error
     const remote = (data ?? []).map((r) => rowToArtist(r as Record<string, unknown>))
-    const local = localListArtists()
-    return mergeArtists([...remote, ...local])
+    return mergeArtists([...remote, ...localListArtists()])
   } catch (err) {
+    if (isMissingRelationError(err)) {
+      markSchemaMissing()
+      return local()
+    }
     console.warn('[artist-globe] fetch artists fallback', err)
-    return mergeArtists(localListArtists())
+    return local()
   }
 }
 

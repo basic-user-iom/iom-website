@@ -92,9 +92,11 @@ export function ArtistGlobeApp() {
   }, [isEmbed])
 
   const reload = useCallback(async () => {
-    const list = await fetchLiveArtists()
+    // Portfolio iframe embeds use seed/local only — avoids a noisy 404 when
+    // artist_globe_artists is not migrated yet, and keeps preview cheap.
+    const list = await fetchLiveArtists({ skipRemote: isEmbed })
     setArtists(list)
-  }, [])
+  }, [isEmbed])
 
   useEffect(() => {
     void reload()

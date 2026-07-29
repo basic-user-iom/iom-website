@@ -279,7 +279,8 @@ export const ProjectCard = memo(function ProjectCard({
                   title={`${project.title} preview`}
                   width={EMBED_VIEWPORT.width}
                   height={EMBED_VIEWPORT.height}
-                  sandbox="allow-scripts allow-same-origin"
+                  // First-party embeds only. Omitting sandbox avoids the Chrome warning
+                  // that allow-scripts + allow-same-origin can escape the sandbox (and is a no-op here).
                   tabIndex={-1}
                   onLoad={handleIframeLoad}
                   onError={() => {
