@@ -181,6 +181,39 @@
         display: flex;
         gap: 6px;
       }
+      /* CSS3D video panel, composited above the WebGPU canvas. The scene's
+         background sphere is opaque, so the DOM layer cannot sit behind it. */
+      #css3d-layer {
+        position: fixed;
+        inset: 0;
+        z-index: 20;
+        overflow: hidden;
+        pointer-events: none;
+      }
+      #css3d-layer.is-hidden { visibility: hidden; }
+      /* Kept small on purpose: this layer is composited every frame, and the
+         panel only covers a few hundred screen pixels while it orbits. */
+      .monitor-screen {
+        width: 480px;
+        height: 270px;
+        position: relative;
+        overflow: hidden;
+        background: #000;
+        border: 7px solid #0f1116;
+        border-radius: 12px;
+        box-shadow:
+          0 0 60px rgba(96, 140, 255, 0.3),
+          inset 0 0 0 1px rgba(255, 255, 255, 0.09);
+      }
+      .monitor-deck {
+        position: absolute;
+        inset: 0;
+      }
+      .monitor-deck iframe,
+      .monitor-deck > div {
+        width: 100% !important;
+        height: 100% !important;
+      }
       .dj-player-wrap {
         flex: 1;
         min-width: 0;
@@ -357,6 +390,9 @@
       <div class="dj-header">
         <h1>DJ deck</h1>
         <div class="dj-header-actions">
+          <button type="button" class="dj-toggle" id="btn-monitor" aria-pressed="true" title="Orbiting video panel (M)">
+            Monitor
+          </button>
           <button type="button" class="dj-toggle" id="btn-fullscreen" title="Full screen (F)">
             Full screen
           </button>
@@ -416,6 +452,7 @@
     </div>
 
     <div id="container"></div>
+    <div id="css3d-layer" aria-hidden="true"></div>
     <div id="beat-flash" aria-hidden="true"></div>
     <div id="status">Initializing…</div>
 
@@ -461,6 +498,7 @@
       } from 'three/tsl'
       import { bloom } from 'three/addons/tsl/display/BloomNode.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
+      import { CSS3DObject, CSS3DRenderer } from 'three/addons/renderers/CSS3DRenderer.js'
       import {
         createTouchModeToggle,
         mobilePixelRatio,
@@ -470,6 +508,7 @@
       const statusEl = document.getElementById('status')
       const fallbackEl = document.getElementById('fallback')
       const container = document.getElementById('container')
+      const css3dLayer = document.getElementById('css3d-layer')
       const urlInput = document.getElementById('url-input')
       const queueListEl = document.getElementById('queue-list')
       const nowPlayingEl = document.getElementById('now-playing')
@@ -485,6 +524,7 @@
       const sensitivityLabel = document.getElementById('sensitivity-label')
       const btnCollapse = document.getElementById('btn-collapse')
       const btnFullscreen = document.getElementById('btn-fullscreen')
+      const btnMonitor = document.getElementById('btn-monitor')
       const btnLoad = document.getElementById('btn-load')
       const btnPlay = document.getElementById('btn-play')
       const btnPause = document.getElementById('btn-pause')
@@ -499,6 +539,10 @@
 
       let camera, scene, renderer, renderPipeline, controls, timer, light
       let updateParticles, spawnParticles, getInstanceColor, bloomPass
+      let cssRenderer, cssScene, monitorObject
+      const monitorDeckEls = { A: null, B: null }
+      let monitorAngle = 0
+      let monitorEnabled = true
       let touchMode = null
       let drawingActive = false
 
@@ -1378,6 +1422,9 @@
           const fadeIn = Math.sin(t * 0.5 * Math.PI)
           setVolumeSafe(from, fadeOut * 100)
           setVolumeSafe(to, fadeIn * 100)
+          // Linear for the picture: an equal-power blend would dip toward the
+          // black screen behind both decks halfway through.
+          setMonitorMix(fromName, toName, t)
           deck.transitionSwell = Math.sin(t * Math.PI)
 
           if (t < 1) {
@@ -1396,6 +1443,7 @@
           deck.crossfading = false
           deck.transitionSwell = 0
           deck.autoAdvanceArmed = false
+          syncMonitorDecks()
           setStatus(`Now playing ${deck.queue[deck.index] || ''}`)
         }
         requestAnimationFrame(step)
@@ -1796,6 +1844,8 @@
         bloomPass = bloom(scenePassColor, 0.75, 0.1, 0.5)
         renderPipeline.outputNode = scenePassColor.add(bloomPass)
 
+        createOrbitingMonitor()
+
         controls = new OrbitControls(camera, renderer.domElement)
         controls.enableDamping = true
         controls.autoRotate = !isMobile
@@ -1831,6 +1881,119 @@
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
         renderer.setSize(window.innerWidth, window.innerHeight)
+        cssRenderer?.setSize(window.innerWidth, window.innerHeight)
+      }
+
+      // ——— Orbiting video panel (CSS3D) ———
+      const MONITOR_SCALE = 1 / 120 // 480×270 CSS px → 4.0 × 2.25 world units
+      const MONITOR_RADIUS = 5.5
+      const MONITOR_SPEED = 0.07 // rad/s ≈ 90 s per orbit
+      // Compositing a transformed video layer is the expensive part, so the
+      // panel's transform is refreshed at a fraction of the render rate. The
+      // orbit is slow enough that this is invisible.
+      const MONITOR_UPDATE_INTERVAL = 1 / 30
+      let monitorAccum = 0
+      let monitorFade = -1
+
+      function createOrbitingMonitor() {
+        const screen = document.createElement('div')
+        screen.className = 'monitor-screen'
+
+        // Re-parent the player hosts while they are still empty divs: moving an
+        // iframe in the DOM reloads it, which would kill playback mid-set.
+        for (const [name, hostId] of [
+          ['A', 'yt-a'],
+          ['B', 'yt-b'],
+        ]) {
+          const host = document.getElementById(hostId)
+          if (!host) continue
+          const deckEl = document.createElement('div')
+          deckEl.className = 'monitor-deck'
+          deckEl.style.opacity = name === deck.active ? '1' : '0'
+          deckEl.appendChild(host)
+          screen.appendChild(deckEl)
+          monitorDeckEls[name] = deckEl
+        }
+        document.querySelector('.dj-players')?.remove()
+
+        cssScene = new THREE.Scene()
+        monitorObject = new CSS3DObject(screen)
+        monitorObject.scale.setScalar(MONITOR_SCALE)
+        cssScene.add(monitorObject)
+
+        cssRenderer = new CSS3DRenderer()
+        cssRenderer.setSize(window.innerWidth, window.innerHeight)
+        css3dLayer.appendChild(cssRenderer.domElement)
+
+        // CSS3DRenderer only attaches object elements on its first render, and
+        // the YouTube API needs its host element to be in the document to claim
+        // it. Render once here — even when the panel starts hidden — otherwise
+        // player creation silently fails.
+        cssRenderer.render(cssScene, camera)
+
+        setMonitorEnabled(!isMobile)
+      }
+
+      function setMonitorEnabled(on) {
+        monitorEnabled = on
+        css3dLayer.classList.toggle('is-hidden', !on)
+        btnMonitor.setAttribute('aria-pressed', on ? 'true' : 'false')
+        btnMonitor.textContent = on ? 'Monitor' : 'Monitor off'
+      }
+
+      /** Active deck fully visible, idle deck hidden (used outside crossfades). */
+      function syncMonitorDecks() {
+        for (const name of ['A', 'B']) {
+          const el = monitorDeckEls[name]
+          if (!el) continue
+          el.style.opacity = name === deck.active ? '1' : '0'
+          el.style.zIndex = name === deck.active ? '1' : '0'
+        }
+      }
+
+      function setMonitorMix(fromName, toName, t) {
+        const from = monitorDeckEls[fromName]
+        const to = monitorDeckEls[toName]
+        if (from) {
+          from.style.opacity = String(1 - t)
+          from.style.zIndex = '0'
+        }
+        if (to) {
+          to.style.opacity = String(t)
+          to.style.zIndex = '1'
+        }
+      }
+
+      function updateMonitor(delta) {
+        if (!cssRenderer || !monitorObject || !monitorEnabled) return
+
+        monitorAngle += delta * MONITOR_SPEED
+        monitorAccum += delta
+        if (monitorAccum < MONITOR_UPDATE_INTERVAL) return
+        monitorAccum = 0
+
+        monitorObject.position.set(
+          Math.cos(monitorAngle) * MONITOR_RADIUS,
+          Math.sin(monitorAngle * 0.6) * 0.9,
+          Math.sin(monitorAngle) * MONITOR_RADIUS,
+        )
+        monitorObject.lookAt(camera.position)
+
+        // The DOM layer always composites over the canvas, so fade the panel as
+        // it swings past the particle core — without it the depth reads wrong.
+        const behind = clamp(
+          (camera.position.distanceTo(monitorObject.position) - camera.position.length()) /
+            MONITOR_RADIUS,
+          0,
+          1,
+        )
+        const fade = lerp(1, 0.45, behind)
+        if (Math.abs(fade - monitorFade) > 0.02) {
+          monitorFade = fade
+          monitorObject.element.style.opacity = String(fade)
+        }
+
+        cssRenderer.render(cssScene, camera)
       }
 
       function canDraw() {
@@ -1963,6 +2126,7 @@
 
         controls.update()
         renderPipeline.render()
+        updateMonitor(delta)
 
         if (!isMobile) drawingActive = false
       }
@@ -1998,13 +2162,19 @@
       document.addEventListener('fullscreenchange', syncFullscreenButton)
       document.addEventListener('webkitfullscreenchange', syncFullscreenButton)
 
+      btnMonitor.addEventListener('click', () => {
+        setMonitorEnabled(!monitorEnabled)
+      })
+
       window.addEventListener('keydown', (event) => {
-        if (event.key !== 'f' && event.key !== 'F') return
+        const key = event.key.toLowerCase()
+        if (key !== 'f' && key !== 'm') return
         if (event.metaKey || event.ctrlKey || event.altKey) return
         const tag = document.activeElement?.tagName
         if (tag === 'INPUT' || tag === 'TEXTAREA') return
         event.preventDefault()
-        void toggleFullscreen()
+        if (key === 'f') void toggleFullscreen()
+        else setMonitorEnabled(!monitorEnabled)
       })
 
       btnCollapse.addEventListener('click', () => {
