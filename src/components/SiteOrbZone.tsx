@@ -490,19 +490,24 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
           const vhNow = window.innerHeight
           let bestEl: HTMLElement | null = null
           let bestRatio = 0
-          zone.querySelectorAll<HTMLElement>('.project-card').forEach((card) => {
-            if (card.classList.contains('project-card--coming-soon')) return
+          for (const card of zone.querySelectorAll<HTMLElement>('.project-card')) {
+            if (card.classList.contains('project-card--coming-soon')) continue
             const box = card.getBoundingClientRect()
             const visible = Math.max(0, Math.min(box.bottom, vhNow) - Math.max(box.top, 0))
-            if (visible <= 0) return
+            if (visible <= 0) continue
             const ratio = visible / Math.min(box.height, vhNow)
             if (ratio > bestRatio) {
               bestRatio = ratio
               bestEl = card
             }
-          })
-          scrollAttendEl = bestRatio >= 0.48 ? bestEl : null
-          scrollAttendId = scrollAttendEl?.id ?? ''
+          }
+          if (bestRatio >= 0.48 && bestEl) {
+            scrollAttendEl = bestEl
+            scrollAttendId = bestEl.id
+          } else {
+            scrollAttendEl = null
+            scrollAttendId = ''
+          }
         }
         if (scrollAttendEl?.isConnected) {
           hoverTarget = scrollAttendEl
