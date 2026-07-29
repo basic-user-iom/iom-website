@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import {
   requestMotionParallaxPermission,
   subscribeMotionParallaxStatus,
@@ -35,6 +35,7 @@ export function Hero() {
   const { t } = useSiteI18n()
   const orbs = useSiteOrbsOptional()
   const canvasRef = useRef<HTMLDivElement>(null)
+  const posterSlotRef = useRef<HTMLDivElement>(null)
   const profile = getDeviceProfile()
   const useStaticHero = profile.prefersReducedMotion
   const [liveRequested, setLiveRequested] = useState(false)
@@ -48,6 +49,7 @@ export function Hero() {
   })
   const [loaderLineIndex, setLoaderLineIndex] = useState(0)
   const [loaderVisible, setLoaderVisible] = useState(false)
+  const [hasLcpPoster] = useState(() => Boolean(document.getElementById('lcp-poster')))
   const isFullscreen = nativeFullscreen || pseudoFullscreen
   const loaderLineCount = LOADER_KEYS.length
   const showPoster = useStaticHero || !liveRequested
@@ -68,6 +70,31 @@ export function Hero() {
     orbs?.setHover(null, null)
     window.dispatchEvent(new CustomEvent('iom:hero-live', { detail: { live: true } }))
   }, [liveRequested, orbs, useStaticHero])
+
+  // Adopt the HTML LCP <img> into the hero slot (same DOM node) so it stays
+  // clipped by the canvas frame — no fixed-position drift / cropped HUD.
+  useLayoutEffect(() => {
+    const slot = posterSlotRef.current
+    const lcp = document.getElementById('lcp-poster') as HTMLImageElement | null
+    if (!slot || !lcp) return
+
+    lcp.removeAttribute('style')
+    lcp.classList.add('hero-poster')
+    lcp.removeAttribute('hidden')
+    if (lcp.parentElement !== slot) slot.appendChild(lcp)
+
+    return () => {
+      if (lcp.parentElement === slot) document.body.appendChild(lcp)
+    }
+  }, [])
+
+  useEffect(() => {
+    const lcp = document.getElementById('lcp-poster')
+    if (!lcp) return
+    document.body.classList.toggle('hero-live', !showPoster)
+    if (showPoster) lcp.removeAttribute('hidden')
+    else lcp.setAttribute('hidden', '')
+  }, [showPoster])
 
   // Report hero viewport presence even when WebGL is static/disabled so embed slots work.
   useEffect(() => {
@@ -216,17 +243,20 @@ export function Hero() {
           role="img"
           aria-label={t('hero.canvasAria')}
         >
+          <div ref={posterSlotRef} className="hero-poster-slot" />
           {showPoster ? (
             <>
-              <img
-                className="hero-poster"
-                src={HERO_POSTER_SRC}
-                alt=""
-                width={640}
-                height={540}
-                decoding="async"
-                fetchPriority="high"
-              />
+              {!hasLcpPoster ? (
+                <img
+                  className="hero-poster"
+                  src={HERO_POSTER_SRC}
+                  alt=""
+                  width={640}
+                  height={540}
+                  decoding="async"
+                  fetchPriority="high"
+                />
+              ) : null}
               {!useStaticHero ? (
                 <button
                   type="button"

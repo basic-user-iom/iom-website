@@ -42,24 +42,171 @@
     <meta name="twitter:image" content="https://iobjectm.com/og-image.svg" />
     <meta name="theme-color" content="#08080a" />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Async stylesheet: avoid hardcoding gstatic woff2 preloads (URLs drift + unused-preload warnings). -->
     <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
-      media="print"
-      onload="this.media='all'"
+      rel="preload"
+      as="image"
+      href="/assets/posters/hero-ravens-sm.webp?v=20260728"
+      fetchpriority="high"
     />
-    <noscript>
-      <link
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap"
-        rel="stylesheet"
-      />
-    </noscript>
+    <link
+      rel="preload"
+      href="/fonts/syne-latin-800-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+
+    <style>
+      @font-face {
+        font-family: 'Syne';
+        font-style: normal;
+        font-display: optional;
+        font-weight: 800;
+        src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
+      }
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: #08080a;
+        color: #ececf2;
+      }
+      body {
+        font-family: system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      #lcp-poster {
+        position: absolute;
+        top: calc(72px + 2rem);
+        left: clamp(1rem, 4vw, 3rem);
+        width: calc(100% - 2 * clamp(1rem, 4vw, 3rem));
+        aspect-ratio: 1;
+        max-height: min(48vh, 380px, calc(100dvh - 72px - 6rem));
+        min-height: 220px;
+        object-fit: cover;
+        object-position: center;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        box-sizing: border-box;
+        background: #0a1018;
+        z-index: 0;
+        pointer-events: none;
+      }
+      #lcp-poster[hidden],
+      body.hero-live #lcp-poster {
+        display: none !important;
+      }
+      #boot-shell {
+        position: relative;
+        z-index: 1;
+        padding: calc(72px + 2rem + min(48vh, 380px) + 1.5rem) clamp(1rem, 4vw, 3rem) 2rem;
+        box-sizing: border-box;
+      }
+      #boot-shell[hidden] {
+        display: none !important;
+      }
+      .boot-brand {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+        margin-bottom: 1.25rem;
+      }
+      .boot-brand-name {
+        font-family: Syne, system-ui, sans-serif;
+        font-weight: 800;
+        font-size: 1.1rem;
+        letter-spacing: 0.04em;
+      }
+      .boot-brand-tag {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.14em;
+        color: #8b8b9a;
+      }
+      .boot-eyebrow {
+        margin: 0 0 1rem;
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: #00e5ff;
+      }
+      .boot-title {
+        font-family: Syne, system-ui, sans-serif;
+        font-weight: 800;
+        font-size: clamp(2.5rem, 10vw, 4.5rem);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 0 0 1rem;
+      }
+      .boot-title span {
+        display: block;
+        color: #8b8b9a;
+        font-weight: 600;
+        font-size: 0.45em;
+        letter-spacing: 0.02em;
+        margin-top: 0.35em;
+      }
+      .boot-lead {
+        margin: 0;
+        max-width: 44ch;
+        color: #8b8b9a;
+        font-size: clamp(1rem, 2vw, 1.15rem);
+        line-height: 1.6;
+      }
+      @media (min-width: 901px) {
+        #lcp-poster {
+          top: calc(72px + 2rem);
+          left: calc(50% + clamp(1rem, 4vw, 3rem) / 2);
+          width: calc(50% - 1.5 * clamp(1rem, 4vw, 3rem));
+          max-height: min(92vh, 900px, calc(100dvh - 72px - 6rem));
+          min-height: 0;
+        }
+        #boot-shell {
+          max-width: 50%;
+          padding: calc(72px + 2rem) clamp(1rem, 4vw, 3rem) 2rem;
+        }
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <img
+      id="lcp-poster"
+      src="/assets/posters/hero-ravens-sm.webp?v=20260728"
+      alt=""
+      width="640"
+      height="540"
+      decoding="async"
+      fetchpriority="high"
+    />
+    <div id="root">
+      <div id="boot-shell" aria-hidden="true">
+        <div class="boot-brand">
+          <span class="boot-brand-name">IOM</span>
+          <span class="boot-brand-tag">Interactive Object Media</span>
+        </div>
+        <p class="boot-eyebrow">Agency · Archive · Objects</p>
+        <h1 class="boot-title">
+          Interactive
+          <span>Object Media</span>
+        </h1>
+        <p class="boot-lead">
+          We build software, 3D experiences, immersive tours, and creative experiments — tools and
+          worlds where digital objects become stories you can explore.
+        </p>
+      </div>
+    </div>
+    <script>
+      ;(function () {
+        var p = location.pathname.replace(/\/+$/, '') || '/'
+        var home = p === '/' || /^\/(de|fr|nl|es|it)$/.test(p)
+        if (!home) {
+          var shell = document.getElementById('boot-shell')
+          var poster = document.getElementById('lcp-poster')
+          if (shell) shell.hidden = true
+          if (poster) poster.hidden = true
+        }
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

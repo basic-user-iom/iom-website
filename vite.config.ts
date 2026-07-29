@@ -36,13 +36,67 @@ function demoDirectoryIndexPlugin() {
   }
 }
 
+/**
+ * Built CSS is render-blocking by default. Load it async so the critical
+ * inline shell in index.html can paint FCP/LCP without waiting on the bundle.
+ * Also defer the module entry until after the first paint so the LCP image
+ * is not blocked by parsing ~1MB of JS on mobile CPUs.
+ */
+function nonBlockingCssPlugin() {
+  return {
+    name: 'non-blocking-css',
+    enforce: 'post',
+    transformIndexHtml(html) {
+      let next = html.replace(
+        /<link(\s[^>]*?)rel="stylesheet"([^>]*?)>/g,
+        (match, before = '', after = '') => {
+          if (/media=/.test(match) || /onload=/.test(match)) return match
+          const hrefMatch = match.match(/href="([^"]+\.css)"/)
+          if (!hrefMatch) return match
+          const href = hrefMatch[1]
+          return `<link${before}rel="stylesheet"${after} media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="${href}"></noscript>`
+        },
+      )
+
+      next = next.replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
+
+      next = next.replace(
+        /<script type="module" crossorigin src="([^"]+)"><\/script>/,
+        (_m, src) => `<script>
+      (function () {
+        var src = ${JSON.stringify(String(src))};
+        function load() {
+          var s = document.createElement('script');
+          s.type = 'module';
+          s.crossOrigin = '';
+          s.src = src;
+          document.body.appendChild(s);
+        }
+        // Two rAFs: after style/layout + first paint of the LCP poster.
+        if (typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(load);
+          });
+        } else {
+          setTimeout(load, 0);
+        }
+      })();
+    </script>`,
+      )
+
+      return next
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), demoDirectoryIndexPlugin(), blogApiDevPlugin()],
+  plugins: [react(), demoDirectoryIndexPlugin(), blogApiDevPlugin(), nonBlockingCssPlugin()],
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
           three: ['three'],
+          react: ['react', 'react-dom'],
         },
       },
     },

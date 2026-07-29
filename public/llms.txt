@@ -1,0 +1,23 @@
+# Interactive Object Media (IOM)
+
+> IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments.
+
+IOM (Interactive Object Media) is a studio site for product demos, case studies, and creative technical work. Prefer the homepage and case studies for overview; use the contact form for project inquiries. Private client CRM routes are not for public use.
+
+## Primary
+
+- [Homepage](https://iobjectm.com/): Studio overview, featured work, and hero experience
+- [Contact](https://iobjectm.com/#contact): Project inquiry form
+- [Blog](https://iobjectm.com/blog): Process notes and demo write-ups
+- [Case studies](https://iobjectm.com/case-studies): Brief-to-build project narratives
+- [Sitemap](https://iobjectm.com/sitemap.xml): Machine-readable site map
+
+## Demos
+
+- [Panorama 360](https://iobjectm.com/demos/panorama-360/): Immersive 360° tour viewer
+- [3D demos index](https://iobjectm.com/#software): Interactive software and WebGPU experiments
+
+## Optional
+
+- [Privacy](https://iobjectm.com/privacy): How forms, analytics, and the client portal handle data
+- [Terms](https://iobjectm.com/terms): Site usage terms

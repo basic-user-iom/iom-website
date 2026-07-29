@@ -1,9 +1,6 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Header } from './components/Header'
 import { Hero } from './components/Hero'
-import { ProjectSectionBlock } from './components/ProjectSectionBlock'
-import { About } from './components/About'
-import { Clients } from './components/Clients'
 import { SiteOrbZone } from './components/SiteOrbZone'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
@@ -21,9 +18,14 @@ import {
   isCrmDemoPath,
 } from './crm/demoMode'
 import { SiteI18nProvider, parseLocalePath } from './i18n'
-import { localizedSections } from './i18n/projects/localize'
+import { localizedSectionNav } from './i18n/projects/sectionNav'
 import { usePageMeta } from './seo/usePageMeta'
 
+const ProjectSectionBlock = lazy(() =>
+  import('./components/ProjectSectionBlock').then((m) => ({ default: m.ProjectSectionBlock })),
+)
+const About = lazy(() => import('./components/About').then((m) => ({ default: m.About })))
+const Clients = lazy(() => import('./components/Clients').then((m) => ({ default: m.Clients })))
 const ArtistGlobeApp = lazy(() =>
   import('./artist-globe/ArtistGlobeApp').then((m) => ({ default: m.ArtistGlobeApp })),
 )
@@ -252,7 +254,7 @@ export default function App() {
     )
   }
 
-  const sections = localizedSections(lang)
+  const sections = localizedSectionNav(lang)
 
   return (
     <SiteI18nProvider lang={lang}>
@@ -261,17 +263,19 @@ export default function App() {
       <main id="main-content">
         <SiteOrbZone>
           <Hero />
-          {sections.map((section, i) => (
-            <ProjectSectionBlock
-              key={section.id}
-              id={section.id}
-              index={String(i + 1).padStart(2, '0')}
-              label={section.label}
-              blurb={section.blurb}
-            />
-          ))}
-          <Clients />
-          <About />
+          <Suspense fallback={null}>
+            {sections.map((section, i) => (
+              <ProjectSectionBlock
+                key={section.id}
+                id={section.id}
+                index={String(i + 1).padStart(2, '0')}
+                label={section.label}
+                blurb={section.blurb}
+              />
+            ))}
+            <Clients />
+            <About />
+          </Suspense>
         </SiteOrbZone>
       </main>
       <Footer />

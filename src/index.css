@@ -1,3 +1,47 @@
+/* Self-hosted fonts (latin). Critical 800 also declared inline in index.html for first paint. */
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('/fonts/syne-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: optional;
+  font-weight: 800;
+  src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('/fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/ibm-plex-sans-latin-600-normal.woff2') format('woff2');
+}
+
 :root {
   --bg: #08080a;
   --bg-elevated: #101014;
@@ -54,6 +98,56 @@ body::before {
 #root {
   position: relative;
   z-index: 1;
+}
+
+/* Persistent HTML LCP poster (see index.html). Boot geometry is approximate;
+   React adopts the same node into .hero-poster-slot so it can't drift out of frame. */
+#lcp-poster {
+  position: absolute;
+  top: calc(var(--header-h) + 2rem);
+  left: clamp(1rem, 4vw, 3rem);
+  width: calc(100% - 2 * clamp(1rem, 4vw, 3rem));
+  aspect-ratio: 1;
+  max-height: min(48vh, 380px, calc(100dvh - var(--header-h) - 6rem));
+  min-height: 220px;
+  object-fit: cover;
+  object-position: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+  background: #0a1018;
+  z-index: 0;
+  pointer-events: none;
+}
+
+#lcp-poster.hero-poster {
+  position: absolute;
+  inset: 0;
+  top: auto;
+  left: auto;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  z-index: 0;
+}
+
+#lcp-poster[hidden],
+body.hero-live #lcp-poster {
+  display: none !important;
+}
+
+@media (min-width: 901px) {
+  #lcp-poster:not(.hero-poster) {
+    top: calc(var(--header-h) + 2rem);
+    left: calc(50% + clamp(1rem, 4vw, 3rem) / 2);
+    width: calc(50% - 1.5 * clamp(1rem, 4vw, 3rem));
+    max-height: min(92vh, 900px, calc(100dvh - var(--header-h) - 6rem));
+    min-height: 0;
+  }
 }
 
 a {
@@ -456,7 +550,8 @@ button:focus:not(:focus-visible) {
 
 .hero-content {
   max-width: 560px;
-  animation: fadeUp 1s ease both;
+  /* Transform-only enter — opacity must stay 1 so LCP text is immediately measurable. */
+  animation: heroEnter 0.7s ease both;
 }
 
 .hero-eyebrow {
@@ -544,10 +639,11 @@ button:focus:not(:focus-visible) {
 .hero-viewer {
   position: relative;
   aspect-ratio: 1;
-  max-height: min(92vh, 900px);
+  /* Fit inside the hero padding so the HUD / corners aren't clipped by the viewport. */
+  max-height: min(92vh, 900px, calc(100dvh - var(--header-h) - 6rem));
   justify-self: end;
   width: 100%;
-  animation: fadeUp 1s 0.15s ease both;
+  animation: heroEnter 0.7s 0.08s ease both;
 }
 
 .hero-canvas-wrap {
@@ -563,6 +659,12 @@ button:focus:not(:focus-visible) {
     radial-gradient(ellipse 90% 60% at 30% 40%, rgba(80, 120, 160, 0.35), transparent 50%),
     radial-gradient(ellipse 70% 50% at 70% 55%, rgba(60, 90, 130, 0.28), transparent 45%),
     linear-gradient(180deg, #0a1018 0%, #08080a 100%);
+}
+
+.hero-poster-slot {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
 }
 
 .hero-loader {
@@ -4435,6 +4537,15 @@ button.card-link:focus-visible {
 }
 
 /* Animations */
+@keyframes heroEnter {
+  from {
+    transform: translateY(16px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -4512,7 +4623,7 @@ button.card-link:focus-visible {
   }
 
   .hero-viewer {
-    max-height: min(48vh, 380px);
+    max-height: min(48vh, 380px, calc(100dvh - var(--header-h) - 6rem));
     min-height: 220px;
     justify-self: stretch;
     order: -1;

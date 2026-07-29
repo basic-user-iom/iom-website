@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type MouseEvent } from 'react'
 
 import { LanguageSwitcher } from './LanguageSwitcher'
 import { useSiteI18n } from '../i18n'
-import { localizedSections } from '../i18n/projects/localize'
+import { localizedSectionNav } from '../i18n/projects/sectionNav'
 import { getDeviceProfile } from '../utils/device'
 import { persistMute, readStoredMute } from '../utils/audioPrefs'
 import { toggleSiteMute } from './SiteAmbientAudio'
@@ -13,7 +13,7 @@ const RAVEN_VIDEO = '/assets/raven_crop.mp4'
 
 export function Header() {
   const { t, href, lang } = useSiteI18n()
-  const sections = localizedSections(lang)
+  const sections = localizedSectionNav(lang)
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [siteMuted, setSiteMuted] = useState(() => readStoredMute('site'))

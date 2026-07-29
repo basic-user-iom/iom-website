@@ -1,9 +1,9 @@
 import {
   PROJECTS,
-  SECTIONS,
   type Project,
   type ProjectSection,
 } from '../../data/projects'
+import { SECTIONS } from '../../data/sections'
 import type { SiteLang } from '../types'
 import { deProjects } from './de'
 import { esProjects } from './es'
