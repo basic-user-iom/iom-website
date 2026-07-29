@@ -99,6 +99,15 @@
         font-size: 11px;
       }
       .dj-toggle:hover { border-color: rgba(255, 255, 255, 0.45); color: #fff; }
+      .dj-btn.is-pulse {
+        animation: djPulse 1s ease-in-out 3;
+        border-color: rgba(120, 180, 255, 0.85);
+        box-shadow: 0 0 0 1px rgba(120, 180, 255, 0.35);
+      }
+      @keyframes djPulse {
+        0%, 100% { filter: brightness(1); }
+        50% { filter: brightness(1.35); }
+      }
       label.dj-label {
         display: block;
         color: rgba(255, 255, 255, 0.55);
@@ -2543,22 +2552,21 @@
           if (isPageFullscreen()) {
             await exitAnyFullscreen()
           } else {
-            // Chrome keeps the “Sharing this tab…” bar (and blocks real
-            // fullscreen) while getDisplayMedia is active. Drop the share
-            // first, enter fullscreen, then re-prompt for tab audio — all
-            // inside this click so the gesture still counts.
-            const resumeTab = audioState.mode === 'tab'
-            if (resumeTab) {
-              stopAudioInput()
-              captureHintEl.textContent =
-                'Entering full screen — you will re-share this tab for audio next.'
-            }
+            // Chrome cannot stay in real fullscreen while “Sharing this tab…”
+            // is active. Drop the share, go fullscreen, then ask the user to
+            // press Listen via tab once — do NOT auto-open the share picker
+            // here (that cancelled fullscreen and looped the dialog).
+            const wasTab = audioState.mode === 'tab'
+            if (wasTab) stopAudioInput()
             if (getFullscreenElement()) await exitAnyFullscreen()
             await enterPageFullscreen()
             onWindowResize()
-            if (resumeTab) {
-              setStatus('Full screen on — pick this tab again + “Also share tab audio”')
-              await startTabCapture()
+            if (wasTab) {
+              setStatus('Full screen on — press Listen via tab once to restore beat sync')
+              captureHintEl.textContent =
+                'Full screen ready. Press Listen via tab, choose this tab, enable “Also share tab audio”.'
+              btnCapture.classList.add('is-pulse')
+              window.setTimeout(() => btnCapture.classList.remove('is-pulse'), 5000)
             } else if (isPageFullscreen() && !fullscreenLooksReal()) {
               setStatus(
                 'Browser UI still visible — close overlays, then try Full screen again.',
