@@ -442,6 +442,12 @@
           </label>
           <input id="sensitivity-range" type="range" min="0.5" max="5" step="0.1" value="1" />
         </div>
+        <div>
+          <label class="dj-label" for="punch-range">
+            Beat punch <span id="punch-label">1.3</span>×
+          </label>
+          <input id="punch-range" type="range" min="0" max="2.5" step="0.1" value="1.3" />
+        </div>
         <p class="dj-meta" id="now-playing">Queue empty</p>
         <ul class="dj-queue" id="queue-list" aria-label="Track queue"></ul>
         <div class="dj-players" aria-hidden="false">
@@ -522,6 +528,8 @@
       const crossfadeLabel = document.getElementById('crossfade-label')
       const sensitivityRange = document.getElementById('sensitivity-range')
       const sensitivityLabel = document.getElementById('sensitivity-label')
+      const punchRange = document.getElementById('punch-range')
+      const punchLabel = document.getElementById('punch-label')
       const btnCollapse = document.getElementById('btn-collapse')
       const btnFullscreen = document.getElementById('btn-fullscreen')
       const btnMonitor = document.getElementById('btn-monitor')
@@ -591,6 +599,16 @@
       }
       function lerp(a, b, t) {
         return a + (b - a) * t
+      }
+      /**
+       * Average a band by frequency instead of by a fraction of the spectrum.
+       * Fractions are useless here: at 48 kHz the lowest 10% of bins already
+       * covers 0–2.4 kHz, which smears a techno kick into the whole mix.
+       */
+      function bandAverageHz(data, loHz, hiHz) {
+        const nyquist = (audioState.ctx?.sampleRate ?? 48000) / 2
+        const perBin = nyquist / data.length
+        return bandAverage(data, loHz / perBin, hiHz / perBin)
       }
       function bandAverage(data, start, end) {
         const from = Math.max(0, Math.floor(start))
@@ -702,11 +720,50 @@
         emaEnergy: 0.15,
         noiseFloor: 0.03,
         gateLevel: 0,
+        onsets: {
+          kick: { avg: 0, pulse: 0, last: 0 },
+          snare: { avg: 0, pulse: 0, last: 0 },
+          hat: { avg: 0, pulse: 0, last: 0 },
+        },
+      }
+
+      // Per-drum onset tuning. `refractory` is the minimum gap between hits:
+      // 16th-note hats at 140 BPM are ~107 ms apart, so these stay well under.
+      const ONSET_CONFIG = {
+        // A kick's pitch sweep re-enters the band as it decays, so it needs a
+        // wide guard; 180 ms still allows quarter notes up to ~330 BPM.
+        kick: { factor: 1.28, floor: 0.018, decay: 5.5, refractory: 0.18, gain: 1 },
+        snare: { factor: 1.42, floor: 0.018, decay: 7.5, refractory: 0.11, gain: 0.85 },
+        hat: { factor: 1.5, floor: 0.014, decay: 11, refractory: 0.045, gain: 0.7 },
+      }
+
+      /**
+       * Fires when a band jumps above its own recent baseline, then decays fast
+       * so every drum hit reads as a discrete pulse rather than a smear. The
+       * baseline is updated after the test, otherwise a hit raises the very
+       * threshold it has to clear.
+       */
+      function trackOnset(name, value, delta, nowSec) {
+        const cfg = ONSET_CONFIG[name]
+        const st = audioState.onsets[name]
+        st.pulse = Math.max(0, st.pulse - delta * cfg.decay)
+
+        const threshold = st.avg * cfg.factor + cfg.floor
+        if (value > threshold && nowSec - st.last > cfg.refractory) {
+          const rise = (value - threshold) / Math.max(0.05, threshold)
+          st.pulse = Math.max(st.pulse, clamp(0.45 + rise * 0.9, 0, 1.6) * cfg.gain)
+          st.last = nowSec
+        }
+
+        st.avg = approach(st.avg, value, 2.5, delta)
+        return st.pulse
       }
 
       let toneCtx = null
+      let toneTimerId = null
       let tabCaptureSupported = true
       let inputSensitivity = 1
+      let beatPunch = 1.3
 
       function baseInputGain(mode) {
         return mode === 'mic' ? 2.4 : 3.5
@@ -745,6 +802,9 @@
         let transient = 0
         let kick = 0
         let rawLevel = 0
+        let kickPulse = 0
+        let snarePulse = 0
+        let hatPulse = 0
 
         if (live) {
           const binCount = audioState.analyser.frequencyBinCount
@@ -758,11 +818,20 @@
           audioState.analyser.getByteFrequencyData(audioState.freqData)
           audioState.analyser.getByteTimeDomainData(audioState.timeData)
 
-          const len = audioState.freqData.length
-          const rawBass = bandAverage(audioState.freqData, 0, Math.max(3, len * 0.1))
-          const rawSub = bandAverage(audioState.freqData, 0, Math.max(2, len * 0.045))
-          const rawMids = bandAverage(audioState.freqData, len * 0.1, len * 0.45)
-          const rawHighs = bandAverage(audioState.freqData, len * 0.42, len)
+          const fd = audioState.freqData
+          const rawKick = bandAverageHz(fd, 40, 110) // techno kick fundamental
+          const rawBass = bandAverageHz(fd, 60, 180) // bassline
+          const rawMids = bandAverageHz(fd, 400, 2200) // stabs, chords, vocals
+          // Snares and claps need both a low body and a high crack, so hi-hats
+          // (crack only) are excluded; subtracting the kick keeps a kick's
+          // broadband attack click from registering as a clap.
+          const rawSnare = clamp(
+            Math.sqrt(bandAverageHz(fd, 250, 900) * bandAverageHz(fd, 1500, 4500)) -
+              rawKick * 0.6,
+            0,
+            1,
+          )
+          const rawHighs = bandAverageHz(fd, 6000, 14000) // hats, rides, cymbals
 
           let peak = 0
           let sumSq = 0
@@ -798,27 +867,33 @@
           if (audioState.peakHold < 0.09) audioState.peakHold = 0.09
           const agc = clamp(0.85 / audioState.peakHold, 1, 8)
 
+          const nKick = clamp(rawKick * agc, 0, 1) * gate
           const nBass = clamp(rawBass * agc, 0, 1) * gate
-          const nSub = clamp(rawSub * agc, 0, 1) * gate
           const nMids = clamp(rawMids * agc, 0, 1) * gate
+          const nSnare = clamp(rawSnare * agc, 0, 1) * gate
           const nHighs = clamp(rawHighs * agc, 0, 1) * gate
-          const nPeak = clamp(peak * agc, 0, 1) * gate
 
-          bass = clamp(Math.pow(nBass, 0.5) * 1.9 + Math.pow(nSub, 0.45) * 1.1, 0, 2.4)
+          const nowSec = performance.now() / 1000
+          kickPulse = trackOnset('kick', nKick, delta, nowSec)
+          snarePulse = trackOnset('snare', nSnare, delta, nowSec)
+          hatPulse = trackOnset('hat', nHighs, delta, nowSec)
+
+          bass = clamp(Math.pow(nBass, 0.55) * 1.8 + Math.pow(nKick, 0.5) * 0.9, 0, 2.4)
           mids = clamp(Math.pow(nMids, 0.55) * 1.85, 0, 2.2)
           highs = clamp(Math.pow(nHighs, 0.5) * 1.9, 0, 2.2)
-          kick = clamp(Math.pow(nSub, 0.4) * 2.6 + nPeak * 1.35, 0, 2.6)
+          kick = clamp(Math.pow(nKick, 0.45) * 1.8, 0, 2.6)
           audioState.gateLevel = gate
 
-          const instant = nBass * 1.55 + nMids * 0.5 + nHighs * 0.75 + nPeak * 1.05
+          const instant = nKick * 1.5 + nSnare * 0.8 + nMids * 0.5 + nHighs * 0.8
           transient = Math.max(0, instant - audioState.prevInstantEnergy) * 4.5
           audioState.prevInstantEnergy = approach(audioState.prevInstantEnergy, instant, 8, delta)
-
           audioState.emaEnergy = approach(audioState.emaEnergy, instant, 2.2, delta)
-          if (instant > audioState.emaEnergy * 1.28 + 0.04 && transient > 0.08) {
-            const beatHit = clamp((instant - audioState.emaEnergy) * 3.5 + transient, 0, 1.5)
-            audioState.beatPulse = Math.max(audioState.beatPulse, beatHit)
-          }
+
+          audioState.beatPulse = clamp(
+            kickPulse * 1.15 + snarePulse * 0.7 + hatPulse * 0.35,
+            0,
+            1.8,
+          )
 
           if (gate <= 0.03) {
             audioState.silentFrames += 1
@@ -838,12 +913,17 @@
           audioState.silentFrames = 0
           audioState.peakHold = approach(audioState.peakHold, 0.09, 2, delta)
           audioState.gateLevel = 0
+          audioState.beatPulse = Math.max(0, audioState.beatPulse - delta * 3.8)
+          for (const st of Object.values(audioState.onsets)) {
+            st.pulse = 0
+            st.avg = 0
+          }
         }
 
-        audioState.beatPulse = Math.max(0, audioState.beatPulse - delta * 3.8)
-
         const attack = live ? 28 : 12
-        const release = live ? 6 : 8
+        // Faster release than the sustained bands: a slow tail would fill the
+        // gaps between kicks and the field would stop reading as rhythmic.
+        const release = live ? 11 : 8
         const follow = (cur, target) => approach(cur, target, target > cur ? attack : release, delta)
         audioState.smoothedBass = follow(audioState.smoothedBass, bass)
         audioState.smoothedMids = follow(audioState.smoothedMids, mids)
@@ -859,15 +939,12 @@
 
         setMeter(meterBassEl, audioState.smoothedBass * 0.42)
         setMeter(meterMidsEl, audioState.smoothedMids * 0.45)
-        setMeter(meterHighsEl, audioState.smoothedHighs * 0.45)
-        setMeter(
-          meterKickEl,
-          audioState.smoothedKick * 0.35 + audioState.beatPulse * 0.7 + audioState.smoothedTransient * 0.35,
-          true,
-        )
+        setMeter(meterHighsEl, audioState.smoothedHighs * 0.4 + hatPulse * 0.5)
+        // Kick meter shows the onset itself, so beat tracking is verifiable.
+        setMeter(meterKickEl, kickPulse * 0.9 + snarePulse * 0.35, true)
 
         if (beatFlashEl) {
-          beatFlashEl.style.opacity = String(clamp(audioState.beatPulse * 0.85, 0, 0.75))
+          beatFlashEl.style.opacity = String(clamp(kickPulse * 0.55 + snarePulse * 0.25, 0, 0.7))
         }
 
         if (!live) {
@@ -886,7 +963,9 @@
                 ? 'Signal: silent — test tone stalled, press Test tone again'
                 : 'Signal: silent — re-share this tab + check “Also share tab audio”',
           )
-        } else if (audioState.gateLevel > 0.05) {
+        } else if (performance.now() - audioState.lastLiveAt < 600) {
+          // Held briefly: percussive music dips below the gate between hits and
+          // an instantaneous test would flicker the readout on every beat.
           setSignalStatus(
             'live',
             `Signal: live (${audioState.mode}) · ${(audioState.rawLevel * 100).toFixed(0)}%`,
@@ -914,6 +993,11 @@
           kick: audioState.smoothedKick,
           transient: audioState.smoothedTransient,
           beat: audioState.beatPulse,
+          // Raw envelopes on purpose — these drive the on-beat punch and any
+          // extra smoothing here would round off the attack.
+          kickPulse,
+          snarePulse,
+          hatPulse,
           energy,
           live,
           hasSignal: live && audioState.gateLevel > 0.03,
@@ -923,8 +1007,10 @@
       function wireAnalyserFromStream(stream, mode) {
         const ctx = new AudioContext()
         const analyser = ctx.createAnalyser()
-        analyser.fftSize = 2048
-        analyser.smoothingTimeConstant = 0.18
+        // 4096 gives ~12 Hz bins, enough to separate a 50 Hz kick from the
+        // bassline above it; low smoothing keeps drum attacks sharp.
+        analyser.fftSize = 4096
+        analyser.smoothingTimeConstant = 0.06
         analyser.minDecibels = -95
         analyser.maxDecibels = -18
         const source = ctx.createMediaStreamSource(stream)
@@ -982,33 +1068,71 @@
         void ctx.resume()
       }
 
-      /** Silent synthetic kick pattern — proves the visuals react without any permission. */
+      /**
+       * Silent synthetic techno pattern — proves the beat tracking works with no
+       * permissions. A sustained tone is useless here: onset detection needs the
+       * gaps between hits, so this schedules real percussive envelopes.
+       */
       async function startTestTone() {
         stopAudioInput()
         const ctx = new AudioContext()
         const dest = ctx.createMediaStreamDestination()
-        const osc = ctx.createOscillator()
-        osc.type = 'sine'
-        osc.frequency.value = 70
-        const lfo = ctx.createOscillator()
-        lfo.frequency.value = 2
-        const lfoGain = ctx.createGain()
-        lfoGain.gain.value = 0.5
-        const amp = ctx.createGain()
-        amp.gain.value = 0.5
-        lfo.connect(lfoGain)
-        lfoGain.connect(amp.gain)
-        osc.connect(amp)
-        amp.connect(dest)
-        osc.start()
-        lfo.start()
+        const bus = ctx.createGain()
+        bus.gain.value = 0.9
+        bus.connect(dest)
+
+        const noise = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.2), ctx.sampleRate)
+        const noiseData = noise.getChannelData(0)
+        for (let i = 0; i < noiseData.length; i += 1) noiseData[i] = Math.random() * 2 - 1
+
+        const kickAt = (t) => {
+          const osc = ctx.createOscillator()
+          const gain = ctx.createGain()
+          osc.frequency.setValueAtTime(120, t)
+          osc.frequency.exponentialRampToValueAtTime(45, t + 0.09)
+          gain.gain.setValueAtTime(1, t)
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.22)
+          osc.connect(gain)
+          gain.connect(bus)
+          osc.start(t)
+          osc.stop(t + 0.25)
+        }
+        const burstAt = (t, hz, level, length) => {
+          const src = ctx.createBufferSource()
+          src.buffer = noise
+          const filter = ctx.createBiquadFilter()
+          filter.type = 'highpass'
+          filter.frequency.value = hz
+          const gain = ctx.createGain()
+          gain.gain.setValueAtTime(level, t)
+          gain.gain.exponentialRampToValueAtTime(0.001, t + length)
+          src.connect(filter)
+          filter.connect(gain)
+          gain.connect(bus)
+          src.start(t)
+          src.stop(t + length + 0.01)
+        }
+
+        const eighth = 60 / 130 / 2 // 130 BPM
+        let step = 0
+        let nextTime = ctx.currentTime + 0.15
+        toneTimerId = setInterval(() => {
+          while (nextTime < ctx.currentTime + 0.3) {
+            if (step % 2 === 0) kickAt(nextTime)
+            else burstAt(nextTime, 7000, 0.35, 0.045) // offbeat hat
+            if (step % 8 === 4) burstAt(nextTime, 1500, 0.5, 0.09) // clap on 2 and 4
+            nextTime += eighth
+            step += 1
+          }
+        }, 90)
+
         await ctx.resume().catch(() => undefined)
 
         wireAnalyserFromStream(dest.stream, 'test')
         toneCtx = ctx
         captureHintEl.textContent =
-          'Test tone running (no sound) — if particles pulse, the visuals work. Then switch to mic or tab.'
-        setStatus('Test tone reactivity on')
+          'Test beat running at 130 BPM (no sound) — particles should punch on every kick. Then switch to mic or tab.'
+        setStatus('Test beat reactivity on')
       }
 
       async function startMicCapture() {
@@ -1156,6 +1280,10 @@
         }
         if (audioState.ctx) {
           void audioState.ctx.close().catch(() => {})
+        }
+        if (toneTimerId) {
+          clearInterval(toneTimerId)
+          toneTimerId = null
         }
         if (toneCtx) {
           void toneCtx.close().catch(() => {})
@@ -2025,8 +2153,11 @@
       function applyAudioToUniforms(bands, transition, elapsed) {
         const swell = transition
         const live = bands.hasSignal
+        const kickHit = live ? bands.kickPulse * beatPunch : 0
+        const snareHit = live ? bands.snarePulse * beatPunch : 0
+        const hatHit = live ? bands.hatPulse * beatPunch : 0
         const punch = live
-          ? bands.kick * 0.35 + bands.transient * 0.6 + bands.beat * 0.9
+          ? kickHit * 1.1 + snareHit * 0.55 + hatHit * 0.4 + bands.transient * 0.3
           : 0
 
         if (!live) {
@@ -2045,43 +2176,57 @@
           return
         }
 
-        // Scaled so a normal groove sits mid-range and only kicks reach the ceiling.
+        // Each drum drives what it sounds like: the kick throws mass and
+        // turbulence, hats set the shimmer and speed, snares flick the colour.
         nbToSpawn.value = Math.round(
-          clamp(4 + bands.bass * 14 + punch * 22 + swell * 40, 4, 140),
+          clamp(4 + bands.bass * 10 + kickHit * 48 + snareHit * 16 + swell * 40, 4, 150),
         )
-        turbAmplitude.value = clamp(0.4 + bands.bass * 1.0 + punch * 1.4 + swell * 4, 0.2, 10)
-        timeScale.value = clamp(0.6 + bands.mids * 0.7 + punch * 0.35 + swell * 0.8, 0.3, 4)
+        turbAmplitude.value = clamp(
+          0.4 + bands.bass * 0.8 + kickHit * 2.4 + snareHit * 0.7 + swell * 4,
+          0.2,
+          10,
+        )
+        timeScale.value = clamp(
+          0.6 + bands.mids * 0.5 + hatHit * 0.8 + kickHit * 0.4 + swell * 0.8,
+          0.3,
+          4,
+        )
         colorRotationSpeed.value = clamp(
-          0.5 + bands.highs * 1.4 + punch * 0.9 + swell * 3.5,
+          0.5 + bands.highs * 1.1 + snareHit * 2.6 + hatHit * 1.6 + swell * 3.5,
           0.2,
           9,
         )
         particleSize.value = clamp(
-          (isMobile ? 1.15 : 1.0) + bands.bass * 0.25 + punch * 0.2,
+          (isMobile ? 1.15 : 1.0) + bands.bass * 0.18 + kickHit * 0.5,
           0.6,
           2.4,
         )
-        linksWidth.value = clamp(0.005 + bands.highs * 0.006 + punch * 0.004, 0.003, 0.04)
+        linksWidth.value = clamp(
+          0.005 + bands.highs * 0.005 + kickHit * 0.009 + hatHit * 0.003,
+          0.003,
+          0.04,
+        )
 
         if (bloomPass) {
           bloomPass.strength.value = clamp(
-            0.5 + bands.highs * 1.2 + punch * 1.1 + swell * 3,
+            0.5 + bands.highs * 1.0 + kickHit * 1.9 + hatHit * 0.7 + swell * 3,
             0.35,
             8,
           )
-          bloomPass.radius.value = clamp(0.1 + bands.mids * 0.12 + punch * 0.1, 0.05, 0.85)
+          bloomPass.radius.value = clamp(0.1 + bands.mids * 0.1 + kickHit * 0.16, 0.05, 0.85)
         }
 
         if (light) {
-          light.intensity = 2000 + bands.energy * 1200 + punch * 1200 + swell * 2000
+          light.intensity = 2000 + bands.energy * 1000 + kickHit * 2600 + swell * 2000
         }
 
-        const r = 0.2 + bands.bass * 1.2 + punch * 0.9
+        // Emitter jolts outward on the kick so the burst has a direction.
+        const r = 0.2 + bands.bass * 1.0 + kickHit * 1.5
         const spin = 0.4 + bands.mids * 1.1 + bands.highs * 0.5
         scenePointer.set(
           Math.sin(elapsed * spin) * r,
           Math.cos(elapsed * (spin * 0.78 + 0.2)) * r * 0.75,
-          Math.sin(elapsed * 0.42 + bands.highs) * (0.2 + punch * 1.1),
+          Math.sin(elapsed * 0.42 + bands.highs) * (0.2 + kickHit * 1.3),
         )
       }
 
@@ -2188,6 +2333,11 @@
         applyInputSensitivity()
       })
 
+      punchRange.addEventListener('input', () => {
+        beatPunch = Number(punchRange.value)
+        punchLabel.textContent = beatPunch.toFixed(1)
+      })
+
       crossfadeRange.addEventListener('input', () => {
         deck.crossfadeSec = Number(crossfadeRange.value) || 4
         crossfadeLabel.textContent = deck.crossfadeSec.toFixed(1)
@@ -2230,6 +2380,10 @@
         ctxState: audioState.ctx?.state ?? null,
         gate: audioState.gateLevel,
         floor: audioState.noiseFloor,
+        kickPulse: audioState.onsets.kick.pulse,
+        snarePulse: audioState.onsets.snare.pulse,
+        hatPulse: audioState.onsets.hat.pulse,
+        kickAvg: audioState.onsets.kick.avg,
         maxBin: audioState.freqData ? Math.max(...audioState.freqData) : null,
         tracks: audioState.stream
           ? audioState.stream.getAudioTracks().map((t) => ({
