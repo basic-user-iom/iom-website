@@ -1264,7 +1264,7 @@
 
         wireAnalyserFromStream(stream, 'tab')
         captureHintEl.textContent =
-          'Tab audio listening · meters should jump with the beat. If silent, use Listen via mic.'
+          'Tab audio on. Tip: Full screen will briefly re-ask to share this tab (Chrome blocks FS while sharing).'
         setStatus('Tab reactivity on')
         setSignalStatus('silent', 'Signal: waiting for audio…')
       }
@@ -2417,8 +2417,6 @@
       }
 
       function fullscreenLooksReal() {
-        // Tab-audio sharing often leaves browser chrome visible even when
-        // document.fullscreenElement is set — treat that as a failed enter.
         return (
           Math.abs(window.innerHeight - screen.height) < 96 ||
           Math.abs(window.outerHeight - screen.height) < 48
@@ -2430,27 +2428,32 @@
           if (isPageFullscreen()) {
             await exitAnyFullscreen()
           } else {
-            // Clear iframe/other fullscreen first so the page can take over.
+            // Chrome keeps the “Sharing this tab…” bar (and blocks real
+            // fullscreen) while getDisplayMedia is active. Drop the share
+            // first, enter fullscreen, then re-prompt for tab audio — all
+            // inside this click so the gesture still counts.
+            const resumeTab = audioState.mode === 'tab'
+            if (resumeTab) {
+              stopAudioInput()
+              captureHintEl.textContent =
+                'Entering full screen — you will re-share this tab for audio next.'
+            }
             if (getFullscreenElement()) await exitAnyFullscreen()
             await enterPageFullscreen()
-            await new Promise((r) => setTimeout(r, 60))
-            if (isPageFullscreen() && !fullscreenLooksReal()) {
-              const tabShareHint =
-                audioState.mode === 'tab'
-                  ? 'Stop listen (tab share blocks full screen), press Full screen, then Listen via tab again.'
-                  : 'Browser UI still visible — close overlays / stop tab sharing, then try Full screen again.'
-              setStatus(tabShareHint, true)
+            onWindowResize()
+            if (resumeTab) {
+              setStatus('Full screen on — pick this tab again + “Also share tab audio”')
+              await startTabCapture()
+            } else if (isPageFullscreen() && !fullscreenLooksReal()) {
+              setStatus(
+                'Browser UI still visible — close overlays, then try Full screen again.',
+                true,
+              )
             }
           }
         } catch (err) {
           console.warn(err)
-          const tabBlocked = audioState.mode === 'tab'
-          setStatus(
-            tabBlocked
-              ? 'Full screen blocked while tab audio is shared — Stop listen, then Full screen'
-              : `Full screen unavailable: ${err.name || err.message}`,
-            true,
-          )
+          setStatus(`Full screen unavailable: ${err.name || err.message}`, true)
         } finally {
           syncFullscreenButton()
           onWindowResize()
