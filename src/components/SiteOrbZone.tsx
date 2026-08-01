@@ -485,23 +485,35 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
       let effectiveHoverKind = hoverRef.current.kind
 
       // Coarse pointers can't hover — attend the most visible project card instead.
-      if (mobile && !hoverTarget && !heroLive) {
+      // Ignore touch-driven card hover (it only flashes on tap/leave); scroll owns cards.
+      // Keep attending after the hero goes live so project grids still get outline orbits.
+      if (mobile && (effectiveHoverKind === 'card' || !hoverTarget)) {
+        if (effectiveHoverKind === 'card') {
+          hoverTarget = null
+          effectiveHoverKind = null
+        }
         if (frame % 6 === 0) {
           const vhNow = window.innerHeight
           let bestEl: HTMLElement | null = null
-          let bestRatio = 0
+          let bestScore = 0
           for (const card of zone.querySelectorAll<HTMLElement>('.project-card')) {
             if (card.classList.contains('project-card--coming-soon')) continue
+            // Music strip thumbs are too small / dense for a full outline orbit.
+            if (card.closest('.music-player-thumbnails')) continue
             const box = card.getBoundingClientRect()
             const visible = Math.max(0, Math.min(box.bottom, vhNow) - Math.max(box.top, 0))
             if (visible <= 0) continue
             const ratio = visible / Math.min(box.height, vhNow)
-            if (ratio > bestRatio) {
-              bestRatio = ratio
+            if (ratio < 0.28) continue
+            const mid = (box.top + box.bottom) / 2
+            const centerBias = 1 - Math.min(1, Math.abs(mid - vhNow * 0.42) / (vhNow * 0.7))
+            const score = ratio * (0.55 + 0.45 * centerBias)
+            if (score > bestScore) {
+              bestScore = score
               bestEl = card
             }
           }
-          if (bestRatio >= 0.48 && bestEl) {
+          if (bestScore >= 0.22 && bestEl) {
             scrollAttendEl = bestEl
             scrollAttendId = bestEl.id
           } else {
