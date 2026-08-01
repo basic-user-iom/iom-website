@@ -203,7 +203,7 @@ const MIAB_STAGES: Stage[] = [
       'Live under /demos/message-in-a-bottle/ — write or receive a sealed note on an open sea with day/night sky, quality presets for real devices, and the craft language of our experiments packaged as a keepsake.',
     media: {
       type: 'image',
-      src: '/assets/blog/message-in-a-bottle/final.jpg?v=20260731b',
+      src: '/assets/blog/message-in-a-bottle/final.jpg?v=20260801',
       alt: 'Message in a Bottle — final open-sea scene with foam, haze, and sky',
     },
   },
