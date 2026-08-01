@@ -132,27 +132,36 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
   if (path === '/case-studies' || path.startsWith('/case-studies/')) {
     const isViewer = path === '/case-studies/3d-viewer'
     const isWitness = path === '/case-studies/black-witness'
+    const isMiab = path === '/case-studies/message-in-a-bottle'
     return {
       title: isViewer
         ? seoT(lang, 'seo.caseViewerTitle')
         : isWitness
           ? seoT(lang, 'seo.caseWitnessTitle')
-          : seoT(lang, 'seo.caseStudiesTitle'),
+          : isMiab
+            ? seoT(lang, 'seo.caseMiabTitle')
+            : seoT(lang, 'seo.caseStudiesTitle'),
       description: isViewer
         ? seoT(lang, 'seo.caseViewerDescription')
         : isWitness
           ? seoT(lang, 'seo.caseWitnessDescription')
-          : seoT(lang, 'seo.caseStudiesDescription'),
+          : isMiab
+            ? seoT(lang, 'seo.caseMiabDescription')
+            : seoT(lang, 'seo.caseStudiesDescription'),
       canonical,
       ogImage: isWitness
         ? `${SITE_ORIGIN}/assets/posters/panorama-360-tour.jpg`
-        : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
+        : isMiab
+          ? `${SITE_ORIGIN}/assets/posters/message-in-a-bottle.jpg`
+          : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
       keywords: [
         'case study',
         'WebGL',
+        'WebGPU',
         '360 panorama',
         'Three.js',
         'interactive media studio',
+        'ocean',
       ],
     }
   }

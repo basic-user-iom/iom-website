@@ -80,5 +80,51 @@ export const nlCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'message-in-a-bottle': {
+      eyebrow: 'Case study · WebGPU',
+      title: 'Message in a Bottle — van brief tot open zee',
+      lead: 'Hoe IOM een browser-keepsake op levend water bouwt: fles en perkament ensceneren, WebGPU-oceaan en hemel harden, dan een demo leveren die gasten zonder installatie openen.',
+      impact:
+        'Klanten en gasten beleven een interactief keepsake in de browser — dag/nacht-zee, verzegelde notities en apparaatbewuste kwaliteit — zodat narratieve demo’s echt genoeg zijn om te presenteren, niet alleen te beschrijven.',
+      primaryCtaLabel: 'Live demo openen',
+      secondaryCtaLabel: 'Experimenten bekijken',
+      deliverables: [
+        'Deelbare WebGPU open-zee-demo (geen installatie)',
+        'Fles- + perkamentcomposer met verzegelde / versleutelde notities',
+        'TSL Gerstner-oceaan met schuim, drijfvermogen en zeeleven',
+        'Dag/nacht-hemel met kwaliteitsbewuste volumetrische wolken',
+        'Low- / Medium- / High-presets voor echte apparaten',
+      ],
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Een keepsake dat als open water moet voelen — geen platte skybox.',
+          detail:
+            'Message in a Bottle vroeg om een browserervaring waarin schrijven en verzegelen van een notitie in een geloofwaardige zee zit: dag/nacht-licht, weer en een fles om te vinden en te openen — zonder installatie.',
+          mediaAlt: 'Open-zee-horizontsfeer — de atmosferische brief voor Message in a Bottle',
+        },
+        wire: {
+          title: 'Ervaringslayout',
+          summary: 'Fles, perkament en hemelbediening in één kalme compositie.',
+          detail:
+            'We ensceneren het eerste viewport rond fles en horizon, en leggen daarna composer-UI, kwaliteitsniveaus en tijdsturingen zo dat het verhaal primair blijft.',
+          mediaAlt: 'Berichtlayout — perkamentbrief boven de open zee met zee- en hemelbediening naast',
+        },
+        engineering: {
+          title: 'Engineering',
+          summary: 'WebGPU-TSL-oceaan, hemelradiatie en kwaliteitsbewuste wolken.',
+          detail:
+            'Gerstner-swell, domain-warped chop en een TSL-hemel met volumetrische cloud-lods die op Medium/Low terugschalen. Drijfvermogen, zeeleven en versleutelde berichten blijven in hetzelfde framebudget als het water.',
+          mediaAlt: 'WebGPU open-zee-render — Gerstner-water, nevel en wolkendichtheid',
+        },
+        final: {
+          title: 'Finale open zee',
+          summary: 'Een deelbare WebGPU-demo die gasten in de browser openen.',
+          detail:
+            'Live onder /demos/message-in-a-bottle/ — schrijf of ontvang een verzegelde notitie op open zee, met dag/nacht-hemel, kwaliteitspresets voor echte apparaten, en de craft-taal van onze experimenten als keepsake.',
+          mediaAlt: 'Message in a Bottle — finale open-zee-scène met schuim, nevel en hemel',
+        },
+      },
+    },
   },
 }

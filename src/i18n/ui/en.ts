@@ -178,6 +178,9 @@ export const enUi: Dict = {
   'seo.caseWitnessTitle': 'IOM — Black Witness 360° case study',
   'seo.caseWitnessDescription':
     'From challenge to deliverables: how The Black Witness becomes a guided panorama tour with hotspots and WebGPU effects.',
+  'seo.caseMiabTitle': 'IOM — Message in a Bottle case study',
+  'seo.caseMiabDescription':
+    'From challenge to deliverables: how IOM builds a WebGPU open-sea keepsake — bottle, parchment, ocean, and a shareable browser demo.',
   'seo.privacyTitle': 'Privacy Policy | IOM',
   'seo.privacyDescription':
     'How Interactive Object Media handles contact form data, analytics, and the private client portal.',

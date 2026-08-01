@@ -80,5 +80,51 @@ export const itCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'message-in-a-bottle': {
+      eyebrow: 'Case study · WebGPU',
+      title: 'Message in a Bottle — dal brief al mare aperto',
+      lead: 'Come IOM costruisce un keepsake browser su acqua viva: mettere in scena bottiglia e pergamena, indurire oceano e cielo WebGPU, poi consegnare una demo che gli ospiti aprono senza installazione.',
+      impact:
+        'Clienti e ospiti vivono un keepsake interattivo nel browser — mare giorno/notte, note sigillate e qualità consapevole del dispositivo — così le demo narrative sono abbastanza reali da presentare, non solo da descrivere.',
+      primaryCtaLabel: 'Apri demo live',
+      secondaryCtaLabel: 'Sfoglia gli esperimenti',
+      deliverables: [
+        'Demo WebGPU mare aperto condividibile (senza installazione)',
+        'Composer bottiglia + pergamena con note sigillate / crittografate',
+        'Oceano Gerstner TSL con schiuma, galleggiamento e vita marina',
+        'Cielo giorno/notte con nubi volumetriche consapevoli della qualità',
+        'Preset Low / Medium / High per dispositivi reali',
+      ],
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Un keepsake che deve sembrare mare aperto — non uno skybox piatto.',
+          detail:
+            'Message in a Bottle richiedeva un’esperienza browser in cui scrivere e sigillare una nota resta dentro un mare credibile: luce giorno/notte, meteo e una bottiglia da trovare e aprire — senza installazione.',
+          mediaAlt: 'Atmosfera di orizzonte in mare aperto — il brief atmosferico di Message in a Bottle',
+        },
+        wire: {
+          title: 'Layout dell’esperienza',
+          summary: 'Bottiglia, pergamena e controlli del cielo in una composizione calma.',
+          detail:
+            'Inquadriamo il primo viewport intorno a bottiglia e orizzonte, poi disponiamo UI del composer, livelli di qualità e controlli dell’ora così che la narrazione resti primaria.',
+          mediaAlt: 'Layout del messaggio — lettera su pergamena sul mare aperto con controlli mare e cielo a lato',
+        },
+        engineering: {
+          title: 'Engineering',
+          summary: 'Oceano WebGPU TSL, radiance del cielo e nubi consapevoli della qualità.',
+          detail:
+            'Swell Gerstner, chop domain-warped e cielo TSL con lod di nubi volumetriche che si riducono su Medium/Low. Galleggiamento, vita marina e messaggi crittografati restano nello stesso budget di frame dell’acqua.',
+          mediaAlt: 'Render WebGPU mare aperto — acqua Gerstner, foschia e controlli densità nubi',
+        },
+        final: {
+          title: 'Mare aperto finale',
+          summary: 'Una demo WebGPU condividibile che gli ospiti aprono nel browser.',
+          detail:
+            'Live su /demos/message-in-a-bottle/ — scrivere o ricevere una nota sigillata in mare aperto, con cielo giorno/notte, preset di qualità per dispositivi reali e il linguaggio craft dei nostri esperimenti come keepsake.',
+          mediaAlt: 'Message in a Bottle — scena finale mare aperto con schiuma, foschia e cielo',
+        },
+      },
+    },
   },
 }

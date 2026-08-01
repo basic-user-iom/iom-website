@@ -187,6 +187,9 @@ export const esUi: Dict = {
   'seo.caseWitnessTitle': 'IOM — Caso de estudio Black Witness 360°',
   'seo.caseWitnessDescription':
     'Del brief al 360°: cómo The Black Witness se convierte en un tour panorama guiado con hotspots y capas de efectos WebGPU.',
+  'seo.caseMiabTitle': 'IOM — Caso de estudio Message in a Bottle',
+  'seo.caseMiabDescription':
+    'Del brief al mar abierto: cómo IOM construye un recuerdo WebGPU — botella, pergamino, océano y una demo de navegador compartible.',
 
   'case.back': 'Todo el trabajo',
   'case.stagesAria': 'Etapas del proceso',

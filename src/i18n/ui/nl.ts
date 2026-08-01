@@ -187,6 +187,9 @@ export const nlUi: Dict = {
   'seo.caseWitnessTitle': 'IOM — Black Witness 360° case study',
   'seo.caseWitnessDescription':
     'Van brief tot 360°: hoe The Black Witness een geleide panoramatour wordt met hotspots en WebGPU-effectlagen.',
+  'seo.caseMiabTitle': 'IOM — Message in a Bottle case study',
+  'seo.caseMiabDescription':
+    'Van brief tot open zee: hoe IOM een WebGPU-keepsake bouwt — fles, perkament, oceaan en een deelbare browserdemo.',
 
   'case.back': 'Al het werk',
   'case.stagesAria': 'Procesfasen',

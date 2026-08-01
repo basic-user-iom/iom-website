@@ -1,0 +1,29 @@
+﻿Moon albedo texture
+===================
+File: moon-lroc-2k.jpg
+Source: NASA Scientific Visualization Studio — CGI Moon Kit (LROC WAC Hapke mosaic)
+https://svs.gsfc.nasa.gov/4720
+Via Wikimedia Commons: File:Moon texture.jpg (2048px derivative)
+License: Public domain (NASA / US Government work)
+
+Parchment / paper textures
+==========================
+File: parchment-aged.jpg
+Source: Texturize — Old Parchment Paper (resized JPEG from 2048 PNG)
+https://texturize.app/texture/paper-old-parchment
+License: Free for personal and commercial use. No attribution required.
+  Redistribution as standalone texture packs is not permitted.
+
+File: parchment-grunge.jpg
+Source: Texturize — Distressed Paper Grunge (resized JPEG)
+https://texturize.app/texture/grunge-distressed-paper
+License: Free for personal and commercial use. No attribution required.
+  Redistribution as standalone texture packs is not permitted.
+
+File: parchment-fiber.jpg
+Source: ambientCG — Paper006 Color (1K JPG, resized)
+https://ambientcg.com/a/Paper006
+License: CC0 1.0 Public Domain — https://creativecommons.org/publicdomain/zero/1.0/
+
+File: parchment-old.jpg
+Legacy/compat copy of parchment-aged.jpg (same license as above).

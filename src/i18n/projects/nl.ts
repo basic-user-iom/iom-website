@@ -20,6 +20,11 @@ export const nlProjects: ProjectsLocalePack = {
       description: 'Hoe we een reviewprobleem omzetten in een shippable product — layout chrome, engineering, HDR-belichting en Streets GL-stedelijke context voor klantbeslissingen.',
       tags: ['case study', 'three.js', 'product', 'webgl'],
     },
+    'case-study-message-in-a-bottle': {
+      title: 'Message in a Bottle — van brief tot open zee',
+      description: 'Hoe we een browser-keepsake op levend water bouwen — fles- en perkamentlayout, WebGPU-oceaan- en hemelengineering, en een deelbare demo voor gasten.',
+      tags: ['case study', 'webgpu', 'oceaan', 'three.js'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'OpenStreetMap 3D-grondlaagintegratie voor geolocatie van modelpresentatie — synchroniseer modellen met echte coördinaten en terrain-uitlijning. Live demo embedt Streets GL (MIT) voor echte OSM-gebouwen, wegen en terrain.',
@@ -234,6 +239,12 @@ export const nlProjects: ProjectsLocalePack = {
       title: 'Three.js Ocean',
       description: 'Gerstner-golf oceaan met procedurele hemel en zonsondergang-preset — glazen 3D-tekst met Google Fonts, decoratieve iconen, wallpaper-screenshots, of tot 30 seconden WebGL-video-export.',
       tags: ['webgl', 'shader', 'three.js', 'water'],
+    },
+    'message-in-a-bottle': {
+      title: 'Message in a Bottle — Open zee',
+      description: 'WebGPU open-zee-keepsake — Gerstner-swell en schuim, dag/nacht-hemel met kwaliteitsbewuste volumetrische wolken, verzegelde perkamentnotities, en een deelbare fleservaring die gasten in de browser openen.',
+      tags: ['webgpu', 'tsl', 'oceaan', 'narratief', 'three.js', 'dag/nacht'],
+      referenceLabels: ['Three.js Ocean'],
     },
     'css3d-sprites': {
       title: 'CSS3D Sprites',

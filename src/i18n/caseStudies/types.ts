@@ -17,5 +17,5 @@ export type CaseStudyOverlay = {
 }
 
 export type CaseStudiesLocalePack = {
-  studies: Record<string, CaseStudyOverlay> // '3d-viewer' | 'black-witness'
+  studies: Record<string, CaseStudyOverlay>
 }

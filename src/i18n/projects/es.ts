@@ -20,6 +20,11 @@ export const esProjects: ProjectsLocalePack = {
       description: 'Cómo convertimos un problema de revisión en un producto entregable — chrome de layout, ingeniería, iluminación HDR y contexto urbano Streets GL para las decisiones del cliente.',
       tags: ['caso de estudio', 'three.js', 'producto', 'webgl'],
     },
+    'case-study-message-in-a-bottle': {
+      title: 'Message in a Bottle — del brief al mar abierto',
+      description: 'Cómo construimos un recuerdo en el navegador sobre agua viva — layout de botella y pergamino, ingeniería de océano y cielo WebGPU, y una demo compartible para invitados.',
+      tags: ['caso de estudio', 'webgpu', 'océano', 'three.js'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'Integración de la capa 3D de OpenStreetMap para la presentación de modelos geolocalizados — sincroniza modelos con coordenadas reales y alineación del terreno. La demo en vivo incrusta Streets GL (MIT) para edificios, carreteras y terreno OSM reales.',
@@ -234,6 +239,12 @@ export const esProjects: ProjectsLocalePack = {
       title: 'Three.js Ocean',
       description: 'Océano de ondas Gerstner con cielo procedural y preset de atardecer — texto 3D de cristal con Google Fonts, iconos decorativos, capturas wallpaper o hasta 30 segundos de exportación de video WebGL.',
       tags: ['webgl', 'shader', 'three.js', 'agua'],
+    },
+    'message-in-a-bottle': {
+      title: 'Message in a Bottle — Mar abierto',
+      description: 'Recuerdo WebGPU en mar abierto — oleaje Gerstner y espuma, cielo día/noche con nubes volumétricas según la calidad, notas en pergamino selladas y una experiencia de botella compartible que los invitados abren en el navegador.',
+      tags: ['webgpu', 'tsl', 'océano', 'narrativo', 'three.js', 'día/noche'],
+      referenceLabels: ['Three.js Ocean'],
     },
     'css3d-sprites': {
       title: 'CSS3D Sprites',

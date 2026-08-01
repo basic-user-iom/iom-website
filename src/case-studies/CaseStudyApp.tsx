@@ -150,6 +150,65 @@ const BLACK_WITNESS_STAGES: Stage[] = [
   },
 ]
 
+const MIAB_STAGES: Stage[] = [
+  {
+    id: 'brief',
+    index: '01',
+    framework: 'challenge',
+    title: 'Challenge',
+    summary: 'A keepsake that has to feel like open water — not a flat skybox.',
+    detail:
+      'Message in a Bottle needed a browser experience where writing and sealing a note sits inside a believable sea: day/night light, weather, and a bottle you can find and open — without asking guests to install anything.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/message-in-a-bottle/brief.jpg?v=20260731b',
+      alt: 'Open-sea horizon mood — the atmospheric brief for Message in a Bottle',
+    },
+  },
+  {
+    id: 'wire',
+    index: '02',
+    framework: 'solution',
+    title: 'Solution — experience layout',
+    summary: 'Bottle, parchment, and sky controls on one calm composition.',
+    detail:
+      'We stage the first viewport around the bottle and horizon, then layer composer UI, quality tiers, and time-of-day controls so the narrative stays primary and the tech stays out of the way until someone chooses to explore.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/message-in-a-bottle/wire.jpg?v=20260731b',
+      alt: 'Message layout — parchment letter over the open sea with sea and sky controls to the side',
+    },
+  },
+  {
+    id: 'engineering',
+    index: '03',
+    framework: 'solution',
+    title: 'Solution — engineering',
+    summary: 'WebGPU TSL ocean, sky radiance, and quality-aware clouds.',
+    detail:
+      'Gerstner swell, domain-warped chop, and a TSL sky with volumetric cloud lods that dial down on Medium/Low. Buoyancy, sea life, and encrypted message packaging stay on the same frame budget as the water.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/message-in-a-bottle/engineering.jpg?v=20260731b',
+      alt: 'WebGPU open-sea render — Gerstner water, haze, and cloud density controls',
+    },
+  },
+  {
+    id: 'final',
+    index: '04',
+    framework: 'deliverables',
+    title: 'Deliverables',
+    summary: 'A shareable WebGPU demo guests can open in the browser.',
+    detail:
+      'Live under /demos/message-in-a-bottle/ — write or receive a sealed note on an open sea with day/night sky, quality presets for real devices, and the craft language of our experiments packaged as a keepsake.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/message-in-a-bottle/final.jpg?v=20260731b',
+      alt: 'Message in a Bottle — final open-sea scene with foam, haze, and sky',
+    },
+  },
+]
+
 const STUDIES: Record<string, CaseStudySpec> = {
   '3d-viewer': {
     slug: '3d-viewer',
@@ -192,6 +251,27 @@ const STUDIES: Record<string, CaseStudySpec> = {
       'WebGPU effect layers (particles, spout, compute birds)',
       'Portable `.360project` save format for editor ↔ preview',
       'Deep-link first frame (yaw / pitch) for client walkthroughs',
+    ],
+  },
+  'message-in-a-bottle': {
+    slug: 'message-in-a-bottle',
+    eyebrow: 'Case study · WebGPU',
+    title: 'Message in a Bottle — challenge to open sea',
+    lead: 'How IOM builds a browser keepsake on live water: stage the bottle and parchment, harden a WebGPU ocean and sky, then ship a demo guests can open without an install.',
+    impact:
+      'Clients and guests experience an interactive keepsake in the browser — day/night sea, sealed notes, and device-aware quality — so narrative demos feel real enough to present, not just describe.',
+    primaryCta: {
+      label: 'Open live demo',
+      href: '/demos/message-in-a-bottle/',
+    },
+    secondaryCta: { label: 'Browse experiments', href: '/#experiments' },
+    stages: MIAB_STAGES,
+    deliverables: [
+      'Shareable WebGPU open-sea demo (no install)',
+      'Bottle + parchment composer with sealed / encrypted notes',
+      'TSL Gerstner ocean with foam, buoyancy, and sea life',
+      'Day/night sky with quality-aware volumetric clouds',
+      'Low / Medium / High presets tuned for real devices',
     ],
   },
 }
@@ -422,6 +502,9 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
                 </a>
                 <a className="btn btn-ghost" href={href('/case-studies/black-witness')}>
                   {localizeSpec(STUDIES['black-witness']!, lang).title}
+                </a>
+                <a className="btn btn-ghost" href={href('/case-studies/message-in-a-bottle')}>
+                  {localizeSpec(STUDIES['message-in-a-bottle']!, lang).title}
                 </a>
               </div>
             </header>

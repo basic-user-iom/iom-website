@@ -1,0 +1,33 @@
+Sea life 3D models
+==================
+
+Clownfish (clownfish-quaternius.glb) — animated swim clips
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain — https://creativecommons.org/publicdomain/zero/1.0/
+
+Fish (fish-b-quaternius.glb) — animated Swim
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain
+
+Dolphin (dolphin-quaternius.glb) — animated Swim
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain
+
+Manta ray (manta-quaternius.glb) — animated Swim
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain
+
+Shark (shark-quaternius.glb) — animated Swim
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain
+
+Whale — animated skeletal (whale-quaternius.glb) — fallback
+  Author: Quaternius — https://quaternius.com/
+  License: CC0 1.0 Public Domain
+
+Finback whale (finback-google.glb) — primary distant whale
+  Author: Poly by Google (Google Poly archive)
+  Source: https://poly.pizza/m/30S2g01Q8pn
+  License: Creative Commons Attribution 3.0 — https://creativecommons.org/licenses/by/3.0/
+  Note: Mesh is static in the original file; this demo adds a procedural
+  swimming undulation so the textured finback can move underwater.

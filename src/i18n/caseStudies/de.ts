@@ -80,5 +80,51 @@ export const deCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'message-in-a-bottle': {
+      eyebrow: 'Case Study · WebGPU',
+      title: 'Message in a Bottle — vom Briefing zur offenen See',
+      lead: 'Wie IOM ein Browser-Keepsake auf lebendigem Wasser baut: Flasche und Pergament inszenieren, WebGPU-Ozean und Himmel härten, dann eine Demo ausliefern, die Gäste ohne Installation öffnen.',
+      impact:
+        'Kunden und Gäste erleben ein interaktives Keepsake im Browser — Tag/Nacht-See, versiegelte Notizen und gerätebewusste Qualität — damit narrative Demos real genug zum Präsentieren wirken, nicht nur zum Beschreiben.',
+      primaryCtaLabel: 'Live-Demo öffnen',
+      secondaryCtaLabel: 'Experimente durchstöbern',
+      deliverables: [
+        'Teilbare WebGPU-Open-Sea-Demo (ohne Installation)',
+        'Flaschen- und Pergament-Composer mit versiegelten / verschlüsselten Notizen',
+        'TSL-Gerstner-Ozean mit Schaum, Auftrieb und Meeresleben',
+        'Tag/Nacht-Himmel mit qualitätsbewussten volumetrischen Wolken',
+        'Low- / Medium- / High-Presets für echte Geräte',
+      ],
+      stages: {
+        brief: {
+          title: 'Briefing',
+          summary: 'Ein Keepsake, das sich wie offenes Wasser anfühlen muss — kein flaches Skybox.',
+          detail:
+            'Message in a Bottle brauchte ein Browser-Erlebnis, in dem Schreiben und Versiegeln einer Notiz in einer glaubwürdigen See sitzt: Tag/Nacht-Licht, Wetter und eine Flasche zum Finden und Öffnen — ohne dass Gäste etwas installieren.',
+          mediaAlt: 'Offene-See-Horizontstimmung — das atmosphärische Briefing für Message in a Bottle',
+        },
+        wire: {
+          title: 'Erlebnis-Layout',
+          summary: 'Flasche, Pergament und Himmelsteuerungen in einer ruhigen Komposition.',
+          detail:
+            'Wir inszenieren den ersten Viewport um Flasche und Horizont, dann legen wir Composer-UI, Qualitätsstufen und Tageszeit-Steuerungen so, dass die Erzählung primär bleibt und die Technik erst dann sichtbar wird, wenn jemand erkunden will.',
+          mediaAlt: 'Nachrichten-Layout — Pergamentbrief über der offenen See mit Sea- und Sky-Steuerungen seitlich',
+        },
+        engineering: {
+          title: 'Engineering',
+          summary: 'WebGPU-TSL-Ozean, Himmelsstrahlung und qualitätsbewusste Wolken.',
+          detail:
+            'Gerstner-Swell, domain-warped Chop und ein TSL-Himmel mit volumetrischen Cloud-Lods, die auf Medium/Low zurückfahren. Auftrieb, Meeresleben und verschlüsselte Nachrichten bleiben im selben Frame-Budget wie das Wasser.',
+          mediaAlt: 'WebGPU-Open-Sea-Render — Gerstner-Wasser, Dunst und Wolken-Dichte-Steuerungen',
+        },
+        final: {
+          title: 'Finale offene See',
+          summary: 'Eine teilbare WebGPU-Demo, die Gäste im Browser öffnen.',
+          detail:
+            'Live unter /demos/message-in-a-bottle/ — eine versiegelte Notiz auf offener See schreiben oder empfangen, mit Tag/Nacht-Himmel, Qualitäts-Presets für echte Geräte und der Craft-Sprache unserer Experimente als Keepsake.',
+          mediaAlt: 'Message in a Bottle — finale Open-Sea-Szene mit Schaum, Dunst und Himmel',
+        },
+      },
+    },
   },
 }

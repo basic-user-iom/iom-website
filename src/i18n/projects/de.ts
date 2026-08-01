@@ -20,6 +20,11 @@ export const deProjects: ProjectsLocalePack = {
       description: 'Wie wir ein Review-Problem in ein auslieferbares Produkt verwandeln — Layout-Chrome, Engineering, HDR-Beleuchtung und Streets-GL-Stadtkontext für Kundenentscheidungen.',
       tags: ['fallstudie', 'three.js', 'produkt', 'webgl'],
     },
+    'case-study-message-in-a-bottle': {
+      title: 'Message in a Bottle — vom Briefing zur offenen See',
+      description: 'Wie wir ein Browser-Keepsake auf lebendigem Wasser bauen — Flaschen- und Pergament-Layout, WebGPU-Ozean- und Himmels-Engineering und eine teilbare Demo für Gäste.',
+      tags: ['fallstudie', 'webgpu', 'ozean', 'three.js'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'OpenStreetMap-3D-Bodenschicht-Integration für geolokalisierte Modellpräsentation — Modelle mit realen Koordinaten und Terrain-Ausrichtung synchronisieren. Live-Demo bettet Streets GL (MIT) für reale OSM-Gebäude, Straßen und Terrain ein.',
@@ -234,6 +239,12 @@ export const deProjects: ProjectsLocalePack = {
       title: 'Three.js Ocean',
       description: 'Gerstner-Wellen-Ozean mit prozeduralem Himmel und Sonnenuntergang-Preset — Glas-3D-Text mit Google Fonts, dekorative Icons, Wallpaper-Screenshots oder bis zu 30 Sekunden WebGL-Videoexport.',
       tags: ['webgl', 'shader', 'three.js', 'wasser'],
+    },
+    'message-in-a-bottle': {
+      title: 'Message in a Bottle — Offene See',
+      description: 'WebGPU-Open-Sea-Keepsake — Gerstner-Swell und Schaum, Tag/Nacht-Himmel mit qualitätsbewussten volumetrischen Wolken, versiegelte Pergamentnotizen und eine teilbare Flaschen-Experience, die Gäste im Browser öffnen.',
+      tags: ['webgpu', 'tsl', 'ozean', 'narrativ', 'three.js', 'tag/nacht'],
+      referenceLabels: ['Three.js Ocean'],
     },
     'css3d-sprites': {
       title: 'CSS3D Sprites',

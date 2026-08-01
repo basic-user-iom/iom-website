@@ -3,7 +3,7 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml">
   <url>
     <loc>https://iobjectm.com/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -16,7 +16,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -29,7 +29,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -42,7 +42,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -55,7 +55,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -68,7 +68,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/"/>
@@ -81,7 +81,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -94,7 +94,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -106,8 +106,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -120,7 +133,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -133,7 +146,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -145,8 +158,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/de/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/fr/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -159,7 +185,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -171,8 +197,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/fr/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/nl/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -185,7 +224,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -197,8 +236,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/nl/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/it/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -211,7 +263,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -223,8 +275,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/it/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/es/case-studies/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/3d-viewer/"/>
@@ -237,7 +302,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/case-studies/black-witness/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/black-witness/"/>
@@ -249,8 +314,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/black-witness/"/>
   </url>
   <url>
+    <loc>https://iobjectm.com/es/case-studies/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/case-studies/message-in-a-bottle/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/case-studies/message-in-a-bottle/"/>
+  </url>
+  <url>
     <loc>https://iobjectm.com/blog/crm-demo/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/crm-demo/"/>
@@ -263,7 +341,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/image-prep/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/image-prep/"/>
@@ -276,7 +354,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/raven-path/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/raven-path/"/>
@@ -289,7 +367,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/iom-three/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/iom-three/"/>
@@ -302,7 +380,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/panorama-suite/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/panorama-suite/"/>
@@ -315,7 +393,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/streets-gl-bridge/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/streets-gl-bridge/"/>
@@ -328,7 +406,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/artist-globe/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/artist-globe/"/>
@@ -341,7 +419,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/3d-viewer/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/3d-viewer/"/>
@@ -354,7 +432,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/css3d-sprites/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/css3d-sprites/"/>
@@ -367,7 +445,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/buffergeometry-drawrange/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/buffergeometry-drawrange/"/>
@@ -380,7 +458,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-spotlight/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-spotlight/"/>
@@ -393,7 +471,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/spline-editor/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/spline-editor/"/>
@@ -406,7 +484,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/terrain-sandbox/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/terrain-sandbox/"/>
@@ -419,7 +497,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-parallax-uv/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-parallax-uv/"/>
@@ -432,7 +510,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/procedural-gl/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/procedural-gl/"/>
@@ -445,7 +523,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/spout/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/spout/"/>
@@ -458,7 +536,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-tsl-linked-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-tsl-linked-particles/"/>
@@ -471,7 +549,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/volume-lighting/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/volume-lighting/"/>
@@ -484,7 +562,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-custom-fog-scattering/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-custom-fog-scattering/"/>
@@ -497,7 +575,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/blog/webgpu-modifier-curve/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/webgpu-modifier-curve/"/>
@@ -510,7 +588,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -523,7 +601,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -536,7 +614,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -549,7 +627,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -562,7 +640,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/blog/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/"/>
@@ -575,181 +653,187 @@
   </url>
   <url>
     <loc>https://iobjectm.com/demos/streets-gl/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/panorama-360/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/iom-studio/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/tools/image-prep/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/artist-globe/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/ssr-denoise/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/dreams-iom/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/volume-lighting/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/raven-path/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/spline-editor/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-modifier-curve/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/ocean/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/demos/message-in-a-bottle/</loc>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/css3d-sprites/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/compute-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-spotlight/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-compute-birds/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-parallax-uv/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-tsl-raging-sea/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-tsl-linked-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-tsl-attractors-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-custom-fog-scattering/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/webgpu-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/buffergeometry-drawrange/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/terrain-sandbox/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/procedural-gl/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/spout/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/dj-linked-particles/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/fft-ocean/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/demos/iom-studio-app/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://iobjectm.com/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -762,7 +846,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -775,7 +859,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.4</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
@@ -788,7 +872,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -801,7 +885,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -814,7 +898,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/de/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
@@ -827,7 +911,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -840,7 +924,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -853,7 +937,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/fr/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
@@ -866,7 +950,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -879,7 +963,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -892,7 +976,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/nl/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
@@ -905,7 +989,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -918,7 +1002,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -931,7 +1015,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/it/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>
@@ -944,7 +1028,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/privacy/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/privacy/"/>
@@ -957,7 +1041,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/terms/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/terms/"/>
@@ -970,7 +1054,7 @@
   </url>
   <url>
     <loc>https://iobjectm.com/es/cookies/</loc>
-    <lastmod>2026-07-29</lastmod>
+    <lastmod>2026-07-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
     <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/cookies/"/>

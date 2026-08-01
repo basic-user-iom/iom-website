@@ -76,6 +76,20 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-CS01',
   },
   {
+    id: 'case-study-message-in-a-bottle',
+    title: 'Message in a Bottle — from brief to open sea',
+    section: '360',
+    tags: ['case study', 'webgpu', 'ocean', 'three.js'],
+    description:
+      'How we build a browser keepsake on live water — bottle and parchment layout, WebGPU ocean and sky engineering, and a shareable demo guests can open.',
+    year: '2026',
+    url: '/case-studies/message-in-a-bottle',
+    posterUrl: '/assets/posters/message-in-a-bottle.webp?v=20260801',
+    mobilePosterUrl: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
+    thumbnail: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
+    archiveId: 'OBJ-CS02',
+  },
+  {
     id: 'streets-gl-bridge',
     title: 'Streets GL Bridge',
     section: 'software',
@@ -827,6 +841,28 @@ export const PROJECTS: Project[] = [
     mobilePosterUrl: '/assets/posters/ocean.jpg?v=20260719b',
     sourceUrl: 'https://github.com/mrdoob/three.js/blob/dev/examples/webgl_shaders_ocean.html',
     archiveId: 'OBJ-0120',
+  },
+  {
+    id: 'message-in-a-bottle',
+    title: 'Message in a Bottle — Open Sea',
+    section: '3d',
+    tags: ['webgpu', 'tsl', 'ocean', 'narrative', 'three.js', 'day/night'],
+    description:
+      'WebGPU open-sea keepsake — Gerstner swell and foam, day/night sky with quality-aware volumetric clouds, sealed parchment notes, and a shareable bottle experience guests open in the browser.',
+    year: '2026',
+    url: '/demos/message-in-a-bottle/',
+    embedUrl: '/demos/message-in-a-bottle/',
+    posterUrl: '/assets/posters/message-in-a-bottle.webp?v=20260801',
+    mobilePosterUrl: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
+    thumbnail: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
+    caseStudyPath: '/case-studies/message-in-a-bottle',
+    referenceUrls: [
+      {
+        label: 'Three.js Ocean',
+        url: '/demos/ocean/',
+      },
+    ],
+    archiveId: 'OBJ-0154',
   },
   {
     id: 'css3d-sprites',
