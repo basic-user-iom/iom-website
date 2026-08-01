@@ -281,6 +281,13 @@ export const nlProjects: ProjectsLocalePack = {
       tags: ['webgpu', 'tsl', 'procedureel', 'oceaan', 'golven', 'three.js'],
       referenceLabels: ['WebGPU TSL raging sea', 'Three.js Journey — raging sea'],
     },
+    'fft-ocean': {
+      title: 'FFT Ocean',
+      description:
+        'Phillips-spectrum FFT-oceaan in WebGL — live displacement, skybox-weerpresets, regen en de Black Pearl onder realtime golven. Orbiteer om te verkennen; wissel dag/nacht via de UI.',
+      tags: ['webgl', 'fft', 'oceaan', 'water', 'shader', 'three.js'],
+      referenceLabels: ['jbouny / fft-ocean'],
+    },
     'webgpu-tsl-linked-particles': {
       title: 'WebGPU TSL Linked Particles',
       description: 'TSL VFX-particlesketch met GPU compute spawning, turbulentie, nearest-neighbor link ribbons, hue-rotatie en bloom post-processing. Beweeg de pointer om verbonden particle trails te tekenen.',

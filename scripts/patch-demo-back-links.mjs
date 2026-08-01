@@ -20,7 +20,7 @@ const DEMO_SECTION = {
   'dreams-iom': '3d',
   'volume-lighting': '3d',
   ocean: '3d',
-  'fft-ocean': '3d',
+  'fft-ocean': 'experiments',
   'css3d-sprites': 'experiments',
   'compute-particles': 'experiments',
   'webgpu-spotlight': 'experiments',

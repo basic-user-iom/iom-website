@@ -281,6 +281,13 @@ export const esProjects: ProjectsLocalePack = {
       tags: ['webgpu', 'tsl', 'procedural', 'océano', 'olas', 'three.js'],
       referenceLabels: ['WebGPU TSL raging sea', 'Three.js Journey — raging sea'],
     },
+    'fft-ocean': {
+      title: 'FFT Ocean',
+      description:
+        'Océano FFT de espectro Phillips en WebGL — displacement en vivo, presets de clima skybox, lluvia y el Black Pearl bajo olas en tiempo real. Orbita para explorar; cambia día/noche desde la UI.',
+      tags: ['webgl', 'fft', 'océano', 'agua', 'shader', 'three.js'],
+      referenceLabels: ['jbouny / fft-ocean'],
+    },
     'webgpu-tsl-linked-particles': {
       title: 'WebGPU TSL Linked Particles',
       description: 'Sketch VFX de partículas TSL con spawning GPU compute, turbulencia, cintas de enlace nearest-neighbor, hue rotation y bloom post-processing. Mueve el puntero para dibujar estelas de partículas conectadas.',

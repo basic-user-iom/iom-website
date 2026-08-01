@@ -993,6 +993,27 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0135',
   },
   {
+    id: 'fft-ocean',
+    title: 'FFT Ocean',
+    section: 'experiments',
+    tags: ['webgl', 'fft', 'ocean', 'water', 'shader', 'three.js'],
+    description:
+      'Phillips-spectrum FFT ocean in WebGL — live displacement, skybox weather presets, rain, and the Black Pearl under realtime waves. Orbit to explore; switch day/night environments from the UI.',
+    year: '2026',
+    url: '/demos/fft-ocean/',
+    embedUrl: '/demos/fft-ocean/',
+    posterUrl: '/assets/posters/fft-ocean.webp?v=20260801',
+    mobilePosterUrl: '/assets/posters/fft-ocean.jpg?v=20260801',
+    sourceUrl: 'https://github.com/jbouny/fft-ocean',
+    referenceUrls: [
+      {
+        label: 'jbouny / fft-ocean',
+        url: 'https://github.com/jbouny/fft-ocean',
+      },
+    ],
+    archiveId: 'OBJ-0155',
+  },
+  {
     id: 'webgpu-tsl-linked-particles',
     title: 'WebGPU TSL Linked Particles',
     section: 'experiments',
