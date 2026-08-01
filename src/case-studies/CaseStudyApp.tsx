@@ -189,7 +189,7 @@ const MIAB_STAGES: Stage[] = [
       'Gerstner swell, domain-warped chop, and a TSL sky with volumetric cloud lods that dial down on Medium/Low. Buoyancy, sea life, and encrypted message packaging stay on the same frame budget as the water.',
     media: {
       type: 'image',
-      src: '/assets/blog/message-in-a-bottle/engineering.jpg?v=20260731b',
+      src: '/assets/blog/message-in-a-bottle/engineering.jpg?v=20260801',
       alt: 'WebGPU open-sea render — Gerstner water, haze, and cloud density controls',
     },
   },
