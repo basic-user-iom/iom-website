@@ -729,7 +729,8 @@
 
       function createTexture3D() {
         let i = 0
-        const size = 128
+        // 64³ is enough for soft volumetric grain; 128³ costs ~8× CPU/GPU memory for little gain.
+        const size = 64
         const data = new Uint8Array(size * size * size)
         const scale = 10
         const perlin = new ImprovedNoise()
@@ -759,7 +760,31 @@
         return texture
       }
 
-      const PAGANI_MODEL_URL = './models/pagani/Pagani Utopia 2023.gltf'
+      // Single GLB avoids a 40+ request texture waterfall after click.
+      const PAGANI_MODEL_URL = './models/pagani/pagani-utopia.glb'
+      let paganiPreloadPromise = null
+
+      function preloadPaganiAssets() {
+        if (paganiPreloadPromise) return paganiPreloadPromise
+        paganiPreloadPromise = fetch(PAGANI_MODEL_URL, { credentials: 'same-origin' })
+          .then((response) => {
+            if (!response.ok) throw new Error(`Pagani preload HTTP ${response.status}`)
+            return response.arrayBuffer()
+          })
+          .then((buffer) => {
+            paganiPreloadedBuffer = buffer
+            return buffer
+          })
+          .catch((err) => {
+            console.warn('[volume-lighting] Pagani preload failed; will fetch on demand', err)
+            paganiPreloadPromise = null
+            return null
+          })
+        return paganiPreloadPromise
+      }
+
+      /** @type {ArrayBuffer | null} */
+      let paganiPreloadedBuffer = null
       const PAGANI_TARGET_LENGTH = 11
       const PAGANI_ROTATION_SPEED = 0.2 // rad/s — gentle turntable on Y axis
       // Offset car away from rect lights orbiting around (0, 6, 5) on the +Z side.
@@ -2192,7 +2217,17 @@
         if (stockPaganiLoadPromise) return stockPaganiLoadPromise
 
         stockPaganiLoadPromise = (async () => {
-          const gltf = await new GLTFLoader().loadAsync(PAGANI_MODEL_URL)
+          const loader = new GLTFLoader()
+          let gltf
+          const preloaded = paganiPreloadedBuffer || (await preloadPaganiAssets())
+          if (preloaded) {
+            gltf = await new Promise((resolve, reject) => {
+              loader.parse(preloaded, '', resolve, reject)
+            })
+            paganiPreloadedBuffer = null
+          } else {
+            gltf = await loader.loadAsync(PAGANI_MODEL_URL)
+          }
           const paganiModel = gltf.scene
           paganiModel.name = 'Pagani Utopia'
           paganiModel.traverse((child) => {
@@ -3275,13 +3310,15 @@
         }
       }
 
-      async function init() {
+      async function init(onProgress = () => {}) {
         if (!navigator.gpu) {
           showFallback()
           setStatus('WebGPU not available', true)
           return
         }
 
+        onProgress('Starting WebGPU…', 'Initializing renderer')
+        setStatus('Starting WebGPU…')
         THREE.RectAreaLightNode.setLTC(RectAreaLightTexturesLib.init())
 
         const LAYER_VOLUMETRIC_LIGHTING = 10
@@ -3395,7 +3432,9 @@
           spot.decay = 1.25
           spot.distance = 80
           spot.castShadow = true
-          spot.shadow.mapSize.set(2048, 2048)
+          // 3×2048 shadow maps dominate VRAM/fill; 1024/512 stays sharp enough for this scene.
+          const shadowMapSize = isMobile ? 512 : 1024
+          spot.shadow.mapSize.set(shadowMapSize, shadowMapSize)
           spot.shadow.bias = -0.0002
           spot.shadow.normalBias = 0.03
           spot.shadow.radius = 1
@@ -3431,9 +3470,11 @@
         mshStdFloor.receiveShadow = true
         scene.add(mshStdFloor)
 
+        onProgress('Loading Pagani…', 'Large car model · one file')
         setStatus('Loading Pagani model…')
         try {
           await loadStockPaganiIntoScene()
+          onProgress('Finishing scene…', 'Lighting · fog · controls')
           const paganiBounds = new THREE.Box3().setFromObject(paganiRoot)
 
           const paganiCenter = paganiBounds.getCenter(new THREE.Vector3())
@@ -3645,14 +3686,28 @@
         renderPipeline?.render()
       }
 
-      await window.iomDemoAwaitStart({
+      // Warm the ~23MB Pagani GLB while the poster is visible so click → ready is mostly parse/GPU.
+      preloadPaganiAssets()
+
+      const startGate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/volume-lighting.webp',
         label: 'Start volumetric lighting',
+        loadingLabel: 'Loading scene…',
+        loadingHint: 'WebGPU · Pagani model · volumetric fog',
       })
-      init().catch((err) => {
-        console.error(err)
-        setStatus('Demo failed to start', true)
+
+      init((label, hint) => {
+        startGate?.setMessage?.(label, hint)
+        setStatus(label)
       })
+        .then(() => {
+          startGate?.dismiss?.()
+        })
+        .catch((err) => {
+          console.error(err)
+          setStatus('Demo failed to start', true)
+          startGate?.setMessage?.('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

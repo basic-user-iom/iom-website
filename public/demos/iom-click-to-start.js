@@ -7,6 +7,16 @@
  *     poster: '/assets/posters/fft-ocean.webp',
  *     label: 'Start experience',
  *   })
+ *
+ * Keep the overlay visible while a heavy init runs:
+ *   const gate = await window.iomDemoAwaitStart({
+ *     poster: '...',
+ *     label: 'Start',
+ *     loadingLabel: 'Loading…',
+ *   })
+ *   gate.setMessage('Downloading model…')
+ *   await init()
+ *   gate.dismiss()
  */
 ;(function (global) {
   const STYLE_ID = 'iom-demo-gate-style'
@@ -72,6 +82,26 @@
         text-transform: uppercase;
         opacity: 0.72;
       }
+      .iom-demo-gate.is-loading {
+        cursor: wait;
+        pointer-events: none;
+      }
+      .iom-demo-gate.is-loading .iom-demo-gate-label {
+        border-color: rgba(0, 229, 255, 0.45);
+      }
+      .iom-demo-gate.is-loading .iom-demo-gate-hint::after {
+        content: '';
+        display: inline-block;
+        width: 1.1em;
+        text-align: left;
+        animation: iom-demo-gate-dots 1.2s steps(4, end) infinite;
+      }
+      @keyframes iom-demo-gate-dots {
+        0% { content: ''; }
+        25% { content: '.'; }
+        50% { content: '..'; }
+        75% { content: '...'; }
+      }
       .iom-demo-gate:focus-visible {
         outline: 2px solid #00e5ff;
         outline-offset: -4px;
@@ -81,8 +111,15 @@
   }
 
   /**
-   * @param {{ poster?: string, label?: string, hint?: string, parent?: HTMLElement }} [opts]
-   * @returns {Promise<void>}
+   * @param {{
+   *   poster?: string,
+   *   label?: string,
+   *   hint?: string,
+   *   parent?: HTMLElement,
+   *   loadingLabel?: string,
+   *   loadingHint?: string,
+   * }} [opts]
+   * @returns {Promise<void | { setMessage: (label: string, hint?: string) => void, dismiss: () => void }>}
    */
   function iomDemoAwaitStart(opts = {}) {
     ensureStyles()
@@ -90,6 +127,7 @@
     const label = opts.label || 'Start experience'
     const hint = opts.hint || 'Tap or click to load live 3D'
     const parent = opts.parent || document.body
+    const holdForLoading = Boolean(opts.loadingLabel)
 
     return new Promise((resolve) => {
       const gate = document.createElement('button')
@@ -104,10 +142,32 @@
         `<span class="iom-demo-gate-hint">${hint}</span>` +
         '</span>'
 
+      const labelEl = gate.querySelector('.iom-demo-gate-label')
+      const hintEl = gate.querySelector('.iom-demo-gate-hint')
+
+      const dismiss = () => {
+        gate.remove()
+      }
+
+      const setMessage = (nextLabel, nextHint) => {
+        if (labelEl && nextLabel != null) labelEl.textContent = nextLabel
+        if (hintEl && nextHint != null) hintEl.textContent = nextHint
+        gate.setAttribute('aria-label', nextLabel || label)
+      }
+
       const finish = () => {
         gate.removeEventListener('click', finish)
         gate.removeEventListener('keydown', onKey)
-        gate.remove()
+
+        if (holdForLoading) {
+          gate.classList.add('is-loading')
+          gate.disabled = true
+          setMessage(opts.loadingLabel || 'Loading…', opts.loadingHint || 'Preparing live 3D')
+          resolve({ setMessage, dismiss })
+          return
+        }
+
+        dismiss()
         resolve()
       }
       const onKey = (e) => {
