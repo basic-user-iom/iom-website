@@ -268,23 +268,31 @@
       ]
 
       ;(async function boot() {
-        await window.iomDemoAwaitStart({
+        // Warm ship mesh while the poster is visible.
+        fetch('models/BlackPearl/BlackPearl.obj', { credentials: 'same-origin' }).catch(() => {})
+
+        const gate = await window.iomDemoAwaitStart({
           poster: '/assets/posters/fft-ocean.webp',
           label: 'Start FFT ocean',
           hint: 'Tap or click to load live 3D',
+          loadingLabel: 'Loading ocean…',
+          loadingHint: 'Scripts · Black Pearl · sky maps',
         })
 
         statusEl.textContent = 'Loading ocean…'
         try {
+          gate.setMessage('Loading scripts…', 'Three.js · ocean shaders')
           await window.iomLoadScripts(FFT_SCRIPTS)
         } catch (err) {
           console.error(err)
           statusEl.textContent = 'Failed to load scripts'
           statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
           statusEl.style.color = '#ffd2d2'
+          gate.setMessage('Failed to load scripts', 'Check console for details')
           return
         }
 
+        gate.setMessage('Loading ship & sea…', 'Black Pearl · cubemaps · audio')
         WINDOW.Initialize()
         DEMO.Initialize()
 
@@ -292,6 +300,7 @@
         DEMO.ms_Loader.onLoad = function () {
           if (origOnLoad) origOnLoad()
           statusEl.textContent = 'FFT ocean · orbit to explore'
+          gate.dismiss()
         }
 
         const origOnError = DEMO.ms_Loader.onError
@@ -300,6 +309,7 @@
           statusEl.textContent = 'Loading error'
           statusEl.style.borderColor = 'rgba(255, 96, 96, 0.5)'
           statusEl.style.color = '#ffd2d2'
+          gate.setMessage('Loading error', 'Ship or environment assets failed')
         }
 
         WINDOW.ResizeCallback = function (inWidth, inHeight) {

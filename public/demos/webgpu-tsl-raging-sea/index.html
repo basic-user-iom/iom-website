@@ -369,15 +369,20 @@
         renderer.render(scene, camera)
       }
 
-      await window.iomDemoAwaitStart({
+      const gate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/webgpu-tsl-raging-sea.webp',
         label: 'Start raging sea',
+        loadingLabel: 'Initializing WebGPU…',
+        loadingHint: 'TSL wave shaders · sea mesh',
       })
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
-      })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

@@ -172,8 +172,9 @@
     <p class="hint">
       Drag to orbit · import model · export/import path JSON · tap point · phones: Orbit / Edit
     </p>
-    <div id="status">Loading raven…</div>
+    <div id="status">Tap to start…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
@@ -408,13 +409,11 @@
         flipOrientation180: flipOrientation180,
       }
 
-      init()
+      let baseStatusMessage = 'Tap to start…'
 
       function setStatus(text) {
         statusEl.textContent = text
       }
-
-      let baseStatusMessage = 'Loading raven…'
 
       function formatPathStatus() {
         const u = animState.loop ? wrap01(animState.progress) : clamp01(animState.progress)
@@ -427,7 +426,27 @@
         setStatus(formatPathStatus())
       }
 
+      // Warm stock raven while the poster is visible.
+      fetch(isMobile ? RAVEN_URL_MOBILE : RAVEN_URL_DESKTOP, { credentials: 'same-origin' }).catch(
+        () => {},
+      )
+
+      const startGate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/raven-path.jpg?v=20260710',
+        label: 'Start raven path',
+        loadingLabel: 'Loading raven…',
+        loadingHint: isMobile ? 'Mobile LOD · wing animation' : 'Desktop GLTF · wing animation',
+      })
+
+      init()
+        .then(() => startGate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          startGate.setMessage('Failed to start', err?.message || 'Check console for details')
+        })
+
       function init() {
+        startGate.setMessage('Building scene…', 'Path controls · lights')
         scene = new THREE.Scene()
         scene.background = new THREE.Color(0x0a0c10)
         scene.fog = new THREE.Fog(0x0a0c10, sceneState.fogNear, sceneState.fogFar)
@@ -553,7 +572,8 @@
         })
 
         clock = new THREE.Clock()
-        Promise.all([loadRaven(), ensureFullBaseline()])
+        startGate.setMessage('Loading raven model…', isMobile ? 'Mobile LOD' : 'Desktop GLTF')
+        return Promise.all([loadRaven(), ensureFullBaseline()])
           .then(() => {
             baseStatusMessage =
               'Raven loaded · edit path · export/import JSON · import GLB/GLTF/FBX'
@@ -563,6 +583,7 @@
             console.error('Raven model failed to load:', getRavenUrl(), err)
             baseStatusMessage = `Raven failed to load (${getRavenUrl()}) — check console`
             setStatus(baseStatusMessage)
+            throw err
           })
           .finally(() => {
             // Discard load-time elapsed so the first frame does not jump path progress.

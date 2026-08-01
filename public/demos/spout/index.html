@@ -135,9 +135,11 @@
     <script type="module">
       import { mobilePixelRatio } from '../demo-mobile.js'
 
-      await window.iomDemoAwaitStart({
+      const gate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/spout.webp',
         label: 'Start spout',
+        loadingLabel: 'Compiling shader…',
+        loadingHint: 'WebGL2 · water refraction',
       })
 
       const VERT = `#version 300 es
@@ -355,12 +357,15 @@ void main() {
         requestAnimationFrame(frameFn)
       }
 
-      main().catch((err) => {
-        console.error(err)
-        const fallback = document.getElementById('fallback')
-        fallback.textContent = String(err?.message || err)
-        fallback.classList.add('is-visible')
-      })
+      main()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          const fallback = document.getElementById('fallback')
+          fallback.textContent = String(err?.message || err)
+          fallback.classList.add('is-visible')
+          gate.setMessage('Failed to start', String(err?.message || err))
+        })
     </script>
   </body>
 </html>

@@ -179,6 +179,7 @@
     <div id="hint">Move pointer to disturb · orbit drag · scroll zoom · on phones: Orbit / Disturb</div>
     <div id="status">Initializing…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import {
@@ -653,11 +654,20 @@
         }
       }
 
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
+      const gate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-compute-birds.jpg?v=20260710',
+        label: 'Start compute birds',
+        loadingLabel: 'Initializing WebGPU…',
+        loadingHint: 'Flock compute shaders',
       })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

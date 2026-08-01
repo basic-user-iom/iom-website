@@ -320,15 +320,23 @@
         renderer.render(scene, camera)
       }
 
-      await window.iomDemoAwaitStart({
+      // Warm smoke sprite while the poster is visible.
+      fetch(SMOKE_TEXTURE_URL, { mode: 'cors' }).catch(() => {})
+
+      const gate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/webgpu-particles.webp',
         label: 'Start particles',
+        loadingLabel: 'Loading particles…',
+        loadingHint: 'WebGPU · smoke texture · sprites',
       })
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
-      })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

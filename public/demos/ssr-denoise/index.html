@@ -756,6 +756,7 @@
       })
     </script>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       if (!navigator.gpu) {
         showDemoError(
@@ -4379,14 +4380,31 @@
         },
       }
 
-      init().catch((error) => {
-        showDemoError(
-          'Demo failed to start',
-          error?.message || 'Check the browser console for details.',
-        )
+      // Warm heavy assets while the start poster is visible.
+      fetch(DEFAULT_MODEL_URL, { credentials: 'same-origin' }).catch(() => {})
+      fetch('./textures/quarry_01_1k.hdr', { credentials: 'same-origin' }).catch(() => {})
+
+      const startGate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/ssr-denoise.jpg?v=20260708',
+        label: 'Start SSR + denoise',
+        loadingLabel: 'Loading gallery…',
+        loadingHint: 'GLB model · HDR environment · WebGPU SSR',
       })
 
+      init()
+        .then(() => {
+          startGate.dismiss()
+        })
+        .catch((error) => {
+          showDemoError(
+            'Demo failed to start',
+            error?.message || 'Check the browser console for details.',
+          )
+          startGate.setMessage('Failed to start', error?.message || 'Check console for details')
+        })
+
       async function init() {
+        startGate.setMessage('Loading gallery model…', 'vr_art_gallery GLB')
         camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 0.05, 100)
         camera.position.copy(DEFAULT_CAMERA_POSITION)
         camera.rotation.copy(DEFAULT_CAMERA_ROTATION)
@@ -4412,6 +4430,7 @@
         document.getElementById('container').appendChild(renderer.domElement)
 
         const hdrLoader = new HDRLoader()
+        startGate.setMessage('Loading HDR environment…', 'WebGPU reflections')
         const hdrTexture = await hdrLoader.loadAsync('./textures/quarry_01_1k.hdr')
         hdrTexture.mapping = THREE.EquirectangularReflectionMapping
         setEnvironmentTexture(hdrTexture, { disposePrevious: false })
@@ -4440,6 +4459,7 @@
         scene.add(directionalLight.target)
 
         try {
+          startGate.setMessage('Starting WebGPU…', 'SSR · denoise pipeline')
           await renderer.init()
         } catch (error) {
           showDemoError(

@@ -109,11 +109,22 @@ async function patchPanoramaClickToStart(indexHtml) {
     <div id="root"></div>
     <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
-      await window.iomDemoAwaitStart({
+      const appUrl = '${jsSrc}'
+      const appPreload = import(appUrl)
+      const gate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/panorama-360-tour.webp',
         label: 'Start 360° tour editor',
+        loadingLabel: 'Loading editor…',
+        loadingHint: 'App bundle · default tour · panorama',
       })
-      await import('${jsSrc}')
+      try {
+        gate.setMessage('Starting viewer…', 'WebGPU · 360° scenes')
+        await appPreload
+        gate.dismiss()
+      } catch (err) {
+        console.error(err)
+        gate.setMessage('Failed to start', 'Check console for details')
+      }
     </script>
   </body>`,
   )

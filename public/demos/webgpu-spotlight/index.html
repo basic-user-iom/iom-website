@@ -173,6 +173,7 @@
     <div id="hint">Orbit drag · scroll zoom · spotlight orbits the scene · tune map, angle, and shadow focus in Settings</div>
     <div id="status">Initializing…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import { Inspector } from 'three/addons/inspector/Inspector.js'
@@ -439,11 +440,20 @@
         renderer.render(scene, camera)
       }
 
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
+      const gate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-spotlight.jpg?v=2026071018',
+        label: 'Start spotlight',
+        loadingLabel: 'Initializing WebGPU…',
+        loadingHint: 'Rect area · spotlight shadows',
       })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

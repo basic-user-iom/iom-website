@@ -182,6 +182,7 @@
     </div>
     <div id="status">Initializing…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import { densityFogFactor, mix, pass, reference, uniform, vec2 } from 'three/tsl'
@@ -400,11 +401,20 @@
         renderPipeline.render()
       }
 
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
+      const gate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-custom-fog-scattering.jpg?v=20260710',
+        label: 'Start fog scattering',
+        loadingLabel: 'Initializing WebGPU…',
+        loadingHint: 'Custom fog · scattering',
       })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>

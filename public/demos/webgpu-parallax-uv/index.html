@@ -180,6 +180,7 @@
     </div>
     <div id="status">Initializing…</div>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three/webgpu'
       import { texture, parallaxUV, blendOverlay, uv, normalMap, uniform } from 'three/tsl'
@@ -331,11 +332,20 @@
         renderer.render(scene, camera)
       }
 
-      init().catch((err) => {
-        console.error(err)
-        showFallback()
-        setStatus('Initialization failed', true)
+      const gate = await window.iomDemoAwaitStart({
+        poster: '/assets/posters/webgpu-parallax-uv.jpg?v=20260710',
+        label: 'Start parallax UV',
+        loadingLabel: 'Initializing WebGPU…',
+        loadingHint: 'Parallax mapping shaders',
       })
+      init()
+        .then(() => gate.dismiss())
+        .catch((err) => {
+          console.error(err)
+          showFallback()
+          setStatus('Initialization failed', true)
+          gate.setMessage('Failed to start', 'Check console for details')
+        })
     </script>
   </body>
 </html>
