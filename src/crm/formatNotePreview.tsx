@@ -402,20 +402,46 @@ export function renderNoteLines(lines: string[], keyPrefix: string): ReactNode[]
       continue
     }
 
-    // Standalone markdown image
-    const imgMatch = trimmed.match(
-      new RegExp(String.raw`^!\[([^\]]*)\]\(${MD_IMG_SRC}\)$`),
-    )
-    if (imgMatch && isSafeUrl(imgMatch[2])) {
-      out.push(renderImageBlock(imgMatch[2], imgMatch[1], `${keyPrefix}-img-${i}`))
-      i++
-      continue
-    }
-
-    // Bare image URL on its own line (ChatGPT paste)
-    if (isUrl(trimmed) && isImageUrl(trimmed)) {
-      out.push(renderImageBlock(trimmed, '', `${keyPrefix}-imgurl-${i}`))
-      i++
+    // Standalone image(s) — group consecutive images into a compact gallery
+    if (isBlockImageLine(trimmed)) {
+      const start = i
+      const imgs: Array<{ url: string; alt: string }> = []
+      while (i < lines.length) {
+        const t = lines[i].trim()
+        if (!t) {
+          // Allow a blank line inside an image run, but stop at two blanks / non-image
+          const next = lines[i + 1]?.trim() ?? ''
+          if (next && isBlockImageLine(next)) {
+            i++
+            continue
+          }
+          break
+        }
+        const parsed = parseBlockImage(t)
+        if (!parsed) break
+        imgs.push(parsed)
+        i++
+      }
+      if (imgs.length === 1) {
+        out.push(
+          renderImageBlock(imgs[0].url, imgs[0].alt, `${keyPrefix}-img-${start}`),
+        )
+      } else if (imgs.length > 1) {
+        out.push(
+          <div
+            key={`${keyPrefix}-gallery-${start}`}
+            className="crm-note-image-gallery"
+          >
+            {imgs.map((img, ii) =>
+              renderImageBlock(
+                img.url,
+                img.alt,
+                `${keyPrefix}-gallery-${start}-${ii}`,
+              ),
+            )}
+          </div>,
+        )
+      }
       continue
     }
 
@@ -517,6 +543,43 @@ function isBlockImageLine(line: string): boolean {
   )
   if (imgMatch && isSafeUrl(imgMatch[2])) return true
   return isUrl(trimmed) && isImageUrl(trimmed)
+}
+
+function parseBlockImage(line: string): { url: string; alt: string } | null {
+  const trimmed = line.trim()
+  if (!trimmed) return null
+  const imgMatch = trimmed.match(
+    new RegExp(String.raw`^!\[([^\]]*)\]\(${MD_IMG_SRC}\)$`),
+  )
+  if (imgMatch && isSafeUrl(imgMatch[2])) {
+    return { alt: imgMatch[1], url: imgMatch[2] }
+  }
+  if (isUrl(trimmed) && isImageUrl(trimmed)) {
+    return { alt: '', url: trimmed }
+  }
+  return null
+}
+
+/** All image URLs in a note (block + inline markdown), de-duplicated. */
+export function collectNoteImageUrls(notes: string): string[] {
+  const { body } = splitRichNoteTitle(notes)
+  const seen = new Set<string>()
+  const out: string[] = []
+  const push = (url: string) => {
+    if (!url || seen.has(url)) return
+    seen.add(url)
+    out.push(url)
+  }
+  for (const line of body.split('\n')) {
+    const block = parseBlockImage(line)
+    if (block) push(block.url)
+  }
+  const inlineRe = new RegExp(String.raw`!\[([^\]]*)\]\(${MD_IMG_SRC}\)`, 'g')
+  let m: RegExpExecArray | null
+  while ((m = inlineRe.exec(body)) !== null) {
+    if (isSafeUrl(m[2])) push(m[2])
+  }
+  return out
 }
 
 /** Pull the first standalone image to the top (ChatGPT-style hero). */

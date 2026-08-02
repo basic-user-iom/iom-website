@@ -3698,6 +3698,61 @@
   background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
 }
 
+/* Consecutive images: compact grid so multi-image notes don't stack huge */
+.crm-note-image-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.5rem;
+  width: 100%;
+  max-width: min(100%, 34rem);
+  margin: 0.75rem 0 1rem;
+}
+
+.crm-note-image-gallery .crm-note-figure {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.crm-note-image-gallery .crm-note-image-trigger {
+  width: 100%;
+}
+
+.crm-note-image-gallery .crm-note-image {
+  width: 100%;
+  max-width: none;
+  height: 7.5rem;
+  max-height: 7.5rem;
+  object-fit: cover;
+}
+
+.crm-note-image-gallery .crm-note-figcaption {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.crm-mind-rich-preview .crm-note-image-gallery,
+.crm-mind-node-note-preview .crm-note-image-gallery,
+.crm-note-doc-lightbox-body .crm-note-image-gallery {
+  max-width: 100%;
+}
+
+.crm-mind-rich-preview .crm-note-image-gallery .crm-note-image,
+.crm-mind-node-note-preview .crm-note-image-gallery .crm-note-image {
+  height: 5.5rem;
+  max-height: 5.5rem;
+}
+
+.crm-note-doc-lightbox-body .crm-note-image-gallery .crm-note-image {
+  height: 8.5rem;
+  max-height: 8.5rem;
+}
+
 .crm-note-image-trigger {
   position: relative;
   display: block;
@@ -5126,16 +5181,16 @@
 
 .crm-mind-board-preview-hit {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: stretch;
-  gap: 0.35rem;
+  gap: 0.55rem;
   flex: 1;
   min-height: 0;
   margin: 0;
-  padding: 0;
-  border: 0;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   border-radius: 10px;
-  background: transparent;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   color: inherit;
   font: inherit;
   text-align: left;
@@ -5144,48 +5199,72 @@
   overflow: hidden;
 }
 
+.crm-mind-board-preview-hit:hover {
+  border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
 .crm-mind-board-preview-hit:hover .crm-mind-board-thumb {
-  filter: brightness(1.06);
+  filter: brightness(1.08);
 }
 
 .crm-mind-board-preview-hit:hover .crm-mind-board-preview-text {
   color: var(--text);
 }
 
+.crm-mind-board-thumb-wrap {
+  position: relative;
+  flex: 0 0 3.35rem;
+  width: 3.35rem;
+  align-self: stretch;
+  min-height: 3.35rem;
+  max-height: 4.1rem;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(34, 211, 238, 0.22);
+  background: rgba(0, 0, 0, 0.28);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.crm-mind-board-thumb-wrap[hidden] {
+  display: none;
+}
+
 .crm-mind-board-thumb {
   display: block;
   width: 100%;
-  height: 5.6rem;
+  height: 100%;
   object-fit: cover;
-  border-radius: 9px;
-  border: 1px solid rgba(34, 211, 238, 0.18);
-  flex-shrink: 0;
-  background: rgba(0, 0, 0, 0.25);
 }
 
-.crm-mind-board-preview:not(.has-hero) .crm-mind-board-preview-hit {
-  padding: 0.45rem 0.5rem;
-  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-
-.crm-mind-board-preview:not(.has-hero) .crm-mind-board-preview-hit:hover {
-  border-color: var(--border-accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+.crm-mind-board-thumb-count {
+  position: absolute;
+  right: 0.2rem;
+  bottom: 0.2rem;
+  min-width: 1.15rem;
+  padding: 0.08rem 0.28rem;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.4);
+  background: rgba(6, 18, 26, 0.88);
+  color: #a5f3fc;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.1;
+  text-align: center;
+  pointer-events: none;
 }
 
 .crm-mind-board-preview-text {
   display: flex;
   flex-direction: column;
-  gap: 0.15rem;
-  min-height: 0;
+  justify-content: center;
+  gap: 0.18rem;
+  min-width: 0;
+  flex: 1;
   font-size: 0.74rem;
   line-height: 1.35;
   color: var(--text-muted);
-}
-
-.crm-mind-board-preview.has-hero .crm-mind-board-preview-text {
-  padding: 0 0.1rem;
 }
 
 .crm-mind-board-preview-kicker {
@@ -5199,13 +5278,13 @@
 
 .crm-mind-board-preview-body {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.crm-mind-board-preview.has-hero .crm-mind-board-preview-body {
-  -webkit-line-clamp: 1;
+.crm-mind-board-preview.has-thumb .crm-mind-board-preview-body {
+  -webkit-line-clamp: 2;
 }
 
 .crm-mind-board-card-hint {

@@ -1,9 +1,9 @@
 export type BoardPoint = { x: number; y: number }
 
 export const MIND_CARD_W = 300
-export const MIND_CARD_H = 210
+export const MIND_CARD_H = 176
 export const MIND_H_GAP = 56
-export const MIND_V_GAP = 96
+export const MIND_V_GAP = 88
 export const MIND_PAD = 88
 
 type LayoutNode = {

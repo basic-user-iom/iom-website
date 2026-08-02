@@ -9,7 +9,11 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useCrmI18n } from './i18n'
-import { extractFirstBlockImage, splitRichNoteTitle } from './formatNotePreview'
+import {
+  collectNoteImageUrls,
+  extractFirstBlockImage,
+  splitRichNoteTitle,
+} from './formatNotePreview'
 import { NotePreviewLightbox } from './NotePreviewLightbox'
 import type { MindNode, MindNodeEmphasis } from './types'
 import {
@@ -81,23 +85,25 @@ function looksLikeRichMarkdown(text: string): boolean {
   return false
 }
 
-function noteSnippet(notes: string): { title: string; text: string; image: string | null } {
+function noteSnippet(notes: string): {
+  title: string
+  text: string
+  image: string | null
+  imageCount: number
+} {
   const { title, body } = splitRichNoteTitle(notes)
-  const { imageLine, bodyWithout } = extractFirstBlockImage(body)
-  let image: string | null = null
-  if (imageLine) {
-    const md = imageLine.trim().match(/^!\[[^\]]*\]\(([^)\n]+)\)$/)
-    if (md) image = md[1]
-    else if (/^https?:\/\//i.test(imageLine.trim())) image = imageLine.trim()
-  }
+  const images = collectNoteImageUrls(notes)
+  const image = images[0] ?? null
+  const { bodyWithout } = extractFirstBlockImage(body)
   const text = bodyWithout
     .replace(/!\[[^\]]*\]\([^)]+\)/g, '')
+    .replace(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp|avif)(?:\?\S*)?/gi, '')
     .replace(/\|/g, ' ')
     .replace(/[#*_`>-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 96)
-  return { title, text, image }
+    .slice(0, 110)
+  return { title, text, image, imageCount: images.length }
 }
 
 function flattenEdges(tree: TreeNode[]): Array<{ from: string; to: string }> {
@@ -941,7 +947,7 @@ function MindBoardCard({
             <p className="crm-mind-board-card-hint">{t('ideas.richEditingHere')}</p>
           ) : node.notes.trim() ? (
             <div
-              className={`crm-mind-board-preview${snippet?.image ? ' has-hero' : ''}`}
+              className={`crm-mind-board-preview${snippet?.image ? ' has-thumb' : ''}`}
               onPointerDown={(e) => e.stopPropagation()}
             >
               <button
@@ -954,25 +960,40 @@ function MindBoardCard({
                 title={t('ideas.richViewLarger')}
               >
                 {snippet?.image ? (
-                  <img
-                    src={snippet.image}
-                    alt=""
-                    className="crm-mind-board-thumb"
-                    loading="lazy"
-                  />
-                ) : null}
-                {(snippet?.title || snippet?.text) && (
-                  <span className="crm-mind-board-preview-text">
-                    {snippet.title ? (
-                      <strong className="crm-mind-board-preview-kicker">
-                        {snippet.title}
-                      </strong>
-                    ) : null}
-                    {snippet.text ? (
-                      <span className="crm-mind-board-preview-body">{snippet.text}</span>
+                  <span className="crm-mind-board-thumb-wrap" aria-hidden="true">
+                    <img
+                      src={snippet.image}
+                      alt=""
+                      className="crm-mind-board-thumb"
+                      loading="lazy"
+                      onError={(e) => {
+                        const wrap = (e.target as HTMLImageElement).closest(
+                          '.crm-mind-board-thumb-wrap',
+                        )
+                        if (wrap instanceof HTMLElement) wrap.hidden = true
+                      }}
+                    />
+                    {snippet.imageCount > 1 ? (
+                      <span className="crm-mind-board-thumb-count">
+                        +{snippet.imageCount - 1}
+                      </span>
                     ) : null}
                   </span>
-                )}
+                ) : null}
+                <span className="crm-mind-board-preview-text">
+                  {snippet?.title ? (
+                    <strong className="crm-mind-board-preview-kicker">
+                      {snippet.title}
+                    </strong>
+                  ) : null}
+                  {snippet?.text ? (
+                    <span className="crm-mind-board-preview-body">{snippet.text}</span>
+                  ) : !snippet?.title && !snippet?.image ? (
+                    <span className="crm-mind-board-preview-body">
+                      {t('ideas.richViewLarger')}
+                    </span>
+                  ) : null}
+                </span>
               </button>
               <div className="crm-mind-board-preview-actions">
                 <button
