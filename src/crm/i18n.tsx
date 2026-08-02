@@ -720,6 +720,16 @@ const en: Dict = {
   'portal.signedInAs': 'Signed in as {email}',
   'portal.empty': 'No shared projects yet. Ask IOM to make a project visible to your account.',
   'portal.errorLoad': 'Could not load projects.',
+  'portal.expand': 'Open',
+  'portal.collapse': 'Close',
+  'portal.noDescription': 'No project description yet.',
+  'portal.board': 'Board',
+  'portal.boardEmpty': 'No board columns yet.',
+  'portal.boardError': 'Could not load the project board.',
+  'portal.noTasks': 'No tasks in this column.',
+  'portal.hintEmpty':
+    'This project is shared, but staff have not added a description or board items yet.',
+
 
   'access.deniedTitle': 'No CRM access',
   'access.deniedBody':
@@ -2350,6 +2360,16 @@ const sr: Dict = {
   'portal.signedInAs': 'Prijavljeni kao {email}',
   'portal.empty': 'Još nema deljenih projekata. Tražite od IOM-a da projekat učini vidljivim.',
   'portal.errorLoad': 'Nije moguće učitati projekte.',
+  'portal.expand': 'Otvori',
+  'portal.collapse': 'Zatvori',
+  'portal.noDescription': 'Još nema opisa projekta.',
+  'portal.board': 'Tabla',
+  'portal.boardEmpty': 'Još nema kolona na tabli.',
+  'portal.boardError': 'Nije moguće učitati tablu projekta.',
+  'portal.noTasks': 'Nema zadataka u ovoj koloni.',
+  'portal.hintEmpty':
+    'Projekat je deljen, ali staff još nije dodao opis ili stavke na tabli.',
+
 
   'access.deniedTitle': 'Nema CRM pristupa',
   'access.deniedBody':
