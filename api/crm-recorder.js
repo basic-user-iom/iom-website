@@ -138,7 +138,7 @@ async function handleR2Upload(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
 
   const ip = clientIp(req)
-  if (!rateLimit(`r2-upload:${auth.user.id}:${ip}`, 40, 60_000)) {
+  if (!(await rateLimit(`r2-upload:${auth.user.id}:${ip}`, 40, 60_000))) {
     return res.status(429).json({ error: 'Too many requests' })
   }
 
@@ -187,7 +187,7 @@ async function handleR2Sign(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
 
   const ip = clientIp(req)
-  if (!rateLimit(`r2-sign:${auth.user.id}:${ip}`, 60, 60_000)) {
+  if (!(await rateLimit(`r2-sign:${auth.user.id}:${ip}`, 60, 60_000))) {
     return res.status(429).json({ error: 'Too many requests' })
   }
 
@@ -222,7 +222,7 @@ async function handleR2Delete(req, res) {
   if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
 
   const ip = clientIp(req)
-  if (!rateLimit(`r2-delete:${auth.user.id}:${ip}`, 40, 60_000)) {
+  if (!(await rateLimit(`r2-delete:${auth.user.id}:${ip}`, 40, 60_000))) {
     return res.status(429).json({ error: 'Too many requests' })
   }
 
@@ -263,7 +263,7 @@ async function handleVoices(req, res) {
     })
   }
   const ip = clientIp(req)
-  if (!rateLimit(`voice-list:${auth.user.id}:${ip}`, 30, 60_000)) {
+  if (!(await rateLimit(`voice-list:${auth.user.id}:${ip}`, 30, 60_000))) {
     return res.status(429).json({ error: 'Too many requests', voices: [] })
   }
 
@@ -333,7 +333,7 @@ async function handleMorph(req, res) {
   }
 
   const ip = clientIp(req)
-  if (!rateLimit(`voice-morph:${auth.user.id}:${ip}`, 8, 60_000)) {
+  if (!(await rateLimit(`voice-morph:${auth.user.id}:${ip}`, 8, 60_000))) {
     return res.status(429).json({ error: 'Too many voice morph requests' })
   }
 
@@ -442,7 +442,7 @@ async function handleShare(req, res) {
   const ip = clientIp(req)
 
   if (req.method === 'GET') {
-    if (!rateLimit(`rec-meta:${ip}`, 60, 60_000)) {
+    if (!(await rateLimit(`rec-meta:${ip}`, 60, 60_000))) {
       return res.status(429).json({ error: 'Too many requests' })
     }
     const slug = String(req.query?.slug || '').trim()
@@ -467,7 +467,7 @@ async function handleShare(req, res) {
   }
 
   if (req.method === 'POST') {
-    if (!rateLimit(`rec-unlock:${ip}`, 20, 60_000)) {
+    if (!(await rateLimit(`rec-unlock:${ip}`, 20, 60_000))) {
       return res.status(429).json({ error: 'Too many unlock attempts' })
     }
     if (!hasService) {
@@ -538,7 +538,7 @@ async function handleMedia(req, res) {
   }
 
   const ip = clientIp(req)
-  if (!rateLimit(`rec-media:${ip}`, 90, 60_000)) {
+  if (!(await rateLimit(`rec-media:${ip}`, 90, 60_000))) {
     return res.status(429).json({ error: 'Too many requests' })
   }
 

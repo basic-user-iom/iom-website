@@ -233,12 +233,12 @@ export function isDisposableEmail(email) {
 }
 
 /**
- * Simple in-memory rate limit (per serverless instance).
+ * In-memory fallback (per serverless instance).
  * @param {string} key
  * @param {number} max
  * @param {number} windowMs
  */
-export function rateLimit(key, max = 8, windowMs = 60_000) {
+function rateLimitMemory(key, max = 8, windowMs = 60_000) {
   const now = Date.now()
   const prev = rateBuckets.get(key) || []
   const recent = prev.filter((t) => now - t < windowMs)
@@ -249,6 +249,40 @@ export function rateLimit(key, max = 8, windowMs = 60_000) {
   recent.push(now)
   rateBuckets.set(key, recent)
   return true
+}
+
+/**
+ * Durable rate limit via Supabase when service role is available;
+ * falls back to in-memory on cold/misconfigured instances.
+ * @param {string} key
+ * @param {number} max
+ * @param {number} windowMs
+ * @returns {Promise<boolean>} true if allowed
+ */
+export async function rateLimit(key, max = 8, windowMs = 60_000) {
+  const { url, key: sbKey, hasService } = supabaseConfig()
+  if (hasService && url && key) {
+    try {
+      const allowed = await sb('rpc/api_rate_limit_take', {
+        method: 'POST',
+        url,
+        key: sbKey,
+        body: {
+          p_key: String(key).slice(0, 200),
+          p_max: max,
+          p_window_ms: windowMs,
+        },
+      })
+      if (typeof allowed === 'boolean') return allowed
+    } catch (err) {
+      // Migration not applied yet, or transient DB error — degrade safely.
+      console.warn(
+        '[rateLimit] durable unavailable; using memory',
+        err instanceof Error ? err.message : err,
+      )
+    }
+  }
+  return rateLimitMemory(key, max, windowMs)
 }
 
 export function clientIp(req) {

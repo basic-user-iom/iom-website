@@ -24,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   const ip = clientIp(req)
-  if (!rateLimit(`verify:${ip}`, 20, 60_000)) {
+  if (!(await rateLimit(`verify:${ip}`, 20, 60_000))) {
     return res.status(429).json({ error: 'Too many requests' })
   }
 

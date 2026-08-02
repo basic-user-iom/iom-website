@@ -28,7 +28,7 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   const ip = clientIp(req)
-  if (!rateLimit(`submit:${ip}`, 6, 60_000)) {
+  if (!(await rateLimit(`submit:${ip}`, 6, 60_000))) {
     return res.status(429).json({ error: 'Too many comments. Try again shortly.' })
   }
 
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Too many links in comment' })
   }
 
-  if (!rateLimit(`submit-email:${email}`, 3, 3_600_000)) {
+  if (!(await rateLimit(`submit-email:${email}`, 3, 3_600_000))) {
     return res.status(429).json({ error: 'Too many comments from this email. Try later.' })
   }
 
