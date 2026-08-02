@@ -4707,6 +4707,210 @@
   padding-bottom: 0.75rem;
 }
 
+.crm-mind-canvas--board {
+  min-height: 22rem;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-mind-canvas--board.crm-mind-canvas--compact {
+  min-height: 0;
+  max-height: 14rem;
+}
+
+.crm-mind-board {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.crm-mind-board-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid rgba(34, 211, 238, 0.12);
+  flex-shrink: 0;
+}
+
+.crm-mind-board-hint {
+  margin: 0;
+  font-size: 0.72rem;
+}
+
+.crm-mind-board-scroll {
+  flex: 1;
+  min-height: 16rem;
+  overflow: auto;
+  cursor: default;
+  background:
+    radial-gradient(circle at 1px 1px, rgba(34, 211, 238, 0.08) 1px, transparent 0) 0 0 / 22px 22px,
+    rgba(0, 0, 0, 0.12);
+}
+
+.crm-mind-board.is-compact .crm-mind-board-scroll {
+  min-height: 8rem;
+}
+
+.crm-mind-board-surface {
+  position: relative;
+  min-width: 100%;
+  min-height: 100%;
+}
+
+.crm-mind-board-links {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.crm-mind-board-link {
+  stroke: rgba(56, 189, 248, 0.55);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+.crm-mind-board-card {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 1.7rem 0.55rem 0.7rem;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: color-mix(in srgb, var(--bg-elevated) 92%, #031018);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  outline: none;
+  user-select: none;
+}
+
+.crm-mind-board-card.is-selected {
+  border-color: rgba(56, 189, 248, 0.75);
+  box-shadow:
+    0 0 0 1px rgba(56, 189, 248, 0.25),
+    0 14px 32px rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
+
+.crm-mind-board-card.is-dragging {
+  opacity: 0.95;
+  z-index: 5;
+  cursor: grabbing;
+}
+
+.crm-mind-board-card.is-rich-editing {
+  border-color: var(--accent);
+}
+
+.crm-mind-board-card .crm-mind-float-toolbar {
+  left: 0.4rem;
+  right: auto;
+  top: 0.25rem;
+}
+
+.crm-mind-board-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: grab;
+  min-width: 0;
+}
+
+.crm-mind-board-card.is-dragging .crm-mind-board-card-head {
+  cursor: grabbing;
+}
+
+.crm-mind-board-drag {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  letter-spacing: -0.12em;
+  opacity: 0.7;
+}
+
+.crm-mind-board-card-head .crm-mind-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.88rem;
+}
+
+.crm-mind-board-edit-title {
+  flex-shrink: 0;
+  padding: 0.15rem 0.4rem !important;
+  min-height: 0 !important;
+  font-size: 0.65rem !important;
+}
+
+.crm-mind-board-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.4rem 0.45rem;
+  border: 1px dashed color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-mind-board-preview.is-empty {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.crm-mind-board-preview:hover {
+  border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.crm-mind-board-thumb {
+  display: block;
+  width: 100%;
+  max-height: 4.5rem;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+}
+
+.crm-mind-board-preview-text {
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.crm-mind-board-card-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--accent);
+}
+
+.crm-mind-board-card .crm-mind-add--sibling {
+  right: -0.55rem;
+}
+
+.crm-mind-board-card .crm-mind-add--child {
+  bottom: -0.55rem;
+}
+
 .crm-mind-tree {
   display: flex;
   flex-direction: column;

@@ -777,6 +777,10 @@ const en: Dict = {
   'ideas.richMovedTitle': 'Asset research',
   'ideas.richTitleTruncated': 'Pasted markdown (open MD)…',
   'ideas.toolbar': 'Topic tools',
+  'ideas.boardHint':
+    'Drag cards on the board · siblings sit side by side · lines show parent → child',
+  'ideas.boardResetLayout': 'Reset layout',
+  'ideas.boardDrag': 'Drag to move',
   'ideas.styleColor': 'Color',
   'ideas.colorDefault': 'Default',
   'ideas.bold': 'Bold',
@@ -2318,6 +2322,10 @@ const sr: Dict = {
   'ideas.richMovedTitle': 'Istraživanje asseta',
   'ideas.richTitleTruncated': 'Nalepljen markdown (otvori MD)…',
   'ideas.toolbar': 'Alati teme',
+  'ideas.boardHint':
+    'Prevucite kartice po tabli · sibling čvorovi su jedan pored drugog · linije pokazuju roditelj → dete',
+  'ideas.boardResetLayout': 'Resetuj raspored',
+  'ideas.boardDrag': 'Prevuci za pomeranje',
   'ideas.styleColor': 'Boja',
   'ideas.colorDefault': 'Podrazumevano',
   'ideas.bold': 'Podebljano',
