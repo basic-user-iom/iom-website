@@ -221,7 +221,14 @@ export const ProjectCard = memo(function ProjectCard({
       const inspect = (): 'ready' | 'failed' | 'wait' => {
         try {
           const doc = iframe.contentDocument
-          if (!doc) return 'wait'
+          if (!doc) {
+            // Same-origin src with no document usually means X-Frame-Options blocked the frame.
+            const src = iframe.src || ''
+            if (src.startsWith(window.location.origin) || (iframe.getAttribute('src') || '').startsWith('/')) {
+              return 'failed'
+            }
+            return 'wait'
+          }
           const href = iframe.contentWindow?.location.href ?? ''
           if (href === 'about:blank' || href.startsWith('chrome-error://')) {
             return 'failed'
@@ -239,7 +246,13 @@ export const ProjectCard = memo(function ProjectCard({
           if ((doc.body?.childElementCount ?? 0) === 0) return 'failed'
           return 'wait'
         } catch {
-          // Cross-origin embed — cannot inspect; treat as ready.
+          // True cross-origin embeds (streets.gl, etc.) cannot be inspected.
+          // First-party paths that throw are almost always frame-blocking headers.
+          const src = iframe.src || ''
+          const attr = iframe.getAttribute('src') || ''
+          if (src.startsWith(window.location.origin) || attr.startsWith('/')) {
+            return 'failed'
+          }
           return 'ready'
         }
       }
