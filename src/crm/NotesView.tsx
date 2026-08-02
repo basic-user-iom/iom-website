@@ -3,7 +3,7 @@ import { listLeads } from './api'
 import { NoteChatGptPanel } from './NoteChatGptPanel'
 import { NotePreview } from './NotePreview'
 import { useCrmI18n } from './i18n'
-import type { CrmProject, Lead, ResearchNote } from './types'
+import type { CrmClientAccount, CrmProject, Lead, ResearchNote } from './types'
 import {
   createResearchNote,
   deleteResearchNote,
@@ -12,6 +12,7 @@ import {
   listResearchNotes,
   updateResearchNote,
 } from './workspaceApi'
+import { listClientAccounts } from './clientTenancyApi'
 
 interface NotesViewProps {
   initialLeadId?: string | null
@@ -27,6 +28,7 @@ export function NotesView({
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [leads, setLeads] = useState<Lead[]>([])
   const [projects, setProjects] = useState<CrmProject[]>([])
+  const [clientAccounts, setClientAccounts] = useState<CrmClientAccount[]>([])
   const [title, setTitle] = useState('')
   const [linkLeadId, setLinkLeadId] = useState(initialLeadId ?? '')
   const [linkProjectId, setLinkProjectId] = useState(initialProjectId ?? '')
@@ -55,7 +57,7 @@ export function NotesView({
     setLoading(true)
     setError('')
     try {
-      const [noteRows, leadRows, projectRows] = await Promise.all([
+      const [noteRows, leadRows, projectRows, accounts] = await Promise.all([
         listResearchNotes(),
         listLeads({
           search: '',
@@ -65,10 +67,12 @@ export function NotesView({
           sort: 'updated',
         }),
         listProjects(),
+        listClientAccounts().catch(() => [] as CrmClientAccount[]),
       ])
       setNotes(noteRows)
       setLeads(leadRows)
       setProjects(projectRows)
+      setClientAccounts(accounts)
       setSelectedId((prev) => {
         if (prev && noteRows.some((n) => n.id === prev)) return prev
         if (initialLeadId) {
@@ -169,6 +173,8 @@ export function NotesView({
         body: '',
         lead_id: linkLeadId || null,
         project_id: linkProjectId || null,
+        client_account_id: null,
+        client_visible: false,
       })
       setTitle('')
       await refreshNotes()
@@ -419,6 +425,57 @@ export function NotesView({
                 </div>
                 <div className="crm-detail-actions crm-notes-actions">
                   {modeTabs}
+                  <label className="crm-proj-client-visible">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selected.client_visible)}
+                      onChange={(e) => {
+                        void updateResearchNote(selected.id, {
+                          client_visible: e.target.checked,
+                        })
+                          .then((updated) => {
+                            setNotes((prev) =>
+                              prev.map((n) => (n.id === updated.id ? updated : n)),
+                            )
+                          })
+                          .catch((err) =>
+                            setError(
+                              err instanceof Error ? err.message : t('notes.saveFailed'),
+                            ),
+                          )
+                      }}
+                    />
+                    <span>{t('notes.clientVisible')}</span>
+                  </label>
+                  <select
+                    className="crm-input"
+                    value={selected.client_account_id ?? ''}
+                    aria-label={t('notes.clientAccount')}
+                    onChange={(e) => {
+                      void updateResearchNote(selected.id, {
+                        client_account_id: e.target.value || null,
+                      })
+                        .then((updated) => {
+                          setNotes((prev) =>
+                            prev.map((n) => (n.id === updated.id ? updated : n)),
+                          )
+                        })
+                        .catch((err) =>
+                          setError(
+                            err instanceof Error ? err.message : t('notes.saveFailed'),
+                          ),
+                        )
+                    }}
+                  >
+                    <option value="">{t('notes.clientAccountNone')}</option>
+                    {clientAccounts
+                      .filter((a) => a.active)
+                      .map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name || account.id.slice(0, 8)}
+                        </option>
+                      ))}
+                  </select>
                   {mode === 'preview' && !isNarrow && (
                     <button
                       type="button"

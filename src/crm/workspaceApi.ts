@@ -1040,6 +1040,14 @@ export function isResearchNotesSchemaMissing(err: unknown): boolean {
   )
 }
 
+function normalizeNote(row: ResearchNote): ResearchNote {
+  return {
+    ...row,
+    client_account_id: row.client_account_id ?? null,
+    client_visible: Boolean(row.client_visible),
+  }
+}
+
 export async function listResearchNotes(filters?: {
   leadId?: string
   projectId?: string
@@ -1054,9 +1062,10 @@ export async function listResearchNotes(filters?: {
     if (filters?.projectId) query = query.eq('project_id', filters.projectId)
     const { data, error } = await query
     if (error) throw new Error(error.message)
-    return (data ?? []) as ResearchNote[]
+    return ((data ?? []) as ResearchNote[]).map(normalizeNote)
   }
   return readLocal<ResearchNote[]>(NOTES_KEY, [])
+    .map(normalizeNote)
     .filter((n) => {
       if (filters?.leadId && n.lead_id !== filters.leadId) return false
       if (filters?.projectId && n.project_id !== filters.projectId) return false
@@ -1079,17 +1088,24 @@ export async function createResearchNote(
     const { data, error } = await supabase
       .from('crm_research_notes')
       .insert({
-        ...input,
+        title: input.title,
+        body: input.body,
+        lead_id: input.lead_id,
+        project_id: input.project_id,
+        client_account_id: input.client_account_id ?? null,
+        client_visible: input.client_visible ?? false,
         owner_id: user?.id ?? null,
       })
       .select('*')
       .single()
     if (error) throw new Error(error.message)
-    return data as ResearchNote
+    return normalizeNote(data as ResearchNote)
   }
 
   const note: ResearchNote = {
     ...input,
+    client_account_id: input.client_account_id ?? null,
+    client_visible: input.client_visible ?? false,
     id: uid(),
     owner_id: user?.id ?? null,
     created_at: stamp,
@@ -1112,12 +1128,16 @@ export async function updateResearchNote(
       .select('*')
       .single()
     if (error) throw new Error(error.message)
-    return data as ResearchNote
+    return normalizeNote(data as ResearchNote)
   }
   const notes = readLocal<ResearchNote[]>(NOTES_KEY, [])
   const idx = notes.findIndex((n) => n.id === id)
   if (idx < 0) throw new Error('Note not found.')
-  const updated: ResearchNote = { ...notes[idx], ...input, updated_at: nowIso() }
+  const updated: ResearchNote = normalizeNote({
+    ...notes[idx],
+    ...input,
+    updated_at: nowIso(),
+  })
   notes[idx] = updated
   writeLocal(NOTES_KEY, notes)
   return updated

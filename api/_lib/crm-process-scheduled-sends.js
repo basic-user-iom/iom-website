@@ -160,13 +160,14 @@ export async function processDueScheduledSends(opts) {
           ...(marked ? {} : { markPending: true }),
         })
       } catch (err) {
-        const error = err instanceof Error ? err.message.slice(0, 400) : 'Send failed'
+        const detail = err instanceof Error ? err.message.slice(0, 400) : 'Send failed'
+        console.error('[crm-process-scheduled-sends] send failed', row.id, detail)
         const attempts = schedule.attempts + 1
         await patchLeadSchedule(supabaseUrl, serviceKey, row.id, {
           at: schedule.at,
           to: schedule.to,
           from: schedule.from,
-          error,
+          error: detail,
           attempts,
         })
         await safeNotify({
@@ -175,18 +176,23 @@ export async function processDueScheduledSends(opts) {
           leadId: row.id,
           error:
             attempts >= MAX_ATTEMPTS
-              ? `${error} (gave up after ${MAX_ATTEMPTS} attempts — send manually)`
-              : error,
+              ? `${detail} (gave up after ${MAX_ATTEMPTS} attempts — send manually)`
+              : detail,
           clientTo: to,
         })
-        results.push({ id: row.id, ok: false, error, attempts })
+        results.push({
+          id: row.id,
+          ok: false,
+          code: 'send_failed',
+          attempts,
+        })
       }
     } catch (err) {
       console.error('[crm-process-scheduled-sends] lead failed', row.id, err)
       results.push({
         id: row.id,
         ok: false,
-        error: err instanceof Error ? err.message.slice(0, 200) : 'Lead processing failed',
+        code: 'lead_failed',
       })
     }
   }

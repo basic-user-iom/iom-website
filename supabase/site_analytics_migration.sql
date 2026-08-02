@@ -27,12 +27,10 @@ create index if not exists site_analytics_events_session_idx
 
 alter table public.site_analytics_events enable row level security;
 
--- Public site may record pageviews (insert only — no PII, no cookies)
 drop policy if exists "site_analytics_anon_insert" on public.site_analytics_events;
-create policy "site_analytics_anon_insert"
-  on public.site_analytics_events for insert
-  to anon
-  with check (true);
+revoke insert on public.site_analytics_events from anon;
+revoke insert on public.site_analytics_events from authenticated;
+grant insert on public.site_analytics_events to service_role;
 
 drop policy if exists "site_analytics_auth_select" on public.site_analytics_events;
 create policy "site_analytics_auth_select"
@@ -40,7 +38,6 @@ create policy "site_analytics_auth_select"
   to authenticated
   using (true);
 
-grant insert on public.site_analytics_events to anon;
 grant select on public.site_analytics_events to authenticated;
 
 -- Daily aggregates for CRM dashboard (authenticated read)

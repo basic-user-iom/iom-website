@@ -72,13 +72,33 @@ export async function listClientMemberships(
 ): Promise<CrmClientMembership[]> {
   if (!useLiveCrmBackend()) return []
   const supabase = getSupabase()!
-  const { data, error } = await supabase
+  const { data, error } = await supabase.rpc('crm_list_client_members', {
+    p_account_id: accountId,
+  })
+  if (!error && Array.isArray(data)) {
+    return (data as Array<{
+      id: string
+      user_id: string
+      email: string
+      active: boolean
+      created_at: string
+    }>).map((row) => ({
+      id: row.id,
+      client_account_id: accountId,
+      user_id: row.user_id,
+      email: row.email || '',
+      active: row.active,
+      created_at: row.created_at,
+    }))
+  }
+  // Fallback if RPC not applied yet
+  const { data: rows, error: listErr } = await supabase
     .from('crm_client_memberships')
     .select('*')
     .eq('client_account_id', accountId)
     .order('created_at', { ascending: false })
-  if (error) throw new Error(error.message)
-  return (data ?? []) as CrmClientMembership[]
+  if (listErr) throw new Error(listErr.message)
+  return (rows ?? []) as CrmClientMembership[]
 }
 
 /** Staff-only RPC: attach an existing Auth user (by email) to an account. */

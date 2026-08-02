@@ -165,7 +165,6 @@ export default async function handler(req, res) {
     }
     return res.status(502).json({
       error: 'Verification failed',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown error',
     })
   }
 }

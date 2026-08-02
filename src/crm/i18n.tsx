@@ -685,6 +685,7 @@ const en: Dict = {
   'clients.memberHint':
     'User must already exist in Supabase Auth (invite them there first). Staff emails cannot be linked.',
   'clients.noMembers': 'No members linked yet.',
+  'clients.unknownEmail': '(no email)',
   'clients.errorLoad': 'Could not load client accounts.',
   'clients.errorMembers': 'Could not load members.',
   'clients.errorCreate': 'Could not create account.',
@@ -692,7 +693,11 @@ const en: Dict = {
   'clients.errorMember': 'Could not update membership.',
 
   'portal.kicker': 'Client portal',
-  'portal.title': 'Your projects',
+  'portal.title': 'Your workspace',
+  'portal.projects': 'Projects',
+  'portal.notes': 'Shared notes',
+  'portal.notesEmpty': 'No shared notes yet.',
+  'portal.untitledNote': 'Untitled note',
   'portal.signedInAs': 'Signed in as {email}',
   'portal.empty': 'No shared projects yet. Ask IOM to make a project visible to your account.',
   'portal.errorLoad': 'Could not load projects.',
@@ -858,6 +863,9 @@ const en: Dict = {
     'Color, link, and emphasis need a database update. In Supabase → SQL Editor, paste and Run crm_mind_node_style_migration.sql, then hard-refresh.',
 
   'notes.kicker': 'Research notes',
+  'notes.clientVisible': 'Visible to client',
+  'notes.clientAccount': 'Client account',
+  'notes.clientAccountNone': 'No client account',
   'notes.create': '+ New note',
   'notes.newPlaceholder': 'Note title…',
   'notes.titlePlaceholder': 'Note title',
@@ -2288,6 +2296,7 @@ const sr: Dict = {
   'clients.memberHint':
     'Korisnik mora već postojati u Supabase Auth. Staff emailovi se ne mogu povezati.',
   'clients.noMembers': 'Još nema povezanih članova.',
+  'clients.unknownEmail': '(nema emaila)',
   'clients.errorLoad': 'Nije moguće učitati naloge.',
   'clients.errorMembers': 'Nije moguće učitati članove.',
   'clients.errorCreate': 'Nije moguće kreirati nalog.',
@@ -2295,7 +2304,11 @@ const sr: Dict = {
   'clients.errorMember': 'Nije moguće ažurirati članstvo.',
 
   'portal.kicker': 'Klijentski portal',
-  'portal.title': 'Vaši projekti',
+  'portal.title': 'Vaš prostor',
+  'portal.projects': 'Projekti',
+  'portal.notes': 'Deljene beleške',
+  'portal.notesEmpty': 'Još nema deljenih beleški.',
+  'portal.untitledNote': 'Beleška bez naslova',
   'portal.signedInAs': 'Prijavljeni kao {email}',
   'portal.empty': 'Još nema deljenih projekata. Tražite od IOM-a da projekat učini vidljivim.',
   'portal.errorLoad': 'Nije moguće učitati projekte.',
@@ -2463,6 +2476,9 @@ const sr: Dict = {
     'Boja, link i naglašavanje traže ažuriranje baze. U Supabase → SQL Editor nalepite i pokrenite crm_mind_node_style_migration.sql, zatim hard-refresh.',
 
   'notes.kicker': 'Istraživačke beleške',
+  'notes.clientVisible': 'Vidljivo klijentu',
+  'notes.clientAccount': 'Klijentski nalog',
+  'notes.clientAccountNone': 'Bez klijentskog naloga',
   'notes.create': '+ Nova beleška',
   'notes.newPlaceholder': 'Naslov beleške…',
   'notes.titlePlaceholder': 'Naslov beleške',

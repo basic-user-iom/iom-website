@@ -155,16 +155,31 @@ export function hashToken(token) {
   return createHash('sha256').update(String(token)).digest('hex')
 }
 
+/** Stable public error payload (SEC-012). Log details server-side only. */
+export function publicError(fallback = 'Request failed', code) {
+  const body = { error: fallback }
+  if (code) body.code = code
+  return body
+}
+
 /** Secret for short-lived recording media grants (never put passwords in URLs). */
 function mediaGrantSecret() {
-  return (
-    process.env.CRM_MEDIA_GRANT_SECRET ||
+  const dedicated = String(process.env.CRM_MEDIA_GRANT_SECRET || '').trim()
+  if (dedicated) return dedicated
+  const fallback = (
     process.env.CRM_CRON_SECRET ||
     process.env.CRON_SECRET ||
     process.env.SUPABASE_SERVICE_ROLE_KEY ||
     process.env.SUPABASE_SERVICE_KEY ||
     ''
   ).trim()
+  if (fallback && !mediaGrantSecret._warned) {
+    mediaGrantSecret._warned = true
+    console.warn(
+      '[media-grant] CRM_MEDIA_GRANT_SECRET unset; using fallback secret. Set a dedicated value in Vercel.',
+    )
+  }
+  return fallback
 }
 
 /**

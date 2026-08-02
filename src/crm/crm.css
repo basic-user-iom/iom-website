@@ -8387,3 +8387,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.crm-clients-member-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+  flex: 1 1 12rem;
+}
+
+.crm-portal-section {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.crm-portal-note-body {
+  white-space: pre-wrap;
+  max-height: 12rem;
+  overflow: auto;
+}

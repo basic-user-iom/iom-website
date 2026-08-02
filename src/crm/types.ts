@@ -161,6 +161,7 @@ export interface CrmClientMembership {
   id: string
   client_account_id: string
   user_id: string
+  email?: string
   active: boolean
   created_at: string
 }
@@ -255,13 +256,15 @@ export interface ResearchNote {
   lead_id: string | null
   project_id: string | null
   owner_id: string | null
+  client_account_id: string | null
+  client_visible: boolean
   created_at: string
   updated_at: string
 }
 
 export type ResearchNoteInput = Pick<
   ResearchNote,
-  'title' | 'body' | 'lead_id' | 'project_id'
+  'title' | 'body' | 'lead_id' | 'project_id' | 'client_account_id' | 'client_visible'
 >
 
 export type CrmSection =

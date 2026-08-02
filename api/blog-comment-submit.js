@@ -164,7 +164,6 @@ export default async function handler(req, res) {
     console.error('[blog-comment-submit]', err instanceof Error ? err.message : err)
     return res.status(502).json({
       error: 'Could not submit comment',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown error',
     })
   }
 }

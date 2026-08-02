@@ -59,7 +59,6 @@ export default async function handler(req, res) {
     console.error('[crm-inbound-email]', err instanceof Error ? err.message : err)
     return res.status(502).json({
       error: 'Failed to ingest inbound email',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown error',
     })
   }
 }

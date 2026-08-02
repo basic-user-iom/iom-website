@@ -412,14 +412,14 @@ async function handleMorph(req, res) {
         friendly =
           'ElevenLabs free plan cannot use library voices for voice morph. Pick a voice you cloned/created, or upgrade ElevenLabs.'
       } else if (msg) {
-        friendly = String(msg).slice(0, 180)
+        // Keep mapped UX strings only — do not forward arbitrary upstream text.
+        friendly = 'Voice morph failed. Try another voice or retry later.'
       }
     } catch {
       /* keep friendly default */
     }
     return res.status(elRes.status === 402 || elRes.status === 403 ? 402 : 502).json({
       error: friendly,
-      detail: text.slice(0, 200),
     })
   }
 

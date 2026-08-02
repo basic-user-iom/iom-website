@@ -26,7 +26,6 @@ import {
 } from './_lib/outreach-email-html.js'
 import {
   EMAIL_RE,
-  listProtonIdentities,
   resolveProtonIdentity,
 } from './_lib/proton-identities.js'
 
@@ -79,15 +78,9 @@ export default async function handler(req, res) {
 
   const identity = resolveProtonIdentity(fromIdentity)
   if (!identity) {
-    const available = listProtonIdentities()
-      .filter((i) => i.configured)
-      .map((i) => i.id)
     return res.status(503).json({
       error: 'Selected From address is not configured',
-      detail:
-        available.length > 0
-          ? `Available: ${available.join(', ')}`
-          : 'Add SMTP tokens in Vercel env vars',
+      code: 'identity_unconfigured',
     })
   }
 

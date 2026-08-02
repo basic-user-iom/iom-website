@@ -1,7 +1,9 @@
 /**
  * Privacy-friendly analytics ingest with Vercel geo + bot detection.
- * No raw IP stored.
+ * No raw IP stored. Service-role insert + rate limit (SEC-011).
  */
+
+import { clientIp, rateLimit } from './_lib/blog-helpers.js'
 
 const BOT_RE =
   /bot|crawl|spider|slurp|scrapy|curl|wget|python-requests|httpclient|headless|phantom|selenium|puppeteer|lighthouse|pagespeed|facebookexternalhit|preview|discordbot|twitterbot|linkedinbot|embedly|quora|whatsapp|telegram|bingpreview|yandex|baiduspider|duckduckbot|applebot|semrush|ahrefs|mj12bot|dotbot|petalbot|gptbot|claudebot|bytespider|ccbot|ia_archiver/i
@@ -14,9 +16,18 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
+  const ip = clientIp(req)
+  if (!(await rateLimit(`pageview:${ip}`, 120, 60_000))) {
+    return res.status(429).json({ error: 'Too many requests' })
+  }
+
   const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
-  const key =
+  const serviceKey =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
+  const anonKey =
     process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+  // Prefer service role so anon Rest insert can stay revoked.
+  const key = serviceKey || anonKey
 
   if (!url || !key) return res.status(500).json({ error: 'Analytics not configured' })
 

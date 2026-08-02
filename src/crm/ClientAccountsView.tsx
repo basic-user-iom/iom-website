@@ -231,7 +231,10 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
                   <ul className="crm-clients-members">
                     {members.map((m) => (
                       <li key={m.id}>
-                        <code>{m.user_id}</code>
+                        <div className="crm-clients-member-meta">
+                          <strong>{m.email || t('clients.unknownEmail')}</strong>
+                          <code>{m.user_id}</code>
+                        </div>
                         <span className="crm-muted">
                           {m.active ? t('clients.active') : t('clients.inactive')}
                         </span>

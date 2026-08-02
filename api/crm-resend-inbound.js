@@ -120,7 +120,6 @@ export default async function handler(req, res) {
     console.error('[crm-resend-inbound]', err instanceof Error ? err.message : err)
     return res.status(502).json({
       error: 'Failed to process Resend inbound email',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown error',
     })
   }
 }

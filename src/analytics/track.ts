@@ -104,9 +104,10 @@ async function sendEvent(event: AnalyticsEventInput): Promise<void> {
     })
     if (res.ok || res.status === 204) return
   } catch {
-    /* local vite has no /api */
+    /* local vite has no /api — do not fall back to direct Rest insert (SEC-011) */
   }
-  if ((event.event_type ?? 'pageview') === 'pageview') {
+  // Dev-only: direct insert when Vite has no serverless /api/pageview.
+  if (import.meta.env.DEV && (event.event_type ?? 'pageview') === 'pageview') {
     void insertPageview(event)
   }
 }

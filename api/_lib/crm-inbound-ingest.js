@@ -107,9 +107,7 @@ export async function ingestInboundEmail({
       status: 404,
       body: {
         error: 'No matching lead',
-        detail:
-          'Could not match by lead id, reply thread, or sender email',
-        from,
+        code: 'lead_not_found',
       },
     }
   }
