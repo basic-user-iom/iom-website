@@ -3599,39 +3599,52 @@
   max-width: 100%;
 }
 
+/* Chat-style reading column (Notes preview + Ideas rich notes) */
+.crm-note-prose {
+  max-width: 42rem;
+  width: 100%;
+  margin: 0;
+  line-height: 1.55;
+  font-size: 0.92rem;
+}
+
+.crm-note-prose .crm-note-paragraph {
+  margin: 0 0 0.85rem;
+}
+
 .crm-note-table-wrap {
   width: 100%;
   max-width: 100%;
   overflow-x: auto;
-  margin: 0.75rem 0 1rem;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg-elevated);
+  margin: 0.85rem 0 1.1rem;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .crm-note-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.82rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.5;
 }
 
 .crm-note-table th,
 .crm-note-table td {
-  padding: 0.55rem 0.7rem;
-  border-bottom: 1px solid var(--border);
+  padding: 0.65rem 0.55rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   text-align: left;
   vertical-align: top;
-  min-width: 6rem;
+  min-width: 5.5rem;
 }
 
 .crm-note-table th {
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  text-transform: none;
   color: var(--text-muted);
-  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  background: transparent;
   white-space: nowrap;
 }
 
@@ -3640,38 +3653,46 @@
 }
 
 .crm-note-table td:first-child {
-  min-width: 10rem;
+  min-width: 9rem;
 }
 
 .crm-note-figure {
-  margin: 0.75rem 0 1rem;
+  display: block;
+  width: fit-content;
+  max-width: min(100%, 34rem);
+  margin: 0.85rem 0 1.1rem;
   padding: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
+  border: 0;
+  border-radius: 0;
+  overflow: visible;
+  background: transparent;
 }
 
 .crm-note-image {
   display: block;
-  width: 100%;
-  max-width: 100%;
+  width: auto;
+  max-width: min(100%, 34rem);
+  max-height: min(22rem, 42vh);
   height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
 }
 
 .crm-note-image--inline {
   display: inline-block;
   width: auto;
-  max-width: min(100%, 18rem);
-  max-height: 12rem;
+  max-width: min(100%, 16rem);
+  max-height: 10rem;
   vertical-align: middle;
-  border-radius: 6px;
+  border-radius: 10px;
   margin: 0.15rem 0;
 }
 
 .crm-note-figcaption {
-  margin: 0;
-  padding: 0.4rem 0.7rem 0.55rem;
+  margin: 0.4rem 0 0;
+  padding: 0;
   font-size: 0.72rem;
   color: var(--text-muted);
 }
@@ -3764,12 +3785,21 @@
 }
 
 .crm-mind-rich-preview {
-  max-height: min(50vh, 28rem);
+  max-height: min(55vh, 32rem);
   overflow: auto;
-  padding: 0.65rem 0.75rem;
+  padding: 0.85rem 1rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--bg-elevated) 92%, var(--bg));
+}
+
+.crm-mind-rich-preview .crm-note-prose {
+  max-width: 38rem;
+}
+
+.crm-mind-rich-preview .crm-note-image {
+  max-width: min(100%, 28rem);
+  max-height: min(18rem, 36vh);
 }
 
 .crm-mind-rich-preview-label,
@@ -3824,15 +3854,15 @@
 
 .crm-mind-node-note-preview {
   display: block;
-  width: calc(100% - 1.4rem);
+  width: min(calc(100% - 1.4rem), 36rem);
   margin: 0.35rem 0 0.55rem 1.4rem;
-  max-height: 14rem;
+  max-height: 18rem;
   overflow: auto;
-  padding: 0.5rem 0.65rem;
+  padding: 0.7rem 0.85rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: 14px;
   background: color-mix(in srgb, var(--accent) 4%, var(--bg));
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   text-align: left;
   color: inherit;
   cursor: pointer;
@@ -3843,6 +3873,29 @@
 .crm-mind-node-note-preview:hover {
   border-color: var(--border-accent);
   background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+}
+
+.crm-mind-node-note-preview .crm-note-prose {
+  max-width: 34rem;
+  font-size: 0.84rem;
+}
+
+.crm-mind-node-note-preview .crm-note-image {
+  max-width: min(100%, 20rem);
+  max-height: 10rem;
+}
+
+.crm-mind-node-note-preview .crm-note-table {
+  font-size: 0.75rem;
+}
+
+.crm-notes-preview .crm-note-prose {
+  max-width: 44rem;
+}
+
+.crm-notes-preview .crm-note-image {
+  max-width: min(100%, 36rem);
+  max-height: min(24rem, 45vh);
 }
 
 .crm-mind-node-note-edit-chip {

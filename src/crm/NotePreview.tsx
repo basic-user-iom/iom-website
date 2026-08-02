@@ -86,7 +86,7 @@ export function NoteRichBody({
   const intro = renderNoteLines(introLines, 'intro')
 
   return (
-    <>
+    <div className="crm-note-prose">
       {intro.length > 0 && <div className="crm-note-intro">{intro}</div>}
       {sections.map((section) => {
         const url = sectionSummaryUrl(section.lines)
@@ -122,7 +122,7 @@ export function NoteRichBody({
       {sections.length === 0 && intro.length === 0 && (
         <p className="crm-muted">{emptyLabel ?? t('notes.noBody')}</p>
       )}
-    </>
+    </div>
   )
 }
 
