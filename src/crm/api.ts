@@ -702,8 +702,11 @@ export function onAuthChange(cb: (user: CrmUser | null) => void): () => void {
   return () => {}
 }
 
-export async function signIn(email: string, password: string): Promise<void> {
-  if (isCrmDemoMode()) return
+export async function signIn(
+  email: string,
+  password: string,
+): Promise<import('./crmMfa').SignInResult> {
+  if (isCrmDemoMode()) return { kind: 'complete' }
 
   const trimmed = email.trim()
   if (!trimmed || !password) throw new Error('Email and password are required.')
@@ -720,7 +723,8 @@ export async function signIn(email: string, password: string): Promise<void> {
       throw new Error('INVALID_LOGIN')
     }
     await healOversizedAuthAvatar().catch(() => {})
-    return
+    const { getPostLoginMfaState } = await import('./crmMfa')
+    return getPostLoginMfaState()
   }
 
   // Production must not fall back to a browser-local password.
@@ -738,6 +742,7 @@ export async function signIn(email: string, password: string): Promise<void> {
     email: trimmed,
     avatar_url: existing?.email === trimmed ? (existing.avatar_url ?? null) : null,
   })
+  return { kind: 'complete' }
 }
 
 export async function signOut(): Promise<void> {

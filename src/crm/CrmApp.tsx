@@ -72,6 +72,8 @@ import {
   resolveCrmAccessRole,
   type CrmAccessRole,
 } from './clientTenancyApi'
+import { getPostLoginMfaState, staffHasVerifiedMfa } from './crmMfa'
+import { StaffMfaSetup } from './StaffMfaSetup'
 import { TimeView } from './TimeView'
 import { UserProfileMenu } from './UserProfileMenu'
 import type {
@@ -278,6 +280,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   )
   const [accessRole, setAccessRole] = useState<CrmAccessRole | null>(() =>
     sandboxed ? 'staff' : null,
+  )
+  /** Keep login UI while TOTP challenge is pending (session already exists at aal1). */
+  const [mfaHold, setMfaHold] = useState(false)
+  const [mfaResumeFactorId, setMfaResumeFactorId] = useState<string | null>(null)
+  /** null = checking; true = enrolled or N/A; false = must enroll */
+  const [staffMfaReady, setStaffMfaReady] = useState<boolean | null>(() =>
+    sandboxed ? true : null,
   )
   const [authReady, setAuthReady] = useState(() => sandboxed)
   const [leads, setLeads] = useState<Lead[]>([])
@@ -500,32 +509,71 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setSelectedId(lead.id)
   }, [])
 
-  // Resolve staff vs client after Auth session is known.
+  // After Auth session: step-up MFA if required before role / CRM UI.
   useEffect(() => {
-    if (!user) {
-      setAccessRole(sandboxed ? 'staff' : null)
-      return
-    }
-    if (sandboxed) {
-      setAccessRole('staff')
-      return
-    }
+    if (!user || sandboxed || mfaHold) return
     let alive = true
-    setAccessRole(null)
-    void resolveCrmAccessRole()
-      .then((role) => {
+    void getPostLoginMfaState()
+      .then((state) => {
         if (!alive) return
-        setAccessRole(role)
-        if (role === 'staff' && !hasSeenCrmWelcome()) setGuideOpen(true)
+        if (state.kind === 'mfa_challenge') {
+          setMfaResumeFactorId(state.factorId)
+          setMfaHold(true)
+        } else {
+          setMfaResumeFactorId(null)
+        }
       })
       .catch(() => {
-        if (!alive) return
-        setAccessRole('none')
+        /* keep going — role probe will fail closed if needed */
       })
     return () => {
       alive = false
     }
-  }, [user?.id, sandboxed])
+  }, [user?.id, sandboxed, mfaHold])
+
+  // Resolve staff vs client after Auth session is known (and MFA hold cleared).
+  useEffect(() => {
+    if (!user) {
+      setAccessRole(sandboxed ? 'staff' : null)
+      setStaffMfaReady(sandboxed ? true : null)
+      return
+    }
+    if (sandboxed) {
+      setAccessRole('staff')
+      setStaffMfaReady(true)
+      return
+    }
+    if (mfaHold) return
+    let alive = true
+    setAccessRole(null)
+    setStaffMfaReady(null)
+    void resolveCrmAccessRole()
+      .then(async (role) => {
+        if (!alive) return
+        setAccessRole(role)
+        if (role === 'staff') {
+          if (!hasSeenCrmWelcome()) setGuideOpen(true)
+          try {
+            const ok = await staffHasVerifiedMfa()
+            if (!alive) return
+            setStaffMfaReady(ok)
+          } catch {
+            if (!alive) return
+            setStaffMfaReady(false)
+          }
+        } else {
+          setStaffMfaReady(true)
+        }
+      })
+      .catch(() => {
+        if (!alive) return
+        setAccessRole('none')
+        setStaffMfaReady(true)
+      })
+    return () => {
+      alive = false
+    }
+  }, [user?.id, sandboxed, mfaHold])
 
   // One-shot owner snapshot heal on login — not on every filter-driven refresh.
   useEffect(() => {
@@ -633,6 +681,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setGuideOpen(false)
     setUser(null)
     setAccessRole(null)
+    setMfaHold(false)
+    setMfaResumeFactorId(null)
+    setStaffMfaReady(null)
     setLeads([])
     setSelectedId(null)
     setView('list')
@@ -657,14 +708,21 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     )
   }
 
-  if (!user) {
+  if (!user || mfaHold) {
     return (
       <div className="crm-shell">
         <div className="crm-login-lang">
           <LanguageToggle />
         </div>
         <CrmLogin
+          resumeFactorId={mfaResumeFactorId}
+          onMfaHoldChange={(hold) => {
+            setMfaHold(hold)
+            if (!hold) setMfaResumeFactorId(null)
+          }}
           onSuccess={() => {
+            setMfaHold(false)
+            setMfaResumeFactorId(null)
             void getCurrentUser().then((u) => {
               setUser(u)
             })
@@ -674,10 +732,30 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     )
   }
 
-  if (!accessRole) {
+  if (!accessRole || (accessRole === 'staff' && staffMfaReady === null)) {
     return (
       <div className="crm-shell">
         <p className="crm-muted crm-boot">{t('boot.loading')}</p>
+      </div>
+    )
+  }
+
+  if (accessRole === 'staff' && staffMfaReady === false) {
+    return (
+      <div className="crm-shell">
+        <header className="crm-topbar">
+          <div>
+            <p className="crm-kicker">{t('topbar.kicker')}</p>
+            <h1 className="crm-title">{t('mfa.title')}</h1>
+          </div>
+          <div className="crm-topbar-right">
+            <LanguageToggle />
+            <button type="button" className="btn btn-ghost" onClick={() => void handleSignOut()}>
+              {t('topbar.signOut')}
+            </button>
+          </div>
+        </header>
+        <StaffMfaSetup onComplete={() => setStaffMfaReady(true)} />
       </div>
     )
   }

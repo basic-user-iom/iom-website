@@ -2909,6 +2909,31 @@
   font-size: 0.9rem;
 }
 
+.crm-mfa-setup .crm-panel {
+  max-width: 28rem;
+}
+
+.crm-mfa-enroll {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  align-items: flex-start;
+}
+
+.crm-mfa-qr {
+  width: min(100%, 14rem);
+  height: auto;
+  border-radius: 0.5rem;
+  background: #fff;
+  padding: 0.5rem;
+}
+
+.crm-mfa-secret {
+  margin: 0;
+  font-size: 0.85rem;
+  word-break: break-all;
+}
+
 .crm-mode-note {
   margin: 1.25rem 0 0;
   font-size: 0.75rem;

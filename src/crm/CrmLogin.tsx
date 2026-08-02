@@ -1,25 +1,51 @@
-import { useState, type FormEvent } from 'react'
-import { signIn, storageMode } from './api'
+import { useEffect, useState, type FormEvent } from 'react'
+import { signIn, signOut, storageMode } from './api'
+import { verifyMfaChallenge } from './crmMfa'
 import { useCrmI18n } from './i18n'
 
 interface CrmLoginProps {
   onSuccess: () => void
+  /** Keep login mounted while TOTP is pending (Auth session already exists). */
+  onMfaHoldChange?: (hold: boolean) => void
+  /** Resume challenge after refresh when session is still aal1. */
+  resumeFactorId?: string | null
 }
 
-export function CrmLogin({ onSuccess }: CrmLoginProps) {
+export function CrmLogin({
+  onSuccess,
+  onMfaHoldChange,
+  resumeFactorId = null,
+}: CrmLoginProps) {
   const { t } = useCrmI18n()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [mfaCode, setMfaCode] = useState('')
+  const [mfaFactorId, setMfaFactorId] = useState<string | null>(resumeFactorId)
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const mode = storageMode()
 
-  const handleSubmit = async (e: FormEvent) => {
+  useEffect(() => {
+    if (!resumeFactorId) return
+    setMfaFactorId(resumeFactorId)
+    onMfaHoldChange?.(true)
+    // Parent callback identity is unstable; only re-run when factor id changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resumeFactorId])
+
+  const handlePasswordSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError('')
     try {
-      await signIn(email, password)
+      const result = await signIn(email, password)
+      if (result.kind === 'mfa_challenge') {
+        setMfaFactorId(result.factorId)
+        setMfaCode('')
+        onMfaHoldChange?.(true)
+        return
+      }
+      onMfaHoldChange?.(false)
       onSuccess()
     } catch (err) {
       const code = err instanceof Error ? err.message : ''
@@ -33,58 +59,130 @@ export function CrmLogin({ onSuccess }: CrmLoginProps) {
     }
   }
 
+  const handleMfaSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!mfaFactorId) return
+    setBusy(true)
+    setError('')
+    try {
+      await verifyMfaChallenge(mfaFactorId, mfaCode)
+      onMfaHoldChange?.(false)
+      onSuccess()
+    } catch {
+      setError(t('login.mfaFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleBackToPassword = async () => {
+    setBusy(true)
+    setError('')
+    try {
+      await signOut()
+    } catch {
+      /* ignore */
+    } finally {
+      setMfaFactorId(null)
+      setMfaCode('')
+      onMfaHoldChange?.(false)
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="crm-login">
       <div className="crm-login-card">
         <p className="crm-kicker">{t('login.kicker')}</p>
         <h1 className="crm-login-title">{t('login.title')}</h1>
-        <p className="crm-login-blurb">{t('login.blurb')}</p>
+        <p className="crm-login-blurb">
+          {mfaFactorId ? t('login.mfaBlurb') : t('login.blurb')}
+        </p>
 
-        <form className="crm-form" onSubmit={handleSubmit}>
-          <label className="crm-field">
-            <span className="crm-label">{t('login.email')}</span>
-            <input
-              className="crm-input"
-              type="email"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+        {mfaFactorId ? (
+          <form className="crm-form" onSubmit={(e) => void handleMfaSubmit(e)}>
+            <label className="crm-field">
+              <span className="crm-label">{t('login.mfaCode')}</span>
+              <input
+                className="crm-input"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]*"
+                maxLength={6}
+                value={mfaCode}
+                onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                required
+                disabled={busy}
+                autoFocus
+              />
+            </label>
+            <button type="submit" className="btn btn-primary crm-submit" disabled={busy}>
+              {busy ? t('login.verifying') : t('login.mfaSubmit')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
               disabled={busy}
-            />
-          </label>
-          <label className="crm-field">
-            <span className="crm-label">{t('login.password')}</span>
-            <input
-              className="crm-input"
-              type="password"
-              autoComplete="current-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              disabled={busy}
-            />
-          </label>
-          <button type="submit" className="btn btn-primary crm-submit" disabled={busy}>
-            {busy ? t('login.signingIn') : t('login.submit')}
-          </button>
-          {error && (
-            <p className="crm-feedback crm-feedback--error" role="alert">
-              {error}
-            </p>
-          )}
-        </form>
+              onClick={() => void handleBackToPassword()}
+            >
+              {t('login.mfaBack')}
+            </button>
+            {error && (
+              <p className="crm-feedback crm-feedback--error" role="alert">
+                {error}
+              </p>
+            )}
+          </form>
+        ) : (
+          <form className="crm-form" onSubmit={(e) => void handlePasswordSubmit(e)}>
+            <label className="crm-field">
+              <span className="crm-label">{t('login.email')}</span>
+              <input
+                className="crm-input"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                disabled={busy}
+              />
+            </label>
+            <label className="crm-field">
+              <span className="crm-label">{t('login.password')}</span>
+              <input
+                className="crm-input"
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                disabled={busy}
+              />
+            </label>
+            <button type="submit" className="btn btn-primary crm-submit" disabled={busy}>
+              {busy ? t('login.signingIn') : t('login.submit')}
+            </button>
+            {error && (
+              <p className="crm-feedback crm-feedback--error" role="alert">
+                {error}
+              </p>
+            )}
+          </form>
+        )}
 
         <p className="crm-mode-note" role="status">
           {mode === 'supabase' ? t('login.modeOnline') : t('login.modeLocal')}
         </p>
 
-        <p className="crm-login-demo-cta">
-          <a href="/crm-demo" className="btn btn-ghost">
-            {t('login.tryDemo')}
-          </a>
-          <span className="crm-muted">{t('login.tryDemoHint')}</span>
-        </p>
+        {!mfaFactorId && (
+          <p className="crm-login-demo-cta">
+            <a href="/crm-demo" className="btn btn-ghost">
+              {t('login.tryDemo')}
+            </a>
+            <span className="crm-muted">{t('login.tryDemoHint')}</span>
+          </p>
+        )}
       </div>
     </div>
   )
