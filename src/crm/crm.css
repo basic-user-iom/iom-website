@@ -3562,6 +3562,130 @@
   min-height: 0;
 }
 
+.crm-workspace--notes {
+  min-width: 0;
+}
+
+.crm-notes-back {
+  margin: 0 0 0.45rem;
+  padding-left: 0;
+  justify-content: flex-start;
+  min-height: auto;
+  height: auto;
+  max-height: none;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.crm-notes-back:hover {
+  color: var(--accent);
+}
+
+/* Notes: stack before the list column gets crushed */
+@media (max-width: 1100px) {
+  .crm-workspace.crm-workspace--notes {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    gap: 0.75rem;
+  }
+
+  .crm-workspace.crm-workspace--notes .crm-sidebar,
+  .crm-workspace.crm-workspace--notes .crm-main {
+    min-height: 0;
+    max-height: none;
+  }
+
+  .crm-workspace.crm-workspace--notes .crm-sidebar {
+    max-height: min(48vh, 22rem);
+    overflow: auto;
+  }
+
+  .crm-workspace.crm-workspace--notes:has(.crm-detail--collapsed) .crm-sidebar,
+  .crm-workspace.crm-workspace--notes:has(.crm-detail--collapsed) .crm-main {
+    max-height: none;
+  }
+
+  .crm-workspace.crm-workspace--notes:has(.crm-detail--collapsed) .crm-sidebar {
+    max-height: min(48vh, 22rem);
+  }
+
+  .crm-workspace.crm-workspace--notes .crm-detail-summary {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .crm-workspace.crm-workspace--notes .crm-detail-summary > .crm-detail-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+/* Notes phones: list OR detail, never a squeezed two-pane */
+@media (max-width: 900px) {
+  .crm-workspace.crm-workspace--notes:not(.is-notes-detail) .crm-main {
+    display: none;
+  }
+
+  .crm-workspace.crm-workspace--notes.is-notes-detail .crm-sidebar {
+    display: none;
+  }
+
+  .crm-workspace.crm-workspace--notes .crm-sidebar {
+    max-height: none;
+  }
+
+  .crm-workspace.crm-workspace--notes.is-notes-detail .crm-main {
+    min-height: 0;
+    max-height: none;
+    padding: 0.85rem 0.9rem 1.15rem;
+    background: var(--bg-elevated);
+    border-color: var(--border);
+  }
+
+  .crm-tool-panel:has(.crm-workspace--notes) .crm-tool-toolbar--wrap .crm-input {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .crm-tool-panel:has(.crm-workspace--notes) .crm-tool-toolbar--wrap .btn {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .crm-notes-links {
+    flex-direction: column;
+  }
+
+  .crm-notes-links .crm-input {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+
+  .crm-notes-body {
+    min-height: 16rem;
+  }
+
+  .crm-notes-preview-wrap,
+  .crm-notes-preview {
+    min-height: 14rem;
+    max-height: none;
+  }
+
+  .crm-notes-actions {
+    width: 100%;
+  }
+
+  .crm-notes-mode-tabs {
+    flex: 1 1 auto;
+  }
+
+  .crm-notes-mode-tab {
+    flex: 1 1 0;
+    text-align: center;
+  }
+}
+
 .crm-board {
   display: grid;
   grid-auto-flow: column;
@@ -4433,6 +4557,17 @@
 
   .crm-calendar-toggle {
     justify-self: start;
+  }
+
+  /* Notes list must use full height once the detail pane is hidden */
+  .crm-workspace.crm-workspace--notes:not(.is-notes-detail) .crm-sidebar {
+    max-height: none;
+  }
+
+  .crm-workspace.crm-workspace--notes.is-notes-detail .crm-main {
+    background: var(--bg-elevated);
+    border-color: var(--border);
+    padding: 0.85rem 0.9rem 1.15rem;
   }
 }
 

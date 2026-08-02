@@ -39,8 +39,17 @@ export function NotesView({
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>(
     'idle',
   )
+  const [isNarrow, setIsNarrow] = useState(false)
   const saveTimer = useRef<number | null>(null)
   const skipSave = useRef(false)
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 900px)')
+    const sync = () => setIsNarrow(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
 
   const refreshNotes = useCallback(async () => {
     setLoading(true)
@@ -164,6 +173,7 @@ export function NotesView({
       await refreshNotes()
       setSelectedId(note.id)
       setMode('edit')
+      if (isNarrow) setPreviewExpanded(true)
     } catch (err) {
       if (isResearchNotesSchemaMissing(err)) {
         setError(t('notes.schemaMissing'))
@@ -204,6 +214,21 @@ export function NotesView({
   const previewSnippet =
     draftBody.trim().split('\n').find((line) => line.trim()) ?? t('notes.noBody')
 
+  // Phones: list OR detail. Desktop/tablet: keep sidebar + pane side-by-side/stacked.
+  const notesDetailOpen =
+    Boolean(selected) && (!isNarrow || previewExpanded || mode === 'edit')
+
+  const openNote = (n: ResearchNote) => {
+    setSelectedId(n.id)
+    setMode(n.body.trim() ? 'preview' : 'edit')
+    setPreviewExpanded(isNarrow)
+  }
+
+  const backToNoteList = () => {
+    setPreviewExpanded(false)
+    setMode('preview')
+  }
+
   const modeTabs = (
     <div className="crm-notes-mode-tabs" role="tablist">
       <button
@@ -222,7 +247,8 @@ export function NotesView({
         className={`crm-notes-mode-tab${mode === 'preview' ? ' is-active' : ''}`}
         onClick={() => {
           setMode('preview')
-          setPreviewExpanded(false)
+          // Keep detail open on phones; collapse only on wider layouts
+          setPreviewExpanded(isNarrow)
         }}
       >
         {t('notes.preview')}
@@ -283,7 +309,11 @@ export function NotesView({
         </p>
       )}
 
-      <div className="crm-workspace crm-workspace--projects">
+      <div
+        className={`crm-workspace crm-workspace--projects crm-workspace--notes${
+          notesDetailOpen ? ' is-notes-detail' : ''
+        }`}
+      >
         <aside className="crm-sidebar">
           {loading ? (
             <p className="crm-muted">{t('notes.loading')}</p>
@@ -296,11 +326,7 @@ export function NotesView({
                   <button
                     type="button"
                     className={`crm-lead-row${selectedId === n.id ? ' is-selected' : ''}`}
-                    onClick={() => {
-                      setSelectedId(n.id)
-                      setMode(n.body.trim() ? 'preview' : 'edit')
-                      setPreviewExpanded(false)
-                    }}
+                    onClick={() => openNote(n)}
                   >
                     <div className="crm-lead-row-body">
                       <div className="crm-lead-row-top">
@@ -357,6 +383,15 @@ export function NotesView({
             <>
               <header className="crm-detail-header">
                 <div className="crm-notes-header-main">
+                  {isNarrow && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost crm-notes-back"
+                      onClick={backToNoteList}
+                    >
+                      {t('toolbar.backToList')}
+                    </button>
+                  )}
                   <p className="crm-kicker">{t('notes.kicker')}</p>
                   {mode === 'edit' ? (
                     <input
@@ -383,7 +418,7 @@ export function NotesView({
                 </div>
                 <div className="crm-detail-actions crm-notes-actions">
                   {modeTabs}
-                  {mode === 'preview' && (
+                  {mode === 'preview' && !isNarrow && (
                     <button
                       type="button"
                       className="btn btn-ghost crm-collapse-btn"
