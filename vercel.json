@@ -20,6 +20,58 @@
   ],
   "headers": [
     {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "payment=(), usb=(), interest-cohort=()"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://api.web3forms.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://vercel.live; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; media-src 'self' blob: https:; worker-src 'self' blob:; connect-src 'self' https: wss: blob:; frame-src 'self' https://vercel.live"
+        }
+      ]
+    },
+    {
+      "source": "/client-login",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
+      "source": "/crm-demo",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "private, no-store"
+        }
+      ]
+    },
+    {
       "source": "/assets/(.*)",
       "headers": [
         {
