@@ -71,6 +71,7 @@ export const ProjectCard = memo(function ProjectCard({
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
   const mountedRef = useRef(true)
+  const embedReadyPollRef = useRef<number | null>(null)
 
   const profile = getDeviceProfile()
   const { isPending: isCountdownPending, label: countdownLabel } = useCountdown(project.availableAt)
@@ -140,12 +141,20 @@ export const ProjectCard = memo(function ProjectCard({
       }
     : undefined
 
+  const clearEmbedReadyPoll = useCallback(() => {
+    if (embedReadyPollRef.current != null) {
+      window.clearInterval(embedReadyPollRef.current)
+      embedReadyPollRef.current = null
+    }
+  }, [])
+
   useEffect(() => {
     mountedRef.current = true
     return () => {
       mountedRef.current = false
+      clearEmbedReadyPoll()
     }
-  }, [])
+  }, [clearEmbedReadyPoll])
 
   useEffect(() => {
     setPreviewImageFailed(false)
@@ -161,6 +170,7 @@ export const ProjectCard = memo(function ProjectCard({
       const visible = !document.hidden
       setPageVisible(visible)
       if (!visible) {
+        clearEmbedReadyPoll()
         setEmbedLoaded(false)
         setIsHovered(false)
         reportEmbedHover(project.id, false)
@@ -168,7 +178,7 @@ export const ProjectCard = memo(function ProjectCard({
     }
     document.addEventListener('visibilitychange', onVisibility)
     return () => document.removeEventListener('visibilitychange', onVisibility)
-  }, [project.id])
+  }, [project.id, clearEmbedReadyPoll])
 
   const handlePreviewEnter = useCallback(() => {
     if (!showLiveEmbed) return
@@ -178,10 +188,11 @@ export const ProjectCard = memo(function ProjectCard({
 
   const handlePreviewLeave = useCallback(() => {
     if (!showLiveEmbed) return
+    clearEmbedReadyPoll()
     setIsHovered(false)
     setEmbedLoaded(false)
     reportEmbedHover(project.id, false)
-  }, [showLiveEmbed, project.id])
+  }, [showLiveEmbed, project.id, clearEmbedReadyPoll])
 
   const openGallery = useCallback(() => {
     if (!hasGallery) return
@@ -198,25 +209,71 @@ export const ProjectCard = memo(function ProjectCard({
     (event: React.SyntheticEvent<HTMLIFrameElement>) => {
       if (!mountedRef.current) return
       const iframe = event.currentTarget
-      try {
-        const doc = iframe.contentDocument
-        if (doc) {
-          const href = iframe.contentWindow?.location.href ?? ''
-          if (
-            href === 'about:blank' ||
-            href.startsWith('chrome-error://') ||
-            doc.body?.childElementCount === 0
-          ) {
-            setEmbedFailed(true)
-            return
-          }
-        }
-      } catch {
-        // Cross-origin embed loaded successfully
+      clearEmbedReadyPoll()
+
+      const markReady = () => {
+        if (mountedRef.current) setEmbedLoaded(true)
       }
-      setEmbedLoaded(true)
+      const markFailed = () => {
+        if (mountedRef.current) setEmbedFailed(true)
+      }
+
+      const inspect = (): 'ready' | 'failed' | 'wait' => {
+        try {
+          const doc = iframe.contentDocument
+          if (!doc) return 'wait'
+          const href = iframe.contentWindow?.location.href ?? ''
+          if (href === 'about:blank' || href.startsWith('chrome-error://')) {
+            return 'failed'
+          }
+          // Wait for a real preview surface — raw document load often fires
+          // before click-to-start / WebGL has anything to show.
+          if (
+            doc.querySelector('canvas') ||
+            doc.querySelector('video') ||
+            doc.querySelector('.iom-demo-gate') ||
+            doc.querySelector('[data-iom-embed-ready]')
+          ) {
+            return 'ready'
+          }
+          if ((doc.body?.childElementCount ?? 0) === 0) return 'failed'
+          return 'wait'
+        } catch {
+          // Cross-origin embed — cannot inspect; treat as ready.
+          return 'ready'
+        }
+      }
+
+      const first = inspect()
+      if (first === 'ready') {
+        markReady()
+        return
+      }
+      if (first === 'failed') {
+        markFailed()
+        return
+      }
+
+      let attempts = 0
+      embedReadyPollRef.current = window.setInterval(() => {
+        if (!mountedRef.current) {
+          clearEmbedReadyPoll()
+          return
+        }
+        const state = inspect()
+        if (state === 'ready') {
+          clearEmbedReadyPoll()
+          markReady()
+          return
+        }
+        if (state === 'failed' || ++attempts >= 40) {
+          // ~4s — keep the static poster instead of flashing an empty iframe
+          clearEmbedReadyPoll()
+          if (state === 'failed') markFailed()
+        }
+      }, 100)
     },
-    [],
+    [clearEmbedReadyPoll],
   )
 
   const preview = (

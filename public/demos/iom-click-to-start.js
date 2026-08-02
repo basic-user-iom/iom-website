@@ -121,6 +121,15 @@
    * }} [opts]
    * @returns {Promise<void | { setMessage: (label: string, hint?: string) => void, dismiss: () => void }>}
    */
+  function isEmbeddedPreview() {
+    try {
+      return window.self !== window.top
+    } catch {
+      // Cross-origin parent — treat as embedded.
+      return true
+    }
+  }
+
   function iomDemoAwaitStart(opts = {}) {
     ensureStyles()
     const poster = opts.poster || ''
@@ -128,6 +137,14 @@
     const hint = opts.hint || 'Tap or click to load live 3D'
     const parent = opts.parent || document.body
     const holdForLoading = Boolean(opts.loadingLabel)
+
+    // Homepage card hover iframes can't receive clicks (pointer-events: none).
+    // Skip the gate so the live preview can actually start.
+    if (isEmbeddedPreview()) {
+      if (!holdForLoading) return Promise.resolve()
+      const noop = () => {}
+      return Promise.resolve({ setMessage: noop, dismiss: noop })
+    }
 
     return new Promise((resolve) => {
       const gate = document.createElement('button')
