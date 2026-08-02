@@ -62,6 +62,7 @@ export const ProjectCard = memo(function ProjectCard({
   const orbs = useSiteOrbsOptional()
   const [embedFailed, setEmbedFailed] = useState(false)
   const [embedLoaded, setEmbedLoaded] = useState(false)
+  const [previewImageFailed, setPreviewImageFailed] = useState(false)
   const [isHovered, setIsHovered] = useState(false)
   const [embedSlotActive, setEmbedSlotActive] = useState(false)
   const [pageVisible, setPageVisible] = useState(() =>
@@ -98,9 +99,11 @@ export const ProjectCard = memo(function ProjectCard({
   const showThumbnail = Boolean(staticPreviewUrl)
   const showIframe = showLiveEmbed && isHovered && embedSlotActive && pageVisible
   const posterUrl = useStaticEmbed ? project.mobilePosterUrl ?? project.posterUrl : project.posterUrl
-  const showPoster = canEmbed && Boolean(posterUrl)
+  const showPoster = canEmbed && Boolean(posterUrl) && !previewImageFailed
   const posterHidden = showIframe && embedLoaded
   const thumbSrc = staticPreviewUrl ?? project.posterUrl ?? ''
+  const wantsThumbPreview = showThumbnail || (hasMusicTrack && Boolean(project.posterUrl))
+  const showThumbImage = wantsThumbPreview && Boolean(thumbSrc) && !previewImageFailed
   const posterSizes = project.featured
     ? '(max-width: 720px) 92vw, (min-width: 900px) min(48vw, 720px), 520px'
     : '(max-width: 720px) 92vw, 400px'
@@ -112,6 +115,10 @@ export const ProjectCard = memo(function ProjectCard({
     project.mobilePosterUrl && project.posterUrl && project.mobilePosterUrl !== project.posterUrl
       ? `${project.mobilePosterUrl} 400w, ${project.posterUrl} 1280w`
       : undefined
+
+  const handlePreviewImageError = useCallback(() => {
+    if (mountedRef.current) setPreviewImageFailed(true)
+  }, [])
 
   const handleOrbEnter = useCallback(
     (el: HTMLElement) => {
@@ -139,6 +146,10 @@ export const ProjectCard = memo(function ProjectCard({
       mountedRef.current = false
     }
   }, [])
+
+  useEffect(() => {
+    setPreviewImageFailed(false)
+  }, [project.id, thumbSrc, posterUrl])
 
   useEffect(() => {
     if (!showLiveEmbed) return
@@ -214,21 +225,28 @@ export const ProjectCard = memo(function ProjectCard({
       onMouseEnter={showLiveEmbed ? handlePreviewEnter : undefined}
       onMouseLeave={showLiveEmbed ? handlePreviewLeave : undefined}
     >
-      {showThumbnail || (hasMusicTrack && project.posterUrl) ? (
+      {wantsThumbPreview ? (
         <>
-          <img
-            className="card-preview-thumb"
-            src={thumbSrc}
-            srcSet={thumbSrcSet}
-            sizes={thumbSrcSet ? posterSizes : undefined}
-            alt=""
-            width={800}
-            height={500}
-            /* Featured cards use display:contents — native lazy often never fires */
-            loading={project.featured ? 'eager' : 'lazy'}
-            decoding="async"
-            {...(project.featured ? { fetchPriority: 'high' as const } : {})}
-          />
+          {showThumbImage ? (
+            <img
+              className="card-preview-thumb"
+              src={thumbSrc}
+              srcSet={thumbSrcSet}
+              sizes={thumbSrcSet ? posterSizes : undefined}
+              alt=""
+              width={800}
+              height={500}
+              /* Featured cards use display:contents — native lazy often never fires */
+              loading={project.featured ? 'eager' : 'lazy'}
+              decoding="async"
+              onError={handlePreviewImageError}
+              {...(project.featured ? { fetchPriority: 'high' as const } : {})}
+            />
+          ) : (
+            <span className="card-preview-glyph" aria-hidden="true">
+              {initials}
+            </span>
+          )}
           {hasGallery ? (
             <span className="card-preview-overlay" aria-hidden="true">
               VIEW GALLERY →
@@ -252,6 +270,7 @@ export const ProjectCard = memo(function ProjectCard({
               height={500}
               loading={project.featured ? 'eager' : 'lazy'}
               decoding="async"
+              onError={handlePreviewImageError}
               {...(project.featured ? { fetchPriority: 'high' as const } : {})}
             />
           ) : (
