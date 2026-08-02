@@ -6,6 +6,7 @@ import {
   useState,
   type CSSProperties,
   type KeyboardEvent,
+  type RefObject,
 } from 'react'
 import { useCrmI18n } from './i18n'
 import { NoteRichBody } from './NotePreview'
@@ -84,6 +85,22 @@ function emphasisClass(e: MindNodeEmphasis): string {
   return ''
 }
 
+/** Detect ChatGPT / markdown pasted into a short node title by mistake. */
+function looksLikeRichMarkdown(text: string): boolean {
+  const t = text.trim()
+  if (!t) return false
+  if (/^\|/.test(t) || /\|[\t ]*[-:]+[\t ]*\|/.test(t)) return true
+  if (/!\[[^\]]*\]\([^)]+\)/.test(t)) return true
+  if (t.length > 160 && /\[[^\]]+\]\(https?:\/\//.test(t)) return true
+  return false
+}
+
+const TABLE_SNIPPET = `| Model | Purpose | Analysis |
+| --- | --- | --- |
+| [Asset name](https://example.com) | Role | Notes |`
+
+const IMAGE_SNIPPET = `![Caption](https://example.com/image.jpg)`
+
 export function IdeasView({
   initialLeadId = null,
   initialProjectId = null,
@@ -102,6 +119,8 @@ export function IdeasView({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [focusEditId, setFocusEditId] = useState<string | null>(null)
+  const [richNoteFocusToken, setRichNoteFocusToken] = useState(0)
+  const richNoteRef = useRef<HTMLTextAreaElement>(null)
 
   const refreshMaps = useCallback(async () => {
     setLoading(true)
@@ -162,6 +181,10 @@ export function IdeasView({
 
   const tree = useMemo(() => buildTree(nodes), [nodes])
   const selected = maps.find((m) => m.id === selectedId) ?? null
+  const selectedNode = useMemo(
+    () => nodes.find((n) => n.id === selectedNodeId) ?? null,
+    [nodes, selectedNodeId],
+  )
 
   useEffect(() => {
     if (!selectedNodeId) return
@@ -170,6 +193,20 @@ export function IdeasView({
       setEditingNodeId(null)
     }
   }, [nodes, selectedNodeId])
+
+  const openRichNote = (nodeId: string) => {
+    setSelectedNodeId(nodeId)
+    setRichNoteFocusToken((n) => n + 1)
+  }
+
+  useEffect(() => {
+    if (!richNoteFocusToken || !selectedNode) return
+    const id = window.setTimeout(() => {
+      richNoteRef.current?.focus()
+      richNoteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }, 0)
+    return () => window.clearTimeout(id)
+  }, [richNoteFocusToken, selectedNode])
 
   const handleCreate = async () => {
     const name = title.trim() || t('ideas.untitled')
@@ -297,6 +334,7 @@ export function IdeasView({
                   <p className="crm-kicker">{t('ideas.kicker')}</p>
                   <h2 className="crm-detail-title">{selected.title}</h2>
                   <p className="crm-muted crm-mind-hint">{t('ideas.shortcutsHint')}</p>
+                  <p className="crm-muted crm-mind-hint">{t('ideas.richHint')}</p>
                 </div>
                 <div className="crm-detail-actions">
                   <button
@@ -350,6 +388,7 @@ export function IdeasView({
                       focusEditId={focusEditId}
                       onSelect={setSelectedNodeId}
                       onEdit={setEditingNodeId}
+                      onOpenRichNote={openRichNote}
                       onFocusEditConsumed={() => setFocusEditId(null)}
                       onChanged={() => void refreshNodes(selected.id)}
                       onCreated={(id) => void afterNodeCreated(selected.id, id)}
@@ -358,11 +397,181 @@ export function IdeasView({
                   ))}
                 </div>
               </div>
+
+              {selectedNode ? (
+                <MindRichNotePanel
+                  node={selectedNode}
+                  textareaRef={richNoteRef}
+                  onSaved={() => void refreshNodes(selected.id)}
+                  onError={(msg) => setError(msg)}
+                />
+              ) : (
+                <p className="crm-muted crm-mind-rich-empty">{t('ideas.richSelectNode')}</p>
+              )}
             </>
           )}
         </main>
       </div>
     </div>
+  )
+}
+
+function MindRichNotePanel({
+  node,
+  textareaRef,
+  onSaved,
+  onError,
+}: {
+  node: MindNode
+  textareaRef: RefObject<HTMLTextAreaElement | null>
+  onSaved: () => void
+  onError: (msg: string) => void
+}) {
+  const { t } = useCrmI18n()
+  const [draft, setDraft] = useState(node.notes)
+  const [saving, setSaving] = useState(false)
+  const titleLooksRich = looksLikeRichMarkdown(node.title)
+
+  useEffect(() => {
+    setDraft(node.notes)
+  }, [node.id, node.notes])
+
+  const save = async (next: string) => {
+    setSaving(true)
+    try {
+      await updateMindNode(node.id, { notes: next })
+      onSaved()
+    } catch (err) {
+      if (isMindNodeStyleSchemaMissing(err)) {
+        onError(t('ideas.styleSchemaMissing'))
+      } else {
+        onError(err instanceof Error ? err.message : t('ideas.saveFailed'))
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const insertSnippet = (snippet: string) => {
+    const el = textareaRef.current
+    const base = draft
+    if (!el) {
+      const next = base.trim() ? `${base.trim()}\n\n${snippet}` : snippet
+      setDraft(next)
+      return
+    }
+    const start = el.selectionStart ?? base.length
+    const end = el.selectionEnd ?? base.length
+    const next = `${base.slice(0, start)}${snippet}${base.slice(end)}`
+    setDraft(next)
+    window.setTimeout(() => {
+      el.focus()
+      const pos = start + snippet.length
+      el.setSelectionRange(pos, pos)
+    }, 0)
+  }
+
+  const moveTitleIntoNote = async () => {
+    const moved = node.title.trim()
+    if (!moved) return
+    const nextNotes = draft.trim() ? `${draft.trim()}\n\n${moved}` : moved
+    const shortTitle = t('ideas.richMovedTitle')
+    setDraft(nextNotes)
+    setSaving(true)
+    try {
+      await updateMindNode(node.id, { title: shortTitle, notes: nextNotes })
+      onSaved()
+    } catch (err) {
+      if (isMindNodeStyleSchemaMissing(err)) {
+        onError(t('ideas.styleSchemaMissing'))
+      } else {
+        onError(err instanceof Error ? err.message : t('ideas.saveFailed'))
+      }
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="crm-mind-rich-panel" aria-label={t('ideas.richTitle')}>
+      <header className="crm-mind-rich-header">
+        <div>
+          <p className="crm-kicker">{t('ideas.richKicker')}</p>
+          <h3 className="crm-mind-rich-title">{t('ideas.richTitle')}</h3>
+          <p className="crm-muted crm-mind-rich-blurb">
+            {t('ideas.richBlurb', { title: node.title.slice(0, 80) })}
+          </p>
+        </div>
+        <div className="crm-mind-rich-inserts">
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => insertSnippet(TABLE_SNIPPET)}
+          >
+            {t('ideas.insertTable')}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => insertSnippet(IMAGE_SNIPPET)}
+          >
+            {t('ideas.insertImage')}
+          </button>
+        </div>
+      </header>
+
+      {titleLooksRich && (
+        <div className="crm-mind-rich-migrate" role="status">
+          <p>{t('ideas.richTitleLooksMarkdown')}</p>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving}
+            onClick={() => void moveTitleIntoNote()}
+          >
+            {t('ideas.richMoveTitle')}
+          </button>
+        </div>
+      )}
+
+      <textarea
+        ref={textareaRef}
+        className="crm-input crm-mind-rich-textarea"
+        rows={8}
+        placeholder={t('ideas.notePlaceholder')}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+      />
+
+      <div className="crm-mind-rich-actions">
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={saving || draft === node.notes}
+          onClick={() => void save(draft)}
+        >
+          {saving ? t('notes.saving') : t('ideas.save')}
+        </button>
+        {draft !== node.notes && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={() => setDraft(node.notes)}
+          >
+            {t('ideas.richDiscard')}
+          </button>
+        )}
+      </div>
+
+      {draft.trim() ? (
+        <div className="crm-mind-rich-preview">
+          <p className="crm-mind-rich-preview-label">{t('ideas.richPreview')}</p>
+          <NoteRichBody body={draft} />
+        </div>
+      ) : (
+        <p className="crm-muted crm-mind-rich-preview-empty">{t('ideas.richPreviewEmpty')}</p>
+      )}
+    </section>
   )
 }
 
@@ -375,6 +584,7 @@ function MindNodeRow({
   focusEditId,
   onSelect,
   onEdit,
+  onOpenRichNote,
   onFocusEditConsumed,
   onChanged,
   onCreated,
@@ -388,6 +598,7 @@ function MindNodeRow({
   focusEditId: string | null
   onSelect: (id: string | null) => void
   onEdit: (id: string | null) => void
+  onOpenRichNote: (id: string) => void
   onFocusEditConsumed: () => void
   onChanged: () => void
   onCreated: (id: string) => void
@@ -395,20 +606,16 @@ function MindNodeRow({
 }) {
   const { t } = useCrmI18n()
   const [title, setTitle] = useState(node.title)
-  const [notesDraft, setNotesDraft] = useState(node.notes)
   const [linkDraft, setLinkDraft] = useState(node.link_url)
-  const [panel, setPanel] = useState<'none' | 'color' | 'link' | 'note'>('none')
+  const [panel, setPanel] = useState<'none' | 'color' | 'link'>('none')
   const inputRef = useRef<HTMLInputElement>(null)
   const selected = selectedNodeId === node.id
   const editing = editingNodeId === node.id
+  const titleLooksRich = looksLikeRichMarkdown(node.title)
 
   useEffect(() => {
     setTitle(node.title)
   }, [node.title])
-
-  useEffect(() => {
-    setNotesDraft(node.notes)
-  }, [node.notes])
 
   useEffect(() => {
     setLinkDraft(node.link_url)
@@ -596,12 +803,12 @@ function MindNodeRow({
             </button>
             <button
               type="button"
-              className={`crm-mind-tb-btn${panel === 'note' || node.notes ? ' is-active' : ''}`}
-              title={t('ideas.note')}
-              aria-label={t('ideas.note')}
-              onClick={() => setPanel((p) => (p === 'note' ? 'none' : 'note'))}
+              className={`crm-mind-tb-btn crm-mind-tb-btn--rich${node.notes ? ' is-active' : ''}`}
+              title={t('ideas.richToolbar')}
+              aria-label={t('ideas.richToolbar')}
+              onClick={() => onOpenRichNote(node.id)}
             >
-              ≡
+              MD
             </button>
             {node.parent_id && (
               <button
@@ -677,41 +884,6 @@ function MindNodeRow({
           </div>
         )}
 
-        {selected && panel === 'note' && (
-          <div
-            className="crm-mind-pop crm-mind-pop--form crm-mind-pop--note"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <p className="crm-muted crm-mind-note-hint">{t('ideas.noteFormatHint')}</p>
-            <textarea
-              className="crm-input crm-mind-note"
-              rows={6}
-              placeholder={t('ideas.notePlaceholder')}
-              value={notesDraft}
-              autoFocus
-              onChange={(e) => setNotesDraft(e.target.value)}
-              onKeyDown={(e) => {
-                e.stopPropagation()
-                if (e.key === 'Escape') setPanel('none')
-              }}
-            />
-            {notesDraft.trim() ? (
-              <div className="crm-mind-note-preview">
-                <NoteRichBody body={notesDraft} />
-              </div>
-            ) : null}
-            <button
-              type="button"
-              className="btn btn-primary crm-mind-save-btn"
-              onClick={() =>
-                void patchStyle({ notes: notesDraft }).then(() => setPanel('none'))
-              }
-            >
-              {t('ideas.save')}
-            </button>
-          </div>
-        )}
-
         <div
           className="crm-mind-node-row"
           style={
@@ -757,13 +929,15 @@ function MindNodeRow({
           ) : (
             <button
               type="button"
-              className={`crm-mind-title ${emphasisClass(node.emphasis)}`}
+              className={`crm-mind-title ${emphasisClass(node.emphasis)}${
+                titleLooksRich ? ' is-rich-paste' : ''
+              }`}
               onClick={(e) => {
                 e.stopPropagation()
                 onSelect(node.id)
               }}
             >
-              {node.title}
+              {titleLooksRich ? t('ideas.richTitleTruncated') : node.title}
             </button>
           )}
           {node.link_url ? (
@@ -778,22 +952,43 @@ function MindNodeRow({
               ↗
             </a>
           ) : null}
-          {node.notes ? (
+          {(node.notes || titleLooksRich) && (
             <button
               type="button"
               className="crm-mind-note-badge"
-              title={t('ideas.note')}
-              aria-label={t('ideas.note')}
+              title={t('ideas.richToolbar')}
+              aria-label={t('ideas.richToolbar')}
               onClick={(e) => {
                 e.stopPropagation()
-                onSelect(node.id)
-                setPanel('note')
+                onOpenRichNote(node.id)
               }}
             >
-              ≡
+              MD
             </button>
-          ) : null}
+          )}
         </div>
+
+        {titleLooksRich && (
+          <div className="crm-mind-title-warn">
+            <span>{t('ideas.richTitleLooksMarkdown')}</span>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenRichNote(node.id)
+              }}
+            >
+              {t('ideas.richOpenPanel')}
+            </button>
+          </div>
+        )}
+
+        {node.notes.trim() ? (
+          <div className="crm-mind-node-note-preview">
+            <NoteRichBody body={node.notes} />
+          </div>
+        ) : null}
 
         {selected && (
           <>
@@ -836,6 +1031,7 @@ function MindNodeRow({
           focusEditId={focusEditId}
           onSelect={onSelect}
           onEdit={onEdit}
+          onOpenRichNote={onOpenRichNote}
           onFocusEditConsumed={onFocusEditConsumed}
           onChanged={onChanged}
           onCreated={onCreated}

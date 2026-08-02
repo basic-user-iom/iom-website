@@ -735,6 +735,25 @@ const en: Dict = {
   'ideas.deleteNodeConfirm': 'Delete this idea and its children?',
   'ideas.deleteNode': 'Delete idea',
   'ideas.shortcutsHint': 'Tab = child · Enter = sibling · click to select · double-click to edit',
+  'ideas.richHint':
+    'Tables & images go in Rich note below (or click MD on a node) — not in the node title.',
+  'ideas.richSelectNode': 'Select a node to add a rich note with tables, links, and images.',
+  'ideas.richKicker': 'Selected node',
+  'ideas.richTitle': 'Rich note — tables & images',
+  'ideas.richBlurb':
+    'Paste ChatGPT markdown for “{title}”. Use + Table / + Image, then Save.',
+  'ideas.richToolbar': 'Rich note (tables & images)',
+  'ideas.richPreview': 'Preview',
+  'ideas.richPreviewEmpty': 'Preview appears here after you paste a table or image markdown.',
+  'ideas.richDiscard': 'Discard',
+  'ideas.insertTable': '+ Table',
+  'ideas.insertImage': '+ Image',
+  'ideas.richTitleLooksMarkdown':
+    'This node title looks like a pasted table/markdown. Move it into Rich note to render.',
+  'ideas.richMoveTitle': 'Move title → rich note',
+  'ideas.richOpenPanel': 'Open rich note',
+  'ideas.richMovedTitle': 'Asset research',
+  'ideas.richTitleTruncated': 'Pasted markdown (open MD)…',
   'ideas.toolbar': 'Topic tools',
   'ideas.styleColor': 'Color',
   'ideas.colorDefault': 'Default',
@@ -744,9 +763,9 @@ const en: Dict = {
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Note',
   'ideas.notePlaceholder':
-    'Markdown ok: tables | links | ![image](url) · paste from ChatGPT…',
+    'Paste markdown: | tables | · [links](url) · ![image](url) · lists…',
   'ideas.noteFormatHint':
-    'Tables, [links](url), images, and ## headings render below as you type.',
+    'Tables, [links](url), images, and ## headings render in the preview.',
   'ideas.save': 'Save',
   'ideas.saveFailed': 'Could not save topic.',
   'ideas.styleSchemaMissing':
@@ -2232,6 +2251,25 @@ const sr: Dict = {
   'ideas.deleteNodeConfirm': 'Obrisati ovu ideju i njenu decu?',
   'ideas.deleteNode': 'Obriši ideju',
   'ideas.shortcutsHint': 'Tab = dete · Enter = brat/sestra · klik za izbor · dupli klik za izmenu',
+  'ideas.richHint':
+    'Tabele i slike idu u Rich note ispod (ili MD na čvoru) — ne u naslov čvora.',
+  'ideas.richSelectNode': 'Izaberite čvor da dodate rich note sa tabelama, linkovima i slikama.',
+  'ideas.richKicker': 'Izabrani čvor',
+  'ideas.richTitle': 'Rich note — tabele i slike',
+  'ideas.richBlurb':
+    'Nalepite ChatGPT markdown za „{title}”. Koristite + Tabela / + Slika, pa Sačuvaj.',
+  'ideas.richToolbar': 'Rich note (tabele i slike)',
+  'ideas.richPreview': 'Pregled',
+  'ideas.richPreviewEmpty': 'Pregled se pojavljuje ovde kada nalepite tabelu ili markdown slike.',
+  'ideas.richDiscard': 'Odbaci',
+  'ideas.insertTable': '+ Tabela',
+  'ideas.insertImage': '+ Slika',
+  'ideas.richTitleLooksMarkdown':
+    'Naslov čvora izgleda kao nalepljena tabela/markdown. Premestite u Rich note da se renderuje.',
+  'ideas.richMoveTitle': 'Premesti naslov → rich note',
+  'ideas.richOpenPanel': 'Otvori rich note',
+  'ideas.richMovedTitle': 'Istraživanje asseta',
+  'ideas.richTitleTruncated': 'Nalepljen markdown (otvori MD)…',
   'ideas.toolbar': 'Alati teme',
   'ideas.styleColor': 'Boja',
   'ideas.colorDefault': 'Podrazumevano',
@@ -2241,9 +2279,9 @@ const sr: Dict = {
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Beleška',
   'ideas.notePlaceholder':
-    'Markdown može: tabele | linkovi | ![slika](url) · nalepite iz ChatGPT…',
+    'Nalepite markdown: | tabele | · [linkovi](url) · ![slika](url) · liste…',
   'ideas.noteFormatHint':
-    'Tabele, [linkovi](url), slike i ## naslovi renderuju se ispod dok kucate.',
+    'Tabele, [linkovi](url), slike i ## naslovi renderuju se u pregledu.',
   'ideas.save': 'Sačuvaj',
   'ideas.saveFailed': 'Čuvanje teme nije uspelo.',
   'ideas.styleSchemaMissing':

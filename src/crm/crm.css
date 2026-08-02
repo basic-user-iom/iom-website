@@ -3697,32 +3697,139 @@
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-.crm-mind-pop--note {
-  min-width: min(100%, 22rem);
-  max-width: min(92vw, 28rem);
+.crm-mind-rich-panel {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem 1.1rem;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-elevated));
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
 }
 
-.crm-mind-note-hint {
-  margin: 0 0 0.45rem;
-  font-size: 0.68rem;
-  line-height: 1.4;
+.crm-mind-rich-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
-.crm-mind-note-preview {
-  max-height: 16rem;
+.crm-mind-rich-title {
+  margin: 0.1rem 0 0.25rem;
+  font-family: var(--display);
+  font-size: 1.05rem;
+}
+
+.crm-mind-rich-blurb {
+  margin: 0;
+  font-size: 0.78rem;
+  max-width: 48rem;
+}
+
+.crm-mind-rich-inserts,
+.crm-mind-rich-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.crm-mind-rich-textarea {
+  width: 100%;
+  min-height: 10rem;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.crm-mind-rich-migrate {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid color-mix(in srgb, #fbbf24 45%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, #fbbf24 10%, transparent);
+  font-size: 0.8rem;
+}
+
+.crm-mind-rich-migrate p {
+  margin: 0;
+  flex: 1;
+  min-width: 12rem;
+}
+
+.crm-mind-rich-preview {
+  max-height: min(50vh, 28rem);
   overflow: auto;
-  margin: 0.55rem 0 0.65rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
+.crm-mind-rich-preview-label,
+.crm-mind-rich-preview-empty,
+.crm-mind-rich-empty {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.crm-mind-rich-preview-label {
+  margin-bottom: 0.45rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.crm-mind-rich-empty {
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+}
+
+.crm-mind-tb-btn--rich {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  width: auto;
+  min-width: 1.85rem;
+  padding: 0 0.4rem;
+}
+
+.crm-mind-title.is-rich-paste {
+  color: #fbbf24;
+  font-style: italic;
+}
+
+.crm-mind-title-warn {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.25rem 1.4rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: 6px;
+  background: color-mix(in srgb, #fbbf24 12%, transparent);
+  font-size: 0.72rem;
+  color: #fde68a;
+}
+
+.crm-mind-node-note-preview {
+  margin: 0.35rem 0 0.55rem 1.4rem;
+  max-height: 14rem;
+  overflow: auto;
+  padding: 0.5rem 0.65rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: color-mix(in srgb, var(--accent) 4%, var(--bg));
-  font-size: 0.82rem;
-}
-
-.crm-mind-note-preview .crm-note-table th,
-.crm-mind-note-preview .crm-note-table td {
-  padding: 0.4rem 0.5rem;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .crm-mind-note-badge {
@@ -3730,7 +3837,10 @@
   border: 0;
   background: transparent;
   cursor: pointer;
-  padding: 0.1rem 0.2rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .crm-mind-note-badge:hover {
