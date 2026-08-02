@@ -4769,7 +4769,7 @@
   flex: 1;
 }
 
-.crm-mind-board-toolbar {
+.crm-mind-board-chrome {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4785,7 +4785,7 @@
   font-size: 0.72rem;
 }
 
-.crm-mind-board-toolbar-actions {
+.crm-mind-board-chrome-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -4911,26 +4911,47 @@
 .crm-mind-board-tools {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 8px);
+  bottom: calc(100% + 10px);
   transform: translateX(-50%);
   z-index: 8;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.3rem;
+  width: max-content;
+  max-width: none;
   pointer-events: auto;
 }
 
-.crm-mind-board-toolbar {
-  display: flex;
+.crm-mind-card-toolbar {
+  display: inline-flex;
+  flex-wrap: nowrap;
   align-items: center;
-  gap: 0.15rem;
-  padding: 0.22rem 0.4rem;
+  justify-content: center;
+  gap: 0.1rem;
+  padding: 0.2rem 0.35rem;
   border-radius: 999px;
-  border: 1px solid rgba(34, 211, 238, 0.32);
-  background: rgba(8, 20, 28, 0.96);
+  border: 1px solid rgba(34, 211, 238, 0.35);
+  background: rgba(6, 18, 26, 0.97);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+
+.crm-mind-card-toolbar-sep {
+  width: 1px;
+  height: 1.1rem;
+  margin: 0 0.2rem;
+  background: rgba(34, 211, 238, 0.28);
+  flex-shrink: 0;
+}
+
+.crm-mind-board-tools .crm-mind-board-pop {
+  padding: 0.45rem;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(8, 20, 28, 0.97);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
 }
 
 .crm-mind-board-pop {
@@ -5318,15 +5339,21 @@
   border: 0;
   background: transparent;
   color: rgba(226, 232, 240, 0.9);
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.7rem;
+  height: 1.7rem;
   border-radius: 999px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.crm-mind-card-toolbar .crm-mind-tb-btn {
+  width: 1.65rem;
+  height: 1.65rem;
 }
 
 .crm-mind-tb-btn:hover,

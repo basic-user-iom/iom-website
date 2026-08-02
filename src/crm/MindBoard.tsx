@@ -322,7 +322,7 @@ export function MindBoard({
     <div
       className={`crm-mind-board${compact ? ' is-compact' : ''}${connectFromId ? ' is-connecting' : ''}`}
     >
-      <div className="crm-mind-board-toolbar">
+      <div className="crm-mind-board-chrome">
         <p className="crm-muted crm-mind-board-hint">
           {connectFrom
             ? connectTarget
@@ -330,7 +330,7 @@ export function MindBoard({
               : t('ideas.connectPickTarget', { title: connectFrom.title.slice(0, 40) })
             : t('ideas.boardHint')}
         </p>
-        <div className="crm-mind-board-toolbar-actions">
+        <div className="crm-mind-board-chrome-actions">
           <button
             type="button"
             className="btn btn-primary"
@@ -720,7 +720,7 @@ function MindBoardCard({
           onPointerDown={(e) => e.stopPropagation()}
         >
           <div
-            className="crm-mind-board-toolbar"
+            className="crm-mind-card-toolbar"
             role="toolbar"
             aria-label={t('ideas.toolbar')}
           >
@@ -762,13 +762,14 @@ function MindBoardCard({
             >
               ↗
             </button>
+            <span className="crm-mind-card-toolbar-sep" aria-hidden="true" />
             <button
               type="button"
               className="crm-mind-tb-btn"
               title={t('ideas.connect')}
               onClick={() => onStartConnect(node.id)}
             >
-              ⎌
+              ⧉
             </button>
             {node.parent_id ? (
               <button
