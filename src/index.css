@@ -1152,6 +1152,19 @@ body.hero-viewer-fs-lock {
   z-index: 1;
 }
 
+/* Keep hover-embed previews above the stretch hit-layer so mouseenter still fires. */
+.project-card--multi-link .card-preview {
+  position: relative;
+  z-index: 2;
+}
+
+.card-preview-open {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  /* Transparent click target — iframe/poster stay non-interactive underneath. */
+}
+
 .project-card--multi-link .card-source-link {
   position: relative;
   z-index: 2;

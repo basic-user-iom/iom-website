@@ -93,6 +93,10 @@ export const ProjectCard = memo(function ProjectCard({
   const hasSecondaryLinks = Boolean(
     project.caseStudyPath || project.sourceUrl || (project.referenceUrls?.length ?? 0) > 0,
   )
+  // Live hover iframes must not sit inside a wrapping <a> (invalid HTML; browsers
+  // opaque-block same-URL frames). Use the multi-link article shell instead.
+  const hasEmbedPreview = Boolean(project.embedUrl)
+  const useMultiLinkShell = hasSecondaryLinks || hasEmbedPreview
   const canEmbed = Boolean(project.embedUrl) && !embedFailed
   const useStaticEmbed = canEmbed && profile.useEmbedStaticFallback
   const showLiveEmbed = canEmbed && !useStaticEmbed
@@ -379,6 +383,17 @@ export const ProjectCard = memo(function ProjectCard({
               </div>
             </div>
           )}
+          {useMultiLinkShell && projectHref ? (
+            <a
+              className="card-preview-open"
+              href={projectHref}
+              tabIndex={-1}
+              aria-hidden="true"
+              {...(project.url?.startsWith('http') || project.url?.startsWith('/demos/')
+                ? { target: '_blank' as const, rel: 'noopener noreferrer' }
+                : {})}
+            />
+          ) : null}
           <span className="card-preview-overlay" aria-hidden="true">
             OPEN →
           </span>
@@ -453,7 +468,7 @@ export const ProjectCard = memo(function ProjectCard({
               ) : null}
             </div>
             <div className="card-footer-action">
-              {project.url && hasSecondaryLinks ? (
+              {project.url && useMultiLinkShell ? (
                 <a
                   className="card-link card-link--stretch"
                   href={projectHref}
@@ -511,7 +526,20 @@ export const ProjectCard = memo(function ProjectCard({
 
   const className = `project-card reveal${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
 
-  if (project.url && !isComingSoon && !hasSecondaryLinks) {
+  if (project.url && !isComingSoon && useMultiLinkShell) {
+    return (
+      <article
+        id={project.id}
+        className={`${className} project-card--multi-link`}
+        style={style}
+        {...orbPointerProps}
+      >
+        {inner}
+      </article>
+    )
+  }
+
+  if (project.url && !isComingSoon) {
     const openInNewTab = project.url.startsWith('http') || project.url.startsWith('/demos/')
     return (
       <a
@@ -524,19 +552,6 @@ export const ProjectCard = memo(function ProjectCard({
       >
         {inner}
       </a>
-    )
-  }
-
-  if (project.url && !isComingSoon && hasSecondaryLinks) {
-    return (
-      <article
-        id={project.id}
-        className={`${className} project-card--multi-link`}
-        style={style}
-        {...orbPointerProps}
-      >
-        {inner}
-      </article>
     )
   }
 
