@@ -157,9 +157,25 @@ alter table public.crm_activities enable row level security;
 alter table public.crm_lead_messages enable row level security;
 alter table public.crm_projects enable row level security;
 
--- Authenticated staff can manage ALL CRM rows (shared team tool — not owner-scoped).
--- Drop first so re-runs replace any older owner_id = auth.uid() policies.
--- For existing DBs, prefer supabase/crm_shared_access_migration.sql (drops all CRM policies).
+-- Authenticated *staff* can manage ALL CRM rows (shared team tool — not owner-scoped).
+-- Staff gate: public.is_crm_staff(). JWT-domain check here; full helper
+-- (profiles OR @iobjectm.com) is defined after crm_staff_profiles below /
+-- in security_hardening_staff_rls.sql for existing DBs.
+create or replace function public.is_crm_staff()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    auth.uid() is not null
+    and lower(coalesce(auth.jwt() ->> 'email', '')) like '%@iobjectm.com';
+$$;
+
+revoke all on function public.is_crm_staff() from public;
+grant execute on function public.is_crm_staff() to authenticated;
+
 do $$
 declare
   r record;
@@ -180,29 +196,29 @@ begin
 end
 $$;
 
-create policy "crm_leads_auth_all"
+create policy "crm_leads_staff_all"
   on public.crm_leads for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_crm_staff())
+  with check (public.is_crm_staff());
 
-create policy "crm_activities_auth_all"
+create policy "crm_activities_staff_all"
   on public.crm_activities for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_crm_staff())
+  with check (public.is_crm_staff());
 
-create policy "crm_lead_messages_auth_all"
+create policy "crm_lead_messages_staff_all"
   on public.crm_lead_messages for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_crm_staff())
+  with check (public.is_crm_staff());
 
-create policy "crm_projects_auth_all"
+create policy "crm_projects_staff_all"
   on public.crm_projects for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_crm_staff())
+  with check (public.is_crm_staff());
 
 grant select, insert, update, delete on public.crm_leads to authenticated;
 grant select, insert, update, delete on public.crm_activities to authenticated;
@@ -233,13 +249,14 @@ create policy "crm_user_avatars_public_read"
   to public
   using (bucket_id = 'crm-user-avatars');
 
--- Each authenticated user may only write under their own uid folder
+-- Staff may only write under their own uid folder
 drop policy if exists "crm_user_avatars_auth_insert" on storage.objects;
 create policy "crm_user_avatars_auth_insert"
   on storage.objects for insert
   to authenticated
   with check (
     bucket_id = 'crm-user-avatars'
+    and public.is_crm_staff()
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
@@ -249,10 +266,12 @@ create policy "crm_user_avatars_auth_update"
   to authenticated
   using (
     bucket_id = 'crm-user-avatars'
+    and public.is_crm_staff()
     and (storage.foldername(name))[1] = auth.uid()::text
   )
   with check (
     bucket_id = 'crm-user-avatars'
+    and public.is_crm_staff()
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
@@ -262,6 +281,7 @@ create policy "crm_user_avatars_auth_delete"
   to authenticated
   using (
     bucket_id = 'crm-user-avatars'
+    and public.is_crm_staff()
     and (storage.foldername(name))[1] = auth.uid()::text
   );
 
@@ -282,23 +302,46 @@ create index if not exists crm_staff_profiles_email_idx
 
 alter table public.crm_staff_profiles enable row level security;
 
+-- Full staff helper once the directory table exists (profiles OR @iobjectm.com).
+create or replace function public.is_crm_staff()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    auth.uid() is not null
+    and (
+      exists (
+        select 1
+        from public.crm_staff_profiles p
+        where p.id = auth.uid()
+      )
+      or lower(coalesce(auth.jwt() ->> 'email', '')) like '%@iobjectm.com'
+    );
+$$;
+
+revoke all on function public.is_crm_staff() from public;
+grant execute on function public.is_crm_staff() to authenticated;
+
 drop policy if exists "crm_staff_profiles_select_auth" on public.crm_staff_profiles;
-create policy "crm_staff_profiles_select_auth"
+drop policy if exists "crm_staff_profiles_insert_own" on public.crm_staff_profiles;
+drop policy if exists "crm_staff_profiles_update_own" on public.crm_staff_profiles;
+drop policy if exists "crm_staff_profiles_staff_select" on public.crm_staff_profiles;
+drop policy if exists "crm_staff_profiles_staff_update_own" on public.crm_staff_profiles;
+
+create policy "crm_staff_profiles_staff_select"
   on public.crm_staff_profiles for select
   to authenticated
-  using (true);
+  using (public.is_crm_staff());
 
-drop policy if exists "crm_staff_profiles_insert_own" on public.crm_staff_profiles;
-create policy "crm_staff_profiles_insert_own"
-  on public.crm_staff_profiles for insert
-  to authenticated
-  with check (id = auth.uid());
-
-drop policy if exists "crm_staff_profiles_update_own" on public.crm_staff_profiles;
-create policy "crm_staff_profiles_update_own"
+create policy "crm_staff_profiles_staff_update_own"
   on public.crm_staff_profiles for update
   to authenticated
-  using (id = auth.uid())
-  with check (id = auth.uid());
+  using (public.is_crm_staff() and id = auth.uid())
+  with check (public.is_crm_staff() and id = auth.uid());
 
-grant select, insert, update on public.crm_staff_profiles to authenticated;
+-- New staff rows: service role / SQL Editor only
+revoke insert on public.crm_staff_profiles from authenticated;
+grant select, update on public.crm_staff_profiles to authenticated;

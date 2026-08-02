@@ -1532,19 +1532,36 @@ export async function upsertOwnStaffProfile(patch?: {
   if (!useLiveCrmBackend()) return
 
   const supabase = getSupabase()!
-  const { error } = await supabase.from('crm_staff_profiles').upsert(
-    {
-      id: user.id,
+  // Update only — inserts are service-role/SQL (no self-enroll into staff).
+  const { data: existing, error: lookupError } = await supabase
+    .from('crm_staff_profiles')
+    .select('id')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (lookupError && isMissingStaffProfilesTable(lookupError.message)) return
+  if (lookupError) {
+    console.warn('Could not load staff profile:', lookupError.message)
+    return
+  }
+  if (!existing) {
+    console.warn(
+      'Staff profile missing for this account — add the user in Supabase crm_staff_profiles.',
+    )
+    return
+  }
+
+  const { error } = await supabase
+    .from('crm_staff_profiles')
+    .update({
       email: user.email,
       display_name,
       avatar_url: safeAvatar,
       updated_at: nowIso(),
-    },
-    { onConflict: 'id' },
-  )
+    })
+    .eq('id', user.id)
   if (error && isMissingStaffProfilesTable(error.message)) return
   if (error) {
-    console.warn('Could not upsert staff profile:', error.message)
+    console.warn('Could not update staff profile:', error.message)
   }
 }
 
