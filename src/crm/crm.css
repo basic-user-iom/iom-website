@@ -8406,3 +8406,10 @@
   max-height: 12rem;
   overflow: auto;
 }
+
+.crm-clients-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}

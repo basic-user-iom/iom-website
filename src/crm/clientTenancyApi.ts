@@ -67,6 +67,15 @@ export async function updateClientAccount(
   return data as CrmClientAccount
 }
 
+export async function deleteClientAccount(id: string): Promise<void> {
+  if (!useLiveCrmBackend()) {
+    throw new Error('Client accounts require online Supabase.')
+  }
+  const supabase = getSupabase()!
+  const { error } = await supabase.from('crm_client_accounts').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
 export async function listClientMemberships(
   accountId: string,
 ): Promise<CrmClientMembership[]> {

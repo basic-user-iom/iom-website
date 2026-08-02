@@ -678,6 +678,10 @@ const en: Dict = {
   'clients.inactive': 'Inactive',
   'clients.activate': 'Activate',
   'clients.deactivate': 'Deactivate',
+  'clients.delete': 'Delete',
+  'clients.deleteConfirm':
+    'Delete client account “{name}”? Members are removed. Linked projects keep their data but lose the account link.',
+  'clients.errorDelete': 'Could not delete account.',
   'clients.id': 'Account ID',
   'clients.members': 'Members',
   'clients.memberEmail': 'Member email',
@@ -2289,6 +2293,10 @@ const sr: Dict = {
   'clients.inactive': 'Neaktivan',
   'clients.activate': 'Aktiviraj',
   'clients.deactivate': 'Deaktiviraj',
+  'clients.delete': 'Obriši',
+  'clients.deleteConfirm':
+    'Obrisati klijentski nalog „{name}”? Članovi se uklanjaju. Povezani projekti ostaju, ali gube vezu sa nalogom.',
+  'clients.errorDelete': 'Nije moguće obrisati nalog.',
   'clients.id': 'ID naloga',
   'clients.members': 'Članovi',
   'clients.memberEmail': 'Email člana',

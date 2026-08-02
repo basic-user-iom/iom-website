@@ -4,6 +4,7 @@ import type { CrmClientAccount, CrmClientMembership, Lead } from './types'
 import {
   addClientMemberByEmail,
   createClientAccount,
+  deleteClientAccount,
   listClientAccounts,
   listClientMemberships,
   setClientMemberActive,
@@ -178,26 +179,59 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
               <div className="crm-clients-detail">
                 <div className="crm-clients-detail-head">
                   <h3>{selected.name}</h3>
-                  <button
-                    type="button"
-                    className="btn btn-ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      void updateClientAccount(selected.id, {
-                        active: !selected.active,
-                      })
-                        .then(() => refreshAccounts())
-                        .catch((err) =>
-                          setError(
-                            err instanceof Error ? err.message : t('clients.errorUpdate'),
-                          ),
-                        )
-                    }}
-                  >
-                    {selected.active
-                      ? t('clients.deactivate')
-                      : t('clients.activate')}
-                  </button>
+                  <div className="crm-clients-detail-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={busy}
+                      onClick={() => {
+                        void updateClientAccount(selected.id, {
+                          active: !selected.active,
+                        })
+                          .then(() => refreshAccounts())
+                          .catch((err) =>
+                            setError(
+                              err instanceof Error ? err.message : t('clients.errorUpdate'),
+                            ),
+                          )
+                      }}
+                    >
+                      {selected.active
+                        ? t('clients.deactivate')
+                        : t('clients.activate')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost crm-danger"
+                      disabled={busy}
+                      onClick={() => {
+                        if (
+                          !confirm(
+                            t('clients.deleteConfirm', {
+                              name: selected.name || t('clients.unnamed'),
+                            }),
+                          )
+                        ) {
+                          return
+                        }
+                        setBusy(true)
+                        setError('')
+                        void deleteClientAccount(selected.id)
+                          .then(async () => {
+                            setSelectedId(null)
+                            await refreshAccounts()
+                          })
+                          .catch((err) =>
+                            setError(
+                              err instanceof Error ? err.message : t('clients.errorDelete'),
+                            ),
+                          )
+                          .finally(() => setBusy(false))
+                      }}
+                    >
+                      {t('clients.delete')}
+                    </button>
+                  </div>
                 </div>
 
                 <p className="crm-muted crm-clients-id">
