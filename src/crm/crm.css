@@ -4991,8 +4991,8 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.4rem;
-  padding: 0.55rem 0.65rem 0.6rem;
+  gap: 0.35rem;
+  padding: 0.45rem 0.55rem 0.45rem;
 }
 
 .crm-mind-board-card-head {
@@ -5000,6 +5000,7 @@
   align-items: center;
   gap: 0.3rem;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .crm-mind-board-card-head .crm-mind-title {
@@ -5008,21 +5009,21 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
 }
 
 .crm-mind-board-rename {
   flex-shrink: 0;
-  width: 1.7rem;
-  height: 1.7rem;
+  width: 1.55rem;
+  height: 1.55rem;
   margin: 0;
   padding: 0;
   border: 1px solid transparent;
   border-radius: 6px;
   background: transparent;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   line-height: 1;
   cursor: pointer;
   appearance: none;
@@ -5038,15 +5039,14 @@
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.35rem;
+  gap: 0.28rem;
   flex: 1;
   min-height: 0;
   width: 100%;
   margin: 0;
-  padding: 0.4rem 0.45rem 0.45rem;
-  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
@@ -5058,88 +5058,133 @@
   align-items: center;
   cursor: pointer;
   appearance: none;
+  border: 1px dashed color-mix(in srgb, var(--border) 85%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
 }
 
-.crm-mind-board-preview.is-empty:hover,
-.crm-mind-board-preview-hit:hover {
+.crm-mind-board-preview.is-empty:hover {
   border-color: var(--border-accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.crm-mind-board-preview-empty-label {
+  font-size: 0.78rem;
+  color: var(--accent);
 }
 
 .crm-mind-board-preview-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  padding: 0 0.05rem;
+}
+
+.crm-mind-board-preview-link {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  appearance: none;
+}
+
+.crm-mind-board-preview-link.is-secondary {
+  color: var(--text-muted);
+}
+
+.crm-mind-board-preview-link:hover {
+  color: #67e8f9;
+  text-decoration: underline;
 }
 
 .crm-mind-board-preview-hit {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 0.3rem;
+  gap: 0.35rem;
   flex: 1;
   min-height: 0;
   margin: 0;
   padding: 0;
   border: 0;
+  border-radius: 10px;
   background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: zoom-in;
   appearance: none;
+  overflow: hidden;
 }
 
-.crm-mind-board-edit-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.15rem;
-  padding: 0.14rem 0.5rem;
-  border-radius: 999px;
-  border: 1px solid var(--border-accent);
-  background: transparent;
-  color: var(--accent);
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  cursor: pointer;
-  appearance: none;
-  font: inherit;
+.crm-mind-board-preview-hit:hover .crm-mind-board-thumb {
+  filter: brightness(1.06);
 }
 
-.crm-mind-board-edit-chip.is-secondary {
-  border-color: color-mix(in srgb, var(--border) 80%, transparent);
-  color: var(--text-muted);
-}
-
-.crm-mind-board-edit-chip:hover {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
-  color: var(--accent);
-}
-
-.crm-mind-board-preview.is-empty .crm-mind-board-edit-chip {
-  align-self: center;
+.crm-mind-board-preview-hit:hover .crm-mind-board-preview-text {
+  color: var(--text);
 }
 
 .crm-mind-board-thumb {
   display: block;
   width: 100%;
-  height: 4.75rem;
+  height: 5.6rem;
   object-fit: cover;
-  border-radius: 7px;
-  border: 1px solid var(--border);
+  border-radius: 9px;
+  border: 1px solid rgba(34, 211, 238, 0.18);
   flex-shrink: 0;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.crm-mind-board-preview:not(.has-hero) .crm-mind-board-preview-hit {
+  padding: 0.45rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+
+.crm-mind-board-preview:not(.has-hero) .crm-mind-board-preview-hit:hover {
+  border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .crm-mind-board-preview-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-height: 0;
   font-size: 0.74rem;
   line-height: 1.35;
   color: var(--text-muted);
+}
+
+.crm-mind-board-preview.has-hero .crm-mind-board-preview-text {
+  padding: 0 0.1rem;
+}
+
+.crm-mind-board-preview-kicker {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-mind-board-preview-body {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.crm-mind-board-preview.has-hero .crm-mind-board-preview-body {
+  -webkit-line-clamp: 1;
 }
 
 .crm-mind-board-card-hint {

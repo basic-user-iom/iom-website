@@ -940,32 +940,9 @@ function MindBoardCard({
             <p className="crm-mind-board-card-hint">{t('ideas.richEditingHere')}</p>
           ) : node.notes.trim() ? (
             <div
-              className="crm-mind-board-preview"
+              className={`crm-mind-board-preview${snippet?.image ? ' has-hero' : ''}`}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="crm-mind-board-preview-actions">
-                <button
-                  type="button"
-                  className="crm-mind-board-edit-chip"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setNotePreviewOpen(true)
-                  }}
-                >
-                  {t('ideas.richViewLarger')}
-                  <span aria-hidden="true"> ⤢</span>
-                </button>
-                <button
-                  type="button"
-                  className="crm-mind-board-edit-chip is-secondary"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onOpenRichNote(node.id)
-                  }}
-                >
-                  {t('ideas.richEdit')}
-                </button>
-              </div>
               <button
                 type="button"
                 className="crm-mind-board-preview-hit"
@@ -983,10 +960,42 @@ function MindBoardCard({
                     loading="lazy"
                   />
                 ) : null}
-                <span className="crm-mind-board-preview-text">
-                  {snippet?.title || snippet?.text || t('ideas.richViewLarger')}
-                </span>
+                {(snippet?.title || snippet?.text) && (
+                  <span className="crm-mind-board-preview-text">
+                    {snippet.title ? (
+                      <strong className="crm-mind-board-preview-kicker">
+                        {snippet.title}
+                      </strong>
+                    ) : null}
+                    {snippet.text ? (
+                      <span className="crm-mind-board-preview-body">{snippet.text}</span>
+                    ) : null}
+                  </span>
+                )}
               </button>
+              <div className="crm-mind-board-preview-actions">
+                <button
+                  type="button"
+                  className="crm-mind-board-preview-link"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setNotePreviewOpen(true)
+                  }}
+                >
+                  {t('ideas.richViewLarger')}
+                  <span aria-hidden="true"> ⤢</span>
+                </button>
+                <button
+                  type="button"
+                  className="crm-mind-board-preview-link is-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onOpenRichNote(node.id)
+                  }}
+                >
+                  {t('ideas.richEditShort')}
+                </button>
+              </div>
             </div>
           ) : (
             <button
@@ -998,7 +1007,7 @@ function MindBoardCard({
               }}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <span className="crm-mind-board-edit-chip">{t('ideas.richAdd')}</span>
+              <span className="crm-mind-board-preview-empty-label">{t('ideas.richAdd')}</span>
             </button>
           )}
         </div>
