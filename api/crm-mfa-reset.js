@@ -84,12 +84,17 @@ export default async function handler(req, res) {
     return res.status(405).json(publicError('Method not allowed'))
   }
 
-  const auth = await requireStaffUser(req)
+  // aal1 is enough — staff must reset TOTP before they can reach aal2 again.
+  const auth = await requireStaffUser(req, { requireMfa: false })
   if (!auth.ok) {
-    return res.status(auth.status).json(publicError(auth.error))
+    return res.status(auth.status).json(publicError(auth.error, auth.code))
   }
 
-  if (!(await rateLimit(`crm-mfa-reset:${auth.user.id}`, 5, 15 * 60_000))) {
+  if (
+    !(await rateLimit(`crm-mfa-reset:${auth.user.id}`, 5, 15 * 60_000, {
+      failClosed: false,
+    }))
+  ) {
     return res.status(429).json(publicError('Too many requests. Try again later.', 'RATE_LIMIT'))
   }
 

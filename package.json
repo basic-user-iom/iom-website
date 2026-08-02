@@ -25,6 +25,7 @@
     "build:favicons": "node scripts/build-favicons.mjs",
     "preview": "vite preview",
     "predeploy:check": "node scripts/pre-deploy-check.mjs",
+    "security:smoke": "node scripts/verify-security-smoke.mjs",
     "deploy:prod": "node scripts/pre-deploy-check.mjs && npm run build && git push origin master && npx vercel --prod --yes",
     "deploy": "npm run deploy:prod"
   },

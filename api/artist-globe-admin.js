@@ -6,6 +6,9 @@
  */
 
 import {
+  clientIp,
+  publicError,
+  rateLimit,
   requireStaffUser,
   setAllowedOriginCors,
   safeJson,
@@ -61,28 +64,37 @@ export default async function handler(req, res) {
   })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method !== 'POST') {
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
+  }
 
   const auth = await requireStaffUser(req)
   if (!auth.ok) {
-    return res.status(auth.status).json({ error: auth.error })
+    return res.status(auth.status).json(publicError(auth.error, auth.code))
+  }
+
+  if (
+    !(await rateLimit(`artist-admin:${auth.user.id}:${clientIp(req)}`, 60, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many requests. Try again later.', 'RATE_LIMIT'))
   }
 
   const { url, key, hasService } = supabaseConfig()
   if (!url || !key) {
-    return res.status(503).json({
-      error: 'Supabase not configured — use local demo store in the browser.',
-    })
+    return res.status(503).json(publicError('Admin API is unavailable', 'ADMIN_UNAVAILABLE'))
   }
   if (!hasService) {
-    return res.status(503).json({
-      error:
-        'SUPABASE_SERVICE_ROLE_KEY required for admin actions. Browser falls back to local store.',
-    })
+    return res
+      .status(503)
+      .json(publicError('Admin API is unavailable', 'ADMIN_SERVICE_MISSING'))
   }
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : req.body
-  if (!body || typeof body !== 'object') return res.status(400).json({ error: 'Invalid body' })
+  if (!body || typeof body !== 'object') {
+    return res.status(400).json(publicError('Invalid body', 'INVALID_BODY'))
+  }
 
   const action = String(body.action || '')
 
@@ -106,7 +118,9 @@ export default async function handler(req, res) {
     if (action === 'reject') {
       const submissionId = String(body.submissionId || '')
       const reason = String(body.reason || '').slice(0, 500)
-      if (!submissionId) return res.status(400).json({ error: 'submissionId required' })
+      if (!submissionId) {
+        return res.status(400).json(publicError('submissionId required', 'SUBMISSION_REQUIRED'))
+      }
       await sb(`artist_globe_submissions?id=eq.${encodeURIComponent(submissionId)}`, {
         method: 'PATCH',
         url,
@@ -118,13 +132,15 @@ export default async function handler(req, res) {
 
     if (action === 'toggle_status') {
       const artistId = String(body.artistId || '')
-      if (!artistId) return res.status(400).json({ error: 'artistId required' })
+      if (!artistId) {
+        return res.status(400).json(publicError('artistId required', 'ARTIST_REQUIRED'))
+      }
       const rows = await sb(
         `artist_globe_artists?id=eq.${encodeURIComponent(artistId)}&select=*`,
         { url, key },
       )
       const artist = Array.isArray(rows) ? rows[0] : null
-      if (!artist) return res.status(404).json({ error: 'Artist not found' })
+      if (!artist) return res.status(404).json(publicError('Artist not found', 'NOT_FOUND'))
       const next = artist.status === 'live' ? 'hidden' : 'live'
       await sb(`artist_globe_artists?id=eq.${encodeURIComponent(artistId)}`, {
         method: 'PATCH',
@@ -137,16 +153,18 @@ export default async function handler(req, res) {
 
     if (action === 'approve') {
       const submissionId = String(body.submissionId || '')
-      if (!submissionId) return res.status(400).json({ error: 'submissionId required' })
+      if (!submissionId) {
+        return res.status(400).json(publicError('submissionId required', 'SUBMISSION_REQUIRED'))
+      }
 
       const rows = await sb(
         `artist_globe_submissions?id=eq.${encodeURIComponent(submissionId)}&select=*`,
         { url, key },
       )
       const sub = Array.isArray(rows) ? rows[0] : null
-      if (!sub) return res.status(404).json({ error: 'Submission not found' })
+      if (!sub) return res.status(404).json(publicError('Submission not found', 'NOT_FOUND'))
       if (sub.status !== 'pending') {
-        return res.status(400).json({ error: 'Submission already handled' })
+        return res.status(400).json(publicError('Submission already handled', 'ALREADY_HANDLED'))
       }
 
       let slug = slugify(sub.display_name)
@@ -215,9 +233,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, inviteUrl, inviteToken })
     }
 
-    return res.status(400).json({ error: `Unknown action: ${action}` })
+    return res.status(400).json(publicError('Unknown action', 'UNKNOWN_ACTION'))
   } catch (err) {
-    console.error('[artist-globe-admin]', err)
-    return res.status(500).json({ error: 'Admin action failed' })
+    console.error('[artist-globe-admin]', err instanceof Error ? err.message : err)
+    return res.status(500).json(publicError('Admin action failed', 'ADMIN_FAILED'))
   }
 }

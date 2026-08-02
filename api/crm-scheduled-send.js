@@ -12,7 +12,13 @@
  *      Proton SMTP vars. Optional: CRM_STAFF_EMAILS.
  */
 
-import { requireStaffUser, setAllowedOriginCors } from './_lib/blog-helpers.js'
+import {
+  clientIp,
+  publicError,
+  rateLimit,
+  requireStaffUser,
+  setAllowedOriginCors,
+} from './_lib/blog-helpers.js'
 import { processDueScheduledSends } from './_lib/crm-process-scheduled-sends.js'
 
 export default async function handler(req, res) {
@@ -24,12 +30,22 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET' && req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
   }
 
   const auth = await authorizeRequest(req)
   if (!auth.ok) {
-    return res.status(auth.status).json({ error: auth.error })
+    return res.status(auth.status).json(publicError(auth.error, auth.code))
+  }
+
+  if (auth.mode === 'staff') {
+    if (
+      !(await rateLimit(`crm-scheduled-send:${auth.userId}:${clientIp(req)}`, 20, 60_000, {
+        failClosed: true,
+      }))
+    ) {
+      return res.status(429).json(publicError('Too many requests. Try again later.', 'RATE_LIMIT'))
+    }
   }
 
   const supabaseUrl = (
@@ -40,9 +56,9 @@ export default async function handler(req, res) {
   const serviceKey =
     process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
   if (!supabaseUrl || !serviceKey) {
-    return res.status(503).json({
-      error: 'SUPABASE_SERVICE_ROLE_KEY and Supabase URL required',
-    })
+    return res
+      .status(503)
+      .json(publicError('Scheduled send is not configured', 'SCHEDULE_UNAVAILABLE'))
   }
 
   try {
@@ -53,9 +69,7 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[crm-scheduled-send] process failed', err)
-    return res.status(502).json({
-      error: 'Failed to process scheduled sends',
-    })
+    return res.status(502).json(publicError('Failed to process scheduled sends', 'SCHEDULE_FAILED'))
   }
 }
 
@@ -77,21 +91,27 @@ async function authorizeRequest(req) {
     }
   }
 
-  // Staff ping: validate Supabase JWT + staff email (do not expose cron secret).
+  // Staff ping: JWT + staff email + MFA (do not expose cron secret).
   if (bearer && bearer !== cronSecret) {
     const staff = await requireStaffUser(req)
     if (staff.ok) {
       return { ok: true, mode: 'staff', userId: staff.user.id }
     }
-    return { ok: false, status: staff.status, error: staff.error }
+    return {
+      ok: false,
+      status: staff.status,
+      error: staff.error,
+      code: staff.code,
+    }
   }
 
   if (!cronSecret) {
     return {
       ok: false,
       status: 503,
-      error: 'CRM_CRON_SECRET (or CRON_SECRET) is not configured',
+      error: 'Scheduled send is not configured',
+      code: 'CRON_UNAVAILABLE',
     }
   }
-  return { ok: false, status: 401, error: 'Unauthorized' }
+  return { ok: false, status: 401, error: 'Unauthorized', code: 'UNAUTHORIZED' }
 }

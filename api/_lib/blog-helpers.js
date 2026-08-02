@@ -92,22 +92,40 @@ export function isStaffEmail(email) {
 }
 
 /**
+ * Read Supabase access-token AAL claim (`aal1` / `aal2`) after token verification.
+ * @param {string} token
+ * @returns {'aal1' | 'aal2' | null}
+ */
+export function readAccessTokenAal(token) {
+  try {
+    const part = String(token || '').split('.')[1]
+    if (!part) return null
+    const json = JSON.parse(Buffer.from(part, 'base64url').toString('utf8'))
+    if (json?.aal === 'aal2') return 'aal2'
+    if (json?.aal === 'aal1') return 'aal1'
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Verify Supabase access token from Authorization: Bearer …
- * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string } | { ok: false, status: number, error: string }>}
+ * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string, aal: 'aal1' | 'aal2' | null } | { ok: false, status: number, error: string, code?: string }>}
  */
 export async function requireSupabaseUser(req) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const anonKey =
     process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
   if (!supabaseUrl || !anonKey) {
-    return { ok: false, status: 503, error: 'Auth is not configured' }
+    return { ok: false, status: 503, error: 'Auth is not configured', code: 'AUTH_UNAVAILABLE' }
   }
   const authHeader = String(req.headers.authorization || '')
   const token = authHeader.startsWith('Bearer ')
     ? authHeader.slice(7).trim()
     : ''
   if (!token) {
-    return { ok: false, status: 401, error: 'Missing authorization' }
+    return { ok: false, status: 401, error: 'Missing authorization', code: 'AUTH_MISSING' }
   }
   const userRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
     headers: {
@@ -116,28 +134,42 @@ export async function requireSupabaseUser(req) {
     },
   })
   if (!userRes.ok) {
-    return { ok: false, status: 401, error: 'Invalid or expired session' }
+    return { ok: false, status: 401, error: 'Invalid or expired session', code: 'AUTH_INVALID' }
   }
   const authUser = await userRes.json().catch(() => null)
   if (!authUser?.id) {
-    return { ok: false, status: 401, error: 'Invalid session' }
+    return { ok: false, status: 401, error: 'Invalid session', code: 'AUTH_INVALID' }
   }
   return {
     ok: true,
     user: { id: String(authUser.id), email: authUser.email || undefined },
     token,
+    aal: readAccessTokenAal(token),
   }
 }
 
 /**
  * Require a verified Supabase user who is treated as CRM staff.
- * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string } | { ok: false, status: number, error: string }>}
+ * Defaults to MFA (aal2) for privileged staff actions. Pass `{ requireMfa: false }`
+ * only for bootstrap flows (e.g. MFA reset / enroll).
+ * @param {import('http').IncomingMessage} req
+ * @param {{ requireMfa?: boolean }} [opts]
+ * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string, aal: 'aal1' | 'aal2' | null } | { ok: false, status: number, error: string, code?: string }>}
  */
-export async function requireStaffUser(req) {
+export async function requireStaffUser(req, opts = {}) {
+  const requireMfa = opts.requireMfa !== false
   const auth = await requireSupabaseUser(req)
   if (!auth.ok) return auth
   if (!isStaffEmail(auth.user.email)) {
-    return { ok: false, status: 403, error: 'Staff access required' }
+    return { ok: false, status: 403, error: 'Staff access required', code: 'STAFF_REQUIRED' }
+  }
+  if (requireMfa && auth.aal !== 'aal2') {
+    return {
+      ok: false,
+      status: 403,
+      error: 'Two-factor authentication required',
+      code: 'MFA_REQUIRED',
+    }
   }
   return auth
 }
@@ -268,15 +300,20 @@ function rateLimitMemory(key, max = 8, windowMs = 60_000) {
 
 /**
  * Durable rate limit via Supabase when service role is available;
- * falls back to in-memory on cold/misconfigured instances.
+ * falls back to in-memory otherwise.
+ * Pass `{ failClosed: true }` on privileged CRM actions so a missing
+ * durable limiter rejects instead of degrading to per-instance memory.
  * @param {string} key
  * @param {number} max
  * @param {number} windowMs
+ * @param {{ failClosed?: boolean }} [opts]
  * @returns {Promise<boolean>} true if allowed
  */
-export async function rateLimit(key, max = 8, windowMs = 60_000) {
+export async function rateLimit(key, max = 8, windowMs = 60_000, opts = {}) {
   const { url, key: sbKey, hasService } = supabaseConfig()
-  if (hasService && url && key) {
+  const failClosed = Boolean(opts.failClosed)
+
+  if (hasService && url) {
     try {
       const allowed = await sb('rpc/api_rate_limit_take', {
         method: 'POST',
@@ -289,13 +326,26 @@ export async function rateLimit(key, max = 8, windowMs = 60_000) {
         },
       })
       if (typeof allowed === 'boolean') return allowed
+      if (failClosed) {
+        console.error('[rateLimit] durable RPC returned non-boolean; rejecting')
+        return false
+      }
     } catch (err) {
-      // Migration not applied yet, or transient DB error — degrade safely.
+      if (failClosed) {
+        console.error(
+          '[rateLimit] durable unavailable; rejecting',
+          err instanceof Error ? err.message : err,
+        )
+        return false
+      }
       console.warn(
         '[rateLimit] durable unavailable; using memory',
         err instanceof Error ? err.message : err,
       )
     }
+  } else if (failClosed) {
+    console.error('[rateLimit] no service role; failClosed reject')
+    return false
   }
   return rateLimitMemory(key, max, windowMs)
 }

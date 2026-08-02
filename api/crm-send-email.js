@@ -11,6 +11,9 @@
 
 import nodemailer from 'nodemailer'
 import {
+  clientIp,
+  publicError,
+  rateLimit,
   requireStaffUser,
   setAllowedOriginCors,
   safeJson,
@@ -36,27 +39,37 @@ export default async function handler(req, res) {
   })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method !== 'POST') {
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
+  }
 
   const host = process.env.PROTON_SMTP_HOST
   const port = Number(process.env.PROTON_SMTP_PORT || 587)
   if (!host) {
-    return res.status(503).json({ error: 'Email sending is not configured' })
+    return res.status(503).json(publicError('Email sending is not configured', 'EMAIL_UNAVAILABLE'))
   }
 
   const auth = await requireStaffUser(req)
   if (!auth.ok) {
-    return res.status(auth.status).json({ error: auth.error })
+    return res.status(auth.status).json(publicError(auth.error, auth.code))
   }
   const authUser = auth.user
   const token = auth.token
+
+  if (
+    !(await rateLimit(`crm-send-email:${authUser.id}:${clientIp(req)}`, 30, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many requests. Try again later.', 'RATE_LIMIT'))
+  }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : req.body
   if (!body || typeof body !== 'object') {
-    return res.status(400).json({ error: 'Invalid body' })
+    return res.status(400).json(publicError('Invalid body', 'INVALID_BODY'))
   }
 
   const to = String(body.to || '')
@@ -70,18 +83,23 @@ export default async function handler(req, res) {
   const referencesRaw = body.references ? String(body.references).trim() : ''
   const persistMessage = body.persistMessage !== false
 
-  if (!EMAIL_RE.test(to)) return res.status(400).json({ error: 'Invalid recipient email' })
-  if (!subject) return res.status(400).json({ error: 'Subject is required' })
-  if (!textBody) return res.status(400).json({ error: 'Body is required' })
-  if (subject.length > 300) return res.status(400).json({ error: 'Subject too long' })
-  if (textBody.length > 50_000) return res.status(400).json({ error: 'Body too long' })
+  if (!EMAIL_RE.test(to)) {
+    return res.status(400).json(publicError('Invalid recipient email', 'INVALID_EMAIL'))
+  }
+  if (!subject) return res.status(400).json(publicError('Subject is required', 'SUBJECT_REQUIRED'))
+  if (!textBody) return res.status(400).json(publicError('Body is required', 'BODY_REQUIRED'))
+  if (subject.length > 300) {
+    return res.status(400).json(publicError('Subject too long', 'SUBJECT_TOO_LONG'))
+  }
+  if (textBody.length > 50_000) {
+    return res.status(400).json(publicError('Body too long', 'BODY_TOO_LONG'))
+  }
 
   const identity = resolveProtonIdentity(fromIdentity)
   if (!identity) {
-    return res.status(503).json({
-      error: 'Selected From address is not configured',
-      code: 'identity_unconfigured',
-    })
+    return res
+      .status(503)
+      .json(publicError('Selected From address is not configured', 'IDENTITY_UNCONFIGURED'))
   }
 
   const html = renderOutreachEmailHtml({ subject, body: textBody })
@@ -168,8 +186,6 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[crm-send-email]', err instanceof Error ? err.message : err)
-    return res.status(502).json({
-      error: 'Failed to send email',
-    })
+    return res.status(502).json(publicError('Failed to send email', 'SEND_FAILED'))
   }
 }
