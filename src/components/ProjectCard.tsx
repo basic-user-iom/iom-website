@@ -218,17 +218,17 @@ export const ProjectCard = memo(function ProjectCard({
         if (mountedRef.current) setEmbedFailed(true)
       }
 
-      const inspect = (): 'ready' | 'failed' | 'wait' => {
+      const isFirstPartyEmbed = () => {
+        const src = iframe.src || ''
+        const attr = iframe.getAttribute('src') || ''
+        return src.startsWith(window.location.origin) || attr.startsWith('/')
+      }
+
+      const inspect = (): 'ready' | 'failed' | 'wait' | 'blocked' => {
         try {
           const doc = iframe.contentDocument
-          if (!doc) {
-            // Same-origin src with no document usually means X-Frame-Options blocked the frame.
-            const src = iframe.src || ''
-            if (src.startsWith(window.location.origin) || (iframe.getAttribute('src') || '').startsWith('/')) {
-              return 'failed'
-            }
-            return 'wait'
-          }
+          // Document can be briefly null while the frame boots — keep polling.
+          if (!doc) return 'wait'
           const href = iframe.contentWindow?.location.href ?? ''
           if (href === 'about:blank' || href.startsWith('chrome-error://')) {
             return 'failed'
@@ -246,14 +246,9 @@ export const ProjectCard = memo(function ProjectCard({
           if ((doc.body?.childElementCount ?? 0) === 0) return 'failed'
           return 'wait'
         } catch {
-          // True cross-origin embeds (streets.gl, etc.) cannot be inspected.
-          // First-party paths that throw are almost always frame-blocking headers.
-          const src = iframe.src || ''
-          const attr = iframe.getAttribute('src') || ''
-          if (src.startsWith(window.location.origin) || attr.startsWith('/')) {
-            return 'failed'
-          }
-          return 'ready'
+          // True cross-origin embeds cannot be inspected — show them.
+          // First-party throws usually mean the frame is still blocked/opaque.
+          return isFirstPartyEmbed() ? 'blocked' : 'ready'
         }
       }
 
@@ -279,10 +274,15 @@ export const ProjectCard = memo(function ProjectCard({
           markReady()
           return
         }
-        if (state === 'failed' || ++attempts >= 40) {
-          // ~4s — keep the static poster instead of flashing an empty iframe
+        if (state === 'failed') {
           clearEmbedReadyPoll()
-          if (state === 'failed') markFailed()
+          markFailed()
+          return
+        }
+        if (++attempts >= 40) {
+          // ~4s — keep the static poster; mark first-party opaque frames as failed
+          clearEmbedReadyPoll()
+          if (state === 'blocked') markFailed()
         }
       }, 100)
     },
