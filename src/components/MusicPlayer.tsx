@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { Project } from '../data/projects'
 import {
   formatAudioTime,
@@ -14,6 +14,13 @@ import {
 } from '../utils/audioFocus'
 import { getDeviceProfile } from '../utils/device'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
+import { useSiteOrbsOptional } from './SiteOrbZone'
+
+function syncMusicMuteWithSite(muted: boolean) {
+  persistMute('music', muted)
+  persistMute('site', muted)
+  window.dispatchEvent(new CustomEvent('iom:site-audio-mute', { detail: { muted } }))
+}
 
 interface MusicPlayerProps {
   tracks: Project[]
@@ -41,6 +48,8 @@ interface MusicAlbumThumbProps {
 }
 
 function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
+  const orbs = useSiteOrbsOptional()
+  const thumbRef = useRef<HTMLButtonElement>(null)
   const isMobile = getDeviceProfile().isMobile
   const posterSrc = isMobile
     ? (track.mobilePosterUrl ?? track.posterUrl ?? track.thumbnail)
@@ -49,14 +58,55 @@ function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
   const disabled = !track.audioUrl || !onSelect
   const showPoster = Boolean(posterSrc) && !posterFailed
 
+  // Imaged song cards pull the cyan orbs into an outline orbit (same as project cards).
+  useEffect(() => {
+    if (!orbs || !isActive || !showPoster) return
+    const el = thumbRef.current
+    if (!el) return
+
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting && (entry.intersectionRatio ?? 0) >= 0.2) {
+          orbs.setHover('card', 0, el)
+        } else {
+          orbs.setHover(null, null)
+        }
+      },
+      { threshold: [0, 0.2, 0.45] },
+    )
+    io.observe(el)
+    return () => {
+      io.disconnect()
+      orbs.setHover(null, null)
+    }
+  }, [orbs, isActive, showPoster])
+
+  const orbPointerProps =
+    orbs && showPoster
+      ? {
+          onPointerEnter: (event: ReactPointerEvent<HTMLButtonElement>) => {
+            orbs.setHover('card', 0, event.currentTarget)
+          },
+          onPointerLeave: () => {
+            if (isActive && thumbRef.current) {
+              orbs.setHover('card', 0, thumbRef.current)
+              return
+            }
+            orbs.setHover(null, null)
+          },
+        }
+      : undefined
+
   return (
     <button
+      ref={thumbRef}
       type="button"
-      className={`music-player-album-thumb${isActive ? ' is-active' : ''}`}
+      className={`music-player-album-thumb${isActive ? ' is-active' : ''}${showPoster ? ' has-poster' : ''}`}
       onClick={disabled ? undefined : () => onSelect(track.id)}
       disabled={disabled}
       aria-pressed={isActive}
       aria-label={track.audioUrl ? `Load ${track.title}` : track.title}
+      {...orbPointerProps}
     >
       {showPoster ? (
         <img
@@ -351,7 +401,8 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const sourceConnectedRef = useRef(false)
   const rafRef = useRef<number | null>(null)
   const lastFrameRef = useRef(0)
-  const [muted, setMuted] = useState(() => readStoredMute('music'))
+  // Share mute with header Listen/Mute so both controls stay in sync.
+  const [muted, setMuted] = useState(() => readStoredMute('site'))
   const [volume, setVolume] = useState(() => readStoredVolume('music'))
   const mutedRef = useRef(muted)
   const volumeRef = useRef(volume)
@@ -705,7 +756,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     const shouldUnmute = mutedRef.current && volumeRef.current > 0
     if (shouldUnmute) {
       setMuted(false)
-      persistMute('music', false)
+      syncMusicMuteWithSite(false)
     }
     applyUserVolume(audio, { forceUnmuted: shouldUnmute })
     applyOutputGain({ forceUnmuted: shouldUnmute })
@@ -776,7 +827,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     unlockAudioContext()
     setMuted((current) => {
       const next = !current
-      persistMute('music', next)
+      syncMusicMuteWithSite(next)
       return next
     })
     setPlaybackError(null)
@@ -789,7 +840,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     unlockAudioContext()
     if (next > 0 && mutedRef.current) {
       setMuted(false)
-      persistMute('music', false)
+      syncMusicMuteWithSite(false)
     }
     setPlaybackError(null)
   }, [unlockAudioContext])
@@ -1042,6 +1093,18 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       applyOutputGain()
     }
   }, [applyOutputGain, applyVolumeToAllOutputs, muted, volume])
+
+  // Keep player Mute in lockstep with the header Listen / Mute control.
+  useEffect(() => {
+    const onSiteMute = (event: Event) => {
+      const detail = (event as CustomEvent<{ muted?: boolean }>).detail
+      if (typeof detail?.muted !== 'boolean') return
+      setMuted(detail.muted)
+      persistMute('music', detail.muted)
+    }
+    window.addEventListener('iom:site-audio-mute', onSiteMute)
+    return () => window.removeEventListener('iom:site-audio-mute', onSiteMute)
+  }, [])
 
   useEffect(() => {
     const root = playerRef.current

@@ -496,10 +496,10 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
           const vhNow = window.innerHeight
           let bestEl: HTMLElement | null = null
           let bestScore = 0
-          for (const card of zone.querySelectorAll<HTMLElement>('.project-card')) {
+          for (const card of zone.querySelectorAll<HTMLElement>(
+            '.project-card, .music-player-album-thumb.has-poster',
+          )) {
             if (card.classList.contains('project-card--coming-soon')) continue
-            // Music strip thumbs are too small / dense for a full outline orbit.
-            if (card.closest('.music-player-thumbnails')) continue
             const box = card.getBoundingClientRect()
             const visible = Math.max(0, Math.min(box.bottom, vhNow) - Math.max(box.top, 0))
             if (visible <= 0) continue
@@ -507,7 +507,9 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
             if (ratio < 0.28) continue
             const mid = (box.top + box.bottom) / 2
             const centerBias = 1 - Math.min(1, Math.abs(mid - vhNow * 0.42) / (vhNow * 0.7))
-            const score = ratio * (0.55 + 0.45 * centerBias)
+            // Active album art gets first claim so lights orbit the selected song card.
+            const activeBoost = card.classList.contains('is-active') ? 1.35 : 1
+            const score = ratio * (0.55 + 0.45 * centerBias) * activeBoost
             if (score > bestScore) {
               bestScore = score
               bestEl = card

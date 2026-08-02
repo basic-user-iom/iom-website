@@ -13,7 +13,7 @@ import {
 } from '../utils/audioFocus'
 
 /** Soft homepage bed — starts muted until the header control unmutes (user gesture). */
-const AMBIENT_URL = '/assets/audio/mist-stone-sea.mp3'
+const AMBIENT_URL = '/assets/audio/the-black-witness.mp3'
 const AMBIENT_GAIN = 0.28
 
 type AmbientHandle = {
@@ -24,12 +24,13 @@ type AmbientHandle = {
 let ambientHandle: AmbientHandle | null = null
 
 /**
- * Homepage ambient loop. Mute state is shared via `site` audioPrefs +
- * `iom:site-audio-mute` CustomEvent from the header control.
+ * Homepage ambient loop (The Black Witness by default). Mute state is shared via
+ * `site` audioPrefs + `iom:site-audio-mute` with the header Listen/Mute control
+ * and the Music player Mute button.
  * Yields automatically when music or gallery audio takes focus.
  *
  * Network: src is attached only when the user asks for sound (Listen), so the
- * ~4MB bed does not download on cold load. Attach + play stay on the same
+ * bed does not download on cold load. Attach + play stay on the same
  * gesture stack for iOS.
  */
 export function SiteAmbientAudio() {
