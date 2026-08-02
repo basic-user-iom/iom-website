@@ -118,3 +118,29 @@ export async function unenrollMfaFactor(factorId: string): Promise<void> {
   const { error } = await supabase.auth.mfa.unenroll({ factorId })
   if (error) throw new Error(error.message)
 }
+
+/**
+ * Clear this staff user's TOTP factors (server admin API) so a new QR can be enrolled.
+ * Invalidates sessions after verified factors are removed — caller should re-sign-in.
+ */
+export async function resetOwnMfaFactors(): Promise<{ removed: number }> {
+  const supabase = requireLive()
+  const { data } = await supabase.auth.getSession()
+  const token = data.session?.access_token
+  if (!token) throw new Error('Not signed in')
+
+  const response = await fetch('/api/crm-mfa-reset', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
+  const payload = (await response.json().catch(() => null)) as
+    | { ok?: boolean; removed?: number; error?: string }
+    | null
+  if (!response.ok) {
+    throw new Error(payload?.error || 'MFA_RESET_FAILED')
+  }
+  return { removed: payload?.removed ?? 0 }
+}

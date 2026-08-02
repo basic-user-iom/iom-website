@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { signIn, signOut, storageMode } from './api'
-import { verifyMfaChallenge } from './crmMfa'
+import { getPostLoginMfaState, resetOwnMfaFactors, verifyMfaChallenge } from './crmMfa'
 import { useCrmI18n } from './i18n'
 
 interface CrmLoginProps {
@@ -22,6 +22,7 @@ export function CrmLogin({
   const [mfaCode, setMfaCode] = useState('')
   const [mfaFactorId, setMfaFactorId] = useState<string | null>(resumeFactorId)
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [busy, setBusy] = useState(false)
   const mode = storageMode()
 
@@ -37,6 +38,7 @@ export function CrmLogin({
     e.preventDefault()
     setBusy(true)
     setError('')
+    setInfo('')
     try {
       const result = await signIn(email, password)
       if (result.kind === 'mfa_challenge') {
@@ -64,6 +66,7 @@ export function CrmLogin({
     if (!mfaFactorId) return
     setBusy(true)
     setError('')
+    setInfo('')
     try {
       await verifyMfaChallenge(mfaFactorId, mfaCode)
       onMfaHoldChange?.(false)
@@ -78,6 +81,7 @@ export function CrmLogin({
   const handleBackToPassword = async () => {
     setBusy(true)
     setError('')
+    setInfo('')
     try {
       await signOut()
     } catch {
@@ -86,6 +90,55 @@ export function CrmLogin({
       setMfaFactorId(null)
       setMfaCode('')
       onMfaHoldChange?.(false)
+      setBusy(false)
+    }
+  }
+
+  /** Lost phone authenticator / never scanned — clear server factors and re-enroll. */
+  const handleSetupAgain = async () => {
+    setBusy(true)
+    setError('')
+    setInfo('')
+    try {
+      await resetOwnMfaFactors()
+      try {
+        await signOut()
+      } catch {
+        /* ignore */
+      }
+      setMfaFactorId(null)
+      setMfaCode('')
+      onMfaHoldChange?.(false)
+
+      // Password still in form → sign in again and land on QR enroll gate.
+      if (email.trim() && password) {
+        const result = await signIn(email, password)
+        if (result.kind === 'mfa_challenge') {
+          // Unexpected leftover factor
+          setMfaFactorId(result.factorId)
+          onMfaHoldChange?.(true)
+          setError(t('login.mfaResetIncomplete'))
+          return
+        }
+        onSuccess()
+        return
+      }
+
+      // Resume path without password cached — ask them to sign in once more.
+      setInfo(t('login.mfaResetOk'))
+      // Confirm no challenge remains
+      try {
+        const state = await getPostLoginMfaState()
+        if (state.kind === 'mfa_challenge') {
+          setMfaFactorId(state.factorId)
+          onMfaHoldChange?.(true)
+        }
+      } catch {
+        /* signed out */
+      }
+    } catch {
+      setError(t('login.mfaResetFailed'))
+    } finally {
       setBusy(false)
     }
   }
@@ -124,6 +177,14 @@ export function CrmLogin({
               type="button"
               className="btn btn-ghost"
               disabled={busy}
+              onClick={() => void handleSetupAgain()}
+            >
+              {t('login.mfaSetupAgain')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy}
               onClick={() => void handleBackToPassword()}
             >
               {t('login.mfaBack')}
@@ -131,6 +192,11 @@ export function CrmLogin({
             {error && (
               <p className="crm-feedback crm-feedback--error" role="alert">
                 {error}
+              </p>
+            )}
+            {info && (
+              <p className="crm-feedback" role="status">
+                {info}
               </p>
             )}
           </form>
@@ -166,6 +232,11 @@ export function CrmLogin({
             {error && (
               <p className="crm-feedback crm-feedback--error" role="alert">
                 {error}
+              </p>
+            )}
+            {info && (
+              <p className="crm-feedback" role="status">
+                {info}
               </p>
             )}
           </form>

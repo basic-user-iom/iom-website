@@ -158,6 +158,10 @@ const en: Dict = {
   'login.mfaBack': 'Back to sign in',
   'login.mfaFailed': 'Invalid or expired code. Try again.',
   'login.verifying': 'Verifying…',
+  'login.mfaSetupAgain': 'Set up authenticator again',
+  'login.mfaResetOk': 'Authenticator cleared. Sign in with your password to scan a new QR code.',
+  'login.mfaResetFailed': 'Could not reset authenticator. Try again or ask an admin.',
+  'login.mfaResetIncomplete': 'Old authenticator still present. Try again or remove it in Supabase.',
 
   'mfa.kicker': 'Security',
   'mfa.title': 'Set up two-factor authentication',
@@ -1815,6 +1819,10 @@ const sr: Dict = {
   'login.mfaBack': 'Nazad na prijavu',
   'login.mfaFailed': 'Neispravan ili istekao kod. Pokušajte ponovo.',
   'login.verifying': 'Provera…',
+  'login.mfaSetupAgain': 'Podesi autentikator ponovo',
+  'login.mfaResetOk': 'Autentikator obrisan. Prijavite se lozinkom da skenirate novi QR kod.',
+  'login.mfaResetFailed': 'Nije moguće resetovati autentikator. Pokušajte ponovo ili pitajte admina.',
+  'login.mfaResetIncomplete': 'Stari autentikator je još aktivan. Pokušajte ponovo ili ga uklonite u Supabase-u.',
 
   'mfa.kicker': 'Bezbednost',
   'mfa.title': 'Podesite dvofaktorsku autentifikaciju',
