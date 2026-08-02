@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { NoteImage } from './NoteImage'
 
 export interface NoteSection {
   id: string
@@ -254,14 +255,7 @@ export function renderInlineMarkdown(text: string, keyPrefix: string): ReactNode
     const key = `${keyPrefix}-t${ti++}`
     if (tok.kind === 'image') {
       out.push(
-        <img
-          key={key}
-          className="crm-note-image crm-note-image--inline"
-          src={tok.url}
-          alt={tok.alt || ''}
-          loading="lazy"
-          decoding="async"
-        />,
+        <NoteImage key={key} url={tok.url} alt={tok.alt || ''} inline />,
       )
       continue
     }
@@ -275,16 +269,7 @@ export function renderInlineMarkdown(text: string, keyPrefix: string): ReactNode
     }
     if (tok.kind === 'url') {
       if (isImageUrl(tok.url)) {
-        out.push(
-          <img
-            key={key}
-            className="crm-note-image crm-note-image--inline"
-            src={tok.url}
-            alt=""
-            loading="lazy"
-            decoding="async"
-          />,
-        )
+        out.push(<NoteImage key={key} url={tok.url} alt="" inline />)
       } else {
         out.push(
           <ExternalLink key={key} href={tok.url}>
@@ -364,14 +349,7 @@ function renderTable(rows: string[], keyPrefix: string): ReactNode {
 function renderImageBlock(url: string, alt: string, key: string): ReactNode {
   return (
     <figure key={key} className="crm-note-figure">
-      <img
-        className="crm-note-image"
-        src={url}
-        alt={alt}
-        loading="lazy"
-        decoding="async"
-      />
-      {alt ? <figcaption className="crm-note-figcaption">{alt}</figcaption> : null}
+      <NoteImage url={url} alt={alt} />
     </figure>
   )
 }

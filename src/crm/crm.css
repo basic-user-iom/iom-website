@@ -3698,14 +3698,74 @@
   background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
 }
 
-.crm-note-image--inline {
+.crm-note-image-trigger {
+  position: relative;
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.crm-note-image-trigger.is-inline {
   display: inline-block;
+  vertical-align: middle;
+  margin: 0.15rem 0;
+}
+
+.crm-note-image-trigger .crm-note-image {
+  pointer-events: none;
+}
+
+.crm-note-image-trigger:hover .crm-note-image,
+.crm-note-image-trigger:focus-visible .crm-note-image {
+  border-color: var(--border-accent);
+}
+
+.crm-note-image-trigger:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+
+.crm-note-image-expand {
+  position: absolute;
+  right: 0.4rem;
+  bottom: 0.4rem;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: #ecfeff;
+  background: rgba(8, 20, 28, 0.78);
+  border: 1px solid rgba(34, 211, 238, 0.45);
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+.crm-note-image-trigger:hover .crm-note-image-expand,
+.crm-note-image-trigger:focus-visible .crm-note-image-expand {
+  opacity: 1;
+  background: rgba(14, 116, 144, 0.95);
+}
+
+.crm-note-image--inline {
+  display: block;
   width: auto;
   max-width: min(100%, 16rem);
   max-height: 10rem;
-  vertical-align: middle;
   border-radius: 10px;
-  margin: 0.15rem 0;
+  margin: 0;
 }
 
 .crm-note-figcaption {
@@ -3713,6 +3773,60 @@
   padding: 0;
   font-size: 0.72rem;
   color: var(--text-muted);
+}
+
+.crm-note-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+  background: rgba(2, 8, 14, 0.88);
+  backdrop-filter: blur(6px);
+}
+
+.crm-note-lightbox-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  width: min(96vw, 72rem);
+  max-height: min(94vh, 56rem);
+}
+
+.crm-note-lightbox-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.crm-note-lightbox-title {
+  margin: 0;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.92);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-note-lightbox-close {
+  flex-shrink: 0;
+}
+
+.crm-note-lightbox-img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: min(84vh, 50rem);
+  margin: 0 auto;
+  object-fit: contain;
+  border-radius: 12px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(0, 0, 0, 0.35);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
 .crm-note-list {
@@ -3938,9 +4052,13 @@
   text-align: left;
   color: inherit;
   cursor: pointer;
-  appearance: none;
   font: inherit;
   box-sizing: border-box;
+}
+
+.crm-mind-node-note-preview:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .crm-mind-node-note-preview:hover {

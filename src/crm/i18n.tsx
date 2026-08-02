@@ -826,6 +826,9 @@ const en: Dict = {
   'notes.saving': 'Saving…',
   'notes.saved': 'Saved',
   'notes.autosaveHint': 'Edits save automatically',
+  'notes.imageViewLarger': 'View larger image',
+  'notes.imageViewLargerNamed': 'View larger: {name}',
+  'notes.imageClose': 'Close',
   'notes.schemaMissing':
     'Research notes table is missing. In Supabase → SQL Editor, paste and Run crm_research_notes_migration.sql, then hard-refresh.',
 
@@ -2364,6 +2367,9 @@ const sr: Dict = {
   'notes.saving': 'Čuvanje…',
   'notes.saved': 'Sačuvano',
   'notes.autosaveHint': 'Izmene se automatski čuvaju',
+  'notes.imageViewLarger': 'Pogledaj veću sliku',
+  'notes.imageViewLargerNamed': 'Pogledaj veću: {name}',
+  'notes.imageClose': 'Zatvori',
   'notes.schemaMissing':
     'Tabela za istraživačke beleške nedostaje. U Supabase → SQL Editor nalepite i pokrenite crm_research_notes_migration.sql, zatim hard-refresh.',
 

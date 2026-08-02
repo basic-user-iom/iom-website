@@ -1296,17 +1296,25 @@ function MindNodeRow({
         )}
 
         {node.notes.trim() && node.id !== richEditingNodeId ? (
-          <button
-            type="button"
+          <div
+            role="button"
+            tabIndex={0}
             className="crm-mind-node-note-preview"
             onClick={(e) => {
               e.stopPropagation()
               onOpenRichNote(node.id)
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                onOpenRichNote(node.id)
+              }
+            }}
           >
             <span className="crm-mind-node-note-edit-chip">{t('ideas.richEdit')}</span>
             <NoteRichBody body={node.notes} />
-          </button>
+          </div>
         ) : null}
 
         {node.id === richEditingNodeId ? (
