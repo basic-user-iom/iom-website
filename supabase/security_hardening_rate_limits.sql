@@ -53,6 +53,7 @@ end;
 $$;
 
 revoke all on function public.api_rate_limit_take(text, integer, integer) from public;
+revoke all on function public.api_rate_limit_take(text, integer, integer) from anon, authenticated;
 grant execute on function public.api_rate_limit_take(text, integer, integer) to service_role;
 
 -- Optional cleanup of stale buckets (run occasionally)
@@ -74,4 +75,5 @@ end;
 $$;
 
 revoke all on function public.api_rate_limits_cleanup(integer) from public;
+revoke all on function public.api_rate_limits_cleanup(integer) from anon, authenticated;
 grant execute on function public.api_rate_limits_cleanup(integer) to service_role;
