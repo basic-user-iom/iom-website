@@ -3829,6 +3829,48 @@
   box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
 }
 
+.crm-note-doc-lightbox-panel {
+  width: min(96vw, 48rem);
+  max-height: min(92vh, 52rem);
+  padding: 0.85rem 1rem 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: color-mix(in srgb, var(--bg-elevated) 96%, #031018);
+  box-shadow: 0 28px 72px rgba(0, 0, 0, 0.55);
+}
+
+.crm-note-doc-lightbox-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.crm-note-doc-lightbox-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem 0.95rem;
+  margin-top: 0.15rem;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  background: var(--bg);
+}
+
+.crm-note-doc-lightbox-body .crm-note-prose {
+  max-width: 100%;
+}
+
+.crm-note-doc-lightbox-body .crm-note-image {
+  max-width: min(100%, 36rem);
+  max-height: min(28rem, 50vh);
+}
+
+.crm-note-doc-lightbox-panel .crm-note-lightbox-bar {
+  margin-bottom: 0.15rem;
+}
+
 .crm-note-list {
   margin: 0.35rem 0 0.75rem;
   padding-left: 1.25rem;
@@ -4743,6 +4785,62 @@
   font-size: 0.72rem;
 }
 
+.crm-mind-board-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.crm-mind-board.is-connecting .crm-mind-board-scroll {
+  cursor: crosshair;
+}
+
+.crm-mind-connect-panel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 1px solid rgba(34, 211, 238, 0.18);
+  background: rgba(8, 28, 40, 0.92);
+  flex-shrink: 0;
+}
+
+.crm-mind-connect-panel-title {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.crm-mind-connect-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.crm-mind-board-card.is-connect-source {
+  border-color: rgba(251, 191, 36, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.35),
+    0 16px 36px rgba(0, 0, 0, 0.48);
+  z-index: 4;
+}
+
+.crm-mind-board-card.is-connect-target {
+  border-color: rgba(52, 211, 153, 0.95);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.4),
+    0 16px 36px rgba(0, 0, 0, 0.48);
+  z-index: 4;
+}
+
+.crm-mind-board.is-connecting .crm-mind-board-card.is-connect-mode:not(.is-connect-source):not(.is-connect-target):hover {
+  border-color: rgba(56, 189, 248, 0.85);
+  box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.3);
+}
+
 .crm-mind-board-scroll {
   flex: 1;
   min-height: 16rem;
@@ -4952,31 +5050,72 @@
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-  appearance: none;
+  box-sizing: border-box;
 }
 
 .crm-mind-board-preview.is-empty {
   justify-content: center;
   align-items: center;
+  cursor: pointer;
+  appearance: none;
 }
 
-.crm-mind-board-preview:hover {
+.crm-mind-board-preview.is-empty:hover,
+.crm-mind-board-preview-hit:hover {
   border-color: var(--border-accent);
   background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
+.crm-mind-board-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.crm-mind-board-preview-hit {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: zoom-in;
+  appearance: none;
+}
+
 .crm-mind-board-edit-chip {
   display: inline-flex;
-  align-self: flex-start;
+  align-items: center;
+  gap: 0.15rem;
   padding: 0.14rem 0.5rem;
   border-radius: 999px;
   border: 1px solid var(--border-accent);
+  background: transparent;
   color: var(--accent);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  cursor: pointer;
+  appearance: none;
+  font: inherit;
+}
+
+.crm-mind-board-edit-chip.is-secondary {
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  color: var(--text-muted);
+}
+
+.crm-mind-board-edit-chip:hover {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
 }
 
 .crm-mind-board-preview.is-empty .crm-mind-board-edit-chip {

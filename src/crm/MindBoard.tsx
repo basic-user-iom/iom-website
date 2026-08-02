@@ -10,6 +10,7 @@ import {
 } from 'react'
 import { useCrmI18n } from './i18n'
 import { extractFirstBlockImage, splitRichNoteTitle } from './formatNotePreview'
+import { NotePreviewLightbox } from './NotePreviewLightbox'
 import type { MindNode, MindNodeEmphasis } from './types'
 import {
   createMindNode,
@@ -24,10 +25,16 @@ import {
   loadMindBoardLayout,
   MIND_CARD_H,
   MIND_CARD_W,
+  MIND_PAD,
   resolveMindBoardLayout,
   saveMindBoardLayout,
   type BoardPoint,
 } from './mindBoardLayout'
+import {
+  detachMindNode,
+  linkMindNodes,
+  type MindLinkRelation,
+} from './mindBoardRelations'
 
 type TreeNode = MindNode & { children: TreeNode[] }
 
@@ -149,6 +156,9 @@ export function MindBoard({
   const { t } = useCrmI18n()
   const [saved, setSaved] = useState(() => loadMindBoardLayout(mapId))
   const [dragId, setDragId] = useState<string | null>(null)
+  const [connectFromId, setConnectFromId] = useState<string | null>(null)
+  const [connectTargetId, setConnectTargetId] = useState<string | null>(null)
+  const [linking, setLinking] = useState(false)
   const dragRef = useRef<{
     id: string
     startX: number
@@ -158,6 +168,8 @@ export function MindBoard({
 
   useEffect(() => {
     setSaved(loadMindBoardLayout(mapId))
+    setConnectFromId(null)
+    setConnectTargetId(null)
   }, [mapId])
 
   const layout = useMemo(
@@ -167,10 +179,91 @@ export function MindBoard({
   const bounds = useMemo(() => boardBounds(layout), [layout])
   const edges = useMemo(() => flattenEdges(tree), [tree])
   const flat = useMemo(() => flattenNodes(tree), [tree])
+  const nodes = useMemo(() => flat.map((n) => n as MindNode), [flat])
+  const connectFrom = connectFromId
+    ? nodes.find((n) => n.id === connectFromId) ?? null
+    : null
+  const connectTarget = connectTargetId
+    ? nodes.find((n) => n.id === connectTargetId) ?? null
+    : null
+
+  const placeNear = useCallback(
+    (id: string, near: BoardPoint) => {
+      setSaved((prev) => {
+        const next = { ...prev, [id]: near }
+        saveMindBoardLayout(mapId, next)
+        return next
+      })
+    },
+    [mapId],
+  )
 
   const resetLayout = () => {
     clearMindBoardLayout(mapId)
     setSaved({})
+  }
+
+  const cancelConnect = useCallback(() => {
+    setConnectFromId(null)
+    setConnectTargetId(null)
+  }, [])
+
+  useEffect(() => {
+    if (!connectFromId) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') cancelConnect()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [connectFromId, cancelConnect])
+
+  const addFreeNote = async () => {
+    try {
+      const created = await createMindNode(mapId, {
+        parent_id: null,
+        title: t('ideas.newNode'),
+      })
+      const spot = {
+        x: Math.max(MIND_PAD, bounds.width - MIND_CARD_W - MIND_PAD),
+        y: Math.max(MIND_PAD, bounds.height - MIND_CARD_H - MIND_PAD),
+      }
+      placeNear(created.id, spot)
+      cancelConnect()
+      onCreated(created.id)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : t('ideas.createFailed'))
+    }
+  }
+
+  const applyLink = async (relation: MindLinkRelation) => {
+    if (!connectFromId || !connectTargetId) return
+    setLinking(true)
+    try {
+      await linkMindNodes(nodes, connectFromId, connectTargetId, relation)
+      cancelConnect()
+      onChanged()
+      onSelect(connectFromId)
+    } catch (err) {
+      const code = err instanceof Error ? err.message : ''
+      if (code === 'cycle') onError(t('ideas.connectCycle'))
+      else if (code === 'same_node') onError(t('ideas.connectSame'))
+      else onError(err instanceof Error ? err.message : t('ideas.connectFailed'))
+    } finally {
+      setLinking(false)
+    }
+  }
+
+  const handleSelectNode = (id: string | null) => {
+    if (connectFromId && id && id !== connectFromId) {
+      setConnectTargetId(id)
+      onSelect(id)
+      return
+    }
+    if (connectFromId && id === connectFromId) {
+      onSelect(id)
+      return
+    }
+    onSelect(id)
   }
 
   const onPointerMove = useCallback((e: PointerEvent) => {
@@ -226,19 +319,102 @@ export function MindBoard({
   }, [onPointerMove, onPointerUp])
 
   return (
-    <div className={`crm-mind-board${compact ? ' is-compact' : ''}`}>
+    <div
+      className={`crm-mind-board${compact ? ' is-compact' : ''}${connectFromId ? ' is-connecting' : ''}`}
+    >
       <div className="crm-mind-board-toolbar">
-        <p className="crm-muted crm-mind-board-hint">{t('ideas.boardHint')}</p>
-        <button type="button" className="btn btn-ghost" onClick={resetLayout}>
-          {t('ideas.boardResetLayout')}
-        </button>
+        <p className="crm-muted crm-mind-board-hint">
+          {connectFrom
+            ? connectTarget
+              ? t('ideas.connectChooseRelation', { title: connectFrom.title.slice(0, 40) })
+              : t('ideas.connectPickTarget', { title: connectFrom.title.slice(0, 40) })
+            : t('ideas.boardHint')}
+        </p>
+        <div className="crm-mind-board-toolbar-actions">
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => void addFreeNote()}
+          >
+            {t('ideas.addFreeNote')}
+          </button>
+          {selectedNodeId && !connectFromId ? (
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => {
+                setConnectFromId(selectedNodeId)
+                setConnectTargetId(null)
+              }}
+            >
+              {t('ideas.connect')}
+            </button>
+          ) : null}
+          {connectFromId ? (
+            <button type="button" className="btn btn-ghost" onClick={cancelConnect}>
+              {t('ideas.connectCancel')}
+            </button>
+          ) : null}
+          <button type="button" className="btn btn-ghost" onClick={resetLayout}>
+            {t('ideas.boardResetLayout')}
+          </button>
+        </div>
       </div>
+
+      {connectFrom && connectTarget ? (
+        <div className="crm-mind-connect-panel" role="dialog" aria-label={t('ideas.connect')}>
+          <p className="crm-mind-connect-panel-title">
+            {t('ideas.connectPanelTitle', {
+              from: connectFrom.title.slice(0, 36),
+              to: connectTarget.title.slice(0, 36),
+            })}
+          </p>
+          <div className="crm-mind-connect-panel-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={linking}
+              onClick={() => void applyLink('child')}
+            >
+              {t('ideas.connectAsChild')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={linking}
+              onClick={() => void applyLink('sibling')}
+            >
+              {t('ideas.connectAsSibling')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={linking}
+              onClick={() => void applyLink('parent')}
+            >
+              {t('ideas.connectAsParent')}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={linking}
+              onClick={cancelConnect}
+            >
+              {t('ideas.connectCancel')}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
       <div
         className="crm-mind-board-scroll"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
-            onSelect(null)
-            onEdit(null)
+            if (connectFromId) cancelConnect()
+            else {
+              onSelect(null)
+              onEdit(null)
+            }
           }
         }}
       >
@@ -280,7 +456,10 @@ export function MindBoard({
                 richEditing={richEditingNodeId === node.id}
                 dragging={dragId === node.id}
                 focusEdit={focusEditId === node.id}
-                onSelect={onSelect}
+                connectSource={connectFromId === node.id}
+                connectTarget={connectTargetId === node.id}
+                connecting={Boolean(connectFromId)}
+                onSelect={handleSelectNode}
                 onEdit={onEdit}
                 onOpenRichNote={onOpenRichNote}
                 onFocusEditConsumed={onFocusEditConsumed}
@@ -288,15 +467,21 @@ export function MindBoard({
                 onCreated={onCreated}
                 onError={onError}
                 onDragStart={startDrag}
-                onPlaceNear={(id, near) => {
-                  setSaved((prev) => {
-                    const next = {
-                      ...prev,
-                      [id]: near,
-                    }
-                    saveMindBoardLayout(mapId, next)
-                    return next
-                  })
+                onPlaceNear={placeNear}
+                onStartConnect={(id) => {
+                  setConnectFromId(id)
+                  setConnectTargetId(null)
+                  onSelect(id)
+                }}
+                onDetach={async (id) => {
+                  try {
+                    await detachMindNode(id)
+                    onChanged()
+                  } catch (err) {
+                    onError(
+                      err instanceof Error ? err.message : t('ideas.connectFailed'),
+                    )
+                  }
                 }}
                 layout={layout}
               />
@@ -317,6 +502,9 @@ function MindBoardCard({
   richEditing,
   dragging,
   focusEdit,
+  connectSource,
+  connectTarget,
+  connecting,
   onSelect,
   onEdit,
   onOpenRichNote,
@@ -326,6 +514,8 @@ function MindBoardCard({
   onError,
   onDragStart,
   onPlaceNear,
+  onStartConnect,
+  onDetach,
   layout,
 }: {
   node: TreeNode
@@ -336,6 +526,9 @@ function MindBoardCard({
   richEditing: boolean
   dragging: boolean
   focusEdit: boolean
+  connectSource: boolean
+  connectTarget: boolean
+  connecting: boolean
   onSelect: (id: string | null) => void
   onEdit: (id: string | null) => void
   onOpenRichNote: (id: string) => void
@@ -345,18 +538,25 @@ function MindBoardCard({
   onError: (msg: string) => void
   onDragStart: (id: string, e: ReactPointerEvent) => void
   onPlaceNear: (id: string, near: BoardPoint) => void
+  onStartConnect: (id: string) => void
+  onDetach: (id: string) => Promise<void>
   layout: Record<string, BoardPoint>
 }) {
   const { t } = useCrmI18n()
   const [title, setTitle] = useState(node.title)
   const [linkDraft, setLinkDraft] = useState(node.link_url)
   const [panel, setPanel] = useState<'none' | 'color' | 'link'>('none')
+  const [notePreviewOpen, setNotePreviewOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const titleLooksRich = looksLikeRichMarkdown(node.title)
   const snippet = useMemo(
     () => (node.notes.trim() ? noteSnippet(node.notes) : null),
     [node.notes],
   )
+
+  useEffect(() => {
+    if (richEditing) setNotePreviewOpen(false)
+  }, [richEditing])
 
   useEffect(() => {
     setTitle(node.title)
@@ -474,7 +674,7 @@ function MindBoardCard({
       setPanel('none')
     }
     if ((e.key === 'Delete' || e.key === 'Backspace') && !editing && selected) {
-      if (node.parent_id && confirm(t('ideas.deleteNodeConfirm'))) {
+      if (confirm(t('ideas.deleteNodeConfirm'))) {
         void deleteMindNode(node.id).then(() => {
           onSelect(null)
           onChanged()
@@ -485,7 +685,7 @@ function MindBoardCard({
 
   return (
     <div
-      className={`crm-mind-board-card${selected ? ' is-selected' : ''}${dragging ? ' is-dragging' : ''}${richEditing ? ' is-rich-editing' : ''}`}
+      className={`crm-mind-board-card${selected ? ' is-selected' : ''}${dragging ? ' is-dragging' : ''}${richEditing ? ' is-rich-editing' : ''}${connectSource ? ' is-connect-source' : ''}${connectTarget ? ' is-connect-target' : ''}${connecting ? ' is-connect-mode' : ''}`}
       style={
         {
           left: point.x,
@@ -506,13 +706,14 @@ function MindBoardCard({
         onSelect(node.id)
       }}
       onDoubleClick={(e) => {
+        if (connecting) return
         e.stopPropagation()
         onSelect(node.id)
         onEdit(node.id)
       }}
       onKeyDown={onKeyDown}
     >
-      {selected && (
+      {selected && !connecting && (
         <div
           className="crm-mind-board-tools"
           onClick={(e) => e.stopPropagation()}
@@ -561,22 +762,38 @@ function MindBoardCard({
             >
               ↗
             </button>
-            {node.parent_id && (
+            <button
+              type="button"
+              className="crm-mind-tb-btn"
+              title={t('ideas.connect')}
+              onClick={() => onStartConnect(node.id)}
+            >
+              ⎌
+            </button>
+            {node.parent_id ? (
               <button
                 type="button"
-                className="crm-mind-tb-btn crm-mind-tb-btn--danger"
-                title={t('ideas.deleteNode')}
-                onClick={() => {
-                  if (!confirm(t('ideas.deleteNodeConfirm'))) return
-                  void deleteMindNode(node.id).then(() => {
-                    onSelect(null)
-                    onChanged()
-                  })
-                }}
+                className="crm-mind-tb-btn"
+                title={t('ideas.detachNote')}
+                onClick={() => void onDetach(node.id)}
               >
-                ×
+                ⊘
               </button>
-            )}
+            ) : null}
+            <button
+              type="button"
+              className="crm-mind-tb-btn crm-mind-tb-btn--danger"
+              title={t('ideas.deleteNode')}
+              onClick={() => {
+                if (!confirm(t('ideas.deleteNodeConfirm'))) return
+                void deleteMindNode(node.id).then(() => {
+                  onSelect(null)
+                  onChanged()
+                })
+              }}
+            >
+              ×
+            </button>
           </div>
 
           {panel === 'color' && (
@@ -721,38 +938,73 @@ function MindBoardCard({
 
           {richEditing ? (
             <p className="crm-mind-board-card-hint">{t('ideas.richEditingHere')}</p>
+          ) : node.notes.trim() ? (
+            <div
+              className="crm-mind-board-preview"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="crm-mind-board-preview-actions">
+                <button
+                  type="button"
+                  className="crm-mind-board-edit-chip"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setNotePreviewOpen(true)
+                  }}
+                >
+                  {t('ideas.richViewLarger')}
+                  <span aria-hidden="true"> ⤢</span>
+                </button>
+                <button
+                  type="button"
+                  className="crm-mind-board-edit-chip is-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onOpenRichNote(node.id)
+                  }}
+                >
+                  {t('ideas.richEdit')}
+                </button>
+              </div>
+              <button
+                type="button"
+                className="crm-mind-board-preview-hit"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setNotePreviewOpen(true)
+                }}
+                title={t('ideas.richViewLarger')}
+              >
+                {snippet?.image ? (
+                  <img
+                    src={snippet.image}
+                    alt=""
+                    className="crm-mind-board-thumb"
+                    loading="lazy"
+                  />
+                ) : null}
+                <span className="crm-mind-board-preview-text">
+                  {snippet?.title || snippet?.text || t('ideas.richViewLarger')}
+                </span>
+              </button>
+            </div>
           ) : (
             <button
               type="button"
-              className={`crm-mind-board-preview${node.notes.trim() ? '' : ' is-empty'}`}
+              className="crm-mind-board-preview is-empty"
               onClick={(e) => {
                 e.stopPropagation()
                 onOpenRichNote(node.id)
               }}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <span className="crm-mind-board-edit-chip">
-                {node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')}
-              </span>
-              {snippet?.image ? (
-                <img
-                  src={snippet.image}
-                  alt=""
-                  className="crm-mind-board-thumb"
-                  loading="lazy"
-                />
-              ) : null}
-              {node.notes.trim() ? (
-                <span className="crm-mind-board-preview-text">
-                  {snippet?.title || snippet?.text || t('ideas.richEdit')}
-                </span>
-              ) : null}
+              <span className="crm-mind-board-edit-chip">{t('ideas.richAdd')}</span>
             </button>
           )}
         </div>
       </div>
 
-      {selected && (
+      {selected && !connecting && (
         <>
           <button
             type="button"
@@ -782,6 +1034,17 @@ function MindBoardCard({
           </button>
         </>
       )}
+
+      <NotePreviewLightbox
+        open={notePreviewOpen}
+        nodeTitle={node.title}
+        body={node.notes}
+        onClose={() => setNotePreviewOpen(false)}
+        onEdit={() => {
+          setNotePreviewOpen(false)
+          onOpenRichNote(node.id)
+        }}
+      />
     </div>
   )
 }

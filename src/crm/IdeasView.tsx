@@ -377,14 +377,13 @@ export function IdeasView({
                     type="button"
                     className="btn btn-ghost"
                     onClick={() => {
-                      const root = nodes.find((n) => !n.parent_id)
                       void createMindNode(selected.id, {
-                        parent_id: root?.id ?? null,
+                        parent_id: null,
                         title: t('ideas.newNode'),
                       }).then((n) => afterNodeCreated(selected.id, n.id))
                     }}
                   >
-                    {t('ideas.addChild')}
+                    {t('ideas.addFreeNote')}
                   </button>
                   <button
                     type="button"
