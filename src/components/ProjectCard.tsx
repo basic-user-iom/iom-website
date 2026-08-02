@@ -368,7 +368,13 @@ export const ProjectCard = memo(function ProjectCard({
               >
                 <iframe
                   className={`card-preview-iframe${embedLoaded ? ' is-loaded' : ''}`}
-                  src={project.embedUrl}
+                  src={
+                    // Cache-bust first-party demos so browsers that cached a prior
+                    // X-Frame-Options: DENY response can load hover previews again.
+                    project.embedUrl?.startsWith('/')
+                      ? `${project.embedUrl}${project.embedUrl.includes('?') ? '&' : '?'}cardEmbed=1`
+                      : project.embedUrl
+                  }
                   title={`${project.title} preview`}
                   width={EMBED_VIEWPORT.width}
                   height={EMBED_VIEWPORT.height}
