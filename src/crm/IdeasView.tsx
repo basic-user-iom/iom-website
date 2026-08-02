@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import { useCrmI18n } from './i18n'
+import { joinRichNoteTitle, splitRichNoteTitle } from './formatNotePreview'
 import { NoteRichBody } from './NotePreview'
 import type { CrmProject, Lead, MindMap, MindNode, MindNodeEmphasis } from './types'
 import { getCurrentUser, listLeads } from './api'
@@ -530,16 +531,25 @@ function MindRichNotePanel({
   onError: (msg: string) => void
 }) {
   const { t } = useCrmI18n()
-  const [draft, setDraft] = useState(node.notes)
+  const initialSplit = splitRichNoteTitle(node.notes)
+  const [noteTitle, setNoteTitle] = useState(initialSplit.title)
+  const [draft, setDraft] = useState(initialSplit.body)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [replaceImageIndex, setReplaceImageIndex] = useState<number | null>(null)
   const titleLooksRich = looksLikeRichMarkdown(node.title)
+  const composed = useMemo(
+    () => joinRichNoteTitle(noteTitle, draft),
+    [noteTitle, draft],
+  )
   const images = useMemo(() => extractMdImages(draft), [draft])
   const isEditingExisting = Boolean(node.notes.trim())
+  const isDirty = composed !== node.notes
 
   useEffect(() => {
-    setDraft(node.notes)
+    const next = splitRichNoteTitle(node.notes)
+    setNoteTitle(next.title)
+    setDraft(next.body)
     setReplaceImageIndex(null)
   }, [node.id, node.notes])
 
@@ -635,12 +645,24 @@ function MindRichNotePanel({
   const moveTitleIntoNote = async () => {
     const moved = node.title.trim()
     if (!moved) return
-    const nextNotes = draft.trim() ? `${draft.trim()}\n\n${moved}` : moved
+    const parsedMoved = looksLikeRichMarkdown(moved)
+      ? splitRichNoteTitle(moved)
+      : { title: '', body: moved }
+    const finalTitle =
+      noteTitle.trim() ||
+      parsedMoved.title ||
+      moved.split('\n')[0].replace(/^#\s+/, '').slice(0, 120)
+    const movedBody = parsedMoved.body || (!parsedMoved.title ? moved : '')
+    const finalBody = draft.trim()
+      ? `${draft.trim()}\n\n${movedBody}`
+      : movedBody
+    const composedNotes = joinRichNoteTitle(finalTitle, finalBody)
     const shortTitle = t('ideas.richMovedTitle')
-    setDraft(nextNotes)
+    setNoteTitle(finalTitle)
+    setDraft(finalBody)
     setSaving(true)
     try {
-      await updateMindNode(node.id, { title: shortTitle, notes: nextNotes })
+      await updateMindNode(node.id, { title: shortTitle, notes: composedNotes })
       onSaved()
     } catch (err) {
       if (isMindNodeStyleSchemaMissing(err)) {
@@ -688,6 +710,22 @@ function MindRichNotePanel({
           </button>
         </div>
       </header>
+
+      <div className="crm-mind-rich-note-title-row">
+        <label
+          className="crm-mind-rich-editor-label"
+          htmlFor={`idea-rich-title-${node.id}`}
+        >
+          {t('ideas.richNoteTitle')}
+        </label>
+        <input
+          id={`idea-rich-title-${node.id}`}
+          className="crm-input crm-mind-rich-note-title"
+          value={noteTitle}
+          placeholder={t('ideas.richNoteTitlePlaceholder')}
+          onChange={(e) => setNoteTitle(e.target.value)}
+        />
+      </div>
 
       <input
         ref={imageFileRef}
@@ -790,9 +828,9 @@ function MindRichNotePanel({
         </div>
         <div className="crm-mind-rich-pane crm-mind-rich-pane--preview">
           <p className="crm-mind-rich-editor-label">{t('ideas.richPreview')}</p>
-          {draft.trim() ? (
+          {composed.trim() ? (
             <div className="crm-mind-rich-preview">
-              <NoteRichBody body={draft} />
+              <NoteRichBody body={composed} />
             </div>
           ) : (
             <p className="crm-muted crm-mind-rich-preview-empty">
@@ -808,20 +846,24 @@ function MindRichNotePanel({
           className="btn btn-primary"
           disabled={saving || uploading}
           onClick={() => {
-            if (draft === node.notes) {
+            if (!isDirty) {
               onClose()
               return
             }
-            void save(draft)
+            void save(composed)
           }}
         >
           {saving ? t('notes.saving') : t('ideas.richSaveClose')}
         </button>
-        {draft !== node.notes && (
+        {isDirty && (
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => setDraft(node.notes)}
+            onClick={() => {
+              const next = splitRichNoteTitle(node.notes)
+              setNoteTitle(next.title)
+              setDraft(next.body)
+            }}
           >
             {t('ideas.richDiscard')}
           </button>

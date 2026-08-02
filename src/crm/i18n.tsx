@@ -750,6 +750,8 @@ const en: Dict = {
   'ideas.richPasteHint':
     'Paste images with Ctrl+V · + Table / + Image · Save & close when done',
   'ideas.richEditingHere': 'Editing in the panel below…',
+  'ideas.richNoteTitle': 'Note title',
+  'ideas.richNoteTitlePlaceholder': 'e.g. Free-model visualization',
   'ideas.richToolbar': 'Rich note (tables & images)',
   'ideas.richPreview': 'Preview',
   'ideas.richPreviewEmpty': 'Preview appears here after you paste a table or image markdown.',
@@ -2286,6 +2288,8 @@ const sr: Dict = {
   'ideas.richPasteHint':
     'Nalepite slike sa Ctrl+V · + Tabela / + Slika · Sačuvaj i zatvori kad završite',
   'ideas.richEditingHere': 'Izmena u panelu ispod…',
+  'ideas.richNoteTitle': 'Naslov beleške',
+  'ideas.richNoteTitlePlaceholder': 'npr. Vizualizacija free modela',
   'ideas.richToolbar': 'Rich note (tabele i slike)',
   'ideas.richPreview': 'Pregled',
   'ideas.richPreviewEmpty': 'Pregled se pojavljuje ovde kada nalepite tabelu ili markdown slike.',

@@ -5,6 +5,7 @@ import {
   renderNoteLines,
   scrollToNoteSection,
   sectionSummaryUrl,
+  splitRichNoteTitle,
 } from './formatNotePreview'
 import { useCrmI18n } from './i18n'
 
@@ -82,11 +83,21 @@ export function NoteRichBody({
   emptyLabel?: string
 }) {
   const { t } = useCrmI18n()
-  const { introLines, sections } = useMemo(() => parseNoteDocument(body), [body])
+  const { title: docTitle, body: contentBody } = useMemo(
+    () => splitRichNoteTitle(body),
+    [body],
+  )
+  const { introLines, sections } = useMemo(
+    () => parseNoteDocument(contentBody),
+    [contentBody],
+  )
   const intro = renderNoteLines(introLines, 'intro')
+  const isEmpty =
+    !docTitle && sections.length === 0 && introLines.every((l) => !l.trim())
 
   return (
     <div className="crm-note-prose">
+      {docTitle ? <h1 className="crm-note-doc-title">{docTitle}</h1> : null}
       {intro.length > 0 && <div className="crm-note-intro">{intro}</div>}
       {sections.map((section) => {
         const url = sectionSummaryUrl(section.lines)
@@ -119,7 +130,7 @@ export function NoteRichBody({
           </details>
         )
       })}
-      {sections.length === 0 && intro.length === 0 && (
+      {isEmpty && (
         <p className="crm-muted">{emptyLabel ?? t('notes.noBody')}</p>
       )}
     </div>

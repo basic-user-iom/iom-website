@@ -508,3 +508,25 @@ export function scrollToNoteSection(id: string) {
   if (el instanceof HTMLDetailsElement) el.open = true
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
+
+/** Leading single-# markdown heading used as the note document title. */
+export function splitRichNoteTitle(body: string): { title: string; body: string } {
+  const lines = body.replace(/^\uFEFF/, '').split('\n')
+  let i = 0
+  while (i < lines.length && !lines[i].trim()) i++
+  if (i >= lines.length) return { title: '', body: body.replace(/^\uFEFF/, '') }
+  const match = lines[i].trim().match(/^#\s+(.+)$/)
+  if (!match || lines[i].trim().startsWith('##')) {
+    return { title: '', body: body.replace(/^\uFEFF/, '') }
+  }
+  const rest = lines.slice(i + 1)
+  if (rest[0] !== undefined && !rest[0].trim()) rest.shift()
+  return { title: match[1].trim(), body: rest.join('\n') }
+}
+
+export function joinRichNoteTitle(title: string, body: string): string {
+  const t = title.trim()
+  const b = body.replace(/^\n+/, '')
+  if (!t) return b
+  return b ? `# ${t}\n\n${b}` : `# ${t}\n`
+}
