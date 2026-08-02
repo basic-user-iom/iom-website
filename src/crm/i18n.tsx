@@ -143,7 +143,9 @@ const en: Dict = {
   'login.password': 'Password',
   'login.submit': 'Sign in',
   'login.signingIn': 'Signing in…',
-  'login.failed': 'Sign-in failed.',
+  'login.failed': 'Invalid email or password.',
+  'login.unavailable':
+    'Client login is unavailable. Supabase is not configured for this deployment.',
   'login.modeOnline':
     'Online storage via Supabase — all signed-in staff share the same leads.',
   'login.modeLocal':
@@ -1699,7 +1701,9 @@ const sr: Dict = {
   'login.password': 'Lozinka',
   'login.submit': 'Prijava',
   'login.signingIn': 'Prijava…',
-  'login.failed': 'Prijava nije uspela.',
+  'login.failed': 'Neispravan email ili lozinka.',
+  'login.unavailable':
+    'Prijava nije dostupna. Supabase nije konfigurisan za ovu instalaciju.',
   'login.modeOnline':
     'Online skladište preko Supabase — svi prijavljeni članovi tima dele iste leadove.',
   'login.modeLocal':

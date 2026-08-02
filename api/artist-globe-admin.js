@@ -1,25 +1,16 @@
 /**
  * Artist Globe admin API — approve / reject / list.
- * Auth: header X-Artist-Globe-Admin must match ARTIST_GLOBE_ADMIN_PASSWORD
- * (or VITE_ARTIST_GLOBE_ADMIN_PASSWORD). Uses service role when available.
+ * Auth: Authorization Bearer <Supabase staff JWT>
+ * Staff = CRM_STAFF_EMAILS allowlist, or *@iobjectm.com when unset.
+ * Uses service role when available.
  */
 
-function adminPassword() {
-  return (
-    process.env.ARTIST_GLOBE_ADMIN_PASSWORD ||
-    process.env.VITE_ARTIST_GLOBE_ADMIN_PASSWORD ||
-    'iom-globe-admin'
-  )
-}
-
-function supabaseConfig() {
-  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
-  const serviceKey =
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY || ''
-  const anonKey =
-    process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
-  return { url, key: serviceKey || anonKey, hasService: Boolean(serviceKey) }
-}
+import {
+  requireStaffUser,
+  setAllowedOriginCors,
+  safeJson,
+  supabaseConfig,
+} from './_lib/blog-helpers.js'
 
 function slugify(name) {
   return (
@@ -64,16 +55,17 @@ async function sb(path, { method = 'GET', body, key, url } = {}) {
 }
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Artist-Globe-Admin')
+  setAllowedOriginCors(res, req.headers.origin, {
+    allowAuth: true,
+    methods: 'POST, OPTIONS',
+  })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const provided = String(req.headers['x-artist-globe-admin'] || '')
-  if (!provided || provided !== adminPassword()) {
-    return res.status(401).json({ error: 'Unauthorized' })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error })
   }
 
   const { url, key, hasService } = supabaseConfig()
@@ -159,7 +151,6 @@ export default async function handler(req, res) {
 
       let slug = slugify(sub.display_name)
       let n = 2
-      // ensure unique slug
       for (;;) {
         const existing = await sb(
           `artist_globe_artists?slug=eq.${encodeURIComponent(slug)}&select=id`,
@@ -227,14 +218,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: `Unknown action: ${action}` })
   } catch (err) {
     console.error('[artist-globe-admin]', err)
-    return res.status(500).json({ error: err instanceof Error ? err.message : 'Server error' })
-  }
-}
-
-function safeJson(raw) {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
+    return res.status(500).json({ error: 'Admin action failed' })
   }
 }

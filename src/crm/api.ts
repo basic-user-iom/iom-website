@@ -714,17 +714,23 @@ export async function signIn(email: string, password: string): Promise<void> {
       email: trimmed,
       password,
     })
-    if (error) throw new Error(error.message)
+    if (error) {
+      // Uniform public error — avoid provider account-enumeration messages.
+      console.warn('[crm] sign-in failed:', error.message)
+      throw new Error('INVALID_LOGIN')
+    }
     await healOversizedAuthAvatar().catch(() => {})
     return
   }
 
-  const expected =
-    import.meta.env.VITE_CRM_LOCAL_PASSWORD?.trim() || 'iom-local'
-  if (password !== expected) {
-    throw new Error(
-      'Invalid local password. Set VITE_CRM_LOCAL_PASSWORD or use the default from .env.example.',
-    )
+  // Production must not fall back to a browser-local password.
+  if (import.meta.env.PROD) {
+    throw new Error('LOGIN_UNAVAILABLE')
+  }
+
+  const expected = import.meta.env.VITE_CRM_LOCAL_PASSWORD?.trim()
+  if (!expected || password !== expected) {
+    throw new Error('INVALID_LOGIN')
   }
   const existing = readLocal<LocalSession | null>(LOCAL_SESSION_KEY, null)
   writeLocal(LOCAL_SESSION_KEY, {

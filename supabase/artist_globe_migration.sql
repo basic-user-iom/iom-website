@@ -101,17 +101,87 @@ create policy "artist_globe_artists_owner_update"
   using (auth.uid() = auth_user_id)
   with check (auth.uid() = auth_user_id);
 
--- Public can read invites by token (needed to claim)
+-- Invites are private. Lookup/claim use security-definer RPCs only
+-- (see artist_globe_get_invite + artist_globe_claim_invite below).
 drop policy if exists "artist_globe_invites_public_select" on public.artist_globe_invites;
-create policy "artist_globe_invites_public_select"
-  on public.artist_globe_invites for select
-  to anon, authenticated
-  using (true);
+revoke select on public.artist_globe_invites from anon, authenticated;
 
 grant insert on public.artist_globe_submissions to anon, authenticated;
 grant select on public.artist_globe_artists to anon, authenticated;
 grant update on public.artist_globe_artists to authenticated;
-grant select on public.artist_globe_invites to anon, authenticated;
+
+-- Token lookup for the claim UI (exact token only; no table scan).
+create or replace function public.artist_globe_get_invite(invite_token text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  inv public.artist_globe_invites%rowtype;
+  art public.artist_globe_artists%rowtype;
+begin
+  if invite_token is null or length(trim(invite_token)) < 16 then
+    return null;
+  end if;
+
+  select * into inv
+  from public.artist_globe_invites
+  where token = trim(invite_token);
+
+  if not found then
+    return null;
+  end if;
+
+  select * into art
+  from public.artist_globe_artists
+  where id = inv.artist_id;
+
+  if not found then
+    return null;
+  end if;
+
+  return jsonb_build_object(
+    'invite', jsonb_build_object(
+      'id', inv.id,
+      'token', inv.token,
+      'artist_id', inv.artist_id,
+      'submission_id', inv.submission_id,
+      'email', case
+        when inv.used_at is null and inv.expires_at >= now() then inv.email
+        else null
+      end,
+      'expires_at', inv.expires_at,
+      'used_at', inv.used_at
+    ),
+    'artist', jsonb_build_object(
+      'id', art.id,
+      'slug', art.slug,
+      'display_name', art.display_name,
+      'email', case
+        when inv.used_at is null and inv.expires_at >= now() then art.email
+        else null
+      end,
+      'category', art.category,
+      'tags', art.tags,
+      'bio', art.bio,
+      'links', art.links,
+      'city', art.city,
+      'country', art.country,
+      'lat', art.lat,
+      'lon', art.lon,
+      'timezone', art.timezone,
+      'avatar_url', art.avatar_url,
+      'portfolio', art.portfolio,
+      'status', art.status,
+      'auth_user_id', art.auth_user_id
+    )
+  );
+end;
+$$;
+
+revoke all on function public.artist_globe_get_invite(text) from public;
+grant execute on function public.artist_globe_get_invite(text) to anon, authenticated;
 
 -- Claim invite after signup (links auth user to artist row)
 create or replace function public.artist_globe_claim_invite(
@@ -159,4 +229,6 @@ $$;
 
 grant execute on function public.artist_globe_claim_invite(text, uuid) to authenticated;
 
--- Note: admin approve/reject/list use Vercel API + service role (see api/artist-globe-admin.js)
+-- Note: admin approve/reject/list use Vercel API + staff JWT + service role
+-- (see api/artist-globe-admin.js). Also run security_hardening_artist_invites.sql
+-- on existing projects that still have the public invite SELECT policy.

@@ -22,7 +22,12 @@ export function CrmLogin({ onSuccess }: CrmLoginProps) {
       await signIn(email, password)
       onSuccess()
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('login.failed'))
+      const code = err instanceof Error ? err.message : ''
+      if (code === 'LOGIN_UNAVAILABLE') {
+        setError(t('login.unavailable'))
+      } else {
+        setError(t('login.failed'))
+      }
     } finally {
       setBusy(false)
     }

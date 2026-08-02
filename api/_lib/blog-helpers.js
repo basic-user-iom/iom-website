@@ -48,8 +48,52 @@ export function isAllowedWebOrigin(origin) {
 }
 
 /**
+ * Reflect only allowlisted origins. Never bare `*` for credentialed CRM calls.
+ * @param {import('http').ServerResponse} res
+ * @param {string | undefined} origin
+ * @param {{ allowAuth?: boolean, methods?: string, allowHeaders?: string }} [opts]
+ */
+export function setAllowedOriginCors(res, origin, opts = {}) {
+  const allowed = isAllowedWebOrigin(origin)
+  const acao = allowed ? String(origin) : siteOrigin()
+  res.setHeader('Access-Control-Allow-Origin', acao)
+  res.setHeader('Vary', 'Origin')
+  res.setHeader(
+    'Access-Control-Allow-Methods',
+    opts.methods || 'GET, POST, OPTIONS',
+  )
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    opts.allowHeaders ||
+      (opts.allowAuth ? 'Content-Type, Authorization' : 'Content-Type'),
+  )
+}
+
+/** Optional comma-separated staff mailbox allowlist (server env). */
+export function parseStaffEmailAllowlist() {
+  return String(process.env.CRM_STAFF_EMAILS || '')
+    .split(/[,;\s]+/)
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
+}
+
+/**
+ * Interim staff gate until tenant-aware roles exist.
+ * Prefer CRM_STAFF_EMAILS; otherwise only @iobjectm.com addresses.
+ */
+export function isStaffEmail(email) {
+  const e = String(email || '')
+    .trim()
+    .toLowerCase()
+  if (!e || !e.includes('@')) return false
+  const list = parseStaffEmailAllowlist()
+  if (list.length > 0) return list.includes(e)
+  return e.endsWith('@iobjectm.com')
+}
+
+/**
  * Verify Supabase access token from Authorization: Bearer …
- * @returns {Promise<{ ok: true, user: { id: string, email?: string } } | { ok: false, status: number, error: string }>}
+ * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string } | { ok: false, status: number, error: string }>}
  */
 export async function requireSupabaseUser(req) {
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
@@ -81,7 +125,21 @@ export async function requireSupabaseUser(req) {
   return {
     ok: true,
     user: { id: String(authUser.id), email: authUser.email || undefined },
+    token,
   }
+}
+
+/**
+ * Require a verified Supabase user who is treated as CRM staff.
+ * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string } | { ok: false, status: number, error: string }>}
+ */
+export async function requireStaffUser(req) {
+  const auth = await requireSupabaseUser(req)
+  if (!auth.ok) return auth
+  if (!isStaffEmail(auth.user.email)) {
+    return { ok: false, status: 403, error: 'Staff access required' }
+  }
+  return auth
 }
 
 export function supabaseConfig() {

@@ -30,6 +30,13 @@ const ADMIN_STORAGE_KEY = 'artist-globe-admin'
 /** Set when PostgREST reports artist_globe_* tables are missing (migration not applied). */
 const SCHEMA_MISSING_KEY = 'artist-globe-schema-missing'
 
+async function getAdminAccessToken(): Promise<string | null> {
+  const supabase = getArtistGlobeSupabase()
+  if (!supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
 function isSchemaMissingCached(): boolean {
   try {
     return localStorage.getItem(SCHEMA_MISSING_KEY) === '1'
@@ -52,10 +59,6 @@ function isMissingRelationError(err: unknown): boolean {
   return e?.code === 'PGRST205' || /Could not find the table|schema cache/i.test(message)
 }
 
-export function getAdminPassword(): string {
-  return import.meta.env.VITE_ARTIST_GLOBE_ADMIN_PASSWORD?.trim() || 'iom-globe-admin'
-}
-
 export function isAdminUnlocked(): boolean {
   try {
     return sessionStorage.getItem(ADMIN_STORAGE_KEY) === '1'
@@ -64,14 +67,53 @@ export function isAdminUnlocked(): boolean {
   }
 }
 
-export function unlockAdmin(password: string): boolean {
-  if (password !== getAdminPassword()) return false
+/**
+ * Unlock moderation: staff Supabase sign-in when live; local-only sandbox in DEV.
+ * Server admin actions require a staff JWT (@iobjectm.com / CRM_STAFF_EMAILS).
+ */
+export async function unlockAdmin(
+  email: string,
+  password: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const trimmed = email.trim()
+  if (!trimmed || !password) {
+    return { ok: false, error: 'Email and password are required.' }
+  }
+
+  const supabase = getArtistGlobeSupabase()
+  if (supabase) {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: trimmed,
+      password,
+    })
+    if (error) {
+      console.warn('[artist-globe] admin sign-in failed:', error.message)
+      return { ok: false, error: 'Invalid email or password.' }
+    }
+    try {
+      await adminFetch('/api/artist-globe-admin', { action: 'list_submissions' })
+    } catch (err) {
+      await supabase.auth.signOut().catch(() => {})
+      const msg = err instanceof Error ? err.message : 'Staff access required'
+      return { ok: false, error: msg }
+    }
+    sessionStorage.setItem(ADMIN_STORAGE_KEY, '1')
+    return { ok: true }
+  }
+
+  if (import.meta.env.PROD) {
+    return { ok: false, error: 'Admin requires Supabase staff sign-in.' }
+  }
+
+  // DEV / no Supabase: localStore moderation only (no service-role API).
   sessionStorage.setItem(ADMIN_STORAGE_KEY, '1')
-  return true
+  return { ok: true }
 }
 
-export function lockAdmin() {
+export async function lockAdmin() {
   sessionStorage.removeItem(ADMIN_STORAGE_KEY)
+  const supabase = getArtistGlobeSupabase()
+  if (supabase) await supabase.auth.signOut().catch(() => {})
 }
 
 function rowToArtist(row: Record<string, unknown>): Artist {
@@ -215,15 +257,21 @@ export async function submitArtist(input: SubmitArtistInput): Promise<{ ok: true
 }
 
 async function adminFetch(path: string, body: Record<string, unknown>) {
+  const accessToken = await getAdminAccessToken()
+  if (!accessToken) throw new Error('Admin session required')
   const res = await fetch(path, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-Artist-Globe-Admin': getAdminPassword(),
+      Authorization: `Bearer ${accessToken}`,
     },
     body: JSON.stringify(body),
   })
-  const json = (await res.json().catch(() => ({}))) as { error?: string; inviteUrl?: string; invite?: ArtistInvite }
+  const json = (await res.json().catch(() => ({}))) as {
+    error?: string
+    inviteUrl?: string
+    invite?: ArtistInvite
+  }
   if (!res.ok) throw new Error(json.error || `Request failed (${res.status})`)
   return json
 }
@@ -337,31 +385,30 @@ export async function getInvite(token: string): Promise<{
   const supabase = getArtistGlobeSupabase()
   if (supabase) {
     try {
-      const { data: inviteRow, error } = await supabase
-        .from('artist_globe_invites')
-        .select('*')
-        .eq('token', token)
-        .maybeSingle()
+      // Narrow RPC — table SELECT on invites is revoked (SEC-002).
+      const { data, error } = await supabase.rpc('artist_globe_get_invite', {
+        invite_token: token,
+      })
       if (error) throw error
-      if (inviteRow) {
-        const { data: artistRow } = await supabase
-          .from('artist_globe_artists')
-          .select('*')
-          .eq('id', inviteRow.artist_id)
-          .maybeSingle()
-        if (artistRow) {
-          return {
-            invite: {
-              id: String(inviteRow.id),
-              token: String(inviteRow.token),
-              artistId: String(inviteRow.artist_id),
-              submissionId: inviteRow.submission_id ? String(inviteRow.submission_id) : null,
-              email: String(inviteRow.email),
-              expiresAt: String(inviteRow.expires_at),
-              usedAt: inviteRow.used_at ? String(inviteRow.used_at) : null,
-            },
-            artist: rowToArtist(artistRow as Record<string, unknown>),
-          }
+      const packed = data as {
+        invite?: Record<string, unknown>
+        artist?: Record<string, unknown>
+      } | null
+      if (packed?.invite && packed?.artist) {
+        const inviteRow = packed.invite
+        return {
+          invite: {
+            id: String(inviteRow.id),
+            token: String(inviteRow.token),
+            artistId: String(inviteRow.artist_id),
+            submissionId: inviteRow.submission_id
+              ? String(inviteRow.submission_id)
+              : null,
+            email: inviteRow.email ? String(inviteRow.email) : '',
+            expiresAt: String(inviteRow.expires_at),
+            usedAt: inviteRow.used_at ? String(inviteRow.used_at) : null,
+          },
+          artist: rowToArtist(packed.artist),
         }
       }
     } catch (err) {

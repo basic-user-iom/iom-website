@@ -5,22 +5,22 @@
  * GET|POST /api/crm-scheduled-send
  * Auth (either):
  *   - Bearer <CRM_CRON_SECRET|CRON_SECRET>  (or x-cron-secret)
- *   - Bearer <Supabase user access token>   (signed-in CRM staff)
+ *   - Bearer <Supabase staff access token>  (signed-in @iobjectm.com / CRM_STAFF_EMAILS)
  *
  * Env: CRM_CRON_SECRET / CRON_SECRET, SUPABASE_SERVICE_ROLE_KEY,
  *      VITE_SUPABASE_URL / SUPABASE_URL, VITE_SUPABASE_ANON_KEY,
- *      Proton SMTP vars.
+ *      Proton SMTP vars. Optional: CRM_STAFF_EMAILS.
  */
 
+import { requireStaffUser, setAllowedOriginCors } from './_lib/blog-helpers.js'
 import { processDueScheduledSends } from './_lib/crm-process-scheduled-sends.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'Content-Type, Authorization, x-cron-secret',
-  )
+  setAllowedOriginCors(res, req.headers.origin, {
+    allowAuth: true,
+    methods: 'GET, POST, OPTIONS',
+    allowHeaders: 'Content-Type, Authorization, x-cron-secret',
+  })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'GET' && req.method !== 'POST') {
@@ -55,7 +55,6 @@ export default async function handler(req, res) {
     console.error('[crm-scheduled-send] process failed', err)
     return res.status(502).json({
       error: 'Failed to process scheduled sends',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown',
     })
   }
 }
@@ -78,32 +77,13 @@ async function authorizeRequest(req) {
     }
   }
 
-  // Staff ping: validate Supabase JWT (do not expose cron secret to the browser).
+  // Staff ping: validate Supabase JWT + staff email (do not expose cron secret).
   if (bearer && bearer !== cronSecret) {
-    const supabaseUrl = (
-      process.env.VITE_SUPABASE_URL ||
-      process.env.SUPABASE_URL ||
-      ''
-    ).replace(/\/$/, '')
-    const anonKey =
-      process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
-    if (!supabaseUrl || !anonKey) {
-      return { ok: false, status: 503, error: 'Auth is not configured' }
+    const staff = await requireStaffUser(req)
+    if (staff.ok) {
+      return { ok: true, mode: 'staff', userId: staff.user.id }
     }
-    try {
-      const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
-        headers: {
-          Authorization: `Bearer ${bearer}`,
-          apikey: anonKey,
-        },
-      })
-      if (userRes.ok) {
-        const user = await userRes.json()
-        if (user?.id) return { ok: true, mode: 'staff', userId: user.id }
-      }
-    } catch (err) {
-      console.error('[crm-scheduled-send] user auth failed', err)
-    }
+    return { ok: false, status: staff.status, error: staff.error }
   }
 
   if (!cronSecret) {

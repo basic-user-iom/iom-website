@@ -1,7 +1,7 @@
 /**
  * Authenticated CRM outreach send via Proton SMTP Submission.
  * POST /api/crm-send-email
- * Authorization: Bearer <supabase access token>
+ * Authorization: Bearer <supabase access token> (staff only)
  * Body: {
  *   to, subject, body, leadId?, fromIdentity?,
  *   inReplyTo?, references?, persistMessage? (default true when leadId)
@@ -10,6 +10,11 @@
  */
 
 import nodemailer from 'nodemailer'
+import {
+  requireStaffUser,
+  setAllowedOriginCors,
+  safeJson,
+} from './_lib/blog-helpers.js'
 import {
   buildReferencesHeader,
   insertLeadMessage,
@@ -26,9 +31,10 @@ import {
 } from './_lib/proton-identities.js'
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*')
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  setAllowedOriginCors(res, req.headers.origin, {
+    allowAuth: true,
+    methods: 'POST, OPTIONS',
+  })
 
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
@@ -39,27 +45,15 @@ export default async function handler(req, res) {
     return res.status(503).json({ error: 'Email sending is not configured' })
   }
 
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) {
+    return res.status(auth.status).json({ error: auth.error })
+  }
+  const authUser = auth.user
+  const token = auth.token
+
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
-  if (!supabaseUrl || !anonKey) {
-    return res.status(503).json({ error: 'Auth is not configured' })
-  }
-
-  const authHeader = String(req.headers.authorization || '')
-  const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
-  if (!token) return res.status(401).json({ error: 'Missing authorization' })
-
-  const userRes = await fetch(`${supabaseUrl.replace(/\/$/, '')}/auth/v1/user`, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      apikey: anonKey,
-    },
-  })
-  if (!userRes.ok) {
-    return res.status(401).json({ error: 'Invalid or expired session' })
-  }
-  const authUser = await userRes.json()
-  if (!authUser?.id) return res.status(401).json({ error: 'Invalid session' })
 
   const body = typeof req.body === 'string' ? safeJson(req.body) : req.body
   if (!body || typeof body !== 'object') {
@@ -134,7 +128,7 @@ export default async function handler(req, res) {
     const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
     let storedMessageId = null
 
-    if (persistMessage && leadId) {
+    if (persistMessage && leadId && supabaseUrl && anonKey) {
       try {
         const stamp = new Date().toISOString()
         const row = await insertLeadMessage({
@@ -183,15 +177,6 @@ export default async function handler(req, res) {
     console.error('[crm-send-email]', err instanceof Error ? err.message : err)
     return res.status(502).json({
       error: 'Failed to send email',
-      detail: err instanceof Error ? err.message.slice(0, 200) : 'Unknown error',
     })
-  }
-}
-
-function safeJson(raw) {
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return null
   }
 }

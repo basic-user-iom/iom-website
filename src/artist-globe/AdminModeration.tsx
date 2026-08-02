@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import {
   approveSubmission,
-  getAdminPassword,
   isAdminUnlocked,
   listManagedArtists,
   listSubmissions,
@@ -15,12 +14,14 @@ import { CATEGORY_LABELS } from './types'
 
 export function AdminModeration() {
   const [unlocked, setUnlocked] = useState(isAdminUnlocked())
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [subs, setSubs] = useState<ArtistSubmission[]>([])
   const [artists, setArtists] = useState<Artist[]>([])
   const [error, setError] = useState('')
   const [inviteUrl, setInviteUrl] = useState('')
   const [busyId, setBusyId] = useState('')
+  const [unlocking, setUnlocking] = useState(false)
 
   const refresh = useCallback(async () => {
     if (!isAdminUnlocked()) return
@@ -33,14 +34,23 @@ export function AdminModeration() {
     if (unlocked) void refresh()
   }, [unlocked, refresh])
 
-  const onUnlock = (e: FormEvent) => {
+  const onUnlock = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
-    if (!unlockAdmin(password)) {
-      setError('Wrong password.')
+    setUnlocking(true)
+    const result = await unlockAdmin(email, password)
+    setUnlocking(false)
+    if (!result.ok) {
+      setError(result.error)
       return
     }
     setUnlocked(true)
+  }
+
+  const onLock = async () => {
+    await lockAdmin()
+    setUnlocked(false)
+    setPassword('')
   }
 
   const onApprove = async (id: string) => {
@@ -83,11 +93,22 @@ export function AdminModeration() {
 
   if (!unlocked) {
     return (
-      <form className="ag-panel ag-form ag-admin-lock" onSubmit={onUnlock}>
+      <form className="ag-panel ag-form ag-admin-lock" onSubmit={(e) => void onUnlock(e)}>
         <header className="ag-panel-head">
           <h2>Admin</h2>
-          <p>Enter the demo admin password to moderate submissions.</p>
+          <p>Sign in with a staff IOM account to moderate submissions.</p>
         </header>
+        <label>
+          Staff email
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="username"
+            required
+            disabled={unlocking}
+          />
+        </label>
         <label>
           Password
           <input
@@ -95,15 +116,17 @@ export function AdminModeration() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
+            required
+            disabled={unlocking}
           />
         </label>
         {error ? <p className="ag-error">{error}</p> : null}
         <p className="ag-muted">
-          Default: {getAdminPassword() === 'iom-globe-admin' ? 'iom-globe-admin' : '(from env)'}
+          Same staff accounts as Client Login (e.g. visual@ / projects@ iobjectm.com).
         </p>
         <div className="ag-form-actions">
-          <button type="submit" className="ag-btn ag-btn-primary">
-            Unlock
+          <button type="submit" className="ag-btn ag-btn-primary" disabled={unlocking}>
+            {unlocking ? 'Signing in…' : 'Unlock'}
           </button>
         </div>
       </form>
@@ -119,14 +142,7 @@ export function AdminModeration() {
           <h2>Moderation</h2>
           <p>Approve creates a live pin + invite URL you can send manually.</p>
         </div>
-        <button
-          type="button"
-          className="ag-btn"
-          onClick={() => {
-            lockAdmin()
-            setUnlocked(false)
-          }}
-        >
+        <button type="button" className="ag-btn" onClick={() => void onLock()}>
           Lock
         </button>
       </header>
