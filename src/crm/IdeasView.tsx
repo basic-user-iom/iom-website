@@ -103,6 +103,9 @@ const TABLE_SNIPPET = `| Model | Purpose | Analysis |
 | [Asset name](https://example.com) | Role | Notes |`
 
 const MAX_PASTE_DATA_URL_BYTES = 1_800_000
+const MD_IMAGE_FIND_RE = /!\[([^\]]*)\]\(([^)\n]+)\)/g
+
+type MdImageHit = { alt: string; url: string; full: string; index: number }
 
 function fileToDataUrl(file: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -111,6 +114,44 @@ function fileToDataUrl(file: Blob): Promise<string> {
     reader.onerror = () => reject(new Error('read_failed'))
     reader.readAsDataURL(file)
   })
+}
+
+function extractMdImages(body: string): MdImageHit[] {
+  const out: MdImageHit[] = []
+  const re = new RegExp(MD_IMAGE_FIND_RE.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = re.exec(body)) !== null) {
+    out.push({ alt: m[1], url: m[2], full: m[0], index: m.index })
+  }
+  return out
+}
+
+function replaceMdImageAt(
+  body: string,
+  imageIndex: number,
+  next: { alt: string; url: string },
+): string {
+  const images = extractMdImages(body)
+  const hit = images[imageIndex]
+  if (!hit) return body
+  return (
+    body.slice(0, hit.index) +
+    `![${next.alt}](${next.url})` +
+    body.slice(hit.index + hit.full.length)
+  )
+}
+
+function removeMdImageAt(body: string, imageIndex: number): string {
+  const images = extractMdImages(body)
+  const hit = images[imageIndex]
+  if (!hit) return body
+  let start = hit.index
+  let end = hit.index + hit.full.length
+  if (body.slice(end, end + 2) === '\n\n') end += 2
+  else if (body[end] === '\n') end += 1
+  else if (start >= 2 && body.slice(start - 2, start) === '\n\n') start -= 2
+  else if (start >= 1 && body[start - 1] === '\n') start -= 1
+  return body.slice(0, start) + body.slice(end)
 }
 
 export function IdeasView({
@@ -356,6 +397,17 @@ export function IdeasView({
                   <p className="crm-muted crm-mind-hint">{t('ideas.richHint')}</p>
                 </div>
                 <div className="crm-detail-actions">
+                  {selectedNode ? (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => openRichNote(selectedNode.id)}
+                    >
+                      {selectedNode.notes.trim()
+                        ? t('ideas.richEdit')
+                        : t('ideas.richAdd')}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     className="btn btn-ghost"
@@ -431,14 +483,22 @@ export function IdeasView({
                 />
               ) : (
                 <div className="crm-mind-rich-empty-row">
-                  <p className="crm-muted crm-mind-rich-empty">{t('ideas.richSelectNode')}</p>
+                  <p className="crm-muted crm-mind-rich-empty">
+                    {selectedNode
+                      ? selectedNode.notes.trim()
+                        ? t('ideas.richEditHint')
+                        : t('ideas.richSelectNode')
+                      : t('ideas.richSelectNode')}
+                  </p>
                   {selectedNode ? (
                     <button
                       type="button"
-                      className="btn btn-ghost"
+                      className="btn btn-primary"
                       onClick={() => openRichNote(selectedNode.id)}
                     >
-                      {t('ideas.richOpenPanel')}
+                      {selectedNode.notes.trim()
+                        ? t('ideas.richEdit')
+                        : t('ideas.richAdd')}
                     </button>
                   ) : null}
                 </div>
@@ -470,10 +530,14 @@ function MindRichNotePanel({
   const [draft, setDraft] = useState(node.notes)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [replaceImageIndex, setReplaceImageIndex] = useState<number | null>(null)
   const titleLooksRich = looksLikeRichMarkdown(node.title)
+  const images = useMemo(() => extractMdImages(draft), [draft])
+  const isEditingExisting = Boolean(node.notes.trim())
 
   useEffect(() => {
     setDraft(node.notes)
+    setReplaceImageIndex(null)
   }, [node.id, node.notes])
 
   const save = async (next: string) => {
@@ -529,7 +593,7 @@ function MindRichNotePanel({
     return fileToDataUrl(file)
   }
 
-  const insertImageFile = async (file: File) => {
+  const applyImageFile = async (file: File, replaceIndex: number | null) => {
     if (!file.type.startsWith('image/')) {
       onError(t('ideas.richImageBadType'))
       return
@@ -537,11 +601,18 @@ function MindRichNotePanel({
     setUploading(true)
     try {
       const url = await resolveImageUrl(file)
-      insertSnippet(`![${file.name.replace(/\.[^.]+$/, '') || 'Image'}](${url})`)
+      const alt = file.name.replace(/\.[^.]+$/, '') || 'Image'
+      if (replaceIndex != null) {
+        const existing = extractMdImages(draft)[replaceIndex]
+        setDraft(replaceMdImageAt(draft, replaceIndex, { alt: existing?.alt || alt, url }))
+      } else {
+        insertSnippet(`![${alt}](${url})`)
+      }
     } catch (err) {
       onError(err instanceof Error ? err.message : t('ideas.richImageFailed'))
     } finally {
       setUploading(false)
+      setReplaceImageIndex(null)
     }
   }
 
@@ -553,7 +624,7 @@ function MindRichNotePanel({
       const file = item.getAsFile()
       if (!file) continue
       e.preventDefault()
-      void insertImageFile(file)
+      void applyImageFile(file, replaceImageIndex)
       return
     }
   }
@@ -584,7 +655,9 @@ function MindRichNotePanel({
       <header className="crm-mind-rich-header">
         <div>
           <p className="crm-kicker">{t('ideas.richKicker')}</p>
-          <h3 className="crm-mind-rich-title">{t('ideas.richTitle')}</h3>
+          <h3 className="crm-mind-rich-title">
+            {isEditingExisting ? t('ideas.richEditTitle') : t('ideas.richTitle')}
+          </h3>
           <p className="crm-muted crm-mind-rich-blurb">
             {t('ideas.richBlurb', { title: node.title.slice(0, 80) })}
           </p>
@@ -602,7 +675,10 @@ function MindRichNotePanel({
             type="button"
             className="btn btn-ghost"
             disabled={uploading}
-            onClick={() => imageFileRef.current?.click()}
+            onClick={() => {
+              setReplaceImageIndex(null)
+              imageFileRef.current?.click()
+            }}
           >
             {uploading ? t('ideas.richImageUploading') : t('ideas.insertImage')}
           </button>
@@ -619,8 +695,9 @@ function MindRichNotePanel({
         hidden
         onChange={(e) => {
           const file = e.target.files?.[0]
+          const idx = replaceImageIndex
           e.target.value = ''
-          if (file) void insertImageFile(file)
+          if (file) void applyImageFile(file, idx)
         }}
       />
 
@@ -638,7 +715,57 @@ function MindRichNotePanel({
         </div>
       )}
 
+      {images.length > 0 && (
+        <div className="crm-mind-rich-images">
+          <p className="crm-mind-rich-preview-label">{t('ideas.richImagesLabel')}</p>
+          <ul className="crm-mind-rich-image-list">
+            {images.map((img, i) => (
+              <li key={`${img.index}-${i}`} className="crm-mind-rich-image-item">
+                <img src={img.url} alt={img.alt || ''} className="crm-mind-rich-image-thumb" />
+                <div className="crm-mind-rich-image-meta">
+                  <input
+                    className="crm-input crm-input--xs"
+                    value={img.alt}
+                    aria-label={t('ideas.richImageCaption')}
+                    placeholder={t('ideas.richImageCaption')}
+                    onChange={(e) =>
+                      setDraft(
+                        replaceMdImageAt(draft, i, { alt: e.target.value, url: img.url }),
+                      )
+                    }
+                  />
+                  <div className="crm-mind-rich-image-actions">
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      disabled={uploading}
+                      onClick={() => {
+                        setReplaceImageIndex(i)
+                        imageFileRef.current?.click()
+                      }}
+                    >
+                      {t('ideas.richImageReplace')}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-ghost crm-danger"
+                      onClick={() => setDraft(removeMdImageAt(draft, i))}
+                    >
+                      {t('ideas.richImageRemove')}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <label className="crm-mind-rich-editor-label" htmlFor={`idea-rich-${node.id}`}>
+        {t('ideas.richEditorLabel')}
+      </label>
       <textarea
+        id={`idea-rich-${node.id}`}
         ref={textareaRef}
         className="crm-input crm-mind-rich-textarea"
         rows={8}
@@ -661,7 +788,7 @@ function MindRichNotePanel({
             void save(draft)
           }}
         >
-          {saving ? t('notes.saving') : t('ideas.save')}
+          {saving ? t('notes.saving') : t('ideas.richSaveClose')}
         </button>
         <button type="button" className="btn btn-ghost" onClick={onClose}>
           {t('ideas.richClose')}
@@ -918,11 +1045,15 @@ function MindNodeRow({
             <button
               type="button"
               className={`crm-mind-tb-btn crm-mind-tb-btn--rich${node.notes ? ' is-active' : ''}`}
-              title={t('ideas.richToolbar')}
-              aria-label={t('ideas.richToolbar')}
+              title={
+                node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')
+              }
+              aria-label={
+                node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')
+              }
               onClick={() => onOpenRichNote(node.id)}
             >
-              MD
+              {node.notes.trim() ? t('ideas.richEditShort') : 'MD'}
             </button>
             {node.parent_id && (
               <button
@@ -1070,14 +1201,18 @@ function MindNodeRow({
             <button
               type="button"
               className="crm-mind-note-badge"
-              title={t('ideas.richToolbar')}
-              aria-label={t('ideas.richToolbar')}
+              title={
+                node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')
+              }
+              aria-label={
+                node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')
+              }
               onClick={(e) => {
                 e.stopPropagation()
                 onOpenRichNote(node.id)
               }}
             >
-              MD
+              {node.notes.trim() ? t('ideas.richEditShort') : 'MD'}
             </button>
           )}
         </div>
@@ -1099,9 +1234,17 @@ function MindNodeRow({
         )}
 
         {node.notes.trim() ? (
-          <div className="crm-mind-node-note-preview">
+          <button
+            type="button"
+            className="crm-mind-node-note-preview"
+            onClick={(e) => {
+              e.stopPropagation()
+              onOpenRichNote(node.id)
+            }}
+          >
+            <span className="crm-mind-node-note-edit-chip">{t('ideas.richEdit')}</span>
             <NoteRichBody body={node.notes} />
-          </div>
+          </button>
         ) : null}
 
         {selected && (
