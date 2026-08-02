@@ -2,7 +2,7 @@
  * Shared helpers for blog comment API routes.
  */
 
-import { createHash, randomBytes } from 'node:crypto'
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { EMAIL_RE, resolveProtonIdentity } from './proton-identities.js'
 
 export { EMAIL_RE }
@@ -153,6 +153,67 @@ export function supabaseConfig() {
 
 export function hashToken(token) {
   return createHash('sha256').update(String(token)).digest('hex')
+}
+
+/** Secret for short-lived recording media grants (never put passwords in URLs). */
+function mediaGrantSecret() {
+  return (
+    process.env.CRM_MEDIA_GRANT_SECRET ||
+    process.env.CRM_CRON_SECRET ||
+    process.env.CRON_SECRET ||
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.SUPABASE_SERVICE_KEY ||
+    ''
+  ).trim()
+}
+
+/**
+ * Mint an opaque playback grant for a share slug (HMAC, no server store).
+ * @param {string} slug
+ * @param {number} [ttlSec]
+ */
+export function mintMediaGrant(slug, ttlSec = 60 * 60 * 2) {
+  const secret = mediaGrantSecret()
+  if (!secret) throw new Error('Media grant secret is not configured')
+  const exp = Math.floor(Date.now() / 1000) + ttlSec
+  const payload = Buffer.from(
+    JSON.stringify({ s: String(slug), e: exp }),
+    'utf8',
+  ).toString('base64url')
+  const sig = createHmac('sha256', secret).update(payload).digest('base64url')
+  return `${payload}.${sig}`
+}
+
+/**
+ * Verify a media grant for the expected slug.
+ * @param {string} token
+ * @param {string} slug
+ */
+export function verifyMediaGrant(token, slug) {
+  const secret = mediaGrantSecret()
+  if (!secret || !token || !slug) return false
+  const parts = String(token).split('.')
+  if (parts.length !== 2) return false
+  const [payload, sig] = parts
+  const expected = createHmac('sha256', secret).update(payload).digest('base64url')
+  try {
+    const a = Buffer.from(sig)
+    const b = Buffer.from(expected)
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return false
+  } catch {
+    return false
+  }
+  let data
+  try {
+    data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+  } catch {
+    return false
+  }
+  if (data?.s !== slug) return false
+  if (typeof data.e !== 'number' || data.e < Math.floor(Date.now() / 1000)) {
+    return false
+  }
+  return true
 }
 
 export function newVerifyToken() {

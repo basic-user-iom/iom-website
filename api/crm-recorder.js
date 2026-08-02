@@ -8,19 +8,22 @@
  * POST ?action=r2-sign         → presigned GET URL (CRM auth; owner playback)
  * POST ?action=r2-delete       → delete R2 object(s) (CRM auth; path must be owner/)
  * GET  ?action=r2-status       → whether Cloudflare R2 is configured
- * GET  ?action=media&slug=…    → 302 to fresh file URL (lasting blog / <img> links)
+ * GET  ?action=media&slug=…[&grant=…] → 302 to fresh file URL (lasting blog / <img> links)
+ *       Password-protected media requires a short-lived grant from POST unlock (never ?password=).
  */
 
 import { createHash } from 'node:crypto'
 import {
   clientIp,
   isAllowedWebOrigin,
+  mintMediaGrant,
   rateLimit,
   requireSupabaseUser,
   safeJson,
   sb,
   siteOrigin,
   supabaseConfig,
+  verifyMediaGrant,
 } from './_lib/blog-helpers.js'
 import {
   createR2PresignedUrl,
@@ -490,9 +493,16 @@ async function handleShare(req, res) {
     }
 
     // Prefer lasting media redirect for <video>/<img> — fresh R2 signature on every
-    // request. Direct signed URLs expire and were a source of “works then stops”.
+    // request. Password-protected items use an opaque grant (never ?password=).
     const mediaQs = new URLSearchParams({ slug })
-    if (password) mediaQs.set('password', password)
+    if (password) {
+      try {
+        mediaQs.set('grant', mintMediaGrant(slug))
+      } catch (err) {
+        console.error('[crm-recorder] media grant mint failed', err)
+        return res.status(503).json({ error: 'Playback grant unavailable' })
+      }
+    }
     const lastingPlayback = `/api/crm-recorder?action=media&${mediaQs}`
 
     return res.status(200).json({
@@ -510,7 +520,7 @@ async function handleShare(req, res) {
 /**
  * Permanent public file URL for blog embeds / <img src>.
  * 302 → fresh signed R2 (or Supabase) URL. Objects stay on Cloudflare until deleted.
- * Password-protected items need ?password=… (or stay on /r/… share page).
+ * Password-protected items require ?grant=… from POST share unlock (not plaintext passwords).
  */
 async function handleMedia(req, res) {
   if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -533,8 +543,16 @@ async function handleMedia(req, res) {
   }
 
   const slug = String(req.query?.slug || '').trim()
-  const password = String(req.query?.password || '')
+  const grant = String(req.query?.grant || '').trim()
   if (!slug) return res.status(400).json({ error: 'Missing slug' })
+  // Reject legacy ?password= — credentials must not appear in URLs/logs/referrers.
+  if (Object.prototype.hasOwnProperty.call(req.query || {}, 'password')) {
+    return res.status(400).json({
+      error: 'Password query parameter is no longer supported',
+      code: 'password_query_removed',
+      sharePath: `/r/${encodeURIComponent(slug)}`,
+    })
+  }
 
   const metaRows = await sb(`rpc/crm_recording_share_meta`, {
     method: 'POST',
@@ -545,22 +563,35 @@ async function handleMedia(req, res) {
   const meta = Array.isArray(metaRows) ? metaRows[0] : null
   if (!meta) return res.status(404).json({ error: 'Recording not found' })
 
-  if (meta.has_password && !password) {
-    return res.status(401).json({
-      error: 'Password required',
-      code: 'password_required',
-      sharePath: `/r/${encodeURIComponent(slug)}`,
-    })
+  if (meta.has_password) {
+    if (!grant || !verifyMediaGrant(grant, slug)) {
+      return res.status(401).json({
+        error: 'Playback grant required',
+        code: 'grant_required',
+        sharePath: `/r/${encodeURIComponent(slug)}`,
+      })
+    }
   }
 
-  const rows = await sb(`rpc/crm_recording_unlock`, {
-    method: 'POST',
-    body: { p_slug: slug, p_password: password },
-    url,
-    key,
-  })
-  const row = Array.isArray(rows) ? rows[0] : null
-  if (!row) {
+  /** @type {{ id?: string, title?: string, mime_type?: string, duration_ms?: number, storage_path?: string } | null} */
+  let row = null
+  if (meta.has_password) {
+    // Grant already proved unlock — read path with service role (no password in URL).
+    const found = await sb(
+      `crm_recordings?share_slug=eq.${encodeURIComponent(slug)}&select=id,title,mime_type,duration_ms,storage_path&limit=1`,
+      { url, key },
+    )
+    row = Array.isArray(found) ? found[0] : null
+  } else {
+    const rows = await sb(`rpc/crm_recording_unlock`, {
+      method: 'POST',
+      body: { p_slug: slug, p_password: '' },
+      url,
+      key,
+    })
+    row = Array.isArray(rows) ? rows[0] : null
+  }
+  if (!row?.storage_path) {
     return res.status(401).json({ error: 'Wrong password or not found' })
   }
 
