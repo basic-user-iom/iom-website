@@ -3788,10 +3788,20 @@
 }
 
 .crm-mind-rich-empty {
+  margin: 0;
+  flex: 1;
+}
+
+.crm-mind-rich-empty-row {
   margin-top: 0.85rem;
   padding: 0.65rem 0.75rem;
   border: 1px dashed var(--border);
   border-radius: var(--radius);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
 }
 
 .crm-mind-tb-btn--rich {

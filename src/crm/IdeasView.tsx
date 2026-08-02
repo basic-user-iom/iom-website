@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   useState,
+  type ClipboardEvent,
   type CSSProperties,
   type KeyboardEvent,
   type RefObject,
@@ -11,7 +12,9 @@ import {
 import { useCrmI18n } from './i18n'
 import { NoteRichBody } from './NotePreview'
 import type { CrmProject, Lead, MindMap, MindNode, MindNodeEmphasis } from './types'
-import { listLeads } from './api'
+import { getCurrentUser, listLeads } from './api'
+import { lastingMediaUrlForSlug, uploadRecording } from './recordingsApi'
+import { useLiveCrmBackend } from './supabaseClient'
 import {
   createMindMap,
   createMindNode,
@@ -99,7 +102,16 @@ const TABLE_SNIPPET = `| Model | Purpose | Analysis |
 | --- | --- | --- |
 | [Asset name](https://example.com) | Role | Notes |`
 
-const IMAGE_SNIPPET = `![Caption](https://example.com/image.jpg)`
+const MAX_PASTE_DATA_URL_BYTES = 1_800_000
+
+function fileToDataUrl(file: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('read_failed'))
+    reader.readAsDataURL(file)
+  })
+}
 
 export function IdeasView({
   initialLeadId = null,
@@ -119,8 +131,10 @@ export function IdeasView({
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [focusEditId, setFocusEditId] = useState<string | null>(null)
+  const [richPanelOpen, setRichPanelOpen] = useState(false)
   const [richNoteFocusToken, setRichNoteFocusToken] = useState(0)
   const richNoteRef = useRef<HTMLTextAreaElement>(null)
+  const imageFileRef = useRef<HTMLInputElement>(null)
 
   const refreshMaps = useCallback(async () => {
     setLoading(true)
@@ -196,17 +210,22 @@ export function IdeasView({
 
   const openRichNote = (nodeId: string) => {
     setSelectedNodeId(nodeId)
+    setRichPanelOpen(true)
     setRichNoteFocusToken((n) => n + 1)
   }
 
+  const closeRichNote = () => {
+    setRichPanelOpen(false)
+  }
+
   useEffect(() => {
-    if (!richNoteFocusToken || !selectedNode) return
+    if (!richNoteFocusToken || !selectedNode || !richPanelOpen) return
     const id = window.setTimeout(() => {
       richNoteRef.current?.focus()
       richNoteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }, 0)
     return () => window.clearTimeout(id)
-  }, [richNoteFocusToken, selectedNode])
+  }, [richNoteFocusToken, selectedNode, richPanelOpen])
 
   const handleCreate = async () => {
     const name = title.trim() || t('ideas.untitled')
@@ -398,15 +417,31 @@ export function IdeasView({
                 </div>
               </div>
 
-              {selectedNode ? (
+              {selectedNode && richPanelOpen ? (
                 <MindRichNotePanel
                   node={selectedNode}
                   textareaRef={richNoteRef}
-                  onSaved={() => void refreshNodes(selected.id)}
+                  imageFileRef={imageFileRef}
+                  onSaved={() => {
+                    void refreshNodes(selected.id)
+                    closeRichNote()
+                  }}
+                  onClose={closeRichNote}
                   onError={(msg) => setError(msg)}
                 />
               ) : (
-                <p className="crm-muted crm-mind-rich-empty">{t('ideas.richSelectNode')}</p>
+                <div className="crm-mind-rich-empty-row">
+                  <p className="crm-muted crm-mind-rich-empty">{t('ideas.richSelectNode')}</p>
+                  {selectedNode ? (
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => openRichNote(selectedNode.id)}
+                    >
+                      {t('ideas.richOpenPanel')}
+                    </button>
+                  ) : null}
+                </div>
               )}
             </>
           )}
@@ -419,17 +454,22 @@ export function IdeasView({
 function MindRichNotePanel({
   node,
   textareaRef,
+  imageFileRef,
   onSaved,
+  onClose,
   onError,
 }: {
   node: MindNode
   textareaRef: RefObject<HTMLTextAreaElement | null>
+  imageFileRef: RefObject<HTMLInputElement | null>
   onSaved: () => void
+  onClose: () => void
   onError: (msg: string) => void
 }) {
   const { t } = useCrmI18n()
   const [draft, setDraft] = useState(node.notes)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const titleLooksRich = looksLikeRichMarkdown(node.title)
 
   useEffect(() => {
@@ -471,6 +511,53 @@ function MindRichNotePanel({
     }, 0)
   }
 
+  const resolveImageUrl = async (file: File): Promise<string> => {
+    if (useLiveCrmBackend()) {
+      const user = await getCurrentUser()
+      if (!user?.id) throw new Error(t('ideas.richImageNeedAuth'))
+      const rec = await uploadRecording({
+        blob: file,
+        title: file.name.replace(/\.[^.]+$/, '') || 'Idea image',
+        durationMs: 0,
+        ownerId: user.id,
+      })
+      return lastingMediaUrlForSlug(rec.share_slug)
+    }
+    if (file.size > MAX_PASTE_DATA_URL_BYTES) {
+      throw new Error(t('ideas.richImageTooLarge'))
+    }
+    return fileToDataUrl(file)
+  }
+
+  const insertImageFile = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      onError(t('ideas.richImageBadType'))
+      return
+    }
+    setUploading(true)
+    try {
+      const url = await resolveImageUrl(file)
+      insertSnippet(`![${file.name.replace(/\.[^.]+$/, '') || 'Image'}](${url})`)
+    } catch (err) {
+      onError(err instanceof Error ? err.message : t('ideas.richImageFailed'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = e.clipboardData?.items
+    if (!items?.length) return
+    for (const item of Array.from(items)) {
+      if (!item.type.startsWith('image/')) continue
+      const file = item.getAsFile()
+      if (!file) continue
+      e.preventDefault()
+      void insertImageFile(file)
+      return
+    }
+  }
+
   const moveTitleIntoNote = async () => {
     const moved = node.title.trim()
     if (!moved) return
@@ -501,6 +588,7 @@ function MindRichNotePanel({
           <p className="crm-muted crm-mind-rich-blurb">
             {t('ideas.richBlurb', { title: node.title.slice(0, 80) })}
           </p>
+          <p className="crm-muted crm-mind-rich-blurb">{t('ideas.richPasteHint')}</p>
         </div>
         <div className="crm-mind-rich-inserts">
           <button
@@ -513,12 +601,28 @@ function MindRichNotePanel({
           <button
             type="button"
             className="btn btn-ghost"
-            onClick={() => insertSnippet(IMAGE_SNIPPET)}
+            disabled={uploading}
+            onClick={() => imageFileRef.current?.click()}
           >
-            {t('ideas.insertImage')}
+            {uploading ? t('ideas.richImageUploading') : t('ideas.insertImage')}
+          </button>
+          <button type="button" className="btn btn-ghost" onClick={onClose}>
+            {t('ideas.richClose')}
           </button>
         </div>
       </header>
+
+      <input
+        ref={imageFileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/gif"
+        hidden
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          e.target.value = ''
+          if (file) void insertImageFile(file)
+        }}
+      />
 
       {titleLooksRich && (
         <div className="crm-mind-rich-migrate" role="status">
@@ -541,16 +645,26 @@ function MindRichNotePanel({
         placeholder={t('ideas.notePlaceholder')}
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
+        onPaste={onPaste}
       />
 
       <div className="crm-mind-rich-actions">
         <button
           type="button"
           className="btn btn-primary"
-          disabled={saving || draft === node.notes}
-          onClick={() => void save(draft)}
+          disabled={saving || uploading}
+          onClick={() => {
+            if (draft === node.notes) {
+              onClose()
+              return
+            }
+            void save(draft)
+          }}
         >
           {saving ? t('notes.saving') : t('ideas.save')}
+        </button>
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          {t('ideas.richClose')}
         </button>
         {draft !== node.notes && (
           <button

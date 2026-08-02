@@ -14,7 +14,8 @@ export interface ParsedNoteSection {
 }
 
 const BARE_URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?"')\]}>])/gi
-const MD_IMAGE_RE = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g
+const MD_IMG_SRC = String.raw`(https?:\/\/[^)\s]+|\/[^)\s]+|data:image\/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)`
+const MD_IMAGE_RE = new RegExp(String.raw`!\[([^\]]*)\]\(${MD_IMG_SRC}\)`, 'g')
 const MD_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g
 
 export function isUrl(line: string): boolean {
@@ -22,7 +23,7 @@ export function isUrl(line: string): boolean {
 }
 
 function isSafeUrl(url: string): boolean {
-  return /^(https?:\/\/|\/)/i.test(url)
+  return /^(https?:\/\/|\/|data:image\/)/i.test(url)
 }
 
 /** Standalone image URL (file ext or common ChatGPT / CDN hosts). */
@@ -424,7 +425,9 @@ export function renderNoteLines(lines: string[], keyPrefix: string): ReactNode[]
     }
 
     // Standalone markdown image
-    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)$/)
+    const imgMatch = trimmed.match(
+      new RegExp(String.raw`^!\[([^\]]*)\]\(${MD_IMG_SRC}\)$`),
+    )
     if (imgMatch && isSafeUrl(imgMatch[2])) {
       out.push(renderImageBlock(imgMatch[2], imgMatch[1], `${keyPrefix}-img-${i}`))
       i++

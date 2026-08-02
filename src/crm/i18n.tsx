@@ -742,10 +742,18 @@ const en: Dict = {
   'ideas.richTitle': 'Rich note — tables & images',
   'ideas.richBlurb':
     'Paste ChatGPT markdown for “{title}”. Use + Table / + Image, then Save.',
+  'ideas.richPasteHint':
+    'Images: Ctrl+V / ⌘V to paste a screenshot, or + Image to upload. Save closes this panel.',
   'ideas.richToolbar': 'Rich note (tables & images)',
   'ideas.richPreview': 'Preview',
   'ideas.richPreviewEmpty': 'Preview appears here after you paste a table or image markdown.',
   'ideas.richDiscard': 'Discard',
+  'ideas.richClose': 'Close',
+  'ideas.richImageUploading': 'Uploading image…',
+  'ideas.richImageNeedAuth': 'Sign in to live CRM to upload pasted images.',
+  'ideas.richImageTooLarge': 'Image is too large to embed offline — use live CRM upload, or a smaller image.',
+  'ideas.richImageBadType': 'Please paste or choose a PNG, JPEG, WebP, or GIF image.',
+  'ideas.richImageFailed': 'Could not add image.',
   'ideas.insertTable': '+ Table',
   'ideas.insertImage': '+ Image',
   'ideas.richTitleLooksMarkdown':
@@ -763,7 +771,7 @@ const en: Dict = {
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Note',
   'ideas.notePlaceholder':
-    'Paste markdown: | tables | · [links](url) · ![image](url) · lists…',
+    'Paste markdown or Ctrl+V an image · | tables | · [links](url)…',
   'ideas.noteFormatHint':
     'Tables, [links](url), images, and ## headings render in the preview.',
   'ideas.save': 'Save',
@@ -2258,10 +2266,18 @@ const sr: Dict = {
   'ideas.richTitle': 'Rich note — tabele i slike',
   'ideas.richBlurb':
     'Nalepite ChatGPT markdown za „{title}”. Koristite + Tabela / + Slika, pa Sačuvaj.',
+  'ideas.richPasteHint':
+    'Slike: Ctrl+V / ⌘V za screenshot, ili + Slika za upload. Sačuvaj zatvara ovaj panel.',
   'ideas.richToolbar': 'Rich note (tabele i slike)',
   'ideas.richPreview': 'Pregled',
   'ideas.richPreviewEmpty': 'Pregled se pojavljuje ovde kada nalepite tabelu ili markdown slike.',
   'ideas.richDiscard': 'Odbaci',
+  'ideas.richClose': 'Zatvori',
+  'ideas.richImageUploading': 'Upload slike…',
+  'ideas.richImageNeedAuth': 'Prijavite se u živi CRM da uploadujete nalepljene slike.',
+  'ideas.richImageTooLarge': 'Slika je prevelika za offline ugradnju — koristite živi CRM upload ili manju sliku.',
+  'ideas.richImageBadType': 'Nalepite ili izaberite PNG, JPEG, WebP ili GIF sliku.',
+  'ideas.richImageFailed': 'Dodavanje slike nije uspelo.',
   'ideas.insertTable': '+ Tabela',
   'ideas.insertImage': '+ Slika',
   'ideas.richTitleLooksMarkdown':
@@ -2279,7 +2295,7 @@ const sr: Dict = {
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Beleška',
   'ideas.notePlaceholder':
-    'Nalepite markdown: | tabele | · [linkovi](url) · ![slika](url) · liste…',
+    'Nalepite markdown ili Ctrl+V sliku · | tabele | · [linkovi](url)…',
   'ideas.noteFormatHint':
     'Tabele, [linkovi](url), slike i ## naslovi renderuju se u pregledu.',
   'ideas.save': 'Sačuvaj',
