@@ -5,7 +5,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
-  type KeyboardEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import { useCrmI18n } from './i18n'
@@ -653,7 +653,7 @@ function MindBoardCard({
     }
   }
 
-  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLDivElement>) => {
     if (e.key === 'Tab') {
       e.preventDefault()
       void addChild(editing ? title : undefined)
