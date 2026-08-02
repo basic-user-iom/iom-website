@@ -491,7 +491,7 @@ function MindBoardCard({
           left: point.x,
           top: point.y,
           width: MIND_CARD_W,
-          minHeight: MIND_CARD_H,
+          height: MIND_CARD_H,
           ...(node.color
             ? {
                 '--mind-node-accent': node.color,
@@ -514,235 +514,243 @@ function MindBoardCard({
     >
       {selected && (
         <div
-          className="crm-mind-float-toolbar"
-          role="toolbar"
-          aria-label={t('ideas.toolbar')}
+          className="crm-mind-board-tools"
           onClick={(e) => e.stopPropagation()}
+          onPointerDown={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            className={`crm-mind-tb-btn${panel === 'color' ? ' is-active' : ''}`}
-            title={t('ideas.styleColor')}
-            onClick={() => setPanel((p) => (p === 'color' ? 'none' : 'color'))}
+          <div
+            className="crm-mind-board-toolbar"
+            role="toolbar"
+            aria-label={t('ideas.toolbar')}
           >
-            ◐
-          </button>
-          <button
-            type="button"
-            className={`crm-mind-tb-btn${node.emphasis === 'bold' || node.emphasis === 'bold-italic' ? ' is-active' : ''}`}
-            title={t('ideas.bold')}
-            onClick={() =>
-              void patchStyle({ emphasis: toggleEmphasis(node.emphasis, 'bold') })
-            }
-          >
-            <strong>B</strong>
-          </button>
-          <button
-            type="button"
-            className={`crm-mind-tb-btn${node.emphasis === 'italic' || node.emphasis === 'bold-italic' ? ' is-active' : ''}`}
-            title={t('ideas.italic')}
-            onClick={() =>
-              void patchStyle({ emphasis: toggleEmphasis(node.emphasis, 'italic') })
-            }
-          >
-            <em>I</em>
-          </button>
-          <button
-            type="button"
-            className={`crm-mind-tb-btn${panel === 'link' || node.link_url ? ' is-active' : ''}`}
-            title={t('ideas.link')}
-            onClick={() => setPanel((p) => (p === 'link' ? 'none' : 'link'))}
-          >
-            ↗
-          </button>
-          <button
-            type="button"
-            className={`crm-mind-tb-btn crm-mind-tb-btn--rich${node.notes ? ' is-active' : ''}`}
-            title={node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')}
-            onClick={() => onOpenRichNote(node.id)}
-          >
-            {node.notes.trim() ? t('ideas.richEditShort') : 'MD'}
-          </button>
-          {node.parent_id && (
             <button
               type="button"
-              className="crm-mind-tb-btn crm-mind-tb-btn--danger"
-              title={t('ideas.deleteNode')}
-              onClick={() => {
-                if (!confirm(t('ideas.deleteNodeConfirm'))) return
-                void deleteMindNode(node.id).then(() => {
-                  onSelect(null)
-                  onChanged()
-                })
-              }}
+              className={`crm-mind-tb-btn${panel === 'color' ? ' is-active' : ''}`}
+              title={t('ideas.styleColor')}
+              onClick={() => setPanel((p) => (p === 'color' ? 'none' : 'color'))}
             >
-              ×
+              ◐
             </button>
+            <button
+              type="button"
+              className={`crm-mind-tb-btn${node.emphasis === 'bold' || node.emphasis === 'bold-italic' ? ' is-active' : ''}`}
+              title={t('ideas.bold')}
+              onClick={() =>
+                void patchStyle({ emphasis: toggleEmphasis(node.emphasis, 'bold') })
+              }
+            >
+              <strong>B</strong>
+            </button>
+            <button
+              type="button"
+              className={`crm-mind-tb-btn${node.emphasis === 'italic' || node.emphasis === 'bold-italic' ? ' is-active' : ''}`}
+              title={t('ideas.italic')}
+              onClick={() =>
+                void patchStyle({
+                  emphasis: toggleEmphasis(node.emphasis, 'italic'),
+                })
+              }
+            >
+              <em>I</em>
+            </button>
+            <button
+              type="button"
+              className={`crm-mind-tb-btn${panel === 'link' || node.link_url ? ' is-active' : ''}`}
+              title={t('ideas.link')}
+              onClick={() => setPanel((p) => (p === 'link' ? 'none' : 'link'))}
+            >
+              ↗
+            </button>
+            {node.parent_id && (
+              <button
+                type="button"
+                className="crm-mind-tb-btn crm-mind-tb-btn--danger"
+                title={t('ideas.deleteNode')}
+                onClick={() => {
+                  if (!confirm(t('ideas.deleteNodeConfirm'))) return
+                  void deleteMindNode(node.id).then(() => {
+                    onSelect(null)
+                    onChanged()
+                  })
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {panel === 'color' && (
+            <div className="crm-mind-board-pop">
+              <div className="crm-mind-swatches" role="listbox">
+                {NODE_COLORS.map((c) => (
+                  <button
+                    key={c || 'default'}
+                    type="button"
+                    className={`crm-mind-swatch${(node.color || '') === c ? ' is-active' : ''}${!c ? ' is-default' : ''}`}
+                    style={c ? { background: c } : undefined}
+                    title={c || t('ideas.colorDefault')}
+                    onClick={() => {
+                      void patchStyle({ color: c })
+                      setPanel('none')
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {panel === 'link' && (
+            <div className="crm-mind-board-pop crm-mind-board-pop--form">
+              <input
+                className="crm-input crm-input--xs"
+                type="url"
+                placeholder={t('ideas.linkPlaceholder')}
+                value={linkDraft}
+                autoFocus
+                onChange={(e) => setLinkDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    void patchStyle({ link_url: linkDraft.trim() }).then(() =>
+                      setPanel('none'),
+                    )
+                  }
+                  if (e.key === 'Escape') setPanel('none')
+                }}
+              />
+              <button
+                type="button"
+                className="btn btn-primary crm-mind-save-btn"
+                onClick={() =>
+                  void patchStyle({ link_url: linkDraft.trim() }).then(() =>
+                    setPanel('none'),
+                  )
+                }
+              >
+                {t('ideas.save')}
+              </button>
+            </div>
           )}
         </div>
       )}
 
-      {selected && panel === 'color' && (
-        <div className="crm-mind-pop" onClick={(e) => e.stopPropagation()}>
-          <div className="crm-mind-swatches" role="listbox">
-            {NODE_COLORS.map((c) => (
-              <button
-                key={c || 'default'}
-                type="button"
-                className={`crm-mind-swatch${(node.color || '') === c ? ' is-active' : ''}${!c ? ' is-default' : ''}`}
-                style={c ? { background: c } : undefined}
-                title={c || t('ideas.colorDefault')}
-                onClick={() => {
-                  void patchStyle({ color: c })
-                  setPanel('none')
-                }}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {selected && panel === 'link' && (
-        <div
-          className="crm-mind-pop crm-mind-pop--form"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <input
-            className="crm-input crm-input--xs"
-            type="url"
-            placeholder={t('ideas.linkPlaceholder')}
-            value={linkDraft}
-            autoFocus
-            onChange={(e) => setLinkDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                void patchStyle({ link_url: linkDraft.trim() }).then(() =>
-                  setPanel('none'),
-                )
-              }
-              if (e.key === 'Escape') setPanel('none')
-            }}
-          />
-          <button
-            type="button"
-            className="btn btn-primary crm-mind-save-btn"
-            onClick={() =>
-              void patchStyle({ link_url: linkDraft.trim() }).then(() =>
-                setPanel('none'),
-              )
-            }
-          >
-            {t('ideas.save')}
-          </button>
-        </div>
-      )}
-
-      <div
-        className="crm-mind-board-card-head"
-        onPointerDown={(e) => onDragStart(node.id, e)}
-      >
-        <span className="crm-mind-board-drag" aria-hidden="true" title={t('ideas.boardDrag')}>
-          ⋮⋮
-        </span>
-        <span className="crm-mind-bullet" aria-hidden="true">
-          ◆
-        </span>
-        {editing ? (
-          <input
-            ref={inputRef}
-            className="crm-input crm-mind-edit"
-            value={title}
-            autoFocus
-            onChange={(e) => setTitle(e.target.value)}
-            onClick={(e) => e.stopPropagation()}
-            onPointerDown={(e) => e.stopPropagation()}
-            onBlur={() => void saveTitle()}
-            onKeyDown={(e) => {
-              e.stopPropagation()
-              if (e.key === 'Tab') {
-                e.preventDefault()
-                void addChild(title)
-                return
-              }
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                void addSibling(title)
-                return
-              }
-              if (e.key === 'Escape') {
-                setTitle(node.title)
-                onEdit(null)
-              }
-            }}
-          />
-        ) : (
-          <button
-            type="button"
-            className={`crm-mind-title ${emphasisClass(node.emphasis)}${
-              titleLooksRich ? ' is-rich-paste' : ''
-            }`}
-            onClick={(e) => {
-              e.stopPropagation()
-              onSelect(node.id)
-            }}
-            onPointerDown={(e) => e.stopPropagation()}
-          >
-            {titleLooksRich ? t('ideas.richTitleTruncated') : node.title}
-          </button>
-        )}
+      <div className="crm-mind-board-card-body">
         <button
           type="button"
-          className="btn btn-ghost crm-mind-board-edit-title"
+          className="crm-mind-board-drag"
+          title={t('ideas.boardDrag')}
+          aria-label={t('ideas.boardDrag')}
+          onPointerDown={(e) => onDragStart(node.id, e)}
           onClick={(e) => {
             e.stopPropagation()
             onSelect(node.id)
-            onEdit(node.id)
           }}
-          onPointerDown={(e) => e.stopPropagation()}
         >
-          {t('ideas.richEditShort')}
+          <span aria-hidden="true">⋮⋮</span>
         </button>
-      </div>
 
-      {richEditing ? (
-        <p className="crm-mind-board-card-hint">{t('ideas.richEditingHere')}</p>
-      ) : node.notes.trim() ? (
-        <button
-          type="button"
-          className="crm-mind-board-preview"
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenRichNote(node.id)
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          <span className="crm-mind-node-note-edit-chip">{t('ideas.richEdit')}</span>
-          {snippet?.image ? (
-            <img
-              src={snippet.image}
-              alt=""
-              className="crm-mind-board-thumb"
-              loading="lazy"
-            />
-          ) : null}
-          <span className="crm-mind-board-preview-text">
-            {snippet?.title || snippet?.text || t('ideas.richEdit')}
-          </span>
-        </button>
-      ) : (
-        <button
-          type="button"
-          className="crm-mind-board-preview is-empty"
-          onClick={(e) => {
-            e.stopPropagation()
-            onOpenRichNote(node.id)
-          }}
-          onPointerDown={(e) => e.stopPropagation()}
-        >
-          {t('ideas.richAdd')}
-        </button>
-      )}
+        <div className="crm-mind-board-card-main">
+          <div className="crm-mind-board-card-head">
+            <span className="crm-mind-bullet" aria-hidden="true">
+              ◆
+            </span>
+            {editing ? (
+              <input
+                ref={inputRef}
+                className="crm-input crm-mind-edit"
+                value={title}
+                autoFocus
+                onChange={(e) => setTitle(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+                onBlur={() => void saveTitle()}
+                onKeyDown={(e) => {
+                  e.stopPropagation()
+                  if (e.key === 'Tab') {
+                    e.preventDefault()
+                    void addChild(title)
+                    return
+                  }
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    void addSibling(title)
+                    return
+                  }
+                  if (e.key === 'Escape') {
+                    setTitle(node.title)
+                    onEdit(null)
+                  }
+                }}
+              />
+            ) : (
+              <button
+                type="button"
+                className={`crm-mind-title ${emphasisClass(node.emphasis)}${
+                  titleLooksRich ? ' is-rich-paste' : ''
+                }`}
+                title={t('ideas.boardRenameHint')}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(node.id)
+                }}
+                onDoubleClick={(e) => {
+                  e.stopPropagation()
+                  onSelect(node.id)
+                  onEdit(node.id)
+                }}
+                onPointerDown={(e) => e.stopPropagation()}
+              >
+                {titleLooksRich ? t('ideas.richTitleTruncated') : node.title}
+              </button>
+            )}
+            <button
+              type="button"
+              className="crm-mind-board-rename"
+              title={t('ideas.boardRename')}
+              aria-label={t('ideas.boardRename')}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelect(node.id)
+                onEdit(node.id)
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              ✎
+            </button>
+          </div>
+
+          {richEditing ? (
+            <p className="crm-mind-board-card-hint">{t('ideas.richEditingHere')}</p>
+          ) : (
+            <button
+              type="button"
+              className={`crm-mind-board-preview${node.notes.trim() ? '' : ' is-empty'}`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onOpenRichNote(node.id)
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <span className="crm-mind-board-edit-chip">
+                {node.notes.trim() ? t('ideas.richEdit') : t('ideas.richAdd')}
+              </span>
+              {snippet?.image ? (
+                <img
+                  src={snippet.image}
+                  alt=""
+                  className="crm-mind-board-thumb"
+                  loading="lazy"
+                />
+              ) : null}
+              {node.notes.trim() ? (
+                <span className="crm-mind-board-preview-text">
+                  {snippet?.title || snippet?.text || t('ideas.richEdit')}
+                </span>
+              ) : null}
+            </button>
+          )}
+        </div>
+      </div>
 
       {selected && (
         <>

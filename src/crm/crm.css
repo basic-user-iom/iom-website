@@ -4781,58 +4781,127 @@
   z-index: 1;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding: 1.7rem 0.55rem 0.7rem;
-  border-radius: 12px;
-  border: 1px solid rgba(34, 211, 238, 0.28);
-  background: color-mix(in srgb, var(--bg-elevated) 92%, #031018);
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  box-sizing: border-box;
+  padding: 0;
+  border-radius: 14px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  background: color-mix(in srgb, var(--bg-elevated) 94%, #031018);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.38);
   outline: none;
   user-select: none;
+  overflow: visible;
 }
 
 .crm-mind-board-card.is-selected {
-  border-color: rgba(56, 189, 248, 0.75);
+  border-color: rgba(56, 189, 248, 0.8);
   box-shadow:
-    0 0 0 1px rgba(56, 189, 248, 0.25),
-    0 14px 32px rgba(0, 0, 0, 0.45);
-  z-index: 2;
+    0 0 0 1px rgba(56, 189, 248, 0.28),
+    0 16px 36px rgba(0, 0, 0, 0.48);
+  z-index: 3;
 }
 
 .crm-mind-board-card.is-dragging {
-  opacity: 0.95;
-  z-index: 5;
-  cursor: grabbing;
+  opacity: 0.97;
+  z-index: 6;
 }
 
 .crm-mind-board-card.is-rich-editing {
   border-color: var(--accent);
 }
 
-.crm-mind-board-card .crm-mind-float-toolbar {
-  left: 0.4rem;
-  right: auto;
-  top: 0.25rem;
+/* Style toolbar floats ABOVE the card — never covers content */
+.crm-mind-board-tools {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  pointer-events: auto;
+}
+
+.crm-mind-board-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  padding: 0.22rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(34, 211, 238, 0.32);
+  background: rgba(8, 20, 28, 0.96);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.crm-mind-board-pop {
+  padding: 0.45rem;
+  border-radius: 10px;
+  border: 1px solid rgba(34, 211, 238, 0.28);
+  background: rgba(8, 20, 28, 0.97);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.crm-mind-board-pop--form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: min(16rem, 70vw);
+}
+
+.crm-mind-board-card-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+  border-radius: inherit;
+  overflow: hidden;
+}
+
+.crm-mind-board-drag {
+  flex: 0 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-right: 1px solid rgba(34, 211, 238, 0.16);
+  border-radius: 0;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+  color: rgba(148, 163, 184, 0.95);
+  font-size: 0.85rem;
+  letter-spacing: -0.14em;
+  cursor: grab;
+  appearance: none;
+}
+
+.crm-mind-board-drag:hover,
+.crm-mind-board-card.is-selected .crm-mind-board-drag {
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: #67e8f9;
+}
+
+.crm-mind-board-card.is-dragging .crm-mind-board-drag {
+  cursor: grabbing;
+  background: color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.crm-mind-board-card-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.65rem 0.6rem;
 }
 
 .crm-mind-board-card-head {
   display: flex;
   align-items: center;
   gap: 0.3rem;
-  cursor: grab;
   min-width: 0;
-}
-
-.crm-mind-board-card.is-dragging .crm-mind-board-card-head {
-  cursor: grabbing;
-}
-
-.crm-mind-board-drag {
-  flex-shrink: 0;
-  color: var(--text-muted);
-  font-size: 0.7rem;
-  letter-spacing: -0.12em;
-  opacity: 0.7;
 }
 
 .crm-mind-board-card-head .crm-mind-title {
@@ -4841,54 +4910,91 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.88rem;
+  font-size: 0.92rem;
+  font-weight: 600;
 }
 
-.crm-mind-board-edit-title {
+.crm-mind-board-rename {
   flex-shrink: 0;
-  padding: 0.15rem 0.4rem !important;
-  min-height: 0 !important;
-  font-size: 0.65rem !important;
+  width: 1.7rem;
+  height: 1.7rem;
+  margin: 0;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+}
+
+.crm-mind-board-rename:hover {
+  border-color: rgba(34, 211, 238, 0.35);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .crm-mind-board-preview {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 0.3rem;
+  align-items: stretch;
+  gap: 0.35rem;
+  flex: 1;
+  min-height: 0;
   width: 100%;
   margin: 0;
-  padding: 0.4rem 0.45rem;
-  border: 1px dashed color-mix(in srgb, var(--border) 85%, transparent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
+  padding: 0.4rem 0.45rem 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--border) 90%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
   color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
+  appearance: none;
 }
 
 .crm-mind-board-preview.is-empty {
-  color: var(--text-muted);
-  font-size: 0.75rem;
+  justify-content: center;
+  align-items: center;
 }
 
 .crm-mind-board-preview:hover {
   border-color: var(--border-accent);
-  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.crm-mind-board-edit-chip {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0.14rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-accent);
+  color: var(--accent);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.crm-mind-board-preview.is-empty .crm-mind-board-edit-chip {
+  align-self: center;
 }
 
 .crm-mind-board-thumb {
   display: block;
   width: 100%;
-  max-height: 4.5rem;
+  height: 4.75rem;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 7px;
   border: 1px solid var(--border);
+  flex-shrink: 0;
 }
 
 .crm-mind-board-preview-text {
-  font-size: 0.72rem;
+  font-size: 0.74rem;
   line-height: 1.35;
   color: var(--text-muted);
   display: -webkit-box;
@@ -4899,16 +5005,17 @@
 
 .crm-mind-board-card-hint {
   margin: 0;
-  font-size: 0.72rem;
+  padding: 0.55rem 0.35rem;
+  font-size: 0.74rem;
   color: var(--accent);
 }
 
 .crm-mind-board-card .crm-mind-add--sibling {
-  right: -0.55rem;
+  right: -0.6rem;
 }
 
 .crm-mind-board-card .crm-mind-add--child {
-  bottom: -0.55rem;
+  bottom: -0.6rem;
 }
 
 .crm-mind-tree {
