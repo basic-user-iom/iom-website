@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useCrmI18n } from './i18n'
-import type { CrmClientAccount, CrmClientMembership, Lead } from './types'
+import type { CrmClientAccount, CrmClientMembership, CrmProject, Lead } from './types'
 import {
   addClientMemberByEmail,
   createClientAccount,
@@ -10,6 +10,7 @@ import {
   setClientMemberActive,
   updateClientAccount,
 } from './clientTenancyApi'
+import { listProjects, updateProject } from './workspaceApi'
 
 interface ClientAccountsViewProps {
   leads: Lead[]
@@ -20,19 +21,25 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
   const [accounts, setAccounts] = useState<CrmClientAccount[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [members, setMembers] = useState<CrmClientMembership[]>([])
+  const [projects, setProjects] = useState<CrmProject[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [newName, setNewName] = useState('')
   const [newLeadId, setNewLeadId] = useState('')
   const [memberEmail, setMemberEmail] = useState('')
+  const [addProjectId, setAddProjectId] = useState('')
   const [busy, setBusy] = useState(false)
 
   const refreshAccounts = useCallback(async () => {
     setLoading(true)
     setError('')
     try {
-      const rows = await listClientAccounts()
+      const [rows, projectRows] = await Promise.all([
+        listClientAccounts(),
+        listProjects().catch(() => [] as CrmProject[]),
+      ])
       setAccounts(rows)
+      setProjects(projectRows)
       setSelectedId((prev) => {
         if (prev && rows.some((r) => r.id === prev)) return prev
         return rows[0]?.id ?? null
@@ -56,6 +63,14 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
     }
   }, [t])
 
+  const refreshProjects = useCallback(async () => {
+    try {
+      setProjects(await listProjects())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('clients.errorProjects'))
+    }
+  }, [t])
+
   useEffect(() => {
     void refreshAccounts()
   }, [refreshAccounts])
@@ -65,6 +80,20 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
   }, [selectedId, refreshMembers])
 
   const selected = accounts.find((a) => a.id === selectedId) ?? null
+
+  const linkedProjects = useMemo(
+    () =>
+      projects.filter((p) => selectedId && p.client_account_id === selectedId),
+    [projects, selectedId],
+  )
+
+  const availableProjects = useMemo(
+    () =>
+      projects.filter(
+        (p) => !selectedId || p.client_account_id !== selectedId,
+      ),
+    [projects, selectedId],
+  )
 
   const handleCreate = async () => {
     const name = newName.trim()
@@ -97,6 +126,56 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
       await refreshMembers(selectedId)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('clients.errorMember'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleAttachProject = async () => {
+    if (!selectedId || !addProjectId) return
+    setBusy(true)
+    setError('')
+    try {
+      await updateProject(addProjectId, {
+        client_account_id: selectedId,
+        client_visible: true,
+      })
+      setAddProjectId('')
+      await refreshProjects()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('clients.errorProjects'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleUnlinkProject = async (projectId: string) => {
+    if (!confirm(t('clients.unlinkProjectConfirm'))) return
+    setBusy(true)
+    setError('')
+    try {
+      await updateProject(projectId, {
+        client_account_id: null,
+        client_visible: false,
+      })
+      await refreshProjects()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('clients.errorProjects'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleToggleProjectVisible = async (project: CrmProject) => {
+    setBusy(true)
+    setError('')
+    try {
+      await updateProject(project.id, {
+        client_visible: !project.client_visible,
+      })
+      await refreshProjects()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('clients.errorProjects'))
     } finally {
       setBusy(false)
     }
@@ -291,6 +370,74 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
                           {m.active
                             ? t('clients.deactivate')
                             : t('clients.activate')}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+
+                <h4 className="crm-clients-members-title">{t('clients.projects')}</h4>
+                <p className="crm-muted">{t('clients.projectsHint')}</p>
+                <div className="crm-clients-add-member">
+                  <select
+                    className="crm-input"
+                    value={addProjectId}
+                    onChange={(e) => setAddProjectId(e.target.value)}
+                    aria-label={t('clients.addProject')}
+                  >
+                    <option value="">{t('clients.addProjectNone')}</option>
+                    {availableProjects.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name || p.id.slice(0, 8)}
+                        {p.client_account_id
+                          ? ` (${t('clients.projectLinkedOther')})`
+                          : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy || !addProjectId}
+                    onClick={() => void handleAttachProject()}
+                  >
+                    {t('clients.addProject')}
+                  </button>
+                </div>
+
+                {linkedProjects.length === 0 ? (
+                  <p className="crm-muted">{t('clients.noProjects')}</p>
+                ) : (
+                  <ul className="crm-clients-members">
+                    {linkedProjects.map((project) => (
+                      <li key={project.id}>
+                        <div className="crm-clients-member-meta">
+                          <strong>{project.name || t('clients.unnamed')}</strong>
+                          <span className="crm-muted">
+                            {t(`projStatus.${project.status}`)}
+                            {' · '}
+                            {project.client_visible
+                              ? t('clients.projectVisible')
+                              : t('clients.projectHidden')}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          disabled={busy}
+                          onClick={() => void handleToggleProjectVisible(project)}
+                        >
+                          {project.client_visible
+                            ? t('clients.hideProject')
+                            : t('clients.showProject')}
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-ghost crm-danger"
+                          disabled={busy}
+                          onClick={() => void handleUnlinkProject(project.id)}
+                        >
+                          {t('clients.unlinkProject')}
                         </button>
                       </li>
                     ))}
