@@ -66,6 +66,12 @@ import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
 import { LeadList } from './LeadList'
 import { ProjectsView } from './ProjectsView'
+import { ClientAccountsView } from './ClientAccountsView'
+import { ClientPortalView } from './ClientPortalView'
+import {
+  resolveCrmAccessRole,
+  type CrmAccessRole,
+} from './clientTenancyApi'
 import { TimeView } from './TimeView'
 import { UserProfileMenu } from './UserProfileMenu'
 import type {
@@ -86,6 +92,7 @@ type View = 'list' | 'create'
 type CrmSection =
   | 'leads'
   | 'projects'
+  | 'clients'
   | 'time'
   | 'ideas'
   | 'notes'
@@ -269,6 +276,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [user, setUser] = useState<CrmUser | null>(() =>
     sandboxed ? DEMO_USER : null,
   )
+  const [accessRole, setAccessRole] = useState<CrmAccessRole | null>(() =>
+    sandboxed ? 'staff' : null,
+  )
   const [authReady, setAuthReady] = useState(() => sandboxed)
   const [leads, setLeads] = useState<Lead[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -344,13 +354,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       if (!alive) return
       setUser(u)
       setAuthReady(true)
-      if (u && !hasSeenCrmWelcome()) setGuideOpen(true)
     })
     const unsub = onAuthChange((u) => {
       if (!alive) return
       setUser(u)
       setAuthReady(true)
-      if (u && !hasSeenCrmWelcome()) setGuideOpen(true)
     })
     return () => {
       alive = false
@@ -492,16 +500,43 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setSelectedId(lead.id)
   }, [])
 
+  // Resolve staff vs client after Auth session is known.
+  useEffect(() => {
+    if (!user) {
+      setAccessRole(sandboxed ? 'staff' : null)
+      return
+    }
+    if (sandboxed) {
+      setAccessRole('staff')
+      return
+    }
+    let alive = true
+    setAccessRole(null)
+    void resolveCrmAccessRole()
+      .then((role) => {
+        if (!alive) return
+        setAccessRole(role)
+        if (role === 'staff' && !hasSeenCrmWelcome()) setGuideOpen(true)
+      })
+      .catch(() => {
+        if (!alive) return
+        setAccessRole('none')
+      })
+    return () => {
+      alive = false
+    }
+  }, [user?.id, sandboxed])
+
   // One-shot owner snapshot heal on login — not on every filter-driven refresh.
   useEffect(() => {
-    if (!user) return
+    if (!user || accessRole !== 'staff') return
     void backfillOwnLeadOwnerSnapshot().catch(() => {})
-  }, [user?.id])
+  }, [user?.id, accessRole])
 
   useEffect(() => {
-    if (!user) return
+    if (!user || accessRole !== 'staff') return
     void refreshLeads()
-  }, [user?.id, refreshLeads])
+  }, [user?.id, accessRole, refreshLeads])
 
   const handleCreate = async (input: LeadInput) => {
     const lead = await createLead(input)
@@ -597,6 +632,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     await signOut()
     setGuideOpen(false)
     setUser(null)
+    setAccessRole(null)
     setLeads([])
     setSelectedId(null)
     setView('list')
@@ -631,10 +667,65 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           onSuccess={() => {
             void getCurrentUser().then((u) => {
               setUser(u)
-              if (u && !hasSeenCrmWelcome()) setGuideOpen(true)
             })
           }}
         />
+      </div>
+    )
+  }
+
+  if (!accessRole) {
+    return (
+      <div className="crm-shell">
+        <p className="crm-muted crm-boot">{t('boot.loading')}</p>
+      </div>
+    )
+  }
+
+  if (accessRole === 'none') {
+    return (
+      <div className="crm-shell">
+        <header className="crm-topbar">
+          <div>
+            <p className="crm-kicker">{t('topbar.kicker')}</p>
+            <h1 className="crm-title">{t('access.deniedTitle')}</h1>
+          </div>
+          <div className="crm-topbar-right">
+            <LanguageToggle />
+            <button type="button" className="btn btn-ghost" onClick={() => void handleSignOut()}>
+              {t('topbar.signOut')}
+            </button>
+          </div>
+        </header>
+        <div className="crm-main">
+          <p className="crm-error" role="alert">
+            {t('access.deniedBody')}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (accessRole === 'client') {
+    return (
+      <div className="crm-shell crm-shell--portal">
+        <header className="crm-topbar">
+          <div>
+            <p className="crm-kicker">{t('portal.kicker')}</p>
+            <h1 className="crm-title">{t('portal.title')}</h1>
+          </div>
+          <div className="crm-topbar-right">
+            <LanguageToggle />
+            <span className="crm-mode-chip">{t('topbar.online')}</span>
+            <button type="button" className="btn btn-ghost" onClick={() => void handleSignOut()}>
+              {t('topbar.signOut')}
+            </button>
+            <a href="/#software" className="iom-demo-back-link">
+              {t('topbar.backSite')}
+            </a>
+          </div>
+        </header>
+        <ClientPortalView user={user} />
       </div>
     )
   }
@@ -719,6 +810,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const sectionTitle =
     section === 'projects'
       ? t('nav.projects')
+      : section === 'clients'
+        ? t('nav.clients')
       : section === 'time'
         ? t('nav.time')
         : section === 'ideas'
@@ -806,6 +899,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             [
               ['leads', 'nav.leads'],
               ['projects', 'nav.projects'],
+              ['clients', 'nav.clients'],
               ['time', 'nav.time'],
               ['ideas', 'nav.ideas'],
               ['notes', 'nav.notes'],
@@ -1096,6 +1190,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           onOpenTime={openTimeForProject}
         />
       )}
+
+      {section === 'clients' && <ClientAccountsView leads={leads} />}
 
       {section === 'time' && (
         <TimeView user={user} initialProjectId={focusProjectId} />

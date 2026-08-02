@@ -418,6 +418,8 @@ function buildSeed(): Store {
     created_at: daysAgo(18),
     updated_at: hoursAgo(3),
     owner_id: guide,
+    client_account_id: null,
+    client_visible: false,
   }
 
   const project2: CrmProject = {
@@ -429,6 +431,8 @@ function buildSeed(): Store {
     created_at: daysAgo(10),
     updated_at: hoursAgo(20),
     owner_id: partner,
+    client_account_id: null,
+    client_visible: false,
   }
 
   const columns: BoardColumn[] = [

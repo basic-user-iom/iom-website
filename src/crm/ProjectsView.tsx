@@ -2,11 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import type {
   BoardColumn,
+  CrmClientAccount,
   CrmProject,
   CrmTask,
   CrmUser,
   StaffProfile,
   TaskPriority,
+  TimeEntry,
 } from './types'
 import { ownerDisplayName } from './types'
 import {
@@ -28,7 +30,7 @@ import {
   updateProject,
   updateTask,
 } from './workspaceApi'
-import type { TimeEntry } from './types'
+import { listClientAccounts } from './clientTenancyApi'
 
 const BOARD_EXPANDED_KEY = 'iom-crm-project-board-expanded'
 
@@ -68,6 +70,7 @@ export function ProjectsView({
 }: ProjectsViewProps) {
   const { t } = useCrmI18n()
   const [projects, setProjects] = useState<CrmProject[]>([])
+  const [clientAccounts, setClientAccounts] = useState<CrmClientAccount[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(initialProjectId)
   const [columns, setColumns] = useState<BoardColumn[]>([])
   const [tasks, setTasks] = useState<CrmTask[]>([])
@@ -90,8 +93,12 @@ export function ProjectsView({
     setLoading(true)
     setError('')
     try {
-      const rows = await listProjects()
+      const [rows, accounts] = await Promise.all([
+        listProjects(),
+        listClientAccounts().catch(() => [] as CrmClientAccount[]),
+      ])
       setProjects(rows)
+      setClientAccounts(accounts)
       setSelectedId((prev) => {
         if (initialProjectId && rows.some((r) => r.id === initialProjectId)) {
           return initialProjectId
@@ -150,6 +157,8 @@ export function ProjectsView({
         description: '',
         status: 'active',
         lead_id: null,
+        client_account_id: null,
+        client_visible: false,
       })
       setNewName('')
       await refreshList()
@@ -386,6 +395,37 @@ export function ProjectsView({
                         {t(`projStatus.${s}`)}
                       </option>
                     ))}
+                  </select>
+                  <label className="crm-proj-client-visible">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(selected.client_visible)}
+                      onChange={(e) => {
+                        void updateProject(selected.id, {
+                          client_visible: e.target.checked,
+                        }).then(() => refreshList())
+                      }}
+                    />
+                    <span>{t('proj.clientVisible')}</span>
+                  </label>
+                  <select
+                    className="crm-input"
+                    value={selected.client_account_id ?? ''}
+                    aria-label={t('proj.clientAccount')}
+                    onChange={(e) => {
+                      void updateProject(selected.id, {
+                        client_account_id: e.target.value || null,
+                      }).then(() => refreshList())
+                    }}
+                  >
+                    <option value="">{t('proj.clientAccountNone')}</option>
+                    {clientAccounts
+                      .filter((a) => a.active)
+                      .map((account) => (
+                        <option key={account.id} value={account.id}>
+                          {account.name || account.id.slice(0, 8)}
+                        </option>
+                      ))}
                   </select>
                   {onOpenTime && (
                     <button

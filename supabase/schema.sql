@@ -507,3 +507,67 @@ revoke all on function public.crm_can_access_project(uuid) from public;
 grant execute on function public.is_crm_client() to authenticated;
 grant execute on function public.crm_client_account_ids() to authenticated;
 grant execute on function public.crm_can_access_project(uuid) to authenticated;
+
+-- ── Client-scoped SELECT (SEC-001 phase 3) ─────────────────────────────────
+-- Existing DBs: also run security_hardening_client_scoped_rls.sql
+
+create or replace function public.crm_add_client_member(
+  p_account_id uuid,
+  p_email text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid;
+  v_mid uuid;
+  v_email text := lower(trim(coalesce(p_email, '')));
+begin
+  if not public.is_crm_staff() then
+    raise exception 'not_allowed' using errcode = '42501';
+  end if;
+  if p_account_id is null or v_email = '' or position('@' in v_email) < 2 then
+    raise exception 'invalid_input' using errcode = '22023';
+  end if;
+  if not exists (select 1 from public.crm_client_accounts a where a.id = p_account_id) then
+    raise exception 'account_not_found' using errcode = 'P0002';
+  end if;
+  select u.id into v_uid from auth.users u where lower(coalesce(u.email, '')) = v_email limit 1;
+  if v_uid is null then
+    raise exception 'user_not_found' using errcode = 'P0002';
+  end if;
+  if exists (select 1 from public.crm_staff_profiles p where p.id = v_uid)
+     or v_email like '%@iobjectm.com' then
+    raise exception 'staff_cannot_be_client' using errcode = '22023';
+  end if;
+  insert into public.crm_client_memberships (client_account_id, user_id, active)
+  values (p_account_id, v_uid, true)
+  on conflict (client_account_id, user_id) do update set active = true
+  returning id into v_mid;
+  return v_mid;
+end;
+$$;
+
+revoke all on function public.crm_add_client_member(uuid, text) from public;
+revoke all on function public.crm_add_client_member(uuid, text) from anon;
+grant execute on function public.crm_add_client_member(uuid, text) to authenticated;
+
+drop policy if exists "crm_client_accounts_client_select" on public.crm_client_accounts;
+create policy "crm_client_accounts_client_select"
+  on public.crm_client_accounts for select
+  to authenticated
+  using (public.is_crm_client() and id in (select public.crm_client_account_ids()));
+
+drop policy if exists "crm_client_memberships_client_select" on public.crm_client_memberships;
+create policy "crm_client_memberships_client_select"
+  on public.crm_client_memberships for select
+  to authenticated
+  using (public.is_crm_client() and user_id = auth.uid());
+
+drop policy if exists "crm_projects_client_select" on public.crm_projects;
+create policy "crm_projects_client_select"
+  on public.crm_projects for select
+  to authenticated
+  using (public.is_crm_client() and public.crm_can_access_project(id));

@@ -68,6 +68,14 @@ function durationBetween(start: string, end: string): number {
 
 /* ── Projects ─────────────────────────────────────────── */
 
+function normalizeProject(row: CrmProject): CrmProject {
+  return {
+    ...row,
+    client_account_id: row.client_account_id ?? null,
+    client_visible: Boolean(row.client_visible),
+  }
+}
+
 export async function listProjects(): Promise<CrmProject[]> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
@@ -76,11 +84,11 @@ export async function listProjects(): Promise<CrmProject[]> {
       .select('*')
       .order('updated_at', { ascending: false })
     if (error) throw new Error(error.message)
-    return (data ?? []) as CrmProject[]
+    return ((data ?? []) as CrmProject[]).map(normalizeProject)
   }
-  return readLocal<CrmProject[]>(PROJECTS_KEY, []).sort(
-    (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
-  )
+  return readLocal<CrmProject[]>(PROJECTS_KEY, [])
+    .map(normalizeProject)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 }
 
 export async function listProjectsForLead(leadId: string): Promise<CrmProject[]> {
@@ -97,9 +105,10 @@ export async function getProject(id: string): Promise<CrmProject | null> {
       .eq('id', id)
       .maybeSingle()
     if (error) throw new Error(error.message)
-    return (data as CrmProject) ?? null
+    return (data as CrmProject) ? normalizeProject(data as CrmProject) : null
   }
-  return readLocal<CrmProject[]>(PROJECTS_KEY, []).find((p) => p.id === id) ?? null
+  const found = readLocal<CrmProject[]>(PROJECTS_KEY, []).find((p) => p.id === id) ?? null
+  return found ? normalizeProject(found) : null
 }
 
 async function seedDefaultColumns(projectId: string): Promise<BoardColumn[]> {
@@ -142,7 +151,12 @@ export async function createProject(input: ProjectInput): Promise<CrmProject> {
     const { data, error } = await supabase
       .from('crm_projects')
       .insert({
-        ...input,
+        name: input.name,
+        description: input.description,
+        status: input.status,
+        lead_id: input.lead_id,
+        client_account_id: input.client_account_id ?? null,
+        client_visible: input.client_visible ?? false,
         owner_id: user?.id ?? null,
       })
       .select('*')
@@ -155,6 +169,8 @@ export async function createProject(input: ProjectInput): Promise<CrmProject> {
 
   const project: CrmProject = {
     ...input,
+    client_account_id: input.client_account_id ?? null,
+    client_visible: input.client_visible ?? false,
     id: uid(),
     owner_id: user?.id ?? null,
     created_at: stamp,
@@ -180,6 +196,8 @@ export async function createProjectFromLead(lead: {
     description,
     status: 'active',
     lead_id: lead.id,
+    client_account_id: null,
+    client_visible: false,
   })
 }
 

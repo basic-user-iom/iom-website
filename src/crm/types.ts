@@ -142,6 +142,27 @@ export interface CrmProject {
   created_at: string
   updated_at: string
   owner_id: string | null
+  /** Org boundary for client portal access (null = staff-only). */
+  client_account_id: string | null
+  /** When true, linked client members may read this project. */
+  client_visible: boolean
+}
+
+export interface CrmClientAccount {
+  id: string
+  lead_id: string | null
+  name: string
+  active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface CrmClientMembership {
+  id: string
+  client_account_id: string
+  user_id: string
+  active: boolean
+  created_at: string
 }
 
 export interface BoardColumn {
@@ -209,7 +230,10 @@ export interface MindNode {
   updated_at: string
 }
 
-export type ProjectInput = Pick<CrmProject, 'name' | 'description' | 'status' | 'lead_id'>
+export type ProjectInput = Pick<
+  CrmProject,
+  'name' | 'description' | 'status' | 'lead_id' | 'client_account_id' | 'client_visible'
+>
 export type TaskInput = Pick<
   CrmTask,
   'title' | 'description' | 'priority' | 'due_date' | 'assignee_id' | 'column_id'
@@ -243,6 +267,7 @@ export type ResearchNoteInput = Pick<
 export type CrmSection =
   | 'leads'
   | 'projects'
+  | 'clients'
   | 'time'
   | 'ideas'
   | 'notes'
