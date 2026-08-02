@@ -111,7 +111,8 @@ export function NotesView({
     setDraftTitle(selected.title)
     setDraftBody(selected.body)
     setMode(selected.body.trim() ? 'preview' : 'edit')
-    setPreviewExpanded(false)
+    // Open full preview/editor so the pane fills the workspace (collapsed is optional)
+    setPreviewExpanded(Boolean(selected.body.trim()))
     setSaveState('idle')
     window.setTimeout(() => {
       skipSave.current = false
@@ -221,7 +222,7 @@ export function NotesView({
   const openNote = (n: ResearchNote) => {
     setSelectedId(n.id)
     setMode(n.body.trim() ? 'preview' : 'edit')
-    setPreviewExpanded(isNarrow)
+    setPreviewExpanded(Boolean(n.body.trim()) || isNarrow)
   }
 
   const backToNoteList = () => {
@@ -247,8 +248,8 @@ export function NotesView({
         className={`crm-notes-mode-tab${mode === 'preview' ? ' is-active' : ''}`}
         onClick={() => {
           setMode('preview')
-          // Keep detail open on phones; collapse only on wider layouts
-          setPreviewExpanded(isNarrow)
+          // Stay in the full pane; Collapse is the only way to shrink
+          setPreviewExpanded(true)
         }}
       >
         {t('notes.preview')}

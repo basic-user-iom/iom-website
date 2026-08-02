@@ -743,7 +743,10 @@ const en: Dict = {
   'ideas.link': 'Link',
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Note',
-  'ideas.notePlaceholder': 'Note or comment…',
+  'ideas.notePlaceholder':
+    'Markdown ok: tables | links | ![image](url) · paste from ChatGPT…',
+  'ideas.noteFormatHint':
+    'Tables, [links](url), images, and ## headings render below as you type.',
   'ideas.save': 'Save',
   'ideas.saveFailed': 'Could not save topic.',
   'ideas.styleSchemaMissing':
@@ -754,9 +757,11 @@ const en: Dict = {
   'notes.newPlaceholder': 'Note title…',
   'notes.titlePlaceholder': 'Note title',
   'notes.bodyPlaceholder':
-    'Use ## Section title for jump links in Preview. Name on one line + URL on the next, or paste free-form text…',
-  'notes.editHint': 'Use ## Section title to create jump links · Edits save automatically',
-  'notes.previewHint': 'Click Expand to open preview · Sections collapse individually inside',
+    'Markdown: ## sections, | tables |, [links](url), ![images](url), lists — paste from ChatGPT…',
+  'notes.editHint':
+    '## sections · markdown tables & links · ![images](url) · autosave',
+  'notes.previewHint':
+    'Full preview — tables, images, and links · Collapse to skim beside the list',
   'notes.tocLabel': 'On this page',
   'notes.tocCount': '{count} sections',
   'notes.tocAria': 'Note sections',
@@ -915,22 +920,24 @@ const en: Dict = {
 
   'notesChatgpt.title': 'ChatGPT note assist',
   'notesChatgpt.blurb':
-    'Copy a research prompt into ChatGPT, paste the JSON back, and load title + sections into this note.',
+    'Copy a research prompt into ChatGPT, paste JSON or markdown back — Preview renders tables, links, and images.',
   'notesChatgpt.copyPrompt': 'Copy ChatGPT prompt',
   'notesChatgpt.step1':
-    'Copy the prompt and tell ChatGPT what to research (e.g. artists to follow, market list, lead targets).',
-  'notesChatgpt.step2': 'Ask ChatGPT to return the JSON object only.',
-  'notesChatgpt.step3': 'Paste JSON below → Load into note → switch to Preview to check links and sections.',
-  'notesChatgpt.pasteLabel': 'Paste ChatGPT JSON',
+    'Copy the prompt and tell ChatGPT what to research (e.g. artists to follow, asset lists, market notes).',
+  'notesChatgpt.step2':
+    'Ask for JSON, or paste markdown with tables / ![images](url) / [links](url) directly.',
+  'notesChatgpt.step3':
+    'Paste below → Load into note → Preview to check tables, links, and images.',
+  'notesChatgpt.pasteLabel': 'Paste ChatGPT JSON or markdown',
   'notesChatgpt.pastePlaceholder':
-    'Paste JSON from ChatGPT here (with or without ```json fences)…',
+    'Paste JSON or markdown from ChatGPT (tables, links, images)…',
   'notesChatgpt.loadIntoNote': 'Load into note',
   'notesChatgpt.loadSuccess': 'Note loaded — review in Preview; edits save automatically.',
   'notesChatgpt.copyFailed': 'Could not copy prompt to clipboard.',
-  'notesChatgpt.pasteEmpty': 'Paste ChatGPT JSON first.',
+  'notesChatgpt.pasteEmpty': 'Paste ChatGPT JSON or markdown first.',
   'notesChatgpt.missingTitle': 'JSON must include a title.',
-  'notesChatgpt.missingBody': 'JSON must include body text or a sections array.',
-  'notesChatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object only.',
+  'notesChatgpt.missingBody': 'Paste needs body text, a sections array, or markdown content.',
+  'notesChatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object, or paste markdown.',
   'notesChatgpt.importFailed': 'Could not load note data.',
 
   'form.company': 'Company / account',
@@ -2233,7 +2240,10 @@ const sr: Dict = {
   'ideas.link': 'Link',
   'ideas.linkPlaceholder': 'https://…',
   'ideas.note': 'Beleška',
-  'ideas.notePlaceholder': 'Beleška ili komentar…',
+  'ideas.notePlaceholder':
+    'Markdown može: tabele | linkovi | ![slika](url) · nalepite iz ChatGPT…',
+  'ideas.noteFormatHint':
+    'Tabele, [linkovi](url), slike i ## naslovi renderuju se ispod dok kucate.',
   'ideas.save': 'Sačuvaj',
   'ideas.saveFailed': 'Čuvanje teme nije uspelo.',
   'ideas.styleSchemaMissing':
@@ -2244,9 +2254,11 @@ const sr: Dict = {
   'notes.newPlaceholder': 'Naslov beleške…',
   'notes.titlePlaceholder': 'Naslov beleške',
   'notes.bodyPlaceholder':
-    'Koristite ## Naslov sekcije za skokove u Pregledu. Ime u jednom redu + URL u sledećem, ili slobodan tekst…',
-  'notes.editHint': 'Koristite ## Naslov sekcije za skokove · Izmene se automatski čuvaju',
-  'notes.previewHint': 'Kliknite Proširi za pregled · Sekcije se skupljaju unutar pregleda',
+    'Markdown: ## sekcije, | tabele |, [linkovi](url), ![slike](url), liste — nalepite iz ChatGPT…',
+  'notes.editHint':
+    '## sekcije · markdown tabele i linkovi · ![slike](url) · autosave',
+  'notes.previewHint':
+    'Pun pregled — tabele, slike i linkovi · Skupi da pregledaš pored liste',
   'notes.tocLabel': 'Na ovoj stranici',
   'notes.tocCount': '{count} sekcija',
   'notes.tocAria': 'Sekcije beleške',
@@ -2405,22 +2417,25 @@ const sr: Dict = {
 
   'notesChatgpt.title': 'ChatGPT pomoć za beleške',
   'notesChatgpt.blurb':
-    'Kopirajte istraživački prompt u ChatGPT, nalepite JSON nazad i učitajte naslov + sekcije u ovu belešku.',
+    'Kopirajte istraživački prompt u ChatGPT, nalepite JSON ili markdown — Pregled prikazuje tabele, linkove i slike.',
   'notesChatgpt.copyPrompt': 'Kopiraj ChatGPT prompt',
   'notesChatgpt.step1':
-    'Kopirajte prompt i recite ChatGPT-u šta da istraži (npr. umetnici za praćenje, tržišna lista, lead ciljevi).',
-  'notesChatgpt.step2': 'Zatražite samo JSON objekat kao odgovor.',
-  'notesChatgpt.step3': 'Nalepite JSON ispod → Učitaj u belešku → prebacite na Pregled da proverite linkove i sekcije.',
-  'notesChatgpt.pasteLabel': 'Nalepite ChatGPT JSON',
+    'Kopirajte prompt i recite ChatGPT-u šta da istraži (umetnici, asset liste, tržište…).',
+  'notesChatgpt.step2':
+    'Tražite JSON, ili nalepite markdown sa tabelama / ![slike](url) / [linkovi](url).',
+  'notesChatgpt.step3':
+    'Nalepite ispod → Učitaj u belešku → Pregled za tabele, linkove i slike.',
+  'notesChatgpt.pasteLabel': 'Nalepite ChatGPT JSON ili markdown',
   'notesChatgpt.pastePlaceholder':
-    'Nalepite JSON iz ChatGPT-a ovde (sa ili bez ```json ograda)…',
+    'Nalepite JSON ili markdown od ChatGPT-a (tabele, linkovi, slike)…',
   'notesChatgpt.loadIntoNote': 'Učitaj u belešku',
   'notesChatgpt.loadSuccess': 'Beleška učitana — proverite u Pregledu; izmene se automatski čuvaju.',
   'notesChatgpt.copyFailed': 'Kopiranje prompta u clipboard nije uspelo.',
-  'notesChatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON.',
+  'notesChatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON ili markdown.',
   'notesChatgpt.missingTitle': 'JSON mora sadržati title (naslov).',
-  'notesChatgpt.missingBody': 'JSON mora sadržati body tekst ili niz sections.',
-  'notesChatgpt.parseFailed': 'JSON nije parsiran — zatražite samo jedan JSON objekat.',
+  'notesChatgpt.missingBody': 'Potreban je body tekst, niz sections, ili markdown sadržaj.',
+  'notesChatgpt.parseFailed':
+    'JSON nije parsiran — zatražite jedan JSON objekat, ili nalepite markdown.',
   'notesChatgpt.importFailed': 'Učitavanje beleške nije uspelo.',
 
   'form.company': 'Firma / nalog',

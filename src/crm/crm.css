@@ -82,6 +82,68 @@
   overscroll-behavior: contain;
 }
 
+/*
+ * Notes master–detail: fill the viewport like Leads so list + editor scale
+ * instead of sitting as a short collapsed card over empty space.
+ */
+.crm-shell--notes {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  padding-bottom: 1rem;
+}
+
+.crm-shell--notes .crm-topbar,
+.crm-shell--notes .crm-section-nav,
+.crm-shell--notes .crm-demo-banner,
+.crm-shell--notes > .crm-feedback {
+  flex-shrink: 0;
+}
+
+.crm-shell--notes .crm-tool-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crm-shell--notes .crm-tool-toolbar,
+.crm-shell--notes .crm-tool-panel > .crm-feedback {
+  flex-shrink: 0;
+}
+
+.crm-shell--notes .crm-workspace--notes {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.crm-shell--notes .crm-workspace--notes .crm-sidebar,
+.crm-shell--notes .crm-workspace--notes .crm-main {
+  min-height: 0;
+  max-height: none;
+  height: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+/* Keep expanded notes panes filling height even if a prior collapsed rule ran */
+.crm-shell--notes
+  .crm-workspace--notes:not(:has(.crm-detail--collapsed))
+  .crm-sidebar,
+.crm-shell--notes
+  .crm-workspace--notes:not(:has(.crm-detail--collapsed))
+  .crm-main {
+  min-height: 0;
+  max-height: none;
+  align-self: stretch;
+}
+
 /* Shared toolbar / filter / action control size */
 .crm-control,
 .crm-toolbar .btn,
@@ -3537,6 +3599,145 @@
   max-width: 100%;
 }
 
+.crm-note-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 0.75rem 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+
+.crm-note-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.crm-note-table th,
+.crm-note-table td {
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+  min-width: 6rem;
+}
+
+.crm-note-table th {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  white-space: nowrap;
+}
+
+.crm-note-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.crm-note-table td:first-child {
+  min-width: 10rem;
+}
+
+.crm-note-figure {
+  margin: 0.75rem 0 1rem;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg-elevated));
+}
+
+.crm-note-image {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+}
+
+.crm-note-image--inline {
+  display: inline-block;
+  width: auto;
+  max-width: min(100%, 18rem);
+  max-height: 12rem;
+  vertical-align: middle;
+  border-radius: 6px;
+  margin: 0.15rem 0;
+}
+
+.crm-note-figcaption {
+  margin: 0;
+  padding: 0.4rem 0.7rem 0.55rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.crm-note-list {
+  margin: 0.35rem 0 0.75rem;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.crm-note-list li {
+  line-height: 1.5;
+}
+
+.crm-note-paragraph code,
+.crm-note-table code,
+.crm-note-list code {
+  font-size: 0.85em;
+  padding: 0.05em 0.3em;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.crm-mind-pop--note {
+  min-width: min(100%, 22rem);
+  max-width: min(92vw, 28rem);
+}
+
+.crm-mind-note-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.68rem;
+  line-height: 1.4;
+}
+
+.crm-mind-note-preview {
+  max-height: 16rem;
+  overflow: auto;
+  margin: 0.55rem 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--accent) 4%, var(--bg));
+  font-size: 0.82rem;
+}
+
+.crm-mind-note-preview .crm-note-table th,
+.crm-mind-note-preview .crm-note-table td {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+}
+
+.crm-mind-note-badge {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 0.1rem 0.2rem;
+}
+
+.crm-mind-note-badge:hover {
+  opacity: 1;
+  color: var(--text);
+}
+
 .crm-tool-toolbar .btn {
   flex: 0 0 auto;
   white-space: nowrap;
@@ -3564,6 +3765,73 @@
 
 .crm-workspace--notes {
   min-width: 0;
+  min-height: 0;
+}
+
+/* Collapsed note summary: never crush Expand / mode tabs; wrap preview text */
+.crm-workspace--notes .crm-detail-summary {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+}
+
+.crm-workspace--notes
+  .crm-detail-summary
+  > .crm-detail-actions.crm-detail-actions--compact {
+  flex-shrink: 0;
+  width: 100%;
+  height: auto;
+  min-height: var(--crm-control-h);
+  max-height: none;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.crm-workspace--notes .crm-detail-summary .crm-note-sidebar-preview {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crm-workspace--notes .crm-detail-summary .crm-lead-company {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: unset;
+}
+
+.crm-shell--notes .crm-notes-preview-wrap,
+.crm-shell--notes .crm-notes-preview,
+.crm-shell--notes .crm-notes-body {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.crm-shell--notes .crm-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.crm-shell--notes .crm-notes-preview-wrap {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 12rem;
+}
+
+.crm-shell--notes .crm-notes-preview {
+  max-height: none;
+  min-height: 12rem;
+  height: 100%;
+}
+
+.crm-shell--notes .crm-notes-body {
+  min-height: 12rem;
+  flex: 1 1 auto;
+  height: auto;
+  max-height: none;
+  resize: vertical;
 }
 
 .crm-notes-back {
@@ -3583,6 +3851,19 @@
 
 /* Notes: stack before the list column gets crushed */
 @media (max-width: 1100px) {
+  .crm-shell--notes {
+    height: auto;
+    max-height: none;
+    overflow: visible;
+    padding-bottom: 2rem;
+  }
+
+  .crm-shell--notes .crm-tool-panel,
+  .crm-shell--notes .crm-workspace--notes {
+    flex: none;
+    min-height: 0;
+  }
+
   .crm-workspace.crm-workspace--notes {
     grid-template-columns: 1fr;
     min-height: 0;
@@ -3607,16 +3888,6 @@
 
   .crm-workspace.crm-workspace--notes:has(.crm-detail--collapsed) .crm-sidebar {
     max-height: min(48vh, 22rem);
-  }
-
-  .crm-workspace.crm-workspace--notes .crm-detail-summary {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .crm-workspace.crm-workspace--notes .crm-detail-summary > .crm-detail-actions {
-    width: 100%;
-    justify-content: flex-end;
   }
 }
 

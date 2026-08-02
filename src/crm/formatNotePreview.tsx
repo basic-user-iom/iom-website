@@ -13,10 +13,50 @@ export interface ParsedNoteSection {
   lines: string[]
 }
 
-const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?"')\]}>])/gi
+const BARE_URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?"')\]}>])/gi
+const MD_IMAGE_RE = /!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g
+const MD_LINK_RE = /\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)/g
 
 export function isUrl(line: string): boolean {
   return /^https?:\/\//i.test(line.trim())
+}
+
+function isSafeUrl(url: string): boolean {
+  return /^(https?:\/\/|\/)/i.test(url)
+}
+
+/** Standalone image URL (file ext or common ChatGPT / CDN hosts). */
+export function isImageUrl(url: string): boolean {
+  const u = url.trim()
+  if (!/^https?:\/\//i.test(u)) return false
+  if (/\.(png|jpe?g|gif|webp|avif|svg)(\?|#|$)/i.test(u)) return true
+  if (
+    /(?:files\.oaiusercontent\.com|oaidalleapiprodscus|chatgpt\.com\/.*\.(?:png|jpe?g|webp|gif))/i.test(
+      u,
+    )
+  ) {
+    return true
+  }
+  return false
+}
+
+function isTableRow(line: string): boolean {
+  const t = line.trim()
+  if (!t.startsWith('|')) return false
+  return t.indexOf('|', 1) !== -1
+}
+
+function isTableSeparator(line: string): boolean {
+  const t = line.trim()
+  // | --- | :---: | ---: |
+  return /^\|?(\s*:?-+:?\s*\|)+\s*:?-+:?\s*\|?\s*$/.test(t)
+}
+
+function parseTableCells(line: string): string[] {
+  let t = line.trim()
+  if (t.startsWith('|')) t = t.slice(1)
+  if (t.endsWith('|')) t = t.slice(0, -1)
+  return t.split('|').map((c) => c.trim())
 }
 
 function slugify(title: string): string {
@@ -126,41 +166,212 @@ function parseNameUrlSections(
   return { introLines, sections }
 }
 
-function linkifyText(text: string, keyPrefix: string): ReactNode[] {
-  const out: ReactNode[] = []
-  const re = new RegExp(URL_RE.source, URL_RE.flags)
-  let lastIndex = 0
-  let match: RegExpExecArray | null
-  let linkIndex = 0
+function ExternalLink({
+  href,
+  children,
+  className,
+}: {
+  href: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <a
+      className={className ?? 'crm-note-inline-link'}
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {children}
+    </a>
+  )
+}
 
-  while ((match = re.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      out.push(text.slice(lastIndex, match.index))
-    }
-    const url = match[0]
-    out.push(
-      <a
-        key={`${keyPrefix}-link-${linkIndex++}`}
-        className="crm-note-inline-link"
-        href={url}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {url}
-      </a>,
-    )
-    lastIndex = match.index + url.length
+/** Inline markdown: images, [label](url), bare URLs, **bold**, *italic*, `code`. */
+export function renderInlineMarkdown(text: string, keyPrefix: string): ReactNode[] {
+  type Token =
+    | { kind: 'text'; value: string }
+    | { kind: 'image'; alt: string; url: string }
+    | { kind: 'link'; label: string; url: string }
+    | { kind: 'url'; url: string }
+
+  const tokens: Token[] = []
+  const hits: Array<{ start: number; end: number; token: Token }> = []
+
+  const imageRe = new RegExp(MD_IMAGE_RE.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = imageRe.exec(text)) !== null) {
+    if (!isSafeUrl(m[2])) continue
+    hits.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      token: { kind: 'image', alt: m[1], url: m[2] },
+    })
   }
 
-  if (lastIndex < text.length) out.push(text.slice(lastIndex))
+  const linkRe = new RegExp(MD_LINK_RE.source, 'g')
+  while ((m = linkRe.exec(text)) !== null) {
+    if (!isSafeUrl(m[2])) continue
+    // Skip if this [ overlaps an image ![
+    const overlaps = hits.some((h) => m!.index >= h.start && m!.index < h.end)
+    if (overlaps) continue
+    hits.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      token: { kind: 'link', label: m[1], url: m[2] },
+    })
+  }
+
+  const urlRe = new RegExp(BARE_URL_RE.source, BARE_URL_RE.flags)
+  while ((m = urlRe.exec(text)) !== null) {
+    const overlaps = hits.some((h) => m!.index >= h.start && m!.index < h.end)
+    if (overlaps) continue
+    hits.push({
+      start: m.index,
+      end: m.index + m[0].length,
+      token: { kind: 'url', url: m[0] },
+    })
+  }
+
+  hits.sort((a, b) => a.start - b.start)
+
+  let cursor = 0
+  for (const hit of hits) {
+    if (hit.start < cursor) continue
+    if (hit.start > cursor) {
+      tokens.push({ kind: 'text', value: text.slice(cursor, hit.start) })
+    }
+    tokens.push(hit.token)
+    cursor = hit.end
+  }
+  if (cursor < text.length) tokens.push({ kind: 'text', value: text.slice(cursor) })
+  if (tokens.length === 0) tokens.push({ kind: 'text', value: text })
+
+  const out: ReactNode[] = []
+  let ti = 0
+  for (const tok of tokens) {
+    const key = `${keyPrefix}-t${ti++}`
+    if (tok.kind === 'image') {
+      out.push(
+        <img
+          key={key}
+          className="crm-note-image crm-note-image--inline"
+          src={tok.url}
+          alt={tok.alt || ''}
+          loading="lazy"
+          decoding="async"
+        />,
+      )
+      continue
+    }
+    if (tok.kind === 'link') {
+      out.push(
+        <ExternalLink key={key} href={tok.url}>
+          {tok.label}
+        </ExternalLink>,
+      )
+      continue
+    }
+    if (tok.kind === 'url') {
+      if (isImageUrl(tok.url)) {
+        out.push(
+          <img
+            key={key}
+            className="crm-note-image crm-note-image--inline"
+            src={tok.url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+          />,
+        )
+      } else {
+        out.push(
+          <ExternalLink key={key} href={tok.url}>
+            {tok.url}
+          </ExternalLink>,
+        )
+      }
+      continue
+    }
+
+    // Bold / italic / code on plain text segments
+    const parts = tok.value.split(/(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g).filter(Boolean)
+    parts.forEach((part, pi) => {
+      const pk = `${key}-${pi}`
+      if (/^\*\*[^*]+\*\*$/.test(part)) {
+        out.push(<strong key={pk}>{part.slice(2, -2)}</strong>)
+      } else if (/^\*[^*]+\*$/.test(part)) {
+        out.push(<em key={pk}>{part.slice(1, -1)}</em>)
+      } else if (/^`[^`]+`$/.test(part)) {
+        out.push(<code key={pk}>{part.slice(1, -1)}</code>)
+      } else {
+        out.push(part)
+      }
+    })
+  }
+
   return out.length ? out : [text]
 }
 
 function renderParagraph(line: string, key: string): ReactNode {
   return (
     <p key={key} className="crm-note-paragraph">
-      {linkifyText(line, key)}
+      {renderInlineMarkdown(line, key)}
     </p>
+  )
+}
+
+function renderTable(rows: string[], keyPrefix: string): ReactNode {
+  const parsed = rows
+    .filter((r) => !isTableSeparator(r))
+    .map(parseTableCells)
+  if (parsed.length === 0) return null
+
+  const header = parsed[0]
+  const body = parsed.slice(1)
+
+  return (
+    <div key={keyPrefix} className="crm-note-table-wrap">
+      <table className="crm-note-table">
+        <thead>
+          <tr>
+            {header.map((cell, ci) => (
+              <th key={`${keyPrefix}-h-${ci}`}>
+                {renderInlineMarkdown(cell, `${keyPrefix}-h-${ci}`)}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        {body.length > 0 && (
+          <tbody>
+            {body.map((row, ri) => (
+              <tr key={`${keyPrefix}-r-${ri}`}>
+                {row.map((cell, ci) => (
+                  <td key={`${keyPrefix}-r-${ri}-c-${ci}`}>
+                    {renderInlineMarkdown(cell, `${keyPrefix}-r-${ri}-c-${ci}`)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        )}
+      </table>
+    </div>
+  )
+}
+
+function renderImageBlock(url: string, alt: string, key: string): ReactNode {
+  return (
+    <figure key={key} className="crm-note-figure">
+      <img
+        className="crm-note-image"
+        src={url}
+        alt={alt}
+        loading="lazy"
+        decoding="async"
+      />
+      {alt ? <figcaption className="crm-note-figcaption">{alt}</figcaption> : null}
+    </figure>
   )
 }
 
@@ -179,8 +390,56 @@ export function renderNoteLines(lines: string[], keyPrefix: string): ReactNode[]
       continue
     }
 
+    // Markdown table
+    if (isTableRow(trimmed)) {
+      const tableRows: string[] = []
+      const start = i
+      while (i < lines.length && isTableRow(lines[i].trim())) {
+        tableRows.push(lines[i])
+        i++
+      }
+      const table = renderTable(tableRows, `${keyPrefix}-table-${start}`)
+      if (table) out.push(table)
+      continue
+    }
+
+    // Bullet list
+    if (/^[-*]\s+/.test(trimmed)) {
+      const items: string[] = []
+      const start = i
+      while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+        items.push(lines[i].trim().replace(/^[-*]\s+/, ''))
+        i++
+      }
+      out.push(
+        <ul key={`${keyPrefix}-ul-${start}`} className="crm-note-list">
+          {items.map((item, ii) => (
+            <li key={`${keyPrefix}-li-${start}-${ii}`}>
+              {renderInlineMarkdown(item, `${keyPrefix}-li-${start}-${ii}`)}
+            </li>
+          ))}
+        </ul>,
+      )
+      continue
+    }
+
+    // Standalone markdown image
+    const imgMatch = trimmed.match(/^!\[([^\]]*)\]\((https?:\/\/[^)\s]+|\/[^)\s]+)\)$/)
+    if (imgMatch && isSafeUrl(imgMatch[2])) {
+      out.push(renderImageBlock(imgMatch[2], imgMatch[1], `${keyPrefix}-img-${i}`))
+      i++
+      continue
+    }
+
+    // Bare image URL on its own line (ChatGPT paste)
+    if (isUrl(trimmed) && isImageUrl(trimmed)) {
+      out.push(renderImageBlock(trimmed, '', `${keyPrefix}-imgurl-${i}`))
+      i++
+      continue
+    }
+
     const nextTrimmed = i + 1 < lines.length ? lines[i + 1].trim() : ''
-    if (!isUrl(trimmed) && nextTrimmed && isUrl(nextTrimmed)) {
+    if (!isUrl(trimmed) && nextTrimmed && isUrl(nextTrimmed) && !isImageUrl(nextTrimmed)) {
       out.push(
         <div key={`${keyPrefix}-entry-${i}`} className="crm-note-entry">
           <a
@@ -230,9 +489,11 @@ export function sectionSummaryUrl(lines: string[]): string | null {
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim()
     if (!trimmed) continue
-    if (isUrl(trimmed)) return trimmed
+    if (isUrl(trimmed) && !isImageUrl(trimmed)) return trimmed
+    const mdLink = trimmed.match(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/)
+    if (mdLink) return mdLink[2]
     const next = i + 1 < lines.length ? lines[i + 1].trim() : ''
-    if (next && isUrl(next)) return next
+    if (next && isUrl(next) && !isImageUrl(next)) return next
     return null
   }
   return null

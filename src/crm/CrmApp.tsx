@@ -741,7 +741,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     <div
       className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}${
         section === 'leads' ? ' crm-shell--leads' : ''
-      }`}
+      }${section === 'notes' ? ' crm-shell--notes' : ''}`}
     >
       {demoMode && (
         <div className="crm-demo-banner" role="status">

@@ -73,7 +73,14 @@ export function NoteTableOfContents({ body, previewRef }: NoteTableOfContentsPro
   )
 }
 
-function NotePreviewBody({ body }: { body: string }) {
+/** Shared rich body for Notes preview and Ideas node notes. */
+export function NoteRichBody({
+  body,
+  emptyLabel,
+}: {
+  body: string
+  emptyLabel?: string
+}) {
   const { t } = useCrmI18n()
   const { introLines, sections } = useMemo(() => parseNoteDocument(body), [body])
   const intro = renderNoteLines(introLines, 'intro')
@@ -113,7 +120,7 @@ function NotePreviewBody({ body }: { body: string }) {
         )
       })}
       {sections.length === 0 && intro.length === 0 && (
-        <p className="crm-muted">{t('notes.noBody')}</p>
+        <p className="crm-muted">{emptyLabel ?? t('notes.noBody')}</p>
       )}
     </>
   )
@@ -132,7 +139,7 @@ export function NotePreview({ body }: NotePreviewProps) {
       className={`crm-notes-preview-wrap${sections.length >= 2 ? ' has-toc' : ''}`}
     >
       <div ref={previewRef} className="crm-notes-preview">
-        <NotePreviewBody body={body} />
+        <NoteRichBody body={body} />
       </div>
       <NoteTableOfContents body={body} previewRef={previewRef} />
     </div>

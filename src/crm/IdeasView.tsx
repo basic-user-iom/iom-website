@@ -8,6 +8,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { useCrmI18n } from './i18n'
+import { NoteRichBody } from './NotePreview'
 import type { CrmProject, Lead, MindMap, MindNode, MindNodeEmphasis } from './types'
 import { listLeads } from './api'
 import {
@@ -677,10 +678,14 @@ function MindNodeRow({
         )}
 
         {selected && panel === 'note' && (
-          <div className="crm-mind-pop crm-mind-pop--form" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="crm-mind-pop crm-mind-pop--form crm-mind-pop--note"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="crm-muted crm-mind-note-hint">{t('ideas.noteFormatHint')}</p>
             <textarea
               className="crm-input crm-mind-note"
-              rows={3}
+              rows={6}
               placeholder={t('ideas.notePlaceholder')}
               value={notesDraft}
               autoFocus
@@ -690,6 +695,11 @@ function MindNodeRow({
                 if (e.key === 'Escape') setPanel('none')
               }}
             />
+            {notesDraft.trim() ? (
+              <div className="crm-mind-note-preview">
+                <NoteRichBody body={notesDraft} />
+              </div>
+            ) : null}
             <button
               type="button"
               className="btn btn-primary crm-mind-save-btn"
@@ -769,9 +779,19 @@ function MindNodeRow({
             </a>
           ) : null}
           {node.notes ? (
-            <span className="crm-mind-note-badge" title={node.notes}>
+            <button
+              type="button"
+              className="crm-mind-note-badge"
+              title={t('ideas.note')}
+              aria-label={t('ideas.note')}
+              onClick={(e) => {
+                e.stopPropagation()
+                onSelect(node.id)
+                setPanel('note')
+              }}
+            >
               ≡
-            </span>
+            </button>
           ) : null}
         </div>
 
