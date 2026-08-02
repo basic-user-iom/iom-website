@@ -439,7 +439,7 @@ export function IdeasView({
               </header>
 
               <div
-                className="crm-mind-canvas"
+                className={`crm-mind-canvas${richPanelOpen ? ' crm-mind-canvas--compact' : ''}`}
                 onClick={(e) => {
                   if (e.target === e.currentTarget) {
                     setSelectedNodeId(null)
@@ -456,6 +456,9 @@ export function IdeasView({
                       mapId={selected.id}
                       selectedNodeId={selectedNodeId}
                       editingNodeId={editingNodeId}
+                      richEditingNodeId={
+                        richPanelOpen ? selectedNodeId : null
+                      }
                       focusEditId={focusEditId}
                       onSelect={setSelectedNodeId}
                       onEdit={setEditingNodeId}
@@ -653,15 +656,16 @@ function MindRichNotePanel({
   return (
     <section className="crm-mind-rich-panel" aria-label={t('ideas.richTitle')}>
       <header className="crm-mind-rich-header">
-        <div>
-          <p className="crm-kicker">{t('ideas.richKicker')}</p>
+        <div className="crm-mind-rich-heading">
           <h3 className="crm-mind-rich-title">
             {isEditingExisting ? t('ideas.richEditTitle') : t('ideas.richTitle')}
           </h3>
           <p className="crm-muted crm-mind-rich-blurb">
-            {t('ideas.richBlurb', { title: node.title.slice(0, 80) })}
+            {node.title.slice(0, 64)}
+            {node.title.length > 64 ? '…' : ''}
+            {' · '}
+            {t('ideas.richPasteHint')}
           </p>
-          <p className="crm-muted crm-mind-rich-blurb">{t('ideas.richPasteHint')}</p>
         </div>
         <div className="crm-mind-rich-inserts">
           <button
@@ -681,9 +685,6 @@ function MindRichNotePanel({
             }}
           >
             {uploading ? t('ideas.richImageUploading') : t('ideas.insertImage')}
-          </button>
-          <button type="button" className="btn btn-ghost" onClick={onClose}>
-            {t('ideas.richClose')}
           </button>
         </div>
       </header>
@@ -721,7 +722,11 @@ function MindRichNotePanel({
           <ul className="crm-mind-rich-image-list">
             {images.map((img, i) => (
               <li key={`${img.index}-${i}`} className="crm-mind-rich-image-item">
-                <img src={img.url} alt={img.alt || ''} className="crm-mind-rich-image-thumb" />
+                <img
+                  src={img.url}
+                  alt={img.alt || ''}
+                  className="crm-mind-rich-image-thumb"
+                />
                 <div className="crm-mind-rich-image-meta">
                   <input
                     className="crm-input crm-input--xs"
@@ -730,7 +735,10 @@ function MindRichNotePanel({
                     placeholder={t('ideas.richImageCaption')}
                     onChange={(e) =>
                       setDraft(
-                        replaceMdImageAt(draft, i, { alt: e.target.value, url: img.url }),
+                        replaceMdImageAt(draft, i, {
+                          alt: e.target.value,
+                          url: img.url,
+                        }),
                       )
                     }
                   />
@@ -761,21 +769,40 @@ function MindRichNotePanel({
         </div>
       )}
 
-      <label className="crm-mind-rich-editor-label" htmlFor={`idea-rich-${node.id}`}>
-        {t('ideas.richEditorLabel')}
-      </label>
-      <textarea
-        id={`idea-rich-${node.id}`}
-        ref={textareaRef}
-        className="crm-input crm-mind-rich-textarea"
-        rows={8}
-        placeholder={t('ideas.notePlaceholder')}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onPaste={onPaste}
-      />
+      <div className="crm-mind-rich-workspace">
+        <div className="crm-mind-rich-pane">
+          <label
+            className="crm-mind-rich-editor-label"
+            htmlFor={`idea-rich-${node.id}`}
+          >
+            {t('ideas.richEditorLabel')}
+          </label>
+          <textarea
+            id={`idea-rich-${node.id}`}
+            ref={textareaRef}
+            className="crm-input crm-mind-rich-textarea"
+            rows={10}
+            placeholder={t('ideas.notePlaceholder')}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onPaste={onPaste}
+          />
+        </div>
+        <div className="crm-mind-rich-pane crm-mind-rich-pane--preview">
+          <p className="crm-mind-rich-editor-label">{t('ideas.richPreview')}</p>
+          {draft.trim() ? (
+            <div className="crm-mind-rich-preview">
+              <NoteRichBody body={draft} />
+            </div>
+          ) : (
+            <p className="crm-muted crm-mind-rich-preview-empty">
+              {t('ideas.richPreviewEmpty')}
+            </p>
+          )}
+        </div>
+      </div>
 
-      <div className="crm-mind-rich-actions">
+      <footer className="crm-mind-rich-actions">
         <button
           type="button"
           className="btn btn-primary"
@@ -790,9 +817,6 @@ function MindRichNotePanel({
         >
           {saving ? t('notes.saving') : t('ideas.richSaveClose')}
         </button>
-        <button type="button" className="btn btn-ghost" onClick={onClose}>
-          {t('ideas.richClose')}
-        </button>
         {draft !== node.notes && (
           <button
             type="button"
@@ -802,16 +826,10 @@ function MindRichNotePanel({
             {t('ideas.richDiscard')}
           </button>
         )}
-      </div>
-
-      {draft.trim() ? (
-        <div className="crm-mind-rich-preview">
-          <p className="crm-mind-rich-preview-label">{t('ideas.richPreview')}</p>
-          <NoteRichBody body={draft} />
-        </div>
-      ) : (
-        <p className="crm-muted crm-mind-rich-preview-empty">{t('ideas.richPreviewEmpty')}</p>
-      )}
+        <button type="button" className="btn btn-ghost" onClick={onClose}>
+          {t('ideas.richClose')}
+        </button>
+      </footer>
     </section>
   )
 }
@@ -822,6 +840,7 @@ function MindNodeRow({
   mapId,
   selectedNodeId,
   editingNodeId,
+  richEditingNodeId,
   focusEditId,
   onSelect,
   onEdit,
@@ -836,6 +855,7 @@ function MindNodeRow({
   mapId: string
   selectedNodeId: string | null
   editingNodeId: string | null
+  richEditingNodeId: string | null
   focusEditId: string | null
   onSelect: (id: string | null) => void
   onEdit: (id: string | null) => void
@@ -1233,7 +1253,7 @@ function MindNodeRow({
           </div>
         )}
 
-        {node.notes.trim() ? (
+        {node.notes.trim() && node.id !== richEditingNodeId ? (
           <button
             type="button"
             className="crm-mind-node-note-preview"
@@ -1245,6 +1265,10 @@ function MindNodeRow({
             <span className="crm-mind-node-note-edit-chip">{t('ideas.richEdit')}</span>
             <NoteRichBody body={node.notes} />
           </button>
+        ) : null}
+
+        {node.id === richEditingNodeId ? (
+          <p className="crm-mind-node-editing-hint">{t('ideas.richEditingHere')}</p>
         ) : null}
 
         {selected && (
@@ -1285,6 +1309,7 @@ function MindNodeRow({
           mapId={mapId}
           selectedNodeId={selectedNodeId}
           editingNodeId={editingNodeId}
+          richEditingNodeId={richEditingNodeId}
           focusEditId={focusEditId}
           onSelect={onSelect}
           onEdit={onEdit}

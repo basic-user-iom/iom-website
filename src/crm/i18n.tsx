@@ -748,7 +748,8 @@ const en: Dict = {
   'ideas.richBlurb':
     'Edit text below, replace images, or paste ChatGPT markdown for “{title}”.',
   'ideas.richPasteHint':
-    'Images: Ctrl+V / ⌘V, + Image, or Replace on a thumbnail. Save & close when done.',
+    'Paste images with Ctrl+V · + Table / + Image · Save & close when done',
+  'ideas.richEditingHere': 'Editing in the panel below…',
   'ideas.richToolbar': 'Rich note (tables & images)',
   'ideas.richPreview': 'Preview',
   'ideas.richPreviewEmpty': 'Preview appears here after you paste a table or image markdown.',
@@ -2283,7 +2284,8 @@ const sr: Dict = {
   'ideas.richBlurb':
     'Menjajte tekst ispod, zamenite slike, ili nalepite ChatGPT markdown za „{title}”.',
   'ideas.richPasteHint':
-    'Slike: Ctrl+V / ⌘V, + Slika, ili Zameni na sličici. Sačuvaj i zatvori kada završite.',
+    'Nalepite slike sa Ctrl+V · + Tabela / + Slika · Sačuvaj i zatvori kad završite',
+  'ideas.richEditingHere': 'Izmena u panelu ispod…',
   'ideas.richToolbar': 'Rich note (tabele i slike)',
   'ideas.richPreview': 'Pregled',
   'ideas.richPreviewEmpty': 'Pregled se pojavljuje ovde kada nalepite tabelu ili markdown slike.',
