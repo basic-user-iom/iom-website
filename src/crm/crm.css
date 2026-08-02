@@ -3656,6 +3656,24 @@
   min-width: 9rem;
 }
 
+.crm-note-hero {
+  margin: 0 0 0.85rem;
+}
+
+.crm-note-hero .crm-note-figure {
+  margin: 0;
+}
+
+.crm-note-hero .crm-note-image {
+  max-width: min(100%, 34rem);
+  max-height: min(20rem, 40vh);
+}
+
+.crm-mind-node-note-preview .crm-note-hero .crm-note-image {
+  max-width: min(100%, 22rem);
+  max-height: 11rem;
+}
+
 .crm-note-figure {
   display: block;
   width: fit-content;
@@ -4797,8 +4815,8 @@
   color: #06202a;
 }
 
-/* Child = mid-right of note; sibling = below note center (vertical outline) */
-.crm-mind-add--child {
+/* Sibling = mid-right (same level); child = below (nested under) */
+.crm-mind-add--sibling {
   top: 50%;
   bottom: auto;
   left: auto;
@@ -4806,7 +4824,7 @@
   transform: translateY(-50%);
 }
 
-.crm-mind-add--sibling {
+.crm-mind-add--child {
   left: 50%;
   right: auto;
   top: auto;

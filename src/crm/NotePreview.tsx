@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type RefObject } from 'react'
 import {
+  extractFirstBlockImage,
   extractNoteSections,
   parseNoteDocument,
   renderNoteLines,
@@ -87,17 +88,26 @@ export function NoteRichBody({
     () => splitRichNoteTitle(body),
     [body],
   )
-  const { introLines, sections } = useMemo(
-    () => parseNoteDocument(contentBody),
+  const { imageLine, bodyWithout } = useMemo(
+    () => extractFirstBlockImage(contentBody),
     [contentBody],
   )
+  const { introLines, sections } = useMemo(
+    () => parseNoteDocument(bodyWithout),
+    [bodyWithout],
+  )
+  const hero = imageLine ? renderNoteLines([imageLine], 'hero') : null
   const intro = renderNoteLines(introLines, 'intro')
   const isEmpty =
-    !docTitle && sections.length === 0 && introLines.every((l) => !l.trim())
+    !docTitle &&
+    !imageLine &&
+    sections.length === 0 &&
+    introLines.every((l) => !l.trim())
 
   return (
     <div className="crm-note-prose">
       {docTitle ? <h1 className="crm-note-doc-title">{docTitle}</h1> : null}
+      {hero ? <div className="crm-note-hero">{hero}</div> : null}
       {intro.length > 0 && <div className="crm-note-intro">{intro}</div>}
       {sections.map((section) => {
         const url = sectionSummaryUrl(section.lines)

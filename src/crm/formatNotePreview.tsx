@@ -530,3 +530,34 @@ export function joinRichNoteTitle(title: string, body: string): string {
   if (!t) return b
   return b ? `# ${t}\n\n${b}` : `# ${t}\n`
 }
+
+function isBlockImageLine(line: string): boolean {
+  const trimmed = line.trim()
+  if (!trimmed) return false
+  const imgMatch = trimmed.match(
+    new RegExp(String.raw`^!\[([^\]]*)\]\(${MD_IMG_SRC}\)$`),
+  )
+  if (imgMatch && isSafeUrl(imgMatch[2])) return true
+  return isUrl(trimmed) && isImageUrl(trimmed)
+}
+
+/** Pull the first standalone image to the top (ChatGPT-style hero). */
+export function extractFirstBlockImage(body: string): {
+  imageLine: string | null
+  bodyWithout: string
+} {
+  const lines = body.split('\n')
+  const idx = lines.findIndex(isBlockImageLine)
+  if (idx < 0) return { imageLine: null, bodyWithout: body }
+  const imageLine = lines[idx]
+  const next = lines.filter((_, i) => i !== idx)
+  // Collapse accidental triple blanks left by removal
+  const cleaned: string[] = []
+  for (const line of next) {
+    if (!line.trim() && cleaned.length > 0 && !cleaned[cleaned.length - 1].trim()) {
+      continue
+    }
+    cleaned.push(line)
+  }
+  return { imageLine, bodyWithout: cleaned.join('\n').replace(/^\n+|\n+$/g, '') }
+}
