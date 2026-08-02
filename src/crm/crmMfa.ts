@@ -83,7 +83,7 @@ export async function listVerifiedTotpFactors(): Promise<MfaFactorSummary[]> {
 }
 
 export async function startMfaEnrollment(
-  friendlyName = 'IOM CRM',
+  friendlyName = 'iom-website',
 ): Promise<MfaEnrollStart> {
   const supabase = requireLive()
   // Drop leftover unverified factors so re-enroll works after a cancelled setup.
@@ -96,6 +96,8 @@ export async function startMfaEnrollment(
   const { data, error } = await supabase.auth.mfa.enroll({
     factorType: 'totp',
     friendlyName,
+    // Without this, Supabase uses Auth Site URL host (often localhost:3000).
+    issuer: 'iom-website',
   })
   if (error) throw new Error(error.message)
   const qrCode = data.totp?.qr_code ?? ''
