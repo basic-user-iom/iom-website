@@ -1,12 +1,12 @@
 /**
  * CRM recorder APIs (single function to stay under Hobby plan limit).
  *
- * GET  ?action=voices          → ElevenLabs voice list (CRM auth required)
- * OPTIONS/POST ?action=morph   → ElevenLabs speech-to-speech (POST needs CRM auth)
+ * GET  ?action=voices          → ElevenLabs voice list (staff + MFA)
+ * OPTIONS/POST ?action=morph   → ElevenLabs speech-to-speech (staff + MFA)
  * GET/POST ?action=share       → recording share meta / unlock (public)
- * POST ?action=r2-upload       → presigned PUT URL (CRM auth; browser → R2)
- * POST ?action=r2-sign         → presigned GET URL (CRM auth; owner playback)
- * POST ?action=r2-delete       → delete R2 object(s) (CRM auth; path must be owner/)
+ * POST ?action=r2-upload       → presigned PUT URL (staff + MFA; browser → R2)
+ * POST ?action=r2-sign         → presigned GET URL (staff + MFA; owner playback)
+ * POST ?action=r2-delete       → delete R2 object(s) (staff + MFA; path must be owner/)
  * GET  ?action=r2-status       → whether Cloudflare R2 is configured
  * GET  ?action=media&slug=…[&grant=…] → 302 to fresh file URL (lasting blog / <img> links)
  *       Password-protected media requires a short-lived grant from POST unlock (never ?password=).
@@ -17,8 +17,9 @@ import {
   clientIp,
   isAllowedWebOrigin,
   mintMediaGrant,
+  publicError,
   rateLimit,
-  requireSupabaseUser,
+  requireStaffUser,
   safeJson,
   sb,
   siteOrigin,
@@ -128,24 +129,28 @@ async function handleR2Status(_req, res) {
 
 async function handleR2Upload(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
   }
   if (!isR2Configured()) {
-    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+    return res.status(503).json(publicError('R2 is not configured', 'r2_disabled'))
   }
 
-  const auth = await requireSupabaseUser(req)
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) return res.status(auth.status).json(publicError(auth.error, auth.code))
 
   const ip = clientIp(req)
-  if (!(await rateLimit(`r2-upload:${auth.user.id}:${ip}`, 40, 60_000))) {
-    return res.status(429).json({ error: 'Too many requests' })
+  if (
+    !(await rateLimit(`r2-upload:${auth.user.id}:${ip}`, 40, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many requests', 'RATE_LIMIT'))
   }
 
   const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
   const path = assertOwnerPath(auth.user.id, payload?.path)
   if (!path) {
-    return res.status(403).json({ error: 'Invalid storage path' })
+    return res.status(403).json(publicError('Invalid storage path', 'INVALID_PATH'))
   }
   const contentType = String(payload?.contentType || 'application/octet-stream')
     .split(';')[0]
@@ -177,24 +182,28 @@ async function handleR2Upload(req, res) {
 
 async function handleR2Sign(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
   }
   if (!isR2Configured()) {
-    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+    return res.status(503).json(publicError('R2 is not configured', 'r2_disabled'))
   }
 
-  const auth = await requireSupabaseUser(req)
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) return res.status(auth.status).json(publicError(auth.error, auth.code))
 
   const ip = clientIp(req)
-  if (!(await rateLimit(`r2-sign:${auth.user.id}:${ip}`, 60, 60_000))) {
-    return res.status(429).json({ error: 'Too many requests' })
+  if (
+    !(await rateLimit(`r2-sign:${auth.user.id}:${ip}`, 60, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many requests', 'RATE_LIMIT'))
   }
 
   const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
   const path = assertOwnerPath(auth.user.id, payload?.path)
   if (!path) {
-    return res.status(403).json({ error: 'Invalid storage path' })
+    return res.status(403).json(publicError('Invalid storage path', 'INVALID_PATH'))
   }
 
   // Legacy clips may still live in Supabase — only sign when the object is on R2.
@@ -212,18 +221,22 @@ async function handleR2Sign(req, res) {
 
 async function handleR2Delete(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
   }
   if (!isR2Configured()) {
-    return res.status(503).json({ error: 'R2 is not configured', code: 'r2_disabled' })
+    return res.status(503).json(publicError('R2 is not configured', 'r2_disabled'))
   }
 
-  const auth = await requireSupabaseUser(req)
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) return res.status(auth.status).json(publicError(auth.error, auth.code))
 
   const ip = clientIp(req)
-  if (!(await rateLimit(`r2-delete:${auth.user.id}:${ip}`, 40, 60_000))) {
-    return res.status(429).json({ error: 'Too many requests' })
+  if (
+    !(await rateLimit(`r2-delete:${auth.user.id}:${ip}`, 40, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many requests', 'RATE_LIMIT'))
   }
 
   const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
@@ -236,12 +249,12 @@ async function handleR2Delete(req, res) {
   for (const raw of rawPaths) {
     const path = assertOwnerPath(auth.user.id, raw)
     if (!path) {
-      return res.status(403).json({ error: 'Invalid storage path' })
+      return res.status(403).json(publicError('Invalid storage path', 'INVALID_PATH'))
     }
     paths.push(path)
   }
   if (!paths.length) {
-    return res.status(400).json({ error: 'Missing paths' })
+    return res.status(400).json(publicError('Missing paths', 'MISSING_PATHS'))
   }
 
   for (const path of paths) {
@@ -251,20 +264,28 @@ async function handleR2Delete(req, res) {
 }
 
 async function handleVoices(req, res) {
-  if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method !== 'GET') {
+    return res.status(405).json({ ...publicError('Method not allowed', 'METHOD_NOT_ALLOWED'), voices: [] })
+  }
 
-  const auth = await requireSupabaseUser(req)
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error, voices: [] })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) {
+    return res.status(auth.status).json({ ...publicError(auth.error, auth.code), voices: [] })
+  }
 
   if (!hasElevenKey()) {
     return res.status(503).json({
-      error: 'AI voices not configured. Set ELEVENLABS_API_KEY on the server.',
+      ...publicError('AI voices not configured', 'VOICES_UNAVAILABLE'),
       voices: [],
     })
   }
   const ip = clientIp(req)
-  if (!(await rateLimit(`voice-list:${auth.user.id}:${ip}`, 30, 60_000))) {
-    return res.status(429).json({ error: 'Too many requests', voices: [] })
+  if (
+    !(await rateLimit(`voice-list:${auth.user.id}:${ip}`, 30, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json({ ...publicError('Too many requests', 'RATE_LIMIT'), voices: [] })
   }
 
   const elRes = await fetch('https://api.elevenlabs.io/v1/voices', {
@@ -321,25 +342,29 @@ async function handleVoices(req, res) {
 
 async function handleMorph(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end()
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
+  if (req.method !== 'POST') {
+    return res.status(405).json(publicError('Method not allowed', 'METHOD_NOT_ALLOWED'))
+  }
 
-  const auth = await requireSupabaseUser(req)
-  if (!auth.ok) return res.status(auth.status).json({ error: auth.error })
+  const auth = await requireStaffUser(req)
+  if (!auth.ok) return res.status(auth.status).json(publicError(auth.error, auth.code))
 
   if (!hasElevenKey()) {
-    return res.status(503).json({
-      error: 'AI voice morph is not configured. Set ELEVENLABS_API_KEY on the server.',
-    })
+    return res.status(503).json(publicError('AI voice morph is not configured', 'MORPH_UNAVAILABLE'))
   }
 
   const ip = clientIp(req)
-  if (!(await rateLimit(`voice-morph:${auth.user.id}:${ip}`, 8, 60_000))) {
-    return res.status(429).json({ error: 'Too many voice morph requests' })
+  if (
+    !(await rateLimit(`voice-morph:${auth.user.id}:${ip}`, 8, 60_000, {
+      failClosed: true,
+    }))
+  ) {
+    return res.status(429).json(publicError('Too many voice morph requests', 'RATE_LIMIT'))
   }
 
   const payload = typeof req.body === 'string' ? safeJson(req.body) : req.body
   if (!payload || typeof payload !== 'object') {
-    return res.status(400).json({ error: 'Invalid body' })
+    return res.status(400).json(publicError('Invalid body', 'INVALID_BODY'))
   }
 
   const voiceId =
@@ -638,6 +663,6 @@ export default async function handler(req, res) {
     })
   } catch (err) {
     console.error('[crm-recorder]', action, err)
-    return res.status(500).json({ error: 'Recorder API failed' })
+    return res.status(500).json(publicError('Recorder API failed', 'RECORDER_FAILED'))
   }
 }

@@ -14,8 +14,7 @@ function record(name, ok, detail) {
 }
 
 async function head(path) {
-  const res = await fetch(`${origin}${path}`, { method: 'HEAD', redirect: 'manual' })
-  return res
+  return fetch(`${origin}${path}`, { method: 'HEAD', redirect: 'manual' })
 }
 
 async function postJson(path, body, headers = {}) {
@@ -35,11 +34,15 @@ async function main() {
   const cto = home.headers.get('x-content-type-options') || ''
   const referrer = home.headers.get('referrer-policy') || ''
   const perms = home.headers.get('permissions-policy') || ''
-  const csp =
-    home.headers.get('content-security-policy') ||
-    home.headers.get('content-security-policy-report-only') ||
-    ''
-  record('X-Content-Type-Options', cto.toLowerCase() === 'nosniff', cto || 'missing')
+  const cspEnforce = home.headers.get('content-security-policy') || ''
+  const cspReport =
+    home.headers.get('content-security-policy-report-only') || ''
+  const csp = cspEnforce || cspReport
+  record(
+    'X-Content-Type-Options',
+    cto.toLowerCase() === 'nosniff',
+    cto || 'missing',
+  )
   record(
     'X-Frame-Options',
     /^(SAMEORIGIN|DENY)$/i.test(xfo),
@@ -48,9 +51,19 @@ async function main() {
   record('Referrer-Policy', Boolean(referrer), referrer || 'missing')
   record('Permissions-Policy', Boolean(perms), perms ? 'present' : 'missing')
   record(
-    'CSP (enforce or report-only)',
+    'CSP present with frame-ancestors',
     /frame-ancestors/i.test(csp),
-    csp ? (home.headers.get('content-security-policy') ? 'enforced' : 'report-only') : 'missing',
+    cspEnforce ? 'enforced' : cspReport ? 'report-only' : 'missing',
+  )
+  record(
+    'CSP enforced (not report-only only)',
+    Boolean(cspEnforce) && /frame-ancestors/i.test(cspEnforce),
+    cspEnforce ? 'enforced' : 'still report-only',
+  )
+  record(
+    'CSP allows jsDelivr demos',
+    /cdn\.jsdelivr\.net/i.test(csp),
+    /cdn\.jsdelivr\.net/i.test(csp) ? 'script-src ok' : 'missing jsdelivr',
   )
 
   const login = await head('/client-login')
@@ -71,8 +84,23 @@ async function main() {
   const emailBody = await email.json().catch(() => ({}))
   record(
     'crm-send-email returns stable error shape',
-    typeof emailBody.error === 'string',
+    typeof emailBody.error === 'string' && typeof emailBody.code === 'string',
     emailBody.code ? `code=${emailBody.code}` : 'no code',
+  )
+
+  // CORS must not reflect arbitrary origins (SEC-010)
+  const corsProbe = await fetch(`${origin}/api/crm-send-email`, {
+    method: 'OPTIONS',
+    headers: {
+      Origin: 'https://evil.example',
+      'Access-Control-Request-Method': 'POST',
+    },
+  })
+  const acao = corsProbe.headers.get('access-control-allow-origin') || ''
+  record(
+    'crm-send-email CORS does not reflect evil origin',
+    acao !== 'https://evil.example' && acao !== '*',
+    acao || 'no ACAO',
   )
 
   const artist = await postJson('/api/artist-globe-admin', { action: 'list_submissions' })
@@ -89,8 +117,40 @@ async function main() {
     `HTTP ${sched.status}`,
   )
 
+  const mfaReset = await postJson('/api/crm-mfa-reset', {})
+  record(
+    'crm-mfa-reset rejects anonymous',
+    mfaReset.status === 401 || mfaReset.status === 403,
+    `HTTP ${mfaReset.status}`,
+  )
+
+  const recorder = await postJson('/api/crm-recorder?action=r2-upload', {
+    path: 'x/y',
+  })
+  record(
+    'crm-recorder r2-upload rejects anonymous',
+    recorder.status === 401 || recorder.status === 403,
+    `HTTP ${recorder.status}`,
+  )
+  const recorderBody = await recorder.json().catch(() => ({}))
+  record(
+    'crm-recorder returns stable error shape',
+    typeof recorderBody.error === 'string',
+    recorderBody.code ? `code=${recorderBody.code}` : 'no code',
+  )
+
+  const mediaPwd = await fetch(
+    `${origin}/api/crm-recorder?action=media&slug=smoke-test&password=nope`,
+    { redirect: 'manual' },
+  )
+  const mediaBody = await mediaPwd.json().catch(() => ({}))
+  record(
+    'crm-recorder rejects ?password= on media',
+    mediaPwd.status === 400 && mediaBody.code === 'password_query_removed',
+    `HTTP ${mediaPwd.status}${mediaBody.code ? ` code=${mediaBody.code}` : ''}`,
+  )
+
   // Artist invites must not be anonymously listable (SEC-002)
-  // Direct Rest without apikey often 401; with anon key listing invites should fail RLS.
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const anonKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
   if (supabaseUrl && anonKey) {
@@ -109,9 +169,26 @@ async function main() {
       empty,
       `HTTP ${inv.status}`,
     )
+
+    const tenancy = await fetch(
+      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/crm_client_accounts?select=id&limit=1`,
+      { headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` } },
+    )
+    const tenancyJson = await tenancy.json().catch(() => null)
+    const tenancyLocked =
+      tenancy.status === 401 ||
+      tenancy.status === 403 ||
+      tenancy.status === 404 ||
+      (Array.isArray(tenancyJson) && tenancyJson.length === 0) ||
+      (tenancyJson && tenancyJson.code)
+    record(
+      'crm_client_accounts anon select denied/empty/missing',
+      tenancyLocked,
+      `HTTP ${tenancy.status}`,
+    )
   } else {
     console.log(
-      '~ artist_globe_invites anon select — skipped (set VITE_SUPABASE_URL + anon key)',
+      '~ supabase Rest checks — skipped (set VITE_SUPABASE_URL + anon key)',
     )
   }
 

@@ -149,9 +149,44 @@ export async function requireSupabaseUser(req) {
 }
 
 /**
+ * Ask PostgREST whether the JWT is active CRM staff (`is_crm_staff()`).
+ * Returns true/false when the RPC answers; null if unavailable (missing SQL / network).
+ * @param {string} token
+ * @returns {Promise<boolean | null>}
+ */
+export async function queryIsCrmStaff(token) {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
+  const anonKey =
+    process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+  if (!supabaseUrl || !anonKey || !token) return null
+  try {
+    const res = await fetch(
+      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/is_crm_staff`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: anonKey,
+          'Content-Type': 'application/json',
+        },
+        body: '{}',
+      },
+    )
+    if (!res.ok) return null
+    const value = await res.json().catch(() => null)
+    if (value === true) return true
+    if (value === false) return false
+    return null
+  } catch {
+    return null
+  }
+}
+
+/**
  * Require a verified Supabase user who is treated as CRM staff.
  * Defaults to MFA (aal2) for privileged staff actions. Pass `{ requireMfa: false }`
  * only for bootstrap flows (e.g. MFA reset / enroll).
+ * Honors DB `is_crm_staff()` when available (covers `active = false`).
  * @param {import('http').IncomingMessage} req
  * @param {{ requireMfa?: boolean }} [opts]
  * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string, aal: 'aal1' | 'aal2' | null } | { ok: false, status: number, error: string, code?: string }>}
@@ -162,6 +197,10 @@ export async function requireStaffUser(req, opts = {}) {
   if (!auth.ok) return auth
   if (!isStaffEmail(auth.user.email)) {
     return { ok: false, status: 403, error: 'Staff access required', code: 'STAFF_REQUIRED' }
+  }
+  const dbStaff = await queryIsCrmStaff(auth.token)
+  if (dbStaff === false) {
+    return { ok: false, status: 403, error: 'Staff access required', code: 'STAFF_INACTIVE' }
   }
   if (requireMfa && auth.aal !== 'aal2') {
     return {
