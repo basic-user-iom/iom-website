@@ -92,7 +92,7 @@ export default async function handler(req, res) {
 
   if (
     !(await rateLimit(`crm-mfa-reset:${auth.user.id}`, 5, 15 * 60_000, {
-      failClosed: false,
+      failClosed: true,
     }))
   ) {
     return res.status(429).json(publicError('Too many requests. Try again later.', 'RATE_LIMIT'))

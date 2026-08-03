@@ -62,10 +62,16 @@ export async function verifyMfaChallenge(
   }
 }
 
+/**
+ * Staff CRM UI is ready only at aal2 (verified TOTP session).
+ * aal1 with no factors → enroll; aal1 with factors → challenge (handled earlier).
+ */
 export async function staffHasVerifiedMfa(): Promise<boolean> {
   if (!useLiveCrmBackend() || isCrmDemoMode()) return true
-  const factors = await listVerifiedTotpFactors()
-  return factors.length > 0
+  const supabase = getSupabase()!
+  const { data, error } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+  if (error) throw new Error(error.message)
+  return data.currentLevel === 'aal2'
 }
 
 export async function listVerifiedTotpFactors(): Promise<MfaFactorSummary[]> {

@@ -42,6 +42,20 @@ export default async function handler(req, res) {
   if (!resendKey) {
     return res.status(503).json({ error: 'RESEND_API_KEY is not configured' })
   }
+  const isProd =
+    process.env.VERCEL_ENV === 'production' ||
+    process.env.NODE_ENV === 'production'
+  if (!webhookSecret) {
+    if (isProd) {
+      return res.status(503).json({
+        error: 'RESEND_WEBHOOK_SECRET is not configured',
+        code: 'WEBHOOK_SECRET_MISSING',
+      })
+    }
+    console.warn(
+      '[crm-resend-inbound] RESEND_WEBHOOK_SECRET unset — signature check skipped (non-production)',
+    )
+  }
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || ''
   const serviceKey =

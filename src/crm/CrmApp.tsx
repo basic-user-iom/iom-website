@@ -524,7 +524,10 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         }
       })
       .catch(() => {
-        /* keep going — role probe will fail closed if needed */
+        // Fail closed: block CRM until AAL can be read (role effect sets MFA gate).
+        if (!alive) return
+        setMfaResumeFactorId(null)
+        setStaffMfaReady(false)
       })
     return () => {
       alive = false
@@ -577,14 +580,14 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   // One-shot owner snapshot heal on login — not on every filter-driven refresh.
   useEffect(() => {
-    if (!user || accessRole !== 'staff') return
+    if (!user || accessRole !== 'staff' || staffMfaReady !== true) return
     void backfillOwnLeadOwnerSnapshot().catch(() => {})
-  }, [user?.id, accessRole])
+  }, [user?.id, accessRole, staffMfaReady])
 
   useEffect(() => {
-    if (!user || accessRole !== 'staff') return
+    if (!user || accessRole !== 'staff' || staffMfaReady !== true) return
     void refreshLeads()
-  }, [user?.id, accessRole, refreshLeads])
+  }, [user?.id, accessRole, staffMfaReady, refreshLeads])
 
   const handleCreate = async (input: LeadInput) => {
     const lead = await createLead(input)
@@ -755,7 +758,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             </button>
           </div>
         </header>
-        <StaffMfaSetup onComplete={() => setStaffMfaReady(true)} />
+        <StaffMfaSetup
+          onComplete={() => {
+            void staffHasVerifiedMfa()
+              .then((ok) => setStaffMfaReady(ok))
+              .catch(() => setStaffMfaReady(false))
+          }}
+        />
       </div>
     )
   }
