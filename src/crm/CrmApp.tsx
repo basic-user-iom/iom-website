@@ -359,15 +359,40 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       return
     }
     let alive = true
-    void getCurrentUser().then((u) => {
+    /** Probe MFA before exposing session — avoids remounting login without the code form. */
+    const applyAuthUser = async (u: Awaited<ReturnType<typeof getCurrentUser>>) => {
+      if (!alive) return
+      if (!u) {
+        setUser(null)
+        setMfaHold(false)
+        setMfaResumeFactorId(null)
+        setAuthReady(true)
+        return
+      }
+      try {
+        const state = await getPostLoginMfaState()
+        if (!alive) return
+        if (state.kind === 'mfa_challenge') {
+          setMfaResumeFactorId(state.factorId)
+          setMfaHold(true)
+        } else {
+          setMfaHold(false)
+          setMfaResumeFactorId(null)
+        }
+      } catch {
+        if (!alive) return
+        // Fail closed for staff later via staffMfaReady; keep session visible.
+        setStaffMfaReady(false)
+      }
       if (!alive) return
       setUser(u)
       setAuthReady(true)
+    }
+    void getCurrentUser().then((u) => {
+      void applyAuthUser(u)
     })
     const unsub = onAuthChange((u) => {
-      if (!alive) return
-      setUser(u)
-      setAuthReady(true)
+      void applyAuthUser(u)
     })
     return () => {
       alive = false
@@ -508,31 +533,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     })
     setSelectedId(lead.id)
   }, [])
-
-  // After Auth session: step-up MFA if required before role / CRM UI.
-  useEffect(() => {
-    if (!user || sandboxed || mfaHold) return
-    let alive = true
-    void getPostLoginMfaState()
-      .then((state) => {
-        if (!alive) return
-        if (state.kind === 'mfa_challenge') {
-          setMfaResumeFactorId(state.factorId)
-          setMfaHold(true)
-        } else {
-          setMfaResumeFactorId(null)
-        }
-      })
-      .catch(() => {
-        // Fail closed: block CRM until AAL can be read (role effect sets MFA gate).
-        if (!alive) return
-        setMfaResumeFactorId(null)
-        setStaffMfaReady(false)
-      })
-    return () => {
-      alive = false
-    }
-  }, [user?.id, sandboxed, mfaHold])
 
   // Resolve staff vs client after Auth session is known (and MFA hold cleared).
   useEffect(() => {
@@ -719,9 +719,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         </div>
         <CrmLogin
           resumeFactorId={mfaResumeFactorId}
-          onMfaHoldChange={(hold) => {
+          onMfaHoldChange={(hold, factorId) => {
             setMfaHold(hold)
-            if (!hold) setMfaResumeFactorId(null)
+            if (hold) {
+              if (factorId) setMfaResumeFactorId(factorId)
+            } else {
+              setMfaResumeFactorId(null)
+            }
           }}
           onSuccess={() => {
             setMfaHold(false)

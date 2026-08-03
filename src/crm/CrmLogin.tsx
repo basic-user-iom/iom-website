@@ -6,7 +6,7 @@ import { useCrmI18n } from './i18n'
 interface CrmLoginProps {
   onSuccess: () => void
   /** Keep login mounted while TOTP is pending (Auth session already exists). */
-  onMfaHoldChange?: (hold: boolean) => void
+  onMfaHoldChange?: (hold: boolean, factorId?: string | null) => void
   /** Resume challenge after refresh when session is still aal1. */
   resumeFactorId?: string | null
 }
@@ -44,10 +44,12 @@ export function CrmLogin({
       if (result.kind === 'mfa_challenge') {
         setMfaFactorId(result.factorId)
         setMfaCode('')
-        onMfaHoldChange?.(true)
+        // Pass factorId to parent immediately — onAuthChange can remount this
+        // form before local state alone would survive.
+        onMfaHoldChange?.(true, result.factorId)
         return
       }
-      onMfaHoldChange?.(false)
+      onMfaHoldChange?.(false, null)
       onSuccess()
     } catch (err) {
       const code = err instanceof Error ? err.message : ''
@@ -69,7 +71,7 @@ export function CrmLogin({
     setInfo('')
     try {
       await verifyMfaChallenge(mfaFactorId, mfaCode)
-      onMfaHoldChange?.(false)
+      onMfaHoldChange?.(false, null)
       onSuccess()
     } catch {
       setError(t('login.mfaFailed'))
@@ -89,7 +91,7 @@ export function CrmLogin({
     } finally {
       setMfaFactorId(null)
       setMfaCode('')
-      onMfaHoldChange?.(false)
+      onMfaHoldChange?.(false, null)
       setBusy(false)
     }
   }
@@ -108,7 +110,7 @@ export function CrmLogin({
       }
       setMfaFactorId(null)
       setMfaCode('')
-      onMfaHoldChange?.(false)
+      onMfaHoldChange?.(false, null)
 
       // Password still in form → sign in again and land on QR enroll gate.
       if (email.trim() && password) {
@@ -116,7 +118,7 @@ export function CrmLogin({
         if (result.kind === 'mfa_challenge') {
           // Unexpected leftover factor
           setMfaFactorId(result.factorId)
-          onMfaHoldChange?.(true)
+          onMfaHoldChange?.(true, result.factorId)
           setError(t('login.mfaResetIncomplete'))
           return
         }
@@ -131,7 +133,7 @@ export function CrmLogin({
         const state = await getPostLoginMfaState()
         if (state.kind === 'mfa_challenge') {
           setMfaFactorId(state.factorId)
-          onMfaHoldChange?.(true)
+          onMfaHoldChange?.(true, state.factorId)
         }
       } catch {
         /* signed out */
