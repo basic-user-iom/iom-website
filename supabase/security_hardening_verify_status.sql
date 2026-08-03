@@ -11,6 +11,8 @@
 --   7) security_hardening_analytics_and_members.sql
 --   8) security_hardening_staff_roles.sql  (already applied if admin exists)
 --   9) security_hardening_staff_aal2.sql
+--  10) security_hardening_client_active_and_tasks.sql
+--  (preview / fresh DBs: also crm_workspace_board_migration.sql before board policies)
 
 select
   check_id,
@@ -134,5 +136,39 @@ from (
       )
     ),
     'JWT aal2 required for staff CRM RLS'
+
+  union all
+  select
+    10,
+    'client_account_active',
+    'crm_client_account_ids joins active accounts',
+    exists (
+      select 1
+      from pg_proc p
+      join pg_namespace n on n.oid = p.pronamespace
+      where n.nspname = 'public'
+        and p.proname = 'crm_client_account_ids'
+        and pg_get_functiondef(p.oid) ilike '%crm_client_accounts%'
+        and pg_get_functiondef(p.oid) ilike '%a.active%'
+    ),
+    'SEC-R1 inactive accounts revoke access'
+
+  union all
+  select
+    11,
+    'client_tasks_visible',
+    'crm_tasks client SELECT requires client_visible',
+    exists (
+      select 1
+      from pg_policies
+      where schemaname = 'public'
+        and tablename = 'crm_tasks'
+        and policyname = 'crm_tasks_client_select'
+        and (
+          coalesce(qual, '') ilike '%client_visible%'
+          or coalesce(with_check, '') ilike '%client_visible%'
+        )
+    ),
+    'SEC-R2 client tasks gated by client_visible'
 ) s
 order by ord;

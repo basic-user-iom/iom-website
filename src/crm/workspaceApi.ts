@@ -351,6 +351,7 @@ export async function createTask(
       .insert({
         project_id: projectId,
         ...input,
+        client_visible: input.client_visible ?? false,
         position,
         owner_id: user?.id ?? null,
       })
@@ -368,6 +369,7 @@ export async function createTask(
     id: uid(),
     project_id: projectId,
     ...input,
+    client_visible: input.client_visible ?? false,
     position,
     owner_id: user?.id ?? null,
     created_at: stamp,

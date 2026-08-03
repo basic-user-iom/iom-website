@@ -149,7 +149,9 @@ export async function requireSupabaseUser(req) {
 }
 
 /**
- * Ask PostgREST whether the JWT is active CRM staff (`is_crm_staff()`).
+ * Ask PostgREST whether the JWT is CRM staff identity (`is_crm_staff_identity`,
+ * falling back to `is_crm_staff` on older DBs). Identity checks omit AAL so
+ * aal1 sessions can still be told apart from inactive staff before MFA gates.
  * Returns true/false when the RPC answers; null if unavailable (missing SQL / network).
  * @param {string} token
  * @returns {Promise<boolean | null>}
@@ -159,18 +161,24 @@ export async function queryIsCrmStaff(token) {
   const anonKey =
     process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
   if (!supabaseUrl || !anonKey || !token) return null
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    apikey: anonKey,
+    'Content-Type': 'application/json',
+  }
   try {
+    const identityRes = await fetch(
+      `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/is_crm_staff_identity`,
+      { method: 'POST', headers, body: '{}' },
+    )
+    if (identityRes.ok) {
+      const value = await identityRes.json().catch(() => null)
+      if (value === true) return true
+      if (value === false) return false
+    }
     const res = await fetch(
       `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/is_crm_staff`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: anonKey,
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
-      },
+      { method: 'POST', headers, body: '{}' },
     )
     if (!res.ok) return null
     const value = await res.json().catch(() => null)
@@ -185,8 +193,8 @@ export async function queryIsCrmStaff(token) {
 /**
  * Require a verified Supabase user who is treated as CRM staff.
  * Defaults to MFA (aal2) for privileged staff actions. Pass `{ requireMfa: false }`
- * only for bootstrap flows (e.g. MFA reset / enroll).
- * Honors DB `is_crm_staff()` when available (covers `active = false`).
+ * only for rare bootstrap paths; routine MFA factor reset requires aal2.
+ * Honors DB staff identity when available (covers `active = false`).
  * @param {import('http').IncomingMessage} req
  * @param {{ requireMfa?: boolean }} [opts]
  * @returns {Promise<{ ok: true, user: { id: string, email?: string }, token: string, aal: 'aal1' | 'aal2' | null } | { ok: false, status: number, error: string, code?: string }>}

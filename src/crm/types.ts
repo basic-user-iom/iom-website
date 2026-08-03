@@ -186,6 +186,7 @@ export interface CrmTask {
   assignee_id: string | null
   position: number
   owner_id: string | null
+  client_visible: boolean
   created_at: string
   updated_at: string
 }
@@ -237,7 +238,7 @@ export type ProjectInput = Pick<
 >
 export type TaskInput = Pick<
   CrmTask,
-  'title' | 'description' | 'priority' | 'due_date' | 'assignee_id' | 'column_id'
+  'title' | 'description' | 'priority' | 'due_date' | 'assignee_id' | 'column_id' | 'client_visible'
 >
 export type TimeEntryInput = {
   project_id: string | null

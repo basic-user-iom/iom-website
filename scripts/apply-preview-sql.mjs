@@ -42,11 +42,13 @@ const files = [
   'supabase/security_hardening_artist_invites.sql',
   'supabase/security_hardening_staff_rls.sql',
   'supabase/security_hardening_client_tenancy_foundation.sql',
+  'supabase/crm_workspace_board_migration.sql',
   'supabase/security_hardening_client_scoped_rls.sql',
   'supabase/security_hardening_client_board_read.sql',
   'supabase/security_hardening_analytics_and_members.sql',
   'supabase/security_hardening_staff_roles.sql',
   'supabase/security_hardening_staff_aal2.sql',
+  'supabase/security_hardening_client_active_and_tasks.sql',
 ]
 
 function buildUrl() {

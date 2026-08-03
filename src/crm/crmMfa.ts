@@ -127,6 +127,7 @@ export async function unenrollMfaFactor(factorId: string): Promise<void> {
 
 /**
  * Clear this staff user's TOTP factors (server admin API) so a new QR can be enrolled.
+ * Requires an aal2 staff session — password-only (aal1) callers are rejected (SEC-R3).
  * Invalidates sessions after verified factors are removed — caller should re-sign-in.
  */
 export async function resetOwnMfaFactors(): Promise<{ removed: number }> {

@@ -455,8 +455,11 @@ as $$
     and exists (
       select 1
       from public.crm_client_memberships m
+      join public.crm_client_accounts a
+        on a.id = m.client_account_id
       where m.user_id = auth.uid()
         and m.active
+        and a.active
     );
 $$;
 
@@ -469,8 +472,11 @@ set search_path = public
 as $$
   select m.client_account_id
   from public.crm_client_memberships m
+  join public.crm_client_accounts a
+    on a.id = m.client_account_id
   where m.user_id = auth.uid()
-    and m.active;
+    and m.active
+    and a.active;
 $$;
 
 create or replace function public.crm_can_access_project(p_project_id uuid)

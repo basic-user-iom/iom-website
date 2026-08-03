@@ -31,12 +31,14 @@ Or run these files in SQL Editor, in order:
 3. `security_hardening_artist_invites.sql`
 4. `security_hardening_staff_rls.sql`
 5. `security_hardening_client_tenancy_foundation.sql`
-6. `security_hardening_client_scoped_rls.sql`
-7. `security_hardening_client_board_read.sql`
-8. `security_hardening_analytics_and_members.sql`
-9. `security_hardening_staff_roles.sql`
-10. `security_hardening_staff_aal2.sql`
-11. `security_hardening_verify_status.sql` — all checks should be `ok = true` after seeding an admin.
+6. `crm_workspace_board_migration.sql` (board columns / tasks / time — needed for SEC-R2)
+7. `security_hardening_client_scoped_rls.sql`
+8. `security_hardening_client_board_read.sql`
+9. `security_hardening_analytics_and_members.sql`
+10. `security_hardening_staff_roles.sql`
+11. `security_hardening_staff_aal2.sql`
+12. `security_hardening_client_active_and_tasks.sql`
+13. `security_hardening_verify_status.sql` — all checks should be `ok = true` after seeding an admin.
 
 Bootstrap an admin (replace UUID/email from Auth → Users after you create a test staff user):
 

@@ -105,6 +105,39 @@ begin
         with check (public.is_crm_staff())
     $p$;
   end if;
+
+  if to_regclass('public.crm_board_columns') is not null then
+    execute 'drop policy if exists "crm_board_columns_staff_all" on public.crm_board_columns';
+    execute $p$
+      create policy "crm_board_columns_staff_all"
+        on public.crm_board_columns for all
+        to authenticated
+        using (public.is_crm_staff())
+        with check (public.is_crm_staff())
+    $p$;
+  end if;
+
+  if to_regclass('public.crm_tasks') is not null then
+    execute 'drop policy if exists "crm_tasks_staff_all" on public.crm_tasks';
+    execute $p$
+      create policy "crm_tasks_staff_all"
+        on public.crm_tasks for all
+        to authenticated
+        using (public.is_crm_staff())
+        with check (public.is_crm_staff())
+    $p$;
+  end if;
+
+  if to_regclass('public.crm_time_entries') is not null then
+    execute 'drop policy if exists "crm_time_entries_staff_all" on public.crm_time_entries';
+    execute $p$
+      create policy "crm_time_entries_staff_all"
+        on public.crm_time_entries for all
+        to authenticated
+        using (public.is_crm_staff())
+        with check (public.is_crm_staff())
+    $p$;
+  end if;
 end
 $$;
 

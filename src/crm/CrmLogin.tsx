@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { signIn, signOut, storageMode } from './api'
-import { getPostLoginMfaState, resetOwnMfaFactors, verifyMfaChallenge } from './crmMfa'
+import { verifyMfaChallenge } from './crmMfa'
 import { useCrmI18n } from './i18n'
 
 interface CrmLoginProps {
@@ -96,53 +96,10 @@ export function CrmLogin({
     }
   }
 
-  /** Lost phone authenticator / never scanned — clear server factors and re-enroll. */
-  const handleSetupAgain = async () => {
-    setBusy(true)
+  /** Lost phone authenticator — password-only sessions cannot clear factors (SEC-R3). */
+  const handleSetupAgain = () => {
     setError('')
-    setInfo('')
-    try {
-      await resetOwnMfaFactors()
-      try {
-        await signOut()
-      } catch {
-        /* ignore */
-      }
-      setMfaFactorId(null)
-      setMfaCode('')
-      onMfaHoldChange?.(false, null)
-
-      // Password still in form → sign in again and land on QR enroll gate.
-      if (email.trim() && password) {
-        const result = await signIn(email, password)
-        if (result.kind === 'mfa_challenge') {
-          // Unexpected leftover factor
-          setMfaFactorId(result.factorId)
-          onMfaHoldChange?.(true, result.factorId)
-          setError(t('login.mfaResetIncomplete'))
-          return
-        }
-        onSuccess()
-        return
-      }
-
-      // Resume path without password cached — ask them to sign in once more.
-      setInfo(t('login.mfaResetOk'))
-      // Confirm no challenge remains
-      try {
-        const state = await getPostLoginMfaState()
-        if (state.kind === 'mfa_challenge') {
-          setMfaFactorId(state.factorId)
-          onMfaHoldChange?.(true, state.factorId)
-        }
-      } catch {
-        /* signed out */
-      }
-    } catch {
-      setError(t('login.mfaResetFailed'))
-    } finally {
-      setBusy(false)
-    }
+    setInfo(t('login.mfaResetContactAdmin'))
   }
 
   return (
@@ -179,7 +136,7 @@ export function CrmLogin({
               type="button"
               className="btn btn-ghost"
               disabled={busy}
-              onClick={() => void handleSetupAgain()}
+              onClick={handleSetupAgain}
             >
               {t('login.mfaSetupAgain')}
             </button>

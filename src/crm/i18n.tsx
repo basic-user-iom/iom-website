@@ -158,10 +158,12 @@ const en: Dict = {
   'login.mfaBack': 'Back to sign in',
   'login.mfaFailed': 'Invalid or expired code. Try again.',
   'login.verifying': 'Verifying…',
-  'login.mfaSetupAgain': 'Set up authenticator again',
+  'login.mfaSetupAgain': 'Lost authenticator?',
   'login.mfaResetOk': 'Authenticator cleared. Sign in with your password to scan a new QR code.',
   'login.mfaResetFailed': 'Could not reset authenticator. Try again or ask an admin.',
   'login.mfaResetIncomplete': 'Old authenticator still present. Try again or remove it in Supabase.',
+  'login.mfaResetContactAdmin':
+    'For security, authenticator reset requires an administrator after you verify MFA once, or contact projects@iobjectm.com from your staff email.',
 
   'mfa.kicker': 'Security',
   'mfa.title': 'Set up two-factor authentication',
@@ -684,6 +686,7 @@ const en: Dict = {
   'proj.standalone': 'Standalone',
   'proj.status': 'Project status',
   'proj.clientVisible': 'Visible to client',
+  'proj.taskClientVisible': 'Visible to client',
   'proj.clientAccount': 'Client account',
   'proj.clientAccountNone': 'No client account',
   'proj.openTime': 'Time',
@@ -1819,10 +1822,12 @@ const sr: Dict = {
   'login.mfaBack': 'Nazad na prijavu',
   'login.mfaFailed': 'Neispravan ili istekao kod. Pokušajte ponovo.',
   'login.verifying': 'Provera…',
-  'login.mfaSetupAgain': 'Podesi autentikator ponovo',
+  'login.mfaSetupAgain': 'Izgubljen autentikator?',
   'login.mfaResetOk': 'Autentikator obrisan. Prijavite se lozinkom da skenirate novi QR kod.',
   'login.mfaResetFailed': 'Nije moguće resetovati autentikator. Pokušajte ponovo ili pitajte admina.',
   'login.mfaResetIncomplete': 'Stari autentikator je još aktivan. Pokušajte ponovo ili ga uklonite u Supabase-u.',
+  'login.mfaResetContactAdmin':
+    'Iz bezbednosnih razloga, reset autentikatora zahteva administratora nakon MFA, ili kontaktirajte projects@iobjectm.com sa staff emaila.',
 
   'mfa.kicker': 'Bezbednost',
   'mfa.title': 'Podesite dvofaktorsku autentifikaciju',
@@ -2348,6 +2353,7 @@ const sr: Dict = {
   'proj.standalone': 'Samostalno',
   'proj.status': 'Status projekta',
   'proj.clientVisible': 'Vidljivo klijentu',
+  'proj.taskClientVisible': 'Vidljivo klijentu',
   'proj.clientAccount': 'Klijentski nalog',
   'proj.clientAccountNone': 'Bez klijentskog naloga',
   'proj.openTime': 'Vreme',

@@ -194,6 +194,7 @@ export function ProjectsView({
         due_date: null,
         assignee_id: null,
         column_id: columnId,
+        client_visible: false,
       })
       setNewTaskTitle((m) => ({ ...m, [columnId]: '' }))
       await refreshBoard(selected.id)
@@ -614,6 +615,7 @@ function TaskEditor({
   const [dueDate, setDueDate] = useState(task.due_date ?? '')
   const [assigneeId, setAssigneeId] = useState(task.assignee_id ?? '')
   const [columnId, setColumnId] = useState(task.column_id ?? '')
+  const [clientVisible, setClientVisible] = useState(Boolean(task.client_visible))
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -628,6 +630,7 @@ function TaskEditor({
         due_date: dueDate || null,
         assignee_id: assigneeId || null,
         column_id: columnId || null,
+        client_visible: clientVisible,
       })
       await onSaved()
     } catch (err) {
@@ -724,6 +727,14 @@ function TaskEditor({
             </select>
           </label>
         </div>
+        <label className="crm-proj-client-visible">
+          <input
+            type="checkbox"
+            checked={clientVisible}
+            onChange={(e) => setClientVisible(e.target.checked)}
+          />
+          <span>{t('proj.taskClientVisible')}</span>
+        </label>
         <div className="crm-detail-actions">
           <button type="button" className="btn btn-ghost" onClick={onClose}>
             {t('form.cancel')}

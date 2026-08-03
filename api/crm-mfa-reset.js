@@ -1,6 +1,6 @@
 /**
  * Staff self-service: clear own TOTP factors so a new QR can be enrolled.
- * Auth: Bearer staff JWT (aal1 after password is enough).
+ * Auth: Bearer staff JWT at aal2 only (password-only aal1 must not delete factors).
  * Uses service role admin MFA delete — only for the authenticated user.
  */
 
@@ -84,8 +84,8 @@ export default async function handler(req, res) {
     return res.status(405).json(publicError('Method not allowed'))
   }
 
-  // aal1 is enough — staff must reset TOTP before they can reach aal2 again.
-  const auth = await requireStaffUser(req, { requireMfa: false })
+  // Routine factor replacement requires a recent aal2 session (SEC-R3).
+  const auth = await requireStaffUser(req)
   if (!auth.ok) {
     return res.status(auth.status).json(publicError(auth.error, auth.code))
   }
