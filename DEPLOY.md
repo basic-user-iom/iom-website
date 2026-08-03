@@ -83,3 +83,10 @@ Verify on production (hard refresh or private window):
 - Client reply mirror (Proton keep-copy → Resend → CRM): see [`docs/crm-email-inbound-setup.md`](docs/crm-email-inbound-setup.md).
 
 Schema/SQL changes need Supabase migrations run separately; they are not deployed by Vercel.
+
+## Security ops
+
+- Secret rotation (quiet window): [`SECURITY_SECRET_ROTATION.md`](SECURITY_SECRET_ROTATION.md)
+- Preview Supabase (separate from production CRM): [`supabase/PREVIEW_APPLY_ORDER.md`](supabase/PREVIEW_APPLY_ORDER.md)
+- Hardening status SQL: `supabase/security_hardening_verify_status.sql`
+- Production smoke: `npm run security:smoke`

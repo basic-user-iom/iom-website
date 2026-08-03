@@ -10,6 +10,7 @@
 --   6) security_hardening_client_board_read.sql
 --   7) security_hardening_analytics_and_members.sql
 --   8) security_hardening_staff_roles.sql  (already applied if admin exists)
+--   9) security_hardening_staff_aal2.sql
 
 select
   check_id,
@@ -111,5 +112,27 @@ from (
       where staff_role = 'admin' and coalesce(active, true)
     ),
     'Bootstrap admin row'
+
+  union all
+  select
+    9,
+    'aal2_staff_gate',
+    'is_crm_staff_identity + aal2 in is_crm_staff',
+    (
+      exists (
+        select 1 from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public' and p.proname = 'is_crm_staff_identity'
+      )
+      and exists (
+        select 1
+        from pg_proc p
+        join pg_namespace n on n.oid = p.pronamespace
+        where n.nspname = 'public'
+          and p.proname = 'is_crm_staff'
+          and pg_get_functiondef(p.oid) ilike '%aal2%'
+      )
+    ),
+    'JWT aal2 required for staff CRM RLS'
 ) s
 order by ord;

@@ -4,12 +4,24 @@ import type { CrmClientAccount, CrmClientMembership } from './types'
 
 export type CrmAccessRole = 'staff' | 'client' | 'none'
 
-/** Local/demo = staff. Live = RPC is_crm_staff / is_crm_client. */
+/**
+ * Local/demo = staff.
+ * Live = identity RPC (no aal) so MFA enroll still works; CRM table RLS uses
+ * is_crm_staff() which requires aal2 after security_hardening_staff_aal2.sql.
+ */
 export async function resolveCrmAccessRole(): Promise<CrmAccessRole> {
   if (!useLiveCrmBackend() || isCrmDemoMode()) return 'staff'
   const supabase = getSupabase()!
-  const { data: staff, error: staffErr } = await supabase.rpc('is_crm_staff')
-  if (staffErr) throw new Error(staffErr.message)
+  // Prefer identity helper; fall back if aal2 SQL not applied yet.
+  let staff: unknown = null
+  const identity = await supabase.rpc('is_crm_staff_identity')
+  if (!identity.error) {
+    staff = identity.data
+  } else {
+    const legacy = await supabase.rpc('is_crm_staff')
+    if (legacy.error) throw new Error(legacy.error.message)
+    staff = legacy.data
+  }
   if (staff === true) return 'staff'
   const { data: client, error: clientErr } = await supabase.rpc('is_crm_client')
   if (clientErr) throw new Error(clientErr.message)
