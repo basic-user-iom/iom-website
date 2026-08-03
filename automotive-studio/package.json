@@ -1,0 +1,29 @@
+{
+  "name": "iom-automotive-studio",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "IOM Automotive Studio — Studio and Presentation shells (Phase 1 foundation)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "optimize": "node scripts/optimize-model.mjs",
+    "test:schema": "npx --yes tsx src/tests/schema.roundtrip.ts",
+    "test:lixiang": "npx --yes tsx src/tests/inspect-lixiang.ts"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "three": "0.181.2"
+  },
+  "devDependencies": {
+    "@gltf-transform/core": "^4.4.2",
+    "@gltf-transform/extensions": "^4.4.2",
+    "@gltf-transform/functions": "^4.4.2",
+    "@types/three": "0.181.0",
+    "meshoptimizer": "^1.2.0",
+    "sharp": "^0.35.3",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0"
+  }
+}

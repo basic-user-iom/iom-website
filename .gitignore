@@ -11,6 +11,9 @@ _source
 vendor/
 public/demos/streets-gl/app/
 
+# Automotive studio — ship the built demo, not its sourcemaps (three.js map alone is 6 MB)
+public/demos/automotive-studio/assets/*.map
+
 # Dream demo — nested repo / tooling (ship only runtime assets)
 public/demos/dreams-iom/.git/
 public/demos/dreams-iom/.git-dream-backup/
