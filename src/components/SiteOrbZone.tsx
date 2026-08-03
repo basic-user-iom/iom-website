@@ -322,6 +322,52 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
       return
     }
 
+    let cancelled = false
+    let idleId = 0
+    let timeoutId = 0
+    let cleanupRuntime: (() => void) | undefined
+
+    const startRuntime = () => {
+      if (cancelled) return
+      cleanupRuntime = runOrbRuntime(zone, hoverRef, clientMarksRef, rfoNodesRef)
+    }
+
+    // Defer the rAF loop until after first paint / idle so LCP and hydration
+    // are not competing with continuous style/layout work from the orbs.
+    if (typeof window.requestIdleCallback === 'function') {
+      idleId = window.requestIdleCallback(startRuntime, { timeout: 2200 })
+    } else {
+      timeoutId = window.setTimeout(startRuntime, 400)
+    }
+
+    return () => {
+      cancelled = true
+      if (idleId && typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId)
+      }
+      if (timeoutId) window.clearTimeout(timeoutId)
+      cleanupRuntime?.()
+    }
+  }, [])
+
+  return (
+    <SiteOrbContext.Provider value={api}>
+      <div className="site-orb-zone" ref={zoneRef}>
+        {Array.from({ length: ORB_COUNT }, (_, i) => (
+          <span key={i} className={`clients-orb clients-orb--${i}`} aria-hidden="true" />
+        ))}
+        {children}
+      </div>
+    </SiteOrbContext.Provider>
+  )
+})
+
+function runOrbRuntime(
+  zone: HTMLDivElement,
+  hoverRef: { current: HoverState },
+  clientMarksRef: RefObject<(HTMLElement | null)[]>,
+  rfoNodesRef: RefObject<(HTMLElement | null)[]>,
+): () => void {
     const mobile = isCoarsePointer()
     let raf = 0
     let lastTs = performance.now()
@@ -855,16 +901,4 @@ export const SiteOrbZone = memo(function SiteOrbZone({ children }: { children: R
         'site-orb-zone--hero-live',
       )
     }
-  }, [])
-
-  return (
-    <SiteOrbContext.Provider value={api}>
-      <div className="site-orb-zone" ref={zoneRef}>
-        {Array.from({ length: ORB_COUNT }, (_, i) => (
-          <span key={i} className={`clients-orb clients-orb--${i}`} aria-hidden="true" />
-        ))}
-        {children}
-      </div>
-    </SiteOrbContext.Provider>
-  )
-})
+}

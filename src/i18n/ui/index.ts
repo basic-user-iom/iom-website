@@ -1,16 +1,17 @@
-import { deUi } from './de'
-import { enUi } from './en'
-import { esUi } from './es'
-import { frUi } from './fr'
-import { itUi } from './it'
-import { nlUi } from './nl'
 import type { Dict, SiteLang } from '../types'
+import { enUi } from './en'
+import { ensureUiDictionary, getUiDictionary } from './loadDictionary'
 
-export const uiDictionaries: Record<SiteLang, Dict> = {
-  en: enUi,
-  de: deUi,
-  fr: frUi,
-  nl: nlUi,
-  it: itUi,
-  es: esUi,
-}
+export { ensureUiDictionary, getUiDictionary }
+
+/**
+ * Eager map kept for anything that still expects `uiDictionaries.en`.
+ * Non-English packs are loaded on demand via `ensureUiDictionary`.
+ */
+export const uiDictionaries: Record<SiteLang, Dict> = new Proxy({ en: enUi } as Record<SiteLang, Dict>, {
+  get(target, prop: string | symbol) {
+    if (typeof prop !== 'string') return undefined
+    if (prop in target) return target[prop as SiteLang]
+    return getUiDictionary(prop as SiteLang)
+  },
+})

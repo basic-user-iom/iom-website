@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import type { SiteLang } from '../i18n'
 import { SITE_LANGS, SITE_LOCALE_TAGS, localePath } from '../i18n'
+import { ensureUiDictionary } from '../i18n/ui/loadDictionary'
 import { pageMetaForPath } from './pageMeta'
 import { structuredDataScripts } from './structuredData'
 import { SITE_NAME, SITE_ORIGIN } from './siteConfig'
@@ -121,6 +122,12 @@ export function applyPageMeta(pathname: string, lang: SiteLang = 'en') {
 
 export function usePageMeta(pathname: string, lang: SiteLang = 'en') {
   useEffect(() => {
-    applyPageMeta(pathname, lang)
+    let cancelled = false
+    void ensureUiDictionary(lang).then(() => {
+      if (!cancelled) applyPageMeta(pathname, lang)
+    })
+    return () => {
+      cancelled = true
+    }
   }, [pathname, lang])
 }

@@ -1,5 +1,5 @@
 import { BLOG_PUBLIC_ENABLED } from '../blog/publicFlags'
-import { uiDictionaries } from '../i18n/ui'
+import { getUiDictionary } from '../i18n/ui/loadDictionary'
 import { localePath, type SiteLang } from '../i18n'
 import {
   CONTACT_EMAIL,
@@ -17,7 +17,9 @@ function normalizePath(path: string): string {
 }
 
 function seoT(lang: SiteLang, key: string): string {
-  return uiDictionaries[lang]?.[key] ?? uiDictionaries.en[key] ?? key
+  const dict = getUiDictionary(lang)
+  const en = getUiDictionary('en')
+  return dict[key] ?? en[key] ?? key
 }
 
 export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMeta {

@@ -1073,6 +1073,15 @@ body.hero-viewer-fs-lock {
   padding: clamp(4rem, 10vw, 7rem) clamp(1rem, 4vw, 3rem);
   border-top: 1px solid var(--border);
   scroll-margin-top: var(--header-h);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+.section-block--pending {
+  min-height: min(48vh, 420px);
+  border-top: 1px solid var(--border);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 420px;
 }
 
 .section-header {

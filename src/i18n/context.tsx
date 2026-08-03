@@ -4,15 +4,17 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from 'react'
-import { uiDictionaries } from './ui'
+import { ensureUiDictionary, getUiDictionary } from './ui/loadDictionary'
 import { localePath, parseLocalePath } from './routing'
 import {
   DEFAULT_SITE_LANG,
   SITE_LOCALE_TAGS,
   type SiteLang,
 } from './types'
+import type { Dict } from './types'
 
 type TranslateVars = Record<string, string | number>
 
@@ -31,6 +33,12 @@ function format(template: string, vars?: TranslateVars): string {
   )
 }
 
+function translate(dict: Dict, key: string, vars?: TranslateVars): string {
+  const en = getUiDictionary('en')
+  const raw = dict[key] ?? en[key] ?? key
+  return format(raw, vars)
+}
+
 export function SiteI18nProvider({
   lang,
   children,
@@ -38,13 +46,22 @@ export function SiteI18nProvider({
   lang: SiteLang
   children: ReactNode
 }) {
+  const [dict, setDict] = useState(() => getUiDictionary(lang))
+
+  useEffect(() => {
+    let cancelled = false
+    setDict(getUiDictionary(lang))
+    void ensureUiDictionary(lang).then((next) => {
+      if (!cancelled) setDict(next)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [lang])
+
   const t = useCallback(
-    (key: string, vars?: TranslateVars) => {
-      const dict = uiDictionaries[lang] ?? uiDictionaries.en
-      const raw = dict[key] ?? uiDictionaries.en[key] ?? key
-      return format(raw, vars)
-    },
-    [lang],
+    (key: string, vars?: TranslateVars) => translate(dict, key, vars),
+    [dict],
   )
 
   const href = useCallback((path: string) => localePath(lang, path), [lang])
@@ -68,7 +85,7 @@ export function useSiteI18n(): SiteI18nValue {
     // Safe fallback for routes mounted without provider (CRM, tools, etc.)
     return {
       lang: DEFAULT_SITE_LANG,
-      t: (key, vars) => format(uiDictionaries.en[key] ?? key, vars),
+      t: (key, vars) => translate(getUiDictionary('en'), key, vars),
       href: (path) => localePath(DEFAULT_SITE_LANG, path),
     }
   }

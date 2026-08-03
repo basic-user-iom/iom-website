@@ -4,6 +4,7 @@ import { Hero } from './components/Hero'
 import { SiteOrbZone } from './components/SiteOrbZone'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
+import { DeferredHomeBody } from './components/DeferredHomeBody'
 import { isArtistGlobePath } from './artist-globe/paths'
 import { isBlogPath } from './blog/types'
 import { isCaseStudyPath } from './case-studies/paths'
@@ -263,7 +264,7 @@ export default function App() {
       <main id="main-content">
         <SiteOrbZone>
           <Hero />
-          <Suspense fallback={null}>
+          <DeferredHomeBody sectionIds={sections.map((section) => section.id)}>
             {sections.map((section, i) => (
               <ProjectSectionBlock
                 key={section.id}
@@ -275,7 +276,7 @@ export default function App() {
             ))}
             <Clients />
             <About />
-          </Suspense>
+          </DeferredHomeBody>
         </SiteOrbZone>
       </main>
       <Footer />
