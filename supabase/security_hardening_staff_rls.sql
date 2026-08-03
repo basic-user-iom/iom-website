@@ -48,6 +48,7 @@ grant execute on function public.is_crm_staff() to authenticated;
 
 -- ── 2) Core CRM tables ─────────────────────────────────────────────────────
 drop policy if exists "crm_leads_auth_all" on public.crm_leads;
+drop policy if exists "crm_leads_staff_all" on public.crm_leads;
 create policy "crm_leads_staff_all"
   on public.crm_leads for all
   to authenticated
@@ -55,6 +56,7 @@ create policy "crm_leads_staff_all"
   with check (public.is_crm_staff());
 
 drop policy if exists "crm_activities_auth_all" on public.crm_activities;
+drop policy if exists "crm_activities_staff_all" on public.crm_activities;
 create policy "crm_activities_staff_all"
   on public.crm_activities for all
   to authenticated
@@ -62,6 +64,7 @@ create policy "crm_activities_staff_all"
   with check (public.is_crm_staff());
 
 drop policy if exists "crm_lead_messages_auth_all" on public.crm_lead_messages;
+drop policy if exists "crm_lead_messages_staff_all" on public.crm_lead_messages;
 create policy "crm_lead_messages_staff_all"
   on public.crm_lead_messages for all
   to authenticated
@@ -69,6 +72,7 @@ create policy "crm_lead_messages_staff_all"
   with check (public.is_crm_staff());
 
 drop policy if exists "crm_projects_auth_all" on public.crm_projects;
+drop policy if exists "crm_projects_staff_all" on public.crm_projects;
 create policy "crm_projects_staff_all"
   on public.crm_projects for all
   to authenticated
@@ -80,6 +84,7 @@ do $$
 begin
   if to_regclass('public.crm_research_notes') is not null then
     execute 'drop policy if exists crm_research_notes_authenticated_all on public.crm_research_notes';
+    execute 'drop policy if exists crm_research_notes_staff_all on public.crm_research_notes';
     execute $p$
       create policy crm_research_notes_staff_all
         on public.crm_research_notes for all
@@ -91,6 +96,7 @@ begin
 
   if to_regclass('public.crm_useful_links') is not null then
     execute 'drop policy if exists crm_useful_links_authenticated_all on public.crm_useful_links';
+    execute 'drop policy if exists crm_useful_links_staff_all on public.crm_useful_links';
     execute $p$
       create policy crm_useful_links_staff_all
         on public.crm_useful_links for all
@@ -110,6 +116,10 @@ begin
     execute 'drop policy if exists "crm_recordings_insert_own" on public.crm_recordings';
     execute 'drop policy if exists "crm_recordings_update_own" on public.crm_recordings';
     execute 'drop policy if exists "crm_recordings_delete_own" on public.crm_recordings';
+    execute 'drop policy if exists "crm_recordings_staff_select_own" on public.crm_recordings';
+    execute 'drop policy if exists "crm_recordings_staff_insert_own" on public.crm_recordings';
+    execute 'drop policy if exists "crm_recordings_staff_update_own" on public.crm_recordings';
+    execute 'drop policy if exists "crm_recordings_staff_delete_own" on public.crm_recordings';
 
     execute $p$
       create policy "crm_recordings_staff_select_own"
@@ -144,6 +154,8 @@ $$;
 drop policy if exists "crm_staff_profiles_select_auth" on public.crm_staff_profiles;
 drop policy if exists "crm_staff_profiles_insert_own" on public.crm_staff_profiles;
 drop policy if exists "crm_staff_profiles_update_own" on public.crm_staff_profiles;
+drop policy if exists "crm_staff_profiles_staff_select" on public.crm_staff_profiles;
+drop policy if exists "crm_staff_profiles_staff_update_own" on public.crm_staff_profiles;
 
 create policy "crm_staff_profiles_staff_select"
   on public.crm_staff_profiles for select
@@ -201,6 +213,7 @@ do $$
 begin
   if to_regclass('public.blog_posts') is not null then
     execute 'drop policy if exists "blog_posts_auth_all" on public.blog_posts';
+    execute 'drop policy if exists "blog_posts_staff_all" on public.blog_posts';
     execute $p$
       create policy "blog_posts_staff_all"
         on public.blog_posts for all
@@ -212,6 +225,7 @@ begin
 
   if to_regclass('public.blog_comments') is not null then
     execute 'drop policy if exists "blog_comments_auth_all" on public.blog_comments';
+    execute 'drop policy if exists "blog_comments_staff_all" on public.blog_comments';
     execute $p$
       create policy "blog_comments_staff_all"
         on public.blog_comments for all
@@ -223,6 +237,7 @@ begin
 
   if to_regclass('public.blog_audience') is not null then
     execute 'drop policy if exists "blog_audience_auth_all" on public.blog_audience';
+    execute 'drop policy if exists "blog_audience_staff_all" on public.blog_audience';
     execute $p$
       create policy "blog_audience_staff_all"
         on public.blog_audience for all
@@ -234,6 +249,7 @@ begin
 
   if to_regclass('public.blog_post_translations') is not null then
     execute 'drop policy if exists "blog_translations_auth_all" on public.blog_post_translations';
+    execute 'drop policy if exists "blog_translations_staff_all" on public.blog_post_translations';
     execute $p$
       create policy "blog_translations_staff_all"
         on public.blog_post_translations for all
@@ -252,6 +268,7 @@ do $$
 begin
   if to_regclass('public.site_analytics_events') is not null then
     execute 'drop policy if exists "site_analytics_auth_select" on public.site_analytics_events';
+    execute 'drop policy if exists "site_analytics_staff_select" on public.site_analytics_events';
     execute $p$
       create policy "site_analytics_staff_select"
         on public.site_analytics_events for select

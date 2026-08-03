@@ -14,9 +14,17 @@ Production stays on the live `basic-user-iom` (clients) project. Do **not** copy
    - `anon` `public` key → `VITE_SUPABASE_ANON_KEY`
    - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY` (**Preview only**)
 
-## 2) Apply SQL (SQL Editor, in order)
+## 2) Apply SQL
 
-Run these files from this repo against the **preview** database:
+Preferred (agent / local, IPv4 pooler for London `eu-west-2`):
+
+```powershell
+$env:PREVIEW_DB_PASSWORD = 'your-db-password'
+# or: $env:PREVIEW_DATABASE_URL = 'postgresql://postgres.ijjnstbwvuwwznfagxut:...@aws-1-eu-west-2.pooler.supabase.com:6543/postgres'
+npm run preview:apply-sql
+```
+
+Or run these files in SQL Editor, in order:
 
 1. Core CRM schema if the project is empty — start from your baseline (`supabase/schema.sql` and any CRM migrations you already use in prod), **or** restore a scrubbed dump. Preview needs the same tables as production CRM.
 2. `security_hardening_rate_limits.sql`
