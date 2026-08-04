@@ -24,13 +24,16 @@ import {
   emptySchedulePickerParts,
   formatInContactZone,
   isScheduledSendArmed,
+  isScheduledSendExhausted,
   joinSchedulePickerParts,
   leadContactPlaceLabel,
   leadContactTimeZone,
   normalizeScheduledSend,
+  retryScheduledSend,
   sanitizeSchedulePart,
   scheduleIsoToPickerValue,
   schedulePickerValueToIso,
+  SCHEDULED_SEND_MAX_ATTEMPTS,
   splitSchedulePickerValue,
   type SchedulePickerParts,
 } from './scheduledSend'
@@ -94,6 +97,7 @@ export function InitialOutreachPanel({
   )
   const schedule = normalizeScheduledSend(lead.scheduled_send)
   const scheduledArmed = isScheduledSendArmed(lead)
+  const scheduledExhausted = isScheduledSendExhausted(lead)
   const contactTz = leadContactTimeZone(lead)
   const contactPlace = leadContactPlaceLabel(lead)
   const hasContactTz = isValidIanaTimezone(contactTz)
@@ -325,14 +329,24 @@ export function InitialOutreachPanel({
         fromIdentity,
       })
 
-      await persistOutboundMessage({
-        leadId: lead.id,
-        subject: subj,
-        body: text,
-        bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
-        sendResult: result,
-        alreadyStored: !!result.storedMessageId,
-      })
+      let threadLogged = !!result.storedMessageId
+      try {
+        const stored = await persistOutboundMessage({
+          leadId: lead.id,
+          subject: subj,
+          body: text,
+          bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
+          sendResult: result,
+          alreadyStored: !!result.storedMessageId,
+        })
+        if (stored) threadLogged = true
+      } catch {
+        threadLogged = !!result.storedMessageId
+      }
+
+      if (!threadLogged && !demoMode) {
+        setError(t('outreach.persistWarning'))
+      }
 
       const stamp = new Date().toISOString()
       if (mode === 'resend') {
@@ -497,6 +511,51 @@ export function InitialOutreachPanel({
       setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleRetrySchedule = async () => {
+    if (!schedule) return
+    if (!confirm(t('outreach.scheduleRetryConfirm'))) return
+    setError('')
+    setPingNote('')
+    setBusy(true)
+    try {
+      const next = retryScheduledSend(schedule)
+      const updated = await updateLead(lead.id, { scheduled_send: next })
+      onChanged(updated)
+      setPingBusy(true)
+      const ping = await enqueuePingScheduledSends()
+      if (ping.ok) {
+        if (ping.demo) {
+          setPingNote(t('outreach.pingDemoOk'))
+        } else if ((ping.sent || 0) > 0 || (ping.failed || 0) > 0) {
+          setPingNote(
+            t('outreach.pingOkSent', {
+              sent: String(ping.sent || 0),
+              failed: String(ping.failed || 0),
+              due: String(ping.due || 0),
+            }),
+          )
+        } else {
+          setPingNote(
+            t('outreach.scheduleRetryOk', {
+              checked: String(ping.checked || 0),
+            }),
+          )
+        }
+      } else {
+        setPingNote(
+          t('outreach.pingFailedOnly', {
+            error: ping.error || '—',
+          }),
+        )
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+      setPingBusy(false)
     }
   }
 
@@ -745,17 +804,34 @@ export function InitialOutreachPanel({
 
                   {scheduledArmed && schedule ? (
                     <div className="crm-outreach-schedule-armed" role="status">
-                      <p>
-                        {t('outreach.scheduleArmed', {
-                          when: formatContactWhen(schedule.at),
-                          email: schedule.to,
-                          tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
-                        })}
-                      </p>
-                      {hasContactTz && (
+                      {scheduledExhausted ? (
+                        <p className="crm-outreach-schedule-exhausted">
+                          {t('outreach.scheduleExhausted', {
+                            attempts: String(SCHEDULED_SEND_MAX_ATTEMPTS),
+                          })}
+                        </p>
+                      ) : (
+                        <p>
+                          {t('outreach.scheduleArmed', {
+                            when: formatContactWhen(schedule.at),
+                            email: schedule.to,
+                            tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
+                          })}
+                        </p>
+                      )}
+                      {hasContactTz && !scheduledExhausted && (
                         <p className="crm-muted crm-outreach-schedule-yours">
                           {t('outreach.scheduleYours', {
                             when: formatWhen(schedule.at),
+                          })}
+                        </p>
+                      )}
+                      {scheduledExhausted && (
+                        <p className="crm-muted crm-outreach-schedule-yours">
+                          {t('outreach.scheduleArmed', {
+                            when: formatContactWhen(schedule.at),
+                            email: schedule.to,
+                            tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
                           })}
                         </p>
                       )}
@@ -979,14 +1055,26 @@ export function InitialOutreachPanel({
                     )}
                     {canSendDraft &&
                       (scheduledArmed ? (
-                        <button
-                          type="button"
-                          className="btn btn-ghost"
-                          disabled={busy}
-                          onClick={() => void handleCancelSchedule()}
-                        >
-                          {t('outreach.scheduleCancel')}
-                        </button>
+                        <>
+                          {scheduledExhausted && (
+                            <button
+                              type="button"
+                              className="btn btn-primary"
+                              disabled={busy || pingBusy}
+                              onClick={() => void handleRetrySchedule()}
+                            >
+                              {t('outreach.scheduleRetry')}
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            disabled={busy}
+                            onClick={() => void handleCancelSchedule()}
+                          >
+                            {t('outreach.scheduleCancel')}
+                          </button>
+                        </>
                       ) : (
                         <button
                           type="button"

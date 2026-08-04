@@ -138,6 +138,8 @@ export default async function handler(req, res) {
 
     const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
     let storedMessageId = null
+    /** @type {string | null} */
+    let persistWarning = null
 
     if (persistMessage && leadId && supabaseUrl && anonKey) {
       try {
@@ -166,11 +168,15 @@ export default async function handler(req, res) {
           },
         })
         storedMessageId = row?.id || null
+        if (!storedMessageId) {
+          persistWarning = 'Email sent, but CRM thread logging returned no row id'
+        }
       } catch (persistErr) {
-        console.error(
-          '[crm-send-email] persist message failed',
-          persistErr instanceof Error ? persistErr.message : persistErr,
-        )
+        persistWarning =
+          persistErr instanceof Error
+            ? persistErr.message.slice(0, 240)
+            : 'CRM thread logging failed'
+        console.error('[crm-send-email] persist message failed', persistWarning)
       }
     }
 
@@ -178,6 +184,7 @@ export default async function handler(req, res) {
       ok: true,
       messageId,
       storedMessageId,
+      persistWarning,
       from: identity.email,
       fromIdentity: identity.id,
       to,

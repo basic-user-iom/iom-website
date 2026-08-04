@@ -15,12 +15,16 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
  * @param {string} opts.serviceKey
  * @param {object} opts.message
  * @param {string} [opts.via]
+ * @param {string} [opts.svixId]
+ * @param {string} [opts.resendEmailId]
  */
 export async function ingestInboundEmail({
   supabaseUrl,
   serviceKey,
   message,
   via = 'crm-inbound-email',
+  svixId = null,
+  resendEmailId = null,
 }) {
   const from = extractEmail(message.from)
   const to =
@@ -49,12 +53,31 @@ export async function ingestInboundEmail({
       ? message.headers
       : {}
   const occurredAt = parseDate(message.date) || new Date().toISOString()
+  const deliveryId = String(svixId || '').trim() || null
+  const resendId = String(resendEmailId || '').trim() || null
 
   if (!from || !EMAIL_RE.test(from)) {
     return { status: 400, body: { error: 'Invalid from address' } }
   }
   if (!textBody && !htmlBody) {
     return { status: 400, body: { error: 'Body text or html is required' } }
+  }
+
+  if (deliveryId) {
+    const bySvix = await findBySvixId(supabaseUrl, serviceKey, deliveryId)
+    if (bySvix) {
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          duplicate: true,
+          id: bySvix.id,
+          leadId: bySvix.lead_id || null,
+          unmatchedId: bySvix.unmatched_id || null,
+          via: 'svix_id',
+        },
+      }
+    }
   }
 
   if (messageId) {
@@ -88,6 +111,8 @@ export async function ingestInboundEmail({
       .slice(0, 64) || null
 
   let leadId = explicitLead && isUuid(explicitLead) ? explicitLead : null
+  /** @type {string[]} */
+  let candidateLeadIds = []
 
   if (!leadId && (inReplyTo || references)) {
     leadId = await matchLeadByThread(
@@ -99,15 +124,77 @@ export async function ingestInboundEmail({
   }
 
   if (!leadId) {
-    leadId = await matchLeadBySender(supabaseUrl, serviceKey, from)
+    const match = await matchLeadBySender(supabaseUrl, serviceKey, from)
+    if (match.status === 'unique') {
+      leadId = match.leadId
+    } else if (match.status === 'ambiguous') {
+      candidateLeadIds = match.leadIds
+      const queued = await queueUnmatched(supabaseUrl, serviceKey, {
+        from,
+        to,
+        subject,
+        textBody,
+        htmlBody,
+        messageId,
+        inReplyTo,
+        references,
+        occurredAt,
+        failureCode: 'ambiguous_match',
+        resendId,
+        deliveryId,
+        candidateLeadIds,
+        headers,
+        via,
+      })
+      console.info('[crm-inbound-ingest] ambiguous sender queued', {
+        from,
+        candidates: candidateLeadIds.length,
+        unmatchedId: queued?.id || null,
+        svixId: deliveryId,
+      })
+      return {
+        status: 200,
+        body: {
+          ok: true,
+          queued: true,
+          code: 'ambiguous_match',
+          unmatchedId: queued?.id || null,
+          candidateLeadIds,
+        },
+      }
+    }
   }
 
   if (!leadId) {
+    const queued = await queueUnmatched(supabaseUrl, serviceKey, {
+      from,
+      to,
+      subject,
+      textBody,
+      htmlBody,
+      messageId,
+      inReplyTo,
+      references,
+      occurredAt,
+      failureCode: 'lead_not_found',
+      resendId,
+      deliveryId,
+      candidateLeadIds: [],
+      headers,
+      via,
+    })
+    console.info('[crm-inbound-ingest] unmatched queued', {
+      from,
+      unmatchedId: queued?.id || null,
+      svixId: deliveryId,
+    })
     return {
-      status: 404,
+      status: 200,
       body: {
-        error: 'No matching lead',
+        ok: true,
+        queued: true,
         code: 'lead_not_found',
+        unmatchedId: queued?.id || null,
       },
     }
   }
@@ -140,6 +227,8 @@ export async function ingestInboundEmail({
       raw_headers: {
         ...headers,
         inboundVia: via,
+        ...(deliveryId ? { svixId: deliveryId } : {}),
+        ...(resendId ? { resendEmailId: resendId } : {}),
       },
     },
   })
@@ -150,6 +239,19 @@ export async function ingestInboundEmail({
     `crm_leads?id=eq.${encodeURIComponent(leadId)}`,
     { updated_at: new Date().toISOString() },
   )
+
+  await insertInboundActivity(supabaseUrl, serviceKey, {
+    lead_id: leadId,
+    subject: subject || '(no subject)',
+    body: `Client reply received from ${from}${to ? ` → ${to}` : ''}.`,
+    occurred_at: occurredAt,
+  })
+
+  console.info('[crm-inbound-ingest] matched', {
+    leadId,
+    messageId: row?.id || null,
+    svixId: deliveryId,
+  })
 
   return {
     status: 200,
@@ -205,29 +307,153 @@ async function matchLeadByThread(supabaseUrl, key, inReplyTo, references) {
   return null
 }
 
+/**
+ * @returns {Promise<
+ *   | { status: 'unique', leadId: string }
+ *   | { status: 'ambiguous', leadIds: string[] }
+ *   | { status: 'none' }
+ * >}
+ */
 async function matchLeadBySender(supabaseUrl, key, from) {
   const email = from.toLowerCase()
-  const byPrimary = await sbGet(
-    supabaseUrl,
-    key,
-    `crm_leads?email=ilike.${encodeURIComponent(email)}&select=id&order=updated_at.desc&limit=1`,
-  )
-  if (Array.isArray(byPrimary) && byPrimary[0]?.id) return byPrimary[0].id
-
-  const recent = await sbGet(
-    supabaseUrl,
-    key,
-    `crm_leads?select=id,email,emails&order=updated_at.desc&limit=500`,
-  )
-  if (!Array.isArray(recent)) return null
-  for (const lead of recent) {
-    if (String(lead.email || '').trim().toLowerCase() === email) return lead.id
-    const extras = Array.isArray(lead.emails) ? lead.emails : []
-    for (const row of extras) {
-      if (String(row?.email || '').trim().toLowerCase() === email) return lead.id
+  try {
+    const rows = await sbRpc(supabaseUrl, key, 'crm_find_leads_by_email', {
+      p_email: email,
+    })
+    const ids = Array.isArray(rows)
+      ? [
+          ...new Set(
+            rows
+              .map((r) => (r && typeof r === 'object' ? r.id : r))
+              .filter((id) => typeof id === 'string' && isUuid(id)),
+          ),
+        ]
+      : []
+    if (ids.length === 1) return { status: 'unique', leadId: ids[0] }
+    if (ids.length > 1) return { status: 'ambiguous', leadIds: ids }
+    return { status: 'none' }
+  } catch (err) {
+    // Migration not applied yet — fall back to primary email only.
+    console.warn(
+      '[crm-inbound-ingest] crm_find_leads_by_email unavailable, primary-only fallback',
+      err instanceof Error ? err.message : err,
+    )
+    const byPrimary = await sbGet(
+      supabaseUrl,
+      key,
+      `crm_leads?email=ilike.${encodeURIComponent(email)}&select=id&order=updated_at.desc&limit=2`,
+    )
+    if (!Array.isArray(byPrimary) || byPrimary.length === 0) {
+      return { status: 'none' }
     }
+    if (byPrimary.length > 1) {
+      return {
+        status: 'ambiguous',
+        leadIds: byPrimary.map((r) => r.id).filter(Boolean),
+      }
+    }
+    return { status: 'unique', leadId: byPrimary[0].id }
+  }
+}
+
+async function findBySvixId(supabaseUrl, key, svixId) {
+  const encoded = encodeURIComponent(svixId)
+  try {
+    const messages = await sbGet(
+      supabaseUrl,
+      key,
+      `crm_lead_messages?raw_headers->>svixId=eq.${encoded}&select=id,lead_id&limit=1`,
+    )
+    if (Array.isArray(messages) && messages[0]?.id) {
+      return { id: messages[0].id, lead_id: messages[0].lead_id }
+    }
+  } catch {
+    /* column filter may fail on older schemas — ignore */
+  }
+
+  try {
+    const unmatched = await sbGet(
+      supabaseUrl,
+      key,
+      `crm_inbound_unmatched?svix_id=eq.${encoded}&select=id&limit=1`,
+    )
+    if (Array.isArray(unmatched) && unmatched[0]?.id) {
+      return { id: unmatched[0].id, unmatched_id: unmatched[0].id }
+    }
+  } catch {
+    /* table may not exist yet */
   }
   return null
+}
+
+async function queueUnmatched(supabaseUrl, key, opts) {
+  const plain =
+    opts.textBody ||
+    String(opts.htmlBody || '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 50_000)
+
+  const payload = {
+    from_email: opts.from,
+    to_email: opts.to,
+    subject: opts.subject || '(no subject)',
+    body_text: plain,
+    body_html: opts.htmlBody,
+    message_id: opts.messageId,
+    in_reply_to: opts.inReplyTo,
+    references_header: opts.references || null,
+    occurred_at: opts.occurredAt,
+    failure_code: opts.failureCode,
+    resend_email_id: opts.resendId,
+    svix_id: opts.deliveryId,
+    candidate_lead_ids: opts.candidateLeadIds || [],
+    raw_headers: {
+      ...opts.headers,
+      inboundVia: opts.via,
+      ...(opts.deliveryId ? { svixId: opts.deliveryId } : {}),
+      ...(opts.resendId ? { resendEmailId: opts.resendId } : {}),
+    },
+  }
+
+  try {
+    const row = await sbPost(supabaseUrl, key, 'crm_inbound_unmatched', payload)
+    return Array.isArray(row) ? row[0] : row
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    // Duplicate svix/message_id — treat as already queued.
+    if (/duplicate|unique|23505/i.test(msg) && opts.deliveryId) {
+      const existing = await sbGet(
+        supabaseUrl,
+        key,
+        `crm_inbound_unmatched?svix_id=eq.${encodeURIComponent(opts.deliveryId)}&select=id&limit=1`,
+      )
+      if (Array.isArray(existing) && existing[0]) return existing[0]
+    }
+    console.error('[crm-inbound-ingest] queue unmatched failed', msg)
+    // Still return 200 upstream — avoid endless Resend retries when table missing.
+    return null
+  }
+}
+
+async function insertInboundActivity(supabaseUrl, key, row) {
+  try {
+    await sbPost(supabaseUrl, key, 'crm_activities', {
+      lead_id: row.lead_id,
+      type: 'email',
+      subject: String(row.subject || 'Client reply').slice(0, 200),
+      body: String(row.body || '').slice(0, 2000),
+      occurred_at: row.occurred_at,
+      owner_id: null,
+    })
+  } catch (err) {
+    console.error(
+      '[crm-inbound-ingest] activity log failed',
+      err instanceof Error ? err.message : err,
+    )
+  }
 }
 
 async function sbGet(supabaseUrl, key, path) {
@@ -247,6 +473,61 @@ async function sbGet(supabaseUrl, key, path) {
   if (!res.ok) {
     const msg = json?.message || text.slice(0, 240)
     throw new Error(msg || `Supabase ${res.status}`)
+  }
+  return json
+}
+
+async function sbPost(supabaseUrl, key, table, body) {
+  const res = await fetch(
+    `${supabaseUrl.replace(/\/$/, '')}/rest/v1/${table}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify(body),
+    },
+  )
+  const text = await res.text()
+  let json = null
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {
+    json = null
+  }
+  if (!res.ok) {
+    const msg = json?.message || text.slice(0, 240)
+    throw new Error(msg || `Supabase ${res.status}`)
+  }
+  return json
+}
+
+async function sbRpc(supabaseUrl, key, fn, args) {
+  const res = await fetch(
+    `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/${fn}`,
+    {
+      method: 'POST',
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${key}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(args),
+    },
+  )
+  const text = await res.text()
+  let json = null
+  try {
+    json = text ? JSON.parse(text) : null
+  } catch {
+    json = null
+  }
+  if (!res.ok) {
+    const msg = json?.message || text.slice(0, 240)
+    throw new Error(msg || `Supabase RPC ${res.status}`)
   }
   return json
 }

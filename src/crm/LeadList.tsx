@@ -6,6 +6,7 @@ import { initialEmailPending, initialEmailSent, isContactPriority } from './outr
 import {
   formatInContactZone,
   isScheduledSendArmed,
+  isScheduledSendExhausted,
   leadContactTimeZone,
   normalizeScheduledSend,
 } from './scheduledSend'
@@ -110,10 +111,19 @@ export function LeadList({
                       ) : null}
                       {isScheduledSendArmed(lead) && (
                         <span
-                          className="crm-schedule-badge"
+                          className={
+                            isScheduledSendExhausted(lead)
+                              ? 'crm-schedule-badge crm-schedule-badge--stopped'
+                              : 'crm-schedule-badge'
+                          }
                           title={(() => {
                             const s = normalizeScheduledSend(lead.scheduled_send)
                             if (!s) return t('list.scheduled')
+                            if (isScheduledSendExhausted(lead)) {
+                              return s.error
+                                ? t('outreach.scheduleError', { error: s.error })
+                                : t('list.scheduleStopped')
+                            }
                             const tz = leadContactTimeZone(lead)
                             const when = isValidIanaTimezone(tz)
                               ? formatInContactZone(s.at, tz, locale)
@@ -127,7 +137,9 @@ export function LeadList({
                             })
                           })()}
                         >
-                          {t('list.scheduled')}
+                          {isScheduledSendExhausted(lead)
+                            ? t('list.scheduleStopped')
+                            : t('list.scheduled')}
                         </span>
                       )}
                       {isContactPriority(lead) && (

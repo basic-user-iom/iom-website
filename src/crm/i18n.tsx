@@ -209,6 +209,21 @@ const en: Dict = {
   'list.addedBy': 'Added by',
   'list.priority': 'Priority',
   'list.scheduled': 'Scheduled',
+  'list.scheduleStopped': 'Schedule stopped',
+  'unmatched.title': 'Unmatched inbound email',
+  'unmatched.count': '{count} waiting',
+  'unmatched.loading': 'Checking…',
+  'unmatched.refresh': 'Refresh',
+  'unmatched.loadFailed': 'Could not load unmatched inbound mail.',
+  'unmatched.pickLead': 'Attach to lead…',
+  'unmatched.attach': 'Attach',
+  'unmatched.attachFailed': 'Could not attach this message.',
+  'unmatched.dismiss': 'Dismiss',
+  'unmatched.dismissConfirm': 'Dismiss this unmatched message without attaching it to a lead?',
+  'unmatched.dismissFailed': 'Could not dismiss this message.',
+  'unmatched.noSubject': '(no subject)',
+  'outreach.persistWarning':
+    'Email sent, but CRM thread logging failed — replies may not auto-match until the thread is repaired.',
   'list.valueFromHeart': 'From the heart',
   'list.valueNoCharge': 'No charge',
   'list.unknownOwner': 'Unknown',
@@ -1273,8 +1288,15 @@ const en: Dict = {
   'outreach.schedulePreview':
     'Will send at {when} for the contact ({tz}). Your clock: {whenYours}.',
   'outreach.scheduleError': 'Last error: {error}',
+  'outreach.scheduleExhausted':
+    'Stopped after {attempts} failures — the worker will not retry until you reset.',
+  'outreach.scheduleRetry': 'Retry schedule',
+  'outreach.scheduleRetryConfirm':
+    'Reset failure count and let the worker try this schedule again?',
+  'outreach.scheduleRetryOk':
+    'Schedule reset and server pinged ({checked} armed).',
   'outreach.scheduleConfirm':
-    'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. The draft sends automatically; you get an email if it fails.',
+    'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, optional free ~5‑min external cron, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
   'outreach.scheduleCancelConfirm': 'Cancel the scheduled send for this lead?',
   'outreach.scheduleInvalid':
     'Enter a valid day, month, year, and 24-hour time in the contact’s timezone (watch for DST gaps).',
@@ -1283,7 +1305,7 @@ const en: Dict = {
   'outreach.scheduleNeedTimezone':
     'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
   'outreach.scheduleHint':
-    'Times are the contact’s local timezone (day/month/year, 24-hour). Emails do not fire at the exact minute by themselves — use Ping now to process whatever is already due (or wait for the daily 08:00 UTC cron backup). Saving a schedule also pings the server (queued — one batch after another, never cancels others). Staff get an email if delivery fails.',
+    'Times are the contact’s local timezone (day/month/year, 24-hour). Sends run when the worker next ticks — Ping now, an optional free external cron (~every 5 min), or the daily 08:00 UTC Vercel backup. Saving a schedule also pings the server (queued — one batch after another, never cancels others). After 5 failures the schedule stops until you Retry. Staff get an email if delivery fails.',
   'outreach.scheduleDemoHint':
     'Picker uses the contact’s timezone (day/month/year, 24-hour). Schedule save and Ping now process due demo schedules on refresh — no real email is sent.',
   'outreach.ping': 'Ping now',
@@ -1479,15 +1501,15 @@ const en: Dict = {
   'guide.outreach2':
     'Email conversation (below): full Sent / Received timeline. Use Compose reply for follow-ups — preview shows only that reply, never the initial draft by mistake',
   'guide.outreach3':
-    'Client replies: Proton keeps the real Inbox. A keep-copy forward to Resend mirrors them into CRM automatically. Until then (or for one-offs), use Log client reply',
+    'Client replies: Proton keeps the real Inbox. A keep-copy forward to Resend mirrors them into CRM automatically. Unmatched or ambiguous senders land in Unmatched inbound email on the Leads view for staff attach. Until then (or for one-offs), use Log client reply',
   'guide.outreach4':
-    'Matching: CRM attaches inbound mail by reply thread (In-Reply-To) or by the sender matching the lead’s email addresses',
+    'Matching: CRM attaches inbound mail by reply thread (In-Reply-To), then by sender matching primary or department emails (database lookup — not limited to recent leads). Ambiguous addresses are queued, not auto-picked',
   'guide.outreach5':
     'List badges show Email pending / Email sent / Scheduled / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
   'guide.outreach6':
-    'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — it does not fire at that exact minute by itself; use Ping now (daily 08:00 UTC cron is a backup). Proton sends and emails you if it fails. Mistaken Sent? Use Mark as not sent on the outreach panel',
+    'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — it sends on the next worker run (Ping now, optional free ~5‑min external cron, or daily 08:00 UTC backup), not at that exact minute. Proton sends and emails you if it fails. After 5 failures use Retry schedule. Mistaken Sent? Use Mark as not sent on the outreach panel',
   'guide.outreach7':
-    'Scheduled sends use the contact’s timezone. Saving a schedule (or Ping now) queues a server check — several leads in a row never cancel each other; each due email is sent separately. Draft at fire time is what sends. Max 5 retries',
+    'Scheduled sends use the contact’s timezone. Saving a schedule (or Ping now) queues a server check — several leads in a row never cancel each other; each due email is sent separately. Draft at fire time is what sends. Max 5 retries, then Retry resets the counter',
   'guide.outreachDemoText':
     'In the public demo, sending is simulated (no Proton / Resend). Explore the fictional Email conversation and try Compose reply or Log client reply safely.',
   'guide.outreachDemo1':
@@ -1873,6 +1895,21 @@ const sr: Dict = {
   'list.addedBy': 'Dodao/la',
   'list.priority': 'Prioritet',
   'list.scheduled': 'Zakazano',
+  'list.scheduleStopped': 'Raspored zaustavljen',
+  'unmatched.title': 'Nepovezani dolazni email',
+  'unmatched.count': '{count} na čekanju',
+  'unmatched.loading': 'Provera…',
+  'unmatched.refresh': 'Osveži',
+  'unmatched.loadFailed': 'Učitavanje nepovezanih poruka nije uspelo.',
+  'unmatched.pickLead': 'Poveži sa leadom…',
+  'unmatched.attach': 'Poveži',
+  'unmatched.attachFailed': 'Povezivanje poruke nije uspelo.',
+  'unmatched.dismiss': 'Odbaci',
+  'unmatched.dismissConfirm': 'Odbaciti ovu nepovezanu poruku bez povezivanja sa leadom?',
+  'unmatched.dismissFailed': 'Odbacivanje poruke nije uspelo.',
+  'unmatched.noSubject': '(bez naslova)',
+  'outreach.persistWarning':
+    'Email je poslat, ali upis u CRM nit nije uspeo — odgovori možda neće automatski da se povežu dok se nit ne popravi.',
   'list.valueFromHeart': 'Od srca',
   'list.valueNoCharge': 'Bez naplate',
   'list.unknownOwner': 'Nepoznato',
@@ -2944,8 +2981,15 @@ const sr: Dict = {
   'outreach.schedulePreview':
     'Šalje se u {when} po vremenu kontakta ({tz}). Vaš sat: {whenYours}.',
   'outreach.scheduleError': 'Poslednja greška: {error}',
+  'outreach.scheduleExhausted':
+    'Zaustavljeno posle {attempts} neuspeha — worker neće pokušati dok ne resetujete.',
+  'outreach.scheduleRetry': 'Pokušaj ponovo',
+  'outreach.scheduleRetryConfirm':
+    'Resetovati broj neuspeha i dozvoliti workeru da ponovo pokuša ovaj raspored?',
+  'outreach.scheduleRetryOk':
+    'Raspored resetovan i server pingovan ({checked} na čekanju).',
   'outreach.scheduleConfirm':
-    'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Draft se šalje automatski; dobijate email ako ne uspe.',
+    'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC) — ne tačno u minuti. Dobijate email ako isporuka ne uspe.',
   'outreach.scheduleCancelConfirm': 'Otkazati zakazano slanje za ovaj lead?',
   'outreach.scheduleInvalid':
     'Unesite važeći dan, mesec, godinu i 24-časovno vreme u vremenskoj zoni kontakta (pazite na DST praznine).',
@@ -2954,7 +2998,7 @@ const sr: Dict = {
   'outreach.scheduleNeedTimezone':
     'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
   'outreach.scheduleHint':
-    'Vremena su lokalna zona kontakta (dan/mesec/godina, 24-časovno). Emailovi se ne šalju sami tačno u minuti — koristite Ping sada za već dospela slanja (ili sačekajte dnevni cron u 08:00 UTC kao rezervu). Čuvanje rasporeda takođe pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Tim dobija email ako ne uspe.',
+    'Vremena su lokalna zona kontakta (dan/mesec/godina, 24-časovno). Slanje ide na sledeći worker tick — Ping sada, opcionalni besplatni spoljni cron (~svakih 5 min), ili dnevni Vercel backup u 08:00 UTC. Čuvanje rasporeda takođe pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Posle 5 neuspeha raspored staje dok ne kliknete Pokušaj ponovo. Tim dobija email ako ne uspe.',
   'outreach.scheduleDemoHint':
     'Birač koristi vremensku zonu kontakta (dan/mesec/godina, 24-časovno). Čuvanje rasporeda i Ping sada obrađuju dospele demo rasporede lokalno — pravi email se ne šalje.',
   'outreach.ping': 'Ping sada',
@@ -3151,15 +3195,15 @@ const sr: Dict = {
   'guide.outreach2':
     'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno. Za follow-up koristite Napiši odgovor — pregled pokazuje samo taj odgovor, nikad greškom inicijalni draft',
   'guide.outreach3':
-    'Odgovori klijenata: Proton čuva pravi Inbox. Keep-copy forward ka Resend ih automatski ogleda u CRM. Do tada (ili jednokratno) koristite Zabeleži odgovor klijenta',
+    'Odgovori klijenata: Proton čuva pravi Inbox. Keep-copy forward ka Resend ih automatski ogleda u CRM. Nepovezani ili dvosmisleni pošiljaoci idu u Nepovezani dolazni email na pregledu Leadova za ručno povezivanje. Do tada (ili jednokratno) koristite Zabeleži odgovor klijenta',
   'guide.outreach4':
-    'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To) ili po tome što se From poklapa sa email adresama leada',
+    'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To), zatim po From adresi (primarni ili odeljenski email — lookup u bazi, bez limita na nedavne leadove). Dvosmislene adrese idu u red, ne biraju se same',
   'guide.outreach5':
     'Kartice pokazuju Email na čekanju / Email poslat / Zakazano / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
   'guide.outreach6':
-    'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — ne okida se samo tačno u toj minuti; koristite Ping sada (dnevni cron u 08:00 UTC je rezervna). Proton šalje i šalje vam email ako ne uspe. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
+    'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC), ne tačno u toj minuti. Proton šalje i šalje vam email ako ne uspe. Posle 5 neuspeha koristite Pokušaj ponovo. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreach7':
-    'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja',
+    'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja, zatim Pokušaj ponovo resetuje brojač',
   'guide.outreachDemoText':
     'U javnom demu je slanje simulirano (nema Proton / Resend). Istražite fiktivnu Email konverzaciju i bezbedno probajte Napiši odgovor ili Zabeleži odgovor klijenta.',
   'guide.outreachDemo1':

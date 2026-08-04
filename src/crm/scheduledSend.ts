@@ -49,8 +49,27 @@ export function normalizeScheduledSend(raw: unknown): ScheduledSend | null {
   }
 }
 
+/** Must match api/_lib/crm-process-scheduled-sends.js MAX_ATTEMPTS. */
+export const SCHEDULED_SEND_MAX_ATTEMPTS = 5
+
 export function isScheduledSendArmed(lead: Lead): boolean {
   return !!normalizeScheduledSend(lead.scheduled_send) && !lead.initial_email_sent_at
+}
+
+/** Armed schedule that the worker will no longer process until retry/reset. */
+export function isScheduledSendExhausted(lead: Lead): boolean {
+  if (lead.initial_email_sent_at) return false
+  const schedule = normalizeScheduledSend(lead.scheduled_send)
+  return !!schedule && schedule.attempts >= SCHEDULED_SEND_MAX_ATTEMPTS
+}
+
+/** Reset attempts so the worker can pick the schedule up again. */
+export function retryScheduledSend(schedule: ScheduledSend): ScheduledSend {
+  return {
+    ...schedule,
+    error: '',
+    attempts: 0,
+  }
 }
 
 export function scheduledSendDue(

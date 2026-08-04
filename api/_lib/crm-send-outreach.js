@@ -82,6 +82,8 @@ export async function sendCrmOutreachEmail(opts) {
 
   const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
   let storedMessageId = null
+  /** @type {string | null} */
+  let persistWarning = null
 
   if (persistMessage && leadId && opts.supabaseUrl) {
     const key = opts.serviceKey || opts.anonKey
@@ -113,12 +115,18 @@ export async function sendCrmOutreachEmail(opts) {
           },
         })
         storedMessageId = row?.id || null
+        if (!storedMessageId) {
+          persistWarning = 'Email sent, but CRM thread logging returned no row id'
+        }
       } catch (persistErr) {
-        console.error(
-          '[crm-send-outreach] persist failed',
-          persistErr instanceof Error ? persistErr.message : persistErr,
-        )
+        persistWarning =
+          persistErr instanceof Error
+            ? persistErr.message.slice(0, 240)
+            : 'CRM thread logging failed'
+        console.error('[crm-send-outreach] persist failed', persistWarning)
       }
+    } else {
+      persistWarning = 'Email sent, but CRM thread logging is not configured'
     }
   }
 
@@ -126,6 +134,7 @@ export async function sendCrmOutreachEmail(opts) {
     ok: true,
     messageId,
     storedMessageId,
+    persistWarning,
     from: identity.email,
     fromIdentity: identity.id,
     to,

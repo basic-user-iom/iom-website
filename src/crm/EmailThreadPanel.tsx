@@ -103,6 +103,22 @@ export function EmailThreadPanel({
     void refresh()
   }, [lead.id, refreshToken])
 
+  // Soft refresh so webhook-ingested replies appear without a hard reload.
+  useEffect(() => {
+    if (demoMode || !useLiveCrmBackend()) return
+    const id = window.setInterval(() => {
+      void listLeadMessages(lead.id)
+        .then((rows) => {
+          setMessages(rows)
+          setSchemaMissing(false)
+        })
+        .catch(() => {
+          /* ignore background poll errors */
+        })
+    }, 45_000)
+    return () => window.clearInterval(id)
+  }, [lead.id, demoMode])
+
   useEffect(() => {
     const list = collectRecipients(lead)
     if (!list.length) {
@@ -220,16 +236,26 @@ export function EmailThreadPanel({
         references: threading.references,
       })
 
-      await persistOutboundMessage({
-        leadId: lead.id,
-        subject: subj,
-        body: text,
-        bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
-        sendResult: result,
-        inReplyTo: threading.inReplyTo,
-        references: threading.references,
-        alreadyStored: !!result.storedMessageId,
-      })
+      let threadLogged = !!result.storedMessageId
+      try {
+        const stored = await persistOutboundMessage({
+          leadId: lead.id,
+          subject: subj,
+          body: text,
+          bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
+          sendResult: result,
+          inReplyTo: threading.inReplyTo,
+          references: threading.references,
+          alreadyStored: !!result.storedMessageId,
+        })
+        if (stored) threadLogged = true
+      } catch {
+        threadLogged = !!result.storedMessageId
+      }
+
+      if (!threadLogged && !demoMode) {
+        setError(t('outreach.persistWarning'))
+      }
 
       const stamp = new Date().toISOString()
       const patch: Partial<LeadInput> = {}

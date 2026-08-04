@@ -701,6 +701,93 @@
   white-space: nowrap;
 }
 
+.crm-schedule-badge--stopped {
+  color: #e8a07c;
+  border-color: color-mix(in srgb, #e8a07c 45%, var(--border));
+  background: color-mix(in srgb, #e8a07c 12%, transparent);
+}
+
+.crm-outreach-schedule-exhausted {
+  margin: 0;
+  color: #e8a07c;
+  font-weight: 600;
+}
+
+.crm-unmatched-panel {
+  margin: 0 0 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid color-mix(in srgb, #e8a07c 35%, var(--border));
+  border-radius: 8px;
+  background: color-mix(in srgb, #e8a07c 6%, transparent);
+}
+
+.crm-unmatched-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.crm-unmatched-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+  font: inherit;
+}
+
+.crm-unmatched-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.crm-unmatched-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: space-between;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--border);
+}
+
+.crm-unmatched-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: min(100%, 16rem);
+  flex: 1 1 16rem;
+}
+
+.crm-unmatched-snippet {
+  margin: 0.25rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted, #9aa3af);
+  white-space: pre-wrap;
+}
+
+.crm-unmatched-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  flex: 1 1 14rem;
+}
+
+.crm-unmatched-actions .crm-input {
+  min-width: min(100%, 12rem);
+  flex: 1 1 10rem;
+}
+
 .crm-outreach-schedule {
   margin: 0.75rem 0 0.25rem;
   display: flex;

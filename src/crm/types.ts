@@ -131,6 +131,28 @@ export type LeadMessageInput = Omit<
   raw_headers?: Record<string, unknown>
 }
 
+/** Inbound email that could not be auto-matched to a lead. */
+export interface InboundUnmatched {
+  id: string
+  from_email: string
+  to_email: string
+  subject: string
+  body_text: string
+  body_html: string | null
+  message_id: string | null
+  in_reply_to: string | null
+  references_header: string | null
+  occurred_at: string
+  failure_code: string
+  resend_email_id: string | null
+  svix_id: string | null
+  candidate_lead_ids: string[]
+  raw_headers: Record<string, unknown>
+  created_at: string
+  resolved_at: string | null
+  resolved_lead_id: string | null
+}
+
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent'
 
 export interface CrmProject {

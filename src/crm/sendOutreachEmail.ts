@@ -23,6 +23,7 @@ export type SendOutreachEmailResult = {
   ok: true
   messageId: string | null
   storedMessageId?: string | null
+  persistWarning?: string | null
   from: string
   fromIdentity?: OutreachFromIdentityId
   to: string

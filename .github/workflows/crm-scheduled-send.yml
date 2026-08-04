@@ -1,0 +1,56 @@
+# Free ~5-minute scheduler for CRM scheduled outreach (no Vercel Pro).
+# Hobby Vercel cron remains daily backup at 08:00 UTC.
+#
+# Required repo secret: CRM_CRON_SECRET (same value as Vercel CRON_SECRET)
+
+name: CRM scheduled send ping
+
+on:
+  schedule:
+    # Every 5 minutes (UTC)
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: crm-scheduled-send-ping
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Process due scheduled CRM sends
+        env:
+          CRM_CRON_SECRET: ${{ secrets.CRM_CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CRM_CRON_SECRET:-}" ]; then
+            echo "Missing GitHub secret CRM_CRON_SECRET (set it to the same value as Vercel CRON_SECRET)."
+            exit 1
+          fi
+          code=$(curl -sS -o /tmp/crm-scheduled-send.json -w "%{http_code}" \
+            -X POST "https://iobjectm.com/api/crm-scheduled-send" \
+            -H "Authorization: Bearer ${CRM_CRON_SECRET}" \
+            -H "Content-Type: application/json" \
+            -d '{}')
+          echo "HTTP ${code}"
+          # Never print secrets; response is counts only.
+          python3 - <<'PY'
+          import json, sys
+          try:
+            with open("/tmp/crm-scheduled-send.json", "r", encoding="utf-8") as f:
+              data = json.load(f)
+          except Exception as e:
+            print("Could not parse response body:", e)
+            sys.exit(1)
+          safe = {
+            k: data.get(k)
+            for k in ("ok", "runId", "checked", "due", "processed", "sent", "failed", "trigger", "at", "code", "error")
+            if k in data
+          }
+          print(json.dumps(safe, indent=2))
+          PY
+          if [ "$code" != "200" ]; then
+            exit 1
+          fi

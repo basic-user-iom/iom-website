@@ -115,6 +115,8 @@ export default async function handler(req, res) {
       supabaseUrl,
       serviceKey,
       via: 'resend',
+      svixId: String(req.headers['svix-id'] || '').trim() || null,
+      resendEmailId: String(emailId),
       message: {
         from,
         to,

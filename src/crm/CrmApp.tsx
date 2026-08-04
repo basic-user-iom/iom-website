@@ -68,6 +68,7 @@ import { LeadList } from './LeadList'
 import { ProjectsView } from './ProjectsView'
 import { ClientAccountsView } from './ClientAccountsView'
 import { ClientPortalView } from './ClientPortalView'
+import { UnmatchedInboundPanel } from './UnmatchedInboundPanel'
 import {
   resolveCrmAccessRole,
   type CrmAccessRole,
@@ -1226,6 +1227,16 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <p className="crm-feedback crm-feedback--error" role="alert">
               {error}
             </p>
+          )}
+
+          {view === 'list' && (
+            <UnmatchedInboundPanel
+              leads={listLeads}
+              onAttached={(leadId) => {
+                setSelectedId(leadId)
+                void refreshLeads()
+              }}
+            />
           )}
 
           {view === 'create' ? (

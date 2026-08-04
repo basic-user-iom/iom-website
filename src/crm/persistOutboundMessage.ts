@@ -18,6 +18,7 @@ export type PersistOutboundInput = {
  * Persist an outbound CRM email into crm_lead_messages.
  * Skips when the send API already wrote the row; otherwise writes from the client
  * (demo/local, or live when API persist failed / table missing on server).
+ * Returns the stored row, or null when skipped / failed.
  */
 export async function persistOutboundMessage(
   input: PersistOutboundInput,
@@ -44,6 +45,6 @@ export async function persistOutboundMessage(
   } catch (err) {
     if (isLeadMessagesSchemaMissing(err)) return null
     console.warn('[crm] persist outbound message failed', err)
-    return null
+    throw err
   }
 }

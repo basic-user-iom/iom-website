@@ -16,6 +16,7 @@ import type {
   ActivityInput,
   ActivityUpdate,
   CrmUser,
+  InboundUnmatched,
   Lead,
   LeadEmail,
   LeadFilters,
@@ -2321,6 +2322,156 @@ export async function createLeadMessage(
     writeLocal(LEADS_KEY, leads)
   }
   return message
+}
+
+/* ── Unmatched inbound queue ──────────────────────────── */
+
+function normalizeInboundUnmatched(row: Record<string, unknown>): InboundUnmatched {
+  const raw = row.raw_headers
+  const candidates = Array.isArray(row.candidate_lead_ids)
+    ? row.candidate_lead_ids.map((id) => String(id)).filter(Boolean)
+    : []
+  return {
+    id: String(row.id ?? ''),
+    from_email: String(row.from_email ?? ''),
+    to_email: String(row.to_email ?? ''),
+    subject: String(row.subject ?? ''),
+    body_text: String(row.body_text ?? ''),
+    body_html:
+      row.body_html == null || row.body_html === ''
+        ? null
+        : String(row.body_html),
+    message_id:
+      row.message_id == null || row.message_id === ''
+        ? null
+        : String(row.message_id),
+    in_reply_to:
+      row.in_reply_to == null || row.in_reply_to === ''
+        ? null
+        : String(row.in_reply_to),
+    references_header:
+      row.references_header == null || row.references_header === ''
+        ? null
+        : String(row.references_header),
+    occurred_at: String(row.occurred_at ?? nowIso()),
+    failure_code: String(row.failure_code ?? 'lead_not_found'),
+    resend_email_id:
+      row.resend_email_id == null || row.resend_email_id === ''
+        ? null
+        : String(row.resend_email_id),
+    svix_id:
+      row.svix_id == null || row.svix_id === '' ? null : String(row.svix_id),
+    candidate_lead_ids: candidates,
+    raw_headers:
+      raw && typeof raw === 'object' && !Array.isArray(raw)
+        ? (raw as Record<string, unknown>)
+        : {},
+    created_at: String(row.created_at ?? nowIso()),
+    resolved_at:
+      row.resolved_at == null || row.resolved_at === ''
+        ? null
+        : String(row.resolved_at),
+    resolved_lead_id:
+      row.resolved_lead_id == null || row.resolved_lead_id === ''
+        ? null
+        : String(row.resolved_lead_id),
+  }
+}
+
+export function isInboundUnmatchedSchemaMissing(err: unknown): boolean {
+  const m = err instanceof Error ? err.message : String(err ?? '')
+  return (
+    m.includes('crm_inbound_unmatched') ||
+    m.includes('schema cache') ||
+    (m.includes('relation') && m.includes('does not exist'))
+  )
+}
+
+export async function listInboundUnmatched(limit = 50): Promise<InboundUnmatched[]> {
+  if (!useLiveCrmBackend()) return []
+  const supabase = getSupabase()!
+  const { data, error } = await supabase
+    .from('crm_inbound_unmatched')
+    .select('*')
+    .is('resolved_at', null)
+    .order('created_at', { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 100)))
+  if (error) {
+    if (isInboundUnmatchedSchemaMissing(error)) return []
+    throw new Error(error.message)
+  }
+  return (data ?? []).map((row) =>
+    normalizeInboundUnmatched(row as Record<string, unknown>),
+  )
+}
+
+/** Attach an unmatched inbound message to a lead and mark the queue row resolved. */
+export async function attachInboundUnmatched(
+  unmatchedId: string,
+  leadId: string,
+): Promise<{ message: LeadMessage }> {
+  if (!useLiveCrmBackend()) {
+    throw new Error('Live CRM backend is required to attach unmatched mail.')
+  }
+  const supabase = getSupabase()!
+  const { data: row, error: loadErr } = await supabase
+    .from('crm_inbound_unmatched')
+    .select('*')
+    .eq('id', unmatchedId)
+    .is('resolved_at', null)
+    .maybeSingle()
+  if (loadErr) throw new Error(loadErr.message)
+  if (!row) throw new Error('Unmatched message not found or already resolved.')
+
+  const item = normalizeInboundUnmatched(row as Record<string, unknown>)
+  const message = await createLeadMessage({
+    lead_id: leadId,
+    direction: 'inbound',
+    from_email: item.from_email,
+    to_email: item.to_email,
+    subject: item.subject,
+    body_text: item.body_text,
+    body_html: item.body_html,
+    message_id: item.message_id,
+    in_reply_to: item.in_reply_to,
+    references_header: item.references_header,
+    occurred_at: item.occurred_at,
+    raw_headers: {
+      ...item.raw_headers,
+      attachedFromUnmatched: unmatchedId,
+    },
+  })
+
+  await createActivity({
+    lead_id: leadId,
+    type: 'email',
+    subject: item.subject.slice(0, 200) || 'Client reply',
+    body: `Client reply attached from unmatched queue (${item.from_email}).`,
+    occurred_at: item.occurred_at,
+  })
+
+  const stamp = nowIso()
+  const { error: resolveErr } = await supabase
+    .from('crm_inbound_unmatched')
+    .update({
+      resolved_at: stamp,
+      resolved_lead_id: leadId,
+    })
+    .eq('id', unmatchedId)
+  if (resolveErr) throw new Error(resolveErr.message)
+
+  return { message }
+}
+
+export async function dismissInboundUnmatched(unmatchedId: string): Promise<void> {
+  if (!useLiveCrmBackend()) return
+  const supabase = getSupabase()!
+  const { error } = await supabase
+    .from('crm_inbound_unmatched')
+    .update({ resolved_at: nowIso() })
+    .eq('id', unmatchedId)
+    .is('resolved_at', null)
+  if (error) throw new Error(error.message)
 }
 
 /* ── Activities ───────────────────────────────────────── */

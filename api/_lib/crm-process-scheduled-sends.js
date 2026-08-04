@@ -21,6 +21,7 @@ export async function processDueScheduledSends(opts) {
   const { supabaseUrl, serviceKey } = opts
   const nowIso = new Date().toISOString()
   const now = Date.now()
+  const runId = `sch_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
 
   const url =
     `${supabaseUrl}/rest/v1/crm_leads` +
@@ -29,6 +30,7 @@ export async function processDueScheduledSends(opts) {
     `contact_priority,scheduled_send` +
     `&scheduled_send=not.is.null` +
     `&initial_email_sent_at=is.null` +
+    `&order=scheduled_send->>at.asc` +
     `&limit=100`
 
   const listRes = await fetch(url, {
@@ -57,7 +59,17 @@ export async function processDueScheduledSends(opts) {
       }
       return true
     })
+    .sort(
+      (a, b) =>
+        new Date(a.schedule.at).getTime() - new Date(b.schedule.at).getTime(),
+    )
     .slice(0, MAX_PER_RUN)
+
+  console.info('[crm-process-scheduled-sends] run start', {
+    runId,
+    checked: rows.length,
+    due: due.length,
+  })
 
   const results = []
   for (const { row, schedule } of due) {
@@ -65,6 +77,7 @@ export async function processDueScheduledSends(opts) {
     try {
       const claimed = await claimLead(supabaseUrl, serviceKey, row, schedule)
       if (!claimed) {
+        logLeadResult(runId, row.id, schedule, 'skipped', 'claimed_by_other')
         results.push({ id: row.id, ok: false, skipped: true, reason: 'claimed_by_other' })
         continue
       }
@@ -78,6 +91,7 @@ export async function processDueScheduledSends(opts) {
       if (alreadyOutbound) {
         const stamp = nowIso
         await markLeadSent(supabaseUrl, serviceKey, row, stamp)
+        logLeadResult(runId, row.id, schedule, 'repaired', 'already_outbound')
         results.push({
           id: row.id,
           ok: true,
@@ -95,12 +109,13 @@ export async function processDueScheduledSends(opts) {
 
       if (!subject || !body || !to) {
         const error = 'Missing subject, body, or recipient for scheduled send'
+        const attempts = schedule.attempts + 1
         await patchLeadSchedule(supabaseUrl, serviceKey, row.id, {
           at: schedule.at,
           to: schedule.to,
           from: schedule.from,
           error,
-          attempts: schedule.attempts + 1,
+          attempts,
         })
         await safeNotify({
           toStaff: row.owner_email,
@@ -109,7 +124,8 @@ export async function processDueScheduledSends(opts) {
           error,
           clientTo: to,
         })
-        results.push({ id: row.id, ok: false, error })
+        logLeadResult(runId, row.id, schedule, 'failed', 'missing_fields', attempts)
+        results.push({ id: row.id, ok: false, error, attempts })
         continue
       }
 
@@ -136,8 +152,7 @@ export async function processDueScheduledSends(opts) {
           // Next ping will repair via the outbound-message guard.
           console.error(
             '[crm-process-scheduled-sends] SMTP ok but lead still armed after mark retries',
-            row.id,
-            markErr instanceof Error ? markErr.message : markErr,
+            { runId, leadId: row.id, error: markErr instanceof Error ? markErr.message : markErr },
           )
         }
 
@@ -152,16 +167,30 @@ export async function processDueScheduledSends(opts) {
           })
         }
 
+        logLeadResult(
+          runId,
+          row.id,
+          schedule,
+          marked ? 'sent' : 'sent_mark_pending',
+          marked ? 'ok' : 'mark_pending',
+          schedule.attempts,
+        )
         results.push({
           id: row.id,
           ok: true,
           to,
           messageId: sendResult.messageId,
+          storedMessageId: sendResult.storedMessageId ?? null,
+          persistWarning: sendResult.persistWarning || null,
           ...(marked ? {} : { markPending: true }),
         })
       } catch (err) {
         const detail = err instanceof Error ? err.message.slice(0, 400) : 'Send failed'
-        console.error('[crm-process-scheduled-sends] send failed', row.id, detail)
+        console.error('[crm-process-scheduled-sends] send failed', {
+          runId,
+          leadId: row.id,
+          error: detail,
+        })
         const attempts = schedule.attempts + 1
         await patchLeadSchedule(supabaseUrl, serviceKey, row.id, {
           at: schedule.at,
@@ -180,6 +209,7 @@ export async function processDueScheduledSends(opts) {
               : detail,
           clientTo: to,
         })
+        logLeadResult(runId, row.id, schedule, 'failed', 'send_failed', attempts)
         results.push({
           id: row.id,
           ok: false,
@@ -188,7 +218,11 @@ export async function processDueScheduledSends(opts) {
         })
       }
     } catch (err) {
-      console.error('[crm-process-scheduled-sends] lead failed', row.id, err)
+      console.error('[crm-process-scheduled-sends] lead failed', {
+        runId,
+        leadId: row.id,
+        error: err instanceof Error ? err.message : err,
+      })
       results.push({
         id: row.id,
         ok: false,
@@ -200,8 +234,18 @@ export async function processDueScheduledSends(opts) {
   const sent = results.filter((r) => r.ok && !r.repaired).length
   const failed = results.filter((r) => !r.ok && !r.skipped).length
 
+  console.info('[crm-process-scheduled-sends] run end', {
+    runId,
+    checked: rows.length,
+    due: due.length,
+    processed: results.length,
+    sent,
+    failed,
+  })
+
   return {
     ok: true,
+    runId,
     checked: rows.length,
     due: due.length,
     processed: results.length,
@@ -210,6 +254,18 @@ export async function processDueScheduledSends(opts) {
     results,
     at: nowIso,
   }
+}
+
+function logLeadResult(runId, leadId, schedule, result, code, attempts) {
+  console.info('[crm-process-scheduled-sends] lead', {
+    runId,
+    leadId,
+    at: schedule?.at || null,
+    from: schedule?.from || null,
+    result,
+    code,
+    attempts: typeof attempts === 'number' ? attempts : schedule?.attempts ?? null,
+  })
 }
 
 function normalizeSchedule(raw) {
