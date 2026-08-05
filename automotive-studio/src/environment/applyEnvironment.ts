@@ -1,199 +1,262 @@
 import {
-  BufferAttribute,
-  BufferGeometry,
+  AmbientLight,
   Color,
   DirectionalLight,
   Fog,
   HemisphereLight,
   Mesh,
-  MeshBasicMaterial,
-  MeshStandardMaterial,
-  Points,
-  PointsMaterial,
   Scene,
-  SphereGeometry,
-  Vector3,
 } from 'three'
 import type { EnvironmentState } from '../persistence/schema'
+import {
+  createCelestialLayer,
+  directionFromAzEl,
+  type CelestialHandles,
+} from './celestialLayer'
 
 export interface EnvironmentHandles {
   scene: Scene
   sun: DirectionalLight
   fill: DirectionalLight
+  rim: DirectionalLight
   hemi: HemisphereLight
+  ambient: AmbientLight
   floor: Mesh
   pedestal: Mesh
-  stars: Points
+  celestial: CelestialHandles
+  /** @deprecated use celestial.skyDome */
+  skyDome: Mesh
+  stars: CelestialHandles['stars']
   moon: Mesh
+  sunDisc: Mesh
 }
 
-function sunDirection(azimuthDeg: number, elevationDeg: number): Vector3 {
-  const az = (azimuthDeg * Math.PI) / 180
-  const el = (elevationDeg * Math.PI) / 180
-  const cosEl = Math.cos(el)
-  return new Vector3(
-    Math.sin(az) * cosEl,
-    Math.sin(el),
-    Math.cos(az) * cosEl,
-  ).normalize()
+type PresetLook = {
+  skyTop: Color
+  skyHorizon: Color
+  skyGround: Color
+  ground: Color
+  pedestal: Color
+  hemiSky: number
+  hemiGround: number
+  sunColor: number
+  fillColor: number
+  rimColor: number
+  sunIntensity: number
+  fillIntensity: number
+  rimIntensity: number
+  hemiIntensity: number
+  ambientIntensity: number
+  fogColor: Color
+  floorMetal: number
+  floorRough: number
+  pedestalMetal: number
+  pedestalRough: number
 }
 
-function createStarField(): Points {
-  const count = 1200
-  const positions = new Float32Array(count * 3)
-  for (let i = 0; i < count; i++) {
-    const r = 40 + Math.random() * 20
-    const theta = Math.random() * Math.PI * 2
-    const phi = Math.acos(2 * Math.random() - 1)
-    positions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-    positions[i * 3 + 1] = Math.abs(r * Math.cos(phi)) * 0.55 + 8
-    positions[i * 3 + 2] = r * Math.sin(phi) * Math.sin(theta)
+export function attachEnvironmentDecor(scene: Scene): CelestialHandles {
+  return createCelestialLayer(scene)
+}
+
+function lookForPreset(presetId: Exclude<EnvironmentState['presetId'], 'custom'>): PresetLook {
+  switch (presetId) {
+    case 'day':
+      return {
+        skyTop: new Color(0x5aa0e0),
+        skyHorizon: new Color(0xc5dcf0),
+        skyGround: new Color(0xb8c4ce),
+        ground: new Color(0xe4e9ef),
+        pedestal: new Color(0xd0d7e0),
+        hemiSky: 0xe8f2ff,
+        hemiGround: 0xa8b0b8,
+        sunColor: 0xfff4e6,
+        fillColor: 0xb8d0ff,
+        rimColor: 0xe8f0ff,
+        sunIntensity: 1.85,
+        fillIntensity: 0.48,
+        rimIntensity: 0.35,
+        hemiIntensity: 0.85,
+        ambientIntensity: 0.18,
+        fogColor: new Color(0xc2d6ea),
+        floorMetal: 0.08,
+        floorRough: 0.78,
+        pedestalMetal: 0.12,
+        pedestalRough: 0.62,
+      }
+    case 'golden-hour':
+      return {
+        skyTop: new Color(0x3a4a78),
+        skyHorizon: new Color(0xe8a060),
+        skyGround: new Color(0x4a382c),
+        ground: new Color(0x4a4038),
+        pedestal: new Color(0x564840),
+        hemiSky: 0xffc898,
+        hemiGround: 0x4a3020,
+        sunColor: 0xffa040,
+        fillColor: 0x6080c0,
+        rimColor: 0xffd0a0,
+        sunIntensity: 1.65,
+        fillIntensity: 0.3,
+        rimIntensity: 0.45,
+        hemiIntensity: 0.55,
+        ambientIntensity: 0.12,
+        fogColor: new Color(0xc09060),
+        floorMetal: 0.12,
+        floorRough: 0.7,
+        pedestalMetal: 0.18,
+        pedestalRough: 0.55,
+      }
+    case 'night':
+      return {
+        skyTop: new Color(0x050814),
+        skyHorizon: new Color(0x12182a),
+        skyGround: new Color(0x080a10),
+        ground: new Color(0x1a1e28),
+        pedestal: new Color(0x222833),
+        hemiSky: 0x2a3558,
+        hemiGround: 0x0c1018,
+        sunColor: 0xc8d4ff,
+        fillColor: 0x4060a0,
+        rimColor: 0x7090d0,
+        sunIntensity: 0.55,
+        fillIntensity: 0.22,
+        rimIntensity: 0.2,
+        hemiIntensity: 0.32,
+        ambientIntensity: 0.08,
+        fogColor: new Color(0x080b14),
+        floorMetal: 0.18,
+        floorRough: 0.62,
+        pedestalMetal: 0.22,
+        pedestalRough: 0.5,
+      }
+    case 'studio':
+    default:
+      return {
+        skyTop: new Color(0x1a2030),
+        skyHorizon: new Color(0x3a4252),
+        skyGround: new Color(0x141820),
+        ground: new Color(0x2a303c),
+        pedestal: new Color(0x343b48),
+        hemiSky: 0xc8d0dc,
+        hemiGround: 0x2a303a,
+        sunColor: 0xfff2e0,
+        fillColor: 0xa8c0ff,
+        rimColor: 0xe8dcc8,
+        sunIntensity: 1.35,
+        fillIntensity: 0.38,
+        rimIntensity: 0.42,
+        hemiIntensity: 0.5,
+        ambientIntensity: 0.14,
+        fogColor: new Color(0x0c0e12),
+        floorMetal: 0.16,
+        floorRough: 0.62,
+        pedestalMetal: 0.22,
+        pedestalRough: 0.5,
+      }
   }
-  const geometry = new BufferGeometry()
-  geometry.setAttribute('position', new BufferAttribute(positions, 3))
-  const material = new PointsMaterial({
-    color: 0xdde6ff,
-    size: 0.08,
-    sizeAttenuation: true,
-    transparent: true,
-    opacity: 0.85,
-    depthWrite: false,
-  })
-  const points = new Points(geometry, material)
-  points.name = 'iom-stars'
-  points.visible = false
-  return points
 }
 
-function createMoon(): Mesh {
-  const moon = new Mesh(
-    new SphereGeometry(0.55, 24, 24),
-    new MeshBasicMaterial({ color: 0xe8eef8 }),
-  )
-  moon.name = 'iom-moon'
-  moon.visible = false
-  return moon
+/** Visual family for lighting / IBL / stage — never guessed from a single slider. */
+export function resolveVisualPreset(
+  env: EnvironmentState,
+): Exclude<EnvironmentState['presetId'], 'custom'> {
+  if (env.presetId !== 'custom') return env.presetId
+  return env.basePresetId ?? 'studio'
 }
 
-export function attachEnvironmentDecor(scene: Scene): Pick<EnvironmentHandles, 'stars' | 'moon'> {
-  const stars = createStarField()
-  const moon = createMoon()
-  scene.add(stars)
-  scene.add(moon)
-  return { stars, moon }
+/** Exterior presets open the horizon; studio keeps the cyclorama wall. */
+export function stagePolicyForPreset(
+  presetId: Exclude<EnvironmentState['presetId'], 'custom'>,
+): { cycloramaVisible: boolean; contactOpacity: number } {
+  if (presetId === 'studio') {
+    return { cycloramaVisible: true, contactOpacity: 0.8 }
+  }
+  return {
+    cycloramaVisible: false,
+    contactOpacity: presetId === 'night' ? 0.45 : presetId === 'day' ? 0.55 : 0.65,
+  }
 }
 
 export function applyEnvironment(handles: EnvironmentHandles, env: EnvironmentState) {
-  const dir = sunDirection(env.sunAzimuthDeg, env.sunElevationDeg)
-  const sunDistance = 28
+  const visualPreset = resolveVisualPreset(env)
+  const look = lookForPreset(visualPreset)
+
+  const useMoonKey =
+    Boolean(env.moonAsKeyLight) &&
+    Boolean(env.moonEnabled) &&
+    (env.moonElevationDeg ?? 0) > 2
+  const useSunKey =
+    !useMoonKey &&
+    env.sunEnabled !== false &&
+    env.sunElevationDeg > -2
+
+  const keyAz = useMoonKey ? (env.moonAzimuthDeg ?? env.sunAzimuthDeg) : env.sunAzimuthDeg
+  const keyEl = useMoonKey ? (env.moonElevationDeg ?? 28) : env.sunElevationDeg
+  const dir = directionFromAzEl(keyAz, keyEl)
+  const sunDistance = 36
   handles.sun.position.copy(dir.clone().multiplyScalar(sunDistance))
-  handles.sun.target.position.set(0, 0, 0)
+  handles.sun.target.position.set(0, 0.4, 0)
   handles.sun.target.updateMatrixWorld()
 
-  const floorMat = handles.floor.material as MeshStandardMaterial
-  const pedestalMat = handles.pedestal.material as MeshStandardMaterial
+  const fillDir = directionFromAzEl(keyAz + 160, Math.max(8, keyEl * 0.35))
+  handles.fill.position.copy(fillDir.multiplyScalar(24))
 
-  const intensity = env.environmentIntensity
-  const exposure = env.exposure
+  const rimDir = directionFromAzEl(keyAz - 95, Math.max(6, keyEl * 0.25 + 10))
+  handles.rim.position.copy(rimDir.multiplyScalar(22))
 
-  let sky = new Color(0x0c0e12)
-  let ground = new Color(0x161a22)
-  let pedestal = new Color(0x1c222c)
-  let hemiSky = 0xb8c0cc
-  let hemiGround = 0x2a303a
-  let sunColor = 0xfff2e0
-  let sunIntensity = 1.15 * intensity
-  let fillIntensity = 0.32 * intensity
-  let hemiIntensity = 0.45 * intensity
-  let fogColor = sky.clone()
+  handles.scene.background = look.skyHorizon.clone()
 
-  switch (env.presetId === 'custom' ? inferLook(env) : env.presetId) {
-    case 'day':
-      sky = env.hdrBackground ? new Color(0x7eb6e8) : new Color(0x9ec8ef)
-      ground = new Color(0xd5dbe3)
-      pedestal = new Color(0xc8d0da)
-      hemiSky = 0xd7e8ff
-      hemiGround = 0xb0b8c0
-      sunColor = 0xfff6e8
-      sunIntensity = 1.55 * intensity
-      fillIntensity = 0.4 * intensity
-      hemiIntensity = 0.7 * intensity
-      fogColor = new Color(0xb9d0e8)
-      break
-    case 'golden-hour':
-      sky = env.hdrBackground ? new Color(0xc98a52) : new Color(0xd9a06a)
-      ground = new Color(0x3a322c)
-      pedestal = new Color(0x4a3e34)
-      hemiSky = 0xffc98a
-      hemiGround = 0x4a3828
-      sunColor = 0xffb060
-      sunIntensity = 1.35 * intensity
-      fillIntensity = 0.28 * intensity
-      hemiIntensity = 0.5 * intensity
-      fogColor = new Color(0xc09060)
-      break
-    case 'night':
-      sky = env.hdrBackground ? new Color(0x05070e) : new Color(0x0a0d16)
-      ground = new Color(0x10131a)
-      pedestal = new Color(0x151922)
-      hemiSky = 0x2a3550
-      hemiGround = 0x0c1018
-      sunColor = 0xa8b8ff
-      sunIntensity = Math.max(0.08, 0.22 * intensity)
-      fillIntensity = 0.18 * intensity
-      hemiIntensity = 0.28 * intensity
-      fogColor = new Color(0x080b14)
-      break
-    case 'studio':
-    default:
-      sky = env.hdrBackground ? new Color(0x10141c) : new Color(0x0c0e12)
-      ground = new Color(0x161a22)
-      pedestal = new Color(0x1c222c)
-      hemiSky = 0xb8c0cc
-      hemiGround = 0x2a303a
-      sunColor = 0xfff2e0
-      sunIntensity = 1.15 * intensity
-      fillIntensity = 0.32 * intensity
-      hemiIntensity = 0.42 * intensity
-      fogColor = sky.clone()
-      break
-  }
-
-  handles.scene.background = sky
   if (env.fogDensity > 0.001) {
-    handles.scene.fog = new Fog(fogColor, 12 / Math.max(env.fogDensity * 40, 0.2), 55)
+    const far = visualPreset === 'night' || env.starsEnabled ? 280 : 90
+    handles.scene.fog = new Fog(
+      look.fogColor,
+      18 / Math.max(env.fogDensity * 40, 0.2),
+      far,
+    )
   } else {
     handles.scene.fog = null
   }
 
-  floorMat.color.copy(ground)
-  pedestalMat.color.copy(pedestal)
+  const sunGain = Math.max(0, Math.min(2, env.sunIntensity ?? 1))
+  const moonGain = Math.max(0, Math.min(3, env.moonIntensity ?? 1))
 
-  handles.sun.color.setHex(sunColor)
-  handles.sun.intensity = sunIntensity * exposure
-  handles.sun.visible = env.sunElevationDeg > -2 || env.presetId === 'night'
-
-  handles.fill.intensity = fillIntensity * exposure
-  handles.hemi.color.setHex(hemiSky)
-  handles.hemi.groundColor.setHex(hemiGround)
-  handles.hemi.intensity = hemiIntensity * exposure
-
-  const showStars = env.starsEnabled && (env.presetId === 'night' || env.presetId === 'custom')
-  handles.stars.visible = showStars
-  ;(handles.stars.material as PointsMaterial).opacity = showStars ? 0.85 : 0
-
-  const showMoon = env.moonEnabled && (env.presetId === 'night' || env.presetId === 'custom')
-  handles.moon.visible = showMoon
-  if (showMoon) {
-    // Opposite side of the sun / high night sky
-    const moonDir = sunDirection(env.sunAzimuthDeg + 160, Math.max(18, Math.abs(env.sunElevationDeg) + 22))
-    handles.moon.position.copy(moonDir.multiplyScalar(36))
+  if (useMoonKey) {
+    handles.sun.color.setHex(0xc8d4ff)
+    handles.sun.intensity = 0.55 * moonGain
+    handles.sun.visible = true
+    handles.sun.castShadow = true
+  } else if (useSunKey) {
+    handles.sun.color.setHex(look.sunColor)
+    handles.sun.intensity = look.sunIntensity * sunGain
+    handles.sun.visible = true
+    handles.sun.castShadow = true
+  } else {
+    handles.sun.color.setHex(look.sunColor)
+    handles.sun.intensity = 0
+    handles.sun.visible = false
+    handles.sun.castShadow = false
   }
+
+  handles.fill.color.setHex(look.fillColor)
+  handles.fill.intensity = look.fillIntensity
+
+  handles.rim.color.setHex(look.rimColor)
+  handles.rim.intensity = look.rimIntensity
+
+  handles.hemi.color.setHex(look.hemiSky)
+  handles.hemi.groundColor.setHex(look.hemiGround)
+  handles.hemi.intensity = look.hemiIntensity
+
+  handles.ambient.color.setHex(look.hemiSky)
+  handles.ambient.intensity = look.ambientIntensity
+
+  handles.celestial.apply(env, {
+    top: look.skyTop,
+    horizon: look.skyHorizon,
+    ground: look.skyGround,
+    softSky: Boolean(env.hdrBackground),
+    sunColor: look.sunColor,
+  })
 }
 
-function inferLook(env: EnvironmentState): EnvironmentState['presetId'] {
-  if (env.starsEnabled || env.moonEnabled || env.sunElevationDeg < 5) return 'night'
-  if (env.sunElevationDeg < 18) return 'golden-hour'
-  if (env.sunElevationDeg > 40) return 'day'
-  return 'studio'
-}
+export { directionFromAzEl }

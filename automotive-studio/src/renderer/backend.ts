@@ -5,6 +5,8 @@ export interface BackendProbe {
   webgpu: boolean
   webgl2: boolean
   forcedWebGL2: boolean
+  /** Explicit QA opt-in for WebGPU (`?webgpu=1`). */
+  allowWebGPU: boolean
   note: string
 }
 
@@ -13,17 +15,26 @@ export function readForceWebGL2Flag(): boolean {
   return params.get('forceWebGL2') === '1' || params.get('webgl2') === '1'
 }
 
+export function readAllowWebGPUFlag(): boolean {
+  const params = new URLSearchParams(location.search)
+  return params.get('webgpu') === '1'
+}
+
+/**
+ * Production default is validated WebGL2 (audit Phase B).
+ * WebGPU remains behind `?webgpu=1` until IBL/shadow parity goldens pass.
+ * `?forceWebGL2=1` still forces WebGL2 even if webgpu=1 is also present.
+ */
 export async function probeRenderBackend(): Promise<BackendProbe> {
   const forcedWebGL2 = readForceWebGL2Flag()
-  const webgpu =
-    typeof navigator !== 'undefined' &&
-    'gpu' in navigator &&
-    !forcedWebGL2
+  const allowWebGPU = readAllowWebGPUFlag() && !forcedWebGL2
 
   let webgpuAdapter = false
-  if (webgpu) {
+  if (allowWebGPU && typeof navigator !== 'undefined' && 'gpu' in navigator) {
     try {
-      const adapter = await (navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } }).gpu?.requestAdapter()
+      const adapter = await (
+        navigator as Navigator & { gpu?: { requestAdapter: () => Promise<unknown> } }
+      ).gpu?.requestAdapter()
       webgpuAdapter = Boolean(adapter)
     } catch {
       webgpuAdapter = false
@@ -39,17 +50,19 @@ export async function probeRenderBackend(): Promise<BackendProbe> {
       webgpu: webgpuAdapter,
       webgl2,
       forcedWebGL2: true,
-      note: 'Forced WebGL2 via ?forceWebGL2=1 — intentional reduced/fallback path for corporate devices.',
+      allowWebGPU: false,
+      note: 'Forced WebGL2 via ?forceWebGL2=1.',
     }
   }
 
-  if (webgpuAdapter) {
+  if (allowWebGPU && webgpuAdapter) {
     return {
       preferred: 'webgpu',
       webgpu: true,
       webgl2,
       forcedWebGL2: false,
-      note: 'WebGPU adapter available. Visual parity with WebGL2 is not implied until Phase 5+ measured.',
+      allowWebGPU: true,
+      note: 'WebGPU QA path (?webgpu=1). Prefer WebGL2 for client presentations until parity is certified.',
     }
   }
 
@@ -59,7 +72,21 @@ export async function probeRenderBackend(): Promise<BackendProbe> {
       webgpu: false,
       webgl2: true,
       forcedWebGL2: false,
-      note: 'WebGL2 fallback selected. Volumetrics/TSL features may run at a reduced quality tier.',
+      allowWebGPU,
+      note: allowWebGPU
+        ? 'WebGPU requested but unavailable; using validated WebGL2.'
+        : 'WebGL2 (production default). Append ?webgpu=1 to try WebGPU QA path.',
+    }
+  }
+
+  if (webgpuAdapter) {
+    return {
+      preferred: 'webgpu',
+      webgpu: true,
+      webgl2: false,
+      forcedWebGL2: false,
+      allowWebGPU: true,
+      note: 'WebGL2 unavailable — falling back to WebGPU.',
     }
   }
 
@@ -68,6 +95,7 @@ export async function probeRenderBackend(): Promise<BackendProbe> {
     webgpu: false,
     webgl2: false,
     forcedWebGL2,
-    note: 'No WebGPU or WebGL2 — Presentation must show poster/video fallback (not implemented in Phase 1 shell).',
+    allowWebGPU,
+    note: 'No WebGPU or WebGL2 — Presentation must show poster/video fallback.',
   }
 }

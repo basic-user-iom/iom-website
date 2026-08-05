@@ -24,6 +24,7 @@ export class Transport {
   private durationSeconds = 0
   private speed = 1
   private loop = false
+  private autoAdvance = true
   private ownership = createDefaultOwnership()
   private listeners = new Set<TransportListener>()
   private lastNow: number | null = null
@@ -66,6 +67,19 @@ export class Transport {
     this.emit()
   }
 
+  /**
+   * When false, `play()` still sets the playing flag for UI, but time does not advance
+   * on its own — an external driver (route physics) pushes `seek` each frame.
+   */
+  setAutoAdvance(enabled: boolean) {
+    this.autoAdvance = enabled
+    this.lastNow = null
+  }
+
+  isAutoAdvance() {
+    return this.autoAdvance
+  }
+
   play() {
     if (this.playing) return
     this.playing = true
@@ -98,12 +112,12 @@ export class Transport {
   /** Pause transport when entering gizmo / route / hotspot edit. */
   beginEditSession() {
     this.pause()
-    this.ownership = claimVehicleRoot(this.ownership, 'gizmo-edit')
+    this.ownership = claimVehicleRoot(this.ownership, 'gizmo-edit').state
     this.emit()
   }
 
   endEditSession() {
-    this.ownership = claimVehicleRoot(this.ownership, 'none')
+    this.ownership = claimVehicleRoot(this.ownership, 'none').state
     this.emit()
   }
 
@@ -115,7 +129,7 @@ export class Transport {
   private tick = () => {
     if (!this.playing) return
     const now = performance.now()
-    if (this.lastNow != null) {
+    if (this.autoAdvance && this.lastNow != null) {
       const dt = ((now - this.lastNow) / 1000) * this.speed
       let next = this.timeSeconds + dt
       if (this.durationSeconds > 0) {

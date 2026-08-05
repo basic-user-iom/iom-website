@@ -1,4 +1,4 @@
-import { Box3, Object3D, Quaternion, Vector3 } from 'three'
+import { Box3, Matrix4, Mesh, Object3D, Quaternion, Vector3 } from 'three'
 import type { VehicleRigManifest, WheelBinding } from '../persistence/schema'
 import { findNamedNode, sanitizeRuntimeNodeName } from '../vehicle/qualityVariants'
 
@@ -19,6 +19,9 @@ const _desired = new Vector3()
 const _box = new Box3()
 const _size = new Vector3()
 const _centre = new Vector3()
+const _invPivot = new Matrix4()
+const _meshToPivot = new Matrix4()
+const _vert = new Vector3()
 
 export type WheelRuntimeBinding = {
   id: WheelBinding['id']
@@ -40,8 +43,8 @@ export type WheelRuntimeBinding = {
 
 /**
  * Resolve manifesto wheel nodes against a live Three.js vehicle root.
- * Axle axis, direction and radius from the manifesto are treated as hints only;
- * `calibrateWheelBindings` measures the real values from the live scene graph.
+ * Pass the **model** root (same as rig validation) — not placement helpers.
+ * Axle / steer axes from the manifesto are hints; `calibrateWheelBindings` measures them.
  */
 export function resolveWheelBindings(
   root: Object3D,
@@ -118,6 +121,38 @@ function findBestAxis(
 }
 
 /**
+ * Outer rolling radius of a hub-centred pivot: max distance of any mesh vertex from the
+ * pivot origin, in the plane perpendicular to the local axle.
+ *
+ * World AABB height/2 is wrong whenever the tire is rotated — diameter then lives in XZ and
+ * Y collapses toward the tire width (~0.28 m on the Lixiang vs a true ~0.37 m).
+ */
+function measureRollingRadius(pivot: Object3D, axleAxis: 'x' | 'y' | 'z'): number {
+  pivot.updateWorldMatrix(true, true)
+  _invPivot.copy(pivot.matrixWorld).invert()
+  const axle = AXIS[axleAxis]
+  let maxRadial = 0
+
+  pivot.traverse((obj) => {
+    const mesh = obj as Mesh
+    if (!mesh.isMesh || !mesh.geometry) return
+    const pos = mesh.geometry.getAttribute('position')
+    if (!pos || pos.itemSize < 3) return
+
+    _meshToPivot.copy(_invPivot).multiply(mesh.matrixWorld)
+    const step = pos.count > 8_000 ? 3 : 1
+    for (let i = 0; i < pos.count; i += step) {
+      _vert.fromBufferAttribute(pos, i).applyMatrix4(_meshToPivot)
+      const along = _vert.dot(axle)
+      const radialSq = _vert.lengthSq() - along * along
+      if (radialSq > maxRadial * maxRadial) maxRadial = Math.sqrt(Math.max(0, radialSq))
+    }
+  })
+
+  return maxRadial
+}
+
+/**
  * Measure each pivot's true axle axis, roll direction and radius, plus the steering axis of
  * the front uprights, by watching where the tire actually moves.
  */
@@ -137,20 +172,37 @@ export function calibrateWheelBindings(
     pivot.updateWorldMatrix(true, true)
 
     _box.setFromObject(pivot)
+    let worldHalfHeight = b.radiusMetres
     if (!_box.isEmpty()) {
       _box.getSize(_size)
-      const radius = _size.y / 2
-      if (radius > 0.08 && radius < 1.2) b.radiusMetres = radius
+      // Rough probe radius only — true radius is measured after the axle is known.
+      const rough = Math.max(_size.x, _size.y, _size.z) / 2
+      if (rough > 0.08 && rough < 1.2) b.radiusMetres = rough
+      worldHalfHeight = _size.y / 2
       _box.getCenter(_centre)
     } else {
       pivot.getWorldPosition(_centre)
     }
 
     // The top of the tire must travel forward when rolling forward.
-    _probeWorld.set(_centre.x, _centre.y + b.radiusMetres, _centre.z)
+    _probeWorld.set(_centre.x, _centre.y + Math.max(worldHalfHeight, b.radiusMetres), _centre.z)
     const roll = findBestAxis(pivot, b.rollingRest, _probeWorld, forward)
     b.axleAxis = roll.axis
     b.rollSign = roll.sign
+
+    const radial = measureRollingRadius(pivot, b.axleAxis)
+    // Hub-radial is the true outer radius for a single wheel. A shared rear pivot sits
+    // between two tires, so radial can report ~half the track — cap against world height,
+    // which equals the tire diameter for an upright vehicle on a flat floor.
+    let radius = worldHalfHeight
+    if (radial > 0.08 && radial < 1.2) {
+      radius =
+        worldHalfHeight > 0.08
+          ? Math.min(radial, worldHalfHeight * 1.08)
+          : radial
+    }
+    if (radius > 0.08 && radius < 1.2) b.radiusMetres = radius
+
     b.calibrated = true
   }
 
@@ -228,6 +280,56 @@ export function describeBindings(bindings: WheelRuntimeBinding[]): string {
 
 export function worldForwardFromYaw(yaw: number, out = new Vector3()): Vector3 {
   return out.set(Math.sin(yaw), 0, Math.cos(yaw))
+}
+
+export type AxleGeometry = {
+  /** World nose direction on XZ, length = longitudinal wheelbase. */
+  forward: Vector3
+  /** World point halfway between the two axle centres. */
+  centre: Vector3
+  wheelbaseMetres: number
+  halfTrackMetres: number
+}
+
+/**
+ * Measure nose direction / wheelbase / track from the resolved wheel hubs.
+ * Call with the placement rotation zeroed and world matrices updated — the result is
+ * the vehicle's *intrinsic* orientation, which drives `yawOffset`.
+ *
+ * A rear pivot shared by both rear wheels leaves only one usable rear hub, so the raw
+ * front-mid → rear vector is skewed sideways by half a track width (~15° on a saloon).
+ * The nose is perpendicular to the axle line, so any sideways component is stripped.
+ */
+export function measureAxleGeometry(bindings: WheelRuntimeBinding[]): AxleGeometry | null {
+  const hub = (id: WheelRuntimeBinding['id']) => {
+    const node = bindings.find((b) => b.id === id && b.rolling)?.rolling
+    return node ? node.getWorldPosition(new Vector3()) : null
+  }
+  const fl = hub('FL')
+  const fr = hub('FR')
+  const rl = hub('RL')
+  const rr = hub('RR')
+
+  const axleCentre = (left: Vector3 | null, right: Vector3 | null) =>
+    left && right ? left.clone().add(right).multiplyScalar(0.5) : (left ?? right)
+  const front = axleCentre(fl, fr)
+  const rear = axleCentre(rl, rr)
+  if (!front || !rear) return null
+
+  const forward = front.clone().sub(rear).setY(0)
+  const track = fl && fr ? fr.clone().sub(fl).setY(0) : rl && rr ? rr.clone().sub(rl).setY(0) : null
+  if (track && track.lengthSq() > 1e-8) {
+    track.normalize()
+    forward.addScaledVector(track, -forward.dot(track))
+  }
+
+  const trackWidth = fl && fr ? fl.distanceTo(fr) : rl && rr ? rl.distanceTo(rr) : 0
+  return {
+    forward,
+    centre: front.clone().add(rear).multiplyScalar(0.5),
+    wheelbaseMetres: forward.length(),
+    halfTrackMetres: trackWidth / 2,
+  }
 }
 
 /**

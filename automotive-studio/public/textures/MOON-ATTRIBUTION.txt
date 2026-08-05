@@ -1,0 +1,5 @@
+﻿Moon albedo texture for Automotive Studio
+Source: NASA Scientific Visualization Studio — CGI Moon Kit / LROC WAC Hapke mosaic
+https://svs.gsfc.nasa.gov/4720/
+Usage: https://www.nasa.gov/nasa-brand-center/images-and-media/
+Copied from public/demos/message-in-a-bottle/textures/moon-lroc-2k.jpg for a self-contained Studio inventory.

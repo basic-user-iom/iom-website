@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "optimize": "node scripts/optimize-model.mjs",
     "test:schema": "npx --yes tsx src/tests/schema.roundtrip.ts",
-    "test:lixiang": "npx --yes tsx src/tests/inspect-lixiang.ts"
+    "test:lixiang": "npx --yes tsx src/tests/inspect-lixiang.ts",
+    "test:freedrive": "npx --yes tsx src/tests/freeDrive.heading.ts"
   },
   "dependencies": {
     "jszip": "^3.10.1",

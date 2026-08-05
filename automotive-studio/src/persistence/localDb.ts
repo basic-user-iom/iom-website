@@ -21,12 +21,16 @@ function openDb(): Promise<IDBDatabase> {
 }
 
 export async function idbSaveProject(projectJson: unknown): Promise<void> {
+  const stamped =
+    projectJson && typeof projectJson === 'object'
+      ? { ...(projectJson as Record<string, unknown>), updatedAt: Date.now() }
+      : projectJson
   const db = await openDb()
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(PROJECT_STORE, 'readwrite')
     tx.oncomplete = () => resolve()
     tx.onerror = () => reject(tx.error ?? new Error('IndexedDB write failed'))
-    tx.objectStore(PROJECT_STORE).put(projectJson)
+    tx.objectStore(PROJECT_STORE).put(stamped)
   })
   db.close()
 }
@@ -44,12 +48,46 @@ export async function idbLoadProject(id: string): Promise<unknown | null> {
 }
 
 export async function idbListProjectIds(): Promise<string[]> {
+  const summaries = await idbListProjectSummaries()
+  return summaries.map((s) => s.id)
+}
+
+export type ProjectSummary = {
+  id: string
+  name: string
+  updatedAt: number
+}
+
+export async function idbListProjectSummaries(): Promise<ProjectSummary[]> {
+  const db = await openDb()
+  const rows = await new Promise<unknown[]>((resolve, reject) => {
+    const tx = db.transaction(PROJECT_STORE, 'readonly')
+    const req = tx.objectStore(PROJECT_STORE).getAll()
+    req.onsuccess = () => resolve((req.result as unknown[]) ?? [])
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB list failed'))
+  })
+  db.close()
+  return rows
+    .map((row) => {
+      const r = row as { id?: string; name?: string; updatedAt?: number }
+      if (!r?.id) return null
+      return {
+        id: String(r.id),
+        name: String(r.name ?? 'Untitled'),
+        updatedAt: typeof r.updatedAt === 'number' ? r.updatedAt : 0,
+      }
+    })
+    .filter((s): s is ProjectSummary => Boolean(s))
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+}
+
+export async function idbListAssetBlobIds(): Promise<string[]> {
   const db = await openDb()
   const ids = await new Promise<string[]>((resolve, reject) => {
-    const tx = db.transaction(PROJECT_STORE, 'readonly')
-    const req = tx.objectStore(PROJECT_STORE).getAllKeys()
+    const tx = db.transaction(BLOB_STORE, 'readonly')
+    const req = tx.objectStore(BLOB_STORE).getAllKeys()
     req.onsuccess = () => resolve((req.result as IDBValidKey[]).map(String))
-    req.onerror = () => reject(req.error ?? new Error('IndexedDB list failed'))
+    req.onerror = () => reject(req.error ?? new Error('IndexedDB blob list failed'))
   })
   db.close()
   return ids

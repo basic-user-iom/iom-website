@@ -21,7 +21,8 @@ export default defineConfig({
   build: {
     outDir: path.resolve(root, '../public/demos/automotive-studio'),
     emptyOutDir: true,
-    sourcemap: true,
+    // Production: no public source maps (audit §12.1). Use `sourcemap: true` locally via CLI if needed.
+    sourcemap: false,
     target: 'es2022',
     rollupOptions: {
       input: {

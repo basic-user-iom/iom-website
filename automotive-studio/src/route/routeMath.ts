@@ -8,6 +8,12 @@ export type RouteSample = {
   totalLength: number
 }
 
+/** Default demo oval radii (metres) at scale 1 — see createDefaultOvalRoute. */
+export const DEFAULT_OVAL_RX = 9.5
+export const DEFAULT_OVAL_RZ = 7.5
+export const OVAL_SCALE_MIN = 0.45
+export const OVAL_SCALE_MAX = 2.2
+
 function dist(a: Vec3, b: Vec3): number {
   const dx = b[0] - a[0]
   const dy = b[1] - a[1]
@@ -22,6 +28,20 @@ export function routeLengthMetres(route: VehicleRoute): number {
   for (let i = 1; i < pts.length; i++) len += dist(pts[i - 1], pts[i])
   if (route.closed && pts.length > 2) len += dist(pts[pts.length - 1], pts[0])
   return len
+}
+
+/** Half-extent of the route in XZ from the origin — drives floor sizing. */
+export function routeExtentMetres(route: VehicleRoute): number {
+  let max = 0
+  for (const p of route.pointsMetres) {
+    max = Math.max(max, Math.hypot(p[0], p[2]))
+  }
+  return max
+}
+
+export function clampOvalScale(scale: number): number {
+  if (!Number.isFinite(scale)) return 1
+  return Math.min(OVAL_SCALE_MAX, Math.max(OVAL_SCALE_MIN, scale))
 }
 
 /** Sample a point along the route by arc-length distance (metres). */
@@ -73,15 +93,13 @@ export function sampleRoute(route: VehicleRoute, distanceMetres: number): RouteS
 }
 
 /**
- * Default closed oval for a ~5 m car on the 24×24 m studio floor.
- *
- * Radii are chosen so the tightest curvature (rz²/rx ≈ 5.9 m) matches the real turning circle
- * of a vehicle this size — a tighter oval would peg the front wheels at full lock all the way
- * round, which reads as understeer.
+ * Closed oval for a ~5 m car. Scale 1 → rx 9.5 / rz 7.5 so the tightest curvature
+ * (rz²/rx ≈ 5.9 m) matches a real turning circle; smaller scales will hit steering lock.
  */
-export function createDefaultOvalRoute(speedKmh = 18): VehicleRoute {
-  const rx = 9.5
-  const rz = 7.5
+export function createDefaultOvalRoute(speedKmh = 18, scale = 1): VehicleRoute {
+  const s = clampOvalScale(scale)
+  const rx = DEFAULT_OVAL_RX * s
+  const rz = DEFAULT_OVAL_RZ * s
   const pointsMetres: Vec3[] = []
   const steps = 24
   for (let i = 0; i < steps; i++) {
@@ -93,6 +111,29 @@ export function createDefaultOvalRoute(speedKmh = 18): VehicleRoute {
     closed: true,
     pointsMetres,
     speedKmh,
+    ovalScale: s,
+  }
+}
+
+/** Open polyline for a ~5 m car — gentle S-curve, not looped. */
+export function createDefaultOpenRoute(speedKmh = 18, scale = 1): VehicleRoute {
+  const s = clampOvalScale(scale)
+  const half = 10 * s
+  const pointsMetres: Vec3[] = [
+    [-half, 0, -half * 0.35],
+    [-half * 0.45, 0, half * 0.15],
+    [0, 0, -half * 0.1],
+    [half * 0.45, 0, half * 0.2],
+    [half, 0, half * 0.05],
+  ]
+  return {
+    id: crypto.randomUUID(),
+    closed: false,
+    pointsMetres,
+    speedKmh,
+    openScale: s,
+    startAccelMps2: 2.2,
+    endStopMps2: 4.5,
   }
 }
 
