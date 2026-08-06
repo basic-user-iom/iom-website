@@ -144,12 +144,21 @@
     <div id="container"></div>
     <p class="hint">Drag to orbit · tap point · drag gizmo</p>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { TransformControls } from 'three/addons/controls/TransformControls.js'
       import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      // Card hover iframes: keep the start splash (pointer-events: none).
+      if (new URLSearchParams(location.search).get('cardEmbed') === '1') {
+        await window.iomDemoAwaitStart({
+          poster: '/assets/posters/spline-editor.jpg',
+          label: 'Start spline editor',
+        })
+      }
 
       const isMobile = prefersMobileExperience()
       const pointSize = isMobile ? 32 : 20

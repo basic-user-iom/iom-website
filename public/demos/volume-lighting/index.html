@@ -3687,7 +3687,10 @@
       }
 
       // Warm the ~23MB Pagani GLB while the poster is visible so click → ready is mostly parse/GPU.
-      preloadPaganiAssets()
+      // Skip on card hover embeds — the start splash stays up and the iframe is non-interactive.
+      if (new URLSearchParams(location.search).get('cardEmbed') !== '1') {
+        preloadPaganiAssets()
+      }
 
       const startGate = await window.iomDemoAwaitStart({
         poster: '/assets/posters/volume-lighting.webp',

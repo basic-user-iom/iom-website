@@ -5309,6 +5309,14 @@ async function initScene() {
 }
 
 async function main() {
+  // Card hover iframes: keep the start splash (pointer-events: none).
+  if (new URLSearchParams(location.search).get('cardEmbed') === '1') {
+    await window.iomDemoAwaitStart({
+      poster: '/assets/posters/message-in-a-bottle.webp',
+      label: 'Start message in a bottle',
+    })
+  }
+
   startLoadingFacts();
   if (dom.deviceHint) {
     const bits = [];

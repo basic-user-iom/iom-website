@@ -105,12 +105,21 @@
     <div id="container"></div>
     <p class="hint">Drag to orbit · CSS3D sprites morph between formations</p>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three'
       import TWEEN from 'three/addons/libs/tween.module.js'
       import { TrackballControls } from 'three/addons/controls/TrackballControls.js'
       import { CSS3DRenderer, CSS3DSprite } from 'three/addons/renderers/CSS3DRenderer.js'
       import { prefersMobileExperience } from '../demo-mobile.js'
+
+      // Card hover iframes: keep the start splash (pointer-events: none).
+      if (new URLSearchParams(location.search).get('cardEmbed') === '1') {
+        await window.iomDemoAwaitStart({
+          poster: '/assets/posters/css3d-sprites.png',
+          label: 'Start CSS3D sprites',
+        })
+      }
 
       const container = document.getElementById('container')
 

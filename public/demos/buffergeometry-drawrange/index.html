@@ -140,11 +140,20 @@
     <div id="container"></div>
     <p class="hint">Orbit drag · scroll zoom · tune particle count and connection distance in Settings</p>
 
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
       import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
       import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      // Card hover iframes: keep the start splash (pointer-events: none).
+      if (new URLSearchParams(location.search).get('cardEmbed') === '1') {
+        await window.iomDemoAwaitStart({
+          poster: '/assets/posters/buffergeometry-drawrange.jpg',
+          label: 'Start draw range',
+        })
+      }
 
       const isMobile = prefersMobileExperience()
       const container = document.getElementById('container')

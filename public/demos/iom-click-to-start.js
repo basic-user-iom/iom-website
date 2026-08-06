@@ -130,6 +130,15 @@
     }
   }
 
+  /** Homepage ProjectCard hover iframe (`?cardEmbed=1`). Clicks never reach it. */
+  function isCardHoverEmbed() {
+    try {
+      return new URLSearchParams(window.location.search).get('cardEmbed') === '1'
+    } catch {
+      return false
+    }
+  }
+
   function iomDemoAwaitStart(opts = {}) {
     ensureStyles()
     const poster = opts.poster || ''
@@ -138,9 +147,9 @@
     const parent = opts.parent || document.body
     const holdForLoading = Boolean(opts.loadingLabel)
 
-    // Homepage card hover iframes can't receive clicks (pointer-events: none).
-    // Skip the gate so the live preview can actually start.
-    if (isEmbeddedPreview()) {
+    // Non-card iframes can't receive clicks — auto-start the live demo.
+    // Card hover should keep the start splash (pointer-events: none on the iframe).
+    if (isEmbeddedPreview() && !isCardHoverEmbed()) {
       if (!holdForLoading) return Promise.resolve()
       const noop = () => {}
       return Promise.resolve({ setMessage: noop, dismiss: noop })

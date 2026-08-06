@@ -119,6 +119,7 @@
       </a>
     </aside>
     <div id="container"></div>
+    <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
       import * as THREE from 'three'
       import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
@@ -130,6 +131,14 @@
       import { TTFLoader } from 'three/addons/loaders/TTFLoader.js'
       import { TextGeometry } from 'three/addons/geometries/TextGeometry.js'
       import { mobilePixelRatio, prefersMobileExperience } from '../demo-mobile.js'
+
+      // Card hover iframes: keep the start splash (pointer-events: none).
+      if (new URLSearchParams(location.search).get('cardEmbed') === '1') {
+        await window.iomDemoAwaitStart({
+          poster: '/assets/posters/ocean.jpg',
+          label: 'Start ocean',
+        })
+      }
 
       const isMobile = prefersMobileExperience()
 
