@@ -369,7 +369,7 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
               {localized.secondaryCta.label}
             </a>
           ) : null}
-          <a className="btn btn-ghost" href={href('/#contact')}>
+          <a className="btn btn-ghost" href={href('/#contact')} data-cursor="start">
             {t('case.hireUs')}
           </a>
         </div>
@@ -447,7 +447,7 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
         <h2 id="case-study-cta-heading">{t('case.ctaTitle')}</h2>
         <p>{t('case.ctaText')}</p>
         <div className="case-study-hero-actions" style={{ justifyContent: 'center' }}>
-          <a className="btn btn-primary" href={href('/#contact')}>
+          <a className="btn btn-primary" href={href('/#contact')} data-cursor="start">
             {t('nav.contact')}
           </a>
           <a className="btn btn-ghost" href={href('/#360')}>

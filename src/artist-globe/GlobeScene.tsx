@@ -582,7 +582,7 @@ export function GlobeScene({ artists, selectedId, onSelect, onOpenPortfolio }: G
 
   return (
     <div className="ag-globe">
-      <div className="ag-globe-canvas" ref={mountRef} />
+      <div className="ag-globe-canvas" ref={mountRef} data-cursor="drag" />
       {hover ? (
         <div
           className="ag-marker-pop"

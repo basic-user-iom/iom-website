@@ -228,6 +228,7 @@ export function GalleryLightbox({
                 <button
                   type="button"
                   className="gallery-lightbox-audio"
+                  data-cursor="play"
                   onClick={handlePlay}
                   disabled={isPlaying}
                   aria-label="Play gallery audio"
@@ -237,6 +238,7 @@ export function GalleryLightbox({
                 <button
                   type="button"
                   className="gallery-lightbox-audio"
+                  data-cursor="pause"
                   onClick={handlePause}
                   disabled={!isPlaying}
                   aria-label="Pause gallery audio"

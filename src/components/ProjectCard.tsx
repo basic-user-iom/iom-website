@@ -1,4 +1,5 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
+import { cursorPropsForProject } from '../cursor'
 import type { Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
@@ -440,6 +441,7 @@ export const ProjectCard = memo(function ProjectCard({
                       className="card-source-link"
                       href={caseStudyHref}
                       title={t('card.caseStudy')}
+                      data-cursor="link"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {t('card.caseStudy')}
@@ -452,6 +454,7 @@ export const ProjectCard = memo(function ProjectCard({
                       target="_blank"
                       rel="noopener noreferrer"
                       title={t('card.source')}
+                      data-cursor="external"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {t('card.source')}
@@ -465,6 +468,7 @@ export const ProjectCard = memo(function ProjectCard({
                       target="_blank"
                       rel="noopener noreferrer"
                       title={reference.label}
+                      data-cursor="external"
                       onClick={(event) => event.stopPropagation()}
                     >
                       {reference.label}
@@ -531,6 +535,7 @@ export const ProjectCard = memo(function ProjectCard({
   )
 
   const className = `project-card reveal${project.featured ? ' is-featured' : ''}${hasGallery ? ' project-card--gallery' : ''}${hasMusicTrack ? ' project-card--music' : ''}${musicActive ? ' is-music-active' : ''}${isComingSoon ? ' project-card--coming-soon' : ''}`
+  const cursorProps = isComingSoon ? undefined : cursorPropsForProject(project)
 
   if (project.url && !isComingSoon && useMultiLinkShell) {
     return (
@@ -538,6 +543,7 @@ export const ProjectCard = memo(function ProjectCard({
         id={project.id}
         className={`${className} project-card--multi-link`}
         style={style}
+        {...cursorProps}
         {...orbPointerProps}
       >
         {inner}
@@ -553,6 +559,7 @@ export const ProjectCard = memo(function ProjectCard({
         href={projectHref}
         className={className}
         style={style}
+        {...cursorProps}
         {...(openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
         {...orbPointerProps}
       >
@@ -567,6 +574,7 @@ export const ProjectCard = memo(function ProjectCard({
         id={project.id}
         className={className}
         style={style}
+        {...cursorProps}
         onClick={isComingSoon ? undefined : hasGallery ? openGallery : hasMusicTrack ? selectMusicTrack : undefined}
         {...orbPointerProps}
       >

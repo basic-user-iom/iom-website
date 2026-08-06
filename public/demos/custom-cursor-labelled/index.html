@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Labelled Custom Cursor — IOM</title>
+    <meta
+      name="description"
+      content="Interactive demo of IOM’s labelled custom cursor — VIEW, PLAY, LOOK, EXPLORE, ENTER 3D, START, and more. Precision dot + inertial ring."
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://iobjectm.com/demos/custom-cursor-labelled/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="IOM — Interactive Object Media" />
+    <meta property="og:title" content="Labelled Custom Cursor — IOM" />
+    <meta
+      property="og:description"
+      content="Interactive demo of IOM’s labelled custom cursor — precision tip, inertial ring, context labels."
+    />
+    <meta property="og:url" content="https://iobjectm.com/demos/custom-cursor-labelled/" />
+    <meta property="og:image" content="https://iobjectm.com/og-image.svg" />
+    <link rel="stylesheet" href="./labelled-cursor.css" />
+    <style>
+      @font-face {
+        font-family: 'Syne';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 700;
+        src: url('/fonts/syne-latin-700-normal.woff2') format('woff2');
+      }
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 400;
+        src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+      }
+
+      :root {
+        --bg: #08080a;
+        --bg-elevated: #101014;
+        --border: rgba(255, 255, 255, 0.08);
+        --text: #ececf2;
+        --text-muted: #8b8b9a;
+        --accent: #00e5ff;
+        --display: 'Syne', system-ui, sans-serif;
+        --sans: 'IBM Plex Sans', system-ui, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        min-height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--sans);
+        line-height: 1.5;
+      }
+
+      body {
+        background-image:
+          linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+        background-size: 64px 64px;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .back-link {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 40;
+        color: rgba(255, 255, 255, 0.85);
+        font-size: 13px;
+        letter-spacing: 0.04em;
+        padding: 6px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+      }
+
+      .back-link:hover {
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.45);
+      }
+
+      .page {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 72px 20px 48px;
+      }
+
+      .eyebrow {
+        margin: 0 0 0.6rem;
+        font-size: 0.7rem;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+
+      h1 {
+        margin: 0 0 0.75rem;
+        font-family: var(--display);
+        font-size: clamp(1.8rem, 4vw, 2.6rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.1;
+      }
+
+      .lead {
+        margin: 0 0 2rem;
+        max-width: 54ch;
+        color: var(--text-muted);
+        font-size: 0.98rem;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1.15fr 0.85fr;
+        gap: 1.25rem;
+        align-items: start;
+      }
+
+      @media (max-width: 900px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .panel {
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: rgba(16, 16, 20, 0.85);
+        overflow: hidden;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.68rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--text-muted);
+      }
+
+      .playground {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        padding: 1rem;
+        min-height: 420px;
+      }
+
+      @media (max-width: 560px) {
+        .playground {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .hit {
+        display: grid;
+        place-items: center;
+        min-height: 88px;
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        background: rgba(255, 255, 255, 0.02);
+        text-align: center;
+        transition:
+          border-color 0.18s ease,
+          background 0.18s ease;
+      }
+
+      .hit:hover {
+        border-color: rgba(0, 229, 255, 0.35);
+        background: rgba(0, 229, 255, 0.04);
+      }
+
+      .hit strong {
+        display: block;
+        font-family: ui-monospace, monospace;
+        font-size: 0.72rem;
+        letter-spacing: 0.16em;
+        margin-bottom: 0.35rem;
+      }
+
+      .hit span {
+        font-size: 0.78rem;
+        color: var(--text-muted);
+      }
+
+      .hit--wide {
+        grid-column: 1 / -1;
+        min-height: 110px;
+      }
+
+      .hit--start {
+        border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+      }
+
+      .code-panel pre {
+        margin: 0;
+        padding: 1rem;
+        overflow: auto;
+        max-height: min(70vh, 560px);
+        font-family: ui-monospace, 'Cascadia Code', Menlo, monospace;
+        font-size: 0.72rem;
+        line-height: 1.55;
+        color: #c8c8d4;
+        white-space: pre;
+      }
+
+      .code-panel .tok-attr {
+        color: #7dd3fc;
+      }
+
+      .code-panel .tok-str {
+        color: #86efac;
+      }
+
+      .code-panel .tok-com {
+        color: #6b7280;
+      }
+
+      .note {
+        margin: 1rem 0 0;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .note a {
+        color: var(--accent);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .mobile-hint {
+        display: none;
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        color: var(--text-muted);
+        font-size: 0.85rem;
+      }
+
+      @media (hover: none), (pointer: coarse) {
+        .mobile-hint {
+          display: block;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="back-link" href="/#experiments">← IOM</a>
+
+    <main class="page">
+      <p class="eyebrow">Experiment · Cursor lab</p>
+      <h1>Labelled custom cursor</h1>
+      <p class="lead">
+        Parked v1 of the IOM pointer — precision tip, inertial ring, and context labels. The live
+        site now uses a quieter focus orb on cards; this demo keeps the labelled system for
+        reference.
+      </p>
+
+      <div class="layout">
+        <section class="panel" aria-label="Interactive playground">
+          <div class="panel-head">
+            <span>Playground</span>
+            <span>Hover targets</span>
+          </div>
+          <div class="playground">
+            <a class="hit hit--wide" href="#explore" data-cursor="explore" data-cursor-label="ENTER 3D">
+              <strong>ENTER 3D</strong>
+              <span>data-cursor="explore" · data-cursor-label="ENTER 3D"</span>
+            </a>
+            <div class="hit" data-cursor="view">
+              <strong>VIEW</strong>
+              <span>Project / gallery</span>
+            </div>
+            <div class="hit" data-cursor="play">
+              <strong>PLAY</strong>
+              <span>Video / audio</span>
+            </div>
+            <div class="hit" data-cursor="look">
+              <strong>LOOK</strong>
+              <span>360° panorama</span>
+            </div>
+            <div class="hit" data-cursor="drag">
+              <strong>DRAG</strong>
+              <span>Hold to see MOVE</span>
+            </div>
+            <a class="hit hit--start" href="#contact" data-cursor="start">
+              <strong>START</strong>
+              <span>Primary contact CTA</span>
+            </a>
+            <a
+              class="hit"
+              href="https://iobjectm.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cursor="external"
+            >
+              <strong>EXTERNAL</strong>
+              <span>Diagonal arrow</span>
+            </a>
+            <a class="hit" href="#link">
+              <strong>LINK</strong>
+              <span>Ordinary link (no label)</span>
+            </a>
+            <label class="hit" data-cursor="native">
+              <strong>NATIVE</strong>
+              <input type="text" placeholder="Type here…" style="width: min(100%, 180px); margin-top: 0.4rem" />
+            </label>
+          </div>
+        </section>
+
+        <aside class="panel code-panel" aria-label="Usage code">
+          <div class="panel-head">
+            <span>Usage</span>
+            <span>data-cursor</span>
+          </div>
+          <pre><span class="tok-com">&lt;!-- Assign states declaratively --&gt;</span>
+&lt;a
+  <span class="tok-attr">href</span>=<span class="tok-str">"/demos/panorama-360/"</span>
+  <span class="tok-attr">data-cursor</span>=<span class="tok-str">"look"</span>
+&gt;
+  Open tour
+&lt;/a&gt;
+
+&lt;article
+  <span class="tok-attr">data-cursor</span>=<span class="tok-str">"explore"</span>
+  <span class="tok-attr">data-cursor-label</span>=<span class="tok-str">"ENTER 3D"</span>
+&gt;
+  …
+&lt;/article&gt;
+
+&lt;button <span class="tok-attr">data-cursor</span>=<span class="tok-str">"start"</span>&gt;
+  Get in touch
+&lt;/button&gt;
+
+<span class="tok-com">/* Modes */</span>
+<span class="tok-com">view | play | pause | explore</span>
+<span class="tok-com">look | drag | start | external | link</span>
+
+<span class="tok-com">/* Motion */</span>
+<span class="tok-com">dot  → fast track (lerp ~0.55)</span>
+<span class="tok-com">ring → soft inertia (lerp ~0.16)</span>
+
+<span class="tok-com">/* Live site note */</span>
+<span class="tok-com">Homepage cards now use data-cursor="focus"</span>
+<span class="tok-com">(small cyan orb). This labelled set is parked</span>
+<span class="tok-com">here for demos and future experiments.</span></pre>
+        </aside>
+      </div>
+
+      <p class="note">
+        Source snapshot:
+        <code>parked/custom-cursor-labelled-v1/</code>
+        · Live cursor:
+        <a href="/">iobjectm.com</a>
+      </p>
+      <p class="mobile-hint">
+        Custom cursor needs a fine pointer with hover (desktop mouse / trackpad). Touch devices keep
+        the system cursor.
+      </p>
+    </main>
+
+    <script src="./labelled-cursor.js"></script>
+  </body>
+</html>

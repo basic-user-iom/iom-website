@@ -230,7 +230,7 @@ export function Hero() {
           <a href="#software" className="btn btn-primary">
             {t('hero.ctaWork')}
           </a>
-          <a href="#contact" className="btn btn-ghost">
+          <a href="#contact" className="btn btn-ghost" data-cursor="start">
             {t('hero.ctaContact')}
           </a>
         </div>
@@ -242,6 +242,11 @@ export function Hero() {
           ref={canvasRef}
           role="img"
           aria-label={t('hero.canvasAria')}
+          {...(showLiveScene
+            ? { 'data-cursor': 'drag' as const }
+            : showPoster && !useStaticHero
+              ? { 'data-cursor': 'focus' as const }
+              : {})}
         >
           <div ref={posterSlotRef} className="hero-poster-slot" />
           {showPoster ? (
@@ -261,6 +266,7 @@ export function Hero() {
                 <button
                   type="button"
                   className="hero-start-btn"
+                  data-cursor="focus"
                   onClick={startLiveScene}
                   onPointerEnter={() => {
                     orbs?.setHover('hero', 0, canvasRef.current)

@@ -60,7 +60,7 @@ function BlogComingSoon() {
               {t('blog.comingSoon')}
             </p>
             <div className="blog-coming-actions">
-              <a className="btn btn-primary" href={href('/#contact')}>
+              <a className="btn btn-primary" href={href('/#contact')} data-cursor="start">
                 {t('blog.contact')}
               </a>
               <a className="btn btn-ghost" href={href('/#3d')}>
@@ -339,7 +339,9 @@ function BlogPostPage({ slug }: { slug: string }) {
             {slug === 'panorama-suite' || slug === 'panorama-360-tour' ? (
               <a href={href('/case-studies/black-witness')}>Process case study</a>
             ) : null}
-            <a href={href('/#contact')}>Talk to IOM</a>
+            <a href={href('/#contact')} data-cursor="start">
+              Talk to IOM
+            </a>
             <a href={href('/#3d')}>See our work</a>
           </p>
         </aside>

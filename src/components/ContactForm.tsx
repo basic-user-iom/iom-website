@@ -219,6 +219,7 @@ export const ContactForm = memo(function ContactForm() {
         <button
           type="submit"
           className="btn btn-primary contact-form-submit"
+          data-cursor="start"
           disabled={state === 'submitting'}
         >
           {state === 'submitting' ? t('contact.sending') : t('contact.send')}
@@ -239,7 +240,11 @@ export const ContactForm = memo(function ContactForm() {
 
       <p className="contact-form-alt">
         {t('contact.or')}{' '}
-        <a href="mailto:contact@iobjectm.com" className="contact-form-mailto">
+        <a
+          href="mailto:contact@iobjectm.com"
+          className="contact-form-mailto"
+          data-cursor="external"
+        >
           {t('contact.emailDirect')}
         </a>
       </p>

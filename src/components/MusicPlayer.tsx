@@ -102,6 +102,7 @@ function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
       ref={thumbRef}
       type="button"
       className={`music-player-album-thumb${isActive ? ' is-active' : ''}${showPoster ? ' has-poster' : ''}`}
+      data-cursor={track.audioUrl ? 'focus' : undefined}
       onClick={disabled ? undefined : () => onSelect(track.id)}
       disabled={disabled}
       aria-pressed={isActive}
@@ -216,6 +217,7 @@ function TransportControls({
             <button
               type="button"
               className="music-player-btn"
+              data-cursor="play"
               onClick={() => void onPlay()}
               disabled={isPlaying || disabled}
               aria-label="Play"
@@ -225,6 +227,7 @@ function TransportControls({
             <button
               type="button"
               className="music-player-btn"
+              data-cursor="pause"
               onClick={onPause}
               disabled={!isPlaying}
               aria-label="Pause"
@@ -293,6 +296,7 @@ function TransportControls({
             <button
               type="button"
               className="music-player-btn"
+              data-cursor="play"
               onClick={() => void onPlay()}
               disabled={isPlaying || disabled}
               aria-label="Play"
@@ -302,6 +306,7 @@ function TransportControls({
             <button
               type="button"
               className="music-player-btn"
+              data-cursor="pause"
               onClick={onPause}
               disabled={!isPlaying}
               aria-label="Pause"
@@ -1375,6 +1380,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
                   <button
                     type="button"
                     className={`music-player-track${isActive ? ' is-active' : ''}`}
+                    data-cursor="focus"
                     onClick={() => selectTrack(track.id)}
                     aria-current={isActive ? 'true' : undefined}
                   >
@@ -1392,6 +1398,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
             <div
               ref={visualWrapRef}
               className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
+              data-cursor={isPlaying ? 'drag' : 'focus'}
             >
               <div
                 ref={visualContainerRef}

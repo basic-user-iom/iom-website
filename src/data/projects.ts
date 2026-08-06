@@ -880,6 +880,18 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0125',
   },
   {
+    id: 'custom-cursor-labelled',
+    title: 'Labelled Custom Cursor',
+    section: 'experiments',
+    tags: ['ui', 'cursor', 'interaction', 'demo'],
+    description:
+      'Parked labelled pointer system — precision tip, inertial ring, and context labels (VIEW, PLAY, LOOK, ENTER 3D, START…). Live site cards use the quieter focus orb; this lab keeps the labelled set for reference.',
+    year: '2026',
+    url: '/demos/custom-cursor-labelled/',
+    embedUrl: '/demos/custom-cursor-labelled/',
+    archiveId: 'OBJ-0160',
+  },
+  {
     id: 'compute-particles',
     title: 'Shape Particles — WebGPU Compute',
     section: 'experiments',

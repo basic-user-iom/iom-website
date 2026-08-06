@@ -1,0 +1,256 @@
+/* IOM custom cursor — fine pointers only. Native cursor stays until .iom-cursor-active. */
+
+.iom-cursor {
+  position: fixed;
+  inset: 0;
+  width: 0;
+  height: 0;
+  z-index: 2147483000;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.22s ease-out;
+  contain: layout style;
+}
+
+.iom-cursor.is-visible {
+  opacity: 1;
+}
+
+.iom-cursor.is-native {
+  opacity: 0 !important;
+}
+
+.iom-cursor__dot,
+.iom-cursor__ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.iom-cursor__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(236, 236, 242, 0.95);
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.35);
+  transition:
+    width 0.18s ease-out,
+    height 0.18s ease-out,
+    opacity 0.18s ease-out,
+    background-color 0.18s ease-out,
+    transform 0s;
+}
+
+.iom-cursor__ring {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(236, 236, 242, 0.72);
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.28);
+  display: grid;
+  place-items: center;
+  transition:
+    width 0.22s ease-out,
+    height 0.22s ease-out,
+    border-color 0.18s ease-out,
+    opacity 0.18s ease-out,
+    background-color 0.18s ease-out;
+}
+
+.iom-cursor__label {
+  position: absolute;
+  font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  color: rgba(236, 236, 242, 0.95);
+  text-shadow: 0 0 1px rgba(8, 8, 10, 0.8);
+  white-space: nowrap;
+  opacity: 0;
+  transform: scale(0.92);
+  transition:
+    opacity 0.16s ease-out,
+    transform 0.16s ease-out;
+  pointer-events: none;
+}
+
+.iom-cursor.has-label .iom-cursor__label {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.iom-cursor__icon {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  color: rgba(236, 236, 242, 0.9);
+  opacity: 0;
+  transition: opacity 0.16s ease-out;
+  pointer-events: none;
+}
+
+.iom-cursor.has-icon .iom-cursor__icon {
+  opacity: 1;
+}
+
+.iom-cursor__svg {
+  display: none;
+  width: 12px;
+  height: 12px;
+}
+
+.iom-cursor.has-icon--external .iom-cursor__svg--external {
+  display: block;
+  width: 11px;
+  height: 11px;
+}
+
+.iom-cursor.has-icon--drag .iom-cursor__svg--drag {
+  display: block;
+  width: 18px;
+  height: 8px;
+}
+
+.iom-cursor.has-icon--look .iom-cursor__svg--look {
+  display: block;
+  width: 14px;
+  height: 14px;
+}
+
+/* When a text label is present, hide decorative icons to keep the ring readable. */
+.iom-cursor.has-label .iom-cursor__icon {
+  opacity: 0;
+}
+
+/* —— States —— */
+
+.iom-cursor.is-link .iom-cursor__ring {
+  width: 44px;
+  height: 44px;
+  border-color: rgba(236, 236, 242, 0.88);
+}
+
+.iom-cursor.is-link .iom-cursor__dot {
+  width: 4px;
+  height: 4px;
+  opacity: 0.55;
+}
+
+.iom-cursor.is-view .iom-cursor__ring,
+.iom-cursor.is-play .iom-cursor__ring,
+.iom-cursor.is-pause .iom-cursor__ring,
+.iom-cursor.is-explore .iom-cursor__ring,
+.iom-cursor.is-drag .iom-cursor__ring,
+.iom-cursor.is-look .iom-cursor__ring,
+.iom-cursor.is-start .iom-cursor__ring {
+  width: 64px;
+  height: 64px;
+  border-color: rgba(236, 236, 242, 0.9);
+  background: rgba(8, 8, 10, 0.18);
+}
+
+.iom-cursor.is-view .iom-cursor__dot,
+.iom-cursor.is-play .iom-cursor__dot,
+.iom-cursor.is-pause .iom-cursor__dot,
+.iom-cursor.is-explore .iom-cursor__dot,
+.iom-cursor.is-drag .iom-cursor__dot,
+.iom-cursor.is-look .iom-cursor__dot,
+.iom-cursor.is-start .iom-cursor__dot {
+  width: 3px;
+  height: 3px;
+  opacity: 0.35;
+}
+
+.iom-cursor.is-external .iom-cursor__ring {
+  width: 42px;
+  height: 42px;
+}
+
+.iom-cursor.is-external .iom-cursor__dot {
+  width: 4px;
+  height: 4px;
+  opacity: 0.5;
+}
+
+.iom-cursor.is-start .iom-cursor__ring {
+  border-color: color-mix(in srgb, var(--accent) 55%, rgba(236, 236, 242, 0.85));
+}
+
+/* Press / drag / pulse */
+
+.iom-cursor.is-pressing .iom-cursor__ring {
+  width: 30px;
+  height: 30px;
+}
+
+.iom-cursor.is-link.is-pressing .iom-cursor__ring {
+  width: 38px;
+  height: 38px;
+}
+
+.iom-cursor.is-external.is-pressing .iom-cursor__ring {
+  width: 36px;
+  height: 36px;
+}
+
+.iom-cursor.is-view.is-pressing .iom-cursor__ring,
+.iom-cursor.is-play.is-pressing .iom-cursor__ring,
+.iom-cursor.is-pause.is-pressing .iom-cursor__ring,
+.iom-cursor.is-explore.is-pressing .iom-cursor__ring,
+.iom-cursor.is-drag.is-pressing .iom-cursor__ring,
+.iom-cursor.is-look.is-pressing .iom-cursor__ring,
+.iom-cursor.is-start.is-pressing .iom-cursor__ring {
+  width: 54px;
+  height: 54px;
+}
+
+.iom-cursor.is-dragging.is-drag .iom-cursor__ring {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(236, 236, 242, 0.95);
+}
+
+.iom-cursor.is-pulse .iom-cursor__ring {
+  border-color: rgba(236, 236, 242, 1);
+}
+
+/* Hide system cursor only after the custom cursor has mounted successfully. */
+@media (hover: hover) and (pointer: fine) {
+  html.iom-cursor-active,
+  html.iom-cursor-active * {
+    cursor: none !important;
+  }
+
+  html.iom-cursor-active input,
+  html.iom-cursor-active textarea,
+  html.iom-cursor-active select,
+  html.iom-cursor-active option,
+  html.iom-cursor-active [contenteditable='true'],
+  html.iom-cursor-active [contenteditable=''],
+  html.iom-cursor-active .iom-cursor-native,
+  html.iom-cursor-active [data-cursor='native'] {
+    cursor: auto !important;
+  }
+
+  html.iom-cursor-active input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='button']):not([type='submit']):not([type='reset']),
+  html.iom-cursor-active textarea,
+  html.iom-cursor-active [contenteditable='true'],
+  html.iom-cursor-active [contenteditable=''] {
+    cursor: text !important;
+  }
+
+  html.iom-cursor-active input[type='range'],
+  html.iom-cursor-active input[type='color'],
+  html.iom-cursor-active input[type='file'] {
+    cursor: pointer !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iom-cursor {
+    display: none !important;
+  }
+}

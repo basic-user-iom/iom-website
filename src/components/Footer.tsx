@@ -22,7 +22,9 @@ export const Footer = memo(function Footer() {
         <a href={href('/privacy')}>{t('footer.privacy')}</a>
         <a href={href('/terms')}>{t('footer.terms')}</a>
         <a href={href('/cookies')}>{t('footer.cookies')}</a>
-        <a href="mailto:contact@iobjectm.com">contact@iobjectm.com</a>
+        <a href="mailto:contact@iobjectm.com" data-cursor="external">
+          contact@iobjectm.com
+        </a>
         <span>{t('footer.rights', { year })}</span>
       </div>
     </footer>

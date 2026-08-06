@@ -134,7 +134,7 @@ export function Header() {
           </a>
         </div>
         <div className="header-nav-mobile-cta">
-          <a href={href('/#contact')} className="header-cta" onClick={closeMenu}>
+          <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={closeMenu}>
             {t('nav.contact')}
           </a>
           <a href="/client-login" className="header-login" onClick={closeMenu}>
@@ -155,7 +155,7 @@ export function Header() {
         >
           {siteMuted ? t('nav.listen') : t('nav.mute')}
         </button>
-        <a href={href('/#contact')} className="header-cta" onClick={closeMenu}>
+        <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={closeMenu}>
           {t('nav.contact')}
         </a>
         <a href="/client-login" className="header-login" onClick={closeMenu}>
