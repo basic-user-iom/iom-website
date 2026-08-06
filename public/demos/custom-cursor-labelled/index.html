@@ -528,6 +528,19 @@ ${com('/* Native I-beam restored */')}`,
         )
 
         playground.addEventListener('pointerleave', () => render('idle'))
+
+        // Lab targets are hover samples only — never leave the demo on click.
+        playground.addEventListener(
+          'click',
+          (event) => {
+            if (event.target.closest?.('input, textarea, select')) return
+            const hit = event.target.closest?.('.hit')
+            if (!hit || !playground.contains(hit)) return
+            event.preventDefault()
+            event.stopPropagation()
+          },
+          true,
+        )
       })()
     </script>
   </body>
