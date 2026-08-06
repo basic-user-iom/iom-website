@@ -131,6 +131,31 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     }
   }
 
+  if (path === '/start') {
+    return {
+      title: seoT(lang, 'seo.projectCostsTitle'),
+      description: seoT(lang, 'seo.projectCostsDescription'),
+      canonical: `${SITE_ORIGIN}/project-costs`,
+      robots: 'noindex, nofollow',
+    }
+  }
+
+  if (path === '/project-costs') {
+    return {
+      title: seoT(lang, 'seo.projectCostsTitle'),
+      description: seoT(lang, 'seo.projectCostsDescription'),
+      canonical,
+      robots: 'index, follow',
+      keywords: [
+        'IOM project costs',
+        'interactive media budget',
+        'WebGL project estimate',
+        '360 tour pricing',
+        '3D viewer development cost',
+      ],
+    }
+  }
+
   if (path === '/case-studies' || path.startsWith('/case-studies/')) {
     const isViewer = path === '/case-studies/3d-viewer'
     const isWitness = path === '/case-studies/black-witness'

@@ -46,6 +46,33 @@ export const enUi: Dict = {
   'hero.startHint': 'WebGL loads after you tap',
   'hero.startAria': 'Start the live WebGL hero scene',
   'hero.scroll': 'Scroll',
+  'hero.factsAria': 'Engagement overview',
+  'hero.facts.pricing.label': 'Pricing basis',
+  'hero.facts.pricing.value': '€75 per production hour',
+  'hero.facts.consultation.label': 'Consultation',
+  'hero.facts.consultation.value': 'First 30 minutes free',
+  'hero.facts.delivery.label': 'Delivery',
+  'hero.facts.delivery.value': 'Remote production worldwide',
+  'hero.facts.reviews.label': 'Reviews',
+  'hero.facts.reviews.value': 'Two consolidated review rounds assumed',
+  'hero.facts.support.label': 'Project support',
+  'hero.facts.support.value':
+    'Reduced fees or complimentary time may be available for selected projects',
+  'hero.begin.title': 'Not sure where to begin?',
+  'hero.begin.text1':
+    'A free 30-minute consultation is available to discuss the idea, available materials, technical feasibility and an appropriate starting budget.',
+  'hero.begin.text2':
+    'For selected projects with strong creative, technical, cultural, educational or social potential, IOM may also contribute through a reduced fee or a limited number of complimentary production hours.',
+  'hero.begin.estimate': 'Request a project estimate',
+
+  'start.eyebrow': 'Working with IOM',
+  'start.backHome': '← Back to iobjectm.com',
+  'seo.startTitle': 'Start a project | IOM',
+  'seo.startDescription':
+    'Free 30-minute consultation, pricing basis, and selected project support from Interactive Object Media.',
+  'seo.projectCostsTitle': 'Project Costs & Timelines | IOM',
+  'seo.projectCostsDescription':
+    'Reference timelines and budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
 
   'about.eyebrow': 'Studio',
   'about.title': 'The team behind the objects',
@@ -59,6 +86,36 @@ export const enUi: Dict = {
   'about.contactTitle': "Let's build something worth exploring",
   'about.contactText':
     'Tell us about the product, place, or experience you need. We reply within two business days with next steps — scope questions, a short call, or a clear “not a fit yet.”',
+
+  'consult.eyebrow': 'Initial conversation',
+  'consult.title': 'Start with a free 30-minute consultation',
+  'consult.text':
+    'Every potential project can begin with a free 30-minute consultation. This is an opportunity to discuss the main objective, intended audience, available materials, technical requirements and realistic production scope before any commitment is made.',
+  'consult.determineIntro': 'The consultation is intended to help determine:',
+  'consult.point1': 'Whether the proposed idea is technically feasible',
+  'consult.point2': 'Which parts of the project should be prioritised',
+  'consult.point3': 'Whether a prototype would be useful',
+  'consult.point4': 'What assets or information are still required',
+  'consult.point5': 'A realistic initial timeline and budget range',
+  'consult.cta': 'Book a free consultation',
+  'consult.note':
+    'No obligation and no preparation document is required. A short description of the idea is sufficient to begin.',
+
+  'support.eyebrow': 'Selected project support',
+  'support.title': 'Support for selected projects',
+  'support.text':
+    'Some projects have particularly strong creative, technical, cultural, educational or social potential. When a project is a strong fit for IOM and the production schedule allows it, we may choose to support its development through a reduced project fee or a limited number of complimentary production hours.',
+  'support.follow':
+    'This support is considered individually after the initial consultation. Any reduced rate or complimentary production time will be clearly defined in the project proposal before work begins.',
+  'support.feeTitle': 'Reduced project fee',
+  'support.feeText':
+    'For selected projects, part of the production may be offered at a reduced rate.',
+  'support.hoursTitle': 'Complimentary production time',
+  'support.hoursText':
+    'IOM may allocate a defined number of additional production hours without charge.',
+  'support.caseTitle': 'Case-by-case decision',
+  'support.caseText':
+    'Support depends on the project’s objectives, creative and technical potential, available schedule and the possibility of developing meaningful work together.',
 
   'rfo.title': 'Research · Form · Output',
   'rfo.tagline': 'Research the challenge. Form the experience. Deliver the output.',

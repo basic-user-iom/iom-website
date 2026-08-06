@@ -8513,6 +8513,22 @@
   font-size: 1rem;
 }
 
+.crm-portal-resources {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg-elevated, #101014) 80%, transparent);
+}
+
+.crm-portal-resources .crm-portal-section {
+  margin-top: 0;
+}
+
+.crm-portal-resources .btn {
+  margin-top: 0.65rem;
+}
+
 .crm-portal-note-body {
   white-space: pre-wrap;
   max-height: 12rem;

@@ -114,6 +114,16 @@ export function ClientPortalView({ user }: ClientPortalViewProps) {
           <p className="crm-muted">{t('boot.loading')}</p>
         ) : (
           <>
+            <section className="crm-portal-resources" aria-labelledby="portal-resources-heading">
+              <h3 className="crm-portal-section" id="portal-resources-heading">
+                {t('portal.resources')}
+              </h3>
+              <p className="crm-muted">{t('portal.resourcesLead')}</p>
+              <a href="/project-costs" className="btn btn-primary">
+                {t('portal.projectCosts')}
+              </a>
+            </section>
+
             <h3 className="crm-portal-section">{t('portal.projects')}</h3>
             {projects.length === 0 ? (
               <p className="crm-muted">{t('portal.empty')}</p>

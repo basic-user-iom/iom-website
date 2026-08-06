@@ -9,6 +9,7 @@ import { isArtistGlobePath } from './artist-globe/paths'
 import { isBlogPath } from './blog/types'
 import { isCaseStudyPath } from './case-studies/paths'
 import { isLegalPath } from './legal/paths'
+import { isLegacyStartPath, isProjectCostsPath } from './project-costs/paths'
 import { isRecordingSharePath, recordingSlugFromPath } from './crm/recordingSharePaths'
 import { isIcmDemoPath } from './demo/icm/paths'
 import { isImagePrepPath } from './tools/image-prep/paths'
@@ -40,6 +41,9 @@ const CaseStudyApp = lazy(() =>
   import('./case-studies/CaseStudyApp').then((m) => ({ default: m.CaseStudyApp })),
 )
 const LegalApp = lazy(() => import('./legal/LegalApp').then((m) => ({ default: m.LegalApp })))
+const ProjectCostsApp = lazy(() =>
+  import('./project-costs/ProjectCostsApp').then((m) => ({ default: m.ProjectCostsApp })),
+)
 const ImagePrepApp = lazy(() =>
   import('./tools/image-prep/ImagePrepApp').then((m) => ({ default: m.ImagePrepApp })),
 )
@@ -82,6 +86,7 @@ export default function App() {
   const isBlog = isBlogPath(path)
   const isCaseStudy = isCaseStudyPath(path)
   const isLegal = isLegalPath(path)
+  const isProjectCosts = isProjectCostsPath(path) || isLegacyStartPath(path)
   const isIcmDemo = isIcmDemoPath(path)
   const isImagePrep = isImagePrepPath(path)
 
@@ -242,6 +247,16 @@ export default function App() {
       <SiteI18nProvider lang={lang}>
         <Suspense fallback={null}>
           <LegalApp path={path} />
+        </Suspense>
+      </SiteI18nProvider>
+    )
+  }
+
+  if (isProjectCosts) {
+    return (
+      <SiteI18nProvider lang={lang}>
+        <Suspense fallback={null}>
+          <ProjectCostsApp />
         </Suspense>
       </SiteI18nProvider>
     )

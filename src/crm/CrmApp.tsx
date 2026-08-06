@@ -809,6 +809,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           <div className="crm-topbar-right">
             <LanguageToggle />
             <span className="crm-mode-chip">{t('topbar.online')}</span>
+            <a href="/project-costs" className="btn btn-ghost">
+              {t('portal.projectCosts')}
+            </a>
             <button type="button" className="btn btn-ghost" onClick={() => void handleSignOut()}>
               {t('topbar.signOut')}
             </button>

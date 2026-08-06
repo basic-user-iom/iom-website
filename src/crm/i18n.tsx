@@ -755,6 +755,10 @@ const en: Dict = {
 
   'portal.kicker': 'Client portal',
   'portal.title': 'Your workspace',
+  'portal.resources': 'Resources',
+  'portal.resourcesLead':
+    'Planning guide for scope, timelines and indicative budgets — for reference before a formal quotation.',
+  'portal.projectCosts': 'Project costs & timelines',
   'portal.projects': 'Projects',
   'portal.notes': 'Shared notes',
   'portal.notesEmpty': 'No shared notes yet.',
@@ -1628,7 +1632,7 @@ const en: Dict = {
   'guide.demosText':
     'A short catalogue of demos built for clients that stay off the public portfolio — open links, share passwords, track pitch status.',
   'guide.demos1':
-    'ICM is the first entry: https://iobjectm.com/demo/icm (password in the card)',
+    'ICM: https://iobjectm.com/demo/icm (password in the card)',
   'guide.demos2':
     'Use Open demo for the live URL; Open on this site for the same path on the current host',
   'guide.demos3':
@@ -2444,6 +2448,10 @@ const sr: Dict = {
 
   'portal.kicker': 'Klijentski portal',
   'portal.title': 'Vaš prostor',
+  'portal.resources': 'Resursi',
+  'portal.resourcesLead':
+    'Vodič za obim, rokove i orijentacione budžete — pre formalne ponude.',
+  'portal.projectCosts': 'Troškovi i rokovi projekta',
   'portal.projects': 'Projekti',
   'portal.notes': 'Deljene beleške',
   'portal.notesEmpty': 'Još nema deljenih beleški.',
@@ -3322,7 +3330,7 @@ const sr: Dict = {
   'guide.demosText':
     'Kratak katalog demoa za klijente koji ostaju van javnog portfolija — otvorite linkove, delite lozinke, pratite status pitch-a.',
   'guide.demos1':
-    'ICM je prvi unos: https://iobjectm.com/demo/icm (lozinka je na kartici)',
+    'ICM: https://iobjectm.com/demo/icm (lozinka je na kartici)',
   'guide.demos2':
     'Otvori demo za živi URL; Otvori na ovom sajtu za isti path na trenutnom hostu',
   'guide.demos3':
