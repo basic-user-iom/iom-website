@@ -17,6 +17,56 @@ const DEMO_GEO: AnalyticsGeoPoint[] = [
   { lat: 52.4, lon: 4.9, country: 'NL', city: 'Amsterdam', visitors: 88, live: true },
 ]
 
+function rangeDayCount(label: string): number {
+  if (label === '7d') return 7
+  if (label === '30d') return 30
+  return 90
+}
+
+function rangeToDates(range: AnalyticsRange): { from: Date; to: Date } {
+  const to = new Date()
+  to.setUTCHours(23, 59, 59, 999)
+  const from = new Date(to)
+  from.setUTCDate(from.getUTCDate() - (rangeDayCount(range.label) - 1))
+  from.setUTCHours(0, 0, 0, 0)
+  return { from, to }
+}
+
+/** Every calendar day in the range, including zeros — so sparklines match 7/30/90 tabs. */
+function fillDailySeries(
+  from: Date,
+  to: Date,
+  dailyMap: Map<string, { pageviews: number; sessions: Set<string> }>,
+): AnalyticsSummary['daily'] {
+  const rows: AnalyticsSummary['daily'] = []
+  const cursor = new Date(from)
+  cursor.setUTCHours(0, 0, 0, 0)
+  const end = new Date(to)
+  end.setUTCHours(0, 0, 0, 0)
+  while (cursor.getTime() <= end.getTime()) {
+    const day = cursor.toISOString().slice(0, 10)
+    const bucket = dailyMap.get(day)
+    rows.push({
+      day,
+      pageviews: bucket?.pageviews ?? 0,
+      visitors: bucket?.sessions.size ?? 0,
+    })
+    cursor.setUTCDate(cursor.getUTCDate() + 1)
+  }
+  return rows
+}
+
+function buildDemoDaily(label: string): AnalyticsSummary['daily'] {
+  const days = rangeDayCount(label)
+  return Array.from({ length: days }, (_, i) => {
+    const d = new Date()
+    d.setUTCDate(d.getUTCDate() - (days - 1 - i))
+    const day = d.toISOString().slice(0, 10)
+    const base = 120 + Math.round(Math.sin(i / 2) * 40 + i * 8)
+    return { day, pageviews: base + 40, visitors: Math.round(base * 0.38) }
+  })
+}
+
 const DEMO_SUMMARY: AnalyticsSummary = {
   pageviews: 2847,
   visitors: 912,
@@ -64,24 +114,7 @@ const DEMO_SUMMARY: AnalyticsSummary = {
     { country: 'RS', label: 'Serbia', views: 86 },
   ],
   geoPoints: DEMO_GEO,
-  daily: Array.from({ length: 14 }, (_, i) => {
-    const d = new Date()
-    d.setUTCDate(d.getUTCDate() - (13 - i))
-    const day = d.toISOString().slice(0, 10)
-    const base = 120 + Math.round(Math.sin(i / 2) * 40 + i * 8)
-    return { day, pageviews: base + 40, visitors: Math.round(base * 0.38) }
-  }),
-}
-
-function rangeToDates(range: AnalyticsRange): { from: Date; to: Date } {
-  const to = new Date()
-  to.setUTCHours(23, 59, 59, 999)
-  const from = new Date(to)
-  if (range.label === '7d') from.setUTCDate(from.getUTCDate() - 6)
-  else if (range.label === '30d') from.setUTCDate(from.getUTCDate() - 29)
-  else from.setUTCDate(from.getUTCDate() - 89)
-  from.setUTCHours(0, 0, 0, 0)
-  return { from, to }
+  daily: buildDemoDaily('30d'),
 }
 
 function emptySummary(): AnalyticsSummary {
@@ -132,7 +165,12 @@ export async function fetchAnalyticsSummary(
   range: AnalyticsRange,
   demo = false,
 ): Promise<{ data: AnalyticsSummary | null; schemaMissing: boolean }> {
-  if (demo) return { data: DEMO_SUMMARY, schemaMissing: false }
+  if (demo) {
+    return {
+      data: { ...DEMO_SUMMARY, daily: buildDemoDaily(range.label) },
+      schemaMissing: false,
+    }
+  }
 
   const sb = getSupabase()
   if (!sb) return { data: null, schemaMissing: false }
@@ -333,13 +371,7 @@ export async function fetchAnalyticsSummary(
         views,
       })),
       geoPoints,
-      daily: [...dailyMap.entries()]
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([day, v]) => ({
-          day,
-          pageviews: v.pageviews,
-          visitors: v.sessions.size,
-        })),
+      daily: fillDailySeries(from, to, dailyMap),
     },
     schemaMissing: false,
   }

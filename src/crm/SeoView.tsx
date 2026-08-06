@@ -77,14 +77,17 @@ function Sparkline({ daily }: { daily: AnalyticsSummary['daily'] }) {
   const max = Math.max(...daily.map((d) => d.pageviews), 1)
   return (
     <div className="crm-seo-sparkline" aria-hidden="true">
-      {daily.map((d) => (
-        <span
-          key={d.day}
-          className="crm-seo-spark-bar"
-          style={{ height: `${Math.max(8, (d.pageviews / max) * 100)}%` }}
-          title={`${d.day}: ${d.pageviews} views`}
-        />
-      ))}
+      {daily.map((d) => {
+        const pct = d.pageviews > 0 ? Math.max(8, (d.pageviews / max) * 100) : 0
+        return (
+          <span
+            key={d.day}
+            className="crm-seo-spark-bar"
+            style={{ height: `${pct}%` }}
+            title={`${d.day}: ${d.pageviews} views`}
+          />
+        )
+      })}
     </div>
   )
 }
