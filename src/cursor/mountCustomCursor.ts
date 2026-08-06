@@ -1,6 +1,6 @@
 import { clearCursorOverride, subscribeCursorApi } from './api'
 import { resolveCursorFromTarget } from './resolveTarget'
-import { isCustomCursorSupported } from './support'
+import { isCustomCursorExcludedPath, isCustomCursorSupported } from './support'
 import type { CursorMode, ResolvedCursor } from './types'
 
 const DOT_LERP = 0.55
@@ -17,6 +17,31 @@ type CursorDom = {
 }
 
 let activeCleanup: (() => void) | null = null
+/** Soft kill switch used by CRM routes — prefer native pointer in dense tools. */
+let cursorEnabled = true
+
+function forceTearDown() {
+  activeCleanup?.()
+  activeCleanup = null
+  document.documentElement.classList.remove(ACTIVE_ROOT_CLASS)
+  document.querySelectorAll('.iom-cursor').forEach((el) => el.remove())
+}
+
+/** Enable/disable the site cursor (CRM routes turn it off). */
+export function setCustomCursorEnabled(next: boolean): void {
+  if (cursorEnabled === next) {
+    if (!next) forceTearDown()
+    return
+  }
+  cursorEnabled = next
+  if (!next) {
+    forceTearDown()
+    return
+  }
+  if (!isCustomCursorExcludedPath()) {
+    ensureCustomCursor()
+  }
+}
 
 function createDom(): CursorDom {
   const root = document.createElement('div')
@@ -59,7 +84,7 @@ function modesEqual(a: ResolvedCursor, b: ResolvedCursor): boolean {
  * Survives demo tab hops / bfcache via pageshow + visibility resume.
  */
 export function mountCustomCursor(): (() => void) | null {
-  if (!isCustomCursorSupported()) return null
+  if (!cursorEnabled || isCustomCursorExcludedPath() || !isCustomCursorSupported()) return null
 
   // Replace any prior instance (Strict Mode remount / HMR / resume remount).
   if (activeCleanup) {
@@ -320,7 +345,10 @@ export function mountCustomCursor(): (() => void) | null {
 
 /** Remount if the live instance was lost (HMR edge cases / torn DOM). */
 export function ensureCustomCursor(): (() => void) | null {
-  if (!isCustomCursorSupported()) return null
+  if (!cursorEnabled || isCustomCursorExcludedPath() || !isCustomCursorSupported()) {
+    forceTearDown()
+    return null
+  }
   const alive =
     activeCleanup &&
     document.querySelector('.iom-cursor') &&

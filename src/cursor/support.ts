@@ -1,3 +1,5 @@
+import { parseLocalePath } from '../i18n'
+
 /** True when a fine pointer with hover is available and motion is allowed. */
 export function isCustomCursorSupported(): boolean {
   if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false
@@ -16,4 +18,15 @@ export function isCustomCursorSupported(): boolean {
   }
 
   return true
+}
+
+/** CRM / portal shells keep the native system cursor for dense UI work. */
+export function isCustomCursorExcludedPath(pathname = window.location.pathname): boolean {
+  const { path } = parseLocalePath(pathname)
+  return (
+    path === '/client-login' ||
+    path === '/crm-demo' ||
+    path.startsWith('/client-login/') ||
+    path.startsWith('/crm-demo/')
+  )
 }

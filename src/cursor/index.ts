@@ -7,6 +7,6 @@ export {
   subscribeCursorApi,
 } from './api'
 export { cursorModeForProject, cursorPropsForProject } from './projectCursor'
-export { isCustomCursorSupported } from './support'
-export { ensureCustomCursor, mountCustomCursor } from './mountCustomCursor'
+export { isCustomCursorSupported, isCustomCursorExcludedPath } from './support'
+export { ensureCustomCursor, mountCustomCursor, setCustomCursorEnabled } from './mountCustomCursor'
 export type { CursorMode, CursorState, ResolvedCursor } from './types'

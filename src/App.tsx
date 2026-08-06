@@ -21,6 +21,7 @@ import {
 import { SiteI18nProvider, parseLocalePath } from './i18n'
 import { localizedSectionNav } from './i18n/projects/sectionNav'
 import { usePageMeta } from './seo/usePageMeta'
+import { setCustomCursorEnabled } from './cursor/mountCustomCursor'
 
 const ProjectSectionBlock = lazy(() =>
   import('./components/ProjectSectionBlock').then((m) => ({ default: m.ProjectSectionBlock })),
@@ -141,7 +142,11 @@ export default function App() {
   useEffect(() => {
     const onCrm = isClientLogin || isCrmDemo
     document.body.classList.toggle('crm-route', onCrm)
-    return () => document.body.classList.remove('crm-route')
+    setCustomCursorEnabled(!onCrm)
+    return () => {
+      document.body.classList.remove('crm-route')
+      setCustomCursorEnabled(true)
+    }
   }, [isClientLogin, isCrmDemo])
 
   /** Deep-link hashes (e.g. /#image-prep or /de/#software) after SPA mount. */
