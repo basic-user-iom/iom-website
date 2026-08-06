@@ -270,6 +270,9 @@ function ReferenceCard({ ref }: { ref: CostReference }) {
 
 export function ProjectCostsApp() {
   const { href, lang } = useSiteI18n()
+  const embed =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('embed') === '1'
 
   useEffect(() => {
     applyPageMeta(PROJECT_COSTS_META.path, lang)
@@ -283,21 +286,28 @@ export function ProjectCostsApp() {
     }
   }, [])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('pc-embed', embed)
+    return () => document.documentElement.classList.remove('pc-embed')
+  }, [embed])
+
   return (
     <>
-      <Header />
-      <main id="main-content" className="pc-main">
+      {!embed && <Header />}
+      <main id="main-content" className={`pc-main${embed ? ' pc-main--embed' : ''}`}>
         <article className="pc-page">
           <header className="pc-hero">
-            <div className="pc-hero-tools">
-              <button
-                type="button"
-                className="pc-print-btn"
-                onClick={() => window.print()}
-              >
-                Print / Save as PDF
-              </button>
-            </div>
+            {!embed && (
+              <div className="pc-hero-tools">
+                <button
+                  type="button"
+                  className="pc-print-btn"
+                  onClick={() => window.print()}
+                >
+                  Print / Save as PDF
+                </button>
+              </div>
+            )}
             <p className="pc-eyebrow">Scope · Time · Budget</p>
             <p className="pc-page-title">{PROJECT_COSTS_META.pageTitle}</p>
             <h1 className="pc-title">Reference budgets for custom interactive work</h1>
@@ -646,7 +656,7 @@ export function ProjectCostsApp() {
           </p>
         </article>
       </main>
-      <Footer />
+      {!embed && <Footer />}
     </>
   )
 }

@@ -39,6 +39,7 @@ import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
 import { DemosView } from './DemosView'
 import { LinksView } from './LinksView'
+import { ProjectCostsEmbedView } from './ProjectCostsEmbedView'
 import { CrmFollowUpCalendar, followUpDateKey } from './CrmFollowUpCalendar'
 import { CrmLogin } from './CrmLogin'
 import { CrmMusicPlayer } from './CrmMusicPlayer'
@@ -94,6 +95,7 @@ import './crm.css'
 type View = 'list' | 'create'
 type CrmSection =
   | 'leads'
+  | 'projectCosts'
   | 'projects'
   | 'clients'
   | 'time'
@@ -906,6 +908,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const sectionTitle =
     section === 'projects'
       ? t('nav.projects')
+      : section === 'projectCosts'
+        ? t('nav.projectCosts')
       : section === 'clients'
         ? t('nav.clients')
       : section === 'time'
@@ -930,7 +934,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     <div
       className={`crm-shell${demoMode ? ' crm-shell--demo' : ''}${
         section === 'leads' ? ' crm-shell--leads' : ''
-      }${section === 'notes' ? ' crm-shell--notes' : ''}`}
+      }${section === 'notes' ? ' crm-shell--notes' : ''}${
+        section === 'projectCosts' ? ' crm-shell--project-costs' : ''
+      }`}
     >
       {demoMode && (
         <div className="crm-demo-banner" role="status">
@@ -1012,9 +1018,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                 {t(key)}
               </button>
               {id === 'leads' && !demoMode && (
-                <a href="/project-costs" className="crm-section-tab crm-section-tab--link">
+                <button
+                  type="button"
+                  className={`crm-section-tab${section === 'projectCosts' ? ' is-active' : ''}`}
+                  onClick={() => setSection('projectCosts')}
+                >
                   {t('nav.projectCosts')}
-                </a>
+                </button>
               )}
             </Fragment>
           ))}
@@ -1328,6 +1338,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       {section === 'blog' && <BlogView />}
 
       {section === 'links' && <LinksView demo={demoMode} />}
+
+      {section === 'projectCosts' && !demoMode && <ProjectCostsEmbedView />}
 
       {section === 'demos' && <DemosView />}
 

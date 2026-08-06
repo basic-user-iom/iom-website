@@ -292,6 +292,7 @@ export type ResearchNoteInput = Pick<
 
 export type CrmSection =
   | 'leads'
+  | 'projectCosts'
   | 'projects'
   | 'clients'
   | 'time'

@@ -8541,6 +8541,60 @@ a.crm-section-tab--link:hover {
   margin-top: 0.65rem;
 }
 
+.crm-shell--project-costs {
+  display: flex;
+  flex-direction: column;
+  min-height: 100dvh;
+}
+
+.crm-shell--project-costs .crm-pc-embed {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+  margin: 0 0 0.75rem;
+}
+
+.crm-pc-embed-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.85rem;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.crm-pc-embed-url {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 14rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.crm-pc-embed-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.crm-pc-embed-frame {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: min(70vh, calc(100dvh - 11rem));
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+}
+
 .crm-portal-note-body {
   white-space: pre-wrap;
   max-height: 12rem;
