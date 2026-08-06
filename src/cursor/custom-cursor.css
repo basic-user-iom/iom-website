@@ -30,25 +30,48 @@
 }
 
 .iom-cursor__dot {
-  width: 7px;
-  height: 7px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: rgba(236, 236, 242, 0.95);
-  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.35);
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 245, 255, 0.95) 40%,
+    rgba(0, 229, 255, 0.55) 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 4px 1px rgba(255, 255, 255, 0.7),
+    0 0 10px 3px rgba(0, 229, 255, 0.55),
+    0 0 18px 6px rgba(0, 229, 255, 0.22);
+  opacity: 1;
   transition:
     width 0.18s ease-out,
     height 0.18s ease-out,
     opacity 0.18s ease-out,
     background-color 0.18s ease-out,
+    box-shadow 0.18s ease-out,
     transform 0s;
 }
 
 .iom-cursor__ring {
-  width: 36px;
-  height: 36px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
-  border: 1px solid rgba(236, 236, 242, 0.72);
-  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.28);
+  border: 1px solid transparent;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 245, 255, 0.9) 28%,
+    rgba(0, 229, 255, 0.55) 48%,
+    rgba(0, 229, 255, 0.12) 68%,
+    transparent 80%
+  );
+  box-shadow:
+    0 0 6px 2px rgba(255, 255, 255, 0.45),
+    0 0 17px 7px rgba(0, 229, 255, 0.42),
+    0 0 35px 14px rgba(0, 229, 255, 0.16);
+  filter: blur(0.15px);
   display: grid;
   place-items: center;
   transition:
@@ -56,7 +79,9 @@
     height 0.22s ease-out,
     border-color 0.18s ease-out,
     opacity 0.18s ease-out,
-    background-color 0.18s ease-out;
+    background-color 0.18s ease-out,
+    box-shadow 0.18s ease-out,
+    filter 0.18s ease-out;
 }
 
 .iom-cursor__label {
@@ -127,16 +152,21 @@
 
 /* —— States —— */
 
+/* Link: same cyan language, slightly larger / brighter */
 .iom-cursor.is-link .iom-cursor__ring {
-  width: 44px;
-  height: 44px;
-  border-color: rgba(236, 236, 242, 0.88);
+  width: 24px;
+  height: 24px;
+  border-color: transparent;
+  box-shadow:
+    0 0 7px 2px rgba(255, 255, 255, 0.5),
+    0 0 20px 8px rgba(0, 229, 255, 0.48),
+    0 0 38px 15px rgba(0, 229, 255, 0.2);
 }
 
 .iom-cursor.is-link .iom-cursor__dot {
-  width: 4px;
-  height: 4px;
-  opacity: 0.55;
+  width: 3px;
+  height: 3px;
+  opacity: 0.85;
 }
 
 .iom-cursor.is-view .iom-cursor__ring,
@@ -150,6 +180,8 @@
   height: 64px;
   border-color: rgba(236, 236, 242, 0.9);
   background: rgba(8, 8, 10, 0.18);
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.28);
+  filter: none;
 }
 
 .iom-cursor.is-view .iom-cursor__dot,
@@ -161,73 +193,26 @@
 .iom-cursor.is-start .iom-cursor__dot {
   width: 3px;
   height: 3px;
+  background: rgba(236, 236, 242, 0.95);
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.35);
   opacity: 0.35;
 }
 
 .iom-cursor.is-external .iom-cursor__ring {
   width: 42px;
   height: 42px;
+  border-color: rgba(236, 236, 242, 0.72);
+  background: transparent;
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.28);
+  filter: none;
 }
 
 .iom-cursor.is-external .iom-cursor__dot {
   width: 4px;
   height: 4px;
+  background: rgba(236, 236, 242, 0.95);
+  box-shadow: 0 0 0 1px rgba(8, 8, 10, 0.35);
   opacity: 0.5;
-}
-
-/* Quiet focus — small cyan orb (same language as site orbs outside cards). */
-.iom-cursor.is-focus .iom-cursor__ring {
-  width: 18px;
-  height: 18px;
-  border-color: transparent;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(180, 245, 255, 0.9) 28%,
-    rgba(0, 229, 255, 0.55) 48%,
-    rgba(0, 229, 255, 0.12) 68%,
-    transparent 80%
-  );
-  box-shadow:
-    0 0 6px 2px rgba(255, 255, 255, 0.45),
-    0 0 17px 7px rgba(0, 229, 255, 0.42),
-    0 0 35px 14px rgba(0, 229, 255, 0.16);
-  filter: blur(0.15px);
-}
-
-.iom-cursor.is-focus .iom-cursor__dot {
-  width: 4px;
-  height: 4px;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 1) 0%,
-    rgba(180, 245, 255, 0.95) 40%,
-    rgba(0, 229, 255, 0.55) 70%,
-    transparent 100%
-  );
-  box-shadow:
-    0 0 4px 1px rgba(255, 255, 255, 0.7),
-    0 0 10px 3px rgba(0, 229, 255, 0.55),
-    0 0 18px 6px rgba(0, 229, 255, 0.22);
-  opacity: 1;
-}
-
-.iom-cursor.is-focus.is-pressing .iom-cursor__dot {
-  width: 3px;
-  height: 3px;
-  box-shadow:
-    0 0 3px 1px rgba(255, 255, 255, 0.75),
-    0 0 8px 2px rgba(0, 229, 255, 0.6),
-    0 0 14px 5px rgba(0, 229, 255, 0.28);
-}
-
-.iom-cursor.is-focus.is-pressing .iom-cursor__ring {
-  width: 14px;
-  height: 14px;
-  box-shadow:
-    0 0 5px 2px rgba(255, 255, 255, 0.5),
-    0 0 14px 6px rgba(0, 229, 255, 0.48),
-    0 0 28px 12px rgba(0, 229, 255, 0.2);
 }
 
 .iom-cursor.is-start .iom-cursor__ring {
@@ -237,13 +222,26 @@
 /* Press / drag / pulse */
 
 .iom-cursor.is-pressing .iom-cursor__ring {
-  width: 30px;
-  height: 30px;
+  width: 14px;
+  height: 14px;
+  box-shadow:
+    0 0 5px 2px rgba(255, 255, 255, 0.5),
+    0 0 14px 6px rgba(0, 229, 255, 0.48),
+    0 0 28px 12px rgba(0, 229, 255, 0.2);
+}
+
+.iom-cursor.is-pressing .iom-cursor__dot {
+  width: 3px;
+  height: 3px;
+  box-shadow:
+    0 0 3px 1px rgba(255, 255, 255, 0.75),
+    0 0 8px 2px rgba(0, 229, 255, 0.6),
+    0 0 14px 5px rgba(0, 229, 255, 0.28);
 }
 
 .iom-cursor.is-link.is-pressing .iom-cursor__ring {
-  width: 38px;
-  height: 38px;
+  width: 20px;
+  height: 20px;
 }
 
 .iom-cursor.is-external.is-pressing .iom-cursor__ring {
@@ -269,7 +267,10 @@
 }
 
 .iom-cursor.is-pulse .iom-cursor__ring {
-  border-color: rgba(236, 236, 242, 1);
+  box-shadow:
+    0 0 8px 3px rgba(255, 255, 255, 0.55),
+    0 0 22px 9px rgba(0, 229, 255, 0.5),
+    0 0 40px 16px rgba(0, 229, 255, 0.22);
 }
 
 /* Hide system cursor only after the custom cursor has mounted successfully. */
