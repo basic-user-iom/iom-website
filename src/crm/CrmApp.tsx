@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import {
   atlasEvalSchemaKnownMissing,
   backfillOwnLeadOwnerSnapshot,
@@ -1003,14 +1003,20 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               ['demos', 'nav.demos'],
             ] as const
           ).map(([id, key]) => (
-            <button
-              key={id}
-              type="button"
-              className={`crm-section-tab${section === id ? ' is-active' : ''}`}
-              onClick={() => setSection(id)}
-            >
-              {t(key)}
-            </button>
+            <Fragment key={id}>
+              <button
+                type="button"
+                className={`crm-section-tab${section === id ? ' is-active' : ''}`}
+                onClick={() => setSection(id)}
+              >
+                {t(key)}
+              </button>
+              {id === 'leads' && !demoMode && (
+                <a href="/project-costs" className="crm-section-tab crm-section-tab--link">
+                  {t('nav.projectCosts')}
+                </a>
+              )}
+            </Fragment>
           ))}
         </div>
         <div className="crm-section-nav-right">

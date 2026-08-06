@@ -344,6 +344,7 @@ const en: Dict = {
 
   'nav.aria': 'CRM sections',
   'nav.leads': 'Leads',
+  'nav.projectCosts': 'Project costs',
   'nav.projects': 'Projects',
   'nav.clients': 'Clients',
   'nav.time': 'Time',
@@ -2034,6 +2035,7 @@ const sr: Dict = {
 
   'nav.aria': 'CRM sekcije',
   'nav.leads': 'Leadovi',
+  'nav.projectCosts': 'Troškovi projekta',
   'nav.projects': 'Projekti',
   'nav.clients': 'Klijenti',
   'nav.time': 'Vreme',
