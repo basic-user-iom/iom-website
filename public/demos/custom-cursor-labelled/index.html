@@ -320,8 +320,9 @@
       <p class="eyebrow">Experiment · Cursor lab</p>
       <h1>Labelled custom cursor</h1>
       <p class="lead">
-        Parked v1 of the IOM pointer — precision tip, inertial ring, and context labels. Hover a
-        target on the left; the usage panel on the right updates to match.
+        Labelled experiment — precision tip, inertial ring, and context labels (VIEW, PLAY, LOOK…).
+        Hover a target on the left; the usage panel on the right updates to match. The live site uses
+        our quieter cyan focus orb instead.
       </p>
       <div class="actions">
         <a
@@ -415,7 +416,7 @@
         ·
         <a href="./labelled-custom-cursor.zip" download="labelled-custom-cursor.zip">Download .zip</a>
         (demo + React module)
-        · Live site cursor:
+        · Our production cursor (quiet cyan focus orb):
         <a href="/">iobjectm.com</a>
       </p>
       <p class="mobile-hint">
@@ -455,9 +456,9 @@ ${com('/* Motion */')}
 ${com('dot  → fast track (lerp ~0.55)')}
 ${com('ring → soft inertia (lerp ~0.16)')}
 
-${com('/* Live site */')}
-${com('Homepage cards use a quiet cyan focus orb.')}
-${com('This lab keeps the labelled system for demos.')}`,
+${com('/* Production */')}
+${com('iobjectm.com ships our quiet cyan focus orb.')}
+${com('This lab keeps the labelled tip + ring for demos.')}`,
 
           explore: () => `${com('<!-- 3D / immersive entry -->')}
 &lt;a
