@@ -108,6 +108,41 @@ html.pc-printing .iom-cursor {
     filter 0.18s ease-out;
 }
 
+.iom-cursor.is-orbiting .iom-cursor__ring,
+.iom-cursor.is-orbiting.is-link .iom-cursor__ring,
+.iom-cursor.is-orbiting.is-external .iom-cursor__ring,
+.iom-cursor.is-orbiting.is-view .iom-cursor__ring,
+.iom-cursor.is-orbiting.is-pressing .iom-cursor__ring {
+  width: 11px;
+  height: 11px;
+  border-color: transparent;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 245, 255, 0.95) 22%,
+    rgba(0, 229, 255, 0.6) 42%,
+    rgba(0, 229, 255, 0.16) 62%,
+    transparent 78%
+  );
+  box-shadow:
+    0 0 5px 2px rgba(255, 255, 255, 0.55),
+    0 0 14px 6px rgba(0, 229, 255, 0.48),
+    0 0 26px 10px rgba(0, 229, 255, 0.22);
+  filter: blur(0);
+  opacity: 1;
+}
+
+.iom-cursor.is-orbiting .iom-cursor__dot {
+  width: 4px;
+  height: 4px;
+  opacity: 1;
+}
+
+.iom-cursor.is-orbiting .iom-cursor__label,
+.iom-cursor.is-orbiting .iom-cursor__icon {
+  opacity: 0 !important;
+}
+
 .iom-cursor__label {
   position: absolute;
   font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;

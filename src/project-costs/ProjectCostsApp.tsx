@@ -127,6 +127,7 @@ function ProtoStep({ step }: { step: (typeof PROTOTYPE_STEPS)[number] }) {
     <li
       ref={rootRef}
       className="pc-proto-step"
+      data-cursor-orbit="card"
       onPointerEnter={canHover ? play : undefined}
       onPointerLeave={canHover ? pause : undefined}
     >
@@ -200,7 +201,7 @@ function ReferenceCard({ ref }: { ref: CostReference }) {
   const studyHref = href(ref.caseStudyPath)
 
   return (
-    <article className="pc-card" id={`ref-${ref.id}`}>
+    <article className="pc-card" id={`ref-${ref.id}`} data-cursor-orbit="card">
       <a className="pc-card-media" href={studyHref}>
         <img
           src={ref.image}
@@ -385,7 +386,7 @@ export function ProjectCostsApp() {
           <section className="pc-facts" aria-label="Engagement overview">
             <dl className="pc-facts-row">
               {COST_FACTS.map((fact) => (
-                <div key={fact.id} className="pc-facts-item">
+                <div key={fact.id} className="pc-facts-item" data-cursor-orbit="card">
                   <dt>{fact.label}</dt>
                   <dd>{fact.value}</dd>
                 </div>
@@ -417,6 +418,7 @@ export function ProjectCostsApp() {
                   className="pc-glance-row"
                   href={href(ref.caseStudyPath)}
                   role="row"
+                  data-cursor-orbit="card"
                 >
                   <span className="pc-glance-project" role="cell">
                     <span className="pc-glance-cat">{ref.glanceCategory}</span>
@@ -487,7 +489,7 @@ export function ProjectCostsApp() {
             </h2>
             <ul className="pc-factor-grid">
               {COST_FACTORS.map((factor) => (
-                <li key={factor.title} className="pc-factor">
+                <li key={factor.title} className="pc-factor" data-cursor-orbit="card">
                   <h3 className="pc-factor-title">{factor.title}</h3>
                   <p>{factor.text}</p>
                 </li>
@@ -564,7 +566,7 @@ export function ProjectCostsApp() {
             </p>
             <ul className="pc-how-grid">
               {HOW_IOM_WORKS.map((item) => (
-                <li key={item.title} className="pc-how-item">
+                <li key={item.title} className="pc-how-item" data-cursor-orbit="card">
                   <h3 className="pc-how-title">{item.title}</h3>
                   <p>{item.text}</p>
                 </li>
@@ -572,7 +574,7 @@ export function ProjectCostsApp() {
             </ul>
           </section>
 
-          <aside className="pc-estimate-box" aria-labelledby="estimate-heading">
+          <aside className="pc-estimate-box" aria-labelledby="estimate-heading" data-cursor-orbit="card">
             <h2 className="pc-section-title pc-section-title--sub" id="estimate-heading">
               About these estimates
             </h2>

@@ -1,12 +1,20 @@
 import { clearCursorOverride, subscribeCursorApi } from './api'
+import { pointOnRectPerimeter, rectPerimeterT } from './rectPerimeter'
 import { resolveCursorFromTarget } from './resolveTarget'
 import { isCustomCursorExcludedPath, isCustomCursorSupported } from './support'
 import type { CursorMode, ResolvedCursor } from './types'
 
 const DOT_LERP = 0.55
 const RING_LERP = 0.16
+const RING_ORBIT_LERP = 0.35
+/** Full outline lap — slow, like homepage card attend. */
+const CARD_ORBIT_MS = 9000
+const CARD_ORBIT_SPEED = 1
+const CARD_ORBIT_PAD = 10
+const TAU = Math.PI * 2
 const VISIBLE_CLASS = 'is-visible'
 const ACTIVE_ROOT_CLASS = 'iom-cursor-active'
+const ORBITING_CLASS = 'is-orbiting'
 
 type CursorDom = {
   root: HTMLDivElement
@@ -109,8 +117,40 @@ export function mountCustomCursor(): (() => void) | null {
   let dotY = -100
   let ringX = -100
   let ringY = -100
+  let lastTs = 0
+  let orbitEl: HTMLElement | null = null
+  let orbitPhase = 0
 
   let current: ResolvedCursor = { mode: 'default', label: null, icon: 'none' }
+
+  const resolveOrbitHost = (target: EventTarget | null): HTMLElement | null => {
+    if (!(target instanceof Element)) return null
+    // Prefer the innermost control / chip (compound selectors are unreliable in closest).
+    const chip = target.closest('.pc-inquiry-chip')
+    if (chip instanceof HTMLElement) return chip
+    const btn = target.closest('.btn, .pc-print-btn, button')
+    if (btn instanceof HTMLElement && btn.closest('.pc-main')) return btn
+    const marked = target.closest('[data-cursor-orbit="card"]')
+    return marked instanceof HTMLElement && marked.isConnected ? marked : null
+  }
+
+  const syncOrbitFromTarget = (target: EventTarget | null) => {
+    const next = resolveOrbitHost(target)
+    if (next === orbitEl) return
+    if (next) {
+      const box = next.getBoundingClientRect()
+      const cx = box.left + box.width * 0.5
+      const cy = box.top + box.height * 0.5
+      const halfW = box.width * 0.5 + CARD_ORBIT_PAD
+      const halfH = box.height * 0.5 + CARD_ORBIT_PAD
+      orbitPhase = rectPerimeterT(cx, cy, halfW, halfH, ringX, ringY) * TAU
+      orbitEl = next
+      dom.root.classList.add(ORBITING_CLASS)
+    } else {
+      orbitEl = null
+      dom.root.classList.remove(ORBITING_CLASS)
+    }
+  }
 
   const ensureDomAttached = () => {
     if (!dom.root.isConnected) {
@@ -131,6 +171,7 @@ export function mountCustomCursor(): (() => void) | null {
       visible ? VISIBLE_CLASS : '',
       pressing ? 'is-pressing' : '',
       dragging ? 'is-dragging' : '',
+      orbitEl ? ORBITING_CLASS : '',
       next.mode === 'native' ? 'is-native' : '',
       next.label ? 'has-label' : '',
       next.icon !== 'none' ? `has-icon has-icon--${next.icon}` : '',
@@ -174,7 +215,9 @@ export function mountCustomCursor(): (() => void) | null {
     visible = false
     pressing = false
     dragging = false
-    dom.root.classList.remove(VISIBLE_CLASS, 'is-pressing', 'is-dragging')
+    orbitEl = null
+    lastTs = 0
+    dom.root.classList.remove(VISIBLE_CLASS, 'is-pressing', 'is-dragging', ORBITING_CLASS)
     refreshFromTarget(lastTarget)
   }
 
@@ -188,6 +231,8 @@ export function mountCustomCursor(): (() => void) | null {
     pressing = false
     dragging = false
     lastTarget = null
+    orbitEl = null
+    lastTs = 0
     current = { mode: 'default', label: null, icon: 'none' }
     visible = false
     if (pulseTimer) {
@@ -201,29 +246,61 @@ export function mountCustomCursor(): (() => void) | null {
     releasePointer()
   }
 
-  const tick = () => {
+  const tick = (ts: number) => {
     raf = 0
+    const now = ts || performance.now()
+    const dtMs = lastTs ? Math.min(48, now - lastTs) : 16.67
+    lastTs = now
+
+    let ringTargetX = pointerX
+    let ringTargetY = pointerY
+    let ringLerp = RING_LERP
+    let orbiting = false
+
+    if (orbitEl?.isConnected) {
+      const box = orbitEl.getBoundingClientRect()
+      if (box.width > 2 && box.height > 2) {
+        const cx = box.left + box.width * 0.5
+        const cy = box.top + box.height * 0.5
+        const halfW = box.width * 0.5 + CARD_ORBIT_PAD
+        const halfH = box.height * 0.5 + CARD_ORBIT_PAD
+        orbitPhase += (dtMs / CARD_ORBIT_MS) * TAU * CARD_ORBIT_SPEED
+        if (orbitPhase > TAU) orbitPhase -= TAU
+        const pt = pointOnRectPerimeter(cx, cy, halfW, halfH, orbitPhase / TAU)
+        ringTargetX = pt.x
+        ringTargetY = pt.y
+        ringLerp = RING_ORBIT_LERP
+        orbiting = true
+      } else {
+        orbitEl = null
+        dom.root.classList.remove(ORBITING_CLASS)
+      }
+    }
+
     dotX = lerp(dotX, pointerX, DOT_LERP)
     dotY = lerp(dotY, pointerY, DOT_LERP)
-    ringX = lerp(ringX, pointerX, RING_LERP)
-    ringY = lerp(ringY, pointerY, RING_LERP)
+    ringX = lerp(ringX, ringTargetX, ringLerp)
+    ringY = lerp(ringY, ringTargetY, ringLerp)
 
     if (Math.abs(dotX - pointerX) < 0.05) dotX = pointerX
     if (Math.abs(dotY - pointerY) < 0.05) dotY = pointerY
-    if (Math.abs(ringX - pointerX) < 0.05) ringX = pointerX
-    if (Math.abs(ringY - pointerY) < 0.05) ringY = pointerY
+    if (Math.abs(ringX - ringTargetX) < 0.05) ringX = ringTargetX
+    if (Math.abs(ringY - ringTargetY) < 0.05) ringY = ringTargetY
 
     dom.dot.style.transform = `translate3d(${dotX}px, ${dotY}px, 0) translate(-50%, -50%)`
     dom.ring.style.transform = `translate3d(${ringX}px, ${ringY}px, 0) translate(-50%, -50%)`
 
     const needsFrame =
+      orbiting ||
       Math.abs(dotX - pointerX) > 0.05 ||
       Math.abs(dotY - pointerY) > 0.05 ||
-      Math.abs(ringX - pointerX) > 0.05 ||
-      Math.abs(ringY - pointerY) > 0.05
+      Math.abs(ringX - ringTargetX) > 0.05 ||
+      Math.abs(ringY - ringTargetY) > 0.05
 
     if (needsFrame) {
       raf = window.requestAnimationFrame(tick)
+    } else {
+      lastTs = 0
     }
   }
 
@@ -249,12 +326,15 @@ export function mountCustomCursor(): (() => void) | null {
 
     const under = document.elementFromPoint(event.clientX, event.clientY)
     refreshFromTarget(under)
+    syncOrbitFromTarget(under)
     requestTick()
   }
 
   const onPointerOver = (event: PointerEvent) => {
     if (event.pointerType === 'touch') return
     refreshFromTarget(event.target)
+    syncOrbitFromTarget(event.target)
+    requestTick()
   }
 
   const onPointerDown = (event: PointerEvent) => {
@@ -268,6 +348,8 @@ export function mountCustomCursor(): (() => void) | null {
       dragging = true
     }
     refreshFromTarget(under)
+    syncOrbitFromTarget(under)
+    requestTick()
   }
 
   const endPress = (event: PointerEvent) => {
@@ -280,7 +362,10 @@ export function mountCustomCursor(): (() => void) | null {
       dom.root.classList.remove('is-pulse')
       pulseTimer = 0
     }, 220)
-    refreshFromTarget(document.elementFromPoint(event.clientX, event.clientY))
+    const under = document.elementFromPoint(event.clientX, event.clientY)
+    refreshFromTarget(under)
+    syncOrbitFromTarget(under)
+    requestTick()
   }
 
   const onPointerLeaveWindow = (event: MouseEvent) => {
