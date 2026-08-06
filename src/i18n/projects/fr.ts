@@ -25,6 +25,11 @@ export const frProjects: ProjectsLocalePack = {
       description: 'Comment nous construisons un souvenir navigateur sur une mer vivante — layout bouteille et parchemin, ingénierie océan/ciel WebGPU, et une démo partageable pour les invités.',
       tags: ['étude de cas', 'webgpu', 'océan', 'three.js'],
     },
+    'case-study-labelled-custom-cursor': {
+      title: 'Curseur personnalisé labellisé — du brief au lab',
+      description: 'Comment nous concevons un pointeur contextuel — modes markup, motion tip + anneau, un lab labellisé partageable, et une orbe focus plus calme sur le site live.',
+      tags: ['étude de cas', 'ui', 'cursor', 'interaction'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'Intégration de couche sol 3D OpenStreetMap pour la présentation de modèles géolocalisés — synchronisez les modèles aux coordonnées réelles avec alignement terrain. La démo live embarque Streets GL (MIT) pour bâtiments, routes et terrain OSM réels.',

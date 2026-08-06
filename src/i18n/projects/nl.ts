@@ -25,6 +25,11 @@ export const nlProjects: ProjectsLocalePack = {
       description: 'Hoe we een browser-keepsake op levend water bouwen — fles- en perkamentlayout, WebGPU-oceaan- en hemelengineering, en een deelbare demo voor gasten.',
       tags: ['case study', 'webgpu', 'oceaan', 'three.js'],
     },
+    'case-study-labelled-custom-cursor': {
+      title: 'Labelled custom cursor — van brief tot lab',
+      description: 'Hoe we een contextbewuste pointer ontwerpen — markup-modi, tip + ring-motion, een deelbaar labelled lab, en een rustigere focus-orb op de live site.',
+      tags: ['case study', 'ui', 'cursor', 'interactie'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'OpenStreetMap 3D-grondlaagintegratie voor geolocatie van modelpresentatie — synchroniseer modellen met echte coördinaten en terrain-uitlijning. Live demo embedt Streets GL (MIT) voor echte OSM-gebouwen, wegen en terrain.',

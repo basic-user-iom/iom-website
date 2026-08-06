@@ -41,6 +41,12 @@ export function collectSitemapEntries(): SitemapEntry[] {
       changefreq: 'monthly',
       priority: 0.85,
     },
+    {
+      loc: `${SITE_ORIGIN}/case-studies/labelled-custom-cursor/`,
+      lastmod: BUILD_DATE,
+      changefreq: 'monthly',
+      priority: 0.85,
+    },
   ]
 
   const seen = new Set<string>([
@@ -48,6 +54,7 @@ export function collectSitemapEntries(): SitemapEntry[] {
     `${SITE_ORIGIN}/case-studies/3d-viewer/`,
     `${SITE_ORIGIN}/case-studies/black-witness/`,
     `${SITE_ORIGIN}/case-studies/message-in-a-bottle/`,
+    `${SITE_ORIGIN}/case-studies/labelled-custom-cursor/`,
   ])
 
   for (const project of PROJECTS) {

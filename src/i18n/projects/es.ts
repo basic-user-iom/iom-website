@@ -25,6 +25,11 @@ export const esProjects: ProjectsLocalePack = {
       description: 'Cómo construimos un recuerdo en el navegador sobre agua viva — layout de botella y pergamino, ingeniería de océano y cielo WebGPU, y una demo compartible para invitados.',
       tags: ['caso de estudio', 'webgpu', 'océano', 'three.js'],
     },
+    'case-study-labelled-custom-cursor': {
+      title: 'Cursor personalizado etiquetado — del brief al lab',
+      description: 'Cómo diseñamos un puntero contextual — modos markup, motion tip + anillo, un lab etiquetado compartible y una orbe focus más serena en el sitio live.',
+      tags: ['caso de estudio', 'ui', 'cursor', 'interacción'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'Integración de la capa 3D de OpenStreetMap para la presentación de modelos geolocalizados — sincroniza modelos con coordenadas reales y alineación del terreno. La demo en vivo incrusta Streets GL (MIT) para edificios, carreteras y terreno OSM reales.',

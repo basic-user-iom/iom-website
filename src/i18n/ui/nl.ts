@@ -190,6 +190,9 @@ export const nlUi: Dict = {
   'seo.caseMiabTitle': 'IOM — Message in a Bottle case study',
   'seo.caseMiabDescription':
     'Van brief tot open zee: hoe IOM een WebGPU-keepsake bouwt — fles, perkament, oceaan en een deelbare browserdemo.',
+  'seo.caseCursorTitle': 'IOM — Labelled custom cursor case study',
+  'seo.caseCursorDescription':
+    'Van brief tot lab: hoe IOM een contextbewuste pointer ontwerpt — markup-modi, tip + ring-motion, en een deelbaar labelled lab.',
 
   'case.back': 'Al het werk',
   'case.stagesAria': 'Procesfasen',

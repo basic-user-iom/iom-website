@@ -11,6 +11,11 @@ export interface Project {
   url?: string
   /** Live site preview in featured card (iframe src); falls back to glyph if blocked */
   embedUrl?: string
+  /**
+   * Start-button label for homepage card hover splash (first-party `/demos/…` embeds).
+   * Defaults to `Start ${title}` when omitted.
+   */
+  embedStartLabel?: string
   /** Static poster shown until hover activates the live embed */
   posterUrl?: string
   /** Static poster used when embeds are disabled on mobile */
@@ -88,6 +93,20 @@ export const PROJECTS: Project[] = [
     mobilePosterUrl: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
     thumbnail: '/assets/posters/message-in-a-bottle-400.webp?v=20260801',
     archiveId: 'OBJ-CS02',
+  },
+  {
+    id: 'case-study-labelled-custom-cursor',
+    title: 'Labelled custom cursor — from brief to lab',
+    section: '360',
+    tags: ['case study', 'ui', 'cursor', 'interaction'],
+    description:
+      'How we design a context-aware pointer — markup-driven modes, tip + ring motion, a shareable labelled lab, and a quieter focus orb on the live site.',
+    year: '2026',
+    url: '/case-studies/labelled-custom-cursor',
+    posterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    mobilePosterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    thumbnail: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    archiveId: 'OBJ-CS03',
   },
   {
     id: 'streets-gl-bridge',
@@ -791,8 +810,9 @@ export const PROJECTS: Project[] = [
     year: '2026',
     url: '/demos/volume-lighting/',
     embedUrl: '/demos/volume-lighting/',
-    posterUrl: '/assets/posters/volume-lighting.jpg?v=20260709-2',
-    mobilePosterUrl: '/assets/posters/volume-lighting.jpg?v=20260709-2',
+    embedStartLabel: 'Start volumetric lighting',
+    posterUrl: '/assets/posters/volume-lighting.webp',
+    mobilePosterUrl: '/assets/posters/volume-lighting.webp',
     sourceUrl:
       'https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_volume_lighting_rectarea.html',
     referenceUrls: [
@@ -889,6 +909,10 @@ export const PROJECTS: Project[] = [
     year: '2026',
     url: '/demos/custom-cursor-labelled/',
     embedUrl: '/demos/custom-cursor-labelled/',
+    posterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    mobilePosterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    thumbnail: '/assets/posters/labelled-custom-cursor.png?v=20260806',
+    caseStudyPath: '/case-studies/labelled-custom-cursor',
     archiveId: 'OBJ-0160',
   },
   {

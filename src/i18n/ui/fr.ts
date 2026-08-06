@@ -190,6 +190,9 @@ export const frUi: Dict = {
   'seo.caseMiabTitle': 'IOM — Étude de cas Message in a Bottle',
   'seo.caseMiabDescription':
     'Du brief à la mer ouverte : comment IOM construit un souvenir WebGPU — bouteille, parchemin, océan et démo navigateur partageable.',
+  'seo.caseCursorTitle': 'IOM — Étude de cas curseur personnalisé labellisé',
+  'seo.caseCursorDescription':
+    'Du brief au lab : comment IOM conçoit un pointeur contextuel — modes en markup, motion tip + anneau, et un lab labellisé partageable.',
 
   'case.back': 'Tous les projets',
   'case.stagesAria': 'Étapes du processus',

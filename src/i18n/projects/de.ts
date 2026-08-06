@@ -25,6 +25,11 @@ export const deProjects: ProjectsLocalePack = {
       description: 'Wie wir ein Browser-Keepsake auf lebendigem Wasser bauen — Flaschen- und Pergament-Layout, WebGPU-Ozean- und Himmels-Engineering und eine teilbare Demo für Gäste.',
       tags: ['fallstudie', 'webgpu', 'ozean', 'three.js'],
     },
+    'case-study-labelled-custom-cursor': {
+      title: 'Labelled Custom Cursor — vom Briefing zum Lab',
+      description: 'Wie wir einen kontextsensitiven Zeiger gestalten — Markup-Modi, Tip + Ring-Motion, ein teilbares labelled Lab und eine ruhigere Focus-Orb auf der Live-Site.',
+      tags: ['fallstudie', 'ui', 'cursor', 'interaktion'],
+    },
     'streets-gl-bridge': {
       title: 'Streets GL Bridge',
       description: 'OpenStreetMap-3D-Bodenschicht-Integration für geolokalisierte Modellpräsentation — Modelle mit realen Koordinaten und Terrain-Ausrichtung synchronisieren. Live-Demo bettet Streets GL (MIT) für reale OSM-Gebäude, Straßen und Terrain ein.',

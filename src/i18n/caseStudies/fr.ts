@@ -126,5 +126,51 @@ export const frCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'labelled-custom-cursor': {
+      eyebrow: 'Étude de cas · Interaction',
+      title: 'Curseur personnalisé labellisé — du brief au lab',
+      lead: 'Comment IOM conçoit un pointeur contextuel : déclarer l’intention en markup, animer tip et anneau avec une boucle rAF légère, puis parker un lab labellisé pendant que le site live reste calme.',
+      impact:
+        'Les visiteurs reçoivent des affordances hover claires sur les médias interactifs — VIEW, PLAY, LOOK, ENTER 3D — pour que démos et CTA communiquent avant le clic, sans gêner les champs texte natifs ni le tactile.',
+      primaryCtaLabel: 'Ouvrir le lab live',
+      secondaryCtaLabel: 'Parcourir les expériences',
+      deliverables: [
+        'Lab curseur labellisé partageable (playground + panneau d’usage live)',
+        'Vocabulaire markup data-cursor / data-cursor-label',
+        'Tip de précision + anneau inertiel (lerp rAF, sans GSAP)',
+        'Fallback natif pour tactile, formulaires et pointeurs grossiers',
+        'Orbe focus calme sur les cartes d’accueil ; modes labellisés pour CTA & médias',
+      ],
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Les médias interactifs ont besoin d’un pointeur qui parle intention — pas d’une flèche générique.',
+          detail:
+            'Sur un portfolio 3D, vidéo et 360°, le hover doit suggérer la suite : VIEW un projet, PLAY un média, LOOK un panorama, ENTER 3D. Le curseur système ne porte pas ce vocabulaire sans labels et motion alignés à la marque.',
+          mediaAlt: 'Lab curseur labellisé — cibles playground et panneau d’usage idle',
+        },
+        wire: {
+          title: 'Design d’interaction',
+          summary: 'Modes pilotés par le markup : data-cursor et labels optionnels.',
+          detail:
+            'Les cibles déclarent l’intention en HTML — explore, view, play, look, drag, start, external, link, native. Les labels custom (ENTER 3D) remplacent les défauts. Le lab reflète le markup de production : survoler met à jour un panneau d’usage live avec le snippet correspondant.',
+          mediaAlt: 'Survol ENTER 3D — le panneau d’usage montre le markup data-cursor explore',
+        },
+        engineering: {
+          title: 'Ingénierie',
+          summary: 'Tip de précision, anneau inertiel, lerp rAF — sans GSAP.',
+          detail:
+            'Une boucle requestAnimationFrame légère suit le pointeur avec un tip rapide (~0.55) et un anneau plus doux (~0.16). La résolution de cible parcourt le DOM pour data-cursor / ancres / inputs ; tactile et formulaires retombent sur le curseur natif.',
+          mediaAlt: 'Mode LOOK actif — le panneau code se synchronise au markup panorama',
+        },
+        final: {
+          title: 'Livrables',
+          summary: 'Un lab labellisé partageable — et une orbe focus plus calme sur le site live.',
+          detail:
+            'En ligne sous /demos/custom-cursor-labelled/ avec un snapshot source parké. Les cartes d’accueil utilisent une orbe focus cyan calme ; le set labellisé reste pour démos, CTA, transport et liens externes.',
+          mediaAlt: 'Démo curseur labellisé — playground et panneau code d’usage live',
+        },
+      },
+    },
   },
 }

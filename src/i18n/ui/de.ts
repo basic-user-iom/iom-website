@@ -181,6 +181,9 @@ export const deUi: Dict = {
   'seo.caseMiabTitle': 'IOM — Message in a Bottle Case Study',
   'seo.caseMiabDescription':
     'Vom Briefing zur offenen See: so baut IOM ein WebGPU-Keepsake — Flasche, Pergament, Ozean und eine teilbare Browser-Demo.',
+  'seo.caseCursorTitle': 'IOM — Labelled Custom Cursor Case Study',
+  'seo.caseCursorDescription':
+    'Vom Briefing zum Lab: so gestaltet IOM einen kontextsensitiven Zeiger — Markup-Modi, Tip + Ring-Motion und ein teilbares labelled Lab.',
   'seo.privacyTitle': 'Datenschutz | IOM',
   'seo.privacyDescription':
     'Wie Interactive Object Media Kontaktformular-Daten, Analytics und das private Kundenportal handhabt.',

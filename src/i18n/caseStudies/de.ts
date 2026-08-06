@@ -126,5 +126,51 @@ export const deCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'labelled-custom-cursor': {
+      eyebrow: 'Case Study · Interaktion',
+      title: 'Labelled Custom Cursor — vom Briefing zum Lab',
+      lead: 'Wie IOM einen kontextsensitiven Zeiger gestaltet: Intent im Markup deklarieren, Tip und Ring mit leichtem rAF-Loop animieren, dann ein labelled Lab parken, während die Live-Site ruhig bleibt.',
+      impact:
+        'Besucher erhalten klare Hover-Hinweise bei interaktiven Medien — VIEW, PLAY, LOOK, ENTER 3D — damit Demos und CTAs vor dem Klick kommunizieren, ohne native Textfelder oder Touch-Geräte zu stören.',
+      primaryCtaLabel: 'Live-Lab öffnen',
+      secondaryCtaLabel: 'Experimente durchstöbern',
+      deliverables: [
+        'Teilbares labelled Cursor-Lab (Playground + Live-Usage-Panel)',
+        'data-cursor / data-cursor-label Markup-Vokabular',
+        'Präzisions-Tip + träges Ring (rAF-Lerp, ohne GSAP)',
+        'Native Fallback für Touch, Formulare und grobe Pointer',
+        'Ruhige Focus-Orb auf Homepage-Karten; labelled Modi für CTAs & Medien',
+      ],
+      stages: {
+        brief: {
+          title: 'Briefing',
+          summary: 'Interaktive Medien brauchen einen Zeiger mit Intent — keinen generischen Pfeil.',
+          detail:
+            'Bei einem Portfolio aus 3D, Video und 360° soll Hover andeuten, was als Nächstes passiert: VIEW für Projekte, PLAY für Medien, LOOK für Panoramen, ENTER 3D für Immersion. Der Systemcursor trägt dieses Vokabular nicht ohne Labels und Motion, die zur Marke passen.',
+          mediaAlt: 'Labelled-Cursor-Lab — Playground-Targets und Idle-Usage-Panel',
+        },
+        wire: {
+          title: 'Interaktionsdesign',
+          summary: 'Markup-gesteuerte Modi: data-cursor plus optionale Labels.',
+          detail:
+            'Targets deklarieren Intent in HTML — explore, view, play, look, drag, start, external, link, native. Custom Labels (ENTER 3D) überschreiben Defaults. Das Lab spiegelt Produktions-Markup: Hover aktualisiert ein Live-Usage-Panel mit dem passenden Snippet.',
+          mediaAlt: 'ENTER-3D-Hover — Usage-Panel zeigt data-cursor-explore-Markup',
+        },
+        engineering: {
+          title: 'Engineering',
+          summary: 'Präzisions-Tip, träges Ring, rAF-Lerp — ohne GSAP.',
+          detail:
+            'Ein leichter requestAnimationFrame-Loop folgt dem Pointer mit schnellem Tip (~0.55) und weicherem Ring (~0.16). Target-Auflösung läuft den DOM für data-cursor / Anchors / Inputs ab; Touch und Formularfelder fallen auf den nativen Cursor zurück.',
+          mediaAlt: 'LOOK-Modus aktiv — Code-Panel synchronisiert zum Panorama-data-cursor-Markup',
+        },
+        final: {
+          title: 'Deliverables',
+          summary: 'Ein teilbares labelled Lab — und eine ruhigere Focus-Orb auf der Live-Site.',
+          detail:
+            'Live unter /demos/custom-cursor-labelled/ mit geparktem Source-Snapshot. Homepage-Karten nutzen eine ruhige cyan Focus-Orb; das labelled Set bleibt für Demos, CTAs, Transport-Controls und externe Links verfügbar.',
+          mediaAlt: 'Labelled-Custom-Cursor-Demo — Playground und Live-Usage-Code-Panel',
+        },
+      },
+    },
   },
 }

@@ -126,5 +126,51 @@ export const nlCaseStudies: CaseStudiesLocalePack = {
         },
       },
     },
+    'labelled-custom-cursor': {
+      eyebrow: 'Case study · Interactie',
+      title: 'Labelled custom cursor — van brief tot lab',
+      lead: 'Hoe IOM een contextbewuste pointer ontwerpt: intent declareren in markup, tip en ring animeren met een lichte rAF-loop, dan een labelled lab parkeren terwijl de live site rustig blijft.',
+      impact:
+        'Bezoekers krijgen duidelijke hover-affordances op interactieve media — VIEW, PLAY, LOOK, ENTER 3D — zodat demo’s en CTA’s communiceren vóór de klik, zonder native tekstvelden of touch te storen.',
+      primaryCtaLabel: 'Live lab openen',
+      secondaryCtaLabel: 'Experimenten bekijken',
+      deliverables: [
+        'Deelbaar labelled cursor-lab (playground + live usage-panel)',
+        'data-cursor / data-cursor-label markup-vocabulaire',
+        'Precisie-tip + inertiële ring (rAF-lerp, zonder GSAP)',
+        'Native fallback voor touch, formulieren en grove pointers',
+        'Rustige focus-orb op homepagekaarten; labelled modi voor CTA’s & media',
+      ],
+      stages: {
+        brief: {
+          title: 'Brief',
+          summary: 'Interactieve media heeft een pointer nodig die intent uitspreekt — geen generieke pijl.',
+          detail:
+            'Op een portfolio van 3D, video en 360° moet hover hinten wat volgt: VIEW een project, PLAY media, LOOK een panorama, ENTER 3D. De systeemcursor draagt dat vocabulaire niet zonder labels en motion die bij het merk horen.',
+          mediaAlt: 'Labelled cursor-lab — playground-targets en idle usage-panel',
+        },
+        wire: {
+          title: 'Interactieontwerp',
+          summary: 'Markup-gestuurde modi: data-cursor plus optionele labels.',
+          detail:
+            'Targets declareren intent in HTML — explore, view, play, look, drag, start, external, link, native. Custom labels (ENTER 3D) overschrijven defaults. Het lab spiegelt productiemarkup: hover werkt een live usage-panel bij met het passende snippet.',
+          mediaAlt: 'ENTER 3D-hover — usage-panel toont data-cursor explore-markup',
+        },
+        engineering: {
+          title: 'Engineering',
+          summary: 'Precisie-tip, inertiële ring, rAF-lerp — zonder GSAP.',
+          detail:
+            'Een lichte requestAnimationFrame-loop volgt de pointer met een snelle tip (~0.55) en een zachtere ring (~0.16). Target-resolutie loopt de DOM af voor data-cursor / anchors / inputs; touch en formuliervelden vallen terug op de native cursor.',
+          mediaAlt: 'LOOK-modus actief — codepanel sync’t naar panorama data-cursor-markup',
+        },
+        final: {
+          title: 'Deliverables',
+          summary: 'Een deelbaar labelled lab — en een rustigere focus-orb op de live site.',
+          detail:
+            'Live onder /demos/custom-cursor-labelled/ met een geparkeerde source-snapshot. Homepagekaarten gebruiken een kalme cyan focus-orb; de labelled set blijft beschikbaar voor demo’s, CTA’s, transport en externe links.',
+          mediaAlt: 'Labelled custom cursor-demo — playground en live usage-codepanel',
+        },
+      },
+    },
   },
 }

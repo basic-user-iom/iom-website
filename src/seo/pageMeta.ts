@@ -135,6 +135,7 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     const isViewer = path === '/case-studies/3d-viewer'
     const isWitness = path === '/case-studies/black-witness'
     const isMiab = path === '/case-studies/message-in-a-bottle'
+    const isCursor = path === '/case-studies/labelled-custom-cursor'
     return {
       title: isViewer
         ? seoT(lang, 'seo.caseViewerTitle')
@@ -142,20 +143,26 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
           ? seoT(lang, 'seo.caseWitnessTitle')
           : isMiab
             ? seoT(lang, 'seo.caseMiabTitle')
-            : seoT(lang, 'seo.caseStudiesTitle'),
+            : isCursor
+              ? seoT(lang, 'seo.caseCursorTitle')
+              : seoT(lang, 'seo.caseStudiesTitle'),
       description: isViewer
         ? seoT(lang, 'seo.caseViewerDescription')
         : isWitness
           ? seoT(lang, 'seo.caseWitnessDescription')
           : isMiab
             ? seoT(lang, 'seo.caseMiabDescription')
-            : seoT(lang, 'seo.caseStudiesDescription'),
+            : isCursor
+              ? seoT(lang, 'seo.caseCursorDescription')
+              : seoT(lang, 'seo.caseStudiesDescription'),
       canonical,
       ogImage: isWitness
         ? `${SITE_ORIGIN}/assets/posters/panorama-360-tour.jpg`
         : isMiab
           ? `${SITE_ORIGIN}/assets/posters/message-in-a-bottle.jpg`
-          : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
+          : isCursor
+            ? `${SITE_ORIGIN}/assets/posters/labelled-custom-cursor.png`
+            : `${SITE_ORIGIN}/assets/blog/3d-viewer/cover.jpg`,
       keywords: [
         'case study',
         'WebGL',
@@ -164,6 +171,7 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
         'Three.js',
         'interactive media studio',
         'ocean',
+        'custom cursor',
       ],
     }
   }

@@ -6,7 +6,7 @@
     <title>Labelled Custom Cursor — IOM</title>
     <meta
       name="description"
-      content="Interactive demo of IOM’s labelled custom cursor — VIEW, PLAY, LOOK, EXPLORE, ENTER 3D, START, and more. Precision dot + inertial ring."
+      content="Interactive demo of IOM’s labelled custom cursor — VIEW, PLAY, LOOK, EXPLORE, ENTER 3D, START, and more. Precision tip + inertial ring."
     />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://iobjectm.com/demos/custom-cursor-labelled/" />
@@ -156,6 +156,13 @@
         color: var(--text-muted);
       }
 
+      .panel-head .live-mode {
+        color: var(--accent);
+        font-family: ui-monospace, monospace;
+        letter-spacing: 0.12em;
+        min-height: 1em;
+      }
+
       .playground {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
@@ -184,7 +191,8 @@
           background 0.18s ease;
       }
 
-      .hit:hover {
+      .hit:hover,
+      .hit.is-active {
         border-color: rgba(0, 229, 255, 0.35);
         background: rgba(0, 229, 255, 0.04);
       }
@@ -220,7 +228,7 @@
         font-size: 0.72rem;
         line-height: 1.55;
         color: #c8c8d4;
-        white-space: pre;
+        white-space: pre-wrap;
       }
 
       .code-panel .tok-attr {
@@ -233,6 +241,10 @@
 
       .code-panel .tok-com {
         color: #6b7280;
+      }
+
+      .code-panel .tok-kw {
+        color: #f9a8d4;
       }
 
       .note {
@@ -271,9 +283,8 @@
       <p class="eyebrow">Experiment · Cursor lab</p>
       <h1>Labelled custom cursor</h1>
       <p class="lead">
-        Parked v1 of the IOM pointer — precision tip, inertial ring, and context labels. The live
-        site now uses a quieter focus orb on cards; this demo keeps the labelled system for
-        reference.
+        Parked v1 of the IOM pointer — precision tip, inertial ring, and context labels. Hover a
+        target on the left; the usage panel on the right updates to match.
       </p>
 
       <div class="layout">
@@ -282,28 +293,34 @@
             <span>Playground</span>
             <span>Hover targets</span>
           </div>
-          <div class="playground">
-            <a class="hit hit--wide" href="#explore" data-cursor="explore" data-cursor-label="ENTER 3D">
+          <div class="playground" id="playground">
+            <a
+              class="hit hit--wide"
+              href="#explore"
+              data-cursor="explore"
+              data-cursor-label="ENTER 3D"
+              data-code="explore"
+            >
               <strong>ENTER 3D</strong>
               <span>data-cursor="explore" · data-cursor-label="ENTER 3D"</span>
             </a>
-            <div class="hit" data-cursor="view">
+            <div class="hit" data-cursor="view" data-code="view">
               <strong>VIEW</strong>
               <span>Project / gallery</span>
             </div>
-            <div class="hit" data-cursor="play">
+            <div class="hit" data-cursor="play" data-code="play">
               <strong>PLAY</strong>
               <span>Video / audio</span>
             </div>
-            <div class="hit" data-cursor="look">
+            <div class="hit" data-cursor="look" data-code="look">
               <strong>LOOK</strong>
               <span>360° panorama</span>
             </div>
-            <div class="hit" data-cursor="drag">
+            <div class="hit" data-cursor="drag" data-code="drag">
               <strong>DRAG</strong>
               <span>Hold to see MOVE</span>
             </div>
-            <a class="hit hit--start" href="#contact" data-cursor="start">
+            <a class="hit hit--start" href="#contact" data-cursor="start" data-code="start">
               <strong>START</strong>
               <span>Primary contact CTA</span>
             </a>
@@ -313,17 +330,22 @@
               target="_blank"
               rel="noopener noreferrer"
               data-cursor="external"
+              data-code="external"
             >
               <strong>EXTERNAL</strong>
               <span>Diagonal arrow</span>
             </a>
-            <a class="hit" href="#link">
+            <a class="hit" href="#link" data-code="link">
               <strong>LINK</strong>
               <span>Ordinary link (no label)</span>
             </a>
-            <label class="hit" data-cursor="native">
+            <label class="hit" data-cursor="native" data-code="native">
               <strong>NATIVE</strong>
-              <input type="text" placeholder="Type here…" style="width: min(100%, 180px); margin-top: 0.4rem" />
+              <input
+                type="text"
+                placeholder="Type here…"
+                style="width: min(100%, 180px); margin-top: 0.4rem"
+              />
             </label>
           </div>
         </section>
@@ -331,46 +353,18 @@
         <aside class="panel code-panel" aria-label="Usage code">
           <div class="panel-head">
             <span>Usage</span>
-            <span>data-cursor</span>
+            <span class="live-mode" id="live-mode">idle</span>
           </div>
-          <pre><span class="tok-com">&lt;!-- Assign states declaratively --&gt;</span>
-&lt;a
-  <span class="tok-attr">href</span>=<span class="tok-str">"/demos/panorama-360/"</span>
-  <span class="tok-attr">data-cursor</span>=<span class="tok-str">"look"</span>
-&gt;
-  Open tour
-&lt;/a&gt;
-
-&lt;article
-  <span class="tok-attr">data-cursor</span>=<span class="tok-str">"explore"</span>
-  <span class="tok-attr">data-cursor-label</span>=<span class="tok-str">"ENTER 3D"</span>
-&gt;
-  …
-&lt;/article&gt;
-
-&lt;button <span class="tok-attr">data-cursor</span>=<span class="tok-str">"start"</span>&gt;
-  Get in touch
-&lt;/button&gt;
-
-<span class="tok-com">/* Modes */</span>
-<span class="tok-com">view | play | pause | explore</span>
-<span class="tok-com">look | drag | start | external | link</span>
-
-<span class="tok-com">/* Motion */</span>
-<span class="tok-com">dot  → fast track (lerp ~0.55)</span>
-<span class="tok-com">ring → soft inertia (lerp ~0.16)</span>
-
-<span class="tok-com">/* Live site note */</span>
-<span class="tok-com">Homepage cards now use data-cursor="focus"</span>
-<span class="tok-com">(small cyan orb). This labelled set is parked</span>
-<span class="tok-com">here for demos and future experiments.</span></pre>
+          <pre id="code-live" aria-live="polite"></pre>
         </aside>
       </div>
 
       <p class="note">
-        Source snapshot:
+        Case study:
+        <a href="/case-studies/labelled-custom-cursor">labelled custom cursor</a>
+        · Source snapshot:
         <code>parked/custom-cursor-labelled-v1/</code>
-        · Live cursor:
+        · Live site cursor:
         <a href="/">iobjectm.com</a>
       </p>
       <p class="mobile-hint">
@@ -380,5 +374,161 @@
     </main>
 
     <script src="./labelled-cursor.js"></script>
+    <script>
+      ;(() => {
+        const codeEl = document.getElementById('code-live')
+        const modeEl = document.getElementById('live-mode')
+        const playground = document.getElementById('playground')
+        if (!codeEl || !modeEl || !playground) return
+
+        const esc = (s) =>
+          String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+
+        const attr = (name, value) =>
+          `<span class="tok-attr">${esc(name)}</span>=<span class="tok-str">"${esc(value)}"</span>`
+
+        const com = (text) => `<span class="tok-com">${esc(text)}</span>`
+
+        const SNIPPETS = {
+          idle: () => `${com('<!-- Hover a target on the left -->')}
+${com('<!-- The panel updates to the active data-cursor state -->')}
+
+${com('/* Modes */')}
+${com('view | play | pause | explore')}
+${com('look | drag | start | external | link | native')}
+
+${com('/* Motion */')}
+${com('dot  → fast track (lerp ~0.55)')}
+${com('ring → soft inertia (lerp ~0.16)')}
+
+${com('/* Live site */')}
+${com('Homepage cards use a quiet cyan focus orb.')}
+${com('This lab keeps the labelled system for demos.')}`,
+
+          explore: () => `${com('<!-- 3D / immersive entry -->')}
+&lt;a
+  ${attr('href', '/demos/artist-globe')}
+  ${attr('data-cursor', 'explore')}
+  ${attr('data-cursor-label', 'ENTER 3D')}
+&gt;
+  Enter experience
+&lt;/a&gt;
+
+${com('/* Cursor shows: ENTER 3D */')}
+${com('/* Ring expands · label centred */')}`,
+
+          view: () => `${com('<!-- Project / gallery card -->')}
+&lt;article ${attr('data-cursor', 'view')}&gt;
+  &lt;h3&gt;Gallery project&lt;/h3&gt;
+&lt;/article&gt;
+
+${com('/* Cursor shows: VIEW */')}`,
+
+          play: () => `${com('<!-- Video or audio trigger -->')}
+&lt;button
+  ${attr('type', 'button')}
+  ${attr('data-cursor', 'play')}
+&gt;
+  Play
+&lt;/button&gt;
+
+${com('/* Optional pause flip */')}
+${com('data-cursor="pause"')}
+${com('/* or data-cursor-playing="true" */')}`,
+
+          look: () => `${com('<!-- 360° / panorama surface -->')}
+&lt;a
+  ${attr('href', '/demos/panorama-360/')}
+  ${attr('data-cursor', 'look')}
+&gt;
+  Open tour
+&lt;/a&gt;
+
+${com('/* Cursor shows: LOOK */')}
+${com('/* On drag → MOVE */')}`,
+
+          drag: () => `${com('<!-- Orbit / drag viewport -->')}
+&lt;div ${attr('data-cursor', 'drag')}&gt;
+  &lt;!-- WebGL canvas / panorama --&gt;
+&lt;/div&gt;
+
+${com('/* Idle label: DRAG */')}
+${com('/* Pointer down: MOVE */')}`,
+
+          start: () => `${com('<!-- Primary contact CTA -->')}
+&lt;a
+  ${attr('href', '/#contact')}
+  ${attr('data-cursor', 'start')}
+&gt;
+  Get in touch
+&lt;/a&gt;
+
+${com('/* Cursor shows: START */')}
+${com('/* Accent-tinted ring */')}`,
+
+          external: () => `${com('<!-- External / source link -->')}
+&lt;a
+  ${attr('href', 'https://example.com')}
+  ${attr('target', '_blank')}
+  ${attr('rel', 'noopener noreferrer')}
+  ${attr('data-cursor', 'external')}
+&gt;
+  Source
+&lt;/a&gt;
+
+${com('/* Cursor shows: diagonal arrow */')}
+${com('/* No text label */')}`,
+
+          link: () => `${com('<!-- Ordinary link — no data-cursor -->')}
+&lt;a ${attr('href', '/#about')}&gt;
+  About
+&lt;/a&gt;
+
+${com('/* Cursor mode: link */')}
+${com('/* Ring expands slightly · no label */')}`,
+
+          native: () => `${com('<!-- Keep system text cursor -->')}
+&lt;input
+  ${attr('type', 'text')}
+  ${attr('data-cursor', 'native')}
+  ${attr('placeholder', 'Name')}
+/&gt;
+
+${com('/* Custom cursor hides */')}
+${com('/* Native I-beam restored */')}`,
+        }
+
+        let activeKey = 'idle'
+
+        const render = (key) => {
+          const next = SNIPPETS[key] ? key : 'idle'
+          if (next === activeKey && codeEl.innerHTML) return
+          activeKey = next
+          codeEl.innerHTML = SNIPPETS[next]()
+          modeEl.textContent = next === 'idle' ? 'idle' : next
+          playground.querySelectorAll('.hit.is-active').forEach((el) => el.classList.remove('is-active'))
+          if (next !== 'idle') {
+            playground.querySelector(`[data-code="${next}"]`)?.classList.add('is-active')
+          }
+        }
+
+        render('idle')
+
+        playground.addEventListener(
+          'pointerover',
+          (event) => {
+            const hit = event.target.closest?.('.hit')
+            if (!hit || !playground.contains(hit)) return
+            render(hit.getAttribute('data-code') || 'idle')
+          },
+          true,
+        )
+
+        playground.addEventListener('pointerleave', () => render('idle'))
+      })()
+    </script>
   </body>
 </html>

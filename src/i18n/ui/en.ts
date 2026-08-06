@@ -181,6 +181,9 @@ export const enUi: Dict = {
   'seo.caseMiabTitle': 'IOM — Message in a Bottle case study',
   'seo.caseMiabDescription':
     'From challenge to deliverables: how IOM builds a WebGPU open-sea keepsake — bottle, parchment, ocean, and a shareable browser demo.',
+  'seo.caseCursorTitle': 'IOM — Labelled custom cursor case study',
+  'seo.caseCursorDescription':
+    'From challenge to deliverables: how IOM designs a context-aware pointer — markup modes, tip + ring motion, and a shareable labelled lab.',
   'seo.privacyTitle': 'Privacy Policy | IOM',
   'seo.privacyDescription':
     'How Interactive Object Media handles contact form data, analytics, and the private client portal.',

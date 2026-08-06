@@ -209,6 +209,65 @@ const MIAB_STAGES: Stage[] = [
   },
 ]
 
+const LABELLED_CURSOR_STAGES: Stage[] = [
+  {
+    id: 'brief',
+    index: '01',
+    framework: 'challenge',
+    title: 'Challenge',
+    summary: 'Interactive media needs a pointer that speaks intent — not a generic arrow.',
+    detail:
+      'On a portfolio of 3D, video, and 360° work, hover should hint what happens next: VIEW a project, PLAY media, LOOK around a panorama, or ENTER 3D. The system cursor cannot carry that vocabulary without labels and motion that feel native to the brand.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/labelled-custom-cursor/brief.png?v=20260806',
+      alt: 'Labelled cursor lab — playground targets and idle usage panel',
+    },
+  },
+  {
+    id: 'wire',
+    index: '02',
+    framework: 'solution',
+    title: 'Solution — interaction design',
+    summary: 'Markup-driven modes: data-cursor plus optional labels.',
+    detail:
+      'Targets declare intent in HTML — explore, view, play, look, drag, start, external, link, native. Custom labels (ENTER 3D) override defaults. The lab mirrors production markup so hovering a hit updates a live usage panel with the matching snippet.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/labelled-custom-cursor/wire.png?v=20260806',
+      alt: 'ENTER 3D hover — usage panel shows data-cursor explore markup',
+    },
+  },
+  {
+    id: 'engineering',
+    index: '03',
+    framework: 'solution',
+    title: 'Solution — engineering',
+    summary: 'Precision tip, inertial ring, rAF lerp — no GSAP dependency.',
+    detail:
+      'A lightweight requestAnimationFrame loop tracks the pointer with a fast tip (~0.55) and a softer ring (~0.16). Target resolution walks the DOM for data-cursor / anchors / inputs; touch and form fields fall back to the native cursor so typing stays usable.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/labelled-custom-cursor/engineering.png?v=20260806',
+      alt: 'LOOK mode active — code panel syncs to panorama data-cursor markup',
+    },
+  },
+  {
+    id: 'final',
+    index: '04',
+    framework: 'deliverables',
+    title: 'Deliverables',
+    summary: 'A shareable labelled lab — and a quieter focus orb on the live site.',
+    detail:
+      'Live under /demos/custom-cursor-labelled/ with a parked source snapshot. Homepage cards ship a calm cyan focus orb; the labelled set stays available for demos, CTAs, transport controls, and external links where a word or glyph still helps.',
+    media: {
+      type: 'image',
+      src: '/assets/blog/labelled-custom-cursor/final.png?v=20260806',
+      alt: 'Labelled custom cursor demo — playground and live usage code panel',
+    },
+  },
+]
+
 const STUDIES: Record<string, CaseStudySpec> = {
   '3d-viewer': {
     slug: '3d-viewer',
@@ -272,6 +331,27 @@ const STUDIES: Record<string, CaseStudySpec> = {
       'TSL Gerstner ocean with foam, buoyancy, and sea life',
       'Day/night sky with quality-aware volumetric clouds',
       'Low / Medium / High presets tuned for real devices',
+    ],
+  },
+  'labelled-custom-cursor': {
+    slug: 'labelled-custom-cursor',
+    eyebrow: 'Case study · Interaction',
+    title: 'Labelled custom cursor — challenge to lab',
+    lead: 'How IOM designs a context-aware pointer: declare intent in markup, animate tip and ring with a light rAF loop, then park a labelled lab while the live site stays quiet.',
+    impact:
+      'Visitors get clear hover affordances on interactive media — VIEW, PLAY, LOOK, ENTER 3D — so demos and CTAs communicate before the click, without fighting native text inputs or touch devices.',
+    primaryCta: {
+      label: 'Open live lab',
+      href: '/demos/custom-cursor-labelled/',
+    },
+    secondaryCta: { label: 'Browse experiments', href: '/#experiments' },
+    stages: LABELLED_CURSOR_STAGES,
+    deliverables: [
+      'Shareable labelled cursor lab (playground + live usage panel)',
+      'data-cursor / data-cursor-label markup vocabulary',
+      'Precision tip + inertial ring (rAF lerp, no GSAP)',
+      'Native fallback for touch, forms, and coarse pointers',
+      'Production quiet focus orb on homepage cards; labelled modes for CTAs & media',
     ],
   },
 }
@@ -505,6 +585,9 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
                 </a>
                 <a className="btn btn-ghost" href={href('/case-studies/message-in-a-bottle')}>
                   {localizeSpec(STUDIES['message-in-a-bottle']!, lang).title}
+                </a>
+                <a className="btn btn-ghost" href={href('/case-studies/labelled-custom-cursor')}>
+                  {localizeSpec(STUDIES['labelled-custom-cursor']!, lang).title}
                 </a>
               </div>
             </header>
