@@ -798,7 +798,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     )
   }
 
-  if (accessRole === 'client') {
+  // Live client portal only — never expose portal resources (incl. project costs) in /crm-demo.
+  if (accessRole === 'client' && !demoMode) {
     return (
       <div className="crm-shell crm-shell--portal">
         <header className="crm-topbar">

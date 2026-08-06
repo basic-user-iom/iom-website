@@ -13,14 +13,16 @@ import {
   listResearchNotes,
   listTasks,
 } from './workspaceApi'
+import { isCrmDemoMode } from './demoMode'
 
 interface ClientPortalViewProps {
   user: CrmUser
 }
 
-/** Read-only portal for authenticated client members. */
+/** Read-only portal for authenticated client members (live /client-login only). */
 export function ClientPortalView({ user }: ClientPortalViewProps) {
   const { t } = useCrmI18n()
+  const showProjectCosts = !isCrmDemoMode()
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [notes, setNotes] = useState<ResearchNote[]>([])
   const [openProjectId, setOpenProjectId] = useState<string | null>(null)
@@ -114,15 +116,17 @@ export function ClientPortalView({ user }: ClientPortalViewProps) {
           <p className="crm-muted">{t('boot.loading')}</p>
         ) : (
           <>
-            <section className="crm-portal-resources" aria-labelledby="portal-resources-heading">
-              <h3 className="crm-portal-section" id="portal-resources-heading">
-                {t('portal.resources')}
-              </h3>
-              <p className="crm-muted">{t('portal.resourcesLead')}</p>
-              <a href="/project-costs" className="btn btn-primary">
-                {t('portal.projectCosts')}
-              </a>
-            </section>
+            {showProjectCosts && (
+              <section className="crm-portal-resources" aria-labelledby="portal-resources-heading">
+                <h3 className="crm-portal-section" id="portal-resources-heading">
+                  {t('portal.resources')}
+                </h3>
+                <p className="crm-muted">{t('portal.resourcesLead')}</p>
+                <a href="/project-costs" className="btn btn-primary">
+                  {t('portal.projectCosts')}
+                </a>
+              </section>
+            )}
 
             <h3 className="crm-portal-section">{t('portal.projects')}</h3>
             {projects.length === 0 ? (
