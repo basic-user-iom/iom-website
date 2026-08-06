@@ -7,8 +7,8 @@ import type { CursorMode, ResolvedCursor } from './types'
 const DOT_LERP = 0.55
 const RING_LERP = 0.16
 const RING_ORBIT_LERP = 0.35
-/** Full outline lap — slow, like homepage card attend. */
-const CARD_ORBIT_MS = 9000
+/** Full outline lap — slow perimeter travel for the larger cursor orb. */
+const CARD_ORBIT_MS = 18000
 const CARD_ORBIT_SPEED = 1
 const CARD_ORBIT_PAD = 10
 const TAU = Math.PI * 2
