@@ -642,7 +642,7 @@ export function LeadDetail({
       <div className="crm-projects-hook">
         <h3 className="crm-panel-title">{t('detail.projects')}</h3>
         <p className="crm-muted">{t('detail.projectsBlurb')}</p>
-        <div className="crm-detail-actions" style={{ marginTop: '0.75rem' }}>
+        <div className="crm-detail-actions">
           <button
             type="button"
             className="btn btn-primary"

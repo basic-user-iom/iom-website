@@ -789,10 +789,10 @@
 }
 
 .crm-outreach-schedule {
-  margin: 0.75rem 0 0.25rem;
+  margin: 0.85rem 0 0.35rem;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
 }
 
 /* Explicit day/month/year + 24h time — avoids OS mm/dd + AM/PM confusion */
@@ -811,10 +811,11 @@
 }
 
 .crm-schedule-part-label {
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--text-muted) 60%, var(--text));
+  font-weight: 500;
 }
 
 /* Beat .crm-shell input.crm-input padding (0.95rem) so digits aren't clipped */
@@ -893,12 +894,16 @@
 
 .crm-outreach-schedule-hint {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  max-width: 52rem;
+  color: color-mix(in srgb, var(--text-muted) 85%, var(--text));
 }
 
 .crm-outreach-ping-note {
-  margin: 0.15rem 0 0;
-  font-size: 0.84rem;
+  margin: 0.2rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
   color: color-mix(in srgb, #7ec8e3 85%, var(--text, #ddd));
 }
 
@@ -1469,7 +1474,9 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 1.25rem;
+  margin-bottom: 1.35rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
 }
 
 .crm-photo-row {
@@ -1574,7 +1581,7 @@
 
 .crm-detail-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.45rem;
   align-items: center;
   flex-shrink: 0;
   flex-wrap: wrap;
@@ -1582,6 +1589,16 @@
 
 .crm-detail-actions .btn {
   white-space: nowrap;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+/* Quieter resting state for destructive action — still clear on hover */
+.crm-detail-actions .crm-danger {
+  color: color-mix(in srgb, var(--text-muted) 70%, #ff6b6b);
+  border-color: color-mix(in srgb, var(--border) 75%, #ff6b6b);
 }
 
 /* Collapsed lead/project summary: WARM/ACTIVE + EXPAND share --crm-control-h */
@@ -1686,21 +1703,30 @@
 .crm-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.85rem 1.25rem;
-  margin: 0 0 1.5rem;
+  gap: 1rem 1.5rem;
+  margin: 0 0 1.65rem;
+}
+
+.crm-facts > div {
+  min-width: 0;
+  padding: 0.15rem 0 0.7rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
 }
 
 .crm-facts dt {
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--text-muted);
-  margin-bottom: 0.2rem;
+  color: color-mix(in srgb, var(--text-muted) 65%, var(--text));
+  margin-bottom: 0.35rem;
+  font-weight: 500;
 }
 
 .crm-facts dd {
   margin: 0;
   font-size: 0.95rem;
+  line-height: 1.45;
+  color: var(--text);
 }
 
 .crm-client-local {
@@ -1734,11 +1760,12 @@
 }
 
 .crm-client-local-label {
-  margin: 0 0 0.35rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--accent) 55%, var(--text-muted));
+  font-weight: 500;
 }
 
 .crm-client-local-time {
@@ -2040,12 +2067,16 @@
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.45rem;
+}
+
+.crm-named-links li {
+  line-height: 1.4;
 }
 
 .crm-named-email-label {
-  color: var(--muted, rgba(255, 255, 255, 0.55));
-  font-size: 0.9em;
+  color: color-mix(in srgb, var(--text-muted) 80%, var(--text));
+  font-size: 0.88em;
 }
 
 .crm-detail-links dd {
@@ -2315,24 +2346,30 @@
 .crm-offer-block,
 .crm-projects-hook,
 .crm-activities {
-  margin-top: 1.5rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--border);
+  margin-top: 1.65rem;
+  padding-top: 1.35rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
 }
 
 .crm-panel-title {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.45rem;
   font-family: var(--display);
-  font-size: 1rem;
+  font-size: 1.02rem;
   font-weight: 600;
+  letter-spacing: 0.01em;
 }
 
 .crm-panel-blurb,
 .crm-offer-text {
   margin: 0 0 1rem;
-  color: var(--text-muted);
+  color: color-mix(in srgb, var(--text-muted) 70%, var(--text));
   font-size: 0.9rem;
+  line-height: 1.55;
   white-space: pre-wrap;
+}
+
+.crm-projects-hook .crm-detail-actions {
+  margin-top: 0.75rem;
 }
 
 .crm-form {
@@ -2354,7 +2391,7 @@
 .crm-field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
 }
 
 .crm-field--span2 {
@@ -2362,10 +2399,11 @@
 }
 
 .crm-label {
-  font-size: 0.7rem;
+  font-size: 0.72rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-muted);
+  letter-spacing: 0.09em;
+  color: color-mix(in srgb, var(--text-muted) 60%, var(--text));
+  font-weight: 500;
 }
 
 .crm-input {
@@ -2375,8 +2413,13 @@
   font-size: 0.95rem;
   color: var(--text);
   background: var(--bg);
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--border) 88%, var(--text-muted));
   border-radius: var(--radius);
+  transition: border-color 0.15s ease;
+}
+
+.crm-input:hover:not(:disabled):not(:focus) {
+  border-color: color-mix(in srgb, var(--border-accent) 55%, var(--border));
 }
 
 /* Keep project-board status select flush with TIME / IDEAS / COLUMN / DELETE */
@@ -2585,6 +2628,12 @@
   gap: 0.75rem;
 }
 
+.crm-activity-form > .btn {
+  align-self: flex-start;
+  width: auto;
+  min-width: 10rem;
+}
+
 .crm-activity-item {
   padding: 0.9rem 1rem;
   border: 1px solid var(--border);
@@ -2648,8 +2697,8 @@
 .crm-nda-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem 1rem;
-  margin-bottom: 0.85rem;
+  gap: 0.85rem 1.1rem;
+  margin-bottom: 0.95rem;
 }
 
 .crm-nda-status {
@@ -2658,7 +2707,7 @@
   font-size: 0.68rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  padding: 0.2rem 0.5rem;
+  padding: 0.28rem 0.6rem;
   border-radius: 999px;
   border: 1px solid var(--border, #333);
 }
@@ -2681,8 +2730,30 @@
 .crm-nda-status-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-bottom: 0.65rem;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+}
+
+.crm-nda-actions .btn,
+.crm-nda-status-actions .btn,
+.crm-outreach-actions .btn,
+.crm-email-thread-actions .btn,
+.crm-activity-form > .btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--crm-control-h);
+  height: var(--crm-control-h);
+  max-height: var(--crm-control-h);
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .crm-nda-updated {
@@ -2733,7 +2804,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  padding: 0.25rem 0.55rem;
+  padding: 0.3rem 0.65rem;
   border-radius: 999px;
   border: 1px solid var(--border);
 }
@@ -2783,14 +2854,14 @@
 }
 
 .crm-outreach-body {
-  margin: 0 0 0.75rem;
-  padding: 0.85rem 1rem;
+  margin: 0 0 0.85rem;
+  padding: 1rem 1.1rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--bg);
   font-family: inherit;
-  font-size: 0.85rem;
-  line-height: 1.5;
+  font-size: 0.88rem;
+  line-height: 1.6;
   white-space: pre-wrap;
   /* No inner scroll — page/detail pane scrolls instead */
   max-height: none;
@@ -2798,12 +2869,13 @@
 }
 
 .crm-outreach-actions {
-  margin-top: 0.75rem;
+  margin-top: 0.85rem;
+  gap: 0.45rem;
 }
 
 .crm-outreach-from,
 .crm-outreach-recipient {
-  margin: 0.75rem 0 0.35rem;
+  margin: 0.85rem 0 0.4rem;
 }
 
 .crm-outreach-demo-note {
@@ -2946,6 +3018,9 @@
 }
 
 .crm-email-thread-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
   margin-top: 0.85rem;
 }
 
