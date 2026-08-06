@@ -92,6 +92,10 @@
   font-size: 0.86rem;
 }
 
+.pc-rate-note {
+  max-width: 72ch;
+}
+
 .pc-text-lead {
   margin: 0 0 0.5rem;
   font-size: 0.92rem;
@@ -114,7 +118,7 @@
 
 .pc-facts-row {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0;
   margin: 0 0 1rem;
 }
@@ -551,6 +555,7 @@
 
 .pc-proto-portrait-media--video {
   opacity: 0;
+  transition: opacity 180ms ease;
 }
 
 .pc-proto-portrait-media--video.is-active {
@@ -620,6 +625,36 @@
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border);
+}
+
+.pc-support--quiet {
+  max-width: 58ch;
+}
+
+.pc-support-heading {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.pc-support--quiet > p {
+  margin: 0 0 0.65rem;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.pc-support--quiet .pc-section-note {
+  margin-bottom: 0;
+}
+
+.pc-optional {
+  font-weight: 400;
+  color: var(--text-muted);
+  text-transform: none;
+  letter-spacing: normal;
 }
 
 .pc-support-points {
@@ -726,7 +761,7 @@
 
 @media (max-width: 960px) {
   .pc-facts-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     row-gap: 1rem;
   }
 
@@ -735,7 +770,7 @@
     padding: 0 0.75rem 0 0;
   }
 
-  .pc-facts-item:nth-child(n + 4) {
+  .pc-facts-item:nth-child(n + 3) {
     border-top: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
     padding-top: 1rem;
   }
@@ -778,10 +813,6 @@
     padding-top: 1rem;
   }
 
-  .pc-facts-item:last-child {
-    grid-column: 1 / -1;
-  }
-
   .pc-card-grid,
   .pc-factor-grid,
   .pc-how-grid,
@@ -818,6 +849,8 @@
 }
 
 @media print {
+  /* Print engines often use a narrow page width (~A4), which would otherwise
+     trigger mobile max-width rules and produce an inconsistent PDF. */
   :root {
     --bg: #fff;
     --bg-elevated: #fff;
@@ -825,22 +858,49 @@
     --text: #111;
     --text-muted: #333;
     --accent: #006678;
+    --accent-glow: transparent;
     --border: #ccc;
     --border-accent: #999;
+    --header-h: 0px;
   }
 
+  html,
   body {
     background: #fff !important;
     color: #111 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Custom cursor orb / ring must never appear in the PDF. */
+  .iom-cursor,
+  .iom-cursor__dot,
+  .iom-cursor__ring,
+  .iom-cursor__label,
+  .iom-cursor__icon {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
+  html.iom-cursor-active,
+  html.iom-cursor-active body,
+  html.iom-cursor-active a,
+  html.iom-cursor-active button {
+    cursor: auto !important;
   }
 
   .site-header,
   .site-footer,
+  .skip-link,
   .pc-hero-tools,
   .pc-actions,
   .pc-print-btn,
   .btn,
-  .pc-inquiry {
+  .pc-inquiry,
+  .language-switcher,
+  [data-site-ambient],
+  .site-ambient-audio {
     display: none !important;
   }
 
@@ -848,35 +908,133 @@
     display: none !important;
   }
 
+  .pc-proto-portrait-media--still,
   .pc-proto-portrait-media--still.is-dimmed {
     opacity: 1 !important;
+    display: block !important;
   }
 
   .pc-main {
-    padding-top: 0;
+    padding-top: 0 !important;
+    min-height: 0 !important;
   }
 
   .pc-page {
-    width: 100%;
-    max-width: none;
-    padding: 0;
+    width: 100% !important;
+    max-width: none !important;
+    padding: 0.5rem 0 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Do NOT use break-inside:avoid on whole sections — tall blocks leave
+     orphan headings and nearly blank pages in print preview. */
+  .pc-section,
+  .pc-hero,
+  .pc-facts,
+  .pc-estimate-box,
+  .pc-engage,
+  .pc-card,
+  .pc-card-grid {
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .pc-facts-row {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    row-gap: 0 !important;
+  }
+
+  .pc-facts-item {
+    border-left: 1px solid #ccc !important;
+    border-top: none !important;
+    padding: 0.35rem 0.75rem !important;
+  }
+
+  .pc-facts-item:first-child {
+    border-left: none !important;
+    padding-left: 0 !important;
+  }
+
+  /* Force desktop glance table — ignore mobile print viewport. */
+  .pc-glance-head {
+    display: grid !important;
+    grid-template-columns: 1.35fr 1.2fr 0.9fr 0.9fr !important;
+  }
+
+  .pc-glance-row {
+    display: grid !important;
+    grid-template-columns: 1.35fr 1.2fr 0.9fr 0.9fr !important;
+    gap: 0.75rem !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .pc-glance-delivery,
+  .pc-glance-budget-col {
+    display: flex !important;
+  }
+
+  .pc-glance-mobile-only {
+    display: none !important;
+  }
+
+  /* Single column in print — more predictable pagination than 2× tall cards. */
+  .pc-card-grid {
+    grid-template-columns: 1fr !important;
+    gap: 1rem !important;
   }
 
   .pc-card {
-    break-inside: avoid;
-    page-break-inside: avoid;
     box-shadow: none !important;
     transform: none !important;
-    border-color: #ccc;
+    border-color: #ccc !important;
+    background: #fff !important;
+    overflow: visible !important;
   }
 
-  .pc-card-grid {
-    grid-template-columns: 1fr;
+  /* Dark #0a0a10 placeholder reads as a solid black block when the image
+     is skipped by the print engine — use a light fallback instead. */
+  .pc-card-media {
+    background: #e8e8e8 !important;
+    max-height: none !important;
+    aspect-ratio: 16 / 10;
+    overflow: hidden !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .pc-card-media img {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .pc-factor-grid,
+  .pc-how-grid,
+  .pc-proto-steps,
+  .pc-card-cols,
+  .pc-list--wrap {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .pc-factor,
+  .pc-how-item,
+  .pc-proto-step,
+  .pc-estimate-box {
+    background: #fff !important;
+    border-color: #ccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 
   .pc-print-url,
   .pc-print-footer {
-    display: block;
+    display: block !important;
   }
 
   .pc-print-footer {
@@ -885,10 +1043,6 @@
     border-top: 1px solid #ccc;
     font-size: 0.75rem;
     color: #444;
-  }
-
-  .pc-glance-row {
-    break-inside: avoid;
   }
 
   a {

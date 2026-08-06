@@ -5,15 +5,17 @@ import { TEAM, TEAM_PORTRAIT_EXTS } from '../data/team'
 import { useSiteI18n } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
 import {
-  CONSULT_POINTS,
   CONTACT_CHECKLIST,
   COST_FACTS,
   COST_FACTORS,
   COST_REFERENCES,
+  GLANCE_RANGE_NOTE,
   HOW_IOM_WORKS,
+  PRODUCTION_TIME_NOTE,
   PROJECT_COSTS_META,
   PROTOTYPE_STEPS,
-  SUPPORT_POINTS,
+  RATE_BLENDED_NOTE,
+  SELECTED_SUPPORT_NOTE,
   type CostReference,
 } from './data'
 import { ProjectCostsInquiryForm } from './ProjectCostsInquiryForm'
@@ -54,23 +56,13 @@ function useCanHoverPlay(): boolean {
   return canHover && !reduced
 }
 
-function ProtoPortrait({
-  memberId,
-  initials,
-}: {
-  memberId: (typeof PROTOTYPE_STEPS)[number]['memberId']
-  initials: string
-}) {
-  const member = TEAM.find((m) => m.id === memberId)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const rootRef = useRef<HTMLSpanElement>(null)
+function ProtoStep({ step }: { step: (typeof PROTOTYPE_STEPS)[number] }) {
   const canHover = useCanHoverPlay()
-  const [imgIndex, setImgIndex] = useState(0)
-  const [videoReady, setVideoReady] = useState(false)
+  const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoActive, setVideoActive] = useState(false)
+  const member = TEAM.find((m) => m.id === step.memberId)
+  const [imgIndex, setImgIndex] = useState(0)
 
-  // Prefer PNG for the temporary still — WebP for raven/octopus is heavily compressed
-  // and looks soft when cropped into a small circle.
   const candidates = useMemo(() => {
     if (!member?.portraitBase) return [] as string[]
     const preferPng = ['.png', '.webp', '.jpg', '.jpeg'] as const
@@ -85,6 +77,13 @@ function ProtoPortrait({
   const play = useCallback(() => {
     const video = videoRef.current
     if (!video || !videoSrc) return
+    if (video.readyState < 2) {
+      try {
+        video.load()
+      } catch {
+        /* ignore */
+      }
+    }
     void video.play().then(() => setVideoActive(true)).catch(() => {})
   }, [videoSrc])
 
@@ -92,94 +91,86 @@ function ProtoPortrait({
     const video = videoRef.current
     if (!video) return
     video.pause()
-    setVideoActive(false)
-    // Keep a decoded video frame as the idle image (sharper than the still WebP).
-    if (video.readyState >= 2) {
-      try {
-        if (video.currentTime < 0.05) video.currentTime = 0.08
-      } catch {
-        /* ignore */
-      }
-    }
-  }, [])
-
-  const onVideoReady = useCallback(() => {
-    const video = videoRef.current
-    if (!video) return
-    const reveal = () => setVideoReady(true)
     try {
-      if (video.currentTime < 0.05) {
-        const onSeeked = () => {
-          video.removeEventListener('seeked', onSeeked)
-          reveal()
-        }
-        video.addEventListener('seeked', onSeeked)
-        video.currentTime = 0.08
-        return
-      }
+      video.currentTime = 0
     } catch {
       /* ignore */
     }
-    reveal()
+    setVideoActive(false)
   }, [])
 
-  // Coarse pointers: play while the portrait is mostly in view
+  const rootRef = useRef<HTMLLIElement>(null)
+
   useEffect(() => {
     if (canHover || !videoSrc) return
     const root = rootRef.current
     if (!root) return
     const io = new IntersectionObserver(
       ([entry]) => {
-        if (entry?.isIntersecting && entry.intersectionRatio >= 0.55) play()
+        if (entry?.isIntersecting && entry.intersectionRatio >= 0.45) play()
         else pause()
       },
-      { threshold: [0, 0.55, 1] },
+      { threshold: [0, 0.45, 1] },
     )
     io.observe(root)
     return () => io.disconnect()
   }, [canHover, videoSrc, play, pause])
 
-  useEffect(() => () => {
-    const video = videoRef.current
-    if (!video) return
-    video.pause()
-  }, [])
+  useEffect(
+    () => () => {
+      videoRef.current?.pause()
+    },
+    [],
+  )
 
   return (
-    <span
+    <li
       ref={rootRef}
-      className={`pc-proto-portrait pc-proto-portrait--${memberId}${videoActive ? ' is-playing' : ''}${videoReady ? ' is-video-ready' : ''}`}
-      aria-hidden="true"
+      className="pc-proto-step"
       onPointerEnter={canHover ? play : undefined}
       onPointerLeave={canHover ? pause : undefined}
     >
-      {src ? (
-        <img
-          className={`pc-proto-portrait-media pc-proto-portrait-media--still${videoReady ? ' is-dimmed' : ''}`}
-          src={src}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          onError={() => {
-            setImgIndex((i) => (i + 1 < candidates.length ? i + 1 : candidates.length))
-          }}
-        />
-      ) : (
-        <span className="pc-proto-portrait-fallback">{initials}</span>
-      )}
-      {videoSrc ? (
-        <video
-          ref={videoRef}
-          className={`pc-proto-portrait-media pc-proto-portrait-media--video${videoReady ? ' is-active' : ''}`}
-          src={videoSrc}
-          muted
-          loop
-          playsInline
-          preload="auto"
-          onLoadedData={onVideoReady}
-        />
-      ) : null}
-    </span>
+      <div className="pc-proto-rfo">
+        <span
+          className={`pc-proto-portrait pc-proto-portrait--${step.memberId}${videoActive ? ' is-playing' : ''}`}
+          aria-hidden="true"
+        >
+          {src ? (
+            <img
+              className={`pc-proto-portrait-media pc-proto-portrait-media--still${videoActive ? ' is-dimmed' : ''}`}
+              src={src}
+              alt=""
+              loading="lazy"
+              decoding="async"
+              onError={() => {
+                setImgIndex((i) => (i + 1 < candidates.length ? i + 1 : candidates.length))
+              }}
+            />
+          ) : (
+            <span className="pc-proto-portrait-fallback">{step.initials}</span>
+          )}
+          {videoSrc ? (
+            <video
+              ref={videoRef}
+              className={`pc-proto-portrait-media pc-proto-portrait-media--video${videoActive ? ' is-active' : ''}`}
+              src={videoSrc}
+              muted
+              loop
+              playsInline
+              preload="metadata"
+            />
+          ) : null}
+        </span>
+        <span className="pc-proto-rfo-label">
+          <span className="pc-proto-stage">{step.stage}</span>
+          <span className="pc-proto-who">{step.who}</span>
+        </span>
+      </div>
+      <span className="pc-proto-index">{step.index}</span>
+      <h3 className="pc-proto-title">{step.title}</h3>
+      <p className="pc-proto-stage-line">{step.stageLine}</p>
+      <p>{step.text}</p>
+    </li>
   )
 }
 
@@ -211,7 +202,13 @@ function ReferenceCard({ ref }: { ref: CostReference }) {
   return (
     <article className="pc-card" id={`ref-${ref.id}`}>
       <a className="pc-card-media" href={studyHref}>
-        <img src={ref.image} alt={ref.imageAlt} loading="lazy" decoding="async" />
+        <img
+          src={ref.image}
+          alt={ref.imageAlt}
+          loading="eager"
+          decoding="async"
+          fetchPriority="low"
+        />
       </a>
       <div className="pc-card-body">
         <div className="pc-card-top">
@@ -270,6 +267,9 @@ function ReferenceCard({ ref }: { ref: CostReference }) {
 
 export function ProjectCostsApp() {
   const { href, lang } = useSiteI18n()
+  const [inquiryKind, setInquiryKind] = useState<'consultation' | 'estimate'>(
+    'consultation',
+  )
   const embed =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('embed') === '1'
@@ -291,6 +291,49 @@ export function ProjectCostsApp() {
     return () => document.documentElement.classList.remove('pc-embed')
   }, [embed])
 
+  const openInquiry = (kind: 'consultation' | 'estimate') => {
+    setInquiryKind(kind)
+    scrollToId('inquiry')
+  }
+
+  const handlePrint = () => {
+    const root = document.documentElement
+    const onAfterPrint = () => {
+      root.classList.remove('pc-printing')
+      window.removeEventListener('afterprint', onAfterPrint)
+    }
+    root.classList.add('pc-printing')
+    window.addEventListener('afterprint', onAfterPrint)
+
+    const imgs = Array.from(
+      document.querySelectorAll<HTMLImageElement>('.pc-card-media img, .pc-proto-portrait-media--still'),
+    )
+
+    void Promise.all(
+      imgs.map(async (img) => {
+        // Lazy/deferred images often print as empty dark boxes — force decode first.
+        if (!img.complete || img.naturalWidth === 0) {
+          await new Promise<void>((resolve) => {
+            const done = () => resolve()
+            img.addEventListener('load', done, { once: true })
+            img.addEventListener('error', done, { once: true })
+            // Re-assign src to kick a load if the browser deferred it.
+            const { src } = img
+            img.loading = 'eager'
+            img.src = src
+          })
+        }
+        try {
+          await img.decode()
+        } catch {
+          /* ignore decode failures — still attempt print */
+        }
+      }),
+    ).finally(() => {
+      window.setTimeout(() => window.print(), 30)
+    })
+  }
+
   return (
     <>
       {!embed && <Header />}
@@ -302,26 +345,24 @@ export function ProjectCostsApp() {
                 <button
                   type="button"
                   className="pc-print-btn"
-                  onClick={() => window.print()}
+                  onClick={handlePrint}
                 >
                   Print / Save as PDF
                 </button>
               </div>
             )}
             <p className="pc-eyebrow">Scope · Time · Budget</p>
-            <p className="pc-page-title">{PROJECT_COSTS_META.pageTitle}</p>
             <h1 className="pc-title">Reference budgets for custom interactive work</h1>
             <p className="pc-lead">
-              These ranges show the typical effort required to produce work comparable to
-              selected IOM case studies. They are intended to help clients understand the
-              likely scale of a project before a detailed brief and formal quotation are
-              prepared.
+              These examples show the typical production effort required to create work
+              comparable to selected IOM case studies. They are intended to help clients
+              understand the likely scale, timeline and budget of a project before a detailed
+              brief and formal quotation are prepared.
             </p>
             <p className="pc-support-note">
-              The figures are planning ranges rather than fixed packages. Final cost depends
-              on asset readiness, technical integrations, number of scenes or features, review
-              cycles, delivery requirements, production timeframe and the level of custom
-              development.
+              The figures are planning references rather than fixed packages. Final scope
+              depends on the condition of supplied assets, required features, technical
+              integrations, review process, delivery requirements and production timeframe.
             </p>
             <div className="pc-actions">
               <button
@@ -334,7 +375,7 @@ export function ProjectCostsApp() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => scrollToId('inquiry')}
+                onClick={() => openInquiry('consultation')}
               >
                 Book a free consultation
               </button>
@@ -350,21 +391,7 @@ export function ProjectCostsApp() {
                 </div>
               ))}
             </dl>
-            <p className="pc-rate-note">
-              The applicable rate depends on project complexity, required expertise, asset
-              readiness and delivery timeframe. Defined projects may also be quoted as fixed
-              production stages.
-            </p>
-            <p className="pc-rate-note">
-              IOM’s production rate generally ranges from €{PROJECT_COSTS_META.rateMin} to €
-              {PROJECT_COSTS_META.rateMax} per hour, depending on technical and creative
-              complexity, required specialist knowledge, urgency and requested delivery
-              timeframe, availability of clean approved source assets, integration and testing
-              requirements, and whether work is commissioned as a defined stage, fixed project
-              or time-based engagement. Where a fixed project fee is quoted, it may use a
-              blended rate based on the overall scope, complexity, schedule and production
-              risk.
-            </p>
+            <p className="pc-rate-note">{RATE_BLENDED_NOTE}</p>
           </section>
 
           <section className="pc-section" id="glance" aria-labelledby="glance-heading">
@@ -432,12 +459,7 @@ export function ProjectCostsApp() {
                 </a>
               ))}
             </div>
-            <p className="pc-section-note">
-              The lower end of each range generally assumes well-prepared assets, a clearly
-              defined scope, a standard delivery schedule and limited technical uncertainty.
-              The upper end reflects greater complexity, specialist development, accelerated
-              delivery, broader testing or less-prepared source material.
-            </p>
+            <p className="pc-section-note">{GLANCE_RANGE_NOTE}</p>
           </section>
 
           <section
@@ -484,19 +506,7 @@ export function ProjectCostsApp() {
             </p>
             <ol className="pc-proto-steps" aria-label="Prototype stages · Research Form Output">
               {PROTOTYPE_STEPS.map((step) => (
-                <li key={step.index} className="pc-proto-step">
-                  <div className="pc-proto-rfo">
-                    <ProtoPortrait memberId={step.memberId} initials={step.initials} />
-                    <span className="pc-proto-rfo-label">
-                      <span className="pc-proto-stage">{step.stage}</span>
-                      <span className="pc-proto-who">{step.who}</span>
-                    </span>
-                  </div>
-                  <span className="pc-proto-index">{step.index}</span>
-                  <h3 className="pc-proto-title">{step.title}</h3>
-                  <p className="pc-proto-stage-line">{step.stageLine}</p>
-                  <p>{step.text}</p>
-                </li>
+                <ProtoStep key={step.index} step={step} />
               ))}
             </ol>
             <p className="pc-section-note">
@@ -512,53 +522,33 @@ export function ProjectCostsApp() {
               Start with a free 30-minute consultation
             </h2>
             <p className="pc-section-lead">
-              Every potential project can begin with a free 30-minute consultation. This is an
-              opportunity to discuss the main objective, intended audience, available materials,
-              technical requirements, delivery timeframe and realistic production scope before
-              any commitment is made.
+              Every potential project can begin with a free 30-minute consultation. The
+              conversation is used to understand the main objective, intended audience,
+              available materials, technical requirements and preferred delivery timeframe.
             </p>
-            <p className="pc-text-lead">The consultation is intended to help determine:</p>
-            <ul className="pc-list">
-              {CONSULT_POINTS.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
+            <p className="pc-text-lead">
+              Following the consultation, IOM can recommend an appropriate first stage and
+              provide an indicative timeline and budget range.
+            </p>
+            <p className="pc-note">
+              The consultation covers the initial project discussion. Technical research, file
+              inspection, workflow testing, design work and prototype development are quoted
+              separately when required.
+            </p>
             <button
               type="button"
               className="btn btn-primary"
-              onClick={() => scrollToId('inquiry')}
+              onClick={() => openInquiry('consultation')}
             >
               Book a free consultation
             </button>
-            <p className="pc-note">
-              No obligation and no formal preparation document is required. A short description
-              of the idea is sufficient to begin.
-            </p>
 
-            <div className="pc-support" aria-labelledby="support-heading">
-              <p className="pc-eyebrow">Selected project support</p>
-              <h3 className="pc-section-title pc-section-title--sub" id="support-heading">
-                Support for selected projects
+            <div className="pc-support pc-support--quiet" aria-labelledby="support-heading">
+              <h3 className="pc-support-heading" id="support-heading">
+                {SELECTED_SUPPORT_NOTE.title}
               </h3>
-              <p className="pc-section-lead">
-                Some projects have particularly strong creative, technical, cultural,
-                educational or social potential. When a project is a strong fit for IOM and the
-                production schedule allows it, we may choose to support its development through
-                a reduced project fee or a limited number of complimentary production hours.
-              </p>
-              <p className="pc-section-note">
-                This support is considered individually after the initial consultation. Any
-                reduced rate or complimentary production time will be clearly defined in the
-                project proposal before work begins.
-              </p>
-              <ul className="pc-support-points">
-                {SUPPORT_POINTS.map((point) => (
-                  <li key={point.title}>
-                    <h4 className="pc-support-point-title">{point.title}</h4>
-                    <p>{point.text}</p>
-                  </li>
-                ))}
-              </ul>
+              <p>{SELECTED_SUPPORT_NOTE.lead}</p>
+              <p className="pc-section-note">{SELECTED_SUPPORT_NOTE.footer}</p>
             </div>
           </section>
 
@@ -592,31 +582,26 @@ export function ProjectCostsApp() {
                 the referenced case studies. They are not fixed package prices, contractual
                 quotations or statements of the exact historic cost of the original projects.
               </p>
+              <p>{PRODUCTION_TIME_NOTE}</p>
               <p>
-                The delivery ranges describe active production time. Calendar schedules may also
-                depend on client feedback, access to assets, external approvals and third-party
-                services.
+                The reference ranges assume two consolidated review rounds. Further revisions or
+                major changes in direction are estimated separately.
               </p>
               <p>
-                IOM’s standard production rate generally ranges from €{PROJECT_COSTS_META.rateMin}{' '}
-                to €{PROJECT_COSTS_META.rateMax} per hour. The applicable rate depends on the
-                complexity of the work, required expertise, asset readiness, technical
-                uncertainty and requested delivery timeframe.
+                IOM’s typical production rate ranges from €{PROJECT_COSTS_META.rateMin} to €
+                {PROJECT_COSTS_META.rateMax} per hour. The applicable rate depends on project
+                complexity, specialist requirements, asset readiness, technical uncertainty and
+                requested delivery timeframe. Defined projects may also be quoted as fixed stages
+                or using a blended project rate.
               </p>
               <p>
-                Defined projects may be quoted as fixed stages or with a blended project rate
-                rather than by simply multiplying every estimated hour by one rate.
+                Unless specifically included in a quotation, the reference estimates exclude
+                travel, on-location photography, scanning, paid assets, third-party software
+                licences, hosting charges, taxes and ongoing maintenance.
               </p>
               <p>
-                Unless specifically included in a quotation, estimates exclude travel,
-                photography, scanning, paid assets, third-party software licences, hosting
-                charges, taxes and ongoing maintenance.
-              </p>
-              <p>
-                Additional work outside an agreed scope is charged at the rate defined in the
-                approved proposal, generally within the €{PROJECT_COSTS_META.rateMin}–€
-                {PROJECT_COSTS_META.rateMax} hourly range, unless another arrangement is agreed
-                in writing.
+                Work outside the approved scope is quoted separately or charged at the rate
+                defined in the approved proposal.
               </p>
             </div>
           </aside>
@@ -626,15 +611,10 @@ export function ProjectCostsApp() {
               Have a project in mind?
             </h2>
             <p className="pc-section-lead">
-              Send a short description of the intended audience, required experience, available
-              assets and preferred delivery date. IOM will recommend an appropriate starting
-              scope and provide a project-specific timeline and budget range.
-            </p>
-            <p className="pc-section-note">
-              A free 30-minute consultation is available for every potential project. For
-              selected projects with strong creative, technical, cultural, educational or social
-              potential, IOM may also contribute through a reduced fee or a limited number of
-              complimentary production hours.
+              Send a short project description together with any available information about the
+              intended audience, existing materials, required platform and preferred completion
+              date. IOM will recommend an appropriate starting scope and provide a
+              project-specific timeline and budget range.
             </p>
             <div className="pc-checklist">
               <p className="pc-checklist-label">Helpful information to include:</p>
@@ -644,10 +624,26 @@ export function ProjectCostsApp() {
                 ))}
               </ul>
             </div>
-            <ProjectCostsInquiryForm id="inquiry" defaultKind="consultation" />
-            <a className="pc-text-link" href={href(PROJECT_COSTS_META.caseStudiesPath)}>
-              View all case studies
-            </a>
+            <div className="pc-actions">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => openInquiry('consultation')}
+              >
+                Book a free consultation
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                onClick={() => openInquiry('estimate')}
+              >
+                Request a project estimate
+              </button>
+              <a className="btn btn-ghost" href={href(PROJECT_COSTS_META.caseStudiesPath)}>
+                View all case studies
+              </a>
+            </div>
+            <ProjectCostsInquiryForm id="inquiry" defaultKind={inquiryKind} />
           </section>
 
           <p className="pc-print-footer" aria-hidden="true">

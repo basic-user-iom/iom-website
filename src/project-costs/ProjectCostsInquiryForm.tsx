@@ -1,4 +1,4 @@
-import { memo, useEffect, useState, type FormEvent } from 'react'
+import { memo, useEffect, useRef, useState, type FormEvent } from 'react'
 import { PROJECT_COSTS_META } from './data'
 
 type InquiryKind = 'consultation' | 'estimate'
@@ -22,6 +22,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
   const [state, setState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
+  const submittingRef = useRef(false)
 
   useEffect(() => {
     setKind(defaultKind)
@@ -55,12 +56,15 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (submittingRef.current || state === 'submitting') return
+
     const form = e.currentTarget
     if (!validate(form)) {
       setState('idle')
       return
     }
 
+    submittingRef.current = true
     setState('submitting')
     setErrorMessage('')
 
@@ -68,6 +72,9 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
       kind,
       name: (form.elements.namedItem('name') as HTMLInputElement).value.trim(),
       email: (form.elements.namedItem('email') as HTMLInputElement).value.trim(),
+      company: (form.elements.namedItem('company') as HTMLInputElement).value.trim(),
+      timeframe: (form.elements.namedItem('timeframe') as HTMLInputElement).value.trim(),
+      budget: (form.elements.namedItem('budget') as HTMLInputElement).value.trim(),
       message: (form.elements.namedItem('message') as HTMLTextAreaElement).value.trim(),
       botcheck: (form.elements.namedItem('botcheck') as HTMLInputElement | null)?.checked
         ? '1'
@@ -97,6 +104,8 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
       setErrorMessage(
         'Could not send the message. Please email projects@iobjectm.com directly.',
       )
+    } finally {
+      submittingRef.current = false
     }
   }
 
@@ -107,7 +116,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
 
   return (
     <div className="pc-inquiry" id={id}>
-      <form className="pc-inquiry-form contact-form" onSubmit={handleSubmit} noValidate>
+      <form className="pc-inquiry-form contact-form" onSubmit={(e) => void handleSubmit(e)} noValidate>
         <input
           type="checkbox"
           name="botcheck"
@@ -184,14 +193,53 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
         </label>
 
         <label className="contact-form-field">
-          <span className="contact-form-label">Project description</span>
+          <span className="contact-form-label">
+            Company or organisation <span className="pc-optional">(optional)</span>
+          </span>
+          <input
+            type="text"
+            name="company"
+            className="contact-form-input"
+            autoComplete="organization"
+            disabled={state === 'submitting'}
+          />
+        </label>
+
+        <label className="contact-form-field">
+          <span className="contact-form-label">
+            Preferred delivery timeframe <span className="pc-optional">(optional)</span>
+          </span>
+          <input
+            type="text"
+            name="timeframe"
+            className="contact-form-input"
+            disabled={state === 'submitting'}
+            placeholder="e.g. within 6 weeks, Q4, flexible"
+          />
+        </label>
+
+        <label className="contact-form-field">
+          <span className="contact-form-label">
+            Approximate budget <span className="pc-optional">(optional)</span>
+          </span>
+          <input
+            type="text"
+            name="budget"
+            className="contact-form-input"
+            disabled={state === 'submitting'}
+            placeholder="e.g. €5,000–€15,000"
+          />
+        </label>
+
+        <label className="contact-form-field">
+          <span className="contact-form-label">Please include a short project description.</span>
           <textarea
             name="message"
             className={`contact-form-input contact-form-textarea${fieldErrors.message ? ' is-invalid' : ''}`}
             required
             rows={5}
             disabled={state === 'submitting'}
-            placeholder="Audience, objective, available assets, preferred delivery date…"
+            placeholder="Describe the main idea, intended audience, available materials and what you would like the experience to achieve."
             aria-invalid={fieldErrors.message ? true : undefined}
             onInput={() => clearFieldError('message')}
           />

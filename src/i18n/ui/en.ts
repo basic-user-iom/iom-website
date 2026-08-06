@@ -72,7 +72,7 @@ export const enUi: Dict = {
     'Free 30-minute consultation, pricing basis, and selected project support from Interactive Object Media.',
   'seo.projectCostsTitle': 'Project Costs & Timelines | IOM',
   'seo.projectCostsDescription':
-    'Reference timelines and budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
+    'Reference timelines and indicative budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
 
   'about.eyebrow': 'Studio',
   'about.title': 'The team behind the objects',

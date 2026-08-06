@@ -20,6 +20,30 @@
   opacity: 0 !important;
 }
 
+@media print {
+  .iom-cursor,
+  .iom-cursor__dot,
+  .iom-cursor__ring,
+  .iom-cursor__label,
+  .iom-cursor__icon {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+  }
+
+  html.iom-cursor-active,
+  html.iom-cursor-active * {
+    cursor: auto !important;
+  }
+}
+
+/* Applied just before window.print() so the orb never enters the print buffer. */
+html.pc-printing .iom-cursor {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+}
+
 .iom-cursor__dot,
 .iom-cursor__ring {
   position: fixed;

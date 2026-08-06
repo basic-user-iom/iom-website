@@ -131,6 +131,7 @@ async function collectEntries() {
   add(`${SITE_ORIGIN}/`, 1)
   // Public journal hub (coming-soon until BLOG_PUBLIC_ENABLED)
   add('/blog/', 0.8)
+  add('/project-costs/', 0.85)
   add('/case-studies/3d-viewer/', 0.85)
   add('/case-studies/black-witness/', 0.85)
   add('/case-studies/message-in-a-bottle/', 0.85)

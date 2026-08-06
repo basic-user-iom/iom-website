@@ -1,7 +1,7 @@
 /**
  * POST /api/project-costs-inquiry
  * Public inquiry from /project-costs — emails projects@iobjectm.com via Proton SMTP.
- * Body: { kind: 'consultation' | 'estimate', name, email, message, botcheck? }
+ * Body: { kind, name, email, message, company?, timeframe?, budget?, botcheck? }
  */
 
 import nodemailer from 'nodemailer'
@@ -44,6 +44,9 @@ export default async function handler(req, res) {
   const kind = String(payload.kind || '').trim().toLowerCase()
   const name = String(payload.name || '').trim().slice(0, 80)
   const email = String(payload.email || '').trim().toLowerCase().slice(0, 160)
+  const company = String(payload.company || '').trim().slice(0, 120)
+  const timeframe = String(payload.timeframe || '').trim().slice(0, 120)
+  const budget = String(payload.budget || '').trim().slice(0, 80)
   const message = String(payload.message || '').trim().slice(0, 4000)
 
   if (!KINDS.has(kind)) {
@@ -85,15 +88,23 @@ export default async function handler(req, res) {
     `Kind: ${kind}`,
     `Name: ${name}`,
     `Email: ${email}`,
+    company ? `Company: ${company}` : null,
+    timeframe ? `Preferred timeframe: ${timeframe}` : null,
+    budget ? `Approximate budget: ${budget}` : null,
     `Source: /project-costs`,
     '',
     message,
-  ].join('\n')
+  ]
+    .filter((line) => line !== null)
+    .join('\n')
 
   const html = `
     <p><strong>Kind:</strong> ${escapeHtml(kind)}</p>
     <p><strong>Name:</strong> ${escapeHtml(name)}</p>
     <p><strong>Email:</strong> <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>
+    ${company ? `<p><strong>Company:</strong> ${escapeHtml(company)}</p>` : ''}
+    ${timeframe ? `<p><strong>Preferred timeframe:</strong> ${escapeHtml(timeframe)}</p>` : ''}
+    ${budget ? `<p><strong>Approximate budget:</strong> ${escapeHtml(budget)}</p>` : ''}
     <p><strong>Source:</strong> /project-costs</p>
     <hr />
     <p style="white-space:pre-wrap">${escapeHtml(message)}</p>

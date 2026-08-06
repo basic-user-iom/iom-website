@@ -145,6 +145,7 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
       title: seoT(lang, 'seo.projectCostsTitle'),
       description: seoT(lang, 'seo.projectCostsDescription'),
       canonical,
+      ogImage: DEFAULT_OG_IMAGE,
       robots: 'index, follow',
       keywords: [
         'IOM project costs',

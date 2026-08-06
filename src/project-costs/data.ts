@@ -5,7 +5,7 @@ export const PROJECT_COSTS_META = {
   pageTitle: 'Project Scope, Time & Budget',
   seoTitle: 'Project Costs & Timelines | IOM',
   seoDescription:
-    'Reference timelines and budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
+    'Reference timelines and indicative budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
   rateMin: 75,
   rateMax: 110,
   rateLabel: 'Typically €75–€110 per hour',
@@ -61,17 +61,18 @@ export const COST_FACTS = [
     value: 'Remote production worldwide',
   },
   {
-    id: 'reviews',
-    label: 'Reviews',
-    value: 'Two consolidated review rounds assumed',
-  },
-  {
-    id: 'support',
-    label: 'Project support',
-    value:
-      'Reduced fees or complimentary time may be available for selected projects',
+    id: 'format',
+    label: 'Project format',
+    value: 'Fixed stages or time-based production',
   },
 ] as const
+
+/** Blended-rate explanation — not hour × €110 for every range. */
+export const RATE_BLENDED_NOTE =
+  'IOM’s typical production rate ranges from €75 to €110 per hour, depending on technical complexity, specialist requirements, asset readiness and delivery timeframe. Defined projects may be quoted as fixed production stages or using a blended project rate. The reference budgets below are therefore planning ranges rather than a direct multiplication of every estimated hour by the highest hourly rate.'
+
+export const GLANCE_RANGE_NOTE =
+  'The lower end generally assumes a clearly defined scope, well-prepared assets, a standard production schedule and limited technical uncertainty. Complex integrations, specialist development, incomplete source material or accelerated delivery can increase the final quotation.'
 
 export const COST_REFERENCES: CostReference[] = [
   {
@@ -130,13 +131,13 @@ export const COST_REFERENCES: CostReference[] = [
         label: 'Focused version',
         hours: '40–80 production hours',
         delivery: '1–2 weeks',
-        budget: '€3,000–€8,800',
+        budget: '€3,000–€6,000',
       },
       {
-        label: 'Comparable complete build',
+        label: 'Case-study-level build',
         hours: '80–160 production hours',
         delivery: '2–4 weeks',
-        budget: '€6,000–€17,600',
+        budget: '€6,000–€12,000',
       },
     ],
     includes: [
@@ -176,13 +177,13 @@ export const COST_REFERENCES: CostReference[] = [
         label: 'Focused prototype',
         hours: '80–160 production hours',
         delivery: '2–4 weeks',
-        budget: '€6,000–€17,600',
+        budget: '€6,000–€12,000',
       },
       {
-        label: 'Comparable complete build',
+        label: 'Case-study-level build',
         hours: '160–320 production hours',
         delivery: '4–7 weeks',
-        budget: '€12,000–€35,200',
+        budget: '€12,000–€24,000',
       },
     ],
     includes: [
@@ -218,16 +219,16 @@ export const COST_REFERENCES: CostReference[] = [
     imageAlt: '3D Viewer case study',
     tiers: [
       {
-        label: 'Focused adaptation of the existing IOM framework',
+        label: 'Focused adaptation',
         hours: '120–240 production hours',
         delivery: '3–6 weeks',
-        budget: '€9,000–€26,400',
+        budget: '€9,000–€18,000',
       },
       {
         label: 'New product-level platform',
         hours: '320–640 production hours',
         delivery: '8–16 weeks',
-        budget: '€24,000–€70,400',
+        budget: '€24,000–€48,000',
       },
     ],
     includes: [
@@ -277,7 +278,7 @@ export const COST_FACTORS = [
   },
   {
     title: 'Review process',
-    text: 'The reference ranges assume one primary decision-maker and two consolidated review rounds. Fragmented feedback or major direction changes may extend the schedule.',
+    text: 'The reference ranges assume one primary decision-maker and two consolidated review rounds. Further revisions or major changes in direction are estimated separately.',
   },
   {
     title: 'Delivery timeframe',
@@ -336,34 +337,22 @@ export const HOW_IOM_WORKS = [
   },
 ] as const
 
-export const SUPPORT_POINTS = [
-  {
-    title: 'Reduced project fee',
-    text: 'For selected projects, part of the production may be offered at a reduced rate.',
-  },
-  {
-    title: 'Complimentary production time',
-    text: 'IOM may allocate a defined number of production hours without charge.',
-  },
-  {
-    title: 'Case-by-case decision',
-    text: 'Support depends on the project’s objectives, creative and technical potential, available schedule and the possibility of developing meaningful work together.',
-  },
-] as const
-
 export const CONTACT_CHECKLIST = [
-  'Intended audience',
   'Main project objective',
+  'Intended audience',
   'Existing 3D, 360° or media assets',
-  'Required platforms or devices',
-  'Desired completion date',
+  'Required website, desktop, mobile, VR or installation delivery',
+  'Preferred completion date',
   'Approximate available budget, when known',
 ] as const
 
-export const CONSULT_POINTS = [
-  'Whether the proposed idea is technically feasible',
-  'Which parts of the project should be prioritised',
-  'Whether a prototype would be useful',
-  'What assets or information are still required',
-  'A realistic initial timeline and budget range',
-] as const
+export const SELECTED_SUPPORT_NOTE = {
+  title: 'Selected project support',
+  lead:
+    'Projects with particularly strong creative, technical, cultural, educational or social value may occasionally receive additional support from IOM. When the project is a strong fit and the production schedule allows, this may take the form of a reduced project fee or a clearly defined number of complimentary production hours.',
+  footer:
+    'Any such support is considered individually and agreed in writing before production begins.',
+} as const
+
+export const PRODUCTION_TIME_NOTE =
+  'The displayed schedules describe approximate active production periods. Final calendar delivery may also depend on the availability of client materials, consolidated feedback, external approvals, third-party services and the timing of project decisions.'
