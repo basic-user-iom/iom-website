@@ -7,9 +7,10 @@ import type { CursorMode, ResolvedCursor } from './types'
 const DOT_LERP = 0.55
 const RING_LERP = 0.16
 const RING_ORBIT_LERP = 0.35
-/** Full outline lap — slow perimeter travel for the larger cursor orb. */
-const CARD_ORBIT_MS = 18000
-const CARD_ORBIT_SPEED = 1
+/** Edge travel speed (px/s). Fixed lap time made large cards feel much faster. */
+const CARD_ORBIT_PX_PER_SEC = 48
+/** Large reference cards get an extra slowdown on top of constant edge speed. */
+const CARD_ORBIT_LARGE_SCALE = 0.55
 const CARD_ORBIT_PAD = 10
 const TAU = Math.PI * 2
 const VISIBLE_CLASS = 'is-visible'
@@ -264,7 +265,12 @@ export function mountCustomCursor(): (() => void) | null {
         const cy = box.top + box.height * 0.5
         const halfW = box.width * 0.5 + CARD_ORBIT_PAD
         const halfH = box.height * 0.5 + CARD_ORBIT_PAD
-        orbitPhase += (dtMs / CARD_ORBIT_MS) * TAU * CARD_ORBIT_SPEED
+        const perim = Math.max(64, 2 * (halfW * 2 + halfH * 2))
+        const large =
+          orbitEl.classList.contains('pc-card') ||
+          box.width * box.height > 220_000
+        const pxPerSec = CARD_ORBIT_PX_PER_SEC * (large ? CARD_ORBIT_LARGE_SCALE : 1)
+        orbitPhase += ((pxPerSec * dtMs) / 1000 / perim) * TAU
         if (orbitPhase > TAU) orbitPhase -= TAU
         const pt = pointOnRectPerimeter(cx, cy, halfW, halfH, orbitPhase / TAU)
         ringTargetX = pt.x
