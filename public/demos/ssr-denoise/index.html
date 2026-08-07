@@ -4418,7 +4418,11 @@
         await fitModelToWalkableStage(defaultModelRoot)
         setActiveModel(defaultModelRoot, { disposePrevious: false })
 
-        renderer = new THREE.WebGPURenderer({ antialias: !isMobile })
+        // MSAA must stay off: SSR / TRAA / denoise copy depth into 1-sample history
+        // targets. antialias:true makes the scene depth MSAA (sampleCount 4) and
+        // copyTextureToTexture fails every frame (GPUValidationError + huge slowdown).
+        // Temporal AA comes from TRAA instead — same as the official three.js example.
+        renderer = new THREE.WebGPURenderer({ antialias: false })
         renderer.inspector = new Inspector()
         renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
         renderer.setSize(window.innerWidth, window.innerHeight)
