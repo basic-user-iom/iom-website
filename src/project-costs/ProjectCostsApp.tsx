@@ -416,9 +416,13 @@ export function ProjectCostsApp() {
                 <a
                   key={ref.id}
                   className="pc-glance-row"
-                  href={href(ref.caseStudyPath)}
+                  href={`#ref-${ref.id}`}
                   role="row"
                   data-cursor-orbit="card"
+                  onClick={(event) => {
+                    event.preventDefault()
+                    scrollToId(`ref-${ref.id}`)
+                  }}
                 >
                   <span className="pc-glance-project" role="cell">
                     <span className="pc-glance-cat">{ref.glanceCategory}</span>
