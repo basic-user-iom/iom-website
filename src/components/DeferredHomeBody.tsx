@@ -7,6 +7,29 @@ type DeferredHomeBodyProps = {
 }
 
 /**
+ * Keep scrollable page height while portfolio / clients / about chunks load.
+ * A null Suspense fallback collapses the document to ~hero height and feels like
+ * a hard freeze (cannot scroll, only hero visible) — especially on Ctrl+Shift+R.
+ */
+function PendingSections({ sectionIds }: { sectionIds: string[] }) {
+  return (
+    <div className="home-body-deferred" aria-hidden="true">
+      {sectionIds.map((id) => (
+        <div key={id} id={id} className="section-block section-block--pending" />
+      ))}
+      <div id="clients" className="section-block section-block--pending" />
+      <div id="about" className="section-block section-block--pending" />
+    </div>
+  )
+}
+
+/** `#top` / empty `#` are not deep-links — they must not force an early mount. */
+function isDeepLinkHash(hash: string): boolean {
+  const id = decodeURIComponent(hash.replace(/^#/, '')).trim()
+  return Boolean(id) && id !== 'top'
+}
+
+/**
  * Keep the first paint to Hero-only: portfolio / clients / about mount after the
  * visitor scrolls (or after a long idle fallback / hash deep-link).
  * Intersection alone is not enough — a short hero leaves the next block in-view
@@ -14,7 +37,7 @@ type DeferredHomeBodyProps = {
  */
 export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps) {
   const [ready, setReady] = useState(() =>
-    typeof window !== 'undefined' ? Boolean(window.location.hash) : false,
+    typeof window !== 'undefined' ? isDeepLinkHash(window.location.hash) : false,
   )
 
   useEffect(() => {
@@ -36,7 +59,7 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
     }
 
     const onHash = () => {
-      if (window.location.hash) mount()
+      if (isDeepLinkHash(window.location.hash)) mount()
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -54,16 +77,8 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
   }, [ready])
 
   if (ready) {
-    return <Suspense fallback={null}>{children}</Suspense>
+    return <Suspense fallback={<PendingSections sectionIds={sectionIds} />}>{children}</Suspense>
   }
 
-  return (
-    <div className="home-body-deferred" aria-hidden="true">
-      {sectionIds.map((id) => (
-        <div key={id} id={id} className="section-block section-block--pending" />
-      ))}
-      <div id="clients" className="section-block section-block--pending" />
-      <div id="about" className="section-block section-block--pending" />
-    </div>
-  )
+  return <PendingSections sectionIds={sectionIds} />
 }

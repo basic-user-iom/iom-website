@@ -105,6 +105,16 @@
       #boot-shell[hidden] {
         display: none !important;
       }
+      #boot-pending {
+        margin-top: 2rem;
+      }
+      #boot-pending[hidden] {
+        display: none !important;
+      }
+      .boot-pending-block {
+        min-height: min(42vh, 360px);
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+      }
       .boot-brand {
         display: flex;
         flex-direction: column;
@@ -194,6 +204,12 @@
           worlds where digital objects become stories you can explore.
         </p>
       </div>
+      <!-- Keep document scrollable before JS mounts (hard reload otherwise feels frozen). -->
+      <div id="boot-pending" aria-hidden="true">
+        <div class="boot-pending-block"></div>
+        <div class="boot-pending-block"></div>
+        <div class="boot-pending-block"></div>
+      </div>
     </div>
     <script>
       ;(function () {
@@ -201,8 +217,10 @@
         var home = p === '/' || /^\/(de|fr|nl|es|it)$/.test(p)
         if (!home) {
           var shell = document.getElementById('boot-shell')
+          var pending = document.getElementById('boot-pending')
           var poster = document.getElementById('lcp-poster')
           if (shell) shell.hidden = true
+          if (pending) pending.hidden = true
           if (poster) poster.hidden = true
         }
       })()

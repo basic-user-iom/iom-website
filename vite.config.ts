@@ -39,8 +39,9 @@ function demoDirectoryIndexPlugin() {
 /**
  * Built CSS is render-blocking by default. Load it async so the critical
  * inline shell in index.html can paint FCP/LCP without waiting on the bundle.
- * Also defer the module entry until after the first paint so the LCP image
- * is not blocked by parsing ~1MB of JS on mobile CPUs.
+ * Defer *executing* the module entry until after first paint, but keep
+ * modulepreload so the ~1MB JS download starts immediately (hard reload
+ * otherwise leaves a non-scrollable boot shell while the network is idle).
  */
 function nonBlockingCssPlugin() {
   return {
@@ -58,13 +59,14 @@ function nonBlockingCssPlugin() {
         },
       )
 
-      next = next.replace(/<link rel="modulepreload"[^>]*>\s*/g, '')
-
       next = next.replace(
         /<script type="module" crossorigin src="([^"]+)"><\/script>/,
-        (_m, src) => `<script>
+        (_m, src) => {
+          const href = String(src)
+          return `<link rel="modulepreload" crossorigin href="${href}">
+    <script>
       (function () {
-        var src = ${JSON.stringify(String(src))};
+        var src = ${JSON.stringify(href)};
         function load() {
           var s = document.createElement('script');
           s.type = 'module';
@@ -81,7 +83,8 @@ function nonBlockingCssPlugin() {
           setTimeout(load, 0);
         }
       })();
-    </script>`,
+    </script>`
+        },
       )
 
       return next
