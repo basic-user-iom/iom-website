@@ -16,7 +16,8 @@
 @font-face {
   font-family: 'Syne';
   font-style: normal;
-  font-display: optional;
+  /* swap (not optional): hard reload otherwise keeps a system fallback forever */
+  font-display: swap;
   font-weight: 800;
   src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
 }

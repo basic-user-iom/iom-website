@@ -55,12 +55,20 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/fonts/syne-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
     <style>
       @font-face {
         font-family: 'Syne';
         font-style: normal;
-        font-display: optional;
+        /* swap so hard reload still gets Syne after the preload finishes */
+        font-display: swap;
         font-weight: 800;
         src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
       }
