@@ -135,14 +135,29 @@ export function mountCustomCursor(): (() => void) | null {
     return marked instanceof HTMLElement && marked.isConnected ? marked : null
   }
 
-  /** Marketing / UI buttons: tip only — no large ring or START/VIEW labels. */
-  const isTipOnlyButton = (target: EventTarget | null): boolean => {
+  /** Buttons + header menu: tip only — no large ring / glow or START labels. */
+  const isTipOnlyTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false
     if (resolveOrbitHost(target)) return false
-    const btn = target.closest(
-      '.btn, .header-cta, .hero-start-btn, button, [role="button"], a.btn',
+    const tipHost = target.closest(
+      [
+        '.btn',
+        'a.btn',
+        '.header-cta',
+        '.header-login',
+        '.header-mute',
+        '.hero-start-btn',
+        '.nav-toggle',
+        '.header-nav a',
+        '.header-tools a',
+        '.header-tools button',
+        '.lang-switcher',
+        '.lang-switcher button',
+        'button',
+        '[role="button"]',
+      ].join(', '),
     )
-    return btn instanceof HTMLElement
+    return tipHost instanceof HTMLElement
   }
 
   const syncOrbitFromTarget = (target: EventTarget | null) => {
@@ -174,7 +189,7 @@ export function mountCustomCursor(): (() => void) | null {
       current = next
     }
 
-    const tipOnly = isTipOnlyButton(lastTarget)
+    const tipOnly = isTipOnlyTarget(lastTarget)
     const showLabel = Boolean(next.label) && !tipOnly
     const modeClass =
       next.mode === 'default' || next.mode === 'native' ? '' : `is-${next.mode}`
