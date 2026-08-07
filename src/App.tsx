@@ -6,7 +6,7 @@ import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { DeferredHomeBody } from './components/DeferredHomeBody'
 import { isArtistGlobePath } from './artist-globe/paths'
-import { isBlogPath } from './blog/types'
+import { isBlogPath } from './blog/paths'
 import { isCaseStudyPath } from './case-studies/paths'
 import { isLegalPath } from './legal/paths'
 import { isLegacyStartPath, isProjectCostsPath } from './project-costs/paths'
@@ -17,8 +17,8 @@ import {
   disableCrmDemoMode,
   enableCrmDemoMode,
   isCrmDemoMode,
-  isCrmDemoPath,
 } from './crm/demoMode'
+import { isCrmDemoPath } from './crm/demoPaths'
 import { SiteI18nProvider, parseLocalePath } from './i18n'
 import { localizedSectionNav } from './i18n/projects/sectionNav'
 import { usePageMeta } from './seo/usePageMeta'

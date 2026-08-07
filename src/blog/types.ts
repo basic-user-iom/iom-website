@@ -477,7 +477,4 @@ export function formatBlogDate(
   }
 }
 
-export function isBlogPath(pathname: string): boolean {
-  const p = pathname.replace(/\/+$/, '') || '/'
-  return p === '/blog' || p.startsWith('/blog/')
-}
+export { isBlogPath } from './paths'
