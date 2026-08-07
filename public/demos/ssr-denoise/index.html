@@ -6845,6 +6845,16 @@
         if (!uuid) return null
 
         let resultMaterial = null
+        const collisionBefore = refreshTransparency ? new Map() : null
+
+        if (collisionBefore) {
+          // Only meshes using this material can change collision membership from a material edit.
+          traverseMaterialRoots((object) => {
+            const materials = Array.isArray(object.material) ? object.material : [object.material]
+            if (!materials.some((material) => materialMatchesShareKey(material, uuid))) return
+            collisionBefore.set(object, isWalkCollisionSourceMesh(object))
+          })
+        }
 
         traverseMaterialRoots((object) => {
           const materials = Array.isArray(object.material) ? object.material : [object.material]
@@ -6866,7 +6876,21 @@
           traverseMaterialRoots((mesh) => {
             mesh.castShadow = !meshHasTransparentMaterial(mesh)
           })
-          if (activeModelRoot) scheduleWalkCollisionRebuild()
+
+          // Scrubbing Transmission 0.2→0.5 must not rebuild the octree / show the overlay.
+          // Rebuild only when a mesh crosses opaque ↔ transparent for walk collision.
+          let collisionMembershipChanged = false
+          if (collisionBefore) {
+            for (const [object, wasSource] of collisionBefore) {
+              if (isWalkCollisionSourceMesh(object) !== wasSource) {
+                collisionMembershipChanged = true
+                break
+              }
+            }
+          }
+          if (collisionMembershipChanged && activeModelRoot) {
+            scheduleWalkCollisionRebuild()
+          }
           syncMaterialTransparencyEditors()
         }
 
