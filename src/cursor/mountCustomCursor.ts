@@ -135,12 +135,13 @@ export function mountCustomCursor(): (() => void) | null {
     return marked instanceof HTMLElement && marked.isConnected ? marked : null
   }
 
-  /** Buttons + header menu: tip only — no large ring / glow or START labels. */
+  /** Buttons, header menu, and project cards: tip only — no large ring / glow. */
   const isTipOnlyTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false
     if (resolveOrbitHost(target)) return false
     const tipHost = target.closest(
       [
+        '.project-card',
         '.btn',
         'a.btn',
         '.header-cta',
