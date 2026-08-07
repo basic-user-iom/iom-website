@@ -55,7 +55,7 @@ function nonBlockingCssPlugin() {
           const hrefMatch = match.match(/href="([^"]+\.css)"/)
           if (!hrefMatch) return match
           const href = hrefMatch[1]
-          return `<link${before}rel="stylesheet"${after} media="print" onload="this.media='all'"><noscript><link rel="stylesheet" href="${href}"></noscript>`
+          return `<link${before}rel="stylesheet"${after} media="print" onload="this.media='all';document.documentElement.classList.add('css-ready')"><noscript><link rel="stylesheet" href="${href}"></noscript>`
         },
       )
 
@@ -67,6 +67,10 @@ function nonBlockingCssPlugin() {
     <script>
       (function () {
         var src = ${JSON.stringify(href)};
+        // Failsafe if the async stylesheet never fires onload.
+        setTimeout(function () {
+          document.documentElement.classList.add('css-ready');
+        }, 1800);
         function load() {
           var s = document.createElement('script');
           s.type = 'module';
