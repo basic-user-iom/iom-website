@@ -135,6 +135,16 @@ export function mountCustomCursor(): (() => void) | null {
     return marked instanceof HTMLElement && marked.isConnected ? marked : null
   }
 
+  /** Marketing / UI buttons: tip only — no large ring or START/VIEW labels. */
+  const isTipOnlyButton = (target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false
+    if (resolveOrbitHost(target)) return false
+    const btn = target.closest(
+      '.btn, .header-cta, .hero-start-btn, button, [role="button"], a.btn',
+    )
+    return btn instanceof HTMLElement
+  }
+
   const syncOrbitFromTarget = (target: EventTarget | null) => {
     const next = resolveOrbitHost(target)
     if (next === orbitEl) return
@@ -164,6 +174,8 @@ export function mountCustomCursor(): (() => void) | null {
       current = next
     }
 
+    const tipOnly = isTipOnlyButton(lastTarget)
+    const showLabel = Boolean(next.label) && !tipOnly
     const modeClass =
       next.mode === 'default' || next.mode === 'native' ? '' : `is-${next.mode}`
     dom.root.dataset.mode = next.mode
@@ -173,15 +185,16 @@ export function mountCustomCursor(): (() => void) | null {
       pressing ? 'is-pressing' : '',
       dragging ? 'is-dragging' : '',
       orbitEl ? ORBITING_CLASS : '',
+      tipOnly ? 'is-tip-only' : '',
       next.mode === 'native' ? 'is-native' : '',
-      next.label ? 'has-label' : '',
-      next.icon !== 'none' ? `has-icon has-icon--${next.icon}` : '',
-      modeClass,
+      showLabel ? 'has-label' : '',
+      !tipOnly && next.icon !== 'none' ? `has-icon has-icon--${next.icon}` : '',
+      tipOnly ? '' : modeClass,
     ]
       .filter(Boolean)
       .join(' ')
 
-    if (next.label) {
+    if (showLabel) {
       dom.label.textContent = next.label
       dom.label.hidden = false
     } else {

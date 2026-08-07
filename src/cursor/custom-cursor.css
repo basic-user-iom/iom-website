@@ -143,6 +143,36 @@ html.pc-printing .iom-cursor {
   opacity: 0 !important;
 }
 
+/* Buttons / CTAs: precision tip only — no large ring or START label. */
+.iom-cursor.is-tip-only .iom-cursor__ring,
+.iom-cursor.is-tip-only .iom-cursor__label,
+.iom-cursor.is-tip-only .iom-cursor__icon {
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  filter: none !important;
+}
+
+.iom-cursor.is-tip-only .iom-cursor__dot {
+  width: 4px;
+  height: 4px;
+  opacity: 1;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 245, 255, 0.95) 40%,
+    rgba(0, 229, 255, 0.55) 70%,
+    transparent 100%
+  );
+  box-shadow:
+    0 0 4px 1px rgba(255, 255, 255, 0.7),
+    0 0 10px 3px rgba(0, 229, 255, 0.55),
+    0 0 18px 6px rgba(0, 229, 255, 0.22);
+}
+
 .iom-cursor__label {
   position: absolute;
   font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
