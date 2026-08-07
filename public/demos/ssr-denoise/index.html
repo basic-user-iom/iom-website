@@ -6598,10 +6598,36 @@
         return sanitizeMaterialForWebGPU(physical)
       }
 
-      function snapshotGlassOriginal(material) {
-        if (!material || material.userData.glassOriginal) return
+      function isTransmissionActive(material) {
+        return Boolean(material && 'transmission' in material && material.transmission > 0)
+      }
 
-        material.userData.glassOriginal = {
+      function buildOpaqueGlassBaseline(material) {
+        // Used when transmission/glass was already applied before we could snapshot —
+        // never treat the live glassed values as the "original" material.
+        const opacity = material.opacity ?? 1
+        const hasAlphaMap = Boolean(material.alphaMap)
+        const alphaTest = material.alphaTest ?? 0
+        const transparent = hasAlphaMap ? Boolean(material.transparent) : opacity < 1
+        return {
+          type: material.type,
+          transparent,
+          opacity,
+          alphaTest,
+          transmission: 0,
+          roughness: material.roughness,
+          metalness: material.metalness ?? 0,
+          ior: material.ior && material.ior > 1 ? material.ior : 1.5,
+          thickness: 0,
+          depthWrite: !transparent || alphaTest > 0,
+          side: material.side,
+          shadowSide: material.shadowSide,
+          color: material.color?.clone?.(),
+        }
+      }
+
+      function buildLiveGlassBaseline(material) {
+        return {
           type: material.type,
           transparent: material.transparent,
           opacity: material.opacity,
@@ -6612,15 +6638,43 @@
           ior: material.ior,
           thickness: material.thickness,
           depthWrite: material.depthWrite,
+          side: material.side,
+          shadowSide: material.shadowSide,
           color: material.color?.clone?.(),
         }
       }
 
+      function snapshotGlassOriginal(material, { force = false } = {}) {
+        if (!material) return
+        if (material.userData.glassOriginal && !force) return
+
+        const alreadyGlassed =
+          isAssignedGlassMaterial(material) || isTransmissionActive(material)
+        material.userData.glassOriginal = alreadyGlassed
+          ? buildOpaqueGlassBaseline(material)
+          : buildLiveGlassBaseline(material)
+      }
+
       function restoreGlassOriginal(material) {
         const original = material?.userData?.glassOriginal
-        if (!original || !material) return material
+        if (!material) return material
 
-        material.transmission = original.transmission
+        if (!original) {
+          // No snapshot (e.g. transmission slider only) — still clear glass leftovers.
+          material.transmission = 0
+          if (!material.alphaMap && (material.opacity ?? 1) >= 1) {
+            material.transparent = false
+            material.opacity = 1
+            material.depthWrite = true
+          }
+          if ('thickness' in material) material.thickness = 0
+          delete material.userData.manualGlass
+          delete material.userData.autoGlass
+          material.needsUpdate = true
+          return material
+        }
+
+        material.transmission = original.transmission ?? 0
         material.transparent = original.transparent
         material.opacity = original.opacity
         material.alphaTest = original.alphaTest
@@ -6636,8 +6690,22 @@
         if ('thickness' in material && original.thickness !== undefined) {
           material.thickness = original.thickness
         }
+        if (original.side !== undefined) material.side = original.side
+        if (original.shadowSide !== undefined) material.shadowSide = original.shadowSide
+
+        // Opaque gallery surfaces must not stay on the transparent pass after undoing glass.
+        if (
+          (material.transmission ?? 0) <= 0 &&
+          (material.opacity ?? 1) >= 1 &&
+          !material.alphaMap &&
+          !(material.alphaTest > 0)
+        ) {
+          material.transparent = false
+          material.depthWrite = true
+        }
 
         delete material.userData.manualGlass
+        delete material.userData.autoGlass
         delete material.userData.glassOriginal
         material.needsUpdate = true
         return material
@@ -6645,6 +6713,8 @@
 
       function configureManualGlassMaterial(material) {
         const physical = ensurePhysicalMaterial(material)
+        // Snapshot BEFORE applying glass. If transmission was already raised via the
+        // slider, synthesize an opaque baseline instead of locking in glassed values.
         snapshotGlassOriginal(physical)
 
         physical.userData.manualGlass = true
@@ -6674,7 +6744,11 @@
         if (!material) return material
 
         if (!enabled) {
-          if (isManualGlassMaterial(material)) {
+          if (
+            isManualGlassMaterial(material) ||
+            material.userData?.glassOriginal ||
+            isTransmissionActive(material)
+          ) {
             return restoreGlassOriginal(material)
           }
           return material
@@ -7023,12 +7097,24 @@
             getValue: (mat) => mat.transmission ?? 0,
             setValue: (mat, value) => {
               const physical = ensureEditablePhysicalMaterial(mat)
-              physical.transmission = value
-              if (value > 0) {
+              const nextValue = Math.max(0, Math.min(1, value))
+
+              // Capture opaque baseline the first time transmission is introduced.
+              // (Glass checkbox uses the same snapshot; don't overwrite a clean one.)
+              if (nextValue > 0) {
+                snapshotGlassOriginal(physical)
+                physical.transmission = nextValue
                 physical.transparent = true
                 physical.depthWrite = false
                 if (!physical.thickness) physical.thickness = 0.01
                 if (!physical.ior || physical.ior <= 1) physical.ior = params.runtime.glassIor
+                return physical
+              }
+
+              // Returning to 0 must undo transparent-pass leftovers, not only the scalar.
+              physical.transmission = 0
+              if (!isAssignedGlassMaterial(physical)) {
+                return restoreGlassOriginal(physical)
               }
               return physical
             },
