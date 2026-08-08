@@ -601,6 +601,7 @@
           <li>
             <strong>Teleport</strong>
             (starting mode) Short-click the floor to move (Matterport-style). Drag to look around.
+            Scroll (or pinch) to zoom in and out from your standing position.
             Hold or drag without a short click to orbit only.
           </li>
           <li>
@@ -734,9 +735,21 @@
         fallback.querySelector('h1').textContent = title
         fallback.querySelector('p').textContent = message
         fallback.classList.add('is-visible')
+        const status = document.getElementById('runtime-status')
+        if (status) status.textContent = title
+      }
+
+      // file:// shows the static HTML shell (black canvas + "Ready") but ES modules,
+      // /demos/* scripts, and local GLB/HDR assets cannot load without HTTP.
+      if (location.protocol === 'file:') {
+        showDemoError(
+          'Open via local server (not file://)',
+          'This demo needs HTTP for WebGPU modules and local assets. From the repo root run: npm run dev — then open http://127.0.0.1:5173/demos/ssr-denoise/',
+        )
       }
 
       window.addEventListener('error', (event) => {
+        if (location.protocol === 'file:') return
         if (event.message && /three|import|module|fetch/i.test(event.message)) {
           showDemoError(
             'Demo failed to load',
@@ -746,6 +759,7 @@
       })
 
       window.addEventListener('unhandledrejection', (event) => {
+        if (location.protocol === 'file:') return
         const reason = event.reason && (event.reason.message || String(event.reason))
         if (reason && /three|import|module|fetch|webgpu/i.test(reason)) {
           showDemoError(
@@ -758,6 +772,10 @@
 
     <script src="/demos/iom-click-to-start.js"></script>
     <script type="module">
+      if (location.protocol === 'file:') {
+        throw new Error('ssr-denoise requires HTTP (npm run dev)')
+      }
+
       if (!navigator.gpu) {
         showDemoError(
           'WebGPU required',
@@ -834,39 +852,145 @@
       const BOUNDS_ASYNC_TRIANGLE_THRESHOLD = 100_000
       const WALK_STEPS_PER_FRAME = 5
       const WALK_GRAVITY = 6
-      const WALK_CAMERA_DISTANCE_SCALE = 2.046
-      const WALK_CAMERA_HEIGHT_SCALE = 0.85008
-      const WALK_CAMERA_LOOK_HEIGHT_SCALE = 0.63756
-      const WALK_CAMERA_PITCH_LIFT_SCALE = 0.36
-      const WALK_CAMERA_SHOULDER_OFFSET = 0.28
-      // Spring-arm probe (UE-style): keep the camera near-plane off wall geometry.
-      const WALK_CAMERA_PROBE_RADIUS = 0.09
-      const WALK_CAMERA_MIN_ARM = 0.2
-      const WALK_CAMERA_COLLISION_SKIN = 0.02
+      // -------------------------------------------------------------------------
+      // Explore spring-arm standard (gallery third-person / UE SpringArm style)
+      // Pipeline: ideal sockets → collision shorten → smooth → one room clamp → lookAt
+      // All heights are relative to character feet (capsule start.y - radius).
+      // -------------------------------------------------------------------------
+      const WALK_CAMERA_DISTANCE_SCALE = 2.05
+      const WALK_CAMERA_HEIGHT_SCALE = 0.62
+      const WALK_CAMERA_LOOK_HEIGHT_SCALE = 0.55
+      // Never below hip/waist — blocks low behind-the-character framing.
+      const WALK_CAMERA_MIN_HEIGHT_SCALE = 0.55
+      // Hard ceiling for the boom tip — never climb toward gallery soffits/corners.
+      const WALK_CAMERA_MAX_HEIGHT_SCALE = 0.92
+      const WALK_CAMERA_PITCH_LIFT_SCALE = 0.22
+      const WALK_CAMERA_PITCH_LOOK_DOWN_MAX = 0.22
+      const WALK_CAMERA_PITCH_LOOK_UP_MAX = 0.55
+      const WALK_CAMERA_MAX_LOOK_UP_ANGLE = 0.22
+      const WALK_CAMERA_DEFAULT_PITCH = -0.05
+      // Ignore "floor" hits under the boom that sit far above the character (roof decks / ledges).
+      const WALK_CAMERA_FLOOR_STEP_MAX = 0.28
+      const WALK_CAMERA_SHOULDER_OFFSET = 0.14
+      const WALK_CAMERA_PROBE_RADIUS = 0.07
+      // Prefer keeping some boom length; collision may still shorten further near walls.
+      const WALK_CAMERA_NEAR_SAFE = 0.12
+      const WALK_CAMERA_MIN_ARM_SCALE = 0.5
+      const WALK_CAMERA_COLLISION_SKIN = 0.04
+      const WALK_CAMERA_ARM_PULL_RATE = 48
+      const WALK_CAMERA_ARM_RELEASE_RATE = 3.2
+      const WALK_CAMERA_ARM_HYSTERESIS = 0.05
+      const WALK_CAMERA_FOLLOW_RATE = 12
+      const WALK_CAMERA_FLOOR_NORMAL_Y = 0.62
+      const WALK_CAMERA_CEILING_CLEARANCE = 0.14
+      const WALK_CAMERA_FLOOR_CLEARANCE = 0.12
+      const WALK_CAMERA_CEILING_NORMAL_MAX = -0.28
+      // Near upright wall/canvas — soft bias only (not a second camera mode).
+      const WALK_AVATAR_ARM_FADE_RATIO_START = 0.7
+      const WALK_AVATAR_ARM_FADE_RATIO_HIDE = 0.36
+      const WALK_AVATAR_FORWARD_HEIGHT_START = 2.6
+      const WALK_AVATAR_FORWARD_HEIGHT_HIDE = 0.9
+      // Hide avatar whenever the boom is this close (avoids low behind-body framing).
+      const WALK_AVATAR_CLOSE_ARM_FADE_START = 0.95
+      const WALK_AVATAR_CLOSE_ARM_FADE_HIDE = 0.45
+      const WALK_NEAR_WALL_LOOK_UP = 0
+      const WALK_NEAR_WALL_LOOK_Y_BOOST = 0.04
+      const WALK_NEAR_WALL_FOV_BOOST = 0
+      // Near art: tuck shoulder in (boosting it drove the boom into the canvas → snap-zoom).
+      const WALK_NEAR_WALL_SHOULDER_SCALE = 0.25
+      const WALK_NEAR_WALL_ORBIT_BOOST = 0.1
+      const WALK_NEAR_WALL_ART_LOOK_BLEND = 0.18
+      const WALK_NEAR_WALL_ART_UP_ALONG = 0.08
+      const WALK_NEAR_WALL_VIEW_HEIGHT_SCALE = 0.72
+      const WALK_NEAR_WALL_VIEW_LIFT = 0.45
+      // Canvas / hanging art — keep for walk + art-focus, ignore for spring-arm boom.
+      const WALK_CAMERA_IGNORE_ART_RE = /painting|paintings|canvas|picture|artwork|poster|frame|plaque|label|exhibit/
+      const WALK_DEFAULT_FOV = 35
+      const walkAvatarForwardDir = new THREE.Vector3()
+      const walkAvatarForwardOrigin = new THREE.Vector3()
+      const walkArtFocusPoint = new THREE.Vector3()
+      const walkArtFocusNormal = new THREE.Vector3(0, 0, 1)
+      const walkArtFocusSmoothed = new THREE.Vector3()
+      const walkFrameLookAt = new THREE.Vector3()
+      const walkCameraIdealOffset = new THREE.Vector3()
+      let walkArtFocusValid = false
+      let walkArtFocusInitialized = false
+      let walkAvatarOpacity = 1
+      let walkCameraIdealArmLength = null
+      let walkNearWallLookBias = 0
+      let walkCameraDebugLogAt = 0
       const PLAYER_CHARACTER_URL = './models/Xbot.glb'
       const PLAYER_CHARACTER_VISUAL_SCALE = 1.2
-      // Positive = lower soles toward floor; negative = lift. Tuned between +0.012 (clip) and -0.022 (float).
-      const PLAYER_CHARACTER_FLOOR_SINK = -0.015
-      const PLAYER_CHARACTER_RUN_MULTIPLIER = 1.8
-      // π flips Xbot forward; +8° CCW corrects slight rightward body lean vs camera.
-      const PLAYER_CHARACTER_YAW_OFFSET = Math.PI + (8 * Math.PI) / 180
+      // Positive = lower soles toward floor; negative = lift. Slight plant reduces "hover" on turns.
+      const PLAYER_CHARACTER_FLOOR_SINK = 0.004
+      const PLAYER_CHARACTER_RUN_MULTIPLIER = 2.34 // 1.8 * 1.3 — 30% more floor coverage while running
+      // π flips Xbot forward to match camera/WASD (-Z). No extra yaw fudge — a +8° bias
+      // made the character look like it steered slightly right while walking.
+      const PLAYER_CHARACTER_YAW_OFFSET = Math.PI
+      // Body yaw lag: instant snap + slow idle timescale reads as ice-skate / levitation.
+      const PLAYER_TURN_RATE_MOVE = 12
+      const PLAYER_TURN_RATE_IDLE = 5.5
+      const isMobile = prefersMobileExperience()
+      // GPU budget: 4K Corona maps inflate VRAM (~64 MB each RGBA); downsample on upload.
+      const GPU_TEXTURE_MAX_EDGE = isMobile ? 1024 : 2048
+      const SHADOW_UPDATE_INTERVAL = isMobile ? 0.12 : 0.06
+      const SHADOW_UPDATE_MOVE_EPS_SQ = 0.0025
+      const QUALITY_PRESETS = {
+        Performance: {
+          dprDesktop: 1.15,
+          dprMobile: 1.1,
+          ssrScale: isMobile ? 0.45 : 0.55,
+          ssrQuality: 0.15,
+          shadowSize: isMobile ? 512 : 1024,
+          maxFrames: 8,
+          denoiseRadius: 1.1,
+          textureMaxEdge: isMobile ? 1024 : 1536,
+        },
+        Balanced: {
+          dprDesktop: 1.35,
+          dprMobile: 1.2,
+          ssrScale: isMobile ? 0.5 : 0.7,
+          ssrQuality: 0.2,
+          shadowSize: isMobile ? 1024 : 1536,
+          maxFrames: 12,
+          denoiseRadius: 1.35,
+          textureMaxEdge: isMobile ? 1024 : 2048,
+        },
+        Quality: {
+          dprDesktop: 1.5,
+          dprMobile: 1.25,
+          ssrScale: isMobile ? 0.55 : 0.85,
+          ssrQuality: 0.25,
+          shadowSize: isMobile ? 1024 : 2048,
+          maxFrames: 16,
+          denoiseRadius: 1.5,
+          textureMaxEdge: isMobile ? 1536 : 2048,
+        },
+      }
+      const DEFAULT_QUALITY_PRESET = 'Performance'
       const SPAWN_CLEARANCE_RINGS = 10
       const SPAWN_CLEARANCE_SAMPLES = 14
       const WALK_COLLISION_MODES = { Full: 'full', 'Ground+walls': 'shell', Off: 'off' }
       const DEFAULT_MODEL_URL = './models/vr_art_gallery_2020.glb'
-      const DEFAULT_CAMERA_POSITION = new THREE.Vector3(1.15, 0.289, 0.536)
+      // Fit gallery so longest axis ≈ this (was 2.8 — too miniature for Explore framing).
+      const GALLERY_STAGE_MAX_DIMENSION = 8.5
+      const GALLERY_STAGE_SCALE_FROM_LEGACY = GALLERY_STAGE_MAX_DIMENSION / 2.8
+      const DEFAULT_CAMERA_POSITION = new THREE.Vector3(1.15, 0.289, 0.536).multiplyScalar(
+        GALLERY_STAGE_SCALE_FROM_LEGACY,
+      )
       const DEFAULT_CAMERA_ROTATION = new THREE.Euler(-0.038, 6.5, 0, 'YXZ')
-      const isMobile = prefersMobileExperience()
       let walkJoystick = { active: false, applyToKeyStates() {}, setVisible() {}, destroy() {} }
       let mobileExploreLookPointerId = null
       let mobileExploreLookLast = null
       // Inspect uses Teleport-style nodal orbit: target === eye, camera sits a tiny
       // fixed distance behind the look direction (no large-radius swing through walls).
       const DEFAULT_ORBIT_TARGET = DEFAULT_CAMERA_POSITION.clone()
-      const TELEPORT_RETICLE_FILL_RADIUS = 0.017
-      const TELEPORT_RETICLE_RING_INNER = 0.015
-      const TELEPORT_RETICLE_RING_OUTER = 0.021
-      const TELEPORT_RETICLE_SURFACE_EPSILON = 0.01
+      // Reticle was authored for the old 2.8 stage; keep it readable on the larger gallery.
+      const TELEPORT_RETICLE_SCALE = 5
+      const TELEPORT_RETICLE_FILL_RADIUS = 0.017 * TELEPORT_RETICLE_SCALE
+      const TELEPORT_RETICLE_RING_INNER = 0.015 * TELEPORT_RETICLE_SCALE
+      const TELEPORT_RETICLE_RING_OUTER = 0.021 * TELEPORT_RETICLE_SCALE
+      const TELEPORT_RETICLE_SURFACE_EPSILON = 0.01 * TELEPORT_RETICLE_SCALE
       const TELEPORT_RETICLE_DEFAULT_NORMAL = new THREE.Vector3(0, 0, 1)
       const TELEPORT_FLOOR_NORMAL_MIN = 0.7
       // Interior walk/inspect floors stay near the model base; roof/exterior decks sit higher.
@@ -877,12 +1001,20 @@
       const TELEPORT_WALL_BLOCK_DEPTH = 0.002
       // Keep eye inside the same XZ band used by nodal orbit clamp (see getWalkBoundsMargin).
       const TELEPORT_BOUNDS_MARGIN_SCALE = 1.05
-      const TELEPORT_ORBIT_DISTANCE = 0.045
+      const TELEPORT_ORBIT_DISTANCE = 0.045 * GALLERY_STAGE_SCALE_FROM_LEGACY
+      // Teleport standing zoom (wheel): nodal min → pulled-back max, collision-clamped.
+      const TELEPORT_ORBIT_DISTANCE_MIN = TELEPORT_ORBIT_DISTANCE
+      const TELEPORT_ORBIT_DISTANCE_MAX = 0.55 * GALLERY_STAGE_SCALE_FROM_LEGACY
+      const TELEPORT_ORBIT_ZOOM_SENSITIVITY = 0.00135
+      const TELEPORT_ORBIT_ZOOM_COLLISION_SKIN = 0.04
       // Teleport look-drag: 30% slower than OrbitControls default (1.0), plus slightly
       // lower dampingFactor so each frame applies less delta (smoother / less snappy).
       const TELEPORT_ORBIT_ROTATE_SPEED = 0.7
       const TELEPORT_ORBIT_DAMPING_FACTOR = 0.055
       const TELEPORT_CLICK_DRAG_THRESHOLD = 6
+      let teleportOrbitDistance = TELEPORT_ORBIT_DISTANCE_MIN
+      const teleportZoomArmDir = new THREE.Vector3()
+      const teleportZoomRayOrigin = new THREE.Vector3()
       // Inspect look-around matches Teleport nodal distance (eye pivot, fixed radius).
       const INSPECT_ORBIT_DISTANCE = TELEPORT_ORBIT_DISTANCE
       const INSPECT_ORBIT_MIN_DISTANCE = INSPECT_ORBIT_DISTANCE
@@ -892,7 +1024,9 @@
       const INSPECT_PITCH_LOOK_DOWN_MAX = 0.9
       const INSPECT_PITCH_LOOK_UP_MAX = 1.25
       const STANDING_EYE_HEIGHT_RATIO = 0.88
-      const TELEPORT_EYE_HEIGHT_SCALE = 0.8
+      // Teleport / Inspect nodal eyes — Teleport sits ~30% lower than the prior 0.85 eye.
+      const TELEPORT_EYE_HEIGHT_SCALE = 0.85 * 0.7
+      const INSPECT_EYE_HEIGHT_SCALE = 0.9
       const TELEPORT_PITCH_LOOK_DOWN_MAX = 0.35
       const TELEPORT_PITCH_LOOK_UP_MAX = 0.95
       // Full standing-body capsule for Inspect — matches Explore player size so the nodal
@@ -908,10 +1042,12 @@
       const INSPECT_STUCK_AUTO_NUDGE_SEC = 0.5
       const INSPECT_MOVE_RESOLVE_ITERS = 12
       const SSR_DENOISE_DEBUG = false
-      const DEFAULT_SPAWN = new THREE.Vector3(0.960, 0.050, 0.098)
+      const DEFAULT_SPAWN = new THREE.Vector3(0.960, 0.050, 0.098).multiplyScalar(
+        GALLERY_STAGE_SCALE_FROM_LEGACY,
+      )
       const LEGACY_DEFAULT_SPAWNS = [
-        new THREE.Vector3(1.221, 0.050, 0.341),
-        new THREE.Vector3(1.257, 0.050, 0.322),
+        new THREE.Vector3(1.221, 0.050, 0.341).multiplyScalar(GALLERY_STAGE_SCALE_FROM_LEGACY),
+        new THREE.Vector3(1.257, 0.050, 0.322).multiplyScalar(GALLERY_STAGE_SCALE_FROM_LEGACY),
       ]
       const AUTO_GLASS_PROFILES = [
         {
@@ -937,13 +1073,28 @@
 
       // Tuned physical-material defaults keyed by GLB material name (lowercase).
       const MATERIAL_PHYSICS_DEFAULTS = {
+        walls: {
+          metalness: 0,
+          emissiveIntensity: 1,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
+          // Baked Corona beauty — skip env lighting (SSR still uses roughness/metalness).
+          envMapIntensity: 0,
+        },
         floor: {
           metalness: 0.2,
           emissiveIntensity: 0.73,
           normalScale: 1,
           clearcoat: 0,
           clearcoatRoughness: 0,
-          envMapIntensity: 1.6,
+          // Was 1.6 — heavy HDRI + SSR cost on a fully baked albedo.
+          envMapIntensity: 0.35,
+        },
+        box: {
+          metalness: 0,
+          envMapIntensity: 0,
+          clearcoat: 0,
+          clearcoatRoughness: 0,
         },
         '01': {
           metalness: 0,
@@ -1051,8 +1202,9 @@
         output: 0,
         roughness: 1,
         ssr: {
-          resolutionScale: isMobile ? 0.55 : 1,
-          quality: isMobile ? 0.2 : 0.25,
+          // Defaults follow Performance preset (user can raise via Quality preset).
+          resolutionScale: QUALITY_PRESETS[DEFAULT_QUALITY_PRESET].ssrScale,
+          quality: QUALITY_PRESETS[DEFAULT_QUALITY_PRESET].ssrQuality,
           mirrorBias: 0.5,
           maxDistance: 3.63,
           intensity: 2.08,
@@ -1066,7 +1218,7 @@
           environmentIntensity: 0,
         },
         temporalReproject: {
-          maxFrames: 16,
+          maxFrames: QUALITY_PRESETS[DEFAULT_QUALITY_PRESET].maxFrames,
           clampIntensity: 0.25,
           flickerSuppression: 1,
           hitPointReprojection: true,
@@ -1077,7 +1229,7 @@
           depthPhi: 20.17,
           normalPhi: 0.41,
           roughnessPhi: 100,
-          radius: 1.5,
+          radius: QUALITY_PRESETS[DEFAULT_QUALITY_PRESET].denoiseRadius,
           alphaPhi: 5.55,
           strength: 0.725,
           adapt: 0.5,
@@ -1095,8 +1247,9 @@
           intensity: 22.24,
         },
         runtime: {
+          qualityPreset: DEFAULT_QUALITY_PRESET,
           navigationMode: 'Teleport',
-          movementSpeed: 0.06,
+          movementSpeed: 0.16,
           placeSpawn: false,
           pickCoordinates: false,
           gizmoEnabled: false,
@@ -1120,7 +1273,7 @@
       const NAVIGATION_MODE_PARAM = 'mode'
       const SHARE_STATE_VERSION = 1
       const SHARE_FLOAT_EPS = 0.0005
-      const PLAYER_SPAWN_STORAGE_KEY = 'ssr-player-spawn'
+      const PLAYER_SPAWN_STORAGE_KEY = 'ssr-player-spawn-v2'
       const PLAYER_SPAWN_SAVE_EPS = 0.05
       const CAMERA_KEYFRAMES_STORAGE_KEY = 'ssr-camera-keyframes'
       const CAMERA_TRANSITION_MS = 1000
@@ -1842,12 +1995,236 @@
         return isExploreMode()
       }
 
+      function setWalkAvatarMaterialOpacity(opacity) {
+        const root = playerCharacterModel || playerCapsuleFallback || playerMesh
+        if (!root) return
+
+        const clamped = THREE.MathUtils.clamp(opacity, 0, 1)
+        const visible = clamped > 0.02
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          object.visible = visible
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          for (const material of materials) {
+            if (!material) continue
+            if (clamped >= 0.995) {
+              material.transparent = false
+              material.opacity = 1
+              material.depthWrite = true
+            } else {
+              material.transparent = true
+              material.opacity = clamped
+              material.depthWrite = false
+            }
+            material.needsUpdate = true
+          }
+        })
+      }
+
+      function getPlayerCapsuleHeight() {
+        if (!playerCollider) return 0.2
+        return Math.max(playerCollider.end.y - playerCollider.start.y, playerCollider.radius * 2)
+      }
+
+      // Benches / seats / tables are solid obstacles — never walkable floors.
+      const WALK_NON_WALKABLE_PROP_RE = /bench|seat|chair|lamp|table|stool|furniture|plinth|pedestal/
+
+      function materialLooksLikeNonWalkableProp(material) {
+        if (!material) return false
+        const mats = Array.isArray(material) ? material : [material]
+        for (let i = 0; i < mats.length; i++) {
+          const key = String(mats[i]?.name || '')
+            .trim()
+            .toLowerCase()
+          if (key && WALK_NON_WALKABLE_PROP_RE.test(key)) return true
+        }
+        return false
+      }
+
+      function isExploreFurnitureObject(object) {
+        let node = object
+        while (node) {
+          const name = String(node.name || '').toLowerCase()
+          if (name && WALK_NON_WALKABLE_PROP_RE.test(name)) return true
+          if (node.isMesh && materialLooksLikeNonWalkableProp(node.material)) return true
+          node = node.parent
+        }
+        return false
+      }
+
+      function materialLooksLikeExploreArt(material) {
+        if (!material) return false
+        const mats = Array.isArray(material) ? material : [material]
+        for (let i = 0; i < mats.length; i++) {
+          const key = String(mats[i]?.name || '')
+            .trim()
+            .toLowerCase()
+          if (key && WALK_CAMERA_IGNORE_ART_RE.test(key)) return true
+        }
+        return false
+      }
+
+      function isExploreCameraCollisionIgnoredObject(object) {
+        let node = object
+        while (node) {
+          const name = String(node.name || '').toLowerCase()
+          if (name && WALK_CAMERA_IGNORE_ART_RE.test(name)) return true
+          if (node.isMesh && materialLooksLikeExploreArt(node.material)) return true
+          node = node.parent
+        }
+        return false
+      }
+
+      function isNonWalkablePropSupportHit(hit) {
+        if (!hit?.point) return false
+        if ((hit.normal?.y ?? 0) < 0.35) return false
+        return isExploreFurnitureObject(hit.object)
+      }
+
+      function isUprightGalleryWallHit(hit, feetY, capsuleHeight) {
+        if (!hit?.point) return false
+        if (isExploreFurnitureObject(hit.object)) return false
+        const ny = hit.normal?.y ?? 0
+        // Walls / hanging canvases only — skip floors, floor art, and bench tops.
+        if (ny > 0.35) return false
+        if (hit.point.y < feetY + capsuleHeight * 0.35) return false
+        return true
+      }
+
+      function probeForwardFocusSurface() {
+        if (!playerCollider) return null
+        // Include canvases so art-focus still tracks paintings (boom collision excludes them).
+        const targets = fillWalkCameraCollisionTargets({ forBoom: false })
+        if (!targets.length) return null
+
+        const capsuleHeight = getPlayerCapsuleHeight()
+        const feetY = playerCollider.start.y - playerCollider.radius
+        const centerX = (playerCollider.start.x + playerCollider.end.x) * 0.5
+        const centerZ = (playerCollider.start.z + playerCollider.end.z) * 0.5
+        // Cast from upper torso so floor art / benches are less likely to win.
+        const chestY = playerCollider.start.y + capsuleHeight * 0.78
+
+        walkAvatarForwardDir.set(-Math.sin(yaw), 0.02, -Math.cos(yaw)).normalize()
+        walkAvatarForwardOrigin.set(centerX, chestY, centerZ)
+        walkRaycaster.set(walkAvatarForwardOrigin, walkAvatarForwardDir)
+        walkRaycaster.near = Math.max(0.01, playerCollider.radius * 0.2)
+        walkRaycaster.far = capsuleHeight * (WALK_AVATAR_FORWARD_HEIGHT_START + 0.75)
+
+        const hits = walkRaycaster.intersectObjects(targets, false)
+        for (let i = 0; i < hits.length; i++) {
+          const hit = hits[i]
+          if (hit.distance < walkRaycaster.near) continue
+          if (!isUprightGalleryWallHit(hit, feetY, capsuleHeight)) continue
+          return {
+            distance: hit.distance,
+            point: hit.point.clone(),
+            normal: hit.normal ? hit.normal.clone().normalize() : new THREE.Vector3(0, 0, 1),
+          }
+        }
+        return null
+      }
+
+      function updateExploreAvatarOcclusion(deltaTime = 0.016) {
+        if (!isExploreMode() || !shouldShowPlayerAvatar()) {
+          walkAvatarOpacity = 1
+          walkNearWallLookBias = 0
+          walkArtFocusValid = false
+          walkArtFocusInitialized = false
+          setWalkAvatarMaterialOpacity(1)
+          if (camera && Math.abs(camera.fov - WALK_DEFAULT_FOV) > 0.05) {
+            camera.fov = WALK_DEFAULT_FOV
+            camera.updateProjectionMatrix()
+          }
+          return
+        }
+
+        const capsuleHeight = getPlayerCapsuleHeight()
+        const focus = probeForwardFocusSurface()
+        const forwardDist = focus?.distance ?? Number.POSITIVE_INFINITY
+        const forwardStart = capsuleHeight * WALK_AVATAR_FORWARD_HEIGHT_START
+        const forwardHide = capsuleHeight * WALK_AVATAR_FORWARD_HEIGHT_HIDE
+
+        // Art framing + fade ONLY for upright wall/canvas ahead — never benches, floor art,
+        // or spring-arm compression alone (that caused the "look at feet" mode near props).
+        let wallBiasTarget = 0
+        let fadeTarget = 1
+
+        if (focus && forwardDist < forwardStart) {
+          wallBiasTarget = THREE.MathUtils.clamp(
+            1 - (forwardDist - forwardHide) / Math.max(1e-4, forwardStart - forwardHide),
+            0,
+            1,
+          )
+          walkArtFocusPoint.copy(focus.point)
+          walkArtFocusNormal.copy(focus.normal)
+          const upAlongWall = Math.max(0, 1 - Math.abs(focus.normal.y))
+          walkArtFocusPoint.y += capsuleHeight * WALK_NEAR_WALL_ART_UP_ALONG * upAlongWall
+          walkArtFocusPoint.addScaledVector(focus.normal, Math.max(playerCollider.radius * 0.35, 0.02))
+          walkArtFocusValid = true
+
+          if (forwardDist <= forwardHide) fadeTarget = 0
+          else if (forwardDist < forwardStart) {
+            fadeTarget = (forwardDist - forwardHide) / Math.max(1e-4, forwardStart - forwardHide)
+          }
+        } else {
+          walkArtFocusValid = false
+        }
+
+        // Also fade when the boom is forced close behind the body (wall pull-in).
+        if (camera && playerCollider) {
+          const lookX = (playerCollider.start.x + playerCollider.end.x) * 0.5
+          const lookZ = (playerCollider.start.z + playerCollider.end.z) * 0.5
+          const armHoriz = Math.hypot(camera.position.x - lookX, camera.position.z - lookZ)
+          const closeStart = capsuleHeight * WALK_AVATAR_CLOSE_ARM_FADE_START
+          const closeHide = capsuleHeight * WALK_AVATAR_CLOSE_ARM_FADE_HIDE
+          if (armHoriz < closeStart) {
+            const closeFade = THREE.MathUtils.clamp(
+              (armHoriz - closeHide) / Math.max(1e-4, closeStart - closeHide),
+              0,
+              1,
+            )
+            fadeTarget = Math.min(fadeTarget, closeFade)
+          }
+        }
+
+        const wallBlend = 1 - Math.exp(-9 * Math.max(deltaTime, 0))
+        walkNearWallLookBias = THREE.MathUtils.lerp(walkNearWallLookBias, wallBiasTarget, wallBlend)
+
+        if (walkArtFocusValid) {
+          if (!walkArtFocusInitialized) {
+            walkArtFocusSmoothed.copy(walkArtFocusPoint)
+            walkArtFocusInitialized = true
+          } else {
+            walkArtFocusSmoothed.lerp(walkArtFocusPoint, 1 - Math.exp(-8 * Math.max(deltaTime, 0)))
+          }
+        } else {
+          walkArtFocusInitialized = false
+        }
+
+        if (camera) {
+          const targetFov = WALK_DEFAULT_FOV + WALK_NEAR_WALL_FOV_BOOST * walkNearWallLookBias
+          if (Math.abs(camera.fov - targetFov) > 0.05) {
+            camera.fov = targetFov
+            camera.updateProjectionMatrix()
+          }
+        }
+
+        const blend = 1 - Math.exp(-(fadeTarget < walkAvatarOpacity ? 14 : 7) * Math.max(deltaTime, 0))
+        walkAvatarOpacity = THREE.MathUtils.lerp(walkAvatarOpacity, fadeTarget, blend)
+        setWalkAvatarMaterialOpacity(walkAvatarOpacity)
+      }
+
       function updatePlayerAvatarVisibility() {
         const visible = shouldShowPlayerAvatar()
         if (playerTransformPivot) playerTransformPivot.visible = visible
         if (playerMesh) playerMesh.visible = visible
         if (playerCharacterModel) playerCharacterModel.visible = visible
         if (playerCapsuleFallback) playerCapsuleFallback.visible = visible && !playerCharacterModel
+        if (!visible) {
+          walkAvatarOpacity = 1
+        } else if (isExploreMode()) {
+          setWalkAvatarMaterialOpacity(walkAvatarOpacity)
+        }
       }
 
       function shouldUseWalkCamera() {
@@ -1885,7 +2262,7 @@
       }
 
       function getInspectEyeHeight(metrics = getPlayerCapsuleMetrics()) {
-        return getStandingEyeHeight(metrics)
+        return getStandingEyeHeight(metrics) * INSPECT_EYE_HEIGHT_SCALE
       }
 
       function getPlayerFloorPoint(out = new THREE.Vector3()) {
@@ -1917,10 +2294,21 @@
         )
       }
 
+      function clampExplorePitch(value) {
+        return THREE.MathUtils.clamp(
+          value,
+          -WALK_CAMERA_PITCH_LOOK_UP_MAX,
+          WALK_CAMERA_PITCH_LOOK_DOWN_MAX,
+        )
+      }
+
       function getPlayerEyePosition(out = new THREE.Vector3()) {
         const floor = getPlayerFloorPoint()
         if (!floor) return null
-        return out.set(floor.x, floor.y + getTeleportEyeHeight(), floor.z)
+        let eyeY = floor.y + getTeleportEyeHeight()
+        const capY = getWalkCameraCeilingCapY(floor.x, floor.z, floor.y)
+        if (capY != null) eyeY = Math.min(eyeY, capY)
+        return out.set(floor.x, eyeY, floor.z)
       }
 
       function getInspectNodalEyePosition(out = new THREE.Vector3()) {
@@ -1929,7 +2317,9 @@
         // Keep nodal eye on standing height over interior floor (Teleport anchors on capsule eye).
         const floorHit = raycastGalleryFloorAt(out.x, out.z)
         if (floorHit) {
-          const targetY = floorHit.point.y + getInspectEyeHeight()
+          let targetY = floorHit.point.y + getInspectEyeHeight()
+          const capY = getWalkCameraCeilingCapY(out.x, out.z, floorHit.point.y)
+          if (capY != null) targetY = Math.min(targetY, capY)
           const yDelta = targetY - out.y
           // Refuse large upward snaps onto roof / exterior decks.
           if (yDelta <= 0.55) out.y = targetY
@@ -2211,13 +2601,40 @@
       function enforceMinCameraFloorHeight() {
         if (!controls) return
 
-        const minClearance = Math.max(getPlayerCapsuleMetrics().radius * 0.45, 0.035)
+        const metrics = getPlayerCapsuleMetrics()
+        const minClearance = Math.max(
+          metrics.radius * 0.45,
+          isOrbitNavigationMode() ? WALK_CAMERA_FLOOR_CLEARANCE : 0.035,
+        )
         // Inspect must never treat roof/exterior as the floor under the camera.
         const camFloor = isInspectMode()
           ? raycastGalleryFloorAt(camera.position.x, camera.position.z)
           : raycastWalkFloorAt(camera.position.x, camera.position.z)
-        if (camFloor && camera.position.y < camFloor.point.y + minClearance) {
-          camera.position.y = camFloor.point.y + minClearance
+        const floorY = camFloor?.point?.y
+        if (Number.isFinite(floorY) && camera.position.y < floorY + minClearance) {
+          camera.position.y = floorY + minClearance
+        }
+
+        // Keep Teleport / Inspect under the lower gallery ceiling band too.
+        if (isOrbitNavigationMode()) {
+          const feetRef = Number.isFinite(floorY)
+            ? floorY
+            : camera.position.y - getInspectEyeHeight()
+          const capY = getWalkCameraCeilingCapY(camera.position.x, camera.position.z, feetRef)
+          if (capY != null && camera.position.y > capY) {
+            camera.position.y = Math.max(
+              Number.isFinite(floorY) ? floorY + minClearance : camera.position.y,
+              capY,
+            )
+          }
+          if (controls?.target) {
+            const eyeCap = capY != null ? capY - 0.02 : null
+            const eyeMin = Number.isFinite(floorY) ? floorY + minClearance : null
+            if (eyeMin != null && controls.target.y < eyeMin) controls.target.y = eyeMin
+            if (eyeCap != null && controls.target.y > eyeCap) {
+              controls.target.y = Math.max(eyeMin ?? controls.target.y, eyeCap)
+            }
+          }
         }
 
         if (isInspectMode()) snapInspectTargetToFloor()
@@ -2710,7 +3127,7 @@
       function getInspectEyeFromFloorPoint(floorPoint, out = inspectRigScratchA) {
         return out.set(
           floorPoint.x,
-          floorPoint.y + getStandingEyeHeight(),
+          floorPoint.y + getInspectEyeHeight(),
           floorPoint.z,
         )
       }
@@ -2724,7 +3141,7 @@
         const floor = getInspectFloorPointAt(eyePoint.x, eyePoint.z)
         if (!floor) return false
 
-        const expectedEyeY = floor.y + getStandingEyeHeight()
+        const expectedEyeY = floor.y + getInspectEyeHeight()
         if (Math.abs(eyePoint.y - expectedEyeY) > 0.35) return false
 
         return canInspectMoveToFloorPoint(floor)
@@ -3334,7 +3751,7 @@
         // No Y-bias toward the current eye — that previously preferred roof/upper decks.
         const floorHit = raycastGalleryFloorAt(camera.position.x, camera.position.z)
         if (!floorHit) return
-        const eyeY = floorHit.point.y + getStandingEyeHeight()
+        const eyeY = floorHit.point.y + getInspectEyeHeight()
         controls.target.set(camera.position.x, eyeY, camera.position.z)
         camera.position.y = eyeY
       }
@@ -3502,6 +3919,44 @@
         controls.enableDamping = wasDamping
       }
 
+      function clampTeleportOrbitDistance(value) {
+        return THREE.MathUtils.clamp(
+          value,
+          TELEPORT_ORBIT_DISTANCE_MIN,
+          TELEPORT_ORBIT_DISTANCE_MAX,
+        )
+      }
+
+      function probeTeleportOrbitDistance(eye, armDir, idealDist) {
+        let allowed = idealDist
+        if (!walkCollisionMeshes.length || idealDist <= TELEPORT_ORBIT_DISTANCE_MIN + 1e-6) {
+          return clampTeleportOrbitDistance(allowed)
+        }
+
+        teleportZoomRayOrigin.copy(eye)
+        walkRaycaster.set(teleportZoomRayOrigin, armDir)
+        walkRaycaster.near = Math.max(TELEPORT_ORBIT_DISTANCE_MIN * 0.25, 0.01)
+        walkRaycaster.far = idealDist + TELEPORT_ORBIT_ZOOM_COLLISION_SKIN
+
+        const targets = [...walkCollisionMeshes]
+        for (const wall of walkBoundaryColliders) targets.push(wall)
+        const hits = walkRaycaster.intersectObjects(targets, false)
+        for (let i = 0; i < hits.length; i++) {
+          const hit = hits[i]
+          if (hit.distance < walkRaycaster.near) continue
+          if (hit.normal && hit.normal.dot(armDir) >= 0) continue
+          // Skip floor grazes when looking mostly level / down.
+          if (hit.normal && hit.normal.y > 0.7 && armDir.y < 0.35) continue
+          allowed = Math.min(
+            allowed,
+            hit.distance - TELEPORT_ORBIT_ZOOM_COLLISION_SKIN,
+          )
+          break
+        }
+
+        return clampTeleportOrbitDistance(Math.max(TELEPORT_ORBIT_DISTANCE_MIN, allowed))
+      }
+
       function applyTeleportOrbitCamera(deltaTime = 0.016) {
         if (!controls) return
 
@@ -3512,13 +3967,24 @@
 
         controls.target.copy(eye)
 
-        const distance = TELEPORT_ORBIT_DISTANCE
-        const cosPitch = Math.cos(pitch)
-        const sinPitch = Math.sin(pitch)
+        teleportOrbitDistance = clampTeleportOrbitDistance(teleportOrbitDistance)
+        teleportZoomArmDir.set(
+          Math.sin(yaw) * Math.cos(pitch),
+          Math.sin(pitch),
+          Math.cos(yaw) * Math.cos(pitch),
+        )
+        if (teleportZoomArmDir.lengthSq() < 1e-8) teleportZoomArmDir.set(0, 0, 1)
+        else teleportZoomArmDir.normalize()
+
+        const distance = probeTeleportOrbitDistance(
+          eye,
+          teleportZoomArmDir,
+          teleportOrbitDistance,
+        )
         const desired = new THREE.Vector3(
-          eye.x + Math.sin(yaw) * distance * cosPitch,
-          eye.y + distance * sinPitch,
-          eye.z + Math.cos(yaw) * distance * cosPitch,
+          eye.x + teleportZoomArmDir.x * distance,
+          eye.y + teleportZoomArmDir.y * distance,
+          eye.z + teleportZoomArmDir.z * distance,
         )
 
         if (deltaTime <= 0) {
@@ -3579,6 +4045,8 @@
       function isGalleryFloorSurfaceHit(hit) {
         if (!hit?.normal || hit.normal.y < TELEPORT_FLOOR_NORMAL_MIN) return false
         if (!isInsideWalkBounds(hit.point.x, hit.point.z, getTeleportBoundsMargin())) return false
+        // Never treat benches / seats / tables as floor (character must not walk on them).
+        if (isExploreFurnitureObject(hit.object)) return false
         // Reject roof / exterior / mezzanine tops even when named like a floor mesh.
         if (hit.point.y > getMaxInteriorWalkFloorY()) return false
 
@@ -3607,6 +4075,161 @@
         const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
         const floorHits = hits.filter((hit) => isGalleryFloorSurfaceHit(hit))
         return pickWalkFloorHit(floorHits, referenceY)
+      }
+
+      function isGalleryCeilingSurfaceHit(hit, floorY) {
+        if (!hit?.point) return false
+        if (isExploreFurnitureObject(hit.object)) return false
+        const ny = hit.normal?.y ?? 0
+        // Undersides only — skip walls/floors. Furniture lamps are filtered above.
+        if (ny > WALK_CAMERA_CEILING_NORMAL_MAX) return false
+        if (hit.point.y < floorY + 0.4) return false
+        if (!activeBounds.isEmpty() && hit.point.y > activeBounds.max.y + 0.75) return false
+        return true
+      }
+
+      function raycastGalleryCeilingAt(x, z, fromY) {
+        if (!walkCollisionMeshes.length) return null
+
+        walkCeilingRayOrigin.set(x, fromY, z)
+        walkRaycaster.set(walkCeilingRayOrigin, walkCeilingUp)
+        walkRaycaster.near = 0.02
+        walkRaycaster.far = Math.max((activeSize.y || 4) + 4, 6)
+
+        const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        for (let i = 0; i < hits.length; i++) {
+          const hit = hits[i]
+          if (hit.distance < walkRaycaster.near) continue
+          if (isGalleryCeilingSurfaceHit(hit, fromY)) return hit.point.y
+        }
+        return null
+      }
+
+      function getWalkCameraCeilingCapY(x, z, feetY) {
+        // Local soffit only — never force a gallery-wide lower-ceiling band onto camera Y.
+        const localCeilingY = raycastGalleryCeilingAt(x, z, feetY + 0.04)
+        if (localCeilingY == null || !Number.isFinite(localCeilingY)) return null
+        return localCeilingY - WALK_CAMERA_CEILING_CLEARANCE
+      }
+
+      function getWalkCameraFloorMinY(x, z, feetY) {
+        const playerFeetY =
+          playerCollider != null
+            ? playerCollider.start.y - playerCollider.radius
+            : feetY
+        let floorY = Number.isFinite(playerFeetY) ? playerFeetY : feetY
+        // Local floor under the camera — but never adopt a deck/roof far above the player
+        // (that previously lifted the Explore boom into gallery corners/ceilings).
+        if (walkCollisionMeshes.length && Number.isFinite(x) && Number.isFinite(z)) {
+          walkCameraRayOrigin.set(x, (floorY ?? 0) + Math.max(activeSize.y || 2, 2), z)
+          walkRaycaster.set(walkCameraRayOrigin, walkFeetProbeDir)
+          walkRaycaster.near = 0
+          walkRaycaster.far = Math.max((activeSize.y || 4) + 6, 8)
+          const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+          const maxAcceptY =
+            (Number.isFinite(playerFeetY) ? playerFeetY : floorY) + WALK_CAMERA_FLOOR_STEP_MAX
+          for (let i = 0; i < hits.length; i++) {
+            const hit = hits[i]
+            if (!isGalleryFloorSurfaceHit(hit)) continue
+            if (hit.point.y > maxAcceptY) continue
+            floorY = hit.point.y
+            break
+          }
+        }
+        if (!Number.isFinite(floorY)) floorY = 0
+        // Floor min must stay anchored to the standing character.
+        const anchored = Number.isFinite(playerFeetY)
+          ? Math.min(floorY, playerFeetY + WALK_CAMERA_FLOOR_STEP_MAX)
+          : floorY
+        return anchored + WALK_CAMERA_FLOOR_CLEARANCE
+      }
+
+      function getExploreCameraMinY(feetY) {
+        const capsuleHeight = getPlayerCapsuleHeight()
+        const trueFeetY =
+          Number.isFinite(feetY)
+            ? feetY
+            : playerCollider != null
+              ? playerCollider.start.y - playerCollider.radius
+              : 0
+        return trueFeetY + capsuleHeight * WALK_CAMERA_MIN_HEIGHT_SCALE
+      }
+
+      function getExploreCameraMaxY(feetY) {
+        const capsuleHeight = getPlayerCapsuleHeight()
+        const trueFeetY =
+          Number.isFinite(feetY)
+            ? feetY
+            : playerCollider != null
+              ? playerCollider.start.y - playerCollider.radius
+              : 0
+        let maxY = trueFeetY + capsuleHeight * WALK_CAMERA_MAX_HEIGHT_SCALE
+        const capY = getWalkCameraCeilingCapY(
+          playerCollider
+            ? (playerCollider.start.x + playerCollider.end.x) * 0.5
+            : 0,
+          playerCollider
+            ? (playerCollider.start.z + playerCollider.end.z) * 0.5
+            : 0,
+          trueFeetY,
+        )
+        if (capY != null) maxY = Math.min(maxY, capY)
+        return maxY
+      }
+
+      function stabilizeExploreCameraHeight(position, lookTarget, feetY) {
+        if (!position) return
+        const minY = getExploreCameraMinY(feetY)
+        const maxY = getExploreCameraMaxY(feetY)
+        if (position.y < minY) position.y = minY
+        if (position.y > maxY) position.y = maxY
+
+        if (!lookTarget) return
+        const dx = lookTarget.x - position.x
+        const dz = lookTarget.z - position.z
+        const horiz = Math.hypot(dx, dz)
+        // Fully compressed boom in a corner — do not invent vertical corrections.
+        if (horiz < 0.05) return
+        const dy = lookTarget.y - position.y
+        const maxSlope = Math.tan(WALK_CAMERA_MAX_LOOK_UP_ANGLE)
+        // Camera below look target too steeply → lift (don't stare up from the slab).
+        if (dy > maxSlope * horiz) {
+          position.y = Math.min(maxY, Math.max(position.y, lookTarget.y - maxSlope * horiz))
+        }
+      }
+
+      function clampWalkCameraToRoom(position, lookTarget, feetY) {
+        if (!position) return
+        const trueFeetY =
+          feetY ??
+          (playerCollider != null
+            ? playerCollider.start.y - playerCollider.radius
+            : position.y)
+        const floorMinY = getWalkCameraFloorMinY(position.x, position.z, trueFeetY)
+        const minY = Math.max(floorMinY, getExploreCameraMinY(trueFeetY))
+        const maxY = getExploreCameraMaxY(trueFeetY)
+        let capY = getWalkCameraCeilingCapY(position.x, position.z, trueFeetY)
+        // Broken / too-low ceiling samples must never crush the camera under min view height.
+        if (capY != null && capY < minY + 0.08) capY = null
+
+        if (position.y < minY) position.y = minY
+        if (position.y > maxY) position.y = maxY
+        if (capY != null && position.y > capY) position.y = Math.max(minY, Math.min(maxY, capY))
+
+        if (lookTarget) {
+          // Only keep look above the standing floor — never drag the boom pivot up to the camera.
+          const lookMin = trueFeetY + WALK_CAMERA_FLOOR_CLEARANCE
+          const lookMax = maxY
+          if (lookTarget.y < lookMin) lookTarget.y = lookMin
+          if (lookTarget.y > lookMax) lookTarget.y = lookMax
+        }
+
+        stabilizeExploreCameraHeight(position, lookTarget, trueFeetY)
+      }
+
+      // Back-compat alias used by older call sites in this file.
+      function clampWalkCameraUnderCeiling(position, lookTarget, feetY) {
+        clampWalkCameraToRoom(position, lookTarget, feetY)
       }
 
       function createTeleportFloorReticle() {
@@ -3739,7 +4362,7 @@
         const dy = event.clientY - mobileExploreLookLast.y
         mobileExploreLookLast = { x: event.clientX, y: event.clientY }
         yaw -= dx / 500
-        pitch = clampInspectPitch(pitch - dy / 650)
+        pitch = clampExplorePitch(pitch - dy / 650)
       }
 
       function onInspectPointerUp(event) {
@@ -3798,6 +4421,56 @@
         }
       }
 
+      function onTeleportWheel(event) {
+        if (!isTeleportMode()) return
+        event.preventDefault()
+        const factor = Math.exp(event.deltaY * TELEPORT_ORBIT_ZOOM_SENSITIVITY)
+        teleportOrbitDistance = clampTeleportOrbitDistance(teleportOrbitDistance * factor)
+        applyTeleportOrbitCamera(0)
+      }
+
+      let teleportPinchStartDistance = null
+      let teleportPinchStartOrbit = null
+
+      function getTeleportTouchDistance(touches) {
+        if (!touches || touches.length < 2) return null
+        const a = touches[0]
+        const b = touches[1]
+        return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY)
+      }
+
+      function onTeleportTouchStart(event) {
+        if (!isTeleportMode() || event.touches.length !== 2) {
+          teleportPinchStartDistance = null
+          teleportPinchStartOrbit = null
+          return
+        }
+        teleportPinchStartDistance = getTeleportTouchDistance(event.touches)
+        teleportPinchStartOrbit = teleportOrbitDistance
+      }
+
+      function onTeleportTouchMove(event) {
+        if (!isTeleportMode() || event.touches.length !== 2) return
+        if (teleportPinchStartDistance == null || teleportPinchStartOrbit == null) {
+          teleportPinchStartDistance = getTeleportTouchDistance(event.touches)
+          teleportPinchStartOrbit = teleportOrbitDistance
+          return
+        }
+        const dist = getTeleportTouchDistance(event.touches)
+        if (!(dist > 1)) return
+        event.preventDefault()
+        const factor = dist / Math.max(teleportPinchStartDistance, 1)
+        teleportOrbitDistance = clampTeleportOrbitDistance(teleportPinchStartOrbit * factor)
+        applyTeleportOrbitCamera(0)
+      }
+
+      function onTeleportTouchEnd(event) {
+        if (!event.touches || event.touches.length < 2) {
+          teleportPinchStartDistance = null
+          teleportPinchStartOrbit = null
+        }
+      }
+
       function onTeleportPointerUp(event) {
         if (!teleportPointerDown || event.pointerId !== teleportPointerDown.pointerId) return
 
@@ -3817,26 +4490,50 @@
         teleportFromClick(event)
       }
 
+      function fitDirectionalShadowToScene() {
+        if (!directionalLight) return
+
+        // Gallery shadow frustum stays fixed — never follow the player (that made world shadows crawl).
+        const center = activeBounds.isEmpty() ? new THREE.Vector3(0, 0, 0) : activeCenter.clone()
+        directionalLight.target.position.copy(center)
+        directionalLight.target.updateMatrixWorld()
+
+        const extent = activeBounds.isEmpty()
+          ? 5.5
+          : Math.max(activeSize.x, activeSize.y, activeSize.z) * 0.65 + 1.25
+        const cam = directionalLight.shadow.camera
+        cam.left = -extent
+        cam.right = extent
+        cam.top = extent
+        cam.bottom = -extent
+        cam.near = 0.1
+        cam.far = Math.max(80, extent * 6)
+        cam.updateProjectionMatrix()
+        directionalLight.shadow.needsUpdate = true
+      }
+
       function configureShadowMapForNavigationMode() {
         if (!directionalLight) return
 
-        const exploreWithAvatar = isExploreMode() && shouldShowPlayerAvatar()
-        directionalLight.shadow.autoUpdate = exploreWithAvatar
-        if (exploreWithAvatar) {
-          updateShadowCameraForPlayer()
-        } else {
-          directionalLight.target.position.set(0, 0, 0)
-          directionalLight.target.updateMatrixWorld()
-          directionalLight.shadow.needsUpdate = true
-        }
+        directionalLight.shadow.autoUpdate = false
+        fitDirectionalShadowToScene()
+        lastShadowFocus.set(Number.POSITIVE_INFINITY, 0, 0)
       }
 
-      function updateShadowCameraForPlayer() {
+      function updateShadowCameraForPlayer(force = false) {
+        // Refresh the (fixed) shadow map so the avatar shadow moves.
+        // Light target / frustum stay on the gallery, so other object shadows do not shift.
         if (!directionalLight || !isExploreMode() || !playerCollider) return
 
         const center = playerCollider.start.clone().lerp(playerCollider.end, 0.5)
-        directionalLight.target.position.set(center.x, center.y, center.z)
-        directionalLight.target.updateMatrixWorld()
+        const movedSq = center.distanceToSquared(lastShadowFocus)
+        if (!force) {
+          if (shadowUpdateCooldown > 0) return
+          if (movedSq < SHADOW_UPDATE_MOVE_EPS_SQ) return
+        }
+
+        shadowUpdateCooldown = SHADOW_UPDATE_INTERVAL
+        lastShadowFocus.copy(center)
         directionalLight.shadow.needsUpdate = true
       }
 
@@ -4113,6 +4810,14 @@
       const walkCameraUp = new THREE.Vector3()
       const walkCameraRayOrigin = new THREE.Vector3()
       const walkCameraCollisionTargets = []
+      let walkCameraArmLength = null
+      let walkCameraLookSmoothed = new THREE.Vector3()
+      let walkCameraLookInitialized = false
+      const walkCeilingRayOrigin = new THREE.Vector3()
+      const walkCeilingUp = new THREE.Vector3(0, 1, 0)
+      const walkFeetProbeOrigin = new THREE.Vector3()
+      const walkFeetProbeDir = new THREE.Vector3(0, -1, 0)
+      const walkPropEject = new THREE.Vector3()
       const walkRaycaster = new THREE.Raycaster()
       const walkPointerNdc = new THREE.Vector2()
       const walkCollisionMeshes = []
@@ -4135,7 +4840,11 @@
       const importPlacementRayOrigin = new THREE.Vector3()
       let importedModelSerial = 0
       let yaw = 0
-      let pitch = -0.22
+      let playerVisualYaw = 0
+      let pitch = WALK_CAMERA_DEFAULT_PITCH
+      let shadowUpdateCooldown = 0
+      const lastShadowFocus = new THREE.Vector3(Number.POSITIVE_INFINITY, 0, 0)
+      let activeTextureMaxEdge = QUALITY_PRESETS[DEFAULT_QUALITY_PRESET].textureMaxEdge
       let inspectPointerDown = null
       const inspectYawPitchEuler = new THREE.Euler()
       let lastCustomModelRoot = null
@@ -4423,6 +5132,8 @@
         const loader = new GLTFLoader()
         const defaultGltf = await loader.loadAsync(DEFAULT_MODEL_URL)
         defaultModelRoot = defaultGltf.scene
+        startGate.setMessage('Optimizing gallery textures…', `≤${activeTextureMaxEdge}px GPU maps`)
+        await downscaleModelTextures(defaultModelRoot)
         prepareRenderableModel(defaultModelRoot)
         await fitModelToWalkableStage(defaultModelRoot)
         setActiveModel(defaultModelRoot, { disposePrevious: false })
@@ -4433,8 +5144,8 @@
         // Temporal AA comes from TRAA instead — same as the official three.js example.
         renderer = new THREE.WebGPURenderer({ antialias: false })
         renderer.inspector = new Inspector()
-        renderer.setPixelRatio(mobilePixelRatio(2, 1.25))
-        renderer.setSize(window.innerWidth, window.innerHeight)
+        const bootPreset = QUALITY_PRESETS[params.runtime.qualityPreset] || QUALITY_PRESETS.Performance
+        applyRendererPixelRatio(bootPreset.dprDesktop, bootPreset.dprMobile)
         renderer.toneMapping = THREE.AgXToneMapping
         renderer.toneMappingExposure = params.post.grading.exposure
         renderer.shadowMap.enabled = true
@@ -4456,20 +5167,14 @@
         directionalLight.castShadow = true
         directionalLight.shadow.autoUpdate = false
         directionalLight.shadow.needsUpdate = true
-        directionalLight.shadow.mapSize.width = isMobile ? 1024 : 4096
-        directionalLight.shadow.mapSize.height = isMobile ? 1024 : 4096
-        directionalLight.shadow.camera.left = -1.75
-        directionalLight.shadow.camera.right = 1.75
-        directionalLight.shadow.camera.top = 1.75
-        directionalLight.shadow.camera.bottom = -1.75
-        directionalLight.shadow.camera.near = 0.1
-        directionalLight.shadow.camera.far = 50
+        applyShadowMapSize(bootPreset.shadowSize)
         directionalLight.shadow.bias = -0.0005
         // normalBias offsets the shadow lookup along the surface normal, closing the lit gap at
         // wall/floor contact seams (peter-panning) without detaching contact shadows.
         directionalLight.shadow.normalBias = 0.02
         scene.add(directionalLight)
         scene.add(directionalLight.target)
+        fitDirectionalShadowToScene()
 
         try {
           startGate.setMessage('Starting WebGPU…', 'SSR · denoise pipeline')
@@ -4685,6 +5390,11 @@
         renderer.domElement.addEventListener('pointerdown', onCanvasPointerDown, { capture: true })
         renderer.domElement.addEventListener('pointerup', onCanvasPointerUp)
         renderer.domElement.addEventListener('pointercancel', onCanvasPointerCancel)
+        renderer.domElement.addEventListener('wheel', onTeleportWheel, { passive: false })
+        renderer.domElement.addEventListener('touchstart', onTeleportTouchStart, { passive: true })
+        renderer.domElement.addEventListener('touchmove', onTeleportTouchMove, { passive: false })
+        renderer.domElement.addEventListener('touchend', onTeleportTouchEnd, { passive: true })
+        renderer.domElement.addEventListener('touchcancel', onTeleportTouchEnd, { passive: true })
         document.addEventListener('pointerlockchange', onPointerLockChange)
         document.addEventListener('mousemove', onWalkPointerMove)
         document.addEventListener('keydown', onWalkKeyDown, true)
@@ -4725,8 +5435,17 @@
         const advancedGui = renderer.inspector.createParameters('Advanced settings')
         advancedGui.close()
 
+        advancedGui
+          .add(params.runtime, 'qualityPreset', ['Performance', 'Balanced', 'Quality'])
+          .name('quality preset')
+          .onChange((value) => {
+            applyQualityPreset(value)
+            setRuntimeStatus(`Quality preset: ${value}`)
+          })
+
         const ssrGui = advancedGui.addFolder('SSR settings')
         ssrGui.add(params, 'output', outputTypes).onChange(updateOutputNode)
+        ssrGui.add(params.ssr, 'resolutionScale', 0.25, 1, 0.05).name('resolution scale').onChange(applyParams)
         ssrGui.add(params.ssr, 'quality', 0, 1).name('quality').onChange(applyParams)
         ssrGui.add(params.ssr, 'mirrorBias', 0, 1).name('mirror bias').onChange(applyParams)
         ssrGui.add(params.ssr, 'stepExponent', 1, 4, 0.5).name('step exponent').onChange(applyParams)
@@ -4952,6 +5671,7 @@
             },
             setYaw: (value) => {
               yaw = value
+              syncPlayerVisualYaw(value)
             },
             nudgePlayer: (dx, dz) => {
               if (!playerCollider) return
@@ -5997,6 +6717,7 @@
         playerCollider.radius = radius
 
         yaw = playerTransformPivot.rotation.y
+        syncPlayerVisualYaw(yaw)
         if (playerCharacterModel) {
           playerCharacterModel.rotation.y = PLAYER_CHARACTER_YAW_OFFSET
         }
@@ -6327,6 +7048,133 @@
         return new Promise((resolve) => {
           requestAnimationFrame(() => resolve())
         })
+      }
+
+      function getTextureImageSize(image) {
+        if (!image) return null
+        const width = image.width || image.videoWidth || image.naturalWidth || 0
+        const height = image.height || image.videoHeight || image.naturalHeight || 0
+        if (!width || !height) return null
+        return { width, height }
+      }
+
+      async function downscaleTextureIfNeeded(texture, maxEdge = activeTextureMaxEdge) {
+        if (!texture?.isTexture || !texture.image || texture.isRenderTargetTexture) return texture
+        if (texture.userData?.gpuDownscaledEdge && texture.userData.gpuDownscaledEdge <= maxEdge) {
+          return texture
+        }
+
+        const size = getTextureImageSize(texture.image)
+        if (!size) return texture
+        const longest = Math.max(size.width, size.height)
+        if (longest <= maxEdge) {
+          texture.userData = texture.userData || {}
+          texture.userData.gpuDownscaledEdge = longest
+          return texture
+        }
+
+        const scale = maxEdge / longest
+        const targetWidth = Math.max(1, Math.round(size.width * scale))
+        const targetHeight = Math.max(1, Math.round(size.height * scale))
+
+        try {
+          if (typeof createImageBitmap === 'function') {
+            texture.image = await createImageBitmap(texture.image, {
+              resizeWidth: targetWidth,
+              resizeHeight: targetHeight,
+              resizeQuality: 'high',
+            })
+          } else {
+            const canvas = document.createElement('canvas')
+            canvas.width = targetWidth
+            canvas.height = targetHeight
+            const ctx = canvas.getContext('2d')
+            ctx.drawImage(texture.image, 0, 0, targetWidth, targetHeight)
+            texture.image = canvas
+          }
+          texture.needsUpdate = true
+          texture.userData = texture.userData || {}
+          texture.userData.gpuDownscaledEdge = Math.max(targetWidth, targetHeight)
+        } catch (error) {
+          console.warn('Texture downscale skipped', texture.name || texture.uuid, error)
+        }
+
+        return texture
+      }
+
+      function collectUniqueMaterialTextures(root) {
+        const seen = new Set()
+        const textures = []
+        root.traverse((object) => {
+          if (!object.isMesh) return
+          const materials = Array.isArray(object.material) ? object.material : [object.material]
+          for (const material of materials) {
+            if (!material) continue
+            for (const value of Object.values(material)) {
+              if (!value || !value.isTexture || seen.has(value.uuid)) continue
+              seen.add(value.uuid)
+              textures.push(value)
+            }
+          }
+        })
+        return textures
+      }
+
+      async function downscaleModelTextures(root, token, maxEdge = activeTextureMaxEdge) {
+        const textures = collectUniqueMaterialTextures(root)
+        for (let index = 0; index < textures.length; index++) {
+          if (token?.cancelled) return
+          await downscaleTextureIfNeeded(textures[index], maxEdge)
+          if (index > 0 && index % 3 === 0) {
+            updateLoadingOverlay(
+              'Optimizing textures…',
+              `${index + 1}/${textures.length} maps ≤${maxEdge}px`,
+            )
+            await yieldToMain()
+          }
+        }
+      }
+
+      function applyRendererPixelRatio(dprDesktop, dprMobile) {
+        if (!renderer) return
+        renderer.setPixelRatio(mobilePixelRatio(dprDesktop, dprMobile))
+        renderer.setSize(window.innerWidth, window.innerHeight)
+        const pr = renderer.getPixelRatio()
+        compareResolution.value.set(window.innerWidth * pr, window.innerHeight * pr)
+      }
+
+      function applyShadowMapSize(size) {
+        if (!directionalLight) return
+        const next = Math.max(256, size | 0)
+        if (
+          directionalLight.shadow.mapSize.width === next &&
+          directionalLight.shadow.mapSize.height === next
+        ) {
+          return
+        }
+        directionalLight.shadow.mapSize.width = next
+        directionalLight.shadow.mapSize.height = next
+        if (directionalLight.shadow.map) {
+          directionalLight.shadow.map.dispose()
+          directionalLight.shadow.map = null
+        }
+        directionalLight.shadow.needsUpdate = true
+      }
+
+      function applyQualityPreset(name) {
+        const preset = QUALITY_PRESETS[name]
+        if (!preset) return
+
+        params.runtime.qualityPreset = name
+        params.ssr.resolutionScale = preset.ssrScale
+        params.ssr.quality = preset.ssrQuality
+        params.temporalReproject.maxFrames = preset.maxFrames
+        params.denoise.radius = preset.denoiseRadius
+        activeTextureMaxEdge = preset.textureMaxEdge ?? GPU_TEXTURE_MAX_EDGE
+
+        applyRendererPixelRatio(preset.dprDesktop, preset.dprMobile)
+        applyShadowMapSize(preset.shadowSize)
+        applyParams()
       }
 
       function idleTask(callback, { timeout = 2500 } = {}) {
@@ -8278,11 +9126,15 @@
           physical.transparent = false
           physical.opacity = 1
           physical.depthWrite = true
-          // Opaque architecture (floor/walls) in the GLB is authored single-sided, so back-face
-          // culling let the directional light + HDRI bleed through wall/floor seams (white strip
-          // at corners). Render both faces so thin shells occlude light and self-shadow correctly.
-          physical.side = THREE.DoubleSide
-          physical.shadowSide = THREE.DoubleSide
+          // Only architecture shells need DoubleSide (light bleed at wall/floor seams).
+          // Double-sided everything doubles fragment cost for art, benches, props.
+          const materialKey = getMaterialNameKey(physical)
+          const needsDoubleSide =
+            materialKey === 'walls' ||
+            materialKey === 'floor' ||
+            materialKey === 'wall paint autumn maple matte'
+          physical.side = needsDoubleSide ? THREE.DoubleSide : THREE.FrontSide
+          physical.shadowSide = needsDoubleSide ? THREE.DoubleSide : THREE.FrontSide
         }
         physical = applyMaterialPhysicsDefaults(physical)
         if (physical.opacity < 1) physical.transparent = true
@@ -8879,6 +9731,9 @@
           const triangleCount = countModelTriangles(loadedRoot)
           updateLoadingOverlay('Preparing model…', `${formatTriangleCount(triangleCount)} triangles`)
 
+          await downscaleModelTextures(loadedRoot, loadToken)
+          if (loadToken.cancelled) return
+
           if (triangleCount > BOUNDS_ASYNC_TRIANGLE_THRESHOLD) {
             await prepareRenderableModelAsync(loadedRoot, loadToken)
           } else {
@@ -9012,7 +9867,7 @@
 
         const maxDimension = Math.max(activeSize.x, activeSize.y, activeSize.z)
         if (Number.isFinite(maxDimension) && maxDimension > 0) {
-          const scale = 2.8 / maxDimension
+          const scale = GALLERY_STAGE_MAX_DIMENSION / maxDimension
           root.scale.multiplyScalar(scale)
         }
 
@@ -9565,6 +10420,7 @@
         try {
           const gltf = await new GLTFLoader().loadAsync(PLAYER_CHARACTER_URL)
           const character = gltf.scene
+          await downscaleModelTextures(character, null, Math.min(activeTextureMaxEdge, 1024))
           prepareRenderableModel(character)
           applyWhiteCharacterMaterial(character)
           character.traverse((object) => {
@@ -9633,7 +10489,7 @@
         activeModelRoot.updateMatrixWorld(true)
         refreshModelBounds()
 
-        const radius = THREE.MathUtils.clamp(Math.max(activeSize.x, activeSize.z) * 0.016, 0.04, 0.16)
+        const radius = THREE.MathUtils.clamp(Math.max(activeSize.x, activeSize.z) * 0.022, 0.08, 0.28)
         return { radius, height: radius * 4.5 }
       }
 
@@ -9668,16 +10524,29 @@
 
         if (alignYawToCamera) {
           yaw = camera.rotation.y || yaw
-          pitch = THREE.MathUtils.clamp(camera.rotation.x || pitch, -1.25, 0.9)
+          pitch = clampExplorePitch(camera.rotation.x || pitch)
         }
+        syncPlayerVisualYaw(yaw)
 
         updatePlayerAvatar()
 
         if (shouldUseWalkCamera()) {
           applyWalkThirdPersonCameraRig(walkCameraDesired, walkCameraLookTarget)
+          walkCameraLookSmoothed.copy(walkCameraLookTarget)
+          walkCameraLookInitialized = true
+          walkCameraDesired.copy(walkCameraLookSmoothed).add(walkCameraIdealOffset)
+          resolveWalkCameraSpringArm(walkCameraLookSmoothed, walkCameraDesired, { smooth: false })
+          const feetY = playerCollider.start.y - playerCollider.radius
+          // Constrain camera only — do not mutate the boom pivot look.
+          clampWalkCameraToRoom(walkCameraDesired, null, feetY)
+          sanitizeExploreCameraFraming(walkCameraDesired, feetY)
+          const useArtLook = walkNearWallLookBias > 0.02 && walkArtFocusValid
+          const frameLook = useArtLook
+            ? copyExploreFrameLook(walkFrameLookAt, walkFrameLookAt, walkCameraDesired, feetY)
+            : copyExploreFrameLook(walkFrameLookAt, walkCameraLookSmoothed, walkCameraDesired, feetY)
+          camera.position.copy(walkCameraDesired)
+          camera.lookAt(frameLook)
           walkCameraPosition.copy(walkCameraDesired)
-          camera.position.copy(walkCameraPosition)
-          camera.lookAt(walkCameraLookTarget)
         }
       }
 
@@ -9688,58 +10557,123 @@
         )
         const centerX = (playerCollider.start.x + playerCollider.end.x) * 0.5
         const centerZ = (playerCollider.start.z + playerCollider.end.z) * 0.5
-        const feetY = playerCollider.start.y
+        // True sole height — start is the capsule bottom-sphere center.
+        const feetY = playerCollider.start.y - playerCollider.radius
         const distance = Math.max(capsuleHeight * WALK_CAMERA_DISTANCE_SCALE, playerCollider.radius * 3.5)
-        const cosPitch = Math.cos(pitch)
-        const sinPitch = Math.sin(pitch)
+        const wallBias = THREE.MathUtils.clamp(walkNearWallLookBias, 0, 1)
+        const effectivePitch = clampExplorePitch(pitch - WALK_NEAR_WALL_LOOK_UP * wallBias)
+        const cosPitch = Math.cos(effectivePitch)
+        const sinPitch = Math.sin(effectivePitch)
         const orbitDistance = distance * cosPitch
         const pitchHeight =
-          distance * sinPitch + -pitch * capsuleHeight * WALK_CAMERA_PITCH_LIFT_SCALE * 0.35
-        const shoulder = orbitDistance * WALK_CAMERA_SHOULDER_OFFSET
+          distance * sinPitch + -effectivePitch * capsuleHeight * WALK_CAMERA_PITCH_LIFT_SCALE * 0.35
+        const shoulder =
+          orbitDistance *
+          WALK_CAMERA_SHOULDER_OFFSET *
+          THREE.MathUtils.lerp(1, WALK_NEAR_WALL_SHOULDER_SCALE, wallBias)
         const sideX = Math.cos(yaw)
         const sideZ = -Math.sin(yaw)
+        const lookYBoost = capsuleHeight * WALK_NEAR_WALL_LOOK_Y_BOOST * wallBias
+        const orbit =
+          orbitDistance * (1 + WALK_NEAR_WALL_ORBIT_BOOST * wallBias)
 
-        outPosition.set(
-          centerX + Math.sin(yaw) * orbitDistance + sideX * shoulder,
-          feetY + capsuleHeight * WALK_CAMERA_HEIGHT_SCALE + pitchHeight,
-          centerZ + Math.cos(yaw) * orbitDistance + sideZ * shoulder,
-        )
         outLookTarget.set(
           centerX,
-          feetY + capsuleHeight * WALK_CAMERA_LOOK_HEIGHT_SCALE + Math.sin(pitch) * distance * 0.22,
+          feetY +
+            capsuleHeight * WALK_CAMERA_LOOK_HEIGHT_SCALE +
+            Math.sin(effectivePitch) * distance * 0.22 +
+            lookYBoost,
           centerZ,
         )
 
-        // Spring-arm collision zoom: shorten the arm when walls sit between look target and camera
-        // (UE Spring Arm / Godot SpringArm3D practice — never leave the camera on the far side).
-        resolveWalkCameraSpringArm(outLookTarget, outPosition)
+        const walkCamY =
+          feetY + capsuleHeight * WALK_CAMERA_HEIGHT_SCALE + pitchHeight + lookYBoost * 0.25
+        const galleryViewY = feetY + capsuleHeight * WALK_NEAR_WALL_VIEW_HEIGHT_SCALE + pitchHeight * 0.35
+        let camY = THREE.MathUtils.lerp(walkCamY, galleryViewY, wallBias * WALK_NEAR_WALL_VIEW_LIFT)
+        camY = Math.max(camY, feetY + capsuleHeight * WALK_CAMERA_MIN_HEIGHT_SCALE)
+        camY = Math.min(camY, feetY + capsuleHeight * WALK_CAMERA_MAX_HEIGHT_SCALE)
+
+        outPosition.set(
+          centerX + Math.sin(yaw) * orbit + sideX * shoulder,
+          camY,
+          centerZ + Math.cos(yaw) * orbit + sideZ * shoulder,
+        )
+
+        // Stable boom offset for the follow pipeline (look-smooth must not retarget the arm).
+        walkCameraIdealOffset.subVectors(outPosition, outLookTarget)
+
+        // Soft near-art look aim (final vertical clamp happens after room constraints).
+        walkFrameLookAt.copy(outLookTarget)
+        if (wallBias > 0.02 && walkArtFocusValid) {
+          walkFrameLookAt.lerp(walkArtFocusSmoothed, WALK_NEAR_WALL_ART_LOOK_BLEND * wallBias)
+        }
       }
 
-      function fillWalkCameraCollisionTargets() {
+      function sanitizeExploreCameraFraming(cameraPos, feetY) {
+        if (!cameraPos || !playerCollider) return
+        // Height-only clamp — never change XZ / arm length here (that fought spring-arm and shook).
+        const hipY = feetY + getPlayerCapsuleHeight() * WALK_CAMERA_MIN_HEIGHT_SCALE
+        const maxY = getExploreCameraMaxY(feetY)
+        if (cameraPos.y < hipY) cameraPos.y = hipY
+        if (cameraPos.y > maxY) cameraPos.y = maxY
+      }
+
+      function finalizeExploreLookTarget(cameraPos, lookTarget, feetY) {
+        if (!lookTarget || !cameraPos) return
+        const capsuleHeight = getPlayerCapsuleHeight()
+        const maxLookUp = cameraPos.y + capsuleHeight * 0.12
+        const maxLookDown = Math.max(
+          cameraPos.y - capsuleHeight * 0.08,
+          feetY + capsuleHeight * WALK_CAMERA_MIN_HEIGHT_SCALE,
+        )
+        lookTarget.y = THREE.MathUtils.clamp(lookTarget.y, maxLookDown, maxLookUp)
+      }
+
+      function copyExploreFrameLook(outLook, sourceLook, cameraPos, feetY) {
+        outLook.copy(sourceLook)
+        finalizeExploreLookTarget(cameraPos, outLook, feetY)
+        return outLook
+      }
+
+      function logExploreCameraDebug(feetY) {
+        if (!SSR_DENOISE_DEBUG || !camera) return
+        const now = performance.now()
+        if (now - walkCameraDebugLogAt < 1000) return
+        walkCameraDebugLogAt = now
+        console.info('[ssr-denoise] Explore camera', {
+          feetY,
+          camY: camera.position.y,
+          lookY: walkCameraLookSmoothed.y,
+          armLen: walkCameraArmLength,
+          idealArm: walkCameraIdealArmLength,
+          wallBias: walkNearWallLookBias,
+          ceilingCap: getWalkCameraCeilingCapY(camera.position.x, camera.position.z, feetY),
+          minY: getExploreCameraMinY(feetY),
+        })
+      }
+
+      function fillWalkCameraCollisionTargets({ forBoom = true } = {}) {
         walkCameraCollisionTargets.length = 0
-        for (const mesh of walkCollisionMeshes) walkCameraCollisionTargets.push(mesh)
+        for (const mesh of walkCollisionMeshes) {
+          // Hanging canvases / labels must not collapse the boom into the artwork.
+          if (forBoom && isExploreCameraCollisionIgnoredObject(mesh)) continue
+          walkCameraCollisionTargets.push(mesh)
+        }
         for (const wall of walkBoundaryColliders) walkCameraCollisionTargets.push(wall)
         return walkCameraCollisionTargets
       }
 
-      function resolveWalkCameraSpringArm(lookTarget, desiredCamera) {
-        const targets = fillWalkCameraCollisionTargets()
-        if (!targets.length) return desiredCamera
+      function probeWalkCameraArmAllowed(lookTarget, idealDist, armDir) {
+        const targets = fillWalkCameraCollisionTargets({ forBoom: true })
+        if (!targets.length) return idealDist
 
-        walkCameraArmDir.subVectors(desiredCamera, lookTarget)
-        const idealDist = walkCameraArmDir.length()
-        if (idealDist < 1e-5) return desiredCamera
-
-        walkCameraArmDir.multiplyScalar(1 / idealDist)
-
-        // Orthonormal basis for a thick probe (near-plane / sphere approximation, not a thin ray).
-        if (Math.abs(walkCameraArmDir.y) < 0.92) {
+        if (Math.abs(armDir.y) < 0.92) {
           walkCameraUp.set(0, 1, 0)
         } else {
           walkCameraUp.set(1, 0, 0)
         }
-        walkCameraRight.crossVectors(walkCameraArmDir, walkCameraUp).normalize()
-        walkCameraUp.crossVectors(walkCameraRight, walkCameraArmDir).normalize()
+        walkCameraRight.crossVectors(armDir, walkCameraUp).normalize()
+        walkCameraUp.crossVectors(walkCameraRight, armDir).normalize()
 
         const probe = WALK_CAMERA_PROBE_RADIUS
         const offsets = [
@@ -9748,14 +10682,20 @@
           [-probe, 0],
           [0, probe],
           [0, -probe],
-          [probe * 0.7, probe * 0.7],
-          [-probe * 0.7, probe * 0.7],
-          [probe * 0.7, -probe * 0.7],
-          [-probe * 0.7, -probe * 0.7],
+          [probe * 0.65, probe * 0.65],
+          [-probe * 0.65, probe * 0.65],
+          [probe * 0.65, -probe * 0.65],
+          [-probe * 0.65, -probe * 0.65],
         ]
 
         let allowed = idealDist
-        activeModelRoot?.updateMatrixWorld(true)
+        let hitBlocking = false
+        const levelLook = Math.abs(armDir.y) < 0.42
+        const feetY =
+          playerCollider != null
+            ? playerCollider.start.y - playerCollider.radius
+            : lookTarget.y
+        const minCamY = getExploreCameraMinY(feetY)
 
         for (let i = 0; i < offsets.length; i++) {
           const ox = offsets[i][0]
@@ -9764,22 +10704,122 @@
             .copy(lookTarget)
             .addScaledVector(walkCameraRight, ox)
             .addScaledVector(walkCameraUp, oy)
-          walkRaycaster.set(walkCameraRayOrigin, walkCameraArmDir)
+          walkRaycaster.set(walkCameraRayOrigin, armDir)
           walkRaycaster.far = idealDist + probe
           walkRaycaster.near = 0
 
           const hits = walkRaycaster.intersectObjects(targets, false)
           if (!hits.length) continue
 
-          // Skip degenerate hits at the origin (camera already slightly inside a surface).
-          const hit = hits[0]
-          if (hit.distance < 0.002) continue
+          for (let h = 0; h < hits.length; h++) {
+            const hit = hits[h]
+            if (hit.distance < 0.005) continue
+            if (isExploreCameraCollisionIgnoredObject(hit.object)) continue
 
-          allowed = Math.min(allowed, hit.distance - probe - WALK_CAMERA_COLLISION_SKIN)
+            const camYAtHit =
+              walkCameraRayOrigin.y + armDir.y * Math.max(hit.distance - probe, 0)
+
+            if (hit.normal && hit.normal.y > WALK_CAMERA_FLOOR_NORMAL_Y) {
+              // Always block if the boom end would go under min view / floor clearance.
+              const underMin = camYAtHit < minCamY || camYAtHit < hit.point.y + WALK_CAMERA_FLOOR_CLEARANCE
+              if (levelLook && !underMin) continue
+            }
+
+            // Ceiling / soffit undersides — always shorten when the boom climbs into them.
+            if (hit.normal && hit.normal.y < WALK_CAMERA_CEILING_NORMAL_MAX && armDir.y > 0.05) {
+              allowed = Math.min(allowed, hit.distance - probe - WALK_CAMERA_COLLISION_SKIN)
+              hitBlocking = true
+              break
+            }
+
+            // Skip backfaces only — shallow front-facing walls must still shorten the arm.
+            if (hit.normal && hit.normal.dot(armDir) >= 0) continue
+
+            allowed = Math.min(allowed, hit.distance - probe - WALK_CAMERA_COLLISION_SKIN)
+            hitBlocking = true
+            break
+          }
         }
 
-        const minArm = Math.min(WALK_CAMERA_MIN_ARM, idealDist * 0.45)
-        allowed = Math.max(minArm, Math.min(idealDist, allowed))
+        // Also shorten if the boom climbs past the character max height along this ray.
+        const endY = lookTarget.y + armDir.y * allowed
+        const maxCamY = getExploreCameraMaxY(feetY)
+        if (endY > maxCamY && armDir.y > 1e-4) {
+          const t = (maxCamY - lookTarget.y) / armDir.y
+          if (t >= WALK_CAMERA_NEAR_SAFE && t < allowed) {
+            allowed = t
+            hitBlocking = true
+          }
+        }
+
+        allowed = Math.min(idealDist, Math.max(WALK_CAMERA_NEAR_SAFE, allowed))
+
+        // Soft preferred length only when nothing blocked the arm — never push past a hit.
+        // Do NOT force a larger min-arm here: that fought wall pull-in and caused zoom chatter.
+        if (!hitBlocking && allowed >= idealDist - 1e-4) {
+          return idealDist
+        }
+        return allowed
+      }
+
+      function resetWalkCameraSpringArm() {
+        walkCameraArmLength = null
+        walkCameraIdealArmLength = null
+        walkCameraLookInitialized = false
+        walkCameraIdealOffset.set(0, 0, 0)
+        walkAvatarOpacity = 1
+        walkNearWallLookBias = 0
+        walkArtFocusValid = false
+        walkArtFocusInitialized = false
+        pitch = clampExplorePitch(WALK_CAMERA_DEFAULT_PITCH)
+        setWalkAvatarMaterialOpacity(1)
+        if (camera) {
+          camera.fov = WALK_DEFAULT_FOV
+          camera.updateProjectionMatrix()
+        }
+      }
+
+      function resolveWalkCameraSpringArm(lookTarget, desiredCamera, { smooth = false, deltaTime = 0 } = {}) {
+        walkCameraArmDir.subVectors(desiredCamera, lookTarget)
+        const idealDist = walkCameraArmDir.length()
+        if (idealDist < 1e-5) return desiredCamera
+
+        walkCameraArmDir.multiplyScalar(1 / idealDist)
+        walkCameraIdealArmLength = idealDist
+        let allowed = probeWalkCameraArmAllowed(lookTarget, idealDist, walkCameraArmDir)
+
+        if (!smooth || deltaTime <= 0) {
+          walkCameraArmLength = allowed
+        } else {
+          if (walkCameraArmLength == null || !Number.isFinite(walkCameraArmLength)) {
+            walkCameraArmLength = allowed
+          }
+
+          if (allowed < walkCameraArmLength - 0.0005) {
+            // Collision: snap/pull in hard so the camera cannot linger inside walls.
+            const pull = 1 - Math.exp(-WALK_CAMERA_ARM_PULL_RATE * deltaTime)
+            walkCameraArmLength = THREE.MathUtils.lerp(walkCameraArmLength, allowed, Math.max(pull, 0.85))
+            walkCameraArmLength = Math.min(walkCameraArmLength, allowed)
+          } else if (allowed > walkCameraArmLength + WALK_CAMERA_ARM_HYSTERESIS) {
+            // Release toward collision-allowed length only (never invent a longer soft min).
+            const release = 1 - Math.exp(-WALK_CAMERA_ARM_RELEASE_RATE * deltaTime)
+            walkCameraArmLength = THREE.MathUtils.lerp(
+              walkCameraArmLength,
+              Math.min(idealDist, allowed),
+              release,
+            )
+          }
+
+          walkCameraArmLength = THREE.MathUtils.clamp(
+            walkCameraArmLength,
+            WALK_CAMERA_NEAR_SAFE,
+            idealDist,
+          )
+          // Re-assert collision every frame (smoothing must not overshoot a closer hit).
+          walkCameraArmLength = Math.min(walkCameraArmLength, allowed)
+          allowed = walkCameraArmLength
+        }
+
         desiredCamera.copy(lookTarget).addScaledVector(walkCameraArmDir, allowed)
         return desiredCamera
       }
@@ -9863,9 +10903,12 @@
         if (!hits.length) return null
 
         // Prefer named/ground-band gallery floors so Inspect/walk never snap to roof decks.
-        const galleryHits = hits.filter((hit) => isGalleryFloorSurfaceHit(hit))
+        // Always skip benches/furniture tops — those are obstacles, not floors.
+        const walkableHits = hits.filter((hit) => !isExploreFurnitureObject(hit.object))
+        if (!walkableHits.length) return null
+        const galleryHits = walkableHits.filter((hit) => isGalleryFloorSurfaceHit(hit))
         if (galleryHits.length) return pickWalkFloorHit(galleryHits, referenceY)
-        return pickWalkFloorHit(hits, referenceY)
+        return pickWalkFloorHit(walkableHits, referenceY)
       }
 
       function findWalkSpawnPoint(preferred = null) {
@@ -9912,8 +10955,10 @@
           walkRaycaster.far = rayFar
 
           const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
-          const floorHit = pickWalkFloorHit(hits)
+          const walkableHits = hits.filter((hit) => !isExploreFurnitureObject(hit.object))
+          const floorHit = pickWalkFloorHit(walkableHits)
           if (!floorHit || floorHit.point.y > groundY + groundBand) continue
+          if (isExploreFurnitureObject(floorHit.object)) continue
 
           const dist = dx * dx + dz * dz
           if (worldOctree) {
@@ -9952,6 +10997,110 @@
         return null
       }
 
+      function probeCapsuleSupportHit() {
+        if (!playerCollider || !walkCollisionMeshes.length) return null
+
+        const x = (playerCollider.start.x + playerCollider.end.x) * 0.5
+        const z = (playerCollider.start.z + playerCollider.end.z) * 0.5
+        walkFeetProbeOrigin.set(x, playerCollider.start.y + playerCollider.radius * 0.45, z)
+        walkRaycaster.set(walkFeetProbeOrigin, walkFeetProbeDir)
+        walkRaycaster.near = 0
+        walkRaycaster.far = playerCollider.radius * 2.8
+
+        const hits = walkRaycaster.intersectObjects(walkCollisionMeshes, false)
+        for (let i = 0; i < hits.length; i++) {
+          const hit = hits[i]
+          if ((hit.normal?.y ?? 0) < 0.35) continue
+          return hit
+        }
+        return null
+      }
+
+      function snapPlayerCapsuleToGalleryFloor() {
+        if (!playerCollider) return false
+
+        const x = (playerCollider.start.x + playerCollider.end.x) * 0.5
+        const z = (playerCollider.start.z + playerCollider.end.z) * 0.5
+        const floorHit =
+          raycastGalleryFloorAt(x, z, playerCollider.start.y - playerCollider.radius) ||
+          raycastWalkFloorAt(x, z, playerCollider.start.y - playerCollider.radius)
+        if (!floorHit?.point) return false
+
+        const targetStartY = floorHit.point.y + playerCollider.radius
+        const dy = targetStartY - playerCollider.start.y
+        if (Math.abs(dy) > 1e-5) {
+          playerCollider.translate(new THREE.Vector3(0, dy, 0))
+        }
+        return true
+      }
+
+      function ejectPlayerFromNonWalkableProp(supportHit, depth = 0.08) {
+        if (!playerCollider || !supportHit?.point) return
+
+        const x = (playerCollider.start.x + playerCollider.end.x) * 0.5
+        const z = (playerCollider.start.z + playerCollider.end.z) * 0.5
+        let dx = x - supportHit.point.x
+        let dz = z - supportHit.point.z
+        if (dx * dx + dz * dz < 1e-8) {
+          const nx = supportHit.normal?.x ?? 0
+          const nz = supportHit.normal?.z ?? 0
+          if (nx * nx + nz * nz > 1e-8) {
+            dx = nx
+            dz = nz
+          } else {
+            dx = Math.sin(yaw)
+            dz = Math.cos(yaw)
+          }
+        }
+
+        const len = Math.hypot(dx, dz) || 1
+        const push = Math.max(depth, playerCollider.radius * 0.45)
+        walkPropEject.set((dx / len) * push, 0, (dz / len) * push)
+        playerCollider.translate(walkPropEject)
+
+        // Kill velocity into the prop so we don't climb back on next frame.
+        const into = playerVelocity.x * (dx / len) + playerVelocity.z * (dz / len)
+        if (into < 0) {
+          playerVelocity.x -= (dx / len) * into
+          playerVelocity.z -= (dz / len) * into
+        }
+        if (playerVelocity.y > 0) playerVelocity.y = 0
+      }
+
+      function resolveNonWalkablePropStanding(iterations = 8) {
+        if (!playerCollider || !walkCollisionMeshes.length) return false
+
+        let resolved = false
+        for (let i = 0; i < iterations; i++) {
+          const support = probeCapsuleSupportHit()
+          if (!isNonWalkablePropSupportHit(support)) break
+
+          resolved = true
+          ejectPlayerFromNonWalkableProp(support, Math.max(playerCollider.radius * 0.4, 0.06))
+          snapPlayerCapsuleToGalleryFloor()
+
+          if (!worldOctree) continue
+          const result = worldOctree.capsuleIntersect(playerCollider)
+          if (!result || result.depth <= 1e-10) continue
+
+          // Prefer horizontal shove once we're back on gallery floor height.
+          if (result.normal.y >= 0.45 && isNonWalkablePropSupportHit(probeCapsuleSupportHit())) {
+            continue
+          }
+
+          walkPropEject.copy(result.normal)
+          walkPropEject.y = 0
+          if (walkPropEject.lengthSq() > 1e-8) {
+            walkPropEject.normalize().multiplyScalar(result.depth)
+            playerCollider.translate(walkPropEject)
+          } else if (result.normal.y < 0.45) {
+            playerCollider.translate(result.normal.multiplyScalar(result.depth))
+          }
+        }
+
+        return resolved
+      }
+
       function resolveCapsuleCollision(iterations = 10) {
         if (!playerCollider || !worldOctree) return
 
@@ -9959,10 +11108,21 @@
         playerOnFloor = false
 
         for (let i = 0; i < iterations; i++) {
+          if (resolveNonWalkablePropStanding()) {
+            playerOnFloor = true
+            continue
+          }
+
           const result = worldOctree.capsuleIntersect(playerCollider)
           if (!result) break
 
           if (result.normal.y >= 0.1) {
+            const support = probeCapsuleSupportHit()
+            if (isNonWalkablePropSupportHit(support)) {
+              resolveNonWalkablePropStanding()
+              playerOnFloor = true
+              continue
+            }
             playerOnFloor = true
           }
 
@@ -10007,7 +11167,10 @@
 
         const preferred = getPreferredSpawnPoint()
         const savedYaw = getPreferredSpawnYaw()
-        if (savedYaw !== null) yaw = savedYaw
+        if (savedYaw !== null) {
+          yaw = savedYaw
+          syncPlayerVisualYaw(savedYaw)
+        }
 
         setPlayerCapsuleAtPoint(resolvePlayerSpawnPoint(preferred), {
           resolveOverlap: true,
@@ -10219,6 +11382,7 @@
 
         if (explore) {
           clearInspectPointerGesture()
+          resetWalkCameraSpringArm()
           resetPlayerSpawn()
           renderer.domElement.focus({ preventScroll: true })
           setRuntimeStatus(
@@ -10234,6 +11398,7 @@
             keyStates[code] = false
           })
           clearInspectPointerGesture()
+          teleportOrbitDistance = TELEPORT_ORBIT_DISTANCE_MIN
           resetPlayerSpawn()
           syncYawPitchFromOrbitCamera()
           pitch = clampTeleportPitch(pitch)
@@ -10241,7 +11406,9 @@
           hideTeleportFloorReticle()
           renderer.domElement.focus({ preventScroll: true })
           setRuntimeStatus(
-            'Teleport mode active. Short-click the gallery floor to move. Drag to look around.',
+            isMobile
+              ? 'Teleport mode: tap floor to move · drag to look · pinch to zoom'
+              : 'Teleport mode active. Short-click the floor to move. Drag to look · scroll to zoom.',
           )
         } else {
           renderer.domElement.focus({ preventScroll: true })
@@ -10517,7 +11684,7 @@
         if (document.pointerLockElement !== renderer.domElement) return
 
         yaw -= event.movementX / 500
-        pitch = clampInspectPitch(pitch - event.movementY / 650)
+        pitch = clampExplorePitch(pitch - event.movementY / 650)
       }
 
       function onWalkKeyDown(event) {
@@ -10638,10 +11805,33 @@
 
         if (!worldOctree) return
 
+        // Benches/furniture tops must never become walkable floors.
+        if (resolveNonWalkablePropStanding()) {
+          const cleanup = worldOctree.capsuleIntersect(playerCollider)
+          if (cleanup && cleanup.depth >= 1e-10 && cleanup.normal.y < 0.45) {
+            playerCollider.translate(cleanup.normal.multiplyScalar(cleanup.depth))
+          }
+          playerOnFloor = true
+          if (playerVelocity.y < 0) playerVelocity.y = 0
+          return
+        }
+
         const result = worldOctree.capsuleIntersect(playerCollider)
         playerOnFloor = false
 
         if (result) {
+          const support = result.normal.y >= 0.1 ? probeCapsuleSupportHit() : null
+          if (result.normal.y >= 0.1 && isNonWalkablePropSupportHit(support)) {
+            resolveNonWalkablePropStanding()
+            const cleanup = worldOctree.capsuleIntersect(playerCollider)
+            if (cleanup && cleanup.depth >= 1e-10 && cleanup.normal.y < 0.45) {
+              playerCollider.translate(cleanup.normal.multiplyScalar(cleanup.depth))
+            }
+            playerOnFloor = true
+            if (playerVelocity.y < 0) playerVelocity.y = 0
+            return
+          }
+
           playerOnFloor = result.normal.y >= 0.1
 
           if (!playerOnFloor) {
@@ -10668,11 +11858,47 @@
         playerCollider.translate(playerVelocity.clone().multiplyScalar(deltaTime))
         playerCollisions()
         clampPlayerToScene()
+        updatePlayerVisualYaw(deltaTime)
         updatePlayerAvatar()
         if (shouldUseWalkCamera()) {
           updateThirdPersonCamera(deltaTime)
         }
         updatePlayerCharacterAnimation(deltaTime)
+      }
+
+      function shortestAngleDelta(from, to) {
+        let delta = (to - from) % (Math.PI * 2)
+        if (delta > Math.PI) delta -= Math.PI * 2
+        if (delta < -Math.PI) delta += Math.PI * 2
+        return delta
+      }
+
+      function syncPlayerVisualYaw(value = yaw) {
+        playerVisualYaw = value
+        if (playerTransformPivot) playerTransformPivot.rotation.y = playerVisualYaw
+      }
+
+      function updatePlayerVisualYaw(deltaTime) {
+        const horizontalSpeed = Math.hypot(playerVelocity.x, playerVelocity.z)
+        const moving = horizontalSpeed > 0.04 && playerOnFloor
+
+        // Face camera yaw while walking with W/S (camera-relative). Velocity heading is only
+        // used for pure strafe — otherwise collision/damping noise reads as a right steer.
+        let targetYaw = yaw
+        if (moving) {
+          const forwardHeld =
+            keyStates.KeyW || keyStates.ArrowUp || keyStates.KeyS || keyStates.ArrowDown
+          const strafeHeld =
+            keyStates.KeyA || keyStates.ArrowLeft || keyStates.KeyD || keyStates.ArrowRight
+          if (!forwardHeld && strafeHeld) {
+            targetYaw = Math.atan2(-playerVelocity.x, -playerVelocity.z)
+          }
+        }
+
+        const delta = shortestAngleDelta(playerVisualYaw, targetYaw)
+        const turnRate = moving ? PLAYER_TURN_RATE_MOVE : PLAYER_TURN_RATE_IDLE
+        const maxStep = turnRate * Math.max(deltaTime, 0)
+        playerVisualYaw += THREE.MathUtils.clamp(delta, -maxStep, maxStep)
       }
 
       function updatePlayerCharacterAnimation(deltaTime) {
@@ -10689,14 +11915,18 @@
         playerCharacterWalkWeight = THREE.MathUtils.lerp(playerCharacterWalkWeight, targetWalkWeight, blend)
 
         if (playerCharacterWalkAction || playerCharacterRunAction) {
-          const speedReference =
-            params.runtime.movementSpeed *
-            (running ? PLAYER_CHARACTER_RUN_MULTIPLIER * 3.25 : 3.25)
-          const targetTimeScale = THREE.MathUtils.clamp(
-            horizontalSpeed / Math.max(0.0001, speedReference),
-            0.6,
-            running ? 2.4 : 2,
-          )
+          // Idle must stay at 1× — clamping speed-based timescale to 0.6 made standing turns look floaty.
+          let targetTimeScale = 1
+          if (moving) {
+            const speedReference =
+              params.runtime.movementSpeed *
+              (running ? PLAYER_CHARACTER_RUN_MULTIPLIER * 3.25 : 3.25)
+            targetTimeScale = THREE.MathUtils.clamp(
+              horizontalSpeed / Math.max(0.0001, speedReference),
+              0.75,
+              running ? 2.4 : 2,
+            )
+          }
           playerCharacterMixer.timeScale = THREE.MathUtils.lerp(
             playerCharacterMixer.timeScale || 1,
             targetTimeScale,
@@ -10711,6 +11941,7 @@
           return
         }
 
+        playerCharacterMixer.timeScale = 1
         playerCharacterIdleAction.setEffectiveWeight(1)
       }
 
@@ -10731,10 +11962,13 @@
         const centerX = center.x
         const centerZ = center.z
         const referenceY = playerCollider.start.y - playerCollider.radius
-        const floorY = resolveWalkFloorY(centerX, centerZ, referenceY)
+        // Prefer capsule contact height while grounded — re-raycasting every frame micro-jitters Y on turns.
+        const floorY = playerOnFloor
+          ? referenceY
+          : resolveWalkFloorY(centerX, centerZ, referenceY)
 
         playerTransformPivot.position.set(centerX, floorY, centerZ)
-        playerTransformPivot.rotation.y = yaw
+        playerTransformPivot.rotation.y = playerVisualYaw
 
         if (isExploreMode()) {
           updateShadowCameraForPlayer()
@@ -10761,17 +11995,44 @@
         updatePlayerAvatarVisibility()
       }
 
-      function updateThirdPersonCamera(deltaTime, smoothFactor = 14) {
+      function updateThirdPersonCamera(deltaTime, smoothFactor = WALK_CAMERA_FOLLOW_RATE) {
         if (!playerCollider) return
 
+        // Update art-focus / fade first so this frame's look-at can use the canvas point.
+        updateExploreAvatarOcclusion(deltaTime)
+
+        // 1) Ideal sockets + stable boom offset
         applyWalkThirdPersonCameraRig(walkCameraDesired, walkCameraLookTarget)
 
-        const blend = 1 - Math.exp(-smoothFactor * deltaTime)
-        walkCameraPosition.lerp(walkCameraDesired, blend)
-        // Smooth follow can otherwise tunnel through walls between frames.
-        resolveWalkCameraSpringArm(walkCameraLookTarget, walkCameraPosition)
+        // 2) Smooth look pivot only (do not retarget the boom from unsmoothed look)
+        const lookBlend = 1 - Math.exp(-smoothFactor * deltaTime)
+        if (!walkCameraLookInitialized) {
+          walkCameraLookSmoothed.copy(walkCameraLookTarget)
+          walkCameraLookInitialized = true
+        } else {
+          walkCameraLookSmoothed.lerp(walkCameraLookTarget, lookBlend)
+        }
+
+        // 3) Place ideal camera = smoothed look + ideal offset, then collision-shorten
+        walkCameraDesired.copy(walkCameraLookSmoothed).add(walkCameraIdealOffset)
+        resolveWalkCameraSpringArm(walkCameraLookSmoothed, walkCameraDesired, {
+          smooth: true,
+          deltaTime,
+        })
+
+        // 4) Single room / view constraint pass (camera only — keep boom pivot clean)
+        const feetY = playerCollider.start.y - playerCollider.radius
+        clampWalkCameraToRoom(walkCameraDesired, null, feetY)
+        sanitizeExploreCameraFraming(walkCameraDesired, feetY)
+        const useArtLook = walkNearWallLookBias > 0.02 && walkArtFocusValid
+        const frameLook = useArtLook
+          ? copyExploreFrameLook(walkFrameLookAt, walkFrameLookAt, walkCameraDesired, feetY)
+          : copyExploreFrameLook(walkFrameLookAt, walkCameraLookSmoothed, walkCameraDesired, feetY)
+
+        walkCameraPosition.copy(walkCameraDesired)
         camera.position.copy(walkCameraPosition)
-        camera.lookAt(walkCameraLookTarget)
+        camera.lookAt(frameLook)
+        logExploreCameraDebug(feetY)
       }
 
       function clampPlayerToScene() {
@@ -10945,7 +12206,8 @@
         camera.aspect = window.innerWidth / window.innerHeight
         camera.updateProjectionMatrix()
         renderer.setSize(window.innerWidth, window.innerHeight)
-        compareResolution.value.set(window.innerWidth, window.innerHeight)
+        const pr = renderer.getPixelRatio()
+        compareResolution.value.set(window.innerWidth * pr, window.innerHeight * pr)
       }
 
       function onComparePointerMove(event) {
@@ -10963,6 +12225,9 @@
       function animate(timestamp = 0) {
         runtimeTimer.update(timestamp)
         const deltaTime = Math.min(0.05, runtimeTimer.getDelta())
+        if (shadowUpdateCooldown > 0) {
+          shadowUpdateCooldown = Math.max(0, shadowUpdateCooldown - deltaTime)
+        }
 
         if (walkJoystick?.active && (isExploreMode() || isInspectMode())) {
           walkJoystick.applyToKeyStates(keyStates)
