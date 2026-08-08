@@ -839,6 +839,10 @@
       const WALK_CAMERA_LOOK_HEIGHT_SCALE = 0.63756
       const WALK_CAMERA_PITCH_LIFT_SCALE = 0.36
       const WALK_CAMERA_SHOULDER_OFFSET = 0.28
+      // Spring-arm probe (UE-style): keep the camera near-plane off wall geometry.
+      const WALK_CAMERA_PROBE_RADIUS = 0.09
+      const WALK_CAMERA_MIN_ARM = 0.2
+      const WALK_CAMERA_COLLISION_SKIN = 0.02
       const PLAYER_CHARACTER_URL = './models/Xbot.glb'
       const PLAYER_CHARACTER_VISUAL_SCALE = 1.2
       // Positive = lower soles toward floor; negative = lift. Tuned between +0.012 (clip) and -0.022 (float).
@@ -4104,6 +4108,11 @@
       const walkCameraLookTarget = new THREE.Vector3()
       const walkCameraDesired = new THREE.Vector3()
       const walkCameraPosition = new THREE.Vector3()
+      const walkCameraArmDir = new THREE.Vector3()
+      const walkCameraRight = new THREE.Vector3()
+      const walkCameraUp = new THREE.Vector3()
+      const walkCameraRayOrigin = new THREE.Vector3()
+      const walkCameraCollisionTargets = []
       const walkRaycaster = new THREE.Raycaster()
       const walkPointerNdc = new THREE.Vector2()
       const walkCollisionMeshes = []
@@ -9700,6 +9709,79 @@
           feetY + capsuleHeight * WALK_CAMERA_LOOK_HEIGHT_SCALE + Math.sin(pitch) * distance * 0.22,
           centerZ,
         )
+
+        // Spring-arm collision zoom: shorten the arm when walls sit between look target and camera
+        // (UE Spring Arm / Godot SpringArm3D practice — never leave the camera on the far side).
+        resolveWalkCameraSpringArm(outLookTarget, outPosition)
+      }
+
+      function fillWalkCameraCollisionTargets() {
+        walkCameraCollisionTargets.length = 0
+        for (const mesh of walkCollisionMeshes) walkCameraCollisionTargets.push(mesh)
+        for (const wall of walkBoundaryColliders) walkCameraCollisionTargets.push(wall)
+        return walkCameraCollisionTargets
+      }
+
+      function resolveWalkCameraSpringArm(lookTarget, desiredCamera) {
+        const targets = fillWalkCameraCollisionTargets()
+        if (!targets.length) return desiredCamera
+
+        walkCameraArmDir.subVectors(desiredCamera, lookTarget)
+        const idealDist = walkCameraArmDir.length()
+        if (idealDist < 1e-5) return desiredCamera
+
+        walkCameraArmDir.multiplyScalar(1 / idealDist)
+
+        // Orthonormal basis for a thick probe (near-plane / sphere approximation, not a thin ray).
+        if (Math.abs(walkCameraArmDir.y) < 0.92) {
+          walkCameraUp.set(0, 1, 0)
+        } else {
+          walkCameraUp.set(1, 0, 0)
+        }
+        walkCameraRight.crossVectors(walkCameraArmDir, walkCameraUp).normalize()
+        walkCameraUp.crossVectors(walkCameraRight, walkCameraArmDir).normalize()
+
+        const probe = WALK_CAMERA_PROBE_RADIUS
+        const offsets = [
+          [0, 0],
+          [probe, 0],
+          [-probe, 0],
+          [0, probe],
+          [0, -probe],
+          [probe * 0.7, probe * 0.7],
+          [-probe * 0.7, probe * 0.7],
+          [probe * 0.7, -probe * 0.7],
+          [-probe * 0.7, -probe * 0.7],
+        ]
+
+        let allowed = idealDist
+        activeModelRoot?.updateMatrixWorld(true)
+
+        for (let i = 0; i < offsets.length; i++) {
+          const ox = offsets[i][0]
+          const oy = offsets[i][1]
+          walkCameraRayOrigin
+            .copy(lookTarget)
+            .addScaledVector(walkCameraRight, ox)
+            .addScaledVector(walkCameraUp, oy)
+          walkRaycaster.set(walkCameraRayOrigin, walkCameraArmDir)
+          walkRaycaster.far = idealDist + probe
+          walkRaycaster.near = 0
+
+          const hits = walkRaycaster.intersectObjects(targets, false)
+          if (!hits.length) continue
+
+          // Skip degenerate hits at the origin (camera already slightly inside a surface).
+          const hit = hits[0]
+          if (hit.distance < 0.002) continue
+
+          allowed = Math.min(allowed, hit.distance - probe - WALK_CAMERA_COLLISION_SKIN)
+        }
+
+        const minArm = Math.min(WALK_CAMERA_MIN_ARM, idealDist * 0.45)
+        allowed = Math.max(minArm, Math.min(idealDist, allowed))
+        desiredCamera.copy(lookTarget).addScaledVector(walkCameraArmDir, allowed)
+        return desiredCamera
       }
 
       function getWalkBoundsMargin() {
@@ -10686,6 +10768,8 @@
 
         const blend = 1 - Math.exp(-smoothFactor * deltaTime)
         walkCameraPosition.lerp(walkCameraDesired, blend)
+        // Smooth follow can otherwise tunnel through walls between frames.
+        resolveWalkCameraSpringArm(walkCameraLookTarget, walkCameraPosition)
         camera.position.copy(walkCameraPosition)
         camera.lookAt(walkCameraLookTarget)
       }
