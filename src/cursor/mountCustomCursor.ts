@@ -144,6 +144,7 @@ export function mountCustomCursor(): (() => void) | null {
         '.project-card',
         '.clients-mark',
         '.about-pathway-item',
+        '.contact-form-portal a',
         '.btn',
         'a.btn',
         '.header-cta',
