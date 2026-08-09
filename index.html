@@ -72,6 +72,14 @@
         font-weight: 800;
         src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
       }
+      @font-face {
+        font-family: 'Syne';
+        font-style: normal;
+        /* Needed for boot/hero subtitle (Object Media) before async CSS arrives — slower on mobile */
+        font-display: swap;
+        font-weight: 600;
+        src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
+      }
       html,
       body {
         margin: 0;
@@ -99,8 +107,11 @@
         Full stylesheet loads non-blocking (PageSpeed). Until it applies, hide
         React chrome so we never flash unstyled header/nav; boot shell + LCP
         poster stay visible from this inline CSS.
+
+        Once JS mounts (`app-ready`), stop hiding — otherwise mobile/slow 3G can
+        replace the boot shell before CSS onload and leave a blank viewport.
       */
-      html:not(.css-ready) #root > :not(#boot-shell):not(#boot-pending) {
+      html:not(.css-ready):not(.app-ready) #root > :not(#boot-shell):not(#boot-pending) {
         visibility: hidden !important;
       }
       .site-header {

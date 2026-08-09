@@ -1,4 +1,4 @@
-/* Self-hosted fonts (latin). Critical 800 also declared inline in index.html for first paint. */
+/* Self-hosted fonts (latin). Critical 800 + 600 also declared inline in index.html for first paint. */
 @font-face {
   font-family: 'Syne';
   font-style: normal;
