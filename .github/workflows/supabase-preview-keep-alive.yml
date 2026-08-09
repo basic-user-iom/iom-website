@@ -1,0 +1,69 @@
+# Keep free-tier Supabase preview project from auto-pausing after ~7 days idle.
+# Project: iom-website-preview (ijjnstbwvuwwznfagxut) — Preview only, not production.
+#
+# Required repo secret:
+#   SUPABASE_PREVIEW_ANON_KEY  Preview anon / publishable key
+# Optional:
+#   SUPABASE_PREVIEW_URL       defaults to https://ijjnstbwvuwwznfagxut.supabase.co
+
+name: Supabase preview keep-alive
+
+on:
+  schedule:
+    # Every 3 days at 06:17 UTC (spread load; well inside 7-day inactivity window)
+    - cron: '17 6 */3 * *'
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-preview-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping Preview Supabase REST API
+        env:
+          SUPABASE_PREVIEW_URL: ${{ secrets.SUPABASE_PREVIEW_URL }}
+          SUPABASE_PREVIEW_ANON_KEY: ${{ secrets.SUPABASE_PREVIEW_ANON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_PREVIEW_ANON_KEY:-}" ]; then
+            echo "Missing GitHub secret SUPABASE_PREVIEW_ANON_KEY."
+            echo "Set it in repo Settings → Secrets and variables → Actions (Preview anon key only)."
+            exit 1
+          fi
+          # Default to known preview project if secret unset
+          base="${SUPABASE_PREVIEW_URL:-https://ijjnstbwvuwwznfagxut.supabase.co}"
+          base="${base%/}"
+          # Lightweight authenticated request — enough DB/API activity for keep-alive.
+          # Prefer OpenAPI root (no table/RLS dependency); fall back to a tiny select.
+          code=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
+            "${base}/rest/v1/" \
+            -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_PREVIEW_ANON_KEY}" \
+            -H "Accept: application/openapi+json")
+          echo "HTTP ${code} (GET /rest/v1/)"
+          if [ "$code" != "200" ]; then
+            echo "OpenAPI root failed; trying limit=1 on crm_staff_profiles…"
+            code=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
+              "${base}/rest/v1/crm_staff_profiles?select=id&limit=1" \
+              -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
+              -H "Authorization: Bearer ${SUPABASE_PREVIEW_ANON_KEY}" \
+              -H "Accept: application/json")
+            echo "HTTP ${code} (GET /rest/v1/crm_staff_profiles)"
+          fi
+          # Do not print response body (may include schema details).
+          bytes=$(wc -c < /tmp/supabase-keepalive-body.txt | tr -d ' ')
+          echo "Response bytes: ${bytes}"
+          case "$code" in
+            200|206|401|403)
+              # 401/403 still hit the project API surface and count as activity.
+              echo "Keep-alive ping OK (activity registered)."
+              ;;
+            *)
+              echo "Unexpected status; keep-alive may not have registered."
+              exit 1
+              ;;
+          esac

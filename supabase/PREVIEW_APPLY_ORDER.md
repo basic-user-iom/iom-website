@@ -71,6 +71,28 @@ Redeploy a Preview deployment after saving env vars (Vite inlines `VITE_*` at bu
 - A Preview deployment URL login must show only preview data / empty CRM.
 - `npx vercel env ls` — Production and Preview Supabase values must differ.
 
+## 5) Keep-alive (avoid free-tier pause)
+
+Free Supabase projects pause after ~7 days without enough API/DB activity. Preview is idle most of the time, so GitHub Actions pings it every 3 days:
+
+- Workflow: `.github/workflows/supabase-preview-keep-alive.yml`
+- Manual run: Actions → **Supabase preview keep-alive** → Run workflow
+
+Add this **GitHub Actions secret** (Preview key only — never Production):
+
+| Secret | Value |
+|--------|--------|
+| `SUPABASE_PREVIEW_ANON_KEY` | Preview `anon` / publishable key |
+
+Optional: `SUPABASE_PREVIEW_URL` (defaults to `https://ijjnstbwvuwwznfagxut.supabase.co`).
+
+```powershell
+# From repo root — paste the Preview anon key when prompted (do not commit it)
+gh secret set SUPABASE_PREVIEW_ANON_KEY
+```
+
+Then run **Actions → Supabase preview keep-alive → Run workflow** once to confirm.
+
 ## Hand-off to agent
 
 After the preview project exists, paste (in chat, once) or set yourself:
