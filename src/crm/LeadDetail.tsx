@@ -11,6 +11,8 @@ import { InitialOutreachPanel } from './InitialOutreachPanel'
 import { LeadNdaPanel } from './LeadNdaPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
+import { LeadTagsDisplay } from './LeadTagsField'
+import { normalizeLeadTags } from './leadTags'
 import { isContactPriority } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmProject, CrmUser, Lead, LeadInput, StaffProfile } from './types'
@@ -357,8 +359,14 @@ export function LeadDetail({
               {tempLabel(lead.temperature)}
             </span>
             <span className="crm-status-pill">{statusLabel(lead.status)}</span>
+            {lead.last_client_reply_at && (
+              <span className="crm-reply-badge">{t('list.replied')}</span>
+            )}
             <LeadClientLocal lead={lead} compact />
           </div>
+          {normalizeLeadTags(lead.tags).length > 0 && (
+            <LeadTagsDisplay tags={lead.tags} />
+          )}
           {showOwner && (
             <div className="crm-detail-owner" title={owner.email || undefined}>
               <UserAvatar

@@ -45,6 +45,10 @@ create table if not exists public.crm_leads (
   estimated_value numeric,
   -- Optional emoticon for value (❤️ from the heart / pro-bono, 🎁 gift, etc.)
   value_emoji text not null default '',
+  -- Freeform lead tags (suggested vocabulary in app; custom allowed)
+  tags jsonb not null default '[]'::jsonb,
+  -- Most recent inbound client email (null = no reply yet)
+  last_client_reply_at timestamptz,
   -- Atlas Evaluation Principle scores (0–5, 0 = unset)
   atlas_eval jsonb not null default '{}'::jsonb,
   -- Client locale for staff: live local clock + weather (Open-Meteo)

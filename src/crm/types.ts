@@ -16,7 +16,7 @@ export type ActivityType = 'call' | 'email' | 'meeting' | 'note' | 'task'
 
 export type ProjectStatus = 'planned' | 'active' | 'on_hold' | 'completed' | 'cancelled'
 
-export type LeadSort = 'updated' | 'owner' | 'status'
+export type LeadSort = 'updated' | 'owner' | 'status' | 'last_reply'
 
 /** Extra named link on a lead (beyond the primary `website` field). */
 export interface LeadLink {
@@ -69,6 +69,16 @@ export interface Lead {
   estimated_value: number | null
   /** Optional CRM-safe emoticon for estimated value (❤️ pro-bono, 🎁 gift, …). */
   value_emoji: string
+  /**
+   * Freeform lead tags (jsonb string[]). Suggested vocabulary in `leadTags.ts`;
+   * custom kebab-case tags are allowed.
+   */
+  tags: string[]
+  /**
+   * Most recent inbound client email (`crm_lead_messages.direction = inbound`).
+   * Null when the client has not replied yet.
+   */
+  last_client_reply_at: string | null
   /** Atlas Evaluation Principle scores (jsonb; 0 = unset, 1–5 stars). */
   atlas_eval: AtlasEval
   /** IANA timezone (e.g. Europe/Belgrade) for client local clock */
@@ -348,8 +358,11 @@ export interface StaffProfile {
   avatar_url: string | null
 }
 
-/** Stage dropdown value: pipeline status, or outreach filter (initial email not sent). */
-export type LeadStatusFilter = LeadStatus | 'all' | 'not_contacted'
+/**
+ * Stage dropdown value: pipeline status, or special filters
+ * (initial email not sent / client has replied).
+ */
+export type LeadStatusFilter = LeadStatus | 'all' | 'not_contacted' | 'client_replied'
 
 export interface LeadFilters {
   search: string
@@ -357,6 +370,8 @@ export interface LeadFilters {
   temperature: LeadTemperature | 'all'
   /** 'all' | owner_id | owner_email | 'none' */
   owner: string
+  /** 'all' or a single tag slug */
+  tag: string
   sort: LeadSort
 }
 

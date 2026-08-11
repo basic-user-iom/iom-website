@@ -237,7 +237,7 @@ export async function ingestInboundEmail({
     supabaseUrl,
     serviceKey,
     `crm_leads?id=eq.${encodeURIComponent(leadId)}`,
-    { updated_at: new Date().toISOString() },
+    { updated_at: new Date().toISOString(), last_client_reply_at: occurredAt },
   )
 
   await insertInboundActivity(supabaseUrl, serviceKey, {

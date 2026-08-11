@@ -69,8 +69,11 @@ const en: Dict = {
   'toolbar.search': 'Search company, contact, email…',
   'toolbar.allStages': 'All stages',
   'toolbar.notContacted': 'Not contacted',
+  'toolbar.clientReplied': 'Client replied',
   'toolbar.allTemps': 'All temperatures',
   'toolbar.allOwners': 'All added by',
+  'toolbar.allTags': 'All tags',
+  'toolbar.tagFilter': 'Filter by tag',
   'toolbar.stageFilter': 'Filter by pipeline stage',
   'toolbar.tempFilter': 'Filter by temperature',
   'toolbar.ownerFilter': 'Filter by who added',
@@ -78,13 +81,14 @@ const en: Dict = {
   'toolbar.sortUpdated': 'Sort: last updated',
   'toolbar.sortOwner': 'Sort: who added',
   'toolbar.sortStatus': 'Sort: pipeline stage',
+  'toolbar.sortLastReply': 'Sort: latest client reply',
   'toolbar.addLead': '+ Add lead',
   'toolbar.backList': 'Back to list',
   'toolbar.backToList': 'Back to list',
   'toolbar.copyVisible': 'Copy {count} for ChatGPT',
   'toolbar.copyVisibleAll': 'All visible',
   'toolbar.copyVisibleHint':
-    'Copy the currently filtered leads (names + basic info) to find similar clients in ChatGPT. Set stage/temperature filters first — e.g. Contacted, Not contacted, Hot, Warm.',
+    'Copy the currently filtered leads (names + basic info) to find similar clients in ChatGPT. Set stage/temperature/tag filters first — e.g. Client replied, Not contacted, museum, Hot.',
   'toolbar.copyVisibleFailed': 'Copy failed',
   'toolbar.copyVisibleIntro':
     'Use this list as context: these companies are already in IOM’s CRM. Suggest NEW similar companies or studios (not already listed) that could be good outreach targets for interactive 360° tours, 3D experiences, web presentations, and creative digital production. For each suggestion include: company name, website if known, city/country, why they fit, and a brief outreach angle.',
@@ -208,6 +212,8 @@ const en: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Added by',
   'list.priority': 'Priority',
+  'list.replied': 'Replied',
+  'list.repliedAt': 'Client replied · {date}',
   'list.scheduled': 'Scheduled',
   'list.scheduleStopped': 'Schedule stopped',
   'unmatched.title': 'Unmatched inbound email',
@@ -1212,6 +1218,15 @@ const en: Dict = {
   'form.initialEmailBodyPlaceholder':
     'Write the full email here — greeting, pitch, and sign-off. You can refine it on the lead detail page later.',
   'form.notes': 'Internal notes',
+  'form.tags': 'Tags',
+  'form.tagsHint':
+    'Label industry, geography, and offer-fit. Use presets or type a custom kebab-case tag and press Enter.',
+  'form.tagsPlaceholder': 'Add tag…',
+  'form.tagsAdd': 'Add',
+  'form.tagsEmpty': 'No tags yet',
+  'form.tagsSuggest': 'Suggest tags',
+  'form.tagsSuggested': 'Suggested tags',
+  'form.tagsRemove': 'Remove tag {tag}',
   'form.localeSection': 'Client location & timezone',
   'form.localeHint':
     'Search and pick a city to auto-fill country, timezone, and coordinates for the live clock and weather.',
@@ -1514,7 +1529,7 @@ const en: Dict = {
   'guide.outreach4':
     'Matching: CRM attaches inbound mail by reply thread (In-Reply-To), then by sender matching primary or department emails (database lookup — not limited to recent leads). Ambiguous addresses are queued, not auto-picked',
   'guide.outreach5':
-    'List badges show Email pending / Email sent / Scheduled / Priority. Stage filter “Not contacted” lists leads with no initial email sent yet. Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
+    'List badges show Email pending / Email sent / Scheduled / Priority / Replied. Stage filter “Not contacted” lists leads with no initial email sent yet; “Client replied” lists leads with inbound email, newest reply first. Tags label industry/geo/offer-fit (custom tags allowed). Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
   'guide.outreach6':
     'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — it sends on the next worker run (Ping now, optional free ~5‑min external cron, or daily 08:00 UTC backup), not at that exact minute. Proton sends and emails you if it fails. After 5 failures use Retry schedule. Mistaken Sent? Use Mark as not sent on the outreach panel',
   'guide.outreach7':
@@ -1552,7 +1567,7 @@ const en: Dict = {
   'guide.findHeading': 'Search & filters',
   'guide.find1': 'Search by company, contact, or email in the top bar',
   'guide.find2':
-    'Filter by stage (including Not contacted), temperature (Hot / Warm / Cold), and who added the lead',
+    'Filter by stage (including Not contacted and Client replied), temperature (Hot / Warm / Cold), tag, and who added the lead',
   'guide.find3':
     'Sort by last updated, who added, or pipeline stage; use stats pills and the follow-up calendar to filter by date',
   'guide.chatgptHeading': 'ChatGPT assist',
@@ -1763,8 +1778,11 @@ const sr: Dict = {
   'toolbar.search': 'Pretraga firme, kontakta, emaila…',
   'toolbar.allStages': 'Sve faze',
   'toolbar.notContacted': 'Nije kontaktiran',
+  'toolbar.clientReplied': 'Klijent odgovorio',
   'toolbar.allTemps': 'Sve temperature',
   'toolbar.allOwners': 'Svi koji su dodali',
+  'toolbar.allTags': 'Svi tagovi',
+  'toolbar.tagFilter': 'Filter po tagu',
   'toolbar.stageFilter': 'Filter po fazi pipeline-a',
   'toolbar.tempFilter': 'Filter po temperaturi',
   'toolbar.ownerFilter': 'Filter po tome ko je dodao',
@@ -1772,13 +1790,14 @@ const sr: Dict = {
   'toolbar.sortUpdated': 'Sort: poslednja izmena',
   'toolbar.sortOwner': 'Sort: ko je dodao',
   'toolbar.sortStatus': 'Sort: faza pipeline-a',
+  'toolbar.sortLastReply': 'Sort: poslednji odgovor klijenta',
   'toolbar.addLead': '+ Dodaj lead',
   'toolbar.backList': 'Nazad na listu',
   'toolbar.backToList': 'Nazad na listu',
   'toolbar.copyVisible': 'Kopiraj {count} za ChatGPT',
   'toolbar.copyVisibleAll': 'Svi vidljivi',
   'toolbar.copyVisibleHint':
-    'Kopira trenutno filtrirane leadove (imena + osnovni podaci) da u ChatGPT-u tražite slične klijente. Prvo postavite filter faze/temperature — npr. Kontaktiran, Nije kontaktiran, Vruć, Topao.',
+    'Kopira trenutno filtrirane leadove (imena + osnovni podaci) da u ChatGPT-u tražite slične klijente. Prvo postavite filter faze/temperature/taga — npr. Klijent odgovorio, Nije kontaktiran, museum, Vruć.',
   'toolbar.copyVisibleFailed': 'Kopiranje nije uspelo',
   'toolbar.copyVisibleIntro':
     'Koristite ovu listu kao kontekst: ove firme su već u IOM CRM-u. Predložite NOVE slične firme ili studije (koje nisu na listi) kao dobre ciljeve za outreach — interaktivne 360° ture, 3D iskustva, web prezentacije i kreativnu digitalnu produkciju. Za svaki predlog uključite: naziv firme, website ako je poznat, grad/državu, zašto odgovara, i kratak ugao za outreach.',
@@ -1903,6 +1922,8 @@ const sr: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Dodao/la',
   'list.priority': 'Prioritet',
+  'list.replied': 'Odgovorio',
+  'list.repliedAt': 'Klijent odgovorio · {date}',
   'list.scheduled': 'Zakazano',
   'list.scheduleStopped': 'Raspored zaustavljen',
   'unmatched.title': 'Nepovezani dolazni email',
@@ -2914,6 +2935,15 @@ const sr: Dict = {
   'form.initialEmailBodyPlaceholder':
     'Napišite ceo email ovde — pozdrav, pitch i potpis. Možete ga doraditi kasnije na stranici leada.',
   'form.notes': 'Interne beleške',
+  'form.tags': 'Tagovi',
+  'form.tagsHint':
+    'Oznake industrije, geografije i fit-a ponude. Koristite predloge ili unesite prilagođeni kebab-case tag i pritisnite Enter.',
+  'form.tagsPlaceholder': 'Dodaj tag…',
+  'form.tagsAdd': 'Dodaj',
+  'form.tagsEmpty': 'Još nema tagova',
+  'form.tagsSuggest': 'Predloži tagove',
+  'form.tagsSuggested': 'Predloženi tagovi',
+  'form.tagsRemove': 'Ukloni tag {tag}',
   'form.localeSection': 'Lokacija i vremenska zona klijenta',
   'form.localeHint':
     'Pretražite i izaberite grad da se automatski popune država, vremenska zona i koordinate za živi sat i vreme.',
@@ -3217,7 +3247,7 @@ const sr: Dict = {
   'guide.outreach4':
     'Povezivanje: CRM kači dolazni mail preko niti (In-Reply-To), zatim po From adresi (primarni ili odeljenski email — lookup u bazi, bez limita na nedavne leadove). Dvosmislene adrese idu u red, ne biraju se same',
   'guide.outreach5':
-    'Kartice pokazuju Email na čekanju / Email poslat / Zakazano / Prioritet. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila. Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
+    'Kartice pokazuju Email na čekanju / Email poslat / Zakazano / Prioritet / Odgovorio. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila; „Klijent odgovorio” prikazuje leadove sa inbound emailom, najnoviji odgovor prvi. Tagovi označavaju industriju/geo/fit ponude (prilagođeni tagovi dozvoljeni). Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
   'guide.outreach6':
     'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC), ne tačno u toj minuti. Proton šalje i šalje vam email ako ne uspe. Posle 5 neuspeha koristite Pokušaj ponovo. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreach7':
@@ -3255,7 +3285,7 @@ const sr: Dict = {
   'guide.findHeading': 'Pretraga i filteri',
   'guide.find1': 'Pretražujte po firmi, kontaktu ili emailu u gornjoj traci',
   'guide.find2':
-    'Filtrirajte po fazi (uključujući Nije kontaktiran), temperaturi (Vruć / Topao / Hladan) i po tome ko je dodao lead',
+    'Filtrirajte po fazi (uključujući Nije kontaktiran i Klijent odgovorio), temperaturi (Vruć / Topao / Hladan), tagu i po tome ko je dodao lead',
   'guide.find3':
     'Sortirajte po poslednjoj izmeni, ko je dodao ili fazi; koristite statistiku i kalendar follow-up-a za filter po datumu',
   'guide.chatgptHeading': 'ChatGPT pomoć',

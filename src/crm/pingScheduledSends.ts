@@ -53,6 +53,7 @@ async function executePingScheduledSends(): Promise<PingScheduledSendsResult> {
       status: 'all',
       temperature: 'all',
       owner: 'all',
+      tag: 'all',
       sort: 'updated',
     })
     return { ...idleResult(), ok: true, demo: true, trigger: 'demo' }

@@ -1,6 +1,7 @@
 import { normalizeLeadEmails, normalizeLeadLinks } from './api'
 import { EMPTY_ATLAS_EVAL, normalizeAtlasEval } from './atlasEval'
 import { EMPTY_LEAD_INPUT } from './constants'
+import { leadTagsPromptGuide, normalizeLeadTags, suggestLeadTags } from './leadTags'
 import type { LeadEmail, LeadInput, LeadLink, LeadStatus, LeadTemperature } from './types'
 import { normalizeValueEmoji } from './valueEmoji'
 
@@ -30,6 +31,7 @@ export const CHATGPT_LEAD_JSON_KEYS = [
   'initial_email_subject',
   'initial_email_body',
   'notes',
+  'tags',
   'temperature',
   'status',
   'next_follow_up',
@@ -67,6 +69,7 @@ Return ONLY a single JSON object (no markdown fences, no commentary) with these 
   "initial_email_subject": "Subject line for first outreach email",
   "initial_email_body": "Full first outreach email (greeting, pitch, sign-off)",
   "notes": "Internal research notes, sources, red flags, talking points",
+  "tags": ["museum", "immersive", "usa"],
   "temperature": "hot | warm | cold",
   "status": "new",
   "next_follow_up": "YYYY-MM-DD or null",
@@ -93,6 +96,7 @@ Rules:
 - atlas_eval scores: integers 0 (unset) or 1–5 stars per field (include can_hire_us and thinks_like_us)
 - value_emoji: "" or one of ❤️ 🎁 🤝 ⭐ (optional)
 - estimated_value: EUR number or null; use null with ❤️ or 🎁 for pro-bono / gift
+- ${leadTagsPromptGuide()}
 - Write initial_email_body ready to send — professional, concise, specific to their work
 - Include real URLs and emails only if you find them; do not invent contact details
 - Do NOT invent NDA status, passwords, or internal CRM workflow fields — NDA is handled later on the lead card after the lead is saved
@@ -225,6 +229,18 @@ export function parseChatGptLeadImport(raw: string): Partial<LeadInput> {
     initial_email_subject: asString(src.initial_email_subject),
     initial_email_body: asString(src.initial_email_body),
     notes: asString(src.notes),
+    tags: (() => {
+      const parsed = normalizeLeadTags(src.tags)
+      if (parsed.length > 0) return parsed
+      return suggestLeadTags({
+        company_name: company,
+        company_focus: asString(src.company_focus),
+        offer: asString(src.offer),
+        notes: asString(src.notes),
+        client_city: asString(src.client_city),
+        client_country: asString(src.client_country),
+      })
+    })(),
     temperature: parseTemperature(src.temperature),
     status: parseStatus(src.status),
     next_follow_up: parseFollowUp(src.next_follow_up),
@@ -252,10 +268,12 @@ export function mergeLeadImport(base: LeadInput, imported: Partial<LeadInput>): 
     ...imported,
     links: imported.links && imported.links.length > 0 ? imported.links : base.links,
     emails: imported.emails && imported.emails.length > 0 ? imported.emails : base.emails,
+    tags: imported.tags && imported.tags.length > 0 ? imported.tags : base.tags,
     atlas_eval: imported.atlas_eval ?? base.atlas_eval,
     initial_email_drafted_at:
       imported.initial_email_drafted_at ?? base.initial_email_drafted_at,
     initial_email_sent_at: base.initial_email_sent_at,
+    last_client_reply_at: base.last_client_reply_at,
     client_lat: base.client_lat,
     client_lon: base.client_lon,
   }

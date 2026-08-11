@@ -64,6 +64,7 @@ export function NotesView({
           status: 'all',
           temperature: 'all',
           owner: 'all',
+          tag: 'all',
           sort: 'updated',
         }),
         listProjects(),

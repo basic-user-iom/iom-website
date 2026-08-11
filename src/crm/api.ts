@@ -34,6 +34,7 @@ import {
   scheduledSendDue,
   type ScheduledSend,
 } from './scheduledSend'
+import { normalizeLeadTags } from './leadTags'
 import { normalizeValueEmoji } from './valueEmoji'
 
 const LEADS_KEY = 'iom-crm-leads'
@@ -93,7 +94,9 @@ const STATUS_SORT_ORDER: LeadStatus[] = [
 ]
 
 function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
-  if (filters.status === 'not_contacted') {
+  if (filters.status === 'client_replied') {
+    if (!lead.last_client_reply_at) return false
+  } else if (filters.status === 'not_contacted') {
     if (lead.initial_email_sent_at) return false
   } else if (filters.status !== 'all' && lead.status !== filters.status) {
     return false
@@ -109,6 +112,10 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
       if (key !== filters.owner) return false
     }
   }
+  if (filters.tag !== 'all') {
+    const want = filters.tag.trim().toLowerCase()
+    if (!normalizeLeadTags(lead.tags).includes(want)) return false
+  }
   const q = filters.search.trim().toLowerCase()
   if (!q) return true
   const hay = [
@@ -120,6 +127,7 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
     lead.website,
     ...(lead.links ?? []).flatMap((l) => [l.label, l.url]),
     lead.offer,
+    ...(lead.tags ?? []),
     lead.owner_email,
   ]
     .join(' ')
@@ -144,6 +152,19 @@ function sortLeads(leads: Lead[], sort: LeadSort = 'updated'): Lead[] {
       const ai = STATUS_SORT_ORDER.indexOf(a.status)
       const bi = STATUS_SORT_ORDER.indexOf(b.status)
       if (ai !== bi) return ai - bi
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+    })
+    return copy
+  }
+  if (sort === 'last_reply') {
+    copy.sort((a, b) => {
+      const at = a.last_client_reply_at
+        ? new Date(a.last_client_reply_at).getTime()
+        : 0
+      const bt = b.last_client_reply_at
+        ? new Date(b.last_client_reply_at).getTime()
+        : 0
+      if (bt !== at) return bt - at
       return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
     })
     return copy
@@ -210,6 +231,16 @@ function isMissingValueEmojiColumn(message: string): boolean {
   const m = message.toLowerCase()
   return (
     m.includes('value_emoji') &&
+    (m.includes('does not exist') ||
+      m.includes('could not find') ||
+      m.includes('schema cache'))
+  )
+}
+
+function isMissingTagsColumn(message: string): boolean {
+  const m = message.toLowerCase()
+  return (
+    (m.includes('tags') || m.includes('last_client_reply_at')) &&
     (m.includes('does not exist') ||
       m.includes('could not find') ||
       m.includes('schema cache'))
@@ -365,6 +396,13 @@ function stripValueEmojiField<T extends Record<string, unknown>>(input: T): T {
   return next
 }
 
+function stripTagsFields<T extends Record<string, unknown>>(input: T): T {
+  const next = { ...input }
+  delete next.tags
+  delete next.last_client_reply_at
+  return next
+}
+
 function stripContactPriorityField<T extends Record<string, unknown>>(input: T): T {
   const next = { ...input }
   delete next.contact_priority
@@ -499,6 +537,31 @@ function mergeValueEmoji(
   return normalizeLead({ ...row, value_emoji: emoji })
 }
 
+function mergeLeadTags(
+  row: Lead,
+  source:
+    | { tags?: string[] | null; last_client_reply_at?: string | null }
+    | null
+    | undefined,
+): Lead {
+  if (!source) return normalizeLead(row)
+  const tags =
+    source.tags != null ? normalizeLeadTags(source.tags) : normalizeLeadTags(row.tags)
+  const last =
+    source.last_client_reply_at !== undefined
+      ? source.last_client_reply_at
+      : row.last_client_reply_at ?? null
+  if (
+    tags.length === 0 &&
+    normalizeLeadTags(row.tags).length === 0 &&
+    !last &&
+    !row.last_client_reply_at
+  ) {
+    return normalizeLead(row)
+  }
+  return normalizeLead({ ...row, tags, last_client_reply_at: last })
+}
+
 function mergeContactPriority(
   row: Lead,
   source: { contact_priority?: boolean | null } | null | undefined,
@@ -550,6 +613,8 @@ function normalizeLead(row: Lead): Lead {
     links: normalizeLeadLinks(row.links),
     emails: normalizeLeadEmails(row.emails),
     value_emoji: normalizeValueEmoji(row.value_emoji),
+    tags: normalizeLeadTags(row.tags),
+    last_client_reply_at: row.last_client_reply_at ?? null,
     atlas_eval: normalizeAtlasEval(row.atlas_eval ?? EMPTY_ATLAS_EVAL),
     client_timezone: row.client_timezone ?? '',
     client_city: row.client_city ?? '',
@@ -970,6 +1035,8 @@ let clientLocaleColumnsPresent: boolean | null = null
 let linksColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.value_emoji text column. */
 let valueEmojiColumnPresent: boolean | null = null
+/** Cached probe for crm_leads.tags / last_client_reply_at columns. */
+let tagsColumnsPresent: boolean | null = null
 /** Cached probe for crm_leads.contact_priority boolean column. */
 let contactPriorityColumnPresent: boolean | null = null
 /** Cached probe for crm_leads.scheduled_send jsonb column. */
@@ -1003,6 +1070,14 @@ function markValueEmojiColumnMissing(): void {
 
 function markValueEmojiColumnPresent(): void {
   valueEmojiColumnPresent = true
+}
+
+function markTagsColumnsMissing(): void {
+  tagsColumnsPresent = false
+}
+
+function markTagsColumnsPresent(): void {
+  tagsColumnsPresent = true
 }
 
 function markContactPriorityColumnMissing(): void {
@@ -1058,6 +1133,11 @@ export function linksSchemaKnownMissing(): boolean {
 /** True when a prior probe/update learned value_emoji column is absent. */
 export function valueEmojiSchemaKnownMissing(): boolean {
   return valueEmojiColumnPresent === false
+}
+
+/** True when a prior probe/update learned tags / last_client_reply_at are absent. */
+export function tagsSchemaKnownMissing(): boolean {
+  return tagsColumnsPresent === false
 }
 
 /** True when a prior probe/update learned contact_priority column is absent. */
@@ -1700,6 +1780,7 @@ function buildLeadSelect(opts?: {
   links?: boolean
   emails?: boolean
   valueEmoji?: boolean
+  tags?: boolean
   contactPriority?: boolean
   scheduledSend?: boolean
   atlasEval?: boolean
@@ -1709,6 +1790,7 @@ function buildLeadSelect(opts?: {
   const links = opts?.links ?? linksColumnPresent !== false
   const emails = opts?.emails ?? emailsColumnPresent !== false
   const valueEmoji = opts?.valueEmoji ?? valueEmojiColumnPresent !== false
+  const tags = opts?.tags ?? tagsColumnsPresent !== false
   const contactPriority = opts?.contactPriority ?? contactPriorityColumnPresent !== false
   const scheduledSend = opts?.scheduledSend ?? scheduledSendColumnPresent !== false
   const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
@@ -1742,6 +1824,7 @@ function buildLeadSelect(opts?: {
     ...(scheduledSend ? (['scheduled_send'] as const) : []),
     'estimated_value',
     ...(valueEmoji ? (['value_emoji'] as const) : []),
+    ...(tags ? (['tags', 'last_client_reply_at'] as const) : []),
     ...(atlasEval ? (['atlas_eval'] as const) : []),
     ...(clientLocale
       ? ([
@@ -1771,6 +1854,7 @@ function stripOptionalLeadFields<T extends Record<string, unknown>>(body: T): T 
   if (linksColumnPresent === false) next = stripLinksField(next)
   if (emailsColumnPresent === false) next = stripEmailsField(next)
   if (valueEmojiColumnPresent === false) next = stripValueEmojiField(next)
+  if (tagsColumnsPresent === false) next = stripTagsFields(next)
   if (contactPriorityColumnPresent === false) next = stripContactPriorityField(next)
   if (scheduledSendColumnPresent === false) next = stripScheduledSendField(next)
   if (atlasEvalColumnPresent === false) next = stripAtlasEvalField(next)
@@ -1800,6 +1884,14 @@ function markOptionalColumnMissing(message: string): boolean {
     markValueEmojiColumnMissing()
     console.warn(
       'crm_leads value_emoji column missing — run crm_lead_value_emoji_migration.sql',
+      message,
+    )
+    return true
+  }
+  if (isMissingTagsColumn(message)) {
+    markTagsColumnsMissing()
+    console.warn(
+      'crm_leads tags / last_client_reply_at missing — run crm_lead_tags_migration.sql',
       message,
     )
     return true
@@ -1865,6 +1957,9 @@ function mergeStrippedOptionalFields(
   if (valueEmojiColumnPresent === false) {
     result = mergeValueEmoji(result, source)
   }
+  if (tagsColumnsPresent === false) {
+    result = mergeLeadTags(result, source)
+  }
   if (contactPriorityColumnPresent === false) {
     result = mergeContactPriority(result, source)
   }
@@ -1892,8 +1987,12 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         .from('crm_leads')
         .select(currentLeadSelect())
         .order('updated_at', { ascending: false })
-      // Pipeline stages hit PostgREST; "not_contacted" is client-side (no initial email sent).
-      if (filters.status !== 'all' && filters.status !== 'not_contacted') {
+      // Pipeline stages hit PostgREST; special filters are client-side.
+      if (
+        filters.status !== 'all' &&
+        filters.status !== 'not_contacted' &&
+        filters.status !== 'client_replied'
+      ) {
         query = query.eq('status', filters.status)
       }
       if (filters.temperature !== 'all') query = query.eq('temperature', filters.temperature)
@@ -1904,6 +2003,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         if (linksColumnPresent !== false) markLinksColumnPresent()
         if (emailsColumnPresent !== false) markEmailsColumnPresent()
         if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+        if (tagsColumnsPresent !== false) markTagsColumnsPresent()
         if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
         if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
         if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
@@ -1925,21 +2025,29 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     }
     if (error) throw new Error(error.message)
     const leads = ((data ?? []) as unknown as Lead[]).map(normalizeLead)
+    const specialStatus =
+      filters.status === 'not_contacted' || filters.status === 'client_replied'
+        ? filters.status
+        : 'all'
+    const effectiveSort: LeadSort =
+      filters.status === 'client_replied' ? 'last_reply' : filters.sort
     return sortLeads(
       leads.filter((l) =>
         matchesFilters(l, {
           ...filters,
-          status: filters.status === 'not_contacted' ? 'not_contacted' : 'all',
+          status: specialStatus,
           temperature: 'all',
         }),
       ),
-      filters.sort,
+      effectiveSort,
     )
   }
 
   processDueScheduledSendsLocal()
   const leads = readLocal<Lead[]>(LEADS_KEY, []).map(normalizeLead)
-  return sortLeads(leads.filter((l) => matchesFilters(l, filters)), filters.sort)
+  const effectiveSortLocal: LeadSort =
+    filters.status === 'client_replied' ? 'last_reply' : filters.sort
+  return sortLeads(leads.filter((l) => matchesFilters(l, filters)), effectiveSortLocal)
 }
 
 /**
@@ -2017,6 +2125,8 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     links: normalizeLeadLinks(input.links),
     emails: normalizeLeadEmails(input.emails),
     value_emoji: normalizeValueEmoji(input.value_emoji),
+    tags: normalizeLeadTags(input.tags),
+    last_client_reply_at: input.last_client_reply_at ?? null,
     contact_priority: !!input.contact_priority,
     scheduled_send: normalizeScheduledSend(input.scheduled_send),
     atlas_eval: normalizeAtlasEval(input.atlas_eval),
@@ -2089,6 +2199,7 @@ export async function createLead(input: LeadInput): Promise<Lead> {
     if (linksColumnPresent !== false) markLinksColumnPresent()
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+    if (tagsColumnsPresent !== false) markTagsColumnsPresent()
     if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
     if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
@@ -2119,6 +2230,12 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
   }
   if (input.value_emoji !== undefined) {
     patch.value_emoji = normalizeValueEmoji(input.value_emoji)
+  }
+  if (input.tags !== undefined) {
+    patch.tags = normalizeLeadTags(input.tags)
+  }
+  if (input.last_client_reply_at !== undefined) {
+    patch.last_client_reply_at = input.last_client_reply_at
   }
   if (input.contact_priority !== undefined) {
     patch.contact_priority = !!input.contact_priority
@@ -2154,6 +2271,7 @@ export async function updateLead(id: string, input: Partial<LeadInput>): Promise
     if (linksColumnPresent !== false) markLinksColumnPresent()
     if (emailsColumnPresent !== false) markEmailsColumnPresent()
     if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
+    if (tagsColumnsPresent !== false) markTagsColumnsPresent()
     if (contactPriorityColumnPresent !== false) markContactPriorityColumnPresent()
     if (scheduledSendColumnPresent !== false) markScheduledSendColumnPresent()
     if (atlasEvalColumnPresent !== false) markAtlasEvalColumnPresent()
@@ -2300,7 +2418,12 @@ export async function createLeadMessage(
     if (error) throw new Error(error.message)
     await supabase
       .from('crm_leads')
-      .update({ updated_at: stamp })
+      .update({
+        updated_at: stamp,
+        ...(input.direction === 'inbound'
+          ? { last_client_reply_at: payload.occurred_at }
+          : {}),
+      })
       .eq('id', input.lead_id)
     return normalizeLeadMessage(data as Record<string, unknown>)
   }
@@ -2318,7 +2441,14 @@ export async function createLeadMessage(
   const leads = readLocal<Lead[]>(LEADS_KEY, [])
   const idx = leads.findIndex((l) => l.id === input.lead_id)
   if (idx >= 0) {
-    leads[idx] = { ...leads[idx], updated_at: stamp }
+    const prev = leads[idx]!
+    leads[idx] = {
+      ...prev,
+      updated_at: stamp,
+      ...(input.direction === 'inbound'
+        ? { last_client_reply_at: payload.occurred_at }
+        : {}),
+    }
     writeLocal(LEADS_KEY, leads)
   }
   return message

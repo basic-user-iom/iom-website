@@ -169,6 +169,10 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
     field(ctx.t('detail.value'), valueText || '—'),
     field(ctx.t('form.temperature'), ctx.tempLabel(lead.temperature)),
     field(ctx.t('form.stage'), ctx.statusLabel(lead.status)),
+    field(
+      ctx.t('form.tags'),
+      (lead.tags ?? []).length > 0 ? (lead.tags ?? []).join(', ') : '—',
+    ),
     field(ctx.t('detail.addedBy'), ownerText),
     field(
       ctx.t('detail.created'),

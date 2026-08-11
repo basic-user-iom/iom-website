@@ -129,6 +129,8 @@ function buildSeed(): Store {
     scheduled_send: null,
     estimated_value: 18500,
     value_emoji: '',
+    tags: ['entertainment', 'interactive', '360-tour', 'high-priority'],
+    last_client_reply_at: null,
     atlas_eval: {
       can_hire_us: 5,
       thinks_like_us: 4,
@@ -190,6 +192,8 @@ function buildSeed(): Store {
     },
     estimated_value: 9200,
     value_emoji: '⭐',
+    tags: ['architecture', 'brand', 'interactive'],
+    last_client_reply_at: hoursAgo(30),
     atlas_eval: {
       can_hire_us: 3,
       thinks_like_us: 4,
@@ -233,6 +237,8 @@ function buildSeed(): Store {
     contact_priority: false,
     estimated_value: 0,
     value_emoji: '❤️',
+    tags: ['civic', 'education'],
+    last_client_reply_at: null,
     atlas_eval: {
       can_hire_us: 2,
       thinks_like_us: 5,
@@ -276,6 +282,8 @@ function buildSeed(): Store {
     contact_priority: false,
     estimated_value: 6400,
     value_emoji: '',
+    tags: ['agency', 'webgpu', 'webgl', 'immersive', 'netherlands', 'eu'],
+    last_client_reply_at: null,
     atlas_eval: {
       ...emptyAtlas(),
       can_hire_us: 3,
@@ -325,6 +333,8 @@ function buildSeed(): Store {
     scheduled_send: null,
     estimated_value: 42000,
     value_emoji: '🤝',
+    tags: ['museum', 'heritage', 'photogrammetry', '360-tour', 'usa'],
+    last_client_reply_at: daysAgo(1),
     atlas_eval: {
       can_hire_us: 4,
       thinks_like_us: 4,
@@ -365,6 +375,8 @@ function buildSeed(): Store {
     contact_priority: false,
     estimated_value: 0,
     value_emoji: '🎁',
+    tags: ['agency', 'webgl'],
+    last_client_reply_at: null,
     atlas_eval: {
       can_hire_us: 5,
       thinks_like_us: 5,

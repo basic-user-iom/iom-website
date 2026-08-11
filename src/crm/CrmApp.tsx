@@ -308,6 +308,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     status: 'all',
     temperature: 'all',
     owner: 'all',
+    tag: 'all',
     sort: 'updated',
   })
   const [ownerOptions, setOwnerOptions] = useState<LeadOwnerOption[]>([])
@@ -833,6 +834,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     (l) => l.status !== 'closed_won' && l.status !== 'closed_lost',
   ).length
   const priorityCount = leads.filter((l) => isContactPriority(l)).length
+  const tagOptions = (() => {
+    const set = new Set<string>()
+    for (const lead of leads) {
+      for (const tag of lead.tags ?? []) {
+        if (tag) set.add(tag)
+      }
+    }
+    return [...set].sort((a, b) => a.localeCompare(b))
+  })()
   const listLeads = (() => {
     let rows = leads
     if (followUpDate) {
@@ -863,11 +873,16 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const filterSummaryParts: string[] = []
   if (filters.status === 'not_contacted') {
     filterSummaryParts.push(t('toolbar.notContacted'))
+  } else if (filters.status === 'client_replied') {
+    filterSummaryParts.push(t('toolbar.clientReplied'))
   } else if (filters.status !== 'all') {
     filterSummaryParts.push(statusLabel(filters.status))
   }
   if (filters.temperature !== 'all') {
     filterSummaryParts.push(tempLabel(filters.temperature))
+  }
+  if (filters.tag !== 'all') {
+    filterSummaryParts.push(`#${filters.tag}`)
   }
   if (priorityFilter) filterSummaryParts.push(t('stats.priority'))
   if (followUpDate) filterSummaryParts.push(followUpDate)
@@ -1167,15 +1182,22 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               className="crm-input"
               value={filters.status}
               aria-label={t('toolbar.stageFilter')}
-              onChange={(e) =>
+              onChange={(e) => {
+                const status = e.target.value as LeadStatusFilter
                 setFilters((f) => ({
                   ...f,
-                  status: e.target.value as LeadStatusFilter,
+                  status,
+                  ...(status === 'client_replied'
+                    ? { sort: 'last_reply' as const }
+                    : f.sort === 'last_reply'
+                      ? { sort: 'updated' as const }
+                      : {}),
                 }))
-              }
+              }}
             >
               <option value="all">{t('toolbar.allStages')}</option>
               <option value="not_contacted">{t('toolbar.notContacted')}</option>
+              <option value="client_replied">{t('toolbar.clientReplied')}</option>
               {LEAD_STATUS_VALUES.map((value) => (
                 <option key={value} value={value}>
                   {statusLabel(value)}
@@ -1202,6 +1224,19 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             </select>
             <select
               className="crm-input"
+              value={filters.tag}
+              aria-label={t('toolbar.tagFilter')}
+              onChange={(e) => setFilters((f) => ({ ...f, tag: e.target.value }))}
+            >
+              <option value="all">{t('toolbar.allTags')}</option>
+              {tagOptions.map((tag) => (
+                <option key={tag} value={tag}>
+                  {tag}
+                </option>
+              ))}
+            </select>
+            <select
+              className="crm-input"
               value={filters.owner}
               aria-label={t('toolbar.ownerFilter')}
               onChange={(e) => setFilters((f) => ({ ...f, owner: e.target.value }))}
@@ -1215,15 +1250,27 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             </select>
             <select
               className="crm-input"
-              value={filters.sort}
-              aria-label={t('toolbar.sort')}
-              onChange={(e) =>
-                setFilters((f) => ({ ...f, sort: e.target.value as LeadSort }))
+              value={
+                filters.status === 'client_replied' ? 'last_reply' : filters.sort
               }
+              aria-label={t('toolbar.sort')}
+              onChange={(e) => {
+                const sort = e.target.value as LeadSort
+                setFilters((f) => ({
+                  ...f,
+                  sort,
+                  ...(sort === 'last_reply'
+                    ? { status: 'client_replied' as const }
+                    : f.status === 'client_replied'
+                      ? {}
+                      : {}),
+                }))
+              }}
             >
               <option value="updated">{t('toolbar.sortUpdated')}</option>
               <option value="owner">{t('toolbar.sortOwner')}</option>
               <option value="status">{t('toolbar.sortStatus')}</option>
+              <option value="last_reply">{t('toolbar.sortLastReply')}</option>
             </select>
             <button
               type="button"

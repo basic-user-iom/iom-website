@@ -14,6 +14,8 @@ import { EMPTY_LEAD_INPUT } from './constants'
 import { LEAD_STATUS_VALUES, LEAD_TEMP_VALUES, useCrmI18n } from './i18n'
 import { LeadChatGptPanel } from './LeadChatGptPanel'
 import { mergeLeadImport } from './leadChatGpt'
+import { LeadTagsField } from './LeadTagsField'
+import { normalizeLeadTags } from './leadTags'
 import {
   COMMON_TIMEZONES,
   filterTimezones,
@@ -71,6 +73,8 @@ function leadToForm(initial: Lead): LeadInput {
     scheduled_send: initial.scheduled_send ?? null,
     estimated_value: initial.estimated_value,
     value_emoji: normalizeValueEmoji(initial.value_emoji),
+    tags: normalizeLeadTags(initial.tags),
+    last_client_reply_at: initial.last_client_reply_at ?? null,
     atlas_eval: normalizeAtlasEval(initial.atlas_eval),
     client_timezone: initial.client_timezone ?? '',
     client_city: initial.client_city ?? '',
@@ -271,6 +275,8 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
             ? null
             : form.estimated_value,
         value_emoji: normalizeValueEmoji(form.value_emoji),
+        tags: normalizeLeadTags(form.tags),
+        last_client_reply_at: form.last_client_reply_at ?? null,
         atlas_eval: normalizeAtlasEval(form.atlas_eval),
         client_timezone: timezone,
         client_city: city,
@@ -692,6 +698,20 @@ export function LeadForm({ initial, onSubmit, onCancel }: LeadFormProps) {
           disabled={busy}
         />
       </label>
+
+      <LeadTagsField
+        value={form.tags ?? []}
+        onChange={(tags) => set('tags')(tags)}
+        disabled={busy}
+        source={{
+          company_name: form.company_name,
+          company_focus: form.company_focus,
+          offer: form.offer,
+          notes: form.notes,
+          client_city: form.client_city,
+          client_country: form.client_country,
+        }}
+      />
 
       <div className="crm-form-actions">
         <button type="button" className="btn btn-ghost" onClick={onCancel} disabled={busy}>

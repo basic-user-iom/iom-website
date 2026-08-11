@@ -2,6 +2,8 @@ import { AtlasEvalCompact } from './AtlasEvalFields'
 import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
+import { LeadTagsDisplay } from './LeadTagsField'
+import { normalizeLeadTags } from './leadTags'
 import { initialEmailPending, initialEmailSent, isContactPriority } from './outreach'
 import {
   formatInContactZone,
@@ -147,6 +149,16 @@ export function LeadList({
                           {t('list.priority')}
                         </span>
                       )}
+                      {lead.last_client_reply_at && (
+                        <span
+                          className="crm-reply-badge"
+                          title={t('list.repliedAt', {
+                            date: formatSentAt(lead.last_client_reply_at),
+                          })}
+                        >
+                          {t('list.replied')}
+                        </span>
+                      )}
                       <LeadClientLocal lead={lead} compact />
                       <span className={`crm-temp crm-temp--${lead.temperature}`}>
                         {tempLabel(lead.temperature)}
@@ -156,6 +168,9 @@ export function LeadList({
                   <div className="crm-lead-row-meta">
                     <span>{statusLabel(lead.status)}</span>
                     {lead.contact_name && <span>{lead.contact_name}</span>}
+                    {normalizeLeadTags(lead.tags).length > 0 && (
+                      <LeadTagsDisplay tags={lead.tags} />
+                    )}
                     {normalizeValueEmoji(lead.value_emoji) && (
                       <span
                         className="crm-lead-value-emoji"

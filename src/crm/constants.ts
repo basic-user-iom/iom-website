@@ -56,6 +56,8 @@ export const EMPTY_LEAD_INPUT = {
   scheduled_send: null,
   estimated_value: null,
   value_emoji: '',
+  tags: [] as string[],
+  last_client_reply_at: null as string | null,
   atlas_eval: { ...EMPTY_ATLAS_EVAL },
   client_timezone: '',
   client_city: '',

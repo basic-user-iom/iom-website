@@ -153,6 +153,7 @@ export function IdeasView({
           status: 'all',
           temperature: 'all',
           owner: 'all',
+          tag: 'all',
           sort: 'updated',
         }),
         listProjects(),
