@@ -4,3 +4,10 @@ _source/
 video/
 scripts/probe-*.mjs
 supabase/*.sql
+.deploy-park-wip/
+building-viewer/
+automotive-studio/_dev/
+public/models/
+public/demos/building-viewer/
+dist/
+CRM_EMAIL_FAILURE_ANALYSIS_AND_FIX_PLAN.md
