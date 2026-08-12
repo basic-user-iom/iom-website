@@ -491,22 +491,23 @@ button:focus:not(:focus-visible) {
   }
 }
 
-.header-cta {
+a.header-cta {
   display: inline-flex;
   align-items: center;
-  color: var(--bg);
-  background: var(--accent);
+  color: #fff;
+  background: color-mix(in srgb, var(--accent) 68%, #001416);
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius);
   font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   transition: filter 0.2s;
 }
 
-.header-cta:hover,
-.header-cta:focus-visible {
-  color: var(--bg);
+a.header-cta:hover,
+a.header-cta:focus-visible {
+  color: #fff;
   filter: brightness(1.08);
 }
 
