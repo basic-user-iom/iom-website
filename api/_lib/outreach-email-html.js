@@ -24,11 +24,29 @@ function escapeHtml(value) {
     .replace(/"/g, '&quot;')
 }
 
+const LINK_STYLE = 'color:#00b8cc;text-decoration:underline;'
+
 function linkifyEscaped(escaped) {
-  return escaped.replace(
+  let out = escaped.replace(
     /(https?:\/\/[^\s<&]+)/g,
-    '<a href="$1" style="color:#00b8cc;text-decoration:underline;">$1</a>',
+    `<a href="$1" style="${LINK_STYLE}">$1</a>`,
   )
+
+  out = out.replace(
+    /(?<![/@\w.])([a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,})/gi,
+    `<a href="mailto:$1" style="${LINK_STYLE}">$1</a>`,
+  )
+
+  // Bare domains in sign-offs (e.g. iobjectm.com) — after URLs/emails so we do not double-link.
+  out = out.replace(
+    /(?<![/@\w.])(?:(www\.))?((?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,})(?![\w./?#-])/gi,
+    (match, www) => {
+      const href = `https://${www || ''}${match.replace(/^www\./, '')}`
+      return `<a href="${href}" style="${LINK_STYLE}">${match}</a>`
+    },
+  )
+
+  return out
 }
 
 function bodyToHtml(plainBody) {
@@ -126,7 +144,7 @@ export function renderOutreachEmailHtml(opts) {
                 IOM — Interactive Object Media · <a href="${SITE}/" style="color:#007a8a;text-decoration:none;">iobjectm.com</a>
               </p>
               <p style="margin:0;font-family:${FONT_BODY};font-size:11px;line-height:1.4;color:#8b8b9a;">
-                © ${year} IOM · contact@iobjectm.com
+                © ${year} IOM · <a href="mailto:contact@iobjectm.com" style="color:#007a8a;text-decoration:underline;">contact@iobjectm.com</a>
               </p>
             </td>
           </tr>
