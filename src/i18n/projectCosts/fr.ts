@@ -4,6 +4,7 @@ import type { ProjectCostsCopy } from './types'
 const specialist = PROJECT_COSTS_META.specialistDayRate
 const intro = PROJECT_COSTS_META.specialistIntroDayRate
 const studioFrom = PROJECT_COSTS_META.studioTeamFromDayRate
+const studioIntro = PROJECT_COSTS_META.studioTeamIntroFromDayRate
 const deadline = PROJECT_COSTS_META.augustOfferDeadline
 
 export const frProjectCosts: ProjectCostsCopy = {
@@ -11,7 +12,7 @@ export const frProjectCosts: ProjectCostsCopy = {
     print: 'Imprimer / Enregistrer en PDF',
     engageHeading: 'Comment engager IOM',
     engageLead:
-      'Choisissez le niveau de soutien à la production qui correspond au projet. Commencez avec un spécialiste, ajoutez de la capacité studio lorsque le travail parallèle est utile, ou cadrez un projet plus large avec nous.',
+      'Choisissez le niveau de capacité de production adapté au projet. Utilisez la capacité spécialiste pour une tâche ciblée, ajoutez de la capacité studio lorsque le travail en parallèle est utile, ou cadrez un projet plus large avec nous.',
     refsHeading: 'Projets de référence détaillés',
     refsLead:
       'Ce qui était inclus dans chaque exemple, les fourchettes de production typiques, et pourquoi la référence peut — ou non — être comparable à une nouvelle demande. Pas des forfaits fixes.',
@@ -55,6 +56,9 @@ export const frProjectCosts: ProjectCostsCopy = {
     scopedAfterConsultation: 'Cadrage après consultation',
     productionDay: '€{rate} / jour de production',
     fromProductionDay: 'À partir de €{rate} / jour de production',
+    fixedTitle: 'Travaux petits et clairement définis',
+    fixedBody:
+      'Toutes les collaborations n’ont pas besoin de commencer par un grand projet ou un engagement au tarif journalier. De petites interactions, des améliorations de présentation produit, des prototypes et des composants de site clairement définis peuvent aussi être chiffrés au forfait.',
   },
   hero: {
     eyebrow: 'Périmètre · Temps · Budget',
@@ -71,7 +75,7 @@ export const frProjectCosts: ProjectCostsCopy = {
       title: 'Capacité de spécialiste senior',
       question: 'Besoin d’un spécialiste expérimenté ?',
       summary:
-        'Intégrez une capacité de production senior pour un flux technique ou 3D clairement défini dans votre projet existant.',
+        'Pour une tâche technique, 3D ou temps réel ciblée au sein d’un projet plus large.',
       rateLine: `€${specialist} / jour de production`,
       rateNote: 'Production senior ciblée pour un flux de travail défini.',
       learnMoreLabel: 'En savoir plus sur la capacité de spécialiste senior',
@@ -87,7 +91,7 @@ export const frProjectCosts: ProjectCostsCopy = {
       title: 'Capacité studio supplémentaire',
       question: 'Besoin de plus de capacité de production ?',
       summary:
-        'IOM peut prendre en charge une partie définie du projet et ajouter une production parallèle là où cela aide vraiment le calendrier.',
+        'Pour des lots de production plus importants ou des flux de travail parallèles où une capacité supplémentaire est réellement utile.',
       rateLine: `À partir de €${studioFrom} / jour de production`,
       rateNote: 'Capacité parallèle supplémentaire lorsque le projet en bénéficie vraiment.',
       learnMoreLabel: 'En savoir plus sur la capacité studio supplémentaire',
@@ -102,7 +106,7 @@ export const frProjectCosts: ProjectCostsCopy = {
       title: 'Projet complet / plus large',
       question: 'Faut-il que nous emmenions le projet plus loin ?',
       summary:
-        'Pour les projets interactifs, 3D ou spatiaux plus larges, nous examinons d’abord les objectifs, le matériel source, les exigences de livraison et le calendrier, puis recommandons le bon dispositif de production.',
+        'Pour un travail de bout en bout dont le périmètre, les sources, le calendrier et la capacité requise doivent être examinés ensemble.',
       rateLine: 'Cadrage après consultation',
       rateNote:
         'La structure de production et le prix suivent le périmètre réel, le matériel, le calendrier et les dépendances.',
@@ -128,12 +132,17 @@ export const frProjectCosts: ProjectCostsCopy = {
   },
   august: {
     eyebrow: 'Août 2026 — disponibilité introductive',
-    title: 'Capacité limitée de spécialiste senior pour de nouvelles collaborations',
+    title: 'Capacité de production spécialiste limitée pour de nouvelles collaborations',
     lines: [
-      `Pour les nouvelles collaborations confirmées d’ici le ${deadline}, une quantité limitée de capacité de spécialiste senior est disponible à €${intro} / jour de production au lieu du tarif standard de €${specialist} / jour de production.`,
+      `Pour les nouvelles collaborations confirmées d’ici le ${deadline}, une quantité limitée de capacité de production spécialiste est disponible à €${intro} / jour de production au lieu du tarif standard de €${specialist} / jour de production.`,
       'Le tarif introductif convenu peut se poursuivre au-delà d’août pour le périmètre initial confirmé.',
     ],
     cta: 'Demander la disponibilité d’août',
+    cardBadge: 'Intro août',
+    specialistCompare: `€${intro} / jour de production`,
+    studioCompare: `À partir de €${studioIntro} / jour de production`,
+    untilNotice: 'Disponible jusqu’à fin août',
+    standardLabel: 'Tarif standard {rate}',
   },
   examples: {
     title: 'Projets de référence',

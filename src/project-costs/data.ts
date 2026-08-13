@@ -3,9 +3,9 @@
 export const PROJECT_COSTS_META = {
   path: '/project-costs',
   pageTitle: 'Project Costs',
-  seoTitle: 'Project Costs & Production Capacity - IOM',
+  seoTitle: 'Project Costs & Production Capacity — IOM',
   seoDescription:
-    'Indicative rates for senior specialist support, IOM studio production capacity and custom interactive 3D projects.',
+    'Understand how IOM projects are priced, from focused specialist support and small website interactions to additional studio capacity and larger custom projects.',
   rateMin: 75,
   rateMax: 110,
   rateLabel: 'Typically €75–€110 per hour',
@@ -43,6 +43,8 @@ export type EngagementOption = {
   rateBadge?: string
   rateLine: string
   rateCompareLine?: string
+  rateUntilLine?: string
+  rateStandardLine?: string
   rateNote: string
   learnMoreLabel: string
   learnMoreTitle: string
@@ -99,7 +101,7 @@ export const RELEVANT_WORK = [
 ] as const
 
 export const FIXED_PRICE_LINE =
-  'The day rate applies to specialist production capacity. Small, clearly defined interactions or website improvements can also be quoted as fixed-price scopes.'
+  'Not every collaboration needs to begin with a large project or a day-rate engagement. Small interactions, product-presentation improvements, prototypes and clearly defined website components can also be quoted as fixed-price scopes.'
 
 export const CAPACITY_TIMELINE = {
   title: 'Price and time are connected through production capacity',
@@ -118,7 +120,7 @@ export const AUGUST_OFFER = {
   eyebrow: 'August 2026 — introductory availability',
   title: 'Limited senior specialist capacity for new collaborations',
   lines: [
-    `For new collaborations confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}, a limited amount of senior specialist capacity is available at €${PROJECT_COSTS_META.specialistIntroDayRate} / production day instead of the standard €${PROJECT_COSTS_META.specialistDayRate} / production day.`,
+    `For new collaborations confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}, a limited amount of specialist production capacity is available at €${PROJECT_COSTS_META.specialistIntroDayRate} / production day instead of the standard €${PROJECT_COSTS_META.specialistDayRate} / production day.`,
     'The agreed introductory rate can continue beyond August for the initial confirmed scope.',
   ],
   cta: 'Ask about August availability',

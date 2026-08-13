@@ -148,6 +148,7 @@ async function collectEntries() {
     add(`/${lang}/blog/`, 0.75)
     add(`/${lang}/privacy/`, 0.35)
     add(`/${lang}/terms/`, 0.35)
+    add(`/${lang}/project-costs/`, 0.8)
     add(`/${lang}/cookies/`, 0.35)
   }
 

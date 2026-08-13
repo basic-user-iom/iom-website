@@ -2,6 +2,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { blogApiDevPlugin } from './scripts/vite-blog-api-plugin.mjs'
+import { execSync } from 'node:child_process'
 
 /**
  * Vite SPA fallback otherwise serves the React app for `/demos/foo/`.
@@ -96,8 +97,24 @@ function nonBlockingCssPlugin() {
   }
 }
 
+function projectCostsPrerenderPlugin() {
+  return {
+    name: 'emit-project-costs-html',
+    apply: 'build',
+    async closeBundle() {
+      execSync('node scripts/emit-project-costs-html.mjs', { stdio: 'inherit' })
+    },
+  }
+}
+
 export default defineConfig({
-  plugins: [react(), demoDirectoryIndexPlugin(), blogApiDevPlugin(), nonBlockingCssPlugin()],
+  plugins: [
+    react(),
+    demoDirectoryIndexPlugin(),
+    blogApiDevPlugin(),
+    nonBlockingCssPlugin(),
+    projectCostsPrerenderPlugin(),
+  ],
   build: {
     rollupOptions: {
       output: {

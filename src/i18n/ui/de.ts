@@ -50,13 +50,15 @@ export const deUi: Dict = {
 
   'home.engage.title': 'Mit IOM arbeiten',
   'home.engage.lead':
-    'Wählen Sie die Produktionsunterstützung, die zum Projekt passt. Beginnen Sie mit einer Fachkraft, erweitern Sie die Studio-Kapazität, wenn parallele Arbeit sinnvoll ist, oder scopen Sie ein größeres Projekt mit uns.',
+    'Wählen Sie die Produktionskapazität, die zum Projekt passt. Nutzen Sie Spezialisten-Kapazität für eine fokussierte Aufgabe, ergänzen Sie Studio-Kapazität, wenn parallele Arbeit sinnvoll ist, oder definieren Sie mit uns den Umfang eines größeren Projekts.',
   'home.engage.outcomes':
     'Anspruchsvolle 3D-Assets · Echtzeit-Anwendungen · technische Visualisierung · interaktive Produkterlebnisse · räumliche Präsentationen',
+  'home.engage.fixedTitle': 'Kleine, klar definierte Arbeit',
   'home.engage.fixed':
-    'Der Tagessatz gilt für spezialisierte Produktionskapazität. Kleine, klar definierte Interaktionen oder Website-Verbesserungen können auch als Festpreis scopt werden.',
+    'Nicht jede Zusammenarbeit muss mit einem großen Projekt oder einem Tagessatz beginnen. Kleine Interaktionen, Verbesserungen der Produktpräsentation, Prototypen und klar definierte Website-Komponenten können auch als Festpreis-Scopes angeboten werden.',
   'home.engage.cta': 'Projektkosten ansehen',
   'home.engage.discuss': 'Projekt besprechen',
+  'home.engage.learnMore': 'Mehr erfahren',
   'home.engage.augustCta': 'Einführungsangebot im August',
   'home.engage.proofLabel': 'Relevante Arbeiten',
   'home.engage.trustAria': 'Hinweise zur Zusammenarbeit',
@@ -191,10 +193,10 @@ export const deUi: Dict = {
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
-    'IOM bietet senior Echtzeit-3D-Spezialisten, externe Produktionskapazität und komplette interaktive Projekte mit browserbasierter 3D, Blender, Unreal, CAD/BIM und räumlichen Medien.',
-  'seo.projectCostsTitle': 'Projektkosten & Produktionskapazität - IOM',
+    'IOM ist ein unabhängiges Creative-Technology-Studio für Echtzeit-3D, interaktive Web-Erlebnisse, technische 3D-Produktion und skalierbare Produktionskapazität für Studios, Marken und Projektteams.',
+  'seo.projectCostsTitle': 'Projektkosten & Produktionskapazität — IOM',
   'seo.projectCostsDescription':
-    'Richtwerte für senior Spezialisten-Unterstützung, IOM-Studio-Produktionskapazität und individuelle interaktive 3D-Projekte.',
+    'Verstehen Sie, wie IOM-Projekte kalkuliert werden — von fokussierter Spezialisten-Unterstützung und kleinen Website-Interaktionen bis zu zusätzlicher Studio-Kapazität und größeren individuellen Projekten.',
   'seo.caseStudiesTitle': 'IOM — Case Studies',
   'seo.caseStudiesDescription':
     'Prozess-Case-Studies von Interactive Object Media — vom Briefing bis zum interaktiven Endprodukt.',

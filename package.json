@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:ravens && npm run build:panorama-360 && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/sync-3d-viewer-blog.mjs",
+    "build": "npm run build:ravens && npm run build:panorama-360 && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/emit-project-costs-html.mjs && node scripts/sync-3d-viewer-blog.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "seo:demos": "node scripts/patch-demo-seo.mjs",
     "seo:demo-back": "node scripts/patch-demo-back-links.mjs",

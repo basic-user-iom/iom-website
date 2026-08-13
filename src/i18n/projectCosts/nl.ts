@@ -4,6 +4,7 @@ import type { ProjectCostsCopy } from './types'
 const specialist = PROJECT_COSTS_META.specialistDayRate
 const intro = PROJECT_COSTS_META.specialistIntroDayRate
 const studioFrom = PROJECT_COSTS_META.studioTeamFromDayRate
+const studioIntro = PROJECT_COSTS_META.studioTeamIntroFromDayRate
 const deadline = PROJECT_COSTS_META.augustOfferDeadline
 
 export const nlProjectCosts: ProjectCostsCopy = {
@@ -11,7 +12,7 @@ export const nlProjectCosts: ProjectCostsCopy = {
     print: 'Printen / opslaan als PDF',
     engageHeading: 'Zo kun je IOM inschakelen',
     engageLead:
-      'Kies het niveau van productieondersteuning dat bij het project past. Begin met één specialist, voeg studiocapaciteit toe wanneer parallel werk zinvol is, of scope een groter project met ons.',
+      'Kies het niveau van productiecapaciteit dat bij het project past. Gebruik specialistcapaciteit voor een gerichte taak, voeg studiocapaciteit toe wanneer parallel werk zinvol is, of scope samen met ons een groter project.',
     refsHeading: 'Gedetailleerde referentieprojecten',
     refsLead:
       'Wat in elk voorbeeld was inbegrepen, typische productiebereiken en waarom de referentie wel of niet vergelijkbaar kan zijn met een nieuw verzoek. Geen vaste pakketprijzen.',
@@ -55,6 +56,9 @@ export const nlProjectCosts: ProjectCostsCopy = {
     scopedAfterConsultation: 'Gescooped na overleg',
     productionDay: '€{rate} / productiedag',
     fromProductionDay: 'Vanaf €{rate} / productiedag',
+    fixedTitle: 'Klein, duidelijk afgebakend werk',
+    fixedBody:
+      'Niet elke samenwerking hoeft te beginnen met een groot project of een dagtarief. Kleine interacties, verbeteringen van productpresentatie, prototypen en duidelijk afgebakende website-onderdelen kunnen ook als vaste-prijs-scopes worden geoffreerd.',
   },
   hero: {
     eyebrow: 'Scope · Tijd · Budget',
@@ -71,7 +75,7 @@ export const nlProjectCosts: ProjectCostsCopy = {
       title: 'Senior specialistcapaciteit',
       question: 'Eén ervaren specialist nodig?',
       summary:
-        'Haal senior productiecapaciteit binnen voor een duidelijk afgebakende technische of 3D-werkstroom in je bestaande project.',
+        'Voor een gerichte technische, 3D- of realtime-taak binnen een breder project.',
       rateLine: `€${specialist} / productiedag`,
       rateNote: 'Gerichte senior productie voor een gedefinieerde werkstroom.',
       learnMoreLabel: 'Meer over senior specialistcapaciteit',
@@ -87,7 +91,7 @@ export const nlProjectCosts: ProjectCostsCopy = {
       title: 'Extra studiocapaciteit',
       question: 'Meer productiecapaciteit nodig?',
       summary:
-        'IOM kan een gedefinieerd deel van het project overnemen en parallelle productie toevoegen waar dat de planning écht helpt.',
+        'Voor grotere productiepakketten of parallelle werkstromen waarbij extra capaciteit echt zinvol is.',
       rateLine: `Vanaf €${studioFrom} / productiedag`,
       rateNote: 'Extra parallelle capaciteit wanneer het project daar écht baat bij heeft.',
       learnMoreLabel: 'Meer over extra studiocapaciteit',
@@ -102,7 +106,7 @@ export const nlProjectCosts: ProjectCostsCopy = {
       title: 'Compleet / groter project',
       question: 'Moeten we het project verder brengen?',
       summary:
-        'Voor grotere interactieve, 3D- of ruimtelijke projecten bekijken we eerst de doelen, het bronmateriaal, de leveringsvereisten en de planning, en raden daarna de juiste productie-opzet aan.',
+        'Voor end-to-end-werk waarbij scope, bronmateriaal, planning en benodigde capaciteit samen moeten worden bekeken.',
       rateLine: 'Gescooped na overleg',
       rateNote: 'Productiestructuur en prijs volgen de echte scope, het materiaal, de planning en de afhankelijkheden.',
       learnMoreLabel: 'Meer over complete en grotere projecten',
@@ -127,12 +131,17 @@ export const nlProjectCosts: ProjectCostsCopy = {
   },
   august: {
     eyebrow: 'Augustus 2026 — introductiebeschikbaarheid',
-    title: 'Beperkte senior specialistcapaciteit voor nieuwe samenwerkingen',
+    title: 'Beperkte specialistische productiecapaciteit voor nieuwe samenwerkingen',
     lines: [
-      `Voor nieuwe samenwerkingen die uiterlijk ${deadline} zijn bevestigd, is een beperkte hoeveelheid senior specialistcapaciteit beschikbaar voor €${intro} / productiedag in plaats van het standaardtarief van €${specialist} / productiedag.`,
+      `Voor nieuwe samenwerkingen die uiterlijk ${deadline} zijn bevestigd, is een beperkte hoeveelheid specialistische productiecapaciteit beschikbaar voor €${intro} / productiedag in plaats van het standaardtarief van €${specialist} / productiedag.`,
       'Het afgesproken introductietarief kan na augustus doorlopen voor de eerst bevestigde scope.',
     ],
     cta: 'Vragen naar beschikbaarheid in augustus',
+    cardBadge: 'Augustus-intro',
+    specialistCompare: `€${intro} / productiedag`,
+    studioCompare: `Vanaf €${studioIntro} / productiedag`,
+    untilNotice: 'Beschikbaar tot eind augustus',
+    standardLabel: 'Standaard {rate}',
   },
   examples: {
     title: 'Referentieprojecten',

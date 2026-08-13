@@ -109,6 +109,26 @@
   margin-top: 1.25rem;
 }
 
+.pc-fixed-scope {
+  margin: 1.35rem 0 0;
+  max-width: 62ch;
+}
+
+.pc-fixed-scope-title {
+  margin: 0 0 0.45rem;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.pc-fixed-scope p {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+}
+
 .pc-facts {
   margin: 0 0 clamp(2.25rem, 5vw, 3.25rem);
   padding: 1.15rem 0 0.25rem;
@@ -207,26 +227,31 @@
 }
 
 .pc-learn-trigger {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  display: block;
   width: 100%;
+  min-height: 44px;
   padding: 0.55rem 0;
   border: 0;
   border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
   background: transparent;
   color: var(--accent);
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   text-align: left;
   cursor: pointer;
 }
 
+button.pc-learn-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .pc-learn-trigger:hover,
 .pc-learn-trigger:focus-visible {
-  color: var(--text);
+  color: color-mix(in srgb, var(--accent) 70%, var(--text));
 }
 
 .pc-learn-icon {

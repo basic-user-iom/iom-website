@@ -4,6 +4,7 @@ import type { ProjectCostsCopy } from './types'
 const specialist = PROJECT_COSTS_META.specialistDayRate
 const intro = PROJECT_COSTS_META.specialistIntroDayRate
 const studioFrom = PROJECT_COSTS_META.studioTeamFromDayRate
+const studioIntro = PROJECT_COSTS_META.studioTeamIntroFromDayRate
 const deadline = PROJECT_COSTS_META.augustOfferDeadline
 
 export const enProjectCosts: ProjectCostsCopy = {
@@ -11,7 +12,7 @@ export const enProjectCosts: ProjectCostsCopy = {
     print: 'Print / Save as PDF',
     engageHeading: 'How you can engage IOM',
     engageLead:
-      'Choose the level of production support that matches the project. Start with one specialist, add studio capacity when parallel work is useful, or scope a larger project with us.',
+      'Choose the level of production capacity that fits the project. Use specialist capacity for a focused task, add studio capacity when parallel work is useful, or scope a larger project with us.',
     refsHeading: 'Detailed reference projects',
     refsLead:
       'What was included in each example, typical production ranges and why the reference may — or may not — be comparable to a new request. Not fixed package prices.',
@@ -54,7 +55,10 @@ export const enProjectCosts: ProjectCostsCopy = {
     startsPanelAria: 'Next steps',
     scopedAfterConsultation: 'Scoped after consultation',
     productionDay: '€{rate} / production day',
-    fromProductionDay: 'From €{rate} / production day',
+    fromProductionDay: 'from €{rate} / production day',
+    fixedTitle: 'Small, clearly defined work',
+    fixedBody:
+      'Not every collaboration needs to begin with a large project or a day-rate engagement. Small interactions, product-presentation improvements, prototypes and clearly defined website components can also be quoted as fixed-price scopes.',
   },
   hero: {
     eyebrow: 'Scope · Time · Budget',
@@ -71,7 +75,7 @@ export const enProjectCosts: ProjectCostsCopy = {
       title: 'Senior specialist capacity',
       question: 'Need one experienced specialist?',
       summary:
-        'Bring in senior production capacity for a clearly defined technical or 3D workstream inside your existing project.',
+        'For a focused technical, 3D or realtime task within a wider project.',
       rateLine: `€${specialist} / production day`,
       rateNote: 'Focused senior production for a defined workstream.',
       learnMoreLabel: 'Learn more about senior specialist capacity',
@@ -87,8 +91,8 @@ export const enProjectCosts: ProjectCostsCopy = {
       title: 'Additional studio capacity',
       question: 'Need more production capacity?',
       summary:
-        'IOM can take ownership of a defined part of the project and add parallel production where it genuinely helps the schedule.',
-      rateLine: `From €${studioFrom} / production day`,
+        'For larger production packages or parallel workstreams where extra capacity is genuinely useful.',
+      rateLine: `from €${studioFrom} / production day`,
       rateNote: 'Extra parallel capacity when the project genuinely benefits from it.',
       learnMoreLabel: 'Learn more about additional studio capacity',
       learnMoreTitle: 'Additional studio capacity — technical detail',
@@ -102,7 +106,7 @@ export const enProjectCosts: ProjectCostsCopy = {
       title: 'Complete / larger project',
       question: 'Need us to take the project further?',
       summary:
-        'For larger interactive, 3D or spatial projects, we first review the goals, source material, delivery requirements and schedule, then recommend the right production setup.',
+        'For end-to-end work where scope, source material, schedule and required capacity should be reviewed together.',
       rateLine: 'Scoped after consultation',
       rateNote:
         'Production structure and price follow the real scope, material, schedule and dependencies.',
@@ -128,12 +132,17 @@ export const enProjectCosts: ProjectCostsCopy = {
   },
   august: {
     eyebrow: 'August 2026 — introductory availability',
-    title: 'Limited senior specialist capacity for new collaborations',
+    title: 'Limited specialist production capacity for new collaborations',
     lines: [
-      `For new collaborations confirmed by ${deadline}, a limited amount of senior specialist capacity is available at €${intro} / production day instead of the standard €${specialist} / production day.`,
+      `For new collaborations confirmed by ${deadline}, a limited amount of specialist production capacity is available at €${intro} / production day instead of the standard €${specialist} / production day.`,
       'The agreed introductory rate can continue beyond August for the initial confirmed scope.',
     ],
     cta: 'Ask about August availability',
+    cardBadge: 'August intro',
+    specialistCompare: `€${intro} / production day`,
+    studioCompare: `from €${studioIntro} / production day`,
+    untilNotice: 'Available until the end of August',
+    standardLabel: 'Standard {rate}',
   },
   examples: {
     title: 'Reference projects',

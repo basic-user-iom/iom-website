@@ -32,6 +32,7 @@ function scrollToId(id: string) {
 function LearnMoreBlock({
   panelId,
   label,
+  visibleLabel,
   title,
   paragraphs,
   open,
@@ -40,6 +41,7 @@ function LearnMoreBlock({
 }: {
   panelId: string
   label: string
+  visibleLabel?: string
   title?: string
   paragraphs?: readonly string[]
   open: boolean
@@ -57,11 +59,15 @@ function LearnMoreBlock({
         id={triggerId}
         aria-expanded={open}
         aria-controls={regionId}
+        aria-label={label}
+        data-cursor="focus"
         onClick={onToggle}
       >
-        <span>{label}</span>
-        <span className="pc-learn-icon" aria-hidden="true">
-          {open ? '−' : '+'}
+        <span className="pc-learn-trigger-row">
+          <span className="pc-learn-trigger-label">{visibleLabel ?? label}</span>
+          <span className="pc-learn-icon" aria-hidden="true">
+            {open ? '−' : '→'}
+          </span>
         </span>
       </button>
       <div
@@ -89,6 +95,7 @@ function EngagementCard({
   open: boolean
   onToggle: () => void
 }) {
+  const { t } = useSiteI18n()
   return (
     <EngagementCardShell
       id={option.anchor}
@@ -97,6 +104,7 @@ function EngagementCard({
         <LearnMoreBlock
           panelId={`learn-${option.id}`}
           label={option.learnMoreLabel}
+          visibleLabel={t('home.engage.learnMore')}
           title={option.learnMoreTitle}
           paragraphs={option.learnMoreParagraphs}
           open={open}
@@ -367,7 +375,7 @@ function ReferenceCard({
 }
 
 export function ProjectCostsApp() {
-  const { href, lang, t } = useSiteI18n()
+  const { href, lang } = useSiteI18n()
   const copy = getProjectCostsCopy(lang)
   const engagementOptions = localizedEngagementOptions(lang)
   const costReferences = localizedCostReferences(lang)
@@ -542,7 +550,10 @@ export function ProjectCostsApp() {
                 />
               ))}
             </div>
-            <p className="pc-section-note">{t('home.engage.fixed')}</p>
+            <div className="pc-fixed-scope">
+              <h3 className="pc-fixed-scope-title">{copy.page.fixedTitle}</h3>
+              <p>{copy.page.fixedBody}</p>
+            </div>
           </section>
 
           <section className="pc-section pc-capacity" id="capacity" aria-labelledby="capacity-heading">

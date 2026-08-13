@@ -68,13 +68,15 @@ export const enUi: Dict = {
 
   'home.engage.title': 'Work with IOM',
   'home.engage.lead':
-    'Choose the level of production support that matches the project. Start with one specialist, add studio capacity when parallel work is useful, or scope a larger project with us.',
+    'Choose the level of production capacity that fits the project. Use specialist capacity for a focused task, add studio capacity when parallel work is useful, or scope a larger project with us.',
   'home.engage.outcomes':
     'Difficult 3D assets · realtime applications · technical visualisation · interactive product experiences · spatial presentations',
+  'home.engage.fixedTitle': 'Small, clearly defined work',
   'home.engage.fixed':
-    'The day rate applies to specialist production capacity. Small, clearly defined interactions or website improvements can also be quoted as fixed-price scopes.',
+    'Not every collaboration needs to begin with a large project or a day-rate engagement. Small interactions, product-presentation improvements, prototypes and clearly defined website components can also be quoted as fixed-price scopes.',
   'home.engage.cta': 'View project costs',
   'home.engage.discuss': 'Discuss a project',
+  'home.engage.learnMore': 'Learn more',
   'home.engage.augustCta': 'August introductory availability',
   'home.engage.proofLabel': 'Relevant work',
   'home.engage.trustAria': 'Collaboration notes',
@@ -92,9 +94,9 @@ export const enUi: Dict = {
   'seo.startTitle': 'Start a project | IOM',
   'seo.startDescription':
     'Free 30-minute consultation, pricing basis, and selected project support from Interactive Object Media.',
-  'seo.projectCostsTitle': 'Project Costs & Production Capacity - IOM',
+  'seo.projectCostsTitle': 'Project Costs & Production Capacity — IOM',
   'seo.projectCostsDescription':
-    'Indicative rates for senior specialist support, IOM studio production capacity and custom interactive 3D projects.',
+    'Understand how IOM projects are priced, from focused specialist support and small website interactions to additional studio capacity and larger custom projects.',
 
   'about.eyebrow': 'Studio',
   'about.title': 'The team behind the objects',
@@ -248,7 +250,7 @@ export const enUi: Dict = {
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
-    'IOM provides senior realtime 3D specialist support, external production capacity and complete interactive projects using browser-based 3D, Blender, Unreal, CAD/BIM and spatial media.',
+    'IOM is an independent creative technology studio providing realtime 3D, interactive web experiences, technical 3D production and scalable production capacity for studios, brands and project teams.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Process case studies from Interactive Object Media — challenge, solution, and deliverables.',

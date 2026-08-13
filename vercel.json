@@ -14,7 +14,7 @@
       "destination": "/api/$1"
     },
     {
-      "source": "/((?!assets/|demos/|api/|fonts/).*)",
+      "source": "/((?!assets/|demos/|api/|fonts/|(?:de|fr|nl|es|it)/project-costs|project-costs).*)",
       "destination": "/index.html"
     }
   ],

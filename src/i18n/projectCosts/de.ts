@@ -4,6 +4,7 @@ import type { ProjectCostsCopy } from './types'
 const specialist = PROJECT_COSTS_META.specialistDayRate
 const intro = PROJECT_COSTS_META.specialistIntroDayRate
 const studioFrom = PROJECT_COSTS_META.studioTeamFromDayRate
+const studioIntro = PROJECT_COSTS_META.studioTeamIntroFromDayRate
 const deadline = PROJECT_COSTS_META.augustOfferDeadline
 
 export const deProjectCosts: ProjectCostsCopy = {
@@ -11,7 +12,7 @@ export const deProjectCosts: ProjectCostsCopy = {
     print: 'Drucken / als PDF speichern',
     engageHeading: 'So können Sie IOM beauftragen',
     engageLead:
-      'Wählen Sie die Produktionsunterstützung, die zum Projekt passt. Beginnen Sie mit einer Fachkraft, erweitern Sie die Studio-Kapazität, wenn parallele Arbeit sinnvoll ist, oder scopen Sie ein größeres Projekt mit uns.',
+      'Wählen Sie die Produktionskapazität, die zum Projekt passt. Nutzen Sie Spezialisten-Kapazität für eine fokussierte Aufgabe, ergänzen Sie Studio-Kapazität, wenn parallele Arbeit sinnvoll ist, oder definieren Sie mit uns den Umfang eines größeren Projekts.',
     refsHeading: 'Detaillierte Referenzprojekte',
     refsLead:
       'Was in jedem Beispiel enthalten war, typische Produktionsrahmen und warum die Referenz mit einer neuen Anfrage vergleichbar sein kann — oder auch nicht. Keine Festpreispakete.',
@@ -55,6 +56,9 @@ export const deProjectCosts: ProjectCostsCopy = {
     scopedAfterConsultation: 'Nach Beratung scoped',
     productionDay: '€{rate} / Produktionstag',
     fromProductionDay: 'Ab €{rate} / Produktionstag',
+    fixedTitle: 'Kleine, klar definierte Arbeit',
+    fixedBody:
+      'Nicht jede Zusammenarbeit muss mit einem großen Projekt oder einem Tagessatz beginnen. Kleine Interaktionen, Verbesserungen der Produktpräsentation, Prototypen und klar definierte Website-Komponenten können auch als Festpreis-Scopes angeboten werden.',
   },
   hero: {
     eyebrow: 'Scope · Zeit · Budget',
@@ -71,7 +75,7 @@ export const deProjectCosts: ProjectCostsCopy = {
       title: 'Senior-Spezialisten-Kapazität',
       question: 'Eine erfahrene Fachkraft benötigt?',
       summary:
-        'Holen Sie senior Produktionskapazität für einen klar definierten technischen oder 3D-Workstream in Ihr bestehendes Projekt.',
+        'Für eine fokussierte technische, 3D- oder Echtzeit-Aufgabe innerhalb eines größeren Projekts.',
       rateLine: `€${specialist} / Produktionstag`,
       rateNote: 'Fokussierte senior Produktion für einen definierten Workstream.',
       learnMoreLabel: 'Mehr zur Senior-Spezialisten-Kapazität',
@@ -87,7 +91,7 @@ export const deProjectCosts: ProjectCostsCopy = {
       title: 'Zusätzliche Studio-Kapazität',
       question: 'Mehr Produktionskapazität benötigt?',
       summary:
-        'IOM kann einen definierten Teil des Projekts übernehmen und parallele Produktion dort hinzufügen, wo sie den Zeitplan wirklich unterstützt.',
+        'Für größere Produktionspakete oder parallele Workstreams, bei denen zusätzliche Kapazität wirklich nützlich ist.',
       rateLine: `Ab €${studioFrom} / Produktionstag`,
       rateNote: 'Zusätzliche parallele Kapazität, wenn das Projekt davon wirklich profitiert.',
       learnMoreLabel: 'Mehr zur zusätzlichen Studio-Kapazität',
@@ -102,7 +106,7 @@ export const deProjectCosts: ProjectCostsCopy = {
       title: 'Komplettes / größeres Projekt',
       question: 'Sollen wir das Projekt weiterführen?',
       summary:
-        'Für größere interaktive, 3D- oder räumliche Projekte prüfen wir zuerst Ziele, Ausgangsmaterial, Lieferanforderungen und Zeitplan und empfehlen dann das passende Produktions-Setup.',
+        'Für End-to-End-Arbeit, bei der Umfang, Ausgangsmaterial, Zeitplan und benötigte Kapazität gemeinsam geprüft werden sollten.',
       rateLine: 'Nach Beratung scoped',
       rateNote:
         'Produktionsstruktur und Preis folgen dem echten Scope, Material, Zeitplan und den Abhängigkeiten.',
@@ -128,12 +132,17 @@ export const deProjectCosts: ProjectCostsCopy = {
   },
   august: {
     eyebrow: 'August 2026 — einführende Verfügbarkeit',
-    title: 'Begrenzte Senior-Spezialisten-Kapazität für neue Zusammenarbeit',
+    title: 'Begrenzte Spezialisten-Produktionskapazität für neue Zusammenarbeit',
     lines: [
-      `Für neue Zusammenarbeit, die bis zum ${deadline} bestätigt wird, steht eine begrenzte Menge senior Spezialisten-Kapazität zu €${intro} / Produktionstag statt des Standardtarifs von €${specialist} / Produktionstag zur Verfügung.`,
+      `Für neue Zusammenarbeit, die bis zum ${deadline} bestätigt wird, steht eine begrenzte Menge Spezialisten-Produktionskapazität zu €${intro} / Produktionstag statt des Standardtarifs von €${specialist} / Produktionstag zur Verfügung.`,
       'Der vereinbarte Einführungstarif kann über August hinaus für den zunächst bestätigten Scope gelten.',
     ],
     cta: 'Nach August-Verfügbarkeit fragen',
+    cardBadge: 'August-Intro',
+    specialistCompare: `€${intro} / Produktionstag`,
+    studioCompare: `Ab €${studioIntro} / Produktionstag`,
+    untilNotice: 'Verfügbar bis Ende August',
+    standardLabel: 'Standard {rate}',
   },
   examples: {
     title: 'Referenzprojekte',

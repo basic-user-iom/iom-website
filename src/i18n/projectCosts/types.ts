@@ -68,6 +68,8 @@ export type ProjectCostsCopy = {
     scopedAfterConsultation: string
     productionDay: string
     fromProductionDay: string
+    fixedTitle: string
+    fixedBody: string
   }
   hero: {
     eyebrow: string
@@ -90,6 +92,11 @@ export type ProjectCostsCopy = {
     title: string
     lines: string[]
     cta: string
+    cardBadge: string
+    specialistCompare: string
+    studioCompare: string
+    untilNotice: string
+    standardLabel: string
   }
   examples: {
     title: string

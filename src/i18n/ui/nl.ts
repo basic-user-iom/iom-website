@@ -50,13 +50,15 @@ export const nlUi: Dict = {
 
   'home.engage.title': 'Samenwerken met IOM',
   'home.engage.lead':
-    'Kies het niveau van productieondersteuning dat bij het project past. Begin met één specialist, voeg studiocapaciteit toe wanneer parallel werk zinvol is, of scope een groter project met ons.',
+    'Kies het niveau van productiecapaciteit dat bij het project past. Gebruik specialistcapaciteit voor een gerichte taak, voeg studiocapaciteit toe wanneer parallel werk zinvol is, of scope samen met ons een groter project.',
   'home.engage.outcomes':
     'Moeilijke 3D-assets · realtime toepassingen · technische visualisatie · interactieve productervaringen · ruimtelijke presentaties',
+  'home.engage.fixedTitle': 'Klein, duidelijk afgebakend werk',
   'home.engage.fixed':
-    'Het dagtarief geldt voor gespecialiseerde productiecapaciteit. Kleine, duidelijk afgebakende interacties of websiteverbeteringen kunnen ook als vaste prijs worden geoffreerd.',
+    'Niet elke samenwerking hoeft te beginnen met een groot project of een dagtarief. Kleine interacties, verbeteringen van productpresentatie, prototypen en duidelijk afgebakende website-onderdelen kunnen ook als vaste-prijs-scopes worden geoffreerd.',
   'home.engage.cta': 'Projectkosten bekijken',
   'home.engage.discuss': 'Een project bespreken',
+  'home.engage.learnMore': 'Meer weten',
   'home.engage.augustCta': 'Introductiebeschikbaarheid in augustus',
   'home.engage.proofLabel': 'Relevant werk',
   'home.engage.trustAria': 'Samenwerkingsnotities',
@@ -200,10 +202,10 @@ export const nlUi: Dict = {
   'seo.cookiesDescription':
     'Cookies en lokale opslag op iobjectm.com — voorkeuren, analytics en portallogin.',
   'seo.homeDescription':
-    'IOM biedt senior realtime-3D-specialisten, externe productiecapaciteit en complete interactieve projecten met browser-3D, Blender, Unreal, CAD/BIM en ruimtelijke media.',
-  'seo.projectCostsTitle': 'Projectkosten & productiecapaciteit - IOM',
+    'IOM is een onafhankelijke creative-technologystudio voor realtime 3D, interactieve webervaringen, technische 3D-productie en schaalbare productiecapaciteit voor studio’s, merken en projectteams.',
+  'seo.projectCostsTitle': 'Projectkosten & productiecapaciteit — IOM',
   'seo.projectCostsDescription':
-    'Richttarieven voor senior specialistische ondersteuning, IOM-studioproductie en maatwerk interactieve 3D-projecten.',
+    'Begrijp hoe IOM-projecten worden geprijsd, van gerichte specialistenondersteuning en kleine website-interacties tot extra studiocapaciteit en grotere maatwerkprojecten.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Proces-case studies van Interactive Object Media — van brief tot interactieve eindbuild.',

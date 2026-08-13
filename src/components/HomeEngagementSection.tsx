@@ -40,9 +40,27 @@ function RelevantWorkCard({
 }
 
 function HomeLearnMore({ option }: { option: EngagementOption }) {
+  const { t } = useSiteI18n()
+  const [open, setOpen] = useState(false)
+
   return (
-    <details className="pc-learn home-engage-learn">
-      <summary className="pc-learn-trigger">{option.learnMoreLabel}</summary>
+    <details
+      className="pc-learn home-engage-learn"
+      onToggle={(event) => setOpen((event.currentTarget as HTMLDetailsElement).open)}
+    >
+      <summary
+        className="pc-learn-trigger"
+        aria-expanded={open}
+        aria-label={option.learnMoreLabel}
+        data-cursor="focus"
+      >
+        <span className="pc-learn-trigger-row">
+          <span className="pc-learn-trigger-label">{t('home.engage.learnMore')}</span>
+          <span className="pc-learn-icon" aria-hidden="true">
+            {open ? '−' : '→'}
+          </span>
+        </span>
+      </summary>
       <div className="pc-learn-panel">
         <p className="pc-learn-panel-title">{option.learnMoreTitle}</p>
         {option.learnMoreParagraphs.map((paragraph) => (
@@ -85,8 +103,15 @@ export function HomeEngagementSection() {
             variant="home"
             footer={
               option.homeCta === 'discuss' ? (
-                <a className="pc-engage-card-link" href={PROJECT_COSTS_META.discussMail}>
+                <a
+                  className="pc-engage-card-link"
+                  href={PROJECT_COSTS_META.discussMail}
+                  data-cursor="focus"
+                >
                   {t('home.engage.discuss')}
+                  <span className="pc-learn-icon" aria-hidden="true">
+                    →
+                  </span>
                 </a>
               ) : (
                 <HomeLearnMore option={option} />
@@ -96,7 +121,10 @@ export function HomeEngagementSection() {
         ))}
       </div>
 
-      <p className="home-engage-fixed">{t('home.engage.fixed')}</p>
+      <div className="home-engage-fixed">
+        <h3 className="home-engage-fixed-title">{t('home.engage.fixedTitle')}</h3>
+        <p>{t('home.engage.fixed')}</p>
+      </div>
 
       <ul className="home-engage-trust" aria-label={t('home.engage.trustAria')}>
         <li className="home-engage-trust-item">{t('home.engage.trust.whiteLabel')}</li>

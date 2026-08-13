@@ -126,6 +126,7 @@ export function mountCustomCursor(): (() => void) | null {
 
   const resolveOrbitHost = (target: EventTarget | null): HTMLElement | null => {
     if (!(target instanceof Element)) return null
+    if (target.closest('.pc-engage-card-footer')) return null
     // Prefer the innermost control / chip (compound selectors are unreliable in closest).
     const chip = target.closest('.pc-inquiry-chip')
     if (chip instanceof HTMLElement) return chip
@@ -138,6 +139,9 @@ export function mountCustomCursor(): (() => void) | null {
   /** Buttons, header menu, cards, logos, RFO stages: tip only — no large ring / glow. */
   const isTipOnlyTarget = (target: EventTarget | null): boolean => {
     if (!(target instanceof Element)) return false
+    if (target.closest('.pc-engage-card-footer, .pc-learn-trigger, .pc-engage-card-link')) {
+      return true
+    }
     if (resolveOrbitHost(target)) return false
     const tipHost = target.closest(
       [
@@ -163,6 +167,7 @@ export function mountCustomCursor(): (() => void) | null {
         '.lang-switcher',
         '.lang-switcher button',
         'button',
+        'summary',
         '[role="button"]',
       ].join(', '),
     )

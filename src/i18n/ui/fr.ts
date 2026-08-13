@@ -50,13 +50,15 @@ export const frUi: Dict = {
 
   'home.engage.title': 'Travailler avec IOM',
   'home.engage.lead':
-    'Choisissez le niveau de soutien à la production qui correspond au projet. Commencez avec un spécialiste, ajoutez de la capacité studio lorsque le travail parallèle est utile, ou cadrez un projet plus large avec nous.',
+    'Choisissez le niveau de capacité de production adapté au projet. Utilisez la capacité spécialiste pour une tâche ciblée, ajoutez de la capacité studio lorsque le travail en parallèle est utile, ou cadrez un projet plus large avec nous.',
   'home.engage.outcomes':
     'Assets 3D exigeants · applications temps réel · visualisation technique · expériences produit interactives · présentations spatiales',
+  'home.engage.fixedTitle': 'Travaux petits et clairement définis',
   'home.engage.fixed':
-    'Le tarif journalier s’applique à la capacité de production spécialisée. De petites interactions clairement définies ou des améliorations de site peuvent aussi être chiffrées au forfait.',
+    'Toutes les collaborations n’ont pas besoin de commencer par un grand projet ou un engagement au tarif journalier. De petites interactions, des améliorations de présentation produit, des prototypes et des composants de site clairement définis peuvent aussi être chiffrés au forfait.',
   'home.engage.cta': 'Voir les coûts de projet',
   'home.engage.discuss': 'Discuter d’un projet',
+  'home.engage.learnMore': 'En savoir plus',
   'home.engage.augustCta': 'Disponibilité introductive d’août',
   'home.engage.proofLabel': 'Travaux pertinents',
   'home.engage.trustAria': 'Notes de collaboration',
@@ -200,10 +202,10 @@ export const frUi: Dict = {
   'seo.cookiesDescription':
     'Cookies et stockage local sur iobjectm.com — préférences, analytics et connexion portail.',
   'seo.homeDescription':
-    'IOM fournit un soutien senior en 3D temps réel, une capacité de production externe et des projets interactifs complets avec 3D navigateur, Blender, Unreal, CAD/BIM et médias spatiaux.',
-  'seo.projectCostsTitle': 'Coûts de projet & capacité de production - IOM',
+    'IOM est un studio indépendant de technologies créatives qui propose du 3D temps réel, des expériences web interactives, de la production 3D technique et une capacité de production évolutive pour studios, marques et équipes projet.',
+  'seo.projectCostsTitle': 'Coûts de projet & capacité de production — IOM',
   'seo.projectCostsDescription':
-    'Tarifs indicatifs pour le soutien d’un spécialiste senior, la capacité de production du studio IOM et les projets 3D interactifs sur mesure.',
+    'Comprenez comment les projets IOM sont tarifés, du soutien spécialiste ciblé et des petites interactions web à la capacité studio supplémentaire et aux projets sur mesure plus importants.',
   'seo.caseStudiesTitle': 'IOM — Études de cas',
   'seo.caseStudiesDescription':
     'Études de cas processus d’Interactive Object Media — du brief à la version interactive finale.',
