@@ -3,6 +3,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { blogApiDevPlugin } from './scripts/vite-blog-api-plugin.mjs'
 import { execSync } from 'node:child_process'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const root = fileURLToPath(new URL('.', import.meta.url))
 
 /**
  * Vite SPA fallback otherwise serves the React app for `/demos/foo/`.
@@ -48,7 +52,9 @@ function nonBlockingCssPlugin() {
   return {
     name: 'non-blocking-css',
     enforce: 'post',
-    transformIndexHtml(html) {
+    transformIndexHtml(html, ctx) {
+      const file = String(ctx?.filename || ctx?.path || '').replace(/\\/g, '/')
+      if (file.includes('dukta-linar-concept')) return html
       let next = html.replace(
         /<link(\s[^>]*?)rel="stylesheet"([^>]*?)>/g,
         (match, before = '', after = '') => {
@@ -117,6 +123,10 @@ export default defineConfig({
   ],
   build: {
     rollupOptions: {
+      input: {
+        main: path.resolve(root, 'index.html'),
+        duktaLinarConcept: path.resolve(root, 'demos/dukta-linar-concept/index.html'),
+      },
       output: {
         manualChunks: {
           three: ['three'],

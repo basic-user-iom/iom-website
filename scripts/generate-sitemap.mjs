@@ -154,6 +154,7 @@ async function collectEntries() {
 
   for (const url of parseProjectUrls()) add(url)
   for (const url of demoUrls()) add(url)
+  add('/demos/dukta-linar-concept/', 0.6)
 
   // Only include article URLs when the public blog is live
   let blogPublic = false

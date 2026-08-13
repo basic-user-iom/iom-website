@@ -1,0 +1,433 @@
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('/fonts/syne-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 800;
+  src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('/fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
+}
+
+html.linar-route,
+body.linar-route {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #f3efe8;
+  color: #2a2622;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.linar-page {
+  --linar-bg: #f3efe8;
+  --linar-paper: #faf7f2;
+  --linar-ink: #2a2622;
+  --linar-muted: #6d675f;
+  --linar-line: rgba(42, 38, 34, 0.12);
+  --linar-wood: #a67c52;
+  --linar-wood-deep: #7a5636;
+  --display: 'Syne', system-ui, sans-serif;
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  box-sizing: border-box;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--linar-bg);
+  color: var(--linar-ink);
+}
+
+.linar-page *,
+.linar-page *::before,
+.linar-page *::after {
+  box-sizing: border-box;
+}
+
+.linar-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid var(--linar-line);
+  background: var(--linar-paper);
+}
+
+.linar-brand {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: lowercase;
+}
+
+.linar-badge {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--linar-muted);
+}
+
+.linar-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 30%);
+  min-height: 0;
+}
+
+.linar-viewport {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  background: var(--linar-bg);
+}
+
+.linar-viewport__canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.linar-viewport__canvas canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+.linar-fallback {
+  margin: 0;
+  padding: 2.5rem 1.75rem;
+  max-width: 28rem;
+  font-size: 1rem;
+  line-height: 1.55;
+  color: var(--linar-muted);
+}
+
+.linar-side {
+  min-width: 0;
+  border-left: 1px solid var(--linar-line);
+  background: var(--linar-paper);
+}
+
+.linar-side__scroll {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 1.75rem 1.6rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.linar-title {
+  margin: 0 0 0.7rem;
+  font-family: var(--display);
+  font-size: clamp(2rem, 3vw, 2.6rem);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+.linar-lead {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--linar-muted);
+}
+
+.linar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.linar-control {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--linar-line);
+}
+
+.linar-control__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.linar-label {
+  margin: 0;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--linar-ink);
+}
+
+.linar-percent {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.85rem;
+  color: var(--linar-wood-deep);
+}
+
+.linar-instruction {
+  margin: 0.45rem 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: var(--linar-muted);
+}
+
+.linar-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2.75rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.linar-slider:focus-visible {
+  outline: 2px solid var(--linar-ink);
+  outline-offset: 3px;
+}
+
+.linar-slider::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--linar-ink);
+}
+
+.linar-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -8px;
+  border: 2px solid var(--linar-ink);
+  border-radius: 50%;
+  background: var(--linar-paper);
+}
+
+.linar-slider::-moz-range-track {
+  height: 2px;
+  background: var(--linar-ink);
+}
+
+.linar-slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--linar-ink);
+  border-radius: 50%;
+  background: var(--linar-paper);
+}
+
+.linar-materials {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.linar-chip {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--linar-line);
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linar-chip:hover {
+  border-color: rgba(42, 38, 34, 0.35);
+}
+
+.linar-chip:focus-visible,
+.linar-text-btn:focus-visible,
+.linar-info__link:focus-visible {
+  outline: 2px solid var(--linar-ink);
+  outline-offset: 2px;
+}
+
+.linar-chip.is-active {
+  border-color: var(--linar-ink);
+  background: #f3eee6;
+}
+
+.linar-chip__name {
+  font-size: 0.92rem;
+}
+
+.linar-chip__state {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--linar-muted);
+}
+
+.linar-chip.is-active .linar-chip__state {
+  color: var(--linar-wood-deep);
+}
+
+.linar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.1rem;
+  margin-top: 0.75rem;
+}
+
+.linar-text-btn {
+  padding: 0.35rem 0;
+  border: 0;
+  border-bottom: 1px solid var(--linar-ink);
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.linar-text-btn:hover {
+  color: var(--linar-wood-deep);
+  border-bottom-color: var(--linar-wood-deep);
+}
+
+.linar-info {
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--linar-line);
+}
+
+.linar-info__title {
+  margin: 0 0 0.75rem;
+  font-family: var(--display);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.linar-info__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  font-size: 0.84rem;
+  line-height: 1.45;
+  color: var(--linar-muted);
+}
+
+.linar-info__link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: var(--linar-ink);
+  font-size: 0.84rem;
+  text-decoration: none;
+  border-bottom: 1px solid var(--linar-ink);
+}
+
+.linar-info__link:hover {
+  color: var(--linar-wood-deep);
+  border-bottom-color: var(--linar-wood-deep);
+}
+
+.linar-disclaimer {
+  margin: 0;
+  padding-top: 0.4rem;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--linar-muted);
+}
+
+@media (max-width: 860px) {
+  .linar-header {
+    padding: 0.7rem 1rem;
+  }
+
+  .linar-body {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+
+  .linar-side {
+    border-left: 0;
+    border-top: 1px solid var(--linar-line);
+    max-height: 42dvh;
+  }
+
+  .linar-side__scroll {
+    padding: 1rem 1rem 1.25rem;
+    gap: 0.95rem;
+  }
+
+  .linar-title {
+    font-size: 1.55rem;
+    margin-bottom: 0.4rem;
+  }
+
+  .linar-lead {
+    font-size: 0.86rem;
+  }
+
+  .linar-controls {
+    gap: 0.85rem;
+  }
+
+  .linar-control {
+    padding-top: 0.85rem;
+  }
+
+  .linar-slider {
+    height: 2.9rem;
+  }
+}
+
+@media (max-width: 860px) and (max-height: 760px) {
+  .linar-side {
+    max-height: 38dvh;
+  }
+
+  .linar-lead {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linar-chip,
+  .linar-text-btn,
+  .linar-info__link {
+    transition: none;
+  }
+}
