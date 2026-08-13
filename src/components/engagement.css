@@ -410,10 +410,12 @@
 }
 
 .home-engage-fixed {
-  margin: 2.75rem auto 0;
+  margin: 4rem auto 0;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
   max-width: 58ch;
-  font-size: 0.86rem;
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.65;
   color: var(--text-muted);
 }
 
@@ -421,64 +423,116 @@
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 0.55rem 1.5rem;
-  margin: 2.15rem auto 0;
+  gap: 0.65rem 1.75rem;
+  margin: 1.75rem auto 0;
   padding: 0;
   list-style: none;
   max-width: 52rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.08em;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--text-muted) 82%, var(--text));
+  color: var(--accent);
 }
 
 .home-engage-proof {
-  margin: 2.85rem auto 0;
-  max-width: 64rem;
-  text-align: left;
+  margin: 4rem auto 0;
+  padding-top: 3rem;
+  border-top: 1px solid var(--border);
+  width: min(100%, 1400px);
+  text-align: center;
 }
 
-.home-engage-proof-label {
-  margin: 0 0 1.35rem;
-  font-size: 0.68rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  text-align: center;
+.home-engage-proof .about-team-label {
+  margin-bottom: 1.15rem;
 }
 
 .home-engage-proof-list {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 1.5rem 1.85rem;
+  gap: 1.15rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  text-align: left;
 }
 
 .home-engage-proof-list li {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  min-width: 0;
+  height: 100%;
 }
 
-.home-engage-proof-list a {
-  font-size: 0.88rem;
-  font-weight: 600;
-  color: var(--text);
+.home-engage-proof-card {
+  position: relative;
+  z-index: 20;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  height: 100%;
+  min-height: 220px;
+  padding: 1.45rem 1.35rem 1.15rem;
+  border: none;
+  border-radius: 10px;
+  background: #0c0e12;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 16px 36px rgba(0, 0, 0, 0.38);
+  color: inherit;
   text-decoration: none;
 }
 
-.home-engage-proof-list a:hover,
-.home-engage-proof-list a:focus-visible {
-  color: var(--accent);
+.home-engage-proof-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.18;
+  pointer-events: none;
+  background:
+    repeating-radial-gradient(
+      circle at 72% 48%,
+      transparent 0 16px,
+      rgba(255, 255, 255, 0.04) 17px,
+      transparent 18px
+    );
+  mask-image: radial-gradient(ellipse 85% 75% at 68% 50%, #000 10%, transparent 72%);
 }
 
-.home-engage-proof-list span {
-  font-size: 0.75rem;
+.home-engage-proof-card > * {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+}
+
+.home-engage-proof-card .pc-engage-card-title {
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  line-height: 1.1;
+  color: #fff;
+}
+
+.home-engage-proof-card .pc-engage-card-summary {
+  flex: 1 1 auto;
+  font-size: 0.88rem;
   line-height: 1.55;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.home-engage-proof-card .pc-engage-mark {
+  margin-top: auto;
+}
+
+.home-engage-proof-card:hover,
+.home-engage-proof-card:focus-visible {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 16px 36px rgba(0, 0, 0, 0.38),
+    0 0 28px var(--accent-glow);
+}
+
+.home-engage-proof-card:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  outline-offset: 3px;
 }
 
 .home-engage-learn .pc-learn-trigger {
@@ -517,7 +571,9 @@
   align-items: center;
   justify-content: center;
   gap: 0.85rem 1.35rem;
-  margin-top: 2.85rem;
+  margin-top: 3.5rem;
+  padding-top: 2.75rem;
+  border-top: 1px solid var(--border);
 }
 
 @supports not (grid-template-rows: subgrid) {
@@ -571,6 +627,15 @@
     width: min(100%, 1120px);
   }
 
+  .home-engage-proof,
+  .home-engage-proof-list {
+    width: min(100%, 1120px);
+  }
+
+  .home-engage-proof-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   @supports (grid-template-rows: subgrid) {
     .home-engage-grid {
       grid-template-rows: none;
@@ -617,7 +682,9 @@
   }
 
   .home-engage-proof-list {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
+    max-width: 420px;
+    margin: 0 auto;
   }
 }
 

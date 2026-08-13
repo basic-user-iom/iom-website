@@ -8,7 +8,31 @@ import {
 import { localizedEngagementOptions } from '../i18n/projectCosts'
 import { useSiteI18n } from '../i18n'
 import { EngagementCardShell } from './EngagementCardShell'
+import { useCardOrbPointerProps } from './SiteOrbZone'
 import './engagement.css'
+
+function RelevantWorkCard({
+  title,
+  href,
+  note,
+}: {
+  title: string
+  href: string
+  note: string
+}) {
+  const orbPointerProps = useCardOrbPointerProps()
+
+  return (
+    <a className="home-engage-proof-card" href={href} {...orbPointerProps}>
+      <h3 className="pc-engage-card-title">{title}</h3>
+      <span className="pc-engage-rule" aria-hidden="true" />
+      <p className="pc-engage-card-summary">{note}</p>
+      <p className="pc-engage-mark" aria-hidden="true">
+        IOM
+      </p>
+    </a>
+  )
+}
 
 function HomeLearnMore({ option }: { option: EngagementOption }) {
   return (
@@ -77,12 +101,15 @@ export function HomeEngagementSection() {
       </ul>
 
       <div className="home-engage-proof">
-        <p className="home-engage-proof-label">{t('home.engage.proofLabel')}</p>
+        <p className="about-team-label">{t('home.engage.proofLabel')}</p>
         <ul className="home-engage-proof-list">
           {RELEVANT_WORK.map((item, index) => (
             <li key={item.href}>
-              <a href={href(item.href)}>{item.title}</a>
-              <span>{proofNotes[index]}</span>
+              <RelevantWorkCard
+                title={item.title}
+                href={href(item.href)}
+                note={proofNotes[index]}
+              />
             </li>
           ))}
         </ul>

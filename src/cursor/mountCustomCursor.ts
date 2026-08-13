@@ -143,6 +143,7 @@ export function mountCustomCursor(): (() => void) | null {
       [
         '.project-card',
         '.pc-engage-card',
+        '.home-engage-proof-card',
         '.clients-mark',
         '.about-pathway-item',
         '.contact-form-portal a',

@@ -576,7 +576,7 @@ function runOrbRuntime(
           let bestEl: HTMLElement | null = null
           let bestScore = 0
           for (const card of zone.querySelectorAll<HTMLElement>(
-            '.project-card, .music-player-album-thumb.has-poster, .pc-engage-card',
+            '.project-card, .music-player-album-thumb.has-poster, .pc-engage-card, .home-engage-proof-card',
           )) {
             if (card.classList.contains('project-card--coming-soon')) continue
             const box = card.getBoundingClientRect()
