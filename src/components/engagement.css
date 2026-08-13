@@ -633,7 +633,12 @@
 }
 
 .home-engage-proof .about-team-label {
-  margin-bottom: 1.15rem;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 1.15rem;
+  padding-bottom: 1.15rem;
+  border-bottom: 1px solid var(--border);
 }
 
 .home-engage-proof-list {
@@ -790,7 +795,8 @@
   align-items: center;
   justify-content: center;
   gap: 0.85rem 1.35rem;
-  margin-top: 3.5rem;
+  width: min(100%, 1400px);
+  margin: 3.5rem auto 0;
   padding-top: 2.75rem;
   border-top: 1px solid var(--border);
 }
@@ -802,7 +808,8 @@
   }
 
   .home-engage-proof,
-  .home-engage-proof-list {
+  .home-engage-proof-list,
+  .home-engage-actions {
     width: min(100%, 1120px);
   }
 
