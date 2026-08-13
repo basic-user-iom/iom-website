@@ -67,7 +67,7 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
     optionLabel: 'Option 02',
     title: 'Add IOM studio capacity',
     summary:
-      'Best when several parts of the project need to move forward together — for example 3D production, realtime development, asset preparation, integration and testing.',
+      'Best when several workstreams need to move together — 3D, realtime development, assets, integration and testing.',
     rateBadge: 'August 2026 intro',
     rateLine: `Small studio team: from €${PROJECT_COSTS_META.studioTeamIntroFromDayRate} / day`,
     rateCompareLine: `Standard from: €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
@@ -93,7 +93,7 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
     rateLine: 'Larger projects are scoped after a short consultation',
     rateCompareLine: `Introductory rates for projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}.`,
     rateNote:
-      'We first review the source material, requirements, deliverables and schedule, then recommend the smallest useful production setup.',
+      'We review the source material, requirements and schedule, then recommend the smallest useful setup.',
     learnMoreLabel: 'Learn more about project scoping',
     learnMoreTitle: 'Complete project — technical detail',
     learnMoreParagraphs: [

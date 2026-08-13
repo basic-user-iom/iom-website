@@ -6,6 +6,7 @@ export const enUi: Dict = {
   'nav.primaryAria': 'Primary',
   'nav.blog': 'Blog',
   'nav.about': 'About',
+  'nav.costs': 'Costs',
   'nav.contact': 'Get in touch',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -208,6 +209,7 @@ export const enUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'About',
+  'footer.costs': 'Costs',
   'footer.methodology': 'Methodology',
   'footer.clients': 'Clients',
   'footer.caseStudies': 'Case Studies',

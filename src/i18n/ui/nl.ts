@@ -6,6 +6,7 @@ export const nlUi: Dict = {
   'nav.primaryAria': 'Hoofdnavigatie',
   'nav.blog': 'Blog',
   'nav.about': 'Over ons',
+  'nav.costs': 'Kosten',
   'nav.contact': 'Neem contact op',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -144,6 +145,7 @@ export const nlUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Over ons',
+  'footer.costs': 'Kosten',
   'footer.methodology': 'Methodologie',
   'footer.clients': 'Klanten',
   'footer.caseStudies': 'Case studies',

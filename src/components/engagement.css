@@ -148,6 +148,33 @@
   gap: 1.15rem;
 }
 
+@supports (grid-template-rows: subgrid) {
+  .home-engage-grid {
+    grid-template-rows: auto auto auto auto 1fr auto auto auto auto auto auto;
+  }
+
+  .pc-engage-card--home {
+    display: grid;
+    grid-row: span 11;
+    grid-template-rows: subgrid;
+    gap: 0;
+    row-gap: 0.5rem;
+  }
+
+  .pc-engage-monogram {
+    grid-row: 1 / -1;
+    grid-column: 1;
+  }
+
+  .pc-engage-card--home .pc-engage-card-summary {
+    flex: none;
+  }
+
+  .pc-engage-card--home .pc-engage-card-footer {
+    margin-top: 0;
+  }
+}
+
 .pc-engage-card--home {
   isolation: isolate;
   overflow: hidden;
@@ -401,12 +428,43 @@
     margin-top: auto;
     padding-top: 0.85rem;
   }
+
+  .pc-engage-card--home .pc-engage-card-title {
+    min-height: calc(1.08em * 2);
+  }
+
+  .pc-engage-card--home .pc-engage-card-summary {
+    min-height: calc(1.55em * 3);
+  }
+
+  .pc-engage-card--home .pc-engage-rate {
+    min-height: calc(1.35em * 2);
+  }
+
+  .pc-engage-card--home .pc-engage-rate-compare,
+  .pc-engage-card--home .pc-engage-rate-note {
+    min-height: calc(1.45em * 2);
+  }
 }
 
 @media (max-width: 1400px) {
   .home-engage-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: min(100%, 1120px);
+  }
+
+  @supports (grid-template-rows: subgrid) {
+    .home-engage-grid {
+      grid-template-rows: none;
+    }
+
+    .pc-engage-card--home {
+      grid-row: auto;
+      grid-template-rows: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
   }
 }
 

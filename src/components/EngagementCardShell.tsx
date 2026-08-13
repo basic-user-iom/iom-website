@@ -29,7 +29,7 @@ export function EngagementCardShell({
     <article
       id={id}
       className={isHome ? 'pc-engage-card pc-engage-card--home' : 'pc-engage-card'}
-      data-cursor-orbit="card"
+      data-cursor-orbit={isHome ? undefined : 'card'}
       {...orbPointerProps}
     >
       {isHome ? (

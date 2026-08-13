@@ -6,6 +6,7 @@ export const itUi: Dict = {
   'nav.primaryAria': 'Navigazione principale',
   'nav.blog': 'Blog',
   'nav.about': 'Chi siamo',
+  'nav.costs': 'Costi',
   'nav.contact': 'Contattaci',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -144,6 +145,7 @@ export const itUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Chi siamo',
+  'footer.costs': 'Costi',
   'footer.methodology': 'Metodologia',
   'footer.clients': 'Clienti',
   'footer.caseStudies': 'Case study',
