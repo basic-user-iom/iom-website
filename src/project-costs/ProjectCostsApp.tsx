@@ -5,25 +5,16 @@ import { TEAM, TEAM_PORTRAIT_EXTS } from '../data/team'
 import { useSiteI18n } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
 import {
-  AUGUST_OFFER,
-  CAPACITY_TIMELINE,
-  CONTACT_CHECKLIST,
+  getProjectCostsCopy,
+  localizedCostReferences,
+  localizedEngagementOptions,
+  localizedPrototypeSteps,
+} from '../i18n/projectCosts'
+import {
   COST_REFERENCES,
-  ENGAGEMENT_OPTIONS,
-  ESTIMATE_FACTORS_SIMPLE,
-  ESTIMATE_FACTORS_TECHNICAL,
-  ESTIMATE_EXCLUSIONS,
-  ESTIMATE_RATE_HIGHLIGHTS,
-  GLANCE_RANGE_NOTE,
-  HERO_COPY,
-  HOW_IOM_WORKS,
-  HOW_PROJECT_STARTS,
-  PRODUCTION_TIME_NOTE,
+  ENGAGEMENT_OPTION_DEFS,
   PROJECT_COSTS_META,
-  PROJECT_EXAMPLES_INTRO,
-  PROTOTYPE_STEPS,
-  RATE_BLENDED_NOTE,
-  SELECTED_SUPPORT_NOTE,
+  isAugustIntroActive,
   type CostReference,
   type EngagementOption,
 } from './data'
@@ -145,7 +136,7 @@ function useCanHoverPlay(): boolean {
   return canHover && !reduced
 }
 
-function ProtoStep({ step }: { step: (typeof PROTOTYPE_STEPS)[number] }) {
+function ProtoStep({ step }: { step: ReturnType<typeof localizedPrototypeSteps>[number] }) {
   const canHover = useCanHoverPlay()
   const videoRef = useRef<HTMLVideoElement | null>(null)
   const [videoActive, setVideoActive] = useState(false)
@@ -294,8 +285,9 @@ function ReferenceCard({
   open: boolean
   onToggle: () => void
 }) {
-  const { href } = useSiteI18n()
+  const { href, lang } = useSiteI18n()
   const studyHref = href(ref.caseStudyPath)
+  const copy = getProjectCostsCopy(lang)
 
   return (
     <article className="pc-card" id={`ref-${ref.id}`} data-cursor-orbit="card">
@@ -325,13 +317,13 @@ function ReferenceCard({
         <LearnMoreBlock
           panelId={`learn-ref-${ref.id}`}
           label={ref.learnMoreLabel}
-          title={`${ref.title} — scope and pricing detail`}
+          title={`${ref.title}`}
           open={open}
           onToggle={onToggle}
         >
           <div className="pc-card-cols">
             <div>
-              <h4 className="pc-card-sub">Typically includes</h4>
+              <h4 className="pc-card-sub">{copy.page.typicallyIncludes}</h4>
               <ul className="pc-list">
                 {ref.includes.map((item) => (
                   <li key={item}>{item}</li>
@@ -340,7 +332,7 @@ function ReferenceCard({
             </div>
             {ref.priceDrivers?.length ? (
               <div>
-                <h4 className="pc-card-sub">Usually changes in price because of</h4>
+                <h4 className="pc-card-sub">{copy.page.priceDrivers}</h4>
                 <ul className="pc-list">
                   {ref.priceDrivers.map((item) => (
                     <li key={item}>{item}</li>
@@ -352,7 +344,7 @@ function ReferenceCard({
 
           {ref.productAdditions ? (
             <div className="pc-card-block">
-              <h4 className="pc-card-sub">Possible product-level additions</h4>
+              <h4 className="pc-card-sub">{copy.page.productAdditions}</h4>
               <ul className="pc-list pc-list--wrap">
                 {ref.productAdditions.map((item) => (
                   <li key={item}>{item}</li>
@@ -365,7 +357,7 @@ function ReferenceCard({
           {ref.explainer ? <p className="pc-card-note">{ref.explainer}</p> : null}
 
           <a className="pc-card-link" href={studyHref}>
-            View case study →
+            {copy.page.viewCaseStudy}
           </a>
         </LearnMoreBlock>
         <p className="pc-print-url">{PROJECT_COSTS_META.siteUrl}{ref.caseStudyPath}</p>
@@ -375,7 +367,12 @@ function ReferenceCard({
 }
 
 export function ProjectCostsApp() {
-  const { href, lang } = useSiteI18n()
+  const { href, lang, t } = useSiteI18n()
+  const copy = getProjectCostsCopy(lang)
+  const engagementOptions = localizedEngagementOptions(lang)
+  const costReferences = localizedCostReferences(lang)
+  const prototypeSteps = localizedPrototypeSteps(lang)
+  const augustActive = isAugustIntroActive()
   const [inquiryKind, setInquiryKind] = useState<'consultation' | 'estimate'>(
     'consultation',
   )
@@ -416,7 +413,7 @@ export function ProjectCostsApp() {
   useEffect(() => {
     const hash = window.location.hash.replace('#', '')
     if (!hash) return
-    const match = ENGAGEMENT_OPTIONS.find((option) => option.anchor === hash)
+    const match = ENGAGEMENT_OPTION_DEFS.find((option) => option.anchor === hash)
     if (match) {
       setOpenPanels((prev) => ({ ...prev, [`engage-${match.id}`]: true }))
       window.requestAnimationFrame(() => scrollToId(match.anchor))
@@ -430,7 +427,7 @@ export function ProjectCostsApp() {
         if (!opening) return { ...prev, [key]: false }
         if (group === 'engage' && narrowAccordion) {
           const next: Record<string, boolean> = {}
-          for (const option of ENGAGEMENT_OPTIONS) {
+          for (const option of ENGAGEMENT_OPTION_DEFS) {
             next[`engage-${option.id}`] = `engage-${option.id}` === key
           }
           return next
@@ -504,43 +501,39 @@ export function ProjectCostsApp() {
                   className="pc-print-btn"
                   onClick={handlePrint}
                 >
-                  Print / Save as PDF
+                  {copy.page.print}
                 </button>
               </div>
             )}
-            <p className="pc-eyebrow">{HERO_COPY.eyebrow}</p>
-            <h1 className="pc-title">{HERO_COPY.title}</h1>
-            <p className="pc-lead">{HERO_COPY.lead}</p>
-            <p className="pc-support-note">{HERO_COPY.sub}</p>
+            <p className="pc-eyebrow">{copy.hero.eyebrow}</p>
+            <h1 className="pc-title">{copy.hero.title}</h1>
+            <p className="pc-lead">{copy.hero.lead}</p>
+            <p className="pc-support-note">{copy.hero.sub}</p>
             <div className="pc-actions">
               <button
                 type="button"
                 className="btn btn-primary"
                 onClick={() => openInquiry('consultation')}
               >
-                {HERO_COPY.ctaPrimary}
+                {copy.hero.ctaPrimary}
               </button>
               <button
                 type="button"
                 className="btn btn-ghost"
                 onClick={() => scrollToId('project-examples')}
               >
-                {HERO_COPY.ctaSecondary}
+                {copy.hero.ctaSecondary}
               </button>
             </div>
           </header>
 
           <section className="pc-section" id="engage" aria-labelledby="engage-heading">
             <h2 className="pc-section-title" id="engage-heading">
-              How you can engage IOM
+              {copy.page.engageHeading}
             </h2>
-            <p className="pc-section-lead">
-              Three paths — from a focused specialist task to a complete scoped project. August
-              introductory day rates are shown on each option; expand Learn more when you need
-              technical detail.
-            </p>
+            <p className="pc-section-lead">{copy.page.engageLead}</p>
             <div className="pc-engage-grid">
-              {ENGAGEMENT_OPTIONS.map((option) => (
+              {engagementOptions.map((option) => (
                 <EngagementCard
                   key={option.id}
                   option={option}
@@ -549,41 +542,44 @@ export function ProjectCostsApp() {
                 />
               ))}
             </div>
+            <p className="pc-section-note">{t('home.engage.fixed')}</p>
           </section>
 
           <section className="pc-section pc-capacity" id="capacity" aria-labelledby="capacity-heading">
             <h2 className="pc-section-title pc-section-title--wide" id="capacity-heading">
-              {CAPACITY_TIMELINE.title}
+              {copy.capacity.title}
             </h2>
-            <p className="pc-section-lead">{CAPACITY_TIMELINE.summary}</p>
+            <p className="pc-section-lead">{copy.capacity.summary}</p>
             <LearnMoreBlock
               panelId="learn-capacity"
-              label={CAPACITY_TIMELINE.learnMoreLabel}
-              title={CAPACITY_TIMELINE.learnMoreTitle}
-              paragraphs={CAPACITY_TIMELINE.learnMoreParagraphs}
+              label={copy.capacity.learnMoreLabel}
+              title={copy.capacity.learnMoreTitle}
+              paragraphs={copy.capacity.learnMoreParagraphs}
               open={Boolean(openPanels['capacity'])}
               onToggle={() => togglePanel('capacity')}
             />
           </section>
 
+          {augustActive ? (
           <aside className="pc-august" id="august-offer" aria-labelledby="august-heading" data-cursor-orbit="card">
-            <p className="pc-august-eyebrow">{AUGUST_OFFER.eyebrow}</p>
+            <p className="pc-august-eyebrow">{copy.august.eyebrow}</p>
             <h2 className="pc-august-title" id="august-heading">
-              {AUGUST_OFFER.title}
+              {copy.august.title}
             </h2>
             <ul className="pc-list pc-august-list">
-              {AUGUST_OFFER.lines.map((line) => (
+              {copy.august.lines.map((line) => (
                 <li key={line}>{line}</li>
               ))}
             </ul>
             <button
               type="button"
-              className="btn btn-primary pc-august-cta"
+              className="btn btn-ghost pc-august-cta"
               onClick={() => openInquiry('consultation')}
             >
-              {AUGUST_OFFER.cta}
+              {copy.august.cta}
             </button>
           </aside>
+          ) : null}
 
           <section
             className="pc-section"
@@ -591,18 +587,18 @@ export function ProjectCostsApp() {
             aria-labelledby="examples-heading"
           >
             <h2 className="pc-section-title pc-section-title--wide" id="examples-heading">
-              {PROJECT_EXAMPLES_INTRO.title}
+              {copy.examples.title}
             </h2>
-            <p className="pc-section-lead">{PROJECT_EXAMPLES_INTRO.lead}</p>
+            <p className="pc-section-lead">{copy.examples.lead}</p>
 
-            <div className="pc-glance" role="table" aria-label="Quick project comparison">
+            <div className="pc-glance" role="table" aria-label={copy.page.glanceAria}>
               <div className="pc-glance-head" role="row">
-                <span role="columnheader">Project</span>
-                <span role="columnheader">Typical comparable effort</span>
-                <span role="columnheader">Typical delivery</span>
-                <span role="columnheader">Indicative budget</span>
+                <span role="columnheader">{copy.page.glanceProject}</span>
+                <span role="columnheader">{copy.page.glanceEffort}</span>
+                <span role="columnheader">{copy.page.glanceDelivery}</span>
+                <span role="columnheader">{copy.page.glanceBudget}</span>
               </div>
-              {COST_REFERENCES.map((ref) => (
+              {costReferences.map((ref) => (
                 <a
                   key={ref.id}
                   className="pc-glance-row"
@@ -616,7 +612,9 @@ export function ProjectCostsApp() {
                 >
                   <span className="pc-glance-project" role="cell">
                     <span className="pc-glance-cat">{ref.glanceCategory}</span>
-                    <span className="pc-glance-ref">Reference: {ref.title}</span>
+                    <span className="pc-glance-ref">
+                      {copy.page.glanceReference.replace('{title}', ref.title)}
+                    </span>
                   </span>
                   <span className="pc-glance-tiers" role="cell">
                     {ref.tiers.map((tier) => (
@@ -655,8 +653,8 @@ export function ProjectCostsApp() {
                 </a>
               ))}
             </div>
-            <p className="pc-section-note">{PROJECT_EXAMPLES_INTRO.glanceNote}</p>
-            <p className="pc-section-note">{GLANCE_RANGE_NOTE}</p>
+            <p className="pc-section-note">{copy.examples.glanceNote}</p>
+            <p className="pc-section-note">{copy.examples.rangeNote}</p>
           </section>
 
           <section
@@ -665,14 +663,11 @@ export function ProjectCostsApp() {
             aria-labelledby="refs-heading"
           >
             <h2 className="pc-section-title" id="refs-heading">
-              Detailed reference projects
+              {copy.page.refsHeading}
             </h2>
-            <p className="pc-section-lead">
-              What was included in each example, typical production ranges and why the reference
-              may — or may not — be comparable to a new request. Not fixed package prices.
-            </p>
+            <p className="pc-section-lead">{copy.page.refsLead}</p>
             <div className="pc-card-grid">
-              {COST_REFERENCES.map((ref) => (
+              {costReferences.map((ref) => (
                 <ReferenceCard
                   key={ref.id}
                   ref={ref}
@@ -685,36 +680,28 @@ export function ProjectCostsApp() {
 
           <section className="pc-section" aria-labelledby="factors-heading">
             <h2 className="pc-section-title" id="factors-heading">
-              What affects the estimate?
+              {copy.page.factorsHeading}
             </h2>
-            <p className="pc-section-lead">{ESTIMATE_FACTORS_SIMPLE}</p>
-            <LearnMoreBlock
-              panelId="learn-estimate"
-              label="Learn more about pricing factors"
-              title="Technical factors that change production effort"
-              open={Boolean(openPanels['estimate'])}
-              onToggle={() => togglePanel('estimate')}
-            >
-              <ul className="pc-factor-grid pc-factor-grid--technical">
-                {ESTIMATE_FACTORS_TECHNICAL.map((factor) => (
-                  <li key={factor.title} className="pc-factor" data-cursor-orbit="card">
-                    <h3 className="pc-factor-title">{factor.title}</h3>
-                    <p>{factor.text}</p>
-                  </li>
-                ))}
-              </ul>
-            </LearnMoreBlock>
+            <p className="pc-section-lead">{copy.factorsSimple}</p>
+            <ul className="pc-factor-grid pc-factor-grid--technical">
+              {copy.factors.map((factor) => (
+                <li key={factor.title} className="pc-factor" data-cursor-orbit="card">
+                  <h3 className="pc-factor-title">{factor.title}</h3>
+                  <p>{factor.text}</p>
+                </li>
+              ))}
+            </ul>
           </section>
 
           <section className="pc-section pc-starts" id="how-project-starts" aria-labelledby="starts-heading">
             <header className="pc-starts-header">
               <h2 className="pc-section-title" id="starts-heading">
-                {HOW_PROJECT_STARTS.title}
+                {copy.starts.title}
               </h2>
-              <p className="pc-section-lead pc-starts-lead">{HOW_PROJECT_STARTS.lead}</p>
+              <p className="pc-section-lead pc-starts-lead">{copy.starts.lead}</p>
             </header>
             <ol className="pc-starts-steps">
-              {HOW_PROJECT_STARTS.steps.map((step, index) => (
+              {copy.starts.steps.map((step, index) => (
                 <li key={step.title}>
                   <span className="pc-starts-index">{index + 1}</span>
                   <span className="pc-starts-copy">
@@ -724,28 +711,11 @@ export function ProjectCostsApp() {
                 </li>
               ))}
             </ol>
-            <div className="pc-starts-panel" aria-label="Next steps">
+            <div className="pc-starts-panel" aria-label={copy.page.startsPanelAria}>
               <div className="pc-starts-panel-main">
-                <p className="pc-starts-panel-eyebrow">Free 30-minute consultation</p>
-                <p className="pc-starts-panel-text">{HOW_PROJECT_STARTS.consultationNote}</p>
-                <p className="pc-starts-panel-note">{HOW_PROJECT_STARTS.footer}</p>
-              </div>
-              <div className="pc-starts-panel-offer">
-                <p className="pc-starts-offer-badge">{AUGUST_OFFER.eyebrow}</p>
-                <p className="pc-starts-offer-rate">
-                  Senior specialist from €{PROJECT_COSTS_META.specialistIntroDayRate}/day
-                </p>
-                <p className="pc-starts-offer-compare">
-                  Standard €{PROJECT_COSTS_META.specialistDayRate}/day · studio from €
-                  {PROJECT_COSTS_META.studioTeamIntroFromDayRate}/day
-                </p>
-                <button
-                  type="button"
-                  className="pc-starts-offer-link"
-                  onClick={() => scrollToId('august-offer')}
-                >
-                  Ask about August availability →
-                </button>
+                <p className="pc-starts-panel-eyebrow">{copy.page.startsPanelEyebrow}</p>
+                <p className="pc-starts-panel-text">{copy.starts.consultationNote}</p>
+                <p className="pc-starts-panel-note">{copy.starts.footer}</p>
               </div>
               <div className="pc-starts-panel-actions">
                 <button
@@ -753,54 +723,43 @@ export function ProjectCostsApp() {
                   className="btn btn-primary"
                   onClick={() => openInquiry('consultation')}
                 >
-                  {HOW_PROJECT_STARTS.cta}
+                  {copy.starts.cta}
                 </button>
                 <button
                   type="button"
                   className="btn btn-ghost"
                   onClick={() => scrollToId('engage')}
                 >
-                  Compare engagement options
+                  {copy.page.compareOptions}
                 </button>
               </div>
             </div>
             <p className="pc-starts-support">
-              <strong>{SELECTED_SUPPORT_NOTE.title}.</strong> {SELECTED_SUPPORT_NOTE.lead}{' '}
-              {SELECTED_SUPPORT_NOTE.footer}
+              <strong>{copy.selectedSupport.title}.</strong> {copy.selectedSupport.lead}{' '}
+              {copy.selectedSupport.footer}
             </p>
           </section>
 
           <section className="pc-section" id="prototype" aria-labelledby="proto-heading">
             <h2 className="pc-section-title" id="proto-heading">
-              Start with a focused prototype
+              {copy.page.protoHeading}
             </h2>
-            <p className="pc-section-lead">
-              Most projects do not need to begin with the complete reference build. A smaller,
-              clearly defined prototype can validate the central interaction, visual direction
-              and technical workflow before the full production scope is approved.
-            </p>
-            <ol className="pc-proto-steps" aria-label="Prototype stages · Research Form Output">
-              {PROTOTYPE_STEPS.map((step) => (
+            <p className="pc-section-lead">{copy.page.protoLead}</p>
+            <ol className="pc-proto-steps" aria-label={copy.page.protoAria}>
+              {prototypeSteps.map((step) => (
                 <ProtoStep key={step.index} step={step} />
               ))}
             </ol>
-            <p className="pc-section-note">
-              Prototype work is structured so that useful code, assets and design decisions can
-              continue into the next production stage wherever practical — carried through
-              Research (Raven), Form (Fox), and Output (Octopus).
-            </p>
+            <p className="pc-section-note">{copy.page.protoNote}</p>
           </section>
 
           <section className="pc-section" id="how-iom-works" aria-labelledby="how-heading">
             <h2 className="pc-section-title" id="how-heading">
-              Small core team, scalable production
+              {copy.page.howHeading}
             </h2>
-            <p className="pc-section-lead">
-              IOM operates as a small specialist studio and brings in trusted collaborators when
-              a project benefits from parallel production or additional expertise.
-            </p>
+            <p className="pc-section-lead">{copy.page.howLead}</p>
             <ul className="pc-how-grid">
-              {HOW_IOM_WORKS.map((item) => (
+              {copy.howIomWorks.map((item) => (
                 <li key={item.title} className="pc-how-item" data-cursor-orbit="card">
                   <h3 className="pc-how-title">{item.title}</h3>
                   <p>{item.text}</p>
@@ -811,40 +770,29 @@ export function ProjectCostsApp() {
 
           <aside className="pc-estimate-box" aria-labelledby="estimate-heading" data-cursor-orbit="card">
             <h2 className="pc-section-title pc-section-title--sub" id="estimate-heading">
-              About these estimates
+              {copy.page.estimateHeading}
             </h2>
             <div className="pc-estimate-layout">
               <div className="pc-estimate-copy">
-                <p>
-                  All figures on this page are indicative planning ranges for work comparable to
-                  the referenced case studies. They are not fixed package prices, contractual
-                  quotations or statements of the exact historic cost of the original projects.
-                </p>
-                <p>{PRODUCTION_TIME_NOTE}</p>
-                <p>{RATE_BLENDED_NOTE}</p>
-                <p>
-                  Project quotes for larger scopes are prepared separately after consultation.
-                  Unless specifically included in a quotation, the items listed alongside are
-                  usually estimated separately.
-                </p>
+                <p>{copy.page.estimateIntro}</p>
+                <p>{copy.estimate.productionTime}</p>
+                <p>{copy.estimate.blended}</p>
+                <p>{copy.page.estimateQuotes}</p>
               </div>
-              <div className="pc-estimate-highlights" aria-label="Key rate highlights">
-                <p className="pc-estimate-highlights-eyebrow">Planning ranges</p>
+              <div className="pc-estimate-highlights" aria-label={copy.page.estimateHighlightsAria}>
+                <p className="pc-estimate-highlights-eyebrow">{copy.page.estimateHighlightsEyebrow}</p>
                 <ul className="pc-estimate-stats">
-                  {ESTIMATE_RATE_HIGHLIGHTS.map((item) => (
+                  {copy.estimate.highlights.map((item) => (
                     <li key={item.label} className="pc-estimate-stat">
                       <span className="pc-estimate-stat-label">{item.label}</span>
                       <span className="pc-estimate-stat-value">{item.value}</span>
-                      {'compare' in item && item.compare ? (
-                        <span className="pc-estimate-stat-compare">{item.compare}</span>
-                      ) : null}
                     </li>
                   ))}
                 </ul>
                 <div className="pc-estimate-excludes">
-                  <p className="pc-estimate-excludes-label">Usually quoted separately</p>
+                  <p className="pc-estimate-excludes-label">{copy.page.estimateExcludes}</p>
                   <ul className="pc-estimate-tags">
-                    {ESTIMATE_EXCLUSIONS.map((item) => (
+                    {copy.estimate.exclusions.map((item) => (
                       <li key={item}>{item}</li>
                     ))}
                   </ul>
@@ -855,18 +803,13 @@ export function ProjectCostsApp() {
 
           <section className="pc-section pc-contact" id="contact" aria-labelledby="contact-heading">
             <h2 className="pc-section-title" id="contact-heading">
-              Have a project in mind?
+              {copy.finalCta.title}
             </h2>
-            <p className="pc-section-lead">
-              Send a short project description together with any available information about the
-              intended audience, existing materials, required platform and preferred completion
-              date. IOM will recommend an appropriate starting scope and provide a
-              project-specific timeline and budget range.
-            </p>
+            <p className="pc-section-lead">{copy.finalCta.lead}</p>
             <div className="pc-checklist">
-              <p className="pc-checklist-label">Helpful information to include:</p>
+              <p className="pc-checklist-label">{copy.page.checklistLabel}</p>
               <ul className="pc-list">
-                {CONTACT_CHECKLIST.map((item) => (
+                {copy.contactChecklist.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
@@ -877,17 +820,13 @@ export function ProjectCostsApp() {
                 className="btn btn-primary"
                 onClick={() => openInquiry('consultation')}
               >
-                Book a free consultation
+                {copy.finalCta.cta}
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                onClick={() => openInquiry('estimate')}
-              >
-                Request a project estimate
-              </button>
+              <a className="btn btn-ghost" href={`mailto:${PROJECT_COSTS_META.contactEmail}`}>
+                {PROJECT_COSTS_META.contactEmail}
+              </a>
               <a className="btn btn-ghost" href={href(PROJECT_COSTS_META.caseStudiesPath)}>
-                View all case studies
+                {copy.page.viewCaseStudies}
               </a>
             </div>
             <ProjectCostsInquiryForm id="inquiry" defaultKind={inquiryKind} />

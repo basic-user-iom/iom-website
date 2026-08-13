@@ -1,4 +1,6 @@
 import { memo, useEffect, useRef, useState, type FormEvent } from 'react'
+import { useSiteI18n } from '../i18n'
+import { getProjectCostsCopy } from '../i18n/projectCosts'
 import { PROJECT_COSTS_META } from './data'
 
 type InquiryKind = 'consultation' | 'estimate'
@@ -18,6 +20,9 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
   id = 'inquiry',
   defaultKind = 'consultation',
 }: ProjectCostsInquiryFormProps) {
+  const { lang } = useSiteI18n()
+  const pack = getProjectCostsCopy(lang)
+  const copy = pack.inquiry
   const [kind, setKind] = useState<InquiryKind>(defaultKind)
   const [state, setState] = useState<SubmitState>('idle')
   const [errorMessage, setErrorMessage] = useState('')
@@ -43,11 +48,11 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
     const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value.trim()
     const next: FieldErrors = {}
 
-    if (!name) next.name = 'Please fill in this field.'
-    if (!email) next.email = 'Please fill in this field.'
-    else if (!isValidEmail(email)) next.email = 'Enter a valid email address.'
+    if (!name) next.name = copy.required
+    if (!email) next.email = copy.required
+    else if (!isValidEmail(email)) next.email = copy.invalidEmail
     if (!message || message.length < 8) {
-      next.message = 'Please include a short project description.'
+      next.message = copy.messageShort
     }
 
     setFieldErrors(next)
@@ -90,10 +95,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; error?: string }
       if (!res.ok || !data.ok) {
         setState('error')
-        setErrorMessage(
-          data.error ||
-            'Could not send the message. Please email projects@iobjectm.com directly.',
-        )
+        setErrorMessage(data.error || copy.error)
         return
       }
       setState('success')
@@ -101,9 +103,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
       setFieldErrors({})
     } catch {
       setState('error')
-      setErrorMessage(
-        'Could not send the message. Please email projects@iobjectm.com directly.',
-      )
+      setErrorMessage(copy.error)
     } finally {
       submittingRef.current = false
     }
@@ -127,7 +127,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
         />
 
         <fieldset className="pc-inquiry-kind">
-          <legend className="contact-form-label">Request type</legend>
+          <legend className="contact-form-label">{copy.requestType}</legend>
           <div className="pc-inquiry-kind-row" role="group">
             <label className={`pc-inquiry-chip${kind === 'consultation' ? ' is-active' : ''}`}>
               <input
@@ -138,7 +138,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
                 onChange={() => setKind('consultation')}
                 disabled={state === 'submitting'}
               />
-              Free consultation
+              {copy.consultation}
             </label>
             <label className={`pc-inquiry-chip${kind === 'estimate' ? ' is-active' : ''}`}>
               <input
@@ -149,13 +149,13 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
                 onChange={() => setKind('estimate')}
                 disabled={state === 'submitting'}
               />
-              Project estimate
+              {copy.estimate}
             </label>
           </div>
         </fieldset>
 
         <label className="contact-form-field">
-          <span className="contact-form-label">Name</span>
+          <span className="contact-form-label">{copy.name}</span>
           <input
             type="text"
             name="name"
@@ -174,7 +174,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
         </label>
 
         <label className="contact-form-field">
-          <span className="contact-form-label">Email</span>
+          <span className="contact-form-label">{copy.email}</span>
           <input
             type="email"
             name="email"
@@ -194,7 +194,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
 
         <label className="contact-form-field">
           <span className="contact-form-label">
-            Company or organisation <span className="pc-optional">(optional)</span>
+            {copy.company} <span className="pc-optional">{copy.optional}</span>
           </span>
           <input
             type="text"
@@ -207,39 +207,39 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
 
         <label className="contact-form-field">
           <span className="contact-form-label">
-            Preferred delivery timeframe <span className="pc-optional">(optional)</span>
+            {copy.timeframe} <span className="pc-optional">{copy.optional}</span>
           </span>
           <input
             type="text"
             name="timeframe"
             className="contact-form-input"
             disabled={state === 'submitting'}
-            placeholder="e.g. within 6 weeks, Q4, flexible"
+            placeholder={copy.timeframePh}
           />
         </label>
 
         <label className="contact-form-field">
           <span className="contact-form-label">
-            Approximate budget <span className="pc-optional">(optional)</span>
+            {copy.budget} <span className="pc-optional">{copy.optional}</span>
           </span>
           <input
             type="text"
             name="budget"
             className="contact-form-input"
             disabled={state === 'submitting'}
-            placeholder="e.g. €5,000–€15,000"
+            placeholder={copy.budgetPh}
           />
         </label>
 
         <label className="contact-form-field">
-          <span className="contact-form-label">Please include a short project description.</span>
+          <span className="contact-form-label">{copy.message}</span>
           <textarea
             name="message"
             className={`contact-form-input contact-form-textarea${fieldErrors.message ? ' is-invalid' : ''}`}
             required
             rows={5}
             disabled={state === 'submitting'}
-            placeholder="Describe the main idea, intended audience, available materials and what you would like the experience to achieve."
+            placeholder={copy.messagePh}
             aria-invalid={fieldErrors.message ? true : undefined}
             onInput={() => clearFieldError('message')}
           />
@@ -256,15 +256,15 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
           disabled={state === 'submitting'}
         >
           {state === 'submitting'
-            ? 'Sending…'
+            ? copy.sending
             : kind === 'consultation'
-              ? 'Book a free consultation'
-              : 'Request a project estimate'}
+              ? pack.page.bookConsult
+              : pack.page.requestEstimate}
         </button>
 
         {state === 'success' ? (
           <p className="contact-form-feedback contact-form-feedback--success" role="status">
-            Message sent to projects@iobjectm.com — we’ll reply within two business days.
+            {copy.success}
           </p>
         ) : null}
         {state === 'error' ? (
@@ -276,7 +276,7 @@ export const ProjectCostsInquiryForm = memo(function ProjectCostsInquiryForm({
         <p className="contact-form-alt">
           or{' '}
           <a className="contact-form-mailto" href={mailto} data-cursor="external">
-            email projects@iobjectm.com directly
+            {copy.emailDirect}
           </a>
         </p>
       </form>

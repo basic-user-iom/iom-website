@@ -66,21 +66,35 @@ export const enUi: Dict = {
     'For selected projects with strong creative, technical, cultural, educational or social potential, IOM may also contribute through a reduced fee or a limited number of complimentary production hours.',
   'hero.begin.estimate': 'Request a project estimate',
 
-  'home.engage.eyebrow': 'August 2026 · introductory availability',
-  'home.engage.title': 'How you can engage IOM',
+  'home.engage.title': 'Work with IOM',
   'home.engage.lead':
-    'Three paths — from a focused specialist task to a complete scoped project. August introductory day rates are shown below; full scope and technical detail live on the project costs page.',
-  'home.engage.cta': 'View project costs & timelines',
-  'home.engage.augustCta': 'Ask about August availability',
+    'Choose the level of production support that matches the project. Start with one specialist, add studio capacity when parallel work is useful, or scope a larger project with us.',
+  'home.engage.outcomes':
+    'Difficult 3D assets · realtime applications · technical visualisation · interactive product experiences · spatial presentations',
+  'home.engage.fixed':
+    'The day rate applies to specialist production capacity. Small, clearly defined interactions or website improvements can also be quoted as fixed-price scopes.',
+  'home.engage.cta': 'View project costs',
+  'home.engage.discuss': 'Discuss a project',
+  'home.engage.augustCta': 'August introductory availability',
+  'home.engage.proofLabel': 'Relevant work',
+  'home.engage.trustAria': 'Collaboration notes',
+  'home.engage.trust.whiteLabel': 'White-label friendly',
+  'home.engage.trust.nda': 'NDA-friendly',
+  'home.engage.trust.remote': 'Remote collaboration',
+  'home.engage.trust.project': 'Project-based',
+  'home.engage.proof.viewer': 'Technical review tooling, 3D data handling and browser delivery',
+  'home.engage.proof.ssr': 'Realtime exploration, import, inspection and technical experimentation',
+  'home.engage.proof.witness': '360° / spatial storytelling and cultural experience work',
+  'home.engage.proof.miab': 'A complete creative interaction in the browser',
 
   'start.eyebrow': 'Working with IOM',
   'start.backHome': '← Back to iobjectm.com',
   'seo.startTitle': 'Start a project | IOM',
   'seo.startDescription':
     'Free 30-minute consultation, pricing basis, and selected project support from Interactive Object Media.',
-  'seo.projectCostsTitle': 'Project Costs & Production Capacity | IOM',
+  'seo.projectCostsTitle': 'Project Costs & Production Capacity - IOM',
   'seo.projectCostsDescription':
-    'Plain-language project costs for custom interactive 3D, realtime web experiences and 360° work. Hire one specialist, add studio capacity, or scope a complete project with IOM.',
+    'Indicative rates for senior specialist support, IOM studio production capacity and custom interactive 3D projects.',
 
   'about.eyebrow': 'Studio',
   'about.title': 'The team behind the objects',
@@ -222,7 +236,7 @@ export const enUi: Dict = {
   'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. All rights reserved.',
   'footer.entity':
-    'IOM is an independent studio brand; contracts are issued by the engaging party.',
+    'IOM is an independent studio brand. Contracting and invoicing arrangements are confirmed transparently for each engagement.',
 
   'legal.eyebrow': 'Legal',
   'legal.lastUpdated': 'Last updated {date}',
@@ -234,7 +248,7 @@ export const enUi: Dict = {
 
   'seo.homeTitle': 'IOM — Interactive Object Media',
   'seo.homeDescription':
-    'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — Interactive Object Media studio.',
+    'IOM provides senior realtime 3D specialist support, external production capacity and complete interactive projects using browser-based 3D, Blender, Unreal, CAD/BIM and spatial media.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Process case studies from Interactive Object Media — challenge, solution, and deliverables.',

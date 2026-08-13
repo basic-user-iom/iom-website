@@ -33,21 +33,21 @@
 
 @supports (grid-template-rows: subgrid) {
   .pc-engage-grid:not(.home-engage-grid) {
-    grid-template-rows: repeat(8, auto);
+    grid-template-rows: repeat(7, auto);
   }
 
   .pc-engage-grid:not(.home-engage-grid) .pc-engage-card {
     display: grid;
-    grid-row: span 8;
+    grid-row: span 7;
     grid-template-rows: subgrid;
     gap: 0;
     row-gap: 0.65rem;
   }
 
   .pc-engage-grid:not(.home-engage-grid) .pc-engage-card-title,
+  .pc-engage-grid:not(.home-engage-grid) .pc-engage-card-question,
   .pc-engage-grid:not(.home-engage-grid) .pc-engage-card-summary,
   .pc-engage-grid:not(.home-engage-grid) .pc-engage-rate,
-  .pc-engage-grid:not(.home-engage-grid) .pc-engage-rate-compare,
   .pc-engage-grid:not(.home-engage-grid) .pc-engage-rate-note {
     min-height: 0;
   }
@@ -67,6 +67,13 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
+}
+
+.pc-engage-card-question {
+  font-size: 0.92rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--text) 88%, var(--accent));
 }
 
 .pc-engage-card-summary,
@@ -150,12 +157,12 @@
 
 @supports (grid-template-rows: subgrid) {
   .home-engage-grid {
-    grid-template-rows: auto auto auto auto 1fr auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto auto auto 1fr auto auto auto;
   }
 
   .pc-engage-card--home {
     display: grid;
-    grid-row: span 11;
+    grid-row: span 9;
     grid-template-rows: subgrid;
     gap: 0;
     row-gap: 0.5rem;
@@ -343,6 +350,12 @@
   opacity: 0.95;
 }
 
+.pc-engage-card--home .pc-engage-card-question {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
 .pc-engage-card--home .pc-engage-card-summary {
   font-size: 0.92rem;
   line-height: 1.55;
@@ -351,13 +364,8 @@
   min-height: 0;
 }
 
-.pc-engage-card--home .pc-engage-rate-badge {
-  margin-top: 0.35rem;
-}
-
-.pc-engage-card--home .pc-engage-rate,
-.pc-engage-card--home .pc-engage-rate-compare,
-.pc-engage-card--home .pc-engage-rate-note {
+.pc-engage-card--home .pc-engage-rate {
+  margin-top: 0.2rem;
   min-height: 0;
 }
 
@@ -392,13 +400,123 @@
   color: rgba(139, 139, 154, 0.85);
 }
 
+.home-engage-outcomes {
+  margin: 0 auto 0.25rem;
+  max-width: 62ch;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--text-muted) 88%, var(--accent));
+}
+
+.home-engage-fixed {
+  margin: 1.35rem auto 0;
+  max-width: 58ch;
+  font-size: 0.86rem;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+
+.home-engage-trust {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.15rem;
+  margin: 1.15rem auto 0;
+  padding: 0;
+  list-style: none;
+  max-width: 52rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--text-muted) 82%, var(--text));
+}
+
+.home-engage-proof {
+  margin: 1.65rem auto 0;
+  max-width: 52rem;
+  text-align: left;
+}
+
+.home-engage-proof-label {
+  margin: 0 0 0.65rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.home-engage-proof-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-engage-proof-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.home-engage-proof-list a {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.home-engage-proof-list a:hover,
+.home-engage-proof-list a:focus-visible {
+  color: var(--accent);
+}
+
+.home-engage-proof-list span {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--text-muted);
+}
+
+.home-engage-learn .pc-learn-trigger {
+  list-style: none;
+  width: 100%;
+}
+
+.home-engage-learn .pc-learn-trigger::-webkit-details-marker {
+  display: none;
+}
+
+.home-engage-learn .pc-learn-panel {
+  max-height: none;
+  opacity: 1;
+  overflow: visible;
+  padding-top: 0.55rem;
+}
+
+.home-engage-august-link {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.home-engage-august-link:hover,
+.home-engage-august-link:focus-visible {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 .home-engage-actions {
   position: relative;
   z-index: 20;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
+  gap: 0.75rem 1.15rem;
   margin-top: 1.5rem;
 }
 
@@ -496,6 +614,10 @@
 
   .pc-engage-card--home {
     min-height: 0;
+  }
+
+  .home-engage-proof-list {
+    grid-template-columns: 1fr 1fr;
   }
 }
 

@@ -5,7 +5,7 @@ import {
 } from '../legalPages'
 
 const disclosure =
-  'IOM (Interactive Object Media) è un brand di studio indipendente. I contratti per il lavoro con i clienti sono emessi dalla parte contraente.'
+  'IOM (Interactive Object Media) è un brand di studio indipendente. Contratto e fatturazione vengono confermati in modo trasparente per ogni incarico.'
 
 export const itLegal: LegalLocalePack = {
   privacy: {

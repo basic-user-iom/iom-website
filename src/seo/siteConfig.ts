@@ -8,7 +8,7 @@ export const SITE_SHORT_NAME = 'IOM'
 export const DEFAULT_TITLE = 'IOM — Interactive Object Media'
 
 export const DEFAULT_DESCRIPTION =
-  'IOM builds software, 3D experiences, immersive 360° tours, photography, music, and WebGPU experiments — Interactive Object Media studio.'
+  'IOM provides senior realtime 3D specialist support, external production capacity and complete interactive projects using browser-based 3D, Blender, Unreal, CAD/BIM and spatial media.'
 
 export const DEFAULT_OG_IMAGE = `${SITE_ORIGIN}/og-image.svg`
 

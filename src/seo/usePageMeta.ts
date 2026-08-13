@@ -66,7 +66,8 @@ function injectHreflang(pathname: string) {
     p.startsWith('/blog/') ||
     p === '/privacy' ||
     p === '/terms' ||
-    p === '/cookies'
+    p === '/cookies' ||
+    p === '/project-costs'
   if (!eligible) return
 
   for (const lang of SITE_LANGS) {

@@ -5,7 +5,7 @@ import {
 } from '../legalPages'
 
 const disclosure =
-  'IOM (Interactive Object Media) is een onafhankelijk studiolabel. Contracten voor klantwerk worden uitgegeven door de opdrachtgevende partij.'
+  'IOM (Interactive Object Media) is een onafhankelijk studiolabel. Contract- en facturatieafspraken worden per opdracht transparant bevestigd.'
 
 export const nlLegal: LegalLocalePack = {
   privacy: {

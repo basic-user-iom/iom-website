@@ -23,7 +23,7 @@ export const LEGAL_CONTACT = 'contact@iobjectm.com'
 export const LEGAL_LAST_UPDATED = '2026-07-28'
 
 export const LEGAL_DISCLOSURE_EN =
-  'IOM (Interactive Object Media) is an independent studio brand. Contracts for client work are issued by the engaging party.'
+  'IOM (Interactive Object Media) is an independent studio brand. Contracting and invoicing arrangements are confirmed transparently for each engagement.'
 
 export const LEGAL_PAGES_EN: LegalLocalePack = {
   privacy: {
@@ -86,7 +86,7 @@ export const LEGAL_PAGES_EN: LegalLocalePack = {
         paragraphs: [
           'Contact emails are kept as long as needed to handle your request and maintain a reasonable business record of correspondence.',
           'Analytics session identifiers live in sessionStorage and clear when the browser session ends.',
-          'Client-portal records follow the retention practices of the engaging party for that project.',
+          'Client-portal records follow the retention practices agreed for that project.',
         ],
       },
       {
@@ -134,7 +134,7 @@ export const LEGAL_PAGES_EN: LegalLocalePack = {
         id: 'projects',
         heading: 'Client work',
         paragraphs: [
-          'Paid project work, deliverables, timelines, fees, and intellectual-property terms are governed by a separate written agreement with the engaging party — not by these website terms alone.',
+          'Paid project work, deliverables, timelines, fees, and intellectual-property terms are governed by a separate written agreement confirmed for each engagement — not by these website terms alone.',
           'A secure client portal may be provided for active projects; access is limited to invited users and remains confidential.',
         ],
       },
@@ -158,7 +158,7 @@ export const LEGAL_PAGES_EN: LegalLocalePack = {
         heading: 'Disclaimer',
         paragraphs: [
           'The public website and demos are provided without warranties of uninterrupted availability or fitness for a particular purpose.',
-          'To the extent permitted by law, IOM is not liable for indirect or consequential losses arising from use of the public site alone. Contracted project liability is defined in the signed agreement with the engaging party.',
+          'To the extent permitted by law, IOM is not liable for indirect or consequential losses arising from use of the public site alone. Contracted project liability is defined in the signed agreement for that engagement.',
         ],
       },
       {

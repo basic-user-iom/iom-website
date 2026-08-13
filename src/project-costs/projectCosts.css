@@ -281,21 +281,12 @@
 .pc-august {
   position: relative;
   margin-bottom: clamp(2.5rem, 5vw, 3.75rem);
-  padding: clamp(1.25rem, 2.5vw, 1.75rem) clamp(1.35rem, 3vw, 1.9rem);
-  padding-left: clamp(1.5rem, 3vw, 2.1rem);
-  border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+  padding: clamp(1rem, 2vw, 1.35rem) clamp(1.15rem, 2.5vw, 1.6rem);
+  padding-left: clamp(1.35rem, 2.6vw, 1.75rem);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  background:
-    linear-gradient(
-      135deg,
-      color-mix(in srgb, var(--accent-glow) 95%, transparent) 0%,
-      color-mix(in srgb, var(--accent-glow) 35%, var(--bg-card)) 52%,
-      var(--bg-card) 100%
-    );
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-glow) 70%, transparent),
-    0 14px 44px rgba(0, 0, 0, 0.38),
-    0 0 56px color-mix(in srgb, var(--accent-glow) 90%, transparent);
+  background: var(--bg-card);
+  box-shadow: none;
   overflow: hidden;
 }
 

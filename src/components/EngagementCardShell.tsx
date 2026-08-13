@@ -47,8 +47,9 @@ export function EngagementCardShell({
       <p className="pc-engage-option">{option.optionLabel}</p>
       <h3 className="pc-engage-card-title">{option.title}</h3>
       {isHome ? <span className="pc-engage-rule" aria-hidden="true" /> : null}
+      <p className="pc-engage-card-question">{option.question}</p>
       <p className="pc-engage-card-summary">{option.summary}</p>
-      <EngagementPricing option={option} />
+      <EngagementPricing option={option} compact={isHome} />
       <div className="pc-engage-card-footer">{footer}</div>
       {isHome ? (
         <p className="pc-engage-mark" aria-hidden="true">

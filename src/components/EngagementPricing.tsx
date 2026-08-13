@@ -1,12 +1,20 @@
 import type { EngagementOption } from '../project-costs/data'
 
-export function EngagementPricing({ option }: { option: EngagementOption }) {
+export function EngagementPricing({
+  option,
+  compact = false,
+}: {
+  option: EngagementOption
+  compact?: boolean
+}) {
   return (
     <>
-      <p className="pc-engage-rate-badge">{option.rateBadge ?? '\u00A0'}</p>
+      {option.rateBadge ? <p className="pc-engage-rate-badge">{option.rateBadge}</p> : null}
       <p className="pc-engage-rate">{option.rateLine}</p>
-      <p className="pc-engage-rate-compare">{option.rateCompareLine ?? '\u00A0'}</p>
-      <p className="pc-engage-rate-note">{option.rateNote}</p>
+      {option.rateCompareLine ? (
+        <p className="pc-engage-rate-compare">{option.rateCompareLine}</p>
+      ) : null}
+      {compact ? null : <p className="pc-engage-rate-note">{option.rateNote}</p>}
     </>
   )
 }

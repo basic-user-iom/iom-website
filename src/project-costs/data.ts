@@ -3,9 +3,9 @@
 export const PROJECT_COSTS_META = {
   path: '/project-costs',
   pageTitle: 'Project Costs',
-  seoTitle: 'Project Costs & Production Capacity | IOM',
+  seoTitle: 'Project Costs & Production Capacity - IOM',
   seoDescription:
-    'Plain-language project costs for custom interactive 3D, realtime web experiences and 360° work. Hire one specialist, add studio capacity, or scope a complete project with IOM.',
+    'Indicative rates for senior specialist support, IOM studio production capacity and custom interactive 3D projects.',
   rateMin: 75,
   rateMax: 110,
   rateLabel: 'Typically €75–€110 per hour',
@@ -17,17 +17,28 @@ export const PROJECT_COSTS_META = {
     'mailto:projects@iobjectm.com?subject=Free%2030-minute%20project%20consultation',
   estimateMail:
     'mailto:projects@iobjectm.com?subject=Project%20estimate%20request',
+  discussMail: 'mailto:projects@iobjectm.com?subject=Discuss%20a%20project',
   caseStudiesPath: '/case-studies',
   contactEmail: 'projects@iobjectm.com',
   siteUrl: 'https://iobjectm.com',
   augustOfferDeadline: '31 August 2026',
 } as const
 
+/** Hide the August 2026 introductory block from 1 September 2026 (Europe/Amsterdam). */
+export const AUGUST_INTRO_ENDS_MS = Date.parse('2026-09-01T00:00:00+02:00')
+
+export function isAugustIntroActive(now = Date.now()): boolean {
+  return now < AUGUST_INTRO_ENDS_MS
+}
+
+export type EngagementOptionId = 'specialist' | 'studio-capacity' | 'project-scoping'
+
 export type EngagementOption = {
-  id: string
+  id: EngagementOptionId
   anchor: string
   optionLabel: string
   title: string
+  question: string
   summary: string
   rateBadge?: string
   rateLine: string
@@ -36,74 +47,55 @@ export type EngagementOption = {
   learnMoreLabel: string
   learnMoreTitle: string
   learnMoreParagraphs: string[]
+  homeCta?: 'learn-more' | 'discuss'
 }
 
-export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
-  {
-    id: 'specialist',
-    anchor: 'specialist',
-    optionLabel: 'Option 01',
-    title: 'Work with one specialist',
-    summary:
-      'Best for a clearly defined task, technical problem, prototype, optimisation package or a role inside your existing production team.',
-    rateBadge: 'August 2026 intro',
-    rateLine: `Senior specialist: €${PROJECT_COSTS_META.specialistIntroDayRate} / day`,
-    rateCompareLine: `Standard rate: €${PROJECT_COSTS_META.specialistDayRate} / day`,
-    rateNote:
-      'A single specialist keeps daily cost lower, but larger packages may take longer because there is less work happening in parallel.',
-    learnMoreLabel: 'Learn more about specialist work',
-    learnMoreTitle: 'One specialist — technical detail',
-    learnMoreParagraphs: [
-      'A single senior specialist can work directly within your existing production pipeline or take ownership of a clearly defined package.',
-      'Typical work includes Three.js/WebGL/WebGPU development, realtime 3D prototyping, Blender or Unreal production, CAD/BIM-to-realtime preparation, GLB/FBX/OBJ optimisation, photogrammetry, 360° production, technical troubleshooting, performance work and handoff-ready asset preparation.',
-      'This model works best when the task is well defined or when your own team already owns the wider project.',
-      'For larger packages, a single specialist can still complete the work, but the schedule will be longer than a setup where independent tasks can run in parallel.',
-      `Standard rate: €${PROJECT_COSTS_META.specialistDayRate}/day. During the August 2026 introductory period, eligible new collaborations may start from €${PROJECT_COSTS_META.specialistIntroDayRate}/day when confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}. Longer recurring engagements or defined partner arrangements may be quoted separately.`,
-    ],
-  },
-  {
-    id: 'studio-capacity',
-    anchor: 'studio-capacity',
-    optionLabel: 'Option 02',
-    title: 'Add IOM studio capacity',
-    summary:
-      'Best when several workstreams need to move together — 3D, realtime development, assets, integration and testing.',
-    rateBadge: 'August 2026 intro',
-    rateLine: `Small studio team: from €${PROJECT_COSTS_META.studioTeamIntroFromDayRate} / day`,
-    rateCompareLine: `Standard from: €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
-    rateNote:
-      'Team size can change during the project. You only need additional capacity during phases where it is useful.',
-    learnMoreLabel: 'Learn more about studio capacity',
-    learnMoreTitle: 'Small studio team — technical detail',
-    learnMoreParagraphs: [
-      'IOM can increase production capacity when a project contains several independent workstreams — for example one person preparing and optimising 3D assets while another develops the realtime experience, with integration and testing running in parallel where useful.',
-      'Team size is adjusted to the phase. Additional capacity is brought in only when parallel work genuinely shortens the schedule — not as a default staffing formula.',
-      'Approximate guide rates: about €950/day for two-person capacity and about €1,300/day for three-person studio capacity, subject to scope review.',
-      'During the August 2026 introductory period, team rates from about €800/day (two people) and €1,100/day (three people) may apply to eligible new collaborations confirmed by 31 August.',
-    ],
-  },
-  {
-    id: 'project-scoping',
-    anchor: 'project-scoping',
-    optionLabel: 'Option 03',
-    title: 'Build a complete project with IOM',
-    summary:
-      'Best when you want us to take responsibility for a defined interactive, 3D, 360° or realtime package from preparation through delivery.',
-    rateBadge: 'August 2026 intro',
-    rateLine: 'Larger projects are scoped after a short consultation',
-    rateCompareLine: `Introductory rates for projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}.`,
-    rateNote:
-      'We review the source material, requirements and schedule, then recommend the smallest useful setup.',
-    learnMoreLabel: 'Learn more about project scoping',
-    learnMoreTitle: 'Complete project — technical detail',
-    learnMoreParagraphs: [
-      'When IOM takes responsibility for a full interactive, 3D, 360° or realtime package, production is planned in stages: source review, technical approach, capacity plan, consolidated scope and delivery.',
-      'There is no single fixed price for a “large” project. The estimate reflects required deliverables, asset condition, integration needs, visual fidelity, testing coverage and schedule.',
-      'Capacity can change during production — a larger team is not required from day one unless parallel workstreams justify it.',
-      'Following a short consultation, you receive a clear scope, recommended capacity and indicative budget before production begins.',
-    ],
-  },
+export const ENGAGEMENT_OPTION_DEFS: Array<{
+  id: EngagementOptionId
+  anchor: string
+  optionLabel: string
+  homeCta: 'learn-more' | 'discuss'
+}> = [
+  { id: 'specialist', anchor: 'specialist', optionLabel: 'Option 01', homeCta: 'learn-more' },
+  { id: 'studio-capacity', anchor: 'studio-capacity', optionLabel: 'Option 02', homeCta: 'learn-more' },
+  { id: 'project-scoping', anchor: 'project-scoping', optionLabel: 'Option 03', homeCta: 'discuss' },
 ]
+
+export const ENGAGE_OUTCOMES_LINE =
+  'Difficult 3D assets · realtime applications · technical visualisation · interactive product experiences · spatial presentations'
+
+export const TRUST_STRIP = [
+  'White-label friendly',
+  'NDA-friendly',
+  'Remote collaboration',
+  'Project-based',
+] as const
+
+export const RELEVANT_WORK = [
+  {
+    title: '3D Viewer',
+    href: '/case-studies/3d-viewer',
+    note: 'Technical review tooling, 3D data handling and browser delivery',
+  },
+  {
+    title: 'SSR / WebGPU',
+    href: '/demos/ssr-denoise/',
+    note: 'Realtime exploration, import, inspection and technical experimentation',
+  },
+  {
+    title: 'Black Witness',
+    href: '/case-studies/black-witness',
+    note: '360° / spatial storytelling and cultural experience work',
+  },
+  {
+    title: 'Message in a Bottle',
+    href: '/demos/message-in-a-bottle/',
+    note: 'A complete creative interaction in the browser',
+  },
+] as const
+
+export const FIXED_PRICE_LINE =
+  'The day rate applies to specialist production capacity. Small, clearly defined interactions or website improvements can also be quoted as fixed-price scopes.'
 
 export const CAPACITY_TIMELINE = {
   title: 'Price and time are connected through production capacity',
@@ -120,19 +112,18 @@ export const CAPACITY_TIMELINE = {
 
 export const AUGUST_OFFER = {
   eyebrow: 'August 2026 — introductory availability',
-  title: 'A limited amount of capacity is available for new collaborations this August',
+  title: 'Limited senior specialist capacity for new collaborations',
   lines: [
-    `Senior specialist: €${PROJECT_COSTS_META.specialistIntroDayRate} / day during the introductory period (standard rate €${PROJECT_COSTS_META.specialistDayRate} / day).`,
-    'Introductory studio rates are also available for new projects that need additional production capacity.',
-    `Projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline} can retain the agreed introductory rate for the initial scope even when delivery continues beyond August.`,
+    `For new collaborations confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}, a limited amount of senior specialist capacity is available at €${PROJECT_COSTS_META.specialistIntroDayRate} / production day instead of the standard €${PROJECT_COSTS_META.specialistDayRate} / production day.`,
+    'The agreed introductory rate can continue beyond August for the initial confirmed scope.',
   ],
   cta: 'Ask about August availability',
 } as const
 
 export const PROJECT_EXAMPLES_INTRO = {
-  title: 'What different project sizes can look like',
+  title: 'Reference projects',
   lead:
-    'The examples below are reference projects — not fixed packages. Each shows what was included, typical production effort and an indicative budget range for comparable work. Your project may differ depending on source material, features and schedule.',
+    'These examples show the approximate scale of previous work. They are not fixed packages; final scope, schedule and production capacity depend on the source material, interaction requirements and delivery context.',
   glanceNote:
     'Select a row to scroll to the detailed reference card. Figures are planning ranges, not catalogue prices.',
 } as const
@@ -142,32 +133,40 @@ export const ESTIMATE_FACTORS_SIMPLE =
 
 export const ESTIMATE_FACTORS_TECHNICAL = [
   {
-    title: 'Source assets',
-    text: 'Clean, approved 3D models, panoramas, copy and media reduce production time. Geometry repair, modelling, retopology, photogrammetry and content preparation add work.',
+    title: 'Quality and condition of source material',
+    text: 'Clean production-ready assets versus incomplete or difficult CAD/BIM/3D source data.',
   },
   {
-    title: 'Realtime complexity',
-    text: 'A lightweight product viewer has a different performance budget from a public mobile browser experience with advanced shaders, effects or large environments.',
+    title: 'Interaction complexity',
+    text: 'Simple presentation versus custom realtime logic, tools, configuration or multi-step behaviours.',
   },
   {
-    title: 'Interaction',
-    text: 'Orbit and view controls are simpler than configurators, object editing, annotations, saved states, multi-user logic, guided sequences or custom UI.',
+    title: 'Visual complexity',
+    text: 'Number of environments, objects, materials, lighting requirements, animation and content states.',
   },
   {
-    title: 'Visual requirements',
-    text: 'Lighting, materials, animation, effects, environments, shadows and post-processing can range from simple to highly specialised.',
+    title: 'Integration requirements',
+    text: 'Standalone module versus integration into an existing site, software product or client pipeline.',
   },
   {
-    title: 'Integration',
-    text: 'CMS, ecommerce, analytics, authentication, APIs, existing applications or client-owned codebases add integration and testing requirements.',
-  },
-  {
-    title: 'Delivery and QA',
-    text: 'Browser and device coverage, performance testing, packaging, documentation and handoff affect the final production effort.',
+    title: 'Performance and QA requirements',
+    text: 'Supported browsers, devices, mobile targets, GPU constraints and optimisation targets.',
   },
   {
     title: 'Schedule',
-    text: 'A compressed deadline may require more work to happen in parallel and therefore more studio capacity.',
+    text: 'Compressed timelines can require more parallel production capacity.',
+  },
+  {
+    title: 'Feedback and revision structure',
+    text: 'One decision-maker and defined review rounds are different from continuous multi-stakeholder changes.',
+  },
+  {
+    title: 'Third-party costs',
+    text: 'Paid assets, licences, special hosting, external services, travel or hardware should be quoted separately where relevant.',
+  },
+  {
+    title: 'Ongoing support',
+    text: 'Maintenance, content updates or post-launch support can be structured separately when needed.',
   },
 ] as const
 
@@ -202,13 +201,13 @@ export const HOW_PROJECT_STARTS = {
 
 export const HERO_COPY = {
   eyebrow: 'Scope · Time · Budget',
-  title: 'Project costs, without the technical guesswork',
+  title: 'Flexible production capacity',
   lead:
-    'You can work with one experienced specialist, add IOM production capacity to your existing team, or ask us to take ownership of a complete interactive or 3D project.',
+    'IOM can be engaged for focused senior production, additional studio capacity, or a larger scoped project. The right setup depends on the work that can genuinely progress in parallel.',
   sub:
-    'The right setup depends on what needs to be made, how quickly it needs to be delivered, and how much of the work can happen in parallel.',
+    'This page is transparent guidance, not a catalogue of fixed packages. Day rates qualify a starting point; larger work is scoped after a short consultation.',
   ctaPrimary: 'Discuss a project',
-  ctaSecondary: 'View project examples',
+  ctaSecondary: 'View reference projects',
 } as const
 
 export type CostTier = {
@@ -267,18 +266,16 @@ export const RATE_BLENDED_NOTE =
 
 export const ESTIMATE_RATE_HIGHLIGHTS = [
   {
-    label: 'August intro · one specialist',
-    value: `€${PROJECT_COSTS_META.specialistIntroDayRate} / day`,
-    compare: `Standard €${PROJECT_COSTS_META.specialistDayRate} / day`,
+    label: 'Senior specialist capacity',
+    value: `€${PROJECT_COSTS_META.specialistDayRate} / production day`,
   },
   {
-    label: 'August intro · studio team',
-    value: `from €${PROJECT_COSTS_META.studioTeamIntroFromDayRate} / day`,
-    compare: `Standard from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
+    label: 'Additional studio capacity',
+    value: `from €${PROJECT_COSTS_META.studioTeamFromDayRate} / production day`,
   },
   {
-    label: 'Typical hourly rate',
-    value: `€${PROJECT_COSTS_META.rateMin}–€${PROJECT_COSTS_META.rateMax} / hour`,
+    label: 'Larger / complete projects',
+    value: 'Scoped after consultation',
   },
 ] as const
 
@@ -550,18 +547,25 @@ export const PROTOTYPE_STEPS = [
 
 export const HOW_IOM_WORKS = [
   {
-    title: 'Direct communication',
-    text: 'The client works directly with the person responsible for the creative and technical production.',
+    title: 'Capacity follows the work',
+    text: 'IOM scales production capacity according to the needs of the project. Some phases may be handled by one senior specialist, while production-heavy phases can expand when parallel work is genuinely useful.',
   },
   {
-    title: 'Specialist collaboration',
-    text: 'Additional developers, designers, artists, photographers or sound specialists can be included when the project requires them.',
+    title: 'Clear production setup',
+    text: 'For larger engagements, the production setup is agreed in advance so responsibilities, capacity and communication remain clear throughout the project.',
   },
   {
     title: 'Clear stages',
     text: 'Research, prototype, production and delivery can be quoted as separate stages, allowing the scope to be reviewed before each major commitment.',
   },
 ] as const
+
+export const FINAL_CTA = {
+  title: 'Tell us what you are trying to build',
+  lead:
+    'You do not need a technical brief. Send us the goal, anything you already have, and the date you are working toward. We can help determine the appropriate production setup.',
+  cta: 'Discuss a project',
+} as const
 
 export const CONTACT_CHECKLIST = [
   'Main project objective',

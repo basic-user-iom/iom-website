@@ -48,6 +48,27 @@ export const esUi: Dict = {
   'hero.startAria': 'Iniciar la escena WebGL en vivo del hero',
   'hero.scroll': 'Desplazar',
 
+  'home.engage.title': 'Trabajar con IOM',
+  'home.engage.lead':
+    'Elija el nivel de apoyo de producción que encaja con el proyecto. Empiece con un especialista, añada capacidad de estudio cuando el trabajo en paralelo sea útil, o delimite un proyecto mayor con nosotros.',
+  'home.engage.outcomes':
+    'Assets 3D exigentes · aplicaciones en tiempo real · visualización técnica · experiencias de producto interactivas · presentaciones espaciales',
+  'home.engage.fixed':
+    'La tarifa diaria se aplica a la capacidad de producción especializada. Interacciones pequeñas y claramente definidas o mejoras de web también pueden presupuestarse a precio cerrado.',
+  'home.engage.cta': 'Ver costes de proyecto',
+  'home.engage.discuss': 'Hablar de un proyecto',
+  'home.engage.augustCta': 'Disponibilidad introductoria de agosto',
+  'home.engage.proofLabel': 'Trabajo relevante',
+  'home.engage.trustAria': 'Notas de colaboración',
+  'home.engage.trust.whiteLabel': 'Compatible con marca blanca',
+  'home.engage.trust.nda': 'Compatible con NDA',
+  'home.engage.trust.remote': 'Colaboración remota',
+  'home.engage.trust.project': 'Por proyecto',
+  'home.engage.proof.viewer': 'Herramientas de revisión técnica, manejo de datos 3D y entrega en el navegador',
+  'home.engage.proof.ssr': 'Exploración en tiempo real, importación, inspección y experimentación técnica',
+  'home.engage.proof.witness': 'Narrativa 360° / espacial y experiencia cultural',
+  'home.engage.proof.miab': 'Una interacción creativa completa en el navegador',
+
   'about.eyebrow': 'Estudio',
   'about.title': 'El equipo detrás de los objetos',
   'about.blurb':
@@ -158,7 +179,7 @@ export const esUi: Dict = {
   'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. Todos los derechos reservados.',
   'footer.entity':
-    'IOM es una marca de estudio independiente; los contratos los emite la parte contratante.',
+    'IOM es una marca de estudio independiente. Los acuerdos de contratación y facturación se confirman de forma transparente en cada encargo.',
 
   'legal.eyebrow': 'Legal',
   'legal.lastUpdated': 'Última actualización {date}',
@@ -179,7 +200,10 @@ export const esUi: Dict = {
   'seo.cookiesDescription':
     'Cookies y almacenamiento local en iobjectm.com — preferencias, analytics e inicio de sesión del portal.',
   'seo.homeDescription':
-    'IOM construye software, experiencias 3D, tours 360° inmersivos, fotografía, música y experimentos WebGPU — estudio Interactive Object Media.',
+    'IOM ofrece apoyo senior en 3D en tiempo real, capacidad de producción externa y proyectos interactivos completos con 3D en el navegador, Blender, Unreal, CAD/BIM y medios espaciales.',
+  'seo.projectCostsTitle': 'Costes de proyecto y capacidad de producción - IOM',
+  'seo.projectCostsDescription':
+    'Tarifas orientativas para apoyo de un especialista senior, capacidad de producción del estudio IOM y proyectos 3D interactivos a medida.',
   'seo.caseStudiesTitle': 'IOM — Casos de estudio',
   'seo.caseStudiesDescription':
     'Casos de estudio de proceso de Interactive Object Media — del brief a la build interactiva final.',

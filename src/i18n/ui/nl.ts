@@ -48,6 +48,27 @@ export const nlUi: Dict = {
   'hero.startAria': 'Start de live WebGL-hero-scène',
   'hero.scroll': 'Scroll',
 
+  'home.engage.title': 'Samenwerken met IOM',
+  'home.engage.lead':
+    'Kies het niveau van productieondersteuning dat bij het project past. Begin met één specialist, voeg studiocapaciteit toe wanneer parallel werk zinvol is, of scope een groter project met ons.',
+  'home.engage.outcomes':
+    'Moeilijke 3D-assets · realtime toepassingen · technische visualisatie · interactieve productervaringen · ruimtelijke presentaties',
+  'home.engage.fixed':
+    'Het dagtarief geldt voor gespecialiseerde productiecapaciteit. Kleine, duidelijk afgebakende interacties of websiteverbeteringen kunnen ook als vaste prijs worden geoffreerd.',
+  'home.engage.cta': 'Projectkosten bekijken',
+  'home.engage.discuss': 'Een project bespreken',
+  'home.engage.augustCta': 'Introductiebeschikbaarheid in augustus',
+  'home.engage.proofLabel': 'Relevant werk',
+  'home.engage.trustAria': 'Samenwerkingsnotities',
+  'home.engage.trust.whiteLabel': 'White-labelvriendelijk',
+  'home.engage.trust.nda': 'NDA-vriendelijk',
+  'home.engage.trust.remote': 'Remote samenwerking',
+  'home.engage.trust.project': 'Projectmatig',
+  'home.engage.proof.viewer': 'Technische reviewtools, 3D-dataverwerking en browserlevering',
+  'home.engage.proof.ssr': 'Realtime verkenning, import, inspectie en technische experimenten',
+  'home.engage.proof.witness': '360° / ruimtelijke storytelling en culturele ervaring',
+  'home.engage.proof.miab': 'Een complete creatieve interactie in de browser',
+
   'about.eyebrow': 'Studio',
   'about.title': 'Het team achter de objecten',
   'about.blurb':
@@ -158,7 +179,7 @@ export const nlUi: Dict = {
   'footer.cookies': 'Cookies',
   'footer.rights': '© {year} IOM. Alle rechten voorbehouden.',
   'footer.entity':
-    'IOM is een onafhankelijk studiolabel; contracten worden uitgegeven door de opdrachtgevende partij.',
+    'IOM is een onafhankelijk studiolabel. Contract- en facturatieafspraken worden per opdracht transparant bevestigd.',
 
   'legal.eyebrow': 'Juridisch',
   'legal.lastUpdated': 'Laatst bijgewerkt {date}',
@@ -179,7 +200,10 @@ export const nlUi: Dict = {
   'seo.cookiesDescription':
     'Cookies en lokale opslag op iobjectm.com — voorkeuren, analytics en portallogin.',
   'seo.homeDescription':
-    'IOM bouwt software, 3D-ervaringen, immersieve 360°-tours, fotografie, muziek en WebGPU-experimenten — Interactive Object Media studio.',
+    'IOM biedt senior realtime-3D-specialisten, externe productiecapaciteit en complete interactieve projecten met browser-3D, Blender, Unreal, CAD/BIM en ruimtelijke media.',
+  'seo.projectCostsTitle': 'Projectkosten & productiecapaciteit - IOM',
+  'seo.projectCostsDescription':
+    'Richttarieven voor senior specialistische ondersteuning, IOM-studioproductie en maatwerk interactieve 3D-projecten.',
   'seo.caseStudiesTitle': 'IOM — Case studies',
   'seo.caseStudiesDescription':
     'Proces-case studies van Interactive Object Media — van brief tot interactieve eindbuild.',
