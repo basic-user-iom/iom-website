@@ -1,22 +1,31 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
 import { TEAM, TEAM_PORTRAIT_EXTS } from '../data/team'
 import { useSiteI18n } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
 import {
+  AUGUST_OFFER,
+  CAPACITY_TIMELINE,
   CONTACT_CHECKLIST,
-  COST_FACTS,
-  COST_FACTORS,
   COST_REFERENCES,
+  ENGAGEMENT_OPTIONS,
+  ESTIMATE_FACTORS_SIMPLE,
+  ESTIMATE_FACTORS_TECHNICAL,
+  ESTIMATE_EXCLUSIONS,
+  ESTIMATE_RATE_HIGHLIGHTS,
   GLANCE_RANGE_NOTE,
+  HERO_COPY,
   HOW_IOM_WORKS,
+  HOW_PROJECT_STARTS,
   PRODUCTION_TIME_NOTE,
   PROJECT_COSTS_META,
+  PROJECT_EXAMPLES_INTRO,
   PROTOTYPE_STEPS,
   RATE_BLENDED_NOTE,
   SELECTED_SUPPORT_NOTE,
   type CostReference,
+  type EngagementOption,
 } from './data'
 import { ProjectCostsInquiryForm } from './ProjectCostsInquiryForm'
 import './projectCosts.css'
@@ -25,6 +34,93 @@ function scrollToId(id: string) {
   const el = document.getElementById(id)
   if (!el) return
   el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function LearnMoreBlock({
+  panelId,
+  label,
+  title,
+  paragraphs,
+  open,
+  onToggle,
+  children,
+}: {
+  panelId: string
+  label: string
+  title?: string
+  paragraphs?: readonly string[]
+  open: boolean
+  onToggle: () => void
+  children?: ReactNode
+}) {
+  const triggerId = `${panelId}-trigger`
+  const regionId = `${panelId}-panel`
+
+  return (
+    <div className="pc-learn">
+      <button
+        type="button"
+        className="pc-learn-trigger"
+        id={triggerId}
+        aria-expanded={open}
+        aria-controls={regionId}
+        onClick={onToggle}
+      >
+        <span>{label}</span>
+        <span className="pc-learn-icon" aria-hidden="true">
+          {open ? '−' : '+'}
+        </span>
+      </button>
+      <div
+        id={regionId}
+        role="region"
+        aria-labelledby={triggerId}
+        className={`pc-learn-panel${open ? ' is-open' : ''}`}
+      >
+        {title ? <p className="pc-learn-panel-title">{title}</p> : null}
+        {paragraphs?.map((paragraph) => (
+          <p key={paragraph.slice(0, 48)}>{paragraph}</p>
+        ))}
+        {children}
+      </div>
+    </div>
+  )
+}
+
+function EngagementCard({
+  option,
+  open,
+  onToggle,
+}: {
+  option: EngagementOption
+  open: boolean
+  onToggle: () => void
+}) {
+  return (
+    <article
+      className="pc-engage-card"
+      id={option.anchor}
+      data-cursor-orbit="card"
+    >
+      <div className="pc-engage-card-body">
+        <p className="pc-engage-option">{option.optionLabel}</p>
+        <h3 className="pc-engage-card-title">{option.title}</h3>
+        <p className="pc-engage-card-summary">{option.summary}</p>
+      </div>
+      <div className="pc-engage-card-pricing">
+        <p className="pc-engage-rate">{option.rateLine}</p>
+        <p className="pc-engage-rate-note">{option.rateNote}</p>
+      </div>
+      <LearnMoreBlock
+        panelId={`learn-${option.id}`}
+        label={option.learnMoreLabel}
+        title={option.learnMoreTitle}
+        paragraphs={option.learnMoreParagraphs}
+        open={open}
+        onToggle={onToggle}
+      />
+    </article>
+  )
 }
 
 function useCanHoverPlay(): boolean {
@@ -196,7 +292,15 @@ function TierBlock({
   )
 }
 
-function ReferenceCard({ ref }: { ref: CostReference }) {
+function ReferenceCard({
+  ref,
+  open,
+  onToggle,
+}: {
+  ref: CostReference
+  open: boolean
+  onToggle: () => void
+}) {
   const { href } = useSiteI18n()
   const studyHref = href(ref.caseStudyPath)
 
@@ -212,54 +316,65 @@ function ReferenceCard({ ref }: { ref: CostReference }) {
         />
       </a>
       <div className="pc-card-body">
-        <div className="pc-card-top">
-          <span className="pc-card-ref">{ref.refLabel}</span>
-          <span className="pc-card-cat">{ref.category}</span>
-        </div>
-        <h3 className="pc-card-title">
-          <a href={studyHref}>{ref.title}</a>
-        </h3>
-        <p className="pc-card-desc">{ref.description}</p>
-        <TierBlock tiers={ref.tiers} />
-
-        <div className="pc-card-cols">
-          <div>
-            <h4 className="pc-card-sub">Typically includes</h4>
-            <ul className="pc-list">
-              {ref.includes.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
+        <div className="pc-card-body-top">
+          <div className="pc-card-top">
+            <span className="pc-card-ref">{ref.refLabel}</span>
+            <span className="pc-card-cat">{ref.category}</span>
           </div>
-          {ref.priceDrivers?.length ? (
+          <h3 className="pc-card-title">
+            <a href={studyHref}>{ref.title}</a>
+          </h3>
+          <p className="pc-card-desc">{ref.description}</p>
+        </div>
+        <div className="pc-card-pricing">
+          <TierBlock tiers={ref.tiers} />
+        </div>
+        <LearnMoreBlock
+          panelId={`learn-ref-${ref.id}`}
+          label={ref.learnMoreLabel}
+          title={`${ref.title} — scope and pricing detail`}
+          open={open}
+          onToggle={onToggle}
+        >
+          <div className="pc-card-cols">
             <div>
-              <h4 className="pc-card-sub">Usually changes in price because of</h4>
+              <h4 className="pc-card-sub">Typically includes</h4>
               <ul className="pc-list">
-                {ref.priceDrivers.map((item) => (
+                {ref.includes.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </div>
+            {ref.priceDrivers?.length ? (
+              <div>
+                <h4 className="pc-card-sub">Usually changes in price because of</h4>
+                <ul className="pc-list">
+                  {ref.priceDrivers.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+          </div>
+
+          {ref.productAdditions ? (
+            <div className="pc-card-block">
+              <h4 className="pc-card-sub">Possible product-level additions</h4>
+              <ul className="pc-list pc-list--wrap">
+                {ref.productAdditions.map((item) => (
                   <li key={item}>{item}</li>
                 ))}
               </ul>
             </div>
           ) : null}
-        </div>
 
-        {ref.productAdditions ? (
-          <div className="pc-card-block">
-            <h4 className="pc-card-sub">Possible product-level additions</h4>
-            <ul className="pc-list pc-list--wrap">
-              {ref.productAdditions.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+          {ref.assumption ? <p className="pc-card-note">{ref.assumption}</p> : null}
+          {ref.explainer ? <p className="pc-card-note">{ref.explainer}</p> : null}
 
-        {ref.assumption ? <p className="pc-card-note">{ref.assumption}</p> : null}
-        {ref.explainer ? <p className="pc-card-note">{ref.explainer}</p> : null}
-
-        <a className="pc-card-link" href={studyHref}>
-          View case study →
-        </a>
+          <a className="pc-card-link" href={studyHref}>
+            View case study →
+          </a>
+        </LearnMoreBlock>
         <p className="pc-print-url">{PROJECT_COSTS_META.siteUrl}{ref.caseStudyPath}</p>
       </div>
     </article>
@@ -271,6 +386,11 @@ export function ProjectCostsApp() {
   const [inquiryKind, setInquiryKind] = useState<'consultation' | 'estimate'>(
     'consultation',
   )
+  const [openPanels, setOpenPanels] = useState<Record<string, boolean>>({})
+  const [narrowAccordion, setNarrowAccordion] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return window.matchMedia('(max-width: 820px)').matches
+  })
   const embed =
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('embed') === '1'
@@ -291,6 +411,49 @@ export function ProjectCostsApp() {
     document.documentElement.classList.toggle('pc-embed', embed)
     return () => document.documentElement.classList.remove('pc-embed')
   }, [embed])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 820px)')
+    const sync = () => setNarrowAccordion(mq.matches)
+    sync()
+    mq.addEventListener('change', sync)
+    return () => mq.removeEventListener('change', sync)
+  }, [])
+
+  useEffect(() => {
+    const hash = window.location.hash.replace('#', '')
+    if (!hash) return
+    const match = ENGAGEMENT_OPTIONS.find((option) => option.anchor === hash)
+    if (match) {
+      setOpenPanels((prev) => ({ ...prev, [`engage-${match.id}`]: true }))
+      window.requestAnimationFrame(() => scrollToId(match.anchor))
+    }
+  }, [])
+
+  const togglePanel = useCallback(
+    (key: string, group?: 'engage' | 'ref') => {
+      setOpenPanels((prev) => {
+        const opening = !prev[key]
+        if (!opening) return { ...prev, [key]: false }
+        if (group === 'engage' && narrowAccordion) {
+          const next: Record<string, boolean> = {}
+          for (const option of ENGAGEMENT_OPTIONS) {
+            next[`engage-${option.id}`] = `engage-${option.id}` === key
+          }
+          return next
+        }
+        if (group === 'ref' && narrowAccordion) {
+          const next: Record<string, boolean> = {}
+          for (const reference of COST_REFERENCES) {
+            next[`ref-${reference.id}`] = `ref-${reference.id}` === key
+          }
+          return next
+        }
+        return { ...prev, [key]: true }
+      })
+    },
+    [narrowAccordion],
+  )
 
   const openInquiry = (kind: 'consultation' | 'estimate') => {
     setInquiryKind(kind)
@@ -352,58 +515,91 @@ export function ProjectCostsApp() {
                 </button>
               </div>
             )}
-            <p className="pc-eyebrow">Scope · Time · Budget</p>
-            <h1 className="pc-title">Reference budgets for custom interactive work</h1>
-            <p className="pc-lead">
-              These examples show the typical production effort required to create work
-              comparable to selected IOM case studies. They are intended to help clients
-              understand the likely scale, timeline and budget of a project before a detailed
-              brief and formal quotation are prepared.
-            </p>
-            <p className="pc-support-note">
-              The figures are planning references rather than fixed packages. Final scope
-              depends on the condition of supplied assets, required features, technical
-              integrations, review process, delivery requirements and production timeframe.
-            </p>
+            <p className="pc-eyebrow">{HERO_COPY.eyebrow}</p>
+            <h1 className="pc-title">{HERO_COPY.title}</h1>
+            <p className="pc-lead">{HERO_COPY.lead}</p>
+            <p className="pc-support-note">{HERO_COPY.sub}</p>
             <div className="pc-actions">
               <button
                 type="button"
                 className="btn btn-primary"
-                onClick={() => scrollToId('reference-projects')}
+                onClick={() => openInquiry('consultation')}
               >
-                View reference projects
+                {HERO_COPY.ctaPrimary}
               </button>
               <button
                 type="button"
                 className="btn btn-ghost"
-                onClick={() => openInquiry('consultation')}
+                onClick={() => scrollToId('project-examples')}
               >
-                Book a free consultation
+                {HERO_COPY.ctaSecondary}
               </button>
             </div>
           </header>
 
-          <section className="pc-facts" aria-label="Engagement overview">
-            <dl className="pc-facts-row">
-              {COST_FACTS.map((fact) => (
-                <div key={fact.id} className="pc-facts-item" data-cursor-orbit="card">
-                  <dt>{fact.label}</dt>
-                  <dd>{fact.value}</dd>
-                </div>
-              ))}
-            </dl>
-            <p className="pc-rate-note">{RATE_BLENDED_NOTE}</p>
-          </section>
-
-          <section className="pc-section" id="glance" aria-labelledby="glance-heading">
-            <h2 className="pc-section-title" id="glance-heading">
-              Projects at a glance
+          <section className="pc-section" id="engage" aria-labelledby="engage-heading">
+            <h2 className="pc-section-title" id="engage-heading">
+              How you can engage IOM
             </h2>
             <p className="pc-section-lead">
-              A focused version validates the essential idea and technical workflow. A
-              case-study-level build includes a more complete design system, interaction layer,
-              testing and production finish.
+              Three paths — from a focused specialist task to a complete scoped project. Technical
+              detail is available below each option when you need it.
             </p>
+            <div className="pc-engage-grid">
+              {ENGAGEMENT_OPTIONS.map((option) => (
+                <EngagementCard
+                  key={option.id}
+                  option={option}
+                  open={Boolean(openPanels[`engage-${option.id}`])}
+                  onToggle={() => togglePanel(`engage-${option.id}`, 'engage')}
+                />
+              ))}
+            </div>
+          </section>
+
+          <section className="pc-section pc-capacity" id="capacity" aria-labelledby="capacity-heading">
+            <h2 className="pc-section-title pc-section-title--wide" id="capacity-heading">
+              {CAPACITY_TIMELINE.title}
+            </h2>
+            <p className="pc-section-lead">{CAPACITY_TIMELINE.summary}</p>
+            <LearnMoreBlock
+              panelId="learn-capacity"
+              label={CAPACITY_TIMELINE.learnMoreLabel}
+              title={CAPACITY_TIMELINE.learnMoreTitle}
+              paragraphs={CAPACITY_TIMELINE.learnMoreParagraphs}
+              open={Boolean(openPanels['capacity'])}
+              onToggle={() => togglePanel('capacity')}
+            />
+          </section>
+
+          <aside className="pc-august" id="august-offer" aria-labelledby="august-heading" data-cursor-orbit="card">
+            <p className="pc-august-eyebrow">{AUGUST_OFFER.eyebrow}</p>
+            <h2 className="pc-august-title" id="august-heading">
+              {AUGUST_OFFER.title}
+            </h2>
+            <ul className="pc-list pc-august-list">
+              {AUGUST_OFFER.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            <button
+              type="button"
+              className="btn btn-primary pc-august-cta"
+              onClick={() => openInquiry('consultation')}
+            >
+              {AUGUST_OFFER.cta}
+            </button>
+          </aside>
+
+          <section
+            className="pc-section"
+            id="project-examples"
+            aria-labelledby="examples-heading"
+          >
+            <h2 className="pc-section-title pc-section-title--wide" id="examples-heading">
+              {PROJECT_EXAMPLES_INTRO.title}
+            </h2>
+            <p className="pc-section-lead">{PROJECT_EXAMPLES_INTRO.lead}</p>
 
             <div className="pc-glance" role="table" aria-label="Quick project comparison">
               <div className="pc-glance-head" role="row">
@@ -465,6 +661,7 @@ export function ProjectCostsApp() {
                 </a>
               ))}
             </div>
+            <p className="pc-section-note">{PROJECT_EXAMPLES_INTRO.glanceNote}</p>
             <p className="pc-section-note">{GLANCE_RANGE_NOTE}</p>
           </section>
 
@@ -477,28 +674,83 @@ export function ProjectCostsApp() {
               Detailed reference projects
             </h2>
             <p className="pc-section-lead">
-              Typical comparable effort, reference production ranges and indicative budgets for
-              case-study-level builds. Final scope is quoted separately.
+              What was included in each example, typical production ranges and why the reference
+              may — or may not — be comparable to a new request. Not fixed package prices.
             </p>
             <div className="pc-card-grid">
               {COST_REFERENCES.map((ref) => (
-                <ReferenceCard key={ref.id} ref={ref} />
+                <ReferenceCard
+                  key={ref.id}
+                  ref={ref}
+                  open={Boolean(openPanels[`ref-${ref.id}`])}
+                  onToggle={() => togglePanel(`ref-${ref.id}`, 'ref')}
+                />
               ))}
             </div>
           </section>
 
           <section className="pc-section" aria-labelledby="factors-heading">
             <h2 className="pc-section-title" id="factors-heading">
-              What determines the final scope?
+              What affects the estimate?
             </h2>
-            <ul className="pc-factor-grid">
-              {COST_FACTORS.map((factor) => (
-                <li key={factor.title} className="pc-factor" data-cursor-orbit="card">
-                  <h3 className="pc-factor-title">{factor.title}</h3>
-                  <p>{factor.text}</p>
-                </li>
-              ))}
-            </ul>
+            <p className="pc-section-lead">{ESTIMATE_FACTORS_SIMPLE}</p>
+            <LearnMoreBlock
+              panelId="learn-estimate"
+              label="Learn more about pricing factors"
+              title="Technical factors that change production effort"
+              open={Boolean(openPanels['estimate'])}
+              onToggle={() => togglePanel('estimate')}
+            >
+              <ul className="pc-factor-grid pc-factor-grid--technical">
+                {ESTIMATE_FACTORS_TECHNICAL.map((factor) => (
+                  <li key={factor.title} className="pc-factor" data-cursor-orbit="card">
+                    <h3 className="pc-factor-title">{factor.title}</h3>
+                    <p>{factor.text}</p>
+                  </li>
+                ))}
+              </ul>
+            </LearnMoreBlock>
+          </section>
+
+          <section className="pc-section pc-starts" id="how-project-starts" aria-labelledby="starts-heading">
+            <h2 className="pc-section-title" id="starts-heading">
+              {HOW_PROJECT_STARTS.title}
+            </h2>
+            <div className="pc-starts-layout">
+              <ol className="pc-starts-steps">
+                {HOW_PROJECT_STARTS.steps.map((step, index) => (
+                  <li key={step}>
+                    <span className="pc-starts-index">{index + 1}</span>
+                    <span>{step}</span>
+                  </li>
+                ))}
+              </ol>
+              <aside className="pc-starts-aside" aria-label="Next steps">
+                <p className="pc-section-note">{HOW_PROJECT_STARTS.footer}</p>
+                <p className="pc-note">
+                  Every potential project can begin with a free 30-minute consultation. Technical
+                  research, file inspection, workflow testing, design work and prototype development
+                  are quoted separately when required.
+                </p>
+                <div className="pc-actions">
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => openInquiry('consultation')}
+                  >
+                    {HOW_PROJECT_STARTS.cta}
+                  </button>
+                </div>
+
+                <div className="pc-support pc-support--quiet" aria-labelledby="support-heading">
+                  <h3 className="pc-support-heading" id="support-heading">
+                    {SELECTED_SUPPORT_NOTE.title}
+                  </h3>
+                  <p>{SELECTED_SUPPORT_NOTE.lead}</p>
+                  <p className="pc-section-note">{SELECTED_SUPPORT_NOTE.footer}</p>
+                </div>
+              </aside>
+            </div>
           </section>
 
           <section className="pc-section" id="prototype" aria-labelledby="proto-heading">
@@ -522,51 +774,13 @@ export function ProjectCostsApp() {
             </p>
           </section>
 
-          <section className="pc-section pc-engage" id="consultation" aria-labelledby="consult-heading">
-            <p className="pc-eyebrow">Initial conversation</p>
-            <h2 className="pc-section-title" id="consult-heading">
-              Start with a free 30-minute consultation
-            </h2>
-            <p className="pc-section-lead">
-              Every potential project can begin with a free 30-minute consultation. The
-              conversation is used to understand the main objective, intended audience,
-              available materials, technical requirements and preferred delivery timeframe.
-            </p>
-            <p className="pc-text-lead">
-              Following the consultation, IOM can recommend an appropriate first stage and
-              provide an indicative timeline and budget range.
-            </p>
-            <p className="pc-note">
-              The consultation covers the initial project discussion. Technical research, file
-              inspection, workflow testing, design work and prototype development are quoted
-              separately when required.
-            </p>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => openInquiry('consultation')}
-            >
-              Book a free consultation
-            </button>
-
-            <div className="pc-support pc-support--quiet" aria-labelledby="support-heading">
-              <h3 className="pc-support-heading" id="support-heading">
-                {SELECTED_SUPPORT_NOTE.title}
-              </h3>
-              <p>{SELECTED_SUPPORT_NOTE.lead}</p>
-              <p className="pc-section-note">{SELECTED_SUPPORT_NOTE.footer}</p>
-            </div>
-          </section>
-
           <section className="pc-section" id="how-iom-works" aria-labelledby="how-heading">
             <h2 className="pc-section-title" id="how-heading">
               Small core team, scalable production
             </h2>
             <p className="pc-section-lead">
               IOM operates as a small specialist studio and brings in trusted collaborators when
-              a project benefits from parallel production or additional expertise. This keeps
-              communication direct while allowing larger technical and creative projects to be
-              delivered efficiently.
+              a project benefits from parallel production or additional expertise.
             </p>
             <ul className="pc-how-grid">
               {HOW_IOM_WORKS.map((item) => (
@@ -582,33 +796,40 @@ export function ProjectCostsApp() {
             <h2 className="pc-section-title pc-section-title--sub" id="estimate-heading">
               About these estimates
             </h2>
-            <div className="pc-estimate-copy">
-              <p>
-                All figures on this page are indicative planning ranges for work comparable to
-                the referenced case studies. They are not fixed package prices, contractual
-                quotations or statements of the exact historic cost of the original projects.
-              </p>
-              <p>{PRODUCTION_TIME_NOTE}</p>
-              <p>
-                The reference ranges assume two consolidated review rounds. Further revisions or
-                major changes in direction are estimated separately.
-              </p>
-              <p>
-                IOM’s typical production rate ranges from €{PROJECT_COSTS_META.rateMin} to €
-                {PROJECT_COSTS_META.rateMax} per hour. The applicable rate depends on project
-                complexity, specialist requirements, asset readiness, technical uncertainty and
-                requested delivery timeframe. Defined projects may also be quoted as fixed stages
-                or using a blended project rate.
-              </p>
-              <p>
-                Unless specifically included in a quotation, the reference estimates exclude
-                travel, on-location photography, scanning, paid assets, third-party software
-                licences, hosting charges, taxes and ongoing maintenance.
-              </p>
-              <p>
-                Work outside the approved scope is quoted separately or charged at the rate
-                defined in the approved proposal.
-              </p>
+            <div className="pc-estimate-layout">
+              <div className="pc-estimate-copy">
+                <p>
+                  All figures on this page are indicative planning ranges for work comparable to
+                  the referenced case studies. They are not fixed package prices, contractual
+                  quotations or statements of the exact historic cost of the original projects.
+                </p>
+                <p>{PRODUCTION_TIME_NOTE}</p>
+                <p>{RATE_BLENDED_NOTE}</p>
+                <p>
+                  Project quotes for larger scopes are prepared separately after consultation.
+                  Unless specifically included in a quotation, the items listed alongside are
+                  usually estimated separately.
+                </p>
+              </div>
+              <div className="pc-estimate-highlights" aria-label="Key rate highlights">
+                <p className="pc-estimate-highlights-eyebrow">Planning ranges</p>
+                <ul className="pc-estimate-stats">
+                  {ESTIMATE_RATE_HIGHLIGHTS.map((item) => (
+                    <li key={item.label} className="pc-estimate-stat">
+                      <span className="pc-estimate-stat-label">{item.label}</span>
+                      <span className="pc-estimate-stat-value">{item.value}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="pc-estimate-excludes">
+                  <p className="pc-estimate-excludes-label">Usually quoted separately</p>
+                  <ul className="pc-estimate-tags">
+                    {ESTIMATE_EXCLUSIONS.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
             </div>
           </aside>
 

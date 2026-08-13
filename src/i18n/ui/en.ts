@@ -70,9 +70,9 @@ export const enUi: Dict = {
   'seo.startTitle': 'Start a project | IOM',
   'seo.startDescription':
     'Free 30-minute consultation, pricing basis, and selected project support from Interactive Object Media.',
-  'seo.projectCostsTitle': 'Project Costs & Timelines | IOM',
+  'seo.projectCostsTitle': 'Project Costs & Production Capacity | IOM',
   'seo.projectCostsDescription':
-    'Reference timelines and indicative budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
+    'Plain-language project costs for custom interactive 3D, realtime web experiences and 360° work. Hire one specialist, add studio capacity, or scope a complete project with IOM.',
 
   'about.eyebrow': 'Studio',
   'about.title': 'The team behind the objects',

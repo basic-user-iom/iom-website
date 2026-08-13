@@ -2,13 +2,16 @@
 
 export const PROJECT_COSTS_META = {
   path: '/project-costs',
-  pageTitle: 'Project Scope, Time & Budget',
-  seoTitle: 'Project Costs & Timelines | IOM',
+  pageTitle: 'Project Costs',
+  seoTitle: 'Project Costs & Production Capacity | IOM',
   seoDescription:
-    'Reference timelines and indicative budget ranges for custom interactive 3D viewers, WebGL and WebGPU experiences, guided 360° tours and bespoke website interactions by IOM.',
+    'Plain-language project costs for custom interactive 3D, realtime web experiences and 360° work. Hire one specialist, add studio capacity, or scope a complete project with IOM.',
   rateMin: 75,
   rateMax: 110,
   rateLabel: 'Typically €75–€110 per hour',
+  specialistDayRate: 550,
+  specialistIntroDayRate: 450,
+  studioTeamFromDayRate: 900,
   consultMail:
     'mailto:projects@iobjectm.com?subject=Free%2030-minute%20project%20consultation',
   estimateMail:
@@ -16,6 +19,171 @@ export const PROJECT_COSTS_META = {
   caseStudiesPath: '/case-studies',
   contactEmail: 'projects@iobjectm.com',
   siteUrl: 'https://iobjectm.com',
+  augustOfferDeadline: '31 August 2026',
+} as const
+
+export type EngagementOption = {
+  id: string
+  anchor: string
+  optionLabel: string
+  title: string
+  summary: string
+  rateLine: string
+  rateNote: string
+  learnMoreLabel: string
+  learnMoreTitle: string
+  learnMoreParagraphs: string[]
+}
+
+export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
+  {
+    id: 'specialist',
+    anchor: 'specialist',
+    optionLabel: 'Option 01',
+    title: 'Work with one specialist',
+    summary:
+      'Best for a clearly defined task, technical problem, prototype, optimisation package or a role inside your existing production team.',
+    rateLine: `Standard specialist rate: €${PROJECT_COSTS_META.specialistDayRate} / day`,
+    rateNote:
+      'A single specialist keeps daily cost lower, but larger packages may take longer because there is less work happening in parallel.',
+    learnMoreLabel: 'Learn more about specialist work',
+    learnMoreTitle: 'One specialist — technical detail',
+    learnMoreParagraphs: [
+      'A single senior specialist can work directly within your existing production pipeline or take ownership of a clearly defined package.',
+      'Typical work includes Three.js/WebGL/WebGPU development, realtime 3D prototyping, Blender or Unreal production, CAD/BIM-to-realtime preparation, GLB/FBX/OBJ optimisation, photogrammetry, 360° production, technical troubleshooting, performance work and handoff-ready asset preparation.',
+      'This model works best when the task is well defined or when your own team already owns the wider project.',
+      'For larger packages, a single specialist can still complete the work, but the schedule will be longer than a setup where independent tasks can run in parallel.',
+      `Standard rate: €${PROJECT_COSTS_META.specialistDayRate}/day. Longer recurring engagements or defined partner arrangements may be quoted separately.`,
+    ],
+  },
+  {
+    id: 'studio-capacity',
+    anchor: 'studio-capacity',
+    optionLabel: 'Option 02',
+    title: 'Add IOM studio capacity',
+    summary:
+      'Best when several parts of the project need to move forward together — for example 3D production, realtime development, asset preparation, integration and testing.',
+    rateLine: `Small studio team: from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
+    rateNote:
+      'Team size can change during the project. You only need additional capacity during phases where it is useful.',
+    learnMoreLabel: 'Learn more about studio capacity',
+    learnMoreTitle: 'Small studio team — technical detail',
+    learnMoreParagraphs: [
+      'IOM can increase production capacity when a project contains several independent workstreams — for example one person preparing and optimising 3D assets while another develops the realtime experience, with integration and testing running in parallel where useful.',
+      'Team size is adjusted to the phase. Additional capacity is brought in only when parallel work genuinely shortens the schedule — not as a default staffing formula.',
+      'Approximate guide rates: about €950/day for two-person capacity and about €1,300/day for three-person studio capacity, subject to scope review.',
+      'During the August 2026 introductory period, team rates from about €800/day (two people) and €1,100/day (three people) may apply to eligible new collaborations confirmed by 31 August.',
+    ],
+  },
+  {
+    id: 'project-scoping',
+    anchor: 'project-scoping',
+    optionLabel: 'Option 03',
+    title: 'Build a complete project with IOM',
+    summary:
+      'Best when you want us to take responsibility for a defined interactive, 3D, 360° or realtime package from preparation through delivery.',
+    rateLine: 'Larger projects are scoped after a short consultation',
+    rateNote:
+      'We first review the source material, requirements, deliverables and schedule, then recommend the smallest useful production setup.',
+    learnMoreLabel: 'Learn more about project scoping',
+    learnMoreTitle: 'Complete project — technical detail',
+    learnMoreParagraphs: [
+      'When IOM takes responsibility for a full interactive, 3D, 360° or realtime package, production is planned in stages: source review, technical approach, capacity plan, consolidated scope and delivery.',
+      'There is no single fixed price for a “large” project. The estimate reflects required deliverables, asset condition, integration needs, visual fidelity, testing coverage and schedule.',
+      'Capacity can change during production — a larger team is not required from day one unless parallel workstreams justify it.',
+      'Following a short consultation, you receive a clear scope, recommended capacity and indicative budget before production begins.',
+    ],
+  },
+]
+
+export const CAPACITY_TIMELINE = {
+  title: 'Price and time are connected through production capacity',
+  summary:
+    'One specialist has a lower daily cost. A small team costs more per day but can often move several parts of the work forward at the same time. Larger projects may use one person in some phases and two or three people only when parallel production is useful.',
+  learnMoreLabel: 'Learn more about timelines and capacity',
+  learnMoreTitle: 'Timelines, capacity and parallel production',
+  learnMoreParagraphs: [
+    'Daily rates describe production capacity, not a guarantee that every task completes proportionally faster with more people. Some work must happen sequentially; other workstreams — asset preparation, development, integration, testing — can run in parallel when planned carefully.',
+    'A single specialist is often the most efficient starting point for a focused task or when your team already owns part of the pipeline. Studio capacity is added when the schedule or scope genuinely benefits from parallel production.',
+    'Project quotes for larger scopes remain separate from day rates. The consultation establishes deliverables, source material condition, technical approach and the smallest useful capacity plan before work begins.',
+  ],
+} as const
+
+export const AUGUST_OFFER = {
+  eyebrow: 'August 2026 — introductory availability',
+  title: 'A limited amount of capacity is available for new collaborations this August',
+  lines: [
+    `Senior specialist: €${PROJECT_COSTS_META.specialistIntroDayRate} / day during the introductory period (standard rate €${PROJECT_COSTS_META.specialistDayRate} / day).`,
+    'Introductory studio rates are also available for new projects that need additional production capacity.',
+    `Projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline} can retain the agreed introductory rate for the initial scope even when delivery continues beyond August.`,
+  ],
+  cta: 'Ask about August availability',
+} as const
+
+export const PROJECT_EXAMPLES_INTRO = {
+  title: 'What different project sizes can look like',
+  lead:
+    'The examples below are reference projects — not fixed packages. Each shows what was included, typical production effort and an indicative budget range for comparable work. Your project may differ depending on source material, features and schedule.',
+  glanceNote:
+    'Select a row to scroll to the detailed reference card. Figures are planning ranges, not catalogue prices.',
+} as const
+
+export const ESTIMATE_FACTORS_SIMPLE =
+  'The estimate depends on what needs to be built, the condition of your source material, how complex the interaction and visuals need to be, and how quickly you need it delivered.'
+
+export const ESTIMATE_FACTORS_TECHNICAL = [
+  {
+    title: 'Source assets',
+    text: 'Clean, approved 3D models, panoramas, copy and media reduce production time. Geometry repair, modelling, retopology, photogrammetry and content preparation add work.',
+  },
+  {
+    title: 'Realtime complexity',
+    text: 'A lightweight product viewer has a different performance budget from a public mobile browser experience with advanced shaders, effects or large environments.',
+  },
+  {
+    title: 'Interaction',
+    text: 'Orbit and view controls are simpler than configurators, object editing, annotations, saved states, multi-user logic, guided sequences or custom UI.',
+  },
+  {
+    title: 'Visual requirements',
+    text: 'Lighting, materials, animation, effects, environments, shadows and post-processing can range from simple to highly specialised.',
+  },
+  {
+    title: 'Integration',
+    text: 'CMS, ecommerce, analytics, authentication, APIs, existing applications or client-owned codebases add integration and testing requirements.',
+  },
+  {
+    title: 'Delivery and QA',
+    text: 'Browser and device coverage, performance testing, packaging, documentation and handoff affect the final production effort.',
+  },
+  {
+    title: 'Schedule',
+    text: 'A compressed deadline may require more work to happen in parallel and therefore more studio capacity.',
+  },
+] as const
+
+export const HOW_PROJECT_STARTS = {
+  title: 'How a project starts',
+  steps: [
+    'Tell us what you are trying to build — even if the brief is still rough.',
+    'We review the goal, available source material, delivery format and deadline.',
+    'We recommend whether the work is best handled by one specialist, additional studio capacity, or a scoped project team.',
+    'You receive a clear scope, production approach and estimate before work begins.',
+  ],
+  footer:
+    'For larger projects, capacity can change during production so you are not paying for a larger team during phases that do not need it.',
+  cta: 'Tell us what you are trying to build',
+} as const
+
+export const HERO_COPY = {
+  eyebrow: 'Scope · Time · Budget',
+  title: 'Project costs, without the technical guesswork',
+  lead:
+    'You can work with one experienced specialist, add IOM production capacity to your existing team, or ask us to take ownership of a complete interactive or 3D project.',
+  sub:
+    'The right setup depends on what needs to be made, how quickly it needs to be delivered, and how much of the work can happen in parallel.',
+  ctaPrimary: 'Discuss a project',
+  ctaSecondary: 'View project examples',
 } as const
 
 export type CostTier = {
@@ -37,6 +205,7 @@ export type CostReference = {
   imageAlt: string
   /** Quick-comparison + card tiers (cursor has a single typical range). */
   tiers: CostTier[]
+  learnMoreLabel: string
   includes: string[]
   priceDrivers?: string[]
   productAdditions?: string[]
@@ -71,6 +240,32 @@ export const COST_FACTS = [
 export const RATE_BLENDED_NOTE =
   'IOM’s typical production rate ranges from €75 to €110 per hour, depending on technical complexity, specialist requirements, asset readiness and delivery timeframe. Defined projects may be quoted as fixed production stages or using a blended project rate. The reference budgets below are therefore planning ranges rather than a direct multiplication of every estimated hour by the highest hourly rate.'
 
+export const ESTIMATE_RATE_HIGHLIGHTS = [
+  {
+    label: 'Typical hourly rate',
+    value: `€${PROJECT_COSTS_META.rateMin}–€${PROJECT_COSTS_META.rateMax} / hour`,
+  },
+  {
+    label: 'One senior specialist',
+    value: `€${PROJECT_COSTS_META.specialistDayRate} / day`,
+  },
+  {
+    label: 'Small studio team',
+    value: `from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
+  },
+] as const
+
+export const ESTIMATE_EXCLUSIONS = [
+  'Travel',
+  'On-location photography',
+  'Scanning',
+  'Paid assets',
+  'Third-party software licences',
+  'Hosting charges',
+  'Taxes',
+  'Ongoing maintenance',
+] as const
+
 export const GLANCE_RANGE_NOTE =
   'The lower end generally assumes a clearly defined scope, well-prepared assets, a standard production schedule and limited technical uncertainty. Complex integrations, specialist development, incomplete source material or accelerated delivery can increase the final quotation.'
 
@@ -94,6 +289,7 @@ export const COST_REFERENCES: CostReference[] = [
         budget: '€300–€500',
       },
     ],
+    learnMoreLabel: 'Learn more about scope and pricing',
     includes: [
       'Cursor visual concept',
       'Custom pointer and label styling',
@@ -140,6 +336,7 @@ export const COST_REFERENCES: CostReference[] = [
         budget: '€6,000–€12,000',
       },
     ],
+    learnMoreLabel: 'Learn more about scope and pricing',
     includes: [
       'One or more supplied 360° scenes',
       'Hotspot and annotation system',
@@ -186,6 +383,7 @@ export const COST_REFERENCES: CostReference[] = [
         budget: '€12,000–€24,000',
       },
     ],
+    learnMoreLabel: 'Learn more about scope and pricing',
     includes: [
       'Creative and technical concept',
       'Real-time ocean and sky environment',
@@ -231,6 +429,7 @@ export const COST_REFERENCES: CostReference[] = [
         budget: '€24,000–€48,000',
       },
     ],
+    learnMoreLabel: 'Learn more about scope and pricing',
     includes: [
       'Project-specific viewer interface',
       'Model import and preparation workflow',
