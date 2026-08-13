@@ -30,6 +30,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
+  flex-shrink: 0;
   margin-top: 0.85rem;
 }
 
@@ -49,7 +50,7 @@
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -0.02em;
-  min-height: calc(1.2em * 2);
+  min-height: calc(1.2em * 3);
 }
 
 .pc-engage-card-summary,
@@ -62,10 +63,12 @@
 
 .pc-engage-card-summary {
   flex: 1 1 auto;
+  min-height: calc(1.6em * 4);
 }
 
 .pc-engage-rate-badge {
   margin: 0;
+  min-height: calc(1em * 1.2);
   font-size: 0.62rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -84,9 +87,19 @@
 
 .pc-engage-rate-compare {
   margin: 0;
+  min-height: calc(1.45em * 2);
   font-size: 0.78rem;
   line-height: 1.45;
   color: color-mix(in srgb, var(--text-muted) 88%, var(--text));
+}
+
+.pc-engage-rate-note {
+  min-height: calc(1.6em * 3);
+}
+
+.pc-engage-card .pc-learn {
+  margin-top: auto;
+  padding-top: 0.85rem;
 }
 
 .pc-engage-card-link {
@@ -150,6 +163,14 @@
 @media (max-width: 700px) {
   .pc-engage-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pc-engage-card-title,
+  .pc-engage-card-summary,
+  .pc-engage-rate,
+  .pc-engage-rate-compare,
+  .pc-engage-rate-note {
+    min-height: 0;
   }
 
   .home-engage-actions .btn {

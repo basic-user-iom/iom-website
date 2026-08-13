@@ -91,7 +91,7 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
       'Best when you want us to take responsibility for a defined interactive, 3D, 360° or realtime package from preparation through delivery.',
     rateBadge: 'August 2026 intro',
     rateLine: 'Larger projects are scoped after a short consultation',
-    rateCompareLine: `Introductory specialist and studio rates may apply to eligible projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}.`,
+    rateCompareLine: `Introductory rates for projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}.`,
     rateNote:
       'We first review the source material, requirements, deliverables and schedule, then recommend the smallest useful production setup.',
     learnMoreLabel: 'Learn more about project scoping',
