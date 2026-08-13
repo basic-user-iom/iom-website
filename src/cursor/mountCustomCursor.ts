@@ -156,6 +156,8 @@ export function mountCustomCursor(): (() => void) | null {
         '.footer-links a',
         '.btn',
         'a.btn',
+        '.header-brand',
+        '.raven-mascot-wrap',
         '.header-cta',
         '.header-login',
         '.header-mute',
