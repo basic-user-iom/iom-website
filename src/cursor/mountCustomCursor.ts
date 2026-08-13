@@ -142,6 +142,7 @@ export function mountCustomCursor(): (() => void) | null {
     const tipHost = target.closest(
       [
         '.project-card',
+        '.pc-engage-card',
         '.clients-mark',
         '.about-pathway-item',
         '.contact-form-portal a',
