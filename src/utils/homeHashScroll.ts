@@ -129,7 +129,7 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
 }
 
 /** In-page hash click on the homepage. Other routes keep native navigation. */
-export function handleHomeHashLinkClick(event: MouseEvent, id: string): void {
+export function handleHomeHashLinkClick(event: { preventDefault: () => void }, id: string): void {
   if (!document.getElementById('top')) return
   event.preventDefault()
   if (parseLocationHash() !== id) {
