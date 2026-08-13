@@ -19,6 +19,7 @@ function PendingSections({ sectionIds }: { sectionIds: string[] }) {
       ))}
       <div id="clients" className="section-block section-block--pending" />
       <div id="about" className="section-block section-block--pending" />
+      <div id="engage-iom" className="section-block section-block--pending" />
     </div>
   )
 }

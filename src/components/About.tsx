@@ -1,6 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TEAM, TEAM_PORTRAIT_EXTS, type TeamMember } from '../data/team'
 import { ContactForm } from './ContactForm'
+import { HomeEngagementSection } from './HomeEngagementSection'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 import { useSiteI18n } from '../i18n'
 
@@ -341,6 +342,8 @@ export const About = memo(function About() {
         </ul>
 
         <p className="about-rfo-close-text">{t('rfo.close')}</p>
+
+        <HomeEngagementSection />
       </section>
 
       <section className="about-block about-block--contact" id="contact" aria-labelledby="contact-heading">

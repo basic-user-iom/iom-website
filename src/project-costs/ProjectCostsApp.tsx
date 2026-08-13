@@ -28,7 +28,7 @@ import {
   type EngagementOption,
 } from './data'
 import { ProjectCostsInquiryForm } from './ProjectCostsInquiryForm'
-import { EngagementPricing } from '../components/EngagementPricing'
+import { EngagementCardShell } from '../components/EngagementCardShell'
 import '../components/engagement.css'
 import './projectCosts.css'
 
@@ -99,26 +99,20 @@ function EngagementCard({
   onToggle: () => void
 }) {
   return (
-    <article
-      className="pc-engage-card"
+    <EngagementCardShell
       id={option.anchor}
-      data-cursor-orbit="card"
-    >
-      <div className="pc-engage-card-body">
-        <p className="pc-engage-option">{option.optionLabel}</p>
-        <h3 className="pc-engage-card-title">{option.title}</h3>
-        <p className="pc-engage-card-summary">{option.summary}</p>
-      </div>
-      <EngagementPricing option={option} />
-      <LearnMoreBlock
-        panelId={`learn-${option.id}`}
-        label={option.learnMoreLabel}
-        title={option.learnMoreTitle}
-        paragraphs={option.learnMoreParagraphs}
-        open={open}
-        onToggle={onToggle}
-      />
-    </article>
+      option={option}
+      footer={
+        <LearnMoreBlock
+          panelId={`learn-${option.id}`}
+          label={option.learnMoreLabel}
+          title={option.learnMoreTitle}
+          paragraphs={option.learnMoreParagraphs}
+          open={open}
+          onToggle={onToggle}
+        />
+      }
+    />
   )
 }
 

@@ -6,6 +6,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  type PointerEvent,
   type ReactNode,
   type RefObject,
 } from 'react'
@@ -39,6 +40,38 @@ export function useSiteOrbs(): SiteOrbApi {
 /** Optional — Clients/About can render without the zone in isolation. */
 export function useSiteOrbsOptional(): SiteOrbApi | null {
   return useContext(SiteOrbContext)
+}
+
+/** Rectangular orb outline on cards — matches ProjectCard / MusicPlayer hover. */
+export function useCardOrbPointerProps():
+  | {
+      onPointerEnter: (event: PointerEvent<HTMLElement>) => void
+      onPointerLeave: () => void
+    }
+  | undefined {
+  const orbs = useSiteOrbsOptional()
+  const handleOrbEnter = useCallback(
+    (el: HTMLElement) => {
+      orbs?.setHover('card', 0, el)
+    },
+    [orbs],
+  )
+  const handleOrbLeave = useCallback(() => {
+    orbs?.setHover(null, null)
+  }, [orbs])
+
+  return useMemo(
+    () =>
+      orbs
+        ? {
+            onPointerEnter: (event: PointerEvent<HTMLElement>) => {
+              handleOrbEnter(event.currentTarget)
+            },
+            onPointerLeave: handleOrbLeave,
+          }
+        : undefined,
+    [orbs, handleOrbEnter, handleOrbLeave],
+  )
 }
 
 const HOVER_ORBIT_MS = 3200
@@ -543,7 +576,7 @@ function runOrbRuntime(
           let bestEl: HTMLElement | null = null
           let bestScore = 0
           for (const card of zone.querySelectorAll<HTMLElement>(
-            '.project-card, .music-player-album-thumb.has-poster',
+            '.project-card, .music-player-album-thumb.has-poster, .pc-engage-card',
           )) {
             if (card.classList.contains('project-card--coming-soon')) continue
             const box = card.getBoundingClientRect()
