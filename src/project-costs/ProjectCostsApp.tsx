@@ -28,6 +28,8 @@ import {
   type EngagementOption,
 } from './data'
 import { ProjectCostsInquiryForm } from './ProjectCostsInquiryForm'
+import { EngagementPricing } from '../components/EngagementPricing'
+import '../components/engagement.css'
 import './projectCosts.css'
 
 function scrollToId(id: string) {
@@ -107,10 +109,7 @@ function EngagementCard({
         <h3 className="pc-engage-card-title">{option.title}</h3>
         <p className="pc-engage-card-summary">{option.summary}</p>
       </div>
-      <div className="pc-engage-card-pricing">
-        <p className="pc-engage-rate">{option.rateLine}</p>
-        <p className="pc-engage-rate-note">{option.rateNote}</p>
-      </div>
+      <EngagementPricing option={option} />
       <LearnMoreBlock
         panelId={`learn-${option.id}`}
         label={option.learnMoreLabel}
@@ -542,8 +541,9 @@ export function ProjectCostsApp() {
               How you can engage IOM
             </h2>
             <p className="pc-section-lead">
-              Three paths — from a focused specialist task to a complete scoped project. Technical
-              detail is available below each option when you need it.
+              Three paths — from a focused specialist task to a complete scoped project. August
+              introductory day rates are shown on each option; expand Learn more when you need
+              technical detail.
             </p>
             <div className="pc-engage-grid">
               {ENGAGEMENT_OPTIONS.map((option) => (
@@ -713,44 +713,67 @@ export function ProjectCostsApp() {
           </section>
 
           <section className="pc-section pc-starts" id="how-project-starts" aria-labelledby="starts-heading">
-            <h2 className="pc-section-title" id="starts-heading">
-              {HOW_PROJECT_STARTS.title}
-            </h2>
-            <div className="pc-starts-layout">
-              <ol className="pc-starts-steps">
-                {HOW_PROJECT_STARTS.steps.map((step, index) => (
-                  <li key={step}>
-                    <span className="pc-starts-index">{index + 1}</span>
-                    <span>{step}</span>
-                  </li>
-                ))}
-              </ol>
-              <aside className="pc-starts-aside" aria-label="Next steps">
-                <p className="pc-section-note">{HOW_PROJECT_STARTS.footer}</p>
-                <p className="pc-note">
-                  Every potential project can begin with a free 30-minute consultation. Technical
-                  research, file inspection, workflow testing, design work and prototype development
-                  are quoted separately when required.
+            <header className="pc-starts-header">
+              <h2 className="pc-section-title" id="starts-heading">
+                {HOW_PROJECT_STARTS.title}
+              </h2>
+              <p className="pc-section-lead pc-starts-lead">{HOW_PROJECT_STARTS.lead}</p>
+            </header>
+            <ol className="pc-starts-steps">
+              {HOW_PROJECT_STARTS.steps.map((step, index) => (
+                <li key={step.title}>
+                  <span className="pc-starts-index">{index + 1}</span>
+                  <span className="pc-starts-copy">
+                    <span className="pc-starts-step-title">{step.title}</span>
+                    <span className="pc-starts-step-text">{step.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+            <div className="pc-starts-panel" aria-label="Next steps">
+              <div className="pc-starts-panel-main">
+                <p className="pc-starts-panel-eyebrow">Free 30-minute consultation</p>
+                <p className="pc-starts-panel-text">{HOW_PROJECT_STARTS.consultationNote}</p>
+                <p className="pc-starts-panel-note">{HOW_PROJECT_STARTS.footer}</p>
+              </div>
+              <div className="pc-starts-panel-offer">
+                <p className="pc-starts-offer-badge">{AUGUST_OFFER.eyebrow}</p>
+                <p className="pc-starts-offer-rate">
+                  Senior specialist from €{PROJECT_COSTS_META.specialistIntroDayRate}/day
                 </p>
-                <div className="pc-actions">
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => openInquiry('consultation')}
-                  >
-                    {HOW_PROJECT_STARTS.cta}
-                  </button>
-                </div>
-
-                <div className="pc-support pc-support--quiet" aria-labelledby="support-heading">
-                  <h3 className="pc-support-heading" id="support-heading">
-                    {SELECTED_SUPPORT_NOTE.title}
-                  </h3>
-                  <p>{SELECTED_SUPPORT_NOTE.lead}</p>
-                  <p className="pc-section-note">{SELECTED_SUPPORT_NOTE.footer}</p>
-                </div>
-              </aside>
+                <p className="pc-starts-offer-compare">
+                  Standard €{PROJECT_COSTS_META.specialistDayRate}/day · studio from €
+                  {PROJECT_COSTS_META.studioTeamIntroFromDayRate}/day
+                </p>
+                <button
+                  type="button"
+                  className="pc-starts-offer-link"
+                  onClick={() => scrollToId('august-offer')}
+                >
+                  Ask about August availability →
+                </button>
+              </div>
+              <div className="pc-starts-panel-actions">
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => openInquiry('consultation')}
+                >
+                  {HOW_PROJECT_STARTS.cta}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => scrollToId('engage')}
+                >
+                  Compare engagement options
+                </button>
+              </div>
             </div>
+            <p className="pc-starts-support">
+              <strong>{SELECTED_SUPPORT_NOTE.title}.</strong> {SELECTED_SUPPORT_NOTE.lead}{' '}
+              {SELECTED_SUPPORT_NOTE.footer}
+            </p>
           </section>
 
           <section className="pc-section" id="prototype" aria-labelledby="proto-heading">
@@ -818,6 +841,9 @@ export function ProjectCostsApp() {
                     <li key={item.label} className="pc-estimate-stat">
                       <span className="pc-estimate-stat-label">{item.label}</span>
                       <span className="pc-estimate-stat-value">{item.value}</span>
+                      {'compare' in item && item.compare ? (
+                        <span className="pc-estimate-stat-compare">{item.compare}</span>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

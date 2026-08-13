@@ -12,6 +12,7 @@ export const PROJECT_COSTS_META = {
   specialistDayRate: 550,
   specialistIntroDayRate: 450,
   studioTeamFromDayRate: 900,
+  studioTeamIntroFromDayRate: 800,
   consultMail:
     'mailto:projects@iobjectm.com?subject=Free%2030-minute%20project%20consultation',
   estimateMail:
@@ -28,7 +29,9 @@ export type EngagementOption = {
   optionLabel: string
   title: string
   summary: string
+  rateBadge?: string
   rateLine: string
+  rateCompareLine?: string
   rateNote: string
   learnMoreLabel: string
   learnMoreTitle: string
@@ -43,7 +46,9 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
     title: 'Work with one specialist',
     summary:
       'Best for a clearly defined task, technical problem, prototype, optimisation package or a role inside your existing production team.',
-    rateLine: `Standard specialist rate: €${PROJECT_COSTS_META.specialistDayRate} / day`,
+    rateBadge: 'August 2026 intro',
+    rateLine: `Senior specialist: €${PROJECT_COSTS_META.specialistIntroDayRate} / day`,
+    rateCompareLine: `Standard rate: €${PROJECT_COSTS_META.specialistDayRate} / day`,
     rateNote:
       'A single specialist keeps daily cost lower, but larger packages may take longer because there is less work happening in parallel.',
     learnMoreLabel: 'Learn more about specialist work',
@@ -53,7 +58,7 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
       'Typical work includes Three.js/WebGL/WebGPU development, realtime 3D prototyping, Blender or Unreal production, CAD/BIM-to-realtime preparation, GLB/FBX/OBJ optimisation, photogrammetry, 360° production, technical troubleshooting, performance work and handoff-ready asset preparation.',
       'This model works best when the task is well defined or when your own team already owns the wider project.',
       'For larger packages, a single specialist can still complete the work, but the schedule will be longer than a setup where independent tasks can run in parallel.',
-      `Standard rate: €${PROJECT_COSTS_META.specialistDayRate}/day. Longer recurring engagements or defined partner arrangements may be quoted separately.`,
+      `Standard rate: €${PROJECT_COSTS_META.specialistDayRate}/day. During the August 2026 introductory period, eligible new collaborations may start from €${PROJECT_COSTS_META.specialistIntroDayRate}/day when confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}. Longer recurring engagements or defined partner arrangements may be quoted separately.`,
     ],
   },
   {
@@ -63,7 +68,9 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
     title: 'Add IOM studio capacity',
     summary:
       'Best when several parts of the project need to move forward together — for example 3D production, realtime development, asset preparation, integration and testing.',
-    rateLine: `Small studio team: from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
+    rateBadge: 'August 2026 intro',
+    rateLine: `Small studio team: from €${PROJECT_COSTS_META.studioTeamIntroFromDayRate} / day`,
+    rateCompareLine: `Standard from: €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
     rateNote:
       'Team size can change during the project. You only need additional capacity during phases where it is useful.',
     learnMoreLabel: 'Learn more about studio capacity',
@@ -82,7 +89,9 @@ export const ENGAGEMENT_OPTIONS: EngagementOption[] = [
     title: 'Build a complete project with IOM',
     summary:
       'Best when you want us to take responsibility for a defined interactive, 3D, 360° or realtime package from preparation through delivery.',
+    rateBadge: 'August 2026 intro',
     rateLine: 'Larger projects are scoped after a short consultation',
+    rateCompareLine: `Introductory specialist and studio rates may apply to eligible projects confirmed by ${PROJECT_COSTS_META.augustOfferDeadline}.`,
     rateNote:
       'We first review the source material, requirements, deliverables and schedule, then recommend the smallest useful production setup.',
     learnMoreLabel: 'Learn more about project scoping',
@@ -164,15 +173,31 @@ export const ESTIMATE_FACTORS_TECHNICAL = [
 
 export const HOW_PROJECT_STARTS = {
   title: 'How a project starts',
+  lead:
+    'Four clear steps from first conversation to a scoped estimate. No commitment until you approve the approach and budget.',
   steps: [
-    'Tell us what you are trying to build — even if the brief is still rough.',
-    'We review the goal, available source material, delivery format and deadline.',
-    'We recommend whether the work is best handled by one specialist, additional studio capacity, or a scoped project team.',
-    'You receive a clear scope, production approach and estimate before work begins.',
+    {
+      title: 'Share the idea',
+      text: 'Tell us what you are trying to build — even if the brief is still rough.',
+    },
+    {
+      title: 'Review together',
+      text: 'We review the goal, available source material, delivery format and deadline.',
+    },
+    {
+      title: 'Match capacity',
+      text: 'We recommend whether the work is best handled by one specialist, additional studio capacity, or a scoped project team.',
+    },
+    {
+      title: 'Receive a clear estimate',
+      text: 'You receive a clear scope, production approach and estimate before work begins.',
+    },
   ],
   footer:
     'For larger projects, capacity can change during production so you are not paying for a larger team during phases that do not need it.',
-  cta: 'Tell us what you are trying to build',
+  consultationNote:
+    'Every potential project can begin with a free 30-minute consultation. Technical research, file inspection, workflow testing, design work and prototype development are quoted separately when required.',
+  cta: 'Book a free consultation',
 } as const
 
 export const HERO_COPY = {
@@ -242,16 +267,18 @@ export const RATE_BLENDED_NOTE =
 
 export const ESTIMATE_RATE_HIGHLIGHTS = [
   {
+    label: 'August intro · one specialist',
+    value: `€${PROJECT_COSTS_META.specialistIntroDayRate} / day`,
+    compare: `Standard €${PROJECT_COSTS_META.specialistDayRate} / day`,
+  },
+  {
+    label: 'August intro · studio team',
+    value: `from €${PROJECT_COSTS_META.studioTeamIntroFromDayRate} / day`,
+    compare: `Standard from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
+  },
+  {
     label: 'Typical hourly rate',
     value: `€${PROJECT_COSTS_META.rateMin}–€${PROJECT_COSTS_META.rateMax} / hour`,
-  },
-  {
-    label: 'One senior specialist',
-    value: `€${PROJECT_COSTS_META.specialistDayRate} / day`,
-  },
-  {
-    label: 'Small studio team',
-    value: `from €${PROJECT_COSTS_META.studioTeamFromDayRate} / day`,
   },
 ] as const
 

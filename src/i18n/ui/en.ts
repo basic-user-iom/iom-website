@@ -65,6 +65,13 @@ export const enUi: Dict = {
     'For selected projects with strong creative, technical, cultural, educational or social potential, IOM may also contribute through a reduced fee or a limited number of complimentary production hours.',
   'hero.begin.estimate': 'Request a project estimate',
 
+  'home.engage.eyebrow': 'August 2026 · introductory availability',
+  'home.engage.title': 'How you can engage IOM',
+  'home.engage.lead':
+    'Three paths — from a focused specialist task to a complete scoped project. August introductory day rates are shown below; full scope and technical detail live on the project costs page.',
+  'home.engage.cta': 'View project costs & timelines',
+  'home.engage.augustCta': 'Ask about August availability',
+
   'start.eyebrow': 'Working with IOM',
   'start.backHome': '← Back to iobjectm.com',
   'seo.startTitle': 'Start a project | IOM',

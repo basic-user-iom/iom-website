@@ -5,6 +5,7 @@ import { SiteOrbZone } from './components/SiteOrbZone'
 import { Footer } from './components/Footer'
 import { SiteAmbientAudio } from './components/SiteAmbientAudio'
 import { DeferredHomeBody } from './components/DeferredHomeBody'
+import { HomeEngagementSection } from './components/HomeEngagementSection'
 import { isArtistGlobePath } from './artist-globe/paths'
 import { isBlogPath } from './blog/paths'
 import { isCaseStudyPath } from './case-studies/paths'
@@ -295,6 +296,7 @@ export default function App() {
               />
             ))}
             <Clients />
+            <HomeEngagementSection />
             <About />
           </DeferredHomeBody>
         </SiteOrbZone>
