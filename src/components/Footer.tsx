@@ -12,7 +12,7 @@ export const Footer = memo(function Footer() {
       </div>
       <div className="footer-links">
         <a href={href('/#about')}>{t('footer.about')}</a>
-        <a href={href('/project-costs')}>{t('footer.costs')}</a>
+        <a href={href('/#engage-iom')}>{t('footer.costs')}</a>
         <a href={href('/#rfo')}>{t('footer.methodology')}</a>
         <a href={href('/#clients')}>{t('footer.clients')}</a>
         <a href={href('/#360')}>{t('footer.caseStudies')}</a>

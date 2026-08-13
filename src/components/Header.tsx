@@ -58,7 +58,6 @@ export function Header() {
   const closeMenu = () => setMenuOpen(false)
   const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
   const onBlog = /(?:^|\/)blog(?:\/|$)/.test(path)
-  const onCosts = /(?:^|\/)project-costs(?:\/|$)/.test(path)
 
   const handleMuteClick = () => {
     const next = toggleSiteMute()
@@ -133,7 +132,7 @@ export function Header() {
           <a href={href('/#about')} onClick={closeMenu}>
             {t('nav.about')}
           </a>
-          <a href={href('/project-costs')} className={onCosts ? 'is-active' : undefined} onClick={closeMenu}>
+          <a href={href('/#engage-iom')} onClick={closeMenu}>
             {t('nav.costs')}
           </a>
         </div>
