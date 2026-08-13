@@ -75,21 +75,25 @@ export const RELEVANT_WORK = [
   {
     title: '3D Viewer',
     href: '/case-studies/3d-viewer',
+    image: '/assets/posters/3d-viewer.webp?v=20260729',
     note: 'Technical review tooling, 3D data handling and browser delivery',
   },
   {
     title: 'SSR / WebGPU',
     href: '/demos/ssr-denoise/',
+    image: '/assets/posters/ssr-denoise.jpg?v=20260708',
     note: 'Realtime exploration, import, inspection and technical experimentation',
   },
   {
     title: 'Black Witness',
     href: '/case-studies/black-witness',
+    image: '/assets/photos/the-black-witness/photo-0.webp',
     note: '360° / spatial storytelling and cultural experience work',
   },
   {
     title: 'Message in a Bottle',
     href: '/demos/message-in-a-bottle/',
+    image: '/assets/posters/message-in-a-bottle.webp?v=20260801',
     note: 'A complete creative interaction in the browser',
   },
 ] as const

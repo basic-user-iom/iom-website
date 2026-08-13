@@ -15,15 +15,20 @@ function RelevantWorkCard({
   title,
   href,
   note,
+  image,
 }: {
   title: string
   href: string
   note: string
+  image: string
 }) {
   const orbPointerProps = useCardOrbPointerProps()
 
   return (
     <a className="home-engage-proof-card" href={href} {...orbPointerProps}>
+      <span className="home-engage-proof-visual" aria-hidden="true">
+        <img src={image} alt="" loading="lazy" decoding="async" />
+      </span>
       <h3 className="pc-engage-card-title">{title}</h3>
       <span className="pc-engage-rule" aria-hidden="true" />
       <p className="pc-engage-card-summary">{note}</p>
@@ -31,6 +36,16 @@ function RelevantWorkCard({
         IOM
       </p>
     </a>
+  )
+}
+
+function TrustChip({ label }: { label: string }) {
+  const orbPointerProps = useCardOrbPointerProps()
+
+  return (
+    <li className="home-engage-trust-item" {...orbPointerProps}>
+      {label}
+    </li>
   )
 }
 
@@ -94,10 +109,10 @@ export function HomeEngagementSection() {
       <p className="home-engage-fixed">{t('home.engage.fixed')}</p>
 
       <ul className="home-engage-trust" aria-label={t('home.engage.trustAria')}>
-        <li>{t('home.engage.trust.whiteLabel')}</li>
-        <li>{t('home.engage.trust.nda')}</li>
-        <li>{t('home.engage.trust.remote')}</li>
-        <li>{t('home.engage.trust.project')}</li>
+        <TrustChip label={t('home.engage.trust.whiteLabel')} />
+        <TrustChip label={t('home.engage.trust.nda')} />
+        <TrustChip label={t('home.engage.trust.remote')} />
+        <TrustChip label={t('home.engage.trust.project')} />
       </ul>
 
       <div className="home-engage-proof">
@@ -109,6 +124,7 @@ export function HomeEngagementSection() {
                 title={item.title}
                 href={href(item.href)}
                 note={proofNotes[index]}
+                image={item.image}
               />
             </li>
           ))}
