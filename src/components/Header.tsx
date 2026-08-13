@@ -5,6 +5,7 @@ import { useSiteI18n } from '../i18n'
 import { localizedSectionNav } from '../i18n/projects/sectionNav'
 import { getDeviceProfile } from '../utils/device'
 import { persistMute, readStoredMute } from '../utils/audioPrefs'
+import { handleHomeHashLinkClick } from '../utils/homeHashScroll'
 import { toggleSiteMute } from './SiteAmbientAudio'
 
 const RAVEN_POSTER = '/assets/raven_mascot.webp?v=20260728'
@@ -58,6 +59,11 @@ export function Header() {
   const closeMenu = () => setMenuOpen(false)
   const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
   const onBlog = /(?:^|\/)blog(?:\/|$)/.test(path)
+
+  const handleHomeHashClick = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
+    closeMenu()
+    handleHomeHashLinkClick(event, id)
+  }
 
   const handleMuteClick = () => {
     const next = toggleSiteMute()
@@ -119,7 +125,7 @@ export function Header() {
       <nav id="site-nav" className={`header-nav${menuOpen ? ' is-open' : ''}`} aria-label={t('nav.primaryAria')}>
         <div className="header-nav-group" role="presentation">
           {sections.map((s) => (
-            <a key={s.id} href={href(`/#${s.id}`)} onClick={closeMenu}>
+            <a key={s.id} href={href(`/#${s.id}`)} onClick={(event) => handleHomeHashClick(event, s.id)}>
               {s.label}
             </a>
           ))}
@@ -129,15 +135,15 @@ export function Header() {
           <a href={href('/blog')} className={onBlog ? 'is-active' : undefined} onClick={closeMenu}>
             {t('nav.blog')}
           </a>
-          <a href={href('/#about')} onClick={closeMenu}>
+          <a href={href('/#about')} onClick={(event) => handleHomeHashClick(event, 'about')}>
             {t('nav.about')}
           </a>
-          <a href={href('/#engage-iom')} onClick={closeMenu}>
+          <a href={href('/#engage-iom')} onClick={(event) => handleHomeHashClick(event, 'engage-iom')}>
             {t('nav.costs')}
           </a>
         </div>
         <div className="header-nav-mobile-cta">
-          <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={closeMenu}>
+          <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={(event) => handleHomeHashClick(event, 'contact')}>
             {t('nav.contact')}
           </a>
           <a href="/client-login" className="header-login" onClick={closeMenu}>
@@ -158,7 +164,7 @@ export function Header() {
         >
           {siteMuted ? t('nav.listen') : t('nav.mute')}
         </button>
-        <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={closeMenu}>
+        <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={(event) => handleHomeHashClick(event, 'contact')}>
           {t('nav.contact')}
         </a>
         <a href="/client-login" className="header-login" onClick={closeMenu}>

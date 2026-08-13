@@ -131,11 +131,11 @@
 .home-engage {
   position: relative;
   z-index: 20;
-  margin-top: 2.75rem;
-  padding-top: 2.5rem;
+  margin-top: 0;
+  padding: clamp(3rem, 7vw, 5rem) clamp(1rem, 4vw, 3rem) 0;
   border-top: 1px solid var(--border);
   text-align: center;
-  scroll-margin-top: var(--header-h);
+  scroll-margin-top: calc(var(--header-h) + 0.5rem);
 }
 
 .home-engage .about-title {

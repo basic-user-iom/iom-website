@@ -23,6 +23,7 @@ import { SiteI18nProvider, parseLocalePath } from './i18n'
 import { localizedSectionNav } from './i18n/projects/sectionNav'
 import { usePageMeta } from './seo/usePageMeta'
 import { setCustomCursorEnabled } from './cursor/mountCustomCursor'
+import { watchLocationHashScroll } from './utils/homeHashScroll'
 
 const ProjectSectionBlock = lazy(() =>
   import('./components/ProjectSectionBlock').then((m) => ({ default: m.ProjectSectionBlock })),
@@ -154,40 +155,10 @@ export default function App() {
     }
   }, [isClientLogin, isCrmDemo])
 
-  /** Deep-link hashes (e.g. /#image-prep or /de/#software) after SPA mount. */
+  /** Deep-link + same-page hashes after SPA mount. Wait for the real section, not placeholders. */
   useEffect(() => {
     if (path !== '/') return
-
-    const scrollToHash = () => {
-      const id = window.location.hash.replace(/^#/, '')
-      if (!id) return true
-      const el = document.getElementById(id)
-      if (!el) return false
-      el.classList.add('is-visible')
-      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return true
-    }
-
-    if (scrollToHash()) return
-
-    const started = Date.now()
-    const timer = window.setInterval(() => {
-      if (scrollToHash() || Date.now() - started > 2500) {
-        window.clearInterval(timer)
-      }
-    }, 50)
-
-    const onHash = () => {
-      window.requestAnimationFrame(() => {
-        scrollToHash()
-      })
-    }
-    window.addEventListener('hashchange', onHash)
-
-    return () => {
-      window.clearInterval(timer)
-      window.removeEventListener('hashchange', onHash)
-    }
+    return watchLocationHashScroll()
   }, [path])
 
   if (isArtistGlobe) {

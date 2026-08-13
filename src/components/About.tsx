@@ -342,9 +342,9 @@ export const About = memo(function About() {
         </ul>
 
         <p className="about-rfo-close-text">{t('rfo.close')}</p>
-
-        <HomeEngagementSection />
       </section>
+
+      <HomeEngagementSection />
 
       <section className="about-block about-block--contact" id="contact" aria-labelledby="contact-heading">
         <p className="about-eyebrow">{t('about.contactEyebrow')}</p>

@@ -12,14 +12,16 @@ type DeferredHomeBodyProps = {
  * a hard freeze (cannot scroll, only hero visible) — especially on Ctrl+Shift+R.
  */
 function PendingSections({ sectionIds }: { sectionIds: string[] }) {
+  const pendingAnchors = [...sectionIds, 'clients', 'about', 'engage-iom']
   return (
     <div className="home-body-deferred" aria-hidden="true">
-      {sectionIds.map((id) => (
-        <div key={id} id={id} className="section-block section-block--pending" />
+      {pendingAnchors.map((id) => (
+        <div
+          key={id}
+          data-pending-anchor={id}
+          className="section-block section-block--pending"
+        />
       ))}
-      <div id="clients" className="section-block section-block--pending" />
-      <div id="about" className="section-block section-block--pending" />
-      <div id="engage-iom" className="section-block section-block--pending" />
     </div>
   )
 }
