@@ -1,4 +1,4 @@
-import type { EngagementOption } from '../project-costs/data'
+import { isAugustIntroActive, type EngagementOption } from '../project-costs/data'
 
 function PricingSlot({
   className,
@@ -29,19 +29,30 @@ export function EngagementPricing({
   compareId?: string
 }) {
   const hasIntro = Boolean(option.rateCompareLine)
+  const reserveIntroRows = hasIntro || isAugustIntroActive()
 
   return (
     <div className="pc-engage-pricing">
-      <PricingSlot className="pc-engage-rate-label">
-        {hasIntro ? option.rateBadge : null}
-      </PricingSlot>
-      <PricingSlot className="pc-engage-rate" id={rateId}>
-        {hasIntro ? option.rateCompareLine : option.rateLine}
-      </PricingSlot>
-      <PricingSlot className="pc-engage-rate-until">{hasIntro ? option.rateUntilLine : null}</PricingSlot>
-      <PricingSlot className="pc-engage-rate-compare" id={compareId}>
-        {hasIntro ? (option.rateStandardLine ?? option.rateLine) : null}
-      </PricingSlot>
+      {reserveIntroRows ? (
+        <>
+          <PricingSlot className="pc-engage-rate-label">
+            {hasIntro ? option.rateBadge : null}
+          </PricingSlot>
+          <PricingSlot className="pc-engage-rate" id={rateId}>
+            {hasIntro ? option.rateCompareLine : option.rateLine}
+          </PricingSlot>
+          <PricingSlot className="pc-engage-rate-until">
+            {hasIntro ? option.rateUntilLine : null}
+          </PricingSlot>
+          <PricingSlot className="pc-engage-rate-compare" id={compareId}>
+            {hasIntro ? (option.rateStandardLine ?? option.rateLine) : null}
+          </PricingSlot>
+        </>
+      ) : (
+        <p className="pc-engage-rate" id={rateId}>
+          {option.rateLine}
+        </p>
+      )}
       {compact ? null : (
         <PricingSlot className="pc-engage-rate-note">{option.rateNote}</PricingSlot>
       )}

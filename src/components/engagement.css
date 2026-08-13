@@ -88,14 +88,19 @@
 }
 
 .pc-engage-pricing {
-  display: grid;
-  grid-template-rows: 1.2em 1.35em 1.4em 1.45em;
+  display: flex;
+  flex-direction: column;
   flex: 0 0 auto;
   gap: 0.12rem;
   margin-top: 0.15rem;
 }
 
-.pc-engage-pricing:has(.pc-engage-rate-note) {
+.pc-engage-pricing:has(.pc-engage-rate-label) {
+  display: grid;
+  grid-template-rows: 1.2em 1.35em 1.4em 1.45em;
+}
+
+.pc-engage-pricing:has(.pc-engage-rate-label):has(.pc-engage-rate-note) {
   grid-template-rows: 1.2em 1.35em 1.4em 1.45em 1.6em;
 }
 
@@ -129,6 +134,7 @@
 
 .pc-engage-rate-note {
   line-height: 1.6;
+  min-height: 1.6em;
 }
 
 .pc-engage-card-footer {
