@@ -39,16 +39,6 @@ function RelevantWorkCard({
   )
 }
 
-function TrustChip({ label }: { label: string }) {
-  const orbPointerProps = useCardOrbPointerProps()
-
-  return (
-    <li className="home-engage-trust-item" {...orbPointerProps}>
-      {label}
-    </li>
-  )
-}
-
 function HomeLearnMore({ option }: { option: EngagementOption }) {
   return (
     <details className="pc-learn home-engage-learn">
@@ -109,10 +99,10 @@ export function HomeEngagementSection() {
       <p className="home-engage-fixed">{t('home.engage.fixed')}</p>
 
       <ul className="home-engage-trust" aria-label={t('home.engage.trustAria')}>
-        <TrustChip label={t('home.engage.trust.whiteLabel')} />
-        <TrustChip label={t('home.engage.trust.nda')} />
-        <TrustChip label={t('home.engage.trust.remote')} />
-        <TrustChip label={t('home.engage.trust.project')} />
+        <li className="home-engage-trust-item">{t('home.engage.trust.whiteLabel')}</li>
+        <li className="home-engage-trust-item">{t('home.engage.trust.nda')}</li>
+        <li className="home-engage-trust-item">{t('home.engage.trust.remote')}</li>
+        <li className="home-engage-trust-item">{t('home.engage.trust.project')}</li>
       </ul>
 
       <div className="home-engage-proof">
