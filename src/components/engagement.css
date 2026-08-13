@@ -142,11 +142,11 @@
   z-index: 2;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
+  justify-content: center;
   flex: 0 0 auto;
   min-height: 2.75rem;
   margin-top: auto;
-  padding-top: 0.2rem;
+  padding: 0;
   border-top: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
 }
 
@@ -155,8 +155,30 @@
   padding-top: 0;
 }
 
-.pc-engage-card-footer .pc-learn-trigger {
-  border-top: 0;
+.pc-engage-card-footer .pc-learn {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 44px;
+}
+
+.pc-engage-card-footer .pc-learn-trigger,
+.pc-engage-card-footer .pc-engage-card-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-sizing: border-box;
+}
+
+.pc-engage-card-footer .pc-learn-trigger-row {
+  min-height: 44px;
 }
 
 .pc-learn-trigger {
@@ -445,7 +467,7 @@
   font-size: clamp(1.45rem, 2.6vw, 1.85rem);
   line-height: 1.08;
   color: #fff;
-  min-height: 0;
+  min-height: calc(1.08em * 2);
 }
 
 .pc-engage-rule {
@@ -461,6 +483,7 @@
   color: rgba(255, 255, 255, 0.78);
   font-size: 0.88rem;
   font-weight: 600;
+  min-height: calc(1.4em * 2);
 }
 
 .pc-engage-card--home .pc-engage-copy {
@@ -500,7 +523,7 @@
   position: relative;
   z-index: 2;
   min-height: 2.75rem;
-  padding-top: 0.35rem;
+  padding: 0;
   margin-top: auto;
   border-top-color: rgba(255, 255, 255, 0.1);
 }
