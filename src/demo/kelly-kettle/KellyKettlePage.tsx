@@ -116,16 +116,29 @@ export function KellyKettlePage() {
                 See how a small fire, natural airflow and a water-filled chimney wall work together.
                 The full 3D experience loads only when you choose to open it.
               </p>
+              <ul className="kk-chips">
+                <li>1.6 L capacity</li>
+                <li>Approx. 33 cm high</li>
+                <li>Food-grade stainless steel</li>
+              </ul>
             </div>
             <div className="kk-intro-cta">
               {webgl ? (
                 <button
                   type="button"
-                  className="kk-primary"
+                  className="kk-primary kk-primary--cta"
                   onClick={() => void open()}
                   disabled={loading}
                 >
-                  Open interactive demonstration
+                  <span className="kk-primary__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9.2 6.6v10.8L18.2 12 9.2 6.6Z" />
+                    </svg>
+                  </span>
+                  <span className="kk-primary__copy">
+                    <span className="kk-primary__title">Open interactive demonstration</span>
+                    <span className="kk-primary__hint">Click to explore the kettle in 3D</span>
+                  </span>
                 </button>
               ) : (
                 <p className="kk-fallback kk-fallback--inline">
@@ -133,15 +146,15 @@ export function KellyKettlePage() {
                   works.
                 </p>
               )}
-              <p className="kk-status-badge">Photos ready · 3D loads on request</p>
-              <p className="kk-load-status" role="status">
-                {loadStatusText(phase, progress, transferred)}
-              </p>
-              <ul className="kk-chips">
-                <li>1.6 L capacity</li>
-                <li>Approx. 33 cm high</li>
-                <li>Food-grade stainless steel</li>
-              </ul>
+              {phase === 'intro' ? (
+                <p className="kk-sr-only" role="status">
+                  3D not loaded
+                </p>
+              ) : (
+                <p className="kk-load-status" role="status">
+                  {loadStatusText(phase, progress, transferred)}
+                </p>
+              )}
             </div>
           </div>
 

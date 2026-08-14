@@ -19,7 +19,7 @@ import {
   SphereGeometry,
   Vector3,
 } from 'three'
-import { COLORS, KETTLE_H, MAX_EMBER_PARTICLES, SEAT_Y } from './constants'
+import { BASE_R, COLORS, MAX_EMBER_PARTICLES, SEAT_Y } from './constants'
 import { collectGeometriesAndMaterials, disposeTracked } from './dispose'
 
 export type FireHandle = {
@@ -32,7 +32,7 @@ export type FireHandle = {
     dt: number,
     reducedMotion: boolean,
     cameraPos: Vector3,
-    opts: { emberIntensity: number; chimneyFlameHeight: number; mobile: boolean },
+    opts: { emberIntensity: number; chimneyFlameHeight: number; mobile: boolean; cutaway?: number },
   ) => void
   dispose: () => void
 }
@@ -149,23 +149,24 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
   emberGroup.name = 'ember_core'
   fuel.add(twigsGroup, emberGroup)
 
-  const twigCount = quality === 'high' ? 16 : 11
+  const floorR = BASE_R * 0.38
+  const maxR = floorR * 0.86
+  const twigCount = quality === 'high' ? 18 : 12
   const twigGeos = [
     new CylinderGeometry(1, 0.72, 1, 6),
     new CylinderGeometry(0.85, 1, 1, 5),
   ]
   for (let i = 0; i < twigCount; i++) {
-    const len = 0.016 + rnd(i + 3) * 0.022
-    const rad = 0.001 + rnd(i + 9) * 0.0016
+    const len = 0.028 + rnd(i + 3) * 0.02
+    const rad = 0.0018 + rnd(i + 9) * 0.0022
     const mat = i % 3 === 0 ? char : bark
     const twig = new Mesh(twigGeos[i % 2], mat)
     twig.scale.set(rad, len, rad)
-    twig.position.set(
-      (rnd(i + 1) - 0.5) * 0.03,
-      0.007 + rnd(i + 7) * 0.011,
-      0.038 + rnd(i + 4) * 0.016,
-    )
-    twig.rotation.set(0.15 + rnd(i + 2) * 0.9, rnd(i + 1) * Math.PI * 2, (rnd(i + 5) - 0.5) * 1.3)
+    const reach = Math.min(maxR - 0.002, maxR - len * 0.38)
+    const ring = Math.sqrt(rnd(i + 1)) * Math.max(0.004, reach)
+    const theta = rnd(i + 4) * Math.PI * 2
+    twig.position.set(Math.cos(theta) * ring, 0.008 + rnd(i + 7) * 0.01, Math.sin(theta) * ring)
+    twig.rotation.set(0.2 + rnd(i + 2) * 0.85, rnd(i + 1) * Math.PI * 2, (rnd(i + 5) - 0.5) * 1.15)
     twig.castShadow = false
     twigsGroup.add(twig)
     if (i % 4 === 0) {
@@ -177,21 +178,27 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
 
   const emberCores: { mesh: Mesh; phase: number; kind: 'core' | 'crack' | 'spot' }[] = []
   for (let i = 0; i < 8; i++) {
-    const core = new Mesh(new SphereGeometry(0.0022 + rnd(i + 8) * 0.0014, 8, 6), emberCoreMat)
-    core.position.set((rnd(i + 11) - 0.5) * 0.022, 0.008 + rnd(i + 13) * 0.007, 0.04 + (rnd(i + 15) - 0.5) * 0.016)
+    const core = new Mesh(new SphereGeometry(0.0032 + rnd(i + 8) * 0.002, 8, 6), emberCoreMat)
+    const ring = Math.sqrt(rnd(i + 11)) * maxR * 0.45
+    const theta = rnd(i + 15) * Math.PI * 2
+    core.position.set(Math.cos(theta) * ring, 0.008 + rnd(i + 13) * 0.007, Math.sin(theta) * ring)
     emberGroup.add(core)
     emberCores.push({ mesh: core, phase: rnd(i + 19) * 6, kind: 'core' })
   }
   for (let i = 0; i < 5; i++) {
-    const crack = new Mesh(new CylinderGeometry(0.00035, 0.0005, 0.006 + rnd(i) * 0.004, 5), emberHot)
-    crack.position.set((rnd(i + 21) - 0.5) * 0.016, 0.01, 0.042 + (rnd(i + 23) - 0.5) * 0.012)
+    const crack = new Mesh(new CylinderGeometry(0.00045, 0.0007, 0.01 + rnd(i) * 0.006, 5), emberHot)
+    const ring = Math.sqrt(rnd(i + 21)) * maxR * 0.4
+    const theta = rnd(i + 23) * Math.PI * 2
+    crack.position.set(Math.cos(theta) * ring, 0.01, Math.sin(theta) * ring)
     crack.rotation.set(1.1, rnd(i + 25) * 6, 0.4)
     emberGroup.add(crack)
     emberCores.push({ mesh: crack, phase: rnd(i + 27) * 6, kind: 'crack' })
   }
   for (let i = 0; i < 3; i++) {
-    const spot = new Mesh(new SphereGeometry(0.0009, 6, 4), hotspot)
-    spot.position.set((rnd(i + 31) - 0.5) * 0.012, 0.011, 0.044 + (rnd(i + 33) - 0.5) * 0.01)
+    const spot = new Mesh(new SphereGeometry(0.0013, 6, 4), hotspot)
+    const ring = Math.sqrt(rnd(i + 31)) * maxR * 0.32
+    const theta = rnd(i + 33) * Math.PI * 2
+    spot.position.set(Math.cos(theta) * ring, 0.011, Math.sin(theta) * ring)
     emberGroup.add(spot)
     emberCores.push({ mesh: spot, phase: rnd(i + 35) * 6, kind: 'spot' })
   }
@@ -211,9 +218,9 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
   const baseCards: Mesh[] = []
   const baseCount = quality === 'high' ? 4 : 3
   for (let i = 0; i < baseCount; i++) {
-    const h = 0.016 + rnd(i + 4) * 0.012
-    const card = new Mesh(new PlaneGeometry(0.01 + rnd(i) * 0.006, h), baseFlameMat)
-    card.position.set((i - 1.4) * 0.006, 0.014 + h * 0.35, 0.042 + (i % 2) * 0.006)
+    const h = 0.022 + rnd(i + 4) * 0.016
+    const card = new Mesh(new PlaneGeometry(0.018 + rnd(i) * 0.01, h), baseFlameMat)
+    card.position.set((i - 1.4) * 0.01, 0.016 + h * 0.35, ((i % 2) - 0.5) * 0.01)
     card.rotation.y = i * 0.7
     card.renderOrder = 2
     baseGroup.add(card)
@@ -222,16 +229,16 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
 
   const chimneyCards: Mesh[] = []
   const chimCount = quality === 'high' ? 3 : 2
-  const chimH = SEAT_Y + KETTLE_H * 0.92
+  const chimH = 0.112
   for (let i = 0; i < chimCount; i++) {
-    const card = new Mesh(new PlaneGeometry(0.038, chimH), chimneyFlameMat)
-    card.rotation.y = i * ((Math.PI * 2) / Math.max(2, chimCount))
-    card.position.set(0, chimH * 0.42, 0)
+    const card = new Mesh(new PlaneGeometry(0.028, chimH), chimneyFlameMat)
+    card.rotation.y = i === 0 ? 0 : (Math.PI * i) / chimCount
+    card.position.set(0, 0.02 + chimH * 0.42, 0)
     card.renderOrder = 3
     chimneyGroup.add(card)
     chimneyCards.push(card)
   }
-  chimneyFlameMat.uniforms.uNarrow.value = 0.55
+  chimneyFlameMat.uniforms.uNarrow.value = 0.18
 
   const sparkGeo = new SphereGeometry(0.0007, 5, 4)
   const sparkMat = new MeshBasicMaterial({
@@ -263,10 +270,10 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
 
   const light = new PointLight(0xff6a24, 0, 0.13, 2.2)
   light.name = 'fire_light_base'
-  light.position.set(0.0, 0.022, 0.04)
+  light.position.set(0.0, 0.022, 0.0)
   const chimneyLight = new PointLight(0xff7a30, 0, 0.16, 2)
   chimneyLight.name = 'fire_light_chimney'
-  chimneyLight.position.set(0, SEAT_Y + KETTLE_H * 0.55, 0)
+  chimneyLight.position.set(0, SEAT_Y + 0.08, 0)
 
   const trackedFuel = collectGeometriesAndMaterials(fuel)
   const trackedFlames = collectGeometriesAndMaterials(flames)
@@ -277,8 +284,9 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
     light,
     chimneyLight,
     update: (fire, dt, reducedMotion, _cameraPos, opts) => {
+      const chimneyAmt = Math.max(fire, (opts.cutaway ?? 0) * 0.55)
       const on = fire > 0.02
-      flames.visible = on
+      flames.visible = on || chimneyAmt > 0.04
       const ember = fire * opts.emberIntensity
       const t = performance.now() * 0.001
       char.emissiveIntensity = 0.05 + ember * 0.1
@@ -294,12 +302,13 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
       }
 
       light.intensity = 0.07 + (on ? 0.22 * fire * (reducedMotion ? 1 : 0.82 + 0.18 * Math.sin(t * 6.1)) : 0)
-      chimneyLight.intensity = on ? 0.08 * fire * opts.chimneyFlameHeight : 0
+      chimneyLight.intensity = chimneyAmt > 0.04 ? 0.12 * chimneyAmt * opts.chimneyFlameHeight : 0
+      chimneyLight.position.y = SEAT_Y + 0.08
 
       baseFlameMat.uniforms.uTime.value = t
       chimneyFlameMat.uniforms.uTime.value = t * 0.85
       baseFlameMat.uniforms.uOpacity.value = fire * (opts.mobile ? 0.42 : 0.7)
-      chimneyFlameMat.uniforms.uOpacity.value = fire * 0.55 * opts.chimneyFlameHeight
+      chimneyFlameMat.uniforms.uOpacity.value = chimneyAmt * 0.88 * opts.chimneyFlameHeight
 
       for (let i = 0; i < baseCards.length; i++) {
         const card = baseCards[i]
@@ -308,12 +317,12 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
         card.position.y = 0.013 + Math.sin(t * (5.8 + i * 1.3) + i) * (reducedMotion ? 0 : 0.0018)
       }
 
-      const h = (SEAT_Y + KETTLE_H * (0.55 + opts.chimneyFlameHeight * 0.42)) * (reducedMotion ? 1 : 0.92 + 0.08 * Math.sin(t * 4.2))
+      const h = chimH * (0.82 + chimneyAmt * 0.28) * (reducedMotion ? 1 : 0.92 + 0.08 * Math.sin(t * 4.2))
       for (let i = 0; i < chimneyCards.length; i++) {
         const card = chimneyCards[i]
-        card.visible = on && (!opts.mobile || i === 0)
-        card.scale.set(0.72 + fire * 0.12, h / (SEAT_Y + KETTLE_H * 0.92), 1)
-        card.position.y = h * 0.46
+        card.visible = chimneyAmt > 0.04 && (!opts.mobile || i === 0)
+        card.scale.set(0.88 + chimneyAmt * 0.18, h / chimH, 1)
+        card.position.y = 0.02 + h * 0.42
       }
 
       sparkMat.opacity = on && !reducedMotion ? 0.85 * ember : 0
@@ -328,7 +337,7 @@ export function createFuelAndFire(quality: 'high' | 'mobile'): FireHandle {
             }
             sparkAge[i] = 0
             sparkWait[i] = 0.6 + rnd(i + 51 + Math.floor(t)) * 2.8
-            sparkPos[i].set((rnd(i + 61) - 0.5) * 0.018, 0.012, 0.018 + rnd(i + 62) * 0.016)
+            sparkPos[i].set((rnd(i + 61) - 0.5) * 0.04, 0.012, (rnd(i + 62) - 0.5) * 0.04)
           }
           sparkAge[i] += dt * (1.6 + rnd(i + 3) * 1.4)
           sparkPos[i].y += dt * (0.12 + rnd(i + 2) * 0.18)

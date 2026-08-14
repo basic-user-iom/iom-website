@@ -44,7 +44,7 @@ export const COLORS = {
   steel: 0xb7bec4,
   steelBase: 0xa8aeb3,
   soot: 0x2a2622,
-  whistle: 0x3d8a46,
+  whistle: 0x16b52c,
   whistleDark: 0x2a5c32,
   water: 0x4aa0b8,
   coolAir: 0x6d8aa8,

@@ -6,6 +6,10 @@ type Props = {
     | 'kettle-whistle'
     | 'kettle-video-poster'
     | 'kettle-youtube-poster'
+    | 'kettle-how-air'
+    | 'kettle-how-fire'
+    | 'kettle-how-heat'
+    | 'kettle-how-water'
   alt: string
   width: number
   height: number
@@ -21,6 +25,10 @@ const VARIANTS: Record<Props['name'], number[]> = {
   'kettle-whistle': [400, 640],
   'kettle-video-poster': [480, 700],
   'kettle-youtube-poster': [640, 1280],
+  'kettle-how-air': [480, 819],
+  'kettle-how-fire': [480, 819],
+  'kettle-how-heat': [480, 819],
+  'kettle-how-water': [480, 819],
 }
 
 function srcSet(name: Props['name'], ext: 'avif' | 'webp') {

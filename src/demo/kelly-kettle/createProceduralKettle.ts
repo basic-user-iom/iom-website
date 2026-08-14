@@ -1,14 +1,13 @@
 import {
+  BufferGeometry,
   DoubleSide,
+  Float32BufferAttribute,
   Group,
   LatheGeometry,
   Material,
   Mesh,
-  MeshStandardMaterial,
-  RingGeometry,
   ShapeGeometry,
   SphereGeometry,
-  TorusGeometry,
   Vector2,
   Vector3,
 } from 'three'
@@ -31,6 +30,7 @@ import { createSpoutWhistle } from './createSpoutWhistle'
 import { collectGeometriesAndMaterials, disposeTracked, triangleCountOf } from './dispose'
 import { createKettleMaterials, type KettleMaterials } from './materials'
 import {
+  CHIMNEY_NECK_JOIN_Y,
   chimneyInnerProfile,
   chimneyOuterProfile,
   clipProfileY,
@@ -55,6 +55,81 @@ function lathe(points: Profile, segments: number, phiStart = 0, phiLength = Math
   return geo
 }
 
+/**
+ * Revolves an open profile without duplicating the full-circle seam.
+ * Reversing the winding makes the cavity wall render inward with FrontSide.
+ */
+function openRevolvedWall(
+  points: Profile,
+  segments: number,
+  inward = false,
+  phiStart = 0,
+  phiLength = Math.PI * 2,
+) {
+  const fullCircle = Math.abs(phiLength - Math.PI * 2) < 1e-6
+  const ringCount = fullCircle ? segments : segments + 1
+  const positions: number[] = []
+  const uvs: number[] = []
+  const indices: number[] = []
+
+  for (let ring = 0; ring < ringCount; ring++) {
+    const u = ring / segments
+    const phi = phiStart + phiLength * u
+    const sin = Math.sin(phi)
+    const cos = Math.cos(phi)
+    for (let row = 0; row < points.length; row++) {
+      const point = points[row]
+      positions.push(point.x * sin, point.y, point.x * cos)
+      uvs.push(u, row / Math.max(1, points.length - 1))
+    }
+  }
+
+  const strips = fullCircle ? segments : segments
+  for (let ring = 0; ring < strips; ring++) {
+    const nextRing = fullCircle ? (ring + 1) % ringCount : ring + 1
+    for (let row = 0; row < points.length - 1; row++) {
+      const a = ring * points.length + row
+      const b = nextRing * points.length + row
+      const c = b + 1
+      const d = a + 1
+      if (inward) {
+        indices.push(a, d, b, b, d, c)
+      } else {
+        indices.push(a, b, d, b, c, d)
+      }
+    }
+  }
+
+  const geometry = new BufferGeometry()
+  geometry.setAttribute('position', new Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  geometry.normalizeNormals()
+  geometry.computeBoundingSphere()
+  return geometry
+}
+
+/** A rounded half-profile joins the two open walls without covering the bore. */
+function rolledRim(
+  innerRadius: number,
+  outerRadius: number,
+  y: number,
+  segments: number,
+  phiStart = 0,
+  phiLength = Math.PI * 2,
+) {
+  const centre = (innerRadius + outerRadius) * 0.5
+  const radius = (outerRadius - innerRadius) * 0.5
+  const profile: Vector2[] = []
+  const profileSegments = 16
+  for (let i = 0; i <= profileSegments; i++) {
+    const angle = Math.PI - (i / profileSegments) * Math.PI
+    profile.push(new Vector2(centre + Math.cos(angle) * radius, y + Math.sin(angle) * radius))
+  }
+  return openRevolvedWall(profile, segments, false, phiStart, phiLength)
+}
+
 function mesh(name: string, geometry: Mesh['geometry'], material: Mesh['material'], shadows = true) {
   const m = new Mesh(geometry, material)
   m.name = name
@@ -74,20 +149,22 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
   kettle.position.y = SEAT_Y
 
   const outerPts = kettleOuterProfile()
-  const innerPts = offsetProfile(outerPts, -WALL)
+  const shellPts = clipProfileY(outerPts, outerPts[0].y, CHIMNEY_NECK_JOIN_Y)
+  const innerPts = clipProfileY(offsetProfile(shellPts, -WALL), shellPts[0].y, CHIMNEY_NECK_JOIN_Y)
   const remStart = CUT_ANGLE / 2
   const remLen = Math.PI * 2 - CUT_ANGLE
   const remSegs = Math.max(36, Math.round(segs * (remLen / (Math.PI * 2))))
 
-  const shellFull = mesh('kettle_exterior_full', lathe(outerPts, segs), mats.steel)
+  const shellFull = mesh('kettle_exterior_full', lathe(shellPts, segs), mats.steel)
   shellFull.name = 'kettle_shell_outer'
-  const innerFull = mesh('kettle_shell_inner', lathe(innerPts, segs), mats.steel)
-  ;(innerFull.material as MeshStandardMaterial).side = DoubleSide
+  const innerShellMaterial = mats.steel.clone()
+  innerShellMaterial.side = DoubleSide
+  const innerFull = mesh('kettle_shell_inner', lathe(innerPts, segs), innerShellMaterial)
 
   const cutawayMat = mats.steel.clone()
   cutawayMat.transparent = true
   cutawayMat.opacity = 0
-  const shellCut = mesh('kettle_exterior_cutaway', lathe(outerPts, remSegs, remStart, remLen), cutawayMat)
+  const shellCut = mesh('kettle_exterior_cutaway', lathe(shellPts, remSegs, remStart, remLen), cutawayMat)
   shellCut.name = 'kettle_shell_cutaway'
   shellCut.visible = false
   const innerCut = mesh(
@@ -97,7 +174,7 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
   )
   innerCut.visible = false
 
-  const cutShape = wallSectionShape(outerPts, innerPts)
+  const cutShape = wallSectionShape(shellPts, innerPts)
   const cutGeo = new ShapeGeometry(cutShape)
   const cutA = mesh('kettle_cut_face_a', cutGeo, mats.steel, false)
   const cutB = mesh('kettle_cut_face_b', cutGeo.clone(), mats.steel, false)
@@ -106,53 +183,107 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
   cutA.visible = false
   cutB.visible = false
 
-  const chimneyFull = mesh('chimney_full', lathe(chimneyInnerProfile(), segs), mats.chimneyInner, false)
-  chimneyFull.name = 'chimney_inner'
-  const chimneyCut = mesh(
-    'chimney_cutaway',
-    lathe(chimneyInnerProfile(), remSegs, remStart, remLen),
+  const chimneyInnerPts = chimneyInnerProfile()
+  const chimneyOuterPts = chimneyOuterProfile()
+  const chimneyTopRadius = chimneyInnerPts[chimneyInnerPts.length - 1].x
+  const chimneyOuterTopRadius = chimneyOuterPts[chimneyOuterPts.length - 1].x
+  const chimneyBodyMaxY = CHIMNEY_NECK_JOIN_Y - 0.0003
+  const chimneyBodyInner = clipProfileY(chimneyInnerPts, chimneyInnerPts[0].y, chimneyBodyMaxY)
+  const chimneyBodyOuter = clipProfileY(chimneyOuterPts, chimneyOuterPts[0].y, chimneyBodyMaxY)
+  const chimneyNeckInnerPts = clipProfileY(chimneyInnerPts, CHIMNEY_NECK_JOIN_Y, KETTLE_H)
+  const chimneyNeckOuterPts = clipProfileY(chimneyOuterPts, CHIMNEY_NECK_JOIN_Y, KETTLE_H)
+
+  const chimneyFull = mesh(
+    'chimney_full',
+    openRevolvedWall(chimneyBodyInner, segs, true),
     mats.chimneyInner,
     false,
   )
-  chimneyCut.visible = false
+  chimneyFull.name = 'chimney_inner'
   const chimneySkin = mesh(
     'chimney_outer_skin',
-    lathe(chimneyOuterProfile(), segs),
+    openRevolvedWall(chimneyBodyOuter, segs, false),
     mats.steel,
     false,
   )
-  chimneySkin.visible = false
+  const chimneyInnerCut = mesh(
+    'chimney_inner_cutaway',
+    openRevolvedWall(chimneyBodyInner, remSegs, true, remStart, remLen),
+    mats.chimneyInner,
+    false,
+  )
+  chimneyInnerCut.visible = false
+  const chimneySkinCut = mesh(
+    'chimney_outer_skin_cutaway',
+    openRevolvedWall(chimneyBodyOuter, remSegs, false, remStart, remLen),
+    mats.steel,
+    false,
+  )
+  chimneySkinCut.visible = false
+  const chimneyNeckInner = mesh(
+    'chimney_neck_inner',
+    openRevolvedWall(chimneyNeckInnerPts, segs, true),
+    mats.chimneyInner,
+    false,
+  )
+  const chimneyNeckOuter = mesh(
+    'chimney_neck_outer',
+    openRevolvedWall(chimneyNeckOuterPts, segs, false),
+    mats.steel,
+    false,
+  )
   const chimneyRim = mesh(
     'chimney_top_rim',
-    new TorusGeometry(CHIMNEY_TOP_R - 0.0005, 0.0007, 10, segs),
+    rolledRim(chimneyTopRadius, chimneyOuterTopRadius, KETTLE_H, segs),
     mats.steel,
     false,
   )
-  chimneyRim.rotation.x = Math.PI / 2
-  chimneyRim.position.y = KETTLE_H
+  const chimneyCutShape = wallSectionShape(chimneyBodyOuter, chimneyBodyInner)
+  const chimneyCutGeo = new ShapeGeometry(chimneyCutShape)
+  const chimneyCutA = mesh('chimney_cut_face_a', chimneyCutGeo, mats.steel, false)
+  const chimneyCutB = mesh('chimney_cut_face_b', chimneyCutGeo.clone(), mats.steel, false)
+  chimneyCutA.rotation.y = remStart - Math.PI / 2
+  chimneyCutB.rotation.y = remStart + remLen - Math.PI / 2
+  chimneyCutA.visible = false
+  chimneyCutB.visible = false
 
   const waterGroup = new Group()
   waterGroup.name = 'water_jacket'
   const wOuter = waterOuterProfile()
   const wInner = waterInnerProfile()
   waterGroup.add(
-    mesh('water_outer', lathe(wOuter, segs), mats.water, false),
-    mesh('water_inner', lathe(wInner, segs), mats.water, false),
+    mesh('water_outer', lathe(wOuter, remSegs, remStart, remLen), mats.water, false),
+    mesh('water_inner', lathe(wInner, remSegs, remStart, remLen), mats.water, false),
   )
   const topR = wOuter[wOuter.length - 1]?.x ?? BODY_R * 0.7
   const topRi = wInner[wInner.length - 1]?.x ?? CHIMNEY_TOP_R
-  const waterTop = mesh('water_top', new RingGeometry(topRi, topR, segs), mats.water, false)
-  waterTop.rotation.x = -Math.PI / 2
-  waterTop.position.y = wOuter[wOuter.length - 1]?.y ?? WATER_TOP_Y
-  const waterBot = mesh(
-    'water_bottom',
-    new RingGeometry(wInner[0]?.x ?? CHIMNEY_TOP_R, wOuter[0]?.x ?? BODY_R * 0.6, segs),
+  const waterTopY = wOuter[wOuter.length - 1]?.y ?? WATER_TOP_Y
+  const waterBotY = wOuter[0]?.y ?? 0.01
+  const waterTop = mesh(
+    'water_top',
+    openRevolvedWall([new Vector2(topRi, waterTopY), new Vector2(topR, waterTopY)], remSegs, false, remStart, remLen),
     mats.water,
     false,
   )
-  waterBot.rotation.x = -Math.PI / 2
-  waterBot.position.y = wOuter[0]?.y ?? 0.01
-  waterGroup.add(waterTop, waterBot)
+  const waterBot = mesh(
+    'water_bottom',
+    openRevolvedWall(
+      [new Vector2(wInner[0]?.x ?? CHIMNEY_TOP_R, waterBotY), new Vector2(wOuter[0]?.x ?? BODY_R * 0.6, waterBotY)],
+      remSegs,
+      false,
+      remStart,
+      remLen,
+    ),
+    mats.water,
+    false,
+  )
+  const waterCutShape = wallSectionShape(wOuter, wInner)
+  const waterCutGeo = new ShapeGeometry(waterCutShape)
+  const waterCutA = mesh('water_cut_face_a', waterCutGeo, mats.water, false)
+  const waterCutB = mesh('water_cut_face_b', waterCutGeo.clone(), mats.water, false)
+  waterCutA.rotation.y = remStart - Math.PI / 2
+  waterCutB.rotation.y = remStart + remLen - Math.PI / 2
+  waterGroup.add(waterTop, waterBot, waterCutA, waterCutB)
   const bubbleGeo = new SphereGeometry(0.0016, 8, 6)
   const bubbleMat = mats.water.clone()
   bubbleMat.opacity = 0.45
@@ -178,9 +309,14 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
     cutA,
     cutB,
     chimneyFull,
-    chimneyCut,
     chimneySkin,
+    chimneyInnerCut,
+    chimneySkinCut,
+    chimneyNeckInner,
+    chimneyNeckOuter,
     chimneyRim,
+    chimneyCutA,
+    chimneyCutB,
     waterGroup,
     spoutWhistle.spout,
     handle.root,
@@ -197,7 +333,7 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
     kettle_exterior_cutaway: shellCut,
     chimney_inner: chimneyFull,
     chimney_full: chimneyFull,
-    chimney_cutaway: chimneyCut,
+    chimney_cutaway: chimneyInnerCut,
     water_jacket: waterGroup,
     water_spout: spoutWhistle.spout,
     green_whistle: spoutWhistle.whistle,
@@ -250,11 +386,16 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
         shellFull.visible = !showCut
         innerFull.visible = !showCut
         chimneyFull.visible = !showCut
-        chimneySkin.visible = showCut
-        chimneyRim.visible = !showCut
+        chimneySkin.visible = !showCut
+        chimneyInnerCut.visible = showCut
+        chimneySkinCut.visible = showCut
+        chimneyCutA.visible = showCut
+        chimneyCutB.visible = showCut
+        chimneyNeckInner.visible = true
+        chimneyNeckOuter.visible = true
+        chimneyRim.visible = true
         shellCut.visible = showCut
         innerCut.visible = showCut
-        chimneyCut.visible = showCut
         cutA.visible = showCut
         cutB.visible = showCut
         kettle.rotation.y = -0.18 * cut
@@ -269,9 +410,6 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
         const heat = state.waterHeatProgress
         mats.water.opacity = 0.32 + heat * 0.1
         mats.water.color.setHSL(0.52 - heat * 0.06, 0.48, 0.42 + heat * 0.04)
-        if (!state.reducedMotion) {
-          waterGroup.rotation.y = performance.now() * 0.001 * (0.004 + heat * 0.012)
-        }
         const t = performance.now() * 0.001
         for (let i = 0; i < bubbles.length; i++) {
           const show = heat > 0.35
@@ -286,7 +424,8 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
       }
 
       const fire = state.fireProgress * state.fireIntensity
-      mats.chimneyInner.emissive.setRGB(0.1 * fire, 0.03 * fire, 0.004 * fire)
+      mats.chimneyInner.emissive.setRGB(0.14 + 0.12 * fire, 0.14 + 0.04 * fire, 0.14)
+      mats.chimneyInner.emissiveIntensity = 0.28 + 0.5 * fire
 
       handle.setAngle(state.handleAngle)
       handle.updateCollision(outerPts, state.handleCollisionDebug)

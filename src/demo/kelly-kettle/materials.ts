@@ -2,6 +2,7 @@ import {
   CanvasTexture,
   Color,
   DoubleSide,
+  FrontSide,
   MeshStandardMaterial,
   RepeatWrapping,
   SRGBColorSpace,
@@ -93,23 +94,6 @@ function woodBumpCanvas(size = 128): HTMLCanvasElement {
   return canvas
 }
 
-function sootCanvas(): HTMLCanvasElement {
-  const canvas = document.createElement('canvas')
-  canvas.width = 8
-  canvas.height = 64
-  const ctx = canvas.getContext('2d')
-  if (!ctx) return canvas
-  const g = ctx.createLinearGradient(0, 0, 0, 64)
-  g.addColorStop(0, '#1a1614')
-  g.addColorStop(0.18, '#2e2824')
-  g.addColorStop(0.5, '#3a342e')
-  g.addColorStop(0.82, '#2a2420')
-  g.addColorStop(1, '#161210')
-  ctx.fillStyle = g
-  ctx.fillRect(0, 0, 8, 64)
-  return canvas
-}
-
 export type KettleMaterials = {
   steel: MeshStandardMaterial
   steelBase: MeshStandardMaterial
@@ -140,11 +124,6 @@ export function createKettleMaterials(): KettleMaterials {
   woodBump.wrapS = RepeatWrapping
   woodBump.wrapT = RepeatWrapping
   woodBump.repeat.set(1, 2)
-
-  const soot = new CanvasTexture(sootCanvas())
-  soot.colorSpace = SRGBColorSpace
-  soot.wrapS = RepeatWrapping
-  soot.wrapT = RepeatWrapping
 
   const steel = new MeshStandardMaterial({
     color: COLORS.steel,
@@ -177,14 +156,15 @@ export function createKettleMaterials(): KettleMaterials {
   })
 
   const chimneyInner = new MeshStandardMaterial({
-    color: 0x4a453e,
-    map: soot,
-    metalness: 0.18,
-    roughness: 0.88,
-    side: DoubleSide,
-    envMapIntensity: 0.1,
-    emissive: new Color(0x2a1208),
-    emissiveIntensity: 0,
+    color: 0x343434,
+    metalness: 0.75,
+    roughness: 0.5,
+    side: FrontSide,
+    envMapIntensity: 1.35,
+    emissive: new Color(0x3a3a3a),
+    emissiveIntensity: 0.28,
+    depthTest: true,
+    depthWrite: true,
   })
 
   const water = new MeshStandardMaterial({
@@ -199,10 +179,10 @@ export function createKettleMaterials(): KettleMaterials {
   })
 
   const whistle = new MeshStandardMaterial({
-    color: new Color(0x3ea84a),
+    color: new Color(0x16b52c),
     metalness: 0,
-    roughness: 0.86,
-    envMapIntensity: 0.05,
+    roughness: 0.47,
+    envMapIntensity: 0.22,
     transparent: false,
     opacity: 1,
     depthWrite: true,
@@ -225,7 +205,7 @@ export function createKettleMaterials(): KettleMaterials {
     envMapIntensity: 0.03,
   })
 
-  const textures = [brush, soot, woodMap, woodBump]
+  const textures = [brush, woodMap, woodBump]
 
   return {
     steel,

@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { COLORS, DEFAULT_PARTICLES, MOBILE_PARTICLES, PIXEL_RATIO_CAP, TOTAL_H } from './constants'
+import { DEFAULT_PARTICLES, MOBILE_PARTICLES, PIXEL_RATIO_CAP, TOTAL_H } from './constants'
 import { createFuelAndFire } from './createFuelAndFire'
 import { createParticles } from './createParticles'
 import { createKellyKettleModel } from './KellyKettleModel'
@@ -56,9 +56,9 @@ function createContactBlob() {
   const ctx = canvas.getContext('2d')
   if (ctx) {
     const g = ctx.createRadialGradient(64, 64, 8, 64, 64, 62)
-    g.addColorStop(0, 'rgba(40, 32, 24, 0.28)')
-    g.addColorStop(0.45, 'rgba(40, 32, 24, 0.1)')
-    g.addColorStop(1, 'rgba(40, 32, 24, 0)')
+    g.addColorStop(0, 'rgba(18, 16, 12, 0.34)')
+    g.addColorStop(0.45, 'rgba(18, 16, 12, 0.12)')
+    g.addColorStop(1, 'rgba(18, 16, 12, 0)')
     ctx.fillStyle = g
     ctx.fillRect(0, 0, 128, 128)
   }
@@ -117,7 +117,7 @@ export function KellyKettleScene({
     try {
       renderer = new THREE.WebGLRenderer({
         antialias: quality === 'high',
-        alpha: false,
+        alpha: true,
         powerPreference: 'high-performance',
         stencil: false,
       })
@@ -129,10 +129,10 @@ export function KellyKettleScene({
 
     const dprCap = debugRef.current.mobilePerformance ? 1 : PIXEL_RATIO_CAP
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, dprCap))
-    renderer.setClearColor(COLORS.bg, 1)
+    renderer.setClearColor(0x000000, 0)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 0.96
+    renderer.toneMappingExposure = 0.9
     renderer.shadowMap.enabled = quality === 'high' && !debugRef.current.mobilePerformance
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.domElement.style.width = '100%'
@@ -143,7 +143,7 @@ export function KellyKettleScene({
     mount.appendChild(renderer.domElement)
 
     const scene = new THREE.Scene()
-    scene.background = new THREE.Color(COLORS.bg)
+    scene.background = null
 
     const pmrem = new THREE.PMREMGenerator(renderer)
     const envScene = new RoomEnvironment()
@@ -175,9 +175,9 @@ export function KellyKettleScene({
     }
     controls.addEventListener('start', stopIdle)
 
-    scene.add(new THREE.HemisphereLight(0xf7f3ea, 0x9a9288, 0.72))
-    const key = new THREE.DirectionalLight(0xfff6ea, 1.15)
-    key.position.set(0.55, 0.9, 0.45)
+    scene.add(new THREE.HemisphereLight(0xd7ddd6, 0x3f4a3c, 0.88))
+    const key = new THREE.DirectionalLight(0xf0f3ee, 0.82)
+    key.position.set(0.28, 1.05, 0.38)
     key.castShadow = renderer.shadowMap.enabled
     key.shadow.mapSize.set(quality === 'high' ? 1024 : 512, quality === 'high' ? 1024 : 512)
     key.shadow.camera.near = 0.2
@@ -189,22 +189,20 @@ export function KellyKettleScene({
     key.shadow.bias = -0.0002
     key.shadow.normalBias = 0.01
     scene.add(key)
-    const fill = new THREE.DirectionalLight(0xdde4ee, 0.4)
-    fill.position.set(-0.6, 0.35, -0.2)
+    const fill = new THREE.DirectionalLight(0xb7c4bc, 0.36)
+    fill.position.set(-0.55, 0.4, -0.15)
     scene.add(fill)
-    const rim = new THREE.DirectionalLight(0xffc58a, 0.35)
-    rim.position.set(-0.15, 0.12, -0.55)
+    const rim = new THREE.DirectionalLight(0xc5d0c8, 0.22)
+    rim.position.set(-0.2, 0.18, -0.55)
     scene.add(rim)
 
-    const floorGeo = new THREE.CircleGeometry(0.85, 48)
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: COLORS.floor,
-      roughness: 0.92,
-      metalness: 0,
-    })
+    const floorGeo = new THREE.CircleGeometry(0.28, 48)
+    const floorMat = new THREE.ShadowMaterial({ opacity: 0.38 })
     const floor = new THREE.Mesh(floorGeo, floorMat)
     floor.rotation.x = -Math.PI / 2
+    floor.position.y = 0.0006
     floor.receiveShadow = true
+    floor.renderOrder = -2
     scene.add(floor)
     const blob = createContactBlob()
     scene.add(blob.mesh)
@@ -389,6 +387,7 @@ export function KellyKettleScene({
         emberIntensity: debug.emberIntensity,
         chimneyFlameHeight: debug.chimneyFlameHeight,
         mobile: debug.mobilePerformance || quality === 'mobile',
+        cutaway,
       })
       particles.update(
         dt,

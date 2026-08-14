@@ -72,22 +72,39 @@ export function kettleOuterProfile(): Vector2[] {
   )
 }
 
-/** Open inner shaft only — no horizontal caps. */
+/** Height where the kettle shoulder hands the neck to the chimney tube. */
+export const CHIMNEY_NECK_JOIN_Y = KETTLE_H * 0.88
+
+/** Water-facing / neck exterior of the flue — open at both ends, stops at the water jacket. */
 export function chimneyOuterProfile(): Vector2[] {
+  const joinR = 0.4 * BODY_R
+  const topR = 0.41 * BODY_R
   return line(
     [
-      v(CHIMNEY_BOT_R, -0.012),
+      v(CHIMNEY_BOT_R, 0.01),
       v(CHIMNEY_BOT_R - 0.001, 0.04),
       v(CHIMNEY_TOP_R + 0.0015, KETTLE_H * 0.7),
-      v(CHIMNEY_TOP_R + 0.0008, KETTLE_H * 0.9),
+      v(joinR, CHIMNEY_NECK_JOIN_Y),
+      v(topR, KETTLE_H),
     ],
     1,
   )
 }
 
+/** Flue interior, concentric with the outer wall, open at both ends. */
 export function chimneyInnerProfile(): Vector2[] {
-  const r = CHIMNEY_TOP_R - 0.0011
-  return line([v(r, -0.014), v(r, KETTLE_H + 0.0004)], 2)
+  const joinR = 0.4 * BODY_R - WALL
+  const topR = 0.41 * BODY_R - WALL
+  return line(
+    [
+      v(CHIMNEY_BOT_R - WALL, 0.01),
+      v(CHIMNEY_BOT_R - 0.001 - WALL, 0.04),
+      v(CHIMNEY_TOP_R + 0.0015 - WALL, KETTLE_H * 0.7),
+      v(joinR, CHIMNEY_NECK_JOIN_Y),
+      v(topR, KETTLE_H),
+    ],
+    1,
+  )
 }
 
 export function waterOuterProfile(): Vector2[] {
