@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_CRM_LOCAL_PASSWORD?: string
   /** ICM client demo unlock password (default: volimte) */
   readonly VITE_ICM_DEMO_PASSWORD?: string
+  /** Kelly Kettle client demo unlock password (default: kettle) */
+  readonly VITE_KELLY_KETTLE_DEMO_PASSWORD?: string
 }
 
 interface ImportMeta {

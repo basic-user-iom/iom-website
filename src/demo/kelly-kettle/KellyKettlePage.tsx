@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ComponentType } from 'react'
+import { useCallback, useEffect, useRef, useState, type ComponentType, type FormEvent } from 'react'
+import { isKellyKettleUnlocked, tryCrmEmbedUnlock, unlockKellyKettle } from './auth'
 import { HowItWorksSchematic } from './HowItWorksSchematic'
 import { IntroPicture } from './IntroPicture'
 import { IntroVideo } from './IntroVideo'
@@ -28,7 +29,60 @@ function loadStatusText(phase: Phase, progress: number, transferred: number) {
   return 'Interactive model ready'
 }
 
+function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(false)
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (unlockKellyKettle(password)) {
+      setError(false)
+      onUnlock()
+      return
+    }
+    setError(true)
+  }
+
+  return (
+    <div className="kk-page kk-page--gate">
+      <div className="kk-gate">
+        <div className="kk-gate__panel">
+          <p className="kk-gate__brand">Kelly Kettle · Base Camp 1.6 L</p>
+          <p className="kk-gate__hint">Private client preview. Enter the password to continue.</p>
+          <form className="kk-gate__form" onSubmit={submit}>
+            <input
+              className="kk-gate__input"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value)
+                setError(false)
+              }}
+              autoFocus
+            />
+            <button className="kk-gate__submit" type="submit">
+              Enter
+            </button>
+            {error ? <p className="kk-gate__error">Incorrect password.</p> : null}
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function KellyKettlePage() {
+  const [unlocked, setUnlocked] = useState(
+    () => (typeof window === 'undefined' ? false : isKellyKettleUnlocked() || tryCrmEmbedUnlock()),
+  )
+  if (!unlocked) return <PasswordGate onUnlock={() => setUnlocked(true)} />
+  return <KellyKettleUnlockedPage />
+}
+
+function KellyKettleUnlockedPage() {
   const [phase, setPhase] = useState<Phase>('intro')
   const [progress, setProgress] = useState(0)
   const [transferred, setTransferred] = useState(0)

@@ -81,6 +81,23 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     ],
   },
   {
+    id: 'kelly-kettle',
+    name: 'Kelly Kettle',
+    client: 'Client pitch — Base Camp 1.6 L concept demonstration',
+    status: 'preview',
+    path: '/demos/kelly-kettle/',
+    password: 'kettle',
+    blurb:
+      'Private demo: how a Kelly Kettle heats water through a chimney fire. Cutaway 3D model plus an illustrated how-it-works board. Not linked from the public homepage.',
+    tags: ['Product', 'WebGL', 'Cutaway'],
+    images: [
+      '/demos/kelly-kettle/forest-background.png',
+      '/media/kettle-how-heat.webp',
+      '/media/kettle-how-fire.webp',
+      '/media/kettle-how-water.webp',
+    ],
+  },
+  {
     id: 'bas-rutten',
     name: 'Bas Rutten',
     client: 'Client pitch — official Bas Rutten website redesign',

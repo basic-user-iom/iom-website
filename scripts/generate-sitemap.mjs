@@ -63,11 +63,13 @@ function parseProjectUrls() {
   return urls
 }
 
+const PRIVATE_DEMO_FOLDERS = new Set(['kelly-kettle'])
+
 function demoUrls() {
   const demosDir = join(root, 'public', 'demos')
   try {
     return readdirSync(demosDir, { withFileTypes: true })
-      .filter((d) => d.isDirectory())
+      .filter((d) => d.isDirectory() && !PRIVATE_DEMO_FOLDERS.has(d.name))
       .map((d) => `/demos/${d.name}/`)
   } catch {
     return []

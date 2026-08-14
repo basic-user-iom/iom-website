@@ -77,6 +77,85 @@ html.kk-route.is-demo #root {
   overflow: hidden;
 }
 
+.kk-page--gate {
+  min-height: 100dvh;
+}
+
+.kk-gate {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+
+.kk-gate__panel {
+  width: min(360px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.kk-gate__brand {
+  margin: 0;
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.kk-gate__hint {
+  margin: 0;
+  color: var(--kk-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.kk-gate__form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.kk-gate__input {
+  width: 100%;
+  border: 1px solid var(--kk-line);
+  background: var(--kk-paper);
+  color: var(--kk-ink);
+  padding: 0.85rem 1rem;
+  font: inherit;
+  outline: none;
+  border-radius: 10px;
+}
+
+.kk-gate__input:focus {
+  border-color: var(--kk-green);
+}
+
+.kk-gate__submit {
+  border: 1px solid var(--kk-green-deep);
+  background: var(--kk-green);
+  color: #f7f4ee;
+  padding: 0.85rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.kk-gate__submit:hover {
+  background: var(--kk-green-deep);
+}
+
+.kk-gate__error {
+  margin: 0;
+  color: #8a1f1f;
+  font-size: 0.85rem;
+}
+
 .kk-page *,
 .kk-page *::before,
 .kk-page *::after {
