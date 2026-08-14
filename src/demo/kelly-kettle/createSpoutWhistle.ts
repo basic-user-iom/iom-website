@@ -26,26 +26,22 @@ function mesh(name: string, geometry: Mesh['geometry'], material: Mesh['material
   return m
 }
 
-function mouldedArrowGeo() {
-  const shape = new Shape()
-  shape.moveTo(0.0036, 0)
-  shape.lineTo(-0.0014, 0.00105)
-  shape.lineTo(-0.0014, 0.00038)
-  shape.lineTo(-0.0032, 0.00038)
-  shape.lineTo(-0.0032, -0.00038)
-  shape.lineTo(-0.0014, -0.00038)
-  shape.lineTo(-0.0014, -0.00105)
-  shape.closePath()
-  return new ExtrudeGeometry(shape, { depth: 0.00022, bevelEnabled: false, curveSegments: 4 })
-}
-
 function greenEyeGeo() {
   const shape = new Shape()
-  shape.absellipse(0.0036, 0, 0.0039, 0.0027, 0, Math.PI * 2, false, 0)
+  shape.absellipse(0, 0, 0.004, 0.0031, 0, Math.PI * 2, false, 0)
   const hole = new Path()
-  hole.absarc(0.004, 0, 0.00135, 0, Math.PI * 2, true)
+  hole.absarc(0, 0, 0.00145, 0, Math.PI * 2, true)
   shape.holes.push(hole)
-  return new ExtrudeGeometry(shape, { depth: 0.0028, bevelEnabled: true, bevelThickness: 0.00012, bevelSize: 0.0001, bevelSegments: 1, curveSegments: 20 })
+  const geometry = new ExtrudeGeometry(shape, {
+    depth: 0.0024,
+    bevelEnabled: true,
+    bevelThickness: 0.00012,
+    bevelSize: 0.0001,
+    bevelSegments: 2,
+    curveSegments: 32,
+  })
+  geometry.translate(0, 0, -0.0012)
+  return geometry
 }
 
 export type SpoutWhistleAssembly = {
@@ -98,7 +94,7 @@ export function createSpoutWhistle(mats: KettleMaterials, outerPts: Profile): Sp
     whistle.rotateY(-Math.atan2(onDisc.dot(localZ), onDisc.dot(localX)))
   }
 
-  const segs = 80
+  const segs = 96
   const lowerPts = [
     new Vector2(SPOUT_R + 0.0004, -0.0082),
     new Vector2(0.0142, -0.004),
@@ -113,55 +109,26 @@ export function createSpoutWhistle(mats: KettleMaterials, outerPts: Profile): Sp
     new Vector2(0.0134, 0.0088),
     new Vector2(0.0122, 0.0098),
     new Vector2(0.0114, 0.0136),
-    new Vector2(0.0088, 0.015),
-    new Vector2(0.0042, 0.0154),
-    new Vector2(0.0, 0.0155),
+    new Vector2(0.0098, 0.0149),
+    new Vector2(0.0088, 0.01555),
+    new Vector2(0.0038, 0.01568),
+    new Vector2(0.0, 0.0157),
   ]
   const topDisc = mesh('whistle_green_top_disc', new LatheGeometry(topPts, segs), mats.whistle)
   topDisc.geometry.computeVertexNormals()
 
-  const faceRing = mesh(
-    'whistle_face_ring',
-    new TorusGeometry(0.0088, 0.00028, 10, segs),
-    mats.whistle,
-    false,
-  )
-  faceRing.rotation.x = Math.PI / 2
-  faceRing.position.y = 0.01542
-
-  const vent = mesh(
-    'whistle_top_vent',
-    new CylinderGeometry(0.00105, 0.00105, 0.00055, 24),
-    mats.whistleDark,
-    false,
-  )
-  vent.position.y = 0.01528
-
-  const arrow = mesh('whistle_arrow', mouldedArrowGeo(), mats.whistle, false)
-  arrow.position.set(0.00035, 0.01558, 0)
-  arrow.rotation.x = -Math.PI / 2
-
-  const plate = mesh(
-    'whistle_internal_metal_plate',
-    new CylinderGeometry(0.0118, 0.0118, 0.0007, 48),
-    mats.steelSatin,
-    false,
-  )
-  plate.position.y = -0.0065
-
   const eye = mesh('whistle_green_attachment_tab', greenEyeGeo(), mats.whistle)
   eye.rotation.y = Math.PI / 2
-  eye.position.set(0.001, 0.0016, 0.0142)
+  eye.position.set(0, 0.0016, 0.0163)
 
   const splitRing = mesh(
     'whistle_split_ring',
-    new TorusGeometry(0.00235, 0.00034, 10, 24),
+    new TorusGeometry(0.00265, 0.00034, 12, 32),
     mats.steelSmooth,
     false,
   )
-  splitRing.position.set(0.001, 0.0016, 0.0194)
+  splitRing.position.set(0, 0.0016, 0.019)
   splitRing.rotation.x = Math.PI / 2
-  splitRing.rotation.z = 0.4
 
   const steam = mesh(
     'whistle_steam_puff',
@@ -178,7 +145,7 @@ export function createSpoutWhistle(mats: KettleMaterials, outerPts: Profile): Sp
   )
   steam.position.set(0.012, 0.006, 0)
 
-  whistle.add(lower, topDisc, faceRing, vent, arrow, plate, eye, splitRing, steam)
+  whistle.add(lower, topDisc, eye, splitRing, steam)
   spout.add(whistle)
 
   const lift = axis.clone().multiplyScalar(0.036)

@@ -515,20 +515,39 @@ html.kk-route.is-demo #root {
 .kk-intro {
   max-width: 1440px;
   margin: 0 auto;
-  padding: 1.4rem 1.5rem 3.2rem;
+  padding: 1.1rem 1.5rem 2rem;
 }
 
 .kk-intro-grid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: 1.15rem 1.75rem;
-  align-items: start;
+  grid-template-columns: minmax(17.5rem, 0.92fr) minmax(0, 1.35fr) minmax(13rem, 0.78fr);
+  grid-template-rows: minmax(22rem, min(30rem, 58vh)) auto;
+  gap: 0.75rem 0.9rem;
+  align-items: stretch;
 }
 
 .kk-intro-copy {
-  grid-column: 1 / 6;
+  grid-column: 1;
   grid-row: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 1.15rem;
+}
+
+.kk-hero-photo {
+  grid-column: 2;
+  grid-row: 1;
+  margin: 0;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--kk-line);
+  border-radius: 14px;
+  background: var(--kk-paper);
+  box-shadow: 0 8px 20px rgba(44, 42, 38, 0.06);
 }
 
 .kk-hero-photo picture {
@@ -538,28 +557,42 @@ html.kk-route.is-demo #root {
 }
 
 .kk-intro-cta {
-  grid-column: 1 / 6;
-  grid-row: 2;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.7rem;
+  gap: 0.65rem;
   min-width: 0;
 }
 
 .kk-intro-media {
-  grid-column: 6 / 13;
-  grid-row: 2;
+  grid-column: 3;
+  grid-row: 1;
   display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-  grid-template-rows: auto auto;
-  gap: 0.85rem;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1.4fr 1fr 1fr;
+  gap: 0.65rem;
   min-width: 0;
+  min-height: 0;
+  height: 100%;
 }
 
 .kk-intro-media .kk-video-card {
-  grid-column: 1;
-  grid-row: 1 / 3;
+  grid-column: 1 / -1;
+  min-height: 0;
+}
+
+.kk-intro-media .kk-video-card__frame {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 10rem;
+}
+
+.kk-intro-media .kk-support-card--whistle {
+  grid-column: 1 / -1;
+}
+
+.kk-support-card--whistle .kk-media-img {
+  object-position: 18% 42%;
 }
 
 .kk-eyebrow {
@@ -710,14 +743,21 @@ html.kk-route.is-demo #root {
   min-height: 0;
 }
 
-.kk-support-card picture {
-  aspect-ratio: 4 / 3;
+.kk-intro-media .kk-support-card,
+.kk-intro-media .kk-video-card {
+  height: 100%;
+  min-height: 0;
+}
+
+.kk-intro-media .kk-support-card picture {
+  aspect-ratio: auto;
+  height: 100%;
+  min-height: 0;
   overflow: hidden;
-  background: var(--kk-paper);
 }
 
 .kk-support-card .kk-media-img {
-  object-fit: contain;
+  object-fit: cover;
 }
 
 .kk-support-card figcaption {
@@ -728,24 +768,34 @@ html.kk-route.is-demo #root {
 }
 
 .kk-field-video {
-  margin-top: 2.4rem;
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .kk-field-video__head {
-  max-width: 40rem;
-  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  max-width: none;
+  margin-bottom: 0;
 }
 
 .kk-field-video__head h2 {
-  margin: 0 0 0.45rem;
+  margin: 0;
   font-family: var(--display);
-  font-size: clamp(1.35rem, 2vw, 1.7rem);
+  font-size: 1.05rem;
 }
 
 .kk-field-video__head p {
   margin: 0;
   color: var(--kk-muted);
-  line-height: 1.55;
+  font-size: 0.84rem;
+  line-height: 1.4;
 }
 
 .kk-yt-card {
@@ -758,7 +808,8 @@ html.kk-route.is-demo #root {
 
 .kk-yt-card__frame {
   position: relative;
-  aspect-ratio: 16 / 9;
+  width: 100%;
+  height: 190px;
 }
 
 .kk-yt-card__iframe {
@@ -769,15 +820,15 @@ html.kk-route.is-demo #root {
   border: 0;
 }
 
-.kk-yt-card picture,
 .kk-yt-card .kk-media-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 40%;
 }
 
 .kk-how {
-  margin-top: 2.4rem;
+  margin-top: 2rem;
 }
 
 .kk-how__head {
@@ -809,7 +860,7 @@ html.kk-route.is-demo #root {
 }
 
 .kk-crossfade__schematic {
-  padding: 2.6rem 3rem;
+  padding: 2rem 2.4rem;
   transition: opacity 0.55s ease;
 }
 
@@ -819,10 +870,10 @@ html.kk-route.is-demo #root {
 
 .kk-how-board {
   display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 1fr);
-  gap: 1.75rem 2.25rem;
+  grid-template-columns: minmax(0, 1.3fr) minmax(17rem, 1fr);
+  gap: 2rem;
   align-items: center;
-  min-height: 430px;
+  min-height: 480px;
 }
 
 .kk-schematic-col {
@@ -830,7 +881,7 @@ html.kk-route.is-demo #root {
   align-items: center;
   justify-content: center;
   min-width: 0;
-  min-height: 430px;
+  min-height: 480px;
 }
 
 .kk-schematic {
@@ -838,6 +889,7 @@ html.kk-route.is-demo #root {
   width: auto;
   height: min(480px, 72vh);
   max-width: 100%;
+  aspect-ratio: 14 / 15;
   margin: 0 auto;
 }
 
@@ -846,16 +898,18 @@ html.kk-route.is-demo #root {
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 0.55rem;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 34rem;
 }
 
 .kk-how-step {
   display: grid;
-  grid-template-columns: 2.1rem minmax(0, 1fr);
-  gap: 0.7rem;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: 0.85rem;
   width: 100%;
   margin: 0;
-  padding: 0.7rem 0.8rem;
+  padding: 0.85rem 0.9rem;
   border: 1px solid transparent;
   border-radius: 12px;
   background: transparent;
@@ -866,10 +920,15 @@ html.kk-route.is-demo #root {
 }
 
 .kk-how-step:hover,
-.kk-how-step:focus-visible,
-.kk-how-step.is-on {
+.kk-how-step:focus-visible {
   border-color: var(--kk-line);
   background: rgba(255, 255, 255, 0.42);
+}
+
+.kk-how-step.is-on {
+  border-color: rgba(61, 92, 69, 0.3);
+  background: rgba(61, 92, 69, 0.055);
+  box-shadow: inset 3px 0 0 var(--kk-green);
 }
 
 .kk-how-step:focus-visible {
@@ -878,12 +937,27 @@ html.kk-route.is-demo #root {
 }
 
 .kk-how-step__num {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 999px;
   font-family: var(--display);
-  font-size: 0.78rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--kk-muted);
-  padding-top: 0.12rem;
+  transition:
+    color 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
+}
+
+.kk-how-step.is-on .kk-how-step__num {
+  border-color: var(--kk-green);
+  background: var(--kk-green);
+  color: var(--kk-paper);
 }
 
 .kk-how-step__copy {
@@ -893,13 +967,14 @@ html.kk-route.is-demo #root {
 }
 
 .kk-how-step__title {
-  font-size: 0.95rem;
-  font-weight: 500;
+  font-size: 1.05rem;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .kk-how-step__body {
-  font-size: 0.82rem;
+  max-width: 32rem;
+  font-size: 0.875rem;
   line-height: 1.45;
   color: var(--kk-muted);
 }
@@ -912,14 +987,17 @@ html.kk-route.is-demo #root {
 .kk-how-board.is-fire .kk-hl:not(.kk-hl-fire),
 .kk-how-board.is-heat .kk-hl:not(.kk-hl-heat),
 .kk-how-board.is-water .kk-hl:not(.kk-hl-water) {
-  opacity: 0.38;
+  opacity: 0.72;
 }
 
 .kk-how-board.is-water .kk-hw-chimney-walls {
   filter: brightness(1.08);
 }
 
-.kk-how-board.is-air .kk-hl-air {
+.kk-how-board.is-air .kk-hl-air,
+.kk-how-board.is-fire .kk-hl-fire,
+.kk-how-board.is-heat .kk-hl-heat,
+.kk-how-board.is-water .kk-hl-water {
   opacity: 1;
 }
 
@@ -929,18 +1007,6 @@ html.kk-route.is-demo #root {
 }
 
 .kk-how-board.is-air .kk-focus-ring-air {
-  opacity: 1;
-}
-
-.kk-leader {
-  opacity: 0;
-  transition: opacity 0.25s ease;
-}
-
-.kk-how-board.is-air .kk-leader-air,
-.kk-how-board.is-fire .kk-leader-fire,
-.kk-how-board.is-heat .kk-leader-heat,
-.kk-how-board.is-water .kk-leader-water {
   opacity: 1;
 }
 
@@ -1033,6 +1099,7 @@ html.kk-route.is-demo #root {
 .kk-bubble--c {
   transform-box: fill-box;
   transform-origin: center;
+  fill: rgba(255, 255, 255, 0.58);
 }
 
 .kk-bubble--a {
@@ -1059,10 +1126,12 @@ html.kk-route.is-demo #root {
 
 @keyframes kk-heat-rise {
   from {
-    transform: translateY(18px);
+    transform: translateY(7px);
+    opacity: 0.76;
   }
   to {
-    transform: translateY(-36px);
+    transform: translateY(-12px);
+    opacity: 1;
   }
 }
 
@@ -1121,25 +1190,51 @@ html.kk-route.is-demo #root {
 
 @media (max-width: 959px) {
   .kk-intro {
-    padding: 1rem 1rem 2.4rem;
+    padding: 1rem 1rem 1.8rem;
   }
-  .kk-intro-copy,
-  .kk-hero-photo,
-  .kk-intro-cta,
-  .kk-intro-media {
-    grid-column: 1 / -1;
+  .kk-intro-grid {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto;
   }
   .kk-intro-copy {
-    grid-row: 1;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    gap: 1rem;
   }
   .kk-hero-photo {
-    grid-row: 2;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    min-height: 16rem;
+    aspect-ratio: 4 / 3;
   }
-  .kk-intro-cta {
-    grid-row: 3;
+  .kk-hero-photo picture {
+    min-height: 16rem;
   }
   .kk-intro-media {
-    grid-row: 4;
+    grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(12rem, 28vw) auto;
+  }
+  .kk-intro-media .kk-video-card {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+  .kk-intro-media .kk-support-card--whistle {
+    grid-column: auto;
+  }
+  .kk-intro-media .kk-video-card__frame {
+    min-height: 12rem;
+  }
+  .kk-field-video {
+    grid-column: 1 / -1;
+    grid-row: auto;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+  }
+  .kk-yt-card__frame {
+    height: auto;
+    aspect-ratio: 16 / 9;
   }
   .kk-page--intro .kk-title {
     max-width: none;
@@ -1147,33 +1242,49 @@ html.kk-route.is-demo #root {
   }
 }
 
-@media (max-width: 719px) {
+@media (max-width: 767px) {
   .kk-intro-media {
     grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto;
   }
   .kk-intro-media .kk-video-card {
     grid-column: 1 / -1;
     grid-row: 1;
   }
+  .kk-intro-media .kk-support-card--whistle {
+    grid-column: 1 / -1;
+  }
   .kk-crossfade__schematic {
-    padding: 1.4rem 1.15rem 1.6rem;
+    padding: 1.35rem 1.1rem 1.55rem;
+  }
+  .kk-crossfade {
+    min-height: 0;
   }
   .kk-how-board {
     grid-template-columns: 1fr;
-    gap: 1.1rem;
+    gap: 1.3rem;
     min-height: 0;
   }
   .kk-schematic-col {
     min-height: 0;
   }
   .kk-schematic {
-    height: min(460px, 68vh);
+    width: min(100%, 30rem);
+    height: auto;
+    max-height: none;
+  }
+  .kk-how-steps {
+    max-width: none;
+    gap: 0.65rem;
+  }
+  .kk-how-step {
+    padding: 0.8rem;
   }
 }
 
-@media (min-width: 720px) and (max-width: 959px) {
+@media (min-width: 768px) and (max-width: 959px) {
   .kk-how-board {
-    grid-template-columns: minmax(0, 1.2fr) minmax(14rem, 1fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(15rem, 1fr);
   }
 }
 
@@ -1185,7 +1296,6 @@ html.kk-route.is-demo #root {
   .kk-crossfade__viewer {
     transition: none;
   }
-  .schematic-animation,
   .airflow,
   .heat-flow,
   .ember,

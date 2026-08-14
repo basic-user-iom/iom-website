@@ -35,7 +35,7 @@ import {
   chimneyOuterProfile,
   clipProfileY,
   fireBaseFloorProfile,
-  fireBaseSeatProfile,
+  fireBaseUpperSeatProfile,
   fireBaseWallProfile,
   kettleOuterProfile,
   offsetProfile,
@@ -330,7 +330,6 @@ function buildFireBase(mats: KettleMaterials, segs: number) {
   const holeHi = AIR_HOLE_Y + AIR_HOLE_R
   const below = clipProfileY(wall, wall[0].y, holeLo)
   const midUpper = clipProfileY(wall, holeHi, splitY)
-  const upper = clipProfileY(wall, splitY - 0.0008, wall[wall.length - 1].y)
 
   const wallMat = mats.steelBase.clone()
   wallMat.side = DoubleSide
@@ -367,8 +366,7 @@ function buildFireBase(mats: KettleMaterials, segs: number) {
     mesh('fire_base_below_hole', lathe(below, segs), lowerMat),
     airHole,
     mesh('fire_base_above_hole', lathe(midUpper, segs), lowerMat),
-    mesh('fire_base_upper', lathe(upper, segs), wallMat),
-    mesh('fire_base_seat', lathe(fireBaseSeatProfile(), segs), wallMat),
+    mesh('fire_base_seat', lathe(fireBaseUpperSeatProfile(), segs), wallMat),
     chamber,
   )
   return { fireBase: group, airHole }

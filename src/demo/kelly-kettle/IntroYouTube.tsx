@@ -33,7 +33,7 @@ export function IntroYouTube() {
               alt="Kelly Kettle boiling water outdoors, from the official product film"
               width={1280}
               height={720}
-              sizes="(min-width: 1100px) 1440px, 100vw"
+    sizes="(min-width: 1100px) 900px, 100vw"
               className="kk-media-img"
             />
             <span className="kk-video-card__overlay">

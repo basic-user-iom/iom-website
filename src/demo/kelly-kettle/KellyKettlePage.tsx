@@ -108,7 +108,8 @@ export function KellyKettlePage() {
 
       <div className="kk-intro">
         <div className="kk-intro-grid">
-            <div className="kk-intro-copy">
+          <div className="kk-intro-copy">
+            <div className="kk-intro-copy__text">
               <p className="kk-eyebrow">Kelly Kettle · Base Camp 1.6 L</p>
               <h1 className="kk-title">Why the fire runs through the water</h1>
               <p className="kk-lead">
@@ -116,19 +117,6 @@ export function KellyKettlePage() {
                 The full 3D experience loads only when you choose to open it.
               </p>
             </div>
-
-            <figure className="kk-hero-photo">
-              <IntroPicture
-                name="kettle-hero"
-                alt="Outdoor Kelly Kettle Base Camp being lifted from its fire base, with the green whistle on the spout and glowing embers visible through the single circular air opening"
-                width={700}
-                height={700}
-                sizes="(min-width: 1100px) 720px, (min-width: 720px) 58vw, 100vw"
-                priority
-                className="kk-media-img"
-              />
-            </figure>
-
             <div className="kk-intro-cta">
               {webgl ? (
                 <button
@@ -155,41 +143,65 @@ export function KellyKettlePage() {
                 <li>Food-grade stainless steel</li>
               </ul>
             </div>
+          </div>
 
-            <div className="kk-intro-media">
-              <IntroVideo />
-              <figure className="kk-support-card">
-                <IntroPicture
-                  name="kettle-fire-base"
-                  alt="Close-up of the Kelly Kettle stainless-steel fire base with one circular air opening and glowing embers inside"
-                  width={400}
-                  height={250}
-                  sizes="(min-width: 1100px) 280px, (min-width: 720px) 28vw, 46vw"
-                  className="kk-media-img"
-                />
-                <figcaption>Fire base · single air opening</figcaption>
-              </figure>
-              <figure className="kk-support-card">
-                <IntroPicture
-                  name="kettle-handle"
-                  alt="Kelly Kettle wire handle with a wooden grip wrapped in a thin clear PVC sleeve and J-hooks at both ends"
-                  width={640}
-                  height={640}
-                  sizes="(min-width: 1100px) 280px, (min-width: 720px) 28vw, 46vw"
-                  className="kk-media-img"
-                />
-                <figcaption>Wire handle and wooden grip</figcaption>
-              </figure>
-            </div>
+          <figure className="kk-hero-photo">
+            <IntroPicture
+              name="kettle-hero"
+              alt="Outdoor Kelly Kettle Base Camp being lifted from its fire base, with the green whistle on the spout and glowing embers visible through the single circular air opening"
+              width={700}
+              height={700}
+              sizes="(min-width: 1100px) 520px, (min-width: 720px) 42vw, 100vw"
+              priority
+              className="kk-media-img"
+            />
+          </figure>
+
+          <div className="kk-intro-media">
+            <IntroVideo />
+            <figure className="kk-support-card">
+              <IntroPicture
+                name="kettle-fire-base"
+                alt="Close-up of the Kelly Kettle stainless-steel fire base with one circular air opening and glowing embers inside"
+                width={400}
+                height={250}
+                sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
+                className="kk-media-img"
+              />
+              <figcaption>Fire base · single air opening</figcaption>
+            </figure>
+            <figure className="kk-support-card">
+              <IntroPicture
+                name="kettle-handle"
+                alt="Kelly Kettle wire handle with a wooden grip wrapped in a thin clear PVC sleeve and J-hooks at both ends"
+                width={640}
+                height={640}
+                sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
+                className="kk-media-img"
+              />
+              <figcaption>Wire handle and wooden grip</figcaption>
+            </figure>
+            <figure className="kk-support-card kk-support-card--whistle">
+              <IntroPicture
+                name="kettle-whistle"
+                alt="Green Kelly Kettle whistle seated on the angled metal spout, with a small tether ring at the side"
+                width={400}
+                height={640}
+                sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
+                className="kk-media-img"
+              />
+              <figcaption>Green whistle on the spout</figcaption>
+            </figure>
           </div>
 
           <section className="kk-field-video" aria-labelledby="kk-field-video-title">
             <div className="kk-field-video__head">
               <h2 id="kk-field-video-title">Kelly Kettle in use</h2>
-              <p>Official film of boiling water and cooking with the kettle outdoors.</p>
+              <p>Official film of boiling water and cooking outdoors.</p>
             </div>
             <IntroYouTube />
           </section>
+        </div>
 
           <section className="kk-how" ref={howRef} id="how-it-works">
             <div className="kk-how__head">

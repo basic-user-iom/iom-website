@@ -138,20 +138,38 @@ export function fireBaseWallProfile(): Vector2[] {
   )
 }
 
-/** Thin rolled lip hugging the kettle. */
-export function fireBaseSeatProfile(): Vector2[] {
-  const kettleR = BODY_R * 0.96
-  return line(
+/**
+ * One closed, full-revolution upper wall and receiving seat.
+ * The inner face follows the kettle's lower profile with a small clearance;
+ * the return path supplies real sheet thickness without a second overlapping
+ * lathe at the rolled rim.
+ */
+export function fireBaseUpperSeatProfile(): Vector2[] {
+  const thickness = 0.0008
+  const clearance = 0.00072
+  const lower = BASE_R * 0.855
+  const kettle = kettleOuterProfile()
+  const seatRadius = (worldY: number) =>
+    sampleRadius(kettle, worldY - SEAT_Y) + clearance
+  const inner = line(
     [
-      v(BASE_R - 0.0012, BASE_H - 0.0006),
-      v(BASE_R - 0.0055, BASE_H + 0.0005),
-      v(kettleR + 0.004, SEAT_Y + 0.0022),
-      v(kettleR + 0.0014, SEAT_Y),
-      v(kettleR - 0.0035, SEAT_Y - 0.0028),
-      v(kettleR - 0.011, SEAT_Y - 0.007),
+      v(lower + 0.0006, BASE_H * 0.63),
+      v(lower + 0.004, BASE_H * 0.72),
+      v(BASE_R - 0.0022, BASE_H - 0.004),
+      v(BASE_R - thickness, BASE_H - 0.0012),
+      v(BASE_R - thickness, BASE_H - 0.0004),
+      v(BASE_R - 0.006, BASE_H + 0.0002),
+      v(seatRadius(SEAT_Y + 0.0035), SEAT_Y + 0.0035),
+      v(seatRadius(SEAT_Y + 0.0005), SEAT_Y + 0.0005),
+      v(seatRadius(SEAT_Y - 0.0015), SEAT_Y - 0.0015),
+      v(seatRadius(SEAT_Y - 0.005), SEAT_Y - 0.005),
     ],
     1,
   )
+  const outer = inner
+    .map((point) => v(Math.min(BASE_R, point.x + thickness), point.y))
+    .reverse()
+  return [...inner, ...outer, inner[0].clone()]
 }
 
 export function clipProfileY(points: Vector2[], minY: number, maxY: number): Vector2[] {

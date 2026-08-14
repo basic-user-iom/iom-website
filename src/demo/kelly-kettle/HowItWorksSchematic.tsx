@@ -30,7 +30,7 @@ const STEPS: { id: StepId; num: string; title: string; body: string }[] = [
 ]
 
 export function HowItWorksSchematic() {
-  const [selected, setSelected] = useState<StepId | null>(null)
+  const [selected, setSelected] = useState<StepId | null>('air')
   const [hovered, setHovered] = useState<StepId | null>(null)
   const focus = hovered ?? selected
 
@@ -39,265 +39,370 @@ export function HowItWorksSchematic() {
       <div className="kk-schematic-col">
         <svg
           className="kk-schematic"
-          viewBox="0 0 400 640"
+          viewBox="0 0 560 600"
           role="img"
           aria-labelledby="kk-schematic-title kk-schematic-desc"
         >
           <title id="kk-schematic-title">How the Kelly Kettle works</title>
           <desc id="kk-schematic-desc">
-            Cutaway of a Kelly Kettle. Cool air enters a single circular opening in the separate fire
-            base. A small fire burns beneath the open central chimney. Heat rises through that
-            chimney. Water fills the double-wall jacket around it. A green whistle sits on the angled
-            spout.
+            Cutaway of a Kelly Kettle. Three cool-air arrows enter the single opening in its separate
+            fire base. A small fire heats a hollow central chimney while water surrounds the chimney
+            inside the kettle&apos;s double wall.
           </desc>
 
           <defs>
-            <linearGradient id="kk-hw-steel" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#8e969e" />
-              <stop offset="42%" stopColor="#d5dbe0" />
-              <stop offset="100%" stopColor="#9aa3ab" />
+            <linearGradient id="kk-schematic-steel" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#899198" />
+              <stop offset="24%" stopColor="#c4cbd0" />
+              <stop offset="52%" stopColor="#edf0f2" />
+              <stop offset="76%" stopColor="#b7bec4" />
+              <stop offset="100%" stopColor="#858d94" />
             </linearGradient>
-            <linearGradient id="kk-hw-steel-v" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#cfd6dc" />
-              <stop offset="55%" stopColor="#b4bcc3" />
-              <stop offset="100%" stopColor="#8f979e" />
+            <linearGradient id="kk-schematic-steel-v" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#dce1e4" />
+              <stop offset="45%" stopColor="#b7bec4" />
+              <stop offset="100%" stopColor="#8c949a" />
             </linearGradient>
-            <linearGradient id="kk-hw-water" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="rgba(130, 176, 196, 0.34)" />
-              <stop offset="48%" stopColor="rgba(168, 208, 222, 0.55)" />
-              <stop offset="100%" stopColor="rgba(130, 176, 196, 0.34)" />
+            <linearGradient id="kk-water-fill" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4f91ad" stopOpacity="0.48" />
+              <stop offset="48%" stopColor="#8ccce0" stopOpacity="0.72" />
+              <stop offset="100%" stopColor="#5b9db9" stopOpacity="0.54" />
             </linearGradient>
-            <linearGradient id="kk-hw-heat" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="#c45a28" stopOpacity="0.92" />
-              <stop offset="38%" stopColor="#e3943a" stopOpacity="0.58" />
-              <stop offset="72%" stopColor="#f3d48a" stopOpacity="0.22" />
-              <stop offset="100%" stopColor="#f3efe6" stopOpacity="0" />
+            <linearGradient id="kk-heat-fill" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#cf5d29" stopOpacity="0.82" />
+              <stop offset="36%" stopColor="#e79037" stopOpacity="0.62" />
+              <stop offset="70%" stopColor="#f0bd63" stopOpacity="0.3" />
+              <stop offset="100%" stopColor="#f8e6b3" stopOpacity="0.06" />
             </linearGradient>
-            <linearGradient id="kk-hw-base" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#c5ccd2" />
-              <stop offset="100%" stopColor="#8a9299" />
+            <linearGradient id="kk-base-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#cbd1d5" />
+              <stop offset="100%" stopColor="#858d93" />
             </linearGradient>
-            <clipPath id="kk-hw-chimney">
-              <path d="M176 72 C176 64 192 60 200 60 C208 60 224 64 224 72 L238 502 C238 508 208 512 200 512 C192 512 162 508 162 502 Z" />
+            <radialGradient id="kk-ember-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffd77b" stopOpacity="0.95" />
+              <stop offset="52%" stopColor="#d8662d" stopOpacity="0.78" />
+              <stop offset="100%" stopColor="#a84225" stopOpacity="0" />
+            </radialGradient>
+
+            <clipPath id="kk-water-clip">
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M178 132
+                   C161 165 158 202 160 242
+                   L164 405
+                   C165 422 174 430 188 432
+                   L372 432
+                   C386 430 395 422 396 405
+                   L400 242
+                   C402 202 399 165 382 132
+                   L340 103
+                   L220 103 Z
+                   M247 60
+                   C257 53 303 53 311 60
+                   L344 432
+                   L216 432 Z"
+              />
             </clipPath>
-            <clipPath id="kk-hw-water">
-              <path d="M148 132 C136 168 120 208 112 248 C106 320 106 390 110 444 L160 444 L164 148 L168 132 Z" />
-              <path d="M252 132 L232 132 L236 148 L240 444 L290 444 C294 390 294 320 288 248 C280 208 264 168 252 132 Z" />
+            <clipPath id="kk-body-clip">
+              <path
+                d="M228 44
+                   C240 36 320 36 332 44
+                   L336 101
+                   C338 121 351 141 376 164
+                   C393 180 400 201 398 228
+                   L394 405
+                   C393 423 386 434 374 438
+                   L186 438
+                   C174 434 167 423 166 405
+                   L162 228
+                   C160 201 167 180 184 164
+                   C209 141 222 121 224 101 Z"
+              />
             </clipPath>
-            <marker id="kk-hw-air-head" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
-              <path d="M0 0 L7 3.5 L0 7 Z" fill="#6d8aa8" />
+            <clipPath id="kk-chimney-clip">
+              <path d="M251 58 C258 52 302 52 309 58 L332 432 L228 432 Z" />
+            </clipPath>
+            <clipPath id="kk-base-opening-clip">
+              <circle cx="280" cy="519" r="34" />
+            </clipPath>
+
+            <marker id="kk-air-arrowhead" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+              <path d="M0 0 L7 3.5 L0 7 Z" fill="#6888a5" />
             </marker>
-            <marker id="kk-hw-heat-head" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-              <path d="M0 0 L6 3 L0 6 Z" fill="#c45a28" />
+            <marker id="kk-heat-arrowhead" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0 0 L6 3 L0 6 Z" fill="#ce642d" />
             </marker>
           </defs>
 
-          <ellipse cx="200" cy="618" rx="108" ry="10" fill="rgba(44,42,38,0.08)" />
+          <ellipse cx="280" cy="580" rx="152" ry="11" fill="rgba(44,42,38,0.08)" />
 
-          {/* Fire base — cylindrical cup with flared rim */}
+          {/* Separate short cylindrical fire base with one receiving rim. */}
           <g className="kk-hw-base">
             <path
-              d="M86 478
-                 C84 470 316 470 314 478
-                 L304 498
-                 C302 506 300 560 300 568
-                 C300 586 250 598 200 598
-                 C150 598 100 586 100 568
-                 C100 560 98 506 96 498 Z"
-              fill="url(#kk-hw-base)"
+              d="M138 455
+                 C160 449 400 449 422 455
+                 L414 548
+                 Q414 559 402 561
+                 L158 561
+                 Q146 559 146 548 Z"
+              fill="url(#kk-base-fill)"
+              stroke="#4a4f54"
+              strokeWidth="1.7"
+            />
+            <path
+              d="M122 444
+                 C145 436 415 436 438 444
+                 L422 462
+                 C399 469 161 469 138 462 Z"
+              fill="url(#kk-schematic-steel-v)"
               stroke="#4a4f54"
               strokeWidth="1.6"
             />
-            <path
-              d="M96 498 C110 490 290 490 304 498 L314 478 C300 472 100 472 86 478 Z"
-              fill="#d8dde2"
-              stroke="#4a4f54"
-              strokeWidth="1.3"
-            />
-            <ellipse cx="200" cy="478" rx="108" ry="9" fill="none" stroke="#4a4f54" strokeWidth="1.4" />
-            <ellipse cx="200" cy="478" rx="96" ry="7" fill="#b7bec4" opacity="0.55" />
           </g>
 
-          {/* Kettle sits in the flared rim — thin uniform seam */}
+          {/* Tall steel kettle body, including its short top neck. */}
           <path
-            d="M104 458 C108 450 292 450 296 458 L292 468 C288 474 112 474 108 468 Z"
-            fill="url(#kk-hw-steel-v)"
-            stroke="#4a4f54"
-            strokeWidth="1.5"
-          />
-          <path d="M110 462 C140 456 260 456 290 462" fill="none" stroke="#3f454a" strokeWidth="1.2" />
-
-          {/* Outer kettle silhouette */}
-          <path
-            d="M164 68
-               C174 52 226 52 236 68
-               C244 86 250 108 272 150
-               C294 178 318 198 320 226
-               L314 428
-               C312 446 302 456 288 458
-               L128 458
-               C114 456 104 446 102 428
-               L96 226
-               C98 198 122 178 144 150
-               C166 108 156 86 164 68 Z"
-            fill="url(#kk-hw-steel)"
-            stroke="#4a4f54"
-            strokeWidth="1.65"
+            className="kk-hw-outer-body"
+            d="M228 44
+               C240 36 320 36 332 44
+               L336 101
+               C338 121 351 141 376 164
+               C393 180 400 201 398 228
+               L394 405
+               C393 423 386 434 374 438
+               L186 438
+               C174 434 167 423 166 405
+               L162 228
+               C160 201 167 180 184 164
+               C209 141 222 121 224 101 Z"
+            fill="url(#kk-schematic-steel)"
+            stroke="#454b50"
+            strokeWidth="1.8"
           />
 
-          {/* Water jacket — both sides, following the shoulder */}
-          <g className="kk-hl kk-hl-water">
-            <path
-              d="M148 132
-                 C136 168 120 208 112 248
-                 C106 320 106 390 110 444
-                 L160 444
-                 L164 148
-                 L168 132 Z"
-              fill="url(#kk-hw-water)"
-              stroke="#6a8a9a"
-              strokeWidth="1.05"
+          {/* One continuous water jacket clipped around, never inside, the chimney. */}
+          <g className="kk-hl kk-hl-water" clipPath="url(#kk-body-clip)">
+            <rect
+              x="156"
+              y="143"
+              width="248"
+              height="293"
+              fill="url(#kk-water-fill)"
+              clipPath="url(#kk-water-clip)"
             />
             <path
-              d="M252 132
-                 L232 132
-                 L236 148
-                 L240 444
-                 L290 444
-                 C294 390 294 320 288 248
-                 C280 208 264 168 252 132 Z"
-              fill="url(#kk-hw-water)"
-              stroke="#6a8a9a"
-              strokeWidth="1.05"
+              d="M176 145 C200 141 218 141 238 143 M322 143 C342 141 360 141 384 145"
+              fill="none"
+              stroke="#6e96aa"
+              strokeWidth="1.6"
+              opacity="0.82"
             />
-            <path d="M148 132 L168 132" fill="none" stroke="#7a9bb0" strokeWidth="1.5" opacity="0.75" />
-            <path d="M232 132 L252 132" fill="none" stroke="#7a9bb0" strokeWidth="1.5" opacity="0.75" />
-            <g clipPath="url(#kk-hw-water)">
-              <circle className="water-bubble kk-bubble kk-bubble--a" cx="136" cy="320" r="3.1" fill="rgba(255,255,255,0.55)" />
-              <circle className="water-bubble kk-bubble kk-bubble--b" cx="264" cy="280" r="2.4" fill="rgba(255,255,255,0.48)" />
-              <circle className="water-bubble kk-bubble kk-bubble--c" cx="142" cy="390" r="2.7" fill="rgba(255,255,255,0.5)" />
+            <g clipPath="url(#kk-water-clip)">
+              <circle className="water-bubble kk-bubble kk-bubble--a" cx="365" cy="340" r="3.2" />
+              <circle className="water-bubble kk-bubble kk-bubble--b" cx="374" cy="275" r="2.5" />
+              <circle className="water-bubble kk-bubble kk-bubble--c" cx="355" cy="392" r="2.7" />
             </g>
           </g>
 
-          {/* Inner heat-transfer walls */}
-          <g className="kk-hw-chimney-walls">
-            <path
-              d="M168 68 C168 62 176 60 180 66 L166 448 C162 454 154 452 154 444 L168 68 Z"
-              fill="url(#kk-hw-steel)"
-              stroke="#4a4f54"
-              strokeWidth="1.2"
-            />
-            <path
-              d="M232 68 C232 62 224 60 220 66 L234 448 C238 454 246 452 246 444 L232 68 Z"
-              fill="url(#kk-hw-steel)"
-              stroke="#4a4f54"
-              strokeWidth="1.2"
-            />
-          </g>
-
-          {/* Hollow chimney — charcoal passage always visible */}
+          {/* The charcoal passage stays visible around a narrow clipped heat plume. */}
           <path
-            d="M176 72 C176 64 192 60 200 60 C208 60 224 64 224 72 L238 502 C238 508 208 512 200 512 C192 512 162 508 162 502 Z"
-            fill="#2a2622"
+            d="M251 58 C258 52 302 52 309 58 L332 432 L228 432 Z"
+            fill="#292522"
+            stroke="#3f4448"
+            strokeWidth="1.2"
           />
-          <g className="kk-hl kk-hl-heat">
-            <g clipPath="url(#kk-hw-chimney)">
-              <rect className="heat-flow" x="160" y="40" width="80" height="490" fill="url(#kk-hw-heat)" />
-            </g>
+          <g className="kk-hl kk-hl-heat" clipPath="url(#kk-chimney-clip)">
+            <path
+              className="heat-flow"
+              d="M260 426
+                 C250 368 260 318 271 276
+                 C279 233 271 193 278 151
+                 C281 121 279 94 282 70
+                 C291 103 292 134 302 164
+                 C314 204 301 244 314 284
+                 C328 330 328 376 317 426 Z"
+              fill="url(#kk-heat-fill)"
+            />
             <g
               className="kk-hw-heat-arrows"
               fill="none"
-              stroke="#c45a28"
+              stroke="#ce642d"
               strokeWidth="1.7"
               strokeLinecap="round"
-              opacity="0.85"
+              opacity="0.86"
             >
-              <path d="M200 430 L200 250" markerEnd="url(#kk-hw-heat-head)" />
-              <path d="M188 400 L188 290" markerEnd="url(#kk-hw-heat-head)" />
-              <path d="M212 400 L212 290" markerEnd="url(#kk-hw-heat-head)" />
+              <path d="M280 388 L280 238" markerEnd="url(#kk-heat-arrowhead)" />
+              <path d="M263 354 L263 278" markerEnd="url(#kk-heat-arrowhead)" />
+              <path d="M297 354 L297 278" markerEnd="url(#kk-heat-arrowhead)" />
+            </g>
+          </g>
+          <g className="kk-hl kk-hl-fire kk-hl-heat" clipPath="url(#kk-chimney-clip)">
+            <path
+              d="M285 430
+                 C265 398 277 360 294 336
+                 C286 369 306 371 307 339
+                 C306 319 317 299 324 286
+                 C323 318 343 340 340 375
+                 C345 398 336 418 316 430 Z"
+              fill="#d9622c"
+              opacity="0.9"
+            />
+            <path
+              d="M294 430
+                 C281 405 294 379 306 363
+                 C301 388 317 390 318 367
+                 C331 389 330 412 314 430 Z"
+              fill="#f0b14f"
+              opacity="0.94"
+            />
+          </g>
+
+          {/* Two separate metal walls make the hollow chimney construction explicit. */}
+          <g className="kk-hw-chimney-walls">
+            <path
+              d="M238 52 C241 46 249 47 252 55 L228 432 L214 432 Z"
+              fill="url(#kk-schematic-steel)"
+              stroke="#454b50"
+              strokeWidth="1.25"
+            />
+            <path
+              d="M322 52 C319 46 311 47 308 55 L332 432 L346 432 Z"
+              fill="url(#kk-schematic-steel)"
+              stroke="#454b50"
+              strokeWidth="1.25"
+            />
+          </g>
+
+          {/* Reference-style cutaway: the left half remains exterior steel while the right reveals the systems. */}
+          <path
+            className="kk-hw-exterior-half"
+            d="M228 44
+               C240 36 263 36 280 38
+               L280 438
+               L186 438
+               C174 434 167 423 166 405
+               L162 228
+               C160 201 167 180 184 164
+               C209 141 222 121 224 101 Z"
+            fill="url(#kk-schematic-steel)"
+            stroke="#454b50"
+            strokeWidth="1.25"
+          />
+          <path d="M280 52 L280 438" fill="none" stroke="#3f4448" strokeWidth="1.35" />
+          <path
+            d="M228 44
+               C240 36 320 36 332 44
+               L336 101
+               C338 121 351 141 376 164
+               C393 180 400 201 398 228
+               L394 405
+               C393 423 386 434 374 438
+               L186 438
+               C174 434 167 423 166 405
+               L162 228
+               C160 201 167 180 184 164
+               C209 141 222 121 224 101 Z"
+            fill="none"
+            stroke="#454b50"
+            strokeWidth="1.8"
+          />
+
+          {/* Rolled top opening remains dark and visibly open. */}
+          <g className="kk-hw-top-opening">
+            <ellipse cx="280" cy="47" rx="56" ry="13" fill="#171412" stroke="#454b50" strokeWidth="2.2" />
+            <ellipse cx="280" cy="45" rx="45" ry="8" fill="#2b2724" />
+            <ellipse cx="280" cy="44" rx="56" ry="13" fill="none" stroke="#d7dcdf" strokeWidth="1.4" />
+          </g>
+
+          {/* Side-view cup whistle seated in the short angled spout, nested into the shoulder. */}
+          <g className="kk-hw-spout-whistle" transform="translate(368 158) rotate(-46)">
+            <path
+              d="M-2 -5.2 L14 -5.2 L14 5.2 L-2 5.2 Z"
+              fill="url(#kk-schematic-steel)"
+              stroke="#454b50"
+              strokeWidth="1.4"
+            />
+            <g className="kk-hw-whistle">
+              <path
+                d="M12 -8.5 L32 -10.4 C35.6 -10.4 38.2 -5.6 38.2 0 C38.2 5.6 35.6 10.4 32 10.4 L12 8.5 Z"
+                fill="#67b84c"
+                stroke="#2d6a30"
+                strokeWidth="1.35"
+              />
+              <ellipse cx="32.4" cy="0" rx="5.4" ry="10.6" fill="#5aa642" stroke="#2d6a30" strokeWidth="1.35" />
+              <ellipse cx="31.2" cy="0" rx="3.4" ry="8.2" fill="#1a3320" />
+              <path
+                d="M31.6 -10.7 C36.2 -10.7 39.4 -5.8 39.4 0 C39.4 5.8 36.2 10.7 31.6 10.7"
+                fill="none"
+                stroke="#2d6a30"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
             </g>
           </g>
 
-          {/* Top opening + rolled lip */}
-          <g>
-            <ellipse cx="200" cy="64" rx="36" ry="11" fill="#1a1614" stroke="#4a4f54" strokeWidth="2.1" />
-            <ellipse cx="200" cy="62" rx="28" ry="7" fill="#2c2723" />
-            <ellipse cx="200" cy="61" rx="36" ry="11" fill="none" stroke="#c5ccd2" strokeWidth="1.1" opacity="0.7" />
-          </g>
-
-          {/* Spout + whistle */}
+          {/* One lower kettle roll seated inside the base receiver; one seam only. */}
           <path
-            d="M300 176 C328 160 352 150 372 146 L376 164 C356 168 332 180 308 196 Z"
-            fill="url(#kk-hw-steel)"
-            stroke="#4a4f54"
+            d="M160 433 C184 428 376 428 400 433 L397 443 C370 448 190 448 163 443 Z"
+            fill="url(#kk-schematic-steel-v)"
+            stroke="#454b50"
             strokeWidth="1.5"
           />
-          <g className="kk-hw-whistle">
-            <ellipse cx="384" cy="152" rx="16" ry="12" fill="#3d6b45" stroke="#2f4a36" strokeWidth="1.2" />
-            <ellipse cx="384" cy="148" rx="10" ry="5.5" fill="#4a7d52" />
-            <circle cx="384" cy="147" r="2.2" fill="#1e2e22" />
-          </g>
+          <path
+            d="M163 443 C192 447 368 447 397 443"
+            fill="none"
+            stroke="#393f43"
+            strokeWidth="1.15"
+          />
 
-          {/* Fire, wood, embers — inside the base, under the chimney */}
-          <g className="kk-hl kk-hl-fire">
-            <ellipse cx="200" cy="528" rx="42" ry="10" fill="#c45a28" opacity="0.28" />
-            <g className="ember">
-              <ellipse cx="188" cy="536" rx="10" ry="5" fill="#c45a28" />
-              <ellipse cx="208" cy="538" rx="9" ry="4.5" fill="#e07a32" />
-              <ellipse cx="198" cy="532" rx="7" ry="4" fill="#f0b35a" />
-              <rect x="176" y="522" width="5" height="22" rx="1.4" fill="#4a3424" transform="rotate(-22 178 533)" />
-              <rect x="206" y="520" width="4.4" height="20" rx="1.3" fill="#3a2a1c" transform="rotate(16 208 530)" />
-              <rect x="192" y="518" width="4" height="18" rx="1.2" fill="#5a4030" transform="rotate(8 194 527)" />
+          {/* Exactly one front opening, with wood and embers clipped inside it. */}
+          <g className="kk-hw-air-opening">
+            <circle cx="280" cy="519" r="35" fill="#1b1816" stroke="#3e4448" strokeWidth="1.8" />
+            <g className="kk-hl kk-hl-fire" clipPath="url(#kk-base-opening-clip)">
+              <ellipse className="ember" cx="280" cy="532" rx="30" ry="13" fill="url(#kk-ember-glow)" />
+              <rect x="257" y="510" width="7" height="38" rx="2" fill="#493224" transform="rotate(-24 260 529)" />
+              <rect x="290" y="508" width="6.5" height="36" rx="2" fill="#35271d" transform="rotate(19 293 526)" />
+              <rect x="273" y="512" width="6" height="32" rx="2" fill="#5b3e29" transform="rotate(5 276 528)" />
+              <ellipse className="ember" cx="270" cy="536" rx="9" ry="4.5" fill="#cf5d29" />
+              <ellipse className="ember" cx="289" cy="537" rx="8" ry="4" fill="#e88a39" />
+              <ellipse className="ember" cx="280" cy="531" rx="6" ry="3.2" fill="#f1c063" />
+              <path
+                d="M280 528
+                   C264 517 268 504 278 494
+                   C277 505 287 508 286 497
+                   C300 508 298 520 280 528 Z"
+                fill="#d96a2f"
+              />
+              <path
+                d="M280 524 C272 516 277 507 281 502 C280 511 289 513 286 520 Z"
+                fill="#f0b45b"
+              />
             </g>
+            <circle
+              className="kk-focus-ring kk-focus-ring-air"
+              cx="280"
+              cy="519"
+              r="36"
+              fill="none"
+              stroke="#6888a5"
+              strokeWidth="2.4"
+            />
           </g>
 
-          {/* Single front air opening */}
-          <g>
-            <circle cx="200" cy="548" r="30" fill="#1c1916" stroke="#3f454a" strokeWidth="1.7" />
-            <circle className="kk-focus-ring kk-focus-ring-air" cx="200" cy="548" r="30" fill="none" stroke="#6d8aa8" strokeWidth="2.2" />
-            <circle cx="200" cy="548" r="24" fill="#2a2018" />
-            <g className="ember kk-hl kk-hl-fire">
-              <ellipse cx="192" cy="554" rx="8" ry="4.2" fill="#c45a28" />
-              <ellipse cx="206" cy="556" rx="7" ry="3.8" fill="#e3943a" />
-              <ellipse cx="198" cy="550" rx="5.5" ry="3" fill="#f0b35a" />
-              <rect x="186" y="544" width="3.4" height="16" rx="1" fill="#4a3424" transform="rotate(-16 188 552)" />
-              <rect x="204" y="542" width="3" height="15" rx="1" fill="#3a2a1c" transform="rotate(12 205 550)" />
-            </g>
-          </g>
-
-          {/* Cool-air arrows into the single opening */}
+          {/* Three cool-air paths terminate inside the single opening. */}
           <g
             className="airflow kk-hl kk-hl-air"
             fill="none"
-            stroke="#6d8aa8"
-            strokeWidth="1.9"
+            stroke="#6888a5"
+            strokeWidth="2"
             strokeLinecap="round"
-            strokeDasharray="6 7"
-            markerEnd="url(#kk-hw-air-head)"
+            strokeDasharray="7 8"
+            markerEnd="url(#kk-air-arrowhead)"
           >
-            <path d="M18 548 C70 550 120 550 168 548" />
-            <path d="M28 568 C78 562 124 556 170 552" />
-            <path d="M32 528 C80 538 126 544 170 546" />
-          </g>
-
-          {/* Short leaders — shown only for the active step, never across the card */}
-          <g className="kk-leaders" fill="none" stroke="#3f454a" strokeWidth="1.2">
-            <g className="kk-leader kk-leader-air">
-              <path d="M154 548 L128 548" />
-              <circle cx="154" cy="548" r="3.2" fill="#f3efe6" stroke="#3f454a" strokeWidth="1.3" />
-            </g>
-            <g className="kk-leader kk-leader-fire">
-              <path d="M232 538 L258 538" />
-              <circle cx="232" cy="538" r="3.2" fill="#f3efe6" stroke="#3f454a" strokeWidth="1.3" />
-            </g>
-            <g className="kk-leader kk-leader-heat">
-              <path d="M238 64 L264 64" />
-              <circle cx="238" cy="64" r="3.2" fill="#f3efe6" stroke="#3f454a" strokeWidth="1.3" />
-            </g>
-            <g className="kk-leader kk-leader-water">
-              <path d="M118 250 L92 250" />
-              <circle cx="118" cy="250" r="3.2" fill="#f3efe6" stroke="#3f454a" strokeWidth="1.3" />
-            </g>
+            <path d="M24 516 C108 514 192 516 277 519" />
+            <path d="M38 546 C116 538 196 528 275 522" />
+            <path d="M42 486 C122 495 198 506 275 516" />
           </g>
         </svg>
       </div>
@@ -315,7 +420,7 @@ export function HowItWorksSchematic() {
                 onMouseLeave={() => setHovered(null)}
                 onFocus={() => setHovered(step.id)}
                 onBlur={() => setHovered(null)}
-                onClick={() => setSelected((cur) => (cur === step.id ? null : step.id))}
+                onClick={() => setSelected((current) => (current === step.id ? null : step.id))}
               >
                 <span className="kk-how-step__num">{step.num}</span>
                 <span className="kk-how-step__copy">
