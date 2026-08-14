@@ -798,6 +798,13 @@ html.kk-route.is-demo #root {
   line-height: 1.4;
 }
 
+.kk-field-videos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  width: min(100%, 54rem);
+}
+
 .kk-yt-card {
   overflow: hidden;
   border: 1px solid var(--kk-line);
@@ -809,7 +816,7 @@ html.kk-route.is-demo #root {
 .kk-yt-card__frame {
   position: relative;
   width: 100%;
-  height: 190px;
+  aspect-ratio: 9 / 16;
 }
 
 .kk-yt-card__iframe {
@@ -1232,9 +1239,8 @@ html.kk-route.is-demo #root {
     grid-template-columns: 1fr;
     gap: 0.65rem;
   }
-  .kk-yt-card__frame {
-    height: auto;
-    aspect-ratio: 16 / 9;
+  .kk-field-videos {
+    width: 100%;
   }
   .kk-page--intro .kk-title {
     max-width: none;

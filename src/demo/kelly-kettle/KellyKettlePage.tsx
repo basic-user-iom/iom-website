@@ -197,7 +197,7 @@ export function KellyKettlePage() {
           <section className="kk-field-video" aria-labelledby="kk-field-video-title">
             <div className="kk-field-video__head">
               <h2 id="kk-field-video-title">Kelly Kettle in use</h2>
-              <p>Official film of boiling water and cooking outdoors.</p>
+              <p>Three official films from the Kelly Kettle website.</p>
             </div>
             <IntroYouTube />
           </section>
