@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /client-login
 Disallow: /crm-demo
+Disallow: /demo/
 
 Sitemap: https://iobjectm.com/sitemap.xml

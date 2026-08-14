@@ -54,6 +54,15 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     }
   }
 
+  if (path === '/demo/evly' || path.startsWith('/demo/evly/')) {
+    return {
+      title: 'EVLY Corporation — Private preview',
+      description: 'Password-protected client demo for EVLY Corporation fictional recruitment.',
+      canonical: `${SITE_ORIGIN}/demo/evly/`,
+      robots: 'noindex, nofollow',
+    }
+  }
+
   if (path === '/tools/image-prep') {
     return {
       title: `${SITE_NAME} — Image prep`,

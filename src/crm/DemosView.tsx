@@ -62,6 +62,25 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     ],
   },
   {
+    id: 'evly',
+    name: 'EVLY Corporation',
+    client: 'Client pitch — fictional corporate recruitment / merchandise site',
+    status: 'preview',
+    path: '/demo/evly/',
+    password: 'evly',
+    blurb:
+      'Private demo: EVLY Corporation personnel directorate. Shirt purchase is treated as a fictional uniform and department assignment. Not linked from the public homepage.',
+    tags: ['Website', 'Merchandise', 'Recruitment'],
+    images: [
+      '/demo/evly/images/tower-hero.png',
+      '/demo/evly/images/profile/public-presence.png',
+      '/demo/evly/images/profile/internal-structure.png',
+      '/demo/evly/images/shirt-yes.png',
+      '/demo/evly/images/reels/plaza-approach.png',
+      '/demo/evly/images/reels/lobby-protocol.png',
+    ],
+  },
+  {
     id: 'bas-rutten',
     name: 'Bas Rutten',
     client: 'Client pitch — official Bas Rutten website redesign',
