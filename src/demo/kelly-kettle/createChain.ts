@@ -6,6 +6,7 @@ import {
   Matrix4,
   Mesh,
   Quaternion,
+  SphereGeometry,
   TorusGeometry,
   Vector2,
   Vector3,
@@ -23,7 +24,7 @@ function mesh(name: string, geometry: Mesh['geometry'], material: Mesh['material
 }
 
 function ovalLinkGeometry(rx: number, ry: number, tube: number) {
-  const geo = new TorusGeometry(rx, tube, 8, 24)
+  const geo = new TorusGeometry(rx, tube, 10, 24)
   geo.scale(1, ry / rx, 1)
   geo.computeVertexNormals()
   return geo
@@ -47,22 +48,42 @@ export function createChain(mats: KettleMaterials, outerPts: Vector2[]): ChainAs
   root.name = 'whistle_chain'
   const y = CHAIN_Y
   const r = sampleRadius(outerPts, y)
-  const bodyRadial = new Vector3(-Math.sqrt(3) * 0.5, 0, 0.5)
-  const bodyEnd = bodyRadial.clone().multiplyScalar(r + 0.002)
-  bodyEnd.y = y + 0.001
+  const attachPhi = Math.PI
+  const bodyRadial = new Vector3(Math.cos(attachPhi), 0, Math.sin(attachPhi))
+  const tangent = new Vector3(-bodyRadial.z, 0, bodyRadial.x)
+  const surface = bodyRadial.clone().multiplyScalar(r)
+  surface.y = y
+
+  const eyeR = 0.0017
+  const eyeTube = 0.00038
+  const splitR = 0.00305
+  const splitTube = 0.00032
+  const eyeCenter = surface.clone().addScaledVector(bodyRadial, eyeR * 0.7)
+  const splitCenter = eyeCenter
+    .clone()
+    .addScaledVector(bodyRadial, 0.0004)
+    .add(new Vector3(0, -(eyeR + splitR) * 0.42, 0))
 
   const bracket = new Group()
   bracket.name = 'chain_body_bracket'
-  const ring = mesh('chain_body_ring', new TorusGeometry(0.0028, 0.00042, 12, 28), mats.steelSmooth)
-  ring.position.copy(bodyEnd)
-  ring.rotation.y = Math.PI / 6
-  bracket.add(ring)
+  const pad = mesh('chain_weld_pad', new SphereGeometry(0.00115, 12, 10), mats.steel)
+  pad.scale.set(1.2, 0.42, 1.2)
+  pad.position.copy(surface)
+  pad.quaternion.setFromUnitVectors(new Vector3(0, 1, 0), bodyRadial)
+  const eye = mesh('chain_body_eye', new TorusGeometry(eyeR, eyeTube, 10, 22), mats.steelSmooth)
+  eye.position.copy(eyeCenter)
+  eye.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), tangent)
+  const ring = mesh('chain_body_ring', new TorusGeometry(splitR, splitTube, 12, 28), mats.steelSmooth)
+  ring.position.copy(splitCenter)
+  ring.quaternion.setFromUnitVectors(new Vector3(0, 0, 1), bodyRadial)
+  ring.rotateX(0.28)
+  bracket.add(pad, eye, ring)
   root.add(bracket)
 
-  const linkRx = 0.0045
-  const linkRy = 0.00265
-  const linkTube = 0.00042
-  const pitch = (linkRx * 2 - linkTube * 2) * 0.77
+  const linkRx = 0.00205
+  const linkRy = 0.00132
+  const linkTube = 0.0002
+  const pitch = linkRx * 0.9
   const linkGeo = ovalLinkGeometry(linkRx, linkRy, linkTube)
   const chainMat = mats.steelSmooth.clone()
   chainMat.roughness = 0.36
@@ -74,31 +95,30 @@ export function createChain(mats: KettleMaterials, outerPts: Vector2[]): ChainAs
   links.count = 0
   root.add(links)
 
-  const anchorDirection = new Vector3()
-  const p0 = new Vector3()
-  const p1 = new Vector3()
-  const p2 = new Vector3()
-  const tangent = new Vector3()
-  const previousTangent = new Vector3()
-  const normal = new Vector3()
-  const binormal = new Vector3()
-  const side = new Vector3()
+  const ringDown = new Vector3(0, -1, 0).applyQuaternion(ring.quaternion).normalize()
+  const bodyEnd = splitCenter.clone().addScaledVector(ringDown, splitR)
+  const bodyExit = bodyEnd
+    .clone()
+    .addScaledVector(ringDown, 0.006)
+    .addScaledVector(bodyRadial, 0.011)
+  const bodyExitDir = bodyExit.clone().sub(bodyEnd).normalize()
+  const hangPts: Vector3[] = Array.from({ length: 12 }, () => new Vector3())
+  const tangentDir = new Vector3()
   const quat = new Quaternion()
-  const transport = new Quaternion()
+  const twist = new Quaternion()
   const mtx = new Matrix4()
-  const basis = new Matrix4()
   const scl = new Vector3(1, 1, 1)
   const dummyPos = new Vector3()
-  const worldUp = new Vector3(0, 1, 0)
-  const worldForward = new Vector3(0, 0, 1)
-  const bodyEyeNormal = new Vector3(0.5, 0, Math.sqrt(3) * 0.5)
-  const sample: Vector3[] = []
-  const minY = CHAIN_Y - 0.022
+  const xAxis = new Vector3(1, 0, 0)
+  const minY = 0.03
 
-  const keepClear = (p: Vector3) => {
-    const minR = sampleRadius(outerPts, p.y) + 0.008
+  const keepOutside = (p: Vector3) => {
+    const minR = sampleRadius(outerPts, p.y) + 0.012
     const pr = Math.hypot(p.x, p.z)
-    if (pr < minR && pr > 1e-6) {
+    if (pr < 1e-6) {
+      p.x = -minR
+      p.z = 0
+    } else if (pr < minR) {
       p.x *= minR / pr
       p.z *= minR / pr
     }
@@ -118,64 +138,57 @@ export function createChain(mats: KettleMaterials, outerPts: Vector2[]): ChainAs
       links.instanceMatrix.needsUpdate = true
       return
     }
-    anchorDirection.subVectors(whistleEnd, bodyEnd).normalize()
-    const terminalOffset = linkRx * 1.02
-    p0.copy(bodyEnd).addScaledVector(bodyRadial, terminalOffset)
-    p2.copy(whistleEnd).addScaledVector(anchorDirection, -terminalOffset)
-    const sag = 0.015 + (debug ? 0.007 : 0)
-    const sway = reducedMotion ? 0 : Math.sin(now * 1.05) * 0.00035
-    const midY = Math.max(minY, Math.min(p0.y, p2.y) - sag)
-    const frontR = sampleRadius(outerPts, (p0.y + p2.y) * 0.5) + 0.009
-    p1.set((p0.x + p2.x) * 0.5, midY, Math.max(frontR, (p0.z + p2.z) * 0.5 + 0.008) + sway)
-    keepClear(p1)
-    const n = 24
-    for (let i = 0; i <= n; i++) {
-      const t = i / n
-      const u = 1 - t
-      const p = sample[i] ?? new Vector3()
-      p.set(
-        u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
-        u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
-        u * u * p0.z + 2 * u * t * p1.z + t * t * p2.z,
-      )
-      if (i > 0 && i < n) keepClear(p)
-      sample[i] = p
+
+    const sag = 0.078 + (debug ? 0.012 : 0)
+    const sway = reducedMotion ? 0 : Math.sin(now * 1.05) * 0.16
+    const bob = reducedMotion ? 0 : Math.sin(now * 0.72) * 0.006
+    const phiW = Math.atan2(whistleEnd.z, whistleEnd.x)
+    const y1 = whistleEnd.y
+    const n = hangPts.length - 1
+
+    hangPts[0].copy(bodyEnd)
+    hangPts[1].copy(bodyExit)
+    hangPts[n].copy(whistleEnd)
+    const y0 = hangPts[1].y
+    const bellyY = Math.max(minY, Math.min(y0, y1) - sag + bob)
+
+    for (let i = 2; i < n; i++) {
+      const t = (i - 1) / (n - 1)
+      const phi = Math.PI + (phiW - Math.PI) * t + sway * Math.sin(Math.PI * t)
+      let y: number
+      if (t < 0.36) {
+        const u = t / 0.36
+        y = y0 + (bellyY - y0) * (u * u * (3 - 2 * u))
+      } else {
+        const u = (t - 0.36) / 0.64
+        y = bellyY + (y1 - bellyY) * (u * u * (3 - 2 * u))
+      }
+      const stand = 0.014 + 0.026 * Math.sin(Math.PI * t)
+      const rad = sampleRadius(outerPts, y) + stand
+      hangPts[i].set(Math.cos(phi) * rad, y, Math.sin(phi) * rad)
+      keepOutside(hangPts[i])
     }
-    sample[0].copy(p0)
-    sample[n].copy(p2)
-    const curve = new CatmullRomCurve3(sample, false, 'chordal')
-    const len = Math.max(0.02, curve.getLength())
-    const used = Math.max(20, Math.min(CHAIN_LINKS, Math.round(len / pitch) + 1))
+
+    const curve = new CatmullRomCurve3(hangPts, false, 'centripetal', 0.5)
+    const len = Math.max(0.06, curve.getLength())
+    const used = Math.max(36, Math.min(CHAIN_LINKS, Math.round(len / pitch) + 1))
     links.count = used
 
     for (let i = 0; i < used; i++) {
       const t = used === 1 ? 0.5 : i / (used - 1)
       curve.getPointAt(t, dummyPos)
-      curve.getTangentAt(t, tangent)
-      if (tangent.lengthSq() < 1e-8) tangent.copy(previousTangent)
-      tangent.normalize()
-      if (i === 0) {
-        normal.copy(bodyEyeNormal).addScaledVector(tangent, -bodyEyeNormal.dot(tangent))
-        if (normal.lengthSq() < 1e-8) {
-          normal.copy(worldUp).addScaledVector(tangent, -worldUp.dot(tangent))
-        }
-        if (normal.lengthSq() < 1e-8) {
-          normal.copy(worldForward).addScaledVector(tangent, -worldForward.dot(tangent))
-        }
-        normal.normalize()
+      if (i < 4) {
+        tangentDir.copy(bodyExitDir)
       } else {
-        transport.setFromUnitVectors(previousTangent, tangent)
-        normal.applyQuaternion(transport)
-        normal.addScaledVector(tangent, -normal.dot(tangent)).normalize()
+        curve.getTangentAt(Math.min(0.999, t), tangentDir)
+        if (tangentDir.lengthSq() < 1e-8) tangentDir.copy(ringDown)
+        tangentDir.normalize()
       }
-      binormal.crossVectors(tangent, normal).normalize()
-      side.copy(i % 2 === 0 ? normal : binormal)
-      binormal.crossVectors(tangent, side).normalize()
-      basis.makeBasis(tangent, side, binormal)
-      quat.setFromRotationMatrix(basis)
+      quat.setFromUnitVectors(xAxis, tangentDir)
+      twist.setFromAxisAngle(xAxis, Math.PI * 0.2 + (i % 2) * (Math.PI * 0.5))
+      quat.multiply(twist)
       mtx.compose(dummyPos, quat, scl)
       links.setMatrixAt(i, mtx)
-      previousTangent.copy(tangent)
     }
     links.instanceMatrix.needsUpdate = true
   }

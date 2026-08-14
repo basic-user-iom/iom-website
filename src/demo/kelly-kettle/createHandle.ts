@@ -16,7 +16,7 @@ import {
   Vector3,
 } from 'three'
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
-import { HANDLE_GRIP_LEN, HANDLE_GRIP_R, HANDLE_WIRE_R, HANDLE_Y } from './constants'
+import { HANDLE_GRIP_DROP, HANDLE_GRIP_LEN, HANDLE_GRIP_R, HANDLE_WIRE_R, HANDLE_Y } from './constants'
 import type { KettleMaterials } from './materials'
 import { sampleRadius } from './profiles'
 
@@ -204,7 +204,7 @@ export function createHandle(mats: KettleMaterials, outerPts: Profile): HandleAs
   root.add(makeLug('handle_bracket_a', 1), makeLug('handle_bracket_b', -1))
 
   const woodX = -(bodyR + 0.038)
-  const woodY = -0.07
+  const woodY = -HANDLE_GRIP_DROP
   const barHalf = HANDLE_GRIP_LEN * 0.5 + 0.002
 
   const pivot = new Group()

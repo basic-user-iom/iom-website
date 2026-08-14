@@ -28,8 +28,11 @@ export const HANDLE_Y = 0.7 * KETTLE_H
 export const HANDLE_WIRE_R = 0.00175
 export const HANDLE_GRIP_LEN = 0.09
 export const HANDLE_GRIP_R = 0.01
-export const CHAIN_Y = 0.4 * KETTLE_H
-export const CHAIN_LINKS = 30
+/** Folded-handle grip drop from the lug pivot, kettle-local. */
+export const HANDLE_GRIP_DROP = 0.07
+/** On the bottle face, below the folded grip, mid-cylinder. */
+export const CHAIN_Y = 0.33 * KETTLE_H
+export const CHAIN_LINKS = 180
 export const CUT_ANGLE = 1.05
 /** Circular air opening in the lower fire-base wall (one hole only). */
 export const AIR_HOLE_Y = 0.024
