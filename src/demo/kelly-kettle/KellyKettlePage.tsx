@@ -170,17 +170,6 @@ export function KellyKettlePage() {
               />
               <figcaption>Fire base · single air opening</figcaption>
             </figure>
-            <figure className="kk-support-card">
-              <IntroPicture
-                name="kettle-handle"
-                alt="Kelly Kettle wire handle with a wooden grip wrapped in a thin clear PVC sleeve and J-hooks at both ends"
-                width={640}
-                height={640}
-                sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
-                className="kk-media-img"
-              />
-              <figcaption>Wire handle and wooden grip</figcaption>
-            </figure>
             <figure className="kk-support-card kk-support-card--whistle">
               <IntroPicture
                 name="kettle-whistle"
@@ -192,16 +181,27 @@ export function KellyKettlePage() {
               />
               <figcaption>Green whistle on the spout</figcaption>
             </figure>
+            <figure className="kk-support-card kk-support-card--handle">
+              <IntroPicture
+                name="kettle-handle"
+                alt="Kelly Kettle wire handle with a wooden grip wrapped in a thin clear PVC sleeve and J-hooks at both ends"
+                width={640}
+                height={640}
+                sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
+                className="kk-media-img"
+              />
+              <figcaption>Wire handle and wooden grip</figcaption>
+            </figure>
           </div>
-
-          <section className="kk-field-video" aria-labelledby="kk-field-video-title">
-            <div className="kk-field-video__head">
-              <h2 id="kk-field-video-title">Kelly Kettle in use</h2>
-              <p>Three official films from the Kelly Kettle website.</p>
-            </div>
-            <IntroYouTube />
-          </section>
         </div>
+
+        <section className="kk-field-video" aria-labelledby="kk-field-video-title">
+          <div className="kk-field-video__head">
+            <h2 id="kk-field-video-title">Kelly Kettle in use</h2>
+            <p>Three official films from the Kelly Kettle website.</p>
+          </div>
+          <IntroYouTube />
+        </section>
 
           <section className="kk-how" ref={howRef} id="how-it-works">
             <div className="kk-how__head">

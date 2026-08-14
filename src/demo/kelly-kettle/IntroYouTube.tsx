@@ -84,14 +84,11 @@ function YouTubeCard({
                   <path d="M19 15.5v17l14-8.5z" fill="#f7f4ee" />
                 </svg>
               </span>
-              <span className="kk-video-card__meta">
-                <span className="kk-video-card__time">YouTube</span>
-                <span className="kk-video-card__cta">{film.cta}</span>
-              </span>
             </span>
           </button>
         )}
       </div>
+      <p className="kk-yt-card__caption">{film.cta}</p>
     </div>
   )
 }
