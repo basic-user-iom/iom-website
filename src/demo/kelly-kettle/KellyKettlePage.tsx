@@ -162,7 +162,7 @@ export function KellyKettlePage() {
             <figure className="kk-support-card">
               <IntroPicture
                 name="kettle-fire-base"
-                alt="Close-up of the Kelly Kettle stainless-steel fire base with one circular air opening and glowing embers inside"
+                alt="Kelly Kettle steel fire base burning on a tree stump, with flames rising and embers visible through the circular air opening"
                 width={400}
                 height={250}
                 sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
@@ -173,7 +173,7 @@ export function KellyKettlePage() {
             <figure className="kk-support-card kk-support-card--whistle">
               <IntroPicture
                 name="kettle-whistle"
-                alt="Green Kelly Kettle whistle seated on the angled metal spout, with a small tether ring at the side"
+                alt="Hand lifting the green Kelly Kettle whistle from the spout by its split ring, with the tether chain attached"
                 width={400}
                 height={640}
                 sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"
@@ -184,7 +184,7 @@ export function KellyKettlePage() {
             <figure className="kk-support-card kk-support-card--handle">
               <IntroPicture
                 name="kettle-handle"
-                alt="Kelly Kettle wire handle with a wooden grip wrapped in a thin clear PVC sleeve and J-hooks at both ends"
+                alt="Kelly Kettle boiling in a forest, with a wooden handle grip and a stick feeding the chimney fire"
                 width={640}
                 height={640}
                 sizes="(min-width: 1100px) 240px, (min-width: 720px) 28vw, 46vw"

@@ -592,16 +592,16 @@ html.kk-route.is-demo #root {
 }
 
 .kk-support-card--handle {
-  background: #ddd6c8;
+  background: var(--kk-paper);
 }
 
 .kk-support-card--handle .kk-media-img {
   object-fit: cover;
-  object-position: 50% 12%;
+  object-position: 38% 72%;
 }
 
 .kk-support-card--whistle .kk-media-img {
-  object-position: 22% 42%;
+  object-position: 58% 42%;
 }
 
 .kk-eyebrow {

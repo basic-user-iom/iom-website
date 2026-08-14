@@ -103,7 +103,7 @@ export function IntroVideo({ onPlayRequest }: Props) {
           <button type="button" className="kk-video-card__poster" onClick={start} aria-label="Watch 8-second preview">
             <IntroPicture
               name="kettle-video-poster"
-              alt="Stainless steel Kelly Kettle boiling, with flame rising through the chimney and fire visible in the base"
+              alt="Kelly Kettle boiling in a misty forest, with flame rising through the chimney and fire glowing in the base"
               width={700}
               height={700}
               sizes="(min-width: 1100px) 360px, (min-width: 720px) 40vw, 100vw"
