@@ -45,7 +45,7 @@ export type DemoStep = 'explore' | 'cutaway' | 'fire' | 'complete'
 
 export type QualityLevel = 'high' | 'mobile'
 
-export type ModelSource = 'procedural' | 'glb'
+export type ModelSource = 'procedural'
 
 export type ModelParts = Partial<Record<SemanticName, Object3D>>
 
@@ -142,8 +142,6 @@ export type DebugControls = {
   showReferenceOverlay: boolean
   layoutEdit: boolean
 }
-
-export const GLB_URL = '/models/kelly-kettle-basecamp-final.glb'
 
 export const STEPS: { id: DemoStep; label: string; hint: string }[] = [
   {

@@ -14,7 +14,6 @@ import type {
   DemoStep,
   KellyKettleModelHandle,
   LabelAnchor,
-  ModelSource,
   QualityLevel,
   SceneStats,
 } from './types'
@@ -348,7 +347,6 @@ export function KellyKettleScene({
     let fpsT = performance.now()
     let fps = 0
     let raf = 0
-    let source: ModelSource = debugRef.current.modelSource
 
     const projectLabels = (cut: number, fireAmt: number) => {
       if (camBlend < 0.92) {
@@ -498,7 +496,7 @@ export function KellyKettleScene({
         fireIntensity: debug.fireIntensity,
         handleAngle: debug.handleAngle,
         whistleInserted: debug.whistleInserted,
-        chainVisible: debug.chainVisible,
+        chainVisible: debug.chainVisible && step !== 'cutaway',
         chainDebug: debug.chainDebug,
         handleCollisionDebug: debug.handleCollisionDebug,
         emberIntensity: debug.emberIntensity,
@@ -556,16 +554,14 @@ export function KellyKettleScene({
     window.visualViewport?.addEventListener('resize', applySize)
 
     let loadGen = 0
-    const loadModel = async (next: ModelSource) => {
+    const loadModel = async () => {
       const gen = ++loadGen
-      source = next
       if (model) {
         scene.remove(model.group)
         model.dispose()
         model = null
       }
       const created = await createKellyKettleModel({
-        source: next,
         quality: debugRef.current.mobilePerformance ? 'mobile' : quality,
       })
       if (disposed || gen !== loadGen) {
@@ -606,7 +602,7 @@ export function KellyKettleScene({
       })
     }
 
-    void loadModel(debugRef.current.modelSource)
+    void loadModel()
 
     if (import.meta.env.DEV) {
       ;(window as unknown as { __kk?: object }).__kk = {
@@ -638,16 +634,11 @@ export function KellyKettleScene({
       }
     }
 
-    const sourcePoll = window.setInterval(() => {
-      if (debugRef.current.modelSource !== source) void loadModel(debugRef.current.modelSource)
-    }, 400)
-
     raf = requestAnimationFrame(tick)
 
     return () => {
       disposed = true
       cancelAnimationFrame(raf)
-      window.clearInterval(sourcePoll)
       ro.disconnect()
       window.removeEventListener('resize', applySize)
       window.visualViewport?.removeEventListener('resize', applySize)

@@ -589,6 +589,7 @@ html.kk-route.is-demo #root {
   padding: 0;
   list-style: none;
   pointer-events: none;
+  overflow: hidden;
 }
 
 .kk-label {
@@ -597,7 +598,7 @@ html.kk-route.is-demo #root {
   align-items: center;
   gap: 0.35rem;
   transform: translateY(-50%);
-  max-width: 11rem;
+  max-width: min(12rem, calc(100% - 1.4rem));
 }
 
 .kk-label--left {
@@ -615,12 +616,15 @@ html.kk-route.is-demo #root {
 }
 
 .kk-label__text {
-  font-size: 0.68rem;
-  letter-spacing: 0.04em;
+  font-size: clamp(12px, 0.75vw, 16px);
+  letter-spacing: 0.02em;
   line-height: 1.25;
   color: var(--kk-ink);
-  background: rgba(243, 239, 230, 0.82);
-  padding: 0.15rem 0.25rem;
+  background: rgba(250, 247, 241, 0.94);
+  border: 1px solid var(--kk-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(44, 42, 38, 0.08);
+  padding: 0.28rem 0.5rem;
 }
 
 .kk-labels.is-placed .kk-label,
@@ -836,10 +840,12 @@ html.kk-route.is-demo #root {
     display: none;
   }
   .kk-label {
-    max-width: 7.6rem;
+    max-width: min(8.4rem, calc(100% - 1.6rem));
   }
   .kk-label__text {
-    font-size: 0.6rem;
+    font-size: clamp(11px, 3.1vw, 14px);
+    padding: 0.22rem 0.4rem;
+    border-radius: 8px;
   }
   .kk-label__line {
     width: 1rem;

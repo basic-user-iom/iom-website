@@ -18,16 +18,6 @@ export function DebugPanel({ debug, stats, onChange }: Props) {
     <aside className="kk-debug" aria-label="Development controls">
       <p className="kk-debug__title">Dev</p>
       <label>
-        Model
-        <select
-          value={debug.modelSource}
-          onChange={(event) => set({ modelSource: event.target.value as DebugControls['modelSource'] })}
-        >
-          <option value="procedural">Procedural</option>
-          <option value="glb">GLB</option>
-        </select>
-      </label>
-      <label>
         Shell
         <select
           value={debug.exteriorOrCutaway}

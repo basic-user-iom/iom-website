@@ -26,7 +26,7 @@ export function measureTransferredBytes(): number {
   for (const entry of entries) {
     const name = entry.name
     if (
-      /kelly-kettle|three|addons|GLB|glb|kelly-kettle-basecamp/i.test(name) ||
+      /kelly-kettle|three|addons/i.test(name) ||
       /assets\/.*(?:three|kelly)/i.test(name)
     ) {
       total += entry.transferSize || 0
