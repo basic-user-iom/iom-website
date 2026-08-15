@@ -3,6 +3,7 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
 import { DEFAULT_PARTICLES, MOBILE_PARTICLES, PIXEL_RATIO_CAP, SEAT_Y, TOTAL_H } from './constants'
+import { loadForestEnvironment } from './createForestEnvironment'
 import { createFuelAndFire } from './createFuelAndFire'
 import { createParticles } from './createParticles'
 import { createKellyKettleModel } from './KellyKettleModel'
@@ -137,7 +138,7 @@ export function KellyKettleScene({
     renderer.setClearColor(0x000000, 0)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 0.9
+    renderer.toneMappingExposure = 1.08
     renderer.shadowMap.enabled = quality === 'high' && !debugRef.current.mobilePerformance
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.domElement.style.width = '100%'
@@ -152,10 +153,17 @@ export function KellyKettleScene({
 
     const pmrem = new THREE.PMREMGenerator(renderer)
     const envScene = new RoomEnvironment()
-    const envTex = pmrem.fromScene(envScene, 0.04).texture
+    let envTex = pmrem.fromScene(envScene, 0.04).texture
     envScene.dispose()
-    scene.environment = envTex
     pmrem.dispose()
+    scene.environment = envTex
+    scene.environmentIntensity = 0.78
+    const cancelForestEnv = loadForestEnvironment(renderer, (forest) => {
+      const previous = envTex
+      envTex = forest
+      scene.environment = forest
+      previous.dispose()
+    })
 
     const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 12)
     const controls = new OrbitControls(camera, renderer.domElement)
@@ -181,8 +189,8 @@ export function KellyKettleScene({
     }
     controls.addEventListener('start', stopIdle)
 
-    scene.add(new THREE.HemisphereLight(0xd7ddd6, 0x3f4a3c, 0.88))
-    const key = new THREE.DirectionalLight(0xf0f3ee, 0.82)
+    scene.add(new THREE.HemisphereLight(0xe8eadc, 0x7a6c54, 0.86))
+    const key = new THREE.DirectionalLight(0xf7f1e4, 0.78)
     key.position.set(0.28, 1.05, 0.38)
     key.castShadow = renderer.shadowMap.enabled
     key.shadow.mapSize.set(quality === 'high' ? 1024 : 512, quality === 'high' ? 1024 : 512)
@@ -195,10 +203,10 @@ export function KellyKettleScene({
     key.shadow.bias = -0.0002
     key.shadow.normalBias = 0.01
     scene.add(key)
-    const fill = new THREE.DirectionalLight(0xb7c4bc, 0.36)
+    const fill = new THREE.DirectionalLight(0xc5d0b8, 0.38)
     fill.position.set(-0.55, 0.4, -0.15)
     scene.add(fill)
-    const rim = new THREE.DirectionalLight(0xc5d0c8, 0.22)
+    const rim = new THREE.DirectionalLight(0xf0e0c0, 0.26)
     rim.position.set(-0.2, 0.18, -0.55)
     scene.add(rim)
 
@@ -651,6 +659,7 @@ export function KellyKettleScene({
       fire.dispose()
       particles.dispose()
       scene.overrideMaterial = null
+      cancelForestEnv()
       blob.dispose()
       greyMat.dispose()
       floorGeo.dispose()

@@ -130,7 +130,7 @@ export function createKettleMaterials(): KettleMaterials {
     metalness: 0.97,
     roughness: 0.48,
     roughnessMap: brush,
-    envMapIntensity: 0.18,
+    envMapIntensity: 0.48,
   })
 
   const steelBase = new MeshStandardMaterial({
@@ -138,21 +138,21 @@ export function createKettleMaterials(): KettleMaterials {
     metalness: 0.94,
     roughness: 0.56,
     roughnessMap: brush,
-    envMapIntensity: 0.16,
+    envMapIntensity: 0.4,
   })
 
   const steelSmooth = new MeshStandardMaterial({
     color: COLORS.steel,
     metalness: 0.98,
     roughness: 0.32,
-    envMapIntensity: 0.22,
+    envMapIntensity: 0.58,
   })
 
   const steelSatin = new MeshStandardMaterial({
     color: 0xc5c9cc,
     metalness: 0.92,
     roughness: 0.4,
-    envMapIntensity: 0.18,
+    envMapIntensity: 0.5,
   })
 
   const chimneyInner = new MeshStandardMaterial({
