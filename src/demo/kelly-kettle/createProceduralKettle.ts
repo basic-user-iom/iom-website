@@ -8,6 +8,7 @@ import {
   Mesh,
   ShapeGeometry,
   SphereGeometry,
+  TorusGeometry,
   Vector2,
   Vector3,
 } from 'three'
@@ -108,26 +109,6 @@ function openRevolvedWall(
   geometry.normalizeNormals()
   geometry.computeBoundingSphere()
   return geometry
-}
-
-/** A rounded half-profile joins the two open walls without covering the bore. */
-function rolledRim(
-  innerRadius: number,
-  outerRadius: number,
-  y: number,
-  segments: number,
-  phiStart = 0,
-  phiLength = Math.PI * 2,
-) {
-  const centre = (innerRadius + outerRadius) * 0.5
-  const radius = (outerRadius - innerRadius) * 0.5
-  const profile: Vector2[] = []
-  const profileSegments = 16
-  for (let i = 0; i <= profileSegments; i++) {
-    const angle = Math.PI - (i / profileSegments) * Math.PI
-    profile.push(new Vector2(centre + Math.cos(angle) * radius, y + Math.sin(angle) * radius))
-  }
-  return openRevolvedWall(profile, segments, false, phiStart, phiLength)
 }
 
 function mesh(name: string, geometry: Mesh['geometry'], material: Mesh['material'], shadows = true) {
@@ -234,10 +215,17 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
   )
   const chimneyRim = mesh(
     'chimney_top_rim',
-    rolledRim(chimneyTopRadius, chimneyOuterTopRadius, KETTLE_H, segs),
+    new TorusGeometry(
+      (chimneyTopRadius + chimneyOuterTopRadius) * 0.5,
+      Math.max(0.0008, (chimneyOuterTopRadius - chimneyTopRadius) * 0.62),
+      12,
+      segs,
+    ),
     mats.steel,
     false,
   )
+  chimneyRim.rotation.x = Math.PI / 2
+  chimneyRim.position.y = KETTLE_H
   const chimneyCutShape = wallSectionShape(chimneyBodyOuter, chimneyBodyInner)
   const chimneyCutGeo = new ShapeGeometry(chimneyCutShape)
   const chimneyCutA = mesh('chimney_cut_face_a', chimneyCutGeo, mats.steel, false)

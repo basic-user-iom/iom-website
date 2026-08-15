@@ -2,7 +2,6 @@ import {
   CanvasTexture,
   Color,
   DoubleSide,
-  FrontSide,
   MeshStandardMaterial,
   RepeatWrapping,
   SRGBColorSpace,
@@ -156,13 +155,13 @@ export function createKettleMaterials(): KettleMaterials {
   })
 
   const chimneyInner = new MeshStandardMaterial({
-    color: 0x343434,
-    metalness: 0.75,
-    roughness: 0.5,
-    side: FrontSide,
-    envMapIntensity: 1.35,
-    emissive: new Color(0x3a3a3a),
-    emissiveIntensity: 0.28,
+    color: 0x6a5344,
+    metalness: 0.42,
+    roughness: 0.62,
+    side: DoubleSide,
+    envMapIntensity: 0.55,
+    emissive: new Color(0x4a2814),
+    emissiveIntensity: 0.22,
     depthTest: true,
     depthWrite: true,
   })

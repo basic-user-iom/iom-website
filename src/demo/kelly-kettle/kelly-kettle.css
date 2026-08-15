@@ -207,6 +207,25 @@ html.kk-route.is-demo #root {
   text-align: right;
 }
 
+.kk-header-back {
+  font: inherit;
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  color: var(--kk-green-deep);
+  background: none;
+  border: 1px solid var(--kk-line);
+  border-radius: 2px;
+  min-height: 2.4rem;
+  padding: 0.35rem 0.75rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.kk-header-back:hover {
+  border-color: var(--kk-green);
+  background: rgba(61, 92, 69, 0.08);
+}
+
 .kk-body {
   display: grid;
   grid-template-columns: minmax(17rem, 22rem) minmax(0, 1fr);

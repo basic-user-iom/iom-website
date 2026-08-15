@@ -12,6 +12,7 @@ type ExperienceProps = {
   reducedMotion: boolean
   quality: QualityLevel
   onFirstFrame?: () => void
+  onBackToIntro?: () => void
 }
 
 type Phase = 'intro' | 'loading' | 'ready'
@@ -150,6 +151,14 @@ function KellyKettleUnlockedPage() {
     }
   }, [phase, reducedMotion, webgl])
 
+  const backToIntro = useCallback(() => {
+    window.clearInterval(progressTimer.current)
+    setPhase('intro')
+    setExperience(null)
+    setProgress(0)
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' })
+  }, [reducedMotion])
+
   const demo = phase === 'ready'
   const loading = phase === 'loading'
 
@@ -157,7 +166,13 @@ function KellyKettleUnlockedPage() {
     <div className={demo ? 'kk-page kk-page--demo' : 'kk-page kk-page--intro'}>
       <header className="kk-header">
         <p className="kk-brand">Kelly Kettle · Base Camp 1.6 L</p>
-        <span className="kk-badge">Concept demonstration — simplified draft model</span>
+        {demo ? (
+          <button type="button" className="kk-header-back" onClick={backToIntro}>
+            Back to intro
+          </button>
+        ) : (
+          <span className="kk-badge">Concept demonstration — simplified draft model</span>
+        )}
       </header>
 
       <div className="kk-intro">
@@ -289,6 +304,7 @@ function KellyKettleUnlockedPage() {
                     reducedMotion={reducedMotion}
                     quality={quality}
                     onFirstFrame={onFirstFrame}
+                    onBackToIntro={backToIntro}
                   />
                 ) : null}
               </div>

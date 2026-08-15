@@ -20,9 +20,10 @@ type Props = {
   reducedMotion: boolean
   quality: QualityLevel
   onFirstFrame?: () => void
+  onBackToIntro?: () => void
 }
 
-export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: Props) {
+export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame, onBackToIntro }: Props) {
   const [step, setStep] = useState<DemoStep>('explore')
   const [resetViewToken, setResetViewToken] = useState(0)
   const [webglFailed, setWebglFailed] = useState(false)
@@ -273,6 +274,11 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
         >
           Reset view
         </button>
+        {onBackToIntro ? (
+          <button type="button" className="kk-step" onClick={onBackToIntro}>
+            Back to intro
+          </button>
+        ) : null}
       </div>
 
       <p className="kk-text-explainer">
