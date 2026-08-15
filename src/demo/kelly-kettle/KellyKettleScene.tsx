@@ -2,10 +2,11 @@ import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js'
-import { DEFAULT_PARTICLES, MOBILE_PARTICLES, PIXEL_RATIO_CAP, TOTAL_H } from './constants'
+import { DEFAULT_PARTICLES, MOBILE_PARTICLES, PIXEL_RATIO_CAP, SEAT_Y, TOTAL_H } from './constants'
 import { createFuelAndFire } from './createFuelAndFire'
 import { createParticles } from './createParticles'
 import { createKellyKettleModel } from './KellyKettleModel'
+import { DEFAULT_VIEW_SETUPS } from './viewSetups'
 import { measureTransferredBytes } from './webgl'
 import type {
   DebugControls,
@@ -30,6 +31,7 @@ type Props = {
   onStats: (stats: SceneStats) => void
   onFireComplete: () => void
   onFirstFrame?: () => void
+  onCameraPose?: (pose: { px: number; py: number; pz: number; tx: number; ty: number; tz: number; fov: number }) => void
 }
 
 const CUTAWAY_LABELS: { id: string; text: string; local: THREE.Vector3; side: 'left' | 'right' }[] = [
@@ -91,6 +93,7 @@ export function KellyKettleScene({
   onStats,
   onFireComplete,
   onFirstFrame,
+  onCameraPose,
 }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
   const resetRef = useRef(resetViewToken)
@@ -107,6 +110,8 @@ export function KellyKettleScene({
   fireDoneCb.current = onFireComplete
   const firstFrameCb = useRef(onFirstFrame)
   firstFrameCb.current = onFirstFrame
+  const cameraCb = useRef(onCameraPose)
+  cameraCb.current = onCameraPose
 
   useEffect(() => {
     const mount = mountRef.current
@@ -147,20 +152,21 @@ export function KellyKettleScene({
 
     const pmrem = new THREE.PMREMGenerator(renderer)
     const envScene = new RoomEnvironment()
-    const envTex = pmrem.fromScene(envScene, 0.12).texture
+    const envTex = pmrem.fromScene(envScene, 0.04).texture
     envScene.dispose()
     scene.environment = envTex
     pmrem.dispose()
 
     const camera = new THREE.PerspectiveCamera(32, 1, 0.02, 12)
     const controls = new OrbitControls(camera, renderer.domElement)
+    const coarse = window.matchMedia('(pointer: coarse)').matches
     controls.enablePan = false
     controls.enableDamping = true
     controls.dampingFactor = 0.08
     controls.minPolarAngle = 0.35
     controls.maxPolarAngle = Math.PI / 2 - 0.04
-    controls.rotateSpeed = 0.7
-    controls.zoomSpeed = 1.05
+    controls.rotateSpeed = coarse ? 0.88 : 0.7
+    controls.zoomSpeed = coarse ? 1.2 : 1.05
     controls.autoRotate = true
     controls.autoRotateSpeed = 0.55
     controls.touches.ONE = THREE.TOUCH.ROTATE
@@ -216,20 +222,88 @@ export function KellyKettleScene({
     const world = new THREE.Vector3()
     const ndc = new THREE.Vector3()
     const camPos = new THREE.Vector3()
+    const camFrom = new THREE.Vector3()
+    const camTo = new THREE.Vector3()
+    const tgtFrom = new THREE.Vector3()
+    const tgtTo = new THREE.Vector3()
+    let camBlend = 1
+    let lastStep: DemoStep | '' = ''
+    let lastLabelKey = ''
+    let lastCamReport = 0
 
-    const frameCamera = () => {
+    const fitLens = () => {
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
-      camera.aspect = w / Math.max(h, 1)
+      const aspect = w / Math.max(h, 1)
+      camera.aspect = aspect
+      camera.fov = aspect < 0.72 ? 44 : aspect < 0.95 ? 38 : 32
       camera.updateProjectionMatrix()
-      const target = new THREE.Vector3(0, TOTAL_H * 0.46, 0)
-      const dist = 0.66
-      camera.position.set(0.5, 0.24, 0.52).normalize().multiplyScalar(dist).add(target)
-      controls.target.copy(target)
-      controls.minDistance = 0.08
-      controls.maxDistance = 1.85
-      controls.update()
+      controls.minDistance = 0.1
+      controls.maxDistance = aspect < 0.95 ? 2.4 : 1.9
+      return aspect
     }
+
+    const poseFor = (step: DemoStep) => {
+      const aspect = fitLens()
+      const saved = DEFAULT_VIEW_SETUPS[step]?.camera
+      if (saved) {
+        const target = new THREE.Vector3(saved.tx, saved.ty, saved.tz)
+        const offset = new THREE.Vector3(saved.px - saved.tx, saved.py - saved.ty, saved.pz - saved.tz)
+        if (aspect < 0.95) offset.multiplyScalar(1.18)
+        return { target, offset, fov: aspect < 0.95 ? Math.max(saved.fov, 38) : saved.fov }
+      }
+      const pull = aspect < 0.95 ? 1.34 : 1
+      if (step === 'fire' || step === 'complete') {
+        return {
+          target: new THREE.Vector3(0, 0.108, 0),
+          offset: new THREE.Vector3(0.58, 0.16, 0.55).normalize().multiplyScalar(0.64 * pull),
+          fov: aspect < 0.95 ? 38 : 32,
+        }
+      }
+      return {
+        target: new THREE.Vector3(0, TOTAL_H * 0.46, 0),
+        offset: new THREE.Vector3(0.46, 0.28, 0.66).normalize().multiplyScalar(0.7 * pull),
+        fov: aspect < 0.95 ? 38 : 32,
+      }
+    }
+
+    const clearOrbit = () => {
+      const extras = controls as OrbitControls & {
+        _sphericalDelta: THREE.Spherical
+        _panOffset: THREE.Vector3
+        _scale: number
+        state: number
+      }
+      extras._sphericalDelta.set(0, 0, 0)
+      extras._panOffset.set(0, 0, 0)
+      extras._scale = 1
+      extras.state = -1
+    }
+
+    const applyPose = (step: DemoStep) => {
+      const pose = poseFor(step)
+      clearOrbit()
+      camera.position.copy(pose.target).add(pose.offset)
+      controls.target.copy(pose.target)
+      camera.fov = pose.fov
+      camera.updateProjectionMatrix()
+      controls.update()
+      controls.saveState()
+    }
+
+    const beginPose = (step: DemoStep) => {
+      camFrom.copy(camera.position)
+      tgtFrom.copy(controls.target)
+      const pose = poseFor(step)
+      camTo.copy(pose.target).add(pose.offset)
+      tgtTo.copy(pose.target)
+      camera.fov = pose.fov
+      camera.updateProjectionMatrix()
+      camBlend = 0
+      lastLabelKey = ''
+    }
+
+    const frameCamera = () => applyPose('explore')
 
     const initialCam = {
       position: new THREE.Vector3(),
@@ -243,8 +317,7 @@ export function KellyKettleScene({
         Math.min(window.devicePixelRatio || 1, debugRef.current.mobilePerformance ? 1 : PIXEL_RATIO_CAP),
       )
       renderer.setSize(w, h, false)
-      camera.aspect = w / Math.max(h, 1)
-      camera.updateProjectionMatrix()
+      fitLens()
     }
 
     const greyMat = new THREE.MeshStandardMaterial({
@@ -270,24 +343,40 @@ export function KellyKettleScene({
     let source: ModelSource = debugRef.current.modelSource
 
     const projectLabels = (cut: number, fireAmt: number) => {
+      if (camBlend < 0.92) {
+        if (lastLabelKey !== 'hide') {
+          lastLabelKey = 'hide'
+          anchorsCb.current([])
+        }
+        return
+      }
+      const compact = mount.clientWidth <= 860
       const list: LabelAnchor[] = []
       const push = (
         item: { id: string; text: string; local: THREE.Vector3; side: 'left' | 'right' },
         show: boolean,
       ) => {
         world.copy(item.local)
+        world.y += SEAT_Y
         ndc.copy(world).project(camera)
+        const x = Math.round((ndc.x * 0.5 + 0.5) * 50) * 2
+        const y = Math.round((-ndc.y * 0.5 + 0.5) * 50) * 2
         list.push({
           id: item.id,
           text: item.text,
-          x: (ndc.x * 0.5 + 0.5) * 100,
-          y: (-ndc.y * 0.5 + 0.5) * 100,
-          visible: show && ndc.z < 1,
+          x: Math.min(92, Math.max(8, x)),
+          y: Math.min(88, Math.max(10, y)),
+          visible: show && ndc.z < 1 && ndc.x > -1.2 && ndc.x < 1.2,
           side: item.side,
         })
       }
-      for (const item of CUTAWAY_LABELS) push(item, cut > 0.55)
-      for (const item of FLOW_LABELS) push(item, fireAmt > 0.15)
+      for (const item of CUTAWAY_LABELS) push(item, cut > 0.72)
+      for (const item of FLOW_LABELS) push(item, fireAmt > 0.22)
+      const key = compact
+        ? list.map((a) => `${a.id}:${a.visible ? 1 : 0}`).join('|')
+        : list.map((a) => `${a.id}:${a.visible ? 1 : 0}:${a.x}:${a.y}`).join('|')
+      if (key === lastLabelKey) return
+      lastLabelKey = key
       anchorsCb.current(list)
     }
 
@@ -315,13 +404,35 @@ export function KellyKettleScene({
 
       if (resetRef.current !== lastReset) {
         lastReset = resetRef.current
-        camera.position.copy(initialCam.position)
-        controls.target.copy(initialCam.target)
-        controls.update()
+        applyPose(stepRef.current)
+        camBlend = 1
+        lastLabelKey = ''
       }
 
       const step = stepRef.current
       const debug = debugRef.current
+
+      if (step !== lastStep) {
+        const prev = lastStep
+        lastStep = step
+        if (step !== 'explore') interactedRef.current = true
+        if (debug.layoutEdit) {
+          camBlend = 1
+        } else {
+          if (prev) beginPose(step)
+          if (reducedMotion || !prev) {
+            applyPose(step)
+            camBlend = 1
+          }
+        }
+      }
+
+      if (camBlend < 1) {
+        camBlend = Math.min(1, camBlend + dt / 0.72)
+        const k = ease(camBlend)
+        camera.position.lerpVectors(camFrom, camTo, k)
+        controls.target.lerpVectors(tgtFrom, tgtTo, k)
+      }
 
       if (debug.silhouetteCompare !== lastSilhouette) {
         lastSilhouette = debug.silhouetteCompare
@@ -359,7 +470,13 @@ export function KellyKettleScene({
         fireCompleted = false
       }
 
-      controls.autoRotate = debug.autoRotate && !interactedRef.current && !debug.silhouetteCompare
+      controls.autoRotate =
+        debug.autoRotate &&
+        !debug.layoutEdit &&
+        !interactedRef.current &&
+        step === 'explore' &&
+        camBlend >= 1 &&
+        !debug.silhouetteCompare
       const particleCount = debug.particleCount || (quality === 'mobile' ? MOBILE_PARTICLES : DEFAULT_PARTICLES)
 
       model?.update({
@@ -396,11 +513,28 @@ export function KellyKettleScene({
         particleCount,
         reducedMotion,
         debug.airflowVisible,
+        cutaway,
       )
 
-      controls.update()
+      if (camBlend < 1) {
+        camera.lookAt(controls.target)
+      } else {
+        controls.update()
+      }
       renderer.render(scene, camera)
       projectLabels(cutaway, fireProg)
+      if (debug.layoutEdit && cameraCb.current && now - lastCamReport > 120) {
+        lastCamReport = now
+        cameraCb.current({
+          px: camera.position.x,
+          py: camera.position.y,
+          pz: camera.position.z,
+          tx: controls.target.x,
+          ty: controls.target.y,
+          tz: controls.target.z,
+          fov: camera.fov,
+        })
+      }
     }
 
     const onVisibility = () => {
@@ -411,6 +545,7 @@ export function KellyKettleScene({
     const ro = new ResizeObserver(applySize)
     ro.observe(mount)
     window.addEventListener('resize', applySize)
+    window.visualViewport?.addEventListener('resize', applySize)
 
     let loadGen = 0
     const loadModel = async (next: ModelSource) => {
@@ -507,6 +642,7 @@ export function KellyKettleScene({
       window.clearInterval(sourcePoll)
       ro.disconnect()
       window.removeEventListener('resize', applySize)
+      window.visualViewport?.removeEventListener('resize', applySize)
       document.removeEventListener('visibilitychange', onVisibility)
       controls.removeEventListener('start', stopIdle)
       controls.dispose()

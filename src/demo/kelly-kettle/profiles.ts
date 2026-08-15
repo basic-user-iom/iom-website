@@ -129,10 +129,22 @@ function clipY(points: Vector2[], minY: number, maxY: number): Vector2[] {
   return out.length ? out : points
 }
 
-/** Flat closed floor — do not wrap this up the wall or it will fill the air hole. */
+/**
+ * Closed fire-pan floor spanning the full lower cylinder.
+ * Stay below the air hole so the side opening remains clear.
+ */
 export function fireBaseFloorProfile(): Vector2[] {
-  const r = BASE_R * 0.38
-  return line([v(0.001, 0.0012), v(r - 0.002, 0.0012), v(r, 0.003)], 0)
+  const wallInner = BASE_R * 0.855 - 0.0014
+  return line(
+    [
+      v(0.0002, 0.0015),
+      v(wallInner * 0.42, 0.0016),
+      v(wallInner * 0.82, 0.0019),
+      v(wallInner - 0.0012, 0.0028),
+      v(wallInner, 0.0048),
+    ],
+    0,
+  )
 }
 
 /**

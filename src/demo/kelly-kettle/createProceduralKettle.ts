@@ -411,14 +411,23 @@ export function createProceduralKettle(quality: 'high' | 'mobile'): KellyKettleM
         mats.water.opacity = 0.32 + heat * 0.1
         mats.water.color.setHSL(0.52 - heat * 0.06, 0.48, 0.42 + heat * 0.04)
         const t = performance.now() * 0.001
+        const remStart = CUT_ANGLE / 2 + 0.2
+        const remLen = Math.PI * 2 - CUT_ANGLE - 0.4
+        const yMin = waterBotY + 0.012
+        const yMax = waterTopY - 0.01
+        const span = Math.max(0.04, yMax - yMin)
         for (let i = 0; i < bubbles.length; i++) {
           const show = heat > 0.35
           bubbles[i].visible = show
           if (!show) continue
-          const a = i * 0.7
-          const y0 = 0.04 + (i % 5) * 0.03
-          const rise = state.reducedMotion ? 0 : ((t * (0.04 + heat * 0.08) + i * 0.13) % 0.16)
-          bubbles[i].position.set(Math.cos(a) * 0.048, y0 + rise, Math.sin(a) * 0.048)
+          const y = state.reducedMotion
+            ? yMin + (i / bubbles.length) * span
+            : yMin + ((t * (0.035 + heat * 0.06) + i * 0.17) % span)
+          const innerR = sampleRadius(wInner, y) + 0.002
+          const outerR = sampleRadius(wOuter, y) - 0.002
+          const r = innerR + ((i % 3) / 3) * Math.max(0.003, outerR - innerR)
+          const a = remStart + ((i + 0.5) / bubbles.length) * remLen
+          bubbles[i].position.set(Math.sin(a) * r, y, Math.cos(a) * r)
           bubbles[i].scale.setScalar(0.6 + heat * 0.7)
         }
       }
@@ -472,10 +481,11 @@ function buildFireBase(mats: KettleMaterials, segs: number) {
 
   const wallMat = mats.steelBase.clone()
   wallMat.side = DoubleSide
-  const dark = mats.steelBase.clone()
-  dark.color.setHex(0x3a3d40)
-  dark.roughness = 0.7
-  dark.side = DoubleSide
+  const panMat = mats.steelBase.clone()
+  panMat.color.setHex(0x6a7076)
+  panMat.roughness = 0.72
+  panMat.metalness = 0.42
+  panMat.side = DoubleSide
   const lowerMat = mats.steelBase.clone()
   lowerMat.side = DoubleSide
   lowerMat.roughness = 0.58
@@ -489,19 +499,21 @@ function buildFireBase(mats: KettleMaterials, segs: number) {
   airHole.name = 'fire_base_air_hole'
   airHole.add(holeMesh)
 
+  const wallInner = Math.max(0.004, sampleRadius(wall, 0.006) - WALL * 1.1)
   const linerPts = [
-    new Vector2(Math.max(0.004, sampleRadius(wall, 0.006) - WALL * 1.1), 0.004),
-    new Vector2(Math.max(0.004, sampleRadius(wall, splitY) - WALL * 1.1), splitY),
+    new Vector2(wallInner, 0.0048),
+    new Vector2(wallInner, splitY),
   ]
+  // Full inner liner — air enters only through the outer wall hole above the pan floor.
   const chamber = mesh(
     'fire_base_chamber',
-    lathe(linerPts, Math.max(24, Math.floor(segs / 2)), AIR_HOLE_PHI + 0.55, Math.PI * 2 - 1.1),
-    dark,
+    lathe(linerPts, Math.max(32, Math.floor(segs / 2))),
+    panMat,
     false,
   )
 
   group.add(
-    mesh('fire_base_floor', lathe(fireBaseFloorProfile(), segs), dark),
+    mesh('fire_base_floor', lathe(fireBaseFloorProfile(), segs), panMat),
     mesh('fire_base_below_hole', lathe(below, segs), lowerMat),
     airHole,
     mesh('fire_base_above_hole', lathe(midUpper, segs), lowerMat),

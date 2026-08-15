@@ -1,8 +1,20 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react'
 import { DEFAULT_PARTICLES, MOBILE_PARTICLES } from './constants'
 import { DebugPanel } from './DebugPanel'
 import { KellyKettleScene } from './KellyKettleScene'
-import { STEPS, type DebugControls, type DemoStep, type LabelAnchor, type QualityLevel, type SceneStats } from './types'
+import { ViewEditor } from './ViewEditor'
+import { DEFAULT_VIEW_SETUPS } from './viewSetups'
+import {
+  STEPS,
+  type CameraPose,
+  type DebugControls,
+  type DemoStep,
+  type LabelAnchor,
+  type QualityLevel,
+  type SavedLabel,
+  type SceneStats,
+  type StepViewSetup,
+} from './types'
 
 type Props = {
   reducedMotion: boolean
@@ -42,7 +54,12 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
     exteriorOrCutaway: 'auto',
     metalRoughness: 0.48,
     showReferenceOverlay: false,
+    layoutEdit: false,
   })
+  const [pose, setPose] = useState<CameraPose | null>(null)
+  const [setups, setSetups] = useState<Partial<Record<DemoStep, StepViewSetup>>>(DEFAULT_VIEW_SETUPS)
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null)
 
   const stepRef = useRef(step)
   stepRef.current = step
@@ -70,7 +87,64 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
     return () => window.removeEventListener('keydown', onKey)
   }, [go, step])
 
-  const visibleAnchors = useMemo(() => anchors.filter((a) => a.visible), [anchors])
+  const visibleAnchors = useMemo(() => {
+    const saved = setups[step]?.labels ?? []
+    if (saved.length) {
+      const live = new Map(anchors.map((anchor) => [anchor.id, anchor]))
+      return saved.map((label) => ({
+        ...label,
+        visible: live.get(label.id)?.visible ?? true,
+      }))
+    }
+    return anchors.filter((anchor) => anchor.visible)
+  }, [anchors, setups, step])
+
+  const liveLabels: SavedLabel[] = visibleAnchors.map((anchor) => ({
+    id: anchor.id,
+    text: anchor.text,
+    x: anchor.x,
+    y: anchor.y,
+    side: anchor.side,
+  }))
+
+  const moveLabel = (id: string, x: number, y: number) => {
+    setSetups((prev) => {
+      const current = prev[step] ?? { camera: pose, labels: [] }
+      const labels = current.labels.filter((label) => label.id !== id)
+      const source = visibleAnchors.find((anchor) => anchor.id === id)
+      if (!source) return prev
+      labels.push({ id, text: source.text, x, y, side: source.side })
+      return { ...prev, [step]: { ...current, labels } }
+    })
+  }
+
+  const onLabelPointerDown = (anchor: LabelAnchor, event: PointerEvent<HTMLLIElement>) => {
+    if (!debug.layoutEdit) return
+    event.preventDefault()
+    event.stopPropagation()
+    const box = viewportRef.current?.getBoundingClientRect()
+    if (!box) return
+    dragRef.current = {
+      id: anchor.id,
+      dx: event.clientX - box.left - (anchor.x / 100) * box.width,
+      dy: event.clientY - box.top - (anchor.y / 100) * box.height,
+    }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const onLabelPointerMove = (event: PointerEvent<HTMLLIElement>) => {
+    const drag = dragRef.current
+    const box = viewportRef.current?.getBoundingClientRect()
+    if (!drag || !box) return
+    event.preventDefault()
+    const x = Math.min(94, Math.max(6, ((event.clientX - box.left - drag.dx) / box.width) * 100))
+    const y = Math.min(92, Math.max(6, ((event.clientY - box.top - drag.dy) / box.height) * 100))
+    moveLabel(drag.id, x, y)
+  }
+
+  const onLabelPointerUp = () => {
+    dragRef.current = null
+  }
 
   if (webglFailed) {
     return (
@@ -84,7 +158,7 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
 
   return (
     <>
-      <div className="kk-viewport" aria-label="Kelly Kettle demonstration">
+      <div className="kk-viewport" aria-label="Kelly Kettle demonstration" ref={viewportRef}>
         <KellyKettleScene
           stepRef={stepRef}
           debugRef={debugRef}
@@ -100,14 +174,22 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
           onStats={setStats}
           onFireComplete={() => setStep('complete')}
           onFirstFrame={onFirstFrame}
+          onCameraPose={setPose}
         />
 
-        <ul className="kk-labels" aria-hidden="true">
+        <ul
+          className={`kk-labels${debug.layoutEdit ? ' is-edit' : ''}${setups[step]?.labels.length ? ' is-placed' : ''}`}
+          aria-hidden={!debug.layoutEdit}
+        >
           {visibleAnchors.map((anchor) => (
             <li
               key={anchor.id}
-              className={`kk-label kk-label--${anchor.side}`}
+              className={`kk-label kk-label--${anchor.side}${debug.layoutEdit ? ' is-edit' : ''}`}
               style={{ left: `${anchor.x}%`, top: `${anchor.y}%` }}
+              onPointerDown={(event) => onLabelPointerDown(anchor, event)}
+              onPointerMove={onLabelPointerMove}
+              onPointerUp={onLabelPointerUp}
+              onPointerCancel={onLabelPointerUp}
             >
               <span className="kk-label__line" />
               <span className="kk-label__text">{anchor.text}</span>
@@ -115,10 +197,49 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
           ))}
         </ul>
 
-        <p className="kk-orbit-hint">
-          <span className="kk-orbit-hint__mouse">Drag to rotate. Scroll to zoom.</span>
-          <span className="kk-orbit-hint__touch">Drag to rotate. Pinch to zoom.</span>
-        </p>
+        {import.meta.env.DEV ? (
+          <ViewEditor
+            open={debug.layoutEdit}
+            step={step}
+            pose={pose}
+            setups={setups}
+            liveLabels={liveLabels}
+            onToggle={() => {
+              setDebug((prev) => ({ ...prev, layoutEdit: !prev.layoutEdit, autoRotate: false }))
+              interactedRef.current = true
+            }}
+            onSaveCamera={() => {
+              if (!pose) return
+              setSetups((prev) => ({
+                ...prev,
+                [step]: { camera: pose, labels: prev[step]?.labels ?? liveLabels },
+              }))
+            }}
+          />
+        ) : null}
+
+        {step === 'complete' ? (
+          <div className="kk-complete" role="status">
+            <p className="kk-complete__lead">
+              A small fire. Strong natural airflow. Water heated from the inside.
+            </p>
+            <p className="kk-complete__body">
+              The chimney places a large heating surface directly between the fire and the
+              surrounding water.
+            </p>
+            <p className="kk-complete__note">
+              Designed to boil water outdoors in approximately 3–5 minutes.
+            </p>
+            <button type="button" className="kk-primary" onClick={() => go('explore')}>
+              Explore again
+            </button>
+          </div>
+        ) : (
+          <p className="kk-orbit-hint">
+            <span className="kk-orbit-hint__mouse">Drag to rotate. Scroll to zoom.</span>
+            <span className="kk-orbit-hint__touch">Drag to rotate. Pinch to zoom.</span>
+          </p>
+        )}
         {import.meta.env.DEV && debug.showReferenceOverlay ? (
           <div className="kk-ref-overlay" aria-hidden="true" />
         ) : null}
@@ -143,31 +264,16 @@ export function KellyKettleExperience({ reducedMotion, quality, onFirstFrame }: 
         })}
         <button
           type="button"
-          className="kk-text-btn"
-          onClick={() => setResetViewToken((n) => n + 1)}
+          className="kk-step"
+          onClick={() => {
+            interactedRef.current = true
+            setResetViewToken((n) => n + 1)
+          }}
           aria-label="Reset camera view"
         >
           Reset view
         </button>
       </div>
-
-      {step === 'complete' && (
-        <div className="kk-complete" role="status">
-          <p className="kk-complete__lead">
-            A small fire. Strong natural airflow. Water heated from the inside.
-          </p>
-          <p className="kk-complete__body">
-            The chimney places a large heating surface directly between the fire and the surrounding
-            water.
-          </p>
-          <p className="kk-complete__note">
-            Designed to boil water outdoors in approximately 3–5 minutes.
-          </p>
-          <button type="button" className="kk-primary" onClick={() => go('explore')}>
-            Explore again
-          </button>
-        </div>
-      )}
 
       <p className="kk-text-explainer">
         Cool air enters the fire-base opening, the chimney draws heat upward, and water in the outer

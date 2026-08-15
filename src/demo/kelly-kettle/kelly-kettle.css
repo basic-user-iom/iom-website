@@ -40,14 +40,20 @@ body.kk-route {
 }
 
 html.kk-route.is-demo,
-body.kk-route.is-demo {
-  height: 100%;
+body.kk-route.is-demo,
+html.kk-route.is-demo #root {
+  height: 100dvh;
+  max-height: 100dvh;
   overflow: hidden;
 }
 
-html.kk-route.is-demo #root {
-  height: 100%;
-  overflow: hidden;
+@supports (height: 100svh) {
+  html.kk-route.is-demo,
+  body.kk-route.is-demo,
+  html.kk-route.is-demo #root {
+    height: 100svh;
+    max-height: 100svh;
+  }
 }
 
 .kk-page {
@@ -72,9 +78,18 @@ html.kk-route.is-demo #root {
 
 .kk-page--demo {
   height: 100dvh;
+  max-height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  overscroll-behavior: none;
+}
+
+@supports (height: 100svh) {
+  .kk-page--demo {
+    height: 100svh;
+    max-height: 100svh;
+  }
 }
 
 .kk-page--gate {
@@ -86,7 +101,8 @@ html.kk-route.is-demo #root {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 2rem;
+  padding: max(2rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
+    max(2rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
 }
 
 .kk-gate__panel {
@@ -125,6 +141,7 @@ html.kk-route.is-demo #root {
   color: var(--kk-ink);
   padding: 0.85rem 1rem;
   font: inherit;
+  font-size: 1rem;
   outline: none;
   border-radius: 10px;
 }
@@ -167,7 +184,8 @@ html.kk-route.is-demo #root {
   align-items: baseline;
   justify-content: space-between;
   gap: 1rem;
-  padding: 0.8rem 1.5rem;
+  padding: max(0.8rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right)) 0.8rem
+    max(1.5rem, env(safe-area-inset-left));
   border-bottom: 1px solid var(--kk-line);
   background: var(--kk-paper);
 }
@@ -272,6 +290,9 @@ html.kk-route.is-demo #root {
 .kk-viewport {
   position: relative;
   min-height: 0;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
   background-color: #2c332c;
   background-image: url('/demos/kelly-kettle/forest-background.png');
   background-size: cover;
@@ -349,6 +370,7 @@ html.kk-route.is-demo #root {
   font: inherit;
   color: inherit;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .kk-step {
@@ -413,6 +435,7 @@ html.kk-route.is-demo #root {
   align-items: center;
   gap: 0.8rem;
   width: min(100%, 22.5rem);
+  max-width: 100%;
   min-height: 4.15rem;
   padding: 0.8rem 1rem 0.8rem 0.85rem;
   border: 0;
@@ -482,8 +505,7 @@ html.kk-route.is-demo #root {
 
 .kk-step-hint,
 .kk-text-explainer,
-.kk-note,
-.kk-complete {
+.kk-note {
   padding: 0 1rem 0.85rem;
 }
 
@@ -497,7 +519,18 @@ html.kk-route.is-demo #root {
 }
 
 .kk-complete {
-  max-width: 36rem;
+  position: absolute;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 4;
+  width: min(22rem, calc(100% - 2rem));
+  margin: 0;
+  padding: 0.85rem 0.95rem 0.95rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 12px;
+  background: rgba(250, 247, 241, 0.92);
+  box-shadow: 0 12px 28px rgba(44, 42, 38, 0.14);
+  pointer-events: auto;
 }
 
 .kk-complete__lead {
@@ -571,6 +604,83 @@ html.kk-route.is-demo #root {
   padding: 0.15rem 0.25rem;
 }
 
+.kk-labels.is-placed .kk-label,
+.kk-labels.is-placed .kk-label--left,
+.kk-labels.is-edit .kk-label,
+.kk-labels.is-edit .kk-label--left {
+  transform: translate(-50%, -50%);
+  flex-direction: row;
+  text-align: left;
+}
+
+.kk-labels.is-edit .kk-label {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  z-index: 5;
+}
+
+.kk-labels.is-edit .kk-label:active {
+  cursor: grabbing;
+}
+
+.kk-view-edit {
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  top: 0.55rem;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  pointer-events: none;
+}
+
+.kk-view-edit__toggle,
+.kk-view-edit__panel {
+  pointer-events: auto;
+}
+
+.kk-view-edit__toggle {
+  border: 1px solid var(--kk-line);
+  background: rgba(250, 247, 241, 0.94);
+  color: var(--kk-ink);
+  padding: 0.4rem 0.7rem;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.kk-view-edit__panel {
+  width: min(22rem, 100%);
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--kk-line);
+  border-radius: 10px;
+  background: rgba(250, 247, 241, 0.96);
+  display: grid;
+  gap: 0.45rem;
+}
+
+.kk-view-edit__panel p {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--kk-muted);
+}
+
+.kk-view-edit__meta {
+  font-variant-numeric: tabular-nums;
+}
+
+.kk-view-edit__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
 .kk-debug {
   position: absolute;
   right: 0.7rem;
@@ -635,14 +745,34 @@ html.kk-route.is-demo #root {
 
 @media (max-width: 860px) {
   .kk-header {
-    padding: 0.65rem 1rem;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.35rem 1rem;
+    padding: max(0.65rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0.65rem
+      max(1rem, env(safe-area-inset-left));
+  }
+  .kk-badge {
+    text-align: left;
+    max-width: 100%;
   }
   .kk-body {
     grid-template-columns: 1fr;
     grid-template-rows: minmax(52dvh, 1fr) auto;
   }
-  .kk-stage {
+  .kk-body .kk-stage {
     order: -1;
+  }
+  .kk-stage {
+    min-height: 0;
+    grid-template-rows: minmax(0, 1fr) auto;
+  }
+  .kk-page--demo {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .kk-page--demo .kk-stage {
+    order: 0;
+    min-height: 0;
+    height: 100%;
   }
   .kk-copy {
     border-right: 0;
@@ -657,6 +787,48 @@ html.kk-route.is-demo #root {
   }
   .kk-debug {
     display: none;
+  }
+  .kk-page--demo .kk-text-explainer,
+  .kk-page--demo .kk-step-hint,
+  .kk-page--demo .kk-note {
+    display: none;
+  }
+  .kk-page--demo .kk-steps {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 0.55rem 0.75rem max(0.55rem, env(safe-area-inset-bottom));
+  }
+  .kk-page--demo .kk-steps::-webkit-scrollbar {
+    display: none;
+  }
+  .kk-page--demo .kk-step,
+  .kk-page--demo .kk-text-btn {
+    flex: 0 0 auto;
+  }
+  .kk-page--demo .kk-complete {
+    left: 0.7rem;
+    bottom: 0.7rem;
+    width: min(20rem, calc(100% - 1.4rem));
+    padding: 0.7rem 0.8rem 0.8rem;
+  }
+  .kk-page--demo .kk-complete__body {
+    display: none;
+  }
+  .kk-label {
+    max-width: 7.6rem;
+  }
+  .kk-label__text {
+    font-size: 0.6rem;
+  }
+  .kk-label__line {
+    width: 1rem;
+  }
+  .kk-orbit-hint {
+    left: 0.7rem;
+    bottom: 0.55rem;
+    font-size: 0.64rem;
   }
 }
 
@@ -1466,7 +1638,13 @@ html.kk-route.is-demo #root {
 
 @media (max-width: 959px) {
   .kk-intro {
-    padding: 1rem 1rem 1.8rem;
+    padding: 1rem max(1rem, env(safe-area-inset-right)) 1.8rem max(1rem, env(safe-area-inset-left));
+  }
+  .kk-field-videos {
+    grid-template-columns: 1fr;
+  }
+  .kk-yt-card__frame {
+    aspect-ratio: 16 / 9;
   }
   .kk-intro-grid {
     grid-template-columns: 1fr 1fr;
@@ -1511,6 +1689,19 @@ html.kk-route.is-demo #root {
   .kk-page--intro .kk-title {
     max-width: none;
     font-size: clamp(1.7rem, 8vw, 2.3rem);
+  }
+}
+
+@media (max-height: 520px) and (max-width: 960px) {
+  .kk-badge {
+    display: none;
+  }
+  .kk-header {
+    padding-top: max(0.4rem, env(safe-area-inset-top));
+    padding-bottom: 0.4rem;
+  }
+  .kk-page--demo .kk-step__label {
+    font-size: 0.82rem;
   }
 }
 

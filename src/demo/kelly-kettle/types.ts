@@ -90,6 +90,29 @@ export type LabelAnchor = {
   side: 'left' | 'right'
 }
 
+export type CameraPose = {
+  px: number
+  py: number
+  pz: number
+  tx: number
+  ty: number
+  tz: number
+  fov: number
+}
+
+export type SavedLabel = {
+  id: string
+  text: string
+  x: number
+  y: number
+  side: 'left' | 'right'
+}
+
+export type StepViewSetup = {
+  camera: CameraPose | null
+  labels: SavedLabel[]
+}
+
 export type SceneStats = {
   fps: number
   triangles: number
@@ -117,6 +140,7 @@ export type DebugControls = {
   exteriorOrCutaway: ExteriorMode
   metalRoughness: number
   showReferenceOverlay: boolean
+  layoutEdit: boolean
 }
 
 export const GLB_URL = '/models/kelly-kettle-basecamp-final.glb'
