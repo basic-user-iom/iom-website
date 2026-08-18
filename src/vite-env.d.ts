@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_ICM_DEMO_PASSWORD?: string
   /** Kelly Kettle client demo unlock password (default: kettle) */
   readonly VITE_KELLY_KETTLE_DEMO_PASSWORD?: string
+  /** Precision object study unlock password (default: precision) */
+  readonly VITE_PRECISION_OBJECT_DEMO_PASSWORD?: string
 }
 
 interface ImportMeta {

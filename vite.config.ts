@@ -54,7 +54,13 @@ function nonBlockingCssPlugin() {
     enforce: 'post',
     transformIndexHtml(html, ctx) {
       const file = String(ctx?.filename || ctx?.path || '').replace(/\\/g, '/')
-      if (file.includes('dukta-linar-concept') || file.includes('kelly-kettle')) return html
+      if (
+        file.includes('dukta-linar-concept') ||
+        file.includes('kelly-kettle') ||
+        file.includes('precision-object')
+      ) {
+        return html
+      }
       let next = html.replace(
         /<link(\s[^>]*?)rel="stylesheet"([^>]*?)>/g,
         (match, before = '', after = '') => {
@@ -127,6 +133,7 @@ export default defineConfig({
         main: path.resolve(root, 'index.html'),
         duktaLinarConcept: path.resolve(root, 'demos/dukta-linar-concept/index.html'),
         kellyKettle: path.resolve(root, 'demos/kelly-kettle/index.html'),
+        precisionObject: path.resolve(root, 'demos/precision-object/index.html'),
       },
       output: {
         manualChunks: {

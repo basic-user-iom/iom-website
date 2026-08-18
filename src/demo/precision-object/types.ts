@@ -1,0 +1,81 @@
+export type Vec3 = [number, number, number]
+
+export type LightingPresetId = 'studio' | 'detail'
+
+export type CameraPresetId = 'hero' | 'front' | 'detail' | 'top'
+
+export type CameraPreset = {
+  id: CameraPresetId
+  /** Direction from the look target toward the camera, in world space. */
+  direction: Vec3
+  /** Offset from the model center, as a fraction of the bounding-box size. */
+  targetOffset: Vec3
+  /** Distance as a multiple of the computed framing distance. */
+  distanceMul: number
+  fov: number
+}
+
+export type Hotspot = {
+  id: string
+  label: string
+  title: string
+  body: string
+  /**
+   * Offset from the model center, as a fraction of the bounding-box size
+   * on each axis. `[0, 0, 0]` is the center; `[1, 0, 0]` is the +X face.
+   */
+  position: Vec3
+  cameraTarget?: Vec3
+  cameraPreset?: CameraPresetId
+}
+
+export type StoryItem = {
+  id: string
+  title: string
+  body: string
+  actionLabel: string
+  cameraPreset: CameraPresetId
+  hotspotId?: string
+}
+
+export type ScreenHotspot = {
+  id: string
+  x: number
+  y: number
+  visible: boolean
+}
+
+export type ModelCapabilities = {
+  loaded: boolean
+  hasMotion: boolean
+  motionClipName: string | null
+  hasExploded: boolean
+  animations: string[]
+  materials: string[]
+  meshes: string[]
+  size: Vec3
+}
+
+export type ViewerApi = {
+  setAutoRotate: (value: boolean) => void
+  setLighting: (preset: LightingPresetId) => void
+  setMotion: (value: boolean) => void
+  setPbr: (value: boolean) => void
+  setLook: (look: import('./lookStudio').SavedLook) => void
+  captureCamera: () => import('./lookStudio').CameraLook | null
+  setPlaceHotspots: (value: boolean) => void
+  setPlaceHotspotId: (id: string | null) => void
+  setExploded: (value: boolean) => void
+  setHeroBias: (value: boolean) => void
+  setActive: (value: boolean) => void
+  resetCamera: () => void
+  goToPreset: (id: CameraPresetId) => void
+  focusHotspot: (id: string) => void
+  enterFullscreen: () => Promise<void>
+  exitFullscreen: () => Promise<void>
+}
+
+export type LoadState =
+  | { status: 'loading'; progress: number }
+  | { status: 'ready' }
+  | { status: 'error'; message: string }

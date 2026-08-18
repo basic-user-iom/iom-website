@@ -98,6 +98,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     ],
   },
   {
+    id: 'precision-object',
+    name: 'Precision object study',
+    client: 'Capability study — interactive product presentation',
+    status: 'preview',
+    path: '/demos/precision-object/',
+    password: 'precision',
+    blurb:
+      'Private demo: a browser-based product presentation concept for objects where material, mechanism and detail matter. Not linked from the public homepage.',
+    tags: ['Product', 'WebGL', 'Look studio'],
+    images: [],
+  },
+  {
     id: 'bas-rutten',
     name: 'Bas Rutten',
     client: 'Client pitch — official Bas Rutten website redesign',
