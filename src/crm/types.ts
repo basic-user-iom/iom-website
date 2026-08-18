@@ -64,7 +64,7 @@ export interface Lead {
    * (does not expire at midnight).
    */
   contact_priority: boolean
-  /** Armed auto-send for initial outreach (null = not scheduled). */
+  /** Armed auto-send for initial outreach or a follow-up reply (null = not scheduled). */
   scheduled_send: ScheduledSend | null
   estimated_value: number | null
   /** Optional CRM-safe emoticon for estimated value (❤️ pro-bono, 🎁 gift, …). */

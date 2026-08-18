@@ -23,7 +23,7 @@ import {
   buildScheduledSend,
   emptySchedulePickerParts,
   formatInContactZone,
-  isScheduledSendArmed,
+  isInitialScheduleArmed,
   isScheduledSendExhausted,
   joinSchedulePickerParts,
   leadContactPlaceLabel,
@@ -95,9 +95,10 @@ export function InitialOutreachPanel({
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
   )
-  const schedule = normalizeScheduledSend(lead.scheduled_send)
-  const scheduledArmed = isScheduledSendArmed(lead)
-  const scheduledExhausted = isScheduledSendExhausted(lead)
+  const scheduleRaw = normalizeScheduledSend(lead.scheduled_send)
+  const schedule = scheduleRaw?.kind === 'reply' ? null : scheduleRaw
+  const scheduledArmed = isInitialScheduleArmed(lead)
+  const scheduledExhausted = scheduledArmed && isScheduledSendExhausted(lead)
   const contactTz = leadContactTimeZone(lead)
   const contactPlace = leadContactPlaceLabel(lead)
   const hasContactTz = isValidIanaTimezone(contactTz)
@@ -128,10 +129,11 @@ export function InitialOutreachPanel({
 
   useEffect(() => {
     const next = normalizeScheduledSend(lead.scheduled_send)
+    const initial = next?.kind === 'reply' ? null : next
     setScheduleParts(
-      next
+      initial
         ? splitSchedulePickerValue(
-            scheduleIsoToPickerValue(next.at, hasContactTz ? contactTz : null),
+            scheduleIsoToPickerValue(initial.at, hasContactTz ? contactTz : null),
           )
         : emptySchedulePickerParts(),
     )
@@ -424,6 +426,7 @@ export function InitialOutreachPanel({
           at: iso,
           to,
           from: fromIdentity,
+          kind: 'initial',
         }),
         initial_email_drafted_at:
           lead.initial_email_drafted_at || new Date().toISOString(),

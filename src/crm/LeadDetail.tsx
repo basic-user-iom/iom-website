@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { claimLeadOwner, deleteLead, listActivities, updateLead } from './api'
+import { claimLeadOwner, deleteLead, listActivities, listLeadMessages, updateLead } from './api'
 import { ActivityPanel } from './ActivityPanel'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
@@ -230,7 +230,10 @@ export function LeadDetail({
     setError('')
     setCopying(true)
     try {
-      const activities = await listActivities(lead.id)
+      const [activities, messages] = await Promise.all([
+        listActivities(lead.id),
+        listLeadMessages(lead.id).catch(() => []),
+      ])
       const text = formatLeadAsPlainText(lead, {
         t,
         statusLabel,
@@ -243,6 +246,7 @@ export function LeadDetail({
           noCharge: t('detail.valueNoCharge'),
         },
         activities,
+        messages,
         linkedProjects,
         ideaCount,
       })

@@ -189,6 +189,7 @@ function buildSeed(): Store {
       from: 'contact',
       error: '',
       attempts: 0,
+      kind: 'initial',
     },
     estimated_value: 9200,
     value_emoji: '⭐',

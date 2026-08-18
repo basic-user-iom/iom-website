@@ -1,5 +1,5 @@
 /**
- * Process due scheduled initial outreach sends (one lead at a time).
+ * Process due scheduled initial outreach and follow-up replies (one lead at a time).
  * Failures on one lead never abort the rest of the batch.
  */
 
@@ -29,7 +29,6 @@ export async function processDueScheduledSends(opts) {
     `initial_email_subject,initial_email_body,initial_email_drafted_at,initial_email_sent_at,` +
     `contact_priority,scheduled_send` +
     `&scheduled_send=not.is.null` +
-    `&initial_email_sent_at=is.null` +
     `&order=scheduled_send->>at.asc` +
     `&limit=100`
 
@@ -50,10 +49,10 @@ export async function processDueScheduledSends(opts) {
     .map((row) => ({ row, schedule: normalizeSchedule(row.scheduled_send) }))
     .filter(({ schedule, row }) => {
       if (!schedule) return false
-      if (row.initial_email_sent_at) return false
+      if (schedule.kind !== 'reply' && row.initial_email_sent_at) return false
       if (schedule.attempts >= MAX_ATTEMPTS) return false
       if (new Date(schedule.at).getTime() > now) return false
-      if (schedule.lock) {
+      if (schedule.lock && !schedule.fired) {
         const lockAt = new Date(schedule.lock).getTime()
         if (Number.isFinite(lockAt) && now - lockAt < LOCK_STALE_MS) return false
       }
@@ -75,6 +74,19 @@ export async function processDueScheduledSends(opts) {
   for (const { row, schedule } of due) {
     // Isolate each lead — never break the loop on one failure.
     try {
+      if (schedule.fired) {
+        await clearSchedule(supabaseUrl, serviceKey, row, nowIso)
+        logLeadResult(runId, row.id, schedule, 'repaired', 'already_fired')
+        results.push({
+          id: row.id,
+          ok: true,
+          skipped: true,
+          reason: 'already_fired',
+          repaired: true,
+        })
+        continue
+      }
+
       const claimed = await claimLead(supabaseUrl, serviceKey, row, schedule)
       if (!claimed) {
         logLeadResult(runId, row.id, schedule, 'skipped', 'claimed_by_other')
@@ -82,41 +94,49 @@ export async function processDueScheduledSends(opts) {
         continue
       }
 
-      // Repair path: SMTP already succeeded earlier but mark-as-sent failed.
-      const alreadyOutbound = await hasOutboundLeadMessage({
-        supabaseUrl,
-        serviceKey,
-        leadId: row.id,
-      })
-      if (alreadyOutbound) {
-        const stamp = nowIso
-        await markLeadSent(supabaseUrl, serviceKey, row, stamp)
-        logLeadResult(runId, row.id, schedule, 'repaired', 'already_outbound')
-        results.push({
-          id: row.id,
-          ok: true,
-          skipped: true,
-          reason: 'already_outbound',
-          repaired: true,
+      const isReply = schedule.kind === 'reply'
+
+      // Repair path (initial only): SMTP already succeeded but mark-as-sent failed.
+      // Do not use this for replies — the lead already has outbound mail.
+      if (!isReply) {
+        const alreadyOutbound = await hasOutboundLeadMessage({
+          supabaseUrl,
+          serviceKey,
+          leadId: row.id,
         })
-        continue
+        if (alreadyOutbound) {
+          const stamp = nowIso
+          await markLeadSent(supabaseUrl, serviceKey, row, stamp)
+          logLeadResult(runId, row.id, schedule, 'repaired', 'already_outbound')
+          results.push({
+            id: row.id,
+            ok: true,
+            skipped: true,
+            reason: 'already_outbound',
+            repaired: true,
+          })
+          continue
+        }
       }
 
-      const subject = String(row.initial_email_subject || '').trim()
-      const body = String(row.initial_email_body || '').trim()
+      const subject = isReply
+        ? String(schedule.subject || '').trim()
+        : String(row.initial_email_subject || '').trim()
+      const body = isReply
+        ? String(schedule.body || '').trim()
+        : String(row.initial_email_body || '').trim()
       const to = schedule.to || String(row.email || '').trim().toLowerCase()
       const company = row.company_name || row.contact_name || row.id
 
       if (!subject || !body || !to) {
         const error = 'Missing subject, body, or recipient for scheduled send'
         const attempts = schedule.attempts + 1
-        await patchLeadSchedule(supabaseUrl, serviceKey, row.id, {
-          at: schedule.at,
-          to: schedule.to,
-          from: schedule.from,
-          error,
-          attempts,
-        })
+        await patchLeadSchedule(
+          supabaseUrl,
+          serviceKey,
+          row.id,
+          schedulePayload(schedule, { error, attempts, clearLock: true }),
+        )
         await safeNotify({
           toStaff: row.owner_email,
           company,
@@ -140,28 +160,52 @@ export async function processDueScheduledSends(opts) {
           serviceKey,
           ownerId: row.owner_id || null,
           persistMessage: true,
+          inReplyTo: isReply ? schedule.inReplyTo : undefined,
+          references: isReply ? schedule.references : undefined,
         })
 
         const stamp = nowIso
         let marked = false
         try {
-          await markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp)
+          if (isReply) {
+            await markReplySentWithRetry(supabaseUrl, serviceKey, row, stamp)
+          } else {
+            await markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp)
+          }
           marked = true
         } catch (markErr) {
           // SMTP already succeeded — do not count as a send failure / notify as such.
-          // Next ping will repair via the outbound-message guard.
+          // Stamp fired so the next ping clears without a second SMTP.
           console.error(
             '[crm-process-scheduled-sends] SMTP ok but lead still armed after mark retries',
             { runId, leadId: row.id, error: markErr instanceof Error ? markErr.message : markErr },
           )
+          try {
+            await patchLeadSchedule(
+              supabaseUrl,
+              serviceKey,
+              row.id,
+              schedulePayload(schedule, { fired: stamp, lock: stamp }),
+            )
+          } catch (firedErr) {
+            console.error(
+              '[crm-process-scheduled-sends] could not stamp fired after mark failure',
+              row.id,
+              firedErr instanceof Error ? firedErr.message : firedErr,
+            )
+          }
         }
 
         if (marked) {
           await insertActivity(supabaseUrl, serviceKey, {
             lead_id: row.id,
             type: 'email',
-            subject: subject.slice(0, 200) || 'Initial outreach email sent',
-            body: `Scheduled outreach sent automatically via CRM to ${to} from ${sendResult.from}.`,
+            subject:
+              subject.slice(0, 200) ||
+              (isReply ? 'Scheduled reply sent' : 'Initial outreach email sent'),
+            body: isReply
+              ? `Scheduled reply sent automatically via CRM to ${to} from ${sendResult.from}.`
+              : `Scheduled outreach sent automatically via CRM to ${to} from ${sendResult.from}.`,
             occurred_at: stamp,
             owner_id: row.owner_id || null,
           })
@@ -179,6 +223,7 @@ export async function processDueScheduledSends(opts) {
           id: row.id,
           ok: true,
           to,
+          kind: isReply ? 'reply' : 'initial',
           messageId: sendResult.messageId,
           storedMessageId: sendResult.storedMessageId ?? null,
           persistWarning: sendResult.persistWarning || null,
@@ -192,13 +237,12 @@ export async function processDueScheduledSends(opts) {
           error: detail,
         })
         const attempts = schedule.attempts + 1
-        await patchLeadSchedule(supabaseUrl, serviceKey, row.id, {
-          at: schedule.at,
-          to: schedule.to,
-          from: schedule.from,
-          error: detail,
-          attempts,
-        })
+        await patchLeadSchedule(
+          supabaseUrl,
+          serviceKey,
+          row.id,
+          schedulePayload(schedule, { error: detail, attempts, clearLock: true }),
+        )
         await safeNotify({
           toStaff: row.owner_email,
           company,
@@ -284,14 +328,49 @@ function normalizeSchedule(raw) {
       ? Math.max(0, Math.floor(raw.attempts))
       : 0
   const lock = typeof raw.lock === 'string' ? raw.lock.trim() : ''
+  const firedRaw = typeof raw.fired === 'string' ? raw.fired.trim() : ''
+  const firedAt = firedRaw ? new Date(firedRaw) : null
+  const subject = typeof raw.subject === 'string' ? raw.subject.trim().slice(0, 300) : ''
+  const body = typeof raw.body === 'string' ? raw.body.trim().slice(0, 50_000) : ''
+  const inReplyTo = typeof raw.inReplyTo === 'string' ? raw.inReplyTo.trim().slice(0, 2000) : ''
+  const references =
+    typeof raw.references === 'string' ? raw.references.trim().slice(0, 8000) : ''
   return {
     at: when.toISOString(),
     to,
     from,
     error: typeof raw.error === 'string' ? raw.error : '',
     attempts,
+    kind: raw.kind === 'reply' ? 'reply' : 'initial',
     lock,
+    ...(firedAt && !Number.isNaN(firedAt.getTime())
+      ? { fired: firedAt.toISOString() }
+      : {}),
+    ...(subject ? { subject } : {}),
+    ...(body ? { body } : {}),
+    ...(inReplyTo ? { inReplyTo } : {}),
+    ...(references ? { references } : {}),
   }
+}
+
+function schedulePayload(schedule, extra = {}) {
+  const next = {
+    at: schedule.at,
+    to: schedule.to,
+    from: schedule.from,
+    error: extra.error !== undefined ? extra.error : schedule.error || '',
+    attempts: extra.attempts !== undefined ? extra.attempts : schedule.attempts,
+    kind: schedule.kind === 'reply' ? 'reply' : 'initial',
+  }
+  if (schedule.subject) next.subject = schedule.subject
+  if (schedule.body) next.body = schedule.body
+  if (schedule.inReplyTo) next.inReplyTo = schedule.inReplyTo
+  if (schedule.references) next.references = schedule.references
+  if (extra.fired) next.fired = extra.fired
+  else if (schedule.fired && extra.clearFired !== true) next.fired = schedule.fired
+  if (extra.lock) next.lock = extra.lock
+  else if (!extra.clearLock && schedule.lock) next.lock = schedule.lock
+  return next
 }
 
 /**
@@ -301,21 +380,16 @@ function normalizeSchedule(raw) {
 async function claimLead(supabaseUrl, serviceKey, row, schedule) {
   const lock = new Date().toISOString()
   const stale = new Date(Date.now() - LOCK_STALE_MS).toISOString()
-  const next = {
-    at: schedule.at,
-    to: schedule.to,
-    from: schedule.from,
-    error: schedule.error || '',
-    attempts: schedule.attempts,
-    lock,
-  }
+  const next = schedulePayload(schedule, { lock })
   const atEnc = encodeURIComponent(schedule.at)
+  const isReply = schedule.kind === 'reply'
+  const sentFilter = isReply ? '' : `&initial_email_sent_at=is.null`
   // Only claim if unlocked or lock is stale — concurrent workers skip this lead,
   // but keep processing every other due lead in their batch.
   const res = await fetch(
     `${supabaseUrl}/rest/v1/crm_leads` +
       `?id=eq.${encodeURIComponent(row.id)}` +
-      `&initial_email_sent_at=is.null` +
+      sentFilter +
       `&scheduled_send->>at=eq.${atEnc}` +
       `&or=(scheduled_send->>lock.is.null,scheduled_send->>lock.lt.${encodeURIComponent(stale)})`,
     {
@@ -351,6 +425,24 @@ async function markLeadSent(supabaseUrl, serviceKey, row, stamp) {
   })
 }
 
+async function markReplySent(supabaseUrl, serviceKey, row, stamp) {
+  await patchLead(supabaseUrl, serviceKey, row.id, {
+    scheduled_send: null,
+    initial_email_sent_at: row.initial_email_sent_at || stamp,
+    initial_email_drafted_at: row.initial_email_drafted_at || stamp,
+    status: row.status === 'new' ? 'contacted' : row.status,
+    updated_at: stamp,
+    ...(row.initial_email_sent_at ? {} : { contact_priority: false }),
+  })
+}
+
+async function clearSchedule(supabaseUrl, serviceKey, row, stamp) {
+  await patchLead(supabaseUrl, serviceKey, row.id, {
+    scheduled_send: null,
+    updated_at: stamp,
+  })
+}
+
 /** Mark sent; retry once so a transient patch failure cannot leave the lead armed after SMTP. */
 async function markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp) {
   try {
@@ -366,6 +458,28 @@ async function markLeadSentWithRetry(supabaseUrl, serviceKey, row, stamp) {
     } catch (retryErr) {
       console.error(
         '[crm-process-scheduled-sends] mark-as-sent retry failed — lead may stay armed; outbound guard will repair',
+        row.id,
+        retryErr instanceof Error ? retryErr.message : retryErr,
+      )
+      throw retryErr
+    }
+  }
+}
+
+async function markReplySentWithRetry(supabaseUrl, serviceKey, row, stamp) {
+  try {
+    await markReplySent(supabaseUrl, serviceKey, row, stamp)
+  } catch (err) {
+    console.error(
+      '[crm-process-scheduled-sends] mark-reply-sent failed, retrying',
+      row.id,
+      err instanceof Error ? err.message : err,
+    )
+    try {
+      await markReplySent(supabaseUrl, serviceKey, row, stamp)
+    } catch (retryErr) {
+      console.error(
+        '[crm-process-scheduled-sends] mark-reply-sent retry failed — fired stamp will repair',
         row.id,
         retryErr instanceof Error ? retryErr.message : retryErr,
       )

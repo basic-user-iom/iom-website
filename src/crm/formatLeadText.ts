@@ -6,7 +6,7 @@ import {
   normalizeAtlasEval,
   type AtlasEval,
 } from './atlasEval'
-import type { Activity, ActivityType, CrmProject, Lead, LeadStatus, LeadTemperature } from './types'
+import type { Activity, ActivityType, CrmProject, Lead, LeadMessage, LeadStatus, LeadTemperature } from './types'
 import { hasInitialEmailDraft } from './outreach'
 import { formatLeadEstimatedValue } from './valueEmoji'
 
@@ -58,6 +58,7 @@ export interface FormatLeadTextContext {
   owner: { name: string | null; email: string | null }
   valueLabels: { fromTheHeart: string; noCharge: string }
   activities?: Activity[]
+  messages?: LeadMessage[]
   linkedProjects?: CrmProject[]
   ideaCount?: number
 }
@@ -182,6 +183,12 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
       ctx.t('detail.updated'),
       lead.updated_at ? formatWhen(lead.updated_at, ctx.locale) : '—',
     ),
+    field(
+      ctx.t('detail.lastReply'),
+      lead.last_client_reply_at
+        ? formatWhen(lead.last_client_reply_at, ctx.locale)
+        : '—',
+    ),
   )
 
   const localeLines = [
@@ -206,6 +213,12 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
           field(ctx.t('outreach.subject'), lead.initial_email_subject.trim()),
           lead.initial_email_body.trim(),
           field(
+            ctx.t('outreach.draftedAt'),
+            lead.initial_email_drafted_at
+              ? formatWhen(lead.initial_email_drafted_at, ctx.locale)
+              : '—',
+          ),
+          field(
             ctx.t('outreach.sentAt'),
             lead.initial_email_sent_at
               ? formatWhen(lead.initial_email_sent_at, ctx.locale)
@@ -213,6 +226,7 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
           ),
         ])
       : '',
+    section(ctx.t('thread.title'), formatEmailThread(ctx.messages ?? [], ctx)),
     section(ctx.t('detail.offer'), [lead.offer?.trim() || ctx.t('detail.offerEmpty')]),
     section(ctx.t('detail.notes'), lead.notes?.trim() ? [lead.notes.trim()] : []),
   ]
@@ -247,6 +261,39 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
   }
 
   return [...lines, ...sections.filter(Boolean)].join('\n').trim()
+}
+
+function formatEmailThread(
+  messages: LeadMessage[],
+  ctx: FormatLeadTextContext,
+): string[] {
+  if (messages.length === 0) return []
+  const sorted = [...messages].sort((a, b) =>
+    a.occurred_at.localeCompare(b.occurred_at),
+  )
+  const blocks: string[] = []
+  for (const msg of sorted) {
+    const dir =
+      msg.direction === 'outbound' ? ctx.t('thread.outbound') : ctx.t('thread.inbound')
+    const when = formatWhen(msg.occurred_at, ctx.locale)
+    const subject = msg.subject.trim() || ctx.t('thread.noSubject')
+    const body = msg.body_text.trim()
+    const bodyIndented = body
+      ? body
+          .split('\n')
+          .map((line) => `    ${line}`)
+          .join('\n')
+      : '    —'
+    blocks.push(
+      [
+        `• [${when}] ${dir}`,
+        `    ${msg.from_email} → ${msg.to_email}`,
+        `    ${ctx.t('outreach.subject')}: ${subject}`,
+        bodyIndented,
+      ].join('\n'),
+    )
+  }
+  return blocks
 }
 
 export interface FormatLeadsResearchContext {

@@ -7,6 +7,7 @@ import {
   normalizeLeadEmails,
   updateLead,
 } from './api'
+import { formatClientLocalTime } from './clientWeather'
 import { isCrmDemoMode } from './demoMode'
 import { replyThreadingFromMessages, suggestReplySubject } from './emailThread'
 import { useCrmI18n } from './i18n'
@@ -16,10 +17,34 @@ import {
   writeStoredOutreachFrom,
   type OutreachFromIdentityId,
 } from './outreachFromIdentities'
-import { renderOutreachEmailHtml } from './outreachEmailHtml'
+import {
+  htmlForLeadMessage,
+  renderOutreachEmailHtml,
+} from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
+import { enqueuePingScheduledSends } from './pingScheduledSends'
+import {
+  buildScheduledSend,
+  emptySchedulePickerParts,
+  formatInContactZone,
+  isInitialScheduleArmed,
+  isReplyScheduleArmed,
+  isScheduledSendExhausted,
+  joinSchedulePickerParts,
+  leadContactPlaceLabel,
+  leadContactTimeZone,
+  normalizeScheduledSend,
+  retryScheduledSend,
+  sanitizeSchedulePart,
+  scheduleIsoToPickerValue,
+  schedulePickerValueToIso,
+  SCHEDULED_SEND_MAX_ATTEMPTS,
+  splitSchedulePickerValue,
+  type SchedulePickerParts,
+} from './scheduledSend'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
+import { isValidIanaTimezone } from './timezones'
 import type { Lead, LeadInput, LeadMessage } from './types'
 
 interface EmailThreadPanelProps {
@@ -52,6 +77,64 @@ function formatSnippet(body: string, max = 400): string {
   return `${trimmed.slice(0, max)}…`
 }
 
+function ThreadHtmlPreview({
+  html,
+  title,
+  interactive = false,
+}: {
+  html: string
+  title: string
+  interactive?: boolean
+}) {
+  const frameRef = useRef<HTMLIFrameElement>(null)
+
+  useEffect(() => {
+    const frame = frameRef.current
+    if (!frame || !html) return
+
+    const fitHeight = () => {
+      try {
+        const doc = frame.contentDocument
+        if (!doc?.body) return
+        const h = Math.ceil(
+          Math.max(
+            doc.body.scrollHeight,
+            doc.documentElement?.scrollHeight ?? 0,
+          ),
+        )
+        if (h > 0) frame.style.height = `${h + 8}px`
+      } catch {
+        /* ignore */
+      }
+    }
+
+    frame.addEventListener('load', fitHeight)
+    fitHeight()
+    const t1 = window.setTimeout(fitHeight, 80)
+    const t2 = window.setTimeout(fitHeight, 400)
+    return () => {
+      frame.removeEventListener('load', fitHeight)
+      window.clearTimeout(t1)
+      window.clearTimeout(t2)
+    }
+  }, [html])
+
+  return (
+    <iframe
+      ref={frameRef}
+      className={
+        interactive
+          ? 'crm-outreach-preview-frame crm-outreach-preview-frame--thread'
+          : 'crm-outreach-preview-frame'
+      }
+      title={title}
+      sandbox="allow-same-origin"
+      srcDoc={html}
+      scrolling={interactive ? 'auto' : 'no'}
+    />
+  )
+}
+
 export function EmailThreadPanel({
   lead,
   onChanged,
@@ -64,11 +147,13 @@ export function EmailThreadPanel({
   const [error, setError] = useState('')
   const [composeOpen, setComposeOpen] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewMessageId, setPreviewMessageId] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
-  const previewFrameRef = useRef<HTMLIFrameElement>(null)
+  const [pingNote, setPingNote] = useState('')
+  const [pingBusy, setPingBusy] = useState(false)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
@@ -79,6 +164,28 @@ export function EmailThreadPanel({
     OUTREACH_FROM_IDENTITIES[0]
   const demoMode = isCrmDemoMode()
   const sendUiOk = demoMode || useLiveCrmBackend()
+
+  const replySchedule = isReplyScheduleArmed(lead)
+    ? normalizeScheduledSend(lead.scheduled_send)
+    : null
+  const replyScheduledArmed = !!replySchedule
+  const replyScheduledExhausted =
+    replyScheduledArmed && isScheduledSendExhausted(lead)
+  const contactTz = leadContactTimeZone(lead)
+  const contactPlace = leadContactPlaceLabel(lead)
+  const hasContactTz = isValidIanaTimezone(contactTz)
+  const [scheduleParts, setScheduleParts] = useState<SchedulePickerParts>(() =>
+    replySchedule
+      ? splitSchedulePickerValue(
+          scheduleIsoToPickerValue(
+            replySchedule.at,
+            hasContactTz ? contactTz : null,
+          ),
+        )
+      : emptySchedulePickerParts(),
+  )
+  const scheduleAtLocal = joinSchedulePickerParts(scheduleParts)
+  const [contactNow, setContactNow] = useState(() => new Date())
 
   const refresh = async () => {
     setLoading(true)
@@ -130,7 +237,28 @@ export function EmailThreadPanel({
     }
   }, [lead, toEmail])
 
-  const formatWhen = (iso: string): string => {
+  useEffect(() => {
+    const next = isReplyScheduleArmed(lead)
+      ? normalizeScheduledSend(lead.scheduled_send)
+      : null
+    setScheduleParts(
+      next
+        ? splitSchedulePickerValue(
+            scheduleIsoToPickerValue(next.at, hasContactTz ? contactTz : null),
+          )
+        : emptySchedulePickerParts(),
+    )
+  }, [lead.id, lead.scheduled_send, contactTz, hasContactTz])
+
+  useEffect(() => {
+    if (!hasContactTz) return
+    setContactNow(new Date())
+    const id = window.setInterval(() => setContactNow(new Date()), 30_000)
+    return () => window.clearInterval(id)
+  }, [hasContactTz, lead.id])
+
+  const formatWhen = (iso: string | null): string => {
+    if (!iso) return '—'
     try {
       return new Intl.DateTimeFormat(locale, {
         dateStyle: 'medium',
@@ -141,12 +269,44 @@ export function EmailThreadPanel({
     }
   }
 
+  const formatContactWhen = (iso: string | null): string => {
+    if (!iso) return '—'
+    if (!hasContactTz) return formatWhen(iso)
+    return formatInContactZone(iso, contactTz, locale)
+  }
+
+  const contactNowLabel = hasContactTz
+    ? formatClientLocalTime(contactNow, contactTz, locale, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      })
+    : ''
+
+  const schedulePreviewIso = scheduleAtLocal
+    ? schedulePickerValueToIso(scheduleAtLocal, hasContactTz ? contactTz : null)
+    : null
+
   const openCompose = () => {
     setComposeOpen(true)
     setShowPreview(false)
     setError('')
-    setSubject(suggestReplySubject(messages, lead.initial_email_subject))
-    setBody('')
+    setPingNote('')
+    if (replySchedule?.subject && replySchedule.body) {
+      setSubject(replySchedule.subject)
+      setBody(replySchedule.body)
+      if (replySchedule.to) setToEmail(replySchedule.to)
+      if (replySchedule.from) {
+        setFromIdentity(replySchedule.from)
+        writeStoredOutreachFrom(replySchedule.from)
+      }
+    } else {
+      setSubject(suggestReplySubject(messages, lead.initial_email_subject))
+      setBody('')
+    }
   }
 
   const closeCompose = () => {
@@ -165,44 +325,40 @@ export function EmailThreadPanel({
       ? renderOutreachEmailHtml({ subject: previewSubject, body: previewBody })
       : ''
 
-  useEffect(() => {
-    if (!showPreview || !previewHtml) return
-    const frame = previewFrameRef.current
-    if (!frame) return
-
-    const fitHeight = () => {
-      try {
-        const doc = frame.contentDocument
-        if (!doc?.body) return
-        const h = Math.ceil(
-          Math.max(
-            doc.body.scrollHeight,
-            doc.documentElement?.scrollHeight ?? 0,
-          ),
-        )
-        if (h > 0) frame.style.height = `${h + 8}px`
-      } catch {
-        /* ignore */
-      }
-    }
-
-    frame.addEventListener('load', fitHeight)
-    fitHeight()
-    const t1 = window.setTimeout(fitHeight, 80)
-    const t2 = window.setTimeout(fitHeight, 400)
-    return () => {
-      frame.removeEventListener('load', fitHeight)
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
-    }
-  }, [showPreview, previewHtml])
-
   const canSend =
     sendUiOk &&
     !!toEmail.trim() &&
     !!subject.trim() &&
     !!body.trim() &&
     !schemaMissing
+
+  const reportPing = async () => {
+    setPingBusy(true)
+    const ping = await enqueuePingScheduledSends()
+    if (!ping.ok) {
+      setPingNote(t('outreach.pingFailed', { error: ping.error || '—' }))
+    } else if (ping.demo) {
+      setPingNote(t('outreach.pingDemoOk'))
+      onChanged()
+    } else if (ping.sent > 0 || ping.failed > 0) {
+      setPingNote(
+        t('outreach.pingOkSent', {
+          sent: ping.sent,
+          failed: ping.failed,
+          due: ping.due,
+        }),
+      )
+      onChanged()
+      await refresh()
+    } else {
+      setPingNote(
+        t('outreach.pingOkQueued', {
+          checked: ping.checked,
+          when: formatContactWhen(replySchedule?.at || schedulePreviewIso || ''),
+        }),
+      )
+    }
+  }
 
   const handleSendReply = async () => {
     const to = toEmail.trim()
@@ -258,18 +414,16 @@ export function EmailThreadPanel({
       }
 
       const stamp = new Date().toISOString()
-      const patch: Partial<LeadInput> = {}
+      const patch: Partial<LeadInput> = {
+        scheduled_send: null,
+      }
       if (!lead.initial_email_sent_at) {
         patch.initial_email_sent_at = stamp
         patch.contact_priority = false
-        patch.scheduled_send = null
       }
       if (!lead.initial_email_drafted_at) patch.initial_email_drafted_at = stamp
       if (lead.status === 'new') patch.status = 'contacted'
-      const updated =
-        Object.keys(patch).length > 0
-          ? await updateLead(lead.id, patch)
-          : undefined
+      const updated = await updateLead(lead.id, patch)
 
       await createActivity({
         lead_id: lead.id,
@@ -289,6 +443,121 @@ export function EmailThreadPanel({
       setError(err instanceof Error ? err.message : t('outreach.sendFailed'))
     } finally {
       setBusy(false)
+    }
+  }
+
+  const handleScheduleReply = async () => {
+    const to = toEmail.trim()
+    const subj = subject.trim()
+    const text = body.trim()
+    if (!to || !subj || !text) {
+      setError(t('outreach.sendMissing'))
+      return
+    }
+    if (!hasContactTz) {
+      setError(t('outreach.scheduleNeedTimezone'))
+      return
+    }
+    const iso = schedulePickerValueToIso(scheduleAtLocal, contactTz)
+    if (!iso) {
+      setError(t('outreach.scheduleInvalid'))
+      return
+    }
+    if (new Date(iso).getTime() <= Date.now() - 30_000) {
+      setError(t('outreach.schedulePast'))
+      return
+    }
+    if (isInitialScheduleArmed(lead)) {
+      if (!confirm(t('thread.scheduleReplaceConfirm'))) return
+    }
+    const whenContact = formatContactWhen(iso)
+    const whenYours = formatWhen(iso)
+    if (
+      !confirm(
+        t('thread.scheduleConfirm', {
+          email: to,
+          when: whenContact,
+          tz: contactTz,
+          whenYours,
+        }),
+      )
+    ) {
+      return
+    }
+
+    const threading = replyThreadingFromMessages(messages)
+    setError('')
+    setPingNote('')
+    setBusy(true)
+    try {
+      const updated = await updateLead(lead.id, {
+        scheduled_send: buildScheduledSend({
+          at: iso,
+          to,
+          from: fromIdentity,
+          kind: 'reply',
+          subject: subj,
+          body: text,
+          inReplyTo: threading.inReplyTo,
+          references: threading.references,
+        }),
+      })
+      onChanged(updated)
+      await reportPing()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+      setPingBusy(false)
+    }
+  }
+
+  const handleCancelSchedule = async () => {
+    if (!confirm(t('thread.scheduleCancelConfirm'))) return
+    setError('')
+    setBusy(true)
+    try {
+      const updated = await updateLead(lead.id, { scheduled_send: null })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleRetrySchedule = async () => {
+    if (!replySchedule) return
+    if (!confirm(t('outreach.scheduleRetryConfirm'))) return
+    setError('')
+    setPingNote('')
+    setBusy(true)
+    try {
+      const next = retryScheduledSend(replySchedule)
+      const updated = await updateLead(lead.id, { scheduled_send: next })
+      onChanged(updated)
+      await reportPing()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('outreach.scheduleFailed'))
+    } finally {
+      setBusy(false)
+      setPingBusy(false)
+    }
+  }
+
+  const handlePingScheduled = async () => {
+    setError('')
+    setPingNote('')
+    try {
+      await reportPing()
+    } catch (err) {
+      setPingNote(
+        t('outreach.pingFailedOnly', {
+          error: err instanceof Error ? err.message : '—',
+        }),
+      )
+    } finally {
+      setPingBusy(false)
     }
   }
 
@@ -343,6 +612,210 @@ export function EmailThreadPanel({
     }
   }
 
+  const scheduleControls = (
+    <div className="crm-outreach-schedule">
+      {hasContactTz ? (
+        <p className="crm-outreach-schedule-clock" role="status">
+          <span className="crm-outreach-schedule-clock-label">
+            {t('outreach.scheduleContactNow')}
+          </span>{' '}
+          <strong>{contactNowLabel}</strong>
+          <span className="crm-muted">
+            {' '}
+            · {contactPlace || contactTz}
+          </span>
+        </p>
+      ) : (
+        <p className="crm-feedback crm-feedback--error" role="status">
+          {t('outreach.scheduleNeedTimezone')}
+        </p>
+      )}
+
+      {replyScheduledArmed && replySchedule ? (
+        <div className="crm-outreach-schedule-armed" role="status">
+          {replyScheduledExhausted ? (
+            <p className="crm-outreach-schedule-exhausted">
+              {t('outreach.scheduleExhausted', {
+                attempts: String(SCHEDULED_SEND_MAX_ATTEMPTS),
+              })}
+            </p>
+          ) : (
+            <p>
+              {t('thread.scheduleArmed', {
+                when: formatContactWhen(replySchedule.at),
+                email: replySchedule.to,
+                tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
+              })}
+            </p>
+          )}
+          {replySchedule.subject ? (
+            <p className="crm-muted">
+              {t('thread.scheduledSubject', { subject: replySchedule.subject })}
+            </p>
+          ) : null}
+          {hasContactTz && !replyScheduledExhausted && (
+            <p className="crm-muted crm-outreach-schedule-yours">
+              {t('outreach.scheduleYours', {
+                when: formatWhen(replySchedule.at),
+              })}
+            </p>
+          )}
+          {replySchedule.error ? (
+            <p className="crm-outreach-schedule-error">
+              {t('outreach.scheduleError', { error: replySchedule.error })}
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <div className="crm-field crm-outreach-schedule-when">
+          <span className="crm-label">
+            {hasContactTz
+              ? t('outreach.scheduleAtContact', { tz: contactTz })
+              : t('outreach.scheduleAt')}
+          </span>
+          <div
+            className="crm-schedule-parts"
+            role="group"
+            aria-label={
+              hasContactTz
+                ? t('outreach.scheduleAtContact', { tz: contactTz })
+                : t('outreach.scheduleAt')
+            }
+          >
+            <label className="crm-schedule-part">
+              <span className="crm-schedule-part-label">
+                {t('outreach.scheduleDay')}
+              </span>
+              <input
+                className="crm-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="DD"
+                maxLength={2}
+                disabled={busy || !hasContactTz}
+                value={scheduleParts.day}
+                onChange={(e) =>
+                  setScheduleParts((prev) => ({
+                    ...prev,
+                    day: sanitizeSchedulePart('day', e.target.value),
+                  }))
+                }
+              />
+            </label>
+            <label className="crm-schedule-part">
+              <span className="crm-schedule-part-label">
+                {t('outreach.scheduleMonth')}
+              </span>
+              <input
+                className="crm-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="MM"
+                maxLength={2}
+                disabled={busy || !hasContactTz}
+                value={scheduleParts.month}
+                onChange={(e) =>
+                  setScheduleParts((prev) => ({
+                    ...prev,
+                    month: sanitizeSchedulePart('month', e.target.value),
+                  }))
+                }
+              />
+            </label>
+            <label className="crm-schedule-part crm-schedule-part--year">
+              <span className="crm-schedule-part-label">
+                {t('outreach.scheduleYear')}
+              </span>
+              <input
+                className="crm-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="YYYY"
+                maxLength={4}
+                disabled={busy || !hasContactTz}
+                value={scheduleParts.year}
+                onChange={(e) =>
+                  setScheduleParts((prev) => ({
+                    ...prev,
+                    year: sanitizeSchedulePart('year', e.target.value),
+                  }))
+                }
+              />
+            </label>
+            <span className="crm-schedule-parts-sep" aria-hidden="true">
+              ·
+            </span>
+            <label className="crm-schedule-part crm-schedule-part--time">
+              <span className="crm-schedule-part-label">
+                {t('outreach.scheduleHour')}
+              </span>
+              <input
+                className="crm-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="HH"
+                maxLength={2}
+                disabled={busy || !hasContactTz}
+                value={scheduleParts.hour}
+                onChange={(e) =>
+                  setScheduleParts((prev) => ({
+                    ...prev,
+                    hour: sanitizeSchedulePart('hour', e.target.value),
+                  }))
+                }
+              />
+            </label>
+            <span className="crm-schedule-parts-sep" aria-hidden="true">
+              :
+            </span>
+            <label className="crm-schedule-part crm-schedule-part--time">
+              <span className="crm-schedule-part-label">
+                {t('outreach.scheduleMinute')}
+              </span>
+              <input
+                className="crm-input"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="MM"
+                maxLength={2}
+                disabled={busy || !hasContactTz}
+                value={scheduleParts.minute}
+                onChange={(e) =>
+                  setScheduleParts((prev) => ({
+                    ...prev,
+                    minute: sanitizeSchedulePart('minute', e.target.value),
+                  }))
+                }
+              />
+            </label>
+          </div>
+          <p className="crm-muted crm-outreach-schedule-format">
+            {t('outreach.scheduleFormat')}
+          </p>
+        </div>
+      )}
+
+      {!replyScheduledArmed &&
+        hasContactTz &&
+        schedulePreviewIso &&
+        scheduleAtLocal && (
+          <p className="crm-muted crm-outreach-schedule-preview">
+            {t('outreach.schedulePreview', {
+              when: formatContactWhen(schedulePreviewIso),
+              tz: contactTz,
+              whenYours: formatWhen(schedulePreviewIso),
+            })}
+          </p>
+        )}
+
+      <p className="crm-muted crm-outreach-schedule-hint">
+        {demoMode
+          ? t('outreach.scheduleDemoHint')
+          : t('outreach.scheduleHint')}
+      </p>
+    </div>
+  )
+
   return (
     <section className="crm-offer-block crm-email-thread">
       <div className="crm-outreach-header">
@@ -369,6 +842,8 @@ export function EmailThreadPanel({
         <ul className="crm-email-thread-list">
           {messages.map((msg) => {
             const open = expandedId === msg.id
+            const previewOn = previewMessageId === msg.id
+            const formattedHtml = htmlForLeadMessage(msg)
             return (
               <li
                 key={msg.id}
@@ -388,36 +863,127 @@ export function EmailThreadPanel({
                     {msg.subject || t('thread.noSubject')}
                   </span>
                   <span className="crm-email-msg-meta">
-                    {msg.direction === 'outbound'
-                      ? `${msg.from_email} → ${msg.to_email}`
-                      : `${msg.from_email} → ${msg.to_email}`}
+                    {`${msg.from_email} → ${msg.to_email}`}
                     {' · '}
                     {formatWhen(msg.occurred_at)}
                   </span>
                 </button>
-                {!open && (
+                {!open && !previewOn && (
                   <pre className="crm-email-msg-snippet">
                     {formatSnippet(msg.body_text, 180)}
                   </pre>
                 )}
-                {open && (
+                {open && !previewOn && (
                   <div className="crm-email-msg-body">
                     <pre className="crm-outreach-body">{msg.body_text}</pre>
-                    {msg.direction === 'outbound' && msg.body_html && (
-                      <iframe
-                        className="crm-outreach-preview-frame"
-                        title={msg.subject}
-                        sandbox="allow-same-origin"
-                        srcDoc={msg.body_html}
-                        scrolling="no"
-                      />
-                    )}
+                  </div>
+                )}
+                <div className="crm-email-msg-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost"
+                    disabled={!formattedHtml}
+                    onClick={() =>
+                      setPreviewMessageId(previewOn ? null : msg.id)
+                    }
+                  >
+                    {previewOn
+                      ? t('outreach.hidePreview')
+                      : t('outreach.showPreview')}
+                  </button>
+                </div>
+                {previewOn && formattedHtml && (
+                  <div className="crm-outreach-html-preview">
+                    <p className="crm-outreach-focus-label">
+                      {t('thread.previewTitle')}
+                    </p>
+                    <p className="crm-outreach-preview-subject">
+                      <span className="crm-muted">{t('outreach.subject')}:</span>{' '}
+                      <strong>{msg.subject || t('thread.noSubject')}</strong>
+                    </p>
+                    <ThreadHtmlPreview
+                      html={formattedHtml}
+                      title={msg.subject || t('thread.previewTitle')}
+                      interactive
+                    />
                   </div>
                 )}
               </li>
             )
           })}
         </ul>
+      )}
+
+      {replyScheduledArmed && replySchedule && !composeOpen && sendUiOk && (
+        <div className="crm-outreach-schedule crm-email-thread-schedule">
+          <div className="crm-outreach-schedule-armed" role="status">
+            {replyScheduledExhausted ? (
+              <p className="crm-outreach-schedule-exhausted">
+                {t('outreach.scheduleExhausted', {
+                  attempts: String(SCHEDULED_SEND_MAX_ATTEMPTS),
+                })}
+              </p>
+            ) : (
+              <p>
+                {t('thread.scheduleArmed', {
+                  when: formatContactWhen(replySchedule.at),
+                  email: replySchedule.to,
+                  tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
+                })}
+              </p>
+            )}
+            {replySchedule.subject ? (
+              <p className="crm-muted">
+                {t('thread.scheduledSubject', {
+                  subject: replySchedule.subject,
+                })}
+              </p>
+            ) : null}
+            {hasContactTz && (
+              <p className="crm-muted crm-outreach-schedule-yours">
+                {t('outreach.scheduleYours', {
+                  when: formatWhen(replySchedule.at),
+                })}
+              </p>
+            )}
+            {replySchedule.error ? (
+              <p className="crm-outreach-schedule-error">
+                {t('outreach.scheduleError', { error: replySchedule.error })}
+              </p>
+            ) : null}
+          </div>
+          <div className="crm-detail-actions">
+            {sendUiOk && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy || pingBusy}
+                onClick={() => void handlePingScheduled()}
+                title={t('outreach.pingTitle')}
+              >
+                {pingBusy ? t('outreach.pinging') : t('outreach.ping')}
+              </button>
+            )}
+            {replyScheduledExhausted && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={busy || pingBusy}
+                onClick={() => void handleRetrySchedule()}
+              >
+                {t('outreach.scheduleRetry')}
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={busy}
+              onClick={() => void handleCancelSchedule()}
+            >
+              {t('outreach.scheduleCancel')}
+            </button>
+          </div>
+        </div>
       )}
 
       {sendUiOk && !schemaMissing && (
@@ -520,6 +1086,9 @@ export function EmailThreadPanel({
               disabled={busy}
             />
           </label>
+
+          {scheduleControls}
+
           <div className="crm-detail-actions">
             <button
               type="button"
@@ -539,6 +1108,48 @@ export function EmailThreadPanel({
             >
               {busy ? t('outreach.sending') : t('thread.sendReply')}
             </button>
+            {replyScheduledArmed ? (
+              <>
+                {replyScheduledExhausted && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={busy || pingBusy}
+                    onClick={() => void handleRetrySchedule()}
+                  >
+                    {t('outreach.scheduleRetry')}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  disabled={busy}
+                  onClick={() => void handleCancelSchedule()}
+                >
+                  {t('outreach.scheduleCancel')}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy || !canSend || !scheduleAtLocal || !hasContactTz}
+                onClick={() => void handleScheduleReply()}
+              >
+                {t('thread.scheduleReply')}
+              </button>
+            )}
+            {sendUiOk && (
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={busy || pingBusy}
+                onClick={() => void handlePingScheduled()}
+                title={t('outreach.pingTitle')}
+              >
+                {pingBusy ? t('outreach.pinging') : t('outreach.ping')}
+              </button>
+            )}
           </div>
           {showPreview && previewHtml && (
             <div className="crm-outreach-html-preview">
@@ -549,17 +1160,19 @@ export function EmailThreadPanel({
                 <span className="crm-muted">{t('outreach.subject')}:</span>{' '}
                 <strong>{previewSubject}</strong>
               </p>
-              <iframe
-                ref={previewFrameRef}
-                className="crm-outreach-preview-frame"
+              <ThreadHtmlPreview
+                html={previewHtml}
                 title={t('outreach.previewTitle')}
-                sandbox="allow-same-origin"
-                srcDoc={previewHtml}
-                scrolling="no"
               />
             </div>
           )}
         </div>
+      )}
+
+      {(pingBusy || pingNote) && (
+        <p className="crm-outreach-ping-note" role="status">
+          {pingBusy && !pingNote ? t('outreach.pinging') : pingNote}
+        </p>
       )}
 
       {error && (

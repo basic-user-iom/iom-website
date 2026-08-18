@@ -6,6 +6,7 @@ import nodemailer from 'nodemailer'
 import {
   insertLeadMessage,
   normalizeMessageId,
+  buildReferencesHeader,
 } from './crm-lead-messages.js'
 import {
   renderOutreachEmailHtml,
@@ -24,6 +25,8 @@ import { EMAIL_RE, resolveProtonIdentity } from './proton-identities.js'
  * @param {string} [opts.serviceKey]  service role for persist (cron)
  * @param {string} [opts.anonKey]
  * @param {string} [opts.userToken]  user JWT for persist (interactive)
+ * @param {string} [opts.inReplyTo]
+ * @param {string} [opts.references]
  * @param {string | null} [opts.ownerId]
  * @param {boolean} [opts.persistMessage]
  */
@@ -40,6 +43,8 @@ export async function sendCrmOutreachEmail(opts) {
   const leadId = opts.leadId ? String(opts.leadId).slice(0, 64) : null
   const fromIdentity = String(opts.fromIdentity || 'contact').trim().toLowerCase()
   const persistMessage = opts.persistMessage !== false
+  const inReplyToRaw = opts.inReplyTo ? String(opts.inReplyTo).trim() : ''
+  const referencesRaw = opts.references ? String(opts.references).trim() : ''
 
   if (!EMAIL_RE.test(to)) throw new Error('Invalid recipient email')
   if (!subject) throw new Error('Subject is required')
@@ -54,6 +59,10 @@ export async function sendCrmOutreachEmail(opts) {
 
   const html = renderOutreachEmailHtml({ subject, body: textBody })
   const text = renderOutreachPlainText(textBody)
+  const inReplyTo = inReplyToRaw ? normalizeMessageId(inReplyToRaw) : ''
+  const references = inReplyTo
+    ? buildReferencesHeader(referencesRaw, inReplyTo)
+    : referencesRaw
 
   const transporter = nodemailer.createTransport({
     host,
@@ -77,6 +86,8 @@ export async function sendCrmOutreachEmail(opts) {
     subject,
     text,
     html,
+    inReplyTo: inReplyTo || undefined,
+    references: references || undefined,
     headers: Object.keys(mailHeaders).length ? mailHeaders : undefined,
   })
 
@@ -103,14 +114,15 @@ export async function sendCrmOutreachEmail(opts) {
             body_text: textBody,
             body_html: html,
             message_id: messageId,
-            in_reply_to: null,
-            references_header: null,
+            in_reply_to: inReplyTo || null,
+            references_header: references || null,
             occurred_at: stamp,
             owner_id: opts.ownerId || null,
             raw_headers: {
               fromIdentity: identity.id,
               smtpResponse: info.response || null,
               scheduled: !opts.userToken,
+              kind: inReplyTo ? 'reply' : 'initial',
             },
           },
         })
@@ -138,6 +150,8 @@ export async function sendCrmOutreachEmail(opts) {
     from: identity.email,
     fromIdentity: identity.id,
     to,
+    inReplyTo: inReplyTo || null,
+    references: references || null,
   }
 }
 

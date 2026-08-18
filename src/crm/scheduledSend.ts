@@ -1,8 +1,10 @@
 import type { OutreachFromIdentityId } from './outreachFromIdentities'
 import type { Lead } from './types'
 
+export type ScheduledSendKind = 'initial' | 'reply'
+
 export type ScheduledSend = {
-  /** ISO timestamp when the initial outreach should send. */
+  /** ISO timestamp when the email should send. */
   at: string
   to: string
   from: OutreachFromIdentityId
@@ -14,9 +16,23 @@ export type ScheduledSend = {
    * updateLead during an in-flight send does not wipe the server lock.
    */
   lock?: string
+  /** Default `initial` for older rows that omit the field. */
+  kind: ScheduledSendKind
+  /** Follow-up subject/body (ignored for initial — uses lead.initial_email_*). */
+  subject?: string
+  body?: string
+  inReplyTo?: string
+  references?: string
+  /** Set after SMTP succeeds if clearing the schedule failed — skip re-send. */
+  fired?: string
 }
 
 const FROM_IDS = new Set<OutreachFromIdentityId>(['contact', 'visual', 'projects'])
+
+function asTrimmed(raw: unknown, max: number): string {
+  if (typeof raw !== 'string') return ''
+  return raw.trim().slice(0, max)
+}
 
 export function normalizeScheduledSend(raw: unknown): ScheduledSend | null {
   if (!raw || typeof raw !== 'object') return null
@@ -39,26 +55,51 @@ export function normalizeScheduledSend(raw: unknown): ScheduledSend | null {
   const lockAt = lockRaw ? new Date(lockRaw) : null
   const lock =
     lockAt && !Number.isNaN(lockAt.getTime()) ? lockAt.toISOString() : undefined
+  const kind: ScheduledSendKind = o.kind === 'reply' ? 'reply' : 'initial'
+  const subject = asTrimmed(o.subject, 300)
+  const body = asTrimmed(o.body, 50_000)
+  const inReplyTo = asTrimmed(o.inReplyTo, 2_000)
+  const references = asTrimmed(o.references, 8_000)
+  const firedRaw = typeof o.fired === 'string' ? o.fired.trim() : ''
+  const firedAt = firedRaw ? new Date(firedRaw) : null
+  const fired =
+    firedAt && !Number.isNaN(firedAt.getTime()) ? firedAt.toISOString() : undefined
   return {
     at: when.toISOString(),
     to,
     from,
     error,
     attempts,
+    kind,
     ...(lock ? { lock } : {}),
+    ...(subject ? { subject } : {}),
+    ...(body ? { body } : {}),
+    ...(inReplyTo ? { inReplyTo } : {}),
+    ...(references ? { references } : {}),
+    ...(fired ? { fired } : {}),
   }
 }
 
 /** Must match api/_lib/crm-process-scheduled-sends.js MAX_ATTEMPTS. */
 export const SCHEDULED_SEND_MAX_ATTEMPTS = 5
 
+export function isInitialScheduleArmed(lead: Lead): boolean {
+  const schedule = normalizeScheduledSend(lead.scheduled_send)
+  return !!schedule && schedule.kind !== 'reply' && !lead.initial_email_sent_at
+}
+
+export function isReplyScheduleArmed(lead: Lead): boolean {
+  const schedule = normalizeScheduledSend(lead.scheduled_send)
+  return !!schedule && schedule.kind === 'reply'
+}
+
 export function isScheduledSendArmed(lead: Lead): boolean {
-  return !!normalizeScheduledSend(lead.scheduled_send) && !lead.initial_email_sent_at
+  return isInitialScheduleArmed(lead) || isReplyScheduleArmed(lead)
 }
 
 /** Armed schedule that the worker will no longer process until retry/reset. */
 export function isScheduledSendExhausted(lead: Lead): boolean {
-  if (lead.initial_email_sent_at) return false
+  if (!isScheduledSendArmed(lead)) return false
   const schedule = normalizeScheduledSend(lead.scheduled_send)
   return !!schedule && schedule.attempts >= SCHEDULED_SEND_MAX_ATTEMPTS
 }
@@ -66,9 +107,16 @@ export function isScheduledSendExhausted(lead: Lead): boolean {
 /** Reset attempts so the worker can pick the schedule up again. */
 export function retryScheduledSend(schedule: ScheduledSend): ScheduledSend {
   return {
-    ...schedule,
+    at: schedule.at,
+    to: schedule.to,
+    from: schedule.from,
     error: '',
     attempts: 0,
+    kind: schedule.kind,
+    ...(schedule.subject ? { subject: schedule.subject } : {}),
+    ...(schedule.body ? { body: schedule.body } : {}),
+    ...(schedule.inReplyTo ? { inReplyTo: schedule.inReplyTo } : {}),
+    ...(schedule.references ? { references: schedule.references } : {}),
   }
 }
 
@@ -88,6 +136,11 @@ export function buildScheduledSend(input: {
   at: string
   to: string
   from: OutreachFromIdentityId
+  kind?: ScheduledSendKind
+  subject?: string
+  body?: string
+  inReplyTo?: string | null
+  references?: string | null
 }): ScheduledSend {
   const normalized = normalizeScheduledSend({
     at: input.at,
@@ -95,6 +148,11 @@ export function buildScheduledSend(input: {
     from: input.from,
     error: '',
     attempts: 0,
+    kind: input.kind === 'reply' ? 'reply' : 'initial',
+    subject: input.subject,
+    body: input.body,
+    inReplyTo: input.inReplyTo,
+    references: input.references,
   })
   if (!normalized) {
     throw new Error('Invalid schedule')

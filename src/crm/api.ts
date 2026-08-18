@@ -36,6 +36,8 @@ import {
 } from './scheduledSend'
 import { normalizeLeadTags } from './leadTags'
 import { normalizeValueEmoji } from './valueEmoji'
+import { OUTREACH_FROM_IDENTITIES } from './outreachFromIdentities'
+import { renderOutreachEmailHtml } from './outreachEmailHtml'
 
 const LEADS_KEY = 'iom-crm-leads'
 const ACTIVITIES_KEY = 'iom-crm-activities'
@@ -2060,10 +2062,15 @@ function processDueScheduledSendsLocal(): void {
   const next = leads.map((raw) => {
     const lead = normalizeLead(raw)
     const schedule = normalizeScheduledSend(lead.scheduled_send)
-    if (!schedule || lead.initial_email_sent_at) return raw
+    if (!schedule) return raw
+    const isReply = schedule.kind === 'reply'
+    if (!isReply && lead.initial_email_sent_at) return raw
+    if (schedule.attempts >= 5) return raw
     if (!scheduledSendDue(schedule)) return raw
-    const subject = lead.initial_email_subject.trim()
-    const body = lead.initial_email_body.trim()
+    const subject = isReply
+      ? (schedule.subject || '').trim()
+      : lead.initial_email_subject.trim()
+    const body = isReply ? (schedule.body || '').trim() : lead.initial_email_body.trim()
     if (!subject || !body || !schedule.to) {
       changed = true
       return {
@@ -2077,6 +2084,9 @@ function processDueScheduledSendsLocal(): void {
       }
     }
     changed = true
+    const fromEmail =
+      OUTREACH_FROM_IDENTITIES.find((i) => i.id === schedule.from)?.email ??
+      'contact@iobjectm.com'
     const activities = readLocal<Activity[]>(ACTIVITIES_KEY, [])
     writeLocal(ACTIVITIES_KEY, [
       ...activities,
@@ -2084,18 +2094,41 @@ function processDueScheduledSendsLocal(): void {
         id: uid(),
         lead_id: lead.id,
         type: 'email' as const,
-        subject: subject.slice(0, 200) || 'Initial outreach email sent',
-        body: `Scheduled outreach sent (demo) to ${schedule.to}.`,
+        subject: subject.slice(0, 200) || (isReply ? 'Scheduled reply sent' : 'Initial outreach email sent'),
+        body: isReply
+          ? `Scheduled reply sent (demo) to ${schedule.to}.`
+          : `Scheduled outreach sent (demo) to ${schedule.to}.`,
         occurred_at: stamp,
         created_at: stamp,
         owner_id: lead.owner_id,
       },
     ])
+    const messages = readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+    writeLocal(MESSAGES_KEY, [
+      ...messages,
+      {
+        id: uid(),
+        lead_id: lead.id,
+        direction: 'outbound' as const,
+        from_email: fromEmail,
+        to_email: schedule.to,
+        subject,
+        body_text: body,
+        body_html: renderOutreachEmailHtml({ subject, body }),
+        message_id: `<demo-scheduled-${uid()}@iom-showcase.example>`,
+        in_reply_to: isReply ? schedule.inReplyTo || null : null,
+        references_header: isReply ? schedule.references || null : null,
+        occurred_at: stamp,
+        created_at: stamp,
+        owner_id: lead.owner_id,
+        raw_headers: { scheduled: true, kind: isReply ? 'reply' : 'initial' },
+      },
+    ])
     return {
       ...lead,
-      initial_email_sent_at: stamp,
+      initial_email_sent_at: lead.initial_email_sent_at || stamp,
       initial_email_drafted_at: lead.initial_email_drafted_at || stamp,
-      contact_priority: false,
+      contact_priority: isReply && lead.initial_email_sent_at ? lead.contact_priority : false,
       scheduled_send: null,
       status: lead.status === 'new' ? 'contacted' : lead.status,
       updated_at: stamp,

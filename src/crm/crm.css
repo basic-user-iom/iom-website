@@ -3117,11 +3117,21 @@ button.crm-tag-chip {
   margin-bottom: 0.65rem;
 }
 
-.crm-email-thread-actions {
+.crm-email-msg-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  margin-top: 0.55rem;
+}
+
+.crm-email-thread-schedule {
   margin-top: 0.85rem;
+}
+
+.crm-outreach-preview-frame--thread {
+  max-height: min(70vh, 900px);
+  overflow: auto;
+  pointer-events: auto;
 }
 
 .crm-email-reply-compose {

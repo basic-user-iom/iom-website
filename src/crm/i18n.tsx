@@ -264,6 +264,7 @@ const en: Dict = {
   'detail.valueNoCharge': 'No charge',
   'detail.created': 'Created',
   'detail.updated': 'Last updated',
+  'detail.lastReply': 'Last client reply',
   'detail.offer': 'What to offer',
   'detail.offerEmpty': 'No offer notes yet.',
   'detail.notes': 'Internal notes',
@@ -1392,7 +1393,7 @@ const en: Dict = {
 
   'thread.title': 'Email conversation',
   'thread.blurb':
-    'Outbound CRM sends and mirrored client replies (Proton keep-copy → Resend → CRM). Mail still lives in Proton — this is the lead thread mirror.',
+    'Outbound CRM sends and mirrored client replies (Proton keep-copy → Resend → CRM). Mail still lives in Proton — this is the lead thread mirror. Compose or schedule a reply; Preview formatted email on any Sent or Received message.',
   'thread.loading': 'Loading…',
   'thread.count': '{n} messages',
   'thread.empty': 'No messages in this thread yet. Send the initial outreach or a reply to start.',
@@ -1412,6 +1413,15 @@ const en: Dict = {
   'thread.inboundDefaultSubject': 'Client reply',
   'thread.logInboundActivityBody': 'Logged client reply from {email} into CRM.',
   'thread.logFailed': 'Could not log client reply.',
+  'thread.previewTitle': 'Formatted view',
+  'thread.scheduleReply': 'Schedule reply',
+  'thread.scheduleConfirm':
+    'Schedule this reply to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, optional free ~5‑min external cron, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
+  'thread.scheduleCancelConfirm': 'Cancel the scheduled reply for this lead?',
+  'thread.scheduleReplaceConfirm':
+    'This lead already has a scheduled send. Replace it with this reply?',
+  'thread.scheduleArmed': 'Reply scheduled for {when} ({tz}) → {email}',
+  'thread.scheduledSubject': 'Subject: {subject}',
 
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
@@ -1516,14 +1526,14 @@ const en: Dict = {
   'guide.pipe3': 'Change Hot / Warm / Cold anytime as interest shifts',
   'guide.pipe4': 'Edit details, offer text, and notes as conversations evolve',
   'guide.pipe5':
-    'Copy as text — export the full lead (contact, outreach, activities) for ChatGPT or email drafts',
+    'Copy as text — export the full lead (contact, outreach, sent/received emails with times, activities) for ChatGPT or email drafts',
   'guide.outreachHeading': 'Outreach & email conversation',
   'guide.outreachText':
     'Mail still lives in Proton. The CRM drafts, sends, and mirrors the lead thread so you can correspond without leaving /client-login.',
   'guide.outreach1':
     'Initial outreach: draft subject/body on the lead (or via ChatGPT JSON), Preview formatted email, then Send from CRM (Proton SMTP). You will also see it in Proton Sent',
   'guide.outreach2':
-    'Email conversation (below): full Sent / Received timeline. Use Compose reply for follow-ups — preview shows only that reply, never the initial draft by mistake',
+    'Email conversation (below): full Sent / Received timeline with formatted preview. Use Compose reply for follow-ups, or Schedule reply like initial outreach — preview of the composer shows only that reply, never the initial draft by mistake',
   'guide.outreach3':
     'Client replies: Proton keeps the real Inbox. A keep-copy forward to Resend mirrors them into CRM automatically. Unmatched or ambiguous senders land in Unmatched inbound email on the Leads view for staff attach. Until then (or for one-offs), use Log client reply',
   'guide.outreach4':
@@ -1543,7 +1553,7 @@ const en: Dict = {
   'guide.outreachDemo3':
     'Initial outreach: Preview, Send from CRM, or Schedule send — times use the contact timezone; updates are fake data only',
   'guide.outreachDemo4':
-    'Email conversation → Compose reply: write a follow-up; preview shows only that reply. Send reply logs another outbound message in the demo thread',
+    'Email conversation → Compose reply: write a follow-up; Preview formatted email on Sent or Received messages. Schedule reply uses the contact timezone. Send reply logs another outbound message in the demo thread',
   'guide.outreachDemo5':
     'Log client reply or Reset sample data (banner) to restore the original demo leads and Copper Lantern thread',
   'guide.outreachDemo6':
@@ -1974,6 +1984,7 @@ const sr: Dict = {
   'detail.valueNoCharge': 'Bez naplate',
   'detail.created': 'Kreirano',
   'detail.updated': 'Poslednja izmena',
+  'detail.lastReply': 'Poslednji odgovor klijenta',
   'detail.offer': 'Šta ponuditi',
   'detail.offerEmpty': 'Još nema beleški o ponudi.',
   'detail.notes': 'Interne beleške',
@@ -3109,7 +3120,7 @@ const sr: Dict = {
 
   'thread.title': 'Email konverzacija',
   'thread.blurb':
-    'CRM slanja i ogledani odgovori klijenata (Proton keep-copy → Resend → CRM). Pravi sandučić ostaje u Protonu — ovo je ogledalo niti za lead.',
+    'CRM slanja i ogledani odgovori klijenata (Proton keep-copy → Resend → CRM). Pravi sandučić ostaje u Protonu — ovo je ogledalo niti za lead. Napišite ili zakažite odgovor; Pregled formatiranog emaila na svakoj Poslatoj ili Primljenoj poruci.',
   'thread.loading': 'Učitavanje…',
   'thread.count': '{n} poruka',
   'thread.empty': 'Još nema poruka u ovoj niti. Pošaljite inicijalni outreach ili odgovor da počnete.',
@@ -3129,6 +3140,15 @@ const sr: Dict = {
   'thread.inboundDefaultSubject': 'Odgovor klijenta',
   'thread.logInboundActivityBody': 'Odgovor klijenta od {email} zabeležen u CRM.',
   'thread.logFailed': 'Beleženje odgovora klijenta nije uspelo.',
+  'thread.previewTitle': 'Formatirani pregled',
+  'thread.scheduleReply': 'Zakaži odgovor',
+  'thread.scheduleConfirm':
+    'Zakazati ovaj odgovor na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC) — ne tačno u toj minuti. Ako isporuka ne uspe, dobijate email.',
+  'thread.scheduleCancelConfirm': 'Otkazati zakazani odgovor za ovaj lead?',
+  'thread.scheduleReplaceConfirm':
+    'Ovaj lead već ima zakazano slanje. Zameniti ga ovim odgovorom?',
+  'thread.scheduleArmed': 'Odgovor zakazan za {when} ({tz}) → {email}',
+  'thread.scheduledSubject': 'Naslov: {subject}',
 
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',
@@ -3234,14 +3254,14 @@ const sr: Dict = {
   'guide.pipe3': 'Menjajte Vruć / Topao / Hladan kad god se interesovanje promeni',
   'guide.pipe4': 'Izmenite detalje, tekst ponude i beleške kako razgovori napreduju',
   'guide.pipe5':
-    'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, aktivnosti) za ChatGPT ili email draftove',
+    'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, poslate/primljene emailove sa vremenima, aktivnosti) za ChatGPT ili email draftove',
   'guide.outreachHeading': 'Outreach i email konverzacija',
   'guide.outreachText':
     'Pravi sandučić ostaje u Protonu. CRM piše, šalje i ogleda nit leada da možete da korespondirate bez napuštanja /client-login.',
   'guide.outreach1':
     'Inicijalni outreach: draft subject/telo na leadu (ili preko ChatGPT JSON), Pregled formatiranog emaila, zatim Pošalji iz CRM-a (Proton SMTP). Poruka se vidi i u Proton Sent',
   'guide.outreach2':
-    'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno. Za follow-up koristite Napiši odgovor — pregled pokazuje samo taj odgovor, nikad greškom inicijalni draft',
+    'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno sa formatiranim pregledom. Za follow-up koristite Napiši odgovor, ili Zakaži odgovor kao kod inicijalnog emaila — pregled u kompozitoru pokazuje samo taj odgovor, nikad greškom inicijalni draft',
   'guide.outreach3':
     'Odgovori klijenata: Proton čuva pravi Inbox. Keep-copy forward ka Resend ih automatski ogleda u CRM. Nepovezani ili dvosmisleni pošiljaoci idu u Nepovezani dolazni email na pregledu Leadova za ručno povezivanje. Do tada (ili jednokratno) koristite Zabeleži odgovor klijenta',
   'guide.outreach4':
@@ -3261,7 +3281,7 @@ const sr: Dict = {
   'guide.outreachDemo3':
     'Inicijalni outreach: Pregled, Pošalji iz CRM-a ili Zakaži slanje — vremena su zona kontakta; ažuriranja su samo lažni podaci',
   'guide.outreachDemo4':
-    'Email konverzacija → Napiši odgovor: napišite follow-up; pregled pokazuje samo taj odgovor. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
+    'Email konverzacija → Napiši odgovor: napišite follow-up; Pregled formatiranog emaila na Poslatim i Primljenim porukama. Zakaži odgovor koristi zonu kontakta. Pošalji odgovor beleži još jednu odlaznu poruku u demo niti',
   'guide.outreachDemo5':
     'Zabeleži odgovor klijenta ili Resetuj uzorke (baner) da vratite originalne demo leadove i Copper Lantern nit',
   'guide.outreachDemo6':
