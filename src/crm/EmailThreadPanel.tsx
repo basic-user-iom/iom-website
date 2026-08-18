@@ -613,7 +613,8 @@ export function EmailThreadPanel({
   }
 
   const scheduleControls = (
-    <div className="crm-outreach-schedule">
+    <div className="crm-outreach-schedule crm-email-reply-schedule">
+      <p className="crm-outreach-focus-label">{t('thread.scheduleHeading')}</p>
       {hasContactTz ? (
         <p className="crm-outreach-schedule-clock" role="status">
           <span className="crm-outreach-schedule-clock-label">

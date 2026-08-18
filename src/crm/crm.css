@@ -3140,6 +3140,14 @@ button.crm-tag-chip {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+.crm-email-reply-schedule {
+  margin-top: 0.75rem;
+  padding: 0.85rem 0.9rem 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 32%, var(--border));
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
 .crm-facts--compact {
   margin-top: 0.5rem;
   font-size: 0.85rem;

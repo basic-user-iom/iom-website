@@ -1422,6 +1422,7 @@ const en: Dict = {
     'This lead already has a scheduled send. Replace it with this reply?',
   'thread.scheduleArmed': 'Reply scheduled for {when} ({tz}) → {email}',
   'thread.scheduledSubject': 'Subject: {subject}',
+  'thread.scheduleHeading': 'Schedule this reply',
 
   'profile.title': 'Your profile photo',
   'profile.photo': 'Your photo',
@@ -3149,6 +3150,7 @@ const sr: Dict = {
     'Ovaj lead već ima zakazano slanje. Zameniti ga ovim odgovorom?',
   'thread.scheduleArmed': 'Odgovor zakazan za {when} ({tz}) → {email}',
   'thread.scheduledSubject': 'Naslov: {subject}',
+  'thread.scheduleHeading': 'Zakaži ovaj odgovor',
 
   'profile.title': 'Vaša profilna fotografija',
   'profile.photo': 'Vaša fotografija',
