@@ -77,6 +77,29 @@ function readLocal<T>(key: string, fallback: T): T {
   }
 }
 
+/** PostgREST default max-rows is 1000 — page so bulk export is complete. */
+const REST_PAGE_SIZE = 1000
+
+async function fetchAllPaged<T>(
+  fetchPage: (
+    from: number,
+    to: number,
+  ) => Promise<{ data: T[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const out: T[] = []
+  let from = 0
+  for (;;) {
+    const to = from + REST_PAGE_SIZE - 1
+    const { data, error } = await fetchPage(from, to)
+    if (error) throw new Error(error.message)
+    const rows = data ?? []
+    out.push(...rows)
+    if (rows.length < REST_PAGE_SIZE) break
+    from += REST_PAGE_SIZE
+  }
+  return out
+}
+
 function writeLocal<T>(key: string, value: T): void {
   if (isCrmDemoMode()) {
     demoWrite(key, value)
@@ -2420,6 +2443,33 @@ export async function listLeadMessages(leadId: string): Promise<LeadMessage[]> {
     )
 }
 
+/** All conversation rows (paginated). Used by bulk lead export. */
+export async function listAllLeadMessages(): Promise<LeadMessage[]> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    try {
+      const rows = await fetchAllPaged<Record<string, unknown>>(async (from, to) => {
+        const { data, error } = await supabase
+          .from('crm_lead_messages')
+          .select('*')
+          .order('occurred_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
+        return { data: (data ?? null) as Record<string, unknown>[] | null, error }
+      })
+      return rows.map(normalizeLeadMessage)
+    } catch (err) {
+      if (isLeadMessagesSchemaMissing(err)) return []
+      throw err
+    }
+  }
+
+  return readLocal<LeadMessage[]>(MESSAGES_KEY, []).sort(
+    (a, b) =>
+      new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime(),
+  )
+}
+
 export async function createLeadMessage(
   input: LeadMessageCreate,
 ): Promise<LeadMessage> {
@@ -2654,6 +2704,27 @@ export async function listActivities(leadId: string): Promise<Activity[]> {
   return readLocal<Activity[]>(ACTIVITIES_KEY, [])
     .filter((a) => a.lead_id === leadId)
     .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+}
+
+/** All activity rows (paginated). Used by bulk lead export. */
+export async function listAllActivities(): Promise<Activity[]> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    return fetchAllPaged<Activity>(async (from, to) => {
+      const { data, error } = await supabase
+        .from('crm_activities')
+        .select('*')
+        .order('occurred_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: (data ?? null) as Activity[] | null, error }
+    })
+  }
+
+  return readLocal<Activity[]>(ACTIVITIES_KEY, []).sort(
+    (a, b) =>
+      new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
+  )
 }
 
 export async function createActivity(input: ActivityInput): Promise<Activity> {

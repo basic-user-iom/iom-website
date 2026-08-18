@@ -8,6 +8,8 @@ import {
   emailsSchemaKnownMissing,
   getCurrentUser,
   linksSchemaKnownMissing,
+  listAllActivities,
+  listAllLeadMessages,
   listLeads as fetchLeads,
   listStaffProfiles,
   onAuthChange,
@@ -55,10 +57,13 @@ import {
   useCrmI18n,
 } from './i18n'
 import {
+  bulkLeadExportFilename,
   copyTextToClipboard,
-  formatLeadsForSimilarClientResearch,
+  downloadPlainTextFile,
+  formatLeadsFullExport,
 } from './formatLeadText'
 import { IdeasView } from './IdeasView'
+import { listMindMaps, listProjects } from './workspaceApi'
 import { isContactPriority } from './outreach'
 import { NotesView } from './NotesView'
 import { ScreenRecorderView } from './ScreenRecorderView'
@@ -89,7 +94,7 @@ import type {
   LeadTemperature,
   StaffProfile,
 } from './types'
-import { collectOwnerOptions } from './types'
+import { collectOwnerOptions, resolveLeadOwner } from './types'
 import './crm.css'
 
 type View = 'list' | 'create'
@@ -273,7 +278,7 @@ function LanguageToggle() {
 }
 
 function CrmAppInner({ demo = false }: CrmAppProps) {
-  const { t, statusLabel, tempLabel } = useCrmI18n()
+  const { t, statusLabel, tempLabel, activityLabel, locale } = useCrmI18n()
   // Ensure sandbox flag is on before any API call when mounted as /crm-demo.
   if (demo && !isCrmDemoMode()) enableCrmDemoMode()
   const sandboxed = demo || isCrmDemoMode()
@@ -331,7 +336,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [followUpDate, setFollowUpDate] = useState<string | null>(null)
   const [priorityFilter, setPriorityFilter] = useState(false)
   const [copyVisibleState, setCopyVisibleState] = useState<
-    'idle' | 'copied' | 'failed'
+    'idle' | 'exporting' | 'copied' | 'downloaded' | 'failed'
   >('idle')
 
   const openProject = useCallback((projectId: string) => {
@@ -895,16 +900,44 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       : t('toolbar.copyVisibleAll')
 
   const handleCopyVisibleLeads = async () => {
-    const text = formatLeadsForSimilarClientResearch(listLeads, {
-      t,
-      statusLabel,
-      tempLabel,
-      filterSummary,
-    })
+    if (copyVisibleState === 'exporting' || listLeads.length === 0) return
+    const snapshot = listLeads
+    setCopyVisibleState('exporting')
     try {
-      await copyTextToClipboard(text)
-      setCopyVisibleState('copied')
-      window.setTimeout(() => setCopyVisibleState('idle'), 2000)
+      const [messages, activities, projects, ideaMaps] = await Promise.all([
+        listAllLeadMessages().catch(() => []),
+        listAllActivities(),
+        listProjects().catch(() => []),
+        listMindMaps().catch(() => []),
+      ])
+      const text = formatLeadsFullExport(snapshot, {
+        t,
+        statusLabel,
+        tempLabel,
+        activityLabel,
+        locale,
+        valueLabels: {
+          fromTheHeart: t('detail.valueFromHeart'),
+          noCharge: t('detail.valueNoCharge'),
+        },
+        filterSummary,
+        ownerForLead: (lead) => {
+          const owner = resolveLeadOwner(lead, user, staffById)
+          return { name: owner.name, email: owner.email }
+        },
+        messages,
+        activities,
+        projects,
+        ideaMaps,
+      })
+      downloadPlainTextFile(bulkLeadExportFilename(snapshot.length), text)
+      try {
+        await copyTextToClipboard(text)
+        setCopyVisibleState('copied')
+      } catch {
+        setCopyVisibleState('downloaded')
+      }
+      window.setTimeout(() => setCopyVisibleState('idle'), 2500)
     } catch {
       setCopyVisibleState('failed')
       window.setTimeout(() => setCopyVisibleState('idle'), 2500)
@@ -912,11 +945,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   }
 
   const copyVisibleLabel =
-    copyVisibleState === 'copied'
-      ? t('detail.copied')
-      : copyVisibleState === 'failed'
-        ? t('toolbar.copyVisibleFailed')
-        : t('toolbar.copyVisible', { count: listLeads.length })
+    copyVisibleState === 'exporting'
+      ? t('toolbar.copyVisibleExporting', { count: listLeads.length })
+      : copyVisibleState === 'copied'
+        ? t('toolbar.copyVisibleCopiedFile')
+        : copyVisibleState === 'downloaded'
+          ? t('toolbar.copyVisibleDownloaded')
+          : copyVisibleState === 'failed'
+            ? t('toolbar.copyVisibleFailed')
+            : t('toolbar.copyVisible', { count: listLeads.length })
 
   const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
@@ -1275,7 +1312,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <button
               type="button"
               className="btn btn-ghost"
-              disabled={view === 'create' || listLeads.length === 0}
+              disabled={
+                view === 'create' ||
+                listLeads.length === 0 ||
+                copyVisibleState === 'exporting'
+              }
               title={t('toolbar.copyVisibleHint')}
               onClick={() => void handleCopyVisibleLeads()}
             >

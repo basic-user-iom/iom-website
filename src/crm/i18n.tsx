@@ -88,10 +88,14 @@ const en: Dict = {
   'toolbar.copyVisible': 'Copy {count} for ChatGPT',
   'toolbar.copyVisibleAll': 'All visible',
   'toolbar.copyVisibleHint':
-    'Copy the currently filtered leads (names + basic info) to find similar clients in ChatGPT. Set stage/temperature/tag filters first — e.g. Client replied, Not contacted, museum, Hot.',
-  'toolbar.copyVisibleFailed': 'Copy failed',
+    'Export every visible lead in one go: contact, notes, outreach, sent and received emails with times, activities, and projects. Copies to the clipboard and downloads a .txt file. Filter first if you only want a subset. ChatGPT may need the file in chunks if the dump is large.',
+  'toolbar.copyVisibleFailed': 'Export failed',
+  'toolbar.copyVisibleExporting': 'Exporting {count}…',
+  'toolbar.copyVisibleCopiedFile': 'Copied + file',
+  'toolbar.copyVisibleDownloaded': 'Downloaded',
+  'toolbar.copyVisibleExportedAt': 'Exported',
   'toolbar.copyVisibleIntro':
-    'Use this list as context: these companies are already in IOM’s CRM. Suggest NEW similar companies or studios (not already listed) that could be good outreach targets for interactive 360° tours, 3D experiences, web presentations, and creative digital production. For each suggestion include: company name, website if known, city/country, why they fit, and a brief outreach angle.',
+    'Full IOM CRM dump of the currently filtered leads. Each block is one lead: contact, locale, Atlas, outreach draft, the complete sent/received email thread with timestamps, offer, notes, activities, and linked projects. You can still suggest NEW similar companies not already listed (name, website, city/country, why they fit, outreach angle).',
   'toolbar.copyVisibleEmpty': 'No leads match the current filters.',
 
   'create.title': 'Add potential client',
@@ -1527,7 +1531,7 @@ const en: Dict = {
   'guide.pipe3': 'Change Hot / Warm / Cold anytime as interest shifts',
   'guide.pipe4': 'Edit details, offer text, and notes as conversations evolve',
   'guide.pipe5':
-    'Copy as text — export the full lead (contact, outreach, sent/received emails with times, activities) for ChatGPT or email drafts',
+    'Copy as text on a lead, or Copy N for ChatGPT in the toolbar — full export of visible leads (contact, outreach, sent/received emails with times, activities) plus a .txt download',
   'guide.outreachHeading': 'Outreach & email conversation',
   'guide.outreachText':
     'Mail still lives in Proton. The CRM drafts, sends, and mirrors the lead thread so you can correspond without leaving /client-login.',
@@ -1589,7 +1593,7 @@ const en: Dict = {
   'guide.chatgpt2':
     'Notes (Edit mode): ChatGPT note assist generates title + body with ## sections for artist/lead research lists',
   'guide.chatgpt3':
-    'Copy as text on a lead exports everything for pasting into ChatGPT when you need a fresh analysis',
+    'Copy as text on a lead, or Copy N for ChatGPT in the toolbar, exports everything (including email threads) for pasting into ChatGPT — a .txt file downloads too',
   'guide.projectsHeading': 'Projects',
   'guide.projectsText':
     'Monday-style boards for delivery — columns, tasks, and project status.',
@@ -1808,10 +1812,14 @@ const sr: Dict = {
   'toolbar.copyVisible': 'Kopiraj {count} za ChatGPT',
   'toolbar.copyVisibleAll': 'Svi vidljivi',
   'toolbar.copyVisibleHint':
-    'Kopira trenutno filtrirane leadove (imena + osnovni podaci) da u ChatGPT-u tražite slične klijente. Prvo postavite filter faze/temperature/taga — npr. Klijent odgovorio, Nije kontaktiran, museum, Vruć.',
-  'toolbar.copyVisibleFailed': 'Kopiranje nije uspelo',
+    'Izvozi sve vidljive leadove odjednom: kontakt, beleške, outreach, poslate i primljene emailove sa vremenima, aktivnosti i projekte. Kopira u clipboard i preuzima .txt. Prvo filtrirajte ako treba podskup. ChatGPT-u možda treba fajl u delovima ako je izvoz veliki.',
+  'toolbar.copyVisibleFailed': 'Izvoz nije uspeo',
+  'toolbar.copyVisibleExporting': 'Izvoz {count}…',
+  'toolbar.copyVisibleCopiedFile': 'Kopirano + fajl',
+  'toolbar.copyVisibleDownloaded': 'Preuzeto',
+  'toolbar.copyVisibleExportedAt': 'Izvezeno',
   'toolbar.copyVisibleIntro':
-    'Koristite ovu listu kao kontekst: ove firme su već u IOM CRM-u. Predložite NOVE slične firme ili studije (koje nisu na listi) kao dobre ciljeve za outreach — interaktivne 360° ture, 3D iskustva, web prezentacije i kreativnu digitalnu produkciju. Za svaki predlog uključite: naziv firme, website ako je poznat, grad/državu, zašto odgovara, i kratak ugao za outreach.',
+    'Pun IOM CRM izvoz trenutno filtriranih leadova. Svaki blok je jedan lead: kontakt, lokacija, Atlas, outreach draft, kompletna poslat/primljen email nit sa vremenima, ponuda, beleške, aktivnosti i povezani projekti. I dalje možete predložiti NOVE slične firme koje nisu na listi (naziv, website, grad/država, zašto odgovara, ugao za outreach).',
   'toolbar.copyVisibleEmpty': 'Nijedan lead ne odgovara trenutnim filterima.',
 
   'create.title': 'Dodaj potencijalnog klijenta',
@@ -3256,7 +3264,7 @@ const sr: Dict = {
   'guide.pipe3': 'Menjajte Vruć / Topao / Hladan kad god se interesovanje promeni',
   'guide.pipe4': 'Izmenite detalje, tekst ponude i beleške kako razgovori napreduju',
   'guide.pipe5':
-    'Kopiraj kao tekst — izvezite ceo lead (kontakt, outreach, poslate/primljene emailove sa vremenima, aktivnosti) za ChatGPT ili email draftove',
+    'Kopiraj kao tekst na leadu, ili Kopiraj N za ChatGPT u traci — pun izvoz vidljivih leadova (kontakt, outreach, poslate/primljene emailove sa vremenima, aktivnosti) plus .txt preuzimanje',
   'guide.outreachHeading': 'Outreach i email konverzacija',
   'guide.outreachText':
     'Pravi sandučić ostaje u Protonu. CRM piše, šalje i ogleda nit leada da možete da korespondirate bez napuštanja /client-login.',
@@ -3318,7 +3326,7 @@ const sr: Dict = {
   'guide.chatgpt2':
     'Beleške (režim Izmena): ChatGPT pomoć generiše naslov + telo sa ## sekcijama za liste umetnika/leadova',
   'guide.chatgpt3':
-    'Kopiraj kao tekst na leadu izvozi sve za paste u ChatGPT kad treba nova analiza',
+    'Kopiraj kao tekst na leadu, ili Kopiraj N za ChatGPT u traci, izvozi sve (uključujući email niti) za paste u ChatGPT — .txt fajl se takođe preuzima',
   'guide.projectsHeading': 'Projekti',
   'guide.projectsText':
     'Table u Monday stilu za isporuku — kolone, zadaci i status projekta.',

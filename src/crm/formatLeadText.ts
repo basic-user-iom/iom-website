@@ -49,6 +49,19 @@ export async function copyTextToClipboard(text: string): Promise<void> {
   if (!ok) throw new Error('copy failed')
 }
 
+export function downloadPlainTextFile(filename: string, text: string): void {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.rel = 'noopener'
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 export interface FormatLeadTextContext {
   t: TranslateFn
   statusLabel: (status: LeadStatus) => string
@@ -296,27 +309,49 @@ function formatEmailThread(
   return blocks
 }
 
-export interface FormatLeadsResearchContext {
+function groupByLeadId<T extends { lead_id: string | null }>(
+  rows: T[],
+): Map<string, T[]> {
+  const map = new Map<string, T[]>()
+  for (const row of rows) {
+    const id = row.lead_id
+    if (!id) continue
+    const list = map.get(id)
+    if (list) list.push(row)
+    else map.set(id, [row])
+  }
+  return map
+}
+
+export function bulkLeadExportFilename(count: number, now = new Date()): string {
+  const day = now.toISOString().slice(0, 10)
+  return `iom-crm-leads-${day}-${count}.txt`
+}
+
+export interface FormatLeadsFullExportContext {
   t: TranslateFn
   statusLabel: (status: LeadStatus) => string
   tempLabel: (temp: LeadTemperature) => string
-  /** Short label for the active filters, e.g. "Contacted · Warm". */
+  activityLabel: (type: ActivityType) => string
+  locale: string
+  valueLabels: { fromTheHeart: string; noCharge: string }
   filterSummary: string
+  ownerForLead: (lead: Lead) => { name: string | null; email: string | null }
+  messages: LeadMessage[]
+  activities: Activity[]
+  projects: CrmProject[]
+  ideaMaps: Array<{ lead_id: string | null }>
 }
 
-function truncateFocus(text: string, max = 280): string {
-  const trimmed = text.trim()
-  if (trimmed.length <= max) return trimmed
-  return `${trimmed.slice(0, max - 1).trimEnd()}…`
-}
-
-/** Compact multi-lead dump for ChatGPT “find similar clients” research. */
-export function formatLeadsForSimilarClientResearch(
+/** Full per-lead dump (same fields as Copy as text), joined for bulk export. */
+export function formatLeadsFullExport(
   leads: Lead[],
-  ctx: FormatLeadsResearchContext,
+  ctx: FormatLeadsFullExportContext,
 ): string {
+  const exportedAt = formatWhen(new Date().toISOString(), ctx.locale)
   const header = [
-    `IOM CRM — existing leads (${ctx.filterSummary || 'all'} · ${leads.length})`,
+    `IOM CRM — full export (${ctx.filterSummary || 'all'} · ${leads.length})`,
+    field(ctx.t('toolbar.copyVisibleExportedAt'), exportedAt),
     '',
     ctx.t('toolbar.copyVisibleIntro'),
     '',
@@ -326,31 +361,30 @@ export function formatLeadsForSimilarClientResearch(
     return [...header, ctx.t('toolbar.copyVisibleEmpty')].join('\n').trim()
   }
 
-  const blocks = leads.map((lead, i) => {
-    const company = lead.company_name.trim() || ctx.t('detail.untitled')
-    const contact = [lead.contact_name.trim(), lead.contact_role.trim()]
-      .filter(Boolean)
-      .join(' — ')
-    const location = [lead.client_city.trim(), lead.client_country.trim()]
-      .filter(Boolean)
-      .join(', ')
-    const lines = [
-      `${i + 1}. ${company}`,
-      contact ? `   Contact: ${contact}` : '',
-      lead.website.trim() ? `   Website: ${lead.website.trim()}` : '',
-      location
-        ? `   Location: ${location}${lead.client_timezone.trim() ? ` (${lead.client_timezone.trim()})` : ''}`
-        : lead.client_timezone.trim()
-          ? `   Timezone: ${lead.client_timezone.trim()}`
-          : '',
-      `   Temperature: ${ctx.tempLabel(lead.temperature)} · Stage: ${ctx.statusLabel(lead.status)}`,
-      lead.company_focus.trim()
-        ? `   Focus: ${truncateFocus(lead.company_focus)}`
-        : '',
-      lead.offer.trim() ? `   Offer angle: ${truncateFocus(lead.offer, 180)}` : '',
-    ]
-    return lines.filter(Boolean).join('\n')
-  })
+  const messagesByLead = groupByLeadId(ctx.messages)
+  const activitiesByLead = groupByLeadId(ctx.activities)
+  const projectsByLead = groupByLeadId(ctx.projects)
+  const ideaCountByLead = new Map<string, number>()
+  for (const map of ctx.ideaMaps) {
+    if (!map.lead_id) continue
+    ideaCountByLead.set(map.lead_id, (ideaCountByLead.get(map.lead_id) ?? 0) + 1)
+  }
+
+  const blocks = leads.map((lead) =>
+    formatLeadAsPlainText(lead, {
+      t: ctx.t,
+      statusLabel: ctx.statusLabel,
+      tempLabel: ctx.tempLabel,
+      activityLabel: ctx.activityLabel,
+      locale: ctx.locale,
+      owner: ctx.ownerForLead(lead),
+      valueLabels: ctx.valueLabels,
+      activities: activitiesByLead.get(lead.id) ?? [],
+      messages: messagesByLead.get(lead.id) ?? [],
+      linkedProjects: projectsByLead.get(lead.id) ?? [],
+      ideaCount: ideaCountByLead.get(lead.id) ?? 0,
+    }),
+  )
 
   return [...header, ...blocks].join('\n\n').trim()
 }
