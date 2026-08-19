@@ -1,25 +1,41 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { REST_BEND } from './bendMath'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PANEL_WIDTH_M, REST_BEND, previewRadiusMm } from './bendMath'
 import { LinarControls } from './LinarControls'
 import { LinarProductInfo } from './LinarProductInfo'
 import { LinarScene } from './LinarScene'
-import type { LinarMaterialId } from './types'
+import {
+  CONCEPT_DISCLAIMER,
+  PARTNER_CONFIRMATION_NOTE,
+  resolveLinarTech,
+  suggestedIncisionLengthMm,
+} from './linarData'
+import type { LinarConfig } from './types'
+import { DEFAULT_LINAR_CONFIG, cloneConfig } from './types'
 import './dukta-linar-concept.css'
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
+const GEOM_KEYS: (keyof LinarConfig)[] = ['material', 'thicknessMm', 'cutWidthMm', 'slatWidthMm']
+
 export function DuktaLinarConceptPage() {
   const reducedMotion = useRef(prefersReducedMotion()).current
   const [targetBend, setTargetBend] = useState(reducedMotion ? REST_BEND : 0)
-  const [material, setMaterial] = useState<LinarMaterialId>('mdf')
+  const [config, setConfig] = useState<LinarConfig>(() => cloneConfig(DEFAULT_LINAR_CONFIG))
   const [resetViewToken, setResetViewToken] = useState(0)
   const [webglFailed, setWebglFailed] = useState(false)
   const sliderRef = useRef<HTMLInputElement>(null)
   const percentRef = useRef<HTMLSpanElement>(null)
   const targetBendRef = useRef(targetBend)
   const interactedRef = useRef(reducedMotion)
+
+  const tech = useMemo(() => resolveLinarTech(config), [config])
+  const currentPreviewRadius = previewRadiusMm(
+    targetBend,
+    PANEL_WIDTH_M,
+    tech.referenceMinimumRadiusMm,
+  )
 
   const markInteracted = useCallback(() => {
     interactedRef.current = true
@@ -30,15 +46,12 @@ export function DuktaLinarConceptPage() {
     if (percentRef.current) percentRef.current.textContent = `${Math.round(value)}%`
   }, [])
 
-  const onBendInput = useCallback(
-    (value: number) => {
-      interactedRef.current = true
-      targetBendRef.current = value
-      setTargetBend(value)
-      if (percentRef.current) percentRef.current.textContent = `${Math.round(value)}%`
-    },
-    [],
-  )
+  const onBendInput = useCallback((value: number) => {
+    interactedRef.current = true
+    targetBendRef.current = value
+    setTargetBend(value)
+    if (percentRef.current) percentRef.current.textContent = `${Math.round(value)}%`
+  }, [])
 
   const onIntroBend = useCallback(
     (value: number) => {
@@ -50,11 +63,24 @@ export function DuktaLinarConceptPage() {
     [syncBendUi],
   )
 
+  const onConfig = useCallback((patch: Partial<LinarConfig>) => {
+    interactedRef.current = true
+    setConfig((prev) => {
+      const next = { ...prev, ...patch }
+      const geomChanged = GEOM_KEYS.some((key) => patch[key] !== undefined && patch[key] !== prev[key])
+      if (geomChanged && patch.incisionLengthMm == null) {
+        const suggested = suggestedIncisionLengthMm({ ...next, pattern: 'regular' })
+        if (suggested != null) next.incisionLengthMm = suggested
+      }
+      return next
+    })
+  }, [])
+
   const onResetPanel = useCallback(() => {
     interactedRef.current = true
     targetBendRef.current = REST_BEND
     setTargetBend(REST_BEND)
-    setMaterial('mdf')
+    setConfig(cloneConfig(DEFAULT_LINAR_CONFIG))
     syncBendUi(REST_BEND)
   }, [syncBendUi])
 
@@ -82,16 +108,20 @@ export function DuktaLinarConceptPage() {
               the LINAR product information below.
             </p>
           ) : (
-            <LinarScene
-              targetBendRef={targetBendRef}
-              material={material}
-              resetViewToken={resetViewToken}
-              interactedRef={interactedRef}
-              reducedMotion={reducedMotion}
-              onUnavailable={() => setWebglFailed(true)}
-              onUserInteract={markInteracted}
-              onIntroBend={onIntroBend}
-            />
+            <>
+              <LinarScene
+                targetBendRef={targetBendRef}
+                config={config}
+                tech={tech}
+                resetViewToken={resetViewToken}
+                interactedRef={interactedRef}
+                reducedMotion={reducedMotion}
+                onUnavailable={() => setWebglFailed(true)}
+                onUserInteract={markInteracted}
+                onIntroBend={onIntroBend}
+              />
+              <p className="linar-viewport__hint">Drag to rotate. Scroll or pinch to zoom.</p>
+            </>
           )}
         </section>
 
@@ -107,23 +137,21 @@ export function DuktaLinarConceptPage() {
 
             <LinarControls
               bend={targetBend}
-              material={material}
+              config={config}
+              tech={tech}
+              previewRadiusMm={currentPreviewRadius}
               sliderRef={sliderRef}
               percentRef={percentRef}
               onBendInput={onBendInput}
-              onMaterial={(id) => {
-                markInteracted()
-                setMaterial(id)
-              }}
+              onConfig={onConfig}
               onResetView={() => setResetViewToken((n) => n + 1)}
               onResetPanel={onResetPanel}
             />
 
-            <LinarProductInfo />
+            <LinarProductInfo config={config} tech={tech} />
 
             <p className="linar-disclaimer">
-              Conceptual visualisation only. Panel behaviour, bending limits and manufacturability
-              must be validated by dukta.
+              {CONCEPT_DISCLAIMER} {PARTNER_CONFIRMATION_NOTE}
             </p>
           </div>
         </aside>

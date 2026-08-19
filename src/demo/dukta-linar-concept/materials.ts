@@ -34,7 +34,7 @@ const LOOKS: Record<LinarMaterialId, MaterialLook> = {
     grain: 'linear',
     grainContrast: 0.12,
   },
-  'three-layer': {
+  'three-layer-spruce': {
     color: '#d2ab7a',
     roughness: 0.68,
     edgeColor: '#b88858',
@@ -57,8 +57,7 @@ function paintGrain(look: MaterialLook): HTMLCanvasElement {
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
 
-  const base = look.color
-  ctx.fillStyle = base
+  ctx.fillStyle = look.color
   ctx.fillRect(0, 0, size, size)
 
   const image = ctx.getImageData(0, 0, size, size)
@@ -137,9 +136,14 @@ function attachEdgeHint(material: MeshStandardMaterial, uniforms: EdgeUniforms):
 export type LinarMaterialSet = {
   slat: MeshStandardMaterial
   connector: MeshStandardMaterial
+  solid: MeshStandardMaterial
   apply: (id: LinarMaterialId, immediate?: boolean) => void
   tick: (dt: number) => boolean
   dispose: () => void
+}
+
+function darkenBridge(id: LinarMaterialId, color: Color): void {
+  color.multiplyScalar(id === 'mdf' ? 0.62 : 0.58)
 }
 
 export function createLinarMaterials(): LinarMaterialSet {
@@ -165,11 +169,21 @@ export function createLinarMaterials(): LinarMaterialSet {
   const connector = new MeshStandardMaterial({
     color: LOOKS.mdf.color,
     map: getMap('mdf'),
-    roughness: Math.min(1, LOOKS.mdf.roughness + 0.04),
+    roughness: Math.min(1, LOOKS.mdf.roughness + 0.08),
     metalness: 0,
-    envMapIntensity: 0.3,
+    envMapIntensity: 0.28,
   })
   connector.name = 'LinarConnector'
+  darkenBridge('mdf', connector.color)
+
+  const solid = new MeshStandardMaterial({
+    color: LOOKS.mdf.color,
+    map: getMap('mdf'),
+    roughness: LOOKS.mdf.roughness,
+    metalness: 0,
+    envMapIntensity: 0.35,
+  })
+  solid.name = 'LinarSolid'
 
   const slatEdge: EdgeUniforms = {
     uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
@@ -177,10 +191,15 @@ export function createLinarMaterials(): LinarMaterialSet {
   }
   const connectorEdge: EdgeUniforms = {
     uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
-    uEdgeStr: { value: LOOKS.mdf.edgeStrength * 0.7 },
+    uEdgeStr: { value: LOOKS.mdf.edgeStrength * 0.45 },
+  }
+  const solidEdge: EdgeUniforms = {
+    uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
+    uEdgeStr: { value: LOOKS.mdf.edgeStrength },
   }
   attachEdgeHint(slat, slatEdge)
   attachEdgeHint(connector, connectorEdge)
+  attachEdgeHint(solid, solidEdge)
 
   let current: LinarMaterialId = 'mdf'
   let fromColor = new Color(LOOKS.mdf.color)
@@ -189,6 +208,30 @@ export function createLinarMaterials(): LinarMaterialSet {
   let toRough = LOOKS.mdf.roughness
   let mix = 1
   let pendingMap: Texture | null = null
+
+  const paintSet = (color: Color, roughness: number, look: MaterialLook, map: Texture | null) => {
+    slat.color.copy(color)
+    slat.roughness = roughness
+    connector.color.copy(color)
+    darkenBridge(current, connector.color)
+    connector.roughness = Math.min(1, roughness + 0.08)
+    solid.color.copy(color)
+    solid.roughness = roughness
+    if (map) {
+      slat.map = map
+      connector.map = map
+      solid.map = map
+      slat.needsUpdate = true
+      connector.needsUpdate = true
+      solid.needsUpdate = true
+    }
+    slatEdge.uEdgeCol.value.set(look.edgeColor)
+    slatEdge.uEdgeStr.value = look.edgeStrength
+    connectorEdge.uEdgeCol.value.set(look.edgeColor)
+    connectorEdge.uEdgeStr.value = look.edgeStrength * 0.45
+    solidEdge.uEdgeCol.value.set(look.edgeColor)
+    solidEdge.uEdgeStr.value = look.edgeStrength
+  }
 
   const apply = (id: LinarMaterialId, immediate = false) => {
     const look = LOOKS[id]
@@ -200,18 +243,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     pendingMap = getMap(id)
     mix = immediate ? 1 : 0
     if (immediate) {
-      slat.color.copy(toColor)
-      slat.roughness = toRough
-      slat.map = pendingMap
-      slat.needsUpdate = true
-      connector.color.copy(toColor)
-      connector.roughness = Math.min(1, toRough + 0.04)
-      connector.map = pendingMap
-      connector.needsUpdate = true
-      slatEdge.uEdgeCol.value.set(look.edgeColor)
-      slatEdge.uEdgeStr.value = look.edgeStrength
-      connectorEdge.uEdgeCol.value.set(look.edgeColor)
-      connectorEdge.uEdgeStr.value = look.edgeStrength * 0.7
+      paintSet(toColor, toRough, look, pendingMap)
       pendingMap = null
       mix = 1
     }
@@ -222,29 +254,20 @@ export function createLinarMaterials(): LinarMaterialSet {
     mix = Math.min(1, mix + dt * 4.2)
     slat.color.copy(fromColor).lerp(toColor, mix)
     slat.roughness = fromRough + (toRough - fromRough) * mix
-    connector.color.copy(slat.color)
-    connector.roughness = Math.min(1, slat.roughness + 0.04)
-    if (mix >= 0.45 && pendingMap && slat.map !== pendingMap) {
-      slat.map = pendingMap
-      connector.map = pendingMap
-      slat.needsUpdate = true
-      connector.needsUpdate = true
-      const look = LOOKS[current]
-      slatEdge.uEdgeCol.value.set(look.edgeColor)
-      slatEdge.uEdgeStr.value = look.edgeStrength
-      connectorEdge.uEdgeCol.value.set(look.edgeColor)
-      connectorEdge.uEdgeStr.value = look.edgeStrength * 0.7
-      pendingMap = null
-    }
+    const look = LOOKS[current]
+    const map = mix >= 0.45 ? pendingMap : null
+    paintSet(slat.color, slat.roughness, look, map)
+    if (mix >= 0.45) pendingMap = null
     return true
   }
 
   const dispose = () => {
     slat.dispose()
     connector.dispose()
+    solid.dispose()
     for (const map of maps.values()) map.dispose()
     maps.clear()
   }
 
-  return { slat, connector, apply, tick, dispose }
+  return { slat, connector, solid, apply, tick, dispose }
 }

@@ -1,13 +1,15 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { PANEL_HEIGHT, PANEL_WIDTH, REST_BEND, INTRO_PEAK_BEND } from './bendMath'
+import { INTRO_PEAK_BEND, PANEL_HEIGHT_M, PANEL_WIDTH_M, REST_BEND } from './bendMath'
 import { createLinarPanel } from './LinarPanel'
-import type { LinarMaterialId } from './types'
+import type { LinarTech } from './linarData'
+import type { LinarConfig } from './types'
 
 type Props = {
   targetBendRef: { current: number }
-  material: LinarMaterialId
+  config: LinarConfig
+  tech: LinarTech
   resetViewToken: number
   interactedRef: { current: boolean }
   reducedMotion: boolean
@@ -19,6 +21,20 @@ type Props = {
 
 const BG = 0xf3efe8
 const FLOOR = 0xe8e2d8
+
+function geometryKey(config: LinarConfig, tech: LinarTech): string {
+  return [
+    config.material,
+    config.thicknessMm,
+    config.incisionLengthMm,
+    config.cutWidthMm,
+    config.slatWidthMm,
+    config.incisedTwelfths,
+    config.pattern,
+    tech.bridgeLengthMm,
+    tech.referenceMinimumRadiusMm ?? 'none',
+  ].join(':')
+}
 
 function createContactBlob(): { mesh: THREE.Mesh; dispose: () => void; setBend: (p: number) => void } {
   const geo = new THREE.PlaneGeometry(2.4, 1.35)
@@ -49,7 +65,6 @@ function createContactBlob(): { mesh: THREE.Mesh; dispose: () => void; setBend: 
   mesh.renderOrder = -1
   mesh.frustumCulled = false
   mesh.name = 'LinarContactShadow'
-
   return {
     mesh,
     setBend: (percent) => {
@@ -91,23 +106,31 @@ function frameCamera(
 ) {
   camera.aspect = Math.max(width / Math.max(height, 1), 0.2)
   camera.updateProjectionMatrix()
-  const target = new THREE.Vector3(0, PANEL_HEIGHT * 0.46, 0.05)
-  const padding = 1.2
+  const target = new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0)
+  const padY = 1.55
+  const padX = 2.2
   const fov = (camera.fov * Math.PI) / 180
-  const fitH = (PANEL_HEIGHT * padding) / 2 / Math.tan(fov / 2)
-  const fitW = (PANEL_WIDTH * padding * 1.08) / 2 / Math.tan(fov / 2) / camera.aspect
-  const dist = Math.max(fitH, fitW, 3.2)
-  const dir = new THREE.Vector3(0.9, 0.16, 0.82).normalize()
+  const halfTan = Math.tan(fov / 2)
+  const fitH = (PANEL_HEIGHT_M * padY) / 2 / halfTan
+  const fitW = (PANEL_WIDTH_M * padX) / 2 / halfTan / camera.aspect
+  const dist = Math.max(fitH, fitW, 16)
+  const dir = new THREE.Vector3(0.16, 0.07, 1).normalize()
+  const damping = controls.enableDamping
+  controls.enableDamping = false
+  camera.up.set(0, 1, 0)
   camera.position.copy(target).addScaledVector(dir, dist)
   controls.target.copy(target)
-  controls.minDistance = dist * 0.6
-  controls.maxDistance = dist * 2.2
+  camera.lookAt(target)
+  controls.minDistance = dist * 0.35
+  controls.maxDistance = dist * 3
   controls.update()
+  controls.enableDamping = damping
 }
 
 export function LinarScene({
   targetBendRef,
-  material,
+  config,
+  tech,
   resetViewToken,
   interactedRef,
   reducedMotion,
@@ -117,14 +140,16 @@ export function LinarScene({
   onIntroComplete,
 }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
-  const materialRef = useRef(material)
+  const configRef = useRef(config)
+  const techRef = useRef(tech)
   const onUserInteractRef = useRef(onUserInteract)
   const onIntroBendRef = useRef(onIntroBend)
   const onIntroCompleteRef = useRef(onIntroComplete)
   const onUnavailableRef = useRef(onUnavailable)
   const resetViewTokenRef = useRef(resetViewToken)
 
-  materialRef.current = material
+  configRef.current = config
+  techRef.current = tech
   onUserInteractRef.current = onUserInteract
   onIntroBendRef.current = onIntroBend
   onIntroCompleteRef.current = onIntroComplete
@@ -167,19 +192,21 @@ export function LinarScene({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(BG)
 
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 40)
+    const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 120)
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enablePan = false
     controls.enableDamping = true
     controls.dampingFactor = 0.08
-    controls.minPolarAngle = 0.22
-    controls.maxPolarAngle = Math.PI / 2 + 0.08
+    controls.minPolarAngle = 0.28
+    controls.maxPolarAngle = Math.PI / 2 + 0.02
     controls.rotateSpeed = 0.72
     controls.zoomSpeed = 0.85
     controls.touches.ONE = THREE.TOUCH.ROTATE
     controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE
 
+    let hasOrbited = false
     const markInteract = () => {
+      hasOrbited = true
       if (interactedRef.current) return
       interactedRef.current = true
       onUserInteractRef.current()
@@ -194,16 +221,16 @@ export function LinarScene({
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
     key.shadow.camera.near = 1
-    key.shadow.camera.far = 18
-    key.shadow.camera.left = -3.4
-    key.shadow.camera.right = 3.4
-    key.shadow.camera.top = 4.2
-    key.shadow.camera.bottom = -1.2
+    key.shadow.camera.far = 22
+    key.shadow.camera.left = -3.8
+    key.shadow.camera.right = 3.8
+    key.shadow.camera.top = 4.6
+    key.shadow.camera.bottom = -1.4
     key.shadow.bias = -0.00018
     key.shadow.normalBias = 0.03
     scene.add(key)
     scene.add(key.target)
-    key.target.position.set(0, PANEL_HEIGHT * 0.4, 0)
+    key.target.position.set(0, PANEL_HEIGHT_M * 0.4, 0)
 
     const fill = new THREE.DirectionalLight(0xe8eef4, 0.42)
     fill.position.set(-4.2, 3.2, -1.4)
@@ -228,7 +255,7 @@ export function LinarScene({
     const blob = createContactBlob()
     scene.add(blob.mesh)
 
-    const panel = createLinarPanel()
+    const panel = createLinarPanel({ config: configRef.current, tech: techRef.current })
     scene.add(panel.group)
 
     let displayedBend = reducedMotion ? REST_BEND : 0
@@ -236,8 +263,8 @@ export function LinarScene({
     let introDone = reducedMotion
     let introElapsed = 0
     let lastIntroEmit = -1
-    panel.setBend(displayedBend)
-    panel.setMaterial(materialRef.current, true)
+    panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
+    panel.setMaterial(configRef.current.material, true)
     blob.setBend(displayedBend)
     if (reducedMotion) {
       onIntroBendRef.current(REST_BEND)
@@ -254,6 +281,7 @@ export function LinarScene({
     const applyFrame = () => {
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
+      if (w < 16 || h < 16) return
       renderer.setSize(w, h, false)
       frameCamera(camera, controls, w, h)
       initialCam.position.copy(camera.position)
@@ -262,6 +290,9 @@ export function LinarScene({
       initialCam.maxDistance = controls.maxDistance
     }
     applyFrame()
+    requestAnimationFrame(() => {
+      if (!disposed && !hasOrbited) applyFrame()
+    })
     renderer.render(scene, camera)
 
     const restoreView = () => {
@@ -278,6 +309,10 @@ export function LinarScene({
       const h = mount.clientHeight || 1
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
       renderer.setSize(w, h, false)
+      if (!hasOrbited) {
+        applyFrame()
+        return
+      }
       camera.aspect = w / Math.max(h, 1)
       camera.updateProjectionMatrix()
     }
@@ -285,7 +320,8 @@ export function LinarScene({
     ro.observe(mount)
 
     let lastAppliedBend = displayedBend
-    let lastMaterial = materialRef.current
+    let lastMaterial = configRef.current.material
+    let lastGeomKey = geometryKey(configRef.current, techRef.current)
     let lastReset = resetViewTokenRef.current
     let raf = 0
     let lastT = performance.now()
@@ -306,8 +342,17 @@ export function LinarScene({
         restoreView()
       }
 
-      if (materialRef.current !== lastMaterial) {
-        lastMaterial = materialRef.current
+      const nextGeom = geometryKey(configRef.current, techRef.current)
+      if (nextGeom !== lastGeomKey) {
+        lastGeomKey = nextGeom
+        panel.setConfig(configRef.current, techRef.current)
+        lastAppliedBend = displayedBend
+        panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
+        blob.setBend(displayedBend)
+      }
+
+      if (configRef.current.material !== lastMaterial) {
+        lastMaterial = configRef.current.material
         panel.setMaterial(lastMaterial)
       }
 
@@ -326,13 +371,12 @@ export function LinarScene({
         }
       }
 
-      const goal =
-        interactedRef.current || introDone ? targetBendRef.current : introTarget
+      const goal = interactedRef.current || introDone ? targetBendRef.current : introTarget
       const lambda = 1 - Math.exp(-dt * 11)
       displayedBend += (goal - displayedBend) * lambda
       if (Math.abs(displayedBend - lastAppliedBend) > 0.02) {
         lastAppliedBend = displayedBend
-        panel.setBend(displayedBend)
+        panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
         blob.setBend(displayedBend)
       }
 
