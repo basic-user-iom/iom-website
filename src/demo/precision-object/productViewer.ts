@@ -604,7 +604,6 @@ export function createProductViewer(
   }
   let cetHands: CetHands | null = null
   let cetCrown: CetCrown | null = null
-  let crownAngle = 0
   let appliedWatchZone = getTimeZone()
   let lastHandAngles: AnalogHandRadians | null = null
   let handsFrozen = false
@@ -1199,11 +1198,9 @@ export function createProductViewer(
   const applyCrownAngle = (angle: number) => {
     if (!cetCrown) return
     if (!Number.isFinite(angle) || Math.abs(angle) < 1e-10) {
-      crownAngle = 0
       cetCrown.bone.quaternion.copy(cetCrown.rest)
       return
     }
-    crownAngle = angle
     crownQuatScratch.setFromAxisAngle(cetCrown.axis, angle)
     cetCrown.bone.quaternion.copy(cetCrown.rest).multiply(crownQuatScratch)
   }
