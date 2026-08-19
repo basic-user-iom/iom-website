@@ -187,3 +187,8 @@ export function isWatchMetalMaterial(mat: THREE.Material, meshName: string): boo
   if (name.includes('black') && !name.includes('metal')) return false
   return name.includes('metal') || name.includes('rough')
 }
+
+export function isDialMaterial(mat: THREE.Material, meshName: string): boolean {
+  const name = `${mat.name} ${meshName}`.toLowerCase()
+  return name.includes('white') || name.includes('dial')
+}

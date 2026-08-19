@@ -67,11 +67,11 @@ export const WATCH_HAND_BONES = {
 export const WATCH_CROWN_BONES = ['Bone.008_08', 'Bone008_08'] as const
 
 /**
- * Printed 12 o'clock about local X — measured at 00:00 with all hands on 12.
- * Live analog time adds clockwise turns from this pose; per-hand offsets
- * compensate bone/mesh rest (hour and seconds do not share the minute bind).
+ * Printed 12 o'clock about local X for hour and seconds, added on the bind rest
+ * pose. After the dial-plane wrapper flip, bind rest is already printed 12, so
+ * this starts at 0. Minutes use `minuteOffsetDeg` alone as that extra 12.
  */
-export const DEFAULT_TWELVE_X_DEG = -20.4
+export const DEFAULT_TWELVE_X_DEG = 0
 export const TWELVE_X_RAD = (DEFAULT_TWELVE_X_DEG * Math.PI) / 180
 
 export type HandCalibration = {
@@ -83,12 +83,12 @@ export type HandCalibration = {
 
 export const DEFAULT_HAND_CALIBRATION: HandCalibration = {
   twelveXDeg: DEFAULT_TWELVE_X_DEG,
-  hourOffsetDeg: -34,
+  hourOffsetDeg: 0,
   minuteOffsetDeg: 0,
-  secondOffsetDeg: 144.6,
+  secondOffsetDeg: 0,
 }
 
-/** Slider / storage range. Signed so 12 o'clock can stay −20.4 (not +20.4). */
+/** Slider / storage range. */
 export const HAND_DEG_MIN = -180
 export const HAND_DEG_MAX = 180
 
@@ -139,7 +139,10 @@ export const ZONE_HAND_TWEEN_SEC = 1.15
 /** Seconds may add at most one extra full turn on a zone change. */
 export const ZONE_SECONDS_EXTRA_TURNS = 1
 
-/** Clockwise on the dial is increasing local X. */
+/**
+ * After the wrapper 180° flip, local +X is clockwise on the printed face.
+ * Negative sent 11h from 12 CCW onto 1 o'clock (23:23 read as ~1:23).
+ */
 export const CLOCKWISE_SIGN = 1
 
 export type BerlinCivilTime = {
@@ -213,52 +216,64 @@ function civilFromHourParts(at: Date, timeZone: string): BerlinCivilTime {
 /** Wall-clock in the active IANA zone (default Europe/Berlin). */
 export function berlinCivilTime(at: Date = new Date()): BerlinCivilTime {
   const timeZone = activeTimeZone
+  const fromParts = civilFromHourParts(at, timeZone)
   const offsetMs = zoneOffsetMs(at, timeZone)
-  if (offsetMs != null) {
-    const shifted = new Date(at.getTime() + offsetMs)
-    return {
-      hour: shifted.getUTCHours(),
-      minute: shifted.getUTCMinutes(),
-      second: shifted.getUTCSeconds(),
-      millisecond: shifted.getUTCMilliseconds(),
-    }
+  if (offsetMs == null) return fromParts
+  const shifted = new Date(at.getTime() + offsetMs)
+  const fromOffset = {
+    hour: shifted.getUTCHours(),
+    minute: shifted.getUTCMinutes(),
+    second: shifted.getUTCSeconds(),
+    millisecond: shifted.getUTCMilliseconds(),
   }
-  return civilFromHourParts(at, timeZone)
+  // Prefer Intl hour/minute/second so analog and the Zone digital stay on the
+  // same civil clock as the taskbar. Keep milliseconds from the UTC shift.
+  return { ...fromParts, millisecond: fromOffset.millisecond }
+}
+
+/** `HH:MM:SS` in the active zone — same civil parts the analog hands use. */
+export function formatCivilHms(time: BerlinCivilTime = berlinCivilTime()): string {
+  const pad = (n: number) => String(Math.max(0, Math.floor(n))).padStart(2, '0')
+  return `${pad(time.hour)}:${pad(time.minute)}:${pad(time.second)}`
 }
 
 /**
- * Local-X radians from the 00:00 pose (printed 12).
+ * Local-X radians from a midnight bone pose.
  *
- * `twelveXDeg` is the absolute 12 o'clock angle about local X — it **replaces**
- * the old ±90° guess, it is not added to 90°. Per-hand offsets are the rest
- * of that midnight alignment. Live time only adds clockwise turns.
+ * Hour and seconds: midnight is bind rest + `twelveXDeg + offset`.
+ * Minutes: `minuteOffsetDeg` only (do not add `twelveXDeg` again).
  */
-function handXFromTwelve(clockwiseTurns: number, offsetDeg: number): number {
+function handXFromTwelve(
+  clockwiseTurns: number,
+  offsetDeg: number,
+  fromPrintedTwelve: boolean,
+): number {
   const midnightZero =
-    degToRad(handCalibration.twelveXDeg) + degToRad(offsetDeg)
+    (fromPrintedTwelve ? degToRad(handCalibration.twelveXDeg) : 0) + degToRad(offsetDeg)
   return midnightZero + CLOCKWISE_SIGN * clockwiseTurns * Math.PI * 2
 }
 
-/** 0–23 (or h24’s 24) → 0–11 analog hours. Never +1, never `|| 12`. */
+/** 0–23 (or h24’s 24) → 0–11 analog hours. 23 → 11, never 23h on a 12-hour dial. */
 export function analogHour12(hour24: number): number {
   const hour = hour24 === 24 ? 0 : hour24
-  return ((hour % 24) + 24) % 24 % 12
+  return ((hour % 12) + 12) % 12
 }
 
 /**
  * Local-X radians from printed 12 o'clock, clockwise, continuous hour/minute.
- * 00:00 calibration is zero; wall-clock turns are added on top.
- * Uses 0–23 civil parts only — do not subtract the GLB bind pose (12:10).
+ * Hour: `(hours % 12 + minutes/60 + seconds/3600) * 30°`.
+ * Minute: `(minutes + seconds/60) * 6°`. Second: `seconds * 6°`.
+ * Same CLOCKWISE_SIGN on all three. 00:00 calibration is zero.
+ * Minutes do not add `twelveXDeg`. Seconds use `secondOffsetDeg` as rest only.
  */
 export function analogHandRadians(time: BerlinCivilTime): AnalogHandRadians {
   const wallSecond = time.second + time.millisecond / 1000
   const wallMinute = time.minute + wallSecond / 60
-  const hour12 = analogHour12(time.hour)
-  const wallHour = hour12 + wallMinute / 60
+  const wallHour = analogHour12(time.hour) + wallMinute / 60
   return {
-    hour: handXFromTwelve(wallHour / 12, handCalibration.hourOffsetDeg),
-    minute: handXFromTwelve(wallMinute / 60, handCalibration.minuteOffsetDeg),
-    second: handXFromTwelve(wallSecond / 60, handCalibration.secondOffsetDeg),
+    hour: handXFromTwelve(wallHour / 12, handCalibration.hourOffsetDeg, true),
+    minute: handXFromTwelve(wallMinute / 60, handCalibration.minuteOffsetDeg, false),
+    second: handXFromTwelve(wallSecond / 60, handCalibration.secondOffsetDeg, true),
   }
 }
 

@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v14'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v13'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v19'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v18'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -26,12 +26,16 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v10',
   'iom-precision-object-look-v11',
   'iom-precision-object-look-v12',
+  'iom-precision-object-look-v13',
+  'iom-precision-object-look-v14',
+  'iom-precision-object-look-v15',
+  'iom-precision-object-look-v17',
   LOOK_STORAGE_PREV,
 ]
 
 export type HandLook = HandCalibration
 
-export type TextureSetId = 'none' | 'metal049a' | 'custom'
+export type TextureSetId = 'none' | 'metal049a' | 'gold' | 'custom'
 
 export type TextureTargetLook = {
   enabled: boolean
@@ -56,8 +60,20 @@ export type MaterialLook = {
   roughness: number
   envMapIntensity: number
   color: string
+  /** Plate brightness scale. 1 = tint as-picked. Only used on `black`. */
+  lightness?: number
   transmission?: number
   ior?: number
+}
+
+export const MATERIAL_LIGHTNESS_MIN = 0
+export const MATERIAL_LIGHTNESS_MAX = 2
+export const DEFAULT_MATERIAL_LIGHTNESS = 1
+
+export function clampMaterialLightness(value: unknown, fallback = DEFAULT_MATERIAL_LIGHTNESS): number {
+  const n = Number(value)
+  if (!Number.isFinite(n)) return fallback
+  return Math.min(MATERIAL_LIGHTNESS_MAX, Math.max(MATERIAL_LIGHTNESS_MIN, n))
 }
 
 export type ShadowLook = {
@@ -173,6 +189,7 @@ export type SavedLook = {
   hdrId: HdrId
   stand: TextureTargetLook
   watch: TextureTargetLook
+  dial: TextureTargetLook
   sun: { yaw: number; pitch: number }
   shadows: ShadowLook
   lights: AccentLightLook
@@ -361,11 +378,13 @@ export function mergeNamedViews(...sources: Array<NamedViews | undefined>): Name
 export const TEXTURE_SETS: { id: TextureSetId; label: string; urls?: PbrMapUrls }[] = [
   { id: 'none', label: 'None' },
   { id: 'metal049a', label: 'Metal 049A', urls: PRODUCT.pbrMaps },
+  { id: 'gold', label: 'Gold (Metal 048A)', urls: PRODUCT.goldPbrMaps },
   { id: 'custom', label: 'Custom maps' },
 ]
 
 /** Stand keeps Metal049A OpenGL normals. Watch metal049a swaps in Metal060A (DX). */
-export function textureSetUrls(setId: TextureSetId, target: 'stand' | 'watch'): PbrMapUrls | undefined {
+export function textureSetUrls(setId: TextureSetId, target: 'stand' | 'watch' | 'dial'): PbrMapUrls | undefined {
+  if (setId === 'gold') return PRODUCT.goldPbrMaps
   if (setId !== 'metal049a') return undefined
   return target === 'watch' ? PRODUCT.watchPbrMaps : PRODUCT.pbrMaps
 }
@@ -387,12 +406,12 @@ export const MATERIAL_GROUPS: {
 /** Canonical startup look — Look studio hydrates from this unless the user Saves after this bake. */
 export const DEFAULT_LOOK: SavedLook = {
   version: 1,
-  savedAt: '2026-08-19T05:57:24.708Z',
+  savedAt: '2026-08-19T21:36:56.609Z',
   stand: {
     enabled: true,
     setId: 'metal049a',
     customFiles: null,
-    repeat: 2.15,
+    repeat: 2.25,
     normalScale: 1.05,
     displacementScale: 0.02,
     useAlbedo: true,
@@ -406,34 +425,43 @@ export const DEFAULT_LOOK: SavedLook = {
     displacementScale: 0,
     useAlbedo: true,
   },
+  dial: {
+    enabled: true,
+    setId: 'gold',
+    customFiles: null,
+    repeat: 1.05,
+    normalScale: 0.85,
+    displacementScale: 0,
+    useAlbedo: true,
+  },
   hdrId: 'evening027',
   sun: {
-    yaw: 3.97,
+    yaw: 5.88,
     pitch: 0,
   },
   shadows: {
     enabled: true,
     contact: false,
-    intensity: 0.94,
-    softness: 0.54,
+    intensity: 0.92,
+    softness: 0.56,
   },
   lights: {
     enabled: true,
     fill: 1.5,
-    rim: 0,
+    rim: 1.5,
     accent: {
       enabled: true,
       intensity: 1.8,
-      yaw: 2.19,
-      pitch: 0.06,
+      yaw: 5.51,
+      pitch: -0.52,
     },
   },
   materials: [
     { id: 'metal', label: 'Metal', metalness: 1, roughness: 0, envMapIntensity: 3, color: '#cdcdcd' },
-    { id: 'metalDark', label: 'Dark metal', metalness: 0.79, roughness: 0.19, envMapIntensity: 3, color: '#717171' },
-    { id: 'metalRough', label: 'Rough metal', metalness: 1, roughness: 0.33, envMapIntensity: 3, color: '#ffffff' },
-    { id: 'dial', label: 'Dial', metalness: 0.08, roughness: 0.25, envMapIntensity: 2.6, color: '#f5cc00' },
-    { id: 'black', label: 'Black', metalness: 0.3, roughness: 0.0023765903573227947, envMapIntensity: 1.54, color: '#000000' },
+    { id: 'metalDark', label: 'Dark metal', metalness: 1, roughness: 0.14, envMapIntensity: 3, color: '#c1a571' },
+    { id: 'metalRough', label: 'Rough metal', metalness: 1, roughness: 0.15, envMapIntensity: 3, color: '#ffffff' },
+    { id: 'dial', label: 'Dial', metalness: 1, roughness: 0.85, envMapIntensity: 3, color: '#c1a571' },
+    { id: 'black', label: 'Black', metalness: 1, roughness: 0.15, envMapIntensity: 1.62, color: '#c1a571', lightness: 1 },
     { id: 'glass', label: 'Glass', metalness: 0, roughness: 0, envMapIntensity: 3, color: '#8f8f8f', transmission: 0.94, ior: 1 },
   ],
   hotspots: [
@@ -442,10 +470,10 @@ export const DEFAULT_LOOK: SavedLook = {
     { id: 'interface', position: [-0.894, -0.325, 0.381] },
     { id: 'geometry', position: [-0.009, -0.188, 0.927] },
   ],
-  notes: 'Watch metal normal: Metal060A DirectX (normalScale.y flip). Stand stays Metal049A.',
+  notes: 'Watch metal normal: Metal060A DirectX (normalScale.y flip). Dial: Metal048A gold PBR. Stand stays Metal049A.',
   camera: {
-    position: [-1.867, 0.619, 2.231],
-    target: [-0.028, 0.428, -0.373],
+    position: [-1.658, 0.525, 1.639],
+    target: [-0.068, 0.433, -0.019],
     fov: 30,
   },
   scrollCamera: {
@@ -476,15 +504,28 @@ export const DEFAULT_LOOK: SavedLook = {
     },
   },
   hands: {
-    twelveXDeg: -20.4,
-    hourOffsetDeg: -34,
+    twelveXDeg: 0,
+    hourOffsetDeg: 0,
     minuteOffsetDeg: 0,
-    secondOffsetDeg: 144.6,
+    secondOffsetDeg: 0,
+  },
+  model: {
+    position: [-0.173, 0.493, 0.364],
+    // 180° about the dial face-normal (hour-bone local X), Euler XYZ.
+    // Not yaw (case back) and not a principal local-Z roll onto the floor.
+    rotation: [0.078, -1.028, -3.097],
   },
 }
 
 function cloneLook(look: SavedLook): SavedLook {
   return JSON.parse(JSON.stringify(look)) as SavedLook
+}
+
+/** Keep a stored black plate; fill missing lightness from bake (default 1). */
+export function mergeBlackLightness(materials: MaterialLook[], fallback = DEFAULT_MATERIAL_LIGHTNESS): MaterialLook[] {
+  return materials.map((item) =>
+    item.id === 'black' ? { ...item, lightness: clampMaterialLightness(item.lightness, fallback) } : item,
+  )
 }
 
 export function defaultLook(): SavedLook {
@@ -504,6 +545,7 @@ export function defaultLook(): SavedLook {
   look.views = parseNamedViews(look.views)
   look.model = parseModelLook(look.model)
   look.hands = parseHandsLook(look.hands) ?? { ...DEFAULT_HAND_CALIBRATION }
+  look.materials = mergeBlackLightness(look.materials)
   return look
 }
 
@@ -522,6 +564,7 @@ export function loadStoredLook(): SavedLook | null {
       ...parsed,
       stand: { ...base.stand, ...parsed.stand },
       watch: { ...base.watch, ...parsed.watch },
+      dial: { ...base.dial, ...parsed.dial },
       sun: {
         yaw: parsed.sun?.yaw ?? base.sun.yaw,
         pitch: clampSunPitch(parsed.sun?.pitch ?? base.sun.pitch),
@@ -540,12 +583,18 @@ export function loadStoredLook(): SavedLook | null {
       camera: parseCameraLook((parsed as SavedLook).camera) ?? base.camera,
       scrollCamera: parseCameraLook((parsed as SavedLook).scrollCamera) ?? base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
-      model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
+      model: fromCurrent
+        ? parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model)
+        : parseModelLook(base.model),
       hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots),
       hands: fromCurrent
         ? parseHandsLook((parsed as SavedLook).hands) ?? base.hands
         : base.hands,
     }
+    merged.materials = mergeBlackLightness(
+      merged.materials?.length ? merged.materials : base.materials,
+      base.materials.find((item) => item.id === 'black')?.lightness ?? DEFAULT_MATERIAL_LIGHTNESS,
+    )
     if (!localStorage.getItem(LOOK_STORAGE_KEY)) persistLook(merged)
     return merged
   } catch {
@@ -589,6 +638,7 @@ export function classifyTextureFiles(files: File[]): {
 export const customMapCache: {
   stand?: Partial<PbrMapUrls>
   watch?: Partial<PbrMapUrls>
+  dial?: Partial<PbrMapUrls>
 } = {}
 
 export function materialGroupId(matName: string): string | null {

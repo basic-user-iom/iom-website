@@ -8,7 +8,11 @@ import {
   TEXTURE_SETS,
   classifyTextureFiles,
   customMapCache,
+  clampMaterialLightness,
   DEFAULT_HAND_CALIBRATION,
+  DEFAULT_MATERIAL_LIGHTNESS,
+  MATERIAL_LIGHTNESS_MAX,
+  MATERIAL_LIGHTNESS_MIN,
   formatInitialCameraJson,
   formatScrollCameraJson,
   formatHotspotCameraJson,
@@ -187,7 +191,7 @@ function TextureBlock({
   onChange,
 }: {
   title: string
-  target: 'stand' | 'watch'
+  target: 'stand' | 'watch' | 'dial'
   value: TextureTargetLook
   onChange: (next: TextureTargetLook) => void
 }) {
@@ -583,9 +587,8 @@ export function LookPanel({
         </header>
         <p className="pov-studio__hint">
           Hold hands freezes live ticking and zone-sweep so you can line up against a real clock.
-          12 o'clock is the midnight pose (replaces the old ±90°). Offsets are the rest of that
-          00:00 alignment; live Berlin time adds from there. Type a signed degree, or use the
-          −180°…+180° slider / ±5° nudge. Set Zone to Berlin, then Copy.
+          After the dial flip, bind rest is printed 12 — offsets start at 0. Minutes use Minute
+          offset only (do not add 12 o'clock again). Live zone time adds from there.
         </p>
         <DegSlider
           label="12 o'clock"
@@ -705,6 +708,12 @@ export function LookPanel({
         target="watch"
         value={look.watch}
         onChange={(watch) => onChange({ ...look, watch })}
+      />
+      <TextureBlock
+        title="Dial"
+        target="dial"
+        value={look.dial}
+        onChange={(dial) => onChange({ ...look, dial })}
       />
 
       <section className="pov-studio__block">
@@ -900,11 +909,12 @@ export function LookPanel({
         ) : (
           look.materials.map((mat) => {
             const glass = MATERIAL_GROUPS.find((g) => g.id === mat.id)?.glass
+            const blackPlate = mat.id === 'black'
             return (
               <div key={mat.id} className="pov-studio__mat">
                 <p>{mat.label}</p>
                 <label className="pov-studio__row">
-                  <span>Color</span>
+                  <span>{blackPlate ? 'Tint' : 'Color'}</span>
                   <input
                     type="color"
                     value={mat.color}
@@ -918,6 +928,31 @@ export function LookPanel({
                     }
                   />
                 </label>
+                {blackPlate ? (
+                  <>
+                    <SliderRow
+                      label="Lightness"
+                      min={MATERIAL_LIGHTNESS_MIN}
+                      max={MATERIAL_LIGHTNESS_MAX}
+                      step={0.01}
+                      value={mat.lightness ?? DEFAULT_MATERIAL_LIGHTNESS}
+                      onChange={(lightness) =>
+                        onChange({
+                          ...look,
+                          materials: look.materials.map((item) =>
+                            item.id === mat.id
+                              ? { ...item, lightness: clampMaterialLightness(lightness) }
+                              : item,
+                          ),
+                        })
+                      }
+                    />
+                    <p className="pov-studio__hint">
+                      Tint is the plate hex. Lightness scales it live — 1 is as-picked; above 1 lifts
+                      pure black without changing the hex.
+                    </p>
+                  </>
+                ) : null}
                 <SliderRow
                   label="Metalness"
                   min={0}

@@ -29,6 +29,14 @@ export const PRODUCT = {
     metalness: '/textures/metal049a/Metalness.jpg',
     normal: '/textures/metal060a/NormalDX.jpg',
   },
+  /** AmbientCG Metal048A — gold dial PBR (DirectX normal, green inverted on load). */
+  goldPbrMaps: {
+    color: '/textures/gold/Color.jpg',
+    roughness: '/textures/gold/Roughness.jpg',
+    metalness: '/textures/gold/Metalness.jpg',
+    normal: '/textures/gold/NormalDX.jpg',
+    displacement: '/textures/gold/Displacement.jpg',
+  },
   modelTitle: 'Precision object study',
   eyebrow: 'Interactive product study',
   heroTitle: 'Precision, seen from every angle.',

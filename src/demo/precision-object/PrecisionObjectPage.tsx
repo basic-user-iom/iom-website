@@ -406,6 +406,7 @@ function PrecisionObjectUnlockedPage() {
       ...prev,
       stand: { ...prev.stand, enabled: true },
       watch: { ...prev.watch, enabled: true },
+      dial: { ...prev.dial, enabled: true },
     }))
     api?.setInteractionEnabled(false)
     api?.setPlaceHotspots(false)
@@ -573,7 +574,7 @@ function PrecisionObjectUnlockedPage() {
               autoRotate={autoRotate}
               lighting={lighting}
               motion={motion}
-              pbr={look.stand.enabled || look.watch.enabled}
+              pbr={look.stand.enabled || look.watch.enabled || look.dial.enabled}
               lookOpen={lookOpen}
               exploded={exploded}
               hasMotion={Boolean(caps?.hasMotion)}
@@ -596,6 +597,7 @@ function PrecisionObjectUnlockedPage() {
                   ...prev,
                   stand: { ...prev.stand, enabled: value },
                   watch: { ...prev.watch, enabled: value },
+                  dial: { ...prev.dial, enabled: value },
                 }))
               }}
               onLookOpen={() => setLookOpen((open) => !open)}

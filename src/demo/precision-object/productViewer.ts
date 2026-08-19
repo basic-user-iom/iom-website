@@ -14,6 +14,7 @@ import {
 } from './studioEnvironment'
 import {
   clonePbrMaps,
+  isDialMaterial,
   isWatchMetalMaterial,
   loadPbrMapsPartial,
   type PbrMapSet,
@@ -21,10 +22,12 @@ import {
 } from './pbrTextures'
 import {
   DEFAULT_HDR_ID,
+  DEFAULT_MATERIAL_LIGHTNESS,
   FALLBACK_HDR_ID,
   MATERIAL_GROUPS,
   TEXTURE_SETS,
   clampAccentPitch,
+  clampMaterialLightness,
   clampSunPitch,
   customMapCache,
   defaultLook,
@@ -72,7 +75,10 @@ import {
 
 const HAND_AXIS_X = new THREE.Vector3(1, 0, 0)
 const CROWN_AXIS_FALLBACK = new THREE.Vector3(0, 1, 0)
+/** Pure #000000 cannot multiply brighter, so lightness > 1 lifts toward graphite. */
+const BLACK_PLATE_LIFT = 0.45
 const crownQuatScratch = new THREE.Quaternion()
+const handQuatScratch = new THREE.Quaternion()
 const crownVertexScratch = new THREE.Vector3()
 
 export type ViewerOptions = {
@@ -202,6 +208,31 @@ function createContactShadow(): { mesh: THREE.Mesh; dispose: () => void } {
   }
 }
 
+function colorFromTintLightness(hex: string, lightness?: number): THREE.Color {
+  const color = new THREE.Color(hex)
+  const L = clampMaterialLightness(lightness)
+  if (Math.abs(L - 1) < 1e-6) return color
+
+  const lum = color.r * 0.2126 + color.g * 0.7152 + color.b * 0.0722
+  if (lum < 1 / 255) {
+    color.setScalar(Math.max(0, L - 1) * BLACK_PLATE_LIFT)
+    return color
+  }
+  color.multiplyScalar(L)
+  color.r = Math.min(1, color.r)
+  color.g = Math.min(1, color.g)
+  color.b = Math.min(1, color.b)
+  return color
+}
+
+function applyMaterialTint(mat: THREE.MeshStandardMaterial, spec: MaterialLook): void {
+  if (spec.id === 'black') {
+    mat.color.copy(colorFromTintLightness(spec.color, spec.lightness))
+    return
+  }
+  mat.color.set(spec.color)
+}
+
 function glassLook(): MaterialLook | undefined {
   return defaultLook().materials.find((item) => item.id === 'glass')
 }
@@ -288,6 +319,7 @@ function measureCrownStemAxis(bone: THREE.Object3D, root: THREE.Object3D): THREE
   return centroid.normalize()
 }
 
+/** Detached bind from current world pose. Call after wrapper scale/rotation, with bones at rest. */
 function prepareSkinning(root: THREE.Object3D): void {
   root.updateWorldMatrix(true, true)
   const rebound = new Set<THREE.Skeleton>()
@@ -295,6 +327,7 @@ function prepareSkinning(root: THREE.Object3D): void {
     if (!(obj instanceof THREE.SkinnedMesh) || !obj.skeleton) return
     if (!rebound.has(obj.skeleton)) {
       obj.skeleton.calculateInverses()
+      obj.skeleton.update()
       rebound.add(obj.skeleton)
     }
     obj.bind(obj.skeleton, obj.matrixWorld)
@@ -317,7 +350,7 @@ function polishMaterials(root: THREE.Object3D): void {
         mat.envMapIntensity = 1.15
         continue
       }
-      mat.color.set(spec.color)
+      applyMaterialTint(mat, spec)
       mat.metalness = spec.metalness
       mat.roughness = spec.roughness
       mat.envMapIntensity = spec.envMapIntensity
@@ -596,6 +629,9 @@ export function createProductViewer(
     hour: THREE.Object3D
     minute: THREE.Object3D
     second: THREE.Object3D | null
+    hourRest: THREE.Quaternion
+    minuteRest: THREE.Quaternion
+    secondRest: THREE.Quaternion | null
   }
   type CetCrown = {
     bone: THREE.Object3D
@@ -624,6 +660,7 @@ export function createProductViewer(
   const sourceCache = new Map<string, PbrMapSet>()
   let floorPbrMaps: PbrMapSet | null = null
   let watchPbrMaps: PbrMapSet | null = null
+  let dialPbrMaps: PbrMapSet | null = null
   let watchPbrReady = false
   const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
   const floorRest = {
@@ -678,6 +715,7 @@ export function createProductViewer(
     }
     endInteract()
     onModelChange?.(captureLiveModel())
+    rebindSkinnedMeshes()
   })
   transformControls.addEventListener('axis-changed', () => {
     if (!gizmoDragging) syncOrbitEnabled()
@@ -958,11 +996,13 @@ export function createProductViewer(
     if (spec) {
       modelRoot.position.set(spec.position[0], spec.position[1], spec.position[2])
       modelRoot.rotation.set(spec.rotation[0], spec.rotation[1], spec.rotation[2], 'XYZ')
+      rebindSkinnedMeshes()
       return
     }
     if (!restCaptured) return
     modelRoot.position.copy(restPosition)
     modelRoot.rotation.copy(restRotation)
+    rebindSkinnedMeshes()
   }
 
   const projectHotspots = () => {
@@ -1190,9 +1230,14 @@ export function createProductViewer(
   const applyHandAngles = (angles: AnalogHandRadians) => {
     if (!cetHands) return
     lastHandAngles = angles
-    cetHands.hour.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.hour)
-    cetHands.minute.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.minute)
-    cetHands.second?.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.second)
+    handQuatScratch.setFromAxisAngle(HAND_AXIS_X, angles.hour)
+    cetHands.hour.quaternion.copy(cetHands.hourRest).multiply(handQuatScratch)
+    handQuatScratch.setFromAxisAngle(HAND_AXIS_X, angles.minute)
+    cetHands.minute.quaternion.copy(cetHands.minuteRest).multiply(handQuatScratch)
+    if (cetHands.second && cetHands.secondRest) {
+      handQuatScratch.setFromAxisAngle(HAND_AXIS_X, angles.second)
+      cetHands.second.quaternion.copy(cetHands.secondRest).multiply(handQuatScratch)
+    }
   }
 
   const applyCrownAngle = (angle: number) => {
@@ -1221,6 +1266,18 @@ export function createProductViewer(
       return
     }
     applyCetClock()
+  }
+
+  /** Bind after wrapper pose so hand bones stay on the spindle. Reset rest first so inverses are not the live CET pose. */
+  function rebindSkinnedMeshes() {
+    if (cetHands) {
+      cetHands.hour.quaternion.copy(cetHands.hourRest)
+      cetHands.minute.quaternion.copy(cetHands.minuteRest)
+      if (cetHands.second && cetHands.secondRest) cetHands.second.quaternion.copy(cetHands.secondRest)
+    }
+    if (cetCrown) cetCrown.bone.quaternion.copy(cetCrown.rest)
+    prepareSkinning(modelRoot)
+    if (cetHands && !handTween && (handsFrozen || motionWanted)) applyDisplayedHands()
   }
 
   const applyHandsFreeze = (value: boolean) => {
@@ -1370,6 +1427,7 @@ export function createProductViewer(
         roughness: first.mat.roughness,
         envMapIntensity: first.mat.envMapIntensity,
         color: `#${first.mat.color.getHexString()}`,
+        lightness: group.id === 'black' ? DEFAULT_MATERIAL_LIGHTNESS : undefined,
         transmission: group.glass ? first.transmission || 0.86 : undefined,
         ior: group.glass ? first.ior : undefined,
       })
@@ -1496,7 +1554,7 @@ export function createProductViewer(
       if (!rest.groupId) continue
       const spec = currentLook.materials.find((item) => item.id === rest.groupId)
       if (!spec) continue
-      rest.mat.color.set(spec.color)
+      applyMaterialTint(rest.mat, spec)
       rest.mat.metalness = spec.metalness
       rest.mat.roughness = spec.roughness
       rest.mat.roughnessMap = null
@@ -1510,6 +1568,38 @@ export function createProductViewer(
     }
   }
 
+  const applyDialPbr = () => {
+    if (!watchPbrReady) return
+    const spec = currentLook.dial
+    const on = spec.enabled && spec.setId !== 'none' && Boolean(dialPbrMaps)
+    for (const rest of watchMatRest) {
+      if (!isDialMaterial(rest.mat, rest.meshName)) continue
+      if (on && dialPbrMaps) {
+        rest.mat.map = spec.useAlbedo ? dialPbrMaps.color : null
+        rest.mat.roughnessMap = dialPbrMaps.roughness
+        rest.mat.metalnessMap = dialPbrMaps.metalness
+        const nrm = dialPbrMaps.normal
+        const img = nrm.image as { width?: number; height?: number } | undefined
+        if (img && img.width && img.height) {
+          rest.mat.normalMap = nrm
+          rest.mat.normalMapType = THREE.TangentSpaceNormalMap
+          const flipY = nrm.userData.directX === true ? -1 : 1
+          rest.mat.normalScale.set(spec.normalScale, spec.normalScale * flipY)
+        } else {
+          rest.mat.normalMap = null
+          rest.mat.normalScale.set(1, 1)
+        }
+      } else {
+        rest.mat.map = null
+        rest.mat.roughnessMap = null
+        rest.mat.metalnessMap = null
+        rest.mat.normalMap = null
+        rest.mat.normalScale.copy(rest.normalScale)
+      }
+      rest.mat.needsUpdate = true
+    }
+  }
+
   const applyHotspotOverrides = () => {
     for (const spec of currentLook.hotspots) {
       const marker = hotspotAnchors.get(spec.id)
@@ -1518,13 +1608,13 @@ export function createProductViewer(
     }
   }
 
-  const textureUrlsFor = (spec: TextureTargetLook, target: 'stand' | 'watch'): PbrMapUrls | Partial<PbrMapUrls> | null => {
+  const textureUrlsFor = (spec: TextureTargetLook, target: 'stand' | 'watch' | 'dial'): PbrMapUrls | Partial<PbrMapUrls> | null => {
     if (!spec.enabled || spec.setId === 'none') return null
     if (spec.setId === 'custom') return customMapCache[target] ?? null
     return textureSetUrls(spec.setId, target) ?? TEXTURE_SETS.find((set) => set.id === spec.setId)?.urls ?? PRODUCT.pbrMaps
   }
 
-  const mapsForTarget = async (spec: TextureTargetLook, target: 'stand' | 'watch') => {
+  const mapsForTarget = async (spec: TextureTargetLook, target: 'stand' | 'watch' | 'dial') => {
     const urls = textureUrlsFor(spec, target)
     if (!urls) return null
     const key = spec.setId === 'custom'
@@ -1538,7 +1628,7 @@ export function createProductViewer(
     return clonePbrMaps(source, spec.repeat, anisotropy)
   }
 
-  const mapsKey = (spec: TextureTargetLook, target: 'stand' | 'watch') => {
+  const mapsKey = (spec: TextureTargetLook, target: 'stand' | 'watch' | 'dial') => {
     const urls = textureUrlsFor(spec, target)
     const normalUrl = urls && 'normal' in urls ? urls.normal ?? '' : ''
     return `${target}:${spec.enabled}:${spec.setId}:${spec.repeat}:${spec.customFiles?.color ?? ''}:${spec.customFiles?.normal ?? ''}:${normalUrl}`
@@ -1573,7 +1663,7 @@ export function createProductViewer(
     void applyHdrId(currentLook.hdrId)
     applyShadows()
     applyAccentLights()
-    const nextKey = `${mapsKey(look.stand, 'stand')}|${mapsKey(look.watch, 'watch')}`
+    const nextKey = `${mapsKey(look.stand, 'stand')}|${mapsKey(look.watch, 'watch')}|${mapsKey(look.dial, 'dial')}`
     if (nextKey !== lastMapKey) {
       lastMapKey = nextKey
       try {
@@ -1591,6 +1681,13 @@ export function createProductViewer(
           watchPbrMaps?.dispose()
           watchPbrMaps = null
         }
+        if (look.dial.enabled && look.dial.setId !== 'none') {
+          dialPbrMaps?.dispose()
+          dialPbrMaps = await mapsForTarget(look.dial, 'dial')
+        } else {
+          dialPbrMaps?.dispose()
+          dialPbrMaps = null
+        }
       } catch (err) {
         console.warn('[precision-object] look maps failed', err)
       }
@@ -1599,6 +1696,7 @@ export function createProductViewer(
     applyFloorPbr()
     applyWatchPbr()
     applyMaterials()
+    applyDialPbr()
     applyModelTransform(currentLook.model)
     applyHotspotOverrides()
     sizeGround()
@@ -1648,7 +1746,14 @@ export function createProductViewer(
     const secondBone = pickBone(WATCH_HAND_BONES.second)
     const crownBone = pickBone(WATCH_CROWN_BONES)
     if (hourBone && minuteBone) {
-      cetHands = { hour: hourBone, minute: minuteBone, second: secondBone }
+      cetHands = {
+        hour: hourBone,
+        minute: minuteBone,
+        second: secondBone,
+        hourRest: hourBone.quaternion.clone(),
+        minuteRest: minuteBone.quaternion.clone(),
+        secondRest: secondBone?.quaternion.clone() ?? null,
+      }
     }
     if (crownBone) {
       cetCrown = {
@@ -1834,6 +1939,7 @@ export function createProductViewer(
         ...currentLook,
         stand: { ...currentLook.stand, enabled: value },
         watch: { ...currentLook.watch, enabled: value },
+        dial: { ...currentLook.dial, enabled: value },
       }
       void applyLook(currentLook)
     },
@@ -1998,6 +2104,7 @@ export function createProductViewer(
     if (!usingCachedHdr) studioEnv.dispose()
     floorPbrMaps?.dispose()
     watchPbrMaps?.dispose()
+    dialPbrMaps?.dispose()
     for (const set of sourceCache.values()) set.dispose()
     sourceCache.clear()
     modelRoot.traverse((obj) => {
