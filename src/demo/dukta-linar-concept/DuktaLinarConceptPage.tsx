@@ -9,7 +9,7 @@ import {
   resolveLinarTech,
   suggestedIncisionLengthMm,
 } from './linarData'
-import type { LinarConfig } from './types'
+import type { LinarConfig, LinarSide, LinarViewId } from './types'
 import { DEFAULT_LINAR_CONFIG, cloneConfig } from './types'
 import './dukta-linar-concept.css'
 
@@ -24,6 +24,9 @@ export function DuktaLinarConceptPage() {
   const [targetBend, setTargetBend] = useState(reducedMotion ? REST_BEND : 0)
   const [config, setConfig] = useState<LinarConfig>(() => cloneConfig(DEFAULT_LINAR_CONFIG))
   const [resetViewToken, setResetViewToken] = useState(0)
+  const [viewPreset, setViewPreset] = useState<LinarViewId>('hero')
+  const [side, setSide] = useState<LinarSide>('front')
+  const [viewToken, setViewToken] = useState(0)
   const [webglFailed, setWebglFailed] = useState(false)
   const sliderRef = useRef<HTMLInputElement>(null)
   const percentRef = useRef<HTMLSpanElement>(null)
@@ -69,8 +72,17 @@ export function DuktaLinarConceptPage() {
       const next = { ...prev, ...patch }
       const geomChanged = GEOM_KEYS.some((key) => patch[key] !== undefined && patch[key] !== prev[key])
       if (geomChanged && patch.incisionLengthMm == null) {
-        const suggested = suggestedIncisionLengthMm({ ...next, pattern: 'regular' })
-        if (suggested != null) next.incisionLengthMm = suggested
+        // Follow another validated sample only when the current incision was
+        // already following its sample. A manually chosen/reference opening
+        // (including the supplied 40 mm visual cell) must not jump to a new
+        // length merely because material, thickness, cut, or slat width changed.
+        const previousSuggested = suggestedIncisionLengthMm({ ...prev, pattern: 'regular' })
+        const followsPreviousSample =
+          previousSuggested != null && prev.incisionLengthMm === previousSuggested
+        if (followsPreviousSample) {
+          const suggested = suggestedIncisionLengthMm({ ...next, pattern: 'regular' })
+          if (suggested != null) next.incisionLengthMm = suggested
+        }
       }
       return next
     })
@@ -114,6 +126,9 @@ export function DuktaLinarConceptPage() {
                 config={config}
                 tech={tech}
                 resetViewToken={resetViewToken}
+                viewPreset={viewPreset}
+                side={side}
+                viewToken={viewToken}
                 interactedRef={interactedRef}
                 reducedMotion={reducedMotion}
                 onUnavailable={() => setWebglFailed(true)}
@@ -144,8 +159,30 @@ export function DuktaLinarConceptPage() {
               percentRef={percentRef}
               onBendInput={onBendInput}
               onConfig={onConfig}
-              onResetView={() => setResetViewToken((n) => n + 1)}
-              onResetPanel={onResetPanel}
+              onResetView={() => {
+                setSide('front')
+                setViewPreset('hero')
+                setResetViewToken((n) => n + 1)
+              }}
+              onResetPanel={() => {
+                setSide('front')
+                setViewPreset('hero')
+                setViewToken((n) => n + 1)
+                onResetPanel()
+              }}
+              viewPreset={viewPreset}
+              onViewPreset={(id) => {
+                if (id === 'hero') setSide('front')
+                if (id === 'reverse') setSide('back')
+                setViewPreset(id)
+                setViewToken((n) => n + 1)
+              }}
+              side={side}
+              onSideChange={(next) => {
+                setSide(next)
+                setViewPreset(next === 'back' ? 'reverse' : 'hero')
+                setViewToken((n) => n + 1)
+              }}
             />
 
             <LinarProductInfo config={config} tech={tech} />

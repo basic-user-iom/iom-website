@@ -43,10 +43,37 @@ export const LINAR_BACKINGS: { id: LinarBacking; label: string }[] = [
   { id: 'felt', label: 'Felt' },
 ]
 
+export type LinarViewId = 'hero' | 'closeup' | 'side' | 'reverse' | 'bent'
+export type LinarSide = 'front' | 'back'
+
+export const LINAR_SIDES: { id: LinarSide; label: string }[] = [
+  { id: 'front', label: 'Front side' },
+  { id: 'back', label: 'Back side' },
+]
+
+export const LINAR_VIEWS: { id: LinarViewId; label: string }[] = [
+  { id: 'hero', label: 'Front view' },
+  { id: 'closeup', label: 'Close-up' },
+  { id: 'side', label: 'Side' },
+  { id: 'reverse', label: 'Back view' },
+  { id: 'bent', label: 'Radius' },
+]
+
+/** Confirmed visual reference cell from the supplied LINAR pattern drawings. */
+export const LINAR_REFERENCE_BRIDGE_LENGTH_MM = 60
+export const LINAR_REFERENCE_OPENING_LENGTH_MM = 40
+
+/**
+ * Birch plywood 9 mm 4/4 visual calibration panel.
+ *
+ * The 40 mm opening and 60 mm bridge reproduce the supplied reference cell,
+ * but this exact combination is not in the physical-sample table and must
+ * therefore remain visibly marked as Not tested.
+ */
 export const DEFAULT_LINAR_CONFIG: LinarConfig = {
-  material: 'mdf',
-  thicknessMm: 10,
-  incisionLengthMm: 66,
+  material: 'plywood',
+  thicknessMm: 9,
+  incisionLengthMm: LINAR_REFERENCE_OPENING_LENGTH_MM,
   cutWidthMm: 4,
   slatWidthMm: 4,
   incisedTwelfths: 12,

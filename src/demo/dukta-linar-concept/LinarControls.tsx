@@ -4,11 +4,15 @@ import {
   LINAR_APPLICATIONS,
   LINAR_BACKINGS,
   LINAR_MATERIALS,
+  LINAR_SIDES,
+  LINAR_VIEWS,
   type LinarApplication,
   type LinarBacking,
   type LinarConfig,
   type LinarMaterialId,
   type LinarPattern,
+  type LinarSide,
+  type LinarViewId,
 } from './types'
 
 type Props = {
@@ -22,6 +26,10 @@ type Props = {
   onConfig: (patch: Partial<LinarConfig>) => void
   onResetView: () => void
   onResetPanel: () => void
+  viewPreset: LinarViewId
+  onViewPreset: (id: LinarViewId) => void
+  side: LinarSide
+  onSideChange: (side: LinarSide) => void
 }
 
 function RangeRow({
@@ -119,13 +127,19 @@ export function LinarControls({
   onConfig,
   onResetView,
   onResetPanel,
+  viewPreset,
+  onViewPreset,
+  side,
+  onSideChange,
 }: Props) {
   const radiusText =
-    previewRadiusMm == null ? 'Nearly flat' : `${Math.round(previewRadiusMm)} mm preview radius`
+    previewRadiusMm == null
+      ? 'Nearly flat'
+      : `${Math.round(previewRadiusMm)} mm preview arc radius`
   const referenceText =
     tech.referenceMinimumRadiusMm == null
-      ? 'No validated radius for this combination'
-      : `100% aims toward ${tech.referenceMinimumRadiusMm} mm sample radius`
+      ? '100% uses a visual-only bend profile. No validated minimum radius for this combination.'
+      : `100% wraps a π × R strip toward the ${tech.referenceMinimumRadiusMm} mm sample radius`
 
   return (
     <div className="linar-controls">
@@ -252,8 +266,8 @@ export function LinarControls({
               </span>
             </div>
             <p className="linar-instruction">
-              0% is nearly flat. 100% bends toward the selected reference radius when a physical
-              sample exists.
+              0% is flat. 100% forms a half-circle only across the incised width π × R when a
+              physical sample exists.
             </p>
             <input
               ref={sliderRef}
@@ -283,6 +297,20 @@ export function LinarControls({
           View
         </p>
         <p className="linar-instruction">Drag to rotate. Scroll or pinch to zoom.</p>
+        <ChipGroup
+          labelId="linar-side-label"
+          label="Surface side"
+          items={LINAR_SIDES}
+          value={side}
+          onChange={onSideChange}
+        />
+        <ChipGroup
+          labelId="linar-view-preset-label"
+          label="Inspection"
+          items={LINAR_VIEWS}
+          value={viewPreset}
+          onChange={onViewPreset}
+        />
         <div className="linar-actions" role="group" aria-labelledby="linar-view-label">
           <button type="button" className="linar-text-btn" onClick={onResetView}>
             Reset view

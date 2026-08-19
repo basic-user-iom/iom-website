@@ -1,6 +1,5 @@
 import {
   CanvasTexture,
-  Color,
   MeshStandardMaterial,
   RepeatWrapping,
   SRGBColorSpace,
@@ -9,38 +8,50 @@ import {
 import type { LinarMaterialId } from './types'
 
 type MaterialLook = {
-  color: string
+  face: string
+  reverse: string
+  cut: string
+  end: string
   roughness: number
-  edgeColor: string
-  edgeStrength: number
+  cutRoughness: number
   grain: 'fine' | 'linear' | 'open'
   grainContrast: number
+  plyLayers: number
 }
 
 const LOOKS: Record<LinarMaterialId, MaterialLook> = {
   mdf: {
-    color: '#c9a882',
-    roughness: 0.84,
-    edgeColor: '#b08968',
-    edgeStrength: 0.2,
+    face: '#d7c4a6',
+    reverse: '#cbb89c',
+    cut: '#b39472',
+    end: '#c4ad8c',
+    roughness: 0.9,
+    cutRoughness: 0.96,
     grain: 'fine',
-    grainContrast: 0.04,
+    grainContrast: 0.035,
+    plyLayers: 0,
   },
   plywood: {
-    color: '#e2d3b6',
-    roughness: 0.6,
-    edgeColor: '#d0b48a',
-    edgeStrength: 0.86,
+    face: '#ead9bc',
+    reverse: '#e0d0b2',
+    cut: '#d0ad78',
+    end: '#ddc198',
+    roughness: 0.68,
+    cutRoughness: 0.86,
     grain: 'linear',
-    grainContrast: 0.12,
+    grainContrast: 0.045,
+    plyLayers: 7,
   },
   'three-layer-spruce': {
-    color: '#d2ab7a',
-    roughness: 0.68,
-    edgeColor: '#b88858',
-    edgeStrength: 0.55,
+    face: '#dfbd8c',
+    reverse: '#d2af7d',
+    cut: '#c69561',
+    end: '#d2a774',
+    roughness: 0.72,
+    cutRoughness: 0.84,
     grain: 'open',
-    grainContrast: 0.15,
+    grainContrast: 0.09,
+    plyLayers: 3,
   },
 }
 
@@ -49,48 +60,71 @@ function hash(n: number): number {
   return x - Math.floor(x)
 }
 
-function paintGrain(look: MaterialLook): HTMLCanvasElement {
+function paintFace(look: MaterialLook, baseColor: string): HTMLCanvasElement {
   const size = look.grain === 'fine' ? 256 : 512
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
   const ctx = canvas.getContext('2d')
   if (!ctx) return canvas
-
-  ctx.fillStyle = look.color
+  ctx.fillStyle = baseColor
   ctx.fillRect(0, 0, size, size)
-
   const image = ctx.getImageData(0, 0, size, size)
   const data = image.data
   const contrast = look.grainContrast
-
   for (let y = 0; y < size; y++) {
     const rowJitter = hash(y * 0.37) * 2 - 1
     for (let x = 0; x < size; x++) {
       const i = (y * size + x) * 4
       let n = 0
       if (look.grain === 'fine') {
-        n = (hash(x * 0.9 + y * 1.7) - 0.5) * contrast
+        n = (hash(x * 1.1 + y * 1.4) - 0.5) * contrast
       } else if (look.grain === 'linear') {
-        const vein = Math.sin((x / size) * Math.PI * 14 + rowJitter * 0.8)
-        n = vein * contrast * 0.55 + (hash(x * 0.2 + y * 3.1) - 0.5) * contrast * 0.4
+        // Grain follows the long axis of the slats. Variation is therefore
+        // mostly across x, with subtle longitudinal noise along y.
+        const vein = Math.sin((x / size) * Math.PI * 14 + rowJitter * 0.6)
+        n = vein * contrast * 0.5 + (hash(x * 0.22 + y * 2.8) - 0.5) * contrast * 0.38
       } else {
         const vein = Math.sin((x / size) * Math.PI * 9 + y * 0.012 + rowJitter)
-        const pore = hash(x * 0.15 + y * 0.4) > 0.92 ? -0.08 : 0
-        n = vein * contrast * 0.7 + (hash(x * 0.31 + y * 2.4) - 0.5) * contrast * 0.5 + pore
+        const pore = hash(x * 0.18 + y * 0.33) > 0.91 ? -0.07 : 0
+        n = vein * contrast * 0.72 + (hash(x * 0.28 + y * 2.1) - 0.5) * contrast * 0.45 + pore
       }
+      data[i] = Math.max(0, Math.min(255, data[i] + n * 255))
+      data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n * 215))
+      data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n * 175))
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+
+function paintEdge(look: MaterialLook, baseColor: string): HTMLCanvasElement {
+  const canvas = document.createElement('canvas')
+  canvas.width = 64
+  canvas.height = 256
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+  ctx.fillStyle = baseColor
+  ctx.fillRect(0, 0, 64, 256)
+  const image = ctx.getImageData(0, 0, 64, 256)
+  const data = image.data
+  for (let y = 0; y < 256; y++) {
+    for (let x = 0; x < 64; x++) {
+      const i = (y * 64 + x) * 4
+      const fibre = Math.sin(y * 0.17 + hash(x * 2.3) * 4) * 0.012
+      const dust = (hash(x * 0.61 + y * 1.87) - 0.5) * (look.plyLayers > 0 ? 0.045 : 0.075)
+      const n = fibre + dust
       data[i] = Math.max(0, Math.min(255, data[i] + n * 255))
       data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n * 220))
       data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n * 180))
     }
   }
-
   ctx.putImageData(image, 0, 0)
   return canvas
 }
 
-function makeMap(look: MaterialLook): CanvasTexture {
-  const map = new CanvasTexture(paintGrain(look))
+function makeMap(canvas: HTMLCanvasElement): CanvasTexture {
+  const map = new CanvasTexture(canvas)
   map.colorSpace = SRGBColorSpace
   map.wrapS = RepeatWrapping
   map.wrapT = RepeatWrapping
@@ -99,175 +133,195 @@ function makeMap(look: MaterialLook): CanvasTexture {
   return map
 }
 
-type EdgeUniforms = {
-  uEdgeCol: { value: Color }
-  uEdgeStr: { value: number }
-}
-
-function attachEdgeHint(material: MeshStandardMaterial, uniforms: EdgeUniforms): void {
-  material.userData.linarEdge = uniforms
+function attachThicknessLayers(
+  material: MeshStandardMaterial,
+  layers: { value: number },
+  mix: { value: number },
+): void {
   material.onBeforeCompile = (shader) => {
-    shader.uniforms.uEdgeCol = uniforms.uEdgeCol
-    shader.uniforms.uEdgeStr = uniforms.uEdgeStr
+    shader.uniforms.uPlyLayers = layers
+    shader.uniforms.uPlyMix = mix
     shader.vertexShader = `varying vec3 vLinarObjPos;\nvarying vec3 vLinarObjNormal;\n${shader.vertexShader}`
     shader.vertexShader = shader.vertexShader.replace(
       '#include <beginnormal_vertex>',
-      `#include <beginnormal_vertex>
-       vLinarObjNormal = objectNormal;`,
+      `#include <beginnormal_vertex>\n vLinarObjNormal = objectNormal;`,
     )
     shader.vertexShader = shader.vertexShader.replace(
       '#include <begin_vertex>',
-      `#include <begin_vertex>
-       vLinarObjPos = position;`,
+      `#include <begin_vertex>\n vLinarObjPos = position;`,
     )
-    shader.fragmentShader = `uniform vec3 uEdgeCol;\nuniform float uEdgeStr;\nvarying vec3 vLinarObjPos;\nvarying vec3 vLinarObjNormal;\n${shader.fragmentShader}`
+    shader.fragmentShader = `uniform float uPlyLayers;\nuniform float uPlyMix;\nvarying vec3 vLinarObjPos;\nvarying vec3 vLinarObjNormal;\n${shader.fragmentShader}`
     shader.fragmentShader = shader.fragmentShader.replace(
       '#include <map_fragment>',
       `#include <map_fragment>
-       float edge = smoothstep(0.38, 0.78, abs(normalize(vLinarObjNormal).x));
-       float layer = 0.5 + 0.5 * sin(vLinarObjPos.y * 92.0);
-       vec3 layered = mix(uEdgeCol * 0.78, uEdgeCol * 1.08, layer);
-       diffuseColor.rgb = mix(diffuseColor.rgb, layered, edge * uEdgeStr);`,
+       float count = max(uPlyLayers, 1.0);
+       float layerPhase = fract((vLinarObjPos.z + 0.5) * count);
+       float alternating = 0.5 + 0.5 * sin((vLinarObjPos.z + 0.5) * 6.283185 * count + 0.7);
+       float seamDistance = min(layerPhase, 1.0 - layerPhase);
+       float seam = smoothstep(0.025, 0.11, seamDistance);
+       vec3 ply = diffuseColor.rgb * mix(0.88, 1.06, alternating);
+       ply *= mix(0.9, 1.0, seam);
+       diffuseColor.rgb = mix(diffuseColor.rgb, ply, uPlyMix);`,
     )
   }
-  material.customProgramCacheKey = () => 'linar-edge-v1'
+  material.customProgramCacheKey = () => 'linar-ply-layers-v2'
 }
 
 export type LinarMaterialSet = {
-  slat: MeshStandardMaterial
-  connector: MeshStandardMaterial
-  solid: MeshStandardMaterial
+  face: MeshStandardMaterial
+  reverse: MeshStandardMaterial
+  cut: MeshStandardMaterial
+  end: MeshStandardMaterial
+  backing: MeshStandardMaterial
   apply: (id: LinarMaterialId, immediate?: boolean) => void
   tick: (dt: number) => boolean
   dispose: () => void
 }
 
-function darkenBridge(id: LinarMaterialId, color: Color): void {
-  color.multiplyScalar(id === 'mdf' ? 0.62 : 0.58)
-}
-
 export function createLinarMaterials(): LinarMaterialSet {
-  const maps = new Map<LinarMaterialId, Texture>()
-  const getMap = (id: LinarMaterialId): Texture => {
-    let map = maps.get(id)
+  const faceMaps = new Map<LinarMaterialId, Texture>()
+  const reverseMaps = new Map<LinarMaterialId, Texture>()
+  const edgeMaps = new Map<LinarMaterialId, Texture>()
+  const endMaps = new Map<LinarMaterialId, Texture>()
+  const getFace = (id: LinarMaterialId) => {
+    let map = faceMaps.get(id)
     if (!map) {
-      map = makeMap(LOOKS[id])
-      maps.set(id, map)
+      map = makeMap(paintFace(LOOKS[id], LOOKS[id].face))
+      map.repeat.set(1.1, 4)
+      faceMaps.set(id, map)
+    }
+    return map
+  }
+  const getReverse = (id: LinarMaterialId) => {
+    let map = reverseMaps.get(id)
+    if (!map) {
+      map = makeMap(paintFace(LOOKS[id], LOOKS[id].reverse))
+      map.repeat.set(1.1, 4)
+      map.offset.set(0.19, 0.11)
+      reverseMaps.set(id, map)
+    }
+    return map
+  }
+  const getEdge = (id: LinarMaterialId) => {
+    let map = edgeMaps.get(id)
+    if (!map) {
+      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].cut))
+      map.repeat.set(1, 1)
+      edgeMaps.set(id, map)
+    }
+    return map
+  }
+  const getEnd = (id: LinarMaterialId) => {
+    let map = endMaps.get(id)
+    if (!map) {
+      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].end))
+      map.repeat.set(1, 1)
+      endMaps.set(id, map)
     }
     return map
   }
 
-  const slat = new MeshStandardMaterial({
-    color: LOOKS.mdf.color,
-    map: getMap('mdf'),
-    roughness: LOOKS.mdf.roughness,
+  const face = new MeshStandardMaterial({
+    color: 0xffffff,
+    map: getFace('plywood'),
+    roughness: LOOKS.plywood.roughness,
     metalness: 0,
-    envMapIntensity: 0.35,
   })
-  slat.name = 'LinarSlat'
-
-  const connector = new MeshStandardMaterial({
-    color: LOOKS.mdf.color,
-    map: getMap('mdf'),
-    roughness: Math.min(1, LOOKS.mdf.roughness + 0.08),
+  face.name = 'LinarFace'
+  const reverse = new MeshStandardMaterial({
+    color: 0xffffff,
+    map: getReverse('plywood'),
+    roughness: LOOKS.plywood.roughness + 0.06,
     metalness: 0,
-    envMapIntensity: 0.28,
   })
-  connector.name = 'LinarConnector'
-  darkenBridge('mdf', connector.color)
-
-  const solid = new MeshStandardMaterial({
-    color: LOOKS.mdf.color,
-    map: getMap('mdf'),
-    roughness: LOOKS.mdf.roughness,
+  reverse.name = 'LinarReverse'
+  const cut = new MeshStandardMaterial({
+    color: 0xffffff,
+    map: getEdge('plywood'),
+    roughness: LOOKS.plywood.cutRoughness,
     metalness: 0,
-    envMapIntensity: 0.35,
   })
-  solid.name = 'LinarSolid'
+  cut.name = 'LinarCut'
+  const end = new MeshStandardMaterial({
+    color: 0xffffff,
+    map: getEnd('plywood'),
+    roughness: LOOKS.plywood.cutRoughness,
+    metalness: 0,
+  })
+  end.name = 'LinarEnd'
+  const backing = new MeshStandardMaterial({
+    color: 0xd8d2c8,
+    roughness: 0.95,
+    metalness: 0,
+  })
+  backing.name = 'LinarBacking'
 
-  const slatEdge: EdgeUniforms = {
-    uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
-    uEdgeStr: { value: LOOKS.mdf.edgeStrength },
-  }
-  const connectorEdge: EdgeUniforms = {
-    uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
-    uEdgeStr: { value: LOOKS.mdf.edgeStrength * 0.45 },
-  }
-  const solidEdge: EdgeUniforms = {
-    uEdgeCol: { value: new Color(LOOKS.mdf.edgeColor) },
-    uEdgeStr: { value: LOOKS.mdf.edgeStrength },
-  }
-  attachEdgeHint(slat, slatEdge)
-  attachEdgeHint(connector, connectorEdge)
-  attachEdgeHint(solid, solidEdge)
+  const plyLayers = { value: LOOKS.plywood.plyLayers }
+  const plyMix = { value: LOOKS.plywood.plyLayers > 0 ? 0.48 : 0 }
+  attachThicknessLayers(cut, plyLayers, plyMix)
+  attachThicknessLayers(end, plyLayers, plyMix)
 
-  let current: LinarMaterialId = 'mdf'
-  let fromColor = new Color(LOOKS.mdf.color)
-  let toColor = new Color(LOOKS.mdf.color)
-  let fromRough = LOOKS.mdf.roughness
-  let toRough = LOOKS.mdf.roughness
+  let current: LinarMaterialId = 'plywood'
   let mix = 1
-  let pendingMap: Texture | null = null
 
-  const paintSet = (color: Color, roughness: number, look: MaterialLook, map: Texture | null) => {
-    slat.color.copy(color)
-    slat.roughness = roughness
-    connector.color.copy(color)
-    darkenBridge(current, connector.color)
-    connector.roughness = Math.min(1, roughness + 0.08)
-    solid.color.copy(color)
-    solid.roughness = roughness
-    if (map) {
-      slat.map = map
-      connector.map = map
-      solid.map = map
-      slat.needsUpdate = true
-      connector.needsUpdate = true
-      solid.needsUpdate = true
-    }
-    slatEdge.uEdgeCol.value.set(look.edgeColor)
-    slatEdge.uEdgeStr.value = look.edgeStrength
-    connectorEdge.uEdgeCol.value.set(look.edgeColor)
-    connectorEdge.uEdgeStr.value = look.edgeStrength * 0.45
-    solidEdge.uEdgeCol.value.set(look.edgeColor)
-    solidEdge.uEdgeStr.value = look.edgeStrength
+  const paintSet = (
+    id: LinarMaterialId,
+    faceMap: Texture,
+    reverseMap: Texture,
+    edgeMap: Texture,
+    endMap: Texture,
+  ) => {
+    const look = LOOKS[id]
+    face.color.setHex(0xffffff)
+    face.roughness = look.roughness
+    face.map = faceMap
+    reverse.color.setHex(0xffffff)
+    reverse.roughness = Math.min(1, look.roughness + 0.06)
+    reverse.map = reverseMap
+    cut.color.setHex(0xffffff)
+    cut.roughness = look.cutRoughness
+    cut.map = edgeMap
+    end.color.setHex(0xffffff)
+    end.roughness = look.cutRoughness
+    end.map = endMap
+    plyLayers.value = look.plyLayers
+    plyMix.value = look.plyLayers > 3 ? 0.48 : look.plyLayers > 0 ? 0.36 : 0
+    face.needsUpdate = true
+    reverse.needsUpdate = true
+    cut.needsUpdate = true
+    end.needsUpdate = true
   }
 
   const apply = (id: LinarMaterialId, immediate = false) => {
-    const look = LOOKS[id]
     current = id
-    fromColor.copy(slat.color)
-    toColor.set(look.color)
-    fromRough = slat.roughness
-    toRough = look.roughness
-    pendingMap = getMap(id)
     mix = immediate ? 1 : 0
-    if (immediate) {
-      paintSet(toColor, toRough, look, pendingMap)
-      pendingMap = null
-      mix = 1
-    }
+    if (immediate) paintSet(id, getFace(id), getReverse(id), getEdge(id), getEnd(id))
   }
 
   const tick = (dt: number): boolean => {
     if (mix >= 1) return false
-    mix = Math.min(1, mix + dt * 4.2)
-    slat.color.copy(fromColor).lerp(toColor, mix)
-    slat.roughness = fromRough + (toRough - fromRough) * mix
-    const look = LOOKS[current]
-    const map = mix >= 0.45 ? pendingMap : null
-    paintSet(slat.color, slat.roughness, look, map)
-    if (mix >= 0.45) pendingMap = null
-    return true
+    mix = Math.min(1, mix + dt * 5)
+    if (mix >= 0.4) {
+      paintSet(current, getFace(current), getReverse(current), getEdge(current), getEnd(current))
+    }
+    return mix < 1
   }
 
   const dispose = () => {
-    slat.dispose()
-    connector.dispose()
-    solid.dispose()
-    for (const map of maps.values()) map.dispose()
-    maps.clear()
+    face.dispose()
+    reverse.dispose()
+    cut.dispose()
+    end.dispose()
+    backing.dispose()
+    for (const map of faceMaps.values()) map.dispose()
+    for (const map of reverseMaps.values()) map.dispose()
+    for (const map of edgeMaps.values()) map.dispose()
+    for (const map of endMaps.values()) map.dispose()
+    faceMaps.clear()
+    reverseMaps.clear()
+    edgeMaps.clear()
+    endMaps.clear()
   }
 
-  return { slat, connector, solid, apply, tick, dispose }
+  return { face, reverse, cut, end, backing, apply, tick, dispose }
 }

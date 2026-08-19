@@ -1,5 +1,5 @@
 import type { LinarConfig, LinarDataSource, LinarMaterialId, LinarPattern, LinarStatus } from './types'
-import { DEFAULT_LINAR_CONFIG } from './types'
+import { DEFAULT_LINAR_CONFIG, LINAR_REFERENCE_BRIDGE_LENGTH_MM } from './types'
 
 export type LinarSample = {
   pattern: Extract<LinarPattern, 'regular'>
@@ -168,8 +168,10 @@ const TOP_CUT_ANCHORS: ReadonlyArray<readonly [number, number]> = [
   [15, 3.0],
 ]
 
+const TOP_CUT_ANCHOR_SET = new Set(TOP_CUT_ANCHORS.map(([t]) => t))
+
 export const BOTTOM_CUT_DEPTH_MM = 3
-export const VISUAL_BRIDGE_FALLBACK_MM = 60
+export const VISUAL_BRIDGE_FALLBACK_MM = LINAR_REFERENCE_BRIDGE_LENGTH_MM
 export const CONSERVATIVE_RADIUS_NOTE_MM = 120
 export const PARTNER_CONFIRMATION_NOTE =
   'Effective dimensions, values and manufacturability must be confirmed with the responsible manufacturing partner.'
@@ -315,15 +317,18 @@ export function calculateFullPanelOpenAreaPercent(
 export type LinarTech = {
   status: LinarStatus
   topCutDepthMm: number
+  topCutDepthSource: 'Validated anchor' | 'Interpolated'
   bottomCutDepthMm: number
-  bridgeLengthMm: number
+  /** Fixed 60 mm visual bridge from the supplied open-area drawing series. */
+  previewBridgeLengthMm: number
+  displayedBridgeLengthMm: number | null
   bridgeSource: LinarDataSource
   geometricIncisedOpenAreaPercent: number
   geometricFullPanelOpenAreaPercent: number
   referenceOpenAreaPercent: number | null
   displayedIncisedOpenAreaPercent: number
   displayedFullPanelOpenAreaPercent: number
-  openAreaLabel: 'Reference' | 'Calculated'
+  openAreaLabel: 'Sample reference' | 'Geometric estimate'
   referenceMinimumRadiusMm: number | null
   radiusNote: string | null
   previewStatus: 'Validated sample' | 'Visual reference only'
@@ -334,7 +339,6 @@ export type LinarTech = {
 export function resolveLinarTech(config: LinarConfig): LinarTech {
   const coverageFraction = incisedAreaCoverageFraction(config.incisedTwelfths)
   const exact = findExactSample(config)
-  const geometry = findGeometrySample(config)
   const irregular = config.pattern === 'irregular'
   const bridge = calculateBridgeLengthMm(config)
   const geometricIncised = calculateIncisedOpenAreaPercent({
@@ -347,17 +351,23 @@ export function resolveLinarTech(config: LinarConfig): LinarTech {
 
   const validated = Boolean(exact) && !irregular
   const referenceOpen = validated && exact ? exact.referenceOpenAreaPercent : null
-  const referenceRadius = !irregular && geometry ? geometry.minimumRadiusMm : null
+  const referenceRadius = validated && exact ? exact.minimumRadiusMm : null
+  const thickness = clampThicknessMm(config.thicknessMm)
 
   let status: LinarStatus = 'Not tested'
   if (validated && exact) status = exact.status
-  else if (irregular) status = 'Not tested'
 
   return {
     status,
     topCutDepthMm: getTopCutDepthMm(config.thicknessMm),
+    topCutDepthSource: TOP_CUT_ANCHOR_SET.has(thickness) ? 'Validated anchor' : 'Interpolated',
     bottomCutDepthMm: getBottomCutDepthMm(),
-    bridgeLengthMm: bridge.valueMm,
+    // Every supplied open-area drawing keeps the local bridge at 60 mm and
+    // varies the white incision length. Preserve physical-sample bridge data
+    // for technical feedback, but use the documented visual series for the
+    // 3D pattern rather than stretching the approved bridge object.
+    previewBridgeLengthMm: VISUAL_BRIDGE_FALLBACK_MM,
+    displayedBridgeLengthMm: bridge.validated ? bridge.valueMm : null,
     bridgeSource: bridge.source,
     geometricIncisedOpenAreaPercent: geometricIncised,
     geometricFullPanelOpenAreaPercent: geometricFull,
@@ -367,7 +377,7 @@ export function resolveLinarTech(config: LinarConfig): LinarTech {
       referenceOpen != null
         ? calculateFullPanelOpenAreaPercent(referenceOpen, coverageFraction)
         : geometricFull,
-    openAreaLabel: referenceOpen != null ? 'Reference' : 'Calculated',
+    openAreaLabel: referenceOpen != null ? 'Sample reference' : 'Geometric estimate',
     referenceMinimumRadiusMm: referenceRadius,
     radiusNote: referenceRadius == null ? RADIUS_UNAVAILABLE_NOTE : null,
     previewStatus: validated ? 'Validated sample' : 'Visual reference only',

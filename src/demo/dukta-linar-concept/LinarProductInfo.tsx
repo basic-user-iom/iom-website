@@ -35,16 +35,23 @@ type Props = {
 export function LinarProductInfo({ config, tech }: Props) {
   const radiusValue =
     tech.referenceMinimumRadiusMm == null ? 'Not tested' : formatMm(tech.referenceMinimumRadiusMm)
-  const bridgeHint = tech.bridgeSource === 'Physical sample' ? 'Physical sample' : 'Visual reference'
+  const bridgeValue =
+    tech.displayedBridgeLengthMm == null ? 'Not available' : formatMm(tech.displayedBridgeLengthMm)
+  const bridgeHint =
+    tech.displayedBridgeLengthMm == null ? 'Visual spacing only' : 'Physical sample'
 
   const rows: Row[] = [
-    { label: 'Panel size', value: '2800 × 1200 mm' },
+    { label: 'Panel size', value: '2800 × 1200 mm visualization panel' },
     { label: 'Material', value: materialLabel(config.material) },
     { label: 'Thickness', value: formatMm(config.thicknessMm) },
     { label: 'Cut / slat', value: `${config.cutWidthMm}/${config.slatWidthMm} mm` },
     { label: 'Incision length', value: formatMm(config.incisionLengthMm) },
-    { label: 'Bridge length', value: formatMm(tech.bridgeLengthMm), hint: bridgeHint },
-    { label: 'Top cutting depth', value: formatMm(tech.topCutDepthMm, 3) },
+    { label: 'Bridge length', value: bridgeValue, hint: bridgeHint },
+    {
+      label: 'Top cutting depth',
+      value: formatMm(tech.topCutDepthMm, 3),
+      hint: tech.topCutDepthSource,
+    },
     {
       label: 'Bottom cutting depth into spoil board',
       value: formatMm(tech.bottomCutDepthMm, 3),
@@ -78,7 +85,10 @@ export function LinarProductInfo({ config, tech }: Props) {
           {CONSERVATIVE_RADIUS_NOTE_MM} mm is a general conservative reference value. Actual values
           depend strongly on material thickness and cutting geometry.
         </li>
-        <li>Standard display panel: 2800 × 1200 mm. Thickness range in this simulator: 4–15 mm.</li>
+        <li>
+          Visualization / display panel: 2800 × 1200 mm, unless dukta confirms another current
+          standard dimension. Thickness range in this simulator: 4–15 mm.
+        </li>
       </ul>
 
       <details className="linar-acc linar-acc--tech" open>

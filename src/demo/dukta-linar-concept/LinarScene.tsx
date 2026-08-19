@@ -4,13 +4,16 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { INTRO_PEAK_BEND, PANEL_HEIGHT_M, PANEL_WIDTH_M, REST_BEND } from './bendMath'
 import { createLinarPanel } from './LinarPanel'
 import type { LinarTech } from './linarData'
-import type { LinarConfig } from './types'
+import type { LinarConfig, LinarSide, LinarViewId } from './types'
 
 type Props = {
   targetBendRef: { current: number }
   config: LinarConfig
   tech: LinarTech
   resetViewToken: number
+  viewPreset: LinarViewId
+  side: LinarSide
+  viewToken: number
   interactedRef: { current: boolean }
   reducedMotion: boolean
   onUnavailable: () => void
@@ -31,8 +34,9 @@ function geometryKey(config: LinarConfig, tech: LinarTech): string {
     config.slatWidthMm,
     config.incisedTwelfths,
     config.pattern,
-    tech.bridgeLengthMm,
+    tech.previewBridgeLengthMm,
     tech.referenceMinimumRadiusMm ?? 'none',
+    config.backing,
   ].join(':')
 }
 
@@ -98,33 +102,86 @@ function introBendAt(elapsed: number): { value: number; done: boolean } {
   return { value: REST_BEND, done: true }
 }
 
-function frameCamera(
+function fitDistance(camera: THREE.PerspectiveCamera, padY: number, padX: number): number {
+  const fov = (camera.fov * Math.PI) / 180
+  const halfTan = Math.tan(fov / 2)
+  const fitH = (PANEL_HEIGHT_M * padY) / 2 / halfTan
+  const fitW = (PANEL_WIDTH_M * padX) / 2 / halfTan / Math.max(camera.aspect, 0.2)
+  return Math.max(fitH, fitW, 2.4)
+}
+
+function viewPlacement(
+  id: LinarViewId,
+  camera: THREE.PerspectiveCamera,
+  side: LinarSide,
+): { dir: THREE.Vector3; target: THREE.Vector3; dist: number; bg: number } {
+  const mid = new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0)
+  if (id === 'closeup') {
+    return {
+      dir: new THREE.Vector3(0.025, 0.02, side === 'back' ? -1 : 1).normalize(),
+      target: new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0),
+      dist: 0.52,
+      // Keep the voids readable as real openings.  A warm studio backdrop
+      // lets light and the recessed wood faces show through instead of
+      // turning every cut into a flat black stripe.
+      bg: 0xd8d1c7,
+    }
+  }
+  if (id === 'side') {
+    return {
+      dir: new THREE.Vector3(1, 0.04, 0.12).normalize(),
+      target: mid.clone(),
+      dist: Math.max(1.1, fitDistance(camera, 1.18, 0.55)),
+      bg: 0xeee8df,
+    }
+  }
+  if (id === 'reverse') {
+    return {
+      dir: new THREE.Vector3(0.12, 0.06, -1).normalize(),
+      target: mid.clone(),
+      dist: fitDistance(camera, 1.16, 1.35),
+      bg: 0xeee8df,
+    }
+  }
+  if (id === 'bent') {
+    return {
+      dir: new THREE.Vector3(0.72, 0.16, side === 'back' ? -0.68 : 0.68).normalize(),
+      target: new THREE.Vector3(0, PANEL_HEIGHT_M * 0.48, 0.12),
+      dist: fitDistance(camera, 1.22, 1.4),
+      bg: 0xf3efe8,
+    }
+  }
+  return {
+    dir: new THREE.Vector3(0.08, 0.05, side === 'back' ? -1 : 1).normalize(),
+    target: mid,
+    dist: fitDistance(camera, 1.28, 1.38),
+    bg: 0xf3efe8,
+  }
+}
+
+function applyView(
   camera: THREE.PerspectiveCamera,
   controls: OrbitControls,
   width: number,
   height: number,
+  preset: LinarViewId,
+  side: LinarSide,
+  sceneBg: THREE.Color,
 ) {
   camera.aspect = Math.max(width / Math.max(height, 1), 0.2)
   camera.updateProjectionMatrix()
-  const target = new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0)
-  const padY = 1.55
-  const padX = 2.2
-  const fov = (camera.fov * Math.PI) / 180
-  const halfTan = Math.tan(fov / 2)
-  const fitH = (PANEL_HEIGHT_M * padY) / 2 / halfTan
-  const fitW = (PANEL_WIDTH_M * padX) / 2 / halfTan / camera.aspect
-  const dist = Math.max(fitH, fitW, 16)
-  const dir = new THREE.Vector3(0.16, 0.07, 1).normalize()
+  const place = viewPlacement(preset, camera, side)
   const damping = controls.enableDamping
   controls.enableDamping = false
   camera.up.set(0, 1, 0)
-  camera.position.copy(target).addScaledVector(dir, dist)
-  controls.target.copy(target)
-  camera.lookAt(target)
-  controls.minDistance = dist * 0.35
-  controls.maxDistance = dist * 3
+  camera.position.copy(place.target).addScaledVector(place.dir, place.dist)
+  controls.target.copy(place.target)
+  camera.lookAt(place.target)
+  controls.minDistance = Math.max(0.18, place.dist * 0.22)
+  controls.maxDistance = place.dist * 4.5
   controls.update()
   controls.enableDamping = damping
+  sceneBg.setHex(place.bg)
 }
 
 export function LinarScene({
@@ -132,6 +189,9 @@ export function LinarScene({
   config,
   tech,
   resetViewToken,
+  viewPreset,
+  side,
+  viewToken,
   interactedRef,
   reducedMotion,
   onUnavailable,
@@ -147,6 +207,9 @@ export function LinarScene({
   const onIntroCompleteRef = useRef(onIntroComplete)
   const onUnavailableRef = useRef(onUnavailable)
   const resetViewTokenRef = useRef(resetViewToken)
+  const viewPresetRef = useRef(viewPreset)
+  const sideRef = useRef(side)
+  const viewTokenRef = useRef(viewToken)
 
   configRef.current = config
   techRef.current = tech
@@ -155,6 +218,9 @@ export function LinarScene({
   onIntroCompleteRef.current = onIntroComplete
   onUnavailableRef.current = onUnavailable
   resetViewTokenRef.current = resetViewToken
+  viewPresetRef.current = viewPreset
+  sideRef.current = side
+  viewTokenRef.current = viewToken
 
   useEffect(() => {
     const mount = mountRef.current
@@ -179,7 +245,7 @@ export function LinarScene({
     renderer.setClearColor(BG, 1)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.2
+    renderer.toneMappingExposure = 1.08
     renderer.shadowMap.enabled = true
     renderer.shadowMap.type = THREE.PCFSoftShadowMap
     renderer.domElement.style.width = '100%'
@@ -192,7 +258,7 @@ export function LinarScene({
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(BG)
 
-    const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 120)
+    const camera = new THREE.PerspectiveCamera(28, 1, 0.05, 80)
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enablePan = false
     controls.enableDamping = true
@@ -213,31 +279,31 @@ export function LinarScene({
     }
     controls.addEventListener('start', markInteract)
 
-    const hemi = new THREE.HemisphereLight(0xf7f1e8, 0xb7a894, 0.55)
+    const hemi = new THREE.HemisphereLight(0xf4efe8, 0x75695c, 0.68)
     scene.add(hemi)
 
-    const key = new THREE.DirectionalLight(0xfff4e8, 2.45)
-    key.position.set(3.6, 7.2, 4.4)
+    const key = new THREE.DirectionalLight(0xfff1e0, 1.95)
+    key.position.set(3.1, 3.6, 5.6)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
-    key.shadow.camera.near = 1
-    key.shadow.camera.far = 22
-    key.shadow.camera.left = -3.8
-    key.shadow.camera.right = 3.8
-    key.shadow.camera.top = 4.6
-    key.shadow.camera.bottom = -1.4
-    key.shadow.bias = -0.00018
-    key.shadow.normalBias = 0.03
+    key.shadow.camera.near = 0.4
+    key.shadow.camera.far = 28
+    key.shadow.camera.left = -1.25
+    key.shadow.camera.right = 1.25
+    key.shadow.camera.top = 3.1
+    key.shadow.camera.bottom = -0.25
+    key.shadow.bias = -0.00006
+    key.shadow.normalBias = 0.00045
     scene.add(key)
     scene.add(key.target)
-    key.target.position.set(0, PANEL_HEIGHT_M * 0.4, 0)
+    key.target.position.set(0, PANEL_HEIGHT_M * 0.5, 0)
 
-    const fill = new THREE.DirectionalLight(0xe8eef4, 0.42)
-    fill.position.set(-4.2, 3.2, -1.4)
+    const fill = new THREE.DirectionalLight(0xe8eef4, 0.52)
+    fill.position.set(-3.2, 2.8, 4.2)
     scene.add(fill)
 
-    const rim = new THREE.DirectionalLight(0xf8fbff, 0.55)
-    rim.position.set(-1.6, 4.8, -5.2)
+    const rim = new THREE.DirectionalLight(0xf8fbff, 0.62)
+    rim.position.set(-2.2, 3.4, -4.8)
     scene.add(rim)
 
     const floorGeo = new THREE.CircleGeometry(7.5, 64)
@@ -278,12 +344,15 @@ export function LinarScene({
       maxDistance: 10,
     }
 
+    let currentPreset: LinarViewId = viewPresetRef.current
+
     const applyFrame = () => {
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
       if (w < 16 || h < 16) return
       renderer.setSize(w, h, false)
-      frameCamera(camera, controls, w, h)
+      applyView(camera, controls, w, h, currentPreset, sideRef.current, scene.background as THREE.Color)
+      renderer.setClearColor(scene.background as THREE.Color, 1)
       initialCam.position.copy(camera.position)
       initialCam.target.copy(controls.target)
       initialCam.minDistance = controls.minDistance
@@ -294,14 +363,6 @@ export function LinarScene({
       if (!disposed && !hasOrbited) applyFrame()
     })
     renderer.render(scene, camera)
-
-    const restoreView = () => {
-      camera.position.copy(initialCam.position)
-      controls.target.copy(initialCam.target)
-      controls.minDistance = initialCam.minDistance
-      controls.maxDistance = initialCam.maxDistance
-      controls.update()
-    }
 
     const resize = () => {
       if (disposed) return
@@ -323,6 +384,7 @@ export function LinarScene({
     let lastMaterial = configRef.current.material
     let lastGeomKey = geometryKey(configRef.current, techRef.current)
     let lastReset = resetViewTokenRef.current
+    let lastView = viewTokenRef.current
     let raf = 0
     let lastT = performance.now()
     let visible = document.visibilityState !== 'hidden'
@@ -339,7 +401,15 @@ export function LinarScene({
 
       if (resetViewTokenRef.current !== lastReset) {
         lastReset = resetViewTokenRef.current
-        restoreView()
+        currentPreset = 'hero'
+        applyFrame()
+      }
+
+      if (viewTokenRef.current !== lastView) {
+        lastView = viewTokenRef.current
+        currentPreset = viewPresetRef.current
+        hasOrbited = false
+        applyFrame()
       }
 
       const nextGeom = geometryKey(configRef.current, techRef.current)
