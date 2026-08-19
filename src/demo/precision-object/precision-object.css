@@ -137,6 +137,12 @@ body.pov-route::before {
   --pov-line: rgba(244, 239, 232, 0.12);
   --pov-accent: #c4a574;
   --pov-accent-soft: rgba(196, 165, 116, 0.22);
+  --pov-glass: linear-gradient(
+    165deg,
+    rgba(22, 20, 18, 0.66) 0%,
+    rgba(10, 10, 12, 0.52) 100%
+  );
+  --pov-glass-border: rgba(212, 190, 150, 0.3);
   --display: 'Syne', system-ui, sans-serif;
   --sans: 'IBM Plex Sans', system-ui, sans-serif;
   background: var(--pov-bg);
@@ -151,14 +157,56 @@ body.pov-route::before {
 
 html.pov-look-open .pov-hero,
 html.pov-look-open .pov-scroll-cue,
+html.pov-look-open .pov-explore-cue,
 html.pov-look-open .pov-hint,
 html.pov-look-open .pov-story,
 html.pov-look-open .pov-cta,
+html.pov-look-open .pov-header__end,
 html.pov-look-open .pov-header__meta,
 html.pov-look-open .pov-detail {
   opacity: 0;
   visibility: hidden;
   pointer-events: none;
+}
+
+/* Hero/canvas chrome is viewport-fixed or sticky; hide it over editorial copy. */
+html.pov-loading .pov-scroll-cue,
+html.pov-hero-away .pov-scroll-cue {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Explore cue: second 3D viewport only — never the hero, never the article. */
+html.pov-loading .pov-explore-cue,
+html:not(.pov-hero-away) .pov-explore-cue,
+html.pov-stage-away .pov-explore-cue {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html.pov-stage-away .pov-header,
+html.pov-stage-away .pov-header .pov-brand,
+html.pov-stage-away .pov-header .pov-header__end,
+html.pov-stage-away .pov-header .pov-header__meta,
+html.pov-stage-away .pov-zone,
+html.pov-stage-away .pov-controls,
+html.pov-stage-away .pov-hint,
+html.pov-stage-away .pov-mechanism,
+html.pov-stage-away .pov-detail,
+html.pov-stage-away .pov-studio {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.pov-header,
+.pov-header__end,
+.pov-zone,
+.pov-scroll-cue,
+.pov-explore-cue {
+  transition: opacity 180ms ease, visibility 180ms ease;
 }
 
 .pov-skip {
@@ -184,7 +232,7 @@ html.pov-look-open .pov-detail {
   right: 0;
   z-index: 8;
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
   padding: 1.1rem 1.5rem;
@@ -192,8 +240,18 @@ html.pov-look-open .pov-detail {
 }
 
 .pov-brand,
-.pov-header__meta {
+.pov-header__end,
+.pov-header__meta,
+.pov-zone {
   pointer-events: auto;
+}
+
+.pov-header__end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.42rem;
+  max-width: min(11.5rem, 42vw);
 }
 
 .pov-brand {
@@ -211,6 +269,58 @@ html.pov-look-open .pov-detail {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: var(--pov-muted);
+  text-align: right;
+}
+
+.pov-zone {
+  display: flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-width: 0;
+  padding: 0.22rem 0.42rem 0.22rem 0.52rem;
+  background: var(--pov-elevated);
+  border: 1px solid var(--pov-line);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 8px;
+}
+
+.pov-zone__label {
+  flex: 0 0 auto;
+  font-size: 0.58rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--pov-muted);
+}
+
+.pov-zone__select {
+  appearance: none;
+  min-width: 0;
+  max-width: 7.2rem;
+  margin: 0;
+  padding: 0.08rem 1.05rem 0.08rem 0;
+  border: 0;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23c4a574' d='M1.1.3 5 4.2 8.9.3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.08rem center;
+  background-size: 0.55rem 0.34rem;
+  color: var(--pov-paper);
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  line-height: 1.2;
+  cursor: pointer;
+  outline: none;
+}
+
+.pov-zone__select:focus-visible {
+  color: var(--pov-accent);
+}
+
+.pov-zone__select option {
+  color: #14110e;
+  background: #f4efe8;
 }
 
 .pov-stage {
@@ -235,6 +345,37 @@ html.pov-look-open .pov-detail {
   touch-action: none;
 }
 
+/* Hero sits over a sticky canvas; lock lets page scroll and CTA clicks through. */
+html.pov-explore-locked .pov-stage__canvas,
+html.pov-explore-locked .pov-canvas,
+html.pov-explore-locked .pov-canvas canvas {
+  pointer-events: none;
+  touch-action: pan-y;
+}
+
+html.pov-explore-locked .pov-stage {
+  touch-action: pan-y;
+}
+
+html.pov-explore-locked .pov-hero__actions,
+html.pov-explore-locked .pov-hero__actions .pov-btn,
+html.pov-explore-locked .pov-explore-cue__hit,
+html.pov-explore-locked .pov-header__end,
+html.pov-explore-locked .pov-zone {
+  pointer-events: auto;
+}
+
+/* Inspect chrome is Explore-only. Locked pages keep frost CTA + floating label. */
+html.pov-explore-locked .pov-controls,
+html.pov-explore-locked .pov-hint,
+html.pov-explore-locked .pov-hotspots,
+html.pov-explore-locked .pov-hotspot,
+html.pov-explore-locked .pov-studio,
+html.pov-explore-locked .pov-detail,
+html.pov-explore-locked .pov-mechanism {
+  display: none;
+}
+
 .pov-hero,
 .pov-viewer {
   position: relative;
@@ -246,23 +387,92 @@ html.pov-look-open .pov-detail {
 
 .pov-hero {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.85rem;
   margin-top: -100vh;
   margin-top: -100dvh;
-  padding: 5.5rem 7vw 4.5rem;
+  padding: 5.5rem 7vw 1.7rem;
+}
+
+.pov-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(8, 8, 10, 0.4) 0%,
+      rgba(8, 8, 10, 0.16) 26%,
+      rgba(8, 8, 10, 0) 52%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 8, 10, 0.22) 0%,
+      rgba(8, 8, 10, 0.08) 18%,
+      rgba(8, 8, 10, 0) 46%
+    );
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 86%);
+  mask-image: linear-gradient(180deg, #000 0%, #000 58%, transparent 86%);
 }
 
 .pov-hero__copy {
-  max-width: 34rem;
+  position: relative;
+  z-index: 1;
+  isolation: isolate;
+  transform: translateZ(0);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.7rem;
+  width: fit-content;
+  max-width: min(38rem, 100%);
+  min-width: 0;
+  padding: 1.2rem 1.4rem 1.2rem;
   pointer-events: none;
+  border-radius: 18px;
+  background: transparent;
+  border: 0;
 }
 
-.pov-hero__actions {
-  pointer-events: auto;
+.pov-hero__copy::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: -2.8rem;
+  border-radius: 18px;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(196, 165, 116, 0.1), transparent 42%),
+    var(--pov-glass);
+  box-shadow:
+    inset 0 1px 0 rgba(244, 239, 232, 0.1),
+    inset 0 0 0 1px var(--pov-glass-border);
+  backdrop-filter: blur(22px) saturate(1.18);
+  -webkit-backdrop-filter: blur(22px) saturate(1.18);
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 calc(100% - 3.4rem),
+    rgba(0, 0, 0, 0.4) calc(100% - 1.6rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    #000 0%,
+    #000 calc(100% - 3.4rem),
+    rgba(0, 0, 0, 0.4) calc(100% - 1.6rem),
+    transparent 100%
+  );
 }
 
 .pov-eyebrow {
-  margin: 0 0 1rem;
+  margin: 0;
   font-size: 0.68rem;
   font-weight: 500;
   letter-spacing: 0.22em;
@@ -272,25 +482,52 @@ html.pov-look-open .pov-detail {
 
 .pov-hero__title {
   margin: 0;
+  max-width: 100%;
   font-family: var(--display);
-  font-size: clamp(2.4rem, 6vw, 5rem);
+  font-size: clamp(2.15rem, 4.5vw, 4rem);
   font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.96;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
+  overflow-wrap: break-word;
+  word-break: normal;
+  hyphens: none;
 }
 
 .pov-hero__lead {
-  margin: 1.25rem 0 1.75rem;
-  max-width: 28rem;
-  font-size: 1.02rem;
-  line-height: 1.6;
-  color: var(--pov-muted);
+  margin: 0;
+  max-width: none;
+  font-size: 0.98rem;
+  line-height: 1.55;
+  color: #c6c1b8;
 }
 
 .pov-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  width: 100%;
+  margin-top: 0.1rem;
+  pointer-events: auto;
+}
+
+.pov-hero__actions .pov-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.7rem;
+  padding: 0.68rem 0.9rem;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  line-height: 1.15;
+  letter-spacing: 0.03em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.pov-hero__copy .pov-btn--ghost {
+  background: rgba(244, 239, 232, 0.06);
+  border-color: rgba(244, 239, 232, 0.22);
 }
 
 .pov-btn {
@@ -327,22 +564,28 @@ html.pov-look-open .pov-detail {
 }
 
 .pov-scroll-cue {
-  position: absolute;
-  left: 7vw;
-  bottom: 1.4rem;
+  position: relative;
+  z-index: 1;
   display: flex;
   align-items: center;
-  gap: 0.65rem;
+  gap: 0.55rem;
   margin: 0;
-  font-size: 0.64rem;
+  padding: 0.38rem 0.72rem 0.38rem 0.55rem;
+  font-size: 0.62rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--pov-muted);
+  color: #c6c1b8;
+  border-radius: 999px;
+  background: var(--pov-glass);
+  border: 1px solid var(--pov-glass-border);
+  box-shadow: inset 0 1px 0 rgba(244, 239, 232, 0.08);
+  backdrop-filter: blur(16px) saturate(1.12);
+  -webkit-backdrop-filter: blur(16px) saturate(1.12);
 }
 
 .pov-scroll-cue span {
   width: 1px;
-  height: 2.2rem;
+  height: 1.55rem;
   background: linear-gradient(to bottom, var(--pov-accent), transparent);
 }
 
@@ -457,6 +700,19 @@ html.pov-look-open .pov-detail {
   color: var(--pov-accent);
 }
 
+.pov-chip--exit {
+  border-color: var(--pov-paper);
+  background: var(--pov-paper);
+  color: #14110e;
+}
+
+.pov-chip--exit:hover,
+.pov-chip--exit:focus-visible {
+  background: var(--pov-accent);
+  border-color: var(--pov-accent);
+  color: #14110e;
+}
+
 .pov-mechanism {
   position: absolute;
   right: 1rem;
@@ -520,6 +776,99 @@ html.pov-look-open .pov-detail {
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--pov-muted);
+}
+
+/*
+ * Sibling of the WebGL canvas inside the sticky stage. Tracks the watch on
+ * the second viewport (#viewer). Hidden on the hero and over editorial copy.
+ */
+.pov-explore-cue {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.pov-explore-cue__hit {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(0, -50%);
+  margin-left: -0.31rem;
+  pointer-events: auto;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  touch-action: manipulation;
+}
+
+.pov-explore-cue__hit.is-flip {
+  flex-direction: row-reverse;
+  margin-left: 0;
+  margin-right: 0;
+  transform: translate(calc(-100% + 0.31rem), -50%);
+}
+
+.pov-explore-cue__marker {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid var(--pov-paper);
+  background: var(--pov-accent);
+  box-shadow: 0 0 0 5px var(--pov-accent-soft);
+}
+
+.pov-explore-cue__hit:hover .pov-explore-cue__marker,
+.pov-explore-cue__hit:focus-visible .pov-explore-cue__marker {
+  transform: scale(1.12);
+  box-shadow: 0 0 0 7px var(--pov-accent-soft);
+  outline: none;
+}
+
+.pov-explore-cue__leader {
+  width: 1.45rem;
+  height: 1px;
+  flex-shrink: 0;
+  background: linear-gradient(90deg, rgba(244, 239, 232, 0.72), rgba(244, 239, 232, 0.18));
+}
+
+.pov-explore-cue__hit.is-flip .pov-explore-cue__leader {
+  background: linear-gradient(90deg, rgba(244, 239, 232, 0.18), rgba(244, 239, 232, 0.72));
+}
+
+.pov-explore-cue__pill {
+  margin-left: 0.15rem;
+  padding: 0.4rem 0.78rem;
+  border-radius: 999px;
+  background: var(--pov-paper);
+  color: #14110e;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  box-shadow:
+    0 8px 22px rgba(8, 8, 10, 0.38),
+    0 0 0 1px rgba(20, 17, 14, 0.14);
+}
+
+.pov-explore-cue__hit.is-flip .pov-explore-cue__pill {
+  margin-left: 0;
+  margin-right: 0.15rem;
+}
+
+.pov-explore-cue__hit:hover .pov-explore-cue__pill,
+.pov-explore-cue__hit:focus-visible .pov-explore-cue__pill {
+  background: var(--pov-accent);
+}
+
+.pov-explore-cue__hit:focus-visible {
+  outline: none;
 }
 
 .pov-detail {
@@ -738,6 +1087,31 @@ html.pov-look-open .pov-detail {
   color: var(--pov-paper);
 }
 
+.pov-studio__deg {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.05rem;
+  color: var(--pov-paper);
+}
+
+.pov-studio__deg input {
+  width: 5.1rem;
+  margin: 0;
+  padding: 0.05rem 0.2rem;
+  border: 1px solid var(--pov-line);
+  background: transparent;
+  color: var(--pov-paper);
+  font: inherit;
+  font-style: normal;
+  letter-spacing: 0.02em;
+  text-align: right;
+}
+
+.pov-studio__deg input:focus {
+  outline: 1px solid var(--pov-accent);
+  border-color: var(--pov-accent);
+}
+
 .pov-studio__row input[type='range'],
 .pov-studio__row select,
 .pov-studio__notes textarea {
@@ -760,6 +1134,19 @@ html.pov-look-open .pov-detail {
   display: flex;
   flex-wrap: wrap;
   gap: 0.35rem;
+}
+
+.pov-studio__hots--pair {
+  flex-wrap: nowrap;
+}
+
+.pov-studio__hots--pair + .pov-studio__hots--pair {
+  margin-top: 0.35rem;
+}
+
+.pov-studio__hots--pair .pov-chip {
+  white-space: nowrap;
+  flex: 0 1 auto;
 }
 
 .pov-studio__notes {
@@ -811,16 +1198,29 @@ html.pov-look-open .pov-detail {
   }
 
   .pov-hero {
-    align-items: flex-end;
-    padding: 4.8rem 1.2rem 5.5rem;
+    align-items: flex-start;
+    padding: 4.8rem 1.2rem 1.35rem;
+  }
+
+  .pov-hero__copy {
+    padding: 1.05rem 1.15rem 1.1rem;
+    border-radius: 16px;
+    gap: 0.6rem;
   }
 
   .pov-hero__title {
-    font-size: clamp(2.1rem, 12vw, 3.1rem);
+    font-size: clamp(1.9rem, 7.4vw, 2.7rem);
   }
 
-  .pov-scroll-cue {
-    left: 1.2rem;
+  .pov-hero__actions {
+    gap: 0.45rem;
+  }
+
+  .pov-hero__actions .pov-btn {
+    min-height: 2.55rem;
+    padding: 0.6rem 0.7rem;
+    font-size: 0.74rem;
+    white-space: normal;
   }
 
   .pov-controls {
@@ -857,13 +1257,49 @@ html.pov-look-open .pov-detail {
     scroll-behavior: auto;
   }
 
+  .pov-header,
+  .pov-scroll-cue,
+  .pov-explore-cue,
   .pov-hotspot__dot,
   .pov-btn,
-  .pov-chip {
+  .pov-chip,
+  .pov-zone {
     transition: none;
   }
 
   .pov-scroll-cue span {
     background: var(--pov-accent);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pov-hero__copy {
+    background: transparent;
+  }
+
+  .pov-hero__copy::before,
+  .pov-scroll-cue,
+  .pov-hint,
+  .pov-zone {
+    background: rgba(14, 13, 12, 0.92);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .pov-explore-cue__pill {
+    box-shadow: 0 0 0 1px rgba(20, 17, 14, 0.22);
+  }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .pov-hero__copy {
+    background: transparent;
+  }
+
+  .pov-hero__copy::before,
+  .pov-scroll-cue,
+  .pov-hint,
+  .pov-zone {
+    background: rgba(14, 13, 12, 0.88);
   }
 }

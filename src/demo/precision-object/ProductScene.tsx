@@ -14,6 +14,7 @@ type Props = {
   onApi: (api: ViewerApi | null) => void
   onMaterials?: (materials: import('./lookStudio').MaterialLook[]) => void
   onHotspotPlaced?: (id: string, position: [number, number, number]) => void
+  onModelChange?: (model: import('./lookStudio').ModelLook) => void
 }
 
 export function ProductScene({
@@ -26,6 +27,7 @@ export function ProductScene({
   onApi,
   onMaterials,
   onHotspotPlaced,
+  onModelChange,
 }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
   const onLoadRef = useRef(onLoad)
@@ -36,6 +38,7 @@ export function ProductScene({
   const onApiRef = useRef(onApi)
   const onMaterialsRef = useRef(onMaterials)
   const onHotspotPlacedRef = useRef(onHotspotPlaced)
+  const onModelChangeRef = useRef(onModelChange)
 
   onLoadRef.current = onLoad
   onReadyRef.current = onReady
@@ -45,6 +48,7 @@ export function ProductScene({
   onApiRef.current = onApi
   onMaterialsRef.current = onMaterials
   onHotspotPlacedRef.current = onHotspotPlaced
+  onModelChangeRef.current = onModelChange
   const initialLookRef = useRef(initialLook)
 
   useEffect(() => {
@@ -64,6 +68,7 @@ export function ProductScene({
       onUnavailable: () => onUnavailableRef.current(),
       onMaterials: (materials) => onMaterialsRef.current?.(materials),
       onHotspotPlaced: (id, position) => onHotspotPlacedRef.current?.(id, position),
+      onModelChange: (model) => onModelChangeRef.current?.(model),
     })
     onApiRef.current(api)
 

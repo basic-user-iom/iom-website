@@ -5,6 +5,8 @@ import type { CameraPreset, Hotspot, StoryItem, Vec3 } from './types'
  * Replace `Watch.glb` with a real product file and update this file —
  * the viewer shell does not need to be rebuilt around new claims.
  */
+export const EXPLORE_CUE_ID = 'explore-cue'
+
 export const PRODUCT = {
   modelUrl: '/models/Watch.glb',
   /** Default evening-sky EXR (Look studio HDR option 4). */
@@ -34,6 +36,13 @@ export const PRODUCT = {
     'A browser-based product presentation concept for products where material, mechanism and detail matter.',
   primaryAction: 'Explore the object',
   secondaryAction: 'View details',
+  /**
+   * Second-screen floating label (not the hero). Offset from the model
+   * center as a bbox fraction, same convention as HOTSPOTS.
+   */
+  exploreCue: {
+    position: [-0.48, 0.62, 0.32] as Vec3,
+  },
   ctaTitle: 'What if your product could be explored, not only photographed?',
   ctaAction: 'Discuss an interactive product presentation',
   ctaHref: 'https://iobjectm.com/',

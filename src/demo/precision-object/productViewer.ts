@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import { CAMERA_PRESETS, HOTSPOTS, PRODUCT } from './productConfig'
+import { TransformControls } from 'three/addons/controls/TransformControls.js'
+import { CAMERA_PRESETS, EXPLORE_CUE_ID, HOTSPOTS, PRODUCT } from './productConfig'
 import { loadGltf } from './ModelLoader'
 import {
   aimHdrSunLight,
@@ -32,22 +33,47 @@ import {
   materialGroupId,
   parseCameraLook,
   parseNamedViews,
+  parseHandsLook,
+  parseModelLook,
+  resolveInitialCamera,
   roundCameraLook,
+  roundModelLook,
   textureSetUrls,
   type CameraLook,
   type HdrId,
   type MaterialLook,
+  type ModelLook,
   type SavedLook,
   type TextureTargetLook,
 } from './lookStudio'
-import type {
-  CameraPresetId,
-  LightingPresetId,
-  LoadState,
-  ModelCapabilities,
-  ScreenHotspot,
-  ViewerApi,
+import {
+  analogHandRadians,
+  berlinCivilTime,
+  crownWindDelta,
+  getTimeZone,
+  setHandCalibration,
+  setTimeZone as setWatchTimeZone,
+  zoneHandDeltas,
+  ZONE_HAND_TWEEN_SEC,
+  WATCH_CROWN_BONES,
+  WATCH_HAND_BONES,
+  type AnalogHandRadians,
+  type BerlinCivilTime,
+} from './cetWatchHands'
+import {
+  DEFAULT_LIGHTING_PRESET,
+  type CameraPresetId,
+  type LightingPresetId,
+  type LoadState,
+  type ModelCapabilities,
+  type ScreenHotspot,
+  type ViewerApi,
 } from './types'
+
+const HAND_AXIS_X = new THREE.Vector3(1, 0, 0)
+const CROWN_AXIS_FALLBACK = new THREE.Vector3(0, 1, 0)
+const crownQuatScratch = new THREE.Quaternion()
+const crownVertexScratch = new THREE.Vector3()
 
 export type ViewerOptions = {
   reducedMotion: boolean
@@ -59,6 +85,7 @@ export type ViewerOptions = {
   onUnavailable: () => void
   onMaterials?: (materials: MaterialLook[]) => void
   onHotspotPlaced?: (id: string, position: [number, number, number]) => void
+  onModelChange?: (model: ModelLook) => void
   initialLook?: SavedLook
 }
 
@@ -81,9 +108,45 @@ type PartRest = {
 
 const TARGET_SIZE = PRODUCT.targetSize
 const IDLE_ROTATE_SPEED = 0.35
+const VIEW_PAN_SPEED = 1.15
+const VIEW_DOLLY_SPEED = 1.35
+const VIEW_PAN_CODES = new Set([
+  'KeyW',
+  'KeyA',
+  'KeyS',
+  'KeyD',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'KeyQ',
+  'KeyE',
+  'KeyR',
+  'KeyF',
+  'PageUp',
+  'PageDown',
+  'KeyZ',
+  'KeyX',
+  'Minus',
+  'Equal',
+  'NumpadSubtract',
+  'NumpadAdd',
+])
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  if (target.isContentEditable) return true
+  const tag = target.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT'
+}
 
 function easeInOutCubic(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
+}
+
+function easeOutCubic(t: number): number {
+  const u = Math.min(1, Math.max(0, t))
+  return 1 - (1 - u) ** 3
 }
 
 function meshBounds(root: THREE.Object3D): THREE.Box3 {
@@ -186,6 +249,43 @@ function prepareGlass(root: THREE.Object3D, physical: boolean): void {
     })
     obj.material = Array.isArray(obj.material) ? next : next[0]
   })
+}
+
+/**
+ * Bone.008 origin sits in the case, not the knurled center. Local +Y is ~1.7°
+ * off the stem, so a Y spin orbits the crown in the recess. Axis is bind-pose
+ * origin → weighted mesh centroid (the stem through the geometric center).
+ */
+function measureCrownStemAxis(bone: THREE.Object3D, root: THREE.Object3D): THREE.Vector3 {
+  root.updateWorldMatrix(true, true)
+  const centroid = new THREE.Vector3()
+  let count = 0
+  root.traverse((obj) => {
+    if (!(obj instanceof THREE.SkinnedMesh) || !obj.skeleton) return
+    const index = obj.skeleton.bones.indexOf(bone as THREE.Bone)
+    if (index < 0) return
+    const pos = obj.geometry.getAttribute('position')
+    const joints = obj.geometry.getAttribute('skinIndex')
+    const weights = obj.geometry.getAttribute('skinWeight')
+    if (!pos || !joints || !weights) return
+    for (let i = 0; i < pos.count; i++) {
+      let w = 0
+      if (joints.getX(i) === index) w += weights.getX(i)
+      if (joints.getY(i) === index) w += weights.getY(i)
+      if (joints.getZ(i) === index) w += weights.getZ(i)
+      if (joints.getW(i) === index) w += weights.getW(i)
+      if (w < 0.5) continue
+      crownVertexScratch.fromBufferAttribute(pos, i)
+      obj.localToWorld(crownVertexScratch)
+      centroid.add(crownVertexScratch)
+      count++
+    }
+  })
+  if (count === 0) return CROWN_AXIS_FALLBACK.clone()
+  centroid.multiplyScalar(1 / count)
+  bone.worldToLocal(centroid)
+  if (centroid.lengthSq() < 1e-12) return CROWN_AXIS_FALLBACK.clone()
+  return centroid.normalize()
 }
 
 function prepareSkinning(root: THREE.Object3D): void {
@@ -303,7 +403,7 @@ export function createProductViewer(
   mount: HTMLElement,
   options: ViewerOptions,
 ): { api: ViewerApi; dispose: () => void } {
-  const { reducedMotion, mobile, onLoad, onReady, onInteract, onHotspots, onUnavailable, onMaterials, onHotspotPlaced, initialLook } = options
+  const { reducedMotion, mobile, onLoad, onReady, onInteract, onHotspots, onUnavailable, onMaterials, onHotspotPlaced, onModelChange, initialLook } = options
   const HERO_BIAS_X = mobile ? 0 : 0.16
 
   let renderer: THREE.WebGLRenderer
@@ -353,6 +453,9 @@ export function createProductViewer(
   controls.autoRotateSpeed = IDLE_ROTATE_SPEED
   controls.touches.ONE = THREE.TOUCH.ROTATE
   controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE
+  controls.enabled = false
+  controls.enableRotate = false
+  controls.enableZoom = false
 
   let studioEnv: StudioEnvironment = createRoomFallback(renderer)
   let usingCachedHdr = false
@@ -412,8 +515,8 @@ export function createProductViewer(
   scene.add(accent.target)
   accent.target.position.set(0, ACCENT_TARGET_Y, 0)
 
-  applyKeyLights(key, hemi, 'studio')
-  placeAccentLights(fill, rim, 'studio')
+  applyKeyLights(key, hemi, DEFAULT_LIGHTING_PRESET)
+  placeAccentLights(fill, rim, DEFAULT_LIGHTING_PRESET)
   fill.castShadow = false
   rim.castShadow = false
   accent.castShadow = false
@@ -441,7 +544,30 @@ export function createProductViewer(
   modelRoot.rotation.set(rx, ry, rz)
   scene.add(modelRoot)
 
+  const transformControls = new TransformControls(camera, renderer.domElement)
+  transformControls.setMode('translate')
+  transformControls.setSize(0.85)
+  transformControls.enabled = false
+  transformControls.attach(modelRoot)
+  const gizmoHelper = transformControls.getHelper()
+  gizmoHelper.visible = false
+  gizmoHelper.traverse((obj) => {
+    obj.castShadow = false
+    obj.receiveShadow = false
+  })
+  scene.add(gizmoHelper)
+
+  const restPosition = new THREE.Vector3()
+  const restRotation = new THREE.Euler()
+  const restMatrix = new THREE.Matrix4()
+  const restWorldInv = new THREE.Matrix4()
+  let restCaptured = false
+  let gizmoDragging = false
+  let gizmoWanted = false
+
   const hotspotAnchors = new Map<string, THREE.Object3D>()
+  const exploreAnchor = new THREE.Object3D()
+  exploreAnchor.name = EXPLORE_CUE_ID
   const screen = new THREE.Vector3()
   const boxSize = new THREE.Vector3(1, 1, 1)
   const boxCenter = new THREE.Vector3()
@@ -450,6 +576,15 @@ export function createProductViewer(
   let active = true
   let disposed = false
   let interacting = false
+  let interactionEnabled = false
+  let cameraPanEnabled = true
+  const heldPanCodes = new Set<string>()
+  let ctrlPanHeld = false
+  let keyboardPanning = false
+  const panRight = new THREE.Vector3()
+  const panForward = new THREE.Vector3()
+  const panWorldUp = new THREE.Vector3(0, 1, 0)
+  const panOffset = new THREE.Vector3()
   let autoRotateWanted = !reducedMotion
   let resumeRotateAt = 0
   let parts: PartRest[] = []
@@ -457,8 +592,34 @@ export function createProductViewer(
   let mixer: THREE.AnimationMixer | null = null
   let motionAction: THREE.AnimationAction | null = null
   let motionWanted = !reducedMotion
-  let lightingPreset: LightingPresetId = 'studio'
+  type CetHands = {
+    hour: THREE.Object3D
+    minute: THREE.Object3D
+    second: THREE.Object3D | null
+  }
+  type CetCrown = {
+    bone: THREE.Object3D
+    rest: THREE.Quaternion
+    axis: THREE.Vector3
+  }
+  let cetHands: CetHands | null = null
+  let cetCrown: CetCrown | null = null
+  let crownAngle = 0
+  let appliedWatchZone = getTimeZone()
+  let lastHandAngles: AnalogHandRadians | null = null
+  let handsFrozen = false
+  let frozenCivil: BerlinCivilTime | null = null
+  let pendingZoneSweep = false
+  let handTween: {
+    from: AnalogHandRadians
+    delta: AnalogHandRadians
+    crownDelta: number
+    elapsed: number
+    duration: number
+  } | null = null
+  let lightingPreset: LightingPresetId = DEFAULT_LIGHTING_PRESET
   let currentLook: SavedLook = initialLook ?? defaultLook()
+  setHandCalibration(parseHandsLook(currentLook.hands))
   let placeMode = false
   let placeHotspotId: string | null = null
   const sourceCache = new Map<string, PbrMapSet>()
@@ -507,6 +668,149 @@ export function createProductViewer(
   }
   controls.addEventListener('start', markInteract)
   controls.addEventListener('end', endInteract)
+
+  transformControls.addEventListener('dragging-changed', (event) => {
+    gizmoDragging = Boolean(event.value)
+    syncOrbitEnabled()
+    if (gizmoDragging) {
+      controls.autoRotate = false
+      markInteract()
+      return
+    }
+    endInteract()
+    onModelChange?.(captureLiveModel())
+  })
+  transformControls.addEventListener('axis-changed', () => {
+    if (!gizmoDragging) syncOrbitEnabled()
+  })
+
+  const applyCanvasPointerLock = () => {
+    const canvas = renderer.domElement
+    if (interactionEnabled) {
+      canvas.style.pointerEvents = ''
+      canvas.style.touchAction = 'none'
+      mount.style.pointerEvents = ''
+      mount.style.touchAction = ''
+    } else {
+      canvas.style.pointerEvents = 'none'
+      canvas.style.touchAction = 'pan-y'
+      mount.style.pointerEvents = 'none'
+      mount.style.touchAction = 'pan-y'
+    }
+  }
+
+  const syncOrbitEnabled = () => {
+    if (!interactionEnabled) {
+      controls.enabled = false
+      controls.enableRotate = false
+      controls.enablePan = false
+      controls.enableZoom = false
+      transformControls.enabled = false
+      return
+    }
+    controls.enabled = !gizmoDragging && (!gizmoWanted || !transformControls.axis)
+    controls.enableRotate = !placeMode && !gizmoDragging
+    controls.enablePan = cameraPanEnabled && !gizmoDragging
+    controls.enableZoom = true
+  }
+
+  applyCanvasPointerLock()
+
+  const onCameraKeyDown = (event: KeyboardEvent) => {
+    if (event.code === 'ControlLeft' || event.code === 'ControlRight' || event.key === 'Control') {
+      ctrlPanHeld = true
+    }
+    if (isTypingTarget(event.target)) return
+    if (VIEW_PAN_CODES.has(event.code)) heldPanCodes.add(event.code)
+    if (!interactionEnabled || !cameraPanEnabled || gizmoDragging || disposed || !active) return
+    if (!event.ctrlKey) return
+    if (!VIEW_PAN_CODES.has(event.code)) return
+    event.preventDefault()
+    tween = null
+    keyboardPanning = true
+    markInteract()
+  }
+
+  const onCameraKeyUp = (event: KeyboardEvent) => {
+    if (event.code === 'ControlLeft' || event.code === 'ControlRight' || event.key === 'Control') {
+      ctrlPanHeld = false
+    }
+    heldPanCodes.delete(event.code)
+    if (keyboardPanning && (!ctrlPanHeld || heldPanCodes.size === 0)) {
+      keyboardPanning = false
+      endInteract()
+    }
+  }
+
+  const onCameraBlur = () => {
+    heldPanCodes.clear()
+    ctrlPanHeld = false
+    if (keyboardPanning) {
+      keyboardPanning = false
+      endInteract()
+    }
+  }
+
+  window.addEventListener('keydown', onCameraKeyDown, { capture: true })
+  window.addEventListener('keyup', onCameraKeyUp, { capture: true })
+  window.addEventListener('blur', onCameraBlur)
+
+  const applyKeyboardPan = (dt: number) => {
+    if (!interactionEnabled || !cameraPanEnabled || !ctrlPanHeld || heldPanCodes.size === 0 || gizmoDragging) return
+    camera.updateMatrixWorld()
+    camera.getWorldDirection(panForward)
+    panForward.y = 0
+    if (panForward.lengthSq() < 1e-8) {
+      panForward.set(0, 0, -1).applyQuaternion(camera.quaternion)
+      panForward.y = 0
+    }
+    if (panForward.lengthSq() < 1e-8) return
+    panForward.normalize()
+    panRight.crossVectors(panForward, panWorldUp).normalize()
+
+    let right = 0
+    let up = 0
+    let forward = 0
+    let dolly = 0
+    if (heldPanCodes.has('KeyD') || heldPanCodes.has('ArrowRight')) right += 1
+    if (heldPanCodes.has('KeyA') || heldPanCodes.has('ArrowLeft')) right -= 1
+    if (heldPanCodes.has('KeyW') || heldPanCodes.has('ArrowUp')) forward += 1
+    if (heldPanCodes.has('KeyS') || heldPanCodes.has('ArrowDown')) forward -= 1
+    if (heldPanCodes.has('KeyE') || heldPanCodes.has('KeyR') || heldPanCodes.has('PageUp')) up += 1
+    if (heldPanCodes.has('KeyQ') || heldPanCodes.has('KeyF') || heldPanCodes.has('PageDown')) up -= 1
+    if (heldPanCodes.has('KeyZ') || heldPanCodes.has('Equal') || heldPanCodes.has('NumpadAdd')) dolly -= 1
+    if (heldPanCodes.has('KeyX') || heldPanCodes.has('Minus') || heldPanCodes.has('NumpadSubtract')) dolly += 1
+    if (right === 0 && up === 0 && forward === 0 && dolly === 0) return
+
+    if (!keyboardPanning) {
+      keyboardPanning = true
+      tween = null
+      markInteract()
+    }
+
+    const dist = Math.max(camera.position.distanceTo(controls.target), 0.2)
+    if (right !== 0 || up !== 0 || forward !== 0) {
+      const step = dist * dt * VIEW_PAN_SPEED
+      panOffset
+        .copy(panRight)
+        .multiplyScalar(right * step)
+        .addScaledVector(panWorldUp, up * step)
+        .addScaledVector(panForward, forward * step)
+      camera.position.add(panOffset)
+      controls.target.add(panOffset)
+    }
+    if (dolly !== 0) {
+      const offset = panOffset.copy(camera.position).sub(controls.target)
+      const length = offset.length()
+      const next = THREE.MathUtils.clamp(
+        length * Math.exp(dolly * dt * VIEW_DOLLY_SPEED),
+        controls.minDistance,
+        controls.maxDistance,
+      )
+      offset.setLength(next)
+      camera.position.copy(controls.target).add(offset)
+    }
+  }
 
   const applySize = () => {
     const w = mount.clientWidth || 1
@@ -607,9 +911,25 @@ export function createProductViewer(
   }
 
   const applyHeroCamera = (instant: boolean) => {
-    const cam = parseCameraLook(currentLook.camera)
+    const cam = resolveInitialCamera(currentLook)
     if (cam) applySavedCamera(cam, instant)
     else applyPose('hero', instant)
+  }
+
+  const applyScrollCamera = (instant: boolean) => {
+    const cam = parseCameraLook(currentLook.scrollCamera)
+    if (cam) applySavedCamera(cam, instant)
+  }
+
+  const restoreCameraForScroll = (inHero: boolean, instant = reducedMotion) => {
+    controls.autoRotate = false
+    if (inHero) {
+      applyHeroCamera(instant)
+      return
+    }
+    const scroll = parseCameraLook(currentLook.scrollCamera)
+    if (scroll) applySavedCamera(scroll, instant)
+    else applyHeroCamera(instant)
   }
 
   const captureLiveCamera = (): CameraLook =>
@@ -618,6 +938,33 @@ export function createProductViewer(
       target: [controls.target.x, controls.target.y, controls.target.z],
       fov: camera.fov,
     })
+
+  const captureLiveModel = (): ModelLook =>
+    roundModelLook({
+      position: [modelRoot.position.x, modelRoot.position.y, modelRoot.position.z],
+      rotation: [modelRoot.rotation.x, modelRoot.rotation.y, modelRoot.rotation.z],
+    })
+
+  const captureRestPose = () => {
+    modelRoot.updateWorldMatrix(true, true)
+    restPosition.copy(modelRoot.position)
+    restRotation.copy(modelRoot.rotation)
+    restMatrix.copy(modelRoot.matrixWorld)
+    restWorldInv.copy(restMatrix).invert()
+    restCaptured = true
+  }
+
+  const applyModelTransform = (spec?: ModelLook) => {
+    if (gizmoDragging) return
+    if (spec) {
+      modelRoot.position.set(spec.position[0], spec.position[1], spec.position[2])
+      modelRoot.rotation.set(spec.rotation[0], spec.rotation[1], spec.rotation[2], 'XYZ')
+      return
+    }
+    if (!restCaptured) return
+    modelRoot.position.copy(restPosition)
+    modelRoot.rotation.copy(restRotation)
+  }
 
   const projectHotspots = () => {
     const w = mount.clientWidth || 1
@@ -633,10 +980,21 @@ export function createProductViewer(
         visible,
       }
     })
+    if (exploreAnchor.parent) {
+      exploreAnchor.getWorldPosition(screen)
+      screen.project(camera)
+      points.push({
+        id: EXPLORE_CUE_ID,
+        x: (screen.x * 0.5 + 0.5) * w,
+        y: (-screen.y * 0.5 + 0.5) * h,
+        visible: screen.z > -1 && screen.z < 1,
+      })
+    }
     onHotspots(points)
   }
 
   const markerWorld = new THREE.Vector3()
+  const restWorldPoint = new THREE.Vector3()
   const setMarkerFromFraction = (
     marker: THREE.Object3D,
     position: [number, number, number],
@@ -646,6 +1004,10 @@ export function createProductViewer(
       boxCenter.y + position[1] * (boxSize.y * 0.5),
       boxCenter.z + position[2] * (boxSize.z * 0.5),
     )
+    if (restCaptured) {
+      marker.position.copy(markerWorld).applyMatrix4(restWorldInv)
+      return
+    }
     modelRoot.worldToLocal(markerWorld)
     marker.position.copy(markerWorld)
   }
@@ -658,6 +1020,8 @@ export function createProductViewer(
       modelRoot.add(marker)
       hotspotAnchors.set(spec.id, marker)
     }
+    setMarkerFromFraction(exploreAnchor, PRODUCT.exploreCue.position)
+    if (!exploreAnchor.parent) modelRoot.add(exploreAnchor)
   }
 
   const normalizeModel = (inner: THREE.Object3D) => {
@@ -681,6 +1045,7 @@ export function createProductViewer(
     finalBox.getSize(boxSize)
     finalBox.getCenter(boxCenter)
     radius = Math.max(finalBox.getBoundingSphere(new THREE.Sphere()).radius, 0.2)
+    captureRestPose()
     sizeGround()
   }
 
@@ -823,8 +1188,148 @@ export function createProductViewer(
     }
   }
 
+  const applyHandAngles = (angles: AnalogHandRadians) => {
+    if (!cetHands) return
+    lastHandAngles = angles
+    cetHands.hour.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.hour)
+    cetHands.minute.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.minute)
+    cetHands.second?.quaternion.setFromAxisAngle(HAND_AXIS_X, angles.second)
+  }
+
+  const applyCrownAngle = (angle: number) => {
+    if (!cetCrown) return
+    if (!Number.isFinite(angle) || Math.abs(angle) < 1e-10) {
+      crownAngle = 0
+      cetCrown.bone.quaternion.copy(cetCrown.rest)
+      return
+    }
+    crownAngle = angle
+    crownQuatScratch.setFromAxisAngle(cetCrown.axis, angle)
+    cetCrown.bone.quaternion.copy(cetCrown.rest).multiply(crownQuatScratch)
+  }
+
+  const restoreCrown = () => {
+    applyCrownAngle(0)
+  }
+
+  const applyCetClock = () => {
+    if (!cetHands) return
+    applyHandAngles(analogHandRadians(berlinCivilTime()))
+  }
+
+  const applyDisplayedHands = () => {
+    if (!cetHands) return
+    if (handsFrozen && frozenCivil) {
+      applyHandAngles(analogHandRadians(frozenCivil))
+      return
+    }
+    applyCetClock()
+  }
+
+  const applyHandsFreeze = (value: boolean) => {
+    if (value === handsFrozen) return
+    if (value) {
+      handsFrozen = true
+      frozenCivil = berlinCivilTime()
+      handTween = null
+      restoreCrown()
+      applyDisplayedHands()
+      return
+    }
+    handsFrozen = false
+    frozenCivil = null
+    if (!cetHands) {
+      pendingZoneSweep = false
+      restoreCrown()
+      return
+    }
+    if (pendingZoneSweep && motionWanted) {
+      pendingZoneSweep = false
+      if (reducedMotion) {
+        restoreCrown()
+        applyCetClock()
+      } else beginZoneHandTween()
+      return
+    }
+    pendingZoneSweep = false
+    restoreCrown()
+    if (motionWanted) applyCetClock()
+  }
+
+  const beginZoneHandTween = () => {
+    if (!cetHands) return
+    const to = analogHandRadians(berlinCivilTime())
+    const from = lastHandAngles ?? to
+    const delta = zoneHandDeltas(from, to)
+    restoreCrown()
+    handTween = {
+      from,
+      delta,
+      crownDelta: cetCrown ? crownWindDelta(delta) : 0,
+      elapsed: 0,
+      duration: ZONE_HAND_TWEEN_SEC,
+    }
+  }
+
+  const tickZoneHandTween = (dt: number) => {
+    if (!handTween || !cetHands) return false
+    handTween.elapsed += dt
+    const t = Math.min(1, Math.max(0, handTween.elapsed / handTween.duration))
+    const u = easeOutCubic(t)
+    applyHandAngles({
+      hour: handTween.from.hour + handTween.delta.hour * u,
+      minute: handTween.from.minute + handTween.delta.minute * u,
+      second: handTween.from.second + handTween.delta.second * u,
+    })
+    if (cetCrown) {
+      applyCrownAngle(handTween.crownDelta * Math.sin(t * Math.PI))
+    }
+    if (handTween.elapsed >= handTween.duration) {
+      handTween = null
+      restoreCrown()
+      applyCetClock()
+    }
+    return true
+  }
+
+  const commitWatchTimeZone = (timeZone: string) => {
+    setWatchTimeZone(timeZone)
+    const next = getTimeZone()
+    if (next === appliedWatchZone) return
+    appliedWatchZone = next
+    if (!cetHands) return
+    if (!motionWanted) {
+      handTween = null
+      restoreCrown()
+      return
+    }
+    if (handsFrozen) {
+      handTween = null
+      restoreCrown()
+      pendingZoneSweep = true
+      return
+    }
+    if (reducedMotion) {
+      handTween = null
+      restoreCrown()
+      applyCetClock()
+      return
+    }
+    beginZoneHandTween()
+  }
+
   const applyMotion = (value: boolean) => {
     motionWanted = value
+    if (cetHands) {
+      if (!motionWanted) {
+        handTween = null
+        restoreCrown()
+        return
+      }
+      if (handsFrozen) return
+      applyCetClock()
+      return
+    }
     if (!motionAction) return
     if (motionWanted) {
       motionAction.paused = false
@@ -1060,8 +1565,13 @@ export function createProductViewer(
         },
       },
       camera: parseCameraLook(look.camera) ?? currentLook.camera,
+      scrollCamera: parseCameraLook(look.scrollCamera) ?? currentLook.scrollCamera,
       views: parseNamedViews(look.views),
+      model: parseModelLook(look.model),
+      hands: parseHandsLook(look.hands) ?? currentLook.hands,
     }
+    setHandCalibration(currentLook.hands)
+    if (cetHands && !handTween && (handsFrozen || motionWanted)) applyDisplayedHands()
     applySun()
     void applyHdrId(currentLook.hdrId)
     applyShadows()
@@ -1092,6 +1602,7 @@ export function createProductViewer(
     applyFloorPbr()
     applyWatchPbr()
     applyMaterials()
+    applyModelTransform(currentLook.model)
     applyHotspotOverrides()
     sizeGround()
   }
@@ -1105,6 +1616,7 @@ export function createProductViewer(
     enableShadows(gltf.scene)
     modelRoot.add(gltf.scene)
     normalizeModel(gltf.scene)
+    applyModelTransform(parseModelLook(currentLook.model))
     captureWatchMaterials(gltf.scene)
     void applyLook(currentLook)
 
@@ -1123,7 +1635,35 @@ export function createProductViewer(
     const motionClip =
       clips.find((clip) => /action|second|hand|tick/i.test(clip.name)) ?? clips[0] ?? null
 
-    if (motionClip) {
+    const bones = new Map<string, THREE.Object3D>()
+    gltf.scene.traverse((obj) => {
+      if (obj.name) bones.set(obj.name, obj)
+    })
+    const pickBone = (names: readonly string[]) => {
+      for (const name of names) {
+        const bone = bones.get(name)
+        if (bone) return bone
+      }
+      return null
+    }
+    const hourBone = pickBone(WATCH_HAND_BONES.hour)
+    const minuteBone = pickBone(WATCH_HAND_BONES.minute)
+    const secondBone = pickBone(WATCH_HAND_BONES.second)
+    const crownBone = pickBone(WATCH_CROWN_BONES)
+    if (hourBone && minuteBone) {
+      cetHands = { hour: hourBone, minute: minuteBone, second: secondBone }
+    }
+    if (crownBone) {
+      cetCrown = {
+        bone: crownBone,
+        rest: crownBone.quaternion.clone(),
+        axis: measureCrownStemAxis(crownBone, gltf.scene),
+      }
+    }
+
+    if (cetHands) {
+      applyMotion(motionWanted)
+    } else if (motionClip) {
       mixer = new THREE.AnimationMixer(gltf.scene)
       motionAction = mixer.clipAction(motionClip)
       motionAction.clampWhenFinished = false
@@ -1136,8 +1676,8 @@ export function createProductViewer(
 
     capabilities = {
       loaded: true,
-      hasMotion: Boolean(motionClip),
-      motionClipName: motionClip?.name ?? null,
+      hasMotion: Boolean(cetHands || motionClip),
+      motionClipName: cetHands ? 'CET Europe/Berlin' : motionClip?.name ?? null,
       hasExploded: parts.length > 1,
       animations: clips.map((c) => c.name),
       materials: [...materials],
@@ -1181,9 +1721,12 @@ export function createProductViewer(
     const dt = Math.min(0.05, (now - lastT) / 1000)
     lastT = now
 
-    if (mixer && motionWanted) mixer.update(dt)
+    if (cetHands && motionWanted && !handsFrozen) {
+      if (handTween) tickZoneHandTween(dt)
+      else applyCetClock()
+    } else if (mixer && motionWanted) mixer.update(dt)
 
-    if (!interacting && autoRotateWanted && !reducedMotion && now > resumeRotateAt && !tween) {
+    if (!interacting && autoRotateWanted && !gizmoWanted && !gizmoDragging && !reducedMotion && now > resumeRotateAt && !tween) {
       controls.autoRotate = true
     }
 
@@ -1197,6 +1740,7 @@ export function createProductViewer(
       if (u >= 1) tween = null
     }
 
+    applyKeyboardPan(dt)
     controls.update()
     renderer.render(scene, camera)
     projectHotspots()
@@ -1212,7 +1756,9 @@ export function createProductViewer(
   const pointer = new THREE.Vector2()
   const PLACE_UI = 'button, input, textarea, select, a, .pov-studio, .pov-controls, .pov-detail, .pov-mechanism'
   const onPlacePointer = (event: PointerEvent) => {
-    if (!placeMode || !placeHotspotId || event.button !== 0) return
+    if (!interactionEnabled || !placeMode || !placeHotspotId || event.button !== 0) return
+    if (event.ctrlKey || event.metaKey || event.shiftKey) return
+    if (gizmoDragging || (gizmoWanted && transformControls.axis)) return
     if (event.target instanceof Element && event.target.closest(PLACE_UI)) return
     const rect = renderer.domElement.getBoundingClientRect()
     if (
@@ -1241,9 +1787,14 @@ export function createProductViewer(
     if (!hit) return
     event.preventDefault()
     event.stopPropagation()
-    const hx = boxSize.x > 1e-5 ? (hit.point.x - boxCenter.x) / (boxSize.x * 0.5) : 0
-    const hy = boxSize.y > 1e-5 ? (hit.point.y - boxCenter.y) / (boxSize.y * 0.5) : 0
-    const hz = boxSize.z > 1e-5 ? (hit.point.z - boxCenter.z) / (boxSize.z * 0.5) : 0
+    restWorldPoint.copy(hit.point)
+    if (restCaptured) {
+      modelRoot.worldToLocal(restWorldPoint)
+      restWorldPoint.applyMatrix4(restMatrix)
+    }
+    const hx = boxSize.x > 1e-5 ? (restWorldPoint.x - boxCenter.x) / (boxSize.x * 0.5) : 0
+    const hy = boxSize.y > 1e-5 ? (restWorldPoint.y - boxCenter.y) / (boxSize.y * 0.5) : 0
+    const hz = boxSize.z > 1e-5 ? (restWorldPoint.z - boxCenter.z) / (boxSize.z * 0.5) : 0
     const position: [number, number, number] = [
       Number(hx.toFixed(3)),
       Number(hy.toFixed(3)),
@@ -1275,6 +1826,12 @@ export function createProductViewer(
     setMotion: (value) => {
       applyMotion(value)
     },
+    setHandsFrozen: (value) => {
+      applyHandsFreeze(value)
+    },
+    setTimeZone: (timeZone) => {
+      commitWatchTimeZone(timeZone)
+    },
     setPbr: (value) => {
       currentLook = {
         ...currentLook,
@@ -1287,11 +1844,29 @@ export function createProductViewer(
       void applyLook(look)
     },
     captureCamera: () => captureLiveCamera(),
+    captureModel: () => captureLiveModel(),
+    setGizmoVisible: (value) => {
+      gizmoWanted = value
+      transformControls.enabled = value && interactionEnabled
+      gizmoHelper.visible = value && interactionEnabled
+      if (!value) {
+        gizmoDragging = false
+        transformControls.axis = null
+        controls.autoRotate = autoRotateWanted && !interacting && !tween
+      } else {
+        controls.autoRotate = false
+      }
+      syncOrbitEnabled()
+    },
+    setGizmoMode: (mode) => {
+      transformControls.setMode(mode)
+      transformControls.space = mode === 'rotate' ? 'local' : 'world'
+    },
     setPlaceHotspots: (value) => {
       placeMode = value
-      controls.enableRotate = !value
-      controls.autoRotate = !value && autoRotateWanted && !interacting && !tween
-      renderer.domElement.style.cursor = value ? 'crosshair' : ''
+      controls.autoRotate = !value && autoRotateWanted && !interacting && !tween && !gizmoDragging
+      renderer.domElement.style.cursor = value && interactionEnabled ? 'crosshair' : ''
+      syncOrbitEnabled()
     },
     setPlaceHotspotId: (id) => {
       placeHotspotId = id
@@ -1307,12 +1882,50 @@ export function createProductViewer(
       active = value
       if (value) lastT = performance.now()
     },
+    setInteractionEnabled: (value) => {
+      interactionEnabled = value
+      if (!value) {
+        interacting = false
+        renderer.domElement.style.cursor = ''
+        heldPanCodes.clear()
+        keyboardPanning = false
+        ctrlPanHeld = false
+        gizmoDragging = false
+        transformControls.axis = null
+        transformControls.enabled = false
+        gizmoHelper.visible = false
+      } else if (gizmoWanted) {
+        transformControls.enabled = true
+        gizmoHelper.visible = true
+      }
+      applyCanvasPointerLock()
+      syncOrbitEnabled()
+    },
+    setCameraPan: (value) => {
+      cameraPanEnabled = value
+      if (!value) {
+        heldPanCodes.clear()
+        keyboardPanning = false
+      }
+      syncOrbitEnabled()
+    },
     resetCamera: () => {
       const hero = parseCameraLook(currentLook.views?.hero)
       const front = parseCameraLook(currentLook.views?.front)
       if (hero) applySavedCamera(hero, reducedMotion)
       else if (front) applySavedCamera(front, reducedMotion)
       else applyPose('front', reducedMotion)
+    },
+    goToInitialCamera: () => {
+      controls.autoRotate = false
+      applyHeroCamera(reducedMotion)
+    },
+    goToScrollCamera: () => {
+      controls.autoRotate = false
+      applyScrollCamera(reducedMotion)
+    },
+    restoreCameraForScroll: (inHero: boolean) => {
+      restoreCameraForScroll(inHero)
     },
     goToPreset: (id) => {
       controls.autoRotate = false
@@ -1325,6 +1938,11 @@ export function createProductViewer(
       const spec = HOTSPOTS.find((h) => h.id === id)
       if (!spec) return
       controls.autoRotate = false
+      const assigned = parseCameraLook(currentLook.hotspots.find((item) => item.id === id)?.camera)
+      if (assigned) {
+        applySavedCamera(assigned, reducedMotion)
+        return
+      }
       const presetId = spec.cameraPreset ?? 'detail'
       const pose = poseForPreset(presetId)
       const look = new THREE.Vector3()
@@ -1365,7 +1983,12 @@ export function createProductViewer(
     cancelAnimationFrame(raf)
     ro.disconnect()
     document.removeEventListener('visibilitychange', onVisibility)
+    window.removeEventListener('keydown', onCameraKeyDown, true)
+    window.removeEventListener('keyup', onCameraKeyUp, true)
+    window.removeEventListener('blur', onCameraBlur)
     mount.removeEventListener('pointerdown', onPlacePointer, true)
+    transformControls.dispose()
+    scene.remove(gizmoHelper)
     controls.removeEventListener('start', markInteract)
     controls.removeEventListener('end', endInteract)
     controls.dispose()
@@ -1401,15 +2024,25 @@ function emptyApi(): ViewerApi {
     setAutoRotate: noop,
     setLighting: noop,
     setMotion: noop,
+    setHandsFrozen: noop,
+    setTimeZone: noop,
     setPbr: noop,
     setLook: noop,
     captureCamera: () => null,
+    captureModel: () => null,
+    setGizmoVisible: noop,
+    setGizmoMode: noop,
     setPlaceHotspots: noop,
     setPlaceHotspotId: noop,
     setExploded: noop,
     setHeroBias: noop,
     setActive: noop,
+    setInteractionEnabled: noop,
+    setCameraPan: noop,
     resetCamera: noop,
+    goToInitialCamera: noop,
+    goToScrollCamera: noop,
+    restoreCameraForScroll: noop,
     goToPreset: noop,
     focusHotspot: noop,
     enterFullscreen: async () => undefined,

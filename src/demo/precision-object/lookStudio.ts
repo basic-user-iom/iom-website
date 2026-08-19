@@ -1,16 +1,33 @@
+import {
+  clampHandDeg,
+  DEFAULT_HAND_CALIBRATION,
+  type HandCalibration,
+} from './cetWatchHands'
 import type { PbrMapUrls } from './pbrTextures'
 import { HOTSPOTS, PRODUCT } from './productConfig'
 
+export { DEFAULT_HAND_CALIBRATION }
+
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v6'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v13'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v12'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
   'iom-precision-object-look-v3',
   'iom-precision-object-look-v4',
   'iom-precision-object-look-v5',
+  'iom-precision-object-look-v6',
+  'iom-precision-object-look-v7',
+  'iom-precision-object-look-v8',
+  'iom-precision-object-look-v9',
+  'iom-precision-object-look-v10',
+  'iom-precision-object-look-v11',
+  LOOK_STORAGE_PREV,
 ]
+
+export type HandLook = HandCalibration
 
 export type TextureSetId = 'none' | 'metal049a' | 'custom'
 
@@ -66,6 +83,10 @@ export type HotspotLook = {
   id: string
   position: Vec3
   cameraTarget?: Vec3
+  /** Assigned inspect camera. Opening the hotspot flies here when present. */
+  camera?: CameraLook
+  /** If true, auto-rotate starts when this hotspot is opened. Close always stops it. */
+  autoRotate?: boolean
 }
 
 export type HdrId = 'evening022' | 'evening005' | 'day035' | 'evening027'
@@ -125,6 +146,11 @@ export type CameraLook = {
   fov: number
 }
 
+export type ModelLook = {
+  position: Vec3
+  rotation: Vec3
+}
+
 /** Toolbar View chips. Reset restores Hero, or Front if Hero was never assigned. */
 export type NamedViewId = 'hero' | 'front' | 'detail' | 'top'
 
@@ -153,7 +179,13 @@ export type SavedLook = {
   notes: string
   /** Startup / landing camera. Named chips use `views` instead. */
   camera?: CameraLook
+  /** Camera for the second 100vh scroll screen (#viewer). Optional — falls back to initial. */
+  scrollCamera?: CameraLook
   views?: NamedViews
+  /** Watch wrapper pose (normalized modelRoot). Missing = baked GLB / normalize pose. */
+  model?: ModelLook
+  /** Analog 12 o'clock + per-hand offsets in degrees. Missing = current code defaults. */
+  hands?: HandLook
 }
 
 function isVec3(value: unknown): value is Vec3 {
@@ -183,6 +215,118 @@ export function roundCameraLook(camera: CameraLook): CameraLook {
     position: [r(camera.position[0]), r(camera.position[1]), r(camera.position[2])],
     target: [r(camera.target[0]), r(camera.target[1]), r(camera.target[2])],
     fov: r(camera.fov),
+  }
+}
+
+/** First view: saved `camera`, else assigned Hero. Used on load and after Explore. */
+export function resolveInitialCamera(look: Pick<SavedLook, 'camera' | 'views'>): CameraLook | undefined {
+  return parseCameraLook(look.camera) ?? parseCameraLook(look.views?.hero)
+}
+
+/** Compact block to paste in chat so DEFAULT_LOOK.camera can be baked. */
+export function formatInitialCameraJson(camera: CameraLook): string {
+  return JSON.stringify(
+    {
+      'precision-object': 'initial-camera',
+      bakeInto: 'DEFAULT_LOOK.camera',
+      camera: roundCameraLook(camera),
+    },
+    null,
+    2,
+  )
+}
+
+/** Compact block to paste in chat so DEFAULT_LOOK.scrollCamera can be baked. */
+export function formatScrollCameraJson(camera: CameraLook): string {
+  return JSON.stringify(
+    {
+      'precision-object': 'scroll-down-camera',
+      bakeInto: 'DEFAULT_LOOK.scrollCamera',
+      camera: roundCameraLook(camera),
+    },
+    null,
+    2,
+  )
+}
+
+/** Compact block to paste in chat so a hotspot `camera` can be baked. */
+export function formatHotspotCameraJson(id: string, camera: CameraLook): string {
+  return JSON.stringify(
+    {
+      'precision-object': 'hotspot-camera',
+      bakeInto: `DEFAULT_LOOK.hotspots[].camera (${id})`,
+      hotspotId: id,
+      camera: roundCameraLook(camera),
+    },
+    null,
+    2,
+  )
+}
+
+export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
+  return base.map((item) => {
+    const extra = parsed?.find((entry) => entry.id === item.id)
+    if (!extra) return item
+    return {
+      ...item,
+      ...extra,
+      position: isVec3(extra.position) ? extra.position : item.position,
+      camera: parseCameraLook(extra.camera) ?? item.camera,
+      autoRotate: typeof extra.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
+    }
+  })
+}
+
+export function parseHandsLook(value: unknown): HandLook | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Partial<HandLook>
+  const d = DEFAULT_HAND_CALIBRATION
+  return {
+    twelveXDeg: clampHandDeg(Number(raw.twelveXDeg), d.twelveXDeg),
+    hourOffsetDeg: clampHandDeg(Number(raw.hourOffsetDeg), d.hourOffsetDeg),
+    minuteOffsetDeg: clampHandDeg(Number(raw.minuteOffsetDeg), d.minuteOffsetDeg),
+    secondOffsetDeg: clampHandDeg(Number(raw.secondOffsetDeg), d.secondOffsetDeg),
+  }
+}
+
+export function roundHandsLook(hands: HandLook): HandLook {
+  const r = (n: number) => Math.round(n * 100) / 100
+  return {
+    twelveXDeg: r(hands.twelveXDeg),
+    hourOffsetDeg: r(hands.hourOffsetDeg),
+    minuteOffsetDeg: r(hands.minuteOffsetDeg),
+    secondOffsetDeg: r(hands.secondOffsetDeg),
+  }
+}
+
+/** Compact block to paste in chat so DEFAULT_LOOK.hands can be baked. */
+export function formatHandsCalibrationJson(hands: HandLook): string {
+  return JSON.stringify(
+    {
+      'precision-object': 'hand-calibration',
+      bakeInto: 'DEFAULT_LOOK.hands',
+      hands: roundHandsLook(hands),
+    },
+    null,
+    2,
+  )
+}
+
+export function parseModelLook(value: unknown): ModelLook | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as { position?: unknown; rotation?: unknown }
+  if (!isVec3(raw.position) || !isVec3(raw.rotation)) return undefined
+  return {
+    position: [raw.position[0], raw.position[1], raw.position[2]],
+    rotation: [raw.rotation[0], raw.rotation[1], raw.rotation[2]],
+  }
+}
+
+export function roundModelLook(model: ModelLook): ModelLook {
+  const r = (n: number) => Math.round(n * 1000) / 1000
+  return {
+    position: [r(model.position[0]), r(model.position[1]), r(model.position[2])],
+    rotation: [r(model.rotation[0]), r(model.rotation[1]), r(model.rotation[2])],
   }
 }
 
@@ -241,7 +385,7 @@ export const MATERIAL_GROUPS: {
 /** Canonical startup look — Look studio hydrates from this unless the user Saves after this bake. */
 export const DEFAULT_LOOK: SavedLook = {
   version: 1,
-  savedAt: '2026-08-18T22:58:29.310Z',
+  savedAt: '2026-08-19T05:57:24.708Z',
   stand: {
     enabled: true,
     setId: 'metal049a',
@@ -286,7 +430,7 @@ export const DEFAULT_LOOK: SavedLook = {
     { id: 'metal', label: 'Metal', metalness: 1, roughness: 0, envMapIntensity: 3, color: '#cdcdcd' },
     { id: 'metalDark', label: 'Dark metal', metalness: 0.79, roughness: 0.19, envMapIntensity: 3, color: '#717171' },
     { id: 'metalRough', label: 'Rough metal', metalness: 1, roughness: 0.33, envMapIntensity: 3, color: '#ffffff' },
-    { id: 'dial', label: 'Dial', metalness: 0.08, roughness: 0.25, envMapIntensity: 2.6, color: '#e7e7e7' },
+    { id: 'dial', label: 'Dial', metalness: 0.08, roughness: 0.25, envMapIntensity: 2.6, color: '#f5cc00' },
     { id: 'black', label: 'Black', metalness: 0.3, roughness: 0.0023765903573227947, envMapIntensity: 1.54, color: '#000000' },
     { id: 'glass', label: 'Glass', metalness: 0, roughness: 0, envMapIntensity: 3, color: '#8f8f8f', transmission: 0.94, ior: 1 },
   ],
@@ -297,6 +441,44 @@ export const DEFAULT_LOOK: SavedLook = {
     { id: 'geometry', position: [-0.009, -0.188, 0.927] },
   ],
   notes: 'Watch metal normal: Metal060A DirectX (normalScale.y flip). Stand stays Metal049A.',
+  camera: {
+    position: [-1.867, 0.619, 2.231],
+    target: [-0.028, 0.428, -0.373],
+    fov: 30,
+  },
+  scrollCamera: {
+    position: [-1.968, 0.594, 2.134],
+    target: [0.208, 0.456, -0.2],
+    fov: 30,
+  },
+  views: {
+    front: {
+      position: [-1.134, 0.619, 1.996],
+      target: [0, 0.527, 0],
+      fov: 32,
+    },
+    detail: {
+      position: [-0.966, 0.598, 0.552],
+      target: [0.226, 0.547, 0.094],
+      fov: 30,
+    },
+    top: {
+      position: [-3.651, 3.1, 1.385],
+      target: [0.226, 0.547, 0.094],
+      fov: 30,
+    },
+    hero: {
+      position: [-1.867, 0.619, 2.231],
+      target: [-0.028, 0.428, -0.373],
+      fov: 30,
+    },
+  },
+  hands: {
+    twelveXDeg: -20.4,
+    hourOffsetDeg: -34,
+    minuteOffsetDeg: 0,
+    secondOffsetDeg: 144.6,
+  },
 }
 
 function cloneLook(look: SavedLook): SavedLook {
@@ -311,21 +493,29 @@ export function defaultLook(): SavedLook {
       id: h.id,
       position: (saved?.position ?? [...h.position]) as Vec3,
       cameraTarget: h.cameraTarget ? ([...h.cameraTarget] as Vec3) : undefined,
+      camera: parseCameraLook(saved?.camera),
+      autoRotate: saved?.autoRotate,
     }
   })
+  look.camera = parseCameraLook(look.camera)
+  look.scrollCamera = parseCameraLook(look.scrollCamera)
+  look.views = parseNamedViews(look.views)
+  look.model = parseModelLook(look.model)
+  look.hands = parseHandsLook(look.hands) ?? { ...DEFAULT_HAND_CALIBRATION }
   return look
 }
 
 export function loadStoredLook(): SavedLook | null {
   try {
+    const fromCurrent = Boolean(localStorage.getItem(LOOK_STORAGE_KEY))
+    const raw = localStorage.getItem(LOOK_STORAGE_KEY) ?? localStorage.getItem(LOOK_STORAGE_PREV)
     for (const key of LOOK_STORAGE_LEGACY) localStorage.removeItem(key)
-    const raw = localStorage.getItem(LOOK_STORAGE_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as SavedLook
     if (parsed?.version !== 1) return null
     const base = defaultLook()
     const parsedHdr = (parsed as SavedLook).hdrId
-    return {
+    const merged: SavedLook = {
       ...base,
       ...parsed,
       stand: { ...base.stand, ...parsed.stand },
@@ -346,8 +536,16 @@ export function loadStoredLook(): SavedLook | null {
       },
       hdrId: isHdrId(parsedHdr) ? parsedHdr : base.hdrId,
       camera: parseCameraLook((parsed as SavedLook).camera) ?? base.camera,
+      scrollCamera: parseCameraLook((parsed as SavedLook).scrollCamera) ?? base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
+      model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
+      hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots),
+      hands: fromCurrent
+        ? parseHandsLook((parsed as SavedLook).hands) ?? base.hands
+        : base.hands,
     }
+    if (!localStorage.getItem(LOOK_STORAGE_KEY)) persistLook(merged)
+    return merged
   } catch {
     return null
   }

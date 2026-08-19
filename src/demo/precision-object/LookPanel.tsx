@@ -8,25 +8,44 @@ import {
   TEXTURE_SETS,
   classifyTextureFiles,
   customMapCache,
+  DEFAULT_HAND_CALIBRATION,
+  formatInitialCameraJson,
+  formatScrollCameraJson,
+  formatHotspotCameraJson,
+  formatHandsCalibrationJson,
   formatLookJson,
   persistLook,
   NAMED_VIEW_IDS,
   NAMED_VIEW_LABELS,
   type CameraLook,
+  type HandLook,
+  type ModelLook,
   type NamedViewId,
   type SavedLook,
   type TextureSetId,
   type TextureTargetLook,
 } from './lookStudio'
+import { wrapHandDeg } from './cetWatchHands'
+
+type GizmoMode = 'translate' | 'rotate'
 
 type Props = {
   look: SavedLook
   onChange: (look: SavedLook) => void
   captureCamera: () => CameraLook | null
+  captureModel: () => ModelLook | null
   placeMode: boolean
   onPlaceMode: (value: boolean) => void
   placeHotspotId: string | null
   onPlaceHotspotId: (id: string | null) => void
+  gizmoOn: boolean
+  onGizmoOn: (value: boolean) => void
+  gizmoMode: GizmoMode
+  onGizmoMode: (mode: GizmoMode) => void
+  cameraPan: boolean
+  onCameraPan: (value: boolean) => void
+  handsHeld: boolean
+  onHandsHeld: (value: boolean) => void
   onClose: () => void
 }
 
@@ -60,6 +79,77 @@ function SliderRow({
         onChange={(event) => onChange(Number(event.target.value))}
       />
     </label>
+  )
+}
+
+function parseHandDegInput(raw: string): number | null {
+  const parsed = Number.parseFloat(
+    raw.replace(/\u2212/g, '-').replace(/[°\s]/g, '').replace(',', '.'),
+  )
+  return Number.isFinite(parsed) ? wrapHandDeg(parsed) : null
+}
+
+function DegSlider({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: number
+  onChange: (value: number) => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const shown = draft ?? value.toFixed(1)
+
+  const commitDraft = () => {
+    if (draft == null) return
+    const next = parseHandDegInput(draft)
+    setDraft(null)
+    if (next == null || next === value) return
+    onChange(next)
+  }
+
+  return (
+    <div className="pov-studio__row">
+      <span>
+        {label}
+        <span className="pov-studio__deg">
+          <input
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            spellCheck={false}
+            aria-label={`${label} degrees`}
+            value={shown}
+            onChange={(event) => setDraft(event.target.value)}
+            onBlur={commitDraft}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                event.currentTarget.blur()
+              }
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                setDraft(null)
+              }
+            }}
+          />
+          <span aria-hidden="true">°</span>
+        </span>
+      </span>
+      <input
+        type="range"
+        min={-180}
+        max={180}
+        step={0.5}
+        value={value}
+        aria-label={label}
+        onChange={(event) => {
+          setDraft(null)
+          onChange(Number(event.target.value))
+        }}
+      />
+    </div>
   )
 }
 
@@ -168,14 +258,99 @@ export function LookPanel({
   look,
   onChange,
   captureCamera,
+  captureModel,
   placeMode,
   onPlaceMode,
   placeHotspotId,
   onPlaceHotspotId,
+  gizmoOn,
+  onGizmoOn,
+  gizmoMode,
+  onGizmoMode,
+  cameraPan,
+  onCameraPan,
+  handsHeld,
+  onHandsHeld,
   onClose,
 }: Props) {
   const [copied, setCopied] = useState(false)
   const [status, setStatus] = useState('')
+
+  const setAsFirstView = () => {
+    const camera = captureCamera()
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const next = {
+      ...look,
+      camera,
+      views: { ...look.views, hero: camera },
+    }
+    persistLook(next)
+    onChange(next)
+    setStatus('First view saved. Copy camera and paste the JSON in chat to bake it into the site default.')
+  }
+
+  const copyInitialCamera = async () => {
+    const camera = captureCamera() ?? look.camera
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const text = formatInitialCameraJson(camera)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setStatus('Copied initial camera. Paste this JSON in chat to bake it into DEFAULT_LOOK.')
+    } catch {
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'precision-object-initial-camera.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setCopied(false)
+      setStatus('Clipboard blocked. Downloaded precision-object-initial-camera.json.')
+    }
+  }
+
+  const setAsScrollDownView = () => {
+    const camera = captureCamera()
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const next = { ...look, scrollCamera: camera }
+    persistLook(next)
+    onChange(next)
+    setStatus('Scroll-down view saved. Save look or copy camera to bake it in.')
+  }
+
+  const copyScrollCamera = async () => {
+    const camera = captureCamera() ?? look.scrollCamera
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const text = formatScrollCameraJson(camera)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setStatus('Copied scroll-down camera. Paste this JSON in chat to bake it into DEFAULT_LOOK.scrollCamera.')
+    } catch {
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'precision-object-scroll-down-camera.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setCopied(false)
+      setStatus('Clipboard blocked. Downloaded precision-object-scroll-down-camera.json.')
+    }
+  }
 
   const assignView = (id: NamedViewId) => {
     const camera = captureCamera()
@@ -190,9 +365,108 @@ export function LookPanel({
     setStatus(`Assigned ${NAMED_VIEW_LABELS[id]}. Save look to keep it.`)
   }
 
+  const selectedHotspot = look.hotspots.find((item) => item.id === placeHotspotId)
+
+  const assignHotspotCamera = () => {
+    const id = placeHotspotId
+    if (!id) {
+      setStatus('Select a hotspot first.')
+      return
+    }
+    const camera = captureCamera()
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const fallback = HOTSPOTS.find((item) => item.id === id)
+    onChange({
+      ...look,
+      hotspots: look.hotspots.some((item) => item.id === id)
+        ? look.hotspots.map((item) => (item.id === id ? { ...item, camera } : item))
+        : [...look.hotspots, { id, position: fallback?.position ?? [0, 0, 0], camera }],
+    })
+    const label = fallback ? `${fallback.label} ${fallback.title}` : id
+    setStatus(`Assigned camera to ${label}. Save look to keep it.`)
+  }
+
+  const copyHotspotCamera = async () => {
+    const id = placeHotspotId
+    if (!id) {
+      setStatus('Select a hotspot first.')
+      return
+    }
+    const camera = captureCamera() ?? selectedHotspot?.camera
+    if (!camera) {
+      setStatus('Could not capture the camera.')
+      return
+    }
+    const text = formatHotspotCameraJson(id, camera)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setStatus('Copied hotspot camera. Paste this JSON in chat to bake it into DEFAULT_LOOK.hotspots.')
+    } catch {
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `precision-object-hotspot-${id}-camera.json`
+      a.click()
+      URL.revokeObjectURL(url)
+      setCopied(false)
+      setStatus('Clipboard blocked. Downloaded hotspot camera JSON.')
+    }
+  }
+
+  const toggleHotspotAutoRotate = () => {
+    const id = placeHotspotId
+    if (!id) {
+      setStatus('Select a hotspot first.')
+      return
+    }
+    const on = !selectedHotspot?.autoRotate
+    const fallback = HOTSPOTS.find((item) => item.id === id)
+    onChange({
+      ...look,
+      hotspots: look.hotspots.some((item) => item.id === id)
+        ? look.hotspots.map((item) => (item.id === id ? { ...item, autoRotate: on } : item))
+        : [...look.hotspots, { id, position: fallback?.position ?? [0, 0, 0], autoRotate: on }],
+    })
+  }
+
+  const hands: HandLook = look.hands ?? DEFAULT_HAND_CALIBRATION
+
+  const commitHands = (next: HandLook, persist = true) => {
+    const payload = { ...look, hands: next }
+    if (persist) persistLook(payload)
+    onChange(payload)
+  }
+
+  const copyHands = async () => {
+    const next = look.hands ?? DEFAULT_HAND_CALIBRATION
+    persistLook({ ...look, hands: next })
+    const text = formatHandsCalibrationJson(next)
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setStatus('Copied hands. Paste this JSON in chat to bake it into DEFAULT_LOOK.hands.')
+    } catch {
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'precision-object-hand-calibration.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setCopied(false)
+      setStatus('Clipboard blocked. Downloaded precision-object-hand-calibration.json.')
+    }
+  }
+
   const save = async () => {
     const camera = captureCamera() ?? look.camera
-    const payload = { ...look, camera, savedAt: new Date().toISOString() }
+    const model = captureModel() ?? look.model
+    const payload = { ...look, camera, model, savedAt: new Date().toISOString() }
     persistLook(payload)
     onChange(payload)
     const text = formatLookJson(payload)
@@ -222,9 +496,173 @@ export function LookPanel({
         </button>
       </div>
       <p className="pov-studio__lead">
-        Try textures, sun, shadows, materials and hotspot placement. Save stores the current camera
-        view too — paste the JSON back when you want it baked in.
+        Try textures, sun, shadows, materials, watch pose and hotspot cameras. Save stores the
+        current camera, watch transform and any assigned views.
       </p>
+
+      <section className="pov-studio__block">
+        <header>
+          <h3>Watch pose</h3>
+          <button
+            type="button"
+            className={gizmoOn ? 'pov-chip is-active' : 'pov-chip'}
+            aria-pressed={gizmoOn}
+            onClick={() => onGizmoOn(!gizmoOn)}
+          >
+            Gizmo
+          </button>
+        </header>
+        <p className="pov-studio__hint">
+          Drag the gizmo on the watch to move or rotate it. Orbit pauses while you drag. Save look
+          stores the transform.
+        </p>
+        <div className="pov-studio__hots">
+          <button
+            type="button"
+            className={gizmoMode === 'translate' ? 'pov-chip is-active' : 'pov-chip'}
+            aria-pressed={gizmoMode === 'translate'}
+            onClick={() => onGizmoMode('translate')}
+          >
+            Translate
+          </button>
+          <button
+            type="button"
+            className={gizmoMode === 'rotate' ? 'pov-chip is-active' : 'pov-chip'}
+            aria-pressed={gizmoMode === 'rotate'}
+            onClick={() => onGizmoMode('rotate')}
+          >
+            Rotate
+          </button>
+        </div>
+      </section>
+
+      <section className="pov-studio__block">
+        <header>
+          <h3>Hands / Clock</h3>
+          <div className="pov-studio__hots">
+            <button
+              type="button"
+              className={handsHeld ? 'pov-chip is-active' : 'pov-chip'}
+              aria-pressed={handsHeld}
+              onClick={() => onHandsHeld(!handsHeld)}
+            >
+              Hold hands
+            </button>
+            <button type="button" className="pov-chip" onClick={() => void copyHands()}>
+              Copy hands
+            </button>
+          </div>
+        </header>
+        <p className="pov-studio__hint">
+          Hold hands freezes live ticking and zone-sweep so you can line up against a real clock.
+          Type a degree and Enter, or use the slider / ±5°. Set Zone to Berlin, then Copy.
+        </p>
+        <DegSlider
+          label="12 o'clock"
+          value={hands.twelveXDeg}
+          onChange={(twelveXDeg) => commitHands({ ...hands, twelveXDeg })}
+        />
+        <div className="pov-studio__hots">
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, twelveXDeg: DEFAULT_HAND_CALIBRATION.twelveXDeg })}
+          >
+            Snap 12
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, twelveXDeg: wrapHandDeg(hands.twelveXDeg - 5) })}
+          >
+            −5°
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, twelveXDeg: wrapHandDeg(hands.twelveXDeg + 5) })}
+          >
+            +5°
+          </button>
+        </div>
+        <DegSlider
+          label="Hour offset"
+          value={hands.hourOffsetDeg}
+          onChange={(hourOffsetDeg) => commitHands({ ...hands, hourOffsetDeg })}
+        />
+        <div className="pov-studio__hots">
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, hourOffsetDeg: wrapHandDeg(hands.hourOffsetDeg - 5) })}
+          >
+            −5°
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, hourOffsetDeg: wrapHandDeg(hands.hourOffsetDeg + 5) })}
+          >
+            +5°
+          </button>
+        </div>
+        <DegSlider
+          label="Minute offset"
+          value={hands.minuteOffsetDeg}
+          onChange={(minuteOffsetDeg) => commitHands({ ...hands, minuteOffsetDeg })}
+        />
+        <div className="pov-studio__hots">
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, minuteOffsetDeg: wrapHandDeg(hands.minuteOffsetDeg - 5) })}
+          >
+            −5°
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, minuteOffsetDeg: wrapHandDeg(hands.minuteOffsetDeg + 5) })}
+          >
+            +5°
+          </button>
+        </div>
+        <DegSlider
+          label="Seconds offset"
+          value={hands.secondOffsetDeg}
+          onChange={(secondOffsetDeg) => commitHands({ ...hands, secondOffsetDeg })}
+        />
+        <div className="pov-studio__hots">
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, secondOffsetDeg: wrapHandDeg(hands.secondOffsetDeg - 5) })}
+          >
+            −5°
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() => commitHands({ ...hands, secondOffsetDeg: wrapHandDeg(hands.secondOffsetDeg + 5) })}
+          >
+            +5°
+          </button>
+          <button
+            type="button"
+            className="pov-chip"
+            onClick={() =>
+              commitHands({
+                ...hands,
+                hourOffsetDeg: 0,
+                minuteOffsetDeg: 0,
+                secondOffsetDeg: 0,
+              })
+            }
+          >
+            Reset offsets
+          </button>
+        </div>
+      </section>
 
       <TextureBlock
         title="Stand"
@@ -548,8 +986,13 @@ export function LookPanel({
           </button>
         </header>
         {placeMode ? (
-          <p className="pov-studio__hint">Select a hotspot, then click the object surface.</p>
-        ) : null}
+          <p className="pov-studio__hint">Select a hotspot, then click the watch mesh — not the floor.</p>
+        ) : (
+          <p className="pov-studio__hint">
+            Select a hotspot, orbit to a frame, then Assign camera. Opening that hotspot later flies
+            to this camera.
+          </p>
+        )}
         <div className="pov-studio__hots">
           {HOTSPOTS.map((hotspot) => (
             <button
@@ -559,8 +1002,72 @@ export function LookPanel({
               onClick={() => onPlaceHotspotId(hotspot.id)}
             >
               {hotspot.label} {hotspot.title}
+              {look.hotspots.find((item) => item.id === hotspot.id)?.camera ? ' · cam' : ''}
             </button>
           ))}
+        </div>
+        <div className="pov-studio__hots">
+          <button type="button" className="pov-chip" onClick={assignHotspotCamera}>
+            Assign camera
+          </button>
+          <button type="button" className="pov-chip" onClick={() => void copyHotspotCamera()}>
+            Copy camera
+          </button>
+          <button
+            type="button"
+            className={selectedHotspot?.autoRotate ? 'pov-chip is-active' : 'pov-chip'}
+            aria-pressed={Boolean(selectedHotspot?.autoRotate)}
+            onClick={toggleHotspotAutoRotate}
+          >
+            Rotate on inspect
+          </button>
+        </div>
+      </section>
+
+      <section className="pov-studio__block">
+        <header>
+          <h3>Camera</h3>
+          <button
+            type="button"
+            className={cameraPan ? 'pov-chip is-active' : 'pov-chip'}
+            aria-pressed={cameraPan}
+            onClick={() => onCameraPan(!cameraPan)}
+          >
+            Fly / Pan camera
+          </button>
+        </header>
+        <p className="pov-studio__hint">Ctrl + drag or Ctrl + WASD to move view</p>
+      </section>
+
+      <section className="pov-studio__block">
+        <h3>Initial camera</h3>
+        <p className="pov-studio__hint">
+          First view after landing and after Explore. Orbit to the shot, then set or copy. Scroll-down
+          is the frame when the visitor reaches the second 3D screen.
+        </p>
+        <div className="pov-studio__hots pov-studio__hots--pair">
+          <button
+            type="button"
+            className={look.camera ? 'pov-chip is-active' : 'pov-chip'}
+            onClick={setAsFirstView}
+          >
+            Set as first view
+          </button>
+          <button type="button" className="pov-chip" onClick={() => void copyInitialCamera()}>
+            Copy camera
+          </button>
+        </div>
+        <div className="pov-studio__hots pov-studio__hots--pair">
+          <button
+            type="button"
+            className={look.scrollCamera ? 'pov-chip is-active' : 'pov-chip'}
+            onClick={setAsScrollDownView}
+          >
+            Set as scroll-down view
+          </button>
+          <button type="button" className="pov-chip" onClick={() => void copyScrollCamera()}>
+            Copy scroll-down camera
+          </button>
         </div>
       </section>
 
@@ -597,7 +1104,10 @@ export function LookPanel({
       <button type="button" className="pov-btn pov-btn--primary pov-studio__save" onClick={() => void save()}>
         Save look
       </button>
-      <p className="pov-studio__hint">Includes the startup camera and any assigned views.</p>
+      <p className="pov-studio__hint">
+        Includes the startup camera, scroll-down camera, assigned views, watch pose, hotspot cameras,
+        rotate-on-inspect and hand calibration.
+      </p>
       {status ? <p className="pov-studio__status">{copied ? status : status}</p> : null}
     </aside>
   )

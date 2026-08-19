@@ -2,9 +2,10 @@ import type { ReactNode } from 'react'
 
 type Props = {
   children: ReactNode
+  headerEnd?: ReactNode
 }
 
-export function AppShell({ children }: Props) {
+export function AppShell({ children, headerEnd }: Props) {
   return (
     <div className="pov-page">
       <a className="pov-skip" href="#viewer">
@@ -14,7 +15,10 @@ export function AppShell({ children }: Props) {
         <a className="pov-brand" href="https://iobjectm.com/">
           IOM
         </a>
-        <p className="pov-header__meta">Precision object study</p>
+        <div className="pov-header__end">
+          <p className="pov-header__meta">Precision object study</p>
+          {headerEnd}
+        </div>
       </header>
       {children}
     </div>

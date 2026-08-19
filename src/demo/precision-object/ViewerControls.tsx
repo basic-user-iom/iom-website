@@ -19,6 +19,7 @@ type Props = {
   onReset: () => void
   onPreset: (id: CameraPresetId) => void
   onFullscreen: () => void
+  onExit: () => void
 }
 
 const PRESETS: { id: CameraPresetId; label: string }[] = [
@@ -47,9 +48,15 @@ export function ViewerControls({
   onReset,
   onPreset,
   onFullscreen,
+  onExit,
 }: Props) {
   return (
     <div className="pov-controls" role="toolbar" aria-label="Object viewer controls">
+      <div className="pov-controls__group">
+        <button type="button" className="pov-chip pov-chip--exit" onClick={onExit}>
+          Exit explore
+        </button>
+      </div>
       <div className="pov-controls__group">
         <span className="pov-controls__label">View</span>
         {PRESETS.map((preset) => (

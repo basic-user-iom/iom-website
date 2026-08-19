@@ -2,6 +2,9 @@ export type Vec3 = [number, number, number]
 
 export type LightingPresetId = 'studio' | 'detail'
 
+/** Product default Light chip — Detail, not Studio. */
+export const DEFAULT_LIGHTING_PRESET: LightingPresetId = 'detail'
+
 export type CameraPresetId = 'hero' | 'front' | 'detail' | 'top'
 
 export type CameraPreset = {
@@ -60,15 +63,29 @@ export type ViewerApi = {
   setAutoRotate: (value: boolean) => void
   setLighting: (preset: LightingPresetId) => void
   setMotion: (value: boolean) => void
+  /** Calibration freeze: stop live ticking and zone-sweep without changing Motion. */
+  setHandsFrozen: (value: boolean) => void
+  /** IANA zone or `local`. Updates analog hands immediately. */
+  setTimeZone: (timeZone: string) => void
   setPbr: (value: boolean) => void
   setLook: (look: import('./lookStudio').SavedLook) => void
   captureCamera: () => import('./lookStudio').CameraLook | null
+  captureModel: () => import('./lookStudio').ModelLook | null
+  setGizmoVisible: (value: boolean) => void
+  setGizmoMode: (mode: 'translate' | 'rotate') => void
   setPlaceHotspots: (value: boolean) => void
   setPlaceHotspotId: (id: string | null) => void
   setExploded: (value: boolean) => void
   setHeroBias: (value: boolean) => void
   setActive: (value: boolean) => void
+  /** Orbit, pan, zoom, inspect, and gizmos. Off until Explore the object. */
+  setInteractionEnabled: (value: boolean) => void
+  /** Ctrl+drag / Ctrl+WASD pan. Off for a presentation session; not stored in look JSON. */
+  setCameraPan: (value: boolean) => void
   resetCamera: () => void
+  goToInitialCamera: () => void
+  goToScrollCamera: () => void
+  restoreCameraForScroll: (inHero: boolean) => void
   goToPreset: (id: CameraPresetId) => void
   focusHotspot: (id: string) => void
   enterFullscreen: () => Promise<void>

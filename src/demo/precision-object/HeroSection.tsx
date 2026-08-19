@@ -1,3 +1,4 @@
+import { forwardRef } from 'react'
 import { PRODUCT } from './productConfig'
 
 type Props = {
@@ -5,9 +6,12 @@ type Props = {
   onDetails: () => void
 }
 
-export function HeroSection({ onExplore, onDetails }: Props) {
+export const HeroSection = forwardRef<HTMLElement, Props>(function HeroSection(
+  { onExplore, onDetails },
+  ref,
+) {
   return (
-    <section className="pov-hero" aria-labelledby="pov-hero-title">
+    <section className="pov-hero" ref={ref} aria-labelledby="pov-hero-title">
       <div className="pov-hero__copy">
         <p className="pov-eyebrow">{PRODUCT.eyebrow}</p>
         <h1 id="pov-hero-title" className="pov-hero__title">
@@ -29,4 +33,4 @@ export function HeroSection({ onExplore, onDetails }: Props) {
       </p>
     </section>
   )
-}
+})
