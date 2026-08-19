@@ -22,7 +22,7 @@
       "destination": "/demo/evly/index.html"
     },
     {
-      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|(?:de|fr|nl|es|it)/project-costs|project-costs).*)",
+      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs).*)",
       "destination": "/index.html"
     }
   ],
