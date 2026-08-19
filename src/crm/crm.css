@@ -3059,6 +3059,14 @@ button.crm-tag-chip {
   border-color: color-mix(in srgb, #6bcf8e 45%, var(--border));
 }
 
+.crm-email-msg--scheduled {
+  border-color: color-mix(in srgb, #e8c547 50%, var(--border));
+}
+
+.crm-email-msg--scheduled .crm-email-msg-dir {
+  color: #e8c547;
+}
+
 .crm-email-msg-toggle {
   display: flex;
   flex-direction: column;
@@ -3126,6 +3134,25 @@ button.crm-tag-chip {
 
 .crm-email-thread-schedule {
   margin-top: 0.85rem;
+}
+
+.crm-email-thread-schedule .crm-email-msg {
+  margin-bottom: 0.65rem;
+}
+
+.crm-email-schedule-body {
+  margin: 0.55rem 0 0;
+  max-height: min(28rem, 60vh);
+  overflow: auto;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  border-radius: calc(var(--radius) - 2px);
+  background: color-mix(in srgb, var(--bg) 80%, transparent);
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  color: inherit;
 }
 
 .crm-outreach-preview-frame--thread {

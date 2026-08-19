@@ -148,6 +148,7 @@ export function EmailThreadPanel({
   const [composeOpen, setComposeOpen] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [previewMessageId, setPreviewMessageId] = useState<string | null>(null)
+  const [previewScheduled, setPreviewScheduled] = useState(false)
   const [busy, setBusy] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [subject, setSubject] = useState('')
@@ -248,6 +249,7 @@ export function EmailThreadPanel({
           )
         : emptySchedulePickerParts(),
     )
+    setPreviewScheduled(false)
   }, [lead.id, lead.scheduled_send, contactTz, hasContactTz])
 
   useEffect(() => {
@@ -323,6 +325,15 @@ export function EmailThreadPanel({
   const previewHtml =
     previewSubject && previewBody
       ? renderOutreachEmailHtml({ subject: previewSubject, body: previewBody })
+      : ''
+  const scheduledSubject = replySchedule?.subject?.trim() || ''
+  const scheduledBody = replySchedule?.body?.trim() || ''
+  const scheduledHtml =
+    scheduledSubject && scheduledBody
+      ? renderOutreachEmailHtml({
+          subject: scheduledSubject,
+          body: scheduledBody,
+        })
       : ''
 
   const canSend =
@@ -612,6 +623,51 @@ export function EmailThreadPanel({
     }
   }
 
+  const scheduledReplyContent =
+    replySchedule ? (
+      <>
+        {scheduledSubject ? (
+          <p className="crm-muted">
+            {t('thread.scheduledSubject', { subject: scheduledSubject })}
+          </p>
+        ) : null}
+        {scheduledBody ? (
+          <pre className="crm-email-schedule-body">{scheduledBody}</pre>
+        ) : (
+          <p className="crm-muted">{t('thread.scheduledEmpty')}</p>
+        )}
+        {scheduledHtml ? (
+          <div className="crm-email-msg-actions">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setPreviewScheduled((v) => !v)}
+            >
+              {previewScheduled
+                ? t('outreach.hidePreview')
+                : t('outreach.showPreview')}
+            </button>
+          </div>
+        ) : null}
+        {previewScheduled && scheduledHtml ? (
+          <div className="crm-outreach-html-preview">
+            <p className="crm-outreach-focus-label">
+              {t('thread.previewTitle')}
+            </p>
+            <p className="crm-outreach-preview-subject">
+              <span className="crm-muted">{t('outreach.subject')}:</span>{' '}
+              <strong>{scheduledSubject || t('thread.noSubject')}</strong>
+            </p>
+            <ThreadHtmlPreview
+              html={scheduledHtml}
+              title={scheduledSubject || t('thread.previewTitle')}
+              interactive
+            />
+          </div>
+        ) : null}
+      </>
+    ) : null
+
   const scheduleControls = (
     <div className="crm-outreach-schedule crm-email-reply-schedule">
       <p className="crm-outreach-focus-label">{t('thread.scheduleHeading')}</p>
@@ -649,11 +705,7 @@ export function EmailThreadPanel({
               })}
             </p>
           )}
-          {replySchedule.subject ? (
-            <p className="crm-muted">
-              {t('thread.scheduledSubject', { subject: replySchedule.subject })}
-            </p>
-          ) : null}
+          {scheduledReplyContent}
           {hasContactTz && !replyScheduledExhausted && (
             <p className="crm-muted crm-outreach-schedule-yours">
               {t('outreach.scheduleYours', {
@@ -917,42 +969,39 @@ export function EmailThreadPanel({
 
       {replyScheduledArmed && replySchedule && !composeOpen && sendUiOk && (
         <div className="crm-outreach-schedule crm-email-thread-schedule">
-          <div className="crm-outreach-schedule-armed" role="status">
-            {replyScheduledExhausted ? (
-              <p className="crm-outreach-schedule-exhausted">
-                {t('outreach.scheduleExhausted', {
-                  attempts: String(SCHEDULED_SEND_MAX_ATTEMPTS),
-                })}
-              </p>
-            ) : (
-              <p>
-                {t('thread.scheduleArmed', {
-                  when: formatContactWhen(replySchedule.at),
-                  email: replySchedule.to,
-                  tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
-                })}
-              </p>
-            )}
-            {replySchedule.subject ? (
-              <p className="crm-muted">
-                {t('thread.scheduledSubject', {
-                  subject: replySchedule.subject,
-                })}
-              </p>
-            ) : null}
-            {hasContactTz && (
-              <p className="crm-muted crm-outreach-schedule-yours">
-                {t('outreach.scheduleYours', {
-                  when: formatWhen(replySchedule.at),
-                })}
-              </p>
-            )}
-            {replySchedule.error ? (
-              <p className="crm-outreach-schedule-error">
-                {t('outreach.scheduleError', { error: replySchedule.error })}
-              </p>
-            ) : null}
-          </div>
+          <article className="crm-email-msg crm-email-msg--scheduled">
+            <span className="crm-email-msg-dir">{t('thread.scheduled')}</span>
+            <div className="crm-outreach-schedule-armed" role="status">
+              {replyScheduledExhausted ? (
+                <p className="crm-outreach-schedule-exhausted">
+                  {t('outreach.scheduleExhausted', {
+                    attempts: String(SCHEDULED_SEND_MAX_ATTEMPTS),
+                  })}
+                </p>
+              ) : (
+                <p>
+                  {t('thread.scheduleArmed', {
+                    when: formatContactWhen(replySchedule.at),
+                    email: replySchedule.to,
+                    tz: hasContactTz ? contactTz : t('outreach.scheduleYourTz'),
+                  })}
+                </p>
+              )}
+              {scheduledReplyContent}
+              {hasContactTz && (
+                <p className="crm-muted crm-outreach-schedule-yours">
+                  {t('outreach.scheduleYours', {
+                    when: formatWhen(replySchedule.at),
+                  })}
+                </p>
+              )}
+              {replySchedule.error ? (
+                <p className="crm-outreach-schedule-error">
+                  {t('outreach.scheduleError', { error: replySchedule.error })}
+                </p>
+              ) : null}
+            </div>
+          </article>
           <div className="crm-detail-actions">
             {sendUiOk && (
               <button

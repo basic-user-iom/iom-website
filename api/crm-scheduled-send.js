@@ -1,6 +1,6 @@
 /**
  * Process due scheduled initial outreach sends.
- * Vercel cron + staff ping from CRM UI (+ optional free external ~5 min cron).
+ * Vercel cron + staff ping from CRM UI (+ GitHub Actions ~4×/hour).
  *
  * GET|POST /api/crm-scheduled-send
  * GET|POST /api/crm-scheduled-send?health=1  → config booleans only

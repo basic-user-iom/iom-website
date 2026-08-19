@@ -1325,7 +1325,7 @@ const en: Dict = {
   'outreach.scheduleRetryOk':
     'Schedule reset and server pinged ({checked} armed).',
   'outreach.scheduleConfirm':
-    'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, optional free ~5‑min external cron, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
+    'Schedule this initial outreach to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, GitHub about 4×/hour, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
   'outreach.scheduleCancelConfirm': 'Cancel the scheduled send for this lead?',
   'outreach.scheduleInvalid':
     'Enter a valid day, month, year, and 24-hour time in the contact’s timezone (watch for DST gaps).',
@@ -1334,7 +1334,7 @@ const en: Dict = {
   'outreach.scheduleNeedTimezone':
     'Set the contact’s timezone on this lead (Client local time) before scheduling — send time is always their local clock.',
   'outreach.scheduleHint':
-    'Times are the contact’s local timezone (day/month/year, 24-hour). Sends run when the worker next ticks — Ping now, an optional free external cron (~every 5 min), or the daily 08:00 UTC Vercel backup. Saving a schedule also pings the server (queued — one batch after another, never cancels others). After 5 failures the schedule stops until you Retry. Staff get an email if delivery fails.',
+    'Times are the contact’s local timezone (day/month/year, 24-hour). Sends run when the worker next ticks — Ping now, GitHub about 4 times an hour, or the daily 08:00 UTC Vercel backup. Saving a schedule also pings the server (queued — one batch after another, never cancels others). After 5 failures the schedule stops until you Retry. Staff get an email if delivery fails.',
   'outreach.scheduleDemoHint':
     'Picker uses the contact’s timezone (day/month/year, 24-hour). Schedule save and Ping now process due demo schedules on refresh — no real email is sent.',
   'outreach.ping': 'Ping now',
@@ -1420,12 +1420,15 @@ const en: Dict = {
   'thread.previewTitle': 'Formatted view',
   'thread.scheduleReply': 'Schedule reply',
   'thread.scheduleConfirm':
-    'Schedule this reply to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, optional free ~5‑min external cron, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
+    'Schedule this reply to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, GitHub about 4×/hour, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
   'thread.scheduleCancelConfirm': 'Cancel the scheduled reply for this lead?',
   'thread.scheduleReplaceConfirm':
     'This lead already has a scheduled send. Replace it with this reply?',
   'thread.scheduleArmed': 'Reply scheduled for {when} ({tz}) → {email}',
   'thread.scheduledSubject': 'Subject: {subject}',
+  'thread.scheduled': 'Scheduled',
+  'thread.scheduledEmpty':
+    'No reply body was saved with this schedule. Open Compose reply to edit and reschedule.',
   'thread.scheduleHeading': 'Schedule this reply',
 
   'profile.title': 'Your profile photo',
@@ -1546,7 +1549,7 @@ const en: Dict = {
   'guide.outreach5':
     'List badges show Email pending / Email sent / Scheduled / Priority / Replied. Stage filter “Not contacted” lists leads with no initial email sent yet; “Client replied” lists leads with inbound email, newest reply first. Tags label industry/geo/offer-fit (custom tags allowed). Activity log still records calls, meetings, and notes — the email thread is the source of truth for correspondence',
   'guide.outreach6':
-    'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — it sends on the next worker run (Ping now, optional free ~5‑min external cron, or daily 08:00 UTC backup), not at that exact minute. Proton sends and emails you if it fails. After 5 failures use Retry schedule. Mistaken Sent? Use Mark as not sent on the outreach panel',
+    'Priority queues a lead for outreach (does not expire at midnight). Schedule send arms the current draft for a future time — it sends on the next worker run (Ping now, GitHub about 4×/hour, or daily 08:00 UTC backup), not at that exact minute. Proton sends and emails you if it fails. After 5 failures use Retry schedule. Mistaken Sent? Use Mark as not sent on the outreach panel',
   'guide.outreach7':
     'Scheduled sends use the contact’s timezone. Saving a schedule (or Ping now) queues a server check — several leads in a row never cancel each other; each due email is sent separately. Draft at fire time is what sends. Max 5 retries, then Retry resets the counter',
   'guide.outreachDemoText':
@@ -3057,7 +3060,7 @@ const sr: Dict = {
   'outreach.scheduleRetryOk':
     'Raspored resetovan i server pingovan ({checked} na čekanju).',
   'outreach.scheduleConfirm':
-    'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC) — ne tačno u minuti. Dobijate email ako isporuka ne uspe.',
+    'Zakazati ovaj inicijalni outreach na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, GitHub oko 4× na sat, ili dnevni backup u 08:00 UTC) — ne tačno u minuti. Dobijate email ako isporuka ne uspe.',
   'outreach.scheduleCancelConfirm': 'Otkazati zakazano slanje za ovaj lead?',
   'outreach.scheduleInvalid':
     'Unesite važeći dan, mesec, godinu i 24-časovno vreme u vremenskoj zoni kontakta (pazite na DST praznine).',
@@ -3066,7 +3069,7 @@ const sr: Dict = {
   'outreach.scheduleNeedTimezone':
     'Prvo podesite vremensku zonu kontakta na leadu (Lokalno vreme klijenta) — vreme slanja je uvek njihov lokalni sat.',
   'outreach.scheduleHint':
-    'Vremena su lokalna zona kontakta (dan/mesec/godina, 24-časovno). Slanje ide na sledeći worker tick — Ping sada, opcionalni besplatni spoljni cron (~svakih 5 min), ili dnevni Vercel backup u 08:00 UTC. Čuvanje rasporeda takođe pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Posle 5 neuspeha raspored staje dok ne kliknete Pokušaj ponovo. Tim dobija email ako ne uspe.',
+    'Vremena su lokalna zona kontakta (dan/mesec/godina, 24-časovno). Slanje ide na sledeći worker tick — Ping sada, GitHub oko 4 puta na sat, ili dnevni Vercel backup u 08:00 UTC. Čuvanje rasporeda takođe pinguje server (u redu — jedan paket za drugim, bez otkazivanja). Posle 5 neuspeha raspored staje dok ne kliknete Pokušaj ponovo. Tim dobija email ako ne uspe.',
   'outreach.scheduleDemoHint':
     'Birač koristi vremensku zonu kontakta (dan/mesec/godina, 24-časovno). Čuvanje rasporeda i Ping sada obrađuju dospele demo rasporede lokalno — pravi email se ne šalje.',
   'outreach.ping': 'Ping sada',
@@ -3152,12 +3155,15 @@ const sr: Dict = {
   'thread.previewTitle': 'Formatirani pregled',
   'thread.scheduleReply': 'Zakaži odgovor',
   'thread.scheduleConfirm':
-    'Zakazati ovaj odgovor na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC) — ne tačno u toj minuti. Ako isporuka ne uspe, dobijate email.',
+    'Zakazati ovaj odgovor na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, GitHub oko 4× na sat, ili dnevni backup u 08:00 UTC) — ne tačno u toj minuti. Ako isporuka ne uspe, dobijate email.',
   'thread.scheduleCancelConfirm': 'Otkazati zakazani odgovor za ovaj lead?',
   'thread.scheduleReplaceConfirm':
     'Ovaj lead već ima zakazano slanje. Zameniti ga ovim odgovorom?',
   'thread.scheduleArmed': 'Odgovor zakazan za {when} ({tz}) → {email}',
   'thread.scheduledSubject': 'Naslov: {subject}',
+  'thread.scheduled': 'Zakazano',
+  'thread.scheduledEmpty':
+    'Uz ovaj raspored nije sačuvan tekst odgovora. Otvorite Napiši odgovor da uredite i zakažete ponovo.',
   'thread.scheduleHeading': 'Zakaži ovaj odgovor',
 
   'profile.title': 'Vaša profilna fotografija',
@@ -3279,7 +3285,7 @@ const sr: Dict = {
   'guide.outreach5':
     'Kartice pokazuju Email na čekanju / Email poslat / Zakazano / Prioritet / Odgovorio. Filter faze „Nije kontaktiran” prikazuje leadove bez poslatog inicijalnog emaila; „Klijent odgovorio” prikazuje leadove sa inbound emailom, najnoviji odgovor prvi. Tagovi označavaju industriju/geo/fit ponude (prilagođeni tagovi dozvoljeni). Dnevnik aktivnosti i dalje beleži pozive, sastanke i beleške — email nit je izvor istine za korespondenciju',
   'guide.outreach6':
-    'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — šalje se na sledeći worker tick (Ping sada, opcionalni besplatni ~5‑min spoljni cron, ili dnevni backup u 08:00 UTC), ne tačno u toj minuti. Proton šalje i šalje vam email ako ne uspe. Posle 5 neuspeha koristite Pokušaj ponovo. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
+    'Prioritet stavlja lead u red za kontakt (ne ističe u ponoć). Zakaži slanje armira trenutni draft za buduće vreme — šalje se na sledeći worker tick (Ping sada, GitHub oko 4× na sat, ili dnevni backup u 08:00 UTC), ne tačno u toj minuti. Proton šalje i šalje vam email ako ne uspe. Posle 5 neuspeha koristite Pokušaj ponovo. Greškom Označen poslat? Koristite Označi kao nije poslat na outreach panelu',
   'guide.outreach7':
     'Zakazano slanje koristi vremensku zonu kontakta. Čuvanje rasporeda (ili Ping sada) stavlja proveru u red — više leadova zaredom se ne otkazuju; svaki dospeli email ide posebno. Šalje se draft u trenutku okidanja. Najviše 5 pokušaja, zatim Pokušaj ponovo resetuje brojač',
   'guide.outreachDemoText':

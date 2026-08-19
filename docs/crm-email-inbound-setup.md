@@ -106,10 +106,11 @@ Webhook deliveries are deduped by `svix-id` (and email `message_id`).
 
 ## Scheduled outbound (Hobby-friendly)
 
-Vercel Hobby only runs cron **once per day** (`0 8 * * *` → `/api/crm-scheduled-send`). For ~5‑minute precision without upgrading, this repo uses **GitHub Actions** (public repo, free):
+Vercel Hobby only runs cron **once per day** (`0 8 * * *` → `/api/crm-scheduled-send`). For daytime sends without upgrading, this repo uses **GitHub Actions** (free):
 
 - Workflow: [`.github/workflows/crm-scheduled-send.yml`](../.github/workflows/crm-scheduled-send.yml)
-- Schedule: every 5 minutes + manual **Run workflow**
+- Schedule: four times per hour UTC (`:00`, `:15`, `:30`, `:45`) + manual **Run workflow**
+- GitHub may still delay or skip a slot — staff **Ping now** is immediate
 - Secret: GitHub `CRM_CRON_SECRET` = same value as Vercel `CRON_SECRET`
 
 Also ensure Vercel `CRON_SECRET` and `CRM_CRON_SECRET` match (or only one is set). Staff **Ping now** and the daily Vercel cron remain as backups. After 5 failures a schedule shows **Schedule stopped** with a **Retry** action.
