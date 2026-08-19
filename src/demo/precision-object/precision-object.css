@@ -1077,7 +1077,7 @@ html.pov-explore-locked .pov-mechanism {
   color: var(--pov-muted);
 }
 
-.pov-studio__row span {
+.pov-studio__row > span {
   display: flex;
   justify-content: space-between;
 }
@@ -1089,13 +1089,16 @@ html.pov-explore-locked .pov-mechanism {
 
 .pov-studio__deg {
   display: inline-flex;
+  flex-shrink: 0;
   align-items: baseline;
   gap: 0.05rem;
   color: var(--pov-paper);
 }
 
 .pov-studio__deg input {
-  width: 5.1rem;
+  box-sizing: content-box;
+  width: 6.4rem;
+  min-width: 6.4rem;
   margin: 0;
   padding: 0.05rem 0.2rem;
   border: 1px solid var(--pov-line);
@@ -1110,6 +1113,23 @@ html.pov-explore-locked .pov-mechanism {
 .pov-studio__deg input:focus {
   outline: 1px solid var(--pov-accent);
   border-color: var(--pov-accent);
+}
+
+.pov-studio__deg-range {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.pov-studio__deg-range > span {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--pov-muted);
+}
+
+.pov-studio__deg-range > span:last-child {
+  text-align: right;
 }
 
 .pov-studio__row input[type='range'],

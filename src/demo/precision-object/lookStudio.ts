@@ -1,6 +1,7 @@
 import {
   clampHandDeg,
   DEFAULT_HAND_CALIBRATION,
+  restoreHandDegSign,
   type HandCalibration,
 } from './cetWatchHands'
 import type { PbrMapUrls } from './pbrTextures'
@@ -10,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v13'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v12'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v14'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v13'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -24,6 +25,7 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v9',
   'iom-precision-object-look-v10',
   'iom-precision-object-look-v11',
+  'iom-precision-object-look-v12',
   LOOK_STORAGE_PREV,
 ]
 
@@ -282,7 +284,7 @@ export function parseHandsLook(value: unknown): HandLook | undefined {
   const raw = value as Partial<HandLook>
   const d = DEFAULT_HAND_CALIBRATION
   return {
-    twelveXDeg: clampHandDeg(Number(raw.twelveXDeg), d.twelveXDeg),
+    twelveXDeg: restoreHandDegSign(Number(raw.twelveXDeg), d.twelveXDeg),
     hourOffsetDeg: clampHandDeg(Number(raw.hourOffsetDeg), d.hourOffsetDeg),
     minuteOffsetDeg: clampHandDeg(Number(raw.minuteOffsetDeg), d.minuteOffsetDeg),
     secondOffsetDeg: clampHandDeg(Number(raw.secondOffsetDeg), d.secondOffsetDeg),

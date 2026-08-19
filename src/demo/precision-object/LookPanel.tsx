@@ -17,6 +17,7 @@ import {
   persistLook,
   NAMED_VIEW_IDS,
   NAMED_VIEW_LABELS,
+  parseHandsLook,
   type CameraLook,
   type HandLook,
   type ModelLook,
@@ -25,7 +26,7 @@ import {
   type TextureSetId,
   type TextureTargetLook,
 } from './lookStudio'
-import { wrapHandDeg } from './cetWatchHands'
+import { HAND_DEG_MAX, HAND_DEG_MIN, wrapHandDeg } from './cetWatchHands'
 
 type GizmoMode = 'translate' | 'rotate'
 
@@ -82,28 +83,46 @@ function SliderRow({
   )
 }
 
-function parseHandDegInput(raw: string): number | null {
+function parseHandDegInput(raw: string, current: number): number | null {
   const parsed = Number.parseFloat(
     raw.replace(/\u2212/g, '-').replace(/[°\s]/g, '').replace(',', '.'),
   )
-  return Number.isFinite(parsed) ? wrapHandDeg(parsed) : null
+  if (!Number.isFinite(parsed)) return null
+  const next = wrapHandDeg(parsed)
+  // `inputMode=decimal` (and some IMEs) drop the leading minus on blur, so
+  // typing is unchanged but −20.4 comes back as 20.4.
+  if (current < 0 && next > 0 && Math.abs(next + current) < 0.2) return current
+  return next
+}
+
+function formatHandDeg(value: number): string {
+  const n = Number.isFinite(value) ? value : 0
+  const abs = Math.abs(n).toFixed(1)
+  if (n < 0) return `-${abs}`
+  if (n > 0) return abs
+  return abs
 }
 
 function DegSlider({
   label,
   value,
   onChange,
+  min = HAND_DEG_MIN,
+  max = HAND_DEG_MAX,
 }: {
   label: string
   value: number
   onChange: (value: number) => void
+  min?: number
+  max?: number
 }) {
   const [draft, setDraft] = useState<string | null>(null)
-  const shown = draft ?? value.toFixed(1)
+  const shown = draft ?? formatHandDeg(value)
+  const sliderValue = Math.min(max, Math.max(min, value))
 
   const commitDraft = () => {
     if (draft == null) return
-    const next = parseHandDegInput(draft)
+    const next = parseHandDegInput(draft, value)
     setDraft(null)
     if (next == null || next === value) return
     onChange(next)
@@ -116,9 +135,10 @@ function DegSlider({
         <span className="pov-studio__deg">
           <input
             type="text"
-            inputMode="decimal"
+            inputMode="text"
             autoComplete="off"
             spellCheck={false}
+            lang="en"
             aria-label={`${label} degrees`}
             value={shown}
             onChange={(event) => setDraft(event.target.value)}
@@ -137,18 +157,25 @@ function DegSlider({
           <span aria-hidden="true">°</span>
         </span>
       </span>
-      <input
-        type="range"
-        min={-180}
-        max={180}
-        step={0.5}
-        value={value}
-        aria-label={label}
-        onChange={(event) => {
-          setDraft(null)
-          onChange(Number(event.target.value))
-        }}
-      />
+      <div className="pov-studio__deg-range">
+        <span aria-hidden="true">{min}°</span>
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={0.1}
+          value={sliderValue}
+          aria-label={label}
+          aria-valuemin={min}
+          aria-valuemax={max}
+          aria-valuenow={value}
+          onChange={(event) => {
+            setDraft(null)
+            onChange(Number(event.target.value))
+          }}
+        />
+        <span aria-hidden="true">+{max}°</span>
+      </div>
     </div>
   )
 }
@@ -437,7 +464,8 @@ export function LookPanel({
   const hands: HandLook = look.hands ?? DEFAULT_HAND_CALIBRATION
 
   const commitHands = (next: HandLook, persist = true) => {
-    const payload = { ...look, hands: next }
+    const hands = parseHandsLook(next) ?? next
+    const payload = { ...look, hands }
     if (persist) persistLook(payload)
     onChange(payload)
   }
@@ -555,7 +583,9 @@ export function LookPanel({
         </header>
         <p className="pov-studio__hint">
           Hold hands freezes live ticking and zone-sweep so you can line up against a real clock.
-          Type a degree and Enter, or use the slider / ±5°. Set Zone to Berlin, then Copy.
+          12 o'clock is the midnight pose (replaces the old ±90°). Offsets are the rest of that
+          00:00 alignment; live Berlin time adds from there. Type a signed degree, or use the
+          −180°…+180° slider / ±5° nudge. Set Zone to Berlin, then Copy.
         </p>
         <DegSlider
           label="12 o'clock"
