@@ -77,7 +77,7 @@ function readLocal<T>(key: string, fallback: T): T {
   }
 }
 
-/** PostgREST default max-rows is 1000 — page so bulk export is complete. */
+/** PostgREST default max-rows is 1000 — page list + bulk export so counts stay complete. */
 const REST_PAGE_SIZE = 1000
 
 async function fetchAllPaged<T>(
@@ -2005,26 +2005,42 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     const supabase = getSupabase()!
     // Shared team CRM: no owner_id filter — every authenticated user sees all leads.
     // Prefer explicit columns; fall back if optional migrations are pending.
-    let data: unknown = null
-    let error: { message: string } | null = null
-    for (let attempt = 0; attempt < 8; attempt++) {
-      let query = supabase
-        .from('crm_leads')
-        .select(currentLeadSelect())
-        .order('updated_at', { ascending: false })
-      // Pipeline stages hit PostgREST; special filters are client-side.
+    // PostgREST caps a single response at 1000 rows — page until exhausted.
+    const applyListFilters = <Q extends { eq: (column: string, value: string) => Q }>(
+      query: Q,
+    ): Q => {
+      let next = query
       if (
         filters.status !== 'all' &&
         filters.status !== 'not_contacted' &&
         filters.status !== 'client_replied'
       ) {
-        query = query.eq('status', filters.status)
+        next = next.eq('status', filters.status)
       }
-      if (filters.temperature !== 'all') query = query.eq('temperature', filters.temperature)
-      const result = await query
-      data = result.data
-      error = result.error
-      if (!error) {
+      if (filters.temperature !== 'all') {
+        next = next.eq('temperature', filters.temperature)
+      }
+      return next
+    }
+
+    let data: Record<string, unknown>[] = []
+    let error: { message: string } | null = null
+    for (let attempt = 0; attempt < 8; attempt++) {
+      try {
+        data = await fetchAllPaged<Record<string, unknown>>(async (from, to) => {
+          const result = await applyListFilters(
+            supabase
+              .from('crm_leads')
+              .select(currentLeadSelect())
+              .order('updated_at', { ascending: false })
+              .order('id', { ascending: true }),
+          ).range(from, to)
+          return {
+            data: (result.data ?? null) as Record<string, unknown>[] | null,
+            error: result.error,
+          }
+        })
+        error = null
         if (linksColumnPresent !== false) markLinksColumnPresent()
         if (emailsColumnPresent !== false) markEmailsColumnPresent()
         if (valueEmojiColumnPresent !== false) markValueEmojiColumnPresent()
@@ -2035,21 +2051,41 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
         if (clientLocaleColumnsPresent !== false) markClientLocaleColumnsPresent()
         if (outreachColumnsPresent !== false) markOutreachColumnsPresent()
         break
-      }
-      if (markOptionalColumnMissing(error.message)) continue
-      if (isMissingOwnerSnapshotColumn(error.message)) {
-        const fallback = await supabase
-          .from('crm_leads')
-          .select('*')
-          .order('updated_at', { ascending: false })
-        data = fallback.data
-        error = fallback.error
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err ?? '')
+        if (markOptionalColumnMissing(message)) continue
+        if (isMissingOwnerSnapshotColumn(message)) {
+          try {
+            data = await fetchAllPaged<Record<string, unknown>>(async (from, to) => {
+              const result = await applyListFilters(
+                supabase
+                  .from('crm_leads')
+                  .select('*')
+                  .order('updated_at', { ascending: false })
+                  .order('id', { ascending: true }),
+              ).range(from, to)
+              return {
+                data: (result.data ?? null) as Record<string, unknown>[] | null,
+                error: result.error,
+              }
+            })
+            error = null
+          } catch (fallbackErr) {
+            error = {
+              message:
+                fallbackErr instanceof Error
+                  ? fallbackErr.message
+                  : String(fallbackErr ?? ''),
+            }
+          }
+          break
+        }
+        error = { message }
         break
       }
-      break
     }
     if (error) throw new Error(error.message)
-    const leads = ((data ?? []) as unknown as Lead[]).map(normalizeLead)
+    const leads = data.map((row) => normalizeLead(row as unknown as Lead))
     const specialStatus =
       filters.status === 'not_contacted' || filters.status === 'client_replied'
         ? filters.status
