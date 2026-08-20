@@ -110,7 +110,7 @@ export const HOTSPOTS: Hotspot[] = [
     label: '01',
     title: 'Surface finish',
     body: 'Light rakes across the outer form so polish, edge quality and material response can be read without leaving the page.',
-    position: [-0.742, 0.445, 0.501],
+    position: [-0.501, 0.281, 0.734],
     cameraPreset: 'front',
   },
   {
@@ -118,7 +118,7 @@ export const HOTSPOTS: Hotspot[] = [
     label: '02',
     title: 'Mechanical detail',
     body: 'Controls and moving parts stay in context. The camera can approach them without breaking the object into a technical diagram.',
-    position: [-0.414, -0.02, 0.763],
+    position: [-0.824, -0.017, 0.57],
     cameraPreset: 'detail',
   },
   {

@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v19'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v18'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v21'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v20'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -30,6 +30,8 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v14',
   'iom-precision-object-look-v15',
   'iom-precision-object-look-v17',
+  'iom-precision-object-look-v18',
+  'iom-precision-object-look-v19',
   LOOK_STORAGE_PREV,
 ]
 
@@ -406,7 +408,7 @@ export const MATERIAL_GROUPS: {
 /** Canonical startup look — Look studio hydrates from this unless the user Saves after this bake. */
 export const DEFAULT_LOOK: SavedLook = {
   version: 1,
-  savedAt: '2026-08-19T21:36:56.609Z',
+  savedAt: '2026-08-20T00:14:51.281Z',
   stand: {
     enabled: true,
     setId: 'metal049a',
@@ -465,14 +467,38 @@ export const DEFAULT_LOOK: SavedLook = {
     { id: 'glass', label: 'Glass', metalness: 0, roughness: 0, envMapIntensity: 3, color: '#8f8f8f', transmission: 0.94, ior: 1 },
   ],
   hotspots: [
-    { id: 'surface', position: [-0.742, 0.445, 0.501] },
-    { id: 'mechanical', position: [-0.414, -0.02, 0.763] },
-    { id: 'interface', position: [-0.894, -0.325, 0.381] },
+    {
+      id: 'surface',
+      position: [-0.501, 0.281, 0.734],
+      camera: {
+        position: [-0.463, 0.618, 1.546],
+        target: [-0.068, 0.433, -0.019],
+        fov: 30,
+      },
+    },
+    {
+      id: 'mechanical',
+      position: [-0.824, -0.017, 0.57],
+      camera: {
+        position: [-0.49, 0.492, 1.393],
+        target: [-0.068, 0.433, -0.019],
+        fov: 30,
+      },
+    },
+    {
+      id: 'interface',
+      position: [-0.894, -0.325, 0.381],
+      camera: {
+        position: [0.375, 0.852, 1.035],
+        target: [-0.247, 0.517, 0.28],
+        fov: 32,
+      },
+    },
     { id: 'geometry', position: [-0.009, -0.188, 0.927] },
   ],
   notes: 'Watch metal normal: Metal060A DirectX (normalScale.y flip). Dial: Metal048A gold PBR. Stand stays Metal049A.',
   camera: {
-    position: [-1.658, 0.525, 1.639],
+    position: [-0.49, 0.492, 1.393],
     target: [-0.068, 0.433, -0.019],
     fov: 30,
   },
@@ -580,8 +606,12 @@ export function loadStoredLook(): SavedLook | null {
         },
       },
       hdrId: isHdrId(parsedHdr) ? parsedHdr : base.hdrId,
-      camera: parseCameraLook((parsed as SavedLook).camera) ?? base.camera,
-      scrollCamera: parseCameraLook((parsed as SavedLook).scrollCamera) ?? base.scrollCamera,
+      camera: fromCurrent
+        ? parseCameraLook((parsed as SavedLook).camera) ?? base.camera
+        : base.camera,
+      scrollCamera: fromCurrent
+        ? parseCameraLook((parsed as SavedLook).scrollCamera) ?? base.scrollCamera
+        : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: fromCurrent
         ? parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model)
