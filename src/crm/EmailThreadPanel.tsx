@@ -5,6 +5,7 @@ import {
   isLeadMessagesSchemaMissing,
   listLeadMessages,
   normalizeLeadEmails,
+  syncLeadClientReplyAt,
   updateLead,
 } from './api'
 import { formatClientLocalTime } from './clientWeather'
@@ -196,6 +197,13 @@ export function EmailThreadPanel({
       const rows = await listLeadMessages(lead.id)
       setMessages(rows)
       setSchemaMissing(false)
+      void syncLeadClientReplyAt(lead, rows)
+        .then((updated) => {
+          if (updated) onChanged(updated)
+        })
+        .catch(() => {
+          /* ignore — badge/filter heal is best-effort */
+        })
     } catch (err) {
       if (isLeadMessagesSchemaMissing(err)) {
         setSchemaMissing(true)
@@ -217,9 +225,11 @@ export function EmailThreadPanel({
     if (demoMode || !useLiveCrmBackend()) return
     const id = window.setInterval(() => {
       void listLeadMessages(lead.id)
-        .then((rows) => {
+        .then(async (rows) => {
           setMessages(rows)
           setSchemaMissing(false)
+          const updated = await syncLeadClientReplyAt(lead, rows)
+          if (updated) onChanged(updated)
         })
         .catch(() => {
           /* ignore background poll errors */

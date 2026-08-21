@@ -12,6 +12,7 @@ import {
   listAllLeadMessages,
   listLeads as fetchLeads,
   listStaffProfiles,
+  backfillMissingClientReplyAts,
   onAuthChange,
   preserveAtlasEvalFields,
   preserveClientLocaleFields,
@@ -527,6 +528,18 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (prev && rows.some((r) => r.id === prev)) return prev
         return rows[0]?.id ?? null
       })
+      // Older leads may have inbound mail without last_client_reply_at set.
+      void backfillMissingClientReplyAts(catalog)
+        .then((healed) => {
+          if (!healed.length) return
+          setLeads((prev) => {
+            const byId = new Map(healed.map((l) => [l.id, l]))
+            return prev.map((l) => byId.get(l.id) ?? l)
+          })
+        })
+        .catch(() => {
+          /* ignore heal errors — filter still works for already-stamped leads */
+        })
     } catch (err) {
       setError(err instanceof Error ? err.message : t('error.loadLeads'))
     } finally {

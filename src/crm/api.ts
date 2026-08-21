@@ -35,6 +35,7 @@ import {
   type ScheduledSend,
 } from './scheduledSend'
 import { normalizeLeadTags, hasNeedsReview, withoutNeedsReview } from './leadTags'
+import { isAutoReplyLeadMessage } from './autoReplyEmail'
 import { normalizeValueEmoji } from './valueEmoji'
 import { OUTREACH_FROM_IDENTITIES } from './outreachFromIdentities'
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
@@ -2545,7 +2546,12 @@ export async function createLeadMessage(
       .from('crm_leads')
       .update({
         updated_at: stamp,
-        ...(input.direction === 'inbound'
+        ...(input.direction === 'inbound' &&
+        !isAutoReplyLeadMessage({
+          from_email: payload.from_email,
+          subject: payload.subject,
+          body_text: payload.body_text,
+        })
           ? { last_client_reply_at: payload.occurred_at }
           : {}),
       })
@@ -2567,16 +2573,166 @@ export async function createLeadMessage(
   const idx = leads.findIndex((l) => l.id === input.lead_id)
   if (idx >= 0) {
     const prev = leads[idx]!
+    const countAsReply =
+      input.direction === 'inbound' &&
+      !isAutoReplyLeadMessage({
+        from_email: payload.from_email,
+        subject: payload.subject,
+        body_text: payload.body_text,
+      })
     leads[idx] = {
       ...prev,
       updated_at: stamp,
-      ...(input.direction === 'inbound'
-        ? { last_client_reply_at: payload.occurred_at }
-        : {}),
+      ...(countAsReply ? { last_client_reply_at: payload.occurred_at } : {}),
     }
     writeLocal(LEADS_KEY, leads)
   }
   return message
+}
+
+/** Latest real (non–auto-reply) inbound message timestamp, or null if none. */
+export function latestInboundOccurredAt(
+  messages: LeadMessage[],
+): string | null {
+  let latest: string | null = null
+  let latestMs = -1
+  for (const m of messages) {
+    if (m.direction !== 'inbound') continue
+    if (isAutoReplyLeadMessage(m)) continue
+    const ms = new Date(m.occurred_at).getTime()
+    if (!Number.isFinite(ms) || ms <= latestMs) continue
+    latestMs = ms
+    latest = m.occurred_at
+  }
+  return latest
+}
+
+/**
+ * Keep last_client_reply_at aligned with real (non–auto-reply) inbound mail.
+ * Clears the stamp when the thread only has ticket/OOO/canned inbound.
+ */
+export async function syncLeadClientReplyAt(
+  lead: Lead,
+  messages?: LeadMessage[],
+): Promise<Lead | null> {
+  if (tagsSchemaKnownMissing()) return null
+  const rows = messages ?? (await listLeadMessages(lead.id))
+  const latest = latestInboundOccurredAt(rows)
+  const current = lead.last_client_reply_at ?? null
+  const same =
+    (current == null && latest == null) ||
+    (current != null &&
+      latest != null &&
+      new Date(current).getTime() === new Date(latest).getTime())
+  if (same) return null
+  try {
+    return await updateLead(lead.id, { last_client_reply_at: latest })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (isMissingTagsColumn(msg)) return null
+    throw err
+  }
+}
+
+/**
+ * Repair last_client_reply_at from the thread, ignoring ticket receipts / OOO /
+ * job canned replies so “Client replied” stays meaningful.
+ */
+export async function backfillMissingClientReplyAts(
+  leads: Lead[],
+): Promise<Lead[]> {
+  if (tagsSchemaKnownMissing() || leads.length === 0) return []
+
+  const latestByLead = new Map<string, string | null>()
+  for (const l of leads) latestByLead.set(l.id, null)
+
+  type Row = {
+    lead_id: string
+    occurred_at: string
+    from_email: string
+    subject: string
+    body_text: string
+  }
+
+  const consider = (row: Row) => {
+    if (
+      isAutoReplyLeadMessage({
+        from_email: row.from_email,
+        subject: row.subject,
+        body_text: row.body_text,
+      })
+    ) {
+      return
+    }
+    const prev = latestByLead.get(row.lead_id)
+    if (
+      !prev ||
+      new Date(row.occurred_at).getTime() > new Date(prev).getTime()
+    ) {
+      latestByLead.set(row.lead_id, row.occurred_at)
+    }
+  }
+
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const ids = leads.map((l) => l.id)
+    const chunkSize = 60
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize)
+      const { data, error } = await supabase
+        .from('crm_lead_messages')
+        .select('lead_id, occurred_at, from_email, subject, body_text')
+        .eq('direction', 'inbound')
+        .in('lead_id', chunk)
+      if (error) {
+        if (isLeadMessagesSchemaMissing(error)) return []
+        throw new Error(error.message)
+      }
+      for (const raw of data ?? []) {
+        const row = raw as Record<string, unknown>
+        consider({
+          lead_id: String(row.lead_id ?? ''),
+          occurred_at: String(row.occurred_at ?? ''),
+          from_email: String(row.from_email ?? ''),
+          subject: String(row.subject ?? ''),
+          body_text: String(row.body_text ?? ''),
+        })
+      }
+    }
+  } else {
+    const all = readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+    const idSet = new Set(leads.map((l) => l.id))
+    for (const m of all) {
+      if (m.direction !== 'inbound' || !idSet.has(m.lead_id)) continue
+      consider({
+        lead_id: m.lead_id,
+        occurred_at: m.occurred_at,
+        from_email: m.from_email,
+        subject: m.subject,
+        body_text: m.body_text,
+      })
+    }
+  }
+
+  const healed: Lead[] = []
+  for (const lead of leads) {
+    const next = latestByLead.get(lead.id) ?? null
+    const cur = lead.last_client_reply_at ?? null
+    const same =
+      (cur == null && next == null) ||
+      (cur != null &&
+        next != null &&
+        new Date(cur).getTime() === new Date(next).getTime())
+    if (same) continue
+    try {
+      healed.push(await updateLead(lead.id, { last_client_reply_at: next }))
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      if (isMissingTagsColumn(msg)) break
+      console.warn('[crm] reconcile last_client_reply_at failed', lead.id, err)
+    }
+  }
+  return healed
 }
 
 /* ── Unmatched inbound queue ──────────────────────────── */

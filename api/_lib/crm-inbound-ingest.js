@@ -6,6 +6,7 @@ import {
   insertLeadMessage,
   normalizeMessageId,
 } from './crm-lead-messages.js'
+import { isAutoReplyEmail } from './crm-auto-reply.js'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -208,6 +209,12 @@ export async function ingestInboundEmail({
       .trim()
       .slice(0, 50_000)
 
+  const autoReply = isAutoReplyEmail({
+    from,
+    subject,
+    body: plain,
+  })
+
   const row = await insertLeadMessage({
     supabaseUrl,
     key: serviceKey,
@@ -229,21 +236,35 @@ export async function ingestInboundEmail({
         inboundVia: via,
         ...(deliveryId ? { svixId: deliveryId } : {}),
         ...(resendId ? { resendEmailId: resendId } : {}),
+        ...(autoReply ? { autoReply: true } : {}),
       },
     },
   })
 
-  await sbPatch(
-    supabaseUrl,
-    serviceKey,
-    `crm_leads?id=eq.${encodeURIComponent(leadId)}`,
-    { updated_at: new Date().toISOString(), last_client_reply_at: occurredAt },
-  )
+  // Ticket receipts / OOO / job canned replies stay on the thread but must not
+  // stamp “Client replied”.
+  if (!autoReply) {
+    await sbPatch(
+      supabaseUrl,
+      serviceKey,
+      `crm_leads?id=eq.${encodeURIComponent(leadId)}`,
+      { updated_at: new Date().toISOString(), last_client_reply_at: occurredAt },
+    )
+  } else {
+    await sbPatch(
+      supabaseUrl,
+      serviceKey,
+      `crm_leads?id=eq.${encodeURIComponent(leadId)}`,
+      { updated_at: new Date().toISOString() },
+    )
+  }
 
   await insertInboundActivity(supabaseUrl, serviceKey, {
     lead_id: leadId,
     subject: subject || '(no subject)',
-    body: `Client reply received from ${from}${to ? ` → ${to}` : ''}.`,
+    body: autoReply
+      ? `Auto-reply / receipt from ${from}${to ? ` → ${to}` : ''} (not counted as client reply).`
+      : `Client reply received from ${from}${to ? ` → ${to}` : ''}.`,
     occurred_at: occurredAt,
   })
 
@@ -251,6 +272,7 @@ export async function ingestInboundEmail({
     leadId,
     messageId: row?.id || null,
     svixId: deliveryId,
+    autoReply,
   })
 
   return {
@@ -260,6 +282,7 @@ export async function ingestInboundEmail({
       id: row?.id || null,
       leadId,
       messageId,
+      autoReply,
     },
   }
 }
