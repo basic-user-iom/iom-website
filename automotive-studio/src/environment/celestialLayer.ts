@@ -58,6 +58,7 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
   void loadMoonTexture(moon)
 
   const _dir = new Vector3()
+  let lastSkyKey = ''
 
   return {
     group,
@@ -70,7 +71,12 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
       group.position.copy(camera.position)
     },
     apply(env, skyColors) {
-      setSkyDomeColors(skyDome, skyColors.top, skyColors.horizon, skyColors.ground, skyColors.softSky)
+      // Vertex sky colors are expensive — skip when the look has not changed (slider drags).
+      const skyKey = `${skyColors.top.getHexString()}_${skyColors.horizon.getHexString()}_${skyColors.ground.getHexString()}_${skyColors.softSky ? 1 : 0}`
+      if (skyKey !== lastSkyKey) {
+        lastSkyKey = skyKey
+        setSkyDomeColors(skyDome, skyColors.top, skyColors.horizon, skyColors.ground, skyColors.softSky)
+      }
 
       const showStars = Boolean(env.starsEnabled)
       stars.visible = showStars
@@ -79,7 +85,7 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
         starMat.uniforms.uOpacity.value = showStars ? 1 : 0
       }
 
-      const sunUp = env.sunElevationDeg > -2
+      const sunUp = env.sunElevationDeg > -8
       const showSun = Boolean(env.sunDiscVisible) && Boolean(env.sunEnabled !== false) && sunUp
       sunDisc.visible = showSun
       // Soft aureole is an artistic fallback; keep it small so it never fills the frame.
@@ -102,11 +108,13 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
         }
       }
 
-      const moonUp = (env.moonElevationDeg ?? 20) > -2
-      const showMoon = Boolean(env.moonEnabled) && moonUp
+      // Keep the disc positioned even slightly below the horizon so elevation
+      // scrubbing does not thrash visible ↔ hidden near 0° (cheap hide only past −8°).
+      const moonEl = env.moonElevationDeg ?? 20
+      const showMoon = Boolean(env.moonEnabled) && moonEl > -8
       moon.visible = showMoon
       if (showMoon) {
-        directionFromAzEl(env.moonAzimuthDeg ?? 0, env.moonElevationDeg ?? 28, _dir)
+        directionFromAzEl(env.moonAzimuthDeg ?? 0, moonEl, _dir)
         const scale =
           angularScale(env.moonAngularDiameterDeg ?? DEFAULT_ANGULAR_DIAMETER_DEG) *
           Math.max(0.2, Math.min(4, env.moonScale ?? 1))
@@ -372,6 +380,9 @@ async function loadMoonTexture(moon: Mesh) {
   }
 }
 
+const _moonFaceFrom = new Vector3(0, 0, 1)
+const _moonFaceTo = new Vector3()
+
 function applyMoonShading(moon: Mesh, env: EnvironmentState) {
   const mat = moon.material as MeshBasicMaterial
   const intensity = Math.max(0.1, Math.min(3, env.moonIntensity ?? 1))
@@ -381,11 +392,16 @@ function applyMoonShading(moon: Mesh, env: EnvironmentState) {
   if (mat.map) mat.color.setRGB(g, g, g)
   else mat.color.setRGB(g, Math.min(1, g * 1.02), Math.min(1, g * 1.06))
   // Face the texture toward the camera (celestial group origin).
-  moon.quaternion.setFromUnitVectors(
-    new Vector3(0, 0, 1),
-    moon.position.lengthSq() > 0 ? moon.position.clone().normalize().negate() : new Vector3(0, 0, -1),
-  )
+  if (moon.position.lengthSq() > 0) {
+    _moonFaceTo.copy(moon.position).normalize().negate()
+  } else {
+    _moonFaceTo.set(0, 0, -1)
+  }
+  moon.quaternion.setFromUnitVectors(_moonFaceFrom, _moonFaceTo)
 }
+
+const _skyMid = new Color()
+const _skyC = new Color()
 
 function setSkyDomeColors(
   dome: Mesh,
@@ -401,16 +417,16 @@ function setSkyDomeColors(
     colorAttr = new BufferAttribute(new Float32Array(pos.count * 3), 3)
     geo.setAttribute('color', colorAttr)
   }
-  const mid = softSky ? horizon.clone().lerp(top, 0.35) : horizon
+  _skyMid.copy(horizon)
+  if (softSky) _skyMid.lerp(top, 0.35)
   const radius = CELESTIAL_DISTANCE + 20
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i)
     const t = (y / radius + 1) * 0.5
-    let c: Color
-    if (t > 0.55) c = mid.clone().lerp(top, (t - 0.55) / 0.45)
-    else if (t > 0.45) c = horizon.clone().lerp(mid, (t - 0.45) / 0.1)
-    else c = ground.clone().lerp(horizon, Math.max(0, t) / 0.45)
-    colorAttr.setXYZ(i, c.r, c.g, c.b)
+    if (t > 0.55) _skyC.copy(_skyMid).lerp(top, (t - 0.55) / 0.45)
+    else if (t > 0.45) _skyC.copy(horizon).lerp(_skyMid, (t - 0.45) / 0.1)
+    else _skyC.copy(ground).lerp(horizon, Math.max(0, t) / 0.45)
+    colorAttr.setXYZ(i, _skyC.r, _skyC.g, _skyC.b)
   }
   colorAttr.needsUpdate = true
   dome.visible = true

@@ -3,7 +3,9 @@
  * Planning model from docs/automotive-studio-plan.md §21 — not a frozen contract.
  */
 
-export const AUTOMOTIVE_SCHEMA_VERSION = 5 as const
+import { DEFAULT_BEAM_PROXIES } from '../vehicle/beamDefaults'
+
+export const AUTOMOTIVE_SCHEMA_VERSION = 7 as const
 
 export type ExperienceMode = 'studio' | 'preview' | 'guided' | 'explore'
 
@@ -77,6 +79,27 @@ export interface MaterialOverrideProps {
   clearcoat?: number
   clearcoatRoughness?: number
   transmission?: number
+  /**
+   * Uploaded PBR maps (IndexedDB asset ids).
+   * - string: replace GLB / previous texture with this asset
+   * - null: force-clear that slot (no GLB restore on reapply)
+   * - omitted: leave the live/GLB texture alone
+   */
+  maps?: StageSurfaceMaps
+  /** DirectX normals (NormalDX) — `normalScale.y = -1`. */
+  normalYFlip?: boolean
+  /** UV tiling for all maps on this material (1 = authored GLB size).
+   * In triplanar mode this is tiles-per-metre in world space. */
+  mapRepeat?: number
+  /**
+   * `uv` = mesh UVs (default). `triplanar` = world-metre projection —
+   * needed when car paint UVs collapse to a single atlas swatch.
+   */
+  mapProjection?: 'uv' | 'triplanar'
+  /** Phase for triplanar randomise (offset / spin). */
+  mapTriSeed?: number
+  /** 0–1 stochastic break-tiling strength (dual rotated samples). */
+  mapTriVariation?: number
 }
 
 export interface MaterialNodeOverride {
@@ -149,8 +172,19 @@ export interface StageSurface {
   /** UV tiling for maps. */
   mapRepeat: number
   displacementScale: number
+  /** 0–1 strength of the de-tiling blend that hides the repeating grid. */
+  tileVariation: number
+  /** Phase of the de-tiling blend; reroll for a different random look. */
+  tileSeed: number
+  /**
+   * When true, `normalScale.y = -1` (DirectX / NormalDX packs).
+   * ambientCG NormalGL leaves this false.
+   */
+  normalYFlip: boolean
   maps: StageSurfaceMaps
 }
+
+export type CycloramaVideoFit = 'cover' | 'contain'
 
 export interface StageState {
   floorVisible: boolean
@@ -161,10 +195,29 @@ export interface StageState {
   floorSize: number
   /** Pedestal diameter in metres. */
   pedestalSize: number
+  /** Pedestal thickness in metres (solid cylinder — avoids z-fight / vanishing flat disc). */
+  pedestalHeight: number
   /** Cyclorama radius in metres. */
   cycloramaSize: number
-  /** Cyclorama wall height in metres. */
+  /** Cyclorama wall height in metres (media / full framing height). */
   cycloramaHeight: number
+  /**
+   * Fraction of wall+video cropped from the top (0–0.75).
+   * Shortens the cylinder from above and crops the video the same way —
+   * scale stays put (no squash toward the floor).
+   */
+  cycloramaCropTop: number
+  /** Soft additive glow sheets along the cyclorama wall. */
+  cycloramaVolumeGlow: boolean
+  /** 0–2 intensity for cyclorama volume sheets. */
+  cycloramaVolumeIntensity: number
+  /** Click the wall to play/pause projected video. */
+  cycloramaInteractive: boolean
+  /** IndexedDB video asset projected on the cyclorama (MP4/WebM). */
+  cycloramaVideoAssetId: string | null
+  cycloramaVideoMuted: boolean
+  cycloramaVideoLoop: boolean
+  cycloramaVideoFit: CycloramaVideoFit
   floor: StageSurface
   pedestal: StageSurface
   cyclorama: StageSurface
@@ -180,6 +233,11 @@ export interface FreeDriveState {
   bodyRollDeg: number
   tireRollRate: number
   chaseCamera: boolean
+  /**
+   * Extra 180° on drive heading when W still goes toward the tail after lamp/axle
+   * auto-detect. Saved with the project so each browser profile can differ.
+   */
+  headingFlip?: boolean
 }
 
 export function createDefaultFreeDrive(): FreeDriveState {
@@ -192,6 +250,7 @@ export function createDefaultFreeDrive(): FreeDriveState {
     bodyRollDeg: 0,
     tireRollRate: 1,
     chaseCamera: true,
+    headingFlip: false,
   }
 }
 
@@ -315,6 +374,22 @@ export interface VehicleLightTarget {
   materialName?: string
 }
 
+/** Groups that throw a directional beam cone (editable with the gizmo). */
+export type VehicleBeamGroupId = 'drl' | 'lowBeam' | 'highBeam' | 'reverse'
+
+/**
+ * Authorable beam proxy in vehicle-model local space (metres). When this list is
+ * non-empty for a group, it replaces the automatic centreline placement.
+ */
+export interface VehicleBeamProxy {
+  id: string
+  groupId: VehicleBeamGroupId
+  position: { x: number; y: number; z: number }
+  target: { x: number; y: number; z: number }
+}
+
+export type VehicleLightsPerformanceMode = 'full' | 'lite'
+
 export interface VehicleLightsState {
   /** Which groups are author-on (hazards implies both indicators blink). */
   groups: Record<VehicleLightGroupId, boolean>
@@ -333,6 +408,14 @@ export interface VehicleLightsState {
   bloomEnabled: boolean
   bloomStrength: number
   bloomThreshold: number
+  /**
+   * Editable beam cones in car-local metres. Empty = auto place from body frame.
+   */
+  beamProxies: VehicleBeamProxy[]
+  /**
+   * `lite` skips PointLight proxies, bloom, and fill shadows — keeps beam SpotLights.
+   */
+  performanceMode: VehicleLightsPerformanceMode
 }
 
 export type VehicleLightSequenceId = 'welcome' | 'farewell'
@@ -356,17 +439,28 @@ export function createDefaultVehicleLights(): VehicleLightsState {
     autoRunningAtNight: true,
     targets: {},
     bloomEnabled: false,
-    bloomStrength: 0.28,
-    bloomThreshold: 1.0,
+    bloomStrength: 0.22,
+    bloomThreshold: 1.05,
+    beamProxies: structuredClone(DEFAULT_BEAM_PROXIES),
+    performanceMode: 'full',
   }
 }
 
 export interface AccentLightState {
   enabled: boolean
-  /** Soft volumetric glow planes (cheap stand-in, not true volumetric fog). */
+  /** Soft volumetric glow — crossed additive cards per seat (cheap stand-in, not true fog). */
   volumetricEnabled: boolean
   /** Accent intensity multiplier, 0–2. */
   intensity: number
+}
+
+/** Chase framing saved on a shot so Views stay locked to the car in free drive. */
+export interface ShotChaseOrbit {
+  yawDeg: number
+  pitchDeg: number
+  distance: number
+  lookAhead: number
+  lookSide: number
 }
 
 export interface Shot {
@@ -374,9 +468,20 @@ export interface Shot {
   name: string
   holdSeconds: number
   transitionSeconds: number
+  /** World-space fallback (stage / no vehicle). Prefer chaseOrbit when a car is loaded. */
   cameraPosition?: Vec3
   cameraTarget?: Vec3
   fov?: number
+  /** Vehicle-relative orbit — applied via chase cam so free drive keeps framing. */
+  chaseOrbit?: ShotChaseOrbit
+  /** Semantic door/clip action to play when this camera view is recalled. */
+  playActionId?: string
+  /** Skip empty lead-in on the clip (seconds). */
+  playActionStartSeconds?: number
+  /** Stop playback here (seconds). Omit for full clip. */
+  playActionEndSeconds?: number
+  /** Compact JPEG data URL of the viewport at capture (~320px wide). */
+  thumbnailDataUrl?: string
 }
 
 export interface TimelineState {
@@ -395,8 +500,20 @@ export type HotspotContentBlock =
   | { type: 'cta'; label: string; url: string }
 
 export type HotspotAction =
-  | { type: 'action.toggle'; actionId: string }
-  | { type: 'action.play'; actionId: string }
+  | {
+      type: 'action.toggle'
+      actionId: string
+      /** Skip lead-in empty frames (seconds). */
+      startSeconds?: number
+      /** Stop playback here (seconds). Omit for full clip. */
+      endSeconds?: number
+    }
+  | {
+      type: 'action.play'
+      actionId: string
+      startSeconds?: number
+      endSeconds?: number
+    }
   | { type: 'shot.goTo'; shotId: string }
   | { type: 'environment.setPreset'; presetId: EnvironmentPresetId }
   | { type: 'timeline.playSequence'; sequenceId: string }
@@ -404,6 +521,10 @@ export type HotspotAction =
   | { type: 'vehicleLight.set'; groupId: VehicleLightGroupId; on: boolean }
   | { type: 'vehicleLight.toggle'; groupId: VehicleLightGroupId }
   | { type: 'vehicleLight.sequence'; sequenceId: VehicleLightSequenceId }
+  /** Show or hide a vehicle mesh/node when the hotspot opens. */
+  | { type: 'mesh.setVisible'; node: SemanticNodeRef; visible: boolean }
+  /** Flip visibility of a vehicle mesh/node when the hotspot opens. */
+  | { type: 'mesh.toggleVisible'; node: SemanticNodeRef }
 
 export interface HotspotAnchor {
   assetFingerprint: string
@@ -419,6 +540,20 @@ export interface Hotspot {
   name: string
   anchor: HotspotAnchor
   markerLabel: string
+  /**
+   * Extra rotation in degrees after aligning the marker to the surface normal
+   * (x = pitch, y = yaw, z = roll in marker space). Use when the hit normal is off.
+   */
+  markerRotationDeg?: Vec3
+  /**
+   * Size of the surface-aligned title plate (1 = default).
+   */
+  markerLabelScale?: number
+  /**
+   * Title plate offset in marker-local space (x/y on the door plane, z = lift along normal).
+   * Default sits just above the rings.
+   */
+  markerLabelOffset?: Vec3
   blocks: HotspotContentBlock[]
   actions: HotspotAction[]
   exploreVisible: boolean
@@ -468,6 +603,9 @@ export function createDefaultStageSurface(
     emissiveIntensity: 0,
     mapRepeat: 1,
     displacementScale: 0,
+    tileVariation: 0,
+    tileSeed: 1,
+    normalYFlip: false,
     maps: {},
   }
 }
@@ -485,8 +623,17 @@ export function createEmptyProject(name = 'Untitled Automotive Project'): Automo
       pedestalVisible: true,
       floorSize: 28,
       pedestalSize: 4.8,
+      pedestalHeight: 0.12,
       cycloramaSize: 14,
       cycloramaHeight: 10,
+      cycloramaCropTop: 0,
+      cycloramaVolumeGlow: false,
+      cycloramaVolumeIntensity: 1,
+      cycloramaInteractive: true,
+      cycloramaVideoAssetId: null,
+      cycloramaVideoMuted: true,
+      cycloramaVideoLoop: true,
+      cycloramaVideoFit: 'cover',
       floor: createDefaultStageSurface('#161a22', 0.35, 0.55),
       pedestal: createDefaultStageSurface('#1c222c', 0.45, 0.4),
       cyclorama: createDefaultStageSurface('#1a1f28', 0.05, 0.92),
@@ -532,7 +679,7 @@ export function createEmptyProject(name = 'Untitled Automotive Project'): Automo
     },
     hotspots: [],
     presentation: {
-      accessPolicy: 'local-only',
+      accessPolicy: 'unlisted',
       branding: 'iom',
       defaultMode: 'guided',
       allowEnvironmentSwitch: false,

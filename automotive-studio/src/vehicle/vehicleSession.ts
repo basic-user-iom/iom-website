@@ -1,5 +1,5 @@
 import type { AnimationClip, Object3D, Scene, WebGLRenderer } from 'three'
-import { Vector3 } from 'three'
+import { Group, Vector3 } from 'three'
 import { analyzeGltfScene, type AssetCompatibilityReport } from '../assets/analyzeAsset'
 import { disposeObject3D, revokeObjectUrl } from '../assets/disposeObject'
 import { importGlbFile, formatBytes } from '../assets/importGlb'
@@ -7,7 +7,7 @@ import { AnimationController } from '../animation/animationController'
 import { SemanticActions, type ResolvedSemanticAction } from '../animation/semanticActions'
 import { enableShadows, enableVehicleShadows } from '../renderer/enableShadows'
 import { polishVehicleMaterials } from '../renderer/polishVehicleMaterials'
-import { applyMaterialOverrides } from './applyMaterialOverrides'
+import { applyMaterialOverrides, applyMaterialOverrideMaps } from './applyMaterialOverrides'
 import { VehicleLightsController } from './vehicleLights'
 import {
   applyNormalization,
@@ -111,12 +111,26 @@ export class VehicleSession {
   reapplyMaterials() {
     if (!this.roots) return
     this.finishMaterials(this.roots.model)
+    this.bindLights(this.roots.placement)
   }
 
   private finishMaterials(model: Object3D) {
     if (this.polishMode !== 'off') polishVehicleMaterials(model)
     applyMaterialOverrides(model, this.materialOverrides)
-    this.lights.bind(model)
+    void applyMaterialOverrideMaps(model, this.materialOverrides)
+  }
+
+  /**
+   * Beams live on the placement root (grounded, scaled metres), not the raw GLB
+   * model node — Sketchfab pivots can sit hundreds of units off-origin in model
+   * space, and the model isn't normalized/recentred yet when it's first built.
+   * Callers MUST call this only after `applyNormalization()` has run and
+   * `this.roots` points at the finished roots — never before, or beam proxies
+   * bind against the raw un-normalized model and every light collapses onto a
+   * single, wildly-offset spot.
+   */
+  private bindLights(placement: Group) {
+    this.lights.bind(placement)
   }
 
   bindScene(
@@ -183,6 +197,7 @@ export class VehicleSession {
     })
 
     onProgress?.(0.9, 'Analysing asset…')
+    await yieldToUi()
     const parserJson = (loaded.gltf.parser?.json ?? null) as Record<string, unknown> | null
     const report = analyzeGltfScene({
       scene: loaded.gltf.scene,
@@ -194,6 +209,8 @@ export class VehicleSession {
 
     const assetRole = assetRoleForImport(quality, file.name, role === 'add-prop')
     const assetId = crypto.randomUUID()
+    onProgress?.(0.92, `Saving ${formatBytes(file.size)} to browser storage…`)
+    await yieldToUi()
     await idbPutAssetBlob(assetId, file, { filename: file.name })
 
     const asset: AssetRecord = {
@@ -220,6 +237,8 @@ export class VehicleSession {
       revokeObjectUrl(this.objectUrl)
       this.objectUrl = loaded.objectUrl
 
+      onProgress?.(0.94, 'Building vehicle graph…')
+      await yieldToUi()
       const roots = createVehicleRoots(loaded.gltf.scene, file.name)
       // New GLB → drop prior material edits (paths/names may not match).
       this.materialOverrides = []
@@ -228,14 +247,16 @@ export class VehicleSession {
       // or they seal the cabin in the shadow map and interior receive looks flat-black.
       const shadowStats = enableVehicleShadows(roots.model)
       onProgress?.(
-        0.95,
+        0.96,
         `Shadows: ${shadowStats.interiorReceive} cabin receive, ${shadowStats.glassNoCast} glass open`,
       )
+      await yieldToUi()
       const size = new Vector3(report.bounds.x, report.bounds.y, report.bounds.z)
       const normalization = preserveNorm ?? defaultNormalizationFromBounds(size)
       applyNormalization(roots, normalization)
       this.scene.add(roots.placement)
       this.roots = roots
+      this.bindLights(roots.placement)
       this.clips = loaded.gltf.animations.slice()
       this.anim.attach(roots.action, this.clips)
       this.rebuildSemanticActions()
@@ -352,6 +373,7 @@ export class VehicleSession {
     applyNormalization(roots, normalization)
     this.scene.add(roots.placement)
     this.roots = roots
+    this.bindLights(roots.placement)
     this.clips = loaded.gltf.animations.slice()
     this.anim.attach(roots.action, this.clips)
     this.rebuildSemanticActions()
@@ -407,7 +429,20 @@ export class VehicleSession {
 
     const blobKey = asset.blobKey ?? asset.id
     onProgress?.(0.05, `Restoring ${asset.filename}…`)
-    const blob = await idbGetAssetBlob(blobKey)
+    let blob = await idbGetAssetBlob(blobKey)
+    if (!blob && asset.id !== blobKey) {
+      blob = await idbGetAssetBlob(asset.id)
+    }
+    if (!blob) {
+      // Last resort: any vehicle-quality blob still in IDB for this project.
+      for (const record of project.assets) {
+        if (!isVehicleQualityRole(record.role)) continue
+        const key = record.blobKey ?? record.id
+        blob = await idbGetAssetBlob(key)
+        if (!blob && key !== record.id) blob = await idbGetAssetBlob(record.id)
+        if (blob) break
+      }
+    }
     if (!blob) {
       throw new Error(`Missing IndexedDB blob for ${asset.filename}`)
     }
@@ -457,6 +492,7 @@ export class VehicleSession {
     const normalization = preserveNorm ?? defaultNormalizationFromBounds(size)
     applyNormalization(roots, normalization)
     this.scene.add(roots.placement)
+    this.bindLights(roots.placement)
     this.roots = roots
     this.clips = loaded.gltf.animations.slice()
     this.anim.attach(roots.action, this.clips)
@@ -583,13 +619,27 @@ export class VehicleSession {
     return this.semanticActions.listActions()
   }
 
-  playSemanticAction(id: string) {
+  playSemanticAction(
+    id: string,
+    opts?: {
+      startSeconds?: number
+      endSeconds?: number
+      forcePlay?: boolean
+      forceToggle?: boolean
+    },
+  ) {
     const action = this.getSemanticActions().find((item) => item.id === id)
     if (!action) return false
     this.activeClipIndex = action.clipIndex
-    return action.mode === 'toggle'
-      ? this.semanticActions.toggleAction(id)
-      : this.semanticActions.playAction(id)
+    // Camera views always open/play — don't toggle closed if the door was already open.
+    if (opts?.forcePlay) {
+      return this.semanticActions.playAction(id, opts)
+    }
+    // Hotspot "Toggle open / close" — reverse on second click even if manifesto says play.
+    if (opts?.forceToggle || action.mode === 'toggle') {
+      return this.semanticActions.toggleAction(id, opts)
+    }
+    return this.semanticActions.playAction(id, opts)
   }
 
   toggleClipPlayback() {
@@ -682,5 +732,12 @@ export class VehicleSession {
     this.controls = null
     this.renderer = null
   }
+}
+
+/** Let the progress label paint before the next heavy sync step. */
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => resolve())
+  })
 }
 

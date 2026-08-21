@@ -57,15 +57,28 @@ export class ChaseCamera {
   lookSide = 0
   /** Exponential smoothing time constant (seconds). Lower = snappier. */
   smoothing = 0.22
+  /** Default duration when blending between chase presets / vehicle shots. */
+  orbitTransitionSeconds = 0.9
 
   private dragActive = false
   private dragMode: 'orbit' | 'frame' = 'orbit'
   private lastPointerX = 0
   private lastPointerY = 0
   private onOrbitChange: ((state: ChaseOrbitState) => void) | null = null
+  /** Beam gizmo / similar — ignore drag & wheel so TransformControls owns the pointer. */
+  private inputBlocked = false
+  /** Freeze follow so the view doesn't slide while dragging a gizmo. */
+  private updateBlocked = false
+  /** Smooth orbit-parameter blend (presets / saved vehicle shots). */
+  private orbitTransition: {
+    from: ChaseOrbitState
+    to: ChaseOrbitState
+    elapsed: number
+    duration: number
+  } | null = null
 
   private readonly onPointerDown = (e: PointerEvent) => {
-    if (!this.enabled) return
+    if (!this.enabled || this.inputBlocked || this.updateBlocked) return
     if (e.button !== 0 && e.button !== 2) return
     if ((e.target as HTMLElement | null)?.closest?.('[data-route-edit]')) return
     this.dragActive = true
@@ -79,7 +92,7 @@ export class ChaseCamera {
   }
 
   private readonly onPointerMove = (e: PointerEvent) => {
-    if (!this.dragActive || !this.enabled) return
+    if (!this.dragActive || !this.enabled || this.inputBlocked || this.updateBlocked) return
     const dx = e.clientX - this.lastPointerX
     const dy = e.clientY - this.lastPointerY
     this.lastPointerX = e.clientX
@@ -114,7 +127,7 @@ export class ChaseCamera {
   }
 
   private readonly onWheel = (e: WheelEvent) => {
-    if (!this.enabled) return
+    if (!this.enabled || this.inputBlocked || this.updateBlocked) return
     e.preventDefault()
     if (e.shiftKey) {
       this.lookAhead = clamp(this.lookAhead + (e.deltaY > 0 ? -0.15 : 0.15), -1.5, 4)
@@ -142,13 +155,39 @@ export class ChaseCamera {
   setEnabled(enabled: boolean) {
     this.enabled = enabled
     this.initialized = false
-    this.dragActive = false
+    this.endPointerDrag()
     if (enabled && this.controls) {
       this.controls.enabled = false
     }
     if (this.canvas) {
-      this.canvas.style.cursor = enabled ? 'grab' : ''
+      this.canvas.style.cursor = enabled && !this.inputBlocked && !this.updateBlocked ? 'grab' : ''
     }
+  }
+
+  /**
+   * Block chase drag/zoom (e.g. while beam-gizmo edit is on) so TransformControls
+   * receives pointer events on the shared canvas.
+   */
+  setInputBlocked(blocked: boolean) {
+    this.inputBlocked = blocked
+    if (blocked) this.endPointerDrag()
+    if (this.canvas && this.enabled) {
+      this.canvas.style.cursor = blocked || this.updateBlocked ? '' : 'grab'
+    }
+  }
+
+  /** Freeze follow framing while dragging a gizmo — camera stays put. */
+  setUpdateBlocked(blocked: boolean) {
+    this.updateBlocked = blocked
+    if (blocked) this.endPointerDrag()
+    if (this.canvas && this.enabled) {
+      this.canvas.style.cursor = blocked || this.inputBlocked ? '' : 'grab'
+    }
+  }
+
+  private endPointerDrag() {
+    this.dragActive = false
+    this.dragMode = 'orbit'
   }
 
   isEnabled() {
@@ -166,6 +205,7 @@ export class ChaseCamera {
   }
 
   setOrbit(partial: Partial<ChaseOrbitState>, snap = false) {
+    this.orbitTransition = null
     if (partial.yawDeg != null) this.orbitYawDeg = wrapDeg(partial.yawDeg)
     if (partial.pitchDeg != null) this.orbitPitchDeg = clamp(partial.pitchDeg, 5, 70)
     if (partial.distance != null) this.distance = clamp(partial.distance, 3.5, 24)
@@ -174,9 +214,44 @@ export class ChaseCamera {
     if (snap) this.initialized = false
   }
 
-  applyPreset(preset: ChaseOrbitPreset) {
+  /**
+   * Blend orbit framing over time (keeps follow locked to the car).
+   * Yaw takes the shortest path so ¾ L ↔ ¾ R doesn't spin the long way.
+   */
+  transitionToOrbit(partial: Partial<ChaseOrbitState>, durationSeconds = this.orbitTransitionSeconds) {
+    const from = this.getOrbitState()
+    const to: ChaseOrbitState = {
+      yawDeg: partial.yawDeg != null ? wrapDeg(partial.yawDeg) : from.yawDeg,
+      pitchDeg: partial.pitchDeg != null ? clamp(partial.pitchDeg, 5, 70) : from.pitchDeg,
+      distance: partial.distance != null ? clamp(partial.distance, 3.5, 24) : from.distance,
+      lookAhead: partial.lookAhead != null ? clamp(partial.lookAhead, -1.5, 4) : from.lookAhead,
+      lookSide: partial.lookSide != null ? clamp(partial.lookSide, -2.5, 2.5) : from.lookSide,
+    }
+    let toYaw = to.yawDeg
+    let delta = toYaw - from.yawDeg
+    while (delta > 180) {
+      toYaw -= 360
+      delta -= 360
+    }
+    while (delta < -180) {
+      toYaw += 360
+      delta += 360
+    }
+    to.yawDeg = toYaw
+    const duration = Math.max(0.05, durationSeconds)
+    if (duration <= 0.06) {
+      this.setOrbit(to, false)
+      this.emitOrbit()
+      return
+    }
+    this.orbitTransition = { from, to, elapsed: 0, duration }
+    // UI reflects the destination framing while the camera eases there.
+    this.onOrbitChange?.({ ...to, yawDeg: wrapDeg(to.yawDeg) })
+  }
+
+  applyPreset(preset: ChaseOrbitPreset, durationSeconds = this.orbitTransitionSeconds) {
     const p = CHASE_ORBIT_PRESETS[preset]
-    this.setOrbit(
+    this.transitionToOrbit(
       {
         yawDeg: p.yawDeg,
         pitchDeg: p.pitchDeg,
@@ -184,9 +259,8 @@ export class ChaseCamera {
         lookAhead: p.lookAhead,
         lookSide: 0,
       },
-      true,
+      durationSeconds,
     )
-    this.emitOrbit()
   }
 
   /**
@@ -194,7 +268,25 @@ export class ChaseCamera {
    * `headingYaw` is the visual nose heading in radians (path direction after alignment).
    */
   update(placement: Object3D | null, dtSeconds: number, headingYaw?: number | null) {
-    if (!this.enabled || !this.camera || !placement) return
+    if (!this.enabled || this.updateBlocked || !this.camera || !placement) return
+
+    if (this.orbitTransition && Number.isFinite(dtSeconds) && dtSeconds > 0) {
+      this.orbitTransition.elapsed += dtSeconds
+      const u = easeInOutCubic(
+        Math.min(1, this.orbitTransition.elapsed / this.orbitTransition.duration),
+      )
+      const { from, to } = this.orbitTransition
+      this.orbitYawDeg = from.yawDeg + (to.yawDeg - from.yawDeg) * u
+      this.orbitPitchDeg = from.pitchDeg + (to.pitchDeg - from.pitchDeg) * u
+      this.distance = from.distance + (to.distance - from.distance) * u
+      this.lookAhead = from.lookAhead + (to.lookAhead - from.lookAhead) * u
+      this.lookSide = from.lookSide + (to.lookSide - from.lookSide) * u
+      if (u >= 1) {
+        this.orbitYawDeg = wrapDeg(to.yawDeg)
+        this.orbitTransition = null
+        this.emitOrbit()
+      }
+    }
 
     const yaw = headingYaw != null && Number.isFinite(headingYaw) ? headingYaw : placement.rotation.y
     _forward.set(Math.sin(yaw), 0, Math.cos(yaw))
@@ -277,6 +369,13 @@ export type ChaseOrbitState = {
   lookSide: number
 }
 
+function vec3Components(
+  v: Vector3 | readonly [number, number, number],
+): [number, number, number] {
+  if (v instanceof Vector3) return [v.x, v.y, v.z]
+  return [v[0], v[1], v[2]]
+}
+
 function clamp(v: number, lo: number, hi: number) {
   return Math.min(hi, Math.max(lo, v))
 }
@@ -286,4 +385,44 @@ function wrapDeg(deg: number) {
   while (d > 180) d -= 360
   while (d < -180) d += 360
   return d
+}
+
+function easeInOutCubic(t: number) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2
+}
+
+/**
+ * Convert a world-space camera/target pose into chase orbit relative to the car heading.
+ * Framing sticks to the vehicle even after free-drive moves it.
+ */
+export function deriveChaseOrbitFromWorld(
+  headingYaw: number,
+  cameraPosition: Vector3 | readonly [number, number, number],
+  cameraTarget: Vector3 | readonly [number, number, number],
+): ChaseOrbitState {
+  const [cx, cy, cz] = vec3Components(cameraPosition)
+  const [tx, ty, tz] = vec3Components(cameraTarget)
+
+  const ox = cx - tx
+  const oy = cy - ty
+  const oz = cz - tz
+  const distance = clamp(Math.hypot(ox, oy, oz), 3.5, 24)
+  if (distance < 1e-4) {
+    return { yawDeg: 0, pitchDeg: 18, distance: 7.8, lookAhead: 1, lookSide: 0 }
+  }
+
+  const pitchDeg = clamp((Math.asin(clamp(oy / distance, -1, 1)) * 180) / Math.PI, 5, 70)
+  _forward.set(Math.sin(headingYaw), 0, Math.cos(headingYaw))
+  _side.crossVectors(UP, _forward).normalize()
+  const flatLen = Math.hypot(ox, oz)
+  if (flatLen < 1e-8) {
+    return { yawDeg: 0, pitchDeg, distance, lookAhead: 1, lookSide: 0 }
+  }
+  const fx = ox / flatLen
+  const fz = oz / flatLen
+  // Flat camera direction from look: -forward·cos(az) + side·sin(az)
+  const cosAz = clamp(-(fx * _forward.x + fz * _forward.z), -1, 1)
+  const sinAz = clamp(fx * _side.x + fz * _side.z, -1, 1)
+  const yawDeg = wrapDeg((Math.atan2(sinAz, cosAz) * 180) / Math.PI)
+  return { yawDeg, pitchDeg, distance, lookAhead: 1, lookSide: 0 }
 }

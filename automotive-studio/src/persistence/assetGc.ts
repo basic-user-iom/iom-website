@@ -1,5 +1,6 @@
 import type { AutomotiveProject } from './schema'
-import { idbDeleteAssetBlob, idbListAssetBlobIds } from './localDb'
+import { migrateProject } from './migrations'
+import { idbDeleteAssetBlob, idbListAssetBlobIds, idbListProjectIds, idbLoadProject } from './localDb'
 
 /** Collect every blob key referenced by a project document. */
 export function collectReferencedAssetIds(project: AutomotiveProject): Set<string> {
@@ -19,6 +20,7 @@ export function collectReferencedAssetIds(project: AutomotiveProject): Set<strin
       if (typeof value === 'string' && value) ids.add(value)
     }
   }
+  if (project.stage.cycloramaVideoAssetId) ids.add(project.stage.cycloramaVideoAssetId)
 
   for (const hotspot of project.hotspots) {
     for (const block of hotspot.blocks) {
@@ -30,15 +32,61 @@ export function collectReferencedAssetIds(project: AutomotiveProject): Set<strin
     }
   }
 
+  for (const entry of project.vehicle?.materialOverrides ?? []) {
+    const maps = entry.props.maps
+    if (!maps) continue
+    for (const key of Object.keys(maps) as Array<keyof typeof maps>) {
+      const value = maps[key]
+      if (typeof value === 'string' && value) ids.add(value)
+    }
+  }
+
+  return ids
+}
+
+/** Union blob keys referenced by any of the given projects. */
+export function unionReferencedAssetIds(projects: AutomotiveProject[]): Set<string> {
+  const ids = new Set<string>()
+  for (const project of projects) {
+    for (const id of collectReferencedAssetIds(project)) ids.add(id)
+  }
   return ids
 }
 
 /**
- * Delete IndexedDB blobs that are not referenced by the given project.
- * Never call this on unload or before Undo can restore metadata.
+ * Build the referenced-asset set across every saved project in IndexedDB,
+ * plus an optional in-memory active project (covers unsaved refs on Save).
+ */
+export async function collectReferencedAssetIdsFromAllProjects(
+  activeProject?: AutomotiveProject,
+): Promise<Set<string>> {
+  const projects: AutomotiveProject[] = []
+  if (activeProject) projects.push(activeProject)
+
+  const seenIds = new Set(activeProject ? [activeProject.id] : [])
+  const projectIds = await idbListProjectIds()
+  for (const id of projectIds) {
+    if (seenIds.has(id)) continue
+    seenIds.add(id)
+    const raw = await idbLoadProject(id)
+    if (!raw) continue
+    try {
+      projects.push(migrateProject(raw))
+    } catch (err) {
+      console.warn('[automotive-studio] Skipping corrupt project during asset GC', id, err)
+    }
+  }
+
+  return unionReferencedAssetIds(projects)
+}
+
+/**
+ * Delete IndexedDB blobs that are not referenced by any saved project
+ * (nor by the active in-memory project). Never call this on unload or
+ * before Undo can restore metadata.
  */
 export async function purgeOrphanAssetBlobs(project: AutomotiveProject): Promise<number> {
-  const referenced = collectReferencedAssetIds(project)
+  const referenced = await collectReferencedAssetIdsFromAllProjects(project)
   const all = await idbListAssetBlobIds()
   let removed = 0
   for (const id of all) {
@@ -47,4 +95,9 @@ export async function purgeOrphanAssetBlobs(project: AutomotiveProject): Promise
     removed += 1
   }
   return removed
+}
+
+/** Pure helper for tests: which blob IDs would be deleted given known refs. */
+export function orphanBlobIds(allBlobIds: string[], referenced: Set<string>): string[] {
+  return allBlobIds.filter((id) => !referenced.has(id))
 }

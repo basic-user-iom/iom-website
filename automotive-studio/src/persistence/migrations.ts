@@ -47,6 +47,40 @@ const migrations: Record<number, Migration> = {
     schemaVersion: 5,
     freeDrive: project.freeDrive ?? createDefaultFreeDrive(),
   }),
+  5: (project) => {
+    const defaults = createDefaultVehicleLights()
+    const vl = project.vehicleLights ?? defaults
+    return {
+      ...project,
+      schemaVersion: 6,
+      vehicleLights: {
+        ...defaults,
+        ...vl,
+        groups: { ...defaults.groups, ...vl.groups },
+        performanceMode: vl.performanceMode ?? 'full',
+      },
+    }
+  },
+  6: (project) => {
+    const empty = createEmptyProject(project.name)
+    return {
+      ...project,
+      schemaVersion: 7,
+      stage: {
+        ...empty.stage,
+        ...project.stage,
+        cycloramaVolumeGlow: project.stage?.cycloramaVolumeGlow ?? empty.stage.cycloramaVolumeGlow,
+        cycloramaVolumeIntensity:
+          project.stage?.cycloramaVolumeIntensity ?? empty.stage.cycloramaVolumeIntensity,
+        cycloramaInteractive: project.stage?.cycloramaInteractive ?? empty.stage.cycloramaInteractive,
+        cycloramaVideoAssetId: project.stage?.cycloramaVideoAssetId ?? null,
+        cycloramaVideoMuted: project.stage?.cycloramaVideoMuted ?? empty.stage.cycloramaVideoMuted,
+        cycloramaVideoLoop: project.stage?.cycloramaVideoLoop ?? empty.stage.cycloramaVideoLoop,
+        cycloramaVideoFit: project.stage?.cycloramaVideoFit ?? empty.stage.cycloramaVideoFit,
+        cycloramaCropTop: project.stage?.cycloramaCropTop ?? empty.stage.cycloramaCropTop,
+      },
+    }
+  },
 }
 
 export function migrateProject(raw: unknown): AutomotiveProject {
@@ -92,8 +126,18 @@ export function migrateProject(raw: unknown): AutomotiveProject {
       pedestalVisible: project.stage?.pedestalVisible ?? empty.stage.pedestalVisible,
       floorSize: project.stage?.floorSize ?? empty.stage.floorSize,
       pedestalSize: project.stage?.pedestalSize ?? empty.stage.pedestalSize,
+      pedestalHeight: project.stage?.pedestalHeight ?? empty.stage.pedestalHeight,
       cycloramaSize: project.stage?.cycloramaSize ?? empty.stage.cycloramaSize,
       cycloramaHeight: project.stage?.cycloramaHeight ?? empty.stage.cycloramaHeight,
+      cycloramaCropTop: project.stage?.cycloramaCropTop ?? empty.stage.cycloramaCropTop,
+      cycloramaVolumeGlow: project.stage?.cycloramaVolumeGlow ?? empty.stage.cycloramaVolumeGlow,
+      cycloramaVolumeIntensity:
+        project.stage?.cycloramaVolumeIntensity ?? empty.stage.cycloramaVolumeIntensity,
+      cycloramaInteractive: project.stage?.cycloramaInteractive ?? empty.stage.cycloramaInteractive,
+      cycloramaVideoAssetId: project.stage?.cycloramaVideoAssetId ?? empty.stage.cycloramaVideoAssetId,
+      cycloramaVideoMuted: project.stage?.cycloramaVideoMuted ?? empty.stage.cycloramaVideoMuted,
+      cycloramaVideoLoop: project.stage?.cycloramaVideoLoop ?? empty.stage.cycloramaVideoLoop,
+      cycloramaVideoFit: project.stage?.cycloramaVideoFit ?? empty.stage.cycloramaVideoFit,
       floor: { ...empty.stage.floor, ...project.stage?.floor, maps: { ...empty.stage.floor.maps, ...project.stage?.floor?.maps } },
       pedestal: {
         ...empty.stage.pedestal,
@@ -151,6 +195,10 @@ export function migrateProject(raw: unknown): AutomotiveProject {
       bloomEnabled: project.vehicleLights?.bloomEnabled ?? empty.vehicleLights.bloomEnabled,
       bloomStrength: project.vehicleLights?.bloomStrength ?? empty.vehicleLights.bloomStrength,
       bloomThreshold: project.vehicleLights?.bloomThreshold ?? empty.vehicleLights.bloomThreshold,
+      beamProxies: Array.isArray(project.vehicleLights?.beamProxies)
+        ? project.vehicleLights.beamProxies
+        : empty.vehicleLights.beamProxies,
+      performanceMode: project.vehicleLights?.performanceMode ?? empty.vehicleLights.performanceMode,
     },
     vehicle: project.vehicle
       ? {

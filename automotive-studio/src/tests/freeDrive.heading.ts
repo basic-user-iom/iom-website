@@ -4,7 +4,7 @@
  * Run: npm run test:freedrive (from automotive-studio/)
  */
 import assert from 'node:assert/strict'
-import { Mesh, Object3D, PlaneGeometry, Vector2, Vector3 } from 'three'
+import { BoxGeometry, Mesh, Object3D, PlaneGeometry, Vector2, Vector3 } from 'three'
 import type { VehicleRigManifest, WheelBinding } from '../persistence/schema'
 import { FreeDriveSession } from '../route/freeDriveSession'
 import { infiniteFloorTextureOffset } from '../renderer/infiniteFloorUv'
@@ -35,7 +35,7 @@ const rig: VehicleRigManifest = {
 }
 
 /** Synthetic rigged car; `modelYaw` fakes a model authored with a different forward axis. */
-function buildCar(modelYaw: number) {
+function buildCar(modelYaw: number, opts?: { reverseBodyLamps?: boolean }) {
   const placement = new Object3D()
   placement.name = 'VehiclePlacement'
   const actionRoot = new Object3D()
@@ -50,6 +50,18 @@ function buildCar(modelYaw: number) {
     hub.name = `wheel_${id}`
     hub.position.fromArray(WHEEL_LOCAL[id])
     model.add(hub)
+  }
+  if (opts?.reverseBodyLamps) {
+    // Headlamps on the axle *rear* — simulates flip180 / manifesto disagreeing with the mesh.
+    // Use a pod-like box (not a paper-thin plane) so letter-mesh filters don't skip them.
+    const head = new Mesh(new BoxGeometry(0.2, 0.15, 0.12))
+    head.name = 'Headlight_L'
+    head.position.set(0.5, 0.6, -2.2)
+    model.add(head)
+    const tail = new Mesh(new BoxGeometry(0.2, 0.15, 0.12))
+    tail.name = 'TailLight_L'
+    tail.position.set(0.5, 0.6, 2.2)
+    model.add(tail)
   }
   placement.updateWorldMatrix(true, true)
   return { placement, actionRoot, model }
@@ -104,9 +116,10 @@ for (const modelYaw of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
 }
 
 // 2. Turning: still no crabbing, and D (+1) must curve the car to its own right
-//    (cross(previous nose, next nose).y is the signed yaw change).
+//    (cross(previous nose, next nose).y is the signed yaw change — positive = right
+//    when the car faces +Z under worldForwardFromYaw).
 for (const modelYaw of [0, Math.PI / 2]) {
-  for (const [steer, label, sign] of [[1, 'D', -1], [-1, 'A', 1]] as const) {
+  for (const [steer, label, sign] of [[1, 'D', 1], [-1, 'A', -1]] as const) {
     const { samples } = drive(modelYaw, steer, 1.5)
     for (const { nose, step } of samples) {
       const dot = nose.dot(step)
@@ -134,7 +147,27 @@ for (const modelYaw of [0, Math.PI / 2]) {
   assert.ok(Math.abs(right.x) > 0.5, 'steering produced no lateral travel')
 }
 
-// 4. Infinite floor: the texture must map a fixed world point to the same texel no
+// 4. Headlamps opposite the axle FL→nose (common flip180 / manifesto mismatch):
+//    W must still drive toward the visual front, not the rig "forward".
+{
+  const { placement, actionRoot, model } = buildCar(0, { reverseBodyLamps: true })
+  const session = new FreeDriveSession()
+  session.setVehicle(placement, rig, actionRoot, model)
+  session.setMaxBodyRollDegrees(0)
+  session.setEnabled(true)
+  session.resetToOrigin()
+  session.setInput({ throttle: 1, steer: 0 })
+  for (let i = 0; i < 90; i += 1) session.advance(1 / 60)
+  const step = placement.position.clone().setY(0)
+  // Headlights authored at z=-2.2 → visual front is -Z.
+  assert.ok(step.length() > 1, 'car did not move')
+  assert.ok(
+    step.z < -0.5,
+    `W should drive toward headlamps (−Z), got z=${step.z.toFixed(3)}`,
+  )
+}
+
+// 5. Infinite floor: the texture must map a fixed world point to the same texel no
 //    matter where the plane has followed the car to.
 {
   const size = 400

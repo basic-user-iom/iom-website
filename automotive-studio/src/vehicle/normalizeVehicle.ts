@@ -43,7 +43,16 @@ export function createVehicleRoots(model: Object3D, name = 'Active Vehicle'): Ve
 }
 
 export function applyNormalization(roots: VehicleRoots, settings: VehicleNormalization) {
-  const { normalization, model } = roots
+  const { placement, normalization, model } = roots
+
+  // Normalize at stage origin so world AABBs match model-local metres. Free-drive
+  // leaves placement at hundreds of metres — subtracting that from model.position
+  // permanently corrupts the rig and beam seats.
+  const savedPos = placement.position.clone()
+  const savedRot = placement.rotation.clone()
+  placement.position.set(0, 0, 0)
+  placement.rotation.set(0, 0, 0)
+
   normalization.position.set(0, 0, 0)
   normalization.rotation.set(0, 0, 0)
   normalization.scale.set(1, 1, 1)
@@ -77,9 +86,31 @@ export function applyNormalization(roots: VehicleRoots, settings: VehicleNormali
 
   applyAxisOrientation(normalization, settings.forwardAxis, settings.upAxis, settings.flip180)
 
+  // Re-centre XZ + ground Y in placement space after scale/yaw.
+  recentrePlacement(roots, settings.groundOffsetMetres)
+
+  placement.position.copy(savedPos)
+  placement.rotation.copy(savedRot)
+  placement.updateWorldMatrix(true, true)
+}
+
+/** Keep the grounded car near placement origin (metres), even after axis remap. */
+export function recentrePlacement(roots: VehicleRoots, groundOffsetMetres = 0) {
+  const { placement, normalization } = roots
+  placement.updateWorldMatrix(true, true)
+  const after = measureCarBounds(placement)
+  if (after.isEmpty()) return
+  const center = after.getCenter(new Vector3())
+  // Convert world centre → placement-local so free-drive offsets cancel out.
+  placement.worldToLocal(center)
+  normalization.position.x -= center.x
+  normalization.position.z -= center.z
   normalization.updateWorldMatrix(true, true)
-  const after = measureCarBounds(roots.placement)
-  normalization.position.y += -after.min.y + settings.groundOffsetMetres
+  const grounded = measureCarBounds(placement)
+  if (grounded.isEmpty()) return
+  const min = grounded.min.clone()
+  placement.worldToLocal(min)
+  normalization.position.y += -min.y + groundOffsetMetres
 }
 
 function axisSize(size: Vector3, axis: AxisId): number {

@@ -578,15 +578,36 @@ export function patchStage(patch: Partial<AutomotiveProject['stage']>): Command 
       stage: {
         ...p.stage,
         ...patch,
-        floor: patch.floor ? { ...p.stage.floor, ...patch.floor, maps: { ...p.stage.floor.maps, ...patch.floor.maps } } : p.stage.floor,
+        // Callers pass a full `maps` object when editing textures — replace, don't
+        // merge onto the previous set, or "Clear maps" / per-slot Remove can never stick.
+        floor: patch.floor
+          ? {
+              ...p.stage.floor,
+              ...patch.floor,
+              maps:
+                patch.floor.maps !== undefined
+                  ? { ...patch.floor.maps }
+                  : p.stage.floor.maps,
+            }
+          : p.stage.floor,
         pedestal: patch.pedestal
-          ? { ...p.stage.pedestal, ...patch.pedestal, maps: { ...p.stage.pedestal.maps, ...patch.pedestal.maps } }
+          ? {
+              ...p.stage.pedestal,
+              ...patch.pedestal,
+              maps:
+                patch.pedestal.maps !== undefined
+                  ? { ...patch.pedestal.maps }
+                  : p.stage.pedestal.maps,
+            }
           : p.stage.pedestal,
         cyclorama: patch.cyclorama
           ? {
               ...p.stage.cyclorama,
               ...patch.cyclorama,
-              maps: { ...p.stage.cyclorama.maps, ...patch.cyclorama.maps },
+              maps:
+                patch.cyclorama.maps !== undefined
+                  ? { ...patch.cyclorama.maps }
+                  : p.stage.cyclorama.maps,
             }
           : p.stage.cyclorama,
       },
@@ -632,6 +653,8 @@ export function patchVehicleLights(patch: {
   bloomEnabled?: boolean
   bloomStrength?: number
   bloomThreshold?: number
+  beamProxies?: AutomotiveProject['vehicleLights']['beamProxies']
+  performanceMode?: AutomotiveProject['vehicleLights']['performanceMode']
 }): Command {
   return {
     id: 'vehicleLights.patch',
@@ -646,6 +669,10 @@ export function patchVehicleLights(patch: {
           ...(patch.groups ?? {}),
         },
         targets: patch.targets !== undefined ? structuredClone(patch.targets) : p.vehicleLights.targets,
+        beamProxies:
+          patch.beamProxies !== undefined
+            ? structuredClone(patch.beamProxies)
+            : p.vehicleLights.beamProxies,
       },
     }),
     invert: (before) => ({

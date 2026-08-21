@@ -1,5 +1,6 @@
-import type { Hotspot, HotspotAction } from '../persistence/schema'
+import type { Hotspot, HotspotAction, SemanticNodeRef } from '../persistence/schema'
 import { idbGetAssetBlob } from '../persistence/localDb'
+import { isAllowedExternalUrl, sanitizeExternalUrl } from '../persistence/safeUrls'
 
 export type HotspotCardHandlers = {
   onClose?: () => void
@@ -8,28 +9,41 @@ export type HotspotCardHandlers = {
   resolveActionLabel?: (action: HotspotAction) => string | null
 }
 
-const objectUrls = new Set<string>()
-
-function revokeAll() {
-  for (const url of objectUrls) URL.revokeObjectURL(url)
-  objectUrls.clear()
-}
-
-async function assetUrl(assetId: string): Promise<string | null> {
-  const blob = await idbGetAssetBlob(assetId)
-  if (!blob) return null
-  const url = URL.createObjectURL(blob)
-  objectUrls.add(url)
-  return url
-}
-
 export function mountHotspotCard(host: HTMLElement, handlers: HotspotCardHandlers = {}) {
   const card = document.createElement('article')
   card.className = 'as-hotspot-card'
   card.hidden = true
   host.appendChild(card)
 
+  let renderGen = 0
+  /** Object URLs owned by the in-flight or committed render generation. */
+  const objectUrls = new Set<string>()
+
+  const revokeAll = () => {
+    for (const url of objectUrls) URL.revokeObjectURL(url)
+    objectUrls.clear()
+  }
+
+  const revokeUrl = (url: string) => {
+    URL.revokeObjectURL(url)
+    objectUrls.delete(url)
+  }
+
+  async function assetUrl(assetId: string, gen: number): Promise<string | null> {
+    const blob = await idbGetAssetBlob(assetId)
+    if (gen !== renderGen) return null
+    if (!blob) return null
+    const url = URL.createObjectURL(blob)
+    if (gen !== renderGen) {
+      URL.revokeObjectURL(url)
+      return null
+    }
+    objectUrls.add(url)
+    return url
+  }
+
   const close = () => {
+    renderGen += 1
     card.querySelectorAll('video').forEach((v) => {
       v.pause()
       v.removeAttribute('src')
@@ -43,12 +57,18 @@ export function mountHotspotCard(host: HTMLElement, handlers: HotspotCardHandler
 
   return {
     async show(hotspot: Hotspot) {
+      const gen = ++renderGen
       revokeAll()
+
       const title =
         hotspot.blocks.find((block) => block.type === 'title')?.text ?? hotspot.name
 
       const parts: string[] = []
       for (const block of hotspot.blocks) {
+        if (gen !== renderGen) {
+          revokeAll()
+          return
+        }
         if (block.type === 'eyebrow') {
           parts.push(`<p class="as-hotspot-eyebrow">${escapeHtml(block.text)}</p>`)
         } else if (block.type === 'title') {
@@ -67,18 +87,35 @@ export function mountHotspotCard(host: HTMLElement, handlers: HotspotCardHandler
               .join('')}</dl>`,
           )
         } else if (block.type === 'cta') {
-          parts.push(
-            `<a class="as-btn as-btn--accent" href="${escapeAttr(block.url)}" target="_blank" rel="noopener">${escapeHtml(block.label)}</a>`,
-          )
+          const safe = sanitizeExternalUrl(block.url)
+          if (safe) {
+            parts.push(
+              `<a class="as-btn as-btn--accent" href="${escapeAttr(safe)}" target="_blank" rel="noopener noreferrer">${escapeHtml(block.label)}</a>`,
+            )
+          } else {
+            parts.push(
+              `<span class="as-btn as-btn--accent" aria-disabled="true" title="Blocked URL scheme">${escapeHtml(block.label)}</span>`,
+            )
+          }
         } else if (block.type === 'image') {
-          const url = await assetUrl(block.assetId)
+          const url = await assetUrl(block.assetId, gen)
+          if (gen !== renderGen) {
+            if (url) revokeUrl(url)
+            revokeAll()
+            return
+          }
           if (url) {
             parts.push(
               `<img class="as-hotspot-media" src="${escapeAttr(url)}" alt="${escapeAttr(block.alt || hotspot.name)}" />`,
             )
           }
         } else if (block.type === 'video') {
-          const url = await assetUrl(block.assetId)
+          const url = await assetUrl(block.assetId, gen)
+          if (gen !== renderGen) {
+            if (url) revokeUrl(url)
+            revokeAll()
+            return
+          }
           if (url) {
             parts.push(
               `<video class="as-hotspot-media" src="${escapeAttr(url)}" controls autoplay playsinline></video>`,
@@ -87,6 +124,11 @@ export function mountHotspotCard(host: HTMLElement, handlers: HotspotCardHandler
             parts.push(`<p class="as-hint">Video missing — re-import media into this project.</p>`)
           }
         }
+      }
+
+      if (gen !== renderGen) {
+        revokeAll()
+        return
       }
 
       const actionButtons = hotspot.actions
@@ -144,6 +186,10 @@ function defaultActionLabel(action: HotspotAction): string {
       return `Toggle lights: ${action.groupId}`
     case 'vehicleLight.sequence':
       return `Light sequence: ${action.sequenceId}`
+    case 'mesh.setVisible':
+      return `${action.visible ? 'Show' : 'Hide'} mesh: ${action.node.name || action.node.path || 'node'}`
+    case 'mesh.toggleVisible':
+      return `Toggle mesh: ${action.node.name || action.node.path || 'node'}`
     default:
       return 'Run action'
   }
@@ -152,27 +198,48 @@ function defaultActionLabel(action: HotspotAction): string {
 export function runHotspotAction(
   action: HotspotAction,
   handlers: {
-    playSemanticAction: (id: string) => boolean
+    playSemanticAction: (
+      id: string,
+      opts?: {
+        startSeconds?: number
+        endSeconds?: number
+        forcePlay?: boolean
+        forceToggle?: boolean
+      },
+    ) => boolean
     goToShot?: (shotId: string) => void
     setEnvironmentPreset?: (presetId: string) => void
     setVehicleLight?: (groupId: string, on: boolean) => void
     toggleVehicleLight?: (groupId: string) => void
     playVehicleLightSequence?: (sequenceId: string) => void
+    setMeshVisible?: (node: SemanticNodeRef, visible: boolean) => boolean
+    toggleMeshVisible?: (node: SemanticNodeRef) => boolean
   },
 ): boolean {
   switch (action.type) {
     case 'action.play':
+      return handlers.playSemanticAction(action.actionId, {
+        startSeconds: action.startSeconds,
+        endSeconds: action.endSeconds,
+        forcePlay: true,
+      })
     case 'action.toggle':
-      return handlers.playSemanticAction(action.actionId)
+      return handlers.playSemanticAction(action.actionId, {
+        startSeconds: action.startSeconds,
+        endSeconds: action.endSeconds,
+        forceToggle: true,
+      })
     case 'shot.goTo':
       handlers.goToShot?.(action.shotId)
       return Boolean(handlers.goToShot)
     case 'environment.setPreset':
       handlers.setEnvironmentPreset?.(action.presetId)
       return Boolean(handlers.setEnvironmentPreset)
-    case 'link.open':
-      window.open(action.url, '_blank', 'noopener')
+    case 'link.open': {
+      if (!isAllowedExternalUrl(action.url)) return false
+      window.open(action.url, '_blank', 'noopener,noreferrer')
       return true
+    }
     case 'vehicleLight.set':
       handlers.setVehicleLight?.(action.groupId, action.on)
       return Boolean(handlers.setVehicleLight)
@@ -182,6 +249,10 @@ export function runHotspotAction(
     case 'vehicleLight.sequence':
       handlers.playVehicleLightSequence?.(action.sequenceId)
       return Boolean(handlers.playVehicleLightSequence)
+    case 'mesh.setVisible':
+      return handlers.setMeshVisible?.(action.node, action.visible) ?? false
+    case 'mesh.toggleVisible':
+      return handlers.toggleMeshVisible?.(action.node) ?? false
     default:
       return false
   }

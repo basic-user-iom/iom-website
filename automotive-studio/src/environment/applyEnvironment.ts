@@ -177,59 +177,79 @@ export function stagePolicyForPreset(
   }
 }
 
+const _bgColor = new Color()
+
+function elevHorizonFade(elevationDeg: number): number {
+  // Soft fade near the horizon — grazing directional shadows are GPU-expensive.
+  const t = Math.max(0, Math.min(1, (elevationDeg - 1) / 7))
+  return t * t * (3 - 2 * t)
+}
+
 export function applyEnvironment(handles: EnvironmentHandles, env: EnvironmentState) {
   const visualPreset = resolveVisualPreset(env)
   const look = lookForPreset(visualPreset)
 
-  const useMoonKey =
-    Boolean(env.moonAsKeyLight) &&
-    Boolean(env.moonEnabled) &&
-    (env.moonElevationDeg ?? 0) > 2
-  const useSunKey =
-    !useMoonKey &&
-    env.sunEnabled !== false &&
-    env.sunElevationDeg > -2
+  const moonElRaw = env.moonElevationDeg ?? 0
+  const sunElRaw = env.sunElevationDeg
+  const useMoonKey = Boolean(env.moonAsKeyLight) && Boolean(env.moonEnabled)
+  const moonKeyFade = useMoonKey ? elevHorizonFade(moonElRaw) : 0
+  const useSunKey = !useMoonKey && env.sunEnabled !== false
+  const sunKeyFade = useSunKey ? elevHorizonFade(sunElRaw) : 0
 
   const keyAz = useMoonKey ? (env.moonAzimuthDeg ?? env.sunAzimuthDeg) : env.sunAzimuthDeg
-  const keyEl = useMoonKey ? (env.moonElevationDeg ?? 28) : env.sunElevationDeg
+  // Aim the key light from a safe elevation so grazing / below-horizon angles
+  // never stretch the shadow frustum across the whole stage.
+  const keyElRaw = useMoonKey ? moonElRaw : sunElRaw
+  const keyEl = Math.max(8, keyElRaw)
   const dir = directionFromAzEl(keyAz, keyEl)
   const sunDistance = 36
-  handles.sun.position.copy(dir.clone().multiplyScalar(sunDistance))
+  handles.sun.position.copy(dir).multiplyScalar(sunDistance)
   handles.sun.target.position.set(0, 0.4, 0)
   handles.sun.target.updateMatrixWorld()
 
   const fillDir = directionFromAzEl(keyAz + 160, Math.max(8, keyEl * 0.35))
-  handles.fill.position.copy(fillDir.multiplyScalar(24))
+  handles.fill.position.copy(fillDir).multiplyScalar(24)
 
   const rimDir = directionFromAzEl(keyAz - 95, Math.max(6, keyEl * 0.25 + 10))
-  handles.rim.position.copy(rimDir.multiplyScalar(22))
+  handles.rim.position.copy(rimDir).multiplyScalar(22)
 
-  handles.scene.background = look.skyHorizon.clone()
+  _bgColor.copy(look.skyHorizon)
+  handles.scene.background = _bgColor
 
-  if (env.fogDensity > 0.001) {
-    const far = visualPreset === 'night' || env.starsEnabled ? 280 : 90
-    handles.scene.fog = new Fog(
-      look.fogColor,
-      18 / Math.max(env.fogDensity * 40, 0.2),
-      far,
-    )
+  // Always keep a Fog on the scene so MeshStandard programs stay stable across
+  // day (foggy) ↔ studio (clear) — toggling fog on/off forces a full recompile.
+  const wantFog = env.fogDensity > 0.001
+  const fogFar = wantFog
+    ? visualPreset === 'night' || env.starsEnabled
+      ? 280
+      : 90
+    : 8000
+  const fogNear = wantFog ? 18 / Math.max(env.fogDensity * 40, 0.2) : 7000
+  if (handles.scene.fog instanceof Fog) {
+    handles.scene.fog.color.copy(look.fogColor)
+    handles.scene.fog.near = fogNear
+    handles.scene.fog.far = fogFar
   } else {
-    handles.scene.fog = null
+    handles.scene.fog = new Fog(look.fogColor.getHex(), fogNear, fogFar)
   }
 
   const sunGain = Math.max(0, Math.min(2, env.sunIntensity ?? 1))
   const moonGain = Math.max(0, Math.min(3, env.moonIntensity ?? 1))
 
+  // Keep castShadow sticky while the key source is selected so dragging across
+  // the horizon fade does not allocate/destroy the shadow map every few degrees.
   if (useMoonKey) {
+    const lit = moonKeyFade > 0.02
     handles.sun.color.setHex(0xc8d4ff)
-    handles.sun.intensity = 0.55 * moonGain
-    handles.sun.visible = true
-    handles.sun.castShadow = true
+    handles.sun.intensity = 0.55 * moonGain * moonKeyFade
+    handles.sun.visible = lit
+    handles.sun.castShadow = lit
   } else if (useSunKey) {
+    const lit = sunKeyFade > 0.02
     handles.sun.color.setHex(look.sunColor)
-    handles.sun.intensity = look.sunIntensity * sunGain
-    handles.sun.visible = true
-    handles.sun.castShadow = true
+    handles.sun.intensity = look.sunIntensity * sunGain * sunKeyFade
+    handles.sun.visible = lit
+    handles.sun.castShadow = lit
   } else {
     handles.sun.color.setHex(look.sunColor)
     handles.sun.intensity = 0

@@ -1,5 +1,7 @@
 import {
+  AdditiveBlending,
   AmbientLight,
+  CanvasTexture,
   CircleGeometry,
   Color,
   CylinderGeometry,
@@ -13,9 +15,12 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   PointLight,
+  Raycaster,
   RepeatWrapping,
   Scene,
   SpotLight,
+  SRGBColorSpace,
+  Vector2,
   Vector3,
   type WebGLRenderer,
 } from 'three'
@@ -39,6 +44,18 @@ import {
   disposeStageTextureCache,
   setStageTextureAnisotropy,
 } from '../stage/stageMaterials'
+import {
+  createInfiniteFloorGeometry,
+  createTessellatedCircleGeometry,
+  stageSurfaceNeedsDisplacement,
+} from '../stage/stageGeometry'
+import {
+  bindCycloramaVideoToMesh,
+  disposeCycloramaVideoHandle,
+  loadCycloramaVideoHandle,
+  toggleCycloramaPlayback,
+  type CycloramaVideoHandle,
+} from '../stage/cycloramaVideo'
 
 export interface StudioRenderer {
   backend: RenderBackend
@@ -53,7 +70,11 @@ export interface StudioRenderer {
   applyStageState: (stage: StageState) => void
   applyAccentLights: (accent: AccentLightState) => void
   applyBloom: (cfg: Pick<VehicleLightsState, 'bloomEnabled' | 'bloomStrength' | 'bloomThreshold'>) => void
+  /** Lite: fill shadow off + softer sun map. Full restores Present-quality shadows. */
+  applyLightsBudget: (opts: { lite: boolean }) => void
   bloomSupported: boolean
+  /** Compile materials/lights now so first lamp toggle does not hitch. */
+  warmGpu: () => void
   /** Keep the sun shadow map centred on the vehicle so coverage stays even on large routes. */
   updateShadowFocus: (worldXz: Vector3 | null) => void
   updateContactShadow: (target: import('three').Object3D | null) => void
@@ -68,10 +89,33 @@ export interface StudioRenderer {
   isOrbitEnabled: () => boolean
   setFloorSize: (metres: number) => void
   getFloorSize: () => number
+  /** Click-to-play when interactive video is bound; returns true if handled. */
+  tryCycloramaClick: (clientX: number, clientY: number) => Promise<boolean>
+  /** Pointer cursor when hovering interactive cyclorama video. */
+  updateCycloramaHover: (clientX: number, clientY: number) => void
+  hasCycloramaVideo: () => boolean
   frameTo: (center: Vector3, radius: number) => void
   setSize: (width: number, height: number) => void
   render: () => void
   dispose: () => void
+}
+
+/** Radial falloff so the accent glow cards fade out instead of showing their edges. */
+function createSoftGlowTexture(): CanvasTexture {
+  const canvas = document.createElement('canvas')
+  canvas.width = 128
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')!
+  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 62)
+  g.addColorStop(0, 'rgba(255,255,255,1)')
+  g.addColorStop(0.45, 'rgba(255,255,255,0.45)')
+  g.addColorStop(0.8, 'rgba(255,255,255,0.1)')
+  g.addColorStop(1, 'rgba(255,255,255,0)')
+  ctx.fillStyle = g
+  ctx.fillRect(0, 0, 128, 128)
+  const map = new CanvasTexture(canvas)
+  map.colorSpace = SRGBColorSpace
+  return map
 }
 
 /**
@@ -106,26 +150,65 @@ export async function createStudioRenderer(
   floor.rotation.x = -Math.PI / 2
   floor.receiveShadow = true
   floor.name = 'StudioFloor'
+  floor.renderOrder = 0
+  // Lose depth contests against pedestal / contact blob / cyclorama skirts.
+  ;(floor.material as MeshStandardMaterial).polygonOffset = true
+  ;(floor.material as MeshStandardMaterial).polygonOffsetFactor = 2
+  ;(floor.material as MeshStandardMaterial).polygonOffsetUnits = 2
   scene.add(floor)
   let floorSizeMetres = 24
   let infiniteFloor = false
   const INFINITE_FLOOR_METRES = 400
+  /** When true, floor/pedestal/cyc use dense meshes so height maps have verts to move. */
+  let floorDisplaceTessellated = false
+  let pedestalDisplaceTessellated = false
+  let cycloramaDisplaceTessellated = false
 
+  const floorRadiusForStage = (floorDiameter: number, cycRadius: number) =>
+    Math.max(floorDiameter, cycRadius * 2 + 0.3) * 0.5
+
+  const buildFloorGeometry = (radius: number, displace: boolean) =>
+    displace ? createTessellatedCircleGeometry(radius, 96, 48) : new CircleGeometry(radius, 96)
+
+  const buildPedestalGeometry = (radius: number, height: number, displace: boolean) =>
+    new CylinderGeometry(radius, radius, height, displace ? 96 : 64, displace ? 16 : 1)
+
+  const buildCycloramaGeometry = (
+    radius: number,
+    height: number,
+    displace: boolean,
+  ) =>
+    new CylinderGeometry(
+      radius,
+      radius,
+      height,
+      displace ? 96 : 48,
+      displace ? 32 : 1,
+      true,
+      CYC_THETA_START,
+      CYC_THETA_LENGTH,
+    )
+
+  let pedestalHeightMetres = 0.12
+  let pedestalDiameterMetres = 4.8
   const pedestal = new Mesh(
-    new CircleGeometry(2.4, 64),
+    new CylinderGeometry(2.4, 2.4, pedestalHeightMetres, 64),
     new MeshStandardMaterial({
       color: 0x1c222c,
       metalness: 0.45,
       roughness: 0.4,
-      // Avoid z-fighting with the floor circle (shared XY plane).
+      // Win over the floor when nearly coplanar (displacement makes this worse).
       polygonOffset: true,
-      polygonOffsetFactor: -1,
-      polygonOffsetUnits: -1,
+      polygonOffsetFactor: -2,
+      polygonOffsetUnits: -2,
     }),
   )
-  pedestal.rotation.x = -Math.PI / 2
-  pedestal.position.y = 0.012
+  // Cylinder is Y-up — sit clearly above the floor + contact shadow so bottoms
+  // never share a plane (z-fight / flicker, worse while the video wall updates).
+  const STAGE_Z_EPS = 0.02
+  pedestal.position.y = pedestalHeightMetres * 0.5 + STAGE_Z_EPS
   pedestal.receiveShadow = true
+  pedestal.castShadow = true
   pedestal.name = 'StudioPedestal'
   pedestal.renderOrder = 1
   scene.add(pedestal)
@@ -144,46 +227,202 @@ export async function createStudioRenderer(
       side: DoubleSide,
     }),
   )
-  cyclorama.position.set(0, cycloramaHeightMetres * 0.5, 0)
-  cyclorama.receiveShadow = true
+  cyclorama.position.set(0, cycloramaHeightMetres * 0.5 + STAGE_Z_EPS, 0)
+  // Video wall updates every frame — receiving sun shadows on it + coplanar floor
+  // skirts reads as flicker on the pad. Keep the wall unshadowed.
+  cyclorama.receiveShadow = false
+  cyclorama.castShadow = false
   cyclorama.name = 'StudioCyclorama'
   scene.add(cyclorama)
 
+  // Soft additive glow sheets along the open cyclorama (volume-lighting vibe, WebGL-safe).
+  const cycloramaVolGroup = new Group()
+  cycloramaVolGroup.name = 'CycloramaVolumetrics'
+  cycloramaVolGroup.visible = false
+  const cycGlowMat = new MeshBasicMaterial({
+    map: createSoftGlowTexture(),
+    color: 0xffe8d4,
+    transparent: true,
+    opacity: 0.04,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+  })
+  let cycGlowGeo = new PlaneGeometry(4, 7)
+  let cycloramaRadiusMetres = 14
+  scene.add(cycloramaVolGroup)
+
+  const rebuildCycloramaVolumetrics = (radius: number, height: number) => {
+    for (const child of [...cycloramaVolGroup.children]) {
+      cycloramaVolGroup.remove(child)
+      child.traverse((obj) => {
+        const mesh = obj as Mesh
+        if (!mesh.isMesh) return
+        const mat = mesh.material as MeshBasicMaterial
+        if (mat?.isMeshBasicMaterial && mat !== cycGlowMat) mat.dispose()
+      })
+    }
+    cycGlowGeo.dispose()
+    const sheetW = Math.max(2.2, Math.min(10, radius * 0.42))
+    const sheetH = Math.max(3, Math.min(28, height * 0.72))
+    cycGlowGeo = new PlaneGeometry(sheetW, sheetH)
+    const seats = 5
+    const inset = Math.max(0.35, radius * 0.04)
+    for (let i = 0; i < seats; i++) {
+      const t = (i + 0.5) / seats
+      const theta = CYC_THETA_START + t * CYC_THETA_LENGTH
+      const r = Math.max(1, radius - inset)
+      const seat = new Group()
+      seat.position.set(Math.sin(theta) * r, height * 0.42, Math.cos(theta) * r)
+      // Plane faces +Z locally; point inward toward stage centre.
+      seat.rotation.y = theta + Math.PI
+      const a = new Mesh(cycGlowGeo, cycGlowMat.clone())
+      const b = new Mesh(cycGlowGeo, cycGlowMat.clone())
+      b.rotation.y = Math.PI / 2
+      seat.add(a, b)
+      cycloramaVolGroup.add(seat)
+    }
+  }
+  rebuildCycloramaVolumetrics(14, cycloramaHeightMetres)
+
+  const syncCycloramaVolumetrics = (stage: StageState, cycVisible: boolean) => {
+    // Soft glow sheets sit just inside the wall — together with a playing video
+    // they shimmer / z-fight. Prefer the media wall alone while video is active.
+    const on =
+      Boolean(stage.cycloramaVolumeGlow) &&
+      cycVisible &&
+      !infiniteFloor &&
+      !stage.cycloramaVideoAssetId
+    cycloramaVolGroup.visible = on
+    if (!on) return
+    const intensity = Math.max(0, Math.min(2, stage.cycloramaVolumeIntensity ?? 1))
+    const cardOpacity = 0.028 + 0.045 * intensity
+    cycloramaVolGroup.traverse((obj) => {
+      const mesh = obj as Mesh
+      if (!mesh.isMesh) return
+      const mat = mesh.material as MeshBasicMaterial
+      if (mat?.isMeshBasicMaterial) mat.opacity = cardOpacity
+    })
+  }
+
+  let cycloramaVideo: CycloramaVideoHandle | null = null
+  let cycloramaVideoGen = 0
+  let cycloramaCropTop = 0
+  const cycloramaRaycaster = new Raycaster()
+  const cycloramaPointer = new Vector2()
+
+  const cycloramaWallAspect = (radius: number, height: number) =>
+    (radius * CYC_THETA_LENGTH) / Math.max(0.01, height)
+
+  const resolveCycloramaHeights = (stage: StageState) => {
+    const mediaH = Math.max(2, Math.min(80, stage.cycloramaHeight || 10))
+    const crop = Math.max(0, Math.min(0.75, stage.cycloramaCropTop ?? 0))
+    return { mediaH, crop, visibleH: Math.max(1.5, mediaH * (1 - crop)) }
+  }
+
+  const clearCycloramaVideo = () => {
+    disposeCycloramaVideoHandle(cycloramaVideo)
+    cycloramaVideo = null
+  }
+
+  const syncCycloramaVideo = async (stage: StageState) => {
+    const gen = ++cycloramaVideoGen
+    const assetId = stage.cycloramaVideoAssetId
+    if (!assetId) {
+      clearCycloramaVideo()
+      return
+    }
+    if (!cycloramaVideo || cycloramaVideo.assetId !== assetId) {
+      clearCycloramaVideo()
+      try {
+        const handle = await loadCycloramaVideoHandle(assetId)
+        if (gen !== cycloramaVideoGen) {
+          disposeCycloramaVideoHandle(handle)
+          return
+        }
+        if (!handle) return
+        cycloramaVideo = handle
+      } catch {
+        if (gen !== cycloramaVideoGen) return
+        clearCycloramaVideo()
+        return
+      }
+    }
+    if (gen !== cycloramaVideoGen || !cycloramaVideo) return
+    const { crop, visibleH } = resolveCycloramaHeights(stage)
+    bindCycloramaVideoToMesh(cyclorama, cycloramaVideo, {
+      muted: stage.cycloramaVideoMuted !== false,
+      loop: stage.cycloramaVideoLoop !== false,
+      fit: stage.cycloramaVideoFit === 'contain' ? 'contain' : 'cover',
+      wallAspect: cycloramaWallAspect(cycloramaRadiusMetres, visibleH),
+      cropTop: crop,
+    })
+  }
+
+  const hitCyclorama = (clientX: number, clientY: number): boolean => {
+    if (!cyclorama.visible || infiniteFloor) return false
+    const rect = canvas.getBoundingClientRect()
+    if (rect.width < 1 || rect.height < 1) return false
+    cycloramaPointer.x = ((clientX - rect.left) / rect.width) * 2 - 1
+    cycloramaPointer.y = -((clientY - rect.top) / rect.height) * 2 + 1
+    cycloramaRaycaster.setFromCamera(cycloramaPointer, camera)
+    const hits = cycloramaRaycaster.intersectObject(cyclorama, false)
+    return hits.length > 0
+  }
+
   const accentGroup = new Group()
   accentGroup.name = 'AccentLights'
-  const accentKey = new SpotLight(0xffe8d0, 0, 28, Math.PI / 5, 0.45, 1.2)
+  // Keep accents always in the visible light list (intensity floor when off).
+  // Flipping accentGroup.visible changes NUM_SPOT/POINT_LIGHTS and recompiles
+  // every MeshStandardMaterial — multi-second hitch on this car.
+  const ACCENT_INTENSITY_FLOOR = 1e-4
+  const accentKey = new SpotLight(0xffe8d0, ACCENT_INTENSITY_FLOOR, 28, Math.PI / 5, 0.45, 1.2)
+  accentKey.name = 'iom-accent-key'
   accentKey.position.set(3.5, 4.2, 4)
   accentKey.target.position.set(0, 0.8, 0)
   accentKey.castShadow = false
-  const accentFill = new SpotLight(0xc8d8ff, 0, 24, Math.PI / 4.5, 0.5, 1.2)
+  const accentFill = new SpotLight(0xc8d8ff, ACCENT_INTENSITY_FLOOR, 24, Math.PI / 4.5, 0.5, 1.2)
+  accentFill.name = 'iom-accent-fill'
   accentFill.position.set(-4, 3.2, 2.5)
   accentFill.target.position.set(0, 0.7, 0)
-  const accentRim = new PointLight(0xfff0e0, 0, 18, 1.4)
+  accentFill.castShadow = false
+  const accentRim = new PointLight(0xfff0e0, ACCENT_INTENSITY_FLOOR, 18, 1.4)
+  accentRim.name = 'iom-accent-rim'
   accentRim.position.set(0.5, 2.8, -5)
   accentGroup.add(accentKey, accentKey.target, accentFill, accentFill.target, accentRim)
 
   const volumetricGroup = new Group()
   volumetricGroup.name = 'AccentVolumetrics'
   volumetricGroup.visible = false
+  // Cheap fake volume: two additive cards crossed at 90° per seat so an edge-on
+  // camera never collapses the glow to a single vertical line.
   const glowMat = new MeshBasicMaterial({
+    map: createSoftGlowTexture(),
     color: 0xffe2c0,
     transparent: true,
-    opacity: 0.07,
+    opacity: 0.045,
     depthWrite: false,
+    blending: AdditiveBlending,
+    side: DoubleSide,
   })
-  for (const [x, z, rot] of [
+  const glowGeo = new PlaneGeometry(2.4, 5.5)
+  for (const [x, z, yaw] of [
     [4.2, 3.2, -0.6],
     [-4.2, 2.6, 0.55],
     [0.2, -5.2, 0],
   ] as const) {
-    const plane = new Mesh(new PlaneGeometry(2.4, 5.5), glowMat.clone())
-    plane.position.set(x, 2.4, z)
-    plane.rotation.y = rot
-    volumetricGroup.add(plane)
+    const seat = new Group()
+    seat.position.set(x, 2.4, z)
+    seat.rotation.y = yaw
+    const a = new Mesh(glowGeo, glowMat.clone())
+    const b = new Mesh(glowGeo, glowMat.clone())
+    b.rotation.y = Math.PI / 2
+    seat.add(a, b)
+    volumetricGroup.add(seat)
   }
   accentGroup.add(volumetricGroup)
   scene.add(accentGroup)
-  accentGroup.visible = false
+  accentGroup.visible = true
 
   const hemi = new HemisphereLight(0xb8c0cc, 0x2a303a, 0.45)
   scene.add(hemi)
@@ -384,6 +623,7 @@ export async function createStudioRenderer(
       cyclorama.visible = policy.cycloramaVisible && lastStage.cycloramaVisible
     }
     if (infiniteFloor) cyclorama.visible = false
+    syncCycloramaVolumetrics(lastStage, cyclorama.visible)
     contactShadow.setOpacity(policy.contactOpacity)
   }
 
@@ -398,8 +638,17 @@ export async function createStudioRenderer(
     if (infiniteFloor) {
       pedestal.visible = false
       cyclorama.visible = false
-      void applyStageSurfaceMaterial(floor, stage.floor)
-      syncInfiniteFloorTextures(0, 0)
+      syncCycloramaVolumetrics(stage, false)
+      const floorDisplace = stageSurfaceNeedsDisplacement(stage.floor)
+      if (floorDisplace !== floorDisplaceTessellated) {
+        floorDisplaceTessellated = floorDisplace
+        floor.geometry.dispose()
+        floor.geometry = createInfiniteFloorGeometry(INFINITE_FLOOR_METRES, floorDisplace)
+        floor.rotation.x = -Math.PI / 2
+      }
+      void applyStageSurfaceMaterial(floor, stage.floor).then(() => {
+        syncInfiniteFloorTextures(floor.position.x, floor.position.z)
+      })
       return
     }
 
@@ -408,34 +657,61 @@ export async function createStudioRenderer(
 
     const floorDiameter = Math.max(8, Math.min(500, stage.floorSize || 28))
     const pedestalDiameter = Math.max(0.5, Math.min(40, stage.pedestalSize || 4.8))
+    const pedestalHeight = Math.max(0.02, Math.min(1.5, stage.pedestalHeight ?? 0.12))
     const cycRadius = Math.max(6, Math.min(250, stage.cycloramaSize || 14))
-    const cycHeight = Math.max(2, Math.min(80, stage.cycloramaHeight || 10))
+    const { crop: cycCrop, visibleH: cycHeight } = resolveCycloramaHeights(stage)
+    const floorDisplace = stageSurfaceNeedsDisplacement(stage.floor)
+    const pedestalDisplace = stageSurfaceNeedsDisplacement(stage.pedestal)
+    const cycDisplace = stageSurfaceNeedsDisplacement(stage.cyclorama)
+
+    const sizesChanged =
+      floorSizeMetres !== floorDiameter ||
+      pedestalHeightMetres !== pedestalHeight ||
+      pedestalDiameterMetres !== pedestalDiameter ||
+      cycloramaHeightMetres !== cycHeight ||
+      cycloramaRadiusMetres !== cycRadius ||
+      cycloramaCropTop !== cycCrop
+    const floorTessChanged = floorDisplace !== floorDisplaceTessellated
+    const pedTessChanged = pedestalDisplace !== pedestalDisplaceTessellated
+    const cycTessChanged = cycDisplace !== cycloramaDisplaceTessellated
+
     floorSizeMetres = floorDiameter
     cycloramaHeightMetres = cycHeight
+    cycloramaRadiusMetres = cycRadius
+    cycloramaCropTop = cycCrop
+    pedestalHeightMetres = pedestalHeight
+    pedestalDiameterMetres = pedestalDiameter
+    floorDisplaceTessellated = floorDisplace
+    pedestalDisplaceTessellated = pedestalDisplace
+    cycloramaDisplaceTessellated = cycDisplace
 
-    floor.geometry.dispose()
-    floor.geometry = new CircleGeometry(Math.max(floorDiameter, cycRadius * 2 + 0.3) * 0.5, 96)
-    floor.position.set(0, 0, 0)
-
-    pedestal.geometry.dispose()
-    pedestal.geometry = new CircleGeometry(pedestalDiameter * 0.5, 64)
-
-    cyclorama.geometry.dispose()
-    cyclorama.geometry = new CylinderGeometry(
-      cycRadius,
-      cycRadius,
-      cycHeight,
-      48,
-      1,
-      true,
-      CYC_THETA_START,
-      CYC_THETA_LENGTH,
-    )
-    cyclorama.position.y = cycHeight * 0.5
+    if (sizesChanged || floorTessChanged) {
+      floor.geometry.dispose()
+      floor.geometry = buildFloorGeometry(floorRadiusForStage(floorDiameter, cycRadius), floorDisplace)
+      floor.position.set(0, 0, 0)
+    }
+    if (sizesChanged || pedTessChanged) {
+      pedestal.geometry.dispose()
+      const pedR = pedestalDiameter * 0.5
+      pedestal.geometry = buildPedestalGeometry(pedR, pedestalHeight, pedestalDisplace)
+      pedestal.rotation.set(0, 0, 0)
+      pedestal.position.y = pedestalHeight * 0.5 + STAGE_Z_EPS
+    } else {
+      pedestal.position.y = pedestalHeight * 0.5 + STAGE_Z_EPS
+    }
+    if (sizesChanged || cycTessChanged) {
+      cyclorama.geometry.dispose()
+      cyclorama.geometry = buildCycloramaGeometry(cycRadius, cycHeight, cycDisplace)
+      cyclorama.position.y = cycHeight * 0.5 + STAGE_Z_EPS
+      rebuildCycloramaVolumetrics(cycRadius, cycHeight)
+    }
+    syncCycloramaVolumetrics(stage, cyclorama.visible)
 
     void applyStageSurfaceMaterial(floor, stage.floor)
     void applyStageSurfaceMaterial(pedestal, stage.pedestal, { polygonOffset: true })
-    void applyStageSurfaceMaterial(cyclorama, stage.cyclorama)
+    void applyStageSurfaceMaterial(cyclorama, stage.cyclorama).then(() => {
+      void syncCycloramaVideo(stage)
+    })
   }
 
   const syncInfiniteFloorTextures = (worldX: number, worldZ: number) => {
@@ -451,33 +727,41 @@ export async function createStudioRenderer(
       mat.normalMap,
       mat.roughnessMap,
       mat.metalnessMap,
+      mat.displacementMap,
       mat.aoMap,
       mat.emissiveMap,
-      mat.displacementMap,
     ]
-    for (const tex of maps) {
-      if (!tex) continue
+    const world = infiniteFloorTextureOffset(worldX, worldZ, repeat, size)
+    maps.forEach((tex) => {
+      if (!tex) return
       tex.wrapS = RepeatWrapping
       tex.wrapT = RepeatWrapping
       tex.repeat.set(repeat, repeat)
-      // Keep world-locked tiling while the plane follows the car.
-      infiniteFloorTextureOffset(worldX, worldZ, repeat, size, tex.offset)
+      tex.center.set(0.5, 0.5)
+      // Break-tiling UV spin/offset rotates the road relative to the car while the
+      // plane follows — world-lock only. Shader detile (uTileVariation) still runs.
+      tex.rotation = 0
+      tex.offset.copy(world)
       tex.needsUpdate = true
-    }
+    })
   }
 
   const setInfiniteFloor = (enabled: boolean) => {
     if (infiniteFloor === enabled) return
     infiniteFloor = enabled
     if (enabled) {
+      const displace = stageSurfaceNeedsDisplacement(lastStage.floor)
+      floorDisplaceTessellated = displace
       floor.geometry.dispose()
-      floor.geometry = new PlaneGeometry(INFINITE_FLOOR_METRES, INFINITE_FLOOR_METRES, 1, 1)
+      floor.geometry = createInfiniteFloorGeometry(INFINITE_FLOOR_METRES, displace)
       floor.rotation.x = -Math.PI / 2
       pedestal.visible = false
       cyclorama.visible = false
+      syncCycloramaVolumetrics(lastStage, false)
       floorSizeMetres = INFINITE_FLOOR_METRES
-      void applyStageSurfaceMaterial(floor, lastStage.floor)
-      syncInfiniteFloorTextures(floor.position.x, floor.position.z)
+      void applyStageSurfaceMaterial(floor, lastStage.floor).then(() => {
+        syncInfiniteFloorTextures(floor.position.x, floor.position.z)
+      })
     } else {
       floor.position.set(0, 0, 0)
       applyStageState(lastStage)
@@ -493,16 +777,26 @@ export async function createStudioRenderer(
 
   const applyAccentLights = (accent: AccentLightState) => {
     const on = Boolean(accent.enabled)
-    accentGroup.visible = on
+    // Never hide accentGroup — Three.js traverseVisible would drop the spots
+    // from NUM_*_LIGHTS and recompile the whole car.
+    accentGroup.visible = true
+    accentKey.visible = true
+    accentFill.visible = true
+    accentRim.visible = true
     const intensity = Math.max(0, Math.min(2, accent.intensity ?? 1))
-    accentKey.intensity = on ? 1.35 * intensity : 0
-    accentFill.intensity = on ? 0.85 * intensity : 0
-    accentRim.intensity = on ? 0.55 * intensity : 0
+    accentKey.intensity = on ? 1.35 * intensity : ACCENT_INTENSITY_FLOOR
+    accentFill.intensity = on ? 0.85 * intensity : ACCENT_INTENSITY_FLOOR
+    accentRim.intensity = on ? 0.55 * intensity : ACCENT_INTENSITY_FLOOR
+    // Volumetric cards are meshes only — visibility toggle is fine.
     volumetricGroup.visible = on && Boolean(accent.volumetricEnabled)
-    for (const child of volumetricGroup.children) {
-      const mat = (child as Mesh).material as MeshBasicMaterial
-      mat.opacity = 0.05 + 0.05 * intensity
-    }
+    // Per-plane opacity is lower: crossed pair stacks additively at 45°.
+    const cardOpacity = 0.035 + 0.04 * intensity
+    volumetricGroup.traverse((obj) => {
+      const mesh = obj as Mesh
+      if (!mesh.isMesh) return
+      const mat = mesh.material as MeshBasicMaterial
+      if (mat?.isMeshBasicMaterial) mat.opacity = cardOpacity
+    })
   }
 
   applyStageState(createEmptyProject().stage)
@@ -525,7 +819,7 @@ export async function createStudioRenderer(
     enabled: defaults.bloomEnabled,
     strength: defaults.bloomStrength,
     threshold: defaults.bloomThreshold,
-    radius: 0.4,
+    radius: 0.18,
   })
 
   const setSize = (width: number, height: number) => {
@@ -553,17 +847,48 @@ export async function createStudioRenderer(
     ;(pedestal.material as MeshStandardMaterial).dispose()
     cyclorama.geometry.dispose()
     ;(cyclorama.material as MeshStandardMaterial).dispose()
+    clearCycloramaVideo()
     for (const child of volumetricGroup.children) {
-      const mesh = child as Mesh
-      mesh.geometry.dispose()
-      ;(mesh.material as MeshBasicMaterial).dispose()
+      child.traverse((obj) => {
+        const mesh = obj as Mesh
+        if (!mesh.isMesh) return
+        const mat = mesh.material as MeshBasicMaterial
+        if (mat?.isMeshBasicMaterial) mat.dispose()
+      })
     }
+    for (const child of [...cycloramaVolGroup.children]) {
+      cycloramaVolGroup.remove(child)
+      child.traverse((obj) => {
+        const mesh = obj as Mesh
+        if (!mesh.isMesh) return
+        const mat = mesh.material as MeshBasicMaterial
+        if (mat?.isMeshBasicMaterial && mat !== cycGlowMat) mat.dispose()
+      })
+    }
+    cycGlowGeo.dispose()
+    cycGlowMat.map?.dispose()
+    cycGlowMat.dispose()
+    glowGeo.dispose()
+    glowMat.map?.dispose()
     glowMat.dispose()
     celestial.dispose()
     disposeStageTextureCache()
     iblCache?.dispose()
     renderer.dispose()
     canvas.remove()
+  }
+
+  const applyLightsBudget = (opts: { lite: boolean }) => {
+    fill.castShadow = !opts.lite
+    const sunSize = opts.lite ? 2048 : 4096
+    if (sun.shadow.mapSize.x !== sunSize) {
+      sun.shadow.mapSize.set(sunSize, sunSize)
+      const map = sun.shadow.map
+      if (map) {
+        map.dispose()
+        sun.shadow.map = null as unknown as typeof map
+      }
+    }
   }
 
   return {
@@ -583,10 +908,55 @@ export async function createStudioRenderer(
         enabled: cfg.bloomEnabled,
         strength: cfg.bloomStrength,
         threshold: cfg.bloomThreshold,
-        radius: 0.4,
+        radius: 0.18,
       })
     },
+    applyLightsBudget,
     bloomSupported: bloom.supported,
+    warmGpu() {
+      try {
+        // Compile with the same light-count mask used at runtime: all iom-lamp-*
+        // and iom-accent-* proxies visible with a tiny non-zero intensity
+        // (Three skips intensity===0 from shading but still counts visible lights).
+        scene.traverse((obj) => {
+          const name = obj.name || ''
+          const isStudio =
+            name.startsWith('iom-lamp-') || name.startsWith('iom-accent-')
+          if (!isStudio) return
+          const spot = obj as SpotLight
+          if (spot.isSpotLight) {
+            spot.visible = true
+            if (spot.intensity < 1e-3) spot.intensity = 1e-3
+            return
+          }
+          const point = obj as PointLight
+          if (point.isPointLight) {
+            point.visible = true
+            if (point.intensity < 1e-3) point.intensity = 1e-3
+          }
+        })
+        renderer.compile(scene, camera)
+        scene.traverse((obj) => {
+          const name = obj.name || ''
+          const isStudio =
+            name.startsWith('iom-lamp-') || name.startsWith('iom-accent-')
+          if (!isStudio) return
+          const spot = obj as SpotLight
+          if (spot.isSpotLight) {
+            spot.visible = true
+            if (spot.intensity <= 1e-3) spot.intensity = 1e-4
+            return
+          }
+          const point = obj as PointLight
+          if (point.isPointLight) {
+            point.visible = true
+            if (point.intensity <= 1e-3) point.intensity = 1e-4
+          }
+        })
+      } catch {
+        /* compile is best-effort */
+      }
+    },
     setOrbitEnabled(enabled) {
       controls.enabled = enabled
       canvas.style.cursor = enabled ? 'grab' : ''
@@ -600,27 +970,43 @@ export async function createStudioRenderer(
       if (size <= floorSizeMetres + 0.5) return
       floorSizeMetres = size
       const floorRadius = size * 0.5
+      const floorDisplace = stageSurfaceNeedsDisplacement(lastStage.floor)
+      floorDisplaceTessellated = floorDisplace
       floor.geometry.dispose()
-      floor.geometry = new CircleGeometry(floorRadius, 96)
+      floor.geometry = buildFloorGeometry(floorRadius, floorDisplace)
       if (size * 0.5 > 14) {
         const cycRadius = Math.max(12, size * 0.5 - 0.15)
+        cycloramaRadiusMetres = cycRadius
+        const cycDisplace = stageSurfaceNeedsDisplacement(lastStage.cyclorama)
+        cycloramaDisplaceTessellated = cycDisplace
         cyclorama.geometry.dispose()
-        cyclorama.geometry = new CylinderGeometry(
-          cycRadius,
-          cycRadius,
-          cycloramaHeightMetres,
-          48,
-          1,
-          true,
-          CYC_THETA_START,
-          CYC_THETA_LENGTH,
-        )
-        cyclorama.position.y = cycloramaHeightMetres * 0.5
+        cyclorama.geometry = buildCycloramaGeometry(cycRadius, cycloramaHeightMetres, cycDisplace)
+        cyclorama.position.y = cycloramaHeightMetres * 0.5 + STAGE_Z_EPS
+        rebuildCycloramaVolumetrics(cycRadius, cycloramaHeightMetres)
+        syncCycloramaVolumetrics(lastStage, cyclorama.visible)
+        if (cycloramaVideo) {
+          void syncCycloramaVideo(lastStage)
+        }
       }
     },
     getFloorSize: () => floorSizeMetres,
     setInfiniteFloor,
     updateFloorFollow,
+    async tryCycloramaClick(clientX, clientY) {
+      if (!lastStage.cycloramaInteractive || !cycloramaVideo) return false
+      if (!hitCyclorama(clientX, clientY)) return false
+      // First gesture: unmute path when author left muted for autoplay policy.
+      return toggleCycloramaPlayback(cycloramaVideo)
+    },
+    updateCycloramaHover(clientX, clientY) {
+      if (controls.enabled) return
+      if (!lastStage.cycloramaInteractive || !cycloramaVideo || !cyclorama.visible) {
+        if (canvas.style.cursor === 'pointer') canvas.style.cursor = ''
+        return
+      }
+      canvas.style.cursor = hitCyclorama(clientX, clientY) ? 'pointer' : ''
+    },
+    hasCycloramaVideo: () => Boolean(cycloramaVideo),
     frameTo(center, radius) {
       const r = Math.max(1.5, radius)
       camera.position.set(center.x + r * 1.4, center.y + r * 0.55, center.z + r * 1.6)

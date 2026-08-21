@@ -1,12 +1,14 @@
-import { Object3D, Vector3 } from 'three'
+import { Mesh, Object3D, Vector3 } from 'three'
 import type { FreeDriveState, VehicleRigManifest } from '../persistence/schema'
 import { measureCarBounds } from '../assets/analyzeAsset'
+import { lampGroupForNames, isLetterLikeMesh } from '../vehicle/vehicleLights'
 import { speedKmhToMetresPerSecond } from './routeMath'
 import {
   applyFrontSteer,
   applyWheelRoll,
   calibrateWheelBindings,
   describeBindings,
+  frontSteerVisualSign,
   headingOffsetForLengthAxis,
   measureAxleGeometry,
   resolveWheelBindings,
@@ -15,9 +17,11 @@ import {
 } from './wheelRoll'
 
 const _forward = new Vector3()
-const UP = new Vector3(0, 1, 0)
+const _probe = new Vector3()
 
 const STEER_RESPONSE_PER_SEC = 14
+/** Arcade bicycle yaw felt too snappy — scale path turn rate (1 = full model). */
+const YAW_RATE_SCALE = 0.7
 const BODY_ROLL_SMOOTHING_METRES = 0.9
 const DEFAULT_WHEELBASE_METRES = 3.1
 const DEFAULT_BODY_ROLL_DEG = 0
@@ -49,21 +53,42 @@ export class FreeDriveSession {
   private actionRoot: Object3D | null = null
   private bindings: WheelRuntimeBinding[] = []
   private alignment: VehicleAlignment | null = null
-  private calibrationNote = ''
   private enabled = false
-  private wheelRollEnabled = true
   private cruiseKmh = DEFAULT_CRUISE_KMH
   private accelMps2 = DEFAULT_ACCEL_MPS2
   private brakeMps2 = DEFAULT_BRAKE_MPS2
   private maxSteerRadians = (DEFAULT_MAX_STEER_DEG * Math.PI) / 180
   private maxBodyRollRadians = (DEFAULT_BODY_ROLL_DEG * Math.PI) / 180
   private tireRollRate = 1
+  private wheelRollEnabled = true
   private velocityMps = 0
   private headingYaw = 0
   private lastSteer = 0
   private lastBodyRoll = 0
   private rollDistanceMetres = 0
+  private calibrationNote = ''
   private input: FreeDriveInput = { throttle: 0, steer: 0 }
+  /** Extra π on yawOffset when W still drives toward the tail (saved with the project). */
+  private headingFlip = false
+
+  /** Toggle when W goes toward the rear; spins the body so keys stay W=forward. */
+  setHeadingFlip(on: boolean) {
+    if (this.headingFlip === on) return
+    this.headingFlip = on
+    this.alignment = null
+    for (const b of this.bindings) {
+      b.calibrated = false
+      b.steerCalibrated = false
+    }
+    if (this.placement && this.enabled) {
+      const yawOffset = this.ensureAlignment().yawOffset
+      this.headingYaw = this.placement.rotation.y - yawOffset
+    }
+  }
+
+  getHeadingFlip() {
+    return this.headingFlip
+  }
 
   setVehicle(placement: Object3D | null, rig: VehicleRigManifest | null, actionRoot?: Object3D | null, modelRoot?: Object3D | null) {
     this.resetBodyRoll()
@@ -100,13 +125,31 @@ export class FreeDriveSession {
       this.input = { throttle: 0, steer: 0 }
       this.velocityMps = 0
       this.lastSteer = 0
+      this.rollDistanceMetres = 0
       this.resetBodyRoll()
       if (this.bindings.length) {
+        applyWheelRoll(this.bindings, 0)
         applyFrontSteer(this.bindings, 0)
       }
     } else if (this.placement) {
+      // Remeasure + recalibrate so HMR / Flip 180 / heading fixes take effect.
+      this.alignment = null
+      for (const b of this.bindings) {
+        b.calibrated = false
+        b.steerCalibrated = false
+      }
       const yawOffset = this.ensureAlignment().yawOffset
       this.headingYaw = this.placement.rotation.y - yawOffset
+    }
+  }
+
+  /** Restore tire / steer quaternions without moving the car (used by Clip → Stop). */
+  resetWheelPoseOnly() {
+    this.rollDistanceMetres = 0
+    this.lastSteer = 0
+    if (this.bindings.length) {
+      applyWheelRoll(this.bindings, 0)
+      applyFrontSteer(this.bindings, 0)
     }
   }
 
@@ -147,6 +190,7 @@ export class FreeDriveSession {
     this.setMaxSteerDegrees(state.maxSteerDeg)
     this.setMaxBodyRollDegrees(state.bodyRollDeg)
     this.tireRollRate = state.tireRollRate > 0 ? state.tireRollRate : 1
+    this.setHeadingFlip(Boolean(state.headingFlip))
     this.setEnabled(state.enabled)
   }
 
@@ -160,6 +204,7 @@ export class FreeDriveSession {
       bodyRollDeg: this.getMaxBodyRollDegrees(),
       tireRollRate: this.tireRollRate,
       chaseCamera,
+      headingFlip: this.headingFlip,
     }
   }
 
@@ -189,7 +234,6 @@ export class FreeDriveSession {
 
   setMaxBodyRollDegrees(degrees: number) {
     this.maxBodyRollRadians = (Math.min(12, Math.max(0, degrees)) * Math.PI) / 180
-    if (degrees <= 0) this.resetBodyRoll()
   }
 
   getMaxBodyRollDegrees() {
@@ -204,7 +248,7 @@ export class FreeDriveSession {
     this.wheelRollEnabled = on
   }
 
-  /** World yaw of the vehicle nose (radians). */
+  /** World yaw of the travel / chase heading (radians). */
   getVisualHeadingYaw(): number | null {
     if (!this.placement || !this.enabled) return null
     return this.headingYaw
@@ -242,22 +286,28 @@ export class FreeDriveSession {
     else this.velocityMps += Math.sign(target - this.velocityMps) * step
 
     // Game-style steer: time-based snap so wheels turn immediately at standstill.
-    // Internal steer sign follows the route convention (positive = left turn / +yaw),
-    // so the D=+1 input is negated here.
-    const targetSteer = -this.input.steer * this.maxSteerRadians
+    // D (+1) → positive yaw → car's right when facing +Z (worldForwardFromYaw).
+    const targetSteer = this.input.steer * this.maxSteerRadians
     const steerAlpha = 1 - Math.exp(-dt * STEER_RESPONSE_PER_SEC)
     this.lastSteer += (targetSteer - this.lastSteer) * steerAlpha
+
+    // Match path yaw to tire facing (X/Z uprights flip visual vs probe — Lixiang).
+    const pathSteer = frontSteerVisualSign(this.bindings) * this.lastSteer
 
     // Bicycle yaw — scale with speed so high-speed turns don't spin out.
     const speedAbs = Math.abs(this.velocityMps)
     const yawAuthority = Math.min(1, speedAbs / 2.5)
     const yawRate =
       ((speedAbs / Math.max(0.8, alignment.wheelbaseMetres)) *
-        Math.tan(this.lastSteer) *
-        Math.max(0.15, yawAuthority))
+        Math.tan(pathSteer) *
+        Math.max(0.15, yawAuthority) *
+        YAW_RATE_SCALE)
     const travelSign = this.velocityMps >= -0.05 ? 1 : -1
     this.headingYaw += travelSign * yawRate * dt
 
+    // Travel uses headingYaw; placement adds yawOffset so authored model-forward matches.
+    // When lamps sit opposite the axle FL→nose, yawOffset includes +π so the visual
+    // hood (and tire roll) face the same way as travel — no key-invert hack.
     worldForwardFromYaw(this.headingYaw, _forward)
     this.placement.position.x += _forward.x * this.velocityMps * dt
     this.placement.position.z += _forward.z * this.velocityMps * dt
@@ -271,10 +321,12 @@ export class FreeDriveSession {
     this.placement.updateWorldMatrix(false, true)
 
     this.rollDistanceMetres += this.velocityMps * dt
-    this.updateBodyRoll(Math.max(speedAbs * dt, dt * 2))
+    this.updateBodyRoll(Math.max(speedAbs * dt, dt * 2), pathSteer)
 
     if (this.bindings.some((b) => b.rolling && !b.calibrated)) {
-      calibrateWheelBindings(this.bindings, worldForwardFromYaw(this.headingYaw, _forward))
+      // Calibrate against actual travel (flip when reversing) so rollSign matches motion.
+      const calibYaw = this.headingYaw + (travelSign < 0 ? Math.PI : 0)
+      calibrateWheelBindings(this.bindings, worldForwardFromYaw(calibYaw, _forward))
       this.calibrationNote = describeBindings(this.bindings)
     }
     // Identical to RouteSession: roll then front steer (separate pivots from manifesto).
@@ -313,17 +365,15 @@ export class FreeDriveSession {
     return this.calibrationNote
   }
 
-  private updateBodyRoll(travelledMetres: number) {
+  private updateBodyRoll(travelledMetres: number, pathSteer = this.lastSteer) {
     if (!this.actionRoot) return
     if (this.maxBodyRollRadians <= 1e-6) {
-      this.resetBodyRoll()
+      this.lastBodyRoll = 0
+      this.actionRoot.rotation.z = 0
       return
     }
-    const steerNorm =
-      this.maxSteerRadians > 1e-6 ? this.lastSteer / this.maxSteerRadians : 0
-    const target = -steerNorm * this.maxBodyRollRadians
-    const alpha =
-      travelledMetres > 0 ? 1 - Math.exp(-travelledMetres / BODY_ROLL_SMOOTHING_METRES) : 0.2
+    const target = -pathSteer * this.maxBodyRollRadians
+    const alpha = 1 - Math.exp(-travelledMetres / BODY_ROLL_SMOOTHING_METRES)
     this.lastBodyRoll += (target - this.lastBodyRoll) * alpha
     this.actionRoot.rotation.z = this.lastBodyRoll
   }
@@ -357,7 +407,13 @@ export class FreeDriveSession {
     let result: VehicleAlignment
     if (axles) {
       const { forward } = axles
-      const yawOffset = forward.lengthSq() > 1e-8 ? -Math.atan2(forward.x, forward.z) : 0
+      let yawOffset = forward.lengthSq() > 1e-8 ? -Math.atan2(forward.x, forward.z) : 0
+      // Axle FL→nose can point at the visual rear. Spin the body 180° so W, tire roll,
+      // and the hood share one direction.
+      if (forward.lengthSq() > 1e-8 && bodyFacesOppositeAxles(placement, forward, axles.centre)) {
+        yawOffset += Math.PI
+      }
+      if (this.headingFlip) yawOffset += Math.PI
       result = {
         yawOffset,
         wheelbaseMetres:
@@ -368,8 +424,15 @@ export class FreeDriveSession {
     } else {
       const box = measureCarBounds(placement)
       const size = box.getSize(new Vector3())
+      let yawOffset = headingOffsetForLengthAxis(size.x >= size.z ? 'x' : 'z')
+      const centre = box.getCenter(new Vector3())
+      const guess = worldForwardFromYaw(-yawOffset, _forward).clone()
+      if (bodyFacesOppositeAxles(placement, guess, centre)) {
+        yawOffset += Math.PI
+      }
+      if (this.headingFlip) yawOffset += Math.PI
       result = {
-        yawOffset: headingOffsetForLengthAxis(size.x >= size.z ? 'x' : 'z'),
+        yawOffset,
         wheelbaseMetres: Math.max(size.x, size.z) * 0.6 || DEFAULT_WHEELBASE_METRES,
         halfTrackMetres: Math.max(0.55, Math.min(size.x, size.z) * 0.45),
         source: 'bounds',
@@ -378,7 +441,66 @@ export class FreeDriveSession {
 
     placement.rotation.copy(prev)
     placement.updateWorldMatrix(true, true)
-    void UP
     return result
   }
+}
+
+/**
+ * True when headlamp meshes sit opposite the axle-forward vector (visual nose ≠ rig nose).
+ * Uses the same lamp classifier as vehicle lights (material + node names).
+ */
+function bodyFacesOppositeAxles(root: Object3D, axleForward: Vector3, axleCentre: Vector3): boolean {
+  const f = axleForward.clone().setY(0)
+  if (f.lengthSq() < 1e-8) return false
+  f.normalize()
+
+  let frontAlong = 0
+  let frontWeight = 0
+  let rearAlong = 0
+  let rearWeight = 0
+
+  root.traverse((obj) => {
+    const mesh = obj as Mesh
+    if (!mesh.isMesh) return
+    const matName = Array.isArray(mesh.material)
+      ? mesh.material.map((m) => m?.name || '').join(' ')
+      : mesh.material?.name || ''
+    const group = lampGroupForNames(mesh.name || '', mesh.parent?.name || '', matName)
+    const front = group === 'lowBeam' || group === 'highBeam' || group === 'drl'
+    const rear = group === 'tail' || group === 'brake' || group === 'reverse'
+    if (!front && !rear) return
+    if (isLetterLikeMesh(mesh)) return
+    // Prefer geometry centre — Sketchfab letter meshes often have an offset origin.
+    if (mesh.geometry) {
+      mesh.geometry.computeBoundingSphere()
+      const c = mesh.geometry.boundingSphere?.center
+      if (c) {
+        _probe.copy(c)
+        mesh.localToWorld(_probe)
+      } else {
+        mesh.getWorldPosition(_probe)
+      }
+    } else {
+      mesh.getWorldPosition(_probe)
+    }
+    const along = _probe.x * f.x + _probe.z * f.z - (axleCentre.x * f.x + axleCentre.z * f.z)
+    if (front) {
+      frontAlong += along
+      frontWeight += 1
+    }
+    if (rear) {
+      rearAlong += along
+      rearWeight += 1
+    }
+  })
+
+  if (frontWeight > 0) {
+    // Headlamps behind the axle mid-point ⇒ body faces opposite the rig forward.
+    return frontAlong / frontWeight < -0.05
+  }
+  if (rearWeight > 0) {
+    // Taillights ahead of mid-point ⇒ same mismatch.
+    return rearAlong / rearWeight > 0.05
+  }
+  return false
 }

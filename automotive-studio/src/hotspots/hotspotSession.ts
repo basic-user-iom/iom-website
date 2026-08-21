@@ -1,9 +1,19 @@
 import {
+  AdditiveBlending,
+  CanvasTexture,
+  CircleGeometry,
   Color,
+  DoubleSide,
+  Euler,
+  Group,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   PerspectiveCamera,
+  PlaneGeometry,
+  Quaternion,
   Raycaster,
+  RingGeometry,
   Scene,
   SphereGeometry,
   Vector2,
@@ -11,6 +21,10 @@ import {
   type Object3D,
 } from 'three'
 import type { Hotspot, HotspotAnchor, SemanticNodeRef } from '../persistence/schema'
+import {
+  DEFAULT_MARKER_LABEL_OFFSET,
+  DEFAULT_MARKER_LABEL_SCALE,
+} from './hotspotContent'
 import {
   defaultLocalAnchorOnNode,
   listAttachCandidates,
@@ -27,6 +41,23 @@ export type HotspotPickResult = {
   fallbackVehicleCoordinate: HotspotAnchor['fallbackVehicleCoordinate']
 }
 
+type MarkerParts = {
+  root: Group
+  core: Mesh
+  ring: Mesh
+  halo: Mesh
+  pick: Mesh
+  label: Mesh | null
+}
+
+/** Base title-plate size in metres at scale 1 (plane is unit, then scaled). */
+const LABEL_BASE_W = 3.6
+const LABEL_BASE_H = 0.96
+
+/**
+ * Interactive hotspot markers: pulsing ring + gem core + optional label
+ * (surface-aligned plate — not a camera billboard).
+ */
 export class HotspotSession {
   private scene: Scene | null = null
   private placement: Object3D | null = null
@@ -34,19 +65,61 @@ export class HotspotSession {
   private camera: PerspectiveCamera | null = null
   private canvas: HTMLCanvasElement | null = null
   private hotspots: Hotspot[] = []
-  private markers: Mesh[] = []
-  private geometry = new SphereGeometry(0.11, 16, 12)
-  private material = new MeshStandardMaterial({
-    color: 0xd2b48c,
-    emissive: new Color(0x5c4226),
-    emissiveIntensity: 0.8,
-    roughness: 0.3,
+  private markers: MarkerParts[] = []
+  // World metres — 60% of the oversized 10× marker.
+  private coreGeo = new SphereGeometry(0.78, 22, 18)
+  private ringGeo = new RingGeometry(1.2, 1.92, 48)
+  private haloGeo = new CircleGeometry(2.88, 36)
+  private pickGeo = new SphereGeometry(3.0, 12, 10)
+  private labelGeo = new PlaneGeometry(1, 1)
+  private readonly _zAxis = new Vector3(0, 0, 1)
+  private readonly _qAlign = new Quaternion()
+  private readonly _qManual = new Quaternion()
+  private readonly _euler = new Euler(0, 0, 0, 'YXZ')
+  private coreMat = new MeshStandardMaterial({
+    color: 0xffe8c8,
+    emissive: new Color(0xd4a574),
+    emissiveIntensity: 1.35,
+    roughness: 0.25,
+    metalness: 0.35,
   })
-  private selectedMaterial = new MeshStandardMaterial({
+  private coreSelectedMat = new MeshStandardMaterial({
     color: 0xffffff,
-    emissive: new Color(0xd2b48c),
-    emissiveIntensity: 1.2,
-    roughness: 0.2,
+    emissive: new Color(0xf0d0a0),
+    emissiveIntensity: 2.1,
+    roughness: 0.18,
+    metalness: 0.4,
+  })
+  private ringMat = new MeshBasicMaterial({
+    color: 0xe8c49a,
+    transparent: true,
+    opacity: 0.75,
+    side: DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+  })
+  private ringSelectedMat = new MeshBasicMaterial({
+    color: 0xfff0d8,
+    transparent: true,
+    opacity: 0.95,
+    side: DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+  })
+  private haloMat = new MeshBasicMaterial({
+    color: 0xd2b48c,
+    transparent: true,
+    opacity: 0.22,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+  })
+  private pickMat = new MeshBasicMaterial({
+    transparent: true,
+    opacity: 0,
+    depthTest: true,
+    depthWrite: false,
   })
   private raycaster = new Raycaster()
   private pointer = new Vector2()
@@ -54,9 +127,12 @@ export class HotspotSession {
   private onSelect: ((hotspot: Hotspot | null) => void) | null = null
   private pickMeshMode = false
   private onPickMesh: ((result: HotspotPickResult) => void) | null = null
+  private pulsePhase = 0
   private readonly _local = new Vector3()
   private readonly _world = new Vector3()
   private readonly _normal = new Vector3()
+  private readonly _invRoot = new Quaternion()
+  private labelTextures = new Map<string, CanvasTexture>()
 
   bind(
     scene: Scene,
@@ -120,7 +196,10 @@ export class HotspotSession {
   select(id: string | null) {
     this.selectedId = id
     for (const marker of this.markers) {
-      marker.material = marker.userData.hotspotId === id ? this.selectedMaterial : this.material
+      const selected = marker.root.userData.hotspotId === id
+      marker.core.material = selected ? this.coreSelectedMat : this.coreMat
+      marker.ring.material = selected ? this.ringSelectedMat : this.ringMat
+      marker.root.scale.setScalar(selected ? 1.2 : 1)
     }
     const hotspot = id ? this.hotspots.find((item) => item.id === id) ?? null : null
     this.onSelect?.(hotspot)
@@ -130,18 +209,39 @@ export class HotspotSession {
     return this.selectedId
   }
 
-  /** Keep markers parented; matrices follow door/mesh animation automatically. */
+  /** Soft pulse only — orientation stays locked to the door surface. */
   update() {
-    // no-op — parenting handles motion; kept for call-site symmetry with route/vehicle
+    this.pulsePhase += 0.045
+    const pulse = 0.55 + 0.35 * Math.sin(this.pulsePhase)
+    const ringScale = 1 + 0.12 * Math.sin(this.pulsePhase * 1.15)
+    for (const marker of this.markers) {
+      const selected = marker.root.userData.hotspotId === this.selectedId
+      const ringMat = marker.ring.material as MeshBasicMaterial
+      const haloMat = marker.halo.material as MeshBasicMaterial
+      ringMat.opacity = selected ? 0.9 + 0.08 * Math.sin(this.pulsePhase) : 0.45 + 0.3 * pulse
+      haloMat.opacity = selected ? 0.32 : 0.12 + 0.14 * pulse
+      marker.ring.scale.setScalar(ringScale)
+      marker.halo.scale.setScalar(0.95 + 0.1 * pulse)
+    }
   }
 
   dispose() {
     this.setPickMeshMode(false)
     this.unbindCanvas()
     this.clearMarkers()
-    this.geometry.dispose()
-    this.material.dispose()
-    this.selectedMaterial.dispose()
+    this.coreGeo.dispose()
+    this.ringGeo.dispose()
+    this.haloGeo.dispose()
+    this.pickGeo.dispose()
+    this.labelGeo.dispose()
+    this.coreMat.dispose()
+    this.coreSelectedMat.dispose()
+    this.ringMat.dispose()
+    this.ringSelectedMat.dispose()
+    this.haloMat.dispose()
+    this.pickMat.dispose()
+    for (const tex of this.labelTextures.values()) tex.dispose()
+    this.labelTextures.clear()
     this.scene = null
     this.placement = null
     this.modelRoot = null
@@ -156,38 +256,141 @@ export class HotspotSession {
     const searchRoot = this.modelRoot ?? this.placement
 
     for (const hotspot of this.hotspots) {
-      const marker = new Mesh(
-        this.geometry,
-        hotspot.id === this.selectedId ? this.selectedMaterial : this.material,
+      const selected = hotspot.id === this.selectedId
+      const root = new Group()
+      root.name = `Hotspot_${hotspot.id}`
+      root.userData.hotspotId = hotspot.id
+      root.renderOrder = 2
+
+      const core = new Mesh(this.coreGeo, selected ? this.coreSelectedMat : this.coreMat)
+      core.renderOrder = 3
+      const ring = new Mesh(
+        this.ringGeo,
+        (selected ? this.ringSelectedMat : this.ringMat).clone(),
       )
-      marker.name = `Hotspot_${hotspot.id}`
-      marker.userData.hotspotId = hotspot.id
-      marker.renderOrder = 10
+      ring.renderOrder = 2
+      const halo = new Mesh(this.haloGeo, this.haloMat.clone())
+      halo.renderOrder = 1
+      const pick = new Mesh(this.pickGeo, this.pickMat)
+      pick.userData.hotspotId = hotspot.id
+
+      root.add(halo, ring, core, pick)
+
+      const labelText = (hotspot.markerLabel || hotspot.name || '').trim()
+      let label: Mesh | null = null
+      if (labelText && labelText.toLowerCase() !== 'hotspot') {
+        label = this.makeLabelPlane(labelText)
+        const scale = hotspot.markerLabelScale ?? DEFAULT_MARKER_LABEL_SCALE
+        const off = hotspot.markerLabelOffset ?? DEFAULT_MARKER_LABEL_OFFSET
+        label.position.set(off[0], off[1], off[2])
+        label.scale.set(LABEL_BASE_W * scale, LABEL_BASE_H * scale, 1)
+        root.add(label)
+      }
+
+      if (selected) root.scale.setScalar(1.2)
 
       const node = searchRoot ? resolveSemanticNode(searchRoot, hotspot.anchor.node) : null
       if (node) {
         const pos = hotspot.anchor.localPosition ?? [0, 0.15, 0]
-        const normal = hotspot.anchor.localNormal ?? [0, 1, 0]
+        const normal = hotspot.anchor.localNormal ?? [0, 0, 1]
         this._local.set(pos[0], pos[1], pos[2])
-        this._normal.set(normal[0], normal[1], normal[2]).normalize()
-        this._local.addScaledVector(this._normal, hotspot.anchor.offset || 0)
-        marker.position.copy(this._local)
-        node.add(marker)
-        marker.userData.attachedNode = node.name
+        this._normal.set(normal[0], normal[1], normal[2])
+        if (this._normal.lengthSq() < 1e-10) this._normal.set(0, 0, 1)
+        else this._normal.normalize()
+        // Barely clear the paint — rings lie in the surface plane.
+        // Ignore legacy huge offsets from the oversized camera-billboard markers.
+        const rawLift = hotspot.anchor.offset
+        const lift = rawLift > 0 && rawLift <= 0.35 ? rawLift : 0.06
+        this._local.addScaledVector(this._normal, lift)
+        root.position.copy(this._local)
+        this.applySurfaceOrientation(root, this._normal, hotspot.markerRotationDeg)
+        if (label) this.orientLabelUpright(label, root)
+        node.add(root)
+        root.userData.attachedNode = node.name
       } else {
         const fallback =
           hotspot.anchor.fallbackVehicleCoordinate ?? hotspot.anchor.localPosition ?? [0, 1.2, 0]
-        marker.position.set(fallback[0], fallback[1] + (hotspot.anchor.offset || 0), fallback[2])
+        root.position.set(fallback[0], fallback[1] + (hotspot.anchor.offset || 0), fallback[2])
+        this.applySurfaceOrientation(root, new Vector3(0, 0, 1), hotspot.markerRotationDeg)
+        if (label) this.orientLabelUpright(label, root)
         const parent = this.placement ?? this.scene
-        parent.add(marker)
-        marker.userData.attachedNode = '(fallback)'
+        parent.add(root)
+        root.userData.attachedNode = '(fallback)'
       }
-      this.markers.push(marker)
+      this.markers.push({ root, core, ring, halo, pick, label })
     }
   }
 
+  /** Keep title text upright (world +Y) while staying flat on the door. */
+  private orientLabelUpright(label: Mesh, root: Group) {
+    this._invRoot.copy(root.quaternion).invert()
+    this._world.set(0, 1, 0).applyQuaternion(this._invRoot)
+    this._world.z = 0
+    if (this._world.lengthSq() < 1e-8) return
+    this._world.normalize()
+    label.rotation.z = Math.atan2(this._world.x, this._world.y)
+  }
+
+  /** RingGeometry faces +Z — aim that axis along the outward surface normal. */
+  private applySurfaceOrientation(
+    root: Group,
+    normal: Vector3,
+    rotationDeg?: readonly [number, number, number] | null,
+  ) {
+    this._qAlign.setFromUnitVectors(this._zAxis, normal)
+    const rx = ((rotationDeg?.[0] ?? 0) * Math.PI) / 180
+    const ry = ((rotationDeg?.[1] ?? 0) * Math.PI) / 180
+    const rz = ((rotationDeg?.[2] ?? 0) * Math.PI) / 180
+    this._euler.set(rx, ry, rz, 'YXZ')
+    this._qManual.setFromEuler(this._euler)
+    root.quaternion.copy(this._qAlign).multiply(this._qManual)
+  }
+
+  private makeLabelPlane(text: string): Mesh {
+    let tex = this.labelTextures.get(text)
+    if (!tex) {
+      const canvas = document.createElement('canvas')
+      canvas.width = 512
+      canvas.height = 128
+      const ctx = canvas.getContext('2d')!
+      ctx.clearRect(0, 0, 512, 128)
+      ctx.fillStyle = 'rgba(12, 14, 18, 0.78)'
+      roundRect(ctx, 16, 24, 480, 80, 18)
+      ctx.fill()
+      ctx.font = '600 36px "Segoe UI", system-ui, sans-serif'
+      ctx.fillStyle = '#f3e6d4'
+      ctx.textAlign = 'center'
+      ctx.textBaseline = 'middle'
+      const clipped = text.length > 28 ? `${text.slice(0, 27)}…` : text
+      ctx.fillText(clipped, 256, 64)
+      tex = new CanvasTexture(canvas)
+      this.labelTextures.set(text, tex)
+    }
+    const mat = new MeshBasicMaterial({
+      map: tex,
+      transparent: true,
+      depthTest: true,
+      depthWrite: false,
+      side: DoubleSide,
+      polygonOffset: true,
+      polygonOffsetFactor: -1,
+      polygonOffsetUnits: -1,
+    })
+    const mesh = new Mesh(this.labelGeo, mat)
+    mesh.renderOrder = 4
+    return mesh
+  }
+
   private clearMarkers() {
-    for (const marker of this.markers) marker.parent?.remove(marker)
+    for (const marker of this.markers) {
+      marker.root.parent?.remove(marker.root)
+      ;(marker.ring.material as MeshBasicMaterial).dispose()
+      ;(marker.halo.material as MeshBasicMaterial).dispose()
+      if (marker.label) {
+        const mat = marker.label.material as MeshBasicMaterial
+        mat.dispose()
+      }
+    }
     this.markers = []
   }
 
@@ -203,7 +406,7 @@ export class HotspotSession {
     if (this.pickMeshMode && this.placement) {
       const hit = this.raycaster.intersectObject(this.placement, true).find((h) => {
         const obj = h.object
-        if (obj.userData.hotspotId) return false
+        if (obj.userData.hotspotId || findHotspotId(obj)) return false
         if (!(obj as Mesh).isMesh) return false
         return true
       })
@@ -211,7 +414,6 @@ export class HotspotSession {
       const node = preferAttachNode(hit.object, this.modelRoot ?? this.placement)
       const root = this.modelRoot ?? this.placement
       const local = { ...defaultLocalAnchorOnNode(node) }
-      // Prefer the actual ray hit in node-local space when available.
       if (hit.face) {
         node.updateWorldMatrix(true, true)
         node.worldToLocal(this._local.copy(hit.point))
@@ -226,7 +428,6 @@ export class HotspotSession {
           local.localNormal = [this._world.x, this._world.y, this._world.z]
         }
       }
-      // Vehicle-space fallback if the named node disappears later.
       this.placement.updateWorldMatrix(true, true)
       node.getWorldPosition(this._world)
       this.placement.worldToLocal(this._local.copy(this._world))
@@ -243,14 +444,44 @@ export class HotspotSession {
     }
 
     if (!this.markers.length) return
-    const hit = this.raycaster.intersectObjects(this.markers, false)[0]
-    if (hit) this.select(String(hit.object.userData.hotspotId))
+    const roots = this.markers.map((m) => m.root)
+    const hit = this.raycaster.intersectObjects(roots, true)[0]
+    if (!hit) return
+    const id = findHotspotId(hit.object)
+    if (id) this.select(id)
   }
 
   private unbindCanvas() {
     this.canvas?.removeEventListener('click', this.handleClick)
     this.canvas = null
   }
+}
+
+function findHotspotId(obj: Object3D): string | null {
+  let cur: Object3D | null = obj
+  while (cur) {
+    if (typeof cur.userData.hotspotId === 'string') return cur.userData.hotspotId
+    cur = cur.parent
+  }
+  return null
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+) {
+  const radius = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + radius, y)
+  ctx.arcTo(x + w, y, x + w, y + h, radius)
+  ctx.arcTo(x + w, y + h, x, y + h, radius)
+  ctx.arcTo(x, y + h, x, y, radius)
+  ctx.arcTo(x, y, x + w, y, radius)
+  ctx.closePath()
 }
 
 function findModelRoot(placement: Object3D | null): Object3D | null {
@@ -270,7 +501,6 @@ function preferAttachNode(hit: Object3D, root: Object3D): Object3D {
     if (cur.name && scoreName(cur.name) > scoreName(best.name)) best = cur
     cur = cur.parent
   }
-  // If nothing scored, climb one level when the leaf is unnamed.
   if (!best.name && hit.parent && hit.parent !== root) return hit.parent
   return best
 }

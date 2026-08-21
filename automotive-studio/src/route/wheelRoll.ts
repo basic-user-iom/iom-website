@@ -155,6 +155,10 @@ function measureRollingRadius(pivot: Object3D, axleAxis: 'x' | 'y' | 'z'): numbe
 /**
  * Measure each pivot's true axle axis, roll direction and radius, plus the steering axis of
  * the front uprights, by watching where the tire actually moves.
+ *
+ * `forwardWorld` is the **travel** direction (roll + steer aim). Steer probes sit ahead of
+ * the hubs along the axle nose so a flipped travel direction cannot place the sample behind
+ * the hub (which inverted A/D when Invert drive / lamp↔axle disagreed).
  */
 export function calibrateWheelBindings(
   bindings: WheelRuntimeBinding[],
@@ -206,6 +210,16 @@ export function calibrateWheelBindings(
     b.calibrated = true
   }
 
+  // Probe ahead along the axle nose (so the sample stays in front of FL/FR hubs).
+  // Aim toward *travel*-right: when Invert / lamp↔axle flips travel vs the hubs,
+  // axle-right is the body's left — travel-right stays aligned with the hood.
+  const axles = measureAxleGeometry(bindings)
+  const probeForward =
+    axles && axles.forward.lengthSq() > 1e-8
+      ? axles.forward.clone().setY(0).normalize()
+      : forward
+  const aimRight = _desired.crossVectors(UP, forward).normalize()
+
   for (const b of bindings) {
     if (b.steerCalibrated || !b.steering) continue
     if (b.id !== 'FL' && b.id !== 'FR') continue
@@ -217,12 +231,10 @@ export function calibrateWheelBindings(
     if (b.rolling) b.rolling.getWorldPosition(_centre)
     else steering.getWorldPosition(_centre)
 
-    // Steering must yaw about world up: a point ahead of the hub swings sideways.
     const reach = Math.max(0.15, b.radiusMetres)
-    _probeWorld.copy(_centre).addScaledVector(forward, reach)
-    _desired.crossVectors(UP, forward).normalize()
+    _probeWorld.copy(_centre).addScaledVector(probeForward, reach)
 
-    const steer = findBestAxis(steering, b.steeringRest, _probeWorld, _desired)
+    const steer = findBestAxis(steering, b.steeringRest, _probeWorld, aimRight)
     b.steerAxis = steer.axis
     b.steerSign = steer.sign
     b.steerCalibrated = true
@@ -250,9 +262,24 @@ export function applyWheelRoll(
 export function applyFrontSteer(bindings: WheelRuntimeBinding[], steerRadians: number) {
   for (const b of bindings) {
     if ((b.id !== 'FL' && b.id !== 'FR') || !b.steering) continue
-    _q.setFromAxisAngle(AXIS[b.steerAxis], b.steerSign * steerRadians)
+    // When the upright's local "up" is X/Z (common after authored rest poses), the probe
+    // that findBestAxis tracked moves opposite the tire's facing. Flip so D still looks right.
+    const axisSign = b.steerAxis === 'y' ? 1 : -1
+    _q.setFromAxisAngle(AXIS[b.steerAxis], axisSign * b.steerSign * steerRadians)
     b.steering.quaternion.copy(b.steeringRest).multiply(_q)
   }
+}
+
+/**
+ * Same sign used by `applyFrontSteer`'s X/Z upright fix. Free-drive path yaw must use this
+ * so the car curves the way the tires point (not the opposite).
+ */
+export function frontSteerVisualSign(bindings: WheelRuntimeBinding[]): number {
+  for (const b of bindings) {
+    if ((b.id !== 'FL' && b.id !== 'FR') || !b.steering || !b.steerCalibrated) continue
+    if (b.steerAxis !== 'y') return -1
+  }
+  return 1
 }
 
 export function resetWheelPose(bindings: WheelRuntimeBinding[]) {
