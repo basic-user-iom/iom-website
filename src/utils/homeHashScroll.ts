@@ -40,9 +40,23 @@ function targetDrift(el: HTMLElement): number {
   return el.getBoundingClientRect().top - headerOffsetPx(el)
 }
 
+/** Extra page length so a last-section hash (#contact) can actually reach the header. */
+function ensureHashScrollPad(el: HTMLElement): void {
+  const desiredY = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el)
+  const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+  if (desiredY <= maxY + 1) return
+  const prev = parseFloat(document.documentElement.style.getPropertyValue('--hash-scroll-pad')) || 0
+  document.documentElement.style.setProperty(
+    '--hash-scroll-pad',
+    `${Math.ceil(prev + desiredY - maxY + 8)}px`,
+  )
+}
+
 function alignToTarget(el: HTMLElement, behavior: ScrollBehavior): void {
   el.classList.add('is-visible')
-  el.scrollIntoView({ behavior, block: 'start' })
+  ensureHashScrollPad(el)
+  const top = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el)
+  window.scrollTo({ top: Math.max(0, top), behavior })
 }
 
 let hashScrollLocks = 0
@@ -166,6 +180,7 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
     stopPoll()
     cancelSettle()
     window.removeEventListener('hashchange', onHash)
+    document.documentElement.style.removeProperty('--hash-scroll-pad')
   }
 }
 

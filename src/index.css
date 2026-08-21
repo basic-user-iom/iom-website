@@ -74,6 +74,7 @@ body {
   margin: 0;
   min-height: 100vh;
   min-height: 100dvh;
+  padding-bottom: var(--hash-scroll-pad, 0px);
   background: var(--bg);
   color: var(--text);
   font-family: var(--sans);
@@ -494,7 +495,7 @@ button:focus:not(:focus-visible) {
 a.header-cta {
   display: inline-flex;
   align-items: center;
-  color: #fff;
+  color: var(--bg);
   background: color-mix(in srgb, var(--accent) 68%, #001416);
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius);
@@ -507,7 +508,7 @@ a.header-cta {
 
 a.header-cta:hover,
 a.header-cta:focus-visible {
-  color: #fff;
+  color: var(--bg);
   filter: brightness(1.08);
 }
 
@@ -996,6 +997,11 @@ html.is-hash-scrolling .section-block,
 body.music-player-fs-lock .section-block,
 body.hero-viewer-fs-lock .section-block {
   content-visibility: visible;
+}
+
+/* CSS `html { scroll-behavior: smooth }` would otherwise keep settle jumps animated. */
+html.is-hash-scrolling {
+  scroll-behavior: auto;
 }
 
 .motion-parallax-prompt {
@@ -3379,6 +3385,10 @@ button.card-link:focus-visible {
 
 .about-block--contact {
   padding-top: clamp(2.5rem, 6vw, 4rem);
+  /* Last hash target needs enough height to park under the header. */
+  min-height: calc(100vh - var(--header-h));
+  min-height: calc(100dvh - var(--header-h));
+  min-height: calc(100lvh - var(--header-h));
 }
 
 /* Atmosphere + editorial shell — asymmetric like hero, full-bleed wash */
