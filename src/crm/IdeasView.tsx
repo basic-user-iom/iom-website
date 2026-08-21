@@ -228,8 +228,7 @@ export function IdeasView({
   useEffect(() => {
     if (!richNoteFocusToken || !selectedNode || !richPanelOpen) return
     const id = window.setTimeout(() => {
-      richNoteRef.current?.focus()
-      richNoteRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+      richNoteRef.current?.focus({ preventScroll: true })
     }, 0)
     return () => window.clearTimeout(id)
   }, [richNoteFocusToken, selectedNode, richPanelOpen])
