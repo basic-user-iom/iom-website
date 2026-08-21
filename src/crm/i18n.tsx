@@ -56,6 +56,9 @@ const en: Dict = {
   'stats.priority': 'Priority',
   'stats.priorityFilter': 'Show priority outreach leads',
   'stats.priorityFilterClear': 'Clear priority filter',
+  'stats.needsReview': 'Needs review',
+  'stats.needsReviewFilter': 'Show leads that still need review',
+  'stats.needsReviewFilterClear': 'Clear needs-review filter',
 
   'calendar.title': 'Follow-up calendar',
   'calendar.expand': 'Expand follow-up calendar',
@@ -68,6 +71,7 @@ const en: Dict = {
 
   'toolbar.search': 'Search company, contact, email…',
   'toolbar.allStages': 'All stages',
+  'toolbar.needsReview': 'Needs review',
   'toolbar.notContacted': 'Not contacted',
   'toolbar.clientReplied': 'Client replied',
   'toolbar.allTemps': 'All temperatures',
@@ -83,6 +87,7 @@ const en: Dict = {
   'toolbar.sortStatus': 'Sort: pipeline stage',
   'toolbar.sortLastReply': 'Sort: latest client reply',
   'toolbar.addLead': '+ Add lead',
+  'toolbar.bulkImport': 'Bulk import',
   'toolbar.backList': 'Back to list',
   'toolbar.backToList': 'Back to list',
   'toolbar.copyVisible': 'Copy {count} for ChatGPT',
@@ -117,6 +122,44 @@ const en: Dict = {
     'JSON needs company_name or contact_name — paste the full ChatGPT object, not only atlas_eval scores.',
   'chatgpt.parseFailed': 'Could not parse JSON — ask ChatGPT for a single JSON object only.',
   'chatgpt.importFailed': 'Could not load lead data.',
+
+  'bulkChatgpt.pageTitle': 'Bulk import from ChatGPT',
+  'bulkChatgpt.title': 'ChatGPT bulk lead import',
+  'bulkChatgpt.blurb':
+    'Copy a research prompt into ChatGPT, paste a JSON list of leads back, preview, then import. Every imported lead is tagged Needs review until you approve it (or send / schedule email).',
+  'bulkChatgpt.copyPrompt': 'Copy this script for ChatGPT',
+  'bulkChatgpt.briefLabel': 'What should ChatGPT research? (optional)',
+  'bulkChatgpt.briefPlaceholder':
+    'e.g. 40 museums in Germany that might want 360° tours — or paste a company list',
+  'bulkChatgpt.scriptLabel': 'Script to give ChatGPT',
+  'bulkChatgpt.scriptHint':
+    'Copy everything in the box below into ChatGPT. Add your niche / city / list in the field above (or in ChatGPT). Then paste the JSON reply under Paste ChatGPT JSON.',
+  'bulkChatgpt.step1':
+    'Copy the script below into ChatGPT (fill the research brief above if you want).',
+  'bulkChatgpt.step2':
+    'ChatGPT returns JSON only: { "leads": [ … ] } (or a bare array). Same fields as single-lead assist.',
+  'bulkChatgpt.step3': 'Paste that JSON below → Preview → Import. Leads land in Needs review.',
+  'bulkChatgpt.pasteLabel': 'Paste ChatGPT JSON (many leads)',
+  'bulkChatgpt.pastePlaceholder':
+    'Paste { "leads": [ … ] } or a JSON array from ChatGPT (with or without ```json fences)…',
+  'bulkChatgpt.preview': 'Preview',
+  'bulkChatgpt.previewTitle': 'Preview · {n} leads',
+  'bulkChatgpt.previewMore': '…and {n} more',
+  'bulkChatgpt.previewThenImport': 'Preview first',
+  'bulkChatgpt.importN': 'Import {n} leads',
+  'bulkChatgpt.importing': 'Importing {n} leads…',
+  'bulkChatgpt.importingShort': 'Importing…',
+  'bulkChatgpt.needsReviewNote':
+    'Imported leads get the needs-review tag. Approve after you check them, or they auto-approve when you send or schedule email.',
+  'bulkChatgpt.copyFailed': 'Could not copy prompt to clipboard.',
+  'bulkChatgpt.pasteEmpty': 'Paste ChatGPT JSON first.',
+  'bulkChatgpt.tooMany':
+    'Too many leads in one paste (max {max}). Split the list and import in batches.',
+  'bulkChatgpt.missingIdentityAt':
+    'Lead #{n} needs company_name or contact_name — fix that object and preview again.',
+  'bulkChatgpt.parseFailed':
+    'Could not parse JSON — ask ChatGPT for { "leads": [ … ] } or a JSON array only.',
+  'bulkChatgpt.importFailed': 'Bulk import failed.',
 
   'empty.select': 'Select a lead or add a new one.',
   'empty.selectLead': 'Select a lead or add a new one.',
@@ -216,6 +259,8 @@ const en: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Added by',
   'list.priority': 'Priority',
+  'list.needsReview': 'Needs review',
+  'list.needsReviewHint': 'Imported or flagged for review — approve when checked',
   'list.replied': 'Replied',
   'list.repliedAt': 'Client replied · {date}',
   'list.scheduled': 'Scheduled',
@@ -263,6 +308,10 @@ const en: Dict = {
   'detail.prioritySet': 'Add to priority queue',
   'detail.priorityClear': 'Remove from priority queue',
   'detail.priorityFailed': 'Could not update priority queue.',
+  'detail.approve': 'Approve',
+  'detail.approving': 'Approving…',
+  'detail.approveHint': 'Remove from Needs review after you have checked this lead',
+  'detail.approveFailed': 'Could not approve this lead.',
   'detail.value': 'Estimated value',
   'detail.valueFromHeart': 'From the heart',
   'detail.valueNoCharge': 'No charge',
@@ -1783,6 +1832,9 @@ const sr: Dict = {
   'stats.priority': 'Prioritet',
   'stats.priorityFilter': 'Prikaži prioritetne leadove',
   'stats.priorityFilterClear': 'Ukloni filter prioriteta',
+  'stats.needsReview': 'Za pregled',
+  'stats.needsReviewFilter': 'Prikaži leadove koji još čekaju pregled',
+  'stats.needsReviewFilterClear': 'Ukloni filter Za pregled',
 
   'calendar.title': 'Kalendar follow-up-a',
   'calendar.expand': 'Proširi kalendar follow-up-a',
@@ -1795,6 +1847,7 @@ const sr: Dict = {
 
   'toolbar.search': 'Pretraga firme, kontakta, emaila…',
   'toolbar.allStages': 'Sve faze',
+  'toolbar.needsReview': 'Za pregled',
   'toolbar.notContacted': 'Nije kontaktiran',
   'toolbar.clientReplied': 'Klijent odgovorio',
   'toolbar.allTemps': 'Sve temperature',
@@ -1810,6 +1863,7 @@ const sr: Dict = {
   'toolbar.sortStatus': 'Sort: faza pipeline-a',
   'toolbar.sortLastReply': 'Sort: poslednji odgovor klijenta',
   'toolbar.addLead': '+ Dodaj lead',
+  'toolbar.bulkImport': 'Masovni uvoz',
   'toolbar.backList': 'Nazad na listu',
   'toolbar.backToList': 'Nazad na listu',
   'toolbar.copyVisible': 'Kopiraj {count} za ChatGPT',
@@ -1844,6 +1898,44 @@ const sr: Dict = {
     'JSON mora imati company_name ili contact_name — nalepite ceo ChatGPT objekat, ne samo atlas_eval ocene.',
   'chatgpt.parseFailed': 'JSON nije moguće parsirati — tražite od ChatGPT-a samo JSON objekat.',
   'chatgpt.importFailed': 'Učitavanje podataka leada nije uspelo.',
+
+  'bulkChatgpt.pageTitle': 'Masovni uvoz iz ChatGPT-a',
+  'bulkChatgpt.title': 'ChatGPT masovni uvoz leadova',
+  'bulkChatgpt.blurb':
+    'Kopirajte prompt u ChatGPT, nalepite JSON listu leadova, pregledajte pa uvezite. Svaki uvezeni lead dobija oznaku Za pregled dok ga ne odobrite (ili dok ne pošaljete / zakažete email).',
+  'bulkChatgpt.copyPrompt': 'Kopiraj ovaj skript za ChatGPT',
+  'bulkChatgpt.briefLabel': 'Šta ChatGPT da istraži? (opciono)',
+  'bulkChatgpt.briefPlaceholder':
+    'npr. 40 muzeja u Nemačkoj koji bi hteli 360° ture — ili nalepi listu firmi',
+  'bulkChatgpt.scriptLabel': 'Skript koji daješ ChatGPT-u',
+  'bulkChatgpt.scriptHint':
+    'Kopiraj sve iz okvira ispod u ChatGPT. Nišu / grad / listu unesi u polje iznad (ili u ChatGPT). Zatim nalepi JSON odgovor ispod „Nalepi ChatGPT JSON”.',
+  'bulkChatgpt.step1':
+    'Kopiraj skript ispod u ChatGPT (po želji popuni brief za istraživanje iznad).',
+  'bulkChatgpt.step2':
+    'ChatGPT vraća samo JSON: { "leads": [ … ] } (ili običan niz). Ista polja kao za jedan lead.',
+  'bulkChatgpt.step3': 'Nalepi taj JSON ispod → Pregled → Uvoz. Leadovi idu u Za pregled.',
+  'bulkChatgpt.pasteLabel': 'Nalepi ChatGPT JSON (više leadova)',
+  'bulkChatgpt.pastePlaceholder':
+    'Nalepite { "leads": [ … ] } ili JSON niz od ChatGPT-a (sa ili bez ```json)…',
+  'bulkChatgpt.preview': 'Pregled',
+  'bulkChatgpt.previewTitle': 'Pregled · {n} leadova',
+  'bulkChatgpt.previewMore': '…i još {n}',
+  'bulkChatgpt.previewThenImport': 'Prvo pregled',
+  'bulkChatgpt.importN': 'Uvezi {n} leadova',
+  'bulkChatgpt.importing': 'Uvoz {n} leadova…',
+  'bulkChatgpt.importingShort': 'Uvoz…',
+  'bulkChatgpt.needsReviewNote':
+    'Uvezeni leadovi dobijaju tag needs-review. Odobrite nakon provere, ili se automatski odobravaju kad pošaljete ili zakažete email.',
+  'bulkChatgpt.copyFailed': 'Kopiranje prompta nije uspelo.',
+  'bulkChatgpt.pasteEmpty': 'Prvo nalepite ChatGPT JSON.',
+  'bulkChatgpt.tooMany':
+    'Previše leadova u jednom lepljenju (max {max}). Podelite listu i uvezite u serijama.',
+  'bulkChatgpt.missingIdentityAt':
+    'Lead #{n} mora imati company_name ili contact_name — ispravite objekat i ponovo pregledajte.',
+  'bulkChatgpt.parseFailed':
+    'JSON nije moguće parsirati — tražite { "leads": [ … ] } ili JSON niz.',
+  'bulkChatgpt.importFailed': 'Masovni uvoz nije uspeo.',
 
   'empty.select': 'Izaberite lead ili dodajte novi.',
   'empty.selectLead': 'Izaberite lead ili dodajte novi.',
@@ -1944,6 +2036,8 @@ const sr: Dict = {
   'list.followUp': 'Follow-up',
   'list.addedBy': 'Dodao/la',
   'list.priority': 'Prioritet',
+  'list.needsReview': 'Za pregled',
+  'list.needsReviewHint': 'Uvezen ili označen za pregled — odobrite kada proverite',
   'list.replied': 'Odgovorio',
   'list.repliedAt': 'Klijent odgovorio · {date}',
   'list.scheduled': 'Zakazano',
@@ -1991,6 +2085,10 @@ const sr: Dict = {
   'detail.prioritySet': 'Dodaj u prioritetni red',
   'detail.priorityClear': 'Ukloni iz prioritetnog reda',
   'detail.priorityFailed': 'Ažuriranje prioritetnog reda nije uspelo.',
+  'detail.approve': 'Odobri',
+  'detail.approving': 'Odobravanje…',
+  'detail.approveHint': 'Ukloni iz Za pregled nakon što ste proverili ovaj lead',
+  'detail.approveFailed': 'Odobravanje leada nije uspelo.',
   'detail.value': 'Procenjena vrednost',
   'detail.valueFromHeart': 'Od srca',
   'detail.valueNoCharge': 'Bez naplate',

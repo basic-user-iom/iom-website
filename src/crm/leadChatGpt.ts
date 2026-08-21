@@ -103,7 +103,7 @@ Rules:
 - Return the FULL object with company_name and/or contact_name — never atlas_eval scores alone`
 }
 
-function extractJsonObject(raw: string): unknown {
+function extractJsonValue(raw: string): unknown {
   const trimmed = raw.trim()
   if (!trimmed) throw new Error('empty')
 
@@ -121,14 +121,29 @@ function extractJsonObject(raw: string): unknown {
   const direct = tryParse(candidate)
   if (direct !== null) return direct
 
-  const start = candidate.indexOf('{')
-  const end = candidate.lastIndexOf('}')
-  if (start >= 0 && end > start) {
-    const sliced = tryParse(candidate.slice(start, end + 1))
+  const objStart = candidate.indexOf('{')
+  const objEnd = candidate.lastIndexOf('}')
+  if (objStart >= 0 && objEnd > objStart) {
+    const sliced = tryParse(candidate.slice(objStart, objEnd + 1))
+    if (sliced !== null) return sliced
+  }
+
+  const arrStart = candidate.indexOf('[')
+  const arrEnd = candidate.lastIndexOf(']')
+  if (arrStart >= 0 && arrEnd > arrStart) {
+    const sliced = tryParse(candidate.slice(arrStart, arrEnd + 1))
     if (sliced !== null) return sliced
   }
 
   throw new Error('invalid_json')
+}
+
+function extractJsonObject(raw: string): unknown {
+  const value = extractJsonValue(raw)
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('invalid_shape')
+  }
+  return value
 }
 
 function asString(value: unknown): string {
@@ -202,13 +217,9 @@ function parseEstimatedValue(raw: unknown): number | null {
   return Math.round(n)
 }
 
-export function parseChatGptLeadImport(raw: string): Partial<LeadInput> {
-  const parsed = extractJsonObject(raw)
-  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('invalid_shape')
-  }
-  const src = parsed as Record<string, unknown>
-
+export function parseChatGptLeadObject(
+  src: Record<string, unknown>,
+): Partial<LeadInput> {
   const company = asString(src.company_name)
   const contact = asString(src.contact_name)
   if (!company && !contact) {
@@ -260,6 +271,121 @@ export function parseChatGptLeadImport(raw: string): Partial<LeadInput> {
   }
 
   return imported
+}
+
+export function parseChatGptLeadImport(raw: string): Partial<LeadInput> {
+  const parsed = extractJsonObject(raw)
+  return parseChatGptLeadObject(parsed as Record<string, unknown>)
+}
+
+/** Soft cap so a paste cannot freeze the CRM. */
+export const CHATGPT_BULK_LEAD_MAX = 120
+
+export function buildChatGptBulkLeadPrompt(seedHint = ''): string {
+  const seed = seedHint.trim()
+  const seedBlock = seed
+    ? `\nResearch / expand this list or brief into many leads: ${seed}\n`
+    : '\n(I will tell you the industry, city, or list of companies to research in my next message.)\n'
+
+  return `You are helping fill MANY CRM lead records for IOM (Interactive Object Media) — an agency offering interactive 360° tours, 3D experiences, web presentations, and creative digital production.
+
+${seedBlock}
+Return ONLY a single JSON object (no markdown fences, no commentary) shaped as:
+
+{
+  "leads": [
+    { /* one lead object */ },
+    { /* another lead object */ }
+  ]
+}
+
+Each lead object uses the SAME keys as a single-lead import. Use empty string "" or null when unknown. Arrays can be [].
+
+{
+  "company_name": "Company / account name",
+  "website": "https://…",
+  "contact_name": "Primary contact full name",
+  "contact_role": "Job title, e.g. Creative Director",
+  "email": "Primary contact email",
+  "emails": [{ "label": "Sales", "email": "sales@company.com" }],
+  "phone": "+…",
+  "links": [{ "label": "Portfolio", "url": "https://…" }],
+  "company_focus": "What the company does — 2–4 sentences for outreach context",
+  "offer": "What IOM could realistically offer this lead — 1–3 sentences",
+  "initial_email_subject": "Subject line for first outreach email",
+  "initial_email_body": "Full first outreach email (greeting, pitch, sign-off)",
+  "notes": "Internal research notes, sources, red flags, talking points",
+  "tags": ["museum", "immersive", "usa"],
+  "temperature": "hot | warm | cold",
+  "status": "new",
+  "next_follow_up": "YYYY-MM-DD or null",
+  "estimated_value": 0,
+  "value_emoji": "",
+  "client_city": "City",
+  "client_country": "Country",
+  "client_timezone": "IANA timezone e.g. Europe/Belgrade",
+  "client_address": "",
+  "atlas_eval": {
+    "can_hire_us": 0,
+    "thinks_like_us": 0,
+    "commercial_potential": 0,
+    "creative_compatibility": 0,
+    "technical_compatibility": 0,
+    "relationship_potential": 0,
+    "strategic_value": 0
+  }
+}
+
+Rules:
+- Return between 5 and ${CHATGPT_BULK_LEAD_MAX} leads when asked for a large batch (30–100 is fine)
+- Every lead MUST have company_name and/or contact_name
+- Prefer real companies; do not invent email addresses or phone numbers — leave "" if unknown
+- temperature: hot = strong fit; warm = promising; cold = long shot
+- status: almost always "new"
+- atlas_eval scores: integers 0 (unset) or 1–5
+- ${leadTagsPromptGuide()}
+- Write initial_email_body ready to send when you have enough context; otherwise leave subject/body ""
+- Do NOT invent NDA status, passwords, or CRM workflow fields
+- Return the FULL {"leads":[…]} object only — no commentary`
+}
+
+export function parseChatGptBulkLeadImport(raw: string): Partial<LeadInput>[] {
+  const parsed = extractJsonValue(raw)
+  let items: unknown[] = []
+  if (Array.isArray(parsed)) {
+    items = parsed
+  } else if (parsed && typeof parsed === 'object') {
+    const obj = parsed as Record<string, unknown>
+    if (Array.isArray(obj.leads)) items = obj.leads
+    else if (asString(obj.company_name) || asString(obj.contact_name)) {
+      // Accidental single-lead paste — accept as a 1-item batch.
+      items = [obj]
+    } else {
+      throw new Error('invalid_shape')
+    }
+  } else {
+    throw new Error('invalid_shape')
+  }
+
+  if (items.length === 0) throw new Error('empty')
+  if (items.length > CHATGPT_BULK_LEAD_MAX) throw new Error('too_many')
+
+  const out: Partial<LeadInput>[] = []
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      throw new Error('invalid_shape')
+    }
+    try {
+      out.push(parseChatGptLeadObject(item as Record<string, unknown>))
+    } catch (err) {
+      if (err instanceof Error && err.message === 'missing_identity') {
+        throw new Error(`missing_identity:${i + 1}`)
+      }
+      throw err
+    }
+  }
+  return out
 }
 
 export function mergeLeadImport(base: LeadInput, imported: Partial<LeadInput>): LeadInput {

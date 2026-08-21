@@ -22,6 +22,7 @@ import {
   renderOutreachEmailHtml,
 } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
+import { needsReviewClearPatch } from './needsReview'
 import { enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
@@ -427,6 +428,7 @@ export function EmailThreadPanel({
       const stamp = new Date().toISOString()
       const patch: Partial<LeadInput> = {
         scheduled_send: null,
+        ...needsReviewClearPatch(lead),
       }
       if (!lead.initial_email_sent_at) {
         patch.initial_email_sent_at = stamp
@@ -512,6 +514,7 @@ export function EmailThreadPanel({
           inReplyTo: threading.inReplyTo,
           references: threading.references,
         }),
+        ...needsReviewClearPatch(lead),
       })
       onChanged(updated)
       await reportPing()

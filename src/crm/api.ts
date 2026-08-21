@@ -34,7 +34,7 @@ import {
   scheduledSendDue,
   type ScheduledSend,
 } from './scheduledSend'
-import { normalizeLeadTags } from './leadTags'
+import { normalizeLeadTags, hasNeedsReview, withoutNeedsReview } from './leadTags'
 import { normalizeValueEmoji } from './valueEmoji'
 import { OUTREACH_FROM_IDENTITIES } from './outreachFromIdentities'
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
@@ -123,6 +123,8 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
     if (!lead.last_client_reply_at) return false
   } else if (filters.status === 'not_contacted') {
     if (lead.initial_email_sent_at) return false
+  } else if (filters.status === 'needs_review') {
+    if (!hasNeedsReview(lead.tags)) return false
   } else if (filters.status !== 'all' && lead.status !== filters.status) {
     return false
   }
@@ -2013,7 +2015,8 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
       if (
         filters.status !== 'all' &&
         filters.status !== 'not_contacted' &&
-        filters.status !== 'client_replied'
+        filters.status !== 'client_replied' &&
+        filters.status !== 'needs_review'
       ) {
         next = next.eq('status', filters.status)
       }
@@ -2087,7 +2090,9 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     if (error) throw new Error(error.message)
     const leads = data.map((row) => normalizeLead(row as unknown as Lead))
     const specialStatus =
-      filters.status === 'not_contacted' || filters.status === 'client_replied'
+      filters.status === 'not_contacted' ||
+      filters.status === 'client_replied' ||
+      filters.status === 'needs_review'
         ? filters.status
         : 'all'
     const effectiveSort: LeadSort =
@@ -2190,6 +2195,7 @@ function processDueScheduledSendsLocal(): void {
       contact_priority: isReply && lead.initial_email_sent_at ? lead.contact_priority : false,
       scheduled_send: null,
       status: lead.status === 'new' ? 'contacted' : lead.status,
+      tags: withoutNeedsReview(lead.tags),
       updated_at: stamp,
     }
   })

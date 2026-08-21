@@ -68,9 +68,11 @@ import { isContactPriority } from './outreach'
 import { NotesView } from './NotesView'
 import { ScreenRecorderView } from './ScreenRecorderView'
 import { SeoView } from './SeoView'
+import { LeadBulkImportPanel } from './LeadBulkImportPanel'
 import { LeadDetail } from './LeadDetail'
 import { LeadForm } from './LeadForm'
 import { LeadList } from './LeadList'
+import { hasNeedsReview } from './leadTags'
 import { ProjectsView } from './ProjectsView'
 import { ClientAccountsView } from './ClientAccountsView'
 import { ClientPortalView } from './ClientPortalView'
@@ -97,7 +99,7 @@ import type {
 import { collectOwnerOptions, resolveLeadOwner } from './types'
 import './crm.css'
 
-type View = 'list' | 'create'
+type View = 'list' | 'create' | 'bulk'
 type CrmSection =
   | 'leads'
   | 'projectCosts'
@@ -640,6 +642,18 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     }
   }
 
+  const handleBulkCreate = async (inputs: LeadInput[]) => {
+    let last: Lead | null = null
+    for (const input of inputs) {
+      last = await createLead(input)
+      upsertLeadInList(last)
+    }
+    setView('list')
+    setFilters((f) => ({ ...f, status: 'needs_review' }))
+    await refreshLeads()
+    if (last) setSelectedId(last.id)
+  }
+
   const handleLeadChanged = useCallback(
     (updated?: Lead) => {
       if (updated) {
@@ -839,6 +853,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     (l) => l.status !== 'closed_won' && l.status !== 'closed_lost',
   ).length
   const priorityCount = leads.filter((l) => isContactPriority(l)).length
+  const needsReviewCount = leads.filter((l) => hasNeedsReview(l.tags)).length
   const tagOptions = (() => {
     const set = new Set<string>()
     for (const lead of leads) {
@@ -880,6 +895,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     filterSummaryParts.push(t('toolbar.notContacted'))
   } else if (filters.status === 'client_replied') {
     filterSummaryParts.push(t('toolbar.clientReplied'))
+  } else if (filters.status === 'needs_review') {
+    filterSummaryParts.push(t('toolbar.needsReview'))
   } else if (filters.status !== 'all') {
     filterSummaryParts.push(statusLabel(filters.status))
   }
@@ -1199,6 +1216,28 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                 <span className="crm-stat-value">{priorityCount}</span>
                 <span className="crm-stat-label">{t('stats.priority')}</span>
               </button>
+              <button
+                type="button"
+                className={`crm-stat crm-stat--filter${filters.status === 'needs_review' ? ' is-active' : ''}`}
+                aria-pressed={filters.status === 'needs_review'}
+                aria-label={
+                  filters.status === 'needs_review'
+                    ? t('stats.needsReviewFilterClear')
+                    : t('stats.needsReviewFilter')
+                }
+                onClick={() => {
+                  setFilters((f) => ({
+                    ...f,
+                    status:
+                      f.status === 'needs_review' ? 'all' : 'needs_review',
+                  }))
+                  setPriorityFilter(false)
+                  setFollowUpDate(null)
+                }}
+              >
+                <span className="crm-stat-value">{needsReviewCount}</span>
+                <span className="crm-stat-label">{t('stats.needsReview')}</span>
+              </button>
             </div>
             <CrmFollowUpCalendar
               leads={leads}
@@ -1233,6 +1272,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               }}
             >
               <option value="all">{t('toolbar.allStages')}</option>
+              <option value="needs_review">{t('toolbar.needsReview')}</option>
               <option value="not_contacted">{t('toolbar.notContacted')}</option>
               <option value="client_replied">{t('toolbar.clientReplied')}</option>
               {LEAD_STATUS_VALUES.map((value) => (
@@ -1314,6 +1354,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               className="btn btn-ghost"
               disabled={
                 view === 'create' ||
+                view === 'bulk' ||
                 listLeads.length === 0 ||
                 copyVisibleState === 'exporting'
               }
@@ -1321,6 +1362,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               onClick={() => void handleCopyVisibleLeads()}
             >
               {copyVisibleLabel}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setView(view === 'bulk' ? 'list' : 'bulk')}
+            >
+              {view === 'bulk' ? t('toolbar.backList') : t('toolbar.bulkImport')}
             </button>
             <button
               type="button"
@@ -1352,6 +1400,14 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               <h2 className="crm-detail-title">{t('create.title')}</h2>
               <LeadForm
                 onSubmit={handleCreate}
+                onCancel={() => setView('list')}
+              />
+            </div>
+          ) : view === 'bulk' ? (
+            <div className="crm-create-panel">
+              <h2 className="crm-detail-title">{t('bulkChatgpt.pageTitle')}</h2>
+              <LeadBulkImportPanel
+                onImport={handleBulkCreate}
                 onCancel={() => setView('list')}
               />
             </div>

@@ -362,7 +362,12 @@ export interface StaffProfile {
  * Stage dropdown value: pipeline status, or special filters
  * (initial email not sent / client has replied).
  */
-export type LeadStatusFilter = LeadStatus | 'all' | 'not_contacted' | 'client_replied'
+export type LeadStatusFilter =
+  | LeadStatus
+  | 'all'
+  | 'not_contacted'
+  | 'client_replied'
+  | 'needs_review'
 
 export interface LeadFilters {
   search: string

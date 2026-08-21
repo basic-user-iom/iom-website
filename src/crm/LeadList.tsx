@@ -3,7 +3,7 @@ import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { LeadTagsDisplay } from './LeadTagsField'
-import { normalizeLeadTags } from './leadTags'
+import { hasNeedsReview, normalizeLeadTags } from './leadTags'
 import { initialEmailPending, initialEmailSent, isContactPriority } from './outreach'
 import {
   formatInContactZone,
@@ -157,6 +157,14 @@ export function LeadList({
                           })}
                         >
                           {t('list.replied')}
+                        </span>
+                      )}
+                      {hasNeedsReview(lead.tags) && (
+                        <span
+                          className="crm-needs-review-badge"
+                          title={t('list.needsReviewHint')}
+                        >
+                          {t('list.needsReview')}
                         </span>
                       )}
                       <LeadClientLocal lead={lead} compact />

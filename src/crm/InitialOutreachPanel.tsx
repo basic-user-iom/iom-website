@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createActivity, normalizeLeadEmails, updateLead } from './api'
+import { needsReviewClearPatch } from './needsReview'
 import { isCrmDemoMode } from './demoMode'
 import { copyTextToClipboard } from './formatLeadText'
 import { useCrmI18n } from './i18n'
@@ -255,6 +256,7 @@ export function InitialOutreachPanel({
       initial_email_sent_at: stamp,
       contact_priority: false,
       scheduled_send: null,
+      ...needsReviewClearPatch(lead),
     }
     if (!lead.initial_email_drafted_at) {
       patch.initial_email_drafted_at = stamp
@@ -356,6 +358,7 @@ export function InitialOutreachPanel({
           initial_email_sent_at: stamp,
           contact_priority: false,
           scheduled_send: null,
+          ...needsReviewClearPatch(lead),
         })
         await logEmailActivity(
           subj,
@@ -430,6 +433,7 @@ export function InitialOutreachPanel({
         }),
         initial_email_drafted_at:
           lead.initial_email_drafted_at || new Date().toISOString(),
+        ...needsReviewClearPatch(lead),
       })
       onChanged(updated)
 

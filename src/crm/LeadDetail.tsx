@@ -12,7 +12,7 @@ import { LeadNdaPanel } from './LeadNdaPanel'
 import { LeadForm } from './LeadForm'
 import { normalizeLeadEmails } from './api'
 import { LeadTagsDisplay } from './LeadTagsField'
-import { normalizeLeadTags } from './leadTags'
+import { hasNeedsReview, normalizeLeadTags, withoutNeedsReview } from './leadTags'
 import { isContactPriority } from './outreach'
 import { UserAvatar } from './UserProfileMenu'
 import type { CrmProject, CrmUser, Lead, LeadInput, StaffProfile } from './types'
@@ -81,6 +81,7 @@ export function LeadDetail({
   const [copying, setCopying] = useState(false)
   const [copied, setCopied] = useState(false)
   const [priorityBusy, setPriorityBusy] = useState(false)
+  const [approveBusy, setApproveBusy] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const [activityTick, setActivityTick] = useState(0)
@@ -90,6 +91,7 @@ export function LeadDetail({
   const showOwner = !!(owner.name || owner.email || owner.avatar_url)
   const ownerLabel = owner.name || null
   const priorityQueued = isContactPriority(lead)
+  const needsReview = hasNeedsReview(lead.tags)
   const isOwnIncomplete =
     !!currentUser &&
     lead.owner_id === currentUser.id &&
@@ -196,6 +198,21 @@ export function LeadDetail({
       setError(err instanceof Error ? err.message : t('detail.priorityFailed'))
     } finally {
       setPriorityBusy(false)
+    }
+  }
+
+  const handleApproveReview = async () => {
+    setError('')
+    setApproveBusy(true)
+    try {
+      const updated = await updateLead(lead.id, {
+        tags: withoutNeedsReview(lead.tags),
+      })
+      onChanged(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('detail.approveFailed'))
+    } finally {
+      setApproveBusy(false)
     }
   }
 
@@ -321,6 +338,17 @@ export function LeadDetail({
             >
               {t('detail.priority')}
             </button>
+            {needsReview && (
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={approveBusy}
+                title={t('detail.approveHint')}
+                onClick={() => void handleApproveReview()}
+              >
+                {approveBusy ? t('detail.approving') : t('detail.approve')}
+              </button>
+            )}
             <button
               type="button"
               className="btn btn-ghost"
@@ -365,6 +393,9 @@ export function LeadDetail({
             <span className="crm-status-pill">{statusLabel(lead.status)}</span>
             {lead.last_client_reply_at && (
               <span className="crm-reply-badge">{t('list.replied')}</span>
+            )}
+            {needsReview && (
+              <span className="crm-needs-review-badge">{t('list.needsReview')}</span>
             )}
             <LeadClientLocal lead={lead} compact />
           </div>
@@ -415,6 +446,17 @@ export function LeadDetail({
           >
             {t('detail.priority')}
           </button>
+          {needsReview && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={approveBusy}
+              title={t('detail.approveHint')}
+              onClick={() => void handleApproveReview()}
+            >
+              {approveBusy ? t('detail.approving') : t('detail.approve')}
+            </button>
+          )}
           <button
             type="button"
             className="btn btn-ghost"

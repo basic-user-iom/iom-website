@@ -27,7 +27,7 @@ export async function processDueScheduledSends(opts) {
     `${supabaseUrl}/rest/v1/crm_leads` +
     `?select=id,company_name,contact_name,email,status,owner_id,owner_email,` +
     `initial_email_subject,initial_email_body,initial_email_drafted_at,initial_email_sent_at,` +
-    `contact_priority,scheduled_send` +
+    `contact_priority,scheduled_send,tags` +
     `&scheduled_send=not.is.null` +
     `&order=scheduled_send->>at.asc` +
     `&limit=100`
@@ -422,6 +422,7 @@ async function markLeadSent(supabaseUrl, serviceKey, row, stamp) {
     scheduled_send: null,
     status: row.status === 'new' ? 'contacted' : row.status,
     updated_at: stamp,
+    ...tagsWithoutNeedsReview(row.tags),
   })
 }
 
@@ -433,7 +434,18 @@ async function markReplySent(supabaseUrl, serviceKey, row, stamp) {
     status: row.status === 'new' ? 'contacted' : row.status,
     updated_at: stamp,
     ...(row.initial_email_sent_at ? {} : { contact_priority: false }),
+    ...tagsWithoutNeedsReview(row.tags),
   })
+}
+
+function tagsWithoutNeedsReview(raw) {
+  if (!Array.isArray(raw)) return {}
+  const next = raw
+    .map((t) => String(t ?? '').trim().toLowerCase())
+    .filter((t) => t && t !== 'needs-review')
+  const had = raw.some((t) => String(t ?? '').trim().toLowerCase() === 'needs-review')
+  if (!had) return {}
+  return { tags: next }
 }
 
 async function clearSchedule(supabaseUrl, serviceKey, row, stamp) {

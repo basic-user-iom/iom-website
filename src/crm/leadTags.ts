@@ -5,7 +5,15 @@
  * so ChatGPT / filters stay consistent.
  */
 
+/**
+ * Bulk ChatGPT imports land here until staff approve them (or until outreach
+ * is sent / scheduled — that also clears the tag).
+ */
+export const NEEDS_REVIEW_TAG = 'needs-review'
+
 export const SUGGESTED_LEAD_TAGS = [
+  // Workflow
+  NEEDS_REVIEW_TAG,
   // Vertical
   'museum',
   'heritage',
@@ -319,13 +327,30 @@ export function suggestLeadTags(source: LeadTagSource, existing: string[] = []):
   return normalizeLeadTags([...merged])
 }
 
+export function hasNeedsReview(tags: string[] | null | undefined): boolean {
+  return normalizeLeadTags(tags).includes(NEEDS_REVIEW_TAG)
+}
+
+/** Stamp a lead as awaiting staff review (bulk import). */
+export function withNeedsReview(tags: string[] | null | undefined): string[] {
+  return normalizeLeadTags([...(tags ?? []), NEEDS_REVIEW_TAG])
+}
+
+/** Approve / clear review queue (manual Approve, or send / schedule). */
+export function withoutNeedsReview(tags: string[] | null | undefined): string[] {
+  return normalizeLeadTags(tags).filter((tag) => tag !== NEEDS_REVIEW_TAG)
+}
+
 /** Text for ChatGPT prompt — how to pick / invent tags. */
 export function leadTagsPromptGuide(): string {
-  const presets = SUGGESTED_LEAD_TAGS.join(', ')
+  const presets = SUGGESTED_LEAD_TAGS.filter((t) => t !== NEEDS_REVIEW_TAG).join(
+    ', ',
+  )
   return `tags: string[] of short lowercase kebab-case labels (max ${LEAD_TAGS_MAX}).
 Prefer from this IOM CRM vocabulary when they fit: ${presets}.
 If none of the presets fit the firm, invent 2–5 specific custom tags (still kebab-case) that describe industry, offer-fit, geography, and relationship (e.g. "marine-museum", "trade-show-booth", "nordics", "reseller").
 Always include at least one industry/vertical tag and one geography tag when known.
 Do not leave tags as [] when company_focus or location is known — assign the best available labels.
+Do NOT add "${NEEDS_REVIEW_TAG}" yourself — the CRM stamps that on bulk import.
 Custom tags are allowed and encouraged when the firm does not match the vocabulary.`
 }
