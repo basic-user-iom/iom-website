@@ -991,6 +991,13 @@ body.hero-viewer-fs-lock {
   overflow: hidden;
 }
 
+html.is-overlay-open .section-block,
+html.is-hash-scrolling .section-block,
+body.music-player-fs-lock .section-block,
+body.hero-viewer-fs-lock .section-block {
+  content-visibility: visible;
+}
+
 .motion-parallax-prompt {
   pointer-events: auto;
   margin: 0;
@@ -2460,11 +2467,17 @@ body.music-player-fs-lock {
   );
   position: fixed;
   inset: 0;
+  width: 100%;
+  min-height: 100%;
+  min-height: 100dvh;
   z-index: 200;
   display: flex;
-  align-items: center;
-  justify-content: center;
+  align-items: safe center;
+  justify-content: safe center;
   padding: var(--lb-outer-pad);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   background: rgba(4, 4, 6, 0.88);
   backdrop-filter: blur(10px);
   animation: fadeUp 0.25s ease both;

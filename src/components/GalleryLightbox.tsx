@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { ProjectImage } from '../data/projects'
 import {
   persistMute,
@@ -11,6 +12,7 @@ import {
   releaseAudioFocus,
   subscribeAudioFocus,
 } from '../utils/audioFocus'
+import { lockBodyScroll } from '../utils/lockBodyScroll'
 
 interface GalleryLightboxProps {
   title: string
@@ -190,12 +192,11 @@ export function GalleryLightbox({
     }
 
     window.addEventListener('keydown', onKey)
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    const unlockScroll = lockBodyScroll()
 
     return () => {
       window.removeEventListener('keydown', onKey)
-      document.body.style.overflow = prevOverflow
+      unlockScroll()
     }
   }, [audioUrl, goNext, goPrev, handlePause, handlePlay, isPlaying, onClose, toggleMute])
 
@@ -208,7 +209,7 @@ export function GalleryLightbox({
     setImageReady(true)
   }
 
-  return (
+  return createPortal(
     <div
       className="gallery-lightbox"
       role="dialog"
@@ -346,6 +347,7 @@ export function GalleryLightbox({
           </p>
         ) : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

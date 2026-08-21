@@ -13,6 +13,7 @@ import {
   subscribeAudioFocus,
 } from '../utils/audioFocus'
 import { getDeviceProfile } from '../utils/device'
+import { lockBodyScroll } from '../utils/lockBodyScroll'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 
@@ -1225,6 +1226,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     if (!pseudoFullscreen) return
 
     document.body.classList.add('music-player-fs-lock')
+    const unlockScroll = lockBodyScroll()
     resizeVisualizer()
     window.dispatchEvent(new Event('resize'))
 
@@ -1236,6 +1238,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     return () => {
       document.body.classList.remove('music-player-fs-lock')
       document.removeEventListener('keydown', onKeyDown)
+      unlockScroll()
       resizeVisualizer()
     }
   }, [pseudoFullscreen, resizeVisualizer])

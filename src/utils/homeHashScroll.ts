@@ -45,22 +45,63 @@ function alignToTarget(el: HTMLElement, behavior: ScrollBehavior): void {
   el.scrollIntoView({ behavior, block: 'start' })
 }
 
+let hashScrollLocks = 0
+
+function beginHashScroll(): () => void {
+  hashScrollLocks += 1
+  document.documentElement.classList.add('is-hash-scrolling')
+  return () => {
+    hashScrollLocks = Math.max(0, hashScrollLocks - 1)
+    if (hashScrollLocks === 0) {
+      document.documentElement.classList.remove('is-hash-scrolling')
+    }
+  }
+}
+
 function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void {
   let settleId = 0
+  let ro: ResizeObserver | null = null
+  let finished = false
   const started = Date.now()
-  const tick = () => {
-    if (isCancelled() || !el.isConnected) return
+  const endHashScroll = beginHashScroll()
+
+  const finish = () => {
+    if (finished) return
+    finished = true
+    if (settleId) window.clearTimeout(settleId)
+    ro?.disconnect()
+    endHashScroll()
+  }
+
+  const realign = () => {
+    if (finished || isCancelled() || !el.isConnected) return
     if (Math.abs(targetDrift(el)) > 8) {
       alignToTarget(el, 'auto')
     }
-    if (Date.now() - started < 1400) {
+  }
+
+  const tick = () => {
+    if (finished || isCancelled() || !el.isConnected) {
+      finish()
+      return
+    }
+    realign()
+    if (Date.now() - started < 2800) {
       settleId = window.setTimeout(tick, 140)
+    } else {
+      finish()
     }
   }
-  settleId = window.setTimeout(tick, 80)
-  return () => {
-    if (settleId) window.clearTimeout(settleId)
+
+  if (typeof ResizeObserver !== 'undefined') {
+    ro = new ResizeObserver(realign)
+    ro.observe(el)
+    const main = document.getElementById('main-content')
+    if (main && main !== el) ro.observe(main)
   }
+
+  settleId = window.setTimeout(tick, 80)
+  return finish
 }
 
 export function scrollReadyHashIntoView(id: string, behavior?: ScrollBehavior): boolean {
@@ -98,9 +139,9 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
     if (!id) return true
     const el = findReadyHashTarget(id)
     if (!el) return false
-    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
     cancelSettle()
     cancelSettle = scheduleSettle(el, () => cancelled)
+    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
     return true
   }
 
@@ -155,9 +196,9 @@ export function scrollToHashWhenReady(id: string, options?: WatchOptions): () =>
   const tryScroll = (): boolean => {
     const el = findReadyHashTarget(id)
     if (!el) return false
-    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
     cancelSettle()
     cancelSettle = scheduleSettle(el, () => cancelled)
+    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
     return true
   }
 

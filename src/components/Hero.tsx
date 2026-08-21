@@ -6,6 +6,7 @@ import {
 } from '../utils/deviceOrientationParallax'
 import { getDeviceProfile } from '../utils/device'
 import { reportHeroVisibility } from '../utils/embedVisibility'
+import { lockBodyScroll } from '../utils/lockBodyScroll'
 import type { HeroSceneLoadStatus } from '../three/useHeroScene'
 import { useSiteI18n } from '../i18n'
 import { useSiteOrbsOptional } from './SiteOrbZone'
@@ -159,6 +160,7 @@ export function Hero() {
     if (!pseudoFullscreen) return
 
     document.body.classList.add('hero-viewer-fs-lock')
+    const unlockScroll = lockBodyScroll()
     window.dispatchEvent(new Event('resize'))
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -169,6 +171,7 @@ export function Hero() {
     return () => {
       document.body.classList.remove('hero-viewer-fs-lock')
       document.removeEventListener('keydown', onKeyDown)
+      unlockScroll()
     }
   }, [pseudoFullscreen])
 
