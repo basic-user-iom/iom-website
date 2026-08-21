@@ -146,6 +146,8 @@ export function mountCustomCursor(): (() => void) | null {
     const tipHost = target.closest(
       [
         '.project-card',
+        '.music-player-visual-wrap',
+        '.music-player-album-thumb',
         '.pc-engage-card',
         '.home-engage-proof-card',
         '.home-engage-trust-item',

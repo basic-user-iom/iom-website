@@ -15,7 +15,7 @@ import {
 import { getDeviceProfile } from '../utils/device'
 import { lockBodyScroll } from '../utils/lockBodyScroll'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
-import { useSiteOrbsOptional } from './SiteOrbZone'
+import { useCardOrbPointerProps, useSiteOrbsOptional } from './SiteOrbZone'
 
 function syncMusicMuteWithSite(muted: boolean) {
   persistMute('music', muted)
@@ -386,6 +386,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     playableTracks.find((track) => track.id === activeTrackId) ?? playableTracks[0] ?? null
 
   const deviceProfile = getDeviceProfile()
+  const visualOrbPointerProps = useCardOrbPointerProps()
 
   const playerRef = useRef<HTMLDivElement>(null)
   const visualRef = useRef<HTMLDivElement>(null)
@@ -1406,7 +1407,8 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
             <div
               ref={visualWrapRef}
               className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
-              data-cursor={isPlaying ? 'drag' : 'focus'}
+              data-cursor="focus"
+              {...visualOrbPointerProps}
             >
               <div
                 ref={visualContainerRef}
