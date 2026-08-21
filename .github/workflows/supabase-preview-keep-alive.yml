@@ -1,7 +1,7 @@
 # Keep free-tier Supabase preview project from auto-pausing after ~7 days idle.
 # Project: iom-website-preview (ijjnstbwvuwwznfagxut) — Preview only, not production.
 #
-# Supabase counts *database* requests (PostgREST), not Auth health.
+# Supabase counts *database* requests (PostgREST), not Auth health / OpenAPI root.
 # Required repo secret:
 #   SUPABASE_PREVIEW_ANON_KEY  Preview anon / publishable key
 # Optional:
@@ -38,49 +38,48 @@ jobs:
           base="${SUPABASE_PREVIEW_URL:-https://ijjnstbwvuwwznfagxut.supabase.co}"
           base="${base%/}"
           restore_url="https://supabase.com/dashboard/project/ijjnstbwvuwwznfagxut"
+          path="/rest/v1/crm_staff_profiles?select=id&limit=1"
 
-          ping_rest() {
-            local path="$1"
-            local accept="$2"
-            local label="$3"
+          # After Resume, origin can return 521/502 for a few minutes.
+          attempt=1
+          max_attempts=8
+          while [ "$attempt" -le "$max_attempts" ]; do
             set +e
-            local http
             http=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
               --connect-timeout 20 --max-time 40 \
               "${base}${path}" \
               -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
-              -H "Accept: ${accept}")
-            local curl_exit=$?
+              -H "Accept: application/json")
+            curl_exit=$?
             set -e
-            echo "HTTP ${http:-000} curl_exit=${curl_exit} (${label})"
-            if [ "$curl_exit" -ne 0 ]; then
-              echo "Could not reach Preview Supabase (curl exit ${curl_exit})."
-              echo "Project is likely paused. Resume it: ${restore_url}"
-              exit 1
-            fi
-            if [ "$http" = "546" ] || [ "$http" = "520" ]; then
-              echo "Preview project is paused (HTTP ${http}). Resume it: ${restore_url}"
-              exit 1
-            fi
-            case "$http" in
-              200|206|401|403)
-                # Reached PostgREST — that is user database activity even if RLS denies rows.
-                echo "Keep-alive ping OK (database activity registered)."
-                return 0
-                ;;
-              *)
-                return 1
-                ;;
-            esac
-          }
+            bytes=$(wc -c < /tmp/supabase-keepalive-body.txt | tr -d ' ')
+            echo "attempt=${attempt}/${max_attempts} HTTP ${http:-000} curl_exit=${curl_exit} bytes=${bytes}"
 
-          if ping_rest "/rest/v1/crm_staff_profiles?select=id&limit=1" "application/json" "GET crm_staff_profiles"; then
-            exit 0
-          fi
-          echo "Table select did not count as success; trying REST root…"
-          if ping_rest "/rest/v1/" "application/openapi+json" "GET /rest/v1/"; then
-            exit 0
-          fi
-          echo "Unexpected status; keep-alive may not have registered."
-          echo "If the project is paused, resume it: ${restore_url}"
-          exit 1
+            if [ "$curl_exit" -ne 0 ]; then
+              echo "Network error reaching Preview Supabase."
+            elif [ "$http" = "546" ]; then
+              echo "Preview project is paused (HTTP 546). Resume it: ${restore_url}"
+              exit 1
+            elif [ "$http" = "520" ] || [ "$http" = "521" ] || [ "$http" = "502" ] || [ "$http" = "503" ]; then
+              echo "Project still warming (HTTP ${http})."
+            else
+              case "$http" in
+                200|206|401|403)
+                  # Reached PostgREST / Postgres (401/403 from RLS or missing GRANT still count).
+                  echo "Keep-alive ping OK (database activity registered)."
+                  exit 0
+                  ;;
+                *)
+                  echo "Unexpected HTTP ${http}."
+                  ;;
+              esac
+            fi
+
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              echo "Keep-alive failed after ${max_attempts} attempts."
+              echo "If paused, resume: ${restore_url}"
+              exit 1
+            fi
+            sleep 15
+            attempt=$((attempt + 1))
+          done
