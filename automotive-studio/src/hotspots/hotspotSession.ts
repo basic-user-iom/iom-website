@@ -6,6 +6,7 @@ import {
   DoubleSide,
   Euler,
   Group,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -97,6 +98,9 @@ export class HotspotSession {
     side: DoubleSide,
     depthTest: true,
     depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
   })
   private ringSelectedMat = new MeshBasicMaterial({
     color: 0xfff0d8,
@@ -105,6 +109,9 @@ export class HotspotSession {
     side: DoubleSide,
     depthTest: true,
     depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
   })
   private haloMat = new MeshBasicMaterial({
     color: 0xd2b48c,
@@ -114,6 +121,9 @@ export class HotspotSession {
     side: DoubleSide,
     depthTest: true,
     depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
   })
   private pickMat = new MeshBasicMaterial({
     transparent: true,
@@ -131,7 +141,11 @@ export class HotspotSession {
   private readonly _local = new Vector3()
   private readonly _world = new Vector3()
   private readonly _normal = new Vector3()
-  private readonly _invRoot = new Quaternion()
+  private readonly _up = new Vector3()
+  private readonly _right = new Vector3()
+  private readonly _forward = new Vector3()
+  private readonly _basis = new Matrix4()
+  private readonly _invMat = new Matrix4()
   private labelTextures = new Map<string, CanvasTexture>()
 
   bind(
@@ -300,20 +314,19 @@ export class HotspotSession {
         // Barely clear the paint — rings lie in the surface plane.
         // Ignore legacy huge offsets from the oversized camera-billboard markers.
         const rawLift = hotspot.anchor.offset
-        const lift = rawLift > 0 && rawLift <= 0.35 ? rawLift : 0.06
+        // Slightly clear curved panels so large rings don't depth-clip into paint.
+        const lift = rawLift > 0 && rawLift <= 0.35 ? rawLift : 0.09
         this._local.addScaledVector(this._normal, lift)
         root.position.copy(this._local)
-        this.applySurfaceOrientation(root, this._normal, hotspot.markerRotationDeg)
-        if (label) this.orientLabelUpright(label, root)
+        this.applySurfaceOrientation(root, this._normal, hotspot.markerRotationDeg, node)
         node.add(root)
         root.userData.attachedNode = node.name
       } else {
         const fallback =
           hotspot.anchor.fallbackVehicleCoordinate ?? hotspot.anchor.localPosition ?? [0, 1.2, 0]
         root.position.set(fallback[0], fallback[1] + (hotspot.anchor.offset || 0), fallback[2])
-        this.applySurfaceOrientation(root, new Vector3(0, 0, 1), hotspot.markerRotationDeg)
-        if (label) this.orientLabelUpright(label, root)
         const parent = this.placement ?? this.scene
+        this.applySurfaceOrientation(root, new Vector3(0, 0, 1), hotspot.markerRotationDeg, parent)
         parent.add(root)
         root.userData.attachedNode = '(fallback)'
       }
@@ -321,23 +334,47 @@ export class HotspotSession {
     }
   }
 
-  /** Keep title text upright (world +Y) while staying flat on the door. */
-  private orientLabelUpright(label: Mesh, root: Group) {
-    this._invRoot.copy(root.quaternion).invert()
-    this._world.set(0, 1, 0).applyQuaternion(this._invRoot)
-    this._world.z = 0
-    if (this._world.lengthSq() < 1e-8) return
-    this._world.normalize()
-    label.rotation.z = Math.atan2(this._world.x, this._world.y)
-  }
-
-  /** RingGeometry faces +Z — aim that axis along the outward surface normal. */
+  /**
+   * Ring/Plane face +Z. Build a full orthonormal frame so marker +Y is "up the door"
+   * (world +Y projected into the surface plane). Bare setFromUnitVectors left roll
+   * unconstrained, which skewed the title plate offset along root +Y.
+   */
   private applySurfaceOrientation(
     root: Group,
     normal: Vector3,
     rotationDeg?: readonly [number, number, number] | null,
+    attachParent?: Object3D | null,
   ) {
-    this._qAlign.setFromUnitVectors(this._zAxis, normal)
+    this._forward.copy(normal)
+    if (this._forward.lengthSq() < 1e-10) this._forward.copy(this._zAxis)
+    else this._forward.normalize()
+
+    // World +Y expressed in the same space as `normal` (attach-node local).
+    this._up.set(0, 1, 0)
+    if (attachParent) {
+      attachParent.updateWorldMatrix(true, false)
+      this._invMat.copy(attachParent.matrixWorld).invert()
+      this._up.transformDirection(this._invMat)
+      if (this._up.lengthSq() < 1e-10) this._up.set(0, 1, 0)
+      else this._up.normalize()
+    }
+
+    this._right.crossVectors(this._up, this._forward)
+    if (this._right.lengthSq() < 1e-8) {
+      // Normal ≈ world up — pick a stable horizontal reference.
+      this._up.set(0, 0, 1)
+      if (attachParent) {
+        this._up.transformDirection(this._invMat)
+        if (this._up.lengthSq() < 1e-10) this._up.set(1, 0, 0)
+        else this._up.normalize()
+      }
+      this._right.crossVectors(this._up, this._forward)
+    }
+    this._right.normalize()
+    this._up.crossVectors(this._forward, this._right).normalize()
+    this._basis.makeBasis(this._right, this._up, this._forward)
+    this._qAlign.setFromRotationMatrix(this._basis)
+
     const rx = ((rotationDeg?.[0] ?? 0) * Math.PI) / 180
     const ry = ((rotationDeg?.[1] ?? 0) * Math.PI) / 180
     const rz = ((rotationDeg?.[2] ?? 0) * Math.PI) / 180

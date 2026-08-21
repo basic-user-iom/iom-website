@@ -111,13 +111,24 @@ export function defaultLocalAnchorOnNode(node: Object3D): { localPosition: Vec3;
   _box.getCenter(_center)
   _box.getSize(_size)
   // Prefer outward along the wider horizontal axis so door markers sit on the outer face.
-  const outward = Math.abs(_size.x) >= Math.abs(_size.z) ? new Vector3(Math.sign(_center.x) || 1, 0, 0) : new Vector3(0, 0, Math.sign(_center.z) || 1)
+  // Box center/size are world-space — convert both the nudged point and the normal into
+  // node-local space (same approach as mesh-pick in HotspotSession).
+  const outwardWorld =
+    Math.abs(_size.x) >= Math.abs(_size.z)
+      ? new Vector3(Math.sign(_center.x) || 1, 0, 0)
+      : new Vector3(0, 0, Math.sign(_center.z) || 1)
   const nudge = Math.max(0.05, Math.min(_size.x, _size.z, _size.y) * 0.15)
-  _world.copy(_center).addScaledVector(outward, nudge)
+  _world.copy(_center).addScaledVector(outwardWorld, nudge)
   node.worldToLocal(_local.copy(_world))
+  const localPos: Vec3 = [_local.x, _local.y, _local.z]
+  _world.add(outwardWorld)
+  node.worldToLocal(_center.copy(_world))
+  _center.sub(_local)
+  if (_center.lengthSq() > 1e-8) _center.normalize()
+  else _center.set(0, 0, 1)
   return {
-    localPosition: [_local.x, _local.y, _local.z],
-    localNormal: [outward.x, outward.y, outward.z],
+    localPosition: localPos,
+    localNormal: [_center.x, _center.y, _center.z],
   }
 }
 

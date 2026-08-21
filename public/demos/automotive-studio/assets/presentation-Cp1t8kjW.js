@@ -1,4 +1,4 @@
-import{C as W,R as re,V as ie,F as ce,z as le,t as de,H as ue,m as pe,A as G,D as he,q as fe,n as z,E as ge}from"./hotspotCard-C7iYSU6X.js";import{V as F}from"./three-ZMjePbuj.js";import{L as me,P as be,T as Se,E as ve,F as ye,C as we,G as Pe,H as Ae,w as Ee,p as N,M as Le}from"./runtime-core-DDl69JAg.js";function De(e,t){e.className="as-app as-app--presentation",e.innerHTML=`
+import{C as W,R as re,V as ie,F as ce,z as le,t as de,H as ue,m as pe,A as G,D as he,q as fe,n as z,E as ge}from"./hotspotCard-mcxImh_I.js";import{V as F}from"./three-ZMjePbuj.js";import{L as me,P as be,T as Se,E as ve,F as ye,C as we,G as Pe,H as Ae,w as Ee,p as N,M as Le}from"./runtime-core-DDl69JAg.js";function De(e,t){e.className="as-app as-app--presentation",e.innerHTML=`
     <main class="as-viewport" data-viewport tabindex="-1" aria-label="Presentation viewport"></main>
     <div class="as-presentation-controls" role="toolbar" aria-label="Presentation controls">
       <div class="as-presentation-row" role="group" aria-label="Transport">
