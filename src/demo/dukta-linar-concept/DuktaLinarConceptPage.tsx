@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import {
+  isLinarDemoUnlocked,
+  tryCrmEmbedUnlock,
+  unlockLinarDemo,
+} from './auth'
 import { PANEL_WIDTH_M, REST_BEND, previewRadiusMm } from './bendMath'
 import { LinarControls } from './LinarControls'
 import { LinarProductInfo } from './LinarProductInfo'
@@ -26,8 +31,56 @@ const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
 type TourStatus = 'prompt' | 'running' | 'complete' | 'dismissed'
 
+function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState(false)
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault()
+    if (unlockLinarDemo(password)) {
+      setError(false)
+      onUnlock()
+      return
+    }
+    setError(true)
+  }
+
+  return (
+    <div className="linar-page linar-page--gate">
+      <div className="linar-gate">
+        <div className="linar-gate__panel">
+          <p className="linar-gate__brand">dukta · LINAR concept</p>
+          <p className="linar-gate__hint">Private preview. Enter the password to continue.</p>
+          <form className="linar-gate__form" onSubmit={submit}>
+            <input
+              className="linar-gate__input"
+              type="password"
+              name="password"
+              autoComplete="current-password"
+              placeholder="Password"
+              value={password}
+              onChange={(event) => {
+                setPassword(event.target.value)
+                setError(false)
+              }}
+              autoFocus
+            />
+            <button className="linar-gate__submit" type="submit">
+              Enter
+            </button>
+            {error ? <p className="linar-gate__error">Incorrect password.</p> : null}
+          </form>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function DuktaLinarConceptPage() {
   const reducedMotion = useRef(prefersReducedMotion()).current
+  const [unlocked, setUnlocked] = useState(
+    () => isLinarDemoUnlocked() || tryCrmEmbedUnlock(),
+  )
   const [targetBend, setTargetBend] = useState(reducedMotion ? REST_BEND : 0)
   const [config, setConfig] = useState<LinarConfig>(() => cloneConfig(DEFAULT_LINAR_CONFIG))
   const [resetViewToken, setResetViewToken] = useState(0)
@@ -376,6 +429,10 @@ export function DuktaLinarConceptPage() {
       document.documentElement.classList.remove('linar-route')
     }
   }, [])
+
+  if (!unlocked) {
+    return <PasswordGate onUnlock={() => setUnlocked(true)} />
+  }
 
   return (
     <div className={tourStatus === 'running' ? 'linar-page is-tour-running' : 'linar-page'}>
