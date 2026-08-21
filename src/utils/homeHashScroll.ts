@@ -37,8 +37,22 @@ export function isDeepLinkHash(hash = typeof window !== 'undefined' ? window.loc
   return isSectionHash(parseLocationHash(hash))
 }
 
+function isPendingOrBusy(el: HTMLElement): boolean {
+  return el.classList.contains(PENDING_CLASS) || el.getAttribute('aria-busy') === 'true'
+}
+
 /** Real section only — skip deferred placeholders so hash scroll cannot land on an empty box. */
 export function findReadyHashTarget(id: string): HTMLElement | null {
+  if (!id) return null
+  const nodes = document.querySelectorAll<HTMLElement>(`[id="${escapeAttr(id)}"]`)
+  for (const el of nodes) {
+    if (!isPendingOrBusy(el)) return el
+  }
+  return null
+}
+
+/** Placeholder with the hash id (e.g. deferred music) — used once to bring it on-screen. */
+function findHashPlaceholder(id: string): HTMLElement | null {
   if (!id) return null
   const nodes = document.querySelectorAll<HTMLElement>(`[id="${escapeAttr(id)}"]`)
   for (const el of nodes) {
@@ -74,11 +88,24 @@ function ensureHashScrollPad(el: HTMLElement): void {
   )
 }
 
-function alignToTarget(el: HTMLElement, behavior: ScrollBehavior): void {
+function revealHashTarget(el: HTMLElement): void {
   el.classList.add('is-visible')
+  el.querySelectorAll('.reveal').forEach((node) => node.classList.add('is-visible'))
+}
+
+function alignToTarget(el: HTMLElement, behavior: ScrollBehavior): void {
+  revealHashTarget(el)
   ensureHashScrollPad(el)
   const top = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el)
   window.scrollTo({ top: Math.max(0, top), behavior })
+}
+
+function rememberSectionSizes(): void {
+  document.querySelectorAll<HTMLElement>('.section-block').forEach((el) => {
+    if (el.classList.contains(PENDING_CLASS)) return
+    const height = el.getBoundingClientRect().height
+    if (height > 1) el.style.containIntrinsicSize = `auto ${Math.round(height)}px`
+  })
 }
 
 let hashScrollLocks = 0
@@ -86,10 +113,13 @@ let hashScrollLocks = 0
 function beginHashScroll(): () => void {
   hashScrollLocks += 1
   document.documentElement.classList.add('is-hash-scrolling')
+  document.documentElement.style.setProperty('overflow-anchor', 'none')
   return () => {
     hashScrollLocks = Math.max(0, hashScrollLocks - 1)
     if (hashScrollLocks === 0) {
+      rememberSectionSizes()
       document.documentElement.classList.remove('is-hash-scrolling')
+      document.documentElement.style.removeProperty('overflow-anchor')
     }
   }
 }
@@ -112,22 +142,65 @@ function isViewportScrollbarPointer(event: PointerEvent): boolean {
   return event.target === document.documentElement || event.target === document.body
 }
 
+function waitAnimationFrames(count: number): Promise<void> {
+  return new Promise((resolve) => {
+    const step = (left: number) => {
+      if (left <= 0) {
+        resolve()
+        return
+      }
+      window.requestAnimationFrame(() => step(left - 1))
+    }
+    step(count)
+  })
+}
+
+function waitMs(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
+
+/** One quiet moment after in-section images decode — no ResizeObserver loop. */
+function waitForSectionMedia(el: HTMLElement, timeoutMs: number, isCancelled: () => boolean): Promise<void> {
+  const images = [...el.querySelectorAll('img')].filter((img) => !img.complete)
+  if (images.length === 0) return waitAnimationFrames(1)
+
+  return new Promise((resolve) => {
+    let remaining = images.length
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      window.clearTimeout(timer)
+      resolve()
+    }
+    const onImg = () => {
+      remaining -= 1
+      if (remaining <= 0 || isCancelled()) done()
+    }
+    const timer = window.setTimeout(done, timeoutMs)
+    for (const img of images) {
+      img.addEventListener('load', onImg, { once: true })
+      img.addEventListener('error', onImg, { once: true })
+    }
+  })
+}
+
+type LiveTarget = { current: HTMLElement }
+
 /**
- * Re-align while deferred body / content-visibility shifts layout.
- * Stop immediately if the visitor takes over (wheel, touch, keys, scrollbar).
+ * Scroll once (plus at most one correction after images). User intent cancels.
+ * No 2.8s scrollIntoView loop and no ResizeObserver realign on every decode.
  */
-function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void {
-  let settleId = 0
-  let ro: ResizeObserver | null = null
+function scheduleSettle(el: HTMLElement, id: string, isCancelled: () => boolean): () => void {
   let finished = false
-  const started = Date.now()
   const endHashScroll = beginHashScroll()
+  const live: LiveTarget = { current: el }
 
   const finish = () => {
     if (finished) return
     finished = true
-    if (settleId) window.clearTimeout(settleId)
-    ro?.disconnect()
     window.removeEventListener('wheel', onUserIntent, listenerOpts)
     window.removeEventListener('touchmove', onUserIntent, listenerOpts)
     window.removeEventListener('keydown', onKeyDown)
@@ -149,24 +222,54 @@ function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void
 
   const listenerOpts: AddEventListenerOptions = { passive: true, capture: true }
 
-  const realign = () => {
-    if (finished || isCancelled() || !el.isConnected) return
-    if (Math.abs(targetDrift(el)) > 8) {
-      alignToTarget(el, 'auto')
-    }
+  const resolveLive = (): HTMLElement | null => {
+    if (live.current.isConnected && !isPendingOrBusy(live.current)) return live.current
+    const next = findReadyHashTarget(id)
+    if (next) live.current = next
+    return next
   }
 
-  const tick = () => {
-    if (finished || isCancelled() || !el.isConnected) {
+  const run = async () => {
+    await waitAnimationFrames(2)
+    if (finished || isCancelled()) {
       finish()
       return
     }
-    realign()
-    if (Date.now() - started < 2800) {
-      settleId = window.setTimeout(tick, 140)
-    } else {
-      finish()
+
+    let target = resolveLive()
+    if (!target) {
+      const placeholder = findHashPlaceholder(id)
+      if (placeholder) alignToTarget(placeholder, 'auto')
+      const started = Date.now()
+      while (!target && !finished && !isCancelled() && Date.now() - started < 4000) {
+        await waitMs(50)
+        target = resolveLive()
+      }
     }
+
+    if (finished || isCancelled() || !target) {
+      finish()
+      return
+    }
+
+    const motion = prefersReducedMotion() ? 'auto' : 'smooth'
+    alignToTarget(target, motion)
+
+    await waitForSectionMedia(target, 700, () => finished || isCancelled())
+    await waitAnimationFrames(1)
+
+    if (finished || isCancelled()) {
+      finish()
+      return
+    }
+
+    const settled = resolveLive()
+    if (settled && Math.abs(targetDrift(settled)) > 8) {
+      alignToTarget(settled, 'auto')
+    }
+
+    await waitAnimationFrames(1)
+    finish()
   }
 
   window.addEventListener('wheel', onUserIntent, listenerOpts)
@@ -174,20 +277,13 @@ function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void
   window.addEventListener('keydown', onKeyDown)
   window.addEventListener('pointerdown', onPointerDown, listenerOpts)
 
-  if (typeof ResizeObserver !== 'undefined') {
-    ro = new ResizeObserver(realign)
-    ro.observe(el)
-    const main = document.getElementById('main-content')
-    if (main && main !== el) ro.observe(main)
-  }
-
-  settleId = window.setTimeout(tick, 80)
+  void run()
   return finish
 }
 
 export function scrollReadyHashIntoView(id: string, behavior?: ScrollBehavior): boolean {
   if (!isSectionHash(id)) return false
-  const el = findReadyHashTarget(id)
+  const el = findReadyHashTarget(id) ?? findHashPlaceholder(id)
   if (!el) return false
   const motion = behavior ?? (prefersReducedMotion() ? 'auto' : 'smooth')
   alignToTarget(el, motion)
@@ -198,15 +294,7 @@ type WatchOptions = {
   timeoutMs?: number
 }
 
-/**
- * Scroll to the current location hash once the real section exists, then
- * re-align if deferred body / content-visibility shifts layout.
- * Always listens for hashchange (same-page About / Costs clicks).
- * `#top` / empty hash never start a settle — that was yanking hard-reloads back up.
- */
-export function watchLocationHashScroll(options?: WatchOptions): () => void {
-  const timeoutMs = options?.timeoutMs ?? 8000
-  let cancelled = false
+function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: number): () => void {
   let pollId = 0
   let cancelSettle = () => {}
 
@@ -218,24 +306,48 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
   }
 
   const tryScroll = (): boolean => {
-    const id = parseLocationHash()
     if (!isSectionHash(id)) return true
-    const el = findReadyHashTarget(id)
+    const el = findReadyHashTarget(id) ?? findHashPlaceholder(id)
     if (!el) return false
+    stopPoll()
     cancelSettle()
-    cancelSettle = scheduleSettle(el, () => cancelled)
-    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
+    cancelSettle = scheduleSettle(el, id, isCancelled)
     return true
   }
 
-  const start = () => {
+  if (tryScroll()) {
+    return () => {
+      stopPoll()
+      cancelSettle()
+    }
+  }
+
+  const started = Date.now()
+  pollId = window.setInterval(() => {
+    if (isCancelled() || tryScroll() || Date.now() - started > timeoutMs) stopPoll()
+  }, 50)
+
+  return () => {
     stopPoll()
     cancelSettle()
-    if (tryScroll()) return
-    const started = Date.now()
-    pollId = window.setInterval(() => {
-      if (tryScroll() || Date.now() - started > timeoutMs) stopPoll()
-    }, 50)
+  }
+}
+
+/**
+ * Scroll to the current location hash once the real section exists.
+ * Always listens for hashchange (same-page About / Costs clicks).
+ * `#top` / empty hash never start a settle — that was yanking hard-reloads back up.
+ */
+export function watchLocationHashScroll(options?: WatchOptions): () => void {
+  const timeoutMs = options?.timeoutMs ?? 8000
+  let cancelled = false
+  let stopCurrent = () => {}
+
+  const start = () => {
+    stopCurrent()
+    const id = parseLocationHash()
+    if (!isSectionHash(id)) return
+    stopCurrent = bindHashScroll(id, () => cancelled, timeoutMs)
   }
 
   const onHash = () => {
@@ -246,10 +358,12 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
   window.addEventListener('hashchange', onHash)
   return () => {
     cancelled = true
-    stopPoll()
-    cancelSettle()
+    stopCurrent()
     window.removeEventListener('hashchange', onHash)
+    document.documentElement.classList.remove('is-hash-scrolling')
     document.documentElement.style.removeProperty('--hash-scroll-pad')
+    document.documentElement.style.removeProperty('overflow-anchor')
+    hashScrollLocks = 0
   }
 }
 
@@ -259,6 +373,7 @@ export function handleHomeHashLinkClick(event: { preventDefault: () => void }, i
   event.preventDefault()
   if (parseLocationHash() !== id) {
     window.location.hash = id
+    return
   }
   scrollToHashWhenReady(id)
 }
@@ -267,41 +382,9 @@ export function handleHomeHashLinkClick(event: { preventDefault: () => void }, i
 export function scrollToHashWhenReady(id: string, options?: WatchOptions): () => void {
   const timeoutMs = options?.timeoutMs ?? 8000
   let cancelled = false
-  let pollId = 0
-  let cancelSettle = () => {}
-
-  const stop = () => {
-    if (pollId) {
-      window.clearInterval(pollId)
-      pollId = 0
-    }
-  }
-
-  const tryScroll = (): boolean => {
-    if (!isSectionHash(id)) return true
-    const el = findReadyHashTarget(id)
-    if (!el) return false
-    cancelSettle()
-    cancelSettle = scheduleSettle(el, () => cancelled)
-    alignToTarget(el, prefersReducedMotion() ? 'auto' : 'smooth')
-    return true
-  }
-
-  if (tryScroll()) {
-    return () => {
-      cancelled = true
-      cancelSettle()
-    }
-  }
-
-  const started = Date.now()
-  pollId = window.setInterval(() => {
-    if (cancelled || tryScroll() || Date.now() - started > timeoutMs) stop()
-  }, 50)
-
+  const stop = bindHashScroll(id, () => cancelled, timeoutMs)
   return () => {
     cancelled = true
     stop()
-    cancelSettle()
   }
 }

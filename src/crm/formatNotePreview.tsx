@@ -510,7 +510,7 @@ export function scrollToNoteSection(id: string) {
   const el = document.getElementById(`note-section-${id}`)
   if (!el) return
   if (el instanceof HTMLDetailsElement) el.open = true
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  el.scrollIntoView({ behavior: 'auto', block: 'nearest' })
 }
 
 /** Leading single-# markdown heading used as the note document title. */

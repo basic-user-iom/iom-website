@@ -149,6 +149,10 @@ export default function App() {
     const onCrm = isClientLogin || isCrmDemo
     document.body.classList.toggle('crm-route', onCrm)
     setCustomCursorEnabled(!onCrm)
+    if (onCrm) {
+      document.documentElement.classList.remove('is-hash-scrolling')
+      document.documentElement.style.removeProperty('--hash-scroll-pad')
+    }
     return () => {
       document.body.classList.remove('crm-route')
       setCustomCursorEnabled(true)

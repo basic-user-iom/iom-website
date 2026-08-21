@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import type { Project } from '../data/projects'
 import {
   formatAudioTime,
@@ -1248,8 +1248,13 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     requestAnimationFrame(() => resizeVisualizer())
   }, [isFullscreen, resizeVisualizer])
 
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('iom-viewport-fs', isFullscreen)
+    return () => document.documentElement.classList.remove('iom-viewport-fs')
+  }, [isFullscreen])
+
   useEffect(() => {
-    const visual = visualContainerRef.current
+    const visual = visualWrapRef.current
     if (!visual) return
 
     const profile = getDeviceProfile()

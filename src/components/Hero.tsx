@@ -175,6 +175,11 @@ export function Hero() {
     }
   }, [pseudoFullscreen])
 
+  useLayoutEffect(() => {
+    document.documentElement.classList.toggle('iom-viewport-fs', isFullscreen)
+    return () => document.documentElement.classList.remove('iom-viewport-fs')
+  }, [isFullscreen])
+
   const enterFullscreen = useCallback(async () => {
     const el = canvasRef.current as FullscreenElement | null
     if (!el) return

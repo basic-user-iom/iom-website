@@ -115,6 +115,11 @@ type CrmSection =
   | 'demos'
   | 'seo'
 
+/** Mouse-clicking a tab focuses it and the browser may smooth-scroll it into view. */
+function preventTabFocusScroll(event: { button: number; preventDefault: () => void }) {
+  if (event.button === 0) event.preventDefault()
+}
+
 interface CrmAppProps {
   /** Public sandbox — sample data only, no live CRM backend. */
   demo?: boolean
@@ -1095,6 +1100,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               <button
                 type="button"
                 className={`crm-section-tab${section === id ? ' is-active' : ''}`}
+                onMouseDown={preventTabFocusScroll}
                 onClick={() => setSection(id)}
               >
                 {t(key)}
@@ -1103,6 +1109,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                 <button
                   type="button"
                   className={`crm-section-tab${section === 'projectCosts' ? ' is-active' : ''}`}
+                  onMouseDown={preventTabFocusScroll}
                   onClick={() => setSection('projectCosts')}
                 >
                   {t('nav.projectCosts')}
@@ -1116,6 +1123,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <button
               type="button"
               className={`crm-section-tab${section === 'blog' ? ' is-active' : ''}`}
+              onMouseDown={preventTabFocusScroll}
               onClick={() => setSection('blog')}
             >
               {t('nav.blog')}
@@ -1123,6 +1131,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <button
               type="button"
               className={`crm-section-tab${section === 'links' ? ' is-active' : ''}`}
+              onMouseDown={preventTabFocusScroll}
               onClick={() => setSection('links')}
             >
               {t('nav.links')}
@@ -1130,6 +1139,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             <button
               type="button"
               className={`crm-section-tab crm-section-tab--seo${section === 'seo' ? ' is-active' : ''}`}
+              onMouseDown={preventTabFocusScroll}
               onClick={() => setSection('seo')}
             >
               {t('nav.seo')}

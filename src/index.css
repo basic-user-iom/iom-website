@@ -986,6 +986,8 @@ a.header-cta:focus-visible {
 .hero-canvas-wrap--pseudo-fs .viewer-chrome {
   --viewer-chrome-inset: 20px;
   --viewer-corner-arm: 22px;
+  z-index: 4;
+  transform: translateZ(0);
 }
 
 body.hero-viewer-fs-lock {
@@ -994,9 +996,46 @@ body.hero-viewer-fs-lock {
 
 html.is-overlay-open .section-block,
 html.is-hash-scrolling .section-block,
+html.iom-viewport-fs .section-block,
 body.music-player-fs-lock .section-block,
 body.hero-viewer-fs-lock .section-block {
   content-visibility: visible;
+  contain: none;
+}
+
+/*
+ * CSS fullscreen overlays use position:fixed. Ancestors with content-visibility,
+ * contain, or a leftover transform become the containing block / stacking context,
+ * so the overlay cannot cover the viewport and the site header (z-index 100)
+ * steals clicks from the top-right Exit / Fullscreen control.
+ */
+html.iom-viewport-fs .site-orb-zone,
+html.iom-viewport-fs .hero-viewer,
+html.iom-viewport-fs .hero-content,
+html.iom-viewport-fs .hero,
+html.iom-viewport-fs #main-content,
+body.hero-viewer-fs-lock .site-orb-zone,
+body.hero-viewer-fs-lock .hero-viewer,
+body.hero-viewer-fs-lock .hero-content,
+body.hero-viewer-fs-lock .hero,
+body.hero-viewer-fs-lock #main-content {
+  transform: none !important;
+  translate: none !important;
+  rotate: none !important;
+  scale: none !important;
+  filter: none !important;
+  perspective: none !important;
+  contain: none !important;
+  content-visibility: visible !important;
+  will-change: auto !important;
+  animation: none !important;
+  animation-fill-mode: none !important;
+}
+
+html.iom-viewport-fs .site-header,
+body.hero-viewer-fs-lock .site-header,
+body.music-player-fs-lock .site-header {
+  pointer-events: none;
 }
 
 /* CSS `html { scroll-behavior: smooth }` would otherwise keep settle jumps animated. */
@@ -1493,6 +1532,9 @@ html.is-hash-scrolling {
 /* Music section */
 .section-block--music {
   scroll-margin-top: var(--header-h);
+  /* Interactive WebGL player may enter CSS fullscreen — `auto` would trap it. */
+  content-visibility: visible;
+  contain: none;
 }
 
 .music-player {
@@ -1609,6 +1651,7 @@ html.is-hash-scrolling {
   border-radius: var(--radius);
   background: #040406;
   overflow: hidden;
+  pointer-events: none;
   box-shadow:
     inset 0 0 0 1px rgba(139, 139, 154, 0.12),
     0 0 40px rgba(0, 0, 0, 0.45);
@@ -1706,8 +1749,9 @@ html.is-hash-scrolling {
   position: absolute;
   top: 0.65rem;
   right: 0.75rem;
-  z-index: 3;
+  z-index: 6;
   pointer-events: none;
+  isolation: isolate;
 }
 
 .music-player-visual-chrome .music-player-visual-fs-btn {
@@ -1749,6 +1793,7 @@ html.is-hash-scrolling {
   border-radius: 0;
   border: 0;
   box-shadow: none;
+  pointer-events: none;
 }
 
 .music-player-visual-wrap--pseudo-fs {
@@ -1769,9 +1814,13 @@ html.is-hash-scrolling {
   padding-right: env(safe-area-inset-right, 0px);
 }
 
+.music-player-visual-wrap:fullscreen .music-player-visual-chrome,
+.music-player-visual-wrap:-webkit-full-screen .music-player-visual-chrome,
 .music-player-visual-wrap--pseudo-fs .music-player-visual-chrome {
   top: max(0.65rem, env(safe-area-inset-top, 0px));
   right: max(0.75rem, env(safe-area-inset-right, 0px));
+  z-index: 8;
+  transform: translateZ(0);
 }
 
 .music-player-fs-bar {
