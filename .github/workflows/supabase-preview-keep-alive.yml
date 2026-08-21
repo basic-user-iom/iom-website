@@ -1,6 +1,7 @@
 # Keep free-tier Supabase preview project from auto-pausing after ~7 days idle.
 # Project: iom-website-preview (ijjnstbwvuwwznfagxut) — Preview only, not production.
 #
+# Supabase counts *database* requests (PostgREST), not Auth health.
 # Required repo secret:
 #   SUPABASE_PREVIEW_ANON_KEY  Preview anon / publishable key
 # Optional:
@@ -10,8 +11,8 @@ name: Supabase preview keep-alive
 
 on:
   schedule:
-    # Every 3 days at 06:17 UTC (spread load; well inside 7-day inactivity window)
-    - cron: '17 6 */3 * *'
+    # Daily at 06:17 UTC — a few DB requests per week is the documented bar.
+    - cron: '17 6 * * *'
   workflow_dispatch:
 
 concurrency:
@@ -23,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Ping Preview Supabase REST API
+      - name: Ping Preview Supabase database
         env:
           SUPABASE_PREVIEW_URL: ${{ secrets.SUPABASE_PREVIEW_URL }}
           SUPABASE_PREVIEW_ANON_KEY: ${{ secrets.SUPABASE_PREVIEW_ANON_KEY }}
@@ -34,30 +35,52 @@ jobs:
             echo "Set it in repo Settings → Secrets and variables → Actions (Preview anon key only)."
             exit 1
           fi
-          # Default to known preview project if secret unset
           base="${SUPABASE_PREVIEW_URL:-https://ijjnstbwvuwwznfagxut.supabase.co}"
           base="${base%/}"
-          # sb_publishable_ keys must go in `apikey` only — not Authorization: Bearer
-          # (Bearer expects a JWT; putting the opaque key there causes Invalid JWT 401).
-          # Auth health is a reliable activity ping (no table/RLS dependency).
-          code=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
-            "${base}/auth/v1/health" \
-            -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
-            -H "Accept: application/json")
-          echo "HTTP ${code} (GET /auth/v1/health)"
-          if [ "$code" != "200" ]; then
-            echo "Auth health failed; trying REST root…"
-            code=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
-              "${base}/rest/v1/" \
+          restore_url="https://supabase.com/dashboard/project/ijjnstbwvuwwznfagxut"
+
+          ping_rest() {
+            local path="$1"
+            local accept="$2"
+            local label="$3"
+            set +e
+            local http
+            http=$(curl -sS -o /tmp/supabase-keepalive-body.txt -w "%{http_code}" \
+              --connect-timeout 20 --max-time 40 \
+              "${base}${path}" \
               -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
-              -H "Accept: application/openapi+json")
-            echo "HTTP ${code} (GET /rest/v1/)"
+              -H "Accept: ${accept}")
+            local curl_exit=$?
+            set -e
+            echo "HTTP ${http:-000} curl_exit=${curl_exit} (${label})"
+            if [ "$curl_exit" -ne 0 ]; then
+              echo "Could not reach Preview Supabase (curl exit ${curl_exit})."
+              echo "Project is likely paused. Resume it: ${restore_url}"
+              exit 1
+            fi
+            if [ "$http" = "546" ] || [ "$http" = "520" ]; then
+              echo "Preview project is paused (HTTP ${http}). Resume it: ${restore_url}"
+              exit 1
+            fi
+            case "$http" in
+              200|206|401|403)
+                # Reached PostgREST — that is user database activity even if RLS denies rows.
+                echo "Keep-alive ping OK (database activity registered)."
+                return 0
+                ;;
+              *)
+                return 1
+                ;;
+            esac
+          }
+
+          if ping_rest "/rest/v1/crm_staff_profiles?select=id&limit=1" "application/json" "GET crm_staff_profiles"; then
+            exit 0
           fi
-          bytes=$(wc -c < /tmp/supabase-keepalive-body.txt | tr -d ' ')
-          echo "Response bytes: ${bytes}"
-          if [ "$code" = "200" ]; then
-            echo "Keep-alive ping OK (activity registered)."
-          else
-            echo "Unexpected status ${code}; keep-alive may not have registered."
-            exit 1
+          echo "Table select did not count as success; trying REST root…"
+          if ping_rest "/rest/v1/" "application/openapi+json" "GET /rest/v1/"; then
+            exit 0
           fi
+          echo "Unexpected status; keep-alive may not have registered."
+          echo "If the project is paused, resume it: ${restore_url}"
+          exit 1

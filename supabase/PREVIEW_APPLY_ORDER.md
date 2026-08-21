@@ -73,10 +73,11 @@ Redeploy a Preview deployment after saving env vars (Vite inlines `VITE_*` at bu
 
 ## 5) Keep-alive (avoid free-tier pause)
 
-Free Supabase projects pause after ~7 days without enough API/DB activity. Preview is idle most of the time, so GitHub Actions pings it every 3 days:
+Free Supabase projects pause after ~7 days without enough **database** activity (PostgREST queries). Auth health pings do **not** count. Preview is idle most of the time, so GitHub Actions runs a REST `select` daily:
 
 - Workflow: `.github/workflows/supabase-preview-keep-alive.yml`
 - Manual run: Actions → **Supabase preview keep-alive** → Run workflow
+- If paused: [Resume iom-website-preview](https://supabase.com/dashboard/project/ijjnstbwvuwwznfagxut) (data is kept; restore window is long). Production CRM is a different project.
 
 Add this **GitHub Actions secret** (Preview key only — never Production):
 
