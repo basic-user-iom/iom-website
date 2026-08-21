@@ -105,7 +105,7 @@ function PrecisionObjectUnlockedPage() {
   const [placeMode, setPlaceMode] = useState(false)
   const [placeHotspotId, setPlaceHotspotId] = useState<string | null>(null)
   const [look, setLook] = useState<SavedLook>(() => loadStoredLook() ?? defaultLook())
-  const [gizmoOn, setGizmoOn] = useState(true)
+  const [gizmoOn, setGizmoOn] = useState(false)
   const [gizmoMode, setGizmoMode] = useState<'translate' | 'rotate'>('translate')
   const [cameraPan, setCameraPan] = useState(true)
   const [handsHeld, setHandsHeld] = useState(false)
@@ -167,6 +167,7 @@ function PrecisionObjectUnlockedPage() {
     if (!explored) {
       setLookOpen(false)
       setPlaceMode(false)
+      setGizmoOn(false)
       setHandsHeld(false)
       apiRef.current?.setPlaceHotspots(false)
       apiRef.current?.setGizmoVisible(false)

@@ -9,13 +9,23 @@ export type PbrMapUrls = {
 }
 
 export type PbrMapSet = {
-  color: THREE.Texture
-  roughness: THREE.Texture
-  metalness: THREE.Texture
-  normal: THREE.Texture
+  color: THREE.Texture | null
+  roughness: THREE.Texture | null
+  metalness: THREE.Texture | null
+  normal: THREE.Texture | null
   displacement: THREE.Texture | null
   dispose: () => void
 }
+
+export type PbrMapKind = Exclude<keyof PbrMapUrls, 'displacement'> | 'displacement'
+
+const ALL_PBR_MAPS: readonly PbrMapKind[] = [
+  'color',
+  'roughness',
+  'metalness',
+  'normal',
+  'displacement',
+]
 
 export function isDirectXNormalUrl(url: string): boolean {
   return /normaldx|norm.?dx|normal.?dx/i.test(url)
@@ -50,84 +60,47 @@ function loadMap(
 }
 
 export async function loadPbrMaps(urls: PbrMapUrls, anisotropy: number): Promise<PbrMapSet> {
-  const loader = new THREE.TextureLoader()
-  const [color, roughness, metalness, normal, displacement] = await Promise.all([
-    loadMap(loader, urls.color, THREE.SRGBColorSpace),
-    loadMap(loader, urls.roughness, THREE.NoColorSpace),
-    loadMap(loader, urls.metalness, THREE.NoColorSpace),
-    loadMap(loader, urls.normal, THREE.NoColorSpace, isDirectXNormalUrl(urls.normal)),
-    urls.displacement
-      ? loadMap(loader, urls.displacement, THREE.NoColorSpace)
-      : Promise.resolve(null),
-  ])
-
-  for (const texture of [color, roughness, metalness, normal, displacement]) {
-    if (!texture) continue
-    texture.anisotropy = anisotropy
-  }
-
-  return {
-    color,
-    roughness,
-    metalness,
-    normal,
-    displacement,
-    dispose: () => {
-      color.dispose()
-      roughness.dispose()
-      metalness.dispose()
-      normal.dispose()
-      displacement?.dispose()
-    },
-  }
-}
-
-function dataTexture(r: number, g: number, b: number, colorSpace: THREE.ColorSpace): THREE.DataTexture {
-  const data = new Uint8Array([r, g, b, 255])
-  const texture = new THREE.DataTexture(data, 1, 1)
-  texture.colorSpace = colorSpace
-  texture.needsUpdate = true
-  return texture
+  return loadPbrMapsPartial(urls, anisotropy, ALL_PBR_MAPS)
 }
 
 export async function loadPbrMapsPartial(
   urls: Partial<PbrMapUrls>,
   anisotropy: number,
+  requested: readonly PbrMapKind[] = ALL_PBR_MAPS,
 ): Promise<PbrMapSet> {
-  if (urls.color && urls.roughness && urls.metalness && urls.normal) {
-    return loadPbrMaps(
-      {
-        color: urls.color,
-        roughness: urls.roughness,
-        metalness: urls.metalness,
-        normal: urls.normal,
-        displacement: urls.displacement,
-      },
-      anisotropy,
-    )
-  }
   const loader = new THREE.TextureLoader()
-  const color = urls.color
-    ? await loadMap(loader, urls.color, THREE.SRGBColorSpace)
-    : dataTexture(200, 200, 200, THREE.SRGBColorSpace)
-  const roughness = urls.roughness
-    ? await loadMap(loader, urls.roughness, THREE.NoColorSpace)
-    : dataTexture(128, 128, 128, THREE.NoColorSpace)
-  const metalness = urls.metalness
-    ? await loadMap(loader, urls.metalness, THREE.NoColorSpace)
-    : dataTexture(255, 255, 255, THREE.NoColorSpace)
-  const normal = urls.normal
-    ? await loadMap(loader, urls.normal, THREE.NoColorSpace, isDirectXNormalUrl(urls.normal))
-    : dataTexture(128, 128, 255, THREE.NoColorSpace)
-  const displacement = urls.displacement
-    ? await loadMap(loader, urls.displacement, THREE.NoColorSpace)
-    : null
-  for (const texture of [color, roughness, metalness, normal, displacement]) {
-    if (!texture) continue
+  const wanted = new Set(requested)
+  const loaded: THREE.Texture[] = []
+  const get = async (
+    kind: PbrMapKind,
+    colorSpace: THREE.ColorSpace,
+    directX = false,
+  ): Promise<THREE.Texture | null> => {
+    const url = urls[kind]
+    if (!wanted.has(kind) || !url) return null
+    const texture = await loadMap(loader, url, colorSpace, directX)
     texture.anisotropy = anisotropy
-    texture.wrapS = THREE.RepeatWrapping
-    texture.wrapT = THREE.RepeatWrapping
+    loaded.push(texture)
+    return texture
   }
+
+  const normalUrl = urls.normal
+  const results = await Promise.allSettled([
+    get('color', THREE.SRGBColorSpace),
+    get('roughness', THREE.NoColorSpace),
+    get('metalness', THREE.NoColorSpace),
+    get('normal', THREE.NoColorSpace, Boolean(normalUrl && isDirectXNormalUrl(normalUrl))),
+    get('displacement', THREE.NoColorSpace),
+  ])
+  const failed = results.find((result) => result.status === 'rejected')
+  if (failed?.status === 'rejected') {
+    for (const texture of loaded) texture.dispose()
+    throw failed.reason
+  }
+
+  const [color, roughness, metalness, normal, displacement] = results.map((result) =>
+    result.status === 'fulfilled' ? result.value : null
+  )
   return {
     color,
     roughness,
@@ -135,10 +108,10 @@ export async function loadPbrMapsPartial(
     normal,
     displacement,
     dispose: () => {
-      color.dispose()
-      roughness.dispose()
-      metalness.dispose()
-      normal.dispose()
+      color?.dispose()
+      roughness?.dispose()
+      metalness?.dispose()
+      normal?.dispose()
       displacement?.dispose()
     },
   }
@@ -149,7 +122,8 @@ export function clonePbrMaps(
   repeat: number,
   anisotropy: number,
 ): PbrMapSet {
-  const cloneOne = (texture: THREE.Texture) => {
+  const cloneOne = (texture: THREE.Texture | null) => {
+    if (!texture) return null
     const next = texture.clone()
     next.wrapS = THREE.RepeatWrapping
     next.wrapT = THREE.RepeatWrapping
@@ -172,10 +146,10 @@ export function clonePbrMaps(
     normal,
     displacement,
     dispose: () => {
-      color.dispose()
-      roughness.dispose()
-      metalness.dispose()
-      normal.dispose()
+      color?.dispose()
+      roughness?.dispose()
+      metalness?.dispose()
+      normal?.dispose()
       displacement?.dispose()
     },
   }

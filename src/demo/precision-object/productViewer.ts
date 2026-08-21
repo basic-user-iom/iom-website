@@ -17,6 +17,7 @@ import {
   isDialMaterial,
   isWatchMetalMaterial,
   loadPbrMapsPartial,
+  type PbrMapKind,
   type PbrMapSet,
   type PbrMapUrls,
 } from './pbrTextures'
@@ -77,6 +78,13 @@ const HAND_AXIS_X = new THREE.Vector3(1, 0, 0)
 const CROWN_AXIS_FALLBACK = new THREE.Vector3(0, 1, 0)
 /** Pure #000000 cannot multiply brighter, so lightness > 1 lifts toward graphite. */
 const BLACK_PLATE_LIFT = 0.45
+const MATERIAL_ENV_MAX = 2
+const SAPPHIRE_IOR = 1.76
+const SAPPHIRE_ROUGHNESS = 0.035
+const SAPPHIRE_THICKNESS = 0.18
+const SHADOW_MOTION_INTERVAL_MS = 100
+const HOTSPOT_INTERVAL_MS = 1000 / 30
+const HOTSPOT_POSITION_EPSILON = 0.25
 const crownQuatScratch = new THREE.Quaternion()
 const handQuatScratch = new THREE.Quaternion()
 const crownVertexScratch = new THREE.Vector3()
@@ -233,6 +241,34 @@ function applyMaterialTint(mat: THREE.MeshStandardMaterial, spec: MaterialLook):
   mat.color.set(spec.color)
 }
 
+function effectiveMaterialMetalness(spec: MaterialLook): number {
+  return spec.id === 'black' ? Math.min(spec.metalness, 0.6) : spec.metalness
+}
+
+function effectiveMaterialRoughness(spec: MaterialLook): number {
+  if (spec.id === 'glass') return Math.max(spec.roughness, SAPPHIRE_ROUGHNESS)
+  if (spec.id === 'black') return Math.max(spec.roughness, 0.12)
+  if (spec.id === 'metal') return Math.max(spec.roughness, 0.04)
+  if (spec.id === 'metalDark') return Math.max(spec.roughness, 0.05)
+  if (spec.id === 'metalRough') return Math.max(spec.roughness, 0.08)
+  return spec.roughness
+}
+
+function effectiveMaterialEnv(spec: MaterialLook): number {
+  return Math.min(spec.envMapIntensity, MATERIAL_ENV_MAX)
+}
+
+function effectiveGlassIor(spec?: MaterialLook): number {
+  return THREE.MathUtils.clamp(Math.max(spec?.ior ?? SAPPHIRE_IOR, SAPPHIRE_IOR), SAPPHIRE_IOR, 2)
+}
+
+function hasTransmission(material: THREE.Material | THREE.Material[]): boolean {
+  const materials = Array.isArray(material) ? material : [material]
+  return materials.some(
+    (mat) => mat instanceof THREE.MeshPhysicalMaterial && mat.transmission > 0,
+  )
+}
+
 function glassLook(): MaterialLook | undefined {
   return defaultLook().materials.find((item) => item.id === 'glass')
 }
@@ -252,15 +288,15 @@ function prepareGlass(root: THREE.Object3D, physical: boolean): void {
         const phys = new THREE.MeshPhysicalMaterial({
           name: mat.name,
           color: spec ? new THREE.Color(spec.color) : mat.color,
-          metalness: spec?.metalness ?? 0,
-          roughness: spec?.roughness ?? 0,
+          metalness: spec ? effectiveMaterialMetalness(spec) : 0,
+          roughness: spec ? effectiveMaterialRoughness(spec) : SAPPHIRE_ROUGHNESS,
           transmission: spec?.transmission ?? 0.94,
-          thickness: 0.38,
-          ior: spec?.ior ?? 1,
+          thickness: SAPPHIRE_THICKNESS,
+          ior: effectiveGlassIor(spec),
           specularIntensity: 1,
           transparent: true,
           opacity: 1,
-          envMapIntensity: spec?.envMapIntensity ?? 3,
+          envMapIntensity: spec ? effectiveMaterialEnv(spec) : MATERIAL_ENV_MAX,
           side: THREE.FrontSide,
           depthWrite: false,
         })
@@ -269,12 +305,12 @@ function prepareGlass(root: THREE.Object3D, physical: boolean): void {
       }
 
       mat.metalness = spec?.metalness ?? 0
-      mat.roughness = spec?.roughness ?? 0.05
+      mat.roughness = spec ? effectiveMaterialRoughness(spec) : 0.05
       mat.transparent = true
       mat.opacity = Math.max(mat.opacity, 0.22)
       mat.depthWrite = false
       mat.side = THREE.FrontSide
-      mat.envMapIntensity = spec?.envMapIntensity ?? 2.1
+      mat.envMapIntensity = spec ? effectiveMaterialEnv(spec) : MATERIAL_ENV_MAX
       if (spec) mat.color.set(spec.color)
       return mat
     })
@@ -351,12 +387,15 @@ function polishMaterials(root: THREE.Object3D): void {
         continue
       }
       applyMaterialTint(mat, spec)
-      mat.metalness = spec.metalness
-      mat.roughness = spec.roughness
-      mat.envMapIntensity = spec.envMapIntensity
+      mat.metalness = effectiveMaterialMetalness(spec)
+      mat.roughness = effectiveMaterialRoughness(spec)
+      mat.envMapIntensity = effectiveMaterialEnv(spec)
       if (mat instanceof THREE.MeshPhysicalMaterial) {
         if (spec.transmission != null) mat.transmission = spec.transmission
-        if (spec.ior != null) mat.ior = spec.ior
+        if (spec.id === 'glass') {
+          mat.ior = effectiveGlassIor(spec)
+          mat.thickness = SAPPHIRE_THICKNESS
+        } else if (spec.ior != null) mat.ior = spec.ior
       }
     }
   })
@@ -373,9 +412,14 @@ function enableShadows(root: THREE.Object3D): void {
         mat.side = THREE.DoubleSide
       }
     }
-    if (obj.material instanceof THREE.MeshPhysicalMaterial && obj.material.transmission > 0) {
+    if (hasTransmission(obj.material)) {
       obj.castShadow = false
-      obj.material.side = THREE.FrontSide
+      obj.receiveShadow = false
+      for (const mat of mats) {
+        if (mat instanceof THREE.MeshPhysicalMaterial && mat.transmission > 0) {
+          mat.side = THREE.FrontSide
+        }
+      }
     }
   })
 }
@@ -421,13 +465,17 @@ function placeAccentLights(
 
 const ACCENT_RADIUS = 3.2
 const ACCENT_TARGET_Y = 0.36
+const ACCENT_MIN_Y = 0.18
+const FILL_ENERGY_SCALE = 0.8
+const RIM_ENERGY_SCALE = 0.78
+const ACCENT_ENERGY_SCALE = 0.7
 
 function aimAccentLight(light: THREE.DirectionalLight, yaw: number, pitch: number): void {
   const el = clampAccentPitch(pitch)
   const cy = Math.cos(el)
   light.position.set(
     Math.sin(yaw) * cy * ACCENT_RADIUS,
-    ACCENT_TARGET_Y + Math.sin(el) * ACCENT_RADIUS,
+    Math.max(ACCENT_MIN_Y, ACCENT_TARGET_Y + Math.sin(el) * ACCENT_RADIUS),
     Math.cos(yaw) * cy * ACCENT_RADIUS,
   )
 }
@@ -446,7 +494,7 @@ export function createProductViewer(
       alpha: false,
       powerPreference: 'high-performance',
       stencil: false,
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer: false,
     })
     if (!renderer.getContext()) throw new Error('WebGL unavailable')
   } catch {
@@ -465,6 +513,8 @@ export function createProductViewer(
   renderer.toneMappingExposure = 1.05
   renderer.shadowMap.enabled = true
   renderer.shadowMap.type = THREE.VSMShadowMap
+  renderer.shadowMap.autoUpdate = false
+  renderer.shadowMap.needsUpdate = true
   renderer.domElement.style.width = '100%'
   renderer.domElement.style.height = '100%'
   renderer.domElement.style.display = 'block'
@@ -523,6 +573,8 @@ export function createProductViewer(
   key.shadow.radius = 0
   key.shadow.blurSamples = 1
   key.shadow.intensity = 0.85
+  key.shadow.autoUpdate = false
+  key.shadow.needsUpdate = true
   scene.add(key)
   scene.add(key.target)
   key.target.position.set(0, 0.35, 0)
@@ -602,6 +654,8 @@ export function createProductViewer(
   const exploreAnchor = new THREE.Object3D()
   exploreAnchor.name = EXPLORE_CUE_ID
   const screen = new THREE.Vector3()
+  let lastHotspotProjectionAt = -Infinity
+  let lastHotspotPoints: ScreenHotspot[] = []
   const boxSize = new THREE.Vector3(1, 1, 1)
   const boxCenter = new THREE.Vector3()
   let radius = 0.6
@@ -645,6 +699,8 @@ export function createProductViewer(
   let handsFrozen = false
   let frozenCivil: BerlinCivilTime | null = null
   let pendingZoneSweep = false
+  let shadowPoseDirty = true
+  let lastShadowUpdate = 0
   let handTween: {
     from: AnalogHandRadians
     delta: AnalogHandRadians
@@ -658,10 +714,16 @@ export function createProductViewer(
   let placeMode = false
   let placeHotspotId: string | null = null
   const sourceCache = new Map<string, PbrMapSet>()
+  const mapKindsByTarget: Record<'stand' | 'watch' | 'dial', readonly PbrMapKind[]> = {
+    watch: ['color', 'normal'],
+    dial: ['color', 'roughness', 'metalness', 'normal'],
+    stand: ['color', 'roughness', 'metalness', 'normal'],
+  }
   let floorPbrMaps: PbrMapSet | null = null
   let watchPbrMaps: PbrMapSet | null = null
   let dialPbrMaps: PbrMapSet | null = null
   let watchPbrReady = false
+  let lookMapGeneration = 0
   const anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy())
   const floorRest = {
     color: floorMat.color.clone(),
@@ -719,6 +781,9 @@ export function createProductViewer(
   })
   transformControls.addEventListener('axis-changed', () => {
     if (!gizmoDragging) syncOrbitEnabled()
+  })
+  transformControls.addEventListener('objectChange', () => {
+    shadowPoseDirty = true
   })
 
   const applyCanvasPointerLock = () => {
@@ -849,6 +914,12 @@ export function createProductViewer(
     }
   }
 
+  function invalidateShadows(): void {
+    if (!renderer.shadowMap.enabled || !key.castShadow) return
+    renderer.shadowMap.needsUpdate = true
+    key.shadow.needsUpdate = true
+  }
+
   const applySize = () => {
     const w = mount.clientWidth || 1
     const h = mount.clientHeight || 1
@@ -856,6 +927,7 @@ export function createProductViewer(
     renderer.setSize(w, h, false)
     camera.aspect = w / Math.max(h, 1)
     camera.updateProjectionMatrix()
+    invalidateShadows()
   }
   applySize()
   const ro = new ResizeObserver(applySize)
@@ -1005,7 +1077,9 @@ export function createProductViewer(
     rebindSkinnedMeshes()
   }
 
-  const projectHotspots = () => {
+  const projectHotspots = (force = false, now = performance.now()) => {
+    if (!force && now - lastHotspotProjectionAt < HOTSPOT_INTERVAL_MS) return
+    lastHotspotProjectionAt = now
     const w = mount.clientWidth || 1
     const h = mount.clientHeight || 1
     const points: ScreenHotspot[] = HOTSPOTS.map((spec) => {
@@ -1029,6 +1103,20 @@ export function createProductViewer(
         visible: screen.z > -1 && screen.z < 1,
       })
     }
+    const changed =
+      points.length !== lastHotspotPoints.length ||
+      points.some((point, index) => {
+        const previous = lastHotspotPoints[index]
+        return (
+          !previous ||
+          point.id !== previous.id ||
+          point.visible !== previous.visible ||
+          Math.abs(point.x - previous.x) > HOTSPOT_POSITION_EPSILON ||
+          Math.abs(point.y - previous.y) > HOTSPOT_POSITION_EPSILON
+        )
+      })
+    if (!force && !changed) return
+    lastHotspotPoints = points
     onHotspots(points)
   }
 
@@ -1094,12 +1182,20 @@ export function createProductViewer(
     contact.mesh.scale.setScalar(ground * (standOn ? 0.7 : 0.95))
     contact.mesh.visible = currentLook.shadows.contact
     floor.scale.setScalar(standOn ? Math.max(1.35, ground * 2.35) : Math.max(0.55, ground * 0.72))
-    const span = Math.max(4.5, ground * 3.2)
+    const liveBounds = meshBounds(modelRoot)
+    let span = Math.max(0.9, ground * (standOn ? 1.05 : 0.92))
+    if (!liveBounds.isEmpty()) {
+      const sphere = liveBounds.getBoundingSphere(new THREE.Sphere())
+      const target = key.target.position
+      span = Math.max(span, sphere.radius + sphere.center.distanceTo(target))
+    }
+    span *= 1.18
     key.shadow.camera.left = -span
     key.shadow.camera.right = span
     key.shadow.camera.top = span
-    key.shadow.camera.bottom = -span * 0.7
+    key.shadow.camera.bottom = -span
     key.shadow.camera.updateProjectionMatrix()
+    invalidateShadows()
   }
 
   const collectParts = (root: THREE.Object3D) => {
@@ -1127,10 +1223,12 @@ export function createProductViewer(
     fill.castShadow = false
     rim.castShadow = false
     accent.castShadow = false
-    fill.intensity = on ? spec.fill : 0
-    rim.intensity = on ? spec.rim : 0
+    fill.intensity = on ? spec.fill * FILL_ENERGY_SCALE : 0
+    rim.intensity = on ? spec.rim * RIM_ENERGY_SCALE : 0
     const accentOn = accentSpec?.enabled !== false
-    accent.intensity = accentOn ? (accentSpec?.intensity ?? 0) : 0
+    accent.intensity = on && accentOn
+      ? (accentSpec?.intensity ?? 0) * ACCENT_ENERGY_SCALE
+      : 0
     if (accentSpec) aimAccentLight(accent, accentSpec.yaw, accentSpec.pitch)
   }
 
@@ -1141,12 +1239,12 @@ export function createProductViewer(
     applyAccentLights()
     applySun()
     const hdr = studioEnv.background instanceof THREE.Texture
-    scene.environmentIntensity = preset === 'detail' ? (hdr ? 1.45 : 1.15) : hdr ? 1.28 : 0.95
+    scene.environmentIntensity = preset === 'detail' ? (hdr ? 1.22 : 1.12) : hdr ? 1.15 : 0.95
     renderer.toneMappingExposure = preset === 'detail' ? (hdr ? 1.28 : 1.28) : hdr ? 1.18 : 1.05
   }
 
   const hdrApplyOpts = () => ({
-    environmentIntensity: lightingPreset === 'detail' ? 1.45 : 1.28,
+    environmentIntensity: lightingPreset === 'detail' ? 1.22 : 1.15,
     backgroundIntensity: 0.72,
     backgroundBlurriness: 0.05,
     yaw: currentLook.sun.yaw,
@@ -1238,16 +1336,19 @@ export function createProductViewer(
       handQuatScratch.setFromAxisAngle(HAND_AXIS_X, angles.second)
       cetHands.second.quaternion.copy(cetHands.secondRest).multiply(handQuatScratch)
     }
+    shadowPoseDirty = true
   }
 
   const applyCrownAngle = (angle: number) => {
     if (!cetCrown) return
     if (!Number.isFinite(angle) || Math.abs(angle) < 1e-10) {
       cetCrown.bone.quaternion.copy(cetCrown.rest)
+      shadowPoseDirty = true
       return
     }
     crownQuatScratch.setFromAxisAngle(cetCrown.axis, angle)
     cetCrown.bone.quaternion.copy(cetCrown.rest).multiply(crownQuatScratch)
+    shadowPoseDirty = true
   }
 
   const restoreCrown = () => {
@@ -1278,6 +1379,7 @@ export function createProductViewer(
     if (cetCrown) cetCrown.bone.quaternion.copy(cetCrown.rest)
     prepareSkinning(modelRoot)
     if (cetHands && !handTween && (handsFrozen || motionWanted)) applyDisplayedHands()
+    shadowPoseDirty = true
   }
 
   const applyHandsFreeze = (value: boolean) => {
@@ -1336,7 +1438,7 @@ export function createProductViewer(
       second: handTween.from.second + handTween.delta.second * u,
     })
     if (cetCrown) {
-      applyCrownAngle(handTween.crownDelta * Math.sin(t * Math.PI))
+      applyCrownAngle(handTween.crownDelta * easeInOutCubic(t))
     }
     if (handTween.elapsed >= handTween.duration) {
       handTween = null
@@ -1443,6 +1545,7 @@ export function createProductViewer(
     applyEnvironmentOrientation(scene, currentLook.sun.yaw, currentLook.sun.pitch)
     aimHdrSunLight(key, currentLook.sun.yaw, currentLook.sun.pitch)
     sizeGround()
+    invalidateShadows()
   }
   applySun()
 
@@ -1453,8 +1556,9 @@ export function createProductViewer(
     floor.receiveShadow = enabled
     modelRoot.traverse((obj) => {
       if (!(obj instanceof THREE.Mesh)) return
-      if (obj.material instanceof THREE.MeshPhysicalMaterial && obj.material.transmission > 0) {
+      if (hasTransmission(obj.material)) {
         obj.castShadow = false
+        obj.receiveShadow = false
         return
       }
       obj.castShadow = enabled
@@ -1467,13 +1571,14 @@ export function createProductViewer(
       key.shadow.radius = 0
       key.shadow.blurSamples = 1
     } else {
-      key.shadow.radius = 2 + t * 36
-      key.shadow.blurSamples = Math.round(8 + t * 8)
+      key.shadow.radius = 2 + t * 16
+      key.shadow.blurSamples = Math.round(4 + t * 4)
     }
     key.shadow.intensity = intensity
     key.shadow.bias = -0.0001
     key.shadow.normalBias = 0.02
-    key.shadow.needsUpdate = true
+    shadowPoseDirty = true
+    invalidateShadows()
     sizeGround()
   }
 
@@ -1486,11 +1591,13 @@ export function createProductViewer(
       floorMat.roughnessMap = floorPbrMaps.roughness
       floorMat.metalnessMap = floorPbrMaps.metalness
       floorMat.normalMap = floorPbrMaps.normal
-      floorMat.displacementMap = spec.displacementScale > 0 ? floorPbrMaps.displacement : null
-      floorMat.metalness = currentLook.shadows.enabled ? 0.78 : 1
+      // CircleGeometry only has a subdivided perimeter, so displacement cannot
+      // produce useful interior relief and is intentionally left disabled.
+      floorMat.displacementMap = null
+      floorMat.metalness = 0.82
       floorMat.roughness = 1
-      floorMat.displacementScale = spec.displacementScale
-      floorMat.displacementBias = -spec.displacementScale * 0.35
+      floorMat.displacementScale = 0
+      floorMat.displacementBias = 0
       floorMat.normalScale.set(spec.normalScale, spec.normalScale)
       floorMat.envMapIntensity = 1.55
       floor.receiveShadow = currentLook.shadows.enabled
@@ -1527,8 +1634,8 @@ export function createProductViewer(
         // tangents, GLSL normalize(0) is NaN, and metal goes black. Three.js then uses
         // screen-space TBN (getTangentFrame). DirectX maps flip via normalScale.y.
         const nrm = watchPbrMaps.normal
-        const img = nrm.image as { width?: number; height?: number } | undefined
-        if (img && img.width && img.height) {
+        const img = nrm?.image as { width?: number; height?: number } | undefined
+        if (nrm && img && img.width && img.height) {
           rest.mat.normalMap = nrm
           rest.mat.normalMapType = THREE.TangentSpaceNormalMap
           const flipY = nrm.userData.directX === true ? -1 : 1
@@ -1555,14 +1662,17 @@ export function createProductViewer(
       const spec = currentLook.materials.find((item) => item.id === rest.groupId)
       if (!spec) continue
       applyMaterialTint(rest.mat, spec)
-      rest.mat.metalness = spec.metalness
-      rest.mat.roughness = spec.roughness
+      rest.mat.metalness = effectiveMaterialMetalness(spec)
+      rest.mat.roughness = effectiveMaterialRoughness(spec)
       rest.mat.roughnessMap = null
       rest.mat.metalnessMap = null
-      rest.mat.envMapIntensity = spec.envMapIntensity
+      rest.mat.envMapIntensity = effectiveMaterialEnv(spec)
       if (rest.mat instanceof THREE.MeshPhysicalMaterial) {
         if (spec.transmission != null) rest.mat.transmission = spec.transmission
-        if (spec.ior != null) rest.mat.ior = spec.ior
+        if (spec.id === 'glass') {
+          rest.mat.ior = effectiveGlassIor(spec)
+          rest.mat.thickness = SAPPHIRE_THICKNESS
+        } else if (spec.ior != null) rest.mat.ior = spec.ior
       }
       rest.mat.needsUpdate = true
     }
@@ -1579,8 +1689,8 @@ export function createProductViewer(
         rest.mat.roughnessMap = dialPbrMaps.roughness
         rest.mat.metalnessMap = dialPbrMaps.metalness
         const nrm = dialPbrMaps.normal
-        const img = nrm.image as { width?: number; height?: number } | undefined
-        if (img && img.width && img.height) {
+        const img = nrm?.image as { width?: number; height?: number } | undefined
+        if (nrm && img && img.width && img.height) {
           rest.mat.normalMap = nrm
           rest.mat.normalMapType = THREE.TangentSpaceNormalMap
           const flipY = nrm.userData.directX === true ? -1 : 1
@@ -1617,12 +1727,17 @@ export function createProductViewer(
   const mapsForTarget = async (spec: TextureTargetLook, target: 'stand' | 'watch' | 'dial') => {
     const urls = textureUrlsFor(spec, target)
     if (!urls) return null
-    const key = spec.setId === 'custom'
-      ? `custom-${target}-${spec.customFiles?.color ?? ''}:${spec.customFiles?.normal ?? ''}`
-      : `${target}:${spec.setId}:${'normal' in urls ? urls.normal ?? '' : ''}`
+    const kinds = mapKindsByTarget[target]
+    const urlKey = kinds.map((kind) => `${kind}:${urls[kind] ?? ''}`).join('|')
+    const key = `${target}:${spec.setId}:${urlKey}`
     let source = sourceCache.get(key)
     if (!source) {
-      source = await loadPbrMapsPartial(urls, anisotropy)
+      const loaded = await loadPbrMapsPartial(urls, anisotropy, kinds)
+      if (disposed) {
+        loaded.dispose()
+        return null
+      }
+      source = loaded
       sourceCache.set(key, source)
     }
     return clonePbrMaps(source, spec.repeat, anisotropy)
@@ -1630,8 +1745,10 @@ export function createProductViewer(
 
   const mapsKey = (spec: TextureTargetLook, target: 'stand' | 'watch' | 'dial') => {
     const urls = textureUrlsFor(spec, target)
-    const normalUrl = urls && 'normal' in urls ? urls.normal ?? '' : ''
-    return `${target}:${spec.enabled}:${spec.setId}:${spec.repeat}:${spec.customFiles?.color ?? ''}:${spec.customFiles?.normal ?? ''}:${normalUrl}`
+    const urlKey = urls
+      ? mapKindsByTarget[target].map((kind) => `${kind}:${urls[kind] ?? ''}`).join('|')
+      : ''
+    return `${target}:${spec.enabled}:${spec.setId}:${spec.repeat}:${urlKey}`
   }
 
   let lastMapKey = ''
@@ -1665,30 +1782,47 @@ export function createProductViewer(
     applyAccentLights()
     const nextKey = `${mapsKey(look.stand, 'stand')}|${mapsKey(look.watch, 'watch')}|${mapsKey(look.dial, 'dial')}`
     if (nextKey !== lastMapKey) {
+      const generation = ++lookMapGeneration
       lastMapKey = nextKey
+      let nextFloorMaps: PbrMapSet | null = null
+      let nextWatchMaps: PbrMapSet | null = null
+      let nextDialMaps: PbrMapSet | null = null
+      const discardLoadedMaps = () => {
+        nextFloorMaps?.dispose()
+        nextWatchMaps?.dispose()
+        nextDialMaps?.dispose()
+      }
       try {
         if (look.stand.enabled && look.stand.setId !== 'none') {
-          floorPbrMaps?.dispose()
-          floorPbrMaps = await mapsForTarget(look.stand, 'stand')
-        } else {
-          floorPbrMaps?.dispose()
-          floorPbrMaps = null
+          nextFloorMaps = await mapsForTarget(look.stand, 'stand')
+        }
+        if (disposed || generation !== lookMapGeneration) {
+          discardLoadedMaps()
+          return
         }
         if (look.watch.enabled && look.watch.setId !== 'none') {
-          watchPbrMaps?.dispose()
-          watchPbrMaps = await mapsForTarget(look.watch, 'watch')
-        } else {
-          watchPbrMaps?.dispose()
-          watchPbrMaps = null
+          nextWatchMaps = await mapsForTarget(look.watch, 'watch')
+        }
+        if (disposed || generation !== lookMapGeneration) {
+          discardLoadedMaps()
+          return
         }
         if (look.dial.enabled && look.dial.setId !== 'none') {
-          dialPbrMaps?.dispose()
-          dialPbrMaps = await mapsForTarget(look.dial, 'dial')
-        } else {
-          dialPbrMaps?.dispose()
-          dialPbrMaps = null
+          nextDialMaps = await mapsForTarget(look.dial, 'dial')
         }
+        if (disposed || generation !== lookMapGeneration) {
+          discardLoadedMaps()
+          return
+        }
+        floorPbrMaps?.dispose()
+        watchPbrMaps?.dispose()
+        dialPbrMaps?.dispose()
+        floorPbrMaps = nextFloorMaps
+        watchPbrMaps = nextWatchMaps
+        dialPbrMaps = nextDialMaps
       } catch (err) {
+        discardLoadedMaps()
+        if (disposed || generation !== lookMapGeneration) return
         console.warn('[precision-object] look maps failed', err)
       }
     }
@@ -1791,7 +1925,7 @@ export function createProductViewer(
     onLoad({ status: 'ready' })
     onReady(capabilities)
     renderer.render(scene, camera)
-    projectHotspots()
+    projectHotspots(true)
   }
 
   void loadGltf(PRODUCT.modelUrl, (progress) => {
@@ -1813,9 +1947,20 @@ export function createProductViewer(
   let lastT = performance.now()
   let visible = document.visibilityState !== 'hidden'
 
-  const tick = (now: number) => {
-    if (disposed) return
+  const scheduleTick = () => {
+    if (disposed || !visible || !active || raf !== 0) return
     raf = requestAnimationFrame(tick)
+  }
+
+  const pauseTick = () => {
+    if (raf === 0) return
+    cancelAnimationFrame(raf)
+    raf = 0
+  }
+
+  const tick = (now: number) => {
+    raf = 0
+    if (disposed) return
     if (!visible || !active) {
       lastT = now
       return
@@ -1826,7 +1971,10 @@ export function createProductViewer(
     if (cetHands && motionWanted && !handsFrozen) {
       if (handTween) tickZoneHandTween(dt)
       else applyCetClock()
-    } else if (mixer && motionWanted) mixer.update(dt)
+    } else if (mixer && motionWanted) {
+      mixer.update(dt)
+      shadowPoseDirty = true
+    }
 
     if (!interacting && autoRotateWanted && !gizmoWanted && !gizmoDragging && !reducedMotion && now > resumeRotateAt && !tween) {
       controls.autoRotate = true
@@ -1844,13 +1992,31 @@ export function createProductViewer(
 
     applyKeyboardPan(dt)
     controls.update()
+    const shadowMotionActive =
+      motionWanted && !handsFrozen && Boolean(cetHands || mixer)
+    if (
+      renderer.shadowMap.enabled &&
+      key.castShadow &&
+      shadowPoseDirty &&
+      (!shadowMotionActive || now - lastShadowUpdate >= SHADOW_MOTION_INTERVAL_MS)
+    ) {
+      invalidateShadows()
+      shadowPoseDirty = false
+      lastShadowUpdate = now
+    }
     renderer.render(scene, camera)
-    projectHotspots()
+    projectHotspots(false, now)
+    scheduleTick()
   }
 
   const onVisibility = () => {
     visible = document.visibilityState !== 'hidden'
-    if (visible) lastT = performance.now()
+    if (visible) {
+      lastT = performance.now()
+      scheduleTick()
+    } else {
+      pauseTick()
+    }
   }
   document.addEventListener('visibilitychange', onVisibility)
 
@@ -1915,7 +2081,7 @@ export function createProductViewer(
   }
   mount.addEventListener('pointerdown', onPlacePointer, true)
 
-  raf = requestAnimationFrame(tick)
+  scheduleTick()
 
   const api: ViewerApi = {
     setAutoRotate: (value) => {
@@ -1983,7 +2149,12 @@ export function createProductViewer(
     },
     setActive: (value) => {
       active = value
-      if (value) lastT = performance.now()
+      if (value) {
+        lastT = performance.now()
+        scheduleTick()
+      } else {
+        pauseTick()
+      }
     },
     setInteractionEnabled: (value) => {
       interactionEnabled = value
@@ -2083,7 +2254,8 @@ export function createProductViewer(
 
   const dispose = () => {
     disposed = true
-    cancelAnimationFrame(raf)
+    lookMapGeneration++
+    pauseTick()
     ro.disconnect()
     document.removeEventListener('visibilitychange', onVisibility)
     window.removeEventListener('keydown', onCameraKeyDown, true)

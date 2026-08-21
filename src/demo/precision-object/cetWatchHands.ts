@@ -134,7 +134,7 @@ export function setHandCalibration(next?: Partial<HandCalibration> | null): Hand
 }
 
 /** Zone-change hand tween. Live ticking does not use this. */
-export const ZONE_HAND_TWEEN_SEC = 1.15
+export const ZONE_HAND_TWEEN_SEC = 1.5
 
 /** Seconds may add at most one extra full turn on a zone change. */
 export const ZONE_SECONDS_EXTRA_TURNS = 1
@@ -315,8 +315,11 @@ export function zoneHandDeltas(from: AnalogHandRadians, to: AnalogHandRadians): 
   return { hour, minute, second }
 }
 
-/** Extra crown turns so a 1h zone change still looks like a winding, not a twitch. */
-export const CROWN_WIND_GAIN = 1.35
+/**
+ * One complete turn keeps the crown motion legible without the rapid multi-turn
+ * spin produced by scaling it from the seconds hand's extra revolution.
+ */
+export const CROWN_WIND_TURNS = 1
 
 /**
  * Signed radians for the winding crown during a zone sweep.
@@ -331,5 +334,5 @@ export function crownWindDelta(deltas: AnalogHandRadians): number {
       : deltas.hour !== 0
         ? Math.sign(deltas.hour)
         : Math.sign(deltas.second) || 1
-  return sign * travel * CROWN_WIND_GAIN
+  return sign * Math.PI * 2 * CROWN_WIND_TURNS
 }
