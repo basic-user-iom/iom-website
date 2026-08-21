@@ -177,7 +177,11 @@ export function Hero() {
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('iom-viewport-fs', isFullscreen)
-    return () => document.documentElement.classList.remove('iom-viewport-fs')
+    document.documentElement.classList.toggle('iom-cursor-native-fs', isFullscreen)
+    return () => {
+      document.documentElement.classList.remove('iom-viewport-fs')
+      document.documentElement.classList.remove('iom-cursor-native-fs')
+    }
   }, [isFullscreen])
 
   const enterFullscreen = useCallback(async () => {
@@ -246,7 +250,7 @@ export function Hero() {
 
       <div className="hero-viewer">
         <div
-          className={`hero-canvas-wrap${showPoster ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}`}
+          className={`hero-canvas-wrap${showPoster ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}${isFullscreen ? ' iom-cursor-native-fs' : ''}`}
           ref={canvasRef}
           role="img"
           aria-label={t('hero.canvasAria')}

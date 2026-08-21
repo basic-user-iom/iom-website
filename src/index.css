@@ -966,6 +966,7 @@ a.header-cta:focus-visible {
   aspect-ratio: unset;
   border-radius: 0;
   border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+  cursor: auto;
 }
 
 .hero-canvas-wrap--pseudo-fs {
@@ -979,6 +980,7 @@ a.header-cta:focus-visible {
   aspect-ratio: unset !important;
   border-radius: 0;
   border-color: color-mix(in srgb, var(--accent) 25%, var(--border));
+  cursor: auto;
 }
 
 .hero-canvas-wrap:fullscreen .viewer-chrome,
@@ -995,6 +997,7 @@ body.hero-viewer-fs-lock {
 }
 
 html.is-overlay-open .section-block,
+html.is-hash-scrolling .section-block,
 html.iom-viewport-fs .section-block,
 body.music-player-fs-lock .section-block,
 body.hero-viewer-fs-lock .section-block {
@@ -1037,7 +1040,7 @@ body.music-player-fs-lock .site-header {
   pointer-events: none;
 }
 
-/* rAF lerp uses per-frame scrollTo; CSS smooth would fight each step (and look like a snap). */
+/* CSS `html { scroll-behavior: smooth }` would otherwise keep settle jumps animated. */
 html.is-hash-scrolling {
   scroll-behavior: auto;
 }
@@ -1128,12 +1131,6 @@ html.is-hash-scrolling {
   scroll-margin-top: var(--header-h);
   content-visibility: auto;
   contain-intrinsic-size: auto 720px;
-}
-
-/* Only the destination — not every section — so getBoundingClientRect is real. */
-.is-hash-scroll-target {
-  content-visibility: visible;
-  contain: none;
 }
 
 .section-block--pending {
@@ -1786,6 +1783,7 @@ html.is-hash-scrolling {
   border-radius: 0;
   background: #040406;
   border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
+  cursor: auto;
 }
 
 .music-player-visual-wrap:fullscreen .music-player-visual,
@@ -1799,6 +1797,10 @@ html.is-hash-scrolling {
   border: 0;
   box-shadow: none;
   pointer-events: none;
+}
+
+.music-player-visual-wrap--fs-active {
+  cursor: auto;
 }
 
 .music-player-visual-wrap--pseudo-fs {
@@ -1817,6 +1819,7 @@ html.is-hash-scrolling {
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
+  cursor: auto;
 }
 
 .music-player-visual-wrap:fullscreen .music-player-visual-chrome,

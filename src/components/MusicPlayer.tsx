@@ -1251,7 +1251,11 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
   useLayoutEffect(() => {
     document.documentElement.classList.toggle('iom-viewport-fs', isFullscreen)
-    return () => document.documentElement.classList.remove('iom-viewport-fs')
+    document.documentElement.classList.toggle('iom-cursor-native-fs', isFullscreen)
+    return () => {
+      document.documentElement.classList.remove('iom-viewport-fs')
+      document.documentElement.classList.remove('iom-cursor-native-fs')
+    }
   }, [isFullscreen])
 
   useEffect(() => {
@@ -1406,7 +1410,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
           <div className="music-player-media-row">
             <div
               ref={visualWrapRef}
-              className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
+              className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active iom-cursor-native-fs' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
               data-cursor="focus"
               {...visualOrbPointerProps}
             >

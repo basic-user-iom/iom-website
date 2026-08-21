@@ -392,6 +392,69 @@ html.pc-printing .iom-cursor {
   html.iom-cursor-active input[type='file'] {
     cursor: pointer !important;
   }
+
+  /*
+   * Native Fullscreen API only paints the element's subtree. The body-level
+   * custom cursor overlay is outside that tree, so cursor:none would leave
+   * no pointer. CSS fallback (--pseudo-fs / html.iom-viewport-fs) has the
+   * same trap if we keep hiding the OS cursor. Restore the native pointer.
+   */
+  html.iom-cursor-active.iom-cursor-native-fs,
+  html.iom-cursor-active.iom-cursor-native-fs *,
+  html.iom-cursor-active.iom-viewport-fs,
+  html.iom-cursor-active.iom-viewport-fs *,
+  html.iom-cursor-active .iom-cursor-native-fs,
+  html.iom-cursor-active .iom-cursor-native-fs *,
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen,
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen *,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs *,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active *,
+  html.iom-cursor-active .hero-canvas-wrap:fullscreen,
+  html.iom-cursor-active .hero-canvas-wrap:fullscreen *,
+  html.iom-cursor-active .hero-canvas-wrap--pseudo-fs,
+  html.iom-cursor-active .hero-canvas-wrap--pseudo-fs * {
+    cursor: auto !important;
+  }
+
+  html.iom-cursor-active.iom-cursor-native-fs button,
+  html.iom-cursor-active.iom-cursor-native-fs a,
+  html.iom-cursor-active.iom-cursor-native-fs [role='button'],
+  html.iom-cursor-active.iom-viewport-fs button,
+  html.iom-cursor-active.iom-viewport-fs a,
+  html.iom-cursor-active.iom-viewport-fs [role='button'],
+  html.iom-cursor-active .iom-cursor-native-fs button,
+  html.iom-cursor-active .iom-cursor-native-fs a,
+  html.iom-cursor-active .iom-cursor-native-fs [role='button'],
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen button,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs button,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active button,
+  html.iom-cursor-active .hero-canvas-wrap:fullscreen button,
+  html.iom-cursor-active .hero-canvas-wrap--pseudo-fs button {
+    cursor: pointer !important;
+  }
+}
+
+/* WebKit drops a whole rule if it does not understand :fullscreen. */
+@media (hover: hover) and (pointer: fine) {
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen,
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen *,
+  html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen,
+  html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen * {
+    cursor: auto !important;
+  }
+
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen button,
+  html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen button {
+    cursor: pointer !important;
+  }
+}
+
+html.iom-cursor-native-fs .iom-cursor,
+html.iom-viewport-fs .iom-cursor {
+  opacity: 0 !important;
+  visibility: hidden !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
