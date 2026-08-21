@@ -44,6 +44,11 @@ export function LinarProductInfo({ config, tech }: Props) {
     { label: 'Panel size', value: '2800 × 1200 mm visualization panel' },
     { label: 'Material', value: materialLabel(config.material) },
     { label: 'Thickness', value: formatMm(config.thicknessMm) },
+    {
+      label: 'Rear patterned layer',
+      value: 'Two-sided visual surface',
+      hint: 'Thickness not yet available',
+    },
     { label: 'Cut / slat', value: `${config.cutWidthMm}/${config.slatWidthMm} mm` },
     { label: 'Incision length', value: formatMm(config.incisionLengthMm) },
     { label: 'Bridge length', value: bridgeValue, hint: bridgeHint },

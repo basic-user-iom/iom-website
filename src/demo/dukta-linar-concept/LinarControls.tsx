@@ -1,5 +1,6 @@
 import type { RefObject } from 'react'
 import { JANUS_THICKNESS_NOTE, type LinarTech } from './linarData'
+import type { LinarTourTarget } from './linarTour'
 import {
   LINAR_APPLICATIONS,
   LINAR_BACKINGS,
@@ -30,6 +31,15 @@ type Props = {
   onViewPreset: (id: LinarViewId) => void
   side: LinarSide
   onSideChange: (side: LinarSide) => void
+  musicEnabled: boolean
+  musicVolume: number
+  onToggleMusic: () => void
+  onMusicVolumeChange: (value: number) => void
+  tourTarget: LinarTourTarget | null
+}
+
+function tourClass(base: string, section: LinarTourTarget, target: LinarTourTarget | null): string {
+  return target === section ? `${base} is-tour-highlighted` : base
 }
 
 function RangeRow({
@@ -131,6 +141,11 @@ export function LinarControls({
   onViewPreset,
   side,
   onSideChange,
+  musicEnabled,
+  musicVolume,
+  onToggleMusic,
+  onMusicVolumeChange,
+  tourTarget,
 }: Props) {
   const radiusText =
     previewRadiusMm == null
@@ -143,7 +158,125 @@ export function LinarControls({
 
   return (
     <div className="linar-controls">
-      <details className="linar-acc" open>
+      <div
+        className={tourClass('linar-control linar-control--view', 'view', tourTarget)}
+        data-linar-tour="view"
+      >
+        <p className="linar-label" id="linar-view-label">
+          View
+        </p>
+        <p className="linar-instruction">Drag to rotate. Scroll or pinch to zoom.</p>
+        <ChipGroup
+          labelId="linar-side-label"
+          label="Surface side"
+          items={LINAR_SIDES}
+          value={side}
+          onChange={onSideChange}
+        />
+        <ChipGroup
+          labelId="linar-view-preset-label"
+          label="Inspection"
+          items={LINAR_VIEWS}
+          value={viewPreset}
+          onChange={onViewPreset}
+        />
+        <div className="linar-actions" role="group" aria-labelledby="linar-view-label">
+          <button type="button" className="linar-text-btn" onClick={onResetView}>
+            Reset view
+          </button>
+          <button type="button" className="linar-text-btn" onClick={onResetPanel}>
+            Reset panel
+          </button>
+        </div>
+        <div className="linar-field linar-music">
+          <p className="linar-label" id="linar-music-label">
+            Music
+          </p>
+          <button
+            type="button"
+            className={musicEnabled ? 'linar-chip is-active' : 'linar-chip'}
+            aria-labelledby="linar-music-label linar-music-name"
+            aria-pressed={musicEnabled}
+            onClick={onToggleMusic}
+          >
+            <span className="linar-chip__name" id="linar-music-name">
+              Bach — Cello Suite No. 1
+            </span>
+            <span className="linar-chip__state">{musicEnabled ? 'On' : 'Off'}</span>
+          </button>
+          <div className="linar-music__volume">
+            <div className="linar-control__head">
+              <label className="linar-label" htmlFor="linar-music-volume">
+                Volume
+              </label>
+              <span className="linar-percent">{musicVolume}%</span>
+            </div>
+            <input
+              id="linar-music-volume"
+              className="linar-slider"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={musicVolume}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={musicVolume}
+              aria-valuetext={`${musicVolume} percent`}
+              onInput={(event) => onMusicVolumeChange(Number(event.currentTarget.value))}
+            />
+          </div>
+        </div>
+      </div>
+
+      <details
+        className={tourClass('linar-acc linar-acc--bending', 'bending', tourTarget)}
+        data-linar-tour="bending"
+        open
+      >
+        <summary className="linar-acc__sum">Bending</summary>
+        <div className="linar-acc__body">
+          <div className="linar-range">
+            <div className="linar-control__head">
+              <label className="linar-label" htmlFor="linar-bend">
+                Bend preview
+              </label>
+              <span className="linar-percent" ref={percentRef}>
+                {Math.round(bend)}%
+              </span>
+            </div>
+            <p className="linar-instruction">
+              0% is flat. 100% forms a half-circle only across the incised width π × R when a
+              physical sample exists.
+            </p>
+            <input
+              ref={sliderRef}
+              id="linar-bend"
+              className="linar-slider"
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              value={bend}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(bend)}
+              aria-valuetext={`${Math.round(bend)} percent`}
+              aria-label="Bend preview"
+              onInput={(event) => onBendInput(Number(event.currentTarget.value))}
+            />
+            <p className="linar-note">
+              {radiusText}. {referenceText}.
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <details
+        className={tourClass('linar-acc', 'panel', tourTarget)}
+        data-linar-tour="panel"
+        open
+      >
         <summary className="linar-acc__sum">Panel</summary>
         <div className="linar-acc__body">
           <ChipGroup
@@ -167,7 +300,11 @@ export function LinarControls({
         </div>
       </details>
 
-      <details className="linar-acc" open>
+      <details
+        className={tourClass('linar-acc', 'incision', tourTarget)}
+        data-linar-tour="incision"
+        open={tourTarget === 'incision' ? true : undefined}
+      >
         <summary className="linar-acc__sum">Incision</summary>
         <div className="linar-acc__body">
           <RangeRow
@@ -215,6 +352,10 @@ export function LinarControls({
             display={`${config.incisedTwelfths}/12`}
             onChange={(value) => onConfig({ incisedTwelfths: value })}
           />
+          <p className="linar-note">
+            Coverage expands symmetrically from the panel centre. The remaining left and right
+            areas stay solid and unincised.
+          </p>
           <ChipGroup
             labelId="linar-pattern-label"
             label="Pattern"
@@ -229,7 +370,11 @@ export function LinarControls({
         </div>
       </details>
 
-      <details className="linar-acc" open>
+      <details
+        className={tourClass('linar-acc', 'application', tourTarget)}
+        data-linar-tour="application"
+        open={tourTarget === 'application' ? true : undefined}
+      >
         <summary className="linar-acc__sum">Application</summary>
         <div className="linar-acc__body">
           <ChipGroup
@@ -253,73 +398,6 @@ export function LinarControls({
         </div>
       </details>
 
-      <details className="linar-acc" open>
-        <summary className="linar-acc__sum">Bending</summary>
-        <div className="linar-acc__body">
-          <div className="linar-range">
-            <div className="linar-control__head">
-              <label className="linar-label" htmlFor="linar-bend">
-                Bend preview
-              </label>
-              <span className="linar-percent" ref={percentRef}>
-                {Math.round(bend)}%
-              </span>
-            </div>
-            <p className="linar-instruction">
-              0% is flat. 100% forms a half-circle only across the incised width π × R when a
-              physical sample exists.
-            </p>
-            <input
-              ref={sliderRef}
-              id="linar-bend"
-              className="linar-slider"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={bend}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(bend)}
-              aria-valuetext={`${Math.round(bend)} percent`}
-              aria-label="Bend preview"
-              onInput={(event) => onBendInput(Number(event.currentTarget.value))}
-            />
-            <p className="linar-note">
-              {radiusText}. {referenceText}.
-            </p>
-          </div>
-        </div>
-      </details>
-
-      <div className="linar-control">
-        <p className="linar-label" id="linar-view-label">
-          View
-        </p>
-        <p className="linar-instruction">Drag to rotate. Scroll or pinch to zoom.</p>
-        <ChipGroup
-          labelId="linar-side-label"
-          label="Surface side"
-          items={LINAR_SIDES}
-          value={side}
-          onChange={onSideChange}
-        />
-        <ChipGroup
-          labelId="linar-view-preset-label"
-          label="Inspection"
-          items={LINAR_VIEWS}
-          value={viewPreset}
-          onChange={onViewPreset}
-        />
-        <div className="linar-actions" role="group" aria-labelledby="linar-view-label">
-          <button type="button" className="linar-text-btn" onClick={onResetView}>
-            Reset view
-          </button>
-          <button type="button" className="linar-text-btn" onClick={onResetPanel}>
-            Reset panel
-          </button>
-        </div>
-      </div>
     </div>
   )
 }

@@ -14,6 +14,8 @@ type Props = {
   viewPreset: LinarViewId
   side: LinarSide
   viewToken: number
+  tourActive: boolean
+  introStarted: boolean
   interactedRef: { current: boolean }
   reducedMotion: boolean
   onUnavailable: () => void
@@ -22,12 +24,29 @@ type Props = {
   onIntroComplete?: () => void
 }
 
-const BG = 0xf3efe8
-const FLOOR = 0xe8e2d8
+type CameraTransition = {
+  fromSpherical: THREE.Spherical
+  toSpherical: THREE.Spherical
+  thetaDelta: number
+  radiusLift: number
+  fromTarget: THREE.Vector3
+  toTarget: THREE.Vector3
+  fromBackground: THREE.Color
+  toBackground: THREE.Color
+  elapsed: number
+  duration: number
+  restoreDamping: boolean
+}
+
+type CinematicAnchor = {
+  target: THREE.Vector3
+  spherical: THREE.Spherical
+}
+
+const BG = 0xe9e8e4
 
 function geometryKey(config: LinarConfig, tech: LinarTech): string {
   return [
-    config.material,
     config.thicknessMm,
     config.incisionLengthMm,
     config.cutWidthMm,
@@ -40,53 +59,18 @@ function geometryKey(config: LinarConfig, tech: LinarTech): string {
   ].join(':')
 }
 
-function createContactBlob(): { mesh: THREE.Mesh; dispose: () => void; setBend: (p: number) => void } {
-  const geo = new THREE.PlaneGeometry(2.4, 1.35)
-  const canvas = document.createElement('canvas')
-  canvas.width = 256
-  canvas.height = 256
-  const ctx = canvas.getContext('2d')
-  if (ctx) {
-    const g = ctx.createRadialGradient(128, 128, 10, 128, 128, 124)
-    g.addColorStop(0, 'rgba(40, 28, 18, 0.28)')
-    g.addColorStop(0.38, 'rgba(40, 28, 18, 0.12)')
-    g.addColorStop(0.72, 'rgba(40, 28, 18, 0.04)')
-    g.addColorStop(1, 'rgba(40, 28, 18, 0)')
-    ctx.fillStyle = g
-    ctx.fillRect(0, 0, 256, 256)
-  }
-  const map = new THREE.CanvasTexture(canvas)
-  map.colorSpace = THREE.SRGBColorSpace
-  const mat = new THREE.MeshBasicMaterial({
-    map,
-    transparent: true,
-    opacity: 0.9,
-    depthWrite: false,
-  })
-  const mesh = new THREE.Mesh(geo, mat)
-  mesh.rotation.x = -Math.PI / 2
-  mesh.position.y = 0.006
-  mesh.renderOrder = -1
-  mesh.frustumCulled = false
-  mesh.name = 'LinarContactShadow'
-  return {
-    mesh,
-    setBend: (percent) => {
-      const t = percent / 100
-      mesh.scale.set(1 + t * 0.06, 1 + t * 0.55, 1)
-      mesh.position.z = t * 0.12
-      mat.opacity = 0.78 + t * 0.12
-    },
-    dispose: () => {
-      geo.dispose()
-      mat.dispose()
-      map.dispose()
-    },
-  }
-}
-
 function easeInOut(t: number): number {
   return t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2
+}
+
+function cinematicEase(t: number): number {
+  return t * t * t * (t * (t * 6 - 15) + 10)
+}
+
+function shortestAngleDelta(from: number, to: number): number {
+  let delta = ((to - from + Math.PI) % (Math.PI * 2)) - Math.PI
+  if (delta < -Math.PI) delta += Math.PI * 2
+  return delta
 }
 
 function introBendAt(elapsed: number): { value: number; done: boolean } {
@@ -117,45 +101,63 @@ function viewPlacement(
 ): { dir: THREE.Vector3; target: THREE.Vector3; dist: number; bg: number } {
   const mid = new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0)
   if (id === 'closeup') {
+    const lateral = side === 'front' ? 0.035 : 0
     return {
-      dir: new THREE.Vector3(0.025, 0.02, side === 'back' ? -1 : 1).normalize(),
+      // Close-up stays almost perpendicular like the supplied product photo,
+      // so the pale slat faces remain dominant over their routed side walls.
+      // A small front offset preserves just enough parallax to read real depth.
+      // The rear remains exactly normal while its thickness is unconfirmed;
+      // orbit and the radius view still allow oblique inspection.
+      dir: new THREE.Vector3(
+        lateral,
+        side === 'back' ? 0 : 0.012,
+        side === 'back' ? -1 : 1,
+      ).normalize(),
       target: new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0),
       dist: 0.52,
-      // Keep the voids readable as real openings.  A warm studio backdrop
-      // lets light and the recessed wood faces show through instead of
-      // turning every cut into a flat black stripe.
-      bg: 0xd8d1c7,
+      // The supplied sample is photographed over a cool grey surface. Since
+      // the kerfs are true geometry, this colour remains visible through them
+      // without using a black filler or painted opening texture.
+      bg: 0xc7c8c6,
     }
   }
   if (id === 'side') {
+    const compact = camera.aspect < 0.95
+    const reveal = compact ? 0.22 : 0.13
     return {
-      dir: new THREE.Vector3(1, 0.04, 0.12).normalize(),
+      dir: new THREE.Vector3(1, 0.025, side === 'back' ? -reveal : reveal).normalize(),
       target: mid.clone(),
-      dist: Math.max(1.1, fitDistance(camera, 1.18, 0.55)),
-      bg: 0xeee8df,
+      // Keep the thickness readable while revealing enough adjacent face to
+      // orient the crop, especially in the narrow portrait viewport.
+      dist: compact ? 1.25 : 1.08,
+      bg: BG,
     }
   }
   if (id === 'reverse') {
     return {
-      dir: new THREE.Vector3(0.12, 0.06, -1).normalize(),
+      dir: new THREE.Vector3(0, 0, -1),
       target: mid.clone(),
       dist: fitDistance(camera, 1.16, 1.35),
-      bg: 0xeee8df,
+      bg: 0xc7c8c6,
     }
   }
   if (id === 'bent') {
     return {
-      dir: new THREE.Vector3(0.72, 0.16, side === 'back' ? -0.68 : 0.68).normalize(),
-      target: new THREE.Vector3(0, PANEL_HEIGHT_M * 0.48, 0.12),
-      dist: fitDistance(camera, 1.22, 1.4),
-      bg: 0xf3efe8,
+      dir: new THREE.Vector3(0.52, 0.27, side === 'back' ? -0.81 : 0.81).normalize(),
+      target: new THREE.Vector3(0, PANEL_HEIGHT_M * 0.49, 0.1),
+      dist: fitDistance(camera, 1.15, 1.25),
+      bg: BG,
     }
   }
   return {
-    dir: new THREE.Vector3(0.08, 0.05, side === 'back' ? -1 : 1).normalize(),
+    dir: new THREE.Vector3(
+      side === 'back' ? 0 : 0.14,
+      side === 'back' ? 0 : 0.05,
+      side === 'back' ? -1 : 1,
+    ).normalize(),
     target: mid,
-    dist: fitDistance(camera, 1.28, 1.38),
-    bg: 0xf3efe8,
+    dist: fitDistance(camera, 1.14, 1.2),
+    bg: BG,
   }
 }
 
@@ -192,6 +194,8 @@ export function LinarScene({
   viewPreset,
   side,
   viewToken,
+  tourActive,
+  introStarted,
   interactedRef,
   reducedMotion,
   onUnavailable,
@@ -210,6 +214,8 @@ export function LinarScene({
   const viewPresetRef = useRef(viewPreset)
   const sideRef = useRef(side)
   const viewTokenRef = useRef(viewToken)
+  const tourActiveRef = useRef(tourActive)
+  const introStartedRef = useRef(introStarted)
 
   configRef.current = config
   techRef.current = tech
@@ -221,6 +227,8 @@ export function LinarScene({
   viewPresetRef.current = viewPreset
   sideRef.current = side
   viewTokenRef.current = viewToken
+  tourActiveRef.current = tourActive
+  introStartedRef.current = introStarted
 
   useEffect(() => {
     const mount = mountRef.current
@@ -245,9 +253,9 @@ export function LinarScene({
     renderer.setClearColor(BG, 1)
     renderer.outputColorSpace = THREE.SRGBColorSpace
     renderer.toneMapping = THREE.ACESFilmicToneMapping
-    renderer.toneMappingExposure = 1.08
+    renderer.toneMappingExposure = 1
     renderer.shadowMap.enabled = true
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    renderer.shadowMap.type = THREE.PCFShadowMap
     renderer.domElement.style.width = '100%'
     renderer.domElement.style.height = '100%'
     renderer.domElement.style.display = 'block'
@@ -270,56 +278,84 @@ export function LinarScene({
     controls.touches.ONE = THREE.TOUCH.ROTATE
     controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE
 
+    let cameraTransition: CameraTransition | null = null
     let hasOrbited = false
     const markInteract = () => {
       hasOrbited = true
-      if (interactedRef.current) return
+      if (cameraTransition) {
+        controls.enableDamping = cameraTransition.restoreDamping
+        cameraTransition = null
+      }
       interactedRef.current = true
       onUserInteractRef.current()
     }
     controls.addEventListener('start', markInteract)
 
-    const hemi = new THREE.HemisphereLight(0xf4efe8, 0x75695c, 0.68)
+    const hemi = new THREE.HemisphereLight(0xf4f3ef, 0x96938d, 0.42)
     scene.add(hemi)
 
-    const key = new THREE.DirectionalLight(0xfff1e0, 1.95)
-    key.position.set(3.1, 3.6, 5.6)
+    // Keep the shadow-casting source high so a three-metre panel produces a
+    // compact studio-floor shadow rather than a long architectural silhouette.
+    const key = new THREE.DirectionalLight(0xfffdf8, 0.95)
+    key.position.set(-0.65, 8.2, 0.9)
     key.castShadow = true
     key.shadow.mapSize.set(2048, 2048)
     key.shadow.camera.near = 0.4
-    key.shadow.camera.far = 28
+    key.shadow.camera.far = 16
     key.shadow.camera.left = -1.25
     key.shadow.camera.right = 1.25
-    key.shadow.camera.top = 3.1
-    key.shadow.camera.bottom = -0.25
-    key.shadow.bias = -0.00006
-    key.shadow.normalBias = 0.00045
+    key.shadow.camera.top = 1.75
+    key.shadow.camera.bottom = -1.75
+    key.shadow.camera.updateProjectionMatrix()
+    key.shadow.bias = -0.00002
+    key.shadow.normalBias = 0.00014
+    key.shadow.radius = 3.5
+    key.shadow.intensity = 0.54
     scene.add(key)
     scene.add(key.target)
     key.target.position.set(0, PANEL_HEIGHT_M * 0.5, 0)
 
-    const fill = new THREE.DirectionalLight(0xe8eef4, 0.52)
-    fill.position.set(-3.2, 2.8, 4.2)
+    // A broad, non-shadowing front key retains the pale surface and end-grain
+    // response independently from the short overhead cast shadow.
+    const frontKey = new THREE.DirectionalLight(0xfffdf8, 0.82)
+    frontKey.position.set(-3.8, 5.2, 4.8)
+    frontKey.target = key.target
+    scene.add(frontKey)
+
+    const fill = new THREE.DirectionalLight(0xeef2f4, 0.36)
+    fill.position.set(3.4, 2.5, 3.2)
     scene.add(fill)
 
-    const rim = new THREE.DirectionalLight(0xf8fbff, 0.62)
+    // A balanced rear studio key keeps the reverse birch pale and makes the
+    // capsule walls readable without changing geometry when the camera flips.
+    // It also remains physically consistent when the user orbits around.
+    const rim = new THREE.DirectionalLight(0xf7f4ee, 0.7)
     rim.position.set(-2.2, 3.4, -4.8)
     scene.add(rim)
 
-    const floorGeo = new THREE.CircleGeometry(7.5, 64)
-    const floorMat = new THREE.MeshStandardMaterial({
-      color: FLOOR,
-      roughness: 0.92,
-      metalness: 0,
-    })
-    const floor = new THREE.Mesh(floorGeo, floorMat)
-    floor.rotation.x = -Math.PI / 2
-    floor.receiveShadow = true
-    floor.name = 'StudioFloor'
-    scene.add(floor)
+    // A low opposing rear fill prevents one half of a bent panel from falling
+    // into a muddy silhouette. Neither rear light casts a second fake shadow.
+    const rearFill = new THREE.DirectionalLight(0xf0f3f4, 0.42)
+    rearFill.position.set(3.1, 2.7, -4.2)
+    scene.add(rearFill)
 
-    const blob = createContactBlob()
-    scene.add(blob.mesh)
+    // Receive only the shadow: the studio background remains visually clean,
+    // while the real panel footprint (including a deep bend) defines the shape.
+    const shadowReceiverGeometry = new THREE.PlaneGeometry(10, 10)
+    const shadowReceiverMaterial = new THREE.ShadowMaterial({
+      color: 0x37342f,
+      opacity: 0.22,
+      transparent: true,
+      depthWrite: false,
+    })
+    const shadowReceiver = new THREE.Mesh(shadowReceiverGeometry, shadowReceiverMaterial)
+    shadowReceiver.name = 'LinarShadowReceiver'
+    shadowReceiver.rotation.x = -Math.PI / 2
+    shadowReceiver.position.y = -0.0002
+    shadowReceiver.receiveShadow = true
+    shadowReceiver.castShadow = false
+    shadowReceiver.renderOrder = -2
+    scene.add(shadowReceiver)
 
     const panel = createLinarPanel({ config: configRef.current, tech: techRef.current })
     scene.add(panel.group)
@@ -331,7 +367,6 @@ export function LinarScene({
     let lastIntroEmit = -1
     panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
     panel.setMaterial(configRef.current.material, true)
-    blob.setBend(displayedBend)
     if (reducedMotion) {
       onIntroBendRef.current(REST_BEND)
       onIntroCompleteRef.current?.()
@@ -345,18 +380,108 @@ export function LinarScene({
     }
 
     let currentPreset: LinarViewId = viewPresetRef.current
+    let cinematicAnchor: CinematicAnchor | null = null
+    let cinematicElapsed = 0
+
+    const captureCinematicAnchor = () => {
+      cinematicAnchor = {
+        target: controls.target.clone(),
+        spherical: new THREE.Spherical().setFromVector3(
+          camera.position.clone().sub(controls.target),
+        ),
+      }
+      cinematicAnchor.spherical.makeSafe()
+      cinematicElapsed = 0
+    }
 
     const applyFrame = () => {
+      if (cameraTransition) {
+        controls.enableDamping = cameraTransition.restoreDamping
+        cameraTransition = null
+      }
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
       if (w < 16 || h < 16) return
       renderer.setSize(w, h, false)
-      applyView(camera, controls, w, h, currentPreset, sideRef.current, scene.background as THREE.Color)
+      applyView(
+        camera,
+        controls,
+        w,
+        h,
+        currentPreset,
+        sideRef.current,
+        scene.background as THREE.Color,
+      )
       renderer.setClearColor(scene.background as THREE.Color, 1)
       initialCam.position.copy(camera.position)
       initialCam.target.copy(controls.target)
       initialCam.minDistance = controls.minDistance
       initialCam.maxDistance = controls.maxDistance
+      captureCinematicAnchor()
+    }
+
+    const transitionToFrame = () => {
+      const w = mount.clientWidth || 1
+      const h = mount.clientHeight || 1
+      if (w < 16 || h < 16) return
+      renderer.setSize(w, h, false)
+      camera.aspect = Math.max(w / Math.max(h, 1), 0.2)
+      camera.updateProjectionMatrix()
+      const placement = viewPlacement(currentPreset, camera, sideRef.current)
+      const destination = placement.target.clone().addScaledVector(placement.dir, placement.dist)
+      controls.minDistance = Math.max(0.18, placement.dist * 0.22)
+      controls.maxDistance = placement.dist * 4.5
+
+      if (reducedMotion) {
+        applyView(
+          camera,
+          controls,
+          w,
+          h,
+          currentPreset,
+          sideRef.current,
+          scene.background as THREE.Color,
+        )
+        renderer.setClearColor(scene.background as THREE.Color, 1)
+        return
+      }
+
+      const restoreDamping = cameraTransition?.restoreDamping ?? controls.enableDamping
+      const fromSpherical = new THREE.Spherical().setFromVector3(
+        camera.position.clone().sub(controls.target),
+      )
+      const toSpherical = new THREE.Spherical().setFromVector3(
+        destination.clone().sub(placement.target),
+      )
+      fromSpherical.makeSafe()
+      toSpherical.makeSafe()
+      const thetaDelta = shortestAngleDelta(fromSpherical.theta, toSpherical.theta)
+      const angularTravel = Math.abs(thetaDelta)
+      const radiusRatio =
+        Math.max(fromSpherical.radius, toSpherical.radius) /
+        Math.max(Math.min(fromSpherical.radius, toSpherical.radius), 0.01)
+
+      controls.enableDamping = false
+      cinematicAnchor = null
+      cameraTransition = {
+        fromSpherical,
+        toSpherical,
+        thetaDelta,
+        // A subtle dolly-out keeps the full object readable during wide
+        // rotations and gives front-to-reverse moves a deliberate studio feel.
+        radiusLift: Math.min(0.2, (angularTravel / Math.PI) * 0.18),
+        fromTarget: controls.target.clone(),
+        toTarget: placement.target.clone(),
+        fromBackground: (scene.background as THREE.Color).clone(),
+        toBackground: new THREE.Color(placement.bg),
+        elapsed: 0,
+        duration: THREE.MathUtils.clamp(
+          3.2 + angularTravel * 0.5 + Math.log(radiusRatio) * 0.65,
+          3.4,
+          5.4,
+        ),
+        restoreDamping,
+      }
     }
     applyFrame()
     requestAnimationFrame(() => {
@@ -388,6 +513,8 @@ export function LinarScene({
     let raf = 0
     let lastT = performance.now()
     let visible = document.visibilityState !== 'hidden'
+    const transitionSpherical = new THREE.Spherical()
+    const transitionOffset = new THREE.Vector3()
 
     const tick = (now: number) => {
       if (disposed) return
@@ -402,14 +529,14 @@ export function LinarScene({
       if (resetViewTokenRef.current !== lastReset) {
         lastReset = resetViewTokenRef.current
         currentPreset = 'hero'
-        applyFrame()
+        transitionToFrame()
       }
 
       if (viewTokenRef.current !== lastView) {
         lastView = viewTokenRef.current
         currentPreset = viewPresetRef.current
         hasOrbited = false
-        applyFrame()
+        transitionToFrame()
       }
 
       const nextGeom = geometryKey(configRef.current, techRef.current)
@@ -418,7 +545,6 @@ export function LinarScene({
         panel.setConfig(configRef.current, techRef.current)
         lastAppliedBend = displayedBend
         panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
-        blob.setBend(displayedBend)
       }
 
       if (configRef.current.material !== lastMaterial) {
@@ -426,7 +552,7 @@ export function LinarScene({
         panel.setMaterial(lastMaterial)
       }
 
-      if (!introDone && !interactedRef.current) {
+      if (!introDone && introStartedRef.current && !interactedRef.current) {
         introElapsed += dt
         const intro = introBendAt(introElapsed)
         introTarget = intro.value
@@ -442,12 +568,71 @@ export function LinarScene({
       }
 
       const goal = interactedRef.current || introDone ? targetBendRef.current : introTarget
-      const lambda = 1 - Math.exp(-dt * 11)
+      const bendResponse = tourActiveRef.current && !reducedMotion ? 1.25 : 11
+      const lambda = 1 - Math.exp(-dt * bendResponse)
       displayedBend += (goal - displayedBend) * lambda
       if (Math.abs(displayedBend - lastAppliedBend) > 0.02) {
         lastAppliedBend = displayedBend
         panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
-        blob.setBend(displayedBend)
+      }
+
+      if (cameraTransition) {
+        cameraTransition.elapsed += dt
+        const progress = Math.min(1, cameraTransition.elapsed / cameraTransition.duration)
+        const eased = cinematicEase(progress)
+        controls.target.lerpVectors(cameraTransition.fromTarget, cameraTransition.toTarget, eased)
+
+        const directRadius = THREE.MathUtils.lerp(
+          cameraTransition.fromSpherical.radius,
+          cameraTransition.toSpherical.radius,
+          eased,
+        )
+        transitionSpherical.radius =
+          directRadius * (1 + Math.sin(Math.PI * eased) * cameraTransition.radiusLift)
+        transitionSpherical.phi = THREE.MathUtils.lerp(
+          cameraTransition.fromSpherical.phi,
+          cameraTransition.toSpherical.phi,
+          eased,
+        )
+        transitionSpherical.theta =
+          cameraTransition.fromSpherical.theta + cameraTransition.thetaDelta * eased
+        transitionOffset.setFromSpherical(transitionSpherical)
+        camera.position.copy(controls.target).add(transitionOffset)
+
+        const background = scene.background as THREE.Color
+        background.lerpColors(
+          cameraTransition.fromBackground,
+          cameraTransition.toBackground,
+          eased,
+        )
+        camera.lookAt(controls.target)
+        if (progress >= 1) {
+          const completedTransition = cameraTransition
+          controls.enableDamping = completedTransition.restoreDamping
+          cinematicAnchor = {
+            target: completedTransition.toTarget.clone(),
+            spherical: completedTransition.toSpherical.clone(),
+          }
+          cinematicElapsed = 0
+          cameraTransition = null
+        }
+      }
+
+      if (!cameraTransition && tourActiveRef.current && !reducedMotion && cinematicAnchor) {
+        cinematicElapsed += dt
+        const driftBlend = cinematicEase(Math.min(1, cinematicElapsed / 1.15))
+        const thetaDrift = Math.sin(cinematicElapsed * 0.34) * 0.018 * driftBlend
+        const phiDrift = Math.sin(cinematicElapsed * 0.27) * 0.006 * driftBlend
+        const dollyDrift = Math.sin(cinematicElapsed * 0.38) * 0.012 * driftBlend
+
+        transitionSpherical.radius = cinematicAnchor.spherical.radius * (1 + dollyDrift)
+        transitionSpherical.phi = cinematicAnchor.spherical.phi + phiDrift
+        transitionSpherical.theta = cinematicAnchor.spherical.theta + thetaDrift
+        transitionSpherical.makeSafe()
+        transitionOffset.setFromSpherical(transitionSpherical)
+        controls.target.copy(cinematicAnchor.target)
+        camera.position.copy(controls.target).add(transitionOffset)
+        camera.lookAt(controls.target)
       }
 
       panel.tickMaterials(dt)
@@ -472,9 +657,8 @@ export function LinarScene({
       controls.removeEventListener('start', markInteract)
       controls.dispose()
       panel.dispose()
-      blob.dispose()
-      floorGeo.dispose()
-      floorMat.dispose()
+      shadowReceiverGeometry.dispose()
+      shadowReceiverMaterial.dispose()
       renderer.dispose()
       if (renderer.domElement.parentElement === mount) {
         mount.removeChild(renderer.domElement)

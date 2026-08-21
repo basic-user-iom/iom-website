@@ -34,16 +34,14 @@ export type BridgeSeg = {
   row: number
 }
 
-export type SolidFill = {
-  originalX: number
-  localY: number
-  height: number
-  width: number
-}
-
 export type PanelLayout = {
   slats: SlatSpec[]
   slatCount: number
+  usedWidthM: number
+  incisedWidthM: number
+  incisedX0: number
+  incisedX1: number
+  solidSideWidthM: number
   slatWidthM: number
   cutWidthM: number
   /** Distance between two continuous full-height slats. */
@@ -52,7 +50,6 @@ export type PanelLayout = {
   incisedY0: number
   incisedY1: number
   incisedHeightM: number
-  solidFills: SolidFill[]
   irregular: boolean
 }
 
@@ -83,44 +80,43 @@ export function slatLayout(config: LinarConfig): PanelLayout {
   const slatWidthM = mmToM(config.slatWidthMm)
   const cutWidthM = mmToM(config.cutWidthMm)
   const thicknessM = mmToM(config.thicknessMm)
-  const rawCount = Math.round(PANEL_WIDTH_M / pitchM)
+  const coverage = Math.min(12, Math.max(1, config.incisedTwelfths)) / 12
+  const requestedIncisedWidthM = PANEL_WIDTH_M * coverage
+  // Keep every incision cell at its true configured pitch. The visible span
+  // runs from the outside face of the first continuous slat to the outside
+  // face of the last, so N slats occupy N pitches minus one cut width. This
+  // makes the solid sides meet those boundary slats without a seam or void.
+  const maxCountForPanel = Math.floor((PANEL_WIDTH_M + cutWidthM) / pitchM)
+  const rawCount = Math.round((requestedIncisedWidthM + cutWidthM) / pitchM)
   const slatCount = Math.max(8, Math.min(MAX_SLATS, rawCount))
-  const usedWidth = slatCount * pitchM
-  const origin = -usedWidth / 2 + pitchM / 2
+  const boundedSlatCount = Math.min(slatCount, maxCountForPanel)
+  const usedWidth = boundedSlatCount * pitchM - cutWidthM
+  const origin = -((boundedSlatCount - 1) * pitchM) / 2
 
   const slats: SlatSpec[] = []
-  for (let i = 0; i < slatCount; i += 1) {
+  for (let i = 0; i < boundedSlatCount; i += 1) {
     slats.push({ originalX: origin + i * pitchM, width: slatWidthM, index: i })
   }
 
-  const coverage = Math.min(12, Math.max(1, config.incisedTwelfths)) / 12
-  const incisedHeightM = PANEL_HEIGHT_M * coverage
-  const incisedY0 = (PANEL_HEIGHT_M - incisedHeightM) / 2
-  const incisedY1 = incisedY0 + incisedHeightM
-
-  const solidFills: SolidFill[] = []
-  const addBand = (y0: number, y1: number) => {
-    const height = y1 - y0
-    if (height < 0.0004) return
-    const localY = (y0 + y1) * 0.5
-    for (let i = 0; i < slatCount; i += 1) {
-      const slat = slats[i]
-      solidFills.push({
-        originalX: slat.originalX,
-        localY,
-        height,
-        // Adjacent strips overlap by a fraction of a millimetre so an
-        // unincised margin reads as one continuous board rather than a comb.
-        width: pitchM * 1.003,
-      })
-    }
-  }
-  addBand(0, incisedY0)
-  addBand(incisedY1, PANEL_HEIGHT_M)
+  // Coverage is distributed across the panel width: the incised pattern is
+  // a centred, full-height strip and the remaining material forms two solid
+  // vertical side zones. This matches the physical partial-incision layout.
+  const incisedWidthM = usedWidth
+  const incisedX0 = -incisedWidthM * 0.5
+  const incisedX1 = incisedWidthM * 0.5
+  const solidSideWidthM = Math.max(0, (PANEL_WIDTH_M - incisedWidthM) * 0.5)
+  const incisedHeightM = PANEL_HEIGHT_M
+  const incisedY0 = 0
+  const incisedY1 = PANEL_HEIGHT_M
 
   return {
     slats,
-    slatCount,
+    slatCount: boundedSlatCount,
+    usedWidthM: usedWidth,
+    incisedWidthM,
+    incisedX0,
+    incisedX1,
+    solidSideWidthM,
     slatWidthM,
     cutWidthM,
     pitchM,
@@ -128,7 +124,6 @@ export function slatLayout(config: LinarConfig): PanelLayout {
     incisedY0,
     incisedY1,
     incisedHeightM,
-    solidFills,
     irregular: config.pattern === 'irregular',
   }
 }
@@ -202,11 +197,12 @@ export function makeBendState(
   percent: number,
   panelWidthM: number,
   referenceRadiusMm: number | null,
+  bendableWidthM = panelWidthM,
 ): BendState {
   const t = Math.max(0, Math.min(100, percent)) / 100
   const validated = referenceRadiusMm != null && referenceRadiusMm > 0
   const radiusM = mmToM(validated ? referenceRadiusMm : VISUAL_FALLBACK_RADIUS_MM)
-  const maxAlpha = Math.min(Math.PI, panelWidthM / Math.max(radiusM, 0.008))
+  const maxAlpha = Math.min(Math.PI, bendableWidthM / Math.max(radiusM, 0.008))
   const alpha = t * maxAlpha
   const arcLen = alpha * radiusM
   const leftFlat = Math.max(0, (panelWidthM - arcLen) * 0.5)

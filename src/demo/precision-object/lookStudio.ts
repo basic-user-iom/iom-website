@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v26'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v25'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v27'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v26'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -37,6 +37,7 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v22',
   'iom-precision-object-look-v23',
   'iom-precision-object-look-v24',
+  'iom-precision-object-look-v25',
   LOOK_STORAGE_PREV,
 ]
 
@@ -413,7 +414,7 @@ export const MATERIAL_GROUPS: {
 /** Canonical startup look — Look studio hydrates from this unless the user Saves after this bake. */
 export const DEFAULT_LOOK: SavedLook = {
   version: 1,
-  savedAt: '2026-08-21T09:25:48.474Z',
+  savedAt: '2026-08-21T09:36:44.489Z',
   stand: {
     enabled: true,
     setId: 'metal049a',
@@ -512,13 +513,13 @@ export const DEFAULT_LOOK: SavedLook = {
   ],
   notes: 'Watch metal normal: Metal060A DirectX (normalScale.y flip). Dial: Metal048A gold PBR. Stand stays Metal049A.',
   camera: {
-    position: [-2.001, 0.557, 1.97],
-    target: [-0.271, 0.448, -0.138],
+    position: [-0.825, 0.515, 1.757],
+    target: [-0.102, 0.437, -0.069],
     fov: 30,
   },
   scrollCamera: {
-    position: [-1.447, 0.54, 1.685],
-    target: [0.077, 0.451, 0.069],
+    position: [-1.968, 0.594, 2.134],
+    target: [0.208, 0.456, -0.2],
     fov: 30,
   },
   views: {
@@ -538,8 +539,8 @@ export const DEFAULT_LOOK: SavedLook = {
       fov: 30,
     },
     hero: {
-      position: [-1.867, 0.619, 2.231],
-      target: [-0.028, 0.428, -0.373],
+      position: [-0.825, 0.515, 1.757],
+      target: [-0.102, 0.437, -0.069],
       fov: 30,
     },
   },
