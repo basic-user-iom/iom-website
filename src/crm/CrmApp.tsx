@@ -1108,6 +1108,16 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                   {t('nav.projectCosts')}
                 </button>
               )}
+              {id === 'demos' && !demoMode && (
+                <a
+                  className="crm-section-tab crm-section-tab--link"
+                  href="/demos/dukta/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('nav.dukta')}
+                </a>
+              )}
             </Fragment>
           ))}
         </div>

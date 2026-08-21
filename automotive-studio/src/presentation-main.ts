@@ -5,6 +5,10 @@ import { createEmptyProject, createDefaultFreeDrive } from './persistence/schema
 import type { Shot, VehicleLightGroupId } from './persistence/schema'
 import { idbListProjectSummaries, idbLoadProject } from './persistence/localDb'
 import { readLastProjectId, resolveBootProjectId, writeLastProjectId } from './persistence/projectSession'
+import {
+  BUNDLED_DEFAULT_PROJECT_ID,
+  ensureBundledDefaultProject,
+} from './persistence/bundledDefault'
 import { migrateProject } from './persistence/migrations'
 import { Transport } from './transport/transport'
 import { createStudioRenderer } from './renderer/createRenderer'
@@ -374,18 +378,26 @@ window.addEventListener('blur', () => {
 })
 
 async function boot() {
+  await ensureBundledDefaultProject()
   const requestedId = new URLSearchParams(location.search).get('project')
   const summaries = await idbListProjectSummaries()
   const projectId = resolveBootProjectId({
     queryProjectId: requestedId,
     lastProjectId: readLastProjectId(),
     summaries,
+    bundledDefaultProjectId: BUNDLED_DEFAULT_PROJECT_ID,
   })
   if (projectId) {
     const saved = await idbLoadProject(projectId)
     if (saved) {
       store.loadProject(migrateProject(saved))
       writeLastProjectId(projectId)
+    }
+  } else {
+    const fallback = await idbLoadProject(BUNDLED_DEFAULT_PROJECT_ID)
+    if (fallback) {
+      store.loadProject(migrateProject(fallback))
+      writeLastProjectId(BUNDLED_DEFAULT_PROJECT_ID)
     }
   }
 

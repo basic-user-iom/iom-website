@@ -27,6 +27,10 @@ import { exportIomcar, importIomcar, downloadBlob } from './persistence/iomcar'
 import { idbSaveProject, idbLoadProject, idbGetAssetBlob, idbPutAssetBlob, idbListProjectSummaries, idbDeleteStudioDatabase, AUTOMOTIVE_STUDIO_IDB_NAME } from './persistence/localDb'
 import { purgeOrphanAssetBlobs } from './persistence/assetGc'
 import { clearLastProjectId, readLastProjectId, resolveBootProjectId, writeLastProjectId } from './persistence/projectSession'
+import {
+  BUNDLED_DEFAULT_PROJECT_ID,
+  ensureBundledDefaultProject,
+} from './persistence/bundledDefault'
 import { migrateProject } from './persistence/migrations'
 import type {
   EnvironmentPresetId,
@@ -2191,7 +2195,7 @@ function createHotspotFromPick(result: {
     blocks: [
       { type: 'eyebrow', text: nodeLabel },
       { type: 'title', text: nodeLabel.replace(/_/g, ' ') },
-      { type: 'richtext', markdown: `Attached to **${nodeLabel}**. Marker follows this node when doors or panels animate.` },
+      { type: 'richtext', markdown: `Attached to **${nodeLabel}**. The marker follows this node when doors or panels move. Use the **Animation** button below to play the linked door or clip.` },
     ],
     actions: [],
     exploreVisible: true,
@@ -3176,6 +3180,8 @@ async function boot() {
   raf = requestAnimationFrame(loop)
 
   try {
+    shell.setStatus('Loading default project…')
+    const seed = await ensureBundledDefaultProject()
     const queryId = new URLSearchParams(location.search).get('project')
     const lastId = readLastProjectId()
     const summaries = await idbListProjectSummaries()
@@ -3183,11 +3189,19 @@ async function boot() {
       queryProjectId: queryId,
       lastProjectId: lastId,
       summaries,
+      bundledDefaultProjectId: BUNDLED_DEFAULT_PROJECT_ID,
     })
     let existing: unknown | null = bootId ? await idbLoadProject(bootId) : null
-    // Recheck cache: last-opened or newest summary may still load when resolution missed.
+    // Recheck cache: last-opened, bundled default, or newest summary may still load.
     if (!existing && lastId && lastId !== bootId) {
       existing = await idbLoadProject(lastId)
+    }
+    if (
+      !existing &&
+      BUNDLED_DEFAULT_PROJECT_ID !== bootId &&
+      BUNDLED_DEFAULT_PROJECT_ID !== lastId
+    ) {
+      existing = await idbLoadProject(BUNDLED_DEFAULT_PROJECT_ID)
     }
     if (!existing && summaries[0] && summaries[0].id !== bootId && summaries[0].id !== lastId) {
       existing = await idbLoadProject(summaries[0].id)
@@ -3196,7 +3210,11 @@ async function boot() {
       store.loadProject(migrateProject(existing))
       writeLastProjectId(store.getSnapshot().project.id)
       hydrateProjectRuntime()
-      shell.setStatus('Restoring vehicle from IndexedDB…')
+      shell.setStatus(
+        seed.seeded
+          ? 'Imported bundled default · restoring vehicle…'
+          : 'Restoring vehicle from IndexedDB…',
+      )
       try {
         const restored = await vehicleSession.restoreFromProject(
           store.getSnapshot().project,
@@ -3210,7 +3228,9 @@ async function boot() {
           shell.updateVehicle(vehicleSession.getSnapshot())
           hydrateProjectRuntime()
           shell.setStatus(
-            `Restored “${store.getSnapshot().project.name}” and vehicle from IndexedDB.`,
+            seed.seeded
+              ? `Loaded bundled default “${store.getSnapshot().project.name}”.`
+              : `Restored “${store.getSnapshot().project.name}” and vehicle from IndexedDB.`,
           )
         } else {
           objectInspector.setRoot(null)
@@ -3227,6 +3247,11 @@ async function boot() {
           true,
         )
       }
+    } else if (seed.reason === 'failed' || seed.reason === 'skipped-missing-asset') {
+      shell.setStatus(
+        `Default project unavailable${seed.error ? `: ${seed.error}` : ''}. Import a .iomcar or GLB.`,
+        true,
+      )
     }
   } catch {
     // ignore

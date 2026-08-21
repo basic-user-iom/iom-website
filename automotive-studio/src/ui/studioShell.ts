@@ -962,7 +962,7 @@ export function mountStudioShell(
       </div>
 
       <div data-panel="Hotspots" hidden>
-        <p class="as-hint">Add markers, then open one in the list to edit it. Markers parent to a mesh/door so they follow animation.</p>
+        <p class="as-hint">Add markers, then open one in the list to edit it. Markers parent to a mesh/door so they follow animation. Link a door/clip under <strong>Door / animation on open</strong> — the card’s Animation button plays it.</p>
         <button type="button" class="as-btn as-btn--accent" data-action="hotspot-pick">Pick mesh / door</button>
         <button type="button" class="as-btn" data-action="hotspot-add">Add at vehicle center</button>
         <label class="as-field">

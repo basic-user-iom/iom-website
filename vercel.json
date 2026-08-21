@@ -22,6 +22,46 @@
       "destination": "/demo/evly/index.html"
     },
     {
+      "source": "/demos/dukta",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/projects",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/projects/",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/material",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/material/",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/systems/:path*",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/resources",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/resources/",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
+      "source": "/demos/dukta/configure/:path*",
+      "destination": "/demos/dukta/index.html"
+    },
+    {
       "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs).*)",
       "destination": "/index.html"
     }
@@ -54,6 +94,15 @@
     },
     {
       "source": "/demo/evly/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
+      "source": "/demos/dukta/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

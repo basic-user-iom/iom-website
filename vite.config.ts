@@ -20,6 +20,11 @@ function demoDirectoryIndexPlugin() {
     const search = q === -1 ? '' : req.url.slice(q)
     if (!pathname.startsWith('/demos/')) return
     if (/\.[a-zA-Z0-9]+$/.test(pathname)) return
+    // Nested SPA routes for the dukta website prototype.
+    if (pathname === '/demos/dukta' || pathname.startsWith('/demos/dukta/')) {
+      req.url = `/demos/dukta/index.html${search}`
+      return
+    }
     const base = pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
     req.url = `${base}/index.html${search}`
   }
@@ -56,8 +61,10 @@ function nonBlockingCssPlugin() {
       const file = String(ctx?.filename || ctx?.path || '').replace(/\\/g, '/')
       if (
         file.includes('dukta-linar-concept') ||
+        file.includes('demos/dukta') ||
         file.includes('kelly-kettle') ||
-        file.includes('precision-object')
+        file.includes('precision-object') ||
+        file.includes('floating-stone')
       ) {
         return html
       }
@@ -132,8 +139,10 @@ export default defineConfig({
       input: {
         main: path.resolve(root, 'index.html'),
         duktaLinarConcept: path.resolve(root, 'demos/dukta-linar-concept/index.html'),
+        duktaWebsite: path.resolve(root, 'demos/dukta/index.html'),
         kellyKettle: path.resolve(root, 'demos/kelly-kettle/index.html'),
         precisionObject: path.resolve(root, 'demos/precision-object/index.html'),
+        floatingStone: path.resolve(root, 'demos/floating-stone/index.html'),
       },
       output: {
         manualChunks: {

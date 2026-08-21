@@ -29,14 +29,16 @@ export function clearLastProjectId(): void {
 
 /**
  * Resolve which project to open on Studio/Present boot.
- * Prefer explicit `?project=`, then last-opened, then most recently saved.
+ * Prefer explicit `?project=`, then last-opened, then bundled default, then newest.
  */
 export function resolveBootProjectId(options: {
   queryProjectId: string | null
   lastProjectId: string | null
   summaries: Array<{ id: string; updatedAt: number }>
+  /** Packaged starter id — used when nothing else is selected. */
+  bundledDefaultProjectId?: string | null
 }): string | null {
-  const { queryProjectId, lastProjectId, summaries } = options
+  const { queryProjectId, lastProjectId, summaries, bundledDefaultProjectId } = options
   if (queryProjectId && summaries.some((s) => s.id === queryProjectId)) {
     return queryProjectId
   }
@@ -47,6 +49,12 @@ export function resolveBootProjectId(options: {
   if (lastProjectId && summaries.some((s) => s.id === lastProjectId)) {
     return lastProjectId
   }
-  if (!summaries.length) return null
+  if (
+    bundledDefaultProjectId &&
+    summaries.some((s) => s.id === bundledDefaultProjectId)
+  ) {
+    return bundledDefaultProjectId
+  }
+  if (!summaries.length) return bundledDefaultProjectId ?? null
   return [...summaries].sort((a, b) => b.updatedAt - a.updatedAt)[0]?.id ?? null
 }

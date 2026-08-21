@@ -418,6 +418,7 @@ const en: Dict = {
   'nav.blog': 'Blog',
   'nav.links': 'Links',
   'nav.demos': 'Demo',
+  'nav.dukta': 'dukta website',
   'nav.seo': 'IOM-SEO',
   'nav.toolsAria': 'Blog, Links and SEO',
 
@@ -2195,6 +2196,7 @@ const sr: Dict = {
   'nav.blog': 'Blog',
   'nav.links': 'Linkovi',
   'nav.demos': 'Demo',
+  'nav.dukta': 'dukta sajt',
   'nav.seo': 'IOM-SEO',
   'nav.toolsAria': 'Blog, Linkovi i SEO',
 

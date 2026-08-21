@@ -74,9 +74,10 @@ export function mountHotspotCard(host: HTMLElement, handlers: HotspotCardHandler
         } else if (block.type === 'title') {
           // rendered as h2
         } else if (block.type === 'richtext') {
-          parts.push(
-            `<div class="as-hotspot-text">${escapeHtml(block.markdown).replace(/\n/g, '<br>')}</div>`,
-          )
+          const html = escapeHtml(block.markdown)
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\n/g, '<br>')
+          parts.push(`<div class="as-hotspot-text">${html}</div>`)
         } else if (block.type === 'specs') {
           parts.push(
             `<dl>${block.rows
@@ -173,7 +174,7 @@ function defaultActionLabel(action: HotspotAction): string {
     case 'action.toggle':
       return action.actionId.startsWith('clip:')
         ? `Play animation ${Number(action.actionId.slice(5)) + 1}`
-        : action.actionId.replace(/_/g, ' ')
+        : `Play ${action.actionId.replace(/_/g, ' ')}`
     case 'shot.goTo':
       return 'Go to shot'
     case 'environment.setPreset':

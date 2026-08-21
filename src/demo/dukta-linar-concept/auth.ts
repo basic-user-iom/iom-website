@@ -12,13 +12,21 @@ export function isLinarDemoUnlocked(): boolean {
   }
 }
 
-export function unlockLinarDemo(password: string): boolean {
-  if (password !== getLinarDemoPassword()) return false
+/**
+ * Used only by the dukta marketing site before navigating here.
+ * Does not change the password gate for direct visits to the configurator.
+ */
+export function unlockLinarForTrustedEntry(): void {
   try {
     sessionStorage.setItem(STORAGE_KEY, '1')
   } catch {
     /* ignore */
   }
+}
+
+export function unlockLinarDemo(password: string): boolean {
+  if (password !== getLinarDemoPassword()) return false
+  unlockLinarForTrustedEntry()
   return true
 }
 
@@ -29,7 +37,7 @@ export function tryCrmEmbedUnlock(): boolean {
     if (params.get('crmEmbed') !== '1') return false
     if (window.top === window.self) return false
     if (window.top?.location.origin !== window.location.origin) return false
-    sessionStorage.setItem(STORAGE_KEY, '1')
+    unlockLinarForTrustedEntry()
     return true
   } catch {
     return false
