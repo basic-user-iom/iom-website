@@ -14,6 +14,7 @@ const EXCLUDED_PREFIXES = [
   '/demo/evly',
   '/demos/kelly-kettle',
   '/demos/precision-object',
+  '/demos/automotive-studio',
 ]
 
 function shouldTrack(pathname: string): boolean {

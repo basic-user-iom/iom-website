@@ -1,4 +1,5 @@
 import './ui/styles.css'
+import { ensureAutomotiveStudioAccess } from './auth'
 import { Vector3 } from 'three'
 import { ProjectStore, patchVehicleLights } from './persistence/projectStore'
 import { createEmptyProject, createDefaultFreeDrive } from './persistence/schema'
@@ -34,6 +35,8 @@ import { speedKmhToMetresPerSecond } from './route/routeMath'
 
 const root = document.getElementById('app')
 if (!root) throw new Error('#app missing')
+
+await ensureAutomotiveStudioAccess(root)
 
 const project = createEmptyProject('Client Presentation')
 project.presentation.accessPolicy = 'unlisted'

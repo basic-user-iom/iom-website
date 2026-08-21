@@ -14,6 +14,8 @@ interface ImportMetaEnv {
   readonly VITE_KELLY_KETTLE_DEMO_PASSWORD?: string
   /** Precision object study unlock password (default: precision) */
   readonly VITE_PRECISION_OBJECT_DEMO_PASSWORD?: string
+  /** Automotive Studio unlock password (default: automotive) */
+  readonly VITE_AUTOMOTIVE_STUDIO_DEMO_PASSWORD?: string
 }
 
 interface ImportMeta {

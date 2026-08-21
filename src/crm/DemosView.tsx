@@ -122,6 +122,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     tags: ['Website', 'Next.js', 'Client pitch'],
     images: [],
   },
+  {
+    id: 'automotive-studio',
+    name: 'Automotive Studio',
+    client: 'Capability study — interactive vehicle presentation',
+    status: 'preview',
+    path: '/demos/automotive-studio/',
+    password: 'automotive',
+    blurb:
+      'Private demo: browser-based automotive studio with vehicle materials, hotspots, route drive, and a client Present mode. Ships with a bundled starter project. Not linked from the public homepage.',
+    tags: ['Product', 'WebGL', 'Vehicle'],
+    images: [],
+  },
 ]
 
 function statusLabel(

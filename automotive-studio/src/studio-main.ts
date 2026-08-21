@@ -1,4 +1,5 @@
 import './ui/styles.css'
+import { ensureAutomotiveStudioAccess } from './auth'
 import { Vector3 } from 'three'
 import {
   ProjectStore,
@@ -97,6 +98,8 @@ function readUiTheme(): UiChromeTheme {
 
 const root = document.getElementById('app')
 if (!root) throw new Error('#app missing')
+
+await ensureAutomotiveStudioAccess(root)
 
 const store = new ProjectStore()
 const transport = new Transport()
