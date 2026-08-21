@@ -11,8 +11,6 @@ automotive-studio/_dev/
 .tmp-linar-*.jpg
 .tmp-precision-watch.png
 trail-designs-prototype/
-# Root-only probe demos folder (not public/demos)
-/demos/
 # Building-viewer meshes are local-only (~500MB). Keep product GLBs such as Watch.glb.
 public/models/icm-*/
 public/models/camera-views.json
