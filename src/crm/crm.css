@@ -3539,18 +3539,6 @@ button.crm-tag-chip {
   letter-spacing: normal;
 }
 
-a.crm-section-tab--link {
-  display: inline-flex;
-  align-items: center;
-  text-decoration: none;
-  box-sizing: border-box;
-}
-
-a.crm-section-tab--link:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.04);
-}
-
 .crm-section-tab--seo {
   letter-spacing: 0.04em;
 }

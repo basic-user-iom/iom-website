@@ -134,6 +134,24 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     tags: ['Product', 'WebGL', 'Vehicle'],
     images: [],
   },
+  {
+    id: 'dukta',
+    name: 'dukta',
+    client: 'Client pitch — flexible wood marketing site',
+    status: 'preview',
+    path: '/demos/dukta/',
+    password: 'dukta',
+    blurb:
+      'Private demo: password-gated dukta marketing site for flexible wood systems — material, applications, and product storytelling. Not linked from the public homepage.',
+    tags: ['Website', 'Product', 'Client pitch'],
+    images: [
+      '/demos/dukta/media/material/flexible-ribbon.jpg',
+      '/demos/dukta/media/material/linar-bend-hi.jpg',
+      '/demos/dukta/media/applications/acoustic-wall.jpg',
+      '/demos/dukta/media/applications/furniture.jpg',
+      '/demos/dukta/media/brand/logo-wordmark.jpg',
+    ],
+  },
 ]
 
 function statusLabel(
