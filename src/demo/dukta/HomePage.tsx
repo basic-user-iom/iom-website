@@ -294,6 +294,73 @@ function Systems() {
   )
 }
 
+/** Visual-only teaser: vertical strips approximate a paper-like center arch. */
+const LINAR_TEASER_STRIPS = 16
+
+function LinarTeaserPanel({ openness, bend }: { openness: number; bend: number }) {
+  // Outer curve opens the cuts a little further as the sheet arches.
+  const cutOpenness = Math.min(0.95, openness * (1 + bend * 0.32))
+
+  const strips = useMemo(() => {
+    // Half-wrap angle at full bend (~50°). Cylinder with apex toward the camera.
+    const maxPhi = bend * 0.88
+    return Array.from({ length: LINAR_TEASER_STRIPS }, (_, i) => {
+      const u = (i + 0.5) / LINAR_TEASER_STRIPS - 0.5
+      const phi = u * 2 * maxPhi
+      const angleDeg = (phi * 180) / Math.PI
+      // Cosine bowl: center closest to viewer, ends fall back — convex arch.
+      const z = bend * 56 * (Math.cos(phi) - (maxPhi > 1e-4 ? Math.cos(maxPhi) : 1))
+      // Slight lift so the silhouette reads as a bridge / upside-down U.
+      const y = -bend * 12 * Math.cos(u * Math.PI)
+      return {
+        transform: `translate3d(0, ${y}px, ${z}px) rotateY(${angleDeg}deg)`,
+      }
+    })
+  }, [bend])
+
+  return (
+    <div
+      className="dk-linar__panel"
+      style={
+        {
+          '--open': String(openness),
+          '--bend': String(bend),
+        } as CSSProperties
+      }
+      aria-hidden="true"
+    >
+      <div className="dk-linar__stage">
+        {strips.map((style, i) => (
+          <div key={i} className="dk-linar__strip" style={style}>
+            <div
+              className="dk-linar__strip-face"
+              style={{
+                width: `${LINAR_TEASER_STRIPS * 100}%`,
+                transform: `translateX(${(-i / LINAR_TEASER_STRIPS) * 100}%)`,
+              }}
+            >
+              <IncisionPattern
+                kind="linar"
+                openness={cutOpenness}
+                className="dk-linar__cuts"
+                underlay="#ddd4c6"
+              />
+              <img
+                className="dk-linar__photo"
+                src={img.linarVeneer}
+                alt=""
+                width={1024}
+                height={768}
+                draggable={false}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function LinarTeaser() {
   const { t } = useLocale()
   const [openness, setOpenness] = useState(0.45)
@@ -335,30 +402,7 @@ function LinarTeaser() {
           </a>
           <p className="dk-note">{t.linar.note}</p>
         </div>
-        <div
-          className="dk-linar__panel"
-          style={
-            {
-              '--open': String(openness),
-              '--bend': String(bend),
-            } as CSSProperties
-          }
-        >
-          <IncisionPattern
-            kind="linar"
-            openness={openness}
-            className="dk-linar__cuts"
-            underlay="#ddd4c6"
-          />
-          <img
-            className="dk-linar__photo"
-            src={img.linarVeneer}
-            alt=""
-            aria-hidden="true"
-            width={1024}
-            height={768}
-          />
-        </div>
+        <LinarTeaserPanel openness={openness} bend={bend} />
       </div>
     </section>
   )
