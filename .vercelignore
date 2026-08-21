@@ -7,6 +7,11 @@ supabase/*.sql
 .deploy-park-wip/
 building-viewer/
 automotive-studio/_dev/
+.tmp-vite-build-linar/
+.tmp-linar-*.jpg
+.tmp-precision-watch.png
+trail-designs-prototype/
+demos/
 # Building-viewer meshes are local-only (~500MB). Keep product GLBs such as Watch.glb.
 public/models/icm-*/
 public/models/camera-views.json
