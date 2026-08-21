@@ -264,13 +264,13 @@ body.dk-lock {
   display: inline-flex;
   align-items: stretch;
   border: 1px solid currentColor;
-  min-height: 2.5rem;
+  min-height: 1.85rem;
 }
 .dk-lang button {
   appearance: none;
   border: 0;
   margin: 0;
-  padding: 0.55rem 0.65rem;
+  padding: 0.28rem 0.55rem;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -312,8 +312,8 @@ body.dk-lock {
   align-items: center;
   box-sizing: border-box;
   border: 1px solid currentColor;
-  padding: 0.55rem 0.8rem;
-  min-height: 2.5rem;
+  padding: 0.28rem 0.7rem;
+  min-height: 1.85rem;
   background: transparent;
   font: inherit;
   cursor: pointer;
@@ -331,7 +331,7 @@ body.dk-lock {
 }
 .dk-header__volume input[type='range'] {
   width: 5.5rem;
-  height: 1.1rem;
+  height: 0.95rem;
   margin: 0;
   accent-color: currentColor;
   cursor: pointer;
