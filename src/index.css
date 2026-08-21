@@ -997,7 +997,6 @@ body.hero-viewer-fs-lock {
 }
 
 html.is-overlay-open .section-block,
-html.is-hash-scrolling .section-block,
 html.iom-viewport-fs .section-block,
 body.music-player-fs-lock .section-block,
 body.hero-viewer-fs-lock .section-block {
@@ -1040,7 +1039,7 @@ body.music-player-fs-lock .site-header {
   pointer-events: none;
 }
 
-/* CSS `html { scroll-behavior: smooth }` would otherwise keep settle jumps animated. */
+/* rAF lerp uses per-frame scrollTo; CSS smooth would fight each step (and look like a snap). */
 html.is-hash-scrolling {
   scroll-behavior: auto;
 }
@@ -1131,6 +1130,12 @@ html.is-hash-scrolling {
   scroll-margin-top: var(--header-h);
   content-visibility: auto;
   contain-intrinsic-size: auto 720px;
+}
+
+/* Only the destination — not every section — so getBoundingClientRect is real. */
+.is-hash-scroll-target {
+  content-visibility: visible;
+  contain: none;
 }
 
 .section-block--pending {
