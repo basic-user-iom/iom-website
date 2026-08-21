@@ -136,13 +136,13 @@ export const CLIENT_DEMOS: ClientDemo[] = [
   },
   {
     id: 'dukta',
-    name: 'dukta',
+    name: 'Dukta',
     client: 'Client pitch — flexible wood marketing site',
     status: 'preview',
     path: '/demos/dukta/',
     password: 'dukta',
     blurb:
-      'Private demo: password-gated dukta marketing site for flexible wood systems — material, applications, and product storytelling. Not linked from the public homepage.',
+      'Private demo: password-gated Dukta marketing site for flexible wood systems — material, applications, and product storytelling. Not linked from the public homepage.',
     tags: ['Website', 'Product', 'Client pitch'],
     images: [
       '/demos/dukta/media/material/flexible-ribbon.jpg',

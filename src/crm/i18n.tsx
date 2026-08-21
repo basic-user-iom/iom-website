@@ -1719,7 +1719,7 @@ const en: Dict = {
   'guide.demosText':
     'A short catalogue of demos built for clients that stay off the public portfolio — open links, share passwords, track pitch status.',
   'guide.demos1':
-    'ICM: https://iobjectm.com/demo/icm · EVLY: https://iobjectm.com/demo/evly/ · Kelly Kettle: https://iobjectm.com/demos/kelly-kettle/ · Precision object: https://iobjectm.com/demos/precision-object/ · Automotive Studio: https://iobjectm.com/demos/automotive-studio/ · dukta: https://iobjectm.com/demos/dukta/ (passwords in the cards)',
+    'ICM: https://iobjectm.com/demo/icm · EVLY: https://iobjectm.com/demo/evly/ · Kelly Kettle: https://iobjectm.com/demos/kelly-kettle/ · Precision object: https://iobjectm.com/demos/precision-object/ · Automotive Studio: https://iobjectm.com/demos/automotive-studio/ · Dukta: https://iobjectm.com/demos/dukta/ (passwords in the cards)',
   'guide.demos2':
     'Use Open demo for the live URL; Open on this site for the same path on the current host',
   'guide.demos3':
@@ -3504,7 +3504,7 @@ const sr: Dict = {
   'guide.demosText':
     'Kratak katalog demoa za klijente koji ostaju van javnog portfolija — otvorite linkove, delite lozinke, pratite status pitch-a.',
   'guide.demos1':
-    'ICM: https://iobjectm.com/demo/icm · EVLY: https://iobjectm.com/demo/evly/ · Kelly Kettle: https://iobjectm.com/demos/kelly-kettle/ · Precision object: https://iobjectm.com/demos/precision-object/ · Automotive Studio: https://iobjectm.com/demos/automotive-studio/ · dukta: https://iobjectm.com/demos/dukta/ (lozinke su na karticama)',
+    'ICM: https://iobjectm.com/demo/icm · EVLY: https://iobjectm.com/demo/evly/ · Kelly Kettle: https://iobjectm.com/demos/kelly-kettle/ · Precision object: https://iobjectm.com/demos/precision-object/ · Automotive Studio: https://iobjectm.com/demos/automotive-studio/ · Dukta: https://iobjectm.com/demos/dukta/ (lozinke su na karticama)',
   'guide.demos2':
     'Otvori demo za živi URL; Otvori na ovom sajtu za isti path na trenutnom hostu',
   'guide.demos3':
