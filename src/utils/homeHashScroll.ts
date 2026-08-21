@@ -1,5 +1,8 @@
 const PENDING_CLASS = 'section-block--pending'
 
+/** In-page menu / footer hash travel. Long enough to see the page move; short of a trap. */
+const HASH_SCROLL_MS = 900
+
 const USER_SCROLL_KEYS = new Set([
   'ArrowUp',
   'ArrowDown',
@@ -66,19 +69,24 @@ function prefersReducedMotion(): boolean {
 }
 
 function headerOffsetPx(el: HTMLElement): number {
+  const header = document.querySelector('.site-header')
+  if (header instanceof HTMLElement) {
+    const bottom = header.getBoundingClientRect().bottom
+    if (bottom > 0) return bottom
+  }
   const fromEl = parseFloat(getComputedStyle(el).scrollMarginTop)
   if (Number.isFinite(fromEl) && fromEl > 0) return fromEl
   const fromRoot = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--header-h'))
   return Number.isFinite(fromRoot) ? fromRoot : 72
 }
 
-function targetDrift(el: HTMLElement): number {
-  return el.getBoundingClientRect().top - headerOffsetPx(el)
+function targetYFor(el: HTMLElement): number {
+  return Math.max(0, window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el))
 }
 
 /** Extra page length so a last-section hash (#contact) can actually reach the header. */
 function ensureHashScrollPad(el: HTMLElement): void {
-  const desiredY = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el)
+  const desiredY = targetYFor(el)
   const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
   if (desiredY <= maxY + 1) return
   const prev = parseFloat(document.documentElement.style.getPropertyValue('--hash-scroll-pad')) || 0
@@ -89,15 +97,18 @@ function ensureHashScrollPad(el: HTMLElement): void {
 }
 
 function revealHashTarget(el: HTMLElement): void {
-  el.classList.add('is-visible')
+  el.classList.add('is-visible', 'is-hash-scroll-target')
   el.querySelectorAll('.reveal').forEach((node) => node.classList.add('is-visible'))
 }
 
-function alignToTarget(el: HTMLElement, behavior: ScrollBehavior): void {
+function alignToTarget(el: HTMLElement): void {
   revealHashTarget(el)
   ensureHashScrollPad(el)
-  const top = window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el)
-  window.scrollTo({ top: Math.max(0, top), behavior })
+  window.scrollTo({ top: targetYFor(el), behavior: 'auto' })
+}
+
+function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2
 }
 
 function rememberSectionSizes(): void {
@@ -136,12 +147,6 @@ function isUserScrollKey(event: KeyboardEvent): boolean {
   return USER_SCROLL_KEYS.has(event.key)
 }
 
-/** Scrollbar clicks hit <html> / <body>; ignore UI clicks inside the page. */
-function isViewportScrollbarPointer(event: PointerEvent): boolean {
-  if (event.pointerType && event.pointerType !== 'mouse') return false
-  return event.target === document.documentElement || event.target === document.body
-}
-
 function waitAnimationFrames(count: number): Promise<void> {
   return new Promise((resolve) => {
     const step = (left: number) => {
@@ -161,50 +166,31 @@ function waitMs(ms: number): Promise<void> {
   })
 }
 
-/** One quiet moment after in-section images decode — no ResizeObserver loop. */
-function waitForSectionMedia(el: HTMLElement, timeoutMs: number, isCancelled: () => boolean): Promise<void> {
-  const images = [...el.querySelectorAll('img')].filter((img) => !img.complete)
-  if (images.length === 0) return waitAnimationFrames(1)
-
-  return new Promise((resolve) => {
-    let remaining = images.length
-    let settled = false
-    const done = () => {
-      if (settled) return
-      settled = true
-      window.clearTimeout(timer)
-      resolve()
-    }
-    const onImg = () => {
-      remaining -= 1
-      if (remaining <= 0 || isCancelled()) done()
-    }
-    const timer = window.setTimeout(done, timeoutMs)
-    for (const img of images) {
-      img.addEventListener('load', onImg, { once: true })
-      img.addEventListener('error', onImg, { once: true })
-    }
-  })
-}
-
 type LiveTarget = { current: HTMLElement }
 
 /**
- * Scroll once (plus at most one correction after images). User intent cancels.
- * No 2.8s scrollIntoView loop and no ResizeObserver realign on every decode.
+ * One shot to the section: either an instant jump (first-load hash) or a ~900ms
+ * rAF lerp (in-page menu). User wheel / touch / scroll keys cancel immediately.
  */
-function scheduleSettle(el: HTMLElement, id: string, isCancelled: () => boolean): () => void {
+function scheduleSettle(
+  el: HTMLElement,
+  id: string,
+  isCancelled: () => boolean,
+  animate: boolean,
+): () => void {
   let finished = false
+  let rafId = 0
   const endHashScroll = beginHashScroll()
   const live: LiveTarget = { current: el }
 
   const finish = () => {
     if (finished) return
     finished = true
+    if (rafId) window.cancelAnimationFrame(rafId)
+    rafId = 0
     window.removeEventListener('wheel', onUserIntent, listenerOpts)
     window.removeEventListener('touchmove', onUserIntent, listenerOpts)
     window.removeEventListener('keydown', onKeyDown)
-    window.removeEventListener('pointerdown', onPointerDown, listenerOpts)
     endHashScroll()
   }
 
@@ -214,10 +200,6 @@ function scheduleSettle(el: HTMLElement, id: string, isCancelled: () => boolean)
 
   const onKeyDown = (event: KeyboardEvent) => {
     if (isUserScrollKey(event)) finish()
-  }
-
-  const onPointerDown = (event: PointerEvent) => {
-    if (isViewportScrollbarPointer(event)) finish()
   }
 
   const listenerOpts: AddEventListenerOptions = { passive: true, capture: true }
@@ -238,8 +220,12 @@ function scheduleSettle(el: HTMLElement, id: string, isCancelled: () => boolean)
 
     let target = resolveLive()
     if (!target) {
-      const placeholder = findHashPlaceholder(id)
-      if (placeholder) alignToTarget(placeholder, 'auto')
+      // Deep-link only: park on a placeholder so the URL hash has somewhere to land.
+      // In-page animate waits here so we do not jump, then lerp.
+      if (!animate) {
+        const placeholder = findHashPlaceholder(id)
+        if (placeholder) alignToTarget(placeholder)
+      }
       const started = Date.now()
       while (!target && !finished && !isCancelled() && Date.now() - started < 4000) {
         await waitMs(50)
@@ -252,30 +238,51 @@ function scheduleSettle(el: HTMLElement, id: string, isCancelled: () => boolean)
       return
     }
 
-    const motion = prefersReducedMotion() ? 'auto' : 'smooth'
-    alignToTarget(target, motion)
-
-    await waitForSectionMedia(target, 700, () => finished || isCancelled())
-    await waitAnimationFrames(1)
-
+    revealHashTarget(target)
+    await waitAnimationFrames(2)
     if (finished || isCancelled()) {
       finish()
       return
     }
+    ensureHashScrollPad(target)
+    const toY = targetYFor(target)
+    const fromY = window.scrollY
+    const delta = toY - fromY
+    const shouldAnimate = animate && !prefersReducedMotion() && Math.abs(delta) > 1
 
-    const settled = resolveLive()
-    if (settled && Math.abs(targetDrift(settled)) > 8) {
-      alignToTarget(settled, 'auto')
+    if (!shouldAnimate) {
+      window.scrollTo({ top: toY, behavior: 'auto' })
+      finish()
+      return
     }
 
-    await waitAnimationFrames(1)
+    const t0 = performance.now()
+    await new Promise<void>((resolve) => {
+      const tick = (now: number) => {
+        if (finished || isCancelled()) {
+          resolve()
+          return
+        }
+        const t = Math.min(1, (now - t0) / HASH_SCROLL_MS)
+        const liveEl = resolveLive()
+        if (liveEl) ensureHashScrollPad(liveEl)
+        const dest = liveEl ? targetYFor(liveEl) : fromY + delta
+        window.scrollTo({ top: fromY + (dest - fromY) * easeInOutCubic(t), behavior: 'auto' })
+        if (t < 1) {
+          rafId = window.requestAnimationFrame(tick)
+          return
+        }
+        resolve()
+      }
+      rafId = window.requestAnimationFrame(tick)
+    })
+
     finish()
   }
 
   window.addEventListener('wheel', onUserIntent, listenerOpts)
   window.addEventListener('touchmove', onUserIntent, listenerOpts)
   window.addEventListener('keydown', onKeyDown)
-  window.addEventListener('pointerdown', onPointerDown, listenerOpts)
 
   void run()
   return finish
@@ -285,16 +292,26 @@ export function scrollReadyHashIntoView(id: string, behavior?: ScrollBehavior): 
   if (!isSectionHash(id)) return false
   const el = findReadyHashTarget(id) ?? findHashPlaceholder(id)
   if (!el) return false
-  const motion = behavior ?? (prefersReducedMotion() ? 'auto' : 'smooth')
-  alignToTarget(el, motion)
+  const animate = (behavior ?? (prefersReducedMotion() ? 'auto' : 'smooth')) === 'smooth'
+  if (animate) {
+    scheduleSettle(el, id, () => false, true)
+  } else {
+    alignToTarget(el)
+  }
   return true
 }
 
 type WatchOptions = {
   timeoutMs?: number
+  /** Eased rAF travel. Default true for menu clicks; first-load hash passes false. */
+  animate?: boolean
 }
 
-function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: number): () => void {
+let cancelActiveScroll = () => {}
+
+function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: number, animate: boolean): () => void {
+  cancelActiveScroll()
+
   let pollId = 0
   let cancelSettle = () => {}
 
@@ -305,32 +322,59 @@ function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: numbe
     }
   }
 
+  const stop = () => {
+    stopPoll()
+    cancelSettle()
+  }
+
   const tryScroll = (): boolean => {
     if (!isSectionHash(id)) return true
     const el = findReadyHashTarget(id) ?? findHashPlaceholder(id)
     if (!el) return false
     stopPoll()
     cancelSettle()
-    cancelSettle = scheduleSettle(el, id, isCancelled)
+    cancelSettle = scheduleSettle(el, id, isCancelled, animate)
     return true
   }
 
-  if (tryScroll()) {
-    return () => {
-      stopPoll()
-      cancelSettle()
-    }
-  }
+  cancelActiveScroll = stop
+
+  if (tryScroll()) return stop
 
   const started = Date.now()
   pollId = window.setInterval(() => {
     if (isCancelled() || tryScroll() || Date.now() - started > timeoutMs) stopPoll()
   }, 50)
 
-  return () => {
-    stopPoll()
-    cancelSettle()
+  return stop
+}
+
+/** Ignore the hashchange that follows an in-page menu click we already animated. */
+let ignoreHashchangeUntil = 0
+let lastInPageNavId = ''
+let lastInPageNavAt = 0
+
+function markInPageHashNav(id: string): boolean {
+  const now = performance.now()
+  if (id === lastInPageNavId && now - lastInPageNavAt < 80) return false
+  lastInPageNavId = id
+  lastInPageNavAt = now
+  ignoreHashchangeUntil = now + 400
+  return true
+}
+
+function samePageHashId(anchor: HTMLAnchorElement): string {
+  let url: URL
+  try {
+    url = new URL(anchor.href, window.location.href)
+  } catch {
+    return ''
   }
+  if (url.origin !== window.location.origin) return ''
+  const here = window.location.pathname.replace(/\/+$/, '') || '/'
+  const there = url.pathname.replace(/\/+$/, '') || '/'
+  if (here !== there) return ''
+  return parseLocationHash(url.hash)
 }
 
 /**
@@ -343,23 +387,45 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
   let cancelled = false
   let stopCurrent = () => {}
 
-  const start = () => {
+  const start = (animate: boolean) => {
+    if (animate && performance.now() < ignoreHashchangeUntil) return
     stopCurrent()
     const id = parseLocationHash()
     if (!isSectionHash(id)) return
-    stopCurrent = bindHashScroll(id, () => cancelled, timeoutMs)
+    stopCurrent = bindHashScroll(id, () => cancelled, timeoutMs, animate)
   }
 
   const onHash = () => {
-    window.requestAnimationFrame(start)
+    window.requestAnimationFrame(() => start(true))
   }
 
-  start()
+  const onPop = () => {
+    window.requestAnimationFrame(() => start(true))
+  }
+
+  const onDocClick = (event: MouseEvent) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+    const el = event.target
+    if (!(el instanceof Element)) return
+    const anchor = el.closest('a')
+    if (!(anchor instanceof HTMLAnchorElement)) return
+    const id = samePageHashId(anchor)
+    if (!isSectionHash(id) || id === 'main-content') return
+    if (!anchor.closest('.header-nav, .header-tools, .site-footer, .hero-actions')) return
+    handleHomeHashLinkClick(event, id)
+  }
+
+  start(false)
   window.addEventListener('hashchange', onHash)
+  window.addEventListener('popstate', onPop)
+  window.addEventListener('click', onDocClick, true)
   return () => {
     cancelled = true
     stopCurrent()
+    cancelActiveScroll()
     window.removeEventListener('hashchange', onHash)
+    window.removeEventListener('popstate', onPop)
+    window.removeEventListener('click', onDocClick, true)
     document.documentElement.classList.remove('is-hash-scrolling')
     document.documentElement.style.removeProperty('--hash-scroll-pad')
     document.documentElement.style.removeProperty('overflow-anchor')
@@ -371,18 +437,22 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
 export function handleHomeHashLinkClick(event: { preventDefault: () => void }, id: string): void {
   if (!document.getElementById('top')) return
   event.preventDefault()
+  if (!isSectionHash(id)) return
+  if (!markInPageHashNav(id)) return
   if (parseLocationHash() !== id) {
-    window.location.hash = id
-    return
+    // pushState updates the URL without the browser jumping to the fragment.
+    window.history.pushState(null, '', `#${id}`)
+    window.dispatchEvent(new HashChangeEvent('hashchange'))
   }
-  scrollToHashWhenReady(id)
+  scrollToHashWhenReady(id, { animate: true })
 }
 
-/** Homepage header/footer click: wait for the real section, then scroll. */
+/** Homepage header/footer click: wait for the real section, then scroll once. */
 export function scrollToHashWhenReady(id: string, options?: WatchOptions): () => void {
   const timeoutMs = options?.timeoutMs ?? 8000
+  const animate = options?.animate ?? true
   let cancelled = false
-  const stop = bindHashScroll(id, () => cancelled, timeoutMs)
+  const stop = bindHashScroll(id, () => cancelled, timeoutMs, animate)
   return () => {
     cancelled = true
     stop()
