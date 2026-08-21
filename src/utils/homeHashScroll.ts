@@ -1,5 +1,18 @@
 const PENDING_CLASS = 'section-block--pending'
 
+const USER_SCROLL_KEYS = new Set([
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'PageUp',
+  'PageDown',
+  'Home',
+  'End',
+  ' ',
+  'Spacebar',
+])
+
 function escapeAttr(id: string): string {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(id)
   return id.replace(/["\\]/g, '\\$&')
@@ -13,6 +26,15 @@ export function parseLocationHash(hash = typeof window !== 'undefined' ? window.
   } catch {
     return raw
   }
+}
+
+/** Real section hashes only — `#top` / empty are not deep-links and must not settle. */
+export function isSectionHash(id: string): boolean {
+  return Boolean(id) && id !== 'top'
+}
+
+export function isDeepLinkHash(hash = typeof window !== 'undefined' ? window.location.hash : ''): boolean {
+  return isSectionHash(parseLocationHash(hash))
 }
 
 /** Real section only — skip deferred placeholders so hash scroll cannot land on an empty box. */
@@ -72,6 +94,28 @@ function beginHashScroll(): () => void {
   }
 }
 
+function isEditableKeyTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+  const tag = target.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable
+}
+
+function isUserScrollKey(event: KeyboardEvent): boolean {
+  if (event.metaKey || event.ctrlKey || event.altKey) return false
+  if (isEditableKeyTarget(event.target)) return false
+  return USER_SCROLL_KEYS.has(event.key)
+}
+
+/** Scrollbar clicks hit <html> / <body>; ignore UI clicks inside the page. */
+function isViewportScrollbarPointer(event: PointerEvent): boolean {
+  if (event.pointerType && event.pointerType !== 'mouse') return false
+  return event.target === document.documentElement || event.target === document.body
+}
+
+/**
+ * Re-align while deferred body / content-visibility shifts layout.
+ * Stop immediately if the visitor takes over (wheel, touch, keys, scrollbar).
+ */
 function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void {
   let settleId = 0
   let ro: ResizeObserver | null = null
@@ -84,8 +128,26 @@ function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void
     finished = true
     if (settleId) window.clearTimeout(settleId)
     ro?.disconnect()
+    window.removeEventListener('wheel', onUserIntent, listenerOpts)
+    window.removeEventListener('touchmove', onUserIntent, listenerOpts)
+    window.removeEventListener('keydown', onKeyDown)
+    window.removeEventListener('pointerdown', onPointerDown, listenerOpts)
     endHashScroll()
   }
+
+  const onUserIntent = () => {
+    finish()
+  }
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (isUserScrollKey(event)) finish()
+  }
+
+  const onPointerDown = (event: PointerEvent) => {
+    if (isViewportScrollbarPointer(event)) finish()
+  }
+
+  const listenerOpts: AddEventListenerOptions = { passive: true, capture: true }
 
   const realign = () => {
     if (finished || isCancelled() || !el.isConnected) return
@@ -107,6 +169,11 @@ function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void
     }
   }
 
+  window.addEventListener('wheel', onUserIntent, listenerOpts)
+  window.addEventListener('touchmove', onUserIntent, listenerOpts)
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('pointerdown', onPointerDown, listenerOpts)
+
   if (typeof ResizeObserver !== 'undefined') {
     ro = new ResizeObserver(realign)
     ro.observe(el)
@@ -119,6 +186,7 @@ function scheduleSettle(el: HTMLElement, isCancelled: () => boolean): () => void
 }
 
 export function scrollReadyHashIntoView(id: string, behavior?: ScrollBehavior): boolean {
+  if (!isSectionHash(id)) return false
   const el = findReadyHashTarget(id)
   if (!el) return false
   const motion = behavior ?? (prefersReducedMotion() ? 'auto' : 'smooth')
@@ -134,6 +202,7 @@ type WatchOptions = {
  * Scroll to the current location hash once the real section exists, then
  * re-align if deferred body / content-visibility shifts layout.
  * Always listens for hashchange (same-page About / Costs clicks).
+ * `#top` / empty hash never start a settle — that was yanking hard-reloads back up.
  */
 export function watchLocationHashScroll(options?: WatchOptions): () => void {
   const timeoutMs = options?.timeoutMs ?? 8000
@@ -150,7 +219,7 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
 
   const tryScroll = (): boolean => {
     const id = parseLocationHash()
-    if (!id) return true
+    if (!isSectionHash(id)) return true
     const el = findReadyHashTarget(id)
     if (!el) return false
     cancelSettle()
@@ -209,6 +278,7 @@ export function scrollToHashWhenReady(id: string, options?: WatchOptions): () =>
   }
 
   const tryScroll = (): boolean => {
+    if (!isSectionHash(id)) return true
     const el = findReadyHashTarget(id)
     if (!el) return false
     cancelSettle()

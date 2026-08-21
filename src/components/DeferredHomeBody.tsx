@@ -1,4 +1,5 @@
-import { Suspense, useEffect, useState, type ReactNode } from 'react'
+import { Suspense, useEffect, useLayoutEffect, useRef, type ReactNode, useState } from 'react'
+import { isDeepLinkHash } from '../utils/homeHashScroll'
 
 type DeferredHomeBodyProps = {
   children: ReactNode
@@ -26,10 +27,24 @@ function PendingSections({ sectionIds }: { sectionIds: string[] }) {
   )
 }
 
-/** `#top` / empty `#` are not deep-links — they must not force an early mount. */
-function isDeepLinkHash(hash: string): boolean {
-  const id = decodeURIComponent(hash.replace(/^#/, '')).trim()
-  return Boolean(id) && id !== 'top'
+function restoreScrollY(y: number): void {
+  if (y <= 40) return
+  if (window.scrollY >= y - 1) return
+  window.scrollTo({ top: y, behavior: 'auto' })
+}
+
+/** After Suspense swaps placeholders for real sections, put scrollY back. */
+function RestoreScrollOnMount({
+  yRef,
+  children,
+}: {
+  yRef: { current: number }
+  children: ReactNode
+}) {
+  useLayoutEffect(() => {
+    restoreScrollY(yRef.current)
+  }, [yRef])
+  return children
 }
 
 /**
@@ -42,6 +57,16 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
   const [ready, setReady] = useState(() =>
     typeof window !== 'undefined' ? isDeepLinkHash(window.location.hash) : false,
   )
+  const lastYRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0)
+
+  useEffect(() => {
+    const capture = () => {
+      lastYRef.current = window.scrollY
+    }
+    window.addEventListener('scroll', capture, { passive: true })
+    capture()
+    return () => window.removeEventListener('scroll', capture)
+  }, [])
 
   useEffect(() => {
     if (ready) return
@@ -51,6 +76,7 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
 
     const mount = () => {
       if (cancelled) return
+      lastYRef.current = window.scrollY
       setReady(true)
       window.removeEventListener('scroll', onScroll)
       window.removeEventListener('hashchange', onHash)
@@ -58,6 +84,7 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
     }
 
     const onScroll = () => {
+      lastYRef.current = window.scrollY
       if (window.scrollY > 40) mount()
     }
 
@@ -79,8 +106,17 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
     }
   }, [ready])
 
+  useLayoutEffect(() => {
+    if (!ready) return
+    restoreScrollY(lastYRef.current)
+  }, [ready])
+
   if (ready) {
-    return <Suspense fallback={<PendingSections sectionIds={sectionIds} />}>{children}</Suspense>
+    return (
+      <Suspense fallback={<PendingSections sectionIds={sectionIds} />}>
+        <RestoreScrollOnMount yRef={lastYRef}>{children}</RestoreScrollOnMount>
+      </Suspense>
+    )
   }
 
   return <PendingSections sectionIds={sectionIds} />
