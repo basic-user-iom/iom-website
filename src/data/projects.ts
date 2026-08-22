@@ -12,11 +12,16 @@ export interface Project {
   /** Live site preview in featured card (iframe src); falls back to glyph if blocked */
   embedUrl?: string
   /**
+   * Homepage hover iframe. Default: lightweight HTML yes, WebGPU/WebGL/Three.js no.
+   * Heavy demos stay on the poster; OPEN still goes to the live page.
+   */
+  hoverEmbed?: boolean
+  /**
    * Start-button label for homepage card hover splash (first-party `/demos/…` embeds).
    * Defaults to `Start ${title}` when omitted.
    */
   embedStartLabel?: string
-  /** Static poster shown until hover activates the live embed */
+  /** Static poster shown until hover activates the live embed (or indefinitely for heavy GPU demos) */
   posterUrl?: string
   /** Static poster used when embeds are disabled on mobile */
   mobilePosterUrl?: string
@@ -46,6 +51,33 @@ export interface Project {
 export interface ProjectImage {
   src: string
   caption: string
+}
+
+/** Tags that mean the embed boots a GPU/Three runtime — hitchy to mount while scrolling. */
+const HEAVY_CARD_EMBED_TAGS = new Set([
+  'webgpu',
+  'webgl',
+  'three.js',
+  'css3d',
+  'shader',
+  'compute',
+  'particles',
+  'raymarch',
+])
+
+/**
+ * Whether a project card may hover-mount `embedUrl`.
+ * Panorama-360 / WebGPU / WebGL / Three.js (and third-party 3D sites) stay as posters.
+ * Tiny HTML embeds such as the labelled cursor lab may still preview on hover.
+ */
+export function projectAllowsHoverEmbed(project: Project): boolean {
+  if (project.hoverEmbed != null) return project.hoverEmbed
+  const url = project.embedUrl
+  if (!url) return false
+  if (/^https?:\/\//i.test(url)) return false
+  if (project.tags.some((tag) => HEAVY_CARD_EMBED_TAGS.has(tag.toLowerCase()))) return false
+  if (/panorama-360|webgpu/i.test(url)) return false
+  return true
 }
 
 export { SECTIONS, type SectionDef } from './sections'
@@ -909,6 +941,7 @@ export const PROJECTS: Project[] = [
     year: '2026',
     url: '/demos/custom-cursor-labelled/',
     embedUrl: '/demos/custom-cursor-labelled/',
+    hoverEmbed: true,
     posterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
     mobilePosterUrl: '/assets/posters/labelled-custom-cursor.png?v=20260806',
     thumbnail: '/assets/posters/labelled-custom-cursor.png?v=20260806',

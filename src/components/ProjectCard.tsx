@@ -1,6 +1,6 @@
 import { lazy, memo, Suspense, useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent } from 'react'
 import { cursorPropsForProject } from '../cursor'
-import type { Project } from '../data/projects'
+import { projectAllowsHoverEmbed, type Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
@@ -99,12 +99,16 @@ export const ProjectCard = memo(function ProjectCard({
   const hasEmbedPreview = Boolean(project.embedUrl)
   const useMultiLinkShell = hasSecondaryLinks || hasEmbedPreview
   const canEmbed = Boolean(project.embedUrl) && !embedFailed
-  const useStaticEmbed = canEmbed && profile.useEmbedStaticFallback
+  const hoverEmbedAllowed = projectAllowsHoverEmbed(project)
+  const useStaticEmbed = canEmbed && (profile.useEmbedStaticFallback || !hoverEmbedAllowed)
   const showLiveEmbed = canEmbed && !useStaticEmbed
   const staticPreviewUrl = !canEmbed ? project.thumbnail ?? project.posterUrl : undefined
   const showThumbnail = Boolean(staticPreviewUrl)
   const showIframe = showLiveEmbed && isHovered && embedSlotActive && pageVisible
-  const posterUrl = useStaticEmbed ? project.mobilePosterUrl ?? project.posterUrl : project.posterUrl
+  // Mobile still prefers the 400w poster; desktop GPU-static cards keep the full poster.
+  const posterUrl = profile.useEmbedStaticFallback
+    ? (project.mobilePosterUrl ?? project.posterUrl)
+    : project.posterUrl
   const showPoster = canEmbed && Boolean(posterUrl) && !previewImageFailed
   const posterHidden = showIframe && embedLoaded
   const thumbSrc = staticPreviewUrl ?? project.posterUrl ?? ''
