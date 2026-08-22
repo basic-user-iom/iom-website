@@ -14,6 +14,8 @@ export const itUi: Dict = {
   'nav.listen': 'Ascolta',
   'nav.muteAria': 'Disattiva audio ambientale',
   'nav.listenAria': 'Attiva audio ambientale',
+  'nav.musicPlayer': 'Player',
+  'nav.musicPlayerAria': 'La riproduzione è in Musica — vai al player',
   'nav.langAria': 'Lingua',
   'nav.brandTag': 'Interactive Object Media',
 

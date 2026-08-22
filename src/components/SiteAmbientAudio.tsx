@@ -146,6 +146,8 @@ export function SiteAmbientAudio() {
       playNow()
     }
 
+    let musicSectionVisible = false
+
     const onMuteEvent = (event: Event) => {
       const detail = (event as CustomEvent<{ muted?: boolean }>).detail
       if (!audioRef.current || typeof detail?.muted !== 'boolean') return
@@ -161,6 +163,16 @@ export function SiteAmbientAudio() {
       }
     }
 
+    const onMusicSection = (event: Event) => {
+      const visible = Boolean((event as CustomEvent<{ visible?: boolean }>).detail?.visible)
+      musicSectionVisible = visible
+      if (visible) {
+        duck()
+        return
+      }
+      if (getAudioFocus() !== 'music') unduck()
+    }
+
     const onVolumeEvent = (event: Event) => {
       const detail = (event as CustomEvent<{ volume?: number }>).detail
       if (!audioRef.current || typeof detail?.volume !== 'number') return
@@ -174,18 +186,20 @@ export function SiteAmbientAudio() {
         return
       }
       if (!detail.active && (detail.actor === 'music' || detail.actor === 'gallery')) {
-        unduck()
+        if (!musicSectionVisible) unduck()
       }
     })
 
     window.addEventListener('iom:site-audio-mute', onMuteEvent)
     window.addEventListener('iom:site-audio-volume', onVolumeEvent)
+    window.addEventListener('iom:music-section-visible', onMusicSection)
 
     return () => {
       ambientHandle = null
       unsubscribeFocus()
       window.removeEventListener('iom:site-audio-mute', onMuteEvent)
       window.removeEventListener('iom:site-audio-volume', onVolumeEvent)
+      window.removeEventListener('iom:music-section-visible', onMusicSection)
       releaseAudioFocus('site')
       audio.pause()
       audio.removeAttribute('src')

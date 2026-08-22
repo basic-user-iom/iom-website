@@ -405,17 +405,20 @@ html.pc-printing .iom-cursor {
   html.iom-cursor-active.iom-viewport-fs *,
   html.iom-cursor-active .iom-cursor-native-fs,
   html.iom-cursor-active .iom-cursor-native-fs *,
-  html.iom-cursor-active .music-player-visual-wrap:fullscreen,
-  html.iom-cursor-active .music-player-visual-wrap:fullscreen *,
-  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs,
-  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs *,
-  html.iom-cursor-active .music-player-visual-wrap--fs-active,
-  html.iom-cursor-active .music-player-visual-wrap--fs-active *,
   html.iom-cursor-active .hero-canvas-wrap:fullscreen,
   html.iom-cursor-active .hero-canvas-wrap:fullscreen *,
   html.iom-cursor-active .hero-canvas-wrap--pseudo-fs,
   html.iom-cursor-active .hero-canvas-wrap--pseudo-fs * {
     cursor: auto !important;
+  }
+
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen,
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen *,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs *,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active * {
+    cursor: none !important;
   }
 
   html.iom-cursor-active.iom-cursor-native-fs button,
@@ -430,6 +433,12 @@ html.pc-printing .iom-cursor {
   html.iom-cursor-active .music-player-visual-wrap:fullscreen button,
   html.iom-cursor-active .music-player-visual-wrap--pseudo-fs button,
   html.iom-cursor-active .music-player-visual-wrap--fs-active button,
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen .music-player-fs-bar,
+  html.iom-cursor-active .music-player-visual-wrap:fullscreen .music-player-fs-bar *,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs .music-player-fs-bar,
+  html.iom-cursor-active .music-player-visual-wrap--pseudo-fs .music-player-fs-bar *,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active .music-player-fs-bar,
+  html.iom-cursor-active .music-player-visual-wrap--fs-active .music-player-fs-bar *,
   html.iom-cursor-active .hero-canvas-wrap:fullscreen button,
   html.iom-cursor-active .hero-canvas-wrap--pseudo-fs button {
     cursor: pointer !important;
@@ -439,13 +448,18 @@ html.pc-printing .iom-cursor {
 /* WebKit drops a whole rule if it does not understand :fullscreen. */
 @media (hover: hover) and (pointer: fine) {
   html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen,
-  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen *,
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen * {
+    cursor: none !important;
+  }
+
   html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen,
   html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen * {
     cursor: auto !important;
   }
 
   html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen button,
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen .music-player-fs-bar,
+  html.iom-cursor-active .music-player-visual-wrap:-webkit-full-screen .music-player-fs-bar *,
   html.iom-cursor-active .hero-canvas-wrap:-webkit-full-screen button {
     cursor: pointer !important;
   }

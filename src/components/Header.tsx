@@ -23,6 +23,8 @@ export function Header() {
   // Mobile: skip the ~2.4MB autoplay loop — static poster is enough in the 44px badge.
   const useStaticRaven = profile.isMobile || profile.prefersReducedMotion
 
+  const [inMusicSection, setInMusicSection] = useState(false)
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 40)
 
@@ -56,6 +58,16 @@ export function Header() {
     return () => window.removeEventListener('iom:site-audio-mute', onMuteEvent)
   }, [])
 
+  useEffect(() => {
+    const onMusicSection = (event: Event) => {
+      const visible = Boolean((event as CustomEvent<{ visible?: boolean }>).detail?.visible)
+      setInMusicSection(visible)
+    }
+    window.addEventListener('iom:music-section-visible', onMusicSection)
+    setInMusicSection(document.documentElement.classList.contains('is-in-music-section'))
+    return () => window.removeEventListener('iom:music-section-visible', onMusicSection)
+  }, [])
+
   const closeMenu = () => setMenuOpen(false)
   const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
   const onBlog = /(?:^|\/)blog(?:\/|$)/.test(path)
@@ -66,6 +78,14 @@ export function Header() {
   }
 
   const handleMuteClick = () => {
+    if (inMusicSection) {
+      closeMenu()
+      document.getElementById('music-player-controls')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      })
+      return
+    }
     const next = toggleSiteMute()
     setSiteMuted(next)
     persistMute('site', next)
@@ -156,13 +176,25 @@ export function Header() {
         <LanguageSwitcher />
         <button
           type="button"
-          className={`header-mute${siteMuted ? ' header-mute--listen' : ''}`}
+          className={`header-mute${inMusicSection ? ' header-mute--deferred' : siteMuted ? ' header-mute--listen' : ''}`}
           onClick={handleMuteClick}
-          aria-label={siteMuted ? t('nav.listenAria') : t('nav.muteAria')}
-          aria-pressed={!siteMuted}
-          title={siteMuted ? t('nav.listenAria') : t('nav.muteAria')}
+          aria-label={
+            inMusicSection
+              ? t('nav.musicPlayerAria')
+              : siteMuted
+                ? t('nav.listenAria')
+                : t('nav.muteAria')
+          }
+          aria-pressed={inMusicSection ? undefined : !siteMuted}
+          title={
+            inMusicSection
+              ? t('nav.musicPlayerAria')
+              : siteMuted
+                ? t('nav.listenAria')
+                : t('nav.muteAria')
+          }
         >
-          {siteMuted ? t('nav.listen') : t('nav.mute')}
+          {inMusicSection ? t('nav.musicPlayer') : siteMuted ? t('nav.listen') : t('nav.mute')}
         </button>
         <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={(event) => handleHomeHashClick(event, 'contact')}>
           {t('nav.contact')}

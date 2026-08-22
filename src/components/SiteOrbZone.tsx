@@ -569,18 +569,19 @@ function runOrbRuntime(
         wasHovering = false
         hoverKey = ''
       }
-      if (fsWrap) {
-        for (const el of orbNodes) {
-          if (el.parentElement !== fsWrap) fsWrap.appendChild(el)
-        }
-      } else {
-        for (const el of orbNodes) {
-          if (el.parentElement !== zone) zone.insertBefore(el, zone.firstChild)
-        }
+      for (const el of orbNodes) {
+        if (el.parentElement !== zone) zone.insertBefore(el, zone.firstChild)
       }
 
       const orbs = orbNodes
       if (orbs.length < ORB_COUNT) {
+        raf = window.requestAnimationFrame(tick)
+        return
+      }
+
+      // Fullscreen sea uses a single cursor orb inside the wrap — park these three.
+      if (fsWrap) {
+        for (const el of orbs) el.style.opacity = '0'
         raf = window.requestAnimationFrame(tick)
         return
       }
@@ -642,15 +643,7 @@ function runOrbRuntime(
         }
       }
 
-      if (fsWrap) {
-        const sea = fsWrap.querySelector('.music-player-visual')
-        hoverTarget = sea instanceof HTMLElement ? sea : fsWrap
-        effectiveHoverKind = 'card'
-        scrollAttendEl = hoverTarget
-        scrollAttendId = 'music-fs'
-      }
-
-      if (mobile && !fsWrap && !hoverTarget && frame % 2 === 1) {
+      if (mobile && !hoverTarget && frame % 2 === 1) {
         raf = window.requestAnimationFrame(tick)
         return
       }

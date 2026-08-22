@@ -484,6 +484,21 @@ button:focus:not(:focus-visible) {
   }
 }
 
+.header-mute--deferred {
+  opacity: 0.34;
+  color: var(--text-muted);
+  border-color: var(--border);
+  background: transparent;
+  transition: opacity 0.45s ease, color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+}
+
+.header-mute--deferred:hover,
+.header-mute--deferred:focus-visible {
+  opacity: 0.92;
+  color: var(--accent);
+  border-color: var(--border-accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .header-mute--listen::after {
     animation: none;
@@ -1790,7 +1805,7 @@ html.is-hash-scrolling {
   border-radius: 0;
   background: #040406;
   border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
-  cursor: auto;
+  cursor: none;
 }
 
 .music-player-visual-wrap:fullscreen .music-player-visual,
@@ -1807,7 +1822,7 @@ html.is-hash-scrolling {
 }
 
 .music-player-visual-wrap--fs-active {
-  cursor: auto;
+  cursor: none;
 }
 
 .music-player-visual-wrap--pseudo-fs {
@@ -1826,7 +1841,7 @@ html.is-hash-scrolling {
   padding-top: env(safe-area-inset-top, 0px);
   padding-left: env(safe-area-inset-left, 0px);
   padding-right: env(safe-area-inset-right, 0px);
-  cursor: auto;
+  cursor: none;
 }
 
 .music-player-visual-wrap:fullscreen .music-player-visual-chrome,
@@ -1836,19 +1851,54 @@ html.is-hash-scrolling {
   right: max(0.75rem, env(safe-area-inset-right, 0px));
   z-index: 8;
   transform: translateZ(0);
+  cursor: auto;
+}
+
+.music-player-visual-wrap:fullscreen .music-player-visual-chrome *,
+.music-player-visual-wrap:-webkit-full-screen .music-player-visual-chrome *,
+.music-player-visual-wrap--pseudo-fs .music-player-visual-chrome *,
+.music-player-visual-wrap:fullscreen .music-player-fs-bar,
+.music-player-visual-wrap:-webkit-full-screen .music-player-fs-bar,
+.music-player-visual-wrap--pseudo-fs .music-player-fs-bar,
+.music-player-visual-wrap:fullscreen .music-player-fs-bar *,
+.music-player-visual-wrap:-webkit-full-screen .music-player-fs-bar *,
+.music-player-visual-wrap--pseudo-fs .music-player-fs-bar * {
+  cursor: pointer;
 }
 
 .music-player-visual-wrap:fullscreen > .clients-orb,
 .music-player-visual-wrap:-webkit-full-screen > .clients-orb,
 .music-player-visual-wrap--pseudo-fs > .clients-orb {
+  display: none !important;
+}
+
+.music-player-fs-cursor-orb {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 6; /* under Exit chrome z-index 8 */
-  margin: -5px 0 0 -5px;
+  z-index: 7;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
   pointer-events: none;
-  opacity: 0.92;
-  display: block;
+  opacity: 0;
+  will-change: transform, opacity;
+  background: radial-gradient(
+    circle,
+    rgba(255, 255, 255, 1) 0%,
+    rgba(180, 245, 255, 0.92) 32%,
+    rgba(0, 229, 255, 0.5) 52%,
+    transparent 78%
+  );
+  box-shadow:
+    0 0 5px 2px rgba(255, 255, 255, 0.45),
+    0 0 14px 6px rgba(0, 229, 255, 0.4);
+  transition: opacity 0.12s ease;
+}
+
+.music-player-fs-cursor-orb.is-visible {
+  opacity: 0.95;
 }
 
 .music-player-fs-bar {
@@ -2130,30 +2180,71 @@ body.music-player-fs-lock {
   flex-shrink: 0;
   min-height: 44px;
   padding: 0.45rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
   border-radius: var(--radius);
   font-size: 0.65rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--text-muted);
   background: rgba(4, 4, 6, 0.55);
-  transition: border-color 0.2s, color 0.2s, opacity 0.2s;
+  transition: border-color 0.2s, color 0.2s, opacity 0.2s, background 0.2s, box-shadow 0.2s;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   position: relative;
   z-index: 1;
 }
 
+.music-player-btn:not(:disabled) {
+  color: var(--accent);
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: color-mix(in srgb, var(--accent) 10%, rgba(4, 4, 6, 0.72));
+}
+
 .music-player-btn:hover,
 .music-player-btn:focus-visible {
   border-color: var(--border-accent);
   color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 16%, rgba(4, 4, 6, 0.78));
   outline: none;
 }
 
 .music-player-btn[aria-pressed='true'] {
   color: var(--accent);
   border-color: var(--border-accent);
+  background: color-mix(in srgb, var(--accent) 14%, rgba(4, 4, 6, 0.8));
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent);
+}
+
+.music-player-btn--cue:not(:disabled) {
+  isolation: isolate;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent),
+    0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.music-player-btn--cue:not(:disabled)::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: inherit;
+  border: 1px solid rgba(94, 184, 192, 0.5);
+  pointer-events: none;
+  z-index: -1;
+}
+
+html.is-in-music-section .music-player-btn--cue:not(:disabled)::after {
+  animation: header-mute-pulse 1.8s ease-in-out infinite;
+}
+
+html.is-in-music-section .music-player-transport {
+  border-color: color-mix(in srgb, var(--accent) 32%, var(--border));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.is-in-music-section .music-player-btn--cue:not(:disabled)::after {
+    animation: none;
+    opacity: 0.55;
+  }
 }
 
 .music-player-btn:disabled {
@@ -2165,6 +2256,8 @@ body.music-player-fs-lock {
 .music-player-btn:disabled:focus-visible {
   border-color: var(--border);
   color: var(--text-muted);
+  background: rgba(4, 4, 6, 0.55);
+  box-shadow: none;
 }
 
 .music-player-timeline {

@@ -14,6 +14,8 @@ export const enUi: Dict = {
   'nav.listen': 'Listen',
   'nav.muteAria': 'Mute ambient sound',
   'nav.listenAria': 'Listen to ambient sound',
+  'nav.musicPlayer': 'Player',
+  'nav.musicPlayerAria': 'Playback is in the Music section — jump to the player',
   'nav.langAria': 'Language',
   'nav.brandTag': 'Interactive Object Media',
 

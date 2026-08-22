@@ -20,22 +20,34 @@ export const MusicSection = memo(function MusicSection({ index, label, blurb }: 
     const el = sectionRef.current
     if (!el) return
 
+    const setMusicSectionActive = (visible: boolean) => {
+      document.documentElement.classList.toggle('is-in-music-section', visible)
+      window.dispatchEvent(
+        new CustomEvent('iom:music-section-visible', { detail: { visible } }),
+      )
+    }
+
+    let revealed = false
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.querySelectorAll('.reveal').forEach((node, i) => {
-              window.setTimeout(() => node.classList.add('is-visible'), i * 80)
-            })
-            observer.unobserve(entry.target)
-          }
-        })
+        const entry = entries[0]
+        if (!entry) return
+        if (entry.isIntersecting && !revealed) {
+          revealed = true
+          el.querySelectorAll('.reveal').forEach((node, i) => {
+            window.setTimeout(() => node.classList.add('is-visible'), i * 80)
+          })
+        }
+        setMusicSectionActive(entry.isIntersecting && entry.intersectionRatio >= 0.18)
       },
-      { threshold: 0.12, rootMargin: '0px 0px -40px 0px' },
+      { threshold: [0.12, 0.18, 0.28], rootMargin: '-8% 0px -18% 0px' },
     )
 
     observer.observe(el)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      setMusicSectionActive(false)
+    }
   }, [])
 
   return (

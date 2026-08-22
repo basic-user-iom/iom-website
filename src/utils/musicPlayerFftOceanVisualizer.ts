@@ -97,8 +97,33 @@ export const FFT_OCEAN_SKYBOX_SETS = [
   'sunset',
   'violent_days',
 ] as const
-/** Start on grimmnight; cycling then continues to interstellar, miramar, … */
+type SkyboxSet = (typeof FFT_OCEAN_SKYBOX_SETS)[number]
+/** Matches MusicPlayer audio crossfade (fade out + fade in). */
+const SKY_CROSSFADE_MS = 4000
+/** Locked look per score — The Black Witness always uses the storm/night sea. */
+const TRACK_SKYBOX: Record<string, SkyboxSet> = {
+  'the-black-witness-score': 'grimmnight',
+  'between-wild-and-wire-score': 'violent_days',
+  'concrete-light-score': 'sunset',
+  'night-grid-score': 'sky',
+  'mist-stone-sea-score': 'clouds',
+  'below-the-last-light-score': 'miramar',
+  'celestial-current-score': 'interstellar',
+}
+/** Start on grimmnight (The Black Witness). */
 const FFT_OCEAN_INITIAL_SKYBOX_INDEX = FFT_OCEAN_SKYBOX_SETS.indexOf('grimmnight')
+
+function skyboxIndexForTrack(trackId: string | null): number {
+  const name = (trackId && TRACK_SKYBOX[trackId]) || 'grimmnight'
+  const index = FFT_OCEAN_SKYBOX_SETS.indexOf(name)
+  return index >= 0 ? index : FFT_OCEAN_INITIAL_SKYBOX_INDEX
+}
+
+function waitMs(ms: number) {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 const EVENING_LIGHT = new THREE.Vector3(-0.28, 0.52, -0.38)
 const SKYBOX_SIZE = 64
 
@@ -224,6 +249,7 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
   private skyboxSetIndex = FFT_OCEAN_INITIAL_SKYBOX_INDEX
   private lastTrackId: string | null = null
   private skyboxLoadGeneration = 0
+  private skyboxCache = new Map<string, THREE.CubeTexture>()
   private container: HTMLElement | null = null
   private audio = new MusicPlayerAudioDriver()
   private travelZ = 0
@@ -374,32 +400,61 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
   }
 
   setActiveTrackId(trackId: string) {
-    if (trackId === this.lastTrackId) return
-    const hadPreviousTrack = this.lastTrackId != null
+    const nextIndex = skyboxIndexForTrack(trackId)
+    const sameTrack = trackId === this.lastTrackId
+    const sameSky = nextIndex === this.skyboxSetIndex
     this.lastTrackId = trackId
-    if (!hadPreviousTrack || !this.scene) return
-    this.skyboxSetIndex = (this.skyboxSetIndex + 1) % FFT_OCEAN_SKYBOX_SETS.length
-    void this.swapSkyboxSet(this.skyboxSetIndex)
+    if (sameTrack) return
+    this.skyboxSetIndex = nextIndex
+    if (!this.scene || sameSky) return
+    void this.transitionSkybox(nextIndex, true)
+  }
+
+  private async loadSkyboxCached(setName: string): Promise<THREE.CubeTexture> {
+    const cached = this.skyboxCache.get(setName)
+    if (cached) return cached
+    const texture = await loadSkyboxSet(setName)
+    this.skyboxCache.set(setName, texture)
+    return texture
   }
 
   private async loadCurrentSkybox(): Promise<THREE.CubeTexture> {
     const setName = FFT_OCEAN_SKYBOX_SETS[this.skyboxSetIndex] ?? FFT_OCEAN_SKYBOX_SETS[0]
-    return loadSkyboxSet(setName)
+    return this.loadSkyboxCached(setName)
   }
 
-  private async swapSkyboxSet(index: number) {
-    const generation = ++this.skyboxLoadGeneration
-    const setName = FFT_OCEAN_SKYBOX_SETS[index] ?? FFT_OCEAN_SKYBOX_SETS[0]
-    const nextSkybox = await loadSkyboxSet(setName)
-    if (this.disposed || generation !== this.skyboxLoadGeneration || !this.scene) {
-      nextSkybox.dispose()
-      return
-    }
-    const previous = this.skybox
+  private applySkybox(nextSkybox: THREE.CubeTexture) {
+    if (!this.scene) return
     this.skybox = nextSkybox
     this.scene.background = nextSkybox
     this.skyboxRotation.set(0, 0, 0)
-    previous?.dispose()
+  }
+
+  private async transitionSkybox(index: number, fade: boolean) {
+    const generation = ++this.skyboxLoadGeneration
+    const setName = FFT_OCEAN_SKYBOX_SETS[index] ?? FFT_OCEAN_SKYBOX_SETS[0]
+    const nextPromise = this.loadSkyboxCached(setName)
+    const canvas = this.renderer?.domElement
+    const reduced = this.prefersReducedMotion || !fade
+    const halfMs = SKY_CROSSFADE_MS / 2
+
+    if (reduced || !canvas) {
+      const nextSkybox = await nextPromise
+      if (this.disposed || generation !== this.skyboxLoadGeneration || !this.scene) return
+      this.applySkybox(nextSkybox)
+      if (canvas) {
+        canvas.style.transition = ''
+        canvas.style.opacity = '1'
+      }
+      return
+    }
+
+    canvas.style.transition = `opacity ${halfMs}ms ease-in-out`
+    canvas.style.opacity = '0'
+    const [nextSkybox] = await Promise.all([nextPromise, waitMs(halfMs)])
+    if (this.disposed || generation !== this.skyboxLoadGeneration || !this.scene) return
+    this.applySkybox(nextSkybox)
+    canvas.style.opacity = '1'
   }
 
   async mount(container: HTMLElement) {
@@ -455,8 +510,7 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
     scene.fog = new THREE.FogExp2(0x070b11, 0.00105)
     this.scene = scene
 
-    this.skyboxSetIndex = FFT_OCEAN_INITIAL_SKYBOX_INDEX
-    this.lastTrackId = null
+    this.skyboxSetIndex = skyboxIndexForTrack(this.lastTrackId)
     this.skybox = await this.loadCurrentSkybox()
     if (this.disposed) return
     scene.background = this.skybox
@@ -980,6 +1034,10 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
     this.initPromise = null
     this.skyboxLoadGeneration += 1
     this.lastTrackId = null
+    if (this.renderer?.domElement) {
+      this.renderer.domElement.style.transition = ''
+      this.renderer.domElement.style.opacity = '1'
+    }
 
     this.ocean?.dispose()
     this.ocean = null
@@ -1003,7 +1061,8 @@ export class MusicPlayerFftOceanVisualizer implements MusicPlayerVisualizerLike 
     this.exitCamHold = null
     this.ravenLoadStarted = false
 
-    this.skybox?.dispose()
+    for (const texture of this.skyboxCache.values()) texture.dispose()
+    this.skyboxCache.clear()
     this.skybox = null
 
     if (this.renderer) {

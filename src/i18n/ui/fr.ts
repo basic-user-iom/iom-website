@@ -14,6 +14,8 @@ export const frUi: Dict = {
   'nav.listen': 'Écouter',
   'nav.muteAria': 'Couper le son d’ambiance',
   'nav.listenAria': 'Activer le son d’ambiance',
+  'nav.musicPlayer': 'Lecteur',
+  'nav.musicPlayerAria': 'La lecture est dans Musique — aller au lecteur',
   'nav.langAria': 'Langue',
   'nav.brandTag': 'Interactive Object Media',
 

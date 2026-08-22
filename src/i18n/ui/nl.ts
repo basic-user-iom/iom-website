@@ -14,6 +14,8 @@ export const nlUi: Dict = {
   'nav.listen': 'Luisteren',
   'nav.muteAria': 'Omgevingsgeluid dempen',
   'nav.listenAria': 'Omgevingsgeluid aanzetten',
+  'nav.musicPlayer': 'Speler',
+  'nav.musicPlayerAria': 'Afspelen zit in Muziek — ga naar de speler',
   'nav.langAria': 'Taal',
   'nav.brandTag': 'Interactive Object Media',
 

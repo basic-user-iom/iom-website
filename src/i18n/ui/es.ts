@@ -14,6 +14,8 @@ export const esUi: Dict = {
   'nav.listen': 'Escuchar',
   'nav.muteAria': 'Silenciar sonido ambiental',
   'nav.listenAria': 'Activar sonido ambiental',
+  'nav.musicPlayer': 'Player',
+  'nav.musicPlayerAria': 'La reproducción está en Música — ir al reproductor',
   'nav.langAria': 'Idioma',
   'nav.brandTag': 'Interactive Object Media',
 

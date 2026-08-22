@@ -194,7 +194,12 @@ function TransportControls({
   const rootClass = ['music-player-transport', className].filter(Boolean).join(' ')
 
   return (
-    <div className={rootClass} role="group" aria-label="Playback controls">
+    <div
+      className={rootClass}
+      role="group"
+      aria-label="Playback controls"
+      id={variant === 'inline' ? 'music-player-controls' : undefined}
+    >
       {variant === 'fullscreen' && activeTrackTitle ? (
         <div className="music-player-fs-track-row">
           <button
@@ -226,7 +231,7 @@ function TransportControls({
           <div className="music-player-buttons">
             <button
               type="button"
-              className="music-player-btn"
+              className={`music-player-btn${!isPlaying ? ' music-player-btn--cue' : ''}`}
               data-cursor="play"
               onClick={() => void onPlay()}
               disabled={isPlaying || disabled}
@@ -236,7 +241,7 @@ function TransportControls({
             </button>
             <button
               type="button"
-              className="music-player-btn"
+              className={`music-player-btn${isPlaying ? ' music-player-btn--cue' : ''}`}
               data-cursor="pause"
               onClick={onPause}
               disabled={!isPlaying}
@@ -305,7 +310,7 @@ function TransportControls({
           <div className="music-player-buttons">
             <button
               type="button"
-              className="music-player-btn"
+              className={`music-player-btn${!isPlaying ? ' music-player-btn--cue' : ''}`}
               data-cursor="play"
               onClick={() => void onPlay()}
               disabled={isPlaying || disabled}
@@ -315,7 +320,7 @@ function TransportControls({
             </button>
             <button
               type="button"
-              className="music-player-btn"
+              className={`music-player-btn${isPlaying ? ' music-player-btn--cue' : ''}`}
               data-cursor="pause"
               onClick={onPause}
               disabled={!isPlaying}
@@ -403,6 +408,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const visualContainerRef = useRef<HTMLDivElement>(null)
   const visualizerRef = useRef<MusicPlayerVisualizerLike | null>(null)
   const visualizerMountedRef = useRef(false)
+  const fsCursorOrbRef = useRef<HTMLSpanElement>(null)
   const [visualizerReady, setVisualizerReady] = useState(false)
   const audioARef = useRef<HTMLAudioElement | null>(null)
   const audioBRef = useRef<HTMLAudioElement | null>(null)
@@ -436,6 +442,8 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     () => typeof document === 'undefined' || !document.hidden,
   )
   const isFullscreen = nativeFullscreen || pseudoFullscreen
+  const isFullscreenRef = useRef(false)
+  isFullscreenRef.current = isFullscreen
   const viewportEngaged = inViewport || isFullscreen
   const shouldAnimateVisualizer =
     tabVisible &&
@@ -1224,6 +1232,8 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     void Promise.resolve(visualizer.mount(container)).then(() => {
       if (cancelled) return
       visualizerMountedRef.current = true
+      const trackId = playingTrackIdRef.current ?? activeTrackRef.current?.id
+      if (trackId) visualizer.setActiveTrackId?.(trackId)
       resizeVisualizer()
       visualizer.update(0.016, performance.now() / 1000, false, null)
     })
@@ -1301,10 +1311,20 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
       const x = ((event.clientX - rect.left) / rect.width) * 2 - 1
       const y = -(((event.clientY - rect.top) / rect.height) * 2 - 1)
       visualizerRef.current?.setPointer(x, y)
+
+      const orb = fsCursorOrbRef.current
+      if (orb && isFullscreenRef.current) {
+        const overChrome =
+          event.target instanceof Element &&
+          Boolean(event.target.closest('.music-player-visual-chrome, .music-player-fs-bar, button'))
+        orb.style.transform = `translate3d(${event.clientX - rect.left}px, ${event.clientY - rect.top}px, 0)`
+        orb.classList.toggle('is-visible', !overChrome)
+      }
     }
 
     const onPointerLeave = () => {
       visualizerRef.current?.resetPointer()
+      fsCursorOrbRef.current?.classList.remove('is-visible')
     }
 
     visual.addEventListener('pointermove', onPointerMove)
@@ -1438,12 +1458,19 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
         <div className="music-player-stage">
           <div className="music-player-media-row">
-            <div
-              ref={visualWrapRef}
-              className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active iom-cursor-native-fs' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
-              data-cursor="focus"
-              {...visualOrbPointerProps}
-            >
+              <div
+                ref={visualWrapRef}
+                className={`music-player-visual-wrap${isFullscreen ? ' music-player-visual-wrap--fs-active iom-cursor-native-fs' : ''}${pseudoFullscreen ? ' music-player-visual-wrap--pseudo-fs' : ''}`}
+                data-cursor="focus"
+                {...visualOrbPointerProps}
+              >
+              {isFullscreen ? (
+                <span
+                  ref={fsCursorOrbRef}
+                  className="music-player-fs-cursor-orb"
+                  aria-hidden="true"
+                />
+              ) : null}
               <div
                 ref={visualContainerRef}
                 className={`music-player-visual${isPlaying ? ' is-live' : ''}`}
