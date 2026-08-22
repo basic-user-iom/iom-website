@@ -1648,6 +1648,7 @@ html.is-hash-scrolling {
   flex: 0 0 auto;
   width: clamp(260px, 30vw, 320px);
   min-width: 0;
+  isolation: isolate;
 }
 
 .music-player-visual {
@@ -1835,6 +1836,19 @@ html.is-hash-scrolling {
   right: max(0.75rem, env(safe-area-inset-right, 0px));
   z-index: 8;
   transform: translateZ(0);
+}
+
+.music-player-visual-wrap:fullscreen > .clients-orb,
+.music-player-visual-wrap:-webkit-full-screen > .clients-orb,
+.music-player-visual-wrap--pseudo-fs > .clients-orb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 6; /* under Exit chrome z-index 8 */
+  margin: -5px 0 0 -5px;
+  pointer-events: none;
+  opacity: 0.92;
+  display: block;
 }
 
 .music-player-fs-bar {

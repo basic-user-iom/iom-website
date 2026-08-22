@@ -181,6 +181,16 @@ function syncAngleFromPosition(
   body.angle = Math.atan2(ly / ay, lx / ax)
 }
 
+function resolveMusicFsWrap(): HTMLElement | null {
+  const doc = document as Document & { webkitFullscreenElement?: Element | null }
+  const native = document.fullscreenElement ?? doc.webkitFullscreenElement ?? null
+  if (native instanceof HTMLElement && native.classList.contains('music-player-visual-wrap')) {
+    return native
+  }
+  const pseudo = document.querySelector('.music-player-visual-wrap--pseudo-fs')
+  return pseudo instanceof HTMLElement ? pseudo : null
+}
+
 function centerInZone(el: HTMLElement, zone: HTMLElement): { x: number; y: number } {
   const er = el.getBoundingClientRect()
   const zr = zone.getBoundingClientRect()
@@ -424,6 +434,9 @@ function runOrbRuntime(
     let evacuateBoost = 0
     let scrollAttendEl: HTMLElement | null = null
     let scrollAttendId = ''
+    let coordRoot: HTMLElement = zone
+    let lastFsWrap: HTMLElement | null = null
+    const orbNodes = Array.from(zone.querySelectorAll<HTMLSpanElement>(':scope > .clients-orb'))
 
     const onHeroLive = (event: Event) => {
       const detail = (event as CustomEvent<{ live?: boolean }>).detail
@@ -501,7 +514,7 @@ function runOrbRuntime(
       w: number,
     ): { cx: number; cy: number; rx: number; ry: number } => {
       if (kind === 'hero') {
-        const c = centerInZone(el, zone)
+        const c = centerInZone(el, coordRoot)
         return {
           cx: c.x,
           cy: c.y,
@@ -510,7 +523,7 @@ function runOrbRuntime(
         }
       }
       if (kind === 'rfo') {
-        const c = centerInZone(el, zone)
+        const c = centerInZone(el, coordRoot)
         return {
           cx: c.x,
           cy: c.y,
@@ -519,7 +532,7 @@ function runOrbRuntime(
         }
       }
       if (kind === 'clients') {
-        const c = centerInZone(el, zone)
+        const c = centerInZone(el, coordRoot)
         return {
           cx: c.x,
           cy: c.y,
@@ -530,7 +543,7 @@ function runOrbRuntime(
       // Project / music media: orbit the visible slice so tall grids stay on-screen.
       // If the section is still below the fold (hero-live evacuate), aim at its top edge.
       if (box.top > window.innerHeight * 0.28) {
-        const zr = zone.getBoundingClientRect()
+        const zr = coordRoot.getBoundingClientRect()
         return {
           cx: box.left + box.width * 0.5 - zr.left,
           cy: box.top + Math.min(90, Math.max(36, box.height * 0.1)) - zr.top,
@@ -538,7 +551,7 @@ function runOrbRuntime(
           ry: Math.max(32, 64),
         }
       }
-      const c = centerInZoneVisible(el, zone)
+      const c = centerInZoneVisible(el, coordRoot)
       return {
         cx: c.x,
         cy: c.y,
@@ -548,7 +561,25 @@ function runOrbRuntime(
     }
 
     const tick = (ts: number) => {
-      const orbs = zone.querySelectorAll<HTMLSpanElement>(':scope > .clients-orb')
+      const fsWrap = resolveMusicFsWrap()
+      coordRoot = fsWrap ?? zone
+      if (fsWrap !== lastFsWrap) {
+        lastFsWrap = fsWrap
+        seededDisp = false
+        wasHovering = false
+        hoverKey = ''
+      }
+      if (fsWrap) {
+        for (const el of orbNodes) {
+          if (el.parentElement !== fsWrap) fsWrap.appendChild(el)
+        }
+      } else {
+        for (const el of orbNodes) {
+          if (el.parentElement !== zone) zone.insertBefore(el, zone.firstChild)
+        }
+      }
+
+      const orbs = orbNodes
       if (orbs.length < ORB_COUNT) {
         raf = window.requestAnimationFrame(tick)
         return
@@ -566,7 +597,7 @@ function runOrbRuntime(
       // Coarse pointers can't hover — attend the most visible project card instead.
       // Ignore touch-driven card hover (it only flashes on tap/leave); scroll owns cards.
       // Keep attending after the hero goes live so project grids still get outline orbits.
-      if (mobile && (effectiveHoverKind === 'card' || !hoverTarget)) {
+      if (!fsWrap && mobile && (effectiveHoverKind === 'card' || !hoverTarget)) {
         if (effectiveHoverKind === 'card') {
           hoverTarget = null
           effectiveHoverKind = null
@@ -611,19 +642,27 @@ function runOrbRuntime(
         }
       }
 
-      if (mobile && !hoverTarget && frame % 2 === 1) {
+      if (fsWrap) {
+        const sea = fsWrap.querySelector('.music-player-visual')
+        hoverTarget = sea instanceof HTMLElement ? sea : fsWrap
+        effectiveHoverKind = 'card'
+        scrollAttendEl = hoverTarget
+        scrollAttendId = 'music-fs'
+      }
+
+      if (mobile && !fsWrap && !hoverTarget && frame % 2 === 1) {
         raf = window.requestAnimationFrame(tick)
         return
       }
 
-      if (!zoneActive && !hoverTarget) {
+      if (!fsWrap && !zoneActive && !hoverTarget) {
         for (const el of orbs) el.style.opacity = '0'
         raf = window.requestAnimationFrame(tick)
         return
       }
 
-      const w = zone.clientWidth
-      const h = zone.clientHeight
+      const w = coordRoot.clientWidth
+      const h = coordRoot.clientHeight
       if (frame % 45 === 1) refreshAnchors()
 
       // Free-orbit around the most visible page anchor (hero scene, grids, clients, RFO).
@@ -662,7 +701,7 @@ function runOrbRuntime(
       }
       if (best && bestBox && bestScore > 8) {
         if (best.kind === 'hero') {
-          const c = centerInZone(best.el, zone)
+          const c = centerInZone(best.el, coordRoot)
           cx = c.x
           cy = c.y
           freeRect = {
@@ -729,7 +768,7 @@ function runOrbRuntime(
       if (hoverTarget) {
         releaseBlend = 0
         const box = hoverTarget.getBoundingClientRect()
-        const { x: mx, y: my } = centerInZone(hoverTarget, zone)
+        const { x: mx, y: my } = centerInZone(hoverTarget, coordRoot)
         // RFO: hug the letter. Cards / hero window: rectangular outline.
         // Client tiles: circular ring outside the mark.
         let radius = 0
@@ -927,6 +966,9 @@ function runOrbRuntime(
       window.cancelAnimationFrame(raf)
       io.disconnect()
       window.removeEventListener('iom:hero-live', onHeroLive)
+      for (const el of orbNodes) {
+        if (el.parentElement !== zone) zone.insertBefore(el, zone.firstChild)
+      }
       zone.classList.remove(
         'is-attending',
         'is-in-view',

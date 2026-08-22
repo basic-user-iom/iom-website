@@ -54,15 +54,6 @@ export function GalleryLightbox({
   const [volume, setVolume] = useState(() => readStoredVolume('gallery'))
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
-  const overlayPushedRef = useRef(false)
-
-  const requestClose = useCallback(() => {
-    if (overlayPushedRef.current) {
-      window.history.back()
-      return
-    }
-    onClose()
-  }, [onClose])
 
   const goPrev = useCallback(() => {
     onIndexChange((index - 1 + count) % count)
@@ -188,37 +179,12 @@ export function GalleryLightbox({
   }, [volume])
 
   useEffect(() => {
-    overlayPushedRef.current = true
-    try {
-      window.history.pushState({ iomGallery: true }, '')
-    } catch {
-      overlayPushedRef.current = false
-    }
-
-    const onPop = () => {
-      overlayPushedRef.current = false
-      onClose()
-    }
-    window.addEventListener('popstate', onPop)
-    const unlockScroll = lockBodyScroll()
-
-    return () => {
-      window.removeEventListener('popstate', onPop)
-      unlockScroll()
-      if (overlayPushedRef.current) {
-        overlayPushedRef.current = false
-        try {
-          window.history.back()
-        } catch {
-          /* ignore */
-        }
-      }
-    }
-  }, [onClose])
+    return lockBodyScroll()
+  }, [])
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') requestClose()
+      if (event.key === 'Escape') onClose()
       else if (event.key === 'ArrowLeft') goPrev()
       else if (event.key === 'ArrowRight') goNext()
       else if (event.key === 'm' || event.key === 'M') toggleMute()
@@ -230,10 +196,10 @@ export function GalleryLightbox({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [audioUrl, goNext, goPrev, handlePause, handlePlay, isPlaying, requestClose, toggleMute])
+  }, [audioUrl, goNext, goPrev, handlePause, handlePlay, isPlaying, onClose, toggleMute])
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (event.target === event.currentTarget) requestClose()
+    if (event.target === event.currentTarget) onClose()
   }
 
   const handleImageLoad = () => {
@@ -319,7 +285,7 @@ export function GalleryLightbox({
             <button
               type="button"
               className="gallery-lightbox-close"
-              onClick={requestClose}
+              onClick={onClose}
               aria-label="Close gallery"
             >
               Close

@@ -497,6 +497,16 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
 
   const start = (animate: boolean) => {
     if (animate && performance.now() < ignoreHashchangeUntil) return
+    const html = document.documentElement
+    // Overlay lock/unlock (gallery Close, music pseudo-fs EXIT) must not
+    // hash-settle leftover #experiments / #music / card ids.
+    if (
+      html.classList.contains('is-restoring-scroll') ||
+      html.classList.contains('is-overlay-open')
+    ) {
+      stopCurrent()
+      return
+    }
     stopCurrent()
     const stored = peekReturnCard()
     const hashId = parseLocationHash()

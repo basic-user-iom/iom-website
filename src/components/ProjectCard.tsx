@@ -72,6 +72,7 @@ export const ProjectCard = memo(function ProjectCard({
   )
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
+  const galleryClosedAtRef = useRef(0)
   const mountedRef = useRef(true)
   const embedReadyPollRef = useRef<number | null>(null)
 
@@ -206,9 +207,16 @@ export const ProjectCard = memo(function ProjectCard({
 
   const openGallery = useCallback(() => {
     if (!hasGallery) return
+    // Overlay unmount can deliver the same click to the card underneath.
+    if (performance.now() - galleryClosedAtRef.current < 400) return
     setGalleryIndex(0)
     setGalleryOpen(true)
   }, [hasGallery])
+
+  const closeGallery = useCallback(() => {
+    galleryClosedAtRef.current = performance.now()
+    setGalleryOpen(false)
+  }, [])
 
   const selectMusicTrack = useCallback(() => {
     if (!hasMusicTrack || !onMusicSelect) return
@@ -597,7 +605,7 @@ export const ProjectCard = memo(function ProjectCard({
             images={project.gallery}
             index={galleryIndex}
             onIndexChange={setGalleryIndex}
-            onClose={() => setGalleryOpen(false)}
+            onClose={closeGallery}
             audioUrl={project.galleryAudio}
           />
         </Suspense>
