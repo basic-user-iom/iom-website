@@ -371,32 +371,39 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 1002;
-        display: flex;
+        display: inline-flex;
+        align-items: stretch;
         gap: 0;
+        width: min(280px, calc(100vw - 24px));
         border: 1px solid rgba(0, 229, 255, 0.28);
         border-radius: 6px;
         background: rgba(0, 0, 0, 0.42);
         backdrop-filter: blur(6px);
         overflow: hidden;
         box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
-        max-width: calc(100vw - 24px);
       }
       .nav-mode-btn {
+        flex: 1 1 0;
         min-height: 44px;
-        min-width: 44px;
-        padding: 8px 14px;
+        min-width: 0;
+        padding: 8px 16px;
         border: none;
         border-right: 1px solid rgba(0, 229, 255, 0.18);
         background: transparent;
         color: rgba(255, 255, 255, 0.78);
         font: 500 12px/1 system-ui, sans-serif;
         letter-spacing: 0.04em;
+        text-align: center;
+        white-space: nowrap;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         touch-action: manipulation;
         transition:
           background 0.15s ease,
           color 0.15s ease;
+      }
+      .nav-mode-btn[hidden] {
+        display: none !important;
       }
       .nav-mode-btn:last-child {
         border-right: none;
@@ -419,10 +426,11 @@
           top: auto;
           bottom: 88px;
           left: 50%;
+          width: min(260px, calc(100vw - 24px));
           transform: translateX(-50%);
         }
         .nav-mode-btn {
-          padding: 8px 12px;
+          padding: 10px 14px;
           font-size: 11px;
         }
       }
@@ -583,7 +591,9 @@
       <button type="button" class="nav-mode-btn is-active" data-nav-mode="Teleport" aria-pressed="true">
         Teleport
       </button>
-      <button type="button" class="nav-mode-btn" data-nav-mode="Walk" aria-pressed="false">Explore</button>
+      <button type="button" class="nav-mode-btn" data-nav-mode="Walk" aria-pressed="false" hidden>
+        Explore
+      </button>
       <button type="button" class="nav-mode-btn" data-nav-mode="Inspect" aria-pressed="false">Inspect</button>
     </nav>
     <div
@@ -600,9 +610,9 @@
             ×
           </button>
         </div>
-        <p class="intro-popup-lead">
-          Three ways to move through the gallery — you start in Teleport; switch anytime from the
-          top bar.
+        <p class="intro-popup-lead" id="intro-popup-lead">
+          Two ways to move through the gallery — you start in Teleport; switch to Inspect anytime
+          from the top bar.
         </p>
         <ul class="intro-popup-list">
           <li>
@@ -611,7 +621,7 @@
             Scroll (or pinch) to zoom in and out from your standing position.
             Hold or drag without a short click to orbit only.
           </li>
-          <li>
+          <li id="intro-explore-item" hidden>
             <strong>Explore</strong>
             First-person walk with an on-screen character. Click to lock the pointer, then use WASD
             (Shift to run) and the mouse to look.
@@ -673,7 +683,7 @@
     <div id="walk-hint" hidden>Tap floor to teleport · Drag to look around</div>
     <div id="coord-toast" role="status" aria-live="polite" hidden></div>
     <div id="teleport-fade" aria-hidden="true"></div>
-    <div id="runtime-status" aria-live="polite">Ready. Teleport mode: short-click the gallery floor to move. Drag to look around. Switch to Explore or Inspect from the top bar.</div>
+    <div id="runtime-status" aria-live="polite">Ready. Teleport mode: short-click the gallery floor to move. Drag to look around. Switch to Inspect from the top bar.</div>
     <aside id="camera-views-panel" class="inspector-side-panel is-open" aria-label="Camera views">
       <div class="panel-header" role="button" tabindex="0" aria-expanded="true">
         <span class="item-toggler" aria-hidden="true"></span>
@@ -859,6 +869,8 @@
       const BOUNDS_ASYNC_TRIANGLE_THRESHOLD = 100_000
       const WALK_STEPS_PER_FRAME = 5
       const WALK_GRAVITY = 6
+      // Flip to true when character movement / interaction is reliable again.
+      const EXPLORE_MODE_ENABLED = false
       // -------------------------------------------------------------------------
       // Explore spring-arm standard (gallery third-person / UE SpringArm style)
       // Pipeline: ideal sockets → collision shorten → smooth → one room clamp → lookAt
@@ -1939,9 +1951,17 @@
         return applied
       }
 
+      function sanitizeNavigationMode(mode) {
+        if (mode === 'Inspect') return 'Inspect'
+        if ((mode === 'Walk' || mode === 'explore' || mode === 'walk') && EXPLORE_MODE_ENABLED) {
+          return 'Walk'
+        }
+        return 'Teleport'
+      }
+
       function resolveInitialNavigationMode() {
         const mode = new URLSearchParams(window.location.search).get(NAVIGATION_MODE_PARAM)?.toLowerCase()
-        if (mode === 'explore' || mode === 'walk') return 'Walk'
+        if (mode === 'explore' || mode === 'walk') return sanitizeNavigationMode('Walk')
         if (mode === 'inspect') return 'Inspect'
         if (mode === 'teleport') return 'Teleport'
         return 'Teleport'
@@ -5476,7 +5496,13 @@
 
         const sceneGui = advancedGui.addFolder('Scene controls')
         navigationModeController = sceneGui
-          .add(params.runtime, 'navigationMode', { Teleport: 'Teleport', Explore: 'Walk', Inspect: 'Inspect' })
+          .add(
+            params.runtime,
+            'navigationMode',
+            EXPLORE_MODE_ENABLED
+              ? { Teleport: 'Teleport', Explore: 'Walk', Inspect: 'Inspect' }
+              : { Teleport: 'Teleport', Inspect: 'Inspect' },
+          )
           .name('mode')
           .onChange(setNavigationMode)
         initNavModeButtons()
@@ -11342,6 +11368,7 @@
       }
 
       function setNavigationMode(value) {
+        value = sanitizeNavigationMode(value)
         const previousMode = params.runtime.navigationMode
         params.runtime.navigationMode = value
         const explore = value === 'Walk'
@@ -11452,17 +11479,33 @@
         const mode = params.runtime.navigationMode
         navModeButtons.forEach((btn) => {
           const btnMode = btn.dataset.navMode
+          const exploreBtn = btnMode === 'Walk'
+          btn.hidden = exploreBtn && !EXPLORE_MODE_ENABLED
           const active = btnMode === mode
           btn.classList.toggle('is-active', active)
           btn.setAttribute('aria-pressed', String(active))
         })
       }
 
+      function syncExploreModeAvailability() {
+        const introExploreItem = document.getElementById('intro-explore-item')
+        const introLead = document.getElementById('intro-popup-lead')
+        if (introExploreItem) introExploreItem.hidden = !EXPLORE_MODE_ENABLED
+        if (introLead) {
+          introLead.textContent = EXPLORE_MODE_ENABLED
+            ? 'Three ways to move through the gallery — you start in Teleport; switch anytime from the top bar.'
+            : 'Two ways to move through the gallery — you start in Teleport; switch to Inspect anytime from the top bar.'
+        }
+        updateNavModeButtons()
+      }
+
       function initNavModeButtons() {
+        syncExploreModeAvailability()
         navModeButtons.forEach((btn) => {
           btn.addEventListener('click', () => {
             const mode = btn.dataset.navMode
             if (!mode || mode === params.runtime.navigationMode) return
+            if (mode === 'Walk' && !EXPLORE_MODE_ENABLED) return
             navigationModeController?.setValue(mode)
           })
         })
