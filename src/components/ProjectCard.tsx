@@ -3,6 +3,7 @@ import { cursorPropsForProject } from '../cursor'
 import { projectAllowsHoverEmbed, type Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
+import { isFirstPartyDemoUrl, newTabAnchorProps, rememberReturnCard } from '../utils/demoNav'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 
@@ -214,6 +215,10 @@ export const ProjectCard = memo(function ProjectCard({
     onMusicSelect(project.id)
   }, [hasMusicTrack, onMusicSelect, project.id])
 
+  const handleDemoNavigate = useCallback(() => {
+    if (project.url && isFirstPartyDemoUrl(project.url)) rememberReturnCard(project)
+  }, [project])
+
   const handleIframeLoad = useCallback(
     (event: React.SyntheticEvent<HTMLIFrameElement>) => {
       if (!mountedRef.current) return
@@ -400,9 +405,8 @@ export const ProjectCard = memo(function ProjectCard({
               href={projectHref}
               tabIndex={-1}
               aria-hidden="true"
-              {...(project.url?.startsWith('http') || project.url?.startsWith('/demos/')
-                ? { target: '_blank' as const, rel: 'noopener noreferrer' }
-                : {})}
+              onClick={handleDemoNavigate}
+              {...newTabAnchorProps(project.url)}
             />
           ) : null}
           <span className="card-preview-overlay" aria-hidden="true">
@@ -486,9 +490,8 @@ export const ProjectCard = memo(function ProjectCard({
                 <a
                   className="card-link card-link--stretch"
                   href={projectHref}
-                  {...(project.url.startsWith('http') || project.url.startsWith('/demos/')
-                    ? { target: '_blank' as const, rel: 'noopener noreferrer' }
-                    : {})}
+                  onClick={handleDemoNavigate}
+                  {...newTabAnchorProps(project.url)}
                 >
                   {project.url.startsWith('/case-studies/') && !project.caseStudyPath
                     ? t('card.viewStudy')
@@ -556,7 +559,6 @@ export const ProjectCard = memo(function ProjectCard({
   }
 
   if (project.url && !isComingSoon) {
-    const openInNewTab = project.url.startsWith('http') || project.url.startsWith('/demos/')
     return (
       <a
         id={project.id}
@@ -564,7 +566,8 @@ export const ProjectCard = memo(function ProjectCard({
         className={className}
         style={style}
         {...cursorProps}
-        {...(openInNewTab ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
+        onClick={handleDemoNavigate}
+        {...newTabAnchorProps(project.url)}
         {...orbPointerProps}
       >
         {inner}

@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, type ReactNode, useState } from 'react'
+import { peekReturnCard } from '../utils/demoNav'
 import { isDeepLinkHash } from '../utils/homeHashScroll'
 
 type DeferredHomeBodyProps = {
@@ -28,6 +29,7 @@ function PendingSections({ sectionIds }: { sectionIds: string[] }) {
 }
 
 function restoreScrollY(y: number): void {
+  if (peekReturnCard()) return
   if (y <= 40) return
   if (window.scrollY >= y - 1) return
   window.scrollTo({ top: y, behavior: 'auto' })
@@ -55,7 +57,9 @@ function RestoreScrollOnMount({
  */
 export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps) {
   const [ready, setReady] = useState(() =>
-    typeof window !== 'undefined' ? isDeepLinkHash(window.location.hash) : false,
+    typeof window !== 'undefined'
+      ? isDeepLinkHash(window.location.hash) || Boolean(peekReturnCard())
+      : false,
   )
   const lastYRef = useRef(typeof window !== 'undefined' ? window.scrollY : 0)
 
@@ -89,7 +93,7 @@ export function DeferredHomeBody({ children, sectionIds }: DeferredHomeBodyProps
     }
 
     const onHash = () => {
-      if (isDeepLinkHash(window.location.hash)) mount()
+      if (isDeepLinkHash(window.location.hash) || Boolean(peekReturnCard())) mount()
     }
 
     window.addEventListener('scroll', onScroll, { passive: true })

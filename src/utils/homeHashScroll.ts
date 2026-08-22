@@ -1,7 +1,25 @@
+import { clearReturnCard, peekReturnCard } from './demoNav'
+
 const PENDING_CLASS = 'section-block--pending'
 
 /** In-page menu / footer hash travel. Long enough to see the page move; short of a trap. */
 const HASH_SCROLL_MS = 900
+
+/** Homepage nav hashes — card ids (project.id) use center alignment instead. */
+const NAV_SECTION_IDS = new Set([
+  'software',
+  '3d',
+  '360',
+  'photography',
+  'music',
+  'experiments',
+  'clients',
+  'about',
+  'contact',
+  'main-content',
+])
+
+type ScrollAlign = 'start' | 'center'
 
 const USER_SCROLL_KEYS = new Set([
   'ArrowUp',
@@ -34,6 +52,15 @@ export function parseLocationHash(hash = typeof window !== 'undefined' ? window.
 /** Real section hashes only — `#top` / empty are not deep-links and must not settle. */
 export function isSectionHash(id: string): boolean {
   return Boolean(id) && id !== 'top'
+}
+
+export function isNavSectionId(id: string): boolean {
+  return NAV_SECTION_IDS.has(id)
+}
+
+/** Project card hashes (`id={project.id}`) — not Software / Experiments menu targets. */
+export function isCardHash(id: string): boolean {
+  return isSectionHash(id) && !isNavSectionId(id)
 }
 
 export function isDeepLinkHash(hash = typeof window !== 'undefined' ? window.location.hash : ''): boolean {
@@ -80,13 +107,18 @@ function headerOffsetPx(el: HTMLElement): number {
   return Number.isFinite(fromRoot) ? fromRoot : 72
 }
 
-function targetYFor(el: HTMLElement): number {
-  return Math.max(0, window.scrollY + el.getBoundingClientRect().top - headerOffsetPx(el))
+function targetYFor(el: HTMLElement, align: ScrollAlign = 'start'): number {
+  const rect = el.getBoundingClientRect()
+  if (align === 'center') {
+    const center = window.scrollY + rect.top + rect.height / 2 - window.innerHeight / 2
+    return Math.max(0, Math.round(center))
+  }
+  return Math.max(0, window.scrollY + rect.top - headerOffsetPx(el))
 }
 
 /** Extra page length so a last-section hash (#contact) can actually reach the header. */
-function ensureHashScrollPad(el: HTMLElement): void {
-  const desiredY = targetYFor(el)
+function ensureHashScrollPad(el: HTMLElement, align: ScrollAlign = 'start'): void {
+  const desiredY = targetYFor(el, align)
   const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
   if (desiredY <= maxY + 1) return
   const prev = parseFloat(document.documentElement.style.getPropertyValue('--hash-scroll-pad')) || 0
@@ -101,10 +133,10 @@ function revealHashTarget(el: HTMLElement): void {
   el.querySelectorAll('.reveal').forEach((node) => node.classList.add('is-visible'))
 }
 
-function alignToTarget(el: HTMLElement): void {
+function alignToTarget(el: HTMLElement, align: ScrollAlign = 'start'): void {
   revealHashTarget(el)
-  ensureHashScrollPad(el)
-  window.scrollTo({ top: targetYFor(el), behavior: 'auto' })
+  ensureHashScrollPad(el, align)
+  window.scrollTo({ top: targetYFor(el, align), behavior: 'auto' })
 }
 
 function easeInOutCubic(t: number): number {
@@ -177,6 +209,8 @@ function scheduleSettle(
   id: string,
   isCancelled: () => boolean,
   animate: boolean,
+  align: ScrollAlign = 'start',
+  onSettled?: () => void,
 ): () => void {
   let finished = false
   let rafId = 0
@@ -224,7 +258,7 @@ function scheduleSettle(
       // In-page animate waits here so we do not jump, then lerp.
       if (!animate) {
         const placeholder = findHashPlaceholder(id)
-        if (placeholder) alignToTarget(placeholder)
+        if (placeholder) alignToTarget(placeholder, align)
       }
       const started = Date.now()
       while (!target && !finished && !isCancelled() && Date.now() - started < 4000) {
@@ -244,14 +278,15 @@ function scheduleSettle(
       finish()
       return
     }
-    ensureHashScrollPad(target)
-    const toY = targetYFor(target)
+    ensureHashScrollPad(target, align)
+    const toY = targetYFor(target, align)
     const fromY = window.scrollY
     const delta = toY - fromY
     const shouldAnimate = animate && !prefersReducedMotion() && Math.abs(delta) > 1
 
     if (!shouldAnimate) {
       window.scrollTo({ top: toY, behavior: 'auto' })
+      onSettled?.()
       finish()
       return
     }
@@ -265,8 +300,8 @@ function scheduleSettle(
         }
         const t = Math.min(1, (now - t0) / HASH_SCROLL_MS)
         const liveEl = resolveLive()
-        if (liveEl) ensureHashScrollPad(liveEl)
-        const dest = liveEl ? targetYFor(liveEl) : fromY + delta
+        if (liveEl) ensureHashScrollPad(liveEl, align)
+        const dest = liveEl ? targetYFor(liveEl, align) : fromY + delta
         window.scrollTo({ top: fromY + (dest - fromY) * easeInOutCubic(t), behavior: 'auto' })
         if (t < 1) {
           rafId = window.requestAnimationFrame(tick)
@@ -277,6 +312,7 @@ function scheduleSettle(
       rafId = window.requestAnimationFrame(tick)
     })
 
+    onSettled?.()
     finish()
   }
 
@@ -292,11 +328,12 @@ export function scrollReadyHashIntoView(id: string, behavior?: ScrollBehavior): 
   if (!isSectionHash(id)) return false
   const el = findReadyHashTarget(id) ?? findHashPlaceholder(id)
   if (!el) return false
+  const align: ScrollAlign = isCardHash(id) ? 'center' : 'start'
   const animate = (behavior ?? (prefersReducedMotion() ? 'auto' : 'smooth')) === 'smooth'
   if (animate) {
-    scheduleSettle(el, id, () => false, true)
+    scheduleSettle(el, id, () => false, true, align)
   } else {
-    alignToTarget(el)
+    alignToTarget(el, align)
   }
   return true
 }
@@ -309,7 +346,14 @@ type WatchOptions = {
 
 let cancelActiveScroll = () => {}
 
-function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: number, animate: boolean): () => void {
+function bindHashScroll(
+  id: string,
+  isCancelled: () => boolean,
+  timeoutMs: number,
+  animate: boolean,
+  align: ScrollAlign = 'start',
+  onSettled?: () => void,
+): () => void {
   cancelActiveScroll()
 
   let pollId = 0
@@ -333,7 +377,7 @@ function bindHashScroll(id: string, isCancelled: () => boolean, timeoutMs: numbe
     if (!el) return false
     stopPoll()
     cancelSettle()
-    cancelSettle = scheduleSettle(el, id, isCancelled, animate)
+    cancelSettle = scheduleSettle(el, id, isCancelled, animate, align, onSettled)
     return true
   }
 
@@ -390,9 +434,21 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
   const start = (animate: boolean) => {
     if (animate && performance.now() < ignoreHashchangeUntil) return
     stopCurrent()
-    const id = parseLocationHash()
+    const stored = peekReturnCard()
+    const hashId = parseLocationHash()
+    const id = stored?.projectId || hashId
     if (!isSectionHash(id)) return
-    stopCurrent = bindHashScroll(id, () => cancelled, timeoutMs, animate)
+    const align: ScrollAlign = isCardHash(id) ? 'center' : 'start'
+    if (stored?.projectId && hashId !== stored.projectId) {
+      try {
+        window.history.replaceState(null, '', `#${stored.projectId}`)
+      } catch {
+        /* ignore */
+      }
+    }
+    stopCurrent = bindHashScroll(id, () => cancelled, timeoutMs, animate, align, () => {
+      if (stored?.projectId === id) clearReturnCard()
+    })
   }
 
   const onHash = () => {
@@ -451,8 +507,9 @@ export function handleHomeHashLinkClick(event: { preventDefault: () => void }, i
 export function scrollToHashWhenReady(id: string, options?: WatchOptions): () => void {
   const timeoutMs = options?.timeoutMs ?? 8000
   const animate = options?.animate ?? true
+  const align: ScrollAlign = isCardHash(id) ? 'center' : 'start'
   let cancelled = false
-  const stop = bindHashScroll(id, () => cancelled, timeoutMs, animate)
+  const stop = bindHashScroll(id, () => cancelled, timeoutMs, animate, align)
   return () => {
     cancelled = true
     stop()
