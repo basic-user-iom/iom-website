@@ -5,6 +5,7 @@ import { useSiteI18n } from '../i18n'
 import { EngagementCardShell } from './EngagementCardShell'
 import { useCardOrbPointerProps } from './SiteOrbZone'
 import { handleHomeHashLinkClick } from '../utils/homeHashScroll'
+import { navigateSameTabOnClick } from '../utils/demoNav'
 import './engagement.css'
 
 function RelevantWorkCard({
@@ -12,16 +13,24 @@ function RelevantWorkCard({
   href,
   note,
   image,
+  projectId,
 }: {
   title: string
   href: string
   note: string
   image: string
+  projectId: string
 }) {
   const orbPointerProps = useCardOrbPointerProps()
 
   return (
-    <a className="home-engage-proof-card" href={href} {...orbPointerProps}>
+    <a
+      className="home-engage-proof-card"
+      href={href}
+      target="_self"
+      onClick={(event) => navigateSameTabOnClick(event, href, { id: projectId })}
+      {...orbPointerProps}
+    >
       <span className="home-engage-proof-visual" aria-hidden="true">
         <img src={image} alt="" loading="lazy" decoding="async" />
       </span>
@@ -135,6 +144,7 @@ export function HomeEngagementSection() {
                 href={href(item.href)}
                 note={proofNotes[index]}
                 image={item.image}
+                projectId={item.id}
               />
             </li>
           ))}

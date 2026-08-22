@@ -106,6 +106,32 @@ export function newTabAnchorProps(url: string | undefined): { target: '_blank'; 
   return { target: '_blank', rel: 'noopener noreferrer' }
 }
 
+type SameTabClickEvent = {
+  preventDefault: () => void
+  metaKey: boolean
+  ctrlKey: boolean
+  shiftKey: boolean
+  altKey: boolean
+  button: number
+}
+
+/**
+ * Left-click stays in this browser window. Ctrl/meta/shift/middle-click keep
+ * native new-tab behavior. Avoids Chrome reusing a leftover popup on another monitor.
+ */
+export function navigateSameTabOnClick(
+  event: SameTabClickEvent,
+  url: string,
+  project?: { id: string; section?: string },
+): void {
+  if (project && shouldRememberReturnCard(url)) rememberReturnCard(project)
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return
+  if (shouldOpenInNewTab(url)) return
+  if (!url || /^mailto:/i.test(url)) return
+  event.preventDefault()
+  window.location.assign(url)
+}
+
 export function rememberReturnCard(project: { id: string; section?: string }): void {
   if (typeof window === 'undefined') return
   try {

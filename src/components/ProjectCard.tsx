@@ -3,7 +3,7 @@ import { cursorPropsForProject } from '../cursor'
 import { projectAllowsHoverEmbed, type Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
-import { newTabAnchorProps, rememberReturnCard, shouldRememberReturnCard } from '../utils/demoNav'
+import { navigateSameTabOnClick, newTabAnchorProps, rememberReturnCard } from '../utils/demoNav'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 
@@ -223,9 +223,14 @@ export const ProjectCard = memo(function ProjectCard({
     onMusicSelect(project.id)
   }, [hasMusicTrack, onMusicSelect, project.id])
 
-  const handleDemoNavigate = useCallback(() => {
-    if (project.url && shouldRememberReturnCard(project.url)) rememberReturnCard(project)
-  }, [project])
+  const handleDemoNavigate = useCallback(
+    (event: { preventDefault: () => void; metaKey: boolean; ctrlKey: boolean; shiftKey: boolean; altKey: boolean; button: number }) => {
+      const url = projectHref || project.url
+      if (!url) return
+      navigateSameTabOnClick(event, url, project)
+    },
+    [project, projectHref],
+  )
 
   const handleIframeLoad = useCallback(
     (event: React.SyntheticEvent<HTMLIFrameElement>) => {

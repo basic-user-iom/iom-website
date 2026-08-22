@@ -5149,6 +5149,7 @@
         // copyTextureToTexture fails every frame (GPUValidationError + huge slowdown).
         // Temporal AA comes from TRAA instead — same as the official three.js example.
         renderer = new THREE.WebGPURenderer({ antialias: false })
+        suppressInspectorLayoutRestore()
         renderer.inspector = new Inspector()
         const bootPreset = QUALITY_PRESETS[params.runtime.qualityPreset] || QUALITY_PRESETS.Performance
         applyRendererPixelRatio(bootPreset.dprDesktop, bootPreset.dprMobile)
@@ -5599,6 +5600,9 @@
           shouldHideCameraViews: () => params.runtime.navigationMode === 'Walk' || isTeleportMode(),
         })
         unpinInspectorOverlay()
+        requestAnimationFrame(unpinInspectorOverlay)
+        window.setTimeout(unpinInspectorOverlay, 120)
+        window.setTimeout(unpinInspectorOverlay, 480)
 
         updateOutputNode()
         updateTransformGizmo()
@@ -12079,15 +12083,70 @@
         return tabVisible
       }
 
+      function suppressInspectorLayoutRestore() {
+        try {
+          const raw = localStorage.getItem('threejs-inspector')
+          if (!raw) return
+          const data = JSON.parse(raw)
+          if (!data || typeof data !== 'object') return
+          if (data.layout && typeof data.layout === 'object') {
+            data.layout.detachedTabs = []
+            data.layout.isVisible = false
+            if (typeof data.layout.lastHeightBottom === 'number') {
+              data.layout.lastHeightBottom = Math.min(data.layout.lastHeightBottom, 280)
+            }
+            if (typeof data.layout.lastWidthRight === 'number') {
+              data.layout.lastWidthRight = Math.min(data.layout.lastWidthRight, 380)
+            }
+          }
+          localStorage.setItem('threejs-inspector', JSON.stringify(data))
+        } catch {
+          try {
+            localStorage.removeItem('threejs-inspector')
+          } catch {
+            /* private mode */
+          }
+        }
+      }
+
       function unpinInspectorOverlay() {
         const profiler = renderer?.inspector?.profiler
         if (!profiler) return
+
+        const detached = [...(profiler.detachedWindows || [])]
+        for (const detachedWindow of detached) {
+          const tab = detachedWindow?.tab
+          if (tab && typeof profiler.reattachTab === 'function') {
+            try {
+              profiler.reattachTab(tab)
+            } catch {
+              /* ignore */
+            }
+          } else if (detachedWindow?.panel?.parentNode) {
+            detachedWindow.panel.remove()
+          }
+        }
+        document.querySelectorAll('.detached-tab-panel').forEach((el) => el.remove())
+
         profiler.panel?.classList.remove('maximized', 'visible')
         profiler.domElement?.classList.remove('maximized')
         profiler.toggleButton?.classList.remove('panel-open')
+        profiler.miniPanel?.classList.remove('panel-open')
         if (profiler.panel) {
           profiler.panel.style.height = ''
           profiler.panel.style.width = ''
+          profiler.panel.style.left = ''
+          profiler.panel.style.top = ''
+          profiler.panel.style.right = ''
+        }
+        if (typeof profiler.hide === 'function') profiler.hide()
+        else if (typeof renderer.inspector?.hide === 'function') renderer.inspector.hide()
+
+        if (typeof profiler.lastHeightBottom === 'number') {
+          profiler.lastHeightBottom = Math.min(profiler.lastHeightBottom, 280)
+        }
+        if (typeof profiler.lastWidthRight === 'number') {
+          profiler.lastWidthRight = Math.min(profiler.lastWidthRight, 380)
         }
       }
 

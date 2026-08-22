@@ -70,9 +70,11 @@ export function localePath(lang: SiteLang, path: string): string {
 
   const pathname = path.slice(0, cut) || '/'
   const suffix = path.slice(cut)
+  const keepDirSlash = pathname.length > 1 && pathname.endsWith('/')
 
   if (shouldSkipLocalePrefix(pathname)) {
-    return `${normalizePathname(pathname) === '/' ? '/' : normalizePathname(pathname)}${suffix}`
+    const base = normalizePathname(pathname) === '/' ? '/' : normalizePathname(pathname)
+    return `${base}${keepDirSlash && base !== '/' ? '/' : ''}${suffix}`
   }
 
   const clean = normalizePathname(pathname)
