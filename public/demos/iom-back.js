@@ -207,32 +207,40 @@
         display: inline-flex !important;
         align-items: center;
         justify-content: center;
-        min-height: 44px;
+        isolation: isolate;
+        min-height: 36px;
         min-width: 44px;
-        padding: 0.55rem 1rem !important;
+        padding: 0.35rem 0.7rem !important;
         margin: 0;
         box-sizing: border-box;
-        border-radius: 999px !important;
-        border: 1px solid rgba(0, 229, 255, 0.55) !important;
-        background: rgba(6, 10, 16, 0.82) !important;
-        color: #e8fdff !important;
-        font: 600 13px/1.2 system-ui, -apple-system, sans-serif !important;
-        letter-spacing: 0.04em;
+        border-radius: 4px !important;
+        border: 1px solid rgba(94, 184, 192, 0.55) !important;
+        background: #08080a !important;
+        color: #00e5ff !important;
+        font: 600 0.65rem/1.2 "IBM Plex Sans", system-ui, sans-serif !important;
+        letter-spacing: 0.1em;
         text-decoration: none !important;
-        text-transform: none !important;
+        text-transform: uppercase !important;
         white-space: nowrap;
         pointer-events: auto !important;
         cursor: pointer;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 0 16px rgba(0, 229, 255, 0.35), 0 0 2px rgba(0, 229, 255, 0.8);
+        box-shadow: none !important;
         transform: none !important;
+      }
+      a.iom-back::after {
+        content: '';
+        position: absolute;
+        inset: -4px;
+        border-radius: inherit;
+        border: 1px solid rgba(94, 184, 192, 0.45);
+        pointer-events: none;
+        z-index: -1;
       }
       a.iom-back:hover,
       a.iom-back:focus-visible {
-        color: #fff !important;
-        border-color: rgba(0, 229, 255, 0.9) !important;
-        box-shadow: 0 0 22px rgba(0, 229, 255, 0.55), 0 0 4px #00e5ff;
+        color: #00e5ff !important;
+        border-color: rgba(0, 229, 255, 0.7) !important;
+        background: rgba(0, 229, 255, 0.15) !important;
         outline: none;
       }
       a.iom-back:focus-visible {
@@ -240,13 +248,19 @@
         outline-offset: 3px;
       }
       @media (prefers-reduced-motion: no-preference) {
-        a.iom-back {
-          animation: iom-back-pulse 2.4s ease-in-out infinite;
+        a.iom-back::after {
+          animation: iom-back-pulse 1.8s ease-in-out infinite;
         }
       }
       @keyframes iom-back-pulse {
-        0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 255, 0.32), 0 0 2px rgba(0, 229, 255, 0.7); }
-        50% { box-shadow: 0 0 26px rgba(0, 229, 255, 0.62), 0 0 6px #00e5ff; }
+        0%, 100% { transform: scale(1); opacity: 0.25; }
+        50% { transform: scale(1.12); opacity: 0.9; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        a.iom-back::after {
+          animation: none;
+          opacity: 0.45;
+        }
       }
       html.is-iom-card-embed a.iom-back,
       html.is-iom-card-embed a.back-link,

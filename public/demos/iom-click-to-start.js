@@ -67,22 +67,26 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        min-height: 2.75rem;
-        padding: 0.7rem 1.25rem;
-        border: 1px solid rgba(0, 229, 255, 0.45);
-        border-radius: 999px;
-        background: rgba(8, 12, 18, 0.72);
-        letter-spacing: 0.04em;
-        box-shadow: 0 0 18px rgba(0, 229, 255, 0.32);
+        min-height: 36px;
+        padding: 0.45rem 0.85rem;
+        border: 0;
+        border-radius: 4px;
+        background: color-mix(in srgb, #00e5ff 68%, #001416);
+        color: #08080a;
+        font: 700 0.72rem/1.2 "IBM Plex Sans", system-ui, sans-serif;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        box-shadow: 0 0 12px rgba(0, 229, 255, 0.18);
       }
       .iom-demo-gate-hint {
         position: relative;
         z-index: 1;
-        font-size: 12px;
-        letter-spacing: 0.06em;
+        font-size: 0.65rem;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
-        opacity: 0.82;
-        text-shadow: 0 0 12px rgba(0, 229, 255, 0.35);
+        color: #8b8b9a;
+        opacity: 0.9;
+        text-shadow: none;
       }
       @media (prefers-reduced-motion: no-preference) {
         .iom-demo-gate:not(.is-loading) .iom-demo-gate-label {
@@ -93,8 +97,8 @@
         }
       }
       @keyframes iom-demo-gate-pulse {
-        0%, 100% { box-shadow: 0 0 12px rgba(0, 229, 255, 0.28); transform: scale(1); }
-        50% { box-shadow: 0 0 28px rgba(0, 229, 255, 0.55); transform: scale(1.04); }
+        0%, 100% { box-shadow: 0 0 8px rgba(0, 229, 255, 0.14); filter: brightness(1); }
+        50% { box-shadow: 0 0 16px rgba(0, 229, 255, 0.28); filter: brightness(1.06); }
       }
       @keyframes iom-demo-gate-hint-pulse {
         0%, 100% { opacity: 0.72; }
@@ -105,9 +109,9 @@
         pointer-events: none;
       }
       .iom-demo-gate.is-loading .iom-demo-gate-label {
-        border-color: rgba(0, 229, 255, 0.45);
         animation: none;
-        transform: none;
+        filter: none;
+        box-shadow: none;
       }
       .iom-demo-gate.is-loading .iom-demo-gate-hint {
         animation: none;
