@@ -34,9 +34,15 @@
         font-family: system-ui, -apple-system, sans-serif;
       }
       #container {
+        position: relative;
         width: 100%;
         height: 100%;
         touch-action: none;
+      }
+      #container canvas {
+        display: block;
+        width: 100%;
+        height: 100%;
       }
       .back-link {
         position: fixed;
@@ -428,8 +434,8 @@
         align-items: center;
         justify-content: center;
         padding: 16px;
-        background: rgba(0, 12, 16, 0.72);
-        backdrop-filter: blur(6px);
+        background: rgba(0, 12, 16, 0.28);
+        backdrop-filter: blur(2px);
       }
       #intro-popup.is-visible {
         display: flex;
@@ -4796,8 +4802,7 @@
         playerOnFloor = false,
         renderLoopActive = false,
         lastRenderTime = 0,
-        tabVisible = !document.hidden,
-        canvasVisible = true
+        tabVisible = !document.hidden
 
       const runtimeTimer = new THREE.Timer()
       runtimeTimer.connect(document)
@@ -5104,7 +5109,7 @@
       fetch('./textures/quarry_01_1k.hdr', { credentials: 'same-origin' }).catch(() => {})
 
       const startGate = await window.iomDemoAwaitStart({
-        poster: '/assets/posters/ssr-denoise.jpg?v=20260708',
+        poster: '/assets/posters/ssr-denoise.jpg?v=20260822',
         label: 'Start SSR + denoise',
         loadingLabel: 'Loading gallery…',
         loadingHint: 'GLB model · HDR environment · WebGPU SSR',
@@ -5180,13 +5185,14 @@
         try {
           startGate.setMessage('Starting WebGPU…', 'SSR · denoise pipeline')
           await renderer.init()
+          applyRendererPixelRatio(bootPreset.dprDesktop, bootPreset.dprMobile)
         } catch (error) {
           showDemoError(
             'WebGPU initialization failed',
             error?.message ||
               'Your browser reports WebGPU support, but the GPU adapter or device could not be created. Try updating your graphics drivers or using Chrome/Edge 113+.',
           )
-          return
+          throw error
         }
 
         scene.environmentIntensity = 1
@@ -5592,16 +5598,7 @@
           storageKey: 'ssr-denoise-ui-chrome-visible',
           shouldHideCameraViews: () => params.runtime.navigationMode === 'Walk' || isTeleportMode(),
         })
-
-        const visibilityObserver = new IntersectionObserver(
-          ([entry]) => {
-            const ratio = entry?.intersectionRatio ?? 0
-            canvasVisible = Boolean(entry?.isIntersecting && ratio >= 0.08)
-            syncRenderLoop()
-          },
-          { threshold: [0, 0.08, 0.25, 0.5] },
-        )
-        visibilityObserver.observe(renderer.domElement)
+        unpinInspectorOverlay()
 
         updateOutputNode()
         updateTransformGizmo()
@@ -12077,7 +12074,21 @@
       }
 
       function shouldRender() {
-        return tabVisible && canvasVisible
+        // Fullscreen demo: never pause just because the Inspector overlay
+        // (maximized layout, zero-size first frame) reports a low intersection.
+        return tabVisible
+      }
+
+      function unpinInspectorOverlay() {
+        const profiler = renderer?.inspector?.profiler
+        if (!profiler) return
+        profiler.panel?.classList.remove('maximized', 'visible')
+        profiler.domElement?.classList.remove('maximized')
+        profiler.toggleButton?.classList.remove('panel-open')
+        if (profiler.panel) {
+          profiler.panel.style.height = ''
+          profiler.panel.style.width = ''
+        }
       }
 
       function syncRenderLoop() {
@@ -12339,7 +12350,12 @@
           lastRenderTime = timestamp - (elapsed % (1000 / 30))
         }
 
-        postProcessing.render()
+        try {
+          postProcessing.render()
+        } catch (error) {
+          console.warn('[ssr-denoise] post-process render failed, falling back to scene render', error)
+          renderer.render(scene, camera)
+        }
       }
     </script>
   </body>
