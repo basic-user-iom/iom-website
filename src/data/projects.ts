@@ -807,8 +807,8 @@ export const PROJECTS: Project[] = [
     year: '2026',
     url: '/demos/ssr-denoise/',
     embedUrl: '/demos/ssr-denoise/',
-    posterUrl: '/assets/posters/ssr-denoise.jpg?v=20260822',
-    mobilePosterUrl: '/assets/posters/ssr-denoise.jpg?v=20260822',
+    posterUrl: '/assets/posters/ssr-denoise.jpg?v=20260822b',
+    mobilePosterUrl: '/assets/posters/ssr-denoise.jpg?v=20260822b',
     sourceUrl: 'https://github.com/mrdoob/three.js/blob/dev/examples/webgpu_postprocessing_ssr_denoise.html',
     referenceUrls: [
       {

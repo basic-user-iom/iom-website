@@ -83,7 +83,7 @@ export const RELEVANT_WORK = [
   {
     title: 'SSR / WebGPU',
     href: '/demos/ssr-denoise/',
-    image: '/assets/posters/ssr-denoise.jpg?v=20260822',
+    image: '/assets/posters/ssr-denoise.jpg?v=20260822b',
     note: 'Realtime exploration, import, inspection and technical experimentation',
   },
   {
