@@ -692,7 +692,7 @@ const en: Dict = {
   'seo.openSite': 'Open iobjectm.com',
   'seo.sitemap': 'Sitemap',
   'seo.schemaMissing':
-    'Analytics tables not found — run supabase/site_analytics_migration.sql in your Supabase project.',
+    'Analytics summary is missing. In Supabase → SQL Editor, paste and Run supabase/site_analytics_summary_rpc.sql, then hard-refresh this page.',
   'seo.trafficTitle': 'Traffic overview',
   'seo.rangeAria': 'Date range',
   'seo.range.7d': '7 days',
@@ -2471,7 +2471,7 @@ const sr: Dict = {
   'seo.openSite': 'Otvori iobjectm.com',
   'seo.sitemap': 'Sitemap',
   'seo.schemaMissing':
-    'Tabele analitike nisu pronađene — pokrenite supabase/site_analytics_migration.sql u Supabase projektu.',
+    'Sažetak analitike nedostaje. U Supabase → SQL Editor nalepite i pokrenite supabase/site_analytics_summary_rpc.sql, pa hard-refresh ove stranice.',
   'seo.trafficTitle': 'Pregled saobraćaja',
   'seo.rangeAria': 'Vremenski opseg',
   'seo.range.7d': '7 dana',

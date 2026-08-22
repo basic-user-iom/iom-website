@@ -224,6 +224,7 @@ export function EmailThreadPanel({
   useEffect(() => {
     if (demoMode || !useLiveCrmBackend()) return
     const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
       void listLeadMessages(lead.id)
         .then(async (rows) => {
           setMessages(rows)

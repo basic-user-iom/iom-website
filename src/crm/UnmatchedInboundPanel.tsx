@@ -74,7 +74,10 @@ export function UnmatchedInboundPanel({
   useEffect(() => {
     void refresh()
     if (isCrmDemoMode() || !useLiveCrmBackend()) return
-    const id = window.setInterval(() => void refresh(), 60_000)
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return
+      void refresh()
+    }, 60_000)
     return () => window.clearInterval(id)
   }, [])
 

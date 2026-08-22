@@ -118,16 +118,23 @@ export function SeoView({ demo = false }: SeoViewProps) {
   }, [range, demo])
 
   useEffect(() => {
+    if (document.visibilityState !== 'visible') return
     setLoading(true)
     void load()
   }, [load])
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      void load()
-    }, 25_000)
-    return () => window.clearInterval(id)
-  }, [load])
+    if (schemaMissing && !demo) return
+    const refreshIfVisible = () => {
+      if (document.visibilityState === 'visible') void load()
+    }
+    const id = window.setInterval(refreshIfVisible, 120_000)
+    document.addEventListener('visibilitychange', refreshIfVisible)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', refreshIfVisible)
+    }
+  }, [load, schemaMissing, demo])
 
   return (
     <div className="crm-seo-view">

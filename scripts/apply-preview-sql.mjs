@@ -38,6 +38,7 @@ const files = [
   'supabase/site_analytics_migration.sql',
   'supabase/site_analytics_geo_migration.sql',
   'supabase/site_analytics_engagement_migration.sql',
+  'supabase/site_analytics_summary_rpc.sql',
   'supabase/security_hardening_rate_limits.sql',
   'supabase/security_hardening_artist_invites.sql',
   'supabase/security_hardening_staff_rls.sql',

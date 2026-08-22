@@ -232,10 +232,10 @@ export function initAnalytics(getPath: () => string): () => void {
   document.addEventListener('visibilitychange', onVis)
   window.addEventListener('pagehide', onPageHide)
 
-  // Heartbeat every 30s while visible so long sessions get duration even without leave
+  // Occasional heartbeat while visible so long sessions still get duration
   const beat = window.setInterval(() => {
     if (document.visibilityState === 'visible') flushEngage('heartbeat')
-  }, 30_000)
+  }, 120_000)
 
   return () => {
     window.clearInterval(beat)

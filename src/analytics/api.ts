@@ -2,8 +2,6 @@ import { getSupabase } from '../crm/supabaseClient'
 import { countryLabel, resolveCoords } from './geo'
 import type { AnalyticsGeoPoint, AnalyticsRange, AnalyticsSummary } from './types'
 
-const LIVE_MS = 30 * 60 * 1000
-
 const DEMO_GEO: AnalyticsGeoPoint[] = [
   { lat: 44.8, lon: 20.5, country: 'RS', city: 'Belgrade', visitors: 86, live: true },
   { lat: 52.5, lon: 13.4, country: 'DE', city: 'Berlin', visitors: 124, live: true },
@@ -139,26 +137,126 @@ function emptySummary(): AnalyticsSummary {
   }
 }
 
-type EventRow = {
-  session_id: string
-  path: string
-  referrer: string
-  device_type: string
-  created_at: string
-  country?: string | null
-  city?: string | null
-  latitude?: number | null
-  longitude?: number | null
-  event_type?: string | null
-  is_bot?: boolean | null
-  utm_source?: string | null
-  utm_medium?: string | null
-  utm_campaign?: string | null
-  utm_term?: string | null
-  search_keyword?: string | null
-  duration_ms?: number | null
-  link_url?: string | null
-  link_label?: string | null
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null
+}
+
+function asNumber(value: unknown): number {
+  const n = typeof value === 'number' ? value : Number(value)
+  return Number.isFinite(n) ? n : 0
+}
+
+function asString(value: unknown): string {
+  return value == null ? '' : String(value)
+}
+
+function asBool(value: unknown): boolean {
+  return value === true
+}
+
+function asList(value: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((row) => row && typeof row === 'object' && !Array.isArray(row)) as Record<
+    string,
+    unknown
+  >[]
+}
+
+function isAnalyticsSchemaMissing(error: { message?: string; code?: string } | null): boolean {
+  if (!error) return false
+  const code = error.code ?? ''
+  const message = error.message ?? ''
+  return (
+    code === 'PGRST202' ||
+    code === 'PGRST205' ||
+    code === '42P01' ||
+    code === '42883' ||
+    /site_analytics_summary|site_analytics_events|Could not find the function|schema cache/i.test(
+      message,
+    )
+  )
+}
+
+function mapRpcSummary(raw: unknown, from: Date, to: Date): AnalyticsSummary {
+  const row = asRecord(raw)
+  if (!row) return emptySummary()
+
+  const geoPoints: AnalyticsGeoPoint[] = []
+  for (const g of asList(row.geoPoints)) {
+    const country = asString(g.country).toUpperCase()
+    const coords = resolveCoords(
+      country,
+      typeof g.lat === 'number' ? g.lat : Number(g.lat),
+      typeof g.lon === 'number' ? g.lon : Number(g.lon),
+    )
+    if (!coords) continue
+    geoPoints.push({
+      lat: coords.lat,
+      lon: coords.lon,
+      country,
+      city: asString(g.city),
+      visitors: asNumber(g.visitors),
+      live: asBool(g.live),
+    })
+  }
+
+  const dailyMap = new Map<string, { pageviews: number; sessions: Set<string> }>()
+  for (const d of asList(row.daily)) {
+    const day = asString(d.day).slice(0, 10)
+    if (!day) continue
+    const visitors = asNumber(d.visitors)
+    const sessions = new Set<string>()
+    for (let i = 0; i < visitors; i += 1) sessions.add(`${day}:${i}`)
+    dailyMap.set(day, { pageviews: asNumber(d.pageviews), sessions })
+  }
+
+  return {
+    pageviews: asNumber(row.pageviews),
+    visitors: asNumber(row.visitors),
+    bounceRate: asNumber(row.bounceRate),
+    avgPagesPerSession: asNumber(row.avgPagesPerSession),
+    avgTimeOnPageSec: asNumber(row.avgTimeOnPageSec),
+    humanVisitors: asNumber(row.humanVisitors),
+    botVisitors: asNumber(row.botVisitors),
+    liveVisitors: asNumber(row.liveVisitors),
+    topPages: asList(row.topPages).map((item) => ({
+      path: asString(item.path),
+      views: asNumber(item.views),
+    })),
+    topReferrers: asList(row.topReferrers).map((item) => ({
+      referrer: asString(item.referrer),
+      views: asNumber(item.views),
+    })),
+    topSources: asList(row.topSources).map((item) => ({
+      source: asString(item.source),
+      views: asNumber(item.views),
+    })),
+    topKeywords: asList(row.topKeywords).map((item) => ({
+      keyword: asString(item.keyword),
+      views: asNumber(item.views),
+    })),
+    topLinks: asList(row.topLinks).map((item) => ({
+      url: asString(item.url),
+      label: asString(item.label),
+      clicks: asNumber(item.clicks),
+    })),
+    deviceBreakdown: asList(row.deviceBreakdown).map((item) => ({
+      device: asString(item.device),
+      views: asNumber(item.views),
+    })),
+    topCountries: asList(row.topCountries).map((item) => {
+      const country = asString(item.country).toUpperCase()
+      return {
+        country,
+        label: countryLabel(country),
+        views: asNumber(item.views),
+      }
+    }),
+    geoPoints,
+    daily: fillDailySeries(from, to, dailyMap),
+  }
 }
 
 export async function fetchAnalyticsSummary(
@@ -176,235 +274,16 @@ export async function fetchAnalyticsSummary(
   if (!sb) return { data: null, schemaMissing: false }
 
   const { from, to } = rangeToDates(range)
-  const fromIso = from.toISOString()
-  const toIso = to.toISOString()
-
-  const selectFull =
-    'session_id, path, referrer, device_type, created_at, country, city, latitude, longitude, event_type, is_bot, utm_source, utm_medium, utm_campaign, utm_term, search_keyword, duration_ms, link_url, link_label'
-
-  let events: EventRow[] | null = null
-  let error: { message: string; code?: string } | null = null
-
-  const withAll = await sb
-    .from('site_analytics_events')
-    .select(selectFull)
-    .gte('created_at', fromIso)
-    .lte('created_at', toIso)
-    .order('created_at', { ascending: false })
-    .limit(12000)
-
-  if (withAll.error) {
-    const fallback = await sb
-      .from('site_analytics_events')
-      .select('session_id, path, referrer, device_type, created_at, country, city, latitude, longitude')
-      .gte('created_at', fromIso)
-      .lte('created_at', toIso)
-      .order('created_at', { ascending: false })
-      .limit(12000)
-    if (fallback.error) {
-      const basic = await sb
-        .from('site_analytics_events')
-        .select('session_id, path, referrer, device_type, created_at')
-        .gte('created_at', fromIso)
-        .lte('created_at', toIso)
-        .order('created_at', { ascending: false })
-        .limit(12000)
-      events = basic.data
-      error = basic.error
-    } else {
-      events = fallback.data
-    }
-  } else {
-    events = withAll.data
-  }
+  const { data, error } = await sb.rpc('site_analytics_summary', {
+    p_from: from.toISOString(),
+    p_to: to.toISOString(),
+  })
 
   if (error) {
-    const missing =
-      error.message.includes('site_analytics_events') ||
-      error.code === '42P01' ||
-      error.code === 'PGRST205'
-    return { data: null, schemaMissing: missing }
+    return { data: null, schemaMissing: isAnalyticsSchemaMissing(error) }
   }
 
-  if (!events?.length) return { data: emptySummary(), schemaMissing: false }
-
-  const pageviewsRows = events.filter((e) => (e.event_type || 'pageview') === 'pageview')
-  const engageRows = events.filter((e) => e.event_type === 'engage')
-  const clickRows = events.filter((e) => e.event_type === 'click')
-
-  const humanPageviews = pageviewsRows.filter((e) => !e.is_bot)
-  const statsRows = humanPageviews.length ? humanPageviews : pageviewsRows
-
-  const sessions = new Map<string, number>()
-  const humanSessions = new Set<string>()
-  const botSessions = new Set<string>()
-  const pageCounts = new Map<string, number>()
-  const refCounts = new Map<string, number>()
-  const sourceCounts = new Map<string, number>()
-  const keywordCounts = new Map<string, number>()
-  const linkCounts = new Map<string, { url: string; label: string; clicks: number }>()
-  const deviceCounts = new Map<string, number>()
-  const countryCounts = new Map<string, number>()
-  const dailyMap = new Map<string, { pageviews: number; sessions: Set<string> }>()
-  const geoBuckets = new Map<
-    string,
-    { lat: number; lon: number; country: string; city: string; sessions: Set<string>; live: boolean }
-  >()
-  const liveSessions = new Set<string>()
-  const now = Date.now()
-
-  for (const row of statsRows) {
-    sessions.set(row.session_id, (sessions.get(row.session_id) ?? 0) + 1)
-    pageCounts.set(row.path, (pageCounts.get(row.path) ?? 0) + 1)
-
-    const ref = normalizeReferrer(row.referrer)
-    refCounts.set(ref, (refCounts.get(ref) ?? 0) + 1)
-
-    const source = acquisitionLabel(row)
-    sourceCounts.set(source, (sourceCounts.get(source) ?? 0) + 1)
-
-    const kw = (row.search_keyword || row.utm_term || '').trim().toLowerCase()
-    if (kw) keywordCounts.set(kw, (keywordCounts.get(kw) ?? 0) + 1)
-
-    deviceCounts.set(row.device_type, (deviceCounts.get(row.device_type) ?? 0) + 1)
-
-    const country = (row.country || '').toUpperCase()
-    if (country) countryCounts.set(country, (countryCounts.get(country) ?? 0) + 1)
-
-    const day = row.created_at.slice(0, 10)
-    if (!dailyMap.has(day)) dailyMap.set(day, { pageviews: 0, sessions: new Set() })
-    const bucket = dailyMap.get(day)!
-    bucket.pageviews += 1
-    bucket.sessions.add(row.session_id)
-
-    const createdMs = Date.parse(row.created_at)
-    const isLive = Number.isFinite(createdMs) && now - createdMs <= LIVE_MS
-    if (isLive) liveSessions.add(row.session_id)
-
-    const coords = resolveCoords(country, row.latitude, row.longitude)
-    if (!coords) continue
-    const city = (row.city || '').trim()
-    const key = `${coords.lat.toFixed(2)},${coords.lon.toFixed(2)},${country},${city}`
-    if (!geoBuckets.has(key)) {
-      geoBuckets.set(key, {
-        lat: coords.lat,
-        lon: coords.lon,
-        country,
-        city,
-        sessions: new Set(),
-        live: false,
-      })
-    }
-    const geo = geoBuckets.get(key)!
-    geo.sessions.add(row.session_id)
-    if (isLive) geo.live = true
-  }
-
-  for (const row of pageviewsRows) {
-    if (row.is_bot) botSessions.add(row.session_id)
-    else humanSessions.add(row.session_id)
-  }
-
-  for (const row of clickRows) {
-    if (row.is_bot) continue
-    const url = (row.link_url || '').trim()
-    if (!url) continue
-    const label = (row.link_label || url).trim()
-    const key = url
-    const prev = linkCounts.get(key)
-    if (prev) prev.clicks += 1
-    else linkCounts.set(key, { url, label: label.slice(0, 80), clicks: 1 })
-  }
-
-  let totalDuration = 0
-  let durationSamples = 0
-  for (const row of engageRows) {
-    if (row.is_bot) continue
-    if (typeof row.duration_ms === 'number' && row.duration_ms > 0) {
-      totalDuration += row.duration_ms
-      durationSamples += 1
-    }
-  }
-
-  const pageviews = statsRows.length
-  const visitors = sessions.size
-  const singlePageSessions = [...sessions.values()].filter((n) => n === 1).length
-  const bounceRate = visitors ? Math.round((singlePageSessions / visitors) * 100) : 0
-  const avgPagesPerSession = visitors ? Math.round((pageviews / visitors) * 10) / 10 : 0
-  const avgTimeOnPageSec = durationSamples
-    ? Math.round(totalDuration / durationSamples / 1000)
-    : 0
-
-  const geoPoints: AnalyticsGeoPoint[] = [...geoBuckets.values()]
-    .map((g) => ({
-      lat: g.lat,
-      lon: g.lon,
-      country: g.country,
-      city: g.city,
-      visitors: g.sessions.size,
-      live: g.live,
-    }))
-    .sort((a, b) => b.visitors - a.visitors)
-    .slice(0, 80)
-
-  return {
-    data: {
-      pageviews,
-      visitors,
-      bounceRate,
-      avgPagesPerSession,
-      avgTimeOnPageSec,
-      humanVisitors: humanSessions.size,
-      botVisitors: botSessions.size,
-      liveVisitors: liveSessions.size,
-      topPages: topN(pageCounts, 8).map(([path, views]) => ({ path, views })),
-      topReferrers: topN(refCounts, 6).map(([referrer, views]) => ({ referrer, views })),
-      topSources: topN(sourceCounts, 6).map(([source, views]) => ({ source, views })),
-      topKeywords: topN(keywordCounts, 8).map(([keyword, views]) => ({ keyword, views })),
-      topLinks: [...linkCounts.values()]
-        .sort((a, b) => b.clicks - a.clicks)
-        .slice(0, 8),
-      deviceBreakdown: topN(deviceCounts, 4).map(([device, views]) => ({ device, views })),
-      topCountries: topN(countryCounts, 8).map(([country, views]) => ({
-        country,
-        label: countryLabel(country),
-        views,
-      })),
-      geoPoints,
-      daily: fillDailySeries(from, to, dailyMap),
-    },
-    schemaMissing: false,
-  }
-}
-
-function acquisitionLabel(row: EventRow): string {
-  const source = (row.utm_source || '').trim()
-  const medium = (row.utm_medium || '').trim()
-  if (source || medium) return `${source || '(direct)'} / ${medium || '(none)'}`
-  const ref = normalizeReferrer(row.referrer)
-  if (ref === 'direct') return 'direct / none'
-  if (ref.includes('google.')) return 'google / organic'
-  if (ref.includes('bing.')) return 'bing / organic'
-  if (ref.includes('duckduckgo.')) return 'duckduckgo / organic'
-  if (ref.includes('linkedin.') || ref.includes('twitter.') || ref.includes('x.com') || ref.includes('facebook.')) {
-    return `${ref} / social`
-  }
-  if (ref.includes('github.')) return 'github / referral'
-  return `${ref} / referral`
-}
-
-function topN(map: Map<string, number>, n: number): [string, number][] {
-  return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n)
-}
-
-function normalizeReferrer(referrer: string): string {
-  if (!referrer) return 'direct'
-  try {
-    const host = new URL(referrer).hostname.replace(/^www\./, '')
-    return host || 'direct'
-  } catch {
-    return referrer.slice(0, 80) || 'direct'
-  }
+  return { data: mapRpcSummary(data, from, to), schemaMissing: false }
 }
 
 export { DEMO_SUMMARY }
