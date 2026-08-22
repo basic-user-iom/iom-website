@@ -4,6 +4,7 @@ import { EXHIBITIONS, MOTION, STILLS, type StillProject, type ViewMode } from '.
 import { CloudsScene } from './CloudsScene'
 import { Lightbox, type LightboxState } from './Lightbox'
 import { ICM_DEMO_BASE } from './paths'
+import { mountIomBackScript } from '../../utils/mountIomBack'
 import './icm-demo.css'
 
 const BASE = ICM_DEMO_BASE
@@ -188,6 +189,7 @@ export function IcmDemoApp() {
 
   useEffect(() => {
     document.body.classList.add('icm-route')
+    mountIomBackScript()
     return () => document.body.classList.remove('icm-route')
   }, [])
 

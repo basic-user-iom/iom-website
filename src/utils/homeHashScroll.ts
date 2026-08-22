@@ -75,10 +75,16 @@ function isPendingOrBusy(el: HTMLElement): boolean {
 export function findReadyHashTarget(id: string): HTMLElement | null {
   if (!id) return null
   const nodes = document.querySelectorAll<HTMLElement>(`[id="${escapeAttr(id)}"]`)
+  const ready: HTMLElement[] = []
   for (const el of nodes) {
-    if (!isPendingOrBusy(el)) return el
+    if (!isPendingOrBusy(el)) ready.push(el)
   }
-  return null
+  if (ready.length === 0) return null
+  if (isCardHash(id)) {
+    const card = ready.find((el) => el.classList.contains('project-card'))
+    if (card) return card
+  }
+  return ready[0]
 }
 
 /** Placeholder with the hash id (e.g. deferred music) — used once to bring it on-screen. */
@@ -436,6 +442,8 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
     stopCurrent()
     const stored = peekReturnCard()
     const hashId = parseLocationHash()
+    // Stored card always wins leftover nav hashes (#music, #3d, …). Empty hash
+    // does not fall through to Music — it just does not scroll.
     const id = stored?.projectId || hashId
     if (!isSectionHash(id)) return
     const align: ScrollAlign = isCardHash(id) ? 'center' : 'start'

@@ -9,6 +9,7 @@ import { PortfolioShowcase } from './PortfolioShowcase'
 import { SubmitForm } from './SubmitForm'
 import type { Artist, ArtistCategory } from './types'
 import { CATEGORY_LABELS, PRIMARY_CATEGORIES } from './types'
+import { mountIomBackScript } from '../utils/mountIomBack'
 import './artist-globe.css'
 
 export { isArtistGlobePath } from './paths'
@@ -85,6 +86,7 @@ export function ArtistGlobeApp() {
   useEffect(() => {
     document.body.classList.add('artist-globe-route')
     if (isEmbed) document.body.classList.add('artist-globe-embed')
+    if (!isEmbed) mountIomBackScript()
     return () => {
       document.body.classList.remove('artist-globe-route')
       document.body.classList.remove('artist-globe-embed')
@@ -144,8 +146,8 @@ export function ArtistGlobeApp() {
       {isEmbed ? null : (
       <header className="ag-top">
         <div className="ag-brand">
-          <a href="/#3d" className="ag-back" aria-label="Back to 3D section">
-            ← IOM
+          <a href="/#artist-globe" className="ag-back" aria-label="Back to IOM">
+            ← Back to IOM
           </a>
           <a href="/artist-globe" className="ag-brand-link" onClick={(e) => {
             e.preventDefault()

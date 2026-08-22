@@ -16,6 +16,7 @@ import {
   type SizePresetId,
 } from './presets'
 import { downloadBlob, formatBytes, processImage } from './processImage'
+import { mountIomBackScript } from '../../utils/mountIomBack'
 import './image-prep.css'
 
 const ACCEPT =
@@ -80,6 +81,10 @@ export function ImagePrepApp() {
     if (!el) return
     el.setAttribute('webkitdirectory', '')
     el.setAttribute('directory', '')
+  }, [])
+
+  useEffect(() => {
+    mountIomBackScript()
   }, [])
 
   const activePreset = SIZE_PRESETS.find((p) => p.id === presetId) ?? SIZE_PRESETS[1]
@@ -252,8 +257,8 @@ export function ImagePrepApp() {
     <>
       <Header />
       <main className="imgprep">
-        <a href="/#software" className="imgprep__back" aria-label="Back to Software section">
-          ← IOM
+        <a href="/#image-prep" className="imgprep__back" aria-label="Back to IOM">
+          ← Back to IOM
         </a>
         <header className="imgprep__hero">
           <p className="imgprep__kicker">IOM tools</p>

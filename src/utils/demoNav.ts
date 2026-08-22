@@ -1,7 +1,26 @@
 /** sessionStorage key: homepage card to restore after OPEN (demo or same-tab external). */
 export const IOM_RETURN_CARD_KEY = 'iom:returnCard'
 
+/** Homepage menu hashes — never a project card to restore after a demo. */
+const HOMEPAGE_NAV_IDS = new Set([
+  'software',
+  '3d',
+  '360',
+  'photography',
+  'music',
+  'experiments',
+  'clients',
+  'about',
+  'contact',
+  'main-content',
+  'top',
+])
+
 const FIRST_PARTY_DEMO = /^\/demos?(\/|$)/i
+
+export function isHomepageNavId(id: string): boolean {
+  return HOMEPAGE_NAV_IDS.has(id)
+}
 
 /**
  * External product sites with no first-party `/demos/` preview and no IOM chrome.
@@ -81,12 +100,12 @@ export function peekReturnCard(): DemoReturnPayload | null {
     if (raw.charAt(0) === '{') {
       const data = JSON.parse(raw) as DemoReturnPayload
       const projectId = String(data.projectId || '').trim()
-      if (!projectId || projectId === 'music' || projectId === 'top') return null
+      if (!projectId || isHomepageNavId(projectId)) return null
       if (data.at && Date.now() - data.at > 30 * 60 * 1000) return null
       return { ...data, projectId }
     }
     const projectId = raw.trim()
-    if (!projectId || projectId === 'music' || projectId === 'top') return null
+    if (!projectId || isHomepageNavId(projectId)) return null
     return { projectId }
   } catch {
     return null

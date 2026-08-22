@@ -1,7 +1,8 @@
 /**
  * Shared “Back to IOM” control for first-party demos.
- * Smart return: close opener → history.back (same-origin) → /#<projectId>.
- * Visible above the click-to-start gate (z-index 10050 > gate 9999).
+ * Always return to /#<projectId> — never history.back() (that restores leftover
+ * homepage hashes like #music). Visible above the click-to-start gate
+ * (z-index 10050 > gate 9999).
  */
 ;(function (global) {
   const STYLE_ID = 'iom-back-style'
@@ -9,11 +10,31 @@
   const RETURN_KEY = 'iom:returnCard'
   const LABEL = 'Back to IOM'
 
+  /** Homepage menu hashes — never a project card to restore. */
+  const NAV_HASH = {
+    software: 1,
+    '3d': 1,
+    '360': 1,
+    photography: 1,
+    music: 1,
+    experiments: 1,
+    clients: 1,
+    about: 1,
+    contact: 1,
+    'main-content': 1,
+    top: 1,
+  }
+
+  function isCardId(id) {
+    return Boolean(id) && !NAV_HASH[id]
+  }
+
   /** Demo folder slug → homepage project card id (never music). */
   const DEMO_CARD = {
     'streets-gl': 'streets-gl-bridge',
     'panorama-360': 'panorama-360-tour',
     'iom-studio': 'iom-studio',
+    'iom-studio-app': 'iom-studio',
     'raven-path': 'raven-path',
     'ssr-denoise': 'ssr-denoise',
     'dreams-iom': 'iom-three',
@@ -39,6 +60,15 @@
     'procedural-gl': 'procedural-gl',
     spout: 'spout',
     'dj-linked-particles': 'webgpu-tsl-linked-particles',
+    'artist-globe': 'artist-globe',
+    'image-prep': 'image-prep',
+    icm: 'crm-demo',
+    evly: 'crm-demo',
+    'kelly-kettle': 'crm-demo',
+    'precision-object': 'crm-demo',
+    dukta: 'crm-demo',
+    'dukta-linar-concept': 'crm-demo',
+    'automotive-studio': 'crm-demo',
   }
 
   const BACK_SELECTOR = [
@@ -46,27 +76,42 @@
     'a.dream-back-link',
     'a.iom-demo-back-link',
     'a.ag-back',
+    'a.imgprep__back',
     'header a.back',
     'a.intro-logo-link',
     '#' + LINK_ID,
   ].join(',')
 
+  const KEEP_VISIBLE = 'a.intro-logo-link'
+
+  function pathParts() {
+    const parts = location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)
+    if (parts[0] && /^(en|de|nl|it|es)$/i.test(parts[0])) return parts.slice(1)
+    return parts
+  }
+
+  function isHomepagePath() {
+    return pathParts().length === 0
+  }
+
   function demoSlug() {
-    const parts = location.pathname.replace(/\/+$/, '').split('/')
+    const parts = pathParts()
     const demosAt = parts.indexOf('demos')
     if (demosAt >= 0 && parts[demosAt + 1]) return parts[demosAt + 1]
     const demoAt = parts.indexOf('demo')
     if (demoAt >= 0 && parts[demoAt + 1]) return parts[demoAt + 1]
+    if (parts[0] === 'artist-globe') return 'artist-globe'
+    if (parts[0] === 'tools' && parts[1] === 'image-prep') return 'image-prep'
     return ''
   }
 
   function fallbackHref() {
     const stored = readStoredCard()
-    if (stored) return '/#' + stored
+    if (isCardId(stored)) return '/#' + stored
     const card = DEMO_CARD[demoSlug()]
-    if (card) return '/#' + card
+    if (isCardId(card)) return '/#' + card
     const fromLink = existingFallbackHash()
-    if (fromLink && fromLink !== 'music' && fromLink !== 'top') return '/#' + fromLink
+    if (isCardId(fromLink)) return '/#' + fromLink
     return '/#experiments'
   }
 
@@ -87,12 +132,10 @@
       if (raw.charAt(0) === '{') {
         const data = JSON.parse(raw)
         const id = String(data.projectId || '').trim()
-        if (!id || id === 'music' || id === 'top') return ''
-        return id
+        return isCardId(id) ? id : ''
       }
       const id = raw.trim()
-      if (!id || id === 'music' || id === 'top') return ''
-      return id
+      return isCardId(id) ? id : ''
     } catch {
       return ''
     }
@@ -114,16 +157,12 @@
     }
   }
 
-  function isSameOriginReferrer() {
-    const ref = document.referrer
-    if (!ref) return false
+  function rememberCard(id) {
+    if (!isCardId(id)) return
     try {
-      const url = new URL(ref)
-      if (url.origin === location.origin) return true
-      const host = url.hostname.replace(/^www\./, '')
-      return host === 'iobjectm.com' || host === 'localhost'
+      sessionStorage.setItem(RETURN_KEY, JSON.stringify({ projectId: id, at: Date.now() }))
     } catch {
-      return false
+      /* private mode */
     }
   }
 
@@ -142,12 +181,9 @@
       }
     }
 
-    if (history.length > 1 && isSameOriginReferrer()) {
-      history.back()
-      return
-    }
-
-    location.href = fallbackHref()
+    const href = fallbackHref()
+    rememberCard(href.replace(/^\/#/, ''))
+    location.assign(href)
   }
 
   function isStaticFallback(el) {
@@ -163,8 +199,10 @@
     style.textContent = `
       a.iom-back {
         position: fixed !important;
-        top: max(12px, env(safe-area-inset-top, 0px));
-        left: max(12px, env(safe-area-inset-left, 0px));
+        top: max(0.75rem, env(safe-area-inset-top, 0px)) !important;
+        left: max(0.75rem, env(safe-area-inset-left, 0px)) !important;
+        right: auto !important;
+        bottom: auto !important;
         z-index: 10050 !important;
         display: inline-flex !important;
         align-items: center;
@@ -212,24 +250,32 @@
       }
       html.is-iom-card-embed a.iom-back,
       html.is-iom-card-embed a.back-link,
-      html.is-iom-card-embed a.dream-back-link {
+      html.is-iom-card-embed a.dream-back-link,
+      html.is-iom-card-embed a.ag-back,
+      html.is-iom-card-embed a.imgprep__back {
         display: none !important;
       }
     `
     document.head.appendChild(style)
   }
 
+  function applyLabel(el) {
+    el.setAttribute('href', fallbackHref())
+    el.setAttribute('aria-label', LABEL)
+    el.textContent = '← ' + LABEL
+  }
+
   function decorate(el, primary) {
     if (!(el instanceof HTMLAnchorElement)) return
     el.addEventListener('click', goBack)
-    if (!primary || isStaticFallback(el)) return
+    if (isStaticFallback(el)) {
+      applyLabel(el)
+      return
+    }
+    if (!primary) return
     el.classList.add('iom-back')
     el.id = el.id || LINK_ID
-    el.setAttribute('href', fallbackHref())
-    el.setAttribute('aria-label', LABEL)
-    if (!/back to iom/i.test(el.textContent || '')) {
-      el.textContent = '← ' + LABEL
-    }
+    applyLabel(el)
   }
 
   function findExisting() {
@@ -240,6 +286,7 @@
   }
 
   function mount() {
+    if (isHomepagePath()) return
     if (isCardHoverEmbed() || isEmbeddedPreview()) {
       document.documentElement.classList.add('is-iom-card-embed')
       return
@@ -262,6 +309,16 @@
 
     document.querySelectorAll(BACK_SELECTOR).forEach((el) => {
       if (el === primary) return
+      if (el.matches(KEEP_VISIBLE)) {
+        decorate(el, false)
+        return
+      }
+      if (isStaticFallback(el)) {
+        decorate(el, false)
+        return
+      }
+      el.hidden = true
+      el.setAttribute('aria-hidden', 'true')
       decorate(el, false)
     })
   }
@@ -269,7 +326,7 @@
   function boot() {
     mount()
     const observer = new MutationObserver(() => {
-      if (document.getElementById(LINK_ID) || findExisting()) return
+      if (document.querySelector('a.iom-back')) return
       if (isCardHoverEmbed() || isEmbeddedPreview()) return
       mount()
     })

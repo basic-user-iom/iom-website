@@ -42,6 +42,7 @@ const DEMO_CARD = {
   'procedural-gl': 'procedural-gl',
   spout: 'spout',
   'dj-linked-particles': 'webgpu-tsl-linked-particles',
+  'iom-studio-app': 'iom-studio',
 }
 
 function setHref(tag, href) {
@@ -59,9 +60,9 @@ function patchBackHrefs(html, cardId) {
     setHref(tag, href),
   )
 
-  out = out.replace(/<a\b([^>]*)>(\s*←\s*(?:IOM|Back to IOM)\s*)<\/a>/gi, (_full, attrs, label) => {
+  out = out.replace(/<a\b([^>]*)>(\s*←\s*(?:IOM|Back to IOM)\s*)<\/a>/gi, (_full, attrs) => {
     const open = setHref(`<a${attrs}>`, href)
-    return `${open}${label}</a>`
+    return `${open}← Back to IOM</a>`
   })
 
   return out
