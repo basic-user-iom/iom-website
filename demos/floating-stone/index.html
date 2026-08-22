@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Superbright rock — IOM</title>
+    <meta
+      name="description"
+      content="Private client demo: a stratified stone levitates in a day/night gallery, lit by three orbiting spheres."
+    />
+    <link rel="canonical" href="https://iobjectm.com/demos/floating-stone/" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07080a" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #07080a;
+        color: #f4efe8;
+      }
+      #root {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body class="fs-route">
+    <script src="/demos/iom-back.js"></script>
+    <div id="root"></div>
+    <noscript>
+      <p style="max-width: 36rem; margin: 4rem auto; padding: 0 1.25rem; font-family: sans-serif; line-height: 1.6">
+        This floating-stone scene needs JavaScript.
+      </p>
+    </noscript>
+    <script type="module" src="/src/demo/floating-stone/main.tsx"></script>
+  </body>
+</html>

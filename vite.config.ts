@@ -63,7 +63,8 @@ function nonBlockingCssPlugin() {
         file.includes('dukta-linar-concept') ||
         file.includes('demos/dukta') ||
         file.includes('kelly-kettle') ||
-        file.includes('precision-object')
+        file.includes('precision-object') ||
+        file.includes('floating-stone')
       ) {
         return html
       }
@@ -141,6 +142,7 @@ export default defineConfig({
         duktaWebsite: path.resolve(root, 'demos/dukta/index.html'),
         kellyKettle: path.resolve(root, 'demos/kelly-kettle/index.html'),
         precisionObject: path.resolve(root, 'demos/precision-object/index.html'),
+        floatingStone: path.resolve(root, 'demos/floating-stone/index.html'),
       },
       output: {
         manualChunks: {

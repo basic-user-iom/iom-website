@@ -152,6 +152,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
       '/demos/dukta/media/brand/logo-wordmark.jpg',
     ],
   },
+  {
+    id: 'superbright-rock',
+    name: 'Superbright rock',
+    client: 'Capability study — photoreal stone hero with orbiting light probes',
+    status: 'preview',
+    path: '/demos/floating-stone/',
+    password: 'superbright',
+    blurb:
+      'Private demo: a browser-based stratified stone in day/night lighting, with orbit-tool rotation and probe orbs that inspect the surface. Not linked from the public homepage.',
+    tags: ['WebGL', 'Product', 'Hero'],
+    images: [],
+  },
 ]
 
 function statusLabel(

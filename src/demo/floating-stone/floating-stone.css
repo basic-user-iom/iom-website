@@ -1,0 +1,480 @@
+@font-face {
+  font-family: 'Syne';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+}
+
+html.fs-route,
+body.fs-route {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #07080a;
+  color: #f4efe8;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.fs-route::before {
+  display: none;
+}
+
+#root,
+.fs-app,
+.fs-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.fs-app {
+  position: relative;
+  min-height: 100dvh;
+}
+
+.fs-canvas {
+  display: block;
+  outline: none;
+}
+
+.fs-canvas--orbit {
+  cursor: grab;
+}
+
+.fs-canvas--orbit.is-orbiting {
+  cursor: grabbing;
+}
+
+.fs-vignette {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  transition: background 280ms ease;
+  background: radial-gradient(ellipse at 50% 46%, transparent 38%, rgba(0, 0, 0, 0.58) 100%);
+}
+
+.fs-app.is-day .fs-vignette {
+  background: radial-gradient(ellipse at 50% 46%, transparent 48%, rgba(16, 22, 34, 0.18) 100%);
+}
+
+.fs-toggle {
+  position: fixed;
+  top: max(1.1rem, env(safe-area-inset-top));
+  right: max(1.1rem, env(safe-area-inset-right));
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 11, 14, 0.42);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.fs-app.is-day .fs-toggle {
+  border-color: rgba(20, 18, 14, 0.1);
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.fs-toggle button {
+  appearance: none;
+  margin: 0;
+  border: 0;
+  cursor: pointer;
+  min-width: 4.6rem;
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(244, 239, 232, 0.62);
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transition: color 180ms ease, background 180ms ease;
+}
+
+.fs-app.is-day .fs-toggle button {
+  color: rgba(32, 28, 24, 0.48);
+}
+
+.fs-toggle button.is-active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #f7f3ec;
+}
+
+.fs-app.is-day .fs-toggle button.is-active {
+  background: rgba(20, 18, 14, 0.9);
+  color: #f6f3ee;
+}
+
+.fs-toggle button:focus-visible {
+  outline: 2px solid rgba(255, 214, 174, 0.85);
+  outline-offset: 2px;
+}
+
+.fs-toggle button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.fs-app.is-loading .fs-toggle {
+  pointer-events: none;
+}
+
+/* —— Relative Arcball Orbit Tool —— */
+.fs-orbit {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.15rem, env(safe-area-inset-bottom));
+  z-index: 18;
+  transform: translateX(-50%);
+  pointer-events: auto;
+}
+
+.fs-orbit__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.55rem 0.95rem 0.55rem 0.7rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(10, 11, 14, 0.48);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  color: rgba(234, 215, 192, 0.78);
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.fs-orbit.is-live .fs-orbit__btn {
+  color: rgba(244, 239, 232, 0.88);
+  border-color: rgba(234, 215, 192, 0.28);
+}
+
+.fs-orbit.is-on .fs-orbit__btn,
+.fs-orbit__btn.is-pressed {
+  background: rgba(234, 215, 192, 0.14);
+  border-color: rgba(234, 215, 192, 0.48);
+  color: #f4efe8;
+  box-shadow: inset 0 0 0 1px rgba(234, 215, 192, 0.12);
+}
+
+.fs-orbit.is-gated .fs-orbit__btn {
+  border-color: rgba(234, 215, 192, 0.38);
+  color: #ead7c0;
+}
+
+.fs-orbit.is-desktop .fs-orbit__btn {
+  opacity: 0.88;
+}
+
+.fs-orbit.is-desktop.is-on .fs-orbit__btn {
+  opacity: 1;
+}
+
+.fs-orbit.is-desktop.is-spinning .fs-orbit__btn {
+  border-color: rgba(234, 215, 192, 0.55);
+  color: rgba(248, 242, 232, 0.96);
+}
+
+.fs-app.is-day .fs-orbit.is-desktop.is-spinning .fs-orbit__btn {
+  border-color: rgba(20, 18, 14, 0.28);
+  color: rgba(20, 18, 14, 0.88);
+}
+
+.fs-app.is-day .fs-orbit__btn {
+  border-color: rgba(20, 18, 14, 0.12);
+  background: rgba(255, 255, 255, 0.58);
+  color: rgba(32, 28, 24, 0.62);
+}
+
+.fs-app.is-day .fs-orbit.is-live .fs-orbit__btn {
+  color: rgba(20, 18, 14, 0.82);
+  border-color: rgba(20, 18, 14, 0.22);
+}
+
+.fs-app.is-day .fs-orbit.is-on .fs-orbit__btn,
+.fs-app.is-day .fs-orbit__btn.is-pressed {
+  background: rgba(20, 18, 14, 0.88);
+  border-color: rgba(20, 18, 14, 0.92);
+  color: #f6f3ee;
+  box-shadow: none;
+}
+
+.fs-orbit__btn:focus-visible {
+  outline: 2px solid rgba(255, 214, 174, 0.85);
+  outline-offset: 2px;
+}
+
+.fs-orbit__btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.fs-orbit__glyph {
+  flex: 0 0 auto;
+  display: block;
+  color: inherit;
+  transition: transform 120ms ease-out;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-orbit__glyph {
+    transition: none;
+  }
+}
+
+.fs-loader {
+  position: fixed;
+  inset: 0;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  padding: max(1.25rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
+    max(1.25rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(28, 32, 40, 0.55) 0%, transparent 52%),
+    #07080a;
+  color: #f4efe8;
+  opacity: 1;
+  transition: opacity 420ms ease;
+  pointer-events: auto;
+}
+
+.fs-loader.is-day-transition {
+  /* Keep night veil while day HDRI catches up under the overlay */
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(28, 32, 40, 0.55) 0%, transparent 52%),
+    #07080a;
+}
+
+.fs-loader.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.fs-loader.is-reduced {
+  transition: opacity 120ms linear;
+}
+
+.fs-loader__panel {
+  width: min(16.5rem, 78vw);
+  text-align: center;
+}
+
+.fs-loader__brand {
+  margin: 0 0 0.85rem;
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.34em;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  color: rgba(234, 215, 192, 0.72);
+}
+
+.fs-loader__label {
+  margin: 0 0 1.15rem;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(244, 239, 232, 0.55);
+}
+
+.fs-loader__track {
+  height: 1px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.fs-loader__bar {
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, #c4a882 0%, #ead7c0 55%, #f4efe8 100%);
+  transition: transform 180ms ease;
+}
+
+.fs-loader.is-reduced .fs-loader__bar {
+  transition: none;
+}
+
+.fs-loader__pct {
+  margin: 0.7rem 0 0;
+  min-height: 1em;
+  font-family: 'IBM Plex Sans', system-ui, sans-serif;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  color: rgba(244, 239, 232, 0.32);
+  font-variant-numeric: tabular-nums;
+}
+
+.fs-loader-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 22;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem 1rem;
+  width: min(26rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  background: rgba(10, 11, 14, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  color: rgba(244, 239, 232, 0.82);
+  transform: translateX(-50%);
+  box-sizing: border-box;
+}
+
+.fs-loader-toast p {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+
+.fs-loader-toast button {
+  appearance: none;
+  margin: 0;
+  border: 1px solid rgba(234, 215, 192, 0.35);
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  background: transparent;
+  color: #ead7c0;
+  font-family: 'Syne', system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.fs-loader-toast button:focus-visible {
+  outline: 2px solid rgba(255, 214, 174, 0.85);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fs-loader {
+    transition: opacity 120ms linear;
+  }
+
+  .fs-loader__bar {
+    transition: none;
+  }
+}
+
+.fs-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1.5rem;
+  color: inherit;
+  letter-spacing: 0.04em;
+}
+
+.fs-gate {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 40%, rgba(0, 229, 255, 0.06), transparent 55%),
+    #07080a;
+}
+
+.fs-gate__panel {
+  width: min(22rem, 100%);
+  display: grid;
+  gap: 0.85rem;
+}
+
+.fs-gate__brand {
+  margin: 0;
+  font-family: Syne, system-ui, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.fs-gate__hint {
+  margin: 0;
+  color: rgba(244, 239, 232, 0.62);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.fs-gate__form {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.fs-gate__input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid rgba(244, 239, 232, 0.16);
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #f4efe8;
+  padding: 0.7rem 0.85rem;
+  font: inherit;
+}
+
+.fs-gate__input:focus {
+  outline: none;
+  border-color: rgba(0, 229, 255, 0.55);
+}
+
+.fs-gate__submit {
+  border: 0;
+  border-radius: 0.4rem;
+  background: #00e5ff;
+  color: #07080a;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+}
+
+.fs-gate__submit:hover {
+  filter: brightness(1.05);
+}
+
+.fs-gate__error {
+  margin: 0;
+  color: #ff8f8f;
+  font-size: 0.85rem;
+}
