@@ -454,19 +454,6 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/artist-globe/"/>
   </url>
   <url>
-    <loc>https://iobjectm.com/blog/css3d-sprites/</loc>
-    <lastmod>2026-08-22</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/css3d-sprites/"/>
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/css3d-sprites/"/>
-  </url>
-  <url>
     <loc>https://iobjectm.com/blog/3d-viewer/</loc>
     <lastmod>2026-08-22</lastmod>
     <changefreq>monthly</changefreq>
@@ -478,6 +465,19 @@
     <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/3d-viewer/"/>
     <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/3d-viewer/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/3d-viewer/"/>
+  </url>
+  <url>
+    <loc>https://iobjectm.com/blog/css3d-sprites/</loc>
+    <lastmod>2026-08-22</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="en" href="https://iobjectm.com/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://iobjectm.com/de/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://iobjectm.com/fr/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="nl" href="https://iobjectm.com/nl/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://iobjectm.com/it/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="es" href="https://iobjectm.com/es/blog/css3d-sprites/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://iobjectm.com/blog/css3d-sprites/"/>
   </url>
   <url>
     <loc>https://iobjectm.com/blog/buffergeometry-drawrange/</loc>
