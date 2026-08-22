@@ -1088,6 +1088,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         </div>
       </header>
 
+      {demoMode ? (
+        <a href="/#crm-demo" className="crm-demo-back" aria-label="Back to IOM">
+          ← Back to IOM
+        </a>
+      ) : null}
+
       <nav className="crm-section-nav" aria-label={t('nav.aria')}>
         <div className="crm-section-tabs">
           {(

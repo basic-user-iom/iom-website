@@ -85,12 +85,13 @@
     'a.ag-back',
     'a.imgprep__back',
     'a.case-study-back',
+    'a.crm-demo-back',
     'header a.back',
     'a.intro-logo-link',
     '#' + LINK_ID,
   ].join(',')
 
-  const KEEP_VISIBLE = 'a.intro-logo-link'
+  const KEEP_VISIBLE = 'a.intro-logo-link, a.crm-demo-back'
 
   function pathParts() {
     const parts = location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)
@@ -301,7 +302,11 @@
       html.is-iom-card-embed a.dream-back-link,
       html.is-iom-card-embed a.ag-back,
       html.is-iom-card-embed a.imgprep__back,
-      html.is-iom-card-embed a.case-study-back {
+      html.is-iom-card-embed a.case-study-back,
+      html.is-iom-card-embed a.crm-demo-back {
+        display: none !important;
+      }
+      body.crm-demo-route a.iom-back:not(.crm-demo-back) {
         display: none !important;
       }
     `
@@ -314,10 +319,17 @@
     el.textContent = '← ' + LABEL
   }
 
+  function isInFlowBack(el) {
+    return isStaticFallback(el) || (el instanceof HTMLElement && el.classList.contains('crm-demo-back'))
+  }
+
   function decorate(el, primary) {
     if (!(el instanceof HTMLAnchorElement)) return
-    el.addEventListener('click', goBack)
-    if (isStaticFallback(el)) {
+    if (el.dataset.iomBound !== '1') {
+      el.dataset.iomBound = '1'
+      el.addEventListener('click', goBack)
+    }
+    if (isInFlowBack(el)) {
       applyLabel(el)
       return
     }
@@ -329,7 +341,7 @@
 
   function findExisting() {
     const nodes = Array.from(document.querySelectorAll(BACK_SELECTOR)).filter(
-      (el) => el instanceof HTMLAnchorElement && !isStaticFallback(el),
+      (el) => el instanceof HTMLAnchorElement && !isInFlowBack(el),
     )
     return nodes[0] || null
   }
@@ -342,6 +354,16 @@
     }
 
     ensureStyles()
+
+    const inFlow = document.querySelector('a.crm-demo-back')
+    if (inFlow instanceof HTMLAnchorElement) {
+      decorate(inFlow, false)
+      document.querySelectorAll('a.iom-back').forEach((el) => {
+        if (el === inFlow) return
+        el.remove()
+      })
+      return
+    }
 
     let primary = findExisting()
     if (!primary) {
@@ -362,7 +384,7 @@
         decorate(el, false)
         return
       }
-      if (isStaticFallback(el)) {
+      if (isInFlowBack(el)) {
         decorate(el, false)
         return
       }
@@ -375,8 +397,14 @@
   function boot() {
     mount()
     const observer = new MutationObserver(() => {
-      if (document.querySelector('a.iom-back')) return
       if (isCardHoverEmbed() || isEmbeddedPreview()) return
+      const inFlow = document.querySelector('a.crm-demo-back')
+      if (inFlow) {
+        const overlay = document.querySelector('a.iom-back:not(.crm-demo-back)')
+        if (inFlow.getAttribute('data-iom-bound') !== '1' || overlay) mount()
+        return
+      }
+      if (document.querySelector('a.iom-back')) return
       mount()
     })
     observer.observe(document.documentElement, { childList: true, subtree: true })

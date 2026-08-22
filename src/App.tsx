@@ -148,13 +148,14 @@ export default function App() {
   useEffect(() => {
     const onCrm = isClientLogin || isCrmDemo
     document.body.classList.toggle('crm-route', onCrm)
+    document.body.classList.toggle('crm-demo-route', isCrmDemo)
     setCustomCursorEnabled(!onCrm)
     if (onCrm) {
       document.documentElement.classList.remove('is-hash-scrolling')
       document.documentElement.style.removeProperty('--hash-scroll-pad')
     }
     return () => {
-      document.body.classList.remove('crm-route')
+      document.body.classList.remove('crm-route', 'crm-demo-route')
       setCustomCursorEnabled(true)
     }
   }, [isClientLogin, isCrmDemo])
@@ -237,13 +238,23 @@ export default function App() {
     )
   }
 
-  if (isClientLogin || isCrmDemo) {
+  if (isCrmDemo) {
+    return (
+      <main id="main-content">
+        <Suspense fallback={null}>
+          <CrmApp demo />
+        </Suspense>
+      </main>
+    )
+  }
+
+  if (isClientLogin) {
     return (
       <>
         <Header />
         <main id="main-content">
           <Suspense fallback={null}>
-            <CrmApp demo={isCrmDemo} />
+            <CrmApp />
           </Suspense>
         </main>
       </>
