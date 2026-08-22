@@ -3,7 +3,7 @@ import { cursorPropsForProject } from '../cursor'
 import { projectAllowsHoverEmbed, type Project } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { getDeviceProfile } from '../utils/device'
-import { isFirstPartyDemoUrl, newTabAnchorProps, rememberReturnCard } from '../utils/demoNav'
+import { newTabAnchorProps, rememberReturnCard, shouldRememberReturnCard } from '../utils/demoNav'
 import { reportEmbedHover, subscribeEmbedSlot } from '../utils/embedVisibility'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 
@@ -216,7 +216,7 @@ export const ProjectCard = memo(function ProjectCard({
   }, [hasMusicTrack, onMusicSelect, project.id])
 
   const handleDemoNavigate = useCallback(() => {
-    if (project.url && isFirstPartyDemoUrl(project.url)) rememberReturnCard(project)
+    if (project.url && shouldRememberReturnCard(project.url)) rememberReturnCard(project)
   }, [project])
 
   const handleIframeLoad = useCallback(

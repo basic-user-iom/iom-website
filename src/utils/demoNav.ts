@@ -1,7 +1,15 @@
-/** sessionStorage key: homepage card to restore after a first-party demo. */
+/** sessionStorage key: homepage card to restore after OPEN (demo or same-tab external). */
 export const IOM_RETURN_CARD_KEY = 'iom:returnCard'
 
 const FIRST_PARTY_DEMO = /^\/demos?(\/|$)/i
+
+/**
+ * External product sites with no first-party `/demos/` preview and no IOM chrome.
+ * OPEN stays in the same tab so the browser Back button returns to IOM; we store
+ * `iom:returnCard` before leaving so the homepage can re-center that card.
+ * Cross-origin sites cannot receive the Back to IOM pill from this origin.
+ */
+const SAME_TAB_EXTERNAL_HOSTS = new Set(['3dbviewer.com'])
 
 export type DemoReturnPayload = {
   projectId: string
@@ -22,10 +30,26 @@ export function isFirstPartyDemoUrl(url: string | undefined): boolean {
   }
 }
 
-/** External http(s) only — first-party `/demos/` and `/demo/` stay same-tab. */
+export function isSameTabExternalUrl(url: string | undefined): boolean {
+  if (!url || !/^https?:\/\//i.test(url)) return false
+  try {
+    const host = new URL(url).hostname.replace(/^www\./, '').toLowerCase()
+    return SAME_TAB_EXTERNAL_HOSTS.has(host)
+  } catch {
+    return false
+  }
+}
+
+/** First-party demos and same-tab externals (e.g. 3dbviewer.com) restore the card on return. */
+export function shouldRememberReturnCard(url: string | undefined): boolean {
+  return isFirstPartyDemoUrl(url) || isSameTabExternalUrl(url)
+}
+
+/** External http(s) only — first-party `/demos/` and same-tab product hosts stay in-tab. */
 export function shouldOpenInNewTab(url: string | undefined): boolean {
   if (!url) return false
   if (isFirstPartyDemoUrl(url)) return false
+  if (isSameTabExternalUrl(url)) return false
   return /^https?:\/\//i.test(url)
 }
 
