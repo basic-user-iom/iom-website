@@ -22,12 +22,15 @@ export function EngagementPricing({
   compact = false,
   rateId,
   compareId,
+  hidden = false,
 }: {
   option: EngagementOption
   compact?: boolean
   rateId?: string
   compareId?: string
+  hidden?: boolean
 }) {
+  if (hidden) return null
   const hasIntro = Boolean(option.rateCompareLine)
   const reserveIntroRows = hasIntro || isAugustIntroActive()
 

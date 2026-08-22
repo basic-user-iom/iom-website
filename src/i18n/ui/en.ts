@@ -6,7 +6,7 @@ export const enUi: Dict = {
   'nav.primaryAria': 'Primary',
   'nav.blog': 'Blog',
   'nav.about': 'About',
-  'nav.costs': 'Costs',
+  'nav.costs': 'Work',
   'nav.contact': 'Get in touch',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -74,7 +74,7 @@ export const enUi: Dict = {
   'home.engage.fixedTitle': 'Small, clearly defined work',
   'home.engage.fixed':
     'Not every collaboration needs to begin with a large project or a day-rate engagement. Small interactions, product-presentation improvements, prototypes and clearly defined website components can also be quoted as fixed-price scopes.',
-  'home.engage.cta': 'View project costs',
+  'home.engage.cta': 'Get in touch',
   'home.engage.discuss': 'Discuss a project',
   'home.engage.learnMore': 'Learn more',
   'home.engage.augustCta': 'August introductory availability',
@@ -225,7 +225,7 @@ export const enUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'About',
-  'footer.costs': 'Costs',
+  'footer.costs': 'Work',
   'footer.methodology': 'Methodology',
   'footer.clients': 'Clients',
   'footer.caseStudies': 'Case Studies',

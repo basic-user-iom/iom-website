@@ -1,4 +1,4 @@
-import { clearReturnCard, peekReturnCard } from './demoNav'
+import { clearReturnCard, hasReturnScrollY, peekReturnCard } from './demoNav'
 
 const PENDING_CLASS = 'section-block--pending'
 
@@ -16,6 +16,7 @@ const NAV_SECTION_IDS = new Set([
   'clients',
   'about',
   'contact',
+  'engage-iom',
   'main-content',
 ])
 
@@ -202,6 +203,63 @@ function waitMs(ms: number): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, ms)
   })
+}
+
+function clearHashScrollPad(): void {
+  document.documentElement.style.removeProperty('--hash-scroll-pad')
+}
+
+/** Restore the exact viewport Y stored when OPEN left the homepage. */
+async function restoreExactReturnScroll(
+  y: number,
+  projectId: string,
+  isCancelled: () => boolean,
+): Promise<void> {
+  const endHashScroll = beginHashScroll()
+  const prevRestoration = window.history.scrollRestoration
+  try {
+    window.history.scrollRestoration = 'manual'
+  } catch {
+    /* ignore */
+  }
+
+  const targetY = Math.max(0, Math.round(y))
+  const started = Date.now()
+  while (!isCancelled() && Date.now() - started < 4000) {
+    const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+    const card = projectId ? findReadyHashTarget(projectId) : null
+    if (card && maxY >= targetY - 24) break
+    if (!projectId && maxY >= targetY - 24) break
+    await waitMs(50)
+  }
+
+  if (isCancelled()) {
+    endHashScroll()
+    return
+  }
+
+  clearHashScrollPad()
+  const maxY = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+  const top = Math.min(targetY, maxY)
+  window.scrollTo({ top, behavior: 'auto' })
+  await waitAnimationFrames(2)
+  if (!isCancelled()) window.scrollTo({ top, behavior: 'auto' })
+
+  if (projectId && parseLocationHash() !== projectId) {
+    try {
+      window.history.replaceState(null, '', `#${projectId}`)
+    } catch {
+      /* ignore */
+    }
+  }
+
+  clearReturnCard()
+  try {
+    window.history.scrollRestoration = prevRestoration
+  } catch {
+    /* ignore */
+  }
+  endHashScroll()
 }
 
 type LiveTarget = { current: HTMLElement }
@@ -445,6 +503,16 @@ export function watchLocationHashScroll(options?: WatchOptions): () => void {
     // Stored card always wins leftover nav hashes (#music, #3d, …). Empty hash
     // does not fall through to Music — it just does not scroll.
     const id = stored?.projectId || hashId
+
+    if (hasReturnScrollY(stored) && stored) {
+      let restoreCancelled = false
+      stopCurrent = () => {
+        restoreCancelled = true
+      }
+      void restoreExactReturnScroll(stored.scrollY ?? 0, stored.projectId, () => cancelled || restoreCancelled)
+      return
+    }
+
     if (!isSectionHash(id)) return
     const align: ScrollAlign = isCardHash(id) ? 'center' : 'start'
     if (stored?.projectId && hashId !== stored.projectId) {

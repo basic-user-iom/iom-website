@@ -6,7 +6,7 @@ export const frUi: Dict = {
   'nav.primaryAria': 'Navigation principale',
   'nav.blog': 'Blog',
   'nav.about': 'À propos',
-  'nav.costs': 'Coûts',
+  'nav.costs': 'Collaboration',
   'nav.contact': 'Nous contacter',
   'nav.login': 'Connexion',
   'nav.menu': 'Menu',
@@ -56,7 +56,7 @@ export const frUi: Dict = {
   'home.engage.fixedTitle': 'Travaux petits et clairement définis',
   'home.engage.fixed':
     'Toutes les collaborations n’ont pas besoin de commencer par un grand projet ou un engagement au tarif journalier. De petites interactions, des améliorations de présentation produit, des prototypes et des composants de site clairement définis peuvent aussi être chiffrés au forfait.',
-  'home.engage.cta': 'Voir les coûts de projet',
+  'home.engage.cta': 'Nous contacter',
   'home.engage.discuss': 'Discuter d’un projet',
   'home.engage.learnMore': 'En savoir plus',
   'home.engage.augustCta': 'Disponibilité introductive d’août',
@@ -168,7 +168,7 @@ export const frUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'À propos',
-  'footer.costs': 'Coûts',
+  'footer.costs': 'Collaboration',
   'footer.methodology': 'Méthodologie',
   'footer.clients': 'Clients',
   'footer.caseStudies': 'Études de cas',

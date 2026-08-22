@@ -6,7 +6,7 @@ export const itUi: Dict = {
   'nav.primaryAria': 'Navigazione principale',
   'nav.blog': 'Blog',
   'nav.about': 'Chi siamo',
-  'nav.costs': 'Costi',
+  'nav.costs': 'Collaborare',
   'nav.contact': 'Contattaci',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -56,7 +56,7 @@ export const itUi: Dict = {
   'home.engage.fixedTitle': 'Lavoro piccolo e chiaramente definito',
   'home.engage.fixed':
     'Non ogni collaborazione deve iniziare con un progetto grande o un incarico a tariffa giornaliera. Piccole interazioni, miglioramenti della presentazione prodotto, prototipi e componenti di sito chiaramente definiti possono essere quotati anche come scope a prezzo fisso.',
-  'home.engage.cta': 'Vedi i costi di progetto',
+  'home.engage.cta': 'Contattaci',
   'home.engage.discuss': 'Parlare di un progetto',
   'home.engage.learnMore': 'Scopri di più',
   'home.engage.augustCta': 'Disponibilità introduttiva di agosto',
@@ -168,7 +168,7 @@ export const itUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Chi siamo',
-  'footer.costs': 'Costi',
+  'footer.costs': 'Collaborare',
   'footer.methodology': 'Metodologia',
   'footer.clients': 'Clienti',
   'footer.caseStudies': 'Case study',

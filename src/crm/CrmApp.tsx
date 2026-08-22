@@ -38,6 +38,7 @@ import {
   storageMode,
 } from './api'
 import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
+import { mountIomBackScript } from '../utils/mountIomBack'
 import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
 import { DemosView } from './DemosView'
@@ -368,6 +369,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setFocusProjectId(projectId)
     setSection('time')
   }, [])
+
+  useEffect(() => {
+    if (!demoMode) return
+    mountIomBackScript()
+  }, [demoMode])
 
   useEffect(() => {
     if (sandboxed) {
@@ -1074,11 +1080,11 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               {demoMode ? t('demo.exit') : t('topbar.signOut')}
             </span>
           </button>
-          <a href="/#software" className="iom-demo-back-link">
-            <span className="crm-topbar-btn-label">
-              {demoMode ? '← IOM' : t('topbar.backSite')}
-            </span>
-          </a>
+          {!demoMode ? (
+            <a href="/#software" className="iom-demo-back-link">
+              <span className="crm-topbar-btn-label">{t('topbar.backSite')}</span>
+            </a>
+          ) : null}
         </div>
       </header>
 

@@ -6,7 +6,7 @@ export const nlUi: Dict = {
   'nav.primaryAria': 'Hoofdnavigatie',
   'nav.blog': 'Blog',
   'nav.about': 'Over ons',
-  'nav.costs': 'Kosten',
+  'nav.costs': 'Samenwerken',
   'nav.contact': 'Neem contact op',
   'nav.login': 'Login',
   'nav.menu': 'Menu',
@@ -56,7 +56,7 @@ export const nlUi: Dict = {
   'home.engage.fixedTitle': 'Klein, duidelijk afgebakend werk',
   'home.engage.fixed':
     'Niet elke samenwerking hoeft te beginnen met een groot project of een dagtarief. Kleine interacties, verbeteringen van productpresentatie, prototypen en duidelijk afgebakende website-onderdelen kunnen ook als vaste-prijs-scopes worden geoffreerd.',
-  'home.engage.cta': 'Projectkosten bekijken',
+  'home.engage.cta': 'Contact',
   'home.engage.discuss': 'Een project bespreken',
   'home.engage.learnMore': 'Meer weten',
   'home.engage.augustCta': 'Introductiebeschikbaarheid in augustus',
@@ -168,7 +168,7 @@ export const nlUi: Dict = {
 
   'footer.brand': 'IOM — Interactive Object Media',
   'footer.about': 'Over ons',
-  'footer.costs': 'Kosten',
+  'footer.costs': 'Samenwerken',
   'footer.methodology': 'Methodologie',
   'footer.clients': 'Klanten',
   'footer.caseStudies': 'Case studies',

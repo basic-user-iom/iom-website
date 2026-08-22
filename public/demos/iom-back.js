@@ -21,6 +21,7 @@
     clients: 1,
     about: 1,
     contact: 1,
+    'engage-iom': 1,
     'main-content': 1,
     top: 1,
   }
@@ -74,6 +75,7 @@
     dukta: 'crm-demo',
     'dukta-linar-concept': 'crm-demo',
     'automotive-studio': 'crm-demo',
+    'crm-demo': 'crm-demo',
   }
 
   const BACK_SELECTOR = [
@@ -107,6 +109,7 @@
     const demoAt = parts.indexOf('demo')
     if (demoAt >= 0 && parts[demoAt + 1]) return parts[demoAt + 1]
     if (parts[0] === 'artist-globe') return 'artist-globe'
+    if (parts[0] === 'crm-demo') return 'crm-demo'
     if (parts[0] === 'tools' && parts[1] === 'image-prep') return 'image-prep'
     if (parts[0] === 'case-studies') {
       return parts[1] ? 'case-studies/' + parts[1] : 'case-studies'
@@ -134,20 +137,26 @@
     }
   }
 
-  function readStoredCard() {
+  function readStoredPayload() {
     try {
       const raw = sessionStorage.getItem(RETURN_KEY)
-      if (!raw) return ''
+      if (!raw) return null
       if (raw.charAt(0) === '{') {
         const data = JSON.parse(raw)
         const id = String(data.projectId || '').trim()
-        return isCardId(id) ? id : ''
+        if (!isCardId(id)) return null
+        return data
       }
       const id = raw.trim()
-      return isCardId(id) ? id : ''
+      return isCardId(id) ? { projectId: id } : null
     } catch {
-      return ''
+      return null
     }
+  }
+
+  function readStoredCard() {
+    const data = readStoredPayload()
+    return data && data.projectId ? String(data.projectId) : ''
   }
 
   function isEmbeddedPreview() {
@@ -169,7 +178,16 @@
   function rememberCard(id) {
     if (!isCardId(id)) return
     try {
-      sessionStorage.setItem(RETURN_KEY, JSON.stringify({ projectId: id, at: Date.now() }))
+      const prev = readStoredPayload() || {}
+      sessionStorage.setItem(
+        RETURN_KEY,
+        JSON.stringify({
+          projectId: id,
+          section: prev.section,
+          scrollY: typeof prev.scrollY === 'number' ? prev.scrollY : undefined,
+          at: Date.now(),
+        }),
+      )
     } catch {
       /* private mode */
     }
@@ -191,7 +209,14 @@
     }
 
     const href = fallbackHref()
-    rememberCard(href.replace(/^\/#/, ''))
+    const cardId = href.replace(/^\/#/, '')
+    rememberCard(readStoredCard() || cardId)
+    const stored = readStoredPayload()
+    // Exact Y restore: skip the hash so the browser does not jump to a card/section first.
+    if (stored && typeof stored.scrollY === 'number') {
+      location.assign('/')
+      return
+    }
     location.assign(href)
   }
 
@@ -217,7 +242,7 @@
         align-items: center;
         justify-content: center;
         isolation: isolate;
-        min-height: 36px;
+        min-height: 44px;
         min-width: 44px;
         padding: 0.35rem 0.7rem !important;
         margin: 0;

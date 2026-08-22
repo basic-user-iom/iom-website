@@ -104,7 +104,16 @@ function MusicAlbumThumb({ track, isActive, onSelect }: MusicAlbumThumbProps) {
       type="button"
       className={`music-player-album-thumb${isActive ? ' is-active' : ''}${showPoster ? ' has-poster' : ''}`}
       data-cursor={track.audioUrl ? 'focus' : undefined}
-      onClick={disabled ? undefined : () => onSelect(track.id)}
+      onClick={
+        disabled
+          ? undefined
+          : () => {
+              thumbRef.current?.classList.remove('is-click-pulse')
+              void thumbRef.current?.offsetWidth
+              thumbRef.current?.classList.add('is-click-pulse')
+              onSelect(track.id)
+            }
+      }
       disabled={disabled}
       aria-pressed={isActive}
       aria-label={track.audioUrl ? `Load ${track.title}` : track.title}
@@ -402,6 +411,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const isCrossfadingRef = useRef(false)
   const playingTrackIdRef = useRef<string | null>(null)
   const autoAdvanceTriggeredRef = useRef(false)
+  const userHaltedRef = useRef(false)
   const audioContextRef = useRef<AudioContext | null>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
@@ -754,6 +764,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     }
 
     setPlaybackError(null)
+    userHaltedRef.current = false
     autoAdvanceTriggeredRef.current = false
 
     // Connect graph + resume context synchronously inside the user gesture.
@@ -787,6 +798,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   }, [applyOutputGain, applyUserVolume, ensureAudioGraph, resolveLoadedAudio, unlockAudioContext])
 
   const handlePause = useCallback(() => {
+    userHaltedRef.current = true
     cancelCrossfade()
     getActiveAudio()?.pause()
     getAudioForSlot(getInactiveSlot())?.pause()
@@ -795,20 +807,33 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   }, [cancelCrossfade, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   const handleStop = useCallback(() => {
+    userHaltedRef.current = true
     cancelCrossfade()
     ensureTrackRef()
     const active = getActiveAudio()
     if (active) {
       active.pause()
-      active.currentTime = 0
+      try {
+        active.currentTime = 0
+      } catch {
+        /* ignore */
+      }
       applyUserVolume(active)
     }
     const inactive = getAudioForSlot(getInactiveSlot())
-    inactive?.pause()
+    if (inactive) {
+      inactive.pause()
+      try {
+        inactive.currentTime = 0
+      } catch {
+        /* ignore */
+      }
+    }
+    autoAdvanceTriggeredRef.current = true
     setCurrentTime(0)
     setIsPlaying(false)
     setPlaybackError(null)
-    autoAdvanceTriggeredRef.current = false
+    visualizerRef.current?.pause()
   }, [applyUserVolume, cancelCrossfade, ensureTrackRef, getActiveAudio, getAudioForSlot, getInactiveSlot])
 
   useEffect(() => {
@@ -968,6 +993,7 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
     const onTimeUpdate = (event: Event) => {
       const audio = event.currentTarget as HTMLAudioElement
+      if (userHaltedRef.current) return
       if (isCrossfadingRef.current) return
 
       const active = activeSlotRef.current === 'a' ? audioA : audioB
@@ -995,6 +1021,10 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
     const onEnded = (event: Event) => {
       const audio = event.currentTarget as HTMLAudioElement
+      if (userHaltedRef.current) {
+        setIsPlaying(false)
+        return
+      }
       if (isCrossfadingRef.current) return
 
       const active = activeSlotRef.current === 'a' ? audioA : audioB

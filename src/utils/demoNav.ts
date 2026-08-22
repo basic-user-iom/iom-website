@@ -12,9 +12,13 @@ const HOMEPAGE_NAV_IDS = new Set([
   'clients',
   'about',
   'contact',
+  'engage-iom',
   'main-content',
   'top',
 ])
+
+/** Same-origin pages that leave the homepage and should restore exact scrollY. */
+const INTERNAL_LEAVE_HOME = /^\/(demos?|case-studies|artist-globe|crm-demo|tools)(\/|$)/i
 
 const FIRST_PARTY_DEMO = /^\/demos?(\/|$)/i
 
@@ -59,9 +63,34 @@ export function isSameTabExternalUrl(url: string | undefined): boolean {
   }
 }
 
-/** First-party demos and same-tab externals (e.g. 3dbviewer.com) restore the card on return. */
+function stripLocalePath(path: string): string {
+  const raw = path.replace(/\/+$/, '') || '/'
+  const parts = raw.split('/').filter(Boolean)
+  if (parts[0] && /^(en|de|fr|nl|it|es)$/i.test(parts[0])) {
+    const rest = `/${parts.slice(1).join('/')}`
+    return rest === '/' ? '/' : rest
+  }
+  return raw.startsWith('/') ? raw : `/${raw}`
+}
+
+function isInternalLeaveHomeUrl(url: string | undefined): boolean {
+  if (!url || /^mailto:/i.test(url)) return false
+  const path = (() => {
+    if (url.startsWith('/')) return stripLocalePath(url.split(/[?#]/)[0] || url)
+    try {
+      const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'https://iobjectm.com')
+      if (typeof window !== 'undefined' && parsed.origin !== window.location.origin) return ''
+      return stripLocalePath(parsed.pathname)
+    } catch {
+      return ''
+    }
+  })()
+  return INTERNAL_LEAVE_HOME.test(path)
+}
+
+/** First-party demos, tools, case studies, and same-tab externals restore scroll on return. */
 export function shouldRememberReturnCard(url: string | undefined): boolean {
-  return isFirstPartyDemoUrl(url) || isSameTabExternalUrl(url)
+  return isFirstPartyDemoUrl(url) || isSameTabExternalUrl(url) || isInternalLeaveHomeUrl(url)
 }
 
 /** External http(s) only — first-party `/demos/` and same-tab product hosts stay in-tab. */
@@ -119,4 +148,8 @@ export function clearReturnCard(): void {
   } catch {
     /* ignore */
   }
+}
+
+export function hasReturnScrollY(payload: DemoReturnPayload | null = peekReturnCard()): boolean {
+  return typeof payload?.scrollY === 'number' && Number.isFinite(payload.scrollY) && payload.scrollY >= 0
 }

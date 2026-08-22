@@ -1,14 +1,10 @@
 import { useState } from 'react'
-import {
-  PROJECT_COSTS_META,
-  RELEVANT_WORK,
-  isAugustIntroActive,
-  type EngagementOption,
-} from '../project-costs/data'
+import { RELEVANT_WORK, type EngagementOption } from '../project-costs/data'
 import { localizedEngagementOptions } from '../i18n/projectCosts'
 import { useSiteI18n } from '../i18n'
 import { EngagementCardShell } from './EngagementCardShell'
 import { useCardOrbPointerProps } from './SiteOrbZone'
+import { handleHomeHashLinkClick } from '../utils/homeHashScroll'
 import './engagement.css'
 
 function RelevantWorkCard({
@@ -73,8 +69,6 @@ function HomeLearnMore({ option }: { option: EngagementOption }) {
 
 export function HomeEngagementSection() {
   const { href, t, lang } = useSiteI18n()
-  const costsHref = href('/project-costs')
-  const [augustActive] = useState(() => isAugustIntroActive())
   const options = localizedEngagementOptions(lang)
   const proofNotes = [
     t('home.engage.proof.viewer'),
@@ -104,14 +98,12 @@ export function HomeEngagementSection() {
             footer={
               option.homeCta === 'discuss' ? (
                 <a
-                  className="pc-engage-card-link"
-                  href={PROJECT_COSTS_META.discussMail}
-                  data-cursor="focus"
+                  className="btn btn-primary pc-engage-discuss"
+                  href={href('/#contact')}
+                  data-cursor="start"
+                  onClick={(event) => handleHomeHashLinkClick(event, 'contact')}
                 >
                   {t('home.engage.discuss')}
-                  <span className="pc-learn-icon" aria-hidden="true">
-                    →
-                  </span>
                 </a>
               ) : (
                 <HomeLearnMore option={option} />
@@ -150,14 +142,14 @@ export function HomeEngagementSection() {
       </div>
 
       <div className="home-engage-actions">
-        <a className="btn btn-primary" href={costsHref}>
+        <a
+          className="btn btn-primary"
+          href={href('/#contact')}
+          data-cursor="start"
+          onClick={(event) => handleHomeHashLinkClick(event, 'contact')}
+        >
           {t('home.engage.cta')}
         </a>
-        {augustActive ? (
-          <a className="home-engage-august-link" href={`${costsHref}#august-offer`}>
-            {t('home.engage.augustCta')}
-          </a>
-        ) : null}
       </div>
     </section>
   )

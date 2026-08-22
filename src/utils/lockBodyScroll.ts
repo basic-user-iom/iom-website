@@ -53,8 +53,16 @@ function releaseLock(): void {
   html.style.scrollBehavior = 'auto'
   window.scrollTo(0, y)
   html.classList.remove('is-overlay-open')
+  html.classList.add('is-restoring-scroll')
   window.scrollTo(0, y)
-  html.style.scrollBehavior = prevScrollBehavior
+  window.requestAnimationFrame(() => {
+    window.scrollTo(0, y)
+    window.setTimeout(() => {
+      window.scrollTo(0, y)
+      html.classList.remove('is-restoring-scroll')
+      html.style.scrollBehavior = prevScrollBehavior
+    }, 80)
+  })
 }
 
 /** Prevent background scroll while a viewport overlay is open (iOS-safe). */

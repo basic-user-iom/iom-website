@@ -1,5 +1,5 @@
 import { Suspense, useEffect, useLayoutEffect, useRef, type ReactNode, useState } from 'react'
-import { peekReturnCard } from '../utils/demoNav'
+import { hasReturnScrollY, peekReturnCard } from '../utils/demoNav'
 import { isDeepLinkHash } from '../utils/homeHashScroll'
 
 type DeferredHomeBodyProps = {
@@ -29,7 +29,12 @@ function PendingSections({ sectionIds }: { sectionIds: string[] }) {
 }
 
 function restoreScrollY(y: number): void {
-  if (peekReturnCard()) return
+  const stored = peekReturnCard()
+  if (hasReturnScrollY(stored) && stored) {
+    window.scrollTo({ top: stored.scrollY ?? y, behavior: 'auto' })
+    return
+  }
+  if (stored) return
   if (y <= 40) return
   if (window.scrollY >= y - 1) return
   window.scrollTo({ top: y, behavior: 'auto' })

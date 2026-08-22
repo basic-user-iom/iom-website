@@ -997,6 +997,7 @@ body.hero-viewer-fs-lock {
 }
 
 html.is-overlay-open .section-block,
+html.is-restoring-scroll .section-block,
 html.iom-viewport-fs .section-block,
 body.music-player-fs-lock .section-block,
 body.hero-viewer-fs-lock .section-block {
@@ -2113,6 +2114,7 @@ body.music-player-fs-lock {
 .music-player-btn,
 .music-player-volume {
   flex-shrink: 0;
+  min-height: 44px;
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2341,17 +2343,69 @@ body.music-player-fs-lock {
   box-shadow: 0 0 0 1px var(--accent-glow);
 }
 
-.music-player-album-thumb:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-
 .music-player-album-thumb-poster {
   display: block;
   flex: 0 0 auto;
   width: 100%;
   aspect-ratio: 1 / 1;
   object-fit: cover;
+  transform-origin: center;
+  transition: transform 0.55s ease;
+}
+
+.music-player-album-thumb:hover .music-player-album-thumb-poster,
+.music-player-album-thumb:focus-visible .music-player-album-thumb-poster {
+  transform: scale(1.08);
+}
+
+.music-player-album-thumb.is-click-pulse .music-player-album-thumb-poster {
+  animation: iom-album-click 0.45s ease;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .music-player-album-thumb.is-active .music-player-album-thumb-poster {
+    animation: iom-album-breathe 5s ease-in-out infinite;
+  }
+  .music-player-album-thumb.is-active.is-click-pulse .music-player-album-thumb-poster,
+  .music-player-album-thumb.is-active:hover .music-player-album-thumb-poster {
+    animation: none;
+    transform: scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .music-player-album-thumb-poster,
+  .music-player-album-thumb.is-click-pulse .music-player-album-thumb-poster {
+    animation: none;
+    transition: none;
+  }
+}
+
+@keyframes iom-album-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes iom-album-click {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1.06);
+  }
+}
+
+.music-player-album-thumb:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .music-player-album-thumb-fallback {
@@ -2611,6 +2665,8 @@ body.music-player-fs-lock {
 .gallery-lightbox-audio,
 .gallery-lightbox-close {
   flex-shrink: 0;
+  min-height: 44px;
+  min-width: 44px;
   padding: 0.45rem 0.75rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);

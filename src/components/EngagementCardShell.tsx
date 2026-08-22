@@ -27,7 +27,7 @@ export function EngagementCardShell({
   const titleId = `engage-title-${option.id}`
   const rateId = `engage-rate-${option.id}`
   const compareId = option.rateCompareLine ? `engage-rate-intro-${option.id}` : undefined
-  const labelledBy = [titleId, rateId, compareId].filter(Boolean).join(' ')
+  const labelledBy = isHome ? titleId : [titleId, rateId, compareId].filter(Boolean).join(' ')
 
   return (
     <article
@@ -53,6 +53,7 @@ export function EngagementCardShell({
         <p className="pc-engage-option">{option.optionLabel}</p>
         <h3 className="pc-engage-card-title" id={titleId}>
           {option.title}
+          {isHome ? null : (
           <span className="sr-only">
             {' '}
             —{' '}
@@ -60,6 +61,7 @@ export function EngagementCardShell({
               ? `${option.rateBadge ? `${option.rateBadge}. ` : ''}${option.rateCompareLine}${option.rateUntilLine ? `. ${option.rateUntilLine}. ` : ' '}${option.rateStandardLine ?? option.rateLine}`
               : option.rateLine}
           </span>
+          )}
         </h3>
         {isHome ? <span className="pc-engage-rule" aria-hidden="true" /> : null}
         <p className="pc-engage-card-question">{option.question}</p>
@@ -70,6 +72,7 @@ export function EngagementCardShell({
         compact={isHome}
         rateId={rateId}
         compareId={compareId}
+        hidden={isHome}
       />
       <div className="pc-engage-card-footer">{footer}</div>
       {isHome ? (

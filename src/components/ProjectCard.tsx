@@ -450,7 +450,10 @@ export const ProjectCard = memo(function ProjectCard({
                       href={caseStudyHref}
                       title={t('card.caseStudy')}
                       data-cursor="link"
-                      onClick={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        rememberReturnCard(project)
+                      }}
                     >
                       {t('card.caseStudy')}
                     </a>
