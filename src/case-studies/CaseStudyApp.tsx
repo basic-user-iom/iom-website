@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Footer } from '../components/Footer'
-import { Header } from '../components/Header'
 import { getCaseStudyOverlay } from '../i18n/caseStudies'
 import { useSiteI18n, type SiteLang } from '../i18n'
 import { applyPageMeta } from '../seo/usePageMeta'
+import { mountIomBackScript } from '../utils/mountIomBack'
 import './caseStudy.css'
 
 export { isCaseStudyPath } from './paths'
@@ -267,6 +267,19 @@ const LABELLED_CURSOR_STAGES: Stage[] = [
     },
   },
 ]
+
+/** Homepage project-card hashes — keep in sync with public/demos/iom-back.js DEMO_CARD. */
+const CASE_STUDY_HOME_CARD: Record<string, string> = {
+  '3d-viewer': 'case-study-3d-viewer',
+  'black-witness': 'panorama-suite',
+  'message-in-a-bottle': 'case-study-message-in-a-bottle',
+  'labelled-custom-cursor': 'case-study-labelled-custom-cursor',
+}
+
+function caseStudyBackHref(slug: string): string {
+  const card = (slug && CASE_STUDY_HOME_CARD[slug]) || '360'
+  return `/#${card}`
+}
 
 const STUDIES: Record<string, CaseStudySpec> = {
   '3d-viewer': {
@@ -565,9 +578,15 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
     document.title = t('seo.caseStudiesTitle')
   }, [path, spec, lang, t])
 
+  useEffect(() => {
+    mountIomBackScript()
+  }, [])
+
   return (
     <>
-      <Header />
+      <a href={caseStudyBackHref(slug)} className="case-study-back" aria-label="Back to IOM">
+        ← Back to IOM
+      </a>
       <main id="main-content" className="case-study-main">
         {spec ? (
           <CaseStudyView spec={spec} />

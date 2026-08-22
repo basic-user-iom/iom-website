@@ -2,7 +2,9 @@
 .imgprep {
   --imgprep-panel: var(--bg-elevated);
   min-height: 100vh;
-  padding: calc(var(--header-h) + 2rem) clamp(1.25rem, 4vw, 3rem) 4rem;
+  /* No site header on this tool — leave room for the compact Back to IOM control. */
+  padding: max(3.5rem, calc(env(safe-area-inset-top, 0px) + 3.25rem))
+    clamp(1.25rem, 4vw, 3rem) 4rem;
   max-width: 72rem;
   margin-inline: auto;
 }

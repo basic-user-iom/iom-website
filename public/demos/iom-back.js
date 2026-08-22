@@ -62,6 +62,11 @@
     'dj-linked-particles': 'webgpu-tsl-linked-particles',
     'artist-globe': 'artist-globe',
     'image-prep': 'image-prep',
+    'case-studies': '360',
+    'case-studies/black-witness': 'panorama-suite',
+    'case-studies/3d-viewer': 'case-study-3d-viewer',
+    'case-studies/message-in-a-bottle': 'case-study-message-in-a-bottle',
+    'case-studies/labelled-custom-cursor': 'case-study-labelled-custom-cursor',
     icm: 'crm-demo',
     evly: 'crm-demo',
     'kelly-kettle': 'crm-demo',
@@ -77,6 +82,7 @@
     'a.iom-demo-back-link',
     'a.ag-back',
     'a.imgprep__back',
+    'a.case-study-back',
     'header a.back',
     'a.intro-logo-link',
     '#' + LINK_ID,
@@ -86,7 +92,7 @@
 
   function pathParts() {
     const parts = location.pathname.replace(/\/+$/, '').split('/').filter(Boolean)
-    if (parts[0] && /^(en|de|nl|it|es)$/i.test(parts[0])) return parts.slice(1)
+    if (parts[0] && /^(en|de|fr|nl|it|es)$/i.test(parts[0])) return parts.slice(1)
     return parts
   }
 
@@ -102,6 +108,9 @@
     if (demoAt >= 0 && parts[demoAt + 1]) return parts[demoAt + 1]
     if (parts[0] === 'artist-globe') return 'artist-globe'
     if (parts[0] === 'tools' && parts[1] === 'image-prep') return 'image-prep'
+    if (parts[0] === 'case-studies') {
+      return parts[1] ? 'case-studies/' + parts[1] : 'case-studies'
+    }
     return ''
   }
 
@@ -109,7 +118,7 @@
     const stored = readStoredCard()
     if (isCardId(stored)) return '/#' + stored
     const card = DEMO_CARD[demoSlug()]
-    if (isCardId(card)) return '/#' + card
+    if (card) return '/#' + card
     const fromLink = existingFallbackHash()
     if (isCardId(fromLink)) return '/#' + fromLink
     return '/#experiments'
@@ -266,7 +275,8 @@
       html.is-iom-card-embed a.back-link,
       html.is-iom-card-embed a.dream-back-link,
       html.is-iom-card-embed a.ag-back,
-      html.is-iom-card-embed a.imgprep__back {
+      html.is-iom-card-embed a.imgprep__back,
+      html.is-iom-card-embed a.case-study-back {
         display: none !important;
       }
     `

@@ -1,5 +1,4 @@
 import { useEffect, useId, useRef, useState, type ChangeEvent, type DragEvent } from 'react'
-import { Header } from '../../components/Header'
 import { Footer } from '../../components/Footer'
 import {
   downloadAsZip,
@@ -255,7 +254,6 @@ export function ImagePrepApp() {
 
   return (
     <>
-      <Header />
       <main className="imgprep">
         <a href="/#image-prep" className="imgprep__back" aria-label="Back to IOM">
           ← Back to IOM
