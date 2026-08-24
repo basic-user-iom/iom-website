@@ -879,7 +879,10 @@ export async function createStudioRenderer(
   }
 
   const applyLightsBudget = (opts: { lite: boolean }) => {
-    fill.castShadow = !opts.lite
+    // Exterior presets keep fill off (single sun key). Only studio uses fill shadows.
+    const visual =
+      lastEnv.presetId !== 'custom' ? lastEnv.presetId : lastEnv.basePresetId ?? 'studio'
+    fill.castShadow = !opts.lite && visual === 'studio'
     const sunSize = opts.lite ? 2048 : 4096
     if (sun.shadow.mapSize.x !== sunSize) {
       sun.shadow.mapSize.set(sunSize, sunSize)

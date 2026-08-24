@@ -279,18 +279,36 @@ export function applyEnvironment(handles: EnvironmentHandles, env: EnvironmentSt
     handles.sun.castShadow = false
   }
 
-  handles.fill.color.setHex(look.fillColor)
-  handles.fill.intensity = look.fillIntensity
-
-  handles.rim.color.setHex(look.rimColor)
-  handles.rim.intensity = look.rimIntensity
+  // Exterior / free-drive day must read as a single sun key — studio fill+rim
+  // directionals otherwise look like three separate suns (and fill also casts).
+  const exteriorSingleKey = visualPreset !== 'studio'
+  if (exteriorSingleKey) {
+    handles.fill.intensity = 0
+    handles.fill.visible = false
+    handles.fill.castShadow = false
+    handles.rim.intensity = 0
+    handles.rim.visible = false
+  } else {
+    handles.fill.color.setHex(look.fillColor)
+    handles.fill.intensity = look.fillIntensity
+    handles.fill.visible = true
+    handles.fill.castShadow = true
+    handles.rim.color.setHex(look.rimColor)
+    handles.rim.intensity = look.rimIntensity
+    handles.rim.visible = true
+  }
 
   handles.hemi.color.setHex(look.hemiSky)
   handles.hemi.groundColor.setHex(look.hemiGround)
-  handles.hemi.intensity = look.hemiIntensity
+  // Slight hemi lift outdoors so losing fill/rim does not crush shadow side.
+  handles.hemi.intensity = exteriorSingleKey
+    ? look.hemiIntensity * (visualPreset === 'day' ? 1.18 : visualPreset === 'golden-hour' ? 1.12 : 1.08)
+    : look.hemiIntensity
 
   handles.ambient.color.setHex(look.hemiSky)
-  handles.ambient.intensity = look.ambientIntensity
+  handles.ambient.intensity = exteriorSingleKey
+    ? look.ambientIntensity * 1.15
+    : look.ambientIntensity
 
   handles.celestial.apply(env, {
     top: look.skyTop,

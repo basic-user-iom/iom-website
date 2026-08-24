@@ -4,19 +4,23 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  DataTexture,
   DoubleSide,
   Group,
+  LinearFilter,
   Mesh,
   MeshBasicMaterial,
-  NormalBlending,
+  NoColorSpace,
   PerspectiveCamera,
   PlaneGeometry,
   Points,
+  RGBAFormat,
   Scene,
   ShaderMaterial,
   SphereGeometry,
   SRGBColorSpace,
   TextureLoader,
+  UnsignedByteType,
   Vector3,
 } from 'three'
 import type { EnvironmentState } from '../persistence/schema'
@@ -137,6 +141,7 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
     },
     dispose() {
       scene.remove(group)
+      const disposedMaps = new Set<object>()
       group.traverse((obj) => {
         if ((obj as Points).isPoints) {
           const pts = obj as Points
@@ -148,7 +153,11 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
         if (!mesh.isMesh) return
         mesh.geometry.dispose()
         const mat = mesh.material as MeshBasicMaterial | ShaderMaterial
-        if ((mat as MeshBasicMaterial).map) (mat as MeshBasicMaterial).map?.dispose()
+        const map = (mat as MeshBasicMaterial).map
+        if (map && !disposedMaps.has(map)) {
+          disposedMaps.add(map)
+          map.dispose()
+        }
         mat.dispose()
       })
     },
@@ -332,6 +341,45 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t)
 }
 
+/**
+ * Soft circular glow atlas — alpha is 0 at the inscribed-circle rim so plane
+ * geometry never reads as nested gray squares (the 3e1f7b1 shader falloff
+ * still left ~10–25% alpha at mid-edges).
+ */
+function createSunGlowTexture(resolution = 256): DataTexture {
+  const size = Math.max(64, resolution)
+  const data = new Uint8Array(size * size * 4)
+  const mid = (size - 1) * 0.5
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (x - mid) / mid
+      const dy = (y - mid) / mid
+      const d = Math.sqrt(dx * dx + dy * dy)
+      let a = 0
+      if (d < 1) {
+        // Hot core + soft atmospheric halo; forced zero at rim.
+        const rim = 1 - d
+        const core = Math.exp(-d * d * 9.5)
+        const halo = Math.pow(rim, 1.35)
+        a = Math.min(1, core * 0.95 + halo * 0.55)
+        a *= smoothstep(1, 0.88, d)
+      }
+      const i = (y * size + x) * 4
+      data[i] = 255
+      data[i + 1] = 255
+      data[i + 2] = 255
+      data[i + 3] = Math.round(a * 255)
+    }
+  }
+  const tex = new DataTexture(data, size, size, RGBAFormat, UnsignedByteType)
+  tex.colorSpace = NoColorSpace
+  tex.minFilter = LinearFilter
+  tex.magFilter = LinearFilter
+  tex.needsUpdate = true
+  tex.name = 'iom-sun-glow-radial'
+  return tex
+}
+
 function createSunGlowBillboard(): Group {
   const root = new Group()
   root.name = 'iom-sun-glow'
@@ -339,62 +387,37 @@ function createSunGlowBillboard(): Group {
   root.frustumCulled = false
   root.userData.selectiveBloom = false
 
-  const layers: Array<{
-    size: number
-    core: number
-    falloff: number
-    opacity: number
-    additive: boolean
-  }> = [
-    { size: 1.05, core: 0.92, falloff: 14, opacity: 1, additive: false },
-    { size: 2.4, core: 0.42, falloff: 4.5, opacity: 0.72, additive: true },
-    { size: 5.5, core: 0.16, falloff: 1.8, opacity: 0.38, additive: true },
-    { size: 12, core: 0.06, falloff: 0.75, opacity: 0.16, additive: true },
+  const glowMap = createSunGlowTexture(256)
+  // Shared across layers — dispose once via celestial dispose Set.
+  root.userData.glowTexture = glowMap
+
+  // Nested soft discs (not opaque squares): core → warm bloom → haze → scatter.
+  const layers: Array<{ size: number; opacity: number; color: number }> = [
+    { size: 1.2, opacity: 1, color: 0xfff6e8 },
+    { size: 2.8, opacity: 0.55, color: 0xffe2b0 },
+    { size: 6.2, opacity: 0.22, color: 0xffc878 },
+    { size: 13, opacity: 0.09, color: 0xffb060 },
   ]
 
   for (let i = 0; i < layers.length; i++) {
     const layer = layers[i]
-    const mat = new ShaderMaterial({
-      uniforms: {
-        uColor: { value: new Color(0xfff4e0) },
-        uCore: { value: layer.core },
-        uFalloff: { value: layer.falloff },
-        uOpacity: { value: layer.opacity },
-      },
-      vertexShader: /* glsl */ `
-        varying vec2 vUv;
-        void main() {
-          vUv = uv;
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: /* glsl */ `
-        uniform vec3 uColor;
-        uniform float uCore;
-        uniform float uFalloff;
-        uniform float uOpacity;
-        varying vec2 vUv;
-        void main() {
-          vec2 p = vUv - vec2(0.5);
-          float d = length(p) * 2.0;
-          float core = exp(-d * d * uFalloff);
-          float halo = exp(-d * max(0.35, uFalloff * 0.22));
-          float glow = mix(halo, core, uCore);
-          float alpha = glow * uOpacity;
-          if (alpha < 0.003) discard;
-          gl_FragColor = vec4(uColor * (0.65 + 0.55 * core), alpha);
-        }
-      `,
+    const mat = new MeshBasicMaterial({
+      map: glowMap,
+      color: layer.color,
       transparent: true,
+      opacity: layer.opacity,
+      blending: AdditiveBlending,
       depthWrite: false,
       depthTest: true,
-      blending: layer.additive ? AdditiveBlending : NormalBlending,
       side: DoubleSide,
       fog: false,
+      toneMapped: false,
     })
     const mesh = new Mesh(new PlaneGeometry(layer.size, layer.size), mat)
+    mesh.name = `iom-sun-glow-layer-${i}`
     mesh.renderOrder = -1.5 + i * 0.01
     mesh.frustumCulled = false
+    mesh.userData.selectiveBloom = false
     root.add(mesh)
   }
   root.visible = false
@@ -403,11 +426,11 @@ function createSunGlowBillboard(): Group {
 
 function setSunGlowColor(sunGlow: Group, hex: number) {
   const warm = new Color(hex)
-  const outer = warm.clone().lerp(new Color(0xffe8c0), 0.35)
+  const outer = warm.clone().lerp(new Color(0xffe8c0), 0.4)
   sunGlow.children.forEach((child, i) => {
-    const mat = (child as Mesh).material as ShaderMaterial
-    if (!mat.uniforms?.uColor) return
-    mat.uniforms.uColor.value.copy(i === 0 ? warm : outer)
+    const mat = (child as Mesh).material as MeshBasicMaterial
+    if (!mat?.color) return
+    mat.color.copy(i === 0 ? warm : outer)
   })
 }
 
