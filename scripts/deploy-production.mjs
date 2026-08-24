@@ -301,7 +301,16 @@ function buildSnapshot(stage) {
   if (!existsSync(join(stage, 'dist', 'index.html'))) fail('Isolated build did not produce dist/index.html.')
 }
 
-function verifyUploadManifest(stage) {
+function demoSlugForScope(scope) {
+  if (['automotive-studio', 'building-viewer', 'panorama-360', 'streets-gl'].includes(scope)) {
+    return scope
+  }
+  if (scope.startsWith('demo:')) return scope.slice('demo:'.length)
+  if (scope.startsWith('project:')) return scope.slice('project:'.length)
+  return null
+}
+
+function verifyUploadManifest(stage, scopes) {
   const output = packageCommand(
     npx,
     ['--yes', 'vercel', 'deploy', '--dry', '--format=json', '--cwd', stage],
@@ -323,6 +332,15 @@ function verifyUploadManifest(stage) {
     console.error('Forbidden local/source paths in upload manifest:')
     for (const file of forbidden.slice(0, 30)) console.error(`  ${file}`)
     fail('Deployment manifest contains files that must stay local.')
+  }
+
+  for (const scope of scopes) {
+    const slug = demoSlugForScope(scope)
+    if (!slug) continue
+    const publishedIndex = `public/demos/${slug}/index.html`
+    if (existsSync(join(stage, ...publishedIndex.split('/'))) && !included.includes(publishedIndex)) {
+      fail(`${publishedIndex} is missing from the upload manifest for scope "${scope}".`)
+    }
   }
   console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB\n`)
 }
@@ -370,7 +388,7 @@ function main() {
   try {
     snapshot = composeSnapshot(state, scopes, head)
     buildSnapshot(snapshot.stage)
-    verifyUploadManifest(snapshot.stage)
+    verifyUploadManifest(snapshot.stage, scopes)
     if (verifyOnly) {
       console.log('Verification complete. Nothing was pushed or deployed.\n')
       return
