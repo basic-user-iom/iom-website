@@ -45,6 +45,15 @@ body.linar-route {
   -webkit-font-smoothing: antialiased;
 }
 
+/*
+ * dukta-linar-concept only: hide the shared iom-back.js chip.
+ * Injected on <body> (outside .linar-page); linar-route scope keeps other demos unchanged.
+ */
+html.linar-route a.iom-back,
+body.linar-route a.iom-back {
+  display: none !important;
+}
+
 .linar-page {
   --linar-bg: #f3efe8;
   --linar-paper: #faf7f2;
