@@ -6,4 +6,3 @@
 - Lixiang asset: prototype only — not cleared for public/client branding
 - Force WebGL2: append ?forceWebGL2=1
 - Volume Lighting remains at /demos/volume-lighting/ (unchanged)
-

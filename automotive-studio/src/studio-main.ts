@@ -33,6 +33,12 @@ import {
   ensureBundledDefaultProject,
 } from './persistence/bundledDefault'
 import { migrateProject } from './persistence/migrations'
+import {
+  CYCLORAMA_VIDEO_PRESETS,
+  fetchCycloramaVideoPreset,
+  fetchFloorPresetFiles,
+  FLOOR_PRESETS,
+} from './stage/bundledStagePresets'
 import type {
   EnvironmentPresetId,
   EnvironmentState,
@@ -141,6 +147,80 @@ async function persistProject(options: { reason: 'manual' | 'auto' | 'present'; 
     }
   }
   return { json, orphanNote: '' }
+}
+
+async function applyStageTexturePack(
+  surface: 'floor' | 'pedestal' | 'cyclorama',
+  files: File[],
+  setStatus: (message: string, isError?: boolean) => void,
+): Promise<void> {
+  const { detectPbrMapsFromFiles, summarizeDetectedPbrMaps } = await import('./stage/detectPbrMaps')
+  const detected = detectPbrMapsFromFiles(files)
+  const slots = Object.keys(detected.files)
+  if (slots.length === 0) {
+    setStatus(
+      `No PBR maps recognised in folder (expect Color / NormalGL / Roughness / Displacement…).`,
+      true,
+    )
+    return
+  }
+  const stage = store.getSnapshot().project.stage
+  const current = stage[surface]
+  const nextMaps: (typeof current)['maps'] = {}
+  const slotToKey: Record<string, keyof typeof nextMaps> = {
+    map: 'mapAssetId',
+    normal: 'normalMapAssetId',
+    roughness: 'roughnessMapAssetId',
+    metalness: 'metalnessMapAssetId',
+    displacement: 'displacementMapAssetId',
+    ao: 'aoMapAssetId',
+    emissive: 'emissiveMapAssetId',
+  }
+  for (const [slot, file] of Object.entries(detected.files) as Array<
+    [keyof typeof detected.files, File]
+  >) {
+    if (!file) continue
+    const assetId = crypto.randomUUID()
+    await idbPutAssetBlob(assetId, file, { filename: file.name })
+    store.dispatch(
+      upsertAsset({
+        id: assetId,
+        role: 'image',
+        filename: file.name,
+        byteSize: file.size,
+        blobKey: assetId,
+      }),
+    )
+    nextMaps[slotToKey[slot]] = assetId
+  }
+  const autoBreak =
+    (current.tileVariation ?? 0) < 0.05
+      ? { tileVariation: 0.65, tileSeed: Math.random() * 64 }
+      : {}
+  const packTune: Partial<(typeof stage)['floor']> = {
+    color: '#ffffff',
+    normalYFlip: detected.normalYFlip,
+  }
+  if (detected.files.metalness) packTune.metalness = 1
+  else packTune.metalness = 0
+  if (detected.files.roughness) packTune.roughness = 1
+  if (detected.files.displacement && !(current.displacementScale > 0)) {
+    packTune.displacementScale = 0.08
+  }
+  if (detected.files.map && (current.mapRepeat ?? 1) <= 1.01) {
+    packTune.mapRepeat = 8
+  }
+  store.dispatch(
+    patchStage({
+      [surface]: {
+        ...current,
+        ...autoBreak,
+        ...packTune,
+        maps: nextMaps,
+      },
+    }),
+  )
+  setStatus(`${surface} pack replaced · ${summarizeDetectedPbrMaps(detected)}`)
 }
 
 const shell = mountStudioShell(root, {
@@ -1312,9 +1392,60 @@ const shell = mountStudioShell(root, {
     )
     shell.setStatus(`Cyclorama video: ${file.name}`)
   },
+  onCycloramaVideoPreset: async (id) => {
+    const preset = CYCLORAMA_VIDEO_PRESETS[id]
+    const existing = store
+      .getSnapshot()
+      .project.assets.find((a) => a.role === 'video' && a.filename === preset.filename)
+    if (existing) {
+      store.dispatch(
+        patchStage({
+          cycloramaVideoAssetId: existing.id,
+          cycloramaInteractive: true,
+        }),
+      )
+      shell.setStatus(`Cyclorama wall: ${preset.label}`)
+      return
+    }
+    try {
+      shell.setStatus(`Loading ${preset.label}…`)
+      const file = await fetchCycloramaVideoPreset(id)
+      const assetId = crypto.randomUUID()
+      await idbPutAssetBlob(assetId, file, { filename: file.name })
+      store.dispatch(
+        upsertAsset({
+          id: assetId,
+          role: 'video',
+          filename: file.name,
+          byteSize: file.size,
+          blobKey: assetId,
+        }),
+      )
+      store.dispatch(
+        patchStage({
+          cycloramaVideoAssetId: assetId,
+          cycloramaInteractive: true,
+        }),
+      )
+      shell.setStatus(`Cyclorama wall: ${preset.label}`)
+    } catch (err) {
+      shell.setStatus(`Could not load ${preset.label}.`, true)
+      console.error(err)
+    }
+  },
   onCycloramaClearVideo: () => {
     store.dispatch(patchStage({ cycloramaVideoAssetId: null }))
     shell.setStatus('Cyclorama video cleared.')
+  },
+  onStageFloorPreset: async (id) => {
+    try {
+      shell.setStatus(`Loading ${FLOOR_PRESETS[id].label} ground…`)
+      const files = await fetchFloorPresetFiles(id)
+      await applyStageTexturePack('floor', files, (message, isError) => shell.setStatus(message, isError))
+    } catch (err) {
+      shell.setStatus(`Could not load ${FLOOR_PRESETS[id].label} ground.`, true)
+      console.error(err)
+    }
   },
   onAccentLightsPatch: (patch) => {
     store.dispatch(patchAccentLights(patch))
@@ -1613,79 +1744,8 @@ const shell = mountStudioShell(root, {
         : `${surface} ${map} map: ${file.name}`,
     )
   },
-  onStageTexturePack: async (surface, files) => {
-    const { detectPbrMapsFromFiles, summarizeDetectedPbrMaps } = await import('./stage/detectPbrMaps')
-    const detected = detectPbrMapsFromFiles(files)
-    const slots = Object.keys(detected.files)
-    if (slots.length === 0) {
-      shell.setStatus(
-        `No PBR maps recognised in folder (expect Color / NormalGL / Roughness / Displacement…).`,
-        true,
-      )
-      return
-    }
-    const stage = store.getSnapshot().project.stage
-    const current = stage[surface]
-    // Full replace — merging left rock normals/depth under a new asphalt albedo.
-    const nextMaps: (typeof current)['maps'] = {}
-    const slotToKey: Record<string, keyof typeof nextMaps> = {
-      map: 'mapAssetId',
-      normal: 'normalMapAssetId',
-      roughness: 'roughnessMapAssetId',
-      metalness: 'metalnessMapAssetId',
-      displacement: 'displacementMapAssetId',
-      ao: 'aoMapAssetId',
-      emissive: 'emissiveMapAssetId',
-    }
-    for (const [slot, file] of Object.entries(detected.files) as Array<
-      [keyof typeof detected.files, File]
-    >) {
-      if (!file) continue
-      const assetId = crypto.randomUUID()
-      await idbPutAssetBlob(assetId, file, { filename: file.name })
-      store.dispatch(
-        upsertAsset({
-          id: assetId,
-          role: 'image',
-          filename: file.name,
-          byteSize: file.size,
-          blobKey: assetId,
-        }),
-      )
-      nextMaps[slotToKey[slot]] = assetId
-    }
-    const autoBreak =
-      (current.tileVariation ?? 0) < 0.05
-        ? { tileVariation: 0.65, tileSeed: Math.random() * 64 }
-        : {}
-    // White base so albedo shows true colour; dielectric packs get metalness 0.
-    // When roughness/metalness maps are present, scalars must be 1 so the map is full-range.
-    const packTune: Partial<(typeof stage)['floor']> = {
-      color: '#ffffff',
-      normalYFlip: detected.normalYFlip,
-    }
-    if (detected.files.metalness) packTune.metalness = 1
-    else packTune.metalness = 0
-    if (detected.files.roughness) packTune.roughness = 1
-    if (detected.files.displacement && !(current.displacementScale > 0)) {
-      packTune.displacementScale = 0.08
-    }
-    // 1K asphalt tiles look huge at 1× on a 28 m pad — start denser for road packs.
-    if (detected.files.map && (current.mapRepeat ?? 1) <= 1.01) {
-      packTune.mapRepeat = 8
-    }
-    store.dispatch(
-      patchStage({
-        [surface]: {
-          ...current,
-          ...autoBreak,
-          ...packTune,
-          maps: nextMaps,
-        },
-      }),
-    )
-    shell.setStatus(`${surface} pack replaced · ${summarizeDetectedPbrMaps(detected)}`)
-  },
+  onStageTexturePack: (surface, files) =>
+    applyStageTexturePack(surface, files, (message, isError) => shell.setStatus(message, isError)),
   onObjectSelect: (id) => {
     objectInspector.selectById(id)
     refreshObjectInspector()

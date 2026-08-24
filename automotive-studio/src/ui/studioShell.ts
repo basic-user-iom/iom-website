@@ -376,8 +376,12 @@ export interface StudioShellOptions {
   ) => void
   /** Import a full PBR pack folder (ambientCG / Poly Haven naming). */
   onStageTexturePack: (surface: 'floor' | 'pedestal' | 'cyclorama', files: File[]) => void
+  /** Apply a bundled floor PBR pack (Asphalt / Ice). */
+  onStageFloorPreset: (id: 'asphalt' | 'ice') => void
   onCycloramaVideo: (file: File) => void
   onCycloramaClearVideo: () => void
+  /** Apply a bundled cyclorama wall video (Video 1 / 2 / 3). */
+  onCycloramaVideoPreset: (id: '1' | '2' | '3') => void
   onObjectSelect: (id: string | null) => void
   onObjectVisible: (id: string, visible: boolean) => void
   onObjectPickMode: (enabled: boolean, mode?: 'object' | 'material') => void
@@ -1164,6 +1168,10 @@ export function mountStudioShell(
             </div>
             <button type="button" class="as-btn" data-stage-map-clear="floor">Clear maps</button>
             <button type="button" class="as-btn as-btn--accent" data-stage-map-pack="floor" title="Replaces all maps on this surface with the folder (Color, NormalGL, Roughness…)">Load pack folder</button>
+            <div class="as-map-row">
+              <button type="button" class="as-btn" data-stage-floor-preset="asphalt" title="Apply bundled Asphalt 011 ground maps">Asphalt</button>
+              <button type="button" class="as-btn" data-stage-floor-preset="ice" title="Apply bundled Ice ground maps">Ice</button>
+            </div>
           </div>
         </div>
         <div class="as-stage-surface" data-stage-surface="pedestal">
@@ -1246,12 +1254,18 @@ export function mountStudioShell(
           <label class="as-field"><span>Volume intensity <em data-stage-cyclorama-volume-intensity-val>1.00</em></span>
             <input data-stage-cyclorama-volume-intensity type="range" min="0" max="2" step="0.05" value="1" /></label>
           <label class="as-check"><input type="checkbox" data-stage-cyclorama-interactive checked /> Interactive wall (click play/pause)</label>
+          <p class="as-hint">Wall video — choose a bundled clip or upload your own. Click the wall to play/pause when Interactive is on.</p>
+          <div class="as-map-row" data-stage-cyclorama-video-presets>
+            <button type="button" class="as-btn" data-stage-cyclorama-video-preset="1">Video 1</button>
+            <button type="button" class="as-btn" data-stage-cyclorama-video-preset="2">Video 2</button>
+            <button type="button" class="as-btn" data-stage-cyclorama-video-preset="3">Video 3</button>
+          </div>
           <div class="as-map-row">
-            <button type="button" class="as-btn as-btn--accent" data-stage-cyclorama-video>Upload video</button>
+            <button type="button" class="as-btn" data-stage-cyclorama-video>Upload video</button>
             <button type="button" class="as-btn" data-stage-cyclorama-video-clear>Clear video</button>
           </div>
           <input data-stage-cyclorama-video-file type="file" accept="video/mp4,video/webm,video/*,.mp4,.webm" hidden />
-          <p class="as-hint" data-stage-cyclorama-video-label>No video — upload MP4/WebM to project onto the wall.</p>
+          <p class="as-hint" data-stage-cyclorama-video-label>No video — pick Video 1 / 2 / 3 or upload MP4/WebM.</p>
           <label class="as-check"><input type="checkbox" data-stage-cyclorama-video-muted checked /> Mute</label>
           <label class="as-check"><input type="checkbox" data-stage-cyclorama-video-loop checked /> Loop</label>
           <label class="as-field"><span>Video fit</span>
@@ -2650,8 +2664,29 @@ export function mountStudioShell(
     stageCycVideoFile.value = ''
     if (file) options.onCycloramaVideo(file)
   })
+  root.querySelectorAll('[data-stage-cyclorama-video-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = (btn as HTMLElement).dataset.stageCycloramaVideoPreset
+      if (id === '1' || id === '2' || id === '3') options.onCycloramaVideoPreset(id)
+    })
+  })
   root.querySelector('[data-stage-cyclorama-video-clear]')?.addEventListener('click', () => {
     options.onCycloramaClearVideo()
+  })
+  root.querySelectorAll('[data-stage-floor-preset]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = (btn as HTMLElement).dataset.stageFloorPreset
+      if (id !== 'asphalt' && id !== 'ice') return
+      const hasMaps = root.querySelectorAll('[data-stage-map-slot^="floor:"].as-map-slot--set').length
+      if (hasMaps > 0) {
+        const ok = window.confirm(
+          `Replace all ${hasMaps} floor map(s) with the ${id === 'asphalt' ? 'Asphalt' : 'Ice'} pack?\n\n` +
+            'This clears previous maps first, then loads the bundled textures.',
+        )
+        if (!ok) return
+      }
+      options.onStageFloorPreset(id)
+    })
   })
 
   root.querySelectorAll('[data-stage-map]').forEach((btn) => {
@@ -3481,9 +3516,20 @@ export function mountStudioShell(
       if (stageCycVideoLabel) {
         const vidId = stage.cycloramaVideoAssetId
         const asset = vidId ? snap.project.assets.find((a) => a.id === vidId) : null
+        const fn = (asset?.filename || '').toLowerCase()
+        const bundled =
+          fn === 'video1.mp4' ? 'Video 1' : fn === 'video2.mp4' ? 'Video 2' : fn === 'video3.mp4' ? 'Video 3' : null
         stageCycVideoLabel.textContent = asset
-          ? `Video: ${asset.filename || asset.id}`
-          : 'No video — upload MP4/WebM to project onto the wall.'
+          ? bundled
+            ? `Wall: ${bundled}`
+            : `Video: ${asset.filename || asset.id}`
+          : 'No video — pick Video 1 / 2 / 3 or upload MP4/WebM.'
+        for (const btn of root.querySelectorAll<HTMLButtonElement>('[data-stage-cyclorama-video-preset]')) {
+          const preset = btn.dataset.stageCycloramaVideoPreset
+          const on = Boolean(bundled && preset && `Video ${preset}` === bundled)
+          btn.classList.toggle('as-btn--accent', on)
+          btn.setAttribute('aria-pressed', on ? 'true' : 'false')
+        }
       }
       const accents = snap.project.accentLights
       accentEnabled.checked = accents.enabled
