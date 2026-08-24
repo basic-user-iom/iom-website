@@ -17,7 +17,7 @@ supabase/*.sql
 /.tmp-linar-*.jpg
 /.tmp-precision-watch.png
 /trail-designs-prototype/
-# Building-viewer: keep huge/optional meshes local-only. Ship icm-ext + manifest for /demos/building-viewer/.
+# Building-viewer: keep huge/optional meshes local-only. Ship icm-ext + manifest for /demos/icm-building/.
 public/models/icm-anim-2025/
 public/models/icm-ext-prev/
 public/models/icm-golden-ext/

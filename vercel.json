@@ -115,7 +115,7 @@
       ]
     },
     {
-      "source": "/demos/building-viewer/(.*)",
+      "source": "/demos/icm-building/(.*)",
       "headers": [
         {
           "key": "X-Robots-Tag",

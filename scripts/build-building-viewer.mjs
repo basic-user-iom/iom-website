@@ -1,5 +1,5 @@
 /**
- * Build Building Viewer → public/demos/building-viewer/
+ * Build Building Viewer → public/demos/icm-building/
  *
  * Usage: node scripts/build-building-viewer.mjs
  */
@@ -11,7 +11,7 @@ import { spawnSync } from 'node:child_process'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 const APP = join(ROOT, 'building-viewer')
-const OUT = join(ROOT, 'public', 'demos', 'building-viewer')
+const OUT = join(ROOT, 'public', 'demos', 'icm-building')
 
 function nestedNpmEnv() {
   const env = { ...process.env }
@@ -71,7 +71,7 @@ async function main() {
     process.exit(1)
   }
 
-  console.log('Done. Building Viewer → /demos/building-viewer/')
+  console.log('Done. Building Viewer → /demos/icm-building/')
 }
 
 main().catch((err) => {

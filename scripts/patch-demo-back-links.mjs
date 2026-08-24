@@ -13,7 +13,7 @@ const demosDir = join(root, 'public', 'demos')
 const SCRIPT_TAG = '<script src="/demos/iom-back.js"></script>'
 
 /** Client-preview folders that must not get the ← IOM chip. */
-const NO_IOM_BACK = new Set(['building-viewer', 'automotive-studio'])
+const NO_IOM_BACK = new Set(['icm-building', 'automotive-studio'])
 
 function stripIomBackScript(html) {
   return html.replace(/\s*<script src="\/demos\/iom-back\.js"><\/script>\s*/gi, '\n')

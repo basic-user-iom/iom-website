@@ -11,11 +11,11 @@ npm --prefix building-viewer install
 # Dev server (viewer only)
 npm run dev:building-viewer
 
-# Production bundle → public/demos/building-viewer/ (also runs from root `npm run build`)
+# Production bundle → public/demos/icm-building/
 npm run build:building-viewer
 ```
 
-Open: http://localhost:5192/ (package dev) or `/demos/building-viewer/` after a root/site build.
+Open: http://localhost:5192/ (package dev) or `/demos/icm-building/` after building the viewer.
 
 Do **not** add `"cellManifest"` on `icm-anim-2025`. The current 925-cell bake is position-only and breaks floor animation. See `VISUAL_REALISM_AND_HIGH_FPS_REVISION_PLAN.md`.
 

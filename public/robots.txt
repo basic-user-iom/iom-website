@@ -4,6 +4,6 @@ Disallow: /client-login
 Disallow: /crm-demo
 Disallow: /demo/
 Disallow: /demos/kelly-kettle
-Disallow: /demos/building-viewer
+Disallow: /demos/icm-building
 
 Sitemap: https://iobjectm.com/sitemap.xml

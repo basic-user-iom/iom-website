@@ -66,7 +66,7 @@ function serveSitePublicPlugin() {
 export default defineConfig(({ command }) => ({
   root,
   envDir: path.resolve(root, '..'),
-  base: command === 'serve' ? '/' : '/demos/building-viewer/',
+  base: command === 'serve' ? '/' : '/demos/icm-building/',
   publicDir: 'public',
   plugins: [serveSitePublicPlugin()],
   resolve: {
@@ -75,7 +75,7 @@ export default defineConfig(({ command }) => ({
     },
   },
   build: {
-    outDir: path.resolve(root, '../public/demos/building-viewer'),
+    outDir: path.resolve(root, '../public/demos/icm-building'),
     emptyOutDir: true,
     sourcemap: false,
     target: 'es2022',

@@ -66,7 +66,7 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     name: 'ICM - viewer',
     client: 'Client preview — International Congress Center Messe München',
     status: 'preview',
-    path: '/demos/building-viewer/',
+    path: '/demos/icm-building/',
     password: 'animated',
     blurb:
       'Private 3D building viewer for ICM: orbit, walk, and stairs on the current campus model. ICM branding stays in the viewer chrome. Not linked from the public homepage.',

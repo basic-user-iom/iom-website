@@ -302,7 +302,8 @@ function buildSnapshot(stage) {
 }
 
 function demoSlugForScope(scope) {
-  if (['automotive-studio', 'building-viewer', 'panorama-360', 'streets-gl'].includes(scope)) {
+  if (scope === 'building-viewer') return 'icm-building'
+  if (['automotive-studio', 'panorama-360', 'streets-gl'].includes(scope)) {
     return scope
   }
   if (scope.startsWith('demo:')) return scope.slice('demo:'.length)
