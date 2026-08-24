@@ -1,4 +1,11 @@
-import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react'
 import { APPLICATIONS } from './data/applications'
 import { img } from './data/media'
 import { PROJECTS } from './data/projects'
@@ -294,33 +301,317 @@ function Systems() {
   )
 }
 
-/** Visual-only teaser: vertical strips approximate a paper-like center arch. */
-const LINAR_TEASER_STRIPS = 16
+/** Visual-only teaser: one canvas surface, cylindrical arch (not CSS strips). */
+const LINAR_TEASER_SLICES = 160
+
+function coverImage(
+  ctx: CanvasRenderingContext2D,
+  image: CanvasImageSource,
+  w: number,
+  h: number,
+  nw: number,
+  nh: number,
+) {
+  const ir = nw / nh
+  const cr = w / h
+  let dw: number
+  let dh: number
+  let dx: number
+  let dy: number
+  if (ir > cr) {
+    dh = h
+    dw = h * ir
+    dx = (w - dw) / 2
+    dy = 0
+  } else {
+    dw = w
+    dh = w / ir
+    dx = 0
+    dy = (h - dh) / 2
+  }
+  ctx.drawImage(image, dx, dy, dw, dh)
+  return { dx, dy, dw, dh }
+}
+
+/**
+ * Carve openings into the bitmap (UV space) so they warp with the sheet.
+ * Grooves run across the panel — after the arch warp they follow the fold,
+ * instead of reading as a flat vertical stamp on hands/product.
+ */
+function stampLinarOpenings(
+  ctx: CanvasRenderingContext2D,
+  openness: number,
+  bounds: { dx: number; dy: number; dw: number; dh: number },
+) {
+  const { dx, dy, dw, dh } = bounds
+  if (dw < 8 || dh < 8) return
+
+  const insetX = Math.max(2, dw * 0.05)
+  const insetY = Math.max(2, dh * 0.06)
+  const x0 = dx + insetX
+  const y0 = dy + insetY
+  const iw = dw - insetX * 2
+  const ih = dh - insetY * 2
+  if (iw < 4 || ih < 4) return
+
+  const cols = 18
+  const rows = 12
+  const groove = Math.min(ih * 0.012, (0.35 + openness * 0.7) * 0.01 * ih)
+  const colW = iw / cols
+  const rowH = ih / rows
+
+  ctx.save()
+  ctx.beginPath()
+  ctx.rect(x0, y0, iw, ih)
+  ctx.clip()
+
+  ctx.globalCompositeOperation = 'destination-out'
+  ctx.globalAlpha = 0.72 + openness * 0.22
+  ctx.fillStyle = '#000'
+  for (let r = 0; r < rows; r += 1) {
+    if (r % 3 === 1) continue
+    for (let c = 0; c < cols; c += 1) {
+      const stagger = r % 2 === 0 ? 0 : colW * 0.32
+      ctx.fillRect(
+        x0 + c * colW + stagger * 0.18,
+        y0 + r * rowH + (rowH - Math.max(groove, 0.7)) / 2,
+        colW * 0.78,
+        Math.max(groove, 0.7),
+      )
+    }
+  }
+
+  ctx.globalCompositeOperation = 'destination-over'
+  ctx.globalAlpha = 1
+  ctx.fillStyle = '#2a2622'
+  ctx.fillRect(dx, dy, dw, dh)
+  ctx.restore()
+}
+
+type TeaserCol = { x: number; top: number; h: number }
+
+function paintArchedSheet(
+  out: CanvasRenderingContext2D,
+  src: HTMLCanvasElement,
+  bend: number,
+) {
+  const w = out.canvas.width
+  const h = out.canvas.height
+  out.clearRect(0, 0, w, h)
+  out.imageSmoothingEnabled = true
+  out.imageSmoothingQuality = 'high'
+
+  const t = Math.max(0, Math.min(1, bend))
+  if (t < 0.004) {
+    out.drawImage(src, 0, 0, w, h)
+    return
+  }
+
+  // Cylindrical fold (sides inset) + paper arch (center up, sides down).
+  // Previous layout centered a nearly full-height sheet then lifted the apex
+  // off-canvas, so clip/canvas cropped the top into a flat edge.
+  const maxPhi = t * 1.08
+  const radius = w / (2 * maxPhi)
+  const focal = w * 1.4
+  const cx = w / 2
+  const zMax = radius * (1 - Math.cos(maxPhi))
+  const padTop = h * 0.06 * t
+  const padBot = h * 0.11 * t
+  const archAmp = h * 0.22 * t
+  const sagAmp = h * 0.08 * t
+  const sheetH = h - padTop - padBot - archAmp - sagAmp
+  const originY = padTop + archAmp
+
+  const cols: TeaserCol[] = []
+  for (let i = 0; i <= LINAR_TEASER_SLICES; i += 1) {
+    const u = i / LINAR_TEASER_SLICES
+    const theta = (u - 0.5) * 2 * maxPhi
+    const z = radius * (Math.cos(theta) - Math.cos(maxPhi))
+    const persp = focal / (focal - z)
+    const zN = z / Math.max(zMax, 1e-6)
+    cols.push({
+      x: cx + radius * Math.sin(theta) * persp,
+      top: originY - archAmp * zN + sagAmp * (1 - zN),
+      h: sheetH * (1 + t * 0.02 * zN),
+    })
+  }
+
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  for (const col of cols) {
+    minX = Math.min(minX, col.x)
+    maxX = Math.max(maxX, col.x)
+    minY = Math.min(minY, col.top)
+    maxY = Math.max(maxY, col.top + col.h)
+  }
+
+  const marginX = w * 0.04
+  const marginTop = h * 0.05
+  const marginBot = h * (0.06 + t * 0.06)
+  if (minY < marginTop || maxY > h - marginBot || minX < marginX || maxX > w - marginX) {
+    const boxW = Math.max(maxX - minX, 1)
+    const boxH = Math.max(maxY - minY, 1)
+    const s = Math.min((w - marginX * 2) / boxW, (h - marginTop - marginBot) / boxH)
+    const ox = (w - boxW * s) / 2 - minX * s
+    const oy = marginTop - minY * s
+    for (const col of cols) {
+      col.x = col.x * s + ox
+      col.top = col.top * s + oy
+      col.h *= s
+    }
+    minX = minX * s + ox
+    maxX = maxX * s + ox
+    minY = minY * s + oy
+    maxY = maxY * s + oy
+  }
+
+  const silhouette = () => {
+    out.beginPath()
+    cols.forEach((col, i) => {
+      if (i === 0) out.moveTo(col.x, col.top)
+      else out.lineTo(col.x, col.top)
+    })
+    for (let i = cols.length - 1; i >= 0; i -= 1) {
+      const col = cols[i]
+      out.lineTo(col.x, col.top + col.h)
+    }
+    out.closePath()
+  }
+
+  out.save()
+  out.fillStyle = `rgba(28, 25, 22, ${0.12 + t * 0.22})`
+  out.beginPath()
+  out.ellipse(
+    (minX + maxX) / 2,
+    Math.min(maxY + h * 0.025, h * 0.97),
+    (maxX - minX) * 0.4,
+    h * 0.042,
+    0,
+    0,
+    Math.PI * 2,
+  )
+  out.fill()
+  out.restore()
+
+  // Card body + shadow so the arched photo edge reads on the beige stage
+  // (the photo’s white top otherwise disappears into --dk-paper-2).
+  out.save()
+  out.shadowColor = `rgba(32, 26, 22, ${0.18 + t * 0.16})`
+  out.shadowBlur = Math.max(8, h * 0.035)
+  out.shadowOffsetY = Math.max(3, h * 0.012)
+  out.fillStyle = '#efe8dc'
+  silhouette()
+  out.fill()
+  out.restore()
+
+  out.save()
+  silhouette()
+  out.clip()
+
+  const srcW = src.width
+  const srcH = src.height
+  const n = LINAR_TEASER_SLICES
+  for (let i = 0; i < n; i += 1) {
+    const a = cols[i]
+    const b = cols[i + 1]
+    const dy = Math.min(a.top, b.top) - 0.5
+    const dh = Math.max(a.top + a.h, b.top + b.h) - dy + 0.5
+    const dw = Math.max(b.x - a.x, 0.75) + 1.75
+    out.drawImage(src, (i / n) * srcW, 0, srcW / n, srcH, a.x, dy, dw, dh)
+  }
+  out.restore()
+
+  out.save()
+  out.strokeStyle = `rgba(48, 40, 34, ${0.16 + t * 0.14})`
+  out.lineWidth = Math.max(1, h * 0.003)
+  out.lineJoin = 'round'
+  silhouette()
+  out.stroke()
+  out.restore()
+}
 
 function LinarTeaserPanel({ openness, bend }: { openness: number; bend: number }) {
-  // Outer curve opens the cuts a little further as the sheet arches.
-  const cutOpenness = Math.min(0.95, openness * (1 + bend * 0.32))
+  const reduced = usePrefersReducedMotion()
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const sheetRef = useRef<HTMLCanvasElement | null>(null)
+  const photoRef = useRef<HTMLImageElement | null>(null)
+  const liveRef = useRef(false)
+  const [photoReady, setPhotoReady] = useState(false)
+  const [live, setLive] = useState(false)
 
-  const strips = useMemo(() => {
-    // Half-wrap angle at full bend (~50°). Cylinder with apex toward the camera.
-    const maxPhi = bend * 0.88
-    return Array.from({ length: LINAR_TEASER_STRIPS }, (_, i) => {
-      const u = (i + 0.5) / LINAR_TEASER_STRIPS - 0.5
-      const phi = u * 2 * maxPhi
-      const angleDeg = (phi * 180) / Math.PI
-      // Cosine bowl: center closest to viewer, ends fall back — convex arch.
-      const z = bend * 56 * (Math.cos(phi) - (maxPhi > 1e-4 ? Math.cos(maxPhi) : 1))
-      // Slight lift so the silhouette reads as a bridge / upside-down U.
-      const y = -bend * 12 * Math.cos(u * Math.PI)
-      return {
-        transform: `translate3d(0, ${y}px, ${z}px) rotateY(${angleDeg}deg)`,
+  useEffect(() => {
+    const image = new Image()
+    image.decoding = 'async'
+    image.src = img.linarVeneer
+    const onReady = () => {
+      photoRef.current = image
+      setPhotoReady(true)
+    }
+    if (image.complete && image.naturalWidth > 0) onReady()
+    else image.addEventListener('load', onReady)
+    return () => image.removeEventListener('load', onReady)
+  }, [])
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const photo = photoRef.current
+    if (!canvas || !photo || !photoReady || reduced) {
+      liveRef.current = false
+      setLive(false)
+      return
+    }
+
+    const draw = () => {
+      const rect = canvas.getBoundingClientRect()
+      const dpr = Math.min(window.devicePixelRatio || 1, 2)
+      const w = Math.max(1, Math.round(rect.width * dpr))
+      const h = Math.max(1, Math.round(rect.height * dpr))
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w
+        canvas.height = h
       }
-    })
-  }, [bend])
+
+      let sheet = sheetRef.current
+      if (!sheet || sheet.width !== w || sheet.height !== h) {
+        sheet = document.createElement('canvas')
+        sheet.width = w
+        sheet.height = h
+        sheetRef.current = sheet
+      }
+
+      const sheetCtx = sheet.getContext('2d')
+      const out = canvas.getContext('2d')
+      if (!sheetCtx || !out) return
+
+      sheetCtx.clearRect(0, 0, w, h)
+      const bounds = coverImage(
+        sheetCtx,
+        photo,
+        w,
+        h,
+        photo.naturalWidth,
+        photo.naturalHeight,
+      )
+      stampLinarOpenings(sheetCtx, openness, bounds)
+      paintArchedSheet(out, sheet, bend)
+      if (!liveRef.current) {
+        liveRef.current = true
+        setLive(true)
+      }
+    }
+
+    draw()
+    const ro = new ResizeObserver(draw)
+    ro.observe(canvas)
+    return () => ro.disconnect()
+  }, [bend, openness, photoReady, reduced])
 
   return (
     <div
       className="dk-linar__panel"
+      data-live={live ? 'true' : undefined}
       style={
         {
           '--open': String(openness),
@@ -330,32 +621,15 @@ function LinarTeaserPanel({ openness, bend }: { openness: number; bend: number }
       aria-hidden="true"
     >
       <div className="dk-linar__stage">
-        {strips.map((style, i) => (
-          <div key={i} className="dk-linar__strip" style={style}>
-            <div
-              className="dk-linar__strip-face"
-              style={{
-                width: `${LINAR_TEASER_STRIPS * 100}%`,
-                transform: `translateX(${(-i / LINAR_TEASER_STRIPS) * 100}%)`,
-              }}
-            >
-              <IncisionPattern
-                kind="linar"
-                openness={cutOpenness}
-                className="dk-linar__cuts"
-                underlay="#ddd4c6"
-              />
-              <img
-                className="dk-linar__photo"
-                src={img.linarVeneer}
-                alt=""
-                width={1024}
-                height={768}
-                draggable={false}
-              />
-            </div>
-          </div>
-        ))}
+        <img
+          className="dk-linar__photo"
+          src={img.linarVeneer}
+          alt=""
+          width={1024}
+          height={768}
+          draggable={false}
+        />
+        {reduced ? null : <canvas ref={canvasRef} className="dk-linar__sheet" />}
       </div>
     </div>
   )

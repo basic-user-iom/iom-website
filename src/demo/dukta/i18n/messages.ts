@@ -20,6 +20,7 @@ export type Messages = {
   }
   a11y: {
     language: string
+    type: string
     primaryNav: string
     mobileNav: string
     introduction: string
@@ -201,6 +202,7 @@ export const en: Messages = {
   },
   a11y: {
     language: 'Language',
+    type: 'Type',
     primaryNav: 'Primary',
     mobileNav: 'Mobile',
     introduction: 'Introduction',
@@ -498,6 +500,7 @@ export const de: Messages = {
   },
   a11y: {
     language: 'Sprache',
+    type: 'Schrift',
     primaryNav: 'Hauptnavigation',
     mobileNav: 'Mobile Navigation',
     introduction: 'Einführung',

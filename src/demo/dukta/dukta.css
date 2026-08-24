@@ -34,13 +34,50 @@
   src: url('/fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
 }
 
+html.dk-route {
+  /* Default pairing: editorial (Fraunces · Source Sans 3). Overridden by data-font. */
+  --dk-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --dk-sans: 'Source Sans 3', Helvetica, Arial, sans-serif;
+  --dk-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+html.dk-route[data-font='editorial'] {
+  --dk-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --dk-sans: 'Source Sans 3', Helvetica, Arial, sans-serif;
+  --dk-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+}
+
+html.dk-route[data-font='official'] {
+  --dk-display: 'Open Sans', Helvetica, Arial, sans-serif;
+  --dk-sans: 'Open Sans', Helvetica, Arial, sans-serif;
+  --dk-serif: Georgia, 'Times New Roman', Times, serif;
+}
+
+html.dk-route[data-font='atelier'] {
+  --dk-display: 'Cormorant Garamond', Georgia, serif;
+  --dk-sans: 'Outfit', Helvetica, Arial, sans-serif;
+  --dk-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+}
+
+html.dk-route[data-font='technical'] {
+  --dk-display: 'Space Grotesk', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --dk-sans: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+  --dk-serif: Georgia, 'Times New Roman', Times, serif;
+}
+
+html.dk-route[data-font='iom'] {
+  --dk-display: 'Syne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --dk-sans: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+  --dk-serif: Georgia, 'Times New Roman', Times, serif;
+}
+
 html.dk-route,
 body.dk-route {
   margin: 0;
   min-height: 100%;
   background: var(--dk-paper);
   color: var(--dk-ink);
-  font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+  font-family: var(--dk-sans);
   font-size: 16px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
@@ -64,12 +101,10 @@ body.dk-lock {
   --dk-ochre: #c4a14a;
   --dk-max: 1440px;
   --dk-gutter: clamp(1.1rem, 3vw, 2.5rem);
-  --dk-display: 'Syne', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --dk-sans: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
-  --dk-serif: Georgia, 'Times New Roman', Times, serif;
   --dk-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
   background: var(--dk-paper);
   color: var(--dk-ink);
+  font-family: var(--dk-sans);
 }
 
 .dk-sr {
@@ -198,6 +233,7 @@ body.dk-lock {
   position: fixed;
   inset: 0 0 auto;
   z-index: 40;
+  overflow: visible;
   color: var(--dk-white);
   transition:
     background 0.35s var(--dk-ease),
@@ -221,15 +257,17 @@ body.dk-lock {
 .dk-header:not(.is-compact) .dk-header__cta,
 .dk-header:not(.is-compact) .dk-header__sound,
 .dk-header:not(.is-compact) .dk-header__volume,
-.dk-header:not(.is-compact) .dk-header__menu {
+.dk-header:not(.is-compact) .dk-header__menu,
+.dk-header:not(.is-compact) .dk-font {
   color: #fffcf7;
   text-shadow: 0 1px 12px rgba(28, 25, 22, 0.45);
 }
 .dk-header:not(.is-compact) .dk-header__cta,
 .dk-header:not(.is-compact) .dk-header__sound,
-.dk-header:not(.is-compact) .dk-header__volume {
+.dk-header:not(.is-compact) .dk-header__volume,
+.dk-header:not(.is-compact) .dk-font__trigger {
   border-color: rgba(255, 252, 247, 0.75);
-  background: rgba(28, 25, 22, 0.22);
+  background-color: rgba(28, 25, 22, 0.22);
 }
 .dk-header:not(.is-compact) .dk-mark__name {
   color: #fffcf7;
@@ -239,18 +277,30 @@ body.dk-lock {
   width: min(100% - 2 * var(--dk-gutter), var(--dk-max));
   margin: 0 auto;
   min-height: 4.5rem;
-  display: grid;
-  grid-template-columns: auto 1fr auto auto;
+  display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.85rem;
   padding: 0.85rem 0;
 }
 .dk-header.is-compact .dk-header__bar {
   min-height: 3.5rem;
   padding: 0.55rem 0;
 }
+.dk-header.is-open {
+  color: var(--dk-ink);
+  background: var(--dk-paper);
+  backdrop-filter: none;
+  border-bottom: 1px solid var(--dk-line);
+}
+.dk-header.is-open .dk-mark__name,
+.dk-header.is-open .dk-mark__tag,
+.dk-header.is-open .dk-header__menu {
+  color: var(--dk-ink);
+  text-shadow: none;
+}
 .dk-header__nav {
   display: none;
+  flex: 1;
   justify-content: center;
   gap: clamp(0.85rem, 1.5vw, 1.5rem);
 }
@@ -258,7 +308,8 @@ body.dk-lock {
   display: none;
   align-items: center;
   gap: 0.55rem;
-  justify-self: end;
+  margin-left: auto;
+  overflow: visible;
 }
 .dk-lang {
   display: inline-flex;
@@ -285,12 +336,132 @@ body.dk-lock {
 .dk-lang button.is-active {
   background: color-mix(in srgb, currentColor 12%, transparent);
 }
-.dk-menu .dk-lang {
+.dk-menu__dock .dk-lang {
   width: fit-content;
   color: var(--dk-ink);
   border-color: var(--dk-ink);
-  margin-top: 0.5rem;
 }
+
+/* Font pairing switcher (custom list — not native <select>/title tooltips) */
+.dk-font {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.85rem;
+  max-width: 16rem;
+}
+.dk-font.is-open {
+  z-index: 60;
+}
+.dk-font__label {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  white-space: nowrap;
+}
+.dk-font__trigger {
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  max-width: 12.5rem;
+  margin: 0;
+  padding: 0.28rem 1.6rem 0.28rem 0.55rem;
+  border: 1px solid currentColor;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 0.85rem) 55%,
+    calc(100% - 0.55rem) 55%;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  color: inherit;
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  line-height: 1;
+  text-align: left;
+}
+.dk-font__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dk-font__trigger:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+.dk-font__menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  left: 0;
+  z-index: 70;
+  min-width: min(18.5rem, calc(100vw - 2 * var(--dk-gutter)));
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  border: 1px solid var(--dk-line-strong);
+  background: var(--dk-paper);
+  color: var(--dk-ink);
+  box-shadow: 0 12px 32px rgba(28, 25, 22, 0.16);
+}
+.dk-font__menu button {
+  display: grid;
+  gap: 0.15rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.55rem 0.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dk-font__menu button:hover,
+.dk-font__menu button:focus-visible,
+.dk-font__menu button.is-active {
+  background: color-mix(in srgb, var(--dk-ink) 8%, transparent);
+}
+.dk-font__option-name {
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  color: var(--dk-ink);
+}
+.dk-font__option-note {
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  color: var(--dk-muted);
+  line-height: 1.35;
+}
+.dk-menu__dock .dk-font {
+  display: grid;
+  gap: 0.35rem;
+  max-width: none;
+  width: 100%;
+  color: var(--dk-ink);
+}
+.dk-menu__dock .dk-font__trigger {
+  max-width: none;
+  width: 100%;
+  border-color: var(--dk-ink);
+  color: var(--dk-ink);
+  background-color: transparent;
+}
+.dk-menu__dock .dk-font__menu {
+  position: static;
+  min-width: 0;
+  width: 100%;
+  box-shadow: none;
+}
+
 .dk-header__sound-group {
   display: inline-flex;
   align-items: center;
@@ -344,15 +515,22 @@ body.dk-lock {
   line-height: 1;
 }
 .dk-header__menu {
-  justify-self: end;
+  margin-left: auto;
   display: inline-flex;
   align-items: center;
   gap: 0.55rem;
+  min-height: 2.5rem;
   border: 0;
   background: transparent;
   color: inherit;
   cursor: pointer;
   font: inherit;
+  padding: 0.25rem 0;
+}
+.dk-header__menu-label {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .dk-header__menu-icon {
   width: 1.35rem;
@@ -385,30 +563,55 @@ body.dk-lock {
 .dk-menu {
   border-top: 1px solid var(--dk-line);
   background: var(--dk-paper);
-  padding: 1.5rem var(--dk-gutter) 2rem;
+  padding: 1.25rem var(--dk-gutter) 1.75rem;
+  max-height: min(calc(100dvh - 3.75rem), calc(100vh - 3.75rem));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .dk-menu__nav {
   display: grid;
-  gap: 1rem;
+  gap: 0.85rem;
   width: min(100%, 24rem);
 }
 .dk-menu__nav a {
   color: var(--dk-ink);
   text-decoration: none;
   font-family: var(--dk-display);
-  font-size: 1.5rem;
+  font-size: clamp(1.25rem, 5.5vw, 1.5rem);
   letter-spacing: -0.02em;
+  padding: 0.2rem 0;
+}
+.dk-menu__dock {
+  display: grid;
+  gap: 1rem;
+  width: min(100%, 24rem);
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--dk-line);
 }
 .dk-menu__cta {
-  margin-top: 0.5rem;
-  border-top: 1px solid var(--dk-line);
-  padding-top: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  margin: 0;
+  border: 1px solid var(--dk-ink);
+  padding: 0.75rem 1rem;
+  background: var(--dk-ink);
+  color: var(--dk-paper);
+  text-decoration: none;
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
 }
 .dk-menu__sound {
   justify-self: start;
   border: 1px solid var(--dk-ink);
   background: transparent;
   color: var(--dk-ink);
+  min-height: 2.5rem;
   padding: 0.55rem 0.85rem;
   font: inherit;
   font-size: 0.85rem;
@@ -419,7 +622,6 @@ body.dk-lock {
 .dk-menu__sound-block {
   display: grid;
   gap: 0.75rem;
-  padding-top: 0.25rem;
 }
 .dk-menu__volume {
   display: grid;
@@ -429,6 +631,7 @@ body.dk-lock {
 }
 .dk-menu__volume input[type='range'] {
   width: 100%;
+  min-height: 1.5rem;
   accent-color: var(--dk-ink);
 }
 
@@ -593,8 +796,9 @@ body.dk-lock {
   font-family: var(--dk-display);
   font-weight: 800;
   letter-spacing: -0.045em;
-  font-size: clamp(3.2rem, 10vw, 8rem);
+  font-size: clamp(2.45rem, 11vw, 8rem);
   line-height: 0.92;
+  overflow-wrap: anywhere;
 }
 .dk-hero__lead {
   margin: 1rem 0 0;
@@ -798,6 +1002,7 @@ body.dk-lock {
   border: 1px solid var(--dk-line-strong);
   background: transparent;
   color: var(--dk-ink);
+  min-height: 2.5rem;
   padding: 0.55rem 0.85rem;
   font: inherit;
   font-size: 0.8rem;
@@ -861,7 +1066,7 @@ body.dk-lock {
 }
 .dk-spec > div {
   display: grid;
-  grid-template-columns: 9rem 1fr;
+  grid-template-columns: minmax(5.5rem, 8.5rem) minmax(0, 1fr);
   gap: 0.75rem;
   font-size: 0.92rem;
 }
@@ -909,48 +1114,29 @@ body.dk-lock {
   --bend: 0.35;
   position: relative;
   aspect-ratio: 5 / 4;
-  perspective: 1100px;
-  perspective-origin: 50% 42%;
-  overflow: visible;
+  overflow: hidden;
 }
 .dk-linar__stage {
   position: absolute;
-  inset: 6% 4% 10%;
-  display: flex;
-  transform-style: preserve-3d;
-  /* Dark backing shows through when the outer curve opens */
-  background: #1c1916;
-  box-shadow: 0 28px 60px rgba(28, 25, 22, calc(0.1 + var(--bend) * 0.14));
+  inset: 4% 6% 10%;
+  overflow: visible;
+  background: #e8e0d4;
+  isolation: isolate;
 }
-.dk-linar__strip {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 100%;
-  overflow: hidden;
-  transform-style: preserve-3d;
-  transform-origin: 50% 50%;
-  will-change: transform;
-  backface-visibility: hidden;
-  /* Subpixel overlap so a flat panel does not show hairline seams */
-  margin-right: -1px;
-}
-.dk-linar__strip-face {
-  position: relative;
-  height: 100%;
-  transform-origin: left center;
-}
-.dk-linar__cuts {
+.dk-linar__sheet {
   position: absolute;
   inset: 0;
-  z-index: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
-  color: rgba(28, 25, 22, calc(0.1 + var(--open) * 0.22));
+  max-width: 100%;
+  max-height: 100%;
+  display: block;
   pointer-events: none;
 }
 .dk-linar__photo {
   position: absolute;
-  z-index: 1;
+  z-index: 0;
   inset: 0;
   width: 100%;
   height: 100%;
@@ -958,6 +1144,9 @@ body.dk-lock {
   object-position: center;
   background: #f3efe8;
   pointer-events: none;
+}
+.dk-linar__panel[data-live='true'] .dk-linar__photo {
+  opacity: 0;
 }
 @media (min-width: 960px) {
   .dk-linar__grid {
@@ -1403,7 +1592,9 @@ html[lang='de'] .dk-press__quote::before {
   color: inherit;
   text-decoration: none;
 }
-.dk-resource-list a:hover .dk-resource-list__title {
+.dk-resource-list a:hover .dk-resource-list__title,
+.dk-resource-list a:active .dk-resource-list__title,
+.dk-resource-list a:focus-visible .dk-resource-list__title {
   opacity: 0.65;
 }
 .dk-resource-list__title {
@@ -1508,14 +1699,61 @@ html[lang='de'] .dk-press__quote::before {
   .dk-transform__panel {
     transform: none !important;
   }
-  .dk-linar__strip {
-    transform: none !important;
-  }
 }
 
 @media (min-width: 1920px) {
   .dk-app {
     --dk-max: 1600px;
+  }
+}
+
+/*
+ * dukta-only: hide the shared iom-back.js chip.
+ * Injected on <body> (outside .dk-app); dk-route scope keeps other demos unchanged.
+ */
+html.dk-route a.iom-back,
+body.dk-route a.iom-back {
+  display: none !important;
+}
+
+/* Narrow phones (~375–430px): tighten overflow and stacked specs */
+@media (max-width: 430px) {
+  .dk-header__menu-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+  .dk-mark--hero .dk-mark__tag {
+    max-width: 9.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dk-hero__scroll {
+    display: none;
+  }
+  .dk-spec > div,
+  .dk-spec--compact > div {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+  }
+  .dk-linar__controls {
+    max-width: none;
+  }
+  .dk-linar__panel {
+    aspect-ratio: 4 / 3;
+  }
+  .dk-press__quote p {
+    font-size: 1.05rem;
+  }
+  .dk-contact__routes a {
+    font-size: 1.1rem;
+    width: 100%;
   }
 }
 
@@ -1529,7 +1767,7 @@ html[lang='de'] .dk-press__quote::before {
     max(2rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
   background: #f3efe8;
   color: #1c1916;
-  font-family: 'IBM Plex Sans', Helvetica, Arial, sans-serif;
+  font-family: var(--dk-sans, 'IBM Plex Sans', Helvetica, Arial, sans-serif);
 }
 
 .dk-gate__panel {
@@ -1541,7 +1779,7 @@ html[lang='de'] .dk-press__quote::before {
 
 .dk-gate__brand {
   margin: 0;
-  font-family: Syne, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-family: var(--dk-display, Syne, 'Helvetica Neue', Helvetica, Arial, sans-serif);
   font-size: 1.65rem;
   font-weight: 700;
   letter-spacing: -0.02em;

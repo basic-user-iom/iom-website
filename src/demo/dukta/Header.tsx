@@ -8,6 +8,7 @@ import {
   requestHeroSoundToggle,
   requestHeroSoundVolume,
 } from './heroSound'
+import { FontSwitcher } from './fonts/FontSwitcher'
 import { useScrolled } from './hooks'
 import { LanguageSwitcher } from './i18n/LanguageSwitcher'
 import { useLocale } from './i18n/LocaleContext'
@@ -29,6 +30,7 @@ export function Header({ transparent = false }: Props) {
   const [volume, setVolume] = useState(HERO_DEFAULT_VOLUME)
   const menuId = useId()
   const volumeId = useId()
+  const menuVolumeId = useId()
 
   useEffect(() => {
     document.body.classList.toggle('dk-lock', open)
@@ -58,34 +60,44 @@ export function Header({ transparent = false }: Props) {
     navigate(href)
   }
 
-  const soundControls = soundAvailable ? (
-    <div className="dk-header__sound-group">
-      <button
-        type="button"
-        className={`dk-header__sound${muted ? '' : ' is-on'}`}
-        onClick={() => requestHeroSoundToggle()}
-        aria-pressed={!muted}
-      >
-        {muted ? t.actions.unmute : t.actions.mute}
-      </button>
-      <label className="dk-header__volume" htmlFor={volumeId}>
-        <span className="dk-sr">{t.actions.volume}</span>
-        <input
-          id={volumeId}
-          type="range"
-          min={0}
-          max={100}
-          step={1}
-          value={volume}
-          aria-valuetext={formatMessage(t.a11y.volumePercent, { n: volume })}
-          onChange={(e) => requestHeroSoundVolume(Number(e.target.value))}
-        />
+  const onConfigure = (event: MouseEvent<HTMLAnchorElement>) => {
+    setOpen(false)
+    openLinarConfigurator(event)
+  }
+
+  const renderMuteToggle = (variant: 'header' | 'menu') => (
+    <button
+      type="button"
+      className={`${variant === 'menu' ? 'dk-menu__sound' : 'dk-header__sound'}${muted ? '' : ' is-on'}`}
+      onClick={() => requestHeroSoundToggle()}
+      aria-pressed={!muted}
+    >
+      {muted ? t.actions.unmute : t.actions.mute}
+    </button>
+  )
+
+  const volumeSlider = (id: string, variant: 'header' | 'menu') => (
+    <label className={variant === 'menu' ? 'dk-menu__volume' : 'dk-header__volume'} htmlFor={id}>
+      <span className={variant === 'menu' ? undefined : 'dk-sr'}>
+        {variant === 'menu' ? `${t.actions.volume} ${volume}%` : t.actions.volume}
+      </span>
+      <input
+        id={id}
+        type="range"
+        min={0}
+        max={100}
+        step={1}
+        value={volume}
+        aria-valuetext={formatMessage(t.a11y.volumePercent, { n: volume })}
+        onChange={(e) => requestHeroSoundVolume(Number(e.target.value))}
+      />
+      {variant === 'header' ? (
         <span className="dk-header__volume-value" aria-hidden="true">
           {volume}%
         </span>
-      </label>
-    </div>
-  ) : null
+      ) : null}
+    </label>
+  )
 
   return (
     <header className={`dk-header${compact ? ' is-compact' : ''}${open ? ' is-open' : ''}`}>
@@ -100,8 +112,14 @@ export function Header({ transparent = false }: Props) {
         </nav>
         <div className="dk-header__actions">
           <LanguageSwitcher />
-          {soundControls}
-          <a className="dk-header__cta" href={LINAR_CONFIGURATOR_HREF} onClick={openLinarConfigurator}>
+          <FontSwitcher />
+          {soundAvailable ? (
+            <div className="dk-header__sound-group">
+              {renderMuteToggle('header')}
+              {volumeSlider(volumeId, 'header')}
+            </div>
+          ) : null}
+          <a className="dk-header__cta" href={LINAR_CONFIGURATOR_HREF} onClick={onConfigure}>
             {t.actions.configureLinar}
           </a>
         </div>
@@ -110,6 +128,7 @@ export function Header({ transparent = false }: Props) {
           type="button"
           aria-expanded={open}
           aria-controls={menuId}
+          aria-label={open ? t.actions.close : t.actions.menu}
           onClick={() => setOpen((v) => !v)}
         >
           <span className="dk-header__menu-label">{open ? t.actions.close : t.actions.menu}</span>
@@ -127,36 +146,20 @@ export function Header({ transparent = false }: Props) {
               {t.nav[item.id]}
             </a>
           ))}
+        </nav>
+        <div className="dk-menu__dock">
           <LanguageSwitcher />
+          <FontSwitcher />
           {soundAvailable ? (
             <div className="dk-menu__sound-block">
-              <button
-                type="button"
-                className="dk-menu__sound"
-                onClick={() => requestHeroSoundToggle()}
-                aria-pressed={!muted}
-              >
-                {muted ? t.actions.unmuteFilm : t.actions.muteFilm}
-              </button>
-              <label className="dk-menu__volume">
-                <span>
-                  {t.actions.volume} {volume}%
-                </span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={volume}
-                  onChange={(e) => requestHeroSoundVolume(Number(e.target.value))}
-                />
-              </label>
+              {renderMuteToggle('menu')}
+              {volumeSlider(menuVolumeId, 'menu')}
             </div>
           ) : null}
-          <a className="dk-menu__cta" href={LINAR_CONFIGURATOR_HREF} onClick={openLinarConfigurator}>
+          <a className="dk-menu__cta" href={LINAR_CONFIGURATOR_HREF} onClick={onConfigure}>
             {t.actions.configureLinar}
           </a>
-        </nav>
+        </div>
       </div>
     </header>
   )

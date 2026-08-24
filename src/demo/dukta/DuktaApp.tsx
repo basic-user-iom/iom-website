@@ -8,6 +8,7 @@ import { Footer } from './Footer'
 import { Header } from './Header'
 import { HomePage } from './HomePage'
 import { IncisionLoader } from './IncisionLoader'
+import { FontProvider } from './fonts/FontContext'
 import { LocaleProvider, useLocale } from './i18n/LocaleContext'
 import { ProjectsPage } from './ProjectsPage'
 import { useDuktaRoute } from './router'
@@ -92,7 +93,9 @@ export function DuktaApp() {
 
   return (
     <LocaleProvider>
-      <DuktaShell />
+      <FontProvider>
+        <DuktaShell />
+      </FontProvider>
     </LocaleProvider>
   )
 }
