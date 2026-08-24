@@ -1,4 +1,9 @@
-import type { LinarConfig } from './types'
+import { getIncisedWidthForRadiusMm } from './linarData'
+import {
+  makeSerpentinePathLookup,
+  type SerpentinePathLookup,
+} from './serpentinePath'
+import type { LinarBendDirection, LinarConfig } from './types'
 
 /** 2800 × 1200 mm visualization/display panel. Bending is across the 1200 mm width. */
 export const PANEL_HEIGHT_M = 2.8
@@ -8,7 +13,7 @@ export const PANEL_SIZE_MM = { height: 2800, width: 1200 } as const
 /** Circular-saw path radius in the cutting diagram — never the panel bending radius. */
 export const SAW_PATH_RADIUS_MM = 62.5
 
-export const REST_BEND = 8
+export const REST_BEND = 0
 export const INTRO_PEAK_BEND = 55
 
 export const MAX_SLATS = 300
@@ -54,12 +59,19 @@ export type PanelLayout = {
 }
 
 export type BendState = {
+  control: number
   percent: number
+  direction: LinarBendDirection
+  directionSign: -1 | 0 | 1
+  selectedRadiusMm: number | null
   radiusM: number
   alpha: number
+  activeWidthM: number
   arcLen: number
   leftFlat: number
   validated: boolean
+  secondaryCurveAmount: number
+  compoundCurve: SerpentinePathLookup | null
 }
 
 function hash01(n: number): number {
@@ -194,38 +206,99 @@ export function bridgeSegsFor(
 }
 
 export function makeBendState(
-  percent: number,
+  control: number,
   panelWidthM: number,
   referenceRadiusMm: number | null,
   bendableWidthM = panelWidthM,
+  secondaryCurveAmount = 0,
 ): BendState {
-  const t = Math.max(0, Math.min(100, percent)) / 100
+  const clampedControl = Math.max(-100, Math.min(100, control))
+  const t = Math.abs(clampedControl) / 100
+  const clampedSecondaryCurveAmount = Math.max(
+    0,
+    Math.min(100, secondaryCurveAmount),
+  )
   const validated = referenceRadiusMm != null && referenceRadiusMm > 0
-  const radiusM = mmToM(validated ? referenceRadiusMm : VISUAL_FALLBACK_RADIUS_MM)
-  const maxAlpha = Math.min(Math.PI, bendableWidthM / Math.max(radiusM, 0.008))
-  const alpha = t * maxAlpha
-  const arcLen = alpha * radiusM
+  const minimumRadiusMm = validated ? referenceRadiusMm : VISUAL_FALLBACK_RADIUS_MM
+  const direction: LinarBendDirection =
+    t <= 0.000001 ? 'flat' : clampedControl < 0 ? 'left' : 'right'
+  const directionSign: -1 | 0 | 1 = direction === 'flat' ? 0 : direction === 'left' ? -1 : 1
+
+  if (directionSign === 0) {
+    return {
+      control: 0,
+      percent: 0,
+      direction,
+      directionSign,
+      selectedRadiusMm: null,
+      radiusM: mmToM(minimumRadiusMm),
+      alpha: 0,
+      activeWidthM: 0,
+      arcLen: 0,
+      leftFlat: panelWidthM * 0.5,
+      validated,
+      secondaryCurveAmount: clampedSecondaryCurveAmount,
+      compoundCurve: null,
+    }
+  }
+
+  // Slider distance represents curvature, not an invented radius range.
+  // Therefore the existing table minimum is reached only at either endpoint,
+  // while radius grows continuously toward infinity at the centred flat pose.
+  const selectedRadiusMm = minimumRadiusMm / t
+  const radiusM = mmToM(selectedRadiusMm)
+  // The complete incised width participates at large radii. When a tighter
+  // radius can form a half-circle in less material, the active zone reduces
+  // progressively according to the existing documented width = pi * R rule.
+  const halfCircumferenceM = mmToM(getIncisedWidthForRadiusMm(selectedRadiusMm))
+  const activeWidthM = Math.min(Math.max(0, bendableWidthM), halfCircumferenceM)
+  const alpha = Math.min(Math.PI, activeWidthM / Math.max(radiusM, 0.000001))
+  const arcLen = activeWidthM
   const leftFlat = Math.max(0, (panelWidthM - arcLen) * 0.5)
-  return { percent: t * 100, radiusM, alpha, arcLen, leftFlat, validated }
+  const compoundCurve =
+    clampedSecondaryCurveAmount > 0 && activeWidthM > 0
+      ? makeSerpentinePathLookup({
+          panelWidthM,
+          activeWidthM,
+          radiusM,
+          bendAngleRad: alpha,
+          directionSign,
+          progression: clampedSecondaryCurveAmount / 100,
+        })
+      : null
+  return {
+    control: clampedControl,
+    percent: t * 100,
+    direction,
+    directionSign,
+    selectedRadiusMm,
+    radiusM,
+    alpha,
+    activeWidthM,
+    arcLen,
+    leftFlat,
+    validated,
+    secondaryCurveAmount: clampedSecondaryCurveAmount,
+    compoundCurve,
+  }
 }
 
 export function bendPercentToAngle(
-  percent: number,
+  control: number,
   panelWidthM: number,
   referenceRadiusMm: number | null,
 ): number {
-  return makeBendState(percent, panelWidthM, referenceRadiusMm).alpha
+  const state = makeBendState(control, panelWidthM, referenceRadiusMm)
+  return state.alpha * state.directionSign
 }
 
 /** Rendered cylinder radius in mm, or null when the pose is treated as flat. */
 export function previewRadiusMm(
-  percent: number,
+  control: number,
   panelWidthM: number,
   referenceRadiusMm: number | null,
 ): number | null {
-  const state = makeBendState(percent, panelWidthM, referenceRadiusMm)
-  if (state.alpha < 0.02) return null
-  return state.radiusM * 1000
+  return makeBendState(control, panelWidthM, referenceRadiusMm).selectedRadiusMm
 }
 
 export function curveElement(
@@ -241,7 +314,26 @@ export function curveElement(
     return
   }
 
-  const { radiusM: r, alpha, leftFlat, arcLen } = state
+  if (state.compoundCurve) {
+    const { compoundCurve } = state
+    const u = Math.max(0, Math.min(1, originalX / panelWidth + 0.5))
+    const sample = u * compoundCurve.steps
+    const index = Math.min(compoundCurve.steps - 1, Math.floor(sample))
+    const fraction = sample - index
+    out.x =
+      compoundCurve.x[index] +
+      (compoundCurve.x[index + 1] - compoundCurve.x[index]) * fraction
+    out.z =
+      compoundCurve.z[index] +
+      (compoundCurve.z[index + 1] - compoundCurve.z[index]) * fraction
+    const tangent =
+      compoundCurve.tangent[index] +
+      (compoundCurve.tangent[index + 1] - compoundCurve.tangent[index]) * fraction
+    out.rotY = -tangent
+    return
+  }
+
+  const { radiusM: r, alpha, leftFlat, arcLen, directionSign } = state
   const s = originalX + panelWidth / 2
   const theta0 = -alpha / 2
   const theta1 = alpha / 2
@@ -253,8 +345,8 @@ export function curveElement(
     const tx = Math.cos(theta0)
     const tz = Math.sin(theta0)
     out.x = jx - dist * tx
-    out.z = jz - dist * tz
-    out.rotY = -theta0
+    out.z = (jz - dist * tz) * directionSign
+    out.rotY = -theta0 * directionSign
     return
   }
 
@@ -265,13 +357,13 @@ export function curveElement(
     const tx = Math.cos(theta1)
     const tz = Math.sin(theta1)
     out.x = jx + dist * tx
-    out.z = jz + dist * tz
-    out.rotY = -theta1
+    out.z = (jz + dist * tz) * directionSign
+    out.rotY = -theta1 * directionSign
     return
   }
 
   const theta = theta0 + (s - leftFlat) / r
   out.x = r * Math.sin(theta)
-  out.z = r * (1 - Math.cos(theta))
-  out.rotY = -theta
+  out.z = r * (1 - Math.cos(theta)) * directionSign
+  out.rotY = -theta * directionSign
 }

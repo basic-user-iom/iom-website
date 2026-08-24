@@ -1,45 +1,29 @@
-import type { RefObject } from 'react'
+import { VISUAL_FALLBACK_RADIUS_MM } from './bendMath'
 import { JANUS_THICKNESS_NOTE, type LinarTech } from './linarData'
-import type { LinarTourTarget } from './linarTour'
 import {
   LINAR_APPLICATIONS,
-  LINAR_BACKINGS,
   LINAR_MATERIALS,
-  LINAR_SIDES,
-  LINAR_VIEWS,
+  LINAR_VENEERS,
+  LINAR_VISIBLE_BACKINGS,
   type LinarApplication,
   type LinarBacking,
+  type LinarBendDirection,
   type LinarConfig,
   type LinarMaterialId,
-  type LinarPattern,
-  type LinarSide,
-  type LinarViewId,
+  type LinarVeneerId,
 } from './types'
 
 type Props = {
   bend: number
+  bendDirection: LinarBendDirection
+  secondaryCurveAmount: number
   config: LinarConfig
   tech: LinarTech
   previewRadiusMm: number | null
-  sliderRef: RefObject<HTMLInputElement | null>
-  percentRef: RefObject<HTMLSpanElement | null>
   onBendInput: (value: number) => void
+  onSecondaryCurveInput: (value: number) => void
   onConfig: (patch: Partial<LinarConfig>) => void
-  onResetView: () => void
   onResetPanel: () => void
-  viewPreset: LinarViewId
-  onViewPreset: (id: LinarViewId) => void
-  side: LinarSide
-  onSideChange: (side: LinarSide) => void
-  musicEnabled: boolean
-  musicVolume: number
-  onToggleMusic: () => void
-  onMusicVolumeChange: (value: number) => void
-  tourTarget: LinarTourTarget | null
-}
-
-function tourClass(base: string, section: LinarTourTarget, target: LinarTourTarget | null): string {
-  return target === section ? `${base} is-tour-highlighted` : base
 }
 
 function RangeRow({
@@ -96,7 +80,7 @@ function ChipGroup<T extends string>({
 }: {
   labelId: string
   label: string
-  items: { id: T; label: string }[]
+  items: readonly { id: T; label: string }[]
   value: T
   onChange: (id: T) => void
 }) {
@@ -126,169 +110,181 @@ function ChipGroup<T extends string>({
   )
 }
 
+function formatRadius(radiusMm: number | null): string {
+  if (radiusMm == null) return 'Flat'
+  return `${Math.round(radiusMm).toLocaleString('en-US')} mm`
+}
+
+function directionLabel(direction: LinarBendDirection): string {
+  if (direction === 'left') return 'Left · toward back'
+  if (direction === 'right') return 'Right · toward front'
+  return 'Neutral · flat'
+}
+
 export function LinarControls({
   bend,
+  bendDirection,
+  secondaryCurveAmount,
   config,
   tech,
   previewRadiusMm,
-  sliderRef,
-  percentRef,
   onBendInput,
+  onSecondaryCurveInput,
   onConfig,
-  onResetView,
   onResetPanel,
-  viewPreset,
-  onViewPreset,
-  side,
-  onSideChange,
-  musicEnabled,
-  musicVolume,
-  onToggleMusic,
-  onMusicVolumeChange,
-  tourTarget,
 }: Props) {
-  const radiusText =
-    previewRadiusMm == null
-      ? 'Nearly flat'
-      : `${Math.round(previewRadiusMm)} mm preview arc radius`
+  const radiusText = formatRadius(previewRadiusMm)
+  const bendValueText = `${radiusText} · ${directionLabel(bendDirection)}`
+  const safeSecondaryCurveAmount = Math.max(
+    0,
+    Math.min(100, Math.round(secondaryCurveAmount)),
+  )
+  const secondaryCurveText =
+    safeSecondaryCurveAmount === 0 ? 'Off' : `${safeSecondaryCurveAmount}%`
+  const secondaryCurveValueText =
+    safeSecondaryCurveAmount === 0
+      ? 'Off'
+      : `${safeSecondaryCurveAmount} percent toward a three-leg serpentine S curve`
+  const secondaryCurveIsDormant =
+    safeSecondaryCurveAmount > 0 && bendDirection === 'flat'
   const referenceText =
     tech.referenceMinimumRadiusMm == null
-      ? '100% uses a visual-only bend profile. No validated minimum radius for this combination.'
-      : `100% wraps a π × R strip toward the ${tech.referenceMinimumRadiusMm} mm sample radius`
+      ? `The endpoint uses the existing ${VISUAL_FALLBACK_RADIUS_MM} mm visual reference and remains Not tested.`
+      : `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm physical-sample minimum.`
 
   return (
     <div className="linar-controls">
-      <div
-        className={tourClass('linar-control linar-control--view', 'view', tourTarget)}
-        data-linar-tour="view"
-      >
-        <p className="linar-label" id="linar-view-label">
-          View
-        </p>
-        <p className="linar-instruction">Drag to rotate. Scroll or pinch to zoom.</p>
-        <ChipGroup
-          labelId="linar-side-label"
-          label="Surface side"
-          items={LINAR_SIDES}
-          value={side}
-          onChange={onSideChange}
-        />
-        <ChipGroup
-          labelId="linar-view-preset-label"
-          label="Inspection"
-          items={LINAR_VIEWS}
-          value={viewPreset}
-          onChange={onViewPreset}
-        />
-        <div className="linar-actions" role="group" aria-labelledby="linar-view-label">
-          <button type="button" className="linar-text-btn" onClick={onResetView}>
-            Reset view
-          </button>
-          <button type="button" className="linar-text-btn" onClick={onResetPanel}>
-            Reset panel
-          </button>
-        </div>
-        <div className="linar-field linar-music">
-          <p className="linar-label" id="linar-music-label">
-            Music
-          </p>
-          <button
-            type="button"
-            className={musicEnabled ? 'linar-chip is-active' : 'linar-chip'}
-            aria-labelledby="linar-music-label linar-music-name"
-            aria-pressed={musicEnabled}
-            onClick={onToggleMusic}
-          >
-            <span className="linar-chip__name" id="linar-music-name">
-              Bach — Cello Suite No. 1
-            </span>
-            <span className="linar-chip__state">{musicEnabled ? 'On' : 'Off'}</span>
-          </button>
-          <div className="linar-music__volume">
-            <div className="linar-control__head">
-              <label className="linar-label" htmlFor="linar-music-volume">
-                Volume
-              </label>
-              <span className="linar-percent">{musicVolume}%</span>
-            </div>
-            <input
-              id="linar-music-volume"
-              className="linar-slider"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={musicVolume}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={musicVolume}
-              aria-valuetext={`${musicVolume} percent`}
-              onInput={(event) => onMusicVolumeChange(Number(event.currentTarget.value))}
-            />
-          </div>
-        </div>
-      </div>
-
-      <details
-        className={tourClass('linar-acc linar-acc--bending', 'bending', tourTarget)}
-        data-linar-tour="bending"
-        open
-      >
-        <summary className="linar-acc__sum">Bending</summary>
+      <details className="linar-acc linar-acc--bending" open>
+        <summary className="linar-acc__sum">Bending radius</summary>
         <div className="linar-acc__body">
-          <div className="linar-range">
-            <div className="linar-control__head">
+          <div className="linar-range linar-bend-control">
+            <div className="linar-control__head linar-control__head--bend">
               <label className="linar-label" htmlFor="linar-bend">
-                Bend preview
+                Primary selected radius
               </label>
-              <span className="linar-percent" ref={percentRef}>
-                {Math.round(bend)}%
-              </span>
+              <span className="linar-bend-value">{radiusText}</span>
             </div>
+            <span className="linar-bend-direction" aria-live="polite">
+              {directionLabel(bendDirection)}
+            </span>
             <p className="linar-instruction">
-              0% is flat. 100% forms a half-circle only across the incised width π × R when a
-              physical sample exists.
+              Centre is flat. Move left or right to bend in opposite directions. Large radii use
+              the complete incised width; the active curved area reduces progressively toward
+              π × R as the radius becomes smaller.
             </p>
-            <input
-              ref={sliderRef}
-              id="linar-bend"
-              className="linar-slider"
-              type="range"
-              min={0}
-              max={100}
-              step={1}
-              value={bend}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={Math.round(bend)}
-              aria-valuetext={`${Math.round(bend)} percent`}
-              aria-label="Bend preview"
-              onInput={(event) => onBendInput(Number(event.currentTarget.value))}
-            />
-            <p className="linar-note">
-              {radiusText}. {referenceText}.
-            </p>
+            <div className="linar-bend-slider-wrap">
+              <input
+                id="linar-bend"
+                className="linar-slider linar-slider--bidirectional"
+                type="range"
+                min={-100}
+                max={100}
+                step={1}
+                value={bend}
+                aria-valuemin={-100}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(bend)}
+                aria-valuetext={bendValueText}
+                aria-label="Bending radius and direction"
+                onInput={(event) => onBendInput(Number(event.currentTarget.value))}
+              />
+            </div>
+            <div className="linar-bend-scale" aria-hidden="true">
+              <span>Left</span>
+              <span>Flat</span>
+              <span>Right</span>
+            </div>
+            <p className="linar-note">{referenceText}</p>
           </div>
+
+          <details className="linar-secondary-curve">
+            <summary className="linar-secondary-curve__summary">Advanced shape preview</summary>
+            <div className="linar-secondary-curve__body">
+              <div className="linar-range">
+                <div className="linar-control__head linar-secondary-curve__head">
+                  <label className="linar-label" htmlFor="linar-secondary-curve">
+                    S-curve progression
+                  </label>
+                  <output
+                    className="linar-percent"
+                    htmlFor="linar-secondary-curve"
+                    aria-live="polite"
+                  >
+                    {secondaryCurveText}
+                  </output>
+                </div>
+                <input
+                  id="linar-secondary-curve"
+                  className="linar-slider"
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={safeSecondaryCurveAmount}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={safeSecondaryCurveAmount}
+                  aria-valuetext={secondaryCurveValueText}
+                  aria-describedby={
+                    secondaryCurveIsDormant
+                      ? 'linar-secondary-curve-description linar-secondary-curve-flat-status'
+                      : 'linar-secondary-curve-description'
+                  }
+                  onInput={(event) =>
+                    onSecondaryCurveInput(Number(event.currentTarget.value))
+                  }
+                />
+              </div>
+              <p className="linar-note">
+                0 keeps the existing C curve. Progression morphs it continuously toward two
+                opposing hairpin turns. At 100, with the primary radius at either endpoint, the
+                panel forms three near-parallel legs. This does not change open-area or radius
+                calculations.
+              </p>
+              {secondaryCurveIsDormant ? (
+                <p
+                  id="linar-secondary-curve-flat-status"
+                  className="linar-secondary-curve__status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Move the primary radius control away from centre to see the opposing curve.
+                </p>
+              ) : null}
+              <p id="linar-secondary-curve-description" className="linar-note">
+                The supplied sample footage visually demonstrates an opposing S-shaped pose. It
+                does not provide a measured second radius, transition position, load limit,
+                spring-back value or manufacturing envelope. Visual reference only · Not tested.
+              </p>
+            </div>
+          </details>
         </div>
       </details>
 
-      <details
-        className={tourClass('linar-acc', 'panel', tourTarget)}
-        data-linar-tour="panel"
-        open
-      >
+      <details className="linar-acc" open>
         <summary className="linar-acc__sum">Panel</summary>
         <div className="linar-acc__body">
           <ChipGroup
             labelId="linar-material-label"
-            label="Material"
+            label="Base material"
             items={LINAR_MATERIALS}
             value={config.material}
             onChange={(id: LinarMaterialId) => onConfig({ material: id })}
           />
+          <ChipGroup
+            labelId="linar-veneer-label"
+            label="Optional veneer"
+            items={LINAR_VENEERS}
+            value={config.veneer}
+            onChange={(id: LinarVeneerId) => onConfig({ veneer: id })}
+          />
+          <p className="linar-note">
+            Veneer is an additional appearance layer of approximately 1 mm. It does not alter the
+            configured base thickness or bending-radius calculation in this revision.
+          </p>
           <RangeRow
             id="linar-thickness"
-            label="Thickness"
+            label="Base panel thickness"
             value={config.thicknessMm}
             min={4}
             max={15}
@@ -297,14 +293,13 @@ export function LinarControls({
             onChange={(value) => onConfig({ thicknessMm: value })}
           />
           <p className="linar-note">{JANUS_THICKNESS_NOTE}</p>
+          <button type="button" className="linar-text-btn" onClick={onResetPanel}>
+            Reset panel
+          </button>
         </div>
       </details>
 
-      <details
-        className={tourClass('linar-acc', 'incision', tourTarget)}
-        data-linar-tour="incision"
-        open={tourTarget === 'incision' ? true : undefined}
-      >
+      <details className="linar-acc">
         <summary className="linar-acc__sum">Incision</summary>
         <div className="linar-acc__body">
           <RangeRow
@@ -319,7 +314,7 @@ export function LinarControls({
           />
           <RangeRow
             id="linar-cut"
-            label="Cut width"
+            label="Cut width / spacing"
             value={config.cutWidthMm}
             min={2}
             max={8}
@@ -328,8 +323,8 @@ export function LinarControls({
             onChange={(value) => onConfig({ cutWidthMm: value })}
           />
           <RangeRow
-            id="linar-slat"
-            label="Slat / web width"
+            id="linar-lamella"
+            label="Lamella width"
             value={config.slatWidthMm}
             min={2}
             max={8}
@@ -339,8 +334,8 @@ export function LinarControls({
           />
           <p className="linar-note">
             {config.cutWidthMm}/{config.slatWidthMm} mm means a {config.cutWidthMm} mm perforating
-            cut and a {config.slatWidthMm} mm uncut slat. Incision and bridge lengths repeat across
-            the incised area.
+            cut and a {config.slatWidthMm} mm uncut lamella. Incision and bridge lengths repeat
+            across the incised area.
           </p>
           <RangeRow
             id="linar-coverage"
@@ -356,25 +351,10 @@ export function LinarControls({
             Coverage expands symmetrically from the panel centre. The remaining left and right
             areas stay solid and unincised.
           </p>
-          <ChipGroup
-            labelId="linar-pattern-label"
-            label="Pattern"
-            items={[
-              { id: 'regular' as const, label: 'Regular' },
-              { id: 'irregular' as const, label: 'Irregular' },
-            ]}
-            value={config.pattern}
-            onChange={(id: LinarPattern) => onConfig({ pattern: id })}
-          />
-          {config.pattern === 'irregular' ? <p className="linar-note">{tech.irregularNote}</p> : null}
         </div>
       </details>
 
-      <details
-        className={tourClass('linar-acc', 'application', tourTarget)}
-        data-linar-tour="application"
-        open={tourTarget === 'application' ? true : undefined}
-      >
+      <details className="linar-acc">
         <summary className="linar-acc__sum">Application</summary>
         <div className="linar-acc__body">
           <ChipGroup
@@ -387,17 +367,16 @@ export function LinarControls({
           <ChipGroup
             labelId="linar-backing-label"
             label="Backing material"
-            items={LINAR_BACKINGS}
+            items={LINAR_VISIBLE_BACKINGS}
             value={config.backing}
             onChange={(id: LinarBacking) => onConfig({ backing: id })}
           />
           <p className="linar-note">
-            Application and backing are descriptive configuration metadata. They do not change the
-            bending calculation.
+            Application and visible backing choices are descriptive configuration metadata. They
+            do not change the bending calculation.
           </p>
         </div>
       </details>
-
     </div>
   )
 }

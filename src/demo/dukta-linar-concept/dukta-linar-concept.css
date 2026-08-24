@@ -205,6 +205,7 @@ body.linar-route a.iom-back {
   position: relative;
   min-width: 0;
   min-height: 0;
+  overflow: hidden;
   background: var(--linar-bg);
 }
 
@@ -218,6 +219,208 @@ body.linar-route a.iom-back {
   height: 100%;
   display: block;
   touch-action: none;
+}
+
+.linar-viewport-tools {
+  position: absolute;
+  z-index: 30;
+  top: max(0.75rem, env(safe-area-inset-top));
+  right: max(0.75rem, env(safe-area-inset-right));
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-family: var(--sans);
+}
+
+.linar-viewport-tools__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.8rem;
+  min-height: 44px;
+  padding: 0.65rem 0.78rem;
+  border: 1px solid rgba(42, 38, 34, 0.24);
+  border-radius: 2px;
+  background: rgba(250, 247, 242, 0.9);
+  color: var(--linar-ink);
+  box-shadow: 0 0.4rem 1.4rem rgba(42, 38, 34, 0.07);
+  backdrop-filter: blur(10px);
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  list-style: none;
+  cursor: pointer;
+}
+
+.linar-viewport-tools__button.is-active,
+.linar-viewport-menu[open] > .linar-viewport-tools__button {
+  border-color: var(--linar-ink);
+  background: rgba(243, 238, 230, 0.96);
+}
+
+.linar-viewport-tools__button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.linar-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.linar-viewport-tools__button::-webkit-details-marker {
+  display: none;
+}
+
+.linar-viewport-tools__button:focus-visible,
+.linar-viewport-menu button:focus-visible,
+.linar-viewport-menu input:focus-visible,
+.linar-share-manual input:focus-visible {
+  outline: 2px solid var(--linar-ink);
+  outline-offset: 2px;
+}
+
+.linar-share-manual {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  width: min(21rem, calc(100vw - 1.5rem));
+  padding: 0.8rem;
+  border: 1px solid rgba(42, 38, 34, 0.2);
+  border-radius: 2px;
+  background: rgba(250, 247, 242, 0.98);
+  box-shadow: 0 1rem 3rem rgba(42, 38, 34, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.linar-share-manual label {
+  display: block;
+  margin-bottom: 0.45rem;
+  color: var(--linar-muted);
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.linar-share-manual input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--linar-line);
+  border-radius: 2px;
+  background: var(--linar-paper);
+  color: var(--linar-ink);
+  font: inherit;
+  font-size: 0.72rem;
+}
+
+.linar-viewport-menu {
+  position: relative;
+}
+
+.linar-viewport-menu__panel {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  width: min(19rem, calc(100vw - 1.5rem));
+  max-height: min(32rem, calc(100dvh - 7rem));
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0.9rem;
+  border: 1px solid rgba(42, 38, 34, 0.2);
+  border-radius: 2px;
+  background: rgba(250, 247, 242, 0.96);
+  box-shadow: 0 1rem 3rem rgba(42, 38, 34, 0.14);
+  backdrop-filter: blur(14px);
+}
+
+.linar-viewport-menu__hint {
+  margin: 0 0 0.8rem;
+  color: var(--linar-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.linar-viewport-menu__group {
+  min-width: 0;
+  margin: 0;
+  padding: 0.75rem 0 0;
+  border: 0;
+  border-top: 1px solid var(--linar-line);
+}
+
+.linar-viewport-menu__group + .linar-viewport-menu__group {
+  margin-top: 0.75rem;
+}
+
+.linar-viewport-menu__group legend {
+  padding: 0;
+  font-size: 0.64rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.linar-viewport-menu__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.linar-viewport-menu__choices--views {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.linar-viewport-menu__choices button,
+.linar-viewport-menu__reset {
+  min-width: 0;
+  min-height: 40px;
+  padding: 0.55rem 0.6rem;
+  border: 1px solid var(--linar-line);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--linar-ink);
+  font: inherit;
+  font-size: 0.76rem;
+  cursor: pointer;
+}
+
+.linar-viewport-menu__choices button.is-active {
+  border-color: var(--linar-ink);
+  background: #f3eee6;
+}
+
+.linar-viewport-menu__reset {
+  width: 100%;
+  margin-top: 0.75rem;
+}
+
+.linar-viewport-menu__sound {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--linar-line);
+}
+
+.linar-viewport-menu__sound label,
+.linar-viewport-menu__sound span {
+  font-size: 0.68rem;
+}
+
+.linar-viewport-menu__sound span {
+  color: var(--linar-wood-deep);
+}
+
+.linar-viewport-menu__sound .linar-slider {
+  height: 2.25rem;
 }
 
 .linar-fallback {
@@ -273,6 +476,153 @@ body.linar-route a.iom-back {
   display: flex;
   flex-direction: column;
   gap: 1.35rem;
+}
+
+.linar-acc--bending {
+  padding: 0.25rem 1rem 0.9rem;
+  border: 1px solid rgba(122, 86, 54, 0.35);
+  background: rgba(166, 124, 82, 0.055);
+}
+
+.linar-acc--bending > .linar-acc__sum {
+  font-weight: 600;
+  color: var(--linar-wood-deep);
+}
+
+.linar-control__head--bend {
+  align-items: center;
+}
+
+.linar-bend-value {
+  color: var(--linar-wood-deep);
+  font-family: var(--display);
+  font-size: 1.08rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.linar-bend-direction {
+  display: block;
+  margin-top: 0.18rem;
+  color: var(--linar-ink);
+  font-size: 0.78rem;
+}
+
+.linar-bend-slider-wrap {
+  position: relative;
+}
+
+.linar-bend-slider-wrap::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1px;
+  height: 12px;
+  background: var(--linar-wood-deep);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.linar-slider--bidirectional::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    90deg,
+    var(--linar-ink) 0%,
+    var(--linar-muted) 49.5%,
+    var(--linar-muted) 50.5%,
+    var(--linar-ink) 100%
+  );
+}
+
+.linar-slider--bidirectional::-moz-range-track {
+  background: linear-gradient(
+    90deg,
+    var(--linar-ink) 0%,
+    var(--linar-muted) 49.5%,
+    var(--linar-muted) 50.5%,
+    var(--linar-ink) 100%
+  );
+}
+
+.linar-bend-scale {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  margin-top: -0.3rem;
+  color: var(--linar-muted);
+  font-size: 0.66rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.linar-bend-scale span:nth-child(2) {
+  text-align: center;
+}
+
+.linar-bend-scale span:last-child {
+  text-align: right;
+}
+
+.linar-secondary-curve {
+  min-width: 0;
+  border-top: 1px solid rgba(122, 86, 54, 0.22);
+}
+
+.linar-secondary-curve__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0.45rem 0;
+  color: var(--linar-wood-deep);
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.linar-secondary-curve__summary::after {
+  content: '+';
+  flex: 0 0 auto;
+  color: var(--linar-muted);
+  font-size: 0.9rem;
+  letter-spacing: 0;
+}
+
+.linar-secondary-curve[open] > .linar-secondary-curve__summary::after {
+  content: '–';
+}
+
+.linar-secondary-curve__summary::-webkit-details-marker {
+  display: none;
+}
+
+.linar-secondary-curve__summary:focus-visible {
+  outline: 2px solid var(--linar-ink);
+  outline-offset: 3px;
+}
+
+.linar-secondary-curve__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.65rem 0 0.15rem;
+}
+
+.linar-secondary-curve__head {
+  min-width: 0;
+  flex-wrap: wrap;
+  row-gap: 0.25rem;
+}
+
+.linar-secondary-curve__status {
+  margin: 0;
+  color: var(--linar-wood-deep);
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .linar-control {
@@ -531,6 +881,39 @@ body.linar-route a.iom-back {
 
   .linar-controls {
     gap: 0.85rem;
+  }
+
+  .linar-viewport-tools {
+    top: max(0.5rem, env(safe-area-inset-top));
+    right: max(0.5rem, env(safe-area-inset-right));
+    gap: 0.35rem;
+  }
+
+  .linar-viewport-tools__button {
+    min-width: 4.45rem;
+    padding-inline: 0.6rem;
+  }
+
+  .linar-viewport-menu__panel {
+    width: min(18rem, calc(100vw - 1rem));
+    max-height: min(20rem, 34dvh);
+    padding: 0.75rem;
+  }
+
+  .linar-share-manual {
+    width: min(20rem, calc(100vw - 1rem));
+  }
+
+  .linar-acc--bending {
+    padding-inline: 0.8rem;
+  }
+
+  .linar-secondary-curve__summary {
+    min-height: 46px;
+  }
+
+  .linar-secondary-curve__body {
+    gap: 0.65rem;
   }
 
   .linar-control--view {

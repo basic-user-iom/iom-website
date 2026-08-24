@@ -24,7 +24,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'A machined wood surface',
     description:
-      'Start with the complete birch panel. Continuous slats and staggered bridges turn a rigid sheet into a flexible architectural surface.',
+      'Start with the complete birch panel. Continuous lamellae and staggered bridges turn a rigid sheet into a flexible architectural surface.',
     target: 'viewport',
     durationMs: 6800,
     view: 'hero',

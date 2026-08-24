@@ -6,7 +6,7 @@ import {
   SRGBColorSpace,
   type Texture,
 } from 'three'
-import type { LinarMaterialId } from './types'
+import type { LinarMaterialId, LinarVeneerId } from './types'
 
 type MaterialLook = {
   face: string
@@ -55,6 +55,56 @@ const LOOKS: Record<LinarMaterialId, MaterialLook> = {
     grain: 'open',
     grainContrast: 0.06,
     plyLayers: 3,
+  },
+}
+
+type VeneerId = Exclude<LinarVeneerId, 'none'>
+
+/** Visual surface references only; veneer does not enter thickness or radius calculations. */
+const VENEER_LOOKS: Record<VeneerId, MaterialLook> = {
+  oak: {
+    face: '#b98f5c',
+    reverse: '#ad8050',
+    cut: '#b98f5c',
+    end: '#b98f5c',
+    roughness: 0.74,
+    cutRoughness: 0.82,
+    grain: 'open',
+    grainContrast: 0.075,
+    plyLayers: 0,
+  },
+  maple: {
+    face: '#ead9bb',
+    reverse: '#dfc9a8',
+    cut: '#ead9bb',
+    end: '#ead9bb',
+    roughness: 0.76,
+    cutRoughness: 0.84,
+    grain: 'linear',
+    grainContrast: 0.024,
+    plyLayers: 0,
+  },
+  ash: {
+    face: '#d8bd8d',
+    reverse: '#cbaa78',
+    cut: '#d8bd8d',
+    end: '#d8bd8d',
+    roughness: 0.79,
+    cutRoughness: 0.86,
+    grain: 'open',
+    grainContrast: 0.058,
+    plyLayers: 0,
+  },
+  walnut: {
+    face: '#795238',
+    reverse: '#69432f',
+    cut: '#795238',
+    end: '#795238',
+    roughness: 0.72,
+    cutRoughness: 0.82,
+    grain: 'open',
+    grainContrast: 0.09,
+    plyLayers: 0,
   },
 }
 
@@ -242,7 +292,7 @@ export type LinarMaterialSet = {
   bridgeCut: MeshStandardMaterial
   end: MeshStandardMaterial
   backing: MeshStandardMaterial
-  apply: (id: LinarMaterialId, immediate?: boolean) => void
+  apply: (id: LinarMaterialId, veneer: LinarVeneerId, immediate?: boolean) => void
   tick: (dt: number) => boolean
   dispose: () => void
 }
@@ -252,6 +302,8 @@ export function createLinarMaterials(): LinarMaterialSet {
   const reverseMaps = new Map<LinarMaterialId, Texture>()
   const edgeMaps = new Map<LinarMaterialId, Texture>()
   const endMaps = new Map<LinarMaterialId, Texture>()
+  const veneerFaceMaps = new Map<VeneerId, Texture>()
+  const veneerReverseMaps = new Map<VeneerId, Texture>()
   const getFace = (id: LinarMaterialId) => {
     let map = faceMaps.get(id)
     if (!map) {
@@ -286,6 +338,27 @@ export function createLinarMaterials(): LinarMaterialSet {
       map = makeMap(paintEdge(LOOKS[id], LOOKS[id].end))
       map.repeat.set(1, 1)
       endMaps.set(id, map)
+    }
+    return map
+  }
+  const getVeneerFace = (id: VeneerId) => {
+    let map = veneerFaceMaps.get(id)
+    if (!map) {
+      const look = VENEER_LOOKS[id]
+      map = makeMap(paintFace(look, look.face))
+      map.repeat.set(1, 1.75)
+      veneerFaceMaps.set(id, map)
+    }
+    return map
+  }
+  const getVeneerReverse = (id: VeneerId) => {
+    let map = veneerReverseMaps.get(id)
+    if (!map) {
+      const look = VENEER_LOOKS[id]
+      map = makeMap(paintFace(look, look.reverse))
+      map.repeat.set(1, 1.75)
+      map.offset.set(0.19, 0.11)
+      veneerReverseMaps.set(id, map)
     }
     return map
   }
@@ -349,23 +422,26 @@ export function createLinarMaterials(): LinarMaterialSet {
   attachInstanceGrainPhase(bridgeCut, 0.58, 0.36, 19.73)
   attachInstanceGrainPhase(end, 0.36, 0.24, 29.11)
 
-  let current: LinarMaterialId = 'plywood'
+  let currentMaterial: LinarMaterialId = 'plywood'
+  let currentVeneer: LinarVeneerId = 'none'
   let mix = 1
   let needsPaint = false
 
   const paintSet = (
     id: LinarMaterialId,
+    veneer: LinarVeneerId,
     faceMap: Texture,
     reverseMap: Texture,
     edgeMap: Texture,
     endMap: Texture,
   ) => {
     const look = LOOKS[id]
+    const surfaceLook = veneer === 'none' ? look : VENEER_LOOKS[veneer]
     face.color.setHex(0xffffff)
-    face.roughness = look.roughness
+    face.roughness = surfaceLook.roughness
     face.map = faceMap
     reverse.color.setHex(0xffffff)
-    reverse.roughness = Math.min(1, look.roughness + 0.06)
+    reverse.roughness = Math.min(1, surfaceLook.roughness + 0.06)
     reverse.map = reverseMap
     cut.color.setHex(0xffffff)
     cut.roughness = look.cutRoughness
@@ -386,18 +462,38 @@ export function createLinarMaterials(): LinarMaterialSet {
     end.needsUpdate = true
   }
 
-  const apply = (id: LinarMaterialId, immediate = false) => {
-    current = id
+  const apply = (id: LinarMaterialId, veneer: LinarVeneerId, immediate = false) => {
+    currentMaterial = id
+    currentVeneer = veneer
     mix = immediate ? 1 : 0
     needsPaint = !immediate
-    if (immediate) paintSet(id, getFace(id), getReverse(id), getEdge(id), getEnd(id))
+    if (immediate) {
+      const faceMap = veneer === 'none' ? getFace(id) : getVeneerFace(veneer)
+      const reverseMap = veneer === 'none' ? getReverse(id) : getVeneerReverse(veneer)
+      paintSet(id, veneer, faceMap, reverseMap, getEdge(id), getEnd(id))
+    }
   }
 
   const tick = (dt: number): boolean => {
     if (mix >= 1) return false
     mix = Math.min(1, mix + dt * 5)
     if (needsPaint && mix >= 0.4) {
-      paintSet(current, getFace(current), getReverse(current), getEdge(current), getEnd(current))
+      const faceMap =
+        currentVeneer === 'none'
+          ? getFace(currentMaterial)
+          : getVeneerFace(currentVeneer)
+      const reverseMap =
+        currentVeneer === 'none'
+          ? getReverse(currentMaterial)
+          : getVeneerReverse(currentVeneer)
+      paintSet(
+        currentMaterial,
+        currentVeneer,
+        faceMap,
+        reverseMap,
+        getEdge(currentMaterial),
+        getEnd(currentMaterial),
+      )
       needsPaint = false
     }
     return mix < 1
@@ -414,10 +510,14 @@ export function createLinarMaterials(): LinarMaterialSet {
     for (const map of reverseMaps.values()) map.dispose()
     for (const map of edgeMaps.values()) map.dispose()
     for (const map of endMaps.values()) map.dispose()
+    for (const map of veneerFaceMaps.values()) map.dispose()
+    for (const map of veneerReverseMaps.values()) map.dispose()
     faceMaps.clear()
     reverseMaps.clear()
     edgeMaps.clear()
     endMaps.clear()
+    veneerFaceMaps.clear()
+    veneerReverseMaps.clear()
   }
 
   return { face, reverse, cut, bridgeCut, end, backing, apply, tick, dispose }

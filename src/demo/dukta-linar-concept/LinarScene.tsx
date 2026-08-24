@@ -8,6 +8,7 @@ import type { LinarConfig, LinarSide, LinarViewId } from './types'
 
 type Props = {
   targetBendRef: { current: number }
+  targetSecondaryCurveRef: { current: number }
   config: LinarConfig
   tech: LinarTech
   resetViewToken: number
@@ -57,6 +58,10 @@ function geometryKey(config: LinarConfig, tech: LinarTech): string {
     tech.referenceMinimumRadiusMm ?? 'none',
     config.backing,
   ].join(':')
+}
+
+function appearanceKey(config: LinarConfig): string {
+  return `${config.material}:${config.veneer}`
 }
 
 function easeInOut(t: number): number {
@@ -188,6 +193,7 @@ function applyView(
 
 export function LinarScene({
   targetBendRef,
+  targetSecondaryCurveRef,
   config,
   tech,
   resetViewToken,
@@ -361,12 +367,17 @@ export function LinarScene({
     scene.add(panel.group)
 
     let displayedBend = reducedMotion ? REST_BEND : 0
+    let displayedSecondaryCurve = 0
     let introTarget = reducedMotion ? REST_BEND : 0
     let introDone = reducedMotion
     let introElapsed = 0
     let lastIntroEmit = -1
-    panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
-    panel.setMaterial(configRef.current.material, true)
+    panel.setBend(
+      displayedBend,
+      techRef.current.referenceMinimumRadiusMm,
+      displayedSecondaryCurve,
+    )
+    panel.setMaterial(configRef.current.material, configRef.current.veneer, true)
     if (reducedMotion) {
       onIntroBendRef.current(REST_BEND)
       onIntroCompleteRef.current?.()
@@ -506,7 +517,8 @@ export function LinarScene({
     ro.observe(mount)
 
     let lastAppliedBend = displayedBend
-    let lastMaterial = configRef.current.material
+    let lastAppliedSecondaryCurve = displayedSecondaryCurve
+    let lastAppearance = appearanceKey(configRef.current)
     let lastGeomKey = geometryKey(configRef.current, techRef.current)
     let lastReset = resetViewTokenRef.current
     let lastView = viewTokenRef.current
@@ -544,12 +556,18 @@ export function LinarScene({
         lastGeomKey = nextGeom
         panel.setConfig(configRef.current, techRef.current)
         lastAppliedBend = displayedBend
-        panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
+        lastAppliedSecondaryCurve = displayedSecondaryCurve
+        panel.setBend(
+          displayedBend,
+          techRef.current.referenceMinimumRadiusMm,
+          displayedSecondaryCurve,
+        )
       }
 
-      if (configRef.current.material !== lastMaterial) {
-        lastMaterial = configRef.current.material
-        panel.setMaterial(lastMaterial)
+      const nextAppearance = appearanceKey(configRef.current)
+      if (nextAppearance !== lastAppearance) {
+        lastAppearance = nextAppearance
+        panel.setMaterial(configRef.current.material, configRef.current.veneer)
       }
 
       if (!introDone && introStartedRef.current && !interactedRef.current) {
@@ -568,12 +586,30 @@ export function LinarScene({
       }
 
       const goal = interactedRef.current || introDone ? targetBendRef.current : introTarget
+      const secondaryGoal =
+        interactedRef.current || introDone ? targetSecondaryCurveRef.current : 0
       const bendResponse = tourActiveRef.current && !reducedMotion ? 1.25 : 11
       const lambda = 1 - Math.exp(-dt * bendResponse)
       displayedBend += (goal - displayedBend) * lambda
-      if (Math.abs(displayedBend - lastAppliedBend) > 0.02) {
+      displayedSecondaryCurve += (secondaryGoal - displayedSecondaryCurve) * lambda
+      if (Math.abs(goal - displayedBend) < 0.005) displayedBend = goal
+      if (Math.abs(secondaryGoal - displayedSecondaryCurve) < 0.005) {
+        displayedSecondaryCurve = secondaryGoal
+      }
+      if (
+        Math.abs(displayedBend - lastAppliedBend) > 0.02 ||
+        Math.abs(displayedSecondaryCurve - lastAppliedSecondaryCurve) > 0.02 ||
+        (displayedBend === goal && lastAppliedBend !== goal) ||
+        (displayedSecondaryCurve === secondaryGoal &&
+          lastAppliedSecondaryCurve !== secondaryGoal)
+      ) {
         lastAppliedBend = displayedBend
-        panel.setBend(displayedBend, techRef.current.referenceMinimumRadiusMm)
+        lastAppliedSecondaryCurve = displayedSecondaryCurve
+        panel.setBend(
+          displayedBend,
+          techRef.current.referenceMinimumRadiusMm,
+          displayedSecondaryCurve,
+        )
       }
 
       if (cameraTransition) {

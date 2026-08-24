@@ -24,11 +24,10 @@ import {
 } from './bendMath'
 import type { LinarTech } from './linarData'
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
-import type { LinarBacking, LinarConfig, LinarMaterialId } from './types'
+import type { LinarBacking, LinarConfig, LinarMaterialId, LinarVeneerId } from './types'
 import { cloneConfig, LINAR_REFERENCE_BRIDGE_LENGTH_MM } from './types'
 
 const MAX_BRIDGES = 14000
-const MAX_REAR_SHOULDERS = MAX_BRIDGES * 2
 const SOLID_BAND_SEGMENTS = MAX_SLATS
 const pose = { x: 0, z: 0, rotY: 0 }
 const APPROVED_BRIDGE_PANEL_THICKNESS_MM = 10
@@ -44,9 +43,13 @@ const BACKING_COLOR: Record<Exclude<LinarBacking, 'none'>, number> = {
 
 export type LinarPanelHandle = {
   group: Object3D
-  setBend: (percent: number, referenceRadiusMm: number | null) => void
+  setBend: (
+    percent: number,
+    referenceRadiusMm: number | null,
+    secondaryCurveAmount?: number,
+  ) => void
   setConfig: (config: LinarConfig, tech: LinarTech) => void
-  setMaterial: (id: LinarMaterialId, immediate?: boolean) => void
+  setMaterial: (id: LinarMaterialId, veneer: LinarVeneerId, immediate?: boolean) => void
   tickMaterials: (dt: number) => boolean
   boundingSize: Vector3
   dispose: () => void
@@ -66,11 +69,6 @@ function bridgeAssemblyMaterials(set: LinarMaterialSet): MeshStandardMaterial[] 
   // Material 0 is the flat, two-sided rear plate. Material 1 is the approved
   // complementary curved wood face visible between the continuous slats.
   return [set.reverse, set.bridgeCut]
-}
-
-function rearShoulderMaterials(set: LinarMaterialSet): MeshStandardMaterial[] {
-  // The rounded rear cap is currently a two-sided zero-thickness surface.
-  return [set.reverse]
 }
 
 function solidBandMaterials(set: LinarMaterialSet): MeshStandardMaterial[] {
@@ -223,7 +221,9 @@ function createSolidBandGeometry(edgeMaterialIndices: {
  * zero-thickness surface, while the complementary wood face rises 6.859 mm
  * on the 10 mm reference profile and returns to the rear plane at both ends.
  *
- * Cut-wood walls close both X sides and any exposed/clipped Y end. They are
+ * Cut-wood walls close both X sides and any exposed/clipped Y end with a flat,
+ * straight plane matching the saw-cut reference. No semicircular shoulder or
+ * rounded bridge cap is added. The walls are
  * normally hidden where a bridge meets its neighbouring slats, but become
  * essential as those slats rotate apart: without them the curved bridge reads
  * as a hollow shell instead of a routed piece of solid wood.
@@ -350,128 +350,6 @@ function createBridgeAssemblyGeometry(profileStart = 0, profileEnd = 1): BufferG
   return geometry
 }
 
-/**
- * One zero-thickness rear cap at a bridge endpoint. Two planar corner regions
- * outside a semicircle complete the rounded capsule opening visible from the
- * back. The surface is deliberately not extruded until its real thickness is
- * confirmed by the client.
- */
-function createRearShoulderGeometry(): BufferGeometry {
-  const geometry = new BufferGeometry()
-  const vertices: number[] = []
-  const normals: number[] = []
-  const uvs: number[] = []
-  const indices: number[] = []
-  const arcSteps = 64
-  const halfArcSteps = arcSteps / 2
-
-  const addVertex = (
-    x: number,
-    y: number,
-    z: number,
-    u: number,
-    v: number,
-    nx: number,
-    ny: number,
-    nz: number,
-  ): number => {
-    vertices.push(x, y, z)
-    normals.push(nx, ny, nz)
-    uvs.push(u, v)
-    return vertices.length / 3 - 1
-  }
-  const addTriangle = (a: number, b: number, c: number) => {
-    indices.push(a, b, c)
-  }
-  const addQuad = (a: number, b: number, c: number, d: number) => {
-    indices.push(a, b, c, a, c, d)
-  }
-
-  type ShoulderSection = {
-    y: number
-    leftInner: number
-    rightInner: number
-  }
-  const sections: ShoulderSection[] = []
-  for (let i = 0; i <= halfArcSteps; i += 1) {
-    const t = i / halfArcSteps
-    const angle = t * Math.PI * 0.5
-    // Angle-uniform sampling avoids the large first triangular facet produced
-    // by uniform Y samples close to the circle's vertical tangent.
-    const y = 0.5 - Math.cos(angle) * 0.5
-    const halfVoid = Math.sin(angle) * 0.5
-    sections.push({
-      y,
-      leftInner: -halfVoid,
-      rightInner: halfVoid,
-    })
-  }
-
-  const makeRearRails = () => {
-    const leftOuter: number[] = []
-    const leftInner: number[] = []
-    const rightInner: number[] = []
-    const rightOuter: number[] = []
-    for (const section of sections) {
-      const v = section.y * 2
-      leftOuter.push(addVertex(-0.5, section.y, 0, 0, v, 0, 0, -1))
-      leftInner.push(
-        addVertex(section.leftInner, section.y, 0, section.leftInner + 0.5, v, 0, 0, -1),
-      )
-      rightInner.push(
-        addVertex(
-          section.rightInner,
-          section.y,
-          0,
-          section.rightInner + 0.5,
-          v,
-          0,
-          0,
-          -1,
-        ),
-      )
-      rightOuter.push(addVertex(0.5, section.y, 0, 1, v, 0, 0, -1))
-    }
-    return { leftOuter, leftInner, rightInner, rightOuter }
-  }
-
-  // Reverse veneer faces point toward -Z.
-  const rearStart = indices.length
-  const rear = makeRearRails()
-  for (let i = 0; i < halfArcSteps - 1; i += 1) {
-    addQuad(rear.leftOuter[i], rear.leftOuter[i + 1], rear.leftInner[i + 1], rear.leftInner[i])
-    addQuad(
-      rear.rightInner[i],
-      rear.rightInner[i + 1],
-      rear.rightOuter[i + 1],
-      rear.rightOuter[i],
-    )
-  }
-  // At each ±X endpoint the outer and inner rear rails meet. Emit only the
-  // remaining valid triangle instead of a quad containing a zero-area face.
-  const rearLast = halfArcSteps - 1
-  addTriangle(
-    rear.leftOuter[rearLast],
-    rear.leftInner[halfArcSteps],
-    rear.leftInner[rearLast],
-  )
-  addTriangle(
-    rear.rightInner[rearLast],
-    rear.rightOuter[halfArcSteps],
-    rear.rightOuter[rearLast],
-  )
-  const rearCount = indices.length - rearStart
-
-  geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3))
-  geometry.setAttribute('normal', new Float32BufferAttribute(normals, 3))
-  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
-  geometry.setIndex(indices)
-  geometry.addGroup(rearStart, rearCount, 0)
-  geometry.computeBoundingBox()
-  geometry.computeBoundingSphere()
-  return geometry
-}
-
 export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech }): LinarPanelHandle {
   const group = new Object3D()
   group.name = 'LinarPanel'
@@ -479,7 +357,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const materials = createLinarMaterials()
   const unitBox = new BoxGeometry(1, 1, 1)
   const fullBridgeGeo = createBridgeAssemblyGeometry()
-  const rearShoulderGeo = createRearShoulderGeometry()
   // The left panel side has its finished outer edge on the left and its
   // routed incision boundary on the right; the right side is the inverse.
   const leftSolidBand = createSolidBandGeometry({ left: 3, right: null })
@@ -487,7 +364,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   const slatMats = boxMaterials(materials)
   const bridgeMats = bridgeAssemblyMaterials(materials)
-  const shoulderMats = rearShoulderMaterials(materials)
   const solidMats = solidBandMaterials(materials)
   const slatsMesh = new InstancedMesh(unitBox, slatMats, MAX_SLATS)
   slatsMesh.name = 'LinarSlats'
@@ -502,28 +378,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   bridgesMesh.receiveShadow = true
   bridgesMesh.frustumCulled = false
   bridgesMesh.instanceMatrix.setUsage(DynamicDrawUsage)
-
-  const startShouldersMesh = new InstancedMesh(
-    rearShoulderGeo,
-    shoulderMats,
-    MAX_REAR_SHOULDERS,
-  )
-  startShouldersMesh.name = 'LinarRearStartShoulders'
-  startShouldersMesh.castShadow = true
-  startShouldersMesh.receiveShadow = true
-  startShouldersMesh.frustumCulled = false
-  startShouldersMesh.instanceMatrix.setUsage(DynamicDrawUsage)
-
-  const endShouldersMesh = new InstancedMesh(
-    rearShoulderGeo,
-    shoulderMats,
-    MAX_REAR_SHOULDERS,
-  )
-  endShouldersMesh.name = 'LinarRearEndShoulders'
-  endShouldersMesh.castShadow = true
-  endShouldersMesh.receiveShadow = true
-  endShouldersMesh.frustumCulled = false
-  endShouldersMesh.instanceMatrix.setUsage(DynamicDrawUsage)
 
   const leftSolidBandMesh = new Mesh(leftSolidBand.geometry, solidMats)
   leftSolidBandMesh.name = 'LinarSolidLeft'
@@ -554,8 +408,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   group.add(rightSolidBandMesh)
   group.add(bridgesMesh)
   group.add(partialBridgesGroup)
-  group.add(startShouldersMesh)
-  group.add(endShouldersMesh)
 
   const dummy = new Object3D()
   const leftContactPose = { x: 0, z: 0, rotY: 0 }
@@ -566,11 +418,10 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let layout: PanelLayout = slatLayout(initial.config)
   let slats: SlatSpec[] = layout.slats
   let fullBridges: BridgeSeg[] = []
-  let startShoulders: BridgeSeg[] = []
-  let endShoulders: BridgeSeg[] = []
   let partialBridgeBatches: PartialBridgeBatch[] = []
   let backing: LinarBacking = initial.config.backing
   let lastPercent = 0
+  let lastSecondaryCurveAmount = 0
   let lastRadius: number | null = initial.tech.referenceMinimumRadiusMm
 
   const clearPartialBridgeBatches = () => {
@@ -585,17 +436,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const rebuildBridgeBatches = (segments: BridgeSeg[]) => {
     clearPartialBridgeBatches()
     fullBridges = []
-    startShoulders = []
-    endShoulders = []
     const partials = new Map<string, BridgeSeg[]>()
 
     for (const segment of segments) {
-      if (segment.profileStart <= 0.000001 && startShoulders.length < MAX_REAR_SHOULDERS) {
-        startShoulders.push(segment)
-      }
-      if (segment.profileEnd >= 0.999999 && endShoulders.length < MAX_REAR_SHOULDERS) {
-        endShoulders.push(segment)
-      }
       const isFullProfile = segment.profileStart <= 0.000001 && segment.profileEnd >= 0.999999
       if (isFullProfile) {
         fullBridges.push(segment)
@@ -742,6 +585,55 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       curveElement(seg.originalX, state, PANEL_WIDTH_M, pose)
       curveElement(layout.slats[seg.column].originalX, state, PANEL_WIDTH_M, leftContactPose)
       curveElement(layout.slats[seg.column + 1].originalX, state, PANEL_WIDTH_M, rightContactPose)
+
+      if (state.compoundCurve) {
+        const leftTangentX = Math.cos(leftContactPose.rotY)
+        const leftTangentZ = -Math.sin(leftContactPose.rotY)
+        const rightTangentX = Math.cos(rightContactPose.rotY)
+        const rightTangentZ = -Math.sin(rightContactPose.rotY)
+        const leftNormalX = Math.sin(leftContactPose.rotY)
+        const leftNormalZ = Math.cos(leftContactPose.rotY)
+        const rightNormalX = Math.sin(rightContactPose.rotY)
+        const rightNormalZ = Math.cos(rightContactPose.rotY)
+        const bridgeCenter = -thickness * 0.5 + bridgeDepth * 0.5
+        const slatHalfWidth = layout.slatWidthM * 0.5
+        const leftX =
+          leftContactPose.x +
+          leftTangentX * slatHalfWidth +
+          leftNormalX * bridgeCenter
+        const leftZ =
+          leftContactPose.z +
+          leftTangentZ * slatHalfWidth +
+          leftNormalZ * bridgeCenter
+        const rightX =
+          rightContactPose.x -
+          rightTangentX * slatHalfWidth +
+          rightNormalX * bridgeCenter
+        const rightZ =
+          rightContactPose.z -
+          rightTangentZ * slatHalfWidth +
+          rightNormalZ * bridgeCenter
+        const chordX = rightX - leftX
+        const chordZ = rightZ - leftZ
+        const chordLength = Math.hypot(chordX, chordZ)
+        const chordTangent = Math.atan2(chordZ, chordX)
+
+        // The variable-curvature pose can reverse sign inside one panel. A
+        // bridge therefore follows the chord between its two actual lamella
+        // contact points instead of stretching a midpoint patch by |angle|.
+        place(
+          (leftX + rightX) * 0.5,
+          seg.localY,
+          (leftZ + rightZ) * 0.5,
+          -chordTangent,
+          chordLength + 0.00008,
+          seg.height,
+          bridgeDepth,
+        )
+        mesh.setMatrixAt(index, dummy.matrix)
+        return
+      }
+
       const normalX = Math.sin(pose.rotY)
       const normalZ = Math.cos(pose.rotY)
       const halfContactAngle = Math.min(
@@ -784,55 +676,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       batch.mesh.computeBoundingSphere()
     }
 
-    const writeShoulder = (
-      mesh: InstancedMesh,
-      index: number,
-      seg: BridgeSeg,
-      atStart: boolean,
-    ) => {
-      curveElement(seg.originalX, state, PANEL_WIDTH_M, pose)
-      curveElement(layout.slats[seg.column].originalX, state, PANEL_WIDTH_M, leftContactPose)
-      curveElement(
-        layout.slats[seg.column + 1].originalX,
-        state,
-        PANEL_WIDTH_M,
-        rightContactPose,
-      )
-      const normalX = Math.sin(pose.rotY)
-      const normalZ = Math.cos(pose.rotY)
-      const halfContactAngle = Math.min(
-        0.35,
-        Math.abs(rightContactPose.rotY - leftContactPose.rotY) * 0.5,
-      )
-      const contactPad = thickness * 0.5 * Math.tan(halfContactAngle)
-      const rearPlateOffset = -thickness * 0.5
-      place(
-        pose.x + normalX * rearPlateOffset,
-        seg.localY + (atStart ? -seg.height * 0.5 : seg.height * 0.5),
-        pose.z + normalZ * rearPlateOffset,
-        pose.rotY,
-        layout.cutWidthM + contactPad * 2,
-        layout.cutWidthM,
-        1,
-        atStart ? Math.PI : 0,
-      )
-      mesh.setMatrixAt(index, dummy.matrix)
-    }
-
-    for (let i = 0; i < startShoulders.length; i += 1) {
-      writeShoulder(startShouldersMesh, i, startShoulders[i], true)
-    }
-    startShouldersMesh.count = startShoulders.length
-    startShouldersMesh.instanceMatrix.needsUpdate = true
-    startShouldersMesh.computeBoundingSphere()
-
-    for (let i = 0; i < endShoulders.length; i += 1) {
-      writeShoulder(endShouldersMesh, i, endShoulders[i], false)
-    }
-    endShouldersMesh.count = endShoulders.length
-    endShouldersMesh.instanceMatrix.needsUpdate = true
-    endShouldersMesh.computeBoundingSphere()
-
     const showBacking = backing !== 'none'
     backingMesh.visible = showBacking
     if (showBacking && backing !== 'none') {
@@ -869,38 +712,48 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     backing = next.backing
     lastRadius = tech.referenceMinimumRadiusMm
     writeWithState(
-      makeBendState(lastPercent, PANEL_WIDTH_M, lastRadius, layout.incisedWidthM),
+      makeBendState(
+        lastPercent,
+        PANEL_WIDTH_M,
+        lastRadius,
+        layout.incisedWidthM,
+        lastSecondaryCurveAmount,
+      ),
     )
   }
 
   applyConfig(initial.config, initial.tech)
-  materials.apply(initial.config.material, true)
+  materials.apply(initial.config.material, initial.config.veneer, true)
 
   const boundingSize = new Vector3(PANEL_WIDTH_M, PANEL_HEIGHT_M, layout.thicknessM)
 
   return {
     group,
-    setBend: (percent, referenceRadiusMm) => {
+    setBend: (percent, referenceRadiusMm, secondaryCurveAmount = 0) => {
       lastPercent = percent
+      lastSecondaryCurveAmount = secondaryCurveAmount
       lastRadius = referenceRadiusMm
       writeWithState(
-        makeBendState(percent, PANEL_WIDTH_M, referenceRadiusMm, layout.incisedWidthM),
+        makeBendState(
+          percent,
+          PANEL_WIDTH_M,
+          referenceRadiusMm,
+          layout.incisedWidthM,
+          secondaryCurveAmount,
+        ),
       )
     },
     setConfig: applyConfig,
-    setMaterial: (id, immediate) => materials.apply(id, immediate),
+    setMaterial: (id, veneer, immediate) => materials.apply(id, veneer, immediate),
     tickMaterials: (dt) => materials.tick(dt),
     boundingSize,
     dispose: () => {
       slatsMesh.dispose()
       bridgesMesh.dispose()
-      startShouldersMesh.dispose()
-      endShouldersMesh.dispose()
       clearPartialBridgeBatches()
       backingMesh.dispose()
       unitBox.dispose()
       fullBridgeGeo.dispose()
-      rearShoulderGeo.dispose()
       leftSolidBand.geometry.dispose()
       rightSolidBand.geometry.dispose()
       materials.dispose()

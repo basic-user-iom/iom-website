@@ -1,12 +1,26 @@
 export type LinarMaterialId = 'mdf' | 'plywood' | 'three-layer-spruce'
+export type LinarVeneerId = 'none' | 'oak' | 'maple' | 'ash' | 'walnut'
 export type LinarPattern = 'regular' | 'irregular'
 export type LinarStatus = 'Standard' | 'Possible' | 'Not tested'
 export type LinarApplication = 'freestanding' | 'wall' | 'ceiling'
 export type LinarBacking = 'none' | 'acoustic-fleece' | 'acoustic-wool' | 'felt'
 export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual reference'
+export type LinarBendDirection = 'left' | 'flat' | 'right'
+
+/**
+ * Reserved data-model extension for a future, physically defined S-curve.
+ * It intentionally has no visible control until the secondary zone semantics
+ * and reference behavior are confirmed by dukta.
+ */
+export type LinarSecondaryBend = {
+  direction: Exclude<LinarBendDirection, 'flat'>
+  radiusMm: number
+  startFraction: number
+}
 
 export type LinarConfig = {
   material: LinarMaterialId
+  veneer: LinarVeneerId
   thicknessMm: number
   incisionLengthMm: number
   cutWidthMm: number
@@ -15,6 +29,9 @@ export type LinarConfig = {
   pattern: LinarPattern
   application: LinarApplication
   backing: LinarBacking
+  bendDirection: LinarBendDirection
+  bendRadiusMm: number | null
+  secondaryBend: LinarSecondaryBend | null
 }
 
 export type LinarState = {
@@ -30,6 +47,15 @@ export const LINAR_MATERIALS: { id: LinarMaterialId; label: string }[] = [
   { id: 'three-layer-spruce', label: '3-Layer Spruce' },
 ]
 
+/** Descriptor-driven so adding a future veneer does not require UI changes. */
+export const LINAR_VENEERS: { id: LinarVeneerId; label: string }[] = [
+  { id: 'none', label: 'No veneer' },
+  { id: 'oak', label: 'Oak' },
+  { id: 'maple', label: 'Maple' },
+  { id: 'ash', label: 'Ash' },
+  { id: 'walnut', label: 'Walnut' },
+]
+
 export const LINAR_APPLICATIONS: { id: LinarApplication; label: string }[] = [
   { id: 'freestanding', label: 'Freestanding' },
   { id: 'wall', label: 'Wall' },
@@ -42,6 +68,12 @@ export const LINAR_BACKINGS: { id: LinarBacking; label: string }[] = [
   { id: 'acoustic-wool', label: 'Acoustic wool' },
   { id: 'felt', label: 'Felt' },
 ]
+
+/** Acoustic wool remains supported internally but is outside this configurator revision. */
+export const LINAR_VISIBLE_BACKINGS = LINAR_BACKINGS.filter(
+  (item): item is { id: Exclude<LinarBacking, 'acoustic-wool'>; label: string } =>
+    item.id !== 'acoustic-wool',
+)
 
 export type LinarViewId = 'hero' | 'closeup' | 'side' | 'reverse' | 'bent'
 export type LinarSide = 'front' | 'back'
@@ -72,6 +104,7 @@ export const LINAR_REFERENCE_OPENING_LENGTH_MM = 40
  */
 export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   material: 'plywood',
+  veneer: 'none',
   thicknessMm: 9,
   incisionLengthMm: LINAR_REFERENCE_OPENING_LENGTH_MM,
   cutWidthMm: 4,
@@ -80,8 +113,14 @@ export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   pattern: 'regular',
   application: 'freestanding',
   backing: 'none',
+  bendDirection: 'flat',
+  bendRadiusMm: null,
+  secondaryBend: null,
 }
 
 export function cloneConfig(config: LinarConfig): LinarConfig {
-  return { ...config }
+  return {
+    ...config,
+    secondaryBend: config.secondaryBend ? { ...config.secondaryBend } : null,
+  }
 }

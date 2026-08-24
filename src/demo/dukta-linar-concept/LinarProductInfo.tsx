@@ -3,7 +3,14 @@ import {
   PARTNER_CONFIRMATION_NOTE,
   type LinarTech,
 } from './linarData'
-import { LINAR_MATERIALS, type LinarConfig } from './types'
+import {
+  LINAR_APPLICATIONS,
+  LINAR_MATERIALS,
+  LINAR_VENEERS,
+  LINAR_VISIBLE_BACKINGS,
+  type LinarBendDirection,
+  type LinarConfig,
+} from './types'
 
 const LINAR_URL = 'https://dukta.com/en/products/semi-finished/linar/'
 
@@ -19,47 +26,92 @@ function materialLabel(id: LinarConfig['material']): string {
   return LINAR_MATERIALS.find((item) => item.id === id)?.label ?? id
 }
 
+function veneerLabel(id: LinarConfig['veneer']): string {
+  return LINAR_VENEERS.find((item) => item.id === id)?.label ?? id
+}
+
+function applicationLabel(id: LinarConfig['application']): string {
+  return LINAR_APPLICATIONS.find((item) => item.id === id)?.label ?? id
+}
+
+function backingLabel(id: LinarConfig['backing']): string {
+  return (
+    LINAR_VISIBLE_BACKINGS.find((item) => item.id === id)?.label ??
+    'Not available in this revision'
+  )
+}
+
+function bendDirectionLabel(direction: LinarBendDirection): string {
+  if (direction === 'left') return 'Left · toward back'
+  if (direction === 'right') return 'Right · toward front'
+  return 'Flat'
+}
+
 function statusClass(status: LinarTech['status']): string {
   if (status === 'Not tested') return 'linar-status linar-status--not-tested'
   if (status === 'Possible') return 'linar-status linar-status--possible'
   return 'linar-status linar-status--standard'
 }
 
-type Row = { label: string; value: string; hint?: string; status?: boolean }
+type Row = {
+  label: string
+  value: string
+  hint?: string
+  status?: LinarTech['status']
+}
 
 type Props = {
   config: LinarConfig
   tech: LinarTech
+  selectedRadiusMm: number | null
+  bendDirection: LinarBendDirection
+  secondaryCurveAmount: number
 }
 
-export function LinarProductInfo({ config, tech }: Props) {
+export function LinarProductInfo({
+  config,
+  tech,
+  selectedRadiusMm,
+  bendDirection,
+  secondaryCurveAmount,
+}: Props) {
+  const safeSecondaryCurveAmount = Math.max(
+    0,
+    Math.min(100, Math.round(secondaryCurveAmount)),
+  )
+  const hasSecondaryCurve = safeSecondaryCurveAmount > 0
   const radiusValue =
     tech.referenceMinimumRadiusMm == null ? 'Not tested' : formatMm(tech.referenceMinimumRadiusMm)
   const bridgeValue =
     tech.displayedBridgeLengthMm == null ? 'Not available' : formatMm(tech.displayedBridgeLengthMm)
   const bridgeHint =
     tech.displayedBridgeLengthMm == null ? 'Visual spacing only' : 'Physical sample'
+  const selectedAtReferenceMinimum =
+    selectedRadiusMm != null &&
+    tech.referenceMinimumRadiusMm != null &&
+    Math.abs(selectedRadiusMm - tech.referenceMinimumRadiusMm) < 0.05
 
   const rows: Row[] = [
     { label: 'Panel size', value: '2800 × 1200 mm visualization panel' },
     { label: 'Material', value: materialLabel(config.material) },
+    {
+      label: 'Veneer',
+      value: veneerLabel(config.veneer),
+      hint: config.veneer === 'none' ? undefined : 'Appearance layer · no radius influence',
+    },
     { label: 'Thickness', value: formatMm(config.thicknessMm) },
     {
       label: 'Rear patterned layer',
       value: 'Two-sided visual surface',
       hint: 'Thickness not yet available',
     },
-    { label: 'Cut / slat', value: `${config.cutWidthMm}/${config.slatWidthMm} mm` },
+    { label: 'Cut / lamella', value: `${config.cutWidthMm}/${config.slatWidthMm} mm` },
     { label: 'Incision length', value: formatMm(config.incisionLengthMm) },
     { label: 'Bridge length', value: bridgeValue, hint: bridgeHint },
     {
       label: 'Top cutting depth',
       value: formatMm(tech.topCutDepthMm, 3),
       hint: tech.topCutDepthSource,
-    },
-    {
-      label: 'Bottom cutting depth into spoil board',
-      value: formatMm(tech.bottomCutDepthMm, 3),
     },
     {
       label: 'Open area in incised area',
@@ -71,9 +123,45 @@ export function LinarProductInfo({ config, tech }: Props) {
       value: formatPct(tech.displayedFullPanelOpenAreaPercent),
       hint: tech.openAreaLabel,
     },
+    {
+      label: 'Primary selected radius',
+      value: selectedRadiusMm == null ? 'Flat' : formatMm(selectedRadiusMm),
+      hint:
+        selectedRadiusMm == null
+          ? undefined
+          : tech.referenceMinimumRadiusMm == null
+            ? 'Visual reference only · Not tested'
+            : selectedAtReferenceMinimum
+              ? 'Physical-sample minimum'
+              : 'Derived preview · only the minimum is table-validated',
+    },
+    { label: 'Primary bending direction', value: bendDirectionLabel(bendDirection) },
+    ...(hasSecondaryCurve
+      ? ([
+          {
+            label: 'S-curve progression',
+            value: `${safeSecondaryCurveAmount}%`,
+            hint: 'Variable-curvature visual reference only',
+          },
+          {
+            label: 'S-curve validation',
+            value: 'Not tested',
+            status: 'Not tested',
+          },
+        ] satisfies Row[])
+      : []),
     { label: 'Reference minimum radius', value: radiusValue },
-    { label: 'Status', value: tech.status, status: true },
-    { label: 'Preview status', value: tech.previewStatus },
+    { label: 'Application', value: applicationLabel(config.application) },
+    { label: 'Backing', value: backingLabel(config.backing) },
+    {
+      label: hasSecondaryCurve ? 'Base sample status' : 'Status',
+      value: tech.status,
+      status: tech.status,
+    },
+    {
+      label: 'Preview status',
+      value: hasSecondaryCurve ? 'Visual reference only' : tech.previewStatus,
+    },
   ]
 
   return (
@@ -103,7 +191,11 @@ export function LinarProductInfo({ config, tech }: Props) {
             <div className="linar-spec__row" key={row.label}>
               <dt>{row.label}</dt>
               <dd>
-                {row.status ? <span className={statusClass(tech.status)}>{row.value}</span> : row.value}
+                {row.status ? (
+                  <span className={statusClass(row.status)}>{row.value}</span>
+                ) : (
+                  row.value
+                )}
                 {row.hint ? <span className="linar-spec__hint">{row.hint}</span> : null}
               </dd>
             </div>
@@ -122,7 +214,13 @@ export function LinarProductInfo({ config, tech }: Props) {
           </p>
         )}
         {tech.radiusNote ? <p className="linar-note">{tech.radiusNote}</p> : null}
-        {tech.irregularNote ? <p className="linar-note">{tech.irregularNote}</p> : null}
+        {hasSecondaryCurve ? (
+          <p className="linar-note">
+            The supplied sample footage visually demonstrates an opposing S-shaped pose. It does
+            not provide a measured second radius, transition position, load limit, spring-back
+            value or manufacturing envelope. Visual reference only · Not tested.
+          </p>
+        ) : null}
         <p className="linar-note">{PARTNER_CONFIRMATION_NOTE}</p>
       </details>
 

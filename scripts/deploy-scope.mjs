@@ -53,6 +53,14 @@ const NAMED_SCOPES = {
   ],
 }
 
+const PROJECT_SCOPE_RULES = {
+  'dukta-linar-concept': [
+    'demos/dukta-linar-concept/',
+    'scripts/deploy-scope.mjs',
+    'src/demo/dukta-linar-concept/',
+  ],
+}
+
 const RESERVED_PROJECT_SLUGS = new Set([
   'api',
   'assets',
@@ -100,6 +108,10 @@ export function matchesDeployScope(file, scope) {
   if (scope.startsWith('project:')) {
     const slug = scope.slice('project:'.length)
     if (!isValidProjectSlug(slug)) return false
+    const projectRules = PROJECT_SCOPE_RULES[slug]
+    if (projectRules) {
+      return projectRules.some((rule) => matchesRule(normalized, rule))
+    }
     return (
       normalized.startsWith(`${slug}/`) ||
       normalized.startsWith(`public/demos/${slug}/`) ||
@@ -140,6 +152,11 @@ export function inferDeployScope(files) {
   if (demoOnly && demoSlugs.size === 1) {
     const [slug] = demoSlugs
     const scope = `demo:${slug}`
+    if (normalized.every((file) => matchesDeployScope(file, scope))) return scope
+  }
+
+  for (const slug of Object.keys(PROJECT_SCOPE_RULES)) {
+    const scope = `project:${slug}`
     if (normalized.every((file) => matchesDeployScope(file, scope))) return scope
   }
 
