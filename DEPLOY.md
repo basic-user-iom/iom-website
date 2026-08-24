@@ -18,7 +18,17 @@ The Jul 14, 2026 incident happened because agents deployed from the working fold
 npm run deploy
 ```
 
-This automatically: git safety check → build → push `master` → Vercel production.
+This automatically: git safety check → isolated build → scoped push → Vercel production.
+
+The build and upload use an isolated committed snapshot. Uncommitted and untracked workspace files are never uploaded. Production is composed from what is currently live plus only the requested project/demo scope, so work on other demos remains offline.
+
+Automotive-only example (agents run this for the owner):
+
+```bash
+npm run deploy -- --scope automotive-studio
+```
+
+Standard standalone demos use `--scope demo:<folder-name>`. Source projects with a matching demo output use `--scope project:<folder-name>`. A mixed/full-site release requires the explicit `--scope site` opt-in.
 
 (`npm run deploy:prod` is the same; `deploy` is the short alias.)
 
@@ -30,25 +40,19 @@ This automatically: git safety check → build → push `master` → Vercel prod
 
 ## Before every production deploy
 
-Run the automated gate (recommended):
+Run the automated gate:
 
 ```bash
 npm run deploy
 ```
 
-Or manually:
-
-```bash
-node scripts/pre-deploy-check.mjs
-npm run build
-git push origin master
-npx vercel --prod --yes
-```
+Do not manually run `git push origin master` or `npx vercel --prod`. The scoped deploy command is the only path that composes the requested production snapshot safely.
 
 ### Manual checklist
 
-- [ ] All site changes are **committed** (no modified tracked files).
-- [ ] Branch is **pushed** to `origin/master` (`git status` shows up to date).
+- [ ] Only finished files for the requested project/demo are **committed**.
+- [ ] Unfinished workspace changes may remain local; the isolated snapshot excludes them.
+- [ ] Let `npm run deploy` perform the guarded push to `origin/master`.
 - [ ] `npm run build` succeeds locally.
 - [ ] If you edited **panorama-360**, run `npm run build:panorama-360` first (viewer lives in `F:\3d-viever-backup\v3.18`).
 - [ ] If you edited **raven-path** assets, run `npm run build:ravens` first.

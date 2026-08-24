@@ -2,7 +2,7 @@
 /**
  * Cursor beforeShellExecution hook — block unsafe deploy/git commands.
  * Allows: npm run deploy / npm run deploy:prod
- * Blocks: bare npx vercel --prod, git stash -u, git reset --hard
+ * Blocks: bare production deploys, direct master pushes, and destructive git commands
  */
 import { readFileSync } from 'node:fs'
 
@@ -44,14 +44,26 @@ if (!command) allow()
 
 const lower = command.toLowerCase()
 
-// Safe deploy entry points (includes full pipeline with embedded vercel --prod)
-if (/\bnpm run deploy(:prod)?\b/.test(lower)) allow()
+// Safe deploy entry points (includes full pipeline with embedded vercel --prod).
+// Do not let a chained command hide an unsafe action after the approved command.
+if (
+  /^npm(?:\.cmd)?\s+run\s+deploy(?::prod)?\b/.test(lower) &&
+  !/(?:&&|\|\||[;|])/.test(lower)
+) allow()
 
 // Block direct Vercel production deploys outside npm run deploy
 if (/\bvercel\b/.test(lower) && /--prod\b/.test(lower)) {
   deny(
     'Production deploy must use: npm run deploy',
     'Do NOT run npx vercel --prod directly. Run `npm run deploy` from F:\\iom_website — it commits checks, builds, pushes master, then deploys. See DEPLOY.md.',
+  )
+}
+
+// Master pushes must pass the deployment scope and isolated-snapshot checks.
+if (/\bgit push\b/.test(lower) && /(?:\bmaster\b|head:master)/.test(lower)) {
+  deny(
+    'Direct pushes to master are blocked. Use: npm run deploy',
+    'Use `npm run deploy` so committed paths are checked against the requested project/demo scope before master is pushed.',
   )
 }
 

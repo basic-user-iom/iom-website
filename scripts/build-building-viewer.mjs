@@ -3,7 +3,7 @@
  *
  * Usage: node scripts/build-building-viewer.mjs
  */
-import { access } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { spawnSync } from 'node:child_process'
@@ -43,6 +43,18 @@ async function exists(path) {
 async function main() {
   if (!(await exists(APP))) {
     console.error(`Missing ${APP}`)
+    process.exit(1)
+  }
+
+  const packagePath = join(APP, 'package.json')
+  if (!(await exists(packagePath))) {
+    console.error(`Missing ${packagePath}; refusing to let npm walk up to the site package.`)
+    process.exit(1)
+  }
+
+  const appPackage = JSON.parse(await readFile(packagePath, 'utf8'))
+  if (appPackage.name !== 'iom-building-viewer') {
+    console.error(`Unexpected building-viewer package name: ${appPackage.name || '(missing)'}`)
     process.exit(1)
   }
 

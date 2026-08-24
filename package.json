@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:ravens && npm run build:panorama-360 && npm run build:building-viewer && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/emit-project-costs-html.mjs && node scripts/sync-3d-viewer-blog.mjs",
+    "build": "npm run build:ravens && npm run build:panorama-360 && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/emit-project-costs-html.mjs && node scripts/sync-3d-viewer-blog.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "seo:demos": "node scripts/patch-demo-seo.mjs",
     "seo:demo-back": "node scripts/patch-demo-back-links.mjs",
@@ -32,11 +32,12 @@
     "build:favicons": "node scripts/build-favicons.mjs",
     "preview": "vite preview",
     "predeploy:check": "node scripts/pre-deploy-check.mjs",
+    "test:deploy-safety": "node scripts/test-deploy-safety.mjs",
     "security:smoke": "node scripts/verify-security-smoke.mjs",
     "security:recheck": "node scripts/verify-security-recheck.mjs",
     "preview:apply-sql": "node scripts/apply-preview-sql.mjs",
-    "deploy:prod": "node scripts/pre-deploy-check.mjs && npm run build && git push origin master && npx vercel --prod --yes",
-    "deploy": "npm run deploy:prod"
+    "deploy:prod": "node scripts/deploy-production.mjs",
+    "deploy": "npm run deploy:prod --"
   },
   "dependencies": {
     "@mediapipe/tasks-vision": "^0.10.14",

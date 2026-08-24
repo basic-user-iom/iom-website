@@ -4,7 +4,7 @@
     "beforeShellExecution": [
       {
         "command": "node .cursor/hooks/block-unsafe-deploy.mjs",
-        "matcher": "vercel|git stash|git reset --hard",
+        "matcher": "vercel|git push|git stash|git reset --hard",
         "failClosed": true
       }
     ]

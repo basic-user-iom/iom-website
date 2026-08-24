@@ -1,4 +1,9 @@
 ﻿# Local-only paths - Dream public folder is already runtime-only
+.env
+.qa-out/
+.coverage-check.local/
+.linar-backups.local/
+debug.log
 _source/
 360/
 video/
@@ -6,7 +11,8 @@ scripts/probe-*.mjs
 supabase/*.sql
 .deploy-park-wip/
 building-viewer/
-automotive-studio/_dev/
+automotive-studio/
+vendor/
 .tmp-vite-build-linar/
 .tmp-linar-*.jpg
 .tmp-precision-watch.png

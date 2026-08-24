@@ -21,6 +21,21 @@ That is the **only** allowed production deploy command. It automatically:
 
 The user does **not** need to know these steps. If they say "deploy the site", run `npm run deploy` and report the result.
 
+The deploy composes production from the version currently live plus only the requested committed project/demo scope. For an explicit Automotive Studio release, use:
+
+```bash
+npm run deploy -- --scope automotive-studio
+```
+
+Other standalone demos use `--scope demo:<folder-name>`, and source projects with a matching demo use `--scope project:<folder-name>`. Mixed scopes are blocked unless the user explicitly requested a full-site release (`--scope site`). Never run `git push origin master` directly. Uncommitted and untracked workspace files stay local and are excluded from the release snapshot.
+
+Before committing a generated demo, build only that demo and commit its source plus its `public/demos/<name>/` output. Examples:
+
+```bash
+npm run build:automotive-studio
+npm run build:building-viewer
+```
+
 ## Before editing high-risk areas
 
 Read **DEPLOY.md**. These files caused cross-chat overwrites:

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Blocks production deploy when git state is unsafe (uncommitted tracked changes,
- * unpushed commits, or unexpected stash entries).
+ * Blocks production deploy when git state is unsafe. The deploy exports committed
+ * HEAD into an isolated directory, so workspace-only changes remain local.
  */
 import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
@@ -35,9 +35,7 @@ try {
   fail('Not a git repository.')
 }
 
-if (branch !== 'master') {
-  warn(`Current branch is "${branch}", not master. Production deploys should use master.`)
-}
+if (branch !== 'master') fail(`Current branch is "${branch}", not master.`)
 
 const head = run('git rev-parse HEAD')
 const headShort = run('git rev-parse --short HEAD')
@@ -45,7 +43,7 @@ const headSubject = run('git log -1 --format=%s')
 
 console.log(`\nPre-deploy check — ${headShort} ${headSubject}\n`)
 
-// Uncommitted tracked changes
+// Workspace-only changes are excluded by deploy-production.mjs.
 const porcelain = run('git status --porcelain')
 const dirtyTracked = porcelain
   .split('\n')
@@ -57,10 +55,9 @@ const dirtyTracked = porcelain
   })
 
 if (dirtyTracked.length > 0) {
-  console.error('Uncommitted tracked changes:')
-  for (const line of dirtyTracked.slice(0, 20)) console.error(`  ${line}`)
-  if (dirtyTracked.length > 20) console.error(`  … and ${dirtyTracked.length - 20} more`)
-  fail('Commit or discard all tracked changes before deploying.')
+  warn(`${dirtyTracked.length} uncommitted tracked change(s) will NOT be deployed:`)
+  for (const line of dirtyTracked.slice(0, 8)) console.warn(`  ${line}`)
+  if (dirtyTracked.length > 8) console.warn(`  ... and ${dirtyTracked.length - 8} more`)
 }
 
 // Untracked files — warn only (360/, probe scripts, etc.)
@@ -71,7 +68,7 @@ if (untracked.length > 0) {
   if (untracked.length > 8) console.warn(`  … and ${untracked.length - 8} more`)
 }
 
-// Unpushed commits
+// Refresh origin so a later scoped push cannot overwrite newer remote work.
 try {
   run('git fetch origin master --quiet')
 } catch {
@@ -88,9 +85,7 @@ try {
   warn('No upstream tracking branch — push to origin/master before deploy.')
 }
 
-if (unpushed > 0) {
-  fail(`${unpushed} commit(s) not pushed to origin/master. Run: git push origin master`)
-}
+if (unpushed > 0) console.log(`${unpushed} committed change(s) will be pushed by the safe deploy.`)
 
 let behind = 0
 try {
@@ -130,4 +125,4 @@ if (touchedRisky.length > 0) {
 }
 
 console.log(`\n✅ Git state OK for deploy (${headShort}).\n`)
-console.log('Next: npm run build && git push origin master && npx vercel --prod --yes\n')
+console.log('Next: isolated snapshot build, scoped push, and Vercel deployment.\n')
