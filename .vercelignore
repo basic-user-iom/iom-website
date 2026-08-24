@@ -1,4 +1,4 @@
-﻿# Local-only paths — Dream public folder is already runtime-only
+﻿# Local-only paths - Dream public folder is already runtime-only
 _source/
 360/
 video/
@@ -11,11 +11,11 @@ automotive-studio/_dev/
 .tmp-linar-*.jpg
 .tmp-precision-watch.png
 trail-designs-prototype/
-# Building-viewer meshes are local-only (~500MB). Keep product GLBs such as Watch.glb.
-public/models/icm-*/
-public/models/camera-views.json
+# Building-viewer: keep huge/optional meshes local-only. Ship icm-ext + manifest for /demos/building-viewer/.
+public/models/icm-anim-2025/
+public/models/icm-ext-prev/
+public/models/icm-golden-ext/
+public/models/icm-golden-int/
 public/models/golden-slice-report.json
-public/models/manifest.json
-public/demos/building-viewer/
 dist/
 CRM_EMAIL_FAILURE_ANALYSIS_AND_FIX_PLAN.md

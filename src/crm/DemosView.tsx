@@ -62,6 +62,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     ],
   },
   {
+    id: 'icm-building',
+    name: 'ICM - viewer',
+    client: 'Client preview — International Congress Center Messe München',
+    status: 'preview',
+    path: '/demos/building-viewer/',
+    password: 'animated',
+    blurb:
+      'Private 3D building viewer for ICM: orbit, walk, and stairs on the current campus model. ICM branding stays in the viewer chrome. Not linked from the public homepage.',
+    tags: ['Architecture', 'WebGL', 'Walk'],
+    images: [],
+  },
+  {
     id: 'evly',
     name: 'EVLY Corporation',
     client: 'Client pitch — fictional corporate recruitment / merchandise site',

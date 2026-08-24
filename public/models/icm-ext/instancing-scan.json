@@ -1,0 +1,13 @@
+{
+  "input": "F:\\iom_website\\public\\models\\icm-ext\\model-web.glb",
+  "meshes": 116,
+  "primitives": 182,
+  "uniquePrimitiveSignatures": 178,
+  "minInstances": 3,
+  "repeatGroups": 0,
+  "instanceablePrimitives": 0,
+  "estimatedDrawCallsSavedIfInstanced": 0,
+  "topGroups": [],
+  "recommendation": "Almost no repeating primitives — prefer mesh join by material or BatchedMesh, not InstancedMesh.",
+  "createdAt": "2026-08-11T13:43:18.977Z"
+}

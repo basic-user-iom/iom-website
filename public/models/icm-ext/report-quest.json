@@ -1,0 +1,60 @@
+{
+  "variant": "quest",
+  "tool": {
+    "script": "building-viewer/scripts/optimize-building-model.mjs",
+    "basedOn": "automotive-studio/scripts/optimize-model.mjs",
+    "gltfTransform": "^4.4",
+    "meshoptimizer": "meshopt simplifier + quantize",
+    "sharp": true,
+    "ktx2": true,
+    "ktx2Encoder": "ktx2-encoder (Basis Universal WASM)",
+    "note": "KTX2/Basis: ETC1S for opaque color, UASTC+mips for normals/ORM/alpha/glass."
+  },
+  "source": {
+    "path": "D:\\IOM\\ICM\\2026-glb\\ICM_ext.glb",
+    "sha256": "4fec33557b5c2dddf1be98222112500fb62477ee3378167ff08670f864f83cd4"
+  },
+  "output": {
+    "path": "F:\\iom_website\\public\\models\\icm-ext\\model-quest.glb",
+    "sha256": "f4a26fd3947cf1f62893456e11dfb7b28e3178ad9798752e7edd9e7a5acdd363",
+    "bytes": 17017596,
+    "miB": 16.23,
+    "triangles": 310563,
+    "textures": 28,
+    "textureEmbeddedBytes": 7091460,
+    "textureEmbeddedMiB": 6.76,
+    "ktx2Textures": 28,
+    "extensionsUsed": [
+      "KHR_materials_emissive_strength",
+      "KHR_materials_ior",
+      "KHR_materials_specular",
+      "KHR_materials_transmission",
+      "KHR_mesh_quantization",
+      "KHR_texture_basisu",
+      "KHR_texture_transform"
+    ]
+  },
+  "ktx2Stats": {
+    "etc1s": 19,
+    "uastc": 9,
+    "skipped": 0,
+    "failed": 0
+  },
+  "settings": {
+    "file": "model-quest.glb",
+    "resize": [
+      1024,
+      1024
+    ],
+    "format": "jpeg",
+    "quality": 78,
+    "simplifyRatio": 0.55,
+    "simplifyError": 0.025,
+    "resampleTolerance": 0.001,
+    "quantize": true,
+    "ktx2Etc1sQuality": 180,
+    "ktx2UastcLevel": 1,
+    "ktx2": true
+  },
+  "createdAt": "2026-08-11T21:28:22.922Z"
+}

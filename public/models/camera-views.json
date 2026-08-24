@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "exportedAt": "2026-08-11T12:43:20.959Z",
+  "note": "Shipped default camera views for the building viewer.",
+  "views": [
+    {
+      "id": "builtin-overview",
+      "name": "Overview",
+      "cameraPosition": [
+        -78.03137078429737,
+        108.79427593045945,
+        -215.67650789969517
+      ],
+      "cameraTarget": [
+        -66.66665532911264,
+        5.059478750942762,
+        -98.68774536085894
+      ],
+      "fov": 55,
+      "transitionSeconds": 1
+    },
+    {
+      "id": "builtin-front",
+      "name": "Front",
+      "cameraPosition": [
+        -100.12828553596238,
+        6.845083216254805,
+        -121.44401821309472
+      ],
+      "cameraTarget": [
+        -105.16889534732002,
+        10.246191869381985,
+        -92.17622343054907
+      ],
+      "fov": 55,
+      "transitionSeconds": 1
+    },
+    {
+      "id": "builtin-side-l",
+      "name": "Side L",
+      "cameraPosition": [
+        49.19121434059651,
+        22.94030370620432,
+        -11.6365030684957
+      ],
+      "cameraTarget": [
+        -15.395159528769987,
+        18.219384357935944,
+        -6.318485253971151
+      ],
+      "fov": 55,
+      "transitionSeconds": 1
+    },
+    {
+      "id": "builtin-side-r",
+      "name": "Side R",
+      "cameraPosition": [
+        -182.60845732937037,
+        3.9033527887670267,
+        65.94343711167582
+      ],
+      "cameraTarget": [
+        -12.703358587193158,
+        12.223568213429324,
+        3.3678332517872605
+      ],
+      "fov": 55,
+      "transitionSeconds": 1
+    },
+    {
+      "id": "builtin-aerial",
+      "name": "Aerial",
+      "cameraPosition": [
+        -48.62557972959892,
+        208.68008055400546,
+        34.253912071896636
+      ],
+      "cameraTarget": [
+        -71.22544332761422,
+        21.978710546956602,
+        -12.447305376727549
+      ],
+      "fov": 55,
+      "transitionSeconds": 1
+    }
+  ]
+}

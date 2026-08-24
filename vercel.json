@@ -111,6 +111,15 @@
       ]
     },
     {
+      "source": "/demos/building-viewer/(.*)",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        }
+      ]
+    },
+    {
       "source": "/client-login",
       "headers": [
         {

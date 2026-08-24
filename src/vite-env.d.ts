@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_CRM_LOCAL_PASSWORD?: string
   /** ICM client demo unlock password (default: volimte) */
   readonly VITE_ICM_DEMO_PASSWORD?: string
+  /** ICM building viewer unlock password (default: animated) */
+  readonly VITE_BUILDING_VIEWER_DEMO_PASSWORD?: string
   /** Kelly Kettle client demo unlock password (default: kettle) */
   readonly VITE_KELLY_KETTLE_DEMO_PASSWORD?: string
   /** Precision object study unlock password (default: precision) */

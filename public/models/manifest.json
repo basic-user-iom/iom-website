@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "defaultModelId": "icm-ext",
+  "initialModelIds": [
+    "icm-ext"
+  ],
+  "models": [
+    {
+      "id": "icm-ext",
+      "name": "ICM Exterior",
+      "web": "/models/icm-ext/model-web.glb",
+      "quest": "/models/icm-ext/model-quest.glb",
+      "collision": "/models/icm-ext/collision.glb",
+      "spatialMeta": "/models/icm-ext/spatial-meta.json",
+      "collisionMergeVisual": false,
+      "scale": 1,
+      "shadowProfile": "architecture"
+    },
+    {
+      "id": "icm-anim-2025",
+      "name": "ICM 2025 Animated",
+      "web": "/models/icm-anim-2025/model-web.glb",
+      "quest": "/models/icm-anim-2025/model-quest.glb",
+      "collision": "/models/icm-anim-2025/collision.glb",
+      "spatialMeta": "/models/icm-anim-2025/spatial-meta.json",
+      "animation": "/models/icm-anim-2025/animations.glb",
+      "collisionMergeVisual": false,
+      "scale": 1,
+      "shadowProfile": "architecture",
+      "autoPlayAnimation": false
+    },
+    {
+      "id": "icm-golden-ext",
+      "name": "Golden slice — exterior façade",
+      "web": "/models/icm-golden-ext/model-web.glb",
+      "lightmap": "/models/icm-golden-ext/lightmap.png",
+      "lightMapIntensity": 1.05,
+      "scale": 1,
+      "shadowProfile": "architecture",
+      "collisionMergeVisual": false,
+      "hideInLayerList": true
+    },
+    {
+      "id": "icm-golden-int",
+      "name": "Golden slice — interior foyer",
+      "web": "/models/icm-golden-int/model-web.glb",
+      "lightmap": "/models/icm-golden-int/lightmap.png",
+      "lightMapIntensity": 1.05,
+      "scale": 1,
+      "shadowProfile": "architecture",
+      "collisionMergeVisual": false,
+      "hideInLayerList": true
+    }
+  ]
+}

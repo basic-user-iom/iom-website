@@ -12,6 +12,13 @@ const demosDir = join(root, 'public', 'demos')
 
 const SCRIPT_TAG = '<script src="/demos/iom-back.js"></script>'
 
+/** Client-preview folders that must not get the ← IOM chip. */
+const NO_IOM_BACK = new Set(['building-viewer', 'automotive-studio'])
+
+function stripIomBackScript(html) {
+  return html.replace(/\s*<script src="\/demos\/iom-back\.js"><\/script>\s*/gi, '\n')
+}
+
 /** Demo folder slug → homepage project card id (hash). Never music. */
 const DEMO_CARD = {
   'streets-gl': 'streets-gl-bridge',
@@ -100,6 +107,24 @@ let skipped = 0
 
 for (const dir of dirs) {
   const slug = dir.name
+  if (NO_IOM_BACK.has(slug)) {
+    for (const name of ['index.html', 'presentation.html']) {
+      const htmlPath = join(demosDir, slug, name)
+      try {
+        const html = readFileSync(htmlPath, 'utf8')
+        const next = stripIomBackScript(html)
+        if (next !== html) {
+          writeFileSync(htmlPath, next, 'utf8')
+          console.log(`· ${slug}/${name} — stripped iom-back.js`)
+        }
+      } catch {
+        /* missing optional html */
+      }
+    }
+    skipped++
+    console.log(`· ${slug} — skipped (no IOM back)`)
+    continue
+  }
   const cardId = DEMO_CARD[slug]
   const indexPath = join(demosDir, slug, 'index.html')
   let html

@@ -1,0 +1,11 @@
+ORIGINAL
+File:       66.38 MB
+Triangles:  759,814
+Textures:   28
+Texture est: 35.72 MB
+
+QUEST
+File:       16.23 MB
+Triangles:  310,563
+Textures:   28
+Texture est: 6.76 MB

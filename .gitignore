@@ -39,3 +39,8 @@ public/demos/dreams-iom/package.json
 public/demos/dreams-iom/package-lock.json
 public/demos/dreams-iom/COMPLETE_CODE_FOR_ANALYSIS.md
 
+
+# Building viewer local scratch
+building-viewer/tmp/
+building-viewer/debug.log
+

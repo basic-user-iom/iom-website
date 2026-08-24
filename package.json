@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:ravens && npm run build:panorama-360 && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/emit-project-costs-html.mjs && node scripts/sync-3d-viewer-blog.mjs",
+    "build": "npm run build:ravens && npm run build:panorama-360 && npm run build:building-viewer && node scripts/generate-sitemap.mjs && node scripts/patch-demo-seo.mjs && node scripts/patch-demo-back-links.mjs && tsc -b && vite build && node scripts/emit-project-costs-html.mjs && node scripts/sync-3d-viewer-blog.mjs",
     "seo:sitemap": "node scripts/generate-sitemap.mjs",
     "seo:demos": "node scripts/patch-demo-seo.mjs",
     "seo:demo-back": "node scripts/patch-demo-back-links.mjs",
@@ -18,6 +18,8 @@
     "blog:export-3d-viewer-payload": "npx --yes tsx scripts/export-3d-viewer-blog-payload.mjs",
     "blog:sync-3d-viewer": "node scripts/sync-3d-viewer-blog.mjs",
     "build:panorama-360": "node scripts/build-panorama-360.mjs",
+    "build:building-viewer": "node scripts/build-building-viewer.mjs",
+    "dev:building-viewer": "npm --prefix building-viewer run dev",
     "build:automotive-studio": "node scripts/build-automotive-studio.mjs",
     "build:streets-gl": "node scripts/build-streets-gl.mjs",
     "build:ravens": "node scripts/sync-raven-assets.mjs && node scripts/build-mobile-raven.mjs",

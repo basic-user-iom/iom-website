@@ -1,0 +1,29 @@
+{
+  "name": "iom-building-viewer",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "IOM Professional Web 3D Building Viewer",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test:performance-monitor": "node scripts/test-performance-monitor.mjs",
+    "test:stair-geometry": "node scripts/test-stair-geometry.mjs",
+    "model:validate": "node scripts/validate-model-assets.mjs",
+    "model:collision-coverage": "node scripts/validate-collision-coverage.mjs",
+    "model:optimize": "node scripts/optimize-building-model.mjs",
+    "model:extract-golden": "node scripts/extract-golden-slice.mjs",
+    "model:build-golden": "node scripts/build-golden-slice.mjs"
+  },
+  "dependencies": {
+    "iom-website": "file:..",
+    "three": "0.181.2",
+    "three-mesh-bvh": "^0.9.0"
+  },
+  "devDependencies": {
+    "@types/three": "0.181.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.0.0"
+  }
+}
