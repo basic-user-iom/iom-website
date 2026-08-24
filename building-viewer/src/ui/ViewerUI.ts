@@ -65,7 +65,7 @@ export class ViewerToolbar {
     brand.title = 'ICM – International Congress Center Messe München'
     const logo = document.createElement('img')
     logo.className = 'bv-brand-logo'
-    logo.src = '/assets/messe-muenchen-logo.svg'
+    logo.src = `${import.meta.env.BASE_URL}assets/messe-muenchen-logo.svg`
     logo.alt = 'Messe München'
     logo.width = 105
     logo.height = 38

@@ -10,6 +10,7 @@ const NAMED_SCOPES = {
     'public/demos/building-viewer/',
     'public/demos/icm-building/',
     'public/models/manifest.json',
+    'public/models/camera-views.json',
     'public/models/icm-ext/',
     'public/models/icm-anim-2025/model-quest.glb',
     'public/models/icm-anim-2025/collision.glb',
