@@ -13,6 +13,24 @@ import type { LoadProgress, ModelLoadResult } from './types'
 const DRACO_DECODER_PATH = '/draco/gltf/'
 const KTX2_TRANSCODER_PATH = '/basis/'
 
+function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => {
+      setTimeout(resolve, 0)
+    })
+  })
+}
+
+function mergeByteChunks(chunks: Uint8Array[], totalLength: number): ArrayBuffer {
+  const out = new Uint8Array(totalLength)
+  let offset = 0
+  for (const chunk of chunks) {
+    out.set(chunk, offset)
+    offset += chunk.length
+  }
+  return out.buffer
+}
+
 async function probeContentLength(url: string): Promise<number | null> {
   // Optional — some CDNs omit Content-Length on GET; HEAD can help progress UI.
   // Skip by default (extra RTT). Enable with ?probeSize=1.
@@ -61,6 +79,107 @@ export class ModelLoader {
     this.ktx2Ready = true
   }
 
+  private reportDownloadProgress(
+    loaded: number,
+    total: number,
+    onProgress?: (p: LoadProgress) => void,
+  ): void {
+    if (total > 0) {
+      const ratio = Math.min(1, loaded / total)
+      const loadedMb = loaded / (1024 * 1024)
+      const totalMb = total / (1024 * 1024)
+      onProgress?.({
+        stage: 'download',
+        ratio,
+        message: `Loading model… ${loadedMb.toFixed(1)} / ${totalMb.toFixed(0)} MB`,
+      })
+      return
+    }
+    onProgress?.({
+      stage: 'download',
+      ratio: null,
+      message: `Loading model… ${Math.round(loaded / (1024 * 1024))} MB`,
+    })
+  }
+
+  private async downloadArrayBuffer(
+    url: string,
+    probedTotal: number | null,
+    onProgress?: (p: LoadProgress) => void,
+  ): Promise<{ buffer: ArrayBuffer; transferredBytes: number; fileSizeBytes: number | null }> {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Model HTTP ${response.status}: ${url}`)
+    }
+
+    const headerLen = response.headers.get('content-length')
+    const parsedHeader = headerLen ? Number(headerLen) : NaN
+    const total =
+      Number.isFinite(parsedHeader) && parsedHeader > 0
+        ? parsedHeader
+        : probedTotal && probedTotal > 0
+          ? probedTotal
+          : 0
+
+    if (!response.body) {
+      const buffer = await response.arrayBuffer()
+      this.reportDownloadProgress(buffer.byteLength, total || buffer.byteLength, onProgress)
+      return {
+        buffer,
+        transferredBytes: buffer.byteLength,
+        fileSizeBytes: total || buffer.byteLength,
+      }
+    }
+
+    const reader = response.body.getReader()
+    const chunks: Uint8Array[] = []
+    let loaded = 0
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      chunks.push(value)
+      loaded += value.length
+      this.reportDownloadProgress(loaded, total, onProgress)
+    }
+
+    const fileSizeBytes = total > 0 ? total : loaded
+    this.reportDownloadProgress(loaded, fileSizeBytes, onProgress)
+    return {
+      buffer: mergeByteChunks(chunks, loaded),
+      transferredBytes: loaded,
+      fileSizeBytes,
+    }
+  }
+
+  private async parseBuffer(
+    buffer: ArrayBuffer,
+    url: string,
+    onProgress?: (p: LoadProgress) => void,
+  ): Promise<Awaited<ReturnType<GLTFLoader['parseAsync']>>> {
+    onProgress?.({
+      stage: 'parse',
+      ratio: null,
+      message: 'Parsing geometry…',
+    })
+    await yieldToMain()
+
+    const parseStart = performance.now()
+    const heartbeat = window.setInterval(() => {
+      const sec = Math.max(1, Math.round((performance.now() - parseStart) / 1000))
+      onProgress?.({
+        stage: 'parse',
+        ratio: null,
+        message: `Parsing geometry… ${sec}s (large models can take a few minutes)`,
+      })
+    }, 1000)
+
+    try {
+      return await this.gltf.parseAsync(buffer, url)
+    } finally {
+      window.clearInterval(heartbeat)
+    }
+  }
+
   async loadUrl(
     url: string,
     onProgress?: (p: LoadProgress) => void,
@@ -72,53 +191,23 @@ export class ModelLoader {
     const probedTotal = await probeContentLength(url)
 
     const downloadStart = performance.now()
-    let transferredBytes: number | null = null
-    let fileSizeBytes: number | null = probedTotal
-
-    const gltf = await new Promise<Awaited<ReturnType<GLTFLoader['loadAsync']>>>((resolve, reject) => {
-      this.gltf.load(
-        url,
-        (result) => resolve(result),
-        (event) => {
-          transferredBytes = event.loaded
-          const total =
-            event.lengthComputable && event.total > 0
-              ? event.total
-              : probedTotal && probedTotal > 0
-                ? probedTotal
-                : 0
-          if (total > 0) {
-            fileSizeBytes = total
-            const ratio = Math.min(1, event.loaded / total)
-            const loadedMb = event.loaded / (1024 * 1024)
-            const totalMb = total / (1024 * 1024)
-            onProgress?.({
-              stage: 'download',
-              ratio,
-              message: `Loading model… ${loadedMb.toFixed(1)} / ${totalMb.toFixed(0)} MB`,
-            })
-          } else {
-            onProgress?.({
-              stage: 'download',
-              ratio: null,
-              message: `Loading model… ${Math.round(event.loaded / (1024 * 1024))} MB`,
-            })
-          }
-        },
-        reject,
-      )
-    })
-
+    const { buffer, transferredBytes, fileSizeBytes } = await this.downloadArrayBuffer(
+      url,
+      probedTotal,
+      onProgress,
+    )
     const downloadMs = performance.now() - downloadStart
-    onProgress?.({ stage: 'parse', ratio: 0.92, message: 'Decoding geometry' })
+
+    onProgress?.({ stage: 'parse', ratio: null, message: 'Download complete — parsing geometry…' })
     const parseStart = performance.now()
+    const gltf = await this.parseBuffer(buffer, url, onProgress)
+    const parseMs = performance.now() - parseStart
 
     const root = new Group()
     root.name = 'ModelRoot'
     root.add(gltf.scene)
     root.updateMatrixWorld(true)
 
-    const parseMs = performance.now() - parseStart
     onProgress?.({ stage: 'parse', ratio: 0.96, message: 'Geometry ready' })
     return {
       root,

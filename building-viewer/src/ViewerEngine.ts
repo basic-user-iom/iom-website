@@ -935,15 +935,43 @@ export class ViewerEngine {
     }
   }
 
-  private async ensureLayerCollision(layer: LoadedModelLayer): Promise<void> {
+  private async buildCollisionForLayers(
+    targets: LoadedModelLayer[],
+    allLayers: LoadedModelLayer[],
+  ): Promise<void> {
+    const focusSeed =
+      this.mode === 'walk' || this.xr.isActive()
+        ? this.controller.position
+        : this.orbit.controls.target
+    try {
+      for (const layer of targets) {
+        await this.ensureLayerCollision(layer, { silent: true })
+      }
+      await this.collision.rebuildFromLayers(
+        allLayers.map((l) => l.id),
+        focusSeed,
+      )
+      this.pegman.setWorld(this.collision, this.models.root)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      console.warn('[Collision] deferred build failed', err)
+      this.events.onError?.(`Walk collision update failed: ${msg}`)
+    }
+  }
+
+  private async ensureLayerCollision(
+    layer: LoadedModelLayer,
+    opts?: { silent?: boolean },
+  ): Promise<void> {
     const MIN_DEDICATED_TRIANGLES = 1000
     const COARSE_DEDICATED_MAX = 500_000
 
     if (layer.entry.collision) {
       let disposableCollision: import('three').Object3D | null = null
       try {
-        disposableCollision = await this.models.loadCollisionRoot(layer.entry, (p) =>
-          this.events.onLoading?.(p),
+        disposableCollision = await this.models.loadCollisionRoot(
+          layer.entry,
+          opts?.silent ? undefined : (p) => this.events.onLoading?.(p),
         )
         if (disposableCollision) {
           const dedicated = buildCollisionChunks(disposableCollision, {
@@ -1058,10 +1086,18 @@ export class ViewerEngine {
     }
 
     // Extract walk geometry BEFORE visual packing (independent of LOD/instancing).
-    for (const layer of layers) {
-      if (opts?.focusNew && layer.id !== opts.focusNew.id) continue
-      if (layer.entry.compareVisual) continue
-      await this.ensureLayerCollision(layer)
+    const lazyLayer = opts?.focusNew
+    const collisionTargets = layers.filter((layer) => {
+      if (layer.entry.compareVisual) return false
+      if (lazyLayer) return layer.id === lazyLayer.id
+      return true
+    })
+    if (lazyLayer) {
+      void this.buildCollisionForLayers(collisionTargets, layers)
+    } else {
+      for (const layer of collisionTargets) {
+        await this.ensureLayerCollision(layer)
+      }
     }
 
     // Procedural / instancing pass: collapse repeating + batch unique static parts.
@@ -1097,8 +1133,11 @@ export class ViewerEngine {
       this.mode === 'walk' || this.xr.isActive()
         ? this.controller.position
         : this.orbit.controls.target
-    const collisionInfo = await this.collision.rebuildFromLayers(collisionLayerIds, focusSeed)
-    this.pegman.setWorld(this.collision, combinedRoot)
+    let collisionInfo = { ms: 0 }
+    if (!lazyLayer) {
+      collisionInfo = await this.collision.rebuildFromLayers(collisionLayerIds, focusSeed)
+      this.pegman.setWorld(this.collision, combinedRoot)
+    }
     this.floorZones.update(focusSeed.y, focusSeed.x, focusSeed.z)
     this.detailLod.update(this.camera)
 

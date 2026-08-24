@@ -823,7 +823,7 @@ export class LoadingScreen {
       this.bar.classList.add('indeterminate')
       this.fill.style.width = '40%'
       // Don't leave a stale "0%" title when the server omitted Content-Length.
-      this.title.textContent = /MB|Decoding|Preparing|Compiling|Instancing|collision/i.test(message)
+      this.title.textContent = /MB|Parsing|Decoding|Preparing|Compiling|Instancing|collision/i.test(message)
         ? message
         : 'Loading…'
     } else {
