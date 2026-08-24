@@ -29,6 +29,7 @@ import { QualityManager, detectBootQualityProfile, type QualityProfileId } from 
 import { PerformanceMonitor, type LiveRenderStats } from './performance/PerformanceMonitor'
 import { XRManager, XRLocomotion } from './xr/XRManager'
 import { prepareArchitecturalMeshes, applyMeshQuality } from './lighting/prepareArchitecturalMeshes'
+import { dedupeSceneMaterials } from './scene/dedupeSceneMaterials'
 import { applyLightmaps } from './lighting/applyLightmaps'
 import { clipTrianglesInAabb } from './scene/clipCampusPatch'
 import {
@@ -1073,6 +1074,12 @@ export class ViewerEngine {
         continue
       }
       const layerAnimatedNames = collectAnimatedNodeNames(layer.result.animations ?? [])
+      const matDedupe = dedupeSceneMaterials(layer.root)
+      if (matDedupe.merged > 0) {
+        console.info(
+          `[Viewer] ${layer.id}: merged ${matDedupe.merged} duplicate material${matDedupe.merged === 1 ? '' : 's'} (${matDedupe.before} → ${matDedupe.after})`,
+        )
+      }
       prepareArchitecturalMeshes(layer.root, bounds, {
         freezeStatic: true,
         animatedNodeNames: layerAnimatedNames.size ? layerAnimatedNames : undefined,
@@ -1463,6 +1470,12 @@ export class ViewerEngine {
       const layer = this.models.listLayers()[i]!
       if (!layer.streaming) continue
       const layerAnimatedNames = collectAnimatedNodeNames(layer.result.animations ?? [])
+      const matDedupe = dedupeSceneMaterials(layer.root)
+      if (matDedupe.merged > 0) {
+        console.info(
+          `[Viewer] ${layer.id}: merged ${matDedupe.merged} duplicate material${matDedupe.merged === 1 ? '' : 's'} (${matDedupe.before} → ${matDedupe.after})`,
+        )
+      }
       prepareArchitecturalMeshes(layer.root, bounds, {
         freezeStatic: true,
         animatedNodeNames: layerAnimatedNames.size ? layerAnimatedNames : undefined,
