@@ -4,10 +4,13 @@ import {
   BufferAttribute,
   BufferGeometry,
   Color,
+  DoubleSide,
   Group,
   Mesh,
   MeshBasicMaterial,
+  NormalBlending,
   PerspectiveCamera,
+  PlaneGeometry,
   Points,
   Scene,
   ShaderMaterial,
@@ -30,12 +33,20 @@ export type CelestialHandles = {
   skyDome: Mesh
   stars: Points
   moon: Mesh
-  sunDisc: Mesh
-  sunAureole: Mesh
+  /** Camera-facing multi-layer sun glow (legacy name kept for renderer handles). */
+  sunDisc: Group
+  sunAureole: Group
   update: (camera: PerspectiveCamera) => void
   apply: (
     env: EnvironmentState,
-    skyColors: { top: Color; horizon: Color; ground: Color; softSky: boolean; sunColor?: number },
+    skyColors: {
+      top: Color
+      horizon: Color
+      ground: Color
+      softSky: boolean
+      sunColor?: number
+      hazeColor?: Color
+    },
   ) => void
   dispose: () => void
 }
@@ -51,9 +62,8 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
   const skyDome = createSkyDome()
   const stars = createStarField(STAR_SEED, STAR_COUNT)
   const moon = createMoonMesh()
-  const sunDisc = createSunDiscMesh()
-  const sunAureole = createSunAureoleMesh()
-  group.add(skyDome, stars, moon, sunAureole, sunDisc)
+  const sunGlow = createSunGlowBillboard()
+  group.add(skyDome, stars, moon, sunGlow)
 
   void loadMoonTexture(moon)
 
@@ -65,17 +75,27 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
     skyDome,
     stars,
     moon,
-    sunDisc,
-    sunAureole,
+    sunDisc: sunGlow,
+    sunAureole: sunGlow,
     update(camera) {
       group.position.copy(camera.position)
+      // Keep the sun glow layers facing the viewer (group origin = camera).
+      if (sunGlow.visible) {
+        sunGlow.quaternion.copy(camera.quaternion)
+      }
     },
     apply(env, skyColors) {
-      // Vertex sky colors are expensive — skip when the look has not changed (slider drags).
-      const skyKey = `${skyColors.top.getHexString()}_${skyColors.horizon.getHexString()}_${skyColors.ground.getHexString()}_${skyColors.softSky ? 1 : 0}`
+      const skyKey = `${skyColors.top.getHexString()}_${skyColors.horizon.getHexString()}_${skyColors.ground.getHexString()}_${skyColors.softSky ? 1 : 0}_${skyColors.hazeColor?.getHexString() ?? 'none'}`
       if (skyKey !== lastSkyKey) {
         lastSkyKey = skyKey
-        setSkyDomeColors(skyDome, skyColors.top, skyColors.horizon, skyColors.ground, skyColors.softSky)
+        setSkyDomeColors(
+          skyDome,
+          skyColors.top,
+          skyColors.horizon,
+          skyColors.ground,
+          skyColors.softSky,
+          skyColors.hazeColor,
+        )
       }
 
       const showStars = Boolean(env.starsEnabled)
@@ -87,24 +107,16 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
 
       const sunUp = env.sunElevationDeg > -8
       const showSun = Boolean(env.sunDiscVisible) && Boolean(env.sunEnabled !== false) && sunUp
-      sunDisc.visible = showSun
-      // Soft aureole is an artistic fallback; keep it small so it never fills the frame.
-      sunAureole.visible = showSun
+      sunGlow.visible = showSun
       if (showSun) {
         directionFromAzEl(env.sunAzimuthDeg, env.sunElevationDeg, _dir)
         const scale =
           angularScale(env.sunAngularDiameterDeg ?? DEFAULT_ANGULAR_DIAMETER_DEG) *
           Math.max(0.2, Math.min(4, env.sunDiscScale ?? 1))
-        sunDisc.scale.setScalar(scale)
-        sunDisc.position.copy(_dir).multiplyScalar(CELESTIAL_DISTANCE)
-        sunAureole.scale.setScalar(scale * 1.85)
-        sunAureole.position.copy(sunDisc.position)
+        sunGlow.scale.setScalar(scale)
+        sunGlow.position.copy(_dir).multiplyScalar(CELESTIAL_DISTANCE)
         if (skyColors.sunColor != null) {
-          const c = skyColors.sunColor
-          ;(sunDisc.material as MeshBasicMaterial).color.setHex(c)
-          // Dim aureole so it cannot dominate the sky or bloom extract.
-          ;(sunAureole.material as MeshBasicMaterial).color.setHex(c)
-          ;(sunAureole.material as MeshBasicMaterial).opacity = 0.07
+          setSunGlowColor(sunGlow, skyColors.sunColor)
         }
       }
 
@@ -135,8 +147,8 @@ export function createCelestialLayer(scene: Scene): CelestialHandles {
         const mesh = obj as Mesh
         if (!mesh.isMesh) return
         mesh.geometry.dispose()
-        const mat = mesh.material as MeshBasicMaterial
-        mat.map?.dispose()
+        const mat = mesh.material as MeshBasicMaterial | ShaderMaterial
+        if ((mat as MeshBasicMaterial).map) (mat as MeshBasicMaterial).map?.dispose()
         mat.dispose()
       })
     },
@@ -320,6 +332,85 @@ function smoothstep(edge0: number, edge1: number, x: number) {
   return t * t * (3 - 2 * t)
 }
 
+function createSunGlowBillboard(): Group {
+  const root = new Group()
+  root.name = 'iom-sun-glow'
+  root.renderOrder = -1.5
+  root.frustumCulled = false
+  root.userData.selectiveBloom = false
+
+  const layers: Array<{
+    size: number
+    core: number
+    falloff: number
+    opacity: number
+    additive: boolean
+  }> = [
+    { size: 1.05, core: 0.92, falloff: 14, opacity: 1, additive: false },
+    { size: 2.4, core: 0.42, falloff: 4.5, opacity: 0.72, additive: true },
+    { size: 5.5, core: 0.16, falloff: 1.8, opacity: 0.38, additive: true },
+    { size: 12, core: 0.06, falloff: 0.75, opacity: 0.16, additive: true },
+  ]
+
+  for (let i = 0; i < layers.length; i++) {
+    const layer = layers[i]
+    const mat = new ShaderMaterial({
+      uniforms: {
+        uColor: { value: new Color(0xfff4e0) },
+        uCore: { value: layer.core },
+        uFalloff: { value: layer.falloff },
+        uOpacity: { value: layer.opacity },
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform vec3 uColor;
+        uniform float uCore;
+        uniform float uFalloff;
+        uniform float uOpacity;
+        varying vec2 vUv;
+        void main() {
+          vec2 p = vUv - vec2(0.5);
+          float d = length(p) * 2.0;
+          float core = exp(-d * d * uFalloff);
+          float halo = exp(-d * max(0.35, uFalloff * 0.22));
+          float glow = mix(halo, core, uCore);
+          float alpha = glow * uOpacity;
+          if (alpha < 0.003) discard;
+          gl_FragColor = vec4(uColor * (0.65 + 0.55 * core), alpha);
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+      depthTest: true,
+      blending: layer.additive ? AdditiveBlending : NormalBlending,
+      side: DoubleSide,
+      fog: false,
+    })
+    const mesh = new Mesh(new PlaneGeometry(layer.size, layer.size), mat)
+    mesh.renderOrder = -1.5 + i * 0.01
+    mesh.frustumCulled = false
+    root.add(mesh)
+  }
+  root.visible = false
+  return root
+}
+
+function setSunGlowColor(sunGlow: Group, hex: number) {
+  const warm = new Color(hex)
+  const outer = warm.clone().lerp(new Color(0xffe8c0), 0.35)
+  sunGlow.children.forEach((child, i) => {
+    const mat = (child as Mesh).material as ShaderMaterial
+    if (!mat.uniforms?.uColor) return
+    mat.uniforms.uColor.value.copy(i === 0 ? warm : outer)
+  })
+}
+
 function createMoonMesh(): Mesh {
   const moon = new Mesh(
     new SphereGeometry(1, 48, 32),
@@ -333,36 +424,66 @@ function createMoonMesh(): Mesh {
   return moon
 }
 
-function createSunDiscMesh(): Mesh {
-  const sun = new Mesh(
-    new SphereGeometry(1, 32, 24),
-    new MeshBasicMaterial({ color: 0xfff0c8, fog: false }),
-  )
-  sun.name = 'iom-sun-disc'
-  sun.visible = true
-  sun.renderOrder = -1
-  sun.frustumCulled = false
-  sun.userData.selectiveBloom = false
-  return sun
+const _skyMid = new Color()
+const _skyC = new Color()
+const _skyHaze = new Color()
+
+function setSkyDomeColors(
+  dome: Mesh,
+  top: Color,
+  horizon: Color,
+  ground: Color,
+  softSky: boolean,
+  hazeColor?: Color,
+) {
+  const geo = dome.geometry as BufferGeometry
+  const pos = geo.getAttribute('position')
+  let colorAttr = geo.getAttribute('color') as BufferAttribute
+  if (!colorAttr || colorAttr.count !== pos.count) {
+    colorAttr = new BufferAttribute(new Float32Array(pos.count * 3), 3)
+    geo.setAttribute('color', colorAttr)
+  }
+  _skyMid.copy(horizon)
+  if (softSky) _skyMid.lerp(top, 0.28)
+  _skyHaze.copy(hazeColor ?? horizon)
+  if (softSky) _skyHaze.lerp(new Color(0xffffff), 0.22)
+  const radius = CELESTIAL_DISTANCE + 20
+  for (let i = 0; i < pos.count; i++) {
+    const y = pos.getY(i)
+    const elev = (y / radius + 1) * 0.5
+    const zenithT = smoothstep(0.52, 0.98, elev)
+    const groundT = 1 - smoothstep(0.08, 0.38, elev)
+    const horizonT = Math.max(0, 1 - zenithT - groundT)
+    _skyC.copy(top).multiplyScalar(zenithT)
+    if (horizonT > 0.001) {
+      _skyC.lerp(_skyMid, horizonT / Math.max(zenithT + horizonT + groundT, 0.001))
+    }
+    if (groundT > 0.001) {
+      _skyC.lerp(ground, groundT * 0.65)
+    }
+    if (horizonT > 0.01) {
+      _skyC.lerp(horizon, horizonT * 0.12)
+    }
+    // Soft atmospheric band hugging the horizon — kills the hard navy cut.
+    const hazeBand =
+      smoothstep(0.32, 0.42, elev) * (1 - smoothstep(0.48, 0.58, elev))
+    if (hazeBand > 0.001) {
+      _skyC.lerp(_skyHaze, hazeBand * (softSky ? 0.62 : 0.38))
+    }
+    colorAttr.setXYZ(i, _skyC.r, _skyC.g, _skyC.b)
+  }
+  colorAttr.needsUpdate = true
+  dome.visible = true
 }
 
-function createSunAureoleMesh(): Mesh {
-  const aureole = new Mesh(
-    new SphereGeometry(1, 24, 16),
-    new MeshBasicMaterial({
-      color: 0xffe8b0,
-      transparent: true,
-      opacity: 0.07,
-      depthWrite: false,
-      fog: false,
-    }),
-  )
-  aureole.name = 'iom-sun-aureole'
-  aureole.visible = false
-  aureole.renderOrder = -1.5
-  aureole.frustumCulled = false
-  aureole.userData.selectiveBloom = false
-  return aureole
+function mulberry32(a: number) {
+  return function next() {
+    a |= 0
+    a = (a + 0x6d2b79f5) | 0
+    let t = Math.imul(a ^ (a >>> 15), 1 | a)
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
 }
 
 async function loadMoonTexture(moon: Mesh) {
@@ -398,46 +519,4 @@ function applyMoonShading(moon: Mesh, env: EnvironmentState) {
     _moonFaceTo.set(0, 0, -1)
   }
   moon.quaternion.setFromUnitVectors(_moonFaceFrom, _moonFaceTo)
-}
-
-const _skyMid = new Color()
-const _skyC = new Color()
-
-function setSkyDomeColors(
-  dome: Mesh,
-  top: Color,
-  horizon: Color,
-  ground: Color,
-  softSky: boolean,
-) {
-  const geo = dome.geometry as BufferGeometry
-  const pos = geo.getAttribute('position')
-  let colorAttr = geo.getAttribute('color') as BufferAttribute
-  if (!colorAttr || colorAttr.count !== pos.count) {
-    colorAttr = new BufferAttribute(new Float32Array(pos.count * 3), 3)
-    geo.setAttribute('color', colorAttr)
-  }
-  _skyMid.copy(horizon)
-  if (softSky) _skyMid.lerp(top, 0.35)
-  const radius = CELESTIAL_DISTANCE + 20
-  for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i)
-    const t = (y / radius + 1) * 0.5
-    if (t > 0.55) _skyC.copy(_skyMid).lerp(top, (t - 0.55) / 0.45)
-    else if (t > 0.45) _skyC.copy(horizon).lerp(_skyMid, (t - 0.45) / 0.1)
-    else _skyC.copy(ground).lerp(horizon, Math.max(0, t) / 0.45)
-    colorAttr.setXYZ(i, _skyC.r, _skyC.g, _skyC.b)
-  }
-  colorAttr.needsUpdate = true
-  dome.visible = true
-}
-
-function mulberry32(a: number) {
-  return function next() {
-    a |= 0
-    a = (a + 0x6d2b79f5) | 0
-    let t = Math.imul(a ^ (a >>> 15), 1 | a)
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
-  }
 }

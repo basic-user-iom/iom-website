@@ -292,9 +292,19 @@ export async function applyStageSurfaceMaterial(
     else (prev as { dispose?: () => void }).dispose?.()
   }
 
-  mat.color.copy(parseColor(surface.color, 0x161a22))
+  mat.color.copy(parseColor(surface.color, 0x0a0a0a))
   mat.metalness = Math.max(0, Math.min(1, surface.metalness))
   mat.roughness = Math.max(0, Math.min(1, surface.roughness))
+  // Bright floor albedos (ice packs) + IBL create mirror flares under the chassis.
+  // Cap env reflections and keep a roughness floor when the tint is light.
+  const lum = 0.2126 * mat.color.r + 0.7152 * mat.color.g + 0.0722 * mat.color.b
+  if (lum > 0.35) {
+    mat.envMapIntensity = Math.min(0.4, 0.85 - lum * 0.5)
+    mat.roughness = Math.max(mat.roughness, 0.72)
+    mat.metalness = Math.min(mat.metalness, 0.05)
+  } else {
+    mat.envMapIntensity = 1
+  }
   // Three.js multiplies emissive × intensity; black emissive yields no glow even at high intensity.
   const emissive = parseColor(surface.emissive, 0x000000)
   const intensity = Math.max(0, Math.min(8, surface.emissiveIntensity))

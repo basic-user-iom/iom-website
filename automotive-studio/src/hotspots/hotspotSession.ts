@@ -25,6 +25,7 @@ import type { Hotspot, HotspotAnchor, SemanticNodeRef } from '../persistence/sch
 import {
   DEFAULT_MARKER_LABEL_OFFSET,
   DEFAULT_MARKER_LABEL_SCALE,
+  clampMarkerScale,
 } from './hotspotContent'
 import {
   defaultLocalAnchorOnNode,
@@ -52,21 +53,23 @@ type MarkerParts = {
 }
 
 /** Base title-plate size in world metres at scale 1 (plane is unit, then scaled). */
-const LABEL_BASE_W = 0.42
-const LABEL_BASE_H = 0.112
+const LABEL_BASE_W = 0.155
+const LABEL_BASE_H = 0.042
 
 /**
  * Marker meshes are authored in world metres. Attach parents (door nodes on cm-unit
  * Sketchfab cars) often have world scale ≪ 1, so we counter-scale the marker root.
- * Older builds used ~0.78 m cores without compensation → viewport-sized spheres online.
+ * Keep these discrete pin radii (~⅓ of the prior 0.09 m core) so doors aren't covered.
  */
-const WORLD_CORE_R = 0.09
-const WORLD_RING_INNER = 0.12
-const WORLD_RING_OUTER = 0.2
-const WORLD_HALO_R = 0.3
-const WORLD_PICK_R = 0.38
+const WORLD_CORE_R = 0.032
+const WORLD_RING_INNER = 0.042
+const WORLD_RING_OUTER = 0.07
+const WORLD_HALO_R = 0.1
+const WORLD_PICK_R = 0.13
 /** Prior uncompensated core radius — used to shrink legacy title-plate offsets. */
 const LEGACY_CORE_R = 0.78
+/** Prior compensated core after eb7dfa4 — clamp oversized seeded projects. */
+const PRIOR_COMPENSATED_CORE_R = 0.09
 
 /**
  * Interactive hotspot markers: pulsing ring + gem core + optional label
@@ -228,7 +231,7 @@ export class HotspotSession {
       const metre = typeof marker.root.userData.metreScale === 'number'
         ? marker.root.userData.metreScale
         : 1
-      marker.root.scale.setScalar(selected ? metre * 1.2 : metre)
+      marker.root.scale.setScalar(selected ? metre * 1.15 : metre)
     }
     const hotspot = id ? this.hotspots.find((item) => item.id === id) ?? null : null
     this.onSelect?.(hotspot)
@@ -319,6 +322,7 @@ export class HotspotSession {
       }
 
       const node = searchRoot ? resolveSemanticNode(searchRoot, hotspot.anchor.node) : null
+      const userScale = clampMarkerScale(hotspot.markerScale)
       if (node) {
         const pos = hotspot.anchor.localPosition ?? [0, 0.15, 0]
         const normal = hotspot.anchor.localNormal ?? [0, 0, 1]
@@ -335,9 +339,9 @@ export class HotspotSession {
         root.position.copy(this._local)
         this.applySurfaceOrientation(root, this._normal, hotspot.markerRotationDeg, node)
         node.add(root)
-        const metre = metreScaleForParent(node)
+        const metre = metreScaleForParent(node) * userScale
         root.userData.metreScale = metre
-        root.scale.setScalar(selected ? metre * 1.2 : metre)
+        root.scale.setScalar(selected ? metre * 1.15 : metre)
         root.userData.attachedNode = node.name
       } else {
         const fallback =
@@ -346,9 +350,9 @@ export class HotspotSession {
         const parent = this.placement ?? this.scene
         this.applySurfaceOrientation(root, new Vector3(0, 0, 1), hotspot.markerRotationDeg, parent)
         parent.add(root)
-        const metre = metreScaleForParent(parent)
+        const metre = metreScaleForParent(parent) * userScale
         root.userData.metreScale = metre
-        root.scale.setScalar(selected ? metre * 1.2 : metre)
+        root.scale.setScalar(selected ? metre * 1.15 : metre)
         root.userData.attachedNode = '(fallback)'
       }
       this.markers.push({ root, core, ring, halo, pick, label })
@@ -562,7 +566,8 @@ function metreScaleForParent(parent: Object3D): number {
 }
 
 /**
- * Shrink legacy title-plate layout authored next to the old 0.78 m uncompensated cores.
+ * Shrink legacy title-plate layout authored next to oversized cores
+ * (0.78 m uncompensated, or ~0.09 m after the first world-scale fix).
  */
 function sanitizeMarkerLabelLayout(
   scale: number | null | undefined,
@@ -581,6 +586,11 @@ function sanitizeMarkerLabelLayout(
     const shrink = WORLD_CORE_R / LEGACY_CORE_R
     nextOffset = [nextOffset[0] * shrink, nextOffset[1] * shrink, nextOffset[2] * shrink]
     if (nextScale > 1.25) nextScale = Math.min(nextScale * shrink * 4, 1.25)
+  } else if (maxAbs > 0.2) {
+    // Seeded projects after eb7dfa4 still used ~0.28 m title lift / big plates.
+    const shrink = WORLD_CORE_R / PRIOR_COMPENSATED_CORE_R
+    nextOffset = [nextOffset[0] * shrink, nextOffset[1] * shrink, nextOffset[2] * shrink]
+    if (nextScale > 1.1) nextScale = Math.min(nextScale * shrink, 1.1)
   }
   nextScale = Math.max(0.35, Math.min(2, nextScale))
   return { scale: nextScale, offset: nextOffset }

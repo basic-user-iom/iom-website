@@ -126,8 +126,24 @@ export function withHotspotMarkerRotation(
 }
 
 /** Default title-plate offset in world metres (Y = along door, Z = out from paint). */
-export const DEFAULT_MARKER_LABEL_OFFSET: [number, number, number] = [0, 0.28, 0.03]
+export const DEFAULT_MARKER_LABEL_OFFSET: [number, number, number] = [0, 0.1, 0.012]
 export const DEFAULT_MARKER_LABEL_SCALE = 1
+/** Overall pin size (1 = studio default; authored radii are already discrete). */
+export const DEFAULT_MARKER_SCALE = 1
+export const MIN_MARKER_SCALE = 0.35
+export const MAX_MARKER_SCALE = 2.5
+
+export function clampMarkerScale(scale: number | null | undefined): number {
+  if (scale == null || !Number.isFinite(scale)) return DEFAULT_MARKER_SCALE
+  return Math.max(MIN_MARKER_SCALE, Math.min(MAX_MARKER_SCALE, scale))
+}
+
+export function withHotspotMarkerScale(hotspot: Hotspot, scale: number | null): Hotspot {
+  if (scale == null || !Number.isFinite(scale)) {
+    return { ...hotspot, markerScale: DEFAULT_MARKER_SCALE }
+  }
+  return { ...hotspot, markerScale: clampMarkerScale(scale) }
+}
 
 export function withHotspotMarkerLabelLayout(
   hotspot: Hotspot,

@@ -11,6 +11,7 @@ import {
 /**
  * Soft radial contact blob under the vehicle — readable on dark floors where
  * directional shadow maps wash out. Follows XZ; not a real shadow map.
+ * Kept compact so bright ice pads don't show a second disconnected dark disc.
  */
 export function createContactShadow(): {
   mesh: Mesh
@@ -18,16 +19,16 @@ export function createContactShadow(): {
   setOpacity: (opacity: number) => void
   dispose: () => void
 } {
-  const size = 6.5
+  const size = 4.2
   const geo = new PlaneGeometry(size, size)
   const canvas = document.createElement('canvas')
   canvas.width = 256
   canvas.height = 256
   const ctx = canvas.getContext('2d')!
-  const g = ctx.createRadialGradient(128, 128, 8, 128, 128, 120)
-  g.addColorStop(0, 'rgba(0,0,0,0.55)')
-  g.addColorStop(0.35, 'rgba(0,0,0,0.28)')
-  g.addColorStop(0.7, 'rgba(0,0,0,0.08)')
+  const g = ctx.createRadialGradient(128, 128, 6, 128, 128, 118)
+  g.addColorStop(0, 'rgba(0,0,0,0.42)')
+  g.addColorStop(0.4, 'rgba(0,0,0,0.18)')
+  g.addColorStop(0.75, 'rgba(0,0,0,0.05)')
   g.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = g
   ctx.fillRect(0, 0, 256, 256)
@@ -38,12 +39,12 @@ export function createContactShadow(): {
   const mat = new MeshBasicMaterial({
     map,
     transparent: true,
-    opacity: 0.85,
+    opacity: 0.55,
     depthWrite: false,
   })
   const mesh = new Mesh(geo, mat)
   mesh.rotation.x = -Math.PI / 2
-  mesh.position.y = 0.015
+  mesh.position.y = 0.012
   mesh.name = 'ContactShadow'
   mesh.renderOrder = -1
   mesh.frustumCulled = false

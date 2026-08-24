@@ -38,6 +38,7 @@ import {
   fetchCycloramaVideoPreset,
   fetchFloorPresetFiles,
   FLOOR_PRESETS,
+  type FloorPresetId,
 } from './stage/bundledStagePresets'
 import type {
   EnvironmentPresetId,
@@ -80,10 +81,12 @@ import { speedKmhToMetresPerSecond } from './route/routeMath'
 import { HotspotSession } from './hotspots/hotspotSession'
 import { mountHotspotCard, runHotspotAction, runHotspotActions } from './hotspots/hotspotCard'
 import {
+  DEFAULT_MARKER_SCALE,
   hotspotVideoAssetId,
   withHotspotBody,
   withHotspotDoorAction,
   withHotspotMarkerRotation,
+  withHotspotMarkerScale,
   withHotspotMarkerLabelLayout,
   withHotspotMeshVisibility,
   withHotspotTitle,
@@ -153,6 +156,18 @@ async function applyStageTexturePack(
   surface: 'floor' | 'pedestal' | 'cyclorama',
   files: File[],
   setStatus: (message: string, isError?: boolean) => void,
+  packOpts?: {
+    color?: string
+    metalness?: number
+    roughness?: number
+    displacementScale?: number | null
+    mapRepeat?: number
+    tileVariation?: number
+    /** Skip displacement even when the pack includes a height map. */
+    skipDisplacement?: boolean
+    /** Skip roughness map — use scalar roughness (avoids glassy ice texels). */
+    skipRoughnessMap?: boolean
+  },
 ): Promise<void> {
   const { detectPbrMapsFromFiles, summarizeDetectedPbrMaps } = await import('./stage/detectPbrMaps')
   const detected = detectPbrMapsFromFiles(files)
@@ -180,6 +195,8 @@ async function applyStageTexturePack(
     [keyof typeof detected.files, File]
   >) {
     if (!file) continue
+    if (slot === 'displacement' && packOpts?.skipDisplacement) continue
+    if (slot === 'roughness' && packOpts?.skipRoughnessMap) continue
     const assetId = crypto.randomUUID()
     await idbPutAssetBlob(assetId, file, { filename: file.name })
     store.dispatch(
@@ -195,19 +212,32 @@ async function applyStageTexturePack(
   }
   const autoBreak =
     (current.tileVariation ?? 0) < 0.05
-      ? { tileVariation: 0.65, tileSeed: Math.random() * 64 }
-      : {}
+      ? {
+          tileVariation: packOpts?.tileVariation ?? 0.65,
+          tileSeed: Math.random() * 64,
+        }
+      : packOpts?.tileVariation != null
+        ? { tileVariation: packOpts.tileVariation }
+        : {}
   const packTune: Partial<(typeof stage)['floor']> = {
-    color: '#ffffff',
+    color: packOpts?.color ?? '#ffffff',
     normalYFlip: detected.normalYFlip,
   }
-  if (detected.files.metalness) packTune.metalness = 1
+  if (packOpts?.metalness != null) packTune.metalness = packOpts.metalness
+  else if (detected.files.metalness) packTune.metalness = 1
   else packTune.metalness = 0
-  if (detected.files.roughness) packTune.roughness = 1
-  if (detected.files.displacement && !(current.displacementScale > 0)) {
+  if (packOpts?.roughness != null) packTune.roughness = packOpts.roughness
+  else if (detected.files.roughness && !packOpts?.skipRoughnessMap) packTune.roughness = 1
+  if (packOpts?.skipDisplacement || packOpts?.displacementScale === null) {
+    packTune.displacementScale = 0
+  } else if (packOpts?.displacementScale != null) {
+    packTune.displacementScale = packOpts.displacementScale
+  } else if (detected.files.displacement && !(current.displacementScale > 0)) {
     packTune.displacementScale = 0.08
   }
-  if (detected.files.map && (current.mapRepeat ?? 1) <= 1.01) {
+  if (packOpts?.mapRepeat != null) {
+    packTune.mapRepeat = packOpts.mapRepeat
+  } else if (detected.files.map && (current.mapRepeat ?? 1) <= 1.01) {
     packTune.mapRepeat = 8
   }
   store.dispatch(
@@ -221,6 +251,131 @@ async function applyStageTexturePack(
     }),
   )
   setStatus(`${surface} pack replaced · ${summarizeDetectedPbrMaps(detected)}`)
+}
+
+/** Bundled floor pack material defaults — ice must not stay white/mirror-smooth. */
+function floorPresetPackOpts(id: FloorPresetId): NonNullable<Parameters<typeof applyStageTexturePack>[3]> {
+  if (id === 'asphalt') {
+    return {
+      color: '#0a0a0a',
+      metalness: 0,
+      roughness: 1,
+      mapRepeat: 8,
+      tileVariation: 0.55,
+      displacementScale: 0.04,
+    }
+  }
+  // Ice002 albedo is near-white; white multiply + height + smooth roughness = caustic flare under the car.
+  return {
+    color: '#6a7a88',
+    metalness: 0,
+    roughness: 0.82,
+    mapRepeat: 6,
+    tileVariation: 0.28,
+    skipDisplacement: true,
+    skipRoughnessMap: true,
+    displacementScale: null,
+  }
+}
+
+function floorHasAlbedoMap(project = store.getSnapshot().project): boolean {
+  return Boolean(project.stage.floor.maps?.mapAssetId)
+}
+
+function floorLooksLikeAsphalt(project = store.getSnapshot().project): boolean {
+  const id = project.stage.floor.maps?.mapAssetId
+  if (!id) return false
+  const asset = project.assets.find((a) => a.id === id)
+  return Boolean(asset?.filename && /asphalt/i.test(asset.filename))
+}
+
+function floorLooksLikeIce(project = store.getSnapshot().project): boolean {
+  const id = project.stage.floor.maps?.mapAssetId
+  if (!id) return false
+  const asset = project.assets.find((a) => a.id === id)
+  return Boolean(asset?.filename && /ice/i.test(asset.filename))
+}
+
+/** Darken white-tinted asphalt / retune blown-out ice on already-seeded projects. */
+function retuneLegacyFloorPresets(): void {
+  const project = store.getSnapshot().project
+  const floor = project.stage.floor
+  if (floorLooksLikeAsphalt(project)) {
+    const color = (floor.color || '').toLowerCase()
+    if (color === '#ffffff' || color === '#fff' || color === '#161a22' || !color) {
+      store.dispatch(
+        patchStage({
+          floor: { ...floor, color: '#0a0a0a', metalness: 0 },
+        }),
+        { recordHistory: false },
+      )
+    }
+    return
+  }
+  if (floorLooksLikeIce(project)) {
+    const color = (floor.color || '').toLowerCase()
+    const blownOut =
+      color === '#ffffff' ||
+      color === '#fff' ||
+      (floor.displacementScale ?? 0) > 0.02 ||
+      (floor.tileVariation ?? 0) > 0.45 ||
+      Boolean(floor.maps?.roughnessMapAssetId)
+    if (blownOut) {
+      store.dispatch(
+        patchStage({
+          floor: {
+            ...floor,
+            color: '#6a7a88',
+            metalness: 0,
+            roughness: 0.82,
+            displacementScale: 0,
+            tileVariation: Math.min(floor.tileVariation ?? 0.28, 0.28),
+            maps: {
+              ...floor.maps,
+              displacementMapAssetId: null,
+              roughnessMapAssetId: null,
+            },
+          },
+        }),
+        { recordHistory: false },
+      )
+    }
+  }
+}
+
+let defaultAsphaltInflight: Promise<void> | null = null
+
+async function ensureDefaultAsphaltFloor(
+  reason: string,
+  setStatus: (message: string, isError?: boolean) => void = () => {},
+): Promise<void> {
+  if (floorHasAlbedoMap()) {
+    retuneLegacyFloorPresets()
+    return
+  }
+  if (defaultAsphaltInflight) return defaultAsphaltInflight
+  defaultAsphaltInflight = (async () => {
+    try {
+      setStatus(`Loading Asphalt ground (${reason})…`)
+      const files = await fetchFloorPresetFiles('asphalt')
+      await applyStageTexturePack(
+        'floor',
+        files,
+        setStatus,
+        floorPresetPackOpts('asphalt'),
+      )
+      const asphaltRadio = document.querySelector(
+        '[data-stage-floor-preset="asphalt"]',
+      ) as HTMLInputElement | null
+      if (asphaltRadio) asphaltRadio.checked = true
+    } catch (err) {
+      console.warn('[automotive-studio] default asphalt floor failed', err)
+      setStatus('Could not load default Asphalt ground.', true)
+    } finally {
+      defaultAsphaltInflight = null
+    }
+  })()
+  return defaultAsphaltInflight
 }
 
 const shell = mountStudioShell(root, {
@@ -321,6 +476,7 @@ const shell = mountStudioShell(root, {
     shell.updateVehicle(vehicleSession.getSnapshot())
     shell.updateRouteStats(routeSession.getStatus())
     shell.setStatus('New empty project. Previous vehicle blobs kept until Save purges orphans.')
+    void ensureDefaultAsphaltFloor('new project', (m, e) => shell.setStatus(m, e))
   },
   onPreview: () => {
     mode = mode === 'preview' ? 'studio' : 'preview'
@@ -1100,6 +1256,7 @@ const shell = mountStudioShell(root, {
       id: crypto.randomUUID(),
       name: `Hotspot ${index}`,
       markerLabel: String(index),
+      markerScale: DEFAULT_MARKER_SCALE,
       anchor: {
         assetFingerprint: vehicleSession.getRig()?.assetFingerprint ?? '',
         node: {},
@@ -1265,6 +1422,13 @@ const shell = mountStudioShell(root, {
     const hotspot = store.getSnapshot().project.hotspots.find((h) => h.id === id)
     if (!hotspot) return
     store.dispatch(upsertHotspot(withHotspotMarkerRotation(hotspot, rotationDeg)), {
+      recordHistory: false,
+    })
+  },
+  onHotspotMarkerScale: (id, scale) => {
+    const hotspot = store.getSnapshot().project.hotspots.find((h) => h.id === id)
+    if (!hotspot) return
+    store.dispatch(upsertHotspot(withHotspotMarkerScale(hotspot, scale)), {
       recordHistory: false,
     })
   },
@@ -1453,7 +1617,12 @@ const shell = mountStudioShell(root, {
     try {
       shell.setStatus(`Loading ${FLOOR_PRESETS[id].label} ground…`)
       const files = await fetchFloorPresetFiles(id)
-      await applyStageTexturePack('floor', files, (message, isError) => shell.setStatus(message, isError))
+      await applyStageTexturePack(
+        'floor',
+        files,
+        (message, isError) => shell.setStatus(message, isError),
+        floorPresetPackOpts(id),
+      )
     } catch (err) {
       shell.setStatus(`Could not load ${FLOOR_PRESETS[id].label} ground.`, true)
       console.error(err)
@@ -2259,6 +2428,7 @@ function createHotspotFromPick(result: {
     id: crypto.randomUUID(),
     name: nodeLabel.replace(/_/g, ' ').slice(0, 40) || `Hotspot ${index}`,
     markerLabel: String(index),
+    markerScale: DEFAULT_MARKER_SCALE,
     anchor: {
       assetFingerprint: vehicleSession.getRig()?.assetFingerprint ?? '',
       node: { ...result.ref },
@@ -3285,6 +3455,7 @@ async function boot() {
       store.loadProject(migrateProject(existing))
       writeLastProjectId(store.getSnapshot().project.id)
       hydrateProjectRuntime()
+      void ensureDefaultAsphaltFloor('boot', (m, e) => shell.setStatus(m, e))
       shell.setStatus(
         seed.seeded
           ? 'Imported bundled default · restoring vehicle…'

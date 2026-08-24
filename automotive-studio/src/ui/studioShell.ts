@@ -318,6 +318,7 @@ export interface StudioShellOptions {
     opts: { nodeKey: string; mode: 'show' | 'hide' | 'toggle' } | null,
   ) => void
   onHotspotMarkerRotation: (id: string, rotationDeg: [number, number, number] | null) => void
+  onHotspotMarkerScale: (id: string, scale: number | null) => void
   onHotspotMarkerLabelLayout: (
     id: string,
     layout: { scale?: number; offset?: [number, number, number] } | null,
@@ -1033,6 +1034,9 @@ export function mountStudioShell(
             <button type="button" class="as-btn" data-action="hotspot-mesh-use-selected">Use selected object</button>
             <h3 class="as-subhead">Marker on surface</h3>
             <p class="as-hint">Rings and title sit on the door plane. Tilt if the pick missed the surface.</p>
+            <label class="as-field"><span>Size <em data-hotspot-marker-scale-val>1.00×</em></span>
+              <input data-hotspot-marker-scale type="range" min="0.35" max="2.5" step="0.05" value="1" /></label>
+            <p class="as-hint">Pin diameter (core + rings). New hotspots default small.</p>
             <label class="as-field"><span>Tilt X <em data-hotspot-rot-x-val>0°</em></span>
               <input data-hotspot-rot-x type="range" min="-180" max="180" step="1" value="0" /></label>
             <label class="as-field"><span>Tilt Y <em data-hotspot-rot-y-val>0°</em></span>
@@ -1042,14 +1046,14 @@ export function mountStudioShell(
             <button type="button" class="as-btn" data-action="hotspot-rot-reset">Reset tilt to surface</button>
             <h3 class="as-subhead">Title plate</h3>
             <p class="as-hint">Aligned to the door like the rings. Move with offset; Z lifts off the paint.</p>
-            <label class="as-field"><span>Size <em data-hotspot-label-scale-val>1.00×</em></span>
+            <label class="as-field"><span>Label size <em data-hotspot-label-scale-val>1.00×</em></span>
               <input data-hotspot-label-scale type="range" min="0.3" max="3" step="0.05" value="1" /></label>
             <label class="as-field"><span>Offset X <em data-hotspot-label-ox-val>0.00</em></span>
-              <input data-hotspot-label-ox type="range" min="-6" max="6" step="0.05" value="0" /></label>
-            <label class="as-field"><span>Offset Y <em data-hotspot-label-oy-val>2.40</em></span>
-              <input data-hotspot-label-oy type="range" min="-6" max="6" step="0.05" value="2.4" /></label>
-            <label class="as-field"><span>Lift Z <em data-hotspot-label-oz-val>0.04</em></span>
-              <input data-hotspot-label-oz type="range" min="-0.5" max="1.5" step="0.01" value="0.04" /></label>
+              <input data-hotspot-label-ox type="range" min="-1.5" max="1.5" step="0.01" value="0" /></label>
+            <label class="as-field"><span>Offset Y <em data-hotspot-label-oy-val>0.10</em></span>
+              <input data-hotspot-label-oy type="range" min="-1.5" max="1.5" step="0.01" value="0.1" /></label>
+            <label class="as-field"><span>Lift Z <em data-hotspot-label-oz-val>0.01</em></span>
+              <input data-hotspot-label-oz type="range" min="-0.2" max="0.5" step="0.005" value="0.012" /></label>
             <button type="button" class="as-btn" data-action="hotspot-label-reset">Reset title size &amp; position</button>
             <label class="as-field">
               <span>Video (plays on open)</span>
@@ -1110,11 +1114,11 @@ export function mountStudioShell(
             <input data-stage-floor-size type="range" min="8" max="120" step="1" value="28" /></label>
           <button type="button" class="as-btn as-btn--accent as-btn--block" data-action="sit-on-ground">Sit car on ground</button>
           <p class="as-hint">Sets Vehicle ground offset to 0 so tires rest on the floor (not the pedestal).</p>
-          <label class="as-field"><span>Color</span><input data-stage-floor-color type="color" value="#161a22" /></label>
-          <label class="as-field"><span>Metalness <em data-stage-floor-metal-val>0.35</em></span>
-            <input data-stage-floor-metal type="range" min="0" max="1" step="0.01" value="0.35" /></label>
-          <label class="as-field"><span>Roughness <em data-stage-floor-rough-val>0.55</em></span>
-            <input data-stage-floor-rough type="range" min="0" max="1" step="0.01" value="0.55" /></label>
+          <label class="as-field"><span>Color</span><input data-stage-floor-color type="color" value="#0a0a0a" /></label>
+          <label class="as-field"><span>Metalness <em data-stage-floor-metal-val>0.00</em></span>
+            <input data-stage-floor-metal type="range" min="0" max="1" step="0.01" value="0" /></label>
+          <label class="as-field"><span>Roughness <em data-stage-floor-rough-val>0.85</em></span>
+            <input data-stage-floor-rough type="range" min="0" max="1" step="0.01" value="0.85" /></label>
           <label class="as-field"><span>Emissive</span><input data-stage-floor-emissive type="color" value="#000000" /></label>
           <label class="as-field"><span>Emissive intensity <em data-stage-floor-emi-val>0.00</em></span>
             <input data-stage-floor-emi type="range" min="0" max="8" step="0.05" value="0" /></label>
@@ -1613,6 +1617,8 @@ export function mountStudioShell(
   const hotspotRotXVal = root.querySelector('[data-hotspot-rot-x-val]') as HTMLElement
   const hotspotRotYVal = root.querySelector('[data-hotspot-rot-y-val]') as HTMLElement
   const hotspotRotZVal = root.querySelector('[data-hotspot-rot-z-val]') as HTMLElement
+  const hotspotMarkerScale = root.querySelector('[data-hotspot-marker-scale]') as HTMLInputElement
+  const hotspotMarkerScaleVal = root.querySelector('[data-hotspot-marker-scale-val]') as HTMLElement
   const hotspotLabelScale = root.querySelector('[data-hotspot-label-scale]') as HTMLInputElement
   const hotspotLabelOx = root.querySelector('[data-hotspot-label-ox]') as HTMLInputElement
   const hotspotLabelOy = root.querySelector('[data-hotspot-label-oy]') as HTMLInputElement
@@ -2116,6 +2122,14 @@ export function mountStudioShell(
     options.onHotspotMarkerRotation(editingHotspotId, null)
   })
 
+  const commitHotspotMarkerScale = () => {
+    if (syncingHotspotEditor || !editingHotspotId) return
+    const scale = Number(hotspotMarkerScale?.value || 1)
+    setSliderVal(hotspotMarkerScaleVal, scale)
+    options.onHotspotMarkerScale(editingHotspotId, scale)
+  }
+  hotspotMarkerScale?.addEventListener('input', commitHotspotMarkerScale)
+
   const commitHotspotLabelLayout = () => {
     if (syncingHotspotEditor || !editingHotspotId) return
     const scale = Number(hotspotLabelScale?.value || 1)
@@ -2139,12 +2153,12 @@ export function mountStudioShell(
     if (!editingHotspotId) return
     if (hotspotLabelScale) hotspotLabelScale.value = '1'
     if (hotspotLabelOx) hotspotLabelOx.value = '0'
-    if (hotspotLabelOy) hotspotLabelOy.value = '2.4'
-    if (hotspotLabelOz) hotspotLabelOz.value = '0.04'
+    if (hotspotLabelOy) hotspotLabelOy.value = '0.1'
+    if (hotspotLabelOz) hotspotLabelOz.value = '0.012'
     setSliderVal(hotspotLabelScaleVal, 1)
     setSliderVal(hotspotLabelOxVal, 0)
-    setSliderVal(hotspotLabelOyVal, 2.4)
-    setSliderVal(hotspotLabelOzVal, 0.04)
+    setSliderVal(hotspotLabelOyVal, 0.1)
+    setSliderVal(hotspotLabelOzVal, 0.012)
     options.onHotspotMarkerLabelLayout(editingHotspotId, null)
   })
 
@@ -3895,16 +3909,19 @@ export function mountStudioShell(
       if (hotspotRotXVal) setSliderVal(hotspotRotXVal, Math.round(rot[0] ?? 0))
       if (hotspotRotYVal) setSliderVal(hotspotRotYVal, Math.round(rot[1] ?? 0))
       if (hotspotRotZVal) setSliderVal(hotspotRotZVal, Math.round(rot[2] ?? 0))
+      const markerScale = hotspot.markerScale ?? 1
+      if (hotspotMarkerScale) hotspotMarkerScale.value = String(markerScale)
+      setSliderVal(hotspotMarkerScaleVal, Number(markerScale))
       const labelScale = hotspot.markerLabelScale ?? 1
-      const labelOff = hotspot.markerLabelOffset ?? [0, 2.4, 0.04]
+      const labelOff = hotspot.markerLabelOffset ?? [0, 0.1, 0.012]
       if (hotspotLabelScale) hotspotLabelScale.value = String(labelScale)
       if (hotspotLabelOx) hotspotLabelOx.value = String(labelOff[0] ?? 0)
-      if (hotspotLabelOy) hotspotLabelOy.value = String(labelOff[1] ?? 2.4)
-      if (hotspotLabelOz) hotspotLabelOz.value = String(labelOff[2] ?? 0.04)
+      if (hotspotLabelOy) hotspotLabelOy.value = String(labelOff[1] ?? 0.1)
+      if (hotspotLabelOz) hotspotLabelOz.value = String(labelOff[2] ?? 0.012)
       setSliderVal(hotspotLabelScaleVal, Number(labelScale))
       setSliderVal(hotspotLabelOxVal, Number(labelOff[0] ?? 0))
-      setSliderVal(hotspotLabelOyVal, Number(labelOff[1] ?? 2.4))
-      setSliderVal(hotspotLabelOzVal, Number(labelOff[2] ?? 0.04))
+      setSliderVal(hotspotLabelOyVal, Number(labelOff[1] ?? 0.1))
+      setSliderVal(hotspotLabelOzVal, Number(labelOff[2] ?? 0.012))
       const video = hotspot.blocks.find((b) => b.type === 'video')
       hotspotVideoLabel.textContent =
         video && video.type === 'video'

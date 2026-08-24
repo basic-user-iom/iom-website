@@ -546,6 +546,10 @@ export interface Hotspot {
    */
   markerRotationDeg?: Vec3
   /**
+   * Overall marker pin size (core + rings + halo). 1 = current studio default.
+   */
+  markerScale?: number
+  /**
    * Size of the surface-aligned title plate (1 = default).
    */
   markerLabelScale?: number
@@ -634,7 +638,8 @@ export function createEmptyProject(name = 'Untitled Automotive Project'): Automo
       cycloramaVideoMuted: true,
       cycloramaVideoLoop: true,
       cycloramaVideoFit: 'cover',
-      floor: createDefaultStageSurface('#161a22', 0.35, 0.55),
+      // Near-black pad — Asphalt preset multiplies this with the albedo map.
+      floor: createDefaultStageSurface('#0a0a0a', 0, 0.85),
       pedestal: createDefaultStageSurface('#1c222c', 0.45, 0.4),
       cyclorama: createDefaultStageSurface('#1a1f28', 0.05, 0.92),
     },

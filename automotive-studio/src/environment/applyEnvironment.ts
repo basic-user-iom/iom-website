@@ -3,6 +3,7 @@ import {
   Color,
   DirectionalLight,
   Fog,
+  Group,
   HemisphereLight,
   Mesh,
   Scene,
@@ -28,7 +29,7 @@ export interface EnvironmentHandles {
   skyDome: Mesh
   stars: CelestialHandles['stars']
   moon: Mesh
-  sunDisc: Mesh
+  sunDisc: Group
 }
 
 type PresetLook = {
@@ -62,14 +63,14 @@ function lookForPreset(presetId: Exclude<EnvironmentState['presetId'], 'custom'>
   switch (presetId) {
     case 'day':
       return {
-        skyTop: new Color(0x5aa0e0),
-        skyHorizon: new Color(0xc5dcf0),
-        skyGround: new Color(0xb8c4ce),
+        skyTop: new Color(0x4a90d8),
+        skyHorizon: new Color(0xb8d4ec),
+        skyGround: new Color(0x9aacbc),
         ground: new Color(0xe4e9ef),
         pedestal: new Color(0xd0d7e0),
         hemiSky: 0xe8f2ff,
         hemiGround: 0xa8b0b8,
-        sunColor: 0xfff4e6,
+        sunColor: 0xfff8ee,
         fillColor: 0xb8d0ff,
         rimColor: 0xe8f0ff,
         sunIntensity: 1.85,
@@ -77,7 +78,7 @@ function lookForPreset(presetId: Exclude<EnvironmentState['presetId'], 'custom'>
         rimIntensity: 0.35,
         hemiIntensity: 0.85,
         ambientIntensity: 0.18,
-        fogColor: new Color(0xc2d6ea),
+        fogColor: new Color(0xb8d0e8),
         floorMetal: 0.08,
         floorRough: 0.78,
         pedestalMetal: 0.12,
@@ -132,14 +133,14 @@ function lookForPreset(presetId: Exclude<EnvironmentState['presetId'], 'custom'>
     case 'studio':
     default:
       return {
-        skyTop: new Color(0x1a2030),
-        skyHorizon: new Color(0x3a4252),
-        skyGround: new Color(0x141820),
+        skyTop: new Color(0x182030),
+        skyHorizon: new Color(0x4a5568),
+        skyGround: new Color(0x1a2030),
         ground: new Color(0x2a303c),
         pedestal: new Color(0x343b48),
         hemiSky: 0xc8d0dc,
         hemiGround: 0x2a303a,
-        sunColor: 0xfff2e0,
+        sunColor: 0xfff6e8,
         fillColor: 0xa8c0ff,
         rimColor: 0xe8dcc8,
         sunIntensity: 1.35,
@@ -147,7 +148,7 @@ function lookForPreset(presetId: Exclude<EnvironmentState['presetId'], 'custom'>
         rimIntensity: 0.42,
         hemiIntensity: 0.5,
         ambientIntensity: 0.14,
-        fogColor: new Color(0x0c0e12),
+        fogColor: new Color(0x3a4558),
         floorMetal: 0.16,
         floorRough: 0.62,
         pedestalMetal: 0.22,
@@ -178,6 +179,26 @@ export function stagePolicyForPreset(
 }
 
 const _bgColor = new Color()
+const _hazeColor = new Color()
+
+function minimumAtmosphericFog(
+  env: EnvironmentState,
+  visualPreset: Exclude<EnvironmentState['presetId'], 'custom'>,
+): number {
+  if (!env.hdrBackground) return env.fogDensity
+  if (env.fogDensity > 0.001) return env.fogDensity
+  switch (visualPreset) {
+    case 'night':
+      return 0.012
+    case 'golden-hour':
+      return 0.008
+    case 'day':
+      return 0.006
+    case 'studio':
+    default:
+      return 0.004
+  }
+}
 
 function elevHorizonFade(elevationDeg: number): number {
   // Soft fade near the horizon — grazing directional shadows are GPU-expensive.
@@ -216,15 +237,16 @@ export function applyEnvironment(handles: EnvironmentHandles, env: EnvironmentSt
   _bgColor.copy(look.skyHorizon)
   handles.scene.background = _bgColor
 
-  // Always keep a Fog on the scene so MeshStandard programs stay stable across
-  // day (foggy) ↔ studio (clear) — toggling fog on/off forces a full recompile.
-  const wantFog = env.fogDensity > 0.001
+  const effectiveFogDensity = minimumAtmosphericFog(env, visualPreset)
+  const wantFog = effectiveFogDensity > 0.001
   const fogFar = wantFog
     ? visualPreset === 'night' || env.starsEnabled
       ? 280
-      : 90
+      : visualPreset === 'studio'
+        ? 140
+        : 90
     : 8000
-  const fogNear = wantFog ? 18 / Math.max(env.fogDensity * 40, 0.2) : 7000
+  const fogNear = wantFog ? 18 / Math.max(effectiveFogDensity * 40, 0.2) : 7000
   if (handles.scene.fog instanceof Fog) {
     handles.scene.fog.color.copy(look.fogColor)
     handles.scene.fog.near = fogNear
@@ -276,6 +298,7 @@ export function applyEnvironment(handles: EnvironmentHandles, env: EnvironmentSt
     ground: look.skyGround,
     softSky: Boolean(env.hdrBackground),
     sunColor: look.sunColor,
+    hazeColor: _hazeColor.copy(look.fogColor).lerp(look.skyHorizon, 0.55),
   })
 }
 
