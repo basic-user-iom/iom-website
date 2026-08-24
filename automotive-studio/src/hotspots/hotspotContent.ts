@@ -125,8 +125,8 @@ export function withHotspotMarkerRotation(
   }
 }
 
-/** Default title-plate offset (local Y = along door, Z = out from paint). */
-export const DEFAULT_MARKER_LABEL_OFFSET: [number, number, number] = [0, 2.4, 0.04]
+/** Default title-plate offset in world metres (Y = along door, Z = out from paint). */
+export const DEFAULT_MARKER_LABEL_OFFSET: [number, number, number] = [0, 0.28, 0.03]
 export const DEFAULT_MARKER_LABEL_SCALE = 1
 
 export function withHotspotMarkerLabelLayout(

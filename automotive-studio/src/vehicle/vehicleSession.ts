@@ -320,6 +320,9 @@ export class VehicleSession {
     onProgress?: (ratio: number, label: string) => void,
   ): Promise<{ asset: AssetRecord; vehicle: VehicleState; report: AssetCompatibilityReport }> {
     if (!this.scene) throw new Error('Scene not bound')
+    if (role === 'vehicle-balanced' || role === 'vehicle-mobile') {
+      throw new Error(`${qualityLabel(role)} LOD is temporarily disabled — use High only`)
+    }
     const slot = this.variants.get(role)
     if (!slot) throw new Error(`No ${qualityLabel(role)} variant imported yet`)
     if (this.activeQuality === role && this.roots) {
@@ -412,6 +415,8 @@ export class VehicleSession {
     this.variants.clear()
     for (const record of project.assets) {
       if (!isVehicleQualityRole(record.role)) continue
+      // Keep High (and Master) slots only — Balanced/Mobile still need work.
+      if (record.role === 'vehicle-balanced' || record.role === 'vehicle-mobile') continue
       this.variants.set(record.role, {
         role: record.role,
         assetId: record.id,
@@ -420,11 +425,35 @@ export class VehicleSession {
       })
     }
 
-    const assetId = project.activeVehicleId ?? project.vehicle?.assetId ?? null
-    const asset =
-      (assetId ? project.assets.find((a) => a.id === assetId) : null) ??
-      project.assets.find((a) => isVehicleQualityRole(a.role)) ??
+    const highAsset =
+      project.assets.find((a) => a.role === 'vehicle-high') ??
+      (project.activeVehicleId
+        ? project.assets.find(
+            (a) =>
+              a.id === project.activeVehicleId &&
+              isVehicleQualityRole(a.role) &&
+              a.role !== 'vehicle-balanced' &&
+              a.role !== 'vehicle-mobile',
+          )
+        : null) ??
+      (project.vehicle?.assetId
+        ? project.assets.find(
+            (a) =>
+              a.id === project.vehicle!.assetId &&
+              isVehicleQualityRole(a.role) &&
+              a.role !== 'vehicle-balanced' &&
+              a.role !== 'vehicle-mobile',
+          )
+        : null) ??
+      project.assets.find((a) => a.role === 'vehicle-master') ??
+      project.assets.find(
+        (a) =>
+          isVehicleQualityRole(a.role) &&
+          a.role !== 'vehicle-balanced' &&
+          a.role !== 'vehicle-mobile',
+      ) ??
       null
+    const asset = highAsset
     if (!asset) return null
 
     const blobKey = asset.blobKey ?? asset.id
@@ -434,9 +463,10 @@ export class VehicleSession {
       blob = await idbGetAssetBlob(asset.id)
     }
     if (!blob) {
-      // Last resort: any vehicle-quality blob still in IDB for this project.
+      // Last resort: High/Master only — never pull Balanced/Mobile LODs.
       for (const record of project.assets) {
         if (!isVehicleQualityRole(record.role)) continue
+        if (record.role === 'vehicle-balanced' || record.role === 'vehicle-mobile') continue
         const key = record.blobKey ?? record.id
         blob = await idbGetAssetBlob(key)
         if (!blob && key !== record.id) blob = await idbGetAssetBlob(record.id)

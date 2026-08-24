@@ -51,9 +51,22 @@ type MarkerParts = {
   label: Mesh | null
 }
 
-/** Base title-plate size in metres at scale 1 (plane is unit, then scaled). */
-const LABEL_BASE_W = 3.6
-const LABEL_BASE_H = 0.96
+/** Base title-plate size in world metres at scale 1 (plane is unit, then scaled). */
+const LABEL_BASE_W = 0.42
+const LABEL_BASE_H = 0.112
+
+/**
+ * Marker meshes are authored in world metres. Attach parents (door nodes on cm-unit
+ * Sketchfab cars) often have world scale ≪ 1, so we counter-scale the marker root.
+ * Older builds used ~0.78 m cores without compensation → viewport-sized spheres online.
+ */
+const WORLD_CORE_R = 0.09
+const WORLD_RING_INNER = 0.12
+const WORLD_RING_OUTER = 0.2
+const WORLD_HALO_R = 0.3
+const WORLD_PICK_R = 0.38
+/** Prior uncompensated core radius — used to shrink legacy title-plate offsets. */
+const LEGACY_CORE_R = 0.78
 
 /**
  * Interactive hotspot markers: pulsing ring + gem core + optional label
@@ -67,11 +80,10 @@ export class HotspotSession {
   private canvas: HTMLCanvasElement | null = null
   private hotspots: Hotspot[] = []
   private markers: MarkerParts[] = []
-  // World metres — 60% of the oversized 10× marker.
-  private coreGeo = new SphereGeometry(0.78, 22, 18)
-  private ringGeo = new RingGeometry(1.2, 1.92, 48)
-  private haloGeo = new CircleGeometry(2.88, 36)
-  private pickGeo = new SphereGeometry(3.0, 12, 10)
+  private coreGeo = new SphereGeometry(WORLD_CORE_R, 22, 18)
+  private ringGeo = new RingGeometry(WORLD_RING_INNER, WORLD_RING_OUTER, 48)
+  private haloGeo = new CircleGeometry(WORLD_HALO_R, 36)
+  private pickGeo = new SphereGeometry(WORLD_PICK_R, 12, 10)
   private labelGeo = new PlaneGeometry(1, 1)
   private readonly _zAxis = new Vector3(0, 0, 1)
   private readonly _qAlign = new Quaternion()
@@ -213,7 +225,10 @@ export class HotspotSession {
       const selected = marker.root.userData.hotspotId === id
       marker.core.material = selected ? this.coreSelectedMat : this.coreMat
       marker.ring.material = selected ? this.ringSelectedMat : this.ringMat
-      marker.root.scale.setScalar(selected ? 1.2 : 1)
+      const metre = typeof marker.root.userData.metreScale === 'number'
+        ? marker.root.userData.metreScale
+        : 1
+      marker.root.scale.setScalar(selected ? metre * 1.2 : metre)
     }
     const hotspot = id ? this.hotspots.find((item) => item.id === id) ?? null : null
     this.onSelect?.(hotspot)
@@ -294,14 +309,14 @@ export class HotspotSession {
       let label: Mesh | null = null
       if (labelText && labelText.toLowerCase() !== 'hotspot') {
         label = this.makeLabelPlane(labelText)
-        const scale = hotspot.markerLabelScale ?? DEFAULT_MARKER_LABEL_SCALE
-        const off = hotspot.markerLabelOffset ?? DEFAULT_MARKER_LABEL_OFFSET
-        label.position.set(off[0], off[1], off[2])
-        label.scale.set(LABEL_BASE_W * scale, LABEL_BASE_H * scale, 1)
+        const layout = sanitizeMarkerLabelLayout(
+          hotspot.markerLabelScale,
+          hotspot.markerLabelOffset,
+        )
+        label.position.set(layout.offset[0], layout.offset[1], layout.offset[2])
+        label.scale.set(LABEL_BASE_W * layout.scale, LABEL_BASE_H * layout.scale, 1)
         root.add(label)
       }
-
-      if (selected) root.scale.setScalar(1.2)
 
       const node = searchRoot ? resolveSemanticNode(searchRoot, hotspot.anchor.node) : null
       if (node) {
@@ -314,12 +329,15 @@ export class HotspotSession {
         // Barely clear the paint — rings lie in the surface plane.
         // Ignore legacy huge offsets from the oversized camera-billboard markers.
         const rawLift = hotspot.anchor.offset
-        // Slightly clear curved panels so large rings don't depth-clip into paint.
-        const lift = rawLift > 0 && rawLift <= 0.35 ? rawLift : 0.09
+        // Slightly clear curved panels so rings don't depth-clip into paint.
+        const lift = rawLift > 0 && rawLift <= 0.35 ? rawLift : 0.02
         this._local.addScaledVector(this._normal, lift)
         root.position.copy(this._local)
         this.applySurfaceOrientation(root, this._normal, hotspot.markerRotationDeg, node)
         node.add(root)
+        const metre = metreScaleForParent(node)
+        root.userData.metreScale = metre
+        root.scale.setScalar(selected ? metre * 1.2 : metre)
         root.userData.attachedNode = node.name
       } else {
         const fallback =
@@ -328,6 +346,9 @@ export class HotspotSession {
         const parent = this.placement ?? this.scene
         this.applySurfaceOrientation(root, new Vector3(0, 0, 1), hotspot.markerRotationDeg, parent)
         parent.add(root)
+        const metre = metreScaleForParent(parent)
+        root.userData.metreScale = metre
+        root.scale.setScalar(selected ? metre * 1.2 : metre)
         root.userData.attachedNode = '(fallback)'
       }
       this.markers.push({ root, core, ring, halo, pick, label })
@@ -526,6 +547,43 @@ function findModelRoot(placement: Object3D | null): Object3D | null {
   const action = placement.getObjectByName('VehicleActionRoot')
   if (!action) return placement
   return action.children[0] ?? action
+}
+
+/** Average world-scale of a parent so marker local units ≈ metres. */
+function metreScaleForParent(parent: Object3D): number {
+  parent.updateWorldMatrix(true, false)
+  const e = parent.matrixWorld.elements
+  const sx = Math.hypot(e[0], e[1], e[2])
+  const sy = Math.hypot(e[4], e[5], e[6])
+  const sz = Math.hypot(e[8], e[9], e[10])
+  const parentScale = (sx + sy + sz) / 3
+  if (!Number.isFinite(parentScale) || parentScale < 1e-8) return 1
+  return 1 / parentScale
+}
+
+/**
+ * Shrink legacy title-plate layout authored next to the old 0.78 m uncompensated cores.
+ */
+function sanitizeMarkerLabelLayout(
+  scale: number | null | undefined,
+  offset: readonly [number, number, number] | null | undefined,
+): { scale: number; offset: [number, number, number] } {
+  let nextScale = scale ?? DEFAULT_MARKER_LABEL_SCALE
+  let nextOffset: [number, number, number] = offset
+    ? [offset[0], offset[1], offset[2]]
+    : [...DEFAULT_MARKER_LABEL_OFFSET]
+  const maxAbs = Math.max(
+    Math.abs(nextOffset[0]),
+    Math.abs(nextOffset[1]),
+    Math.abs(nextOffset[2]),
+  )
+  if (maxAbs > 1.0) {
+    const shrink = WORLD_CORE_R / LEGACY_CORE_R
+    nextOffset = [nextOffset[0] * shrink, nextOffset[1] * shrink, nextOffset[2] * shrink]
+    if (nextScale > 1.25) nextScale = Math.min(nextScale * shrink * 4, 1.25)
+  }
+  nextScale = Math.max(0.35, Math.min(2, nextScale))
+  return { scale: nextScale, offset: nextOffset }
 }
 
 /**

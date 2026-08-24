@@ -1,4 +1,4 @@
-import{C as W,c as de,R as ue,V as pe,F as he,A as fe,u as ge,H as me,m as be,B as _,E as Se,t as ve,o as N,G as we}from"./hotspotCard-BwGE8bdC.js";import{V as T}from"./three-7zx0NNHW.js";import{N as ye,P as Pe,T as Ae,C as Ee,F as Le,G as De,H as B,E as Oe,I as z,J,w as Q,p as X,O as je}from"./runtime-core-D3XVd8PF.js";import"./stageMaterials-BpqsrTvh.js";function Re(e,t){e.className="as-app as-app--presentation",e.innerHTML=`
+import{C as W,c as de,R as ue,V as pe,F as he,A as fe,u as ge,H as me,m as be,B as _,E as Se,t as ve,o as N,G as we}from"./hotspotCard-CNqnqqqO.js";import{V as T}from"./three-7zx0NNHW.js";import{N as ye,P as Pe,T as Ae,C as Ee,F as Le,G as De,H as B,E as Oe,I as z,J,w as Q,p as X,O as je}from"./runtime-core-D3XVd8PF.js";import"./stageMaterials-BpqsrTvh.js";function Re(e,t){e.className="as-app as-app--presentation",e.innerHTML=`
     <main class="as-viewport" data-viewport tabindex="-1" aria-label="Presentation viewport"></main>
     <div class="as-presentation-controls" role="toolbar" aria-label="Presentation controls">
       <div class="as-presentation-row" role="group" aria-label="Transport">

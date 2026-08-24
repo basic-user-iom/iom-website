@@ -407,16 +407,28 @@ const shell = mountStudioShell(root, {
     try {
       if (!files.length) return
 
-      const batch: Array<{ file: File; quality: VehicleQualityRole }> =
+      let batch: Array<{ file: File; quality: VehicleQualityRole }> =
         files.length > 1
-          ? assignQualityRolesByFileSize(files)
+          ? assignQualityRolesByFileSize(files).filter(
+              (item) => item.quality === 'vehicle-high' || item.quality === 'vehicle-master',
+            )
           : [
               {
                 file: files[0],
                 quality:
-                  quality === 'auto' ? inferQualityRoleFromFilename(files[0].name) : quality,
+                  quality === 'auto'
+                    ? inferQualityRoleFromFilename(files[0].name)
+                    : quality === 'vehicle-balanced' || quality === 'vehicle-mobile'
+                      ? 'vehicle-high'
+                      : quality,
               },
             ]
+
+      // Balanced/Mobile LODs are disabled — if multi-import filtered everything, keep largest as High.
+      if (!batch.length && files.length) {
+        const largest = [...files].sort((a, b) => b.size - a.size)[0]
+        batch = [{ file: largest, quality: 'vehicle-high' }]
+      }
 
       const labels: string[] = []
       let lastVehicleResult: Awaited<ReturnType<typeof vehicleSession.importFile>> | null = null

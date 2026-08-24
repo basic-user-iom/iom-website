@@ -592,18 +592,16 @@ export function mountStudioShell(
         <div class="as-field">
           <label for="as-quality-slot">Quality slot</label>
           <select id="as-quality-slot" data-quality-slot>
-            <option value="auto">Auto (filename, or size if multi)</option>
+            <option value="auto">Auto (filename)</option>
             <option value="vehicle-master">Master / source</option>
-            <option value="vehicle-high">High</option>
-            <option value="vehicle-balanced">Balanced</option>
-            <option value="vehicle-mobile">Mobile</option>
+            <option value="vehicle-high" selected>High</option>
           </select>
         </div>
-        <p class="as-hint">Multi-select: largest → High, mid → Balanced, smallest → Mobile.</p>
+        <p class="as-hint">Balanced / Mobile LODs are temporarily disabled — Studio loads High only.</p>
         <div class="as-field">
           <label for="as-active-quality">Active quality</label>
           <select id="as-active-quality" data-active-quality disabled>
-            <option value="">Import High / Balanced / Mobile to switch</option>
+            <option value="">High quality only</option>
           </select>
         </div>
         <p class="as-hint" data-import-progress hidden></p>
@@ -1168,10 +1166,20 @@ export function mountStudioShell(
             </div>
             <button type="button" class="as-btn" data-stage-map-clear="floor">Clear maps</button>
             <button type="button" class="as-btn as-btn--accent" data-stage-map-pack="floor" title="Replaces all maps on this surface with the folder (Color, NormalGL, Roughness…)">Load pack folder</button>
-            <div class="as-map-row">
-              <button type="button" class="as-btn" data-stage-floor-preset="asphalt" title="Apply bundled Asphalt 011 ground maps">Asphalt</button>
-              <button type="button" class="as-btn" data-stage-floor-preset="ice" title="Apply bundled Ice ground maps">Ice</button>
-            </div>
+            <fieldset class="as-ground-presets">
+              <legend>Ground material</legend>
+              <p class="as-hint">Bundled PBR packs for the floor — pick one to apply.</p>
+              <div class="as-btn-group" role="radiogroup" aria-label="Ground material pack">
+                <label class="as-check as-check--btn">
+                  <input type="radio" name="as-ground-pack" data-stage-floor-preset="asphalt" value="asphalt" />
+                  <span>Asphalt</span>
+                </label>
+                <label class="as-check as-check--btn">
+                  <input type="radio" name="as-ground-pack" data-stage-floor-preset="ice" value="ice" />
+                  <span>Ice</span>
+                </label>
+              </div>
+            </fieldset>
           </div>
         </div>
         <div class="as-stage-surface" data-stage-surface="pedestal">
@@ -2673,9 +2681,9 @@ export function mountStudioShell(
   root.querySelector('[data-stage-cyclorama-video-clear]')?.addEventListener('click', () => {
     options.onCycloramaClearVideo()
   })
-  root.querySelectorAll('[data-stage-floor-preset]').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const id = (btn as HTMLElement).dataset.stageFloorPreset
+  root.querySelectorAll('[data-stage-floor-preset]').forEach((el) => {
+    const apply = () => {
+      const id = (el as HTMLElement).dataset.stageFloorPreset
       if (id !== 'asphalt' && id !== 'ice') return
       const hasMaps = root.querySelectorAll('[data-stage-map-slot^="floor:"].as-map-slot--set').length
       if (hasMaps > 0) {
@@ -2683,9 +2691,17 @@ export function mountStudioShell(
           `Replace all ${hasMaps} floor map(s) with the ${id === 'asphalt' ? 'Asphalt' : 'Ice'} pack?\n\n` +
             'This clears previous maps first, then loads the bundled textures.',
         )
-        if (!ok) return
+        if (!ok) {
+          // Uncheck if user cancels a radio selection.
+          if (el instanceof HTMLInputElement) el.checked = false
+          return
+        }
       }
       options.onStageFloorPreset(id)
+    }
+    el.addEventListener(el instanceof HTMLInputElement ? 'change' : 'click', () => {
+      if (el instanceof HTMLInputElement && !el.checked) return
+      apply()
     })
   })
 
@@ -3682,25 +3698,25 @@ export function mountStudioShell(
       }
 
       syncingQuality = true
-      if (snap.variants.length) {
-        activeQuality.disabled = false
-        activeQuality.innerHTML = snap.variants
+      const usableVariants = snap.variants.filter(
+        (v) => v.role !== 'vehicle-balanced' && v.role !== 'vehicle-mobile',
+      )
+      if (usableVariants.length) {
+        activeQuality.disabled = usableVariants.length < 2
+        activeQuality.innerHTML = usableVariants
           .map((v) => {
-            const label =
-              v.role === 'vehicle-high'
-                ? 'High'
-                : v.role === 'vehicle-balanced'
-                  ? 'Balanced'
-                  : v.role === 'vehicle-mobile'
-                    ? 'Mobile'
-                    : 'Master'
+            const label = v.role === 'vehicle-high' ? 'High' : 'Master'
             return `<option value="${v.role}">${label} — ${v.filename} (${formatBytes(v.byteSize)})</option>`
           })
           .join('')
-        if (snap.activeQuality) activeQuality.value = snap.activeQuality
+        if (snap.activeQuality && usableVariants.some((v) => v.role === snap.activeQuality)) {
+          activeQuality.value = snap.activeQuality
+        } else if (usableVariants.some((v) => v.role === 'vehicle-high')) {
+          activeQuality.value = 'vehicle-high'
+        }
       } else {
         activeQuality.disabled = true
-        activeQuality.innerHTML = `<option value="">Import High / Balanced / Mobile to switch</option>`
+        activeQuality.innerHTML = `<option value="">High quality only</option>`
       }
       syncingQuality = false
 

@@ -1050,6 +1050,49 @@ html[data-theme='light'] .as-drive-pad {
   font-size: 11px;
 }
 
+.as-ground-presets {
+  margin: 10px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid color-mix(in srgb, var(--as-border, #3a4250) 80%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--as-panel, #12161e) 88%, transparent);
+}
+
+.as-ground-presets legend {
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--as-muted, #9aa3b2);
+}
+
+.as-ground-presets .as-hint {
+  margin: 0 0 8px;
+}
+
+.as-check--btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--as-border, #3a4250);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--as-bg, #0c0e12) 70%, transparent);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.as-check--btn:has(input:checked) {
+  border-color: color-mix(in srgb, var(--as-accent, #c4a574) 70%, #fff);
+  background: color-mix(in srgb, var(--as-accent, #c4a574) 18%, transparent);
+}
+
+.as-check--btn input {
+  accent-color: var(--as-accent, #c4a574);
+}
+
 .as-map-slots {
   display: flex;
   flex-direction: column;
