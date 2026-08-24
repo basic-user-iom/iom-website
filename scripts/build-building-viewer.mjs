@@ -13,12 +13,20 @@ const ROOT = join(__dirname, '..')
 const APP = join(ROOT, 'building-viewer')
 const OUT = join(ROOT, 'public', 'demos', 'building-viewer')
 
+function nestedNpmEnv() {
+  const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (/^npm_/i.test(key)) delete env[key]
+  }
+  return env
+}
+
 function run(cmd, args, cwd) {
   const result = spawnSync(cmd, args, {
     cwd,
     stdio: 'inherit',
     shell: process.platform === 'win32',
-    env: process.env,
+    env: nestedNpmEnv(),
   })
   if (result.status !== 0) process.exit(result.status ?? 1)
 }
