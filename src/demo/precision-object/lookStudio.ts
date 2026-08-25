@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v29'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v28'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v30'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v29'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -39,6 +39,8 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v24',
   'iom-precision-object-look-v25',
   'iom-precision-object-look-v26',
+  'iom-precision-object-look-v27',
+  'iom-precision-object-look-v28',
   LOOK_STORAGE_PREV,
 ]
 
@@ -506,9 +508,9 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'geometry',
       position: [-0.193, -0.222, 0.872],
       camera: {
-        position: [-0.468, 0.752, 0.743],
-        target: [0.066, 0.406, 0.552],
-        fov: 32,
+        position: [-0.827, 0.516, 1.756],
+        target: [-0.102, 0.437, -0.069],
+        fov: 30,
       },
       autoRotate: false,
     },
