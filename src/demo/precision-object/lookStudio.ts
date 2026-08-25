@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v32'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v31'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v33'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v32'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -321,16 +321,16 @@ export function formatAllHotspotCamerasJson(
 
 /**
  * Merge hotspot placement / inspect cameras.
- * - Default: stored or studio-assigned cameras win over baked DEFAULT_LOOK.
- * - `preferBaseCamera`: used only when migrating from LOOK_STORAGE_PREV so a fresh
- *   bake can replace stale cameras without discarding placement / autoRotate.
+ * - Default: stored or studio-assigned position + camera win over baked DEFAULT_LOOK.
+ * - `preferBaseLook`: used only when migrating from LOOK_STORAGE_PREV so a fresh
+ *   bake can replace stale positions/cameras while keeping autoRotate from storage.
  */
 export function mergeHotspotLooks(
   base: HotspotLook[],
   parsed?: HotspotLook[],
-  options?: { preferBaseCamera?: boolean },
+  options?: { preferBaseLook?: boolean },
 ): HotspotLook[] {
-  const preferBaseCamera = options?.preferBaseCamera === true
+  const preferBaseLook = options?.preferBaseLook === true
   return base.map((item) => {
     const extra = parsed?.find((entry) => entry.id === item.id)
     if (!extra) return item
@@ -339,8 +339,13 @@ export function mergeHotspotLooks(
     return {
       ...item,
       ...extra,
-      position: isVec3(extra.position) ? extra.position : item.position,
-      camera: preferBaseCamera ? baseCamera ?? storedCamera : storedCamera ?? baseCamera,
+      position:
+        preferBaseLook && isVec3(item.position)
+          ? item.position
+          : isVec3(extra.position)
+            ? extra.position
+            : item.position,
+      camera: preferBaseLook ? baseCamera ?? storedCamera : storedCamera ?? baseCamera,
       autoRotate: typeof extra.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
     }
   })
@@ -676,9 +681,9 @@ export function loadStoredLook(): SavedLook | null {
         : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
-      // Current LOOK_STORAGE_KEY keeps studio Assign camera. PREV migration keeps bake.
+      // Current LOOK_STORAGE_KEY keeps studio Assign/Place. PREV migration keeps bake.
       hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots, {
-        preferBaseCamera: !fromCurrent,
+        preferBaseLook: !fromCurrent,
       }),
       hands: parseHandsLook((parsed as SavedLook).hands) ?? base.hands,
     }

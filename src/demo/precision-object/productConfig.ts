@@ -120,7 +120,7 @@ export const HOTSPOTS: Hotspot[] = [
     label: '02',
     title: 'Mechanical detail',
     body: 'Controls and moving parts stay in context. The camera can approach them without breaking the object into a technical diagram.',
-    position: [-0.824, -0.017, 0.57],
+    position: [-0.843, -0.016, 0.56],
     cameraPreset: 'detail',
   },
   {
@@ -128,7 +128,7 @@ export const HOTSPOTS: Hotspot[] = [
     label: '03',
     title: 'Control interface',
     body: 'The facing surface is framed as a product still — hierarchy, contrast and proportion first, decoration second.',
-    position: [-0.894, -0.325, 0.381],
+    position: [0.163, -0.03, 0.885],
     cameraPreset: 'front',
   },
   {
@@ -136,7 +136,7 @@ export const HOTSPOTS: Hotspot[] = [
     label: '04',
     title: 'Precision geometry',
     body: 'Silhouette and construction lines stay visible from a high angle, the way a designer checks fit, balance and manufacturing intent.',
-    position: [-0.009, -0.188, 0.927],
+    position: [-0.218, -0.192, 0.861],
     cameraPreset: 'top',
   },
 ]
