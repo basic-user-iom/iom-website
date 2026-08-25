@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v34'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v33'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v35'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v34'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -43,6 +43,7 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v28',
   'iom-precision-object-look-v29',
   'iom-precision-object-look-v30',
+  'iom-precision-object-look-v33',
   LOOK_STORAGE_PREV,
 ]
 
@@ -321,16 +322,9 @@ export function formatAllHotspotCamerasJson(
 
 /**
  * Merge hotspot placement / inspect cameras.
- * - Default: stored or studio-assigned position + camera win over baked DEFAULT_LOOK.
- * - `preferBaseLook`: used only when migrating from LOOK_STORAGE_PREV so a fresh
- *   bake can replace stale positions/cameras while keeping autoRotate from storage.
+ * Stored or studio-assigned position + camera win over baked DEFAULT_LOOK.
  */
-export function mergeHotspotLooks(
-  base: HotspotLook[],
-  parsed?: HotspotLook[],
-  options?: { preferBaseLook?: boolean },
-): HotspotLook[] {
-  const preferBaseLook = options?.preferBaseLook === true
+export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
   return base.map((item) => {
     const extra = parsed?.find((entry) => entry.id === item.id)
     if (!extra) return item
@@ -339,14 +333,23 @@ export function mergeHotspotLooks(
     return {
       ...item,
       ...extra,
-      position:
-        preferBaseLook && isVec3(item.position)
-          ? item.position
-          : isVec3(extra.position)
-            ? extra.position
-            : item.position,
-      camera: preferBaseLook ? baseCamera ?? storedCamera : storedCamera ?? baseCamera,
+      position: isVec3(extra.position) ? extra.position : item.position,
+      camera: storedCamera ?? baseCamera,
       autoRotate: typeof extra.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
+    }
+  })
+}
+
+/**
+ * Storage-key migration: replace all hotspot position + camera from DEFAULT_LOOK.
+ * Keeps only per-hotspot autoRotate from the previous save.
+ */
+export function resetHotspotsFromBase(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
+  return base.map((item) => {
+    const extra = parsed?.find((entry) => entry.id === item.id)
+    return {
+      ...item,
+      autoRotate: typeof extra?.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
     }
   })
 }
@@ -681,10 +684,10 @@ export function loadStoredLook(): SavedLook | null {
         : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
-      // Current LOOK_STORAGE_KEY keeps studio Assign/Place. PREV migration keeps bake.
-      hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots, {
-        preferBaseLook: !fromCurrent,
-      }),
+      // Current LOOK_STORAGE_KEY keeps studio Assign/Place. PREV migration replaces hotspots entirely.
+      hotspots: fromCurrent
+        ? mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots)
+        : resetHotspotsFromBase(base.hotspots, (parsed as SavedLook).hotspots),
       hands: parseHandsLook((parsed as SavedLook).hands) ?? base.hands,
     }
     merged.materials = mergeBlackLightness(
