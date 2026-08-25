@@ -134,6 +134,72 @@ body.fs-route::before {
   pointer-events: none;
 }
 
+/*
+ * Superbright rock only: restyle the shared iom-back control to match Night/Day pills.
+ * Other demos keep the default cyan pulse from /demos/iom-back.js.
+ */
+html.fs-route a.iom-back,
+body.fs-route a.iom-back {
+  top: max(1.1rem, env(safe-area-inset-top)) !important;
+  left: max(1.1rem, env(safe-area-inset-left)) !important;
+  min-height: 0 !important;
+  min-width: 0 !important;
+  padding: 0.45rem 0.95rem !important;
+  border-radius: 999px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  background: rgba(10, 11, 14, 0.42) !important;
+  backdrop-filter: blur(18px) !important;
+  -webkit-backdrop-filter: blur(18px) !important;
+  color: rgba(244, 239, 232, 0.88) !important;
+  font-family: 'Syne', system-ui, sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.2 !important;
+  box-shadow: none !important;
+}
+
+html.fs-route a.iom-back::after,
+body.fs-route a.iom-back::after {
+  content: none !important;
+  display: none !important;
+  animation: none !important;
+}
+
+html.fs-route a.iom-back:hover,
+html.fs-route a.iom-back:focus-visible,
+body.fs-route a.iom-back:hover,
+body.fs-route a.iom-back:focus-visible {
+  color: #f7f3ec !important;
+  border-color: rgba(255, 255, 255, 0.22) !important;
+  background: rgba(255, 255, 255, 0.12) !important;
+  outline: none !important;
+}
+
+html.fs-route a.iom-back:focus-visible,
+body.fs-route a.iom-back:focus-visible {
+  outline: 2px solid rgba(255, 214, 174, 0.85) !important;
+  outline-offset: 2px !important;
+}
+
+html.fs-route[data-fs-theme='day'] a.iom-back,
+body.fs-route[data-fs-theme='day'] a.iom-back {
+  border-color: rgba(20, 18, 14, 0.1) !important;
+  background: rgba(20, 18, 14, 0.9) !important;
+  color: #f6f3ee !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+html.fs-route[data-fs-theme='day'] a.iom-back:hover,
+html.fs-route[data-fs-theme='day'] a.iom-back:focus-visible,
+body.fs-route[data-fs-theme='day'] a.iom-back:hover,
+body.fs-route[data-fs-theme='day'] a.iom-back:focus-visible {
+  background: rgba(20, 18, 14, 0.96) !important;
+  border-color: rgba(20, 18, 14, 0.18) !important;
+  color: #ffffff !important;
+}
+
 /* —— Relative Arcball Orbit Tool —— */
 .fs-orbit {
   position: fixed;

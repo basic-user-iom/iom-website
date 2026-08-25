@@ -64,6 +64,13 @@ const PROJECT_SCOPE_RULES = {
     'scripts/deploy-scope.mjs',
     'src/demo/precision-object/',
   ],
+  'floating-stone': [
+    'demos/floating-stone/',
+    'public/demos/iom-back.js',
+    'public/models/stone.glb',
+    'scripts/deploy-scope.mjs',
+    'src/demo/floating-stone/',
+  ],
 }
 
 const RESERVED_PROJECT_SLUGS = new Set([

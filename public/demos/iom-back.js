@@ -75,6 +75,7 @@
     dukta: 'crm-demo',
     'dukta-linar-concept': 'crm-demo',
     'automotive-studio': 'crm-demo',
+    'floating-stone': 'crm-demo',
     'crm-demo': 'crm-demo',
   }
 
