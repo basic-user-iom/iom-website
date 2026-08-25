@@ -28,8 +28,8 @@ export const HeroSection = forwardRef<HTMLElement, Props>(function HeroSection(
         </div>
       </div>
       <p className="pov-scroll-cue" aria-hidden="true">
-        <span />
-        Scroll
+        <span className="pov-scroll-cue__label">Scroll</span>
+        <span className="pov-scroll-cue__mark" />
       </p>
     </section>
   )

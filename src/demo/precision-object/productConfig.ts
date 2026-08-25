@@ -43,6 +43,8 @@ export const PRODUCT = {
   heroLead:
     'A browser-based product presentation concept for products where material, mechanism and detail matter.',
   primaryAction: 'Explore the object',
+  exploreCueHint: 'Click to explore',
+  exploreCueHintTouch: 'Tap to explore',
   secondaryAction: 'View details',
   /**
    * Second-screen floating label (not the hero). Offset from the model

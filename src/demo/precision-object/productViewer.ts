@@ -177,6 +177,70 @@ function meshBounds(root: THREE.Object3D): THREE.Box3 {
   return box
 }
 
+const exploreCueCorner = new THREE.Vector3()
+/** Screen-space anchor: horizontal center, dial band of the watch bounds. */
+const EXPLORE_CUE_BOUNDS_U = 0.5
+const EXPLORE_CUE_BOUNDS_V = 0.48
+
+/** Keep the glass chip inside the canvas (hit uses translate -50% -50%). */
+function clampExploreCueScreen(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  const padX = Math.min(110, width * 0.32)
+  const padY = Math.min(52, height * 0.12)
+  return {
+    x: Math.max(padX, Math.min(width - padX, x)),
+    y: Math.max(padY, Math.min(height - padY, y)),
+  }
+}
+
+function projectExploreCueFromBounds(
+  root: THREE.Object3D,
+  camera: THREE.Camera,
+  width: number,
+  height: number,
+): ScreenHotspot | null {
+  const box = meshBounds(root)
+  if (box.isEmpty()) return null
+
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  let any = false
+
+  for (let i = 0; i < 8; i++) {
+    exploreCueCorner.set(
+      i & 1 ? box.max.x : box.min.x,
+      i & 2 ? box.max.y : box.min.y,
+      i & 4 ? box.max.z : box.min.z,
+    )
+    exploreCueCorner.project(camera)
+    if (exploreCueCorner.z <= -1 || exploreCueCorner.z >= 1) continue
+    const sx = (exploreCueCorner.x * 0.5 + 0.5) * width
+    const sy = (-exploreCueCorner.y * 0.5 + 0.5) * height
+    minX = Math.min(minX, sx)
+    maxX = Math.max(maxX, sx)
+    minY = Math.min(minY, sy)
+    maxY = Math.max(maxY, sy)
+    any = true
+  }
+
+  if (!any) return null
+  const rawX = minX + (maxX - minX) * EXPLORE_CUE_BOUNDS_U
+  const rawY = minY + (maxY - minY) * EXPLORE_CUE_BOUNDS_V
+  const clamped = clampExploreCueScreen(rawX, rawY, width, height)
+  return {
+    id: EXPLORE_CUE_ID,
+    x: clamped.x,
+    y: clamped.y,
+    visible: true,
+  }
+}
+
 function createContactShadow(): { mesh: THREE.Mesh; dispose: () => void } {
   const geo = new THREE.PlaneGeometry(2.4, 2.4)
   const canvas = document.createElement('canvas')
@@ -1094,14 +1158,25 @@ export function createProductViewer(
       }
     })
     if (exploreAnchor.parent) {
-      exploreAnchor.getWorldPosition(screen)
-      screen.project(camera)
-      points.push({
-        id: EXPLORE_CUE_ID,
-        x: (screen.x * 0.5 + 0.5) * w,
-        y: (-screen.y * 0.5 + 0.5) * h,
-        visible: screen.z > -1 && screen.z < 1,
-      })
+      const fromBounds = projectExploreCueFromBounds(modelRoot, camera, w, h)
+      if (fromBounds) {
+        points.push(fromBounds)
+      } else {
+        exploreAnchor.getWorldPosition(screen)
+        screen.project(camera)
+        const clamped = clampExploreCueScreen(
+          (screen.x * 0.5 + 0.5) * w,
+          (-screen.y * 0.5 + 0.5) * h,
+          w,
+          h,
+        )
+        points.push({
+          id: EXPLORE_CUE_ID,
+          x: clamped.x,
+          y: clamped.y,
+          visible: screen.z > -1 && screen.z < 1,
+        })
+      }
     }
     const changed =
       points.length !== lastHotspotPoints.length ||

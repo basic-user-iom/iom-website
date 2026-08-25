@@ -59,6 +59,11 @@ const PROJECT_SCOPE_RULES = {
     'scripts/deploy-scope.mjs',
     'src/demo/dukta-linar-concept/',
   ],
+  'precision-object': [
+    'demos/precision-object/',
+    'scripts/deploy-scope.mjs',
+    'src/demo/precision-object/',
+  ],
 }
 
 const RESERVED_PROJECT_SLUGS = new Set([
