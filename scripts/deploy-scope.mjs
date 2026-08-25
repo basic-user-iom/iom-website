@@ -51,6 +51,14 @@ const NAMED_SCOPES = {
     'scripts/test-deploy-safety.mjs',
     'vercel.json',
   ],
+  crm: [
+    'src/crm/',
+    'api/crm-send-email.js',
+    'api/_lib/crm-send-outreach.js',
+    'api/_lib/email-attachments.js',
+    'scripts/deploy-scope.mjs',
+    'scripts/test-deploy-safety.mjs',
+  ],
 }
 
 const PROJECT_SCOPE_RULES = {

@@ -1,4 +1,5 @@
 import { createLeadMessage, isLeadMessagesSchemaMissing } from './api'
+import type { OutreachAttachmentMeta } from './emailAttachments'
 import type { LeadMessage } from './types'
 import type { SendOutreachEmailResult } from './sendOutreachEmail'
 
@@ -10,6 +11,7 @@ export type PersistOutboundInput = {
   sendResult: SendOutreachEmailResult
   inReplyTo?: string | null
   references?: string | null
+  attachments?: OutreachAttachmentMeta[]
   /** When API already stored the row, skip client insert. */
   alreadyStored?: boolean
 }
@@ -41,6 +43,10 @@ export async function persistOutboundMessage(
       references_header:
         input.references ?? input.sendResult.references ?? null,
       occurred_at: new Date().toISOString(),
+      raw_headers:
+        input.attachments && input.attachments.length > 0
+          ? { attachments: input.attachments }
+          : undefined,
     })
   } catch (err) {
     if (isLeadMessagesSchemaMissing(err)) return null

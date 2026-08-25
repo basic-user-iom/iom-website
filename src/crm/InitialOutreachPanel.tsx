@@ -38,6 +38,11 @@ import {
   splitSchedulePickerValue,
   type SchedulePickerParts,
 } from './scheduledSend'
+import { EmailAttachmentsField } from './EmailAttachmentsField'
+import {
+  attachmentMetaFromPayload,
+  filesToOutreachAttachments,
+} from './emailAttachments'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
 import { isValidIanaTimezone } from './timezones'
@@ -96,6 +101,7 @@ export function InitialOutreachPanel({
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
   )
+  const [attachFiles, setAttachFiles] = useState<File[]>([])
   const scheduleRaw = normalizeScheduledSend(lead.scheduled_send)
   const schedule = scheduleRaw?.kind === 'reply' ? null : scheduleRaw
   const scheduledArmed = isInitialScheduleArmed(lead)
@@ -127,6 +133,10 @@ export function InitialOutreachPanel({
     setSubject(lead.initial_email_subject)
     setBody(lead.initial_email_body)
   }, [lead.id, lead.initial_email_subject, lead.initial_email_body])
+
+  useEffect(() => {
+    setAttachFiles([])
+  }, [lead.id])
 
   useEffect(() => {
     const next = normalizeScheduledSend(lead.scheduled_send)
@@ -325,12 +335,14 @@ export function InitialOutreachPanel({
     setError('')
     setBusy(true)
     try {
+      const attachments = await filesToOutreachAttachments(attachFiles)
       const result = await sendOutreachEmail({
         to,
         subject: subj,
         body: text,
         leadId: lead.id,
         fromIdentity,
+        attachments,
       })
 
       let threadLogged = !!result.storedMessageId
@@ -341,6 +353,7 @@ export function InitialOutreachPanel({
           body: text,
           bodyHtml: renderOutreachEmailHtml({ subject: subj, body: text }),
           sendResult: result,
+          attachments: attachmentMetaFromPayload(attachments),
           alreadyStored: !!result.storedMessageId,
         })
         if (stored) threadLogged = true
@@ -375,6 +388,7 @@ export function InitialOutreachPanel({
           subj,
         )
       }
+      setAttachFiles([])
     } catch (err) {
       setError(err instanceof Error ? err.message : t('outreach.sendFailed'))
     } finally {
@@ -781,6 +795,11 @@ export function InitialOutreachPanel({
                 <>
                   {fromSelect}
                   {recipientSelect}
+                  <EmailAttachmentsField
+                    files={attachFiles}
+                    onChange={setAttachFiles}
+                    disabled={busy}
+                  />
                 </>
               )}
 

@@ -1,5 +1,6 @@
 import { getSupabase, useLiveCrmBackend } from './supabaseClient'
 import { isCrmDemoMode } from './demoMode'
+import type { OutreachEmailAttachment } from './emailAttachments'
 import {
   OUTREACH_FROM_IDENTITIES,
   type OutreachFromIdentityId,
@@ -17,6 +18,7 @@ export type SendOutreachEmailInput = {
   references?: string | null
   /** When false, API skips writing crm_lead_messages (client will persist). */
   persistMessage?: boolean
+  attachments?: OutreachEmailAttachment[]
 }
 
 export type SendOutreachEmailResult = {
@@ -74,6 +76,11 @@ export async function sendOutreachEmail(
   if (!token) throw new Error('You must be signed in to send email.')
 
   const fromIdentity = input.fromIdentity || 'contact'
+  const attachments = (input.attachments || []).map((a) => ({
+    filename: a.filename,
+    contentType: a.contentType,
+    content: a.content,
+  }))
 
   const response = await fetch('/api/crm-send-email', {
     method: 'POST',
@@ -90,8 +97,15 @@ export async function sendOutreachEmail(
       inReplyTo: input.inReplyTo || undefined,
       references: input.references || undefined,
       persistMessage: input.persistMessage,
+      ...(attachments.length ? { attachments } : {}),
     }),
   })
+
+  if (response.status === 413) {
+    throw new Error(
+      'Attachments are too large to send. Try fewer or smaller files (max 2.5 MB total).',
+    )
+  }
 
   const payload = (await response.json().catch(() => null)) as
     | SendOutreachEmailResult

@@ -4,7 +4,8 @@
  * Authorization: Bearer <supabase access token> (staff only)
  * Body: {
  *   to, subject, body, leadId?, fromIdentity?,
- *   inReplyTo?, references?, persistMessage? (default true when leadId)
+ *   inReplyTo?, references?, persistMessage? (default true when leadId),
+ *   attachments? [{ filename, contentType, content (base64) }]
  * }
  * fromIdentity: 'contact' | 'visual' | 'projects' (default contact)
  */
@@ -24,6 +25,12 @@ import {
   normalizeMessageId,
 } from './_lib/crm-lead-messages.js'
 import {
+  OutreachAttachmentError,
+  attachmentMeta,
+  parseOutreachAttachments,
+  toNodemailerAttachments,
+} from './_lib/email-attachments.js'
+import {
   renderOutreachEmailHtml,
   renderOutreachPlainText,
 } from './_lib/outreach-email-html.js'
@@ -31,6 +38,14 @@ import {
   EMAIL_RE,
   resolveProtonIdentity,
 } from './_lib/proton-identities.js'
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: '4mb',
+    },
+  },
+}
 
 export default async function handler(req, res) {
   setAllowedOriginCors(res, req.headers.origin, {
@@ -95,6 +110,19 @@ export default async function handler(req, res) {
     return res.status(400).json(publicError('Body too long', 'BODY_TOO_LONG'))
   }
 
+  let parsedAttachments
+  try {
+    parsedAttachments = parseOutreachAttachments(body.attachments)
+  } catch (err) {
+    const code =
+      err instanceof OutreachAttachmentError ? err.code : 'ATTACHMENT_INVALID'
+    const message =
+      err instanceof Error ? err.message : 'Invalid attachments'
+    return res.status(400).json(publicError(message, code))
+  }
+  const mailAttachments = toNodemailerAttachments(parsedAttachments)
+  const attachMeta = attachmentMeta(parsedAttachments)
+
   const identity = resolveProtonIdentity(fromIdentity)
   if (!identity) {
     return res
@@ -134,6 +162,7 @@ export default async function handler(req, res) {
       inReplyTo: inReplyTo || undefined,
       references: references || undefined,
       headers: Object.keys(mailHeaders).length ? mailHeaders : undefined,
+      attachments: mailAttachments.length ? mailAttachments : undefined,
     })
 
     const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
@@ -164,6 +193,7 @@ export default async function handler(req, res) {
             raw_headers: {
               fromIdentity: identity.id,
               smtpResponse: info.response || null,
+              ...(attachMeta.length ? { attachments: attachMeta } : {}),
             },
           },
         })

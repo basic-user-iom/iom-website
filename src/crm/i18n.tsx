@@ -1422,6 +1422,24 @@ const en: Dict = {
     'Simulate sending this additional email to {email} from {from}? Fake data only — nothing is delivered.',
   'outreach.demoSendNote':
     'Demo mode: Send from CRM simulates delivery with fake data. No Proton SMTP or real inbox is used.',
+  'outreach.attach': 'Attachments',
+  'outreach.attachAdd': 'Attach images or PDFs',
+  'outreach.attachHint':
+    'Images (JPG, PNG, WebP, GIF, HEIC) and PDFs — paste, drop, or pick. Office, zip, and text also work. Up to 5 files, 2.5 MB each; large photos are compressed.',
+  'outreach.attachEmpty': 'No files yet. Paste a screenshot, drop files, or attach images and PDFs.',
+  'outreach.attachCount': '{n} attached',
+  'outreach.attachRemove': 'Remove {name}',
+  'outreach.attachRemoveShort': 'Remove',
+  'outreach.attachImageKind': 'Image',
+  'outreach.attachPreparing': 'Preparing file…',
+  'outreach.attachTooMany': 'You can attach at most {max} files.',
+  'outreach.attachFileTooLarge': '{name} is too large (max {max}).',
+  'outreach.attachTotalTooLarge': 'Attachments are too large in total (max {max}).',
+  'outreach.attachTypeBlocked':
+    '{name} is not an allowed type. Use an image or PDF (Office, zip, and text also work).',
+  'outreach.attachEmptyFile': '{name} is empty.',
+  'outreach.attachScheduleNote':
+    'Attached files go with Send from CRM / Send reply only — Schedule send does not include them.',
   'outreach.sendMissing': 'Recipient, subject, and body are required to send.',
   'outreach.sendFailed': 'Could not send email via Proton.',
   'outreach.sendDemoBlocked': 'Sending is disabled in CRM demo mode.',
@@ -1467,6 +1485,7 @@ const en: Dict = {
   'thread.logInboundActivityBody': 'Logged client reply from {email} into CRM.',
   'thread.logFailed': 'Could not log client reply.',
   'thread.previewTitle': 'Formatted view',
+  'thread.attachments': 'Attachments',
   'thread.scheduleReply': 'Schedule reply',
   'thread.scheduleConfirm':
     'Schedule this reply to {email} at {when} contact time ({tz})? Your clock: {whenYours}. It sends on the next worker run (Ping now, GitHub about 4×/hour, or the daily 08:00 UTC backup) — not at the exact minute. You get an email if delivery fails.',
@@ -1588,9 +1607,9 @@ const en: Dict = {
   'guide.outreachText':
     'Mail still lives in Proton. The CRM drafts, sends, and mirrors the lead thread so you can correspond without leaving /client-login.',
   'guide.outreach1':
-    'Initial outreach: draft subject/body on the lead (or via ChatGPT JSON), Preview formatted email, then Send from CRM (Proton SMTP). You will also see it in Proton Sent',
+    'Initial outreach: draft subject/body on the lead (or via ChatGPT JSON), Preview formatted email, Attach files if needed, then Send from CRM (Proton SMTP). You will also see it in Proton Sent',
   'guide.outreach2':
-    'Email conversation (below): full Sent / Received timeline with formatted preview. Use Compose reply for follow-ups, or Schedule reply like initial outreach — preview of the composer shows only that reply, never the initial draft by mistake',
+    'Email conversation (below): full Sent / Received timeline with formatted preview. Use Compose reply for follow-ups (attachments allowed), or Schedule reply like initial outreach — preview of the composer shows only that reply, never the initial draft by mistake',
   'guide.outreach3':
     'Client replies: Proton keeps the real Inbox. A keep-copy forward to Resend mirrors them into CRM automatically. Unmatched or ambiguous senders land in Unmatched inbound email on the Leads view for staff attach. Until then (or for one-offs), use Log client reply',
   'guide.outreach4':
@@ -3206,6 +3225,24 @@ const sr: Dict = {
     'Simulirati slanje ovog dodatnog emaila na {email} sa {from}? Samo lažni podaci — ništa se ne isporučuje.',
   'outreach.demoSendNote':
     'Demo režim: Pošalji iz CRM-a simulira isporuku lažnim podacima. Ne koristi se Proton SMTP ni pravi sandučić.',
+  'outreach.attach': 'Prilozi',
+  'outreach.attachAdd': 'Priloži slike ili PDF',
+  'outreach.attachHint':
+    'Slike (JPG, PNG, WebP, GIF, HEIC) i PDF — nalepite, prevucite ili izaberite. Office, zip i tekst takođe rade. Do 5 fajlova, 2.5 MB po fajlu; velike fotografije se kompresuju.',
+  'outreach.attachEmpty': 'Još nema priloga. Nalepite screenshot, prevucite fajlove ili priložite slike i PDF.',
+  'outreach.attachCount': '{n} priloženo',
+  'outreach.attachRemove': 'Ukloni {name}',
+  'outreach.attachRemoveShort': 'Ukloni',
+  'outreach.attachImageKind': 'Slika',
+  'outreach.attachPreparing': 'Pripremam fajl…',
+  'outreach.attachTooMany': 'Možete priložiti najviše {max} fajlova.',
+  'outreach.attachFileTooLarge': '{name} je prevelik (max {max}).',
+  'outreach.attachTotalTooLarge': 'Prilozi su preveliki ukupno (max {max}).',
+  'outreach.attachTypeBlocked':
+    '{name} nije dozvoljen tip. Koristite sliku ili PDF (Office, zip i tekst takođe rade).',
+  'outreach.attachEmptyFile': '{name} je prazan.',
+  'outreach.attachScheduleNote':
+    'Prilozi idu samo uz Pošalji iz CRM-a / Pošalji odgovor — Zakaži slanje ih ne uključuje.',
   'outreach.sendMissing': 'Primaoc, naslov i tekst su obavezni za slanje.',
   'outreach.sendFailed': 'Slanje emaila preko Proton-a nije uspelo.',
   'outreach.sendDemoBlocked': 'Slanje je isključeno u CRM demo režimu.',
@@ -3251,6 +3288,7 @@ const sr: Dict = {
   'thread.logInboundActivityBody': 'Odgovor klijenta od {email} zabeležen u CRM.',
   'thread.logFailed': 'Beleženje odgovora klijenta nije uspelo.',
   'thread.previewTitle': 'Formatirani pregled',
+  'thread.attachments': 'Prilozi',
   'thread.scheduleReply': 'Zakaži odgovor',
   'thread.scheduleConfirm':
     'Zakazati ovaj odgovor na {email} u {when} po vremenu kontakta ({tz})? Vaš sat: {whenYours}. Šalje se na sledeći worker tick (Ping sada, GitHub oko 4× na sat, ili dnevni backup u 08:00 UTC) — ne tačno u toj minuti. Ako isporuka ne uspe, dobijate email.',
@@ -3373,9 +3411,9 @@ const sr: Dict = {
   'guide.outreachText':
     'Pravi sandučić ostaje u Protonu. CRM piše, šalje i ogleda nit leada da možete da korespondirate bez napuštanja /client-login.',
   'guide.outreach1':
-    'Inicijalni outreach: draft subject/telo na leadu (ili preko ChatGPT JSON), Pregled formatiranog emaila, zatim Pošalji iz CRM-a (Proton SMTP). Poruka se vidi i u Proton Sent',
+    'Inicijalni outreach: draft subject/telo na leadu (ili preko ChatGPT JSON), Pregled formatiranog emaila, Priloži fajlove po potrebi, zatim Pošalji iz CRM-a (Proton SMTP). Poruka se vidi i u Proton Sent',
   'guide.outreach2':
-    'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno sa formatiranim pregledom. Za follow-up koristite Napiši odgovor, ili Zakaži odgovor kao kod inicijalnog emaila — pregled u kompozitoru pokazuje samo taj odgovor, nikad greškom inicijalni draft',
+    'Email konverzacija (ispod): puna vremenska linija Poslato / Primljeno sa formatiranim pregledom. Za follow-up koristite Napiši odgovor (prilozi su dozvoljeni), ili Zakaži odgovor kao kod inicijalnog emaila — pregled u kompozitoru pokazuje samo taj odgovor, nikad greškom inicijalni draft',
   'guide.outreach3':
     'Odgovori klijenata: Proton čuva pravi Inbox. Keep-copy forward ka Resend ih automatski ogleda u CRM. Nepovezani ili dvosmisleni pošiljaoci idu u Nepovezani dolazni email na pregledu Leadova za ručno povezivanje. Do tada (ili jednokratno) koristite Zabeleži odgovor klijenta',
   'guide.outreach4':

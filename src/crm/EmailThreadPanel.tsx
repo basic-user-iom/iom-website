@@ -44,6 +44,15 @@ import {
   splitSchedulePickerValue,
   type SchedulePickerParts,
 } from './scheduledSend'
+import {
+  EmailAttachmentsField,
+  EmailMessageAttachments,
+} from './EmailAttachmentsField'
+import {
+  attachmentMetaFromPayload,
+  filesToOutreachAttachments,
+  messageAttachmentMeta,
+} from './emailAttachments'
 import { sendOutreachEmail } from './sendOutreachEmail'
 import { useLiveCrmBackend } from './supabaseClient'
 import { isValidIanaTimezone } from './timezones'
@@ -162,6 +171,7 @@ export function EmailThreadPanel({
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
   )
+  const [attachFiles, setAttachFiles] = useState<File[]>([])
   const fromMeta =
     OUTREACH_FROM_IDENTITIES.find((i) => i.id === fromIdentity) ??
     OUTREACH_FROM_IDENTITIES[0]
@@ -240,6 +250,11 @@ export function EmailThreadPanel({
   }, [lead.id, demoMode])
 
   useEffect(() => {
+    setAttachFiles([])
+    setComposeOpen(false)
+  }, [lead.id])
+
+  useEffect(() => {
     const list = collectRecipients(lead)
     if (!list.length) {
       setToEmail('')
@@ -309,6 +324,7 @@ export function EmailThreadPanel({
     setShowPreview(false)
     setError('')
     setPingNote('')
+    setAttachFiles([])
     if (replySchedule?.subject && replySchedule.body) {
       setSubject(replySchedule.subject)
       setBody(replySchedule.body)
@@ -328,6 +344,7 @@ export function EmailThreadPanel({
     setShowPreview(false)
     setSubject('')
     setBody('')
+    setAttachFiles([])
     setError('')
   }
 
@@ -405,6 +422,7 @@ export function EmailThreadPanel({
     setError('')
     setBusy(true)
     try {
+      const attachments = await filesToOutreachAttachments(attachFiles)
       const result = await sendOutreachEmail({
         to,
         subject: subj,
@@ -413,6 +431,7 @@ export function EmailThreadPanel({
         fromIdentity,
         inReplyTo: threading.inReplyTo,
         references: threading.references,
+        attachments,
       })
 
       let threadLogged = !!result.storedMessageId
@@ -425,6 +444,7 @@ export function EmailThreadPanel({
           sendResult: result,
           inReplyTo: threading.inReplyTo,
           references: threading.references,
+          attachments: attachmentMetaFromPayload(attachments),
           alreadyStored: !!result.storedMessageId,
         })
         if (stored) threadLogged = true
@@ -940,6 +960,7 @@ export function EmailThreadPanel({
                     {formatSnippet(msg.body_text, 180)}
                   </pre>
                 )}
+                <EmailMessageAttachments items={messageAttachmentMeta(msg)} />
                 {open && !previewOn && (
                   <div className="crm-email-msg-body">
                     <pre className="crm-outreach-body">{msg.body_text}</pre>
@@ -1150,6 +1171,11 @@ export function EmailThreadPanel({
               disabled={busy}
             />
           </label>
+          <EmailAttachmentsField
+            files={attachFiles}
+            onChange={setAttachFiles}
+            disabled={busy}
+          />
 
           {scheduleControls}
 

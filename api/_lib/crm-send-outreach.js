@@ -9,6 +9,11 @@ import {
   buildReferencesHeader,
 } from './crm-lead-messages.js'
 import {
+  attachmentMeta,
+  parseOutreachAttachments,
+  toNodemailerAttachments,
+} from './email-attachments.js'
+import {
   renderOutreachEmailHtml,
   renderOutreachPlainText,
 } from './outreach-email-html.js'
@@ -29,6 +34,7 @@ import { EMAIL_RE, resolveProtonIdentity } from './proton-identities.js'
  * @param {string} [opts.references]
  * @param {string | null} [opts.ownerId]
  * @param {boolean} [opts.persistMessage]
+ * @param {unknown} [opts.attachments]
  */
 export async function sendCrmOutreachEmail(opts) {
   const host = process.env.PROTON_SMTP_HOST
@@ -63,6 +69,9 @@ export async function sendCrmOutreachEmail(opts) {
   const references = inReplyTo
     ? buildReferencesHeader(referencesRaw, inReplyTo)
     : referencesRaw
+  const parsedAttachments = parseOutreachAttachments(opts.attachments)
+  const mailAttachments = toNodemailerAttachments(parsedAttachments)
+  const attachMeta = attachmentMeta(parsedAttachments)
 
   const transporter = nodemailer.createTransport({
     host,
@@ -89,6 +98,7 @@ export async function sendCrmOutreachEmail(opts) {
     inReplyTo: inReplyTo || undefined,
     references: references || undefined,
     headers: Object.keys(mailHeaders).length ? mailHeaders : undefined,
+    attachments: mailAttachments.length ? mailAttachments : undefined,
   })
 
   const messageId = info.messageId ? normalizeMessageId(info.messageId) : null
@@ -123,6 +133,7 @@ export async function sendCrmOutreachEmail(opts) {
               smtpResponse: info.response || null,
               scheduled: !opts.userToken,
               kind: inReplyTo ? 'reply' : 'initial',
+              ...(attachMeta.length ? { attachments: attachMeta } : {}),
             },
           },
         })

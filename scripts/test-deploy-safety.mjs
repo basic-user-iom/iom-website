@@ -55,5 +55,19 @@ assert.equal(isValidProjectSlug('src'), false)
 assert.equal(matchesDeployScope('src/crm/DemosView.tsx', 'project:src'), false)
 assert.equal(matchesDeployScope('src/crm/DemosView.tsx', 'site'), true)
 assert.equal(matchesDeployScope('public/demos/foo/index.html', 'demo:../foo'), false)
+assert.equal(matchesDeployScope('src/crm/emailAttachments.ts', 'crm'), true)
+assert.equal(matchesDeployScope('api/_lib/email-attachments.js', 'crm'), true)
+assert.equal(matchesDeployScope('api/crm-send-email.js', 'crm'), true)
+assert.equal(matchesDeployScope('src/data/projects.ts', 'crm'), false)
+assert.equal(
+  inferDeployScope([
+    'src/crm/emailAttachments.ts',
+    'src/crm/EmailAttachmentsField.tsx',
+    'api/_lib/email-attachments.js',
+    'api/crm-send-email.js',
+    'scripts/deploy-scope.mjs',
+  ]),
+  'crm',
+)
 
 console.log('Deploy scope safety tests passed.')

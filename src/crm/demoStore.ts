@@ -816,7 +816,15 @@ Media-art research lab — books and workshops listed for demo structure only.`,
       occurred_at: daysAgo(12, 14),
       created_at: daysAgo(12, 14),
       owner_id: partner,
-      raw_headers: {},
+      raw_headers: {
+        attachments: [
+          {
+            filename: 'copper-lantern-companion-outline.pdf',
+            contentType: 'application/pdf',
+            size: 186_400,
+          },
+        ],
+      },
     },
     {
       id: 'demo-msg-2',

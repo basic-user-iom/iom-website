@@ -3110,6 +3110,95 @@ button.crm-tag-chip {
   margin: 0.85rem 0 0.4rem;
 }
 
+.crm-email-attach {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.crm-email-attach-drop {
+  border: 1px dashed color-mix(in srgb, var(--border) 80%, var(--accent) 20%);
+  border-radius: var(--radius);
+  padding: 0.65rem 0.75rem;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
+.crm-email-attach-drop--over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.crm-email-attach-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.crm-email-attach-pick {
+  cursor: pointer;
+}
+
+.crm-email-attach-list {
+  list-style: none;
+  margin: 0.55rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.crm-email-attach-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.crm-email-attach-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg) 80%, #000 8%);
+  flex: 0 0 auto;
+}
+
+.crm-email-attach-name {
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+}
+
+.crm-email-attach-size {
+  font-size: 0.78rem;
+}
+
+.crm-email-attach-remove {
+  margin-left: auto;
+}
+
+.crm-email-attach-empty,
+.crm-email-attach-hint,
+.crm-email-attach-schedule-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.crm-email-attach-sent {
+  margin: 0.4rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.crm-email-attach-sent-label {
+  color: var(--text-muted);
+}
+
+.crm-email-attach-sent-name {
+  font-weight: 600;
+}
+
 .crm-outreach-demo-note {
   margin: 0.35rem 0 0.65rem;
   font-size: 0.85rem;
