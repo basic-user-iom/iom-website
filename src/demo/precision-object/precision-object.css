@@ -965,12 +965,16 @@ html.pov-explore-locked .pov-mechanism {
   padding: 0;
   border: 0;
   background: transparent;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, calc(-100% - 0.55rem));
   pointer-events: auto;
   cursor: pointer;
   color: inherit;
   font: inherit;
   touch-action: manipulation;
+}
+
+.pov-explore-cue__hit.is-below {
+  transform: translate(-50%, 0.55rem);
 }
 
 .pov-explore-cue__pill {

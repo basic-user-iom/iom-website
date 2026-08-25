@@ -316,6 +316,11 @@ function PrecisionObjectUnlockedPage() {
     apiRef.current?.setAutoRotate(false)
   }, [])
 
+  const pauseExploreAutoRotate = useCallback((durationMs?: number) => {
+    if (!exploredRef.current) return
+    apiRef.current?.pauseAutoRotate(durationMs)
+  }, [])
+
   const closeHotspot = useCallback(() => {
     setActiveHotspot(null)
     stopInspectRotate()
@@ -441,6 +446,7 @@ function PrecisionObjectUnlockedPage() {
         <ZonePicker
           value={timeZone}
           onChange={(next) => {
+            pauseExploreAutoRotate()
             setTimeZone(next)
             setWatchTimeZone(next)
             apiRef.current?.setTimeZone(next)
@@ -523,11 +529,15 @@ function PrecisionObjectUnlockedPage() {
           {explored && inViewer && lookOpen ? (
             <LookPanel
               look={look}
-              onChange={setLook}
+              onChange={(next) => {
+                pauseExploreAutoRotate()
+                setLook(next)
+              }}
               captureCamera={() => apiRef.current?.captureCamera() ?? null}
               captureModel={() => apiRef.current?.captureModel() ?? null}
               placeMode={placeMode}
               onPlaceMode={(value) => {
+                pauseExploreAutoRotate()
                 setPlaceMode(value)
                 if (value) {
                   const id = placeHotspotId ?? activeHotspot ?? HOTSPOTS[0].id
@@ -539,25 +549,35 @@ function PrecisionObjectUnlockedPage() {
               }}
               placeHotspotId={placeHotspotId ?? activeHotspot}
               onPlaceHotspotId={(id) => {
+                pauseExploreAutoRotate()
                 setPlaceHotspotId(id)
                 setActiveHotspot(id)
                 apiRef.current?.setPlaceHotspotId(id)
               }}
               gizmoOn={gizmoOn}
-              onGizmoOn={setGizmoOn}
+              onGizmoOn={(value) => {
+                pauseExploreAutoRotate()
+                setGizmoOn(value)
+              }}
               gizmoMode={gizmoMode}
-              onGizmoMode={setGizmoMode}
+              onGizmoMode={(value) => {
+                pauseExploreAutoRotate()
+                setGizmoMode(value)
+              }}
               cameraPan={cameraPan}
               onCameraPan={(value) => {
+                pauseExploreAutoRotate()
                 setCameraPan(value)
                 apiRef.current?.setCameraPan(value)
               }}
               handsHeld={handsHeld}
               onHandsHeld={(value) => {
+                pauseExploreAutoRotate()
                 setHandsHeld(value)
                 apiRef.current?.setHandsFrozen(value)
               }}
               onClose={() => {
+                pauseExploreAutoRotate()
                 setLookOpen(false)
                 setPlaceMode(false)
                 apiRef.current?.setPlaceHotspots(false)
@@ -566,6 +586,7 @@ function PrecisionObjectUnlockedPage() {
           ) : null}
           {explored && inViewer && caps?.hasExploded ? (
             <MechanismMode exploded={exploded} onChange={(value) => {
+              pauseExploreAutoRotate()
               setExploded(value)
               apiRef.current?.setExploded(value)
             }} />
@@ -586,14 +607,17 @@ function PrecisionObjectUnlockedPage() {
                 apiRef.current?.setAutoRotate(value)
               }}
               onLighting={(value) => {
+                pauseExploreAutoRotate()
                 setLighting(value)
                 apiRef.current?.setLighting(value)
               }}
               onMotion={(value) => {
+                pauseExploreAutoRotate()
                 setMotion(value)
                 apiRef.current?.setMotion(value)
               }}
               onPbr={(value) => {
+                pauseExploreAutoRotate()
                 setLook((prev) => ({
                   ...prev,
                   stand: { ...prev.stand, enabled: value },
@@ -601,8 +625,12 @@ function PrecisionObjectUnlockedPage() {
                   dial: { ...prev.dial, enabled: value },
                 }))
               }}
-              onLookOpen={() => setLookOpen((open) => !open)}
+              onLookOpen={() => {
+                pauseExploreAutoRotate()
+                setLookOpen((open) => !open)
+              }}
               onExploded={(value) => {
+                pauseExploreAutoRotate()
                 setExploded(value)
                 apiRef.current?.setExploded(value)
               }}
@@ -615,12 +643,16 @@ function PrecisionObjectUnlockedPage() {
                 apiRef.current?.goToPreset(id)
               }}
               onFullscreen={() => {
+                pauseExploreAutoRotate()
                 const node = liveRef.current
                 if (!node) return
                 if (document.fullscreenElement) void document.exitFullscreen()
                 else void node.requestFullscreen()
               }}
-              onExit={exitExplore}
+              onExit={() => {
+                pauseExploreAutoRotate()
+                exitExplore()
+              }}
             />
           ) : null}
         </div>

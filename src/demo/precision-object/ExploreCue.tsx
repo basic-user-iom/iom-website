@@ -8,12 +8,14 @@ type Props = {
 
 export function ExploreCue({ point, onExplore }: Props) {
   if (!point?.visible) return null
+  // Pill below anchor when cue sits above ~68% of viewport (keeps label off the dial).
+  const showBelow = point.y < window.innerHeight * 0.68
 
   return (
     <div className="pov-explore-cue">
       <button
         type="button"
-        className="pov-explore-cue__hit"
+        className={showBelow ? 'pov-explore-cue__hit is-below' : 'pov-explore-cue__hit'}
         style={{ left: point.x, top: point.y }}
         onClick={onExplore}
         aria-label={`${PRODUCT.primaryAction}. ${PRODUCT.exploreCueHint}`}

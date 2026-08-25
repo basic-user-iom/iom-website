@@ -61,6 +61,8 @@ export type ModelCapabilities = {
 
 export type ViewerApi = {
   setAutoRotate: (value: boolean) => void
+  /** Pause idle auto-rotate; resumes after duration if still wanted. Default 4s. */
+  pauseAutoRotate: (durationMs?: number) => void
   setLighting: (preset: LightingPresetId) => void
   setMotion: (value: boolean) => void
   /** Calibration freeze: stop live ticking and zone-sweep without changing Motion. */

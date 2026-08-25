@@ -122,6 +122,8 @@ type PartRest = {
 
 const TARGET_SIZE = PRODUCT.targetSize
 const IDLE_ROTATE_SPEED = 0.35
+const AUTO_ROTATE_HOTSPOT_PAUSE_MS = 5000
+const AUTO_ROTATE_INTERACTION_PAUSE_MS = 4000
 const VIEW_PAN_SPEED = 1.15
 const VIEW_DOLLY_SPEED = 1.35
 const VIEW_PAN_CODES = new Set([
@@ -180,7 +182,7 @@ function meshBounds(root: THREE.Object3D): THREE.Box3 {
 const exploreCueCorner = new THREE.Vector3()
 /** Screen-space anchor: horizontal center, dial band of the watch bounds. */
 const EXPLORE_CUE_BOUNDS_U = 0.5
-const EXPLORE_CUE_BOUNDS_V = 0.48
+const EXPLORE_CUE_BOUNDS_V = 0.5
 
 /** Keep the glass chip inside the canvas (hit uses translate -50% -50%). */
 function clampExploreCueScreen(
@@ -819,6 +821,24 @@ export function createProductViewer(
     size: [1, 1, 1],
   }
 
+  const canAutoRotateNow = (now = performance.now()) =>
+    autoRotateWanted &&
+    !interacting &&
+    !gizmoWanted &&
+    !gizmoDragging &&
+    !reducedMotion &&
+    now > resumeRotateAt &&
+    !tween
+
+  const syncAutoRotate = (now = performance.now()) => {
+    controls.autoRotate = canAutoRotateNow(now)
+  }
+
+  const deferAutoRotate = (durationMs: number) => {
+    resumeRotateAt = performance.now() + durationMs
+    controls.autoRotate = false
+  }
+
   const markInteract = () => {
     interacting = true
     controls.autoRotate = false
@@ -826,7 +846,7 @@ export function createProductViewer(
   }
   const endInteract = () => {
     interacting = false
-    resumeRotateAt = performance.now() + 1400
+    deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
   }
   controls.addEventListener('start', markInteract)
   controls.addEventListener('end', endInteract)
@@ -2051,9 +2071,7 @@ export function createProductViewer(
       shadowPoseDirty = true
     }
 
-    if (!interacting && autoRotateWanted && !gizmoWanted && !gizmoDragging && !reducedMotion && now > resumeRotateAt && !tween) {
-      controls.autoRotate = true
-    }
+    syncAutoRotate(now)
 
     if (tween) {
       tween.elapsed += dt
@@ -2153,6 +2171,7 @@ export function createProductViewer(
     applyHotspotOverrides()
     onHotspotPlaced?.(placeHotspotId, position)
     onInteract()
+    deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
   }
   mount.addEventListener('pointerdown', onPlacePointer, true)
 
@@ -2161,18 +2180,25 @@ export function createProductViewer(
   const api: ViewerApi = {
     setAutoRotate: (value) => {
       autoRotateWanted = value && !reducedMotion
-      controls.autoRotate = autoRotateWanted && !interacting && !tween
+      if (autoRotateWanted) resumeRotateAt = 0
+      syncAutoRotate()
+    },
+    pauseAutoRotate: (durationMs = AUTO_ROTATE_INTERACTION_PAUSE_MS) => {
+      deferAutoRotate(durationMs)
     },
     setLighting: (preset) => {
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       lightingLook(preset)
     },
     setMotion: (value) => {
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       applyMotion(value)
     },
     setHandsFrozen: (value) => {
       applyHandsFreeze(value)
     },
     setTimeZone: (timeZone) => {
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       commitWatchTimeZone(timeZone)
     },
     setPbr: (value) => {
@@ -2196,7 +2222,8 @@ export function createProductViewer(
       if (!value) {
         gizmoDragging = false
         transformControls.axis = null
-        controls.autoRotate = autoRotateWanted && !interacting && !tween
+        if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
+        syncAutoRotate()
       } else {
         controls.autoRotate = false
       }
@@ -2208,7 +2235,9 @@ export function createProductViewer(
     },
     setPlaceHotspots: (value) => {
       placeMode = value
-      controls.autoRotate = !value && autoRotateWanted && !interacting && !tween && !gizmoDragging
+      if (value) controls.autoRotate = false
+      else if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
+      else syncAutoRotate()
       renderer.domElement.style.cursor = value && interactionEnabled ? 'crosshair' : ''
       syncOrbitEnabled()
     },
@@ -2217,6 +2246,7 @@ export function createProductViewer(
     },
     setExploded: (value) => {
       if (!capabilities.hasExploded) return
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       setExplodedVisual(value)
     },
     setHeroBias: (value) => {
@@ -2259,6 +2289,7 @@ export function createProductViewer(
       syncOrbitEnabled()
     },
     resetCamera: () => {
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       const hero = parseCameraLook(currentLook.views?.hero)
       const front = parseCameraLook(currentLook.views?.front)
       if (hero) applySavedCamera(hero, reducedMotion)
@@ -2266,18 +2297,19 @@ export function createProductViewer(
       else applyPose('front', reducedMotion)
     },
     goToInitialCamera: () => {
-      controls.autoRotate = false
+      deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       applyHeroCamera(reducedMotion)
     },
     goToScrollCamera: () => {
-      controls.autoRotate = false
+      deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
       applyScrollCamera(reducedMotion)
     },
     restoreCameraForScroll: (inHero: boolean) => {
       restoreCameraForScroll(inHero)
     },
     goToPreset: (id) => {
-      controls.autoRotate = false
+      if (interactionEnabled) deferAutoRotate(AUTO_ROTATE_INTERACTION_PAUSE_MS)
+      else controls.autoRotate = false
       const assigned = parseCameraLook(currentLook.views?.[id])
       if (assigned) applySavedCamera(assigned, reducedMotion)
       else if (id === 'hero') applyHeroCamera(reducedMotion)
@@ -2286,7 +2318,7 @@ export function createProductViewer(
     focusHotspot: (id) => {
       const spec = HOTSPOTS.find((h) => h.id === id)
       if (!spec) return
-      controls.autoRotate = false
+      deferAutoRotate(AUTO_ROTATE_HOTSPOT_PAUSE_MS)
       const assigned = parseCameraLook(currentLook.hotspots.find((item) => item.id === id)?.camera)
       if (assigned) {
         applySavedCamera(assigned, reducedMotion)
@@ -2373,6 +2405,7 @@ function emptyApi(): ViewerApi {
   const noop = () => undefined
   return {
     setAutoRotate: noop,
+    pauseAutoRotate: noop,
     setLighting: noop,
     setMotion: noop,
     setHandsFrozen: noop,
