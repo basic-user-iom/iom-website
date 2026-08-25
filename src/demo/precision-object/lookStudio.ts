@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v35'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v34'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v36'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v35'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -44,6 +44,7 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v29',
   'iom-precision-object-look-v30',
   'iom-precision-object-look-v33',
+  'iom-precision-object-look-v34',
   LOOK_STORAGE_PREV,
 ]
 
@@ -321,8 +322,9 @@ export function formatAllHotspotCamerasJson(
 }
 
 /**
- * Merge hotspot placement / inspect cameras.
- * Stored or studio-assigned position + camera win over baked DEFAULT_LOOK.
+ * In-session merge (Place / Assign): studio-assigned position + camera win over bake.
+ * Do not use this when hydrating from localStorage — stored marker positions are not
+ * authoritative for public visitors (see resetHotspotsFromBase).
  */
 export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
   return base.map((item) => {
@@ -341,8 +343,9 @@ export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): 
 }
 
 /**
- * Storage-key migration: replace all hotspot position + camera from DEFAULT_LOOK.
- * Keeps only per-hotspot autoRotate from the previous save.
+ * Public / storage hydrate: always take marker position + inspect camera from the bake.
+ * Keeps only per-hotspot autoRotate from a previous save. Permanence for placements is
+ * baking into DEFAULT_LOOK (Copy hotspot), not localStorage.
  */
 export function resetHotspotsFromBase(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
   return base.map((item) => {
@@ -684,17 +687,17 @@ export function loadStoredLook(): SavedLook | null {
         : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
-      // Current LOOK_STORAGE_KEY keeps studio Assign/Place. PREV migration replaces hotspots entirely.
-      hotspots: fromCurrent
-        ? mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots)
-        : resetHotspotsFromBase(base.hotspots, (parsed as SavedLook).hotspots),
+      // Never let localStorage marker positions override the bake — v35 failed because
+      // fromCurrent kept merging stale Place/Save coords after migration had already run.
+      hotspots: resetHotspotsFromBase(base.hotspots, (parsed as SavedLook).hotspots),
       hands: parseHandsLook((parsed as SavedLook).hands) ?? base.hands,
     }
     merged.materials = mergeBlackLightness(
       merged.materials?.length ? merged.materials : base.materials,
       base.materials.find((item) => item.id === 'black')?.lightness ?? DEFAULT_MATERIAL_LIGHTNESS,
     )
-    if (!localStorage.getItem(LOOK_STORAGE_KEY)) persistLook(merged)
+    // Always rewrite current key so a prior v36 save with bad hotspots cannot linger.
+    persistLook(merged)
     return merged
   } catch {
     return null
@@ -702,7 +705,13 @@ export function loadStoredLook(): SavedLook | null {
 }
 
 export function persistLook(look: SavedLook): void {
-  const next = { ...look, savedAt: new Date().toISOString() }
+  // Marker positions stay bake-authored. Session Place still lives in React state for Copy;
+  // writing them to localStorage is what made production diverge from local after v35.
+  const next: SavedLook = {
+    ...look,
+    hotspots: resetHotspotsFromBase(defaultLook().hotspots, look.hotspots),
+    savedAt: new Date().toISOString(),
+  }
   localStorage.setItem(LOOK_STORAGE_KEY, JSON.stringify(next))
 }
 
