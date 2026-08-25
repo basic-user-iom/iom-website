@@ -15,6 +15,7 @@ import {
   MATERIAL_LIGHTNESS_MIN,
   formatInitialCameraJson,
   formatScrollCameraJson,
+  formatAllHotspotCamerasJson,
   formatHotspotCameraJson,
   formatHandsCalibrationJson,
   formatLookJson,
@@ -428,24 +429,69 @@ export function LookPanel({
     }
     const camera = captureCamera() ?? selectedHotspot?.camera
     if (!camera) {
-      setStatus('Could not capture the camera.')
+      setStatus('Could not capture the camera. Assign a camera first.')
       return
     }
-    const text = formatHotspotCameraJson(id, camera)
+    const fallback = HOTSPOTS.find((item) => item.id === id)
+    const position = selectedHotspot?.position ?? fallback?.position
+    if (!position) {
+      setStatus('No hotspot position. Use Place mode, then copy again.')
+      return
+    }
+    const text = formatHotspotCameraJson(id, camera, position)
     try {
       await navigator.clipboard.writeText(text)
       setCopied(true)
-      setStatus('Copied hotspot camera. Paste this JSON in chat to bake it into DEFAULT_LOOK.hotspots.')
+      setStatus(
+        'Copied hotspot position + camera. Paste this JSON in chat to bake into DEFAULT_LOOK.hotspots.',
+      )
     } catch {
       const blob = new Blob([text], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `precision-object-hotspot-${id}-camera.json`
+      a.download = `precision-object-hotspot-${id}-look.json`
       a.click()
       URL.revokeObjectURL(url)
       setCopied(false)
-      setStatus('Clipboard blocked. Downloaded hotspot camera JSON.')
+      setStatus('Clipboard blocked. Downloaded hotspot look JSON.')
+    }
+  }
+
+  const copyAllHotspotCameras = async () => {
+    const entries: Array<{ id: string; position: [number, number, number]; camera: CameraLook }> = []
+    for (const hotspot of HOTSPOTS) {
+      const saved = look.hotspots.find((item) => item.id === hotspot.id)
+      const camera =
+        placeHotspotId === hotspot.id ? (captureCamera() ?? saved?.camera) : saved?.camera
+      if (!camera) continue
+      const position = saved?.position ?? hotspot.position
+      entries.push({ id: hotspot.id, position, camera })
+    }
+    if (entries.length === 0) {
+      setStatus('No hotspot cameras assigned yet. Assign cameras first.')
+      return
+    }
+    const text = formatAllHotspotCamerasJson(entries)
+    const missing = HOTSPOTS.length - entries.length
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopied(true)
+      setStatus(
+        missing > 0
+          ? `Copied ${entries.length} hotspot looks (position + camera; ${missing} missing). Paste in chat to bake into DEFAULT_LOOK.hotspots.`
+          : 'Copied all hotspot looks (position + camera). Paste in chat to bake into DEFAULT_LOOK.hotspots.',
+      )
+    } catch {
+      const blob = new Blob([text], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'precision-object-hotspot-looks.json'
+      a.click()
+      URL.revokeObjectURL(url)
+      setCopied(false)
+      setStatus('Clipboard blocked. Downloaded precision-object-hotspot-looks.json.')
     }
   }
 
@@ -1054,8 +1100,8 @@ export function LookPanel({
           <p className="pov-studio__hint">Select a hotspot, then click the watch mesh — not the floor.</p>
         ) : (
           <p className="pov-studio__hint">
-            Select a hotspot, orbit to a frame, then Assign camera. Opening that hotspot later flies
-            to this camera.
+            Select a hotspot, orbit to a frame, then Assign camera. Copy camera includes marker
+            position + inspect camera for baking into DEFAULT_LOOK.hotspots.
           </p>
         )}
         <div className="pov-studio__hots">
@@ -1077,6 +1123,9 @@ export function LookPanel({
           </button>
           <button type="button" className="pov-chip" onClick={() => void copyHotspotCamera()}>
             Copy camera
+          </button>
+          <button type="button" className="pov-chip" onClick={() => void copyAllHotspotCameras()}>
+            Copy all cameras
           </button>
           <button
             type="button"

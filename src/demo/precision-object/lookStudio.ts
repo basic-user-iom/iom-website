@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v30'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v29'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v32'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v31'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -41,6 +41,8 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v26',
   'iom-precision-object-look-v27',
   'iom-precision-object-look-v28',
+  'iom-precision-object-look-v29',
+  'iom-precision-object-look-v30',
   LOOK_STORAGE_PREV,
 ]
 
@@ -239,12 +241,16 @@ export function parseCameraLook(value: unknown): CameraLook | undefined {
   }
 }
 
-export function roundCameraLook(camera: CameraLook): CameraLook {
+export function roundVec3(v: Vec3): Vec3 {
   const r = (n: number) => Math.round(n * 1000) / 1000
+  return [r(v[0]), r(v[1]), r(v[2])]
+}
+
+export function roundCameraLook(camera: CameraLook): CameraLook {
   return {
-    position: [r(camera.position[0]), r(camera.position[1]), r(camera.position[2])],
-    target: [r(camera.target[0]), r(camera.target[1]), r(camera.target[2])],
-    fov: r(camera.fov),
+    position: roundVec3(camera.position),
+    target: roundVec3(camera.target),
+    fov: Math.round(camera.fov * 1000) / 1000,
   }
 }
 
@@ -279,13 +285,14 @@ export function formatScrollCameraJson(camera: CameraLook): string {
   )
 }
 
-/** Compact block to paste in chat so a hotspot `camera` can be baked. */
-export function formatHotspotCameraJson(id: string, camera: CameraLook): string {
+/** Compact block to paste in chat so a hotspot `position` + `camera` can be baked. */
+export function formatHotspotCameraJson(id: string, camera: CameraLook, position: Vec3): string {
   return JSON.stringify(
     {
-      'precision-object': 'hotspot-camera',
-      bakeInto: `DEFAULT_LOOK.hotspots[].camera (${id})`,
+      'precision-object': 'hotspot-look',
+      bakeInto: `DEFAULT_LOOK.hotspots[] (${id})`,
       hotspotId: id,
+      position: roundVec3(position),
       camera: roundCameraLook(camera),
     },
     null,
@@ -293,16 +300,47 @@ export function formatHotspotCameraJson(id: string, camera: CameraLook): string 
   )
 }
 
-export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): HotspotLook[] {
+/** Compact block to paste in chat so all hotspot `position` + `camera` values can be baked at once. */
+export function formatAllHotspotCamerasJson(
+  entries: Array<{ id: string; position: Vec3; camera: CameraLook }>,
+): string {
+  return JSON.stringify(
+    {
+      'precision-object': 'hotspot-looks',
+      bakeInto: 'DEFAULT_LOOK.hotspots[]',
+      hotspots: entries.map(({ id, position, camera }) => ({
+        id,
+        position: roundVec3(position),
+        camera: roundCameraLook(camera),
+      })),
+    },
+    null,
+    2,
+  )
+}
+
+/**
+ * Merge hotspot placement / inspect cameras.
+ * - Default: stored or studio-assigned cameras win over baked DEFAULT_LOOK.
+ * - `preferBaseCamera`: used only when migrating from LOOK_STORAGE_PREV so a fresh
+ *   bake can replace stale cameras without discarding placement / autoRotate.
+ */
+export function mergeHotspotLooks(
+  base: HotspotLook[],
+  parsed?: HotspotLook[],
+  options?: { preferBaseCamera?: boolean },
+): HotspotLook[] {
+  const preferBaseCamera = options?.preferBaseCamera === true
   return base.map((item) => {
     const extra = parsed?.find((entry) => entry.id === item.id)
     if (!extra) return item
+    const baseCamera = parseCameraLook(item.camera)
+    const storedCamera = parseCameraLook(extra.camera)
     return {
       ...item,
       ...extra,
       position: isVec3(extra.position) ? extra.position : item.position,
-      // Baked DEFAULT_LOOK cameras win over stale localStorage from pre-bake saves.
-      camera: parseCameraLook(item.camera) ?? parseCameraLook(extra.camera),
+      camera: preferBaseCamera ? baseCamera ?? storedCamera : storedCamera ?? baseCamera,
       autoRotate: typeof extra.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
     }
   })
@@ -481,8 +519,8 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'surface',
       position: [-0.501, 0.281, 0.734],
       camera: {
-        position: [-0.639, 0.552, 1.147],
-        target: [-0.068, 0.433, -0.019],
+        position: [-0.327, 0.752, 0.767],
+        target: [-0.102, 0.437, -0.069],
         fov: 30,
       },
     },
@@ -490,8 +528,8 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'mechanical',
       position: [-0.843, -0.016, 0.56],
       camera: {
-        position: [-1, 0.552, 0.886],
-        target: [-0.068, 0.433, -0.019],
+        position: [-0.591, 0.498, 0.755],
+        target: [-0.102, 0.437, -0.069],
         fov: 30,
       },
     },
@@ -499,16 +537,16 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'interface',
       position: [0.163, -0.03, 0.885],
       camera: {
-        position: [-1.08, 0.552, 0.795],
-        target: [-0.068, 0.433, -0.019],
+        position: [0.22, 0.516, 0.919],
+        target: [-0.102, 0.437, -0.069],
         fov: 30,
       },
     },
     {
       id: 'geometry',
-      position: [-0.193, -0.222, 0.872],
+      position: [-0.218, -0.192, 0.861],
       camera: {
-        position: [-0.827, 0.516, 1.756],
+        position: [-0.058, 0.478, 0.956],
         target: [-0.102, 0.437, -0.069],
         fov: 30,
       },
@@ -638,7 +676,10 @@ export function loadStoredLook(): SavedLook | null {
         : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
-      hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots),
+      // Current LOOK_STORAGE_KEY keeps studio Assign camera. PREV migration keeps bake.
+      hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots, {
+        preferBaseCamera: !fromCurrent,
+      }),
       hands: parseHandsLook((parsed as SavedLook).hands) ?? base.hands,
     }
     merged.materials = mergeBlackLightness(
