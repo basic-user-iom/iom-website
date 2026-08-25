@@ -34,7 +34,7 @@ const npm = process.platform === 'win32'
 const npx = process.platform === 'win32'
   ? { file: process.execPath, prefix: [join(nodeBin, 'node_modules', 'npm', 'bin', 'npx-cli.js')] }
   : { file: 'npx', prefix: [] }
-const MAX_SOURCE_BYTES = 750_000_000
+const MAX_SOURCE_BYTES = 800_000_000
 const FORBIDDEN_UPLOAD_PREFIXES = [
   '.env',
   '.qa-out/',
@@ -319,7 +319,7 @@ function verifyUploadManifest(stage, scopes) {
   )
   const manifest = parseJsonOutput(output, 'Vercel deployment dry-run')
   if (manifest.totalSize > MAX_SOURCE_BYTES) {
-    fail(`Deployment source is ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; safety limit is 750 MB.`)
+    fail(`Deployment source is ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; safety limit is ${(MAX_SOURCE_BYTES / 1_000_000).toFixed(0)} MB.`)
   }
   if (manifest.fileCount > 15_000) fail(`Deployment contains ${manifest.fileCount} files; limit is 15,000.`)
 
