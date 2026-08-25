@@ -345,11 +345,12 @@ export async function prepareEmailAttachmentFile(file: File): Promise<File> {
   return next
 }
 
-export function filesFromClipboard(event: ClipboardEvent): File[] {
-  const fromList = Array.from(event.clipboardData?.files || [])
+export function filesFromClipboard(event: Event): File[] {
+  const data = (event as { clipboardData?: DataTransfer | null }).clipboardData
+  const fromList = Array.from(data?.files || [])
   if (fromList.length) return fromList
   const out: File[] = []
-  for (const item of Array.from(event.clipboardData?.items || [])) {
+  for (const item of Array.from(data?.items || [])) {
     if (item.kind !== 'file') continue
     const file = item.getAsFile()
     if (file) out.push(file)

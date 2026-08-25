@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ClipboardEvent, type DragEvent } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import {
   EMAIL_ATTACH_ACCEPT,
   EMAIL_ATTACH_MAX_FILES,
@@ -103,10 +103,9 @@ export function EmailAttachmentsField({
     if (!root) return
     const onPaste = (event: Event) => {
       if (disabled) return
-      const clip = event as ClipboardEvent
-      const incoming = filesFromClipboard(clip)
+      const incoming = filesFromClipboard(event)
       if (!incoming.length) return
-      clip.preventDefault()
+      event.preventDefault()
       void applyIncomingRef.current(incoming)
     }
     root.addEventListener('paste', onPaste)
