@@ -35,6 +35,7 @@ import {
   hdrUrlFor,
   isHdrId,
   materialGroupId,
+  mergeHotspotLooks,
   parseCameraLook,
   parseNamedViews,
   parseHandsLook,
@@ -1868,6 +1869,7 @@ export function createProductViewer(
       views: parseNamedViews(look.views),
       model: parseModelLook(look.model),
       hands: parseHandsLook(look.hands) ?? currentLook.hands,
+      hotspots: mergeHotspotLooks(defaultLook().hotspots, look.hotspots),
     }
     setHandCalibration(currentLook.hands)
     if (cetHands && !handTween && (handsFrozen || motionWanted)) applyDisplayedHands()
@@ -2319,7 +2321,9 @@ export function createProductViewer(
       const spec = HOTSPOTS.find((h) => h.id === id)
       if (!spec) return
       deferAutoRotate(AUTO_ROTATE_HOTSPOT_PAUSE_MS)
-      const assigned = parseCameraLook(currentLook.hotspots.find((item) => item.id === id)?.camera)
+      const assigned =
+        parseCameraLook(currentLook.hotspots.find((item) => item.id === id)?.camera) ??
+        parseCameraLook(defaultLook().hotspots.find((item) => item.id === id)?.camera)
       if (assigned) {
         applySavedCamera(assigned, reducedMotion)
         return
