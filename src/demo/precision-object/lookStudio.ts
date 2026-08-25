@@ -11,8 +11,8 @@ export { DEFAULT_HAND_CALIBRATION }
 
 type Vec3 = [number, number, number]
 
-export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v27'
-const LOOK_STORAGE_PREV = 'iom-precision-object-look-v26'
+export const LOOK_STORAGE_KEY = 'iom-precision-object-look-v29'
+const LOOK_STORAGE_PREV = 'iom-precision-object-look-v28'
 const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v1',
   'iom-precision-object-look-v2',
@@ -38,6 +38,7 @@ const LOOK_STORAGE_LEGACY = [
   'iom-precision-object-look-v23',
   'iom-precision-object-look-v24',
   'iom-precision-object-look-v25',
+  'iom-precision-object-look-v26',
   LOOK_STORAGE_PREV,
 ]
 
@@ -298,7 +299,8 @@ export function mergeHotspotLooks(base: HotspotLook[], parsed?: HotspotLook[]): 
       ...item,
       ...extra,
       position: isVec3(extra.position) ? extra.position : item.position,
-      camera: parseCameraLook(extra.camera) ?? item.camera,
+      // Baked DEFAULT_LOOK cameras win over stale localStorage from pre-bake saves.
+      camera: parseCameraLook(item.camera) ?? parseCameraLook(extra.camera),
       autoRotate: typeof extra.autoRotate === 'boolean' ? extra.autoRotate : item.autoRotate,
     }
   })
@@ -477,7 +479,7 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'surface',
       position: [-0.501, 0.281, 0.734],
       camera: {
-        position: [-0.463, 0.618, 1.546],
+        position: [-0.639, 0.552, 1.147],
         target: [-0.068, 0.433, -0.019],
         fov: 30,
       },
@@ -486,7 +488,7 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'mechanical',
       position: [-0.843, -0.016, 0.56],
       camera: {
-        position: [-0.718, 0.514, 0.873],
+        position: [-1, 0.552, 0.886],
         target: [-0.068, 0.433, -0.019],
         fov: 30,
       },
@@ -495,9 +497,9 @@ export const DEFAULT_LOOK: SavedLook = {
       id: 'interface',
       position: [0.163, -0.03, 0.885],
       camera: {
-        position: [0.564, 0.558, 0.92],
-        target: [-0.247, 0.517, 0.28],
-        fov: 32,
+        position: [-1.08, 0.552, 0.795],
+        target: [-0.068, 0.433, -0.019],
+        fov: 30,
       },
     },
     {
@@ -634,9 +636,7 @@ export function loadStoredLook(): SavedLook | null {
         : base.scrollCamera,
       views: mergeNamedViews(parseNamedViews(base.views), parseNamedViews((parsed as SavedLook).views)),
       model: parseModelLook((parsed as SavedLook).model) ?? parseModelLook(base.model),
-      hotspots: fromCurrent
-        ? mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots)
-        : base.hotspots,
+      hotspots: mergeHotspotLooks(base.hotspots, (parsed as SavedLook).hotspots),
       hands: parseHandsLook((parsed as SavedLook).hands) ?? base.hands,
     }
     merged.materials = mergeBlackLightness(
