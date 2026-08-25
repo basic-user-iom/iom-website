@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "defaultModelId": "icm-ext-v2",
+  "defaultModelId": "icm-ext",
   "initialModelIds": [
-    "icm-ext-v2"
+    "icm-ext"
   ],
   "models": [
     {
@@ -28,15 +28,6 @@
       "scale": 1,
       "shadowProfile": "architecture",
       "autoPlayAnimation": false
-    },
-    {
-      "id": "icm-ext-v2",
-      "name": "Exterior ver 2",
-      "web": "/models/icm-ext-v2/model-web.glb",
-      "quest": "/models/icm-ext-v2/model-web.glb",
-      "collisionMergeVisual": false,
-      "scale": 1,
-      "shadowProfile": "architecture"
     },
     {
       "id": "icm-golden-ext",

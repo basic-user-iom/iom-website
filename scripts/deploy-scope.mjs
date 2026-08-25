@@ -12,7 +12,6 @@ const NAMED_SCOPES = {
     'public/models/manifest.json',
     'public/models/camera-views.json',
     'public/models/icm-ext/',
-    'public/models/icm-ext-v2/',
     'public/models/icm-anim-2025/model-quest.glb',
     'public/models/icm-anim-2025/collision.glb',
     'public/models/icm-anim-2025/spatial-meta.json',
