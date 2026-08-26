@@ -6,12 +6,14 @@ import type { CrmClientAccount, CrmProject, Lead, ResearchNote } from './types'
 import {
   createResearchNote,
   deleteResearchNote,
+  getResearchNote,
   isResearchNotesSchemaMissing,
   listProjects,
   listResearchNotes,
   updateResearchNote,
 } from './workspaceApi'
 import { listClientAccounts } from './clientTenancyApi'
+import { useLiveCrmBackend } from './supabaseClient'
 
 interface NotesViewProps {
   leads: Lead[]
@@ -44,6 +46,9 @@ export function NotesView({
   const [isNarrow, setIsNarrow] = useState(false)
   const saveTimer = useRef<number | null>(null)
   const skipSave = useRef(false)
+  const noteBodiesLoaded = useRef(new Set<string>())
+  const tRef = useRef(t)
+  tRef.current = t
 
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 900px)')
@@ -62,6 +67,10 @@ export function NotesView({
         listProjects(),
         listClientAccounts().catch(() => [] as CrmClientAccount[]),
       ])
+      noteBodiesLoaded.current = new Set()
+      if (!useLiveCrmBackend()) {
+        for (const n of noteRows) noteBodiesLoaded.current.add(n.id)
+      }
       setNotes(noteRows)
       setProjects(projectRows)
       setClientAccounts(accounts)
@@ -79,20 +88,52 @@ export function NotesView({
       })
     } catch (err) {
       if (isResearchNotesSchemaMissing(err)) {
-        setError(t('notes.schemaMissing'))
+        setError(tRef.current('notes.schemaMissing'))
       } else {
-        setError(err instanceof Error ? err.message : t('notes.loadFailed'))
+        setError(err instanceof Error ? err.message : tRef.current('notes.loadFailed'))
       }
     } finally {
       setLoading(false)
     }
-  }, [initialLeadId, initialProjectId, t])
+  }, [initialLeadId, initialProjectId])
 
   useEffect(() => {
     void refreshNotes()
   }, [refreshNotes])
 
   const selected = notes.find((n) => n.id === selectedId) ?? null
+
+  useEffect(() => {
+    if (!selectedId || !useLiveCrmBackend()) return
+    if (noteBodiesLoaded.current.has(selectedId)) return
+    let alive = true
+    void getResearchNote(selectedId)
+      .then((full) => {
+        if (!alive) return
+        if (!full) {
+          noteBodiesLoaded.current.add(selectedId)
+          return
+        }
+        noteBodiesLoaded.current.add(full.id)
+        skipSave.current = true
+        setNotes((prev) => prev.map((n) => (n.id === full.id ? full : n)))
+        setDraftTitle(full.title)
+        setDraftBody(full.body)
+        setMode(full.body.trim() ? 'preview' : 'edit')
+        setPreviewExpanded(Boolean(full.body.trim()))
+        setSaveState('idle')
+        window.setTimeout(() => {
+          skipSave.current = false
+        }, 0)
+      })
+      .catch((err) => {
+        noteBodiesLoaded.current.add(selectedId)
+        setError(err instanceof Error ? err.message : tRef.current('notes.loadFailed'))
+      })
+    return () => {
+      alive = false
+    }
+  }, [selectedId])
 
   // Reset editor only when switching notes — not when autosave updates title/body
   // (that was collapsing preview and kicking users out of edit mid-typing).
@@ -101,6 +142,9 @@ export function NotesView({
       setDraftTitle('')
       setDraftBody('')
       setSaveState('idle')
+      return
+    }
+    if (useLiveCrmBackend() && !noteBodiesLoaded.current.has(selected.id)) {
       return
     }
     skipSave.current = true
@@ -169,7 +213,8 @@ export function NotesView({
         client_visible: false,
       })
       setTitle('')
-      await refreshNotes()
+      noteBodiesLoaded.current.add(note.id)
+      setNotes((prev) => [note, ...prev.filter((n) => n.id !== note.id)])
       setSelectedId(note.id)
       setMode('edit')
       if (isNarrow) setPreviewExpanded(true)
@@ -188,8 +233,9 @@ export function NotesView({
     setError('')
     try {
       await deleteResearchNote(selected.id)
+      noteBodiesLoaded.current.delete(selected.id)
+      setNotes((prev) => prev.filter((n) => n.id !== selected.id))
       setSelectedId(null)
-      await refreshNotes()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('notes.deleteFailed'))
     }

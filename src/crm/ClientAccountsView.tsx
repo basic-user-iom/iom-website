@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import type { CrmClientAccount, CrmClientMembership, CrmProject, Lead } from './types'
 import {
@@ -18,6 +18,8 @@ interface ClientAccountsViewProps {
 
 export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [accounts, setAccounts] = useState<CrmClientAccount[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [members, setMembers] = useState<CrmClientMembership[]>([])
@@ -45,11 +47,11 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
         return rows[0]?.id ?? null
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('clients.errorLoad'))
+      setError(err instanceof Error ? err.message : tRef.current('clients.errorLoad'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   const refreshMembers = useCallback(async (accountId: string | null) => {
     if (!accountId) {
@@ -59,17 +61,9 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
     try {
       setMembers(await listClientMemberships(accountId))
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('clients.errorMembers'))
+      setError(err instanceof Error ? err.message : tRef.current('clients.errorMembers'))
     }
-  }, [t])
-
-  const refreshProjects = useCallback(async () => {
-    try {
-      setProjects(await listProjects())
-    } catch (err) {
-      setError(err instanceof Error ? err.message : t('clients.errorProjects'))
-    }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void refreshAccounts()
@@ -107,7 +101,7 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
       })
       setNewName('')
       setNewLeadId('')
-      await refreshAccounts()
+      setAccounts((prev) => [row, ...prev.filter((a) => a.id !== row.id)])
       setSelectedId(row.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('clients.errorCreate'))
@@ -136,12 +130,12 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
     setBusy(true)
     setError('')
     try {
-      await updateProject(addProjectId, {
+      const updated = await updateProject(addProjectId, {
         client_account_id: selectedId,
         client_visible: true,
       })
       setAddProjectId('')
-      await refreshProjects()
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('clients.errorProjects'))
     } finally {
@@ -154,11 +148,11 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
     setBusy(true)
     setError('')
     try {
-      await updateProject(projectId, {
+      const updated = await updateProject(projectId, {
         client_account_id: null,
         client_visible: false,
       })
-      await refreshProjects()
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('clients.errorProjects'))
     } finally {
@@ -170,10 +164,10 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
     setBusy(true)
     setError('')
     try {
-      await updateProject(project.id, {
+      const updated = await updateProject(project.id, {
         client_visible: !project.client_visible,
       })
-      await refreshProjects()
+      setProjects((prev) => prev.map((p) => (p.id === updated.id ? updated : p)))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('clients.errorProjects'))
     } finally {
@@ -267,7 +261,11 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
                         void updateClientAccount(selected.id, {
                           active: !selected.active,
                         })
-                          .then(() => refreshAccounts())
+                          .then((updated) => {
+                            setAccounts((prev) =>
+                              prev.map((a) => (a.id === updated.id ? updated : a)),
+                            )
+                          })
                           .catch((err) =>
                             setError(
                               err instanceof Error ? err.message : t('clients.errorUpdate'),
@@ -296,9 +294,10 @@ export function ClientAccountsView({ leads }: ClientAccountsViewProps) {
                         setBusy(true)
                         setError('')
                         void deleteClientAccount(selected.id)
-                          .then(async () => {
+                          .then(() => {
+                            const id = selected.id
+                            setAccounts((prev) => prev.filter((a) => a.id !== id))
                             setSelectedId(null)
-                            await refreshAccounts()
                           })
                           .catch((err) =>
                             setError(

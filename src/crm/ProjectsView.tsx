@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import type {
   BoardColumn,
@@ -69,6 +69,8 @@ export function ProjectsView({
   onOpenTime,
 }: ProjectsViewProps) {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [clientAccounts, setClientAccounts] = useState<CrmClientAccount[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(initialProjectId)
@@ -108,11 +110,11 @@ export function ProjectsView({
       })
       setRunning(await getRunningTimer())
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('proj.loadFailed'))
+      setError(err instanceof Error ? err.message : tRef.current('proj.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [initialProjectId, t])
+  }, [initialProjectId])
 
   const refreshBoard = useCallback(async (projectId: string) => {
     const [cols, taskRows] = await Promise.all([
@@ -134,9 +136,9 @@ export function ProjectsView({
       return
     }
     void refreshBoard(selectedId).catch((err) => {
-      setError(err instanceof Error ? err.message : t('proj.loadFailed'))
+      setError(err instanceof Error ? err.message : tRef.current('proj.loadFailed'))
     })
-  }, [selectedId, refreshBoard, t])
+  }, [selectedId, refreshBoard])
 
   useEffect(() => {
     if (!running || running.ended_at) return
@@ -161,7 +163,7 @@ export function ProjectsView({
         client_visible: false,
       })
       setNewName('')
-      await refreshList()
+      setProjects((prev) => [project, ...prev.filter((p) => p.id !== project.id)])
       setSelectedId(project.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('proj.createFailed'))
@@ -175,8 +177,9 @@ export function ProjectsView({
     if (!confirm(t('proj.deleteConfirm', { name: selected.name }))) return
     try {
       await deleteProject(selected.id)
-      setSelectedId(null)
-      await refreshList()
+      const id = selected.id
+      setProjects((prev) => prev.filter((p) => p.id !== id))
+      setSelectedId((prev) => (prev === id ? null : prev))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('proj.deleteFailed'))
     }
@@ -198,7 +201,6 @@ export function ProjectsView({
       })
       setNewTaskTitle((m) => ({ ...m, [columnId]: '' }))
       await refreshBoard(selected.id)
-      await refreshList()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('proj.taskFailed'))
     }
@@ -388,7 +390,11 @@ export function ProjectsView({
                     onChange={(e) => {
                       void updateProject(selected.id, {
                         status: e.target.value as CrmProject['status'],
-                      }).then(() => refreshList())
+                      }).then((updated) => {
+                        setProjects((prev) =>
+                          prev.map((p) => (p.id === updated.id ? updated : p)),
+                        )
+                      })
                     }}
                   >
                     {PROJECT_STATUS_VALUES.map((s) => (
@@ -404,7 +410,11 @@ export function ProjectsView({
                       onChange={(e) => {
                         void updateProject(selected.id, {
                           client_visible: e.target.checked,
-                        }).then(() => refreshList())
+                        }).then((updated) => {
+                        setProjects((prev) =>
+                          prev.map((p) => (p.id === updated.id ? updated : p)),
+                        )
+                      })
                       }}
                     />
                     <span>{t('proj.clientVisible')}</span>
@@ -416,7 +426,11 @@ export function ProjectsView({
                     onChange={(e) => {
                       void updateProject(selected.id, {
                         client_account_id: e.target.value || null,
-                      }).then(() => refreshList())
+                      }).then((updated) => {
+                        setProjects((prev) =>
+                          prev.map((p) => (p.id === updated.id ? updated : p)),
+                        )
+                      })
                     }}
                   >
                     <option value="">{t('proj.clientAccountNone')}</option>

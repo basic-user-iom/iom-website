@@ -69,20 +69,27 @@ function rowToAudience(row: Record<string, unknown>): BlogAudience {
 
 /* ── Posts ─────────────────────────────────────────────── */
 
-async function fetchTranslationsForPosts(postIds: string[]): Promise<Map<string, BlogPostTranslations>> {
+async function fetchTranslationsForPosts(
+  postIds: string[],
+  includeBody = true,
+): Promise<Map<string, BlogPostTranslations>> {
   const map = new Map<string, BlogPostTranslations>()
   if (!postIds.length || !useLiveCrmBackend()) return map
   const supabase = getSupabase()!
-  const { data, error } = await supabase
-    .from('blog_post_translations')
-    .select('post_id, locale, title, excerpt, body, seo_title, seo_description')
-    .in('post_id', postIds)
+  const query = includeBody
+    ? supabase
+        .from('blog_post_translations')
+        .select('post_id, locale, title, excerpt, body, seo_title, seo_description')
+    : supabase
+        .from('blog_post_translations')
+        .select('post_id, locale, title, excerpt, seo_title, seo_description')
+  const { data, error } = await query.in('post_id', postIds)
   if (error) {
     if (isMissingRelation(error)) return map
     throw new Error(error.message)
   }
-  for (const raw of data || []) {
-    const row = raw as Record<string, unknown>
+  for (const raw of (data as unknown as Record<string, unknown>[] | null) || []) {
+    const row = raw
     const postId = String(row.post_id)
     const locale = String(row.locale ?? '')
     if (!locale) continue
@@ -188,11 +195,13 @@ export async function listBlogPosts(): Promise<BlogPost[]> {
     const supabase = getSupabase()!
     const { data, error } = await supabase
       .from('blog_posts')
-      .select('*')
+      .select(
+        'id, slug, title, excerpt, cover_image_url, status, published_at, seo_title, seo_description, author_name, tags, owner_id, created_at, updated_at',
+      )
       .order('updated_at', { ascending: false })
     if (error) throw new Error(error.message)
     const posts = (data || []).map((r) => rowToPost(r as Record<string, unknown>))
-    const trMap = await fetchTranslationsForPosts(posts.map((p) => p.id))
+    const trMap = await fetchTranslationsForPosts(posts.map((p) => p.id), false)
     return posts.map((p) => {
       const translations = trMap.get(p.id)
       const withDb = !translations
@@ -379,9 +388,34 @@ export async function deleteBlogPost(id: string): Promise<void> {
 
 /** Quick status change without opening the full editor. Keeps published_at history. */
 export async function setBlogPostStatus(id: string, status: BlogPostStatus): Promise<BlogPost> {
+  const stamp = nowIso()
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data: existing, error: loadErr } = await supabase
+      .from('blog_posts')
+      .select('id, published_at')
+      .eq('id', id)
+      .maybeSingle()
+    if (loadErr) throw new Error(loadErr.message)
+    if (!existing) throw new Error('Post not found')
+    const currentPublished =
+      typeof existing.published_at === 'string' ? existing.published_at : null
+    const publishedAt =
+      status === 'published' ? currentPublished || stamp : currentPublished
+    const { data, error } = await supabase
+      .from('blog_posts')
+      .update({ status, published_at: publishedAt, updated_at: stamp })
+      .eq('id', id)
+      .select(
+        'id, slug, title, excerpt, cover_image_url, status, published_at, seo_title, seo_description, author_name, tags, owner_id, created_at, updated_at',
+      )
+      .single()
+    if (error) throw new Error(error.message)
+    return rowToPost(data as Record<string, unknown>)
+  }
+
   const existing = await getBlogPost(id)
   if (!existing) throw new Error('Post not found')
-  const stamp = nowIso()
   let publishedAt = existing.published_at
   if (status === 'published' && !publishedAt) publishedAt = stamp
 

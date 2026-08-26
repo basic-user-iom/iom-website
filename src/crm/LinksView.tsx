@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useCrmI18n } from './i18n'
 import {
   createUsefulLink,
@@ -109,6 +109,8 @@ interface LinksViewProps {
 
 export function LinksView({ demo = false }: LinksViewProps) {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [catalog, setCatalog] = useState<UsefulLink[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -129,11 +131,11 @@ export function LinksView({ demo = false }: LinksViewProps) {
     try {
       setCatalog(await listUsefulLinks())
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('links.loadFailed'))
+      setError(err instanceof Error ? err.message : tRef.current('links.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void refresh()

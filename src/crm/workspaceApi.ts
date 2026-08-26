@@ -108,6 +108,29 @@ export async function listProjectsForLead(leadId: string): Promise<CrmProject[]>
     .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 }
 
+export async function listProjectsForLeads(leadIds: string[]): Promise<CrmProject[]> {
+  const ids = [...new Set(leadIds.filter(Boolean))]
+  if (ids.length === 0) return []
+  if (!useLiveCrmBackend()) {
+    const want = new Set(ids)
+    return readLocal<CrmProject[]>(PROJECTS_KEY, [])
+      .map(normalizeProject)
+      .filter((p) => p.lead_id && want.has(p.lead_id))
+  }
+  const supabase = getSupabase()!
+  const out: CrmProject[] = []
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40)
+    const { data, error } = await supabase
+      .from('crm_projects')
+      .select('id, name, status, lead_id, updated_at')
+      .in('lead_id', chunk)
+    if (error) throw new Error(error.message)
+    out.push(...((data ?? []) as CrmProject[]).map(normalizeProject))
+  }
+  return out
+}
+
 export async function getProject(id: string): Promise<CrmProject | null> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
@@ -758,6 +781,32 @@ export async function listMindMaps(filters?: {
     )
 }
 
+/** lead_id only — bulk ChatGPT export only needs idea counts per lead. */
+export async function listMindMapLeadIds(
+  leadIds: string[],
+): Promise<Array<{ lead_id: string | null }>> {
+  const ids = [...new Set(leadIds.filter(Boolean))]
+  if (ids.length === 0) return []
+  if (!useLiveCrmBackend()) {
+    const want = new Set(ids)
+    return readLocal<MindMap[]>(MAPS_KEY, [])
+      .filter((m) => m.lead_id && want.has(m.lead_id))
+      .map((m) => ({ lead_id: m.lead_id }))
+  }
+  const supabase = getSupabase()!
+  const out: Array<{ lead_id: string | null }> = []
+  for (let i = 0; i < ids.length; i += 40) {
+    const chunk = ids.slice(i, i + 40)
+    const { data, error } = await supabase
+      .from('crm_mind_maps')
+      .select('lead_id')
+      .in('lead_id', chunk)
+    if (error) throw new Error(error.message)
+    out.push(...((data ?? []) as Array<{ lead_id: string | null }>))
+  }
+  return out
+}
+
 export async function createMindMap(input: MindMapInput): Promise<MindMap> {
   const user = await getCurrentUser()
   const stamp = nowIso()
@@ -1091,10 +1140,14 @@ export function isResearchNotesSchemaMissing(err: unknown): boolean {
 function normalizeNote(row: ResearchNote): ResearchNote {
   return {
     ...row,
+    body: typeof row.body === 'string' ? row.body : '',
     client_account_id: row.client_account_id ?? null,
     client_visible: Boolean(row.client_visible),
   }
 }
+
+const NOTE_LIST_SELECT =
+  'id, title, lead_id, project_id, owner_id, client_account_id, client_visible, created_at, updated_at'
 
 export async function listResearchNotes(filters?: {
   leadId?: string
@@ -1104,7 +1157,7 @@ export async function listResearchNotes(filters?: {
     const supabase = getSupabase()!
     let query = supabase
       .from('crm_research_notes')
-      .select('*')
+      .select(NOTE_LIST_SELECT)
       .order('updated_at', { ascending: false })
     if (filters?.leadId) query = query.eq('lead_id', filters.leadId)
     if (filters?.projectId) query = query.eq('project_id', filters.projectId)
@@ -1123,6 +1176,21 @@ export async function listResearchNotes(filters?: {
       (a, b) =>
         new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime(),
     )
+}
+
+export async function getResearchNote(id: string): Promise<ResearchNote | null> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_research_notes')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return data ? normalizeNote(data as ResearchNote) : null
+  }
+  const found = readLocal<ResearchNote[]>(NOTES_KEY, []).find((n) => n.id === id)
+  return found ? normalizeNote(found) : null
 }
 
 export async function createResearchNote(

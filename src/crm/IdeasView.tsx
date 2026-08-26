@@ -126,6 +126,8 @@ export function IdeasView({
   initialProjectId = null,
 }: IdeasViewProps) {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [maps, setMaps] = useState<MindMap[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [nodes, setNodes] = useState<MindNode[]>([])
@@ -166,11 +168,11 @@ export function IdeasView({
         return mapRows[0]?.id ?? null
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('ideas.loadFailed'))
+      setError(err instanceof Error ? err.message : tRef.current('ideas.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [initialLeadId, initialProjectId, t])
+  }, [initialLeadId, initialProjectId])
 
   const refreshNodes = useCallback(async (mapId: string) => {
     setNodes(await listMindNodes(mapId))
@@ -235,7 +237,7 @@ export function IdeasView({
         project_id: linkProjectId || null,
       })
       setTitle('')
-      await refreshMaps()
+      setMaps((prev) => [map, ...prev.filter((m) => m.id !== map.id)])
       setSelectedId(map.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('ideas.createFailed'))
@@ -383,9 +385,10 @@ export function IdeasView({
                     onClick={() => {
                       if (!confirm(t('ideas.deleteConfirm', { name: selected.title })))
                         return
-                      void deleteMindMap(selected.id).then(async () => {
-                        setSelectedId(null)
-                        await refreshMaps()
+                      void deleteMindMap(selected.id).then(() => {
+                        const remaining = maps.filter((m) => m.id !== selected.id)
+                        setMaps(remaining)
+                        setSelectedId(remaining[0]?.id ?? null)
                       })
                     }}
                   >

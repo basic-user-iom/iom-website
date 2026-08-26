@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import type {
   BoardColumn,
@@ -8,6 +8,7 @@ import type {
   ResearchNote,
 } from './types'
 import {
+  getResearchNote,
   listColumns,
   listProjects,
   listResearchNotes,
@@ -22,6 +23,8 @@ interface ClientPortalViewProps {
 /** Read-only portal for authenticated client members (live /client-login only). */
 export function ClientPortalView({ user }: ClientPortalViewProps) {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const showProjectCosts = !isCrmDemoMode()
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [notes, setNotes] = useState<ResearchNote[]>([])
@@ -49,11 +52,11 @@ export function ClientPortalView({ user }: ClientPortalViewProps) {
         return projectRows[0]?.id ?? null
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('portal.errorLoad'))
+      setError(err instanceof Error ? err.message : tRef.current('portal.errorLoad'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void refresh()
@@ -80,7 +83,7 @@ export function ClientPortalView({ user }: ClientPortalViewProps) {
         setColumns([])
         setTasks([])
         setBoardError(
-          err instanceof Error ? err.message : t('portal.boardError'),
+          err instanceof Error ? err.message : tRef.current('portal.boardError'),
         )
       })
       .finally(() => {
@@ -89,7 +92,23 @@ export function ClientPortalView({ user }: ClientPortalViewProps) {
     return () => {
       alive = false
     }
-  }, [openProjectId, t])
+  }, [openProjectId])
+
+  useEffect(() => {
+    if (!openNoteId) return
+    let alive = true
+    void getResearchNote(openNoteId)
+      .then((full) => {
+        if (!alive || !full) return
+        setNotes((prev) => prev.map((n) => (n.id === full.id ? full : n)))
+      })
+      .catch(() => {
+        /* list titles still work if a single body fetch fails */
+      })
+    return () => {
+      alive = false
+    }
+  }, [openNoteId])
 
   const openProject = projects.find((p) => p.id === openProjectId) ?? null
 

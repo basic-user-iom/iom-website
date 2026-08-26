@@ -29,8 +29,9 @@ export async function processDueScheduledSends(opts) {
     `initial_email_subject,initial_email_body,initial_email_drafted_at,initial_email_sent_at,` +
     `contact_priority,scheduled_send,tags` +
     `&scheduled_send=not.is.null` +
+    `&scheduled_send->>at=lte.${encodeURIComponent(nowIso)}` +
     `&order=scheduled_send->>at.asc` +
-    `&limit=100`
+    `&limit=50`
 
   const listRes = await fetch(url, {
     headers: {

@@ -1,6 +1,7 @@
-import { listLeads } from './api'
+import { getLead } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { getSupabase, useLiveCrmBackend } from './supabaseClient'
+import type { Lead } from './types'
 
 export type PingScheduledSendsResult = {
   ok: boolean
@@ -9,6 +10,7 @@ export type PingScheduledSendsResult = {
   processed: number
   sent: number
   failed: number
+  leadIds: string[]
   trigger?: string
   error?: string
   demo?: boolean
@@ -21,6 +23,7 @@ const idleResult = (): PingScheduledSendsResult => ({
   processed: 0,
   sent: 0,
   failed: 0,
+  leadIds: [],
 })
 
 /**
@@ -47,15 +50,7 @@ export function enqueuePingScheduledSends(): Promise<PingScheduledSendsResult> {
 
 async function executePingScheduledSends(): Promise<PingScheduledSendsResult> {
   if (isCrmDemoMode()) {
-    // Demo processes due schedules on list load (no real SMTP).
-    await listLeads({
-      search: '',
-      status: 'all',
-      temperature: 'all',
-      owner: 'all',
-      tag: 'all',
-      sort: 'updated',
-    })
+    // Demo processes due schedules on list load (no real SMTP / Supabase).
     return { ...idleResult(), ok: true, demo: true, trigger: 'demo' }
   }
 
@@ -103,6 +98,18 @@ async function executePingScheduledSends(): Promise<PingScheduledSendsResult> {
     }
   }
 
+  const leadIds = [...new Set(
+    Array.isArray(payload.results)
+      ? payload.results
+          .map((row) =>
+            row && typeof row === 'object' && 'id' in row
+              ? String((row as { id?: unknown }).id || '')
+              : '',
+          )
+          .filter(Boolean)
+      : [],
+  )]
+
   return {
     ok: true,
     checked: Number(payload.checked) || 0,
@@ -110,6 +117,25 @@ async function executePingScheduledSends(): Promise<PingScheduledSendsResult> {
     processed: Number(payload.processed) || 0,
     sent: Number(payload.sent) || 0,
     failed: Number(payload.failed) || 0,
+    leadIds,
     trigger: typeof payload.trigger === 'string' ? payload.trigger : 'staff',
+  }
+}
+
+/** After Ping now / cron-from-UI: patch only the leads that actually changed. */
+export async function applyPingLeadUpdates(
+  ping: PingScheduledSendsResult,
+  onChanged: (updated?: Lead) => void,
+): Promise<void> {
+  if (ping.demo) return
+  if (ping.sent <= 0 && ping.failed <= 0) return
+  if (ping.leadIds.length === 0) return
+  for (const id of ping.leadIds) {
+    try {
+      const lead = await getLead(id)
+      if (lead) onChanged(lead)
+    } catch {
+      /* keep applying other ids */
+    }
   }
 }

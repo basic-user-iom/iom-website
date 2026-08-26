@@ -19,7 +19,7 @@ import {
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
 import { formatClientLocalTime } from './clientWeather'
-import { enqueuePingScheduledSends } from './pingScheduledSends'
+import { applyPingLeadUpdates, enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
   emptySchedulePickerParts,
@@ -466,7 +466,7 @@ export function InitialOutreachPanel({
             due: ping.due,
           }),
         )
-        onChanged()
+        await applyPingLeadUpdates(ping, onChanged)
       } else {
         setPingNote(
           t('outreach.pingOkQueued', {
@@ -495,7 +495,6 @@ export function InitialOutreachPanel({
       }
       if (ping.demo) {
         setPingNote(t('outreach.pingDemoOk'))
-        onChanged()
         return
       }
       if (ping.sent > 0 || ping.failed > 0) {
@@ -506,7 +505,7 @@ export function InitialOutreachPanel({
             due: ping.due,
           }),
         )
-        onChanged()
+        await applyPingLeadUpdates(ping, onChanged)
       } else {
         setPingNote(t('outreach.pingOkIdle', { checked: ping.checked }))
       }
@@ -558,6 +557,7 @@ export function InitialOutreachPanel({
               due: String(ping.due || 0),
             }),
           )
+          await applyPingLeadUpdates(ping, onChanged)
         } else {
           setPingNote(
             t('outreach.scheduleRetryOk', {

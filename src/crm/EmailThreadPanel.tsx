@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   createActivity,
   createLeadMessage,
+  getLead,
   isLeadMessagesSchemaMissing,
   listLeadMessageHeads,
   listLeadMessages,
@@ -25,7 +26,7 @@ import {
 } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
 import { needsReviewClearPatch } from './needsReview'
-import { enqueuePingScheduledSends } from './pingScheduledSends'
+import { applyPingLeadUpdates, enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
   emptySchedulePickerParts,
@@ -395,7 +396,6 @@ export function EmailThreadPanel({
       setPingNote(t('outreach.pingFailed', { error: ping.error || '—' }))
     } else if (ping.demo) {
       setPingNote(t('outreach.pingDemoOk'))
-      onChanged()
     } else if (ping.sent > 0 || ping.failed > 0) {
       setPingNote(
         t('outreach.pingOkSent', {
@@ -404,7 +404,7 @@ export function EmailThreadPanel({
           due: ping.due,
         }),
       )
-      onChanged()
+      await applyPingLeadUpdates(ping, onChanged)
       await refresh()
     } else {
       setPingNote(
@@ -660,7 +660,12 @@ export function EmailThreadPanel({
         occurred_at: new Date().toISOString(),
       })
       await refresh()
-      onChanged()
+      try {
+        const updated = await getLead(lead.id)
+        if (updated) onChanged(updated)
+      } catch {
+        /* thread is already refreshed; catalog can wait */
+      }
     } catch (err) {
       if (isLeadMessagesSchemaMissing(err)) {
         setSchemaMissing(true)

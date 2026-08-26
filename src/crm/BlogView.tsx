@@ -6,6 +6,7 @@ import {
   deleteBlogAudience,
   deleteBlogPost,
   demoAddPendingComment,
+  getBlogPost,
   importCatalogBlogPosts,
   isBlogSchemaMissing,
   listBlogAudience,
@@ -184,6 +185,8 @@ function draftWithPendingReplace(
 
 export function BlogView() {
   const { t } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const demo = isCrmDemoMode()
   const [tab, setTab] = useState<BlogTab>('pending')
   const [posts, setPosts] = useState<BlogPost[]>([])
@@ -235,12 +238,12 @@ export function BlogView() {
       setComments(c)
       setAudience(a)
     } catch (err) {
-      if (isBlogSchemaMissing(err)) setError(t('blog.schemaMissing'))
-      else setError(err instanceof Error ? err.message : t('blog.loadFailed'))
+      if (isBlogSchemaMissing(err)) setError(tRef.current('blog.schemaMissing'))
+      else setError(err instanceof Error ? err.message : tRef.current('blog.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void refresh()
@@ -413,34 +416,50 @@ export function BlogView() {
   }
 
   const openEdit = (post: BlogPost, opts?: { bodyPane?: BodyPane }) => {
-    setEditingId(post.id)
-    const translations: BlogPostTranslations = {
-      en: translationFieldsFromPost(post),
-      ...(post.translations ?? {}),
+    const apply = (full: BlogPost) => {
+      setEditingId(full.id)
+      const translations: BlogPostTranslations = {
+        en: translationFieldsFromPost(full),
+        ...(full.translations ?? {}),
+      }
+      if (!translations.en) translations.en = translationFieldsFromPost(full)
+      const locale: BlogContentLocale = 'en'
+      const fields = translations[locale] ?? emptyTranslationFields()
+      setDraft({
+        slug: full.slug,
+        title: fields.title,
+        excerpt: fields.excerpt,
+        body: fields.body,
+        cover_image_url: full.cover_image_url,
+        status: full.status,
+        published_at: full.published_at,
+        seo_title: fields.seo_title,
+        seo_description: fields.seo_description,
+        author_name: full.author_name,
+        tags: full.tags,
+        contentLocale: locale,
+        translations,
+      })
+      setTagsText(full.tags.join(', '))
+      setBodyPane(opts?.bodyPane ?? 'edit')
+      setReplacingId(null)
+      setReplaceUrlDraft('')
+      setMode('edit')
     }
-    if (!translations.en) translations.en = translationFieldsFromPost(post)
-    const locale: BlogContentLocale = 'en'
-    const fields = translations[locale] ?? emptyTranslationFields()
-    setDraft({
-      slug: post.slug,
-      title: fields.title,
-      excerpt: fields.excerpt,
-      body: fields.body,
-      cover_image_url: post.cover_image_url,
-      status: post.status,
-      published_at: post.published_at,
-      seo_title: fields.seo_title,
-      seo_description: fields.seo_description,
-      author_name: post.author_name,
-      tags: post.tags,
-      contentLocale: locale,
-      translations,
-    })
-    setTagsText(post.tags.join(', '))
-    setBodyPane(opts?.bodyPane ?? 'edit')
-    setReplacingId(null)
-    setReplaceUrlDraft('')
-    setMode('edit')
+    if (useLiveCrmBackend() && !post.body?.trim()) {
+      void getBlogPost(post.id)
+        .then((full) => {
+          const next = full ?? post
+          setPosts((prev) => prev.map((p) => (p.id === next.id ? next : p)))
+          apply(next)
+        })
+        .catch((err) => {
+          setError(err instanceof Error ? err.message : tRef.current('blog.loadFailed'))
+          apply(post)
+        })
+      return
+    }
+    apply(post)
   }
 
   const switchContentLocale = (next: BlogContentLocale) => {
@@ -526,8 +545,16 @@ export function BlogView() {
       seo_description: merged.seo_description,
     }
     try {
-      if (editingId) await updateBlogPost(editingId, input)
-      else await createBlogPost(input)
+      const saved = editingId
+        ? await updateBlogPost(editingId, input)
+        : await createBlogPost(input)
+      setPosts((prev) => {
+        const idx = prev.findIndex((p) => p.id === saved.id)
+        if (idx < 0) return [saved, ...prev]
+        const next = [...prev]
+        next[idx] = saved
+        return next
+      })
       setDraft(input)
       setReplacingId(null)
       setReplaceUrlDraft('')
@@ -536,7 +563,6 @@ export function BlogView() {
       setEditingId(null)
       if (input.status === 'pending_review') setTab('pending')
       else setTab('posts')
-      await refresh()
       setInfo(t('blog.saveOk'))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.saveFailed'))
@@ -549,7 +575,7 @@ export function BlogView() {
     if (!window.confirm(t('blog.deleteConfirm'))) return
     try {
       await deleteBlogPost(id)
-      await refresh()
+      setPosts((prev) => prev.filter((p) => p.id !== id))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.deleteFailed'))
     }
@@ -560,8 +586,14 @@ export function BlogView() {
     setError('')
     setInfo('')
     try {
-      await setBlogPostStatus(id, status)
-      await refresh()
+      const updated = await setBlogPostStatus(id, status)
+      setPosts((prev) =>
+        prev.map((p) =>
+          p.id === id
+            ? { ...p, ...updated, translations: p.translations ?? updated.translations }
+            : p,
+        ),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.statusFailed'))
     } finally {
@@ -632,7 +664,9 @@ export function BlogView() {
   const handleCommentStatus = async (id: string, status: BlogCommentStatus) => {
     try {
       await setBlogCommentStatus(id, status)
-      await refresh()
+      setComments((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, status } : c)),
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.moderationFailed'))
     }
@@ -641,14 +675,14 @@ export function BlogView() {
   const handleAddManual = async () => {
     if (!manualEmail.trim()) return
     try {
-      await addBlogAudienceManual({
+      const row = await addBlogAudienceManual({
         email: manualEmail,
         name: manualName,
         marketing_opt_in: true,
       })
       setManualEmail('')
       setManualName('')
-      await refresh()
+      setAudience((prev) => [row, ...prev.filter((a) => a.id !== row.id)])
     } catch (err) {
       setError(err instanceof Error ? err.message : t('blog.audienceFailed'))
     }

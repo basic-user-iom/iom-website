@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCrmI18n } from './i18n'
 import type { CrmProject, CrmUser, TimeEntry } from './types'
 import {
@@ -21,6 +21,8 @@ interface TimeViewProps {
 
 export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
   const { t, locale } = useCrmI18n()
+  const tRef = useRef(t)
+  tRef.current = t
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [entries, setEntries] = useState<TimeEntry[]>([])
   const [running, setRunning] = useState<TimeEntry | null>(null)
@@ -50,11 +52,11 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
         entryRows.find((e) => !e.ended_at && e.user_id === user.id) ?? null,
       )
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('time.loadFailed'))
+      setError(err instanceof Error ? err.message : tRef.current('time.loadFailed'))
     } finally {
       setLoading(false)
     }
-  }, [t])
+  }, [])
 
   useEffect(() => {
     void refresh()
@@ -88,6 +90,7 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
   const handleStart = async () => {
     setError('')
     try {
+      const previous = running
       const entry = await startTimer({
         project_id: projectId || null,
         task_id: null,
@@ -95,7 +98,15 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
       })
       setRunning(entry)
       setNotes('')
-      await refresh()
+      setEntries((prev) => {
+        let next = prev
+        if (previous && previous.id !== entry.id) {
+          next = next.map((e) =>
+            e.id === previous.id ? { ...e, ended_at: entry.started_at } : e,
+          )
+        }
+        return [entry, ...next.filter((e) => e.id !== entry.id)]
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : t('time.timerFailed'))
     }
@@ -105,9 +116,9 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
     if (!running) return
     setError('')
     try {
-      await stopTimer(running.id)
+      const updated = await stopTimer(running.id)
       setRunning(null)
-      await refresh()
+      setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('time.timerFailed'))
     }
@@ -123,7 +134,7 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
     const started = new Date(ended.getTime() - hours * 3600 * 1000)
     setError('')
     try {
-      await createManualTimeEntry({
+      const entry = await createManualTimeEntry({
         project_id: manualProjectId || null,
         task_id: null,
         notes: manualNotes,
@@ -132,7 +143,7 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
         duration_seconds: Math.round(hours * 3600),
       })
       setManualNotes('')
-      await refresh()
+      setEntries((prev) => [entry, ...prev.filter((e) => e.id !== entry.id)])
     } catch (err) {
       setError(err instanceof Error ? err.message : t('time.manualFailed'))
     }
@@ -329,7 +340,10 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
                     className="btn btn-ghost crm-danger"
                     onClick={() => {
                       if (!confirm(t('time.deleteConfirm'))) return
-                      void deleteTimeEntry(e.id).then(() => refresh())
+                      void deleteTimeEntry(e.id).then(() => {
+                        setEntries((prev) => prev.filter((row) => row.id !== e.id))
+                        setRunning((cur) => (cur?.id === e.id ? null : cur))
+                      })
                     }}
                   >
                     {t('act.delete')}

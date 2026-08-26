@@ -10,12 +10,14 @@ import {
   getCurrentUser,
   getLead,
   linksSchemaKnownMissing,
-  listAllActivities,
-  listAllLeadMessages,
+  listActivitiesForLeads,
+  listLeadMessagesForLeads,
+  hydrateLeadOutreachBodies,
   listLeads as fetchLeads,
   listStaffProfiles,
   backfillMissingClientReplyAts,
   onAuthChange,
+  patchStaffProfileAvatar,
   preserveAtlasEvalFields,
   preserveClientLocaleFields,
   preserveContactPriorityFields,
@@ -67,7 +69,7 @@ import {
   formatLeadsFullExport,
 } from './formatLeadText'
 import { IdeasView } from './IdeasView'
-import { listMindMaps, listProjects } from './workspaceApi'
+import { listMindMapLeadIds, listProjectsForLeads } from './workspaceApi'
 import { isContactPriority } from './outreach'
 import { NotesView } from './NotesView'
 import { ScreenRecorderView } from './ScreenRecorderView'
@@ -384,40 +386,62 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       return
     }
     let alive = true
+    const appliedAuthKeyRef = { current: null as string | null }
     /** Probe MFA before exposing session — avoids remounting login without the code form. */
-    const applyAuthUser = async (u: Awaited<ReturnType<typeof getCurrentUser>>) => {
+    const applyAuthUser = async (
+      u: Awaited<ReturnType<typeof getCurrentUser>>,
+      event?: string,
+    ) => {
       if (!alive) return
       if (!u) {
+        appliedAuthKeyRef.current = null
         setUser(null)
         setMfaHold(false)
         setMfaResumeFactorId(null)
         setAuthReady(true)
         return
       }
-      try {
-        const state = await getPostLoginMfaState()
-        if (!alive) return
-        if (state.kind === 'mfa_challenge') {
-          setMfaResumeFactorId(state.factorId)
-          setMfaHold(true)
-        } else {
-          setMfaHold(false)
-          setMfaResumeFactorId(null)
+      const key = `${u.id}:${u.avatar_url ?? ''}`
+      // Hourly TOKEN_REFRESHED must not re-run MFA or rebuild React user state
+      // (that used to recreate refreshLeads and re-download the whole catalog).
+      if (event === 'TOKEN_REFRESHED' && appliedAuthKeyRef.current === key) {
+        return
+      }
+      const alreadyThisUser = appliedAuthKeyRef.current?.startsWith(`${u.id}:`)
+      const skipMfaProbe =
+        Boolean(alreadyThisUser) || event === 'TOKEN_REFRESHED'
+      if (!skipMfaProbe) {
+        try {
+          const state = await getPostLoginMfaState()
+          if (!alive) return
+          if (state.kind === 'mfa_challenge') {
+            setMfaResumeFactorId(state.factorId)
+            setMfaHold(true)
+          } else {
+            setMfaHold(false)
+            setMfaResumeFactorId(null)
+          }
+        } catch {
+          if (!alive) return
+          if (alreadyThisUser) {
+            setUser(u)
+            setAuthReady(true)
+            return
+          }
+          // Fail closed for staff later via staffMfaReady; keep session visible.
+          setStaffMfaReady(false)
         }
-      } catch {
-        if (!alive) return
-        // Fail closed for staff later via staffMfaReady; keep session visible.
-        setStaffMfaReady(false)
       }
       if (!alive) return
+      appliedAuthKeyRef.current = key
       setUser(u)
       setAuthReady(true)
     }
     void getCurrentUser().then((u) => {
       void applyAuthUser(u)
     })
-    const unsub = onAuthChange((u) => {
-      void applyAuthUser(u)
+    const unsub = onAuthChange((u, event) => {
+      void applyAuthUser(u, event)
     })
     return () => {
       alive = false
@@ -452,7 +476,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   const leadsRef = useRef(leads)
   leadsRef.current = leads
+  const userRef = useRef(user)
+  userRef.current = user
+  const tRef = useRef(t)
+  tRef.current = t
   const backfillDoneRef = useRef(false)
+  const hydratedLeadIds = useRef(new Set<string>())
 
   const refreshLeads = useCallback(async () => {
     // Soft refresh: keep current cards painted; only show the loading
@@ -506,7 +535,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         tag: 'all',
         sort: 'updated',
       })
-      setOwnerOptions(collectOwnerOptions(catalog, user, staff))
+      setOwnerOptions(collectOwnerOptions(catalog, userRef.current, staff))
       // If optional columns are missing, keep optimistic values already in UI.
       setLeads((prev) => {
         let next = catalog
@@ -532,6 +561,9 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           next = preserveAtlasEvalFields(next, prev)
         }
         next = preserveOutreachFields(next, prev)
+        for (const row of next) {
+          if (row.initial_email_body?.trim()) hydratedLeadIds.current.add(row.id)
+        }
         return next
       })
       setSelectedId((prev) => {
@@ -554,13 +586,14 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           })
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('error.loadLeads'))
+      setError(err instanceof Error ? err.message : tRef.current('error.loadLeads'))
     } finally {
       setLoading(false)
     }
-  }, [t, user])
+  }, [])
 
   const upsertLeadInList = useCallback((lead: Lead) => {
+    if (lead.initial_email_body?.trim()) hydratedLeadIds.current.add(lead.id)
     setLeads((prev) => {
       const idx = prev.findIndex((l) => l.id === lead.id)
       if (idx < 0) return [lead, ...prev]
@@ -628,17 +661,23 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   useEffect(() => {
     if (!selectedId || sandboxed || !useLiveCrmBackend()) return
+    if (hydratedLeadIds.current.has(selectedId)) return
     const current = leadsRef.current.find((l) => l.id === selectedId)
-    if (current?.initial_email_body?.trim()) return
+    if (current?.initial_email_body?.trim()) {
+      hydratedLeadIds.current.add(selectedId)
+      return
+    }
     let alive = true
     void getLead(selectedId)
       .then((full) => {
+        hydratedLeadIds.current.add(selectedId)
         if (!alive || !full) return
         setLeads((prev) =>
           prev.map((row) => (row.id === full.id ? { ...row, ...full } : row)),
         )
       })
       .catch(() => {
+        hydratedLeadIds.current.add(selectedId)
         /* keep the slim list row if the detail fetch fails */
       })
     return () => {
@@ -735,6 +774,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setView('list')
     setLoading(true)
     backfillDoneRef.current = false
+    hydratedLeadIds.current.clear()
   }
 
   const handleResetDemo = () => {
@@ -942,13 +982,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     const snapshot = listLeads
     setCopyVisibleState('exporting')
     try {
-      const [messages, activities, projects, ideaMaps] = await Promise.all([
-        listAllLeadMessages().catch(() => []),
-        listAllActivities(),
-        listProjects().catch(() => []),
-        listMindMaps().catch(() => []),
+      const ids = snapshot.map((l) => l.id)
+      const [hydrated, messages, activities, projects, ideaMaps] = await Promise.all([
+        hydrateLeadOutreachBodies(snapshot),
+        listLeadMessagesForLeads(ids).catch(() => []),
+        listActivitiesForLeads(ids).catch(() => []),
+        listProjectsForLeads(ids).catch(() => []),
+        listMindMapLeadIds(ids).catch(() => []),
       ])
-      const text = formatLeadsFullExport(snapshot, {
+      const text = formatLeadsFullExport(hydrated, {
         t,
         statusLabel,
         tempLabel,
@@ -1048,7 +1090,22 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               user={user}
               onUserChange={(next) => {
                 setUser(next)
-                void refreshLeads()
+                patchStaffProfileAvatar(next.id, next.avatar_url)
+                setStaffById((prev) => {
+                  const copy = new Map(prev)
+                  const existing = copy.get(next.id)
+                  if (existing) {
+                    copy.set(next.id, { ...existing, avatar_url: next.avatar_url })
+                  }
+                  return copy
+                })
+                setLeads((prev) =>
+                  prev.map((row) =>
+                    row.owner_id === next.id
+                      ? { ...row, owner_avatar_url: next.avatar_url }
+                      : row,
+                  ),
+                )
               }}
             />
           )}
@@ -1466,8 +1523,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                     pollEnabled={section === 'leads'}
                     onChanged={handleLeadChanged}
                     onDeleted={() => {
+                      const id = selectedId
+                      if (id) {
+                        hydratedLeadIds.current.delete(id)
+                        setLeads((prev) => prev.filter((row) => row.id !== id))
+                      }
                       setSelectedId(null)
-                      void refreshLeads()
                     }}
                     onOpenProject={openProject}
                     onOpenIdeas={openIdeasForLead}

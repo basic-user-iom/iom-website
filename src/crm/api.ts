@@ -80,6 +80,8 @@ function readLocal<T>(key: string, fallback: T): T {
 
 /** PostgREST default max-rows is 1000 — page list + bulk export so counts stay complete. */
 const REST_PAGE_SIZE = 1000
+/** Keep `.in('id', …)` URLs well under gateway limits. */
+const IN_FILTER_CHUNK = 40
 
 async function fetchAllPaged<T>(
   fetchPage: (
@@ -97,6 +99,19 @@ async function fetchAllPaged<T>(
     out.push(...rows)
     if (rows.length < REST_PAGE_SIZE) break
     from += REST_PAGE_SIZE
+  }
+  return out
+}
+
+async function forIdChunks<T>(
+  ids: string[],
+  fn: (chunk: string[]) => Promise<T[]>,
+): Promise<T[]> {
+  const out: T[] = []
+  for (let i = 0; i < ids.length; i += IN_FILTER_CHUNK) {
+    const chunk = ids.slice(i, i + IN_FILTER_CHUNK)
+    if (chunk.length === 0) continue
+    out.push(...(await fn(chunk)))
   }
   return out
 }
@@ -716,19 +731,25 @@ function isJwtUnsafeAvatarUrl(url: string | null | undefined): boolean {
  * If Auth metadata holds a huge data-URL photo, clear it and refresh the
  * session so PostgREST requests stop failing with HTTP 400.
  */
+/** Avoid repeating Auth getSession + updateUser on every getCurrentUser call. */
+let avatarHealUserId: string | null = null
+
 async function healOversizedAuthAvatar(): Promise<void> {
   if (!useLiveCrmBackend()) return
   const supabase = getSupabase()!
   const { data } = await supabase.auth.getSession()
-  const meta = data.session?.user?.user_metadata as
-    | Record<string, unknown>
-    | undefined
+  const user = data.session?.user
+  if (!user?.id) return
+  if (avatarHealUserId === user.id) return
+  avatarHealUserId = user.id
+  const meta = user.user_metadata as Record<string, unknown> | undefined
   const raw = typeof meta?.avatar_url === 'string' ? meta.avatar_url : null
   if (!isJwtUnsafeAvatarUrl(raw)) return
 
   const { error } = await supabase.auth.updateUser({ data: { avatar_url: null } })
   if (error) {
     console.warn('Could not clear oversized profile photo from Auth:', error.message)
+    avatarHealUserId = null
     return
   }
   await supabase.auth.refreshSession()
@@ -780,12 +801,14 @@ export async function getCurrentUser(): Promise<CrmUser | null> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
     await healOversizedAuthAvatar().catch(() => {})
-    const { data } = await supabase.auth.getUser()
-    if (!data.user?.email) return null
+    // Local JWT — do not call Auth getUser() on every mutation (egress + latency).
+    const { data } = await supabase.auth.getSession()
+    const user = data.session?.user
+    if (!user?.email) return null
     return toCrmUser(
-      data.user.id,
-      data.user.email,
-      avatarFromMetadata(data.user.user_metadata as Record<string, unknown>),
+      user.id,
+      user.email,
+      avatarFromMetadata(user.user_metadata as Record<string, unknown>),
     )
   }
   const session = readLocal<LocalSession | null>(LOCAL_SESSION_KEY, null)
@@ -793,14 +816,16 @@ export async function getCurrentUser(): Promise<CrmUser | null> {
   return toCrmUser(session.id, session.email, session.avatar_url ?? null)
 }
 
-export function onAuthChange(cb: (user: CrmUser | null) => void): () => void {
+export function onAuthChange(
+  cb: (user: CrmUser | null, event?: string) => void,
+): () => void {
   if (isCrmDemoMode()) {
-    cb(toCrmUser(DEMO_USER.id, DEMO_USER.email, DEMO_USER.avatar_url))
+    cb(toCrmUser(DEMO_USER.id, DEMO_USER.email, DEMO_USER.avatar_url), 'SIGNED_IN')
     return () => {}
   }
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       const u = session?.user
       cb(
         u?.email
@@ -810,6 +835,7 @@ export function onAuthChange(cb: (user: CrmUser | null) => void): () => void {
               avatarFromMetadata(u.user_metadata as Record<string, unknown>),
             )
           : null,
+        event,
       )
     })
     return () => data.subscription.unsubscribe()
@@ -1714,12 +1740,16 @@ export async function upsertOwnStaffProfile(patch?: {
 }
 
 /** Load shared staff directory (id → profile). Empty map if table missing. */
+let staffProfilesCache: Map<string, StaffProfile> | null = null
+
 export async function listStaffProfiles(): Promise<Map<string, StaffProfile>> {
+  if (staffProfilesCache) return staffProfilesCache
   const map = new Map<string, StaffProfile>()
   if (!useLiveCrmBackend()) {
     if (isCrmDemoMode()) {
       map.set(DEMO_STAFF.id, DEMO_STAFF)
       map.set(DEMO_PARTNER_STAFF.id, DEMO_PARTNER_STAFF)
+      staffProfilesCache = map
       return map
     }
     const user = await getCurrentUser()
@@ -1760,7 +1790,19 @@ export async function listStaffProfiles(): Promise<Map<string, StaffProfile>> {
           : null,
     })
   }
+  staffProfilesCache = map
   return map
+}
+
+/** Keep the in-memory staff directory in sync after a profile photo change. */
+export function patchStaffProfileAvatar(
+  userId: string,
+  avatarUrl: string | null,
+): void {
+  if (!staffProfilesCache) return
+  const existing = staffProfilesCache.get(userId)
+  if (!existing) return
+  staffProfilesCache.set(userId, { ...existing, avatar_url: avatarUrl })
 }
 
 /**
@@ -2509,6 +2551,9 @@ export function isLeadMessagesSchemaMissing(err: unknown): boolean {
 /** Thread rows without body_html — HTML is rebuilt from text for preview. */
 const LEAD_MESSAGE_LIST_SELECT =
   'id, lead_id, direction, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, owner_id, raw_headers'
+/** Bulk ChatGPT export does not need attachment metadata. */
+const LEAD_MESSAGE_EXPORT_SELECT =
+  'id, lead_id, direction, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, owner_id'
 
 export async function listLeadMessageHeads(
   leadId: string,
@@ -2558,6 +2603,45 @@ export async function listLeadMessages(leadId: string): Promise<LeadMessage[]> {
       (a, b) =>
         new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime(),
     )
+}
+
+/** Conversation rows for the given leads only (paginated). Used by bulk ChatGPT export. */
+export async function listLeadMessagesForLeads(
+  leadIds: string[],
+): Promise<LeadMessage[]> {
+  const ids = [...new Set(leadIds.filter(Boolean))]
+  if (ids.length === 0) return []
+  if (!useLiveCrmBackend()) {
+    const want = new Set(ids)
+    return readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+      .filter((m) => want.has(m.lead_id))
+      .sort(
+        (a, b) =>
+          new Date(a.occurred_at).getTime() - new Date(b.occurred_at).getTime(),
+      )
+  }
+  const supabase = getSupabase()!
+  try {
+    return await forIdChunks(ids, async (chunk) => {
+      const rows = await fetchAllPaged<Record<string, unknown>>(async (from, to) => {
+        const { data, error } = await supabase
+          .from('crm_lead_messages')
+          .select(LEAD_MESSAGE_EXPORT_SELECT)
+          .in('lead_id', chunk)
+          .order('occurred_at', { ascending: true })
+          .order('id', { ascending: true })
+          .range(from, to)
+        return {
+          data: (data ?? null) as Record<string, unknown>[] | null,
+          error,
+        }
+      })
+      return rows.map(normalizeLeadMessage)
+    })
+  } catch (err) {
+    if (isLeadMessagesSchemaMissing(err)) return []
+    throw err
+  }
 }
 
 /** All conversation rows (paginated). Used by bulk lead export. */
@@ -2878,7 +2962,7 @@ export async function listInboundUnmatched(limit = 50): Promise<InboundUnmatched
   const { data, error } = await supabase
     .from('crm_inbound_unmatched')
     .select(
-      'id, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, failure_code, candidate_lead_ids, raw_headers, resolved_at, resolved_lead_id',
+      'id, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, failure_code, candidate_lead_ids, resolved_at, resolved_lead_id',
     )
     .is('resolved_at', null)
     .order('created_at', { ascending: false })
@@ -2978,6 +3062,84 @@ export async function listActivities(leadId: string): Promise<Activity[]> {
   return readLocal<Activity[]>(ACTIVITIES_KEY, [])
     .filter((a) => a.lead_id === leadId)
     .sort((a, b) => new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime())
+}
+
+/** Activity rows for the given leads only. Used by bulk ChatGPT export. */
+export async function listActivitiesForLeads(leadIds: string[]): Promise<Activity[]> {
+  const ids = [...new Set(leadIds.filter(Boolean))]
+  if (ids.length === 0) return []
+  if (!useLiveCrmBackend()) {
+    const want = new Set(ids)
+    return readLocal<Activity[]>(ACTIVITIES_KEY, [])
+      .filter((a) => want.has(a.lead_id))
+      .sort(
+        (a, b) =>
+          new Date(b.occurred_at).getTime() - new Date(a.occurred_at).getTime(),
+      )
+  }
+  const supabase = getSupabase()!
+  return forIdChunks(ids, async (chunk) => {
+    const rows = await fetchAllPaged<Activity>(async (from, to) => {
+      const { data, error } = await supabase
+        .from('crm_activities')
+        .select('id, lead_id, type, subject, body, occurred_at, created_at, owner_id')
+        .in('lead_id', chunk)
+        .order('occurred_at', { ascending: false })
+        .order('id', { ascending: true })
+        .range(from, to)
+      return { data: (data ?? null) as Activity[] | null, error }
+    })
+    return rows
+  })
+}
+
+/** Fill omitted initial_email_body on slim catalog rows (bulk ChatGPT export). */
+export async function hydrateLeadOutreachBodies(leads: Lead[]): Promise<Lead[]> {
+  if (leads.length === 0 || outreachColumnsPresent === false) return leads
+  const missing = leads.filter((l) => !l.initial_email_body?.trim())
+  if (missing.length === 0) return leads
+  if (!useLiveCrmBackend()) return leads
+
+  const supabase = getSupabase()!
+  const bodies = new Map<string, string>()
+  try {
+    await forIdChunks(
+      missing.map((l) => l.id),
+      async (chunk) => {
+        const { data, error } = await supabase
+          .from('crm_leads')
+          .select('id, initial_email_body')
+          .in('id', chunk)
+        if (error) {
+          if (isMissingOutreachColumn(error.message)) {
+            markOutreachColumnsMissing()
+            return []
+          }
+          throw new Error(error.message)
+        }
+        for (const row of data ?? []) {
+          const rec = row as unknown as { id?: string; initial_email_body?: string }
+          const id = String(rec.id || '')
+          const body = String(rec.initial_email_body || '')
+          if (id && body.trim()) bodies.set(id, body)
+        }
+        return []
+      },
+    )
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    if (isMissingOutreachColumn(msg)) {
+      markOutreachColumnsMissing()
+      return leads
+    }
+    throw err
+  }
+  if (bodies.size === 0) return leads
+  return leads.map((lead) => {
+    if (lead.initial_email_body?.trim()) return lead
+    const body = bodies.get(lead.id)
+    return body ? { ...lead, initial_email_body: body } : lead
+  })
 }
 
 /** All activity rows (paginated). Used by bulk lead export. */
