@@ -12,7 +12,7 @@ import {
   linksSchemaKnownMissing,
   listActivitiesForLeads,
   listLeadMessagesForLeads,
-  hydrateLeadOutreachBodies,
+  hydrateLeadDetails,
   listLeads as fetchLeads,
   listStaffProfiles,
   backfillMissingClientReplyAts,
@@ -24,6 +24,7 @@ import {
   preserveLeadEmailsFields,
   preserveLeadLinksFields,
   preserveOutreachFields,
+  preserveSlimCatalogFields,
   preserveScheduledSendFields,
   preserveValueEmojiFields,
   probeAtlasEvalSchema,
@@ -542,9 +543,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (clientLocaleSchemaKnownMissing() || !clientLocaleOk) {
           next = preserveClientLocaleFields(next, prev)
         }
-        if (linksSchemaKnownMissing() || !linksOk) {
-          next = preserveLeadLinksFields(next, prev)
-        }
         if (valueEmojiSchemaKnownMissing() || !valueEmojiOk) {
           next = preserveValueEmojiFields(next, prev)
         }
@@ -554,13 +552,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (scheduledSendSchemaKnownMissing() || !scheduledSendOk) {
           next = preserveScheduledSendFields(next, prev)
         }
-        if (emailsSchemaKnownMissing() || !emailsOk) {
-          next = preserveLeadEmailsFields(next, prev)
-        }
-        if (atlasEvalSchemaKnownMissing() || !atlasOk) {
-          next = preserveAtlasEvalFields(next, prev)
-        }
+        // Slim catalog omits these even when the columns exist.
+        next = preserveLeadLinksFields(next, prev)
+        next = preserveLeadEmailsFields(next, prev)
+        next = preserveAtlasEvalFields(next, prev)
         next = preserveOutreachFields(next, prev)
+        next = preserveSlimCatalogFields(next, prev)
         for (const row of next) {
           if (row.initial_email_body?.trim()) hydratedLeadIds.current.add(row.id)
         }
@@ -578,7 +575,14 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             if (!healed.length) return
             setLeads((prev) => {
               const byId = new Map(healed.map((l) => [l.id, l]))
-              return prev.map((l) => byId.get(l.id) ?? l)
+              return prev.map((l) => {
+                const h = byId.get(l.id)
+                if (!h) return l
+                return {
+                  ...l,
+                  last_client_reply_at: h.last_client_reply_at,
+                }
+              })
             })
           })
           .catch(() => {
@@ -593,15 +597,30 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   }, [])
 
   const upsertLeadInList = useCallback((lead: Lead) => {
-    if (lead.initial_email_body?.trim()) hydratedLeadIds.current.add(lead.id)
+    if (
+      lead.initial_email_body?.trim() ||
+      lead.initial_email_subject?.trim() ||
+      lead.notes?.trim() ||
+      lead.offer?.trim() ||
+      lead.contact_role?.trim() ||
+      lead.company_focus?.trim() ||
+      (lead.links?.length ?? 0) > 0 ||
+      (lead.emails?.length ?? 0) > 0
+    ) {
+      hydratedLeadIds.current.add(lead.id)
+    }
     setLeads((prev) => {
       const idx = prev.findIndex((l) => l.id === lead.id)
       if (idx < 0) return [lead, ...prev]
+      const current = prev[idx]
       const next = [...prev]
-      next[idx] = lead
+      // Keep list order stable — a stamp heal must not jump the card to the top.
+      next[idx] = {
+        ...lead,
+        updated_at: current.updated_at,
+      }
       return next
     })
-    setSelectedId(lead.id)
   }, [])
 
   // Resolve staff vs client after Auth session is known (and MFA hold cleared).
@@ -662,18 +681,17 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   useEffect(() => {
     if (!selectedId || sandboxed || !useLiveCrmBackend()) return
     if (hydratedLeadIds.current.has(selectedId)) return
-    const current = leadsRef.current.find((l) => l.id === selectedId)
-    if (current?.initial_email_body?.trim()) {
-      hydratedLeadIds.current.add(selectedId)
-      return
-    }
     let alive = true
     void getLead(selectedId)
       .then((full) => {
         hydratedLeadIds.current.add(selectedId)
         if (!alive || !full) return
         setLeads((prev) =>
-          prev.map((row) => (row.id === full.id ? { ...row, ...full } : row)),
+          prev.map((row) =>
+            row.id === full.id
+              ? { ...row, ...full, updated_at: row.updated_at }
+              : row,
+          ),
         )
       })
       .catch(() => {
@@ -984,7 +1002,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     try {
       const ids = snapshot.map((l) => l.id)
       const [hydrated, messages, activities, projects, ideaMaps] = await Promise.all([
-        hydrateLeadOutreachBodies(snapshot),
+        hydrateLeadDetails(snapshot),
         listLeadMessagesForLeads(ids).catch(() => []),
         listActivitiesForLeads(ids).catch(() => []),
         listProjectsForLeads(ids).catch(() => []),

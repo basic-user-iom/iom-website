@@ -173,6 +173,8 @@ export function EmailThreadPanel({
   const [pingBusy, setPingBusy] = useState(false)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
   const threadHeadRef = useRef('')
+  const leadRef = useRef(lead)
+  leadRef.current = lead
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
@@ -207,7 +209,8 @@ export function EmailThreadPanel({
   const [contactNow, setContactNow] = useState(() => new Date())
 
   const refresh = async () => {
-    setLoading(true)
+    const showSpinner = messages.length === 0
+    if (showSpinner) setLoading(true)
     setError('')
     try {
       const rows = await listLeadMessages(lead.id)
@@ -216,7 +219,7 @@ export function EmailThreadPanel({
         .map((m) => `${m.id}:${m.occurred_at}`)
         .join('|')
       setSchemaMissing(false)
-      void syncLeadClientReplyAt(lead, rows)
+      void syncLeadClientReplyAt(leadRef.current, rows)
         .then((updated) => {
           if (updated) onChanged(updated)
         })
@@ -231,9 +234,14 @@ export function EmailThreadPanel({
         setError(err instanceof Error ? err.message : t('thread.loadFailed'))
       }
     } finally {
-      setLoading(false)
+      if (showSpinner) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setMessages([])
+    threadHeadRef.current = ''
+  }, [lead.id])
 
   useEffect(() => {
     void refresh()
@@ -256,7 +264,7 @@ export function EmailThreadPanel({
           if (!rows) return
           setMessages(rows)
           setSchemaMissing(false)
-          const updated = await syncLeadClientReplyAt(lead, rows)
+          const updated = await syncLeadClientReplyAt(leadRef.current, rows)
           if (updated) onChanged(updated)
         })
         .catch(() => {

@@ -56,16 +56,21 @@ export function ActivityPanel({ leadId, refreshToken = 0 }: ActivityPanelProps) 
   }
 
   const refresh = async () => {
-    setLoading(true)
+    const showSpinner = items.length === 0
+    if (showSpinner) setLoading(true)
     setError('')
     try {
       setItems(await listActivities(leadId))
     } catch (err) {
       setError(err instanceof Error ? err.message : t('act.loadFailed'))
     } finally {
-      setLoading(false)
+      if (showSpinner) setLoading(false)
     }
   }
+
+  useEffect(() => {
+    setItems([])
+  }, [leadId])
 
   useEffect(() => {
     void refresh()

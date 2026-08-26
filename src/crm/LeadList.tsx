@@ -1,5 +1,3 @@
-import { AtlasEvalCompact } from './AtlasEvalFields'
-import { normalizeAtlasEval } from './atlasEval'
 import { useCrmI18n } from './i18n'
 import { LeadClientLocal } from './LeadClientLocal'
 import { LeadTagsDisplay } from './LeadTagsField'
@@ -201,7 +199,6 @@ export function LeadList({
                           }).format(lead.estimated_value)}`}
                       </span>
                     )}
-                    <AtlasEvalCompact eval={normalizeAtlasEval(lead.atlas_eval)} />
                     {showOwner && ownerLabel && (
                       <span className="crm-lead-owner" title={owner.email || undefined}>
                         {t('list.addedBy')} {ownerLabel}

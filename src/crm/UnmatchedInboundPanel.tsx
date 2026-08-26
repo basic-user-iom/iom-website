@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   attachInboundUnmatched,
   dismissInboundUnmatched,
   isInboundUnmatchedSchemaMissing,
   listInboundUnmatched,
+  listInboundUnmatchedIds,
 } from './api'
 import { isCrmDemoMode } from './demoMode'
 import { useCrmI18n } from './i18n'
@@ -31,6 +32,7 @@ export function UnmatchedInboundPanel({
     {},
   )
   const [open, setOpen] = useState(true)
+  const itemsSigRef = useRef('')
 
   const leadOptions = useMemo(
     () =>
@@ -43,15 +45,24 @@ export function UnmatchedInboundPanel({
     [leads],
   )
 
-  const refresh = async () => {
+  const refresh = async (opts?: { silent?: boolean }) => {
     if (isCrmDemoMode() || !useLiveCrmBackend()) {
       setItems([])
       return
     }
-    setLoading(true)
-    setError('')
+    if (!opts?.silent) {
+      setLoading(true)
+      setError('')
+    }
     try {
+      if (opts?.silent) {
+        const ids = await listInboundUnmatchedIds(40)
+        const sig = ids.join('|')
+        if (sig === itemsSigRef.current) return
+      }
       const rows = await listInboundUnmatched(40)
+      const sig = rows.map((row) => row.id).join('|')
+      itemsSigRef.current = sig
       setItems(rows)
       setSchemaMissing(false)
       const defaults: Record<string, string> = {}
@@ -65,11 +76,12 @@ export function UnmatchedInboundPanel({
       if (isInboundUnmatchedSchemaMissing(err)) {
         setSchemaMissing(true)
         setItems([])
-      } else {
+        itemsSigRef.current = ''
+      } else if (!opts?.silent) {
         setError(err instanceof Error ? err.message : t('unmatched.loadFailed'))
       }
     } finally {
-      setLoading(false)
+      if (!opts?.silent) setLoading(false)
     }
   }
 
@@ -79,13 +91,13 @@ export function UnmatchedInboundPanel({
     void refresh()
     const id = window.setInterval(() => {
       if (document.visibilityState !== 'visible') return
-      void refresh()
+      void refresh({ silent: true })
     }, 60_000)
     return () => window.clearInterval(id)
   }, [active])
 
   if (isCrmDemoMode() || !useLiveCrmBackend() || schemaMissing) return null
-  if (!loading && items.length === 0 && !error) return null
+  if (items.length === 0 && !error) return null
 
   const formatWhen = (iso: string) => {
     try {

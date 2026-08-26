@@ -114,7 +114,6 @@ export function LeadClientLocal({
     lead.client_lat,
     lead.client_lon,
     lead.id,
-    lead.updated_at,
   ])
 
   if (!hasTz && !hasPlace) {

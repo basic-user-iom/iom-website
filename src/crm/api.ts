@@ -1378,6 +1378,25 @@ export function preserveAtlasEvalFields(
   })
 }
 
+/** Catalog list omits notes / offer / address; keep values already loaded for an opened lead. */
+export function preserveSlimCatalogFields(incoming: Lead[], previous: Lead[]): Lead[] {
+  if (incoming.length === 0 || previous.length === 0) return incoming
+  const prevById = new Map(previous.map((l) => [l.id, l]))
+  return incoming.map((row) => {
+    const prev = prevById.get(row.id)
+    if (!prev) return row
+    const notes = row.notes?.trim() ? row.notes : prev.notes
+    const offer = row.offer?.trim() ? row.offer : prev.offer
+    const client_address = row.client_address?.trim()
+      ? row.client_address
+      : prev.client_address
+    if (notes === row.notes && offer === row.offer && client_address === row.client_address) {
+      return row
+    }
+    return { ...row, notes, offer, client_address }
+  })
+}
+
 /** When list rows omit outreach fields (missing columns), keep optimistic values. */
 export function preserveOutreachFields(incoming: Lead[], previous: Lead[]): Lead[] {
   if (incoming.length === 0 || previous.length === 0) return incoming
@@ -1385,18 +1404,18 @@ export function preserveOutreachFields(incoming: Lead[], previous: Lead[]): Lead
   return incoming.map((row) => {
     const prev = prevById.get(row.id)
     if (!prev) return row
-    // List queries omit initial_email_body; keep a hydrated draft in memory.
-    const withBody =
-      !row.initial_email_body?.trim() && prev.initial_email_body?.trim()
-        ? { ...row, initial_email_body: prev.initial_email_body }
-        : row
-    const hasIncoming =
-      !!withBody.initial_email_subject?.trim() ||
-      !!withBody.initial_email_body?.trim() ||
-      !!withBody.contact_role?.trim() ||
-      !!withBody.company_focus?.trim()
-    if (hasIncoming) return withBody
-    return mergeOutreachFields(withBody, prev)
+    // Slim catalog omits draft text / role / focus; keep values from an opened lead.
+    return {
+      ...row,
+      initial_email_subject: row.initial_email_subject?.trim()
+        ? row.initial_email_subject
+        : prev.initial_email_subject,
+      initial_email_body: row.initial_email_body?.trim()
+        ? row.initial_email_body
+        : prev.initial_email_body,
+      contact_role: row.contact_role?.trim() ? row.contact_role : prev.contact_role,
+      company_focus: row.company_focus?.trim() ? row.company_focus : prev.company_focus,
+    }
   })
 }
 
@@ -1892,37 +1911,45 @@ function buildLeadSelect(opts?: {
   outreach?: boolean
   /** Full draft body — omit on catalog lists to keep egress tiny. */
   outreachBody?: boolean
+  /**
+   * Left-rail cards only: company, contact, badges, tags, owner, locale clock.
+   * Notes, links, extra emails, atlas, draft text load when the lead is opened.
+   */
+  slim?: boolean
 }): string {
-  const links = opts?.links ?? linksColumnPresent !== false
-  const emails = opts?.emails ?? emailsColumnPresent !== false
+  const slim = opts?.slim === true
+  const links = !slim && (opts?.links ?? linksColumnPresent !== false)
+  const emails = !slim && (opts?.emails ?? emailsColumnPresent !== false)
   const valueEmoji = opts?.valueEmoji ?? valueEmojiColumnPresent !== false
   const tags = opts?.tags ?? tagsColumnsPresent !== false
   const contactPriority = opts?.contactPriority ?? contactPriorityColumnPresent !== false
   const scheduledSend = opts?.scheduledSend ?? scheduledSendColumnPresent !== false
-  const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
+  const atlasEval = !slim && (opts?.atlasEval ?? atlasEvalColumnPresent !== false)
   const clientLocale = opts?.clientLocale ?? clientLocaleColumnsPresent !== false
   const outreach = opts?.outreach ?? outreachColumnsPresent !== false
-  const outreachBody = opts?.outreachBody !== false
+  const outreachBody = !slim && opts?.outreachBody !== false
   const cols = [
     'id',
     'company_name',
     'website',
     ...(links ? (['links'] as const) : []),
     'contact_name',
-    ...(outreach ? (['contact_role'] as const) : []),
+    ...(outreach && !slim ? (['contact_role'] as const) : []),
     'email',
     ...(emails ? (['emails'] as const) : []),
     'phone',
-    'offer',
-    ...(outreach ? (['company_focus'] as const) : []),
-    'notes',
+    ...(slim ? [] : (['offer'] as const)),
+    ...(outreach && !slim ? (['company_focus'] as const) : []),
+    ...(slim ? [] : (['notes'] as const)),
     ...(outreach
-      ? ([
-          'initial_email_subject',
-          ...(outreachBody ? (['initial_email_body'] as const) : []),
-          'initial_email_drafted_at',
-          'initial_email_sent_at',
-        ] as const)
+      ? slim
+        ? (['initial_email_drafted_at', 'initial_email_sent_at'] as const)
+        : ([
+            'initial_email_subject',
+            ...(outreachBody ? (['initial_email_body'] as const) : []),
+            'initial_email_drafted_at',
+            'initial_email_sent_at',
+          ] as const)
       : []),
     'temperature',
     'status',
@@ -1938,7 +1965,7 @@ function buildLeadSelect(opts?: {
           'client_timezone',
           'client_city',
           'client_country',
-          ...(outreach ? (['client_address'] as const) : []),
+          ...(outreach && !slim ? (['client_address'] as const) : []),
           'client_lat',
           'client_lon',
         ] as const)
@@ -1952,7 +1979,7 @@ function buildLeadSelect(opts?: {
   return cols.join(', ')
 }
 
-function currentLeadSelect(opts?: { outreachBody?: boolean }): string {
+function currentLeadSelect(opts?: { outreachBody?: boolean; slim?: boolean }): string {
   return buildLeadSelect(opts)
 }
 
@@ -2114,7 +2141,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
           const result = await applyListFilters(
             supabase
               .from('crm_leads')
-              .select(currentLeadSelect({ outreachBody: false }))
+              .select(currentLeadSelect({ outreachBody: false, slim: true }))
               .order('updated_at', { ascending: false })
               .order('id', { ascending: true }),
           ).range(from, to)
@@ -2784,6 +2811,18 @@ export async function syncLeadClientReplyAt(
       new Date(current).getTime() === new Date(latest).getTime())
   if (same) return null
   try {
+    if (useLiveCrmBackend()) {
+      const supabase = getSupabase()!
+      const { error } = await supabase
+        .from('crm_leads')
+        .update({ last_client_reply_at: latest })
+        .eq('id', lead.id)
+      if (error) {
+        if (isMissingTagsColumn(error.message)) return null
+        throw new Error(error.message)
+      }
+      return { ...lead, last_client_reply_at: latest }
+    }
     return await updateLead(lead.id, { last_client_reply_at: latest })
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err)
@@ -2956,6 +2995,23 @@ export function isInboundUnmatchedSchemaMissing(err: unknown): boolean {
   )
 }
 
+/** Queue ids only — used by the silent unmatched poll so unchanged queues skip a body download. */
+export async function listInboundUnmatchedIds(limit = 50): Promise<string[]> {
+  if (!useLiveCrmBackend()) return []
+  const supabase = getSupabase()!
+  const { data, error } = await supabase
+    .from('crm_inbound_unmatched')
+    .select('id')
+    .is('resolved_at', null)
+    .order('created_at', { ascending: false })
+    .limit(Math.max(1, Math.min(limit, 100)))
+  if (error) {
+    if (isInboundUnmatchedSchemaMissing(error)) return []
+    throw new Error(error.message)
+  }
+  return (data ?? []).map((row) => String((row as { id?: string }).id ?? ''))
+}
+
 export async function listInboundUnmatched(limit = 50): Promise<InboundUnmatched[]> {
   if (!useLiveCrmBackend()) return []
   const supabase = getSupabase()!
@@ -3091,6 +3147,35 @@ export async function listActivitiesForLeads(leadIds: string[]): Promise<Activit
     })
     return rows
   })
+}
+
+/** Full lead rows for visible ChatGPT export (catalog list is slim until a lead is opened). */
+export async function hydrateLeadDetails(leads: Lead[]): Promise<Lead[]> {
+  if (leads.length === 0) return leads
+  if (!useLiveCrmBackend()) return leads
+  const supabase = getSupabase()!
+  const fullById = new Map<string, Lead>()
+  try {
+    await forIdChunks(
+      leads.map((l) => l.id),
+      async (chunk) => {
+        const { data, error } = await supabase
+          .from('crm_leads')
+          .select(currentLeadSelect({ outreachBody: true }))
+          .in('id', chunk)
+        if (error) throw new Error(error.message)
+        for (const row of data ?? []) {
+          const lead = normalizeLead(row as unknown as Lead)
+          if (lead.id) fullById.set(lead.id, lead)
+        }
+        return []
+      },
+    )
+  } catch {
+    return hydrateLeadOutreachBodies(leads)
+  }
+  if (fullById.size === 0) return leads
+  return leads.map((lead) => fullById.get(lead.id) ?? lead)
 }
 
 /** Fill omitted initial_email_body on slim catalog rows (bulk ChatGPT export). */

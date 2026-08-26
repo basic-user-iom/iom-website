@@ -250,10 +250,7 @@ export function LeadDetail({
     setError('')
     setCopying(true)
     try {
-      let full = lead
-      if (!lead.initial_email_body?.trim()) {
-        full = (await getLead(lead.id)) ?? lead
-      }
+      const full = (await getLead(lead.id)) ?? lead
       const [activities, messages] = await Promise.all([
         listActivities(lead.id),
         listLeadMessages(lead.id).catch(() => []),
@@ -676,8 +673,6 @@ export function LeadDetail({
         refreshToken={messageTick}
         active={pollEnabled}
         onChanged={(updated) => {
-          setActivityTick((n) => n + 1)
-          setMessageTick((n) => n + 1)
           onChanged(updated)
         }}
       />
