@@ -4,7 +4,8 @@ import { LanguageSwitcher } from './LanguageSwitcher'
 import { useSiteI18n } from '../i18n'
 import { localizedSectionNav } from '../i18n/projects/sectionNav'
 import { getDeviceProfile } from '../utils/device'
-import { persistMute, readStoredMute } from '../utils/audioPrefs'
+import { readStoredMute } from '../utils/audioPrefs'
+import { getAudioFocus, subscribeAudioFocus } from '../utils/audioFocus'
 import { handleHomeHashLinkClick } from '../utils/homeHashScroll'
 import { toggleSiteMute } from './SiteAmbientAudio'
 
@@ -18,6 +19,7 @@ export function Header() {
   const [scrolled, setScrolled] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [siteMuted, setSiteMuted] = useState(() => readStoredMute('site'))
+  const [audioFocusActive, setAudioFocusActive] = useState(() => getAudioFocus() != null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const profile = getDeviceProfile()
   // Mobile: skip the ~2.4MB autoplay loop — static poster is enough in the 44px badge.
@@ -59,6 +61,13 @@ export function Header() {
   }, [])
 
   useEffect(() => {
+    setAudioFocusActive(getAudioFocus() != null)
+    return subscribeAudioFocus((detail) => {
+      setAudioFocusActive(detail.source != null)
+    })
+  }, [])
+
+  useEffect(() => {
     const onMusicSection = (event: Event) => {
       const visible = Boolean((event as CustomEvent<{ visible?: boolean }>).detail?.visible)
       setInMusicSection(visible)
@@ -71,6 +80,9 @@ export function Header() {
   const closeMenu = () => setMenuOpen(false)
   const path = typeof window !== 'undefined' ? window.location.pathname.replace(/\/+$/, '') || '/' : '/'
   const onBlog = /(?:^|\/)blog(?:\/|$)/.test(path)
+  // Mute = sound is actually on. A saved unmute preference alone is not enough:
+  // mobile browsers block autoplay, so the control must stay Listen until play().
+  const soundOn = !siteMuted && audioFocusActive
 
   const handleHomeHashClick = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     closeMenu()
@@ -86,9 +98,7 @@ export function Header() {
       })
       return
     }
-    const next = toggleSiteMute()
-    setSiteMuted(next)
-    persistMute('site', next)
+    setSiteMuted(toggleSiteMute())
   }
 
   const handleBrandClick = (e: MouseEvent<HTMLAnchorElement>) => {
@@ -176,25 +186,25 @@ export function Header() {
         <LanguageSwitcher />
         <button
           type="button"
-          className={`header-mute${inMusicSection ? ' header-mute--deferred' : siteMuted ? ' header-mute--listen' : ''}`}
+          className={`header-mute${inMusicSection ? ' header-mute--deferred' : soundOn ? '' : ' header-mute--listen'}`}
           onClick={handleMuteClick}
           aria-label={
             inMusicSection
               ? t('nav.musicPlayerAria')
-              : siteMuted
-                ? t('nav.listenAria')
-                : t('nav.muteAria')
+              : soundOn
+                ? t('nav.muteAria')
+                : t('nav.listenAria')
           }
-          aria-pressed={inMusicSection ? undefined : !siteMuted}
+          aria-pressed={inMusicSection ? undefined : soundOn}
           title={
             inMusicSection
               ? t('nav.musicPlayerAria')
-              : siteMuted
-                ? t('nav.listenAria')
-                : t('nav.muteAria')
+              : soundOn
+                ? t('nav.muteAria')
+                : t('nav.listenAria')
           }
         >
-          {inMusicSection ? t('nav.musicPlayer') : siteMuted ? t('nav.listen') : t('nav.mute')}
+          {inMusicSection ? t('nav.musicPlayer') : soundOn ? t('nav.mute') : t('nav.listen')}
         </button>
         <a href={href('/#contact')} className="header-cta" data-cursor="start" onClick={(event) => handleHomeHashClick(event, 'contact')}>
           {t('nav.contact')}

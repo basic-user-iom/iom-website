@@ -81,11 +81,13 @@ export function SiteAmbientAudio() {
       if (!el || !canAudiblyPlay()) return
       ensureSrc()
       el.muted = false
-      claimAudioFocus('site')
       void el
         .play()
         .then(() => {
           mediaUnlockedRef.current = true
+          // Claim only after playback actually starts so the header stays
+          // "Listen" when autoplay is blocked (typical on mobile).
+          if (!userMutedRef.current && !duckedRef.current) claimAudioFocus('site')
         })
         .catch(() => {
           releaseAudioFocus('site')
@@ -132,6 +134,15 @@ export function SiteAmbientAudio() {
     }
 
     ambientHandle = { playFromGesture }
+
+    const onPause = () => {
+      // iOS / backgrounding often pauses without a mute tap — drop focus so
+      // the header returns to Listen instead of a silent Mute state.
+      if (userMutedRef.current || duckedRef.current) return
+      if (getAudioFocus() === 'site') releaseAudioFocus('site')
+    }
+    audio.addEventListener('pause', onPause)
+    audio.addEventListener('error', onPause)
 
     const duck = () => {
       duckedRef.current = true
@@ -197,6 +208,8 @@ export function SiteAmbientAudio() {
     return () => {
       ambientHandle = null
       unsubscribeFocus()
+      audio.removeEventListener('pause', onPause)
+      audio.removeEventListener('error', onPause)
       window.removeEventListener('iom:site-audio-mute', onMuteEvent)
       window.removeEventListener('iom:site-audio-volume', onVolumeEvent)
       window.removeEventListener('iom:music-section-visible', onMusicSection)
@@ -212,11 +225,22 @@ export function SiteAmbientAudio() {
   return null
 }
 
+/**
+ * Header Listen/Mute. Returns the next *preference* (true = muted).
+ * The visible label uses actual audio focus, not this preference: a stored
+ * unmute must not show Mute when nothing is playing (mobile autoplay).
+ */
 export function toggleSiteMute(): boolean {
-  const next = !readStoredMute('site')
-  persistMute('site', next)
-  window.dispatchEvent(new CustomEvent('iom:site-audio-mute', { detail: { muted: next } }))
+  const preferMuted = readStoredMute('site')
+  const soundOn = !preferMuted && getAudioFocus() != null
+  if (soundOn) {
+    persistMute('site', true)
+    window.dispatchEvent(new CustomEvent('iom:site-audio-mute', { detail: { muted: true } }))
+    return true
+  }
+  persistMute('site', false)
+  window.dispatchEvent(new CustomEvent('iom:site-audio-mute', { detail: { muted: false } }))
   // Keep unlock + play on the same user-gesture stack as the header tap (critical on iOS).
-  if (!next) ambientHandle?.playFromGesture()
-  return next
+  ambientHandle?.playFromGesture()
+  return false
 }
