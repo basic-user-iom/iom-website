@@ -55,9 +55,10 @@ async function attachTranslations(
     if (error) throw error
     const byPost = new Map<string, Record<string, unknown>[]>()
     for (const row of data || []) {
-      const postId = String((row as { post_id: string }).post_id)
+      const rec = row as unknown as Record<string, unknown>
+      const postId = String(rec.post_id ?? '')
       const list = byPost.get(postId) ?? []
-      list.push(row as Record<string, unknown>)
+      list.push(rec)
       byPost.set(postId, list)
     }
     return posts.map((p) => {

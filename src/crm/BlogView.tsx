@@ -229,7 +229,7 @@ export function BlogView() {
       const [p, c, a] = await Promise.all([
         listBlogPosts(),
         listBlogComments({ status: 'all' }),
-        listBlogAudience({ search: emailSearch, marketingOnly }),
+        listBlogAudience(),
       ])
       setPosts(p)
       setComments(c)
@@ -240,7 +240,7 @@ export function BlogView() {
     } finally {
       setLoading(false)
     }
-  }, [emailSearch, marketingOnly, t])
+  }, [t])
 
   useEffect(() => {
     void refresh()
@@ -250,6 +250,16 @@ export function BlogView() {
     if (commentFilter === 'all') return comments
     return comments.filter((c) => c.status === commentFilter)
   }, [comments, commentFilter])
+
+  const visibleAudience = useMemo(() => {
+    let rows = audience
+    if (marketingOnly) rows = rows.filter((r) => r.marketing_opt_in)
+    const q = emailSearch.trim().toLowerCase()
+    if (!q) return rows
+    return rows.filter(
+      (r) => r.email.toLowerCase().includes(q) || r.name.toLowerCase().includes(q),
+    )
+  }, [audience, emailSearch, marketingOnly])
 
   const postTitleById = useMemo(() => {
     const m = new Map<string, string>()
@@ -1413,7 +1423,7 @@ export function BlogView() {
             </button>
           </div>
           <ul className="crm-blog-email-list">
-            {audience.map((row) => (
+            {visibleAudience.map((row) => (
               <li key={row.id} className="crm-blog-email-row">
                 <div className="crm-blog-email-main">
                   <strong>{row.email}</strong>
@@ -1450,7 +1460,7 @@ export function BlogView() {
                 </div>
               </li>
             ))}
-            {audience.length === 0 && <li className="crm-muted">{t('blog.noEmails')}</li>}
+            {visibleAudience.length === 0 && <li className="crm-muted">{t('blog.noEmails')}</li>}
           </ul>
         </div>
       )}

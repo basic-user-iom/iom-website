@@ -5,7 +5,6 @@ import {
   createManualTimeEntry,
   deleteTimeEntry,
   formatDuration,
-  getRunningTimer,
   listProjects,
   listTimeEntries,
   reportTimeByDay,
@@ -41,14 +40,15 @@ export function TimeView({ user, initialProjectId = null }: TimeViewProps) {
     setLoading(true)
     setError('')
     try {
-      const [projRows, entryRows, timer] = await Promise.all([
+      const [projRows, entryRows] = await Promise.all([
         listProjects(),
         listTimeEntries(),
-        getRunningTimer(),
       ])
       setProjects(projRows)
       setEntries(entryRows)
-      setRunning(timer)
+      setRunning(
+        entryRows.find((e) => !e.ended_at && e.user_id === user.id) ?? null,
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : t('time.loadFailed'))
     } finally {

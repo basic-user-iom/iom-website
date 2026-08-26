@@ -33,7 +33,6 @@ import {
   probeOwnerAttributionSchema,
   probeScheduledSendSchema,
   probeValueEmojiSchema,
-  outreachSchemaKnownMissing,
   scheduledSendSchemaKnownMissing,
   valueEmojiSchemaKnownMissing,
   signOut,
@@ -672,21 +671,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (atlasEvalSchemaKnownMissing()) {
       setAtlasEvalSchemaMissing(true)
     }
-    await refreshLeads()
-    // Re-apply optimistic locale/links/emoji if reload stripped fields (columns missing).
-    if (
-      clientLocaleSchemaKnownMissing() ||
-      linksSchemaKnownMissing() ||
-      valueEmojiSchemaKnownMissing() ||
-      contactPrioritySchemaKnownMissing() ||
-      scheduledSendSchemaKnownMissing() ||
-      emailsSchemaKnownMissing() ||
-      atlasEvalSchemaKnownMissing()
-    ) {
-      upsertLeadInList(lead)
-    } else {
-      setSelectedId(lead.id)
-    }
+    setSelectedId(lead.id)
   }
 
   const handleBulkCreate = async (inputs: LeadInput[]) => {
@@ -697,7 +682,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     }
     setView('list')
     setFilters((f) => ({ ...f, status: 'needs_review' }))
-    await refreshLeads()
     if (last) setSelectedId(last.id)
   }
 
@@ -726,21 +710,10 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (atlasEvalSchemaKnownMissing()) {
           setAtlasEvalSchemaMissing(true)
         }
+        return
       }
-      void refreshLeads().then(() => {
-        if (
-          updated &&
-          (clientLocaleSchemaKnownMissing() ||
-            linksSchemaKnownMissing() ||
-            valueEmojiSchemaKnownMissing() ||
-            contactPrioritySchemaKnownMissing() ||
-            scheduledSendSchemaKnownMissing() ||
-            emailsSchemaKnownMissing() ||
-            atlasEvalSchemaKnownMissing())
-        ) {
-          upsertLeadInList(updated)
-        }
-      })
+      // Owner heal / scheduled-send ping with no local row — reload once.
+      void refreshLeads()
     },
     [refreshLeads, upsertLeadInList],
   )
@@ -1450,7 +1423,6 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
               active={section === 'leads'}
               onAttached={(leadId) => {
                 setSelectedId(leadId)
-                void refreshLeads()
               }}
             />
           )}
@@ -1526,6 +1498,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
       {section === 'ideas' && (
         <IdeasView
+          leads={leads}
           initialLeadId={focusIdeaLeadId}
           initialProjectId={focusIdeaProjectId}
         />
@@ -1533,6 +1506,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
       {section === 'notes' && (
         <NotesView
+          leads={leads}
           initialLeadId={focusIdeaLeadId}
           initialProjectId={focusIdeaProjectId}
         />

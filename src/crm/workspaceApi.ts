@@ -92,8 +92,20 @@ export async function listProjects(): Promise<CrmProject[]> {
 }
 
 export async function listProjectsForLead(leadId: string): Promise<CrmProject[]> {
-  const all = await listProjects()
-  return all.filter((p) => p.lead_id === leadId)
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_projects')
+      .select('*')
+      .eq('lead_id', leadId)
+      .order('updated_at', { ascending: false })
+    if (error) throw new Error(error.message)
+    return ((data ?? []) as CrmProject[]).map(normalizeProject)
+  }
+  return readLocal<CrmProject[]>(PROJECTS_KEY, [])
+    .map(normalizeProject)
+    .filter((p) => p.lead_id === leadId)
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
 }
 
 export async function getProject(id: string): Promise<CrmProject | null> {
@@ -490,8 +502,24 @@ export async function listTimeEntries(filters?: {
 export async function getRunningTimer(): Promise<TimeEntry | null> {
   const user = await getCurrentUser()
   if (!user) return null
-  const entries = await listTimeEntries({ userId: user.id })
-  return entries.find((e) => !e.ended_at) ?? null
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    const { data, error } = await supabase
+      .from('crm_time_entries')
+      .select('*')
+      .eq('user_id', user.id)
+      .is('ended_at', null)
+      .order('started_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error) throw new Error(error.message)
+    return (data as TimeEntry | null) ?? null
+  }
+  return (
+    readLocal<TimeEntry[]>(TIME_KEY, []).find(
+      (e) => e.user_id === user.id && !e.ended_at,
+    ) ?? null
+  )
 }
 
 export async function startTimer(input: {
@@ -863,6 +891,26 @@ export async function listMindNodes(mindMapId: string): Promise<MindNode[]> {
     .sort((a, b) => a.position - b.position)
 }
 
+async function listMindNodeSiblings(
+  mindMapId: string,
+  parentId: string | null,
+): Promise<Pick<MindNode, 'id' | 'parent_id' | 'position'>[]> {
+  if (useLiveCrmBackend()) {
+    const supabase = getSupabase()!
+    let query = supabase
+      .from('crm_mind_nodes')
+      .select('id, parent_id, position')
+      .eq('mind_map_id', mindMapId)
+    query = parentId ? query.eq('parent_id', parentId) : query.is('parent_id', null)
+    const { data, error } = await query
+    if (error) throw new Error(error.message)
+    return (data ?? []) as Pick<MindNode, 'id' | 'parent_id' | 'position'>[]
+  }
+  return readLocal<MindNode[]>(NODES_KEY, []).filter(
+    (n) => n.mind_map_id === mindMapId && n.parent_id === parentId,
+  )
+}
+
 export async function createMindNode(
   mindMapId: string,
   input: {
@@ -876,9 +924,7 @@ export async function createMindNode(
     position?: number
   },
 ): Promise<MindNode> {
-  const siblings = (await listMindNodes(mindMapId)).filter(
-    (n) => n.parent_id === input.parent_id,
-  )
+  const siblings = await listMindNodeSiblings(mindMapId, input.parent_id)
   const insertAt =
     typeof input.position === 'number'
       ? Math.max(0, Math.min(input.position, siblings.length))

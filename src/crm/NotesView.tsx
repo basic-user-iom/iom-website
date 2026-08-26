@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { listLeads } from './api'
 import { NoteChatGptPanel } from './NoteChatGptPanel'
 import { NotePreview } from './NotePreview'
 import { useCrmI18n } from './i18n'
@@ -15,18 +14,19 @@ import {
 import { listClientAccounts } from './clientTenancyApi'
 
 interface NotesViewProps {
+  leads: Lead[]
   initialLeadId?: string | null
   initialProjectId?: string | null
 }
 
 export function NotesView({
+  leads,
   initialLeadId = null,
   initialProjectId = null,
 }: NotesViewProps) {
   const { t } = useCrmI18n()
   const [notes, setNotes] = useState<ResearchNote[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [leads, setLeads] = useState<Lead[]>([])
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [clientAccounts, setClientAccounts] = useState<CrmClientAccount[]>([])
   const [title, setTitle] = useState('')
@@ -57,21 +57,12 @@ export function NotesView({
     setLoading(true)
     setError('')
     try {
-      const [noteRows, leadRows, projectRows, accounts] = await Promise.all([
+      const [noteRows, projectRows, accounts] = await Promise.all([
         listResearchNotes(),
-        listLeads({
-          search: '',
-          status: 'all',
-          temperature: 'all',
-          owner: 'all',
-          tag: 'all',
-          sort: 'updated',
-        }),
         listProjects(),
         listClientAccounts().catch(() => [] as CrmClientAccount[]),
       ])
       setNotes(noteRows)
-      setLeads(leadRows)
       setProjects(projectRows)
       setClientAccounts(accounts)
       setSelectedId((prev) => {

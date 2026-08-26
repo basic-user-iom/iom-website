@@ -12,7 +12,7 @@ import { joinRichNoteTitle, splitRichNoteTitle } from './formatNotePreview'
 import { MindBoard } from './MindBoard'
 import { NoteRichBody } from './NotePreview'
 import type { CrmProject, Lead, MindMap, MindNode } from './types'
-import { getCurrentUser, listLeads } from './api'
+import { getCurrentUser } from './api'
 import { lastingMediaUrlForSlug, uploadRecording } from './recordingsApi'
 import { useLiveCrmBackend } from './supabaseClient'
 import {
@@ -27,6 +27,7 @@ import {
 } from './workspaceApi'
 
 interface IdeasViewProps {
+  leads: Lead[]
   initialLeadId?: string | null
   initialProjectId?: string | null
 }
@@ -120,6 +121,7 @@ function removeMdImageAt(body: string, imageIndex: number): string {
 }
 
 export function IdeasView({
+  leads,
   initialLeadId = null,
   initialProjectId = null,
 }: IdeasViewProps) {
@@ -127,7 +129,6 @@ export function IdeasView({
   const [maps, setMaps] = useState<MindMap[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [nodes, setNodes] = useState<MindNode[]>([])
-  const [leads, setLeads] = useState<Lead[]>([])
   const [projects, setProjects] = useState<CrmProject[]>([])
   const [title, setTitle] = useState('')
   const [linkLeadId, setLinkLeadId] = useState(initialLeadId ?? '')
@@ -146,20 +147,11 @@ export function IdeasView({
     setLoading(true)
     setError('')
     try {
-      const [mapRows, leadRows, projectRows] = await Promise.all([
+      const [mapRows, projectRows] = await Promise.all([
         listMindMaps(),
-        listLeads({
-          search: '',
-          status: 'all',
-          temperature: 'all',
-          owner: 'all',
-          tag: 'all',
-          sort: 'updated',
-        }),
         listProjects(),
       ])
       setMaps(mapRows)
-      setLeads(leadRows)
       setProjects(projectRows)
       setSelectedId((prev) => {
         if (prev && mapRows.some((m) => m.id === prev)) return prev

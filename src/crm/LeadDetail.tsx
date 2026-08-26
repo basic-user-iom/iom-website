@@ -113,8 +113,8 @@ export function LeadDetail({
     autoHealKey.current = key
     let cancelled = false
     void claimLeadOwner(lead.id)
-      .then(() => {
-        if (!cancelled) onChanged()
+      .then((updated) => {
+        if (!cancelled) onChanged(updated)
       })
       .catch(() => {
         // Allow retry / show migration hint if columns are still missing.
@@ -152,7 +152,7 @@ export function LeadDetail({
     return () => {
       alive = false
     }
-  }, [lead.id, lead.updated_at])
+  }, [lead.id])
 
   const handleSendToProjects = async () => {
     setError('')
@@ -225,8 +225,8 @@ export function LeadDetail({
     setError('')
     setClaiming(true)
     try {
-      await claimLeadOwner(lead.id)
-      onChanged()
+      const updated = await claimLeadOwner(lead.id)
+      onChanged(updated)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('detail.claimFailed'))
     } finally {

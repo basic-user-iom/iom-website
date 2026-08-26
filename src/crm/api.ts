@@ -1059,23 +1059,31 @@ export type OwnerAttributionSchema = {
  * Probe whether `owner_email` / `crm_staff_profiles` exist.
  * Without them, only the lead owner sees their name (isSelf UI fallback).
  */
+let ownerAttributionSchema: OwnerAttributionSchema | null = null
+
 export async function probeOwnerAttributionSchema(): Promise<OwnerAttributionSchema> {
   if (!useLiveCrmBackend()) {
     return { ownerSnapshotColumns: true, staffProfiles: true }
   }
+  if (ownerAttributionSchema) return ownerAttributionSchema
   const supabase = getSupabase()!
   const [leadsProbe, staffProbe] = await Promise.all([
     supabase.from('crm_leads').select('owner_email').limit(1),
     supabase.from('crm_staff_profiles').select('id').limit(1),
   ])
-  return {
-    ownerSnapshotColumns: !(
-      leadsProbe.error && isMissingOwnerSnapshotColumn(leadsProbe.error.message)
-    ),
-    staffProfiles: !(
-      staffProbe.error && isMissingStaffProfilesTable(staffProbe.error.message)
-    ),
-  }
+  const ownerSnapshotColumns = !(
+    leadsProbe.error && isMissingOwnerSnapshotColumn(leadsProbe.error.message)
+  )
+  const staffProfiles = !(
+    staffProbe.error && isMissingStaffProfilesTable(staffProbe.error.message)
+  )
+  const result = { ownerSnapshotColumns, staffProfiles }
+  const leadsSettled =
+    !leadsProbe.error || isMissingOwnerSnapshotColumn(leadsProbe.error.message)
+  const staffSettled =
+    !staffProbe.error || isMissingStaffProfilesTable(staffProbe.error.message)
+  if (leadsSettled && staffSettled) ownerAttributionSchema = result
+  return result
 }
 
 /** Cached probe: null = unknown, true = columns exist, false = migration needed. */
@@ -2243,9 +2251,9 @@ export async function getLead(id: string): Promise<Lead | null> {
     if (error) {
       const fallback = await supabase.from('crm_leads').select('*').eq('id', id).maybeSingle()
       if (fallback.error) throw new Error(error.message)
-      return fallback.data ? normalizeLead(fallback.data as Lead) : null
+      return fallback.data ? normalizeLead(fallback.data as unknown as Lead) : null
     }
-    return data ? normalizeLead(data as Lead) : null
+    return data ? normalizeLead(data as unknown as Lead) : null
   }
   const found = readLocal<Lead[]>(LEADS_KEY, []).find((l) => l.id === id)
   return found ? normalizeLead(found) : null
