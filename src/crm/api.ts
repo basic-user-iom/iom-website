@@ -163,6 +163,27 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
   return hay.includes(q)
 }
 
+/** Apply search / stage / owner / tag filters in memory (no extra Supabase download). */
+export function applyLeadFilters(leads: Lead[], filters: LeadFilters): Lead[] {
+  const specialStatus =
+    filters.status === 'not_contacted' ||
+    filters.status === 'client_replied' ||
+    filters.status === 'needs_review'
+      ? filters.status
+      : filters.status
+  const effectiveSort: LeadSort =
+    filters.status === 'client_replied' ? 'last_reply' : filters.sort
+  return sortLeads(
+    leads.filter((l) =>
+      matchesFilters(l, {
+        ...filters,
+        status: specialStatus,
+      }),
+    ),
+    effectiveSort,
+  )
+}
+
 function sortLeads(leads: Lead[], sort: LeadSort = 'updated'): Lead[] {
   const copy = [...leads]
   if (sort === 'owner') {
@@ -1328,15 +1349,20 @@ export function preserveOutreachFields(incoming: Lead[], previous: Lead[]): Lead
   if (incoming.length === 0 || previous.length === 0) return incoming
   const prevById = new Map(previous.map((l) => [l.id, l]))
   return incoming.map((row) => {
-    const hasIncoming =
-      !!row.initial_email_subject?.trim() ||
-      !!row.initial_email_body?.trim() ||
-      !!row.contact_role?.trim() ||
-      !!row.company_focus?.trim()
-    if (hasIncoming) return row
     const prev = prevById.get(row.id)
     if (!prev) return row
-    return mergeOutreachFields(row, prev)
+    // List queries omit initial_email_body; keep a hydrated draft in memory.
+    const withBody =
+      !row.initial_email_body?.trim() && prev.initial_email_body?.trim()
+        ? { ...row, initial_email_body: prev.initial_email_body }
+        : row
+    const hasIncoming =
+      !!withBody.initial_email_subject?.trim() ||
+      !!withBody.initial_email_body?.trim() ||
+      !!withBody.contact_role?.trim() ||
+      !!withBody.company_focus?.trim()
+    if (hasIncoming) return withBody
+    return mergeOutreachFields(withBody, prev)
   })
 }
 
@@ -1814,6 +1840,8 @@ function buildLeadSelect(opts?: {
   atlasEval?: boolean
   clientLocale?: boolean
   outreach?: boolean
+  /** Full draft body — omit on catalog lists to keep egress tiny. */
+  outreachBody?: boolean
 }): string {
   const links = opts?.links ?? linksColumnPresent !== false
   const emails = opts?.emails ?? emailsColumnPresent !== false
@@ -1824,6 +1852,7 @@ function buildLeadSelect(opts?: {
   const atlasEval = opts?.atlasEval ?? atlasEvalColumnPresent !== false
   const clientLocale = opts?.clientLocale ?? clientLocaleColumnsPresent !== false
   const outreach = opts?.outreach ?? outreachColumnsPresent !== false
+  const outreachBody = opts?.outreachBody !== false
   const cols = [
     'id',
     'company_name',
@@ -1840,7 +1869,7 @@ function buildLeadSelect(opts?: {
     ...(outreach
       ? ([
           'initial_email_subject',
-          'initial_email_body',
+          ...(outreachBody ? (['initial_email_body'] as const) : []),
           'initial_email_drafted_at',
           'initial_email_sent_at',
         ] as const)
@@ -1873,8 +1902,8 @@ function buildLeadSelect(opts?: {
   return cols.join(', ')
 }
 
-function currentLeadSelect(): string {
-  return buildLeadSelect()
+function currentLeadSelect(opts?: { outreachBody?: boolean }): string {
+  return buildLeadSelect(opts)
 }
 
 function stripOptionalLeadFields<T extends Record<string, unknown>>(body: T): T {
@@ -2035,7 +2064,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
           const result = await applyListFilters(
             supabase
               .from('crm_leads')
-              .select(currentLeadSelect())
+              .select(currentLeadSelect({ outreachBody: false }))
               .order('updated_at', { ascending: false })
               .order('id', { ascending: true }),
           ).range(from, to)
@@ -2206,8 +2235,16 @@ function processDueScheduledSendsLocal(): void {
 export async function getLead(id: string): Promise<Lead | null> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
-    const { data, error } = await supabase.from('crm_leads').select('*').eq('id', id).maybeSingle()
-    if (error) throw new Error(error.message)
+    const { data, error } = await supabase
+      .from('crm_leads')
+      .select(currentLeadSelect({ outreachBody: true }))
+      .eq('id', id)
+      .maybeSingle()
+    if (error) {
+      const fallback = await supabase.from('crm_leads').select('*').eq('id', id).maybeSingle()
+      if (fallback.error) throw new Error(error.message)
+      return fallback.data ? normalizeLead(fallback.data as Lead) : null
+    }
     return data ? normalizeLead(data as Lead) : null
   }
   const found = readLocal<Lead[]>(LEADS_KEY, []).find((l) => l.id === id)
@@ -2461,12 +2498,41 @@ export function isLeadMessagesSchemaMissing(err: unknown): boolean {
   )
 }
 
+/** Thread rows without body_html — HTML is rebuilt from text for preview. */
+const LEAD_MESSAGE_LIST_SELECT =
+  'id, lead_id, direction, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, owner_id, raw_headers'
+
+export async function listLeadMessageHeads(
+  leadId: string,
+): Promise<{ id: string; occurred_at: string }[]> {
+  if (!useLiveCrmBackend()) {
+    return readLocal<LeadMessage[]>(MESSAGES_KEY, [])
+      .filter((m) => m.lead_id === leadId)
+      .map((m) => ({ id: m.id, occurred_at: m.occurred_at }))
+  }
+  const supabase = getSupabase()!
+  const { data, error } = await supabase
+    .from('crm_lead_messages')
+    .select('id, occurred_at')
+    .eq('lead_id', leadId)
+    .order('occurred_at', { ascending: true })
+    .limit(2000)
+  if (error) {
+    if (isLeadMessagesSchemaMissing(error)) return []
+    throw new Error(error.message)
+  }
+  return (data ?? []).map((row) => ({
+    id: String((row as { id: string }).id),
+    occurred_at: String((row as { occurred_at: string }).occurred_at ?? ''),
+  }))
+}
+
 export async function listLeadMessages(leadId: string): Promise<LeadMessage[]> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
     const { data, error } = await supabase
       .from('crm_lead_messages')
-      .select('*')
+      .select(LEAD_MESSAGE_LIST_SELECT)
       .eq('lead_id', leadId)
       .order('occurred_at', { ascending: true })
     if (error) {
@@ -2494,7 +2560,7 @@ export async function listAllLeadMessages(): Promise<LeadMessage[]> {
       const rows = await fetchAllPaged<Record<string, unknown>>(async (from, to) => {
         const { data, error } = await supabase
           .from('crm_lead_messages')
-          .select('*')
+          .select(LEAD_MESSAGE_LIST_SELECT)
           .order('occurred_at', { ascending: true })
           .order('id', { ascending: true })
           .range(from, to)
@@ -2681,7 +2747,7 @@ export async function backfillMissingClientReplyAts(
       const chunk = ids.slice(i, i + chunkSize)
       const { data, error } = await supabase
         .from('crm_lead_messages')
-        .select('lead_id, occurred_at, from_email, subject, body_text')
+        .select('lead_id, occurred_at, from_email, subject')
         .eq('direction', 'inbound')
         .in('lead_id', chunk)
       if (error) {
@@ -2695,7 +2761,7 @@ export async function backfillMissingClientReplyAts(
           occurred_at: String(row.occurred_at ?? ''),
           from_email: String(row.from_email ?? ''),
           subject: String(row.subject ?? ''),
-          body_text: String(row.body_text ?? ''),
+          body_text: '',
         })
       }
     }
@@ -2803,7 +2869,9 @@ export async function listInboundUnmatched(limit = 50): Promise<InboundUnmatched
   const supabase = getSupabase()!
   const { data, error } = await supabase
     .from('crm_inbound_unmatched')
-    .select('*')
+    .select(
+      'id, from_email, to_email, subject, body_text, message_id, in_reply_to, references_header, occurred_at, created_at, failure_code, candidate_lead_ids, raw_headers, resolved_at, resolved_lead_id',
+    )
     .is('resolved_at', null)
     .order('created_at', { ascending: false })
     .limit(Math.max(1, Math.min(limit, 100)))

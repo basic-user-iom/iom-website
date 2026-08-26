@@ -4,9 +4,11 @@ import {
   backfillOwnLeadOwnerSnapshot,
   clientLocaleSchemaKnownMissing,
   contactPrioritySchemaKnownMissing,
+  applyLeadFilters,
   createLead,
   emailsSchemaKnownMissing,
   getCurrentUser,
+  getLead,
   linksSchemaKnownMissing,
   listAllActivities,
   listAllLeadMessages,
@@ -38,6 +40,7 @@ import {
   storageMode,
 } from './api'
 import { enableCrmDemoMode, isCrmDemoMode } from './demoMode'
+import { useLiveCrmBackend } from './supabaseClient'
 import { mountIomBackScript } from '../utils/mountIomBack'
 import { DEMO_USER, resetDemoStore } from './demoStore'
 import { BlogView } from './BlogView'
@@ -450,6 +453,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
 
   const leadsRef = useRef(leads)
   leadsRef.current = leads
+  const backfillDoneRef = useRef(false)
 
   const refreshLeads = useCallback(async () => {
     // Soft refresh: keep current cards painted; only show the loading
@@ -493,22 +497,20 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setAtlasEvalSchemaMissing(!atlasOk)
       setOutreachSchemaMissing(!outreachOk)
       setStaffById(staff)
-      // Load without owner filter so the "who added" dropdown stays complete.
-      const catalog = await fetchLeads({ ...filters, owner: 'all' })
+      // Always load the full catalog once. Search/stage filters stay in memory
+      // so typing in the search box cannot re-download every lead.
+      const catalog = await fetchLeads({
+        search: '',
+        status: 'all',
+        temperature: 'all',
+        owner: 'all',
+        tag: 'all',
+        sort: 'updated',
+      })
       setOwnerOptions(collectOwnerOptions(catalog, user, staff))
-      const rows =
-        filters.owner === 'all'
-          ? catalog
-          : catalog.filter((lead) => {
-              if (filters.owner === 'none') {
-                return !lead.owner_id && !lead.owner_email
-              }
-              const key = lead.owner_id || lead.owner_email || ''
-              return key === filters.owner
-            })
       // If optional columns are missing, keep optimistic values already in UI.
       setLeads((prev) => {
-        let next = rows
+        let next = catalog
         if (clientLocaleSchemaKnownMissing() || !clientLocaleOk) {
           next = preserveClientLocaleFields(next, prev)
         }
@@ -530,33 +532,34 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         if (atlasEvalSchemaKnownMissing() || !atlasOk) {
           next = preserveAtlasEvalFields(next, prev)
         }
-        if (outreachSchemaKnownMissing() || !outreachOk) {
-          next = preserveOutreachFields(next, prev)
-        }
+        next = preserveOutreachFields(next, prev)
         return next
       })
       setSelectedId((prev) => {
-        if (prev && rows.some((r) => r.id === prev)) return prev
-        return rows[0]?.id ?? null
+        if (prev && catalog.some((r) => r.id === prev)) return prev
+        return catalog[0]?.id ?? null
       })
-      // Older leads may have inbound mail without last_client_reply_at set.
-      void backfillMissingClientReplyAts(catalog)
-        .then((healed) => {
-          if (!healed.length) return
-          setLeads((prev) => {
-            const byId = new Map(healed.map((l) => [l.id, l]))
-            return prev.map((l) => byId.get(l.id) ?? l)
+      // One-shot heal — do not re-download every inbound thread on each refresh.
+      if (!backfillDoneRef.current) {
+        backfillDoneRef.current = true
+        void backfillMissingClientReplyAts(catalog)
+          .then((healed) => {
+            if (!healed.length) return
+            setLeads((prev) => {
+              const byId = new Map(healed.map((l) => [l.id, l]))
+              return prev.map((l) => byId.get(l.id) ?? l)
+            })
           })
-        })
-        .catch(() => {
-          /* ignore heal errors — filter still works for already-stamped leads */
-        })
+          .catch(() => {
+            backfillDoneRef.current = false
+          })
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : t('error.loadLeads'))
     } finally {
       setLoading(false)
     }
-  }, [filters, t, user])
+  }, [t, user])
 
   const upsertLeadInList = useCallback((lead: Lead) => {
     setLeads((prev) => {
@@ -623,6 +626,26 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     if (!user || accessRole !== 'staff' || staffMfaReady !== true) return
     void refreshLeads()
   }, [user?.id, accessRole, staffMfaReady, refreshLeads])
+
+  useEffect(() => {
+    if (!selectedId || sandboxed || !useLiveCrmBackend()) return
+    const current = leadsRef.current.find((l) => l.id === selectedId)
+    if (current?.initial_email_body?.trim()) return
+    let alive = true
+    void getLead(selectedId)
+      .then((full) => {
+        if (!alive || !full) return
+        setLeads((prev) =>
+          prev.map((row) => (row.id === full.id ? { ...row, ...full } : row)),
+        )
+      })
+      .catch(() => {
+        /* keep the slim list row if the detail fetch fails */
+      })
+    return () => {
+      alive = false
+    }
+  }, [selectedId, sandboxed])
 
   const handleCreate = async (input: LeadInput) => {
     const lead = await createLead(input)
@@ -738,6 +761,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     setSelectedId(null)
     setView('list')
     setLoading(true)
+    backfillDoneRef.current = false
   }
 
   const handleResetDemo = () => {
@@ -888,7 +912,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     return [...set].sort((a, b) => a.localeCompare(b))
   })()
   const listLeads = (() => {
-    let rows = leads
+    let rows = applyLeadFilters(leads, filters)
     if (followUpDate) {
       rows = rows.filter((l) => followUpDateKey(l.next_follow_up) === followUpDate)
     }
@@ -1423,6 +1447,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           {view === 'list' && (
             <UnmatchedInboundPanel
               leads={listLeads}
+              active={section === 'leads'}
               onAttached={(leadId) => {
                 setSelectedId(leadId)
                 void refreshLeads()
@@ -1466,6 +1491,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                     staffById={staffById}
                     clientLocaleSchemaMissing={clientLocaleSchemaMissing}
                     outreachSchemaMissing={outreachSchemaMissing}
+                    pollEnabled={section === 'leads'}
                     onChanged={handleLeadChanged}
                     onDeleted={() => {
                       setSelectedId(null)

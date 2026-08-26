@@ -30,16 +30,22 @@ function withTimeout<T>(promiseLike: PromiseLike<T>, ms: number): Promise<T> {
   })
 }
 
-async function attachTranslations(posts: BlogPost[]): Promise<BlogPost[]> {
+async function attachTranslations(
+  posts: BlogPost[],
+  opts?: { includeBody?: boolean },
+): Promise<BlogPost[]> {
   const supabase = getBlogSupabase()
   if (!supabase || !posts.length) {
     return posts.map((p) => mergeCatalogTranslations(p))
   }
+  const cols = opts?.includeBody
+    ? 'post_id, locale, title, excerpt, body, seo_title, seo_description'
+    : 'post_id, locale, title, excerpt, seo_title, seo_description'
   try {
     const { data, error } = await withTimeout(
       supabase
         .from('blog_post_translations')
-        .select('post_id, locale, title, excerpt, body, seo_title, seo_description')
+        .select(cols)
         .in(
           'post_id',
           posts.map((p) => p.id),
@@ -81,7 +87,9 @@ export async function fetchPublishedPosts(
     const { data, error } = await withTimeout(
       supabase
         .from('blog_posts')
-        .select('*')
+        .select(
+          'id, slug, title, excerpt, cover_image_url, status, published_at, seo_title, seo_description, author_name, tags, owner_id, created_at, updated_at',
+        )
         .eq('status', 'published')
         .order('published_at', { ascending: false }),
       4000,
@@ -115,7 +123,7 @@ export async function fetchPublishedPostBySlug(
       if (error) throw error
       if (data) {
         const post = rowToPost(data as Record<string, unknown>)
-        const [withTr] = await attachTranslations([post])
+        const [withTr] = await attachTranslations([post], { includeBody: true })
         return applyBlogLocale(withTr ?? post, lang)
       }
       return null

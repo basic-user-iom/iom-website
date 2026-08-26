@@ -59,6 +59,8 @@ interface LeadDetailProps {
   onDeleted: () => void
   onOpenProject?: (projectId: string) => void
   onOpenIdeas?: (leadId: string) => void
+  /** False while the Leads tab is hidden — CRM stays mounted across sections. */
+  pollEnabled?: boolean
 }
 
 export function LeadDetail({
@@ -71,6 +73,7 @@ export function LeadDetail({
   onDeleted,
   onOpenProject,
   onOpenIdeas,
+  pollEnabled = true,
 }: LeadDetailProps) {
   const { t, statusLabel, tempLabel, activityLabel, locale } = useCrmI18n()
   const [editing, setEditing] = useState(false)
@@ -667,6 +670,7 @@ export function LeadDetail({
       <EmailThreadPanel
         lead={lead}
         refreshToken={messageTick}
+        active={pollEnabled}
         onChanged={(updated) => {
           setActivityTick((n) => n + 1)
           setMessageTick((n) => n + 1)

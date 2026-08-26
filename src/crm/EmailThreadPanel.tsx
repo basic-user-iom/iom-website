@@ -3,6 +3,7 @@ import {
   createActivity,
   createLeadMessage,
   isLeadMessagesSchemaMissing,
+  listLeadMessageHeads,
   listLeadMessages,
   normalizeLeadEmails,
   syncLeadClientReplyAt,
@@ -62,6 +63,8 @@ interface EmailThreadPanelProps {
   lead: Lead
   onChanged: (updated?: Lead) => void
   refreshToken?: number
+  /** False while the Leads tab is hidden — CRM stays mounted across sections. */
+  active?: boolean
 }
 
 function collectRecipients(lead: Lead): { value: string; label: string }[] {
@@ -150,6 +153,7 @@ export function EmailThreadPanel({
   lead,
   onChanged,
   refreshToken = 0,
+  active = true,
 }: EmailThreadPanelProps) {
   const { t, locale } = useCrmI18n()
   const [messages, setMessages] = useState<LeadMessage[]>([])
@@ -167,6 +171,7 @@ export function EmailThreadPanel({
   const [pingNote, setPingNote] = useState('')
   const [pingBusy, setPingBusy] = useState(false)
   const recipients = useMemo(() => collectRecipients(lead), [lead])
+  const threadHeadRef = useRef('')
   const [toEmail, setToEmail] = useState(recipients[0]?.value ?? '')
   const [fromIdentity, setFromIdentity] = useState<OutreachFromIdentityId>(() =>
     readStoredOutreachFrom(),
@@ -206,6 +211,9 @@ export function EmailThreadPanel({
     try {
       const rows = await listLeadMessages(lead.id)
       setMessages(rows)
+      threadHeadRef.current = rows
+        .map((m) => `${m.id}:${m.occurred_at}`)
+        .join('|')
       setSchemaMissing(false)
       void syncLeadClientReplyAt(lead, rows)
         .then((updated) => {
@@ -234,9 +242,17 @@ export function EmailThreadPanel({
   useEffect(() => {
     if (demoMode || !useLiveCrmBackend()) return
     const id = window.setInterval(() => {
+      if (!active) return
       if (document.visibilityState !== 'visible') return
-      void listLeadMessages(lead.id)
+      void listLeadMessageHeads(lead.id)
+        .then((heads) => {
+          const next = heads.map((h) => `${h.id}:${h.occurred_at}`).join('|')
+          if (next === threadHeadRef.current) return null
+          threadHeadRef.current = next
+          return listLeadMessages(lead.id)
+        })
         .then(async (rows) => {
+          if (!rows) return
           setMessages(rows)
           setSchemaMissing(false)
           const updated = await syncLeadClientReplyAt(lead, rows)
@@ -247,7 +263,7 @@ export function EmailThreadPanel({
         })
     }, 45_000)
     return () => window.clearInterval(id)
-  }, [lead.id, demoMode])
+  }, [lead.id, demoMode, active])
 
   useEffect(() => {
     setAttachFiles([])

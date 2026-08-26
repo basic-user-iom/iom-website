@@ -13,11 +13,13 @@ import type { InboundUnmatched, Lead } from './types'
 interface UnmatchedInboundPanelProps {
   leads: Lead[]
   onAttached?: (leadId: string) => void
+  active?: boolean
 }
 
 export function UnmatchedInboundPanel({
   leads,
   onAttached,
+  active = true,
 }: UnmatchedInboundPanelProps) {
   const { t, locale } = useCrmI18n()
   const [items, setItems] = useState<InboundUnmatched[]>([])
@@ -72,14 +74,15 @@ export function UnmatchedInboundPanel({
   }
 
   useEffect(() => {
-    void refresh()
     if (isCrmDemoMode() || !useLiveCrmBackend()) return
+    if (!active) return
+    void refresh()
     const id = window.setInterval(() => {
       if (document.visibilityState !== 'visible') return
       void refresh()
     }, 60_000)
     return () => window.clearInterval(id)
-  }, [])
+  }, [active])
 
   if (isCrmDemoMode() || !useLiveCrmBackend() || schemaMissing) return null
   if (!loading && items.length === 0 && !error) return null

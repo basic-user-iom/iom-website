@@ -1,7 +1,9 @@
 import type { Lead } from './types'
 
 export function hasInitialEmailDraft(lead: Lead): boolean {
-  return !!(lead.initial_email_subject?.trim() && lead.initial_email_body?.trim())
+  if (lead.initial_email_subject?.trim() && lead.initial_email_body?.trim()) return true
+  // Catalog rows omit the body to keep Supabase egress tiny.
+  return !!(lead.initial_email_subject?.trim() && lead.initial_email_drafted_at)
 }
 
 /** Draft exists but not marked sent — show reminder badge/banner. */
