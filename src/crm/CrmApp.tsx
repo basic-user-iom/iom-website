@@ -5,6 +5,7 @@ import {
   clientLocaleSchemaKnownMissing,
   contactPrioritySchemaKnownMissing,
   applyLeadFilters,
+  uniqueLeadsById,
   createLead,
   emailsSchemaKnownMissing,
   getCurrentUser,
@@ -539,7 +540,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       setOwnerOptions(collectOwnerOptions(catalog, userRef.current, staff))
       // If optional columns are missing, keep optimistic values already in UI.
       setLeads((prev) => {
-        let next = catalog
+        let next = uniqueLeadsById(catalog)
         if (clientLocaleSchemaKnownMissing() || !clientLocaleOk) {
           next = preserveClientLocaleFields(next, prev)
         }

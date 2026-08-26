@@ -178,6 +178,18 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
   return hay.includes(q)
 }
 
+/** Drop accidental catalog duplicates (offset paging can repeat a row). */
+export function uniqueLeadsById(leads: Lead[]): Lead[] {
+  const seen = new Set<string>()
+  const out: Lead[] = []
+  for (const lead of leads) {
+    if (!lead.id || seen.has(lead.id)) continue
+    seen.add(lead.id)
+    out.push(lead)
+  }
+  return out
+}
+
 /** Apply search / stage / owner / tag filters in memory (no extra Supabase download). */
 export function applyLeadFilters(leads: Lead[], filters: LeadFilters): Lead[] {
   const specialStatus =
@@ -189,7 +201,7 @@ export function applyLeadFilters(leads: Lead[], filters: LeadFilters): Lead[] {
   const effectiveSort: LeadSort =
     filters.status === 'client_replied' ? 'last_reply' : filters.sort
   return sortLeads(
-    leads.filter((l) =>
+    uniqueLeadsById(leads).filter((l) =>
       matchesFilters(l, {
         ...filters,
         status: specialStatus,
@@ -2195,7 +2207,9 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
       }
     }
     if (error) throw new Error(error.message)
-    const leads = data.map((row) => normalizeLead(row as unknown as Lead))
+    const leads = uniqueLeadsById(
+      data.map((row) => normalizeLead(row as unknown as Lead)),
+    )
     const specialStatus =
       filters.status === 'not_contacted' ||
       filters.status === 'client_replied' ||
