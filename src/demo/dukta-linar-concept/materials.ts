@@ -294,6 +294,7 @@ export type LinarMaterialSet = {
     immediate?: boolean,
   ) => void
   applyBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
+  prewarm: (id: LinarMaterialId, veneer: LinarVeneerId) => void
   tick: (dt: number) => boolean
   dispose: () => void
 }
@@ -546,6 +547,18 @@ export function createLinarMaterials(): LinarMaterialSet {
     backing.color.set(colour)
   }
 
+  const prewarm = (id: LinarMaterialId, veneer: LinarVeneerId) => {
+    if (veneer === 'none') {
+      getFace(id)
+      getReverse(id)
+    } else {
+      getVeneerFace(veneer)
+      getVeneerReverse(veneer)
+    }
+    getEdge(id)
+    getEnd(id)
+  }
+
   const dispose = () => {
     face.dispose()
     reverse.dispose()
@@ -569,5 +582,17 @@ export function createLinarMaterials(): LinarMaterialSet {
     veneerReverseMaps.clear()
   }
 
-  return { face, reverse, cut, bridgeCut, end, backing, apply, applyBacking, tick, dispose }
+  return {
+    face,
+    reverse,
+    cut,
+    bridgeCut,
+    end,
+    backing,
+    apply,
+    applyBacking,
+    prewarm,
+    tick,
+    dispose,
+  }
 }

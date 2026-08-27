@@ -143,7 +143,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     config: { panelCount: 1, application: 'freestanding', backing: 'none' },
     // Mirror the default key to the right so its draggable handle remains
     // clear of the explanatory card during this authored tour step.
-    light: { enabled: true, u: 0.32, v: -0.28 },
+    light: { enabled: true, u: 0.32, v: -0.28, radius: 0 },
   },
   {
     title: 'Technical status',

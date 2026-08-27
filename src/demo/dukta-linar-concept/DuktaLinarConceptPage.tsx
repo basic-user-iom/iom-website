@@ -49,6 +49,9 @@ const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
 const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v1'
+// Two deliberate steps cover the complete safe Near/Far travel. A 0.2 step
+// was technically correct but too subtle to read on the full-height panel.
+const LINAR_LIGHT_RADIUS_STEP = 0.5
 
 type LinarExperienceMode = 'idle' | 'startup-cinematic' | 'guided-tour'
 
@@ -748,7 +751,11 @@ export function DuktaLinarConceptPage() {
       ...lightStateRef.current,
       enabled: lightStudyEnabled,
       ...(stage === 4
-        ? { u: DEFAULT_LINAR_LIGHT.u, v: DEFAULT_LINAR_LIGHT.v }
+        ? {
+            u: DEFAULT_LINAR_LIGHT.u,
+            v: DEFAULT_LINAR_LIGHT.v,
+            radius: DEFAULT_LINAR_LIGHT.radius,
+          }
         : {}),
     }
     lightStateRef.current = stageLight
@@ -803,7 +810,12 @@ export function DuktaLinarConceptPage() {
     setSide('front')
     setViewPreset('hero')
     setViewToken((value) => value + 1)
-    const finalLight = { enabled: false, u: 0.08, v: -0.15 }
+    const finalLight: LinarLightState = {
+      enabled: false,
+      u: 0.08,
+      v: -0.15,
+      radius: DEFAULT_LINAR_LIGHT.radius,
+    }
     lightStateRef.current = finalLight
     setLightState(finalLight)
     tourSnapshotRef.current = null
@@ -824,6 +836,23 @@ export function DuktaLinarConceptPage() {
   const onToggleLight = useCallback(() => {
     const base = lightStateRef.current
     const next = { ...base, enabled: !base.enabled }
+    lightStateRef.current = next
+    setLightState(next)
+  }, [])
+
+  const changeLightRadius = useCallback((delta: number) => {
+    const base = lightStateRef.current
+    const radius = Math.max(-1, Math.min(1, base.radius + delta))
+    const next = { ...base, radius }
+    lightStateRef.current = next
+    setLightState(next)
+  }, [])
+
+  const onResetLight = useCallback(() => {
+    const next = {
+      ...DEFAULT_LINAR_LIGHT,
+      enabled: lightStateRef.current.enabled,
+    }
     lightStateRef.current = next
     setLightState(next)
   }, [])
@@ -922,7 +951,7 @@ export function DuktaLinarConceptPage() {
               {showHint || lightState.enabled ? (
                 <p className="linar-viewport__hint" aria-live="polite">
                   {lightState.enabled
-                    ? 'Drag the fixed light to direct it; drag elsewhere to rotate the panel.'
+                    ? 'Drag the guided light handle to direct the real source; use Near or Far for distance, and drag elsewhere to rotate.'
                     : 'Drag to rotate. Scroll or pinch to zoom.'}
                 </p>
               ) : null}
@@ -998,6 +1027,7 @@ export function DuktaLinarConceptPage() {
             viewAvailable={!webglFailed}
             tourActive={tourActive}
             lightEnabled={lightState.enabled}
+            lightRadius={lightState.radius}
             cinematicActive={cinematicActive}
             shareUrl={shareUrl}
             onResetView={() => {
@@ -1027,6 +1057,9 @@ export function DuktaLinarConceptPage() {
               startCinematic()
             }}
             onToggleLight={onToggleLight}
+            onLightNear={() => changeLightRadius(-LINAR_LIGHT_RADIUS_STEP)}
+            onLightFar={() => changeLightRadius(LINAR_LIGHT_RADIUS_STEP)}
+            onResetLight={onResetLight}
             onUserInteract={markInteracted}
             onShare={onShare}
           />

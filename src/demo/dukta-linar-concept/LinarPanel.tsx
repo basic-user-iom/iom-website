@@ -59,6 +59,7 @@ export type LinarPanelHandle = {
     immediate?: boolean,
   ) => void
   setBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
+  prewarmMaterial: (id: LinarMaterialId, veneer: LinarVeneerId) => void
   tickMaterials: (dt: number) => boolean
   boundingSize: Vector3
   dispose: () => void
@@ -480,6 +481,13 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let lastSecondaryCurveAmount = 0
   let lastRadius: number | null = initial.tech.referenceMinimumRadiusMm
 
+  const markActiveInstanceMatrices = (mesh: InstancedMesh, activeCount: number) => {
+    const attribute = mesh.instanceMatrix
+    attribute.clearUpdateRanges()
+    if (activeCount > 0) attribute.addUpdateRange(0, activeCount * 16)
+    attribute.needsUpdate = true
+  }
+
   const clearPartialBridgeBatches = () => {
     for (const batch of partialBridgeBatches) {
       partialBridgesGroup.remove(batch.mesh)
@@ -642,7 +650,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       slatsMesh.setMatrixAt(i, dummy.matrix)
     }
     slatsMesh.count = slats.length
-    slatsMesh.instanceMatrix.needsUpdate = true
+    markActiveInstanceMatrices(slatsMesh, slats.length)
 
     const writeBridge = (mesh: InstancedMesh, index: number, seg: BridgeSeg) => {
       leftContactPose.x = slatPoseX[seg.column]
@@ -704,14 +712,14 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       b += 1
     }
     bridgesMesh.count = b
-    bridgesMesh.instanceMatrix.needsUpdate = true
+    markActiveInstanceMatrices(bridgesMesh, b)
 
     for (const batch of partialBridgeBatches) {
       for (let i = 0; i < batch.segments.length; i += 1) {
         writeBridge(batch.mesh, i, batch.segments[i])
       }
       batch.mesh.count = batch.segments.length
-      batch.mesh.instanceMatrix.needsUpdate = true
+      markActiveInstanceMatrices(batch.mesh, batch.segments.length)
     }
 
     const showBacking = backing !== 'none'
@@ -805,6 +813,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
         ),
       )
     },
+    prewarmMaterial: (id, veneer) => materials.prewarm(id, veneer),
     tickMaterials: (dt) => materials.tick(dt),
     boundingSize,
     dispose: () => {

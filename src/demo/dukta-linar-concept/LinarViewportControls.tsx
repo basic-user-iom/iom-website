@@ -15,6 +15,7 @@ type Props = {
   tourActive: boolean
   cinematicActive: boolean
   lightEnabled: boolean
+  lightRadius: number
   shareUrl: string
   onViewPreset: (id: LinarViewId) => void
   onSideChange: (side: LinarSide) => void
@@ -24,6 +25,9 @@ type Props = {
   onToggleTour: () => void
   onReplayCinematic: () => void
   onToggleLight: () => void
+  onLightNear: () => void
+  onLightFar: () => void
+  onResetLight: () => void
   onUserInteract: () => void
   onShare: () => Promise<boolean>
 }
@@ -39,6 +43,7 @@ export function LinarViewportControls({
   tourActive,
   cinematicActive,
   lightEnabled,
+  lightRadius,
   shareUrl,
   onViewPreset,
   onSideChange,
@@ -48,6 +53,9 @@ export function LinarViewportControls({
   onToggleTour,
   onReplayCinematic,
   onToggleLight,
+  onLightNear,
+  onLightFar,
+  onResetLight,
   onUserInteract,
   onShare,
 }: Props) {
@@ -190,6 +198,47 @@ export function LinarViewportControls({
       >
         LIGHT
       </button>
+
+      {lightEnabled ? (
+        <div className="linar-viewport-light-tools" aria-label="Light distance controls">
+          <button
+            type="button"
+            className="linar-viewport-tools__button linar-viewport-light-tools__button"
+            disabled={!viewAvailable || lightRadius <= -0.995}
+            aria-label="Move light nearer"
+            onClick={() => {
+              onUserInteract()
+              onLightNear()
+            }}
+          >
+            NEAR
+          </button>
+          <button
+            type="button"
+            className="linar-viewport-tools__button linar-viewport-light-tools__button"
+            disabled={!viewAvailable || lightRadius >= 0.995}
+            aria-label="Move light farther away"
+            onClick={() => {
+              onUserInteract()
+              onLightFar()
+            }}
+          >
+            FAR
+          </button>
+          <button
+            type="button"
+            className="linar-viewport-tools__button linar-viewport-light-tools__button linar-viewport-light-tools__reset"
+            disabled={!viewAvailable}
+            aria-label="Reset light position and distance"
+            onClick={() => {
+              onUserInteract()
+              onResetLight()
+            }}
+          >
+            RESET LIGHT
+          </button>
+        </div>
+      ) : null}
 
       <button
         type="button"

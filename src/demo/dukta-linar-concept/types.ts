@@ -22,20 +22,23 @@ export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual
 export type LinarBendDirection = 'left' | 'flat' | 'right'
 
 /**
- * Normalised starting position of the single interactive presentation light.
- * `u` selects the fixed source azimuth and `v` selects its safe elevation/distance;
- * the scene maps both to an application-specific position around the installation.
+ * Normalised position of the single interactive presentation light.
+ * `u` selects azimuth, `v` selects elevation and `radius` selects distance
+ * (`-1` nearest, `0` default, `1` farthest). The scene maps this stable
+ * application-independent state to a safe rig around the current installation.
  */
 export type LinarLightState = {
   enabled: boolean
   u: number
   v: number
+  radius: number
 }
 
 export const DEFAULT_LINAR_LIGHT: LinarLightState = {
   enabled: false,
   u: -0.32,
   v: -0.28,
+  radius: 0,
 }
 
 /**

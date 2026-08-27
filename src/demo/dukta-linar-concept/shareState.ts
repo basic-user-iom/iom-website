@@ -20,7 +20,8 @@ import {
   clampLinarPanelCount,
 } from './materialData'
 
-export const LINAR_SHARE_VERSION = '1'
+export const LINAR_SHARE_VERSION = '2'
+const LEGACY_LINAR_SHARE_VERSION = '1'
 
 export type LinarShareState = {
   config: LinarConfig
@@ -84,7 +85,13 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     return fallback
   }
 
-  if (params.get('linar') !== LINAR_SHARE_VERSION) return fallback
+  const shareVersion = params.get('linar')
+  if (
+    shareVersion !== LINAR_SHARE_VERSION &&
+    shareVersion !== LEGACY_LINAR_SHARE_VERSION
+  ) {
+    return fallback
+  }
 
   const config = cloneConfig(DEFAULT_LINAR_CONFIG)
   config.material = parseDescriptorId(
@@ -166,6 +173,9 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     enabled: lightEnabled,
     u: parseLightCoordinate('lu', DEFAULT_LINAR_LIGHT.u),
     v: parseLightCoordinate('lv', DEFAULT_LINAR_LIGHT.v),
+    // Version 1 links have no radius. They intentionally restore the current
+    // safe default rather than guessing an absolute legacy world distance.
+    radius: parseLightCoordinate('lr', DEFAULT_LINAR_LIGHT.radius),
   }
 
   return { config, bend, secondaryCurveAmount, side, view, light, isShared: true }
@@ -214,14 +224,19 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   const lightV = Number.isFinite(safeLight.v)
     ? Math.max(-1, Math.min(1, safeLight.v))
     : DEFAULT_LINAR_LIGHT.v
+  const lightRadius = Number.isFinite(safeLight.radius)
+    ? Math.max(-1, Math.min(1, safeLight.radius))
+    : DEFAULT_LINAR_LIGHT.radius
   if (safeLight.enabled) params.set('light', '1')
   if (
     safeLight.enabled ||
     Math.abs(lightU - DEFAULT_LINAR_LIGHT.u) > 0.005 ||
-    Math.abs(lightV - DEFAULT_LINAR_LIGHT.v) > 0.005
+    Math.abs(lightV - DEFAULT_LINAR_LIGHT.v) > 0.005 ||
+    Math.abs(lightRadius - DEFAULT_LINAR_LIGHT.radius) > 0.005
   ) {
     params.set('lu', String(Math.round(lightU * 100)))
     params.set('lv', String(Math.round(lightV * 100)))
+    params.set('lr', String(Math.round(lightRadius * 100)))
   }
   url.hash = params.toString()
   return url.toString()

@@ -249,8 +249,11 @@ body.linar-route a.iom-back {
   top: max(0.75rem, env(safe-area-inset-top));
   right: max(0.75rem, env(safe-area-inset-right));
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   align-items: flex-start;
   gap: 0.45rem;
+  max-width: calc(100% - 1.5rem);
   font-family: var(--sans);
 }
 
@@ -303,6 +306,20 @@ body.linar-route a.iom-back {
 .linar-viewport-tools__button:disabled {
   cursor: wait;
   opacity: 0.72;
+}
+
+.linar-viewport-light-tools {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+
+.linar-viewport-light-tools__button {
+  min-width: 3.75rem;
+  padding-inline: 0.55rem;
+}
+
+.linar-viewport-light-tools__reset {
+  min-width: 6.5rem;
 }
 
 .linar-sr-only {
@@ -1684,6 +1701,15 @@ body.linar-route a.iom-back {
 
   .linar-viewport-tools__button {
     min-width: 0;
+  }
+
+  .linar-viewport-light-tools {
+    grid-column: 1 / -1;
+    justify-content: end;
+  }
+
+  .linar-viewport-light-tools__button {
+    flex: 1 1 0;
   }
 
   .linar-cinematic-hud {
