@@ -4,7 +4,13 @@ import {
   tryCrmEmbedUnlock,
   unlockLinarDemo,
 } from './auth'
-import { PANEL_WIDTH_M, REST_BEND, makeBendState, slatLayout } from './bendMath'
+import {
+  PANEL_WIDTH_M,
+  REST_BEND,
+  makeBendState,
+  maxRenderedNormalOffsetM,
+  slatLayout,
+} from './bendMath'
 import { LinarControls } from './LinarControls'
 import { LinarProductInfo } from './LinarProductInfo'
 import { LinarScene } from './LinarScene'
@@ -16,8 +22,12 @@ import {
   suggestedIncisionLengthMm,
 } from './linarData'
 import { buildLinarShareUrl, parseLinarShareState } from './shareState'
-import type { LinarConfig, LinarSide, LinarViewId } from './types'
-import { DEFAULT_LINAR_CONFIG, cloneConfig } from './types'
+import {
+  LINAR_TOUR_STEPS,
+  type LinarTourStep,
+} from './linarTour'
+import type { LinarConfig, LinarLightState, LinarSide, LinarViewId } from './types'
+import { DEFAULT_LINAR_CONFIG, DEFAULT_LINAR_LIGHT, cloneConfig } from './types'
 import './dukta-linar-concept.css'
 
 function prefersReducedMotion(): boolean {
@@ -38,6 +48,47 @@ const LINAR_MUSIC_START_SECONDS = 8
 const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
+const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v1'
+
+type LinarExperienceMode = 'idle' | 'startup-cinematic' | 'guided-tour'
+
+type LinarTourSnapshot = {
+  config: LinarConfig
+  bend: number
+  secondaryCurveAmount: number
+  side: LinarSide
+  view: LinarViewId
+  light: LinarLightState
+}
+
+function cinematicWasSeen(): boolean {
+  try {
+    return window.sessionStorage.getItem(LINAR_CINEMATIC_SESSION_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
+function markCinematicSeen(): void {
+  try {
+    window.sessionStorage.setItem(LINAR_CINEMATIC_SESSION_KEY, '1')
+  } catch {
+    // The experience remains functional when storage is unavailable.
+  }
+}
+
+function clearCinematicSeen(): void {
+  try {
+    window.sessionStorage.removeItem(LINAR_CINEMATIC_SESSION_KEY)
+  } catch {
+    // Debug reset is best-effort when storage is unavailable.
+  }
+}
+
+function requestedTourDebugMode(): 'guided' | 'cinematic' | 'reset' | null {
+  const value = new URLSearchParams(window.location.search).get('tour')
+  return value === 'guided' || value === 'cinematic' || value === 'reset' ? value : null
+}
 
 function copyTextFallback(value: string): boolean {
   const textarea = document.createElement('textarea')
@@ -119,9 +170,16 @@ export function DuktaLinarConceptPage() {
   const [resetViewToken, setResetViewToken] = useState(0)
   const [viewPreset, setViewPreset] = useState<LinarViewId>(initialShareState.view)
   const [side, setSide] = useState<LinarSide>(initialShareState.side)
+  const [lightState, setLightState] = useState<LinarLightState>(() => ({
+    ...initialShareState.light,
+  }))
   const [viewToken, setViewToken] = useState(0)
   const [webglFailed, setWebglFailed] = useState(false)
   const [showHint, setShowHint] = useState(!reducedMotion)
+  const [tourStepIndex, setTourStepIndex] = useState<number | null>(null)
+  const [experienceMode, setExperienceMode] = useState<LinarExperienceMode>('idle')
+  const [cinematicToken, setCinematicToken] = useState(0)
+  const [sceneReady, setSceneReady] = useState(false)
   const [musicEnabled, setMusicEnabled] = useState(false)
   const [musicVolume, setMusicVolume] = useState(
     Math.round(LINAR_MUSIC_DEFAULT_VOLUME * 100),
@@ -134,7 +192,25 @@ export function DuktaLinarConceptPage() {
   const shareModeRef = useRef(initialShareState.isShared)
   const targetBendRef = useRef(targetBend)
   const targetSecondaryCurveRef = useRef(secondaryCurveAmount)
+  const configRef = useRef(config)
+  const sideRef = useRef(side)
+  const viewPresetRef = useRef(viewPreset)
+  const lightStateRef = useRef(lightState)
+  const experienceModeRef = useRef<LinarExperienceMode>('idle')
+  const experienceStartHandledRef = useRef(false)
+  // The legacy three-second intro is retired; the production cinematic owns
+  // automation explicitly through `experienceMode` and overrides scene goals.
   const interactedRef = useRef(true)
+  const tourTimerRef = useRef<number | null>(null)
+  const tourRunRef = useRef(0)
+  const tourActiveRef = useRef(false)
+  const tourSnapshotRef = useRef<LinarTourSnapshot | null>(null)
+
+  configRef.current = config
+  sideRef.current = side
+  viewPresetRef.current = viewPreset
+  lightStateRef.current = lightState
+  experienceModeRef.current = experienceMode
 
   const tech = useMemo(() => resolveLinarTech(config), [config])
   const layout = useMemo(() => slatLayout(config), [config])
@@ -146,9 +222,12 @@ export function DuktaLinarConceptPage() {
         tech.referenceMinimumRadiusMm,
         layout.incisedWidthM,
         secondaryCurveAmount,
+        maxRenderedNormalOffsetM(layout.thicknessM, config.backing !== 'none'),
       ),
     [
+      config.backing,
       layout.incisedWidthM,
+      layout.thicknessM,
       secondaryCurveAmount,
       targetBend,
       tech.referenceMinimumRadiusMm,
@@ -162,8 +241,191 @@ export function DuktaLinarConceptPage() {
         secondaryCurveAmount,
         side,
         view: viewPreset,
+        light: lightState,
       }),
-    [config, secondaryCurveAmount, side, targetBend, viewPreset],
+    [config, lightState, secondaryCurveAmount, side, targetBend, viewPreset],
+  )
+  const tourActive = experienceMode === 'guided-tour' && tourStepIndex != null
+  const cinematicActive = experienceMode === 'startup-cinematic'
+  const activeTourStep = tourStepIndex == null ? null : LINAR_TOUR_STEPS[tourStepIndex]
+
+  const applyTourStep = useCallback((step: LinarTourStep, index: number) => {
+    targetBendRef.current = step.bend
+    targetSecondaryCurveRef.current = step.secondaryCurveAmount
+    setTargetBend(step.bend)
+    setSecondaryCurveAmount(step.secondaryCurveAmount)
+    setConfig((previous) => ({ ...previous, ...step.config }))
+    setSide(step.side)
+    setViewPreset(step.view)
+    setLightState((previous) => ({ ...previous, enabled: step.target === 'light' }))
+    setViewToken((value) => value + 1)
+    setTourStepIndex(index)
+  }, [])
+
+  const stopExperience = useCallback(
+    (restoreSnapshot: boolean, preserveCamera = false) => {
+      const snapshot = tourSnapshotRef.current
+      if (experienceModeRef.current === 'idle' && snapshot == null) return
+
+      tourRunRef.current += 1
+      tourActiveRef.current = false
+      if (tourTimerRef.current != null) {
+        window.clearTimeout(tourTimerRef.current)
+        tourTimerRef.current = null
+      }
+      setTourStepIndex(null)
+      setExperienceMode('idle')
+      experienceModeRef.current = 'idle'
+      tourSnapshotRef.current = null
+
+      if (!restoreSnapshot || snapshot == null) return
+
+      targetBendRef.current = snapshot.bend
+      targetSecondaryCurveRef.current = snapshot.secondaryCurveAmount
+      configRef.current = cloneConfig(snapshot.config)
+      sideRef.current = snapshot.side
+      viewPresetRef.current = snapshot.view
+      lightStateRef.current = { ...snapshot.light }
+      setTargetBend(snapshot.bend)
+      setSecondaryCurveAmount(snapshot.secondaryCurveAmount)
+      setConfig(cloneConfig(snapshot.config))
+      setSide(snapshot.side)
+      setViewPreset(snapshot.view)
+      setLightState({ ...snapshot.light })
+      if (!preserveCamera) setViewToken((value) => value + 1)
+    },
+    [],
+  )
+
+  const startTour = useCallback(() => {
+    if (tourActiveRef.current || LINAR_TOUR_STEPS.length === 0) return
+    if (experienceModeRef.current !== 'idle') stopExperience(true)
+
+    tourRunRef.current += 1
+    tourSnapshotRef.current = {
+      config: cloneConfig(configRef.current),
+      bend: targetBendRef.current,
+      secondaryCurveAmount: targetSecondaryCurveRef.current,
+      side: sideRef.current,
+      view: viewPresetRef.current,
+      light: { ...lightStateRef.current },
+    }
+    tourActiveRef.current = true
+    experienceModeRef.current = 'guided-tour'
+    setExperienceMode('guided-tour')
+    interactedRef.current = true
+    setShowHint(false)
+    applyTourStep(LINAR_TOUR_STEPS[0], 0)
+  }, [applyTourStep, stopExperience])
+
+  const startCinematic = useCallback(() => {
+    if (experienceModeRef.current !== 'idle') stopExperience(true)
+    tourSnapshotRef.current = {
+      config: cloneConfig(configRef.current),
+      bend: targetBendRef.current,
+      secondaryCurveAmount: targetSecondaryCurveRef.current,
+      side: sideRef.current,
+      view: viewPresetRef.current,
+      light: { ...lightStateRef.current },
+    }
+    tourActiveRef.current = false
+    experienceModeRef.current = 'startup-cinematic'
+    setTourStepIndex(null)
+    setExperienceMode('startup-cinematic')
+    setShowHint(false)
+    interactedRef.current = true
+    markCinematicSeen()
+    setCinematicToken((value) => value + 1)
+  }, [stopExperience])
+
+  const cancelExperienceForInteraction = useCallback(
+    (preserveCamera = false) => {
+      if (experienceModeRef.current !== 'idle') {
+        stopExperience(true, preserveCamera)
+      }
+    },
+    [stopExperience],
+  )
+
+  const toggleTour = useCallback(() => {
+    if (tourActiveRef.current) stopExperience(true)
+    else startTour()
+  }, [startTour, stopExperience])
+
+  const goToTourStep = useCallback(
+    (index: number) => {
+      if (!tourActiveRef.current) return
+      if (index < 0) return
+      if (index >= LINAR_TOUR_STEPS.length) {
+        stopExperience(true)
+        return
+      }
+      tourRunRef.current += 1
+      applyTourStep(LINAR_TOUR_STEPS[index], index)
+    },
+    [applyTourStep, stopExperience],
+  )
+
+  useEffect(() => {
+    if (!tourActive || !activeTourStep) return
+    const target = activeTourStep.target
+    let targetElement: HTMLElement | null = null
+    let firstFrame = 0
+    let secondFrame = 0
+
+    firstFrame = window.requestAnimationFrame(() => {
+      targetElement = document.querySelector<HTMLElement>(`[data-tour-id="${target}"]`)
+      if (!targetElement) return
+      const details =
+        targetElement instanceof HTMLDetailsElement
+          ? targetElement
+          : targetElement.closest<HTMLDetailsElement>('details')
+      if (details && !details.open) details.open = true
+      secondFrame = window.requestAnimationFrame(() => {
+        targetElement?.classList.add('is-tour-targeted')
+        targetElement?.scrollIntoView({
+          behavior: reducedMotion ? 'auto' : 'smooth',
+          block: 'center',
+          inline: 'nearest',
+        })
+      })
+    })
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame)
+      window.cancelAnimationFrame(secondFrame)
+      targetElement?.classList.remove('is-tour-targeted')
+    }
+  }, [activeTourStep, reducedMotion, tourActive])
+
+  useEffect(() => {
+    if (!unlocked || !sceneReady || experienceStartHandledRef.current) return
+    experienceStartHandledRef.current = true
+    const debugMode = requestedTourDebugMode()
+    if (debugMode === 'reset') clearCinematicSeen()
+    if (debugMode === 'guided') {
+      startTour()
+      return
+    }
+    if (debugMode === 'cinematic' || debugMode === 'reset') {
+      startCinematic()
+      return
+    }
+    if (initialShareState.isShared || isEmbeddedWindow()) return
+    if (reducedMotion) {
+      markCinematicSeen()
+      return
+    }
+    if (!cinematicWasSeen()) startCinematic()
+  }, [initialShareState.isShared, reducedMotion, sceneReady, startCinematic, startTour, unlocked])
+
+  useEffect(
+    () => () => {
+      tourRunRef.current += 1
+      tourActiveRef.current = false
+      if (tourTimerRef.current != null) window.clearTimeout(tourTimerRef.current)
+    },
+    [],
   )
 
   useEffect(() => {
@@ -188,35 +450,49 @@ export function DuktaLinarConceptPage() {
     if (
       !unlocked ||
       !shareModeRef.current ||
+      experienceMode !== 'idle' ||
       isEmbeddedWindow() ||
       window.location.href === shareUrl
     ) {
       return
     }
     window.history.replaceState(window.history.state, '', shareUrl)
-  }, [shareUrl, unlocked])
+  }, [experienceMode, shareUrl, unlocked])
 
   const onShare = useCallback(async (): Promise<boolean> => {
+    const snapshot = tourSnapshotRef.current
+    const urlToShare = snapshot
+      ? buildLinarShareUrl(window.location.href, {
+          config: snapshot.config,
+          bend: snapshot.bend,
+          secondaryCurveAmount: snapshot.secondaryCurveAmount,
+          side: snapshot.side,
+          view: snapshot.view,
+          light: snapshot.light,
+        })
+      : shareUrl
+    if (snapshot) stopExperience(true)
     if (!isEmbeddedWindow()) {
       shareModeRef.current = true
-      window.history.replaceState(window.history.state, '', shareUrl)
+      window.history.replaceState(window.history.state, '', urlToShare)
     }
 
     try {
       if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(shareUrl)
+        await navigator.clipboard.writeText(urlToShare)
         return true
       }
     } catch {
       // Use the synchronous fallback below when Clipboard API access is denied.
     }
-    return copyTextFallback(shareUrl)
-  }, [shareUrl])
+    return copyTextFallback(urlToShare)
+  }, [shareUrl, stopExperience])
 
   useEffect(() => {
     const restoreSharedHash = () => {
       const shared = parseLinarShareState(window.location.hash)
       if (!shared.isShared) return
+      stopExperience(false)
       if (!isEmbeddedWindow()) {
         shareModeRef.current = true
         const canonicalUrl = buildLinarShareUrl(window.location.href, {
@@ -225,6 +501,7 @@ export function DuktaLinarConceptPage() {
           secondaryCurveAmount: shared.secondaryCurveAmount,
           side: shared.side,
           view: shared.view,
+          light: shared.light,
         })
         if (window.location.href !== canonicalUrl) {
           window.history.replaceState(window.history.state, '', canonicalUrl)
@@ -232,17 +509,22 @@ export function DuktaLinarConceptPage() {
       }
       targetBendRef.current = shared.bend
       targetSecondaryCurveRef.current = shared.secondaryCurveAmount
+      configRef.current = cloneConfig(shared.config)
+      sideRef.current = shared.side
+      viewPresetRef.current = shared.view
+      lightStateRef.current = { ...shared.light }
       setTargetBend(shared.bend)
       setSecondaryCurveAmount(shared.secondaryCurveAmount)
       setConfig(cloneConfig(shared.config))
       setSide(shared.side)
       setViewPreset(shared.view)
+      setLightState({ ...shared.light })
       setViewToken((value) => value + 1)
     }
 
     window.addEventListener('hashchange', restoreSharedHash)
     return () => window.removeEventListener('hashchange', restoreSharedHash)
-  }, [])
+  }, [stopExperience])
 
   const cancelMusicFade = useCallback(() => {
     if (musicFadeFrameRef.current != null) {
@@ -368,9 +650,16 @@ export function DuktaLinarConceptPage() {
   )
 
   const markInteracted = useCallback(() => {
+    cancelExperienceForInteraction(false)
     interactedRef.current = true
     setShowHint(false)
-  }, [])
+  }, [cancelExperienceForInteraction])
+
+  const markSceneInteracted = useCallback(() => {
+    cancelExperienceForInteraction(true)
+    interactedRef.current = true
+    setShowHint(false)
+  }, [cancelExperienceForInteraction])
 
   const onBendInput = useCallback(
     (value: number) => {
@@ -419,13 +708,79 @@ export function DuktaLinarConceptPage() {
   )
 
   const onResetPanel = useCallback(() => {
-    markInteracted()
+    stopExperience(false)
+    interactedRef.current = true
+    setShowHint(false)
     targetBendRef.current = REST_BEND
     targetSecondaryCurveRef.current = 0
     setTargetBend(REST_BEND)
     setSecondaryCurveAmount(0)
+    configRef.current = cloneConfig(DEFAULT_LINAR_CONFIG)
     setConfig(cloneConfig(DEFAULT_LINAR_CONFIG))
-  }, [markInteracted])
+    lightStateRef.current = { ...DEFAULT_LINAR_LIGHT }
+    setLightState({ ...DEFAULT_LINAR_LIGHT })
+    sideRef.current = 'front'
+    viewPresetRef.current = 'hero'
+    setSide('front')
+    setViewPreset('hero')
+    setViewToken((value) => value + 1)
+  }, [stopExperience])
+
+  const onLightChange = useCallback((next: LinarLightState) => {
+    lightStateRef.current = { ...next }
+    setLightState({ ...next })
+  }, [])
+
+  const onCinematicStage = useCallback((stage: number) => {
+    if (experienceModeRef.current !== 'startup-cinematic') return
+    const setCinematicView = (nextView: LinarViewId, nextSide: LinarSide = 'front') => {
+      setSide(nextSide)
+      setViewPreset(nextView)
+      setViewToken((value) => value + 1)
+    }
+
+    if (stage === 0) {
+      setConfig((previous) => ({
+        ...previous,
+        application: 'freestanding',
+        panelCount: 1,
+        backing: 'none',
+      }))
+      setCinematicView('closeup')
+    } else if (stage === 1) {
+      setCinematicView('bent')
+    } else if (stage === 2) {
+      setCinematicView('top')
+    } else if (stage === 3) {
+      setCinematicView('bent')
+    } else if (stage === 4) {
+      setConfig((previous) => ({ ...previous, application: 'wall', panelCount: 2 }))
+      setCinematicView('hero')
+    } else if (stage === 5) {
+      setConfig((previous) => ({ ...previous, application: 'freestanding', panelCount: 1 }))
+      setCinematicView('hero')
+    }
+  }, [])
+
+  const onCinematicComplete = useCallback(() => {
+    if (experienceModeRef.current !== 'startup-cinematic') return
+    targetBendRef.current = 28
+    targetSecondaryCurveRef.current = 0
+    setTargetBend(28)
+    setSecondaryCurveAmount(0)
+    setConfig((previous) => ({ ...previous, application: 'freestanding', panelCount: 1 }))
+    setSide('front')
+    setViewPreset('hero')
+    setViewToken((value) => value + 1)
+    const finalLight = { enabled: false, u: 0.08, v: -0.15 }
+    lightStateRef.current = finalLight
+    setLightState(finalLight)
+    tourSnapshotRef.current = null
+    experienceModeRef.current = 'idle'
+    setExperienceMode('idle')
+    setShowHint(true)
+    markCinematicSeen()
+  }, [])
 
   const onToggleMusic = useCallback(() => {
     if (musicShouldPlayRef.current) {
@@ -434,6 +789,13 @@ export function DuktaLinarConceptPage() {
       startMusic()
     }
   }, [startMusic, stopMusic])
+
+  const onToggleLight = useCallback(() => {
+    const base = lightStateRef.current
+    const next = { ...base, enabled: !base.enabled }
+    lightStateRef.current = next
+    setLightState(next)
+  }, [])
 
   useEffect(() => {
     document.body.classList.add('linar-route')
@@ -448,6 +810,7 @@ export function DuktaLinarConceptPage() {
       const audio = musicRef.current
       if (audio) {
         audio.pause()
+        audio.onended = null
         audio.removeAttribute('src')
         audio.load()
         musicRef.current = null
@@ -462,14 +825,31 @@ export function DuktaLinarConceptPage() {
   }
 
   return (
-    <div className="linar-page">
+    <div
+      className={[
+        'linar-page',
+        tourActive ? 'is-tour-running' : '',
+        cinematicActive ? 'is-cinematic-running' : '',
+        reducedMotion && !initialShareState.isShared ? 'is-reduced-reveal' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+    >
       <header className="linar-header">
         <p className="linar-brand">dukta flexible wood</p>
         <span className="linar-badge">Interactive concept</span>
       </header>
 
       <div className="linar-body">
-        <section className="linar-viewport" aria-label="LINAR panel preview">
+        <section
+          className={
+            tourActive && activeTourStep?.target === 'viewport'
+              ? 'linar-viewport is-tour-highlighted'
+              : 'linar-viewport'
+          }
+          data-tour-id="viewport"
+          aria-label="LINAR panel preview"
+        >
           {webglFailed ? (
             <p className="linar-fallback">
               The interactive 3D preview is not available on this device. You can still review
@@ -486,12 +866,22 @@ export function DuktaLinarConceptPage() {
                 viewPreset={viewPreset}
                 side={side}
                 viewToken={viewToken}
-                tourActive={false}
+                tourActive={tourActive}
+                cinematicActive={cinematicActive}
+                cinematicToken={cinematicToken}
+                lightState={lightState}
                 introStarted={false}
                 interactedRef={interactedRef}
                 reducedMotion={reducedMotion}
-                onUnavailable={() => setWebglFailed(true)}
-                onUserInteract={markInteracted}
+                onUnavailable={() => {
+                  stopExperience(true)
+                  setWebglFailed(true)
+                }}
+                onUserInteract={markSceneInteracted}
+                onLightChange={onLightChange}
+                onSceneReady={() => setSceneReady(true)}
+                onCinematicStage={onCinematicStage}
+                onCinematicComplete={onCinematicComplete}
                 onIntroBend={() => undefined}
               />
               {showHint ? (
@@ -499,12 +889,71 @@ export function DuktaLinarConceptPage() {
               ) : null}
             </>
           )}
+          {activeTourStep && tourStepIndex != null ? (
+            <aside
+              key={tourStepIndex}
+              className="linar-tour-card"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              <div className="linar-tour-card__progress" aria-hidden="true">
+                <span
+                  style={{
+                    width: `${((tourStepIndex + 1) / LINAR_TOUR_STEPS.length) * 100}%`,
+                  }}
+                />
+              </div>
+              <p className="linar-tour__eyebrow">
+                Product tour {tourStepIndex + 1}/{LINAR_TOUR_STEPS.length}
+              </p>
+              <h2>{activeTourStep.title}</h2>
+              <p>{activeTourStep.description}</p>
+              <div className="linar-tour-card__actions">
+                <button
+                  type="button"
+                  className="linar-tour__secondary"
+                  disabled={tourStepIndex === 0}
+                  onClick={() => goToTourStep(tourStepIndex - 1)}
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  className="linar-tour__primary"
+                  onClick={() => goToTourStep(tourStepIndex + 1)}
+                >
+                  {tourStepIndex === LINAR_TOUR_STEPS.length - 1 ? 'Finish' : 'Next'}
+                </button>
+                <button
+                  type="button"
+                  className="linar-tour__secondary"
+                  onClick={() => stopExperience(true)}
+                >
+                  Skip
+                </button>
+              </div>
+            </aside>
+          ) : null}
+          {cinematicActive ? (
+            <aside className="linar-cinematic-hud" aria-live="polite">
+              <div>
+                <p className="linar-tour__eyebrow">LINAR material study</p>
+                <p>Light, incision and curvature in one continuous manufactured surface.</p>
+              </div>
+              <button type="button" onClick={() => stopExperience(true)}>
+                Skip intro
+              </button>
+            </aside>
+          ) : null}
           <LinarViewportControls
             viewPreset={viewPreset}
             side={side}
             musicEnabled={musicEnabled}
             musicVolume={musicVolume}
             viewAvailable={!webglFailed}
+            tourActive={tourActive}
+            lightEnabled={lightState.enabled}
+            cinematicActive={cinematicActive}
             shareUrl={shareUrl}
             onResetView={() => {
               markInteracted()
@@ -527,11 +976,22 @@ export function DuktaLinarConceptPage() {
             }}
             onToggleMusic={onToggleMusic}
             onMusicVolumeChange={onMusicVolumeChange}
+            onToggleTour={toggleTour}
+            onReplayCinematic={() => {
+              if (experienceModeRef.current !== 'idle') stopExperience(true)
+              startCinematic()
+            }}
+            onToggleLight={onToggleLight}
+            onUserInteract={markInteracted}
             onShare={onShare}
           />
         </section>
 
-        <aside className="linar-side">
+        <aside
+          className="linar-side"
+          onPointerDownCapture={markInteracted}
+          onKeyDownCapture={markInteracted}
+        >
           <div className="linar-side__scroll">
             <div className="linar-intro">
               <h1 className="linar-title">LINAR</h1>
@@ -548,13 +1008,11 @@ export function DuktaLinarConceptPage() {
               config={config}
               tech={tech}
               previewRadiusMm={currentBendState.selectedRadiusMm}
+              secondaryCurveSafetyLimited={currentBendState.secondaryCurveSafetyLimited}
               onBendInput={onBendInput}
               onSecondaryCurveInput={onSecondaryCurveInput}
               onConfig={onConfig}
               onResetPanel={() => {
-                setSide('front')
-                setViewPreset('hero')
-                setViewToken((n) => n + 1)
                 onResetPanel()
               }}
             />
@@ -565,6 +1023,7 @@ export function DuktaLinarConceptPage() {
               selectedRadiusMm={currentBendState.selectedRadiusMm}
               bendDirection={currentBendState.direction}
               secondaryCurveAmount={secondaryCurveAmount}
+              secondaryCurveSafetyLimited={currentBendState.secondaryCurveSafetyLimited}
             />
 
             <p className="linar-disclaimer">

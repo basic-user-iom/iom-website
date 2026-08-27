@@ -1,13 +1,19 @@
 import type { LinarConfig, LinarSide, LinarViewId } from './types'
-import { DEFAULT_LINAR_CONFIG } from './types'
 
 export type LinarTourTarget =
   | 'viewport'
-  | 'view'
   | 'bending'
-  | 'panel'
+  | 'radius'
+  | 's-curve'
   | 'incision'
+  | 'materials'
+  | 'colours'
   | 'application'
+  | 'repetition'
+  | 'light'
+  | 'technical-data'
+  | 'share'
+  | 'reset'
 
 export type LinarTourStep = {
   title: string
@@ -17,110 +23,158 @@ export type LinarTourStep = {
   view: LinarViewId
   side: LinarSide
   bend: number
+  secondaryCurveAmount: number
   config: Partial<LinarConfig>
 }
 
+/**
+ * Deterministic demonstration states. The page snapshots the user's plain
+ * configuration before applying these and restores it on Finish, Skip or any
+ * user interruption.
+ */
 export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
-    title: 'A machined wood surface',
+    title: 'Bidirectional bending',
     description:
-      'Start with the complete birch panel. Continuous lamellae and staggered bridges turn a rigid sheet into a flexible architectural surface.',
-    target: 'viewport',
-    durationMs: 6800,
-    view: 'hero',
+      'Move through neutral into either bend direction. The same manufactured LINAR surface remains continuous.',
+    target: 'bending',
+    durationMs: 0,
+    view: 'bent',
     side: 'front',
-    bend: 0,
-    config: { ...DEFAULT_LINAR_CONFIG },
+    bend: 34,
+    secondaryCurveAmount: 0,
+    config: { application: 'freestanding', backing: 'none', panelCount: 1 },
   },
   {
-    title: 'Real incision geometry',
+    title: 'Radius in millimetres',
     description:
-      'Move close to the face to inspect true openings, routed cut walls and the curved wood bridges that remain between incisions.',
-    target: 'incision',
-    durationMs: 8000,
-    view: 'closeup',
+      'The preview radius follows the selected material and geometry. Unsupported combinations remain explicitly Not tested.',
+    target: 'radius',
+    durationMs: 0,
+    view: 'bent',
     side: 'front',
-    bend: 0,
-    config: { incisionLengthMm: 40, cutWidthMm: 4, slatWidthMm: 4, incisedTwelfths: 12 },
-  },
-  {
-    title: 'Material response',
-    description:
-      'Switch to three-layer spruce. Grain, warmth, roughness and exposed layers respond independently from the geometry.',
-    target: 'panel',
-    durationMs: 7400,
-    view: 'closeup',
-    side: 'front',
-    bend: 10,
-    config: {
-      material: 'three-layer-spruce',
-      thicknessMm: 13,
-      incisionLengthMm: 70,
-      cutWidthMm: 4,
-      slatWidthMm: 4,
-    },
-  },
-  {
-    title: 'Front, edge and reverse',
-    description:
-      'The camera travels around the panel so the reverse veneer, routed depth and panel thickness can be inspected as real surfaces.',
-    target: 'view',
-    durationMs: 7800,
-    view: 'side',
-    side: 'back',
-    bend: 14,
+    bend: 72,
+    secondaryCurveAmount: 0,
     config: {},
   },
   {
-    title: 'Radius-driven flexibility',
+    title: 'Continuous S-curve',
     description:
-      'A validated MDF sample demonstrates the bend preview. The active strip curves while the remaining surface follows tangent transitions.',
-    target: 'bending',
-    durationMs: 8800,
-    view: 'bent',
+      'Counter-curvature grows smoothly from the main bend. It is a visual reference where measured manufacturing limits are unavailable.',
+    target: 's-curve',
+    durationMs: 0,
+    view: 'top',
     side: 'front',
-    bend: 78,
-    config: {
-      material: 'mdf',
-      thicknessMm: 10,
-      incisionLengthMm: 66,
-      cutWidthMm: 4,
-      slatWidthMm: 4,
-      incisedTwelfths: 12,
-      pattern: 'regular',
-    },
+    bend: -76,
+    secondaryCurveAmount: 88,
+    config: {},
   },
   {
-    title: 'Control the active area',
+    title: 'Incision and active area',
     description:
-      'Coverage can be reduced to a centred flexible strip. The untouched left and right zones remain continuous solid board.',
+      'Incision length, cut width, lamella width and centred coverage define the real openings and local bridge cycle.',
     target: 'incision',
-    durationMs: 7800,
-    view: 'hero',
+    durationMs: 0,
+    view: 'closeup',
     side: 'front',
-    bend: 34,
-    config: { incisedTwelfths: 6 },
+    bend: 0,
+    secondaryCurveAmount: 0,
+    config: { incisionLengthMm: 70, cutWidthMm: 4, slatWidthMm: 4, incisedTwelfths: 12 },
   },
   {
-    title: 'Optional backing layer',
+    title: 'Base materials and veneers',
     description:
-      'Backing choices remain descriptive configuration metadata, while the reverse inspection shows their separate visual layer.',
-    target: 'application',
-    durationMs: 7600,
-    view: 'reverse',
-    side: 'back',
-    bend: 18,
-    config: { backing: 'felt' },
+      'MDF, birch plywood and three-layer spruce share the LINAR geometry; optional veneer changes appearance without inventing radius data.',
+    target: 'materials',
+    durationMs: 0,
+    view: 'closeup',
+    side: 'front',
+    bend: 12,
+    secondaryCurveAmount: 0,
+    config: { material: 'plywood', veneer: 'oak', thicknessMm: 9, incisionLengthMm: 40 },
   },
   {
-    title: 'Ready for your configuration',
+    title: 'Defined colour references',
     description:
-      'The tour returns to the calibrated LINAR panel. Continue with any material, incision, coverage, view or bend setting.',
-    target: 'viewport',
-    durationMs: 6800,
-    view: 'hero',
+      'MDF and felt use bounded catalogue choices. Temporary references remain labelled until official names and codes are supplied.',
+    target: 'colours',
+    durationMs: 0,
+    view: 'closeup',
     side: 'front',
     bend: 8,
-    config: { ...DEFAULT_LINAR_CONFIG },
+    secondaryCurveAmount: 0,
+    config: { material: 'mdf', veneer: 'none', mdfColour: 'reference-04', backing: 'felt' },
+  },
+  {
+    title: 'Architectural application',
+    description:
+      'Freestanding, Wall and Ceiling reuse one physical configuration instead of swapping to unrelated product models.',
+    target: 'application',
+    durationMs: 0,
+    view: 'hero',
+    side: 'front',
+    bend: 18,
+    secondaryCurveAmount: 0,
+    config: { application: 'wall', backing: 'none', panelCount: 1 },
+  },
+  {
+    title: 'Horizontal repetition',
+    description:
+      'Repeated modules inherit the same state and continue edge-to-edge in one horizontal installation row.',
+    target: 'repetition',
+    durationMs: 0,
+    view: 'bent',
+    side: 'front',
+    bend: 38,
+    secondaryCurveAmount: 0,
+    config: { application: 'freestanding', panelCount: 3 },
+  },
+  {
+    title: 'Interactive key light',
+    description:
+      'Enable Light and drag the glowing orb. One real key light reveals cut depth, bridge relief and transmitted shadow.',
+    target: 'light',
+    durationMs: 0,
+    view: 'bent',
+    side: 'front',
+    bend: 26,
+    secondaryCurveAmount: 0,
+    config: { panelCount: 1, application: 'freestanding', backing: 'none' },
+  },
+  {
+    title: 'Technical status',
+    description:
+      'Open area, radius and cutting depth distinguish validated samples, geometric estimates and unavailable manufacturing data.',
+    target: 'technical-data',
+    durationMs: 0,
+    view: 'hero',
+    side: 'front',
+    bend: 26,
+    secondaryCurveAmount: 0,
+    config: {},
+  },
+  {
+    title: 'Share this selection',
+    description:
+      'Share creates a validated URL containing the current product, application, view and light selection.',
+    target: 'share',
+    durationMs: 0,
+    view: 'hero',
+    side: 'front',
+    bend: 16,
+    secondaryCurveAmount: 0,
+    config: {},
+  },
+  {
+    title: 'Reset and return',
+    description:
+      'Reset returns to one flat front-facing panel, the default material, freestanding context and default light position.',
+    target: 'reset',
+    durationMs: 0,
+    view: 'hero',
+    side: 'front',
+    bend: 0,
+    secondaryCurveAmount: 0,
+    config: { application: 'freestanding', backing: 'none', panelCount: 1 },
   },
 ]

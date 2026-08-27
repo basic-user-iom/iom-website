@@ -6,107 +6,25 @@ import {
   SRGBColorSpace,
   type Texture,
 } from 'three'
-import type { LinarMaterialId, LinarVeneerId } from './types'
+import {
+  LINAR_BACKING_COLOURS,
+  LINAR_MATERIAL_LOOKS,
+  LINAR_VENEER_LOOKS,
+  findFeltColour,
+  findMdfColour,
+  type LinarMaterialLook,
+} from './materialData'
+import type {
+  LinarBacking,
+  LinarFeltColourId,
+  LinarMaterialId,
+  LinarMdfColourId,
+  LinarVeneerId,
+} from './types'
 
-type MaterialLook = {
-  face: string
-  reverse: string
-  cut: string
-  end: string
-  roughness: number
-  cutRoughness: number
-  grain: 'fine' | 'linear' | 'open'
-  grainContrast: number
-  plyLayers: number
-}
-
-const LOOKS: Record<LinarMaterialId, MaterialLook> = {
-  mdf: {
-    face: '#d8c9af',
-    reverse: '#d1c1a8',
-    cut: '#c4ad8d',
-    end: '#c8b292',
-    roughness: 0.92,
-    cutRoughness: 0.96,
-    grain: 'fine',
-    grainContrast: 0.018,
-    plyLayers: 0,
-  },
-  plywood: {
-    // The supplied birch sample is pale and matte. Warmth belongs mainly to
-    // the routed core and bridge surfaces, not to the finished face veneer.
-    face: '#eee6d8',
-    reverse: '#e5dac7',
-    cut: '#d8bb8d',
-    end: '#dec79f',
-    roughness: 0.79,
-    cutRoughness: 0.89,
-    grain: 'linear',
-    grainContrast: 0.028,
-    plyLayers: 7,
-  },
-  'three-layer-spruce': {
-    face: '#e2c598',
-    reverse: '#d8b98b',
-    cut: '#cfa474',
-    end: '#d8b384',
-    roughness: 0.78,
-    cutRoughness: 0.88,
-    grain: 'open',
-    grainContrast: 0.06,
-    plyLayers: 3,
-  },
-}
-
+const LOOKS = LINAR_MATERIAL_LOOKS
+const VENEER_LOOKS = LINAR_VENEER_LOOKS
 type VeneerId = Exclude<LinarVeneerId, 'none'>
-
-/** Visual surface references only; veneer does not enter thickness or radius calculations. */
-const VENEER_LOOKS: Record<VeneerId, MaterialLook> = {
-  oak: {
-    face: '#b98f5c',
-    reverse: '#ad8050',
-    cut: '#b98f5c',
-    end: '#b98f5c',
-    roughness: 0.74,
-    cutRoughness: 0.82,
-    grain: 'open',
-    grainContrast: 0.075,
-    plyLayers: 0,
-  },
-  maple: {
-    face: '#ead9bb',
-    reverse: '#dfc9a8',
-    cut: '#ead9bb',
-    end: '#ead9bb',
-    roughness: 0.76,
-    cutRoughness: 0.84,
-    grain: 'linear',
-    grainContrast: 0.024,
-    plyLayers: 0,
-  },
-  ash: {
-    face: '#d8bd8d',
-    reverse: '#cbaa78',
-    cut: '#d8bd8d',
-    end: '#d8bd8d',
-    roughness: 0.79,
-    cutRoughness: 0.86,
-    grain: 'open',
-    grainContrast: 0.058,
-    plyLayers: 0,
-  },
-  walnut: {
-    face: '#795238',
-    reverse: '#69432f',
-    cut: '#795238',
-    end: '#795238',
-    roughness: 0.72,
-    cutRoughness: 0.82,
-    grain: 'open',
-    grainContrast: 0.09,
-    plyLayers: 0,
-  },
-}
 
 function hash(n: number): number {
   const x = Math.sin(n * 127.1) * 43758.5453
@@ -129,7 +47,7 @@ function smoothNoise(x: number, y: number): number {
   return nx0 + (nx1 - nx0) * sy
 }
 
-function paintFace(look: MaterialLook, baseColor: string): HTMLCanvasElement {
+function paintFace(look: LinarMaterialLook, baseColor: string): HTMLCanvasElement {
   const size = look.grain === 'fine' ? 256 : 512
   const canvas = document.createElement('canvas')
   canvas.width = size
@@ -177,7 +95,13 @@ function paintFace(look: MaterialLook, baseColor: string): HTMLCanvasElement {
   return canvas
 }
 
-function paintEdge(look: MaterialLook, baseColor: string): HTMLCanvasElement {
+type EdgeTextureKind = 'routed' | 'end'
+
+function paintEdge(
+  look: LinarMaterialLook,
+  baseColor: string,
+  kind: EdgeTextureKind,
+): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
   canvas.width = 64
   canvas.height = 256
@@ -190,14 +114,73 @@ function paintEdge(look: MaterialLook, baseColor: string): HTMLCanvasElement {
   for (let y = 0; y < 256; y++) {
     for (let x = 0; x < 64; x++) {
       const i = (y * 64 + x) * 4
-      const fibre = Math.sin(y * 0.038 + hash(Math.floor(x / 5) + 2.3) * 2.2) * 0.008
+      // Routed walls expose fibres along the tool path; a sawn panel end has
+      // shorter cross-fibre changes. Keeping those responses distinct stops
+      // every exposed surface from reading as the same wrapped texture.
+      const routedFibre =
+        Math.sin(y * 0.038 + hash(Math.floor(x / 5) + 2.3) * 2.2) * 0.008
+      const endFibre =
+        Math.sin(x * 0.27 + smoothNoise(x * 0.08, y * 0.035) * 3.1) * 0.012
+      const fibre = kind === 'routed' ? routedFibre : endFibre
       const dust =
         (smoothNoise(x * 0.24, y * 0.075) - 0.5) *
         (look.plyLayers > 0 ? 0.032 : 0.05)
-      const n = fibre + dust
+      const endVariation =
+        kind === 'end' ? (smoothNoise(x * 0.085 + 7.1, y * 0.12) - 0.5) * 0.018 : 0
+      const n = fibre + dust + endVariation
       data[i] = Math.max(0, Math.min(255, data[i] + n * 255))
       data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n * 220))
       data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n * 180))
+    }
+  }
+  ctx.putImageData(image, 0, 0)
+  return canvas
+}
+
+function paintFeltDetail(): HTMLCanvasElement {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+  ctx.fillStyle = '#e7e6e3'
+  ctx.fillRect(0, 0, size, size)
+  ctx.globalAlpha = 0.16
+  for (let i = 0; i < 780; i += 1) {
+    const seed = hash(i * 9.73 + 4.1)
+    const x = hash(i * 17.19 + 8.3) * size
+    const y = hash(i * 23.47 + 1.7) * size
+    const length = 1.2 + seed * 4.2
+    const angle = (hash(i * 31.17 + 2.9) - 0.5) * 1.25
+    ctx.strokeStyle = seed > 0.52 ? '#ffffff' : '#5f5d59'
+    ctx.beginPath()
+    ctx.moveTo(x, y)
+    ctx.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length)
+    ctx.stroke()
+  }
+  ctx.globalAlpha = 1
+  return canvas
+}
+
+function paintMicroDetail(): HTMLCanvasElement {
+  const size = 128
+  const canvas = document.createElement('canvas')
+  canvas.width = size
+  canvas.height = size
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return canvas
+  const image = ctx.createImageData(size, size)
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const index = (y * size + x) * 4
+      const fibre = Math.sin(y * 0.31 + smoothNoise(x * 0.08, y * 0.04) * 2.2)
+      const dust = smoothNoise(x * 0.42, y * 0.42) - 0.5
+      const value = Math.max(214, Math.min(252, 238 + fibre * 5 + dust * 17))
+      image.data[index] = value
+      image.data[index + 1] = value
+      image.data[index + 2] = value
+      image.data[index + 3] = 255
     }
   }
   ctx.putImageData(image, 0, 0)
@@ -210,6 +193,18 @@ function makeMap(canvas: HTMLCanvasElement): CanvasTexture {
   map.wrapS = RepeatWrapping
   map.wrapT = RepeatWrapping
   map.anisotropy = 8
+  map.needsUpdate = true
+  return map
+}
+
+function makeDetailMap(canvas: HTMLCanvasElement): CanvasTexture {
+  const map = new CanvasTexture(canvas)
+  // Data maps intentionally retain Three.js' default linear/no-colour-space
+  // interpretation. Only albedo maps created by `makeMap` use sRGB.
+  map.wrapS = RepeatWrapping
+  map.wrapT = RepeatWrapping
+  map.repeat.set(5, 12)
+  map.anisotropy = 4
   map.needsUpdate = true
   return map
 }
@@ -292,12 +287,19 @@ export type LinarMaterialSet = {
   bridgeCut: MeshStandardMaterial
   end: MeshStandardMaterial
   backing: MeshStandardMaterial
-  apply: (id: LinarMaterialId, veneer: LinarVeneerId, immediate?: boolean) => void
+  apply: (
+    id: LinarMaterialId,
+    veneer: LinarVeneerId,
+    mdfColour: LinarMdfColourId,
+    immediate?: boolean,
+  ) => void
+  applyBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
   tick: (dt: number) => boolean
   dispose: () => void
 }
 
 export function createLinarMaterials(): LinarMaterialSet {
+  const microDetailMap = makeDetailMap(paintMicroDetail())
   const faceMaps = new Map<LinarMaterialId, Texture>()
   const reverseMaps = new Map<LinarMaterialId, Texture>()
   const edgeMaps = new Map<LinarMaterialId, Texture>()
@@ -308,7 +310,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     let map = faceMaps.get(id)
     if (!map) {
       map = makeMap(paintFace(LOOKS[id], LOOKS[id].face))
-      map.repeat.set(1, 1.75)
+      // A single procedural sample spans each complete lamella. Avoiding a
+      // longitudinal repeat also avoids a visible join in close-up views.
+      map.repeat.set(1, 1)
       faceMaps.set(id, map)
     }
     return map
@@ -317,7 +321,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     let map = reverseMaps.get(id)
     if (!map) {
       map = makeMap(paintFace(LOOKS[id], LOOKS[id].reverse))
-      map.repeat.set(1, 1.75)
+      map.repeat.set(1, 1)
       map.offset.set(0.19, 0.11)
       reverseMaps.set(id, map)
     }
@@ -326,7 +330,7 @@ export function createLinarMaterials(): LinarMaterialSet {
   const getEdge = (id: LinarMaterialId) => {
     let map = edgeMaps.get(id)
     if (!map) {
-      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].cut))
+      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].cut, 'routed'))
       map.repeat.set(1, 1)
       edgeMaps.set(id, map)
     }
@@ -335,7 +339,7 @@ export function createLinarMaterials(): LinarMaterialSet {
   const getEnd = (id: LinarMaterialId) => {
     let map = endMaps.get(id)
     if (!map) {
-      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].end))
+      map = makeMap(paintEdge(LOOKS[id], LOOKS[id].end, 'end'))
       map.repeat.set(1, 1)
       endMaps.set(id, map)
     }
@@ -346,7 +350,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     if (!map) {
       const look = VENEER_LOOKS[id]
       map = makeMap(paintFace(look, look.face))
-      map.repeat.set(1, 1.75)
+      map.repeat.set(1, 1)
       veneerFaceMaps.set(id, map)
     }
     return map
@@ -356,7 +360,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     if (!map) {
       const look = VENEER_LOOKS[id]
       map = makeMap(paintFace(look, look.reverse))
-      map.repeat.set(1, 1.75)
+      map.repeat.set(1, 1)
       map.offset.set(0.19, 0.11)
       veneerReverseMaps.set(id, map)
     }
@@ -367,6 +371,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     color: 0xffffff,
     map: getFace('plywood'),
     roughness: LOOKS.plywood.roughness,
+    roughnessMap: microDetailMap,
+    bumpMap: microDetailMap,
+    bumpScale: LOOKS.plywood.faceBumpScale,
     metalness: 0,
   })
   face.name = 'LinarFace'
@@ -374,6 +381,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     color: 0xffffff,
     map: getReverse('plywood'),
     roughness: LOOKS.plywood.roughness + 0.06,
+    roughnessMap: microDetailMap,
+    bumpMap: microDetailMap,
+    bumpScale: LOOKS.plywood.faceBumpScale * 0.85,
     metalness: 0,
     // The rear patterned layer is intentionally represented as a two-sided,
     // zero-thickness surface until its physical thickness is confirmed.
@@ -384,6 +394,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     color: 0xffffff,
     map: getEdge('plywood'),
     roughness: LOOKS.plywood.cutRoughness,
+    roughnessMap: microDetailMap,
+    bumpMap: microDetailMap,
+    bumpScale: LOOKS.plywood.cutBumpScale,
     metalness: 0,
   })
   cut.name = 'LinarCut'
@@ -391,6 +404,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     color: 0xffffff,
     map: getEdge('plywood'),
     roughness: LOOKS.plywood.cutRoughness,
+    roughnessMap: microDetailMap,
+    bumpMap: microDetailMap,
+    bumpScale: LOOKS.plywood.cutBumpScale * 1.08,
     metalness: 0,
   })
   bridgeCut.name = 'LinarBridgeCut'
@@ -398,14 +414,20 @@ export function createLinarMaterials(): LinarMaterialSet {
     color: 0xffffff,
     map: getEnd('plywood'),
     roughness: LOOKS.plywood.cutRoughness,
+    roughnessMap: microDetailMap,
+    bumpMap: microDetailMap,
+    bumpScale: LOOKS.plywood.cutBumpScale * 1.12,
     metalness: 0,
   })
   end.name = 'LinarEnd'
   const backing = new MeshStandardMaterial({
-    color: 0xd8d2c8,
-    roughness: 0.95,
+    color: LINAR_BACKING_COLOURS['acoustic-fleece'],
+    map: makeMap(paintFeltDetail()),
+    roughness: 0.98,
     metalness: 0,
+    side: DoubleSide,
   })
+  if (backing.map) backing.map.repeat.set(9, 28)
   backing.name = 'LinarBacking'
 
   const plyLayers = { value: LOOKS.plywood.plyLayers }
@@ -424,12 +446,14 @@ export function createLinarMaterials(): LinarMaterialSet {
 
   let currentMaterial: LinarMaterialId = 'plywood'
   let currentVeneer: LinarVeneerId = 'none'
+  let currentMdfColour: LinarMdfColourId = 'reference-01'
   let mix = 1
   let needsPaint = false
 
   const paintSet = (
     id: LinarMaterialId,
     veneer: LinarVeneerId,
+    mdfColour: LinarMdfColourId,
     faceMap: Texture,
     reverseMap: Texture,
     edgeMap: Texture,
@@ -437,40 +461,52 @@ export function createLinarMaterials(): LinarMaterialSet {
   ) => {
     const look = LOOKS[id]
     const surfaceLook = veneer === 'none' ? look : VENEER_LOOKS[veneer]
-    face.color.setHex(0xffffff)
+    const mdfSwatch = findMdfColour(mdfColour).swatch
+    face.color.set(veneer === 'none' && id === 'mdf' ? mdfSwatch : '#ffffff')
     face.roughness = surfaceLook.roughness
+    face.bumpScale = surfaceLook.faceBumpScale
     face.map = faceMap
-    reverse.color.setHex(0xffffff)
+    reverse.color.set(veneer === 'none' && id === 'mdf' ? mdfSwatch : '#ffffff')
+    if (veneer === 'none' && id === 'mdf') reverse.color.multiplyScalar(0.93)
     reverse.roughness = Math.min(1, surfaceLook.roughness + 0.06)
+    reverse.bumpScale = surfaceLook.faceBumpScale * 0.85
     reverse.map = reverseMap
-    cut.color.setHex(0xffffff)
+    cut.color.set(id === 'mdf' ? mdfSwatch : '#ffffff')
+    if (id === 'mdf') cut.color.multiplyScalar(0.88)
     cut.roughness = look.cutRoughness
+    cut.bumpScale = look.cutBumpScale
     cut.map = edgeMap
-    bridgeCut.color.setRGB(1.035, 1.025, 1.01)
+    bridgeCut.color.set(id === 'mdf' ? mdfSwatch : '#ffffff')
+    if (id === 'mdf') bridgeCut.color.multiplyScalar(0.84)
+    else bridgeCut.color.setRGB(1.035, 1.025, 1.01)
     bridgeCut.roughness = look.cutRoughness
+    bridgeCut.bumpScale = look.cutBumpScale * 1.08
     bridgeCut.map = edgeMap
-    end.color.setHex(0xffffff)
+    end.color.set(id === 'mdf' ? mdfSwatch : '#ffffff')
+    if (id === 'mdf') end.color.multiplyScalar(0.9)
     end.roughness = look.cutRoughness
+    end.bumpScale = look.cutBumpScale * 1.12
     end.map = endMap
     plyLayers.value = look.plyLayers
     plyMix.value = look.plyLayers > 3 ? 0.48 : look.plyLayers > 0 ? 0.36 : 0
     bridgePlyMix.value = look.plyLayers > 3 ? 0.31 : look.plyLayers > 0 ? 0.28 : 0
-    face.needsUpdate = true
-    reverse.needsUpdate = true
-    cut.needsUpdate = true
-    bridgeCut.needsUpdate = true
-    end.needsUpdate = true
   }
 
-  const apply = (id: LinarMaterialId, veneer: LinarVeneerId, immediate = false) => {
+  const apply = (
+    id: LinarMaterialId,
+    veneer: LinarVeneerId,
+    mdfColour: LinarMdfColourId,
+    immediate = false,
+  ) => {
     currentMaterial = id
     currentVeneer = veneer
+    currentMdfColour = mdfColour
     mix = immediate ? 1 : 0
     needsPaint = !immediate
     if (immediate) {
       const faceMap = veneer === 'none' ? getFace(id) : getVeneerFace(veneer)
       const reverseMap = veneer === 'none' ? getReverse(id) : getVeneerReverse(veneer)
-      paintSet(id, veneer, faceMap, reverseMap, getEdge(id), getEnd(id))
+      paintSet(id, veneer, mdfColour, faceMap, reverseMap, getEdge(id), getEnd(id))
     }
   }
 
@@ -489,6 +525,7 @@ export function createLinarMaterials(): LinarMaterialSet {
       paintSet(
         currentMaterial,
         currentVeneer,
+        currentMdfColour,
         faceMap,
         reverseMap,
         getEdge(currentMaterial),
@@ -499,6 +536,16 @@ export function createLinarMaterials(): LinarMaterialSet {
     return mix < 1
   }
 
+  const applyBacking = (backingId: LinarBacking, feltColour: LinarFeltColourId) => {
+    const colour =
+      backingId === 'felt'
+        ? findFeltColour(feltColour).swatch
+        : backingId === 'none'
+          ? LINAR_BACKING_COLOURS['acoustic-fleece']
+          : LINAR_BACKING_COLOURS[backingId]
+    backing.color.set(colour)
+  }
+
   const dispose = () => {
     face.dispose()
     reverse.dispose()
@@ -506,6 +553,8 @@ export function createLinarMaterials(): LinarMaterialSet {
     bridgeCut.dispose()
     end.dispose()
     backing.dispose()
+    backing.map?.dispose()
+    microDetailMap.dispose()
     for (const map of faceMaps.values()) map.dispose()
     for (const map of reverseMaps.values()) map.dispose()
     for (const map of edgeMaps.values()) map.dispose()
@@ -520,5 +569,5 @@ export function createLinarMaterials(): LinarMaterialSet {
     veneerReverseMaps.clear()
   }
 
-  return { face, reverse, cut, bridgeCut, end, backing, apply, tick, dispose }
+  return { face, reverse, cut, bridgeCut, end, backing, apply, applyBacking, tick, dispose }
 }

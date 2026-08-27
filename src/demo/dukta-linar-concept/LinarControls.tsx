@@ -1,5 +1,12 @@
+import type { CSSProperties } from 'react'
 import { VISUAL_FALLBACK_RADIUS_MM } from './bendMath'
 import { JANUS_THICKNESS_NOTE, type LinarTech } from './linarData'
+import {
+  LINAR_FELT_COLOURS,
+  LINAR_MDF_COLOURS,
+  LINAR_PRESENTATION_LIMITS,
+  type LinarColourOption,
+} from './materialData'
 import {
   LINAR_APPLICATIONS,
   LINAR_MATERIALS,
@@ -9,7 +16,9 @@ import {
   type LinarBacking,
   type LinarBendDirection,
   type LinarConfig,
+  type LinarFeltColourId,
   type LinarMaterialId,
+  type LinarMdfColourId,
   type LinarVeneerId,
 } from './types'
 
@@ -20,10 +29,53 @@ type Props = {
   config: LinarConfig
   tech: LinarTech
   previewRadiusMm: number | null
+  secondaryCurveSafetyLimited: boolean
   onBendInput: (value: number) => void
   onSecondaryCurveInput: (value: number) => void
   onConfig: (patch: Partial<LinarConfig>) => void
   onResetPanel: () => void
+}
+
+function SwatchGroup<T extends string>({
+  labelId,
+  label,
+  items,
+  value,
+  onChange,
+}: {
+  labelId: string
+  label: string
+  items: readonly LinarColourOption<T>[]
+  value: T
+  onChange: (id: T) => void
+}) {
+  return (
+    <div className="linar-field linar-field--swatches">
+      <p className="linar-label" id={labelId}>
+        {label}
+      </p>
+      <div className="linar-swatches" role="group" aria-labelledby={labelId}>
+        {items.map((item) => {
+          const active = item.id === value
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className={active ? 'linar-swatch is-active' : 'linar-swatch'}
+              aria-label={`${item.label}. ${item.source}. Official code pending.`}
+              aria-pressed={active}
+              title={`${item.label} · ${item.source} · official code pending`}
+              style={{ '--linar-swatch': item.swatch } as CSSProperties}
+              onClick={() => onChange(item.id)}
+            >
+              <span className="linar-swatch__colour" aria-hidden="true" />
+              <span className="linar-swatch__label">{item.label}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
 }
 
 function RangeRow({
@@ -34,6 +86,7 @@ function RangeRow({
   max,
   step,
   display,
+  dataTourId,
   onChange,
 }: {
   id: string
@@ -43,10 +96,11 @@ function RangeRow({
   max: number
   step: number
   display: string
+  dataTourId?: string
   onChange: (value: number) => void
 }) {
   return (
-    <div className="linar-range">
+    <div className="linar-range" data-tour-id={dataTourId}>
       <div className="linar-control__head">
         <label className="linar-label" htmlFor={id}>
           {label}
@@ -76,16 +130,18 @@ function ChipGroup<T extends string>({
   label,
   items,
   value,
+  dataTourId,
   onChange,
 }: {
   labelId: string
   label: string
   items: readonly { id: T; label: string }[]
   value: T
+  dataTourId?: string
   onChange: (id: T) => void
 }) {
   return (
-    <div className="linar-field">
+    <div className="linar-field" data-tour-id={dataTourId}>
       <p className="linar-label" id={labelId}>
         {label}
       </p>
@@ -102,6 +158,74 @@ function ChipGroup<T extends string>({
             >
               <span className="linar-chip__name">{item.label}</span>
               <span className="linar-chip__state">{active ? 'Selected' : 'Select'}</span>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function SegmentedGroup<T extends string>({
+  labelId,
+  label,
+  items,
+  value,
+  dataTourId,
+  onChange,
+}: {
+  labelId: string
+  label: string
+  items: readonly { id: T; label: string }[]
+  value: T
+  dataTourId?: string
+  onChange: (id: T) => void
+}) {
+  return (
+    <div className="linar-field linar-segmented" data-tour-id={dataTourId}>
+      <p className="linar-label" id={labelId}>
+        {label}
+      </p>
+      <div
+        className="linar-materials linar-materials--segmented"
+        role="radiogroup"
+        aria-labelledby={labelId}
+        aria-orientation="horizontal"
+        style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
+      >
+        {items.map((item, index) => {
+          const active = item.id === value
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="radio"
+              className={active ? 'linar-chip is-active' : 'linar-chip'}
+              aria-checked={active}
+              tabIndex={active ? 0 : -1}
+              style={{ justifyContent: 'center', textAlign: 'center' }}
+              onClick={() => onChange(item.id)}
+              onKeyDown={(event) => {
+                let nextIndex = index
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                  nextIndex = (index - 1 + items.length) % items.length
+                } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                  nextIndex = (index + 1) % items.length
+                } else if (event.key === 'Home') {
+                  nextIndex = 0
+                } else if (event.key === 'End') {
+                  nextIndex = items.length - 1
+                } else {
+                  return
+                }
+
+                event.preventDefault()
+                onChange(items[nextIndex].id)
+                const buttons = event.currentTarget.parentElement?.querySelectorAll('button')
+                buttons?.item(nextIndex).focus()
+              }}
+            >
+              <span className="linar-chip__name">{item.label}</span>
             </button>
           )
         })}
@@ -128,6 +252,7 @@ export function LinarControls({
   config,
   tech,
   previewRadiusMm,
+  secondaryCurveSafetyLimited,
   onBendInput,
   onSecondaryCurveInput,
   onConfig,
@@ -154,7 +279,7 @@ export function LinarControls({
 
   return (
     <div className="linar-controls">
-      <details className="linar-acc linar-acc--bending" open>
+      <details className="linar-acc linar-acc--bending" data-tour-id="bending" open>
         <summary className="linar-acc__sum">Bending radius</summary>
         <div className="linar-acc__body">
           <div className="linar-range linar-bend-control">
@@ -197,7 +322,7 @@ export function LinarControls({
             <p className="linar-note">{referenceText}</p>
           </div>
 
-          <details className="linar-secondary-curve">
+          <details className="linar-secondary-curve" data-tour-id="s-curve">
             <summary className="linar-secondary-curve__summary">Advanced shape preview</summary>
             <div className="linar-secondary-curve__body">
               <div className="linar-range">
@@ -226,9 +351,13 @@ export function LinarControls({
                   aria-valuenow={safeSecondaryCurveAmount}
                   aria-valuetext={secondaryCurveValueText}
                   aria-describedby={
-                    secondaryCurveIsDormant
-                      ? 'linar-secondary-curve-description linar-secondary-curve-flat-status'
-                      : 'linar-secondary-curve-description'
+                    [
+                      'linar-secondary-curve-description',
+                      secondaryCurveIsDormant ? 'linar-secondary-curve-flat-status' : '',
+                      secondaryCurveSafetyLimited ? 'linar-secondary-curve-safety-status' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')
                   }
                   onInput={(event) =>
                     onSecondaryCurveInput(Number(event.currentTarget.value))
@@ -237,9 +366,10 @@ export function LinarControls({
               </div>
               <p className="linar-note">
                 0 keeps the existing C curve. Progression morphs it continuously toward two
-                opposing hairpin turns. At 100, with the primary radius at either endpoint, the
-                panel forms three near-parallel legs. This does not change open-area or radius
-                calculations.
+                opposing hairpin turns. At 100 the panel forms three near-parallel legs where the
+                current incised support and rendered surface offset allow it. The hairpin
+                proportions are a visual shape reference; the primary radius and open-area
+                calculations remain independent.
               </p>
               {secondaryCurveIsDormant ? (
                 <p
@@ -251,9 +381,20 @@ export function LinarControls({
                   Move the primary radius control away from centre to see the opposing curve.
                 </p>
               ) : null}
+              {secondaryCurveSafetyLimited ? (
+                <p
+                  id="linar-secondary-curve-safety-status"
+                  className="linar-secondary-curve__status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Visual safety limit: the rendered S turn is moderated to prevent surface or
+                  backing overlap at this partial coverage. Visual reference only; Not tested.
+                </p>
+              ) : null}
               <p id="linar-secondary-curve-description" className="linar-note">
                 The supplied sample footage visually demonstrates an opposing S-shaped pose. It
-                does not provide a measured second radius, transition position, load limit,
+                does not provide a measured hairpin radius, transition position, load limit,
                 spring-back value or manufacturing envelope. Visual reference only · Not tested.
               </p>
             </div>
@@ -269,19 +410,37 @@ export function LinarControls({
             label="Base material"
             items={LINAR_MATERIALS}
             value={config.material}
+            dataTourId="materials"
             onChange={(id: LinarMaterialId) => onConfig({ material: id })}
           />
-          <ChipGroup
-            labelId="linar-veneer-label"
-            label="Optional veneer"
-            items={LINAR_VENEERS}
-            value={config.veneer}
-            onChange={(id: LinarVeneerId) => onConfig({ veneer: id })}
-          />
-          <p className="linar-note">
-            Veneer is an additional appearance layer of approximately 1 mm. It does not alter the
-            configured base thickness or bending-radius calculation in this revision.
-          </p>
+          <div data-tour-id="colours">
+            {config.material === 'mdf' ? (
+              <>
+                <SwatchGroup
+                  labelId="linar-mdf-colour-label"
+                  label="MDF colour reference"
+                  items={LINAR_MDF_COLOURS}
+                  value={config.mdfColour}
+                  onChange={(id: LinarMdfColourId) => onConfig({ mdfColour: id })}
+                />
+                <p className="linar-note">
+                  Photo-reference swatches only. Official manufacturer names, codes and digital
+                  colour values are still pending.
+                </p>
+              </>
+            ) : null}
+            <ChipGroup
+              labelId="linar-veneer-label"
+              label="Optional veneer"
+              items={LINAR_VENEERS}
+              value={config.veneer}
+              onChange={(id: LinarVeneerId) => onConfig({ veneer: id })}
+            />
+            <p className="linar-note">
+              Veneer is an additional appearance layer of approximately 1 mm. It does not alter
+              the configured base thickness or bending-radius calculation in this revision.
+            </p>
+          </div>
           <RangeRow
             id="linar-thickness"
             label="Base panel thickness"
@@ -293,13 +452,18 @@ export function LinarControls({
             onChange={(value) => onConfig({ thicknessMm: value })}
           />
           <p className="linar-note">{JANUS_THICKNESS_NOTE}</p>
-          <button type="button" className="linar-text-btn" onClick={onResetPanel}>
+          <button
+            type="button"
+            className="linar-text-btn"
+            data-tour-id="reset"
+            onClick={onResetPanel}
+          >
             Reset panel
           </button>
         </div>
       </details>
 
-      <details className="linar-acc">
+      <details className="linar-acc" data-tour-id="incision">
         <summary className="linar-acc__sum">Incision</summary>
         <div className="linar-acc__body">
           <RangeRow
@@ -357,11 +521,12 @@ export function LinarControls({
       <details className="linar-acc">
         <summary className="linar-acc__sum">Application</summary>
         <div className="linar-acc__body">
-          <ChipGroup
+          <SegmentedGroup
             labelId="linar-application-label"
             label="Application"
             items={LINAR_APPLICATIONS}
             value={config.application}
+            dataTourId="application"
             onChange={(id: LinarApplication) => onConfig({ application: id })}
           />
           <ChipGroup
@@ -371,9 +536,38 @@ export function LinarControls({
             value={config.backing}
             onChange={(id: LinarBacking) => onConfig({ backing: id })}
           />
+          {config.backing === 'felt' ? (
+            <>
+              <SwatchGroup
+                labelId="linar-felt-colour-label"
+                label="Felt colour"
+                items={LINAR_FELT_COLOURS}
+                value={config.feltColour}
+                onChange={(id: LinarFeltColourId) => onConfig({ feltColour: id })}
+              />
+              <p className="linar-note">
+                Red is based on the supplied LINAR photograph. The remaining swatches are
+                development previews; official felt names and codes are pending.
+              </p>
+            </>
+          ) : null}
+          <RangeRow
+            id="linar-panel-count"
+            label="Addition / repetition"
+            value={config.panelCount}
+            min={LINAR_PRESENTATION_LIMITS.minimumPanelCount}
+            max={LINAR_PRESENTATION_LIMITS.maximumPanelCount}
+            step={1}
+            display={`${config.panelCount} ${config.panelCount === 1 ? 'panel' : 'panels'}`}
+            dataTourId="repetition"
+            onChange={(value) => onConfig({ panelCount: value })}
+          />
           <p className="linar-note">
-            Application and visible backing choices are descriptive configuration metadata. They
-            do not change the bending calculation.
+            Application, backing and repetition change the presentation only. They do not change
+            the LINAR open-area or single-panel radius/status calculations. Repeated modules remain
+            in one tangent-connected horizontal row; the selected visual turn is distributed over
+            the complete installation so modules do not loop or overlap. The current 1–4 range is
+            a development/performance presentation limit, not a commercial maximum.
           </p>
         </div>
       </details>

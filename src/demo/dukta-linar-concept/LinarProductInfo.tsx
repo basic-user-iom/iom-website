@@ -3,6 +3,7 @@ import {
   PARTNER_CONFIRMATION_NOTE,
   type LinarTech,
 } from './linarData'
+import { findFeltColour, findMdfColour } from './materialData'
 import {
   LINAR_APPLICATIONS,
   LINAR_MATERIALS,
@@ -58,6 +59,7 @@ type Row = {
   value: string
   hint?: string
   status?: LinarTech['status']
+  tourId?: string
 }
 
 type Props = {
@@ -66,6 +68,7 @@ type Props = {
   selectedRadiusMm: number | null
   bendDirection: LinarBendDirection
   secondaryCurveAmount: number
+  secondaryCurveSafetyLimited: boolean
 }
 
 export function LinarProductInfo({
@@ -74,6 +77,7 @@ export function LinarProductInfo({
   selectedRadiusMm,
   bendDirection,
   secondaryCurveAmount,
+  secondaryCurveSafetyLimited,
 }: Props) {
   const safeSecondaryCurveAmount = Math.max(
     0,
@@ -94,6 +98,15 @@ export function LinarProductInfo({
   const rows: Row[] = [
     { label: 'Panel size', value: '2800 × 1200 mm visualization panel' },
     { label: 'Material', value: materialLabel(config.material) },
+    ...(config.material === 'mdf'
+      ? ([
+          {
+            label: 'MDF colour',
+            value: findMdfColour(config.mdfColour).label,
+            hint: 'Photo reference · official code pending',
+          },
+        ] satisfies Row[])
+      : []),
     {
       label: 'Veneer',
       value: veneerLabel(config.veneer),
@@ -126,6 +139,7 @@ export function LinarProductInfo({
     {
       label: 'Primary selected radius',
       value: selectedRadiusMm == null ? 'Flat' : formatMm(selectedRadiusMm),
+      tourId: 'radius',
       hint:
         selectedRadiusMm == null
           ? undefined
@@ -141,7 +155,7 @@ export function LinarProductInfo({
           {
             label: 'S-curve progression',
             value: `${safeSecondaryCurveAmount}%`,
-            hint: 'Variable-curvature visual reference only',
+            hint: 'Proportional serpentine visual reference only',
           },
           {
             label: 'S-curve validation',
@@ -150,9 +164,32 @@ export function LinarProductInfo({
           },
         ] satisfies Row[])
       : []),
+    ...(hasSecondaryCurve && secondaryCurveSafetyLimited
+      ? ([
+          {
+            label: 'S-curve rendering',
+            value: 'Visual safety limit',
+            hint: 'Turn moderated to prevent rendered overlap; Not tested',
+            status: 'Not tested',
+          },
+        ] satisfies Row[])
+      : []),
     { label: 'Reference minimum radius', value: radiusValue },
     { label: 'Application', value: applicationLabel(config.application) },
     { label: 'Backing', value: backingLabel(config.backing) },
+    ...(config.backing === 'felt'
+      ? ([
+          {
+            label: 'Felt colour',
+            value: findFeltColour(config.feltColour).label,
+            hint: 'Provisional · official code pending',
+          },
+        ] satisfies Row[])
+      : []),
+    {
+      label: 'Installation repetition',
+      value: `${config.panelCount} ${config.panelCount === 1 ? 'panel' : 'panels'}`,
+    },
     {
       label: hasSecondaryCurve ? 'Base sample status' : 'Status',
       value: tech.status,
@@ -184,11 +221,11 @@ export function LinarProductInfo({
         </li>
       </ul>
 
-      <details className="linar-acc linar-acc--tech" open>
+      <details className="linar-acc linar-acc--tech" data-tour-id="technical-data" open>
         <summary className="linar-acc__sum">Technical data</summary>
         <dl className="linar-spec">
           {rows.map((row) => (
-            <div className="linar-spec__row" key={row.label}>
+            <div className="linar-spec__row" data-tour-id={row.tourId} key={row.label}>
               <dt>{row.label}</dt>
               <dd>
                 {row.status ? (
@@ -217,7 +254,7 @@ export function LinarProductInfo({
         {hasSecondaryCurve ? (
           <p className="linar-note">
             The supplied sample footage visually demonstrates an opposing S-shaped pose. It does
-            not provide a measured second radius, transition position, load limit, spring-back
+            not provide a measured hairpin radius, transition position, load limit, spring-back
             value or manufacturing envelope. Visual reference only · Not tested.
           </p>
         ) : null}

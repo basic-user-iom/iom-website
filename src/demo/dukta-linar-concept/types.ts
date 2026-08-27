@@ -1,11 +1,42 @@
 export type LinarMaterialId = 'mdf' | 'plywood' | 'three-layer-spruce'
 export type LinarVeneerId = 'none' | 'oak' | 'maple' | 'ash' | 'walnut'
-export type LinarPattern = 'regular' | 'irregular'
+export type LinarMdfColourId =
+  | 'reference-01'
+  | 'reference-02'
+  | 'reference-03'
+  | 'reference-04'
+  | 'reference-05'
+  | 'reference-06'
+  | 'reference-07'
+  | 'reference-08'
+  | 'reference-09'
+export type LinarFeltColourId =
+  | 'reference-red'
+  | 'development-charcoal'
+  | 'development-stone'
+export type LinarPattern = 'regular'
 export type LinarStatus = 'Standard' | 'Possible' | 'Not tested'
 export type LinarApplication = 'freestanding' | 'wall' | 'ceiling'
-export type LinarBacking = 'none' | 'acoustic-fleece' | 'acoustic-wool' | 'felt'
+export type LinarBacking = 'none' | 'acoustic-fleece' | 'felt'
 export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual reference'
 export type LinarBendDirection = 'left' | 'flat' | 'right'
+
+/**
+ * Normalised position of the single interactive presentation light.
+ * `u` and `v` are deliberately installation-agnostic: the scene maps them to
+ * a safe application-specific movement plane for freestanding, wall or ceiling.
+ */
+export type LinarLightState = {
+  enabled: boolean
+  u: number
+  v: number
+}
+
+export const DEFAULT_LINAR_LIGHT: LinarLightState = {
+  enabled: false,
+  u: -0.32,
+  v: -0.28,
+}
 
 /**
  * Reserved data-model extension for a future, physically defined S-curve.
@@ -21,6 +52,8 @@ export type LinarSecondaryBend = {
 export type LinarConfig = {
   material: LinarMaterialId
   veneer: LinarVeneerId
+  mdfColour: LinarMdfColourId
+  feltColour: LinarFeltColourId
   thicknessMm: number
   incisionLengthMm: number
   cutWidthMm: number
@@ -29,6 +62,7 @@ export type LinarConfig = {
   pattern: LinarPattern
   application: LinarApplication
   backing: LinarBacking
+  panelCount: number
   bendDirection: LinarBendDirection
   bendRadiusMm: number | null
   secondaryBend: LinarSecondaryBend | null
@@ -65,17 +99,12 @@ export const LINAR_APPLICATIONS: { id: LinarApplication; label: string }[] = [
 export const LINAR_BACKINGS: { id: LinarBacking; label: string }[] = [
   { id: 'none', label: 'None' },
   { id: 'acoustic-fleece', label: 'Acoustic fleece' },
-  { id: 'acoustic-wool', label: 'Acoustic wool' },
   { id: 'felt', label: 'Felt' },
 ]
 
-/** Acoustic wool remains supported internally but is outside this configurator revision. */
-export const LINAR_VISIBLE_BACKINGS = LINAR_BACKINGS.filter(
-  (item): item is { id: Exclude<LinarBacking, 'acoustic-wool'>; label: string } =>
-    item.id !== 'acoustic-wool',
-)
+export const LINAR_VISIBLE_BACKINGS = LINAR_BACKINGS
 
-export type LinarViewId = 'hero' | 'closeup' | 'side' | 'reverse' | 'bent'
+export type LinarViewId = 'hero' | 'closeup' | 'side' | 'reverse' | 'bent' | 'top'
 export type LinarSide = 'front' | 'back'
 
 export const LINAR_SIDES: { id: LinarSide; label: string }[] = [
@@ -89,6 +118,7 @@ export const LINAR_VIEWS: { id: LinarViewId; label: string }[] = [
   { id: 'side', label: 'Side' },
   { id: 'reverse', label: 'Back view' },
   { id: 'bent', label: 'Radius' },
+  { id: 'top', label: 'Top shape' },
 ]
 
 /** Confirmed visual reference cell from the supplied LINAR pattern drawings. */
@@ -105,6 +135,8 @@ export const LINAR_REFERENCE_OPENING_LENGTH_MM = 40
 export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   material: 'plywood',
   veneer: 'none',
+  mdfColour: 'reference-01',
+  feltColour: 'reference-red',
   thicknessMm: 9,
   incisionLengthMm: LINAR_REFERENCE_OPENING_LENGTH_MM,
   cutWidthMm: 4,
@@ -113,6 +145,7 @@ export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   pattern: 'regular',
   application: 'freestanding',
   backing: 'none',
+  panelCount: 1,
   bendDirection: 'flat',
   bendRadiusMm: null,
   secondaryBend: null,

@@ -757,6 +757,66 @@ body.linar-route a.iom-back {
   color: var(--linar-wood-deep);
 }
 
+.linar-field--swatches {
+  margin-top: 1rem;
+}
+
+.linar-swatches {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.42rem;
+  margin-top: 0.7rem;
+}
+
+.linar-swatch {
+  display: grid;
+  grid-template-columns: 1.2rem minmax(0, 1fr);
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  min-height: 46px;
+  padding: 0.42rem 0.48rem;
+  border: 1px solid var(--linar-line);
+  border-radius: 2px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.linar-swatch:hover {
+  border-color: rgba(42, 38, 34, 0.38);
+}
+
+.linar-swatch:focus-visible {
+  outline: 2px solid var(--linar-ink);
+  outline-offset: 2px;
+}
+
+.linar-swatch.is-active {
+  border-color: var(--linar-ink);
+  background: #f3eee6;
+}
+
+.linar-swatch__colour {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 1px solid rgba(42, 38, 34, 0.22);
+  border-radius: 50%;
+  background: var(--linar-swatch);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.linar-swatch__label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 0.67rem;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .linar-actions {
   display: flex;
   flex-wrap: wrap;
@@ -1104,6 +1164,12 @@ body.linar-route a.iom-back {
   animation: linar-tour-card-enter 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
+.is-tour-running .linar-tour-card {
+  max-height: calc(100% - 2rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
 .linar-tour-card h2 {
   font-size: 1.25rem;
 }
@@ -1319,10 +1385,15 @@ body.linar-route a.iom-back {
 
 @media (max-width: 860px) {
   .linar-tour-card {
-    top: 0.65rem;
+    top: 4.65rem;
     left: 0.65rem;
     width: min(22rem, calc(100% - 1.3rem));
+    max-height: calc(100% - 5.3rem);
     padding: 0.9rem 1rem;
+  }
+
+  .is-tour-running .linar-viewport__hint {
+    display: none;
   }
 
   .linar-tour-card h2 {
@@ -1336,6 +1407,201 @@ body.linar-route a.iom-back {
 
   .linar-tour-card__progress {
     margin: -0.9rem -1rem 0.75rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .linar-viewport-tools__button {
+    min-width: 4rem;
+    padding-inline: 0.45rem;
+    font-size: 0.62rem;
+  }
+}
+
+/* Production-pass additions: segmented applications, guided targets and intro. */
+.linar-materials--segmented {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(42, 38, 34, 0.28);
+  border-radius: 2px;
+}
+
+.linar-materials--segmented .linar-chip {
+  min-width: 0;
+  min-height: 44px;
+  border: 0;
+  border-right: 1px solid rgba(42, 38, 34, 0.18);
+  border-radius: 0;
+  background: transparent;
+}
+
+.linar-materials--segmented .linar-chip:last-child {
+  border-right: 0;
+}
+
+.linar-materials--segmented .linar-chip.is-active {
+  background: var(--linar-ink);
+  color: var(--linar-paper);
+}
+
+.linar-tour-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.linar-tour-card__actions button {
+  flex: 1 1 5.5rem;
+  margin-top: 0;
+}
+
+.linar-tour-card__actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.linar-page [data-tour-id] {
+  outline: 2px solid transparent;
+  outline-offset: 5px;
+  transition:
+    outline-color 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.linar-page [data-tour-id].is-tour-targeted {
+  border-radius: 2px;
+  outline-color: rgba(122, 86, 54, 0.78);
+  background: rgba(166, 124, 82, 0.08);
+  animation: linar-tour-pulse 3.2s ease-in-out infinite;
+}
+
+.linar-cinematic-hud {
+  position: absolute;
+  z-index: 45;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  left: max(1rem, env(safe-area-inset-left));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--linar-ink);
+  pointer-events: none;
+  animation: linar-cinematic-hud-in 1.2s ease both;
+}
+
+.linar-cinematic-hud p {
+  max-width: 33rem;
+  margin: 0.25rem 0 0;
+  line-height: 1.45;
+}
+
+.linar-cinematic-hud button {
+  min-height: 44px;
+  padding: 0.68rem 0.9rem;
+  border: 1px solid rgba(42, 38, 34, 0.28);
+  border-radius: 2px;
+  background: rgba(250, 247, 242, 0.86);
+  color: var(--linar-ink);
+  backdrop-filter: blur(10px);
+  font: inherit;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.linar-page.is-cinematic-running {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.is-cinematic-running .linar-header,
+.is-cinematic-running .linar-side,
+.is-cinematic-running .linar-viewport-tools,
+.is-cinematic-running .linar-viewport__hint {
+  display: none;
+}
+
+.is-cinematic-running .linar-body {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.linar-page:not(.is-cinematic-running) .linar-header,
+.linar-page:not(.is-cinematic-running) .linar-side,
+.linar-page:not(.is-cinematic-running) .linar-viewport-tools {
+  animation: linar-interface-handover 0.65s ease both;
+}
+
+.linar-page.is-reduced-reveal .linar-viewport__canvas {
+  animation: linar-reduced-reveal 0.55s ease both;
+}
+
+@keyframes linar-cinematic-hud-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes linar-interface-handover {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes linar-reduced-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 860px) {
+  .linar-viewport-tools {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(4.1rem, 1fr));
+  }
+
+  .linar-viewport-tools__button {
+    min-width: 0;
+  }
+
+  .linar-cinematic-hud {
+    align-items: flex-start;
+  }
+
+  .linar-cinematic-hud > div {
+    max-width: calc(100% - 6.5rem);
+  }
+
+  .linar-tour-card {
+    top: 7rem;
+    max-height: calc(100% - 7.7rem);
+  }
+}
+
+@media (max-width: 380px) {
+  .linar-viewport-tools__button {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linar-page [data-tour-id].is-tour-targeted,
+  .linar-cinematic-hud,
+  .linar-page:not(.is-cinematic-running) .linar-header,
+  .linar-page:not(.is-cinematic-running) .linar-side,
+  .linar-page:not(.is-cinematic-running) .linar-viewport-tools,
+  .linar-page.is-reduced-reveal .linar-viewport__canvas {
+    animation: none;
+  }
+
+  .linar-page [data-tour-id] {
+    transition: none;
   }
 }
 

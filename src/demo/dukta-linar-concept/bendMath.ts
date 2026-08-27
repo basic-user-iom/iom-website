@@ -9,6 +9,8 @@ import type { LinarBendDirection, LinarConfig } from './types'
 export const PANEL_HEIGHT_M = 2.8
 export const PANEL_WIDTH_M = 1.2
 export const PANEL_SIZE_MM = { height: 2800, width: 1200 } as const
+/** Visual separation between the panel rear face and an enabled backing. */
+export const BACKING_RENDER_OFFSET_M = 0.0012
 
 /** Circular-saw path radius in the cutting diagram — never the panel bending radius. */
 export const SAW_PATH_RADIUS_MM = 62.5
@@ -21,6 +23,12 @@ export const MAX_BRIDGE_ROWS = 80
 
 /** Visual-only cylinder when no physical sample exists. Never labelled as tested. */
 export const VISUAL_FALLBACK_RADIUS_MM = 180
+
+/**
+ * Width of the C1 handover between full-support bending and the tighter
+ * half-circumference zone. This is a controller transition, not product data.
+ */
+const ACTIVE_WIDTH_TRANSITION_FRACTION = 0.08
 
 export type SlatSpec = {
   originalX: number
@@ -55,7 +63,6 @@ export type PanelLayout = {
   incisedY0: number
   incisedY1: number
   incisedHeightM: number
-  irregular: boolean
 }
 
 export type BendState = {
@@ -71,16 +78,48 @@ export type BendState = {
   leftFlat: number
   validated: boolean
   secondaryCurveAmount: number
+  secondaryCurveRenderedTurnRad: number
+  secondaryCurveSafetyLimited: boolean
   compoundCurve: SerpentinePathLookup | null
-}
-
-function hash01(n: number): number {
-  const x = Math.sin(n * 12.9898) * 43758.5453
-  return x - Math.floor(x)
 }
 
 export function mmToM(mm: number): number {
   return mm / 1000
+}
+
+/** Furthest normal offset rendered for the panel surface/backing pair. */
+export function maxRenderedNormalOffsetM(thicknessM: number, hasBacking: boolean): number {
+  return Math.max(0, thicknessM) * 0.5 + (hasBacking ? BACKING_RENDER_OFFSET_M : 0)
+}
+
+/**
+ * Piecewise-polynomial smooth minimum.
+ *
+ * Outside the narrow transition band it is exactly `min(a, b)`. Inside the
+ * band its value and first derivative are continuous, while never exceeding
+ * either input. The C-bend still derives its angle from `width / radius`, so
+ * both tangent joins remain analytic rather than being position-blended.
+ */
+export function smoothActiveBendWidthM(
+  bendableWidthM: number,
+  halfCircumferenceM: number,
+): number {
+  const support = Math.max(0, bendableWidthM)
+  const circumference = Math.max(0, halfCircumferenceM)
+  if (support <= 0 || circumference <= 0) return 0
+
+  const transitionWidth = support * ACTIVE_WIDTH_TRANSITION_FRACTION
+  if (transitionWidth <= 0.000001) return Math.min(support, circumference)
+
+  const blend = Math.max(
+    0,
+    Math.min(1, 0.5 + (circumference - support) / (2 * transitionWidth)),
+  )
+  return (
+    circumference * (1 - blend) +
+    support * blend -
+    transitionWidth * blend * (1 - blend)
+  )
 }
 
 export function slatLayout(config: LinarConfig): PanelLayout {
@@ -136,7 +175,6 @@ export function slatLayout(config: LinarConfig): PanelLayout {
     incisedY0,
     incisedY1,
     incisedHeightM,
-    irregular: config.pattern === 'irregular',
   }
 }
 
@@ -175,14 +213,11 @@ export function bridgeSegsFor(
     // 60 mm central bridge while its neighbour has two clipped 30 mm bridge
     // halves at the repeat boundaries. This reproduces the supplied diagram.
     const regularPhase = (col % 2) * repeatM * 0.5
-    const irregularPhase = layout.irregular
-      ? (hash01(col * 19 + 7) - 0.5) * repeatM * 0.12
-      : 0
-    const phase = regularPhase + irregularPhase
+    const phase = regularPhase
 
     for (let k = -1; k <= repeatCount; k += 1) {
       const center = layout.incisedY0 + phase + k * repeatM
-      const unclippedHeight = bridgeM * (layout.irregular ? 0.94 : 1)
+      const unclippedHeight = bridgeM
       const unclippedStart = center - unclippedHeight * 0.5
       const start = Math.max(layout.incisedY0, unclippedStart)
       const end = Math.min(layout.incisedY1, center + unclippedHeight * 0.5)
@@ -211,6 +246,7 @@ export function makeBendState(
   referenceRadiusMm: number | null,
   bendableWidthM = panelWidthM,
   secondaryCurveAmount = 0,
+  secondaryCurveMaxNormalOffsetM = 0,
 ): BendState {
   const clampedControl = Math.max(-100, Math.min(100, control))
   const t = Math.abs(clampedControl) / 100
@@ -238,6 +274,8 @@ export function makeBendState(
       leftFlat: panelWidthM * 0.5,
       validated,
       secondaryCurveAmount: clampedSecondaryCurveAmount,
+      secondaryCurveRenderedTurnRad: 0,
+      secondaryCurveSafetyLimited: false,
       compoundCurve: null,
     }
   }
@@ -250,8 +288,12 @@ export function makeBendState(
   // The complete incised width participates at large radii. When a tighter
   // radius can form a half-circle in less material, the active zone reduces
   // progressively according to the existing documented width = pi * R rule.
+  // Keep the active arc at or below πR. A compact polynomial smooth-min
+  // removes the velocity knee at the full-width/half-circumference handover.
+  // Angle is still derived from the resulting arc length, so the straight
+  // extensions retain exact positional and tangent continuity.
   const halfCircumferenceM = mmToM(getIncisedWidthForRadiusMm(selectedRadiusMm))
-  const activeWidthM = Math.min(Math.max(0, bendableWidthM), halfCircumferenceM)
+  const activeWidthM = smoothActiveBendWidthM(bendableWidthM, halfCircumferenceM)
   const alpha = Math.min(Math.PI, activeWidthM / Math.max(radiusM, 0.000001))
   const arcLen = activeWidthM
   const leftFlat = Math.max(0, (panelWidthM - arcLen) * 0.5)
@@ -260,10 +302,15 @@ export function makeBendState(
       ? makeSerpentinePathLookup({
           panelWidthM,
           activeWidthM,
+          // The advanced target is confined to the actual incised strip.
+          // Solid side zones remain straight tangent extensions when coverage
+          // is partial instead of being silently treated as flexible material.
+          serpentineWidthM: bendableWidthM,
           radiusM,
           bendAngleRad: alpha,
           directionSign,
           progression: clampedSecondaryCurveAmount / 100,
+          maxNormalOffsetM: secondaryCurveMaxNormalOffsetM,
         })
       : null
   return {
@@ -279,6 +326,8 @@ export function makeBendState(
     leftFlat,
     validated,
     secondaryCurveAmount: clampedSecondaryCurveAmount,
+    secondaryCurveRenderedTurnRad: compoundCurve?.renderedBendAngleRad ?? 0,
+    secondaryCurveSafetyLimited: compoundCurve?.visualSafetyLimited ?? false,
     compoundCurve,
   }
 }

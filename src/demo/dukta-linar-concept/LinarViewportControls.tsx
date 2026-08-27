@@ -12,12 +12,19 @@ type Props = {
   musicEnabled: boolean
   musicVolume: number
   viewAvailable: boolean
+  tourActive: boolean
+  cinematicActive: boolean
+  lightEnabled: boolean
   shareUrl: string
   onViewPreset: (id: LinarViewId) => void
   onSideChange: (side: LinarSide) => void
   onResetView: () => void
   onToggleMusic: () => void
   onMusicVolumeChange: (value: number) => void
+  onToggleTour: () => void
+  onReplayCinematic: () => void
+  onToggleLight: () => void
+  onUserInteract: () => void
   onShare: () => Promise<boolean>
 }
 
@@ -29,16 +36,24 @@ export function LinarViewportControls({
   musicEnabled,
   musicVolume,
   viewAvailable,
+  tourActive,
+  cinematicActive,
+  lightEnabled,
   shareUrl,
   onViewPreset,
   onSideChange,
   onResetView,
   onToggleMusic,
   onMusicVolumeChange,
+  onToggleTour,
+  onReplayCinematic,
+  onToggleLight,
+  onUserInteract,
   onShare,
 }: Props) {
   const [shareFeedback, setShareFeedback] = useState<ShareFeedback>('idle')
   const shareResetTimerRef = useRef<number | null>(null)
+  const viewMenuRef = useRef<HTMLDetailsElement | null>(null)
 
   useEffect(
     () => () => {
@@ -48,6 +63,12 @@ export function LinarViewportControls({
     },
     [],
   )
+
+  useEffect(() => {
+    if ((tourActive || cinematicActive) && viewMenuRef.current) {
+      viewMenuRef.current.open = false
+    }
+  }, [cinematicActive, tourActive])
 
   const copyShareLink = async () => {
     if (shareFeedback === 'copying') return
@@ -95,8 +116,11 @@ export function LinarViewportControls({
             : 'linar-viewport-tools__button'
         }
         disabled={shareFeedback === 'copying'}
+        data-tour-id="share"
         aria-label={shareAriaLabel}
-        onClick={() => void copyShareLink()}
+        onClick={() => {
+          void copyShareLink()
+        }}
       >
         {shareLabel}
       </button>
@@ -111,19 +135,87 @@ export function LinarViewportControls({
       <button
         type="button"
         className={
+          tourActive
+            ? 'linar-viewport-tools__button is-active'
+            : 'linar-viewport-tools__button'
+        }
+        disabled={!viewAvailable}
+        aria-pressed={tourActive}
+        aria-label={
+          !viewAvailable
+            ? 'Guided product tour unavailable without the 3D preview'
+            : tourActive
+              ? 'Stop guided product tour'
+              : 'Start guided product tour'
+        }
+        onClick={onToggleTour}
+      >
+        {tourActive ? 'STOP' : 'TOUR'}
+      </button>
+
+      <button
+        type="button"
+        className={
+          cinematicActive
+            ? 'linar-viewport-tools__button is-active'
+            : 'linar-viewport-tools__button'
+        }
+        disabled={!viewAvailable}
+        aria-pressed={cinematicActive}
+        aria-label={cinematicActive ? 'Restart startup cinematic' : 'Replay startup cinematic'}
+        onClick={onReplayCinematic}
+      >
+        INTRO
+      </button>
+
+      <button
+        type="button"
+        data-tour-id="light"
+        className={
+          lightEnabled
+            ? 'linar-viewport-tools__button is-active'
+            : 'linar-viewport-tools__button'
+        }
+        disabled={!viewAvailable}
+        aria-pressed={lightEnabled}
+        aria-label={
+          lightEnabled
+            ? 'Disable interactive light; drag the glowing orb to move it'
+            : 'Enable interactive light'
+        }
+        onClick={() => {
+          onUserInteract()
+          onToggleLight()
+        }}
+      >
+        LIGHT
+      </button>
+
+      <button
+        type="button"
+        className={
           musicEnabled
             ? 'linar-viewport-tools__button is-active'
             : 'linar-viewport-tools__button'
         }
         aria-pressed={musicEnabled}
         aria-label={musicEnabled ? 'Mute music' : 'Unmute music'}
-        onClick={onToggleMusic}
+        onClick={() => {
+          onUserInteract()
+          onToggleMusic()
+        }}
       >
         {musicEnabled ? 'MUTE' : 'UNMUTE'}
       </button>
 
       {viewAvailable ? (
-        <details className="linar-viewport-menu">
+        <details
+          ref={viewMenuRef}
+          className="linar-viewport-menu"
+          onToggle={(event) => {
+            if (event.currentTarget.open) onUserInteract()
+          }}
+        >
           <summary className="linar-viewport-tools__button">VIEW</summary>
           <div className="linar-viewport-menu__panel">
           <p className="linar-viewport-menu__hint">Drag to rotate. Scroll or pinch to zoom.</p>
@@ -137,7 +229,10 @@ export function LinarViewportControls({
                   type="button"
                   className={item.id === side ? 'is-active' : ''}
                   aria-pressed={item.id === side}
-                  onClick={() => onSideChange(item.id)}
+                  onClick={() => {
+                    onUserInteract()
+                    onSideChange(item.id)
+                  }}
                 >
                   {item.label}
                 </button>
@@ -154,7 +249,10 @@ export function LinarViewportControls({
                   type="button"
                   className={item.id === viewPreset ? 'is-active' : ''}
                   aria-pressed={item.id === viewPreset}
-                  onClick={() => onViewPreset(item.id)}
+                  onClick={() => {
+                    onUserInteract()
+                    onViewPreset(item.id)
+                  }}
                 >
                   {item.label}
                 </button>
@@ -162,7 +260,14 @@ export function LinarViewportControls({
             </div>
           </fieldset>
 
-          <button type="button" className="linar-viewport-menu__reset" onClick={onResetView}>
+          <button
+            type="button"
+            className="linar-viewport-menu__reset"
+            onClick={() => {
+              onUserInteract()
+              onResetView()
+            }}
+          >
             Reset view
           </button>
 
@@ -183,7 +288,10 @@ export function LinarViewportControls({
               aria-valuemax={100}
               aria-valuenow={musicVolume}
               aria-valuetext={`${musicVolume} percent`}
-              onInput={(event) => onMusicVolumeChange(Number(event.currentTarget.value))}
+              onInput={(event) => {
+                onUserInteract()
+                onMusicVolumeChange(Number(event.currentTarget.value))
+              }}
             />
           </div>
           </div>

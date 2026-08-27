@@ -6,11 +6,19 @@ import {
   LINAR_VENEERS,
   LINAR_VIEWS,
   LINAR_VISIBLE_BACKINGS,
+  DEFAULT_LINAR_LIGHT,
   cloneConfig,
   type LinarConfig,
+  type LinarLightState,
   type LinarSide,
   type LinarViewId,
 } from './types'
+import {
+  LINAR_FELT_COLOURS,
+  LINAR_MDF_COLOURS,
+  LINAR_PRESENTATION_LIMITS,
+  clampLinarPanelCount,
+} from './materialData'
 
 export const LINAR_SHARE_VERSION = '1'
 
@@ -20,6 +28,7 @@ export type LinarShareState = {
   secondaryCurveAmount: number
   side: LinarSide
   view: LinarViewId
+  light: LinarLightState
   isShared: boolean
 }
 
@@ -55,6 +64,7 @@ function defaultShareState(): LinarShareState {
     secondaryCurveAmount: 0,
     side: 'front',
     view: 'hero',
+    light: { ...DEFAULT_LINAR_LIGHT },
     isShared: false,
   }
 }
@@ -84,6 +94,18 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     config.material,
   )
   config.veneer = parseDescriptorId(params, 'veneer', LINAR_VENEERS, config.veneer)
+  config.mdfColour = parseDescriptorId(
+    params,
+    'mdf',
+    LINAR_MDF_COLOURS,
+    config.mdfColour,
+  )
+  config.feltColour = parseDescriptorId(
+    params,
+    'felt',
+    LINAR_FELT_COLOURS,
+    config.feltColour,
+  )
   config.thicknessMm = parseInteger(params, 'thickness', 4, 15, config.thicknessMm)
   config.incisionLengthMm = parseInteger(
     params,
@@ -113,6 +135,13 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     LINAR_VISIBLE_BACKINGS,
     config.backing,
   )
+  config.panelCount = parseInteger(
+    params,
+    'count',
+    LINAR_PRESENTATION_LIMITS.minimumPanelCount,
+    LINAR_PRESENTATION_LIMITS.maximumPanelCount,
+    config.panelCount,
+  )
 
   const bend = parseInteger(params, 'bend', -100, 100, 0)
   const secondaryCurveAmount = parseInteger(params, 'secondary', 0, 100, 0)
@@ -124,7 +153,22 @@ export function parseLinarShareState(fragment: string): LinarShareState {
   if (view === 'hero') side = 'front'
   if (view === 'reverse') side = 'back'
 
-  return { config, bend, secondaryCurveAmount, side, view, isShared: true }
+  const lightEnabled = params.get('light') === '1'
+  const parseLightCoordinate = (key: string, fallbackValue: number) => {
+    const raw = params.get(key)
+    if (raw == null || raw.trim() === '') return fallbackValue
+    const value = Number(raw)
+    return Number.isFinite(value)
+      ? Math.max(-1, Math.min(1, value / 100))
+      : fallbackValue
+  }
+  const light: LinarLightState = {
+    enabled: lightEnabled,
+    u: parseLightCoordinate('lu', DEFAULT_LINAR_LIGHT.u),
+    v: parseLightCoordinate('lv', DEFAULT_LINAR_LIGHT.v),
+  }
+
+  return { config, bend, secondaryCurveAmount, side, view, light, isShared: true }
 }
 
 /** Builds a clean URL and deliberately excludes password/session/embed data. */
@@ -144,6 +188,8 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   params.set('linar', LINAR_SHARE_VERSION)
   params.set('material', config.material)
   params.set('veneer', config.veneer)
+  params.set('mdf', config.mdfColour)
+  params.set('felt', config.feltColour)
   params.set('thickness', String(Math.round(config.thicknessMm)))
   params.set('incision', String(Math.round(config.incisionLengthMm)))
   params.set('spacing', String(Math.round(config.cutWidthMm)))
@@ -155,8 +201,28 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   }
   params.set('application', config.application)
   params.set('backing', visibleBacking)
+  params.set(
+    'count',
+    String(clampLinarPanelCount(config.panelCount)),
+  )
   params.set('side', selection.side)
   params.set('view', selection.view)
+  const safeLight = selection.light ?? DEFAULT_LINAR_LIGHT
+  const lightU = Number.isFinite(safeLight.u)
+    ? Math.max(-1, Math.min(1, safeLight.u))
+    : DEFAULT_LINAR_LIGHT.u
+  const lightV = Number.isFinite(safeLight.v)
+    ? Math.max(-1, Math.min(1, safeLight.v))
+    : DEFAULT_LINAR_LIGHT.v
+  if (safeLight.enabled) params.set('light', '1')
+  if (
+    safeLight.enabled ||
+    Math.abs(lightU - DEFAULT_LINAR_LIGHT.u) > 0.005 ||
+    Math.abs(lightV - DEFAULT_LINAR_LIGHT.v) > 0.005
+  ) {
+    params.set('lu', String(Math.round(lightU * 100)))
+    params.set('lv', String(Math.round(lightV * 100)))
+  }
   url.hash = params.toString()
   return url.toString()
 }

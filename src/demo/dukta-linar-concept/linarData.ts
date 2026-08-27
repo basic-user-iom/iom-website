@@ -179,7 +179,6 @@ export const CONCEPT_DISCLAIMER =
   'Conceptual visualisation only. Panel behaviour, bending limits and manufacturability must be validated by dukta.'
 export const JANUS_THICKNESS_NOTE = 'Panels above 15 mm require the double-sided Janus type.'
 export const RADIUS_UNAVAILABLE_NOTE = 'Radius reference not available for this combination.'
-export const IRREGULAR_CONFIRMATION_NOTE = 'Visual variation — manufacturer confirmation required.'
 
 export function clampThicknessMm(thicknessMm: number): number {
   return Math.min(15, Math.max(4, thicknessMm))
@@ -319,7 +318,7 @@ export type LinarTech = {
   topCutDepthMm: number
   topCutDepthSource: 'Validated anchor' | 'Interpolated'
   bottomCutDepthMm: number
-  /** Fixed 60 mm visual bridge from the supplied open-area drawing series. */
+  /** Bridge length used by both the rendered pattern and geometric estimate. */
   previewBridgeLengthMm: number
   displayedBridgeLengthMm: number | null
   bridgeSource: LinarDataSource
@@ -333,13 +332,11 @@ export type LinarTech = {
   radiusNote: string | null
   previewStatus: 'Validated sample' | 'Visual reference only'
   coverageFraction: number
-  irregularNote: string | null
 }
 
 export function resolveLinarTech(config: LinarConfig): LinarTech {
   const coverageFraction = incisedAreaCoverageFraction(config.incisedTwelfths)
   const exact = findExactSample(config)
-  const irregular = config.pattern === 'irregular'
   const bridge = calculateBridgeLengthMm(config)
   const geometricIncised = calculateIncisedOpenAreaPercent({
     cutWidthMm: config.cutWidthMm,
@@ -349,7 +346,7 @@ export function resolveLinarTech(config: LinarConfig): LinarTech {
   })
   const geometricFull = calculateFullPanelOpenAreaPercent(geometricIncised, coverageFraction)
 
-  const validated = Boolean(exact) && !irregular
+  const validated = Boolean(exact)
   const referenceOpen = validated && exact ? exact.referenceOpenAreaPercent : null
   const referenceRadius = validated && exact ? exact.minimumRadiusMm : null
   const thickness = clampThicknessMm(config.thicknessMm)
@@ -362,11 +359,11 @@ export function resolveLinarTech(config: LinarConfig): LinarTech {
     topCutDepthMm: getTopCutDepthMm(config.thicknessMm),
     topCutDepthSource: TOP_CUT_ANCHOR_SET.has(thickness) ? 'Validated anchor' : 'Interpolated',
     bottomCutDepthMm: getBottomCutDepthMm(),
-    // Every supplied open-area drawing keeps the local bridge at 60 mm and
-    // varies the white incision length. Preserve physical-sample bridge data
-    // for technical feedback, but use the documented visual series for the
-    // 3D pattern rather than stretching the approved bridge object.
-    previewBridgeLengthMm: VISUAL_BRIDGE_FALLBACK_MM,
+    // Keep the rendered cycle and its geometric open-area estimate on one
+    // resolved value. Exact physical samples use their measured bridge length;
+    // unsupported combinations retain the clearly provisional 60 mm visual
+    // reference returned by `calculateBridgeLengthMm`.
+    previewBridgeLengthMm: bridge.valueMm,
     displayedBridgeLengthMm: bridge.validated ? bridge.valueMm : null,
     bridgeSource: bridge.source,
     geometricIncisedOpenAreaPercent: geometricIncised,
@@ -382,7 +379,6 @@ export function resolveLinarTech(config: LinarConfig): LinarTech {
     radiusNote: referenceRadius == null ? RADIUS_UNAVAILABLE_NOTE : null,
     previewStatus: validated ? 'Validated sample' : 'Visual reference only',
     coverageFraction,
-    irregularNote: irregular ? IRREGULAR_CONFIRMATION_NOTE : null,
   }
 }
 

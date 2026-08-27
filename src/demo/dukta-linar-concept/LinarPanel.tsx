@@ -16,6 +16,7 @@ import {
   bridgeSegsFor,
   curveElement,
   makeBendState,
+  maxRenderedNormalOffsetM,
   slatLayout,
   type BendState,
   type BridgeSeg,
@@ -24,22 +25,24 @@ import {
 } from './bendMath'
 import type { LinarTech } from './linarData'
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
-import type { LinarBacking, LinarConfig, LinarMaterialId, LinarVeneerId } from './types'
+import type {
+  LinarBacking,
+  LinarConfig,
+  LinarFeltColourId,
+  LinarMaterialId,
+  LinarMdfColourId,
+  LinarVeneerId,
+} from './types'
 import { cloneConfig, LINAR_REFERENCE_BRIDGE_LENGTH_MM } from './types'
 
 const MAX_BRIDGES = 14000
 const SOLID_BAND_SEGMENTS = MAX_SLATS
+// A 60 mm local lobe is sub-pixel in normal views. Sixteen analytically
+// sampled, smooth-shaded slices preserve its approved circular profile in a
+// close-up while avoiding millions of redundant triangles in repeated panels.
+const BRIDGE_PROFILE_STEPS = 16
 const pose = { x: 0, z: 0, rotY: 0 }
-const APPROVED_BRIDGE_PANEL_THICKNESS_MM = 10
 const APPROVED_BRIDGE_CENTRE_HEIGHT_MM = 6.859
-const APPROVED_BRIDGE_DEPTH_RATIO =
-  APPROVED_BRIDGE_CENTRE_HEIGHT_MM / APPROVED_BRIDGE_PANEL_THICKNESS_MM
-
-const BACKING_COLOR: Record<Exclude<LinarBacking, 'none'>, number> = {
-  'acoustic-fleece': 0xd8d2c8,
-  'acoustic-wool': 0xc4b8a8,
-  felt: 0x3a3530,
-}
 
 export type LinarPanelHandle = {
   group: Object3D
@@ -47,9 +50,15 @@ export type LinarPanelHandle = {
     percent: number,
     referenceRadiusMm: number | null,
     secondaryCurveAmount?: number,
-  ) => void
+  ) => BendState
   setConfig: (config: LinarConfig, tech: LinarTech) => void
-  setMaterial: (id: LinarMaterialId, veneer: LinarVeneerId, immediate?: boolean) => void
+  setMaterial: (
+    id: LinarMaterialId,
+    veneer: LinarVeneerId,
+    mdfColour: LinarMdfColourId,
+    immediate?: boolean,
+  ) => void
+  setBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
   tickMaterials: (dt: number) => boolean
   boundingSize: Vector3
   dispose: () => void
@@ -87,6 +96,45 @@ type SolidBandGeometry = {
   zSides: Float32Array
   normalKinds: Uint8Array
   heightUvFactors: Float32Array
+}
+
+type BackingRibbonGeometry = {
+  geometry: BufferGeometry
+  position: Float32BufferAttribute
+  normal: Float32BufferAttribute
+}
+
+function createBackingRibbonGeometry(): BackingRibbonGeometry {
+  const vertexCount = (SOLID_BAND_SEGMENTS + 1) * 2
+  const positions = new Float32Array(vertexCount * 3)
+  const normals = new Float32Array(vertexCount * 3)
+  const uvs = new Float32Array(vertexCount * 2)
+  const indices: number[] = []
+
+  for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
+    const u = i / SOLID_BAND_SEGMENTS
+    for (let edge = 0; edge < 2; edge += 1) {
+      const vertex = i * 2 + edge
+      uvs[vertex * 2] = u
+      uvs[vertex * 2 + 1] = edge
+    }
+    if (i < SOLID_BAND_SEGMENTS) {
+      const a = i * 2
+      const b = a + 1
+      const c = a + 2
+      const d = a + 3
+      indices.push(a, c, b, c, d, b)
+    }
+  }
+
+  const geometry = new BufferGeometry()
+  const position = new Float32BufferAttribute(positions, 3).setUsage(DynamicDrawUsage)
+  const normal = new Float32BufferAttribute(normals, 3).setUsage(DynamicDrawUsage)
+  geometry.setAttribute('position', position)
+  geometry.setAttribute('normal', normal)
+  geometry.setAttribute('uv', new Float32BufferAttribute(uvs, 2))
+  geometry.setIndex(indices)
+  return { geometry, position, normal }
 }
 
 /**
@@ -217,9 +265,10 @@ function createSolidBandGeometry(edgeMaterialIndices: {
 }
 
 /**
- * One approved 60 mm bridge assembly. The rear rectangle remains an exact
- * zero-thickness surface, while the complementary wood face rises 6.859 mm
- * on the 10 mm reference profile and returns to the rear plane at both ends.
+ * One normalised bridge assembly derived from the approved 60 mm profile.
+ * The rear rectangle remains an exact zero-thickness surface. At runtime the
+ * complementary wood face rises to `thickness - top cutting depth` and
+ * returns to the rear plane at both straight ends.
  *
  * Cut-wood walls close both X sides and any exposed/clipped Y end with a flat,
  * straight plane matching the saw-cut reference. No semicircular shoulder or
@@ -239,7 +288,7 @@ function createBridgeAssemblyGeometry(profileStart = 0, profileEnd = 1): BufferG
   const uvs: number[] = [0, profileStart, 1, profileStart, 1, profileEnd, 0, profileEnd]
   const indices: number[] = [0, 3, 2, 0, 2, 1]
   const rearCount = indices.length
-  const profileSteps = 48
+  const profileSteps = BRIDGE_PROFILE_STEPS
   const halfChordMm = LINAR_REFERENCE_BRIDGE_LENGTH_MM * 0.5
   const surfaceRadiusMm =
     (halfChordMm ** 2 + APPROVED_BRIDGE_CENTRE_HEIGHT_MM ** 2) /
@@ -357,6 +406,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const materials = createLinarMaterials()
   const unitBox = new BoxGeometry(1, 1, 1)
   const fullBridgeGeo = createBridgeAssemblyGeometry()
+  const backingRibbon = createBackingRibbonGeometry()
   // The left panel side has its finished outer edge on the left and its
   // routed incision boundary on the right; the right side is the inverse.
   const leftSolidBand = createSolidBandGeometry({ left: 3, right: null })
@@ -391,13 +441,12 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   rightSolidBandMesh.receiveShadow = true
   rightSolidBandMesh.frustumCulled = false
 
-  const backingMesh = new InstancedMesh(unitBox, materials.backing, MAX_SLATS)
+  const backingMesh = new Mesh(backingRibbon.geometry, materials.backing)
   backingMesh.name = 'LinarBacking'
   backingMesh.castShadow = false
   backingMesh.receiveShadow = true
   backingMesh.frustumCulled = false
   backingMesh.visible = false
-  backingMesh.instanceMatrix.setUsage(DynamicDrawUsage)
 
   const partialBridgesGroup = new Object3D()
   partialBridgesGroup.name = 'LinarPartialBridges'
@@ -412,6 +461,12 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const dummy = new Object3D()
   const leftContactPose = { x: 0, z: 0, rotY: 0 }
   const rightContactPose = { x: 0, z: 0, rotY: 0 }
+  // One centreline sample per lamella is enough for every bridge row and the
+  // optional backing. Reusing it avoids thousands of identical lookup calls
+  // while the bend sliders animate.
+  const slatPoseX = new Float32Array(MAX_SLATS)
+  const slatPoseZ = new Float32Array(MAX_SLATS)
+  const slatPoseRotY = new Float32Array(MAX_SLATS)
   const solidPoseX = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   const solidPoseZ = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   const solidPoseRotY = new Float32Array(SOLID_BAND_SEGMENTS + 1)
@@ -420,6 +475,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let fullBridges: BridgeSeg[] = []
   let partialBridgeBatches: PartialBridgeBatch[] = []
   let backing: LinarBacking = initial.config.backing
+  let topCutDepthM = Math.max(0, initial.tech.topCutDepthMm / 1000)
   let lastPercent = 0
   let lastSecondaryCurveAmount = 0
   let lastRadius: number | null = initial.tech.referenceMinimumRadiusMm
@@ -545,7 +601,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
     band.position.needsUpdate = true
     band.normal.needsUpdate = true
-    band.uv.needsUpdate = true
   }
 
   const updateSolidSides = (state: BendState) => {
@@ -568,89 +623,74 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const writeWithState = (state: BendState) => {
     const thickness = layout.thicknessM
     const incisedMidY = (layout.incisedY0 + layout.incisedY1) * 0.5
-    const bridgeDepth = Math.max(0.00035, thickness * APPROVED_BRIDGE_DEPTH_RATIO)
+    // Top cutting depth is removed from the finished panel thickness. The
+    // separate 3 mm bottom cut belongs to the spoil board and is deliberately
+    // absent from this rendered depth calculation.
+    const bridgeDepth = Math.max(
+      0.00035,
+      Math.min(thickness, thickness - topCutDepthM),
+    )
 
     updateSolidSides(state)
 
     for (let i = 0; i < slats.length; i += 1) {
       curveElement(slats[i].originalX, state, PANEL_WIDTH_M, pose)
+      slatPoseX[i] = pose.x
+      slatPoseZ[i] = pose.z
+      slatPoseRotY[i] = pose.rotY
       place(pose.x, incisedMidY, pose.z, pose.rotY, slats[i].width, layout.incisedHeightM, thickness)
       slatsMesh.setMatrixAt(i, dummy.matrix)
     }
     slatsMesh.count = slats.length
     slatsMesh.instanceMatrix.needsUpdate = true
-    slatsMesh.computeBoundingSphere()
 
     const writeBridge = (mesh: InstancedMesh, index: number, seg: BridgeSeg) => {
-      curveElement(seg.originalX, state, PANEL_WIDTH_M, pose)
-      curveElement(layout.slats[seg.column].originalX, state, PANEL_WIDTH_M, leftContactPose)
-      curveElement(layout.slats[seg.column + 1].originalX, state, PANEL_WIDTH_M, rightContactPose)
-
-      if (state.compoundCurve) {
-        const leftTangentX = Math.cos(leftContactPose.rotY)
-        const leftTangentZ = -Math.sin(leftContactPose.rotY)
-        const rightTangentX = Math.cos(rightContactPose.rotY)
-        const rightTangentZ = -Math.sin(rightContactPose.rotY)
-        const leftNormalX = Math.sin(leftContactPose.rotY)
-        const leftNormalZ = Math.cos(leftContactPose.rotY)
-        const rightNormalX = Math.sin(rightContactPose.rotY)
-        const rightNormalZ = Math.cos(rightContactPose.rotY)
-        const bridgeCenter = -thickness * 0.5 + bridgeDepth * 0.5
-        const slatHalfWidth = layout.slatWidthM * 0.5
-        const leftX =
-          leftContactPose.x +
-          leftTangentX * slatHalfWidth +
-          leftNormalX * bridgeCenter
-        const leftZ =
-          leftContactPose.z +
-          leftTangentZ * slatHalfWidth +
-          leftNormalZ * bridgeCenter
-        const rightX =
-          rightContactPose.x -
-          rightTangentX * slatHalfWidth +
-          rightNormalX * bridgeCenter
-        const rightZ =
-          rightContactPose.z -
-          rightTangentZ * slatHalfWidth +
-          rightNormalZ * bridgeCenter
-        const chordX = rightX - leftX
-        const chordZ = rightZ - leftZ
-        const chordLength = Math.hypot(chordX, chordZ)
-        const chordTangent = Math.atan2(chordZ, chordX)
-
-        // The variable-curvature pose can reverse sign inside one panel. A
-        // bridge therefore follows the chord between its two actual lamella
-        // contact points instead of stretching a midpoint patch by |angle|.
-        place(
-          (leftX + rightX) * 0.5,
-          seg.localY,
-          (leftZ + rightZ) * 0.5,
-          -chordTangent,
-          chordLength + 0.00008,
-          seg.height,
-          bridgeDepth,
-        )
-        mesh.setMatrixAt(index, dummy.matrix)
-        return
-      }
-
-      const normalX = Math.sin(pose.rotY)
-      const normalZ = Math.cos(pose.rotY)
-      const halfContactAngle = Math.min(
-        0.35,
-        Math.abs(rightContactPose.rotY - leftContactPose.rotY) * 0.5,
-      )
-      // A midpoint rear patch otherwise separates from the two independently
-      // rotated slats as the panel bends. This width compensation preserves
-      // edge contact while remaining exactly at the nominal kerf when flat.
-      const contactPad = thickness * 0.5 * Math.tan(halfContactAngle)
+      leftContactPose.x = slatPoseX[seg.column]
+      leftContactPose.z = slatPoseZ[seg.column]
+      leftContactPose.rotY = slatPoseRotY[seg.column]
+      rightContactPose.x = slatPoseX[seg.column + 1]
+      rightContactPose.z = slatPoseZ[seg.column + 1]
+      rightContactPose.rotY = slatPoseRotY[seg.column + 1]
+      const leftTangentX = Math.cos(leftContactPose.rotY)
+      const leftTangentZ = -Math.sin(leftContactPose.rotY)
+      const rightTangentX = Math.cos(rightContactPose.rotY)
+      const rightTangentZ = -Math.sin(rightContactPose.rotY)
+      const leftNormalX = Math.sin(leftContactPose.rotY)
+      const leftNormalZ = Math.cos(leftContactPose.rotY)
+      const rightNormalX = Math.sin(rightContactPose.rotY)
+      const rightNormalZ = Math.cos(rightContactPose.rotY)
       const bridgeCenter = -thickness * 0.5 + bridgeDepth * 0.5
+      const slatHalfWidth = layout.slatWidthM * 0.5
+      const leftX =
+        leftContactPose.x +
+        leftTangentX * slatHalfWidth +
+        leftNormalX * bridgeCenter
+      const leftZ =
+        leftContactPose.z +
+        leftTangentZ * slatHalfWidth +
+        leftNormalZ * bridgeCenter
+      const rightX =
+        rightContactPose.x -
+        rightTangentX * slatHalfWidth +
+        rightNormalX * bridgeCenter
+      const rightZ =
+        rightContactPose.z -
+        rightTangentZ * slatHalfWidth +
+        rightNormalZ * bridgeCenter
+      const chordX = rightX - leftX
+      const chordZ = rightZ - leftZ
+      const chordLength = Math.hypot(chordX, chordZ)
+      const chordTangent = Math.atan2(chordZ, chordX)
+
+      // Always derive a bridge from its two actual lamella contact points.
+      // Using the same placement for C and S states removes the geometry pop
+      // that previously occurred as soon as the S progression left zero.
       place(
-        pose.x + normalX * bridgeCenter,
+        (leftX + rightX) * 0.5,
         seg.localY,
-        pose.z + normalZ * bridgeCenter,
-        pose.rotY,
-        layout.cutWidthM + contactPad * 2,
+        (leftZ + rightZ) * 0.5,
+        -chordTangent,
+        chordLength + 0.00008,
         seg.height,
         bridgeDepth,
       )
@@ -665,7 +705,6 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     }
     bridgesMesh.count = b
     bridgesMesh.instanceMatrix.needsUpdate = true
-    bridgesMesh.computeBoundingSphere()
 
     for (const batch of partialBridgeBatches) {
       for (let i = 0; i < batch.segments.length; i += 1) {
@@ -673,34 +712,31 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       }
       batch.mesh.count = batch.segments.length
       batch.mesh.instanceMatrix.needsUpdate = true
-      batch.mesh.computeBoundingSphere()
     }
 
     const showBacking = backing !== 'none'
     backingMesh.visible = showBacking
+    // Opaque backing is real material behind the apertures: it must block the
+    // key light, while the no-backing state remains fully transmissive.
+    backingMesh.castShadow = showBacking
     if (showBacking && backing !== 'none') {
-      const backZ = -(thickness * 0.5 + 0.0012)
-      for (let i = 0; i < slats.length; i += 1) {
-        curveElement(slats[i].originalX, state, PANEL_WIDTH_M, pose)
+      const backZ = -maxRenderedNormalOffsetM(thickness, true)
+      for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
+        const originalX = -PANEL_WIDTH_M * 0.5 + PANEL_WIDTH_M * (i / SOLID_BAND_SEGMENTS)
+        curveElement(originalX, state, PANEL_WIDTH_M, pose)
         const nx = Math.sin(pose.rotY)
         const nz = Math.cos(pose.rotY)
-        place(
-          pose.x + nx * backZ,
-          incisedMidY,
-          pose.z + nz * backZ,
-          pose.rotY,
-          layout.pitchM * 1.02,
-          layout.incisedHeightM,
-          0.0016,
-        )
-        backingMesh.setMatrixAt(i, dummy.matrix)
+        const x = pose.x + nx * backZ
+        const z = pose.z + nz * backZ
+        const lower = i * 2
+        const upper = lower + 1
+        backingRibbon.position.setXYZ(lower, x, 0, z)
+        backingRibbon.position.setXYZ(upper, x, PANEL_HEIGHT_M, z)
+        backingRibbon.normal.setXYZ(lower, nx, 0, nz)
+        backingRibbon.normal.setXYZ(upper, nx, 0, nz)
       }
-      backingMesh.count = slats.length
-      backingMesh.instanceMatrix.needsUpdate = true
-      backingMesh.computeBoundingSphere()
-      materials.backing.color.setHex(BACKING_COLOR[backing])
-    } else {
-      backingMesh.count = 0
+      backingRibbon.position.needsUpdate = true
+      backingRibbon.normal.needsUpdate = true
     }
   }
 
@@ -710,6 +746,8 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     slats = layout.slats
     rebuildBridgeBatches(bridgeSegsFor(next, tech.previewBridgeLengthMm, layout))
     backing = next.backing
+    topCutDepthM = Math.max(0, tech.topCutDepthMm / 1000)
+    materials.applyBacking(next.backing, next.feltColour)
     lastRadius = tech.referenceMinimumRadiusMm
     writeWithState(
       makeBendState(
@@ -718,12 +756,18 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
         lastRadius,
         layout.incisedWidthM,
         lastSecondaryCurveAmount,
+        maxRenderedNormalOffsetM(layout.thicknessM, backing !== 'none'),
       ),
     )
   }
 
   applyConfig(initial.config, initial.tech)
-  materials.apply(initial.config.material, initial.config.veneer, true)
+  materials.apply(
+    initial.config.material,
+    initial.config.veneer,
+    initial.config.mdfColour,
+    true,
+  )
 
   const boundingSize = new Vector3(PANEL_WIDTH_M, PANEL_HEIGHT_M, layout.thicknessM)
 
@@ -733,25 +777,41 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       lastPercent = percent
       lastSecondaryCurveAmount = secondaryCurveAmount
       lastRadius = referenceRadiusMm
+      const state = makeBendState(
+        percent,
+        PANEL_WIDTH_M,
+        referenceRadiusMm,
+        layout.incisedWidthM,
+        secondaryCurveAmount,
+        maxRenderedNormalOffsetM(layout.thicknessM, backing !== 'none'),
+      )
+      writeWithState(state)
+      return state
+    },
+    setConfig: applyConfig,
+    setMaterial: (id, veneer, mdfColour, immediate) =>
+      materials.apply(id, veneer, mdfColour, immediate),
+    setBacking: (nextBacking, feltColour) => {
+      backing = nextBacking
+      materials.applyBacking(nextBacking, feltColour)
       writeWithState(
         makeBendState(
-          percent,
+          lastPercent,
           PANEL_WIDTH_M,
-          referenceRadiusMm,
+          lastRadius,
           layout.incisedWidthM,
-          secondaryCurveAmount,
+          lastSecondaryCurveAmount,
+          maxRenderedNormalOffsetM(layout.thicknessM, backing !== 'none'),
         ),
       )
     },
-    setConfig: applyConfig,
-    setMaterial: (id, veneer, immediate) => materials.apply(id, veneer, immediate),
     tickMaterials: (dt) => materials.tick(dt),
     boundingSize,
     dispose: () => {
       slatsMesh.dispose()
       bridgesMesh.dispose()
       clearPartialBridgeBatches()
-      backingMesh.dispose()
+      backingRibbon.geometry.dispose()
       unitBox.dispose()
       fullBridgeGeo.dispose()
       leftSolidBand.geometry.dispose()
