@@ -48,7 +48,7 @@ const LINAR_MUSIC_START_SECONDS = 8
 const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
-const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v1'
+const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v2'
 // Two deliberate steps cover the complete safe Near/Far travel. A 0.2 step
 // was technically correct but too subtle to read on the full-height panel.
 const LINAR_LIGHT_RADIUS_STEP = 0.5
@@ -809,7 +809,6 @@ export function DuktaLinarConceptPage() {
     setConfig((previous) => ({ ...previous, application: 'freestanding', panelCount: 1 }))
     setSide('front')
     setViewPreset('hero')
-    setViewToken((value) => value + 1)
     const finalLight: LinarLightState = {
       enabled: false,
       u: 0.08,
@@ -881,7 +880,16 @@ export function DuktaLinarConceptPage() {
   }, [])
 
   if (!unlocked) {
-    return <PasswordGate onUnlock={() => setUnlocked(true)} />
+    return (
+      <PasswordGate
+        onUnlock={() => {
+          // Password submission is a trusted user gesture. Start playback
+          // synchronously here so browser autoplay policies permit it.
+          startMusic()
+          setUnlocked(true)
+        }}
+      />
+    )
   }
 
   return (

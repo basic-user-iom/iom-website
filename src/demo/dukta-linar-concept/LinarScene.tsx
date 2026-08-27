@@ -511,29 +511,41 @@ function planDepthAllowance(bounds: PlanBounds | undefined, direction: THREE.Vec
   )
 }
 
-const STARTUP_CINEMATIC_DURATION_SECONDS = 24
+const STARTUP_CINEMATIC_STAGE_SECONDS = 7
+const STARTUP_CINEMATIC_DURATION_SECONDS = STARTUP_CINEMATIC_STAGE_SECONDS * 6
 
 function startupCinematicPose(elapsed: number) {
   const time = THREE.MathUtils.clamp(elapsed, 0, STARTUP_CINEMATIC_DURATION_SECONDS)
+  const stage = Math.min(
+    5,
+    Math.floor(time / STARTUP_CINEMATIC_STAGE_SECONDS),
+  )
+  const stageTime = time - stage * STARTUP_CINEMATIC_STAGE_SECONDS
   const segment = (start: number, end: number) =>
-    cinematicEase(THREE.MathUtils.clamp((time - start) / Math.max(end - start, 0.001), 0, 1))
+    cinematicEase(
+      THREE.MathUtils.clamp(
+        (stageTime - start) / Math.max(end - start, 0.001),
+        0,
+        1,
+      ),
+    )
 
   let bend = 0
   let secondary = 0
-  if (time < 4) {
-    bend = THREE.MathUtils.lerp(0, 8, segment(2.1, 3.8))
-  } else if (time < 8) {
-    bend = THREE.MathUtils.lerp(8, 38, segment(5.7, 7.8))
-  } else if (time < 12) {
-    bend = THREE.MathUtils.lerp(38, -54, segment(9.7, 11.8))
-  } else if (time < 16) {
-    bend = THREE.MathUtils.lerp(-54, -66, segment(13.7, 15.5))
-    secondary = THREE.MathUtils.lerp(0, 88, segment(13.7, 15.8))
-  } else if (time < 20) {
-    bend = THREE.MathUtils.lerp(-66, 22, segment(17.6, 19.8))
-    secondary = THREE.MathUtils.lerp(88, 0, segment(17.6, 19.8))
+  if (stage === 0) {
+    bend = THREE.MathUtils.lerp(0, 8, segment(3.2, 6.5))
+  } else if (stage === 1) {
+    bend = THREE.MathUtils.lerp(8, 38, segment(2.8, 6.5))
+  } else if (stage === 2) {
+    bend = THREE.MathUtils.lerp(38, -54, segment(2.8, 6.5))
+  } else if (stage === 3) {
+    bend = THREE.MathUtils.lerp(-54, -66, segment(2.8, 6.3))
+    secondary = THREE.MathUtils.lerp(0, 88, segment(2.8, 6.6))
+  } else if (stage === 4) {
+    bend = THREE.MathUtils.lerp(-66, 22, segment(2.7, 6.5))
+    secondary = THREE.MathUtils.lerp(88, 0, segment(2.7, 6.5))
   } else {
-    bend = THREE.MathUtils.lerp(22, 28, segment(21.2, 23))
+    bend = THREE.MathUtils.lerp(22, 28, segment(2, 5.5))
   }
 
   return {
@@ -544,7 +556,7 @@ function startupCinematicPose(elapsed: number) {
     // the key behind the inspected face and turning the panel into a silhouette.
     lightU: -0.32,
     lightV: -0.28,
-    stage: Math.min(5, Math.floor(time / 4)),
+    stage,
     done: elapsed >= STARTUP_CINEMATIC_DURATION_SECONDS,
   }
 }
@@ -1868,6 +1880,26 @@ export function LinarScene({
         configRef.current.application,
         planBounds,
       )
+      if (
+        cinematicActiveRef.current &&
+        configRef.current.application === 'freestanding'
+      ) {
+        // Manual Close-up and Side are intentionally technical inspection
+        // views. Their 0.52/1.08 m distances caused 6-12x dolly jumps in the
+        // intro, so the cinematic uses gentler variants around the hero fit.
+        const cinematicHero = viewPlacement(
+          'hero',
+          camera,
+          sideRef.current,
+          configRef.current.application,
+          planBounds,
+        )
+        if (currentPreset === 'closeup') {
+          placement.dist = Math.max(3.8, cinematicHero.dist * 0.62)
+        } else if (currentPreset === 'side') {
+          placement.dist = Math.max(4.6, cinematicHero.dist * 0.8)
+        }
+      }
       studioBackground.set(placement.bg)
       const destination = placement.target.clone().addScaledVector(placement.dir, placement.dist)
       setApplicationOrbitLimits(
@@ -1931,23 +1963,26 @@ export function LinarScene({
         thetaDelta,
         // A subtle dolly-out keeps the full object readable during wide
         // rotations and gives front-to-reverse moves a deliberate studio feel.
-        radiusLift: Math.min(0.07, (angularTravel / Math.PI) * 0.055),
+        radiusLift: cinematicActiveRef.current
+          ? Math.min(0.015, (angularTravel / Math.PI) * 0.012)
+          : Math.min(0.07, (angularTravel / Math.PI) * 0.055),
         fromTarget: controls.target.clone(),
         toTarget: placement.target.clone(),
         fromBackground: (scene.background as THREE.Color).clone(),
         toBackground: new THREE.Color(placement.bg),
         elapsed: 0,
-        // Distance- and angle-aware timing keeps every authored move calm while
-        // still leaving a hold inside each four-second cinematic scene.
+        // Startup moves deliberately occupy most of each seven-second scene,
+        // making rotation and radius-based dolly/zoom one slow continuous
+        // camera move with a short settling hold.
         duration: cinematicActiveRef.current
           ? THREE.MathUtils.clamp(
-              2.7 +
-                angularTravel * 0.16 +
-                Math.log(radiusRatio) * 0.22 +
-                targetTravel * 0.08 +
-                positionTravel * 0.025,
-              2.7,
-              3.45,
+              5.6 +
+                angularTravel * 0.25 +
+                Math.log(radiusRatio) * 0.38 +
+                targetTravel * 0.11 +
+                positionTravel * 0.05,
+              5.6,
+              6.6,
             )
           : THREE.MathUtils.clamp(
               2.8 +
@@ -1992,8 +2027,11 @@ export function LinarScene({
         if (disposed) return
         if (cinematicActiveRef.current) {
           // Never spend a measured 20–108 ms canvas-generation task inside
-          // the cinematic. Try again just after its 24-second authored run.
-          materialWarmupDelayTimer = window.setTimeout(beginMaterialWarmup, 24000)
+          // the cinematic. Try again just after the authored run completes.
+          materialWarmupDelayTimer = window.setTimeout(
+            beginMaterialWarmup,
+            STARTUP_CINEMATIC_DURATION_SECONDS * 1000 + 500,
+          )
           return
         }
         // These are the only two uncached appearances the guided tour selects.
@@ -2037,6 +2075,7 @@ export function LinarScene({
     let raf = 0
     let lastT = performance.now()
     let visible = document.visibilityState !== 'hidden'
+    let hiddenAt = visible ? null : performance.now()
     let lightStudyWasEnabled = initialLightStudy
     let cinematicRenderScaleWasActive = cinematicActiveRef.current
     let idleRenderElapsed = Number.POSITIVE_INFINITY
@@ -2178,13 +2217,23 @@ export function LinarScene({
 
       let activeStartupPose: ReturnType<typeof startupCinematicPose> | null = null
       if (startupCinematicIsActive && !reducedMotion && !startupCinematicCompleted) {
-        // The authored duration follows wall-clock time, not frame count. This
-        // keeps a 24-second intro at 24 seconds on low-power/software WebGL.
+        // The authored duration follows visible wall-clock time, not frame
+        // count. It therefore stays 42 seconds on low-power/software WebGL but
+        // pauses with a hidden tab so camera and geometry cannot lose sync.
         startupCinematicElapsed = Math.max(0, (now - startupCinematicStartedAt) / 1000)
         activeStartupPose = startupCinematicPose(startupCinematicElapsed)
         if (activeStartupPose.stage !== startupCinematicStage) {
+          // Reconcile every crossed stage if a very slow frame spans a scene
+          // boundary. React batches these callbacks, leaving the latest stage
+          // authoritative without silently skipping its view state.
+          for (
+            let stage = startupCinematicStage + 1;
+            stage <= activeStartupPose.stage;
+            stage += 1
+          ) {
+            onCinematicStageRef.current(stage)
+          }
           startupCinematicStage = activeStartupPose.stage
-          onCinematicStageRef.current(activeStartupPose.stage)
         }
         if (activeStartupPose.done) {
           startupCinematicCompleted = true
@@ -2235,8 +2284,9 @@ export function LinarScene({
 
       const presentationLambda =
         1 - Math.exp(-lightMotionDt * (reducedMotion ? 80 : 3.8))
+      const lightModeResponse = activeStartupPose ? 1.15 : 4.8
       const lightModeLambda =
-        1 - Math.exp(-lightModeDt * (reducedMotion ? 80 : 4.8))
+        1 - Math.exp(-lightModeDt * (reducedMotion ? 80 : lightModeResponse))
       const presentationMoving =
         presentationRoot.position.distanceToSquared(presentationTargetPosition) > 1e-10 ||
         1 - Math.abs(presentationRoot.quaternion.dot(presentationTargetQuaternion)) > 1e-10
@@ -2341,7 +2391,7 @@ export function LinarScene({
       const lightPositionLambda = lightDragState
         ? 1
         : 1 -
-          Math.exp(-lightMotionDt * (activeStartupPose ? 5.2 : reducedMotion ? 80 : 7.5))
+          Math.exp(-lightMotionDt * (activeStartupPose ? 2 : reducedMotion ? 80 : 7.5))
       key.position.lerp(nextLightPosition, lightPositionLambda)
       const nextLightTarget = updateLightTargetWorld(lightBounds)
       const casterRadius = Math.hypot(
@@ -2403,7 +2453,9 @@ export function LinarScene({
       const lightOrbShouldShow =
         lightStateRef.current.enabled ||
         Boolean(activeStartupPose && activeStartupPose.stage >= 5)
-      const lightOrbVisibilityLambda = 1 - Math.exp(-dt * (reducedMotion ? 80 : 11))
+      const orbVisibilityResponse = activeStartupPose ? 3.2 : 11
+      const lightOrbVisibilityLambda =
+        1 - Math.exp(-dt * (reducedMotion ? 80 : orbVisibilityResponse))
       lightOrbVisibility +=
         ((lightOrbShouldShow ? 1 : 0) - lightOrbVisibility) *
         lightOrbVisibilityLambda
@@ -2607,8 +2659,24 @@ export function LinarScene({
     }
 
     const onVisibility = () => {
-      visible = document.visibilityState !== 'hidden'
-      if (visible) lastT = performance.now()
+      const now = performance.now()
+      const nextVisible = document.visibilityState !== 'hidden'
+      if (!nextVisible) {
+        if (visible) hiddenAt = now
+        visible = false
+        return
+      }
+      if (
+        !visible &&
+        hiddenAt != null &&
+        cinematicActiveRef.current &&
+        !startupCinematicCompleted
+      ) {
+        startupCinematicStartedAt += Math.max(0, now - hiddenAt)
+      }
+      hiddenAt = null
+      visible = true
+      lastT = now
     }
     document.addEventListener('visibilitychange', onVisibility)
 
