@@ -62,6 +62,7 @@ type CameraTransition = {
   elapsed: number
   duration: number
   restoreDamping: boolean
+  startupEasing: boolean
 }
 
 type CameraAuthority = 'user' | 'preset' | 'guided-tour' | 'startup-cinematic'
@@ -82,8 +83,11 @@ const BG = 0xe9e8e4
 const LIGHT_STUDY_BG = 0x07080a
 const STUDIO_EXPOSURE = 0.8
 const LIGHT_STUDY_EXPOSURE = 0.9
-const FLOOR_RECEIVER_SIZE_M = 36
-const CONTEXT_RECEIVER_SIZE_M = 18
+const FLOOR_RECEIVER_SIZE_M = 96
+const CONTEXT_RECEIVER_SIZE_M = 48
+const CONTEXT_RECEIVER_MIN_SIZE_M = 48
+const FLOOR_LIGHT_TOP_CLEARANCE_M = 4.2
+const SHADOW_CAMERA_FAR_M = 44
 // Provisional presentation clearances, not manufacturing specifications.
 // They keep the rendered surface visibly separate from its architectural host.
 const WALL_INSTALLATION_CLEARANCE_M = 0.018
@@ -91,7 +95,8 @@ const CEILING_INSTALLATION_CLEARANCE_M = 0.018
 const CAMERA_SURFACE_CLEARANCE_M = 0.14
 const WALL_PLANE_Z = 0
 const CEILING_PLANE_Y = 2.62
-const LIGHT_STUDY_KEY_INTENSITY = 72.5
+const FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY = 200
+const CEILING_LIGHT_STUDY_KEY_INTENSITY = 72.5
 const STUDIO_KEY_INTENSITY = 26
 const LIGHT_STUDY_MIN_CONE_ANGLE = 0.38
 const LIGHT_STUDY_MAX_CONE_ANGLE = 0.82
@@ -987,10 +992,14 @@ export function LinarScene({
 
     // One persistent, real key light serves normal viewing, user interaction
     // and the startup cinematic. All other lights are non-shadowing fills.
+    const initialLightStudyKeyIntensity =
+      configRef.current.application === 'ceiling'
+        ? CEILING_LIGHT_STUDY_KEY_INTENSITY
+        : FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY
     const key = new THREE.SpotLight(
       0xfff7e8,
-      initialLightStudy ? LIGHT_STUDY_KEY_INTENSITY : STUDIO_KEY_INTENSITY,
-      24,
+      initialLightStudy ? initialLightStudyKeyIntensity : STUDIO_KEY_INTENSITY,
+      0,
       initialLightStudy ? 1.28 : 0.98,
       0.84,
       2,
@@ -1016,12 +1025,10 @@ export function LinarScene({
     const maximumPixelRatio = softwareRenderer ? 0.65 : compactShadowMap ? 1.15 : 1.5
     const devicePixelRatio = window.devicePixelRatio || 1
     const basePixelRatio = Math.min(devicePixelRatio, maximumPixelRatio)
-    // A modest INTRO-only supersample gives the real 4 mm silhouette more
-    // than one sample per CSS pixel on standard-density desktop displays.
-    // Compact and software renderers retain their performance-safe scale.
-    const cinematicPixelRatio = compactShadowMap
-      ? basePixelRatio
-      : Math.min(maximumPixelRatio, Math.max(basePixelRatio, devicePixelRatio * 1.25))
+    // Keep the long INTRO at a stable camera cadence. The model and 2048 px
+    // shadow map retain their detail; only the temporary canvas supersample is
+    // capped, then the normal device-aware ratio returns after the cinematic.
+    const cinematicPixelRatio = Math.min(basePixelRatio, 1.15)
     renderer.setPixelRatio(basePixelRatio)
     // Software WebGL cannot sustain a live, perforation-accurate shadow pass
     // over thousands of manufactured elements. Preserve the full geometry and
@@ -1539,14 +1546,18 @@ export function LinarScene({
       const extentX = Math.max(0.1, bounds.maxX - bounds.minX)
       if (application === 'wall') {
         contextWall.scale.set(
-          Math.max(4.2, extentX + 1.8) / CONTEXT_RECEIVER_SIZE_M,
-          Math.max(4.2, bounds.heightM + 1.4) / CONTEXT_RECEIVER_SIZE_M,
+          Math.max(CONTEXT_RECEIVER_MIN_SIZE_M, extentX + 1.8) /
+            CONTEXT_RECEIVER_SIZE_M,
+          Math.max(CONTEXT_RECEIVER_MIN_SIZE_M, bounds.heightM + 1.4) /
+            CONTEXT_RECEIVER_SIZE_M,
           1,
         )
       } else if (application === 'ceiling') {
         contextCeiling.scale.set(
-          Math.max(4.2, extentX + 1.8) / CONTEXT_RECEIVER_SIZE_M,
-          Math.max(4.2, bounds.heightM + 1.8) / CONTEXT_RECEIVER_SIZE_M,
+          Math.max(CONTEXT_RECEIVER_MIN_SIZE_M, extentX + 1.8) /
+            CONTEXT_RECEIVER_SIZE_M,
+          Math.max(CONTEXT_RECEIVER_MIN_SIZE_M, bounds.heightM + 1.8) /
+            CONTEXT_RECEIVER_SIZE_M,
           1,
         )
       }
@@ -1627,11 +1638,29 @@ export function LinarScene({
       return lightTargetWorld
     }
 
-    const updateLightOrbPosition = (_target: THREE.Vector3, source: THREE.Vector3) => {
-      // Keep a draggable directional handle inside normal product framing.
-      // A visible guide joins it to the real source, whose distance is changed
-      // by Near/Far; the proxy never creates a second light.
+    const updateLightOrbPosition = (
+      _target: THREE.Vector3,
+      source: THREE.Vector3,
+      bounds: PlanBounds,
+    ) => {
+      // Keep a draggable proxy beside the installation even when the real
+      // source is high enough to frame its complete floor shadow. The guide
+      // still terminates at that one real source; the proxy emits no light.
       lightOrb.position.lerpVectors(_target, source, 0.34)
+      const minimumSideOffset = Math.max(0.72, (bounds.maxX - bounds.minX) * 0.5 + 0.12)
+      const sideOffset = lightOrb.position.x - _target.x
+      if (Math.abs(sideOffset) < minimumSideOffset) {
+        const sourceSide = source.x <= _target.x ? -1 : 1
+        lightOrb.position.x = _target.x + sourceSide * minimumSideOffset
+      }
+      const maximumVerticalOffset = Math.max(0.48, bounds.heightM * 0.38)
+      lightOrb.position.y =
+        _target.y +
+        THREE.MathUtils.clamp(
+          lightOrb.position.y - _target.y,
+          -maximumVerticalOffset,
+          maximumVerticalOffset,
+        )
       const position = lightGuideGeometry.getAttribute('position')
       position.setXYZ(0, lightOrb.position.x, lightOrb.position.y, lightOrb.position.z)
       position.setXYZ(1, source.x, source.y, source.z)
@@ -1688,9 +1717,17 @@ export function LinarScene({
           target.z + Math.cos(azimuth) * tangentRadius,
         )
       } else {
+        // A source almost level with the 2.8 m panel top projects its upper
+        // edge hundreds of metres across the floor. Keep a real clearance so
+        // the complete manufactured silhouette lands inside the receiver.
+        // As Far increases the horizontal orbit, raise it proportionally so
+        // the complete projected shadow remains in the product composition.
+        const topClearance =
+          FLOOR_LIGHT_TOP_CLEARANCE_M * (1 + Math.max(0, radiusControl))
+        const minimumSourceY = target.y + bounds.heightM * 0.5 + topClearance
         lightPositionGoal.set(
           target.x + Math.sin(azimuth) * tangentRadius,
-          target.y + normalRadius,
+          Math.max(target.y + normalRadius, minimumSourceY),
           target.z + Math.cos(azimuth) * tangentRadius,
         )
       }
@@ -1730,9 +1767,10 @@ export function LinarScene({
       lightDragState.v = THREE.MathUtils.clamp(lightDragStartV - deltaY * 2, -1, 1)
       displayedLightU = lightDragState.u
       displayedLightV = lightDragState.v
-      const position = lightPositionForState(lightDragState)
+      const dragBounds = currentPlanBounds()
+      const position = lightPositionForState(lightDragState, dragBounds)
       key.position.copy(position)
-      updateLightOrbPosition(updateLightTargetWorld(), position)
+      updateLightOrbPosition(updateLightTargetWorld(dragBounds), position, dragBounds)
       invalidateKeyShadow()
     }
 
@@ -1948,7 +1986,6 @@ export function LinarScene({
         Math.max(fromSpherical.radius, toSpherical.radius) /
         Math.max(Math.min(fromSpherical.radius, toSpherical.radius), 0.01)
       const targetTravel = controls.target.distanceTo(placement.target)
-      const positionTravel = camera.position.distanceTo(destination)
 
       controls.enableDamping = false
       cameraAuthority = cinematicActiveRef.current
@@ -1971,19 +2008,11 @@ export function LinarScene({
         fromBackground: (scene.background as THREE.Color).clone(),
         toBackground: new THREE.Color(placement.bg),
         elapsed: 0,
-        // Startup moves deliberately occupy most of each seven-second scene,
-        // making rotation and radius-based dolly/zoom one slow continuous
-        // camera move with a short settling hold.
+        // Fill the complete seven-second scene so there is no authored hold.
+        // The startup's gentler quadratic ease reaches zero velocity exactly
+        // at direction-changing boundaries instead of snapping into a reverse.
         duration: cinematicActiveRef.current
-          ? THREE.MathUtils.clamp(
-              5.6 +
-                angularTravel * 0.25 +
-                Math.log(radiusRatio) * 0.38 +
-                targetTravel * 0.11 +
-                positionTravel * 0.05,
-              5.6,
-              6.6,
-            )
+          ? STARTUP_CINEMATIC_STAGE_SECONDS
           : THREE.MathUtils.clamp(
               2.8 +
                 angularTravel * 0.48 +
@@ -1993,6 +2022,7 @@ export function LinarScene({
               5.4,
             ),
         restoreDamping,
+        startupEasing: cinematicActiveRef.current,
       }
     }
     applyFrame()
@@ -2237,6 +2267,12 @@ export function LinarScene({
         }
         if (activeStartupPose.done) {
           startupCinematicCompleted = true
+          // The normal interface narrows the viewport as soon as the page
+          // completion callback clears cinematic mode. Preserve the authored
+          // hero pose before that layout change reaches ResizeObserver;
+          // otherwise `resize()` treats it like an untouched preset and snaps
+          // the camera through a second immediate `applyFrame()` fit.
+          hasOrbited = true
           onCinematicCompleteRef.current()
         }
       }
@@ -2320,10 +2356,27 @@ export function LinarScene({
       rim.intensity += ((lightStudyEnabled ? 0 : 0.42) - rim.intensity) * lightModeLambda
       rearFill.intensity +=
         ((lightStudyEnabled ? 0 : 0.22) - rearFill.intensity) * lightModeLambda
-      key.intensity +=
-        ((lightStudyEnabled ? LIGHT_STUDY_KEY_INTENSITY : STUDIO_KEY_INTENSITY) -
-          key.intensity) *
-        lightModeLambda
+      const displayedRadiusControl = safeLightCoordinate(displayedLightRadius, 0)
+      const lightRadiusIntensityFactor =
+        configRef.current.application === 'ceiling' && displayedRadiusControl < 0
+          ? THREE.MathUtils.lerp(0.72, 1, displayedRadiusControl + 1)
+          : displayedRadiusControl < 0
+            ? THREE.MathUtils.lerp(1.25, 1, displayedRadiusControl + 1)
+            : 1 +
+              1.05 * displayedRadiusControl -
+              0.3 * displayedRadiusControl * displayedRadiusControl
+      // Floor and wall keep the source high enough to frame their complete
+      // floor shadow, so compensate for that longer inverse-square distance.
+      // Ceiling uses its genuinely closer source, so taper the emitted power
+      // toward Near instead of compounding proximity into a hot highlight.
+      const lightStudyBaseIntensity =
+        configRef.current.application === 'ceiling'
+          ? CEILING_LIGHT_STUDY_KEY_INTENSITY
+          : FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY
+      const targetKeyIntensity = lightStudyEnabled
+        ? lightStudyBaseIntensity * lightRadiusIntensityFactor
+        : STUDIO_KEY_INTENSITY
+      key.intensity += (targetKeyIntensity - key.intensity) * lightModeLambda
       key.shadow.intensity +=
         ((lightStudyEnabled ? 0.86 : 0.62) - key.shadow.intensity) * lightModeLambda
       renderer.toneMappingExposure +=
@@ -2404,8 +2457,11 @@ export function LinarScene({
       const fittedShadowFar = Math.max(
         fittedShadowNear + 1,
         sourceDistance + casterRadius * 3.2,
+        SHADOW_CAMERA_FAR_M,
       )
-      key.distance = fittedShadowFar * 1.08
+      // Preserve inverse-square decay without a second hard light cutoff
+      // before the receiver and shadow-camera limits.
+      key.distance = 0
       const fittedLightStudyAngle = THREE.MathUtils.clamp(
         Math.atan2(casterRadius * 1.08, Math.max(sourceDistance, 0.1)),
         LIGHT_STUDY_MIN_CONE_ANGLE,
@@ -2442,7 +2498,7 @@ export function LinarScene({
       }
       const lightTargetMoving = key.target.position.distanceToSquared(nextLightTarget) > 1e-10
       key.target.position.lerp(nextLightTarget, presentationLambda)
-      updateLightOrbPosition(nextLightTarget, key.position)
+      updateLightOrbPosition(nextLightTarget, key.position, lightBounds)
       shadowReceiver.position.x +=
         (nextLightTarget.x - shadowReceiver.position.x) * presentationLambda
       shadowReceiver.position.z +=
@@ -2473,7 +2529,9 @@ export function LinarScene({
         // wall-clock progression is safe here.
         cameraTransition.elapsed += elapsedSeconds
         const progress = Math.min(1, cameraTransition.elapsed / cameraTransition.duration)
-        const eased = cinematicEase(progress)
+        const eased = cameraTransition.startupEasing
+          ? easeInOut(progress)
+          : cinematicEase(progress)
         controls.target.lerpVectors(cameraTransition.fromTarget, cameraTransition.toTarget, eased)
 
         const directRadius = THREE.MathUtils.lerp(
@@ -2548,14 +2606,11 @@ export function LinarScene({
       }
       renderer.setClearColor(background, 1)
 
-      // During INTRO the panel bends at display rate. A 14/20 Hz shadow map
-      // stayed stale for several frames and then jumped, which looked like
-      // flicker through the perforations. Hardware desktop now follows every
-      // rendered frame; compact devices use a steadier 30 Hz compromise.
+      // Keep the panel/camera on every available RAF while limiting the costly
+      // perforation-accurate 2048 px shadow pass to 30 Hz. This preserves a
+      // stable silhouette without making the dolly wait for a shadow redraw.
       const shadowRefreshInterval = activeStartupPose
-        ? compactShadowMap
-          ? 1 / 30
-          : 0
+        ? 1 / 30
         : lightDragState
           ? compactShadowMap
             ? 1 / 24
@@ -2621,10 +2676,7 @@ export function LinarScene({
         Math.abs(goal - displayedBend) > 0.004 ||
         Math.abs(secondaryGoal - displayedSecondaryCurve) > 0.004
       const lightModeMoving =
-        Math.abs(
-          key.intensity -
-            (lightStudyEnabled ? LIGHT_STUDY_KEY_INTENSITY : STUDIO_KEY_INTENSITY),
-        ) > 0.01 ||
+        Math.abs(key.intensity - targetKeyIntensity) > 0.01 ||
         Math.abs(
           renderer.toneMappingExposure -
             (lightStudyEnabled ? LIGHT_STUDY_EXPOSURE : STUDIO_EXPOSURE),
