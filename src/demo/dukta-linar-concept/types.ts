@@ -22,9 +22,9 @@ export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual
 export type LinarBendDirection = 'left' | 'flat' | 'right'
 
 /**
- * Normalised position of the single interactive presentation light.
- * `u` and `v` are deliberately installation-agnostic: the scene maps them to
- * a safe application-specific movement plane for freestanding, wall or ceiling.
+ * Normalised starting position of the single interactive presentation light.
+ * `u` selects the fixed source azimuth and `v` selects its safe elevation/distance;
+ * the scene maps both to an application-specific position around the installation.
  */
 export type LinarLightState = {
   enabled: boolean

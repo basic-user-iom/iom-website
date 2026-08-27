@@ -257,7 +257,11 @@ export function DuktaLinarConceptPage() {
     setConfig((previous) => ({ ...previous, ...step.config }))
     setSide(step.side)
     setViewPreset(step.view)
-    setLightState((previous) => ({ ...previous, enabled: step.target === 'light' }))
+    const nextLight = step.light
+      ? { ...step.light }
+      : { ...lightStateRef.current, enabled: false }
+    lightStateRef.current = nextLight
+    setLightState(nextLight)
     setViewToken((value) => value + 1)
     setTourStepIndex(index)
   }, [])
@@ -330,8 +334,11 @@ export function DuktaLinarConceptPage() {
     }
     tourActiveRef.current = false
     experienceModeRef.current = 'startup-cinematic'
+    const studioLight = { ...lightStateRef.current, enabled: false }
+    lightStateRef.current = studioLight
     setTourStepIndex(null)
     setExperienceMode('startup-cinematic')
+    setLightState(studioLight)
     setShowHint(false)
     interactedRef.current = true
     markCinematicSeen()
@@ -733,6 +740,19 @@ export function DuktaLinarConceptPage() {
 
   const onCinematicStage = useCallback((stage: number) => {
     if (experienceModeRef.current !== 'startup-cinematic') return
+    // Let the architectural move settle in studio light before the final
+    // single-source study begins. Combining a camera move, application swap
+    // and blackout on one frame made the dense 4 mm pattern visibly flash.
+    const lightStudyEnabled = stage >= 5
+    const stageLight = {
+      ...lightStateRef.current,
+      enabled: lightStudyEnabled,
+      ...(stage === 4
+        ? { u: DEFAULT_LINAR_LIGHT.u, v: DEFAULT_LINAR_LIGHT.v }
+        : {}),
+    }
+    lightStateRef.current = stageLight
+    setLightState(stageLight)
     const setCinematicView = (nextView: LinarViewId, nextSide: LinarSide = 'front') => {
       setSide(nextSide)
       setViewPreset(nextView)
@@ -750,16 +770,27 @@ export function DuktaLinarConceptPage() {
     } else if (stage === 1) {
       setCinematicView('bent')
     } else if (stage === 2) {
-      setCinematicView('top')
+      // The technical Top preset changes the camera up-axis and is therefore
+      // an intentional cut in normal use. The automatic intro uses the Side
+      // profile instead so scene changes remain continuous.
+      setCinematicView('side')
     } else if (stage === 3) {
       setCinematicView('bent')
     } else if (stage === 4) {
-      setConfig((previous) => ({ ...previous, application: 'wall', panelCount: 2 }))
-      setCinematicView('hero')
-    } else if (stage === 5) {
-      setConfig((previous) => ({ ...previous, application: 'freestanding', panelCount: 1 }))
+      // Keep one freestanding physical module throughout the cinematic.
+      // Adding a second 150-pitch lattice and swapping application during a
+      // moving shot doubled the sub-pixel pattern and produced a strong moire
+      // burst. Repetition and architectural contexts remain fully available
+      // in the configurator and guided tour.
+      setConfig((previous) => ({
+        ...previous,
+        application: 'freestanding',
+        panelCount: 1,
+      }))
       setCinematicView('hero')
     }
+    // Stage 5 deliberately holds the settled hero composition while only the
+    // lighting changes, giving the perforated shadow a stable final shot.
   }, [])
 
   const onCinematicComplete = useCallback(() => {
@@ -842,11 +873,15 @@ export function DuktaLinarConceptPage() {
 
       <div className="linar-body">
         <section
-          className={
+          className={[
+            'linar-viewport',
+            lightState.enabled ? 'is-light-study' : '',
             tourActive && activeTourStep?.target === 'viewport'
-              ? 'linar-viewport is-tour-highlighted'
-              : 'linar-viewport'
-          }
+              ? 'is-tour-highlighted'
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
           data-tour-id="viewport"
           aria-label="LINAR panel preview"
         >
@@ -884,8 +919,12 @@ export function DuktaLinarConceptPage() {
                 onCinematicComplete={onCinematicComplete}
                 onIntroBend={() => undefined}
               />
-              {showHint ? (
-                <p className="linar-viewport__hint">Drag to rotate. Scroll or pinch to zoom.</p>
+              {showHint || lightState.enabled ? (
+                <p className="linar-viewport__hint" aria-live="polite">
+                  {lightState.enabled
+                    ? 'Drag the fixed light to direct it; drag elsewhere to rotate the panel.'
+                    : 'Drag to rotate. Scroll or pinch to zoom.'}
+                </p>
               ) : null}
             </>
           )}
@@ -937,8 +976,14 @@ export function DuktaLinarConceptPage() {
           {cinematicActive ? (
             <aside className="linar-cinematic-hud" aria-live="polite">
               <div>
-                <p className="linar-tour__eyebrow">LINAR material study</p>
-                <p>Light, incision and curvature in one continuous manufactured surface.</p>
+                <p className="linar-tour__eyebrow">
+                  {lightState.enabled ? 'LINAR single-light study' : 'LINAR material study'}
+                </p>
+                <p>
+                  {lightState.enabled
+                    ? 'One fixed warm source isolates incision depth and perforated shadow in darkness.'
+                    : 'Light, incision and curvature in one continuous manufactured surface.'}
+                </p>
               </div>
               <button type="button" onClick={() => stopExperience(true)}>
                 Skip intro

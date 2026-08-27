@@ -1,4 +1,4 @@
-import type { LinarConfig, LinarSide, LinarViewId } from './types'
+import type { LinarConfig, LinarLightState, LinarSide, LinarViewId } from './types'
 
 export type LinarTourTarget =
   | 'viewport'
@@ -25,6 +25,7 @@ export type LinarTourStep = {
   bend: number
   secondaryCurveAmount: number
   config: Partial<LinarConfig>
+  light?: LinarLightState
 }
 
 /**
@@ -130,9 +131,9 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     config: { application: 'freestanding', panelCount: 3 },
   },
   {
-    title: 'Interactive key light',
+    title: 'Night-mode light study',
     description:
-      'Enable Light and drag the glowing orb. One real key light reveals cut depth, bridge relief and transmitted shadow.',
+      'The tour enters a near-black, single-light environment automatically. One fixed warm key illuminates the inspected face while every fill light stays off, bringing incision depth, bridge relief and perforated shadow forward. Drag the glowing light to direct it.',
     target: 'light',
     durationMs: 0,
     view: 'bent',
@@ -140,6 +141,9 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     bend: 26,
     secondaryCurveAmount: 0,
     config: { panelCount: 1, application: 'freestanding', backing: 'none' },
+    // Mirror the default key to the right so its draggable handle remains
+    // clear of the explanatory card during this authored tour step.
+    light: { enabled: true, u: 0.32, v: -0.28 },
   },
   {
     title: 'Technical status',

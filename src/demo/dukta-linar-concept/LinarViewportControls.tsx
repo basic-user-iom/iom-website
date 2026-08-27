@@ -180,8 +180,8 @@ export function LinarViewportControls({
         aria-pressed={lightEnabled}
         aria-label={
           lightEnabled
-            ? 'Disable interactive light; drag the glowing orb to move it'
-            : 'Enable interactive light'
+            ? 'Disable dark fixed single-light study'
+            : 'Enable dark fixed single-light study'
         }
         onClick={() => {
           onUserInteract()
