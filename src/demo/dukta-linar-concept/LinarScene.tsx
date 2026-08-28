@@ -332,6 +332,7 @@ function rotatedPlanPoint(point: LocalPlanPose, rotY: number) {
 function panelPlacementsForState(
   panelCount: number,
   state: ReturnType<typeof makeBendState>,
+  alignEndToEndWithHost = false,
 ): PanelPlacement[] {
   const count = clampedPanelCount(panelCount)
   const left = { x: 0, z: 0, rotY: 0 }
@@ -376,6 +377,33 @@ function panelPlacementsForState(
     placement.x -= centreX
     placement.z -= centreZ
   }
+
+  if (alignEndToEndWithHost) {
+    // A compound S has parallel end tangents but its two end points are offset
+    // in Z. Repeating that unaligned module makes the complete installation
+    // walk diagonally away from a flat wall or ceiling. Rotate the continuous
+    // row once so its start-to-end chord lies in the host plane; the local
+    // lobes remain unchanged and are translated room-side by the mounting
+    // clearance below.
+    const first = placements[0]
+    const last = placements[placements.length - 1]
+    const start = transformPlanPoint(left.x, left.z, first)
+    const end = transformPlanPoint(right.x, right.z, last)
+    const chordX = end.x - start.x
+    const chordZ = end.z - start.z
+    if (Math.hypot(chordX, chordZ) > 0.000001) {
+      const alignmentYaw = Math.atan2(chordZ, chordX)
+      const cos = Math.cos(alignmentYaw)
+      const sin = Math.sin(alignmentYaw)
+      for (const placement of placements) {
+        const x = placement.x
+        const z = placement.z
+        placement.x = cos * x + sin * z
+        placement.z = -sin * x + cos * z
+        placement.rotY += alignmentYaw
+      }
+    }
+  }
   return placements
 }
 
@@ -400,7 +428,11 @@ function panelPlanBounds(
     secondaryCurveAmount,
     maxRenderedNormalOffsetM(layout.thicknessM, config.backing !== 'none'),
   )
-  const placements = panelPlacementsForState(config.panelCount, state)
+  const placements = panelPlacementsForState(
+    config.panelCount,
+    state,
+    config.application !== 'freestanding',
+  )
   let minX = Number.POSITIVE_INFINITY
   let maxX = Number.NEGATIVE_INFINITY
   let minZ = Number.POSITIVE_INFINITY
@@ -632,7 +664,10 @@ function viewPlacement(
     const target = mid.clone()
     const dist = fitDistance(camera, 1.15, 1.2, installationWidth, installationHeight)
     if (id === 'side') {
-      const dir = new THREE.Vector3(1, -0.26, 0.08).normalize()
+      // Stay oblique enough that every viewport ray meets the ceiling plane.
+      // A near-tangent camera exposed the receiver horizon and made a correctly
+      // mounted panel look detached from (or sliced by) the ceiling.
+      const dir = new THREE.Vector3(1, -0.52, 0.08).normalize()
       return {
         dir,
         target,
@@ -670,7 +705,10 @@ function viewPlacement(
       }
     }
     if (id === 'side') {
-      const dir = new THREE.Vector3(1, 0.025, 0.22).normalize()
+      // Preserve a readable side profile without looking so nearly parallel
+      // to the wall that the architectural receiver ends at a screen-space
+      // horizon beside the panel.
+      const dir = new THREE.Vector3(1, 0.025, 0.52).normalize()
       return {
         dir,
         target: mid.clone(),
@@ -1346,6 +1384,7 @@ export function LinarScene({
       const placements = panelPlacementsForState(
         arrangementConfig.panelCount,
         arrangementState,
+        arrangementConfig.application !== 'freestanding',
       )
       for (let i = 0; i < panelRoots.length; i += 1) {
         const placement = placements[i] ?? placements[placements.length - 1]
@@ -1439,6 +1478,8 @@ export function LinarScene({
     }
 
     let currentPreset: LinarViewId = viewPresetRef.current
+    let topAutoFramePending = false
+    let lastTopAutoFrameTargetKey = `${targetBendRef.current}:${targetSecondaryCurveRef.current}`
     let cinematicAnchor: CinematicAnchor | null = null
     let cameraDriftElapsed = 0
     let startupCinematicElapsed = 0
@@ -1514,7 +1555,7 @@ export function LinarScene({
     ) => {
       const nextKey = `${geometryKey(configRef.current, techRef.current)}:${
         configRef.current.panelCount
-      }:${bend}:${secondaryCurveAmount}`
+      }:${configRef.current.application}:${bend}:${secondaryCurveAmount}`
       if (cachedPlanBounds && nextKey === cachedPlanBoundsKey) return cachedPlanBounds
       cachedPlanBoundsKey = nextKey
       cachedPlanBounds = panelPlanBounds(
@@ -1904,6 +1945,9 @@ export function LinarScene({
     }
 
     const transitionToFrame = () => {
+      // An explicit preset/application/count frame supersedes any delayed
+      // technical Top refit queued by a slider change.
+      topAutoFramePending = false
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
       if (w < 16 || h < 16) return
@@ -2178,6 +2222,7 @@ export function LinarScene({
       }
       if (nextApplication !== lastApplication) {
         lastApplication = nextApplication
+        applyPanelArrangement()
         setPresentationTarget(reducedMotion)
         hasOrbited = false
         transitionToFrame()
@@ -2284,6 +2329,15 @@ export function LinarScene({
         goal = activeStartupPose.bend
         secondaryGoal = activeStartupPose.secondary
       }
+      const topAutoFrameTargetKey = `${targetBendRef.current}:${targetSecondaryCurveRef.current}`
+      if (topAutoFrameTargetKey !== lastTopAutoFrameTargetKey) {
+        lastTopAutoFrameTargetKey = topAutoFrameTargetKey
+        topAutoFramePending =
+          currentPreset === 'top' &&
+          !hasOrbited &&
+          !activeStartupPose &&
+          !tourActiveRef.current
+      }
       const bendResponse = activeStartupPose
         ? 5.5
         : tourActiveRef.current && !reducedMotion
@@ -2316,6 +2370,22 @@ export function LinarScene({
           displayedSecondaryCurve,
         )
         applyPanelArrangement()
+      }
+      if (
+        topAutoFramePending &&
+        currentPreset === 'top' &&
+        !hasOrbited &&
+        !cameraTransition &&
+        !activeStartupPose &&
+        !tourActiveRef.current &&
+        displayedBend === goal &&
+        displayedSecondaryCurve === secondaryGoal
+      ) {
+        // Refit once after the animated geometry has settled. Reframing every
+        // deformation frame would fight manual inspection and read as a camera
+        // chase; waiting preserves a stable technical plan while keeping the
+        // newly selected S shape at a useful scale.
+        transitionToFrame()
       }
 
       const presentationLambda =
