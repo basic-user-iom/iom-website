@@ -1,4 +1,10 @@
-import type { LinarConfig, LinarLightState, LinarSide, LinarViewId } from './types'
+import {
+  DEFAULT_LINAR_LIGHT,
+  type LinarConfig,
+  type LinarLightState,
+  type LinarSide,
+  type LinarViewId,
+} from './types'
 
 export type LinarTourTarget =
   | 'viewport'
@@ -9,6 +15,7 @@ export type LinarTourTarget =
   | 'materials'
   | 'colours'
   | 'application'
+  | 'backlight'
   | 'repetition'
   | 'light'
   | 'technical-data'
@@ -44,7 +51,12 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     side: 'front',
     bend: 34,
     secondaryCurveAmount: 0,
-    config: { application: 'freestanding', backing: 'none', panelCount: 1 },
+    config: {
+      application: 'freestanding',
+      backing: 'none',
+      backlightMode: 'off',
+      panelCount: 1,
+    },
   },
   {
     title: 'Radius in millimetres',
@@ -104,19 +116,33 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     side: 'front',
     bend: 8,
     secondaryCurveAmount: 0,
-    config: { material: 'mdf', veneer: 'none', mdfColour: 'reference-04', backing: 'felt' },
+    config: {
+      material: 'mdf',
+      veneer: 'none',
+      mdfColour: 'reference-04',
+      application: 'freestanding',
+      backing: 'felt',
+      backlightMode: 'off',
+    },
   },
   {
-    title: 'Architectural application',
+    title: 'Rear backlight only',
     description:
-      'Freestanding, Wall and Ceiling reuse one physical configuration instead of swapping to unrelated product models.',
-    target: 'application',
+      'On the ceiling, the movable orb is off while diffuse rear illumination alone reveals the real apertures without changing technical calculations.',
+    target: 'backlight',
     durationMs: 0,
     view: 'hero',
     side: 'front',
     bend: 18,
     secondaryCurveAmount: 0,
-    config: { application: 'wall', backing: 'none', panelCount: 1 },
+    config: {
+      application: 'ceiling',
+      backing: 'none',
+      backlightMode: 'on',
+      backlightIntensity: 60,
+      panelCount: 1,
+    },
+    light: { ...DEFAULT_LINAR_LIGHT },
   },
   {
     title: 'Horizontal repetition',
@@ -128,22 +154,33 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     side: 'front',
     bend: 38,
     secondaryCurveAmount: 0,
-    config: { application: 'freestanding', panelCount: 3 },
+    config: {
+      application: 'freestanding',
+      backing: 'none',
+      backlightMode: 'off',
+      panelCount: 3,
+    },
+    light: { ...DEFAULT_LINAR_LIGHT },
   },
   {
-    title: 'Night-mode light study',
+    title: 'Orb light only',
     description:
-      'The tour enters a near-black, single-light environment automatically. One fixed warm key illuminates the inspected face while every fill light stays off, bringing incision depth, bridge relief and perforated shadow forward. Drag the glowing light to direct it.',
+      'The rear backlight is off while the movable warm orb alone illuminates the inspected face, bringing incision depth, bridge relief and perforated shadow forward.',
     target: 'light',
     durationMs: 0,
     view: 'bent',
     side: 'front',
     bend: 26,
     secondaryCurveAmount: 0,
-    config: { panelCount: 1, application: 'freestanding', backing: 'none' },
+    config: {
+      panelCount: 1,
+      application: 'freestanding',
+      backing: 'none',
+      backlightMode: 'off',
+    },
     // The elevated, front-normal source reveals the true perforated floor
     // projection; visitors can then drag it through the full 360-degree orbit.
-    light: { enabled: true, u: 0, v: 0.6, radius: 0 },
+    light: { enabled: true, placement: 'room', u: 0, v: 0.6, radius: 0 },
   },
   {
     title: 'Technical status',
@@ -155,19 +192,32 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     side: 'front',
     bend: 26,
     secondaryCurveAmount: 0,
-    config: {},
+    config: {
+      application: 'freestanding',
+      backing: 'none',
+      backlightMode: 'off',
+      panelCount: 1,
+    },
+    light: { ...DEFAULT_LINAR_LIGHT },
   },
   {
     title: 'Share this selection',
     description:
-      'Share creates a validated URL containing the current product, application, view and light selection.',
+      'The wall study now combines diffuse rear illumination with the movable orb behind the panel. Share preserves both independent sources and their placement in one validated URL.',
     target: 'share',
     durationMs: 0,
     view: 'hero',
     side: 'front',
     bend: 16,
     secondaryCurveAmount: 0,
-    config: {},
+    config: {
+      application: 'wall',
+      backing: 'none',
+      backlightMode: 'on',
+      backlightIntensity: 60,
+      panelCount: 1,
+    },
+    light: { enabled: true, placement: 'behind', u: 0, v: 0.6, radius: 0 },
   },
   {
     title: 'Reset and return',
@@ -179,6 +229,12 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     side: 'front',
     bend: 0,
     secondaryCurveAmount: 0,
-    config: { application: 'freestanding', backing: 'none', panelCount: 1 },
+    config: {
+      application: 'freestanding',
+      backing: 'none',
+      backlightMode: 'off',
+      panelCount: 1,
+    },
+    light: { ...DEFAULT_LINAR_LIGHT },
   },
 ]

@@ -1,6 +1,7 @@
 import {
   DEFAULT_LINAR_CONFIG,
   LINAR_APPLICATIONS,
+  LINAR_BACKLIGHT_MODES,
   LINAR_MATERIALS,
   LINAR_SIDES,
   LINAR_VENEERS,
@@ -142,6 +143,22 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     LINAR_VISIBLE_BACKINGS,
     config.backing,
   )
+  config.backlightMode = parseDescriptorId(
+    params,
+    'backlight',
+    LINAR_BACKLIGHT_MODES,
+    config.backlightMode,
+  )
+  config.backlightIntensity = parseInteger(
+    params,
+    'bli',
+    10,
+    100,
+    config.backlightIntensity,
+  )
+  if (config.application === 'freestanding' || config.backing !== 'none') {
+    config.backlightMode = 'off'
+  }
   config.panelCount = parseInteger(
     params,
     'count',
@@ -171,6 +188,12 @@ export function parseLinarShareState(fragment: string): LinarShareState {
   }
   const light: LinarLightState = {
     enabled: lightEnabled,
+    placement:
+      config.application !== 'freestanding' &&
+      config.backing === 'none' &&
+      params.get('lp') === 'behind'
+        ? 'behind'
+        : 'room',
     u: parseLightCoordinate('lu', DEFAULT_LINAR_LIGHT.u),
     v: parseLightCoordinate('lv', DEFAULT_LINAR_LIGHT.v),
     // Version 1 links have no radius. They intentionally restore the current
@@ -211,6 +234,17 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   }
   params.set('application', config.application)
   params.set('backing', visibleBacking)
+  const mountedBacklightEnabled =
+    config.application !== 'freestanding' &&
+    visibleBacking === 'none' &&
+    config.backlightMode === 'on'
+  if (mountedBacklightEnabled) {
+    params.set('backlight', 'on')
+    params.set(
+      'bli',
+      String(Math.max(10, Math.min(100, Math.round(config.backlightIntensity)))),
+    )
+  }
   params.set(
     'count',
     String(clampLinarPanelCount(config.panelCount)),
@@ -218,6 +252,12 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   params.set('side', selection.side)
   params.set('view', selection.view)
   const safeLight = selection.light ?? DEFAULT_LINAR_LIGHT
+  const lightPlacement =
+    config.application !== 'freestanding' &&
+    visibleBacking === 'none' &&
+    safeLight.placement === 'behind'
+      ? 'behind'
+      : 'room'
   const lightU = Number.isFinite(safeLight.u)
     ? Math.max(-1, Math.min(1, safeLight.u))
     : DEFAULT_LINAR_LIGHT.u
@@ -228,6 +268,7 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
     ? Math.max(-1, Math.min(1, safeLight.radius))
     : DEFAULT_LINAR_LIGHT.radius
   if (safeLight.enabled) params.set('light', '1')
+  if (lightPlacement === 'behind') params.set('lp', 'behind')
   if (
     safeLight.enabled ||
     Math.abs(lightU - DEFAULT_LINAR_LIGHT.u) > 0.005 ||

@@ -18,8 +18,10 @@ export type LinarPattern = 'regular'
 export type LinarStatus = 'Standard' | 'Possible' | 'Not tested'
 export type LinarApplication = 'freestanding' | 'wall' | 'ceiling'
 export type LinarBacking = 'none' | 'acoustic-fleece' | 'felt'
+export type LinarBacklightMode = 'off' | 'on'
 export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual reference'
 export type LinarBendDirection = 'left' | 'flat' | 'right'
+export type LinarLightPlacement = 'room' | 'behind'
 
 /**
  * Normalised position of the single interactive presentation light.
@@ -29,6 +31,7 @@ export type LinarBendDirection = 'left' | 'flat' | 'right'
  */
 export type LinarLightState = {
   enabled: boolean
+  placement: LinarLightPlacement
   u: number
   v: number
   radius: number
@@ -36,6 +39,7 @@ export type LinarLightState = {
 
 export const DEFAULT_LINAR_LIGHT: LinarLightState = {
   enabled: false,
+  placement: 'room',
   // A front-normal, elevated source lets the real 4 mm perforations project
   // onto the floor. Strongly lateral positions remain available through the
   // 360-degree light control, but their cut sidewalls physically self-occlude.
@@ -68,6 +72,8 @@ export type LinarConfig = {
   pattern: LinarPattern
   application: LinarApplication
   backing: LinarBacking
+  backlightMode: LinarBacklightMode
+  backlightIntensity: number
   panelCount: number
   bendDirection: LinarBendDirection
   bendRadiusMm: number | null
@@ -110,6 +116,11 @@ export const LINAR_BACKINGS: { id: LinarBacking; label: string }[] = [
 
 export const LINAR_VISIBLE_BACKINGS = LINAR_BACKINGS
 
+export const LINAR_BACKLIGHT_MODES: { id: LinarBacklightMode; label: string }[] = [
+  { id: 'off', label: 'Off' },
+  { id: 'on', label: 'On' },
+]
+
 export type LinarViewId = 'hero' | 'closeup' | 'side' | 'reverse' | 'bent' | 'top'
 export type LinarSide = 'front' | 'back'
 
@@ -151,6 +162,8 @@ export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   pattern: 'regular',
   application: 'freestanding',
   backing: 'none',
+  backlightMode: 'off',
+  backlightIntensity: 60,
   panelCount: 1,
   bendDirection: 'flat',
   bendRadiusMm: null,

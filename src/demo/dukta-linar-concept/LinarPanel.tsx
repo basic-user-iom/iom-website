@@ -2,9 +2,11 @@ import {
   BufferGeometry,
   BoxGeometry,
   DynamicDrawUsage,
+  DoubleSide,
   Float32BufferAttribute,
   InstancedMesh,
   Mesh,
+  MeshBasicMaterial,
   MeshStandardMaterial,
   Object3D,
   Vector3,
@@ -43,6 +45,9 @@ const SOLID_BAND_SEGMENTS = MAX_SLATS
 const BRIDGE_PROFILE_STEPS = 16
 const pose = { x: 0, z: 0, rotY: 0 }
 const APPROVED_BRIDGE_CENTRE_HEIGHT_MM = 6.859
+// Render-only separation from the physical rear face. It prevents coplanar
+// flicker without representing a measured LED cavity or mounting depth.
+const BACKLIGHT_RENDER_OFFSET_M = 0.00025
 
 export type LinarPanelHandle = {
   group: Object3D
@@ -59,6 +64,7 @@ export type LinarPanelHandle = {
     immediate?: boolean,
   ) => void
   setBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
+  setBacklightStrength: (strength: number) => void
   prewarmMaterial: (id: LinarMaterialId, veneer: LinarVeneerId) => void
   tickMaterials: (dt: number) => boolean
   boundingSize: Vector3
@@ -449,9 +455,28 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   backingMesh.frustumCulled = false
   backingMesh.visible = false
 
+  // A real deformed diffuser surface sits behind the manufactured geometry.
+  // The slats and bridge assemblies therefore occlude it through ordinary
+  // depth testing, leaving only the true LINAR apertures luminous.
+  const backlightMaterial = new MeshBasicMaterial({
+    color: 0xffc978,
+    transparent: true,
+    opacity: 0,
+    depthTest: true,
+    depthWrite: false,
+    side: DoubleSide,
+    toneMapped: false,
+  })
+  const backlightMesh = new Mesh(backingRibbon.geometry, backlightMaterial)
+  backlightMesh.name = 'LinarBacklightDiffuser'
+  backlightMesh.castShadow = false
+  backlightMesh.receiveShadow = false
+  backlightMesh.frustumCulled = false
+
   const partialBridgesGroup = new Object3D()
   partialBridgesGroup.name = 'LinarPartialBridges'
 
+  group.add(backlightMesh)
   group.add(backingMesh)
   group.add(slatsMesh)
   group.add(leftSolidBandMesh)
@@ -727,25 +752,25 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     // Opaque backing is real material behind the apertures: it must block the
     // key light, while the no-backing state remains fully transmissive.
     backingMesh.castShadow = showBacking
-    if (showBacking && backing !== 'none') {
-      const backZ = -maxRenderedNormalOffsetM(thickness, true)
-      for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
-        const originalX = -PANEL_WIDTH_M * 0.5 + PANEL_WIDTH_M * (i / SOLID_BAND_SEGMENTS)
-        curveElement(originalX, state, PANEL_WIDTH_M, pose)
-        const nx = Math.sin(pose.rotY)
-        const nz = Math.cos(pose.rotY)
-        const x = pose.x + nx * backZ
-        const z = pose.z + nz * backZ
-        const lower = i * 2
-        const upper = lower + 1
-        backingRibbon.position.setXYZ(lower, x, 0, z)
-        backingRibbon.position.setXYZ(upper, x, PANEL_HEIGHT_M, z)
-        backingRibbon.normal.setXYZ(lower, nx, 0, nz)
-        backingRibbon.normal.setXYZ(upper, nx, 0, nz)
-      }
-      backingRibbon.position.needsUpdate = true
-      backingRibbon.normal.needsUpdate = true
+    const backZ = showBacking
+      ? -maxRenderedNormalOffsetM(thickness, true)
+      : -thickness * 0.5 - BACKLIGHT_RENDER_OFFSET_M
+    for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
+      const originalX = -PANEL_WIDTH_M * 0.5 + PANEL_WIDTH_M * (i / SOLID_BAND_SEGMENTS)
+      curveElement(originalX, state, PANEL_WIDTH_M, pose)
+      const nx = Math.sin(pose.rotY)
+      const nz = Math.cos(pose.rotY)
+      const x = pose.x + nx * backZ
+      const z = pose.z + nz * backZ
+      const lower = i * 2
+      const upper = lower + 1
+      backingRibbon.position.setXYZ(lower, x, 0, z)
+      backingRibbon.position.setXYZ(upper, x, PANEL_HEIGHT_M, z)
+      backingRibbon.normal.setXYZ(lower, nx, 0, nz)
+      backingRibbon.normal.setXYZ(upper, nx, 0, nz)
     }
+    backingRibbon.position.needsUpdate = true
+    backingRibbon.normal.needsUpdate = true
   }
 
   const applyConfig = (config: LinarConfig, tech: LinarTech) => {
@@ -813,6 +838,11 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
         ),
       )
     },
+    setBacklightStrength: (strength) => {
+      // Replicated modules share this material, so opacity updates the complete
+      // installation without a per-replica visibility synchronization pass.
+      backlightMaterial.opacity = Math.max(0, Math.min(1, strength))
+    },
     prewarmMaterial: (id, veneer) => materials.prewarm(id, veneer),
     tickMaterials: (dt) => materials.tick(dt),
     boundingSize,
@@ -821,6 +851,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       bridgesMesh.dispose()
       clearPartialBridgeBatches()
       backingRibbon.geometry.dispose()
+      backlightMaterial.dispose()
       unitBox.dispose()
       fullBridgeGeo.dispose()
       leftSolidBand.geometry.dispose()

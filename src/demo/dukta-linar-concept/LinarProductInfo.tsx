@@ -177,6 +177,22 @@ export function LinarProductInfo({
     { label: 'Reference minimum radius', value: radiusValue },
     { label: 'Application', value: applicationLabel(config.application) },
     { label: 'Backing', value: backingLabel(config.backing) },
+    ...(config.application !== 'freestanding'
+      ? ([
+          {
+            label: 'Rear illumination',
+            value:
+              config.backlightMode === 'on'
+                ? `Visual preview · ${config.backlightIntensity}%`
+                : 'Off',
+            hint:
+              config.backlightMode === 'on'
+                ? 'Non-photometric · diffuser and mounting not specified'
+                : undefined,
+            status: config.backlightMode === 'on' ? 'Not tested' : undefined,
+          },
+        ] satisfies Row[])
+      : []),
     ...(config.backing === 'felt'
       ? ([
           {

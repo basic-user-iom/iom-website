@@ -9,10 +9,12 @@ import {
 } from './materialData'
 import {
   LINAR_APPLICATIONS,
+  LINAR_BACKLIGHT_MODES,
   LINAR_MATERIALS,
   LINAR_VENEERS,
   LINAR_VISIBLE_BACKINGS,
   type LinarApplication,
+  type LinarBacklightMode,
   type LinarBacking,
   type LinarBendDirection,
   type LinarConfig,
@@ -135,7 +137,7 @@ function ChipGroup<T extends string>({
 }: {
   labelId: string
   label: string
-  items: readonly { id: T; label: string }[]
+  items: readonly { id: T; label: string; disabled?: boolean }[]
   value: T
   dataTourId?: string
   onChange: (id: T) => void
@@ -154,6 +156,7 @@ function ChipGroup<T extends string>({
               type="button"
               className={active ? 'linar-chip is-active' : 'linar-chip'}
               aria-pressed={active}
+              disabled={item.disabled}
               onClick={() => onChange(item.id)}
             >
               <span className="linar-chip__name">{item.label}</span>
@@ -172,13 +175,15 @@ function SegmentedGroup<T extends string>({
   items,
   value,
   dataTourId,
+  descriptionId,
   onChange,
 }: {
   labelId: string
   label: string
-  items: readonly { id: T; label: string }[]
+  items: readonly { id: T; label: string; disabled?: boolean }[]
   value: T
   dataTourId?: string
+  descriptionId?: string
   onChange: (id: T) => void
 }) {
   return (
@@ -190,6 +195,7 @@ function SegmentedGroup<T extends string>({
         className="linar-materials linar-materials--segmented"
         role="radiogroup"
         aria-labelledby={labelId}
+        aria-describedby={descriptionId}
         aria-orientation="horizontal"
         style={{ gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}
       >
@@ -202,24 +208,36 @@ function SegmentedGroup<T extends string>({
               role="radio"
               className={active ? 'linar-chip is-active' : 'linar-chip'}
               aria-checked={active}
-              tabIndex={active ? 0 : -1}
+              disabled={item.disabled}
+              tabIndex={active && !item.disabled ? 0 : -1}
               style={{ justifyContent: 'center', textAlign: 'center' }}
-              onClick={() => onChange(item.id)}
+              onClick={() => {
+                if (!item.disabled) onChange(item.id)
+              }}
               onKeyDown={(event) => {
                 let nextIndex = index
+                let direction = 0
                 if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-                  nextIndex = (index - 1 + items.length) % items.length
+                  direction = -1
                 } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-                  nextIndex = (index + 1) % items.length
+                  direction = 1
                 } else if (event.key === 'Home') {
-                  nextIndex = 0
+                  nextIndex = items.findIndex((item) => !item.disabled)
                 } else if (event.key === 'End') {
                   nextIndex = items.length - 1
+                  while (nextIndex >= 0 && items[nextIndex].disabled) nextIndex -= 1
                 } else {
                   return
                 }
 
                 event.preventDefault()
+                if (nextIndex < 0) return
+                if (direction !== 0) {
+                  do {
+                    nextIndex = (nextIndex + direction + items.length) % items.length
+                  } while (items[nextIndex].disabled && nextIndex !== index)
+                }
+                if (items[nextIndex].disabled) return
                 onChange(items[nextIndex].id)
                 const buttons = event.currentTarget.parentElement?.querySelectorAll('button')
                 buttons?.item(nextIndex).focus()
@@ -536,6 +554,58 @@ export function LinarControls({
             value={config.backing}
             onChange={(id: LinarBacking) => onConfig({ backing: id })}
           />
+          {config.application !== 'freestanding' ? (
+            <>
+              <SegmentedGroup
+                labelId="linar-backlight-label"
+                label="Rear illumination"
+                items={LINAR_BACKLIGHT_MODES.map((item) => ({
+                  ...item,
+                  disabled: item.id === 'on' && config.backing !== 'none',
+                }))}
+                value={config.backlightMode}
+                dataTourId="backlight"
+                descriptionId={
+                  config.backing === 'none'
+                    ? 'linar-backlight-description'
+                    : 'linar-backlight-description linar-backlight-backing-status'
+                }
+                onChange={(id: LinarBacklightMode) => onConfig({ backlightMode: id })}
+              />
+              {config.backlightMode === 'on' ? (
+                <RangeRow
+                  id="linar-backlight-intensity"
+                  label="Visual preview brightness"
+                  value={config.backlightIntensity}
+                  min={10}
+                  max={100}
+                  step={5}
+                  display={`${config.backlightIntensity}% visual`}
+                  onChange={(value) => onConfig({ backlightIntensity: value })}
+                />
+              ) : null}
+              <p className="linar-note" id="linar-backlight-description">
+                Warm diffuse visual preview only. Diffuser construction, cavity depth, output,
+                thermal/fire performance and mounting are not specified · Not tested. Shown in
+                room-facing front and side views; hidden in Top shape and Back inspection views.
+              </p>
+              {config.backing !== 'none' ? (
+                <p
+                  className="linar-note"
+                  id="linar-backlight-backing-status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Rear illumination is off because the selected backing is treated as opaque.
+                  Choose None to inspect preview illumination through the real LINAR openings.
+                </p>
+              ) : null}
+            </>
+          ) : (
+            <p className="linar-note">
+              Rear illumination preview is available in Wall and Ceiling applications.
+            </p>
+          )}
           {config.backing === 'felt' ? (
             <>
               <SwatchGroup

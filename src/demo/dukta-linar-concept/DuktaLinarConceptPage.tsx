@@ -13,7 +13,13 @@ import {
 } from './bendMath'
 import { LinarControls } from './LinarControls'
 import { LinarProductInfo } from './LinarProductInfo'
-import { LinarScene } from './LinarScene'
+import {
+  LINAR_CINEMATIC_BACKLIGHT_STAGE,
+  LINAR_CINEMATIC_COMBINED_LIGHT_STAGE,
+  LINAR_CINEMATIC_EXIT_STAGE,
+  LINAR_CINEMATIC_ORB_LIGHT_STAGE,
+  LinarScene,
+} from './LinarScene'
 import { LinarViewportControls } from './LinarViewportControls'
 import {
   CONCEPT_DISCLAIMER,
@@ -26,7 +32,13 @@ import {
   LINAR_TOUR_STEPS,
   type LinarTourStep,
 } from './linarTour'
-import type { LinarConfig, LinarLightState, LinarSide, LinarViewId } from './types'
+import type {
+  LinarConfig,
+  LinarLightPlacement,
+  LinarLightState,
+  LinarSide,
+  LinarViewId,
+} from './types'
 import { DEFAULT_LINAR_CONFIG, DEFAULT_LINAR_LIGHT, cloneConfig } from './types'
 import './dukta-linar-concept.css'
 
@@ -48,9 +60,7 @@ const LINAR_MUSIC_START_SECONDS = 8
 const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
-const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v2'
-const LINAR_CINEMATIC_LIGHT_STAGE = 5
-const LINAR_CINEMATIC_EXIT_STAGE = 6
+const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v3'
 const LINAR_CINEMATIC_REVEAL_MS = 2200
 
 type LinarExperienceMode = 'idle' | 'startup-cinematic' | 'guided-tour'
@@ -261,12 +271,20 @@ export function DuktaLinarConceptPage() {
     targetSecondaryCurveRef.current = step.secondaryCurveAmount
     setTargetBend(step.bend)
     setSecondaryCurveAmount(step.secondaryCurveAmount)
-    setConfig((previous) => ({ ...previous, ...step.config }))
+    const nextConfig = { ...configRef.current, ...step.config }
+    if (nextConfig.application === 'freestanding' || nextConfig.backing !== 'none') {
+      nextConfig.backlightMode = 'off'
+    }
+    configRef.current = nextConfig
+    setConfig(nextConfig)
     setSide(step.side)
     setViewPreset(step.view)
     const nextLight = step.light
       ? { ...step.light }
       : { ...lightStateRef.current, enabled: false }
+    if (nextConfig.application === 'freestanding' || nextConfig.backing !== 'none') {
+      nextLight.placement = 'room'
+    }
     lightStateRef.current = nextLight
     setLightState(nextLight)
     setViewToken((value) => value + 1)
@@ -351,7 +369,17 @@ export function DuktaLinarConceptPage() {
     }
     tourActiveRef.current = false
     experienceModeRef.current = 'startup-cinematic'
-    const studioLight = { ...lightStateRef.current, enabled: false }
+    const studioConfig = {
+      ...configRef.current,
+      backlightMode: 'off' as const,
+    }
+    configRef.current = studioConfig
+    setConfig(studioConfig)
+    const studioLight = {
+      ...lightStateRef.current,
+      enabled: false,
+      placement: 'room' as const,
+    }
     lightStateRef.current = studioLight
     setTourStepIndex(null)
     setExperienceMode('startup-cinematic')
@@ -710,8 +738,25 @@ export function DuktaLinarConceptPage() {
   const onConfig = useCallback(
     (patch: Partial<LinarConfig>) => {
       markInteracted()
+      const nextApplication = patch.application ?? configRef.current.application
+      const nextBacking = patch.backing ?? configRef.current.backing
+      if (
+        (nextApplication === 'freestanding' || nextBacking !== 'none') &&
+        lightStateRef.current.placement !== 'room'
+      ) {
+        const nextLight = { ...lightStateRef.current, placement: 'room' as const }
+        lightStateRef.current = nextLight
+        setLightState(nextLight)
+      }
       setConfig((prev) => {
         const next = { ...prev, ...patch }
+        next.backlightIntensity = Math.max(
+          10,
+          Math.min(100, Math.round(next.backlightIntensity)),
+        )
+        if (next.application === 'freestanding' || next.backing !== 'none') {
+          next.backlightMode = 'off'
+        }
         const geomChanged = GEOM_KEYS.some(
           (key) => patch[key] !== undefined && patch[key] !== prev[key],
         )
@@ -754,21 +799,31 @@ export function DuktaLinarConceptPage() {
   }, [stopExperience])
 
   const onLightChange = useCallback((next: LinarLightState) => {
-    lightStateRef.current = { ...next }
-    setLightState({ ...next })
+    const placementAllowed =
+      configRef.current.application !== 'freestanding' &&
+      configRef.current.backing === 'none'
+    const safeNext = {
+      ...next,
+      placement: placementAllowed ? next.placement : ('room' as const),
+    }
+    lightStateRef.current = safeNext
+    setLightState(safeNext)
   }, [])
 
   const onCinematicStage = useCallback((stage: number) => {
     if (experienceModeRef.current !== 'startup-cinematic') return
-    // Let the architectural move settle in studio light before the final
-    // single-source study begins. Combining a camera move, application swap
-    // and blackout on one frame made the dense 4 mm pattern visibly flash.
-    const lightStudyEnabled = stage === LINAR_CINEMATIC_LIGHT_STAGE
+    // The mounted move settles in studio light before any rear source appears.
+    // Combining the application swap, camera reframe and blackout on one frame
+    // made the dense 4 mm pattern visibly flash and produce heavy moire.
+    const orbEnabled =
+      stage === LINAR_CINEMATIC_COMBINED_LIGHT_STAGE ||
+      stage === LINAR_CINEMATIC_ORB_LIGHT_STAGE
     const stageLight = {
       ...lightStateRef.current,
-      enabled: lightStudyEnabled,
-      ...(stage === 4
+      enabled: orbEnabled,
+      ...(stage === 0 || stage === 4
         ? {
+            placement: 'room' as const,
             u: DEFAULT_LINAR_LIGHT.u,
             v: DEFAULT_LINAR_LIGHT.v,
             radius: DEFAULT_LINAR_LIGHT.radius,
@@ -777,6 +832,11 @@ export function DuktaLinarConceptPage() {
     }
     lightStateRef.current = stageLight
     setLightState(stageLight)
+    const setCinematicConfig = (patch: Partial<LinarConfig>) => {
+      const next = { ...configRef.current, ...patch }
+      configRef.current = next
+      setConfig(next)
+    }
     const setCinematicView = (nextView: LinarViewId, nextSide: LinarSide = 'front') => {
       setSide(nextSide)
       setViewPreset(nextView)
@@ -784,12 +844,12 @@ export function DuktaLinarConceptPage() {
     }
 
     if (stage === 0) {
-      setConfig((previous) => ({
-        ...previous,
+      setCinematicConfig({
         application: 'freestanding',
         panelCount: 1,
         backing: 'none',
-      }))
+        backlightMode: 'off',
+      })
       setCinematicView('closeup')
     } else if (stage === 1) {
       setCinematicView('bent')
@@ -801,25 +861,36 @@ export function DuktaLinarConceptPage() {
     } else if (stage === 3) {
       setCinematicView('bent')
     } else if (stage === 4) {
-      // Keep one freestanding physical module throughout the cinematic.
-      // Adding a second 150-pitch lattice and swapping application during a
-      // moving shot doubled the sub-pixel pattern and produced a strong moire
-      // burst. Repetition and architectural contexts remain fully available
-      // in the configurator and guided tour.
-      setConfig((previous) => ({
-        ...previous,
-        application: 'freestanding',
+      // Keep one physical module, but settle it on the wall in ordinary studio
+      // light before demonstrating the two independent authored sources.
+      setCinematicConfig({
+        application: 'wall',
         panelCount: 1,
-      }))
+        backing: 'none',
+        backlightMode: 'off',
+        backlightIntensity: 60,
+      })
       setCinematicView('hero')
+    } else if (stage === LINAR_CINEMATIC_BACKLIGHT_STAGE) {
+      setCinematicConfig({
+        application: 'wall',
+        backing: 'none',
+        backlightMode: 'on',
+        backlightIntensity: 60,
+      })
+    } else if (stage === LINAR_CINEMATIC_COMBINED_LIGHT_STAGE) {
+      setCinematicConfig({ backlightMode: 'on' })
+    } else if (stage === LINAR_CINEMATIC_ORB_LIGHT_STAGE) {
+      setCinematicConfig({ backlightMode: 'off' })
     } else if (stage === LINAR_CINEMATIC_EXIT_STAGE) {
-      // The LIGHT-to-studio crossfade remains full-screen. A paper-colour veil
-      // reaches opacity only at the end of this stage, hiding the unavoidable
-      // viewport resize when the configurator interface returns.
+      setCinematicConfig({ backlightMode: 'off' })
+      // The lighting-to-studio crossfade remains full-screen. A paper-colour
+      // veil reaches opacity only at the end of this stage, hiding the
+      // unavoidable viewport resize when the configurator interface returns.
       setCinematicHandoffPhase('covering')
     }
-    // The illuminated stage deliberately holds the settled hero composition
-    // while the source traces its shallow authored orbit in the scene.
+    // The illuminated chapters hold one settled hero composition while the
+    // orb traces a single continuous shallow authored orbit.
   }, [])
 
   const onCinematicComplete = useCallback(() => {
@@ -828,11 +899,19 @@ export function DuktaLinarConceptPage() {
     targetSecondaryCurveRef.current = 0
     setTargetBend(28)
     setSecondaryCurveAmount(0)
-    setConfig((previous) => ({ ...previous, application: 'freestanding', panelCount: 1 }))
+    const finalConfig: LinarConfig = {
+      ...configRef.current,
+      application: 'freestanding',
+      panelCount: 1,
+      backlightMode: 'off' as const,
+    }
+    configRef.current = finalConfig
+    setConfig(finalConfig)
     setSide('front')
     setViewPreset('hero')
     const finalLight: LinarLightState = {
       enabled: false,
+      placement: 'room',
       u: DEFAULT_LINAR_LIGHT.u,
       v: DEFAULT_LINAR_LIGHT.v,
       radius: DEFAULT_LINAR_LIGHT.radius,
@@ -869,9 +948,37 @@ export function DuktaLinarConceptPage() {
     setLightState(next)
   }, [])
 
+  const onToggleBacklight = useCallback(() => {
+    markInteracted()
+    setConfig((previous) => {
+      const available =
+        previous.application !== 'freestanding' && previous.backing === 'none'
+      const next = {
+        ...previous,
+        backlightMode:
+          available && previous.backlightMode === 'off' ? ('on' as const) : ('off' as const),
+      }
+      configRef.current = next
+      return next
+    })
+  }, [markInteracted])
+
   const setLightRadius = useCallback((radius: number) => {
     const base = lightStateRef.current
     const next = { ...base, radius: Math.max(-1, Math.min(1, radius)) }
+    lightStateRef.current = next
+    setLightState(next)
+  }, [])
+
+  const setLightPlacement = useCallback((placement: LinarLightPlacement) => {
+    const placementAllowed =
+      configRef.current.application !== 'freestanding' &&
+      configRef.current.backing === 'none'
+    const base = lightStateRef.current
+    const next = {
+      ...base,
+      placement: placementAllowed ? placement : ('room' as const),
+    }
     lightStateRef.current = next
     setLightState(next)
   }, [])
@@ -908,6 +1015,15 @@ export function DuktaLinarConceptPage() {
     }
   }, [])
 
+  const backlightVisible =
+    config.application !== 'freestanding' &&
+    config.backing === 'none' &&
+    config.backlightMode === 'on' &&
+    side === 'front' &&
+    viewPreset !== 'reverse' &&
+    viewPreset !== 'top'
+  const lightingStudyEnabled = lightState.enabled || backlightVisible
+
   if (!unlocked) {
     return (
       <PasswordGate
@@ -941,7 +1057,7 @@ export function DuktaLinarConceptPage() {
         <section
           className={[
             'linar-viewport',
-            lightState.enabled ? 'is-light-study' : '',
+            lightingStudyEnabled ? 'is-light-study' : '',
             tourActive && activeTourStep?.target === 'viewport'
               ? 'is-tour-highlighted'
               : '',
@@ -985,11 +1101,25 @@ export function DuktaLinarConceptPage() {
                 onCinematicComplete={onCinematicComplete}
                 onIntroBend={() => undefined}
               />
-              {showHint || lightState.enabled ? (
+              {showHint || lightingStudyEnabled ? (
                 <p className="linar-viewport__hint" aria-live="polite">
                   {lightState.enabled
-                    ? 'Drag the light orb to orbit 360°. Scroll over it or Shift-drag up/down for distance. Near places it 4 cm from the surface.'
-                    : 'Drag to rotate. Scroll or pinch to zoom.'}
+                    ? lightState.placement === 'behind' &&
+                      config.application !== 'freestanding' &&
+                      config.backing === 'none'
+                      ? `Drag the light orb behind the panel to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near places its centre 4 cm behind the mounted surface. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
+                          config.backlightMode === 'on'
+                            ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
+                            : ''
+                        }`
+                      : `Drag the light orb on the room side to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near places it 4 cm from the surface.${
+                          config.backlightMode === 'on'
+                            ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
+                            : ''
+                        }`
+                    : backlightVisible
+                      ? 'Diffuse rear backlight is on and the orb light is off. Use ORB to add the movable source, or BACKLIGHT to return to the standard studio view. Visual rear-illumination study · Not tested.'
+                      : 'Drag to rotate. Scroll or pinch to zoom.'}
                 </p>
               ) : null}
             </>
@@ -1043,12 +1173,22 @@ export function DuktaLinarConceptPage() {
             <aside className="linar-cinematic-hud" aria-live="polite">
               <div>
                 <p className="linar-tour__eyebrow">
-                  {lightState.enabled ? 'LINAR single-light study' : 'LINAR material study'}
+                  {lightState.enabled
+                    ? config.backlightMode === 'on'
+                      ? 'LINAR combined light study'
+                      : 'LINAR orb-light study'
+                    : config.backlightMode === 'on'
+                      ? 'LINAR rear-backlight study'
+                      : 'LINAR material study'}
                 </p>
                 <p>
                   {lightState.enabled
-                    ? 'One warm source moves gently across incision depth and perforated shadow in darkness.'
-                    : 'Light, incision and curvature in one continuous manufactured surface.'}
+                    ? config.backlightMode === 'on'
+                      ? 'The diffuse rear source and movable orb work together through the real apertures.'
+                      : 'The rear source fades away while the orb traces incision depth and perforated shadow.'
+                    : config.backlightMode === 'on'
+                      ? 'Diffuse rear illumination alone reveals the open LINAR pattern.'
+                      : 'Light, incision and curvature in one continuous manufactured surface.'}
                 </p>
               </div>
               <button type="button" onClick={() => stopExperience(true)}>
@@ -1064,7 +1204,11 @@ export function DuktaLinarConceptPage() {
             viewAvailable={!webglFailed}
             tourActive={tourActive}
             lightEnabled={lightState.enabled}
+            backlightEnabled={config.backlightMode === 'on'}
+            lightPlacement={lightState.placement}
             lightRadius={lightState.radius}
+            application={config.application}
+            backing={config.backing}
             cinematicActive={cinematicActive}
             shareUrl={shareUrl}
             onResetView={() => {
@@ -1097,6 +1241,8 @@ export function DuktaLinarConceptPage() {
               startCinematic()
             }}
             onToggleLight={onToggleLight}
+            onToggleBacklight={onToggleBacklight}
+            onLightPlacementChange={setLightPlacement}
             onLightNear={() => setLightRadius(-1)}
             onLightFar={() => setLightRadius(1)}
             onResetLight={onResetLight}

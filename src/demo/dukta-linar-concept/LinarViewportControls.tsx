@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import {
   LINAR_SIDES,
   LINAR_VIEWS,
+  type LinarApplication,
+  type LinarBacking,
+  type LinarLightPlacement,
   type LinarSide,
   type LinarViewId,
 } from './types'
@@ -15,7 +18,11 @@ type Props = {
   tourActive: boolean
   cinematicActive: boolean
   lightEnabled: boolean
+  backlightEnabled: boolean
+  lightPlacement: LinarLightPlacement
   lightRadius: number
+  application: LinarApplication
+  backing: LinarBacking
   shareUrl: string
   onViewPreset: (id: LinarViewId) => void
   onSideChange: (side: LinarSide) => void
@@ -25,6 +32,8 @@ type Props = {
   onToggleTour: () => void
   onReplayCinematic: () => void
   onToggleLight: () => void
+  onToggleBacklight: () => void
+  onLightPlacementChange: (placement: LinarLightPlacement) => void
   onLightNear: () => void
   onLightFar: () => void
   onResetLight: () => void
@@ -43,7 +52,11 @@ export function LinarViewportControls({
   tourActive,
   cinematicActive,
   lightEnabled,
+  backlightEnabled,
+  lightPlacement,
   lightRadius,
+  application,
+  backing,
   shareUrl,
   onViewPreset,
   onSideChange,
@@ -53,6 +66,8 @@ export function LinarViewportControls({
   onToggleTour,
   onReplayCinematic,
   onToggleLight,
+  onToggleBacklight,
+  onLightPlacementChange,
   onLightNear,
   onLightFar,
   onResetLight,
@@ -110,6 +125,13 @@ export function LinarViewportControls({
         : shareFeedback === 'failed'
           ? 'Copy failed; share URL shown for manual copying'
           : 'Copy share link'
+  const backlightAvailable = application !== 'freestanding' && backing === 'none'
+  const backlightUnavailableReason =
+    application === 'freestanding'
+      ? 'Rear backlight is available in Wall and Ceiling applications.'
+      : backing !== 'none'
+        ? 'Remove the opaque backing material to use the rear backlight.'
+        : undefined
 
   return (
     <div
@@ -188,56 +210,141 @@ export function LinarViewportControls({
         aria-pressed={lightEnabled}
         aria-label={
           lightEnabled
-            ? 'Disable dark fixed single-light study'
-            : 'Enable dark fixed single-light study'
+            ? 'Turn off the interactive orb light'
+            : 'Turn on the interactive orb light'
         }
         onClick={() => {
           onUserInteract()
           onToggleLight()
         }}
       >
-        LIGHT
+        ORB
       </button>
 
+      {application !== 'freestanding' ? (
+        <button
+          type="button"
+          className={[
+            'linar-viewport-tools__button',
+            backlightEnabled ? 'is-active' : '',
+            !backlightAvailable ? 'is-unavailable' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          disabled={!viewAvailable || !backlightAvailable}
+          aria-pressed={backlightEnabled}
+          aria-label={
+            backlightUnavailableReason ??
+            (backlightEnabled
+              ? 'Turn off the diffuse rear backlight'
+              : 'Turn on the diffuse rear backlight')
+          }
+          title={backlightUnavailableReason}
+          onClick={() => {
+            onUserInteract()
+            onToggleBacklight()
+          }}
+        >
+          BACKLIGHT
+        </button>
+      ) : null}
+
       {lightEnabled ? (
-        <div className="linar-viewport-light-tools" aria-label="Light distance controls">
-          <button
-            type="button"
-            className="linar-viewport-tools__button linar-viewport-light-tools__button"
-            disabled={!viewAvailable || lightRadius <= -0.995}
-            aria-label="Move light nearer"
-            onClick={() => {
-              onUserInteract()
-              onLightNear()
-            }}
+        <>
+          {application !== 'freestanding' ? (
+            <div
+              className="linar-viewport-light-tools linar-viewport-light-tools--placement"
+              role="group"
+              aria-label="Light placement controls"
+            >
+              <button
+                type="button"
+                className={
+                  lightPlacement === 'room'
+                    ? 'linar-viewport-tools__button linar-viewport-light-tools__button is-active'
+                    : 'linar-viewport-tools__button linar-viewport-light-tools__button'
+                }
+                disabled={!viewAvailable}
+                aria-pressed={lightPlacement === 'room'}
+                aria-label="Place light on room side"
+                onClick={() => {
+                  onUserInteract()
+                  onLightPlacementChange('room')
+                }}
+              >
+                ROOM
+              </button>
+              <button
+                type="button"
+                className={
+                  lightPlacement === 'behind'
+                    ? 'linar-viewport-tools__button linar-viewport-light-tools__button is-active'
+                    : 'linar-viewport-tools__button linar-viewport-light-tools__button'
+                }
+                disabled={!viewAvailable || backing !== 'none'}
+                aria-pressed={lightPlacement === 'behind'}
+                aria-label={
+                  backing === 'none'
+                    ? 'Place light behind panel'
+                    : 'Behind-panel light unavailable with an opaque backing material'
+                }
+                title={
+                  backing === 'none'
+                    ? undefined
+                    : 'Remove the backing material to place the light behind the panel.'
+                }
+                onClick={() => {
+                  onUserInteract()
+                  onLightPlacementChange('behind')
+                }}
+              >
+                BEHIND
+              </button>
+            </div>
+          ) : null}
+          <div
+            className="linar-viewport-light-tools linar-viewport-light-tools--distance"
+            role="group"
+            aria-label="Light distance controls"
           >
-            NEAR
-          </button>
-          <button
-            type="button"
-            className="linar-viewport-tools__button linar-viewport-light-tools__button"
-            disabled={!viewAvailable || lightRadius >= 0.995}
-            aria-label="Move light farther away"
-            onClick={() => {
-              onUserInteract()
-              onLightFar()
-            }}
-          >
-            FAR
-          </button>
-          <button
-            type="button"
-            className="linar-viewport-tools__button linar-viewport-light-tools__button linar-viewport-light-tools__reset"
-            disabled={!viewAvailable}
-            aria-label="Reset light position and distance"
-            onClick={() => {
-              onUserInteract()
-              onResetLight()
-            }}
-          >
-            RESET LIGHT
-          </button>
-        </div>
+            <button
+              type="button"
+              className="linar-viewport-tools__button linar-viewport-light-tools__button"
+              disabled={!viewAvailable || lightRadius <= -0.995}
+              aria-label="Move light nearer"
+              onClick={() => {
+                onUserInteract()
+                onLightNear()
+              }}
+            >
+              NEAR
+            </button>
+            <button
+              type="button"
+              className="linar-viewport-tools__button linar-viewport-light-tools__button"
+              disabled={!viewAvailable || lightRadius >= 0.995}
+              aria-label="Move light farther away"
+              onClick={() => {
+                onUserInteract()
+                onLightFar()
+              }}
+            >
+              FAR
+            </button>
+            <button
+              type="button"
+              className="linar-viewport-tools__button linar-viewport-light-tools__button linar-viewport-light-tools__reset"
+              disabled={!viewAvailable}
+              aria-label="Reset light position and distance"
+              onClick={() => {
+                onUserInteract()
+                onResetLight()
+              }}
+            >
+              RESET LIGHT
+            </button>
+          </div>
+        </>
       ) : null}
 
       <button

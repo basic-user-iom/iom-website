@@ -308,6 +308,11 @@ body.linar-route a.iom-back {
   opacity: 0.72;
 }
 
+.linar-viewport-tools__button.is-unavailable:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
 .linar-viewport-light-tools {
   display: inline-flex;
   gap: 0.3rem;
@@ -316,6 +321,11 @@ body.linar-route a.iom-back {
 .linar-viewport-light-tools__button {
   min-width: 3.75rem;
   padding-inline: 0.55rem;
+}
+
+.linar-viewport-light-tools__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .linar-viewport-light-tools__reset {
@@ -786,6 +796,15 @@ body.linar-route a.iom-back {
 
 .linar-chip:hover {
   border-color: rgba(42, 38, 34, 0.35);
+}
+
+.linar-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
+
+.linar-chip:disabled:hover {
+  border-color: rgba(42, 38, 34, 0.16);
 }
 
 .linar-chip:focus-visible,
