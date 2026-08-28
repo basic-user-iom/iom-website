@@ -254,8 +254,8 @@ export function LinarProductInfo({
         {hasSecondaryCurve ? (
           <p className="linar-note">
             The supplied sample footage visually demonstrates an opposing S-shaped pose. It does
-            not provide a measured hairpin radius, transition position, load limit, spring-back
-            value or manufacturing envelope. Visual reference only · Not tested.
+            not provide a measured counter-curve radius, transition position, load limit,
+            spring-back value or manufacturing envelope. Visual reference only · Not tested.
           </p>
         ) : null}
         <p className="linar-note">{PARTNER_CONFIRMATION_NOTE}</p>

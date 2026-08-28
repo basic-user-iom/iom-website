@@ -269,7 +269,7 @@ export function LinarControls({
   const secondaryCurveValueText =
     safeSecondaryCurveAmount === 0
       ? 'Off'
-      : `${safeSecondaryCurveAmount} percent toward a three-leg serpentine S curve`
+      : `${safeSecondaryCurveAmount} percent toward a continuous serpentine S curve`
   const secondaryCurveIsDormant =
     safeSecondaryCurveAmount > 0 && bendDirection === 'flat'
   const referenceText =
@@ -366,10 +366,10 @@ export function LinarControls({
               </div>
               <p className="linar-note">
                 0 keeps the existing C curve. Progression morphs it continuously toward two
-                opposing hairpin turns. At 100 the panel forms three near-parallel legs where the
-                current incised support and rendered surface offset allow it. The hairpin
-                proportions are a visual shape reference; the primary radius and open-area
-                calculations remain independent.
+                broad opposing lobes. At 100 the incised area forms one continuously changing
+                wave without straight shelves; any unincised side zones remain rigid. The shape
+                proportions are a visual reference; the primary radius and open-area calculations
+                remain independent.
               </p>
               {secondaryCurveIsDormant ? (
                 <p
@@ -394,7 +394,7 @@ export function LinarControls({
               ) : null}
               <p id="linar-secondary-curve-description" className="linar-note">
                 The supplied sample footage visually demonstrates an opposing S-shaped pose. It
-                does not provide a measured hairpin radius, transition position, load limit,
+                does not provide a measured counter-curve radius, transition position, load limit,
                 spring-back value or manufacturing envelope. Visual reference only · Not tested.
               </p>
             </div>

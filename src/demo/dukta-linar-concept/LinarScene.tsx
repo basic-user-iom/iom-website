@@ -88,10 +88,11 @@ const FLOOR_RECEIVER_SIZE_M = 96
 const CONTEXT_RECEIVER_SIZE_M = 48
 const CONTEXT_RECEIVER_MIN_SIZE_M = 48
 const SHADOW_CAMERA_FAR_M = 44
-// Provisional presentation clearances, not manufacturing specifications.
-// They keep the rendered surface visibly separate from its architectural host.
-const WALL_INSTALLATION_CLEARANCE_M = 0.018
-const CEILING_INSTALLATION_CLEARANCE_M = 0.018
+// Provisional render-only clearances, not manufacturing specifications. A
+// 1 mm margin prevents host-plane z-fighting while letting the nearest smooth
+// tangent of the curved sheet read as physically mounted.
+const WALL_INSTALLATION_CLEARANCE_M = 0.001
+const CEILING_INSTALLATION_CLEARANCE_M = 0.001
 const CAMERA_SURFACE_CLEARANCE_M = 0.14
 const WALL_PLANE_Z = 0
 const CEILING_PLANE_Y = 2.62
@@ -391,7 +392,6 @@ function rotatedPlanPoint(point: LocalPlanPose, rotY: number) {
 function panelPlacementsForState(
   panelCount: number,
   state: ReturnType<typeof makeBendState>,
-  alignEndToEndWithHost = false,
 ): PanelPlacement[] {
   const count = clampedPanelCount(panelCount)
   const left = { x: 0, z: 0, rotY: 0 }
@@ -437,30 +437,25 @@ function panelPlacementsForState(
     placement.z -= centreZ
   }
 
-  if (alignEndToEndWithHost) {
-    // A compound S has parallel end tangents but its two end points are offset
-    // in Z. Repeating that unaligned module makes the complete installation
-    // walk diagonally away from a flat wall or ceiling. Rotate the continuous
-    // row once so its start-to-end chord lies in the host plane; the local
-    // lobes remain unchanged and are translated room-side by the mounting
-    // clearance below.
-    const first = placements[0]
-    const last = placements[placements.length - 1]
-    const start = transformPlanPoint(left.x, left.z, first)
-    const end = transformPlanPoint(right.x, right.z, last)
-    const chordX = end.x - start.x
-    const chordZ = end.z - start.z
-    if (Math.hypot(chordX, chordZ) > 0.000001) {
-      const alignmentYaw = Math.atan2(chordZ, chordX)
-      const cos = Math.cos(alignmentYaw)
-      const sin = Math.sin(alignmentYaw)
-      for (const placement of placements) {
-        const x = placement.x
-        const z = placement.z
-        placement.x = cos * x + sin * z
-        placement.z = -sin * x + cos * z
-        placement.rotY += alignmentYaw
-      }
+  // Give floor, wall and ceiling the same stable end-to-end orientation. The
+  // module centreline has already been normalised to its chord; this final row
+  // rotation centres a repeated C/S morph instead of applying a host-only fix.
+  const first = placements[0]
+  const last = placements[placements.length - 1]
+  const start = transformPlanPoint(left.x, left.z, first)
+  const end = transformPlanPoint(right.x, right.z, last)
+  const chordX = end.x - start.x
+  const chordZ = end.z - start.z
+  if (Math.hypot(chordX, chordZ) > 0.000001) {
+    const alignmentYaw = Math.atan2(chordZ, chordX)
+    const cos = Math.cos(alignmentYaw)
+    const sin = Math.sin(alignmentYaw)
+    for (const placement of placements) {
+      const x = placement.x
+      const z = placement.z
+      placement.x = cos * x + sin * z
+      placement.z = -sin * x + cos * z
+      placement.rotY += alignmentYaw
     }
   }
   return placements
@@ -487,11 +482,7 @@ function panelPlanBounds(
     secondaryCurveAmount,
     maxRenderedNormalOffsetM(layout.thicknessM, config.backing !== 'none'),
   )
-  const placements = panelPlacementsForState(
-    config.panelCount,
-    state,
-    config.application !== 'freestanding',
-  )
+  const placements = panelPlacementsForState(config.panelCount, state)
   let minX = Number.POSITIVE_INFINITY
   let maxX = Number.NEGATIVE_INFINITY
   let minZ = Number.POSITIVE_INFINITY
@@ -1536,7 +1527,6 @@ export function LinarScene({
       const placements = panelPlacementsForState(
         arrangementConfig.panelCount,
         arrangementState,
-        arrangementConfig.application !== 'freestanding',
       )
       for (let i = 0; i < panelRoots.length; i += 1) {
         const placement = placements[i] ?? placements[placements.length - 1]
@@ -1653,6 +1643,7 @@ export function LinarScene({
     const setPresentationTarget = (immediate = false) => {
       const technicalTop = currentPreset === 'top'
       const application = configRef.current.application
+      const mountedTechnicalTop = technicalTop && application !== 'freestanding'
       const installationHeight = PANEL_HEIGHT_M
       presentationTargetPosition.set(0, 0, 0)
       presentationTargetEuler.set(0, 0, 0)
@@ -1664,14 +1655,18 @@ export function LinarScene({
       // introduced a second state that rapid view changes had to restore.
       floorShadowOpacityGoal = STUDIO_FLOOR_SHADOW_OPACITY
       lightStudyFloorOpacityGoal =
-        lightStateRef.current.enabled && application !== 'ceiling' ? 1 : 0
+        lightStateRef.current.enabled &&
+        application !== 'ceiling' &&
+        !mountedTechnicalTop
+          ? 1
+          : 0
       ceilingLightGoal = 0
       keyTargetGoal.set(0, installationHeight * 0.5, 0)
 
       if (application === 'wall') {
         presentationTargetPosition.z = WALL_PLANE_Z
         wallOpacityGoal = technicalTop ? 0 : 1
-        floorShadowOpacityGoal = STUDIO_WALL_SHADOW_OPACITY
+        floorShadowOpacityGoal = technicalTop ? 0 : STUDIO_WALL_SHADOW_OPACITY
       } else if (application === 'ceiling') {
         presentationTargetPosition.set(0, CEILING_PLANE_Y, -installationHeight * 0.5)
         presentationTargetEuler.x = Math.PI / 2
@@ -1692,6 +1687,7 @@ export function LinarScene({
         shadowReceiverMaterial.opacity = lightStateRef.current.enabled
           ? 0
           : floorShadowOpacityGoal
+        shadowReceiver.visible = shadowReceiverMaterial.opacity > 0.001
         lightStudyReceiverMaterial.opacity = lightStudyFloorOpacityGoal
         lightStudyReceiver.visible = lightStudyFloorOpacityGoal > 0.001
         ceilingKey.intensity = lightStateRef.current.enabled ? 0 : ceilingLightGoal
@@ -2533,7 +2529,7 @@ export function LinarScene({
       if (nextApplication !== lastApplication) {
         lastApplication = nextApplication
         applyPanelArrangement()
-        setPresentationTarget(reducedMotion)
+        setPresentationTarget(reducedMotion || currentPreset === 'top')
         hasOrbited = false
         transitionToFrame()
       }
@@ -2711,11 +2707,16 @@ export function LinarScene({
       const presentationMoving =
         presentationRoot.position.distanceToSquared(presentationTargetPosition) > 1e-10 ||
         1 - Math.abs(presentationRoot.quaternion.dot(presentationTargetQuaternion)) > 1e-10
+      const mountedTechnicalTop =
+        currentPreset === 'top' && configRef.current.application !== 'freestanding'
       lightStudyFloorOpacityGoal =
-        lightStudyEnabled && configRef.current.application !== 'ceiling'
+        lightStudyEnabled &&
+        configRef.current.application !== 'ceiling' &&
+        !mountedTechnicalTop
           ? 1
           : 0
-      const targetShadowReceiverOpacity = lightStudyEnabled ? 0 : floorShadowOpacityGoal
+      const targetShadowReceiverOpacity =
+        lightStudyEnabled || mountedTechnicalTop ? 0 : floorShadowOpacityGoal
       const presentationVisualsMoving =
         Math.abs(contextWallMaterial.opacity - wallOpacityGoal) > 0.001 ||
         Math.abs(contextCeilingMaterial.opacity - ceilingOpacityGoal) > 0.001 ||
@@ -2803,6 +2804,8 @@ export function LinarScene({
       contextWall.visible = contextWallMaterial.opacity > 0.004 || wallOpacityGoal > 0
       contextCeiling.visible =
         contextCeilingMaterial.opacity > 0.004 || ceilingOpacityGoal > 0
+      shadowReceiver.visible =
+        shadowReceiverMaterial.opacity > 0.004 || targetShadowReceiverOpacity > 0
       lightStudyReceiver.visible =
         lightStudyReceiverMaterial.opacity > 0.004 || lightStudyFloorOpacityGoal > 0
       if (presentationMoving) invalidateKeyShadow()

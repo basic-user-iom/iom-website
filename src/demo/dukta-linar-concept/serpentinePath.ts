@@ -21,19 +21,6 @@ type SerpentinePathOptions = {
   maxNormalOffsetM?: number
 }
 
-/**
- * The endpoint allocates most of the panel length to three equal straight
- * runs. Two compact variable-curvature zones form the opposing hairpins
- * between those runs. At a PI bend angle each zone turns exactly 180 degrees.
- */
-const HAIRPIN_ARC_FRACTION = 0.16
-const LEG_FRACTION = (1 - HAIRPIN_ARC_FRACTION * 2) / 3
-// Each hairpin now eases through a short, clothoid-like curvature ramp before
-// and after its near-constant-curvature centre.  This keeps curvature at zero
-// where a turn meets a straight leg, instead of jumping instantly from zero to
-// a circular-arc value.  The plateau prevents the transition from becoming a
-// pinched smoothstep while preserving the approved three-leg proportions.
-const HAIRPIN_CURVATURE_RAMP_FRACTION = 0.22
 const SERPENTINE_PATH_STEPS = 600
 // This is a render-stability margin, not manufacturing data. Keeping the
 // offset-curve Jacobian comfortably above zero prevents the visible panel
@@ -51,41 +38,16 @@ function smoothstep(value: number): number {
 }
 
 /**
- * Normalised angle progress for one hairpin.
+ * Maximum visual tangent amplitude that keeps the furthest rendered offset
+ * regular.
  *
- * Its derivative is a raised-cosine curvature ramp, a constant-curvature
- * centre and the mirrored ramp out.  Both curvature and its rate of change are
- * continuous at the joins, so the centreline meets each straight leg without
- * a visible kink, shelf or hard mechanical seam.
- */
-function hairpinAngleProgress(value: number): number {
-  const t = clamp01(value)
-  const ramp = HAIRPIN_CURVATURE_RAMP_FRACTION
-  const normalisation = 1 - ramp
-
-  if (t < ramp) {
-    const rampIntegral =
-      t * 0.5 - (ramp / (2 * Math.PI)) * Math.sin((Math.PI * t) / ramp)
-    return rampIntegral / normalisation
-  }
-
-  if (t <= 1 - ramp) {
-    return (t - ramp * 0.5) / normalisation
-  }
-
-  return 1 - hairpinAngleProgress(1 - t)
-}
-
-/**
- * Maximum visual turn that keeps the furthest rendered offset regular.
- *
- * The raised-cosine hairpin has peak curvature
- *   turn / (hairpinLength * (1 - rampFraction)).
+ * For theta(s) = turn * sin^2(PI s / supportWidth), peak curvature is
+ *   PI * turn / supportWidth.
  * Limiting |curvature * offset| leaves a generous visual-only margin before
  * an offset surface can reverse orientation. It is deliberately not exposed
  * as a physical or certified bending limit.
  */
-function safeRenderedHairpinTurnRad(
+function safeRenderedSerpentineTurnRad(
   requestedTurnRad: number,
   serpentineWidthM: number,
   maxNormalOffsetM: number,
@@ -95,12 +57,9 @@ function safeRenderedHairpinTurnRad(
   const offset = Number.isFinite(maxNormalOffsetM) ? Math.max(0, maxNormalOffsetM) : 0
   if (requested <= 0 || supportWidth <= 0 || offset <= 0.0000001) return requested
 
-  const hairpinLengthM = supportWidth * HAIRPIN_ARC_FRACTION
   const turnLimitRad =
-    (MAX_RENDERED_OFFSET_CURVATURE_PRODUCT *
-      hairpinLengthM *
-      (1 - HAIRPIN_CURVATURE_RAMP_FRACTION)) /
-    offset
+    (MAX_RENDERED_OFFSET_CURVATURE_PRODUCT * supportWidth) /
+    (Math.PI * offset)
   return Math.min(requested, Math.max(0, turnLimitRad))
 }
 
@@ -128,32 +87,17 @@ function serpentineTangentAt(
   u: number,
   panelWidthM: number,
   serpentineWidthM: number,
-  bendAngleRad: number,
+  renderedTurnRad: number,
   directionSign: -1 | 1,
 ): number {
   const distance = clamp01(u) * panelWidthM
   const safeWidth = Math.max(0, Math.min(panelWidthM, serpentineWidthM))
   const leftFlat = (panelWidthM - safeWidth) * 0.5
-  if (safeWidth <= 0 || distance <= leftFlat || distance >= leftFlat + safeWidth) {
-    return 0
-  }
-  const localU = (distance - leftFlat) / safeWidth
-  const firstLegEnd = LEG_FRACTION
-  const firstHairpinEnd = firstLegEnd + HAIRPIN_ARC_FRACTION
-  const middleLegEnd = firstHairpinEnd + LEG_FRACTION
-  const secondHairpinEnd = middleLegEnd + HAIRPIN_ARC_FRACTION
+  if (safeWidth <= 0 || distance <= leftFlat || distance >= leftFlat + safeWidth) return 0
 
-  if (localU <= firstLegEnd) return 0
-  if (localU < firstHairpinEnd) {
-    const local = (localU - firstLegEnd) / HAIRPIN_ARC_FRACTION
-    return directionSign * bendAngleRad * hairpinAngleProgress(local)
-  }
-  if (localU <= middleLegEnd) return directionSign * bendAngleRad
-  if (localU < secondHairpinEnd) {
-    const local = (localU - middleLegEnd) / HAIRPIN_ARC_FRACTION
-    return directionSign * bendAngleRad * (1 - hairpinAngleProgress(local))
-  }
-  return 0
+  const localU = (distance - leftFlat) / safeWidth
+  const smoothTurn = 0.5 - 0.5 * Math.cos(2 * Math.PI * localU)
+  return directionSign * renderedTurnRad * smoothTurn
 }
 
 /**
@@ -161,8 +105,8 @@ function serpentineTangentAt(
  *
  * Progression blends tangent fields rather than Cartesian points, so panel
  * length stays constant and lamella orientation changes continuously. The
- * primary C path is reproduced at progression zero; the endpoint is a true
- * three-leg serpentine with two opposing, smoothly ramped 180° turns.
+ * primary C path is reproduced at progression zero; the endpoint uses a
+ * whole-span sinusoidal-curvature field with no finite straight interval.
  */
 export function makeSerpentinePathLookup({
   panelWidthM,
@@ -181,7 +125,7 @@ export function makeSerpentinePathLookup({
   const blend = smoothstep(progression)
   const stepLength = panelWidthM / steps
   const safeSerpentineWidthM = Math.max(0, Math.min(panelWidthM, serpentineWidthM))
-  const renderedBendAngleRad = safeRenderedHairpinTurnRad(
+  const renderedBendAngleRad = safeRenderedSerpentineTurnRad(
     bendAngleRad,
     safeSerpentineWidthM,
     maxNormalOffsetM,
@@ -224,6 +168,22 @@ export function makeSerpentinePathLookup({
     z[i] =
       z[i - 1] +
       (stepLength / 6) * (Math.sin(p0) + 4 * Math.sin(pm) + Math.sin(p1))
+  }
+
+  // Keep every morph state on its endpoint chord. The old mounted-only chord
+  // correction made the same physical S use a different orientation on the
+  // floor, wall and ceiling. Rotating the lookup itself keeps its arc length
+  // and curvature intact, gives repeated modules a stable baseline, and makes
+  // the two endpoint anchors share one host-normal coordinate at the S target.
+  const chordAngle = Math.atan2(z[steps] - z[0], x[steps] - x[0])
+  const chordCos = Math.cos(chordAngle)
+  const chordSin = Math.sin(chordAngle)
+  for (let i = 0; i <= steps; i += 1) {
+    const originalX = x[i]
+    const originalZ = z[i]
+    x[i] = chordCos * originalX + chordSin * originalZ
+    z[i] = -chordSin * originalX + chordCos * originalZ
+    tangent[i] -= chordAngle
   }
 
   const centreIndex = steps / 2
