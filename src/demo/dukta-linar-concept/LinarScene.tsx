@@ -608,15 +608,31 @@ function planDepthAllowance(bounds: PlanBounds | undefined, direction: THREE.Vec
 }
 
 const STARTUP_CINEMATIC_STAGE_SECONDS = 7
-const STARTUP_CINEMATIC_DURATION_SECONDS = STARTUP_CINEMATIC_STAGE_SECONDS * 6
+const STARTUP_CINEMATIC_LIGHT_STAGE = 5
+const STARTUP_CINEMATIC_EXIT_STAGE = 6
+const STARTUP_CINEMATIC_LIGHT_STAGE_SECONDS = 10
+const STARTUP_CINEMATIC_EXIT_STAGE_SECONDS = 4.5
+const STARTUP_CINEMATIC_LIGHT_START_SECONDS =
+  STARTUP_CINEMATIC_STAGE_SECONDS * STARTUP_CINEMATIC_LIGHT_STAGE
+const STARTUP_CINEMATIC_EXIT_START_SECONDS =
+  STARTUP_CINEMATIC_LIGHT_START_SECONDS + STARTUP_CINEMATIC_LIGHT_STAGE_SECONDS
+const STARTUP_CINEMATIC_DURATION_SECONDS =
+  STARTUP_CINEMATIC_EXIT_START_SECONDS + STARTUP_CINEMATIC_EXIT_STAGE_SECONDS
 
 function startupCinematicPose(elapsed: number) {
   const time = THREE.MathUtils.clamp(elapsed, 0, STARTUP_CINEMATIC_DURATION_SECONDS)
-  const stage = Math.min(
-    5,
-    Math.floor(time / STARTUP_CINEMATIC_STAGE_SECONDS),
-  )
-  const stageTime = time - stage * STARTUP_CINEMATIC_STAGE_SECONDS
+  const stage =
+    time < STARTUP_CINEMATIC_LIGHT_START_SECONDS
+      ? Math.floor(time / STARTUP_CINEMATIC_STAGE_SECONDS)
+      : time < STARTUP_CINEMATIC_EXIT_START_SECONDS
+        ? STARTUP_CINEMATIC_LIGHT_STAGE
+        : STARTUP_CINEMATIC_EXIT_STAGE
+  const stageTime =
+    stage < STARTUP_CINEMATIC_LIGHT_STAGE
+      ? time - stage * STARTUP_CINEMATIC_STAGE_SECONDS
+      : stage === STARTUP_CINEMATIC_LIGHT_STAGE
+        ? time - STARTUP_CINEMATIC_LIGHT_START_SECONDS
+        : time - STARTUP_CINEMATIC_EXIT_START_SECONDS
   const segment = (start: number, end: number) =>
     cinematicEase(
       THREE.MathUtils.clamp(
@@ -640,18 +656,35 @@ function startupCinematicPose(elapsed: number) {
   } else if (stage === 4) {
     bend = THREE.MathUtils.lerp(-66, 22, segment(2.7, 6.5))
     secondary = THREE.MathUtils.lerp(88, 0, segment(2.7, 6.5))
-  } else {
+  } else if (stage === STARTUP_CINEMATIC_LIGHT_STAGE) {
     bend = THREE.MathUtils.lerp(22, 28, segment(2, 5.5))
+  } else {
+    bend = 28
+  }
+
+  let lightU = DEFAULT_LINAR_LIGHT.u
+  let lightV = DEFAULT_LINAR_LIGHT.v
+  if (stage === STARTUP_CINEMATIC_LIGHT_STAGE) {
+    // Let the source appear at the familiar reset pose, then trace one slow,
+    // shallow arc across the perforations before settling at that same pose.
+    // The quintic progress has zero velocity at both ends, avoiding a visible
+    // kick when LIGHT enters or when the studio handoff begins.
+    const orbitProgress = cinematicEase(
+      THREE.MathUtils.clamp(
+        (stageTime - 1) / (STARTUP_CINEMATIC_LIGHT_STAGE_SECONDS - 2),
+        0,
+        1,
+      ),
+    )
+    lightU += Math.sin(orbitProgress * Math.PI * 2) * 0.09
+    lightV += Math.sin(orbitProgress * Math.PI) * 0.025
   }
 
   return {
     bend,
     secondary,
-    // Keep the source stable during the authored night study. The elevated,
-    // front-normal reset pose lets the real apertures describe their floor
-    // projection without sweeping the key behind the inspected face.
-    lightU: DEFAULT_LINAR_LIGHT.u,
-    lightV: DEFAULT_LINAR_LIGHT.v,
+    lightU,
+    lightV,
     stage,
     done: elapsed >= STARTUP_CINEMATIC_DURATION_SECONDS,
   }
@@ -1181,7 +1214,11 @@ export function LinarScene({
     key.shadow.camera.near = 0.15
     key.shadow.camera.far = 44
     key.shadow.camera.updateProjectionMatrix()
-    key.shadow.bias = -0.00004
+    // The former negative clip-depth bias pulled the cast shadow away from
+    // the y=0 panel foot when the studio source was several metres away. The
+    // world-space normal bias below is sufficient to prevent surface acne;
+    // keeping clip-depth unbiased restores a physically attached contact edge.
+    key.shadow.bias = 0
     key.shadow.normalBias = 0.00018
     key.shadow.radius = initialLightStudy
       ? compactShadowMap
@@ -2663,7 +2700,12 @@ export function LinarScene({
 
       const presentationLambda =
         1 - Math.exp(-lightMotionDt * (reducedMotion ? 80 : 3.8))
-      const lightModeResponse = activeStartupPose ? 1.15 : 4.8
+      const lightModeResponse =
+        activeStartupPose?.stage === STARTUP_CINEMATIC_EXIT_STAGE
+          ? 0.65
+          : activeStartupPose
+            ? 1.15
+            : 4.8
       const lightModeLambda =
         1 - Math.exp(-lightModeDt * (reducedMotion ? 80 : lightModeResponse))
       const presentationMoving =
@@ -2928,7 +2970,10 @@ export function LinarScene({
       if (lightPositionMoving || lightTargetMoving) invalidateKeyShadow()
       const lightOrbShouldShow =
         lightStateRef.current.enabled ||
-        Boolean(activeStartupPose && activeStartupPose.stage >= 5)
+        Boolean(
+          activeStartupPose &&
+            activeStartupPose.stage === STARTUP_CINEMATIC_LIGHT_STAGE,
+        )
       const orbVisibilityResponse = activeStartupPose ? 3.2 : 11
       const lightOrbVisibilityLambda =
         1 - Math.exp(-dt * (reducedMotion ? 80 : orbVisibilityResponse))

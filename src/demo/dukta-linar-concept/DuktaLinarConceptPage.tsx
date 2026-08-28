@@ -49,8 +49,12 @@ const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
 const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v2'
+const LINAR_CINEMATIC_LIGHT_STAGE = 5
+const LINAR_CINEMATIC_EXIT_STAGE = 6
+const LINAR_CINEMATIC_REVEAL_MS = 2200
 
 type LinarExperienceMode = 'idle' | 'startup-cinematic' | 'guided-tour'
+type LinarCinematicHandoffPhase = 'covering' | 'revealing' | null
 
 type LinarTourSnapshot = {
   config: LinarConfig
@@ -179,6 +183,8 @@ export function DuktaLinarConceptPage() {
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null)
   const [experienceMode, setExperienceMode] = useState<LinarExperienceMode>('idle')
   const [cinematicToken, setCinematicToken] = useState(0)
+  const [cinematicHandoffPhase, setCinematicHandoffPhase] =
+    useState<LinarCinematicHandoffPhase>(null)
   const [sceneReady, setSceneReady] = useState(false)
   const [musicEnabled, setMusicEnabled] = useState(false)
   const [musicVolume, setMusicVolume] = useState(
@@ -202,6 +208,7 @@ export function DuktaLinarConceptPage() {
   // automation explicitly through `experienceMode` and overrides scene goals.
   const interactedRef = useRef(true)
   const tourTimerRef = useRef<number | null>(null)
+  const cinematicHandoffTimerRef = useRef<number | null>(null)
   const tourRunRef = useRef(0)
   const tourActiveRef = useRef(false)
   const tourSnapshotRef = useRef<LinarTourSnapshot | null>(null)
@@ -269,6 +276,11 @@ export function DuktaLinarConceptPage() {
   const stopExperience = useCallback(
     (restoreSnapshot: boolean, preserveCamera = false) => {
       const snapshot = tourSnapshotRef.current
+      if (cinematicHandoffTimerRef.current != null) {
+        window.clearTimeout(cinematicHandoffTimerRef.current)
+        cinematicHandoffTimerRef.current = null
+      }
+      setCinematicHandoffPhase(null)
       if (experienceModeRef.current === 'idle' && snapshot == null) return
 
       tourRunRef.current += 1
@@ -324,6 +336,11 @@ export function DuktaLinarConceptPage() {
 
   const startCinematic = useCallback(() => {
     if (experienceModeRef.current !== 'idle') stopExperience(true)
+    if (cinematicHandoffTimerRef.current != null) {
+      window.clearTimeout(cinematicHandoffTimerRef.current)
+      cinematicHandoffTimerRef.current = null
+    }
+    setCinematicHandoffPhase(null)
     tourSnapshotRef.current = {
       config: cloneConfig(configRef.current),
       bend: targetBendRef.current,
@@ -431,6 +448,9 @@ export function DuktaLinarConceptPage() {
       tourRunRef.current += 1
       tourActiveRef.current = false
       if (tourTimerRef.current != null) window.clearTimeout(tourTimerRef.current)
+      if (cinematicHandoffTimerRef.current != null) {
+        window.clearTimeout(cinematicHandoffTimerRef.current)
+      }
     },
     [],
   )
@@ -583,19 +603,19 @@ export function DuktaLinarConceptPage() {
     return audio
   }, [])
 
-  const startMusic = useCallback(() => {
+  const startMusic = useCallback((restartFromCue = false) => {
     const audio = createMusic()
     const operation = ++musicOperationRef.current
     musicShouldPlayRef.current = true
     setMusicEnabled(true)
     cancelMusicFade()
 
-    if (!audio.paused) {
+    if (!audio.paused && !restartFromCue) {
       fadeMusicTo(audio, musicVolumeRef.current, LINAR_MUSIC_FADE_IN_MS)
       return
     }
 
-    if (audio.currentTime < LINAR_MUSIC_START_SECONDS) {
+    if (restartFromCue || audio.currentTime < LINAR_MUSIC_START_SECONDS) {
       try {
         audio.currentTime = LINAR_MUSIC_START_SECONDS
       } catch {
@@ -743,7 +763,7 @@ export function DuktaLinarConceptPage() {
     // Let the architectural move settle in studio light before the final
     // single-source study begins. Combining a camera move, application swap
     // and blackout on one frame made the dense 4 mm pattern visibly flash.
-    const lightStudyEnabled = stage >= 5
+    const lightStudyEnabled = stage === LINAR_CINEMATIC_LIGHT_STAGE
     const stageLight = {
       ...lightStateRef.current,
       enabled: lightStudyEnabled,
@@ -792,9 +812,14 @@ export function DuktaLinarConceptPage() {
         panelCount: 1,
       }))
       setCinematicView('hero')
+    } else if (stage === LINAR_CINEMATIC_EXIT_STAGE) {
+      // The LIGHT-to-studio crossfade remains full-screen. A paper-colour veil
+      // reaches opacity only at the end of this stage, hiding the unavoidable
+      // viewport resize when the configurator interface returns.
+      setCinematicHandoffPhase('covering')
     }
-    // Stage 5 deliberately holds the settled hero composition while only the
-    // lighting changes, giving the perforated shadow a stable final shot.
+    // The illuminated stage deliberately holds the settled hero composition
+    // while the source traces its shallow authored orbit in the scene.
   }, [])
 
   const onCinematicComplete = useCallback(() => {
@@ -814,6 +839,14 @@ export function DuktaLinarConceptPage() {
     }
     lightStateRef.current = finalLight
     setLightState(finalLight)
+    setCinematicHandoffPhase('revealing')
+    if (cinematicHandoffTimerRef.current != null) {
+      window.clearTimeout(cinematicHandoffTimerRef.current)
+    }
+    cinematicHandoffTimerRef.current = window.setTimeout(() => {
+      cinematicHandoffTimerRef.current = null
+      setCinematicHandoffPhase(null)
+    }, LINAR_CINEMATIC_REVEAL_MS)
     tourSnapshotRef.current = null
     experienceModeRef.current = 'idle'
     setExperienceMode('idle')
@@ -1014,7 +1047,7 @@ export function DuktaLinarConceptPage() {
                 </p>
                 <p>
                   {lightState.enabled
-                    ? 'One fixed warm source isolates incision depth and perforated shadow in darkness.'
+                    ? 'One warm source moves gently across incision depth and perforated shadow in darkness.'
                     : 'Light, incision and curvature in one continuous manufactured surface.'}
                 </p>
               </div>
@@ -1058,6 +1091,9 @@ export function DuktaLinarConceptPage() {
             onToggleTour={toggleTour}
             onReplayCinematic={() => {
               if (experienceModeRef.current !== 'idle') stopExperience(true)
+              // INTRO is a trusted click, so restart the soundtrack from its
+              // authored cue here rather than relying on a later autoplay.
+              startMusic(true)
               startCinematic()
             }}
             onToggleLight={onToggleLight}
@@ -1114,6 +1150,12 @@ export function DuktaLinarConceptPage() {
           </div>
         </aside>
       </div>
+      {cinematicHandoffPhase ? (
+        <div
+          className={`linar-cinematic-curtain is-${cinematicHandoffPhase}`}
+          aria-hidden="true"
+        />
+      ) : null}
     </div>
   )
 }
