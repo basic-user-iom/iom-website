@@ -49,9 +49,6 @@ const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
 const LINAR_MUSIC_FADE_IN_MS = 2200
 const LINAR_MUSIC_FADE_OUT_MS = 2800
 const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v2'
-// Two deliberate steps cover the complete safe Near/Far travel. A 0.2 step
-// was technically correct but too subtle to read on the full-height panel.
-const LINAR_LIGHT_RADIUS_STEP = 0.5
 
 type LinarExperienceMode = 'idle' | 'startup-cinematic' | 'guided-tour'
 
@@ -839,10 +836,9 @@ export function DuktaLinarConceptPage() {
     setLightState(next)
   }, [])
 
-  const changeLightRadius = useCallback((delta: number) => {
+  const setLightRadius = useCallback((radius: number) => {
     const base = lightStateRef.current
-    const radius = Math.max(-1, Math.min(1, base.radius + delta))
-    const next = { ...base, radius }
+    const next = { ...base, radius: Math.max(-1, Math.min(1, radius)) }
     lightStateRef.current = next
     setLightState(next)
   }, [])
@@ -959,7 +955,7 @@ export function DuktaLinarConceptPage() {
               {showHint || lightState.enabled ? (
                 <p className="linar-viewport__hint" aria-live="polite">
                   {lightState.enabled
-                    ? 'Drag the guided light handle to direct the real source; use Near or Far for distance, and drag elsewhere to rotate.'
+                    ? 'Drag the light orb to orbit 360°. Scroll over it or Shift-drag up/down for distance. Near places it 4 cm from the surface.'
                     : 'Drag to rotate. Scroll or pinch to zoom.'}
                 </p>
               ) : null}
@@ -1065,8 +1061,8 @@ export function DuktaLinarConceptPage() {
               startCinematic()
             }}
             onToggleLight={onToggleLight}
-            onLightNear={() => changeLightRadius(-LINAR_LIGHT_RADIUS_STEP)}
-            onLightFar={() => changeLightRadius(LINAR_LIGHT_RADIUS_STEP)}
+            onLightNear={() => setLightRadius(-1)}
+            onLightFar={() => setLightRadius(1)}
             onResetLight={onResetLight}
             onUserInteract={markInteracted}
             onShare={onShare}

@@ -14,14 +14,15 @@ import {
 import { createLinarPanel } from './LinarPanel'
 import type { LinarTech } from './linarData'
 import { clampLinarPanelCount } from './materialData'
-import type {
-  LinarApplication,
-  LinarConfig,
-  LinarLightState,
-  LinarMaterialId,
-  LinarSide,
-  LinarVeneerId,
-  LinarViewId,
+import {
+  DEFAULT_LINAR_LIGHT,
+  type LinarApplication,
+  type LinarConfig,
+  type LinarLightState,
+  type LinarMaterialId,
+  type LinarSide,
+  type LinarVeneerId,
+  type LinarViewId,
 } from './types'
 
 type Props = {
@@ -86,7 +87,6 @@ const LIGHT_STUDY_EXPOSURE = 0.9
 const FLOOR_RECEIVER_SIZE_M = 96
 const CONTEXT_RECEIVER_SIZE_M = 48
 const CONTEXT_RECEIVER_MIN_SIZE_M = 48
-const FLOOR_LIGHT_TOP_CLEARANCE_M = 4.2
 const SHADOW_CAMERA_FAR_M = 44
 // Provisional presentation clearances, not manufacturing specifications.
 // They keep the rendered surface visibly separate from its architectural host.
@@ -106,6 +106,23 @@ const DEFAULT_MIN_POLAR_ANGLE = 0.28
 const DEFAULT_MAX_POLAR_ANGLE = Math.PI / 2 + 0.02
 const LIGHT_ORB_RADIUS_M = 0.04
 const LIGHT_ORB_VISUAL_BRIGHTNESS = 0.25
+const CEILING_CLOSEUP_UP = new THREE.Vector3(0, 0, 1)
+// Presentation controls, not manufacturing values. Distance is measured from
+// the deformed installation envelope so Near can truthfully place the source
+// within a few centimetres of the visible wood instead of metres from its
+// centre. The default/far clearances keep the complete fixture reachable in
+// the viewport while still producing distinctly different light falloff.
+const LIGHT_NEAR_SURFACE_CLEARANCE_M = 0.04
+const LIGHT_DEFAULT_SURFACE_CLEARANCE_M = 0.45
+const LIGHT_FAR_SURFACE_CLEARANCE_M = 4.2
+const LIGHT_NEAR_INTENSITY_FACTOR = 0.0015
+const LIGHT_DEFAULT_INTENSITY_FACTOR = 0.02
+const LIGHT_FAR_INTENSITY_FACTOR = 0.7
+// Native OrbitControls applies each wheel notch immediately; these values turn
+// the discrete dolly into a small target-radius change eased by the scene RAF.
+const CAMERA_WHEEL_ZOOM_FACTOR = 0.00042
+const CAMERA_WHEEL_ZOOM_RESPONSE = 11
+const LIGHT_WHEEL_CAPTURE_LATCH_MS = 280
 
 const FLOOR_APPLICATION_FRAME: ApplicationFrame = {
   planePoint: new THREE.Vector3(0, 0, 0),
@@ -130,6 +147,42 @@ function applicationFrame(application: LinarApplication): ApplicationFrame {
   if (application === 'wall') return WALL_APPLICATION_FRAME
   if (application === 'ceiling') return CEILING_APPLICATION_FRAME
   return FLOOR_APPLICATION_FRAME
+}
+
+function lightSurfaceClearanceM(radiusControl: number): number {
+  const radius = THREE.MathUtils.clamp(radiusControl, -1, 1)
+  const from =
+    radius < 0
+      ? LIGHT_NEAR_SURFACE_CLEARANCE_M
+      : LIGHT_DEFAULT_SURFACE_CLEARANCE_M
+  const to =
+    radius < 0
+      ? LIGHT_DEFAULT_SURFACE_CLEARANCE_M
+      : LIGHT_FAR_SURFACE_CLEARANCE_M
+  const progress = radius < 0 ? radius + 1 : radius
+  // Geometric interpolation makes direct dragging feel even across the large
+  // 40 mm -> 4.2 m range and gives useful precision close to the surface.
+  return Math.exp(
+    THREE.MathUtils.lerp(Math.log(from), Math.log(to), progress),
+  )
+}
+
+function lightStudyIntensityFactor(radiusControl: number): number {
+  const radius = THREE.MathUtils.clamp(radiusControl, -1, 1)
+  const from =
+    radius < 0
+      ? LIGHT_NEAR_INTENSITY_FACTOR
+      : LIGHT_DEFAULT_INTENSITY_FACTOR
+  const to =
+    radius < 0
+      ? LIGHT_DEFAULT_INTENSITY_FACTOR
+      : LIGHT_FAR_INTENSITY_FACTOR
+  const progress = radius < 0 ? radius + 1 : radius
+  // These are exposure-calibrated endpoints. Geometric interpolation avoids
+  // a hot mid-range while a 40 mm source retains a small readable light pool.
+  return Math.exp(
+    THREE.MathUtils.lerp(Math.log(from), Math.log(to), progress),
+  )
 }
 
 function signedDistanceToApplicationPlane(
@@ -663,6 +716,25 @@ function viewPlacement(
   if (application === 'ceiling') {
     const target = mid.clone()
     const dist = fitDistance(camera, 1.15, 1.2, installationWidth, installationHeight)
+    if (id === 'closeup') {
+      return {
+        // Inspect from the occupied-room side of the ceiling. This dedicated
+        // placement restores the same real surface-detail distance available
+        // for freestanding and wall installations without crossing the host.
+        dir: new THREE.Vector3(
+          side === 'back' ? -0.035 : 0.035,
+          -1,
+          0.012,
+        ).normalize(),
+        target,
+        dist: 0.52,
+        bg: 0xc7c8c6,
+        // Looking almost exactly along world Y needs an explicit, orthogonal
+        // up vector; otherwise PerspectiveCamera inherits Y-up and rolls the
+        // LINAR slats diagonally during the close transition.
+        up: CEILING_CLOSEUP_UP,
+      }
+    }
     if (id === 'side') {
       // Stay oblique enough that every viewport ray meets the ceiling plane.
       // A near-tangent camera exposed the receiver horizon and made a correctly
@@ -976,23 +1048,50 @@ export function LinarScene({
     controls.minPolarAngle = DEFAULT_MIN_POLAR_ANGLE
     controls.maxPolarAngle = DEFAULT_MAX_POLAR_ANGLE
     controls.rotateSpeed = 0.72
-    controls.zoomSpeed = 0.85
+    controls.zoomSpeed = 0.55
     controls.touches.ONE = THREE.TOUCH.ROTATE
     controls.touches.TWO = THREE.TOUCH.DOLLY_ROTATE
 
     let cameraTransition: CameraTransition | null = null
     let cameraAuthority: CameraAuthority = 'preset'
     let hasOrbited = false
+    let smoothCameraZoomTargetRadius: number | null = null
+    let controlsChangedSinceRender = true
+    const smoothCameraZoomOffset = new THREE.Vector3()
+    const markControlsChanged = () => {
+      controlsChangedSinceRender = true
+    }
+    const claimUserCameraAuthority = () => {
+      hasOrbited = true
+      cameraAuthority = 'user'
+      if (cameraTransition) {
+        controls.enableDamping = cameraTransition.restoreDamping
+        cameraTransition = null
+      }
+      interactedRef.current = true
+      onUserInteractRef.current()
+    }
     const markInteract = () => {
+      smoothCameraZoomTargetRadius = null
       // Top inspection uses X as screen-up, but OrbitControls assumes the
       // camera's up axis is the world orbit axis. Hand back to canonical Y-up
       // before a manual orbit so the following drag and later presets cannot
       // inherit a rolled coordinate system.
       if (camera.up.distanceToSquared(WORLD_UP) > 0.01) {
         if (camera.zoom !== 1) {
+          const previousZoom = camera.zoom
           const offset = camera.position.clone().sub(controls.target)
-          offset.multiplyScalar(1 / camera.zoom)
+          offset.multiplyScalar(1 / previousZoom)
           camera.position.copy(controls.target).add(offset)
+          // Top uses a long-distance zoomed perspective camera. Once that
+          // optical zoom is converted back to a normal orbit radius, convert
+          // its distance limits by the same factor or OrbitControls will clamp
+          // the first interaction outward by roughly 2.2x.
+          controls.minDistance = Math.max(0.18, controls.minDistance / previousZoom)
+          controls.maxDistance = Math.max(
+            controls.minDistance,
+            controls.maxDistance / previousZoom,
+          )
           camera.zoom = 1
           camera.updateProjectionMatrix()
         }
@@ -1010,16 +1109,10 @@ export function LinarScene({
         camera.lookAt(controls.target)
         controls.update()
       }
-      hasOrbited = true
-      cameraAuthority = 'user'
-      if (cameraTransition) {
-        controls.enableDamping = cameraTransition.restoreDamping
-        cameraTransition = null
-      }
-      interactedRef.current = true
-      onUserInteractRef.current()
+      claimUserCameraAuthority()
     }
     controls.addEventListener('start', markInteract)
+    controls.addEventListener('change', markControlsChanged)
 
     const hemi = new THREE.HemisphereLight(
       0xf4f3ef,
@@ -1030,10 +1123,13 @@ export function LinarScene({
 
     // One persistent, real key light serves normal viewing, user interaction
     // and the startup cinematic. All other lights are non-shadowing fills.
-    const initialLightStudyKeyIntensity =
+    const initialLightStudyBaseIntensity =
       configRef.current.application === 'ceiling'
         ? CEILING_LIGHT_STUDY_KEY_INTENSITY
         : FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY
+    const initialLightStudyKeyIntensity =
+      initialLightStudyBaseIntensity *
+      lightStudyIntensityFactor(lightStateRef.current.radius)
     const key = new THREE.SpotLight(
       0xfff7e8,
       initialLightStudy ? initialLightStudyKeyIntensity : STUDIO_KEY_INTENSITY,
@@ -1506,16 +1602,20 @@ export function LinarScene({
       presentationTargetEuler.set(0, 0, 0)
       wallOpacityGoal = 0
       ceilingOpacityGoal = 0
-      floorShadowOpacityGoal = technicalTop ? 0 : 0.22
+      // Inspection presets change only the camera. Keep the architectural
+      // floor and its physical shadow present in Top just as they are in the
+      // other views; hiding the receiver here made the shadow disappear and
+      // introduced a second state that rapid view changes had to restore.
+      floorShadowOpacityGoal = 0.22
       lightStudyFloorOpacityGoal =
-        lightStateRef.current.enabled && !technicalTop && application !== 'ceiling' ? 1 : 0
+        lightStateRef.current.enabled && application !== 'ceiling' ? 1 : 0
       ceilingLightGoal = 0
       keyTargetGoal.set(0, installationHeight * 0.5, 0)
 
       if (application === 'wall') {
         presentationTargetPosition.z = WALL_PLANE_Z
         wallOpacityGoal = technicalTop ? 0 : 1
-        floorShadowOpacityGoal = technicalTop ? 0 : 0.1
+        floorShadowOpacityGoal = 0.1
       } else if (application === 'ceiling') {
         presentationTargetPosition.set(0, CEILING_PLANE_Y, -installationHeight * 0.5)
         presentationTargetEuler.x = Math.PI / 2
@@ -1640,6 +1740,9 @@ export function LinarScene({
     const lightTargetWorld = new THREE.Vector3()
     const lightPositionGoal = new THREE.Vector3()
     const lightLocalCentre = new THREE.Vector3()
+    const lightDirectionWorld = new THREE.Vector3()
+    const lightDirectionLocal = new THREE.Vector3()
+    const lightInstallationWorldQuaternion = new THREE.Quaternion()
     const lightRaycaster = new THREE.Raycaster()
     const lightPointer = new THREE.Vector2()
     let displayedLightU = lightStateRef.current.u
@@ -1651,6 +1754,9 @@ export function LinarScene({
     let lightDragStartY = 0
     let lightDragStartU = displayedLightU
     let lightDragStartV = displayedLightV
+    let lightDragStartRadius = displayedLightRadius
+    let lightDragMode: 'orbit' | 'distance' = 'orbit'
+    let lightWheelCapturedUntil = 0
     let lightOrbHovered = false
     let lightOrbVisibility = initialLightStudy ? 1 : 0
     let lightOrbInteraction = 0
@@ -1664,9 +1770,7 @@ export function LinarScene({
     }
 
     const safeLightU = (value: number, fallback: number) =>
-      configRef.current.application === 'wall'
-        ? safeLightCoordinate(value, fallback)
-        : wrappedLightCoordinate(value, fallback)
+      wrappedLightCoordinate(value, fallback)
 
     const updateLightTargetWorld = (bounds = currentPlanBounds()) => {
       lightLocalCentre.set(
@@ -1680,32 +1784,65 @@ export function LinarScene({
     }
 
     const updateLightOrbPosition = (
-      _target: THREE.Vector3,
+      target: THREE.Vector3,
       source: THREE.Vector3,
-      bounds: PlanBounds,
+      _bounds: PlanBounds,
     ) => {
-      // Keep a draggable proxy beside the installation even when the real
-      // source is high enough to frame its complete floor shadow. The guide
-      // still terminates at that one real source; the proxy emits no light.
-      lightOrb.position.lerpVectors(_target, source, 0.34)
-      const minimumSideOffset = Math.max(0.72, (bounds.maxX - bounds.minX) * 0.5 + 0.12)
-      const sideOffset = lightOrb.position.x - _target.x
-      if (Math.abs(sideOffset) < minimumSideOffset) {
-        const sourceSide = source.x <= _target.x ? -1 : 1
-        lightOrb.position.x = _target.x + sourceSide * minimumSideOffset
-      }
-      const maximumVerticalOffset = Math.max(0.48, bounds.heightM * 0.38)
-      lightOrb.position.y =
-        _target.y +
-        THREE.MathUtils.clamp(
-          lightOrb.position.y - _target.y,
-          -maximumVerticalOffset,
-          maximumVerticalOffset,
-        )
+      // The orb is the actual SpotLight position. Previously it was a clamped
+      // 34% proxy, so its apparent orbit and Near/Far distance did not match
+      // the illumination or shadow source.
+      lightOrb.position.copy(source)
       const position = lightGuideGeometry.getAttribute('position')
       position.setXYZ(0, lightOrb.position.x, lightOrb.position.y, lightOrb.position.z)
-      position.setXYZ(1, source.x, source.y, source.z)
+      position.setXYZ(1, target.x, target.y, target.z)
       position.needsUpdate = true
+    }
+
+    const lightEnvelopeSourceDistance = (
+      worldDirection: THREE.Vector3,
+      bounds: PlanBounds,
+      surfaceClearance: number,
+    ) => {
+      // Transform only the direction: the target is the exact centre of this
+      // local envelope. The first AABB face hit from that centre is the safe
+      // exterior point along the selected orbit ray.
+      installationRoot.getWorldQuaternion(lightInstallationWorldQuaternion)
+      lightInstallationWorldQuaternion.invert()
+      lightDirectionLocal
+        .copy(worldDirection)
+        .applyQuaternion(lightInstallationWorldQuaternion)
+
+      const halfX = Math.max(0.02, (bounds.maxX - bounds.minX) * 0.5)
+      const halfY = Math.max(0.02, bounds.heightM * 0.5)
+      const halfZ = Math.max(0.01, (bounds.maxZ - bounds.minZ) * 0.5)
+      let exitDistance = Number.POSITIVE_INFINITY
+      let exitNormalComponent = 1
+      if (Math.abs(lightDirectionLocal.x) > 0.000001) {
+        const candidate = halfX / Math.abs(lightDirectionLocal.x)
+        if (candidate < exitDistance) {
+          exitDistance = candidate
+          exitNormalComponent = Math.abs(lightDirectionLocal.x)
+        }
+      }
+      if (Math.abs(lightDirectionLocal.y) > 0.000001) {
+        const candidate = halfY / Math.abs(lightDirectionLocal.y)
+        if (candidate < exitDistance) {
+          exitDistance = candidate
+          exitNormalComponent = Math.abs(lightDirectionLocal.y)
+        }
+      }
+      if (Math.abs(lightDirectionLocal.z) > 0.000001) {
+        const candidate = halfZ / Math.abs(lightDirectionLocal.z)
+        if (candidate < exitDistance) {
+          exitDistance = candidate
+          exitNormalComponent = Math.abs(lightDirectionLocal.z)
+        }
+      }
+      if (!Number.isFinite(exitDistance)) return halfZ + surfaceClearance
+      // A radial 40 mm step is not necessarily 40 mm normal to the face that
+      // the ray exits. Divide by that face-normal component so the closest
+      // AABB surface is genuinely the requested distance from the source.
+      return exitDistance + surfaceClearance / Math.max(0.001, exitNormalComponent)
     }
 
     const lightPositionForState = (
@@ -1716,66 +1853,62 @@ export function LinarScene({
       const u = safeLightU(state.u, 0)
       const v = safeLightCoordinate(state.v, 0)
       const radiusControl = safeLightCoordinate(state.radius, 0)
-      const extentX = Math.max(0.04, bounds.maxX - bounds.minX)
-      const extentZ = Math.max(0.04, bounds.maxZ - bounds.minZ)
-      const casterRadius = Math.hypot(
-        extentX * 0.5,
-        extentZ * 0.5,
-        bounds.heightM * 0.5,
+      const application = configRef.current.application
+      const azimuth = u * Math.PI
+      // v controls the orbit latitude while keeping the source in the room-
+      // side hemisphere. At both endpoints it remains clear of a host plane.
+      const polar = THREE.MathUtils.degToRad(
+        THREE.MathUtils.lerp(72, 18, (v + 1) * 0.5),
       )
-      const minimumRadius = Math.max(1.55, casterRadius * 1.08)
-      // Keep the calibrated default distance, but give Far substantially more
-      // travel so source falloff, pool size and shadow character visibly
-      // change. Piecewise mapping prevents widening Far from moving the saved
-      // default or bringing Near inside the installation bounds.
-      const defaultRadius = Math.max(
-        minimumRadius + 0.55,
-        casterRadius * 1.34 + 0.3,
-      )
-      const maximumRadius = Math.max(
-        defaultRadius + 2.1,
-        casterRadius * 2.55 + 0.9,
-      )
-      const radius =
-        radiusControl < 0
-          ? THREE.MathUtils.lerp(minimumRadius, defaultRadius, radiusControl + 1)
-          : THREE.MathUtils.lerp(defaultRadius, maximumRadius, radiusControl)
-      const elevation = THREE.MathUtils.degToRad(
-        THREE.MathUtils.lerp(20, 68, (v + 1) * 0.5),
-      )
-      const azimuth =
-        u * Math.PI * (configRef.current.application === 'wall' ? 0.42 : 1)
-      const tangentRadius = Math.cos(elevation) * radius
-      const normalRadius = Math.sin(elevation) * radius
+      const tangentWeight = Math.sin(polar)
+      const normalWeight = Math.cos(polar)
+      const tangentSin = Math.sin(azimuth) * tangentWeight
+      const tangentCos = Math.cos(azimuth) * tangentWeight
 
-      if (configRef.current.application === 'ceiling') {
-        lightPositionGoal.set(
-          target.x + Math.sin(azimuth) * tangentRadius,
-          Math.min(
-            CEILING_PLANE_Y - CAMERA_SURFACE_CLEARANCE_M,
-            target.y - normalRadius,
-          ),
-          target.z + Math.cos(azimuth) * tangentRadius,
-        )
+      if (application === 'wall') {
+        // A complete ring in the wall tangent plane, biased into the room.
+        // This provides 360 degrees without hiding the source behind the host.
+        lightDirectionWorld.set(tangentSin, tangentCos, normalWeight)
+      } else if (application === 'ceiling') {
+        // The ceiling room normal points down; X/Z form its complete ring.
+        lightDirectionWorld.set(tangentSin, -normalWeight, tangentCos)
       } else {
-        // A source almost level with the 2.8 m panel top projects its upper
-        // edge hundreds of metres across the floor. Keep a real clearance so
-        // the complete manufactured silhouette lands inside the receiver.
-        // As Far increases the horizontal orbit, raise it proportionally so
-        // the complete projected shadow remains in the product composition.
-        const topClearance =
-          FLOOR_LIGHT_TOP_CLEARANCE_M * (1 + Math.max(0, radiusControl))
-        const minimumSourceY = target.y + bounds.heightM * 0.5 + topClearance
-        lightPositionGoal.set(
-          target.x + Math.sin(azimuth) * tangentRadius,
-          Math.max(target.y + normalRadius, minimumSourceY),
-          target.z + Math.cos(azimuth) * tangentRadius,
+        // Freestanding uses a conventional horizontal azimuth around Y.
+        lightDirectionWorld.set(tangentSin, normalWeight, tangentCos)
+      }
+      lightDirectionWorld.normalize()
+
+      const surfaceClearance = lightSurfaceClearanceM(radiusControl)
+      const sourceDistance = lightEnvelopeSourceDistance(
+        lightDirectionWorld,
+        bounds,
+        surfaceClearance,
+      )
+      lightPositionGoal
+        .copy(target)
+        .addScaledVector(lightDirectionWorld, sourceDistance)
+
+      // Numerical protection for mounted transitions: the source may orbit on
+      // the room side, never through a wall or above the ceiling.
+      if (application !== 'freestanding') {
+        const frame = applicationFrame(application)
+        const minimumHostClearance =
+          frame.installationClearanceM + surfaceClearance
+        const signedHostDistance = signedDistanceToApplicationPlane(
+          lightPositionGoal,
+          frame,
         )
+        if (signedHostDistance < minimumHostClearance) {
+          lightPositionGoal.addScaledVector(
+            frame.roomNormal,
+            minimumHostClearance - signedHostDistance,
+          )
+        }
       }
       return lightPositionGoal
     }
 
-    const pointerNdc = (event: PointerEvent) => {
+    const pointerNdc = (event: { clientX: number; clientY: number }) => {
       const rect = renderer.domElement.getBoundingClientRect()
       lightPointer.set(
         ((event.clientX - rect.left) / Math.max(rect.width, 1)) * 2 - 1,
@@ -1783,7 +1916,7 @@ export function LinarScene({
       )
     }
 
-    const pointerHitsLightOrb = (event: PointerEvent) => {
+    const pointerHitsLightOrb = (event: { clientX: number; clientY: number }) => {
       if (!lightOrb.visible || !lightStateRef.current.enabled) return false
       pointerNdc(event)
       lightRaycaster.setFromCamera(lightPointer, camera)
@@ -1804,10 +1937,21 @@ export function LinarScene({
       const rect = renderer.domElement.getBoundingClientRect()
       const deltaX = (event.clientX - lightDragStartX) / Math.max(rect.width, 1)
       const deltaY = (event.clientY - lightDragStartY) / Math.max(rect.height, 1)
-      lightDragState.u = safeLightU(lightDragStartU + deltaX * 2, 0)
-      lightDragState.v = THREE.MathUtils.clamp(lightDragStartV - deltaY * 2, -1, 1)
-      displayedLightU = lightDragState.u
-      displayedLightV = lightDragState.v
+      if (lightDragMode === 'distance') {
+        // Shift-drag down brings the source closer; up moves it farther away.
+        // Wheel-over-orb below offers the same radial control without a key.
+        lightDragState.radius = THREE.MathUtils.clamp(
+          lightDragStartRadius - deltaY * 2,
+          -1,
+          1,
+        )
+        displayedLightRadius = lightDragState.radius
+      } else {
+        lightDragState.u = safeLightU(lightDragStartU + deltaX * 2, 0)
+        lightDragState.v = THREE.MathUtils.clamp(lightDragStartV - deltaY * 2, -1, 1)
+        displayedLightU = lightDragState.u
+        displayedLightV = lightDragState.v
+      }
       const dragBounds = currentPlanBounds()
       const position = lightPositionForState(lightDragState, dragBounds)
       key.position.copy(position)
@@ -1828,12 +1972,21 @@ export function LinarScene({
         renderer.domElement.releasePointerCapture(pointerId)
       }
       if (commit && committed) {
-        onLightChangeRef.current({
+        const nextLightState = {
           enabled: true,
           u: safeLightU(committed.u, lightStateRef.current.u),
           v: safeLightCoordinate(committed.v, lightStateRef.current.v),
           radius: safeLightCoordinate(committed.radius, lightStateRef.current.radius),
-        })
+        }
+        lightStateRef.current = nextLightState
+        onLightChangeRef.current(nextLightState)
+      } else if (!commit) {
+        displayedLightU = safeLightU(lightStateRef.current.u, displayedLightU)
+        displayedLightV = safeLightCoordinate(lightStateRef.current.v, displayedLightV)
+        displayedLightRadius = safeLightCoordinate(
+          lightStateRef.current.radius,
+          displayedLightRadius,
+        )
       }
       event?.preventDefault()
     }
@@ -1862,9 +2015,12 @@ export function LinarScene({
       lightDragStartY = event.clientY
       lightDragStartU = nextLightDragState.u
       lightDragStartV = nextLightDragState.v
+      lightDragStartRadius = nextLightDragState.radius
+      lightDragMode = event.shiftKey || event.altKey ? 'distance' : 'orbit'
       controls.enabled = false
       renderer.domElement.setPointerCapture(event.pointerId)
-      renderer.domElement.style.cursor = 'grabbing'
+      renderer.domElement.style.cursor =
+        lightDragMode === 'distance' ? 'ns-resize' : 'grabbing'
     }
 
     const onLightPointerMove = (event: PointerEvent) => {
@@ -1890,12 +2046,94 @@ export function LinarScene({
       renderer.domElement.style.cursor = ''
     }
 
+    const normalizedWheelPixelDelta = (event: WheelEvent) => {
+      let delta = event.deltaY
+      if (event.deltaMode === WheelEvent.DOM_DELTA_LINE) delta *= 16
+      else if (event.deltaMode === WheelEvent.DOM_DELTA_PAGE) delta *= 100
+      // Browser pinch gestures arrive as ctrl+wheel with very small deltas.
+      if (event.ctrlKey) delta *= 4
+      return THREE.MathUtils.clamp(delta, -240, 240)
+    }
+
+    const onCanvasWheel = (event: WheelEvent) => {
+      const now = performance.now()
+      const lightWheelOwnsBurst =
+        lightStateRef.current.enabled &&
+        (now < lightWheelCapturedUntil || pointerHitsLightOrb(event))
+
+      if (lightWheelOwnsBurst) {
+        lightWheelCapturedUntil = now + LIGHT_WHEEL_CAPTURE_LATCH_MS
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        if (lightDragPointerId != null) return
+        if (!tourActiveRef.current) onUserInteractRef.current()
+
+        const normalizedDelta = THREE.MathUtils.clamp(
+          normalizedWheelPixelDelta(event) / 650,
+          -0.24,
+          0.24,
+        )
+        const nextRadius = THREE.MathUtils.clamp(
+          displayedLightRadius + normalizedDelta,
+          -1,
+          1,
+        )
+        if (Math.abs(nextRadius - displayedLightRadius) < 0.000001) return
+        displayedLightRadius = nextRadius
+        const nextLightState: LinarLightState = {
+          enabled: true,
+          u: safeLightU(displayedLightU, lightStateRef.current.u),
+          v: safeLightCoordinate(displayedLightV, lightStateRef.current.v),
+          radius: nextRadius,
+        }
+        lightStateRef.current = nextLightState
+        onLightChangeRef.current(nextLightState)
+
+        const wheelBounds = currentPlanBounds()
+        const position = lightPositionForState(nextLightState, wheelBounds)
+        key.position.copy(position)
+        updateLightOrbPosition(
+          updateLightTargetWorld(wheelBounds),
+          position,
+          wheelBounds,
+        )
+        invalidateKeyShadow()
+        return
+      }
+
+      // Own ordinary wheel input as well so OrbitControls cannot apply one
+      // immediate 4%-radius jump and then leave the render gate idle. Accumulate
+      // a precise radius goal and ease the camera to it in the RAF below.
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      if (lightDragPointerId != null || !controls.enabled || !controls.enableZoom) return
+      const delta = normalizedWheelPixelDelta(event)
+      if (Math.abs(delta) < 0.000001) return
+      // A pure dolly must preserve authored Top/ceiling camera up vectors.
+      // The broader OrbitControls start handler resets axes for rotation, which
+      // caused a first-wheel roll/jump in those inspection views.
+      if (smoothCameraZoomTargetRadius == null) claimUserCameraAuthority()
+      const currentRadius = camera.position.distanceTo(controls.target)
+      const baseRadius = smoothCameraZoomTargetRadius ?? currentRadius
+      const zoomScale = Math.exp(delta * CAMERA_WHEEL_ZOOM_FACTOR * controls.zoomSpeed)
+      smoothCameraZoomTargetRadius = THREE.MathUtils.clamp(
+        baseRadius * zoomScale,
+        controls.minDistance,
+        controls.maxDistance,
+      )
+      controlsChangedSinceRender = true
+    }
+
     renderer.domElement.addEventListener('pointerdown', onLightPointerDown, true)
     renderer.domElement.addEventListener('pointermove', onLightPointerMove, true)
     renderer.domElement.addEventListener('pointerup', onLightPointerEnd, true)
     renderer.domElement.addEventListener('pointercancel', onLightPointerEnd, true)
     renderer.domElement.addEventListener('lostpointercapture', onLightPointerEnd, true)
     renderer.domElement.addEventListener('pointerleave', onLightPointerLeave, true)
+    renderer.domElement.addEventListener('wheel', onCanvasWheel, {
+      capture: true,
+      passive: false,
+    })
     window.addEventListener('keydown', onLightEscape)
 
     const captureCinematicAnchor = () => {
@@ -1910,6 +2148,7 @@ export function LinarScene({
     }
 
     const applyFrame = () => {
+      smoothCameraZoomTargetRadius = null
       if (cameraTransition) {
         controls.enableDamping = cameraTransition.restoreDamping
         cameraTransition = null
@@ -1945,9 +2184,22 @@ export function LinarScene({
     }
 
     const transitionToFrame = () => {
+      smoothCameraZoomTargetRadius = null
       // An explicit preset/application/count frame supersedes any delayed
       // technical Top refit queued by a slider change.
       topAutoFramePending = false
+      // Every preset request is last-click-wins. In particular, Top and the
+      // ceiling Close-up use authored camera-up axes and are applied as an
+      // immediate cut. Leaving an older transition alive let it overwrite that
+      // cut on the following RAF, so fast button presses appeared to get stuck
+      // in the previous animation.
+      const restoreDamping = cameraTransition?.restoreDamping ?? controls.enableDamping
+      if (cameraTransition) {
+        cameraTransition = null
+        controls.enableDamping = restoreDamping
+      }
+      cinematicAnchor = null
+      controlsChangedSinceRender = true
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
       if (w < 16 || h < 16) return
@@ -1992,9 +2244,15 @@ export function LinarScene({
       controls.minDistance = Math.max(0.18, placement.dist * 0.22)
       controls.maxDistance = placement.dist * 4.5
 
-      const changesCameraAxis =
-        currentPreset === 'top' || camera.up.distanceToSquared(TOP_VIEW_UP) < 0.01
-      if (reducedMotion || changesCameraAxis) {
+      const destinationUp = placement.up ?? WORLD_UP
+      const changesCameraAxis = camera.up.distanceToSquared(destinationUp) > 0.01
+      const usesAuthoredCameraAxis = destinationUp.distanceToSquared(WORLD_UP) > 0.01
+      cameraAuthority = cinematicActiveRef.current
+        ? 'startup-cinematic'
+        : tourActiveRef.current
+          ? 'guided-tour'
+          : 'preset'
+      if (reducedMotion || changesCameraAxis || usesAuthoredCameraAxis) {
         applyView(
           camera,
           controls,
@@ -2015,7 +2273,6 @@ export function LinarScene({
         return
       }
 
-      const restoreDamping = cameraTransition?.restoreDamping ?? controls.enableDamping
       const fromSpherical = new THREE.Spherical().setFromVector3(
         camera.position.clone().sub(controls.target),
       )
@@ -2032,12 +2289,6 @@ export function LinarScene({
       const targetTravel = controls.target.distanceTo(placement.target)
 
       controls.enableDamping = false
-      cameraAuthority = cinematicActiveRef.current
-        ? 'startup-cinematic'
-        : tourActiveRef.current
-          ? 'guided-tour'
-          : 'preset'
-      cinematicAnchor = null
       cameraTransition = {
         fromSpherical,
         toSpherical,
@@ -2128,6 +2379,7 @@ export function LinarScene({
         cinematicActiveRef.current ? cinematicPixelRatio : basePixelRatio,
       )
       renderer.setSize(w, h, false)
+      controlsChangedSinceRender = true
       if (!hasOrbited) {
         applyFrame()
         return
@@ -2165,6 +2417,7 @@ export function LinarScene({
       }
       const elapsedSeconds = Math.max(0, (now - lastT) / 1000)
       const dt = Math.min(0.05, elapsedSeconds)
+      const cameraMotionDt = Math.min(0.12, elapsedSeconds)
       const lightMotionDt = Math.min(0.2, elapsedSeconds)
       const lightModeDt = Math.min(1, elapsedSeconds)
       lastT = now
@@ -2175,6 +2428,7 @@ export function LinarScene({
           cinematicRenderScaleWasActive ? cinematicPixelRatio : basePixelRatio,
         )
         renderer.setSize(mount.clientWidth || 1, mount.clientHeight || 1, false)
+        controlsChangedSinceRender = true
       }
       const lightStudyEnabled = lightStateRef.current.enabled
       if (lightStudyEnabled !== lightStudyWasEnabled) {
@@ -2396,6 +2650,19 @@ export function LinarScene({
       const presentationMoving =
         presentationRoot.position.distanceToSquared(presentationTargetPosition) > 1e-10 ||
         1 - Math.abs(presentationRoot.quaternion.dot(presentationTargetQuaternion)) > 1e-10
+      lightStudyFloorOpacityGoal =
+        lightStudyEnabled && configRef.current.application !== 'ceiling'
+          ? 1
+          : 0
+      const targetShadowReceiverOpacity = lightStudyEnabled ? 0 : floorShadowOpacityGoal
+      const presentationVisualsMoving =
+        Math.abs(contextWallMaterial.opacity - wallOpacityGoal) > 0.001 ||
+        Math.abs(contextCeilingMaterial.opacity - ceilingOpacityGoal) > 0.001 ||
+        Math.abs(shadowReceiverMaterial.opacity - targetShadowReceiverOpacity) > 0.001 ||
+        Math.abs(lightStudyReceiverMaterial.opacity - lightStudyFloorOpacityGoal) > 0.001 ||
+        Math.abs(
+          ceilingKey.intensity - (lightStudyEnabled ? 0 : ceilingLightGoal),
+        ) > 0.001
       presentationRoot.position.lerp(presentationTargetPosition, presentationLambda)
       presentationRoot.quaternion.slerp(
         presentationTargetQuaternion,
@@ -2405,15 +2672,9 @@ export function LinarScene({
         (wallOpacityGoal - contextWallMaterial.opacity) * presentationLambda
       contextCeilingMaterial.opacity +=
         (ceilingOpacityGoal - contextCeilingMaterial.opacity) * presentationLambda
-      lightStudyFloorOpacityGoal =
-        lightStudyEnabled && currentPreset !== 'top' &&
-        configRef.current.application !== 'ceiling'
-          ? 1
-          : 0
       shadowReceiverMaterial.opacity +=
-        ((lightStudyEnabled ? 0 : floorShadowOpacityGoal) -
-          shadowReceiverMaterial.opacity) *
-        lightModeLambda
+        (targetShadowReceiverOpacity - shadowReceiverMaterial.opacity) *
+          lightModeLambda
       lightStudyReceiverMaterial.opacity +=
         (lightStudyFloorOpacityGoal - lightStudyReceiverMaterial.opacity) * lightModeLambda
       ceilingKey.intensity +=
@@ -2427,18 +2688,23 @@ export function LinarScene({
       rearFill.intensity +=
         ((lightStudyEnabled ? 0 : 0.22) - rearFill.intensity) * lightModeLambda
       const displayedRadiusControl = safeLightCoordinate(displayedLightRadius, 0)
-      const lightRadiusIntensityFactor =
-        configRef.current.application === 'ceiling' && displayedRadiusControl < 0
-          ? THREE.MathUtils.lerp(0.72, 1, displayedRadiusControl + 1)
-          : displayedRadiusControl < 0
-            ? THREE.MathUtils.lerp(1.25, 1, displayedRadiusControl + 1)
-            : 1 +
-              1.05 * displayedRadiusControl -
-              0.3 * displayedRadiusControl * displayedRadiusControl
-      // Floor and wall keep the source high enough to frame their complete
-      // floor shadow, so compensate for that longer inverse-square distance.
-      // Ceiling uses its genuinely closer source, so taper the emitted power
-      // toward Near instead of compounding proximity into a hot highlight.
+      // Outside the interactive study, return the one shadow-casting key to a
+      // canonical distant studio rig. Reusing a 40 mm Near source at the old
+      // studio intensity would overexpose the panel as LIGHT fades out.
+      const activeKeyU = lightStudyEnabled
+        ? displayedLightU
+        : DEFAULT_LINAR_LIGHT.u
+      const activeKeyV = lightStudyEnabled
+        ? displayedLightV
+        : DEFAULT_LINAR_LIGHT.v
+      const activeKeyRadiusControl = lightStudyEnabled ? displayedRadiusControl : 1
+      const activeKeySurfaceClearance = lightSurfaceClearanceM(activeKeyRadiusControl)
+      const lightRadiusIntensityFactor = lightStudyIntensityFactor(
+        displayedRadiusControl,
+      )
+      // Recalibrate emitted power for the new physical source distances. The
+      // previous 200/72.5 values assumed a hidden source several metres away;
+      // using them at 0.45 m or 40 mm erased the wood grain completely.
       const lightStudyBaseIntensity =
         configRef.current.application === 'ceiling'
           ? CEILING_LIGHT_STUDY_KEY_INTENSITY
@@ -2482,16 +2748,12 @@ export function LinarScene({
       } else if (!lightDragState) {
         const lightLambda = 1 - Math.exp(-lightMotionDt * (reducedMotion ? 80 : 6.5))
         const targetLightU = safeLightU(lightStateRef.current.u, displayedLightU)
-        if (configRef.current.application === 'wall') {
-          displayedLightU += (targetLightU - displayedLightU) * lightLambda
-        } else {
-          const lightUDelta =
-            THREE.MathUtils.euclideanModulo(targetLightU - displayedLightU + 1, 2) - 1
-          displayedLightU = wrappedLightCoordinate(
-            displayedLightU + lightUDelta * lightLambda,
-            targetLightU,
-          )
-        }
+        const lightUDelta =
+          THREE.MathUtils.euclideanModulo(targetLightU - displayedLightU + 1, 2) - 1
+        displayedLightU = wrappedLightCoordinate(
+          displayedLightU + lightUDelta * lightLambda,
+          targetLightU,
+        )
         displayedLightV +=
           (safeLightCoordinate(lightStateRef.current.v, displayedLightV) - displayedLightV) *
           lightLambda
@@ -2507,7 +2769,11 @@ export function LinarScene({
       enforceInstallationHalfSpace(lightBounds)
       presentationRoot.updateWorldMatrix(true, false)
       const nextLightPosition = lightPositionForState(
-        { u: displayedLightU, v: displayedLightV, radius: displayedLightRadius },
+        {
+          u: activeKeyU,
+          v: activeKeyV,
+          radius: activeKeyRadiusControl,
+        },
         lightBounds,
       )
       const lightPositionMoving = key.position.distanceToSquared(nextLightPosition) > 1e-10
@@ -2516,6 +2782,22 @@ export function LinarScene({
         : 1 -
           Math.exp(-lightMotionDt * (activeStartupPose ? 2 : reducedMotion ? 80 : 7.5))
       key.position.lerp(nextLightPosition, lightPositionLambda)
+      if (configRef.current.application !== 'freestanding') {
+        // A smoothed move between application states must obey the same host-
+        // plane rule as its destination. Otherwise one transition frame can
+        // place the real source inside the wall or above the ceiling even
+        // though both authored endpoints are valid.
+        const frame = applicationFrame(configRef.current.application)
+        const minimumHostClearance =
+          frame.installationClearanceM + activeKeySurfaceClearance
+        const signedHostDistance = signedDistanceToApplicationPlane(key.position, frame)
+        if (signedHostDistance < minimumHostClearance) {
+          key.position.addScaledVector(
+            frame.roomNormal,
+            minimumHostClearance - signedHostDistance,
+          )
+        }
+      }
       const nextLightTarget = updateLightTargetWorld(lightBounds)
       const casterRadius = Math.hypot(
         (lightBounds.maxX - lightBounds.minX) * 0.5,
@@ -2523,7 +2805,13 @@ export function LinarScene({
         lightBounds.heightM * 0.5,
       )
       const sourceDistance = nextLightPosition.distanceTo(nextLightTarget)
-      const fittedShadowNear = Math.max(0.06, sourceDistance - casterRadius * 1.45)
+      // The old 60 mm minimum clipped the caster when Near placed the real
+      // source only 40 mm from the surface. Keep the near plane safely inside
+      // the selected clearance while retaining the stable 60 mm default.
+      const fittedShadowNear = Math.max(
+        0.003,
+        Math.min(0.06, activeKeySurfaceClearance * 0.3),
+      )
       const fittedShadowFar = Math.max(
         fittedShadowNear + 1,
         sourceDistance + casterRadius * 3.2,
@@ -2698,11 +2986,37 @@ export function LinarScene({
 
       const materialsMoving = panel.tickMaterials(dt)
       const controlsMoving = controls.update()
-      constrainCameraToApplication(
+      let smoothCameraZoomMoving = false
+      if (smoothCameraZoomTargetRadius != null && !cameraTransition) {
+        smoothCameraZoomOffset.subVectors(camera.position, controls.target)
+        const currentRadius = Math.max(smoothCameraZoomOffset.length(), 0.0001)
+        const targetRadius = THREE.MathUtils.clamp(
+          smoothCameraZoomTargetRadius,
+          controls.minDistance,
+          controls.maxDistance,
+        )
+        const zoomLambda = 1 - Math.exp(-cameraMotionDt * CAMERA_WHEEL_ZOOM_RESPONSE)
+        const remainingRadius = targetRadius - currentRadius
+        const nextRadius =
+          Math.abs(remainingRadius) < 0.00025
+            ? targetRadius
+            : THREE.MathUtils.lerp(currentRadius, targetRadius, zoomLambda)
+        smoothCameraZoomOffset.setLength(nextRadius)
+        camera.position.copy(controls.target).add(smoothCameraZoomOffset)
+        camera.lookAt(controls.target)
+        smoothCameraZoomMoving = Math.abs(nextRadius - currentRadius) > 0.000001
+        if (nextRadius === targetRadius) smoothCameraZoomTargetRadius = null
+      }
+      const cameraConstrained = constrainCameraToApplication(
         camera,
         controls,
         configRef.current.application,
       )
+      if (cameraConstrained && smoothCameraZoomTargetRadius != null) {
+        // Do not keep pushing against a wall/ceiling half-space after the safe
+        // clamp has become the effective nearest camera position.
+        smoothCameraZoomTargetRadius = camera.position.distanceTo(controls.target)
+      }
 
       // Keep the fixture legible as a small light source in every camera preset
       // without letting its hit target grow into the surrounding orbit area.
@@ -2763,12 +3077,16 @@ export function LinarScene({
         continuouslyAnimated ||
         bendMoving ||
         presentationMoving ||
+        presentationVisualsMoving ||
         lightPositionMoving ||
         lightTargetMoving ||
         lightModeMoving ||
         orbMoving ||
         materialsMoving ||
-        controlsMoving
+        controlsMoving ||
+        smoothCameraZoomMoving ||
+        cameraConstrained ||
+        controlsChangedSinceRender
 
       idleRenderElapsed += elapsedSeconds
       // Keep the RAF authority alive for immediate input, but stop sending the
@@ -2777,6 +3095,7 @@ export function LinarScene({
       if (sceneMoving || idleRenderElapsed >= 0.5) {
         renderer.render(scene, camera)
         idleRenderElapsed = 0
+        controlsChangedSinceRender = false
       }
     }
 
@@ -2815,6 +3134,7 @@ export function LinarScene({
       renderer.domElement.removeEventListener('pointercancel', onLightPointerEnd, true)
       renderer.domElement.removeEventListener('lostpointercapture', onLightPointerEnd, true)
       renderer.domElement.removeEventListener('pointerleave', onLightPointerLeave, true)
+      renderer.domElement.removeEventListener('wheel', onCanvasWheel, true)
       window.removeEventListener('keydown', onLightEscape)
       ro.disconnect()
       for (const idleId of materialWarmupIdleIds) {
@@ -2825,6 +3145,7 @@ export function LinarScene({
       }
       document.removeEventListener('visibilitychange', onVisibility)
       controls.removeEventListener('start', markInteract)
+      controls.removeEventListener('change', markControlsChanged)
       controls.dispose()
       clearPanelReplicas()
       panel.dispose()
