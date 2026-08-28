@@ -36,8 +36,11 @@ export type LinarLightState = {
 
 export const DEFAULT_LINAR_LIGHT: LinarLightState = {
   enabled: false,
-  u: -0.32,
-  v: -0.28,
+  // A front-normal, elevated source lets the real 4 mm perforations project
+  // onto the floor. Strongly lateral positions remain available through the
+  // 360-degree light control, but their cut sidewalls physically self-occlude.
+  u: 0,
+  v: 0.6,
   radius: 0,
 }
 

@@ -808,8 +808,8 @@ export function DuktaLinarConceptPage() {
     setViewPreset('hero')
     const finalLight: LinarLightState = {
       enabled: false,
-      u: 0.08,
-      v: -0.15,
+      u: DEFAULT_LINAR_LIGHT.u,
+      v: DEFAULT_LINAR_LIGHT.v,
       radius: DEFAULT_LINAR_LIGHT.radius,
     }
     lightStateRef.current = finalLight

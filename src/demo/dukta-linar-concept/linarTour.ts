@@ -141,9 +141,9 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     bend: 26,
     secondaryCurveAmount: 0,
     config: { panelCount: 1, application: 'freestanding', backing: 'none' },
-    // Mirror the default key to the right so its draggable handle remains
-    // clear of the explanatory card during this authored tour step.
-    light: { enabled: true, u: 0.32, v: -0.28, radius: 0 },
+    // The elevated, front-normal source reveals the true perforated floor
+    // projection; visitors can then drag it through the full 360-degree orbit.
+    light: { enabled: true, u: 0, v: 0.6, radius: 0 },
   },
   {
     title: 'Technical status',

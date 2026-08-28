@@ -98,8 +98,14 @@ const CEILING_PLANE_Y = 2.62
 const FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY = 200
 const CEILING_LIGHT_STUDY_KEY_INTENSITY = 72.5
 const STUDIO_KEY_INTENSITY = 26
+const STUDIO_FLOOR_SHADOW_OPACITY = 0.3
+const STUDIO_WALL_SHADOW_OPACITY = 0.14
+const STUDIO_SHADOW_INTENSITY = 0.76
+const LIGHT_STUDY_SHADOW_INTENSITY = 0.86
 const LIGHT_STUDY_MIN_CONE_ANGLE = 0.38
 const LIGHT_STUDY_MAX_CONE_ANGLE = 0.82
+const STUDIO_MIN_SHADOW_CONE_ANGLE = 0.2
+const STUDIO_MAX_SHADOW_CONE_ANGLE = 0.7
 const WORLD_UP = new THREE.Vector3(0, 1, 0)
 const TOP_VIEW_UP = new THREE.Vector3(1, 0, 0)
 const DEFAULT_MIN_POLAR_ANGLE = 0.28
@@ -641,11 +647,11 @@ function startupCinematicPose(elapsed: number) {
   return {
     bend,
     secondary,
-    // Keep the source stable during the authored night study. Camera,
-    // application and curvature motion provide the reveal without sweeping
-    // the key behind the inspected face and turning the panel into a silhouette.
-    lightU: -0.32,
-    lightV: -0.28,
+    // Keep the source stable during the authored night study. The elevated,
+    // front-normal reset pose lets the real apertures describe their floor
+    // projection without sweeping the key behind the inspected face.
+    lightU: DEFAULT_LINAR_LIGHT.u,
+    lightV: DEFAULT_LINAR_LIGHT.v,
     stage,
     done: elapsed >= STARTUP_CINEMATIC_DURATION_SECONDS,
   }
@@ -1177,8 +1183,16 @@ export function LinarScene({
     key.shadow.camera.updateProjectionMatrix()
     key.shadow.bias = -0.00004
     key.shadow.normalBias = 0.00018
-    key.shadow.radius = compactShadowMap ? 2.2 : 3
-    key.shadow.intensity = initialLightStudy ? 0.86 : 0.62
+    key.shadow.radius = initialLightStudy
+      ? compactShadowMap
+        ? 0.6
+        : 0.7
+      : compactShadowMap
+        ? 0.55
+        : 0.75
+    key.shadow.intensity = initialLightStudy
+      ? LIGHT_STUDY_SHADOW_INTENSITY
+      : STUDIO_SHADOW_INTENSITY
     key.shadow.autoUpdate = false
     key.shadow.needsUpdate = true
     let keyShadowDirty = true
@@ -1352,7 +1366,7 @@ export function LinarScene({
     )
     const shadowReceiverMaterial = new THREE.ShadowMaterial({
       color: 0x37342f,
-      opacity: 0.22,
+      opacity: STUDIO_FLOOR_SHADOW_OPACITY,
       transparent: true,
       depthWrite: false,
     })
@@ -1368,8 +1382,13 @@ export function LinarScene({
     // Light mode needs a real surface rather than a transparent shadow-only
     // overlay: the single SpotLight can then describe both its warm pool and
     // the true perforated silhouette against an otherwise unlit environment.
+    // A light neutral diffuse value is intentional here: the former dark
+    // receiver absorbed the already distance-attenuated beam, so the real
+    // 4 mm openings were present in the shadow map but unreadable on screen.
+    // With no ambient, emissive or fill contribution this surface still falls
+    // to black outside the physical cone of the guided light.
     const lightStudyReceiverMaterial = new THREE.MeshStandardMaterial({
-      color: 0x272a2e,
+      color: 0xb4aa9a,
       roughness: 1,
       metalness: 0,
       transparent: true,
@@ -1590,7 +1609,7 @@ export function LinarScene({
     const keyTargetGoal = new THREE.Vector3(0, PANEL_HEIGHT_M * 0.5, 0)
     let wallOpacityGoal = 0
     let ceilingOpacityGoal = 0
-    let floorShadowOpacityGoal = 0.22
+    let floorShadowOpacityGoal = STUDIO_FLOOR_SHADOW_OPACITY
     let lightStudyFloorOpacityGoal = initialLightStudy ? 1 : 0
     let ceilingLightGoal = 0
 
@@ -1606,7 +1625,7 @@ export function LinarScene({
       // floor and its physical shadow present in Top just as they are in the
       // other views; hiding the receiver here made the shadow disappear and
       // introduced a second state that rapid view changes had to restore.
-      floorShadowOpacityGoal = 0.22
+      floorShadowOpacityGoal = STUDIO_FLOOR_SHADOW_OPACITY
       lightStudyFloorOpacityGoal =
         lightStateRef.current.enabled && application !== 'ceiling' ? 1 : 0
       ceilingLightGoal = 0
@@ -1615,7 +1634,7 @@ export function LinarScene({
       if (application === 'wall') {
         presentationTargetPosition.z = WALL_PLANE_Z
         wallOpacityGoal = technicalTop ? 0 : 1
-        floorShadowOpacityGoal = 0.1
+        floorShadowOpacityGoal = STUDIO_WALL_SHADOW_OPACITY
       } else if (application === 'ceiling') {
         presentationTargetPosition.set(0, CEILING_PLANE_Y, -installationHeight * 0.5)
         presentationTargetEuler.x = Math.PI / 2
@@ -2714,7 +2733,11 @@ export function LinarScene({
         : STUDIO_KEY_INTENSITY
       key.intensity += (targetKeyIntensity - key.intensity) * lightModeLambda
       key.shadow.intensity +=
-        ((lightStudyEnabled ? 0.86 : 0.62) - key.shadow.intensity) * lightModeLambda
+        ((lightStudyEnabled
+          ? LIGHT_STUDY_SHADOW_INTENSITY
+          : STUDIO_SHADOW_INTENSITY) -
+          key.shadow.intensity) *
+        lightModeLambda
       renderer.toneMappingExposure +=
         ((lightStudyEnabled ? LIGHT_STUDY_EXPOSURE : STUDIO_EXPOSURE) -
           renderer.toneMappingExposure) *
@@ -2820,22 +2843,59 @@ export function LinarScene({
       // Preserve inverse-square decay without a second hard light cutoff
       // before the receiver and shadow-camera limits.
       key.distance = 0
+      const casterFitAngle = Math.atan2(
+        casterRadius * 1.08,
+        Math.max(sourceDistance, 0.1),
+      )
       const fittedLightStudyAngle = THREE.MathUtils.clamp(
-        Math.atan2(casterRadius * 1.08, Math.max(sourceDistance, 0.1)),
+        casterFitAngle,
         LIGHT_STUDY_MIN_CONE_ANGLE,
         LIGHT_STUDY_MAX_CONE_ANGLE,
       )
+      const fittedStudioShadowAngle = THREE.MathUtils.clamp(
+        Math.atan2(casterRadius * 1.2, Math.max(sourceDistance, 0.1)),
+        STUDIO_MIN_SHADOW_CONE_ANGLE,
+        STUDIO_MAX_SHADOW_CONE_ANGLE,
+      )
+      // Studio presentation keeps its broad artistic light pool, while the
+      // documented SpotLightShadow focus crops only the shadow-camera field of
+      // view around the real caster. This gives the 4 mm openings enough texel
+      // coverage without changing the visible studio illumination.
       const targetKeyAngle = lightStudyEnabled ? fittedLightStudyAngle : 0.98
+      const targetShadowFocus = lightStudyEnabled
+        ? 1
+        : THREE.MathUtils.clamp(
+            fittedStudioShadowAngle / Math.max(targetKeyAngle, 0.001),
+            0.16,
+            1,
+          )
+      // Keep a broad, even core in LIGHT mode so rays that pass through the
+      // narrow LINAR apertures still illuminate the receiver behind them.
+      // The former 0.84 penumbra reduced the full-strength core to only 16%
+      // of the fitted cone and made most transmitted detail disappear before
+      // it reached the floor. Normal studio presentation retains that softer
+      // falloff.
+      const targetKeyPenumbra = lightStudyEnabled ? 0.38 : 0.84
       const targetShadowRadius = lightStudyEnabled
         ? compactShadowMap
-          ? 0.8
-          : 1.05
+          ? 0.6
+          : 0.7
         : compactShadowMap
-          ? 2.2
-          : 3
+          ? 0.55
+          : 0.75
       // Changing the cone and PCF kernel instantly re-quantises every narrow
       // aperture in the shadow map. Ease both values with the light crossfade.
       const nextKeyAngle = THREE.MathUtils.lerp(key.angle, targetKeyAngle, lightModeLambda)
+      key.penumbra = THREE.MathUtils.lerp(
+        key.penumbra,
+        targetKeyPenumbra,
+        lightModeLambda,
+      )
+      const nextShadowFocus = THREE.MathUtils.lerp(
+        key.shadow.focus,
+        targetShadowFocus,
+        lightModeLambda,
+      )
       const nextShadowRadius = THREE.MathUtils.lerp(
         key.shadow.radius,
         targetShadowRadius,
@@ -2843,11 +2903,13 @@ export function LinarScene({
       )
       if (
         Math.abs(key.angle - nextKeyAngle) > 0.0001 ||
+        Math.abs(key.shadow.focus - nextShadowFocus) > 0.0001 ||
         Math.abs(key.shadow.radius - nextShadowRadius) > 0.0001 ||
         Math.abs(key.shadow.camera.near - fittedShadowNear) > 0.015 ||
         Math.abs(key.shadow.camera.far - fittedShadowFar) > 0.04
       ) {
         key.angle = nextKeyAngle
+        key.shadow.focus = nextShadowFocus
         key.shadow.radius = nextShadowRadius
         key.shadow.camera.near = fittedShadowNear
         key.shadow.camera.far = fittedShadowFar
@@ -3061,6 +3123,8 @@ export function LinarScene({
         Math.abs(secondaryGoal - displayedSecondaryCurve) > 0.004
       const lightModeMoving =
         Math.abs(key.intensity - targetKeyIntensity) > 0.01 ||
+        Math.abs(key.penumbra - targetKeyPenumbra) > 0.001 ||
+        Math.abs(key.shadow.focus - targetShadowFocus) > 0.001 ||
         Math.abs(
           renderer.toneMappingExposure -
             (lightStudyEnabled ? LIGHT_STUDY_EXPOSURE : STUDIO_EXPOSURE),
