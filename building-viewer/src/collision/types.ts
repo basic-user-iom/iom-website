@@ -16,8 +16,9 @@ export type CharacterParams = {
 
 export const DEFAULT_CHARACTER_PARAMS: CharacterParams = {
   playerHeight: 1.7,
-  // Keep diameter under typical tread depth (~0.28–0.30 m) so stairs are climbable.
-  playerRadius: 0.18,
+  // Keep the capsule diameter within typical 0.28–0.30 m tread depth. A wider
+  // capsule overlaps adjacent CAD risers and gets pushed sideways off stairs.
+  playerRadius: 0.14,
   eyeHeight: 1.55,
   walkSpeed: 3.2,
   runSpeed: 6.5,
@@ -33,6 +34,12 @@ export type CollisionHit = {
   point: Vector3
   normal: Vector3
   distance: number
+  /** Model layer that supplied the hit, when the backend can identify it. */
+  layerId?: string
+  /** Collision chunk/source label for diagnostics. */
+  sourceName?: string
+  /** True when the hit belongs to a stair/ramp collision chunk. */
+  stairZone?: boolean
 }
 
 export type CapsuleQueryResult = {
@@ -40,6 +47,10 @@ export type CapsuleQueryResult = {
   normal: Vector3
   /** True when the deepest contact is a stair / ramp chunk. */
   stairZone?: boolean
+  /** Model layer that supplied the deepest contact. */
+  layerId?: string
+  /** Collision chunk/source label for diagnostics. */
+  sourceName?: string
 }
 
 /**
@@ -47,6 +58,12 @@ export type CapsuleQueryResult = {
  */
 export interface ICollisionWorld {
   rebuild(fromRoot: import('three').Object3D): Promise<{ ms: number; triangles: number }>
+  /**
+   * Restrict locomotion queries to the layer selected by visible-surface
+   * placement. `null` restores all-layer picking while orbiting/placing.
+   */
+  setQueryLayer?(layerId: string | null): void
+  getQueryLayer?(): string | null
   raycast(origin: Vector3, direction: Vector3, maxDistance?: number): CollisionHit | null
   /**
    * Downward ground probe — among hits, prefer the highest walkable surface

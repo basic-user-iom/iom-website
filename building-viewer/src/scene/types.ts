@@ -1,5 +1,34 @@
 export type ModelVariantKey = 'web' | 'quest'
 
+export type PinnedJsonAsset = {
+  url: string
+  sha256: string
+  bytes: number
+}
+
+export type HlodStreamingConfig = {
+  /** Both this flag and manifest.enabled must be true. Omit in production until pilot approval. */
+  enabled: boolean
+  /** Animation-aware package manifest v3 for desktop/mobile Web. */
+  web: string
+  /** Optional Quest-specific manifest. No fallback to the Web package set. */
+  quest?: string
+  /** Independent entry pins prevent a stale/replaced package manifest from activating. */
+  sourceSha256: Record<ModelVariantKey, string>
+  rigSha256: string
+  /** The manifest supplies every payload hash, so the manifest bytes must also be pinned. */
+  manifestSha256: Record<ModelVariantKey, string>
+  manifestBytes: Record<ModelVariantKey, number>
+  /** Dedicated streamed collision must be verified before it can be committed. */
+  collisionSha256: string
+  collisionBytes: number
+  /** SHA-bound authored coverage plus exact live collision-metric activation gate. */
+  collisionActivation: {
+    contract: PinnedJsonAsset
+    coverageReport: PinnedJsonAsset
+  }
+}
+
 export type ModelManifestEntry = {
   id: string
   name: string
@@ -27,6 +56,11 @@ export type ModelManifestEntry = {
   cellManifest?: string
   /** Quest cell manifest (optional). Falls back to monolithic quest GLB. */
   cellManifestQuest?: string
+  /**
+   * Guarded animation-aware HLOD packages. Legacy cellManifest v2 routes stay
+   * disabled; this v3 route requires explicit entry + manifest opt-in.
+   */
+  hlodStreaming?: HlodStreamingConfig
   /** Lightweight rig + clips GLB for streamed layers (bind target nodes). */
   animation?: string
   /** When true, play embedded GLB animations after load. Default: start paused. */

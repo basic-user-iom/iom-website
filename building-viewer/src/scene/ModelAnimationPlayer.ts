@@ -12,6 +12,9 @@ export type ModelAnimationBindOptions = {
   autoPlay?: boolean
   loop?: boolean
   label?: string
+  /** Preserve transport only when rebinding the same stateKey. */
+  preserveState?: boolean
+  stateKey?: string
 }
 
 /**
@@ -25,6 +28,7 @@ export class ModelAnimationPlayer {
   private duration = 0
   private label = 'Animation'
   private loop = false
+  private stateKey: string | null = null
   private readonly onFinished = (): void => {
     if (this.loop) return
     this.playing = false
@@ -35,9 +39,16 @@ export class ModelAnimationPlayer {
   }
 
   bind(root: Object3D, clips: AnimationClip[], options: ModelAnimationBindOptions = {}): void {
+    const previous = this.getState()
+    const preserve =
+      options.preserveState === true &&
+      previous.available &&
+      this.stateKey !== null &&
+      this.stateKey === (options.stateKey ?? null)
     this.dispose()
     if (!clips.length) return
 
+    this.stateKey = options.stateKey ?? null
     this.loop = options.loop === true
     this.label = options.label || clips[0]?.name || 'Animation'
     this.duration = Math.max(...clips.map((c) => c.duration), 0)
@@ -52,7 +63,11 @@ export class ModelAnimationPlayer {
       return action
     })
 
-    if (options.autoPlay === true) this.play()
+    if (preserve) {
+      this.seek(Math.min(previous.time, this.duration))
+      if (previous.playing) this.play()
+      else this.pause()
+    } else if (options.autoPlay === true) this.play()
     else {
       this.seek(0)
       this.pause()
@@ -171,6 +186,7 @@ export class ModelAnimationPlayer {
     this.actions = []
     this.playing = false
     this.duration = 0
+    this.stateKey = null
   }
 
   /**

@@ -57,6 +57,22 @@ function materialSignature(mat: Material): string {
 
   const parts: Record<string, unknown> = {
     type: mat.type,
+    // Semantic roles affect residency, transparency and visibility policy even
+    // when two materials are numerically identical. Never merge those roles
+    // into an unrelated CAD material.
+    iomMaterialRole:
+      typeof mat.userData?.iomMaterialRole === 'string' ? mat.userData.iomMaterialRole : '',
+    iomDoubleSidedReason:
+      typeof mat.userData?.iomDoubleSidedReason === 'string'
+        ? mat.userData.iomDoubleSidedReason
+        : '',
+    // HLOD packages own independently disposable resources. Never remap a
+    // material across package scopes or unloading one package could invalidate
+    // another package's GPU resources.
+    hlodResourceScope:
+      typeof mat.userData?.hlodResourceScope === 'string'
+        ? mat.userData.hlodResourceScope
+        : '',
     side: mat.side,
     transparent: mat.transparent ? 1 : 0,
     opacity: round(mat.opacity),
@@ -137,6 +153,11 @@ export function dedupeSceneMaterials(root: Object3D): MaterialDedupeStats {
       mesh.material = remap.get(mesh.material)!
     }
   })
+
+  // Every remapped material is now unreachable from this isolated root.
+  // Release its renderer bookkeeping; textures remain owned by the canonical
+  // material/package and Material.dispose() does not dispose texture objects.
+  for (const duplicate of remap.keys()) duplicate.dispose()
 
   return { before: unique.size, after: bySig.size, merged }
 }

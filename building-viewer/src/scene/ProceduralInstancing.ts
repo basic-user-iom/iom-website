@@ -4,6 +4,7 @@ import {
   Box3,
   BufferAttribute,
   BufferGeometry,
+  Color,
   InstancedMesh,
   Matrix4,
   Mesh,
@@ -17,6 +18,7 @@ import {
   DEFAULT_FLOOR_BAND_HEIGHT,
   SPATIAL_CELL_XZ,
   SPATIAL_CELL_Y,
+  cellCoord,
   computeMeshSpatial,
   mergeSpatialFromMeshes,
   spatialKeyXZ,
@@ -41,10 +43,18 @@ export type InstancingReport = {
   instancesCreated: number
   batchedMeshes: number
   batchedSources: number
+  /** Imported EXT_mesh_gpu_instancing groups split into spatially cullable groups. */
+  importedInstancedMeshesSplit: number
+  /** Spatial groups created from imported EXT_mesh_gpu_instancing sources. */
+  importedSpatialGroupsCreated: number
+  /** Mirrored imported instances extracted to standalone meshes for correct face culling. */
+  importedNegativeInstancesExtracted: number
   drawCallsSaved: number
   skippedSkinned: number
   skippedMultiMaterial: number
   skippedAnimated: number
+  /** Mirrored static meshes left standalone because shared draws cannot flip front-face per item. */
+  skippedNegativeTransforms: number
   skippedTooFew: number
   topGroups: InstancingGroupInfo[]
   note: string
@@ -70,6 +80,22 @@ const _aabbSize = new Vector3()
 const _posePos = new Vector3()
 const _poseQuat = new Quaternion()
 const _poseScl = new Vector3()
+const _instanceMatrix = new Matrix4()
+const _instanceWorldMatrix = new Matrix4()
+const _instanceCenter = new Vector3()
+const _geometryCenter = new Vector3()
+const _instanceColor = new Color()
+
+type ImportedInstanceSplitReport = {
+  sourcesSplit: number
+  groupsCreated: number
+  negativeInstancesExtracted: number
+}
+
+type InstanceBucket = {
+  key: string
+  indices: number[]
+}
 
 function poseKey(mesh: Mesh): string {
   mesh.updateWorldMatrix(true, false)
@@ -108,6 +134,52 @@ type Candidate = {
   matKey: string
   /** Floor/rig node whose transform still drives this mesh (clip target). */
   animRoot: Object3D | null
+  /** Keep explicit exterior ownership homogeneous across packed output. */
+  orbitOwnership: 'ext' | 'facade-shutter' | 'none'
+  /** Transparent candidates may be BatchedMesh-sorted, but never InstancedMesh-packed. */
+  transparent: boolean
+  /** Keep visibility/residency semantics homogeneous across packed output. */
+  semanticKey: string
+  /** Determinant sign of the Object3D that will own the shared draw. */
+  packingHostSign: number
+}
+
+function orbitOwnership(mesh: Mesh): Candidate['orbitOwnership'] {
+  if (mesh.userData?.orbitDuplicateOf === 'icm-ext') return 'ext'
+  if (mesh.userData?.orbitDuplicateRole === 'facade-shutter') return 'facade-shutter'
+  return 'none'
+}
+
+function copyOrbitOwnership(source: Mesh, target: InstancedMesh | BatchedMesh): void {
+  const ownership = orbitOwnership(source)
+  if (ownership === 'ext') target.userData.orbitDuplicateOf = 'icm-ext'
+  if (ownership === 'facade-shutter') {
+    target.userData.orbitDuplicateRole = 'facade-shutter'
+    target.userData.shutter = true
+  }
+}
+
+const PACKED_USER_DATA_KEYS = [
+  'architecturalGlass',
+  'containsArchitecturalGlass',
+  'visibilityCritical',
+  'detailLodIgnore',
+  'floorZoneAlways',
+  'floorResidency',
+  'floorSurface',
+  'paperThinGround',
+  'waterSurface',
+  'iomExplicitWalkable',
+] as const
+
+function packingSemanticKey(mesh: Mesh): string {
+  return PACKED_USER_DATA_KEYS.map((key) => (mesh.userData?.[key] ? '1' : '0')).join('')
+}
+
+function copyPackingSemantics(source: Mesh, target: InstancedMesh | BatchedMesh): void {
+  for (const key of PACKED_USER_DATA_KEYS) {
+    if (source.userData?.[key] != null) target.userData[key] = source.userData[key]
+  }
 }
 
 function ensureIndexed(geom: BufferGeometry): boolean {
@@ -213,6 +285,274 @@ function isTransparentOrGlassMaterial(mat: Material | Material[]): boolean {
   })
 }
 
+function hasNegativeDeterminant(matrix: Matrix4): boolean {
+  return matrix.determinant() < 0
+}
+
+/**
+ * WebGL can flip front-face winding once for a rendered object, but not for an
+ * individual InstancedMesh/BatchedMesh item. Test the transform relative to
+ * the object that would own the shared draw; an ancestor's negative scale is
+ * safe because it remains on the packed object's matrixWorld.
+ */
+function hasNegativePackingTransform(mesh: Mesh, hostParent: Object3D): boolean {
+  hostParent.updateWorldMatrix(true, false)
+  mesh.updateWorldMatrix(true, false)
+  const hostSign = Math.sign(hostParent.matrixWorld.determinant())
+  const meshSign = Math.sign(mesh.matrixWorld.determinant())
+  // A singular transform has no visible orientation to preserve. Comparing
+  // signs avoids thousands of matrix inversions during the one-time CAD scan.
+  if (hostSign === 0 || meshSign === 0) return false
+  return hostSign !== meshSign
+}
+
+function packingHostSign(hostParent: Object3D): number {
+  hostParent.updateWorldMatrix(true, false)
+  return Math.sign(hostParent.matrixWorld.determinant())
+}
+
+function copyImportedRenderableState(source: InstancedMesh, target: Mesh): void {
+  target.visible = source.visible
+  target.castShadow = source.castShadow
+  target.receiveShadow = source.receiveShadow
+  target.frustumCulled = source.frustumCulled
+  target.renderOrder = source.renderOrder
+  target.layers.mask = source.layers.mask
+  target.customDepthMaterial = source.customDepthMaterial
+  target.customDistanceMaterial = source.customDistanceMaterial
+  target.onBeforeRender = source.onBeforeRender
+  target.onAfterRender = source.onAfterRender
+  target.animations = source.animations.slice()
+}
+
+function materialWithInstanceColor(
+  material: Material | Material[],
+  color: Color,
+): Material | Material[] {
+  const tint = (source: Material): Material => {
+    const clone = source.clone()
+    const colorMaterial = clone as Material & { color?: Color }
+    colorMaterial.color?.multiply(color)
+    return clone
+  }
+  return Array.isArray(material) ? material.map(tint) : tint(material)
+}
+
+function assignImportedSpatialResidency(mesh: Mesh, config: SpatialSceneConfig): void {
+  mesh.updateWorldMatrix(true, false)
+  const residency = computeMeshSpatial(mesh, config)
+  mesh.userData.IOM_spatial = {
+    floorBand: residency.floorBand,
+    floorBandMin: residency.bandMin,
+    floorBandMax: residency.bandMax,
+    cell: [residency.cellX, 0, residency.cellZ],
+    cellXMin: residency.cellXMin,
+    cellXMax: residency.cellXMax,
+    cellZMin: residency.cellZMin,
+    cellZMax: residency.cellZMax,
+    alwaysOn: residency.alwaysOn,
+  } satisfies IOMSpatial
+}
+
+/**
+ * glTF EXT_mesh_gpu_instancing normally loads as one InstancedMesh. Three.js
+ * culls that object as one unit, so a campus-wide lamp/tree group submits every
+ * instance when any one instance is visible. Partition imported groups by
+ * spatial cell while retaining shared geometry/material and every per-instance
+ * transform. This is a lossless runtime equivalent of Nanite-style cluster
+ * culling at the object level.
+ */
+function prepareImportedInstancedMeshes(
+  root: Object3D,
+  config: SpatialSceneConfig | null,
+  animatedNodeNames?: Set<string>,
+): ImportedInstanceSplitReport {
+  const sources: InstancedMesh[] = []
+
+  root.updateMatrixWorld(true)
+  root.traverse((obj) => {
+    const mesh = obj as InstancedMesh
+    if (!mesh.isInstancedMesh || !mesh.parent) return
+    // Manifest-v3 packages are already authored/batched offline and must stay
+    // owned by their disposable package roots. Runtime repartitioning would
+    // move geometry under the animated owner and leave ghosts after unload.
+    if (mesh.userData?.hlodPackageResourceScope) return
+    if (mesh.userData?.proceduralInstanced || mesh.userData?.spatiallySplitImported) return
+    // A track targeting the instanced node itself would no longer bind after
+    // replacement. Animated ancestors remain safe because all partitions stay
+    // below the same parent transform.
+    if (mesh.name && animatedNodeNames?.has(mesh.name)) return
+    if (mesh.count < 1 || mesh.morphTexture) return
+    sources.push(mesh)
+  })
+
+  let sourcesSplit = 0
+  let groupsCreated = 0
+  let negativeInstancesExtracted = 0
+
+  for (const source of sources) {
+    const parent = source.parent
+    if (!parent) continue
+
+    if (config) {
+      if (!source.geometry.boundingBox) source.geometry.computeBoundingBox()
+      const bounds = source.geometry.boundingBox
+      if (!bounds || bounds.isEmpty()) _geometryCenter.set(0, 0, 0)
+      else bounds.getCenter(_geometryCenter)
+    }
+
+    parent.updateWorldMatrix(true, false)
+    source.updateWorldMatrix(true, false)
+    const buckets = new Map<string, InstanceBucket>()
+    const positiveIndices: number[] = []
+    const negativeIndices: number[] = []
+    for (let i = 0; i < source.count; i++) {
+      source.getMatrixAt(i, _instanceMatrix)
+      if (hasNegativeDeterminant(_instanceMatrix)) {
+        negativeIndices.push(i)
+        continue
+      }
+      positiveIndices.push(i)
+      if (!config) continue
+
+      _instanceWorldMatrix.multiplyMatrices(source.matrixWorld, _instanceMatrix)
+      _instanceCenter.copy(_geometryCenter).applyMatrix4(_instanceWorldMatrix)
+      const floorBand = Math.floor(
+        (_instanceCenter.y - config.sceneMinY) / config.bandHeight,
+      )
+      const cellX = cellCoord(_instanceCenter.x, config.sceneMinX, config.cellSizeXz)
+      const cellZ = cellCoord(_instanceCenter.z, config.sceneMinZ, config.cellSizeXz)
+      const key = spatialKeyXZ(cellX, cellZ, floorBand)
+      const bucket = buckets.get(key)
+      if (bucket) bucket.indices.push(i)
+      else buckets.set(key, { key, indices: [i] })
+    }
+
+    const shouldSpatiallySplit = positiveIndices.length >= 8 && buckets.size >= 2
+    if (negativeIndices.length === 0 && !shouldSpatiallySplit) continue
+
+    // Instance matrices with a negative determinant reverse winding inside the
+    // shared draw, where Three.js cannot change front-face state per instance.
+    // Move only those items to standalone Mesh objects; their complete world
+    // transform then drives Three's normal per-object winding correction.
+    _parentInv.copy(parent.matrixWorld).invert()
+    for (const sourceIndex of negativeIndices) {
+      source.getMatrixAt(sourceIndex, _instanceMatrix)
+      _instanceWorldMatrix.multiplyMatrices(source.matrixWorld, _instanceMatrix)
+      _local.multiplyMatrices(_parentInv, _instanceWorldMatrix)
+
+      let material: Material | Material[] = source.material
+      let instanceColor: Color | null = null
+      if (source.instanceColor) {
+        source.getColorAt(sourceIndex, _instanceColor)
+        instanceColor = _instanceColor.clone()
+        material = materialWithInstanceColor(source.material, instanceColor)
+      }
+
+      const extracted = new Mesh(source.geometry, material)
+      extracted.name = `${source.name || 'ImportedInstances'}:mirrored:${sourceIndex}`
+      copyImportedRenderableState(source, extracted)
+      extracted.matrixAutoUpdate = false
+      extracted.matrixWorldAutoUpdate = source.matrixWorldAutoUpdate
+      extracted.matrix.copy(_local)
+      extracted.userData = {
+        ...source.userData,
+        importedNegativeInstance: true,
+        importedSourceInstance: sourceIndex,
+      }
+      if (instanceColor) extracted.userData.importedInstanceColor = instanceColor.toArray()
+      delete extracted.userData.IOM_spatial
+      parent.add(extracted)
+      if (config) assignImportedSpatialResidency(extracted, config)
+      negativeInstancesExtracted += 1
+    }
+
+    if (shouldSpatiallySplit) {
+      const replacements: InstancedMesh[] = []
+      let partition = 0
+      for (const bucket of buckets.values()) {
+        const split = new InstancedMesh(source.geometry, source.material, bucket.indices.length)
+        split.name = `${source.name || 'ImportedInstances'}:${bucket.key}:${partition++}`
+        split.position.copy(source.position)
+        split.quaternion.copy(source.quaternion)
+        split.scale.copy(source.scale)
+        split.matrix.copy(source.matrix)
+        split.matrixAutoUpdate = source.matrixAutoUpdate
+        split.matrixWorldAutoUpdate = source.matrixWorldAutoUpdate
+        copyImportedRenderableState(source, split)
+        split.frustumCulled = true
+        split.userData = {
+          ...source.userData,
+          spatiallySplitImported: true,
+          spatialPartition: bucket.key,
+        }
+        // The source residency can cover the entire campus. Recalculate from
+        // the actual partition bounds after matrices have been copied.
+        delete split.userData.IOM_spatial
+        split.instanceMatrix.setUsage(source.instanceMatrix.usage)
+
+        for (let i = 0; i < bucket.indices.length; i++) {
+          const sourceIndex = bucket.indices[i]!
+          source.getMatrixAt(sourceIndex, _instanceMatrix)
+          split.setMatrixAt(i, _instanceMatrix)
+          if (source.instanceColor) {
+            source.getColorAt(sourceIndex, _instanceColor)
+            split.setColorAt(i, _instanceColor)
+          }
+        }
+        split.instanceMatrix.needsUpdate = true
+        if (split.instanceColor) split.instanceColor.needsUpdate = true
+        split.computeBoundingBox()
+        split.computeBoundingSphere()
+        parent.add(split)
+        assignImportedSpatialResidency(split, config!)
+        replacements.push(split)
+      }
+
+      source.removeFromParent()
+      source.dispose()
+      sourcesSplit += 1
+      groupsCreated += replacements.length
+      continue
+    }
+
+    // A small or single-cell imported group does not benefit from another
+    // draw-call split. Compact its remaining positive instances in place.
+    if (positiveIndices.length === 0) {
+      source.removeFromParent()
+      source.dispose()
+      continue
+    }
+    for (let targetIndex = 0; targetIndex < positiveIndices.length; targetIndex++) {
+      const sourceIndex = positiveIndices[targetIndex]!
+      source.getMatrixAt(sourceIndex, _instanceMatrix)
+      source.setMatrixAt(targetIndex, _instanceMatrix)
+      if (source.instanceColor) {
+        source.getColorAt(sourceIndex, _instanceColor)
+        source.setColorAt(targetIndex, _instanceColor)
+      }
+    }
+    source.count = positiveIndices.length
+    source.instanceMatrix.needsUpdate = true
+    if (source.instanceColor) source.instanceColor.needsUpdate = true
+    source.computeBoundingBox()
+    source.computeBoundingSphere()
+    source.userData.importedNegativeInstancesExtracted = negativeIndices.length
+    delete source.userData.IOM_spatial
+    if (config) assignImportedSpatialResidency(source, config)
+  }
+
+  return { sourcesSplit, groupsCreated, negativeInstancesExtracted }
+}
+
+export function splitImportedInstancedMeshesBySpatialCell(
+  root: Object3D,
+  config: SpatialSceneConfig,
+  animatedNodeNames?: Set<string>,
+): ImportedInstanceSplitReport {
+  return prepareImportedInstancedMeshes(root, config, animatedNodeNames)
+}
+
 /**
  * Runtime pipeline for imported BIM/GLB buildings:
  * 1) InstancedMesh — repeating geom×material
@@ -241,6 +581,10 @@ export function applyProceduralInstancing(
     : null
 
   root.updateMatrixWorld(true)
+  const importedSplit = prepareImportedInstancedMeshes(root, spatialConfig, animatedNames)
+  if (importedSplit.sourcesSplit > 0 || importedSplit.negativeInstancesExtracted > 0) {
+    root.updateMatrixWorld(true)
+  }
 
   const spatialSuffix = (mesh: Mesh): string => {
     if (!spatialConfig) return ''
@@ -258,6 +602,7 @@ export function applyProceduralInstancing(
   let skippedSkinned = 0
   let skippedMultiMaterial = 0
   let skippedAnimated = 0
+  let skippedNegativeTransforms = 0
 
   root.traverse((obj) => {
     if (!(obj as Mesh).isMesh) return
@@ -265,6 +610,7 @@ export function applyProceduralInstancing(
     if ((obj as BatchedMesh).isBatchedMesh) return
     if (obj.userData?.collisionOnly) return
     if (obj.userData?.compareVisual) return
+    if (obj.userData?.hlodPackageResourceScope) return
     if (obj.userData?.proceduralInstanced || obj.userData?.proceduralBatched) return
     if ((obj as SkinnedMesh).isSkinnedMesh) {
       skippedSkinned += 1
@@ -272,16 +618,14 @@ export function applyProceduralInstancing(
     }
     const mesh = obj as Mesh
     if (!mesh.geometry || !mesh.parent) return
-    // Glass/transmission must stay as independent meshes: packing loses
-    // architecturalGlass flags and BatchedMesh was forcing receiveShadow=true
-    // (black rectangles on skylights / curtain walls).
-    if (
-      mesh.userData?.architecturalGlass ||
-      mesh.userData?.detailLodIgnore ||
-      isTransparentOrGlassMaterial(mesh.material)
-    ) {
-      return
-    }
+    const transparent = isTransparentOrGlassMaterial(mesh.material)
+    // Named safety/connection assemblies remain individually addressable.
+    // Ordinary floor/ground surfaces may still be packed losslessly: the
+    // aggregate keeps their residency flags and BatchedMesh retains per-object
+    // frustum culling, so draw reduction does not reintroduce ground holes.
+    // Transparent objects are allowed only into the per-object-sorted
+    // BatchedMesh path below; they are never converted to InstancedMesh.
+    if (mesh.userData?.visibilityCritical && !transparent) return
     // Skip the clip target itself; pack its static children so floor explode still works.
     if (mesh.name && animatedNames?.has(mesh.name)) {
       skippedAnimated += 1
@@ -293,17 +637,29 @@ export function applyProceduralInstancing(
       return
     }
     const animRoot = animatedAncestor(mesh, animatedNames)
+    const hostParent = animRoot ?? mesh.parent
+    if (hasNegativePackingTransform(mesh, hostParent)) {
+      skippedNegativeTransforms += 1
+      return
+    }
+    const hostSign = packingHostSign(hostParent)
     const animKey = animRoot ? `|anim:${animRoot.uuid}` : ''
+    const ownership = orbitOwnership(mesh)
+    const semanticKey = packingSemanticKey(mesh)
     const contentOnly = sharedUuidOnly
       ? `uuid:${mesh.geometry.uuid}`
       : geometryContentKey(mesh.geometry)
     candidates.push({
       mesh,
       parent: mesh.parent,
-      key: `${contentOnly}|mat:${matKey}${spatialSuffix(mesh)}${animKey}`,
+      key: `${contentOnly}|mat:${matKey}${spatialSuffix(mesh)}${animKey}|hostSign:${hostSign}|orbit:${ownership}|semantic:${semanticKey}`,
       triangles: triangleCount(mesh.geometry),
       matKey,
       animRoot,
+      orbitOwnership: ownership,
+      transparent,
+      semanticKey,
+      packingHostSign: hostSign,
     })
   })
 
@@ -318,7 +674,7 @@ export function applyProceduralInstancing(
   let skippedTooFew = 0
   const leftovers: Candidate[] = []
   for (const items of groups.values()) {
-    if (items.length >= minInstances) convertible.push(items)
+    if (!items[0]!.transparent && items.length >= minInstances) convertible.push(items)
     else {
       skippedTooFew += items.length
       leftovers.push(...items)
@@ -336,7 +692,15 @@ export function applyProceduralInstancing(
 
   let poseDuplicatesDropped = 0
   for (const rawItems of convertible) {
-    const { keep: items, drop } = dropPoseDuplicates(rawItems)
+    const hostParent = rawItems[0]!.animRoot ?? rawItems[0]!.parent
+    // Static groups may span several source parents. Re-check against the
+    // actual shared-draw owner so a later grouping-key change can never place
+    // a mirrored relative matrix into InstancedMesh.
+    const hostSafeItems = rawItems.filter(
+      (item) => !hasNegativePackingTransform(item.mesh, hostParent),
+    )
+    skippedNegativeTransforms += rawItems.length - hostSafeItems.length
+    const { keep: items, drop } = dropPoseDuplicates(hostSafeItems)
     for (const d of drop) {
       d.mesh.visible = false
       d.mesh.userData.cadDuplicate = true
@@ -351,7 +715,6 @@ export function applyProceduralInstancing(
     const material = Array.isArray(primary.mesh.material)
       ? primary.mesh.material[0]!
       : primary.mesh.material
-    const hostParent = primary.animRoot ?? primary.parent
 
     const instanced = new InstancedMesh(geom, material, items.length)
     instanced.name = `Instanced:${primary.mesh.name || 'mesh'}×${items.length}`
@@ -363,7 +726,8 @@ export function applyProceduralInstancing(
     instanced.receiveShadow = items.some((i) => i.mesh.receiveShadow)
     instanced.frustumCulled = true
     instanced.userData.proceduralInstanced = true
-    if (items.some((i) => i.mesh.userData?.shutter)) instanced.userData.shutter = true
+    copyOrbitOwnership(primary.mesh, instanced)
+    copyPackingSemantics(primary.mesh, instanced)
     instanced.userData.partSize = {
       sx: Math.max(0.01, _aabbSize.x),
       sy: Math.max(0.01, _aabbSize.y),
@@ -415,7 +779,7 @@ export function applyProceduralInstancing(
     const space = spatialConfig ? spatialFloorSuffix(c.mesh) : ''
     const animKey = c.animRoot ? `|anim:${c.animRoot.uuid}` : ''
     const attributeLayout = geometryAttributeLayoutKey(c.mesh.geometry)
-    const batchKey = `mat:${c.matKey}|attrs:${attributeLayout}${space}${animKey}`
+    const batchKey = `mat:${c.matKey}|attrs:${attributeLayout}${space}${animKey}|hostSign:${c.packingHostSign}|orbit:${c.orbitOwnership}|semantic:${c.semanticKey}|transparent:${c.transparent ? 1 : 0}`
     const list = byMaterial.get(batchKey)
     if (list) list.push(c)
     else byMaterial.set(batchKey, [c])
@@ -453,7 +817,16 @@ export function applyProceduralInstancing(
     }
     if (slice.length) batches.push(slice)
 
-    for (const items of batches) {
+    for (const rawBatchItems of batches) {
+    if (rawBatchItems.length < minUniqueBatch) continue
+
+    const hostParent = rawBatchItems[0]!.animRoot ?? rawBatchItems[0]!.parent
+    // As with InstancedMesh, validate against the final shared owner rather
+    // than assuming every source's immediate parent has the same orientation.
+    const items = rawBatchItems.filter(
+      (item) => !hasNegativePackingTransform(item.mesh, hostParent),
+    )
+    skippedNegativeTransforms += rawBatchItems.length - items.length
     if (items.length < minUniqueBatch) continue
 
     let maxVerts = 0
@@ -469,22 +842,24 @@ export function applyProceduralInstancing(
     const material = Array.isArray(items[0]!.mesh.material)
       ? items[0]!.mesh.material[0]!
       : items[0]!.mesh.material
-    const hostParent = items[0]!.animRoot ?? items[0]!.parent
+    const transparent = items[0]!.transparent
 
     let batched: BatchedMesh | null = null
     try {
       batched = new BatchedMesh(items.length, maxVerts, maxIndex, material)
       batched.name = `Batched:${material.name || 'mat'}×${items.length}`
-      batched.castShadow = items.some((i) => i.mesh.castShadow)
+      batched.castShadow = !transparent && items.some((i) => i.mesh.castShadow)
       // Never force receiveShadow — glass/transparent were already excluded above.
-      batched.receiveShadow = items.some((i) => i.mesh.receiveShadow)
+      batched.receiveShadow = !transparent && items.some((i) => i.mesh.receiveShadow)
       batched.frustumCulled = true
       // three r181+: cull individual batched draws when their sphere is off-screen.
       ;(batched as BatchedMesh & { perObjectFrustumCulled?: boolean }).perObjectFrustumCulled = true
+      ;(batched as BatchedMesh & { sortObjects?: boolean }).sortObjects = true
       batched.userData.proceduralBatched = true
       batched.matrixAutoUpdate = false
       batched.updateMatrix()
-      if (items.some((i) => i.mesh.userData?.shutter)) batched.userData.shutter = true
+      copyOrbitOwnership(items[0]!.mesh, batched)
+      copyPackingSemantics(items[0]!.mesh, batched)
       if (spatialConfig) {
         batched.userData.IOM_spatial = mergeSpatialFromMeshes(
           items.map((i) => i.mesh),
@@ -568,6 +943,19 @@ export function applyProceduralInstancing(
   if (poseDuplicatesDropped > 0) {
     noteParts.push(`dropped ${poseDuplicatesDropped} overlapping CAD copies`)
   }
+  if (importedSplit.sourcesSplit > 0) {
+    noteParts.push(
+      `split ${importedSplit.sourcesSplit} imported instance groups into ${importedSplit.groupsCreated} spatial groups`,
+    )
+  }
+  if (importedSplit.negativeInstancesExtracted > 0) {
+    noteParts.push(
+      `extracted ${importedSplit.negativeInstancesExtracted} mirrored imported instances`,
+    )
+  }
+  if (skippedNegativeTransforms > 0) {
+    noteParts.push(`kept ${skippedNegativeTransforms} mirrored meshes standalone`)
+  }
   if (noteParts.length === 0) {
     noteParts.push(
       'Few packable clusters — CAD uniqueness dominates; use Performance quality or hide a layer',
@@ -582,10 +970,14 @@ export function applyProceduralInstancing(
     instancesCreated,
     batchedMeshes,
     batchedSources,
+    importedInstancedMeshesSplit: importedSplit.sourcesSplit,
+    importedSpatialGroupsCreated: importedSplit.groupsCreated,
+    importedNegativeInstancesExtracted: importedSplit.negativeInstancesExtracted,
     drawCallsSaved,
     skippedSkinned,
     skippedMultiMaterial,
     skippedAnimated,
+    skippedNegativeTransforms,
     skippedTooFew,
     topGroups,
     note: `${noteParts.join('; ')}.`,

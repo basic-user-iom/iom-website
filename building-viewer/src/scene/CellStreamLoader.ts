@@ -151,6 +151,8 @@ export class CellStreamLoader {
 
   private onChange: ((ev: CellStreamChangeEvent) => void) | null = null
   private overviewMode = false
+  private disposed = false
+  private activeLoads = new Set<AbortController>()
 
   constructor(private readonly loader: ModelLoader) {}
 
@@ -166,11 +168,11 @@ export class CellStreamLoader {
 
 
 
-  async loadManifest(url: string): Promise<CellManifest | null> {
+  async loadManifest(url: string, signal?: AbortSignal): Promise<CellManifest | null> {
 
     try {
 
-      const res = await fetch(url)
+      const res = await fetch(url, { signal })
 
       if (!res.ok) return null
 
@@ -182,7 +184,9 @@ export class CellStreamLoader {
 
       return this.manifest
 
-    } catch {
+    } catch (err) {
+
+      if (signal?.aborted) throw err
 
       return null
 
@@ -317,10 +321,11 @@ export class CellStreamLoader {
 
     focus: CellStreamFocus,
 
-    opts?: { onProgress?: (p: LoadProgress) => void },
+    opts?: { onProgress?: (p: LoadProgress) => void; signal?: AbortSignal },
 
   ): Promise<CellStreamChangeEvent> {
 
+    if (this.disposed) throw new DOMException('Cell stream was disposed', 'AbortError')
     if (!this.manifest || !this.cellRoot || !this.entry) {
 
       return { loaded: [], unloaded: [], layerId: this.entry?.id ?? '?' }
@@ -329,6 +334,16 @@ export class CellStreamLoader {
 
 
 
+    const controller = new AbortController()
+    const abortFromCaller = (): void => controller.abort()
+    if (opts?.signal?.aborted) controller.abort()
+    else opts?.signal?.addEventListener('abort', abortFromCaller, { once: true })
+    this.activeLoads.add(controller)
+
+    try {
+    if (controller.signal.aborted || this.disposed) {
+      throw new DOMException('Cell stream load was superseded', 'AbortError')
+    }
     const desired = this.cellsForFocus(focus).sort((a, b) => {
       if (Boolean(a.alwaysOn) !== Boolean(b.alwaysOn)) return a.alwaysOn ? -1 : 1
       return 0
@@ -352,6 +367,10 @@ export class CellStreamLoader {
 
     for (const cell of desired) {
 
+      if (controller.signal.aborted || this.disposed) {
+        throw new DOMException('Cell stream load was superseded', 'AbortError')
+      }
+
       if (this.loaded.has(cell.id) || this.loading.has(cell.id)) continue
 
       this.loading.add(cell.id)
@@ -370,7 +389,12 @@ export class CellStreamLoader {
 
         })
 
-        const result = await this.loader.loadUrl(url, opts?.onProgress)
+        const result = await this.loader.loadUrl(url, opts?.onProgress, controller.signal)
+
+        if (controller.signal.aborted || this.disposed || !this.entry || !this.cellRoot) {
+          disposeObject3D(result.root)
+          throw new DOMException('Cell stream load was superseded', 'AbortError')
+        }
 
         applyModelTransform(result.root, {
 
@@ -398,6 +422,8 @@ export class CellStreamLoader {
 
       } catch (err) {
 
+        if (controller.signal.aborted || this.disposed) throw err
+
         console.warn(`[CellStream] failed to load ${cell.id}`, err)
 
       } finally {
@@ -410,6 +436,9 @@ export class CellStreamLoader {
 
 
 
+    if (controller.signal.aborted || this.disposed || !this.entry) {
+      throw new DOMException('Cell stream load was superseded', 'AbortError')
+    }
     const ev: CellStreamChangeEvent = {
 
       loaded,
@@ -433,6 +462,10 @@ export class CellStreamLoader {
     }
 
     return ev
+    } finally {
+      opts?.signal?.removeEventListener('abort', abortFromCaller)
+      this.activeLoads.delete(controller)
+    }
 
   }
 
@@ -512,7 +545,10 @@ export class CellStreamLoader {
 
 
   dispose(): void {
-
+    if (this.disposed) return
+    this.disposed = true
+    for (const controller of this.activeLoads) controller.abort()
+    this.activeLoads.clear()
     for (const id of [...this.loaded.keys()]) this.unloadCell(id)
 
     this.loading.clear()
@@ -522,6 +558,8 @@ export class CellStreamLoader {
     this.cellRoot = null
 
     this.entry = null
+
+    this.onChange = null
 
   }
 

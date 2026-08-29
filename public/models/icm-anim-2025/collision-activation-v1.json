@@ -1,0 +1,142 @@
+{
+  "version": 1,
+  "modelId": "icm-anim-2025",
+  "collision": {
+    "url": "/models/icm-anim-2025/collision.glb",
+    "sha256": "3f37a14c33a38362ddff0b1f0dcc76d15ca3b9f757fb4183799d9e6d70ee0b48",
+    "bytes": 5111224,
+    "runtime": {
+      "triangles": 120415,
+      "chunks": 304,
+      "boundsMin": [
+        -176.39608764648438,
+        -0.6586952805519104,
+        -108.11805725097656
+      ],
+      "boundsMax": [
+        10.787446975708008,
+        22.88001823425293,
+        88.41493225097656
+      ],
+      "preferredColliderMeshes": 2525
+    }
+  },
+  "coverageReport": {
+    "url": "/models/icm-anim-2025/collision-coverage-v1.json",
+    "sha256": "832055c2f7a3840fc84c0e0d11dc0c1ced1c25b2b8bf318f7ab57b192e5a097a",
+    "bytes": 7111
+  },
+  "requirements": {
+    "spawnProbeId": "spawn-foyer-west",
+    "minHorizontalCoverageRatio": 0.9,
+    "minHorizontalCoveredCells": 250,
+    "minElevationBands": 4,
+    "minElevationSeparationMeters": 14,
+    "requiredProbes": [
+      {
+        "id": "spawn-foyer-west",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "walk-foyer-upper",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "landing-podest",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "tr-stufen004-bottom",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "tr-stufen004-top",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "tr-stufen001-upper",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      }
+    ],
+    "requiredStairs": [
+      {
+        "id": "TR_Stufen001",
+        "minHorizontalTriangles": 20,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 0.75
+      },
+      {
+        "id": "TR_Stufen008",
+        "minHorizontalTriangles": 20,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 0.75
+      },
+      {
+        "id": "TR_Stufen010",
+        "minHorizontalTriangles": 20,
+        "minSupportCoverageRatio": 0.3,
+        "minVerticalSpanMeters": 0.05
+      },
+      {
+        "id": "Boden_2_Tafeln_Foyer_Treppe",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.25,
+        "minVerticalSpanMeters": 1.8
+      },
+      {
+        "id": "Boden_2_Tafeln_Foyer_Treppe001",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.25,
+        "minVerticalSpanMeters": 1.8
+      },
+      {
+        "id": "TR_Stufen",
+        "minHorizontalTriangles": 250,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 5
+      },
+      {
+        "id": "TR_Stufen_001",
+        "minHorizontalTriangles": 220,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 5
+      },
+      {
+        "id": "TR_Stufen_002",
+        "minHorizontalTriangles": 100,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 5
+      },
+      {
+        "id": "TR_Stufen_003",
+        "minHorizontalTriangles": 250,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 5
+      },
+      {
+        "id": "TR_Stufen004",
+        "minHorizontalTriangles": 70,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3.5
+      },
+      {
+        "id": "TR_Stufen004_001",
+        "minHorizontalTriangles": 70,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3.5
+      },
+      {
+        "id": "TR_Stufen005",
+        "minHorizontalTriangles": 70,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3.5
+      }
+    ]
+  }
+}

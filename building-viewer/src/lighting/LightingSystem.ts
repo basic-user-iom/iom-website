@@ -18,6 +18,7 @@ import {
   DAYLIGHT_PRESETS,
   EnvironmentLibrary,
   applyBackgroundColor,
+  resolveEffectiveDaylight,
   type DaylightPresetId,
 } from './DaylightPresets'
 
@@ -127,21 +128,22 @@ export class LightingSystem {
     const preset = DAYLIGHT_PRESETS[this.presetId]
     const scale = this.qualityScale
     const cheapEnv = this.lastQuality?.cheapEnvironment === true
+    const effective = resolveEffectiveDaylight(preset, scale)
 
     this.sun.color.setHex(preset.sunColor)
-    this.sun.intensity = preset.sunIntensity * Math.max(0.65, scale)
+    this.sun.intensity = effective.sunIntensity
     this.hemi.color.setHex(preset.hemiSky)
     this.hemi.groundColor.setHex(preset.hemiGround)
-    this.hemi.intensity = preset.hemiIntensity * scale
-    this.ambient.intensity = preset.ambientIntensity * scale
+    this.hemi.intensity = effective.hemisphereIntensity
+    this.ambient.intensity = effective.ambientIntensity
 
     if (this.renderer) {
-      this.renderer.toneMappingExposure = preset.exposure
+      this.renderer.toneMappingExposure = effective.exposure
     }
 
-    this.scene.environmentIntensity = preset.environmentIntensity * scale
-    this.scene.backgroundBlurriness = preset.backgroundBlurriness
-    this.scene.backgroundIntensity = preset.backgroundIntensity
+    this.scene.environmentIntensity = effective.environmentIntensity
+    this.scene.backgroundBlurriness = effective.backgroundBlurriness
+    this.scene.backgroundIntensity = effective.backgroundIntensity
 
     if (preset.useHdr && !cheapEnv) {
       const hdr = await this.envLib.loadHdr()

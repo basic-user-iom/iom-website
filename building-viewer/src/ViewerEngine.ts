@@ -1,6 +1,7 @@
 import {
-  Box3,
+  Group,
   Mesh,
+  PlaneGeometry,
   PerspectiveCamera,
   Scene,
   WebGLRenderer,
@@ -25,8 +26,14 @@ import { CharacterVisual } from './controls/CharacterVisual'
 import { CollisionWorld } from './collision/CollisionWorld'
 import { CharacterController } from './collision/CharacterController'
 import { DEFAULT_CHARACTER_PARAMS } from './collision/types'
-import { QualityManager, detectBootQualityProfile, type QualityProfileId } from './performance/QualityManager'
+import {
+  QualityManager,
+  detectBootQualityProfile,
+  getQualityProfile,
+  type QualityProfileId,
+} from './performance/QualityManager'
 import { PerformanceMonitor, type LiveRenderStats } from './performance/PerformanceMonitor'
+import { RuntimeAntialias } from './performance/RuntimeAntialias'
 import { XRManager, XRLocomotion } from './xr/XRManager'
 import { prepareArchitecturalMeshes, applyMeshQuality } from './lighting/prepareArchitecturalMeshes'
 import { dedupeSceneMaterials } from './scene/dedupeSceneMaterials'
@@ -52,8 +59,18 @@ import { QuestTestHarness } from './performance/QuestTestHarness'
 import { DEFAULT_FLOOR_BAND_HEIGHT, SPATIAL_CELL_XZ } from './performance/spatial'
 import { fetchSpatialMeta, spatialConfigFromMeta, type SpatialMetaFile } from './performance/loadSpatialMeta'
 import { buildCollisionChunks, type CollisionBuildReport, type CollisionChunkSource } from './collision/buildCollisionChunks'
+import {
+  allowsVisualCollisionFallback,
+  validateDedicatedCollisionRoot,
+} from './collision/dedicatedCollisionValidation'
 import { disposeObject3D } from './utils/disposeScene'
 import { InspectPicker, type InspectPickInfo } from './controls/InspectPicker'
+import { isOrbitDuplicateMesh } from './scene/orbitDuplicatePolicy'
+import {
+  ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS,
+  isIcmAnimatedWalkCollisionSupplement,
+  isIcmBridgeCollisionSupplement,
+} from './scene/assetSemantics'
 import {
   CameraViewsManager,
   buildDefaultCameraViews,
@@ -87,50 +104,9 @@ export type ViewerEngineEvents = {
   onInspect?: (info: InspectPickInfo | null) => void
 }
 
-const OUTDOOR_PROP_RE =
-  /fahne|flag|hedge|hecke|banner|grass|rasen|zaun|fence|tree|baum|bush|strauch|pflanz/i
-
-const GROUND_RE =
-  /kopfstein|steinboden|pflaster|betonboden|plaza|pavement|asphalt|strasse|straß|fu[sß]?weg|fuweg|terrain|ground|bodenplatte|aussenanlage|parkplatz/i
-
-const SHUTTER_RE = /lamelle|jalousie|raffstore|louver|shutter|rollladen/i
-
-const _dupBox = new Box3()
-const _dupSize = new Vector3()
-
-function meshLabel(mesh: Mesh): string {
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-  const matNames = mats.map((m) => m?.name || '').join(' ')
-  return `${mesh.name || ''} ${matNames}`
-}
-
-const INTERIOR_FLOOR_RE =
-  /foyer|garderobe|saal|halle|innen|interior|flur|diele|gang|cloak|^fb_/i
-
-/** Plaza / terrain copies only — never roofs, walls, glass, or interior floors. */
-function isLowGroundDuplicate(mesh: Mesh, bounds: SceneBounds): boolean {
-  const label = `${mesh.name || ''} ${mesh.parent?.name || ''}`
-  if (INTERIOR_FLOOR_RE.test(label)) return false
-  _dupBox.setFromObject(mesh)
-  if (_dupBox.isEmpty()) return false
-  _dupBox.getSize(_dupSize)
-  if (_dupSize.y >= 2.6) return false
-  if (_dupBox.max.y > bounds.box.min.y + 8) return false
-  const footprint = _dupSize.x * _dupSize.z
-  return footprint >= Math.max(40, bounds.size.x * bounds.size.z * 0.008)
-}
-
-function isOrbitDuplicateMesh(mesh: Mesh, bounds: SceneBounds | null): boolean {
-  if (mesh.userData?.architecturalGlass || mesh.userData?.cadOverlay) return false
-  const parentName = mesh.parent?.name || ''
-  if (INTERIOR_FLOOR_RE.test(mesh.name || '') || INTERIOR_FLOOR_RE.test(parentName)) return false
-  const label = meshLabel(mesh)
-  if (OUTDOOR_PROP_RE.test(label)) return true
-  if (GROUND_RE.test(label)) return true
-  // Interior blinds sit in the same plane as the exterior façade — hide the
-  // animated copies in dual-layer orbit. Walk / single-layer restores them.
-  if (mesh.userData?.shutter || SHUTTER_RE.test(label)) return true
-  return Boolean(bounds && isLowGroundDuplicate(mesh, bounds))
+type ModelLoadRequest = {
+  generation: number
+  controller: AbortController
 }
 
 export class ViewerEngine {
@@ -145,6 +121,7 @@ export class ViewerEngine {
   readonly character = new CharacterVisual()
   readonly quality: QualityManager
   readonly perf = new PerformanceMonitor()
+  readonly runtimeAntialias: RuntimeAntialias
   readonly xr: XRManager
   readonly modelAnim = new ModelAnimationPlayer()
   readonly detailLod = new DetailLodController()
@@ -168,12 +145,22 @@ export class ViewerEngine {
   private instancingReport: InstancingReport | null = null
   private spatialMeta: SpatialMetaFile | null = null
   private lastStreamSyncMs = 0
-  private streamSyncBusy = false
+  private readonly streamFocusIntervalMs = 400
+  private queuedStreamFocus: { x: number; y: number; z: number } | null = null
+  private streamFocusDrain: Promise<void> | null = null
   private streamSceneRefreshTimer: ReturnType<typeof setTimeout> | null = null
   private perfRouteBusy = false
   private pegmanDragging = false
   private pageVisible = true
   private autoQualityBusy = false
+  private modelLoadGeneration = 0
+  private activeModelLoad: ModelLoadRequest | null = null
+  private contextLost = false
+  private contextRestoreTimer: number | null = null
+  private contextLossTimes: number[] = []
+  private contextRecoveryNeedsModelReload = false
+  private thumbnailTaskCancel: (() => void) | null = null
+  private thumbnailCaptureAttempts = new Set<string>()
   private orbitOverview = false
   private orbitDedupeOn = false
   private orbitDupTagged = false
@@ -181,6 +168,7 @@ export class ViewerEngine {
   private orbitAlwaysHiddenMeshes: Mesh[] = []
   private goldenPreviewMode: GoldenPreviewMode | null = null
   private xrLocomotion: XRLocomotion | null = null
+  private preXrQuality: QualityProfileId | null = null
   private readonly xrWish = new Vector3()
   private readonly xrForward = new Vector3()
   private readonly xrRight = new Vector3()
@@ -213,10 +201,45 @@ export class ViewerEngine {
     this.renderer.info.autoReset = true
     this.perf.attachRenderer(this.renderer.getContext())
 
-    this.models = new ModelManager(() => this.renderer)
+    this.models = new ModelManager(
+      () => this.renderer,
+      async (root, entry, _pkg, _level, signal) => {
+        if (signal.aborted) throw new DOMException('Stream package preparation was superseded', 'AbortError')
+        const packageBounds = computeSceneBounds(root)
+        dedupeSceneMaterials(root)
+        prepareArchitecturalMeshes(root, packageBounds, {
+          freezeStatic: true,
+          glassDepthBias: 0,
+          lightmapped: Boolean(entry.lightmap),
+        })
+        if (entry.lightmap) await applyLightmaps(root, entry)
+        if (signal.aborted) throw new DOMException('Stream package preparation was superseded', 'AbortError')
+        applyMeshQuality(root, this.quality.getProfile())
+        root.userData.animationPackagePrepared = true
+      },
+    )
+    this.models.setStreamingFailoverHandler(async ({ layerId, error, attempts }) => {
+      if (this.disposed) return
+      const failedLayer = this.models.getLayer(layerId)
+      if (!failedLayer?.streaming) return
+      const entries = this.models.listLayers().map((layer) => layer.entry)
+      if (!entries.length) return
+      console.warn(
+        `[Viewer] streamed package sync failed for ${layerId} after ${attempts} attempts; preparing atomic monolithic fallback`,
+        error,
+      )
+      this.events.onLoading?.({
+        stage: 'download',
+        ratio: null,
+        message: `Recovering ${failedLayer.entry.name} with the complete model`,
+      })
+      await this.loadModelSet(entries, undefined, { rethrowErrors: true })
+    })
     this.lighting = new LightingSystem(this.scene)
     this.lighting.configureRenderer(this.renderer)
     this.lighting.applyQuality(initialQuality)
+    this.runtimeAntialias = new RuntimeAntialias(this.renderer, this.scene, this.camera)
+    this.runtimeAntialias.configure(initialQuality.runtimeAntialias)
 
     this.scene.add(this.models.root)
     this.scene.add(this.character.root)
@@ -244,6 +267,7 @@ export class ViewerEngine {
       },
       (dragging) => {
         this.pegmanDragging = dragging
+        if (dragging) this.collision.setQueryLayer(null)
         this.orbit.setEnabled(!dragging && this.mode === 'orbit')
         this.collision.setPlacementMode(dragging)
       },
@@ -261,17 +285,32 @@ export class ViewerEngine {
 
     this.xr = new XRManager(this.renderer)
     this.xr.setSessionEndHandler(() => {
+      const restoreQuality = this.preXrQuality
+      this.preXrQuality = null
       this.xrLocomotion = null
       this.orbit.setEnabled(this.mode === 'orbit')
       // Restore locked full-scene shadows after VR — never leave local-region active on desktop.
       this.lighting.setXrShadowMode(false)
       this.shadowFramesLeft = 2
+      if (!this.disposed && restoreQuality != null) {
+        // Our listener may run before Three's own `end` listener. Defer renderer
+        // changes until the event dispatch completes and isPresenting is false.
+        queueMicrotask(() => {
+          if (this.disposed || this.xr.isActive()) return
+          void this.setQuality(restoreQuality).catch((err) => {
+            console.warn('[Viewer] Failed to restore pre-XR quality', err)
+            this.events.onError?.('VR exited, but the previous quality profile could not be restored.')
+          })
+        })
+      }
     })
     this.controller.setWorld(this.collision)
 
     this.resize()
     window.addEventListener('resize', this.onResize)
     document.addEventListener('visibilitychange', this.onVisibility)
+    options.canvas.addEventListener('webglcontextlost', this.onContextLost)
+    options.canvas.addEventListener('webglcontextrestored', this.onContextRestored)
 
     this.renderer.setAnimationLoop(this.tick)
     void this.bootstrap(options.manifestUrl ?? '/models/manifest.json')
@@ -295,6 +334,10 @@ export class ViewerEngine {
 
   beginPegmanDrag(e: PointerEvent): void {
     if (this.mode !== 'orbit') this.exitWalk()
+    // Collision BVHs are authored at the animation rest pose. Reset before
+    // surface picking so animated ceilings/bridge decks cannot diverge from it.
+    this.modelAnim.stop()
+    this.emitAnimation()
     this.orbit.setEnabled(false)
     this.pegman.beginDrag(e)
   }
@@ -359,6 +402,14 @@ export class ViewerEngine {
 
   private applyQuality(profile: ReturnType<QualityManager['getProfile']>): void {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, profile.pixelRatioMax))
+    this.runtimeAntialias.configure(profile.runtimeAntialias)
+    const canvas = this.renderer.domElement
+    const parent = canvas.parentElement
+    this.runtimeAntialias.resize(
+      parent?.clientWidth || window.innerWidth,
+      parent?.clientHeight || window.innerHeight,
+      this.renderer.getPixelRatio(),
+    )
     this.lighting.applyQuality(profile)
     applyMeshQuality(this.models.root, profile)
     this.detailLod.applyQuality(profile.id)
@@ -366,15 +417,10 @@ export class ViewerEngine {
     this.lighting.requestShadowUpdate()
     this.shadowFramesLeft = 1
     this.applyXrFoveation(profile.xrFoveation)
-    this.applyXrFramebufferScale(profile.xrFramebufferScale)
   }
 
   private applyXrFoveation(level: number | null): void {
     this.xr.setFoveation(level)
-  }
-
-  private applyXrFramebufferScale(scale: number | null): void {
-    this.xr.setFramebufferScale(scale)
   }
 
   resetView(): void {
@@ -491,8 +537,12 @@ export class ViewerEngine {
     downloadCameraViewsJson(payload)
   }
 
-  private async applyCameraViewDefaults(bounds: NonNullable<typeof this.bounds>): Promise<void> {
+  private async applyCameraViewDefaults(
+    bounds: NonNullable<typeof this.bounds>,
+    signal?: AbortSignal,
+  ): Promise<void> {
     const shipped = await fetchShippedCameraViews()
+    if (signal?.aborted) throw new DOMException('Model load was superseded', 'AbortError')
     if (shipped?.length) {
       this.cameraViews.setBuiltIns(shipped, { shipped: true })
     } else if (!this.cameraViews.hasShippedDefaults()) {
@@ -505,13 +555,13 @@ export class ViewerEngine {
     this.emitCameraViews()
   }
 
-  /**
-   * Render a small JPEG for each view that lacks a thumbnail.
-   * Runs under the loading overlay so the camera hops are not visible.
-   */
-  private bakeCameraViewThumbnails(): void {
-    const missing = this.cameraViews.viewsMissingThumbnails()
-    if (missing.length === 0) return
+  /** Capture at most one thumbnail during idle time, never on the startup path. */
+  private bakeNextCameraViewThumbnail(): boolean {
+    const view = this.cameraViews
+      .viewsMissingThumbnails()
+      .find((candidate) => !this.thumbnailCaptureAttempts.has(candidate.id))
+    if (!view) return false
+    this.thumbnailCaptureAttempts.add(view.id)
 
     const savedPos = this.camera.position.clone()
     const savedTarget = this.orbit.controls.target.clone()
@@ -519,17 +569,15 @@ export class ViewerEngine {
     const orbitWasEnabled = this.orbit.controls.enabled
     this.orbit.setEnabled(false)
 
-    for (const view of missing) {
-      this.camera.position.set(...view.cameraPosition)
-      this.orbit.controls.target.set(...view.cameraTarget)
-      this.camera.fov = view.fov
-      this.camera.updateProjectionMatrix()
-      this.camera.lookAt(this.orbit.controls.target)
-      this.orbit.controls.update()
-      this.renderer.render(this.scene, this.camera)
-      const thumb = this.captureViewportThumbnail()
-      if (thumb) this.cameraViews.setThumbnail(view.id, thumb)
-    }
+    this.camera.position.set(...view.cameraPosition)
+    this.orbit.controls.target.set(...view.cameraTarget)
+    this.camera.fov = view.fov
+    this.camera.updateProjectionMatrix()
+    this.camera.lookAt(this.orbit.controls.target)
+    this.orbit.controls.update()
+    this.renderer.render(this.scene, this.camera)
+    const thumb = this.captureViewportThumbnail()
+    if (thumb) this.cameraViews.setThumbnail(view.id, thumb)
 
     this.camera.position.copy(savedPos)
     this.orbit.controls.target.copy(savedTarget)
@@ -539,6 +587,54 @@ export class ViewerEngine {
     this.orbit.controls.update()
     this.orbit.setEnabled(orbitWasEnabled)
     this.emitCameraViews()
+    return true
+  }
+
+  private cancelThumbnailTask(): void {
+    this.thumbnailTaskCancel?.()
+    this.thumbnailTaskCancel = null
+  }
+
+  private scheduleCameraViewThumbnails(delayMs = 250): void {
+    this.cancelThumbnailTask()
+    if (this.disposed) return
+
+    const run = (): void => {
+      this.thumbnailTaskCancel = null
+      if (this.disposed) return
+      // Do not steal a frame while the user is moving, in XR, or while WebGL
+      // resources are unavailable. The timeout fallback retries later.
+      if (
+        this.contextLost ||
+        !this.pageVisible ||
+        this.xr.isActive() ||
+        this.mode === 'walk' ||
+        this.orbit.isAnimating()
+      ) {
+        this.scheduleCameraViewThumbnails(750)
+        return
+      }
+      if (this.bakeNextCameraViewThumbnail()) {
+        this.scheduleCameraViewThumbnails(100)
+      }
+    }
+
+    const idleWindow = window as Window & {
+      requestIdleCallback?: Window['requestIdleCallback']
+      cancelIdleCallback?: Window['cancelIdleCallback']
+    }
+    let idleId: number | null = null
+    const timerId = window.setTimeout(() => {
+      if (typeof idleWindow.requestIdleCallback === 'function') {
+        idleId = idleWindow.requestIdleCallback(run, { timeout: 1500 })
+      } else {
+        run()
+      }
+    }, delayMs)
+    this.thumbnailTaskCancel = () => {
+      window.clearTimeout(timerId)
+      if (idleId != null) idleWindow.cancelIdleCallback?.(idleId)
+    }
   }
 
   private captureViewportThumbnail(): string | null {
@@ -569,15 +665,26 @@ export class ViewerEngine {
   }
 
   async enterVr(): Promise<void> {
-    // Quest path: force Quest quality so BasicShadowMap + cheaper settings engage.
-    await this.setQuality('QUEST')
-    const ok = await this.xr.enterVR()
-    if (!ok) {
+    // requestSession must be invoked while the click still has transient user
+    // activation. Read the fixed Quest scale without mutating live quality,
+    // then let XRManager apply it before Three installs the session.
+    if (this.disposed) return
+    const prevVariant = this.quality.getProfile().modelVariant
+    if (this.preXrQuality == null) this.preXrQuality = this.quality.getPreferred()
+    const questProfile = getQualityProfile('QUEST')
+    const ok = await this.xr.enterVR(questProfile.xrFramebufferScale)
+    if (!ok || this.disposed || !this.xr.isActive()) {
+      this.preXrQuality = null
+      if (this.disposed || ok) return
       this.events.onError?.('WebXR immersive-vr is not available on this device.')
       return
     }
-    this.applyXrFoveation(this.quality.getProfile().xrFoveation)
-    this.applyXrFramebufferScale(this.quality.getProfile().xrFramebufferScale)
+    // Apply cheap render settings synchronously and mount the rig immediately.
+    // If the asset variant must change, that cancellable load runs only after
+    // the first XR frame can be presented.
+    const xrProfile = this.quality.setPreferred('QUEST')
+    this.applyQuality(xrProfile)
+    this.events.onQuality?.(this.quality.getPreferred())
     const feet =
       this.mode === 'walk'
         ? this.controller.position.clone()
@@ -612,11 +719,20 @@ export class ViewerEngine {
 
     this.lighting.setXrShadowMode(true, feet)
     this.shadowFramesLeft = 2
+
+    if (xrProfile.modelVariant !== prevVariant && this.manifest) {
+      const entries = this.models
+        .listLayers()
+        .map((layer) => this.manifest!.models.find((entry) => entry.id === layer.id))
+        .filter((entry): entry is ModelManifestEntry => Boolean(entry))
+      if (entries.length) void this.loadModelSet(entries)
+    }
   }
 
   exitWalk(): void {
     if (this.mode !== 'walk') return
     this.walk.deactivate()
+    this.collision.setQueryLayer(null)
     this.orbit.setEnabled(true)
     this.orbit.restoreState()
     this.mode = 'orbit'
@@ -627,14 +743,17 @@ export class ViewerEngine {
   private async handlePegmanDrop(result: import('./controls/PegmanPlacement').PegmanDropResult): Promise<void> {
     this.orbit.setEnabled(this.mode === 'orbit')
     if (!result.ok) {
+      this.collision.setQueryLayer(null)
       this.orbit.setEnabled(true)
       this.events.onError?.(result.reason ?? 'Cannot place character here')
       return
     }
     if (!placeCharacterFromPegman(this.controller, result)) {
+      this.collision.setQueryLayer(null)
       this.orbit.setEnabled(true)
       return
     }
+    this.collision.setQueryLayer(result.layerId ?? null)
     this.collision.setFocus(this.controller.position)
     this.orbit.saveState()
     this.orbit.setEnabled(false)
@@ -677,6 +796,9 @@ export class ViewerEngine {
 
   setLayerVisible(id: string, visible: boolean): void {
     if (!this.models.setVisible(id, visible)) return
+    if (!visible && this.mode === 'walk' && this.collision.getQueryLayer() === id) {
+      this.exitWalk()
+    }
     for (const patch of this.patchesFor(id)) {
       this.models.setVisible(patch.id, visible)
     }
@@ -685,6 +807,10 @@ export class ViewerEngine {
   }
 
   playAnimation(): void {
+    if (this.mode === 'walk') {
+      this.events.onError?.('Exit Walk mode before playing the building animation.')
+      return
+    }
     this.modelAnim.play()
     this.emitAnimation()
   }
@@ -701,11 +827,13 @@ export class ViewerEngine {
 
   /** Scrub animation to an absolute time in seconds. */
   seekAnimation(timeSeconds: number): void {
+    if (this.mode === 'walk') return
     this.modelAnim.seek(timeSeconds)
     this.emitAnimation()
   }
 
   seekAnimationNormalized(u: number): void {
+    if (this.mode === 'walk') return
     this.modelAnim.seekNormalized(u)
     this.emitAnimation()
   }
@@ -715,14 +843,24 @@ export class ViewerEngine {
   }
 
   async loadLocalGlb(file: File): Promise<void> {
+    const request = this.beginModelLoad()
     try {
+      this.events.onLoading?.({ stage: 'download', ratio: 0, message: `Loading ${file.name}` })
+      const layer = await this.models.loadLocalFile(
+        file,
+        (p) => {
+          if (this.activeModelLoad?.generation === request.generation) {
+            this.events.onLoading?.(p)
+          }
+        },
+        request.controller.signal,
+      )
+      this.assertCurrentModelLoad(request)
       this.leaveWalkForReload()
       this.modelAnim.dispose()
-      this.collision.clearAllLayers()
-      this.events.onLoading?.({ stage: 'download', ratio: 0, message: `Loading ${file.name}` })
-      const layer = await this.models.loadLocalFile(file, (p) => this.events.onLoading?.(p))
-      await this.afterLayersLoaded([layer])
+      await this.afterLayersLoaded([layer], { loadRequest: request })
     } catch (err) {
+      if (this.isSupersededLoad(err)) return
       const msg = err instanceof Error ? err.message : String(err)
       this.events.onError?.(`Failed to load GLB: ${msg}`)
       this.events.onLoading?.({ stage: 'error', ratio: null, message: msg })
@@ -730,11 +868,14 @@ export class ViewerEngine {
   }
 
   private async bootstrap(manifestUrl: string): Promise<void> {
+    const request = this.beginModelLoad()
     try {
       const xr = await this.xr.checkSupport()
+      this.assertCurrentModelLoad(request)
       this.events.onXrSupport?.(xr)
 
       await this.lighting.setPreset('daylight')
+      this.assertCurrentModelLoad(request)
       this.events.onDaylight?.('daylight')
       this.events.onQuality?.(this.quality.getPreferred())
       this.shadowFramesLeft = 2
@@ -745,9 +886,11 @@ export class ViewerEngine {
         console.warn('[Viewer] Character load failed', err)
       })
 
-      const res = await fetch(manifestUrl)
+      const res = await fetch(manifestUrl, { signal: request.controller.signal })
       if (!res.ok) throw new Error(`Manifest HTTP ${res.status}`)
-      this.manifest = (await res.json()) as ModelManifest
+      const manifest = (await res.json()) as ModelManifest
+      this.assertCurrentModelLoad(request)
+      this.manifest = manifest
       const models = this.manifest.models ?? []
       this.emitModels()
 
@@ -783,7 +926,7 @@ export class ViewerEngine {
         }
       }
 
-      if (entries.length) await this.loadModelSet(entries)
+      if (entries.length) await this.loadModelSet(entries, request)
       else {
         this.events.onLoading?.({
           stage: 'ready',
@@ -792,6 +935,7 @@ export class ViewerEngine {
         })
       }
     } catch (err) {
+      if (this.isSupersededLoad(err)) return
       const msg = err instanceof Error ? err.message : String(err)
       this.events.onError?.(msg)
       this.events.onLoading?.({
@@ -855,12 +999,47 @@ export class ViewerEngine {
     }
   }
 
-  private async loadModelSet(entries: ModelManifestEntry[]): Promise<void> {
+  private beginModelLoad(): ModelLoadRequest {
+    this.activeModelLoad?.controller.abort()
+    this.cancelThumbnailTask()
+    if (this.streamSceneRefreshTimer) {
+      clearTimeout(this.streamSceneRefreshTimer)
+      this.streamSceneRefreshTimer = null
+    }
+    const request = {
+      generation: ++this.modelLoadGeneration,
+      controller: new AbortController(),
+    }
+    this.activeModelLoad = request
+    return request
+  }
+
+  private assertCurrentModelLoad(request: ModelLoadRequest): void {
+    if (
+      this.disposed ||
+      request.controller.signal.aborted ||
+      this.activeModelLoad?.generation !== request.generation
+    ) {
+      throw new DOMException('Model load was superseded', 'AbortError')
+    }
+  }
+
+  private isSupersededLoad(err: unknown): boolean {
+    return (
+      (err instanceof DOMException && err.name === 'AbortError') ||
+      (err instanceof Error && err.name === 'AbortError')
+    )
+  }
+
+  private async loadModelSet(
+    entries: ModelManifestEntry[],
+    existingRequest?: ModelLoadRequest,
+    options?: { rethrowErrors?: boolean },
+  ): Promise<void> {
+    const request = existingRequest ?? this.beginModelLoad()
     try {
+      this.assertCurrentModelLoad(request)
       const toLoad = this.expandWithPatches(entries)
-      this.leaveWalkForReload()
-      this.modelAnim.dispose()
-      this.collision.clearAllLayers()
       this.events.onLoading?.({
         stage: 'download',
         ratio: 0,
@@ -869,31 +1048,45 @@ export class ViewerEngine {
 
       const variant: ModelVariantKey = this.quality.getProfile().modelVariant
       const primary = toLoad[0]!
+
+      const layers = await this.models.loadLayers(
+        toLoad,
+        variant,
+        (p) => {
+          if (this.activeModelLoad?.generation === request.generation) {
+            this.events.onLoading?.(p)
+          }
+        },
+        this.currentStreamFocus(),
+        request.controller.signal,
+      )
+      this.assertCurrentModelLoad(request)
+      this.leaveWalkForReload()
+      this.modelAnim.dispose()
       this.controller.setParams({
         ...DEFAULT_CHARACTER_PARAMS,
         playerHeight: primary.playerHeight ?? DEFAULT_CHARACTER_PARAMS.playerHeight,
         playerRadius: primary.playerRadius ?? DEFAULT_CHARACTER_PARAMS.playerRadius,
         eyeHeight: primary.eyeHeight ?? DEFAULT_CHARACTER_PARAMS.eyeHeight,
       })
-
-      const layers = await this.models.loadLayers(
-        toLoad,
-        variant,
-        (p) => this.events.onLoading?.(p),
-        this.currentStreamFocus(),
-      )
-      await this.afterLayersLoaded(layers)
+      await this.afterLayersLoaded(layers, { loadRequest: request })
     } catch (err) {
+      if (this.isSupersededLoad(err)) {
+        if (options?.rethrowErrors) throw err
+        return
+      }
       const msg = err instanceof Error ? err.message : String(err)
       this.events.onError?.(`Failed to load models: ${msg}`)
       this.events.onLoading?.({ stage: 'error', ratio: null, message: msg })
+      if (options?.rethrowErrors) throw err
     }
   }
 
   private async addModelLayer(entry: ModelManifestEntry): Promise<void> {
+    const missing = this.expandWithPatches([entry]).filter((e) => !this.models.getLayer(e.id))
+    if (missing.length === 0) return
+    const request = this.beginModelLoad()
     try {
-      const missing = this.expandWithPatches([entry]).filter((e) => !this.models.getLayer(e.id))
-      if (missing.length === 0) return
       this.events.onLoading?.({ stage: 'download', ratio: 0, message: `Loading ${entry.name}` })
       const variant: ModelVariantKey = this.quality.getProfile().modelVariant
       let focusNew: LoadedModelLayer | undefined
@@ -901,15 +1094,23 @@ export class ViewerEngine {
         const layer = await this.models.addLayer(
           next,
           variant,
-          (p) => this.events.onLoading?.(p),
+          (p) => {
+            if (this.activeModelLoad?.generation === request.generation) {
+              this.events.onLoading?.(p)
+            }
+          },
           this.currentStreamFocus(),
+          request.controller.signal,
         )
+        this.assertCurrentModelLoad(request)
         if (next.id === entry.id) focusNew = layer
       }
       await this.afterLayersLoaded(this.models.listLayers(), {
         focusNew: focusNew ?? this.models.getLayer(entry.id) ?? undefined,
+        loadRequest: request,
       })
     } catch (err) {
+      if (this.isSupersededLoad(err)) return
       const msg = err instanceof Error ? err.message : String(err)
       this.events.onError?.(`Failed to load ${entry.name}: ${msg}`)
       this.events.onLoading?.({ stage: 'error', ratio: null, message: msg })
@@ -939,6 +1140,7 @@ export class ViewerEngine {
   private async buildCollisionForLayers(
     targets: LoadedModelLayer[],
     allLayers: LoadedModelLayer[],
+    signal?: AbortSignal,
   ): Promise<void> {
     const focusSeed =
       this.mode === 'walk' || this.xr.isActive()
@@ -946,14 +1148,18 @@ export class ViewerEngine {
         : this.orbit.controls.target
     try {
       for (const layer of targets) {
-        await this.ensureLayerCollision(layer, { silent: true })
+        await this.ensureLayerCollision(layer, { silent: true, signal })
       }
+      if (signal?.aborted) return
       await this.collision.rebuildFromLayers(
         allLayers.map((l) => l.id),
         focusSeed,
       )
+      this.collision.retainLayers(allLayers.map((l) => l.id))
       this.pegman.setWorld(this.collision, this.models.root)
+      this.events.onLoading?.({ stage: 'ready', ratio: 1, message: 'Ready' })
     } catch (err) {
+      if (signal?.aborted) return
       const msg = err instanceof Error ? err.message : String(err)
       console.warn('[Collision] deferred build failed', err)
       this.events.onError?.(`Walk collision update failed: ${msg}`)
@@ -962,49 +1168,63 @@ export class ViewerEngine {
 
   private async ensureLayerCollision(
     layer: LoadedModelLayer,
-    opts?: { silent?: boolean },
+    opts?: { silent?: boolean; signal?: AbortSignal },
   ): Promise<void> {
-    const MIN_DEDICATED_TRIANGLES = 1000
-    const COARSE_DEDICATED_MAX = 500_000
+    const prepared = this.models.takePreparedStreamingCollision(layer.id)
+    if (prepared) {
+      this.installDedicatedCollision(layer, prepared.chunks, prepared.report)
+      return
+    }
 
     if (layer.entry.collision) {
       let disposableCollision: import('three').Object3D | null = null
+      let dedicatedFailure: unknown = null
       try {
         disposableCollision = await this.models.loadCollisionRoot(
           layer.entry,
           opts?.silent ? undefined : (p) => this.events.onLoading?.(p),
+          opts?.signal,
         )
         if (disposableCollision) {
-          const dedicated = buildCollisionChunks(disposableCollision, {
-            layerId: `${layer.id}:proxy`,
-            verbose: true,
-            ignoreVisibility: true,
-            walkSurfacesOnly: true,
-          })
-          const tris = dedicated.chunks.reduce((s, c) => s + c.triangles, 0)
-          const ok =
-            dedicated.chunks.length > 0 &&
-            tris >= MIN_DEDICATED_TRIANGLES &&
-            dedicated.report.preferredColliders &&
-            tris <= COARSE_DEDICATED_MAX
-          if (ok) {
-            this.installDedicatedCollision(layer.id, dedicated.chunks, dedicated.report)
+          const validation = validateDedicatedCollisionRoot(disposableCollision, layer.id, true)
+          if (validation.valid && validation.collision) {
+            this.installDedicatedCollision(
+              layer,
+              validation.collision.chunks,
+              validation.collision.report,
+            )
             return
           }
+          dedicatedFailure = new Error(
+            `Dedicated collision failed validation for ${layer.id}: ${validation.reason ?? 'unknown reason'}`,
+          )
           console.warn(
-            `[Collision] ${layer.id}: dedicated failed validation ` +
-              `(chunks=${dedicated.chunks.length}, tris=${Math.round(tris)}, preferred=${dedicated.report.preferredColliders}); using visual`,
+            `[Collision] ${layer.id}: ${validation.reason ?? 'dedicated validation failed'}`,
           )
         }
       } catch (err) {
-        console.warn(`[Collision] dedicated GLB failed for ${layer.id}, using visual`, err)
+        if (opts?.signal?.aborted) throw err
+        dedicatedFailure = err
+        console.warn(`[Collision] dedicated GLB failed for ${layer.id}`, err)
       } finally {
         if (disposableCollision) disposeObject3D(disposableCollision)
+      }
+
+      if (!allowsVisualCollisionFallback(layer.streaming)) {
+        const failure = dedicatedFailure ?? new Error(`Dedicated collision is unavailable for ${layer.id}`)
+        await this.models.requestStreamingFailover(layer.id, failure, opts?.signal)
+        throw failure
       }
     }
 
     // Visual geometry is a fallback only. Do not clone, retain, or rebuild it
-    // when a valid dedicated collision file exists.
+    // when a valid dedicated collision file exists. Streamed shell/detail
+    // geometry is intentionally never eligible because it is spatially incomplete.
+    if (!allowsVisualCollisionFallback(layer.streaming)) {
+      const failure = new Error(`Streaming layer ${layer.id} has no complete dedicated collision`)
+      await this.models.requestStreamingFailover(layer.id, failure, opts?.signal)
+      throw failure
+    }
     const visualBuilt = buildCollisionChunks(layer.root, {
       layerId: layer.id,
       verbose: true,
@@ -1021,24 +1241,97 @@ export class ViewerEngine {
   }
 
   private installDedicatedCollision(
-    layerId: string,
+    layer: LoadedModelLayer,
     dedicated: CollisionChunkSource[],
     dedicatedReport: CollisionBuildReport,
   ): void {
+    const dedicatedNames = dedicated.flatMap((chunk) => chunk.sourceNames ?? [])
+    const missingBridgeDeck = (mesh: Mesh): boolean => {
+      if (!isIcmBridgeCollisionSupplement(mesh)) return false
+      const expected = mesh.name.toLowerCase()
+      return !dedicatedNames.some((rawName) => {
+        const authored = rawName.replace(/^COLLIDER_/i, '').toLowerCase()
+        // Exact match only: generic authored floors such as floor_bt2_eg are
+        // unrelated to the bridge mesh named Floor and must not suppress it.
+        return authored === expected
+      })
+    }
+    const missingAnimatedWalkSurface = (mesh: Mesh): boolean =>
+      layer.id === 'icm-anim-2025' && isIcmAnimatedWalkCollisionSupplement(mesh)
+    const needsVisualSupplement = (mesh: Mesh): boolean =>
+      missingBridgeDeck(mesh) || missingAnimatedWalkSurface(mesh)
+    const supplemental = buildCollisionChunks(layer.root, {
+      layerId: layer.id,
+      verbose: false,
+      ignoreVisibility: true,
+      walkSurfacesOnly: true,
+      includeMesh: needsVisualSupplement,
+      isExplicitWalkable: needsVisualSupplement,
+      doubleSided: true,
+    })
+    let landingSupplement: ReturnType<typeof buildCollisionChunks> | null = null
+    if (layer.id === 'icm-anim-2025') {
+      const landingRoot = new Group()
+      for (const spec of ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS) {
+        // The omitted source floor spans the entire stairwell. Merging it
+        // wholesale creates an invisible upper floor over both flights, so
+        // cover only the verified 40.56..42.05 m exit gaps.
+        const geometry = new PlaneGeometry(1.35, 1.49)
+        geometry.rotateX(-Math.PI / 2)
+        const landing = new Mesh(geometry)
+        landing.name = `COLLIDER_stair_landing_${spec.name}`
+        landing.position.set(spec.centerX, 10.00005, spec.centerZ)
+        landingRoot.add(landing)
+      }
+      landingRoot.updateMatrixWorld(true)
+      landingSupplement = buildCollisionChunks(landingRoot, {
+        layerId: layer.id,
+        verbose: false,
+        ignoreVisibility: true,
+        walkSurfacesOnly: true,
+        isExplicitWalkable: () => true,
+        doubleSided: true,
+      })
+      disposeObject3D(landingRoot)
+    }
+    const supplementReports = [supplemental.report, landingSupplement?.report].filter(
+      (entry): entry is CollisionBuildReport => Boolean(entry),
+    )
+    const chunks = [
+      ...dedicated,
+      ...supplemental.chunks,
+      ...(landingSupplement?.chunks ?? []),
+    ]
     const report = {
       ...dedicatedReport,
       preferredColliders: true,
-      chunks: dedicated.length,
-      triangles: dedicated.reduce((s, c) => s + c.triangles, 0),
+      sourceMeshes:
+        dedicatedReport.sourceMeshes +
+        supplementReports.reduce((sum, entry) => sum + entry.sourceMeshes, 0),
+      usedMeshes:
+        dedicatedReport.usedMeshes +
+        supplementReports.reduce((sum, entry) => sum + entry.usedMeshes, 0),
+      chunks: chunks.length,
+      triangles: chunks.reduce((s, c) => s + c.triangles, 0),
+      selected: [
+        ...dedicatedReport.selected,
+        ...supplementReports.flatMap((entry) => entry.selected),
+      ],
     }
+    const supplementChunkCount = supplementReports.reduce((sum, entry) => sum + entry.chunks, 0)
+    const supplementTriangles = supplementReports.reduce((sum, entry) => sum + entry.triangles, 0)
+    const supplementLabel = supplementChunkCount
+      ? ` + visual walk supplement ${supplementChunkCount} chunks/${Math.round(supplementTriangles)} tris`
+      : ''
     console.info(
-      `[Collision] ${layerId}: dedicated-only · ` +
-        `${dedicated.length} chunks · ${Math.round(report.triangles)} tris`,
+      `[Collision] ${layer.id}: dedicated · ` +
+        `${chunks.length} chunks · ${Math.round(report.triangles)} tris${supplementLabel}`,
     )
-    this.collision.setLayerChunks(layerId, dedicated, report)
+    this.collision.setLayerChunks(layer.id, chunks, report)
   }
 
   private leaveWalkForReload(): void {
+    this.collision.setQueryLayer(null)
     if (this.mode !== 'walk') return
     this.walk.deactivate()
     this.orbit.setEnabled(true)
@@ -1050,8 +1343,10 @@ export class ViewerEngine {
 
   private async afterLayersLoaded(
     layers: LoadedModelLayer[],
-    opts?: { focusNew?: LoadedModelLayer },
+    opts?: { focusNew?: LoadedModelLayer; loadRequest?: ModelLoadRequest },
   ): Promise<void> {
+    const loadRequest = opts?.loadRequest
+    if (loadRequest) this.assertCurrentModelLoad(loadRequest)
     this.events.onLoading?.({ stage: 'collision', ratio: 0.97, message: 'Preparing collision' })
 
     const combinedRoot = this.models.root
@@ -1059,7 +1354,12 @@ export class ViewerEngine {
     this.bounds = bounds
     this.applyCameraNearFar(bounds)
 
-    await this.resolveSpatialMeta(layers)
+    const spatialMeta = await this.resolveSpatialMeta(
+      layers,
+      loadRequest?.controller.signal,
+    )
+    if (loadRequest) this.assertCurrentModelLoad(loadRequest)
+    this.spatialMeta = spatialMeta
     this.wireStreamLoaders(layers)
 
     this.clipHostPatches(layers)
@@ -1089,6 +1389,7 @@ export class ViewerEngine {
       })
       if (layer.entry.lightmap) {
         await applyLightmaps(layer.root, layer.entry)
+        if (loadRequest) this.assertCurrentModelLoad(loadRequest)
       }
     }
 
@@ -1100,10 +1401,19 @@ export class ViewerEngine {
       return true
     })
     if (lazyLayer) {
-      void this.buildCollisionForLayers(collisionTargets, layers)
+      // Keep rendering the newly selected layer while its collision is prepared,
+      // but do not allow a drop into a partially rebuilt/single-layer world.
+      // buildCollisionForLayers restores Pegman atomically when both layers are resident.
+      this.pegman.setWorld(null, combinedRoot)
+      void this.buildCollisionForLayers(
+        collisionTargets,
+        layers,
+        loadRequest?.controller.signal,
+      )
     } else {
       for (const layer of collisionTargets) {
-        await this.ensureLayerCollision(layer)
+        await this.ensureLayerCollision(layer, { signal: loadRequest?.controller.signal })
+        if (loadRequest) this.assertCurrentModelLoad(loadRequest)
       }
     }
 
@@ -1143,6 +1453,8 @@ export class ViewerEngine {
     let collisionInfo = { ms: 0 }
     if (!lazyLayer) {
       collisionInfo = await this.collision.rebuildFromLayers(collisionLayerIds, focusSeed)
+      if (loadRequest) this.assertCurrentModelLoad(loadRequest)
+      this.collision.retainLayers(collisionLayerIds)
       this.pegman.setWorld(this.collision, combinedRoot)
     }
     this.floorZones.update(focusSeed.y, focusSeed.x, focusSeed.z)
@@ -1180,10 +1492,11 @@ export class ViewerEngine {
     })
     this.events.onStats?.(this.staticStats)
 
-    await this.applyCameraViewDefaults(bounds)
+    await this.applyCameraViewDefaults(bounds, loadRequest?.controller.signal)
+    if (loadRequest) this.assertCurrentModelLoad(loadRequest)
 
     const spawnEntry = layers.find((l) => l.entry.spawn)?.entry
-    if (spawnEntry?.spawn) {
+    if (spawnEntry?.spawn && !this.xr.isActive()) {
       this.controller.setFeetPosition(new Vector3(...spawnEntry.spawn))
     }
 
@@ -1194,15 +1507,14 @@ export class ViewerEngine {
         this.renderer.compileAsync(this.scene, this.camera),
         new Promise<void>((resolve) => window.setTimeout(resolve, 8000)),
       ])
+      if (loadRequest) this.assertCurrentModelLoad(loadRequest)
     } catch (err) {
+      if (this.isSupersededLoad(err)) throw err
       console.warn('[Viewer] compileAsync failed', err)
     }
 
     // Lazy-loaded layers should not yank the camera back to Overview.
-    if (!opts?.focusNew) {
-      this.events.onLoading?.({ stage: 'scene', ratio: 0.995, message: 'Capturing view thumbnails' })
-      this.bakeCameraViewThumbnails()
-
+    if (!opts?.focusNew && !this.xr.isActive()) {
       if (this.goldenPreviewMode) {
         const cam = cameraForGoldenPreview(this.goldenPreviewMode)
         this.orbit.goTo(cam.position, cam.target, { fov: cam.fov ?? 55, duration: 0.01 })
@@ -1226,6 +1538,10 @@ export class ViewerEngine {
 
     this.events.onLoading?.({ stage: 'ready', ratio: 1, message: 'Ready' })
     this.emitModels()
+    if (!opts?.focusNew && !this.xr.isActive()) {
+      this.thumbnailCaptureAttempts.clear()
+      this.scheduleCameraViewThumbnails()
+    }
   }
 
   private applySpatialScene(bounds: SceneBounds, floorBandHeight?: number): void {
@@ -1255,17 +1571,22 @@ export class ViewerEngine {
     }
   }
 
-  private async resolveSpatialMeta(layers: LoadedModelLayer[]): Promise<void> {
+  private async resolveSpatialMeta(
+    layers: LoadedModelLayer[],
+    signal?: AbortSignal,
+  ): Promise<SpatialMetaFile | null> {
     for (const layer of layers) {
+      if (signal?.aborted) throw new DOMException('Model load was superseded', 'AbortError')
       const url = layer.entry.spatialMeta
       if (!url) continue
       const meta = await fetchSpatialMeta(url)
+      if (signal?.aborted) throw new DOMException('Model load was superseded', 'AbortError')
       if (meta) {
-        this.spatialMeta = meta
         console.info(`[Spatial] loaded meta from ${url}`)
-        return
+        return meta
       }
     }
+    return null
   }
 
   private applyStreamingFloorPolicy(): void {
@@ -1333,9 +1654,10 @@ export class ViewerEngine {
   }
 
   /**
-   * Dual-layer orbit: hide only plaza/terrain copies and outdoor props on the
-   * animated layer. Never hide roofs, walls, or glass — that punched holes in
-   * the shell. Walk restores everything.
+   * Dual-layer orbit: hide only animated meshes with explicit exterior-layer
+   * ownership (or the prepared façade-shutter role). Names, materials, and
+   * low/large bounds are not ownership proof; those heuristics punched holes
+   * through walkways and connector floors. Walk restores every tagged copy.
    */
   private applyOrbitDuplicateHide(): void {
     if (!this.orbitDupTagged) this.tagOrbitDuplicates()
@@ -1376,7 +1698,6 @@ export class ViewerEngine {
   }
 
   private tagOrbitDuplicates(): void {
-    const bounds = this.bounds
     const previousMatches = new Set(this.orbitDuplicateMeshes)
     const nextMatches: Mesh[] = []
     this.orbitDupTagged = true
@@ -1391,7 +1712,7 @@ export class ViewerEngine {
           this.orbitAlwaysHiddenMeshes.push(mesh)
           return
         }
-        const match = isOrbitDuplicateMesh(mesh, bounds)
+        const match = isOrbitDuplicateMesh(mesh)
         mesh.userData.orbitDupKind = match
         mesh.userData.orbitDuplicate = undefined
         if (match) {
@@ -1404,8 +1725,8 @@ export class ViewerEngine {
       })
     }
 
-    // Bounds changes / repacking can change classification. Restore anything
-    // that was hidden by the previous cache but no longer belongs to it.
+    // Repacking or refreshed metadata can change classification. Restore
+    // anything hidden by the previous cache but no longer explicitly owned.
     for (const mesh of previousMatches) {
       if (mesh.userData.orbitDupBase === undefined) continue
       const restore = Boolean(mesh.userData.orbitDupBase)
@@ -1442,10 +1763,9 @@ export class ViewerEngine {
       if (!stream) continue
       stream.setOnChange((ev) => {
         if (ev.loaded.length || ev.unloaded.length) {
-          void this.models.refreshStreamingAnimations(ev.layerId).then(() => {
-            this.rebindModelAnimation()
-          })
-          if (ev.loaded.length || ev.unloaded.length) this.scheduleStreamSceneRefresh()
+          // Manifest-v3 package swaps never replace the persistent rig or its
+          // clips, so keep the current mixer binding and transport untouched.
+          this.scheduleStreamSceneRefresh()
         }
       })
     }
@@ -1460,14 +1780,17 @@ export class ViewerEngine {
   }
 
   private async refreshStreamScene(): Promise<void> {
+    const generation = this.modelLoadGeneration
+    const layers = this.models.listLayers()
+    if (this.disposed) return
     const combinedRoot = this.models.root
     const bounds = computeSceneBounds(combinedRoot)
     if (bounds.box.isEmpty()) return
     this.bounds = bounds
     this.applyCameraNearFar(bounds)
 
-    for (let i = 0; i < this.models.listLayers().length; i++) {
-      const layer = this.models.listLayers()[i]!
+    for (let i = 0; i < layers.length; i++) {
+      const layer = layers[i]!
       if (!layer.streaming) continue
       const layerAnimatedNames = collectAnimatedNodeNames(layer.result.animations ?? [])
       const matDedupe = dedupeSceneMaterials(layer.root)
@@ -1484,17 +1807,26 @@ export class ViewerEngine {
       })
       if (layer.entry.lightmap) {
         await applyLightmaps(layer.root, layer.entry)
+        if (
+          this.disposed ||
+          generation !== this.modelLoadGeneration ||
+          this.models.getLayer(layer.id) !== layer
+        ) {
+          return
+        }
       }
     }
 
+    if (this.disposed || generation !== this.modelLoadGeneration) return
+
     const animatedNames = new Set<string>()
-    for (const layer of this.models.listLayers()) {
+    for (const layer of layers) {
       for (const clip of layer.result.animations ?? []) {
         for (const name of collectAnimatedNodeNames([clip])) animatedNames.add(name)
       }
     }
     const q = this.quality.getProfile()
-    const floorBand = this.models.listLayers()[0]?.entry.floorBandHeight
+    const floorBand = layers[0]?.entry.floorBandHeight
     this.instancingReport = applyProceduralInstancing(combinedRoot, {
       minInstances: q.minInstances,
       minBatchSize: q.minBatchSize,
@@ -1508,11 +1840,11 @@ export class ViewerEngine {
     this.detailLod.update(this.camera)
     this.lighting.requestShadowUpdate()
     this.shadowFramesLeft = 2
-    this.rebindModelAnimation()
   }
 
   /** Bind embedded GLB animation to the correct scene root (streaming shell or full layer). */
   private rebindModelAnimation(): void {
+    const generation = this.modelLoadGeneration
     const animLayer = this.models
       .listLayers()
       .find((l) => l.visible && (l.result.animations?.length ?? 0) > 0)
@@ -1522,7 +1854,17 @@ export class ViewerEngine {
       return
     }
 
-    void this.models.refreshStreamingAnimations(animLayer.id).then((clips) => {
+    void this.models.refreshStreamingAnimations(
+      animLayer.id,
+      this.activeModelLoad?.controller.signal,
+    ).then((clips) => {
+      if (
+        this.disposed ||
+        generation !== this.modelLoadGeneration ||
+        this.models.getLayer(animLayer.id) !== animLayer
+      ) {
+        return
+      }
       const active = clips.length ? clips : animLayer.result.animations
       if (!active.length) {
         this.modelAnim.dispose()
@@ -1536,36 +1878,92 @@ export class ViewerEngine {
         autoPlay,
         loop: false,
         label: animLayer.entry.name,
+        preserveState: true,
+        stateKey: animLayer.id,
       })
       this.emitAnimation()
+    }).catch((err) => {
+      if (!this.isSupersededLoad(err)) {
+        console.warn(`[Viewer] animation rebind failed for ${animLayer.id}`, err)
+      }
     })
   }
 
-  private async flushStreamingFocus(focus: import('three').Vector3): Promise<void> {
-    if (this.streamSyncBusy || !this.models.hasStreamingLayers()) return
-    const now = performance.now()
-    if (now - this.lastStreamSyncMs < 400) return
-    this.streamSyncBusy = true
-    this.lastStreamSyncMs = now
-    try {
-      await this.models.updateStreamingFocus(focus)
-    } finally {
-      this.streamSyncBusy = false
+  private flushStreamingFocus(focus: import('three').Vector3): void {
+    if (!this.models.hasStreamingLayers()) {
+      this.queuedStreamFocus = null
+      return
+    }
+
+    // The render loop can run much faster than package fetch/parse. Keep only
+    // the newest focus while one serialized drain owns ModelManager syncing.
+    this.queuedStreamFocus = { x: focus.x, y: focus.y, z: focus.z }
+    this.startStreamingFocusDrain()
+  }
+
+  private startStreamingFocusDrain(): void {
+    if (this.streamFocusDrain) return
+
+    const drain = this.drainStreamingFocus()
+    this.streamFocusDrain = drain
+    void drain.finally(() => {
+      if (this.streamFocusDrain !== drain) return
+      this.streamFocusDrain = null
+      if (!this.disposed && this.queuedStreamFocus && this.models.hasStreamingLayers()) {
+        this.startStreamingFocusDrain()
+      }
+    })
+  }
+
+  private async drainStreamingFocus(): Promise<void> {
+    while (!this.disposed && this.queuedStreamFocus && this.models.hasStreamingLayers()) {
+      const remainingMs = this.streamFocusIntervalMs - (performance.now() - this.lastStreamSyncMs)
+      if (remainingMs > 0) await this.sleep(remainingMs)
+      if (this.disposed || !this.models.hasStreamingLayers()) return
+
+      // Focus may have changed while throttling; consume the latest snapshot.
+      const focus = this.queuedStreamFocus
+      if (!focus) return
+      this.queuedStreamFocus = null
+      this.lastStreamSyncMs = performance.now()
+      try {
+        await this.models.updateStreamingFocus(
+          focus,
+          undefined,
+          this.activeModelLoad?.controller.signal,
+        )
+      } catch (err) {
+        if (!this.isSupersededLoad(err)) {
+          const message = err instanceof Error ? err.message : String(err)
+          console.warn('[Viewer] cell streaming update/recovery failed', err)
+          this.events.onError?.(
+            `Streaming recovery failed; the last resident scene remains active: ${message}`,
+          )
+        }
+      }
     }
   }
 
   private refreshSceneAfterLayerChange(): void {
+    const generation = this.modelLoadGeneration
+    const signal = this.activeModelLoad?.controller.signal
     const combinedRoot = this.models.root
     const bounds = computeSceneBounds(combinedRoot)
     this.bounds = bounds
     this.applyCameraNearFar(bounds)
     const floorBand = this.models.listLayers()[0]?.entry.floorBandHeight
     this.refreshSpatialSystems(combinedRoot, bounds, floorBand)
-    void this.applyCameraViewDefaults(bounds).then(() => {
-      if (this.cameraViews.viewsMissingThumbnails().length) {
-        this.bakeCameraViewThumbnails()
-      }
-    })
+    void this.applyCameraViewDefaults(bounds, signal)
+      .then(() => {
+        if (this.disposed || generation !== this.modelLoadGeneration) return
+        if (this.cameraViews.viewsMissingThumbnails().length) {
+          this.thumbnailCaptureAttempts.clear()
+          this.scheduleCameraViewThumbnails()
+        }
+      })
+      .catch((err) => {
+        if (!this.isSupersededLoad(err)) console.warn('[Viewer] camera view refresh failed', err)
+      })
 
     const allLayers = this.models.listLayers()
     const collisionLayerIds = allLayers.map((l) => l.id)
@@ -1576,7 +1974,9 @@ export class ViewerEngine {
 
     // Re-bake any loaded layer that is missing / too thin (animated interior alone).
     void (async () => {
+      try {
       for (const layer of allLayers) {
+        if (this.disposed || signal?.aborted || generation !== this.modelLoadGeneration) return
         if (layer.entry.compareVisual) continue
         const tris = this.collision.layerTriangleCount(layer.id)
         if (layer.entry.lightmap && !layer.entry.collision) {
@@ -1586,7 +1986,7 @@ export class ViewerEngine {
               ratio: 0.97,
               message: `Preparing collision · ${layer.entry.name}`,
             })
-            await this.ensureLayerCollision(layer)
+            await this.ensureLayerCollision(layer, { signal })
           }
           continue
         }
@@ -1596,10 +1996,13 @@ export class ViewerEngine {
             ratio: 0.97,
             message: `Preparing collision · ${layer.entry.name}`,
           })
-          await this.ensureLayerCollision(layer)
+          await this.ensureLayerCollision(layer, { signal })
         }
       }
+      if (this.disposed || signal?.aborted || generation !== this.modelLoadGeneration) return
       const info = await this.collision.rebuildFromLayers(collisionLayerIds, focusSeed)
+      if (this.disposed || signal?.aborted || generation !== this.modelLoadGeneration) return
+      this.collision.retainLayers(collisionLayerIds)
       this.pegman.setWorld(this.collision, combinedRoot)
       this.floorZones.update(focusSeed.y, focusSeed.x, focusSeed.z)
       this.lighting.fitToBounds(bounds)
@@ -1616,6 +2019,12 @@ export class ViewerEngine {
       })
       this.events.onStats?.(this.staticStats)
       this.events.onLoading?.({ stage: 'ready', ratio: 1, message: 'Ready' })
+      } catch (err) {
+        if (!this.isSupersededLoad(err)) {
+          console.warn('[Viewer] layer visibility refresh failed', err)
+          this.events.onError?.('Failed to refresh model visibility collision.')
+        }
+      }
     })()
   }
 
@@ -1633,6 +2042,98 @@ export class ViewerEngine {
     this.pageVisible = document.visibilityState !== 'hidden'
     if (this.pageVisible) this.clock.last = performance.now()
   }
+  private readonly onContextLost = (event: Event): void => {
+    event.preventDefault()
+    this.contextLost = true
+    this.cancelThumbnailTask()
+    this.perf.attachRenderer(null)
+    const now = performance.now()
+    this.contextLossTimes = this.contextLossTimes.filter((time) => now - time < 60_000)
+    this.contextLossTimes.push(now)
+    this.events.onLoading?.({
+      stage: 'error',
+      ratio: null,
+      message: 'Graphics context lost - recovering...',
+    })
+
+    if (this.contextRestoreTimer) window.clearTimeout(this.contextRestoreTimer)
+    this.contextRestoreTimer = window.setTimeout(() => {
+      this.contextRestoreTimer = null
+      if (!this.contextLost || this.disposed) return
+      if (this.contextLossTimes.length >= 2) {
+        const previousVariant = this.quality.getProfile().modelVariant
+        const recoveryProfile = this.quality.setPreferred('QUEST')
+        if (recoveryProfile.modelVariant !== previousVariant) {
+          this.contextRecoveryNeedsModelReload = true
+        }
+        this.events.onQuality?.(this.quality.getPreferred())
+        console.warn('[Viewer] Repeated WebGL loss; recovery will use Performance quality')
+        // applyQuality is deferred until a valid context is restored.
+      }
+      try {
+        this.contextRestoreTimer = window.setTimeout(() => {
+          this.contextRestoreTimer = null
+          if (this.contextLost && !this.disposed) {
+            this.events.onError?.('Graphics recovery timed out. Reload the page to continue.')
+          }
+        }, 8_000)
+        this.renderer.forceContextRestore()
+      } catch {
+        if (this.contextRestoreTimer) window.clearTimeout(this.contextRestoreTimer)
+        this.contextRestoreTimer = null
+        this.events.onError?.('Graphics recovery failed. Reload the page to continue.')
+      }
+    }, 4_000)
+  }
+
+  private readonly onContextRestored = (): void => {
+    if (this.disposed) return
+    if (this.contextRestoreTimer) {
+      window.clearTimeout(this.contextRestoreTimer)
+      this.contextRestoreTimer = null
+    }
+    this.contextLost = false
+    this.renderer.resetState()
+    this.perf.attachRenderer(this.renderer.getContext())
+    this.lighting.configureRenderer(this.renderer)
+    this.applyQuality(this.quality.getProfile())
+    this.runtimeAntialias.resetAfterContextRestore()
+    this.resize()
+    this.clock.last = performance.now()
+    this.lighting.requestShadowUpdate()
+    this.shadowFramesLeft = 3
+
+    const recoveryGeneration = this.modelLoadGeneration
+    const reloadEntries = this.contextRecoveryNeedsModelReload && this.manifest
+      ? this.models
+          .listLayers()
+          .map((layer) => this.manifest!.models.find((entry) => entry.id === layer.id))
+          .filter((entry): entry is ModelManifestEntry => Boolean(entry))
+      : []
+    this.contextRecoveryNeedsModelReload = false
+
+    void Promise.race([
+      this.renderer.compileAsync(this.scene, this.camera),
+      new Promise<void>((resolve) => window.setTimeout(resolve, 8_000)),
+    ])
+      .catch((err) => console.warn('[Viewer] Shader rebuild after context restore failed', err))
+      .then(async () => {
+        if (
+          reloadEntries.length &&
+          !this.disposed &&
+          !this.contextLost &&
+          this.modelLoadGeneration === recoveryGeneration
+        ) {
+          await this.loadModelSet(reloadEntries)
+        }
+      })
+      .finally(() => {
+        if (!this.disposed && !this.contextLost) {
+          this.events.onLoading?.({ stage: 'ready', ratio: 1, message: 'Graphics recovered' })
+          this.scheduleCameraViewThumbnails(500)
+        }
+      })
+  }
 
   resize(): void {
     const canvas = this.renderer.domElement
@@ -1642,6 +2143,7 @@ export class ViewerEngine {
     this.camera.aspect = w / Math.max(h, 1)
     this.camera.updateProjectionMatrix()
     this.renderer.setSize(w, h, false)
+    this.runtimeAntialias.resize(w, h, this.renderer.getPixelRatio())
   }
 
   private readonly tick = (): void => {
@@ -1650,6 +2152,8 @@ export class ViewerEngine {
     const rawDt = (now - this.clock.last) / 1000
     const dt = Math.min(0.05, rawDt)
     this.clock.last = now
+
+    if (this.contextLost) return
 
     // Tab hidden: skip GPU work (battery + thermal).
     if (!this.pageVisible && !this.xr.isActive()) {
@@ -1704,7 +2208,7 @@ export class ViewerEngine {
     }
 
     this.perf.beginGpu()
-    this.renderer.render(this.scene, this.camera)
+    this.runtimeAntialias.render(this.xr.isActive())
     this.perf.endGpu()
 
     if (this.shadowFramesLeft > 0) {
@@ -1724,9 +2228,7 @@ export class ViewerEngine {
       this.lastUiStats = now
       const info = this.renderer.info
       const profile = this.quality.getProfile()
-      const aa = this.renderer.capabilities.isWebGL2
-        ? (this.renderer.getContext() as WebGL2RenderingContext).getContextAttributes()?.antialias
-        : this.renderer.getContext().getContextAttributes()?.antialias
+      const aa = this.runtimeAntialias.getMode(this.xr.isActive())
       const live = this.perf.getSnapshot({
         width: this.renderer.domElement.width,
         height: this.renderer.domElement.height,
@@ -1737,7 +2239,7 @@ export class ViewerEngine {
         lines: info.render.lines,
         geometries: info.memory.geometries,
         textures: info.memory.textures,
-        qualityProfile: `${profile.id} · shadow ${this.lighting.shadows.isEnabled() ? `${this.lighting.shadows.getMapSize()} ${this.lighting.shadows.getFitMode()}` : 'off'}${aa ? ' · MSAA' : ''}`,
+        qualityProfile: `${profile.id} · shadow ${this.lighting.shadows.isEnabled() ? `${this.lighting.shadows.getMapSize()} ${this.lighting.shadows.getFitMode()}` : 'off'} · AA ${aa}`,
         detailLod: (() => {
           const lod = this.detailLod.getStats()
           const fz = this.floorZones.getStats()
@@ -1759,7 +2261,15 @@ export class ViewerEngine {
         xrFrameRate: this.xr.getFrameRate(),
         xrFoveation: this.xr.isActive() ? this.xr.getFoveation() : null,
       })
-      this.quality.noteFps(live.avgFps || live.fps)
+      this.quality.notePerformance({
+        fps: live.avgFps || live.fps,
+        rafP95Ms: live.rafP95Ms,
+        cpuP95Ms: live.cpuP95Ms,
+        gpuP95Ms: live.gpuP95Ms,
+        nowMs: now,
+        xrActive: live.xrActive,
+        xrFrameRate: live.xrFrameRate,
+      })
       if (this.quality.getPreferred() === 'AUTO' && !this.autoQualityBusy) {
         const next = this.quality.getProfile()
         if (next.id !== profile.id) {
@@ -1803,9 +2313,23 @@ export class ViewerEngine {
 
   dispose(): void {
     this.disposed = true
+    this.queuedStreamFocus = null
+    this.activeModelLoad?.controller.abort()
+    this.activeModelLoad = null
+    this.cancelThumbnailTask()
+    if (this.streamSceneRefreshTimer) {
+      clearTimeout(this.streamSceneRefreshTimer)
+      this.streamSceneRefreshTimer = null
+    }
+    if (this.contextRestoreTimer) {
+      window.clearTimeout(this.contextRestoreTimer)
+      this.contextRestoreTimer = null
+    }
     this.renderer.setAnimationLoop(null)
     window.removeEventListener('resize', this.onResize)
     document.removeEventListener('visibilitychange', this.onVisibility)
+    this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost)
+    this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored)
     this.walk.dispose()
     this.orbit.dispose()
     this.pegman.dispose()
@@ -1817,6 +2341,7 @@ export class ViewerEngine {
     this.floorZones.dispose()
     this.models.dispose()
     this.lighting.dispose()
+    this.runtimeAntialias.dispose()
     this.xr.dispose()
     this.renderer.dispose()
   }

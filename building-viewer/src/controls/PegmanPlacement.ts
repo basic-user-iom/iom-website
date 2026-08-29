@@ -8,22 +8,123 @@ import {
   Raycaster,
   Vector2,
   Vector3,
+  type Material,
   type PerspectiveCamera,
   type Object3D,
 } from 'three'
 import type { ICollisionWorld } from '../collision/types'
 import { isValidSpawnPoint, type CharacterController } from '../collision/CharacterController'
-import type { CharacterParams } from '../collision/types'
+import type { CharacterParams, CollisionHit, SpawnValidationResult } from '../collision/types'
+import {
+  isExplicitWalkableSurface,
+  isForbiddenWalkSurface,
+  objectPathLabel,
+} from '../scene/assetSemantics'
 
 const _ndc = new Vector2()
 const _hitPoint = new Vector3()
 const _hitNormal = new Vector3()
+const _supportOrigin = new Vector3()
+const _down = new Vector3(0, -1, 0)
+
+const VISIBLE_SUPPORT_TOLERANCE = 0.12
+const STAIR_SUPPORT_TOLERANCE = 0.16
 
 export type PegmanDropResult = {
   ok: boolean
   reason?: string
   point?: Vector3
   yaw?: number
+  /** Visible model layer that owns the selected walking surface. */
+  layerId?: string
+}
+
+export function finalizeVisiblePegmanDrop(
+  visibleResult: PegmanDropResult | null,
+): PegmanDropResult {
+  return visibleResult ?? {
+    ok: false,
+    reason: 'No eligible rendered walk surface under cursor',
+  }
+}
+
+export type PlacementSurface = CollisionHit & {
+  objectName?: string
+  materialName?: string
+  explicitWalkable?: boolean
+  stairSurface?: boolean
+}
+
+function faceMaterial(mesh: Mesh, materialIndex = 0): Material | null {
+  if (Array.isArray(mesh.material)) {
+    return mesh.material[materialIndex] ?? mesh.material[0] ?? null
+  }
+  return mesh.material ?? null
+}
+
+function isStairSurface(mesh: Mesh, material: Material): boolean {
+  return /stair|step|tread|riser|landing|treppe|stufe|stufen|podest|ramp/i.test(
+    `${objectPathLabel(mesh)} ${material.name || ''}`,
+  )
+}
+
+/**
+ * Authoritative placement gate: the rendered surface and same-layer collision
+ * support must agree vertically. This prevents invisible collision volumes
+ * from becoming spawn platforms while preserving authored stair tolerances.
+ */
+export function validateVisiblePlacementSurface(
+  world: ICollisionWorld,
+  surface: PlacementSurface,
+  params: CharacterParams,
+): SpawnValidationResult {
+  const previousLayer = world.getQueryLayer?.() ?? null
+  if (surface.layerId) world.setQueryLayer?.(surface.layerId)
+  try {
+    const tolerance = surface.stairSurface
+      ? STAIR_SUPPORT_TOLERANCE
+      : VISIBLE_SUPPORT_TOLERANCE
+    _supportOrigin.set(
+      surface.point.x,
+      surface.point.y + tolerance + 0.04,
+      surface.point.z,
+    )
+    const support =
+      world.raycastBestGround?.(
+        _supportOrigin,
+        tolerance * 2 + 0.08,
+        params.maxSlope,
+      ) ??
+      world.raycast(_supportOrigin, _down, tolerance * 2 + 0.08)
+    if (!support) {
+      return { ok: false, reason: 'Rendered surface has no matching walk support' }
+    }
+    if (
+      surface.layerId &&
+      support.layerId &&
+      surface.layerId !== support.layerId
+    ) {
+      return { ok: false, reason: 'Walk support belongs to another model layer' }
+    }
+    const heightError = Math.abs(support.point.y - surface.point.y)
+    if (heightError > tolerance) {
+      return {
+        ok: false,
+        reason: `Rendered/collision height mismatch (${heightError.toFixed(2)} m)`,
+      }
+    }
+    const supportNormal = support.normal.clone()
+    if (supportNormal.y < 0) supportNormal.negate()
+    return isValidSpawnPoint(
+      world,
+      support.point.clone(),
+      supportNormal,
+      params,
+      surface.objectName,
+    )
+  } finally {
+    world.setQueryLayer?.(previousLayer)
+  }
 }
 
 /**
@@ -133,7 +234,7 @@ export class PegmanPlacement {
         this.raycaster.ray.origin,
         this.raycaster.ray.direction,
         2000,
-      ) ?? this.raycastVisualFallback()
+      ) ?? this.raycastVisualSurface()
     if (!hit) {
       this.setValidity(false, 'No surface under cursor')
       this.preview.visible = false
@@ -145,21 +246,13 @@ export class PegmanPlacement {
     // Face normals can point away from the camera on double-sided decks.
     if (_hitNormal.dot(this.raycaster.ray.direction) > 0) _hitNormal.negate()
 
-    // Prefer the topmost walkable slab under the cursor (dual-layer floors).
-    if (this.world.raycastBestGround) {
-      const probeY = _hitPoint.y + 1.6
-      const best = this.world.raycastBestGround(
-        new Vector3(_hitPoint.x, probeY, _hitPoint.z),
-        3.2,
-        0.45,
-      )
-      if (best && best.point.y >= _hitPoint.y - 0.02) {
-        _hitPoint.copy(best.point)
-        _hitNormal.copy(best.normal)
-      }
-    }
-
-    const validation = isValidSpawnPoint(this.world, _hitPoint, _hitNormal, this.params)
+    // Validate against the hit's own layer. A globally merged capsule query can
+    // otherwise let an overlapping interior/platform collider reject exterior paving.
+    const validation = this.validateSurface({
+      ...hit,
+      point: _hitPoint,
+      normal: _hitNormal,
+    })
     this.lastPoint = validation.point ?? hit.point.clone()
     this.lastYaw = Math.atan2(
       this.camera.position.x - _hitPoint.x,
@@ -171,41 +264,111 @@ export class PegmanPlacement {
     this.ghost.rotation.y = this.lastYaw + Math.PI
   }
 
-  /** When dedicated collision misses plaza tiles, pick horizontal visual meshes. */
-  private raycastVisualFallback(): { point: Vector3; normal: Vector3; distance: number } | null {
+  /**
+   * Pick the surface that is actually rendered and preserve its model-layer owner.
+   * This runs as a fallback during drag and once on pointer-up for authoritative
+   * placement; the latter prevents invisible overlapping collision from winning.
+   */
+  private raycastVisualSurface(): PlacementSurface | null {
     if (!this.modelRoot) return null
-    const hits = this.raycaster.intersectObject(this.modelRoot, true)
-    for (const hit of hits) {
-      const mesh = hit.object as Mesh
-      if (!mesh?.isMesh) continue
-      if (mesh.userData?.collisionOnly) continue
-      if (mesh.userData?.architecturalGlass) continue
-      const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-      if (mats.some((m) => m && (m.transparent || m.opacity < 0.95))) continue
-      const n = hit.face?.normal
-        ? hit.face.normal.clone().transformDirection(mesh.matrixWorld).normalize()
-        : new Vector3(0, 1, 0)
-      if (n.dot(this.raycaster.ray.direction) > 0) n.negate()
-      // Prefer walkable-ish surfaces (not steep walls).
-      if (n.y < 0.45) continue
-      return { point: hit.point.clone(), normal: n, distance: hit.distance }
+    let best: PlacementSurface | null = null
+    const layerRoots = this.modelRoot.children.length ? this.modelRoot.children : [this.modelRoot]
+    for (const layerRoot of layerRoots) {
+      if (!layerRoot.visible) continue
+      const layerId =
+        typeof layerRoot.userData?.layerId === 'string'
+          ? layerRoot.userData.layerId
+          : layerRoot.name.startsWith('Model:')
+            ? layerRoot.name.slice('Model:'.length)
+            : undefined
+      const hits = this.raycaster.intersectObject(layerRoot, true)
+      for (const hit of hits) {
+        if (best && hit.distance >= best.distance) break
+        const mesh = hit.object as Mesh
+        if (!mesh?.isMesh || !this.isVisibleWithinLayer(mesh, layerRoot)) continue
+        if (mesh.userData?.collisionOnly) continue
+        // A mixed-material object must be judged by the intersected slot only;
+        // rejecting every slot hid valid floors attached to a glass assembly.
+        const material = faceMaterial(mesh, hit.face?.materialIndex ?? 0)
+        if (!material?.visible) continue
+        const explicitWalkable = isExplicitWalkableSurface(mesh, material)
+        if (mesh.userData?.architecturalGlass && !explicitWalkable) continue
+        if (
+          !explicitWalkable &&
+          (material.transparent || material.opacity < 0.95)
+        ) continue
+        if (!explicitWalkable && isForbiddenWalkSurface(mesh, material)) continue
+        const n = hit.face?.normal
+          ? hit.face.normal.clone().transformDirection(mesh.matrixWorld).normalize()
+          : new Vector3(0, 1, 0)
+        if (n.dot(this.raycaster.ray.direction) > 0) n.negate()
+        // Prefer walkable-ish surfaces (not steep walls).
+        if (n.y < this.params.maxSlope) continue
+        best = {
+          point: hit.point.clone(),
+          normal: n,
+          distance: hit.distance,
+          layerId,
+          objectName: mesh.name,
+          materialName: material.name,
+          explicitWalkable,
+          stairSurface: isStairSurface(mesh, material),
+        }
+        break
+      }
     }
-    return null
+    return best
+  }
+
+  private isVisibleWithinLayer(object: Object3D, layerRoot: Object3D): boolean {
+    let current: Object3D | null = object
+    while (current) {
+      if (!current.visible) return false
+      if (current === layerRoot) return true
+      current = current.parent
+    }
+    return false
+  }
+
+  private validateSurface(surface: PlacementSurface): SpawnValidationResult {
+    if (!this.world) return { ok: false, reason: 'Collision not ready' }
+    return validateVisiblePlacementSurface(this.world, surface, this.params)
+  }
+
+  private resolveVisibleDrop(): PegmanDropResult | null {
+    if (!this.world || !this.modelRoot) return null
+    const surface = this.raycastVisualSurface()
+    if (!surface) return null
+    const validation = this.validateSurface(surface)
+    if (!validation.ok || !validation.point) {
+      return { ok: false, reason: validation.reason ?? 'Invalid visible surface' }
+    }
+    const yaw = Math.atan2(
+      this.camera.position.x - validation.point.x,
+      this.camera.position.z - validation.point.z,
+    )
+    return {
+      ok: true,
+      point: validation.point.clone(),
+      yaw,
+      layerId: surface.layerId,
+    }
   }
 
   private handleUp(_e: PointerEvent): void {
     if (!this.dragging) return
+
+    // Collision is intentionally the fast drag preview. On release, anchor to
+    // the rendered surface and retain its layer for the whole walk session.
+    const visibleResult = this.resolveVisibleDrop()
+    const result = finalizeVisiblePegmanDrop(visibleResult)
+
     this.dragging = false
     this.onDragState?.(false)
     document.body.classList.remove('bv-pegman-dragging')
     window.removeEventListener('pointermove', this.onPointerMove)
     window.removeEventListener('pointerup', this.onPointerUp)
     window.removeEventListener('pointercancel', this.onPointerUp)
-
-    const result: PegmanDropResult =
-      this.valid && this.lastPoint
-        ? { ok: true, point: this.lastPoint.clone(), yaw: this.lastYaw }
-        : { ok: false, reason: this.statusEl?.textContent || 'Invalid placement' }
 
     this.preview.visible = false
     this.setStatus('')

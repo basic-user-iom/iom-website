@@ -13,8 +13,8 @@ import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile, access, rename, unlink } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { NodeIO, PropertyType } from '@gltf-transform/core'
-import { ALL_EXTENSIONS, KHRTextureBasisu } from '@gltf-transform/extensions'
+import { PropertyType } from '@gltf-transform/core'
+import { KHRTextureBasisu } from '@gltf-transform/extensions'
 import {
   dedup,
   prune,
@@ -24,10 +24,30 @@ import {
   weld,
 } from '@gltf-transform/functions'
 import { MeshoptSimplifier } from 'meshoptimizer'
-import { encodeToKTX2 } from 'ktx2-encoder'
 import sharp from 'sharp'
+import { createGltfIO } from './lib/gltf-io.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const KTX2_ENCODER_VERSION = '0.6.0'
+let encodeToKTX2Cached = null
+
+async function loadKtx2Encoder() {
+  if (encodeToKTX2Cached) return encodeToKTX2Cached
+  try {
+    const module = await import('ktx2-encoder')
+    if (typeof module.encodeToKTX2 !== 'function') {
+      throw new Error('package does not export encodeToKTX2')
+    }
+    encodeToKTX2Cached = module.encodeToKTX2
+    return encodeToKTX2Cached
+  } catch (error) {
+    throw new Error(
+      `KTX2 encoding requires the pinned ktx2-encoder ${KTX2_ENCODER_VERSION}. ` +
+        'Run `npm --prefix building-viewer ci`, or use --no-ktx2 for a raster-only diagnostic build. ' +
+        `Cause: ${error instanceof Error ? error.message : error}`,
+    )
+  }
+}
 
 /**
  * Drop triangles with repeated indices or exact zero geometric area (post-simplify/quantize).
@@ -225,6 +245,41 @@ function countTriangles(document) {
     }
   }
   return Math.round(triangles)
+}
+
+function expandedWorkload(document) {
+  let expandedTriangles = 0
+  let primitiveDraws = 0
+  let meshNodes = 0
+  let logicalInstances = 0
+  for (const node of document.getRoot().listNodes()) {
+    const mesh = node.getMesh()
+    if (!mesh) continue
+    const instancing = node.getExtension('EXT_mesh_gpu_instancing')
+    let instanceCount = 1
+    if (instancing) {
+      for (const semantic of ['TRANSLATION', 'ROTATION', 'SCALE', '_ID']) {
+        const accessor = instancing.getAttribute?.(semantic)
+        if (accessor) {
+          instanceCount = accessor.getCount()
+          break
+        }
+      }
+    }
+    meshNodes += 1
+    logicalInstances += instanceCount
+    for (const primitive of mesh.listPrimitives()) {
+      primitiveDraws += 1
+      const count =
+        primitive.getIndices()?.getCount() ?? primitive.getAttribute('POSITION')?.getCount() ?? 0
+      const mode = primitive.getMode()
+      if (mode === 4) expandedTriangles += Math.floor(count / 3) * instanceCount
+      else if (mode === 5 || mode === 6) {
+        expandedTriangles += Math.max(0, count - 2) * instanceCount
+      }
+    }
+  }
+  return { expandedTriangles, primitiveDraws, meshNodes, logicalInstances }
 }
 
 function countTextures(document) {
@@ -558,6 +613,7 @@ async function decodeRgbaMultipleOf4(buffer) {
  * ETC1S for opaque color; UASTC for normals, ORM, alpha, glass.
  */
 async function encodeTexturesToKtx2(document, { etc1sQuality, uastcLevel }) {
+  const encodeToKTX2 = await loadKtx2Encoder()
   const roles = collectTextureRoles(document)
   let etc1s = 0
   let uastc = 0
@@ -670,6 +726,11 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
       etc1sQuality: variant.ktx2Etc1sQuality,
       uastcLevel: variant.ktx2UastcLevel,
     })
+    if (ktx2Stats.failed > 0) {
+      throw new Error(
+        `KTX2 encoding failed for ${ktx2Stats.failed} texture(s); refusing a mixed raster/KTX2 release.`,
+      )
+    }
   }
 
   if (variant.quantize) {
@@ -715,7 +776,7 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
   const tmpPath = join(outDir, `${variant.file}.tmp.glb`)
   await io.write(tmpPath, document)
 
-  const verifyIo = new NodeIO().registerExtensions(ALL_EXTENSIONS)
+  const verifyIo = await createGltfIO()
   const written = await verifyIo.read(tmpPath)
   const textureCheck = await validateTextureImages(written)
   if (textureCheck.bad > 0 && textureCheck.ok === 0) {
@@ -735,7 +796,7 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
 
   // Acceptance: KTX2 path should produce KHR_texture_basisu in the written GLB.
   if (opts.ktx2 && textureCheck.ktx2 === 0 && textureCheck.total > 0) {
-    console.warn('  WARN: KTX2 requested but no image/ktx2 textures found after write.')
+    throw new Error('KTX2 requested but no image/ktx2 textures were found after write.')
   }
   const usedExtensions = written
     .getRoot()
@@ -743,7 +804,7 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
     .map((ext) => ext.extensionName)
   const hasBasisu = usedExtensions.includes('KHR_texture_basisu')
   if (opts.ktx2 && textureCheck.ktx2 > 0 && !hasBasisu) {
-    console.warn('  WARN: KTX2 images present but KHR_texture_basisu missing from extensionsUsed.')
+    throw new Error('KTX2 images are present but KHR_texture_basisu is missing from extensionsUsed.')
   } else if (hasBasisu) {
     console.log('  extension: KHR_texture_basisu')
   }
@@ -762,6 +823,7 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
 
   const size = (await readFile(outPath)).length
   const tris = countTriangles(document)
+  const workload = expandedWorkload(document)
   const textures = countTextures(document)
   const textureBytes = estimateTextureBytes(document)
   const outHash = await sha256File(outPath)
@@ -771,11 +833,11 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
     tool: {
       script: 'building-viewer/scripts/optimize-building-model.mjs',
       basedOn: 'automotive-studio/scripts/optimize-model.mjs',
-      gltfTransform: '^4.4',
-      meshoptimizer: 'meshopt simplifier + quantize',
-      sharp: true,
+      gltfTransform: '4.4.2',
+      meshoptimizer: '1.2.0 (MeshoptSimplifier)',
+      sharp: '0.35.3',
       ktx2: opts.ktx2,
-      ktx2Encoder: opts.ktx2 ? 'ktx2-encoder (Basis Universal WASM)' : null,
+      ktx2Encoder: opts.ktx2 ? `ktx2-encoder ${KTX2_ENCODER_VERSION} (Basis Universal WASM)` : null,
       note: opts.ktx2
         ? 'KTX2/Basis: ETC1S for opaque color, UASTC+mips for normals/ORM/alpha/glass.'
         : 'Texture-role-aware: PNG for alpha/normal/ORM/glass; JPEG only for opaque baseColor.',
@@ -787,6 +849,10 @@ async function buildVariant(io, sourcePath, sourceHash, outDir, key, variant, op
       bytes: size,
       miB: Number((size / (1024 * 1024)).toFixed(2)),
       triangles: tris,
+      storedTriangles: tris,
+      expandedTriangles: workload.expandedTriangles,
+      primitiveDraws: workload.primitiveDraws,
+      meshNodes: workload.meshNodes,
       textures,
       textureEmbeddedBytes: textureBytes,
       textureEmbeddedMiB: Number((textureBytes / (1024 * 1024)).toFixed(2)),
@@ -819,16 +885,28 @@ async function main() {
     process.exit(1)
   }
 
+  const keys = args.variant === 'all' ? Object.keys(VARIANTS) : [args.variant]
+  for (const key of keys) {
+    if (!VARIANTS[key]) {
+      console.error(`Unknown variant: ${key}`)
+      process.exit(1)
+    }
+  }
+  if (args.ktx2) await loadKtx2Encoder()
+
   await mkdir(args.out, { recursive: true })
   const sourceHash = await sha256File(args.input)
   const sourceBytes = (await readFile(args.input)).length
-  const sourceDoc = await new NodeIO().registerExtensions(ALL_EXTENSIONS).read(args.input)
+  const sourceIo = await createGltfIO()
+  const sourceDoc = await sourceIo.read(args.input)
   const sourceReport = {
     path: args.input,
     sha256: sourceHash,
     bytes: sourceBytes,
     miB: Number((sourceBytes / (1024 * 1024)).toFixed(2)),
     triangles: countTriangles(sourceDoc),
+    storedTriangles: countTriangles(sourceDoc),
+    ...expandedWorkload(sourceDoc),
     textures: countTextures(sourceDoc),
     textureEmbeddedMiB: Number((estimateTextureBytes(sourceDoc) / (1024 * 1024)).toFixed(2)),
   }
@@ -841,15 +919,7 @@ async function main() {
   console.log('NOTE: source file is never overwritten.')
 
   await MeshoptSimplifier.ready
-  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
-
-  const keys = args.variant === 'all' ? Object.keys(VARIANTS) : [args.variant]
-  for (const key of keys) {
-    if (!VARIANTS[key]) {
-      console.error(`Unknown variant: ${key}`)
-      process.exit(1)
-    }
-  }
+  const io = await createGltfIO({ encoder: true })
 
   const variants = { ...VARIANTS }
   if (!args.simplifyQuest) {
@@ -905,9 +975,12 @@ async function main() {
       const scanScript = resolve(__dirname, 'scan-instancing.mjs')
       const scanOut = join(args.out, 'instancing-scan.json')
       console.log('\nScanning for repeating primitives…')
-      spawnSync(process.execPath, [scanScript, '--input', webOut.output.path, '--out', scanOut], {
+      const scanResult = spawnSync(process.execPath, [scanScript, '--input', webOut.output.path, '--out', scanOut], {
         stdio: 'inherit',
       })
+      if (scanResult.status !== 0) {
+        throw new Error(`Instancing scan failed with exit code ${scanResult.status ?? 'unknown'}`)
+      }
     }
   } catch (err) {
     console.warn('Instancing scan skipped:', err)

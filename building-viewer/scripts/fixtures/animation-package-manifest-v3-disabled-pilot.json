@@ -1,0 +1,215 @@
+{
+  "version": 3,
+  "enabled": false,
+  "modelId": "icm-anim-2025-disabled-pilot",
+  "units": "meters",
+  "source": {
+    "animationDurationSeconds": 2.708333,
+    "variants": {
+      "web": {
+        "url": "__DISABLED_PILOT__/source/model-web.glb",
+        "sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+      },
+      "quest": {
+        "url": "__DISABLED_PILOT__/source/model-quest.glb",
+        "sha256": "3333333333333333333333333333333333333333333333333333333333333333"
+      }
+    },
+    "ownership": {
+      "web": {
+        "mode": "disjoint-additive",
+        "pathCount": 3,
+        "pathsSha256": "383250b6f9aad92db386847ba47abce21889cd5548b00c43dbc5ea54017ebf56"
+      },
+      "quest": {
+        "mode": "disjoint-additive",
+        "pathCount": 3,
+        "pathsSha256": "383250b6f9aad92db386847ba47abce21889cd5548b00c43dbc5ea54017ebf56"
+      }
+    }
+  },
+  "rig": {
+    "url": "__DISABLED_PILOT__/rig/animations.glb",
+    "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+    "bytes": 64,
+    "animationDurationSeconds": 2.708333,
+    "clips": [
+      {
+        "name": "Pilot floor motion",
+        "durationSeconds": 2.708333
+      }
+    ],
+    "owners": [
+      {
+        "id": "rig-owner:first-floor-anim1",
+        "nodeName": "1st Floor._anim1",
+        "persistent": true
+      }
+    ]
+  },
+  "budgets": {
+    "maxDetailTriangles": 1000,
+    "maxAlwaysResidentShellTriangles": 100,
+    "maxResident": {
+      "web": { "triangles": 100, "draws": 10, "bytes": 1000, "encodedTextureBytes": 128, "gpuTextureBytes": 1024 },
+      "quest": { "triangles": 100, "draws": 10, "bytes": 1000, "encodedTextureBytes": 128, "gpuTextureBytes": 1024 }
+    },
+    "maxTransitionPeak": {
+      "web": { "triangles": 150, "draws": 20, "bytes": 2000, "encodedTextureBytes": 256, "gpuTextureBytes": 2048 },
+      "quest": { "triangles": 150, "draws": 20, "bytes": 2000, "encodedTextureBytes": 256, "gpuTextureBytes": 2048 }
+    }
+  },
+  "packages": [
+    {
+      "id": "floor-01-shell-pilot",
+      "kind": "always-resident-shell",
+      "residency": "persistent-lossless",
+      "ownerId": "rig-owner:first-floor-anim1",
+      "transform": {
+        "space": "owner-local",
+        "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]
+      },
+      "selectionBounds": {
+        "web": {
+          "space": "owner-local",
+          "min": [-0.5, -0.5, -0.5],
+          "max": [0.5, 0.5, 0.5]
+        },
+        "quest": {
+          "space": "owner-local",
+          "min": [-0.5, -0.5, -0.5],
+          "max": [0.5, 0.5, 0.5]
+        }
+      },
+      "semanticRoles": ["architectural-shell", "exterior-envelope"],
+      "sourcePaths": {
+        "web": ["1st Floor._anim1/Shell"],
+        "quest": ["1st Floor._anim1/Shell"]
+      },
+      "requiredAttributes": ["POSITION", "NORMAL"],
+      "variants": {
+        "web": {
+          "hlod": {
+            "url": "__DISABLED_PILOT__/web/floor-01-shell-hlod.glb",
+            "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "bounds": { "space": "owner-local", "min": [-0.5, -0.5, -0.5], "max": [0.5, 0.5, 0.5] },
+            "estimates": { "triangles": 12, "draws": 1, "bytes": 101, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        },
+        "quest": {
+          "hlod": {
+            "url": "__DISABLED_PILOT__/quest/floor-01-shell-hlod.glb",
+            "sha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "bounds": { "space": "owner-local", "min": [-0.5, -0.5, -0.5], "max": [0.5, 0.5, 0.5] },
+            "estimates": { "triangles": 12, "draws": 1, "bytes": 101, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        }
+      }
+    },
+    {
+      "id": "floor-01-critical-pilot",
+      "kind": "detail",
+      "residency": "persistent-lossless",
+      "ownerId": "rig-owner:first-floor-anim1",
+      "transform": {
+        "space": "owner-local",
+        "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -3, 0, 0, 1]
+      },
+      "selectionBounds": {
+        "web": {
+          "space": "owner-local",
+          "min": [-3.5, -0.5, -0.5],
+          "max": [-2.5, 0.5, 0.5]
+        },
+        "quest": {
+          "space": "owner-local",
+          "min": [-3.5, -0.5, -0.5],
+          "max": [-2.5, 0.5, 0.5]
+        }
+      },
+      "semanticRoles": ["architectural-detail", "building-connection", "fire-safety"],
+      "sourcePaths": {
+        "web": ["1st Floor._anim1/FireAndConnections"],
+        "quest": ["1st Floor._anim1/FireAndConnections"]
+      },
+      "requiredAttributes": ["POSITION", "NORMAL"],
+      "variants": {
+        "web": {
+          "lod0": {
+            "url": "__DISABLED_PILOT__/web/floor-01-critical-lod0.glb",
+            "sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+            "bounds": { "space": "owner-local", "min": [-3.5, -0.5, -0.5], "max": [-2.5, 0.5, 0.5] },
+            "estimates": { "triangles": 12, "draws": 1, "bytes": 102, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        },
+        "quest": {
+          "lod0": {
+            "url": "__DISABLED_PILOT__/quest/floor-01-critical-lod0.glb",
+            "sha256": "6666666666666666666666666666666666666666666666666666666666666666",
+            "bounds": { "space": "owner-local", "min": [-3.5, -0.5, -0.5], "max": [-2.5, 0.5, 0.5] },
+            "estimates": { "triangles": 12, "draws": 1, "bytes": 102, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        }
+      }
+    },
+    {
+      "id": "floor-01-detail-pilot",
+      "kind": "detail",
+      "residency": "streamed",
+      "ownerId": "rig-owner:first-floor-anim1",
+      "transform": {
+        "space": "owner-local",
+        "matrix": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 7, 0, 0, 1]
+      },
+      "selectionBounds": {
+        "web": {
+          "space": "owner-local",
+          "min": [6.5, -0.5, -0.5],
+          "max": [11.5, 0.5, 0.5]
+        },
+        "quest": {
+          "space": "owner-local",
+          "min": [6.5, -0.5, -0.5],
+          "max": [11.5, 0.5, 0.5]
+        }
+      },
+      "streaming": {
+        "lod0MarginMeters": 1.5
+      },
+      "semanticRoles": ["architectural-detail", "interior"],
+      "sourcePaths": {
+        "web": ["1st Floor._anim1/Detail"],
+        "quest": ["1st Floor._anim1/Detail"]
+      },
+      "requiredAttributes": ["POSITION", "NORMAL"],
+      "variants": {
+        "web": {
+          "lod0": {
+            "url": "__DISABLED_PILOT__/web/floor-01-detail-lod0.glb",
+            "sha256": "7777777777777777777777777777777777777777777777777777777777777777",
+            "bounds": { "space": "owner-local", "min": [6.5, -0.5, -0.5], "max": [11.5, 0.5, 0.5] },
+            "estimates": { "triangles": 36, "draws": 3, "bytes": 103, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        },
+        "quest": {
+          "lod0": {
+            "url": "__DISABLED_PILOT__/quest/floor-01-detail-lod0.glb",
+            "sha256": "8888888888888888888888888888888888888888888888888888888888888888",
+            "bounds": { "space": "owner-local", "min": [6.5, -0.5, -0.5], "max": [11.5, 0.5, 0.5] },
+            "estimates": { "triangles": 36, "draws": 3, "bytes": 103, "encodedTextureBytes": 0, "gpuTextureBytes": 0 }
+          }
+        }
+      }
+    }
+  ],
+  "residentSets": {
+    "web": [
+      { "packageId": "floor-01-shell-pilot", "level": "hlod" },
+      { "packageId": "floor-01-critical-pilot", "level": "lod0" }
+    ],
+    "quest": [
+      { "packageId": "floor-01-shell-pilot", "level": "hlod" },
+      { "packageId": "floor-01-critical-pilot", "level": "lod0" }
+    ]
+  }
+}

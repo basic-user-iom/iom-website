@@ -5,6 +5,11 @@ const MIN_DIRECTION_CORRELATION = 0.58
 const MIN_AXIS_ANISOTROPY = 0.16
 const MIN_DIRECTION_CONFIDENCE = 0.35
 const MAX_DIRECTION_SAMPLES = 24_000
+// The default walk capsule is 0.28 m wide. Authored CAD treads narrower than
+// the capsule contact footprint trap it between adjacent risers, especially on
+// descent, so those flights must use a coarser walk-only proxy.
+const MIN_CAPSULE_TREAD_DEPTH = 0.28
+const MAX_PROXY_RISER_HEIGHT = 0.42
 
 export type StairSupportAnalysis = {
   usable: boolean
@@ -13,6 +18,8 @@ export type StairSupportAnalysis = {
   footprintArea: number
   coverage: number
   verticalSpan: number
+  /** Median run depth of authored tread levels, when a flight can be inferred. */
+  medianTreadDepth: number | null
 }
 
 export type StairAscent = {
@@ -70,6 +77,47 @@ function forEachTriangle(
   }
 }
 
+function medianTreadDepth(geometry: BufferGeometry, ascent: StairAscent): number | null {
+  const levels = new Map<number, { min: number; max: number }>()
+  forEachTriangle(geometry, (ax, ay, az, bx, by, bz, cx, cy, cz) => {
+    const abx = bx - ax
+    const aby = by - ay
+    const abz = bz - az
+    const acx = cx - ax
+    const acy = cy - ay
+    const acz = cz - az
+    const nx = aby * acz - abz * acy
+    const ny = abz * acx - abx * acz
+    const nz = abx * acy - aby * acx
+    const normalLength = Math.hypot(nx, ny, nz)
+    if (normalLength <= 1e-9 || ny / normalLength < MIN_SUPPORT_UP_DOT) return
+
+    const key = Math.round(((ay + by + cy) / 3) * 40) // 2.5 cm height buckets
+    const ar = ax * ascent.axis.x + az * ascent.axis.y
+    const br = bx * ascent.axis.x + bz * ascent.axis.y
+    const cr = cx * ascent.axis.x + cz * ascent.axis.y
+    const lo = Math.min(ar, br, cr)
+    const hi = Math.max(ar, br, cr)
+    const level = levels.get(key)
+    if (level) {
+      level.min = Math.min(level.min, lo)
+      level.max = Math.max(level.max, hi)
+    } else {
+      levels.set(key, { min: lo, max: hi })
+    }
+  })
+
+  const depths = [...levels.values()]
+    .map(({ min, max }) => max - min)
+    .filter((depth) => depth > 0.015)
+    .sort((a, b) => a - b)
+  if (depths.length < 4) return null
+  const middle = Math.floor(depths.length / 2)
+  return depths.length % 2
+    ? depths[middle]!
+    : (depths[middle - 1]! + depths[middle]!) * 0.5
+}
+
 /**
  * Detect authored tread/ramp faces that can support a player. A single top cap
  * on a solid CAD stair volume is intentionally not enough: usable stair
@@ -86,6 +134,7 @@ export function analyzeStairSupport(geometry: BufferGeometry): StairSupportAnaly
       footprintArea: 0,
       coverage: 0,
       verticalSpan: 0,
+      medianTreadDepth: null,
     }
   }
 
@@ -124,18 +173,23 @@ export function analyzeStairSupport(geometry: BufferGeometry): StairSupportAnaly
   const verticalSpan = Number.isFinite(supportMinY) ? supportMaxY - supportMinY : 0
   const enoughArea = projectedArea >= Math.max(0.04, footprintArea * 0.08)
   const distributedThroughRise = verticalSpan >= Math.max(0.06, rise * 0.14)
+  const inferredTreads = inferStairAscentFromTreads(geometry)
+  const treadDepth = inferredTreads ? medianTreadDepth(geometry, inferredTreads) : null
+  const capsuleCompatible = treadDepth == null || treadDepth >= MIN_CAPSULE_TREAD_DEPTH - 1e-3
 
   return {
     usable:
       topFacingTriangles >= 2 &&
       enoughArea &&
       coverage >= 0.08 &&
-      distributedThroughRise,
+      distributedThroughRise &&
+      capsuleCompatible,
     topFacingTriangles,
     projectedArea,
     footprintArea,
     coverage,
     verticalSpan,
+    medianTreadDepth: treadDepth,
   }
 }
 
@@ -326,6 +380,132 @@ export function inferStairAscent(geometry: BufferGeometry): StairAscent | null {
   }
 }
 
+/**
+ * Conservative fallback for sparse CAD stairs that contain real tread tops,
+ * but not enough projected area for `analyzeStairSupport()` and too much side
+ * hardware for the whole-envelope PCA. Correlation of upward-facing tread
+ * centroids supplies the uphill direction; boxes/landings fail the required
+ * vertical distribution and level-count guards.
+ */
+export function inferStairAscentFromTreads(geometry: BufferGeometry): StairAscent | null {
+  const centers: Sample[] = []
+  const supportPoints: Sample[] = []
+
+  forEachTriangle(geometry, (ax, ay, az, bx, by, bz, cx, cy, cz) => {
+    const abx = bx - ax
+    const aby = by - ay
+    const abz = bz - az
+    const acx = cx - ax
+    const acy = cy - ay
+    const acz = cz - az
+    const nx = aby * acz - abz * acy
+    const ny = abz * acx - abx * acz
+    const nz = abx * acy - aby * acx
+    const normalLength = Math.hypot(nx, ny, nz)
+    if (normalLength <= 1e-9 || ny / normalLength < MIN_SUPPORT_UP_DOT) return
+    if (ny * 0.5 < 1e-5) return
+
+    centers.push({ x: (ax + bx + cx) / 3, y: (ay + by + cy) / 3, z: (az + bz + cz) / 3 })
+    supportPoints.push(
+      { x: ax, y: ay, z: az },
+      { x: bx, y: by, z: bz },
+      { x: cx, y: cy, z: cz },
+    )
+  })
+
+  if (centers.length < 4) return null
+  let meanX = 0
+  let meanY = 0
+  let meanZ = 0
+  let minY = Infinity
+  let maxY = -Infinity
+  const levels = new Set<number>()
+  for (const sample of centers) {
+    meanX += sample.x
+    meanY += sample.y
+    meanZ += sample.z
+    minY = Math.min(minY, sample.y)
+    maxY = Math.max(maxY, sample.y)
+    levels.add(Math.round(sample.y * 20))
+  }
+  meanX /= centers.length
+  meanY /= centers.length
+  meanZ /= centers.length
+  const sourceRise = maxY - minY
+  if (sourceRise < 0.3 || levels.size < 4) return null
+
+  // Covariance with height points directly uphill and ignores tread width.
+  let covXY = 0
+  let covZY = 0
+  for (const sample of centers) {
+    const dy = sample.y - meanY
+    covXY += (sample.x - meanX) * dy
+    covZY += (sample.z - meanZ) * dy
+  }
+  let axisX = covXY
+  let axisZ = covZY
+  const axisLength = Math.hypot(axisX, axisZ)
+  if (axisLength < 1e-8) return null
+  axisX /= axisLength
+  axisZ /= axisLength
+
+  let meanRun = 0
+  for (const sample of centers) meanRun += sample.x * axisX + sample.z * axisZ
+  meanRun /= centers.length
+  let covariance = 0
+  let runVariance = 0
+  let yVariance = 0
+  for (const sample of centers) {
+    const dr = sample.x * axisX + sample.z * axisZ - meanRun
+    const dy = sample.y - meanY
+    covariance += dr * dy
+    runVariance += dr * dr
+    yVariance += dy * dy
+  }
+  if (runVariance < 1e-8 || yVariance < 1e-8) return null
+  const correlation = covariance / Math.sqrt(runVariance * yVariance)
+  if (correlation < 0.5) return null
+
+  const sideX = -axisZ
+  const sideZ = axisX
+  let runMin = Infinity
+  let runMax = -Infinity
+  let sideMin = Infinity
+  let sideMax = -Infinity
+  for (const sample of supportPoints) {
+    const run = sample.x * axisX + sample.z * axisZ
+    const side = sample.x * sideX + sample.z * sideZ
+    runMin = Math.min(runMin, run)
+    runMax = Math.max(runMax, run)
+    sideMin = Math.min(sideMin, side)
+    sideMax = Math.max(sideMax, side)
+  }
+  const runSpan = runMax - runMin
+  const width = sideMax - sideMin
+  if (runSpan < 0.75 || width < 0.35) return null
+  const grade = sourceRise / runSpan
+  if (grade < 0.04 || grade > 1.35) return null
+
+  const levelCoverage = Math.min(1, levels.size / 8)
+  const confidence = correlation * (0.65 + levelCoverage * 0.35)
+  if (confidence < MIN_DIRECTION_CONFIDENCE) return null
+
+  return {
+    axis: new Vector2(axisX, axisZ),
+    side: new Vector2(sideX, sideZ),
+    runMin,
+    runMax,
+    sideMin,
+    sideMax,
+    minY,
+    maxY,
+    confidence,
+    correlation,
+    anisotropy: 1,
+    sampleCount: centers.length,
+  }
+}
+
 function pushQuad(
   triangles: number[],
   a: readonly [number, number, number],
@@ -359,7 +539,17 @@ export function makeStairProxyGeometry(ascent: StairAscent): BufferGeometry | nu
   const y0 = ascent.minY - Math.min(0.55, 0.22 + sourceRise * 0.08)
   const y1 = ascent.maxY
   const rise = y1 - y0
-  const steps = Math.max(5, Math.min(24, Math.round(rise / 0.17)))
+  // Fit both constraints simultaneously: risers must remain step-up capable,
+  // while treads must be deep enough for the capsule. Rise-only subdivision
+  // recreated the original 16 cm tread bug on steep imported flights.
+  const minimumStepsForRise = Math.max(3, Math.ceil(rise / MAX_PROXY_RISER_HEIGHT))
+  const maximumStepsForRun = Math.min(24, Math.floor(runSpan / MIN_CAPSULE_TREAD_DEPTH))
+  if (maximumStepsForRun < minimumStepsForRise) return null
+  const preferredSteps = Math.max(5, Math.round(rise / 0.18))
+  const steps = Math.max(
+    minimumStepsForRise,
+    Math.min(maximumStepsForRun, preferredSteps),
+  )
   const triangles: number[] = []
 
   for (let i = 0; i < steps; i++) {

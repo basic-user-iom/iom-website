@@ -58,9 +58,20 @@ async function main() {
     process.exit(1)
   }
 
-  if (!(await exists(join(APP, 'node_modules', 'three')))) {
-    console.log('Installing building-viewer dependencies…')
-    run('npm', ['install'], APP)
+  const requiredPackages = [
+    ...Object.keys(appPackage.dependencies || {}),
+    ...Object.keys(appPackage.devDependencies || {}),
+  ]
+  const missingPackages = []
+  for (const packageName of requiredPackages) {
+    if (!(await exists(join(APP, 'node_modules', packageName, 'package.json')))) {
+      missingPackages.push(packageName)
+    }
+  }
+  if (missingPackages.length) {
+    console.error(`Missing building-viewer dependencies: ${missingPackages.join(', ')}`)
+    console.error('Run `npm --prefix building-viewer ci` before building.')
+    process.exit(1)
   }
 
   console.log('Building Building Viewer…')

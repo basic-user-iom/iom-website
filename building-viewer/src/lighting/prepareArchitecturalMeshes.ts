@@ -8,7 +8,6 @@ import {
   Mesh,
   NoColorSpace,
   Points,
-  ClampToEdgeWrapping,
   RepeatWrapping,
   SkinnedMesh,
   SRGBColorSpace,
@@ -19,6 +18,19 @@ import {
 } from 'three'
 import type { SceneBounds } from '../scene/SceneBounds'
 import type { QualityConfig } from '../performance/QualityManager'
+import {
+  hasAuthoredDoubleSidedReason,
+  IOM_EXPLICIT_WALKABLE_KEY,
+  isIcmWalkableBridgeGrating,
+  isFireSafetyGlassMaterial,
+  isFireSafetyAssembly,
+  isFireSafetyOpaqueMaterial,
+  isVisibilityCriticalAssembly,
+} from '../scene/assetSemantics'
+import {
+  hasSurfaceVisibilityRisk,
+  inspectSurfaceTopology,
+} from '../scene/surfaceVisibility'
 
 /** Color (sRGB) maps vs linear data maps — wrong space makes normals/ORM look black. */
 const COLOR_TEX_KEYS = new Set([
@@ -52,15 +64,23 @@ const DATA_TEX_KEYS = new Set([
 const _worldBox = new Box3()
 const _boxSize = new Vector3()
 const _worldPos = new Vector3()
+const _worldScale = new Vector3()
+const _uvWorldA = new Vector3()
+const _uvWorldB = new Vector3()
+const _uvWorldC = new Vector3()
+const _uvWorldAB = new Vector3()
+const _uvWorldAC = new Vector3()
+const _uvWorldNormal = new Vector3()
 
 /** Confirmed architectural glass / glazing names (DE + EN). Avoid matching "Frame_Windows". */
 const GLASS_NAME =
-  /\bglas(s|ing)?\b|\bfenster\b|\bscheib|\bverglas|curtain\s*wall|curtainwall|vitrine|storefront|skylight|dachfenster|oberlicht|lichtkuppel/i
+  /(?:^|[\s._-])(?:glass(?:ing)?|glas|fenster|scheib\w*|verglas\w*|vitrine|storefront|skylight|dachfenster|oberlicht|lichtkuppel)(?=$|[\s._-]|\d)|curtain[\s._-]*wall/i
 
 const NOT_GLASS_NAME = /frame|mullion|sash|rail|handle|seal|gasket|profil/i
 
 /** Pools / ponds — V-Ray water uses transmission like glass, but must keep its texture. */
 const WATER_NAME = /wasser|water|\bteich\b|\bsee\b|\bpond\b|\bpool\b|brunnen|fountain/i
+const WATER_TILE_METERS = 8
 
 /** Roof edges / cladding that CAD often assigns a glass material by mistake. */
 const OPAQUE_ARCH_NAME =
@@ -84,6 +104,138 @@ const CAD_FILL_NODE = /Baum_position|gebude_123/i
 const SHUTTER_NAME = /lamelle|jalousie|raffstore|louver|shutter|rollladen/i
 
 const CEILING_NAME = /decke|ceiling|soffit|untersicht|plafond|unterdecke|abgehaeng|abhäng|abhang/i
+
+/** Open envelope/interior sheets that must read from either side. */
+const OPEN_ARCHITECTURAL_SHELL_NAME =
+  /flugturm|fassad|facade|geb[aä]?ude|gebude|building|halle|(?:^|[\s._-])hall(?:$|[\s._-]|\d)|innenw[aä]nd|waende|wände|wnde|tragwand|trennwand|walls|(?:^|[\s._-])wand(?:$|[\s._-]|\d)|(?:^|[\s._-])wall(?:$|[\s._-]|\d)|dark[_\s-]?wall|wall[_\s-]?raster|wandfarbe|wellblech|cladding|wall[_\s-]?panel/i
+
+/** Audited exterior sheets whose source node names are lost after batching. */
+const AUDITED_OPEN_SHELL_MATERIAL =
+  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001)$/i
+
+const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
+  'fassade003',
+  'fassade003001',
+  'fassade001001',
+  'fassade001003',
+  'fassadebuero1',
+  'fassadebuero1001',
+  'fassadebuero2',
+  'fassadebuero2001',
+  'fassadebuero3',
+  'fassadebuero3001',
+  'fassade005002',
+  'fassade008002',
+  'fassade005',
+  'fassade005001',
+  'fassade006001',
+  'bt3innenwaende002',
+  'bt3innenwaende006',
+  'ogwaendeinnen01',
+  'saal1waende004',
+  'bt1kabinenwnde24',
+  'bt1kabinenwnde31',
+  'bt1kabinenwnde34',
+  'bt1kabinenwnde43',
+  'bt1kabinenwnde50',
+  'bt1kabinenwnde57',
+  's11trennwand',
+  's12trennwand',
+  's21trennwand',
+  's22trennwand',
+  'wandbt1001002',
+  'wand40005',
+  'dachdeckelturmwest',
+])
+
+function isAuditedMixedWindingShellName(name: string): boolean {
+  return AUDITED_MIXED_WINDING_SHELL_NAMES.has(
+    name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+  )
+}
+
+function hasAuditedMixedWindingShellName(obj: Object3D): boolean {
+  for (let current: Object3D | null = obj; current; current = current.parent) {
+    if (isAuditedMixedWindingShellName(current.name || '')) return true
+  }
+  return false
+}
+
+/** Ground finishes whose source UVs should read at a real pedestrian scale. */
+const PAVING_SURFACE_NAME =
+  /kopfstein|pflaster|cobblestone|cobble|paving|steinplatten|steinboden|seeweg|fussweg|fußweg|gehweg/i
+
+const LANDSCAPE_SURFACE_NAME =
+  /(?:^|[\s._-])(?:grass|gras|rasen|gruen|grün)(?=$|[\s._-]|\d)/i
+
+/** Genuine interior timber floors sharing the V-Ray wood-floor material. */
+const INTERIOR_WOOD_FLOOR_MATERIAL = /^Floor_Wood_Vray(?:_\d+)?$/i
+const INTERIOR_WOOD_FLOOR_NAME = /floor|boden|saal\s*13/i
+const NOT_INTERIOR_WOOD_FLOOR_NAME =
+  /electro|stufen|stair|treppe|gelaender|geländer|handlauf|decke|ceiling|moebel|möbel|furniture/i
+
+/**
+ * The Foyer green roof is a unique aerial/baked atlas, not seamless grass.
+ * Its authored 0..1 UVs must select the one roof image instead of repeating
+ * the complete atlas at pedestrian ground-cover scale.
+ */
+const AUTHORED_ROOF_ATLAS_NAME =
+  /dach[_\s.-]*foyer[_\s.-]*inner[_\s.-]*grass|BT\s*7\s*Foyer\s*dach\s*(?:gruen|grün)/i
+
+type GroundTilingPolicy = {
+  role: 'paving' | 'landscape' | 'interior-wood'
+  tileMeters: number
+  repairAboveMeters: number
+  maxVerticalSpan: number
+  minFootprint?: number
+  forceWorldAligned?: boolean
+}
+
+function groundTilingPolicy(mesh: Mesh): GroundTilingPolicy | null {
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  const objectLabel = `${mesh.name || ''} ${objectPathName(mesh)}`
+  const textureNames = mats
+    .map((mat) => ((mat as CadMat | null)?.map?.name || ''))
+    .join(' ')
+  const label = `${mesh.name || ''} ${objectPathName(mesh)} ${meshMaterialNames(mesh)} ${textureNames}`
+  if (AUTHORED_ROOF_ATLAS_NAME.test(label)) return null
+  const genuineWoodFloor =
+    mats.some((mat) => Boolean(mat && INTERIOR_WOOD_FLOOR_MATERIAL.test(mat.name || ''))) &&
+    INTERIOR_WOOD_FLOOR_NAME.test(objectLabel) &&
+    !NOT_INTERIOR_WOOD_FLOOR_NAME.test(objectLabel)
+  if (genuineWoodFloor) {
+    return {
+      role: 'interior-wood',
+      // Runtime measurement of the authored floor texture. A shared world
+      // origin removes the BT2/Saal 13 phase and density discontinuity.
+      tileMeters: 3.25,
+      repairAboveMeters: 3.25,
+      maxVerticalSpan: 1.2,
+      minFootprint: 8,
+      forceWorldAligned: true,
+    }
+  }
+  if (PAVING_SURFACE_NAME.test(label)) {
+    return {
+      role: 'paving',
+      // Correctly authored ICM cobble paths measure 1.0–1.52 m/repeat.
+      tileMeters: 1.5,
+      repairAboveMeters: 1.9,
+      maxVerticalSpan: 1.2,
+    }
+  }
+  if (LANDSCAPE_SURFACE_NAME.test(label) && !/hecke|hedge|bush|shrub/i.test(label)) {
+    return {
+      role: 'landscape',
+      // Match the authored grass detail without exposing obvious repetition.
+      tileMeters: 1.5,
+      repairAboveMeters: 1.9,
+      // Landscape islands span several campus elevations in one mesh.
+      maxVerticalSpan: 16,
+    }
+  }
+  return null
+}
 
 function objectPathName(obj: Object3D): string {
   const names: string[] = []
@@ -158,14 +310,36 @@ function isWaterMesh(mesh: Mesh): boolean {
   return WATER_NAME.test(name)
 }
 
-function isGlassMesh(mesh: Mesh): boolean {
+/**
+ * Decide glass per material slot, not per Mesh. glTF commonly packs an opaque
+ * cabinet/frame and one glass pane into a single grouped Mesh; treating one
+ * transmissive slot as proof for the whole Mesh made opaque contents vanish.
+ */
+function isGlassMaterial(mesh: Mesh, mat: Material): boolean {
   if (isWaterMesh(mesh)) return false
-  const name = `${mesh.name || ''} ${objectPathName(mesh)}`
-  if (NOT_GLASS_NAME.test(name)) return false
-  if (OPAQUE_ARCH_NAME.test(name)) return false
-  if (GLASS_NAME.test(name)) return true
-  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-  return mats.some((m) => m && materialLooksGlass(m))
+
+  if (isFireSafetyOpaqueMaterial(mat)) return false
+  if (isFireSafetyGlassMaterial(mat)) return true
+
+  const materialName = mat.name || ''
+  if (NOT_GLASS_NAME.test(materialName)) return false
+  if (GLASS_NAME.test(materialName)) return true
+
+  const path = `${mesh.name || ''} ${objectPathName(mesh)}`
+  // Fire cabinets are mixed-material safety assemblies. Only an explicitly
+  // named glazing slot is allowed onto the transparent path.
+  if (isFireSafetyAssembly(mesh)) return false
+  if (NOT_GLASS_NAME.test(path)) return false
+  if (OPAQUE_ARCH_NAME.test(path)) return false
+  if (GLASS_NAME.test(path)) return true
+  return materialLooksGlass(mat)
+}
+
+function meshIsEntirelyGlass(mesh: Mesh): boolean {
+  const mats = (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).filter(
+    (mat): mat is Material => Boolean(mat),
+  )
+  return mats.length > 0 && mats.every((mat) => isGlassMaterial(mesh, mat))
 }
 
 function hideCadOverlay(obj: Object3D): void {
@@ -193,6 +367,7 @@ function hideCadFillMaterials(mesh: Mesh): boolean {
   }
   const next = mats.map((m) => {
     if (!m || !CAD_FILL_MATERIAL.test(m.name || '')) return m
+    if (m.visible === false) return m
     const clone = m.clone()
     clone.visible = false
     return clone
@@ -230,11 +405,18 @@ function wantsDoubleSide(
   mat: Material,
   isThinSheet: boolean,
   isLargeHorizontal: boolean,
+  surfaceVisibilityRisk: boolean,
+  authoredDoubleSided: boolean,
   treatOpaque: boolean,
   _minDim: number,
 ): boolean {
   const name = `${mesh.name} ${objectPathName(mesh)} ${mat.name}`
   if (SHUTTER_NAME.test(name)) return false
+  if (authoredDoubleSided) return true
+  // A combined CAD primitive can occupy all three axes while still being a
+  // collection of open wall/façade sheets. Position-welded topology catches
+  // those cases (including Flugturm) without disabling culling on closed boxes.
+  if (surfaceVisibilityRisk) return true
   // Roof-edge boxes: winding is repaired; DoubleSide still z-fights at some zooms.
   if (OPAQUE_ARCH_NAME.test(name)) return false
   // Floors, plaza, and ceilings must read from above and below.
@@ -243,7 +425,9 @@ function wantsDoubleSide(
   if (isLargeHorizontal) return true
   if (isThinSheet) return true
   if (!treatOpaque && (mat.transparent || mat.opacity < 0.98)) return true
-  if (mat.side === DoubleSide) return true
+  // CAD exporters mark the entire document double-sided. Treat authored side
+  // as a hint only through the semantic/geometry tests above and below; keeping
+  // it unconditionally disables back-face culling for every closed wall/object.
   const alphaTest = (mat as Material & { alphaTest?: number }).alphaTest ?? 0
   if (alphaTest > 0) return true
   return /curtain|panel|plane|sign|fence|rail|leaf|foliage|double|twosided|2sided|decal|logo|icon/.test(
@@ -280,18 +464,81 @@ function uvSpanIsWild(geom: Mesh['geometry']): boolean {
   }
   const span = Math.max(maxU - minU, maxV - minV)
   if (!Number.isFinite(span)) return true
-  // Tiled plazas routinely span >> 12 UV units. Only rewrite collapsed or garbage UVs.
-  return span > 512 || span < 0.02
+  // Valid ICM pedestrian paving exceeds 1,000 UV units. The former 512-unit
+  // ceiling replaced those dense authored UVs with a visibly coarse 4 m grid.
+  return span > 1_000_000 || span < 0.02
+}
+
+/** Physical size represented by one repeat over the horizontal triangles. */
+function horizontalMetersPerRepeat(mesh: Mesh, map: Texture): number | null {
+  const geom = mesh.geometry
+  const position = geom.getAttribute('position')
+  const uv = geom.getAttribute('uv')
+  if (!position || !uv || uv.count !== position.count) return null
+  const index = geom.getIndex()
+  const count = index ? index.count : position.count
+  let worldArea = 0
+  let uvArea = 0
+
+  for (let i = 0; i + 2 < count; i += 3) {
+    const ia = index ? index.getX(i) : i
+    const ib = index ? index.getX(i + 1) : i + 1
+    const ic = index ? index.getX(i + 2) : i + 2
+    _uvWorldA.fromBufferAttribute(position, ia).applyMatrix4(mesh.matrixWorld)
+    _uvWorldB.fromBufferAttribute(position, ib).applyMatrix4(mesh.matrixWorld)
+    _uvWorldC.fromBufferAttribute(position, ic).applyMatrix4(mesh.matrixWorld)
+    _uvWorldAB.subVectors(_uvWorldB, _uvWorldA)
+    _uvWorldAC.subVectors(_uvWorldC, _uvWorldA)
+    _uvWorldNormal.crossVectors(_uvWorldAB, _uvWorldAC)
+    const doubleWorldArea = _uvWorldNormal.length()
+    if (doubleWorldArea <= 1e-12) continue
+    if (Math.abs(_uvWorldNormal.y) / doubleWorldArea < 0.75) continue
+
+    const au = uv.getX(ia)
+    const av = uv.getY(ia)
+    const bu = uv.getX(ib)
+    const bv = uv.getY(ib)
+    const cu = uv.getX(ic)
+    const cv = uv.getY(ic)
+    const triangleUvArea = Math.abs((bu - au) * (cv - av) - (bv - av) * (cu - au)) * 0.5
+    if (!Number.isFinite(triangleUvArea)) return null
+    worldArea += doubleWorldArea * 0.5
+    uvArea += triangleUvArea
+  }
+
+  const repeatArea = Math.abs(map.repeat.x * map.repeat.y)
+  const effectiveUvArea = uvArea * repeatArea
+  if (worldArea < 1 || effectiveUvArea <= 1e-10) return null
+  return Math.sqrt(worldArea / effectiveUvArea)
 }
 
 function ensurePlanarGroundUvs(mesh: Mesh, size: Vector3): void {
   const geom = mesh.geometry
   if (!geom || geom.userData?.planarUvApplied) return
-  if (size.y > 1.2 || size.x * size.z < 80) return
   const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
-  const mapped = mats.some((m) => m && (m as CadMat).map)
-  if (!mapped) return
-  if (geom.getAttribute('uv') && !uvSpanIsWild(geom) && !isWaterMesh(mesh)) return
+  const mappedMats = mats.filter(
+    (mat): mat is Material & { map: Texture } => Boolean(mat && (mat as CadMat).map),
+  )
+  if (!mappedMats.length) return
+  const policy = groundTilingPolicy(mesh)
+  if (
+    size.y > (policy?.maxVerticalSpan ?? 1.2) ||
+    size.x * size.z < (policy?.minFootprint ?? 80)
+  ) return
+
+  const water = isWaterMesh(mesh)
+  const uv = geom.getAttribute('uv')
+  const invalidUvs = !uv || uvSpanIsWild(geom)
+  const primaryMap = mappedMats[0].map
+  const metersPerRepeat =
+    !invalidUvs && !water && policy && mappedMats.length === mats.filter(Boolean).length
+      ? horizontalMetersPerRepeat(mesh, primaryMap)
+      : null
+  const oversized = Boolean(
+    policy && metersPerRepeat != null && metersPerRepeat > policy.repairAboveMeters,
+  )
+  if (!invalidUvs && !water && !oversized && !policy?.forceWorldAligned) return
+
   const pos = geom.getAttribute('position')
   if (!pos || pos.count < 3) return
   const owned = geom.clone()
@@ -300,41 +547,34 @@ function ensurePlanarGroundUvs(mesh: Mesh, size: Vector3): void {
   const uvs = new Float32Array(src.count * 2)
   const v = new Vector3()
   mesh.updateWorldMatrix(true, false)
-  if (isWaterMesh(mesh)) {
-    let minX = Infinity
-    let maxX = -Infinity
-    let minZ = Infinity
-    let maxZ = -Infinity
-    for (let i = 0; i < src.count; i++) {
-      v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrixWorld)
-      if (v.x < minX) minX = v.x
-      if (v.x > maxX) maxX = v.x
-      if (v.z < minZ) minZ = v.z
-      if (v.z > maxZ) maxZ = v.z
-    }
-    const dx = Math.max(1e-4, maxX - minX)
-    const dz = Math.max(1e-4, maxZ - minZ)
-    for (let i = 0; i < src.count; i++) {
-      v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrixWorld)
-      uvs[i * 2] = (v.x - minX) / dx
-      uvs[i * 2 + 1] = (v.z - minZ) / dz
-    }
-  } else {
-    const tile = 4
-    for (let i = 0; i < src.count; i++) {
-      v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrixWorld)
-      uvs[i * 2] = v.x / tile
-      uvs[i * 2 + 1] = v.z / tile
-    }
+  const tile = water ? WATER_TILE_METERS : (policy?.tileMeters ?? 4)
+  // KHR_texture_transform becomes Texture.repeat in Three.js. Divide it out
+  // so the shader-space result still represents the requested metre scale.
+  const repeatX = Math.abs(primaryMap.repeat.x) > 1e-8 ? primaryMap.repeat.x : 1
+  const repeatY = Math.abs(primaryMap.repeat.y) > 1e-8 ? primaryMap.repeat.y : 1
+  for (let i = 0; i < src.count; i++) {
+    v.fromBufferAttribute(src, i).applyMatrix4(mesh.matrixWorld)
+    uvs[i * 2] = v.x / (tile * repeatX)
+    uvs[i * 2 + 1] = v.z / (tile * repeatY)
   }
   owned.setAttribute('uv', new BufferAttribute(uvs, 2))
+  // Reprojecting UVs invalidates imported tangent frames. Let Three.js derive
+  // a consistent TBN from the new UVs for the wood floor's normal map.
+  if (owned.getAttribute('tangent')) owned.deleteAttribute('tangent')
   owned.userData.planarUvApplied = true
+  owned.userData.textureTileMeters = tile
+  if ((oversized || policy?.forceWorldAligned) && policy) {
+    owned.userData.textureScaleCorrected = true
+    owned.userData.textureScaleBeforeMeters = metersPerRepeat
+    mesh.userData.textureScaleCorrected = true
+    mesh.userData.textureTileMeters = policy.tileMeters
+  }
   mesh.geometry = owned
   forEachMaterial(mesh, (mat) => {
     const map = (mat as CadMat).map
     if (!map) return
-    map.wrapS = isWaterMesh(mesh) ? ClampToEdgeWrapping : RepeatWrapping
-    map.wrapT = isWaterMesh(mesh) ? ClampToEdgeWrapping : RepeatWrapping
+    map.wrapS = RepeatWrapping
+    map.wrapT = RepeatWrapping
     map.needsUpdate = true
   })
 }
@@ -386,6 +626,20 @@ type GlassMat = Material & {
   thicknessMap?: Texture | null
 }
 
+function collectVisibilityCriticalHierarchy(root: Object3D): Set<Object3D> {
+  const protectedObjects = new Set<Object3D>()
+  root.traverse((obj) => {
+    if (!isVisibilityCriticalAssembly(obj)) return
+    let current: Object3D | null = obj
+    while (current) {
+      protectedObjects.add(current)
+      if (current === root) break
+      current = current.parent
+    }
+  })
+  return protectedObjects
+}
+
 /**
  * Remove the physical-transmission pass from materials that this pipeline has
  * deliberately classified as opaque. Even a tiny non-zero transmission value
@@ -399,7 +653,7 @@ function stripOpaqueTransmission(mat: Material): void {
   if (physical.thicknessMap) physical.thicknessMap = null
 }
 
-/** Keep the authored water albedo. Transmission-as-glass punched holes in the plaza. */
+/** Stable low-cost water. The source albedo is a non-seamless checker pattern. */
 function applyWaterMaterial(mat: Material): void {
   const g = mat as GlassMat
   mat.transparent = false
@@ -410,15 +664,14 @@ function applyWaterMaterial(mat: Material): void {
   g.forceSinglePass = true
   if ((g.transmission ?? 0) > 0) g.transmission = 0
   if (g.thickness != null) g.thickness = 0
-  if (g.metalness != null && g.metalness > 0.2) g.metalness = 0
-  if (g.roughness != null) g.roughness = Math.max(0.18, Math.min(0.55, g.roughness))
+  if (g.metalness != null) g.metalness = 0
+  if (g.color) g.color.set(0x32939b)
+  if (g.roughness != null) g.roughness = 0.28
   if (g.envMapIntensity != null) g.envMapIntensity = Math.min(1.1, Math.max(0.35, g.envMapIntensity))
   forEachTexture(mat, (tex, key) => hardenTextureColorSpace(tex, key))
-  if (g.map) {
-    g.map.wrapS = ClampToEdgeWrapping
-    g.map.wrapT = ClampToEdgeWrapping
-    g.map.needsUpdate = true
-  }
+  // One low-frequency blue square per source image reads as pool tiles at any
+  // repeat. A clean reflective tint is more plausible and saves a sampler.
+  if (g.map) g.map = null
   mat.polygonOffset = false
   mat.polygonOffsetFactor = 0
   mat.polygonOffsetUnits = 0
@@ -492,66 +745,6 @@ function applyGlassMaterial(mat: Material, _bothSides: boolean, depthBias = 0): 
   mat.needsUpdate = true
 }
 
-/** Flip inverted CAD triangles so Front/DoubleSide lighting is consistent. */
-function hardenCadWinding(mesh: Mesh): void {
-  const geom = mesh.geometry
-  if (!geom || geom.userData?.cadWindingHardened) return
-  geom.userData.cadWindingHardened = true
-  const pos = geom.getAttribute('position')
-  const index = geom.getIndex()
-  if (!pos || !index || index.count < 9) return
-
-  let cx = 0
-  let cy = 0
-  let cz = 0
-  const n = pos.count
-  for (let i = 0; i < n; i++) {
-    cx += pos.getX(i)
-    cy += pos.getY(i)
-    cz += pos.getZ(i)
-  }
-  cx /= n
-  cy /= n
-  cz /= n
-
-  const arr = index.array as Uint16Array | Uint32Array | number[]
-  let flipped = 0
-  for (let i = 0; i < index.count; i += 3) {
-    const ia = arr[i]!
-    const ib = arr[i + 1]!
-    const ic = arr[i + 2]!
-    const ax = pos.getX(ia)
-    const ay = pos.getY(ia)
-    const az = pos.getZ(ia)
-    const bx = pos.getX(ib)
-    const by = pos.getY(ib)
-    const bz = pos.getZ(ib)
-    const cxv = pos.getX(ic)
-    const cyv = pos.getY(ic)
-    const czv = pos.getZ(ic)
-    const ux = bx - ax
-    const uy = by - ay
-    const uz = bz - az
-    const vx = cxv - ax
-    const vy = cyv - ay
-    const vz = czv - az
-    const nx = uy * vz - uz * vy
-    const ny = uz * vx - ux * vz
-    const nz = ux * vy - uy * vx
-    const mx = (ax + bx + cxv) / 3 - cx
-    const my = (ay + by + cyv) / 3 - cy
-    const mz = (az + bz + czv) / 3 - cz
-    if (nx * mx + ny * my + nz * mz < 0) {
-      arr[i + 1] = ic
-      arr[i + 2] = ib
-      flipped += 1
-    }
-  }
-  if (flipped > 0) {
-    index.needsUpdate = true
-    geom.computeVertexNormals()
-  }
-}
 function hardenGlassGeometry(mesh: Mesh): void {
   const geom = mesh.geometry
   if (!geom?.getAttribute('position')) return
@@ -589,9 +782,13 @@ export function prepareArchitecturalMeshes(
   const sideMatCache = new Map<string, Material>()
 
   root.updateMatrixWorld(true)
+  const visibilityCriticalHierarchy = collectVisibilityCriticalHierarchy(root)
   let cadHidden = 0
+  let topologyInspected = 0
+  let topologyRiskMeshes = 0
+  let topologyRiskTriangles = 0
   root.traverse((obj) => {
-    if (isCadOverlayObject(obj)) {
+    if (!visibilityCriticalHierarchy.has(obj) && isCadOverlayObject(obj)) {
       if (!obj.userData?.cadOverlay) cadHidden += 1
       hideCadOverlay(obj)
     }
@@ -656,10 +853,111 @@ export function prepareArchitecturalMeshes(
     const isThinSheet = minDim <= 0.08
     const isLargeHorizontal = thin && footprint >= areaThreshold
     const water = isWaterMesh(mesh)
-    const glass = !water && isGlassMesh(mesh)
+    const materialSlots = fillMats.filter((mat): mat is Material => Boolean(mat))
+    const bridgeGrating = materialSlots.some((mat) =>
+      isIcmWalkableBridgeGrating(mesh, mat),
+    )
+    const glassMaterials = new Set(
+      materialSlots.filter((mat) => !water && isGlassMaterial(mesh, mat)),
+    )
+    const hasGlass = glassMaterials.size > 0
+    const glass = hasGlass && materialSlots.every((mat) => glassMaterials.has(mat))
+    const fireSafetyAssembly = isFireSafetyAssembly(mesh)
+    const visibilityCritical = fireSafetyAssembly || isVisibilityCriticalAssembly(mesh)
     const opaqueArch = OPAQUE_ARCH_NAME.test(`${mesh.name || ''} ${path}`)
-    const shutter = SHUTTER_NAME.test(`${mesh.name} ${path} ${meshMaterialNames(mesh)}`)
-    if (shutter) mesh.userData.shutter = true
+    const surfaceLabel = `${mesh.name} ${path} ${meshMaterialNames(mesh)}`
+    const shutter = SHUTTER_NAME.test(surfaceLabel)
+    const openShellSemantic = OPEN_ARCHITECTURAL_SHELL_NAME.test(surfaceLabel)
+    const auditedOpenShellMaterial = materialSlots.some((mat) =>
+      AUDITED_OPEN_SHELL_MATERIAL.test(mat.name || ''),
+    )
+    const auditedMixedWindingShell = hasAuditedMixedWindingShellName(mesh)
+    const allMaterialsAuthoredDoubleSided =
+      materialSlots.length > 0 && materialSlots.every(hasAuthoredDoubleSidedReason)
+
+    if (bridgeGrating) {
+      // These authored bridge tops are wound downward. Their exact semantics
+      // make them safe to render two-sided and to retain through visual packing.
+      mesh.userData[IOM_EXPLICIT_WALKABLE_KEY] = true
+      mesh.userData.floorSurface = true
+      mesh.userData.detailLodIgnore = true
+      mesh.userData.floorZoneAlways = true
+    }
+    // Cheap bbox/semantic rules already cover planar sheets, campus decks,
+    // glass, and lightmapped slices. Inspect topology only for the remaining
+    // 3D-looking CAD assemblies, where the old bbox heuristic missed open
+    // façades and interior walls.
+    const topology =
+      !water &&
+      !glass &&
+      !shutter &&
+      !lightmapped &&
+      !isThinSheet &&
+      !isLargeHorizontal &&
+      (openShellSemantic ||
+        auditedOpenShellMaterial ||
+        auditedMixedWindingShell ||
+        visibilityCritical) &&
+      !allMaterialsAuthoredDoubleSided
+        ? inspectSurfaceTopology(mesh.geometry)
+        : null
+    mesh.getWorldScale(_worldScale)
+    const physicalTopologySize = topology
+      ? [
+          topology.localSize[0] * Math.abs(_worldScale.x),
+          topology.localSize[1] * Math.abs(_worldScale.y),
+          topology.localSize[2] * Math.abs(_worldScale.z),
+        ].sort((a, b) => b - a)
+      : null
+    const meaningfulSurface = Boolean(
+      physicalTopologySize &&
+        physicalTopologySize[0]! >= 0.75 &&
+        physicalTopologySize[0]! * physicalTopologySize[1]! >= 0.2,
+    )
+    const auditedWindingRisk = Boolean(
+      topology &&
+        auditedMixedWindingShell &&
+        (topology.boundaryEdges > 0 ||
+          topology.windingConflictEdges > 0 ||
+          topology.nonManifoldEdges > 0),
+    )
+    const surfaceVisibilityRisk = Boolean(
+      topology &&
+        (auditedWindingRisk ||
+          (hasSurfaceVisibilityRisk(topology) &&
+            (visibilityCritical ||
+              auditedOpenShellMaterial ||
+              (openShellSemantic && meaningfulSurface)))),
+    )
+    if (topology) topologyInspected += 1
+    if (surfaceVisibilityRisk && topology) {
+      topologyRiskMeshes += 1
+      topologyRiskTriangles += topology.triangles
+      mesh.userData.surfaceVisibilityRisk = true
+      mesh.userData.surfaceVisibilityReason = visibilityCritical
+        ? 'visibility-critical'
+        : auditedWindingRisk
+          ? 'audited-mixed-winding-shell'
+        : auditedOpenShellMaterial
+          ? 'audited-open-shell'
+          : 'architectural-open-shell'
+      mesh.userData.surfaceTopology = {
+        triangles: topology.triangles,
+        boundaryEdges: topology.boundaryEdges,
+        boundaryRatio: topology.boundaryRatio,
+        nonManifoldEdges: topology.nonManifoldEdges,
+        windingConflictEdges: topology.windingConflictEdges,
+      }
+    }
+    if (shutter) {
+      mesh.userData.shutter = true
+      mesh.userData.orbitDuplicateRole = 'facade-shutter'
+    }
+    if (visibilityCritical) {
+      mesh.userData.visibilityCritical = true
+      mesh.userData.detailLodIgnore = true
+      mesh.userData.floorZoneAlways = true
+    }
     if (water) {
       mesh.userData.waterSurface = true
       mesh.userData.floorSurface = true
@@ -683,6 +981,12 @@ export function prepareArchitecturalMeshes(
       // Draw after opaque so opacity glass composites over lobby/backdrop.
       mesh.renderOrder = 2
       hardenGlassGeometry(mesh)
+    } else if (hasGlass) {
+      // Mixed assemblies keep opaque depth/shadows. Only their pane material
+      // slots are converted below; the whole mesh must not become "glass".
+      mesh.userData.containsArchitecturalGlass = true
+      mesh.userData.architecturalGlass = false
+      hardenGlassGeometry(mesh)
     } else if (lightmapped) {
       // Baked GI: realtime shadows on paper-thin CAD flicker (acne + z-fight).
       mesh.castShadow = false
@@ -703,10 +1007,9 @@ export function prepareArchitecturalMeshes(
         mesh.userData.detailLodIgnore = true
         mesh.userData.floorZoneAlways = true
       }
-      if (!skinned && !lightmapped) {
-        // Don't flip paper-thin slabs to +Y — that hides ceilings from below.
-        if (!mesh.userData.paperThinGround) hardenCadWinding(mesh)
-      }
+      // Never mutate triangle winding at runtime. A global-centroid test is
+      // invalid for open/concave CAD assemblies and can flip correct front
+      // faces. Winding repair belongs in the offline Blender/source pass.
     }
 
     if (freezeStatic && !animationTarget && !skinned) {
@@ -716,12 +1019,15 @@ export function prepareArchitecturalMeshes(
 
     forEachMaterial(mesh, (mat) => {
       if (water) {
-        const key = `${mat.uuid}|water`
-        let target = sideMatCache.get(key)
-        if (!target) {
-          target = mat.clone()
-          applyWaterMaterial(target)
-          sideMatCache.set(key, target)
+        let target = mat
+        if (mat.userData?.iomArchitecturalWaterPrepared !== true) {
+          const key = `${mat.uuid}|water`
+          target = sideMatCache.get(key) ?? mat.clone()
+          if (!sideMatCache.has(key)) {
+            applyWaterMaterial(target)
+            target.userData = { ...target.userData, iomArchitecturalWaterPrepared: true }
+            sideMatCache.set(key, target)
+          }
         }
         if (Array.isArray(mesh.material)) {
           mesh.material = mesh.material.map((m) => (m === mat ? target! : m))
@@ -731,13 +1037,20 @@ export function prepareArchitecturalMeshes(
         return
       }
 
-      if (glass) {
-        const key = `${mat.uuid}|ds|${glassDepthBias}`
-        let target = glassMatCache.get(key)
-        if (!target) {
-          target = mat.clone()
-          applyGlassMaterial(target, true, glassDepthBias)
-          glassMatCache.set(key, target)
+      if (glassMaterials.has(mat)) {
+        let target = mat
+        const preparedBias = mat.userData?.iomArchitecturalGlassDepthBias
+        if (preparedBias !== glassDepthBias) {
+          const key = `${mat.uuid}|ds|${glassDepthBias}`
+          target = glassMatCache.get(key) ?? mat.clone()
+          if (!glassMatCache.has(key)) {
+            applyGlassMaterial(target, true, glassDepthBias)
+            target.userData = {
+              ...target.userData,
+              iomArchitecturalGlassDepthBias: glassDepthBias,
+            }
+            glassMatCache.set(key, target)
+          }
         }
         if (Array.isArray(mesh.material)) {
           mesh.material = mesh.material.map((m) => (m === mat ? target! : m))
@@ -754,19 +1067,26 @@ export function prepareArchitecturalMeshes(
       const physicalTransmission = (mat as GlassMat).transmission ?? 0
       const cadBlend =
         isNearOpaqueCadBlend(mat) ||
+        (fireSafetyAssembly &&
+          (mat.transparent || (mat.opacity ?? 1) < 0.98 || physicalTransmission > 0)) ||
         (opaqueArch &&
           (mat.transparent || (mat.opacity ?? 1) < 0.98 || physicalTransmission > 0))
       const liftBlack = shouldLiftCadBlack(mat)
       const groundFill =
         Boolean(mesh.userData.paperThinGround) && !(mat as CadMat).map
+      const bridgeGratingMaterial = isIcmWalkableBridgeGrating(mesh, mat)
       const nextSide =
-        lightmapped && !shutterMat
+        bridgeGratingMaterial
+          ? DoubleSide
+          : lightmapped && !shutterMat
           ? DoubleSide
           : wantsDoubleSide(
                 mesh,
                 mat,
                 isThinSheet,
                 isLargeHorizontal,
+                surfaceVisibilityRisk,
+                hasAuthoredDoubleSidedReason(mat),
                 cadBlend,
                 minDim,
               )
@@ -833,6 +1153,17 @@ export function prepareArchitecturalMeshes(
   if (cadHidden > 0) {
     console.info(`[Viewer] hid ${cadHidden} CAD overlay object${cadHidden === 1 ? '' : 's'}`)
   }
+  root.userData.surfaceVisibilityAudit = {
+    topologyInspected,
+    topologyRiskMeshes,
+    topologyRiskTriangles,
+  }
+  if (topologyRiskMeshes > 0) {
+    console.info(
+      `[Viewer] protected ${topologyRiskMeshes} open/non-manifold surface mesh${topologyRiskMeshes === 1 ? '' : 'es'} ` +
+        `(${topologyRiskTriangles.toLocaleString()} triangles) from back-face disappearance`,
+    )
+  }
 }
 
 /** Apply quality-dependent texture / shadow caster knobs without reloading the GLB. */
@@ -846,7 +1177,7 @@ export function applyMeshQuality(root: Object3D, config: QualityConfig): void {
     const mesh = obj as Mesh
     if (mesh.userData?.collisionOnly) return
 
-    if (mesh.userData?.architecturalGlass || isGlassMesh(mesh)) {
+    if (mesh.userData?.architecturalGlass || meshIsEntirelyGlass(mesh)) {
       mesh.castShadow = false
       mesh.receiveShadow = false
     } else {
@@ -872,7 +1203,8 @@ export function applyMeshQuality(root: Object3D, config: QualityConfig): void {
     forEachMaterial(mesh, (mat) => {
       forEachTexture(mat, (tex, key) => {
         hardenTextureColorSpace(tex, key)
-        if ((tex as Texture & { isCompressedTexture?: boolean }).isCompressedTexture) return
+        // Anisotropic filtering is valid for KTX2/compressed textures too.
+        // Skipping it made the newly corrected paving blur at grazing angles.
         const ani = mesh.userData?.floorSurface ? Math.max(anisotropy, 8) : anisotropy
         if (tex.anisotropy !== ani) tex.anisotropy = ani
       })

@@ -8,8 +8,7 @@
 import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import { NodeIO } from '@gltf-transform/core'
-import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
+import { createGltfIO } from './lib/gltf-io.mjs'
 
 function parseArgs(argv) {
   const args = { input: null, out: null, tolerance: 0.002 }
@@ -93,7 +92,7 @@ async function main() {
   }
 
   const bytes = (await readFile(args.input)).length
-  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS)
+  const io = await createGltfIO()
   const document = await io.read(args.input)
   const materials = document.getRoot().listMaterials()
   const uses = countPrimUses(document)

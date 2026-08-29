@@ -1,6 +1,7 @@
 import {
   Box3,
   BufferGeometry,
+  InstancedMesh,
   Mesh,
   SkinnedMesh,
   Vector3,
@@ -11,6 +12,7 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import {
   analyzeStairSupport,
   inferStairAscent,
+  inferStairAscentFromTreads,
   makeStairProxyGeometry,
 } from './stairGeometry'
 
@@ -59,6 +61,10 @@ export type CollisionChunkSource = {
   name: string
   /** Stair assemblies stay in dedicated chunks and get extra Y activation pad. */
   stairZone?: boolean
+  /** Raycast both windings (for exact open bridge-grating supplements). */
+  doubleSided?: boolean
+  /** Original meshes merged into this chunk (used to prevent proxy duplication). */
+  sourceNames?: string[]
 }
 
 export type CollisionCandidateLog = {
@@ -185,6 +191,12 @@ export function buildCollisionChunks(
     includeProcedural?: boolean
     /** Floors/stairs/large slabs only — no walls (for visual fill under dedicated). */
     walkSurfacesOnly?: boolean
+    /** Restrict extraction to a caller-authored mesh subset. */
+    includeMesh?: (mesh: Mesh) => boolean
+    /** Bypass generic grille/decor rejection for an explicitly authored deck. */
+    isExplicitWalkable?: (mesh: Mesh) => boolean
+    /** Mark emitted chunks for double-sided collision raycasts. */
+    doubleSided?: boolean
   },
 ): {
   chunks: CollisionChunkSource[]
@@ -194,6 +206,10 @@ export function buildCollisionChunks(
   const verbose = options?.verbose !== false
   // Collision extract must work even when the render layer is temporarily hidden.
   const ignoreVisibility = options?.ignoreVisibility !== false
+  // The exterior proxy contains known campus-scale CAD volumes mislabeled as
+  // inferred walk surfaces. Animated collision has an approved coverage pin,
+  // so apply this model-specific cleanup only to the affected exterior layer.
+  const strictBroadVolumeFilter = options?.layerId?.startsWith('icm-ext') === true
   root.updateMatrixWorld(true)
 
   const colliderTagged: Candidate[] = []
@@ -205,6 +221,7 @@ export function buildCollisionChunks(
     if ((obj as SkinnedMesh).isSkinnedMesh) return
     const mesh = obj as Mesh
     if (!mesh.geometry?.getAttribute('position')) return
+    if (options?.includeMesh && !options.includeMesh(mesh)) return
     if (
       !ignoreVisibility &&
       !isAncestorVisible(mesh) &&
@@ -218,6 +235,7 @@ export function buildCollisionChunks(
     const parentName = mesh.parent?.name || ''
     const material = matNames(mesh)
     const pathLabel = `${label} ${parentName}`
+    const explicitWalkable = Boolean(options?.isExplicitWalkable?.(mesh))
 
     if (NO_WALK_NAME.test(name) || NO_WALK_NAME.test(label)) {
       skipped.push({
@@ -243,6 +261,22 @@ export function buildCollisionChunks(
       if (!options?.includeProcedural) return
     }
 
+    if (strictBroadVolumeFilter && (mesh as InstancedMesh).isInstancedMesh) {
+      // A Mesh world matrix does not include EXT_mesh_gpu_instancing instance
+      // transforms. Treating it as an ordinary Mesh collapses remote geometry
+      // around the origin in the affected exterior proxy (the former invisible
+      // 300x10x300 m Y=10 platform). Other validated proxy layers retain their
+      // pinned geometry until their instances are explicitly flattened offline.
+      skipped.push({
+        name,
+        material,
+        triangles: triangleCount(mesh.geometry) * (mesh as InstancedMesh).count,
+        bounds: { min: [0, 0, 0], max: [0, 0, 0] },
+        reason: 'instanced collision requires flattened proxy',
+      })
+      return
+    }
+
     const tris = triangleCount(mesh.geometry)
     if (tris < 1) return
 
@@ -250,19 +284,42 @@ export function buildCollisionChunks(
     if (_box.isEmpty()) return
     _box.getSize(_size)
     const footprint = Math.max(0, _size.x) * Math.max(0, _size.z)
-    const thin = _size.y <= Math.max(_size.x, _size.z) * 0.08 + 0.5
+    const thin =
+      _size.y <= Math.max(_size.x, _size.z) * 0.08 + 0.5 &&
+      (!strictBroadVolumeFilter || _size.y <= 1.25)
     const largeHorizontal = thin && footprint >= 2
 
+    const semanticWalk =
+      explicitWalkable ||
+      WALK_SURFACE_NAME.test(pathLabel) ||
+      WALK_SURFACE_NAME.test(material) ||
+      isStairLabel(`${pathLabel} ${material}`)
+    const suspiciousBroadVolume =
+      strictBroadVolumeFilter &&
+      !semanticWalk &&
+      footprint >= 20_000 &&
+      _size.y >= 2
+    if (suspiciousBroadVolume) {
+      skipped.push({
+        name,
+        material,
+        triangles: tris,
+        bounds: logBounds(_box),
+        reason: 'exterior broad-volume phantom',
+      })
+      return
+    }
     const isDedicated =
       COLLIDER_NAME.test(name) || Boolean(mesh.userData?.collisionOnly || mesh.userData?.collisionMesh)
 
     // Railings / handles / grilles — even COLLIDER_* and names like Treppe_handlauf.
     // Keeping them as walk surfaces blocks mid-stair climb.
     if (
-      RAILING_NAME.test(pathLabel) ||
-      RAILING_NAME.test(material) ||
-      STAIR_DETAIL_SKIP.test(pathLabel) ||
-      STAIR_DETAIL_SKIP.test(material)
+      !explicitWalkable &&
+      (RAILING_NAME.test(pathLabel) ||
+        RAILING_NAME.test(material) ||
+        STAIR_DETAIL_SKIP.test(pathLabel) ||
+        STAIR_DETAIL_SKIP.test(material))
     ) {
       skipped.push({
         name,
@@ -274,7 +331,11 @@ export function buildCollisionChunks(
       return
     }
 
-    if (!isDedicated && (SKIP_COLLISION_NAME.test(pathLabel) || SKIP_COLLISION_NAME.test(material))) {
+    if (
+      !explicitWalkable &&
+      !isDedicated &&
+      (SKIP_COLLISION_NAME.test(pathLabel) || SKIP_COLLISION_NAME.test(material))
+    ) {
       skipped.push({
         name,
         material,
@@ -285,10 +346,7 @@ export function buildCollisionChunks(
       return
     }
 
-    const namedWalk =
-      WALK_SURFACE_NAME.test(pathLabel) ||
-      WALK_SURFACE_NAME.test(material) ||
-      isStairLabel(`${pathLabel} ${material}`)
+    const namedWalk = semanticWalk
     const namedWall = WALL_NAME.test(pathLabel) || WALL_NAME.test(material)
     // Dedicated proxies still need name/shape classification — otherwise every
     // COLLIDER_* wall/fixture becomes a walk surface and stairs get blocked.
@@ -303,7 +361,9 @@ export function buildCollisionChunks(
       walkSurface,
       wallLike,
       box: _box.clone(),
-      reason: isDedicated
+      reason: explicitWalkable
+        ? 'explicit-walk-surface'
+        : isDedicated
         ? walkSurface
           ? 'COLLIDER_* walk'
           : wallLike
@@ -340,7 +400,9 @@ export function buildCollisionChunks(
     for (const c of colliderTagged) {
       c.box.getSize(_size)
       const footprint = Math.max(0, _size.x) * Math.max(0, _size.z)
-      const thin = _size.y <= Math.max(_size.x, _size.z) * 0.08 + 0.5
+      const thin =
+        _size.y <= Math.max(_size.x, _size.z) * 0.08 + 0.5 &&
+        (!strictBroadVolumeFilter || _size.y <= 1.25)
       const nameWalk = WALK_SURFACE_NAME.test(
         `${classifyName(c.mesh.name || '')} ${c.mesh.parent?.name || ''}`,
       )
@@ -436,12 +498,14 @@ export function buildCollisionChunks(
       if (support.usable) {
         c.reason += c.dedicated ? ' + authored-stair-support' : ' + authored-visual-support'
       } else {
-        const ascent = inferStairAscent(authoredGeometry)
+        const envelopeAscent = inferStairAscent(authoredGeometry)
+        const ascent = envelopeAscent ?? inferStairAscentFromTreads(authoredGeometry)
         const proxy = ascent ? makeStairProxyGeometry(ascent) : null
         if (proxy) {
           authoredGeometry.dispose()
           geo = proxy
-          c.reason += ` + inferred-stair-proxy(${ascent!.axis.x.toFixed(2)},${ascent!.axis.y.toFixed(2)};${ascent!.confidence.toFixed(2)})`
+          const source = envelopeAscent ? 'envelope' : 'treads'
+          c.reason += ` + inferred-stair-proxy:${source}(${ascent!.axis.x.toFixed(2)},${ascent!.axis.y.toFixed(2)};${ascent!.confidence.toFixed(2)})`
         } else {
           // Ambiguous single-flight geometry is safer than an AABB proxy that
           // can rise backwards or bridge a multi-flight stair well.
@@ -520,6 +584,8 @@ export function buildCollisionChunks(
             triangles: tris,
             name: `chunk_${key}_${i}_${bucket.names[i]}`,
             stairZone: bucket.stairZone,
+            doubleSided: Boolean(options?.doubleSided),
+            sourceNames: [bucket.names[i] ?? '(unnamed)'],
           })
         }
         continue
@@ -549,6 +615,8 @@ export function buildCollisionChunks(
       triangles: triangleCount(merged),
       name: `chunk_${key}`,
       stairZone: bucket.stairZone,
+      doubleSided: Boolean(options?.doubleSided),
+      sourceNames: [...new Set(bucket.names)],
     })
   }
 

@@ -1,6 +1,7 @@
 import {
   BatchedMesh,
   Box3,
+  InstancedMesh,
   Matrix4,
   Mesh,
   Vector3,
@@ -51,6 +52,10 @@ type BatchInstanceLod = {
 
 type PackedLodEntry = {
   mesh: Mesh
+  /** Object-local center of the complete packed draw, including instances. */
+  localCenter: Vector3
+  /** Object-local radius of the complete packed draw, including instances. */
+  localRadius: number
   center: Vector3
   radius: number
   keepAlways: boolean
@@ -283,13 +288,29 @@ export class DetailLodController {
         return
       }
 
-      const isPacked = Boolean(mesh.userData?.proceduralInstanced || mesh.userData?.proceduralBatched)
+      // Imported EXT_mesh_gpu_instancing nodes are InstancedMesh objects even
+      // when they were authored offline and have no procedural runtime flag.
+      // Treat every native packed draw as packed: simplifying it as an ordinary
+      // Mesh would use one primitive's bounds and can incorrectly hide a batch
+      // whose instances span a room or campus cell.
+      const instanced = mesh as InstancedMesh
+      const batched = mesh as BatchedMesh
+      const isNativePacked = Boolean(instanced.isInstancedMesh || batched.isBatchedMesh)
+      const isPacked = Boolean(
+        isNativePacked || mesh.userData?.proceduralInstanced || mesh.userData?.proceduralBatched,
+      )
       const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
       if (!isPacked && (isAlphaCutout(mesh) || mats.some((m) => m && (m.transparent || m.opacity < 0.98)))) return
       if (!mesh.geometry) return
 
-      if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere()
-      const local = mesh.geometry.boundingSphere
+      if (instanced.isInstancedMesh) instanced.computeBoundingSphere()
+      else if (batched.isBatchedMesh) batched.computeBoundingSphere()
+      else if (!mesh.geometry.boundingSphere) mesh.geometry.computeBoundingSphere()
+      const local = instanced.isInstancedMesh
+        ? instanced.boundingSphere
+        : batched.isBatchedMesh
+          ? batched.boundingSphere
+          : mesh.geometry.boundingSphere
       if (!local || local.radius <= 0) return
 
       mesh.updateWorldMatrix(true, false)
@@ -315,6 +336,8 @@ export class DetailLodController {
           isOverviewKeepName(matName)
         this.packed.push({
           mesh,
+          localCenter: local.center.clone(),
+          localRadius: local.radius,
           center,
           radius,
           keepAlways: partMass,
@@ -540,7 +563,12 @@ export class DetailLodController {
         continue
       }
 
-      entry.mesh.getWorldPosition(entry.center)
+      // Packed bounds are object-local and may be offset far from the node
+      // origin (typical for imported instancing). Reapply the current animated
+      // matrix instead of replacing the center with getWorldPosition().
+      entry.mesh.updateWorldMatrix(true, false)
+      entry.center.copy(entry.localCenter).applyMatrix4(entry.mesh.matrixWorld)
+      entry.radius = entry.localRadius * entry.mesh.matrixWorld.getMaxScaleOnAxis()
       const dist = Math.max(0.05, this._camPos.distanceTo(entry.center))
       if (this.hideTinyMeshes && entry.mesh.userData?.proceduralInstanced) {
         const size = entry.partSize

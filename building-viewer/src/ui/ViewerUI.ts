@@ -364,6 +364,9 @@ export class ViewerToolbar {
     if (info.instanceId != null) {
       this.inspectBody.append(row('Instance', String(info.instanceId)))
     }
+    if (info.sourceId != null) {
+      this.inspectBody.append(row('Source ID', String(info.sourceId)))
+    }
 
     const actions = el('div', 'bv-inspect-actions')
     const copyBtn = el('button', undefined, 'Copy')

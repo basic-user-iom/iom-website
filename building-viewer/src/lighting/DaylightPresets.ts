@@ -31,22 +31,34 @@ export type DaylightPreset = {
   backgroundIntensity: number
 }
 
+export type EffectiveDaylightSettings = {
+  sunIntensity: number
+  hemisphereIntensity: number
+  ambientIntensity: number
+  exposure: number
+  environmentIntensity: number
+  backgroundBlurriness: number
+  backgroundIntensity: number
+}
+
 export const DAYLIGHT_PRESETS: Record<DaylightPresetId, DaylightPreset> = {
   daylight: {
     id: 'daylight',
     label: 'Daylight',
-    // Matches the bright outdoor sun feel of the three.js / IOM SSR denoise demo.
+    // Calibrated for AgX with the quarry HDR. The HDR already supplies broad
+    // indirect light, so hemisphere/ambient are intentionally only a subtle
+    // fallback fill instead of a second full-strength sky contribution.
     sunDir: [0.55, 0.85, 0.5],
-    sunIntensity: 6.5,
+    sunIntensity: 4.2,
     sunColor: 0xfff4e0,
     hemiSky: 0x9ec8ff,
     hemiGround: 0x6a5a48,
-    hemiIntensity: 0.55,
-    ambientIntensity: 0.08,
-    exposure: 1.35,
+    hemiIntensity: 0.28,
+    ambientIntensity: 0.02,
+    exposure: 0.95,
     useHdr: true,
     backgroundColor: 0x87a0b8,
-    environmentIntensity: 1.0,
+    environmentIntensity: 0.72,
     backgroundBlurriness: 0.02,
     backgroundIntensity: 1.0,
   },
@@ -101,6 +113,31 @@ export const DAYLIGHT_PRESETS: Record<DaylightPresetId, DaylightPreset> = {
     backgroundBlurriness: 0,
     backgroundIntensity: 1,
   },
+}
+
+/**
+ * Resolve the exact values applied by LightingSystem for a quality profile.
+ * Keeping this arithmetic pure makes preset/profile interactions testable
+ * without constructing a WebGL renderer.
+ */
+export function resolveEffectiveDaylight(
+  preset: DaylightPreset,
+  qualityEnvironmentScale: number,
+): EffectiveDaylightSettings {
+  const scale = Number.isFinite(qualityEnvironmentScale)
+    ? Math.max(0, qualityEnvironmentScale)
+    : 1
+  return {
+    // Keep a readable key light on low-end profiles while all fill and image-
+    // based lighting scale down normally. This has no additional GPU cost.
+    sunIntensity: preset.sunIntensity * Math.max(0.65, scale),
+    hemisphereIntensity: preset.hemiIntensity * scale,
+    ambientIntensity: preset.ambientIntensity * scale,
+    exposure: preset.exposure,
+    environmentIntensity: preset.environmentIntensity * scale,
+    backgroundBlurriness: preset.backgroundBlurriness,
+    backgroundIntensity: preset.backgroundIntensity,
+  }
 }
 
 const DEFAULT_HDR_URL = '/demos/ssr-denoise/textures/quarry_01_1k.hdr'

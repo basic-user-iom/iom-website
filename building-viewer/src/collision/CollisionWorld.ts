@@ -1,6 +1,7 @@
 import {
   Box3,
   BufferGeometry,
+  DoubleSide,
   Group,
   Mesh,
   MeshBasicMaterial,
@@ -25,6 +26,12 @@ Mesh.prototype.raycast = acceleratedRaycast
 const _raycaster = new Raycaster()
 ;(_raycaster as Raycaster & { firstHitOnly?: boolean }).firstHitOnly = true
 
+// Ground probes must be able to look past a nearby non-walkable face in the
+// same stair assembly (for example a nosing, soffit, or sloped trim face).
+// Keep this separate from the first-hit raycaster used by ordinary picking.
+const _groundRaycaster = new Raycaster()
+;(_groundRaycaster as Raycaster & { firstHitOnly?: boolean }).firstHitOnly = false
+
 const _localOrigin = new Vector3()
 const _localEnd = new Vector3()
 const _capsuleCenter = new Vector3()
@@ -38,6 +45,8 @@ const _rayEnd = new Vector3()
 const _focus = new Vector3()
 const _downGround = new Vector3(0, -1, 0)
 const _bestGroundNormal = new Vector3()
+const _fallbackGroundPoint = new Vector3()
+const _fallbackGroundNormal = new Vector3()
 
 export type CollisionFrameStats = {
   raycasts: number
@@ -57,11 +66,14 @@ type ChunkCollider = {
   box: Box3
   triangles: number
   stairZone: boolean
+  layerId: string
+  sourceName: string
   /** Squared XZ distance hysteresis latch. */
   active: boolean
 }
 
 const sharedMat = new MeshBasicMaterial({ visible: false })
+const sharedDoubleSidedMat = new MeshBasicMaterial({ visible: false, side: DoubleSide })
 const debugMat = new MeshBasicMaterial({
   color: 0xff3344,
   wireframe: true,
@@ -95,6 +107,8 @@ export class CollisionWorld implements ICollisionWorld {
   private yPad = DEFAULT_Y_PAD
   private forceAll = false
   private placementMode = false
+  /** Null while picking; fixed to the visible surface owner while walking. */
+  private queryLayerId: string | null = null
   readonly debugRoot = new Group()
 
   private frameRaycasts = 0
@@ -163,6 +177,14 @@ export class CollisionWorld implements ICollisionWorld {
     return this.debugVisible
   }
 
+  setQueryLayer(layerId: string | null): void {
+    this.queryLayerId = layerId
+  }
+
+  getQueryLayer(): string | null {
+    return this.queryLayerId
+  }
+
   /** Store extracted chunks for a model layer (pre-packing). */
   setLayerChunks(
     layerId: string,
@@ -198,6 +220,7 @@ export class CollisionWorld implements ICollisionWorld {
   clearLayer(layerId: string): void {
     this.disposeLayerGeometries(layerId)
     this.layerChunks.delete(layerId)
+    if (this.queryLayerId === layerId) this.queryLayerId = null
   }
 
   clearAllLayers(): void {
@@ -208,6 +231,15 @@ export class CollisionWorld implements ICollisionWorld {
     this.layerChunks.clear()
     this.totalTriangles = 0
     this.residentTriangles = 0
+    this.queryLayerId = null
+  }
+
+  /** Dispose cached source chunks that are no longer part of the committed model set. */
+  retainLayers(layerIds: Iterable<string>): void {
+    const keep = new Set(layerIds)
+    for (const id of [...this.layerChunks.keys()]) {
+      if (!keep.has(id)) this.clearLayer(id)
+    }
   }
 
   /**
@@ -235,7 +267,10 @@ export class CollisionWorld implements ICollisionWorld {
 
         let bvh = (src.geometry as BufferGeometry & { boundsTree?: MeshBVH }).boundsTree ?? null
 
-        const mesh = new Mesh(src.geometry, sharedMat)
+        const mesh = new Mesh(
+          src.geometry,
+          src.doubleSided ? sharedDoubleSidedMat : sharedMat,
+        )
         mesh.name = src.name
         mesh.visible = true
         mesh.frustumCulled = false
@@ -252,6 +287,8 @@ export class CollisionWorld implements ICollisionWorld {
           box,
           triangles: src.triangles,
           stairZone: Boolean(src.stairZone),
+          layerId: id,
+          sourceName: src.name,
           active: false,
         })
         nextTris += src.triangles
@@ -428,8 +465,15 @@ export class CollisionWorld implements ICollisionWorld {
 
     let bestDist = Infinity
     let found = false
+    let bestLayerId: string | undefined
+    let bestSourceName: string | undefined
+    let bestStair = false
 
     for (const chunk of this.chunks) {
+      // The placement layer remains authoritative for ordinary architecture,
+      // but a reachable stair owned by another visible model must be queryable
+      // so locomotion can hand support ownership across model boundaries.
+      if (this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone) continue
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       this.frameChunks += 1
       this.frameBvh += 1
@@ -438,6 +482,9 @@ export class CollisionWorld implements ICollisionWorld {
       if (!hit || hit.distance >= bestDist) continue
       bestDist = hit.distance
       found = true
+      bestLayerId = chunk.layerId
+      bestSourceName = chunk.sourceName
+      bestStair = chunk.stairZone
       _hitPoint.copy(hit.point)
       if (hit.face?.normal) {
         _hitNormal.copy(hit.face.normal).normalize()
@@ -449,7 +496,14 @@ export class CollisionWorld implements ICollisionWorld {
 
     this.frameCpuMs += performance.now() - t0
     if (!found) return null
-    return { point: _hitPoint, normal: _hitNormal, distance: bestDist }
+    return {
+      point: _hitPoint,
+      normal: _hitNormal,
+      distance: bestDist,
+      layerId: bestLayerId,
+      sourceName: bestSourceName,
+      stairZone: bestStair,
+    }
   }
 
   /**
@@ -468,6 +522,9 @@ export class CollisionWorld implements ICollisionWorld {
     _queryBox.setFromPoints([origin, _rayEnd])
     _queryBox.expandByScalar(0.5)
 
+    _groundRaycaster.set(origin, _downGround)
+    _groundRaycaster.far = maxDistance
+    _groundRaycaster.near = 0
     _raycaster.set(origin, _downGround)
     _raycaster.far = maxDistance
     _raycaster.near = 0
@@ -476,40 +533,100 @@ export class CollisionWorld implements ICollisionWorld {
     let bestY = -Infinity
     let found = false
     let bestDist = 0
+    let bestLayerId: string | undefined
+    let bestSourceName: string | undefined
+    let bestStair = false
+    let fallbackY = -Infinity
+    let fallbackDist = 0
+    let fallbackLayerId: string | undefined
+    let fallbackSourceName: string | undefined
+    let fallbackStair = false
 
     for (const chunk of this.chunks) {
+      const foreignOrdinary = Boolean(
+        this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone,
+      )
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       this.frameChunks += 1
       this.frameBvh += 1
-      const hits = _raycaster.intersectObject(chunk.mesh, false)
-      const hit = hits[0]
-      if (!hit) continue
-      if (hit.face?.normal) {
-        _hitNormal.copy(hit.face.normal).normalize()
+      const firstHits = _raycaster.intersectObject(chunk.mesh, false)
+      const firstHit = firstHits[0]
+      if (!firstHit) continue
+      if (firstHit.face?.normal) {
+        _hitNormal.copy(firstHit.face.normal).normalize()
       } else {
         _hitNormal.set(0, 1, 0)
       }
       if (_hitNormal.dot(_downGround) > 0) _hitNormal.negate()
-      if (_hitNormal.y < minUpDot) continue
-      if (hit.point.y > bestY) {
-        bestY = hit.point.y
-        found = true
-        bestDist = hit.distance
-        _hitPoint.copy(hit.point)
-        // keep normal in _hitNormal
-        _bestGroundNormal.copy(_hitNormal)
+      // Preserve the first-hit fast path for ordinary floors. Only request all
+      // BVH intersections when the nearest surface is actually non-walkable.
+      const hits = _hitNormal.y >= minUpDot
+        ? firstHits
+        : _groundRaycaster.intersectObject(chunk.mesh, false)
+      for (const hit of hits) {
+        if (hit.face?.normal) {
+          _hitNormal.copy(hit.face.normal).normalize()
+        } else {
+          _hitNormal.set(0, 1, 0)
+        }
+        if (_hitNormal.dot(_downGround) > 0) _hitNormal.negate()
+        if (_hitNormal.y < minUpDot) continue
+        if (foreignOrdinary) {
+          // Ordinary geometry from another layer is only a continuity fallback.
+          // It must never promote a player above valid support in the layer
+          // selected by visible-surface placement (the original floating bug).
+          if (hit.point.y > fallbackY) {
+            fallbackY = hit.point.y
+            fallbackDist = hit.distance
+            fallbackLayerId = chunk.layerId
+            fallbackSourceName = chunk.sourceName
+            fallbackStair = chunk.stairZone
+            _fallbackGroundPoint.copy(hit.point)
+            _fallbackGroundNormal.copy(_hitNormal)
+          }
+        } else if (hit.point.y > bestY) {
+          bestY = hit.point.y
+          found = true
+          bestDist = hit.distance
+          bestLayerId = chunk.layerId
+          bestSourceName = chunk.sourceName
+          bestStair = chunk.stairZone
+          _hitPoint.copy(hit.point)
+          _bestGroundNormal.copy(_hitNormal)
+        }
+        // Intersections are distance-sorted. Once this chunk supplies its first
+        // walkable surface, deeper surfaces from the same chunk cannot be higher.
+        break
       }
     }
 
     this.frameCpuMs += performance.now() - t0
+    if (!found && Number.isFinite(fallbackY)) {
+      return {
+        point: _fallbackGroundPoint,
+        normal: _fallbackGroundNormal,
+        distance: fallbackDist,
+        layerId: fallbackLayerId,
+        sourceName: fallbackSourceName,
+        stairZone: fallbackStair,
+      }
+    }
     if (!found) return null
-    return { point: _hitPoint, normal: _bestGroundNormal, distance: bestDist }
+    return {
+      point: _hitPoint,
+      normal: _bestGroundNormal,
+      distance: bestDist,
+      layerId: bestLayerId,
+      sourceName: bestSourceName,
+      stairZone: bestStair,
+    }
   }
 
   stairWellAt(x: number, y: number, z: number): { minY: number; maxY: number } | null {
     const pad = 0.35
     let best: { minY: number; maxY: number } | null = null
     for (const chunk of this.chunks) {
+      if (this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone) continue
       if (!chunk.stairZone) continue
       const b = chunk.box
       if (x < b.min.x - pad || x > b.max.x + pad) continue
@@ -540,10 +657,13 @@ export class CollisionWorld implements ICollisionWorld {
 
     let bestDepth = 0
     let bestStair = false
+    let bestLayerId: string | undefined
+    let bestSourceName: string | undefined
     _resultNormal.set(0, 0, 0)
     const steps = 3
 
     for (const chunk of this.chunks) {
+      if (this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone) continue
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       if (!this.ensureChunkBvh(chunk)) continue
       this.frameChunks += 1
@@ -567,13 +687,21 @@ export class CollisionWorld implements ICollisionWorld {
         _delta.normalize()
         bestDepth = depth
         bestStair = chunk.stairZone
+        bestLayerId = chunk.layerId
+        bestSourceName = chunk.sourceName
         _resultNormal.copy(_delta)
       }
     }
 
     this.frameCpuMs += performance.now() - t0
     if (bestDepth <= 0) return null
-    return { depth: bestDepth, normal: _resultNormal, stairZone: bestStair }
+    return {
+      depth: bestDepth,
+      normal: _resultNormal,
+      stairZone: bestStair,
+      layerId: bestLayerId,
+      sourceName: bestSourceName,
+    }
   }
 
   private rebuildDebugMeshes(): void {
@@ -619,5 +747,6 @@ export class CollisionWorld implements ICollisionWorld {
     this.layerChunks.clear()
     this.totalTriangles = 0
     this.residentTriangles = 0
+    this.queryLayerId = null
   }
 }

@@ -10,11 +10,15 @@ import {
   type Texture,
 } from 'three'
 import type { ModelManifestEntry } from '../scene/types'
+import { markRuntimeExternalTexture } from '../scene/runtimeTextureOwnership'
 
 type LightMapMaterial = Material & {
   lightMap?: Texture | null
   lightMapIntensity?: number
   envMapIntensity?: number
+  emissive?: { r: number; g: number; b: number }
+  emissiveIntensity?: number
+  emissiveMap?: Texture | null
   transparent?: boolean
   opacity?: number
   transmission?: number
@@ -40,6 +44,9 @@ function loadLightmap(url: string): Promise<Texture> {
         tex.magFilter = LinearFilter
         tex.wrapS = ClampToEdgeWrapping
         tex.wrapT = ClampToEdgeWrapping
+        // The in-memory ownership marker cannot be forged by model extras.
+        // Shared cache textures outlive any one transient package root.
+        markRuntimeExternalTexture(tex)
         tex.needsUpdate = true
         resolve(tex)
       },
@@ -63,6 +70,12 @@ function shouldSkip(mesh: Mesh, mat: LightMapMaterial): boolean {
   if (mesh.userData?.cadOverlay || mesh.userData?.collisionOnly) return true
   if ((mat.transmission ?? 0) > 0.02) return true
   if (mat.transparent && (mat.opacity ?? 1) < 0.95) return true
+  const emissive = mat.emissive
+  const emissiveStrength = Math.max(emissive?.r ?? 0, emissive?.g ?? 0, emissive?.b ?? 0)
+    * (mat.emissiveIntensity ?? 1)
+  // Luminaires and emissive display faces contribute to the bake; they must
+  // not sample the receiving-surface atlas themselves.
+  if (mat.emissiveMap || emissiveStrength > 0.02) return true
   return false
 }
 

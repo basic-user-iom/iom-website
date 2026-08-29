@@ -50,14 +50,19 @@ export class XRManager {
   private scene: Scene | null = null
   private camera: PerspectiveCamera | null = null
   private controllersAdded = false
+  private entering: Promise<boolean> | null = null
+  private readonly sessionEndRequests = new WeakMap<XRSession, Promise<void>>()
+  private disposed = false
 
   constructor(private readonly renderer: WebGLRenderer) {}
 
   setSessionEndHandler(handler: (() => void) | null): void {
+    if (this.disposed) return
     this.onSessionEnd = handler
   }
 
   async checkSupport(): Promise<boolean> {
+    if (this.disposed) return false
     if (this.supported != null) return this.supported
     const xr = navigator.xr
     if (!xr) {
@@ -69,6 +74,7 @@ export class XRManager {
     } catch {
       this.supported = false
     }
+    if (this.disposed) return false
     return this.supported
   }
 
@@ -182,36 +188,109 @@ export class XRManager {
     return out
   }
 
-  async enterVR(): Promise<boolean> {
-    if (!(await this.checkSupport())) return false
-    if (this.session) return true
+  /**
+   * Start requestSession before the first await. WebXR requires transient user
+   * activation, which is lost if a click handler waits for isSessionSupported,
+   * model loading, or any other asynchronous preparation first.
+   */
+  enterVR(framebufferScale: number | null = null): Promise<boolean> {
+    if (this.disposed) return Promise.resolve(false)
+    if (this.entering) return this.entering
+    if (this.session) return Promise.resolve(true)
+    const attempt = this.requestSessionFromActivation(framebufferScale)
+    const tracked = attempt.finally(() => {
+      if (this.entering === tracked) this.entering = null
+    })
+    this.entering = tracked
+    return tracked
+  }
+
+  private async requestSessionFromActivation(
+    framebufferScale: number | null,
+  ): Promise<boolean> {
+    const xr = navigator.xr
+    if (!xr || this.supported === false || this.disposed) return false
     this.renderer.xr.enabled = true
+    let session: XRSession | null = null
     try {
-      const session = await navigator.xr!.requestSession('immersive-vr', {
+      // Keep requestSession before the first await so transient user activation
+      // survives. The framebuffer scale must then be fixed before Three installs
+      // the session and marks WebXR as presenting.
+      const sessionRequest = xr.requestSession('immersive-vr', {
         requiredFeatures: ['local-floor'],
       })
+      this.setFramebufferScale(framebufferScale)
+      session = await sessionRequest
+      if (this.disposed) {
+        await this.endSessionSafely(session)
+        return false
+      }
       this.session = session
       this.rig.setSession(session)
-      await this.renderer.xr.setSession(session)
       session.addEventListener('end', () => {
-        this.session = null
-        this.rig.setSession(null)
-        this.unmountRig()
-        this.onSessionEnd?.()
-      })
+        if (this.session === session) {
+          this.session = null
+          this.rig.setSession(null)
+          this.unmountRig()
+          this.onSessionEnd?.()
+        }
+      }, { once: true })
+      await this.renderer.xr.setSession(session)
+      if (this.disposed || this.session !== session) {
+        if (this.session === session) {
+          this.session = null
+          this.rig.setSession(null)
+        }
+        await this.endSessionSafely(session)
+        return false
+      }
+      this.supported = true
       return true
     } catch (err) {
-      console.warn('[XR] Failed to enter VR', err)
+      if (session) {
+        await this.endSessionSafely(session)
+      }
+      if (this.session === session) {
+        this.session = null
+        this.rig.setSession(null)
+      }
+      if (!this.disposed) console.warn('[XR] Failed to enter VR', err)
       return false
     }
   }
 
+  private async endSessionSafely(session: XRSession): Promise<void> {
+    const existing = this.sessionEndRequests.get(session)
+    if (existing) return existing
+    const request = (async () => {
+      try {
+        await session.end()
+      } catch {
+        // The browser may already have ended a partially initialized session.
+      }
+    })()
+    this.sessionEndRequests.set(session, request)
+    return request
+  }
+
   async exitVR(): Promise<void> {
-    await this.session?.end()
-    this.session = null
+    const session = this.session
+    if (!session) return
+    await this.endSessionSafely(session)
+    // Browsers normally dispatch `end` before the promise resolves. Keep a
+    // fallback for partial/mock implementations that do not dispatch it.
+    if (this.session === session) {
+      this.session = null
+      this.rig.setSession(null)
+      this.unmountRig()
+      this.onSessionEnd?.()
+    }
   }
 
   dispose(): void {
+    if (this.disposed) return
+    this.disposed = true
+    this.onSessionEnd = null
     void this.exitVR()
   }
 }

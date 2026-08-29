@@ -24,6 +24,7 @@ function serveSitePublicPlugin() {
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
     '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
   }
 
   const serve = (req: { url?: string }, res: import('http').ServerResponse, next: () => void) => {

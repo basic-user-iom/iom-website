@@ -32,7 +32,9 @@ export class CharacterVisual {
   private model: Object3D | null = null
   private mixer: AnimationMixer | null = null
   private actions = new Map<CharacterAnimState, AnimationAction>()
-  private current: CharacterAnimState = 'idle'
+  // Null until the first action is actually started. Initialising this to
+  // `idle` made load()'s play('idle') return before the idle clip could run.
+  private current: CharacterAnimState | null = null
   private blob: Mesh | null = null
   private hideHead = false
   private blobEnabled = true
@@ -160,10 +162,11 @@ export class CharacterVisual {
   }
 
   play(state: CharacterAnimState): void {
-    if (state === this.current) return
+    const selected = this.actions.get(state)
+    if (state === this.current && selected?.isRunning()) return
 
     const next = this.actions.get(state) ?? this.actions.get('walking') ?? this.actions.get('idle')
-    const prev = this.actions.get(this.current)
+    const prev = this.current ? this.actions.get(this.current) : undefined
     if (prev && prev !== next) prev.fadeOut(0.2)
     if (next && next !== prev) {
       next.reset().fadeIn(0.2).play()
@@ -182,7 +185,7 @@ export class CharacterVisual {
     }
     this.mixer = null
     this.actions.clear()
-    this.current = 'idle'
+    this.current = null
   }
 
   dispose(): void {

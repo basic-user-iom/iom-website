@@ -19,7 +19,7 @@
     {
       "id": "icm-anim-2025",
       "name": "ICM 2025 Animated",
-      "web": "/models/icm-anim-2025/model-quest.glb",
+      "web": "/models/icm-anim-2025/model-web.glb",
       "quest": "/models/icm-anim-2025/model-quest.glb",
       "collision": "/models/icm-anim-2025/collision.glb",
       "spatialMeta": "/models/icm-anim-2025/spatial-meta.json",

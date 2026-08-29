@@ -1,0 +1,300 @@
+{
+  "version": 1,
+  "modelId": "icm-anim-2025",
+  "collision": {
+    "sha256": "3f37a14c33a38362ddff0b1f0dcc76d15ca3b9f757fb4183799d9e6d70ee0b48",
+    "bytes": 5111224,
+    "runtime": {
+      "triangles": 120415,
+      "chunks": 304,
+      "boundsMin": [
+        -176.39608764648438,
+        -0.6586952805519104,
+        -108.11805725097656
+      ],
+      "boundsMax": [
+        10.787446975708008,
+        22.88001823425293,
+        88.41493225097656
+      ],
+      "preferredColliderMeshes": 2525
+    }
+  },
+  "spawnSupport": {
+    "id": "spawn-foyer-west",
+    "kind": "spawn",
+    "point": [
+      -74.53391011555989,
+      0.21126520484685898,
+      -28.700274149576824
+    ],
+    "supported": true,
+    "hitPoint": [
+      -74.53391011555989,
+      0.16126520931720734,
+      -28.700274149576824
+    ],
+    "upDot": 1,
+    "verticalErrorMeters": 0.04999999552965165
+  },
+  "broadHorizontalCoverage": {
+    "requiredCells": 282,
+    "coveredCells": 255,
+    "missingCells": 27,
+    "ratio": 0.9042553191489362,
+    "elevationBands": [
+      {
+        "id": "band--1",
+        "minY": -3.6,
+        "maxY": 0,
+        "requiredCells": 2,
+        "coveredCells": 2
+      },
+      {
+        "id": "band-0",
+        "minY": 0,
+        "maxY": 3.6,
+        "requiredCells": 48,
+        "coveredCells": 47
+      },
+      {
+        "id": "band-1",
+        "minY": 3.6,
+        "maxY": 7.2,
+        "requiredCells": 111,
+        "coveredCells": 105
+      },
+      {
+        "id": "band-2",
+        "minY": 7.2,
+        "maxY": 10.8,
+        "requiredCells": 78,
+        "coveredCells": 66
+      },
+      {
+        "id": "band-3",
+        "minY": 10.8,
+        "maxY": 14.4,
+        "requiredCells": 35,
+        "coveredCells": 27
+      },
+      {
+        "id": "band-4",
+        "minY": 14.4,
+        "maxY": 18,
+        "requiredCells": 8,
+        "coveredCells": 8
+      }
+    ]
+  },
+  "probes": [
+    {
+      "id": "spawn-foyer-west",
+      "kind": "spawn",
+      "point": [
+        -74.53391011555989,
+        0.21126520484685898,
+        -28.700274149576824
+      ],
+      "supported": true,
+      "hitPoint": [
+        -74.53391011555989,
+        0.16126520931720734,
+        -28.700274149576824
+      ],
+      "upDot": 1,
+      "verticalErrorMeters": 0.04999999552965165
+    },
+    {
+      "id": "walk-foyer-upper",
+      "kind": "walk",
+      "point": [
+        -62.7180544535319,
+        6.099008655548095,
+        -29.406885782877605
+      ],
+      "supported": true,
+      "hitPoint": [
+        -62.7180544535319,
+        5.999008655548096,
+        -29.406885782877605
+      ],
+      "upDot": 1,
+      "verticalErrorMeters": 0.09999999999999964
+    },
+    {
+      "id": "landing-podest",
+      "kind": "landing",
+      "point": [
+        -50.57567709775115,
+        0.3193236283880348,
+        49.184950720228585
+      ],
+      "supported": true,
+      "hitPoint": [
+        -50.57567709775115,
+        0.21932363013424988,
+        49.184950720228585
+      ],
+      "upDot": 0.9999999999999977,
+      "verticalErrorMeters": 0.09999999825378492
+    },
+    {
+      "id": "tr-stufen004-bottom",
+      "kind": "stair-bottom",
+      "point": [
+        -36.130593617757164,
+        6.343014653523762,
+        32.62669881184896
+      ],
+      "supported": true,
+      "hitPoint": [
+        -36.130593617757164,
+        6.293015683411949,
+        32.62669881184896
+      ],
+      "upDot": 0.9998793516527293,
+      "verticalErrorMeters": 0.049998970111813534
+    },
+    {
+      "id": "tr-stufen004-top",
+      "kind": "stair-top",
+      "point": [
+        -35.794151306152344,
+        10.437571461995443,
+        40.26287968953451
+      ],
+      "supported": true,
+      "hitPoint": [
+        -35.794151306152344,
+        10.337571461995443,
+        40.26287968953451
+      ],
+      "upDot": 0.998798843564201,
+      "verticalErrorMeters": 0.09999999999999964
+    },
+    {
+      "id": "tr-stufen001-upper",
+      "kind": "landing",
+      "point": [
+        -74.52699279785156,
+        6.086169338226318,
+        -55.62835184733073
+      ],
+      "supported": true,
+      "hitPoint": [
+        -74.52699279785156,
+        5.999998092651367,
+        -55.62835184733073
+      ],
+      "upDot": 1,
+      "verticalErrorMeters": 0.08617124557495082
+    }
+  ],
+  "namedStairs": [
+    {
+      "id": "Podest",
+      "present": true,
+      "horizontalTriangles": 22,
+      "supportCoverageRatio": 0.5116279069767442,
+      "minY": 0.21591568811951825,
+      "maxY": 0.21932376746553928
+    },
+    {
+      "id": "TR_Stufen001",
+      "present": true,
+      "horizontalTriangles": 28,
+      "supportCoverageRatio": 0.24561403508771928,
+      "minY": 0.11599418375177424,
+      "maxY": 0.9994961607707632
+    },
+    {
+      "id": "TR_Stufen008",
+      "present": true,
+      "horizontalTriangles": 28,
+      "supportCoverageRatio": 0.24561403508771928,
+      "minY": 0.11599671331670199,
+      "maxY": 0.9994967418884357
+    },
+    {
+      "id": "TR_Stufen010",
+      "present": true,
+      "horizontalTriangles": 27,
+      "supportCoverageRatio": 0.3698630136986301,
+      "minY": 4.5808643500010175,
+      "maxY": 4.657984495162964
+    },
+    {
+      "id": "Boden_2_Tafeln_Foyer_Treppe",
+      "present": true,
+      "horizontalTriangles": 44,
+      "supportCoverageRatio": 0.3333333333333333,
+      "minY": -0.000026219233448920853,
+      "maxY": 2.0649737295601995
+    },
+    {
+      "id": "Boden_2_Tafeln_Foyer_Treppe001",
+      "present": true,
+      "horizontalTriangles": 44,
+      "supportCoverageRatio": 0.3333333333333333,
+      "minY": -0.000026219233448920853,
+      "maxY": 2.0649737295601995
+    },
+    {
+      "id": "TR_Stufen",
+      "present": true,
+      "horizontalTriangles": 388,
+      "supportCoverageRatio": 0.27019498607242337,
+      "minY": 0.09842731803655624,
+      "maxY": 5.986170716708671
+    },
+    {
+      "id": "TR_Stufen_001",
+      "present": true,
+      "horizontalTriangles": 306,
+      "supportCoverageRatio": 0.23394495412844038,
+      "minY": 0.09842611849308014,
+      "maxY": 5.9861695171651945
+    },
+    {
+      "id": "TR_Stufen_002",
+      "present": true,
+      "horizontalTriangles": 144,
+      "supportCoverageRatio": 0.22570532915360503,
+      "minY": 0.11126520484685898,
+      "maxY": 5.999008603518973
+    },
+    {
+      "id": "TR_Stufen_003",
+      "present": true,
+      "horizontalTriangles": 388,
+      "supportCoverageRatio": 0.27019498607242337,
+      "minY": 0.09842588752508163,
+      "maxY": 5.98616928620456
+    },
+    {
+      "id": "TR_Stufen004",
+      "present": true,
+      "horizontalTriangles": 96,
+      "supportCoverageRatio": 0.2222222222222222,
+      "minY": 6.243014649896627,
+      "maxY": 10.337571824611492
+    },
+    {
+      "id": "TR_Stufen004_001",
+      "present": true,
+      "horizontalTriangles": 96,
+      "supportCoverageRatio": 0.2222222222222222,
+      "minY": 6.235097627942683,
+      "maxY": 10.037206231313425
+    },
+    {
+      "id": "TR_Stufen005",
+      "present": true,
+      "horizontalTriangles": 96,
+      "supportCoverageRatio": 0.2222222222222222,
+      "minY": 6.320076834309764,
+      "maxY": 10.4146304498248
+    }
+  ]
+}

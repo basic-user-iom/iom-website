@@ -1,10 +1,21 @@
 import { Group, Vector3, type Object3D, type WebGLRenderer } from 'three'
 
 import { disposeObject3D } from '../utils/disposeScene'
+import {
+  disposeCollisionChunks,
+  validateDedicatedCollisionRoot,
+  type ValidatedDedicatedCollision,
+} from '../collision/dedicatedCollisionValidation'
+import { assertCollisionActivationPreflight } from '../collision/collisionActivationPreflight'
 
-import { ModelLoader, applyModelTransform } from './ModelLoader'
+import { ModelLoader, applyModelTransform, type ModelAssetIntegrity } from './ModelLoader'
 
-import { CellStreamLoader, type CellManifest, type CellStreamFocus } from './CellStreamLoader'
+import {
+  AnimationPackageStreamLoader,
+  type AnimationPackageLevel,
+  type AnimationPackageManifestEntryV3,
+  type AnimationPackageStreamFocus,
+} from './AnimationPackageStreamLoader'
 
 import type {
 
@@ -17,6 +28,64 @@ import type {
   ModelVariantKey,
 
 } from './types'
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) throw new DOMException('Model load was superseded', 'AbortError')
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    (error instanceof DOMException && error.name === 'AbortError') ||
+    (error instanceof Error && error.name === 'AbortError')
+  )
+}
+
+function waitWithAbort(delayMs: number, signal?: AbortSignal): Promise<void> {
+  throwIfAborted(signal)
+  if (delayMs <= 0) return Promise.resolve().then(() => throwIfAborted(signal))
+  return new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      signal?.removeEventListener('abort', onAbort)
+      resolve()
+    }, delayMs)
+    const onAbort = (): void => {
+      clearTimeout(timer)
+      signal?.removeEventListener('abort', onAbort)
+      reject(new DOMException('Model load was superseded', 'AbortError'))
+    }
+    signal?.addEventListener('abort', onAbort, { once: true })
+  })
+}
+
+type PreparedLayer = {
+  layer: LoadedModelLayer
+  stream?: AnimationPackageStreamLoader
+  collision?: ValidatedDedicatedCollision
+}
+
+export type StreamingPackagePrepare = (
+  root: Object3D,
+  entry: ModelManifestEntry,
+  pkg: AnimationPackageManifestEntryV3,
+  level: AnimationPackageLevel,
+  signal: AbortSignal,
+) => void | Promise<void>
+
+export type StreamingFailoverRequest = {
+  layerId: string
+  entry: ModelManifestEntry
+  error: unknown
+  attempts: number
+}
+
+export type StreamingFailoverHandler = (request: StreamingFailoverRequest) => void | Promise<void>
+
+export type ModelManagerOptions = {
+  /** Retry delays after the first failed package sync. Empty means fail over immediately. */
+  streamRetryDelaysMs?: number[]
+  waitForRetry?: (delayMs: number, signal?: AbortSignal) => Promise<void>
+  onStreamingFailover?: StreamingFailoverHandler
+}
 
 
 
@@ -34,16 +103,48 @@ export class ModelManager {
 
   private layers = new Map<string, LoadedModelLayer>()
 
-  private streamLoaders = new Map<string, CellStreamLoader>()
+  private streamLoaders = new Map<string, AnimationPackageStreamLoader>()
+
+  private preparedStreamingCollisions = new Map<string, ValidatedDedicatedCollision>()
+
+  private readonly blockedStreamingLayerIds = new Set<string>()
+
+  private readonly failoverInFlight = new Map<string, Promise<void>>()
+
+  private readonly streamSyncTokens = new Map<string, symbol>()
+
+  private readonly streamRetryDelaysMs: number[]
+
+  private readonly waitForRetry: (delayMs: number, signal?: AbortSignal) => Promise<void>
+
+  private streamingFailoverHandler: StreamingFailoverHandler | null
 
 
 
-  constructor(getRenderer: () => WebGLRenderer | null) {
+  constructor(
+    getRenderer: () => WebGLRenderer | null,
+    private readonly prepareStreamingPackage?: StreamingPackagePrepare,
+    options: ModelManagerOptions = {},
+  ) {
 
     this.root.name = 'ModelManagerRoot'
 
     this.loader = new ModelLoader(getRenderer)
 
+    this.streamRetryDelaysMs = [...(options.streamRetryDelaysMs ?? [180, 650])]
+    this.waitForRetry = options.waitForRetry ?? waitWithAbort
+    this.streamingFailoverHandler = options.onStreamingFailover ?? null
+
+  }
+
+  setStreamingFailoverHandler(handler: StreamingFailoverHandler | null): void {
+    this.streamingFailoverHandler = handler
+  }
+
+  takePreparedStreamingCollision(layerId: string): ValidatedDedicatedCollision | null {
+    const collision = this.preparedStreamingCollisions.get(layerId) ?? null
+    if (collision) this.preparedStreamingCollisions.delete(layerId)
+    return collision
   }
 
 
@@ -64,7 +165,7 @@ export class ModelManager {
 
 
 
-  getStreamLoader(id: string): CellStreamLoader | null {
+  getStreamLoader(id: string): AnimationPackageStreamLoader | null {
 
     return this.streamLoaders.get(id) ?? null
 
@@ -95,9 +196,11 @@ export class ModelManager {
     return entry.web
   }
 
-  resolveCellManifestUrl(entry: ModelManifestEntry, variant: ModelVariantKey): string | null {
-    if (variant === 'quest') return entry.cellManifestQuest ?? null
-    return entry.cellManifest ?? null
+  resolveHlodManifestUrl(entry: ModelManifestEntry, variant: ModelVariantKey): string | null {
+    const config = entry.hlodStreaming
+    if (config?.enabled !== true) return null
+    if (variant === 'quest') return config.quest ?? null
+    return config.web || null
   }
 
 
@@ -116,6 +219,10 @@ export class ModelManager {
 
     onProgress?: (p: LoadProgress) => void,
 
+    signal?: AbortSignal,
+
+    integrity?: ModelAssetIntegrity,
+
   ): Promise<Object3D | null> {
 
     if (!entry.collision) return null
@@ -130,7 +237,9 @@ export class ModelManager {
 
     })
 
-    const result = await this.loader.loadUrl(entry.collision, onProgress)
+    const result = integrity
+      ? await this.loader.loadUrlVerified(entry.collision, integrity, onProgress, signal)
+      : await this.loader.loadUrl(entry.collision, onProgress, signal)
 
     applyModelTransform(result.root, {
 
@@ -167,53 +276,47 @@ export class ModelManager {
 
     onProgress?: (p: LoadProgress) => void,
 
-    initialFocus?: CellStreamFocus,
+    initialFocus?: AnimationPackageStreamFocus,
+
+    signal?: AbortSignal,
 
   ): Promise<LoadedModelLayer[]> {
-
-    this.clear()
-
-    const loaded: LoadedModelLayer[] = []
-
-    for (let i = 0; i < entries.length; i++) {
-
-      const entry = entries[i]!
-
-      onProgress?.({
-
-        stage: 'download',
-
-        ratio: entries.length > 1 ? i / entries.length : 0,
-
-        message: `Loading ${entry.name} (${i + 1}/${entries.length})`,
-
-      })
-
-      const layer = await this.addLayer(entry, variant, (p) => {
-
-        if (!onProgress) return
-
-        const base = i / entries.length
-
-        const span = 1 / entries.length
-
-        onProgress({
-
-          ...p,
-
-          ratio: p.ratio == null ? null : base + p.ratio * span,
-
-          message: `${entry.name}: ${p.message}`,
-
+    const prepared: PreparedLayer[] = []
+    try {
+      for (let i = 0; i < entries.length; i++) {
+        throwIfAborted(signal)
+        const entry = entries[i]!
+        onProgress?.({
+          stage: 'download',
+          ratio: entries.length > 1 ? i / entries.length : 0,
+          message: `Loading ${entry.name} (${i + 1}/${entries.length})`,
         })
-
-      }, initialFocus)
-
-      loaded.push(layer)
-
+        prepared.push(
+          await this.prepareLayer(
+            entry,
+            variant,
+            (p) => {
+              if (!onProgress) return
+              const base = i / entries.length
+              const span = 1 / entries.length
+              onProgress({
+                ...p,
+                ratio: p.ratio == null ? null : base + p.ratio * span,
+                message: `${entry.name}: ${p.message}`,
+              })
+            },
+            initialFocus,
+            signal,
+          ),
+        )
+      }
+      throwIfAborted(signal)
+      this.commitReplacement(prepared)
+      return prepared.map(({ layer }) => layer)
+    } catch (err) {
+      this.disposePrepared(prepared)
+      throw err
     }
-
-    return loaded
 
   }
 
@@ -227,155 +330,301 @@ export class ModelManager {
 
     onProgress?: (p: LoadProgress) => void,
 
-    initialFocus?: CellStreamFocus,
+    initialFocus?: AnimationPackageStreamFocus,
+
+    signal?: AbortSignal,
 
   ): Promise<LoadedModelLayer> {
+    const prepared = await this.prepareLayer(entry, variant, onProgress, initialFocus, signal)
+    try {
+      throwIfAborted(signal)
+      this.commitLayer(prepared)
+      return prepared.layer
+    } catch (err) {
+      this.disposePrepared([prepared])
+      throw err
+    }
 
-    if (this.layers.has(entry.id)) this.removeLayer(entry.id)
+  }
 
-    const streamUrl = this.resolveCellManifestUrl(entry, variant)
-    if (streamUrl && variant === 'web' && !entry.animation) {
-      try {
-        return await this.addStreamingLayer(entry, streamUrl, onProgress, initialFocus)
-      } catch (err) {
-        console.warn(`[ModelManager] streaming failed for ${entry.id}, using monolithic GLB`, err)
+  private async prepareLayer(
+    entry: ModelManifestEntry,
+    variant: ModelVariantKey,
+    onProgress?: (p: LoadProgress) => void,
+    initialFocus?: AnimationPackageStreamFocus,
+    signal?: AbortSignal,
+  ): Promise<PreparedLayer> {
+    const streamUrl = this.blockedStreamingLayerIds.has(entry.id)
+      ? null
+      : this.resolveHlodManifestUrl(entry, variant)
+    if (streamUrl) {
+      if (entry.lightmap) {
+        console.warn(
+          `[ModelManager] manifest-v3 HLOD has no verified package-lightmap contract for ${entry.id}; using monolithic GLB`,
+        )
+      } else if (!entry.collision) {
+        console.warn(
+          `[ModelManager] manifest-v3 HLOD requires dedicated collision for ${entry.id}; using monolithic GLB`,
+        )
+      } else {
+        try {
+          return await this.prepareStreamingLayer(
+            entry,
+            variant,
+            streamUrl,
+            onProgress,
+            initialFocus,
+            signal,
+          )
+        } catch (err) {
+          throwIfAborted(signal)
+          console.warn(
+            `[ModelManager] manifest-v3 HLOD failed for ${entry.id}; using monolithic GLB`,
+            err,
+          )
+        }
       }
     }
 
     const url = this.resolveUrl(entry, variant)
-
-    const result = await this.loader.loadUrl(url, onProgress)
-
-    applyModelTransform(result.root, {
-
-      scale: entry.scale,
-
-      rotation: entry.rotation,
-
-    })
-
-    result.root.name = `Model:${entry.id}`
-
-
-
-    const layer: LoadedModelLayer = {
-
-      id: entry.id,
-
-      entry,
-
-      root: result.root,
-
-      result,
-
-      visible: true,
-
-      streaming: false,
-
+    const result = await this.loader.loadUrl(url, onProgress, signal)
+    try {
+      throwIfAborted(signal)
+      applyModelTransform(result.root, {
+        scale: entry.scale,
+        rotation: entry.rotation,
+      })
+      result.root.name = `Model:${entry.id}`
+      result.root.userData.layerId = entry.id
+      return {
+        layer: {
+          id: entry.id,
+          entry,
+          root: result.root,
+          result,
+          visible: true,
+          streaming: false,
+        },
+      }
+    } catch (err) {
+      disposeObject3D(result.root)
+      throw err
     }
-
-    this.layers.set(entry.id, layer)
-
-    this.root.add(result.root)
-
-    return layer
-
   }
 
-
-
-  private async addStreamingLayer(
+  private async prepareStreamingLayer(
     entry: ModelManifestEntry,
+    variant: ModelVariantKey,
     manifestUrl: string,
     onProgress?: (p: LoadProgress) => void,
-    initialFocus?: CellStreamFocus,
-  ): Promise<LoadedModelLayer> {
+    initialFocus?: AnimationPackageStreamFocus,
+    signal?: AbortSignal,
+  ): Promise<PreparedLayer> {
 
     const layerRoot = new Group()
 
     layerRoot.name = `Model:${entry.id}`
+    layerRoot.userData.layerId = entry.id
 
-    const cellRoot = new Group()
+    applyModelTransform(layerRoot, {
+      scale: entry.scale,
+      rotation: entry.rotation,
+    })
 
-    cellRoot.name = 'CellStreamRoot'
-
-    layerRoot.add(cellRoot)
-
-
-
-    const stream = new CellStreamLoader(this.loader)
-
-    onProgress?.({
+    const stream = new AnimationPackageStreamLoader(this.loader, variant)
+    let collision: ValidatedDedicatedCollision | null = null
+    try {
+      onProgress?.({
 
       stage: 'download',
 
       ratio: 0.05,
 
-      message: `Loading cell manifest for ${entry.name}`,
+      message: `Loading animation-aware HLOD manifest for ${entry.name}`,
 
-    })
+      })
 
-    const manifest = await stream.loadManifest(manifestUrl)
-    if (!manifest || !isSafeCellManifest(manifest)) {
-      throw new Error(`Cell manifest failed or unsafe: ${manifestUrl}`)
-    }
+      const config = entry.hlodStreaming
+      if (!config || config.enabled !== true) throw new Error('HLOD streaming is not opted in')
+      await stream.loadManifest(
+        manifestUrl,
+        {
+          modelId: entry.id,
+          sourceSha256: config.sourceSha256[variant],
+          rigSha256: config.rigSha256,
+        },
+        { sha256: config.manifestSha256[variant], bytes: config.manifestBytes[variant] },
+        signal,
+      )
+      throwIfAborted(signal)
 
-    stream.attachLayer(entry, cellRoot)
+      const collisionIntegrity = {
+        sha256: config.collisionSha256,
+        bytes: config.collisionBytes,
+      }
+      onProgress?.({
+        stage: 'verify',
+        ratio: 0.08,
+        message: `Verifying collision activation evidence for ${entry.name}`,
+      })
+      collision = await this.prepareStreamingCollision(
+        entry,
+        collisionIntegrity,
+        onProgress,
+        signal,
+      )
+      await assertCollisionActivationPreflight(
+        entry.id,
+        entry.collision!,
+        collisionIntegrity,
+        collision,
+        config.collisionActivation,
+        signal,
+      )
+      throwIfAborted(signal)
 
-    this.streamLoaders.set(entry.id, stream)
+      stream.attachLayer(entry, layerRoot)
+      stream.setPrepareIncoming((root, pkg, level, prepareSignal) =>
+        this.prepareStreamingPackage?.(root, entry, pkg, level, prepareSignal),
+      )
 
+      const focus = initialFocus ?? (entry.spawn
+        ? { x: entry.spawn[0], y: entry.spawn[1], z: entry.spawn[2] }
+        : undefined)
 
-
-    const focus = streamFocusForManifest(manifest, initialFocus, entry.spawn)
-
-    onProgress?.({
+      onProgress?.({
 
       stage: 'download',
 
       ratio: 0.1,
 
-      message: `Streaming cells for ${entry.name}`,
+      message: `Loading initial streamed resident set for ${entry.name}`,
 
-    })
+      })
 
-    await stream.syncFocus(focus, { onProgress })
+      await stream.initialize(focus, { onProgress, signal })
+      throwIfAborted(signal)
 
-    let clips = stream.collectAnimations()
-    if (!clips.length && entry.animation) {
-      clips = await this.loadAnimationClipsOnly(entry, onProgress)
-    }
+      const clips = stream.collectAnimations()
 
-    const state = stream.getState()
+      const state = stream.getState()
 
-    const layer: LoadedModelLayer = {
-      id: entry.id,
-      entry,
-      root: layerRoot,
-      result: {
+      const layer: LoadedModelLayer = {
+        id: entry.id,
+        entry,
         root: layerRoot,
-        url: manifestUrl,
-        transferredBytes: state.residentBytes || null,
-        downloadMs: 0,
-        parseMs: 0,
-        fileSizeBytes: state.residentBytes || null,
-        animations: clips,
-      },
-      visible: true,
-      streaming: true,
+        result: {
+          root: layerRoot,
+          url: manifestUrl,
+          transferredBytes: state.residentBytes || null,
+          downloadMs: 0,
+          parseMs: 0,
+          fileSizeBytes: state.residentBytes || null,
+          animations: clips,
+        },
+        visible: true,
+        streaming: true,
+      }
+
+      console.info(
+
+      `[ModelManager] ${entry.id} manifest-v3 HLOD · ${state.loaded.length} packages · ${state.residentTriangles.toLocaleString()} tris resident`,
+
+      )
+
+      return { layer, stream, collision }
+    } catch (err) {
+      if (collision) disposeCollisionChunks(collision.chunks)
+      stream.dispose()
+      disposeObject3D(layerRoot)
+      throw err
     }
 
-    this.layers.set(entry.id, layer)
+  }
 
-    this.root.add(layerRoot)
+  private async prepareStreamingCollision(
+    entry: ModelManifestEntry,
+    integrity: ModelAssetIntegrity,
+    onProgress?: (p: LoadProgress) => void,
+    signal?: AbortSignal,
+  ): Promise<ValidatedDedicatedCollision> {
+    let collisionRoot: Object3D | null = null
+    try {
+      collisionRoot = await this.loadCollisionRoot(entry, onProgress, signal, integrity)
+      throwIfAborted(signal)
+      if (!collisionRoot) throw new Error(`Streaming collision is unavailable for ${entry.id}`)
+      const validation = validateDedicatedCollisionRoot(collisionRoot, entry.id, false)
+      if (!validation.valid || !validation.collision) {
+        throw new Error(
+          `Streaming collision failed validation for ${entry.id}: ${validation.reason ?? 'unknown reason'}`,
+        )
+      }
+      return validation.collision
+    } finally {
+      if (collisionRoot) disposeObject3D(collisionRoot)
+    }
+  }
 
-    console.info(
+  /** Replace every layer in one synchronous commit after all new assets are ready. */
+  private commitReplacement(prepared: PreparedLayer[]): void {
+    const previousLayers = this.layers
+    const previousStreams = this.streamLoaders
+    const previousCollisions = this.preparedStreamingCollisions
+    const nextLayers = new Map<string, LoadedModelLayer>()
+    const nextStreams = new Map<string, AnimationPackageStreamLoader>()
+    const nextCollisions = new Map<string, ValidatedDedicatedCollision>()
 
-      `[ModelManager] ${entry.id} streaming · ${state.loaded.length} cells · ${state.residentTriangles.toLocaleString()} tris resident`,
+    for (const layer of previousLayers.values()) this.root.remove(layer.root)
+    for (const item of prepared) {
+      const previous = previousLayers.get(item.layer.id)
+      if (previous) {
+        item.layer.visible = previous.visible
+        item.layer.root.visible = previous.visible
+      }
+      nextLayers.set(item.layer.id, item.layer)
+      if (item.stream) nextStreams.set(item.layer.id, item.stream)
+      if (item.collision) nextCollisions.set(item.layer.id, item.collision)
+      this.root.add(item.layer.root)
+    }
+    this.layers = nextLayers
+    this.streamLoaders = nextStreams
+    this.preparedStreamingCollisions = nextCollisions
+    this.streamSyncTokens.clear()
 
-    )
+    for (const stream of previousStreams.values()) stream.dispose()
+    for (const collision of previousCollisions.values()) disposeCollisionChunks(collision.chunks)
+    for (const layer of previousLayers.values()) disposeObject3D(layer.root)
+  }
 
-    return layer
+  /** Add/replace one layer only after its replacement has finished loading. */
+  private commitLayer(prepared: PreparedLayer): void {
+    const { layer, stream, collision } = prepared
+    const previous = this.layers.get(layer.id)
+    const previousStream = this.streamLoaders.get(layer.id)
+    const previousCollision = this.preparedStreamingCollisions.get(layer.id)
+    if (previous) this.root.remove(previous.root)
+    if (previous) {
+      layer.visible = previous.visible
+      layer.root.visible = previous.visible
+    }
+    this.layers.set(layer.id, layer)
+    if (stream) this.streamLoaders.set(layer.id, stream)
+    else this.streamLoaders.delete(layer.id)
+    this.streamSyncTokens.delete(layer.id)
+    if (collision) this.preparedStreamingCollisions.set(layer.id, collision)
+    else this.preparedStreamingCollisions.delete(layer.id)
+    this.root.add(layer.root)
+    previousStream?.dispose()
+    if (previousCollision) disposeCollisionChunks(previousCollision.chunks)
+    if (previous) disposeObject3D(previous.root)
+  }
 
+  private disposePrepared(prepared: PreparedLayer[]): void {
+    for (const { layer, stream, collision } of prepared) {
+      stream?.dispose()
+      if (collision) disposeCollisionChunks(collision.chunks)
+      disposeObject3D(layer.root)
+    }
   }
 
 
@@ -384,9 +633,11 @@ export class ModelManager {
 
   async updateStreamingFocus(
 
-    focus: CellStreamFocus | Vector3,
+    focus: AnimationPackageStreamFocus | Vector3,
 
     onProgress?: (p: LoadProgress) => void,
+
+    signal?: AbortSignal,
 
   ): Promise<void> {
 
@@ -402,11 +653,122 @@ export class ModelManager {
 
       const layer = this.layers.get(id)
 
-      if (!layer?.visible) continue
+      if (!layer?.visible || this.streamLoaders.get(id) !== stream) continue
 
-      await stream.syncFocus(f, { onProgress })
-      const anims = await this.refreshStreamingAnimations(id)
-      if (anims.length) layer.result.animations = anims
+      if (this.blockedStreamingLayerIds.has(id)) continue
+      const syncToken = Symbol(id)
+      this.streamSyncTokens.set(id, syncToken)
+      let lastError: unknown = null
+      for (let attempt = 0; attempt <= this.streamRetryDelaysMs.length; attempt += 1) {
+        try {
+          await stream.syncFocus(f, { onProgress, signal })
+          throwIfAborted(signal)
+          lastError = null
+          break
+        } catch (error) {
+          if (isAbortError(error) || signal?.aborted) throw error
+          if (
+            this.layers.get(id) !== layer ||
+            this.streamLoaders.get(id) !== stream ||
+            this.streamSyncTokens.get(id) !== syncToken
+          ) {
+            lastError = null
+            break
+          }
+          lastError = error
+          if (attempt >= this.streamRetryDelaysMs.length) break
+          await this.waitForRetry(this.streamRetryDelaysMs[attempt]!, signal)
+          throwIfAborted(signal)
+          if (
+            this.layers.get(id) !== layer ||
+            this.streamLoaders.get(id) !== stream ||
+            this.streamSyncTokens.get(id) !== syncToken
+          ) {
+            lastError = null
+            break
+          }
+        }
+      }
+      if (lastError != null) {
+        await this.requestStreamingFailoverFor(id, layer, stream, lastError, signal, syncToken)
+      }
+    }
+  }
+
+  /**
+   * Temporarily disable this layer's package route and ask the host to prepare
+   * a monolithic replacement. The existing streamed layer stays mounted until
+   * the host completes its normal atomic commit. Failed replacement attempts
+   * re-arm streaming and reject to the caller instead of freezing the route.
+   */
+  async requestStreamingFailover(
+    layerId: string,
+    error: unknown,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const layer = this.layers.get(layerId)
+    const stream = this.streamLoaders.get(layerId)
+    if (!layer || !stream) return
+    await this.requestStreamingFailoverFor(layerId, layer, stream, error, signal)
+  }
+
+  private async requestStreamingFailoverFor(
+    layerId: string,
+    layer: LoadedModelLayer,
+    stream: AnimationPackageStreamLoader,
+    error: unknown,
+    signal?: AbortSignal,
+    syncToken?: symbol,
+  ): Promise<void> {
+    if (this.layers.get(layerId) !== layer || this.streamLoaders.get(layerId) !== stream) return
+    const existing = this.failoverInFlight.get(layerId)
+    if (existing) {
+      try {
+        await existing
+      } catch (existingError) {
+        if (!isAbortError(existingError) || signal?.aborted) throw existingError
+      }
+      if (this.blockedStreamingLayerIds.has(layerId)) return
+      if (this.failoverInFlight.get(layerId) === existing) this.failoverInFlight.delete(layerId)
+      await this.requestStreamingFailoverFor(layerId, layer, stream, error, signal, syncToken)
+      return
+    }
+
+    const attempts = this.streamRetryDelaysMs.length + 1
+    const request = Promise.resolve()
+      .then(async () => {
+        throwIfAborted(signal)
+        if (
+          this.layers.get(layerId) !== layer ||
+          this.streamLoaders.get(layerId) !== stream ||
+          (syncToken != null && this.streamSyncTokens.get(layerId) !== syncToken)
+        ) return
+        this.blockedStreamingLayerIds.add(layerId)
+        try {
+          if (!this.streamingFailoverHandler) {
+            throw new Error(`No streaming failover handler is installed for ${layerId}`)
+          }
+          await this.streamingFailoverHandler({ layerId, entry: layer.entry, error, attempts })
+          const replacement = this.layers.get(layerId)
+          if (!replacement || replacement.streaming || this.streamLoaders.has(layerId)) {
+            throw new Error(
+              `Streaming failover for ${layerId} completed without installing a monolithic replacement`,
+            )
+          }
+        } catch (failoverError) {
+          const current = this.layers.get(layerId)
+          if (!current || current.streaming || this.streamLoaders.has(layerId)) {
+            this.blockedStreamingLayerIds.delete(layerId)
+          }
+          throw failoverError
+        }
+      })
+      .then(() => undefined)
+    this.failoverInFlight.set(layerId, request)
+    try {
+      await request
+    } finally {
+      if (this.failoverInFlight.get(layerId) === request) this.failoverInFlight.delete(layerId)
     }
   }
 
@@ -431,16 +793,18 @@ export class ModelManager {
     return this.streamLoaders.size > 0
   }
 
-  /** Refresh clip list from loaded stream cells + optional animation sidecar. */
-  async refreshStreamingAnimations(layerId: string): Promise<import('three').AnimationClip[]> {
+  /** Return the persistent manifest-v3 rig clips for the requested layer. */
+  async refreshStreamingAnimations(
+    layerId: string,
+    signal?: AbortSignal,
+  ): Promise<import('three').AnimationClip[]> {
     const layer = this.layers.get(layerId)
     const stream = this.streamLoaders.get(layerId)
     if (!layer || !stream) return layer?.result.animations ?? []
 
-    let clips = stream.collectAnimations()
-    if (!clips.length && layer.entry.animation) {
-      clips = await this.loadAnimationClipsOnly(layer.entry)
-    }
+    const clips = stream.collectAnimations()
+    throwIfAborted(signal)
+    if (this.layers.get(layerId) !== layer || this.streamLoaders.get(layerId) !== stream) return []
     if (clips.length) layer.result.animations = clips
     return clips
   }
@@ -455,40 +819,18 @@ export class ModelManager {
     return layer.root
   }
 
-  private async loadAnimationClipsOnly(
-    entry: ModelManifestEntry,
-    onProgress?: (p: LoadProgress) => void,
-  ): Promise<import('three').AnimationClip[]> {
-    const url = entry.animation
-    if (!url) return []
-    try {
-      onProgress?.({
-        stage: 'download',
-        ratio: null,
-        message: `Loading animation clips for ${entry.name}`,
-      })
-      const result = await this.loader.loadUrl(url, onProgress)
-      const clips = result.animations ?? []
-      disposeObject3D(result.root)
-      return clips
-    } catch (err) {
-      console.warn(`[ModelManager] animation sidecar failed for ${entry.id}`, err)
-      return []
-    }
-  }
-
   async loadLocalFile(
     file: File,
 
     onProgress?: (p: LoadProgress) => void,
 
+    signal?: AbortSignal,
+
   ): Promise<LoadedModelLayer> {
-
-    this.clear()
-
+    throwIfAborted(signal)
     const buffer = await file.arrayBuffer()
-
-    const result = await this.loader.loadArrayBuffer(buffer, file.name, onProgress)
+    throwIfAborted(signal)
+    const result = await this.loader.loadArrayBuffer(buffer, file.name, onProgress, signal)
 
     const entry: ModelManifestEntry = {
 
@@ -499,6 +841,8 @@ export class ModelManager {
       web: file.name,
 
     }
+    result.root.name = `Model:${entry.id}`
+    result.root.userData.layerId = entry.id
 
     const layer: LoadedModelLayer = {
 
@@ -514,11 +858,15 @@ export class ModelManager {
 
     }
 
-    this.layers.set(entry.id, layer)
-
-    this.root.add(result.root)
-
-    return layer
+    const prepared = { layer }
+    try {
+      throwIfAborted(signal)
+      this.commitReplacement([prepared])
+      return layer
+    } catch (err) {
+      this.disposePrepared([prepared])
+      throw err
+    }
 
   }
 
@@ -547,6 +895,7 @@ export class ModelManager {
     if (!layer) return
 
     const stream = this.streamLoaders.get(id)
+    const preparedCollision = this.preparedStreamingCollisions.get(id)
 
     if (stream) {
 
@@ -554,6 +903,13 @@ export class ModelManager {
 
       this.streamLoaders.delete(id)
 
+    }
+
+    this.streamSyncTokens.delete(id)
+
+    if (preparedCollision) {
+      disposeCollisionChunks(preparedCollision.chunks)
+      this.preparedStreamingCollisions.delete(id)
     }
 
     this.root.remove(layer.root)
@@ -622,62 +978,16 @@ export class ModelManager {
 
     this.clear()
 
+    for (const collision of this.preparedStreamingCollisions.values()) {
+      disposeCollisionChunks(collision.chunks)
+    }
+    this.preparedStreamingCollisions.clear()
+    this.streamingFailoverHandler = null
+
     this.loader.dispose()
 
   }
 
-}
-
-
-
-function isSafeCellManifest(manifest: CellManifest): boolean {
-  if ((manifest.version ?? 1) < 2) {
-    console.warn('[ModelManager] refusing cell-manifest version < 2 (duplicating bake)')
-    return false
-  }
-  const stats = (manifest as CellManifest & { stats?: { alwaysOnTriangles?: number; totalBytes?: number; ownedTriangles?: number; sourceTriangles?: number } }).stats
-  const alwaysOn = stats?.alwaysOnTriangles ?? manifest.cells.filter((c) => c.alwaysOn).reduce((s, c) => s + (c.triangles || 0), 0)
-  const maxAlways = manifest.budgets?.maxAlwaysOnTris ?? 150_000
-  if (alwaysOn > maxAlways) {
-    console.warn(`[ModelManager] refusing oversized always-on shell (${alwaysOn} tris)`)
-    return false
-  }
-  const bytes = stats?.totalBytes ?? manifest.cells.reduce((s, c) => s + (c.bytes || 0), 0)
-  if (bytes > 900 * 1024 * 1024) {
-    console.warn(`[ModelManager] refusing oversized cell set (${(bytes / 1024 / 1024).toFixed(0)} MiB)`)
-    return false
-  }
-  const owned = stats?.ownedTriangles
-  const source = stats?.sourceTriangles
-  if (owned && source && owned > source * 1.6) {
-    console.warn('[ModelManager] refusing cell set with triangle duplication')
-    return false
-  }
-  return Array.isArray(manifest.cells) && manifest.cells.length > 0
-}
-
-function streamFocusForManifest(
-  manifest: CellManifest,
-  preferred?: CellStreamFocus,
-  spawn?: [number, number, number],
-): CellStreamFocus {
-  if (spawn) return { x: spawn[0], y: spawn[1], z: spawn[2] }
-  const [minX, minY, minZ] = manifest.sceneMin
-  const [maxX, maxY, maxZ] = manifest.sceneMax
-  const center: CellStreamFocus = {
-    x: (minX + maxX) * 0.5,
-    y: minY + Math.min(4, Math.max(1.6, (maxY - minY) * 0.2)),
-    z: (minZ + maxZ) * 0.5,
-  }
-  if (!preferred) return center
-  const inside =
-    preferred.x >= minX &&
-    preferred.x <= maxX &&
-    preferred.y >= minY - 2 &&
-    preferred.y <= maxY + 4 &&
-    preferred.z >= minZ &&
-    preferred.z <= maxZ
-  return inside ? preferred : center
 }
 
 

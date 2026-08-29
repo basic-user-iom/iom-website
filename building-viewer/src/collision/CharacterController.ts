@@ -17,6 +17,7 @@ const _nflip = new Vector3()
 
 const FIXED_DT = 1 / 60
 const MAX_SUBSTEPS = 3
+const DESCENT_GUARD_STEPS = 36
 
 export class CharacterController {
   params: CharacterParams
@@ -37,6 +38,10 @@ export class CharacterController {
   private jumpQueued = false
   private climbScore = 0
   private climbLock = 0
+  private volumeClimbLock = 0
+  private readonly volumeClimbDirection = new Vector3()
+  private descentGuard = 0
+  private readonly descentDirection = new Vector3()
   private prevFeetY = 0
   private prevFeetYValid = false
 
@@ -62,10 +67,16 @@ export class CharacterController {
     this.position.copy(feet)
     if (yaw != null) this.yaw = yaw
     this.velocity.set(0, 0, 0)
+    // A teleport/drop must earn grounding again at the new location. Keeping
+    // the previous floor's state lets callers observe "grounded" before the
+    // first simulation frame has snapped and visually synced the new pose.
+    this.onGround = false
     this.accumulator = 0
     this.jumpQueued = false
     this.climbScore = 0
     this.climbLock = 0
+    this.resetVolumeClimb()
+    this.resetDescentGuard()
     this.stairsIntent = 0
     this.prevFeetY = feet.y
     this.prevFeetYValid = true
@@ -124,6 +135,10 @@ export class CharacterController {
 
     _tmp.set(this.velocity.x * dt, 0, this.velocity.z * dt)
     const moving = _tmp.lengthSq() > 1e-10
+    if (moving && this.descentGuard > 0) {
+      this.descentGuard -= 1
+      if (this.descentGuard === 0) this.descentDirection.set(0, 0, 0)
+    }
 
     _before.copy(this.position)
     this.position.add(_tmp)
@@ -137,8 +152,39 @@ export class CharacterController {
         0.002
       const well = world.stairWellAt?.(_before.x, _before.y, _before.z)
       const inWell = Boolean(well && _before.y < well.maxY - 0.12)
-      if (missed || this.detectStepAhead(_before, _tmp) || this.climbLock > 0 || inWell) {
-        if (this.tryStepUp(_before, _tmp)) {
+      if (
+        missed ||
+        this.detectStepAhead(_before, _tmp) ||
+        this.climbLock > 0 ||
+        (inWell && this.volumeClimbLock > 0)
+      ) {
+        const moveLength = Math.hypot(_tmp.x, _tmp.z)
+        const continuingVolumeAscent =
+          this.volumeClimbLock > 0 &&
+          moveLength > 1e-8 &&
+          (_tmp.x * this.volumeClimbDirection.x + _tmp.z * this.volumeClimbDirection.z) /
+            moveLength >
+            0.55
+        const reversingVolumeAscent =
+          this.volumeClimbLock > 0 &&
+          this.volumeClimbDirection.lengthSq() > 0.5 &&
+          !continuingVolumeAscent
+        const continuingDescent =
+          this.descentGuard > 0 &&
+          moveLength > 1e-8 &&
+          (_tmp.x * this.descentDirection.x + _tmp.z * this.descentDirection.z) /
+            moveLength >
+            0.55
+        if (this.descentGuard > 0 && !continuingDescent) this.resetDescentGuard()
+        // A latched solid-stair climb has a reliable travel direction. Reject
+        // an upper lip immediately when input reverses; normal ascent must
+        // still be allowed to test the next positive-rise tread first.
+        if (reversingVolumeAscent) this.latchDescent(_tmp)
+        const knownDescending = continuingDescent || reversingVolumeAscent
+        if (knownDescending) this.resetVolumeClimb()
+
+        if (!knownDescending && this.tryStepUp(_before, _tmp)) {
+          this.resetVolumeClimb()
           if (this.velocity.y < 0) this.velocity.y = 0
           this.onGround = true
           this.climbScore = Math.min(1.5, this.climbScore + 0.85)
@@ -147,14 +193,37 @@ export class CharacterController {
           this.updateStairsIntent(moving)
           return
         }
-        // Hollow U-stair wells (foyer Mesh2148) often don't block XZ — still climb.
+        // Solid CAD risers may need a short volume fallback. Never start it from
+        // AABB membership alone: landings and descending routes share that AABB.
+        // While bridging an oversized stair-only riser, the lower base floor
+        // remains visible to downward probes. It is not a descent request when
+        // input is still aligned with the latched ascent direction.
+        const probedDescending =
+          !continuingVolumeAscent &&
+          !knownDescending &&
+          this.hasDescendingTread(_before, _tmp)
+        if (probedDescending) this.latchDescent(_tmp)
+        const descending = continuingVolumeAscent
+          ? false
+          : knownDescending || probedDescending
         const canVolume =
-          inWell ||
-          (missed && (wallHit?.stairZone || this.climbLock > 0 || this.hasClimbableTread()))
+          !descending &&
+          Boolean(
+            (missed && wallHit?.stairZone) ||
+              (continuingVolumeAscent && inWell),
+          )
         if (canVolume) {
+          // Cross-layer solid stair volumes must own the grounding query before
+          // the fallback performs its internal snap; otherwise the old layer's
+          // floor immediately pulls the successful climb back to its base.
+          const previousLayer = world.getQueryLayer?.() ?? null
+          if (wallHit?.layerId) world.setQueryLayer?.(wallHit.layerId)
           if (this.tryStairVolumeClimb(_before, _tmp, dt, well)) {
             this.updateStairsIntent(moving)
             return
+          }
+          if (wallHit?.layerId && wallHit.layerId !== previousLayer) {
+            world.setQueryLayer?.(previousLayer)
           }
         }
         this.position.copy(_flat)
@@ -166,6 +235,10 @@ export class CharacterController {
     this.snapToGround()
     this.updateStairsIntent(moving)
     if (this.climbLock > 0) this.climbLock -= 1
+    if (this.volumeClimbLock > 0) {
+      this.volumeClimbLock -= 1
+      if (this.volumeClimbLock === 0) this.volumeClimbDirection.set(0, 0, 0)
+    }
   }
 
   /**
@@ -181,6 +254,19 @@ export class CharacterController {
     const world = this.world
     if (!world) return false
     const p = this.params
+    const moveLen = Math.hypot(moveXZ.x, moveXZ.z)
+    if (moveLen < 1e-8) return false
+    const nx = moveXZ.x / moveLen
+    const nz = moveXZ.z / moveLen
+    if (this.volumeClimbLock > 0 && this.volumeClimbDirection.lengthSq() > 0.5) {
+      const alignment = nx * this.volumeClimbDirection.x + nz * this.volumeClimbDirection.z
+      if (alignment < 0.55) {
+        // Reversing or crossing a flight must use ordinary ground snap. The
+        // volume fallback has no tread geometry from which to infer descent.
+        this.resetVolumeClimb()
+        return false
+      }
+    }
     const climb = Math.min(p.stepHeight, 3.6 * dt)
     let nextY = from.y + climb
     if (well) nextY = Math.min(nextY, well.maxY)
@@ -188,17 +274,76 @@ export class CharacterController {
 
     _origin.set(this.position.x, this.position.y + p.playerHeight * 0.55, this.position.z)
     const headHit = world.raycast(_origin, _up, p.playerHeight * 0.5)
-    if (headHit && headHit.distance > 0.05 && headHit.distance < 0.28) {
+    if (
+      headHit &&
+      !headHit.stairZone &&
+      headHit.distance > 0.05 &&
+      headHit.distance < 0.28
+    ) {
       this.position.copy(from)
       return false
     }
 
+    this.volumeClimbDirection.set(nx, 0, nz)
+    this.volumeClimbLock = 12
     this.climbLock = 12
     this.onGround = true
     this.velocity.y = 0
     this.climbScore = Math.min(1.6, this.climbScore + 0.35)
     this.snapToGround()
     return true
+  }
+
+  /** True when a lower tread is present in the requested travel direction. */
+  private hasDescendingTread(from: Vector3, moveXZ: Vector3): boolean {
+    const world = this.world
+    if (!world) return false
+    const p = this.params
+    const len = Math.hypot(moveXZ.x, moveXZ.z)
+    if (len < 1e-8) return false
+    const nx = moveXZ.x / len
+    const nz = moveXZ.z / len
+    const forwards = [
+      Math.max(len, p.playerRadius * 0.9, 0.16),
+      Math.max(p.playerRadius * 1.35, 0.24),
+      Math.max(p.playerRadius * 2.0, 0.36),
+    ]
+    const maxDrop = p.stepHeight + p.groundSnapDistance + 0.1
+    for (const forward of forwards) {
+      // Start below the next ascending riser. A probe launched above the whole
+      // step range can select the higher/current tread first while travelling
+      // downhill, hiding the lower tread and restarting the volume-ascent
+      // fallback from the back side of a stair.
+      _stepProbe.set(from.x + nx * forward, from.y + 0.08, from.z + nz * forward)
+      const probeDistance = maxDrop + 0.2
+      const ground =
+        world.raycastBestGround?.(_stepProbe, probeDistance, p.maxSlope) ??
+        world.raycast(_stepProbe, _down, probeDistance)
+      if (!ground) continue
+      let normal = ground.normal
+      if (normal.dot(_up) < 0) normal = _nflip.copy(normal).negate()
+      if (normal.dot(_up) < p.maxSlope) continue
+      const rise = ground.point.y - from.y
+      if (rise < -0.025 && rise >= -maxDrop) return true
+    }
+    return false
+  }
+
+  private resetVolumeClimb(): void {
+    this.volumeClimbLock = 0
+    this.volumeClimbDirection.set(0, 0, 0)
+  }
+
+  private latchDescent(moveXZ: Vector3): void {
+    const length = Math.hypot(moveXZ.x, moveXZ.z)
+    if (length < 1e-8) return
+    this.descentDirection.set(moveXZ.x / length, 0, moveXZ.z / length)
+    this.descentGuard = DESCENT_GUARD_STEPS
+  }
+
+  private resetDescentGuard(): void {
+    this.descentGuard = 0
+    this.descentDirection.set(0, 0, 0)
   }
 
   /** True when a walkable tread exists under/just ahead of the capsule. */
@@ -234,8 +379,13 @@ export class CharacterController {
     }
     const dy = this.position.y - this.prevFeetY
     this.prevFeetY = this.position.y
-    if (dy > 0.012) this.climbScore = Math.min(1.6, this.climbScore + 0.45)
-    else if (dy < -0.012) this.climbScore = Math.max(-1.6, this.climbScore - 0.45)
+    if (dy > 0.012) {
+      this.resetDescentGuard()
+      this.climbScore = Math.min(1.6, this.climbScore + 0.45)
+    } else if (dy < -0.012) {
+      this.latchDescent(this.velocity)
+      this.climbScore = Math.max(-1.6, this.climbScore - 0.45)
+    }
     else this.climbScore *= 0.88
 
     if (this.climbScore > 0.35) this.stairsIntent = 1
@@ -290,7 +440,13 @@ export class CharacterController {
       Math.max(p.playerRadius * 2.7, 0.48),
     ]
 
-    let best: { x: number; y: number; z: number; rise: number } | null = null
+    let best: {
+      x: number
+      y: number
+      z: number
+      rise: number
+      layerId?: string
+    } | null = null
 
     for (const forward of forwards) {
       // Cast from above so we hit the tread, not the vertical riser / solid CAD face.
@@ -318,19 +474,31 @@ export class CharacterController {
 
       _origin.set(ground.point.x, ground.point.y + 0.18, ground.point.z)
       const headHit = world.raycast(_origin, _up, Math.max(0.55, p.playerHeight - 0.25))
-      if (headHit && headHit.distance > 0.06 && headHit.distance < 0.35) {
+      if (
+        headHit &&
+        !headHit.stairZone &&
+        headHit.distance > 0.06 &&
+        headHit.distance < 0.35
+      ) {
         log(`head clearance ${headHit.distance.toFixed(3)}`)
         continue
       }
 
       if (!best || rise < best.rise - 0.01) {
-        best = { x: ground.point.x, y: ground.point.y, z: ground.point.z, rise }
+        best = {
+          x: ground.point.x,
+          y: ground.point.y,
+          z: ground.point.z,
+          rise,
+          layerId: ground.layerId,
+        }
       }
     }
 
     if (!best) return false
 
     // Place on the tread. Resolving the capsule against solid stair CAD undoes the climb.
+    if (best.layerId) world.setQueryLayer?.(best.layerId)
     this.position.set(best.x, best.y, best.z)
     this.onGround = true
     if (this.debugSteps) console.info(`[StepUp] ok rise=${best.rise.toFixed(3)}`)
@@ -365,6 +533,7 @@ export class CharacterController {
           if (feetY >= this.position.y - 0.05 && feetY <= this.position.y + 0.12) {
             this.position.y = feetY
             if (this.velocity.y < 0) this.velocity.y = 0
+            if (hit.layerId) world.setQueryLayer?.(hit.layerId)
           }
           this.onGround = true
           return
@@ -373,9 +542,13 @@ export class CharacterController {
           this.position.y = feetY
           if (this.velocity.y < 0) this.velocity.y = 0
           this.onGround = true
+          if (hit.layerId) world.setQueryLayer?.(hit.layerId)
           return
         }
-        this.onGround = gap <= 0.08
+        // A surface above the feet is an obstruction, not ground. The former
+        // one-sided comparison marked any negative gap (even metres) grounded.
+        this.onGround = gap >= -0.05 && gap <= 0.08
+        if (this.onGround && hit.layerId) world.setQueryLayer?.(hit.layerId)
         return
       }
     }
