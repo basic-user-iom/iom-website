@@ -122,6 +122,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     images: [],
   },
   {
+    id: 'harp-configurator-demo',
+    name: 'Harp Configurator',
+    client: 'Capability study — configurable lever harp',
+    status: 'preview',
+    path: '/demos/harp-configurator-demo/',
+    password: 'forte32',
+    blurb:
+      'Private demo: a browser-based harp configurator with independent wood and hardware finishes, string-aligned sharping levers, surface hotspots, amplification, and decorative details. Not linked from the public homepage.',
+    tags: ['Product', 'WebGL', 'Configurator'],
+    images: [],
+  },
+  {
     id: 'bas-rutten',
     name: 'Bas Rutten',
     client: 'Client pitch — official Bas Rutten website redesign',

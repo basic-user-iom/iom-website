@@ -1,0 +1,26 @@
+{
+  "name": "harp-configurator-demo",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Interactive configuration study for Marini Made Harps — generic harp model.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "process-assets": "node scripts/processAssets.mjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.4.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "three": "^0.180.0",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.0.4",
+    "sharp": "^0.34.4",
+    "vite": "^7.1.7"
+  }
+}

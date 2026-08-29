@@ -63,7 +63,13 @@ function parseProjectUrls() {
   return urls
 }
 
-const PRIVATE_DEMO_FOLDERS = new Set(['kelly-kettle', 'precision-object', 'dukta', 'icm-building'])
+const PRIVATE_DEMO_FOLDERS = new Set([
+  'kelly-kettle',
+  'precision-object',
+  'dukta',
+  'icm-building',
+  'harp-configurator-demo',
+])
 
 function demoUrls() {
   const demosDir = join(root, 'public', 'demos')

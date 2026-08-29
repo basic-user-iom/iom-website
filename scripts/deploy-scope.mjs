@@ -68,6 +68,16 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'harp-configurator-demo': [
+    '.vercelignore',
+    'harp-configurator-demo/',
+    'public/demos/harp-configurator-demo/',
+    'public/robots.txt',
+    'scripts/build-harp-configurator-demo.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/generate-sitemap.mjs',
+    'src/crm/DemosView.tsx',
+  ],
   'dukta-linar-concept': [
     'demos/dukta-linar-concept/',
     'scripts/deploy-scope.mjs',

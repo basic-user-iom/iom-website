@@ -12,6 +12,7 @@ supabase/*.sql
 /.deploy-park-wip/
 /building-viewer/
 /automotive-studio/
+/harp-configurator-demo/
 /vendor/
 /.tmp-vite-build-linar/
 /.tmp-linar-*.jpg
