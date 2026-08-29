@@ -213,6 +213,7 @@ export async function ingestInboundEmail({
     from,
     subject,
     body: plain,
+    headers,
   })
 
   const row = await insertLeadMessage({

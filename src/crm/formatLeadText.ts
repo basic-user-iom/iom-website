@@ -74,6 +74,8 @@ export interface FormatLeadTextContext {
   messages?: LeadMessage[]
   linkedProjects?: CrmProject[]
   ideaCount?: number
+  /** Include database/RFC identifiers so a downloaded export can be reconciled safely. */
+  includeRecordIds?: boolean
 }
 
 const ATLAS_SCORE_KEYS: (keyof AtlasEval)[] = [
@@ -145,11 +147,9 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
   const ownerParts = [ctx.owner.name, ctx.owner.email].filter(Boolean)
   const ownerText = ownerParts.length > 0 ? ownerParts.join(' · ') : '—'
 
-  const lines: string[] = [
-    `=== ${ctx.t('detail.kicker').toUpperCase()}: ${company} ===`,
-    '',
-    field(ctx.t('detail.contact'), orDash(lead.contact_name)),
-  ]
+  const lines: string[] = [`=== ${ctx.t('detail.kicker').toUpperCase()}: ${company} ===`]
+  if (ctx.includeRecordIds) lines.push(field('CRM lead UUID', lead.id))
+  lines.push('', field(ctx.t('detail.contact'), orDash(lead.contact_name)))
   if (lead.contact_role?.trim()) {
     lines.push(field(ctx.t('outreach.contactRole'), lead.contact_role.trim()))
   }
@@ -253,8 +253,9 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
         const type = ctx.activityLabel(act.type)
         const subject = act.subject.trim()
         const body = act.body.trim()
+        const recordId = ctx.includeRecordIds ? `\n    CRM activity UUID: ${act.id}` : ''
         const detail = body ? `\n    ${body.replace(/\n/g, '\n    ')}` : ''
-        return `• [${when}] ${type} — ${subject}${detail}`
+        return `• [${when}] ${type} — ${subject}${recordId}${detail}`
       })
     sections.push(section(ctx.t('act.title'), actLines))
   }
@@ -263,7 +264,10 @@ export function formatLeadAsPlainText(lead: Lead, ctx: FormatLeadTextContext): s
   if (projects.length > 0 || (ctx.ideaCount ?? 0) > 0) {
     const projLines: string[] = []
     for (const project of projects) {
-      projLines.push(`• ${project.name} (${ctx.t(`projStatus.${project.status}`)})`)
+      const recordId = ctx.includeRecordIds ? `\n    CRM project UUID: ${project.id}` : ''
+      projLines.push(
+        `• ${project.name} (${ctx.t(`projStatus.${project.status}`)})${recordId}`,
+      )
     }
     if ((ctx.ideaCount ?? 0) > 0) {
       projLines.push(
@@ -300,6 +304,14 @@ function formatEmailThread(
     blocks.push(
       [
         `• [${when}] ${dir}`,
+        ...(ctx.includeRecordIds
+          ? [
+              `    CRM message UUID: ${msg.id}`,
+              `    RFC Message-ID: ${orDash(msg.message_id)}`,
+              `    In-Reply-To: ${orDash(msg.in_reply_to)}`,
+              `    References: ${orDash(msg.references_header)}`,
+            ]
+          : []),
         `    ${msg.from_email} → ${msg.to_email}`,
         `    ${ctx.t('outreach.subject')}: ${subject}`,
         bodyIndented,
@@ -323,9 +335,13 @@ function groupByLeadId<T extends { lead_id: string | null }>(
   return map
 }
 
-export function bulkLeadExportFilename(count: number, now = new Date()): string {
+export function bulkLeadExportFilename(
+  count: number,
+  now = new Date(),
+  scope: 'visible' | 'all' = 'visible',
+): string {
   const day = now.toISOString().slice(0, 10)
-  return `iom-crm-leads-${day}-${count}.txt`
+  return `iom-crm-leads-${day}-${scope}-${count}.txt`
 }
 
 export interface FormatLeadsFullExportContext {
@@ -336,6 +352,7 @@ export interface FormatLeadsFullExportContext {
   locale: string
   valueLabels: { fromTheHeart: string; noCharge: string }
   filterSummary: string
+  intro: string
   ownerForLead: (lead: Lead) => { name: string | null; email: string | null }
   messages: LeadMessage[]
   activities: Activity[]
@@ -353,7 +370,7 @@ export function formatLeadsFullExport(
     `IOM CRM — full export (${ctx.filterSummary || 'all'} · ${leads.length})`,
     field(ctx.t('toolbar.copyVisibleExportedAt'), exportedAt),
     '',
-    ctx.t('toolbar.copyVisibleIntro'),
+    ctx.intro,
     '',
   ]
 
@@ -383,6 +400,7 @@ export function formatLeadsFullExport(
       messages: messagesByLead.get(lead.id) ?? [],
       linkedProjects: projectsByLead.get(lead.id) ?? [],
       ideaCount: ideaCountByLead.get(lead.id) ?? 0,
+      includeRecordIds: true,
     }),
   )
 

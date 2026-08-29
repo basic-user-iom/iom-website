@@ -353,6 +353,10 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   const [copyVisibleState, setCopyVisibleState] = useState<
     'idle' | 'exporting' | 'copied' | 'downloaded' | 'failed'
   >('idle')
+  const [exportAllState, setExportAllState] = useState<
+    'idle' | 'exporting' | 'downloaded' | 'failed'
+  >('idle')
+  const leadExportBusy = useRef(false)
 
   const openProject = useCallback((projectId: string) => {
     setFocusProjectId(projectId)
@@ -986,6 +990,13 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
   if (filters.tag !== 'all') {
     filterSummaryParts.push(`#${filters.tag}`)
   }
+  if (filters.owner !== 'all') {
+    const ownerLabel =
+      filters.owner === 'none'
+        ? t('list.noOwner')
+        : ownerOptions.find((option) => option.key === filters.owner)?.label ?? filters.owner
+    filterSummaryParts.push(t('toolbar.ownerSummary', { owner: ownerLabel }))
+  }
   if (priorityFilter) filterSummaryParts.push(t('stats.priority'))
   if (followUpDate) filterSummaryParts.push(followUpDate)
   if (filters.search.trim()) {
@@ -996,18 +1007,46 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
       ? filterSummaryParts.join(' · ')
       : t('toolbar.copyVisibleAll')
 
-  const handleCopyVisibleLeads = async () => {
-    if (copyVisibleState === 'exporting' || listLeads.length === 0) return
-    const snapshot = listLeads
-    setCopyVisibleState('exporting')
+  const handleLeadExport = async (scope: 'visible' | 'all') => {
+    if (leadExportBusy.current) return
+    const visibleSnapshot = scope === 'visible' ? [...listLeads] : null
+    if (scope === 'visible' && visibleSnapshot?.length === 0) return
+    const setState = (
+      state: 'idle' | 'exporting' | 'copied' | 'downloaded' | 'failed',
+    ) => {
+      if (scope === 'all') {
+        setExportAllState(state === 'copied' ? 'downloaded' : state)
+      } else {
+        setCopyVisibleState(state)
+      }
+    }
+    leadExportBusy.current = true
+    setState('exporting')
     try {
+      // A full export always starts with a fresh, explicitly unfiltered query.
+      // Visible export intentionally snapshots the current in-memory filtered list.
+      const snapshot =
+        visibleSnapshot ??
+        uniqueLeadsById(
+          await fetchLeads(
+            {
+              search: '',
+              status: 'all',
+              temperature: 'all',
+              owner: 'all',
+              tag: 'all',
+              sort: 'updated',
+            },
+            { processDueScheduledSends: false },
+          ),
+        )
       const ids = snapshot.map((l) => l.id)
       const [hydrated, messages, activities, projects, ideaMaps] = await Promise.all([
         hydrateLeadDetails(snapshot),
-        listLeadMessagesForLeads(ids).catch(() => []),
-        listActivitiesForLeads(ids).catch(() => []),
-        listProjectsForLeads(ids).catch(() => []),
-        listMindMapLeadIds(ids).catch(() => []),
+        listLeadMessagesForLeads(ids),
+        listActivitiesForLeads(ids),
+        listProjectsForLeads(ids),
+        listMindMapLeadIds(ids),
       ])
       const text = formatLeadsFullExport(hydrated, {
         t,
@@ -1019,7 +1058,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           fromTheHeart: t('detail.valueFromHeart'),
           noCharge: t('detail.valueNoCharge'),
         },
-        filterSummary,
+        filterSummary:
+          scope === 'all' ? t('toolbar.exportAllSummary') : filterSummary,
+        intro:
+          scope === 'all'
+            ? t('toolbar.exportAllIntro')
+            : t('toolbar.copyVisibleIntro'),
         ownerForLead: (lead) => {
           const owner = resolveLeadOwner(lead, user, staffById)
           return { name: owner.name, email: owner.email }
@@ -1029,17 +1073,27 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
         projects,
         ideaMaps,
       })
-      downloadPlainTextFile(bulkLeadExportFilename(snapshot.length), text)
-      try {
-        await copyTextToClipboard(text)
-        setCopyVisibleState('copied')
-      } catch {
-        setCopyVisibleState('downloaded')
+      downloadPlainTextFile(
+        bulkLeadExportFilename(snapshot.length, new Date(), scope),
+        text,
+      )
+      if (scope === 'visible') {
+        try {
+          await copyTextToClipboard(text)
+          setState('copied')
+        } catch {
+          setState('downloaded')
+        }
+      } else {
+        setState('downloaded')
       }
-      window.setTimeout(() => setCopyVisibleState('idle'), 2500)
+      window.setTimeout(() => setState('idle'), 2500)
     } catch {
-      setCopyVisibleState('failed')
-      window.setTimeout(() => setCopyVisibleState('idle'), 2500)
+      // Do not create a partial export that silently omits messages/history.
+      setState('failed')
+      window.setTimeout(() => setState('idle'), 2500)
+    } finally {
+      leadExportBusy.current = false
     }
   }
 
@@ -1053,6 +1107,15 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
           : copyVisibleState === 'failed'
             ? t('toolbar.copyVisibleFailed')
             : t('toolbar.copyVisible', { count: listLeads.length })
+
+  const exportAllLabel =
+    exportAllState === 'exporting'
+      ? t('toolbar.copyVisibleExporting', { count: leads.length })
+      : exportAllState === 'downloaded'
+        ? t('toolbar.copyVisibleDownloaded')
+        : exportAllState === 'failed'
+          ? t('toolbar.copyVisibleFailed')
+          : t('toolbar.exportAll', { count: leads.length })
 
   const selected = listLeads.find((l) => l.id === selectedId) ?? null
 
@@ -1464,12 +1527,28 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                 view === 'create' ||
                 view === 'bulk' ||
                 listLeads.length === 0 ||
-                copyVisibleState === 'exporting'
+                copyVisibleState === 'exporting' ||
+                exportAllState === 'exporting'
               }
               title={t('toolbar.copyVisibleHint')}
-              onClick={() => void handleCopyVisibleLeads()}
+              onClick={() => void handleLeadExport('visible')}
             >
               {copyVisibleLabel}
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={
+                view === 'create' ||
+                view === 'bulk' ||
+                loading ||
+                copyVisibleState === 'exporting' ||
+                exportAllState === 'exporting'
+              }
+              title={t('toolbar.exportAllHint')}
+              onClick={() => void handleLeadExport('all')}
+            >
+              {exportAllLabel}
             </button>
             <button
               type="button"
@@ -1541,13 +1620,12 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
                     outreachSchemaMissing={outreachSchemaMissing}
                     pollEnabled={section === 'leads'}
                     onChanged={handleLeadChanged}
-                    onDeleted={() => {
-                      const id = selectedId
-                      if (id) {
-                        hydratedLeadIds.current.delete(id)
-                        setLeads((prev) => prev.filter((row) => row.id !== id))
-                      }
-                      setSelectedId(null)
+                    onDeleted={(deletedId) => {
+                      hydratedLeadIds.current.delete(deletedId)
+                      setLeads((prev) => prev.filter((row) => row.id !== deletedId))
+                      setSelectedId((current) =>
+                        current === deletedId ? null : current,
+                      )
                     }}
                     onOpenProject={openProject}
                     onOpenIdeas={openIdeasForLead}

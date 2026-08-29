@@ -57,6 +57,9 @@ const NAMED_SCOPES = {
   crm: [
     'src/crm/',
     'api/crm-send-email.js',
+    'api/_lib/crm-auto-reply.js',
+    'api/_lib/crm-auto-reply.test.js',
+    'api/_lib/crm-inbound-ingest.js',
     'api/_lib/crm-send-outreach.js',
     'api/_lib/email-attachments.js',
     'scripts/deploy-scope.mjs',

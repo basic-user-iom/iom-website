@@ -9,6 +9,7 @@ export function isAutoReplyEmail(opts: {
   from?: string | null
   subject?: string | null
   body?: string | null
+  headers?: Record<string, unknown> | null
 }): boolean {
   const fromL = String(opts.from || '')
     .toLowerCase()
@@ -19,6 +20,23 @@ export function isAutoReplyEmail(opts: {
   const bodyL = String(opts.body || '')
     .toLowerCase()
     .slice(0, 800)
+  const headerValue = (name: string): string => {
+    const headers = opts.headers
+    if (!headers) return ''
+    const entry = Object.entries(headers).find(
+      ([key]) => key.toLowerCase() === name.toLowerCase(),
+    )
+    const value = entry?.[1]
+    return Array.isArray(value) ? value.join(' ').trim() : String(value ?? '').trim()
+  }
+  const autoSubmitted = headerValue('auto-submitted').toLowerCase()
+  const autoReplyHeader = [headerValue('x-autoreply'), headerValue('x-autorespond')]
+    .join(' ')
+    .trim()
+
+  // RFC 3834: "no" means a human-originated message; every other populated
+  // Auto-Submitted value identifies an automatic response/generation.
+  if ((autoSubmitted && autoSubmitted !== 'no') || autoReplyHeader) return true
 
   if (!fromL && !subjectL && !bodyL) return false
 
@@ -44,7 +62,7 @@ export function isAutoReplyEmail(opts: {
   }
 
   if (
-    /\b(please reply above this line|type your reply above this line|this is an automatic email|this is an automated response|your request \(\d+\) has been received|we have received your (email|message|request)|we('ll| will) (personally )?get back to you as soon as|our team will (review|respond|get back)|ticket[- ]?(id|nummer|number)\b)/i.test(
+    /\b(please reply above this line|type your reply above this line|this is an automatic email|this is an automated response|your request \(\d+\) has been received|we have received your (email|message|request)|we('ll| will) (personally )?get back to you as soon as|our team will (review|respond|get back)|away from (my )?(desk|office)|currently away|annual leave|out of the office|ticket[- ]?(id|nummer|number)\b)/i.test(
       bodyL,
     )
   ) {
@@ -58,10 +76,12 @@ export function isAutoReplyLeadMessage(message: {
   from_email?: string | null
   subject?: string | null
   body_text?: string | null
+  raw_headers?: Record<string, unknown> | null
 }): boolean {
   return isAutoReplyEmail({
     from: message.from_email,
     subject: message.subject,
     body: message.body_text,
+    headers: message.raw_headers,
   })
 }

@@ -91,9 +91,16 @@ const en: Dict = {
   'toolbar.backList': 'Back to list',
   'toolbar.backToList': 'Back to list',
   'toolbar.copyVisible': 'Copy {count} for ChatGPT',
-  'toolbar.copyVisibleAll': 'All visible',
+  'toolbar.copyVisibleAll': 'All visible (no filters)',
   'toolbar.copyVisibleHint':
-    'Export every visible lead in one go: contact, notes, outreach, sent and received emails with times, activities, and projects. Copies to the clipboard and downloads a .txt file. Filter first if you only want a subset. ChatGPT may need the file in chunks if the dump is large.',
+    'Export only the leads currently visible after every active filter, including the owner filter. Copies to the clipboard and downloads a .txt file with stable record IDs. The file is not created if related history cannot be loaded completely.',
+  'toolbar.exportAll': 'Download all {count}',
+  'toolbar.exportAllHint':
+    'Fetch and download every CRM lead with no search, stage, temperature, tag, owner, priority, or follow-up filter. Includes stable record IDs and fails instead of silently omitting related history.',
+  'toolbar.exportAllSummary': 'All CRM records (unfiltered)',
+  'toolbar.exportAllIntro':
+    'Full unfiltered IOM CRM export fetched from the database at export time. Each block contains stable record IDs, contact and locale data, Atlas evaluation, outreach draft, the complete sent/received email thread, offer, notes, activities, and linked projects.',
+  'toolbar.ownerSummary': 'Added by: {owner}',
   'toolbar.copyVisibleFailed': 'Export failed',
   'toolbar.copyVisibleExporting': 'Exporting {count}…',
   'toolbar.copyVisibleCopiedFile': 'Copied + file',
@@ -327,7 +334,10 @@ const en: Dict = {
   'detail.sendToProjects': 'Send to project management',
   'detail.sendFailed': 'Could not create project from this lead.',
   'detail.openIdeas': 'Open ideas board',
-  'detail.deleteConfirm': 'Delete lead “{name}”?',
+  'detail.deleteConfirm':
+    'Permanently delete “{name}”?\n\nThis hard-deletes the lead and its email/activity history. Linked projects lose their lead link.\n\nType the exact lead name to confirm:',
+  'detail.deleteMismatch': 'Deletion cancelled: the lead name did not match exactly.',
+  'detail.deleting': 'Deleting…',
   'detail.deleteFailed': 'Delete failed.',
   'detail.copyAsText': 'Copy as text',
   'detail.copying': 'Copying…',
@@ -1886,9 +1896,16 @@ const sr: Dict = {
   'toolbar.backList': 'Nazad na listu',
   'toolbar.backToList': 'Nazad na listu',
   'toolbar.copyVisible': 'Kopiraj {count} za ChatGPT',
-  'toolbar.copyVisibleAll': 'Svi vidljivi',
+  'toolbar.copyVisibleAll': 'Svi vidljivi (bez filtera)',
   'toolbar.copyVisibleHint':
-    'Izvozi sve vidljive leadove odjednom: kontakt, beleške, outreach, poslate i primljene emailove sa vremenima, aktivnosti i projekte. Kopira u clipboard i preuzima .txt. Prvo filtrirajte ako treba podskup. ChatGPT-u možda treba fajl u delovima ako je izvoz veliki.',
+    'Izvozi samo leadove koji su trenutno vidljivi nakon svih aktivnih filtera, uključujući filter vlasnika. Kopira u clipboard i preuzima .txt sa stabilnim ID vrednostima. Fajl se ne kreira ako povezana istorija nije potpuno učitana.',
+  'toolbar.exportAll': 'Preuzmi svih {count}',
+  'toolbar.exportAllHint':
+    'Ponovo učitava i preuzima sve CRM leadove bez filtera pretrage, faze, temperature, oznake, vlasnika, prioriteta ili praćenja. Uključuje stabilne ID vrednosti i prekida izvoz umesto tihog izostavljanja istorije.',
+  'toolbar.exportAllSummary': 'Svi CRM zapisi (bez filtera)',
+  'toolbar.exportAllIntro':
+    'Pun nefiltriran IOM CRM izvoz učitan iz baze u trenutku izvoza. Svaki blok sadrži stabilne ID vrednosti, kontakt i lokacijske podatke, Atlas procenu, outreach draft, kompletnu poslat/primljen email nit, ponudu, beleške, aktivnosti i povezane projekte.',
+  'toolbar.ownerSummary': 'Dodao/la: {owner}',
   'toolbar.copyVisibleFailed': 'Izvoz nije uspeo',
   'toolbar.copyVisibleExporting': 'Izvoz {count}…',
   'toolbar.copyVisibleCopiedFile': 'Kopirano + fajl',
@@ -2123,7 +2140,10 @@ const sr: Dict = {
   'detail.sendToProjects': 'Pošalji u upravljanje projektima',
   'detail.sendFailed': 'Nije moguće kreirati projekat od ovog leada.',
   'detail.openIdeas': 'Otvori tablu ideja',
-  'detail.deleteConfirm': 'Obrisati lead „{name}”?',
+  'detail.deleteConfirm':
+    'Trajno obrisati „{name}”?\n\nOvo trajno briše lead i njegovu email/aktivnost istoriju. Povezani projekti gube vezu sa leadom.\n\nUnesite tačan naziv leada za potvrdu:',
+  'detail.deleteMismatch': 'Brisanje je otkazano: naziv leada se ne podudara tačno.',
+  'detail.deleting': 'Brišem…',
   'detail.deleteFailed': 'Brisanje nije uspelo.',
   'detail.copyAsText': 'Kopiraj kao tekst',
   'detail.copying': 'Kopiram…',

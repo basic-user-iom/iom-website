@@ -2121,7 +2121,10 @@ function mergeStrippedOptionalFields(
   return result
 }
 
-export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
+export async function listLeads(
+  filters: LeadFilters,
+  options: { processDueScheduledSends?: boolean } = {},
+): Promise<Lead[]> {
   if (useLiveCrmBackend()) {
     const supabase = getSupabase()!
     // Shared team CRM: no owner_id filter — every authenticated user sees all leads.
@@ -2230,7 +2233,7 @@ export async function listLeads(filters: LeadFilters): Promise<Lead[]> {
     )
   }
 
-  processDueScheduledSendsLocal()
+  if (options.processDueScheduledSends !== false) processDueScheduledSendsLocal()
   const leads = readLocal<Lead[]>(LEADS_KEY, []).map(normalizeLead)
   const effectiveSortLocal: LeadSort =
     filters.status === 'client_replied' ? 'last_reply' : filters.sort

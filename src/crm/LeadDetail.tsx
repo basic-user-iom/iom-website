@@ -56,7 +56,7 @@ interface LeadDetailProps {
   outreachSchemaMissing?: boolean
   /** Called after save/claim; may receive the updated lead for immediate UI merge. */
   onChanged: (updated?: Lead) => void
-  onDeleted: () => void
+  onDeleted: (leadId: string) => void
   onOpenProject?: (projectId: string) => void
   onOpenIdeas?: (leadId: string) => void
   /** False while the Leads tab is hidden — CRM stays mounted across sections. */
@@ -85,6 +85,7 @@ export function LeadDetail({
   const [copied, setCopied] = useState(false)
   const [priorityBusy, setPriorityBusy] = useState(false)
   const [approveBusy, setApproveBusy] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [linkedProjects, setLinkedProjects] = useState<CrmProject[]>([])
   const [ideaCount, setIdeaCount] = useState(0)
   const [activityTick, setActivityTick] = useState(0)
@@ -235,14 +236,24 @@ export function LeadDetail({
   }
 
   const handleDelete = async () => {
-    const name = lead.company_name || lead.contact_name || t('list.untitled')
-    if (!confirm(t('detail.deleteConfirm', { name }))) return
+    if (deleting) return
+    const leadId = lead.id
+    const name = (lead.company_name || lead.contact_name || t('list.untitled')).trim()
+    const typedName = window.prompt(t('detail.deleteConfirm', { name }))
+    if (typedName === null) return
+    if (typedName.trim() !== name) {
+      setError(t('detail.deleteMismatch'))
+      return
+    }
     setError('')
+    setDeleting(true)
     try {
-      await deleteLead(lead.id)
-      onDeleted()
+      await deleteLead(leadId)
+      onDeleted(leadId)
     } catch (err) {
       setError(err instanceof Error ? err.message : t('detail.deleteFailed'))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -481,8 +492,14 @@ export function LeadDetail({
           <button type="button" className="btn btn-ghost" onClick={() => setEditing(true)}>
             {t('detail.edit')}
           </button>
-          <button type="button" className="btn btn-ghost crm-danger" onClick={() => void handleDelete()}>
-            {t('detail.delete')}
+          <button
+            type="button"
+            className="btn btn-ghost crm-danger"
+            disabled={deleting}
+            aria-busy={deleting}
+            onClick={() => void handleDelete()}
+          >
+            {deleting ? t('detail.deleting') : t('detail.delete')}
           </button>
         </div>
       </header>

@@ -6,12 +6,27 @@
  */
 
 /**
- * @param {{ from?: string, subject?: string, body?: string }} opts
+ * @param {{ from?: string, subject?: string, body?: string, headers?: Record<string, unknown> }} opts
  */
-export function isAutoReplyEmail({ from = '', subject = '', body = '' }) {
+export function isAutoReplyEmail({ from = '', subject = '', body = '', headers = {} }) {
   const fromL = String(from || '').toLowerCase().trim()
   const subjectL = String(subject || '').toLowerCase().trim()
   const bodyL = String(body || '').toLowerCase().slice(0, 800)
+  const headerValue = (name) => {
+    const entry = Object.entries(headers || {}).find(
+      ([key]) => key.toLowerCase() === name.toLowerCase(),
+    )
+    const value = entry?.[1]
+    return Array.isArray(value) ? value.join(' ').trim() : String(value ?? '').trim()
+  }
+  const autoSubmitted = headerValue('auto-submitted').toLowerCase()
+  const autoReplyHeader = [headerValue('x-autoreply'), headerValue('x-autorespond')]
+    .join(' ')
+    .trim()
+
+  // RFC 3834: "no" means a human-originated message; every other populated
+  // Auto-Submitted value identifies an automatic response/generation.
+  if ((autoSubmitted && autoSubmitted !== 'no') || autoReplyHeader) return true
 
   if (!fromL && !subjectL && !bodyL) return false
 
@@ -37,7 +52,7 @@ export function isAutoReplyEmail({ from = '', subject = '', body = '' }) {
   }
 
   if (
-    /\b(please reply above this line|type your reply above this line|this is an automatic email|this is an automated response|your request \(\d+\) has been received|we have received your (email|message|request)|we('ll| will) (personally )?get back to you as soon as|our team will (review|respond|get back)|ticket[- ]?(id|nummer|number)\b)/i.test(
+    /\b(please reply above this line|type your reply above this line|this is an automatic email|this is an automated response|your request \(\d+\) has been received|we have received your (email|message|request)|we('ll| will) (personally )?get back to you as soon as|our team will (review|respond|get back)|away from (my )?(desk|office)|currently away|annual leave|out of the office|ticket[- ]?(id|nummer|number)\b)/i.test(
       bodyL,
     )
   ) {
