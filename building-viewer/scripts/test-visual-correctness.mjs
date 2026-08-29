@@ -27,7 +27,7 @@ const vite = await createServer({
 try {
   const [
     { isOrbitDuplicateMesh },
-    { prepareArchitecturalMeshes },
+    { prepareArchitecturalMeshes, applyMeshQuality },
     { computeSceneBounds },
     { applyProceduralInstancing },
     { dedupeSceneMaterials },
@@ -194,10 +194,18 @@ try {
   // floor slabs in world XZ so both density and phase match across every seam.
   const woodTexture = new Texture()
   woodTexture.name = 'wood-flooring-008(3000px)_d'
+  const invalidWoodNormal = new Texture()
+  invalidWoodNormal.name = 'wood-flooring-008(3000px)_b'
+  const woodRoughness = new Texture()
+  woodRoughness.name = 'wood-flooring-008(3000px)_r'
   const sharedWoodFloor = new MeshStandardMaterial({
     name: 'Floor_Wood_Vray_001',
     map: woodTexture,
+    normalMap: invalidWoodNormal,
+    roughnessMap: woodRoughness,
+    metalnessMap: woodRoughness,
   })
+  sharedWoodFloor.bumpMap = invalidWoodNormal
   const bt2WoodFloor = horizontalPlane(13, 13, sharedWoodFloor)
   bt2WoodFloor.name = 'floor_bt2_1og'
   bt2WoodFloor.position.set(-6.5, 6, 0)
@@ -212,11 +220,42 @@ try {
   excludedElectroWood.name = 'Electro_s14'
   excludedElectroWood.position.set(30, 6, 0)
   const excludedElectroGeometry = excludedElectroWood.geometry
+  const excludedBaseboardWood = horizontalPlane(13, 13, sharedWoodFloor)
+  excludedBaseboardWood.name = 'Tr_bodenleisten'
+  excludedBaseboardWood.position.set(42, 6, 0)
+  const excludedBaseboardGeometry = excludedBaseboardWood.geometry
+  const generatedWoodFloor = horizontalPlane(19.59, 14.07, sharedWoodFloor)
+  generatedWoodFloor.name = 'mesh_1026'
+  generatedWoodFloor.position.set(62, 6, 0)
+  multiplyUvs(generatedWoodFloor.geometry, 0.25, 0.75)
+  generatedWoodFloor.geometry.computeTangents()
+  const intermediateWoodFloor = horizontalPlane(45.6, 28, sharedWoodFloor)
+  intermediateWoodFloor.name = 'fb_zwischengeschoss'
+  intermediateWoodFloor.position.set(90, 6, 0)
+  multiplyUvs(intermediateWoodFloor.geometry, 0.5, 2)
+  intermediateWoodFloor.geometry.computeTangents()
+  const mixedWoodAssembly = new Mesh(new BoxGeometry(10, 6.3, 10), sharedWoodFloor)
+  mixedWoodAssembly.name = 'mesh_994'
+  mixedWoodAssembly.position.set(130, 9.15, 0)
+  const mixedWoodGeometry = mixedWoodAssembly.geometry
   const woodRoot = new Group()
-  woodRoot.add(bt2WoodFloor, adjacentWoodFloor, excludedElectroWood)
+  woodRoot.add(
+    bt2WoodFloor,
+    adjacentWoodFloor,
+    excludedElectroWood,
+    excludedBaseboardWood,
+    generatedWoodFloor,
+    intermediateWoodFloor,
+    mixedWoodAssembly,
+  )
   prepareArchitecturalMeshes(woodRoot, computeSceneBounds(woodRoot), { freezeStatic: false })
   const worldVertex = new Vector3()
-  for (const floor of [bt2WoodFloor, adjacentWoodFloor]) {
+  for (const [floor, width, depth] of [
+    [bt2WoodFloor, 13, 13],
+    [adjacentWoodFloor, 13, 13],
+    [generatedWoodFloor, 19.59, 14.07],
+    [intermediateWoodFloor, 45.6, 28],
+  ]) {
     floor.updateWorldMatrix(true, false)
     const positions = floor.geometry.getAttribute('position')
     const uvs = floor.geometry.getAttribute('uv')
@@ -228,9 +267,40 @@ try {
     assert.equal(floor.geometry.getAttribute('tangent'), undefined)
     assert.equal(floor.geometry.userData.textureTileMeters, 3.25)
     assert.equal(floor.userData.textureScaleCorrected, true)
-    assert.ok(Math.abs(effectivePlaneMetersPerRepeat(floor, 13, 13) - 3.25) < 1e-4)
+    assert.ok(Math.abs(effectivePlaneMetersPerRepeat(floor, width, depth) - 3.25) < 1e-4)
+    assert.equal(floor.material.map, woodTexture)
+    assert.equal(floor.material.normalMap, null)
+    assert.equal(floor.material.bumpMap, null)
+    assert.equal(floor.material.roughnessMap, woodRoughness)
+    assert.equal(floor.material.metalnessMap, woodRoughness)
+    assert.equal(floor.material.userData.iomInteriorWoodFloorNormalPrepared, true)
   }
   assert.equal(excludedElectroWood.geometry, excludedElectroGeometry)
+  assert.equal(excludedElectroWood.material.normalMap, invalidWoodNormal)
+  assert.notEqual(excludedElectroWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(excludedBaseboardWood.geometry, excludedBaseboardGeometry)
+  assert.equal(excludedBaseboardWood.material.normalMap, invalidWoodNormal)
+  assert.notEqual(excludedBaseboardWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(mixedWoodAssembly.geometry, mixedWoodGeometry)
+  assert.equal(mixedWoodAssembly.material.normalMap, invalidWoodNormal)
+  assert.notEqual(mixedWoodAssembly.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(sharedWoodFloor.normalMap, invalidWoodNormal)
+
+  // A shared Texture must retain the strongest anisotropy request regardless
+  // of whether a non-floor owner is visited before or after the floor.
+  for (const floorFirst of [true, false]) {
+    const sharedQualityTexture = new Texture()
+    const sharedQualityMaterial = new MeshStandardMaterial({ map: sharedQualityTexture })
+    const qualityFloor = makeMesh('Quality floor')
+    qualityFloor.material = sharedQualityMaterial
+    qualityFloor.userData.floorSurface = true
+    const qualityFixture = makeMesh('Quality fixture')
+    qualityFixture.material = sharedQualityMaterial
+    const qualityRoot = new Group()
+    qualityRoot.add(...(floorFirst ? [qualityFloor, qualityFixture] : [qualityFixture, qualityFloor]))
+    applyMeshQuality(qualityRoot, { id: 'DESKTOP_BALANCED', anisotropy: 2 })
+    assert.equal(sharedQualityTexture.anisotropy, 8)
+  }
 
   const waterTexture = new Texture()
   waterTexture.name = 'water'

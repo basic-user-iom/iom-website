@@ -170,9 +170,12 @@ const LANDSCAPE_SURFACE_NAME =
 
 /** Genuine interior timber floors sharing the V-Ray wood-floor material. */
 const INTERIOR_WOOD_FLOOR_MATERIAL = /^Floor_Wood_Vray(?:_\d+)?$/i
-const INTERIOR_WOOD_FLOOR_NAME = /floor|boden|saal\s*13/i
+const INTERIOR_WOOD_FLOOR_BASE_TEXTURE = /^wood-flooring-008\(3000px\)_d$/i
+const INTERIOR_WOOD_FLOOR_BUMP_TEXTURE = /^wood-flooring-008\(3000px\)_b$/i
+const INTERIOR_WOOD_FLOOR_NAME = /floor|boden|saal\s*13|zwischengeschoss/i
+const GENERATED_MESH_NAME = /^mesh[_\s.-]*\d+$/i
 const NOT_INTERIOR_WOOD_FLOOR_NAME =
-  /electro|stufen|stair|treppe|gelaender|geländer|handlauf|decke|ceiling|moebel|möbel|furniture/i
+  /electro|stufen|stair|treppe|gelaender|geländer|handlauf|bodenleist|laufband|decke|ceiling|moebel|möbel|furniture/i
 
 /**
  * The Foyer green roof is a unique aerial/baked atlas, not seamless grass.
@@ -191,7 +194,7 @@ type GroundTilingPolicy = {
   forceWorldAligned?: boolean
 }
 
-function groundTilingPolicy(mesh: Mesh): GroundTilingPolicy | null {
+function groundTilingPolicy(mesh: Mesh, size: Vector3): GroundTilingPolicy | null {
   const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
   const objectLabel = `${mesh.name || ''} ${objectPathName(mesh)}`
   const textureNames = mats
@@ -199,10 +202,17 @@ function groundTilingPolicy(mesh: Mesh): GroundTilingPolicy | null {
     .join(' ')
   const label = `${mesh.name || ''} ${objectPathName(mesh)} ${meshMaterialNames(mesh)} ${textureNames}`
   if (AUTHORED_ROOF_ATLAS_NAME.test(label)) return null
+  const hasWoodFloorMaterial = mats.some((mat) =>
+    Boolean(mat && INTERIOR_WOOD_FLOOR_MATERIAL.test(mat.name || '')),
+  )
+  const generatedPlanarFloor =
+    (!mesh.name || GENERATED_MESH_NAME.test(mesh.name)) &&
+    size.y <= 0.05 &&
+    size.x * size.z >= 8
   const genuineWoodFloor =
-    mats.some((mat) => Boolean(mat && INTERIOR_WOOD_FLOOR_MATERIAL.test(mat.name || ''))) &&
-    INTERIOR_WOOD_FLOOR_NAME.test(objectLabel) &&
-    !NOT_INTERIOR_WOOD_FLOOR_NAME.test(objectLabel)
+    hasWoodFloorMaterial &&
+    !NOT_INTERIOR_WOOD_FLOOR_NAME.test(objectLabel) &&
+    (INTERIOR_WOOD_FLOOR_NAME.test(objectLabel) || generatedPlanarFloor)
   if (genuineWoodFloor) {
     return {
       role: 'interior-wood',
@@ -443,8 +453,40 @@ type CadMat = Material & {
   color?: Color
   map?: Texture | null
   alphaMap?: Texture | null
+  normalMap?: Texture | null
+  bumpMap?: Texture | null
+  roughnessMap?: Texture | null
+  metalnessMap?: Texture | null
   envMapIntensity?: number
   forceSinglePass?: boolean
+}
+
+function hasInvalidInteriorWoodFloorNormal(mat: Material): boolean {
+  const wood = mat as CadMat
+  return Boolean(
+    INTERIOR_WOOD_FLOOR_MATERIAL.test(mat.name || '') &&
+      wood.map &&
+      INTERIOR_WOOD_FLOOR_BASE_TEXTURE.test(wood.map.name || '') &&
+      ((wood.normalMap && INTERIOR_WOOD_FLOOR_BUMP_TEXTURE.test(wood.normalMap.name || '')) ||
+        (wood.bumpMap && INTERIOR_WOOD_FLOOR_BUMP_TEXTURE.test(wood.bumpMap.name || ''))),
+  )
+}
+
+/**
+ * The source `_b` image is grayscale V-Ray height data, not a tangent-space
+ * normal map. Its periodic dark rows become broad lighting bands in WebGL.
+ * Keep the valid albedo/roughness response and remove only the bad binding.
+ */
+function repairInteriorWoodFloorNormal(mat: Material): void {
+  const wood = mat as CadMat
+  if (wood.normalMap && INTERIOR_WOOD_FLOOR_BUMP_TEXTURE.test(wood.normalMap.name || '')) {
+    wood.normalMap = null
+  }
+  if (wood.bumpMap && INTERIOR_WOOD_FLOOR_BUMP_TEXTURE.test(wood.bumpMap.name || '')) {
+    wood.bumpMap = null
+  }
+  mat.userData = { ...mat.userData, iomInteriorWoodFloorNormalPrepared: true }
+  mat.needsUpdate = true
 }
 
 function uvSpanIsWild(geom: Mesh['geometry']): boolean {
@@ -520,7 +562,12 @@ function ensurePlanarGroundUvs(mesh: Mesh, size: Vector3): void {
     (mat): mat is Material & { map: Texture } => Boolean(mat && (mat as CadMat).map),
   )
   if (!mappedMats.length) return
-  const policy = groundTilingPolicy(mesh)
+  const policy = groundTilingPolicy(mesh, size)
+  if (policy?.role === 'interior-wood') {
+    // The material is also used by stairs and miscellaneous details. Record the
+    // audited floor owner so only its clone loses the invalid normal binding.
+    mesh.userData.interiorWoodFloorSurface = true
+  }
   if (
     size.y > (policy?.maxVerticalSpan ?? 1.2) ||
     size.x * size.z < (policy?.minFootprint ?? 80)
@@ -558,8 +605,8 @@ function ensurePlanarGroundUvs(mesh: Mesh, size: Vector3): void {
     uvs[i * 2 + 1] = v.z / (tile * repeatY)
   }
   owned.setAttribute('uv', new BufferAttribute(uvs, 2))
-  // Reprojecting UVs invalidates imported tangent frames. Let Three.js derive
-  // a consistent TBN from the new UVs for the wood floor's normal map.
+  // Reprojecting UVs invalidates imported tangent frames. Remove them even when
+  // this release strips the source floor's invalid normal-map binding.
   if (owned.getAttribute('tangent')) owned.deleteAttribute('tangent')
   owned.userData.planarUvApplied = true
   owned.userData.textureTileMeters = tile
@@ -778,6 +825,8 @@ export function prepareArchitecturalMeshes(
   const lightmapped = Boolean(options?.lightmapped)
   /** Reuse cloned glass materials per (source, sides, bias). */
   const glassMatCache = new Map<string, Material>()
+  /** Keep the source V-Ray material intact for stairs/details that share it. */
+  const woodFloorMatCache = new Map<string, Material>()
   /** Opaque: clone per (source uuid, side) so shared materials are not mutated last-wins. */
   const sideMatCache = new Map<string, Material>()
 
@@ -1060,6 +1109,28 @@ export function prepareArchitecturalMeshes(
         return
       }
 
+      if (
+        mesh.userData.interiorWoodFloorSurface &&
+        mat.userData?.iomInteriorWoodFloorNormalPrepared !== true &&
+        hasInvalidInteriorWoodFloorNormal(mat)
+      ) {
+        const source = mat
+        const key = `${source.uuid}|interior-wood-normal-v1`
+        let target = woodFloorMatCache.get(key)
+        if (!target) {
+          target = source.clone()
+          repairInteriorWoodFloorNormal(target)
+          woodFloorMatCache.set(key, target)
+        }
+        if (Array.isArray(mesh.material)) {
+          mesh.material = mesh.material.map((entry) => (entry === source ? target! : entry))
+        } else if (mesh.material === source) {
+          mesh.material = target
+        }
+        // Continue the ordinary side/depth preparation on the repaired clone.
+        mat = target
+      }
+
       forEachTexture(mat, (tex, key) => hardenTextureColorSpace(tex, key))
 
       const alphaTest = (mat as Material & { alphaTest?: number }).alphaTest ?? 0
@@ -1171,6 +1242,7 @@ export function applyMeshQuality(root: Object3D, config: QualityConfig): void {
   const anisotropy = Math.max(1, config.anisotropy)
   const cullTinyCasters = config.id === 'QUEST' || config.id === 'DESKTOP_BALANCED'
   const tinyArea = config.id === 'QUEST' ? 2 : 1.25
+  const requestedAnisotropy = new Map<Texture, number>()
 
   root.traverse((obj) => {
     if (!(obj as Mesh).isMesh) return
@@ -1206,10 +1278,18 @@ export function applyMeshQuality(root: Object3D, config: QualityConfig): void {
         // Anisotropic filtering is valid for KTX2/compressed textures too.
         // Skipping it made the newly corrected paving blur at grazing angles.
         const ani = mesh.userData?.floorSurface ? Math.max(anisotropy, 8) : anisotropy
-        if (tex.anisotropy !== ani) tex.anisotropy = ani
+        requestedAnisotropy.set(tex, Math.max(requestedAnisotropy.get(tex) ?? 1, ani))
       })
     })
   })
+
+  // Textures are shared across floor and non-floor owners. Apply the maximum
+  // request once so traversal order cannot downgrade a floor from 8x to 2x.
+  for (const [tex, ani] of requestedAnisotropy) {
+    if (tex.anisotropy === ani) continue
+    tex.anisotropy = ani
+    tex.needsUpdate = true
+  }
 }
 
 function estimateMeshArea(mesh: Mesh): number {
