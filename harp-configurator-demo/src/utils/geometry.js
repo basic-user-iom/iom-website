@@ -2,7 +2,7 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 9
+export const ADDON_ANCHOR_REV = 10
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -229,19 +229,24 @@ export function findAddOnAnchors(root) {
 
   const endpoints = stringEndpoints(mesh)
   const emblem = firstSurfaceAnchor(mesh, box, size, [
-    [0.62, 0.92],
-    [0.68, 0.88],
-    [0.56, 0.95],
+    [0.43, 0.76],
+    [0.48, 0.73],
+    [0.37, 0.79],
   ])
   const carving = firstSurfaceAnchor(mesh, box, size, [
-    [0.42, 0.73],
-    [0.48, 0.68],
-    [0.35, 0.78],
+    [0.43, 0.76],
+    [0.48, 0.73],
+    [0.37, 0.79],
   ])
-  const pickup = firstSurfaceAnchor(mesh, box, size, [
-    [0.2, 0.9],
-    [0.27, 0.86],
-    [0.16, 0.94],
+  const pickupSensor = firstSurfaceAnchor(mesh, box, size, [
+    [0.36, 0.68],
+    [0.42, 0.62],
+    [0.31, 0.74],
+  ])
+  const pickupJack = firstSurfaceAnchor(mesh, box, size, [
+    [0.12, 0.56],
+    [0.1, 0.66],
+    [0.16, 0.48],
   ])
   const neck = firstSurfaceAnchor(mesh, box, size, [
     [0.89, 0.46],
@@ -264,18 +269,23 @@ export function findAddOnAnchors(root) {
     emblem: emblem
       ? {
           ...offsetAnchor(emblem, size.y * 0.012),
-          width: size.y * 0.08,
+          width: size.y * 0.048,
           height: size.y * 0.058,
         }
       : null,
     carving: carving
       ? {
           ...offsetAnchor(carving, flush * 0.7),
-          width: size.y * 0.16,
-          height: size.y * 0.28,
+          width: size.y * 0.078,
+          height: size.y * 0.24,
         }
       : null,
-    pickup: offsetAnchor(pickup, size.y * 0.004),
+    pickup: pickupSensor
+      ? {
+          sensor: offsetAnchor(pickupSensor, size.y * 0.004),
+          jack: pickupJack ? offsetAnchor(pickupJack, size.y * 0.004) : null,
+        }
+      : null,
     levers: findNeckLevers(mesh, box, size, endpoints),
     hotspots: {
       soundboard: offsetAnchor(soundboard, size.y * 0.008),

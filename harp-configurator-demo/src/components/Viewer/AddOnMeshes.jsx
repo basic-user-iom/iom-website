@@ -60,6 +60,75 @@ function ForteLever({ pose, color, roughness }) {
   )
 }
 
+function PickupSensor({ anchor, size }) {
+  return (
+    <group position={anchor.position.toArray()} quaternion={anchor.quaternion.toArray()}>
+      <mesh castShadow position={[0, 0, size * 0.002]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.016, size * 0.016, size * 0.0042, 36]} />
+        <meshPhysicalMaterial
+          color="#282725"
+          metalness={0.24}
+          roughness={0.42}
+          clearcoat={0.46}
+          clearcoatRoughness={0.3}
+          envMapIntensity={0.88}
+        />
+      </mesh>
+      <mesh position={[0, 0, size * 0.0042]} renderOrder={4}>
+        <ringGeometry args={[size * 0.009, size * 0.012, 32]} />
+        <meshPhysicalMaterial color="#beb9af" metalness={0.88} roughness={0.25} />
+      </mesh>
+      <mesh position={[0, 0, size * 0.0044]} renderOrder={5}>
+        <circleGeometry args={[size * 0.0023, 24]} />
+        <meshBasicMaterial color="#d5b977" />
+      </mesh>
+    </group>
+  )
+}
+
+function OutputJack({ anchor, size, color, roughness }) {
+  const screwOffset = size * 0.012
+
+  return (
+    <group
+      name="HarpOutputJack"
+      position={anchor.position.toArray()}
+      quaternion={anchor.quaternion.toArray()}
+    >
+      <mesh
+        castShadow
+        position={[0, 0, size * 0.003]}
+        rotation={[Math.PI / 2, 0, 0]}
+        scale={[1.7, 1, 1]}
+      >
+        <cylinderGeometry args={[size * 0.012, size * 0.012, size * 0.005, 32]} />
+        <meshPhysicalMaterial
+          color="#242321"
+          metalness={0.3}
+          roughness={0.38}
+          clearcoat={0.34}
+          clearcoatRoughness={0.3}
+          envMapIntensity={0.8}
+        />
+      </mesh>
+      <mesh position={[0, 0, size * 0.007]} renderOrder={4}>
+        <torusGeometry args={[size * 0.006, size * 0.0014, 12, 32]} />
+        <HardwareMaterial color={color} roughness={roughness} />
+      </mesh>
+      <mesh position={[0, 0, size * 0.0072]} renderOrder={5}>
+        <circleGeometry args={[size * 0.0038, 28]} />
+        <meshPhysicalMaterial color="#090909" metalness={0.16} roughness={0.5} />
+      </mesh>
+      {[-screwOffset, screwOffset].map((x) => (
+        <mesh key={x} position={[x, 0, size * 0.0071]} renderOrder={5}>
+          <circleGeometry args={[size * 0.00145, 16]} />
+          <HardwareMaterial color={color} roughness={roughness} />
+        </mesh>
+      ))}
+    </group>
+  )
+}
+
 export function AddOnMeshes({ anchors }) {
   const values = useConfigurator((state) => state.values)
   const hardware = HARDWARE_FINISHES[values.hardware] ?? HARDWARE_FINISHES.bright
@@ -95,14 +164,14 @@ export function AddOnMeshes({ anchors }) {
           <meshPhysicalMaterial
             map={emblemMap}
             transparent
-            alphaTest={0.12}
+            alphaTest={0.05}
             depthWrite={false}
             polygonOffset
             polygonOffsetFactor={-4}
             polygonOffsetUnits={-4}
-            roughness={0.3}
-            metalness={0.72}
-            envMapIntensity={1.15}
+            roughness={0.32}
+            metalness={0.78}
+            envMapIntensity={1.05}
             side={FrontSide}
           />
         </mesh>
@@ -119,36 +188,30 @@ export function AddOnMeshes({ anchors }) {
           <meshPhysicalMaterial
             map={carvingMap}
             transparent
-            alphaTest={0.04}
+            alphaTest={0.025}
             depthWrite={false}
             polygonOffset
             polygonOffsetFactor={-3}
             polygonOffsetUnits={-3}
-            roughness={0.68}
-            metalness={0}
-            envMapIntensity={0.55}
+            roughness={0.5}
+            metalness={0.06}
+            envMapIntensity={0.64}
             side={FrontSide}
           />
         </mesh>
       )}
 
       {values.pickup && pickup && (
-        <group name="HarpPickup" position={pickup.position.toArray()} quaternion={pickup.quaternion.toArray()}>
-          <mesh rotation={[Math.PI / 2, 0, 0]} renderOrder={2}>
-            <cylinderGeometry args={[size * 0.011, size * 0.011, size * 0.0054, 32]} />
-            <meshPhysicalMaterial
-              color="#1c1916"
-              metalness={0.38}
-              roughness={0.34}
-              clearcoat={0.4}
-              clearcoatRoughness={0.28}
-              envMapIntensity={0.85}
+        <group name="HarpPickup">
+          <PickupSensor anchor={pickup.sensor} size={size} />
+          {pickup.jack && (
+            <OutputJack
+              anchor={pickup.jack}
+              size={size}
+              color={hardware.color}
+              roughness={hardware.roughness}
             />
-          </mesh>
-          <mesh position={[0, 0, size * 0.003]} renderOrder={3}>
-            <torusGeometry args={[size * 0.0038, size * 0.00105, 10, 24]} />
-            <meshPhysicalMaterial color="#c4a056" metalness={0.92} roughness={0.24} />
-          </mesh>
+          )}
         </group>
       )}
 

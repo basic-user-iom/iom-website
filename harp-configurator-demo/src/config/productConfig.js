@@ -71,7 +71,7 @@ export const OPTIONS = {
     group: 'details',
     summaryOn: 'On',
     summaryOff: 'Off',
-    description: 'A discreet soundboard pickup with a lower-frame output jack.',
+    description: 'A visible piezo soundboard transducer paired with a lower-frame ¼-inch output jack.',
   },
   detail: {
     id: 'detail',
@@ -81,8 +81,8 @@ export const OPTIONS = {
     label: 'Decorative Detail',
     group: 'details',
     choices: [
-      { id: 'classic', label: 'Classic', caption: 'Unmarked soundboard' },
-      { id: 'emblem', label: 'Emblem', caption: 'Brass maker’s medallion' },
+      { id: 'classic', label: 'Classic', caption: 'Unadorned soundboard' },
+      { id: 'emblem', label: 'Maker’s Mark', caption: 'Fine brass inlay' },
     ],
   },
   carving: {
@@ -90,11 +90,11 @@ export const OPTIONS = {
     type: 'boolean',
     urlKey: 'carving',
     defaultValue: false,
-    label: 'Soundboard Carving',
+    label: 'Soundboard Ornament',
     group: 'details',
     summaryOn: 'On',
     summaryOff: 'Off',
-    description: 'A restrained carved pattern localized to the soundboard.',
+    description: 'A fine botanical motif aligned with the soundboard grain.',
   },
   light: {
     id: 'light',
