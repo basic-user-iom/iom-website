@@ -9,6 +9,7 @@ import { reportHeroVisibility } from '../utils/embedVisibility'
 import { lockBodyScroll } from '../utils/lockBodyScroll'
 import type { HeroSceneLoadStatus } from '../three/useHeroScene'
 import { useSiteI18n } from '../i18n'
+import { RavenFactOverlay } from './RavenFactOverlay'
 import { useSiteOrbsOptional } from './SiteOrbZone'
 
 const HeroSceneMount = lazy(() => import('./HeroSceneMount'))
@@ -20,16 +21,27 @@ type FullscreenDocument = Document & {
   webkitExitFullscreen?: () => Promise<void>
 }
 
-type FullscreenElement = HTMLElement & {
-  webkitRequestFullscreen?: () => Promise<void>
-}
-
 const LOADER_KEYS = ['hero.loader.0', 'hero.loader.1', 'hero.loader.2'] as const
 
 function isNativeFullscreenActive(el: HTMLElement | null): boolean {
   if (!el) return false
   const doc = document as FullscreenDocument
-  return document.fullscreenElement === el || doc.webkitFullscreenElement === el
+  const fullscreenElement = document.fullscreenElement ?? doc.webkitFullscreenElement
+  return fullscreenElement === el || fullscreenElement === document.documentElement
+}
+
+function isElementAtLeastTenPercentVisible(el: HTMLElement): boolean {
+  const rect = el.getBoundingClientRect()
+  if (rect.width <= 0 || rect.height <= 0) return false
+  const visibleWidth = Math.max(
+    0,
+    Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0),
+  )
+  const visibleHeight = Math.max(
+    0,
+    Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0),
+  )
+  return (visibleWidth * visibleHeight) / (rect.width * rect.height) >= 0.1
 }
 
 export function Hero() {
@@ -105,7 +117,10 @@ export function Hero() {
     const io = new IntersectionObserver(
       ([entry]) => {
         const ratio = entry?.intersectionRatio ?? 0
-        const visible = Boolean(entry?.isIntersecting && ratio >= 0.1)
+        const fullscreen =
+          isNativeFullscreenActive(container) ||
+          container.classList.contains('hero-canvas-wrap--pseudo-fs')
+        const visible = fullscreen || Boolean(entry?.isIntersecting && ratio >= 0.1)
         reportHeroVisibility(visible)
       },
       { threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] },
@@ -143,9 +158,15 @@ export function Hero() {
 
   useEffect(() => {
     const syncNativeFullscreen = () => {
-      const active = isNativeFullscreenActive(canvasRef.current)
+      const container = canvasRef.current
+      const active = isNativeFullscreenActive(container)
       setNativeFullscreen(active)
-      if (active) setPseudoFullscreen(false)
+      // Root fullscreen deliberately keeps the CSS viewer overlay active so the
+      // WebGL canvas is not moved into a new browser compositor surface.
+      if (!active && !document.fullscreenElement) setPseudoFullscreen(false)
+      if (container) {
+        reportHeroVisibility(active || isElementAtLeastTenPercentVisible(container))
+      }
     }
 
     document.addEventListener('fullscreenchange', syncNativeFullscreen)
@@ -161,6 +182,7 @@ export function Hero() {
 
     document.body.classList.add('hero-viewer-fs-lock')
     const unlockScroll = lockBodyScroll()
+    reportHeroVisibility(true)
     window.dispatchEvent(new Event('resize'))
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -172,6 +194,12 @@ export function Hero() {
       document.body.classList.remove('hero-viewer-fs-lock')
       document.removeEventListener('keydown', onKeyDown)
       unlockScroll()
+      const container = canvasRef.current
+      if (container) {
+        requestAnimationFrame(() => {
+          reportHeroVisibility(isElementAtLeastTenPercentVisible(container))
+        })
+      }
     }
   }, [pseudoFullscreen])
 
@@ -184,31 +212,16 @@ export function Hero() {
     }
   }, [isFullscreen])
 
-  const enterFullscreen = useCallback(async () => {
-    const el = canvasRef.current as FullscreenElement | null
-    if (!el) return
+  const enterFullscreen = useCallback(() => {
+    if (!canvasRef.current) return
 
-    const request =
-      el.requestFullscreen?.bind(el) ?? el.webkitRequestFullscreen?.bind(el)
-
-    if (request) {
-      try {
-        await request()
-        return
-      } catch {
-        // Fullscreen API rejected — fall through to CSS overlay.
-      }
-    }
-
+    // Avoid the Fullscreen API for this WebGL scene. Chrome can recreate or stall
+    // the GPU surface even when an ancestor enters native fullscreen; the fixed
+    // viewport overlay is visually equivalent inside the page and stays stable.
     setPseudoFullscreen(true)
   }, [])
 
   const exitFullscreen = useCallback(async () => {
-    if (pseudoFullscreen) {
-      setPseudoFullscreen(false)
-      return
-    }
-
     const doc = document as FullscreenDocument
     try {
       if (document.fullscreenElement) {
@@ -218,8 +231,10 @@ export function Hero() {
       }
     } catch {
       setNativeFullscreen(false)
+    } finally {
+      setPseudoFullscreen(false)
     }
-  }, [pseudoFullscreen])
+  }, [])
 
   const showMotionPrompt =
     motionStatus === 'needs_permission' || motionStatus === 'denied'
@@ -250,12 +265,12 @@ export function Hero() {
 
       <div className="hero-viewer">
         <div
-          className={`hero-canvas-wrap${showPoster ? ' hero-canvas-wrap--static' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}${isFullscreen ? ' iom-cursor-native-fs' : ''}`}
+          className={`hero-canvas-wrap${showPoster ? ' hero-canvas-wrap--static' : ''}${showLiveScene && loadStatus.phase !== 'boot' ? ' hero-canvas-wrap--live' : ''}${pseudoFullscreen ? ' hero-canvas-wrap--pseudo-fs' : ''}${isFullscreen ? ' iom-cursor-native-fs' : ''}`}
           ref={canvasRef}
           role="img"
           aria-label={t('hero.canvasAria')}
           {...(showLiveScene
-            ? { 'data-cursor': 'drag' as const }
+            ? { 'data-cursor': 'default' as const }
             : showPoster && !useStaticHero
               ? { 'data-cursor': 'focus' as const }
               : {})}
@@ -298,6 +313,9 @@ export function Hero() {
               <HeroSceneMount containerRef={canvasRef} onStatus={onSceneStatus} />
             </Suspense>
           )}
+          <RavenFactOverlay
+            active={showLiveScene && loadStatus.phase === 'ready'}
+          />
           {loaderVisible && liveRequested && !useStaticHero ? (
             <div className="hero-loader" role="status" aria-live="polite" aria-atomic="true">
               <p className="hero-loader-line">{t(LOADER_KEYS[loaderLineIndex] ?? LOADER_KEYS[0])}</p>

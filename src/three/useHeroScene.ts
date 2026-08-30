@@ -8,23 +8,11 @@ import { createDeviceOrientationParallax } from '../utils/deviceOrientationParal
 import { subscribeEmbedGate } from '../utils/embedVisibility'
 import { buildHeroCloudFragmentShader } from './buildCloudFragmentShader'
 import {
-  HERO_CLOUD_TRAVEL_X,
-  HERO_CLOUD_TRAVEL_Y,
-  HERO_CLOUD_TRAVEL_Z,
+  HERO_CAMERA_FOCAL_LENGTH,
+  HERO_CAMERA_INPUT_Y_BASE,
+  HERO_CAMERA_RADIUS,
+  HERO_CAMERA_TARGET_Y,
   HERO_CLOUD_VERTEX_SHADER,
-  HERO_ORBIT_RADIUS_X,
-  HERO_ORBIT_RADIUS_Y,
-  HERO_ORBIT_RADIUS_Z,
-  HERO_ORBIT_SPEED,
-  HERO_PARALLAX_ANGLE_BASE,
-  HERO_PARALLAX_ANGLE_MOUSE,
-  HERO_RAVEN_CLOUD_Y_CENTER,
-  HERO_RAVEN_CLOUD_Y_SPREAD,
-  HERO_TRAVEL_AMPLITUDE,
-  HERO_TRAVEL_DIR_X,
-  HERO_TRAVEL_DIR_Y,
-  HERO_TRAVEL_DIR_Z,
-  HERO_TRAVEL_SPEED,
 } from './heroCloudShader'
 
 /** Bump when LOD GLBs change — busts immutable CDN cache (max-age=1y). */
@@ -38,6 +26,8 @@ const RAVEN_MODEL_URL_COARSE = ravenAsset('/assets/ravens/common-ravens-coarse.g
 /** Soft deadline for raven load; clouds stay visible if exceeded. */
 const RAVEN_LOAD_TIMEOUT_MS = 20000
 const RAVEN_SCALE_BASE = 0.0468
+/** Preserve the former desktop screen size after adopting the wider shared cloud camera. */
+const DESKTOP_RAVEN_SCALE_MUL = 1.47
 
 /** Father · largest in the family flock. */
 const FATHER_SCALE = RAVEN_SCALE_BASE * 1.375
@@ -47,48 +37,42 @@ const SON_SCALE = RAVEN_SCALE_BASE
 const MOTHER_SCALE = RAVEN_SCALE_BASE * 0.775
 
 type FlockOffset = {
+  /** Independent motion phase keeps the family from moving in lockstep. */
   phase: number
   offsetX: number
   offsetY: number
   offsetZ: number
+  /** Low-amplitude independent lift prevents rigid formation movement. */
   zDepthAmp: number
   rollAmp: number
 }
 
-type SharedOrbit = {
-  radiusX: number
-  radiusY: number
-  radiusZ: number
-  yBase: number
-  speed: number
+type FlightMotionProfile = {
+  scale: number
+  sway: number
 }
 
 type FlockMember = {
   group: THREE.Group
+  anchorLocal: THREE.Vector3
   materials: THREE.MeshStandardMaterial[]
   baseColors: THREE.Color[]
-  phase: number
   offset: FlockOffset
 }
 
-const SHARED_ORBIT: SharedOrbit = {
-  radiusX: HERO_ORBIT_RADIUS_X,
-  radiusY: HERO_ORBIT_RADIUS_Y,
-  radiusZ: HERO_ORBIT_RADIUS_Z,
-  yBase: HERO_RAVEN_CLOUD_Y_CENTER,
-  speed: HERO_ORBIT_SPEED,
+/** The flock holds a chase-camera formation while the cloud volume streams past. */
+const SHARED_FLIGHT_MOTION: FlightMotionProfile = {
+  scale: 1,
+  sway: 0.055,
 }
 
-/** Mobile single-raven scale multiplier (father base × this). 33.12 = 6× prior 5.52 mobile size. */
-const MOBILE_RAVEN_SCALE_MUL = 33.12
+/** Shared camera removes the old z=22.5 mobile compensation; restore the original scale. */
+const MOBILE_RAVEN_SCALE_MUL = 5.52
 
-/** Tighter orbit for single mobile raven — keeps enlarged bird inside cloud band. */
-const MOBILE_ORBIT: SharedOrbit = {
-  radiusX: HERO_ORBIT_RADIUS_X * 0.06,
-  radiusY: HERO_ORBIT_RADIUS_Y * 0.08,
-  radiusZ: HERO_ORBIT_RADIUS_Z * 0.05,
-  yBase: HERO_RAVEN_CLOUD_Y_CENTER,
-  speed: HERO_ORBIT_SPEED * 0.72,
+/** Keep the enlarged single mobile raven calm and centered in the phone frame. */
+const MOBILE_FLIGHT_MOTION: FlightMotionProfile = {
+  scale: 0.32,
+  sway: 0.024,
 }
 
 const MOBILE_FLOCK_OFFSET: FlockOffset = {
@@ -96,15 +80,35 @@ const MOBILE_FLOCK_OFFSET: FlockOffset = {
   offsetX: 0,
   offsetY: 0.006,
   offsetZ: -0.004,
-  zDepthAmp: 0.004,
-  rollAmp: 0.005,
+  zDepthAmp: 0.006,
+  rollAmp: 0.012,
 }
 
 const FLOCK_OFFSETS: FlockOffset[] = [
-  { phase: 0, offsetX: 0, offsetY: 0.01, offsetZ: 0, zDepthAmp: 0.06, rollAmp: 0.045 },
-  { phase: 0.42, offsetX: 0.05, offsetY: -0.015, offsetZ: -0.035, zDepthAmp: 0.09, rollAmp: 0.035 },
-  { phase: 0.84, offsetX: -0.045, offsetY: 0.02, offsetZ: 0.03, zDepthAmp: 0.07, rollAmp: 0.03 },
+  { phase: 0, offsetX: 0, offsetY: 0.012, offsetZ: 0, zDepthAmp: 0.012, rollAmp: 0.026 },
+  { phase: -0.018, offsetX: 0.1721, offsetY: -0.0446, offsetZ: -0.081, zDepthAmp: 0.01, rollAmp: 0.021 },
+  { phase: -0.036, offsetX: -0.158, offsetY: 0.0547, offsetZ: -0.1316, zDepthAmp: 0.009, rollAmp: 0.018 },
 ]
+
+const FLIGHT_FORWARD = new THREE.Vector3(0, 0, -1)
+const FLIGHT_UP = new THREE.Vector3(0, 1, 0)
+const FLIGHT_DIRECTION = new THREE.Vector3()
+const FLIGHT_HEADING = new THREE.Vector3()
+const FLIGHT_RIGHT = new THREE.Vector3()
+const FLIGHT_CENTER = new THREE.Vector3()
+const CAMERA_PATH_LOOK_AHEAD = new THREE.Vector3()
+const CAMERA_PATH_RIGHT = new THREE.Vector3()
+const CAMERA_UP = new THREE.Vector3()
+const CAMERA_PATH_SPEED = 0.12
+const CAMERA_LOOK_AHEAD_DISTANCE = 4.1
+const RAVEN_LEAD_DISTANCE = 2.8
+/** Original iq cloud flow direction vec3(0, 0.1, 1), slowed for the hero frame. */
+const CLOUD_WIND_Y = 0.0081
+const CLOUD_WIND_Z = 0.081
+/** Cloud cover changes slowly; 15 Hz sampling is visually continuous after material blending. */
+const CLOUD_VISIBILITY_SAMPLE_HZ = 15
+/** Reticle tracking is UI work, so avoid invalidating styles on every WebGL frame. */
+const RAVEN_ANCHOR_SYNC_HZ = 30
 
 const BLIT_VERTEX_SHADER = /* glsl */ `
 varying vec2 vUv;
@@ -126,62 +130,85 @@ function clamp01(v: number) {
   return Math.max(0, Math.min(1, v))
 }
 
-/**
- * Bounded smooth ping-pong travel for the flock.
- *
- * Problem history:
- *  - Raw sin swing bursted: at each reversal velocity was max in the reverse
- *    direction (~2× relative to the linear cloud drift) → looked like teleports.
- *  - Unbounded `elapsed * speed` never reverses but drifts ravens off-screen.
- *
- * Fix: advance a linear distance `d = elapsed * speed`, fold it into a triangle
- * wave of peak `amp`, then shape each leg with smoothstep so velocity is ZERO at
- * both turnarounds (no burst, ever) and ramps in/out symmetrically. On the
- * forward leg the flock moves in the same direction as the clouds; on the return
- * leg it eases back slowly, always staying within ±amp of the orbit center.
- */
-function driftTravelScalar(elapsed: number, speed: number, amp = HERO_TRAVEL_AMPLITUDE): number {
-  if (speed <= 0 || amp <= 0) return 0
-  // One full ping-pong (0 → +amp → 0 → -amp → 0) covers a distance of 4·amp.
-  const period = 4 * amp
-  const d = ((elapsed * speed) % period + period) % period
-  const leg = d / amp // 0..4
-  if (leg < 1) return amp * smoothstep(0, 1, leg) // rise 0 → +amp
-  if (leg < 2) return amp * smoothstep(0, 1, 2 - leg) // fall +amp → 0
-  if (leg < 3) return -amp * smoothstep(0, 1, leg - 2) // fall 0 → -amp
-  return -amp * smoothstep(0, 1, 4 - leg) // rise -amp → 0
-}
-
-function smoothstep(edge0: number, edge1: number, x: number) {
-  const t = clamp01((x - edge0) / (edge1 - edge0))
-  return t * t * (3 - 2 * t)
-}
-
-function easeOutCubic(t: number) {
-  const u = clamp01(t)
-  return 1 - (1 - u) ** 3
-}
-
-function easeInCubic(t: number) {
-  return clamp01(t) ** 3
-}
-
-/** Approximate iq map() density from raven world coords (mirrors shader cloud band ~1.0–2.0). */
-function estimateCloudDensity(y: number, z: number, time: number): number {
-  const layerCenter = HERO_RAVEN_CLOUD_Y_CENTER + Math.sin(time * 0.22) * 0.035
-  const yBand = smoothstep(
-    layerCenter - HERO_RAVEN_CLOUD_Y_SPREAD,
-    layerCenter + HERO_RAVEN_CLOUD_Y_SPREAD * 0.55,
-    y,
+function sampleHeroCameraPath(distance: number, target: THREE.Vector3) {
+  target.set(
+    HERO_CAMERA_RADIUS - distance,
+    HERO_CAMERA_INPUT_Y_BASE +
+      Math.sin(distance * 0.31) * 0.11 +
+      Math.sin(distance * 0.13 + 1.2) * 0.045,
+    Math.sin(distance * 0.43) * 0.32 + Math.sin(distance * 0.17 + 1.1) * 0.12,
   )
-  const zRipple = 0.5 + 0.5 * Math.sin(z * 4.2 + time * 0.19)
-  const noiseRipple =
-    0.5 +
-    0.5 *
-      Math.sin(time * 0.31 + y * 14 + z * 6.5) *
-      Math.cos(time * 0.17 - z * 3.1 + y * 8)
-  const density = yBand * (0.5 + 0.5 * zRipple) * (0.6 + 0.4 * noiseRipple)
-  return clamp01(density)
+  return target
+}
+
+function fract(value: number) {
+  return value - Math.floor(value)
+}
+
+function cloudHash(value: number) {
+  return fract(Math.sin(value) * 43758.5453)
+}
+
+/** CPU twin of the shader's value-noise function. */
+function cloudNoise(x: number, y: number, z: number) {
+  const px = Math.floor(x)
+  const py = Math.floor(y)
+  const pz = Math.floor(z)
+  const fx0 = fract(x)
+  const fy0 = fract(y)
+  const fz0 = fract(z)
+  const fx = fx0 * fx0 * (3 - 2 * fx0)
+  const fy = fy0 * fy0 * (3 - 2 * fy0)
+  const fz = fz0 * fz0 * (3 - 2 * fz0)
+  const n = px + py * 57 + 113 * pz
+  const x00 = THREE.MathUtils.lerp(cloudHash(n), cloudHash(n + 1), fx)
+  const x10 = THREE.MathUtils.lerp(cloudHash(n + 57), cloudHash(n + 58), fx)
+  const x01 = THREE.MathUtils.lerp(cloudHash(n + 113), cloudHash(n + 114), fx)
+  const x11 = THREE.MathUtils.lerp(cloudHash(n + 170), cloudHash(n + 171), fx)
+  return THREE.MathUtils.lerp(
+    THREE.MathUtils.lerp(x00, x10, fy),
+    THREE.MathUtils.lerp(x01, x11, fy),
+    fz,
+  )
+}
+
+/** Exact CPU equivalent of the fragment shader's map().w cloud density. */
+function sampleCloudDensity(position: THREE.Vector3, travel: THREE.Vector3) {
+  let qx = position.x - travel.x
+  let qy = position.y - travel.y
+  let qz = position.z - travel.z
+  let f = 0.5 * cloudNoise(qx, qy, qz)
+  qx *= 2.02
+  qy *= 2.02
+  qz *= 2.02
+  f += 0.25 * cloudNoise(qx, qy, qz)
+  qx *= 2.03
+  qy *= 2.03
+  qz *= 2.03
+  f += 0.125 * cloudNoise(qx, qy, qz)
+  qx *= 2.01
+  qy *= 2.01
+  qz *= 2.01
+  f += 0.0625 * cloudNoise(qx, qy, qz)
+  return clamp01(0.2 - position.y + 3 * f)
+}
+
+const CLOUD_VISIBILITY_SAMPLE = new THREE.Vector3()
+
+/** Approximate transmittance through the same volume between camera and raven. */
+function estimateCloudOcclusion(
+  cameraPosition: THREE.Vector3,
+  ravenPosition: THREE.Vector3,
+  travel: THREE.Vector3,
+) {
+  let transmission = 1
+  const sampleCount = 7
+  for (let index = 1; index <= sampleCount; index += 1) {
+    CLOUD_VISIBILITY_SAMPLE.lerpVectors(cameraPosition, ravenPosition, index / sampleCount)
+    const density = sampleCloudDensity(CLOUD_VISIBILITY_SAMPLE, travel)
+    transmission *= 1 - density * 0.22
+  }
+  return clamp01(1 - transmission)
 }
 
 function applyCinematicRavenMaterials(root: THREE.Object3D): THREE.MeshStandardMaterial[] {
@@ -203,22 +230,10 @@ function applyCinematicRavenMaterials(root: THREE.Object3D): THREE.MeshStandardM
   return materials
 }
 
-const MIN_RAVEN_OPACITY = 0.55
+const MIN_RAVEN_OPACITY = 0.16
 
-/** Base wing-flap playback speed (matches prior constant feel). */
-const RAVEN_ANIM_BASE_TIME_SCALE = 0.92
-/** Slow the final stretch before loop wrap so the restart feels less abrupt. */
-const LOOP_EASE_OUT_SEC = 4
-/** Gentle ramp back to full speed after loop restart. */
-const LOOP_EASE_IN_SEC = 0.8
-/** Minimum timeScale reached at the loop boundary. */
-const LOOP_MIN_TIME_SCALE = 0.28
-
-type RavenAnimationState = {
-  action: THREE.AnimationAction
-  duration: number
-  baseTimeScale: number
-}
+/** Constant playback preserves the source clip's measured seamless 11-second cycle. */
+const RAVEN_ANIM_BASE_TIME_SCALE = 1.13
 
 function collectSkinnedMeshes(root: THREE.Object3D): THREE.SkinnedMesh[] {
   const skinnedMeshes: THREE.SkinnedMesh[] = []
@@ -282,34 +297,10 @@ function prepareRavenModel(model: THREE.Object3D, scale: number) {
   return applyCinematicRavenMaterials(model)
 }
 
-/** Ease playback speed near loop boundaries so wing flap restarts feel natural. */
-function updateRavenAnimationTimeScale(state: RavenAnimationState) {
-  const { action, duration, baseTimeScale } = state
-  if (duration <= 0) return
-
-  const t = action.time
-  const minFactor = LOOP_MIN_TIME_SCALE / baseTimeScale
-  let factor = 1
-
-  if (t >= duration - LOOP_EASE_OUT_SEC) {
-    const u = (t - (duration - LOOP_EASE_OUT_SEC)) / LOOP_EASE_OUT_SEC
-    factor = 1 - easeOutCubic(u) * (1 - minFactor)
-  }
-
-  if (t <= LOOP_EASE_IN_SEC) {
-    const u = t / LOOP_EASE_IN_SEC
-    const easeIn = minFactor + easeInCubic(u) * (1 - minFactor)
-    factor = Math.min(factor, easeIn)
-  }
-
-  action.timeScale = baseTimeScale * factor
-}
-
 function createAnimationMixer(
   model: THREE.Object3D,
   gltf: GLTF,
   mixers: THREE.AnimationMixer[],
-  ravenAnimations: RavenAnimationState[],
   timeOffset = 0,
 ) {
   if (gltf.animations.length === 0) return
@@ -321,34 +312,26 @@ function createAnimationMixer(
   const action = mixer.clipAction(clip)
   action.setLoop(THREE.LoopRepeat, Infinity)
   action.timeScale = RAVEN_ANIM_BASE_TIME_SCALE
-  action.time = timeOffset
+  action.time = clip.duration > 0 ? ((timeOffset % clip.duration) + clip.duration) % clip.duration : 0
+  action.zeroSlopeAtStart = false
+  action.zeroSlopeAtEnd = false
   action.play()
   mixers.push(mixer)
-  ravenAnimations.push({
-    action,
-    duration: clip.duration,
-    baseTimeScale: RAVEN_ANIM_BASE_TIME_SCALE,
-  })
 }
 
 function applyCloudBlend(
   materials: THREE.MeshStandardMaterial[],
   baseColors: THREE.Color[],
-  density: number,
-  z: number,
-  time: number,
+  occlusion: number,
+  localDensity: number,
 ) {
-  const inCloud = density
-  const zDepthFade = 0.55 + 0.45 * smoothstep(-0.35, 0.15, z + Math.sin(time * 0.24) * 0.04)
-  const opacity = Math.max(
-    MIN_RAVEN_OPACITY,
-    clamp01(0.32 + 0.68 * (1 - inCloud * 0.78) * zDepthFade),
-  )
-  const fogMix = inCloud * 0.55
+  const cloudCover = clamp01(occlusion * 0.9 + localDensity * 0.24)
+  const opacity = Math.max(MIN_RAVEN_OPACITY, 1 - cloudCover * 0.94)
+  const fogMix = clamp01(occlusion * 0.78 + localDensity * 0.28)
 
   materials.forEach((material, i) => {
     material.opacity = opacity
-    material.depthWrite = opacity > 0.55
+    material.depthWrite = opacity > 0.62
     const base = baseColors[i]
     material.color.setRGB(
       base.r * (1 - fogMix * 0.15) + fogMix * 0.55,
@@ -361,45 +344,53 @@ function applyCloudBlend(
 function updateFlockMember(
   member: FlockMember,
   elapsed: number,
-  orbit: SharedOrbit,
-  mouseX: number,
-  mouseY: number,
+  flightDirection: THREE.Vector3,
+  flightCenter: THREE.Vector3,
+  motionProfile: FlightMotionProfile,
+  cameraPosition: THREE.Vector3,
+  cloudTravel: THREE.Vector3,
+  refreshCloudVisibility: boolean,
 ) {
-  const { group, materials, baseColors, phase, offset } = member
-  const t = elapsed * orbit.speed + phase
+  const { group, materials, baseColors, offset } = member
+  const phase = offset.phase * Math.PI * 12
+  const swayPhase = elapsed * 0.38 + phase
+  const sway = Math.sin(swayPhase) * motionProfile.sway
+  const swayVelocity = Math.cos(swayPhase) * motionProfile.sway * 0.38
+  const lift =
+    Math.sin(elapsed * 0.54 + phase) * offset.zDepthAmp +
+    Math.sin(elapsed * 0.23 + phase * 0.7) * offset.zDepthAmp * 0.35
 
-  const orbitDriftX = Math.cos(HERO_PARALLAX_ANGLE_BASE - HERO_PARALLAX_ANGLE_MOUSE * mouseX) * 0.09
-  const orbitDriftZ = Math.sin(HERO_PARALLAX_ANGLE_BASE - HERO_PARALLAX_ANGLE_MOUSE * mouseX) * 0.09
-  const parallaxX = mouseX * 0.11
-  const parallaxY = mouseY * 0.05
-  const travel = driftTravelScalar(elapsed, HERO_TRAVEL_SPEED)
+  // A chase-camera composition: the flock always advances along the same
+  // heading while the cloud volume supplies the strong forward-motion cue.
+  group.position.copy(flightCenter)
+  FLIGHT_RIGHT.crossVectors(flightDirection, FLIGHT_UP).normalize()
+  group.position.addScaledVector(
+    FLIGHT_RIGHT,
+    (offset.offsetX + sway) * motionProfile.scale,
+  )
+  group.position.addScaledVector(
+    flightDirection,
+    offset.offsetZ * motionProfile.scale,
+  )
+  group.position.y +=
+    offset.offsetY * motionProfile.scale + lift
 
-  const x =
-    Math.sin(t) * orbit.radiusX +
-    offset.offsetX +
-    parallaxX +
-    orbitDriftX +
-    travel * HERO_TRAVEL_DIR_X
-  const y =
-    orbit.yBase +
-    Math.sin(t * 1.7 + offset.phase * 0.3) * orbit.radiusY +
-    offset.offsetY +
-    parallaxY +
-    travel * HERO_TRAVEL_DIR_Y
-  const z =
-    Math.cos(t * 0.85 + offset.phase * 0.15) * orbit.radiusZ +
-    Math.sin(t * 1.3 + phase) * offset.zDepthAmp +
-    offset.offsetZ +
-    orbitDriftZ -
-    0.12 +
-    travel * HERO_TRAVEL_DIR_Z
+  FLIGHT_HEADING.copy(flightDirection)
+    .addScaledVector(FLIGHT_RIGHT, swayVelocity * 1.25)
+    .normalize()
+  group.quaternion.setFromUnitVectors(FLIGHT_FORWARD, FLIGHT_HEADING)
+  const bank = THREE.MathUtils.clamp(
+    -swayVelocity * 1.8 + Math.sin(elapsed * 0.47 + phase) * offset.rollAmp,
+    -0.085,
+    0.085,
+  )
+  group.rotateZ(bank)
 
-  group.position.set(x, y, z)
-  group.rotation.y = Math.atan2(Math.cos(t), -Math.sin(t * 0.85)) + Math.PI * 0.5
-  group.rotation.z = Math.sin(t * 2.1 + offset.phase) * offset.rollAmp
-
-  const density = estimateCloudDensity(y, z, elapsed)
-  applyCloudBlend(materials, baseColors, density, z, elapsed)
+  if (refreshCloudVisibility) {
+    const localDensity = sampleCloudDensity(group.position, cloudTravel)
+    const occlusion = estimateCloudOcclusion(cameraPosition, group.position, cloudTravel)
+    applyCloudBlend(materials, baseColors, occlusion, localDensity)
+  }
 }
 
 export type HeroSceneLoadStatus = {
@@ -438,17 +429,55 @@ export function useHeroScene(
     let isVisible = !document.hidden
     let isIntersecting = true
     let embedActive = false
+    let contextLost = false
     let animationId = 0
+    let animationReady = false
     let resizeQueued = false
+    let resizeAnimationId = 0
+    let resizeSettleAnimationId = 0
 
     const cloudScene = new THREE.Scene()
     const orthoCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1)
 
     const ravenScene = new THREE.Scene()
     ravenScene.fog = new THREE.FogExp2(0x0a1018, 0.38)
-    const perspCamera = new THREE.PerspectiveCamera(profile.isMobile ? 58 : 42, 1, 0.1, profile.isMobile ? 120 : 80)
-    perspCamera.position.set(0, profile.isMobile ? 0.08 : 0.15, profile.isMobile ? 22.5 : 3.6)
-    perspCamera.lookAt(0, profile.isMobile ? 0.06 : 0.05, 0)
+    const sharedCameraFov = THREE.MathUtils.radToDeg(
+      2 * Math.atan(1 / HERO_CAMERA_FOCAL_LENGTH),
+    )
+    const perspCamera = new THREE.PerspectiveCamera(sharedCameraFov, 1, 0.1, 80)
+    const sharedCameraPosition = new THREE.Vector3()
+    const sharedCameraTarget = new THREE.Vector3(0, HERO_CAMERA_TARGET_Y, 0)
+    const updateSharedCamera = (elapsed: number, pointerX: number, pointerY: number) => {
+      const pathDistance = elapsed * CAMERA_PATH_SPEED
+      sampleHeroCameraPath(pathDistance, sharedCameraPosition)
+      sampleHeroCameraPath(
+        pathDistance + CAMERA_LOOK_AHEAD_DISTANCE,
+        CAMERA_PATH_LOOK_AHEAD,
+      )
+      CAMERA_PATH_LOOK_AHEAD.y =
+        HERO_CAMERA_TARGET_Y + Math.sin(pathDistance * 0.19) * 0.05
+
+      FLIGHT_DIRECTION
+        .subVectors(CAMERA_PATH_LOOK_AHEAD, sharedCameraPosition)
+        .normalize()
+      CAMERA_PATH_RIGHT.crossVectors(FLIGHT_DIRECTION, FLIGHT_UP).normalize()
+      sharedCameraTarget
+        .copy(CAMERA_PATH_LOOK_AHEAD)
+        .addScaledVector(CAMERA_PATH_RIGHT, pointerX * 0.42)
+      sharedCameraTarget.y -= pointerY * 0.28
+
+      FLIGHT_DIRECTION
+        .subVectors(sharedCameraTarget, sharedCameraPosition)
+        .normalize()
+      FLIGHT_RIGHT.crossVectors(FLIGHT_DIRECTION, FLIGHT_UP).normalize()
+      CAMERA_UP.crossVectors(FLIGHT_RIGHT, FLIGHT_DIRECTION).normalize()
+      FLIGHT_CENTER
+        .copy(sharedCameraPosition)
+        .addScaledVector(FLIGHT_DIRECTION, RAVEN_LEAD_DISTANCE)
+      perspCamera.position.copy(sharedCameraPosition)
+      perspCamera.lookAt(sharedCameraTarget)
+    }
+    updateSharedCamera(0, 0, 0)
 
     const renderer = new THREE.WebGLRenderer({
       antialias: !profile.isLowPower,
@@ -462,10 +491,13 @@ export function useHeroScene(
     const uniforms = {
       iTime: { value: 0 },
       iResolution: { value: new THREE.Vector2(1, 1) },
-      iMouse: { value: new THREE.Vector2(0, 0) },
-      iTravel: {
-        value: new THREE.Vector3(HERO_CLOUD_TRAVEL_X, HERO_CLOUD_TRAVEL_Y, HERO_CLOUD_TRAVEL_Z),
-      },
+      iTravel: { value: new THREE.Vector3() },
+      iCameraPosition: { value: sharedCameraPosition },
+      iCameraForward: { value: FLIGHT_DIRECTION },
+      iCameraRight: { value: FLIGHT_RIGHT },
+      iCameraUp: { value: CAMERA_UP },
+      iCameraFocalLength: { value: HERO_CAMERA_FOCAL_LENGTH },
+      iProjectionAspect: { value: 1 },
     }
 
     // Cheap first paint (compile + first raymarch), then ramp to device profile quality.
@@ -474,6 +506,24 @@ export function useHeroScene(
     const targetCloudScale = profile.cloudRenderScale
     const targetCloudSteps = profile.cloudRaySteps
     const targetSimpleLighting = profile.cloudSimpleLighting
+    // The clouds are deliberately soft and are composited beneath full-resolution ravens.
+    // Bounding only this raymarched pass prevents 4K/Retina fullscreen from multiplying
+    // shader work by 10-20x without reducing the sharpness of the foreground or HUD.
+    const maxCloudRenderWidth = profile.isLowPower
+      ? 640
+      : profile.isMidTier
+        ? 800
+        : 960
+    const maxCloudRenderHeight = profile.isLowPower
+      ? 600
+      : profile.isMidTier
+        ? 720
+        : 900
+    const maxCompositePixels = profile.isLowPower
+      ? 1_500_000
+      : profile.isMidTier
+        ? 2_500_000
+        : 4_000_000
     let cloudQualityReady = false
     let cloudUpgradeHandle: number | null = null
     let framesSinceCloudVisible = 0
@@ -515,15 +565,55 @@ export function useHeroScene(
     ravenScene.add(ambient, keyLight, rimLight)
 
     const mixers: THREE.AnimationMixer[] = []
-    const ravenAnimations: RavenAnimationState[] = []
     const flockMembers: FlockMember[] = []
+    const ravenAnchorNdc = new THREE.Vector3()
+    let ravenAnchorVisible = false
+    let nextRavenAnchorSync = 0
+
+    const syncRavenScreenAnchor = (elapsed: number) => {
+      if (elapsed < nextRavenAnchorSync) return
+      nextRavenAnchorSync = elapsed + 1 / RAVEN_ANCHOR_SYNC_HZ
+      if (!container.querySelector('.raven-facts--scan')) return
+
+      const trackedRaven = flockMembers[0]
+      if (!trackedRaven) {
+        if (ravenAnchorVisible) {
+          ravenAnchorVisible = false
+          container.dataset.ravenAnchorVisible = 'false'
+        }
+        return
+      }
+
+      ravenAnchorNdc.copy(trackedRaven.anchorLocal)
+      trackedRaven.group.localToWorld(ravenAnchorNdc)
+      ravenAnchorNdc.project(perspCamera)
+      const visible =
+        ravenAnchorNdc.z >= -1 &&
+        ravenAnchorNdc.z <= 1 &&
+        ravenAnchorNdc.x >= -1.08 &&
+        ravenAnchorNdc.x <= 1.08 &&
+        ravenAnchorNdc.y >= -1.08 &&
+        ravenAnchorNdc.y <= 1.08
+
+      const anchorX = clamp01(ravenAnchorNdc.x * 0.5 + 0.5) * 100
+      const anchorY = clamp01(-ravenAnchorNdc.y * 0.5 + 0.5) * 100
+      container.style.setProperty('--raven-anchor-x', `${anchorX.toFixed(3)}%`)
+      container.style.setProperty('--raven-anchor-y', `${anchorY.toFixed(3)}%`)
+
+      if (visible !== ravenAnchorVisible) {
+        ravenAnchorVisible = visible
+        container.dataset.ravenAnchorVisible = visible ? 'true' : 'false'
+      }
+    }
 
     const ravenModelUrl = profile.isMobile
       ? RAVEN_MODEL_URL_MOBILE
       : profile.isLowPower || profile.isMidTier
         ? RAVEN_MODEL_URL_COARSE
         : RAVEN_MODEL_URL
-    const ravenOrbit = profile.isMobile ? MOBILE_ORBIT : SHARED_ORBIT
+    const ravenFlightMotion = profile.isMobile
+      ? MOBILE_FLIGHT_MOTION
+      : SHARED_FLIGHT_MOTION
     let ravenLoadStarted = false
     let ravenLoadAborted = false
     let cloudFirstFrameDone = false
@@ -556,12 +646,22 @@ export function useHeroScene(
         const materials = prepareRavenModel(model, scale)
         group.add(model)
         ravenScene.add(group)
-        createAnimationMixer(model, gltf, mixers, ravenAnimations, timeOffset)
+        group.updateWorldMatrix(true, true)
+        // The source scene origin sits well outside the bird. Center the mesh on
+        // the flight pivot before applying tangent heading, otherwise a full
+        // turn makes the raven orbit that hidden origin and sweep across screen.
+        const modelCenter = new THREE.Box3()
+          .setFromObject(model, true)
+          .getCenter(new THREE.Vector3())
+        model.position.sub(modelCenter)
+        group.updateWorldMatrix(true, true)
+        const anchorLocal = new THREE.Vector3()
+        createAnimationMixer(model, gltf, mixers, timeOffset)
         flockMembers.push({
           group,
+          anchorLocal,
           materials,
           baseColors: materials.map((m) => m.color.clone()),
-          phase: offset.phase,
           offset,
         })
       }
@@ -572,7 +672,9 @@ export function useHeroScene(
       if (profile.ravenCount === 1) {
         const fatherModel = cloneSkinnedScene(gltf.scene)
         if (!isSingleRavenLod) hideSecondRaven(fatherModel)
-        const mobileScale = profile.isMobile ? FATHER_SCALE * MOBILE_RAVEN_SCALE_MUL : SON_SCALE
+        const mobileScale = profile.isMobile
+          ? FATHER_SCALE * MOBILE_RAVEN_SCALE_MUL
+          : SON_SCALE * DESKTOP_RAVEN_SCALE_MUL
         const mobileOffset = profile.isMobile ? MOBILE_FLOCK_OFFSET : FLOCK_OFFSETS[1]
         addMember(fatherModel, mobileScale, mobileOffset, 0)
         report(1, 'ready')
@@ -585,8 +687,8 @@ export function useHeroScene(
         hideSecondRaven(fatherModel)
         hideSecondRaven(sonModel)
       }
-      addMember(fatherModel, FATHER_SCALE, FLOCK_OFFSETS[0], 0)
-      addMember(sonModel, SON_SCALE, FLOCK_OFFSETS[1], 1.2)
+      addMember(fatherModel, FATHER_SCALE * DESKTOP_RAVEN_SCALE_MUL, FLOCK_OFFSETS[0], 0)
+      addMember(sonModel, SON_SCALE * DESKTOP_RAVEN_SCALE_MUL, FLOCK_OFFSETS[1], 3.4)
 
       if (profile.ravenCount < 3) {
         report(1, 'ready')
@@ -595,7 +697,7 @@ export function useHeroScene(
 
       const motherModel = cloneSkinnedScene(gltf.scene)
       if (!isSingleRavenLod) hideFirstRaven(motherModel)
-      addMember(motherModel, MOTHER_SCALE, FLOCK_OFFSETS[2], 2.4)
+      addMember(motherModel, MOTHER_SCALE * DESKTOP_RAVEN_SCALE_MUL, FLOCK_OFFSETS[2], 6.8)
       report(1, 'ready')
     }
 
@@ -664,7 +766,26 @@ export function useHeroScene(
       }
     }
 
-    const shouldAnimate = () => isVisible && isIntersecting && !embedActive
+    const isContainerFullscreen = () => {
+      const doc = document as Document & { webkitFullscreenElement?: Element | null }
+      return (
+        document.fullscreenElement === container ||
+        doc.webkitFullscreenElement === container ||
+        document.fullscreenElement === document.documentElement ||
+        doc.webkitFullscreenElement === document.documentElement ||
+        container.classList.contains('hero-canvas-wrap--pseudo-fs')
+      )
+    }
+
+    const shouldAnimate = () => {
+      const fullscreen = isContainerFullscreen()
+      return (
+        isVisible &&
+        (isIntersecting || fullscreen) &&
+        (!embedActive || fullscreen) &&
+        !contextLost
+      )
+    }
 
     const stopAnimation = () => {
       if (!animationId) return
@@ -682,8 +803,21 @@ export function useHeroScene(
     let height = 1
 
     const syncCloudResolution = (w: number, h: number, dpr: number) => {
-      const rw = Math.max(1, Math.floor(w * dpr * cloudScale))
-      const rh = Math.max(1, Math.floor(h * dpr * cloudScale))
+      // Do not replace a healthy volumetric framebuffer during fullscreen entry.
+      // Rebinding this heavy WebGL target in the transition can leave some Chrome/
+      // driver combinations rendering sky-only frames. The soft cloud layer
+      // upscales cleanly while ravens and UI use the full-size default framebuffer.
+      if (isContainerFullscreen() && cloudRT) {
+        uniforms.iResolution.value.set(cloudRT.width, cloudRT.height)
+        uniforms.iProjectionAspect.value = cloudRT.width / cloudRT.height
+        return
+      }
+      const rawWidth = Math.max(1, w * dpr * cloudScale)
+      const rawHeight = Math.max(1, h * dpr * cloudScale)
+      // Keep the proven near-square volume buffer in wide fullscreen layouts.
+      // The soft background can upscale cleanly; foreground ravens stay crisp.
+      const rw = Math.max(1, Math.floor(Math.min(rawWidth, maxCloudRenderWidth)))
+      const rh = Math.max(1, Math.floor(Math.min(rawHeight, maxCloudRenderHeight)))
       if (!cloudRT || cloudRT.width !== rw || cloudRT.height !== rh) {
         cloudRT?.dispose()
         cloudRT = new THREE.WebGLRenderTarget(rw, rh, {
@@ -725,20 +859,49 @@ export function useHeroScene(
       const w = container.clientWidth
       const h = container.clientHeight
       if (w === 0 || h === 0) return
+      // Keep the proven drawing surface alive while the CSS viewer expands.
+      // Resizing the main WebGL buffer during fullscreen is the trigger for the
+      // Chrome/driver sky-only failure and the large raymarch stall. DOM chrome
+      // remains native-resolution and the cinematic scene upscales smoothly.
+      if (isContainerFullscreen() && width > 1 && height > 1) {
+        const fullscreenAspect = w / h
+        perspCamera.aspect = fullscreenAspect
+        perspCamera.updateProjectionMatrix()
+        uniforms.iProjectionAspect.value = fullscreenAspect
+        return
+      }
       width = w
       height = h
+      const pixelRatio = Math.min(
+        profile.maxPixelRatio,
+        Math.sqrt(maxCompositePixels / Math.max(1, w * h)),
+      )
+      if (Math.abs(renderer.getPixelRatio() - pixelRatio) > 0.001) {
+        renderer.setPixelRatio(pixelRatio)
+      }
       renderer.setSize(w, h, false)
       perspCamera.aspect = w / h
       perspCamera.updateProjectionMatrix()
-      syncCloudResolution(w, h, renderer.getPixelRatio())
+      // Preserve the designed cloud composition on ultrawide/fullscreen canvases.
+      // The soft volumetric background tolerates this subtle horizontal expansion;
+      // the ravens continue using the true perspective aspect above.
+      uniforms.iProjectionAspect.value = Math.min(w / h, 1.2)
+      syncCloudResolution(w, h, pixelRatio)
+      if (animationReady && shouldAnimate()) startAnimation()
     }
 
     const resize = () => {
       if (resizeQueued) return
       resizeQueued = true
-      requestAnimationFrame(() => {
-        resizeQueued = false
-        applyResize()
+      // Fullscreen transitions can emit several intermediate sizes. Keep rendering
+      // the existing texture for two frames, then allocate once at the settled size.
+      resizeAnimationId = requestAnimationFrame(() => {
+        resizeAnimationId = 0
+        resizeSettleAnimationId = requestAnimationFrame(() => {
+          resizeSettleAnimationId = 0
+          resizeQueued = false
+          applyResize()
+        })
       })
     }
 
@@ -747,7 +910,26 @@ export function useHeroScene(
     ro.observe(container)
     window.addEventListener('resize', resize)
 
-    const onFullscreenChange = () => resize()
+    const onFullscreenChange = () => {
+      resize()
+      if (!isContainerFullscreen()) {
+        const rect = container.getBoundingClientRect()
+        const visibleWidth = Math.max(
+          0,
+          Math.min(rect.right, window.innerWidth) - Math.max(rect.left, 0),
+        )
+        const visibleHeight = Math.max(
+          0,
+          Math.min(rect.bottom, window.innerHeight) - Math.max(rect.top, 0),
+        )
+        const visibleRatio =
+          rect.width > 0 && rect.height > 0
+            ? (visibleWidth * visibleHeight) / (rect.width * rect.height)
+            : 0
+        isIntersecting = visibleRatio >= 0.1
+      }
+      if (shouldAnimate()) startAnimation()
+    }
     document.addEventListener('fullscreenchange', onFullscreenChange)
     document.addEventListener('webkitfullscreenchange', onFullscreenChange)
 
@@ -761,6 +943,12 @@ export function useHeroScene(
     const parallaxGain = profile.isMobile ? 0.14 : 1
 
     const onMove = (e: PointerEvent) => {
+      const target = e.target instanceof Element ? e.target : null
+      if (target?.closest('.viewer-chrome, .raven-fact-card')) {
+        targetMouseX = 0
+        targetMouseY = 0
+        return
+      }
       const rect = container.getBoundingClientRect()
       if (rect.width <= 0 || rect.height <= 0) return
       targetMouseX = ((e.clientX - rect.left) / rect.width - 0.5) * 2 * parallaxGain
@@ -793,6 +981,8 @@ export function useHeroScene(
 
     const frameInterval = profile.targetFps < 60 ? 1000 / profile.targetFps : 0
     let lastRenderTime = 0
+    let sceneElapsed = 0
+    let nextCloudVisibilityUpdate = 0
 
     const frozenTime = 0
 
@@ -809,8 +999,11 @@ export function useHeroScene(
         lastRenderTime = timestamp - (elapsed % frameInterval)
       }
 
-      const delta = clock.getDelta()
-      const elapsed = clock.getElapsedTime()
+      // Maintain simulation time ourselves: startAnimation() discards time spent
+      // hidden/offscreen, avoiding a large camera/cloud jump when rendering resumes.
+      const delta = Math.min(clock.getDelta(), 0.25)
+      sceneElapsed += delta
+      const elapsed = sceneElapsed
 
       if (!prefersReduced) {
         uniforms.iTime.value = elapsed
@@ -821,27 +1014,40 @@ export function useHeroScene(
           mouseY += (targetMouseY - mouseY) * 0.06
         }
 
-        for (const state of ravenAnimations) {
-          updateRavenAnimationTimeScale(state)
-        }
         for (const mixer of mixers) {
           mixer.update(delta)
         }
 
+        updateSharedCamera(elapsed, mouseX, mouseY)
+        // Preserve iq's fixed cloud-flow vector while the camera itself follows
+        // a separate forward rail through the volume.
+        uniforms.iTravel.value.set(
+          0,
+          elapsed * CLOUD_WIND_Y,
+          elapsed * CLOUD_WIND_Z,
+        )
+
+        const refreshCloudVisibility = elapsed >= nextCloudVisibilityUpdate
+        if (refreshCloudVisibility) {
+          nextCloudVisibilityUpdate = elapsed + 1 / CLOUD_VISIBILITY_SAMPLE_HZ
+        }
         for (const member of flockMembers) {
-          updateFlockMember(member, elapsed, ravenOrbit, mouseX, mouseY)
+          updateFlockMember(
+            member,
+            elapsed,
+            FLIGHT_DIRECTION,
+            FLIGHT_CENTER,
+            ravenFlightMotion,
+            sharedCameraPosition,
+            uniforms.iTravel.value,
+            refreshCloudVisibility,
+          )
         }
       } else {
         uniforms.iTime.value = frozenTime
       }
 
-      const dpr = renderer.getPixelRatio()
-      const resX = width * dpr
-      const resY = height * dpr
-      uniforms.iMouse.value.set(
-        (mouseX * 0.5 + 0.5) * resX,
-        (1.0 - (mouseY * 0.5 + 0.5)) * resY,
-      )
+      syncRavenScreenAnchor(elapsed)
 
       renderer.autoClear = true
       if (cloudRT && blitScene) {
@@ -855,7 +1061,6 @@ export function useHeroScene(
 
       if (!cloudFirstFrameDone) {
         cloudFirstFrameDone = true
-        container.classList.add('hero-canvas-wrap--live')
         report(0.35, 'clouds')
         if (profile.ravenCount === 0) {
           report(1, 'ready')
@@ -874,6 +1079,8 @@ export function useHeroScene(
       }
     }
 
+    animationReady = true
+
     const unsubscribeEmbedGate = subscribeEmbedGate((active) => {
       embedActive = active
       if (shouldAnimate()) {
@@ -885,10 +1092,12 @@ export function useHeroScene(
 
     const onContextLost = (event: Event) => {
       event.preventDefault()
+      contextLost = true
       stopAnimation()
     }
 
     const onContextRestored = () => {
+      contextLost = false
       applyResize()
       if (shouldAnimate()) startAnimation()
     }
@@ -914,6 +1123,8 @@ export function useHeroScene(
 
     return () => {
       stopAnimation()
+      if (resizeAnimationId) cancelAnimationFrame(resizeAnimationId)
+      if (resizeSettleAnimationId) cancelAnimationFrame(resizeSettleAnimationId)
       unsubscribeEmbedGate()
       ro.disconnect()
       window.removeEventListener('resize', resize)
@@ -944,7 +1155,9 @@ export function useHeroScene(
       if (ravenLoadTimeout) clearTimeout(ravenLoadTimeout)
       ravenAbortController?.abort()
       ravenLoadAborted = true
-      container.classList.remove('hero-canvas-wrap--live')
+      delete container.dataset.ravenAnchorVisible
+      container.style.removeProperty('--raven-anchor-x')
+      container.style.removeProperty('--raven-anchor-y')
       cloudRT?.dispose()
       blitMaterial?.dispose()
       blitQuad?.geometry.dispose()

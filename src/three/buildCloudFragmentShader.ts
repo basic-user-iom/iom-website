@@ -12,8 +12,13 @@ precision highp float;
 
 uniform float iTime;
 uniform vec2 iResolution;
-uniform vec2 iMouse;
 uniform vec3 iTravel;
+uniform vec3 iCameraPosition;
+uniform vec3 iCameraForward;
+uniform vec3 iCameraRight;
+uniform vec3 iCameraUp;
+uniform float iCameraFocalLength;
+uniform float iProjectionAspect;
 
 float hash(float n) {
   return fract(sin(n) * 43758.5453);
@@ -34,7 +39,7 @@ float noise(in vec3 x) {
 
 vec4 map(in vec3 p) {
   float d = 0.2 - p.y;
-  vec3 q = p - iTravel * iTime;
+  vec3 q = p - iTravel;
   float f;
   f  = 0.5000 * noise(q); q *= 2.02;
   f += 0.2500 * noise(q); q *= 2.03;
@@ -73,19 +78,13 @@ vec4 raymarch(in vec3 ro, in vec3 rd) {
 void main() {
   vec2 q = gl_FragCoord.xy / iResolution.xy;
   vec2 p = -1.0 + 2.0 * q;
-  p.x *= iResolution.x / iResolution.y;
-  vec2 mo = -1.0 + 2.0 * iMouse / iResolution.xy;
-
-  vec3 ro = 4.0 * normalize(vec3(
-    cos(2.75 - 3.0 * mo.x),
-    0.7 + (mo.y + 1.0),
-    sin(2.75 - 3.0 * mo.x)
-  ));
-  vec3 ta = vec3(0.0, 1.0, 0.0);
-  vec3 ww = normalize(ta - ro);
-  vec3 uu = normalize(cross(vec3(0.0, 1.0, 0.0), ww));
-  vec3 vv = normalize(cross(ww, uu));
-  vec3 rd = normalize(p.x * uu + p.y * vv + 1.5 * ww);
+  p.x *= iProjectionAspect;
+  vec3 ro = iCameraPosition;
+  // Camera basis is invariant across the frame, so calculate it once on the CPU
+  // instead of normalizing/crossing three vectors for every raymarched pixel.
+  vec3 rd = normalize(
+    p.x * iCameraRight + p.y * iCameraUp + iCameraFocalLength * iCameraForward
+  );
 
   vec4 clouds = raymarch(ro, rd);
   float sun = clamp(dot(sundir, rd), 0.0, 1.0);
