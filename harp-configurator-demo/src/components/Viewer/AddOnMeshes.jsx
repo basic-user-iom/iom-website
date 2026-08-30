@@ -101,8 +101,8 @@ function SurfaceDecal({ name, anchor, target, size, map, variant }) {
         polygonOffset
         polygonOffsetFactor={emblem ? -4 : -3}
         polygonOffsetUnits={emblem ? -4 : -3}
-        roughness={emblem ? 0.32 : 0.5}
-        metalness={emblem ? 0.78 : 0.06}
+        roughness={emblem ? 0.4 : 0.54}
+        metalness={emblem ? 0.58 : 0.04}
         envMapIntensity={emblem ? 1.05 : 0.64}
         side={FrontSide}
       />
@@ -118,34 +118,34 @@ function ForteLever({ pose, color, roughness }) {
       quaternion={pose.quaternion.toArray()}
       scale={pose.scale}
     >
-      <mesh castShadow position={[0, 0, 0.045]}>
-        <boxGeometry args={[0.3, 0.72, 0.09]} />
+      <mesh castShadow position={[0, 0, 0.04]}>
+        <boxGeometry args={[0.28, 0.62, 0.08]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
 
-      {[-0.245, 0.245].map((y) => (
-        <mesh key={y} castShadow position={[0, y, 0.105]} rotation={[Math.PI / 2, 0, 0]}>
+      {[-0.205, 0.205].map((y) => (
+        <mesh key={y} castShadow position={[0, y, 0.085]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.052, 0.052, 0.028, 16]} />
           <HardwareMaterial color={color} roughness={roughness} dark />
         </mesh>
       ))}
 
-      <mesh castShadow position={[0, 0.035, 0.15]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.19, 0.19, 0.115, 24]} />
+      <mesh castShadow position={[0, 0.025, 0.1]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.14, 0.14, 0.09, 24]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
 
-      <mesh castShadow position={[0.235, 0.035, 0.155]} rotation={[0, 0, Math.PI / 2]}>
-        <cylinderGeometry args={[0.075, 0.075, 0.18, 18]} />
+      <mesh castShadow position={[0.19, 0.025, 0.105]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.065, 0.065, 0.15, 18]} />
         <HardwareMaterial color={color} roughness={roughness} dark />
       </mesh>
 
-      <mesh castShadow position={[0.13, 0.35, 0.18]} rotation={[0, 0, -0.4]}>
-        <cylinderGeometry args={[0.065, 0.052, 0.62, 14]} />
+      <mesh castShadow position={[0.1, -0.27, 0.11]} rotation={[0, 0, 0.4]}>
+        <cylinderGeometry args={[0.055, 0.045, 0.44, 14]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
-      <mesh castShadow position={[0.25, 0.63, 0.18]}>
-        <sphereGeometry args={[0.085, 14, 10]} />
+      <mesh castShadow position={[0.2, -0.5, 0.11]}>
+        <sphereGeometry args={[0.07, 14, 10]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
     </group>
@@ -153,28 +153,28 @@ function ForteLever({ pose, color, roughness }) {
 }
 
 function PickupSensor({ anchor, size }) {
-  const depth = size * 0.0018
+  const depth = size * 0.0013
   const face = depth + size * 0.00006
 
   return (
     <group position={anchor.position.toArray()} quaternion={anchor.quaternion.toArray()}>
       <mesh castShadow position={[0, 0, depth * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[size * 0.016, size * 0.016, depth, 36]} />
+        <cylinderGeometry args={[size * 0.012, size * 0.012, depth, 36]} />
         <meshPhysicalMaterial
-          color="#282725"
-          metalness={0.24}
-          roughness={0.42}
+          color="#3f3d39"
+          metalness={0.3}
+          roughness={0.5}
           clearcoat={0.46}
           clearcoatRoughness={0.3}
           envMapIntensity={0.88}
         />
       </mesh>
       <mesh position={[0, 0, face]} renderOrder={4}>
-        <ringGeometry args={[size * 0.009, size * 0.012, 32]} />
+        <ringGeometry args={[size * 0.0065, size * 0.0085, 32]} />
         <meshPhysicalMaterial color="#beb9af" metalness={0.88} roughness={0.25} />
       </mesh>
       <mesh position={[0, 0, face + size * 0.00004]} renderOrder={5}>
-        <circleGeometry args={[size * 0.0023, 24]} />
+        <circleGeometry args={[size * 0.0018, 24]} />
         <meshBasicMaterial color="#d5b977" />
       </mesh>
     </group>
@@ -182,8 +182,8 @@ function PickupSensor({ anchor, size }) {
 }
 
 function OutputJack({ anchor, size, color, roughness }) {
-  const screwOffset = size * 0.012
-  const depth = size * 0.0019
+  const screwOffset = size * 0.009
+  const depth = size * 0.0016
   const face = depth + size * 0.00006
 
   return (
@@ -196,29 +196,29 @@ function OutputJack({ anchor, size, color, roughness }) {
         castShadow
         position={[0, 0, depth * 0.5]}
         rotation={[Math.PI / 2, 0, 0]}
-        scale={[1.7, 1, 1]}
+        scale={[1.55, 1, 1]}
       >
-        <cylinderGeometry args={[size * 0.012, size * 0.012, depth, 32]} />
+        <cylinderGeometry args={[size * 0.009, size * 0.009, depth, 32]} />
         <meshPhysicalMaterial
-          color="#242321"
+          color="#44413c"
           metalness={0.3}
-          roughness={0.38}
+          roughness={0.52}
           clearcoat={0.34}
           clearcoatRoughness={0.3}
           envMapIntensity={0.8}
         />
       </mesh>
       <mesh position={[0, 0, face]} renderOrder={4}>
-        <torusGeometry args={[size * 0.006, size * 0.0014, 12, 32]} />
+        <torusGeometry args={[size * 0.0046, size * 0.001, 12, 32]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
       <mesh position={[0, 0, face + size * 0.00004]} renderOrder={5}>
-        <circleGeometry args={[size * 0.0038, 28]} />
+        <circleGeometry args={[size * 0.0028, 28]} />
         <meshPhysicalMaterial color="#090909" metalness={0.16} roughness={0.5} />
       </mesh>
       {[-screwOffset, screwOffset].map((x) => (
         <mesh key={x} position={[x, 0, face + size * 0.00003]} renderOrder={5}>
-          <circleGeometry args={[size * 0.00145, 16]} />
+          <circleGeometry args={[size * 0.0011, 16]} />
           <HardwareMaterial color={color} roughness={roughness} />
         </mesh>
       ))}

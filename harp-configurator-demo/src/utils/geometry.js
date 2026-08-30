@@ -2,7 +2,7 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 11
+export const ADDON_ANCHOR_REV = 12
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -194,7 +194,7 @@ function findNeckLevers(mesh, box, size, endpoints) {
 
   for (const { top, bottom } of endpoints) {
     const along = top.clone().sub(bottom).normalize()
-    const intended = top.clone().lerp(bottom, 0.057)
+    const intended = top.clone().lerp(bottom, 0.065)
     const yRatio = (intended.y - box.min.y) / size.y
     const zRatio = (intended.z - box.min.z) / size.z
     const surface = surfaceAnchor(mesh, box, size, yRatio, zRatio)
@@ -203,7 +203,7 @@ function findNeckLevers(mesh, box, size, endpoints) {
     levers.push({
       position: surface.position.addScaledVector(surface.normal, flush),
       quaternion: quatAlongSurface(surface.normal, along),
-      scale: size.y * 0.023,
+      scale: size.y * 0.014,
       stringPoint: intended,
     })
   }
@@ -216,18 +216,6 @@ function offsetAnchor(anchor, amount) {
     ...anchor,
     position: anchor.position.clone().addScaledVector(anchor.normal, amount),
   }
-}
-
-function stringHotspot(endpoints, box, size, clearance) {
-  if (!endpoints.length) return null
-  const targetZ = box.min.z + size.z * 0.52
-  const string = endpoints.reduce((best, candidate) =>
-    Math.abs(candidate.top.z - targetZ) < Math.abs(best.top.z - targetZ) ? candidate : best,
-  )
-  const position = string.top.clone().lerp(string.bottom, 0.54)
-  const normal = new Vector3(1, 0, 0)
-  position.addScaledVector(normal, clearance)
-  return { position, normal, quaternion: quatFacingOut(normal) }
 }
 
 /**
@@ -252,19 +240,19 @@ export function findAddOnAnchors(root) {
     [0.58, 0.72],
   ])
   const carving = firstSurfaceAnchor(mesh, box, size, [
-    [0.3, 0.54],
     [0.28, 0.52],
-    [0.34, 0.56],
+    [0.3, 0.54],
+    [0.26, 0.5],
   ])
   const pickupSensor = firstSurfaceAnchor(mesh, box, size, [
+    [0.485, 0.6],
+    [0.47, 0.58],
     [0.45, 0.6],
-    [0.43, 0.58],
-    [0.41, 0.56],
   ])
   const pickupJack = firstSurfaceAnchor(mesh, box, size, [
-    [0.13, 0.4],
     [0.1, 0.38],
-    [0.16, 0.42],
+    [0.12, 0.4],
+    [0.13, 0.4],
   ])
   const neck = firstSurfaceAnchor(mesh, box, size, [
     [0.78, 0.32],
@@ -277,9 +265,9 @@ export function findAddOnAnchors(root) {
     [0.65, 0.08],
   ])
   const soundboard = firstSurfaceAnchor(mesh, box, size, [
-    [0.5, 0.64],
-    [0.47, 0.62],
-    [0.53, 0.66],
+    [0.54, 0.7],
+    [0.52, 0.68],
+    [0.56, 0.72],
   ])
 
   return {
@@ -288,15 +276,15 @@ export function findAddOnAnchors(root) {
     emblem: emblem
       ? {
           ...offsetAnchor(emblem, flush),
-          width: size.y * 0.048,
-          height: size.y * 0.058,
+          width: size.y * 0.055,
+          height: size.y * 0.068,
         }
       : null,
     carving: carving
       ? {
           ...offsetAnchor(carving, flush),
-          width: size.y * 0.078,
-          height: size.y * 0.24,
+          width: size.y * 0.068,
+          height: size.y * 0.2,
         }
       : null,
     pickup: pickupSensor
@@ -308,7 +296,6 @@ export function findAddOnAnchors(root) {
     levers: findNeckLevers(mesh, box, size, endpoints),
     hotspots: {
       soundboard: offsetAnchor(soundboard, hotspotClearance),
-      strings: stringHotspot(endpoints, box, size, hotspotClearance),
       neck: offsetAnchor(neck, hotspotClearance),
       column: offsetAnchor(column, hotspotClearance),
     },

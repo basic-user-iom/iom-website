@@ -86,9 +86,12 @@ vec3 harpTriplanarWoodNormal(vec3 pos, vec3 surfaceNormal, float scale) {
 
 const WOOD_MAP = /* glsl */ `
 #ifdef USE_MAP
-  float woodFill = 1.0 - smoothstep(0.25, 0.75, vHarpPart);
-  float metalUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 1.0));
-  float stringUse = smoothstep(1.5, 1.75, vHarpPart);
+  float woodPartUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart));
+  float metalPartUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 1.0));
+  float stringUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 2.0));
+  float legacyCrestUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 3.0));
+  float woodFill = max(woodPartUse, legacyCrestUse);
+  float metalUse = metalPartUse;
 
 #ifdef USE_EMISSIVEMAP
   vec3 originalColor = texture2D(emissiveMap, vMapUv).rgb;
@@ -188,7 +191,7 @@ export function applyHarpShader(material, uniforms) {
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>\n${WOOD_METAL}`)
       .replace('#include <opaque_fragment>', `${WOOD_LIGHT}\n#include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => 'harp-configurator-material-v19-geometry-parts'
+  material.customProgramCacheKey = () => 'harp-configurator-material-v20-legacy-crest'
   material.needsUpdate = true
   return material
 }

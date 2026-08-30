@@ -4,6 +4,7 @@ export const HARP_PART = Object.freeze({
   wood: 0,
   metal: 1,
   string: 2,
+  legacyCrest: 3,
 })
 
 function makeDisjointSet(count) {
@@ -111,7 +112,43 @@ export function assignHarpPartAttribute(geometry) {
 
   const overallVolume = overallSize[0] * overallSize[1] * overallSize[2]
   const partValues = new Float32Array(vertexCount)
-  const summary = { wood: 0, metal: 0, string: 0, components: components.size }
+  const crestCandidates = [...components.values()].filter((component) => {
+    const size = component.max.map((value, axis) => value - component.min[axis])
+    const centerY = ((component.min[1] + component.max[1]) * 0.5 - globalMin[1]) / overallSize[1]
+    const centerZ = ((component.min[2] + component.max[2]) * 0.5 - globalMin[2]) / overallSize[2]
+    return (
+      component.vertices.length >= 500 &&
+      component.vertices.length <= 650 &&
+      size[0] / overallScale > 0.0038 &&
+      size[0] / overallScale < 0.0043 &&
+      size[1] / overallScale > 0.046 &&
+      size[1] / overallScale < 0.049 &&
+      size[2] / overallScale > 0.034 &&
+      size[2] / overallScale < 0.037 &&
+      centerY > 0.8 &&
+      centerY < 0.83 &&
+      centerZ > 0.05 &&
+      centerZ < 0.08
+    )
+  })
+  const crestPairTolerance = overallScale * 0.0015
+  const hasCongruentCrestPair =
+    crestCandidates.length === 2 &&
+    [1, 2].every(
+      (axis) =>
+        Math.abs(crestCandidates[0].min[axis] - crestCandidates[1].min[axis]) <
+          crestPairTolerance &&
+        Math.abs(crestCandidates[0].max[axis] - crestCandidates[1].max[axis]) <
+          crestPairTolerance,
+    )
+  const legacyCrestComponents = new Set(hasCongruentCrestPair ? crestCandidates : [])
+  const summary = {
+    wood: 0,
+    metal: 0,
+    string: 0,
+    legacyCrest: 0,
+    components: components.size,
+  }
   const componentRecords = []
 
   for (const component of components.values()) {
@@ -120,14 +157,26 @@ export function assignHarpPartAttribute(geometry) {
     const longest = Math.max(...size)
     const thinnest = Math.min(...size)
 
-    let part = HARP_PART.metal
-    if (volume > overallVolume * 0.01) {
+    const legacyCrest = legacyCrestComponents.has(component)
+    let part = legacyCrest ? HARP_PART.legacyCrest : HARP_PART.metal
+    if (!legacyCrest && volume > overallVolume * 0.01) {
       part = HARP_PART.wood
-    } else if (longest > overallScale * 0.06 && thinnest < overallScale * 0.015) {
+    } else if (
+      !legacyCrest &&
+      longest > overallScale * 0.06 &&
+      thinnest < overallScale * 0.015
+    ) {
       part = HARP_PART.string
     }
 
-    const label = part === HARP_PART.wood ? 'wood' : part === HARP_PART.string ? 'string' : 'metal'
+    const label =
+      part === HARP_PART.wood
+        ? 'wood'
+        : part === HARP_PART.string
+          ? 'string'
+          : part === HARP_PART.legacyCrest
+            ? 'legacyCrest'
+            : 'metal'
     summary[label]++
     for (const vertex of component.vertices) partValues[vertex] = part
     componentRecords.push({

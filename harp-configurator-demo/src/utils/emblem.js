@@ -71,12 +71,22 @@ export function createEmblemTexture() {
   ctx.fillStyle = 'rgba(85, 50, 19, 0.86)'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.font = '600 43px Georgia, serif'
-  ctx.fillText('M', cx, 340)
-  ctx.font = '600 26px Georgia, serif'
-  ctx.fillText('M A R I N I', cx, 562)
-  ctx.font = '500 18px Georgia, serif'
-  ctx.fillText('M A D E  H A R P S', cx, 602)
+  ctx.font = '600 82px Georgia, serif'
+  ctx.fillText('M', cx, 342)
+
+  ctx.strokeStyle = brass
+  ctx.lineWidth = 7
+  ctx.beginPath()
+  ctx.moveTo(240, 552)
+  ctx.lineTo(400, 552)
+  ctx.stroke()
+
+  ctx.save()
+  ctx.translate(cx, 596)
+  ctx.rotate(Math.PI / 4)
+  ctx.fillStyle = 'rgba(112, 72, 31, 0.72)'
+  ctx.fillRect(-10, -10, 20, 20)
+  ctx.restore()
   return finishTexture(canvas)
 }
 
@@ -152,7 +162,7 @@ export function createCarvingTexture() {
     ctx.restore()
   }
 
-  drawMotif('rgba(238, 203, 133, 0.28)', 'rgba(222, 178, 99, 0.12)', 7, -2)
-  drawMotif('rgba(82, 49, 22, 0.56)', 'rgba(128, 79, 33, 0.2)', 3.5)
+  drawMotif('rgba(238, 203, 133, 0.32)', 'rgba(222, 178, 99, 0.14)', 7, -2)
+  drawMotif('rgba(82, 49, 22, 0.64)', 'rgba(128, 79, 33, 0.23)', 3.5)
   return finishTexture(canvas)
 }
