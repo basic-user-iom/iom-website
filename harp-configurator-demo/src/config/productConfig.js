@@ -162,7 +162,7 @@ export const HOTSPOTS = [
     id: 'strings',
     label: 'Strings',
     kicker: 'Voicing',
-    body: 'The source instrument contains 32 individually detected strings. Their original colour and response are preserved while the frame finish changes around them.',
+    body: 'The source instrument contains 33 individually detected strings. Their original colour and response are preserved while the frame finish changes around them.',
     facts: ['Kept separate from wood materials', 'Each top endpoint drives one lever position'],
     related: 'Sharping levers',
   },

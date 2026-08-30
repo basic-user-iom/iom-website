@@ -2,7 +2,7 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 10
+export const ADDON_ANCHOR_REV = 11
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -94,7 +94,15 @@ function hitPart(hit) {
   return Math.round((attribute.getX(a) + attribute.getX(b) + attribute.getX(c)) / 3)
 }
 
-function surfaceAnchor(mesh, box, size, yRatio, zRatio, accepted = HARP_PART.wood) {
+function surfaceAnchor(
+  mesh,
+  box,
+  size,
+  yRatio,
+  zRatio,
+  accepted = HARP_PART.wood,
+  minNormalX = 0.3,
+) {
   const pad = Math.max(size.x, size.y, size.z) * 0.8
   const origin = new Vector3(
     box.max.x + pad,
@@ -107,7 +115,7 @@ function surfaceAnchor(mesh, box, size, yRatio, zRatio, accepted = HARP_PART.woo
   for (const hit of raycaster.intersectObject(mesh, true)) {
     if (!hit.face || hitPart(hit) !== accepted) continue
     const normal = worldNormal(hit, direction)
-    if (normal.x < 0.3 || Math.abs(normal.y) > 0.72) continue
+    if (normal.x < minNormalX || Math.abs(normal.y) > 0.72) continue
     return {
       position: hit.point.clone(),
       normal,
@@ -117,9 +125,9 @@ function surfaceAnchor(mesh, box, size, yRatio, zRatio, accepted = HARP_PART.woo
   return null
 }
 
-function firstSurfaceAnchor(mesh, box, size, candidates) {
+function firstSurfaceAnchor(mesh, box, size, candidates, minNormalX = 0.82) {
   for (const [y, z] of candidates) {
-    const anchor = surfaceAnchor(mesh, box, size, y, z)
+    const anchor = surfaceAnchor(mesh, box, size, y, z, HARP_PART.wood, minNormalX)
     if (anchor) return anchor
   }
   return null
@@ -167,13 +175,22 @@ function quatAlongSurface(normal, direction) {
 }
 
 /**
+ * Keep generated details effectively seated on the source mesh. The former
+ * offsets were based on whole-harp percentages, which turned a render-depth
+ * allowance into a visible centimetre-scale air gap at grazing angles.
+ */
+function surfaceClearance(size) {
+  return Math.max(size.y * 0.00015, 0.00006)
+}
+
+/**
  * Position one lever per string just below that string's top endpoint. This
  * follows the real harp geometry instead of distributing decorative shapes
  * over the neck's bounding box.
  */
 function findNeckLevers(mesh, box, size, endpoints) {
   const levers = []
-  const flush = Math.max(size.y * 0.0025, 0.0008)
+  const flush = surfaceClearance(size)
 
   for (const { top, bottom } of endpoints) {
     const along = top.clone().sub(bottom).normalize()
@@ -201,7 +218,7 @@ function offsetAnchor(anchor, amount) {
   }
 }
 
-function stringHotspot(endpoints, box, size) {
+function stringHotspot(endpoints, box, size, clearance) {
   if (!endpoints.length) return null
   const targetZ = box.min.z + size.z * 0.52
   const string = endpoints.reduce((best, candidate) =>
@@ -209,7 +226,7 @@ function stringHotspot(endpoints, box, size) {
   )
   const position = string.top.clone().lerp(string.bottom, 0.54)
   const normal = new Vector3(1, 0, 0)
-  position.addScaledVector(normal, size.x * 0.035)
+  position.addScaledVector(normal, clearance)
   return { position, normal, quaternion: quatFacingOut(normal) }
 }
 
@@ -225,73 +242,75 @@ export function findAddOnAnchors(root) {
   const box = getWorldBox(root)
   const size = new Vector3()
   box.getSize(size)
-  const flush = Math.max(size.y * 0.0013, 0.00045)
+  const flush = surfaceClearance(size)
+  const hotspotClearance = flush * 1.5
 
   const endpoints = stringEndpoints(mesh)
   const emblem = firstSurfaceAnchor(mesh, box, size, [
-    [0.43, 0.76],
-    [0.48, 0.73],
-    [0.37, 0.79],
+    [0.6, 0.74],
+    [0.64, 0.76],
+    [0.58, 0.72],
   ])
   const carving = firstSurfaceAnchor(mesh, box, size, [
-    [0.43, 0.76],
-    [0.48, 0.73],
-    [0.37, 0.79],
+    [0.3, 0.54],
+    [0.28, 0.52],
+    [0.34, 0.56],
   ])
   const pickupSensor = firstSurfaceAnchor(mesh, box, size, [
-    [0.36, 0.68],
-    [0.42, 0.62],
-    [0.31, 0.74],
+    [0.45, 0.6],
+    [0.43, 0.58],
+    [0.41, 0.56],
   ])
   const pickupJack = firstSurfaceAnchor(mesh, box, size, [
-    [0.12, 0.56],
-    [0.1, 0.66],
-    [0.16, 0.48],
+    [0.13, 0.4],
+    [0.1, 0.38],
+    [0.16, 0.42],
   ])
   const neck = firstSurfaceAnchor(mesh, box, size, [
-    [0.89, 0.46],
-    [0.86, 0.55],
-    [0.92, 0.36],
+    [0.78, 0.32],
+    [0.76, 0.36],
+    [0.8, 0.28],
   ])
   const column = firstSurfaceAnchor(mesh, box, size, [
-    [0.53, 0.92],
-    [0.42, 0.88],
-    [0.65, 0.95],
+    [0.53, 0.08],
+    [0.42, 0.1],
+    [0.65, 0.08],
   ])
   const soundboard = firstSurfaceAnchor(mesh, box, size, [
-    [0.38, 0.72],
-    [0.46, 0.66],
-    [0.29, 0.78],
+    [0.5, 0.64],
+    [0.47, 0.62],
+    [0.53, 0.66],
   ])
 
   return {
     size: Math.max(size.x, size.y, size.z),
+    decalTarget: mesh,
     emblem: emblem
       ? {
-          ...offsetAnchor(emblem, size.y * 0.012),
+          ...offsetAnchor(emblem, flush),
           width: size.y * 0.048,
           height: size.y * 0.058,
         }
       : null,
     carving: carving
       ? {
-          ...offsetAnchor(carving, flush * 0.7),
+          ...offsetAnchor(carving, flush),
           width: size.y * 0.078,
           height: size.y * 0.24,
         }
       : null,
     pickup: pickupSensor
       ? {
-          sensor: offsetAnchor(pickupSensor, size.y * 0.004),
-          jack: pickupJack ? offsetAnchor(pickupJack, size.y * 0.004) : null,
+          sensor: offsetAnchor(pickupSensor, flush),
+          jack: pickupJack ? offsetAnchor(pickupJack, flush) : null,
         }
       : null,
     levers: findNeckLevers(mesh, box, size, endpoints),
     hotspots: {
-      soundboard: offsetAnchor(soundboard, size.y * 0.008),
-      strings: stringHotspot(endpoints, box, size),
-      neck: offsetAnchor(neck, size.y * 0.008),
-      column: offsetAnchor(column, size.y * 0.008),
+      soundboard: offsetAnchor(soundboard, hotspotClearance),
+      strings: stringHotspot(endpoints, box, size, hotspotClearance),
+      neck: offsetAnchor(neck, hotspotClearance),
+      column: offsetAnchor(column, hotspotClearance),
     },
   }
 }

@@ -43,6 +43,10 @@ export function HarpModel() {
     clone.traverse((child) => {
       if (!child.isMesh) return
       child.geometry = child.geometry?.clone()
+      // The source glTF contains stale Z accessor bounds. Recompute from the
+      // decoded vertices before centering, camera fitting, and surface rays.
+      child.geometry?.computeBoundingBox()
+      child.geometry?.computeBoundingSphere()
       child.material = Array.isArray(child.material)
         ? child.material.map((material) => material.clone())
         : child.material?.clone()
