@@ -90,7 +90,8 @@ const WOOD_MAP = /* glsl */ `
   float metalPartUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 1.0));
   float stringUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 2.0));
   float legacyCrestUse = 1.0 - smoothstep(0.25, 0.75, abs(vHarpPart - 3.0));
-  float woodFill = max(woodPartUse, legacyCrestUse);
+  if (legacyCrestUse > 0.5) discard;
+  float woodFill = woodPartUse;
   float metalUse = metalPartUse;
 
 #ifdef USE_EMISSIVEMAP
@@ -191,7 +192,7 @@ export function applyHarpShader(material, uniforms) {
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>\n${WOOD_METAL}`)
       .replace('#include <opaque_fragment>', `${WOOD_LIGHT}\n#include <opaque_fragment>`)
   }
-  material.customProgramCacheKey = () => 'harp-configurator-material-v20-legacy-crest'
+  material.customProgramCacheKey = () => 'harp-configurator-material-v21-hide-legacy-crest'
   material.needsUpdate = true
   return material
 }

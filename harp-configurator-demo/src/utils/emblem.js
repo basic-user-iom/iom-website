@@ -10,159 +10,83 @@ function finishTexture(canvas) {
 
 export function createEmblemTexture() {
   const canvas = document.createElement('canvas')
-  canvas.width = 640
-  canvas.height = 760
+  canvas.width = 1200
+  canvas.height = 420
   const ctx = canvas.getContext('2d', { alpha: true })
-  const cx = canvas.width / 2
-
   ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-  const brass = ctx.createLinearGradient(145, 80, 495, 690)
-  brass.addColorStop(0, 'rgba(250, 222, 155, 0.95)')
-  brass.addColorStop(0.42, 'rgba(202, 158, 79, 0.9)')
-  brass.addColorStop(1, 'rgba(112, 72, 31, 0.88)')
-
-  const shieldPath = () => {
+  const plaquePath = (inset = 30) => {
+    const clip = 58
     ctx.beginPath()
-    ctx.moveTo(cx, 66)
-    ctx.bezierCurveTo(452, 66, 508, 146, 492, 294)
-    ctx.bezierCurveTo(474, 478, 390, 615, cx, 690)
-    ctx.bezierCurveTo(250, 615, 166, 478, 148, 294)
-    ctx.bezierCurveTo(132, 146, 188, 66, cx, 66)
+    ctx.moveTo(inset + clip, inset)
+    ctx.lineTo(canvas.width - inset - clip, inset)
+    ctx.lineTo(canvas.width - inset, inset + clip)
+    ctx.lineTo(canvas.width - inset, canvas.height - inset - clip)
+    ctx.lineTo(canvas.width - inset - clip, canvas.height - inset)
+    ctx.lineTo(inset + clip, canvas.height - inset)
+    ctx.lineTo(inset, canvas.height - inset - clip)
+    ctx.lineTo(inset, inset + clip)
     ctx.closePath()
   }
 
-  shieldPath()
-  ctx.fillStyle = 'rgba(156, 104, 43, 0.18)'
+  const brass = ctx.createLinearGradient(40, 20, 1160, 400)
+  brass.addColorStop(0, 'rgba(116, 77, 31, 0.98)')
+  brass.addColorStop(0.2, 'rgba(224, 189, 111, 0.99)')
+  brass.addColorStop(0.52, 'rgba(164, 119, 55, 0.99)')
+  brass.addColorStop(0.78, 'rgba(235, 207, 137, 0.99)')
+  brass.addColorStop(1, 'rgba(104, 68, 28, 0.98)')
+
+  plaquePath()
+  ctx.fillStyle = brass
   ctx.fill()
-  ctx.strokeStyle = brass
-  ctx.lineWidth = 16
-  ctx.lineJoin = 'round'
-  ctx.stroke()
-
-  shieldPath()
-  ctx.strokeStyle = 'rgba(86, 52, 21, 0.66)'
-  ctx.lineWidth = 3
-  ctx.stroke()
-
-  ctx.lineCap = 'round'
-  ctx.strokeStyle = brass
+  ctx.strokeStyle = 'rgba(70, 43, 17, 0.94)'
   ctx.lineWidth = 12
-  ctx.beginPath()
-  ctx.moveTo(232, 454)
-  ctx.bezierCurveTo(224, 286, 244, 174, 300, 142)
-  ctx.bezierCurveTo(404, 190, 430, 312, 392, 454)
+  ctx.lineJoin = 'bevel'
   ctx.stroke()
 
-  ctx.beginPath()
-  ctx.moveTo(230, 455)
-  ctx.quadraticCurveTo(314, 492, 402, 454)
-  ctx.stroke()
-
+  plaquePath(48)
+  ctx.strokeStyle = 'rgba(255, 229, 167, 0.46)'
   ctx.lineWidth = 4
-  for (let index = 0; index < 6; index += 1) {
-    const x = 258 + index * 23
-    ctx.beginPath()
-    ctx.moveTo(x, 202 + index * 13)
-    ctx.lineTo(x + 12, 449)
-    ctx.stroke()
-  }
-
-  ctx.fillStyle = 'rgba(85, 50, 19, 0.86)'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.font = '600 82px Georgia, serif'
-  ctx.fillText('M', cx, 342)
-
-  ctx.strokeStyle = brass
-  ctx.lineWidth = 7
-  ctx.beginPath()
-  ctx.moveTo(240, 552)
-  ctx.lineTo(400, 552)
   ctx.stroke()
 
   ctx.save()
-  ctx.translate(cx, 596)
-  ctx.rotate(Math.PI / 4)
-  ctx.fillStyle = 'rgba(112, 72, 31, 0.72)'
-  ctx.fillRect(-10, -10, 20, 20)
+  plaquePath()
+  ctx.clip()
+  for (let index = 0; index < 34; index += 1) {
+    const y = 55 + index * 9.5
+    const alpha = 0.025 + (index % 5) * 0.008
+    ctx.strokeStyle = `rgba(66, 39, 15, ${alpha})`
+    ctx.lineWidth = index % 4 === 0 ? 2 : 1
+    ctx.beginPath()
+    ctx.moveTo(72, y)
+    ctx.lineTo(1128, y + Math.sin(index * 1.7) * 3)
+    ctx.stroke()
+  }
   ctx.restore()
-  return finishTexture(canvas)
-}
 
-export function createCarvingTexture() {
-  const canvas = document.createElement('canvas')
-  canvas.width = 512
-  canvas.height = 1200
-  const ctx = canvas.getContext('2d', { alpha: true })
-  ctx.clearRect(0, 0, canvas.width, canvas.height)
-  ctx.translate(canvas.width / 2, 0)
-  ctx.lineCap = 'round'
-  ctx.lineJoin = 'round'
-
-  const leaf = (x, y, angle, scale = 1) => {
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(angle)
-    ctx.scale(scale, scale)
+  for (const x of [108, 1092]) {
+    const screw = ctx.createRadialGradient(x - 5, 190, 2, x, 210, 28)
+    screw.addColorStop(0, '#d7bd83')
+    screw.addColorStop(0.38, '#6e512d')
+    screw.addColorStop(1, '#24180f')
+    ctx.fillStyle = screw
     ctx.beginPath()
-    ctx.moveTo(0, 0)
-    ctx.bezierCurveTo(22, -17, 58, -17, 78, 0)
-    ctx.bezierCurveTo(56, 19, 23, 17, 0, 0)
-    ctx.closePath()
+    ctx.arc(x, 210, 25, 0, Math.PI * 2)
     ctx.fill()
+    ctx.strokeStyle = 'rgba(21, 14, 9, 0.9)'
+    ctx.lineWidth = 5
+    ctx.beginPath()
+    ctx.moveTo(x - 12, 210)
+    ctx.lineTo(x + 12, 210)
     ctx.stroke()
-    ctx.restore()
   }
 
-  const drawMotif = (strokeStyle, fillStyle, lineWidth, offsetX = 0) => {
-    ctx.save()
-    ctx.translate(offsetX, 0)
-    ctx.strokeStyle = strokeStyle
-    ctx.fillStyle = fillStyle
-    ctx.lineWidth = lineWidth
-
-    ctx.beginPath()
-    ctx.moveTo(0, 1110)
-    ctx.bezierCurveTo(-14, 944, 17, 796, 0, 650)
-    ctx.bezierCurveTo(-16, 494, 15, 334, 0, 126)
-    ctx.stroke()
-
-    const tiers = [270, 455, 650, 845]
-    tiers.forEach((y, index) => {
-      const reach = [112, 142, 126, 94][index]
-      const lift = [76, 88, 82, 68][index]
-      for (const side of [-1, 1]) {
-        ctx.beginPath()
-        ctx.moveTo(0, y + 70)
-        ctx.bezierCurveTo(side * 26, y + 28, side * (reach * 0.58), y + 8, side * reach, y - lift)
-        ctx.stroke()
-        leaf(side * (reach * 0.56), y - lift * 0.34, side < 0 ? -2.7 : -0.44, 0.72)
-        leaf(side * reach, y - lift, side < 0 ? 2.8 : 0.34, 0.88)
-      }
-    })
-
-    ctx.beginPath()
-    ctx.moveTo(0, 108)
-    ctx.lineTo(34, 154)
-    ctx.lineTo(0, 198)
-    ctx.lineTo(-34, 154)
-    ctx.closePath()
-    ctx.fill()
-    ctx.stroke()
-
-    ctx.beginPath()
-    ctx.moveTo(0, 1085)
-    ctx.lineTo(28, 1120)
-    ctx.lineTo(0, 1154)
-    ctx.lineTo(-28, 1120)
-    ctx.closePath()
-    ctx.fill()
-    ctx.stroke()
-    ctx.restore()
-  }
-
-  drawMotif('rgba(238, 203, 133, 0.32)', 'rgba(222, 178, 99, 0.14)', 7, -2)
-  drawMotif('rgba(82, 49, 22, 0.64)', 'rgba(128, 79, 33, 0.23)', 3.5)
+  ctx.fillStyle = 'rgba(49, 30, 14, 0.95)'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.font = '600 72px Georgia, serif'
+  ctx.fillText('MARINI MADE HARPS', 600, 170)
+  ctx.font = '500 43px Georgia, serif'
+  ctx.fillText('LANCASTER CO. PA', 600, 260)
   return finishTexture(canvas)
 }

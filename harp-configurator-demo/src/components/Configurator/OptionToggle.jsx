@@ -31,6 +31,7 @@ export function ChoiceRow({ optionId }) {
   const option = OPTIONS[optionId]
   const value = useConfigurator((state) => state.values[optionId])
   const setOption = useConfigurator((state) => state.setOption)
+  const selectedChoice = option?.choices.find((choice) => choice.id === value)
 
   if (!option) return null
 
@@ -51,6 +52,7 @@ export function ChoiceRow({ optionId }) {
           </button>
         ))}
       </div>
+      {selectedChoice?.caption && <p className="option-help">{selectedChoice.caption}</p>}
     </div>
   )
 }

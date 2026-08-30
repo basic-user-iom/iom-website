@@ -2,7 +2,7 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 13
+export const ADDON_ANCHOR_REV = 16
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -128,6 +128,45 @@ function surfaceAnchor(
 function firstSurfaceAnchor(mesh, box, size, candidates, minNormalX = 0.82) {
   for (const [y, z] of candidates) {
     const anchor = surfaceAnchor(mesh, box, size, y, z, HARP_PART.wood, minNormalX)
+    if (anchor) return anchor
+  }
+  return null
+}
+
+function backSurfaceAnchor(
+  mesh,
+  box,
+  size,
+  yRatio,
+  zRatio,
+  accepted = HARP_PART.wood,
+  minNormalX = 0.82,
+) {
+  const pad = Math.max(size.x, size.y, size.z) * 0.8
+  const origin = new Vector3(
+    box.min.x - pad,
+    box.min.y + size.y * yRatio,
+    box.min.z + size.z * zRatio,
+  )
+  const direction = new Vector3(1, 0, 0)
+  const raycaster = new Raycaster(origin, direction)
+
+  for (const hit of raycaster.intersectObject(mesh, true)) {
+    if (!hit.face || hitPart(hit) !== accepted) continue
+    const normal = worldNormal(hit, direction)
+    if (normal.x > -minNormalX || Math.abs(normal.y) > 0.72) continue
+    return {
+      position: hit.point.clone(),
+      normal,
+      quaternion: quatFacingOut(normal),
+    }
+  }
+  return null
+}
+
+function firstBackSurfaceAnchor(mesh, box, size, candidates, minNormalX = 0.82) {
+  for (const [y, z] of candidates) {
+    const anchor = backSurfaceAnchor(mesh, box, size, y, z, HARP_PART.wood, minNormalX)
     if (anchor) return anchor
   }
   return null
@@ -281,25 +320,15 @@ export function findAddOnAnchors(root) {
   const hotspotClearance = flush * 1.5
 
   const endpoints = stringEndpoints(mesh)
-  const emblem = firstSurfaceAnchor(mesh, box, size, [
-    [0.6, 0.74],
-    [0.64, 0.76],
-    [0.58, 0.72],
-  ])
-  const carving = firstSurfaceAnchor(mesh, box, size, [
-    [0.28, 0.52],
-    [0.3, 0.54],
-    [0.26, 0.5],
-  ])
-  const pickupSensor = firstSurfaceAnchor(mesh, box, size, [
-    [0.485, 0.635],
-    [0.47, 0.625],
-    [0.5, 0.645],
+  const emblem = firstBackSurfaceAnchor(mesh, box, size, [
+    [0.6, 0.7],
+    [0.58, 0.7],
+    [0.62, 0.72],
   ])
   const pickupJack = firstSideSurfaceAnchor(mesh, box, size, [
-    [0.14, 0.5],
-    [0.16, 0.5],
-    [0.12, 0.5],
+    [0.095, 0.5],
+    [0.11, 0.5],
+    [0.13, 0.5],
   ])
   const neck = firstSurfaceAnchor(mesh, box, size, [
     [0.78, 0.32],
@@ -323,21 +352,13 @@ export function findAddOnAnchors(root) {
     emblem: emblem
       ? {
           ...offsetAnchor(emblem, flush),
-          width: size.y * 0.055,
-          height: size.y * 0.068,
+          width: size.y * 0.095,
+          height: size.y * 0.04,
         }
       : null,
-    carving: carving
+    pickup: pickupJack
       ? {
-          ...offsetAnchor(carving, flush),
-          width: size.y * 0.068,
-          height: size.y * 0.2,
-        }
-      : null,
-    pickup: pickupSensor
-      ? {
-          sensor: offsetAnchor(pickupSensor, flush),
-          jack: pickupJack ? offsetAnchor(pickupJack, flush) : null,
+          jack: offsetAnchor(pickupJack, flush),
         }
       : null,
     levers: findNeckLevers(mesh, box, size, endpoints),
