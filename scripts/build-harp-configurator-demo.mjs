@@ -56,6 +56,9 @@ async function main() {
   await rm(OUT, { recursive: true, force: true })
   await mkdir(dirname(OUT), { recursive: true })
   await cp(DIST, OUT, { recursive: true })
+  // Legacy mask/ORM experiments are retained with the source project but are
+  // not referenced by the geometry-classified runtime.
+  await rm(join(OUT, 'models', 'processed'), { recursive: true, force: true })
   console.log('Done. Harp Configurator → /demos/harp-configurator-demo/')
 }
 
