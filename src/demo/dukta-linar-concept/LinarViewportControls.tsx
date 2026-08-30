@@ -310,8 +310,8 @@ export function LinarViewportControls({
             <button
               type="button"
               className="linar-viewport-tools__button linar-viewport-light-tools__button"
-              disabled={!viewAvailable || lightRadius <= -0.995}
-              aria-label="Move light nearer"
+              disabled={!viewAvailable}
+              aria-label="Use the balanced post-intro near light preset"
               onClick={() => {
                 onUserInteract()
                 onLightNear()

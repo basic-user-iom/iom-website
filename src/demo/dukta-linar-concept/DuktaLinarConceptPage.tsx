@@ -970,6 +970,22 @@ export function DuktaLinarConceptPage() {
     setLightState(next)
   }, [])
 
+  const setLightNearPreset = useCallback(() => {
+    const base = lightStateRef.current
+    // NEAR is the balanced authored pose shown after the automatic intro.
+    // Preserve the selected room/behind side, while restoring its direction,
+    // clearance and calibrated output. Direct orb dragging still provides the
+    // complete distance range, including the 40 mm inspection endpoint.
+    const next = {
+      ...base,
+      u: DEFAULT_LINAR_LIGHT.u,
+      v: DEFAULT_LINAR_LIGHT.v,
+      radius: DEFAULT_LINAR_LIGHT.radius,
+    }
+    lightStateRef.current = next
+    setLightState(next)
+  }, [])
+
   const setLightPlacement = useCallback((placement: LinarLightPlacement) => {
     const placementAllowed =
       configRef.current.application !== 'freestanding' &&
@@ -1107,12 +1123,12 @@ export function DuktaLinarConceptPage() {
                     ? lightState.placement === 'behind' &&
                       config.application !== 'freestanding' &&
                       config.backing === 'none'
-                      ? `Drag the light orb behind the panel to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near places its centre 4 cm behind the mounted surface. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
+                      ? `Drag the light orb behind the panel to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near recalls the balanced post-intro light angle and distance; direct distance control can move it closer. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
                           config.backlightMode === 'on'
                             ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
                             : ''
                         }`
-                      : `Drag the light orb on the room side to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near places it 4 cm from the surface.${
+                      : `Drag the light orb on the room side to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near recalls the balanced post-intro light angle and distance; direct distance control can move it closer.${
                           config.backlightMode === 'on'
                             ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
                             : ''
@@ -1243,7 +1259,7 @@ export function DuktaLinarConceptPage() {
             onToggleLight={onToggleLight}
             onToggleBacklight={onToggleBacklight}
             onLightPlacementChange={setLightPlacement}
-            onLightNear={() => setLightRadius(-1)}
+            onLightNear={setLightNearPreset}
             onLightFar={() => setLightRadius(1)}
             onResetLight={onResetLight}
             onUserInteract={markInteracted}

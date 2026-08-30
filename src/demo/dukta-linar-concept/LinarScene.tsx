@@ -134,6 +134,18 @@ const LIGHT_FAR_INTENSITY_FACTOR = 0.7
 const CAMERA_WHEEL_ZOOM_FACTOR = 0.00042
 const CAMERA_WHEEL_ZOOM_RESPONSE = 11
 const LIGHT_WHEEL_CAPTURE_LATCH_MS = 280
+const LIGHT_ORB_HORIZONTAL_DRAG_GAIN = 2
+const LIGHT_ORB_VERTICAL_DRAG_GAIN = 2.6
+const LIGHT_ORB_VERTICAL_DRAG_REFERENCE_PX = 640
+const LIGHT_ORB_AXIS_LOCK_THRESHOLD_PX = 6
+// Near and Default otherwise follow such a tight envelope that their highest
+// spherical position still sits around the panel centre. Only the upper end
+// of the orbit opens toward the panel-height axis; Far keeps its existing 18°
+// limit because its 4.2 m clearance already provides ample vertical reach.
+const LIGHT_ORB_HIGH_ELEVATION_START_V = 0.6
+const LIGHT_ORB_NEAR_MIN_POLAR_DEG = 2
+const LIGHT_ORB_DEFAULT_MIN_POLAR_DEG = 12
+const LIGHT_ORB_FAR_MIN_POLAR_DEG = 18
 
 const FLOOR_APPLICATION_FRAME: ApplicationFrame = {
   planePoint: new THREE.Vector3(0, 0, 0),
@@ -1102,6 +1114,17 @@ export function LinarScene({
     renderer.domElement.setAttribute('aria-hidden', 'true')
     mount.appendChild(renderer.domElement)
 
+    const lightOrbCue = document.createElement('div')
+    lightOrbCue.className = 'linar-light-orb-cue'
+    lightOrbCue.setAttribute('aria-hidden', 'true')
+    const lightOrbCueText = document.createElement('span')
+    lightOrbCueText.textContent = 'Drag to move'
+    const lightOrbCueAxis = document.createElement('span')
+    lightOrbCueAxis.className = 'linar-light-orb-cue__axis'
+    lightOrbCueAxis.textContent = '↕'
+    lightOrbCue.append(lightOrbCueText, lightOrbCueAxis)
+    mount.appendChild(lightOrbCue)
+
     const scene = new THREE.Scene()
     scene.background = new THREE.Color(initialBackground)
     const studioBackground = new THREE.Color(BG)
@@ -1913,8 +1936,10 @@ export function LinarScene({
     let lightDragMode: 'orbit' | 'distance' = 'orbit'
     let lightWheelCapturedUntil = 0
     let lightOrbHovered = false
+    let lightOrbHasMoved = false
     let lightOrbVisibility = initialOrbLightEnabled ? 1 : 0
     let lightOrbInteraction = 0
+    const lightOrbCueProjection = new THREE.Vector3()
 
     const safeLightCoordinate = (value: number, fallback: number) =>
       Number.isFinite(value) ? THREE.MathUtils.clamp(value, -1, 1) : fallback
@@ -2015,8 +2040,28 @@ export function LinarScene({
       // v controls latitude within the selected mounted hemisphere. u retains
       // the complete tangent-plane ring, so Room and Behind both preserve the
       // same 360-degree drag and Near/Far distance semantics.
+      const basePolarDeg = THREE.MathUtils.lerp(72, 18, (v + 1) * 0.5)
+      const highElevationMinPolarDeg =
+        radiusControl < 0
+          ? THREE.MathUtils.lerp(
+              LIGHT_ORB_NEAR_MIN_POLAR_DEG,
+              LIGHT_ORB_DEFAULT_MIN_POLAR_DEG,
+              radiusControl + 1,
+            )
+          : THREE.MathUtils.lerp(
+              LIGHT_ORB_DEFAULT_MIN_POLAR_DEG,
+              LIGHT_ORB_FAR_MIN_POLAR_DEG,
+              radiusControl,
+            )
+      const highElevationBlend = THREE.MathUtils.smoothstep(
+        v,
+        LIGHT_ORB_HIGH_ELEVATION_START_V,
+        1,
+      )
       const polar = THREE.MathUtils.degToRad(
-        THREE.MathUtils.lerp(72, 18, (v + 1) * 0.5),
+        basePolarDeg +
+          (highElevationMinPolarDeg - LIGHT_ORB_FAR_MIN_POLAR_DEG) *
+            highElevationBlend,
       )
       const tangentWeight = Math.sin(polar)
       const normalWeight = Math.cos(polar)
@@ -2106,8 +2151,12 @@ export function LinarScene({
     const updateDraggedLight = (event: PointerEvent) => {
       if (lightDragPointerId !== event.pointerId || !lightDragState) return
       const rect = renderer.domElement.getBoundingClientRect()
-      const deltaX = (event.clientX - lightDragStartX) / Math.max(rect.width, 1)
-      const deltaY = (event.clientY - lightDragStartY) / Math.max(rect.height, 1)
+      const deltaXPx = event.clientX - lightDragStartX
+      const deltaYPx = event.clientY - lightDragStartY
+      const deltaX = deltaXPx / Math.max(rect.width, 1)
+      const deltaY =
+        deltaYPx /
+        Math.max(Math.min(rect.height, LIGHT_ORB_VERTICAL_DRAG_REFERENCE_PX), 1)
       if (lightDragMode === 'distance') {
         // Shift-drag down brings the source closer; up moves it farther away.
         // Wheel-over-orb below offers the same radial control without a key.
@@ -2118,10 +2167,27 @@ export function LinarScene({
         )
         displayedLightRadius = lightDragState.radius
       } else {
-        lightDragState.u = safeLightU(lightDragStartU + deltaX * 2, 0)
-        lightDragState.v = THREE.MathUtils.clamp(lightDragStartV - deltaY * 2, -1, 1)
+        const verticalGesture =
+          Math.abs(deltaYPx) >= LIGHT_ORB_AXIS_LOCK_THRESHOLD_PX &&
+          Math.abs(deltaYPx) > Math.abs(deltaXPx) * 1.15
+        lightDragState.u = safeLightU(
+          lightDragStartU +
+            (verticalGesture ? 0 : deltaX * LIGHT_ORB_HORIZONTAL_DRAG_GAIN),
+          0,
+        )
+        lightDragState.v = THREE.MathUtils.clamp(
+          lightDragStartV - deltaY * LIGHT_ORB_VERTICAL_DRAG_GAIN,
+          -1,
+          1,
+        )
         displayedLightU = lightDragState.u
         displayedLightV = lightDragState.v
+      }
+      if (
+        Math.abs(deltaXPx) >= LIGHT_ORB_AXIS_LOCK_THRESHOLD_PX ||
+        Math.abs(deltaYPx) >= LIGHT_ORB_AXIS_LOCK_THRESHOLD_PX
+      ) {
+        lightOrbHasMoved = true
       }
       const dragBounds = currentPlanBounds()
       const position = lightPositionForState(lightDragState, dragBounds)
@@ -3164,8 +3230,41 @@ export function LinarScene({
         renderer.domElement.style.cursor = ''
       }
       lightOrb.visible = lightOrbShouldShow || lightOrbVisibility > 0.002
-      lightGuide.visible = lightOrb.visible
-      lightGuideMaterial.opacity = lightOrbVisibility * 0.18
+      const lightOrbSelected = lightDragPointerId != null
+      lightGuide.visible = lightOrb.visible && lightOrbSelected
+      lightGuideMaterial.opacity = lightOrbSelected ? lightOrbVisibility * 0.28 : 0
+
+      lightOrbCueProjection.copy(lightOrb.position).project(camera)
+      const cueInsideViewport =
+        lightOrbCueProjection.z >= -1 &&
+        lightOrbCueProjection.z <= 1 &&
+        Math.abs(lightOrbCueProjection.x) <= 1.08 &&
+        Math.abs(lightOrbCueProjection.y) <= 1.08
+      const cueShouldShow =
+        lightStateRef.current.enabled &&
+        lightOrbVisibility > 0.45 &&
+        !cinematicActiveRef.current &&
+        !lightOrbSelected &&
+        (!lightOrbHasMoved || lightOrbHovered) &&
+        cueInsideViewport
+      if (cueShouldShow) {
+        const cueWidth = Math.max(mount.clientWidth, 1)
+        const cueHeight = Math.max(mount.clientHeight, 1)
+        const cueX = THREE.MathUtils.clamp(
+          (lightOrbCueProjection.x * 0.5 + 0.5) * cueWidth,
+          10,
+          cueWidth - 10,
+        )
+        const cueY = THREE.MathUtils.clamp(
+          (-lightOrbCueProjection.y * 0.5 + 0.5) * cueHeight,
+          18,
+          cueHeight - 18,
+        )
+        const placeCueLeft = cueX > cueWidth - 150
+        lightOrbCue.classList.toggle('is-left', placeCueLeft)
+        lightOrbCue.style.transform = `translate3d(${cueX}px, ${cueY}px, 0) translate(${placeCueLeft ? 'calc(-100% - 16px)' : '16px'}, -50%)`
+      }
+      lightOrbCue.classList.toggle('is-visible', cueShouldShow)
 
       if (cameraTransition) {
         // Camera timing is authored in seconds and must not stretch on a
@@ -3456,6 +3555,9 @@ export function LinarScene({
       key.dispose()
       backlightSpill.dispose()
       renderer.dispose()
+      if (lightOrbCue.parentElement === mount) {
+        mount.removeChild(lightOrbCue)
+      }
       if (renderer.domElement.parentElement === mount) {
         mount.removeChild(renderer.domElement)
       }
