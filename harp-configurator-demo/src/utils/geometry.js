@@ -2,7 +2,7 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 12
+export const ADDON_ANCHOR_REV = 13
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -133,6 +133,53 @@ function firstSurfaceAnchor(mesh, box, size, candidates, minNormalX = 0.82) {
   return null
 }
 
+function sideSurfaceAnchor(
+  mesh,
+  box,
+  size,
+  yRatio,
+  xRatio,
+  accepted = HARP_PART.wood,
+  minNormalZ = 0.82,
+) {
+  const pad = Math.max(size.x, size.y, size.z) * 0.8
+  const origin = new Vector3(
+    box.min.x + size.x * xRatio,
+    box.min.y + size.y * yRatio,
+    box.max.z + pad,
+  )
+  const direction = new Vector3(0, 0, -1)
+  const raycaster = new Raycaster(origin, direction)
+
+  for (const hit of raycaster.intersectObject(mesh, true)) {
+    if (!hit.face || hitPart(hit) !== accepted) continue
+    const normal = worldNormal(hit, direction)
+    if (normal.z < minNormalZ || Math.abs(normal.y) > 0.45) continue
+    return {
+      position: hit.point.clone(),
+      normal,
+      quaternion: quatFacingOut(normal),
+    }
+  }
+  return null
+}
+
+function firstSideSurfaceAnchor(mesh, box, size, candidates, minNormalZ = 0.82) {
+  for (const [y, x] of candidates) {
+    const anchor = sideSurfaceAnchor(
+      mesh,
+      box,
+      size,
+      y,
+      x,
+      HARP_PART.wood,
+      minNormalZ,
+    )
+    if (anchor) return anchor
+  }
+  return null
+}
+
 function averageEndpoint(mesh, component, top) {
   const position = mesh.geometry.getAttribute('position')
   const localRange = component.max[1] - component.min[1]
@@ -245,14 +292,14 @@ export function findAddOnAnchors(root) {
     [0.26, 0.5],
   ])
   const pickupSensor = firstSurfaceAnchor(mesh, box, size, [
-    [0.485, 0.6],
-    [0.47, 0.58],
-    [0.45, 0.6],
+    [0.485, 0.635],
+    [0.47, 0.625],
+    [0.5, 0.645],
   ])
-  const pickupJack = firstSurfaceAnchor(mesh, box, size, [
-    [0.1, 0.38],
-    [0.12, 0.4],
-    [0.13, 0.4],
+  const pickupJack = firstSideSurfaceAnchor(mesh, box, size, [
+    [0.14, 0.5],
+    [0.16, 0.5],
+    [0.12, 0.5],
   ])
   const neck = firstSurfaceAnchor(mesh, box, size, [
     [0.78, 0.32],

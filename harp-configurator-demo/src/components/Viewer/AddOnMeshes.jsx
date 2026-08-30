@@ -152,39 +152,34 @@ function ForteLever({ pose, color, roughness }) {
   )
 }
 
-function PickupSensor({ anchor, size }) {
-  const depth = size * 0.0013
-  const face = depth + size * 0.00006
+function PickupSensor({ anchor, size, color, roughness }) {
+  const depth = size * 0.00055
+  const face = depth + size * 0.00003
 
   return (
     <group position={anchor.position.toArray()} quaternion={anchor.quaternion.toArray()}>
-      <mesh castShadow position={[0, 0, depth * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[size * 0.012, size * 0.012, depth, 36]} />
+      <mesh position={[0, 0, depth * 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[size * 0.007, size * 0.007, depth, 32]} />
         <meshPhysicalMaterial
-          color="#3f3d39"
-          metalness={0.3}
-          roughness={0.5}
-          clearcoat={0.46}
-          clearcoatRoughness={0.3}
-          envMapIntensity={0.88}
+          color="#ad8749"
+          metalness={0.72}
+          roughness={0.42}
+          clearcoat={0.24}
+          clearcoatRoughness={0.36}
+          envMapIntensity={0.92}
         />
       </mesh>
       <mesh position={[0, 0, face]} renderOrder={4}>
-        <ringGeometry args={[size * 0.0065, size * 0.0085, 32]} />
-        <meshPhysicalMaterial color="#beb9af" metalness={0.88} roughness={0.25} />
-      </mesh>
-      <mesh position={[0, 0, face + size * 0.00004]} renderOrder={5}>
-        <circleGeometry args={[size * 0.0018, 24]} />
-        <meshBasicMaterial color="#d5b977" />
+        <ringGeometry args={[size * 0.0057, size * 0.0065, 32]} />
+        <HardwareMaterial color={color} roughness={Math.max(roughness, 0.32)} />
       </mesh>
     </group>
   )
 }
 
 function OutputJack({ anchor, size, color, roughness }) {
-  const screwOffset = size * 0.009
-  const depth = size * 0.0016
-  const face = depth + size * 0.00006
+  const depth = size * 0.0005
+  const face = depth + size * 0.00003
 
   return (
     <group
@@ -193,35 +188,27 @@ function OutputJack({ anchor, size, color, roughness }) {
       quaternion={anchor.quaternion.toArray()}
     >
       <mesh
-        castShadow
         position={[0, 0, depth * 0.5]}
         rotation={[Math.PI / 2, 0, 0]}
-        scale={[1.55, 1, 1]}
       >
-        <cylinderGeometry args={[size * 0.009, size * 0.009, depth, 32]} />
+        <cylinderGeometry args={[size * 0.0065, size * 0.0065, depth, 28]} />
         <meshPhysicalMaterial
-          color="#44413c"
-          metalness={0.3}
-          roughness={0.52}
-          clearcoat={0.34}
-          clearcoatRoughness={0.3}
-          envMapIntensity={0.8}
+          color={color}
+          metalness={0.86}
+          roughness={Math.max(roughness, 0.3)}
+          clearcoat={0.2}
+          clearcoatRoughness={0.34}
+          envMapIntensity={0.94}
         />
       </mesh>
       <mesh position={[0, 0, face]} renderOrder={4}>
-        <torusGeometry args={[size * 0.0046, size * 0.001, 12, 32]} />
+        <torusGeometry args={[size * 0.0034, size * 0.0007, 10, 28]} />
         <HardwareMaterial color={color} roughness={roughness} />
       </mesh>
       <mesh position={[0, 0, face + size * 0.00004]} renderOrder={5}>
-        <circleGeometry args={[size * 0.0028, 28]} />
+        <circleGeometry args={[size * 0.0021, 24]} />
         <meshPhysicalMaterial color="#090909" metalness={0.16} roughness={0.5} />
       </mesh>
-      {[-screwOffset, screwOffset].map((x) => (
-        <mesh key={x} position={[x, 0, face + size * 0.00003]} renderOrder={5}>
-          <circleGeometry args={[size * 0.0011, 16]} />
-          <HardwareMaterial color={color} roughness={roughness} />
-        </mesh>
-      ))}
     </group>
   )
 }
@@ -274,7 +261,12 @@ export function AddOnMeshes({ anchors }) {
 
       {values.pickup && pickup && (
         <group name="HarpPickup">
-          <PickupSensor anchor={pickup.sensor} size={size} />
+          <PickupSensor
+            anchor={pickup.sensor}
+            size={size}
+            color={hardware.color}
+            roughness={hardware.roughness}
+          />
           {pickup.jack && (
             <OutputJack
               anchor={pickup.jack}
