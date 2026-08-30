@@ -76,6 +76,7 @@ const PROJECT_SCOPE_RULES = {
     'scripts/build-harp-configurator-demo.mjs',
     'scripts/deploy-scope.mjs',
     'scripts/generate-sitemap.mjs',
+    'scripts/patch-demo-back-links.mjs',
     'src/crm/DemosView.tsx',
   ],
   'dukta-linar-concept': [
