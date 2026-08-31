@@ -3,7 +3,7 @@
  * Blocks production deploy when git state is unsafe. The deploy exports committed
  * HEAD into an isolated directory, so workspace-only changes remain local.
  */
-import { execSync, spawn, spawnSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,49 +14,25 @@ function run(cmd, options = {}) {
   return execSync(cmd, { cwd: root, encoding: 'utf8', ...options }).trim()
 }
 
-function runGit(args, { timeout = 120_000 } = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('git', args, {
-      cwd: root,
-      env: {
-        ...process.env,
-        GIT_HTTP_LOW_SPEED_LIMIT: '1',
-        GIT_HTTP_LOW_SPEED_TIME: '30',
-        GIT_TERMINAL_PROMPT: '0',
-      },
-      stdio: ['ignore', 'pipe', 'pipe'],
-      windowsHide: true,
-    })
-    let stdout = ''
-    let stderr = ''
-    let settled = false
-
-    const finish = (error) => {
-      if (settled) return
-      settled = true
-      clearTimeout(timer)
-      if (error) reject(error)
-      else resolve(stdout.trim())
-    }
-
-    child.stdout.setEncoding('utf8')
-    child.stderr.setEncoding('utf8')
-    child.stdout.on('data', (chunk) => { stdout += chunk })
-    child.stderr.on('data', (chunk) => { stderr += chunk })
-    child.on('error', finish)
-    child.on('close', (code, signal) => {
-      if (code === 0) finish()
-      else finish(new Error(`git ${args.join(' ')} exited with ${code ?? signal}: ${stderr.trim()}`))
-    })
-
-    const timer = setTimeout(() => {
-      if (process.platform === 'win32') {
-        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true })
-      }
-      child.kill('SIGKILL')
-      finish(new Error(`git ${args.join(' ')} exceeded ${timeout} ms`))
-    }, timeout)
+async function remoteMasterSha() {
+  const origin = run('git remote get-url origin').replace(/\.git$/i, '')
+  const repository = origin.match(/github\.com(?::|\/)([^/]+)\/([^/]+)$/i)
+  if (!repository) throw new Error(`Unsupported origin URL: ${origin}`)
+  const owner = encodeURIComponent(repository[1])
+  const name = encodeURIComponent(repository[2])
+  const response = await fetch(`https://api.github.com/repos/${owner}/${name}/git/ref/heads/master`, {
+    headers: {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'iom-production-deploy-safety-check',
+      'X-GitHub-Api-Version': '2022-11-28',
+    },
+    signal: AbortSignal.timeout(30_000),
   })
+  if (!response.ok) throw new Error(`GitHub API HTTP ${response.status}`)
+  const payload = await response.json()
+  const sha = String(payload?.object?.sha || '')
+  if (!/^[0-9a-f]{40}$/i.test(sha)) throw new Error('GitHub API returned an invalid master SHA')
+  return sha
 }
 
 function fail(message) {
@@ -113,11 +89,19 @@ if (untracked.length > 0) {
   if (untracked.length > 8) console.warn(`  … and ${untracked.length - 8} more`)
 }
 
-// Refresh origin so a later scoped push cannot overwrite newer remote work.
+// Verify the cached remote ref against GitHub without invoking the occasionally
+// hanging Git for Windows HTTPS helper. The later non-forced push remains the
+// final atomic guard against a branch update between this check and publication.
+let remoteMaster = ''
 try {
-  await runGit(['fetch', 'origin', 'master', '--quiet'])
-} catch {
-  fail('Could not refresh origin/master within 120 seconds. Retry when GitHub is reachable; deployment was not started.')
+  remoteMaster = await remoteMasterSha()
+} catch (error) {
+  fail(`Could not verify origin/master through GitHub within 30 seconds: ${error instanceof Error ? error.message : String(error)}`)
+}
+
+const cachedRemoteMaster = run('git rev-parse origin/master')
+if (remoteMaster !== cachedRemoteMaster) {
+  fail(`Cached origin/master (${cachedRemoteMaster.slice(0, 8)}) does not match GitHub (${remoteMaster.slice(0, 8)}). Fetch and reconcile before deploying.`)
 }
 
 let unpushed = 0
