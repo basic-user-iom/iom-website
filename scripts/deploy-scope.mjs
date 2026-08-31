@@ -89,6 +89,15 @@ const PROJECT_SCOPE_RULES = {
     'scripts/deploy-scope.mjs',
     'src/demo/precision-object/',
   ],
+  'solar-system': [
+    '.vercelignore',
+    'solar-system/',
+    'public/demos/solar-system/',
+    'scripts/build-solar-system.mjs',
+    'scripts/deploy-production.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/test-deploy-safety.mjs',
+  ],
   'floating-stone': [
     'demos/floating-stone/',
     'public/demos/iom-back.js',

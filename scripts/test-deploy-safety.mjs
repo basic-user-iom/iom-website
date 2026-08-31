@@ -59,6 +59,22 @@ assert.equal(matchesDeployScope('src/crm/emailAttachments.ts', 'crm'), true)
 assert.equal(matchesDeployScope('api/_lib/email-attachments.js', 'crm'), true)
 assert.equal(matchesDeployScope('api/crm-send-email.js', 'crm'), true)
 assert.equal(matchesDeployScope('src/data/projects.ts', 'crm'), false)
+assert.equal(matchesDeployScope('solar-system/src/app/AppShell.tsx', 'project:solar-system'), true)
+assert.equal(matchesDeployScope('public/demos/solar-system/index.html', 'project:solar-system'), true)
+assert.equal(matchesDeployScope('.vercelignore', 'project:solar-system'), true)
+assert.equal(matchesDeployScope('scripts/deploy-production.mjs', 'project:solar-system'), true)
+assert.equal(matchesDeployScope('public/models/icm-ext-v2/model-web.glb', 'project:solar-system'), false)
+assert.equal(
+  inferDeployScope([
+    '.vercelignore',
+    'solar-system/src/app/AppShell.tsx',
+    'public/demos/solar-system/index.html',
+    'scripts/deploy-production.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/test-deploy-safety.mjs',
+  ]),
+  'project:solar-system',
+)
 assert.equal(
   inferDeployScope([
     'src/crm/emailAttachments.ts',

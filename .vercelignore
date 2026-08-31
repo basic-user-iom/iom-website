@@ -12,6 +12,8 @@ supabase/*.sql
 /.deploy-park-wip/
 /building-viewer/
 /automotive-studio/
+/solar-system/
+/ravens/
 /harp-configurator-demo/
 /vendor/
 /.tmp-vite-build-linar/
@@ -21,6 +23,7 @@ supabase/*.sql
 # Building-viewer: keep experimental/optional meshes local-only.
 # The production ICM exterior + animated runtime assets are included by the building-viewer scope.
 public/models/icm-ext-prev/
+public/models/icm-ext-v2/
 public/models/icm-golden-ext/
 public/models/icm-golden-int/
 public/models/golden-slice-report.json

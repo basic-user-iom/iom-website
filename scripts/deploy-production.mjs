@@ -319,6 +319,14 @@ function verifyUploadManifest(stage, scopes) {
   )
   const manifest = parseJsonOutput(output, 'Vercel deployment dry-run')
   if (manifest.totalSize > MAX_SOURCE_BYTES) {
+    console.error('\nLargest deployment directories:')
+    for (const directory of (manifest.directories || []).slice(0, 20)) {
+      console.error(`  ${(Number(directory.size || 0) / 1_000_000).toFixed(1).padStart(7)} MB  ${directory.path} (${directory.fileCount} files)`)
+    }
+    console.error('\nLargest deployment files:')
+    for (const file of (manifest.largestFiles || []).slice(0, 20)) {
+      console.error(`  ${(Number(file.size || 0) / 1_000_000).toFixed(1).padStart(7)} MB  ${file.path}`)
+    }
     fail(`Deployment source is ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; safety limit is ${(MAX_SOURCE_BYTES / 1_000_000).toFixed(0)} MB.`)
   }
   if (manifest.fileCount > 15_000) fail(`Deployment contains ${manifest.fileCount} files; limit is 15,000.`)
