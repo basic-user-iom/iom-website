@@ -402,7 +402,12 @@ function main() {
       console.log('Verification complete. Nothing was pushed or deployed.\n')
       return
     }
-    command('git', ['push', 'origin', 'master'])
+    command('git', [
+      '-c', 'http.version=HTTP/1.1',
+      '-c', 'http.lowSpeedLimit=1',
+      '-c', 'http.lowSpeedTime=30',
+      'push', 'origin', 'master',
+    ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } })
     deploySnapshot(snapshot, head, scopes)
   } finally {
     cleanupStage(snapshot?.stage)
