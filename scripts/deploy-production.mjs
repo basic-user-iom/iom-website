@@ -113,6 +113,15 @@ function requestedScopes(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--verify-only') continue
+    if (arg === '--target') {
+      if (!argv[index + 1] || argv[index + 1].startsWith('--')) fail('--target requires a commit SHA.')
+      index += 1
+      continue
+    }
+    if (arg.startsWith('--target=')) {
+      if (!arg.slice('--target='.length)) fail('--target requires a commit SHA.')
+      continue
+    }
     if (arg === '--scope') {
       if (!argv[index + 1] || argv[index + 1].startsWith('--')) fail('--scope requires a value.')
       values.push(argv[++index])
@@ -121,6 +130,18 @@ function requestedScopes(argv) {
     else fail(`Unknown deploy option "${arg}".`)
   }
   return [...new Set(values.flatMap((value) => value.split(',')).map((value) => value.trim()).filter(Boolean))]
+}
+
+function requestedTarget(argv) {
+  const values = []
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index]
+    if (arg === '--target') values.push(argv[++index])
+    else if (arg.startsWith('--target=')) values.push(arg.slice('--target='.length))
+  }
+  const unique = [...new Set(values.filter(Boolean))]
+  if (unique.length > 1) fail('Specify only one --target commit SHA.')
+  return unique[0] || ''
 }
 
 function validateScopeName(scope) {
@@ -184,6 +205,15 @@ function ensureCommit(sha, label) {
   } catch {
     fail(`${label} commit ${sha} is not available in this repository.`)
   }
+}
+
+function ensureAncestor(ancestor, descendant, message) {
+  const result = spawnSync('git', ['merge-base', '--is-ancestor', ancestor, descendant], {
+    cwd: root,
+    stdio: 'ignore',
+    windowsHide: true,
+  })
+  if (result.status !== 0) fail(message)
 }
 
 function decodeScopeMap(encoded) {
@@ -392,14 +422,22 @@ function main() {
   const argv = process.argv.slice(2)
   const verifyOnly = argv.includes('--verify-only')
   command(process.execPath, [join(root, 'scripts', 'pre-deploy-check.mjs')])
-  const head = git(['rev-parse', 'HEAD'])
+  const workspaceHead = git(['rev-parse', 'HEAD'])
+  const target = requestedTarget(argv)
+  const head = target ? git(['rev-parse', `${target}^{commit}`]) : workspaceHead
   ensureCommit(head, 'Target')
+  if (target) {
+    const origin = git(['rev-parse', 'origin/master'])
+    ensureAncestor(origin, head, 'Target must be a descendant of origin/master; refusing a non-fast-forward release.')
+    ensureAncestor(head, workspaceHead, 'Target must be an ancestor of the current local master branch.')
+  }
   const state = productionState(productionMetadata())
   const scopes = resolveScopes(requestedScopes(argv), state.base, head)
   const unpushed = validateUnpushedFiles(scopes, head)
 
   console.log(`\nProduction base:  ${state.base.slice(0, 8)}`)
   console.log(`Committed target: ${head.slice(0, 8)}`)
+  if (workspaceHead !== head) console.log(`Workspace HEAD:    ${workspaceHead.slice(0, 8)} (newer commits remain local)`)
   console.log(`Release scope:    ${scopes.join(', ')}`)
   console.log(`Unpushed files:   ${unpushed.length}`)
   console.log('Workspace-only files are excluded from the release snapshot.\n')
@@ -417,7 +455,7 @@ function main() {
       '-c', 'http.version=HTTP/1.1',
       '-c', 'http.lowSpeedLimit=1',
       '-c', 'http.lowSpeedTime=30',
-      'push', 'origin', 'master',
+      'push', 'origin', `${head}:refs/heads/master`,
     ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } })
     deploySnapshot(snapshot, head, scopes)
   } finally {
