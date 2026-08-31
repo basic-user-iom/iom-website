@@ -1,4 +1,5 @@
 import {
+  Box3,
   BufferGeometry,
   Color,
   Float32BufferAttribute,
@@ -7,9 +8,12 @@ import {
   Line,
   LineBasicMaterial,
   Matrix4,
+  Mesh,
   Object3D,
+  Sphere,
   SphereGeometry,
   MeshStandardMaterial,
+  Texture,
   Vector3,
 } from 'three';
 
@@ -20,6 +24,9 @@ import { sampleEarthSatellite, sampleEarthSatelliteOrbitPath } from '../../simul
 import { SPACECRAFT_DEFINITIONS } from '../../simulation/spacecraft';
 import { sampleSpacecraftTrajectory, sampleSpacecraftTrajectoryPath } from '../../simulation/spacecraft';
 import { SpaceObjectWorkerClient, type SpaceObjectWorkerResultResponse } from '../../workers/space-objects';
+import { ISS_MODEL_ASSET } from './SpaceObjectAssetCatalog';
+
+export type IssModelState = 'idle' | 'loading' | 'ready' | 'fallback';
 
 export interface SpaceObjectVisualDiagnostics {
   readonly visible: boolean;
@@ -33,6 +40,10 @@ export interface SpaceObjectVisualDiagnostics {
   readonly markersNotToScale: boolean;
   readonly selectedTrajectoryPointCount: number;
   readonly propagationExecution: 'module-worker' | 'direct-fallback';
+  readonly issModelState: IssModelState;
+  readonly issModelAssetId: string;
+  readonly issModelMeshCount: number;
+  readonly issModelTriangleCount: number;
 }
 
 const ZERO: PhysicalPosition = Object.freeze({ x: 0, y: 0, z: 0 });
@@ -40,12 +51,22 @@ const EARTH = new Vector3();
 const LOCAL = new Vector3();
 const OBJECT = new Object3D();
 const MATRIX = new Matrix4();
+const ISS_ORIENTATION = new Matrix4();
+const ISS_RADIAL = new Vector3();
+const ISS_ALONG_TRACK = new Vector3();
+const ISS_CROSS_TRACK = new Vector3();
+const ISS_FOCUS_DIRECTION = new Vector3(0.35, 1, 0.45).normalize();
+const ISS_BOUNDS = new Box3();
+const ISS_CENTER = new Vector3();
+const ISS_SPHERE = new Sphere();
 const EARTH_RADIUS_M = 6_371_008.4;
+const ISS_INDEX = EARTH_SATELLITE_DEFINITIONS.findIndex((item) => item.id === ISS_MODEL_ASSET.objectId);
 
 export class SpaceObjectVisualSystem {
   public readonly root = new Group();
   private readonly earthSatelliteMesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
   private readonly spacecraftMesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
+  private readonly issModelAnchor = new Group();
   private readonly earthSatelliteTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly spacecraftTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly worldPositions = new Map<string, Vector3>();
@@ -60,6 +81,12 @@ export class SpaceObjectVisualSystem {
   private workerClient: SpaceObjectWorkerClient | null = null;
   private workerResult: SpaceObjectWorkerResultResponse | null = null;
   private workerRequestPending = false;
+  private issModelState: IssModelState = 'idle';
+  private issModelLoad: Promise<void> | null = null;
+  private issModelRadiusMeters = 1;
+  private issModelMeshCount = 0;
+  private issModelTriangleCount = 0;
+  private disposed = false;
 
   public constructor() {
     this.root.name = 'space-objects-layer';
@@ -80,9 +107,17 @@ export class SpaceObjectVisualSystem {
     );
     this.spacecraftMesh.name = 'spacecraft-probe-markers';
     this.spacecraftMesh.frustumCulled = false;
+    this.issModelAnchor.name = 'iss-nasa-jsc-igoal-model';
+    this.issModelAnchor.visible = false;
     this.earthSatelliteTrajectory = createTrajectoryLine('earth-satellite-selected-orbit', 96, 0x6ecfff);
     this.spacecraftTrajectory = createTrajectoryLine('spacecraft-selected-trajectory', 128, 0xffbf67);
-    this.root.add(this.earthSatelliteTrajectory, this.spacecraftTrajectory, this.earthSatelliteMesh, this.spacecraftMesh);
+    this.root.add(
+      this.earthSatelliteTrajectory,
+      this.spacecraftTrajectory,
+      this.earthSatelliteMesh,
+      this.spacecraftMesh,
+      this.issModelAnchor,
+    );
     if (typeof Worker === 'function') {
       try {
         this.workerClient = new SpaceObjectWorkerClient();
@@ -107,6 +142,7 @@ export class SpaceObjectVisualSystem {
 
   public selectObject(id: string | null): void {
     this.selectedObjectId = id;
+    if (id === ISS_MODEL_ASSET.objectId) void this.requestIssModel();
   }
 
   public getObjectWorldPosition(id: string): Vector3 | null {
@@ -115,6 +151,11 @@ export class SpaceObjectVisualSystem {
 
   public getObjectRenderRadius(id: string): number {
     return this.renderedRadii.get(id) ?? 0.0003;
+  }
+
+  public getObjectFocusDirection(id: string): Vector3 | null {
+    if (id !== ISS_MODEL_ASSET.objectId || this.issModelState !== 'ready') return null;
+    return ISS_FOCUS_DIRECTION.clone().applyQuaternion(this.issModelAnchor.quaternion).normalize();
   }
 
   public updateFrame(
@@ -129,6 +170,7 @@ export class SpaceObjectVisualSystem {
     this.root.visible = true;
     this.worldPositions.clear();
     this.renderedRadii.clear();
+    this.issModelAnchor.visible = false;
     this.requestWorkerSample(frame.currentJdTdb);
     const earth = frame.bodies.find((body) => body.bodyId === 'earth');
     this.renderedEarthSatelliteCount = 0;
@@ -153,10 +195,16 @@ export class SpaceObjectVisualSystem {
         const markerRadius = scaleModel.mode === 'presentation'
           ? (this.selectedObjectId === satellite.id ? 0.00018 : 0.000065)
           : 0.00000008;
-        OBJECT.scale.setScalar(markerRadius);
-        OBJECT.updateMatrix();
-        MATRIX.copy(OBJECT.matrix);
-        this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
+        const useIssModel = index === ISS_INDEX && this.issModelState === 'ready';
+        if (useIssModel) {
+          this.hideInstance(this.earthSatelliteMesh, index);
+          this.updateIssModel(OBJECT.position, state.positionEarthCenteredM, state.velocityEarthCenteredMps, markerRadius);
+        } else {
+          OBJECT.scale.setScalar(markerRadius);
+          OBJECT.updateMatrix();
+          MATRIX.copy(OBJECT.matrix);
+          this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
+        }
         this.recordObjectPosition(satellite.id, OBJECT.position, markerRadius);
         this.renderedEarthSatelliteCount += 1;
       });
@@ -215,20 +263,122 @@ export class SpaceObjectVisualSystem {
       markersNotToScale: true,
       selectedTrajectoryPointCount: this.selectedTrajectoryPointCount,
       propagationExecution: this.workerClient === null ? 'direct-fallback' : 'module-worker',
+      issModelState: this.issModelState,
+      issModelAssetId: ISS_MODEL_ASSET.assetId,
+      issModelMeshCount: this.issModelMeshCount,
+      issModelTriangleCount: this.issModelTriangleCount,
     });
   }
 
   public dispose(): void {
+    this.disposed = true;
     this.root.traverse((object) => {
-      const renderable = object as typeof object & { geometry?: SphereGeometry; material?: MeshStandardMaterial };
+      const renderable = object as typeof object & {
+        geometry?: { dispose(): void };
+        material?: MeshStandardMaterial | MeshStandardMaterial[];
+      };
       renderable.geometry?.dispose();
-      renderable.material?.dispose();
+      const materials = Array.isArray(renderable.material)
+        ? renderable.material
+        : renderable.material === undefined ? [] : [renderable.material];
+      for (const material of materials) disposeMaterial(material);
     });
     this.workerClient?.dispose();
     this.workerClient = null;
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.root.clear();
+  }
+
+  private async requestIssModel(): Promise<void> {
+    if (this.issModelState === 'ready' || this.issModelState === 'fallback') return;
+    if (this.issModelLoad !== null) return this.issModelLoad;
+    this.issModelState = 'loading';
+    this.issModelLoad = this.loadIssModel();
+    return this.issModelLoad;
+  }
+
+  private async loadIssModel(): Promise<void> {
+    try {
+      const [{ GLTFLoader }, { MeshoptDecoder }] = await Promise.all([
+        import('three/addons/loaders/GLTFLoader.js'),
+        import('three/addons/libs/meshopt_decoder.module.js'),
+      ]);
+      const loader = new GLTFLoader();
+      loader.setMeshoptDecoder(MeshoptDecoder);
+      const gltf = await loader.loadAsync(ISS_MODEL_ASSET.file);
+      if (this.disposed) return;
+      const model = gltf.scene;
+      model.name = 'iss-nasa-jsc-igoal-content';
+      model.updateMatrixWorld(true);
+      ISS_BOUNDS.setFromObject(model);
+      ISS_BOUNDS.getCenter(ISS_CENTER);
+      ISS_BOUNDS.getBoundingSphere(ISS_SPHERE);
+      if (!Number.isFinite(ISS_SPHERE.radius) || ISS_SPHERE.radius <= 0) {
+        throw new Error('NASA ISS model has invalid bounds.');
+      }
+      model.position.sub(ISS_CENTER);
+      model.traverse((object) => {
+        if (!(object instanceof Mesh)) return;
+        object.frustumCulled = false;
+        const materials = Array.isArray(object.material) ? object.material : [object.material];
+        for (const material of materials) {
+          if (!(material instanceof MeshStandardMaterial)) continue;
+          // The NASA Blender export marks nearly every surface fully metallic.
+          // That is useful in a neutral model viewer, but the observatory's
+          // deliberately intense solar point light turns it into white glare.
+          // Preserve every authored texture while restoring readable diffuse
+          // color and broad, restrained highlights for the on-orbit close-up.
+          material.color.multiplyScalar(0.78);
+          material.metalness = Math.min(material.metalness, 0.22);
+          material.roughness = Math.max(material.roughness, 0.68);
+          material.envMapIntensity = Math.min(material.envMapIntensity, 0.35);
+          material.needsUpdate = true;
+        }
+        this.issModelMeshCount += 1;
+        const index = object.geometry.getIndex();
+        const position = object.geometry.getAttribute('position');
+        this.issModelTriangleCount += Math.floor((index?.count ?? position?.count ?? 0) / 3);
+      });
+      this.issModelRadiusMeters = ISS_SPHERE.radius;
+      this.issModelAnchor.add(model);
+      this.issModelState = 'ready';
+    } catch (error) {
+      this.issModelState = 'fallback';
+      console.warn('NASA ISS model unavailable; retaining the compact satellite marker.', error);
+    }
+  }
+
+  private updateIssModel(
+    position: Readonly<Vector3>,
+    earthCenteredPositionM: Readonly<PhysicalPosition>,
+    earthCenteredVelocityMps: Readonly<PhysicalPosition>,
+    markerRadius: number,
+  ): void {
+    this.issModelAnchor.visible = true;
+    this.issModelAnchor.position.copy(position);
+    ISS_RADIAL.set(
+      earthCenteredPositionM.x,
+      earthCenteredPositionM.y,
+      earthCenteredPositionM.z,
+    ).normalize();
+    ISS_ALONG_TRACK.set(
+      earthCenteredVelocityMps.x,
+      earthCenteredVelocityMps.y,
+      earthCenteredVelocityMps.z,
+    );
+    ISS_ALONG_TRACK.addScaledVector(ISS_RADIAL, -ISS_ALONG_TRACK.dot(ISS_RADIAL)).normalize();
+    if (ISS_ALONG_TRACK.lengthSq() < 0.5 || ISS_RADIAL.lengthSq() < 0.5) {
+      this.issModelAnchor.quaternion.identity();
+    } else {
+      // NASA's source model uses +X along the pressurized modules, +Y as the
+      // station vertical, and +Z across the solar-array/truss span.
+      ISS_CROSS_TRACK.crossVectors(ISS_ALONG_TRACK, ISS_RADIAL).normalize();
+      ISS_ORIENTATION.makeBasis(ISS_ALONG_TRACK, ISS_RADIAL, ISS_CROSS_TRACK);
+      this.issModelAnchor.quaternion.setFromRotationMatrix(ISS_ORIENTATION);
+    }
+    this.issModelAnchor.scale.setScalar(markerRadius / this.issModelRadiusMeters);
+    this.issModelAnchor.updateMatrixWorld();
   }
 
   private requestWorkerSample(jdTdb: number): void {
@@ -297,10 +447,10 @@ export class SpaceObjectVisualSystem {
   }
 
   private hideInstance(mesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>, index: number): void {
-    OBJECT.position.set(0, 0, 0);
-    OBJECT.scale.setScalar(0);
-    OBJECT.updateMatrix();
-    MATRIX.copy(OBJECT.matrix);
+    // Keep OBJECT intact: the ISS path hides its fallback instance after
+    // calculating the station position, then reuses that position for the
+    // detailed model and camera framing.
+    MATRIX.makeScale(0, 0, 0);
     mesh.setMatrixAt(index, MATRIX);
   }
 
@@ -371,4 +521,13 @@ function createTrajectoryLine(name: string, points: number, color: number): Line
   line.frustumCulled = false;
   line.visible = false;
   return line;
+}
+
+function disposeMaterial(material: MeshStandardMaterial): void {
+  const textures = new Set<Texture>();
+  for (const value of Object.values(material)) {
+    if (value instanceof Texture) textures.add(value);
+  }
+  for (const texture of textures) texture.dispose();
+  material.dispose();
 }
