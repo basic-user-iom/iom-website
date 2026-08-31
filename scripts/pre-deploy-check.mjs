@@ -3,7 +3,7 @@
  * Blocks production deploy when git state is unsafe. The deploy exports committed
  * HEAD into an isolated directory, so workspace-only changes remain local.
  */
-import { execSync } from 'node:child_process'
+import { execFileSync, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +12,10 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function run(cmd, options = {}) {
   return execSync(cmd, { cwd: root, encoding: 'utf8', ...options }).trim()
+}
+
+function runGit(args, options = {}) {
+  return execFileSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true, ...options }).trim()
 }
 
 function fail(message) {
@@ -70,7 +74,7 @@ if (untracked.length > 0) {
 
 // Refresh origin so a later scoped push cannot overwrite newer remote work.
 try {
-  run('git fetch origin master --quiet', { timeout: 120_000 })
+  runGit(['fetch', 'origin', 'master', '--quiet'], { timeout: 120_000 })
 } catch {
   fail('Could not refresh origin/master within 120 seconds. Retry when GitHub is reachable; deployment was not started.')
 }
