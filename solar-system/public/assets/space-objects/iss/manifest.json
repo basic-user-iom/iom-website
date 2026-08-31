@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "assetId": "iss-nasa-jsc-igoal-2026-web",
+  "name": "International Space Station",
+  "file": "iss-nasa-jsc-igoal-web.glb",
+  "sourceOrganization": "NASA/JSC/Integrated Graphics, Operations, and Analysis Laboratory",
+  "sourcePage": "https://science.nasa.gov/3d-resources/international-space-station-iss-d-igoal/",
+  "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/cds/3d/resources/model/international-space-station-%28iss%29-%28d%29-%28igoal%29/International%20Space%20Station%20%28ISS%29%20%28D%29%20%28IGOAL%29.glb",
+  "sourcePublishedUtc": "2026-05-20T00:00:00.000Z",
+  "sourceByteLength": 64846620,
+  "sourceSha256": "3b03742fb55f2a495c4a72aaa2cb175aaeff5ee38f4f42b95f92083e30a464ef",
+  "outputByteLength": 13277888,
+  "outputSha256": "7cea8a71254150a16972dc2b5105c01325c10b3a504c6a63c2f707aea430a127",
+  "sourceMetrics": {
+    "generator": "Khronos glTF Blender I/O v5.0.21",
+    "extensionsRequired": [
+      "KHR_draco_mesh_compression"
+    ],
+    "nodes": 1,
+    "meshes": 1,
+    "primitives": 45,
+    "triangles": 2975912,
+    "materials": 44,
+    "textures": 114
+  },
+  "preparedMetrics": {
+    "nodes": 1,
+    "meshes": 1,
+    "primitives": 44,
+    "triangles": 595180,
+    "materials": 44,
+    "textures": 114,
+    "boundsMeters": {
+      "min": [
+        -36.711,
+        -22.116,
+        -54.136
+      ],
+      "max": [
+        36.712,
+        8.51,
+        54.137
+      ],
+      "size": [
+        73.423,
+        30.626,
+        108.273
+      ]
+    }
+  },
+  "outputMetrics": {
+    "nodes": 1,
+    "meshes": 1,
+    "primitives": 44,
+    "triangles": 595180,
+    "materials": 42,
+    "textures": 114,
+    "boundsMeters": {
+      "min": [
+        -36.714,
+        -22.117,
+        -54.136
+      ],
+      "max": [
+        36.714,
+        8.511,
+        54.137
+      ],
+      "size": [
+        73.429,
+        30.628,
+        108.273
+      ]
+    }
+  },
+  "transforms": [
+    "Decode the source KHR_draco_mesh_compression geometry without changing the station hierarchy or materials.",
+    "Weld and deduplicate geometry, flatten the single source scene, and prune unused resources.",
+    "Use the Blender-decoded 0.20-ratio source prepared by prepare-iss-source-blender.py; preserve that geometry through transport optimization.",
+    "Resize embedded textures to a maximum 512 x 512 and encode quality-82 WebP.",
+    "Quantize, reorder, and encode geometry with required EXT_meshopt_compression at the medium level."
+  ],
+  "runtime": {
+    "lazyLoaded": true,
+    "orientation": "LVLH approximation from SGP4 position and velocity: source +X along-track, +Y radial/zenith, +Z cross-track.",
+    "physicalSpanMeters": 109,
+    "displayScale": "Station geometry is proportionally accurate; selected-object size is exaggerated for inspection.",
+    "fallback": "The existing compact satellite marker remains available if model loading or decoding fails."
+  },
+  "usage": {
+    "credit": "NASA/JSC/IGOAL",
+    "guidelines": "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "notice": "NASA should be acknowledged as the source. Use is informational and does not imply NASA endorsement."
+  }
+}

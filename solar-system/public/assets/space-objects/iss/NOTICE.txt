@@ -1,0 +1,18 @@
+International Space Station model
+=================================
+
+Source: NASA/JSC/Integrated Graphics, Operations, and Analysis Laboratory (IGOAL)
+Source page: https://science.nasa.gov/3d-resources/international-space-station-iss-d-igoal/
+Published by NASA: 20 May 2026
+
+This repository contains a web-optimized derivative of NASA's official GLB.
+The geometry, material grouping, and textures are retained; mesh and texture
+transport were reduced for interactive browser rendering. Exact source and
+output checksums and the complete transformation record are in manifest.json.
+
+NASA's media guidelines state that files used in the rendition of 3D models
+are generally not subject to copyright in the United States and may be used
+for informational purposes. NASA should be acknowledged as the source. This
+use does not imply NASA review or endorsement.
+
+Guidelines: https://www.nasa.gov/nasa-brand-center/images-and-media/

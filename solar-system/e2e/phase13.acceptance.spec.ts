@@ -36,6 +36,27 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await panel.getByRole('option', { name: /ISS/ }).click()
     await expect(canvas).toHaveAttribute('data-space-object-selected', 'earth-satellite-25544')
     await expect(canvas).toHaveAttribute('data-space-object-trajectory-points', '96')
+    await expect(canvas).toHaveAttribute('data-iss-model-asset-id', 'iss-nasa-jsc-igoal-2026-web')
+    await expect(canvas).toHaveAttribute('data-iss-model-state', 'ready', { timeout: 45_000 })
+    await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-mesh-count'))).toBeGreaterThan(0)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-triangle-count'))).toBeGreaterThan(500_000)
+    await panel.getByRole('button', { name: 'Frame selected satellite' }).click()
+    await expect(canvas).toHaveAttribute('data-camera-mode', 'free-orbit')
+    await expect.poll(async () => {
+      const target = (await canvas.getAttribute('data-camera-world-target'))?.split(',').map(Number) ?? []
+      return target.length === 3 ? Math.hypot(target[0] ?? 0, target[1] ?? 0, target[2] ?? 0) : 0
+    }).toBeGreaterThan(0.001)
+    await expect.poll(async () => {
+      const position = (await canvas.getAttribute('data-camera-position'))?.split(',').map(Number) ?? []
+      const target = (await canvas.getAttribute('data-camera-world-target'))?.split(',').map(Number) ?? []
+      return position.length === 3 && target.length === 3
+        ? Math.hypot(
+            (position[0] ?? 0) - (target[0] ?? 0),
+            (position[1] ?? 0) - (target[1] ?? 0),
+            (position[2] ?? 0) - (target[2] ?? 0),
+          )
+        : Number.POSITIVE_INFINITY
+    }).toBeLessThan(0.001)
     await panel.getByRole('tab', { name: /Spacecraft/ }).click()
     await panel.getByRole('option', { name: /Voyager 1/ }).click()
     await expect(canvas).toHaveAttribute('data-space-object-selected', 'voyager-1')
