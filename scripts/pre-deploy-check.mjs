@@ -72,7 +72,7 @@ if (untracked.length > 0) {
 try {
   run('git fetch origin master --quiet', { timeout: 120_000 })
 } catch {
-  warn('Could not fetch origin/master within 120 seconds — continuing with the cached remote state; the scoped push remains authoritative.')
+  fail('Could not refresh origin/master within 120 seconds. Retry when GitHub is reachable; deployment was not started.')
 }
 
 let unpushed = 0
