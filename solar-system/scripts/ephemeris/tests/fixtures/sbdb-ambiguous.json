@@ -1,0 +1,12 @@
+{
+  "signature": {
+    "source": "NASA/JPL Small-Body Database (SBDB) API",
+    "version": "1.3"
+  },
+  "code": 300,
+  "message": "specified query matched more than one object",
+  "list": [
+    { "pdes": "141P", "name": "141P/Machholz 2" },
+    { "pdes": "141P-A", "name": "141P/Machholz 2-A" }
+  ]
+}

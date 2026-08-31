@@ -1,0 +1,73 @@
+{
+  "signature": {
+    "source": "NASA/JPL Small-Body Database (SBDB) API",
+    "version": "1.3"
+  },
+  "object": {
+    "des": "67P",
+    "spkid": "1000012",
+    "fullname": "67P/Churyumov-Gerasimenko",
+    "kind": "cn",
+    "prefix": "P",
+    "orbit_id": "K213/6",
+    "orbit_class": {
+      "code": "JFc",
+      "name": "Jupiter-family Comet"
+    },
+    "des_alt": [],
+    "spkid_alt": []
+  },
+  "orbit": {
+    "source": "JPL",
+    "orbit_id": "K213/6",
+    "epoch": "2457305.5",
+    "equinox": "J2000",
+    "pe_used": "DE441",
+    "sb_used": "SB441-N16",
+    "not_valid_before": null,
+    "not_valid_after": null,
+    "elements": [
+      { "name": "e", "value": ".6409081306555051", "sigma": "2.7465E-8", "units": null },
+      { "name": "q", "value": "1.243265641416762", "sigma": "9.8827E-8", "units": "au" },
+      { "name": "tp", "value": "2457247.588657863465", "sigma": "1.7755E-5", "units": "TDB" },
+      { "name": "om", "value": "50.13557380441372", "sigma": "2.28E-5", "units": "deg" },
+      { "name": "w", "value": "12.79824973415729", "sigma": "2.3028E-5", "units": "deg" },
+      { "name": "i", "value": "7.040294906760007", "sigma": "2.7143E-6", "units": "deg" },
+      { "name": "per", "value": "2353.076067532089", "sigma": ".00015791", "units": "d" }
+    ],
+    "model_pars": [
+      {
+        "name": "A1",
+        "value": "1.042451026100725E-9",
+        "sigma": "1.321E-11",
+        "units": "au/d^2",
+        "kind": "EST"
+      }
+    ],
+    "covariance": {
+      "epoch": "2457305.5",
+      "labels": ["e", "q"],
+      "data": [
+        ["7.543E-16", "-1.118E-15"],
+        ["-1.118E-15", "9.766E-15"]
+      ]
+    }
+  },
+  "alt_orbits": [],
+  "phys_par": [
+    {
+      "name": "diameter",
+      "value": "3.4",
+      "sigma": "0.1",
+      "units": "km",
+      "ref": "Sierks et al., Science 347, aaa1044 (2015)"
+    },
+    {
+      "name": "extent",
+      "value": "4.3x4.1x2.6",
+      "sigma": null,
+      "units": "km",
+      "ref": "fixture verifies non-scalar fields are preserved"
+    }
+  ]
+}

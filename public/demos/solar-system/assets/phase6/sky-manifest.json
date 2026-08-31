@@ -1,0 +1,374 @@
+{
+  "schema_version": 1,
+  "generated_at": "2026-08-29T12:38:53.361Z",
+  "scope": "Phase 6 celestial-background generated asset bundle",
+  "generator": {
+    "id": "iom-phase6-sky-assets/1.0.0",
+    "entry_point": "scripts/phase6/generate-sky-assets.mjs",
+    "generation_commands": {
+      "clean_checkout_online": "npm run generate:phase6-sky",
+      "cached_offline": "npm run generate:phase6-sky -- --offline"
+    },
+    "source_cache": ".cache/phase6-sky (ignored by git; the cached-offline command requires both source files to exist)",
+    "reproducibility": {
+      "asset_bytes": "With identical source bytes and the locked generator versions, the image and catalog asset bytes are intended to reproduce.",
+      "manifest_timestamp": "generated_at records the wall-clock time of each run, so sky-manifest.json is intentionally not byte-for-byte deterministic."
+    },
+    "versions": {
+      "three_exr_loader": "0.181.2",
+      "sharp": "0.35.3",
+      "libvips": "8.18.3"
+    }
+  },
+  "coordinate_contract": {
+    "panorama_reference_system": "ICRF equatorial, J2000.0",
+    "star_catalog_reference_system": "FK5 equatorial, equinox and epoch J2000.0",
+    "visual_alignment": "The renderer treats the ICRF and FK5/J2000 axes as coincident for this visualization; their sub-arcsecond distinction is not modeled.",
+    "right_handed": true,
+    "star_directions": "Catalog right ascension and declination are stored in radians; they are static J2000 directions.",
+    "panorama": "Plate carrée equatorial projection with RA increasing right-to-left and RA 0h at horizontal center.",
+    "runtime_scene_mapping": "The renderer is responsible for applying one equatorial-to-scene axis map consistently to both panorama and points."
+  },
+  "sources": [
+    {
+      "source_id": "nasa-svs-deep-star-maps-2020-milky-way-8k-exr",
+      "organization": "NASA/Goddard Space Flight Center Scientific Visualization Studio",
+      "title": "Deep Star Maps 2020 — Milky Way background without bright stars, 8K OpenEXR",
+      "record": "https://svs.gsfc.nasa.gov/4851/",
+      "machine_record": "https://svs.gsfc.nasa.gov/api/4851",
+      "exact_download": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_8k.exr",
+      "retrieved_at": "2026-08-29T12:31:27.752Z",
+      "final_url": "https://svs.gsfc.nasa.gov/vis/a000000/a004800/a004851/milkyway_2020_8k.exr",
+      "response_headers": {
+        "content_type": "image/aces",
+        "content_length": "137307727",
+        "etag": "\"82f264f-5c94aafaf9ac1\"",
+        "last_modified": "Wed, 11 Aug 2021 15:58:15 GMT"
+      },
+      "media_type": "image/x-exr",
+      "byte_length": 137307727,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "361d1961647af073b3b3e4aea4fca85f15b3c9d915e0c8c4befb02520dadd10a"
+      },
+      "dimensions": {
+        "width": 8192,
+        "height": 4096
+      },
+      "data_semantics": "Plate carrée celestial background in ICRF/J2000 equatorial coordinates. This milkyway_2020 layer intentionally omits the separate bright Hipparcos/Tycho stars.",
+      "credit": "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC."
+    },
+    {
+      "source_id": "nasa-heasarc-bsc5p-stream",
+      "organization": "NASA High Energy Astrophysics Science Archive Research Center (HEASARC)",
+      "title": "Bright Star Catalog, 5th Revised Ed. (BSC5P)",
+      "record": "https://heasarc.gsfc.nasa.gov/W3Browse/catalog/bsc5p.html",
+      "api_documentation": "https://heasarc.gsfc.nasa.gov/docs/xamin-api.html",
+      "exact_query": "https://heasarc.gsfc.nasa.gov/xamin/query?table=bsc5p&fields=hr%2Cra%2Cdec%2Cvmag%2Cbv_color&format=stream&resultmax=10000&sortvar=hr",
+      "retrieved_at": "2026-08-29T12:30:28.756Z",
+      "final_url": "https://heasarc.gsfc.nasa.gov/xamin/query?table=bsc5p&fields=hr%2Cra%2Cdec%2Cvmag%2Cbv_color&format=stream&resultmax=10000&sortvar=hr",
+      "response_headers": {
+        "content_type": "text/plain; charset=ISO-8859-1",
+        "content_length": null,
+        "etag": null,
+        "last_modified": null
+      },
+      "media_type": "text/plain; charset=ISO-8859-1",
+      "byte_length": 349469,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "d5a87a534d42928fe5e7ff64d3624dd2b4a7e735e967151539a0edf137b60507"
+      },
+      "catalog_citation": "Hoffleit, D. & Warren, W. H. Jr. 1991, Bright Star Catalog, 5th Revised Ed."
+    }
+  ],
+  "assets": [
+    {
+      "asset_id": "milky-way-2020-4k-webp",
+      "local_file": "milky-way-4k.webp",
+      "source_id": "nasa-svs-deep-star-maps-2020-milky-way-8k-exr",
+      "media_type": "image/webp",
+      "byte_length": 675372,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "ef5d73597c903ca5f8bff0168df9ebe8ec1776bacedfa1819567cd072f95581b"
+      },
+      "dimensions": {
+        "width": 4096,
+        "height": 2048
+      },
+      "color_space": {
+        "source": "Linear RGB half-float OpenEXR as supplied by NASA SVS",
+        "encoded": "8-bit sRGB WebP without alpha",
+        "runtime": "sRGB texture decode; display intensity remains renderer-authored"
+      },
+      "projection": {
+        "type": "plate carrée / equirectangular celestial map",
+        "reference_frame": "ICRF equatorial coordinates at J2000.0",
+        "horizontal": "Right ascension spans 24h; RA increases from right to left; RA 0h is at horizontal center.",
+        "vertical": "Declination +90 degrees is the top edge and -90 degrees is the bottom edge.",
+        "wrap": "Horizontal seam wraps at RA 12h opposite the centered RA 0h meridian."
+      },
+      "tier_transform": "The 4K tier is a 2 x 2 area average in linear source space.",
+      "public_url": "/assets/phase6/milky-way-4k.webp"
+    },
+    {
+      "asset_id": "milky-way-2020-8k-webp",
+      "local_file": "milky-way-8k.webp",
+      "source_id": "nasa-svs-deep-star-maps-2020-milky-way-8k-exr",
+      "media_type": "image/webp",
+      "byte_length": 5173452,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "62c7761c5ae9469cd5bd72889bf7e1871a1c523e46c1695fc5bc0c4baf0fc734"
+      },
+      "dimensions": {
+        "width": 8192,
+        "height": 4096
+      },
+      "color_space": {
+        "source": "Linear RGB half-float OpenEXR as supplied by NASA SVS",
+        "encoded": "8-bit sRGB WebP without alpha",
+        "runtime": "sRGB texture decode; display intensity remains renderer-authored"
+      },
+      "projection": {
+        "type": "plate carrée / equirectangular celestial map",
+        "reference_frame": "ICRF equatorial coordinates at J2000.0",
+        "horizontal": "Right ascension spans 24h; RA increases from right to left; RA 0h is at horizontal center.",
+        "vertical": "Declination +90 degrees is the top edge and -90 degrees is the bottom edge.",
+        "wrap": "Horizontal seam wraps at RA 12h opposite the centered RA 0h meridian."
+      },
+      "tier_transform": "No spatial resampling; each source RGB texel receives the fixed display transform.",
+      "public_url": "/assets/phase6/milky-way-8k.webp"
+    },
+    {
+      "asset_id": "bright-star-catalog-bsc5p-json-v1",
+      "local_file": "bright-stars.bsc5p.v1.json",
+      "source_id": "nasa-heasarc-bsc5p-stream",
+      "media_type": "application/json",
+      "usage": "Published inspection/provenance copy; the browser runtime does not fetch this file.",
+      "byte_length": 910168,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "13cca15195b866d1e55a1edea292ee6537127f87057c59d7d64277c4b20ca193"
+      },
+      "compile_time_copy": {
+        "project_path": "src/data/catalogs/bright-stars.bsc5p.v1.json",
+        "relationship": "byte-for-byte identical to the public JSON asset",
+        "usage": "Imported at build time and bundled as the current browser runtime star-catalog input.",
+        "byte_length": 910168,
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "13cca15195b866d1e55a1edea292ee6537127f87057c59d7d64277c4b20ca193"
+        }
+      },
+      "schema": {
+        "schema_version": 1,
+        "row_container": "stars",
+        "field_order": [
+          "hr",
+          "ra_rad",
+          "dec_rad",
+          "vmag",
+          "bv_color"
+        ],
+        "missing_value": null
+      },
+      "public_url": "/assets/phase6/bright-stars.bsc5p.v1.json"
+    },
+    {
+      "asset_id": "bright-star-catalog-bsc5p-binary-v1",
+      "local_file": "bright-stars.bsc5p.v1.bin",
+      "source_id": "nasa-heasarc-bsc5p-stream",
+      "media_type": "application/octet-stream",
+      "usage": "Published compact alternate/verification encoding; the browser runtime does not fetch this file.",
+      "byte_length": 181952,
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "b5275b58e1a0d98fe0422f979077d75325b1c81eaa3b46bbc8d25fd853b1ab0b"
+      },
+      "binary_format": {
+        "byte_order": "little-endian",
+        "magic_ascii": "IOMSTAR\\0",
+        "version": "1.0",
+        "header_bytes": 32,
+        "record_bytes": 20,
+        "record_count": 9096,
+        "header_layout": [
+          {
+            "offset": 0,
+            "bytes": 8,
+            "type": "ASCII",
+            "field": "magic"
+          },
+          {
+            "offset": 8,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "major_version"
+          },
+          {
+            "offset": 10,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "minor_version"
+          },
+          {
+            "offset": 12,
+            "bytes": 4,
+            "type": "uint32",
+            "field": "header_bytes"
+          },
+          {
+            "offset": 16,
+            "bytes": 4,
+            "type": "uint32",
+            "field": "record_count"
+          },
+          {
+            "offset": 20,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "record_bytes"
+          },
+          {
+            "offset": 22,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "flags",
+            "semantics": "bit 0: sorted by HR"
+          },
+          {
+            "offset": 24,
+            "bytes": 4,
+            "type": "uint32",
+            "field": "data_offset"
+          },
+          {
+            "offset": 28,
+            "bytes": 4,
+            "type": "uint32",
+            "field": "file_bytes"
+          }
+        ],
+        "record_layout": [
+          {
+            "offset": 0,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "hr"
+          },
+          {
+            "offset": 2,
+            "bytes": 2,
+            "type": "uint16",
+            "field": "flags",
+            "semantics": "bit 0: B-V present"
+          },
+          {
+            "offset": 4,
+            "bytes": 4,
+            "type": "float32",
+            "field": "ra_rad"
+          },
+          {
+            "offset": 8,
+            "bytes": 4,
+            "type": "float32",
+            "field": "dec_rad"
+          },
+          {
+            "offset": 12,
+            "bytes": 4,
+            "type": "float32",
+            "field": "vmag"
+          },
+          {
+            "offset": 16,
+            "bytes": 4,
+            "type": "float32",
+            "field": "bv_color",
+            "semantics": "0 when absent"
+          }
+        ]
+      },
+      "public_url": "/assets/phase6/bright-stars.bsc5p.v1.bin"
+    }
+  ],
+  "transformations": {
+    "milky_way": [
+      "Decode the official 8192 x 4096 linear half-float OpenEXR with Three.js EXRLoader.",
+      "Clamp negative/non-finite input, apply exposure 1, the fixed ACES fitted (Narkowicz approximation), and the IEC 61966-2-1 sRGB transfer function.",
+      "The 4K tier is a 2 x 2 area average in linear source space.",
+      "Encode both tiers as 8-bit sRGB WebP with quality 88, effort 6, and smart subsampling enabled.",
+      "Discard the alpha component synthesized by Three.js EXRLoader when it expands the source B/G/R channels to RGBA. The source OpenEXR has no alpha channel. No crop, reprojection, rotation, seam shift, denoising, recoloring, or painted content is applied."
+    ],
+    "bright_stars": [
+      "Parse HEASARC Xamin pipe-delimited fields hr, ra, dec, vmag, and bv_color.",
+      "Convert sexagesimal J2000 right ascension and declination to radians without precession or proper-motion propagation.",
+      "Exclude the 14 HEASARC-identified nonstellar HR rows listed in filters.excluded_nonstellar_hr.",
+      "Sort by ascending Harvard Revised number and encode both a transparent JSON catalog and compact little-endian binary catalog."
+    ]
+  },
+  "filters": {
+    "bright_stars": {
+      "source_rows": 9110,
+      "excluded_nonstellar_hr": [
+        92,
+        95,
+        182,
+        1057,
+        1841,
+        2472,
+        2496,
+        3515,
+        3671,
+        6309,
+        6515,
+        7189,
+        7539,
+        8296
+      ],
+      "retained_rows": 9096
+    }
+  },
+  "statistics": {
+    "milky_way_linear_source": {
+      "sampled_rgb_values": 100663296,
+      "minimum_rgb": [
+        0,
+        0,
+        0
+      ],
+      "maximum_rgb": [
+        1,
+        1,
+        1
+      ],
+      "negative_values_clamped": 0,
+      "nonfinite_values_clamped": 0
+    },
+    "bright_stars": {
+      "bv_color_present": 8786,
+      "bv_color_missing": 310,
+      "minimum_vmag": -1.46,
+      "maximum_vmag": 7.96
+    }
+  },
+  "credits": [
+    "NASA/Goddard Space Flight Center Scientific Visualization Studio. Gaia DR2: ESA/Gaia/DPAC.",
+    "Bright Star Catalog: Hoffleit, D. & Warren, W. H. Jr. (1991), BSC5P; catalog service provided by NASA HEASARC.",
+    "When using HEASARC data, acknowledge NASA HEASARC and the original catalog authors. Attribution does not imply endorsement."
+  ],
+  "policy_references": [
+    "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "https://heasarc.gsfc.nasa.gov/docs/heasarc/data_policy.html"
+  ],
+  "limitations": [
+    "The Milky Way WebPs are deterministic 8-bit display derivatives of the official linear OpenEXR, not unmodified NASA files or radiometrically calibrated measurements.",
+      "BSC5P directions are static J2000 catalog coordinates. This bundle does not propagate proper motion, parallax, precession, aberration, or radial velocity.",
+      "HEASARC defines the retained Vmag field as photographic magnitude. Vmag_Code and Vmag_Uncert were not requested, so the bundle does not retain per-record magnitude provenance or uncertainty flags.",
+      "B-V is retained when present for an approximate display-color cue; it is not a complete spectral energy distribution.",
+    "The panorama layer excludes its source product’s separate bright-star layer so the BSC5P points do not intentionally double those stars."
+  ]
+}

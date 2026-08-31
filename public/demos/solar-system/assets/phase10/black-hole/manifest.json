@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "assetFamily": "bruneton-black-hole-ray-lookup-tables",
+  "upstream": {
+    "project": "Eric Bruneton, A Real-time High-quality Black Hole Shader",
+    "repository": "https://github.com/ebruneton/black_hole_shader",
+    "documentation": "https://ebruneton.github.io/black_hole_shader/",
+    "referenceCommit": "e72b3f293409893a6fa25528b29572c96fc57f57",
+    "license": "BSD-3-Clause",
+    "copyright": "Copyright (c) 2020 Eric Bruneton"
+  },
+  "retrieval": {
+    "date": "2026-08-29",
+    "transformation": "None. Both .dat files are byte-for-byte copies of the official GitHub Pages demo assets."
+  },
+  "format": {
+    "byteOrder": "little-endian",
+    "header": "two Float32 values: width, height",
+    "payload": "row-major, interleaved RG Float32 values"
+  },
+  "files": [
+    {
+      "path": "deflection.dat",
+      "role": "ray-deflection lookup",
+      "sourceUrl": "https://ebruneton.github.io/black_hole_shader/demo/deflection.dat",
+      "byteLength": 2097160,
+      "width": 512,
+      "height": 512,
+      "components": 2,
+      "sha256": "1080f45a12fba81321771c2071f4a31795444b110833f61384a9bdf7d057c19d"
+    },
+    {
+      "path": "inverse_radius.dat",
+      "role": "ray inverse-radius lookup",
+      "sourceUrl": "https://ebruneton.github.io/black_hole_shader/demo/inverse_radius.dat",
+      "byteLength": 16392,
+      "width": 64,
+      "height": 32,
+      "components": 2,
+      "sha256": "7fa22a9270e61f2842c97fb1a9398bcb13e1a965ad39b0f73169354a0d608b04"
+    }
+  ],
+  "notice": "NOTICE.txt"
+}

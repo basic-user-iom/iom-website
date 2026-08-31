@@ -1,0 +1,1068 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "jpl-horizons-small-bodies-fa7cdf93908e0612",
+  "catalogVersion": "phase6-comets/1.0.0",
+  "binaryFile": "small-body-ephemeris.v1.bin",
+  "binarySha256": "8e68010d0efdec1f42725b042680898d2e8a04f874f5406ff07f06b0f11c53c1",
+  "generatedAtIso": "2026-08-29T13:09:43.453Z",
+  "coverage": {
+    "startJdTdb": 2451544.5,
+    "endJdTdb": 2488069.5,
+    "timeScale": "TDB"
+  },
+  "samplingStrategy": {
+    "type": "piecewise-uniform-segments",
+    "boundaryPolicy": "adjacent segments share one exact state sample",
+    "selectionPolicy": "finest cadence wins at a shared boundary",
+    "physicalSeriesIdPolicy": "<logical-body-id>--<kind>-<zero-padded-segment-index>"
+  },
+  "bodies": [
+    {
+      "bodyId": "1p-halley",
+      "displayName": "1P/Halley",
+      "targetId": "1000036",
+      "segments": [
+        {
+          "seriesBodyId": "1p-halley--baseline-0000",
+          "startJdTdb": 2451544.5,
+          "endJdTdb": 2473467.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 0,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "1p-halley--perihelion-0001",
+          "startJdTdb": 2473467.5,
+          "endJdTdb": 2474928.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 1,
+          "periheliaJdTdb": [
+            2474198.019704051
+          ]
+        },
+        {
+          "seriesBodyId": "1p-halley--baseline-0002",
+          "startJdTdb": 2474928.5,
+          "endJdTdb": 2488069.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 2,
+          "periheliaJdTdb": []
+        }
+      ]
+    },
+    {
+      "bodyId": "2p-encke",
+      "displayName": "2P/Encke",
+      "targetId": "1000025",
+      "segments": [
+        {
+          "seriesBodyId": "2p-encke--baseline-0000",
+          "startJdTdb": 2451544.5,
+          "endJdTdb": 2451603.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 0,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0001",
+          "startJdTdb": 2451603.5,
+          "endJdTdb": 2451964.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 1,
+          "periheliaJdTdb": [
+            2451784.48879832
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0002",
+          "startJdTdb": 2451964.5,
+          "endJdTdb": 2452811.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 2,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0003",
+          "startJdTdb": 2452811.5,
+          "endJdTdb": 2453183.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 3,
+          "periheliaJdTdb": [
+            2452992.390076909,
+            2453003.37660239
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0004",
+          "startJdTdb": 2453183.5,
+          "endJdTdb": 2454019.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 4,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0005",
+          "startJdTdb": 2454019.5,
+          "endJdTdb": 2454380.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 5,
+          "periheliaJdTdb": [
+            2454200.291355498
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0006",
+          "startJdTdb": 2454380.5,
+          "endJdTdb": 2455227.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 6,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0007",
+          "startJdTdb": 2455227.5,
+          "endJdTdb": 2455588.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 7,
+          "periheliaJdTdb": [
+            2455408.192634087
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0008",
+          "startJdTdb": 2455588.5,
+          "endJdTdb": 2456435.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 8,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0009",
+          "startJdTdb": 2456435.5,
+          "endJdTdb": 2456796.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 9,
+          "periheliaJdTdb": [
+            2456616.093912676
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0010",
+          "startJdTdb": 2456796.5,
+          "endJdTdb": 2457642.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 10,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0011",
+          "startJdTdb": 2457642.5,
+          "endJdTdb": 2458004.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 11,
+          "periheliaJdTdb": [
+            2457822.536683888,
+            2457823.995191265
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0012",
+          "startJdTdb": 2458004.5,
+          "endJdTdb": 2458851.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 12,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0013",
+          "startJdTdb": 2458851.5,
+          "endJdTdb": 2459212.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 13,
+          "periheliaJdTdb": [
+            2459031.896469855
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0014",
+          "startJdTdb": 2459212.5,
+          "endJdTdb": 2460059.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 14,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0015",
+          "startJdTdb": 2460059.5,
+          "endJdTdb": 2460420.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 15,
+          "periheliaJdTdb": [
+            2460239.797748443
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0016",
+          "startJdTdb": 2460420.5,
+          "endJdTdb": 2461267.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 16,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0017",
+          "startJdTdb": 2461267.5,
+          "endJdTdb": 2461628.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 17,
+          "periheliaJdTdb": [
+            2461447.699027032
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0018",
+          "startJdTdb": 2461628.5,
+          "endJdTdb": 2462475.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 18,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0019",
+          "startJdTdb": 2462475.5,
+          "endJdTdb": 2462836.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 19,
+          "periheliaJdTdb": [
+            2462655.600305622
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0020",
+          "startJdTdb": 2462836.5,
+          "endJdTdb": 2463683.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 20,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0021",
+          "startJdTdb": 2463683.5,
+          "endJdTdb": 2464044.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 21,
+          "periheliaJdTdb": [
+            2463863.501584211
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0022",
+          "startJdTdb": 2464044.5,
+          "endJdTdb": 2464890.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 22,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0023",
+          "startJdTdb": 2464890.5,
+          "endJdTdb": 2465251.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 23,
+          "periheliaJdTdb": [
+            2465071.4028628
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0024",
+          "startJdTdb": 2465251.5,
+          "endJdTdb": 2466098.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 24,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0025",
+          "startJdTdb": 2466098.5,
+          "endJdTdb": 2466459.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 25,
+          "periheliaJdTdb": [
+            2466279.304141389
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0026",
+          "startJdTdb": 2466459.5,
+          "endJdTdb": 2467306.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 26,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0027",
+          "startJdTdb": 2467306.5,
+          "endJdTdb": 2467667.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 27,
+          "periheliaJdTdb": [
+            2467487.205419978
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0028",
+          "startJdTdb": 2467667.5,
+          "endJdTdb": 2468514.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 28,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0029",
+          "startJdTdb": 2468514.5,
+          "endJdTdb": 2468875.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 29,
+          "periheliaJdTdb": [
+            2468695.106698567
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0030",
+          "startJdTdb": 2468875.5,
+          "endJdTdb": 2469722.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 30,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0031",
+          "startJdTdb": 2469722.5,
+          "endJdTdb": 2470083.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 31,
+          "periheliaJdTdb": [
+            2469903.007977156
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0032",
+          "startJdTdb": 2470083.5,
+          "endJdTdb": 2470930.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 32,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0033",
+          "startJdTdb": 2470930.5,
+          "endJdTdb": 2471291.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 33,
+          "periheliaJdTdb": [
+            2471110.909255745
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0034",
+          "startJdTdb": 2471291.5,
+          "endJdTdb": 2472138.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 34,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0035",
+          "startJdTdb": 2472138.5,
+          "endJdTdb": 2472499.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 35,
+          "periheliaJdTdb": [
+            2472318.810534335
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0036",
+          "startJdTdb": 2472499.5,
+          "endJdTdb": 2473346.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 36,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0037",
+          "startJdTdb": 2473346.5,
+          "endJdTdb": 2473707.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 37,
+          "periheliaJdTdb": [
+            2473526.711812923
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0038",
+          "startJdTdb": 2473707.5,
+          "endJdTdb": 2474554.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 38,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0039",
+          "startJdTdb": 2474554.5,
+          "endJdTdb": 2474915.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 39,
+          "periheliaJdTdb": [
+            2474734.613091513
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0040",
+          "startJdTdb": 2474915.5,
+          "endJdTdb": 2475762.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 40,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0041",
+          "startJdTdb": 2475762.5,
+          "endJdTdb": 2476123.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 41,
+          "periheliaJdTdb": [
+            2475942.514370102
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0042",
+          "startJdTdb": 2476123.5,
+          "endJdTdb": 2476969.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 42,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0043",
+          "startJdTdb": 2476969.5,
+          "endJdTdb": 2477330.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 43,
+          "periheliaJdTdb": [
+            2477150.415648691
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0044",
+          "startJdTdb": 2477330.5,
+          "endJdTdb": 2478177.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 44,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0045",
+          "startJdTdb": 2478177.5,
+          "endJdTdb": 2478538.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 45,
+          "periheliaJdTdb": [
+            2478358.31692728
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0046",
+          "startJdTdb": 2478538.5,
+          "endJdTdb": 2479385.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 46,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0047",
+          "startJdTdb": 2479385.5,
+          "endJdTdb": 2479746.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 47,
+          "periheliaJdTdb": [
+            2479566.218205869
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0048",
+          "startJdTdb": 2479746.5,
+          "endJdTdb": 2480593.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 48,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0049",
+          "startJdTdb": 2480593.5,
+          "endJdTdb": 2480954.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 49,
+          "periheliaJdTdb": [
+            2480774.119484458
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0050",
+          "startJdTdb": 2480954.5,
+          "endJdTdb": 2481801.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 50,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0051",
+          "startJdTdb": 2481801.5,
+          "endJdTdb": 2482162.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 51,
+          "periheliaJdTdb": [
+            2481982.020763047
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0052",
+          "startJdTdb": 2482162.5,
+          "endJdTdb": 2483009.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 52,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0053",
+          "startJdTdb": 2483009.5,
+          "endJdTdb": 2483370.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 53,
+          "periheliaJdTdb": [
+            2483189.922041636
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0054",
+          "startJdTdb": 2483370.5,
+          "endJdTdb": 2484217.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 54,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0055",
+          "startJdTdb": 2484217.5,
+          "endJdTdb": 2484578.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 55,
+          "periheliaJdTdb": [
+            2484397.823320226
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0056",
+          "startJdTdb": 2484578.5,
+          "endJdTdb": 2485425.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 56,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0057",
+          "startJdTdb": 2485425.5,
+          "endJdTdb": 2485786.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 57,
+          "periheliaJdTdb": [
+            2485605.724598815
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0058",
+          "startJdTdb": 2485786.5,
+          "endJdTdb": 2486633.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 58,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0059",
+          "startJdTdb": 2486633.5,
+          "endJdTdb": 2486994.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 59,
+          "periheliaJdTdb": [
+            2486813.625877404
+          ]
+        },
+        {
+          "seriesBodyId": "2p-encke--baseline-0060",
+          "startJdTdb": 2486994.5,
+          "endJdTdb": 2487841.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 60,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "2p-encke--perihelion-0061",
+          "startJdTdb": 2487841.5,
+          "endJdTdb": 2488069.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 61,
+          "periheliaJdTdb": [
+            2488021.527155993
+          ]
+        }
+      ]
+    },
+    {
+      "bodyId": "67p-churyumov-gerasimenko",
+      "displayName": "67P/Churyumov-Gerasimenko",
+      "targetId": "1000012",
+      "segments": [
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0000",
+          "startJdTdb": 2451544.5,
+          "endJdTdb": 2452139.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 0,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0001",
+          "startJdTdb": 2452139.5,
+          "endJdTdb": 2452906.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 1,
+          "periheliaJdTdb": [
+            2452504.8092,
+            2452541.436522799
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0002",
+          "startJdTdb": 2452906.5,
+          "endJdTdb": 2454527.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 2,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0003",
+          "startJdTdb": 2454527.5,
+          "endJdTdb": 2455260.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 3,
+          "periheliaJdTdb": [
+            2454893.089079235,
+            2454894.512590332
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0004",
+          "startJdTdb": 2455260.5,
+          "endJdTdb": 2456881.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 4,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0005",
+          "startJdTdb": 2456881.5,
+          "endJdTdb": 2457613.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 5,
+          "periheliaJdTdb": [
+            2457247.348526136,
+            2457247.588657864
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0006",
+          "startJdTdb": 2457613.5,
+          "endJdTdb": 2459235.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 6,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0007",
+          "startJdTdb": 2459235.5,
+          "endJdTdb": 2459966.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 7,
+          "periheliaJdTdb": [
+            2459600.664725396
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0008",
+          "startJdTdb": 2459966.5,
+          "endJdTdb": 2461588.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 8,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0009",
+          "startJdTdb": 2461588.5,
+          "endJdTdb": 2462319.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 9,
+          "periheliaJdTdb": [
+            2461953.740792928
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0010",
+          "startJdTdb": 2462319.5,
+          "endJdTdb": 2463941.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 10,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0011",
+          "startJdTdb": 2463941.5,
+          "endJdTdb": 2464672.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 11,
+          "periheliaJdTdb": [
+            2464306.81686046
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0012",
+          "startJdTdb": 2464672.5,
+          "endJdTdb": 2466294.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 12,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0013",
+          "startJdTdb": 2466294.5,
+          "endJdTdb": 2467025.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 13,
+          "periheliaJdTdb": [
+            2466659.892927992
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0014",
+          "startJdTdb": 2467025.5,
+          "endJdTdb": 2468647.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 14,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0015",
+          "startJdTdb": 2468647.5,
+          "endJdTdb": 2469378.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 15,
+          "periheliaJdTdb": [
+            2469012.968995524
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0016",
+          "startJdTdb": 2469378.5,
+          "endJdTdb": 2471000.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 16,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0017",
+          "startJdTdb": 2471000.5,
+          "endJdTdb": 2471731.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 17,
+          "periheliaJdTdb": [
+            2471366.045063056
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0018",
+          "startJdTdb": 2471731.5,
+          "endJdTdb": 2473353.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 18,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0019",
+          "startJdTdb": 2473353.5,
+          "endJdTdb": 2474084.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 19,
+          "periheliaJdTdb": [
+            2473719.121130588
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0020",
+          "startJdTdb": 2474084.5,
+          "endJdTdb": 2475706.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 20,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0021",
+          "startJdTdb": 2475706.5,
+          "endJdTdb": 2476437.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 21,
+          "periheliaJdTdb": [
+            2476072.19719812
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0022",
+          "startJdTdb": 2476437.5,
+          "endJdTdb": 2478059.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 22,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0023",
+          "startJdTdb": 2478059.5,
+          "endJdTdb": 2478790.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 23,
+          "periheliaJdTdb": [
+            2478425.273265653
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0024",
+          "startJdTdb": 2478790.5,
+          "endJdTdb": 2480412.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 24,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0025",
+          "startJdTdb": 2480412.5,
+          "endJdTdb": 2481143.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 25,
+          "periheliaJdTdb": [
+            2480778.349333185
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0026",
+          "startJdTdb": 2481143.5,
+          "endJdTdb": 2482765.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 26,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0027",
+          "startJdTdb": 2482765.5,
+          "endJdTdb": 2483496.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 27,
+          "periheliaJdTdb": [
+            2483131.425400717
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0028",
+          "startJdTdb": 2483496.5,
+          "endJdTdb": 2485119.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 28,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0029",
+          "startJdTdb": 2485119.5,
+          "endJdTdb": 2485850.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 29,
+          "periheliaJdTdb": [
+            2485484.501468249
+          ]
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--baseline-0030",
+          "startJdTdb": 2485850.5,
+          "endJdTdb": 2487472.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 30,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "67p-churyumov-gerasimenko--perihelion-0031",
+          "startJdTdb": 2487472.5,
+          "endJdTdb": 2488069.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 31,
+          "periheliaJdTdb": [
+            2487837.577535781
+          ]
+        }
+      ]
+    },
+    {
+      "bodyId": "c-1995-o1-hale-bopp",
+      "displayName": "C/1995 O1 (Hale-Bopp)",
+      "targetId": "1000132",
+      "segments": [
+        {
+          "seriesBodyId": "c-1995-o1-hale-bopp--baseline-0000",
+          "startJdTdb": 2451544.5,
+          "endJdTdb": 2488069.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 0,
+          "periheliaJdTdb": []
+        }
+      ]
+    },
+    {
+      "bodyId": "c-2020-f3-neowise",
+      "displayName": "C/2020 F3 (NEOWISE)",
+      "targetId": "1003667",
+      "segments": [
+        {
+          "seriesBodyId": "c-2020-f3-neowise--baseline-0000",
+          "startJdTdb": 2451544.5,
+          "endJdTdb": 2458668.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 0,
+          "periheliaJdTdb": []
+        },
+        {
+          "seriesBodyId": "c-2020-f3-neowise--perihelion-0001",
+          "startJdTdb": 2458668.5,
+          "endJdTdb": 2459399.5,
+          "stepSeconds": 21600,
+          "kind": "perihelion",
+          "segmentIndex": 1,
+          "periheliaJdTdb": [
+            2459034.178898045
+          ]
+        },
+        {
+          "seriesBodyId": "c-2020-f3-neowise--baseline-0002",
+          "startJdTdb": 2459399.5,
+          "endJdTdb": 2488069.5,
+          "stepSeconds": 86400,
+          "kind": "baseline",
+          "segmentIndex": 2,
+          "periheliaJdTdb": []
+        }
+      ]
+    }
+  ]
+}

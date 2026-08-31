@@ -1,0 +1,26 @@
+:root {
+  color-scheme: dark;
+  --color-void: #02050b;
+  --color-night: #07101c;
+  --color-panel: rgba(9, 20, 34, 0.84);
+  --color-panel-solid: #0a1625;
+  --color-line: rgba(155, 195, 222, 0.18);
+  --color-line-strong: rgba(155, 195, 222, 0.35);
+  --color-text: #edf7ff;
+  --color-muted: #99afc0;
+  --color-dim: #71889a;
+  --color-cyan: #7edcff;
+  --color-blue: #4ca6ff;
+  --color-amber: #ffc45c;
+  --color-warning: #ffda85;
+  --color-danger: #ff8f8f;
+  --color-success: #70e3b1;
+  --shadow-panel: 0 24px 80px rgba(0, 0, 0, 0.38);
+  --radius-large: 22px;
+  --radius-medium: 14px;
+  --radius-small: 9px;
+  --font-display: "Aptos Display", "Segoe UI Variable Display", "Segoe UI", sans-serif;
+  --font-body: "Aptos", "Segoe UI Variable Text", "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+  --content-width: 1560px;
+}

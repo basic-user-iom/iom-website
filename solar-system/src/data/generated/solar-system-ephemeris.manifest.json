@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "jpl-horizons-7099a7cebc78d3e0",
+  "binaryFile": "solar-system-ephemeris.v1.bin",
+  "binarySha256": "9f888e0cb3d5d44e23bd0dd56d9926a00ccadb8dde8a1bad9d51b96c2510437c",
+  "format": {
+    "id": "IOMEPH",
+    "versionMajor": 1,
+    "versionMinor": 0,
+    "byteOrder": "little-endian",
+    "scalarType": "float64",
+    "componentOrder": [
+      "px",
+      "py",
+      "pz",
+      "vx",
+      "vy",
+      "vz"
+    ],
+    "units": [
+      "m",
+      "m",
+      "m",
+      "m/s",
+      "m/s",
+      "m/s"
+    ]
+  },
+  "generatedAtIso": "2026-08-28T19:22:38.799Z",
+  "bodies": [
+    {
+      "bodyId": "sun",
+      "displayName": "Sun",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "10",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:21:33.329Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "926712b8d9c3d03e18acd790e9409faf53fc70ed8b3e20ccd6f3c39fb05c8e2a",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): DE441."
+        ]
+      }
+    },
+    {
+      "bodyId": "mercury",
+      "displayName": "Mercury",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "199",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:21:39.341Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "24dd611d605a4ff7ed403caad1f0e5d5fd1f9232668b9c2e5f213f084bbea80d",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): DE441."
+        ]
+      }
+    },
+    {
+      "bodyId": "venus",
+      "displayName": "Venus",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "299",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:21:44.862Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "9442b59e62c70e08a47ead15733753af0a93638c21a3837550e26aa04bddf97b",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): DE441."
+        ]
+      }
+    },
+    {
+      "bodyId": "earth",
+      "displayName": "Earth",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "399",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:21:50.430Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "e90c5533ecbd6b31a8a96f71ac56632b7c5048225e67a4e497d0c1e35d152224",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): DE441."
+        ]
+      }
+    },
+    {
+      "bodyId": "moon",
+      "displayName": "Moon",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "301",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 21600,
+        "retrievedAtIso": "2026-08-28T19:22:10.964Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "0fb313881c12a0cf5aae93918e4a6ff00c7643ddb664442a63ded1553a42d4d6",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): DE441."
+        ]
+      }
+    },
+    {
+      "bodyId": "mars",
+      "displayName": "Mars",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "499",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:22:15.850Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "b9c58368d87f5e4f8583bca9226729091b8da26bf3728587ece20cac30988f9c",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): mar099."
+        ]
+      }
+    },
+    {
+      "bodyId": "jupiter",
+      "displayName": "Jupiter",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "599",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:22:20.677Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "7b55e23914cb938b64723c1825dc15f3580a0a1636692ba82ad72d3dc722ba77",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): jup365_merged."
+        ]
+      }
+    },
+    {
+      "bodyId": "saturn",
+      "displayName": "Saturn",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "699",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:22:26.083Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "7364884343b21656f6e6987299b0093786c9713465bd4c1ee5e338109e3f5a5f",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): sat441l."
+        ]
+      }
+    },
+    {
+      "bodyId": "uranus",
+      "displayName": "Uranus",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "799",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:22:31.908Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "078c5289531a5234170e6efeb8d655f9d9bab762ae9cf433e457ade1679b6852",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): ura184_merged."
+        ]
+      }
+    },
+    {
+      "bodyId": "neptune",
+      "displayName": "Neptune",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "899",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2451544.5,
+        "endJd": 2488069.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-08-28T19:22:38.641Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "11d64bc6b98815a8795466ce24468b1f6d53b3089003a92735b763f929e395d5",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): nep098_merged."
+        ]
+      }
+    }
+  ]
+}

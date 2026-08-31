@@ -1,0 +1,10 @@
+node_modules/
+coverage/
+dist/
+playwright-report/
+test-results/
+debug.log
+.cache/
+tmp/
+*.tsbuildinfo
+/*.png

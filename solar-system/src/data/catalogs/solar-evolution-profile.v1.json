@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "profileId": "sun-1-solar-mass-v1",
+  "modelVersion": "solar-evolution-narrative-v1",
+  "title": "Scientific Solar Evolution",
+  "classification": "educational-approximation",
+  "timeCompressionNotice": "Billions of years are compressed into seconds. The observatory epoch and planetary geometry are held fixed.",
+  "valuesAreIllustrative": true,
+  "provenance": [
+    {
+      "provider": "NASA",
+      "sourceName": "Sun: Facts",
+      "url": "https://science.nasa.gov/sun/facts/",
+      "retrievedAtIso": "2026-08-29T00:00:00.000Z",
+      "notes": "Present-day solar context and the Sun's broad life cycle."
+    },
+    {
+      "provider": "NASA",
+      "sourceName": "Types of Stars",
+      "url": "https://science.nasa.gov/universe/stars/types/",
+      "retrievedAtIso": "2026-08-29T00:00:00.000Z",
+      "notes": "Red-giant and white-dwarf classifications."
+    },
+    {
+      "provider": "NASA",
+      "sourceName": "Life and Death of Planetary Systems, Chapter 6",
+      "url": "https://science.nasa.gov/exoplanets/resources/life-and-death/chapter-6/",
+      "retrievedAtIso": "2026-08-29T00:00:00.000Z",
+      "notes": "Qualitative late-stage evolution and effects on planetary systems."
+    },
+    {
+      "provider": "NASA",
+      "sourceName": "Why the Sun Won't Become a Black Hole",
+      "url": "https://www.nasa.gov/image-article/why-sun-wont-become-black-hole/",
+      "retrievedAtIso": "2026-08-29T00:00:00.000Z",
+      "notes": "Solar-mass endpoint context."
+    }
+  ],
+  "globalCaveats": [
+    "This is a compressed, source-informed educational narrative rather than a stellar-structure calculation.",
+    "The 2000-2100 ephemeris cannot represent planetary positions billions of years in the future, so captured orbital geometry remains fixed.",
+    "Numeric phase values are representative visualization anchors and are not a single validated evolutionary track.",
+    "Nebula display radii are illustrative linear scene extents, not a hydrodynamic expansion prediction.",
+    "Mercury and Venus engulfment is visualized qualitatively; Earth's ultimate outcome remains uncertain and is not asserted."
+  ],
+  "phases": [
+    {
+      "id": "present",
+      "label": "Present-day Sun",
+      "durationSeconds": 4,
+      "radiusSolarRadii": 1,
+      "luminositySolar": 1,
+      "massSolarMasses": 1,
+      "effectiveTemperatureK": 5772,
+      "radiusLabel": "Present solar radius",
+      "luminosityLabel": "Present luminosity",
+      "massLossLabel": "Low solar-wind mass loss",
+      "innerSystemHeating": 0,
+      "massLossShellOpacity": 0,
+      "nebulaOpacity": 0,
+      "nebulaDisplayRadiusSolarRadii": 0,
+      "whiteDwarfBlend": 0,
+      "engulfedBodyIds": [],
+      "uncertainBodyIds": [],
+      "caveats": [
+        "Present values are display anchors, not a live measurement feed."
+      ]
+    },
+    {
+      "id": "red-giant",
+      "label": "Red-giant expansion",
+      "durationSeconds": 8,
+      "radiusSolarRadii": 100,
+      "luminositySolar": 1000,
+      "massSolarMasses": 0.98,
+      "effectiveTemperatureK": 3600,
+      "radiusLabel": "Greatly expanded envelope",
+      "luminosityLabel": "Strongly increased luminosity",
+      "massLossLabel": "Increasing stellar wind",
+      "innerSystemHeating": 0.55,
+      "massLossShellOpacity": 0.08,
+      "nebulaOpacity": 0,
+      "nebulaDisplayRadiusSolarRadii": 0,
+      "whiteDwarfBlend": 0,
+      "engulfedBodyIds": ["mercury"],
+      "uncertainBodyIds": [],
+      "caveats": [
+        "Expansion is time-compressed and smoothly interpolated for display."
+      ]
+    },
+    {
+      "id": "inner-system-heating",
+      "label": "Inner-system heating and engulfment",
+      "durationSeconds": 8,
+      "radiusSolarRadii": 200,
+      "luminositySolar": 2000,
+      "massSolarMasses": 0.9,
+      "effectiveTemperatureK": 3400,
+      "radiusLabel": "Envelope near maximum display extent",
+      "luminosityLabel": "Extreme inner-system heating",
+      "massLossLabel": "Strong enhanced mass loss",
+      "innerSystemHeating": 1,
+      "massLossShellOpacity": 0.24,
+      "nebulaOpacity": 0.04,
+      "nebulaDisplayRadiusSolarRadii": 0,
+      "whiteDwarfBlend": 0,
+      "engulfedBodyIds": ["mercury", "venus"],
+      "uncertainBodyIds": ["earth"],
+      "caveats": [
+        "Earth is marked uncertain; tidal interaction and mass loss complicate its long-term outcome."
+      ]
+    },
+    {
+      "id": "mass-loss-nebular",
+      "label": "Mass-loss and nebular phase",
+      "durationSeconds": 8,
+      "radiusSolarRadii": 35,
+      "luminositySolar": 5000,
+      "massSolarMasses": 0.58,
+      "effectiveTemperatureK": 30000,
+      "radiusLabel": "Contracting exposed core",
+      "luminosityLabel": "Hot luminous core",
+      "massLossLabel": "Envelope ejection visualization",
+      "innerSystemHeating": 0.72,
+      "massLossShellOpacity": 1,
+      "nebulaOpacity": 0.82,
+      "nebulaDisplayRadiusSolarRadii": 450,
+      "whiteDwarfBlend": 0.2,
+      "engulfedBodyIds": ["mercury", "venus"],
+      "uncertainBodyIds": ["earth"],
+      "caveats": [
+        "The expanding shell is a planetary-nebula-inspired visualization, not a hydrodynamic model."
+      ]
+    },
+    {
+      "id": "white-dwarf",
+      "label": "White-dwarf remnant",
+      "durationSeconds": 7,
+      "radiusSolarRadii": 0.012,
+      "luminositySolar": 10,
+      "massSolarMasses": 0.55,
+      "effectiveTemperatureK": 100000,
+      "radiusLabel": "Compact Earth-scale remnant",
+      "luminosityLabel": "Hot fading remnant",
+      "massLossLabel": "Major mass loss ended",
+      "innerSystemHeating": 0.18,
+      "massLossShellOpacity": 0.36,
+      "nebulaOpacity": 1,
+      "nebulaDisplayRadiusSolarRadii": 1600,
+      "whiteDwarfBlend": 1,
+      "engulfedBodyIds": [],
+      "uncertainBodyIds": [],
+      "caveats": [
+        "Any visible size proxy for the compact remnant must be labeled as exaggerated."
+      ]
+    },
+    {
+      "id": "cooling-remnant",
+      "label": "Cooling remnant",
+      "durationSeconds": 7,
+      "radiusSolarRadii": 0.012,
+      "luminositySolar": 0.01,
+      "massSolarMasses": 0.55,
+      "effectiveTemperatureK": 10000,
+      "radiusLabel": "Compact remnant radius",
+      "luminosityLabel": "Long-term cooling and fading",
+      "massLossLabel": "No envelope-ejection phase",
+      "innerSystemHeating": 0,
+      "massLossShellOpacity": 0.08,
+      "nebulaOpacity": 0.32,
+      "nebulaDisplayRadiusSolarRadii": 2400,
+      "whiteDwarfBlend": 1,
+      "engulfedBodyIds": [],
+      "uncertainBodyIds": [],
+      "caveats": [
+        "Cooling is compressed into seconds and is not plotted on a physical time axis."
+      ]
+    }
+  ]
+}

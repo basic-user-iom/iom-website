@@ -1,0 +1,721 @@
+{
+  "schema_version": 2,
+  "retrieved": "2026-08-30",
+  "scope": "Phase 4 and Phase 5 runtime texture assets",
+  "transform_policy": "Seven source-image assets are byte-for-byte official NASA or USGS downloads with local renames only. Six PNG material maps and two lossless WebPs are deterministic project-generated derivatives. Mercury, Moon, and Mars normals come from quantitative elevation rasters; the three Earth material maps are visual heuristics derived from the bundled Blue Marble image and are not measured geophysical products. Phase 5 derives its Jupiter runtime map without resizing or recoloring from the official Hubble OPAL Cycle 32 Rotation A TIFF, then adds a disclosed mixed-date grayscale detail residual derived from NASA PIA23606; all jet, storm, and ring profiles are code/data inputs rather than raster assets.",
+  "derived_asset_generators": [
+    "scripts/generate-phase4-derived-maps.mjs",
+    "scripts/generate-phase5-jupiter-map.mjs",
+    "scripts/generate-phase5-jupiter-grs-detail.mjs"
+  ],
+  "policy_references": [
+    "https://www.nasa.gov/nasa-brand-center/images-and-media/",
+    "https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits"
+  ],
+  "assets": [
+    {
+      "asset_id": "mercury-messenger-md3-color-1k",
+      "body": "mercury",
+      "module": "body-visual-system/surface-albedo",
+      "local_files": [
+        "phase4/mercury.jpg"
+      ],
+      "source": {
+        "organization": "U.S. Geological Survey Astrogeology Science Center; MESSENGER MDIS source imagery from NASA, Johns Hopkins University Applied Physics Laboratory, Arizona State University, and Carnegie Science",
+        "title": "Mercury MESSENGER MDIS Basemap MD3 Color Global Mosaic 665m — 1024-pixel browse image",
+        "ref": "https://astrogeology.usgs.gov/search/map/mercury_messenger_mdis_basemap_md3_color_global_mosaic_665m",
+        "download": "https://astrogeology.usgs.gov/ckan/dataset/fc37692f-e806-4632-b300-0250bb61c3de/resource/b1ef80b6-a44a-4c24-8786-e5e901842657/download/mercury_messenger_mdis_basemap_md3color_mosaic_global_1024.jpg"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed mercury_messenger_mdis_basemap_md3color_mosaic_global_1024.jpg to phase4/mercury.jpg.",
+        "No project-side image transform."
+      ],
+      "license_note": "USGS-produced content is generally in the U.S. public domain; the product record asks users to cite its authors. Credit USGS Astrogeology and the stated mission originators. Attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "93dc947ace929a880f04e92f146f913a7ead3b1353cc8c4a1d37e36544f94809"
+      },
+      "byte_length": 261772,
+      "dimensions": {
+        "width": 1024,
+        "height": 512
+      },
+      "media_type": "image/jpeg",
+      "color_space": {
+        "encoding": "8-bit, three-component JPEG with no embedded ICC profile",
+        "runtime": "sRGB"
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "False-color MD3 composite: 1000 nm in red, 750 nm in green, and 430 nm in blue. It is not natural human-visible color."
+      }
+    },
+    {
+      "asset_id": "venus-magellan-c3-midr-radar-1k",
+      "body": "venus",
+      "module": "body-visual-system/surface-radar",
+      "local_files": [
+        "phase4/venus-radar.jpg"
+      ],
+      "source": {
+        "organization": "U.S. Geological Survey Astrogeology Science Center; NASA Planetary Data System Geosciences Node and Magellan SAR",
+        "title": "Venus Magellan Global C3-MDIR Mosaic 2025m — full browse image",
+        "ref": "https://astrogeology.usgs.gov/search/map/venus_magellan_global_c3_mdir_mosaic_2025m",
+        "download": "https://astrogeology.usgs.gov/ckan/dataset/bf10c4f9-7587-4357-b0d9-81d5b6e6637c/resource/12345d86-e2a3-45eb-af88-c1e8bf3ac358/download/full.jpg"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed full.jpg to phase4/venus-radar.jpg.",
+        "No project-side image transform."
+      ],
+      "license_note": "The USGS product record marks the mosaic public domain with no use constraints. Credit USGS Astrogeology, the PDS Geosciences Node, and NASA's Magellan mission. Attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "fdb4a73bdb24ccf5477db4c6ef3321d1add6bc268815c12510038304bb14e932"
+      },
+      "byte_length": 74230,
+      "dimensions": {
+        "width": 1024,
+        "height": 512
+      },
+      "media_type": "image/jpeg",
+      "color_space": {
+        "encoding": "8-bit, three-component achromatic JPEG with no embedded ICC profile",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "radar",
+        "semantics": "Grayscale browse rendering of the single-band C3-MIDR Magellan SAR backscatter mosaic. Brightness is radar response, not optical albedo, color, or elevation."
+      }
+    },
+    {
+      "asset_id": "earth-blue-marble-2k",
+      "body": "earth",
+      "module": "body-visual-system/surface-albedo",
+      "local_files": [
+        "phase4/earth-day.png"
+      ],
+      "source": {
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
+        "title": "Blue Marble — A Seamless Image Mosaic of the Earth (WMS), 2048 × 1024 image",
+        "ref": "https://svs.gsfc.nasa.gov/2915/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed bluemarble-2048.png to phase4/earth-day.png.",
+        "No project-side image transform."
+      ],
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC; do not imply endorsement. The source credits Blue Marble data to Reto Stöckli (NASA/GSFC) and NASA Earth Observatory.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+      },
+      "byte_length": 1511379,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB PNG without alpha and without an embedded ICC, sRGB, or gamma chunk",
+        "runtime": "sRGB"
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "Cloud-free, true-color-style static visualization mosaic of land, ocean, sea ice, shallow water, and shaded topography assembled from multiple observations."
+      }
+    },
+    {
+      "asset_id": "earth-city-lights-2k",
+      "body": "earth",
+      "module": "body-visual-system/night-emission",
+      "local_files": [
+        "phase4/earth-night.png"
+      ],
+      "source": {
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
+        "title": "Earth At Night (WMS), 2048 × 1024 image",
+        "ref": "https://svs.gsfc.nasa.gov/2916/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002916/earthatnight-2048.png"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed earthatnight-2048.png to phase4/earth-night.png.",
+        "No project-side image transform."
+      ],
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC and NOAA/NGDC contributors; do not imply endorsement. Detailed source credits are retained in THIRD_PARTY_NOTICES.md.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "28407a1a802868852b3c232dbeaf16b5165e8200898cc7df6a2fec70708556cd"
+      },
+      "byte_length": 1097832,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB PNG without alpha and without an embedded ICC, sRGB, or gamma chunk",
+        "runtime": "sRGB"
+      },
+      "channel": {
+        "role": "night",
+        "semantics": "Static DMSP Operational Linescan System city-lights composite over a darkened land map; it is used as stylized night-side emission, not a live or radiometrically calibrated light field."
+      }
+    },
+    {
+      "asset_id": "earth-modis-clouds-2k",
+      "body": "earth",
+      "module": "body-visual-system/cloud-density",
+      "local_files": [
+        "phase4/earth-clouds.jpg"
+      ],
+      "source": {
+        "organization": "NASA Goddard Space Flight Center Earth Observatory / Visible Earth",
+        "title": "Blue Marble: Clouds, 2048 × 1024 cloud image",
+        "ref": "https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l",
+        "download": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_2048.jpg"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed cloud_combined_2048.jpg to phase4/earth-clouds.jpg.",
+        "No project-side image transform."
+      ],
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC; do not imply endorsement. The source credits Reto Stöckli and Robert Simmon with the MODIS and supporting teams.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "daddaad84d7a33bbbc86cdda3f591099f57cee8607b7bcf3b67eb7e4f7a1c793"
+      },
+      "byte_length": 829367,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/jpeg",
+      "color_space": {
+        "encoding": "8-bit, three-component grayscale-style JPEG with no embedded ICC profile",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "cloud",
+        "semantics": "The shader averages RGB intensity into cloud density. The source is a static composite of two days of visible imagery plus a third day of thermal-infrared imagery at the poles; it has no alpha channel and is not live weather."
+      }
+    },
+    {
+      "asset_id": "moon-lro-lroc-wac-color-2k",
+      "body": "moon",
+      "module": "body-visual-system/surface-albedo",
+      "local_files": [
+        "phase4/moon.jpg"
+      ],
+      "source": {
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio; Lunar Reconnaissance Orbiter Camera and Laser Altimeter teams",
+        "title": "CGI Moon Kit — 2025 color map, 2048 × 1024 JPEG",
+        "ref": "https://svs.gsfc.nasa.gov/4720/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed lroc_color_2k.jpg to phase4/moon.jpg.",
+        "No project-side image transform."
+      ],
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Credit NASA's Scientific Visualization Studio; do not imply endorsement. The source page identifies Ernie Wright (USRA) and Noah Petro (NASA/GSFC).",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "f7130a1822681fa7512d7dcfd40db8c10b9ba4f06777910348698260ed7a2170"
+      },
+      "byte_length": 457942,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/jpeg",
+      "color_space": {
+        "encoding": "8-bit, three-component JPEG with an embedded sRGB ICC profile",
+        "runtime": "sRGB"
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "R/G/B derive from LROC WAC 643/566/415 nm bands with exposure and white-balance adjustments. Missing high latitudes are filled with lower-resolution monochromatic LOLA albedo. NASA labels this rendering map aesthetic rather than science-grade."
+      }
+    },
+    {
+      "asset_id": "mars-viking-mdim21-color-1k",
+      "body": "mars",
+      "module": "body-visual-system/surface-albedo",
+      "local_files": [
+        "phase4/mars.jpg"
+      ],
+      "source": {
+        "organization": "U.S. Geological Survey Astrogeology Science Center; NASA Ames and Viking Orbiter source imagery",
+        "title": "Mars Viking Colorized Global Mosaic 232m — 1024-pixel browse image",
+        "ref": "https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m",
+        "download": "https://astrogeology.usgs.gov/ckan/dataset/7131d503-cdc9-45a5-8f83-5126c0fd397e/resource/6afad901-1caa-48a7-8b62-3911da0004c2/download/mars_viking_mdim21_clrmosaic_global_1024.jpg"
+      },
+      "retrieved": "2026-08-28",
+      "transforms": [
+        "Downloaded byte-for-byte with Invoke-WebRequest.",
+        "Renamed mars_viking_mdim21_clrmosaic_global_1024.jpg to phase4/mars.jpg.",
+        "No project-side image transform."
+      ],
+      "license_note": "The USGS product record marks the mosaic public domain with no use constraints. Credit USGS Astrogeology and NASA Ames/Viking. Attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "33f5c66b0faa0d8ba716bc142822bd94b105bede80de1e152048e70614ba9847"
+      },
+      "byte_length": 113419,
+      "dimensions": {
+        "width": 1024,
+        "height": 512
+      },
+      "media_type": "image/jpeg",
+      "color_space": {
+        "encoding": "8-bit, three-component JPEG with no embedded ICC profile",
+        "runtime": "sRGB"
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "Artistically colorized NASA Ames product blending the original Viking color mosaic over controlled grayscale MDIM 2.1. The MDIM imagery was high-pass filtered and normalized for morphology, so this is not calibrated true-color reflectance."
+      }
+    },
+    {
+      "asset_id": "mercury-messenger-dem-normal-2k",
+      "body": "mercury",
+      "module": "body-visual-system/surface-normal",
+      "local_files": [
+        "phase4/mercury-normal.png"
+      ],
+      "source": {
+        "organization": "U.S. Geological Survey Astrogeology Science Center; MESSENGER source observations from NASA and mission partners",
+        "title": "Mercury MESSENGER USGS DEM Global 665m v2",
+        "ref": "https://astrogeology.usgs.gov/search/map/mercury_messenger_global_dem_665m",
+        "download": "https://planetarymaps.usgs.gov/mosaic/Mercury_Messenger_USGS_DEM_Global_665m_v2.tif",
+        "source_file_name": "mercury-dem.tif",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "defce776241dcaf44cb0f081ee508c17dbea28aa5a22880bf7a5e8c25f96cbea"
+        },
+        "byte_length": 530934581,
+        "dimensions": {
+          "width": 23040,
+          "height": 11520
+        },
+        "media_type": "image/tiff; application=geotiff",
+        "data_semantics": "Single-band quantitative elevation in metres relative to the 2,439,400 m Mercury datum radius; equirectangular, planetocentric, positive-east, 0 to 360 degrees longitude."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "Decode the single-band GeoTIFF as quantitative height and resize to 2048 x 1024 with Lanczos3 filtering.",
+          "Roll the resampled raster by 180 degrees (half its width) so the source 0 to 360 degree longitude domain aligns with the runtime -180 to 180 degree color map.",
+          "Compute central height differences with longitude wrap, clamped polar rows, and latitude-aware east-west metre spacing using a 2,439,400 m radius.",
+          "Multiply physical surface slopes by 36 for visual legibility, normalize the tangent-space vector, encode XYZ from [-1, 1] to RGB [0, 255], and write a compressed PNG. The sphere is not displaced."
+        ]
+      },
+      "license_note": "USGS-produced content is generally in the U.S. public domain; the product record requests citation of its authors. The normal map is a project-generated derivative. Credit USGS Astrogeology and the MESSENGER mission originators; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "5c052c899d2f189f28f4971880643b5779d0207c5682d0620b65a05f7e4bea85"
+      },
+      "byte_length": 548455,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB tangent-space normal PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "normal",
+        "semantics": "Project-generated shading normals derived from quantitative USGS elevation. Slope is visually amplified 36x; values are not elevation, do not displace geometry, and are not unmodified USGS data."
+      }
+    },
+    {
+      "asset_id": "moon-lola-ldem-normal-2k",
+      "body": "moon",
+      "module": "body-visual-system/surface-normal",
+      "local_files": [
+        "phase4/moon-normal.png"
+      ],
+      "source": {
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio; Lunar Reconnaissance Orbiter Laser Altimeter team",
+        "title": "CGI Moon Kit LOLA displacement map, 16 pixels per degree, unsigned 16-bit",
+        "ref": "https://svs.gsfc.nasa.gov/4720/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/ldem_16_uint.tif",
+        "source_file_name": "moon-ldem.tif",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "45a2b32d56e81ed30db07fead8abc842b249b6511219d9ca2c53f81bc2dc5d62"
+        },
+        "byte_length": 33201026,
+        "dimensions": {
+          "width": 5760,
+          "height": 2880
+        },
+        "media_type": "image/tiff",
+        "data_semantics": "Unsigned 16-bit LOLA displacement samples at 0.5 m per digital number. NASA's unsigned product adds a constant 20,000-DN offset to the signed half-metre heights relative to a 1,737,400 m radius; that constant cancels in normal-map gradients. The map is centered at 0 degrees longitude."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "Decode the unsigned single-band TIFF, convert height differences at 0.5 m per digital number, and resize to 2048 x 1024 with Lanczos3 filtering.",
+          "Compute central height differences with longitude wrap, clamped polar rows, and latitude-aware east-west metre spacing using a 1,737,400 m radius; no longitude roll is applied.",
+          "Multiply physical surface slopes by 48 for visual legibility, normalize the tangent-space vector, encode XYZ from [-1, 1] to RGB [0, 255], and write a compressed PNG. The sphere is not displaced."
+        ]
+      },
+      "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. The normal map is a project-generated derivative. Credit NASA/GSFC/SVS and the LRO LOLA team; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "dccc06061532874a2b77f5f62a6cf2d504e233e2b4fbeae98014c15ef8cf481d"
+      },
+      "byte_length": 1336846,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB tangent-space normal PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "normal",
+        "semantics": "Project-generated shading normals derived from quantitative NASA LOLA displacement data. Slope is visually amplified 48x; values are not elevation, do not displace geometry, and are not unmodified NASA data."
+      }
+    },
+    {
+      "asset_id": "mars-mola-megdr-normal-2k",
+      "body": "mars",
+      "module": "body-visual-system/surface-normal",
+      "local_files": [
+        "phase4/mars-normal.png"
+      ],
+      "source": {
+        "organization": "NASA Planetary Data System Geosciences Node; Mars Global Surveyor Mars Orbiter Laser Altimeter team",
+        "title": "MOLA Mission Experiment Gridded Data Record, global topography, 16 pixels per degree",
+        "ref": "https://pds-geosciences.wustl.edu/missions/mgs/megdr.html",
+        "download": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg016/megt90n000eb.img",
+        "label": "https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg016/megt90n000eb.xml",
+        "source_file_name": "mars-mola.img",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "d18d9b9ab8c5516d02e157dd2cde0f1d0d160c21940e953ba22391269a545e7b"
+        },
+        "byte_length": 33177600,
+        "dimensions": {
+          "width": 5760,
+          "height": 2880
+        },
+        "media_type": "application/octet-stream; format=PDS4-IMG",
+        "data_semantics": "Big-endian signed 16-bit global topography in metres above the MOLA areoid; equirectangular, positive-east, 0 to 360 degrees longitude, centered at 180 degrees."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "Read the 5760 x 2880 detached-label raster as big-endian signed 16-bit metre values and bilinearly resample it to 2048 x 1024.",
+          "Roll sampling by 180 degrees (half the source width) so the source 0 to 360 degree longitude domain aligns with the runtime -180 to 180 degree color map.",
+          "Compute central height differences with longitude wrap, clamped polar rows, and latitude-aware east-west metre spacing using a 3,396,190 m radius.",
+          "Multiply physical surface slopes by 1.4 for visual legibility, normalize the tangent-space vector, encode XYZ from [-1, 1] to RGB [0, 255], and write a compressed PNG. The sphere is not displaced."
+        ]
+      },
+      "license_note": "NASA/PDS data generally is not subject to copyright in the United States and is subject to NASA's media-use guidance and the archive citation instructions. The normal map is a project-generated derivative. Credit NASA PDS, MGS, and the MOLA team; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "88f990173a18dc3521149fe9e8c10ae86f932be4a20101ba492ac64cd99c94fe"
+      },
+      "byte_length": 1647954,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB tangent-space normal PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "normal",
+        "semantics": "Project-generated shading normals derived from quantitative NASA MOLA topography. Slope is visually amplified 1.4x; values are not elevation, do not displace geometry, and are not unmodified NASA data."
+      }
+    },
+    {
+      "asset_id": "earth-blue-marble-derived-normal-2k",
+      "body": "earth",
+      "module": "body-visual-system/surface-normal",
+      "local_files": [
+        "phase4/earth-normal.png"
+      ],
+      "source": {
+        "runtime_asset_id": "earth-blue-marble-2k",
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
+        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
+        "ref": "https://svs.gsfc.nasa.gov/2915/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+        },
+        "byte_length": 1511379,
+        "dimensions": {
+          "width": 2048,
+          "height": 1024
+        },
+        "data_semantics": "Static color visualization with compositing and GTOPO30-style shaded relief already present; not quantitative elevation."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "Evaluate Rec. 601-style luminance (0.299 R + 0.587 G + 0.114 B) directly from normalized 8-bit Blue Marble code values.",
+          "Use wrapped central image-luminance differences, attenuated by the square of one minus the separately derived ocean mask and a 1.7 visual factor, to create a low-strength relief cue.",
+          "Normalize the tangent-space vector, encode XYZ from [-1, 1] to RGB [0, 255], and write a compressed 2048 x 1024 PNG. No quantitative height is inferred and the sphere is not displaced."
+        ]
+      },
+      "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This relief proxy is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "6af67210ff1735f827945cdcca84bf4b43e58ba471aa2a8ccd0f6e34a5593a94"
+      },
+      "byte_length": 1132461,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit RGB tangent-space normal PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "normal",
+        "semantics": "Project-authored image-relief proxy derived from Blue Marble luminance. It is not DEM-derived, measured topography, or a scientific normal product."
+      }
+    },
+    {
+      "asset_id": "earth-blue-marble-derived-ocean-mask-2k",
+      "body": "earth",
+      "module": "body-visual-system/ocean-mask",
+      "local_files": [
+        "phase4/earth-ocean.png"
+      ],
+      "source": {
+        "runtime_asset_id": "earth-blue-marble-2k",
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
+        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
+        "ref": "https://svs.gsfc.nasa.gov/2915/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+        },
+        "byte_length": 1511379,
+        "dimensions": {
+          "width": 2048,
+          "height": 1024
+        },
+        "data_semantics": "Static color visualization; it contains no authoritative land-water classification channel."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "For normalized 8-bit Blue Marble code values, compute blue dominance as B - 0.72 * max(R, G).",
+          "Map blue dominance through smoothstep edges 0.035 and 0.19 and write the result as an 8-bit grayscale 2048 x 1024 PNG, where 0 is land-like and 255 is water-like."
+        ]
+      },
+      "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This mask is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "02a325eb0e754365a5847df2c11fc8ede609af7d3f779938903ba806d5490ad4"
+      },
+      "byte_length": 519381,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit grayscale mask PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "ocean",
+        "semantics": "Project-authored blue-dominance confidence mask used for ocean glint. It is not an authoritative coastline, water mask, bathymetry, ice mask, or sea-state dataset."
+      }
+    },
+    {
+      "asset_id": "earth-derived-roughness-2k",
+      "body": "earth",
+      "module": "body-visual-system/surface-roughness",
+      "local_files": [
+        "phase4/earth-roughness.png"
+      ],
+      "source": {
+        "runtime_asset_id": "earth-blue-marble-2k",
+        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
+        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
+        "ref": "https://svs.gsfc.nasa.gov/2915/",
+        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+        },
+        "byte_length": 1511379,
+        "dimensions": {
+          "width": 2048,
+          "height": 1024
+        },
+        "data_semantics": "Static color visualization; it contains no measured PBR roughness channel."
+      },
+      "generated": "2026-08-28",
+      "generator": {
+        "path": "scripts/generate-phase4-derived-maps.mjs",
+        "transforms": [
+          "Compute Rec. 601-style luminance and the project-derived blue-dominance ocean mask from normalized 8-bit Blue Marble code values.",
+          "Set land-like roughness to clamp(0.68 + (0.5 - luminance) * 0.18, 0.55, 0.86), blend toward 0.12 by the ocean-mask value, and encode the result as an 8-bit grayscale 2048 x 1024 PNG."
+        ]
+      },
+      "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This material parameter is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "65e5e80a61ffbb71bb7b85109628331ae905ec3ceae3e09373caae39ee357e17"
+      },
+      "byte_length": 697024,
+      "dimensions": {
+        "width": 2048,
+        "height": 1024
+      },
+      "media_type": "image/png",
+      "color_space": {
+        "encoding": "8-bit grayscale material-parameter PNG",
+        "runtime": "linear/no color-space conversion"
+      },
+      "channel": {
+        "role": "roughness",
+        "semantics": "Project-authored rendering parameter. It is neither a measured material property nor an official NASA/USGS roughness product."
+      }
+    },
+    {
+      "asset_id": "jupiter-hubble-opal-2025a-global-map",
+      "body": "jupiter",
+      "module": "giant-planet-visual-system/cloud-map-foundation",
+      "local_files": [
+        "phase5/jupiter-opal-2025.webp"
+      ],
+      "source": {
+        "organization": "Space Telescope Science Institute Mikulski Archive for Space Telescopes; NASA/ESA Hubble Outer Planet Atmospheres Legacy program",
+        "title": "OPAL Jupiter Cycle 32 Rotation A color global map, F395N/F502N/F631N",
+        "ref": "https://archive.stsci.edu/hlsp/opal/opal-jupiter-cycle-32",
+        "download": "https://archive.stsci.edu/missions/hlsp/opal/cycle32/jupiter/hlsp_opal_hst_wfc3-uvis_jupiter-2025a_f395n-f502n-f631n_v1_globalmap.tif",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "52b6cc32639f699ff5614b169c4c2727fff98e7eb432aff7c718177191716e6c"
+        },
+        "byte_length": 19444834,
+        "dimensions": {
+          "width": 3600,
+          "height": 1800
+        },
+        "media_type": "image/tiff"
+      },
+      "retrieved": "2026-08-30",
+      "transforms": [
+        "Downloaded the official OPAL TIFF byte-for-byte from MAST.",
+        "Encoded the 3600 x 1800 RGB pixels as lossless WebP with scripts/generate-phase5-jupiter-map.mjs.",
+        "No project-side crop, resize, reprojection, or recoloring; TIFF container metadata is not copied into the WebP."
+      ],
+      "license_note": "Credit NASA, ESA, STScI, and the Hubble OPAL team. NASA content generally is not subject to copyright in the United States and remains subject to NASA and MAST media/data policies; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "c23ff8788762b32d49eb53308a979bbe0e574fbe9579fe47d83535dd8b6ec3ac"
+      },
+      "byte_length": 4982512,
+      "dimensions": {
+        "width": 3600,
+        "height": 1800
+      },
+      "media_type": "image/webp",
+      "color_space": {
+        "encoding": "8-bit three-component lossless WebP",
+        "runtime": "sRGB"
+      },
+      "projection": {
+        "type": "OPAL equirectangular global map at 10 pixels per degree",
+        "latitude": "full 180-degree raster with unreliable extreme-polar rows faded to procedural haze at runtime",
+        "longitude": "full 360-degree System III west-longitude coverage; runtime Three.js visual longitude is calibrated separately",
+        "great_red_spot_calibration": "The 2025a GRS is near normalized source x=0.106 at about -22 degrees latitude. Runtime source sampling and the body-tracked close-up share visual longitude +142 degrees at the map epoch."
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "Dated Hubble WFC3/UVIS color composite mosaicked from observations acquired 2025-12-11/12. It is a cloud-map foundation, not live Jovian weather or a reconstruction at the selected simulation date."
+      }
+    },
+    {
+      "asset_id": "jupiter-junocam-pia23606-grs-detail",
+      "body": "jupiter",
+      "module": "giant-planet-visual-system/local-great-red-spot-detail",
+      "local_files": [
+        "phase5/jupiter-grs-junocam-detail.webp"
+      ],
+      "source": {
+        "organization": "NASA/JPL-Caltech/SwRI/MSSS; image processing by Kevin M. Gill",
+        "title": "The Great Red Spot, PIA23606 enhanced-color JunoCam mosaic",
+        "ref": "https://science.nasa.gov/photojournal/the-great-red-spot/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/psd/photojournal/pia/pia23/pia23606/PIA23606.tif",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "c76e7ff974ab1213585b86c231ce4375c47a301a7ec2d0674469cd013d428bda"
+        },
+        "byte_length": 8805142,
+        "dimensions": {
+          "width": 2793,
+          "height": 1156
+        },
+        "media_type": "image/tiff"
+      },
+      "retrieved": "2026-08-30",
+      "transforms": [
+        "Downloaded the official PIA23606 TIFF byte-for-byte from NASA Science.",
+        "Cropped source pixels x=1450..2792 and y=80..1129, extended the right and lower edges only outside the used inner-vortex sample footprint, and preserved the crop center as the shader's local vortex center.",
+        "Converted the crop to grayscale, applied sigma 0.55 denoising and a sigma 16 low-pass, then encoded 128 + 1.65 * (fine - low-pass) as a neutral-centered 1600 x 1130 luminance-residual map.",
+        "Encoded the one-channel residual as lossless WebP. PIA23606 enhanced color is not imported; runtime blends only restrained luminance detail over dated Hubble OPAL color and sampled cloud structure inside an authored elliptical mask."
+      ],
+      "license_note": "PIA23606 is marked CC BY by NASA Photojournal. Credit: Image data NASA/JPL-Caltech/SwRI/MSSS; image processing by Kevin M. Gill, © CC BY. This cropped, geometrically adapted grayscale derivative and its blend are project changes; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "649535f7350893e24c9625bda1a82951af7412263f0dc198bf834238c89f6b79"
+      },
+      "byte_length": 941982,
+      "dimensions": {
+        "width": 1600,
+        "height": 1130
+      },
+      "media_type": "image/webp",
+      "color_space": {
+        "encoding": "8-bit neutral-centered grayscale lossless WebP",
+        "runtime": "linear/no color-space conversion"
+      },
+      "projection": {
+        "type": "project-fitted local elliptical detail coordinates; not a calibrated planetary map projection",
+        "coverage": "inner Great Red Spot only; surrounding OPAL pixels remain authoritative, while the moving storm boundary is an authored elliptical blend informed by cited approximate dimensions"
+      },
+      "channel": {
+        "role": "grs-detail",
+        "semantics": "Illustrative multi-epoch enhancement from a February 12, 2019 JunoCam mosaic, blended over the December 11, 2025 Hubble OPAL map. It is not a calibrated 2025 reconstruction, measured wind field, forecast, or live-weather product."
+      }
+    }
+  ]
+}

@@ -1,0 +1,217 @@
+{
+  "schemaVersion": 1,
+  "catalogVersion": "phase6-comets/1.0.0",
+  "classification": "mixed-authoritative-and-visualization-inputs",
+  "sourcePolicy": {
+    "identityAndOrbitProvider": "NASA/JPL Small-Body Database (SBDB)",
+    "ephemerisProvider": "NASA/JPL Horizons",
+    "normalRuntimeNetworkRequests": false,
+    "notes": [
+      "JPL identity fields are verified at build time and written to a generated metadata sidecar.",
+      "Activity and particle-scale values are deterministic visualization controls, not measured coma or tail forecasts.",
+      "A null physical value means JPL SBDB did not provide that field; renderers must label any fallback as a visualization approximation."
+    ]
+  },
+  "comets": [
+    {
+      "id": "1p-halley",
+      "displayName": "1P/Halley",
+      "kind": "comet",
+      "parentId": "sun",
+      "jpl": {
+        "designation": "1P",
+        "spkId": "1000036",
+        "orbitId": "75",
+        "epochJdTdb": 2439875.5,
+        "horizonsRecordId": "90000030",
+        "expectedFullNames": ["1P/Halley"]
+      },
+      "physical": {
+        "meanRadiusM": 5500,
+        "visualizationFallbackMeanRadiusM": null,
+        "rotationPeriodSeconds": null,
+        "sourceParameter": "SBDB diameter=11.0 km"
+      },
+      "renderProfile": "phase6-active-comet",
+      "visualSeed": 175121479,
+      "activity": {
+        "model": "distance-power-law-visualization",
+        "referenceDistanceAu": 1,
+        "onsetDistanceAu": 5,
+        "comaScale": 1.15,
+        "ionTailScale": 1.2,
+        "dustTailScale": 1.15
+      },
+      "sampling": {
+        "coarseStepSeconds": 86400,
+        "denseStepSeconds": 21600,
+        "denseWindowDays": 730
+      },
+      "trustedInterval": {
+        "startJdTdb": 2451544.5,
+        "endJdTdb": 2488069.5,
+        "reason": "Intended bundled Horizons vector coverage; do not extrapolate beyond it."
+      }
+    },
+    {
+      "id": "2p-encke",
+      "displayName": "2P/Encke",
+      "kind": "comet",
+      "parentId": "sun",
+      "jpl": {
+        "designation": "2P",
+        "spkId": "1000025",
+        "orbitId": "K273/11",
+        "epochJdTdb": 2459891.5,
+        "horizonsRecordId": "90000091",
+        "expectedFullNames": ["2P/Encke"]
+      },
+      "physical": {
+        "meanRadiusM": 2400,
+        "visualizationFallbackMeanRadiusM": null,
+        "rotationPeriodSeconds": 39898.8,
+        "sourceParameter": "SBDB diameter=4.8 km; rotation period=11.083 h"
+      },
+      "renderProfile": "phase6-active-comet",
+      "visualSeed": 785265010,
+      "activity": {
+        "model": "distance-power-law-visualization",
+        "referenceDistanceAu": 1,
+        "onsetDistanceAu": 3.5,
+        "comaScale": 0.72,
+        "ionTailScale": 0.75,
+        "dustTailScale": 0.82
+      },
+      "sampling": {
+        "coarseStepSeconds": 86400,
+        "denseStepSeconds": 21600,
+        "denseWindowDays": 180
+      },
+      "trustedInterval": {
+        "startJdTdb": 2451544.5,
+        "endJdTdb": 2488069.5,
+        "reason": "Intended bundled Horizons vector coverage; do not extrapolate beyond it."
+      }
+    },
+    {
+      "id": "67p-churyumov-gerasimenko",
+      "displayName": "67P/Churyumov-Gerasimenko",
+      "kind": "comet",
+      "parentId": "sun",
+      "jpl": {
+        "designation": "67P",
+        "spkId": "1000012",
+        "orbitId": "K213/6",
+        "epochJdTdb": 2457305.5,
+        "horizonsRecordId": "90000703",
+        "expectedFullNames": ["67P/Churyumov-Gerasimenko"]
+      },
+      "physical": {
+        "meanRadiusM": 1700,
+        "visualizationFallbackMeanRadiusM": null,
+        "rotationPeriodSeconds": 45940.644,
+        "sourceParameter": "SBDB diameter=3.4 km; rotation period=12.76129 h"
+      },
+      "renderProfile": "phase6-active-comet",
+      "visualSeed": 1743649594,
+      "activity": {
+        "model": "distance-power-law-visualization",
+        "referenceDistanceAu": 1.25,
+        "onsetDistanceAu": 4,
+        "comaScale": 0.9,
+        "ionTailScale": 0.88,
+        "dustTailScale": 1
+      },
+      "sampling": {
+        "coarseStepSeconds": 86400,
+        "denseStepSeconds": 21600,
+        "denseWindowDays": 365
+      },
+      "trustedInterval": {
+        "startJdTdb": 2451544.5,
+        "endJdTdb": 2488069.5,
+        "reason": "Intended bundled Horizons vector coverage; do not extrapolate beyond it."
+      }
+    },
+    {
+      "id": "c-1995-o1-hale-bopp",
+      "displayName": "C/1995 O1 (Hale-Bopp)",
+      "kind": "comet",
+      "parentId": "sun",
+      "jpl": {
+        "designation": "1995 O1",
+        "spkId": "1000132",
+        "orbitId": "226",
+        "epochJdTdb": 2459837.5,
+        "horizonsRecordId": null,
+        "expectedFullNames": ["C/1995 O1 (Hale-Bopp)", "Hale-Bopp (C/1995 O1)"]
+      },
+      "physical": {
+        "meanRadiusM": 30000,
+        "visualizationFallbackMeanRadiusM": null,
+        "rotationPeriodSeconds": null,
+        "sourceParameter": "SBDB diameter=60 km with 20 km sigma"
+      },
+      "renderProfile": "phase6-active-comet",
+      "visualSeed": 3308836117,
+      "activity": {
+        "model": "distance-power-law-visualization",
+        "referenceDistanceAu": 1,
+        "onsetDistanceAu": 7,
+        "comaScale": 1.45,
+        "ionTailScale": 1.35,
+        "dustTailScale": 1.55
+      },
+      "sampling": {
+        "coarseStepSeconds": 86400,
+        "denseStepSeconds": 21600,
+        "denseWindowDays": 730
+      },
+      "trustedInterval": {
+        "startJdTdb": 2451544.5,
+        "endJdTdb": 2488069.5,
+        "reason": "Intended bundled Horizons vector coverage; do not extrapolate beyond it."
+      }
+    },
+    {
+      "id": "c-2020-f3-neowise",
+      "displayName": "C/2020 F3 (NEOWISE)",
+      "kind": "comet",
+      "parentId": "sun",
+      "jpl": {
+        "designation": "2020 F3",
+        "spkId": "1003667",
+        "orbitId": "31",
+        "epochJdTdb": 2459036.5,
+        "horizonsRecordId": null,
+        "expectedFullNames": ["C/2020 F3 (NEOWISE)", "NEOWISE (C/2020 F3)"]
+      },
+      "physical": {
+        "meanRadiusM": null,
+        "visualizationFallbackMeanRadiusM": 2500,
+        "rotationPeriodSeconds": null,
+        "sourceParameter": "No SBDB diameter or rotation-period field in the pinned solution; renderer fallback required."
+      },
+      "renderProfile": "phase6-active-comet",
+      "visualSeed": 3410251736,
+      "activity": {
+        "model": "distance-power-law-visualization",
+        "referenceDistanceAu": 1,
+        "onsetDistanceAu": 5,
+        "comaScale": 1.1,
+        "ionTailScale": 1.25,
+        "dustTailScale": 1.05
+      },
+      "sampling": {
+        "coarseStepSeconds": 86400,
+        "denseStepSeconds": 21600,
+        "denseWindowDays": 365
+      },
+      "trustedInterval": {
+        "startJdTdb": 2451544.5,
+        "endJdTdb": 2488069.5,
+        "reason": "Intended bundled Horizons vector coverage; do not extrapolate beyond it."
+      }
+    }
+  ]
+}

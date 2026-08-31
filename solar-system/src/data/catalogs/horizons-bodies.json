@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "centerId": "10",
+  "centerCommand": "500@10",
+  "referenceFrame": "ICRF",
+  "referencePlane": "ECLIPTIC",
+  "timeScale": "TDB",
+  "sourceUnits": "KM-S",
+  "bodies": [
+    { "id": "sun", "displayName": "Sun", "targetId": "10", "expectedTargetNames": ["Sun"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 0, "validationVelocityToleranceMps": 0 },
+    { "id": "mercury", "displayName": "Mercury", "targetId": "199", "expectedTargetNames": ["Mercury"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 50000, "validationVelocityToleranceMps": 2 },
+    { "id": "venus", "displayName": "Venus", "targetId": "299", "expectedTargetNames": ["Venus"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 1000, "validationVelocityToleranceMps": 0.025 },
+    { "id": "earth", "displayName": "Earth", "targetId": "399", "expectedTargetNames": ["Earth"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 500, "validationVelocityToleranceMps": 0.02 },
+    { "id": "moon", "displayName": "Moon", "targetId": "301", "expectedTargetNames": ["Moon"], "defaultStepSeconds": 21600, "validationPositionToleranceM": 100, "validationVelocityToleranceMps": 0.015 },
+    { "id": "mars", "displayName": "Mars", "targetId": "499", "expectedTargetNames": ["Mars"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 100, "validationVelocityToleranceMps": 0.002 },
+    { "id": "jupiter", "displayName": "Jupiter", "targetId": "599", "expectedTargetNames": ["Jupiter"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 25000, "validationVelocityToleranceMps": 1 },
+    { "id": "saturn", "displayName": "Saturn", "targetId": "699", "expectedTargetNames": ["Saturn"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 1000, "validationVelocityToleranceMps": 0.05 },
+    { "id": "uranus", "displayName": "Uranus", "targetId": "799", "expectedTargetNames": ["Uranus"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 2000, "validationVelocityToleranceMps": 0.05 },
+    { "id": "neptune", "displayName": "Neptune", "targetId": "899", "expectedTargetNames": ["Neptune"], "defaultStepSeconds": 86400, "validationPositionToleranceM": 2000, "validationVelocityToleranceMps": 0.05 }
+  ]
+}
