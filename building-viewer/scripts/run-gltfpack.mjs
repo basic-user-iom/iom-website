@@ -10,6 +10,10 @@ import { basename, dirname, extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listTextureInfo, listTextureInfoByMaterial } from '@gltf-transform/functions'
 import { createGltfIO } from './lib/gltf-io.mjs'
+import {
+  auditSurfaceRepairCertificates,
+  surfaceRepairAuditSummary,
+} from './lib/surface-repair-certificate.mjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const VIEWER_ROOT = join(SCRIPT_DIR, '..')
@@ -396,7 +400,7 @@ const KEEP_DOUBLE_SIDED_MATERIAL =
 const OPEN_ARCHITECTURAL_SHELL_NAME =
   /flugturm|fassad|facade|geb[aä]?ude|gebude|building|halle|(?:^|[\s._-])hall(?:$|[\s._-]|\d)|innenw[aä]nd|waende|wände|wnde|tragwand|trennwand|walls|(?:^|[\s._-])wand(?:$|[\s._-]|\d)|(?:^|[\s._-])wall(?:$|[\s._-]|\d)|dark[_\s-]?wall|wall[_\s-]?raster|wandfarbe|wellblech|cladding|wall[_\s-]?panel|verbindung|walkway|footbridge|skybridge|connector|passage|uebergang|übergang/i
 const AUDITED_OPEN_SHELL_MATERIAL =
-  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001)$/i
+  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu)$/i
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
   'fassade003001',
@@ -430,6 +434,12 @@ const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'wandbt1001002',
   'wand40005',
   'dachdeckelturmwest',
+  'foyerdachaussen1',
+  'foyerdachaussen002',
+  'deckenlampen',
+  'egdeckebergangaussen',
+  'buhneaufbaudecke',
+  'saal1deckenpaneelelftung001',
 ])
 const IOM_DOUBLE_SIDED_REASON = 'iomDoubleSidedReason'
 
@@ -522,7 +532,7 @@ function primitiveSurfaceTopology(primitive) {
   }
 }
 
-function normalizeCadMaterialSidedness(document) {
+function normalizeCadMaterialSidedness(document, certifiedMeshes = new Set()) {
   const root = document.getRoot()
   const owners = new Map()
   for (const node of root.listNodes()) {
@@ -540,21 +550,28 @@ function normalizeCadMaterialSidedness(document) {
   for (const mesh of root.listMeshes()) {
     const ownerNames = owners.get(mesh) || []
     const ownerLabel = ownerNames.join(' ')
+    const certifiedLogicalMesh = certifiedMeshes.has(mesh)
     const auditedMixedWindingShell =
-      ownerNames.some(isAuditedMixedWindingShellName) ||
-      isAuditedMixedWindingShellName(mesh.getName())
+      !certifiedLogicalMesh &&
+      (ownerNames.some(isAuditedMixedWindingShellName) ||
+        isAuditedMixedWindingShellName(mesh.getName()))
     for (const primitive of mesh.listPrimitives()) {
       const material = primitive.getMaterial()
       if (!material) continue
       const label = `${ownerLabel} ${mesh.getName() || ''} ${material.getName() || ''}`
       const authoredReason = material.getExtras()?.[IOM_DOUBLE_SIDED_REASON]
+      const materialRole = material.getExtras()?.[IOM_MATERIAL_ROLE]
+      const explicitGlass = EXPLICIT_GLASS_MATERIAL.test(material.getName() || '')
+      const explicitSafety =
+        materialRole === 'fire-safety-opaque' ||
+        materialRole === 'fire-safety-glass'
       const explicitSheet =
         typeof authoredReason === 'string' ||
+        explicitGlass ||
+        explicitSafety ||
         KEEP_DOUBLE_SIDED_MATERIAL.test(material.getName() || '')
-      const materialRole = material.getExtras()?.[IOM_MATERIAL_ROLE]
       const visibilityCritical =
-        materialRole === 'fire-safety-opaque' ||
-        materialRole === 'fire-safety-glass' ||
+        explicitSafety ||
         /verbindung|walkway|footbridge|skybridge|connector|passage|uebergang|übergang/i.test(label)
       const semanticCandidate =
         visibilityCritical ||
@@ -571,7 +588,7 @@ function normalizeCadMaterialSidedness(document) {
         continue
       }
       let topology = null
-      if (!explicitSheet && semanticCandidate) {
+      if (!certifiedLogicalMesh && !explicitSheet && semanticCandidate) {
         topology = topologyCache.get(primitive)
         if (topology === undefined) {
           topology = primitiveSurfaceTopology(primitive)
@@ -602,11 +619,15 @@ function normalizeCadMaterialSidedness(document) {
         reason:
           typeof authoredReason === 'string'
             ? authoredReason
-            : explicitSheet
-              ? 'explicit-sheet'
-              : auditedWindingRisk
-                ? 'audited-mixed-winding-shell'
-              : 'open-architectural-shell',
+            : explicitGlass
+              ? 'explicit-glass'
+              : explicitSafety
+                ? 'visibility-critical'
+                : explicitSheet
+                  ? 'explicit-sheet'
+                  : auditedWindingRisk
+                    ? 'audited-mixed-winding-shell'
+                    : 'open-architectural-shell',
       })
       uses.set(material, list)
     }
@@ -745,6 +766,7 @@ function semanticNameGroups(document) {
 
 function nonConstantAnimationTracks(document) {
   const tracks = new Set()
+  const allTracks = new Set()
   let durationSeconds = 0
   for (const animation of document.getRoot().listAnimations()) {
     for (const channel of animation.listChannels()) {
@@ -753,6 +775,9 @@ function nonConstantAnimationTracks(document) {
       const outputAccessor = sampler?.getOutput()
       const output = outputAccessor?.getArray()
       const size = outputAccessor?.getElementSize() || 0
+      const track =
+        `${animation.getName() || '(unnamed)'}|${channel.getTargetNode()?.getName() || '(unnamed)'}|${channel.getTargetPath()}`
+      allTracks.add(track)
       if (input?.length) durationSeconds = Math.max(durationSeconds, input[input.length - 1])
       if (!output || !size || output.length <= size) continue
       let changes = false
@@ -760,12 +785,10 @@ function nonConstantAnimationTracks(document) {
         if (Math.abs(output[i] - output[i % size]) > 1e-6) changes = true
       }
       if (!changes) continue
-      tracks.add(
-        `${animation.getName() || '(unnamed)'}|${channel.getTargetNode()?.getName() || '(unnamed)'}|${channel.getTargetPath()}`,
-      )
+      tracks.add(track)
     }
   }
-  return { tracks, durationSeconds }
+  return { tracks, allTracks, durationSeconds }
 }
 
 function inferAnimationRates(document) {
@@ -837,9 +860,15 @@ async function main() {
 
   const sourceIo = await createGltfIO({ encoder: true })
   const sourceDocument = await sourceIo.read(args.input)
+  const sourceSurfaceRepairAudit = auditSurfaceRepairCertificates(sourceDocument, {
+    mirrorMeshCertificates: true,
+  })
   const exteriorFloorCheckerRepair = replaceExteriorFloorDebugChecker(sourceDocument)
   const criticalMaterialPreparation = prepareCriticalMaterialRoles(sourceDocument)
-  const materialSidedness = normalizeCadMaterialSidedness(sourceDocument)
+  const materialSidedness = normalizeCadMaterialSidedness(
+    sourceDocument,
+    sourceSurfaceRepairAudit.certifiedMeshes,
+  )
   const sourceCriticalMaterialRoles = criticalMaterialRoles(sourceDocument)
   const sourceSemantics = semanticNameGroups(sourceDocument)
   const sourceAnimation = nonConstantAnimationTracks(sourceDocument)
@@ -886,6 +915,7 @@ async function main() {
     materialSidedness.madeSingleSided > 0 ||
     materialSidedness.promotedSingleSided > 0 ||
     materialSidedness.splitMaterials > 0 ||
+    sourceSurfaceRepairAudit.mirroredMeshCertificates > 0 ||
     exteriorFloorCheckerRepair.applied ||
     criticalMaterialPreparation.materialRoles.length > 0
   const tempInput = rewriteInput
@@ -895,7 +925,7 @@ async function main() {
   const tempNativeReport = `${tempOutput}.gltfpack.json`
   const releaseArgs = [
     ...profileArgs,
-    ...(animationCount > 0 ? ['-af', String(args.animationFps)] : []),
+    ...(animationCount > 0 ? ['-af', String(args.animationFps), '-ac'] : []),
   ]
   const commandInput = tempInput || args.input
   const commandArgs = ['-i', commandInput, '-o', tempOutput, ...releaseArgs, '-r', tempNativeReport]
@@ -964,6 +994,9 @@ async function main() {
 
     const io = await createGltfIO()
     const document = await io.read(tempOutput)
+    const outputSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
+      expectedCertificateCount: sourceSurfaceRepairAudit.certificateCount,
+    })
     const outputScenes = document.getRoot().listScenes()
     if (outputScenes.length !== 1 || outputScenes[0].listChildren().length === 0) {
       throw new Error(
@@ -997,6 +1030,11 @@ async function main() {
       }
     }
     const outputAnimation = nonConstantAnimationTracks(document)
+    for (const track of sourceAnimation.allTracks) {
+      if (!outputAnimation.allTracks.has(track)) {
+        throw new Error(`Release gate failed: animation track was removed: ${track}`)
+      }
+    }
     for (const track of sourceAnimation.tracks) {
       if (!outputAnimation.tracks.has(track)) {
         throw new Error(`Release gate failed: non-constant animation track was removed: ${track}`)
@@ -1041,10 +1079,12 @@ async function main() {
         generatedTextureCoordinates,
         exteriorFloorCheckerRepair,
         materialSidedness,
+        surfaceRepairCertificates: surfaceRepairAuditSummary(sourceSurfaceRepairAudit),
         criticalMaterialPreparation,
         criticalMaterialRoles: sourceCriticalMaterialRoles,
         semanticNames: sourceSemantics,
         nonConstantAnimationTracks: [...sourceAnimation.tracks].sort(),
+        animationTracks: [...sourceAnimation.allTracks].sort(),
         animationDurationSeconds: sourceAnimation.durationSeconds,
       },
       output: {
@@ -1054,6 +1094,7 @@ async function main() {
         expandedWorkload: expandedWorkload(document),
         semanticNames: outputSemantics,
         criticalMaterialRoles: outputMaterialRoles,
+        surfaceRepairCertificates: surfaceRepairAuditSummary(outputSurfaceRepairAudit),
         extensionsUsed: extensions,
         generator: document.getRoot().getAsset().generator || null,
       },

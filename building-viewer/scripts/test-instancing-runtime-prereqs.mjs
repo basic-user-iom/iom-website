@@ -156,6 +156,50 @@ try {
     lod.dispose()
   }
 
+  // The four exact auditorium-seat material primitives form one visual
+  // cohort. Positive rows remain imported InstancedMesh groups while mirrored
+  // rows are extracted to ordinary Mesh objects; overview LOD must not show
+  // only one representation. A suffix decoy proves the exception is narrow.
+  {
+    const root = new Group()
+    const positive = new InstancedMesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshBasicMaterial({ name: 'vray Stuhl_Plastik' }),
+      2,
+    )
+    positive.name = 'chair-positive-imported'
+    positive.setMatrixAt(0, translation(0))
+    positive.setMatrixAt(1, translation(2))
+    positive.instanceMatrix.needsUpdate = true
+
+    const mirrored = new Mesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshBasicMaterial({ name: 'vray Stuhl_Bezug' }),
+    )
+    mirrored.name = 'chair-mirrored-extracted'
+    mirrored.userData.importedNegativeInstance = true
+
+    const decoy = new Mesh(
+      new BoxGeometry(1, 1, 1),
+      new MeshBasicMaterial({ name: 'vray Stuhl_Plastik_copy' }),
+    )
+    decoy.name = 'chair-material-name-decoy'
+    root.add(positive, mirrored, decoy)
+
+    const lod = new DetailLodController()
+    lod.rebuild(root, 100)
+    lod.setOverviewMassOnly(true)
+    const camera = new PerspectiveCamera(60, 1, 0.1, 500)
+    camera.position.set(40, 40, 40)
+    camera.updateMatrixWorld(true)
+    lod.update(camera, 1_000)
+
+    assert.equal(positive.visible, true, 'positive auditorium rows disappeared in overview')
+    assert.equal(mirrored.visible, true, 'mirrored auditorium rows disappeared in overview')
+    assert.equal(decoy.visible, false, 'non-exact chair material bypassed overview LOD')
+    lod.dispose()
+  }
+
   // Per-instance inspection resolves a stable authored source ID, reports the
   // selected primitive rather than the whole batch, and performs logical
   // hide/isolate across all material-slot siblings in the identity cohort.

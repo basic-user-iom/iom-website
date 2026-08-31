@@ -1,0 +1,2355 @@
+{
+  "schema": "iom-blender-architectural-surface-repair-v2",
+  "ok": true,
+  "blender": "5.2.0 LTS",
+  "input": "F:\\iom_website\\building-viewer\\tmp\\icm-anim-2025-cleaned.glb",
+  "output": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\icm-anim-repaired-v2.glb",
+  "failures": [],
+  "targets": [
+    {
+      "name": "BT1_Kabinen_wnde24",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT1_Kabinen_wnde31",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT1_Kabinen_wnde34",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT1_Kabinen_wnde43",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT1_Kabinen_wnde50",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT1_Kabinen_wnde57",
+      "vertices": 2046,
+      "triangles": 2816,
+      "accepted": true
+    },
+    {
+      "name": "BT3_innenwaende.002",
+      "vertices": 129,
+      "triangles": 67,
+      "accepted": false
+    },
+    {
+      "name": "BT3_innenwaende.006",
+      "vertices": 212,
+      "triangles": 112,
+      "accepted": false
+    },
+    {
+      "name": "Buhne_aufbau_decke",
+      "vertices": 184,
+      "triangles": 172,
+      "accepted": true
+    },
+    {
+      "name": "EG_decke_bergang_aussen",
+      "vertices": 48,
+      "triangles": 28,
+      "accepted": true
+    },
+    {
+      "name": "Foyer_Dach_aussen_002",
+      "vertices": 48,
+      "triangles": 36,
+      "accepted": true
+    },
+    {
+      "name": "Foyer_Dach_aussen_1",
+      "vertices": 96,
+      "triangles": 52,
+      "accepted": true
+    },
+    {
+      "name": "S11_trennwand",
+      "vertices": 1226,
+      "triangles": 612,
+      "accepted": true
+    },
+    {
+      "name": "S12_trennwand",
+      "vertices": 1226,
+      "triangles": 612,
+      "accepted": true
+    },
+    {
+      "name": "S21_trennwand",
+      "vertices": 1226,
+      "triangles": 612,
+      "accepted": true
+    },
+    {
+      "name": "S22_trennwand",
+      "vertices": 1226,
+      "triangles": 612,
+      "accepted": true
+    },
+    {
+      "name": "Wand_40.005",
+      "vertices": 166,
+      "triangles": 92,
+      "accepted": true
+    },
+    {
+      "name": "Wand_bt1_001.002",
+      "vertices": 462,
+      "triangles": 244,
+      "accepted": true
+    },
+    {
+      "name": "fassade003.001",
+      "vertices": 24,
+      "triangles": 12,
+      "accepted": true
+    },
+    {
+      "name": "fassade005.002",
+      "vertices": 24,
+      "triangles": 12,
+      "accepted": true
+    },
+    {
+      "name": "fassade008.002",
+      "vertices": 24,
+      "triangles": 12,
+      "accepted": true
+    },
+    {
+      "name": "fassade_001.001",
+      "vertices": 24,
+      "triangles": 12,
+      "accepted": true
+    },
+    {
+      "name": "fassade_001.003",
+      "vertices": 24,
+      "triangles": 12,
+      "accepted": true
+    },
+    {
+      "name": "fassade_003.001",
+      "vertices": 90,
+      "triangles": 44,
+      "accepted": true
+    },
+    {
+      "name": "fassade_buero_1",
+      "vertices": 83,
+      "triangles": 58,
+      "accepted": true
+    },
+    {
+      "name": "fassade_buero_1.001",
+      "vertices": 86,
+      "triangles": 64,
+      "accepted": true
+    },
+    {
+      "name": "fassade_buero_2",
+      "vertices": 370,
+      "triangles": 396,
+      "accepted": true
+    },
+    {
+      "name": "fassade_buero_2.001",
+      "vertices": 373,
+      "triangles": 396,
+      "accepted": true
+    },
+    {
+      "name": "og_waendeInnen_01",
+      "vertices": 2062,
+      "triangles": 1428,
+      "accepted": true
+    },
+    {
+      "name": "saal1_waende.004",
+      "vertices": 144,
+      "triangles": 92,
+      "accepted": true
+    }
+  ],
+  "before": {
+    "objects": 8140,
+    "meshObjects": 7889,
+    "meshes": 4274,
+    "materials": 424,
+    "images": 153,
+    "actions": [
+      "Animation"
+    ],
+    "animatedObjects": [
+      {
+        "object": "1st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "2st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ceiling._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ground Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Mezzanine._anim1",
+        "action": "Animation"
+      }
+    ],
+    "triangles": 13638673,
+    "hierarchySha256": "8917012704c9c57904fcfbaac9f9696f39a25fda3c7eb7fc0b9bfdbd95caf106",
+    "objectInventorySha256": "df4ae8a232ae3042bbe61dc0e240434936d38fe9e9f0b1dba27d08961b3ddfde",
+    "meshInventorySha256": "6ec0bad73d19fd93fcead63f0acce4ee0577badee7556bd4185be8436a1ead26",
+    "materialInventorySha256": "8e852420f8c1c4a6f8fa62c4a43ccb9915163b3f1083f1520dc8f19d46314517",
+    "imageInventorySha256": "12ac82a160cdaec1f01775b2ecbb9402b70affe21ba6f9cd7f0c4a958e7a9fb9",
+    "animationDetails": [
+      {
+        "name": "Animation",
+        "frameStart": 0.0,
+        "frameEnd": 65.0,
+        "durationSeconds": 2.7083333333333335,
+        "curves": 0,
+        "nonConstantCurves": 0
+      }
+    ]
+  },
+  "expectedMatchCounts": {
+    "BT1_Kabinen_wnde24": 1,
+    "BT1_Kabinen_wnde31": 1,
+    "BT1_Kabinen_wnde34": 1,
+    "BT1_Kabinen_wnde43": 1,
+    "BT1_Kabinen_wnde50": 1,
+    "BT1_Kabinen_wnde57": 1,
+    "BT3_innenwaende.002": 1,
+    "BT3_innenwaende.006": 1,
+    "Buhne_aufbau_decke": 1,
+    "EG_decke_bergang_aussen": 1,
+    "Foyer_Dach_aussen_002": 1,
+    "Foyer_Dach_aussen_1": 1,
+    "S11_trennwand": 1,
+    "S12_trennwand": 1,
+    "S21_trennwand": 1,
+    "S22_trennwand": 1,
+    "Wand_40.005": 1,
+    "Wand_bt1_001.002": 1,
+    "fassade003.001": 1,
+    "fassade005.002": 1,
+    "fassade008.002": 1,
+    "fassade_001.001": 1,
+    "fassade_001.003": 1,
+    "fassade_003.001": 1,
+    "fassade_buero_1": 1,
+    "fassade_buero_1.001": 1,
+    "fassade_buero_2": 1,
+    "fassade_buero_2.001": 1,
+    "og_waendeInnen_01": 1,
+    "saal1_waende.004": 1
+  },
+  "actualMatchCounts": {
+    "BT1_Kabinen_wnde24": 1,
+    "BT1_Kabinen_wnde31": 1,
+    "BT1_Kabinen_wnde34": 1,
+    "BT1_Kabinen_wnde43": 1,
+    "BT1_Kabinen_wnde50": 1,
+    "BT1_Kabinen_wnde57": 1,
+    "BT3_innenwaende.002": 1,
+    "BT3_innenwaende.006": 1,
+    "Buhne_aufbau_decke": 1,
+    "EG_decke_bergang_aussen": 1,
+    "Foyer_Dach_aussen_002": 1,
+    "Foyer_Dach_aussen_1": 1,
+    "S11_trennwand": 1,
+    "S12_trennwand": 1,
+    "S21_trennwand": 1,
+    "S22_trennwand": 1,
+    "Wand_40.005": 1,
+    "Wand_bt1_001.002": 1,
+    "fassade003.001": 1,
+    "fassade005.002": 1,
+    "fassade008.002": 1,
+    "fassade_001.001": 1,
+    "fassade_001.003": 1,
+    "fassade_003.001": 1,
+    "fassade_buero_1": 1,
+    "fassade_buero_1.001": 1,
+    "fassade_buero_2": 1,
+    "fassade_buero_2.001": 1,
+    "og_waendeInnen_01": 1,
+    "saal1_waende.004": 1
+  },
+  "sourceFingerprints": [
+    {
+      "name": "BT1_Kabinen_wnde24",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT1_Kabinen_wnde31",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT1_Kabinen_wnde34",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT1_Kabinen_wnde43",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT1_Kabinen_wnde50",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT1_Kabinen_wnde57",
+      "vertices": 2046,
+      "triangles": 2816
+    },
+    {
+      "name": "BT3_innenwaende.002",
+      "vertices": 129,
+      "triangles": 67
+    },
+    {
+      "name": "BT3_innenwaende.006",
+      "vertices": 212,
+      "triangles": 112
+    },
+    {
+      "name": "Buhne_aufbau_decke",
+      "vertices": 184,
+      "triangles": 172
+    },
+    {
+      "name": "EG_decke_bergang_aussen",
+      "vertices": 48,
+      "triangles": 28
+    },
+    {
+      "name": "Foyer_Dach_aussen_002",
+      "vertices": 48,
+      "triangles": 36
+    },
+    {
+      "name": "Foyer_Dach_aussen_1",
+      "vertices": 96,
+      "triangles": 52
+    },
+    {
+      "name": "S11_trennwand",
+      "vertices": 1226,
+      "triangles": 612
+    },
+    {
+      "name": "S12_trennwand",
+      "vertices": 1226,
+      "triangles": 612
+    },
+    {
+      "name": "S21_trennwand",
+      "vertices": 1226,
+      "triangles": 612
+    },
+    {
+      "name": "S22_trennwand",
+      "vertices": 1226,
+      "triangles": 612
+    },
+    {
+      "name": "Wand_40.005",
+      "vertices": 166,
+      "triangles": 92
+    },
+    {
+      "name": "Wand_bt1_001.002",
+      "vertices": 462,
+      "triangles": 244
+    },
+    {
+      "name": "fassade003.001",
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "fassade005.002",
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "fassade008.002",
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "fassade_001.001",
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "fassade_001.003",
+      "vertices": 24,
+      "triangles": 12
+    },
+    {
+      "name": "fassade_003.001",
+      "vertices": 90,
+      "triangles": 44
+    },
+    {
+      "name": "fassade_buero_1",
+      "vertices": 83,
+      "triangles": 58
+    },
+    {
+      "name": "fassade_buero_1.001",
+      "vertices": 86,
+      "triangles": 64
+    },
+    {
+      "name": "fassade_buero_2",
+      "vertices": 370,
+      "triangles": 396
+    },
+    {
+      "name": "fassade_buero_2.001",
+      "vertices": 373,
+      "triangles": 396
+    },
+    {
+      "name": "og_waendeInnen_01",
+      "vertices": 2062,
+      "triangles": 1428
+    },
+    {
+      "name": "saal1_waende.004",
+      "vertices": 144,
+      "triangles": 92
+    }
+  ],
+  "matchedObjects": [
+    "BT1_Kabinen_wnde24",
+    "BT1_Kabinen_wnde31",
+    "BT1_Kabinen_wnde34",
+    "BT1_Kabinen_wnde43",
+    "BT1_Kabinen_wnde50",
+    "BT1_Kabinen_wnde57",
+    "BT3_innenwaende.002",
+    "BT3_innenwaende.006",
+    "Buhne_aufbau_decke",
+    "EG_decke_bergang_aussen",
+    "Foyer_Dach_aussen_002",
+    "Foyer_Dach_aussen_1",
+    "S11_trennwand",
+    "S12_trennwand",
+    "S21_trennwand",
+    "S22_trennwand",
+    "Wand_40.005",
+    "Wand_bt1_001.002",
+    "fassade003.001",
+    "fassade005.002",
+    "fassade008.002",
+    "fassade_001.001",
+    "fassade_001.003",
+    "fassade_003.001",
+    "fassade_buero_1",
+    "fassade_buero_1.001",
+    "fassade_buero_2",
+    "fassade_buero_2.001",
+    "og_waendeInnen_01",
+    "saal1_waende.004"
+  ],
+  "acceptedObjects": [
+    "BT1_Kabinen_wnde24",
+    "BT1_Kabinen_wnde31",
+    "BT1_Kabinen_wnde34",
+    "BT1_Kabinen_wnde43",
+    "BT1_Kabinen_wnde50",
+    "BT1_Kabinen_wnde57",
+    "Buhne_aufbau_decke",
+    "EG_decke_bergang_aussen",
+    "Foyer_Dach_aussen_002",
+    "Foyer_Dach_aussen_1",
+    "S11_trennwand",
+    "S12_trennwand",
+    "S21_trennwand",
+    "S22_trennwand",
+    "Wand_40.005",
+    "Wand_bt1_001.002",
+    "fassade003.001",
+    "fassade005.002",
+    "fassade008.002",
+    "fassade_001.001",
+    "fassade_001.003",
+    "fassade_003.001",
+    "fassade_buero_1",
+    "fassade_buero_1.001",
+    "fassade_buero_2",
+    "fassade_buero_2.001",
+    "og_waendeInnen_01",
+    "saal1_waende.004"
+  ],
+  "rejectedObjects": [
+    "BT3_innenwaende.002",
+    "BT3_innenwaende.006"
+  ],
+  "isolatedSharedMeshes": 0,
+  "certificateObjectsBeforeExport": [
+    "BT1_Kabinen_wnde24",
+    "BT1_Kabinen_wnde31",
+    "BT1_Kabinen_wnde34",
+    "BT1_Kabinen_wnde43",
+    "BT1_Kabinen_wnde50",
+    "BT1_Kabinen_wnde57",
+    "Buhne_aufbau_decke",
+    "EG_decke_bergang_aussen",
+    "Foyer_Dach_aussen_002",
+    "Foyer_Dach_aussen_1",
+    "S11_trennwand",
+    "S12_trennwand",
+    "S21_trennwand",
+    "S22_trennwand",
+    "Wand_40.005",
+    "Wand_bt1_001.002",
+    "fassade003.001",
+    "fassade005.002",
+    "fassade008.002",
+    "fassade_001.001",
+    "fassade_001.003",
+    "fassade_003.001",
+    "fassade_buero_1",
+    "fassade_buero_1.001",
+    "fassade_buero_2",
+    "fassade_buero_2.001",
+    "og_waendeInnen_01",
+    "saal1_waende.004"
+  ],
+  "after": {
+    "objects": 8140,
+    "meshObjects": 7889,
+    "meshes": 4274,
+    "materials": 424,
+    "images": 153,
+    "actions": [
+      "Animation"
+    ],
+    "animatedObjects": [
+      {
+        "object": "1st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "2st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ceiling._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ground Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Mezzanine._anim1",
+        "action": "Animation"
+      }
+    ],
+    "triangles": 13638673,
+    "hierarchySha256": "8917012704c9c57904fcfbaac9f9696f39a25fda3c7eb7fc0b9bfdbd95caf106",
+    "objectInventorySha256": "df4ae8a232ae3042bbe61dc0e240434936d38fe9e9f0b1dba27d08961b3ddfde",
+    "meshInventorySha256": "6ec0bad73d19fd93fcead63f0acce4ee0577badee7556bd4185be8436a1ead26",
+    "materialInventorySha256": "8e852420f8c1c4a6f8fa62c4a43ccb9915163b3f1083f1520dc8f19d46314517",
+    "imageInventorySha256": "12ac82a160cdaec1f01775b2ecbb9402b70affe21ba6f9cd7f0c4a958e7a9fb9",
+    "animationDetails": [
+      {
+        "name": "Animation",
+        "frameStart": 0.0,
+        "frameEnd": 65.0,
+        "durationSeconds": 2.7083333333333335,
+        "curves": 0,
+        "nonConstantCurves": 0
+      }
+    ]
+  },
+  "repairs": [
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde24",
+      "objects": [
+        "BT1_Kabinen_wnde24"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde31",
+      "objects": [
+        "BT1_Kabinen_wnde31"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde34",
+      "objects": [
+        "BT1_Kabinen_wnde34"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde43",
+      "objects": [
+        "BT1_Kabinen_wnde43"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde50",
+      "objects": [
+        "BT1_Kabinen_wnde50"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2046,
+      "facesBefore": 2816,
+      "trianglesBefore": 2816,
+      "weldedVertices": 626,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2046,
+        "edges": 4813,
+        "faces": 2816,
+        "boundaryEdges": 1178,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 1420,
+      "facesAfter": 2816,
+      "trianglesAfter": 2816,
+      "mesh": "BT1_Kabinen_wnde57",
+      "objects": [
+        "BT1_Kabinen_wnde57"
+      ],
+      "diagonal": 243.0302095755522
+    },
+    {
+      "accepted": false,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 129,
+      "facesBefore": 67,
+      "trianglesBefore": 67,
+      "weldedVertices": 93,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 129,
+        "edges": 170,
+        "faces": 67,
+        "boundaryEdges": 139,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 36,
+        "edges": 102,
+        "faces": 67,
+        "boundaryEdges": 3,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": null,
+      "mesh": "Mesh.13837",
+      "objects": [
+        "BT3_innenwaende.002"
+      ],
+      "diagonal": 1083.5573793741491
+    },
+    {
+      "accepted": false,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 212,
+      "facesBefore": 112,
+      "trianglesBefore": 112,
+      "weldedVertices": 155,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 212,
+        "edges": 278,
+        "faces": 112,
+        "boundaryEdges": 220,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 57,
+        "edges": 171,
+        "faces": 112,
+        "boundaryEdges": 6,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": null,
+      "mesh": "Mesh.797",
+      "objects": [
+        "BT3_innenwaende.006"
+      ],
+      "diagonal": 1081.051886174991
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 184,
+      "facesBefore": 172,
+      "trianglesBefore": 172,
+      "weldedVertices": 96,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 184,
+        "edges": 350,
+        "faces": 172,
+        "boundaryEdges": 184,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 88,
+        "edges": 258,
+        "faces": 172,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 88,
+        "edges": 258,
+        "faces": 172,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 88,
+      "facesAfter": 172,
+      "trianglesAfter": 172,
+      "mesh": "Mesh.039",
+      "objects": [
+        "Buhne_aufbau_decke"
+      ],
+      "diagonal": 1493.902958089246
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 48,
+      "facesBefore": 28,
+      "trianglesBefore": 28,
+      "weldedVertices": 32,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 48,
+        "edges": 66,
+        "faces": 28,
+        "boundaryEdges": 48,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 16,
+        "edges": 42,
+        "faces": 28,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 16,
+        "edges": 42,
+        "faces": 28,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 16,
+      "facesAfter": 28,
+      "trianglesAfter": 28,
+      "mesh": "Mesh.8267",
+      "objects": [
+        "EG_decke_bergang_aussen"
+      ],
+      "diagonal": 2567.113162098349
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 48,
+      "facesBefore": 36,
+      "trianglesBefore": 36,
+      "weldedVertices": 28,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 48,
+        "edges": 78,
+        "faces": 36,
+        "boundaryEdges": 48,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 20,
+        "edges": 54,
+        "faces": 36,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 20,
+        "edges": 54,
+        "faces": 36,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 20,
+      "facesAfter": 36,
+      "trianglesAfter": 36,
+      "mesh": "Mesh.8079",
+      "objects": [
+        "Foyer_Dach_aussen_002"
+      ],
+      "diagonal": 3169.983566278222
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 96,
+      "facesBefore": 52,
+      "trianglesBefore": 52,
+      "weldedVertices": 64,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 96,
+        "edges": 126,
+        "faces": 52,
+        "boundaryEdges": 96,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 32,
+        "edges": 78,
+        "faces": 52,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 32,
+        "edges": 78,
+        "faces": 52,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 32,
+      "facesAfter": 52,
+      "trianglesAfter": 52,
+      "mesh": "Mesh.8078",
+      "objects": [
+        "Foyer_Dach_aussen_1"
+      ],
+      "diagonal": 15567.430610751493
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 1226,
+      "facesBefore": 612,
+      "trianglesBefore": 612,
+      "weldedVertices": 818,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 1226,
+        "edges": 1531,
+        "faces": 612,
+        "boundaryEdges": 1226,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 408,
+      "facesAfter": 612,
+      "trianglesAfter": 612,
+      "mesh": "Mesh.094",
+      "objects": [
+        "S11_trennwand"
+      ],
+      "diagonal": 1090.8762133807634
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 1226,
+      "facesBefore": 612,
+      "trianglesBefore": 612,
+      "weldedVertices": 818,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 1226,
+        "edges": 1531,
+        "faces": 612,
+        "boundaryEdges": 1226,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 408,
+      "facesAfter": 612,
+      "trianglesAfter": 612,
+      "mesh": "Mesh.093",
+      "objects": [
+        "S12_trennwand"
+      ],
+      "diagonal": 1090.8762133807634
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 1226,
+      "facesBefore": 612,
+      "trianglesBefore": 612,
+      "weldedVertices": 818,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 1226,
+        "edges": 1531,
+        "faces": 612,
+        "boundaryEdges": 1226,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 408,
+      "facesAfter": 612,
+      "trianglesAfter": 612,
+      "mesh": "Mesh.092",
+      "objects": [
+        "S21_trennwand"
+      ],
+      "diagonal": 1090.8762133807634
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 1226,
+      "facesBefore": 612,
+      "trianglesBefore": 612,
+      "weldedVertices": 818,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 1226,
+        "edges": 1531,
+        "faces": 612,
+        "boundaryEdges": 1226,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 408,
+      "facesAfter": 612,
+      "trianglesAfter": 612,
+      "mesh": "Mesh.091",
+      "objects": [
+        "S22_trennwand"
+      ],
+      "diagonal": 1090.8762133807634
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 3.8244300905985765e-05,
+      "verticesBefore": 166,
+      "facesBefore": 92,
+      "trianglesBefore": 92,
+      "weldedVertices": 118,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 166,
+        "edges": 222,
+        "faces": 92,
+        "boundaryEdges": 168,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 48,
+      "facesAfter": 92,
+      "trianglesAfter": 92,
+      "mesh": "Mesh.791",
+      "objects": [
+        "Wand_40.005"
+      ],
+      "diagonal": 38.24430090598577
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 462,
+      "facesBefore": 244,
+      "trianglesBefore": 244,
+      "weldedVertices": 338,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 462,
+        "edges": 599,
+        "faces": 244,
+        "boundaryEdges": 466,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 124,
+        "edges": 366,
+        "faces": 244,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 124,
+        "edges": 366,
+        "faces": 244,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 124,
+      "facesAfter": 244,
+      "trianglesAfter": 244,
+      "mesh": "Wand_bt1_001.002",
+      "objects": [
+        "Wand_bt1_001.002"
+      ],
+      "diagonal": 6326.701065900458
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 24,
+      "facesBefore": 12,
+      "trianglesBefore": 12,
+      "weldedVertices": 16,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 24,
+        "edges": 30,
+        "faces": 12,
+        "boundaryEdges": 24,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 8,
+      "facesAfter": 12,
+      "trianglesAfter": 12,
+      "mesh": "Mesh.746",
+      "objects": [
+        "fassade003.001"
+      ],
+      "diagonal": 588.8854634263474
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 24,
+      "facesBefore": 12,
+      "trianglesBefore": 12,
+      "weldedVertices": 16,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 24,
+        "edges": 30,
+        "faces": 12,
+        "boundaryEdges": 24,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 8,
+      "facesAfter": 12,
+      "trianglesAfter": 12,
+      "mesh": "fassade005.002",
+      "objects": [
+        "fassade005.002"
+      ],
+      "diagonal": 590.385710734294
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 24,
+      "facesBefore": 12,
+      "trianglesBefore": 12,
+      "weldedVertices": 16,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 24,
+        "edges": 30,
+        "faces": 12,
+        "boundaryEdges": 24,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 8,
+      "facesAfter": 12,
+      "trianglesAfter": 12,
+      "mesh": "fassade008.002",
+      "objects": [
+        "fassade008.002"
+      ],
+      "diagonal": 588.8852038797954
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 24,
+      "facesBefore": 12,
+      "trianglesBefore": 12,
+      "weldedVertices": 16,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 24,
+        "edges": 30,
+        "faces": 12,
+        "boundaryEdges": 24,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 8,
+      "facesAfter": 12,
+      "trianglesAfter": 12,
+      "mesh": "Mesh.1057",
+      "objects": [
+        "fassade_001.001"
+      ],
+      "diagonal": 542.7795769205845
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 24,
+      "facesBefore": 12,
+      "trianglesBefore": 12,
+      "weldedVertices": 16,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 24,
+        "edges": 30,
+        "faces": 12,
+        "boundaryEdges": 24,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 8,
+      "facesAfter": 12,
+      "trianglesAfter": 12,
+      "mesh": "Mesh.747",
+      "objects": [
+        "fassade_001.003"
+      ],
+      "diagonal": 590.385841237571
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 5.279125133741571e-06,
+      "verticesBefore": 90,
+      "facesBefore": 44,
+      "trianglesBefore": 44,
+      "weldedVertices": 66,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 90,
+        "edges": 111,
+        "faces": 44,
+        "boundaryEdges": 90,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 24,
+        "edges": 66,
+        "faces": 44,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 24,
+        "edges": 66,
+        "faces": 44,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 24,
+      "facesAfter": 44,
+      "trianglesAfter": 44,
+      "mesh": "Mesh.1071",
+      "objects": [
+        "fassade_003.001"
+      ],
+      "diagonal": 5.279125133741571
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 83,
+      "facesBefore": 58,
+      "trianglesBefore": 58,
+      "weldedVertices": 56,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 83,
+        "edges": 129,
+        "faces": 58,
+        "boundaryEdges": 84,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 27,
+        "edges": 87,
+        "faces": 58,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 27,
+        "edges": 87,
+        "faces": 58,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 27,
+      "facesAfter": 58,
+      "trianglesAfter": 58,
+      "mesh": "Mesh.1056",
+      "objects": [
+        "fassade_buero_1"
+      ],
+      "diagonal": 987.2309031856242
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 86,
+      "facesBefore": 64,
+      "trianglesBefore": 64,
+      "weldedVertices": 56,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 86,
+        "edges": 139,
+        "faces": 64,
+        "boundaryEdges": 86,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 30,
+        "edges": 96,
+        "faces": 64,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 30,
+        "edges": 96,
+        "faces": 64,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 30,
+      "facesAfter": 64,
+      "trianglesAfter": 64,
+      "mesh": "Mesh.759",
+      "objects": [
+        "fassade_buero_1.001"
+      ],
+      "diagonal": 1014.1845343578183
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 370,
+      "facesBefore": 396,
+      "trianglesBefore": 396,
+      "weldedVertices": 180,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 370,
+        "edges": 750,
+        "faces": 396,
+        "boundaryEdges": 312,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 190,
+      "facesAfter": 396,
+      "trianglesAfter": 396,
+      "mesh": "Mesh.1060",
+      "objects": [
+        "fassade_buero_2"
+      ],
+      "diagonal": 4059.9303611941864
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 373,
+      "facesBefore": 396,
+      "trianglesBefore": 396,
+      "weldedVertices": 183,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 373,
+        "edges": 752,
+        "faces": 396,
+        "boundaryEdges": 316,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 190,
+      "facesAfter": 396,
+      "trianglesAfter": 396,
+      "mesh": "Mesh.744",
+      "objects": [
+        "fassade_buero_2.001"
+      ],
+      "diagonal": 4066.568543159106
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 2062,
+      "facesBefore": 1428,
+      "trianglesBefore": 1428,
+      "weldedVertices": 1276,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 2062,
+        "edges": 3162,
+        "faces": 1428,
+        "boundaryEdges": 2040,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 786,
+        "edges": 2142,
+        "faces": 1428,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 786,
+        "edges": 2142,
+        "faces": 1428,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 786,
+      "facesAfter": 1428,
+      "trianglesAfter": 1428,
+      "mesh": "Mesh.2560",
+      "objects": [
+        "og_waendeInnen_01"
+      ],
+      "diagonal": 2636.8496731825467
+    },
+    {
+      "accepted": true,
+      "mergeDistance": 0.0001,
+      "verticesBefore": 144,
+      "facesBefore": 92,
+      "trianglesBefore": 92,
+      "weldedVertices": 96,
+      "zeroAreaFacesRemoved": 0,
+      "meshValidateChanged": false,
+      "topologyBefore": {
+        "vertices": 144,
+        "edges": 210,
+        "faces": 92,
+        "boundaryEdges": 144,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterBMesh": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "topologyAfterValidate": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      },
+      "verticesAfter": 48,
+      "facesAfter": 92,
+      "trianglesAfter": 92,
+      "mesh": "Mesh.795",
+      "objects": [
+        "saal1_waende.004"
+      ],
+      "diagonal": 3544.4355544393898
+    }
+  ],
+  "outputBytes": 478329852,
+  "exported": {
+    "objects": 8140,
+    "meshObjects": 7889,
+    "meshes": 4274,
+    "materials": 424,
+    "images": 153,
+    "actions": [
+      "Animation"
+    ],
+    "animatedObjects": [
+      {
+        "object": "1st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "2st Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ceiling._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Ground Floor._anim1",
+        "action": "Animation"
+      },
+      {
+        "object": "Mezzanine._anim1",
+        "action": "Animation"
+      }
+    ],
+    "triangles": 13638673,
+    "hierarchySha256": "8917012704c9c57904fcfbaac9f9696f39a25fda3c7eb7fc0b9bfdbd95caf106",
+    "objectInventorySha256": "df4ae8a232ae3042bbe61dc0e240434936d38fe9e9f0b1dba27d08961b3ddfde",
+    "meshInventorySha256": "6ec0bad73d19fd93fcead63f0acce4ee0577badee7556bd4185be8436a1ead26",
+    "materialInventorySha256": "8e852420f8c1c4a6f8fa62c4a43ccb9915163b3f1083f1520dc8f19d46314517",
+    "imageInventorySha256": "12ac82a160cdaec1f01775b2ecbb9402b70affe21ba6f9cd7f0c4a958e7a9fb9",
+    "animationDetails": [
+      {
+        "name": "Animation",
+        "frameStart": 0.0,
+        "frameEnd": 65.0,
+        "durationSeconds": 2.7083333333333335,
+        "curves": 0,
+        "nonConstantCurves": 0
+      }
+    ]
+  },
+  "exportedCertificateObjects": [
+    "BT1_Kabinen_wnde24",
+    "BT1_Kabinen_wnde31",
+    "BT1_Kabinen_wnde34",
+    "BT1_Kabinen_wnde43",
+    "BT1_Kabinen_wnde50",
+    "BT1_Kabinen_wnde57",
+    "Buhne_aufbau_decke",
+    "EG_decke_bergang_aussen",
+    "Foyer_Dach_aussen_002",
+    "Foyer_Dach_aussen_1",
+    "S11_trennwand",
+    "S12_trennwand",
+    "S21_trennwand",
+    "S22_trennwand",
+    "Wand_40.005",
+    "Wand_bt1_001.002",
+    "fassade003.001",
+    "fassade005.002",
+    "fassade008.002",
+    "fassade_001.001",
+    "fassade_001.003",
+    "fassade_003.001",
+    "fassade_buero_1",
+    "fassade_buero_1.001",
+    "fassade_buero_2",
+    "fassade_buero_2.001",
+    "og_waendeInnen_01",
+    "saal1_waende.004"
+  ],
+  "exportedTopologyAudits": [
+    {
+      "object": "BT1_Kabinen_wnde24",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "BT1_Kabinen_wnde31",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "BT1_Kabinen_wnde34",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "BT1_Kabinen_wnde43",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "BT1_Kabinen_wnde50",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "BT1_Kabinen_wnde57",
+      "topology": {
+        "vertices": 1420,
+        "edges": 4224,
+        "faces": 2816,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "Buhne_aufbau_decke",
+      "topology": {
+        "vertices": 88,
+        "edges": 258,
+        "faces": 172,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "EG_decke_bergang_aussen",
+      "topology": {
+        "vertices": 16,
+        "edges": 42,
+        "faces": 28,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "Foyer_Dach_aussen_002",
+      "topology": {
+        "vertices": 20,
+        "edges": 54,
+        "faces": 36,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "Foyer_Dach_aussen_1",
+      "topology": {
+        "vertices": 32,
+        "edges": 78,
+        "faces": 52,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "S11_trennwand",
+      "topology": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "S12_trennwand",
+      "topology": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "S21_trennwand",
+      "topology": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "S22_trennwand",
+      "topology": {
+        "vertices": 408,
+        "edges": 918,
+        "faces": 612,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "Wand_40.005",
+      "topology": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "Wand_bt1_001.002",
+      "topology": {
+        "vertices": 124,
+        "edges": 366,
+        "faces": 244,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade003.001",
+      "topology": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade005.002",
+      "topology": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade008.002",
+      "topology": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_001.001",
+      "topology": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_001.003",
+      "topology": {
+        "vertices": 8,
+        "edges": 18,
+        "faces": 12,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_003.001",
+      "topology": {
+        "vertices": 24,
+        "edges": 66,
+        "faces": 44,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_buero_1",
+      "topology": {
+        "vertices": 27,
+        "edges": 87,
+        "faces": 58,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_buero_1.001",
+      "topology": {
+        "vertices": 30,
+        "edges": 96,
+        "faces": 64,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_buero_2",
+      "topology": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "fassade_buero_2.001",
+      "topology": {
+        "vertices": 190,
+        "edges": 594,
+        "faces": 396,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "og_waendeInnen_01",
+      "topology": {
+        "vertices": 786,
+        "edges": 2142,
+        "faces": 1428,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    },
+    {
+      "object": "saal1_waende.004",
+      "topology": {
+        "vertices": 48,
+        "edges": 138,
+        "faces": 92,
+        "boundaryEdges": 0,
+        "nonManifoldEdges": 0,
+        "windingConflictEdges": 0,
+        "looseEdges": 0
+      }
+    }
+  ],
+  "safety": {
+    "inputOverwritten": false,
+    "exactObjectIdentities": true,
+    "sourceFingerprintsVerified": true,
+    "staleTargetCertificatesCleared": true,
+    "meshValidateReaudited": true,
+    "exportReimportAudited": true,
+    "rejectedRepairsRestored": true
+  }
+}

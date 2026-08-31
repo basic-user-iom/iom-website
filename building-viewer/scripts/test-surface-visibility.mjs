@@ -9,6 +9,7 @@ import {
   Group,
   Mesh,
   MeshStandardMaterial,
+  PlaneGeometry,
 } from 'three'
 
 const vite = await createServer({
@@ -52,6 +53,24 @@ function duplicateWindingGeometry() {
   geometry.setIndex([0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3, 0, 2, 1])
   geometry.computeVertexNormals()
   return geometry
+}
+
+function tetraPrimitiveGeometry(indices) {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute(
+    'position',
+    new Float32BufferAttribute([0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 4], 3),
+  )
+  geometry.setIndex(indices)
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+const SURFACE_REPAIR_VERSION = 'weld-seams-recalculate-normals-v1'
+
+function certifySurface(obj, flag = true, version = SURFACE_REPAIR_VERSION) {
+  obj.userData.iomSurfaceTopologyRepaired = flag
+  obj.userData.iomSurfaceTopologyRepair = version
 }
 
 try {
@@ -148,6 +167,61 @@ try {
   assert.equal(tower.material.side, DoubleSide)
   assert.equal(tower.userData.surfaceVisibilityReason, 'audited-open-shell')
 
+  // The exterior campus roof reported in production is a very large, almost
+  // horizontal open shell. Its exact source material must reach the topology
+  // audit even though the generic large-horizontal shortcut normally skips
+  // that work. A closed roof volume sharing the material remains FrontSide.
+  const sharedCampusRoof = new MeshStandardMaterial({ name: 'dach allu', side: FrontSide })
+  const campusRoofGeometry = new PlaneGeometry(100, 80)
+  campusRoofGeometry.rotateX(-Math.PI / 2)
+  const campusRoof = new Mesh(campusRoofGeometry, sharedCampusRoof)
+  campusRoof.name = 'Campus main roof shell'
+  const closedCampusRoof = new Mesh(new BoxGeometry(8, 0.5, 8), sharedCampusRoof)
+  closedCampusRoof.name = 'Closed roof curb'
+  closedCampusRoof.position.x = 65
+  const campusRoofRoot = new Group()
+  campusRoofRoot.add(campusRoof, closedCampusRoof)
+  prepareArchitecturalMeshes(campusRoofRoot, computeSceneBounds(campusRoofRoot), {
+    freezeStatic: false,
+  })
+  assert.equal(campusRoof.material.side, DoubleSide)
+  assert.equal(campusRoof.userData.surfaceVisibilityReason, 'audited-open-shell')
+  assert.ok(campusRoof.userData.surfaceTopology.boundaryEdges > 0)
+  assert.equal(closedCampusRoof.material.side, FrontSide)
+  assert.notEqual(campusRoof.material, closedCampusRoof.material)
+
+  // Several interior roof/ceiling owners are closed in AABB terms but contain
+  // duplicated or inconsistent winding. Their audited hierarchy name must
+  // retain both faces without applying the rule to every roof-like object.
+  const auditedInteriorShellNames = [
+    'Foyer_Dach_aussen_1',
+    'Foyer_Dach_aussen_002',
+    'Decken_Lampen',
+    'EG_decke_bergang_aussen',
+    'Buhne_aufbau_decke',
+    'Saal_1_deckenpaneele_lftung001',
+  ]
+  for (const shellName of auditedInteriorShellNames) {
+    const interiorShell = new Mesh(
+      duplicateWindingGeometry(),
+      new MeshStandardMaterial({ name: 'Generic audited shell', side: FrontSide }),
+    )
+    interiorShell.name = shellName
+    const interiorShellRoot = new Group()
+    interiorShellRoot.add(interiorShell)
+    prepareArchitecturalMeshes(
+      interiorShellRoot,
+      computeSceneBounds(interiorShellRoot),
+      { freezeStatic: false },
+    )
+    assert.equal(interiorShell.material.side, DoubleSide, shellName)
+    assert.equal(
+      interiorShell.userData.surfaceVisibilityReason,
+      'audited-mixed-winding-shell',
+      shellName,
+    )
+  }
+
   // Exterior CAD also uses German building/hall owner names with generic
   // materials. Keep those open envelopes visible before optimization strips
   // the source node names (for example GebudeWest / NebenGebude23).
@@ -178,6 +252,163 @@ try {
   )
   assert.equal(mixedWinding.material.side, DoubleSide)
   assert.equal(mixedWinding.userData.surfaceVisibilityReason, 'audited-mixed-winding-shell')
+
+  // Only the exact two-value certificate can exempt an audited repaired
+  // owner, and runtime independently confirms that its geometry remains clean.
+  const validRepaired = new Mesh(
+    new BoxGeometry(4, 3, 4),
+    new MeshStandardMaterial({ name: 'Repaired wall', side: DoubleSide }),
+  )
+  validRepaired.name = 'Wand_40.005'
+  certifySurface(validRepaired)
+  const validRepairedRoot = new Group()
+  validRepairedRoot.add(validRepaired)
+  prepareArchitecturalMeshes(
+    validRepairedRoot,
+    computeSceneBounds(validRepairedRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(validRepaired.material.side, FrontSide)
+
+  const thinValidRepaired = new Mesh(
+    new BoxGeometry(4, 0.04, 4),
+    new MeshStandardMaterial({ name: 'Thin repaired volume', side: DoubleSide }),
+  )
+  thinValidRepaired.name = 'Wand_40.005'
+  certifySurface(thinValidRepaired)
+  const thinValidRoot = new Group()
+  thinValidRoot.add(thinValidRepaired)
+  prepareArchitecturalMeshes(thinValidRoot, computeSceneBounds(thinValidRoot), {
+    freezeStatic: false,
+  })
+  assert.equal(thinValidRepaired.material.side, FrontSide)
+
+  const certificateVariants = [
+    { label: 'missing', flag: undefined, version: undefined },
+    { label: 'wrong-version', flag: true, version: 'weld-seams-v0' },
+    { label: 'non-boolean', flag: 'true', version: SURFACE_REPAIR_VERSION },
+  ]
+  for (const variant of certificateVariants) {
+    const candidate = new Mesh(
+      duplicateWindingGeometry(),
+      new MeshStandardMaterial({ name: `Certificate ${variant.label}`, side: FrontSide }),
+    )
+    candidate.name = 'Wand_40.005'
+    if (variant.flag !== undefined) {
+      certifySurface(candidate, variant.flag, variant.version)
+    }
+    const candidateRoot = new Group()
+    candidateRoot.add(candidate)
+    prepareArchitecturalMeshes(candidateRoot, computeSceneBounds(candidateRoot), {
+      freezeStatic: false,
+    })
+    assert.equal(candidate.material.side, DoubleSide, variant.label)
+  }
+
+  const forgedDamagedRepair = new Mesh(
+    duplicateWindingGeometry(),
+    new MeshStandardMaterial({ name: 'Forged repaired wall', side: FrontSide }),
+  )
+  forgedDamagedRepair.name = 'Wand_40.005'
+  certifySurface(forgedDamagedRepair)
+  const forgedDamagedRoot = new Group()
+  forgedDamagedRoot.add(forgedDamagedRepair)
+  prepareArchitecturalMeshes(
+    forgedDamagedRoot,
+    computeSceneBounds(forgedDamagedRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(forgedDamagedRepair.material.side, DoubleSide)
+  assert.equal(
+    forgedDamagedRepair.userData.surfaceVisibilityReason,
+    'audited-mixed-winding-shell',
+  )
+
+  // The two Blender-rejected targets must remain uncertified and on the old
+  // conservative path.
+  const rejectedTarget = new Mesh(
+    duplicateWindingGeometry(),
+    new MeshStandardMaterial({ name: 'Rejected wall', side: FrontSide }),
+  )
+  rejectedTarget.name = 'BT3_innenwaende.002'
+  const rejectedRoot = new Group()
+  rejectedRoot.add(rejectedTarget)
+  prepareArchitecturalMeshes(rejectedRoot, computeSceneBounds(rejectedRoot), {
+    freezeStatic: false,
+  })
+  assert.equal(rejectedTarget.userData.iomSurfaceTopologyRepaired, undefined)
+  assert.equal(rejectedTarget.userData.iomSurfaceTopologyRepair, undefined)
+  assert.equal(rejectedTarget.material.side, DoubleSide)
+
+  // A certificate on an arbitrary ancestor never exempts nested unrelated
+  // geometry, even when the ancestor carries an audited source name.
+  const certifiedParent = new Group()
+  certifiedParent.name = 'Wand_40.005'
+  certifySurface(certifiedParent)
+  const unrelatedBranch = new Group()
+  const unrelatedDescendant = new Mesh(
+    duplicateWindingGeometry(),
+    new MeshStandardMaterial({ name: 'Unrelated descendant', side: FrontSide }),
+  )
+  unrelatedBranch.add(unrelatedDescendant)
+  certifiedParent.add(unrelatedBranch)
+  const certifiedParentRoot = new Group()
+  certifiedParentRoot.add(certifiedParent)
+  prepareArchitecturalMeshes(
+    certifiedParentRoot,
+    computeSceneBounds(certifiedParentRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(unrelatedDescendant.material.side, DoubleSide)
+
+  // Material primitives may each be open at their shared boundary. Their
+  // strict glTF logical-mesh owner is eligible only when the combined topology
+  // is closed and consistently wound.
+  const multiMaterialOwner = new Group()
+  multiMaterialOwner.name = 'S11_trennwand'
+  certifySurface(multiMaterialOwner)
+  const multiMaterialA = new Mesh(
+    tetraPrimitiveGeometry([0, 2, 1, 0, 1, 3]),
+    new MeshStandardMaterial({ name: 'Repaired material A', side: DoubleSide }),
+  )
+  const multiMaterialB = new Mesh(
+    tetraPrimitiveGeometry([1, 2, 3, 2, 0, 3]),
+    new MeshStandardMaterial({ name: 'Repaired material B', side: DoubleSide }),
+  )
+  multiMaterialOwner.add(multiMaterialA, multiMaterialB)
+  const multiMaterialRoot = new Group()
+  multiMaterialRoot.add(multiMaterialOwner)
+  prepareArchitecturalMeshes(
+    multiMaterialRoot,
+    computeSceneBounds(multiMaterialRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(
+    multiMaterialA.material.side,
+    FrontSide,
+    JSON.stringify(multiMaterialOwner.userData.surfaceTopologyRepairAudit),
+  )
+  assert.equal(multiMaterialB.material.side, FrontSide)
+
+  const explicitSheetMaterial = new MeshStandardMaterial({
+    name: 'Explicit repaired sheet',
+    side: DoubleSide,
+  })
+  explicitSheetMaterial.userData.iomDoubleSidedReason = 'explicit-sheet'
+  const explicitRepairedSheet = new Mesh(
+    new BoxGeometry(4, 3, 4),
+    explicitSheetMaterial,
+  )
+  explicitRepairedSheet.name = 'Wand_40.005'
+  certifySurface(explicitRepairedSheet)
+  const explicitSheetRoot = new Group()
+  explicitSheetRoot.add(explicitRepairedSheet)
+  prepareArchitecturalMeshes(
+    explicitSheetRoot,
+    computeSceneBounds(explicitSheetRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(explicitRepairedSheet.material.side, DoubleSide)
 
   // Geometry alone is intentionally insufficient: arbitrary open props stay
   // culled unless they are thin or carry an architectural/safety semantic.

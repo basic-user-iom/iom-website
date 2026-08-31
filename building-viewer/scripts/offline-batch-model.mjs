@@ -19,6 +19,11 @@ import { NodeIO, PropertyType } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { dedup, flatten, getBounds, instance, join, prune } from '@gltf-transform/functions'
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer'
+import {
+  auditSurfaceRepairCertificates,
+  hasExactSurfaceRepairCertificate,
+  surfaceRepairAuditSummary,
+} from './lib/surface-repair-certificate.mjs'
 
 function parseArgs(argv) {
   const args = {
@@ -117,6 +122,7 @@ function partitionOpaqueSiblings(document, options) {
     for (const node of [...parent.listChildren()]) {
       const mesh = node.getMesh()
       if (!mesh || nodeIsAnimatedTarget(node) || nodeHasTransparentPrimitive(node)) continue
+      if (hasExactSurfaceRepairCertificate(node.getExtras())) continue
       if (node.getExtension('EXT_mesh_gpu_instancing')) continue
       const bounds = getBounds(node)
       if (!bounds?.min || !bounds?.max) continue
@@ -282,6 +288,39 @@ function collectStats(document) {
   }
 }
 
+function animationTrackSet(stats) {
+  return new Set(
+    stats.animationDetails.flatMap((animation) =>
+      animation.channels.map(
+        (channel) => `${animation.name}|${channel.target}|${channel.path}`,
+      ),
+    ),
+  )
+}
+
+function assertAnimationPreserved(before, after, label) {
+  const expected = animationTrackSet(before)
+  const actual = animationTrackSet(after)
+  for (const track of expected) {
+    if (!actual.has(track)) {
+      throw new Error(`${label} removed animation track: ${track}`)
+    }
+  }
+  const beforeDuration = Math.max(
+    0,
+    ...before.animationDetails.map((animation) => animation.durationSeconds),
+  )
+  const afterDuration = Math.max(
+    0,
+    ...after.animationDetails.map((animation) => animation.durationSeconds),
+  )
+  if (Math.abs(beforeDuration - afterDuration) > 0.001) {
+    throw new Error(
+      `${label} changed animation duration from ${beforeDuration} to ${afterDuration}.`,
+    )
+  }
+}
+
 async function sha256(path) {
   return createHash('sha256').update(await readFile(path)).digest('hex')
 }
@@ -297,6 +336,9 @@ async function main() {
     })
 
   const document = await io.read(args.input)
+  const beforeSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
+    mirrorMeshCertificates: true,
+  })
   const before = collectStats(document)
 
   if (args.inspectOnly) {
@@ -311,6 +353,9 @@ async function main() {
       propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.TEXTURE],
     }),
   )
+  auditSurfaceRepairCertificates(document, {
+    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
+  })
   if (args.flattenStatic) {
     // glTF Transform retains animation targets and everything below animated
     // ancestors, while lifting unrelated static meshes to the scene. This
@@ -320,7 +365,10 @@ async function main() {
   const partition = partitionOpaqueSiblings(document, args)
   // The glTF Transform instance pass intentionally refuses documents with
   // animations. Joining below animation roots remains safe and useful there.
-  if (document.getRoot().listAnimations().length === 0) {
+  if (
+    document.getRoot().listAnimations().length === 0 &&
+    beforeSurfaceRepairAudit.certificateCount === 0
+  ) {
     await document.transform(instance({ min: args.minInstances }))
   }
   await document.transform(
@@ -329,14 +377,25 @@ async function main() {
       cleanup: false,
       filter: (node) => {
         if (!args.joinSceneRoot && nodeIsDirectSceneChild(node)) return false
+        if (hasExactSurfaceRepairCertificate(node.getExtras())) return false
         return !nodeHasTransparentPrimitive(node)
       },
     }),
     prune({ keepAttributes: true, keepIndices: true }),
   )
 
+  const afterSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
+    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
+  })
   const after = collectStats(document)
+  assertAnimationPreserved(before, after, 'Offline batching')
   await io.write(args.out, document)
+  const writtenDocument = await io.read(args.out)
+  const writtenSurfaceRepairAudit = auditSurfaceRepairCertificates(writtenDocument, {
+    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
+  })
+  const written = collectStats(writtenDocument)
+  assertAnimationPreserved(before, written, 'Written offline batch')
   const inputBytes = (await readFile(args.input)).byteLength
   const outputBytes = (await readFile(args.out)).byteLength
   const report = {
@@ -353,6 +412,11 @@ async function main() {
       maxBatchTriangles: args.maxBatchTriangles,
       policy: 'instance exact repeats, join opaque siblings, preserve animation targets and transparent meshes',
       partition,
+      surfaceRepairCertificates: {
+        input: surfaceRepairAuditSummary(beforeSurfaceRepairAudit),
+        transformed: surfaceRepairAuditSummary(afterSurfaceRepairAudit),
+        written: surfaceRepairAuditSummary(writtenSurfaceRepairAudit),
+      },
     },
     input: {
       path: args.input,
@@ -364,7 +428,7 @@ async function main() {
       path: args.out,
       bytes: outputBytes,
       sha256: await sha256(args.out),
-      stats: after,
+      stats: written,
     },
     reduction: {
       gpuSubmissions: before.gpuSubmissions

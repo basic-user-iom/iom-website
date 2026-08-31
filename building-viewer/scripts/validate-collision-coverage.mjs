@@ -346,14 +346,18 @@ function percentile(sorted, p) {
   return sorted[i]
 }
 
-function robustAxisRange(values, minimumPad) {
+export function robustAxisRange(values, minimumPad) {
   if (!values.length) return [-Infinity, Infinity]
+  let fullMin = Infinity
+  let fullMax = -Infinity
+  for (const value of values) {
+    fullMin = Math.min(fullMin, value)
+    fullMax = Math.max(fullMax, value)
+  }
   const stride = Math.max(1, Math.floor(values.length / 200_000))
   const sorted = []
   for (let i = 0; i < values.length; i += stride) sorted.push(values[i])
   sorted.sort((a, b) => a - b)
-  const fullMin = sorted[0]
-  const fullMax = sorted[sorted.length - 1]
   const qMin = percentile(sorted, 0.005)
   const qMax = percentile(sorted, 0.995)
   const span = Math.max(0.001, qMax - qMin)

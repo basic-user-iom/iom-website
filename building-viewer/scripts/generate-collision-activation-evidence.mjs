@@ -8,6 +8,7 @@
  *
  * Usage:
  *   node scripts/generate-collision-activation-evidence.mjs --id icm-anim-2025 --inspect
+ *   node scripts/generate-collision-activation-evidence.mjs --id icm-anim-2025 --visual tmp/candidate.glb
  *   node scripts/generate-collision-activation-evidence.mjs --id icm-anim-2025 --write
  *   node scripts/generate-collision-activation-evidence.mjs --id icm-anim-2025
  */
@@ -49,6 +50,7 @@ function parseArgs(argv) {
     spec: null,
     coverage: null,
     contract: null,
+    visual: null,
     inspect: false,
     write: false,
   }
@@ -58,6 +60,7 @@ function parseArgs(argv) {
     else if (value === '--spec') args.spec = resolve(argv[++index])
     else if (value === '--coverage') args.coverage = resolve(argv[++index])
     else if (value === '--contract') args.contract = resolve(argv[++index])
+    else if (value === '--visual') args.visual = resolve(argv[++index])
     else if (value === '--inspect') args.inspect = true
     else if (value === '--write') args.write = true
     else throw new Error(`Unknown argument: ${value}`)
@@ -339,7 +342,7 @@ async function main() {
   const entry = manifest.models.find((candidate) => candidate.id === args.id)
   if (!entry?.collision || !entry.web) throw new Error(`${args.id} requires Web visual and collision routes`)
   const collisionPath = publicPath(entry.collision)
-  const visualPath = publicPath(entry.web)
+  const visualPath = args.visual ?? publicPath(entry.web)
   await Promise.all([access(collisionPath), access(visualPath)])
 
   const collisionFile = await inspectPinnedFile(collisionPath)

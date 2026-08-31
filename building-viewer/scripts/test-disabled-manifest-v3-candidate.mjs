@@ -450,6 +450,7 @@ async function expectRejected(root, name, options, expected) {
   return collisionCalls
 }
 
+await mkdir(TMP_ROOT, { recursive: true })
 const testRoot = await mkdtemp(join(TMP_ROOT, 'disabled-manifest-v3-emitter-test-'))
 const publicManifestHashBefore = sha256(await readFile(PUBLIC_MANIFEST))
 try {

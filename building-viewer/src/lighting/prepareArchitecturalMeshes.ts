@@ -111,7 +111,7 @@ const OPEN_ARCHITECTURAL_SHELL_NAME =
 
 /** Audited exterior sheets whose source node names are lost after batching. */
 const AUDITED_OPEN_SHELL_MATERIAL =
-  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001)$/i
+  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu)$/i
 
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
@@ -146,7 +146,18 @@ const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'wandbt1001002',
   'wand40005',
   'dachdeckelturmwest',
+  'foyerdachaussen1',
+  'foyerdachaussen002',
+  'deckenlampen',
+  'egdeckebergangaussen',
+  'buhneaufbaudecke',
+  'saal1deckenpaneelelftung001',
 ])
+
+const IOM_SURFACE_TOPOLOGY_REPAIRED = 'iomSurfaceTopologyRepaired'
+const IOM_SURFACE_TOPOLOGY_REPAIR = 'iomSurfaceTopologyRepair'
+const IOM_SURFACE_TOPOLOGY_REPAIR_VERSION =
+  'weld-seams-recalculate-normals-v1'
 
 function isAuditedMixedWindingShellName(name: string): boolean {
   return AUDITED_MIXED_WINDING_SHELL_NAMES.has(
@@ -159,6 +170,202 @@ function hasAuditedMixedWindingShellName(obj: Object3D): boolean {
     if (isAuditedMixedWindingShellName(current.name || '')) return true
   }
   return false
+}
+
+function hasExactSurfaceTopologyRepairCertificate(obj: Object3D): boolean {
+  return Boolean(
+    obj.userData?.[IOM_SURFACE_TOPOLOGY_REPAIRED] === true &&
+      obj.userData?.[IOM_SURFACE_TOPOLOGY_REPAIR] ===
+        IOM_SURFACE_TOPOLOGY_REPAIR_VERSION,
+  )
+}
+
+type LogicalSurfaceTopology = {
+  triangles: number
+  boundaryEdges: number
+  nonManifoldEdges: number
+  windingConflictEdges: number
+}
+
+const certifiedLogicalSurfaceCache = new WeakMap<Object3D, boolean>()
+
+function hasIdentityLocalTransform(obj: Object3D): boolean {
+  const epsilon = 1e-8
+  return Boolean(
+    obj.position.lengthSq() <= epsilon &&
+      Math.abs(obj.quaternion.x) <= epsilon &&
+      Math.abs(obj.quaternion.y) <= epsilon &&
+      Math.abs(obj.quaternion.z) <= epsilon &&
+      Math.abs(obj.quaternion.w - 1) <= epsilon &&
+      Math.abs(obj.scale.x - 1) <= epsilon &&
+      Math.abs(obj.scale.y - 1) <= epsilon &&
+      Math.abs(obj.scale.z - 1) <= epsilon,
+  )
+}
+
+/** Audit all material primitives as one logical mesh owner. */
+function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
+  let minX = Infinity
+  let minY = Infinity
+  let minZ = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+  let maxZ = -Infinity
+  for (const mesh of meshes) {
+    const position = mesh.geometry.getAttribute('position')
+    if (!position) continue
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      const x = position.getX(vertex)
+      const y = position.getY(vertex)
+      const z = position.getZ(vertex)
+      minX = Math.min(minX, x)
+      minY = Math.min(minY, y)
+      minZ = Math.min(minZ, z)
+      maxX = Math.max(maxX, x)
+      maxY = Math.max(maxY, y)
+      maxZ = Math.max(maxZ, z)
+    }
+  }
+  if (!Number.isFinite(minX)) {
+    return {
+      triangles: 0,
+      boundaryEdges: 0,
+      nonManifoldEdges: 0,
+      windingConflictEdges: 0,
+    }
+  }
+
+  const maxDim = Math.max(maxX - minX, maxY - minY, maxZ - minZ)
+  const tolerance = Math.max(1e-6, maxDim * 1e-6)
+  const vertexByPosition = new Map<string, number>()
+  const weldedByMesh = new Map<Mesh, Uint32Array>()
+  let weldedVertices = 0
+  for (const mesh of meshes) {
+    const position = mesh.geometry.getAttribute('position')
+    if (!position) continue
+    const welded = new Uint32Array(position.count)
+    for (let vertex = 0; vertex < position.count; vertex += 1) {
+      const key = `${Math.round(position.getX(vertex) / tolerance)},${Math.round(
+        position.getY(vertex) / tolerance,
+      )},${Math.round(position.getZ(vertex) / tolerance)}`
+      let canonical = vertexByPosition.get(key)
+      if (canonical === undefined) {
+        canonical = weldedVertices
+        weldedVertices += 1
+        vertexByPosition.set(key, canonical)
+      }
+      welded[vertex] = canonical
+    }
+    weldedByMesh.set(mesh, welded)
+  }
+
+  const edgeState = new Map<string, { count: number; balance: number }>()
+  const addEdge = (from: number, to: number): void => {
+    if (from === to) return
+    const low = Math.min(from, to)
+    const high = Math.max(from, to)
+    const key = `${low},${high}`
+    const state = edgeState.get(key) ?? { count: 0, balance: 0 }
+    state.count += 1
+    state.balance += from === low ? 1 : -1
+    edgeState.set(key, state)
+  }
+
+  let triangles = 0
+  for (const mesh of meshes) {
+    const position = mesh.geometry.getAttribute('position')
+    const welded = weldedByMesh.get(mesh)
+    if (!position || !welded) continue
+    const index = mesh.geometry.getIndex()
+    const count = index?.count ?? position.count
+    for (let offset = 0; offset + 2 < count; offset += 3) {
+      const a = index ? index.getX(offset) : offset
+      const b = index ? index.getX(offset + 1) : offset + 1
+      const c = index ? index.getX(offset + 2) : offset + 2
+      const wa = welded[a]!
+      const wb = welded[b]!
+      const wc = welded[c]!
+      if (wa === wb || wb === wc || wc === wa) continue
+      triangles += 1
+      addEdge(wa, wb)
+      addEdge(wb, wc)
+      addEdge(wc, wa)
+    }
+  }
+
+  let boundaryEdges = 0
+  let nonManifoldEdges = 0
+  let windingConflictEdges = 0
+  for (const state of edgeState.values()) {
+    if (state.count === 1) boundaryEdges += 1
+    else if (state.count > 2) nonManifoldEdges += 1
+    else if (Math.abs(state.balance) === 2) windingConflictEdges += 1
+  }
+  return {
+    triangles,
+    boundaryEdges,
+    nonManifoldEdges,
+    windingConflictEdges,
+  }
+}
+
+function cleanCertifiedTopology(topology: LogicalSurfaceTopology): boolean {
+  return Boolean(
+    topology.triangles > 0 &&
+      topology.boundaryEdges === 0 &&
+      topology.nonManifoldEdges === 0 &&
+      topology.windingConflictEdges === 0,
+  )
+}
+
+/**
+ * A certificate applies to the exact render mesh, or to the strict direct
+ * primitive children of one glTF logical-mesh group. It never leaks through
+ * an arbitrary ancestor. The geometry is independently re-audited so a stale
+ * or forged certificate cannot disable the conservative DoubleSide path.
+ */
+function hasCertifiedSurfaceTopologyRepair(mesh: Mesh): boolean {
+  if (hasExactSurfaceTopologyRepairCertificate(mesh)) {
+    const topology = inspectSurfaceTopology(mesh.geometry)
+    return cleanCertifiedTopology(topology)
+  }
+
+  const owner = mesh.parent
+  if (
+    !owner ||
+    (owner as Mesh).isMesh ||
+    !hasExactSurfaceTopologyRepairCertificate(owner) ||
+    mesh.parent !== owner
+  ) {
+    return false
+  }
+  const cached = certifiedLogicalSurfaceCache.get(owner)
+  if (cached !== undefined) return cached
+
+  // GLTFLoader represents a multi-primitive glTF mesh as one group whose
+  // transform-free direct children are the render primitives. Nested groups,
+  // transformed children, or child subtrees are unrelated geometry.
+  const renderMeshes = owner.children.filter(
+    (child): child is Mesh => Boolean((child as Mesh).isMesh),
+  )
+  const structurallyScoped = Boolean(
+    renderMeshes.length > 0 &&
+      renderMeshes.length === owner.children.length &&
+      renderMeshes.every(
+        (child) => child.parent === owner && child.children.length === 0 && hasIdentityLocalTransform(child),
+      ),
+  )
+  const topology = structurallyScoped
+    ? inspectLogicalSurfaceTopology(renderMeshes)
+    : null
+  const valid = Boolean(topology && cleanCertifiedTopology(topology))
+  owner.userData.surfaceTopologyRepairAudit = {
+    structurallyScoped,
+    valid,
+    topology,
+  }
+  certifiedLogicalSurfaceCache.set(owner, valid)
+  return valid
 }
 
 /** Ground finishes whose source UVs should read at a real pedestrian scale. */
@@ -413,6 +620,7 @@ function isCadOverlayObject(obj: Object3D): boolean {
 function wantsDoubleSide(
   mesh: Mesh,
   mat: Material,
+  certifiedSurfaceTopologyRepair: boolean,
   isThinSheet: boolean,
   isLargeHorizontal: boolean,
   surfaceVisibilityRisk: boolean,
@@ -423,6 +631,10 @@ function wantsDoubleSide(
   const name = `${mesh.name} ${objectPathName(mesh)} ${mat.name}`
   if (SHUTTER_NAME.test(name)) return false
   if (authoredDoubleSided) return true
+  // A validated certificate proves this exact opaque logical mesh is closed
+  // and consistently wound. It supersedes generic thin/AABB heuristics, while
+  // authored sheet, glass, foliage, and safety reasons above remain two-sided.
+  if (certifiedSurfaceTopologyRepair) return false
   // A combined CAD primitive can occupy all three axes while still being a
   // collection of open wall/façade sheets. Position-welded topology catches
   // those cases (including Flugturm) without disabling culling on closed boxes.
@@ -920,7 +1132,9 @@ export function prepareArchitecturalMeshes(
     const auditedOpenShellMaterial = materialSlots.some((mat) =>
       AUDITED_OPEN_SHELL_MATERIAL.test(mat.name || ''),
     )
-    const auditedMixedWindingShell = hasAuditedMixedWindingShellName(mesh)
+    const certifiedSurfaceTopologyRepair = hasCertifiedSurfaceTopologyRepair(mesh)
+    const auditedMixedWindingShell =
+      hasAuditedMixedWindingShellName(mesh) && !certifiedSurfaceTopologyRepair
     const allMaterialsAuthoredDoubleSided =
       materialSlots.length > 0 && materialSlots.every(hasAuthoredDoubleSidedReason)
 
@@ -932,17 +1146,20 @@ export function prepareArchitecturalMeshes(
       mesh.userData.detailLodIgnore = true
       mesh.userData.floorZoneAlways = true
     }
-    // Cheap bbox/semantic rules already cover planar sheets, campus decks,
-    // glass, and lightmapped slices. Inspect topology only for the remaining
-    // 3D-looking CAD assemblies, where the old bbox heuristic missed open
-    // façades and interior walls.
+    // Cheap bbox/semantic rules already cover ordinary planar sheets, campus
+    // decks, glass, and lightmapped slices. Inspect topology for 3D-looking
+    // semantic CAD assemblies and for the narrowly audited thin/large shells
+    // whose source winding is known to be damaged. Closed roof boxes still
+    // fail the topology-risk test and retain back-face culling.
     const topology =
       !water &&
       !glass &&
       !shutter &&
       !lightmapped &&
-      !isThinSheet &&
-      !isLargeHorizontal &&
+      !certifiedSurfaceTopologyRepair &&
+      ((!isThinSheet && !isLargeHorizontal) ||
+        auditedOpenShellMaterial ||
+        auditedMixedWindingShell) &&
       (openShellSemantic ||
         auditedOpenShellMaterial ||
         auditedMixedWindingShell ||
@@ -970,7 +1187,9 @@ export function prepareArchitecturalMeshes(
           topology.windingConflictEdges > 0 ||
           topology.nonManifoldEdges > 0),
     )
-    const surfaceVisibilityRisk = Boolean(
+    const persistedSurfaceVisibilityRisk =
+      !certifiedSurfaceTopologyRepair && mesh.userData?.surfaceVisibilityRisk === true
+    const surfaceVisibilityRisk = persistedSurfaceVisibilityRisk || Boolean(
       topology &&
         (auditedWindingRisk ||
           (hasSurfaceVisibilityRisk(topology) &&
@@ -1151,10 +1370,11 @@ export function prepareArchitecturalMeshes(
           ? DoubleSide
           : lightmapped && !shutterMat
           ? DoubleSide
-          : wantsDoubleSide(
-                mesh,
-                mat,
-                isThinSheet,
+           : wantsDoubleSide(
+                 mesh,
+                 mat,
+                 certifiedSurfaceTopologyRepair,
+                 isThinSheet,
                 isLargeHorizontal,
                 surfaceVisibilityRisk,
                 hasAuthoredDoubleSidedReason(mat),

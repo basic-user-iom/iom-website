@@ -292,10 +292,21 @@ function buildSnapshot(stage) {
   const sourceModules = join(root, 'node_modules')
   if (!existsSync(sourceModules)) fail('Root node_modules is missing. Run npm install first.')
   const stageModules = join(stage, 'node_modules')
+  const sourceViewerModules = join(root, 'building-viewer', 'node_modules')
+  const stageViewerModules = join(stage, 'building-viewer', 'node_modules')
   symlinkSync(sourceModules, stageModules, process.platform === 'win32' ? 'junction' : 'dir')
+  if (!existsSync(sourceViewerModules)) {
+    fail('Building Viewer node_modules is missing. Run npm --prefix building-viewer install first.')
+  }
+  symlinkSync(
+    sourceViewerModules,
+    stageViewerModules,
+    process.platform === 'win32' ? 'junction' : 'dir',
+  )
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage })
   } finally {
+    rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
   }
   if (!existsSync(join(stage, 'dist', 'index.html'))) fail('Isolated build did not produce dist/index.html.')

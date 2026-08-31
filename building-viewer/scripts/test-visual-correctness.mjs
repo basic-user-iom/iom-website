@@ -824,6 +824,38 @@ try {
   assert.equal(floorBatch.userData.floorZoneAlways, true)
   assert.equal(floorBatch.userData.floorSurface, true)
 
+  // Audited open-shell sidedness is a rendering contract, not disposable
+  // source-mesh metadata. It must survive BatchedMesh packing and a later
+  // architectural refresh, when source names are no longer available.
+  const visibilityBatchRoot = new Group()
+  const visibilityBatchMaterial = new MeshStandardMaterial({
+    name: 'Packed audited shell',
+    side: DoubleSide,
+  })
+  for (let i = 0; i < 6; i++) {
+    const shell = new Mesh(
+      new BoxGeometry(1 + i * 0.03, 2 + i * 0.02, 0.2 + i * 0.01),
+      visibilityBatchMaterial,
+    )
+    shell.position.set(i * 1.5, 1, 0)
+    shell.userData.surfaceVisibilityRisk = true
+    shell.userData.surfaceVisibilityReason = 'audited-open-shell'
+    visibilityBatchRoot.add(shell)
+  }
+  applyProceduralInstancing(visibilityBatchRoot, { minInstances: 99, minBatchSize: 4 })
+  const visibilityBatch = visibilityBatchRoot.children.find((child) => child.isBatchedMesh)
+  assert.ok(visibilityBatch)
+  assert.equal(visibilityBatch.userData.surfaceVisibilityRisk, true)
+  assert.equal(visibilityBatch.userData.surfaceVisibilityReason, 'audited-open-shell')
+  visibilityBatch.material.side = FrontSide
+  prepareArchitecturalMeshes(
+    visibilityBatchRoot,
+    computeSceneBounds(visibilityBatchRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(visibilityBatch.material.side, DoubleSide)
+  assert.equal(visibilityBatch.userData.surfaceVisibilityReason, 'audited-open-shell')
+
   console.log('Visual correctness regression checks passed')
 } finally {
   await vite.close()

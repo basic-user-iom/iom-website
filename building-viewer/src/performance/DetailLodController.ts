@@ -79,6 +79,19 @@ function isFurnitureName(name: string): boolean {
   return /g-form|Mesh13787|chair|pillow|wardrobe|keyboard/i.test(name)
 }
 
+/**
+ * The auditorium rows are four separate material primitives sharing the same
+ * 78 authored transforms. Imported positive transforms stay instanced while
+ * mirrored transforms are extracted to ordinary meshes, so generic overview
+ * size heuristics must never decide their visibility independently.
+ */
+function isAuditoriumSeatingMaterial(mesh: Mesh): boolean {
+  const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+  return mats.some((material) =>
+    /^vray Stuhl_(?:Plastik|Plakete|Metall|Bezug)$/i.test(material?.name ?? ''),
+  )
+}
+
 function isOverviewKeepName(name: string): boolean {
   return /fahne|flag|hedge|hecke|banner|zaun|fence|pole|mast|tree|baum|bush|strauch|grass|rasen|pflanz|sign|schild|logo/i.test(
     name,
@@ -274,6 +287,14 @@ export class DetailLodController {
       if (mesh.userData?.collisionOnly) return
       if (mesh.userData?.cadOverlay) return
       if (mesh.userData?.detailLodIgnore) return
+      // The auditorium row is one four-material logical object. Its positive
+      // transforms stay instanced while mirrored transforms are extracted to
+      // ordinary meshes, so independent LOD decisions create half chairs and
+      // alternating missing rows. Keep this exact authored cohort atomic.
+      if (isAuditoriumSeatingMaterial(mesh)) {
+        mesh.userData.detailLodIgnore = true
+        return
+      }
       if (mesh.userData?.architecturalGlass) return
       if (mesh.userData?.floorSurface) {
         mesh.userData.detailLodIgnore = true

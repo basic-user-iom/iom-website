@@ -170,6 +170,8 @@ const PACKED_USER_DATA_KEYS = [
   'paperThinGround',
   'waterSurface',
   'iomExplicitWalkable',
+  'surfaceVisibilityRisk',
+  'surfaceVisibilityReason',
 ] as const
 
 function packingSemanticKey(mesh: Mesh): string {

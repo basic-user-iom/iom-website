@@ -3,11 +3,35 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 import { Group, Mesh, MeshBasicMaterial, PlaneGeometry } from 'three'
+import { BAND, robustAxisRange } from './validate-collision-coverage.mjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const PROJECT_DIR = join(SCRIPT_DIR, '..')
 const HASH_COLLISION = 'a'.repeat(64)
 const HASH_COVERAGE = 'b'.repeat(64)
+
+// Exact bounds must not depend on triangle/accessor ordering. Quantiles may be
+// sampled for cost, but a legitimate extremum can sit between sample strides.
+const adversarialAxisValues = Array.from(
+  { length: 400_002 },
+  (_, index) => index % 2 === 0 ? (index % 4 === 0 ? 0 : 10) : 5,
+)
+adversarialAxisValues[1] = 11
+assert.deepEqual(
+  robustAxisRange(adversarialAxisValues, BAND * 2),
+  [0, 11],
+  'robust range dropped an unsampled exact maximum',
+)
+const reorderedAxisValues = adversarialAxisValues.slice()
+;[reorderedAxisValues[0], reorderedAxisValues[1]] = [
+  reorderedAxisValues[1],
+  reorderedAxisValues[0],
+]
+assert.deepEqual(
+  robustAxisRange(reorderedAxisValues, BAND * 2),
+  [0, 11],
+  'robust range changed after value reordering',
+)
 
 const runtime = {
   triangles: 12_000,

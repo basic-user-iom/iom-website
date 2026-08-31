@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "gltfpack",
+    "version": "1.2",
+    "executableSha256": "ff64f45e84aac9a1f58880e40934b3f29277413e2d0b3ed257322261ec021d2b",
+    "releaseUrl": "https://github.com/zeux/meshoptimizer/releases/tag/v1.2"
+  },
+  "profile": "web",
+  "arguments": [
+    "-cc",
+    "-tc",
+    "color",
+    "-tu",
+    "normal,attrib",
+    "-tq",
+    "color",
+    "9",
+    "-tq",
+    "normal,attrib",
+    "8",
+    "-tl",
+    "2048",
+    "-tj",
+    "1",
+    "-km",
+    "-ke",
+    "-kv",
+    "-mm",
+    "-mi",
+    "-gt",
+    "-vpf",
+    "-vtf",
+    "-vn",
+    "10"
+  ],
+  "source": {
+    "path": "F:\\iom_website\\building-viewer\\tmp\\icm-ext-cleaned.glb",
+    "sha256": "2a485514e7e704718273d76a8aef6788ad1cd558b7ce0bcb0533cd5971e89111"
+  },
+  "sourcePreparation": {
+    "normalizedEmptyScenes": 7,
+    "textureCoordinateRepairs": {
+      "textureInfos": 5,
+      "transforms": 0,
+      "total": 5
+    },
+    "generatedTextureCoordinates": {
+      "primitives": 5,
+      "accessors": 5
+    },
+    "exteriorFloorCheckerRepair": {
+      "applied": true,
+      "reassignedPrimitives": 1,
+      "node": "Environment/c5_fb_neu001",
+      "mesh": "Mesh.9312",
+      "triangles": 43,
+      "removedMaterial": "Material 2097707472",
+      "removedTexture": "Material 2097707472_base_color_map",
+      "removedTextureSha256": "170132b79901d8fc25d77be0b99a0389e1d0263e2f788926937406bb8d50f428",
+      "removedOrphanResources": true,
+      "replacementMaterial": "fb_c5_c6"
+    },
+    "materialSidedness": {
+      "madeSingleSided": 66,
+      "retainedDoubleSided": 27,
+      "promotedSingleSided": 0,
+      "splitMaterials": 5,
+      "topologyScanned": 177,
+      "openSurfacePrimitives": 53
+    },
+    "criticalMaterialPreparation": {
+      "fireNodes": 0,
+      "fireMeshes": 0,
+      "materialRoles": []
+    },
+    "criticalMaterialRoles": [],
+    "semanticNames": {
+      "fire-safety": [],
+      "building-connection": []
+    },
+    "nonConstantAnimationTracks": [],
+    "animationDurationSeconds": 0
+  },
+  "output": {
+    "path": "F:\\iom_website\\public\\models\\icm-ext\\model-web.glb",
+    "sha256": "d3893267dcf825f4a18673571e08735972081c5cf0b7b6528a0dcd896742583f",
+    "bytes": 17577384,
+    "expandedWorkload": {
+      "triangles": 1195062,
+      "primitiveDraws": 130,
+      "meshNodes": 50,
+      "logicalInstances": 665
+    },
+    "semanticNames": {
+      "fire-safety": [],
+      "building-connection": []
+    },
+    "criticalMaterialRoles": [],
+    "extensionsUsed": [
+      "EXT_mesh_gpu_instancing",
+      "EXT_meshopt_compression",
+      "KHR_materials_emissive_strength",
+      "KHR_materials_ior",
+      "KHR_materials_specular",
+      "KHR_materials_transmission",
+      "KHR_mesh_quantization",
+      "KHR_texture_basisu",
+      "KHR_texture_transform"
+    ],
+    "generator": "glTF-Transform v4.4.2"
+  },
+  "nativeReport": {
+    "generator": "gltfpack 1.2",
+    "scene": {
+      "nodeCount": 50,
+      "meshCount": 50,
+      "materialCount": 93,
+      "textureCount": 27,
+      "animationCount": 0
+    },
+    "render": {
+      "drawCount": 130,
+      "instanceCount": 745,
+      "triangleCount": 1195062
+    },
+    "data": {
+      "json": 130070,
+      "binary": 17447164,
+      "buffers": {
+        "vertex": 5433440,
+        "index": 472322,
+        "animation": 0,
+        "transform": 3904,
+        "image": 11537437
+      }
+    }
+  },
+  "createdAt": "2026-08-28T23:54:10.262Z"
+}

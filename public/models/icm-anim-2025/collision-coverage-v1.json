@@ -38,10 +38,10 @@
     "verticalErrorMeters": 0.04999999552965165
   },
   "broadHorizontalCoverage": {
-    "requiredCells": 282,
-    "coveredCells": 255,
+    "requiredCells": 283,
+    "coveredCells": 256,
     "missingCells": 27,
-    "ratio": 0.9042553191489362,
+    "ratio": 0.9045936395759717,
     "elevationBands": [
       {
         "id": "band--1",
@@ -75,8 +75,8 @@
         "id": "band-3",
         "minY": 10.8,
         "maxY": 14.4,
-        "requiredCells": 35,
-        "coveredCells": 27
+        "requiredCells": 36,
+        "coveredCells": 28
       },
       {
         "id": "band-4",
