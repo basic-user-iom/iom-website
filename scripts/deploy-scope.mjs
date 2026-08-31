@@ -96,6 +96,7 @@ const PROJECT_SCOPE_RULES = {
     'scripts/build-solar-system.mjs',
     'scripts/deploy-production.mjs',
     'scripts/deploy-scope.mjs',
+    'scripts/pre-deploy-check.mjs',
     'scripts/test-deploy-safety.mjs',
   ],
   'floating-stone': [

@@ -63,6 +63,7 @@ assert.equal(matchesDeployScope('solar-system/src/app/AppShell.tsx', 'project:so
 assert.equal(matchesDeployScope('public/demos/solar-system/index.html', 'project:solar-system'), true)
 assert.equal(matchesDeployScope('.vercelignore', 'project:solar-system'), true)
 assert.equal(matchesDeployScope('scripts/deploy-production.mjs', 'project:solar-system'), true)
+assert.equal(matchesDeployScope('scripts/pre-deploy-check.mjs', 'project:solar-system'), true)
 assert.equal(matchesDeployScope('public/models/icm-ext-v2/model-web.glb', 'project:solar-system'), false)
 assert.equal(
   inferDeployScope([
@@ -71,6 +72,7 @@ assert.equal(
     'public/demos/solar-system/index.html',
     'scripts/deploy-production.mjs',
     'scripts/deploy-scope.mjs',
+    'scripts/pre-deploy-check.mjs',
     'scripts/test-deploy-safety.mjs',
   ]),
   'project:solar-system',

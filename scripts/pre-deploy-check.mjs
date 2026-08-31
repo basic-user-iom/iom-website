@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
-function run(cmd) {
-  return execSync(cmd, { cwd: root, encoding: 'utf8' }).trim()
+function run(cmd, options = {}) {
+  return execSync(cmd, { cwd: root, encoding: 'utf8', ...options }).trim()
 }
 
 function fail(message) {
@@ -70,9 +70,9 @@ if (untracked.length > 0) {
 
 // Refresh origin so a later scoped push cannot overwrite newer remote work.
 try {
-  run('git fetch origin master --quiet')
+  run('git fetch origin master --quiet', { timeout: 120_000 })
 } catch {
-  warn('Could not fetch origin/master — verify push status manually.')
+  warn('Could not fetch origin/master within 120 seconds — continuing with the cached remote state; the scoped push remains authoritative.')
 }
 
 let unpushed = 0
