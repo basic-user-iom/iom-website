@@ -1,5 +1,6 @@
 import { OPTIONS } from '../../config/productConfig.js'
 import { useConfigurator } from '../../hooks/useConfigurator.js'
+import { useViewer } from '../../hooks/useViewer.js'
 
 export function OptionToggle({ optionId }) {
   const option = OPTIONS[optionId]
@@ -31,6 +32,7 @@ export function ChoiceRow({ optionId }) {
   const option = OPTIONS[optionId]
   const value = useConfigurator((state) => state.values[optionId])
   const setOption = useConfigurator((state) => state.setOption)
+  const requestView = useViewer((state) => state.requestView)
   const selectedChoice = option?.choices.find((choice) => choice.id === value)
 
   if (!option) return null
@@ -46,7 +48,12 @@ export function ChoiceRow({ optionId }) {
             role="radio"
             aria-checked={choice.id === value}
             className={choice.id === value ? 'is-active' : ''}
-            onClick={() => setOption(optionId, choice.id)}
+            onClick={() => {
+              setOption(optionId, choice.id)
+              if (optionId === 'detail' && choice.id === 'emblem') {
+                requestView('rear')
+              }
+            }}
           >
             {choice.label}
           </button>

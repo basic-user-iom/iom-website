@@ -135,6 +135,7 @@ export const CAMERA_VIEWS = [
   { id: 'hero', label: 'Hero' },
   { id: 'front', label: 'Front' },
   { id: 'side', label: 'Side' },
+  { id: 'rear', label: 'Rear' },
   { id: 'detail', label: 'Detail' },
 ]
 

@@ -21,6 +21,10 @@ const FRAMED_VIEWS = {
     position: [0.002, 0.7298, -1.3887],
     target: [0, 0.2823, 0],
   },
+  rear: {
+    position: [-0.9568, 0.3864, -1.1039],
+    target: [0, 0.2823, 0],
+  },
   detail: {
     position: [0.518, 0.63, -0.055],
     target: [0, 0.515, -0.055],
@@ -67,6 +71,7 @@ export function createCameraRig(bbox, _aspect = 1.4, hotspotAnchors = {}) {
       hero: FRAMED_VIEWS.hero,
       front: FRAMED_VIEWS.front,
       side: FRAMED_VIEWS.side,
+      rear: FRAMED_VIEWS.rear,
       detail: FRAMED_VIEWS.detail,
     },
     hotspots: hotspotAnchors,
@@ -87,7 +92,7 @@ export function focusFromHotspot(id, rig) {
   }
 }
 
-export const FRAMEABLE_VIEWS = ['hero', 'front', 'side', 'detail']
+export const FRAMEABLE_VIEWS = ['hero', 'front', 'side', 'rear', 'detail']
 
 export function roundPose(pose, digits = 4) {
   const n = (value) => Number(value.toFixed(digits))

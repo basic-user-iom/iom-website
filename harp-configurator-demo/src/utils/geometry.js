@@ -2,7 +2,10 @@ import { Box3, Matrix4, Quaternion, Raycaster, Vector3 } from 'three'
 import { DEBUG } from '../config/debug.js'
 import { HARP_PART } from './harpParts.js'
 
-export const ADDON_ANCHOR_REV = 16
+export const ADDON_ANCHOR_REV = 18
+
+const LOCAL_Z_AXIS = new Vector3(0, 0, 1)
+const MAKER_PLATE_ROLL = (67 * Math.PI) / 180
 
 export function warnMissing(message, extra) {
   if (import.meta.env.DEV || DEBUG) {
@@ -304,6 +307,16 @@ function offsetAnchor(anchor, amount) {
   }
 }
 
+function rollSurfaceAnchor(anchor, radians) {
+  if (!anchor) return null
+  return {
+    ...anchor,
+    quaternion: anchor.quaternion
+      .clone()
+      .multiply(new Quaternion().setFromAxisAngle(LOCAL_Z_AXIS, radians)),
+  }
+}
+
 /**
  * Resolve optional parts and interaction markers against the fitted model. The
  * broad presentation face of this source asset points toward +X.
@@ -321,9 +334,9 @@ export function findAddOnAnchors(root) {
 
   const endpoints = stringEndpoints(mesh)
   const emblem = firstBackSurfaceAnchor(mesh, box, size, [
-    [0.6, 0.7],
-    [0.58, 0.7],
-    [0.62, 0.72],
+    [0.5, 0.63],
+    [0.505, 0.634],
+    [0.49, 0.622],
   ])
   const pickupJack = firstSideSurfaceAnchor(mesh, box, size, [
     [0.095, 0.5],
@@ -345,17 +358,18 @@ export function findAddOnAnchors(root) {
     [0.52, 0.68],
     [0.56, 0.72],
   ])
+  const makerPlate = emblem
+    ? {
+        ...offsetAnchor(rollSurfaceAnchor(emblem, MAKER_PLATE_ROLL), flush),
+        width: size.y * 0.037,
+        height: size.y * 0.014,
+      }
+    : null
 
   return {
     size: Math.max(size.x, size.y, size.z),
     decalTarget: mesh,
-    emblem: emblem
-      ? {
-          ...offsetAnchor(emblem, flush),
-          width: size.y * 0.095,
-          height: size.y * 0.04,
-        }
-      : null,
+    emblem: makerPlate,
     pickup: pickupJack
       ? {
           jack: offsetAnchor(pickupJack, flush),

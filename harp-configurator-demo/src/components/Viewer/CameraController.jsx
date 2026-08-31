@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Vector3 } from 'three'
+import { MathUtils, Spherical, Vector3 } from 'three'
 import { easeInOutCubic, focusFromHotspot, resolveViewPose } from '../../utils/camera.js'
 import { setLiveCameraPose } from '../../utils/liveCameraPose.js'
 import { useViewer } from '../../hooks/useViewer.js'
@@ -17,10 +17,14 @@ export function CameraController({ controlsRef }) {
   const cameraEdit = useViewer((state) => state.cameraEdit)
   const cameraOverrides = useViewer((state) => state.cameraOverrides)
 
-  const fromPos = useRef(new Vector3())
   const toPos = useRef(new Vector3())
   const fromTarget = useRef(new Vector3())
   const toTarget = useRef(new Vector3())
+  const fromOrbit = useRef(new Spherical())
+  const toOrbit = useRef(new Spherical())
+  const orbit = useRef(new Spherical())
+  const orbitOffset = useRef(new Vector3())
+  const thetaDelta = useRef(0)
   const progress = useRef(1)
   const duration = useRef(1.2)
   const introStarted = useRef(false)
@@ -29,10 +33,19 @@ export function CameraController({ controlsRef }) {
   const animateTo = (dest, seconds) => {
     const controls = controlsRef.current
     if (!controls || !dest) return
-    fromPos.current.copy(camera.position)
     fromTarget.current.copy(controls.target)
     toPos.current.fromArray(dest.position)
     toTarget.current.fromArray(dest.target)
+    fromOrbit.current.setFromVector3(
+      orbitOffset.current.copy(camera.position).sub(controls.target),
+    )
+    toOrbit.current.setFromVector3(
+      orbitOffset.current.copy(toPos.current).sub(toTarget.current),
+    )
+    thetaDelta.current = Math.atan2(
+      Math.sin(toOrbit.current.theta - fromOrbit.current.theta),
+      Math.cos(toOrbit.current.theta - fromOrbit.current.theta),
+    )
     progress.current = 0
     duration.current = Math.max(0.04, seconds)
     requestId.current += 1
@@ -64,8 +77,13 @@ export function CameraController({ controlsRef }) {
     if (progress.current < 1) {
       progress.current = Math.min(1, progress.current + dt / duration.current)
       const k = easeInOutCubic(progress.current)
-      camera.position.lerpVectors(fromPos.current, toPos.current, k)
       controls.target.lerpVectors(fromTarget.current, toTarget.current, k)
+      orbit.current.set(
+        MathUtils.lerp(fromOrbit.current.radius, toOrbit.current.radius, k),
+        MathUtils.lerp(fromOrbit.current.phi, toOrbit.current.phi, k),
+        fromOrbit.current.theta + thetaDelta.current * k,
+      )
+      camera.position.setFromSpherical(orbit.current).add(controls.target)
       controls.update()
       if (progress.current >= 1 && !introDone) setIntroDone(true)
     }
