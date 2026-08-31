@@ -1,5 +1,15 @@
 # Scientific notes
 
+## Observatory texture, scale, and search classification
+
+Sixteen rendered major moons now use NASA VTAD base-color globe maps, while Earth's Moon keeps its existing LRO-derived map. These images improve geographic identity but do not add shape models, DEM displacement, measured roughness, calibrated reflectance, spectral response, authoritative rotation/orientation, or time-varying surface state. Several Uranian maps contain genuine source-coverage limitations; the renderer preserves those limitations instead of inventing detail. Titan's visually restrained haze-dominated map is likewise not enhanced into a fabricated surface view.
+
+Mimas, Hyperion, Phobos, Deimos, Phoebe, Proteus, and Nereid retain deterministic procedural surface coverage. The available NASA Mimas and Hyperion images are UV atlases for their original irregular meshes and are not valid equirectangular sphere textures. Their procedural fallback is an explicit presentation approximation, not observed geography. Selected irregular moons use restrained non-spherical scale axes, but no measured shape model is loaded.
+
+The SDO/HMI Sun layer is one fixed 2025-12-26 observer-facing continuum observation projected onto a single body-local hemisphere. It is blended with the existing procedural photosphere and corona; the unobserved side is procedural. Sun rotation in the application does not turn this image into a contemporaneous full-Sun data product, and the texture is not updated with the simulation date.
+
+Presentation mode keeps moon-to-parent radius ratios coherent under the parent's display exaggeration, then uses a small bounded minimum for legibility. Therefore major moons and all artificial-satellite markers remain presentation-scaled rather than literal-size objects. Their propagated centers and physical catalog radii remain unchanged. The complete-catalog search changes discoverability and camera framing only; it does not expand the bundled catalog or imply a live discovery feed.
+
 ## Phase 12 experimental tidal-forcing visualization classification
 
 Phase 12 is the final numbered build in the master plan. It retains the existing ephemeris and scenario cores and adds an explicitly experimental view of the tide-generating geometry already exposed by `TidalForcingService`. The recognized URL-only modes are `?experimentalTides=both`, `?experimentalTides=lunar`, and `?experimentalTides=solar`. The query is transient, is never stored as an application preference or scenario value, and leaves the visualization absent when it is missing, empty, or unrecognized.

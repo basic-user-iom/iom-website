@@ -21,7 +21,7 @@
     "generate:phase6-sky": "node --max-old-space-size=2048 ./scripts/phase6/generate-sky-assets.mjs",
     "verify:phase6-sky": "node ./scripts/phase6/verify-sky-assets.mjs",
     "verify:phase10-lensing": "node ./scripts/phase10/verify-black-hole-lensing-assets.mjs",
-    "verify:assets": "npm run ephemeris:verify && npm run ephemeris:small-bodies:verify && npm run verify:phase6-sky && npm run verify:phase10-lensing && npm run space-objects:earth:verify && npm run space-objects:spacecraft:verify && npm run space-objects:moons:verify",
+    "verify:assets": "npm run ephemeris:verify && npm run ephemeris:small-bodies:verify && npm run verify:phase6-sky && npm run verify:phase10-lensing && npm run space-objects:earth:verify && npm run space-objects:spacecraft:verify && npm run space-objects:moons:verify && npm run space-objects:moon-textures:verify",
     "ephemeris:generate": "node ./scripts/ephemeris/generate-ephemeris.mjs",
     "ephemeris:references": "node ./scripts/ephemeris/fetch-validation-references.mjs --manifest ./src/data/generated/solar-system-ephemeris.manifest.json",
     "ephemeris:validate": "node ./scripts/ephemeris/validate-ephemeris.mjs --binary ./src/data/generated/solar-system-ephemeris.v1.bin --manifest ./src/data/generated/solar-system-ephemeris.manifest.json --references ./src/data/generated/validation-references.json --report ./src/data/generated/solar-system-ephemeris.validation.json",
@@ -34,6 +34,8 @@
     "space-objects:spacecraft:verify": "node ./scripts/space-objects/verify-spacecraft-trajectories.mjs",
     "space-objects:moons:generate": "node ./scripts/space-objects/generate-major-moon-anchors.mjs",
     "space-objects:moons:verify": "node ./scripts/space-objects/verify-major-moon-anchors.mjs",
+    "space-objects:moon-textures:generate": "node ./scripts/space-objects/generate-major-moon-textures.mjs",
+    "space-objects:moon-textures:verify": "node ./scripts/space-objects/verify-major-moon-textures.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run test:ephemeris-scripts && npm run test:space-object-scripts && npm run space-objects:earth:verify && npm run space-objects:spacecraft:verify && npm run space-objects:moons:verify && npm run build",
     "check:release": "npm run check && npm run test:e2e"
   },

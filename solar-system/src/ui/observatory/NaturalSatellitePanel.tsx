@@ -55,7 +55,9 @@ export function NaturalSatellitePanel({
   const filteredMajorMoons = useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase();
     if (normalized.length === 0) return majorMoons;
-    return majorMoons.filter((moon) => `${moon.name} ${moon.id}`.toLocaleLowerCase().includes(normalized));
+    return NATURAL_SATELLITE_DEFINITIONS.filter((moon) =>
+      `${moon.name} ${moon.id} ${moon.parentId} ${moon.tier}`.toLocaleLowerCase().includes(normalized),
+    ).slice(0, 80);
   }, [majorMoons, query]);
   const totalCount = NATURAL_SATELLITE_DEFINITIONS.length;
 
@@ -63,7 +65,6 @@ export function NaturalSatellitePanel({
     <section className="control-panel natural-satellite-panel" data-testid="natural-satellite-panel">
       <div className="panel-heading-row">
         <div>
-          <p className="eyebrow">Planetary moon catalog</p>
           <h2>Natural satellites</h2>
         </div>
         <span className="panel-count" aria-label={`${totalCount} generated satellite records`}>
@@ -87,10 +88,10 @@ export function NaturalSatellitePanel({
         </select>
       </label>
       <label className="field-stack" htmlFor="natural-satellite-search">
-        <span>Find a major moon</span>
-        <input id="natural-satellite-search" type="search" value={query} placeholder="Io, Titan, Triton…" disabled={disabled || !visible} onChange={(event) => setQuery(event.currentTarget.value)} />
+        <span>Find any cataloged moon</span>
+        <input id="natural-satellite-search" type="search" value={query} placeholder="Io, Titan, Jupiter minor 001…" disabled={disabled || !visible} onChange={(event) => setQuery(event.currentTarget.value)} />
       </label>
-      <div className="natural-satellite-list" role="listbox" aria-label={`${formatParentName(parentFilter)} major moons`}>
+      <div className="natural-satellite-list" role="listbox" aria-label={query.trim() === '' ? `${formatParentName(parentFilter)} major moons` : 'All matching natural satellites'}>
         {filteredMajorMoons.map((moon) => (
           <button
             className="natural-satellite-option"
@@ -98,15 +99,15 @@ export function NaturalSatellitePanel({
             role="option"
             aria-selected={selectedSatelliteId === moon.id}
             key={moon.id}
-            disabled={disabled || !visible || !majorVisible}
+            disabled={disabled || !visible || (moon.tier === 'major' ? !majorVisible : !minorVisible)}
             onClick={() => onSelectSatellite(moon.id)}
           >
             <span className="natural-satellite-dot" data-profile={moon.visualProfile} aria-hidden="true" />
             <span>{moon.name}</span>
-            <small>{formatPeriod(moon.orbitalPeriodSeconds)}</small>
+            <small>{query.trim() === '' ? formatPeriod(moon.orbitalPeriodSeconds) : `${formatParentName(moon.parentId)} · ${moon.tier === 'major' ? 'major' : 'point'}`}</small>
           </button>
         ))}
-        {filteredMajorMoons.length === 0 ? <p className="field-help">No major moon matches this search.</p> : null}
+        {filteredMajorMoons.length === 0 ? <p className="field-help">No moon matches this search.</p> : null}
       </div>
       {selected === undefined ? (
         <p className="field-help">Select a major moon to inspect its parent-relative orbit.</p>

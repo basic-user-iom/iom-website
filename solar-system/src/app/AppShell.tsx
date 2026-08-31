@@ -79,6 +79,18 @@ import {
   type ObservatoryBodyDefinition,
   type ObservatoryBodyId,
 } from '../simulation/bodies/ObservatoryBodyCatalog';
+import {
+  NATURAL_SATELLITE_DEFINITIONS,
+  getNaturalSatelliteDefinition,
+} from '../simulation/satellites';
+import {
+  EARTH_SATELLITE_DEFINITIONS,
+  getEarthSatelliteDefinition,
+  sampleEarthSatellite,
+} from '../simulation/artificial';
+import {
+  SPACECRAFT_DEFINITIONS,
+} from '../simulation/spacecraft';
 import { FloatingOrigin } from '../simulation/core/FloatingOrigin';
 import {
   SimulationClock,
@@ -201,6 +213,7 @@ import {
 import {
   ObjectNavigator,
   type NavigatorBodyOption,
+  type NavigatorCatalogTarget,
 } from '../ui/observatory/ObjectNavigator';
 import { ViewControls } from '../ui/observatory/ViewControls';
 import { CanvasLegend } from '../ui/observatory/CanvasLegend';
@@ -237,6 +250,7 @@ const PATH_REFRESH_MIN_REAL_MS = 100;
 const EXPECTED_BINARY_FILE = 'solar-system-ephemeris.v1.bin';
 const EXPECTED_SMALL_BODY_BINARY_FILE = 'small-body-ephemeris.v1.bin';
 const surfaceAssetManifestUrl = `${import.meta.env.BASE_URL}assets/source-manifest.json`;
+const moonSurfaceAssetManifestUrl = `${import.meta.env.BASE_URL}assets/moons/manifest.json`;
 
 const BODY_OPTIONS: readonly NavigatorBodyOption[] = Object.freeze(
   OBSERVATORY_BODY_DEFINITIONS.map(({ id, displayName, kind }) => {
@@ -246,6 +260,34 @@ const BODY_OPTIONS: readonly NavigatorBodyOption[] = Object.freeze(
     return Object.freeze({ id: requireObservatoryBodyId(id), displayName, kind });
   }),
 );
+
+const CATALOG_TARGETS: readonly NavigatorCatalogTarget[] = Object.freeze([
+  ...NATURAL_SATELLITE_DEFINITIONS.map((satellite) => Object.freeze({
+    id: satellite.id,
+    displayName: satellite.name,
+    kind: 'natural-satellite' as const,
+    detail: `${formatCatalogParent(satellite.parentId)} · ${satellite.tier === 'major' ? 'major moon' : 'compact point record'}`,
+    searchText: `${satellite.id} ${satellite.parentId} ${satellite.visualProfile}`,
+  })),
+  ...EARTH_SATELLITE_DEFINITIONS.map((satellite) => Object.freeze({
+    id: satellite.id,
+    displayName: satellite.name,
+    kind: 'earth-satellite' as const,
+    detail: `NORAD ${satellite.catalogId} · ${satellite.category.replaceAll('-', ' ')}`,
+    searchText: `${satellite.catalogId} ${satellite.objectId ?? ''} ${satellite.category}`,
+  })),
+  ...SPACECRAFT_DEFINITIONS.map((mission) => Object.freeze({
+    id: mission.id,
+    displayName: mission.name,
+    kind: 'spacecraft' as const,
+    detail: `${mission.operator} · ${mission.status}`,
+    searchText: `${mission.missionId} ${mission.primaryTargets.join(' ')}`,
+  })),
+]);
+
+function formatCatalogParent(parentId: string): string {
+  return parentId.charAt(0).toLocaleUpperCase() + parentId.slice(1);
+}
 
 const INITIAL_EPHEMERIS_DIAGNOSTICS: Readonly<EphemerisDiagnosticState> = Object.freeze({
   status: 'loading',
@@ -2720,6 +2762,7 @@ export function AppShell() {
           <div className="workspace-rail workspace-rail-left">
             <ObjectNavigator
               bodies={BODY_OPTIONS}
+              catalogTargets={CATALOG_TARGETS}
               selectedBodyId={selectedBodyId}
               orbitLinesVisible={orbitLinesVisible}
               bodyLabelsVisible={bodyLabelsVisible}
@@ -2730,6 +2773,45 @@ export function AppShell() {
               kuiperBeltVisible={kuiperBeltVisible}
               disabled={controlsDisabled}
               onSelectBody={(bodyId) => controls.focusBody(bodyId)}
+              onSelectCatalogTarget={(target) => {
+                const renderer = rendererRef.current;
+                if (target.kind === 'natural-satellite') {
+                  const satellite = getNaturalSatelliteDefinition(target.id);
+                  if (satellite === undefined) return;
+                  setNaturalSatelliteVisible(true);
+                  renderer?.setNaturalSatellitesVisible(true);
+                  if (satellite.tier === 'major') {
+                    setMajorMoonsVisible(true);
+                    renderer?.setMajorMoonsVisible(true);
+                  } else {
+                    setMinorMoonsVisible(true);
+                    renderer?.setMinorMoonsVisible(true);
+                  }
+                  setSelectedNaturalSatelliteId(target.id);
+                  renderer?.selectNaturalSatellite(target.id);
+                  if (isObservatoryBodyId(satellite.parentId)) controls.focusBody(satellite.parentId);
+                  window.setTimeout(() => rendererRef.current?.focusNaturalSatellite(target.id), 80);
+                  return;
+                }
+                setSpaceObjectsVisible(true);
+                renderer?.setSpaceObjectsVisible(true);
+                setSelectedSpaceObjectId(target.id);
+                renderer?.selectSpaceObject(target.id);
+                if (target.kind === 'earth-satellite') {
+                  const satellite = getEarthSatelliteDefinition(target.id);
+                  setEarthSatellitesVisible(true);
+                  renderer?.setEarthSatellitesVisible(true);
+                  if (satellite !== undefined && sampleEarthSatellite(satellite, snapshot.currentJdTdb).dataAgeState === 'outside-hard-window') {
+                    controls.setExactDateUtc(satellite.elementEpochUtc);
+                  }
+                  controls.focusBody('earth');
+                  window.setTimeout(() => rendererRef.current?.focusSpaceObject(target.id), 120);
+                } else {
+                  setSpacecraftVisible(true);
+                  renderer?.setSpacecraftVisible(true);
+                  if (!renderer?.focusSpaceObject(target.id)) controls.focusBody('sun');
+                }
+              }}
               onOrbitLinesVisibleChange={controls.setOrbitLinesVisible}
               onBodyLabelsVisibleChange={controls.setBodyLabelsVisible}
               onSkyBackgroundVisibleChange={(visible) => {
@@ -2796,6 +2878,15 @@ export function AppShell() {
               onSelectObject={(id) => {
                 setSelectedSpaceObjectId(id);
                 rendererRef.current?.selectSpaceObject(id);
+              }}
+              onFocusObject={(id) => {
+                const satellite = getEarthSatelliteDefinition(id);
+                if (satellite !== undefined && sampleEarthSatellite(satellite, snapshot.currentJdTdb).dataAgeState === 'outside-hard-window') {
+                  controls.setExactDateUtc(satellite.elementEpochUtc);
+                  window.setTimeout(() => rendererRef.current?.focusSpaceObject(id), 120);
+                  return;
+                }
+                rendererRef.current?.focusSpaceObject(id);
               }}
               onFocusEarth={() => controls.focusBody('earth')}
               onFocusSun={() => controls.focusBody('sun')}
@@ -3183,6 +3274,9 @@ export function AppShell() {
           <a href={surfaceAssetManifestUrl} target="_blank" rel="noreferrer">
             Surface source manifest
           </a>
+          <a href={moonSurfaceAssetManifestUrl} target="_blank" rel="noreferrer">
+            Moon texture manifest
+          </a>
           {' · '}giant-atmosphere and ring profiles are versioned visualization data
         </p>
       </footer>
@@ -3213,6 +3307,7 @@ export function AppShell() {
         ephemerisValidationUrl={ephemerisValidationUrl}
         smallBodyValidationUrl={smallBodyValidationUrl}
         surfaceAssetManifestUrl={surfaceAssetManifestUrl}
+        moonSurfaceAssetManifestUrl={moonSurfaceAssetManifestUrl}
       />
     </div>
   );

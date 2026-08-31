@@ -16,6 +16,10 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(canvas).toHaveAttribute('data-natural-satellite-transit-shadow-count', /^\d+$/)
     await expect(canvas).toHaveAttribute('data-natural-satellite-visible-label-count', /^\d+$/)
     await expect(canvas).toHaveAttribute('data-natural-satellite-suppressed-label-count', /^\d+$/)
+    await expect(canvas).toHaveAttribute('data-natural-satellite-official-texture-ready-count', '16', { timeout: 30_000 })
+    await expect(canvas).toHaveAttribute('data-natural-satellite-official-texture-fallback-count', '0')
+    await expect(canvas).toHaveAttribute('data-natural-satellite-procedural-texture-count', '7')
+    await expect.poll(async () => Number(await canvas.getAttribute('data-natural-satellite-selected-radius-to-parent'))).toBeLessThanOrEqual(0.03)
     await expect.poll(() => canvas.getAttribute('data-camera-mode')).toBe('free-orbit')
     await expect(page.locator('.natural-satellite-screen-label[data-satellite-id="io"]')).toHaveCount(1)
   })
@@ -37,6 +41,21 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(canvas).toHaveAttribute('data-space-object-selected', 'voyager-1')
     await expect(canvas).toHaveAttribute('data-space-object-trajectory-points', '128')
     expect(browserErrors, browserErrors.join('\n')).toEqual([])
+  })
+
+  test('searches the complete catalog and navigates directly to hidden object families', async ({ page }) => {
+    const canvas = await boot(page)
+    const search = page.locator('#body-search')
+    await search.fill('Io')
+    await page.getByTestId('navigator-catalog-natural-satellite-io').click()
+    await expect(canvas).toHaveAttribute('data-natural-satellite-selected', 'io')
+    await expect.poll(() => canvas.getAttribute('data-camera-mode')).toBe('free-orbit')
+
+    await search.fill('25544')
+    await page.getByTestId('navigator-catalog-earth-satellite-earth-satellite-25544').click()
+    await expect(canvas).toHaveAttribute('data-space-object-selected', 'earth-satellite-25544')
+    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '5', { timeout: 10_000 })
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-trajectory-points'))).toBe(96)
   })
 })
 

@@ -6,11 +6,12 @@ export type BodyTextureChannel =
   | 'normal'
   | 'ocean'
   | 'roughness'
-  | 'grs-detail';
+  | 'grs-detail'
+  | 'observation';
 
 export interface BodyTextureAsset {
   readonly assetId: string;
-  readonly bodyId: 'mercury' | 'venus' | 'earth' | 'moon' | 'mars' | 'jupiter';
+  readonly bodyId: 'sun' | 'mercury' | 'venus' | 'earth' | 'moon' | 'mars' | 'jupiter';
   readonly channel: BodyTextureChannel;
   readonly file: string;
   readonly colorSpace: 'srgb' | 'linear';
@@ -18,8 +19,16 @@ export interface BodyTextureAsset {
 
 const PHASE_FOUR_ASSET_ROOT = `${import.meta.env.BASE_URL}assets/phase4/`;
 const PHASE_FIVE_ASSET_ROOT = `${import.meta.env.BASE_URL}assets/phase5/`;
+const MOON_ASSET_ROOT = `${import.meta.env.BASE_URL}assets/moons/`;
 
 export const BODY_TEXTURE_ASSETS: readonly BodyTextureAsset[] = Object.freeze([
+  Object.freeze({
+    assetId: 'sun-sdo-hmi-intensity-2025-12-26-2k',
+    bodyId: 'sun',
+    channel: 'observation',
+    file: `${MOON_ASSET_ROOT}sun-hmi-intensity-2025-12-26-2k.webp`,
+    colorSpace: 'srgb',
+  }),
   Object.freeze({
     assetId: 'mercury-messenger-md3-color-1k',
     bodyId: 'mercury',

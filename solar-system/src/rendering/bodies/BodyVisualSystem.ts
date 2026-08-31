@@ -116,7 +116,7 @@ const NEUTRAL_NORMAL_PIXEL = new Uint8Array([128, 128, 255, 255]);
 const VENUS_CLOUD_SUPERROTATION_DAYS = 4;
 
 const MATERIAL_LABELS: Readonly<Record<string, string>> = Object.freeze({
-  sun: 'SDO/HMI-informed procedural photosphere · multiscale granulation · structured sunspots · chromosphere',
+  sun: 'Dated SDO/HMI continuum observation · procedural far-side fill · multiscale granulation · chromosphere',
   mercury: 'MESSENGER MD3 color mosaic · USGS DEM-derived normal detail',
   venus: 'Akatsuki/Hubble-informed procedural cloud tops · modeled 4-day superrotation',
   earth: 'Blue Marble · ocean Fresnel/glint · independent clouds · terminator night lights',
@@ -444,7 +444,7 @@ export class PhaseFourBodyVisualSystem {
       secondaryClouds: null,
       rings: [],
       boundingRadiusMultiplier: 1.16,
-      textureBindings: new Map(),
+      textureBindings: new Map([['observation', [surfaceMaterial]]]),
     };
   }
 
@@ -808,6 +808,9 @@ export class PhaseFourBodyVisualSystem {
       } else if (channel === 'grs-detail') {
         setUniformTexture(material, 'uGrsDetailMap', texture);
         setUniformNumber(material, 'uHasGrsDetailMap', 1);
+      } else if (channel === 'observation') {
+        setUniformTexture(material, 'uObservationMap', texture);
+        setUniformNumber(material, 'uHasObservationMap', 1);
       } else {
         setUniformTexture(material, 'uMap', texture);
         const mapVisible = !(
@@ -1002,6 +1005,8 @@ function createSunMaterial(): ShaderMaterial {
       uTimeDays: { value: 0 },
       uQuality: { value: 2 },
       uSunspotStrength: { value: 0.58 },
+      uObservationMap: { value: null },
+      uHasObservationMap: { value: 0 },
     },
     vertexShader: BODY_VERTEX_SHADER,
     fragmentShader: SUN_FRAGMENT_SHADER,
@@ -1482,6 +1487,8 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
   uniform float uTimeDays;
   uniform float uQuality;
   uniform float uSunspotStrength;
+  uniform sampler2D uObservationMap;
+  uniform float uHasObservationMap;
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying vec3 vObjectNormal;
@@ -1538,6 +1545,16 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
     float faculae = penumbra * (1.0 - umbra) * pow(1.0 - mu, 1.7);
     color += vec3(1.0, 0.70, 0.26) * faculae * 0.34;
     color += vec3(1.0, 0.31, 0.045) * pow(1.0 - mu, 7.0) * 0.18;
+    // SDO/HMI supplies one dated observer-facing photosphere hemisphere, not
+    // a fictional global texture. Advect that captured hemisphere with the
+    // body-local rotation and feather its limb into the procedural far side.
+    vec2 observationUv = vec2(0.5) + advected.xy * 0.472;
+    vec3 observed = texture2D(uObservationMap, observationUv).rgb;
+    float observedLuminance = dot(observed, vec3(0.2126, 0.7152, 0.0722));
+    float observedCoverage = smoothstep(-0.02, 0.16, advected.z) *
+      smoothstep(0.015, 0.08, observedLuminance) * uHasObservationMap;
+    vec3 observedColor = observed * mix(0.86, 1.12, granuleFine);
+    color = mix(color, observedColor, observedCoverage * 0.88);
     // Preserve photosphere contrast below the former clipping-heavy output;
     // the separate post-process still supplies a restrained HDR glow.
     gl_FragColor = vec4(color * 1.48, 1.0);

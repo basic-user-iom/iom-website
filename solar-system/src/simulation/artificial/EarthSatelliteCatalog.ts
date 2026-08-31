@@ -101,6 +101,10 @@ export const EARTH_SATELLITE_DEFINITIONS: readonly EarthSatelliteDefinition[] = 
   BUNDLED_OMM.map((record) => normalizeOmmRecord(record)),
 );
 
+export function getEarthSatelliteDefinition(id: string): EarthSatelliteDefinition | undefined {
+  return EARTH_SATELLITE_DEFINITIONS.find((satellite) => satellite.id === id);
+}
+
 export function normalizeOmmRecord(
   record: Readonly<OmmRecord & { category?: EarthSatelliteCategory }>,
 ): EarthSatelliteDefinition {

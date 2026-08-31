@@ -1195,6 +1195,32 @@ input[type="range"] {
   box-shadow: 0 0 10px currentColor;
 }
 
+.catalog-result-marker {
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(220, 242, 255, 0.72);
+  border-radius: 50%;
+  background: #c8d1d8;
+  box-shadow: 0 0 9px rgba(200, 225, 242, 0.72);
+}
+
+.catalog-result-marker[data-kind="earth-satellite"] {
+  background: #70dcff;
+  box-shadow: 0 0 10px rgba(92, 208, 255, 0.9);
+}
+
+.catalog-result-marker[data-kind="spacecraft"] {
+  border-radius: 2px;
+  background: #ffc46c;
+  box-shadow: 0 0 10px rgba(255, 174, 72, 0.82);
+}
+
+.catalog-target-item small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .body-list-marker[data-body-id="sun"] { background: #ffc45c; }
 .body-list-marker[data-body-id="mercury"] { background: #b9b4aa; }
 .body-list-marker[data-body-id="venus"] { background: #e7b66f; }

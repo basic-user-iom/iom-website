@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "generatedAtUtc": "2026-08-31T00:00:00.000Z",
+  "generator": "scripts/space-objects/generate-major-moon-textures.mjs",
+  "policy": "NASA imagery is converted to compact WebP for the observatory. Moon maps are accepted only when the embedded base-color image is a 2:1 equirectangular globe map; mesh-specific UV atlases are rejected rather than misapplied to spheres.",
+  "credit": "NASA Visualization Technology Applications and Development (VTAD); NASA/JPL-Caltech where identified by the source page; NASA/SDO/HMI for the dated solar observation. Attribution does not imply endorsement.",
+  "assets": [
+    {
+      "id": "io",
+      "name": "Io",
+      "file": "io-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 259860,
+      "sha256": "cd74c0f5141d583bcf41c6b5a5ec43254b2339cdc25a871e30d3a9a76cc91bae",
+      "sourcePage": "https://science.nasa.gov/resource/io-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/i/Io_1_3643.glb?emrc=6a95989fa0759",
+      "sourceImageName": "color_2016_04_28.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "europa",
+      "name": "Europa",
+      "file": "europa-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 326410,
+      "sha256": "ebfc0eea4e2e462f90cc57321b8371112a532c1e7a6f8260bf0726b1240a29ef",
+      "sourcePage": "https://science.nasa.gov/resource/europa-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/e/Europa_1_3138.glb?emrc=6a9598cf34e1a",
+      "sourceImageName": "color_2016_03_10.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "ganymede",
+      "name": "Ganymede",
+      "file": "ganymede-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 361970,
+      "sha256": "5eff36155250ad2000889edf6496cdcd01c4f8cd09780f66fd010f78c0bb35b7",
+      "sourcePage": "https://science.nasa.gov/resource/ganymede-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/g/Ganymede_1_5268.glb?emrc=6a9598d08ff37",
+      "sourceImageName": "color_2016_03_10.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "callisto",
+      "name": "Callisto",
+      "file": "callisto-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 466512,
+      "sha256": "3ed1aae2ce37389692a6df0e7fbe23bf0805475abe9b894e57793590f66459aa",
+      "sourcePage": "https://science.nasa.gov/resource/callisto-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/c/Callisto_1_4821.glb?emrc=6a9598d2147ca",
+      "sourceImageName": "color_2016_03_10.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "enceladus",
+      "name": "Enceladus",
+      "file": "enceladus-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 826734,
+      "sha256": "04f33faef63dc19e6b8dfc1904f100a851120a1fd4692ea503ee047026cabf50",
+      "sourcePage": "https://science.nasa.gov/resource/enceladus-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/e/Enceladus_1_504.glb?emrc=6a9598d52a715",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "tethys",
+      "name": "Tethys",
+      "file": "tethys-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 812492,
+      "sha256": "1da3c72161dff9d7e7a41d8cfafee247818eb4a05e1e207d4d3228f85121cf21",
+      "sourcePage": "https://science.nasa.gov/resource/tethys-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/t/Tethys_1_1077-1.glb?emrc=6a9598d693888",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "dione",
+      "name": "Dione",
+      "file": "dione-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 742342,
+      "sha256": "5dd4acd8f8a2c8d521a576d250df24ff1d788c661d7d31956d941708ffddd3be",
+      "sourcePage": "https://science.nasa.gov/resource/dione-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/d/Dione_1_1123.glb?emrc=6a9598d7e7137",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "rhea",
+      "name": "Rhea",
+      "file": "rhea-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 905992,
+      "sha256": "7790cfe4e9938b267941edf42e9eac3c657b4deb3ae74253c097707e587f29d3",
+      "sourcePage": "https://science.nasa.gov/resource/rhea-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/r/Rhea_1_1529.glb?emrc=6a9598d9cc39e",
+      "sourceImageName": "color_2018_01_29.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "titan",
+      "name": "Titan",
+      "file": "titan-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 7942,
+      "sha256": "0a80e00c3b918e337566b22066aeedd34bcdca0e232c8fffe680f680dceb2099",
+      "sourcePage": "https://science.nasa.gov/resource/titan-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/t/Titan_1_5150.glb?emrc=6a9598db7190c",
+      "sourceImageName": "color_2016_03_24.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "iapetus",
+      "name": "Iapetus",
+      "file": "iapetus-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 445468,
+      "sha256": "81db013dd49f634c998be5124f552bb6973899a91a7183be5f0b5df12af77c97",
+      "sourcePage": "https://science.nasa.gov/resource/iapetus-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/i/Iapetus_1_1471.glb?emrc=6a9598deb7dac",
+      "sourceImageName": "color_2016_07_13.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "miranda",
+      "name": "Miranda",
+      "file": "miranda-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 87094,
+      "sha256": "802a804b5da5678dd145d1b256b68b665f7a848e0a85d7e2f6aed89927281eab",
+      "sourcePage": "https://science.nasa.gov/resource/miranda-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/m/Miranda_1_472.glb?emrc=6a9598e2009e1",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "ariel",
+      "name": "Ariel",
+      "file": "ariel-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 104036,
+      "sha256": "0ca42f18e33e98657682ec169cc4c3c209626c59e754cb42fd1def9b177e822d",
+      "sourcePage": "https://science.nasa.gov/resource/ariel-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/a/Ariel_1_1158.glb?emrc=6a9598e3d8793",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "umbriel",
+      "name": "Umbriel",
+      "file": "umbriel-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 33604,
+      "sha256": "134525d82e78f09890899ef8edc98d1faf4e138c3811fc1fb2e165c162136997",
+      "sourcePage": "https://science.nasa.gov/resource/umbriel-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/u/Umbriel_1_1169.glb?emrc=6a9598e5d4a1c",
+      "sourceImageName": "color_2016_06_22.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "titania",
+      "name": "Titania",
+      "file": "titania-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 99944,
+      "sha256": "e6ddc4b6f903dc24088ed4eb5a71ac4547946a0ffc7ad374000075175faa066d",
+      "sourcePage": "https://science.nasa.gov/resource/titania-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/t/Titania_1_1577.glb?emrc=6a9598e744f6c",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "oberon",
+      "name": "Oberon",
+      "file": "oberon-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 50124,
+      "sha256": "22ba84a99f7e068548d27e5e973c2edc6cb5f1a2ff02a165c5657da08f3ca839",
+      "sourcePage": "https://science.nasa.gov/resource/oberon-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/o/Oberon_1_1523.glb?emrc=6a9598e9236f5",
+      "sourceImageName": "color_2016_03_09.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "triton",
+      "name": "Triton",
+      "file": "triton-nasa-vtad-2k.webp",
+      "width": 2048,
+      "height": 1024,
+      "byteLength": 145010,
+      "sha256": "63e1cb0d448b9eafe0abd87c6c326dfa6b8755d547501f49fc041fc108a571ef",
+      "sourcePage": "https://science.nasa.gov/resource/triton-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/t/Triton_1_2707.glb?emrc=6a9598eb02042",
+      "sourceImageName": "color_2016_03_08.jpg",
+      "transforms": [
+        "Extract embedded GLB base-color image.",
+        "Verify approximately 2:1 equirectangular aspect ratio.",
+        "Resize to 2048 x 1024 where applicable and encode as quality-88 WebP."
+      ]
+    },
+    {
+      "id": "sun-sdo-hmi-intensity-2025-12-26-2k",
+      "name": "Sun",
+      "file": "sun-hmi-intensity-2025-12-26-2k.webp",
+      "width": 2048,
+      "height": 2048,
+      "byteLength": 938466,
+      "sha256": "b8946b493bc52564227f464dbe987bec64626f8134ac8bbb947b14b328bf2aa2",
+      "sourcePage": "https://sdo.gsfc.nasa.gov/data/",
+      "sourceAsset": "https://sdo.gsfc.nasa.gov/assets/img/browse/2025/12/26/20251226_000000_2048_HMIIF.jpg",
+      "sourceImageName": "20251226_000000_2048_HMIIF.jpg",
+      "transforms": [
+        "Download the fixed-date 2048 x 2048 SDO/HMI quick-look continuum disk.",
+        "Resize deterministically to 2048 x 2048 and encode as quality-90 WebP.",
+        "Runtime projects only the observed hemisphere and feathers uncovered longitudes into the procedural photosphere."
+      ],
+      "projection": "observer-facing orthographic solar disk",
+      "observationUtc": "2025-12-26T00:00:00.000Z"
+    }
+  ],
+  "rejected": [
+    {
+      "id": "mimas",
+      "name": "Mimas",
+      "sourcePage": "https://science.nasa.gov/resource/mimas-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/m/Mimas_1_1000.glb?emrc=6a9598d36d312",
+      "reason": "Embedded texture is a mesh-specific 2048 x 2048 UV atlas, not an equirectangular globe map."
+    },
+    {
+      "id": "hyperion",
+      "name": "Hyperion",
+      "sourcePage": "https://science.nasa.gov/resource/hyperion-3d-model/",
+      "sourceAsset": "https://assets.science.nasa.gov/content/dam/science/psd/solar/2023/09/h/Hyperion_1_1000.glb?emrc=6a9598dd3647c",
+      "reason": "Embedded texture is a mesh-specific 1024 x 1024 UV atlas, not an equirectangular globe map."
+    }
+  ],
+  "unresolvedMajorMoons": [
+    "phobos",
+    "deimos",
+    "phoebe",
+    "proteus",
+    "nereid"
+  ]
+}

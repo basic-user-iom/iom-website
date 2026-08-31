@@ -8,8 +8,17 @@ export interface NavigatorBodyOption {
   readonly kind: 'star' | 'planet' | 'moon' | 'comet';
 }
 
+export interface NavigatorCatalogTarget {
+  readonly id: string;
+  readonly displayName: string;
+  readonly kind: 'natural-satellite' | 'earth-satellite' | 'spacecraft';
+  readonly detail: string;
+  readonly searchText?: string;
+}
+
 export interface ObjectNavigatorProps {
   readonly bodies: readonly NavigatorBodyOption[];
+  readonly catalogTargets?: readonly NavigatorCatalogTarget[];
   readonly selectedBodyId: ObservatoryBodyId;
   readonly orbitLinesVisible: boolean;
   readonly bodyLabelsVisible: boolean;
@@ -20,6 +29,7 @@ export interface ObjectNavigatorProps {
   readonly kuiperBeltVisible?: boolean;
   readonly disabled?: boolean;
   readonly onSelectBody: (bodyId: ObservatoryBodyId) => void;
+  readonly onSelectCatalogTarget?: (target: NavigatorCatalogTarget) => void;
   readonly onOrbitLinesVisibleChange: (visible: boolean) => void;
   readonly onBodyLabelsVisibleChange: (visible: boolean) => void;
   readonly onSkyBackgroundVisibleChange?: (visible: boolean) => void;
@@ -31,6 +41,7 @@ export interface ObjectNavigatorProps {
 
 export function ObjectNavigator({
   bodies,
+  catalogTargets = [],
   selectedBodyId,
   orbitLinesVisible,
   bodyLabelsVisible,
@@ -41,6 +52,7 @@ export function ObjectNavigator({
   kuiperBeltVisible = false,
   disabled = false,
   onSelectBody,
+  onSelectCatalogTarget = () => undefined,
   onOrbitLinesVisibleChange,
   onBodyLabelsVisibleChange,
   onSkyBackgroundVisibleChange = () => undefined,
@@ -62,6 +74,19 @@ export function ObjectNavigator({
           ),
     [bodies, normalizedQuery],
   );
+  const matchingCatalogTargets = useMemo(
+    () => normalizedQuery === ''
+      ? []
+      : catalogTargets
+          .filter((target) =>
+            `${target.displayName} ${target.detail} ${target.searchText ?? ''} ${catalogClassificationLabel(target.kind)}`
+              .toLocaleLowerCase()
+              .includes(normalizedQuery),
+          )
+          .slice(0, 60),
+    [catalogTargets, normalizedQuery],
+  );
+  const resultCount = matchingBodies.length + matchingCatalogTargets.length;
 
   return (
     <nav
@@ -74,22 +99,23 @@ export function ObjectNavigator({
           <p className="eyebrow">Object navigator</p>
           <h2 id="object-navigator-heading">Choose a target</h2>
         </div>
-        <span className="navigator-count">{matchingBodies.length}/{bodies.length}</span>
+        <span className="navigator-count">{normalizedQuery === '' ? `${bodies.length}` : `${resultCount} found`}</span>
       </div>
 
       <label className="field-stack navigator-search" htmlFor="body-search">
-        <span>Search bodies</span>
+        <span>Search the complete catalog</span>
         <input
           id="body-search"
+          aria-label="Search bodies"
           type="search"
           value={query}
           disabled={disabled}
-          placeholder="Earth, planet, comet..."
+          placeholder="Earth, Io, ISS, Voyager..."
           onChange={(event) => setQuery(event.currentTarget.value)}
         />
       </label>
 
-      <div className="body-list" role="group" aria-label="Ephemeris bodies">
+      <div className="body-list" role="group" aria-label="Solar System catalog results">
         {matchingBodies.map((body) => {
           const selected = body.id === selectedBodyId;
           return (
@@ -112,9 +138,28 @@ export function ObjectNavigator({
             </button>
           );
         })}
-        {matchingBodies.length === 0 ? (
+        {matchingCatalogTargets.map((target) => (
+          <button
+            key={`${target.kind}:${target.id}`}
+            className="body-list-item catalog-target-item"
+            type="button"
+            data-catalog-kind={target.kind}
+            data-catalog-id={target.id}
+            data-testid={`navigator-catalog-${target.kind}-${target.id}`}
+            disabled={disabled}
+            onClick={() => onSelectCatalogTarget(target)}
+          >
+            <span className="catalog-result-marker" data-kind={target.kind} aria-hidden="true" />
+            <span>
+              <strong>{target.displayName}</strong>
+              <small>{catalogClassificationLabel(target.kind)} · {target.detail}</small>
+            </span>
+            <span className="body-list-action">Go</span>
+          </button>
+        ))}
+        {resultCount === 0 ? (
           <p className="navigator-empty" role="status">
-            No generated body matches this search.
+            No planet, moon, satellite, or spacecraft matches this search.
           </p>
         ) : null}
       </div>
@@ -190,6 +235,14 @@ export function ObjectNavigator({
       ) : null}
     </nav>
   );
+}
+
+function catalogClassificationLabel(kind: NavigatorCatalogTarget['kind']): string {
+  switch (kind) {
+    case 'natural-satellite': return 'Natural satellite';
+    case 'earth-satellite': return 'Artificial Earth satellite';
+    case 'spacecraft': return 'Spacecraft / probe';
+  }
 }
 
 function classificationLabel(kind: NavigatorBodyOption['kind']): string {

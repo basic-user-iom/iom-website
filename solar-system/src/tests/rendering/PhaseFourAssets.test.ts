@@ -31,10 +31,25 @@ interface SourceManifest {
   readonly assets: readonly SourceManifestAsset[];
 }
 
+interface MoonSurfaceManifestAsset {
+  readonly id: string;
+  readonly file: string;
+  readonly width: number;
+  readonly height: number;
+  readonly byteLength: number;
+  readonly sha256: string;
+}
+
+interface MoonSurfaceManifest {
+  readonly assets: readonly MoonSurfaceManifestAsset[];
+}
+
 const PUBLIC_ASSET_ROOT = resolve(process.cwd(), 'public/assets');
 const MANIFEST_FILE = resolve(PUBLIC_ASSET_ROOT, 'source-manifest.json');
+const MOON_SURFACE_MANIFEST_FILE = resolve(PUBLIC_ASSET_ROOT, 'moons/manifest.json');
 
 const EXPECTED_ASSET_CHANNELS = Object.freeze([
+  'sun-sdo-hmi-intensity-2025-12-26-2k:sun:observation',
   'earth-blue-marble-2k:earth:albedo',
   'earth-blue-marble-derived-normal-2k:earth:normal',
   'earth-blue-marble-derived-ocean-mask-2k:earth:ocean',
@@ -72,11 +87,11 @@ const DERIVED_2K_PNG_ASSET_IDS = new Set([
 
 describe('Phase 4 and 5 texture asset contract', () => {
   it('declares the exact unique asset/channel set and keeps data maps linear', () => {
-    expect(BODY_TEXTURE_ASSETS).toHaveLength(15);
-    expect(new Set(BODY_TEXTURE_ASSETS.map((asset) => asset.assetId)).size).toBe(15);
+    expect(BODY_TEXTURE_ASSETS).toHaveLength(16);
+    expect(new Set(BODY_TEXTURE_ASSETS.map((asset) => asset.assetId)).size).toBe(16);
     expect(
       new Set(BODY_TEXTURE_ASSETS.map((asset) => `${asset.bodyId}:${asset.channel}`)),
-    ).toHaveProperty('size', 15);
+    ).toHaveProperty('size', 16);
 
     const actualAssetChannels = BODY_TEXTURE_ASSETS.map(
       (asset) => `${asset.assetId}:${asset.bodyId}:${asset.channel}`,
@@ -93,6 +108,7 @@ describe('Phase 4 and 5 texture asset contract', () => {
   });
 
   it('matches every catalog entry to a complete, byte-accurate manifest record', () => {
+    const phaseFourFiveAssets = BODY_TEXTURE_ASSETS.filter((asset) => asset.channel !== 'observation');
     expect(existsSync(MANIFEST_FILE)).toBe(true);
     const manifest = JSON.parse(readFileSync(MANIFEST_FILE, 'utf8')) as SourceManifest;
     expect(Array.isArray(manifest.assets)).toBe(true);
@@ -103,10 +119,10 @@ describe('Phase 4 and 5 texture asset contract', () => {
     );
     expect(manifestById.size).toBe(15);
     expect([...manifestById.keys()].sort()).toEqual(
-      BODY_TEXTURE_ASSETS.map((asset) => asset.assetId).sort(),
+      phaseFourFiveAssets.map((asset) => asset.assetId).sort(),
     );
 
-    for (const catalogAsset of BODY_TEXTURE_ASSETS) {
+    for (const catalogAsset of phaseFourFiveAssets) {
       const manifestAsset = manifestById.get(catalogAsset.assetId);
       expect(manifestAsset, `missing manifest entry for ${catalogAsset.assetId}`).toBeDefined();
       if (manifestAsset === undefined) continue;
@@ -145,6 +161,24 @@ describe('Phase 4 and 5 texture asset contract', () => {
         expect(readPngDimensions(bytes)).toEqual({ width: 2_048, height: 1_024 });
       }
     }
+  });
+
+  it('matches the dated Sun observation to the separate moon-surface manifest', () => {
+    const sunAsset = BODY_TEXTURE_ASSETS.find((asset) => asset.channel === 'observation');
+    expect(sunAsset).toBeDefined();
+    expect(existsSync(MOON_SURFACE_MANIFEST_FILE)).toBe(true);
+    const manifest = JSON.parse(readFileSync(MOON_SURFACE_MANIFEST_FILE, 'utf8')) as MoonSurfaceManifest;
+    const manifestAsset = manifest.assets.find((asset) => asset.id === sunAsset?.assetId);
+    expect(manifestAsset).toBeDefined();
+    if (sunAsset === undefined || manifestAsset === undefined) return;
+
+    expect(sunAsset.file.replaceAll('\\', '/')).toContain(`/assets/moons/${manifestAsset.file}`);
+    const absoluteFile = resolve(PUBLIC_ASSET_ROOT, 'moons', manifestAsset.file);
+    expectPathInsideAssetRoot(absoluteFile);
+    const bytes = readFileSync(absoluteFile);
+    expect(bytes.byteLength).toBe(manifestAsset.byteLength);
+    expect(createHash('sha256').update(bytes).digest('hex')).toBe(manifestAsset.sha256);
+    expect(manifestAsset).toMatchObject({ width: 2_048, height: 2_048 });
   });
 });
 

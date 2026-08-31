@@ -191,7 +191,7 @@ test('provenance is coherent and responsive layouts never clip horizontally', as
   await expect(provenance).toBeVisible()
   await expect(provenance).toContainText(/JPL Horizons/i)
   await expect(provenance).toContainText(/Presentation geometry contributes/i)
-  await expect(provenance.getByRole('link')).toHaveCount(3)
+  await expect(provenance.getByRole('link')).toHaveCount(4)
   await page.keyboard.press('Escape')
   await expect(provenance).toBeHidden()
 

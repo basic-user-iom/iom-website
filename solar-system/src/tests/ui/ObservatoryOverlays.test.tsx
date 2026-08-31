@@ -45,6 +45,7 @@ describe('Phase 7 observatory overlays', () => {
         ephemerisValidationUrl="/planet-validation.json"
         smallBodyValidationUrl="/comet-validation.json"
         surfaceAssetManifestUrl="/source-manifest.json"
+        moonSurfaceAssetManifestUrl="/moon-surface-manifest.json"
       />,
     );
 
@@ -55,6 +56,7 @@ describe('Phase 7 observatory overlays', () => {
     expect(markup).toContain('href="/planet-validation.json"');
     expect(markup).toContain('href="/comet-validation.json"');
     expect(markup).toContain('href="/source-manifest.json"');
+    expect(markup).toContain('href="/moon-surface-manifest.json"');
     expect(markup).toContain('(opens in a new tab)');
   });
 });

@@ -1,5 +1,29 @@
 # Sources and provenance
 
+## Observatory texture and catalog refresh
+
+The major-moon texture bundle is generated from embedded base-color images in official NASA Visualization Technology Applications and Development (VTAD) 3D-model resources. The generator accepts an image only when its dimensions identify an approximately 2:1 equirectangular globe map, then resizes it to 2048 x 1024 and encodes a quality-88 WebP. Sixteen resources pass that contract: Io, Europa, Ganymede, Callisto, Enceladus, Tethys, Dione, Rhea, Titan, Iapetus, Miranda, Ariel, Umbriel, Titania, Oberon, and Triton. Example source records include:
+
+- <https://science.nasa.gov/resource/io-3d-model/>
+- <https://science.nasa.gov/resource/europa-3d-model/>
+- <https://science.nasa.gov/resource/ganymede-3d-model/>
+- <https://science.nasa.gov/resource/callisto-3d-model/>
+- <https://science.nasa.gov/resource/enceladus-3d-model/>
+- <https://science.nasa.gov/resource/triton-3d-model/>
+
+Mimas and Hyperion were inspected but rejected because their embedded 2048 x 2048 and 1024 x 1024 images are mesh-specific UV atlases rather than globe maps. Phobos, Deimos, Phoebe, Proteus, and Nereid had no compatible official global map in this audit. Those seven objects retain distinct deterministic procedural coverage; this is disclosed as an authored fallback and is preferable to presenting a distorted atlas or unrelated generic texture as observed data. Earth's Moon retains the separately documented NASA LRO-derived CGI Moon Kit map.
+
+The Sun addition is a project-generated WebP derivative of the fixed NASA Solar Dynamics Observatory HMI intensitygram at `2025-12-26T00:00:00Z`:
+
+- Data entry point: <https://sdo.gsfc.nasa.gov/data/>
+- Exact source image: <https://sdo.gsfc.nasa.gov/assets/img/browse/2025/12/26/20251226_000000_2048_HMIIF.jpg>
+
+The source is an observer-facing solar disk, not an equirectangular map. Runtime therefore projects it only onto one body-local hemisphere, feathers its edge into the existing procedural photosphere, and keeps the unobserved far side procedural. The date remains fixed while the simulation clock changes, so the layer is an appearance reference rather than time-matched solar state.
+
+[`public/assets/moons/manifest.json`](./public/assets/moons/manifest.json) is authoritative for the 17 derivative paths, exact source URLs, observation time, source image names, transforms, dimensions, byte lengths, SHA-256 hashes, rejected atlases, and unresolved fallback list. `scripts/space-objects/generate-major-moon-textures.mjs` performs the networked generation; `npm run space-objects:moon-textures:verify` is the offline release check.
+
+Complete-catalog navigation and the corrected presentation-scale policy are project-authored interface/rendering changes. Search indexes the already bundled body, natural-satellite, OMM, and spacecraft records; it does not contact a live catalog. Major-moon display radii first preserve the physical moon-to-parent radius ratio under the parent's presentation exaggeration, then apply only a bounded contextual legibility floor and a 6.5% parent-radius cap. These display rules do not alter catalog radii or propagated positions.
+
 ## Phase 12 tidal-forcing extension provenance
 
 Phase 12 is the final numbered master-plan build. It adds no scientific dataset, downloaded media, runtime asset, third-party shader, package dependency, or license. `THIRD_PARTY_NOTICES.md` therefore requires no Phase 12 license entry. The developer visualization and its URL parser are project-authored implementation work.

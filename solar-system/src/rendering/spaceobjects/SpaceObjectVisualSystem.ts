@@ -48,6 +48,8 @@ export class SpaceObjectVisualSystem {
   private readonly spacecraftMesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
   private readonly earthSatelliteTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly spacecraftTrajectory: Line<BufferGeometry, LineBasicMaterial>;
+  private readonly worldPositions = new Map<string, Vector3>();
+  private readonly renderedRadii = new Map<string, number>();
   private visible = true;
   private earthSatellitesVisible = true;
   private spacecraftVisible = true;
@@ -107,6 +109,14 @@ export class SpaceObjectVisualSystem {
     this.selectedObjectId = id;
   }
 
+  public getObjectWorldPosition(id: string): Vector3 | null {
+    return this.worldPositions.get(id)?.clone() ?? null;
+  }
+
+  public getObjectRenderRadius(id: string): number {
+    return this.renderedRadii.get(id) ?? 0.0003;
+  }
+
   public updateFrame(
     frame: Readonly<DebugRenderFrame>,
     scaleModel: Readonly<RenderScaleModel>,
@@ -117,6 +127,8 @@ export class SpaceObjectVisualSystem {
       return;
     }
     this.root.visible = true;
+    this.worldPositions.clear();
+    this.renderedRadii.clear();
     this.requestWorkerSample(frame.currentJdTdb);
     const earth = frame.bodies.find((body) => body.bodyId === 'earth');
     this.renderedEarthSatelliteCount = 0;
@@ -138,11 +150,14 @@ export class SpaceObjectVisualSystem {
           z: state.positionEarthCenteredM.z * localScale,
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
-        const radius = this.selectedObjectId === satellite.id ? 0.005 : 0.0024;
-        OBJECT.scale.setScalar(scaleModel.mode === 'presentation' ? radius : 0.00008);
+        const markerRadius = scaleModel.mode === 'presentation'
+          ? (this.selectedObjectId === satellite.id ? 0.00018 : 0.000065)
+          : 0.00000008;
+        OBJECT.scale.setScalar(markerRadius);
         OBJECT.updateMatrix();
         MATRIX.copy(OBJECT.matrix);
         this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
+        this.recordObjectPosition(satellite.id, OBJECT.position, markerRadius);
         this.renderedEarthSatelliteCount += 1;
       });
       const selectedSatellite = EARTH_SATELLITE_DEFINITIONS.find((satellite) => satellite.id === this.selectedObjectId);
@@ -168,10 +183,12 @@ export class SpaceObjectVisualSystem {
         }
         scaleModel.mapPosition(LOCAL, state.positionM, originM);
         OBJECT.position.copy(LOCAL);
-        OBJECT.scale.setScalar(this.selectedObjectId === mission.id ? 0.006 : 0.0028);
+        const markerRadius = this.selectedObjectId === mission.id ? 0.0006 : 0.00022;
+        OBJECT.scale.setScalar(markerRadius);
         OBJECT.updateMatrix();
         MATRIX.copy(OBJECT.matrix);
         this.spacecraftMesh.setMatrixAt(index, MATRIX);
+        this.recordObjectPosition(mission.id, OBJECT.position, markerRadius);
         this.renderedSpacecraftCount += 1;
       });
       const selectedMission = SPACECRAFT_DEFINITIONS.find((mission) => mission.id === this.selectedObjectId);
@@ -209,6 +226,8 @@ export class SpaceObjectVisualSystem {
     });
     this.workerClient?.dispose();
     this.workerClient = null;
+    this.worldPositions.clear();
+    this.renderedRadii.clear();
     this.root.clear();
   }
 
@@ -283,6 +302,13 @@ export class SpaceObjectVisualSystem {
     OBJECT.updateMatrix();
     MATRIX.copy(OBJECT.matrix);
     mesh.setMatrixAt(index, MATRIX);
+  }
+
+  private recordObjectPosition(id: string, position: Readonly<Vector3>, radius: number): void {
+    const existing = this.worldPositions.get(id);
+    if (existing === undefined) this.worldPositions.set(id, new Vector3(position.x, position.y, position.z));
+    else existing.copy(position);
+    this.renderedRadii.set(id, radius);
   }
 
   private updateEarthSatelliteTrajectory(

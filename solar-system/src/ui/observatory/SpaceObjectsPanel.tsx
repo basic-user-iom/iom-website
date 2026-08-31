@@ -22,6 +22,7 @@ export interface SpaceObjectsPanelProps {
   readonly onEarthSatellitesVisibleChange: (visible: boolean) => void;
   readonly onSpacecraftVisibleChange: (visible: boolean) => void;
   readonly onSelectObject: (id: string | null) => void;
+  readonly onFocusObject: (id: string) => void;
   readonly onFocusEarth: () => void;
   readonly onFocusSun: () => void;
   readonly onReturnToSatelliteEpoch: () => void;
@@ -40,6 +41,7 @@ export function SpaceObjectsPanel({
   onEarthSatellitesVisibleChange,
   onSpacecraftVisibleChange,
   onSelectObject,
+  onFocusObject,
   onFocusEarth,
   onFocusSun,
   onReturnToSatelliteEpoch,
@@ -58,11 +60,16 @@ export function SpaceObjectsPanel({
   const selectedSatellite = EARTH_SATELLITE_DEFINITIONS.find((item) => item.id === selectedObjectId);
   const selectedMission = SPACECRAFT_DEFINITIONS.find((item) => item.id === selectedObjectId);
 
+  const activeTab: ObjectTab = normalizedQuery.length > 0 && satellites.length === 0 && missions.length > 0
+    ? 'spacecraft'
+    : normalizedQuery.length > 0 && missions.length === 0 && satellites.length > 0
+      ? 'earth-satellites'
+      : tab;
+
   return (
     <section className="control-panel space-objects-panel" data-testid="space-objects-panel">
       <div className="panel-heading-row">
         <div>
-          <p className="eyebrow">Orbital catalogs</p>
           <h2>Space objects</h2>
         </div>
         <span className="panel-count">{EARTH_SATELLITE_DEFINITIONS.length + SPACECRAFT_DEFINITIONS.length}</span>
@@ -70,14 +77,14 @@ export function SpaceObjectsPanel({
       <p className="field-help">OMM/SGP4 Earth-orbit markers and JPL Horizons mission paths stay separate from natural-moon physics.</p>
       <label className="layer-toggle-wide"><input type="checkbox" checked={visible} disabled={disabled} onChange={(event) => onVisibleChange(event.currentTarget.checked)} /> Space objects layer</label>
       <div className="space-object-tabs" role="tablist" aria-label="Space object families">
-        <button type="button" role="tab" aria-selected={tab === 'earth-satellites'} onClick={() => setTab('earth-satellites')}>Earth satellites</button>
-        <button type="button" role="tab" aria-selected={tab === 'spacecraft'} onClick={() => setTab('spacecraft')}>Spacecraft & probes</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'earth-satellites'} onClick={() => setTab('earth-satellites')}>Earth satellites</button>
+        <button type="button" role="tab" aria-selected={activeTab === 'spacecraft'} onClick={() => setTab('spacecraft')}>Spacecraft & probes</button>
       </div>
       <label className="field-stack" htmlFor="space-object-search">
         <span>Search objects</span>
         <input id="space-object-search" type="search" value={query} disabled={disabled || !visible} placeholder="ISS, Voyager, JWST…" onChange={(event) => setQuery(event.currentTarget.value)} />
       </label>
-      {tab === 'earth-satellites' ? (
+      {activeTab === 'earth-satellites' ? (
         <ObjectList
           enabled={visible && earthSatellitesVisible}
           checked={earthSatellitesVisible}
@@ -103,14 +110,14 @@ export function SpaceObjectsPanel({
           onSelect={onSelectObject}
         />
       )}
-      {tab === 'earth-satellites' && satellites.every((item) => sampleEarthSatellite(item, currentJdTdb).dataAgeState === 'outside-hard-window') ? (
+      {activeTab === 'earth-satellites' && satellites.every((item) => sampleEarthSatellite(item, currentJdTdb).dataAgeState === 'outside-hard-window') ? (
         <div className="space-object-warning" role="status">
           <span>OMM snapshot is outside its hard validity window at this date.</span>
           <button className="button button-secondary" type="button" onClick={onReturnToSatelliteEpoch}>Return to satellite epoch</button>
         </div>
       ) : null}
-      {selectedSatellite !== undefined ? <SelectedObjectSummary name={selectedSatellite.name} detail={`${selectedSatellite.catalogId} · OMM/TEME · ${formatAge(sampleEarthSatellite(selectedSatellite, currentJdTdb).dataAgeDays)}`} actionLabel="Focus Earth" onAction={onFocusEarth} /> : null}
-      {selectedMission !== undefined ? <SelectedObjectSummary name={selectedMission.name} detail={`${selectedMission.operator} · ${selectedMission.trajectorySource} · ${sampleSpacecraftTrajectory(selectedMission, currentJdTdb).valid ? 'inside validity' : 'outside validity'}`} actionLabel="Focus Sun" onAction={onFocusSun} /> : null}
+      {selectedSatellite !== undefined ? <SelectedObjectSummary name={selectedSatellite.name} detail={`${selectedSatellite.catalogId} · OMM/TEME · ${formatAge(sampleEarthSatellite(selectedSatellite, currentJdTdb).dataAgeDays)}`} frameLabel="Frame selected satellite" onFrame={() => onFocusObject(selectedSatellite.id)} actionLabel="Focus Earth" onAction={onFocusEarth} /> : null}
+      {selectedMission !== undefined ? <SelectedObjectSummary name={selectedMission.name} detail={`${selectedMission.operator} · ${selectedMission.trajectorySource} · ${sampleSpacecraftTrajectory(selectedMission, currentJdTdb).valid ? 'inside validity' : 'outside validity'}`} frameLabel="Frame selected spacecraft" onFrame={() => onFocusObject(selectedMission.id)} actionLabel="Focus Sun" onAction={onFocusSun} /> : null}
     </section>
   );
 }
@@ -148,8 +155,8 @@ function ObjectList({
   );
 }
 
-function SelectedObjectSummary({ name, detail, actionLabel, onAction }: { readonly name: string; readonly detail: string; readonly actionLabel: string; readonly onAction: () => void }) {
-  return <div className="natural-satellite-summary"><strong>{name}</strong><span>{detail}</span><button className="button button-secondary" type="button" onClick={onAction}>{actionLabel}</button></div>;
+function SelectedObjectSummary({ name, detail, frameLabel, onFrame, actionLabel, onAction }: { readonly name: string; readonly detail: string; readonly frameLabel: string; readonly onFrame: () => void; readonly actionLabel: string; readonly onAction: () => void }) {
+  return <div className="natural-satellite-summary"><strong>{name}</strong><span>{detail}</span><button className="button button-secondary" type="button" onClick={onFrame}>{frameLabel}</button><button className="button button-secondary" type="button" onClick={onAction}>{actionLabel}</button></div>;
 }
 
 function formatAge(days: number): string {

@@ -1157,7 +1157,8 @@ export class DebugSolarSystemRenderer {
     this.naturalSatelliteVisualSystem.selectSatellite(id);
     const position = this.naturalSatelliteVisualSystem.getSatelliteWorldPosition(id);
     if (position === null) return false;
-    const distance = 0.16;
+    const radius = this.naturalSatelliteVisualSystem.getSatelliteRenderRadius(id) ?? 0.0005;
+    const distance = Math.max(radius * 8.5, 0.003);
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
     this.camera.position.set(position.x + distance * 0.72, position.y + distance * 0.4, position.z + distance);
@@ -1193,6 +1194,28 @@ export class DebugSolarSystemRenderer {
   public selectSpaceObject(id: string | null): void {
     this.spaceObjectVisualSystem.selectObject(id);
     this.updateCanvasDiagnostics();
+  }
+
+  public focusSpaceObject(id: string): boolean {
+    this.spaceObjectVisualSystem.selectObject(id);
+    const position = this.spaceObjectVisualSystem.getObjectWorldPosition(id);
+    if (position === null) return false;
+    const distance = Math.max(this.spaceObjectVisualSystem.getObjectRenderRadius(id) * 9, 0.0025);
+    this.cameraController.interruptToFreeOrbit();
+    this.cameraController.setTargetBody(null);
+    this.camera.position.set(
+      position.x + distance * 0.72,
+      position.y + distance * 0.4,
+      position.z + distance,
+    );
+    this.controls.target.copy(position);
+    this.camera.up.set(0, 1, 0);
+    this.camera.lookAt(position);
+    this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
+    this.controls.enabled = true;
+    this.controls.update();
+    this.updateCanvasDiagnostics();
+    return true;
   }
 
   public getSpaceObjectDiagnostics(): Readonly<SpaceObjectVisualDiagnostics> {
@@ -1964,6 +1987,12 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.naturalSatelliteTransitShadowCount = String(naturalSatellites.transitShadowCount);
     this.canvas.dataset.naturalSatelliteVisibleLabelCount = String(naturalSatellites.visibleLabelCount);
     this.canvas.dataset.naturalSatelliteSuppressedLabelCount = String(naturalSatellites.suppressedLabelCount);
+    this.canvas.dataset.naturalSatelliteOfficialTextureReadyCount = String(naturalSatellites.officialTextureReadyCount);
+    this.canvas.dataset.naturalSatelliteOfficialTextureFallbackCount = String(naturalSatellites.officialTextureFallbackCount);
+    this.canvas.dataset.naturalSatelliteProceduralTextureCount = String(naturalSatellites.proceduralTextureCount);
+    this.canvas.dataset.naturalSatelliteSelectedRenderRadius = naturalSatellites.selectedRenderRadius?.toExponential(6) ?? '';
+    this.canvas.dataset.naturalSatelliteSelectedParentRenderRadius = naturalSatellites.selectedParentRenderRadius?.toExponential(6) ?? '';
+    this.canvas.dataset.naturalSatelliteSelectedRadiusToParent = naturalSatellites.selectedRadiusToParent?.toFixed(6) ?? '';
     const spaceObjects = this.spaceObjectVisualSystem.getDiagnostics();
     this.canvas.dataset.spaceObjectsVisible = String(spaceObjects.visible);
     this.canvas.dataset.earthSatelliteCount = String(spaceObjects.earthSatelliteCount);

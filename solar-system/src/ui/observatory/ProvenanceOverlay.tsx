@@ -21,6 +21,7 @@ export interface ProvenanceOverlayProps {
   readonly ephemerisValidationUrl: string;
   readonly smallBodyValidationUrl: string;
   readonly surfaceAssetManifestUrl: string;
+  readonly moonSurfaceAssetManifestUrl: string;
 }
 
 export function ProvenanceOverlay({
@@ -39,6 +40,7 @@ export function ProvenanceOverlay({
   ephemerisValidationUrl,
   smallBodyValidationUrl,
   surfaceAssetManifestUrl,
+  moonSurfaceAssetManifestUrl,
 }: ProvenanceOverlayProps) {
   return (
     <ObservatoryDialog
@@ -77,6 +79,7 @@ export function ProvenanceOverlay({
           <ProvenanceLink href={ephemerisValidationUrl} label="Planetary ephemeris validation" />
           <ProvenanceLink href={smallBodyValidationUrl} label="Small-body ephemeris validation" />
           <ProvenanceLink href={surfaceAssetManifestUrl} label="Surface asset source manifest" />
+          <ProvenanceLink href={moonSurfaceAssetManifestUrl} label="Sun and major-moon texture manifest" />
         </ul>
         <p>
           Runtime translations use generated JPL Horizons vectors. Surface maps and sky assets
