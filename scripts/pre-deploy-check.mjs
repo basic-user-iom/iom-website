@@ -3,7 +3,7 @@
  * Blocks production deploy when git state is unsafe. The deploy exports committed
  * HEAD into an isolated directory, so workspace-only changes remain local.
  */
-import { execFileSync, execSync } from 'node:child_process'
+import { execSync, spawn, spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -14,8 +14,49 @@ function run(cmd, options = {}) {
   return execSync(cmd, { cwd: root, encoding: 'utf8', ...options }).trim()
 }
 
-function runGit(args, options = {}) {
-  return execFileSync('git', args, { cwd: root, encoding: 'utf8', windowsHide: true, ...options }).trim()
+function runGit(args, { timeout = 120_000 } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', args, {
+      cwd: root,
+      env: {
+        ...process.env,
+        GIT_HTTP_LOW_SPEED_LIMIT: '1',
+        GIT_HTTP_LOW_SPEED_TIME: '30',
+        GIT_TERMINAL_PROMPT: '0',
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    let stdout = ''
+    let stderr = ''
+    let settled = false
+
+    const finish = (error) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (error) reject(error)
+      else resolve(stdout.trim())
+    }
+
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => { stdout += chunk })
+    child.stderr.on('data', (chunk) => { stderr += chunk })
+    child.on('error', finish)
+    child.on('close', (code, signal) => {
+      if (code === 0) finish()
+      else finish(new Error(`git ${args.join(' ')} exited with ${code ?? signal}: ${stderr.trim()}`))
+    })
+
+    const timer = setTimeout(() => {
+      if (process.platform === 'win32') {
+        spawnSync('taskkill', ['/PID', String(child.pid), '/T', '/F'], { stdio: 'ignore', windowsHide: true })
+      }
+      child.kill('SIGKILL')
+      finish(new Error(`git ${args.join(' ')} exceeded ${timeout} ms`))
+    }, timeout)
+  })
 }
 
 function fail(message) {
@@ -74,7 +115,7 @@ if (untracked.length > 0) {
 
 // Refresh origin so a later scoped push cannot overwrite newer remote work.
 try {
-  runGit(['fetch', 'origin', 'master', '--quiet'], { timeout: 120_000 })
+  await runGit(['fetch', 'origin', 'master', '--quiet'])
 } catch {
   fail('Could not refresh origin/master within 120 seconds. Retry when GitHub is reachable; deployment was not started.')
 }
