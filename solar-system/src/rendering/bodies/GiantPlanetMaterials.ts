@@ -447,6 +447,8 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
   const float TWO_PI = 6.283185307179586;
   const float SECONDS_PER_DAY = 86400.0;
   const float MAX_RING_TAU = 5.0;
+  const float RING_PROFILE_TEXEL = 0.000244140625;
+  const float SATURN_SOLAR_ANGULAR_RADIUS = 0.00049;
 
   vec2 visualAngles(vec3 direction) {
     vec3 n = normalize(direction);
@@ -571,7 +573,34 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     return mix(baseColor, darkVortex, mask * lifecycleFade);
   }
 
-  float saturnRingTransmittance(vec2 angles, vec3 sunVisual) {
+  float ringShadowTransmittanceSample(float radialUv, float incidence) {
+    if (radialUv <= 0.0 || radialUv >= 1.0) return 1.0;
+    float encodedDepth = texture2D(uRingProfile, vec2(radialUv, 0.5)).a;
+    float opticalDepth = encodedDepth * encodedDepth * MAX_RING_TAU;
+    return exp(-opticalDepth * uRingDisplayGain / incidence);
+  }
+
+  float filteredRingShadowTransmittance(
+    float radialUv,
+    float filterWidth,
+    float incidence
+  ) {
+    // The generated profile intentionally retains fine radial structure for a
+    // close ring-plane view. Integrating seven taps across the projected pixel
+    // and solar-disc footprint prevents that structure from becoming dark
+    // barcode bands when it is projected onto Saturn's curved cloud tops.
+    float transmittance = 0.0;
+    transmittance += ringShadowTransmittanceSample(radialUv - filterWidth, incidence) * 0.07;
+    transmittance += ringShadowTransmittanceSample(radialUv - filterWidth * 0.55, incidence) * 0.11;
+    transmittance += ringShadowTransmittanceSample(radialUv - filterWidth * 0.22, incidence) * 0.18;
+    transmittance += ringShadowTransmittanceSample(radialUv, incidence) * 0.28;
+    transmittance += ringShadowTransmittanceSample(radialUv + filterWidth * 0.22, incidence) * 0.18;
+    transmittance += ringShadowTransmittanceSample(radialUv + filterWidth * 0.55, incidence) * 0.11;
+    transmittance += ringShadowTransmittanceSample(radialUv + filterWidth, incidence) * 0.07;
+    return transmittance;
+  }
+
+  float saturnRingTransmittance(vec3 sunVisual) {
     if (uHasRingShadow < 0.5 || abs(sunVisual.y) < 0.0005) return 1.0;
     vec3 point = vec3(
       vVisualNormal.x * uEquatorialRadiusRatio,
@@ -579,17 +608,32 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
       vVisualNormal.z * uEquatorialRadiusRatio
     );
     float travel = -point.y / sunVisual.y;
-    if (travel <= 0.0) return 1.0;
     vec3 ringHit = point + sunVisual * travel;
     float radius = length(ringHit.xz);
-    float radialUv = (radius - uRingInnerRatio) / max(uRingOuterRatio - uRingInnerRatio, 0.0001);
-    if (radialUv <= 0.0 || radialUv >= 1.0) return 1.0;
-    float encodedDepth = texture2D(uRingProfile, vec2(radialUv, 0.5)).a;
-    float opticalDepth = encodedDepth * encodedDepth * MAX_RING_TAU;
+    float ringSpan = max(uRingOuterRatio - uRingInnerRatio, 0.0001);
+    float radialUv = (radius - uRingInnerRatio) / ringSpan;
+    float projectedFootprint = fwidth(radialUv) * 1.35;
+    float solarPenumbra = abs(travel) * SATURN_SOLAR_ANGULAR_RADIUS / ringSpan;
+    float filterWidth = clamp(
+      max(max(projectedFootprint, solarPenumbra), RING_PROFILE_TEXEL * 2.0),
+      RING_PROFILE_TEXEL * 2.0,
+      0.018
+    );
+    if (travel <= 0.0 || radialUv <= -filterWidth || radialUv >= 1.0 + filterWidth) {
+      return 1.0;
+    }
     float incidence = max(abs(sunVisual.y), 0.045);
-    float transmittance = exp(-opticalDepth * uRingDisplayGain / incidence);
-    float terminatorGate = smoothstep(-0.03, 0.08, dot(vVisualNormal, sunVisual));
-    return mix(1.0, max(0.08, transmittance), terminatorGate);
+    float transmittance = filteredRingShadowTransmittance(
+      radialUv,
+      filterWidth,
+      incidence
+    );
+    // Saturn's upper haze and the rings themselves scatter light into the
+    // nominal umbra. Keep the shadow strong without crushing cloud detail to
+    // black, and fade it gradually as direct sunlight approaches the limb.
+    float scatteredTransmittance = mix(1.0, max(0.1, transmittance), 0.88);
+    float illuminatedHemisphere = smoothstep(0.0, 0.24, dot(vVisualNormal, sunVisual));
+    return mix(1.0, scatteredTransmittance, illuminatedHemisphere);
   }
 
   void main() {
@@ -619,7 +663,7 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
       -uSunDirectionBodyLocal.y
     ));
     float irradianceScale = clamp(pow(max(uRelativeIrradiance, 0.0001), 0.25), 0.48, 1.65);
-    float ringTransmittance = saturnRingTransmittance(angles, sunVisual);
+    float ringTransmittance = saturnRingTransmittance(sunVisual);
     float direct = max(dot(normal, lightDirection), 0.0) *
       clamp(uOcclusion, 0.0, 1.0) * irradianceScale * ringTransmittance;
     float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 3.4);
@@ -692,7 +736,9 @@ const RING_FRAGMENT_SHADER = /* glsl */ `
     float travel = -dot(scaledPoint, scaledDirection) / max(denominator, 0.00001);
     if (travel <= 0.0) return 1.0;
     float clearance = length(scaledPoint + scaledDirection * travel);
-    return smoothstep(0.975, 1.035, clearance);
+    float penumbra = 0.025 + min(travel, 3.0) * 0.006;
+    float visibility = smoothstep(1.0 - penumbra, 1.0 + penumbra, clearance);
+    return mix(0.08, 1.0, visibility);
   }
 
   float saturnSpokes(float radius, float angle) {

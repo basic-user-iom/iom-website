@@ -192,6 +192,17 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(uniformTexture(saturn.surface.material, 'uRingProfile')).toBe(
       uniformTexture(rings.material, 'uRingProfile'),
     );
+    expect(saturn.surface.material.fragmentShader).toContain(
+      'filteredRingShadowTransmittance',
+    );
+    expect(saturn.surface.material.fragmentShader).toContain(
+      'SATURN_SOLAR_ANGULAR_RADIUS',
+    );
+    expect(saturn.surface.material.fragmentShader).toContain('fwidth(radialUv)');
+    expect(saturn.surface.material.fragmentShader).toContain(
+      'smoothstep(0.0, 0.24',
+    );
+    expect(rings.material.fragmentShader).toContain('return mix(0.08, 1.0, visibility)');
 
     const positions = rings.geometry.getAttribute('position');
     let maximumAbsoluteY = 0;
