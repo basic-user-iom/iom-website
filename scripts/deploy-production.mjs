@@ -453,6 +453,7 @@ function main() {
     }
     command('git', [
       '-c', 'http.version=HTTP/1.1',
+      '-c', 'http.postBuffer=209715200',
       '-c', 'http.lowSpeedLimit=1',
       '-c', 'http.lowSpeedTime=30',
       'push', 'origin', `${head}:refs/heads/master`,
