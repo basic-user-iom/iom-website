@@ -2078,6 +2078,7 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.issModelAssetId = spaceObjects.issModelAssetId;
     this.canvas.dataset.issModelMeshCount = String(spaceObjects.issModelMeshCount);
     this.canvas.dataset.issModelTriangleCount = String(spaceObjects.issModelTriangleCount);
+    this.canvas.dataset.spaceObjectSelectedRenderRadius = spaceObjects.selectedRenderRadius?.toExponential(6) ?? '';
     const earthMarker = this.markers.get('earth');
     const moonMarker = this.markers.get('moon');
     const earthMoonRenderSeparation =

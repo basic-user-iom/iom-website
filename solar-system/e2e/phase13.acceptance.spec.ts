@@ -44,6 +44,7 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(canvas).toHaveAttribute('data-iss-model-state', 'ready', { timeout: 45_000 })
     await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-mesh-count'))).toBeGreaterThan(0)
     await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-triangle-count'))).toBeGreaterThan(500_000)
+    await expect(canvas).toHaveAttribute('data-space-object-selected-render-radius', '3.600000e-5')
     await panel.getByRole('button', { name: 'Frame selected satellite' }).click()
     await expect(canvas).toHaveAttribute('data-camera-mode', 'free-orbit')
     await expect.poll(async () => {

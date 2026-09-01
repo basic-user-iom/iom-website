@@ -26,6 +26,7 @@ import { SPACECRAFT_DEFINITIONS } from '../../simulation/spacecraft';
 import { sampleSpacecraftTrajectory, sampleSpacecraftTrajectoryPath } from '../../simulation/spacecraft';
 import { SpaceObjectWorkerClient, type SpaceObjectWorkerResultResponse } from '../../workers/space-objects';
 import { ISS_MODEL_ASSET } from './SpaceObjectAssetCatalog';
+import { earthSatelliteRenderRadius } from './SpaceObjectRenderScale';
 
 export type IssModelState = 'idle' | 'loading' | 'ready' | 'fallback';
 
@@ -45,6 +46,7 @@ export interface SpaceObjectVisualDiagnostics {
   readonly issModelAssetId: string;
   readonly issModelMeshCount: number;
   readonly issModelTriangleCount: number;
+  readonly selectedRenderRadius: number | null;
   readonly selectedOnScreen: boolean;
 }
 
@@ -260,9 +262,11 @@ export class SpaceObjectVisualSystem {
           z: state.positionEarthCenteredM.z * localScale,
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
-        const markerRadius = this.selectedObjectId === satellite.id
-          ? 0.00018
-          : scaleModel.mode === 'presentation' ? 0.000065 : 0.00000008;
+        const markerRadius = earthSatelliteRenderRadius(
+          index === ISS_INDEX,
+          this.selectedObjectId === satellite.id,
+          scaleModel.mode,
+        );
         const useIssModel = index === ISS_INDEX && this.issModelState === 'ready';
         if (useIssModel) {
           this.hideInstance(this.earthSatelliteMesh, index);
@@ -335,6 +339,9 @@ export class SpaceObjectVisualSystem {
       issModelAssetId: ISS_MODEL_ASSET.assetId,
       issModelMeshCount: this.issModelMeshCount,
       issModelTriangleCount: this.issModelTriangleCount,
+      selectedRenderRadius: this.selectedObjectId === null
+        ? null
+        : this.renderedRadii.get(this.selectedObjectId) ?? null,
       selectedOnScreen: this.selectedOnScreen,
     });
   }
