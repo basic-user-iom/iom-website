@@ -116,7 +116,7 @@ const NEUTRAL_NORMAL_PIXEL = new Uint8Array([128, 128, 255, 255]);
 const VENUS_CLOUD_SUPERROTATION_DAYS = 4;
 
 const MATERIAL_LABELS: Readonly<Record<string, string>> = Object.freeze({
-  sun: 'Dated SDO/HMI continuum observation · procedural far-side fill · multiscale granulation · chromosphere',
+  sun: 'Seamless modeled photosphere · dated SDO/HMI active-region detail · multiscale granulation · chromosphere',
   mercury: 'MESSENGER MD3 color mosaic · USGS DEM-derived normal detail',
   venus: 'Akatsuki/Hubble-informed procedural cloud tops · modeled 4-day superrotation',
   earth: 'Blue Marble · ocean Fresnel/glint · independent clouds · terminator night lights',
@@ -1541,17 +1541,29 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
     float faculae = penumbra * (1.0 - umbra) * pow(1.0 - mu, 1.7);
     color += vec3(1.0, 0.70, 0.26) * faculae * 0.34;
     color += vec3(1.0, 0.31, 0.045) * pow(1.0 - mu, 7.0) * 0.18;
-    // SDO/HMI supplies a dated planar observation, not a global texture. Keep
-    // that captured disk continuous: accumulating differential rotation here
-    // folds it into latitude strips at dates far from J2000. The body transform
-    // already supplies physical orientation; only the far side is procedural.
+    // SDO/HMI supplies a dated planar observation, not a global texture. Use it
+    // only to recover the observed active-region contrast over the continuous
+    // procedural photosphere. Blending its absolute color over one hemisphere
+    // makes the sphere look like two joined surfaces because the observation
+    // and the modeled far side have different color and exposure responses.
     vec2 observationUv = vec2(0.5) + photosphereNormal.xy * 0.472;
     vec3 observed = texture2D(uObservationMap, observationUv).rgb;
     float observedLuminance = dot(observed, vec3(0.2126, 0.7152, 0.0722));
-    float observedCoverage = smoothstep(-0.02, 0.16, photosphereNormal.z) *
-      smoothstep(0.015, 0.08, observedLuminance) * uHasObservationMap;
-    vec3 observedColor = observed * mix(0.86, 1.12, granuleFine);
-    color = mix(color, observedColor, observedCoverage * 0.88);
+    float observationCoverage = smoothstep(0.08, 0.30, photosphereNormal.z) *
+      uHasObservationMap;
+    float observedPenumbra = 1.0 - smoothstep(0.46, 0.59, observedLuminance);
+    float observedUmbra = 1.0 - smoothstep(0.12, 0.34, observedLuminance);
+    float observedActiveRegion = clamp(
+      observedPenumbra * 0.48 + observedUmbra * 0.52,
+      0.0,
+      1.0
+    ) * observationCoverage;
+    color *= 1.0 - observedActiveRegion * 0.62;
+    color = mix(
+      color,
+      vec3(0.12, 0.022, 0.006) * limbDarkening,
+      observedUmbra * observationCoverage * 0.80
+    );
     // Preserve photosphere contrast below the former clipping-heavy output;
     // the separate post-process still supplies a restrained HDR glow.
     gl_FragColor = vec4(color * 1.48, 1.0);
