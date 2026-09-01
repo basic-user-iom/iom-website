@@ -62,6 +62,17 @@ describe('Phase 5 giant-planet scientific profiles', () => {
     expect(sampleJetSpeedMps(saturn, 5.5)).toBeCloseTo(392.319, 8);
   });
 
+  it('retains Saturn’s measured 1-bar oblateness without presentation exaggeration', () => {
+    const saturn = getGiantAtmosphereProfile('saturn');
+    expect(saturn.equatorialRadiusKm).toBe(60_268);
+    expect(saturn.polarRadiusKm).toBe(54_364);
+    expect(saturn.meanRadiusKm).toBe(58_232);
+    expect(saturn.polarRadiusKm / saturn.equatorialRadiusKm).toBeCloseTo(
+      0.90204,
+      4,
+    );
+  });
+
   it('uses the analytic Uranus and Neptune wind models instead of fallback display knots', () => {
     const uranus = getGiantAtmosphereProfile('uranus');
     const neptune = getGiantAtmosphereProfile('neptune');

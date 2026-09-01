@@ -186,6 +186,14 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
         12,
       );
       if (bodyId === 'saturn') {
+        expect(visual.surface.scale.y / visual.surface.scale.x).toBeCloseTo(
+          54_364 / 60_268,
+          12,
+        );
+        expect(1 - visual.surface.scale.y / visual.surface.scale.x).toBeCloseTo(
+          0.09796,
+          4,
+        );
         expect(visual.textureBindings.get('albedo')).toEqual([visual.surface.material]);
         expect(visual.surface.material.fragmentShader).toContain(
           'vec4 observedSample = texture2D(uMap, vUv)',

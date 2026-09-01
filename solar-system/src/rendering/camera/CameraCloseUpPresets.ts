@@ -22,6 +22,7 @@ export interface CameraCloseUpPreset {
 
 export const JUPITER_GREAT_RED_SPOT_VISUAL_LATITUDE_DEG = -22;
 export const JUPITER_GREAT_RED_SPOT_VISUAL_LONGITUDE_DEG = 0;
+export const SATURN_RING_PRESET_VISUAL_LATITUDE_DEG = 20;
 
 export const CAMERA_CLOSE_UP_PRESETS: readonly Readonly<CameraCloseUpPreset>[] =
   Object.freeze([
@@ -41,9 +42,12 @@ export const CAMERA_CLOSE_UP_PRESETS: readonly Readonly<CameraCloseUpPreset>[] =
       id: 'saturn-rings',
       bodyId: 'saturn',
       label: 'Saturn · rings',
-      description: 'Frame the complete ring system from a low oblique latitude.',
+      description: 'Frame the complete rings at 20° latitude so Saturn’s physical oblateness remains visible.',
       distanceRadiusMultiplier: 6.2,
-      cameraDirectionVisualLocal: normalizedDirection(0, 0.56, 1),
+      cameraDirectionVisualLocal: visualLocalSurfaceDirection(
+        SATURN_RING_PRESET_VISUAL_LATITUDE_DEG,
+        90,
+      ),
       upDirectionVisualLocal: frozenDirection(0, 1, 0),
     }),
   ]);
@@ -70,14 +74,6 @@ function visualLocalSurfaceDirection(
     Math.sin(latitudeRad),
     cosLatitude * Math.sin(longitudeRad),
   );
-}
-
-function normalizedDirection(x: number, y: number, z: number): Readonly<Vec3d> {
-  const length = Math.hypot(x, y, z);
-  if (!Number.isFinite(length) || length === 0) {
-    throw new RangeError('Camera preset direction must be finite and non-zero.');
-  }
-  return frozenDirection(x / length, y / length, z / length);
 }
 
 function frozenDirection(x: number, y: number, z: number): Readonly<Vec3d> {

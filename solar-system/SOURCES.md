@@ -122,6 +122,8 @@ The release ID is `jpl-horizons-small-bodies-fa7cdf93908e0612`. Its physical-ser
 
 Phase 5 adds three losslessly encoded derivatives of official Hubble/Juno imagery and one versioned project catalog, [`src/data/catalogs/giant-planet-visual-profiles.json`](./src/data/catalogs/giant-planet-visual-profiles.json). The catalog records atmospheric wind inputs, equatorial/polar radii, explicitly categorized storm parameters, and radial ring regions for Jupiter, Saturn, Uranus, and Neptune. It is classified in the file itself as **dated scientific visualization inputs; not a live-weather product**. Numerical provenance does not make the resulting procedural cloud motion, colors, scattering, or complete rendered frame an official scientific product.
 
+Giant-planet mean and equatorial radii follow [NASA/JPL Solar System Dynamics planetary physical parameters](https://ssd.jpl.nasa.gov/planets/phys_par.html). Saturn’s `60,268 km` equatorial and `54,364 km` polar 1-bar radii are also recorded in the [NASA Planetary Data System Cassini CAPS User’s Guide](https://pds.nasa.gov/data/pds4/misc/document_cassini/CAPS_PDS_USER_GUIDE_V1_00.PDF). Runtime scales the shared sphere mesh by those equatorial-to-mean and polar-to-mean ratios; the resulting `≈0.09796` flattening is physical input, not an authored visual exaggeration.
+
 ### Hubble OPAL Jupiter map and JunoCam GRS detail
 
 | Asset ID | Local file | Official source record | Exact downloaded resource |

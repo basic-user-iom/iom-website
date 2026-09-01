@@ -5,6 +5,7 @@ import {
   CAMERA_CLOSE_UP_PRESETS,
   CameraController,
   JUPITER_GREAT_RED_SPOT_VISUAL_LATITUDE_DEG,
+  SATURN_RING_PRESET_VISUAL_LATITUDE_DEG,
   getCameraCloseUpPreset,
   type CameraBodyTarget,
   type CameraUpdateFrame,
@@ -34,6 +35,12 @@ describe('Phase 5 close-up camera presets', () => {
       getCameraCloseUpPreset('jupiter-great-red-spot').cameraDirectionVisualLocal.y,
     ).toBeCloseTo(
       Math.sin(JUPITER_GREAT_RED_SPOT_VISUAL_LATITUDE_DEG * Math.PI / 180),
+      12,
+    );
+    expect(
+      getCameraCloseUpPreset('saturn-rings').cameraDirectionVisualLocal.y,
+    ).toBeCloseTo(
+      Math.sin(SATURN_RING_PRESET_VISUAL_LATITUDE_DEG * Math.PI / 180),
       12,
     );
   });
