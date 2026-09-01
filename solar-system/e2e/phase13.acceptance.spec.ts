@@ -23,7 +23,9 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect.poll(() => canvas.getAttribute('data-camera-mode')).toBe('free-orbit')
     await expect(page.locator('.natural-satellite-screen-label[data-satellite-id="io"]')).toHaveCount(1)
     await expect(canvas).toHaveAttribute('data-natural-satellite-selected-on-screen', 'true')
-    await expect(page.getByTestId('selected-natural-satellite-marker')).toBeVisible()
+    await expect(canvas).toHaveAttribute('data-natural-satellite-selection-cue-opacity', '0.000')
+    await expect(canvas).toHaveAttribute('data-natural-satellite-selection-halo-visible', 'false')
+    await expect(page.getByTestId('selected-natural-satellite-marker')).toHaveCSS('opacity', '0')
   })
 
   test('guards stale OMM data and draws selected object trajectories', async ({ page }) => {
