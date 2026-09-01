@@ -39,6 +39,10 @@ import {
 } from '../../simulation/satellites/NaturalSatelliteProvider';
 import type { DebugBodyRenderState, DebugRenderFrame, PhysicalPosition } from '../RenderContext';
 import type { RenderScaleModel } from '../RenderScaleModel';
+import {
+  projectedSphereRadiusPx,
+  selectionCueOpacityForProjectedRadius,
+} from '../SelectionCueVisibility';
 import { NATURAL_SATELLITE_TEXTURE_ASSETS } from './NaturalSatelliteAssetCatalog';
 
 export interface NaturalSatelliteVisualDiagnostics {
@@ -66,6 +70,8 @@ export interface NaturalSatelliteVisualDiagnostics {
   readonly selectedParentRenderRadius: number | null;
   readonly selectedRadiusToParent: number | null;
   readonly selectedOnScreen: boolean;
+  readonly selectedCueOpacity: number;
+  readonly selectionHaloVisible: boolean;
 }
 
 function shapeAxesFor(id: string): Readonly<Vector3> {
@@ -257,6 +263,7 @@ export class NaturalSatelliteVisualSystem {
   private visibleLabelCount = 0;
   private suppressedLabelCount = 0;
   private selectedOnScreen = false;
+  private selectedCueOpacity = 0;
 
   public constructor() {
     this.root.name = 'natural-satellite-layer';
@@ -499,6 +506,27 @@ export class NaturalSatelliteVisualSystem {
     viewportHeight: number,
     suppressed = false,
   ): void {
+    const selectedPosition = this.selectedSatelliteId === null
+      ? undefined
+      : this.worldPositions.get(this.selectedSatelliteId);
+    const selectedRadius = this.selectedSatelliteId === null
+      ? undefined
+      : this.renderedRadii.get(this.selectedSatelliteId);
+    const projectedRadiusPx = selectedPosition === undefined || selectedRadius === undefined
+      ? 0
+      : projectedSphereRadiusPx(
+          camera,
+          selectedPosition,
+          selectedRadius,
+          viewportWidth,
+          viewportHeight,
+        );
+    this.selectedCueOpacity = suppressed || selectedPosition === undefined || selectedRadius === undefined
+      ? 0
+      : selectionCueOpacityForProjectedRadius(projectedRadiusPx);
+    this.selectionHalo.visible = selectedPosition !== undefined && selectedRadius !== undefined &&
+      this.selectedCueOpacity > 0.001;
+    this.selectionHalo.material.opacity = 0.82 * this.selectedCueOpacity;
     if (this.selectionHalo.visible) this.selectionHalo.quaternion.copy(camera.quaternion);
     this.visibleLabelCount = 0;
     this.suppressedLabelCount = 0;
@@ -550,7 +578,14 @@ export class NaturalSatelliteVisualSystem {
       candidate.resource.label!.dataset.selected = String(selected);
       this.visibleLabelCount += 1;
     }
-    this.updateSelectedScreenCue(camera, viewportWidth, viewportHeight, suppressed);
+    this.updateSelectedScreenCue(
+      camera,
+      viewportWidth,
+      viewportHeight,
+      suppressed,
+      projectedRadiusPx,
+      this.selectedCueOpacity,
+    );
   }
 
   public getDiagnostics(): NaturalSatelliteVisualDiagnostics {
@@ -593,6 +628,8 @@ export class NaturalSatelliteVisualSystem {
         ? selectedRenderRadius / selectedParentRenderRadius
         : null,
       selectedOnScreen: this.selectedOnScreen,
+      selectedCueOpacity: this.selectedCueOpacity,
+      selectionHaloVisible: this.selectionHalo.visible,
     });
   }
 
@@ -625,6 +662,8 @@ export class NaturalSatelliteVisualSystem {
     viewportWidth: number,
     viewportHeight: number,
     suppressed: boolean,
+    projectedRadiusPx: number,
+    cueOpacity: number,
   ): void {
     const id = this.selectedSatelliteId;
     const definition = id === null
@@ -649,7 +688,9 @@ export class NaturalSatelliteVisualSystem {
     const y = (-projected.y * 0.5 + 0.5) * viewportHeight;
     if (this.selectionScreenIndicator !== null) {
       this.selectionScreenIndicator.dataset.satelliteId = selectedId;
-      this.selectionScreenIndicator.style.opacity = '1';
+      this.selectionScreenIndicator.dataset.projectedRadiusPx = projectedRadiusPx.toFixed(2);
+      this.selectionScreenIndicator.dataset.proximityHidden = String(cueOpacity <= 0.001);
+      this.selectionScreenIndicator.style.opacity = cueOpacity.toFixed(3);
       this.selectionScreenIndicator.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     }
     const compactSelected = definition.tier !== 'major';

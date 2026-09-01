@@ -64,7 +64,7 @@ test('Jupiter close-up tracks observed OPAL detail with modeled Great Red Spot f
   await page.getByTestId('camera-mode-select').selectOption('free-orbit')
   await expect(canvas).toHaveAttribute('data-close-up-preset', '')
   await expect(page.getByTestId('body-label-jupiter')).toHaveCSS('opacity', '1')
-  await expect(page.getByTestId('selected-body-marker')).toHaveCSS('opacity', '1')
+  await expect(page.getByTestId('selected-body-marker')).toHaveCSS('opacity', '0')
 
   await settleBrowserErrors()
   expect(browserErrors, browserErrors.join('\n')).toEqual([])

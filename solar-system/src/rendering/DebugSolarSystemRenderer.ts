@@ -51,6 +51,10 @@ import type {
 } from './RenderContext';
 import type { RenderScaleMode, RenderScaleModel } from './RenderScaleModel';
 import { RenderScaleTransition } from './RenderScaleTransition';
+import {
+  projectedSphereRadiusPx,
+  selectionCueOpacityForProjectedRadius,
+} from './SelectionCueVisibility';
 import { TrueRenderScale } from './TrueRenderScale';
 import { CONTEXT_ATTRIBUTES } from './WebGLCapability';
 import {
@@ -1975,8 +1979,18 @@ export class DebugSolarSystemRenderer {
     }
 
     if (this.selectionIndicator !== null && selectedMarker?.onScreen === true) {
+      const projectedRadiusPx = projectedSphereRadiusPx(
+        this.camera,
+        selectedMarker.root.position,
+        selectedMarker.cameraTarget.radiusRenderUnits,
+        this.viewportWidth,
+        this.viewportHeight,
+      );
+      const cueOpacity = selectionCueOpacityForProjectedRadius(projectedRadiusPx);
       this.selectionIndicator.dataset.bodyId = this.selectedBodyId;
-      this.selectionIndicator.style.opacity = '1';
+      this.selectionIndicator.dataset.projectedRadiusPx = projectedRadiusPx.toFixed(2);
+      this.selectionIndicator.dataset.proximityHidden = String(cueOpacity <= 0.001);
+      this.selectionIndicator.style.opacity = cueOpacity.toFixed(3);
       this.selectionIndicator.style.transform =
         `translate(${selectedMarker.screenX}px, ${selectedMarker.screenY}px) translate(-50%, -50%)`;
     } else if (this.selectionIndicator !== null) {
@@ -2048,6 +2062,8 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.naturalSatelliteSelectedParentRenderRadius = naturalSatellites.selectedParentRenderRadius?.toExponential(6) ?? '';
     this.canvas.dataset.naturalSatelliteSelectedRadiusToParent = naturalSatellites.selectedRadiusToParent?.toFixed(6) ?? '';
     this.canvas.dataset.naturalSatelliteSelectedOnScreen = String(naturalSatellites.selectedOnScreen);
+    this.canvas.dataset.naturalSatelliteSelectionCueOpacity = naturalSatellites.selectedCueOpacity.toFixed(3);
+    this.canvas.dataset.naturalSatelliteSelectionHaloVisible = String(naturalSatellites.selectionHaloVisible);
     const spaceObjects = this.spaceObjectVisualSystem.getDiagnostics();
     this.canvas.dataset.spaceObjectsVisible = String(spaceObjects.visible);
     this.canvas.dataset.earthSatelliteCount = String(spaceObjects.earthSatelliteCount);
