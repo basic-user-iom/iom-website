@@ -45,7 +45,13 @@ import{r as x,j as n,c as fi,p as gi,a as bi,b as yi}from"./app-vendor-ChYqlhHx.
     vVisualNormal = normalize(normal);
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
-    vWorldNormal = normalize(normalMatrix * normal);
+    // normalMatrix produces a view-space normal (and correctly handles the
+    // non-uniform scale used for planetary oblateness). Rotate that normal
+    // back into world space before comparing it with the world-space Sun
+    // direction. Keeping the old view-space value here made the terminator
+    // rotate with the camera instead of remaining fixed to the Sun.
+    vec3 viewNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize(viewNormal * mat3(viewMatrix));
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
 `,Cr=`
@@ -342,7 +348,11 @@ import{r as x,j as n,c as fi,p as gi,a as bi,b as yi}from"./app-vendor-ChYqlhHx.
     vRingRadius = length(position.xz);
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
-    vWorldNormal = normalize(normalMatrix * normal);
+    // Match the planet shader's world-space lighting contract. The inverse
+    // view rotation is expressed as row-vector multiplication so the
+    // normalMatrix can still provide the required inverse-transpose scale.
+    vec3 viewNormal = normalize(normalMatrix * normal);
+    vWorldNormal = normalize(viewNormal * mat3(viewMatrix));
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
   }
 `,jr=`

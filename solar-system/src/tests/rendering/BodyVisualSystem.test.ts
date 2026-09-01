@@ -152,6 +152,12 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(jupiter.surface.material.fragmentShader).toContain(
       'albedo * (0.012 + direct * 0.988)',
     );
+    expect(jupiter.surface.material.vertexShader).toContain(
+      'vWorldNormal = normalize(viewNormal * mat3(viewMatrix))',
+    );
+    expect(jupiter.surface.material.vertexShader).not.toContain(
+      'vWorldNormal = normalize(normalMatrix * normal)',
+    );
     const jetTexture = uniformTexture(jupiter.surface.material, 'uJetProfile');
     expect(jetTexture.image).toMatchObject({ width: 256, height: 1 });
 
@@ -218,6 +224,12 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
       'smoothstep(0.0, 0.24',
     );
     expect(rings.material.fragmentShader).toContain('return mix(0.08, 1.0, visibility)');
+    expect(rings.material.vertexShader).toContain(
+      'vWorldNormal = normalize(viewNormal * mat3(viewMatrix))',
+    );
+    expect(rings.material.vertexShader).not.toContain(
+      'vWorldNormal = normalize(normalMatrix * normal)',
+    );
 
     const positions = rings.geometry.getAttribute('position');
     let maximumAbsoluteY = 0;
