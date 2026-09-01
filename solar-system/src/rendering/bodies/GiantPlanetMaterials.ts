@@ -664,12 +664,16 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     ));
     float irradianceScale = clamp(pow(max(uRelativeIrradiance, 0.0001), 0.25), 0.48, 1.65);
     float ringTransmittance = saturnRingTransmittance(sunVisual);
-    float direct = max(dot(normal, lightDirection), 0.0) *
+    float solarCosine = dot(normal, lightDirection);
+    float terminator = smoothstep(-0.012, 0.012, solarCosine);
+    float direct = max(solarCosine, 0.0) * terminator *
       clamp(uOcclusion, 0.0, 1.0) * irradianceScale * ringTransmittance;
     float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 3.4);
     float specular = pow(max(dot(normal, halfDirection), 0.0), 44.0) * direct * 0.14;
-    vec3 color = albedo * (0.055 + direct * 0.945);
-    color += uHazeColor * fresnel * (0.12 + direct * 0.2) + vec3(1.0, 0.92, 0.78) * specular;
+    float dayHaze = smoothstep(-0.025, 0.08, solarCosine);
+    vec3 color = albedo * (0.012 + direct * 0.988);
+    color += uHazeColor * fresnel * (0.018 + dayHaze * 0.035 + direct * 0.24) +
+      vec3(1.0, 0.92, 0.78) * specular;
     gl_FragColor = vec4(color, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
