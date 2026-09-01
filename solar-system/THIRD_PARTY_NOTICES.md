@@ -122,10 +122,11 @@ Phase 4 redistributes the following unmodified official download files under loc
 - `public/assets/phase4/earth-clouds.jpg`: NASA/GSFC Earth Observatory / Visible Earth, *Blue Marble: Clouds*. Image by Reto Stöckli; enhancements by Robert Simmon; source record also credits the MODIS Land, Science Data Support, Atmosphere, and Ocean groups and supporting USGS/DMSP data.
 - `public/assets/phase4/moon.jpg`: NASA/GSFC Scientific Visualization Studio, *CGI Moon Kit* 2025 color map, adapted from LRO Camera WAC and LOLA team products. Credit requested by the source: NASA's Scientific Visualization Studio; visualizer Ernie Wright (USRA), scientist Noah Petro (NASA/GSFC).
 
-Phase 5 additionally redistributes two project-generated lossless WebP derivatives of official imagery:
+Phase 5 additionally redistributes three project-generated lossless WebP derivatives of official imagery:
 
 - `public/assets/phase5/jupiter-opal-2025.webp`: unchanged 3600 × 1800 RGB pixels from the Hubble OPAL Cycle 32 Rotation A global-map TIFF, re-encoded without cropping, resizing, reprojection, or recoloring. Credit NASA, ESA, STScI, and the Hubble OPAL team.
 - `public/assets/phase5/jupiter-grs-junocam-detail.webp`: a cropped, geometrically adapted, neutral-centered grayscale high-frequency residual derived from NASA Photojournal PIA23606. The enhanced source color is not imported; runtime uses only restrained luminance detail over OPAL color and sampled cloud structure inside an authored elliptical blend. Credit: Image data NASA/JPL-Caltech/SwRI/MSSS; image processing by Kevin M. Gill, © CC BY. The source and derivative are from February 2019 and are disclosed as a mixed-date presentation enhancement, not a 2025 reconstruction. The crop, residual conversion, and runtime blend are project changes; attribution does not imply endorsement.
+- `public/assets/phase5/saturn-opal-2025.webp`: a coverage-aware lossless RGBA derivative of the Hubble OPAL Cycle 32 Rotation A 1800 × 900 global color-map TIFF. The projection and composite color are preserved, while no-data/ring-obscured pixels become alpha coverage and isolated transiting-body or mosaic outliers are restrained per latitude row. Runtime blends observed pixels over a project-authored wind layer. Credit NASA, ESA, STScI, and the Hubble OPAL team; the processing and runtime blend are project changes and attribution does not imply endorsement.
 
 Phase 4 also redistributes project-generated derivatives of official NASA data:
 
@@ -140,6 +141,7 @@ Source records and exact downloads:
 - <https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l>
 - <https://svs.gsfc.nasa.gov/4720/>
 - <https://archive.stsci.edu/hlsp/opal/opal-jupiter-cycle-32>
+- <https://archive.stsci.edu/hlsp/opal/opal-saturn-cycle-32>
 - <https://science.nasa.gov/photojournal/the-great-red-spot/>
 - <https://pds-geosciences.wustl.edu/missions/mgs/megdr.html>
 - <https://pds-geosciences.wustl.edu/mgs/urn-nasa-pds-mgs_mola_topography_derived/meg016/megt90n000eb.img>

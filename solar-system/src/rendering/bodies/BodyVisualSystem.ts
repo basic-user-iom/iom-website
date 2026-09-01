@@ -123,7 +123,7 @@ const MATERIAL_LABELS: Readonly<Record<string, string>> = Object.freeze({
   moon: 'LRO LROC WAC color mosaic · LOLA DEM-derived normal detail',
   mars: 'Viking MDIM 2.1 color · MOLA normal detail · polar caps · dust haze',
   jupiter: 'Hubble OPAL 2025 color · JunoCam 2019 GRS detail · modeled flow (mixed-date visualization)',
-  saturn: 'Cassini CB2 jets · oblate cloud tops · optical-depth rings and mutual shadows',
+  saturn: 'Hubble OPAL 2025 color bands · modeled Cassini CB2 jet flow · oblate cloud tops · optical-depth rings and mutual shadows',
   uranus: 'Analytic zonal winds · restrained methane haze · faint measured-radius rings',
   neptune: 'Voyager wind fit · dated nonpermanent storm · faint rings and arcs',
 });
@@ -643,12 +643,13 @@ export class PhaseFourBodyVisualSystem {
     const materials = ringBundle === null
       ? [materialBundle.material]
       : [materialBundle.material, ringBundle.material];
-    const textureBindings = body.bodyId === 'jupiter'
-      ? new Map<BodyTextureChannel, readonly ShaderMaterial[]>([
-          ['albedo', [materialBundle.material]],
-          ['grs-detail', [materialBundle.material]],
-        ])
-      : new Map<BodyTextureChannel, readonly ShaderMaterial[]>();
+    const textureBindings = new Map<BodyTextureChannel, readonly ShaderMaterial[]>();
+    if (textureAssetsForBody(body.bodyId).some((asset) => asset.channel === 'albedo')) {
+      textureBindings.set('albedo', [materialBundle.material]);
+    }
+    if (body.bodyId === 'jupiter') {
+      textureBindings.set('grs-detail', [materialBundle.material]);
+    }
 
     return {
       bodyId: body.bodyId,
