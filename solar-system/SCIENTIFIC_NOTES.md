@@ -157,7 +157,7 @@ Saturn's sampled Cassini wind table contains documented gaps. The project linear
 
 Neptune's NDS-2018 feature has a finite TDB interval in the catalog and is suppressed outside it. Inside the interval, an authored lifecycle envelope, approximate drift, contrast, and companion-cloud effect produce the visible storm. Its category `dated-nonpermanent-visualization` is intentional: the selected simulation date gates a historical visualization, but the rendered longitude and morphology are not a complete observation-by-observation reconstruction. No current/live weather service is queried.
 
-The four surfaces are rendered as oblate ellipsoids using catalog equatorial-to-mean and polar-to-mean radius ratios. This is still a scaled sphere mesh rather than a geodetic reference surface or limb-fit shape model. Bands, haze, methane-cloud detail, noise spectra, colors, contrast, and subpixel texture filtering remain authored. Jupiter and Saturn use dated Phase 5 Hubble color-map foundations with disclosed runtime processing; Uranus and Neptune remain procedurally colored.
+The four surfaces are rendered as oblate ellipsoids using catalog equatorial-to-mean and polar-to-mean radius ratios. Saturn uses the cited `60,268 km` equatorial and `54,364 km` polar 1-bar radii, for physical flattening `(Req − Rp) / Req ≈ 0.09796`; that shape is not presentation-exaggerated. Its ring close-up uses a `20°` visual latitude so the real flattening remains legible while retaining the complete ring system. This is still a scaled sphere mesh rather than a geodetic reference surface or limb-fit shape model. Bands, haze, methane-cloud detail, noise spectra, colors, contrast, and subpixel texture filtering remain authored. Jupiter and Saturn use dated Phase 5 Hubble color-map foundations with disclosed runtime processing; Uranus and Neptune remain procedurally colored.
 
 ## Ring systems
 
@@ -242,7 +242,7 @@ The six implemented modes are:
 
 Programmatic pose changes use an exponentially damped real-time camera rig and snap when reduced motion is requested. Near and far clipping planes are recalculated from camera distance, focus radius, and visible body extents; tightening is damped to avoid abrupt clipping changes. Free-orbit minimum/maximum distance, pan sensitivity, and rotation sensitivity are recalculated from the rendered target radius, camera distance, viewport, field of view, and current system extent.
 
-Phase 5 adds a body-tracked Jupiter Great Red Spot preset at `2.8` rendered equatorial radii and a low-oblique Saturn ring preset at `6.2` radii. Camera bounds include the complete visual ring extent so wide systems are not clipped. The later Earth–Moon system mode and cinematic tour are likewise navigation/presentation aids, not physical telescope, spacecraft, or optical models. General near-surface collision protection and arbitrary surface-coordinate inspection remain absent.
+Phase 5 adds a body-tracked Jupiter Great Red Spot preset at `2.8` rendered equatorial radii and a `20°` low-oblique Saturn ring preset at `6.2` radii. Camera bounds include the complete visual ring extent so wide systems are not clipped. The later Earth–Moon system mode and cinematic tour are likewise navigation/presentation aids, not physical telescope, spacecraft, or optical models. General near-surface collision protection and arbitrary surface-coordinate inspection remain absent.
 
 ## Ephemeris orbit lines and trails
 
