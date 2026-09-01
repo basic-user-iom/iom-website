@@ -795,33 +795,28 @@ import{r as x,j as n,c as ui,p as hi,a as mi,b as pi}from"./app-vendor-ChYqlhHx.
   void main() {
     vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
     float mu = max(dot(normalize(vWorldNormal), viewDirection), 0.0);
-    float latitude = abs(vObjectNormal.y);
-    float differential = uTimeDays * (0.018 + latitude * 0.006);
-    vec3 advected = normalize(vec3(
-      vObjectNormal.x * cos(differential) - vObjectNormal.z * sin(differential),
-      vObjectNormal.y,
-      vObjectNormal.x * sin(differential) + vObjectNormal.z * cos(differential)
-    ));
+    vec3 photosphereNormal = normalize(vObjectNormal);
+    float latitude = abs(photosphereNormal.y);
     float qualityMix = smoothstep(0.5, 3.0, uQuality);
     float granuleScale = mix(38.0, 74.0, qualityMix);
     float granuleFine = valueNoise(
-      advected * granuleScale + vec3(0.0, uTimeDays * 0.34, 0.0)
+      photosphereNormal * granuleScale + vec3(0.0, uTimeDays * 0.34, 0.0)
     );
     float granuleSubstructure = valueNoise(
-      advected * granuleScale * 1.71 + vec3(7.0, -uTimeDays * 0.51, 3.0)
+      photosphereNormal * granuleScale * 1.71 + vec3(7.0, -uTimeDays * 0.51, 3.0)
     );
     float supergranulation = fbm(
-      advected * 18.0 - vec3(uTimeDays * 0.016, 0.0, 0.0)
+      photosphereNormal * 18.0 - vec3(uTimeDays * 0.016, 0.0, 0.0)
     );
     float laneDistance = abs(granuleFine - 0.5);
     float intergranularLanes = 1.0 - smoothstep(0.035, 0.16, laneDistance);
 
-    float spotField = fbm(advected * 4.8 + vec3(11.0, 3.0, 7.0));
+    float spotField = fbm(photosphereNormal * 4.8 + vec3(11.0, 3.0, 7.0));
     float activeLatitude = 1.0 - smoothstep(0.34, 0.72, latitude);
     float penumbra = smoothstep(0.64, 0.76, spotField) * activeLatitude;
     float umbra = smoothstep(0.74, 0.84, spotField) * activeLatitude;
     float penumbraFilaments = 0.72 + 0.28 * valueNoise(
-      advected * 84.0 + vec3(2.0, 9.0, 5.0)
+      photosphereNormal * 84.0 + vec3(2.0, 9.0, 5.0)
     );
 
     float limbDarkening = 0.36 + 0.64 * pow(mu, 0.58);
@@ -843,13 +838,14 @@ import{r as x,j as n,c as ui,p as hi,a as mi,b as pi}from"./app-vendor-ChYqlhHx.
     float faculae = penumbra * (1.0 - umbra) * pow(1.0 - mu, 1.7);
     color += vec3(1.0, 0.70, 0.26) * faculae * 0.34;
     color += vec3(1.0, 0.31, 0.045) * pow(1.0 - mu, 7.0) * 0.18;
-    // SDO/HMI supplies one dated observer-facing photosphere hemisphere, not
-    // a fictional global texture. Advect that captured hemisphere with the
-    // body-local rotation and feather its limb into the procedural far side.
-    vec2 observationUv = vec2(0.5) + advected.xy * 0.472;
+    // SDO/HMI supplies a dated planar observation, not a global texture. Keep
+    // that captured disk continuous: accumulating differential rotation here
+    // folds it into latitude strips at dates far from J2000. The body transform
+    // already supplies physical orientation; only the far side is procedural.
+    vec2 observationUv = vec2(0.5) + photosphereNormal.xy * 0.472;
     vec3 observed = texture2D(uObservationMap, observationUv).rgb;
     float observedLuminance = dot(observed, vec3(0.2126, 0.7152, 0.0722));
-    float observedCoverage = smoothstep(-0.02, 0.16, advected.z) *
+    float observedCoverage = smoothstep(-0.02, 0.16, photosphereNormal.z) *
       smoothstep(0.015, 0.08, observedLuminance) * uHasObservationMap;
     vec3 observedColor = observed * mix(0.86, 1.12, granuleFine);
     color = mix(color, observedColor, observedCoverage * 0.88);

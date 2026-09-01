@@ -80,6 +80,15 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(uniformNumber(sun.surface.material, 'uQuality')).toBe(0);
     expect(sun.surface.material.fragmentShader).toContain('float granuleScale');
     expect(sun.surface.material.fragmentShader).toContain('float intergranularLanes');
+    expect(sun.surface.material.fragmentShader).toContain(
+      'observationUv = vec2(0.5) + photosphereNormal.xy * 0.472',
+    );
+    expect(sun.surface.material.fragmentShader).toContain(
+      'smoothstep(-0.02, 0.16, photosphereNormal.z)',
+    );
+    expect(sun.surface.material.fragmentShader).not.toContain(
+      'uTimeDays * (0.018 + latitude * 0.006)',
+    );
     expect(sun.surface.material.fragmentShader).toContain('color * 1.48');
     expect(sun.surface.material.fragmentShader).not.toContain('color * 2.15');
     expect(sun.coronaShells).toHaveLength(3);
