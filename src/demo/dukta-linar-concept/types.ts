@@ -1,25 +1,50 @@
 export type LinarMaterialId = 'mdf' | 'plywood' | 'three-layer-spruce'
 export type LinarVeneerId = 'none' | 'oak' | 'maple' | 'ash' | 'walnut'
-export type LinarMdfColourId =
-  | 'reference-01'
-  | 'reference-02'
-  | 'reference-03'
-  | 'reference-04'
-  | 'reference-05'
-  | 'reference-06'
-  | 'reference-07'
-  | 'reference-08'
-  | 'reference-09'
+export type LinarMdfVariant = 'natural' | 'valchromat'
+export type LinarValchromatColourId =
+  | 'white-pearl'
+  | 'white-grey'
+  | 'light-grey'
+  | 'grey'
+  | 'black'
+  | 'chocolate-brown'
+  | 'red'
+  | 'yellow'
+  | 'orange'
+  | 'blue'
+  | 'mint-green'
+  | 'khaki'
+/** Kept as the internal field name to avoid invalidating older component APIs. */
+export type LinarMdfColourId = LinarValchromatColourId
+export type LinarFleeceColourId = 'black' | 'white' | 'translucent'
 export type LinarFeltColourId =
-  | 'reference-red'
-  | 'development-charcoal'
-  | 'development-stone'
+  | 'raw-white'
+  | 'grey'
+  | 'granite'
+  | 'fir-green'
+  | 'copper-brown'
+  | 'deep-blue'
+  | 'yellow'
+  | 'olive-green'
+  | 'ruby-red'
 export type LinarPattern = 'regular'
-export type LinarStatus = 'Standard' | 'Possible' | 'Not tested'
+export type LinarStatus = 'Standard' | 'Possible' | 'Not tested' | 'Not recommended'
+export type LinarProductionClassification = 'standard' | 'possible' | 'not-tested'
+export type LinarPhysicalEvidence =
+  | 'physical-sample'
+  | 'not-physically-tested'
+  | 'unknown'
+export type LinarFeasibility = 'allowed' | 'blocked' | 'unknown'
 export type LinarApplication = 'freestanding' | 'wall' | 'ceiling'
 export type LinarBacking = 'none' | 'acoustic-fleece' | 'felt'
 export type LinarBacklightMode = 'off' | 'on'
-export type LinarDataSource = 'Physical sample' | 'Geometric estimate' | 'Visual reference'
+export type LinarDataSource =
+  | 'Physical sample'
+  | 'CAD-derived geometry'
+  | 'Geometric estimate'
+  | 'Manufacturer document'
+  | 'Approved formula'
+  | 'Visual reference'
 export type LinarBendDirection = 'left' | 'flat' | 'right'
 export type LinarLightPlacement = 'room' | 'behind'
 
@@ -62,7 +87,9 @@ export type LinarSecondaryBend = {
 export type LinarConfig = {
   material: LinarMaterialId
   veneer: LinarVeneerId
+  mdfVariant: LinarMdfVariant
   mdfColour: LinarMdfColourId
+  fleeceColour: LinarFleeceColourId
   feltColour: LinarFeltColourId
   thicknessMm: number
   incisionLengthMm: number
@@ -111,7 +138,7 @@ export const LINAR_APPLICATIONS: { id: LinarApplication; label: string }[] = [
 export const LINAR_BACKINGS: { id: LinarBacking; label: string }[] = [
   { id: 'none', label: 'None' },
   { id: 'acoustic-fleece', label: 'Acoustic fleece' },
-  { id: 'felt', label: 'Felt' },
+  { id: 'felt', label: 'Wool felt' },
 ]
 
 export const LINAR_VISIBLE_BACKINGS = LINAR_BACKINGS
@@ -138,22 +165,23 @@ export const LINAR_VIEWS: { id: LinarViewId; label: string }[] = [
   { id: 'top', label: 'Top shape' },
 ]
 
-/** Confirmed visual reference cell from the supplied LINAR pattern drawings. */
-export const LINAR_REFERENCE_BRIDGE_LENGTH_MM = 60
+/** Confirmed opening-length visual reference from the supplied pattern drawing. */
 export const LINAR_REFERENCE_OPENING_LENGTH_MM = 40
 
 /**
  * Birch plywood 9 mm 4/4 visual calibration panel.
  *
- * The 40 mm opening and 60 mm bridge reproduce the supplied reference cell,
- * but this exact combination is not in the physical-sample table and must
- * therefore remain visibly marked as Not tested.
+ * The 40 mm opening reproduces the supplied plan reference. Rendered bridge
+ * geometry follows the CAD cut model and does not inherit the 70 mm-incision
+ * sample's measurements; this exact selection remains marked Not tested.
  */
 export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   material: 'plywood',
   veneer: 'none',
-  mdfColour: 'reference-01',
-  feltColour: 'reference-red',
+  mdfVariant: 'natural',
+  mdfColour: 'grey',
+  fleeceColour: 'black',
+  feltColour: 'raw-white',
   thicknessMm: 9,
   incisionLengthMm: LINAR_REFERENCE_OPENING_LENGTH_MM,
   cutWidthMm: 4,

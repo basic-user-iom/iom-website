@@ -1,7 +1,33 @@
-import type { LinarConfig, LinarDataSource, LinarMaterialId, LinarPattern, LinarStatus } from './types'
-import { DEFAULT_LINAR_CONFIG, LINAR_REFERENCE_BRIDGE_LENGTH_MM } from './types'
+import type {
+  LinarConfig,
+  LinarDataSource,
+  LinarFeasibility,
+  LinarMaterialId,
+  LinarPattern,
+  LinarPhysicalEvidence,
+  LinarProductionClassification,
+  LinarStatus,
+} from './types'
+import {
+  CAD_CUT_AUTHORITY,
+  LINAR_BOTTOM_OVER_CUT_MM,
+  TOP_CUT_AUTHORITY,
+  calculateBridgeHeightMm,
+  calculateCadCutGeometryMm,
+  calculateLinarOpenAreaResult,
+  calculateTopCutDepthMm,
+  clampLinarThicknessMm,
+  deriveIncisedSpanMetrics,
+  derivePatternCompatibleModule,
+  resolveLinarPanelFormat,
+  type LinarCadCutGeometry,
+  type LinarDataAuthority,
+  type LinarOpenAreaResult,
+  type PatternCompatibleModule,
+  type ResolvedLinarPanelFormat,
+} from './linarGeometry'
 
-export type LinarSample = {
+export type LinarConfigurationRecord = {
   pattern: Extract<LinarPattern, 'regular'>
   material: LinarMaterialId
   thicknessMm: number
@@ -10,11 +36,51 @@ export type LinarSample = {
   minimumRadiusMm: number
   bridgeLengthMm: number
   incisionLengthMm: number
-  referenceOpenAreaPercent: number
-  status: Extract<LinarStatus, 'Standard' | 'Possible'>
+  approximateOpenAreaPercent: number
+  openAreaBasis: 'incised-area'
+  productionClassification: LinarProductionClassification
+  physicalEvidence: LinarPhysicalEvidence
+  feasibility: LinarFeasibility
+  productionStandard: boolean
+  source: 'latest-physical-samples-chart'
+  sourceFilename: string
+  sourcePage: number
+  visualPosition: string
+  boldFrame: boolean
+  notes?: string
 }
 
-const SAMPLES: readonly LinarSample[] = [
+export type LinarSample = LinarConfigurationRecord
+
+const NEWEST_SAMPLE_CHART = 'a6b00d1a-52a7-47d4-8368-9c7806b3596b.pdf'
+
+const recordEvidence = (productionStandard: boolean) => ({
+  productionClassification: (productionStandard
+    ? 'standard'
+    : 'possible') as LinarProductionClassification,
+  physicalEvidence: 'physical-sample' as const,
+  feasibility: 'allowed' as const,
+  productionStandard,
+  source: 'latest-physical-samples-chart' as const,
+  sourceFilename: NEWEST_SAMPLE_CHART,
+  boldFrame: productionStandard,
+})
+
+type RawChartRecord = Omit<
+  LinarConfigurationRecord,
+  | 'productionClassification'
+  | 'physicalEvidence'
+  | 'feasibility'
+  | 'productionStandard'
+  | 'source'
+  | 'sourceFilename'
+  | 'sourcePage'
+  | 'visualPosition'
+  | 'boldFrame'
+  | 'notes'
+> & { status: 'Standard' | 'Possible' }
+
+const RAW_CONFIGURATION_VALUES: readonly RawChartRecord[] = [
   {
     pattern: 'regular',
     material: 'plywood',
@@ -24,7 +90,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 15,
     bridgeLengthMm: 20,
     incisionLengthMm: 42,
-    referenceOpenAreaPercent: 36,
+    approximateOpenAreaPercent: 36,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -36,7 +103,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 20,
     bridgeLengthMm: 42,
     incisionLengthMm: 68,
-    referenceOpenAreaPercent: 34,
+    approximateOpenAreaPercent: 34,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -48,7 +116,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 20,
     bridgeLengthMm: 32,
     incisionLengthMm: 73,
-    referenceOpenAreaPercent: 35,
+    approximateOpenAreaPercent: 35,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -60,7 +129,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 30,
     bridgeLengthMm: 32,
     incisionLengthMm: 45,
-    referenceOpenAreaPercent: 30,
+    approximateOpenAreaPercent: 30,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -72,7 +142,21 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 20,
     bridgeLengthMm: 45,
     incisionLengthMm: 89,
-    referenceOpenAreaPercent: 32,
+    approximateOpenAreaPercent: 32,
+    openAreaBasis: 'incised-area',
+    status: 'Possible',
+  },
+  {
+    pattern: 'regular',
+    material: 'plywood',
+    thicknessMm: 9,
+    cutWidthMm: 3,
+    slatWidthMm: 3,
+    minimumRadiusMm: 30,
+    bridgeLengthMm: 62,
+    incisionLengthMm: 72,
+    approximateOpenAreaPercent: 28,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -84,7 +168,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 40,
     bridgeLengthMm: 67,
     incisionLengthMm: 67,
-    referenceOpenAreaPercent: 25,
+    approximateOpenAreaPercent: 25,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
   {
@@ -96,7 +181,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 50,
     bridgeLengthMm: 63,
     incisionLengthMm: 70,
-    referenceOpenAreaPercent: 27,
+    approximateOpenAreaPercent: 27,
+    openAreaBasis: 'incised-area',
     status: 'Standard',
   },
   {
@@ -108,8 +194,9 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 60,
     bridgeLengthMm: 63,
     incisionLengthMm: 70,
-    referenceOpenAreaPercent: 27,
-    status: 'Standard',
+    approximateOpenAreaPercent: 27,
+    openAreaBasis: 'incised-area',
+    status: 'Possible',
   },
   {
     pattern: 'regular',
@@ -120,7 +207,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 60,
     bridgeLengthMm: 62,
     incisionLengthMm: 73,
-    referenceOpenAreaPercent: 29,
+    approximateOpenAreaPercent: 29,
+    openAreaBasis: 'incised-area',
     status: 'Standard',
   },
   {
@@ -132,7 +220,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 70,
     bridgeLengthMm: 66,
     incisionLengthMm: 66,
-    referenceOpenAreaPercent: 25,
+    approximateOpenAreaPercent: 25,
+    openAreaBasis: 'incised-area',
     status: 'Standard',
   },
   {
@@ -144,7 +233,8 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 90,
     bridgeLengthMm: 65,
     incisionLengthMm: 70,
-    referenceOpenAreaPercent: 26,
+    approximateOpenAreaPercent: 26,
+    openAreaBasis: 'incised-area',
     status: 'Standard',
   },
   {
@@ -156,65 +246,149 @@ const SAMPLES: readonly LinarSample[] = [
     minimumRadiusMm: 110,
     bridgeLengthMm: 55,
     incisionLengthMm: 60,
-    referenceOpenAreaPercent: 26,
+    approximateOpenAreaPercent: 26,
+    openAreaBasis: 'incised-area',
     status: 'Possible',
   },
 ]
 
-const TOP_CUT_ANCHORS: ReadonlyArray<readonly [number, number]> = [
-  [4, 1.0],
-  [5, 1.182],
-  [10, 2.092],
-  [15, 3.0],
-]
+function chartLocation(record: RawChartRecord): { sourcePage: number; visualPosition: string } {
+  if (record.cutWidthMm === 4) {
+    return { sourcePage: 2, visualPosition: 'top 4/4 section' }
+  }
+  if (record.cutWidthMm === 5) {
+    return { sourcePage: 2, visualPosition: 'middle 5/5 section' }
+  }
+  return {
+    sourcePage: 1,
+    visualPosition: record.cutWidthMm === 2 ? 'upper 2/2 section' : 'middle 3/3 section',
+  }
+}
 
-const TOP_CUT_ANCHOR_SET = new Set(TOP_CUT_ANCHORS.map(([t]) => t))
+export const LINAR_CONFIGURATION_RECORDS: readonly LinarConfigurationRecord[] =
+  RAW_CONFIGURATION_VALUES.map((record) => {
+    const boldFrame = record.status === 'Standard'
+    const { status: _status, ...values } = record
+    return {
+      ...values,
+      ...recordEvidence(boldFrame),
+      ...chartLocation(record),
+      notes: boldFrame
+        ? 'Bold-framed Standard physical sample verified in the newest chart.'
+        : 'Populated non-bold physical-sample row; classified Possible rather than Standard.',
+    }
+  })
 
-export const BOTTOM_CUT_DEPTH_MM = 3
-export const VISUAL_BRIDGE_FALLBACK_MM = LINAR_REFERENCE_BRIDGE_LENGTH_MM
+const SAMPLES = LINAR_CONFIGURATION_RECORDS
+
+export const BOTTOM_OVERCUT_MM = LINAR_BOTTOM_OVER_CUT_MM
 export const CONSERVATIVE_RADIUS_NOTE_MM = 120
 export const PARTNER_CONFIRMATION_NOTE =
-  'Effective dimensions, values and manufacturability must be confirmed with the responsible manufacturing partner.'
+  'Effective dimensions, material availability and technical values must be confirmed with the responsible manufacturing partner.'
 export const CONCEPT_DISCLAIMER =
   'Conceptual visualisation only. Panel behaviour, bending limits and manufacturability must be validated by dukta.'
 export const JANUS_THICKNESS_NOTE = 'Panels above 15 mm require the double-sided Janus type.'
-export const RADIUS_UNAVAILABLE_NOTE = 'Radius reference not available for this combination.'
+export const RADIUS_UNAVAILABLE_NOTE =
+  'No physical-sample radius is currently available for this exact configuration.'
+
+const PHYSICAL_SAMPLE_AUTHORITY: LinarDataAuthority = {
+  authorities: ['physical-sample'],
+  status: 'validated',
+  label: 'Physical sample reference',
+  source: NEWEST_SAMPLE_CHART,
+}
+
+const GEOMETRIC_OPEN_AREA_AUTHORITY: LinarDataAuthority = {
+  authorities: ['provisional'],
+  status: 'provisional',
+  label: 'Whole-cycle geometric estimate',
+  source: 'Configured cut, lamella, incision and bridge dimensions',
+  note: 'Official treatment of clipped partial cells at installation edges is pending.',
+}
+
+const UNAVAILABLE_RADIUS_AUTHORITY: LinarDataAuthority = {
+  authorities: ['not-tested'],
+  status: 'unavailable',
+  label: 'Unavailable',
+  source: 'No matching physical sample',
+}
+
+export type LinarBlockedRule = {
+  materialFamily: LinarMaterialId
+  panelThicknessMm: number
+  cutWidthMm: number
+  lamellaWidthMm: number
+  feasibility: Extract<LinarFeasibility, 'blocked'>
+  blockedReason: string
+  internalClientWording: string
+  source: string
+}
+
+export const LINAR_BLOCKED_RULES: readonly LinarBlockedRule[] = [
+  {
+    materialFamily: 'mdf',
+    panelThicknessMm: 4,
+    cutWidthMm: 8,
+    lamellaWidthMm: 2,
+    feasibility: 'blocked',
+    blockedReason: 'This combination is not recommended according to dukta.',
+    internalClientWording: 'not possible / not recommended',
+    source: 'Latest direct client response, 1 September 2026',
+  },
+]
+
+export const LINAR_SAMPLE_MATCH_TOLERANCE_MM = {
+  thickness: 0.01,
+  width: 0.01,
+  length: 0.01,
+} as const
+
+function nearlyEqual(left: number, right: number, tolerance: number): boolean {
+  return Math.abs(left - right) <= tolerance
+}
+
+export function findBlockedRule(config: Pick<
+  LinarConfig,
+  'material' | 'thicknessMm' | 'cutWidthMm' | 'slatWidthMm'
+>): LinarBlockedRule | null {
+  return (
+    LINAR_BLOCKED_RULES.find(
+      (rule) =>
+        rule.materialFamily === config.material &&
+        nearlyEqual(
+          rule.panelThicknessMm,
+          config.thicknessMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.thickness,
+        ) &&
+        nearlyEqual(
+          rule.cutWidthMm,
+          config.cutWidthMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.width,
+        ) &&
+        nearlyEqual(
+          rule.lamellaWidthMm,
+          config.slatWidthMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.width,
+        ),
+    ) ?? null
+  )
+}
 
 export function clampThicknessMm(thicknessMm: number): number {
-  return Math.min(15, Math.max(4, thicknessMm))
+  return clampLinarThicknessMm(thicknessMm)
 }
 
-/**
- * Top cutting depth into the panel (mm).
- *
- * Anchor values are the authoritative UI reference because they are rounded
- * manufacturing figures. Interpolation between anchors can be replaced if dukta
- * later provides a final manufacturing formula.
- *
- * The supplied figures are close to topCutDepth = (2 × thickness + 3) / 11,
- * but that trend is not used as the displayed source of truth.
- */
+/** Top-side cutting depth into the finished panel, measured from its front face. */
 export function getTopCutDepthMm(thicknessMm: number): number {
-  const t = clampThicknessMm(thicknessMm)
-  for (const [anchor, depth] of TOP_CUT_ANCHORS) {
-    if (t === anchor) return depth
-  }
-  for (let i = 0; i < TOP_CUT_ANCHORS.length - 1; i += 1) {
-    const [t0, d0] = TOP_CUT_ANCHORS[i]
-    const [t1, d1] = TOP_CUT_ANCHORS[i + 1]
-    if (t >= t0 && t <= t1) {
-      const mix = (t - t0) / (t1 - t0)
-      return d0 + (d1 - d0) * mix
-    }
-  }
-  return t < 4 ? 1 : 3
+  return calculateTopCutDepthMm(thicknessMm)
 }
 
-export function getBottomCutDepthMm(): number {
-  return BOTTOM_CUT_DEPTH_MM
+/** Over-cut into the spoil board below the finished rear face. */
+export function getBottomOvercutMm(): number {
+  return BOTTOM_OVERCUT_MM
 }
 
-/** Incised area width = circumference / 2 = π × bending radius. */
+/** Incised area width = circumference / 2 = pi x bending radius. */
 export function getIncisedWidthForRadiusMm(radiusMm: number): number {
   return Math.PI * radiusMm
 }
@@ -225,73 +399,61 @@ export function incisedAreaCoverageFraction(twelfths: number): number {
 
 export function findExactSample(config: LinarConfig): LinarSample | null {
   if (config.pattern !== 'regular') return null
+  // The newest chart names generic MDF samples but does not identify them as
+  // Valchromat. A coloured-fibre appearance choice must therefore not inherit
+  // Natural MDF's physical-sample evidence or permitted radius silently.
+  if (config.material === 'mdf' && config.mdfVariant === 'valchromat') return null
   return (
     SAMPLES.find(
       (sample) =>
         sample.material === config.material &&
-        sample.thicknessMm === config.thicknessMm &&
-        sample.cutWidthMm === config.cutWidthMm &&
-        sample.slatWidthMm === config.slatWidthMm &&
-        sample.incisionLengthMm === config.incisionLengthMm,
+        nearlyEqual(
+          sample.thicknessMm,
+          config.thicknessMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.thickness,
+        ) &&
+        nearlyEqual(
+          sample.cutWidthMm,
+          config.cutWidthMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.width,
+        ) &&
+        nearlyEqual(
+          sample.slatWidthMm,
+          config.slatWidthMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.width,
+        ) &&
+        nearlyEqual(
+          sample.incisionLengthMm,
+          config.incisionLengthMm,
+          LINAR_SAMPLE_MATCH_TOLERANCE_MM.length,
+        ),
     ) ?? null
   )
 }
 
-export function findGeometrySample(config: LinarConfig): LinarSample | null {
-  if (config.pattern !== 'regular') return null
-  return (
-    SAMPLES.find(
-      (sample) =>
-        sample.material === config.material &&
-        sample.thicknessMm === config.thicknessMm &&
-        sample.cutWidthMm === config.cutWidthMm &&
-        sample.slatWidthMm === config.slatWidthMm,
-    ) ?? null
-  )
-}
+type BridgeInput = Pick<
+  LinarConfig,
+  | 'material'
+  | 'thicknessMm'
+  | 'cutWidthMm'
+  | 'slatWidthMm'
+  | 'incisionLengthMm'
+  | 'pattern'
+>
 
-type BridgeInput = {
-  material: LinarMaterialId
-  thicknessMm: number
-  cutWidthMm: number
-  slatWidthMm: number
-  incisionLengthMm: number
-  pattern: LinarPattern
-}
-
-/**
- * Bridge length lookup.
- *
- * Pablo confirmed bridge length should eventually be calculated from panel
- * thickness, top cutting depth and bottom cutting depth. No final formula has
- * been supplied, so this function:
- * 1. returns the physical-sample value when an exact validated sample exists;
- * 2. otherwise uses a provisional 60 mm visual fallback for preview geometry;
- * 3. never labels the fallback as tested.
- *
- * Replace the fallback branch when dukta provides the manufacturing formula.
- */
+/** The rendered bridge follows the CAD cut model, never a chart-value override. */
 export function calculateBridgeLengthMm(config: BridgeInput): {
   valueMm: number
   source: LinarDataSource
-  validated: boolean
+  sampleOverride: boolean
+  authority: LinarDataAuthority
 } {
-  const sample = findExactSample({
-    ...DEFAULT_LINAR_CONFIG,
-    material: config.material,
-    thicknessMm: config.thicknessMm,
-    cutWidthMm: config.cutWidthMm,
-    slatWidthMm: config.slatWidthMm,
-    incisionLengthMm: config.incisionLengthMm,
-    pattern: config.pattern,
-  })
-  if (sample) {
-    return { valueMm: sample.bridgeLengthMm, source: 'Physical sample', validated: true }
-  }
+  const cad = calculateCadCutGeometryMm(config.thicknessMm)
   return {
-    valueMm: VISUAL_BRIDGE_FALLBACK_MM,
-    source: 'Visual reference',
-    validated: false,
+    valueMm: cad.bridgeSpanMm,
+    source: 'CAD-derived geometry',
+    sampleOverride: false,
+    authority: CAD_CUT_AUTHORITY,
   }
 }
 
@@ -315,73 +477,167 @@ export function calculateFullPanelOpenAreaPercent(
 
 export type LinarTech = {
   status: LinarStatus
+  productionClassification: LinarProductionClassification
+  physicalEvidence: LinarPhysicalEvidence
+  feasibility: LinarFeasibility
+  blockedReason: string | null
+  isConfigurationValid: boolean
+  sourceRecord: LinarConfigurationRecord | null
   topCutDepthMm: number
-  topCutDepthSource: 'Validated anchor' | 'Interpolated'
-  bottomCutDepthMm: number
-  /** Bridge length used by both the rendered pattern and geometric estimate. */
+  topCutDepthSource: 'Approved interpolation'
+  topCutAuthority: LinarDataAuthority
+  bridgeHeightMm: number
+  bridgeHeightAuthority: LinarDataAuthority
+  bottomOvercutMm: number
+  cadGeometry: LinarCadCutGeometry
+  cadAuthority: LinarDataAuthority
+  /** CAD-derived bridge span used by both rendered geometry and its estimate. */
   previewBridgeLengthMm: number
-  displayedBridgeLengthMm: number | null
+  displayedBridgeLengthMm: number
+  physicalSampleBridgeLengthMm: number | null
+  physicalSampleBridgeDifferenceFromCadMm: number | null
+  physicalSampleBridgeDifferenceFromGeneratedMm: number | null
   bridgeSource: LinarDataSource
+  bridgeAuthority: LinarDataAuthority
+  bridgeUsesSampleOverride: boolean
   geometricIncisedOpenAreaPercent: number
   geometricFullPanelOpenAreaPercent: number
   referenceOpenAreaPercent: number | null
+  openAreaDifferenceGeneratedMinusReferencePoints: number | null
   displayedIncisedOpenAreaPercent: number
   displayedFullPanelOpenAreaPercent: number
-  openAreaLabel: 'Sample reference' | 'Geometric estimate'
+  openAreaLabel:
+    | 'Physical-sample reference'
+    | 'Client chart reference'
+    | 'Whole-cycle geometric estimate'
+  openAreaAuthority: LinarDataAuthority
+  openAreaResult: LinarOpenAreaResult
   referenceMinimumRadiusMm: number | null
+  radiusAuthority: LinarDataAuthority
   radiusNote: string | null
-  previewStatus: 'Validated sample' | 'Visual reference only'
+  previewStatus:
+    | 'Standard physical sample'
+    | 'Possible physical sample'
+    | 'CAD geometry / Not tested'
+    | 'Blocked / Not recommended'
+  requestedCoverageFraction: number
   coverageFraction: number
+  panelFormat: ResolvedLinarPanelFormat
+  module: PatternCompatibleModule
+  moduleAuthority: LinarDataAuthority
+  partialCellTreatment: 'Pending official edge-cell method'
 }
 
 export function resolveLinarTech(config: LinarConfig): LinarTech {
-  const coverageFraction = incisedAreaCoverageFraction(config.incisedTwelfths)
   const exact = findExactSample(config)
+  const blockedRule = findBlockedRule(config)
   const bridge = calculateBridgeLengthMm(config)
-  const geometricIncised = calculateIncisedOpenAreaPercent({
+  const panelFormat = resolveLinarPanelFormat(config)
+  const module = derivePatternCompatibleModule(
+    panelFormat.targetUsableWidthMm,
+    config.cutWidthMm,
+    config.slatWidthMm,
+  )
+  const incisedSpan = deriveIncisedSpanMetrics(
+    module,
+    config.cutWidthMm,
+    config.slatWidthMm,
+    config.incisedTwelfths,
+  )
+  const openAreaResult = calculateLinarOpenAreaResult({
     cutWidthMm: config.cutWidthMm,
     slatWidthMm: config.slatWidthMm,
     incisionLengthMm: config.incisionLengthMm,
     bridgeLengthMm: bridge.valueMm,
+    incisedWidthMm: incisedSpan.widthMm,
+    moduleWidthMm: module.widthMm,
+    moduleHeightMm: panelFormat.renderHeightMm,
   })
-  const geometricFull = calculateFullPanelOpenAreaPercent(geometricIncised, coverageFraction)
-
-  const validated = Boolean(exact)
-  const referenceOpen = validated && exact ? exact.referenceOpenAreaPercent : null
-  const referenceRadius = validated && exact ? exact.minimumRadiusMm : null
-  const thickness = clampThicknessMm(config.thicknessMm)
-
-  let status: LinarStatus = 'Not tested'
-  if (validated && exact) status = exact.status
+  const geometricIncised = openAreaResult.incisedAreaPercent
+  const geometricFull = openAreaResult.installationModulePercent
+  const referenceOpen = blockedRule ? null : exact?.approximateOpenAreaPercent ?? null
+  const referenceRadius = blockedRule ? null : exact?.minimumRadiusMm ?? null
+  const physicalSampleBridge = blockedRule ? null : exact?.bridgeLengthMm ?? null
+  const productionClassification = exact?.productionClassification ?? 'not-tested'
+  const physicalEvidence = exact?.physicalEvidence ?? 'unknown'
+  const feasibility: LinarFeasibility = blockedRule
+    ? 'blocked'
+    : exact?.feasibility ?? 'unknown'
+  const status: LinarStatus = blockedRule
+    ? 'Not recommended'
+    : productionClassification === 'standard'
+      ? 'Standard'
+      : productionClassification === 'possible'
+        ? 'Possible'
+        : 'Not tested'
+  const cadGeometry = calculateCadCutGeometryMm(config.thicknessMm)
 
   return {
     status,
-    topCutDepthMm: getTopCutDepthMm(config.thicknessMm),
-    topCutDepthSource: TOP_CUT_ANCHOR_SET.has(thickness) ? 'Validated anchor' : 'Interpolated',
-    bottomCutDepthMm: getBottomCutDepthMm(),
-    // Keep the rendered cycle and its geometric open-area estimate on one
-    // resolved value. Exact physical samples use their measured bridge length;
-    // unsupported combinations retain the clearly provisional 60 mm visual
-    // reference returned by `calculateBridgeLengthMm`.
+    productionClassification,
+    physicalEvidence,
+    feasibility,
+    blockedReason: blockedRule?.blockedReason ?? null,
+    isConfigurationValid: feasibility !== 'blocked',
+    sourceRecord: exact,
+    topCutDepthMm: calculateTopCutDepthMm(config.thicknessMm),
+    topCutDepthSource: 'Approved interpolation',
+    topCutAuthority: TOP_CUT_AUTHORITY,
+    bridgeHeightMm: calculateBridgeHeightMm(config.thicknessMm),
+    bridgeHeightAuthority: TOP_CUT_AUTHORITY,
+    bottomOvercutMm: getBottomOvercutMm(),
+    cadGeometry,
+    cadAuthority: CAD_CUT_AUTHORITY,
     previewBridgeLengthMm: bridge.valueMm,
-    displayedBridgeLengthMm: bridge.validated ? bridge.valueMm : null,
+    displayedBridgeLengthMm: bridge.valueMm,
+    physicalSampleBridgeLengthMm: physicalSampleBridge,
+    physicalSampleBridgeDifferenceFromCadMm:
+      physicalSampleBridge == null ? null : physicalSampleBridge - cadGeometry.bridgeSpanMm,
+    physicalSampleBridgeDifferenceFromGeneratedMm:
+      physicalSampleBridge == null ? null : physicalSampleBridge - bridge.valueMm,
     bridgeSource: bridge.source,
+    bridgeAuthority: bridge.authority,
+    bridgeUsesSampleOverride: bridge.sampleOverride,
     geometricIncisedOpenAreaPercent: geometricIncised,
     geometricFullPanelOpenAreaPercent: geometricFull,
     referenceOpenAreaPercent: referenceOpen,
+    openAreaDifferenceGeneratedMinusReferencePoints:
+      referenceOpen == null ? null : geometricIncised - referenceOpen,
     displayedIncisedOpenAreaPercent: referenceOpen ?? geometricIncised,
     displayedFullPanelOpenAreaPercent:
       referenceOpen != null
-        ? calculateFullPanelOpenAreaPercent(referenceOpen, coverageFraction)
+        ? calculateFullPanelOpenAreaPercent(
+            referenceOpen,
+            incisedSpan.actualCoverageFraction,
+          )
         : geometricFull,
-    openAreaLabel: referenceOpen != null ? 'Sample reference' : 'Geometric estimate',
+    openAreaLabel:
+      referenceOpen == null
+        ? 'Whole-cycle geometric estimate'
+        : physicalEvidence === 'physical-sample'
+          ? 'Physical-sample reference'
+          : 'Client chart reference',
+    openAreaAuthority:
+      referenceOpen != null ? PHYSICAL_SAMPLE_AUTHORITY : GEOMETRIC_OPEN_AREA_AUTHORITY,
+    openAreaResult,
     referenceMinimumRadiusMm: referenceRadius,
-    radiusNote: referenceRadius == null ? RADIUS_UNAVAILABLE_NOTE : null,
-    previewStatus: validated ? 'Validated sample' : 'Visual reference only',
-    coverageFraction,
+    radiusAuthority:
+      referenceRadius != null ? PHYSICAL_SAMPLE_AUTHORITY : UNAVAILABLE_RADIUS_AUTHORITY,
+    radiusNote:
+      blockedRule?.blockedReason ??
+      (referenceRadius == null ? RADIUS_UNAVAILABLE_NOTE : null),
+    previewStatus: blockedRule
+      ? 'Blocked / Not recommended'
+      : exact == null
+        ? 'CAD geometry / Not tested'
+        : productionClassification === 'standard'
+          ? 'Standard physical sample'
+          : 'Possible physical sample',
+    requestedCoverageFraction: incisedSpan.requestedCoverageFraction,
+    coverageFraction: incisedSpan.actualCoverageFraction,
+    panelFormat,
+    module,
+    moduleAuthority: panelFormat.authority,
+    partialCellTreatment: 'Pending official edge-cell method',
   }
-}
-
-export function suggestedIncisionLengthMm(config: LinarConfig): number | null {
-  return findGeometrySample(config)?.incisionLengthMm ?? null
 }

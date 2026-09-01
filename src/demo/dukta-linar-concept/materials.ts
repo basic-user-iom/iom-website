@@ -10,15 +10,19 @@ import {
   LINAR_BACKING_COLOURS,
   LINAR_MATERIAL_LOOKS,
   LINAR_VENEER_LOOKS,
+  backingVisualProfile,
+  findFleeceColour,
   findFeltColour,
   findMdfColour,
   type LinarMaterialLook,
 } from './materialData'
 import type {
   LinarBacking,
+  LinarFleeceColourId,
   LinarFeltColourId,
   LinarMaterialId,
   LinarMdfColourId,
+  LinarMdfVariant,
   LinarVeneerId,
 } from './types'
 
@@ -290,10 +294,15 @@ export type LinarMaterialSet = {
   apply: (
     id: LinarMaterialId,
     veneer: LinarVeneerId,
+    mdfVariant: LinarMdfVariant,
     mdfColour: LinarMdfColourId,
     immediate?: boolean,
   ) => void
-  applyBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
+  applyBacking: (
+    backing: LinarBacking,
+    fleeceColour: LinarFleeceColourId,
+    feltColour: LinarFeltColourId,
+  ) => void
   prewarm: (id: LinarMaterialId, veneer: LinarVeneerId) => void
   tick: (dt: number) => boolean
   dispose: () => void
@@ -386,8 +395,9 @@ export function createLinarMaterials(): LinarMaterialSet {
     bumpMap: microDetailMap,
     bumpScale: LOOKS.plywood.faceBumpScale * 0.85,
     metalness: 0,
-    // The rear patterned layer is intentionally represented as a two-sided,
-    // zero-thickness surface until its physical thickness is confirmed.
+    // This material shades only the local rear face of each remaining bridge
+    // volume. The CAD-derived routed face and side walls provide its depth;
+    // there is no separate continuous rear sheet.
     side: DoubleSide,
   })
   reverse.name = 'LinarReverse'
@@ -447,13 +457,15 @@ export function createLinarMaterials(): LinarMaterialSet {
 
   let currentMaterial: LinarMaterialId = 'plywood'
   let currentVeneer: LinarVeneerId = 'none'
-  let currentMdfColour: LinarMdfColourId = 'reference-01'
+  let currentMdfVariant: LinarMdfVariant = 'natural'
+  let currentMdfColour: LinarMdfColourId = 'grey'
   let mix = 1
   let needsPaint = false
 
   const paintSet = (
     id: LinarMaterialId,
     veneer: LinarVeneerId,
+    mdfVariant: LinarMdfVariant,
     mdfColour: LinarMdfColourId,
     faceMap: Texture,
     reverseMap: Texture,
@@ -462,7 +474,8 @@ export function createLinarMaterials(): LinarMaterialSet {
   ) => {
     const look = LOOKS[id]
     const surfaceLook = veneer === 'none' ? look : VENEER_LOOKS[veneer]
-    const mdfSwatch = findMdfColour(mdfColour).swatch
+    const mdfSwatch =
+      mdfVariant === 'valchromat' ? findMdfColour(mdfColour).swatch : '#a99172'
     face.color.set(veneer === 'none' && id === 'mdf' ? mdfSwatch : '#ffffff')
     face.roughness = surfaceLook.roughness
     face.bumpScale = surfaceLook.faceBumpScale
@@ -496,18 +509,20 @@ export function createLinarMaterials(): LinarMaterialSet {
   const apply = (
     id: LinarMaterialId,
     veneer: LinarVeneerId,
+    mdfVariant: LinarMdfVariant,
     mdfColour: LinarMdfColourId,
     immediate = false,
   ) => {
     currentMaterial = id
     currentVeneer = veneer
+    currentMdfVariant = mdfVariant
     currentMdfColour = mdfColour
     mix = immediate ? 1 : 0
     needsPaint = !immediate
     if (immediate) {
       const faceMap = veneer === 'none' ? getFace(id) : getVeneerFace(veneer)
       const reverseMap = veneer === 'none' ? getReverse(id) : getVeneerReverse(veneer)
-      paintSet(id, veneer, mdfColour, faceMap, reverseMap, getEdge(id), getEnd(id))
+      paintSet(id, veneer, mdfVariant, mdfColour, faceMap, reverseMap, getEdge(id), getEnd(id))
     }
   }
 
@@ -526,6 +541,7 @@ export function createLinarMaterials(): LinarMaterialSet {
       paintSet(
         currentMaterial,
         currentVeneer,
+        currentMdfVariant,
         currentMdfColour,
         faceMap,
         reverseMap,
@@ -537,14 +553,26 @@ export function createLinarMaterials(): LinarMaterialSet {
     return mix < 1
   }
 
-  const applyBacking = (backingId: LinarBacking, feltColour: LinarFeltColourId) => {
+  const applyBacking = (
+    backingId: LinarBacking,
+    fleeceColour: LinarFleeceColourId,
+    feltColour: LinarFeltColourId,
+  ) => {
     const colour =
       backingId === 'felt'
         ? findFeltColour(feltColour).swatch
+        : backingId === 'acoustic-fleece'
+          ? findFleeceColour(fleeceColour).swatch
         : backingId === 'none'
           ? LINAR_BACKING_COLOURS['acoustic-fleece']
           : LINAR_BACKING_COLOURS[backingId]
+    const profile = backingVisualProfile(backingId, fleeceColour)
     backing.color.set(colour)
+    backing.transparent = profile.opacity < 1
+    backing.opacity = profile.opacity
+    backing.depthWrite = profile.opacity >= 0.8
+    backing.roughness = backingId === 'felt' ? 1 : 0.98
+    backing.needsUpdate = true
   }
 
   const prewarm = (id: LinarMaterialId, veneer: LinarVeneerId) => {

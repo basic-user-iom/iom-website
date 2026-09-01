@@ -125,12 +125,13 @@ export function LinarViewportControls({
         : shareFeedback === 'failed'
           ? 'Copy failed; share URL shown for manual copying'
           : 'Copy share link'
-  const backlightAvailable = application !== 'freestanding' && backing === 'none'
+  const opaqueBacking = backing === 'felt'
+  const backlightAvailable = application !== 'freestanding' && !opaqueBacking
   const backlightUnavailableReason =
     application === 'freestanding'
       ? 'Rear backlight is available in Wall and Ceiling applications.'
-      : backing !== 'none'
-        ? 'Remove the opaque backing material to use the rear backlight.'
+      : opaqueBacking
+        ? 'Wool felt is opaque. Remove it or use acoustic fleece to use rear light.'
         : undefined
 
   return (
@@ -281,17 +282,19 @@ export function LinarViewportControls({
                     ? 'linar-viewport-tools__button linar-viewport-light-tools__button is-active'
                     : 'linar-viewport-tools__button linar-viewport-light-tools__button'
                 }
-                disabled={!viewAvailable || backing !== 'none'}
+                disabled={!viewAvailable || opaqueBacking}
                 aria-pressed={lightPlacement === 'behind'}
                 aria-label={
-                  backing === 'none'
+                  !opaqueBacking
                     ? 'Place light behind panel'
-                    : 'Behind-panel light unavailable with an opaque backing material'
+                    : 'Behind-panel light unavailable with opaque wool felt'
                 }
                 title={
-                  backing === 'none'
-                    ? undefined
-                    : 'Remove the backing material to place the light behind the panel.'
+                  opaqueBacking
+                    ? 'Remove the wool felt or use acoustic fleece to place the light behind the panel.'
+                    : backing === 'acoustic-fleece'
+                      ? 'Rear transmission through acoustic fleece is a non-certified visual estimate.'
+                      : undefined
                 }
                 onClick={() => {
                   onUserInteract()

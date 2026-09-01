@@ -10,19 +10,22 @@ import {
   DEFAULT_LINAR_LIGHT,
   cloneConfig,
   type LinarConfig,
+  type LinarFeltColourId,
   type LinarLightState,
   type LinarSide,
   type LinarViewId,
 } from './types'
 import {
+  LINAR_FLEECE_COLOURS,
   LINAR_FELT_COLOURS,
   LINAR_MDF_COLOURS,
+  LINAR_MDF_VARIANTS,
   LINAR_PRESENTATION_LIMITS,
   clampLinarPanelCount,
 } from './materialData'
 
-export const LINAR_SHARE_VERSION = '2'
-const LEGACY_LINAR_SHARE_VERSION = '1'
+export const LINAR_SHARE_VERSION = '3'
+const LEGACY_LINAR_SHARE_VERSIONS = new Set(['1', '2'])
 
 export type LinarShareState = {
   config: LinarConfig
@@ -59,6 +62,27 @@ function parseInteger(
   return Number.isInteger(value) && value >= minimum && value <= maximum ? value : fallback
 }
 
+function descriptorValue<T extends string>(
+  value: string,
+  items: readonly { id: T }[],
+  fallback: T,
+): T {
+  return items.some((item) => item.id === value) ? (value as T) : fallback
+}
+
+function migrateLegacyFeltColour(value: string | null): LinarFeltColourId {
+  // Red is the only old provisional swatch with a known client-supplied
+  // identity. Numbered/development colours must not be guessed into the new
+  // nine-colour catalogue.
+  return value === 'reference-red' ? 'ruby-red' : DEFAULT_LINAR_CONFIG.feltColour
+}
+
+function backingAllowsRearTransmission(config: Pick<LinarConfig, 'backing'>): boolean {
+  // Wool felt is confirmed opaque. Acoustic fleece remains a visual
+  // transmission study whose strength is resolved from its selected subtype.
+  return config.backing !== 'felt'
+}
+
 function defaultShareState(): LinarShareState {
   return {
     config: cloneConfig(DEFAULT_LINAR_CONFIG),
@@ -89,10 +113,11 @@ export function parseLinarShareState(fragment: string): LinarShareState {
   const shareVersion = params.get('linar')
   if (
     shareVersion !== LINAR_SHARE_VERSION &&
-    shareVersion !== LEGACY_LINAR_SHARE_VERSION
+    !LEGACY_LINAR_SHARE_VERSIONS.has(shareVersion ?? '')
   ) {
     return fallback
   }
+  const isLegacyShare = shareVersion !== LINAR_SHARE_VERSION
 
   const config = cloneConfig(DEFAULT_LINAR_CONFIG)
   config.material = parseDescriptorId(
@@ -102,18 +127,40 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     config.material,
   )
   config.veneer = parseDescriptorId(params, 'veneer', LINAR_VENEERS, config.veneer)
-  config.mdfColour = parseDescriptorId(
-    params,
-    'mdf',
-    LINAR_MDF_COLOURS,
-    config.mdfColour,
-  )
-  config.feltColour = parseDescriptorId(
-    params,
-    'felt',
-    LINAR_FELT_COLOURS,
-    config.feltColour,
-  )
+  if (isLegacyShare) {
+    // Versions 1/2 stored provisional numbered MDF swatches without a Natural
+    // versus Valchromat identity. Restore the safe neutral board instead of
+    // inventing a catalogue mapping.
+    config.mdfVariant = 'natural'
+    config.mdfColour = DEFAULT_LINAR_CONFIG.mdfColour
+    config.fleeceColour = DEFAULT_LINAR_CONFIG.fleeceColour
+    config.feltColour = migrateLegacyFeltColour(params.get('felt'))
+  } else {
+    config.mdfVariant = parseDescriptorId(
+      params,
+      'mdfVariant',
+      LINAR_MDF_VARIANTS,
+      config.mdfVariant,
+    )
+    config.mdfColour = parseDescriptorId(
+      params,
+      'valchromat',
+      LINAR_MDF_COLOURS,
+      config.mdfColour,
+    )
+    config.fleeceColour = parseDescriptorId(
+      params,
+      'fleece',
+      LINAR_FLEECE_COLOURS,
+      config.fleeceColour,
+    )
+    config.feltColour = parseDescriptorId(
+      params,
+      'felt',
+      LINAR_FELT_COLOURS,
+      config.feltColour,
+    )
+  }
   config.thicknessMm = parseInteger(params, 'thickness', 4, 15, config.thicknessMm)
   config.incisionLengthMm = parseInteger(
     params,
@@ -156,7 +203,7 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     100,
     config.backlightIntensity,
   )
-  if (config.application === 'freestanding' || config.backing !== 'none') {
+  if (config.application === 'freestanding' || !backingAllowsRearTransmission(config)) {
     config.backlightMode = 'off'
   }
   config.panelCount = parseInteger(
@@ -190,7 +237,7 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     enabled: lightEnabled,
     placement:
       config.application !== 'freestanding' &&
-      config.backing === 'none' &&
+      backingAllowsRearTransmission(config) &&
       params.get('lp') === 'behind'
         ? 'behind'
         : 'room',
@@ -212,6 +259,26 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   const visibleBacking = LINAR_VISIBLE_BACKINGS.some((item) => item.id === config.backing)
     ? config.backing
     : DEFAULT_LINAR_CONFIG.backing
+  const mdfVariant = descriptorValue(
+    config.mdfVariant,
+    LINAR_MDF_VARIANTS,
+    DEFAULT_LINAR_CONFIG.mdfVariant,
+  )
+  const valchromatColour = descriptorValue(
+    config.mdfColour,
+    LINAR_MDF_COLOURS,
+    DEFAULT_LINAR_CONFIG.mdfColour,
+  )
+  const fleeceColour = descriptorValue(
+    config.fleeceColour,
+    LINAR_FLEECE_COLOURS,
+    DEFAULT_LINAR_CONFIG.fleeceColour,
+  )
+  const feltColour = descriptorValue(
+    config.feltColour,
+    LINAR_FELT_COLOURS,
+    DEFAULT_LINAR_CONFIG.feltColour,
+  )
   const secondaryCurveAmount = Number.isFinite(selection.secondaryCurveAmount)
     ? Math.max(0, Math.min(100, Math.round(selection.secondaryCurveAmount)))
     : 0
@@ -221,8 +288,10 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   params.set('linar', LINAR_SHARE_VERSION)
   params.set('material', config.material)
   params.set('veneer', config.veneer)
-  params.set('mdf', config.mdfColour)
-  params.set('felt', config.feltColour)
+  params.set('mdfVariant', mdfVariant)
+  params.set('valchromat', valchromatColour)
+  params.set('fleece', fleeceColour)
+  params.set('felt', feltColour)
   params.set('thickness', String(Math.round(config.thicknessMm)))
   params.set('incision', String(Math.round(config.incisionLengthMm)))
   params.set('spacing', String(Math.round(config.cutWidthMm)))
@@ -236,7 +305,7 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   params.set('backing', visibleBacking)
   const mountedBacklightEnabled =
     config.application !== 'freestanding' &&
-    visibleBacking === 'none' &&
+    visibleBacking !== 'felt' &&
     config.backlightMode === 'on'
   if (mountedBacklightEnabled) {
     params.set('backlight', 'on')
@@ -254,7 +323,7 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   const safeLight = selection.light ?? DEFAULT_LINAR_LIGHT
   const lightPlacement =
     config.application !== 'freestanding' &&
-    visibleBacking === 'none' &&
+    visibleBacking !== 'felt' &&
     safeLight.placement === 'behind'
       ? 'behind'
       : 'room'

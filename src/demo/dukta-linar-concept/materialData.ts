@@ -1,8 +1,10 @@
 import type {
   LinarBacking,
+  LinarFleeceColourId,
   LinarFeltColourId,
   LinarMaterialId,
   LinarMdfColourId,
+  LinarMdfVariant,
   LinarVeneerId,
 } from './types'
 
@@ -22,14 +24,19 @@ export type LinarMaterialLook = {
   reference: string
 }
 
-export type LinarColourSource = 'Supplied photo reference' | 'Development preview'
+export type LinarColourSource =
+  | 'Official manufacturer name/code'
+  | 'Client-confirmed palette'
+  | 'Supplied photo reference'
+  | 'Development preview'
 
 export type LinarColourOption<T extends string> = {
   id: T
   label: string
   swatch: string
   source: LinarColourSource
-  provisional: true
+  manufacturerCode?: string
+  isScreenApproximation: boolean
 }
 
 /**
@@ -156,32 +163,84 @@ export const LINAR_VENEER_LOOKS: Record<VeneerId, LinarMaterialLook> = {
   },
 }
 
+export const LINAR_MDF_VARIANTS: readonly { id: LinarMdfVariant; label: string }[] = [
+  { id: 'natural', label: 'MDF Natural' },
+  { id: 'valchromat', label: 'Valchromat' },
+]
+
 /**
- * Sampled visually from `Linar_MDFvalchromat colors.jpeg`. Numbered labels are
- * intentionally provisional because no approved manufacturer names or codes
- * were supplied with the photograph.
+ * Names and manufacturer codes follow the current official Valchromat
+ * catalogue. Hex values are deliberately centralised screen approximations;
+ * they are not official colour-managed, RAL, RGB or production values.
  */
 export const LINAR_MDF_COLOURS: readonly LinarColourOption<LinarMdfColourId>[] = [
-  { id: 'reference-01', label: 'Reference 01', swatch: '#b9afa2', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-02', label: 'Reference 02', swatch: '#504f54', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-03', label: 'Reference 03', swatch: '#9b7463', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-04', label: 'Reference 04', swatch: '#d2a62f', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-05', label: 'Reference 05', swatch: '#c7763f', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-06', label: 'Reference 06', swatch: '#c85851', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-07', label: 'Reference 07', swatch: '#76547d', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-08', label: 'Reference 08', swatch: '#397b91', source: 'Supplied photo reference', provisional: true },
-  { id: 'reference-09', label: 'Reference 09', swatch: '#3f7d72', source: 'Supplied photo reference', provisional: true },
+  { id: 'white-pearl', label: 'White Pearl', manufacturerCode: 'WP', swatch: '#dedbd2', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'white-grey', label: 'White Grey', manufacturerCode: 'WG', swatch: '#c9c7bf', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'light-grey', label: 'Light Grey', manufacturerCode: 'LG', swatch: '#aaa9a4', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'grey', label: 'Grey', manufacturerCode: 'CZ', swatch: '#777774', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'black', label: 'Black', manufacturerCode: 'BL', swatch: '#292a29', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'chocolate-brown', label: 'Chocolate Brown', manufacturerCode: 'CB', swatch: '#6c4a3b', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'red', label: 'Red', manufacturerCode: 'SC', swatch: '#a54842', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'yellow', label: 'Yellow', manufacturerCode: 'YW', swatch: '#c3a340', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'orange', label: 'Orange', manufacturerCode: 'OR', swatch: '#b86c3b', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'blue', label: 'Blue', manufacturerCode: 'RB', swatch: '#426c7a', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'mint-green', label: 'Mint Green', manufacturerCode: 'GM', swatch: '#608577', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'khaki', label: 'Khaki', manufacturerCode: 'CQ', swatch: '#817b5e', source: 'Official manufacturer name/code', isScreenApproximation: true },
 ]
 
-/** Only red has a supplied LINAR felt photograph; the other two test the UI. */
-export const LINAR_FELT_COLOURS: readonly LinarColourOption<LinarFeltColourId>[] = [
-  { id: 'reference-red', label: 'Reference red', swatch: '#a51d29', source: 'Supplied photo reference', provisional: true },
-  { id: 'development-charcoal', label: 'Development charcoal', swatch: '#343638', source: 'Development preview', provisional: true },
-  { id: 'development-stone', label: 'Development stone', swatch: '#8a8379', source: 'Development preview', provisional: true },
+export const LINAR_FLEECE_COLOURS: readonly LinarColourOption<LinarFleeceColourId>[] = [
+  { id: 'black', label: 'Black', swatch: '#252624', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'white', label: 'White', swatch: '#e7e4dc', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'translucent', label: 'Translucent', swatch: '#cbc5b9', source: 'Client-confirmed palette', isScreenApproximation: true },
 ]
+
+export const LINAR_FELT_COLOURS: readonly LinarColourOption<LinarFeltColourId>[] = [
+  { id: 'raw-white', label: 'Raw white', swatch: '#dedbd1', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'grey', label: 'Grey', swatch: '#8b8a84', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'granite', label: 'Granite', swatch: '#555653', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'fir-green', label: 'Fir green', swatch: '#3f5a4b', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'copper-brown', label: 'Copper brown', swatch: '#855b45', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'deep-blue', label: 'Deep blue', swatch: '#344e67', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'yellow', label: 'Yellow', swatch: '#c4a13d', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'olive-green', label: 'Olive green', swatch: '#70734b', source: 'Client-confirmed palette', isScreenApproximation: true },
+  { id: 'ruby-red', label: 'Ruby red', swatch: '#8e2935', source: 'Client-confirmed palette', isScreenApproximation: true },
+]
+
+export const LINAR_FLEECE_METADATA = {
+  thicknessRangeMm: [0.1, 0.5] as const,
+  representativeVisualThicknessMm: 0.3,
+  translucent: {
+    visualTransmissionEstimate: 0.8,
+    isCertifiedOpticalValue: false,
+  },
+} as const
+
+export const LINAR_FELT_METADATA = {
+  thicknessRangeMm: [1, 3] as const,
+  representativeVisualThicknessMm: 2,
+  opaque: true,
+} as const
+
+/** Rendering assumptions only; black/white fleece optical data is unavailable. */
+export const LINAR_BACKING_VISUAL_PROFILES = {
+  none: { opacity: 0, lightTransmission: 1, castShadow: false, thicknessMm: 0 },
+  'fleece-black': { opacity: 0.88, lightTransmission: 0.12, castShadow: false, thicknessMm: 0.3 },
+  'fleece-white': { opacity: 0.82, lightTransmission: 0.18, castShadow: false, thicknessMm: 0.3 },
+  'fleece-translucent': { opacity: 0.32, lightTransmission: 0.8, castShadow: false, thicknessMm: 0.3 },
+  felt: { opacity: 1, lightTransmission: 0, castShadow: true, thicknessMm: 2 },
+} as const
+
+export function backingVisualProfile(
+  backing: LinarBacking,
+  fleeceColour: LinarFleeceColourId,
+) {
+  if (backing === 'none') return LINAR_BACKING_VISUAL_PROFILES.none
+  if (backing === 'felt') return LINAR_BACKING_VISUAL_PROFILES.felt
+  return LINAR_BACKING_VISUAL_PROFILES[`fleece-${fleeceColour}`]
+}
 
 export const LINAR_BACKING_COLOURS: Record<Exclude<LinarBacking, 'none'>, string> = {
-  'acoustic-fleece': '#4b4b49',
+  'acoustic-fleece': LINAR_FLEECE_COLOURS[0].swatch,
   felt: LINAR_FELT_COLOURS[0].swatch,
 }
 
@@ -201,6 +260,10 @@ export function clampLinarPanelCount(value: number): number {
 
 export function findMdfColour(id: LinarMdfColourId) {
   return LINAR_MDF_COLOURS.find((option) => option.id === id) ?? LINAR_MDF_COLOURS[0]
+}
+
+export function findFleeceColour(id: LinarFleeceColourId) {
+  return LINAR_FLEECE_COLOURS.find((option) => option.id === id) ?? LINAR_FLEECE_COLOURS[0]
 }
 
 export function findFeltColour(id: LinarFeltColourId) {

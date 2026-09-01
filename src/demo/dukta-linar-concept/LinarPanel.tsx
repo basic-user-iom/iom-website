@@ -13,8 +13,6 @@ import {
 } from 'three'
 import {
   MAX_SLATS,
-  PANEL_HEIGHT_M,
-  PANEL_WIDTH_M,
   bridgeSegsFor,
   curveElement,
   makeBendState,
@@ -26,28 +24,36 @@ import {
   type SlatSpec,
 } from './bendMath'
 import type { LinarTech } from './linarData'
+import {
+  cadBridgeProfileHeightMm,
+  type LinarCadCutGeometry,
+} from './linarGeometry'
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
+import { backingVisualProfile } from './materialData'
 import type {
   LinarBacking,
   LinarConfig,
+  LinarFleeceColourId,
   LinarFeltColourId,
   LinarMaterialId,
   LinarMdfColourId,
+  LinarMdfVariant,
   LinarVeneerId,
 } from './types'
-import { cloneConfig, LINAR_REFERENCE_BRIDGE_LENGTH_MM } from './types'
+import { cloneConfig } from './types'
 
-const MAX_BRIDGES = 14000
+const MAX_BRIDGES = 18000
 const SOLID_BAND_SEGMENTS = MAX_SLATS
-// A 60 mm local lobe is sub-pixel in normal views. Sixteen analytically
+// A local routed lobe is sub-pixel in normal views. Sixteen analytically
 // sampled, smooth-shaded slices preserve its approved circular profile in a
 // close-up while avoiding millions of redundant triangles in repeated panels.
 const BRIDGE_PROFILE_STEPS = 16
 const pose = { x: 0, z: 0, rotY: 0 }
-const APPROVED_BRIDGE_CENTRE_HEIGHT_MM = 6.859
 // Render-only separation from the physical rear face. It prevents coplanar
 // flicker without representing a measured LED cavity or mounting depth.
 const BACKLIGHT_RENDER_OFFSET_M = 0.00025
+const BACKING_RENDER_GAP_M = 0.0001
+const BACKLIGHT_VISIBLE_EPSILON = 0.002
 
 export type LinarPanelHandle = {
   group: Object3D
@@ -60,10 +66,15 @@ export type LinarPanelHandle = {
   setMaterial: (
     id: LinarMaterialId,
     veneer: LinarVeneerId,
+    mdfVariant: LinarMdfVariant,
     mdfColour: LinarMdfColourId,
     immediate?: boolean,
   ) => void
-  setBacking: (backing: LinarBacking, feltColour: LinarFeltColourId) => void
+  setBacking: (
+    backing: LinarBacking,
+    fleeceColour: LinarFleeceColourId,
+    feltColour: LinarFeltColourId,
+  ) => void
   setBacklightStrength: (strength: number) => void
   prewarmMaterial: (id: LinarMaterialId, veneer: LinarVeneerId) => void
   tickMaterials: (dt: number) => boolean
@@ -82,8 +93,8 @@ function boxMaterials(set: LinarMaterialSet): MeshStandardMaterial[] {
 }
 
 function bridgeAssemblyMaterials(set: LinarMaterialSet): MeshStandardMaterial[] {
-  // Material 0 is the flat, two-sided rear plate. Material 1 is the approved
-  // complementary curved wood face visible between the continuous slats.
+  // Material 0 is the local rear face of the remaining bridge wood. It is not
+  // a continuous rear sheet. Material 1 is the CAD-derived routed wood face.
   return [set.reverse, set.bridgeCut]
 }
 
@@ -272,10 +283,10 @@ function createSolidBandGeometry(edgeMaterialIndices: {
 }
 
 /**
- * One normalised bridge assembly derived from the approved 60 mm profile.
- * The rear rectangle remains an exact zero-thickness surface. At runtime the
- * complementary wood face rises to `thickness - top cutting depth` and
- * returns to the rear plane at both straight ends.
+ * One normalised bridge assembly derived from the supplied 125 mm blade CAD.
+ * The local rear rectangle is only the rear face of this bridge unit. At
+ * runtime the routed wood face rises to `thickness - top cutting depth` and
+ * returns to the finished rear plane at both ends.
  *
  * Cut-wood walls close both X sides and any exposed/clipped Y end with a flat,
  * straight plane matching the saw-cut reference. No semicircular shoulder or
@@ -284,7 +295,11 @@ function createSolidBandGeometry(edgeMaterialIndices: {
  * essential as those slats rotate apart: without them the curved bridge reads
  * as a hollow shell instead of a routed piece of solid wood.
  */
-function createBridgeAssemblyGeometry(profileStart = 0, profileEnd = 1): BufferGeometry {
+function createBridgeAssemblyGeometry(
+  cadGeometry: LinarCadCutGeometry,
+  profileStart = 0,
+  profileEnd = 1,
+): BufferGeometry {
   const geometry = new BufferGeometry()
   const vertices: number[] = [
     -0.5, -0.5, -0.5,
@@ -296,10 +311,6 @@ function createBridgeAssemblyGeometry(profileStart = 0, profileEnd = 1): BufferG
   const indices: number[] = [0, 3, 2, 0, 2, 1]
   const rearCount = indices.length
   const profileSteps = BRIDGE_PROFILE_STEPS
-  const halfChordMm = LINAR_REFERENCE_BRIDGE_LENGTH_MM * 0.5
-  const surfaceRadiusMm =
-    (halfChordMm ** 2 + APPROVED_BRIDGE_CENTRE_HEIGHT_MM ** 2) /
-    (2 * APPROVED_BRIDGE_CENTRE_HEIGHT_MM)
   const curveLeft: number[] = []
   const curveRight: number[] = []
 
@@ -312,14 +323,11 @@ function createBridgeAssemblyGeometry(profileStart = 0, profileEnd = 1): BufferG
   for (let i = 0; i <= profileSteps; i += 1) {
     const t = i / profileSteps
     const sourceT = profileStart + (profileEnd - profileStart) * t
-    const sourceYmm = (sourceT - 0.5) * LINAR_REFERENCE_BRIDGE_LENGTH_MM
-    const circularDropMm =
-      surfaceRadiusMm -
-      Math.sqrt(Math.max(0, surfaceRadiusMm ** 2 - sourceYmm ** 2))
-    const heightMm = Math.max(0, APPROVED_BRIDGE_CENTRE_HEIGHT_MM - circularDropMm)
-    // Keep the approved local -0.5..+0.5 convention so the plywood layer
+    const heightMm = cadBridgeProfileHeightMm(cadGeometry, sourceT)
+    // Keep the local -0.5..+0.5 convention so the plywood layer
     // shader retains the same phase as the isolated bridge study.
-    const z = -0.5 + heightMm / APPROVED_BRIDGE_CENTRE_HEIGHT_MM
+    const z =
+      -0.5 + heightMm / Math.max(0.000001, cadGeometry.bridgeHeightMm)
     const y = t - 0.5
     curveLeft.push(addVertex(-0.5, y, z, 0, sourceT))
     curveRight.push(addVertex(0.5, y, z, 1, sourceT))
@@ -412,7 +420,8 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   const materials = createLinarMaterials()
   const unitBox = new BoxGeometry(1, 1, 1)
-  const fullBridgeGeo = createBridgeAssemblyGeometry()
+  let currentCadGeometry = initial.tech.cadGeometry
+  let fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
   const backingRibbon = createBackingRibbonGeometry()
   // The left panel side has its finished outer edge on the left and its
   // routed incision boundary on the right; the right side is the inverse.
@@ -467,6 +476,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     side: DoubleSide,
     toneMapped: false,
   })
+  // Replicas share this material. Keeping visibility here, rather than on the
+  // source mesh, removes every diffuser draw call without synchronising clones.
+  backlightMaterial.visible = false
   const backlightMesh = new Mesh(backingRibbon.geometry, backlightMaterial)
   backlightMesh.name = 'LinarBacklightDiffuser'
   backlightMesh.castShadow = false
@@ -497,10 +509,16 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const solidPoseZ = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   const solidPoseRotY = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   let layout: PanelLayout = slatLayout(initial.config)
+  const boundingSize = new Vector3(
+    layout.panelWidthM,
+    layout.panelHeightM,
+    layout.thicknessM,
+  )
   let slats: SlatSpec[] = layout.slats
   let fullBridges: BridgeSeg[] = []
   let partialBridgeBatches: PartialBridgeBatch[] = []
   let backing: LinarBacking = initial.config.backing
+  let fleeceColour: LinarFleeceColourId = initial.config.fleeceColour
   let topCutDepthM = Math.max(0, initial.tech.topCutDepthMm / 1000)
   let lastPercent = 0
   let lastSecondaryCurveAmount = 0
@@ -543,7 +561,11 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
     for (const segmentsForProfile of partials.values()) {
       const first = segmentsForProfile[0]
-      const geometry = createBridgeAssemblyGeometry(first.profileStart, first.profileEnd)
+      const geometry = createBridgeAssemblyGeometry(
+        currentCadGeometry,
+        first.profileStart,
+        first.profileEnd,
+      )
       const mesh = new InstancedMesh(geometry, bridgeMats, segmentsForProfile.length)
       mesh.name = 'LinarClippedBridgeProfile'
       mesh.castShadow = true
@@ -590,7 +612,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     // meets the first/last continuous slat exactly at the pattern boundary.
     for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
       const originalX = x0 + solidWidth * (i / SOLID_BAND_SEGMENTS)
-      curveElement(originalX, state, PANEL_WIDTH_M, pose)
+      curveElement(originalX, state, layout.panelWidthM, pose)
       solidPoseX[i] = pose.x
       solidPoseZ[i] = pose.z
       solidPoseRotY[i] = pose.rotY
@@ -606,7 +628,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       band.position.setXYZ(
         vertex,
         solidPoseX[sample] + normalX * depthOffset,
-        band.yFactors[vertex] * PANEL_HEIGHT_M,
+        band.yFactors[vertex] * layout.panelHeightM,
         solidPoseZ[sample] + normalZ * depthOffset,
       )
 
@@ -640,7 +662,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     updateSolidBand(
       leftSolidBand,
       leftSolidBandMesh,
-      -PANEL_WIDTH_M * 0.5,
+      -layout.panelWidthM * 0.5,
       layout.incisedX0,
       state,
     )
@@ -648,7 +670,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       rightSolidBand,
       rightSolidBandMesh,
       layout.incisedX1,
-      PANEL_WIDTH_M * 0.5,
+      layout.panelWidthM * 0.5,
       state,
     )
   }
@@ -659,7 +681,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     // Top cutting depth is removed from the finished panel thickness. The
     // separate 3 mm bottom cut belongs to the spoil board and is deliberately
     // absent from this rendered depth calculation.
-    const bridgeDepth = Math.max(
+    const bridgeHeight = Math.max(
       0.00035,
       Math.min(thickness, thickness - topCutDepthM),
     )
@@ -667,7 +689,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     updateSolidSides(state)
 
     for (let i = 0; i < slats.length; i += 1) {
-      curveElement(slats[i].originalX, state, PANEL_WIDTH_M, pose)
+      curveElement(slats[i].originalX, state, layout.panelWidthM, pose)
       slatPoseX[i] = pose.x
       slatPoseZ[i] = pose.z
       slatPoseRotY[i] = pose.rotY
@@ -692,23 +714,24 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       const leftNormalZ = Math.cos(leftContactPose.rotY)
       const rightNormalX = Math.sin(rightContactPose.rotY)
       const rightNormalZ = Math.cos(rightContactPose.rotY)
-      const bridgeCenter = -thickness * 0.5 + bridgeDepth * 0.5
-      const slatHalfWidth = layout.slatWidthM * 0.5
+      const bridgeCenter = -thickness * 0.5 + bridgeHeight * 0.5
+      const leftSlatHalfWidth = slats[seg.column].width * 0.5
+      const rightSlatHalfWidth = slats[seg.column + 1].width * 0.5
       const leftX =
         leftContactPose.x +
-        leftTangentX * slatHalfWidth +
+        leftTangentX * leftSlatHalfWidth +
         leftNormalX * bridgeCenter
       const leftZ =
         leftContactPose.z +
-        leftTangentZ * slatHalfWidth +
+        leftTangentZ * leftSlatHalfWidth +
         leftNormalZ * bridgeCenter
       const rightX =
         rightContactPose.x -
-        rightTangentX * slatHalfWidth +
+        rightTangentX * rightSlatHalfWidth +
         rightNormalX * bridgeCenter
       const rightZ =
         rightContactPose.z -
-        rightTangentZ * slatHalfWidth +
+        rightTangentZ * rightSlatHalfWidth +
         rightNormalZ * bridgeCenter
       const chordX = rightX - leftX
       const chordZ = rightZ - leftZ
@@ -725,7 +748,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
         -chordTangent,
         chordLength + 0.00008,
         seg.height,
-        bridgeDepth,
+        bridgeHeight,
       )
       mesh.setMatrixAt(index, dummy.matrix)
     }
@@ -748,16 +771,28 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     }
 
     const showBacking = backing !== 'none'
+    const backingProfile = backingVisualProfile(backing, fleeceColour)
     backingMesh.visible = showBacking
-    // Opaque backing is real material behind the apertures: it must block the
-    // key light, while the no-backing state remains fully transmissive.
-    backingMesh.castShadow = showBacking
+    // Confirmed opaque felt casts a real shadow behind the apertures. Acoustic
+    // fleece remains a non-certified transmission study and is attenuated by
+    // the scene's central visual profile instead of casting an opaque shadow.
+    backingMesh.castShadow = showBacking && backingProfile.castShadow
+    // The shared ribbon is a render-efficient backing mid-surface, not a
+    // certified thickness mesh. Half the representative visual thickness puts
+    // its nominal front face directly behind the panel rear; the 0.1 mm gap is
+    // only enough to avoid z-fighting and does not imply a mounting cavity.
+    const backingMidSurfaceOffsetM =
+      thickness * 0.5 +
+      backingProfile.thicknessMm / 2000 +
+      BACKING_RENDER_GAP_M
     const backZ = showBacking
-      ? -maxRenderedNormalOffsetM(thickness, true)
+      ? -backingMidSurfaceOffsetM
       : -thickness * 0.5 - BACKLIGHT_RENDER_OFFSET_M
     for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
-      const originalX = -PANEL_WIDTH_M * 0.5 + PANEL_WIDTH_M * (i / SOLID_BAND_SEGMENTS)
-      curveElement(originalX, state, PANEL_WIDTH_M, pose)
+      const originalX =
+        -layout.panelWidthM * 0.5 +
+        layout.panelWidthM * (i / SOLID_BAND_SEGMENTS)
+      curveElement(originalX, state, layout.panelWidthM, pose)
       const nx = Math.sin(pose.rotY)
       const nz = Math.cos(pose.rotY)
       const x = pose.x + nx * backZ
@@ -765,7 +800,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       const lower = i * 2
       const upper = lower + 1
       backingRibbon.position.setXYZ(lower, x, 0, z)
-      backingRibbon.position.setXYZ(upper, x, PANEL_HEIGHT_M, z)
+      backingRibbon.position.setXYZ(upper, x, layout.panelHeightM, z)
       backingRibbon.normal.setXYZ(lower, nx, 0, nz)
       backingRibbon.normal.setXYZ(upper, nx, 0, nz)
     }
@@ -776,16 +811,23 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const applyConfig = (config: LinarConfig, tech: LinarTech) => {
     const next = cloneConfig(config)
     layout = slatLayout(next)
+    boundingSize.set(layout.panelWidthM, layout.panelHeightM, layout.thicknessM)
     slats = layout.slats
+    currentCadGeometry = tech.cadGeometry
+    const previousFullBridgeGeometry = fullBridgeGeo
+    fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
+    bridgesMesh.geometry = fullBridgeGeo
+    previousFullBridgeGeometry.dispose()
     rebuildBridgeBatches(bridgeSegsFor(next, tech.previewBridgeLengthMm, layout))
     backing = next.backing
+    fleeceColour = next.fleeceColour
     topCutDepthM = Math.max(0, tech.topCutDepthMm / 1000)
-    materials.applyBacking(next.backing, next.feltColour)
+    materials.applyBacking(next.backing, next.fleeceColour, next.feltColour)
     lastRadius = tech.referenceMinimumRadiusMm
     writeWithState(
       makeBendState(
         lastPercent,
-        PANEL_WIDTH_M,
+        layout.panelWidthM,
         lastRadius,
         layout.incisedWidthM,
         lastSecondaryCurveAmount,
@@ -798,11 +840,10 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   materials.apply(
     initial.config.material,
     initial.config.veneer,
+    initial.config.mdfVariant,
     initial.config.mdfColour,
     true,
   )
-
-  const boundingSize = new Vector3(PANEL_WIDTH_M, PANEL_HEIGHT_M, layout.thicknessM)
 
   return {
     group,
@@ -812,7 +853,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       lastRadius = referenceRadiusMm
       const state = makeBendState(
         percent,
-        PANEL_WIDTH_M,
+        layout.panelWidthM,
         referenceRadiusMm,
         layout.incisedWidthM,
         secondaryCurveAmount,
@@ -822,15 +863,16 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       return state
     },
     setConfig: applyConfig,
-    setMaterial: (id, veneer, mdfColour, immediate) =>
-      materials.apply(id, veneer, mdfColour, immediate),
-    setBacking: (nextBacking, feltColour) => {
+    setMaterial: (id, veneer, mdfVariant, mdfColour, immediate) =>
+      materials.apply(id, veneer, mdfVariant, mdfColour, immediate),
+    setBacking: (nextBacking, nextFleeceColour, feltColour) => {
       backing = nextBacking
-      materials.applyBacking(nextBacking, feltColour)
+      fleeceColour = nextFleeceColour
+      materials.applyBacking(nextBacking, nextFleeceColour, feltColour)
       writeWithState(
         makeBendState(
           lastPercent,
-          PANEL_WIDTH_M,
+          layout.panelWidthM,
           lastRadius,
           layout.incisedWidthM,
           lastSecondaryCurveAmount,
@@ -839,9 +881,11 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       )
     },
     setBacklightStrength: (strength) => {
-      // Replicated modules share this material, so opacity updates the complete
-      // installation without a per-replica visibility synchronization pass.
-      backlightMaterial.opacity = Math.max(0, Math.min(1, strength))
+      const opacity = Math.max(0, Math.min(1, strength))
+      // Replicated modules share this material, so both properties update the
+      // complete installation without a per-replica visibility sync pass.
+      backlightMaterial.opacity = opacity
+      backlightMaterial.visible = opacity > BACKLIGHT_VISIBLE_EPSILON
     },
     prewarmMaterial: (id, veneer) => materials.prewarm(id, veneer),
     tickMaterials: (dt) => materials.tick(dt),

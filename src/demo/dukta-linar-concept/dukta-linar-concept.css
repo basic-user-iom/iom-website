@@ -1579,6 +1579,12 @@ body.linar-route a.iom-back {
   color: var(--linar-muted);
 }
 
+.linar-status--blocked {
+  color: #9b2f2f;
+  border-color: #9b2f2f;
+  font-weight: 700;
+}
+
 .linar-acc--tech {
   margin-top: 1rem;
 }

@@ -4,6 +4,15 @@ import {
   type SerpentinePathLookup,
 } from './serpentinePath'
 import type { LinarBendDirection, LinarConfig } from './types'
+import {
+  deriveIncisedSpanMetrics,
+  derivePatternCompatibleModule,
+  deriveSplitEdgeLamellaLayout,
+  bridgePhaseForGlobalColumn,
+  globalPatternColumnIndex,
+  resolveLinarPanelFormat,
+  type PatternCompatibleModule,
+} from './linarGeometry'
 
 /** 2800 × 1200 mm visualization/display panel. Bending is across the 1200 mm width. */
 export const PANEL_HEIGHT_M = 2.8
@@ -18,8 +27,8 @@ export const SAW_PATH_RADIUS_MM = 62.5
 export const REST_BEND = 0
 export const INTRO_PEAK_BEND = 55
 
-export const MAX_SLATS = 300
-export const MAX_BRIDGE_ROWS = 80
+export const MAX_SLATS = 360
+export const MAX_BRIDGE_ROWS = 100
 
 /** Visual-only cylinder when no physical sample exists. Never labelled as tested. */
 export const VISUAL_FALLBACK_RADIUS_MM = 180
@@ -40,7 +49,7 @@ export type BridgeSeg = {
   originalX: number
   localY: number
   height: number
-  /** Portion of the source 60 mm bridge profile retained after edge clipping. */
+  /** Portion of the resolved bridge profile retained after edge clipping. */
   profileStart: number
   profileEnd: number
   column: number
@@ -50,6 +59,11 @@ export type BridgeSeg = {
 export type PanelLayout = {
   slats: SlatSpec[]
   slatCount: number
+  panelWidthM: number
+  panelHeightM: number
+  module: PatternCompatibleModule
+  phaseRepeatColumns: number
+  usesSplitEdgeLamellae: boolean
   usedWidthM: number
   incisedWidthM: number
   incisedX0: number
@@ -80,6 +94,8 @@ export type BendState = {
   secondaryCurveAmount: number
   secondaryCurveRenderedTurnRad: number
   secondaryCurveSafetyLimited: boolean
+  /** Smallest local radius anywhere on the active rendered centreline. */
+  minimumLocalRadiusMm: number | null
   compoundCurve: SerpentinePathLookup | null
 }
 
@@ -131,22 +147,41 @@ export function slatLayout(config: LinarConfig): PanelLayout {
   const slatWidthM = mmToM(config.slatWidthMm)
   const cutWidthM = mmToM(config.cutWidthMm)
   const thicknessM = mmToM(config.thicknessMm)
-  const coverage = Math.min(12, Math.max(1, config.incisedTwelfths)) / 12
-  const requestedIncisedWidthM = PANEL_WIDTH_M * coverage
-  // Keep every incision cell at its true configured pitch. The visible span
-  // runs from the outside face of the first continuous slat to the outside
-  // face of the last, so N slats occupy N pitches minus one cut width. This
-  // makes the solid sides meet those boundary slats without a seam or void.
-  const maxCountForPanel = Math.floor((PANEL_WIDTH_M + cutWidthM) / pitchM)
-  const rawCount = Math.round((requestedIncisedWidthM + cutWidthM) / pitchM)
-  const slatCount = Math.max(8, Math.min(MAX_SLATS, rawCount))
-  const boundedSlatCount = Math.min(slatCount, maxCountForPanel)
-  const usedWidth = boundedSlatCount * pitchM - cutWidthM
-  const origin = -((boundedSlatCount - 1) * pitchM) / 2
+  const panelFormat = resolveLinarPanelFormat(config)
+  const module = derivePatternCompatibleModule(
+    panelFormat.targetUsableWidthMm,
+    config.cutWidthMm,
+    config.slatWidthMm,
+  )
+  const span = deriveIncisedSpanMetrics(
+    module,
+    config.cutWidthMm,
+    config.slatWidthMm,
+    config.incisedTwelfths,
+  )
+  const panelWidthM = mmToM(module.widthMm)
+  const panelHeightM = mmToM(panelFormat.renderHeightMm)
+  const boundedSlatCount = Math.min(MAX_SLATS, span.slatCount)
+  const usedWidth = mmToM(span.widthMm)
 
   const slats: SlatSpec[] = []
-  for (let i = 0; i < boundedSlatCount; i += 1) {
-    slats.push({ originalX: origin + i * pitchM, width: slatWidthM, index: i })
+  if (span.usesSplitEdgeLamellae) {
+    // Module edges bisect one continuous lamella. When two tangent-connected
+    // modules meet, their non-overlapping half lamellae form one normal-width
+    // slat and the following incision/bridge cell continues at the same phase.
+    const edgeLayout = deriveSplitEdgeLamellaLayout(module, config.slatWidthMm)
+    for (const lamella of edgeLayout.slice(0, boundedSlatCount)) {
+      slats.push({
+        originalX: mmToM(lamella.centreMm),
+        width: mmToM(lamella.widthMm),
+        index: lamella.index,
+      })
+    }
+  } else {
+    const origin = -((boundedSlatCount - 1) * pitchM) / 2
+    for (let i = 0; i < boundedSlatCount; i += 1) {
+      slats.push({ originalX: origin + i * pitchM, width: slatWidthM, index: i })
+    }
   }
 
   // Coverage is distributed across the panel width: the incised pattern is
@@ -155,14 +190,19 @@ export function slatLayout(config: LinarConfig): PanelLayout {
   const incisedWidthM = usedWidth
   const incisedX0 = -incisedWidthM * 0.5
   const incisedX1 = incisedWidthM * 0.5
-  const solidSideWidthM = Math.max(0, (PANEL_WIDTH_M - incisedWidthM) * 0.5)
-  const incisedHeightM = PANEL_HEIGHT_M
+  const solidSideWidthM = Math.max(0, (panelWidthM - incisedWidthM) * 0.5)
+  const incisedHeightM = panelHeightM
   const incisedY0 = 0
-  const incisedY1 = PANEL_HEIGHT_M
+  const incisedY1 = panelHeightM
 
   return {
     slats,
     slatCount: boundedSlatCount,
+    panelWidthM,
+    panelHeightM,
+    module,
+    phaseRepeatColumns: module.phaseRepeatColumns,
+    usesSplitEdgeLamellae: span.usesSplitEdgeLamellae,
     usedWidthM: usedWidth,
     incisedWidthM,
     incisedX0,
@@ -209,10 +249,11 @@ export function bridgeSegsFor(
     const originalX = (a.originalX + b.originalX) * 0.5
 
     // Adjacent bridge spines alternate between two exact phases. With the
-    // 100 mm reference (40 mm incision + 60 mm bridge), one column has a
-    // 60 mm central bridge while its neighbour has two clipped 30 mm bridge
-    // halves at the repeat boundaries. This reproduces the supplied diagram.
-    const regularPhase = (col % 2) * repeatM * 0.5
+    // In the 100 mm drawing reference (40 mm incision + 60 mm bridge), one
+    // column has a central bridge while its neighbour has two clipped halves
+    // at the repeat boundaries. Runtime lengths come from sample/CAD data.
+    const globalColumn = globalPatternColumnIndex(0, layout.module.columnCount, col)
+    const regularPhase = bridgePhaseForGlobalColumn(globalColumn) * repeatM * 0.5
     const phase = regularPhase
 
     for (let k = -1; k <= repeatCount; k += 1) {
@@ -228,7 +269,7 @@ export function bridgeSegsFor(
         localY: (start + end) * 0.5,
         height,
         // Retain the source-profile range so a boundary half remains a true
-        // half of the curved 60 mm bridge instead of a full lobe compressed
+        // half of the configured curved bridge instead of a full lobe compressed
         // into the clipped height.
         profileStart: Math.max(0, Math.min(1, (start - unclippedStart) / unclippedHeight)),
         profileEnd: Math.max(0, Math.min(1, (end - unclippedStart) / unclippedHeight)),
@@ -276,6 +317,7 @@ export function makeBendState(
       secondaryCurveAmount: clampedSecondaryCurveAmount,
       secondaryCurveRenderedTurnRad: 0,
       secondaryCurveSafetyLimited: false,
+      minimumLocalRadiusMm: null,
       compoundCurve: null,
     }
   }
@@ -328,6 +370,7 @@ export function makeBendState(
     secondaryCurveAmount: clampedSecondaryCurveAmount,
     secondaryCurveRenderedTurnRad: compoundCurve?.renderedBendAngleRad ?? 0,
     secondaryCurveSafetyLimited: compoundCurve?.visualSafetyLimited ?? false,
+    minimumLocalRadiusMm: compoundCurve?.minimumLocalRadiusMm ?? selectedRadiusMm,
     compoundCurve,
   }
 }

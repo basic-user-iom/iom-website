@@ -3,7 +3,11 @@ import { VISUAL_FALLBACK_RADIUS_MM } from './bendMath'
 import { JANUS_THICKNESS_NOTE, type LinarTech } from './linarData'
 import {
   LINAR_FELT_COLOURS,
+  LINAR_FELT_METADATA,
+  LINAR_FLEECE_COLOURS,
+  LINAR_FLEECE_METADATA,
   LINAR_MDF_COLOURS,
+  LINAR_MDF_VARIANTS,
   LINAR_PRESENTATION_LIMITS,
   type LinarColourOption,
 } from './materialData'
@@ -18,9 +22,11 @@ import {
   type LinarBacking,
   type LinarBendDirection,
   type LinarConfig,
+  type LinarFleeceColourId,
   type LinarFeltColourId,
   type LinarMaterialId,
   type LinarMdfColourId,
+  type LinarMdfVariant,
   type LinarVeneerId,
 } from './types'
 
@@ -31,6 +37,7 @@ type Props = {
   config: LinarConfig
   tech: LinarTech
   previewRadiusMm: number | null
+  minimumLocalRadiusMm: number | null
   secondaryCurveSafetyLimited: boolean
   onBendInput: (value: number) => void
   onSecondaryCurveInput: (value: number) => void
@@ -64,9 +71,9 @@ function SwatchGroup<T extends string>({
               key={item.id}
               type="button"
               className={active ? 'linar-swatch is-active' : 'linar-swatch'}
-              aria-label={`${item.label}. ${item.source}. Official code pending.`}
+              aria-label={`${item.label}${item.manufacturerCode ? `, code ${item.manufacturerCode}` : ''}. ${item.source}. ${item.isScreenApproximation ? 'Screen colour approximation.' : ''}`}
               aria-pressed={active}
-              title={`${item.label} · ${item.source} · official code pending`}
+              title={`${item.label}${item.manufacturerCode ? ` · ${item.manufacturerCode}` : ''} · ${item.source}${item.isScreenApproximation ? ' · screen approximation' : ''}`}
               style={{ '--linar-swatch': item.swatch } as CSSProperties}
               onClick={() => onChange(item.id)}
             >
@@ -270,6 +277,7 @@ export function LinarControls({
   config,
   tech,
   previewRadiusMm,
+  minimumLocalRadiusMm,
   secondaryCurveSafetyLimited,
   onBendInput,
   onSecondaryCurveInput,
@@ -290,10 +298,18 @@ export function LinarControls({
       : `${safeSecondaryCurveAmount} percent toward a continuous serpentine S curve`
   const secondaryCurveIsDormant =
     safeSecondaryCurveAmount > 0 && bendDirection === 'flat'
+  const secondaryCurveBelowReferenceMinimum =
+    safeSecondaryCurveAmount > 0 &&
+    bendDirection !== 'flat' &&
+    minimumLocalRadiusMm != null &&
+    tech.referenceMinimumRadiusMm != null &&
+    minimumLocalRadiusMm < tech.referenceMinimumRadiusMm - 0.05
   const referenceText =
     tech.referenceMinimumRadiusMm == null
       ? `The endpoint uses the existing ${VISUAL_FALLBACK_RADIUS_MM} mm visual reference and remains Not tested.`
-      : `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm physical-sample minimum.`
+      : tech.physicalEvidence === 'physical-sample'
+        ? `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm physical-sample minimum.`
+        : `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm ${tech.radiusAuthority.label.toLowerCase()}.`
 
   return (
     <div className="linar-controls">
@@ -373,6 +389,9 @@ export function LinarControls({
                       'linar-secondary-curve-description',
                       secondaryCurveIsDormant ? 'linar-secondary-curve-flat-status' : '',
                       secondaryCurveSafetyLimited ? 'linar-secondary-curve-safety-status' : '',
+                      secondaryCurveBelowReferenceMinimum
+                        ? 'linar-secondary-curve-reference-status'
+                        : '',
                     ]
                       .filter(Boolean)
                       .join(' ')
@@ -389,6 +408,16 @@ export function LinarControls({
                 proportions are a visual reference; the primary radius and open-area calculations
                 remain independent.
               </p>
+              {safeSecondaryCurveAmount > 0 && bendDirection !== 'flat' ? (
+                <p className="linar-secondary-curve__status" role="status" aria-live="polite">
+                  Minimum local radius:{' '}
+                  {minimumLocalRadiusMm == null
+                    ? 'Not available'
+                    : `${minimumLocalRadiusMm.toFixed(0)} mm`}
+                  . S-curve shown as a visual design study; feasibility must be confirmed with the
+                  responsible manufacturing partner.
+                </p>
+              ) : null}
               {secondaryCurveIsDormant ? (
                 <p
                   id="linar-secondary-curve-flat-status"
@@ -408,6 +437,19 @@ export function LinarControls({
                 >
                   Visual safety limit: the rendered S turn is moderated to prevent surface or
                   backing overlap at this partial coverage. Visual reference only; Not tested.
+                </p>
+              ) : null}
+              {secondaryCurveBelowReferenceMinimum ? (
+                <p
+                  id="linar-secondary-curve-reference-status"
+                  className="linar-secondary-curve__status"
+                  role="status"
+                  aria-live="polite"
+                >
+                  Reference overtravel: the rendered S curve reaches{' '}
+                  {minimumLocalRadiusMm?.toFixed(0) ?? 'Not available'} mm locally, below the{' '}
+                  {tech.referenceMinimumRadiusMm?.toFixed(0) ?? 'Not available'} mm chart minimum for the primary
+                  C-bend. Visual study only; do not treat this pose as approved or feasible.
                 </p>
               ) : null}
               <p id="linar-secondary-curve-description" className="linar-note">
@@ -434,17 +476,32 @@ export function LinarControls({
           <div data-tour-id="colours">
             {config.material === 'mdf' ? (
               <>
-                <SwatchGroup
-                  labelId="linar-mdf-colour-label"
-                  label="MDF colour reference"
-                  items={LINAR_MDF_COLOURS}
-                  value={config.mdfColour}
-                  onChange={(id: LinarMdfColourId) => onConfig({ mdfColour: id })}
+                <ChipGroup
+                  labelId="linar-mdf-variant-label"
+                  label="MDF type"
+                  items={LINAR_MDF_VARIANTS}
+                  value={config.mdfVariant}
+                  onChange={(id: LinarMdfVariant) => onConfig({ mdfVariant: id })}
                 />
-                <p className="linar-note">
-                  Photo-reference swatches only. Official manufacturer names, codes and digital
-                  colour values are still pending.
-                </p>
+                {config.mdfVariant === 'valchromat' ? (
+                  <>
+                    <SwatchGroup
+                      labelId="linar-mdf-colour-label"
+                      label="Valchromat colour"
+                      items={LINAR_MDF_COLOURS}
+                      value={config.mdfColour}
+                      onChange={(id: LinarMdfColourId) => onConfig({ mdfColour: id })}
+                    />
+                    <p className="linar-note">
+                      Names and codes follow the official Valchromat catalogue. On-screen colours
+                      are replaceable approximations, not colour-accurate production values.
+                    </p>
+                  </>
+                ) : (
+                  <p className="linar-note">
+                    MDF Natural uses a neutral through-coloured fibre-board appearance.
+                  </p>
+                )}
               </>
             ) : null}
             <ChipGroup
@@ -533,6 +590,12 @@ export function LinarControls({
             Coverage expands symmetrically from the panel centre. The remaining left and right
             areas stay solid and unincised.
           </p>
+          {tech.feasibility === 'blocked' ? (
+            <p className="linar-secondary-curve__status" role="alert">
+              Not recommended. {tech.blockedReason} Change the material, thickness, cut width or
+              lamella width before using the result as a valid configuration.
+            </p>
+          ) : null}
         </div>
       </details>
 
@@ -558,15 +621,15 @@ export function LinarControls({
             <>
               <SegmentedGroup
                 labelId="linar-backlight-label"
-                label="Rear illumination"
+                label="Concept rear-light study"
                 items={LINAR_BACKLIGHT_MODES.map((item) => ({
                   ...item,
-                  disabled: item.id === 'on' && config.backing !== 'none',
+                  disabled: item.id === 'on' && config.backing === 'felt',
                 }))}
                 value={config.backlightMode}
                 dataTourId="backlight"
                 descriptionId={
-                  config.backing === 'none'
+                  config.backing !== 'felt'
                     ? 'linar-backlight-description'
                     : 'linar-backlight-description linar-backlight-backing-status'
                 }
@@ -585,25 +648,26 @@ export function LinarControls({
                 />
               ) : null}
               <p className="linar-note" id="linar-backlight-description">
-                Warm diffuse visual preview only. Diffuser construction, cavity depth, output,
-                thermal/fire performance and mounting are not specified · Not tested. Shown in
-                room-facing front and side views; hidden in Top shape and Back inspection views.
+                Conceptual, non-photometric study outside the current technical product scope.
+                Diffuser construction, cavity depth, electrical output, thermal/fire performance
+                and mounting are not specified - Not tested. Shown in room-facing front and side
+                views; hidden in Top shape and Back inspection views.
               </p>
-              {config.backing !== 'none' ? (
+              {config.backing === 'felt' ? (
                 <p
                   className="linar-note"
                   id="linar-backlight-backing-status"
                   role="status"
                   aria-live="polite"
                 >
-                  Rear illumination is off because the selected backing is treated as opaque.
-                  Choose None to inspect preview illumination through the real LINAR openings.
+                  Rear illumination is off because wool felt is opaque. Choose None or acoustic
+                  fleece to inspect a visual transmission study through the LINAR openings.
                 </p>
               ) : null}
             </>
           ) : (
             <p className="linar-note">
-              Rear illumination preview is available in Wall and Ceiling applications.
+              The conceptual rear-light study is available in Wall and Ceiling applications.
             </p>
           )}
           {config.backing === 'felt' ? (
@@ -616,8 +680,28 @@ export function LinarControls({
                 onChange={(id: LinarFeltColourId) => onConfig({ feltColour: id })}
               />
               <p className="linar-note">
-                Red is based on the supplied LINAR photograph. The remaining swatches are
-                development previews; official felt names and codes are pending.
+                Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–
+                {LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed range. The renderer uses a
+                {` ${LINAR_FELT_METADATA.representativeVisualThicknessMm} mm`} representative
+                layer. Swatches are screen approximations.
+              </p>
+            </>
+          ) : null}
+          {config.backing === 'acoustic-fleece' ? (
+            <>
+              <SwatchGroup
+                labelId="linar-fleece-colour-label"
+                label="Acoustic fleece"
+                items={LINAR_FLEECE_COLOURS}
+                value={config.fleeceColour}
+                onChange={(id: LinarFleeceColourId) => onConfig({ fleeceColour: id })}
+              />
+              <p className="linar-note">
+                {LINAR_FLEECE_METADATA.thicknessRangeMm[0]}–
+                {LINAR_FLEECE_METADATA.thicknessRangeMm[1]} mm confirmed range; the renderer uses
+                {` ${LINAR_FLEECE_METADATA.representativeVisualThicknessMm} mm`}. Translucent uses
+                an approximate 80% visual reference, not a certified optical value. Black and
+                white transmission remain visual assumptions.
               </p>
             </>
           ) : null}
@@ -628,16 +712,18 @@ export function LinarControls({
             min={LINAR_PRESENTATION_LIMITS.minimumPanelCount}
             max={LINAR_PRESENTATION_LIMITS.maximumPanelCount}
             step={1}
-            display={`${config.panelCount} ${config.panelCount === 1 ? 'panel' : 'panels'}`}
+            display={`${config.panelCount} ${config.panelCount === 1 ? 'module' : 'modules'}`}
             dataTourId="repetition"
             onChange={(value) => onConfig({ panelCount: value })}
           />
           <p className="linar-note">
             Application, backing and repetition change the presentation only. They do not change
-            the LINAR open-area or single-panel radius/status calculations. Repeated modules remain
-            in one tangent-connected horizontal row; the selected visual turn is distributed over
-            the complete installation so modules do not loop or overlap. The current 1–4 range is
-            a development/performance presentation limit, not a commercial maximum.
+            the LINAR open-area or single-module radius/status calculations. Repeated trimmed
+            modules remain in one tangent-connected row and use a phase-compatible pattern width;
+            no shipping/cutting frame is inserted at a seam. The selected visual turn is
+            distributed over the complete installation so modules do not loop or overlap. The
+            current 1–4 range is the selected visual-configurator range for this version, not a
+            manufacturing maximum.
           </p>
         </div>
       </details>

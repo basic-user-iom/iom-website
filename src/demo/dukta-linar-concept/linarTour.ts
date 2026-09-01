@@ -61,7 +61,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Radius in millimetres',
     description:
-      'The preview radius follows the selected material and geometry. Unsupported combinations remain explicitly Not tested.',
+      'The preview radius follows the selected material and geometry. Production classification, physical evidence and feasibility remain separate, and unsupported combinations stay explicitly Not tested.',
     target: 'radius',
     durationMs: 0,
     view: 'bent',
@@ -71,21 +71,21 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     config: {},
   },
   {
-    title: 'Continuous S-curve',
+    title: 'S-curve visual study',
     description:
-      'Counter-curvature grows smoothly from the main bend. It is a visual reference where measured manufacturing limits are unavailable.',
+      'Counter-curvature grows smoothly from the main bend as a visual design study, not an approved manufactured configuration. Technical data reports the minimum local radius along the active curve; an unavailable reference remains Not tested.',
     target: 's-curve',
     durationMs: 0,
     view: 'top',
     side: 'front',
     bend: -76,
     secondaryCurveAmount: 88,
-    config: {},
+    config: { backing: 'none', backlightMode: 'off' },
   },
   {
     title: 'Incision and active area',
     description:
-      'Incision length, cut width, lamella width and centred coverage define the real openings and local bridge cycle.',
+      'Incision length, cut width, lamella width and centred coverage define the real openings and local bridge cycle. Official treatment of partial pitch cells at a selected boundary remains under client review.',
     target: 'incision',
     durationMs: 0,
     view: 'closeup',
@@ -97,7 +97,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Base materials and veneers',
     description:
-      'MDF, birch plywood and three-layer spruce share the LINAR geometry; optional veneer changes appearance without inventing radius data.',
+      'MDF, birch plywood and three-layer spruce share the LINAR geometry. One optional veneer choice is shown on both faces for simplicity and changes appearance without inventing radius data.',
     target: 'materials',
     durationMs: 0,
     view: 'closeup',
@@ -107,9 +107,9 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     config: { material: 'plywood', veneer: 'oak', thicknessMm: 9, incisionLengthMm: 40 },
   },
   {
-    title: 'Defined colour references',
+    title: 'MDF and backing palettes',
     description:
-      'MDF and felt use bounded catalogue choices. Temporary references remain labelled until official names and codes are supplied.',
+      'MDF Natural and Valchromat are distinct board appearances. This restrained Grey Valchromat screen approximation is paired with translucent acoustic fleece; its transmission is visual, not certified, while wool felt is opaque.',
     target: 'colours',
     durationMs: 0,
     view: 'closeup',
@@ -119,16 +119,23 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     config: {
       material: 'mdf',
       veneer: 'none',
-      mdfColour: 'reference-04',
-      application: 'freestanding',
-      backing: 'felt',
+      mdfVariant: 'valchromat',
+      mdfColour: 'grey',
+      thicknessMm: 9,
+      incisionLengthMm: 40,
+      cutWidthMm: 4,
+      slatWidthMm: 4,
+      application: 'wall',
+      backing: 'acoustic-fleece',
+      fleeceColour: 'translucent',
       backlightMode: 'off',
+      panelCount: 1,
     },
   },
   {
     title: 'Rear backlight only',
     description:
-      'On the ceiling, the movable orb is off while diffuse rear illumination alone reveals the real apertures without changing technical calculations.',
+      'On the ceiling, the movable orb is off while diffuse rear illumination reveals the real apertures. A simplified coherent support grid anchors the installation without claiming a certified mounting detail.',
     target: 'backlight',
     durationMs: 0,
     view: 'hero',
@@ -145,9 +152,9 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     light: { ...DEFAULT_LINAR_LIGHT },
   },
   {
-    title: 'Horizontal repetition',
+    title: 'Selected 1–4 panel range',
     description:
-      'Repeated modules inherit the same state and continue edge-to-edge in one horizontal installation row.',
+      'Four panels demonstrate the selected visual-configurator range, not a manufacturing maximum. Pattern phase continues across seams and one simplified wall support grid spans the complete installation.',
     target: 'repetition',
     durationMs: 0,
     view: 'bent',
@@ -155,10 +162,10 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
     bend: 38,
     secondaryCurveAmount: 0,
     config: {
-      application: 'freestanding',
+      application: 'wall',
       backing: 'none',
       backlightMode: 'off',
-      panelCount: 3,
+      panelCount: 4,
     },
     light: { ...DEFAULT_LINAR_LIGHT },
   },
@@ -185,7 +192,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Technical status',
     description:
-      'Open area, radius and cutting depth distinguish validated samples, geometric estimates and unavailable manufacturing data.',
+      'Technical results distinguish production classification, physical evidence and feasibility from geometric estimates. Effective dimensions, material availability and values still require manufacturer confirmation.',
     target: 'technical-data',
     durationMs: 0,
     view: 'hero',
@@ -203,7 +210,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Share this selection',
     description:
-      'The wall study now combines diffuse rear illumination with the movable orb behind the panel. Share preserves both independent sources and their placement in one validated URL.',
+      'The wall study combines diffuse rear illumination with the movable orb behind an unbacked panel. Share preserves material, backing, the selected 1–4 panel count and both light sources in one versioned URL; restored technical feasibility is checked again.',
     target: 'share',
     durationMs: 0,
     view: 'hero',
@@ -222,7 +229,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Reset and return',
     description:
-      'Reset returns to one flat front-facing panel, the default material, freestanding context and default light position.',
+      'Reset returns to one flat front-facing panel, the default material, freestanding context and light position. Stored MDF and backing choices return safely to MDF Natural and None.',
     target: 'reset',
     durationMs: 0,
     view: 'hero',

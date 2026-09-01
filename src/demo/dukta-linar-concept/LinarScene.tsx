@@ -13,7 +13,12 @@ import {
 } from './bendMath'
 import { createLinarPanel } from './LinarPanel'
 import type { LinarTech } from './linarData'
-import { clampLinarPanelCount } from './materialData'
+import { backingVisualProfile, clampLinarPanelCount } from './materialData'
+import {
+  createLinarSupportGrid,
+  SUPPORT_GRID_REFERENCE,
+  type SupportPathPoint,
+} from './supportGrid'
 import {
   DEFAULT_LINAR_LIGHT,
   type LinarApplication,
@@ -298,6 +303,9 @@ type PlanBounds = {
   minZ: number
   maxZ: number
   heightM: number
+  seamXM: readonly number[]
+  supportPathXZ: readonly SupportPathPoint[]
+  seamPathDistancesM: readonly number[]
 }
 
 type PanelPlacement = {
@@ -324,6 +332,7 @@ type ViewPlacement = {
 
 const planPose = { x: 0, z: 0, rotY: 0 }
 const TOP_VIEW_PERSPECTIVE_SCALE = 10
+const SUPPORT_PATH_SAMPLES_PER_PANEL = 56
 
 function clampedPanelCount(value: number): number {
   return clampLinarPanelCount(value)
@@ -342,6 +351,7 @@ function installationPanelBend(
   panelCount: number,
   referenceRadiusMm: number | null,
   bendableWidthM: number,
+  panelWidthM = PANEL_WIDTH_M,
 ): number {
   const count = clampedPanelCount(panelCount)
   if (count === 1 || Math.abs(bend) < 0.000001) return bend
@@ -355,7 +365,7 @@ function installationPanelBend(
   const direction = Math.sign(bend)
   const requestedState = makeBendState(
     bend,
-    PANEL_WIDTH_M,
+    panelWidthM,
     referenceRadiusMm,
     bendableWidthM,
   )
@@ -366,7 +376,7 @@ function installationPanelBend(
     const candidate = (low + high) * 0.5
     const candidateAngle = makeBendState(
       candidate * direction,
-      PANEL_WIDTH_M,
+      panelWidthM,
       referenceRadiusMm,
       bendableWidthM,
     ).alpha
@@ -408,12 +418,13 @@ function rotatedPlanPoint(point: LocalPlanPose, rotY: number) {
 function panelPlacementsForState(
   panelCount: number,
   state: ReturnType<typeof makeBendState>,
+  panelWidthM = PANEL_WIDTH_M,
 ): PanelPlacement[] {
   const count = clampedPanelCount(panelCount)
   const left = { x: 0, z: 0, rotY: 0 }
   const right = { x: 0, z: 0, rotY: 0 }
-  curveElement(-PANEL_WIDTH_M * 0.5, state, PANEL_WIDTH_M, left)
-  curveElement(PANEL_WIDTH_M * 0.5, state, PANEL_WIDTH_M, right)
+  curveElement(-panelWidthM * 0.5, state, panelWidthM, left)
+  curveElement(panelWidthM * 0.5, state, panelWidthM, right)
   const tangentDelta = right.rotY - left.rotY
   const placements: PanelPlacement[] = [{ x: 0, y: 0, z: 0, rotY: 0 }]
 
@@ -437,8 +448,8 @@ function panelPlacementsForState(
   const sample = { x: 0, z: 0, rotY: 0 }
   for (const placement of placements) {
     for (let step = 0; step <= 64; step += 1) {
-      const originalX = -PANEL_WIDTH_M * 0.5 + (PANEL_WIDTH_M * step) / 64
-      curveElement(originalX, state, PANEL_WIDTH_M, sample)
+      const originalX = -panelWidthM * 0.5 + (panelWidthM * step) / 64
+      curveElement(originalX, state, panelWidthM, sample)
       const world = transformPlanPoint(sample.x, sample.z, placement)
       minX = Math.min(minX, world.x)
       maxX = Math.max(maxX, world.x)
@@ -489,16 +500,21 @@ function panelPlanBounds(
     config.panelCount,
     tech.referenceMinimumRadiusMm,
     layout.incisedWidthM,
+    layout.panelWidthM,
   )
   const state = makeBendState(
     effectiveBend,
-    PANEL_WIDTH_M,
+    layout.panelWidthM,
     tech.referenceMinimumRadiusMm,
     layout.incisedWidthM,
     secondaryCurveAmount,
     maxRenderedNormalOffsetM(layout.thicknessM, config.backing !== 'none'),
   )
-  const placements = panelPlacementsForState(config.panelCount, state)
+  const placements = panelPlacementsForState(
+    config.panelCount,
+    state,
+    layout.panelWidthM,
+  )
   let minX = Number.POSITIVE_INFINITY
   let maxX = Number.NEGATIVE_INFINITY
   let minZ = Number.POSITIVE_INFINITY
@@ -506,16 +522,46 @@ function panelPlanBounds(
   // The deformation is analytically smooth; 112 samples safely bound its
   // extrema while avoiding a second 320-point sweep on every animated frame.
   const samples = 112
+  const supportSampleStride = samples / SUPPORT_PATH_SAMPLES_PER_PANEL
+  const supportPathXZ: SupportPathPoint[] = []
+  const seamPathDistancesM: number[] = []
+  let pathDistanceM = 0
+  let previousPathPoint: { x: number; z: number } | null = null
 
-  for (const placement of placements) {
+  for (let panelIndex = 0; panelIndex < placements.length; panelIndex += 1) {
+    const placement = placements[panelIndex]
     for (let i = 0; i <= samples; i += 1) {
-      const originalX = -PANEL_WIDTH_M * 0.5 + PANEL_WIDTH_M * (i / samples)
-      curveElement(originalX, state, PANEL_WIDTH_M, planPose)
+      const originalX = -layout.panelWidthM * 0.5 + layout.panelWidthM * (i / samples)
+      curveElement(originalX, state, layout.panelWidthM, planPose)
       const point = transformPlanPoint(planPose.x, planPose.z, placement)
       minX = Math.min(minX, point.x)
       maxX = Math.max(maxX, point.x)
       minZ = Math.min(minZ, point.z)
       maxZ = Math.max(maxZ, point.z)
+      // Reuse every second bounds sample for the support profile instead of
+      // performing another curve sweep. PlanBounds itself is state-cached, so
+      // these profile samples are shared by support, camera and application QA.
+      if (
+        i % supportSampleStride === 0 &&
+        !(panelIndex > 0 && i === 0)
+      ) {
+        if (previousPathPoint) {
+          pathDistanceM += Math.hypot(
+            point.x - previousPathPoint.x,
+            point.z - previousPathPoint.z,
+          )
+        }
+        supportPathXZ.push({
+          x: point.x,
+          z: point.z,
+          rotY: planPose.rotY + placement.rotY,
+          distanceM: pathDistanceM,
+        })
+        previousPathPoint = point
+      }
+    }
+    if (panelIndex < placements.length - 1) {
+      seamPathDistancesM.push(pathDistanceM)
     }
   }
 
@@ -523,12 +569,27 @@ function panelPlanBounds(
     layout.thicknessM,
     config.backing !== 'none',
   )
+  const seamPose = { x: 0, z: 0, rotY: 0 }
+  curveElement(
+    layout.panelWidthM * 0.5,
+    state,
+    layout.panelWidthM,
+    seamPose,
+  )
+  const seamXM = placements.slice(0, -1).map((placement) =>
+    transformPlanPoint(seamPose.x, seamPose.z, placement).x,
+  )
+  // Distance is accumulated over the complete tangent-connected row, so a
+  // seam is one mandatory anchor rather than the start of another grid.
   return {
     minX: minX - normalOffsetM,
     maxX: maxX + normalOffsetM,
     minZ: minZ - normalOffsetM,
     maxZ: maxZ + normalOffsetM,
-    heightM: PANEL_HEIGHT_M,
+    heightM: layout.panelHeightM,
+    seamXM,
+    supportPathXZ,
+    seamPathDistancesM,
   }
 }
 
@@ -558,7 +619,7 @@ function geometryKey(config: LinarConfig, tech: LinarTech): string {
 }
 
 function appearanceKey(config: LinarConfig): string {
-  return `${config.material}:${config.veneer}:${config.mdfColour}:${config.backing}:${config.feltColour}`
+  return `${config.material}:${config.veneer}:${config.mdfVariant}:${config.mdfColour}:${config.backing}:${config.fleeceColour}:${config.feltColour}`
 }
 
 function easeInOut(t: number): number {
@@ -728,6 +789,7 @@ function viewPlacement(
   side: LinarSide,
   application: LinarApplication,
   planBounds?: PlanBounds,
+  panelCount = 1,
 ): ViewPlacement {
   const bounds = planBounds ?? {
     minX: -PANEL_WIDTH_M * 0.5,
@@ -735,6 +797,9 @@ function viewPlacement(
     minZ: -0.01,
     maxZ: 0.01,
     heightM: PANEL_HEIGHT_M,
+    seamXM: [],
+    supportPathXZ: [],
+    seamPathDistancesM: [],
   }
   const installationWidth = Math.max(
     bounds.maxX - bounds.minX,
@@ -911,7 +976,7 @@ function viewPlacement(
   if (id === 'side') {
     const compact = camera.aspect < 0.95
     const reveal = compact ? 0.22 : 0.13
-    const repeatedInstallation = installationWidth > PANEL_WIDTH_M + 0.001
+    const repeatedInstallation = clampedPanelCount(panelCount) > 1
     const dir = new THREE.Vector3(
       1,
       0.025,
@@ -982,10 +1047,18 @@ function applyView(
   application: LinarApplication,
   sceneBg: THREE.Color,
   planBounds?: PlanBounds,
+  panelCount = 1,
 ) {
   camera.aspect = Math.max(width / Math.max(height, 1), 0.2)
   camera.updateProjectionMatrix()
-  const place = viewPlacement(preset, camera, side, application, planBounds)
+  const place = viewPlacement(
+    preset,
+    camera,
+    side,
+    application,
+    planBounds,
+    panelCount,
+  )
   const damping = controls.enableDamping
   controls.enableDamping = false
   setApplicationOrbitLimits(controls, preset, application)
@@ -1089,9 +1162,13 @@ export function LinarScene({
     }
 
     const initialOrbLightEnabled = lightStateRef.current.enabled
+    const initialBackingProfile = backingVisualProfile(
+      configRef.current.backing,
+      configRef.current.fleeceColour,
+    )
     const initialBacklightEnabled =
       configRef.current.application !== 'freestanding' &&
-      configRef.current.backing === 'none' &&
+      initialBackingProfile.lightTransmission > 0 &&
       configRef.current.backlightMode === 'on' &&
       viewPresetRef.current !== 'top' &&
       viewPresetRef.current !== 'reverse' &&
@@ -1217,9 +1294,15 @@ export function LinarScene({
       configRef.current.application === 'ceiling'
         ? CEILING_LIGHT_STUDY_KEY_INTENSITY
         : FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY
+    const initialOrbTransmission =
+      configRef.current.application !== 'freestanding' &&
+      lightStateRef.current.placement === 'behind'
+        ? initialBackingProfile.lightTransmission
+        : 1
     const initialLightStudyKeyIntensity =
       initialLightStudyBaseIntensity *
-      lightStudyIntensityFactor(lightStateRef.current.radius)
+      lightStudyIntensityFactor(lightStateRef.current.radius) *
+      initialOrbTransmission
     const key = new THREE.SpotLight(
       0xfff7e8,
       initialOrbLightEnabled
@@ -1504,6 +1587,12 @@ export function LinarScene({
     presentationRoot.name = 'LinarPresentationRoot'
     const installationRoot = new THREE.Group()
     installationRoot.name = 'LinarInstallation'
+    const supportGrid = createLinarSupportGrid()
+    // The host-side support shares the installation-wide path: planar for a
+    // flat panel, continuous profiled ribs for C/S curves. Both remain under
+    // presentationRoot so Wall and Ceiling use the same application transform
+    // and attachment plane; the support does not flip for side inspection.
+    presentationRoot.add(supportGrid.group)
     presentationRoot.add(installationRoot)
     const backlightSpill = new THREE.RectAreaLight(0xffc77a, 0, 1, 1)
     backlightSpill.name = 'LinarBacklightRoomSpill'
@@ -1589,8 +1678,9 @@ export function LinarScene({
           arrangementConfig.panelCount,
           techRef.current.referenceMinimumRadiusMm,
           arrangementLayout.incisedWidthM,
+          arrangementLayout.panelWidthM,
         ),
-        PANEL_WIDTH_M,
+        arrangementLayout.panelWidthM,
         techRef.current.referenceMinimumRadiusMm,
         arrangementLayout.incisedWidthM,
         displayedSecondaryCurve,
@@ -1602,6 +1692,7 @@ export function LinarScene({
       const placements = panelPlacementsForState(
         arrangementConfig.panelCount,
         arrangementState,
+        arrangementLayout.panelWidthM,
       )
       for (let i = 0; i < panelRoots.length; i += 1) {
         const placement = placements[i] ?? placements[placements.length - 1]
@@ -1671,6 +1762,7 @@ export function LinarScene({
         configRef.current.panelCount,
         techRef.current.referenceMinimumRadiusMm,
         arrangementLayout.incisedWidthM,
+        arrangementLayout.panelWidthM,
       ),
       techRef.current.referenceMinimumRadiusMm,
       displayedSecondaryCurve,
@@ -1679,6 +1771,7 @@ export function LinarScene({
     panel.setMaterial(
       configRef.current.material,
       configRef.current.veneer,
+      configRef.current.mdfVariant,
       configRef.current.mdfColour,
       true,
     )
@@ -1720,7 +1813,10 @@ export function LinarScene({
       state: Pick<LinarLightState, 'placement'> = lightStateRef.current,
     ): LinarLightState['placement'] =>
       configRef.current.application !== 'freestanding' &&
-      configRef.current.backing === 'none' &&
+      backingVisualProfile(
+        configRef.current.backing,
+        configRef.current.fleeceColour,
+      ).lightTransmission > 0 &&
       state.placement === 'behind'
         ? 'behind'
         : 'room'
@@ -1731,6 +1827,10 @@ export function LinarScene({
 
     const backlightStrengthForState = () => {
       const activeConfig = configRef.current
+      const backingProfile = backingVisualProfile(
+        activeConfig.backing,
+        activeConfig.fleeceColour,
+      )
       const inspectionHidden =
         currentPreset === 'top' ||
         currentPreset === 'reverse' ||
@@ -1738,12 +1838,15 @@ export function LinarScene({
       if (
         inspectionHidden ||
         activeConfig.application === 'freestanding' ||
-        activeConfig.backing !== 'none' ||
+        backingProfile.lightTransmission <= 0 ||
         activeConfig.backlightMode !== 'on'
       ) {
         return 0
       }
-      return THREE.MathUtils.clamp(activeConfig.backlightIntensity / 100, 0.1, 1)
+      return (
+        THREE.MathUtils.clamp(activeConfig.backlightIntensity / 100, 0.1, 1) *
+        backingProfile.lightTransmission
+      )
     }
 
     const setPresentationTarget = (immediate = false) => {
@@ -1851,11 +1954,23 @@ export function LinarScene({
         // normal. Rotating the same physical installation for Back inspection
         // swaps the relevant extremum without moving the architectural plane.
         const facingMinZ = inspectionFlip ? -bounds.maxZ : bounds.minZ
-        const clearance = applicationFrame(application).installationClearanceM
+        const clearance =
+          applicationFrame(application).installationClearanceM +
+          SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
         installationRoot.position.z = clearance - facingMinZ
       }
 
       const extentX = Math.max(0.1, bounds.maxX - bounds.minX)
+      supportGrid.update({
+        application,
+        panelCount: configRef.current.panelCount,
+        bounds,
+      })
+      // Wool felt is confirmed opaque, so the host-side lattice cannot be
+      // inspected through it. Skip both support-grid draw calls and their
+      // shadow work in that state; fleece remains visible according to its
+      // transparent material approximation.
+      supportGrid.group.visible = application !== 'freestanding' && configRef.current.backing !== 'felt'
       backlightSpill.position.set(
         (bounds.minX + bounds.maxX) * 0.5,
         bounds.heightM * 0.5,
@@ -2408,6 +2523,7 @@ export function LinarScene({
         configRef.current.application,
         scene.background as THREE.Color,
         planBounds,
+        configRef.current.panelCount,
       )
       studioBackground.copy(scene.background as THREE.Color)
       if (lightStateRef.current.enabled) {
@@ -2453,6 +2569,7 @@ export function LinarScene({
         sideRef.current,
         configRef.current.application,
         planBounds,
+        configRef.current.panelCount,
       )
       if (
         cinematicActiveRef.current &&
@@ -2467,6 +2584,7 @@ export function LinarScene({
           sideRef.current,
           configRef.current.application,
           planBounds,
+          configRef.current.panelCount,
         )
         if (currentPreset === 'closeup') {
           placement.dist = Math.max(3.8, cinematicHero.dist * 0.62)
@@ -2503,6 +2621,7 @@ export function LinarScene({
           configRef.current.application,
           scene.background as THREE.Color,
           planBounds,
+          configRef.current.panelCount,
         )
         studioBackground.copy(scene.background as THREE.Color)
         if (lightStateRef.current.enabled) {
@@ -2715,6 +2834,7 @@ export function LinarScene({
             configRef.current.panelCount,
             techRef.current.referenceMinimumRadiusMm,
             arrangementLayout.incisedWidthM,
+            arrangementLayout.panelWidthM,
           ),
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
@@ -2746,6 +2866,7 @@ export function LinarScene({
             configRef.current.panelCount,
             techRef.current.referenceMinimumRadiusMm,
             arrangementLayout.incisedWidthM,
+            arrangementLayout.panelWidthM,
           ),
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
@@ -2760,9 +2881,14 @@ export function LinarScene({
         panel.setMaterial(
           configRef.current.material,
           configRef.current.veneer,
+          configRef.current.mdfVariant,
           configRef.current.mdfColour,
         )
-        panel.setBacking(configRef.current.backing, configRef.current.feltColour)
+        panel.setBacking(
+          configRef.current.backing,
+          configRef.current.fleeceColour,
+          configRef.current.feltColour,
+        )
         // Replica meshes copy per-object visibility. Re-sync after backing
         // changes so every repeated module blocks or reveals the apertures
         // consistently, not only the source panel.
@@ -2874,6 +3000,7 @@ export function LinarScene({
             configRef.current.panelCount,
             techRef.current.referenceMinimumRadiusMm,
             arrangementLayout.incisedWidthM,
+            arrangementLayout.panelWidthM,
           ),
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
@@ -3004,8 +3131,15 @@ export function LinarScene({
         configRef.current.application === 'ceiling'
           ? CEILING_LIGHT_STUDY_KEY_INTENSITY
           : FLOOR_WALL_LIGHT_STUDY_KEY_INTENSITY
+      const activeOrbTransmission =
+        activeKeyPlacement === 'behind'
+          ? backingVisualProfile(
+              configRef.current.backing,
+              configRef.current.fleeceColour,
+            ).lightTransmission
+          : 1
       const targetKeyIntensity = orbLightEnabled
-        ? lightStudyBaseIntensity * lightRadiusIntensityFactor
+        ? lightStudyBaseIntensity * lightRadiusIntensityFactor * activeOrbTransmission
         : backlightEnabled
           ? 0
           : STUDIO_KEY_INTENSITY
@@ -3536,6 +3670,7 @@ export function LinarScene({
       controls.dispose()
       clearPanelReplicas()
       panel.dispose()
+      supportGrid.dispose()
       shadowReceiverGeometry.dispose()
       shadowReceiverMaterial.dispose()
       lightStudyReceiverMaterial.dispose()

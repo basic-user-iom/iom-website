@@ -8,6 +8,8 @@ export type SerpentinePathLookup = {
   requestedBendAngleRad: number
   renderedBendAngleRad: number
   visualSafetyLimited: boolean
+  /** Smallest local radius of the authored centreline, in millimetres. */
+  minimumLocalRadiusMm: number | null
 }
 
 type SerpentinePathOptions = {
@@ -22,6 +24,7 @@ type SerpentinePathOptions = {
 }
 
 const SERPENTINE_PATH_STEPS = 600
+const CURVATURE_EPSILON_PER_M = 1e-9
 // This is a render-stability margin, not manufacturing data. Keeping the
 // offset-curve Jacobian comfortably above zero prevents the visible panel
 // surface and optional backing from folding through their own centreline when
@@ -101,6 +104,111 @@ function serpentineTangentAt(
 }
 
 /**
+ * Exact peak curvature of the tangent field used to integrate the centreline.
+ *
+ * The lookup parameter is arc length, so planar centreline curvature is
+ * `|d theta / ds|`. The primary field contributes a constant `1 / radius`
+ * inside its active span. The S target contributes
+ * `turn * PI / width * sin(2 PI u)` inside its support. Progression blends
+ * those derivatives by the same smoothstep used for the rendered path.
+ *
+ * Each smooth interval is therefore a constant plus one sine. Its absolute
+ * maximum can occur only at an interval edge or at the sine extrema. Evaluating
+ * those finite candidates also retains the one-sided curvature at the C-bend's
+ * tangent-continuous joins, without finite-difference noise or sample-density
+ * dependence.
+ */
+function minimumLocalRadiusMmForTangentField({
+  panelWidthM,
+  activeWidthM,
+  serpentineWidthM,
+  radiusM,
+  progression,
+  renderedTurnRad,
+}: {
+  panelWidthM: number
+  activeWidthM: number
+  serpentineWidthM: number
+  radiusM: number
+  progression: number
+  renderedTurnRad: number
+}): number | null {
+  const panelWidth = Math.max(0, panelWidthM)
+  if (panelWidth <= 0) return null
+
+  const blend = smoothstep(progression)
+  const primaryWidth = Math.max(0, activeWidthM)
+  const primaryLeft = (panelWidth - primaryWidth) * 0.5
+  const primaryRight = primaryLeft + primaryWidth
+  const primaryCurvature =
+    primaryWidth > 0 ? (1 - blend) / Math.max(radiusM, 0.000001) : 0
+
+  const serpentineWidth = Math.max(0, Math.min(panelWidth, serpentineWidthM))
+  const serpentineLeft = (panelWidth - serpentineWidth) * 0.5
+  const serpentineRight = serpentineLeft + serpentineWidth
+  const serpentineCurvatureAmplitude =
+    serpentineWidth > 0
+      ? (blend * Math.max(0, renderedTurnRad) * Math.PI) / serpentineWidth
+      : 0
+
+  const breakpoints = [
+    0,
+    panelWidth,
+    Math.max(0, Math.min(panelWidth, primaryLeft)),
+    Math.max(0, Math.min(panelWidth, primaryRight)),
+    serpentineLeft,
+    serpentineRight,
+  ]
+    .sort((a, b) => a - b)
+    .filter((value, index, values) => index === 0 || value - values[index - 1] > 1e-12)
+
+  let maximumCurvature = 0
+  for (let intervalIndex = 0; intervalIndex < breakpoints.length - 1; intervalIndex += 1) {
+    const intervalStart = breakpoints[intervalIndex]
+    const intervalEnd = breakpoints[intervalIndex + 1]
+    if (intervalEnd - intervalStart <= 1e-12) continue
+
+    const midpoint = (intervalStart + intervalEnd) * 0.5
+    const hasPrimaryCurvature = midpoint > primaryLeft && midpoint < primaryRight
+    const hasSerpentineCurvature =
+      midpoint > serpentineLeft && midpoint < serpentineRight
+    const constantCurvature = hasPrimaryCurvature ? primaryCurvature : 0
+
+    const evaluate = (distanceM: number) => {
+      const serpentineCurvature = hasSerpentineCurvature
+        ? serpentineCurvatureAmplitude *
+          Math.sin((2 * Math.PI * (distanceM - serpentineLeft)) / serpentineWidth)
+        : 0
+      maximumCurvature = Math.max(
+        maximumCurvature,
+        Math.abs(constantCurvature + serpentineCurvature),
+      )
+    }
+
+    // These endpoint evaluations are the limits from within this smooth
+    // interval. That matters at the primary C-bend joins, where curvature has
+    // a finite step even though position and tangent remain continuous.
+    evaluate(intervalStart)
+    evaluate(intervalEnd)
+
+    if (hasSerpentineCurvature) {
+      const positivePeak = serpentineLeft + serpentineWidth * 0.25
+      const negativePeak = serpentineLeft + serpentineWidth * 0.75
+      if (positivePeak >= intervalStart && positivePeak <= intervalEnd) {
+        evaluate(positivePeak)
+      }
+      if (negativePeak >= intervalStart && negativePeak <= intervalEnd) {
+        evaluate(negativePeak)
+      }
+    }
+  }
+
+  return maximumCurvature > CURVATURE_EPSILON_PER_M
+    ? 1000 / maximumCurvature
+    : null
+}
+
+/**
  * Builds an arc-length centreline for the advanced S preview.
  *
  * Progression blends tangent fields rather than Cartesian points, so panel
@@ -131,6 +239,14 @@ export function makeSerpentinePathLookup({
     maxNormalOffsetM,
   )
   const visualSafetyLimited = renderedBendAngleRad < bendAngleRad - 0.000001
+  const minimumLocalRadiusMm = minimumLocalRadiusMmForTangentField({
+    panelWidthM,
+    activeWidthM,
+    serpentineWidthM: safeSerpentineWidthM,
+    radiusM,
+    progression,
+    renderedTurnRad: renderedBendAngleRad,
+  })
 
   const tangentAt = (u: number): number => {
     const primary = primaryTangentAt(
@@ -204,5 +320,6 @@ export function makeSerpentinePathLookup({
     requestedBendAngleRad: bendAngleRad,
     renderedBendAngleRad,
     visualSafetyLimited,
+    minimumLocalRadiusMm,
   }
 }

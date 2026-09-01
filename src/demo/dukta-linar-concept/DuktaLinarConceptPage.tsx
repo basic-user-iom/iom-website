@@ -5,7 +5,6 @@ import {
   unlockLinarDemo,
 } from './auth'
 import {
-  PANEL_WIDTH_M,
   REST_BEND,
   makeBendState,
   maxRenderedNormalOffsetM,
@@ -25,7 +24,6 @@ import {
   CONCEPT_DISCLAIMER,
   PARTNER_CONFIRMATION_NOTE,
   resolveLinarTech,
-  suggestedIncisionLengthMm,
 } from './linarData'
 import { buildLinarShareUrl, parseLinarShareState } from './shareState'
 import {
@@ -54,7 +52,6 @@ function isEmbeddedWindow(): boolean {
   }
 }
 
-const GEOM_KEYS: (keyof LinarConfig)[] = ['material', 'thicknessMm', 'cutWidthMm', 'slatWidthMm']
 const LINAR_MUSIC_URL = '/media/dukta-linar-bach-cello-suite-no1-prelude.mp3'
 const LINAR_MUSIC_START_SECONDS = 8
 const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
@@ -73,6 +70,10 @@ type LinarTourSnapshot = {
   side: LinarSide
   view: LinarViewId
   light: LinarLightState
+}
+
+function backingBlocksRearLight(backing: LinarConfig['backing']): boolean {
+  return backing === 'felt'
 }
 
 function cinematicWasSeen(): boolean {
@@ -235,7 +236,7 @@ export function DuktaLinarConceptPage() {
     () =>
       makeBendState(
         targetBend,
-        PANEL_WIDTH_M,
+        layout.panelWidthM,
         tech.referenceMinimumRadiusMm,
         layout.incisedWidthM,
         secondaryCurveAmount,
@@ -244,6 +245,7 @@ export function DuktaLinarConceptPage() {
     [
       config.backing,
       layout.incisedWidthM,
+      layout.panelWidthM,
       layout.thicknessM,
       secondaryCurveAmount,
       targetBend,
@@ -272,7 +274,7 @@ export function DuktaLinarConceptPage() {
     setTargetBend(step.bend)
     setSecondaryCurveAmount(step.secondaryCurveAmount)
     const nextConfig = { ...configRef.current, ...step.config }
-    if (nextConfig.application === 'freestanding' || nextConfig.backing !== 'none') {
+    if (nextConfig.application === 'freestanding' || backingBlocksRearLight(nextConfig.backing)) {
       nextConfig.backlightMode = 'off'
     }
     configRef.current = nextConfig
@@ -282,7 +284,7 @@ export function DuktaLinarConceptPage() {
     const nextLight = step.light
       ? { ...step.light }
       : { ...lightStateRef.current, enabled: false }
-    if (nextConfig.application === 'freestanding' || nextConfig.backing !== 'none') {
+    if (nextConfig.application === 'freestanding' || backingBlocksRearLight(nextConfig.backing)) {
       nextLight.placement = 'room'
     }
     lightStateRef.current = nextLight
@@ -741,7 +743,7 @@ export function DuktaLinarConceptPage() {
       const nextApplication = patch.application ?? configRef.current.application
       const nextBacking = patch.backing ?? configRef.current.backing
       if (
-        (nextApplication === 'freestanding' || nextBacking !== 'none') &&
+        (nextApplication === 'freestanding' || backingBlocksRearLight(nextBacking)) &&
         lightStateRef.current.placement !== 'room'
       ) {
         const nextLight = { ...lightStateRef.current, placement: 'room' as const }
@@ -754,24 +756,8 @@ export function DuktaLinarConceptPage() {
           10,
           Math.min(100, Math.round(next.backlightIntensity)),
         )
-        if (next.application === 'freestanding' || next.backing !== 'none') {
+        if (next.application === 'freestanding' || backingBlocksRearLight(next.backing)) {
           next.backlightMode = 'off'
-        }
-        const geomChanged = GEOM_KEYS.some(
-          (key) => patch[key] !== undefined && patch[key] !== prev[key],
-        )
-        if (geomChanged && patch.incisionLengthMm == null) {
-          // Follow another validated sample only when the current incision was
-          // already following its sample. A manually chosen/reference opening
-          // (including the supplied 40 mm visual cell) must not jump to a new
-          // length merely because material, thickness, cut, or slat width changed.
-          const previousSuggested = suggestedIncisionLengthMm({ ...prev, pattern: 'regular' })
-          const followsPreviousSample =
-            previousSuggested != null && prev.incisionLengthMm === previousSuggested
-          if (followsPreviousSample) {
-            const suggested = suggestedIncisionLengthMm({ ...next, pattern: 'regular' })
-            if (suggested != null) next.incisionLengthMm = suggested
-          }
         }
         return next
       })
@@ -801,7 +787,7 @@ export function DuktaLinarConceptPage() {
   const onLightChange = useCallback((next: LinarLightState) => {
     const placementAllowed =
       configRef.current.application !== 'freestanding' &&
-      configRef.current.backing === 'none'
+      !backingBlocksRearLight(configRef.current.backing)
     const safeNext = {
       ...next,
       placement: placementAllowed ? next.placement : ('room' as const),
@@ -952,7 +938,7 @@ export function DuktaLinarConceptPage() {
     markInteracted()
     setConfig((previous) => {
       const available =
-        previous.application !== 'freestanding' && previous.backing === 'none'
+        previous.application !== 'freestanding' && !backingBlocksRearLight(previous.backing)
       const next = {
         ...previous,
         backlightMode:
@@ -989,7 +975,7 @@ export function DuktaLinarConceptPage() {
   const setLightPlacement = useCallback((placement: LinarLightPlacement) => {
     const placementAllowed =
       configRef.current.application !== 'freestanding' &&
-      configRef.current.backing === 'none'
+      !backingBlocksRearLight(configRef.current.backing)
     const base = lightStateRef.current
     const next = {
       ...base,
@@ -1033,7 +1019,7 @@ export function DuktaLinarConceptPage() {
 
   const backlightVisible =
     config.application !== 'freestanding' &&
-    config.backing === 'none' &&
+    !backingBlocksRearLight(config.backing) &&
     config.backlightMode === 'on' &&
     side === 'front' &&
     viewPreset !== 'reverse' &&
@@ -1122,7 +1108,7 @@ export function DuktaLinarConceptPage() {
                   {lightState.enabled
                     ? lightState.placement === 'behind' &&
                       config.application !== 'freestanding' &&
-                      config.backing === 'none'
+                      !backingBlocksRearLight(config.backing)
                       ? `Drag the light orb behind the panel to orbit 360 degrees. Scroll over it or Shift-drag up/down for distance. Near recalls the balanced post-intro light angle and distance; direct distance control can move it closer. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
                           config.backlightMode === 'on'
                             ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
@@ -1288,6 +1274,7 @@ export function DuktaLinarConceptPage() {
               config={config}
               tech={tech}
               previewRadiusMm={currentBendState.selectedRadiusMm}
+              minimumLocalRadiusMm={currentBendState.minimumLocalRadiusMm}
               secondaryCurveSafetyLimited={currentBendState.secondaryCurveSafetyLimited}
               onBendInput={onBendInput}
               onSecondaryCurveInput={onSecondaryCurveInput}
@@ -1303,6 +1290,7 @@ export function DuktaLinarConceptPage() {
               selectedRadiusMm={currentBendState.selectedRadiusMm}
               bendDirection={currentBendState.direction}
               secondaryCurveAmount={secondaryCurveAmount}
+              minimumLocalRadiusMm={currentBendState.minimumLocalRadiusMm}
               secondaryCurveSafetyLimited={currentBendState.secondaryCurveSafetyLimited}
             />
 
