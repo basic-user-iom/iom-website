@@ -90,8 +90,11 @@ import {
 } from '../simulation/artificial';
 import {
   SPACECRAFT_DEFINITIONS,
+  getSpacecraftDefinition,
+  nearestSpacecraftCoverageJdTdb,
 } from '../simulation/spacecraft';
 import { FloatingOrigin } from '../simulation/core/FloatingOrigin';
+import { approximateTdbToDateUtc } from '../simulation/core/JulianDate';
 import {
   SimulationClock,
   type SimulationClockSnapshot,
@@ -262,7 +265,7 @@ const BODY_OPTIONS: readonly NavigatorBodyOption[] = Object.freeze(
 );
 
 const CATALOG_TARGETS: readonly NavigatorCatalogTarget[] = Object.freeze([
-  ...NATURAL_SATELLITE_DEFINITIONS.map((satellite) => Object.freeze({
+  ...NATURAL_SATELLITE_DEFINITIONS.filter((satellite) => satellite.id !== 'moon').map((satellite) => Object.freeze({
     id: satellite.id,
     displayName: satellite.name,
     kind: 'natural-satellite' as const,
@@ -1934,6 +1937,10 @@ export function AppShell() {
   const handleLegendBodyFocus = useCallback(
     (bodyId: ObservatoryBodyId) => {
       if (scenarioActive) return;
+      setSelectedNaturalSatelliteId(null);
+      setSelectedSpaceObjectId(null);
+      rendererRef.current?.selectNaturalSatellite(null);
+      rendererRef.current?.selectSpaceObject(null);
       controls.focusBody(bodyId);
     },
     [controls, scenarioActive],
@@ -1947,6 +1954,10 @@ export function AppShell() {
     if (target === undefined) return;
     updateCometsVisible(true);
     rendererRef.current?.setCometsVisible(true);
+    setSelectedNaturalSatelliteId(null);
+    setSelectedSpaceObjectId(null);
+    rendererRef.current?.selectNaturalSatellite(null);
+    rendererRef.current?.selectSpaceObject(null);
     controls.focusBody(target);
   }, [controls, scenarioActive, updateCometsVisible]);
 
@@ -2772,7 +2783,18 @@ export function AppShell() {
               asteroidBeltVisible={asteroidBeltVisible}
               kuiperBeltVisible={kuiperBeltVisible}
               disabled={controlsDisabled}
-              onSelectBody={(bodyId) => controls.focusBody(bodyId)}
+              onSelectBody={(bodyId) => {
+                setSelectedNaturalSatelliteId(null);
+                setSelectedSpaceObjectId(null);
+                rendererRef.current?.selectNaturalSatellite(null);
+                rendererRef.current?.selectSpaceObject(null);
+                const body = getObservatoryBodyDefinition(bodyId);
+                if (body?.kind === 'comet') {
+                  updateCometsVisible(true);
+                  rendererRef.current?.setCometsVisible(true);
+                }
+                controls.focusBody(bodyId);
+              }}
               onSelectCatalogTarget={(target) => {
                 const renderer = rendererRef.current;
                 if (target.kind === 'natural-satellite') {
@@ -2787,12 +2809,19 @@ export function AppShell() {
                     setMinorMoonsVisible(true);
                     renderer?.setMinorMoonsVisible(true);
                   }
+                  setSelectedSpaceObjectId(null);
+                  renderer?.selectSpaceObject(null);
                   setSelectedNaturalSatelliteId(target.id);
                   renderer?.selectNaturalSatellite(target.id);
                   if (isObservatoryBodyId(satellite.parentId)) controls.focusBody(satellite.parentId);
-                  window.setTimeout(() => rendererRef.current?.focusNaturalSatellite(target.id), 80);
+                  window.setTimeout(() => {
+                    rendererRef.current?.focusNaturalSatellite(target.id);
+                    runtimeRef.current?.renderNow();
+                  }, 80);
                   return;
                 }
+                setSelectedNaturalSatelliteId(null);
+                renderer?.selectNaturalSatellite(null);
                 setSpaceObjectsVisible(true);
                 renderer?.setSpaceObjectsVisible(true);
                 setSelectedSpaceObjectId(target.id);
@@ -2805,11 +2834,29 @@ export function AppShell() {
                     controls.setExactDateUtc(satellite.elementEpochUtc);
                   }
                   controls.focusBody('earth');
-                  window.setTimeout(() => rendererRef.current?.focusSpaceObject(target.id), 120);
+                  window.setTimeout(() => {
+                    rendererRef.current?.focusSpaceObject(target.id);
+                    runtimeRef.current?.renderNow();
+                  }, 120);
                 } else {
                   setSpacecraftVisible(true);
                   renderer?.setSpacecraftVisible(true);
-                  if (!renderer?.focusSpaceObject(target.id)) controls.focusBody('sun');
+                  const mission = getSpacecraftDefinition(target.id);
+                  const focusJdTdb = mission === undefined
+                    ? snapshot.currentJdTdb
+                    : nearestSpacecraftCoverageJdTdb(mission, snapshot.currentJdTdb);
+                  if (Math.abs(focusJdTdb - snapshot.currentJdTdb) > 1e-9) {
+                    controls.setExactDateUtc(approximateTdbToDateUtc(focusJdTdb).toISOString());
+                    controls.focusBody('sun');
+                    window.setTimeout(() => {
+                      rendererRef.current?.focusSpaceObject(target.id);
+                      runtimeRef.current?.renderNow();
+                    }, 120);
+                  } else if (!renderer?.focusSpaceObject(target.id)) {
+                    controls.focusBody('sun');
+                  } else {
+                    runtimeRef.current?.renderNow();
+                  }
                 }
               }}
               onOrbitLinesVisibleChange={controls.setOrbitLinesVisible}
@@ -2854,12 +2901,33 @@ export function AppShell() {
               onOrbitsVisibleChange={(visible) => setMoonOrbitsVisible(visible)}
               onLabelsVisibleChange={(visible) => setMoonLabelsVisible(visible)}
               onSelectSatellite={(id) => {
+                setSelectedSpaceObjectId(null);
+                rendererRef.current?.selectSpaceObject(null);
                 setSelectedNaturalSatelliteId(id);
                 rendererRef.current?.selectNaturalSatellite(id);
               }}
               onFocusSatellite={(id) => {
+                if (id === 'moon') {
+                  setSelectedNaturalSatelliteId(null);
+                  rendererRef.current?.selectNaturalSatellite(null);
+                  controls.focusBody('moon');
+                  return;
+                }
+                const satellite = getNaturalSatelliteDefinition(id);
+                setNaturalSatelliteVisible(true);
+                rendererRef.current?.setNaturalSatellitesVisible(true);
+                if (satellite?.tier === 'major') {
+                  setMajorMoonsVisible(true);
+                  rendererRef.current?.setMajorMoonsVisible(true);
+                } else {
+                  setMinorMoonsVisible(true);
+                  rendererRef.current?.setMinorMoonsVisible(true);
+                }
                 setSelectedNaturalSatelliteId(id);
-                rendererRef.current?.focusNaturalSatellite(id);
+                window.setTimeout(() => {
+                  rendererRef.current?.focusNaturalSatellite(id);
+                  runtimeRef.current?.renderNow();
+                }, 80);
               }}
               onFocusParent={(parentId) => {
                 if (isObservatoryBodyId(parentId)) controls.focusBody(parentId);
@@ -2876,17 +2944,41 @@ export function AppShell() {
               onEarthSatellitesVisibleChange={setEarthSatellitesVisible}
               onSpacecraftVisibleChange={setSpacecraftVisible}
               onSelectObject={(id) => {
+                setSelectedNaturalSatelliteId(null);
+                rendererRef.current?.selectNaturalSatellite(null);
                 setSelectedSpaceObjectId(id);
                 rendererRef.current?.selectSpaceObject(id);
               }}
               onFocusObject={(id) => {
+                setSpaceObjectsVisible(true);
+                rendererRef.current?.setSpaceObjectsVisible(true);
                 const satellite = getEarthSatelliteDefinition(id);
                 if (satellite !== undefined && sampleEarthSatellite(satellite, snapshot.currentJdTdb).dataAgeState === 'outside-hard-window') {
+                  setEarthSatellitesVisible(true);
+                  rendererRef.current?.setEarthSatellitesVisible(true);
                   controls.setExactDateUtc(satellite.elementEpochUtc);
-                  window.setTimeout(() => rendererRef.current?.focusSpaceObject(id), 120);
+                  window.setTimeout(() => {
+                    rendererRef.current?.focusSpaceObject(id);
+                    runtimeRef.current?.renderNow();
+                  }, 120);
                   return;
                 }
+                const mission = getSpacecraftDefinition(id);
+                if (mission !== undefined) {
+                  setSpacecraftVisible(true);
+                  rendererRef.current?.setSpacecraftVisible(true);
+                  const focusJdTdb = nearestSpacecraftCoverageJdTdb(mission, snapshot.currentJdTdb);
+                  if (Math.abs(focusJdTdb - snapshot.currentJdTdb) > 1e-9) {
+                    controls.setExactDateUtc(approximateTdbToDateUtc(focusJdTdb).toISOString());
+                    window.setTimeout(() => {
+                      rendererRef.current?.focusSpaceObject(id);
+                      runtimeRef.current?.renderNow();
+                    }, 120);
+                    return;
+                  }
+                }
                 rendererRef.current?.focusSpaceObject(id);
+                runtimeRef.current?.renderNow();
               }}
               onFocusEarth={() => controls.focusBody('earth')}
               onFocusSun={() => controls.focusBody('sun')}

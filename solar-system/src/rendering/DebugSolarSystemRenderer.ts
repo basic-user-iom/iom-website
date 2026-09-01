@@ -475,6 +475,7 @@ export class DebugSolarSystemRenderer {
 
     this.labelContainer = options.labelContainer ?? null;
     this.naturalSatelliteVisualSystem.setLabelContainer(this.labelContainer);
+    this.spaceObjectVisualSystem.setLabelContainer(this.labelContainer);
     this.selectionIndicator = this.createSelectionIndicator();
     this.updateExposurePreset(true);
     this.updateCanvasDiagnostics(false);
@@ -495,6 +496,12 @@ export class DebugSolarSystemRenderer {
     this.celestialBackground.updateCameraPosition(this.camera.position);
     this.updateScreenSpaceLabels();
     this.naturalSatelliteVisualSystem.updateLabels(
+      this.camera,
+      this.viewportWidth,
+      this.viewportHeight,
+      this.cameraController.status.closeUpPresetId !== null,
+    );
+    this.spaceObjectVisualSystem.updateLabels(
       this.camera,
       this.viewportWidth,
       this.viewportHeight,
@@ -1166,6 +1173,7 @@ export class DebugSolarSystemRenderer {
     const radius = this.naturalSatelliteVisualSystem.getSatelliteRenderRadius(id) ?? 0.0005;
     this.auxiliaryFocusRadiusRenderUnits = radius;
     const distance = Math.max(radius * 8.5, 0.003);
+    this.clippingController.reset();
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
     this.camera.position.set(position.x + distance * 0.72, position.y + distance * 0.4, position.z + distance);
@@ -1214,6 +1222,7 @@ export class DebugSolarSystemRenderer {
     const distance = focusDirection === null
       ? Math.max(renderRadius * 1.8, 0.00045)
       : Math.max(renderRadius * 3.5, 0.00065);
+    this.clippingController.reset();
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
     if (focusDirection === null) {
@@ -1864,17 +1873,24 @@ export class DebugSolarSystemRenderer {
     const blackHoleDiagnostics = this.blackHoleVisualSystem.getDiagnostics();
     const blackHoleFocus =
       this.blackHoleCameraFraming && blackHoleDiagnostics.active;
+    const auxiliaryFocus =
+      this.cameraController.mode === 'free-orbit' &&
+      this.auxiliaryFocusRadiusRenderUnits !== null;
     const overviewFocus =
       this.impactCameraPresetId === null && this.cameraController.mode === 'overview';
     const focusCenter =
       blackHoleFocus
         ? this.blackHoleVisualSystem.root.position
+        : auxiliaryFocus
+        ? this.controls.target
         : overviewFocus || marker === undefined
         ? this.mappedHeliocentricCenter
         : marker.root.position;
     const focusRadius =
       blackHoleFocus
         ? blackHoleDiagnostics.visualRadiusRenderUnits
+        : auxiliaryFocus
+        ? this.auxiliaryFocusRadiusRenderUnits ?? 0
         : overviewFocus || marker === undefined
         ? this.overviewRadiusRenderUnits
         : marker.cameraTarget.radiusRenderUnits;
@@ -2031,6 +2047,7 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.naturalSatelliteSelectedRenderRadius = naturalSatellites.selectedRenderRadius?.toExponential(6) ?? '';
     this.canvas.dataset.naturalSatelliteSelectedParentRenderRadius = naturalSatellites.selectedParentRenderRadius?.toExponential(6) ?? '';
     this.canvas.dataset.naturalSatelliteSelectedRadiusToParent = naturalSatellites.selectedRadiusToParent?.toFixed(6) ?? '';
+    this.canvas.dataset.naturalSatelliteSelectedOnScreen = String(naturalSatellites.selectedOnScreen);
     const spaceObjects = this.spaceObjectVisualSystem.getDiagnostics();
     this.canvas.dataset.spaceObjectsVisible = String(spaceObjects.visible);
     this.canvas.dataset.earthSatelliteCount = String(spaceObjects.earthSatelliteCount);
@@ -2039,6 +2056,7 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.spacecraftRenderedCount = String(spaceObjects.spacecraftRenderedCount);
     this.canvas.dataset.spaceObjectSelected = spaceObjects.selectedObjectId ?? '';
     this.canvas.dataset.spaceObjectTrajectoryPoints = String(spaceObjects.selectedTrajectoryPointCount);
+    this.canvas.dataset.spaceObjectSelectedOnScreen = String(spaceObjects.selectedOnScreen);
     this.canvas.dataset.spaceObjectPropagationExecution = spaceObjects.propagationExecution;
     this.canvas.dataset.issModelState = spaceObjects.issModelState;
     this.canvas.dataset.issModelAssetId = spaceObjects.issModelAssetId;

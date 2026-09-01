@@ -1592,6 +1592,24 @@ input[type="range"] {
   color: #fff;
 }
 
+.space-object-screen-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 195, 104, 0.76);
+  border-radius: 999px;
+  background: rgba(2, 8, 14, 0.86);
+  box-shadow: 0 0 14px rgba(255, 177, 74, 0.18);
+  color: #fff3dc;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0;
+  pointer-events: none;
+  white-space: nowrap;
+  will-change: transform, opacity;
+}
+
 .body-selection-indicator {
   position: absolute;
   top: 0;
@@ -1611,6 +1629,16 @@ input[type="range"] {
   position: absolute;
   content: "";
   background: var(--color-cyan);
+}
+
+.space-object-selection-indicator {
+  border-color: #ffbf67;
+  box-shadow: 0 0 16px rgba(255, 177, 74, 0.42);
+}
+
+.space-object-selection-indicator::before,
+.space-object-selection-indicator::after {
+  background: #ffbf67;
 }
 
 .body-selection-indicator::before {

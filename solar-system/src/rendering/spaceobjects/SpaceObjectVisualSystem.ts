@@ -15,6 +15,7 @@ import {
   MeshStandardMaterial,
   Texture,
   Vector3,
+  type Camera,
 } from 'three';
 
 import type { DebugRenderFrame, PhysicalPosition } from '../RenderContext';
@@ -44,6 +45,7 @@ export interface SpaceObjectVisualDiagnostics {
   readonly issModelAssetId: string;
   readonly issModelMeshCount: number;
   readonly issModelTriangleCount: number;
+  readonly selectedOnScreen: boolean;
 }
 
 const ZERO: PhysicalPosition = Object.freeze({ x: 0, y: 0, z: 0 });
@@ -86,6 +88,9 @@ export class SpaceObjectVisualSystem {
   private issModelRadiusMeters = 1;
   private issModelMeshCount = 0;
   private issModelTriangleCount = 0;
+  private selectionLabel: HTMLSpanElement | null = null;
+  private selectionIndicator: HTMLSpanElement | null = null;
+  private selectedOnScreen = false;
   private disposed = false;
 
   public constructor() {
@@ -132,6 +137,27 @@ export class SpaceObjectVisualSystem {
     this.root.visible = visible;
   }
 
+  public setLabelContainer(container: HTMLElement | null): void {
+    this.selectionLabel?.remove();
+    this.selectionIndicator?.remove();
+    this.selectionLabel = null;
+    this.selectionIndicator = null;
+    if (container === null) return;
+
+    const label = document.createElement('span');
+    label.className = 'space-object-screen-label';
+    label.setAttribute('aria-hidden', 'true');
+    container.append(label);
+    this.selectionLabel = label;
+
+    const indicator = document.createElement('span');
+    indicator.className = 'body-selection-indicator auxiliary-selection-indicator space-object-selection-indicator';
+    indicator.dataset.testid = 'selected-space-object-marker';
+    indicator.setAttribute('aria-hidden', 'true');
+    container.append(indicator);
+    this.selectionIndicator = indicator;
+  }
+
   public setEarthSatellitesVisible(visible: boolean): void {
     this.earthSatellitesVisible = visible;
   }
@@ -156,6 +182,48 @@ export class SpaceObjectVisualSystem {
   public getObjectFocusDirection(id: string): Vector3 | null {
     if (id !== ISS_MODEL_ASSET.objectId || this.issModelState !== 'ready') return null;
     return ISS_FOCUS_DIRECTION.clone().applyQuaternion(this.issModelAnchor.quaternion).normalize();
+  }
+
+  public updateLabels(
+    camera: Camera,
+    viewportWidth: number,
+    viewportHeight: number,
+    suppressed = false,
+  ): void {
+    const id = this.selectedObjectId;
+    const position = id === null ? undefined : this.worldPositions.get(id);
+    const earthSatelliteSelected = id !== null && EARTH_SATELLITE_DEFINITIONS.some((item) => item.id === id);
+    const categoryVisible = earthSatelliteSelected ? this.earthSatellitesVisible : this.spacecraftVisible;
+    if (suppressed || !this.visible || !categoryVisible || id === null || position === undefined) {
+      this.hideSelectionUi();
+      return;
+    }
+
+    const projected = position.clone().project(camera);
+    const onScreen = projected.z >= -1 && projected.z <= 1
+      && projected.x >= -1.05 && projected.x <= 1.05
+      && projected.y >= -1.05 && projected.y <= 1.05;
+    this.selectedOnScreen = onScreen;
+    if (!onScreen) {
+      this.hideSelectionUi(false);
+      return;
+    }
+    const x = (projected.x * 0.5 + 0.5) * viewportWidth;
+    const y = (-projected.y * 0.5 + 0.5) * viewportHeight;
+    const definition = EARTH_SATELLITE_DEFINITIONS.find((item) => item.id === id)
+      ?? SPACECRAFT_DEFINITIONS.find((item) => item.id === id);
+    if (this.selectionLabel !== null) {
+      this.selectionLabel.textContent = definition?.name ?? id;
+      this.selectionLabel.dataset.objectId = id;
+      this.selectionLabel.dataset.selected = 'true';
+      this.selectionLabel.style.opacity = '1';
+      this.selectionLabel.style.transform = `translate(${x + 15}px, ${y - 15}px)`;
+    }
+    if (this.selectionIndicator !== null) {
+      this.selectionIndicator.dataset.objectId = id;
+      this.selectionIndicator.style.opacity = '1';
+      this.selectionIndicator.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    }
   }
 
   public updateFrame(
@@ -192,9 +260,9 @@ export class SpaceObjectVisualSystem {
           z: state.positionEarthCenteredM.z * localScale,
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
-        const markerRadius = scaleModel.mode === 'presentation'
-          ? (this.selectedObjectId === satellite.id ? 0.00018 : 0.000065)
-          : 0.00000008;
+        const markerRadius = this.selectedObjectId === satellite.id
+          ? 0.00018
+          : scaleModel.mode === 'presentation' ? 0.000065 : 0.00000008;
         const useIssModel = index === ISS_INDEX && this.issModelState === 'ready';
         if (useIssModel) {
           this.hideInstance(this.earthSatelliteMesh, index);
@@ -267,6 +335,7 @@ export class SpaceObjectVisualSystem {
       issModelAssetId: ISS_MODEL_ASSET.assetId,
       issModelMeshCount: this.issModelMeshCount,
       issModelTriangleCount: this.issModelTriangleCount,
+      selectedOnScreen: this.selectedOnScreen,
     });
   }
 
@@ -285,9 +354,19 @@ export class SpaceObjectVisualSystem {
     });
     this.workerClient?.dispose();
     this.workerClient = null;
+    this.selectionLabel?.remove();
+    this.selectionIndicator?.remove();
+    this.selectionLabel = null;
+    this.selectionIndicator = null;
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.root.clear();
+  }
+
+  private hideSelectionUi(resetOnScreen = true): void {
+    if (resetOnScreen) this.selectedOnScreen = false;
+    if (this.selectionLabel !== null) this.selectionLabel.style.opacity = '0';
+    if (this.selectionIndicator !== null) this.selectionIndicator.style.opacity = '0';
   }
 
   private async requestIssModel(): Promise<void> {
