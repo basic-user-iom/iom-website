@@ -185,6 +185,17 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
         rings.outerRadiusKm / atmosphere.meanRadiusKm,
         12,
       );
+      if (bodyId === 'saturn') {
+        expect(visual.textureBindings.get('albedo')).toEqual([visual.surface.material]);
+        expect(visual.surface.material.fragmentShader).toContain(
+          'vec4 observedSample = texture2D(uMap, vUv)',
+        );
+        expect(visual.surface.material.fragmentShader).toContain(
+          'observedSample.a * 0.86',
+        );
+      } else {
+        expect(visual.textureBindings.size).toBe(0);
+      }
     }
 
     system.dispose();

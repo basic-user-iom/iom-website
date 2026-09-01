@@ -85,9 +85,10 @@ test('Saturn close-up exposes translucent optical-depth rings, shadows, and qual
   await expect(canvas).toHaveAttribute('data-ring-mesh-count', '1')
   await expect(canvas).toHaveAttribute('data-ring-shadow-enabled', 'true')
   await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'true')
+  await expect(canvas).toHaveAttribute('data-asset-state', 'ready', { timeout: 15_000 })
   await expect(canvas).toHaveAttribute(
     'data-visual-material',
-    /optical-depth rings and mutual shadows/i,
+    /Hubble OPAL 2025 color bands.*optical-depth rings and mutual shadows/i,
   )
   await expectCloseUpMarkerLayerHidden(page, 'saturn')
 

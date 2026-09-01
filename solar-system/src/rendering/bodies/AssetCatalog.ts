@@ -11,7 +11,15 @@ export type BodyTextureChannel =
 
 export interface BodyTextureAsset {
   readonly assetId: string;
-  readonly bodyId: 'sun' | 'mercury' | 'venus' | 'earth' | 'moon' | 'mars' | 'jupiter';
+  readonly bodyId:
+    | 'sun'
+    | 'mercury'
+    | 'venus'
+    | 'earth'
+    | 'moon'
+    | 'mars'
+    | 'jupiter'
+    | 'saturn';
   readonly channel: BodyTextureChannel;
   readonly file: string;
   readonly colorSpace: 'srgb' | 'linear';
@@ -133,6 +141,13 @@ export const BODY_TEXTURE_ASSETS: readonly BodyTextureAsset[] = Object.freeze([
     channel: 'grs-detail',
     file: `${PHASE_FIVE_ASSET_ROOT}jupiter-grs-junocam-detail.webp`,
     colorSpace: 'linear',
+  }),
+  Object.freeze({
+    assetId: 'saturn-hubble-opal-2025a-global-map',
+    bodyId: 'saturn',
+    channel: 'albedo',
+    file: `${PHASE_FIVE_ASSET_ROOT}saturn-opal-2025.webp`,
+    colorSpace: 'srgb',
   }),
 ]);
 

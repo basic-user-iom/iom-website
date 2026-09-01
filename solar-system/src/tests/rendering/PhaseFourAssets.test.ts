@@ -58,6 +58,7 @@ const EXPECTED_ASSET_CHANNELS = Object.freeze([
   'earth-modis-clouds-2k:earth:cloud',
   'jupiter-hubble-opal-2025a-global-map:jupiter:albedo',
   'jupiter-junocam-pia23606-grs-detail:jupiter:grs-detail',
+  'saturn-hubble-opal-2025a-global-map:saturn:albedo',
   'mars-mola-megdr-normal-2k:mars:normal',
   'mars-viking-mdim21-color-1k:mars:albedo',
   'mercury-messenger-dem-normal-2k:mercury:normal',
@@ -87,11 +88,11 @@ const DERIVED_2K_PNG_ASSET_IDS = new Set([
 
 describe('Phase 4 and 5 texture asset contract', () => {
   it('declares the exact unique asset/channel set and keeps data maps linear', () => {
-    expect(BODY_TEXTURE_ASSETS).toHaveLength(16);
-    expect(new Set(BODY_TEXTURE_ASSETS.map((asset) => asset.assetId)).size).toBe(16);
+    expect(BODY_TEXTURE_ASSETS).toHaveLength(17);
+    expect(new Set(BODY_TEXTURE_ASSETS.map((asset) => asset.assetId)).size).toBe(17);
     expect(
       new Set(BODY_TEXTURE_ASSETS.map((asset) => `${asset.bodyId}:${asset.channel}`)),
-    ).toHaveProperty('size', 16);
+    ).toHaveProperty('size', 17);
 
     const actualAssetChannels = BODY_TEXTURE_ASSETS.map(
       (asset) => `${asset.assetId}:${asset.bodyId}:${asset.channel}`,
@@ -112,12 +113,12 @@ describe('Phase 4 and 5 texture asset contract', () => {
     expect(existsSync(MANIFEST_FILE)).toBe(true);
     const manifest = JSON.parse(readFileSync(MANIFEST_FILE, 'utf8')) as SourceManifest;
     expect(Array.isArray(manifest.assets)).toBe(true);
-    expect(manifest.assets).toHaveLength(15);
+    expect(manifest.assets).toHaveLength(16);
 
     const manifestById = new Map(
       manifest.assets.map((asset) => [asset.asset_id, asset] as const),
     );
-    expect(manifestById.size).toBe(15);
+    expect(manifestById.size).toBe(16);
     expect([...manifestById.keys()].sort()).toEqual(
       phaseFourFiveAssets.map((asset) => asset.assetId).sort(),
     );

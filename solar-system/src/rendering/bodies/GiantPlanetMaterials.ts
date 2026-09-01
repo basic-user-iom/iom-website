@@ -496,9 +496,9 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     float bands = 0.5 + 0.5 * sin(latitude * bandFrequency + broadNoise * 3.2);
     float contrast = uPlanetKind < 0.5
       ? 0.78
-      : (uPlanetKind < 1.5 ? 0.18 : (uPlanetKind < 2.5 ? 0.24 : 0.48));
+      : (uPlanetKind < 1.5 ? 0.30 : (uPlanetKind < 2.5 ? 0.24 : 0.48));
     vec3 color = mix(uBaseColor, uZoneColor, mix(0.5, bands, contrast));
-    float fineStrength = uPlanetKind < 0.5 ? 0.09 : (uPlanetKind < 1.5 ? 0.035 : 0.055);
+    float fineStrength = uPlanetKind < 0.5 ? 0.09 : (uPlanetKind < 1.5 ? 0.045 : 0.055);
     color *= 0.88 + broadNoise * 0.18 +
       (fineNoise - 0.5) * (uQuality > 1.5 ? fineStrength : fineStrength * 0.4);
     if (uPlanetKind > 1.5 && uPlanetKind < 2.5) {
@@ -650,11 +650,20 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     vec3 procedural = proceduralBands(angles.y, angles.x, jetSpeed);
     vec3 albedo = procedural;
     if (uHasMap > 0.5) {
-      vec3 staticMap = cleanJupiterMap(vUv);
-      // OPAL has no reliable extreme-polar coverage. Fade only those latitudes
-      // to the deterministic atmosphere instead of displaying black map rows.
-      float observedCoverage = 1.0 - smoothstep(1.38, 1.5, abs(angles.y));
-      albedo = mix(procedural, staticMap, observedCoverage);
+      if (uPlanetKind < 0.5) {
+        vec3 staticMap = cleanJupiterMap(vUv);
+        // OPAL has no reliable extreme-polar coverage. Fade only those latitudes
+        // to the deterministic atmosphere instead of displaying black map rows.
+        float observedCoverage = 1.0 - smoothstep(1.38, 1.5, abs(angles.y));
+        albedo = mix(procedural, staticMap, observedCoverage);
+      } else if (uPlanetKind < 1.5) {
+        // OPAL Saturn coverage includes transparent rows where the poles, rings,
+        // or occulting bodies prevented a reliable color sample. Blend those
+        // rows into the procedural wind layer instead of painting source gaps.
+        vec4 observedSample = texture2D(uMap, vUv);
+        float observedCoverage = observedSample.a * 0.86;
+        albedo = mix(procedural, observedSample.rgb, observedCoverage);
+      }
     }
     albedo = applyGreatRedSpot(albedo, angles);
     albedo = applyDatedNeptuneStorm(albedo, angles);

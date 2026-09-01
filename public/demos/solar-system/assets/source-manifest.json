@@ -1,12 +1,13 @@
 {
   "schema_version": 2,
-  "retrieved": "2026-08-30",
+  "retrieved": "2026-09-01",
   "scope": "Phase 4 and Phase 5 runtime texture assets",
-  "transform_policy": "Seven source-image assets are byte-for-byte official NASA or USGS downloads with local renames only. Six PNG material maps and two lossless WebPs are deterministic project-generated derivatives. Mercury, Moon, and Mars normals come from quantitative elevation rasters; the three Earth material maps are visual heuristics derived from the bundled Blue Marble image and are not measured geophysical products. Phase 5 derives its Jupiter runtime map without resizing or recoloring from the official Hubble OPAL Cycle 32 Rotation A TIFF, then adds a disclosed mixed-date grayscale detail residual derived from NASA PIA23606; all jet, storm, and ring profiles are code/data inputs rather than raster assets.",
+  "transform_policy": "Seven source-image assets are byte-for-byte official NASA or USGS downloads with local renames only. Six PNG material maps and three lossless WebPs are deterministic project-generated derivatives. Mercury, Moon, and Mars normals come from quantitative elevation rasters; the three Earth material maps are visual heuristics derived from the bundled Blue Marble image and are not measured geophysical products. Phase 5 derives its Jupiter runtime map without resizing or recoloring from the official Hubble OPAL Cycle 32 Rotation A TIFF, adds a disclosed mixed-date grayscale detail residual derived from NASA PIA23606, and derives a coverage-aware Saturn map from the official Hubble OPAL Cycle 32 Rotation A TIFF; all jet, storm, and ring profiles are code/data inputs rather than raster assets.",
   "derived_asset_generators": [
     "scripts/generate-phase4-derived-maps.mjs",
     "scripts/generate-phase5-jupiter-map.mjs",
-    "scripts/generate-phase5-jupiter-grs-detail.mjs"
+    "scripts/generate-phase5-jupiter-grs-detail.mjs",
+    "scripts/generate-phase5-saturn-map.mjs"
   ],
   "policy_references": [
     "https://www.nasa.gov/nasa-brand-center/images-and-media/",
@@ -661,6 +662,62 @@
       "channel": {
         "role": "albedo",
         "semantics": "Dated Hubble WFC3/UVIS color composite mosaicked from observations acquired 2025-12-11/12. It is a cloud-map foundation, not live Jovian weather or a reconstruction at the selected simulation date."
+      }
+    },
+    {
+      "asset_id": "saturn-hubble-opal-2025a-global-map",
+      "body": "saturn",
+      "module": "giant-planet-visual-system/cloud-map-foundation",
+      "local_files": [
+        "phase5/saturn-opal-2025.webp"
+      ],
+      "source": {
+        "organization": "Space Telescope Science Institute Mikulski Archive for Space Telescopes; NASA/ESA Hubble Outer Planet Atmospheres Legacy program",
+        "title": "OPAL Saturn Cycle 32 Rotation A color global map, F395N/F502N/F631N",
+        "ref": "https://archive.stsci.edu/hlsp/opal/opal-saturn-cycle-32",
+        "download": "https://archive.stsci.edu/missions/hlsp/opal/cycle32/saturn/hlsp_opal_hst_wfc3-uvis_saturn-2025a_f395n-f502n-f631n_v1_globalmap.tif",
+        "checksum": {
+          "algorithm": "SHA-256",
+          "value": "c34a13a8253a39bcc1f8376b24c077b89f05ce0b5202706f535ded20314440d7"
+        },
+        "byte_length": 4885052,
+        "dimensions": {
+          "width": 1800,
+          "height": 900
+        },
+        "media_type": "image/tiff"
+      },
+      "retrieved": "2026-09-01",
+      "transforms": [
+        "Downloaded the official OPAL TIFF byte-for-byte from MAST.",
+        "Preserved the 1800 x 900 equirectangular projection and source composite color without cropping, resizing, or reprojection.",
+        "Encoded per-pixel coverage alpha with a smoothstep from source luma 24 to 72 so black no-data polar rows and the ring-obscured equatorial strip fall back to the continuous procedural atmosphere at runtime.",
+        "Clamped isolated source channels to plus or minus 18 code values around each valid row median to suppress transiting moons, moon shadows, and mosaic outliers disclosed by the OPAL readme, then encoded 8-bit RGBA pixels as lossless WebP with scripts/generate-phase5-saturn-map.mjs.",
+        "Runtime blends the observed sample at up to 86 percent strength over the project-authored Cassini-wind-driven layer; source gaps remain procedural and no missing coverage is fabricated."
+      ],
+      "license_note": "Credit NASA, ESA, STScI, and the Hubble OPAL team. NASA content generally is not subject to copyright in the United States and remains subject to NASA and MAST media/data policies; attribution does not imply endorsement.",
+      "checksum": {
+        "algorithm": "SHA-256",
+        "value": "42bf2ce013bf9d38fabe0fd09f84a23780ba6b00040b5eaa330ec0cbeb3d58ea"
+      },
+      "byte_length": 943130,
+      "dimensions": {
+        "width": 1800,
+        "height": 900
+      },
+      "media_type": "image/webp",
+      "color_space": {
+        "encoding": "8-bit four-component lossless WebP",
+        "runtime": "sRGB color with linear coverage alpha"
+      },
+      "projection": {
+        "type": "OPAL equirectangular global map at 5 pixels per degree",
+        "latitude": "full 180-degree raster; no-data polar and ring-obscured rows carry reduced or zero alpha and fall back to procedural haze",
+        "longitude": "full 360-degree System III west-longitude coverage, decreasing to the right"
+      },
+      "channel": {
+        "role": "albedo",
+        "semantics": "Dated Hubble WFC3/UVIS color composite mosaicked from Rotation A observations acquired 2025-08-29. It is a cloud-color foundation with disclosed coverage cleanup, not measured albedo, live Saturnian weather, or a reconstruction at the selected simulation date."
       }
     },
     {
