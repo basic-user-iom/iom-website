@@ -180,6 +180,34 @@ describe('CameraController', () => {
     expect(finalOffset.distanceTo(stableOffset)).toBeLessThan(1e-12);
   });
 
+  it('focuses every giant planet at a physical three-quarter phase angle', () => {
+    const sun = bodyTarget('sun', ORIGIN, ORIGIN);
+    for (const [index, bodyId] of ['jupiter', 'saturn', 'uranus', 'neptune'].entries()) {
+      const positionM = {
+        x: (5 + index * 5) * ASTRONOMICAL_UNIT_M,
+        y: (index - 1.5) * 0.2 * ASTRONOMICAL_UNIT_M,
+        z: index * 0.08 * ASTRONOMICAL_UNIT_M,
+      };
+      const giant = bodyTarget(bodyId, positionM, ORIGIN, 0.5);
+      const bodies = new Map<string, CameraBodyTarget>([['sun', sun], [bodyId, giant]]);
+      const controller = new CameraController();
+      controller.update(frame({ bodies, reducedMotion: true }));
+      controller.focusBody(bodyId);
+      controller.update(frame({ bodies, reducedMotion: true }));
+
+      const cameraDirection = controller.rig.position.clone()
+        .sub(controller.rig.target)
+        .normalize();
+      const sunDirection = new Vector3(
+        sun.positionM.x - positionM.x,
+        sun.positionM.z - positionM.z,
+        positionM.y - sun.positionM.y,
+      ).normalize();
+      const phaseAngleDeg = Math.acos(cameraDirection.dot(sunDirection)) * 180 / Math.PI;
+      expect(phaseAngleDeg).toBeCloseTo(52, 10);
+    }
+  });
+
   it('hands an in-flight damped pose to free orbit without a jump', () => {
     const bodies = new Map<string, CameraBodyTarget>([
       [

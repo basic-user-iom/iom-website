@@ -146,6 +146,12 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(jupiter.surface.material.fragmentShader).toContain(
       'albedo = applyGreatRedSpot(albedo, angles)',
     );
+    expect(jupiter.surface.material.fragmentShader).toContain(
+      'float terminator = smoothstep(-0.012, 0.012, solarCosine)',
+    );
+    expect(jupiter.surface.material.fragmentShader).toContain(
+      'albedo * (0.012 + direct * 0.988)',
+    );
     const jetTexture = uniformTexture(jupiter.surface.material, 'uJetProfile');
     expect(jetTexture.image).toMatchObject({ width: 256, height: 1 });
 

@@ -42,8 +42,11 @@ interface ResolvedCameraControllerOptions {
 }
 
 const ECLIPTIC_NORTH = new Vector3(0, 1, 0);
+const ECLIPTIC_REFERENCE = new Vector3(1, 0, 0);
 const TOP_DOWN_UP = new Vector3(0, 0, -1);
 const DEFAULT_FOCUS_DIRECTION = new Vector3(1, 0.42, 1).normalize();
+const GIANT_PLANET_IDS = new Set(['jupiter', 'saturn', 'uranus', 'neptune']);
+const GIANT_FOCUS_PHASE_ANGLE_RAD = 52 * Math.PI / 180;
 const HELIOCENTRIC_ORIGIN_M = Object.freeze({ x: 0, y: 0, z: 0 });
 const DEFAULT_OPTIONS: ResolvedCameraControllerOptions = Object.freeze({
   responseTimeSeconds: 0.22,
@@ -89,6 +92,8 @@ export class CameraController {
   private readonly desiredPosition = new Vector3();
   private readonly desiredTarget = new Vector3();
   private readonly focusDirection = DEFAULT_FOCUS_DIRECTION.clone();
+  private readonly sunwardDirection = new Vector3();
+  private readonly phaseTangent = new Vector3();
   private readonly chaseDirection = new Vector3(1, 0, 0);
   private readonly scratch = new Vector3();
   private readonly extentScratch = new Vector3();
@@ -361,6 +366,7 @@ export class CameraController {
       return;
     }
     this.prepareFocusDirection('body-follow');
+    this.applyGiantPlanetPhaseView(targetBody, frame);
     this.desiredPosition
       .copy(this.mappedBody)
       .addScaledVector(this.focusDirection, this.focusDistance(targetBody, frame));
@@ -519,6 +525,47 @@ export class CameraController {
         : DEFAULT_FOCUS_DIRECTION,
     );
     this.capturedFocusKey = key;
+  }
+
+  /**
+   * A Sun-facing camera hides the night hemisphere even though the lighting is
+   * physically correct. Initial giant-planet focus uses a real 52-degree phase
+   * angle so the terminator is legible; free orbit remains entirely user-led.
+   */
+  private applyGiantPlanetPhaseView(
+    targetBody: CameraBodyTarget,
+    frame: CameraUpdateFrame,
+  ): void {
+    if (!GIANT_PLANET_IDS.has(targetBody.bodyId)) return;
+    const sun = frame.bodies.get('sun');
+    if (sun === undefined || sun.visible === false) return;
+
+    this.sunwardDirection.set(
+      sun.positionM.x - targetBody.positionM.x,
+      sun.positionM.z - targetBody.positionM.z,
+      targetBody.positionM.y - sun.positionM.y,
+    );
+    if (this.sunwardDirection.lengthSq() <= 1e-20) return;
+    this.sunwardDirection.normalize();
+
+    this.phaseTangent
+      .copy(this.focusDirection)
+      .addScaledVector(
+        this.sunwardDirection,
+        -this.focusDirection.dot(this.sunwardDirection),
+      );
+    if (this.phaseTangent.lengthSq() <= 1e-12) {
+      this.phaseTangent.crossVectors(ECLIPTIC_NORTH, this.sunwardDirection);
+      if (this.phaseTangent.lengthSq() <= 1e-12) {
+        this.phaseTangent.crossVectors(ECLIPTIC_REFERENCE, this.sunwardDirection);
+      }
+    }
+    this.phaseTangent.normalize();
+    this.focusDirection
+      .copy(this.sunwardDirection)
+      .multiplyScalar(Math.cos(GIANT_FOCUS_PHASE_ANGLE_RAD))
+      .addScaledVector(this.phaseTangent, Math.sin(GIANT_FOCUS_PHASE_ANGLE_RAD))
+      .normalize();
   }
 
   private focusDistance(
