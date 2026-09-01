@@ -10,6 +10,7 @@ import {
 import {
   SPACECRAFT_DEFINITIONS,
   getSpacecraftDefinition,
+  nearestSpacecraftCoverageJdTdb,
   sampleSpacecraftTrajectory,
 } from '../../simulation/spacecraft';
 import { SpaceObjectWorkerRuntime } from '../../workers/space-objects';
@@ -84,11 +85,23 @@ describe('spacecraft trajectories', () => {
     expect(state.distanceFromSunM).toBeGreaterThan(0);
   });
 
+  it('provides a valid, visible framing instant for every bundled spacecraft', () => {
+    for (const mission of SPACECRAFT_DEFINITIONS) {
+      for (const requested of [mission.validStartJdTdb - 10_000, mission.validEndJdTdb + 10_000]) {
+        const focusJdTdb = nearestSpacecraftCoverageJdTdb(mission, requested);
+        expect(sampleSpacecraftTrajectory(mission, focusJdTdb).valid, mission.id).toBe(true);
+      }
+    }
+  });
+
   it('hides historical missions outside their declared coverage', () => {
     const cassini = SPACECRAFT_DEFINITIONS.find((mission) => mission.id === 'cassini')!;
     const state = sampleSpacecraftTrajectory(cassini, cassini.validEndJdTdb + 10);
     expect(state.valid).toBe(false);
     expect(state.speedMps).toBe(0);
+    const focusJdTdb = nearestSpacecraftCoverageJdTdb(cassini, cassini.validEndJdTdb + 10);
+    expect(focusJdTdb).toBeLessThan(cassini.validEndJdTdb);
+    expect(sampleSpacecraftTrajectory(cassini, focusJdTdb).valid).toBe(true);
   });
 
   it('keeps SGP4 work isolated without duplicating the Horizons bundle in the worker', () => {

@@ -65,6 +65,7 @@ export interface NaturalSatelliteVisualDiagnostics {
   readonly selectedRenderRadius: number | null;
   readonly selectedParentRenderRadius: number | null;
   readonly selectedRadiusToParent: number | null;
+  readonly selectedOnScreen: boolean;
 }
 
 function shapeAxesFor(id: string): Readonly<Vector3> {
@@ -240,6 +241,8 @@ export class NaturalSatelliteVisualSystem {
   private readonly proceduralTextures = new Set<DataTexture>();
   private readonly transitShadows = new Map<string, Mesh<CircleGeometry, MeshBasicMaterial>>();
   private readonly selectionHalo: Mesh<RingGeometry, MeshBasicMaterial>;
+  private compactSelectionLabel: HTMLSpanElement | null = null;
+  private selectionScreenIndicator: HTMLSpanElement | null = null;
   private visible = true;
   private majorVisible = true;
   private minorVisible = true;
@@ -253,6 +256,7 @@ export class NaturalSatelliteVisualSystem {
   private transitShadowCount = 0;
   private visibleLabelCount = 0;
   private suppressedLabelCount = 0;
+  private selectedOnScreen = false;
 
   public constructor() {
     this.root.name = 'natural-satellite-layer';
@@ -268,6 +272,8 @@ export class NaturalSatelliteVisualSystem {
         this.geometry,
         new MeshStandardMaterial({
           color: PROFILE_COLORS['minor-point-fallback'],
+          emissive: new Color(PROFILE_COLORS['minor-point-fallback']).multiplyScalar(0.22),
+          emissiveIntensity: 0.18,
           roughness: 0.86,
           metalness: 0,
         }),
@@ -317,10 +323,29 @@ export class NaturalSatelliteVisualSystem {
   }
 
   public setLabelContainer(container: HTMLElement | null): void {
+    this.compactSelectionLabel?.remove();
+    this.selectionScreenIndicator?.remove();
     this.labelContainer = container;
     for (const resource of this.major.values()) {
       resource.label?.remove();
       resource.label = this.labelContainer === null ? null : this.createLabel(resource.definition);
+    }
+    this.compactSelectionLabel = null;
+    this.selectionScreenIndicator = null;
+    if (container !== null) {
+      const label = document.createElement('span');
+      label.className = 'natural-satellite-screen-label compact-satellite-selection-label';
+      label.dataset.selected = 'true';
+      label.setAttribute('aria-hidden', 'true');
+      container.append(label);
+      this.compactSelectionLabel = label;
+
+      const indicator = document.createElement('span');
+      indicator.className = 'body-selection-indicator auxiliary-selection-indicator natural-satellite-selection-indicator';
+      indicator.dataset.testid = 'selected-natural-satellite-marker';
+      indicator.setAttribute('aria-hidden', 'true');
+      container.append(indicator);
+      this.selectionScreenIndicator = indicator;
     }
   }
 
@@ -438,9 +463,11 @@ export class NaturalSatelliteVisualSystem {
         this.mapLocalOffset(LOCAL, state.positionM, scaleModel, localScale);
         INSTANCE_HELPER.position.copy(PARENT_POSITION).add(LOCAL);
         const parentRadius = scaleModel.radiusFor(parent);
-        const markerRadius = scaleModel.mode === 'presentation'
-          ? Math.min(0.00042, Math.max(0.000045, parentRadius * 0.0022))
-          : Math.max(definition.physicalRadiusM * scaleModel.metersToRenderUnits, 0.000002);
+        const markerRadius = definition.id === this.selectedSatelliteId
+          ? 0.00018
+          : scaleModel.mode === 'presentation'
+            ? Math.min(0.00042, Math.max(0.000045, parentRadius * 0.0022))
+            : Math.max(definition.physicalRadiusM * scaleModel.metersToRenderUnits, 0.000002);
         INSTANCE_HELPER.scale.setScalar(markerRadius);
         INSTANCE_HELPER.updateMatrix();
         INSTANCE_MATRIX.copy(INSTANCE_HELPER.matrix);
@@ -523,6 +550,7 @@ export class NaturalSatelliteVisualSystem {
       candidate.resource.label!.dataset.selected = String(selected);
       this.visibleLabelCount += 1;
     }
+    this.updateSelectedScreenCue(camera, viewportWidth, viewportHeight, suppressed);
   }
 
   public getDiagnostics(): NaturalSatelliteVisualDiagnostics {
@@ -564,6 +592,7 @@ export class NaturalSatelliteVisualSystem {
       selectedRadiusToParent: selectedRenderRadius !== undefined && selectedParentRenderRadius !== undefined
         ? selectedRenderRadius / selectedParentRenderRadius
         : null,
+      selectedOnScreen: this.selectedOnScreen,
     });
   }
 
@@ -575,6 +604,10 @@ export class NaturalSatelliteVisualSystem {
       else renderable.material?.dispose();
     });
     for (const resource of this.major.values()) resource.label?.remove();
+    this.compactSelectionLabel?.remove();
+    this.selectionScreenIndicator?.remove();
+    this.compactSelectionLabel = null;
+    this.selectionScreenIndicator = null;
     for (const texture of this.loadedTextures) texture.dispose();
     for (const texture of this.proceduralTextures) texture.dispose();
     this.loadedTextures.clear();
@@ -585,6 +618,55 @@ export class NaturalSatelliteVisualSystem {
     this.root.clear();
     this.major.clear();
     this.minor.clear();
+  }
+
+  private updateSelectedScreenCue(
+    camera: Camera,
+    viewportWidth: number,
+    viewportHeight: number,
+    suppressed: boolean,
+  ): void {
+    const id = this.selectedSatelliteId;
+    const definition = id === null
+      ? undefined
+      : NATURAL_SATELLITE_DEFINITIONS.find((item) => item.id === id);
+    const position = id === null ? undefined : this.worldPositions.get(id);
+    if (suppressed || definition === undefined || position === undefined) {
+      this.hideSelectedScreenCue();
+      return;
+    }
+    const selectedId = definition.id;
+    const projected = position.clone().project(camera);
+    const onScreen = projected.z >= -1 && projected.z <= 1
+      && projected.x >= -1.05 && projected.x <= 1.05
+      && projected.y >= -1.05 && projected.y <= 1.05;
+    this.selectedOnScreen = onScreen;
+    if (!onScreen) {
+      this.hideSelectedScreenCue(false);
+      return;
+    }
+    const x = (projected.x * 0.5 + 0.5) * viewportWidth;
+    const y = (-projected.y * 0.5 + 0.5) * viewportHeight;
+    if (this.selectionScreenIndicator !== null) {
+      this.selectionScreenIndicator.dataset.satelliteId = selectedId;
+      this.selectionScreenIndicator.style.opacity = '1';
+      this.selectionScreenIndicator.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+    }
+    const compactSelected = definition.tier !== 'major';
+    if (this.compactSelectionLabel !== null) {
+      this.compactSelectionLabel.textContent = definition.name;
+      if (compactSelected) this.compactSelectionLabel.dataset.satelliteId = selectedId;
+      else delete this.compactSelectionLabel.dataset.satelliteId;
+      this.compactSelectionLabel.style.opacity = compactSelected ? '1' : '0';
+      this.compactSelectionLabel.style.transform = `translate(${x + 14}px, ${y - 14}px)`;
+      if (compactSelected) this.visibleLabelCount += 1;
+    }
+  }
+
+  private hideSelectedScreenCue(resetOnScreen = true): void {
+    if (resetOnScreen) this.selectedOnScreen = false;
+    if (this.compactSelectionLabel !== null) this.compactSelectionLabel.style.opacity = '0';
+    if (this.selectionScreenIndicator !== null) this.selectionScreenIndicator.style.opacity = '0';
   }
 
   private createMajor(definition: NaturalSatelliteDefinition): void {

@@ -114,6 +114,26 @@ export function spacecraftIsValidAt(mission: Readonly<SpacecraftDefinition>, jdT
   return Number.isFinite(jdTdb) && jdTdb >= mission.validStartJdTdb && jdTdb <= mission.validEndJdTdb;
 }
 
+/**
+ * Returns the closest safe instant inside a mission's bundled trajectory.
+ * Catalog navigation uses this instead of framing an empty marker when the
+ * observatory date is outside a historical mission's coverage.
+ */
+export function nearestSpacecraftCoverageJdTdb(
+  mission: Readonly<SpacecraftDefinition>,
+  requestedJdTdb: number,
+): number {
+  if (!Number.isFinite(requestedJdTdb)) {
+    throw new RangeError('Requested spacecraft focus date must be finite.');
+  }
+  if (spacecraftIsValidAt(mission, requestedJdTdb)) return requestedJdTdb;
+  const spanDays = mission.validEndJdTdb - mission.validStartJdTdb;
+  const insetDays = Math.min(1, Math.max(spanDays * 0.001, 1 / 86_400));
+  return requestedJdTdb < mission.validStartJdTdb
+    ? mission.validStartJdTdb + insetDays
+    : mission.validEndJdTdb - insetDays;
+}
+
 export function getSpacecraftTrajectoryRecord(id: string): SpacecraftTrajectoryRecord | undefined {
   return TRAJECTORY_BY_ID.get(id);
 }
