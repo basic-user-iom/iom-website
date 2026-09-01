@@ -18,7 +18,7 @@ The Sun addition is a project-generated WebP derivative of the fixed NASA Solar 
 - Data entry point: <https://sdo.gsfc.nasa.gov/data/>
 - Exact source image: <https://sdo.gsfc.nasa.gov/assets/img/browse/2025/12/26/20251226_000000_2048_HMIIF.jpg>
 
-The source is an observer-facing solar disk, not an equirectangular map. Runtime therefore projects it only onto one body-local hemisphere, feathers its edge into the existing procedural photosphere, and keeps the unobserved far side procedural. The date remains fixed while the simulation clock changes, so the layer is an appearance reference rather than time-matched solar state.
+The source is an observer-facing solar disk, not an equirectangular map. Runtime therefore extracts active-region contrast on its supported body-local hemisphere and applies it over a continuous procedural photosphere; it does not wrap the observation's absolute color around half of the sphere. The unobserved far side stays procedural. The date remains fixed while the simulation clock changes, so the layer is an appearance reference rather than time-matched solar state.
 
 [`public/assets/moons/manifest.json`](./public/assets/moons/manifest.json) is authoritative for the 17 derivative paths, exact source URLs, observation time, source image names, transforms, dimensions, byte lengths, SHA-256 hashes, rejected atlases, and unresolved fallback list. `scripts/space-objects/generate-major-moon-textures.mjs` performs the networked generation; `npm run space-objects:moon-textures:verify` is the offline release check.
 

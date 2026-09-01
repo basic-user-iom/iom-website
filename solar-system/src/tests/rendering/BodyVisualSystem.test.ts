@@ -84,7 +84,16 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
       'observationUv = vec2(0.5) + photosphereNormal.xy * 0.472',
     );
     expect(sun.surface.material.fragmentShader).toContain(
-      'smoothstep(-0.02, 0.16, photosphereNormal.z)',
+      'smoothstep(0.08, 0.30, photosphereNormal.z)',
+    );
+    expect(sun.surface.material.fragmentShader).toContain(
+      'float observedActiveRegion = clamp(',
+    );
+    expect(sun.surface.material.fragmentShader).toContain(
+      'color *= 1.0 - observedActiveRegion * 0.62',
+    );
+    expect(sun.surface.material.fragmentShader).not.toContain(
+      'color = mix(color, observedColor',
     );
     expect(sun.surface.material.fragmentShader).not.toContain(
       'uTimeDays * (0.018 + latitude * 0.006)',
