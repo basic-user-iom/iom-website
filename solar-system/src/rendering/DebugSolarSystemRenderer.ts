@@ -270,6 +270,7 @@ export class DebugSolarSystemRenderer {
   private readonly scaleTransition: RenderScaleTransition | null;
   private readonly cameraController = new CameraController();
   private readonly clippingController = new NearFarPlaneController({
+    minimumNear: 1e-12,
     minimumFar: BACKGROUND_FAR_PLANE,
   });
   private readonly pathLayer = new Group();
@@ -682,6 +683,7 @@ export class DebugSolarSystemRenderer {
     this.assertNotDisposed();
     if (bodyId.trim().length === 0) throw new RangeError('Selected body ID cannot be empty.');
     this.selectedBodyId = bodyId;
+    this.spaceObjectVisualSystem.setDetailedInspectionObject(null);
     this.auxiliaryFocusRadiusRenderUnits = null;
     this.blackHoleCameraFraming = false;
     if (this.markers.get(bodyId)?.isComet !== true) this.bodyVisualSystem.ensureAssets(bodyId);
@@ -698,6 +700,7 @@ export class DebugSolarSystemRenderer {
     if (body === undefined || !body.visible) return false;
 
     this.selectedBodyId = bodyId;
+    this.spaceObjectVisualSystem.setDetailedInspectionObject(null);
     this.auxiliaryFocusRadiusRenderUnits = null;
     this.blackHoleCameraFraming = false;
     if (body.kind !== 'comet') this.bodyVisualSystem.ensureAssets(bodyId);
@@ -765,7 +768,7 @@ export class DebugSolarSystemRenderer {
     return this.cameraController.mode;
   }
 
-  public setScaleMode(mode: RenderScaleMode): void {
+  public setScaleMode(mode: RenderScaleMode, immediate = false): void {
     this.assertNotDisposed();
     if (this.scaleTransition === null) {
       if (this.scaleModel.mode !== mode) {
@@ -773,7 +776,7 @@ export class DebugSolarSystemRenderer {
       }
       return;
     }
-    this.scaleTransition.setMode(mode, this.reducedMotion);
+    this.scaleTransition.setMode(mode, immediate || this.reducedMotion);
   }
 
   public setOrbitLinesVisible(visible: boolean): void {
@@ -1171,6 +1174,7 @@ export class DebugSolarSystemRenderer {
   }
 
   public focusNaturalSatellite(id: string): boolean {
+    this.spaceObjectVisualSystem.setDetailedInspectionObject(null);
     this.naturalSatelliteVisualSystem.selectSatellite(id);
     const position = this.naturalSatelliteVisualSystem.getSatelliteWorldPosition(id);
     if (position === null) return false;
@@ -1221,11 +1225,12 @@ export class DebugSolarSystemRenderer {
     const position = this.spaceObjectVisualSystem.getObjectWorldPosition(id);
     if (position === null) return false;
     const renderRadius = this.spaceObjectVisualSystem.getObjectRenderRadius(id);
+    this.spaceObjectVisualSystem.setDetailedInspectionObject(id);
     this.auxiliaryFocusRadiusRenderUnits = renderRadius;
     const focusDirection = this.spaceObjectVisualSystem.getObjectFocusDirection(id);
     const distance = focusDirection === null
       ? Math.max(renderRadius * 1.8, 0.00045)
-      : Math.max(renderRadius * 3.5, 0.00065);
+      : Math.max(renderRadius * 3.5, 1e-12);
     this.clippingController.reset();
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
@@ -1243,7 +1248,9 @@ export class DebugSolarSystemRenderer {
     this.camera.lookAt(position);
     this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
     this.controls.enabled = true;
-    this.controls.minDistance = Math.max(renderRadius * 1.2, 1e-6);
+    this.controls.minDistance = focusDirection === null
+      ? Math.max(renderRadius * 1.2, 1e-6)
+      : Math.max(renderRadius * 1.2, 1e-12);
     this.controls.update();
     this.updateCanvasDiagnostics();
     return true;
@@ -1820,7 +1827,7 @@ export class DebugSolarSystemRenderer {
       return;
     }
     if (this.cameraController.mode === 'free-orbit' && this.auxiliaryFocusRadiusRenderUnits !== null) {
-      const distance = Math.max(this.camera.position.distanceTo(this.controls.target), 1e-6);
+      const distance = Math.max(this.camera.position.distanceTo(this.controls.target), 1e-12);
       const radius = this.auxiliaryFocusRadiusRenderUnits;
       const metrics = calculateScaleAwareNavigation({
         cameraDistanceRenderUnits: distance,
@@ -2071,6 +2078,8 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.spacecraftCount = String(spaceObjects.spacecraftCount);
     this.canvas.dataset.spacecraftRenderedCount = String(spaceObjects.spacecraftRenderedCount);
     this.canvas.dataset.spaceObjectSelected = spaceObjects.selectedObjectId ?? '';
+    this.canvas.dataset.spaceObjectDetailedInspection = spaceObjects.detailedInspectionObjectId ?? '';
+    this.canvas.dataset.spaceObjectInspectionSuppressedMarkers = String(spaceObjects.inspectionSuppressedMarkerCount);
     this.canvas.dataset.spaceObjectTrajectoryPoints = String(spaceObjects.selectedTrajectoryPointCount);
     this.canvas.dataset.spaceObjectSelectedOnScreen = String(spaceObjects.selectedOnScreen);
     this.canvas.dataset.spaceObjectPropagationExecution = spaceObjects.propagationExecution;
@@ -2078,7 +2087,14 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.issModelAssetId = spaceObjects.issModelAssetId;
     this.canvas.dataset.issModelMeshCount = String(spaceObjects.issModelMeshCount);
     this.canvas.dataset.issModelTriangleCount = String(spaceObjects.issModelTriangleCount);
+    this.canvas.dataset.issPhysicalSpanMeters = String(spaceObjects.issPhysicalSpanMeters);
+    this.canvas.dataset.issSpanToEarthDiameter = spaceObjects.issSpanToEarthDiameter.toExponential(9);
+    this.canvas.dataset.issScalePolicy = spaceObjects.issScalePolicy;
     this.canvas.dataset.spaceObjectSelectedRenderRadius = spaceObjects.selectedRenderRadius?.toExponential(6) ?? '';
+    this.canvas.dataset.spaceObjectFocusDistanceRatio =
+      this.auxiliaryFocusRadiusRenderUnits === null || spaceObjects.selectedRenderRadius === null
+        ? ''
+        : (this.camera.position.distanceTo(this.controls.target) / spaceObjects.selectedRenderRadius).toFixed(6);
     const earthMarker = this.markers.get('earth');
     const moonMarker = this.markers.get('moon');
     const earthMoonRenderSeparation =

@@ -26,7 +26,11 @@ import { SPACECRAFT_DEFINITIONS } from '../../simulation/spacecraft';
 import { sampleSpacecraftTrajectory, sampleSpacecraftTrajectoryPath } from '../../simulation/spacecraft';
 import { SpaceObjectWorkerClient, type SpaceObjectWorkerResultResponse } from '../../workers/space-objects';
 import { ISS_MODEL_ASSET } from './SpaceObjectAssetCatalog';
-import { earthSatelliteRenderRadius } from './SpaceObjectRenderScale';
+import {
+  bodyRelativePhysicalScale,
+  earthSatelliteMarkerRadius,
+  physicalModelScale,
+} from './SpaceObjectRenderScale';
 
 export type IssModelState = 'idle' | 'loading' | 'ready' | 'fallback';
 
@@ -39,6 +43,8 @@ export interface SpaceObjectVisualDiagnostics {
   readonly spacecraftCount: number;
   readonly spacecraftRenderedCount: number;
   readonly selectedObjectId: string | null;
+  readonly detailedInspectionObjectId: string | null;
+  readonly inspectionSuppressedMarkerCount: number;
   readonly markersNotToScale: boolean;
   readonly selectedTrajectoryPointCount: number;
   readonly propagationExecution: 'module-worker' | 'direct-fallback';
@@ -46,6 +52,9 @@ export interface SpaceObjectVisualDiagnostics {
   readonly issModelAssetId: string;
   readonly issModelMeshCount: number;
   readonly issModelTriangleCount: number;
+  readonly issPhysicalSpanMeters: number;
+  readonly issSpanToEarthDiameter: number;
+  readonly issScalePolicy: 'physical-earth-relative';
   readonly selectedRenderRadius: number | null;
   readonly selectedOnScreen: boolean;
 }
@@ -63,8 +72,14 @@ const ISS_FOCUS_DIRECTION = new Vector3(0.35, 1, 0.45).normalize();
 const ISS_BOUNDS = new Box3();
 const ISS_CENTER = new Vector3();
 const ISS_SPHERE = new Sphere();
+const ISS_SIZE = new Vector3();
 const EARTH_RADIUS_M = 6_371_008.4;
 const ISS_INDEX = EARTH_SATELLITE_DEFINITIONS.findIndex((item) => item.id === ISS_MODEL_ASSET.objectId);
+const ISS_REFERENCE_SCALE = physicalModelScale(
+  ISS_MODEL_ASSET.modelBoundsMeters,
+  ISS_MODEL_ASSET.physicalSpanMeters,
+);
+const ISS_SPAN_TO_EARTH_DIAMETER = ISS_MODEL_ASSET.physicalSpanMeters / (EARTH_RADIUS_M * 2);
 
 export class SpaceObjectVisualSystem {
   public readonly root = new Group();
@@ -79,6 +94,8 @@ export class SpaceObjectVisualSystem {
   private earthSatellitesVisible = true;
   private spacecraftVisible = true;
   private selectedObjectId: string | null = null;
+  private detailedInspectionObjectId: string | null = null;
+  private inspectionSuppressedMarkerCount = 0;
   private renderedEarthSatelliteCount = 0;
   private renderedSpacecraftCount = 0;
   private selectedTrajectoryPointCount = 0;
@@ -87,7 +104,8 @@ export class SpaceObjectVisualSystem {
   private workerRequestPending = false;
   private issModelState: IssModelState = 'idle';
   private issModelLoad: Promise<void> | null = null;
-  private issModelRadiusMeters = 1;
+  private issModelPhysicalCorrection = ISS_REFERENCE_SCALE.correction;
+  private issModelPhysicalRadiusMeters = ISS_REFERENCE_SCALE.correctedBoundingRadiusMeters;
   private issModelMeshCount = 0;
   private issModelTriangleCount = 0;
   private selectionLabel: HTMLSpanElement | null = null;
@@ -169,8 +187,13 @@ export class SpaceObjectVisualSystem {
   }
 
   public selectObject(id: string | null): void {
+    if (id !== this.detailedInspectionObjectId) this.detailedInspectionObjectId = null;
     this.selectedObjectId = id;
     if (id === ISS_MODEL_ASSET.objectId) void this.requestIssModel();
+  }
+
+  public setDetailedInspectionObject(id: string | null): void {
+    this.detailedInspectionObjectId = id === ISS_MODEL_ASSET.objectId ? id : null;
   }
 
   public getObjectWorldPosition(id: string): Vector3 | null {
@@ -241,6 +264,7 @@ export class SpaceObjectVisualSystem {
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.issModelAnchor.visible = false;
+    this.inspectionSuppressedMarkerCount = 0;
     this.requestWorkerSample(frame.currentJdTdb);
     const earth = frame.bodies.find((body) => body.bodyId === 'earth');
     this.renderedEarthSatelliteCount = 0;
@@ -249,7 +273,11 @@ export class SpaceObjectVisualSystem {
     this.spacecraftTrajectory.visible = false;
     if (earth !== undefined && earth.visible && this.earthSatellitesVisible) {
       scaleModel.mapPosition(EARTH, earth.positionM, originM);
-      const localScale = Math.max(1, scaleModel.radiusFor(earth) * 4 / (EARTH_RADIUS_M * scaleModel.metersToRenderUnits));
+      const earthRelativeScale = bodyRelativePhysicalScale(
+        scaleModel.radiusFor(earth),
+        EARTH_RADIUS_M,
+        scaleModel.metersToRenderUnits,
+      );
       EARTH_SATELLITE_DEFINITIONS.forEach((satellite, index) => {
         const state = this.earthSatelliteState(satellite, frame.currentJdTdb);
         if (state.dataAgeState === 'outside-hard-window' || state.propagationStatus !== 'ok') {
@@ -257,20 +285,28 @@ export class SpaceObjectVisualSystem {
           return;
         }
         scaleModel.mapPosition(LOCAL, {
-          x: state.positionEarthCenteredM.x * localScale,
-          y: state.positionEarthCenteredM.y * localScale,
-          z: state.positionEarthCenteredM.z * localScale,
+          x: state.positionEarthCenteredM.x * earthRelativeScale.positionMultiplier,
+          y: state.positionEarthCenteredM.y * earthRelativeScale.positionMultiplier,
+          z: state.positionEarthCenteredM.z * earthRelativeScale.positionMultiplier,
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
-        const markerRadius = earthSatelliteRenderRadius(
-          index === ISS_INDEX,
-          this.selectedObjectId === satellite.id,
-          scaleModel.mode,
-        );
-        const useIssModel = index === ISS_INDEX && this.issModelState === 'ready';
+        const isIss = index === ISS_INDEX;
+        const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId && !isIss;
+        const markerRadius = isIss
+          ? this.issModelPhysicalRadiusMeters * earthRelativeScale.metersToRenderUnits
+          : earthSatelliteMarkerRadius(this.selectedObjectId === satellite.id, scaleModel.mode);
+        const useIssModel = isIss && this.issModelState === 'ready';
         if (useIssModel) {
           this.hideInstance(this.earthSatelliteMesh, index);
-          this.updateIssModel(OBJECT.position, state.positionEarthCenteredM, state.velocityEarthCenteredMps, markerRadius);
+          this.updateIssModel(
+            OBJECT.position,
+            state.positionEarthCenteredM,
+            state.velocityEarthCenteredMps,
+            earthRelativeScale.metersToRenderUnits,
+          );
+        } else if (suppressLocator) {
+          this.hideInstance(this.earthSatelliteMesh, index);
+          this.inspectionSuppressedMarkerCount += 1;
         } else {
           OBJECT.scale.setScalar(markerRadius);
           OBJECT.updateMatrix();
@@ -278,13 +314,19 @@ export class SpaceObjectVisualSystem {
           this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
         }
         this.recordObjectPosition(satellite.id, OBJECT.position, markerRadius);
-        this.renderedEarthSatelliteCount += 1;
+        if (!suppressLocator) this.renderedEarthSatelliteCount += 1;
       });
       const selectedSatellite = EARTH_SATELLITE_DEFINITIONS.find((satellite) => satellite.id === this.selectedObjectId);
       if (selectedSatellite !== undefined) {
         const selectedState = sampleEarthSatellite(selectedSatellite, frame.currentJdTdb);
         if (selectedState.dataAgeState !== 'outside-hard-window' && selectedState.propagationStatus === 'ok') {
-          this.updateEarthSatelliteTrajectory(selectedSatellite, frame.currentJdTdb, EARTH, scaleModel, localScale);
+          this.updateEarthSatelliteTrajectory(
+            selectedSatellite,
+            frame.currentJdTdb,
+            EARTH,
+            scaleModel,
+            earthRelativeScale.positionMultiplier,
+          );
         }
       }
     } else {
@@ -304,12 +346,18 @@ export class SpaceObjectVisualSystem {
         scaleModel.mapPosition(LOCAL, state.positionM, originM);
         OBJECT.position.copy(LOCAL);
         const markerRadius = this.selectedObjectId === mission.id ? 0.0006 : 0.00022;
-        OBJECT.scale.setScalar(markerRadius);
-        OBJECT.updateMatrix();
-        MATRIX.copy(OBJECT.matrix);
-        this.spacecraftMesh.setMatrixAt(index, MATRIX);
+        const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId;
+        if (suppressLocator) {
+          this.hideInstance(this.spacecraftMesh, index);
+          this.inspectionSuppressedMarkerCount += 1;
+        } else {
+          OBJECT.scale.setScalar(markerRadius);
+          OBJECT.updateMatrix();
+          MATRIX.copy(OBJECT.matrix);
+          this.spacecraftMesh.setMatrixAt(index, MATRIX);
+        }
         this.recordObjectPosition(mission.id, OBJECT.position, markerRadius);
-        this.renderedSpacecraftCount += 1;
+        if (!suppressLocator) this.renderedSpacecraftCount += 1;
       });
       const selectedMission = SPACECRAFT_DEFINITIONS.find((mission) => mission.id === this.selectedObjectId);
       if (selectedMission !== undefined && this.spacecraftState(selectedMission, frame.currentJdTdb).valid) {
@@ -332,6 +380,8 @@ export class SpaceObjectVisualSystem {
       spacecraftCount: SPACECRAFT_DEFINITIONS.length,
       spacecraftRenderedCount: this.renderedSpacecraftCount,
       selectedObjectId: this.selectedObjectId,
+      detailedInspectionObjectId: this.detailedInspectionObjectId,
+      inspectionSuppressedMarkerCount: this.inspectionSuppressedMarkerCount,
       markersNotToScale: true,
       selectedTrajectoryPointCount: this.selectedTrajectoryPointCount,
       propagationExecution: this.workerClient === null ? 'direct-fallback' : 'module-worker',
@@ -339,6 +389,9 @@ export class SpaceObjectVisualSystem {
       issModelAssetId: ISS_MODEL_ASSET.assetId,
       issModelMeshCount: this.issModelMeshCount,
       issModelTriangleCount: this.issModelTriangleCount,
+      issPhysicalSpanMeters: ISS_MODEL_ASSET.physicalSpanMeters,
+      issSpanToEarthDiameter: ISS_SPAN_TO_EARTH_DIAMETER,
+      issScalePolicy: 'physical-earth-relative',
       selectedRenderRadius: this.selectedObjectId === null
         ? null
         : this.renderedRadii.get(this.selectedObjectId) ?? null,
@@ -400,10 +453,15 @@ export class SpaceObjectVisualSystem {
       ISS_BOUNDS.setFromObject(model);
       ISS_BOUNDS.getCenter(ISS_CENTER);
       ISS_BOUNDS.getBoundingSphere(ISS_SPHERE);
+      ISS_BOUNDS.getSize(ISS_SIZE);
       if (!Number.isFinite(ISS_SPHERE.radius) || ISS_SPHERE.radius <= 0) {
         throw new Error('NASA ISS model has invalid bounds.');
       }
       model.position.sub(ISS_CENTER);
+      const physicalScale = physicalModelScale(
+        [ISS_SIZE.x, ISS_SIZE.y, ISS_SIZE.z],
+        ISS_MODEL_ASSET.physicalSpanMeters,
+      );
       model.traverse((object) => {
         if (!(object instanceof Mesh)) return;
         object.frustumCulled = false;
@@ -426,12 +484,13 @@ export class SpaceObjectVisualSystem {
         const position = object.geometry.getAttribute('position');
         this.issModelTriangleCount += Math.floor((index?.count ?? position?.count ?? 0) / 3);
       });
-      this.issModelRadiusMeters = ISS_SPHERE.radius;
+      this.issModelPhysicalCorrection = physicalScale.correction;
+      this.issModelPhysicalRadiusMeters = ISS_SPHERE.radius * physicalScale.correction;
       this.issModelAnchor.add(model);
       this.issModelState = 'ready';
     } catch (error) {
       this.issModelState = 'fallback';
-      console.warn('NASA ISS model unavailable; retaining the compact satellite marker.', error);
+      console.warn('NASA ISS model unavailable; retaining its physical-scale locator.', error);
     }
   }
 
@@ -439,7 +498,7 @@ export class SpaceObjectVisualSystem {
     position: Readonly<Vector3>,
     earthCenteredPositionM: Readonly<PhysicalPosition>,
     earthCenteredVelocityMps: Readonly<PhysicalPosition>,
-    markerRadius: number,
+    metersToRenderUnits: number,
   ): void {
     this.issModelAnchor.visible = true;
     this.issModelAnchor.position.copy(position);
@@ -463,7 +522,7 @@ export class SpaceObjectVisualSystem {
       ISS_ORIENTATION.makeBasis(ISS_ALONG_TRACK, ISS_RADIAL, ISS_CROSS_TRACK);
       this.issModelAnchor.quaternion.setFromRotationMatrix(ISS_ORIENTATION);
     }
-    this.issModelAnchor.scale.setScalar(markerRadius / this.issModelRadiusMeters);
+    this.issModelAnchor.scale.setScalar(metersToRenderUnits * this.issModelPhysicalCorrection);
     this.issModelAnchor.updateMatrixWorld();
   }
 
@@ -552,7 +611,7 @@ export class SpaceObjectVisualSystem {
     jdTdb: number,
     earthPosition: Vector3,
     scaleModel: Readonly<RenderScaleModel>,
-    localScale: number,
+    positionMultiplier: number,
   ): void {
     const attribute = this.earthSatelliteTrajectory.geometry.getAttribute('position');
     if (!(attribute instanceof Float32BufferAttribute)) return;
@@ -560,9 +619,9 @@ export class SpaceObjectVisualSystem {
     const path = sampleEarthSatelliteOrbitPath(satellite, jdTdb, 96, 1);
     for (let index = 0; index < 96; index += 1) {
       scaleModel.mapPosition(LOCAL, {
-        x: (path[index * 3] ?? 0) * localScale,
-        y: (path[index * 3 + 1] ?? 0) * localScale,
-        z: (path[index * 3 + 2] ?? 0) * localScale,
+        x: (path[index * 3] ?? 0) * positionMultiplier,
+        y: (path[index * 3 + 1] ?? 0) * positionMultiplier,
+        z: (path[index * 3 + 2] ?? 0) * positionMultiplier,
       }, ZERO);
       output[index * 3] = earthPosition.x + LOCAL.x;
       output[index * 3 + 1] = earthPosition.y + LOCAL.y;

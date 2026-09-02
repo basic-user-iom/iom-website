@@ -37,7 +37,7 @@ export interface SimulationControlPort {
   focusBody(bodyId: string): void;
   rebaseToBody(bodyId: string): void;
   setCameraMode(mode: ObservatoryCameraMode): void;
-  setRenderScaleMode(mode: RenderScaleMode): void;
+  setRenderScaleMode(mode: RenderScaleMode, immediate?: boolean): void;
   setOrbitLinesVisible(visible: boolean): void;
   setBodyLabelsVisible(visible: boolean): void;
   setSelectedTrailInterval(interval: SelectedTrailInterval): void;

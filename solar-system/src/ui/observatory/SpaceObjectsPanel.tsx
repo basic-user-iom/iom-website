@@ -10,6 +10,7 @@ import {
   SPACECRAFT_DEFINITIONS,
   sampleSpacecraftTrajectory,
 } from '../../simulation/spacecraft';
+import { ISS_MODEL_ASSET } from '../../rendering/spaceobjects/SpaceObjectAssetCatalog';
 
 export interface SpaceObjectsPanelProps {
   readonly currentJdTdb: number;
@@ -116,7 +117,7 @@ export function SpaceObjectsPanel({
           <button className="button button-secondary" type="button" onClick={onReturnToSatelliteEpoch}>Return to satellite epoch</button>
         </div>
       ) : null}
-      {selectedSatellite !== undefined ? <SelectedObjectSummary name={selectedSatellite.name} detail={`${selectedSatellite.catalogId} · OMM/TEME · ${formatAge(sampleEarthSatellite(selectedSatellite, currentJdTdb).dataAgeDays)}`} frameLabel="Frame selected satellite" onFrame={() => onFocusObject(selectedSatellite.id)} actionLabel="Focus Earth" onAction={onFocusEarth} /> : null}
+      {selectedSatellite !== undefined ? <SelectedObjectSummary name={selectedSatellite.name} detail={`${selectedSatellite.catalogId} · OMM/TEME · ${formatAge(sampleEarthSatellite(selectedSatellite, currentJdTdb).dataAgeDays)}${selectedSatellite.id === ISS_MODEL_ASSET.objectId ? ` · ${ISS_MODEL_ASSET.physicalSpanMeters} m span · true physical scale on frame` : ''}`} frameLabel="Frame selected satellite" onFrame={() => onFocusObject(selectedSatellite.id)} actionLabel="Focus Earth" onAction={onFocusEarth} /> : null}
       {selectedMission !== undefined ? <SelectedObjectSummary name={selectedMission.name} detail={`${selectedMission.operator} · ${selectedMission.trajectorySource} · ${sampleSpacecraftTrajectory(selectedMission, currentJdTdb).valid ? 'inside validity' : 'outside validity'}`} frameLabel="Frame selected spacecraft" onFrame={() => onFocusObject(selectedMission.id)} actionLabel="Focus Sun" onAction={onFocusSun} /> : null}
     </section>
   );
@@ -156,7 +157,7 @@ function ObjectList({
 }
 
 function SelectedObjectSummary({ name, detail, frameLabel, onFrame, actionLabel, onAction }: { readonly name: string; readonly detail: string; readonly frameLabel: string; readonly onFrame: () => void; readonly actionLabel: string; readonly onAction: () => void }) {
-  return <div className="natural-satellite-summary"><strong>{name}</strong><span>{detail}</span><button className="button button-secondary" type="button" onClick={onFrame}>{frameLabel}</button><button className="button button-secondary" type="button" onClick={onAction}>{actionLabel}</button></div>;
+  return <div className="natural-satellite-summary" data-testid="selected-space-object-summary"><strong>{name}</strong><span>{detail}</span><button className="button button-secondary" type="button" onClick={onFrame}>{frameLabel}</button><button className="button button-secondary" type="button" onClick={onAction}>{actionLabel}</button></div>;
 }
 
 function formatAge(days: number): string {

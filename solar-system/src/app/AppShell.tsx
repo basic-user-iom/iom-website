@@ -50,6 +50,7 @@ import type { DebugBodyRenderState, DebugRenderFrame } from '../rendering/Render
 import { sampleCometTail } from '../rendering/comets/CometTailDynamics';
 import type { CometFrameState } from '../rendering/comets/CometVisualSystem';
 import type { RenderScaleMode } from '../rendering/RenderScaleModel';
+import { ISS_MODEL_ASSET } from '../rendering/spaceobjects/SpaceObjectAssetCatalog';
 import {
   CINEMATIC_TOUR_ROUTE,
   CinematicTourController,
@@ -1891,10 +1892,13 @@ export function AppShell() {
         runtime.renderNow();
         runtime.forcePublish();
       },
-      setRenderScaleMode(mode) {
+      setRenderScaleMode(mode, immediate = false) {
         updateRenderScaleMode(mode);
-        if (mode === 'presentation') setPresentationWarningRequired(true);
-        rendererRef.current?.setScaleMode(mode);
+        const renderer = rendererRef.current;
+        renderer?.setScaleMode(mode, immediate);
+        setPresentationWarningRequired(
+          renderer?.getScaleModel().presentationWarningRequired ?? mode === 'presentation',
+        );
         const runtime = runtimeRef.current;
         if (runtime === null) return;
         runtime.renderScaleMode = mode;
@@ -1932,6 +1936,21 @@ export function AppShell() {
       updateSelectedBodyId,
       updateSelectedTrailInterval,
     ],
+  );
+
+  const focusSpaceObjectForInspection = useCallback(
+    (id: string): boolean => {
+      if (id === ISS_MODEL_ASSET.objectId) {
+        // Detailed ISS inspection keeps the station and nearby bodies on one
+        // physical scale. The visual system also suppresses nonphysical
+        // locator spheres such as the nearby JWST marker in this close-up.
+        controls.setRenderScaleMode('true', true);
+      }
+      const focused = rendererRef.current?.focusSpaceObject(id) ?? false;
+      runtimeRef.current?.renderNow();
+      return focused;
+    },
+    [controls],
   );
 
   const handleLegendBodyFocus = useCallback(
@@ -2835,8 +2854,7 @@ export function AppShell() {
                   }
                   controls.focusBody('earth');
                   window.setTimeout(() => {
-                    rendererRef.current?.focusSpaceObject(target.id);
-                    runtimeRef.current?.renderNow();
+                    focusSpaceObjectForInspection(target.id);
                   }, 120);
                 } else {
                   setSpacecraftVisible(true);
@@ -2849,13 +2867,10 @@ export function AppShell() {
                     controls.setExactDateUtc(approximateTdbToDateUtc(focusJdTdb).toISOString());
                     controls.focusBody('sun');
                     window.setTimeout(() => {
-                      rendererRef.current?.focusSpaceObject(target.id);
-                      runtimeRef.current?.renderNow();
+                      focusSpaceObjectForInspection(target.id);
                     }, 120);
-                  } else if (!renderer?.focusSpaceObject(target.id)) {
+                  } else if (!focusSpaceObjectForInspection(target.id)) {
                     controls.focusBody('sun');
-                  } else {
-                    runtimeRef.current?.renderNow();
                   }
                 }
               }}
@@ -2958,8 +2973,7 @@ export function AppShell() {
                   rendererRef.current?.setEarthSatellitesVisible(true);
                   controls.setExactDateUtc(satellite.elementEpochUtc);
                   window.setTimeout(() => {
-                    rendererRef.current?.focusSpaceObject(id);
-                    runtimeRef.current?.renderNow();
+                    focusSpaceObjectForInspection(id);
                   }, 120);
                   return;
                 }
@@ -2971,14 +2985,12 @@ export function AppShell() {
                   if (Math.abs(focusJdTdb - snapshot.currentJdTdb) > 1e-9) {
                     controls.setExactDateUtc(approximateTdbToDateUtc(focusJdTdb).toISOString());
                     window.setTimeout(() => {
-                      rendererRef.current?.focusSpaceObject(id);
-                      runtimeRef.current?.renderNow();
+                      focusSpaceObjectForInspection(id);
                     }, 120);
                     return;
                   }
                 }
-                rendererRef.current?.focusSpaceObject(id);
-                runtimeRef.current?.renderNow();
+                focusSpaceObjectForInspection(id);
               }}
               onFocusEarth={() => controls.focusBody('earth')}
               onFocusSun={() => controls.focusBody('sun')}

@@ -32,6 +32,22 @@ describe('NearFarPlaneController', () => {
     expect(planes.far).toBeGreaterThan(planes.near);
   });
 
+  it('keeps a physical-scale ISS close-up ahead of the near plane', () => {
+    const radius = 1.8e-8;
+    const distance = radius * 3.5;
+    const planes = calculateNearFarPlanes(
+      {
+        cameraPosition: new Vector3(0, 0, distance),
+        focusCenter: new Vector3(),
+        focusRadius: radius,
+      },
+      { minimumNear: 1e-12, minimumFar: 800 },
+    );
+
+    expect(planes.near).toBeLessThan(distance - radius);
+    expect(planes.near).toBeGreaterThanOrEqual(1e-12);
+  });
+
   it('expands immediately to avoid clipping and damps precision-only tightening', () => {
     const controller = new NearFarPlaneController({
       minimumFar: 1,

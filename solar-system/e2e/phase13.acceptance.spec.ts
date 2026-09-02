@@ -29,6 +29,7 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
   })
 
   test('guards stale OMM data and draws selected object trajectories', async ({ page }) => {
+    test.setTimeout(60_000)
     const browserErrors: string[] = []
     page.on('pageerror', (error) => browserErrors.push(error.message))
     page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -44,24 +45,29 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(canvas).toHaveAttribute('data-iss-model-state', 'ready', { timeout: 45_000 })
     await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-mesh-count'))).toBeGreaterThan(0)
     await expect.poll(async () => Number(await canvas.getAttribute('data-iss-model-triangle-count'))).toBeGreaterThan(500_000)
-    await expect(canvas).toHaveAttribute('data-space-object-selected-render-radius', '3.600000e-5')
+    await expect(canvas).toHaveAttribute('data-iss-physical-span-meters', '109')
+    await expect(canvas).toHaveAttribute('data-iss-scale-policy', 'physical-earth-relative')
+    await expect(canvas).toHaveAttribute('data-iss-span-to-earth-diameter', '8.554375788e-6')
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeLessThan(2e-8)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeGreaterThan(1.5e-8)
+    await expect(page.getByTestId('selected-space-object-summary')).toContainText('109 m span · true physical scale on frame')
     await panel.getByRole('button', { name: 'Frame selected satellite' }).click()
     await expect(canvas).toHaveAttribute('data-camera-mode', 'free-orbit')
+    await expect(canvas).toHaveAttribute('data-scale-mode', 'true')
+    await expect(canvas).toHaveAttribute('data-presentation-mix', '0')
+    await expect(canvas).toHaveAttribute('data-space-object-detailed-inspection', 'earth-satellite-25544')
+    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '1')
+    await expect(canvas).toHaveAttribute('data-spacecraft-rendered-count', '0')
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-inspection-suppressed-markers'))).toBeGreaterThan(0)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeLessThan(5e-10)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeGreaterThan(4e-10)
     await expect.poll(async () => {
       const target = (await canvas.getAttribute('data-camera-world-target'))?.split(',').map(Number) ?? []
       return target.length === 3 ? Math.hypot(target[0] ?? 0, target[1] ?? 0, target[2] ?? 0) : 0
     }).toBeGreaterThan(0.001)
-    await expect.poll(async () => {
-      const position = (await canvas.getAttribute('data-camera-position'))?.split(',').map(Number) ?? []
-      const target = (await canvas.getAttribute('data-camera-world-target'))?.split(',').map(Number) ?? []
-      return position.length === 3 && target.length === 3
-        ? Math.hypot(
-            (position[0] ?? 0) - (target[0] ?? 0),
-            (position[1] ?? 0) - (target[1] ?? 0),
-            (position[2] ?? 0) - (target[2] ?? 0),
-          )
-        : Number.POSITIVE_INFINITY
-    }).toBeLessThan(0.001)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-focus-distance-ratio'))).toBeGreaterThan(3)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-focus-distance-ratio'))).toBeLessThan(4)
+    await expect.poll(async () => Number(await canvas.getAttribute('data-camera-near'))).toBeLessThan(1e-9)
     await expect(canvas).toHaveAttribute('data-space-object-selected-on-screen', 'true')
     await expect(page.locator('.space-object-screen-label[data-object-id="earth-satellite-25544"]')).toBeVisible()
     await expect(page.getByTestId('selected-space-object-marker')).toBeVisible()
@@ -83,7 +89,8 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await search.fill('25544')
     await page.getByTestId('navigator-catalog-earth-satellite-earth-satellite-25544').click()
     await expect(canvas).toHaveAttribute('data-space-object-selected', 'earth-satellite-25544')
-    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '5', { timeout: 10_000 })
+    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '1', { timeout: 10_000 })
+    await expect(canvas).toHaveAttribute('data-space-object-detailed-inspection', 'earth-satellite-25544')
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-trajectory-points'))).toBe(96)
   })
 
@@ -101,7 +108,7 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
 
     await search.fill('25544')
     await page.getByTestId('navigator-catalog-earth-satellite-earth-satellite-25544').click()
-    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '5', { timeout: 10_000 })
+    await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '1', { timeout: 10_000 })
     await expect.poll(async () => Number(await canvas.getAttribute('data-current-jd-tdb'))).toBeGreaterThan(2_461_000)
 
     await search.fill('Cassini')

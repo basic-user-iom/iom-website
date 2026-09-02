@@ -76,6 +76,22 @@ describe('scale-aware navigation', () => {
     expect(dollyDistanceForWheel(5, 100, metrics)).toBeGreaterThan(5);
   });
 
+  it('allows physical-scale spacecraft inspection below one microunit', () => {
+    const metrics = calculateScaleAwareNavigation({
+      cameraDistanceRenderUnits: 6.3e-8,
+      targetRadiusM: 67.63,
+      targetRadiusRenderUnits: 1.8e-8,
+      metersPerRenderUnit: ASTRONOMICAL_UNIT_M,
+      verticalFovDeg: 44,
+      viewportWidthPx: 1_280,
+      viewportHeightPx: 720,
+      systemRadiusRenderUnits: 32,
+    });
+
+    expect(metrics.minimumDistanceRenderUnits).toBeCloseTo(2.16e-8, 16);
+    expect(metrics.minimumDistanceRenderUnits).toBeLessThan(1e-6);
+  });
+
   it('rejects unusable scale and viewport inputs', () => {
     expect(() =>
       calculateScaleAwareNavigation({

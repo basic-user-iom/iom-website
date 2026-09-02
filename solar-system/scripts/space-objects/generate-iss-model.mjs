@@ -106,8 +106,8 @@ const manifest = {
     lazyLoaded: true,
     orientation: 'LVLH approximation from SGP4 position and velocity: source +X along-track, +Y radial/zenith, +Z cross-track.',
     physicalSpanMeters: 109,
-    displayScale: 'Station geometry is proportionally accurate; selected-object size is exaggerated for inspection.',
-    fallback: 'The existing compact satellite marker remains available if model loading or decoding fails.',
+    displayScale: 'Physical 109 m span, calibrated to the same meters-per-render-unit ratio as Earth.',
+    fallback: 'The label and physical-scale locator remain available if model loading or decoding fails.',
   },
   usage: {
     credit: 'NASA/JSC/IGOAL',

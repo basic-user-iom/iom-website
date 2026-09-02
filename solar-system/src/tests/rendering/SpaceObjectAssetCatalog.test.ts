@@ -10,6 +10,7 @@ describe('space-object model catalog', () => {
       sourceOrganization: 'NASA/JSC/Integrated Graphics, Operations, and Analysis Laboratory',
       sourcePublishedUtc: '2026-05-20T00:00:00.000Z',
       physicalSpanMeters: 109,
+      modelBoundsMeters: [73.429, 30.628, 108.273],
       triangles: 595_180,
       materials: 42,
       lazyLoaded: true,

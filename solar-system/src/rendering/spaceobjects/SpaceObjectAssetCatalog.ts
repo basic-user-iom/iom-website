@@ -6,6 +6,7 @@ export interface SpaceObjectModelAsset {
   readonly sourcePage: string;
   readonly sourcePublishedUtc: string;
   readonly physicalSpanMeters: number;
+  readonly modelBoundsMeters: readonly [number, number, number];
   readonly triangles: number;
   readonly materials: number;
   readonly lazyLoaded: boolean;
@@ -21,6 +22,7 @@ export const ISS_MODEL_ASSET: Readonly<SpaceObjectModelAsset> = Object.freeze({
   sourcePage: 'https://science.nasa.gov/3d-resources/international-space-station-iss-d-igoal/',
   sourcePublishedUtc: '2026-05-20T00:00:00.000Z',
   physicalSpanMeters: 109,
+  modelBoundsMeters: Object.freeze([73.429, 30.628, 108.273] as const),
   triangles: 595_180,
   materials: 42,
   lazyLoaded: true,

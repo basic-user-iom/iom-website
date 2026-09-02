@@ -19,7 +19,9 @@ export interface ScaleAwareNavigationMetrics {
   readonly keyboardSpeedRenderUnitsPerSecond: number;
 }
 
-const MINIMUM_NAVIGATION_DISTANCE = 1e-6;
+// Physical-scale spacecraft close-ups need sub-microunit navigation; planet
+// targets still use their rendered radius as the dominant safety limit.
+const MINIMUM_NAVIGATION_DISTANCE = 1e-12;
 
 /** Derives navigation sensitivity from the current view rather than one global speed. */
 export function calculateScaleAwareNavigation(
