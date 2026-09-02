@@ -30,6 +30,10 @@ import {
 } from './linarGeometry'
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
 import { backingVisualProfile } from './materialData'
+import {
+  createFeltBackingGeometry,
+  LINAR_FELT_BACKING_OBJECT_NAMES,
+} from './feltBackingGeometry'
 import type {
   LinarBacking,
   LinarConfig,
@@ -423,6 +427,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let currentCadGeometry = initial.tech.cadGeometry
   let fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
   const backingRibbon = createBackingRibbonGeometry()
+  const feltBacking = createFeltBackingGeometry(SOLID_BAND_SEGMENTS)
   // The left panel side has its finished outer edge on the left and its
   // routed incision boundary on the right; the right side is the inverse.
   const leftSolidBand = createSolidBandGeometry({ left: 3, right: null })
@@ -464,6 +469,30 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   backingMesh.frustumCulled = false
   backingMesh.visible = false
 
+  const feltBackingBodyMesh = new Mesh(feltBacking.body, materials.backing)
+  feltBackingBodyMesh.name = LINAR_FELT_BACKING_OBJECT_NAMES.body
+  feltBackingBodyMesh.castShadow = true
+  feltBackingBodyMesh.receiveShadow = true
+  feltBackingBodyMesh.frustumCulled = false
+  feltBackingBodyMesh.visible = false
+
+  // Side caps are independent meshes so repeated installations can retain
+  // only their two outside felt edges. Internal module seams stay open and
+  // meet the neighbouring body's identical cross-section without overlap.
+  const feltBackingLeftCapMesh = new Mesh(feltBacking.leftCap, materials.backing)
+  feltBackingLeftCapMesh.name = LINAR_FELT_BACKING_OBJECT_NAMES.leftCap
+  feltBackingLeftCapMesh.castShadow = true
+  feltBackingLeftCapMesh.receiveShadow = true
+  feltBackingLeftCapMesh.frustumCulled = false
+  feltBackingLeftCapMesh.visible = false
+
+  const feltBackingRightCapMesh = new Mesh(feltBacking.rightCap, materials.backing)
+  feltBackingRightCapMesh.name = LINAR_FELT_BACKING_OBJECT_NAMES.rightCap
+  feltBackingRightCapMesh.castShadow = true
+  feltBackingRightCapMesh.receiveShadow = true
+  feltBackingRightCapMesh.frustumCulled = false
+  feltBackingRightCapMesh.visible = false
+
   // A real deformed diffuser surface sits behind the manufactured geometry.
   // The slats and bridge assemblies therefore occlude it through ordinary
   // depth testing, leaving only the true LINAR apertures luminous.
@@ -490,6 +519,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   group.add(backlightMesh)
   group.add(backingMesh)
+  group.add(feltBackingBodyMesh)
+  group.add(feltBackingLeftCapMesh)
+  group.add(feltBackingRightCapMesh)
   group.add(slatsMesh)
   group.add(leftSolidBandMesh)
   group.add(rightSolidBandMesh)
@@ -508,6 +540,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   const solidPoseX = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   const solidPoseZ = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   const solidPoseRotY = new Float32Array(SOLID_BAND_SEGMENTS + 1)
+  const backingPoseX = new Float32Array(SOLID_BAND_SEGMENTS + 1)
+  const backingPoseZ = new Float32Array(SOLID_BAND_SEGMENTS + 1)
+  const backingPoseRotY = new Float32Array(SOLID_BAND_SEGMENTS + 1)
   let layout: PanelLayout = slatLayout(initial.config)
   const boundingSize = new Vector3(
     layout.panelWidthM,
@@ -770,13 +805,18 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       markActiveInstanceMatrices(batch.mesh, batch.segments.length)
     }
 
-    const showBacking = backing !== 'none'
+    const showFleece = backing === 'acoustic-fleece'
+    const showFelt = backing === 'felt'
+    const showBacking = showFleece || showFelt
     const backingProfile = backingVisualProfile(backing, fleeceColour)
-    backingMesh.visible = showBacking
+    backingMesh.visible = showFleece
+    feltBackingBodyMesh.visible = showFelt
+    feltBackingLeftCapMesh.visible = showFelt
+    feltBackingRightCapMesh.visible = showFelt
     // Confirmed opaque felt casts a real shadow behind the apertures. Acoustic
     // fleece remains a non-certified transmission study and is attenuated by
     // the scene's central visual profile instead of casting an opaque shadow.
-    backingMesh.castShadow = showBacking && backingProfile.castShadow
+    backingMesh.castShadow = showFleece && backingProfile.castShadow
     // The shared ribbon is a render-efficient backing mid-surface, not a
     // certified thickness mesh. Half the representative visual thickness puts
     // its nominal front face directly behind the panel rear; the 0.1 mm gap is
@@ -795,6 +835,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       curveElement(originalX, state, layout.panelWidthM, pose)
       const nx = Math.sin(pose.rotY)
       const nz = Math.cos(pose.rotY)
+      backingPoseX[i] = pose.x
+      backingPoseZ[i] = pose.z
+      backingPoseRotY[i] = pose.rotY
       const x = pose.x + nx * backZ
       const z = pose.z + nz * backZ
       const lower = i * 2
@@ -806,6 +849,18 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     }
     backingRibbon.position.needsUpdate = true
     backingRibbon.normal.needsUpdate = true
+
+    if (showFelt) {
+      feltBacking.update(
+        backingPoseX,
+        backingPoseZ,
+        backingPoseRotY,
+        layout.panelHeightM,
+        thickness * 0.5,
+        backingProfile.thicknessMm / 1000,
+        BACKING_RENDER_GAP_M,
+      )
+    }
   }
 
   const applyConfig = (config: LinarConfig, tech: LinarTech) => {
@@ -895,6 +950,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       bridgesMesh.dispose()
       clearPartialBridgeBatches()
       backingRibbon.geometry.dispose()
+      feltBacking.dispose()
       backlightMaterial.dispose()
       unitBox.dispose()
       fullBridgeGeo.dispose()

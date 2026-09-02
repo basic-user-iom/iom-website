@@ -12,6 +12,7 @@ import {
   slatLayout,
 } from './bendMath'
 import { createLinarPanel } from './LinarPanel'
+import { LINAR_FELT_BACKING_OBJECT_NAMES } from './feltBackingGeometry'
 import type { LinarTech } from './linarData'
 import { backingVisualProfile, clampLinarPanelCount } from './materialData'
 import {
@@ -1620,8 +1621,32 @@ export function LinarScene({
       source: THREE.Object3D
       replica: THREE.Object3D
     }
+    type FeltCapBinding = {
+      left: THREE.Object3D | null
+      right: THREE.Object3D | null
+    }
     let panelRoots: THREE.Object3D[] = [panel.group]
     let replicaBindings: ReplicaBinding[] = []
+
+    const feltCapsFor = (root: THREE.Object3D): FeltCapBinding => ({
+      left: root.getObjectByName(LINAR_FELT_BACKING_OBJECT_NAMES.leftCap) ?? null,
+      right: root.getObjectByName(LINAR_FELT_BACKING_OBJECT_NAMES.rightCap) ?? null,
+    })
+    let panelFeltCaps: FeltCapBinding[] = [feltCapsFor(panel.group)]
+
+    const refreshPanelFeltCaps = () => {
+      panelFeltCaps = panelRoots.map(feltCapsFor)
+    }
+
+    const applyFeltOuterCapVisibility = () => {
+      const showFelt = configRef.current.backing === 'felt'
+      const lastPanel = panelFeltCaps.length - 1
+      for (let index = 0; index < panelFeltCaps.length; index += 1) {
+        const caps = panelFeltCaps[index]
+        if (caps.left) caps.left.visible = showFelt && index === 0
+        if (caps.right) caps.right.visible = showFelt && index === lastPanel
+      }
+    }
 
     const bindReplicaObjects = (source: THREE.Object3D, replica: THREE.Object3D) => {
       replicaBindings.push({ source, replica })
@@ -1642,6 +1667,7 @@ export function LinarScene({
       }
       panelRoots = [panel.group]
       replicaBindings = []
+      refreshPanelFeltCaps()
     }
 
     const rebuildPanelReplicas = () => {
@@ -1654,6 +1680,8 @@ export function LinarScene({
         installationRoot.add(replica)
         panelRoots.push(replica)
       }
+      refreshPanelFeltCaps()
+      applyFeltOuterCapVisibility()
     }
 
     const syncPanelReplicas = () => {
@@ -1668,6 +1696,7 @@ export function LinarScene({
           binding.replica.count = binding.source.count
         }
       }
+      applyFeltOuterCapVisibility()
     }
 
     const applyPanelArrangement = () => {
@@ -1966,11 +1995,12 @@ export function LinarScene({
         panelCount: configRef.current.panelCount,
         bounds,
       })
-      // Wool felt is confirmed opaque, so the host-side lattice cannot be
-      // inspected through it. Skip both support-grid draw calls and their
-      // shadow work in that state; fleece remains visible according to its
-      // transparent material approximation.
-      supportGrid.group.visible = application !== 'freestanding' && configRef.current.backing !== 'felt'
+      // Confirmed opaque felt hides the host-side internal lattice, while the
+      // installation-wide open perimeter remains visible as two edge rails
+      // plus shaped top and bottom ribs. Keep the root mounted and suppress
+      // only its internal members.
+      supportGrid.group.visible = application !== 'freestanding'
+      supportGrid.setInternalMembersVisible(configRef.current.backing !== 'felt')
       backlightSpill.position.set(
         (bounds.minX + bounds.maxX) * 0.5,
         bounds.heightM * 0.5,

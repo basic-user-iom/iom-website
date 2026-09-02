@@ -38,6 +38,7 @@ export type SupportGridUpdate = {
 export type SupportGridStats = {
   verticalBattens: number
   horizontalBattens: number
+  outerFrameMembers: number
   totalInstances: number
   visible: boolean
 }
@@ -45,6 +46,7 @@ export type SupportGridStats = {
 export type LinarSupportGrid = {
   group: THREE.Group
   update: (next: SupportGridUpdate) => SupportGridStats
+  setInternalMembersVisible: (visible: boolean) => void
   getStats: () => SupportGridStats
   dispose: () => void
 }
@@ -61,6 +63,15 @@ const CURVED_PATH_DEPTH_THRESHOLD_M = 0.003
 const CURVED_PATH_TURN_THRESHOLD_RAD = THREE.MathUtils.degToRad(0.75)
 const PATH_ROTATION_KEY_QUANTUM_RAD = THREE.MathUtils.degToRad(0.5)
 const CURVED_PROFILE_RECEIVER_CLEARANCE_M = 0.001
+const OUTER_FRAME_MEMBER_COUNT = 4
+const CURVED_PROFILE_INDICES_PER_SEGMENT = 24
+const CURVED_PROFILE_END_CAP_INDEX_COUNT = 12
+const CURVED_PROFILE_SEGMENT_INDEX_PATTERN = Object.freeze([
+  0, 4, 5, 0, 5, 1,
+  2, 3, 7, 2, 7, 6,
+  0, 2, 6, 0, 6, 4,
+  1, 5, 7, 1, 7, 3,
+])
 
 type SupportAnchor = {
   positionM: number
@@ -87,6 +98,7 @@ function pathKey(points: readonly SupportPathPoint[]): string {
       quantizedKey(point.x),
       quantizedKey(point.z),
       quantizedRotationKey(point.rotY),
+      quantizedKey(point.distanceM),
     ]
     for (const value of values) {
       hash ^= value
@@ -159,6 +171,7 @@ function emptyStats(): SupportGridStats {
   return {
     verticalBattens: 0,
     horizontalBattens: 0,
+    outerFrameMembers: 0,
     totalInstances: 0,
     visible: false,
   }
@@ -237,41 +250,17 @@ function createCurvedProfileGeometry(): THREE.BufferGeometry {
   const positions = new Float32Array(MAX_SUPPORT_PATH_POINTS * 4 * 3)
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
 
-  // Each path segment exposes front, rear, upper and lower faces. End caps are
-  // omitted because the installation edges are normally hidden by the panel;
-  // avoiding cap-specific topology keeps one reusable geometry for 1-4 panels.
-  const indices: number[] = []
-  for (let index = 0; index < MAX_SUPPORT_PATH_POINTS - 1; index += 1) {
-    const a = index * 4
-    const b = (index + 1) * 4
-    indices.push(
-      a,
-      b,
-      b + 1,
-      a,
-      b + 1,
-      a + 1,
-      a + 2,
-      a + 3,
-      b + 3,
-      a + 2,
-      b + 3,
-      b + 2,
-      a,
-      a + 2,
-      b + 2,
-      a,
-      b + 2,
-      b,
-      a + 1,
-      b + 1,
-      b + 3,
-      a + 1,
-      b + 3,
-      a + 3,
-    )
-  }
-  geometry.setIndex(indices)
+  // The active index range is rewritten when the path changes so both end
+  // faces can remain closed with a variable number of sampled segments.
+  geometry.setIndex(
+    new THREE.BufferAttribute(
+      new Uint16Array(
+        (MAX_SUPPORT_PATH_POINTS - 1) * CURVED_PROFILE_INDICES_PER_SEGMENT +
+          CURVED_PROFILE_END_CAP_INDEX_COUNT,
+      ),
+      1,
+    ),
+  )
   geometry.setDrawRange(0, 0)
   return geometry
 }
@@ -285,6 +274,8 @@ function updateCurvedProfileGeometry(
     return 0
   }
   const position = geometry.getAttribute('position') as THREE.BufferAttribute
+  const geometryIndex = geometry.index
+  if (!geometryIndex) return 0
   const pathMinZ = points.reduce((minimum, point) => Math.min(minimum, point.z), Infinity)
   for (let index = 0; index < points.length; index += 1) {
     const point = points[index]
@@ -303,7 +294,35 @@ function updateCurvedProfileGeometry(
     position.setXYZ(vertex + 3, backX, 0.5, backZ)
   }
   position.needsUpdate = true
-  geometry.setDrawRange(0, (points.length - 1) * 24)
+  let outputIndex = 0
+  for (let segment = 0; segment < points.length - 1; segment += 1) {
+    const vertexOffset = segment * 4
+    for (const relativeIndex of CURVED_PROFILE_SEGMENT_INDEX_PATTERN) {
+      geometryIndex.setX(outputIndex, vertexOffset + relativeIndex)
+      outputIndex += 1
+    }
+  }
+  // Start cap faces outward along the negative path direction.
+  for (const value of [0, 1, 3, 0, 3, 2]) {
+    geometryIndex.setX(outputIndex, value)
+    outputIndex += 1
+  }
+  // End cap faces outward along the positive path direction.
+  const endVertex = (points.length - 1) * 4
+  for (const value of [0, 2, 3, 0, 3, 1]) {
+    geometryIndex.setX(outputIndex, endVertex + value)
+    outputIndex += 1
+  }
+  const activeIndexCount = outputIndex
+  // BufferGeometry.computeVertexNormals() visits the complete index buffer,
+  // not only drawRange. Clear the inactive tail so a long-to-short path update
+  // cannot leak stale triangles into the new endpoint normals.
+  while (outputIndex < geometryIndex.count) {
+    geometryIndex.setX(outputIndex, 0)
+    outputIndex += 1
+  }
+  geometryIndex.needsUpdate = true
+  geometry.setDrawRange(0, activeIndexCount)
   geometry.computeVertexNormals()
   geometry.computeBoundingBox()
   geometry.computeBoundingSphere()
@@ -370,10 +389,64 @@ export function createLinarSupportGrid(): LinarSupportGrid {
   curvedProfileBattens.frustumCulled = false
   group.add(curvedProfileBattens)
 
+  // Keep the real perimeter independent from the interior lattice. Opaque
+  // wool felt can therefore hide internal supports while retaining a readable
+  // four-member outer frame: two longitudinal edge rails and two transverse
+  // profile ribs. No member fills the wall-to-panel cavity as a solid wing.
+  const outerFrame = new THREE.Group()
+  outerFrame.name = 'LinarSupportOuterPerimeterFrames'
+  outerFrame.visible = false
+
+  const outerVerticalRails = new THREE.InstancedMesh(
+    geometry,
+    material,
+    2,
+  )
+  outerVerticalRails.name = 'LinarSupportOuterVerticalRails'
+  outerVerticalRails.count = 0
+  outerVerticalRails.castShadow = true
+  outerVerticalRails.receiveShadow = true
+  outerVerticalRails.frustumCulled = false
+  outerFrame.add(outerVerticalRails)
+
+  const outerFlatProfileRibs = new THREE.InstancedMesh(
+    geometry,
+    material,
+    2,
+  )
+  outerFlatProfileRibs.name = 'LinarSupportOuterFlatProfileRibs'
+  outerFlatProfileRibs.count = 0
+  outerFlatProfileRibs.castShadow = true
+  outerFlatProfileRibs.receiveShadow = true
+  outerFlatProfileRibs.frustumCulled = false
+  outerFrame.add(outerFlatProfileRibs)
+
+  const outerCurvedProfileRibs = new THREE.InstancedMesh(
+    curvedProfileGeometry,
+    material,
+    2,
+  )
+  outerCurvedProfileRibs.name = 'LinarSupportOuterCurvedProfileRibs'
+  outerCurvedProfileRibs.count = 0
+  outerCurvedProfileRibs.castShadow = true
+  outerCurvedProfileRibs.receiveShadow = true
+  outerCurvedProfileRibs.frustumCulled = false
+  outerFrame.add(outerCurvedProfileRibs)
+  group.add(outerFrame)
+
   const transform = new THREE.Object3D()
   let lastUpdateKey = ''
   let stats = emptyStats()
+  let internalMembersVisible = true
   let disposed = false
+
+  const setInternalMembersVisible = (visible: boolean) => {
+    if (disposed) return
+    internalMembersVisible = visible
+    verticalBattens.visible = internalMembersVisible
+    horizontalBattens.visible = internalMembersVisible
+    curvedProfileBattens.visible = internalMembersVisible
+  }
 
   const update = ({ application, panelCount, bounds }: SupportGridUpdate) => {
     if (disposed) return stats
@@ -405,6 +478,10 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       verticalBattens.count = 0
       horizontalBattens.count = 0
       curvedProfileBattens.count = 0
+      outerVerticalRails.count = 0
+      outerFlatProfileRibs.count = 0
+      outerCurvedProfileRibs.count = 0
+      outerFrame.visible = false
       stats = emptyStats()
       return stats
     }
@@ -414,6 +491,8 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     const verticalPositions = curved
       ? supportPositions(0, maximumPathDistance, seamPathDistancesM)
       : supportPositions(minX, maxX, seamXM)
+    const internalVerticalPositions = verticalPositions.slice(1, -1)
+    const internalHorizontalPositions = horizontalPositions.slice(1, -1)
     if (
       verticalPositions.length > MAX_INSTANCES_PER_AXIS ||
       horizontalPositions.length > MAX_INSTANCES_PER_AXIS
@@ -421,13 +500,16 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       throw new Error('LINAR support-grid instance capacity exceeded')
     }
 
-    verticalBattens.count = verticalPositions.length
+    verticalBattens.count = internalVerticalPositions.length
     const pathMinZ = curved
       ? supportPath.reduce((minimum, point) => Math.min(minimum, point.z), Infinity)
       : 0
-    for (let index = 0; index < verticalPositions.length; index += 1) {
+    for (let index = 0; index < internalVerticalPositions.length; index += 1) {
       if (curved) {
-        const point = pointAtPathDistance(supportPath, verticalPositions[index])
+        const point = pointAtPathDistance(
+          supportPath,
+          internalVerticalPositions[index],
+        )
         const normalX = Math.sin(point.rotY)
         const normalZ = Math.cos(point.rotY)
         const frontZ = point.z - pathMinZ + BATTEN_DEPTH_M
@@ -439,7 +521,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
         transform.rotation.set(0, point.rotY, 0)
       } else {
         transform.position.set(
-          verticalPositions[index],
+          internalVerticalPositions[index],
           heightM * 0.5,
           BATTEN_DEPTH_M * 0.5,
         )
@@ -451,41 +533,130 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     }
     verticalBattens.instanceMatrix.needsUpdate = true
 
+    // The two narrow endpoint rails stay tangent to the panel path. They use
+    // the same reference section as the other battens and never expand into
+    // full-height infill plates when the bend direction is reversed.
+    outerVerticalRails.count = 2
+    const outerRailHeightM = heightM + BATTEN_WIDTH_M
+    if (curved) {
+      const endpointPoints = [supportPath[0], supportPath[supportPath.length - 1]]
+      for (let index = 0; index < endpointPoints.length; index += 1) {
+        const point = endpointPoints[index]
+        const inwardDirection = index === 0 ? 1 : -1
+        const tangentX = Math.cos(point.rotY)
+        const tangentZ = -Math.sin(point.rotY)
+        const normalX = Math.sin(point.rotY)
+        const normalZ = Math.cos(point.rotY)
+        const frontZ = point.z - pathMinZ + BATTEN_DEPTH_M
+        transform.position.set(
+          point.x + tangentX * inwardDirection * BATTEN_WIDTH_M * 0.5 -
+            normalX * BATTEN_DEPTH_M * 0.5,
+          heightM * 0.5,
+          frontZ + tangentZ * inwardDirection * BATTEN_WIDTH_M * 0.5 -
+            normalZ * BATTEN_DEPTH_M * 0.5,
+        )
+        transform.rotation.set(0, point.rotY, 0)
+        transform.scale.set(
+          BATTEN_WIDTH_M,
+          outerRailHeightM,
+          BATTEN_DEPTH_M,
+        )
+        transform.updateMatrix()
+        outerVerticalRails.setMatrixAt(index, transform.matrix)
+      }
+    } else {
+      const installationWidthM = Math.max(0.001, Math.abs(maxX - minX))
+      const outerRailWidthM = Math.min(BATTEN_WIDTH_M, installationWidthM * 0.5)
+      const outerRailPositions = [
+        minX + outerRailWidthM * 0.5,
+        maxX - outerRailWidthM * 0.5,
+      ]
+      for (let index = 0; index < outerRailPositions.length; index += 1) {
+        transform.position.set(
+          outerRailPositions[index],
+          heightM * 0.5,
+          BATTEN_DEPTH_M * 0.5,
+        )
+        transform.rotation.set(0, 0, 0)
+        transform.scale.set(
+          outerRailWidthM,
+          outerRailHeightM,
+          BATTEN_DEPTH_M,
+        )
+        transform.updateMatrix()
+        outerVerticalRails.setMatrixAt(index, transform.matrix)
+      }
+    }
+    outerVerticalRails.instanceMatrix.needsUpdate = true
+
     if (curved) {
       horizontalBattens.count = 0
+      outerFlatProfileRibs.count = 0
       updateCurvedProfileGeometry(curvedProfileGeometry, supportPath)
-      curvedProfileBattens.count = horizontalPositions.length
-      for (let index = 0; index < horizontalPositions.length; index += 1) {
-        transform.position.set(0, horizontalPositions[index], 0)
+      curvedProfileBattens.count = internalHorizontalPositions.length
+      for (let index = 0; index < internalHorizontalPositions.length; index += 1) {
+        transform.position.set(0, internalHorizontalPositions[index], 0)
         transform.rotation.set(0, 0, 0)
         transform.scale.set(1, BATTEN_WIDTH_M, 1)
         transform.updateMatrix()
         curvedProfileBattens.setMatrixAt(index, transform.matrix)
       }
       curvedProfileBattens.instanceMatrix.needsUpdate = true
+      outerCurvedProfileRibs.count = 2
+      for (let index = 0; index < 2; index += 1) {
+        transform.position.set(0, index === 0 ? 0 : heightM, 0)
+        transform.rotation.set(0, 0, 0)
+        transform.scale.set(1, BATTEN_WIDTH_M, 1)
+        transform.updateMatrix()
+        outerCurvedProfileRibs.setMatrixAt(index, transform.matrix)
+      }
+      outerCurvedProfileRibs.instanceMatrix.needsUpdate = true
     } else {
       curvedProfileBattens.count = 0
+      outerCurvedProfileRibs.count = 0
       const centreX = (minX + maxX) * 0.5
       const widthM = Math.max(BATTEN_WIDTH_M, Math.abs(maxX - minX))
       // Horizontal members form the rear layer of the simple lattice. A 2 mm
       // setback prevents coincident front faces at every crossing.
       const horizontalCentreZ = BATTEN_DEPTH_M * 0.5 - 0.002
-      horizontalBattens.count = horizontalPositions.length
-      for (let index = 0; index < horizontalPositions.length; index += 1) {
-        transform.position.set(centreX, horizontalPositions[index], horizontalCentreZ)
+      horizontalBattens.count = internalHorizontalPositions.length
+      for (let index = 0; index < internalHorizontalPositions.length; index += 1) {
+        transform.position.set(
+          centreX,
+          internalHorizontalPositions[index],
+          horizontalCentreZ,
+        )
         transform.rotation.set(0, 0, 0)
         transform.scale.set(widthM, BATTEN_WIDTH_M, BATTEN_DEPTH_M)
         transform.updateMatrix()
         horizontalBattens.setMatrixAt(index, transform.matrix)
       }
       horizontalBattens.instanceMatrix.needsUpdate = true
+      outerFlatProfileRibs.count = 2
+      for (let index = 0; index < 2; index += 1) {
+        transform.position.set(
+          centreX,
+          index === 0 ? 0 : heightM,
+          horizontalCentreZ,
+        )
+        transform.rotation.set(0, 0, 0)
+        transform.scale.set(widthM, BATTEN_WIDTH_M, BATTEN_DEPTH_M)
+        transform.updateMatrix()
+        outerFlatProfileRibs.setMatrixAt(index, transform.matrix)
+      }
+      outerFlatProfileRibs.instanceMatrix.needsUpdate = true
     }
 
+    outerFrame.visible = true
     group.visible = true
     stats = {
-      verticalBattens: verticalPositions.length,
-      horizontalBattens: horizontalPositions.length,
-      totalInstances: verticalPositions.length + horizontalPositions.length,
+      verticalBattens: internalVerticalPositions.length,
+      horizontalBattens: internalHorizontalPositions.length,
+      outerFrameMembers: OUTER_FRAME_MEMBER_COUNT,
+      totalInstances:
+        internalVerticalPositions.length +
+        internalHorizontalPositions.length +
+        OUTER_FRAME_MEMBER_COUNT,
       visible: true,
     }
     return stats
@@ -494,6 +665,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
   return {
     group,
     update,
+    setInternalMembersVisible,
     getStats: () => stats,
     dispose: () => {
       if (disposed) return

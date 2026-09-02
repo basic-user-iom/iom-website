@@ -18,8 +18,13 @@ import {
 export const PANEL_HEIGHT_M = 2.8
 export const PANEL_WIDTH_M = 1.2
 export const PANEL_SIZE_MM = { height: 2800, width: 1200 } as const
-/** Visual separation between the panel rear face and an enabled backing. */
-export const BACKING_RENDER_OFFSET_M = 0.0012
+/**
+ * Furthest rendered backing reach beyond the panel rear face. Wool felt uses
+ * the confirmed 2 mm representative visual thickness plus a 0.1 mm anti-
+ * z-fighting gap; the small margin keeps bend and host-plane safety bounds
+ * outside the closed volume at maximum C/S deformation.
+ */
+export const BACKING_RENDER_OFFSET_M = 0.0022
 
 /** Circular-saw path radius in the cutting diagram — never the panel bending radius. */
 export const SAW_PATH_RADIUS_MM = 62.5

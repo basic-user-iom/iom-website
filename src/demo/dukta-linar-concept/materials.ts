@@ -437,6 +437,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     roughness: 0.98,
     metalness: 0,
     side: DoubleSide,
+    shadowSide: DoubleSide,
   })
   if (backing.map) backing.map.repeat.set(9, 28)
   backing.name = 'LinarBacking'
