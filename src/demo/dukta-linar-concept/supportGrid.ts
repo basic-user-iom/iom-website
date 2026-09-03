@@ -64,15 +64,10 @@ const CURVED_PATH_TURN_THRESHOLD_RAD = THREE.MathUtils.degToRad(0.75)
 const PATH_ROTATION_KEY_QUANTUM_RAD = THREE.MathUtils.degToRad(0.5)
 const CURVED_PROFILE_RECEIVER_CLEARANCE_M = 0.001
 const OUTER_FRAME_MEMBER_COUNT = 4
-const OUTER_END_CAP_TRIANGLE_COUNT = 12
-const CURVED_PROFILE_INDICES_PER_SEGMENT = 24
-const CURVED_PROFILE_END_CAP_INDEX_COUNT = 12
-const CURVED_PROFILE_SEGMENT_INDEX_PATTERN = Object.freeze([
-  0, 4, 5, 0, 5, 1,
-  2, 3, 7, 2, 7, 6,
-  0, 2, 6, 0, 6, 4,
-  1, 5, 7, 1, 7, 3,
-])
+const MAX_CURVED_PROFILE_OUTLINE_POINTS = MAX_SUPPORT_PATH_POINTS + 2
+const MAX_CURVED_PROFILE_VERTEX_COUNT = MAX_CURVED_PROFILE_OUTLINE_POINTS * 6
+const MAX_CURVED_PROFILE_INDEX_COUNT = MAX_CURVED_PROFILE_OUTLINE_POINTS * 12 - 12
+const PROFILE_POINT_EPSILON_SQ = 1e-12
 
 type SupportAnchor = {
   positionM: number
@@ -248,22 +243,21 @@ function pointAtPathDistance(
 function createCurvedProfileGeometry(): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
   geometry.name = 'LinarSupportCurvedProfileSharedGeometry'
-  const positions = new Float32Array(MAX_SUPPORT_PATH_POINTS * 4 * 3)
+  const positions = new Float32Array(MAX_CURVED_PROFILE_VERTEX_COUNT * 3)
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-
-  // The active index range is rewritten when the path changes so both end
-  // faces can remain closed with a variable number of sampled segments.
   geometry.setIndex(
     new THREE.BufferAttribute(
-      new Uint16Array(
-        (MAX_SUPPORT_PATH_POINTS - 1) * CURVED_PROFILE_INDICES_PER_SEGMENT +
-          CURVED_PROFILE_END_CAP_INDEX_COUNT,
-      ),
+      new Uint16Array(MAX_CURVED_PROFILE_INDEX_COUNT),
       1,
     ),
   )
   geometry.setDrawRange(0, 0)
   return geometry
+}
+
+type ProfileOutlinePoint = {
+  x: number
+  z: number
 }
 
 function updateCurvedProfileGeometry(
@@ -278,191 +272,135 @@ function updateCurvedProfileGeometry(
   const geometryIndex = geometry.index
   if (!geometryIndex) return 0
   const pathMinZ = points.reduce((minimum, point) => Math.min(minimum, point.z), Infinity)
-  for (let index = 0; index < points.length; index += 1) {
-    const point = points[index]
-    // The photograph shows shaped profile ribs fixed to one receiver plane:
-    // their room-facing contour follows the complete applied installation,
-    // while the rear edge stays flat against the host. This avoids a constant-
-    // depth ribbon floating away from the wall/ceiling at every curve valley.
-    const frontX = point.x
-    const frontZ = point.z - pathMinZ + BATTEN_DEPTH_M
-    const backX = frontX
-    const backZ = CURVED_PROFILE_RECEIVER_CLEARANCE_M
-    const vertex = index * 4
-    position.setXYZ(vertex, frontX, -0.5, frontZ)
-    position.setXYZ(vertex + 1, frontX, 0.5, frontZ)
-    position.setXYZ(vertex + 2, backX, -0.5, backZ)
-    position.setXYZ(vertex + 3, backX, 0.5, backZ)
+
+  // Build one simple cross-section rather than projecting every path segment
+  // independently to the receiver plane. The old strip construction became
+  // degenerate when a tight C/U bend had adjacent samples with the same X and
+  // could expose missing faces or overlapping wedges in Top shape view.
+  const outline: ProfileOutlinePoint[] = []
+  const appendDistinct = (next: ProfileOutlinePoint) => {
+    const previous = outline[outline.length - 1]
+    if (
+      previous &&
+      (next.x - previous.x) ** 2 + (next.z - previous.z) ** 2 <=
+        PROFILE_POINT_EPSILON_SQ
+    ) {
+      return
+    }
+    outline.push(next)
   }
-  position.needsUpdate = true
+  const frontOutline = points.map((point) => ({
+      x: point.x,
+      z: point.z - pathMinZ + BATTEN_DEPTH_M,
+  }))
+  for (const point of frontOutline) {
+    appendDistinct(point)
+  }
+
+  // A profile rib is one compact solid member following the panel curve. It
+  // must never be expanded into a filled sheet between the complete curve and
+  // the receiver plane: at a tight C/U bend that construction looks like a
+  // cabinet side rather than the repeated profile ribs in the client sample.
+  // Offset the reverse edge by the reference batten depth along each sampled
+  // local normal. The vertical rails use the same section, so all four outer
+  // members meet as one restrained perimeter frame.
+  const profileDepthM =
+    BATTEN_DEPTH_M - CURVED_PROFILE_RECEIVER_CLEARANCE_M
+  for (let index = points.length - 1; index >= 0; index -= 1) {
+    const point = points[index]
+    const front = frontOutline[index]
+    appendDistinct({
+      x: front.x - Math.sin(point.rotY) * profileDepthM,
+      z: front.z - Math.cos(point.rotY) * profileDepthM,
+    })
+  }
+  if (
+    outline.length > 1 &&
+    (outline[0].x - outline[outline.length - 1].x) ** 2 +
+      (outline[0].z - outline[outline.length - 1].z) ** 2 <=
+      PROFILE_POINT_EPSILON_SQ
+  ) {
+    outline.pop()
+  }
+
+  if (outline.length < 3) {
+    geometry.setDrawRange(0, 0)
+    return 0
+  }
+
+  const signedArea = outline.reduce((area, point, index) => {
+    const next = outline[(index + 1) % outline.length]
+    return area + point.x * next.z - next.x * point.z
+  }, 0)
+  if (signedArea < 0) outline.reverse()
+
+  const topOffset = 0
+  const bottomOffset = outline.length
+  const sideOffset = outline.length * 2
+  for (let index = 0; index < outline.length; index += 1) {
+    const point = outline[index]
+    const next = outline[(index + 1) % outline.length]
+    position.setXYZ(topOffset + index, point.x, 0.5, point.z)
+    position.setXYZ(bottomOffset + index, point.x, -0.5, point.z)
+    const sideVertex = sideOffset + index * 4
+    position.setXYZ(sideVertex, point.x, -0.5, point.z)
+    position.setXYZ(sideVertex + 1, point.x, 0.5, point.z)
+    position.setXYZ(sideVertex + 2, next.x, 0.5, next.z)
+    position.setXYZ(sideVertex + 3, next.x, -0.5, next.z)
+  }
+
+  const faceTriangles = THREE.ShapeUtils.triangulateShape(
+    outline.map((point) => new THREE.Vector2(point.x, point.z)),
+    [],
+  )
   let outputIndex = 0
-  for (let segment = 0; segment < points.length - 1; segment += 1) {
-    const vertexOffset = segment * 4
-    for (const relativeIndex of CURVED_PROFILE_SEGMENT_INDEX_PATTERN) {
-      geometryIndex.setX(outputIndex, vertexOffset + relativeIndex)
-      outputIndex += 1
+  const writeTriangle = (a: number, b: number, c: number) => {
+    geometryIndex.setX(outputIndex, a)
+    geometryIndex.setX(outputIndex + 1, b)
+    geometryIndex.setX(outputIndex + 2, c)
+    outputIndex += 3
+  }
+  for (const [a, b, c] of faceTriangles) {
+    const first = outline[a]
+    const second = outline[b]
+    const third = outline[c]
+    const triangleArea =
+      (second.x - first.x) * (third.z - first.z) -
+      (second.z - first.z) * (third.x - first.x)
+    if (Math.abs(triangleArea) <= PROFILE_POINT_EPSILON_SQ) continue
+    // In X/Z coordinates, clockwise winding faces +Y.
+    if (triangleArea < 0) {
+      writeTriangle(topOffset + a, topOffset + b, topOffset + c)
+      writeTriangle(bottomOffset + a, bottomOffset + c, bottomOffset + b)
+    } else {
+      writeTriangle(topOffset + a, topOffset + c, topOffset + b)
+      writeTriangle(bottomOffset + a, bottomOffset + b, bottomOffset + c)
     }
   }
-  // Start cap faces outward along the negative path direction.
-  for (const value of [0, 1, 3, 0, 3, 2]) {
-    geometryIndex.setX(outputIndex, value)
-    outputIndex += 1
-  }
-  // End cap faces outward along the positive path direction.
-  const endVertex = (points.length - 1) * 4
-  for (const value of [0, 2, 3, 0, 3, 1]) {
-    geometryIndex.setX(outputIndex, endVertex + value)
-    outputIndex += 1
+  for (let index = 0; index < outline.length; index += 1) {
+    const sideVertex = sideOffset + index * 4
+    writeTriangle(sideVertex, sideVertex + 1, sideVertex + 2)
+    writeTriangle(sideVertex, sideVertex + 2, sideVertex + 3)
   }
   const activeIndexCount = outputIndex
-  // BufferGeometry.computeVertexNormals() visits the complete index buffer,
-  // not only drawRange. Clear the inactive tail so a long-to-short path update
-  // cannot leak stale triangles into the new endpoint normals.
+  const activeVertexCount = sideOffset + outline.length * 4
+  // BufferGeometry bounds inspect the whole fixed-capacity attribute rather
+  // than drawRange. Collapse unused vertices onto a real active point so zero-
+  // initialised capacity cannot enlarge or shift the support bounds.
+  for (let vertex = activeVertexCount; vertex < position.count; vertex += 1) {
+    position.setXYZ(vertex, outline[0].x, 0.5, outline[0].z)
+  }
   while (outputIndex < geometryIndex.count) {
     geometryIndex.setX(outputIndex, 0)
     outputIndex += 1
   }
+  position.needsUpdate = true
   geometryIndex.needsUpdate = true
   geometry.setDrawRange(0, activeIndexCount)
   geometry.computeVertexNormals()
   geometry.computeBoundingBox()
   geometry.computeBoundingSphere()
   return points.length
-}
-
-type EndCapOutlinePoint = {
-  x: number
-  z: number
-}
-
-function createOuterEndCapGeometry(name: string): THREE.BufferGeometry {
-  const geometry = new THREE.BufferGeometry()
-  geometry.name = name
-  geometry.setAttribute(
-    'position',
-    new THREE.BufferAttribute(
-      new Float32Array(OUTER_END_CAP_TRIANGLE_COUNT * 3 * 3),
-      3,
-    ),
-  )
-  geometry.setDrawRange(0, 0)
-  return geometry
-}
-
-function clearOuterEndCapGeometry(geometry: THREE.BufferGeometry): void {
-  geometry.setDrawRange(0, 0)
-  geometry.boundingBox = null
-  geometry.boundingSphere = null
-}
-
-/**
- * Close one global installation end with a watertight, full-height solid.
- * The four-point outline covers only one 40 mm path cell between the shaped
- * room-facing contour and the flat receiver plane. The complete support
- * interior remains an open rib-and-batten structure.
- */
-function updateOuterEndCapGeometry(
-  geometry: THREE.BufferGeometry,
-  outlinePoints: readonly EndCapOutlinePoint[],
-  minimumY: number,
-  maximumY: number,
-): void {
-  if (outlinePoints.length !== 4 || maximumY - minimumY < 0.001) {
-    clearOuterEndCapGeometry(geometry)
-    return
-  }
-
-  let outline = outlinePoints.map((point) => ({ ...point }))
-  const signedArea = outline.reduce((area, point, index) => {
-    const next = outline[(index + 1) % outline.length]
-    return area + point.x * next.z - next.x * point.z
-  }, 0)
-  // Clockwise in X/Z gives the top face a +Y normal.
-  if (signedArea > 0) outline = outline.reverse()
-
-  const triangleArea = (
-    first: EndCapOutlinePoint,
-    second: EndCapOutlinePoint,
-    third: EndCapOutlinePoint,
-  ) => Math.abs(
-    (second.x - first.x) * (third.z - first.z) -
-      (second.z - first.z) * (third.x - first.x),
-  )
-  const diagonalZeroTwoScore = Math.min(
-    triangleArea(outline[0], outline[1], outline[2]),
-    triangleArea(outline[0], outline[2], outline[3]),
-  )
-  const diagonalOneThreeScore = Math.min(
-    triangleArea(outline[0], outline[1], outline[3]),
-    triangleArea(outline[1], outline[2], outline[3]),
-  )
-  const topTriangles = diagonalZeroTwoScore >= diagonalOneThreeScore
-    ? [[0, 1, 2], [0, 2, 3]]
-    : [[0, 1, 3], [1, 2, 3]]
-
-  const positions = geometry.getAttribute('position') as THREE.BufferAttribute
-  let outputVertex = 0
-  const writeTriangle = (
-    first: EndCapOutlinePoint,
-    firstY: number,
-    second: EndCapOutlinePoint,
-    secondY: number,
-    third: EndCapOutlinePoint,
-    thirdY: number,
-  ) => {
-    positions.setXYZ(outputVertex, first.x, firstY, first.z)
-    positions.setXYZ(outputVertex + 1, second.x, secondY, second.z)
-    positions.setXYZ(outputVertex + 2, third.x, thirdY, third.z)
-    outputVertex += 3
-  }
-
-  // Top and bottom caps.
-  for (const [first, second, third] of topTriangles) {
-    writeTriangle(
-      outline[first],
-      maximumY,
-      outline[second],
-      maximumY,
-      outline[third],
-      maximumY,
-    )
-    writeTriangle(
-      outline[first],
-      minimumY,
-      outline[third],
-      minimumY,
-      outline[second],
-      minimumY,
-    )
-  }
-
-  // Four closed side walls. The clockwise outline keeps each normal facing
-  // away from the solid, including the surface visible from inside the cavity.
-  for (let index = 0; index < outline.length; index += 1) {
-    const next = (index + 1) % outline.length
-    writeTriangle(
-      outline[index],
-      minimumY,
-      outline[next],
-      minimumY,
-      outline[next],
-      maximumY,
-    )
-    writeTriangle(
-      outline[index],
-      minimumY,
-      outline[next],
-      maximumY,
-      outline[index],
-      maximumY,
-    )
-  }
-
-  positions.needsUpdate = true
-  geometry.setDrawRange(0, outputVertex)
-  geometry.computeVertexNormals()
-  geometry.computeBoundingBox()
-  geometry.computeBoundingSphere()
 }
 
 /**
@@ -527,31 +465,23 @@ export function createLinarSupportGrid(): LinarSupportGrid {
 
   // Keep the real perimeter independent from the interior lattice. Opaque
   // wool felt can therefore hide internal supports while retaining a readable
-  // four-member outer frame: two solid global end caps and two transverse
-  // profile ribs. Each cap occupies only its terminal 40 mm path cell; the
-  // support cavity remains open everywhere else.
+  // four-member outer frame: two longitudinal edge rails and two transverse
+  // profile ribs. No member fills the wall-to-panel cavity as a solid wing.
   const outerFrame = new THREE.Group()
   outerFrame.name = 'LinarSupportOuterPerimeterFrames'
   outerFrame.visible = false
 
-  const outerEndCaps = new THREE.Group()
-  outerEndCaps.name = 'LinarSupportOuterEndCaps'
-  outerEndCaps.visible = false
-  const outerEndCapGeometries = [
-    createOuterEndCapGeometry('LinarSupportOuterStartEndCapGeometry'),
-    createOuterEndCapGeometry('LinarSupportOuterFinishEndCapGeometry'),
-  ]
-  outerEndCapGeometries.forEach((endCapGeometry, index) => {
-    const mesh = new THREE.Mesh(endCapGeometry, material)
-    mesh.name = index === 0
-      ? 'LinarSupportOuterStartEndCap'
-      : 'LinarSupportOuterFinishEndCap'
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-    mesh.frustumCulled = false
-    outerEndCaps.add(mesh)
-  })
-  outerFrame.add(outerEndCaps)
+  const outerVerticalRails = new THREE.InstancedMesh(
+    geometry,
+    material,
+    2,
+  )
+  outerVerticalRails.name = 'LinarSupportOuterVerticalRails'
+  outerVerticalRails.count = 0
+  outerVerticalRails.castShadow = true
+  outerVerticalRails.receiveShadow = true
+  outerVerticalRails.frustumCulled = false
+  outerFrame.add(outerVerticalRails)
 
   const outerFlatProfileRibs = new THREE.InstancedMesh(
     geometry,
@@ -622,10 +552,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       verticalBattens.count = 0
       horizontalBattens.count = 0
       curvedProfileBattens.count = 0
-      outerEndCaps.visible = false
-      for (const endCapGeometry of outerEndCapGeometries) {
-        clearOuterEndCapGeometry(endCapGeometry)
-      }
+      outerVerticalRails.count = 0
       outerFlatProfileRibs.count = 0
       outerCurvedProfileRibs.count = 0
       outerFrame.visible = false
@@ -640,6 +567,14 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       : supportPositions(minX, maxX, seamXM)
     const internalVerticalPositions = verticalPositions.slice(1, -1)
     const internalHorizontalPositions = horizontalPositions.slice(1, -1)
+    // Longitudinal members butt into the two 40 mm profile ribs instead of
+    // passing through them. Besides matching a fabricated open frame, this
+    // prevents their end faces from appearing as wedges outside the smooth
+    // profile in Top shape inspection.
+    const longitudinalMemberHeightM = Math.max(
+      0.001,
+      heightM - BATTEN_WIDTH_M * 2,
+    )
     if (
       verticalPositions.length > MAX_INSTANCES_PER_AXIS ||
       horizontalPositions.length > MAX_INSTANCES_PER_AXIS
@@ -674,82 +609,84 @@ export function createLinarSupportGrid(): LinarSupportGrid {
         )
         transform.rotation.set(0, 0, 0)
       }
-      transform.scale.set(BATTEN_WIDTH_M, heightM, BATTEN_DEPTH_M)
+      transform.scale.set(
+        BATTEN_WIDTH_M,
+        longitudinalMemberHeightM,
+        BATTEN_DEPTH_M,
+      )
       transform.updateMatrix()
       verticalBattens.setMatrixAt(index, transform.matrix)
     }
     verticalBattens.instanceMatrix.needsUpdate = true
 
-    // Close only the two global installation ends. Sampling one 40 mm cell
-    // inward produces a real solid terminal plate without the oversized
-    // tangent-extrapolated wings used by the earlier approximation.
-    const minimumEndCapY = 0
-    const maximumEndCapY = heightM
+    // The two global endpoint members are narrow closed rails, not cavity-
+    // filling side sheets. Sample each real terminal 40 mm path cell so a
+    // near-vertical or folded endpoint cannot create a tangent wedge.
+    outerVerticalRails.count = 2
+    const outerRailHeightM = longitudinalMemberHeightM
+    const outerRailDepthM =
+      BATTEN_DEPTH_M - CURVED_PROFILE_RECEIVER_CLEARANCE_M
     if (curved) {
-      const endCapPathSpanM = Math.min(
-        BATTEN_WIDTH_M,
-        maximumPathDistance * 0.5,
-      )
-      const endpointDistances = [0, maximumPathDistance]
-      const innerDistances = [
-        endCapPathSpanM,
-        maximumPathDistance - endCapPathSpanM,
-      ]
-      for (let index = 0; index < outerEndCapGeometries.length; index += 1) {
-        const endpoint = pointAtPathDistance(supportPath, endpointDistances[index])
-        const innerPoint = pointAtPathDistance(supportPath, innerDistances[index])
-        const oppositeEndpoint = supportPath[index === 0 ? supportPath.length - 1 : 0]
-        const fallbackDirection = index === 0 ? 1 : -1
-        const inwardXDirection =
-          Math.sign(innerPoint.x - endpoint.x) ||
-          Math.sign(oppositeEndpoint.x - endpoint.x) ||
-          fallbackDirection
-        const innerReceiverX = endpoint.x + inwardXDirection * endCapPathSpanM
-        updateOuterEndCapGeometry(
-          outerEndCapGeometries[index],
-          [
-            {
-              x: endpoint.x,
-              z: endpoint.z - pathMinZ + BATTEN_DEPTH_M,
-            },
-            {
-              x: innerPoint.x,
-              z: innerPoint.z - pathMinZ + BATTEN_DEPTH_M,
-            },
-            { x: innerReceiverX, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-            { x: endpoint.x, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-          ],
-          minimumEndCapY,
-          maximumEndCapY,
+      const terminalSpanM = Math.min(BATTEN_WIDTH_M, maximumPathDistance * 0.5)
+      const terminalPairs = [
+        [
+          pointAtPathDistance(supportPath, 0),
+          pointAtPathDistance(supportPath, terminalSpanM),
+        ],
+        [
+          pointAtPathDistance(supportPath, maximumPathDistance - terminalSpanM),
+          pointAtPathDistance(supportPath, maximumPathDistance),
+        ],
+      ] as const
+      for (let index = 0; index < terminalPairs.length; index += 1) {
+        const [start, end] = terminalPairs[index]
+        const chordX = end.x - start.x
+        const chordZ = end.z - start.z
+        const chordLengthM = Math.max(0.001, Math.hypot(chordX, chordZ))
+        const rotationY = Math.atan2(-chordZ, chordX)
+        const normalX = Math.sin(rotationY)
+        const normalZ = Math.cos(rotationY)
+        const frontMidpointX = (start.x + end.x) * 0.5
+        const frontMidpointZ =
+          (start.z + end.z) * 0.5 - pathMinZ + BATTEN_DEPTH_M
+        transform.position.set(
+          frontMidpointX - normalX * outerRailDepthM * 0.5,
+          heightM * 0.5,
+          frontMidpointZ - normalZ * outerRailDepthM * 0.5,
         )
+        transform.rotation.set(0, rotationY, 0)
+        transform.scale.set(
+          chordLengthM,
+          outerRailHeightM,
+          outerRailDepthM,
+        )
+        transform.updateMatrix()
+        outerVerticalRails.setMatrixAt(index, transform.matrix)
       }
     } else {
       const installationWidthM = Math.max(0.001, Math.abs(maxX - minX))
-      const endCapWidthM = Math.min(BATTEN_WIDTH_M, installationWidthM * 0.5)
-      const outlines: readonly EndCapOutlinePoint[][] = [
-        [
-          { x: minX, z: BATTEN_DEPTH_M },
-          { x: minX + endCapWidthM, z: BATTEN_DEPTH_M },
-          { x: minX + endCapWidthM, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-          { x: minX, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-        ],
-        [
-          { x: maxX, z: BATTEN_DEPTH_M },
-          { x: maxX - endCapWidthM, z: BATTEN_DEPTH_M },
-          { x: maxX - endCapWidthM, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-          { x: maxX, z: CURVED_PROFILE_RECEIVER_CLEARANCE_M },
-        ],
+      const outerRailWidthM = Math.min(BATTEN_WIDTH_M, installationWidthM * 0.5)
+      const outerRailPositions = [
+        minX + outerRailWidthM * 0.5,
+        maxX - outerRailWidthM * 0.5,
       ]
-      for (let index = 0; index < outerEndCapGeometries.length; index += 1) {
-        updateOuterEndCapGeometry(
-          outerEndCapGeometries[index],
-          outlines[index],
-          minimumEndCapY,
-          maximumEndCapY,
+      for (let index = 0; index < outerRailPositions.length; index += 1) {
+        transform.position.set(
+          outerRailPositions[index],
+          heightM * 0.5,
+          CURVED_PROFILE_RECEIVER_CLEARANCE_M + outerRailDepthM * 0.5,
         )
+        transform.rotation.set(0, 0, 0)
+        transform.scale.set(
+          outerRailWidthM,
+          outerRailHeightM,
+          outerRailDepthM,
+        )
+        transform.updateMatrix()
+        outerVerticalRails.setMatrixAt(index, transform.matrix)
       }
     }
-    outerEndCaps.visible = true
+    outerVerticalRails.instanceMatrix.needsUpdate = true
 
     if (curved) {
       horizontalBattens.count = 0
@@ -766,7 +703,11 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       curvedProfileBattens.instanceMatrix.needsUpdate = true
       outerCurvedProfileRibs.count = 2
       for (let index = 0; index < 2; index += 1) {
-        transform.position.set(0, index === 0 ? 0 : heightM, 0)
+        transform.position.set(
+          0,
+          index === 0 ? BATTEN_WIDTH_M * 0.5 : heightM - BATTEN_WIDTH_M * 0.5,
+          0,
+        )
         transform.rotation.set(0, 0, 0)
         transform.scale.set(1, BATTEN_WIDTH_M, 1)
         transform.updateMatrix()
@@ -781,12 +722,6 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       // Horizontal members form the rear layer of the simple lattice. A 2 mm
       // setback prevents coincident front faces at every crossing.
       const horizontalCentreZ = BATTEN_DEPTH_M * 0.5 - 0.002
-      // Unlike the recessed interior battens, the two perimeter ribs meet the
-      // terminal caps exactly so the outer frame reads as one closed shell.
-      const outerProfileDepthM =
-        BATTEN_DEPTH_M - CURVED_PROFILE_RECEIVER_CLEARANCE_M
-      const outerProfileCentreZ =
-        CURVED_PROFILE_RECEIVER_CLEARANCE_M + outerProfileDepthM * 0.5
       horizontalBattens.count = internalHorizontalPositions.length
       for (let index = 0; index < internalHorizontalPositions.length; index += 1) {
         transform.position.set(
@@ -804,11 +739,11 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       for (let index = 0; index < 2; index += 1) {
         transform.position.set(
           centreX,
-          index === 0 ? 0 : heightM,
-          outerProfileCentreZ,
+          index === 0 ? BATTEN_WIDTH_M * 0.5 : heightM - BATTEN_WIDTH_M * 0.5,
+          horizontalCentreZ,
         )
         transform.rotation.set(0, 0, 0)
-        transform.scale.set(widthM, BATTEN_WIDTH_M, outerProfileDepthM)
+        transform.scale.set(widthM, BATTEN_WIDTH_M, BATTEN_DEPTH_M)
         transform.updateMatrix()
         outerFlatProfileRibs.setMatrixAt(index, transform.matrix)
       }
@@ -841,9 +776,6 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       group.clear()
       geometry.dispose()
       curvedProfileGeometry.dispose()
-      for (const endCapGeometry of outerEndCapGeometries) {
-        endCapGeometry.dispose()
-      }
       material.dispose()
       stats = emptyStats()
       lastUpdateKey = ''
