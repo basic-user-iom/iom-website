@@ -50,12 +50,12 @@ const MOON_SURFACE_MANIFEST_FILE = resolve(PUBLIC_ASSET_ROOT, 'moons/manifest.js
 
 const EXPECTED_ASSET_CHANNELS = Object.freeze([
   'sun-sdo-hmi-intensity-2025-12-26-2k:sun:observation',
-  'earth-blue-marble-2k:earth:albedo',
+  'earth-blue-marble-ng-topography-8k:earth:albedo',
   'earth-blue-marble-derived-normal-2k:earth:normal',
   'earth-blue-marble-derived-ocean-mask-2k:earth:ocean',
-  'earth-city-lights-2k:earth:night',
+  'earth-black-marble-2016-8k:earth:night',
   'earth-derived-roughness-2k:earth:roughness',
-  'earth-modis-clouds-2k:earth:cloud',
+  'earth-modis-clouds-8k:earth:cloud',
   'jupiter-hubble-opal-2025a-global-map:jupiter:albedo',
   'jupiter-junocam-pia23606-grs-detail:jupiter:grs-detail',
   'saturn-hubble-opal-2025a-global-map:saturn:albedo',

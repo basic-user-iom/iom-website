@@ -1,5 +1,4 @@
 import {
-  AdditiveBlending,
   BufferGeometry,
   DynamicDrawUsage,
   Float32BufferAttribute,
@@ -35,7 +34,6 @@ export class VolumetricPlumeRenderer {
   private readonly sizeAttribute = dynamicAttribute(MAX_PLUME_PARTICLES, 1);
   private readonly geometry = new BufferGeometry();
   private readonly material = new ShaderMaterial({
-    blending: AdditiveBlending,
     depthTest: true,
     depthWrite: false,
     fragmentShader: `
@@ -45,15 +43,18 @@ export class VolumetricPlumeRenderer {
       varying float vLayer;
       void main() {
         vec2 point = gl_PointCoord * 2.0 - 1.0;
-        float softEdge = 1.0 - smoothstep(0.08, 1.0, length(point));
-        vec3 hotCore = mix(vec3(1.0, 0.44, 0.12), vec3(0.42, 0.35, 0.31), uCooling);
-        vec3 vapor = mix(vec3(0.92, 0.82, 0.68), vec3(0.48, 0.46, 0.44), uCooling);
+        float radius = length(point);
+        float billow = exp(-radius * radius * mix(3.6, 2.2, step(1.5, vLayer)));
+        float edge = 1.0 - smoothstep(0.76, 1.0, radius);
+        float mottling = 0.78 + 0.22 * sin(point.x * 13.0 + point.y * 17.0 + vLayer * 2.3);
+        vec3 hotCore = mix(vec3(1.0, 0.38, 0.07), vec3(0.2, 0.16, 0.14), uCooling);
+        vec3 vapor = mix(vec3(0.46, 0.37, 0.29), vec3(0.16, 0.15, 0.145), uCooling);
         vec3 dust = uProfile < 0.5
-          ? vec3(0.54, 0.51, 0.48)
-          : (uProfile < 1.5 ? vec3(0.5, 0.34, 0.23) : vec3(0.72, 0.67, 0.58));
-        vec3 color = vLayer < 0.5 ? hotCore : (vLayer < 1.5 ? vapor : dust);
-        float layerAlpha = vLayer < 0.5 ? 0.78 : (vLayer < 1.5 ? 0.5 : 0.36);
-        float alpha = softEdge * uOpacity * layerAlpha;
+          ? vec3(0.2, 0.19, 0.18)
+          : (uProfile < 1.5 ? vec3(0.18, 0.135, 0.105) : vec3(0.26, 0.245, 0.22));
+        vec3 color = (vLayer < 0.5 ? hotCore : (vLayer < 1.5 ? vapor : dust)) * mottling;
+        float layerAlpha = vLayer < 0.5 ? 0.42 : (vLayer < 1.5 ? 0.24 : 0.13);
+        float alpha = billow * edge * uOpacity * layerAlpha * mottling;
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(color, alpha);
       }
@@ -74,7 +75,7 @@ export class VolumetricPlumeRenderer {
       void main() {
         vLayer = aLayer;
         vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-        float perspective = clamp(220.0 / max(-viewPosition.z, 1.0), 0.62, 3.2);
+        float perspective = clamp(160.0 / max(-viewPosition.z, 1.0), 0.5, 1.65);
         gl_PointSize = uBasePointSize * aSize * perspective;
         gl_Position = projectionMatrix * viewPosition;
       }
@@ -108,6 +109,7 @@ export class VolumetricPlumeRenderer {
     state: Readonly<ImpactRenderState>,
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
+    presentationMultiplier = 1,
   ): void {
     const elapsed = state.eventElapsedSeconds;
     this.visible = active
@@ -135,10 +137,14 @@ export class VolumetricPlumeRenderer {
       const radialRandom = impactRandom01(seed, index * 4 + 1);
       const angle = impactRandom01(seed, index * 4 + 2) * Math.PI * 2;
       const curl = Math.sin(heightRandom * Math.PI * 4 + elapsed * 0.48 + layer) * 0.18;
-      const heightScale = layer === 0 ? 0.72 : layer === 1 ? 1 : 0.84;
-      const radialScale = layer === 0 ? 0.38 : layer === 1 ? 0.7 : 1;
-      const heightM = state.plumeHeightM * Math.pow(heightRandom, 0.74) * heightScale;
-      const radialM = state.plumeRadiusM * Math.sqrt(radialRandom) * radialScale;
+      const heightScale = layer === 0 ? 0.38 : layer === 1 ? 1 : 0.82;
+      const radialScale = layer === 0 ? 0.34 : layer === 1 ? 0.78 : 1.02;
+      const billowOffset = Math.sin(elapsed * 0.34 + angle * 2.0 + layer) * 0.035;
+      const heightM = state.plumeHeightM * presentationMultiplier
+        * Math.max(0, Math.pow(heightRandom, 0.72) + billowOffset) * heightScale;
+      const columnExpansion = 0.26 + Math.pow(heightRandom, 0.58) * 0.74;
+      const radialM = state.plumeRadiusM * presentationMultiplier * Math.sqrt(radialRandom)
+        * radialScale * columnExpansion;
       const eastM = Math.cos(angle + curl) * radialM;
       const northM = Math.sin(angle + curl) * radialM;
       const offset = index * 3;
@@ -155,7 +161,9 @@ export class VolumetricPlumeRenderer {
         + basis.north.z * northM / state.targetRadiusM
         + this.surfaceNormal.z * heightM / state.targetRadiusM;
       layers[index] = layer;
-      sizes[index] = 0.55 + impactRandom01(seed, index * 4 + 3) * (layer === 2 ? 1.4 : 0.9);
+      sizes[index] = (0.56
+        + impactRandom01(seed, index * 4 + 3) * (layer === 2 ? 0.92 : 0.78))
+        * Math.min(2.8, Math.max(1, Math.sqrt(presentationMultiplier) * 0.72));
     }
     this.positionAttribute.needsUpdate = this.maximumCount > 0;
     this.layerAttribute.needsUpdate = this.maximumCount > 0;

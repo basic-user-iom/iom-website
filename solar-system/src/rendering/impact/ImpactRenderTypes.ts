@@ -1,5 +1,6 @@
 import type { CameraCloseUpPresetId } from '../camera/CameraCloseUpPresets';
 import type { CameraMode } from '../camera/CameraTypes';
+import type { ImpactVisibilityMode } from './ImpactVisibility';
 
 export const IMPACT_LIFECYCLE_STATES = [
   'idle',
@@ -204,6 +205,8 @@ export interface ImpactVisualDiagnostics {
   readonly stage: ImpactVisualStage;
   readonly runSignature: string;
   readonly cameraPresetId: ImpactCameraPresetId | null;
+  readonly visibilityMode: ImpactVisibilityMode;
+  readonly visibilityMultiplier: number;
   readonly reticleVisible: boolean;
   readonly projectedTrajectoryPointCount: number;
   readonly trailPointCount: number;
@@ -265,6 +268,8 @@ export const EMPTY_IMPACT_DIAGNOSTICS: Readonly<ImpactVisualDiagnostics> = Objec
   stage: 'idle',
   runSignature: '',
   cameraPresetId: null,
+  visibilityMode: 'physical',
+  visibilityMultiplier: 1,
   reticleVisible: false,
   projectedTrajectoryPointCount: 0,
   trailPointCount: 0,

@@ -303,6 +303,10 @@ test.describe.serial('Phase 8 Impact Lab', () => {
 
     await openImpactLab(page)
     await configureReferenceImpact(page)
+    await expect(page.getByTestId('impact-visibility-mode')).toHaveValue('enhanced')
+    await expect(page.getByTestId('impact-visibility-badge')).toContainText(
+      /enhanced event visibility/i,
+    )
     await confirmAndPauseImpact(page, canvas)
     await expect(page.getByTestId('solar-system-app')).toHaveAttribute(
       'data-reduce-flashes',
@@ -325,6 +329,14 @@ test.describe.serial('Phase 8 Impact Lab', () => {
 
     await stepUntilSolidAftermath(page, canvas, 'solid-atmospheric', 'crater')
     await expect(canvas).toHaveAttribute('data-impact-crater-visible', 'true')
+    await expect(canvas).toHaveAttribute('data-impact-visibility-mode', 'enhanced')
+    expect(Number(await requiredAttribute(canvas, 'data-impact-visibility-multiplier')))
+      .toBeGreaterThan(1)
+    await expect(page.locator('.canvas-legend')).toHaveCount(0)
+    await page.getByTestId('impact-visibility-mode').selectOption('physical')
+    await expect(canvas).toHaveAttribute('data-impact-visibility-mode', 'physical')
+    await expect(canvas).toHaveAttribute('data-impact-visibility-multiplier', '1.000')
+    await page.getByTestId('impact-visibility-mode').selectOption('enhanced')
     expect(await activeEffectCount(canvas)).toBeGreaterThan(0)
     expect(
       Number(await requiredAttribute(canvas, 'data-impact-flash-intensity')),
@@ -343,6 +355,7 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     await expect(canvas).toHaveAttribute('data-impact-stage', 'idle')
     await expect(canvas).toHaveAttribute('data-impact-run-signature', '')
     await expect(canvas).toHaveAttribute('data-impact-camera-preset', '')
+    await expect(canvas).toHaveAttribute('data-impact-visibility-mode', 'enhanced')
     await expect(canvas).toHaveAttribute('data-impact-trail-points', '0')
     await expect(canvas).toHaveAttribute('data-impact-fragments', '0')
     await expect(canvas).toHaveAttribute('data-impact-ejecta-points', '0')

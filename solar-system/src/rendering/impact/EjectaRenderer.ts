@@ -1,5 +1,4 @@
 import {
-  AdditiveBlending,
   BufferGeometry,
   DynamicDrawUsage,
   Float32BufferAttribute,
@@ -31,27 +30,31 @@ export class EjectaRenderer {
 
   private readonly positionAttribute = dynamicAttribute(MAX_EJECTA_PARTICLES, 3);
   private readonly typeAttribute = dynamicAttribute(MAX_EJECTA_PARTICLES, 1);
+  private readonly sizeAttribute = dynamicAttribute(MAX_EJECTA_PARTICLES, 1);
+  private readonly densityAttribute = dynamicAttribute(MAX_EJECTA_PARTICLES, 1);
   private readonly geometry = new BufferGeometry();
   private readonly material = new ShaderMaterial({
-    blending: AdditiveBlending,
     depthTest: true,
     depthWrite: false,
     fragmentShader: `
       uniform float uOpacity;
       uniform float uCooling;
       varying float vType;
+      varying float vDensity;
       void main() {
         vec2 point = gl_PointCoord * 2.0 - 1.0;
-        float softEdge = 1.0 - smoothstep(0.22, 1.0, length(point));
-        vec3 dust = vec3(0.56, 0.42, 0.3);
-        vec3 hot = mix(vec3(1.0, 0.18, 0.025), vec3(0.5, 0.26, 0.16), uCooling);
+        float radius = length(point);
+        float softEdge = exp(-radius * radius * mix(3.2, 6.4, vDensity));
+        float granularEdge = 1.0 - smoothstep(0.68 + vDensity * 0.12, 1.0, radius);
+        vec3 dust = mix(vec3(0.22, 0.18, 0.15), vec3(0.58, 0.45, 0.33), vDensity);
+        vec3 hot = mix(vec3(1.0, 0.22, 0.035), vec3(0.48, 0.28, 0.18), uCooling);
         vec3 color = mix(dust, hot, step(0.55, vType));
-        float alpha = softEdge * uOpacity * mix(0.52, 0.92, step(0.55, vType));
+        float alpha = softEdge * granularEdge * uOpacity
+          * mix(0.34 + vDensity * 0.38, 0.82, step(0.55, vType));
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(color, alpha);
       }
     `,
-    toneMapped: false,
     transparent: true,
     uniforms: {
       uBasePointSize: { value: 4 },
@@ -60,13 +63,17 @@ export class EjectaRenderer {
     },
     vertexShader: `
       attribute float aType;
+      attribute float aSize;
+      attribute float aDensity;
       uniform float uBasePointSize;
       varying float vType;
+      varying float vDensity;
       void main() {
         vType = aType;
+        vDensity = aDensity;
         vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
         float perspective = clamp(180.0 / max(-viewPosition.z, 1.0), 0.65, 2.8);
-        gl_PointSize = uBasePointSize * mix(0.72, 1.35, aType) * perspective;
+        gl_PointSize = uBasePointSize * aSize * mix(0.78, 1.28, aType) * perspective;
         gl_Position = projectionMatrix * viewPosition;
       }
     `,
@@ -74,6 +81,8 @@ export class EjectaRenderer {
   private readonly points = new Points(this.geometry, this.material);
   private readonly initialVelocitiesMps = new Float32Array(MAX_EJECTA_PARTICLES * 3);
   private readonly particleTypes = new Float32Array(MAX_EJECTA_PARTICLES);
+  private readonly particleSizes = new Float32Array(MAX_EJECTA_PARTICLES);
+  private readonly particleDensities = new Float32Array(MAX_EJECTA_PARTICLES);
   private readonly surfacePoint = new Vector3();
   private readonly surfaceNormal = new Vector3();
   private readonly gravityDirection = new Vector3();
@@ -87,6 +96,8 @@ export class EjectaRenderer {
   public constructor() {
     this.geometry.setAttribute('position', this.positionAttribute);
     this.geometry.setAttribute('aType', this.typeAttribute);
+    this.geometry.setAttribute('aSize', this.sizeAttribute);
+    this.geometry.setAttribute('aDensity', this.densityAttribute);
     this.geometry.setDrawRange(0, 0);
     this.points.name = 'impact-ballistic-ejecta';
     this.points.frustumCulled = false;
@@ -105,6 +116,7 @@ export class EjectaRenderer {
     state: Readonly<ImpactRenderState>,
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
+    presentationMultiplier = 1,
   ): void {
     const elapsed = state.eventElapsedSeconds;
     const allowed = state.supportsCrater
@@ -132,6 +144,8 @@ export class EjectaRenderer {
     this.gravityDirection.copy(this.surfacePoint).normalize();
     const output = this.positionAttribute.array as Float32Array;
     const outputTypes = this.typeAttribute.array as Float32Array;
+    const outputSizes = this.sizeAttribute.array as Float32Array;
+    const outputDensities = this.densityAttribute.array as Float32Array;
     const equatorialRatio = state.targetEquatorialRadiusM / state.targetRadiusM;
     const polarRatio = state.targetPolarRadiusM / state.targetRadiusM;
     const surfaceX = this.surfacePoint.x * state.targetRadiusM;
@@ -172,15 +186,27 @@ export class EjectaRenderer {
         recontact += 1;
         continue;
       }
+      // Recontact is evaluated at physical scale above. Only the final drawn
+      // displacement is enlarged, preserving timing and ballistic outcome.
+      this.displacementM.copy(this.particlePositionM).sub(this.surfacePointM);
+      this.particlePositionM.copy(this.surfacePointM).addScaledVector(
+        this.displacementM,
+        presentationMultiplier,
+      );
       const target = write * 3;
-      output[target] = localX;
-      output[target + 1] = localY;
-      output[target + 2] = localZ;
+      output[target] = this.particlePositionM.x / state.targetRadiusM;
+      output[target + 1] = this.particlePositionM.y / state.targetRadiusM;
+      output[target + 2] = this.particlePositionM.z / state.targetRadiusM;
       outputTypes[write] = this.particleTypes[index] ?? 0;
+      outputSizes[write] = (this.particleSizes[index] ?? 1)
+        * Math.min(2.4, Math.sqrt(presentationMultiplier));
+      outputDensities[write] = this.particleDensities[index] ?? 0.5;
       write += 1;
     }
     this.positionAttribute.needsUpdate = write > 0;
     this.typeAttribute.needsUpdate = write > 0;
+    this.sizeAttribute.needsUpdate = write > 0;
+    this.densityAttribute.needsUpdate = write > 0;
     this.geometry.setDrawRange(0, write);
     this.material.uniforms.uOpacity!.value = clampImpactUnit(state.ejectaOpacity);
     this.material.uniforms.uCooling!.value = clampImpactUnit(
@@ -220,12 +246,18 @@ export class EjectaRenderer {
       state.ejectaLaunchSpeedMps * 0.12,
     );
     const wideCone = state.surfaceEffectProfile === 'solid-airless';
+    const rayCount = 9 + Math.floor(impactRandom01(seed, 888) * 5);
     for (let index = 0; index < MAX_EJECTA_PARTICLES; index += 1) {
       const speed = state.ejectaLaunchSpeedMps
-        * (0.28 + impactRandom01(seed, index * 5) * 0.72);
-      const angle = impactRandom01(seed, index * 5 + 1) * Math.PI * 2;
-      const cone = (wideCone ? 0.34 : 0.22)
-        + impactRandom01(seed, index * 5 + 2) * (wideCone ? 0.72 : 0.55);
+        * (0.16 + impactRandom01(seed, index * 7) ** 1.8 * 0.84);
+      const freeAngle = impactRandom01(seed, index * 7 + 1) * Math.PI * 2;
+      const ray = Math.floor(impactRandom01(seed, index * 7 + 2) * rayCount);
+      const rayJitter = (impactRandom01(seed, index * 7 + 3) - 0.5) * 0.24;
+      const rayAngle = (ray + 0.5 + rayJitter) / rayCount * Math.PI * 2;
+      const followsRay = impactRandom01(seed, index * 7 + 4) < 0.68;
+      const angle = followsRay ? rayAngle : freeAngle;
+      const cone = (wideCone ? 0.48 : 0.58)
+        + impactRandom01(seed, index * 7 + 5) * (wideCone ? 0.58 : 0.38);
       const horizontalSpeed = Math.min(horizontalCeiling, Math.sin(cone) * speed);
       const verticalSpeed = Math.cos(cone) * speed;
       const eastSpeed = Math.cos(angle) * horizontalSpeed;
@@ -237,8 +269,12 @@ export class EjectaRenderer {
         + basis.north.y * northSpeed + basis.normal.y * verticalSpeed;
       this.initialVelocitiesMps[offset + 2] = basis.east.z * eastSpeed
         + basis.north.z * northSpeed + basis.normal.z * verticalSpeed;
-      const hotThreshold = 0.18 + state.normalizedHeating * 0.38;
-      this.particleTypes[index] = impactRandom01(seed, index * 5 + 3) < hotThreshold ? 1 : 0;
+      const hotThreshold = 0.06 + state.normalizedHeating * 0.2;
+      this.particleTypes[index] = impactRandom01(seed, index * 7 + 6) < hotThreshold ? 1 : 0;
+      const sizeRandom = impactRandom01(seed ^ 0x51_7e, index * 3);
+      this.particleSizes[index] = 0.58 + sizeRandom ** 2 * 1.9;
+      this.particleDensities[index] = 0.22
+        + impactRandom01(seed ^ 0xd3_45, index * 3 + 1) * 0.78;
     }
     this.configuredSignature = state.runSignature;
   }

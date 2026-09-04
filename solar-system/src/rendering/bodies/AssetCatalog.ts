@@ -59,17 +59,17 @@ export const BODY_TEXTURE_ASSETS: readonly BodyTextureAsset[] = Object.freeze([
     colorSpace: 'linear',
   }),
   Object.freeze({
-    assetId: 'earth-blue-marble-2k',
+    assetId: 'earth-blue-marble-ng-topography-8k',
     bodyId: 'earth',
     channel: 'albedo',
-    file: `${PHASE_FOUR_ASSET_ROOT}earth-day.png`,
+    file: `${PHASE_FOUR_ASSET_ROOT}earth-day-8k.webp`,
     colorSpace: 'srgb',
   }),
   Object.freeze({
-    assetId: 'earth-city-lights-2k',
+    assetId: 'earth-black-marble-2016-8k',
     bodyId: 'earth',
     channel: 'night',
-    file: `${PHASE_FOUR_ASSET_ROOT}earth-night.png`,
+    file: `${PHASE_FOUR_ASSET_ROOT}earth-night-8k.webp`,
     colorSpace: 'srgb',
   }),
   Object.freeze({
@@ -94,10 +94,10 @@ export const BODY_TEXTURE_ASSETS: readonly BodyTextureAsset[] = Object.freeze([
     colorSpace: 'linear',
   }),
   Object.freeze({
-    assetId: 'earth-modis-clouds-2k',
+    assetId: 'earth-modis-clouds-8k',
     bodyId: 'earth',
     channel: 'cloud',
-    file: `${PHASE_FOUR_ASSET_ROOT}earth-clouds.jpg`,
+    file: `${PHASE_FOUR_ASSET_ROOT}earth-clouds-8k.webp`,
     colorSpace: 'linear',
   }),
   Object.freeze({

@@ -78,6 +78,7 @@ import {
   type ImpactCameraPresetId,
   type ImpactRenderState,
   type ImpactVisualDiagnostics,
+  type ImpactVisibilityMode,
   type RendererCameraSnapshot,
 } from './impact';
 import {
@@ -386,6 +387,7 @@ export class DebugSolarSystemRenderer {
   private blackHoleSuppressedBodyCount = 0;
   private impactCameraPresetId: ImpactCameraPresetId | null = null;
   private impactCameraOverrideInitialized = false;
+  private impactVisibilityMode: ImpactVisibilityMode = 'physical';
   private scenarioExposureCeiling: number | null = null;
 
   public constructor(
@@ -500,17 +502,19 @@ export class DebugSolarSystemRenderer {
     this.updateBlackHoleLensing();
     this.celestialBackground.updateCameraPosition(this.camera.position);
     this.updateScreenSpaceLabels();
+    const labelsSuppressed = this.cameraController.status.closeUpPresetId !== null
+      || this.impactPlaybackActive();
     this.naturalSatelliteVisualSystem.updateLabels(
       this.camera,
       this.viewportWidth,
       this.viewportHeight,
-      this.cameraController.status.closeUpPresetId !== null,
+      labelsSuppressed,
     );
     this.spaceObjectVisualSystem.updateLabels(
       this.camera,
       this.viewportWidth,
       this.viewportHeight,
-      this.cameraController.status.closeUpPresetId !== null,
+      labelsSuppressed,
     );
     this.updateExposurePreset();
     this.updateScenarioExposureProtection();
@@ -781,7 +785,9 @@ export class DebugSolarSystemRenderer {
 
   public setOrbitLinesVisible(visible: boolean): void {
     this.orbitLinesVisible = visible;
-    this.pathLayer.visible = visible;
+    this.pathLayer.visible = visible
+      && !this.impactPlaybackActive()
+      && !this.blackHoleVisualSystem.getDiagnostics().active;
   }
 
   public setBodyLabelsVisible(visible: boolean): void {
@@ -828,6 +834,7 @@ export class DebugSolarSystemRenderer {
     this.impactVisualSystem.attachToTarget(target.root);
     this.impactVisualSystem.update(state);
     this.impactRenderState = state;
+    this.pathLayer.visible = this.orbitLinesVisible && !this.impactPlaybackActive();
     this.synchronizeAdaptiveResolutionEffect();
     this.updateScenarioExposureProtection();
     this.updateCanvasDiagnostics();
@@ -839,6 +846,7 @@ export class DebugSolarSystemRenderer {
       this.impactCameraPresetId = null;
       this.impactCameraOverrideInitialized = false;
       this.impactVisualSystem.setCameraPreset(null);
+      if (this.impactRenderState !== null) this.impactVisualSystem.update(this.impactRenderState);
       this.updateCanvasDiagnostics();
       return true;
     }
@@ -854,8 +862,20 @@ export class DebugSolarSystemRenderer {
     this.impactCameraPresetId = presetId;
     this.impactCameraOverrideInitialized = false;
     this.impactVisualSystem.setCameraPreset(presetId);
+    this.impactVisualSystem.update(this.impactRenderState);
     this.updateCanvasDiagnostics();
     return true;
+  }
+
+  public setImpactVisibilityMode(mode: ImpactVisibilityMode): void {
+    this.assertNotDisposed();
+    this.impactVisibilityMode = mode;
+    this.impactVisualSystem.setVisibilityMode(mode);
+    if (this.impactRenderState !== null) {
+      this.impactVisualSystem.update(this.impactRenderState);
+      this.impactCameraOverrideInitialized = false;
+    }
+    this.updateCanvasDiagnostics();
   }
 
   public captureCameraState(): Readonly<RendererCameraSnapshot> {
@@ -921,6 +941,13 @@ export class DebugSolarSystemRenderer {
     this.impactCameraPresetId = null;
     this.impactCameraOverrideInitialized = false;
     this.impactVisualSystem.reset();
+    this.pathLayer.visible = this.orbitLinesVisible
+      && !this.blackHoleVisualSystem.getDiagnostics().active;
+    const defaultFov = verticalFovForViewport(this.viewportWidth, this.viewportHeight);
+    if (Math.abs(this.camera.fov - defaultFov) > 1e-6) {
+      this.camera.fov = defaultFov;
+      this.camera.updateProjectionMatrix();
+    }
     this.synchronizeAdaptiveResolutionEffect();
     this.updateScenarioExposureProtection();
     this.updateCanvasDiagnostics();
@@ -1600,6 +1627,7 @@ export class DebugSolarSystemRenderer {
       resources.line.position.set(0, 0, 0);
       resources.line.visible =
         this.orbitLinesVisible &&
+        !this.impactPlaybackActive() &&
         !this.blackHoleVisualSystem.getDiagnostics().active &&
         (currentBody.kind !== 'comet' || this.cometsVisible);
     }
@@ -1757,7 +1785,17 @@ export class DebugSolarSystemRenderer {
     const pose = resolveImpactCameraPose(
       this.impactCameraPresetId,
       this.impactRenderState,
+      this.impactVisualSystem.getDiagnostics().visibilityMultiplier,
     );
+    const localEnhanced = this.impactCameraPresetId === 'ground-observer'
+      && this.impactVisibilityMode === 'enhanced';
+    const desiredFov = localEnhanced
+      ? 40
+      : verticalFovForViewport(this.viewportWidth, this.viewportHeight);
+    if (Math.abs(this.camera.fov - desiredFov) > 1e-6) {
+      this.camera.fov = desiredFov;
+      this.camera.updateProjectionMatrix();
+    }
     target.root.updateWorldMatrix(true, true);
     this.impactCameraPosition
       .set(pose.position.x, pose.position.y, pose.position.z);
@@ -1961,7 +1999,10 @@ export class DebugSolarSystemRenderer {
     // Keep the projections above current for diagnostics, then suppress the
     // complete marker-label layer until the preset hands control back to a
     // normal camera mode.
-    if (this.cameraController.status.closeUpPresetId !== null) {
+    if (
+      this.cameraController.status.closeUpPresetId !== null
+      || this.impactPlaybackActive()
+    ) {
       for (const marker of this.markers.values()) {
         if (marker.label !== null) marker.label.style.opacity = '0';
       }
@@ -2265,6 +2306,8 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.impactStage = impact.stage;
     this.canvas.dataset.impactRunSignature = impact.runSignature;
     this.canvas.dataset.impactCameraPreset = impact.cameraPresetId ?? '';
+    this.canvas.dataset.impactVisibilityMode = impact.visibilityMode;
+    this.canvas.dataset.impactVisibilityMultiplier = impact.visibilityMultiplier.toFixed(3);
     this.canvas.dataset.impactTrailPoints = String(impact.trailPointCount);
     this.canvas.dataset.impactFragments = String(impact.fragmentCount);
     this.canvas.dataset.impactEjectaPoints = String(impact.ejectaPointCount);
@@ -2508,7 +2551,7 @@ export class DebugSolarSystemRenderer {
       }
       this.blackHoleIncludedBodyIds.clear();
       this.blackHoleSuppressedBodyCount = 0;
-      this.pathLayer.visible = this.orbitLinesVisible;
+      this.pathLayer.visible = this.orbitLinesVisible && !this.impactPlaybackActive();
       this.statisticalBelts.root.visible = true;
       this.blackHoleClipSphere.radius = 0;
       return currentMaximum;
@@ -2798,6 +2841,13 @@ export class DebugSolarSystemRenderer {
     this.exposurePreset = nextPreset;
     this.exposureAdaptation.setPreset(nextPreset, immediate);
     if (immediate) this.postProcessing.setExposure(this.exposureAdaptation.state.exposure);
+  }
+
+  private impactPlaybackActive(): boolean {
+    const state = this.impactRenderState;
+    return state?.presentationMode === 'playback'
+      && state.lifecycleState !== 'idle'
+      && state.lifecycleState !== 'error';
   }
 
   private updateFps(deltaSeconds: number): void {

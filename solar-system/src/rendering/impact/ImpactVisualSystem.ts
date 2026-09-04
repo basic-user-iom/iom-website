@@ -13,7 +13,6 @@ import {
   LineBasicMaterial,
   Matrix4,
   Mesh,
-  MeshBasicMaterial,
   MeshStandardMaterial,
   Points,
   Quaternion,
@@ -47,6 +46,10 @@ import {
   type ImpactVisualDiagnostics,
 } from './ImpactRenderTypes';
 import { SurfaceShockwaveRenderer } from './SurfaceShockwaveRenderer';
+import {
+  impactVisibilityMultiplier,
+  type ImpactVisibilityMode,
+} from './ImpactVisibility';
 import { VolumetricPlumeRenderer } from './VolumetricPlumeRenderer';
 
 const MAX_TRAIL_POINTS = 256;
@@ -142,15 +145,16 @@ export class ImpactVisualSystem {
     MAX_PREVIEW_TRAJECTORY_POINTS,
   );
 
-  private readonly impactorGeometry = new IcosahedronGeometry(1, 2);
+  private readonly impactorGeometry = new IcosahedronGeometry(1, 3);
   private readonly impactorBasePositions: Float32Array;
   private readonly impactorMaterial = new MeshStandardMaterial({
-    color: 0x453c36,
+    color: 0xffffff,
     emissive: 0x1d0903,
     emissiveIntensity: 0.35,
     flatShading: true,
     metalness: 0.08,
     roughness: 0.92,
+    vertexColors: true,
   });
   private readonly impactor = new Mesh(this.impactorGeometry, this.impactorMaterial);
   private readonly bowShockGeometry = new SphereGeometry(
@@ -162,28 +166,10 @@ export class ImpactVisualSystem {
     0,
     Math.PI * 0.5,
   );
-  private readonly bowShockMaterial = new MeshBasicMaterial({
-    blending: AdditiveBlending,
-    color: 0xffd7a6,
-    depthTest: true,
-    depthWrite: false,
-    opacity: 0,
-    side: DoubleSide,
-    toneMapped: false,
-    transparent: true,
-  });
+  private readonly bowShockMaterial = createEntryEnvelopeMaterial('bow-shock');
   private readonly bowShock = new Mesh(this.bowShockGeometry, this.bowShockMaterial);
   private readonly plasmaGeometry = new ConeGeometry(1, 3, 24, 2, true);
-  private readonly plasmaMaterial = new MeshBasicMaterial({
-    blending: AdditiveBlending,
-    color: 0xff6a28,
-    depthTest: true,
-    depthWrite: false,
-    opacity: 0,
-    side: DoubleSide,
-    toneMapped: false,
-    transparent: true,
-  });
+  private readonly plasmaMaterial = createEntryEnvelopeMaterial('plasma-wake');
   private readonly plasma = new Mesh(this.plasmaGeometry, this.plasmaMaterial);
   private readonly fragmentGeometry = new IcosahedronGeometry(1, 1);
   private readonly fragmentMaterial = new MeshStandardMaterial({
@@ -223,10 +209,12 @@ export class ImpactVisualSystem {
   private readonly alignedDirection = new Vector3();
   private readonly tumbleAxis = new Vector3(0.33, 0.78, 0.53).normalize();
   private deformedRunSignature = '';
+  private impactorSurfaceKey = '';
   private quality: VisualQuality;
   private reducedMotion = false;
   private reduceFlashes = true;
   private cameraPresetId: ImpactCameraPresetId | null = null;
+  private visibilityMode: ImpactVisibilityMode = 'physical';
   private diagnostics: Readonly<ImpactVisualDiagnostics> = EMPTY_IMPACT_DIAGNOSTICS;
   private disposed = false;
 
@@ -236,6 +224,10 @@ export class ImpactVisualSystem {
     this.root.visible = false;
     this.impactorBasePositions = Float32Array.from(
       this.impactorGeometry.getAttribute('position').array,
+    );
+    this.impactorGeometry.setAttribute(
+      'color',
+      new Float32BufferAttribute(new Float32Array(this.impactorBasePositions.length), 3),
     );
 
     this.previewReticleGeometry.setAttribute(
@@ -312,11 +304,16 @@ export class ImpactVisualSystem {
       state.normalizedHeating * 0.72 + state.normalizedDynamicPressure * 0.28,
     );
     const entryEffectIntensity = clamp01(entryProfileStrength * physicalEntryIntensity);
-
+    const presentationMultiplier = impactVisibilityMultiplier(this.visibilityMode, state);
     this.root.visible = active;
 
     this.applyImpactorDeformation(state.runSignature, runSeed);
-    this.applyImpactorMaterial(state.impactorMaterial, state.normalizedHeating);
+    this.applyImpactorMaterial(
+      state.impactorMaterial,
+      state.normalizedHeating,
+      state.runSignature,
+      runSeed,
+    );
     const remainingRadiusFraction = Math.max(
       0.16,
       Math.cbrt(state.remainingMassFraction),
@@ -364,8 +361,8 @@ export class ImpactVisualSystem {
     if (!entryEffectsEnabled) {
       this.bowShock.visible = false;
       this.plasma.visible = false;
-      this.bowShockMaterial.opacity = 0;
-      this.plasmaMaterial.opacity = 0;
+      this.bowShockMaterial.uniforms.uOpacity!.value = 0;
+      this.plasmaMaterial.uniforms.uOpacity!.value = 0;
     }
 
     const trailPointCount = entryEffectsEnabled
@@ -380,6 +377,7 @@ export class ImpactVisualSystem {
         )
       : 0;
     this.updateEntryTrailProgress(trailPointCount);
+    this.applyEntryTrailTurbulence(trailPointCount, impactorRadius, runSeed);
     this.trail.points.material.uniforms.uIntensity!.value = entryEffectIntensity;
     this.trail.points.material.uniforms.uHeating!.value = state.normalizedHeating;
     this.trail.points.geometry.setDrawRange(0, trailPointCount);
@@ -388,13 +386,19 @@ export class ImpactVisualSystem {
     const fragmentCount = this.updateFragments(state, budget.fragments, impactorRadius, runSeed);
     this.fragments.visible = active && fragmentCount > 0 && !surfaceImpact;
     this.ejecta.setBudget(budget.ejecta, budget.pointSize);
-    this.plume.setBudget(budget.plume, budget.pointSize + 2);
-    this.impactFlash.update(state, this.surfaceBasis, active, this.reduceFlashes);
-    this.craterPatch.update(state, this.surfaceBasis, active);
-    this.surfaceShockwave.update(state, this.surfaceBasis, active);
-    this.ejecta.update(state, this.surfaceBasis, active);
-    this.plume.update(state, this.surfaceBasis, active);
-    this.atmosphericScar.update(state, this.surfaceBasis, active);
+    this.plume.setBudget(budget.plume, budget.pointSize + 1);
+    this.impactFlash.update(
+      state,
+      this.surfaceBasis,
+      active,
+      this.reduceFlashes,
+      presentationMultiplier,
+    );
+    this.craterPatch.update(state, this.surfaceBasis, active, presentationMultiplier);
+    this.surfaceShockwave.update(state, this.surfaceBasis, active, presentationMultiplier);
+    this.ejecta.update(state, this.surfaceBasis, active, presentationMultiplier);
+    this.plume.update(state, this.surfaceBasis, active, presentationMultiplier);
+    this.atmosphericScar.update(state, this.surfaceBasis, active, presentationMultiplier);
 
     const ejectaPointCount = this.ejecta.activeCount;
     const plumePointCount = this.plume.pointCount;
@@ -422,9 +426,9 @@ export class ImpactVisualSystem {
 
     const maximumAltitudeRatio = Math.max(
       state.impactorLocalEnuM?.upM ?? 0,
-      state.plumeHeightM,
-      state.ejectaRadiusM,
-      state.shockwaveRadiusM,
+      state.plumeHeightM * presentationMultiplier,
+      state.ejectaRadiusM * presentationMultiplier,
+      state.shockwaveRadiusM * presentationMultiplier,
     ) / radiusM;
     this.diagnostics = Object.freeze({
       active,
@@ -433,6 +437,8 @@ export class ImpactVisualSystem {
       stage: state.stage,
       runSignature: state.runSignature,
       cameraPresetId: this.cameraPresetId,
+      visibilityMode: this.visibilityMode,
+      visibilityMultiplier: presentationMultiplier,
       reticleVisible: false,
       projectedTrajectoryPointCount: 0,
       trailPointCount,
@@ -497,8 +503,8 @@ export class ImpactVisualSystem {
     this.fragments.count = 0;
     this.trail.points.material.uniforms.uIntensity!.value = 0;
     this.trail.points.material.uniforms.uHeating!.value = 0;
-    this.bowShockMaterial.opacity = 0;
-    this.plasmaMaterial.opacity = 0;
+    this.bowShockMaterial.uniforms.uOpacity!.value = 0;
+    this.plasmaMaterial.uniforms.uOpacity!.value = 0;
     this.impactFlash.reset();
     this.craterPatch.reset();
     this.surfaceShockwave.reset();
@@ -506,7 +512,10 @@ export class ImpactVisualSystem {
     this.plume.reset();
     this.atmosphericScar.reset();
     this.cameraPresetId = null;
-    this.diagnostics = EMPTY_IMPACT_DIAGNOSTICS;
+    this.diagnostics = Object.freeze({
+      ...EMPTY_IMPACT_DIAGNOSTICS,
+      visibilityMode: this.visibilityMode,
+    });
     this.root.removeFromParent();
   }
 
@@ -528,6 +537,16 @@ export class ImpactVisualSystem {
   public setCameraPreset(presetId: ImpactCameraPresetId | null): void {
     this.cameraPresetId = presetId;
     this.diagnostics = Object.freeze({ ...this.diagnostics, cameraPresetId: presetId });
+  }
+
+  public setVisibilityMode(mode: ImpactVisibilityMode): void {
+    this.assertNotDisposed();
+    this.visibilityMode = mode;
+    this.diagnostics = Object.freeze({
+      ...this.diagnostics,
+      visibilityMode: mode,
+      visibilityMultiplier: mode === 'physical' ? 1 : this.diagnostics.visibilityMultiplier,
+    });
   }
 
   public getDiagnostics(): Readonly<ImpactVisualDiagnostics> {
@@ -598,6 +617,8 @@ export class ImpactVisualSystem {
       stage: state.stage,
       runSignature: state.runSignature,
       cameraPresetId: this.cameraPresetId,
+      visibilityMode: this.visibilityMode,
+      visibilityMultiplier: 1,
       reticleVisible: this.previewReticle.visible,
       projectedTrajectoryPointCount: this.previewTrajectory.line.visible
         ? projectedTrajectoryPointCount
@@ -664,9 +685,9 @@ export class ImpactVisualSystem {
   private hidePlaybackVisuals(): void {
     this.impactor.visible = false;
     this.bowShock.visible = false;
-    this.bowShockMaterial.opacity = 0;
+    this.bowShockMaterial.uniforms.uOpacity!.value = 0;
     this.plasma.visible = false;
-    this.plasmaMaterial.opacity = 0;
+    this.plasmaMaterial.uniforms.uOpacity!.value = 0;
     this.trail.points.visible = false;
     this.trail.points.geometry.setDrawRange(0, 0);
     this.fragments.visible = false;
@@ -683,17 +704,43 @@ export class ImpactVisualSystem {
     if (this.deformedRunSignature === signature) return;
     const attribute = this.impactorGeometry.getAttribute('position') as BufferAttribute;
     const output = attribute.array as Float32Array;
-    const axisX = 0.88 + random01(seed, 401) * 0.22;
-    const axisY = 0.82 + random01(seed, 402) * 0.28;
-    const axisZ = 0.86 + random01(seed, 403) * 0.24;
+    const axisX = 0.86 + random01(seed, 401) * 0.28;
+    const axisY = 0.76 + random01(seed, 402) * 0.34;
+    const axisZ = 0.82 + random01(seed, 403) * 0.30;
+    const phaseA = random01(seed, 404) * Math.PI * 2;
+    const phaseB = random01(seed, 405) * Math.PI * 2;
+    const craterDirections = Array.from({ length: 5 }, (_, index) => {
+      const longitude = random01(seed, 420 + index * 4) * Math.PI * 2;
+      const latitude = Math.asin(random01(seed, 421 + index * 4) * 2 - 1);
+      return Object.freeze({
+        x: Math.cos(latitude) * Math.cos(longitude),
+        y: Math.sin(latitude),
+        z: Math.cos(latitude) * Math.sin(longitude),
+        cosineRadius: Math.cos(0.16 + random01(seed, 422 + index * 4) * 0.2),
+        depth: 0.035 + random01(seed, 423 + index * 4) * 0.055,
+      });
+    });
     for (let offset = 0; offset < output.length; offset += 3) {
       const baseX = this.impactorBasePositions[offset] ?? 0;
       const baseY = this.impactorBasePositions[offset + 1] ?? 0;
       const baseZ = this.impactorBasePositions[offset + 2] ?? 0;
-      const coordinateSeed = Math.abs(Math.round(
-        baseX * 7_919 + baseY * 15_491 + baseZ * 31_337,
-      ));
-      const deformation = 0.78 + random01(seed ^ coordinateSeed, 0) * 0.39;
+      const inverseLength = 1 / Math.max(1e-8, Math.hypot(baseX, baseY, baseZ));
+      const nx = baseX * inverseLength;
+      const ny = baseY * inverseLength;
+      const nz = baseZ * inverseLength;
+      const broadRelief = Math.sin(nx * 3.1 + ny * 1.7 - nz * 2.2 + phaseA) * 0.075;
+      const mediumRelief = Math.sin(nx * 8.3 - ny * 6.1 + nz * 5.2 + phaseB) * 0.035;
+      const fineRelief = Math.sin((nx + nz) * 17.7 + ny * 13.1 + phaseA * 0.61) * 0.016;
+      let deformation = 0.965 + broadRelief + mediumRelief + fineRelief;
+      for (const crater of craterDirections) {
+        const dot = nx * crater.x + ny * crater.y + nz * crater.z;
+        if (dot <= crater.cosineRadius) continue;
+        const cap = (dot - crater.cosineRadius) / (1 - crater.cosineRadius);
+        const depression = Math.sin(Math.min(1, cap) * Math.PI * 0.5) ** 2;
+        const rim = Math.exp(-(((cap - 0.12) / 0.055) ** 2));
+        deformation += rim * crater.depth * 0.24 - depression * crater.depth;
+      }
+      deformation = Math.max(0.72, Math.min(1.18, deformation));
       output[offset] = baseX * deformation * axisX;
       output[offset + 1] = baseY * deformation * axisY;
       output[offset + 2] = baseZ * deformation * axisZ;
@@ -702,39 +749,80 @@ export class ImpactVisualSystem {
     this.impactorGeometry.computeVertexNormals();
     this.impactorGeometry.computeBoundingSphere();
     this.deformedRunSignature = signature;
+    this.impactorSurfaceKey = '';
   }
 
   private applyImpactorMaterial(
     material: ImpactImpactorMaterial,
     normalizedHeating: number,
+    signature: string,
+    seed: number,
   ): void {
     if (material === 'iron') {
-      this.impactorMaterial.color.setHex(0x4c5154);
+      this.impactorMaterial.color.setHex(0xffffff);
       this.impactorMaterial.metalness = 0.76;
-      this.impactorMaterial.roughness = 0.38;
+      this.impactorMaterial.roughness = 0.68;
       this.fragmentMaterial.color.setHex(0x565b5e);
       this.fragmentMaterial.metalness = 0.7;
-      this.fragmentMaterial.roughness = 0.4;
+      this.fragmentMaterial.roughness = 0.66;
     } else if (material === 'porous-rock') {
-      this.impactorMaterial.color.setHex(0x302821);
+      this.impactorMaterial.color.setHex(0xffffff);
       this.impactorMaterial.metalness = 0.01;
       this.impactorMaterial.roughness = 0.98;
       this.fragmentMaterial.color.setHex(0x3a2d25);
       this.fragmentMaterial.metalness = 0.01;
       this.fragmentMaterial.roughness = 0.98;
     } else {
-      this.impactorMaterial.color.setHex(0x51473f);
+      this.impactorMaterial.color.setHex(0xffffff);
       this.impactorMaterial.metalness = 0.06;
-      this.impactorMaterial.roughness = 0.84;
+      this.impactorMaterial.roughness = 0.94;
       this.fragmentMaterial.color.setHex(0x594a40);
       this.fragmentMaterial.metalness = 0.04;
       this.fragmentMaterial.roughness = 0.88;
     }
+    this.applyImpactorSurfaceColors(material, signature, seed);
     const heat = clamp01(normalizedHeating);
-    this.impactorMaterial.emissive.setRGB(0.72 + heat * 0.28, 0.055 + heat * 0.2, 0.008);
-    this.impactorMaterial.emissiveIntensity = 0.12 + heat * 3.8;
-    this.fragmentMaterial.emissive.setRGB(0.9, 0.07 + heat * 0.3, 0.01);
-    this.fragmentMaterial.emissiveIntensity = 0.28 + heat * 5.2;
+    this.impactorMaterial.emissive.setRGB(0.82 + heat * 0.18, 0.12 + heat * 0.58, 0.015 + heat * 0.08);
+    this.impactorMaterial.emissiveIntensity = 0.02 + heat * 3.1;
+    this.fragmentMaterial.emissive.setRGB(0.94, 0.12 + heat * 0.62, 0.018 + heat * 0.09);
+    this.fragmentMaterial.emissiveIntensity = 0.04 + heat * 4.2;
+  }
+
+  private applyImpactorSurfaceColors(
+    material: ImpactImpactorMaterial,
+    signature: string,
+    seed: number,
+  ): void {
+    const key = `${signature}:${material}`;
+    if (this.impactorSurfaceKey === key) return;
+    const attribute = this.impactorGeometry.getAttribute('color') as BufferAttribute;
+    const output = attribute.array as Float32Array;
+    const baseColor = new Color(
+      material === 'iron' ? 0x5b5a57 : material === 'porous-rock' ? 0x292621 : 0x504a43,
+    );
+    const warmColor = new Color(
+      material === 'iron' ? 0x77584a : material === 'porous-rock' ? 0x3c3027 : 0x69574a,
+    );
+    const color = new Color();
+    const phase = random01(seed, 612) * Math.PI * 2;
+    for (let offset = 0; offset < output.length; offset += 3) {
+      const baseX = this.impactorBasePositions[offset] ?? 0;
+      const baseY = this.impactorBasePositions[offset + 1] ?? 0;
+      const baseZ = this.impactorBasePositions[offset + 2] ?? 0;
+      const broad = 0.5 + 0.5 * Math.sin(baseX * 5.3 - baseY * 3.7 + baseZ * 4.1 + phase);
+      const fine = 0.5 + 0.5 * Math.sin(baseX * 19.1 + baseY * 23.7 - baseZ * 17.3 + phase * 1.7);
+      const coordinateSeed = Math.abs(Math.round(
+        baseX * 7_919 + baseY * 15_491 + baseZ * 31_337,
+      ));
+      const grain = random01(seed ^ coordinateSeed, 619);
+      color.copy(baseColor).lerp(warmColor, broad * (material === 'iron' ? 0.42 : 0.25));
+      color.multiplyScalar(0.72 + fine * 0.18 + grain * 0.12);
+      output[offset] = color.r;
+      output[offset + 1] = color.g;
+      output[offset + 2] = color.b;
+    }
+    attribute.needsUpdate = true;
+    this.impactorSurfaceKey = key;
   }
 
   private updateImpactorTumble(timeSeconds: number, seed: number): void {
@@ -780,10 +868,12 @@ export class ImpactVisualSystem {
       .addScaledVector(this.velocityBodyLocal, impactorRadius * (0.34 + intensity * 0.3));
     this.bowShock.quaternion.setFromUnitVectors(Y_AXIS, this.velocityBodyLocal);
     this.bowShock.scale.set(transverseScale, leadingScale, transverseScale);
-    this.bowShockMaterial.color.setHex(
+    setEntryEnvelopeAppearance(
+      this.bowShockMaterial,
       profile === 'thin' ? 0xffd4ad : profile === 'giant' ? 0xffeee0 : 0xffb178,
+      0.025 + intensity * 0.2,
+      intensity,
     );
-    this.bowShockMaterial.opacity = 0.08 + intensity * 0.48;
     this.bowShock.visible = true;
 
     const plasmaRadius = impactorRadius * (1.08 + intensity * 1.12);
@@ -794,10 +884,12 @@ export class ImpactVisualSystem {
       -(plasmaLengthScale * 1.5 - impactorRadius * 0.42),
     );
     this.plasma.scale.set(plasmaRadius, plasmaLengthScale, plasmaRadius);
-    this.plasmaMaterial.color.setHex(
+    setEntryEnvelopeAppearance(
+      this.plasmaMaterial,
       profile === 'thin' ? 0xff9a58 : profile === 'giant' ? 0xfff0b0 : 0xff632c,
+      0.02 + intensity * 0.19,
+      intensity,
     );
-    this.plasmaMaterial.opacity = 0.06 + intensity * 0.42;
     this.plasma.visible = true;
 
     this.alignedDirection.copy(Y_AXIS)
@@ -812,6 +904,29 @@ export class ImpactVisualSystem {
       values[index] = count <= 1 ? 1 : index / (count - 1);
     }
     if (count > 0) this.trail.progressAttribute.needsUpdate = true;
+  }
+
+  private applyEntryTrailTurbulence(
+    count: number,
+    impactorRadius: number,
+    seed: number,
+  ): void {
+    const positions = this.trail.positionAttribute.array as Float32Array;
+    for (let index = 0; index < count; index += 1) {
+      const progress = count <= 1 ? 1 : index / (count - 1);
+      const wakeWidth = impactorRadius * (0.15 + (1 - progress) * 1.3);
+      const phase = progress * 31 + random01(seed, index + 1_701) * Math.PI * 2;
+      const eastOffset = Math.sin(phase) * wakeWidth;
+      const northOffset = Math.cos(phase * 0.73 + 1.2) * wakeWidth * 0.62;
+      const offset = index * 3;
+      positions[offset] = (positions[offset] ?? 0)
+        + this.east.x * eastOffset + this.north.x * northOffset;
+      positions[offset + 1] = (positions[offset + 1] ?? 0)
+        + this.east.y * eastOffset + this.north.y * northOffset;
+      positions[offset + 2] = (positions[offset + 2] ?? 0)
+        + this.east.z * eastOffset + this.north.z * northOffset;
+    }
+    if (count > 0) this.trail.positionAttribute.needsUpdate = true;
   }
 
   private updateFragments(
@@ -856,7 +971,7 @@ export class ImpactVisualSystem {
     const budget = qualityBudget(this.quality, this.reducedMotion);
     this.trail.points.material.uniforms.uBasePointSize!.value = budget.pointSize + 2;
     this.ejecta.setBudget(budget.ejecta, budget.pointSize);
-    this.plume.setBudget(budget.plume, budget.pointSize + 2);
+    this.plume.setBudget(budget.plume, budget.pointSize + 1);
   }
 
   private assertNotDisposed(): void {
@@ -921,6 +1036,71 @@ function createDynamicEntryTrail(maximumCount: number): DynamicEntryTrailResourc
   points.frustumCulled = false;
   points.renderOrder = 10;
   return { points, positionAttribute, progressAttribute, maximumCount };
+}
+
+function createEntryEnvelopeMaterial(
+  kind: 'bow-shock' | 'plasma-wake',
+): ShaderMaterial {
+  return new ShaderMaterial({
+    blending: AdditiveBlending,
+    depthTest: true,
+    depthWrite: false,
+    fragmentShader: `
+      uniform vec3 uColor;
+      uniform float uIntensity;
+      uniform float uOpacity;
+      uniform float uPlasma;
+      varying float vAxis;
+      varying vec3 vNormalView;
+      varying vec3 vViewDirection;
+      void main() {
+        float facing = abs(dot(normalize(vNormalView), normalize(vViewDirection)));
+        float shell = pow(max(1.0 - facing, 0.0), mix(1.25, 2.2, uPlasma));
+        float bowNose = smoothstep(-0.08, 0.82, vAxis)
+          * (1.0 - smoothstep(0.82, 1.12, vAxis));
+        float wakeCore = 1.0 - smoothstep(0.1, 1.48, abs(vAxis));
+        float axial = mix(bowNose, wakeCore, uPlasma);
+        float filament = 0.78 + 0.22 * sin(vAxis * 17.0 + facing * 9.0);
+        float alpha = uOpacity * axial * filament * (0.12 + shell * 0.88);
+        if (alpha < 0.004) discard;
+        vec3 hot = mix(uColor, vec3(1.0, 0.94, 0.78),
+          clamp(shell * (0.34 + uIntensity * 0.48), 0.0, 0.82));
+        gl_FragColor = vec4(hot * (0.72 + shell * 1.1), min(alpha, 0.72));
+      }
+    `,
+    side: DoubleSide,
+    toneMapped: false,
+    transparent: true,
+    uniforms: {
+      uColor: { value: new Color(kind === 'bow-shock' ? 0xffd7a6 : 0xff6a28) },
+      uIntensity: { value: 0 },
+      uOpacity: { value: 0 },
+      uPlasma: { value: kind === 'plasma-wake' ? 1 : 0 },
+    },
+    vertexShader: `
+      varying float vAxis;
+      varying vec3 vNormalView;
+      varying vec3 vViewDirection;
+      void main() {
+        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
+        vAxis = position.y;
+        vNormalView = normalize(normalMatrix * normal);
+        vViewDirection = normalize(-viewPosition.xyz);
+        gl_Position = projectionMatrix * viewPosition;
+      }
+    `,
+  });
+}
+
+function setEntryEnvelopeAppearance(
+  material: ShaderMaterial,
+  color: number,
+  opacity: number,
+  intensity: number,
+): void {
+  (material.uniforms.uColor!.value as Color).setHex(color);
+  material.uniforms.uOpacity!.value = opacity;
+  material.uniforms.uIntensity!.value = intensity;
 }
 
 function createDynamicLine(

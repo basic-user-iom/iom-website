@@ -27,9 +27,13 @@ import type {
   RendererExposureSnapshot,
 } from '../rendering/DebugSolarSystemRenderer';
 import {
+  DEFAULT_IMPACT_VISIBILITY_MODE,
+  formatImpactVisibilityMultiplier,
+  impactVisibilityMultiplier,
   type ImpactCameraPresetId,
   type ImpactRenderState,
   type ImpactVisualStage,
+  type ImpactVisibilityMode,
   type RendererCameraSnapshot,
 } from '../rendering/impact';
 import type {
@@ -498,6 +502,11 @@ export function AppShell() {
   const [impactParameters, setImpactParameters] = useState<Readonly<ImpactParameters>>(
     DEFAULT_IMPACT_PARAMETERS,
   );
+  const [impactVisibilityMode, setImpactVisibilityMode] =
+    useState<ImpactVisibilityMode>(DEFAULT_IMPACT_VISIBILITY_MODE);
+  const impactVisibilityModeRef = useRef<ImpactVisibilityMode>(
+    DEFAULT_IMPACT_VISIBILITY_MODE,
+  );
   const impactParametersRef = useRef<Readonly<ImpactParameters>>(
     DEFAULT_IMPACT_PARAMETERS,
   );
@@ -589,6 +598,15 @@ export function AppShell() {
     impactSnapshot.physicalSummary ?? impactPreview.simulation.physicalSummary;
   const impactVisualProfile =
     impactSnapshot.visualProfile ?? impactPreview.visualProfile;
+  const impactVisibilityScale = impactVisibilityMultiplier(impactVisibilityMode, {
+    targetRadiusM: impactPhysicalSummary.targetRadiusM,
+    flashRadiusM: impactVisualProfile.flashRadiusM,
+    craterRadiusM: impactVisualProfile.craterRadiusM,
+    scorchRadiusM: impactVisualProfile.scorchRadiusM,
+    ejectaRadiusM: impactVisualProfile.ejectaRadiusM,
+    plumeHeightM: impactVisualProfile.plumeHeightM,
+    plumeRadiusM: impactVisualProfile.plumeRadiusM,
+  });
   const impactActive = impactSnapshot.state !== 'idle';
   const solarEvolutionActive = solarEvolutionSnapshot.state !== 'idle';
   const fictionalSupernovaActive = fictionalSupernovaSnapshot.state !== 'idle';
@@ -1360,6 +1378,7 @@ export function AppShell() {
         activeRenderer?.setSkyBackgroundVisible(initialUi.skyBackgroundVisible);
         activeRenderer?.setBrightStarsVisible(initialUi.brightStarsVisible);
         activeRenderer?.setCometsVisible(initialUi.cometsVisible);
+        activeRenderer?.setImpactVisibilityMode(impactVisibilityModeRef.current);
         activeRenderer?.setStatisticalBeltVisible('asteroid-belt', initialUi.asteroidBeltVisible);
         activeRenderer?.setStatisticalBeltVisible('kuiper-belt', initialUi.kuiperBeltVisible);
         runtime.synchronizeTrackedOrigin();
@@ -1667,6 +1686,7 @@ export function AppShell() {
     renderer.setStatisticalBeltVisible('kuiper-belt', ui.kuiperBeltVisible);
     renderer.setReducedMotion(ui.reducedMotion);
     renderer.setReduceFlashes(ui.reduceFlashes);
+    renderer.setImpactVisibilityMode(impactVisibilityModeRef.current);
     const impact = impactScenarioRef.current?.getSnapshot();
     const impactRenderState = impact === undefined ? null : createImpactRenderState(impact);
     if (impactRenderState !== null) {
@@ -2255,6 +2275,13 @@ export function AppShell() {
     [synchronizeImpactPresentation],
   );
 
+  const handleImpactVisibilityMode = useCallback((mode: ImpactVisibilityMode) => {
+    impactVisibilityModeRef.current = mode;
+    setImpactVisibilityMode(mode);
+    rendererRef.current?.setImpactVisibilityMode(mode);
+    runtimeRef.current?.renderNow();
+  }, []);
+
   const synchronizeSolarFatePresentation = useCallback((): void => {
     const solarEvolution = solarEvolutionScenarioRef.current?.getSnapshot() ??
       SCIENTIFIC_SOLAR_EVOLUTION_IDLE_SNAPSHOT;
@@ -2648,6 +2675,8 @@ export function AppShell() {
       data-impact-state={impactSnapshot.state}
       data-impact-stage={impactSnapshot.stage}
       data-impact-signature={impactSnapshot.runSignature ?? ''}
+      data-impact-visibility-mode={impactVisibilityMode}
+      data-impact-visibility-multiplier={impactVisibilityScale.toFixed(3)}
       data-active-scenario={activeScenarioId}
       data-solar-fate-mode={solarFateMode}
       data-solar-fate-state={solarFateState}
@@ -3078,7 +3107,7 @@ export function AppShell() {
               <span className="mode-badge">Positions linear · 1 AU / unit</span>
             </div>
           </div>
-          <CanvasLegend
+          {!impactActive ? <CanvasLegend
             selectedBodyId={selectedBodyId}
             selectedBodyIsComet={selectedCometDefinition !== null}
             cometsVisible={cometsVisible}
@@ -3089,7 +3118,7 @@ export function AppShell() {
             onFocusBody={handleLegendBodyFocus}
             onFocusComet={handleLegendCometFocus}
             onToggleTideComponent={handleLegendTideToggle}
-          />
+          /> : null}
           {ephemeris.status === 'loading' ? (
             <div className="observatory-load-state" role="status" data-testid="ephemeris-loading-state">
               <span className="loading-orbit" aria-hidden="true" />
@@ -3137,6 +3166,11 @@ export function AppShell() {
                 {Math.round(impactSnapshot.progress * 100)}% · {impactSnapshot.playbackRate}x
               </span>
               <span>Entry, breakup, impact, and aftermath visuals are simplified for this target.</span>
+              <span>
+                {impactVisibilityMode === 'enhanced'
+                  ? `Enhanced event visibility ${formatImpactVisibilityMultiplier(impactVisibilityScale)} \u00b7 physical results unchanged`
+                  : 'Physical effect scale \u00b7 small events may be difficult to see'}
+              </span>
             </div>
           ) : null}
           {solarEvolutionActive ? (
@@ -3252,8 +3286,11 @@ export function AppShell() {
                   snapshot={impactSnapshot}
                   disabled={observatoryUnavailable}
                   reduceFlashes={reduceFlashes}
+                  visibilityMode={impactVisibilityMode}
+                  visibilityMultiplier={impactVisibilityScale}
                   onParametersChange={handleImpactParametersChange}
                   onReduceFlashesChange={updateReduceFlashes}
+                  onVisibilityModeChange={handleImpactVisibilityMode}
                   onConfirmRun={handleImpactStart}
                   onClose={() => setImpactLabOpen(false)}
                   onPause={handleImpactPause}

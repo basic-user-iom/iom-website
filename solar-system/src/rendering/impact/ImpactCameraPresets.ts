@@ -22,6 +22,7 @@ const UP = new Vector3();
 export function resolveImpactCameraPose(
   presetId: ImpactCameraPresetId,
   state: Readonly<ImpactRenderState>,
+  presentationMultiplier = 1,
 ): Readonly<ImpactCameraPose> {
   if (!IMPACT_CAMERA_PRESET_IDS.includes(presetId)) {
     throw new RangeError(`Unsupported impact camera preset "${String(presetId)}".`);
@@ -69,7 +70,7 @@ export function resolveImpactCameraPose(
       resolveApproachMotion(MOTION, state, radiusM);
       const chaseDistance = Math.max(
         state.physicalDiameterM / radiusM * 36,
-        0.045,
+        0.006,
       );
       POSITION.copy(IMPACTOR)
         .addScaledVector(MOTION, -chaseDistance)
@@ -88,15 +89,25 @@ export function resolveImpactCameraPose(
         state.scorchRadiusM,
         state.flashRadiusM,
         state.plumeRadiusM * 0.35,
-      ) / radiusM;
-      // Keep the camera outside the renderer near plane even for tiny Moon/
-      // Earth render radii. A closer pose is clipped before the crater can be
-      // resolved, which reads as an empty sky frame rather than a close-up.
-      const observerDistance = clamp(localEffectRadius * 9, 0.42, 0.9);
-      const observerAltitude = clamp(localEffectRadius * 1.6, 0.0006, 0.008);
+      ) * Math.max(1, presentationMultiplier) / radiusM;
+      const enhancedPresentation = presentationMultiplier > 1.001;
+      // The renderer's adaptive near plane supports a genuinely local view.
+      // Keep the observer several effect radii away while retaining a small
+      // floor for low-energy events and a regional ceiling for giant events.
+      // Earth and Venus use visual atmosphere shells that extend to roughly
+      // 1.03 body radii. Keep the local camera outside those shells; placing
+      // it below them turns the entire frame into opaque atmospheric fog and
+      // magnifies even an 8K global map beyond its honest ground resolution.
+      // The floor therefore gives a regional, rather than ground-level, view.
+      const observerDistance = enhancedPresentation
+        ? clamp(localEffectRadius * 4, 0.28, 0.44)
+        : clamp(localEffectRadius * 7, 0.24, 0.5);
+      const observerAltitude = enhancedPresentation
+        ? clamp(observerDistance * 0.68, 0.18, 0.3)
+        : clamp(observerDistance * 0.82, 0.18, 0.36);
       POSITION.copy(NORMAL).multiplyScalar(1 + observerAltitude)
-        .addScaledVector(EAST, -observerDistance)
-        .addScaledVector(NORTH, -observerDistance * 0.28);
+        .addScaledVector(EAST, -observerDistance * (enhancedPresentation ? 0.84 : 0.68))
+        .addScaledVector(NORTH, -observerDistance * (enhancedPresentation ? 0.18 : 0.22));
       if (
         state.eventElapsedSeconds === null
         || state.outcomeKind === 'airburst'
@@ -106,14 +117,17 @@ export function resolveImpactCameraPose(
         const targetHeight = clamp(
           Math.max(
             localEffectRadius * 0.25,
-            Math.min(state.plumeHeightM / radiusM * 0.05, localEffectRadius * 2.5),
+            Math.min(
+              state.plumeHeightM * Math.max(1, presentationMultiplier) / radiusM * 0.18,
+              localEffectRadius * 2.5,
+            ),
           ),
           0.00015,
           0.02,
         );
         TARGET.copy(SURFACE).addScaledVector(NORMAL, targetHeight);
       }
-      UP.copy(NORMAL);
+      UP.copy(NORTH);
       break;
     }
   }

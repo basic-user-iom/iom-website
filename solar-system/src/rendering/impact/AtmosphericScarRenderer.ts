@@ -97,12 +97,13 @@ export class AtmosphericScarRenderer {
     state: Readonly<ImpactRenderState>,
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
+    presentationMultiplier = 1,
   ): void {
     const growth = clampImpactUnit(state.cloudScarGrowthProgress);
     this.opacity = clampImpactUnit(state.cloudScarOpacity);
     this.advectionRad = state.cloudScarAdvectionRad;
     this.angularRadiusRad = impactAngularRadius(
-      state.cloudScarRadiusM * Math.max(growth, 0.035),
+      state.cloudScarRadiusM * presentationMultiplier * Math.max(growth, 0.035),
       state.targetRadiusM,
     );
     this.visible = active

@@ -117,9 +117,9 @@ NASA/JPL is the source of the SBDB metadata and numerical ephemeris responses. T
 
 Phase 4 redistributes the following unmodified official download files under local names:
 
-- `public/assets/phase4/earth-day.png`: NASA/GSFC Scientific Visualization Studio, *Blue Marble — A Seamless Image Mosaic of the Earth*. Credit requested by the source: NASA/Goddard Space Flight Center Scientific Visualization Studio; Blue Marble data courtesy of Reto Stöckli (NASA/GSFC) and NASA Earth Observatory.
-- `public/assets/phase4/earth-night.png`: NASA/GSFC Scientific Visualization Studio, *Earth At Night*. Data courtesy Marc Imhoff (NASA/GSFC) and Christopher Elvidge (NOAA/NGDC); image by Craig Mayhew and Robert Simmon (NASA/GSFC).
-- `public/assets/phase4/earth-clouds.jpg`: NASA/GSFC Earth Observatory / Visible Earth, *Blue Marble: Clouds*. Image by Reto Stöckli; enhancements by Robert Simmon; source record also credits the MODIS Land, Science Data Support, Atmosphere, and Ocean groups and supporting USGS/DMSP data.
+- `public/assets/phase4/earth-day-8k.webp`: NASA Earth Observatory / NASA/GSFC, *Blue Marble: Next Generation with Topography* (August global map). The runtime WebP is an 8192 × 4096 Lanczos3 reduction of NASA's official 21600 × 10800 JPEG. Credit NASA Earth Observatory and NASA/GSFC; Blue Marble data courtesy of Reto Stöckli and NASA Earth Observatory.
+- `public/assets/phase4/earth-night-8k.webp`: NASA Earth Observatory / NASA/GSFC, *Earth at Night / Black Marble 2016 Color*. The runtime WebP is an 8192 × 4096 Lanczos3 reduction of NASA's official 13500 × 6750 global JPEG. Credit NASA Earth Observatory and NASA/GSFC.
+- `public/assets/phase4/earth-clouds-8k.webp`: NASA/GSFC Earth Observatory / Visible Earth, *Blue Marble: Clouds*. The runtime WebP is encoded from NASA's official 8192 × 4096 TIFF. Image by Reto Stöckli; enhancements by Robert Simmon; source record also credits the MODIS Land, Science Data Support, Atmosphere, and Ocean groups and supporting USGS/DMSP data.
 - `public/assets/phase4/moon.jpg`: NASA/GSFC Scientific Visualization Studio, *CGI Moon Kit* 2025 color map, adapted from LRO Camera WAC and LOLA team products. Credit requested by the source: NASA's Scientific Visualization Studio; visualizer Ernie Wright (USRA), scientist Noah Petro (NASA/GSFC).
 
 Phase 5 additionally redistributes three project-generated lossless WebP derivatives of official imagery:

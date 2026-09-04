@@ -2,7 +2,7 @@
   "schema_version": 2,
   "retrieved": "2026-09-01",
   "scope": "Phase 4 and Phase 5 runtime texture assets",
-  "transform_policy": "Seven source-image assets are byte-for-byte official NASA or USGS downloads with local renames only. Six PNG material maps and three lossless WebPs are deterministic project-generated derivatives. Mercury, Moon, and Mars normals come from quantitative elevation rasters; the three Earth material maps are visual heuristics derived from the bundled Blue Marble image and are not measured geophysical products. Phase 5 derives its Jupiter runtime map without resizing or recoloring from the official Hubble OPAL Cycle 32 Rotation A TIFF, adds a disclosed mixed-date grayscale detail residual derived from NASA PIA23606, and derives a coverage-aware Saturn map from the official Hubble OPAL Cycle 32 Rotation A TIFF; all jet, storm, and ring profiles are code/data inputs rather than raster assets.",
+  "transform_policy": "Four source-image assets are byte-for-byte official NASA or USGS downloads with local renames only. Earth's runtime albedo and night map are documented 8192 × 4096 WebP reductions of official NASA global maps, and its 8192 × 4096 cloud map is a documented WebP encoding of NASA's official TIFF. Six PNG material maps and three lossless WebPs are deterministic project-generated derivatives. Mercury, Moon, and Mars normals come from quantitative elevation rasters; the three Earth material maps are visual heuristics derived from the bundled 8192 × 4096 Blue Marble runtime image and are not measured geophysical products. Phase 5 derives its Jupiter runtime map without resizing or recoloring from the official Hubble OPAL Cycle 32 Rotation A TIFF, adds a disclosed mixed-date grayscale detail residual derived from NASA PIA23606, and derives a coverage-aware Saturn map from the official Hubble OPAL Cycle 32 Rotation A TIFF; all jet, storm, and ring profiles are code/data inputs rather than raster assets.",
   "derived_asset_generators": [
     "scripts/generate-phase4-derived-maps.mjs",
     "scripts/generate-phase5-jupiter-map.mjs",
@@ -93,37 +93,37 @@
       }
     },
     {
-      "asset_id": "earth-blue-marble-2k",
+      "asset_id": "earth-blue-marble-ng-topography-8k",
       "body": "earth",
       "module": "body-visual-system/surface-albedo",
       "local_files": [
-        "phase4/earth-day.png"
+        "phase4/earth-day-8k.webp"
       ],
       "source": {
-        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
-        "title": "Blue Marble — A Seamless Image Mosaic of the Earth (WMS), 2048 × 1024 image",
-        "ref": "https://svs.gsfc.nasa.gov/2915/",
-        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png"
+        "organization": "NASA Earth Observatory / Goddard Space Flight Center",
+        "title": "Blue Marble: Next Generation with Topography, August, global 21600 × 10800 image",
+        "ref": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg"
       },
-      "retrieved": "2026-08-28",
+      "retrieved": "2026-09-04",
       "transforms": [
-        "Downloaded byte-for-byte with Invoke-WebRequest.",
-        "Renamed bluemarble-2048.png to phase4/earth-day.png.",
-        "No project-side image transform."
+        "Downloaded the official 21600 × 10800 JPEG with Invoke-WebRequest.",
+        "Resampled to 8192 × 4096 with Sharp 0.35.3 using Lanczos3.",
+        "Encoded as WebP at quality 92 with smart chroma subsampling and effort 6."
       ],
-      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC; do not imply endorsement. The source credits Blue Marble data to Reto Stöckli (NASA/GSFC) and NASA Earth Observatory.",
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA Earth Observatory and NASA/GSFC; do not imply endorsement. The source credits Blue Marble data to Reto Stöckli and NASA Earth Observatory.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+        "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
       },
-      "byte_length": 1511379,
+      "byte_length": 3121794,
       "dimensions": {
-        "width": 2048,
-        "height": 1024
+        "width": 8192,
+        "height": 4096
       },
-      "media_type": "image/png",
+      "media_type": "image/webp",
       "color_space": {
-        "encoding": "8-bit RGB PNG without alpha and without an embedded ICC, sRGB, or gamma chunk",
+        "encoding": "8-bit three-channel WebP generated from the official NASA JPEG",
         "runtime": "sRGB"
       },
       "channel": {
@@ -132,76 +132,76 @@
       }
     },
     {
-      "asset_id": "earth-city-lights-2k",
+      "asset_id": "earth-black-marble-2016-8k",
       "body": "earth",
       "module": "body-visual-system/night-emission",
       "local_files": [
-        "phase4/earth-night.png"
+        "phase4/earth-night-8k.webp"
       ],
       "source": {
-        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
-        "title": "Earth At Night (WMS), 2048 × 1024 image",
-        "ref": "https://svs.gsfc.nasa.gov/2916/",
-        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002916/earthatnight-2048.png"
+        "organization": "NASA Earth Observatory / NASA Goddard Space Flight Center",
+        "title": "Earth at Night / Black Marble 2016 Color, 3 km global map",
+        "ref": "https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km.jpg"
       },
-      "retrieved": "2026-08-28",
+      "retrieved": "2026-09-04",
       "transforms": [
-        "Downloaded byte-for-byte with Invoke-WebRequest.",
-        "Renamed earthatnight-2048.png to phase4/earth-night.png.",
-        "No project-side image transform."
+        "Downloaded NASA's official 13500 × 6750 JPEG with Invoke-WebRequest.",
+        "Resampled to 8192 × 4096 with the Sharp Lanczos3 kernel.",
+        "Encoded as quality-90 WebP with smart chroma subsampling and effort 6; no crop, reprojection, recoloring, or channel editing."
       ],
-      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC and NOAA/NGDC contributors; do not imply endorsement. Detailed source credits are retained in THIRD_PARTY_NOTICES.md.",
+      "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Credit NASA Earth Observatory and NASA/GSFC; do not imply endorsement. Detailed source credits are retained in THIRD_PARTY_NOTICES.md.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "28407a1a802868852b3c232dbeaf16b5165e8200898cc7df6a2fec70708556cd"
+        "value": "698f45e7e332c7c668b7309d6dd72ff82b33c7efb132f0e494bd3d724d966358"
       },
-      "byte_length": 1097832,
+      "byte_length": 1603956,
       "dimensions": {
-        "width": 2048,
-        "height": 1024
+        "width": 8192,
+        "height": 4096
       },
-      "media_type": "image/png",
+      "media_type": "image/webp",
       "color_space": {
-        "encoding": "8-bit RGB PNG without alpha and without an embedded ICC, sRGB, or gamma chunk",
+        "encoding": "8-bit three-channel WebP generated from the official NASA JPEG",
         "runtime": "sRGB"
       },
       "channel": {
         "role": "night",
-        "semantics": "Static DMSP Operational Linescan System city-lights composite over a darkened land map; it is used as stylized night-side emission, not a live or radiometrically calibrated light field."
+        "semantics": "Static 2016 cloud-free night-lights composite used as stylized night-side emission; it is not a live or radiometrically calibrated light field."
       }
     },
     {
-      "asset_id": "earth-modis-clouds-2k",
+      "asset_id": "earth-modis-clouds-8k",
       "body": "earth",
       "module": "body-visual-system/cloud-density",
       "local_files": [
-        "phase4/earth-clouds.jpg"
+        "phase4/earth-clouds-8k.webp"
       ],
       "source": {
         "organization": "NASA Goddard Space Flight Center Earth Observatory / Visible Earth",
-        "title": "Blue Marble: Clouds, 2048 × 1024 cloud image",
+        "title": "Blue Marble: Clouds, 8192 × 4096 cloud image",
         "ref": "https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l",
-        "download": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_2048.jpg"
+        "download": "https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_8192.tif"
       },
-      "retrieved": "2026-08-28",
+      "retrieved": "2026-09-04",
       "transforms": [
-        "Downloaded byte-for-byte with Invoke-WebRequest.",
-        "Renamed cloud_combined_2048.jpg to phase4/earth-clouds.jpg.",
-        "No project-side image transform."
+        "Downloaded the official 8192 × 4096 TIFF with Invoke-WebRequest.",
+        "Encoded as WebP with Sharp 0.35.3 at quality 82, smart chroma subsampling, and effort 6.",
+        "No resizing, cropping, recoloring, or density remapping."
       ],
       "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC; do not imply endorsement. The source credits Reto Stöckli and Robert Simmon with the MODIS and supporting teams.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "daddaad84d7a33bbbc86cdda3f591099f57cee8607b7bcf3b67eb7e4f7a1c793"
+        "value": "540357122b6211f9caf661de92a90e997e4a416096c072cb4eba2e640fdd1bfd"
       },
-      "byte_length": 829367,
+      "byte_length": 5792110,
       "dimensions": {
-        "width": 2048,
-        "height": 1024
+        "width": 8192,
+        "height": 4096
       },
-      "media_type": "image/jpeg",
+      "media_type": "image/webp",
       "color_space": {
-        "encoding": "8-bit, three-component grayscale-style JPEG with no embedded ICC profile",
+        "encoding": "8-bit, three-component grayscale-style WebP generated from the official TIFF",
         "runtime": "linear/no color-space conversion"
       },
       "channel": {
@@ -460,23 +460,23 @@
         "phase4/earth-normal.png"
       ],
       "source": {
-        "runtime_asset_id": "earth-blue-marble-2k",
-        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
-        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
-        "ref": "https://svs.gsfc.nasa.gov/2915/",
-        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "runtime_asset_id": "earth-blue-marble-ng-topography-8k",
+        "organization": "NASA Earth Observatory / Goddard Space Flight Center",
+        "title": "Blue Marble: Next Generation with Topography, August, 8192 x 4096 runtime reduction",
+        "ref": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
         },
-        "byte_length": 1511379,
+        "byte_length": 3121794,
         "dimensions": {
-          "width": 2048,
-          "height": 1024
+          "width": 8192,
+          "height": 4096
         },
         "data_semantics": "Static color visualization with compositing and GTOPO30-style shaded relief already present; not quantitative elevation."
       },
-      "generated": "2026-08-28",
+      "generated": "2026-09-04",
       "generator": {
         "path": "scripts/generate-phase4-derived-maps.mjs",
         "transforms": [
@@ -488,9 +488,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This relief proxy is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "6af67210ff1735f827945cdcca84bf4b43e58ba471aa2a8ccd0f6e34a5593a94"
+        "value": "4cd5ef532510767449ccaa4ea1e1e105550ce96f3961f0503b89b806e1b1d054"
       },
-      "byte_length": 1132461,
+      "byte_length": 1118490,
       "dimensions": {
         "width": 2048,
         "height": 1024
@@ -513,23 +513,23 @@
         "phase4/earth-ocean.png"
       ],
       "source": {
-        "runtime_asset_id": "earth-blue-marble-2k",
-        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
-        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
-        "ref": "https://svs.gsfc.nasa.gov/2915/",
-        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "runtime_asset_id": "earth-blue-marble-ng-topography-8k",
+        "organization": "NASA Earth Observatory / Goddard Space Flight Center",
+        "title": "Blue Marble: Next Generation with Topography, August, 8192 x 4096 runtime reduction",
+        "ref": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
         },
-        "byte_length": 1511379,
+        "byte_length": 3121794,
         "dimensions": {
-          "width": 2048,
-          "height": 1024
+          "width": 8192,
+          "height": 4096
         },
         "data_semantics": "Static color visualization; it contains no authoritative land-water classification channel."
       },
-      "generated": "2026-08-28",
+      "generated": "2026-09-04",
       "generator": {
         "path": "scripts/generate-phase4-derived-maps.mjs",
         "transforms": [
@@ -540,9 +540,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This mask is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "02a325eb0e754365a5847df2c11fc8ede609af7d3f779938903ba806d5490ad4"
+        "value": "50d9512582903640dff3e399f693bbaf7bf6e8ae88143b2198c91c8099c18f9d"
       },
-      "byte_length": 519381,
+      "byte_length": 280423,
       "dimensions": {
         "width": 2048,
         "height": 1024
@@ -565,23 +565,23 @@
         "phase4/earth-roughness.png"
       ],
       "source": {
-        "runtime_asset_id": "earth-blue-marble-2k",
-        "organization": "NASA Goddard Space Flight Center Scientific Visualization Studio",
-        "title": "Blue Marble — A Seamless Image Mosaic of the Earth, 2048 x 1024 image",
-        "ref": "https://svs.gsfc.nasa.gov/2915/",
-        "download": "https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png",
+        "runtime_asset_id": "earth-blue-marble-ng-topography-8k",
+        "organization": "NASA Earth Observatory / Goddard Space Flight Center",
+        "title": "Blue Marble: Next Generation with Topography, August, 8192 x 4096 runtime reduction",
+        "ref": "https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/",
+        "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35"
+          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
         },
-        "byte_length": 1511379,
+        "byte_length": 3121794,
         "dimensions": {
-          "width": 2048,
-          "height": 1024
+          "width": 8192,
+          "height": 4096
         },
         "data_semantics": "Static color visualization; it contains no measured PBR roughness channel."
       },
-      "generated": "2026-08-28",
+      "generated": "2026-09-04",
       "generator": {
         "path": "scripts/generate-phase4-derived-maps.mjs",
         "transforms": [
@@ -592,9 +592,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This material parameter is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "65e5e80a61ffbb71bb7b85109628331ae905ec3ceae3e09373caae39ee357e17"
+        "value": "f174c6e153db51c25314aa7ddce75df9483ebbf3e8b71b048602eaadec0ec0de"
       },
-      "byte_length": 697024,
+      "byte_length": 494341,
       "dimensions": {
         "width": 2048,
         "height": 1024

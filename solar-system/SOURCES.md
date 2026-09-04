@@ -176,19 +176,19 @@ Phase 4 bundles 13 local runtime textures for Mercury, Venus, Earth, the Moon, a
 
 The machine-readable record at [`public/assets/source-manifest.json`](./public/assets/source-manifest.json) is authoritative for all 16 Phase 4/5 local paths, byte lengths, dimensions, SHA-256 digests, encoded/runtime color handling, source-raster identities, transformations, and channel semantics.
 
-### Unmodified official runtime files
+### Official runtime source files
 
 | Asset ID | Local file | Official source record | Exact downloaded resource |
 | --- | --- | --- | --- |
 | `mercury-messenger-md3-color-1k` | `public/assets/phase4/mercury.jpg` | [Mercury MESSENGER MDIS Basemap MD3 Color Global Mosaic 665m](https://astrogeology.usgs.gov/search/map/mercury_messenger_mdis_basemap_md3_color_global_mosaic_665m) | [USGS 1024-pixel JPEG](https://astrogeology.usgs.gov/ckan/dataset/fc37692f-e806-4632-b300-0250bb61c3de/resource/b1ef80b6-a44a-4c24-8786-e5e901842657/download/mercury_messenger_mdis_basemap_md3color_mosaic_global_1024.jpg) |
 | `venus-magellan-c3-midr-radar-1k` | `public/assets/phase4/venus-radar.jpg` | [Venus Magellan Global C3-MDIR Mosaic 2025m](https://astrogeology.usgs.gov/search/map/venus_magellan_global_c3_mdir_mosaic_2025m) | [USGS full browse JPEG](https://astrogeology.usgs.gov/ckan/dataset/bf10c4f9-7587-4357-b0d9-81d5b6e6637c/resource/12345d86-e2a3-45eb-af88-c1e8bf3ac358/download/full.jpg) |
-| `earth-blue-marble-2k` | `public/assets/phase4/earth-day.png` | [Blue Marble — A Seamless Image Mosaic of the Earth](https://svs.gsfc.nasa.gov/2915/) | [NASA/GSFC 2048 × 1024 PNG](https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002915/bluemarble-2048.png) |
-| `earth-city-lights-2k` | `public/assets/phase4/earth-night.png` | [Earth At Night](https://svs.gsfc.nasa.gov/2916/) | [NASA/GSFC 2048 × 1024 PNG](https://svs.gsfc.nasa.gov/vis/a000000/a002900/a002916/earthatnight-2048.png) |
-| `earth-modis-clouds-2k` | `public/assets/phase4/earth-clouds.jpg` | [Blue Marble: Clouds](https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l) | [NASA/GSFC 2048 × 1024 JPEG](https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_2048.jpg) |
+| `earth-blue-marble-ng-topography-8k` | `public/assets/phase4/earth-day-8k.webp` | [Blue Marble: Next Generation with Topography](https://science.nasa.gov/earth/earth-observatory/blue-marble-next-generation/base-topography/) | [NASA/GSFC 21600 × 10800 JPEG](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg), resampled to 8192 × 4096 WebP |
+| `earth-black-marble-2016-8k` | `public/assets/phase4/earth-night-8k.webp` | [Earth at Night / Black Marble flat maps](https://science.nasa.gov/earth/earth-observatory/earth-at-night/maps/) | [NASA/GSFC 13500 × 6750 JPEG](https://assets.science.nasa.gov/content/dam/science/esd/eo/images/imagerecords/144000/144898/BlackMarble_2016_3km.jpg), resampled to 8192 × 4096 WebP |
+| `earth-modis-clouds-8k` | `public/assets/phase4/earth-clouds-8k.webp` | [Blue Marble: Clouds](https://visibleearth.nasa.gov/images/57747/blue-marble-clouds/77558l) | [NASA/GSFC 8192 × 4096 TIFF](https://eoimages.gsfc.nasa.gov/images/imagerecords/57000/57747/cloud_combined_8192.tif), encoded as quality-82 WebP |
 | `moon-lro-lroc-wac-color-2k` | `public/assets/phase4/moon.jpg` | [CGI Moon Kit](https://svs.gsfc.nasa.gov/4720/) | [NASA/GSFC 2048 × 1024 JPEG](https://svs.gsfc.nasa.gov/vis/a000000/a004700/a004720/lroc_color_2k.jpg) |
 | `mars-viking-mdim21-color-1k` | `public/assets/phase4/mars.jpg` | [Mars Viking Colorized Global Mosaic 232m](https://astrogeology.usgs.gov/search/map/mars_viking_colorized_global_mosaic_232m) | [USGS 1024-pixel JPEG](https://astrogeology.usgs.gov/ckan/dataset/7131d503-cdc9-45a5-8f83-5126c0fd397e/resource/6afad901-1caa-48a7-8b62-3911da0004c2/download/mars_viking_mdim21_clrmosaic_global_1024.jpg) |
 
-These seven files are byte-for-byte downloads. They were not resized, cropped, reprojected, recompressed, recolored, or channel-edited by the project.
+Mercury, Venus, Moon, and Mars are byte-for-byte downloads. The three documented Earth runtime images are resolution-conscious WebP adaptations of the linked official NASA sources; none is cropped, reprojected, recolored, or channel-edited.
 
 ### Generated runtime files
 
@@ -197,9 +197,9 @@ These seven files are byte-for-byte downloads. They were not resized, cropped, r
 | `mercury-messenger-dem-normal-2k` | `public/assets/phase4/mercury-normal.png` | Quantitative USGS DEM-derived normal; linear | 548,455 | `5c052c899d2f189f28f4971880643b5779d0207c5682d0620b65a05f7e4bea85` |
 | `moon-lola-ldem-normal-2k` | `public/assets/phase4/moon-normal.png` | Quantitative NASA LOLA displacement-derived normal; linear | 1,336,846 | `dccc06061532874a2b77f5f62a6cf2d504e233e2b4fbeae98014c15ef8cf481d` |
 | `mars-mola-megdr-normal-2k` | `public/assets/phase4/mars-normal.png` | Quantitative NASA MOLA topography-derived normal; linear | 1,647,954 | `88f990173a18dc3521149fe9e8c10ae86f932be4a20101ba492ac64cd99c94fe` |
-| `earth-blue-marble-derived-normal-2k` | `public/assets/phase4/earth-normal.png` | Project-authored Blue Marble luminance-relief proxy; linear | 1,132,461 | `6af67210ff1735f827945cdcca84bf4b43e58ba471aa2a8ccd0f6e34a5593a94` |
-| `earth-blue-marble-derived-ocean-mask-2k` | `public/assets/phase4/earth-ocean.png` | Project-authored Blue Marble blue-dominance mask; linear | 519,381 | `02a325eb0e754365a5847df2c11fc8ede609af7d3f779938903ba806d5490ad4` |
-| `earth-derived-roughness-2k` | `public/assets/phase4/earth-roughness.png` | Project-authored material parameter; linear | 697,024 | `65e5e80a61ffbb71bb7b85109628331ae905ec3ceae3e09373caae39ee357e17` |
+| `earth-blue-marble-derived-normal-2k` | `public/assets/phase4/earth-normal.png` | Project-authored Blue Marble luminance-relief proxy; linear | 1,118,490 | `4cd5ef532510767449ccaa4ea1e1e105550ce96f3961f0503b89b806e1b1d054` |
+| `earth-blue-marble-derived-ocean-mask-2k` | `public/assets/phase4/earth-ocean.png` | Project-authored Blue Marble blue-dominance mask; linear | 280,423 | `50d9512582903640dff3e399f693bbaf7bf6e8ae88143b2198c91c8099c18f9d` |
+| `earth-derived-roughness-2k` | `public/assets/phase4/earth-roughness.png` | Project-authored material parameter; linear | 494,341 | `f174c6e153db51c25314aa7ddce75df9483ebbf3e8b71b048602eaadec0ec0de` |
 
 All six generated maps are 2048 × 1024 PNGs and are sampled as linear data, never as sRGB color. Their retained quantitative source inputs are:
 
@@ -211,7 +211,7 @@ All six generated maps are 2048 × 1024 PNGs and are sampled as linear data, nev
 
 The Mercury GeoTIFF stores metres relative to the 2,439,400 m datum radius. The Moon TIFF stores unsigned half-metre LOLA samples; its constant unsigned offset cancels when gradients are taken. The Mars IMG stores big-endian signed 16-bit metres above the MOLA areoid. Mercury and Mars use positive-east 0–360° longitude, so the generator rolls both by 180° to align with the runtime color maps. It downsamples the quantitative rasters, computes wrapped central differences with latitude-aware east-west spacing, and encodes tangent-space normals. Visual slope amplification is `36×` for Mercury, `48×` for the Moon, and `1.4×` for Mars. These factors affect shading legibility; no sphere vertices are displaced.
 
-The three Earth maps have a different evidentiary status. They reuse the exact bundled Blue Marble input (`1,511,379` bytes; SHA-256 `ae6214b078ed0864c96f74bcb10ae3021f6eb116f8059797efe0fa9ea8b89d35`). The normal is a restrained finite-difference cue from image luminance, not elevation. The ocean mask is a smooth blue-dominance classification, not authoritative coastline data. Roughness is an authored blend of lower ocean and higher land-like values, not a measured NASA/USGS PBR product. Exact formulas are recorded in the machine-readable manifest and generator source.
+The three Earth maps have a different evidentiary status. They are regenerated from the exact bundled 8192 × 4096 Blue Marble runtime input (`3,121,794` bytes; SHA-256 `aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d`). The normal is a restrained finite-difference cue from image luminance, not elevation. The ocean mask is a smooth blue-dominance classification, not authoritative coastline data. Roughness is an authored blend of lower ocean and higher land-like values, not a measured NASA/USGS PBR product. Exact formulas are recorded in the machine-readable manifest and generator source.
 
 ### Representation and product caveats
 
