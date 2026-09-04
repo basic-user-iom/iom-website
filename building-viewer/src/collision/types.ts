@@ -40,6 +40,8 @@ export type CollisionHit = {
   sourceName?: string
   /** True when the hit belongs to a stair/ramp collision chunk. */
   stairZone?: boolean
+  /** Cross-layer circulation surface that must remain queryable without stair-volume logic. */
+  layerBridge?: boolean
 }
 
 export type CapsuleQueryResult = {
@@ -51,6 +53,8 @@ export type CapsuleQueryResult = {
   layerId?: string
   /** Collision chunk/source label for diagnostics. */
   sourceName?: string
+  /** Cross-layer circulation surface that must remain queryable without stair-volume logic. */
+  layerBridge?: boolean
 }
 
 /**

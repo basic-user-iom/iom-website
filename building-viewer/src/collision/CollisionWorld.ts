@@ -66,6 +66,7 @@ type ChunkCollider = {
   box: Box3
   triangles: number
   stairZone: boolean
+  layerBridge: boolean
   layerId: string
   sourceName: string
   /** Squared XZ distance hysteresis latch. */
@@ -287,6 +288,7 @@ export class CollisionWorld implements ICollisionWorld {
           box,
           triangles: src.triangles,
           stairZone: Boolean(src.stairZone),
+          layerBridge: Boolean(src.layerBridge),
           layerId: id,
           sourceName: src.name,
           active: false,
@@ -468,12 +470,18 @@ export class CollisionWorld implements ICollisionWorld {
     let bestLayerId: string | undefined
     let bestSourceName: string | undefined
     let bestStair = false
+    let bestLayerBridge = false
 
     for (const chunk of this.chunks) {
       // The placement layer remains authoritative for ordinary architecture,
       // but a reachable stair owned by another visible model must be queryable
       // so locomotion can hand support ownership across model boundaries.
-      if (this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone) continue
+      if (
+        this.queryLayerId &&
+        chunk.layerId !== this.queryLayerId &&
+        !chunk.stairZone &&
+        !chunk.layerBridge
+      ) continue
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       this.frameChunks += 1
       this.frameBvh += 1
@@ -485,6 +493,7 @@ export class CollisionWorld implements ICollisionWorld {
       bestLayerId = chunk.layerId
       bestSourceName = chunk.sourceName
       bestStair = chunk.stairZone
+      bestLayerBridge = chunk.layerBridge
       _hitPoint.copy(hit.point)
       if (hit.face?.normal) {
         _hitNormal.copy(hit.face.normal).normalize()
@@ -503,6 +512,7 @@ export class CollisionWorld implements ICollisionWorld {
       layerId: bestLayerId,
       sourceName: bestSourceName,
       stairZone: bestStair,
+      layerBridge: bestLayerBridge,
     }
   }
 
@@ -536,15 +546,20 @@ export class CollisionWorld implements ICollisionWorld {
     let bestLayerId: string | undefined
     let bestSourceName: string | undefined
     let bestStair = false
+    let bestLayerBridge = false
     let fallbackY = -Infinity
     let fallbackDist = 0
     let fallbackLayerId: string | undefined
     let fallbackSourceName: string | undefined
     let fallbackStair = false
+    let fallbackLayerBridge = false
 
     for (const chunk of this.chunks) {
       const foreignOrdinary = Boolean(
-        this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone,
+        this.queryLayerId &&
+          chunk.layerId !== this.queryLayerId &&
+          !chunk.stairZone &&
+          !chunk.layerBridge,
       )
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       this.frameChunks += 1
@@ -581,6 +596,7 @@ export class CollisionWorld implements ICollisionWorld {
             fallbackLayerId = chunk.layerId
             fallbackSourceName = chunk.sourceName
             fallbackStair = chunk.stairZone
+            fallbackLayerBridge = chunk.layerBridge
             _fallbackGroundPoint.copy(hit.point)
             _fallbackGroundNormal.copy(_hitNormal)
           }
@@ -591,6 +607,7 @@ export class CollisionWorld implements ICollisionWorld {
           bestLayerId = chunk.layerId
           bestSourceName = chunk.sourceName
           bestStair = chunk.stairZone
+          bestLayerBridge = chunk.layerBridge
           _hitPoint.copy(hit.point)
           _bestGroundNormal.copy(_hitNormal)
         }
@@ -609,6 +626,7 @@ export class CollisionWorld implements ICollisionWorld {
         layerId: fallbackLayerId,
         sourceName: fallbackSourceName,
         stairZone: fallbackStair,
+        layerBridge: fallbackLayerBridge,
       }
     }
     if (!found) return null
@@ -619,6 +637,7 @@ export class CollisionWorld implements ICollisionWorld {
       layerId: bestLayerId,
       sourceName: bestSourceName,
       stairZone: bestStair,
+      layerBridge: bestLayerBridge,
     }
   }
 
@@ -657,13 +676,19 @@ export class CollisionWorld implements ICollisionWorld {
 
     let bestDepth = 0
     let bestStair = false
+    let bestLayerBridge = false
     let bestLayerId: string | undefined
     let bestSourceName: string | undefined
     _resultNormal.set(0, 0, 0)
     const steps = 3
 
     for (const chunk of this.chunks) {
-      if (this.queryLayerId && chunk.layerId !== this.queryLayerId && !chunk.stairZone) continue
+      if (
+        this.queryLayerId &&
+        chunk.layerId !== this.queryLayerId &&
+        !chunk.stairZone &&
+        !chunk.layerBridge
+      ) continue
       if (this.broadphaseEnabled && !_queryBox.intersectsBox(chunk.box)) continue
       if (!this.ensureChunkBvh(chunk)) continue
       this.frameChunks += 1
@@ -687,6 +712,7 @@ export class CollisionWorld implements ICollisionWorld {
         _delta.normalize()
         bestDepth = depth
         bestStair = chunk.stairZone
+        bestLayerBridge = chunk.layerBridge
         bestLayerId = chunk.layerId
         bestSourceName = chunk.sourceName
         _resultNormal.copy(_delta)
@@ -701,6 +727,7 @@ export class CollisionWorld implements ICollisionWorld {
       stairZone: bestStair,
       layerId: bestLayerId,
       sourceName: bestSourceName,
+      layerBridge: bestLayerBridge,
     }
   }
 

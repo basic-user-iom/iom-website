@@ -14,6 +14,7 @@ import {
   buildCollisionChunks,
   type CollisionChunkSource,
 } from '../src/collision/buildCollisionChunks'
+import { buildAuditoriumAisleCollision } from '../src/collision/auditoriumAisleCollision'
 import {
   finalizeVisiblePegmanDrop,
   validateVisiblePlacementSurface,
@@ -92,6 +93,97 @@ assert.ok(Math.abs(tread.point.y - 0.18) < 1e-5)
 world.clearLayer('stair-layer')
 assert.equal(world.getQueryLayer(), null, 'removing the selected layer must release its query filter')
 world.dispose()
+
+// A circulation bridge must be queryable from another selected layer without
+// pretending to be a solid stair volume. The distinction prevents an aisle's
+// broad AABB from activating CharacterController's stair-volume climb latch.
+const layerBridgeWorld = new CollisionWorld()
+const baseSupport = floorChunk('base-layer-support', 0)
+const foreignLayerBridge = floorChunk('auditorium-layer-bridge', 0.18, 2)
+foreignLayerBridge.layerBridge = true
+layerBridgeWorld.setLayerChunks('base-layer', [baseSupport])
+layerBridgeWorld.setLayerChunks('bridge-layer', [foreignLayerBridge])
+await layerBridgeWorld.rebuildFromLayers(['base-layer', 'bridge-layer'], new Vector3())
+layerBridgeWorld.setQueryLayer('base-layer')
+
+const bridgeGround = layerBridgeWorld.raycastBestGround(
+  new Vector3(0, 0.5, 0),
+  0.5,
+  0.7,
+)
+assert.ok(bridgeGround, 'cross-layer bridge should be available to ground queries')
+assert.equal(bridgeGround.layerId, 'bridge-layer')
+assert.equal(bridgeGround.sourceName, 'auditorium-layer-bridge')
+assert.equal(bridgeGround.layerBridge, true)
+assert.equal(bridgeGround.stairZone, false)
+assert.equal(
+  layerBridgeWorld.stairWellAt(0, 0.18, 0),
+  null,
+  'layerBridge must not create a stair well / volume-climb latch',
+)
+
+const bridgeRay = layerBridgeWorld.raycast(new Vector3(0, 0.5, 0), down, 0.5)
+assert.ok(bridgeRay, 'cross-layer bridge should be available to ordinary ray queries')
+assert.equal(bridgeRay.layerId, 'bridge-layer')
+assert.equal(bridgeRay.layerBridge, true)
+assert.equal(bridgeRay.stairZone, false)
+
+const bridgeContact = layerBridgeWorld.capsuleIntersect(
+  new Vector3(0, 0.2, 0),
+  new Vector3(0, 1.4, 0),
+  0.05,
+)
+assert.ok(bridgeContact, 'cross-layer bridge should be available to capsule queries')
+assert.equal(bridgeContact.layerId, 'bridge-layer')
+assert.equal(bridgeContact.layerBridge, true)
+assert.equal(bridgeContact.stairZone, false)
+assert.equal(
+  layerBridgeWorld.getQueryLayer(),
+  'base-layer',
+  'read-only bridge queries must not mutate layer ownership',
+)
+layerBridgeWorld.dispose()
+
+// Auditorium support is extracted from the rendered floor but must be clipped
+// to the aisle itself; the real source mesh also spans the seating platforms.
+const aisleSource = new Group()
+const aisleMaterial = new MeshBasicMaterial({ name: 'Floor_Wood_Vray_001' })
+const broadWoodFloor = new Mesh(new PlaneGeometry(20, 20), aisleMaterial)
+broadWoodFloor.geometry.rotateX(-Math.PI / 2)
+aisleSource.add(broadWoodFloor)
+aisleSource.updateMatrixWorld(true)
+const aisleBuilt = buildAuditoriumAisleCollision(aisleSource, [
+  {
+    name: 'auditorium_aisle_test',
+    width: 2,
+    points: [
+      [0, 0, 0],
+      [8, 0, 0],
+    ],
+  },
+])
+assert.equal(aisleBuilt.exactSegments, 1)
+assert.equal(aisleBuilt.fallbackSegments, 0)
+assert.ok(aisleBuilt.treadTriangles >= 4)
+assert.equal(aisleBuilt.guardTriangles, 4)
+const clippedTread = aisleBuilt.root.getObjectByName(
+  'COLLIDER_walk_auditorium_aisle_test_0',
+) as Mesh
+assert.ok(clippedTread)
+const clippedPositions = clippedTread.geometry.getAttribute('position')
+for (let index = 0; index < clippedPositions.count; index += 1) {
+  const x = clippedPositions.getX(index)
+  const y = clippedPositions.getY(index)
+  const z = clippedPositions.getZ(index)
+  assert.ok(x >= -0.16001 && x <= 8.16001, `aisle tread leaked along route: x=${x}`)
+  assert.ok(Math.abs(y) < 1e-6, `aisle tread changed rendered height: y=${y}`)
+  assert.ok(Math.abs(z) <= 1.00001, `aisle tread leaked into seating: z=${z}`)
+}
+aisleBuilt.root.traverse((object) => {
+  if ((object as Mesh).isMesh) (object as Mesh).geometry.dispose()
+})
+broadWoodFloor.geometry.dispose()
+aisleMaterial.dispose()
 
 function bridgeFixtureMesh(
   name: string,

@@ -4,6 +4,7 @@ import {
   Group,
   Mesh,
   MeshBasicMaterial,
+  PlaneGeometry,
   Vector3,
   type Object3D,
 } from 'three'
@@ -570,8 +571,9 @@ class GroundOffsetWorld implements ICollisionWorld {
   }
 
   raycastBestGround(origin: Vector3): CollisionHit {
-    // snapToGround casts from feet + stepHeight + 0.05 (= 0.47 m).
-    const y = origin.y - 0.47 + this.offsetAboveFeet
+    // The fixture's support is a fixed offset from the initial feet, independent
+    // of how high the controller chooses to start its downward probe.
+    const y = this.offsetAboveFeet
     return {
       point: new Vector3(origin.x, y, origin.z),
       normal: UP.clone(),
@@ -600,6 +602,65 @@ function testGroundAboveFeetIsNotGrounding(): void {
   closeSupport.update(DT, new Vector3(), 0)
   assert.equal(closeSupport.onGround, true, 'a support within 3 cm remains ground')
   assert.ok(closeSupport.position.y > 0.015 && closeSupport.position.y < 0.04)
+}
+
+async function testOrdinarySnapKeepsLowerFloorBelowOverheadTread(): Promise<void> {
+  const root = new Group()
+  const material = new MeshBasicMaterial()
+  const lower = new Mesh(new PlaneGeometry(4, 4), material)
+  lower.geometry.rotateX(-Math.PI / 2)
+  lower.name = 'COLLIDER_floor_lower_support'
+  const overhead = new Mesh(new PlaneGeometry(2, 2), material)
+  overhead.geometry.rotateX(-Math.PI / 2)
+  overhead.position.y = 0.36
+  overhead.name = 'COLLIDER_floor_overhead_tread'
+  root.add(lower, overhead)
+  root.updateMatrixWorld(true)
+
+  const built = buildCollisionChunks(root, {
+    layerId: 'overhead-tread-fixture',
+    verbose: false,
+    ignoreVisibility: true,
+    walkSurfacesOnly: true,
+    isExplicitWalkable: () => true,
+  })
+  const world = new CollisionWorld()
+  world.setLayerChunks('overhead-tread-fixture', built.chunks, built.report)
+  await world.rebuildFromLayers(['overhead-tread-fixture'], new Vector3())
+
+  try {
+    // This proves the old full-step-height snap origin would select the tread
+    // above the capsule instead of the floor beneath its feet.
+    const highProbe = world.raycastBestGround(new Vector3(0, 0.47, 0), 1, 0.65)
+    assert.ok(highProbe)
+    assert.ok(
+      Math.abs(highProbe.point.y - 0.36) < 1e-5,
+      `fixture high probe did not select overhead tread (${highProbe.point.y})`,
+    )
+    const feetProbe = world.raycastBestGround(new Vector3(0, 0.05, 0), 0.75, 0.65)
+    assert.ok(feetProbe)
+    assert.ok(
+      Math.abs(feetProbe.point.y) < 1e-5,
+      `feet-local probe did not retain lower support (${feetProbe.point.y})`,
+    )
+
+    const controller = new CharacterController()
+    controller.setWorld(world)
+    controller.setFeetPosition(new Vector3(0, 0, 0))
+    controller.update(DT, new Vector3(), 0)
+    assert.equal(
+      controller.onGround,
+      true,
+      'ordinary ground snap lost the lower floor beneath an overhead tread',
+    )
+    assert.ok(
+      Math.abs(controller.position.y) < 0.01,
+      `ordinary ground snap moved onto/through the overhead tread (${controller.position.y})`,
+    )
+  } finally {
+    world.dispose()
+    disposeFixture(root, material)
+  }
 }
 
 async function testBestGroundLooksPastSteepHit(): Promise<void> {
@@ -648,6 +709,7 @@ testCappedStepChecksPlacementHeadroom()
 testDedicatedDecorIsExcludedFromWalkCollision()
 testVolumeFallbackReversePrefersDescentOverStepUp()
 testGroundAboveFeetIsNotGrounding()
+await testOrdinarySnapKeepsLowerFloorBelowOverheadTread()
 await testBestGroundLooksPastSteepHit()
 
 console.info('Character stair diagnostic passed: stairs, direction guard, overhead-ground rejection, multi-hit probe')

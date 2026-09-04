@@ -61,6 +61,8 @@ export type CollisionChunkSource = {
   name: string
   /** Stair assemblies stay in dedicated chunks and get extra Y activation pad. */
   stairZone?: boolean
+  /** Keep this circulation chunk queryable across overlapping model layers. */
+  layerBridge?: boolean
   /** Raycast both windings (for exact open bridge-grating supplements). */
   doubleSided?: boolean
   /** Original meshes merged into this chunk (used to prevent proxy duplication). */

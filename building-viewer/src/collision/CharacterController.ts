@@ -549,8 +549,14 @@ export class CharacterController {
       return
     }
     const p = this.params
-    _origin.set(this.position.x, this.position.y + p.stepHeight + 0.05, this.position.z)
-    const searchDist = p.stepHeight + p.groundSnapDistance + 0.25
+    // Ordinary grounding must begin just above the feet. Starting every probe
+    // a full step higher lets an overhanging/offset auditorium tread hide the
+    // valid lower approach floor, leaving the capsule airborne underneath it.
+    // A short-lived climb lock may still look across the full step height so a
+    // successful step/solid-volume climb can stay attached to its next tread.
+    const probeLift = this.climbLock > 0 ? p.stepHeight + 0.05 : 0.05
+    _origin.set(this.position.x, this.position.y + probeLift, this.position.z)
+    const searchDist = probeLift + p.groundSnapDistance + 0.25
     const hit =
       world.raycastBestGround?.(_origin, searchDist, p.maxSlope) ??
       world.raycast(_origin, _down, searchDist)
