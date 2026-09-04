@@ -86,7 +86,7 @@ export const DEFAULT_IMPACT_PARAMETERS: Readonly<ImpactParameters> = Object.free
   material: 'stone',
   fragmentationEnabled: true,
   atmosphereEnabled: true,
-  cameraMode: 'orbital',
+  cameraMode: 'ground-observer',
   seed: 0x1a2b_3c4d,
 });
 

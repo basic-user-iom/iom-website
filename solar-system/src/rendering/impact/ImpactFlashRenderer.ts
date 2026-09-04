@@ -99,6 +99,7 @@ export class ImpactFlashRenderer {
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
     reduceFlashes: boolean,
+    presentationMultiplier = 1,
   ): void {
     const ceiling = reduceFlashes ? 0.72 : 4;
     this.effectiveIntensity = Math.min(state.flashIntensity, ceiling);
@@ -107,7 +108,10 @@ export class ImpactFlashRenderer {
       && state.eventElapsedSeconds !== null
       && this.effectiveIntensity > 0.001;
     const surfaceFlash = terminalVisible && state.outcomeKind !== 'airburst';
-    this.capAngularRadiusRad = impactAngularRadius(state.flashRadiusM, state.targetRadiusM);
+    this.capAngularRadiusRad = impactAngularRadius(
+      state.flashRadiusM * presentationMultiplier,
+      state.targetRadiusM,
+    );
 
     setEllipsoidSurfacePoint(this.surfacePoint, basis.normal, state);
     setEllipsoidSurfaceNormal(this.surfaceNormal, this.surfacePoint, state);
@@ -145,7 +149,7 @@ export class ImpactFlashRenderer {
       setEllipsoidSurfaceNormal(this.surfaceNormal, this.surfacePoint, state);
       this.light.position.copy(this.surfacePoint).addScaledVector(
         this.surfaceNormal,
-        Math.max(2, state.flashRadiusM * 0.04) / state.targetRadiusM,
+        Math.max(2, state.flashRadiusM * presentationMultiplier * 0.04) / state.targetRadiusM,
       );
       this.normalAlignmentDot = this.alignmentScratch.copy(this.light.position)
         .sub(this.surfacePoint)
@@ -155,7 +159,7 @@ export class ImpactFlashRenderer {
     this.light.intensity = terminalVisible ? 4 + this.effectiveIntensity * 13 : 0;
     this.light.distance = Math.min(
       0.08,
-      Math.max(0.004, state.flashRadiusM / state.targetRadiusM * 9),
+      Math.max(0.004, state.flashRadiusM * presentationMultiplier / state.targetRadiusM * 9),
     );
     this.light.visible = terminalVisible;
     this.root.visible = terminalVisible;

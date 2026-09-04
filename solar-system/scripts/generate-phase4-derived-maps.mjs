@@ -8,7 +8,9 @@ import sharp from 'sharp'
 const OUTPUT_WIDTH = 2048
 const OUTPUT_HEIGHT = 1024
 const projectDirectory = resolve(dirname(fileURLToPath(import.meta.url)), '..')
-const sourceDirectory = resolve(process.argv[2] ?? join(projectDirectory, '.tmp-phase4-source'))
+const earthOnly = process.argv.includes('--earth-only')
+const sourceArgument = process.argv.slice(2).find((argument) => !argument.startsWith('--'))
+const sourceDirectory = resolve(sourceArgument ?? join(projectDirectory, '.tmp-phase4-source'))
 const outputDirectory = join(projectDirectory, 'public', 'assets', 'phase4')
 
 await mkdir(outputDirectory, { recursive: true })
@@ -16,24 +18,26 @@ await mkdir(outputDirectory, { recursive: true })
 const mercurySource = join(sourceDirectory, 'mercury-dem.tif')
 const moonSource = join(sourceDirectory, 'moon-ldem.tif')
 const marsSource = join(sourceDirectory, 'mars-mola.img')
-const earthSource = join(outputDirectory, 'earth-day.png')
+const earthSource = join(outputDirectory, 'earth-day-8k.webp')
 
-const mercuryHeight = await readTiffHeight(mercurySource, true)
-const moonHeight = await readTiffHeight(moonSource, false, 0.5)
-const marsHeight = await readMarsMolaHeight(marsSource)
+if (!earthOnly) {
+  const mercuryHeight = await readTiffHeight(mercurySource, true)
+  const moonHeight = await readTiffHeight(moonSource, false, 0.5)
+  const marsHeight = await readMarsMolaHeight(marsSource)
 
-await writeRgbPng(
-  'mercury-normal.png',
-  createLatitudeAwareNormalMap(mercuryHeight, 2_439_400, 36),
-)
-await writeRgbPng(
-  'moon-normal.png',
-  createLatitudeAwareNormalMap(moonHeight, 1_737_400, 48),
-)
-await writeRgbPng(
-  'mars-normal.png',
-  createLatitudeAwareNormalMap(marsHeight, 3_396_190, 1.4),
-)
+  await writeRgbPng(
+    'mercury-normal.png',
+    createLatitudeAwareNormalMap(mercuryHeight, 2_439_400, 36),
+  )
+  await writeRgbPng(
+    'moon-normal.png',
+    createLatitudeAwareNormalMap(moonHeight, 1_737_400, 48),
+  )
+  await writeRgbPng(
+    'mars-normal.png',
+    createLatitudeAwareNormalMap(marsHeight, 3_396_190, 1.4),
+  )
+}
 
 const earth = await readEarthColor(earthSource)
 const earthMaterialMaps = createEarthMaterialMaps(earth)
@@ -41,15 +45,20 @@ await writeRgbPng('earth-normal.png', earthMaterialMaps.normal)
 await writeGrayPng('earth-ocean.png', earthMaterialMaps.ocean)
 await writeGrayPng('earth-roughness.png', earthMaterialMaps.roughness)
 
-const sourceFiles = [mercurySource, moonSource, marsSource, earthSource]
-const outputFiles = [
-  'mercury-normal.png',
-  'moon-normal.png',
-  'mars-normal.png',
-  'earth-normal.png',
-  'earth-ocean.png',
-  'earth-roughness.png',
-].map((name) => join(outputDirectory, name))
+const sourceFiles = earthOnly
+  ? [earthSource]
+  : [mercurySource, moonSource, marsSource, earthSource]
+const outputNames = earthOnly
+  ? ['earth-normal.png', 'earth-ocean.png', 'earth-roughness.png']
+  : [
+      'mercury-normal.png',
+      'moon-normal.png',
+      'mars-normal.png',
+      'earth-normal.png',
+      'earth-ocean.png',
+      'earth-roughness.png',
+    ]
+const outputFiles = outputNames.map((name) => join(outputDirectory, name))
 
 const report = {
   generator: 'generate-phase4-derived-maps.mjs',

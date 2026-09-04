@@ -51,13 +51,24 @@ export class CraterPatchRenderer {
         float crater = 1.0 - smoothstep(0.0, 1.0, vCraterRadius);
         float bowl = pow(max(1.0 - vCraterRadius, 0.0), 2.2);
         float azimuth = atan(vPatchUv.y, vPatchUv.x);
-        float rayNoise = pow(max(sin(azimuth * 11.0 + uSeedPhase), 0.0), 5.0);
-        float rays = rayNoise * exp(-patchRadius * 2.8) * uScorchOpacity;
-        vec3 charColor = mix(vec3(0.055, 0.035, 0.025), vec3(0.12, 0.095, 0.075), uDusty);
-        vec3 rimColor = mix(vec3(0.34, 0.18, 0.08), vec3(0.43, 0.35, 0.27), uDusty);
-        vec3 color = mix(charColor, rimColor, clamp(vRim * 1.8 + rays * 0.4, 0.0, 1.0));
-        color *= 1.0 - bowl * 0.38;
-        float alpha = edgeFade * max(crater * uFormation * 0.82, uScorchOpacity * (0.34 + rays));
+        float primaryRays = pow(max(sin(azimuth * 11.0 + uSeedPhase), 0.0), 7.0);
+        float secondaryRays = pow(max(sin(azimuth * 17.0 - uSeedPhase * 0.63), 0.0), 10.0);
+        float outsideCrater = smoothstep(0.82, 1.06, vCraterRadius);
+        float rayFade = exp(-max(vCraterRadius - 0.75, 0.0) * 2.4);
+        float rays = (primaryRays * 0.72 + secondaryRays * 0.28)
+          * outsideCrater * rayFade * uScorchOpacity;
+        float granular = 0.88 + 0.12 * sin(
+          azimuth * 29.0 + patchRadius * 83.0 + uSeedPhase * 2.1
+        );
+        vec3 charColor = mix(vec3(0.035, 0.026, 0.022), vec3(0.09, 0.075, 0.064), uDusty);
+        vec3 ejectaColor = mix(vec3(0.31, 0.2, 0.13), vec3(0.38, 0.33, 0.28), uDusty);
+        vec3 color = mix(charColor, ejectaColor,
+          clamp(vRim * 1.9 + rays * 0.62, 0.0, 1.0));
+        color *= granular * (1.0 - bowl * 0.52);
+        float alpha = edgeFade * max(
+          crater * uFormation * 0.88,
+          uScorchOpacity * (0.24 + rays * 0.76)
+        );
         if (alpha < 0.004) discard;
         gl_FragColor = vec4(color, min(alpha, 0.96));
       }
@@ -141,13 +152,16 @@ export class CraterPatchRenderer {
     state: Readonly<ImpactRenderState>,
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
+    presentationMultiplier = 1,
   ): void {
     const allowed = state.supportsCrater
       && state.outcomeKind === 'solid-surface-impact'
       && (state.aftermathKind === 'crater' || state.aftermathKind === 'dusty-crater');
     this.formationProgress = clampImpactUnit(state.craterFormationProgress);
-    this.angularRadiusRad = impactAngularRadius(state.craterRadiusM, state.targetRadiusM);
-    const patchRadiusM = Math.max(state.scorchRadiusM, state.craterRadiusM * 1.45);
+    const displayCraterRadiusM = state.craterRadiusM * presentationMultiplier;
+    const displayScorchRadiusM = state.scorchRadiusM * presentationMultiplier;
+    this.angularRadiusRad = impactAngularRadius(displayCraterRadiusM, state.targetRadiusM);
+    const patchRadiusM = Math.max(displayScorchRadiusM, displayCraterRadiusM * 1.45);
     const patchAngularRadius = impactAngularRadius(patchRadiusM, state.targetRadiusM);
     this.visible = active
       && state.eventElapsedSeconds !== null
@@ -166,14 +180,14 @@ export class CraterPatchRenderer {
     (this.material.uniforms.uNorth!.value as Vector3).copy(basis.north);
     this.material.uniforms.uPatchAngularRadius!.value = patchAngularRadius;
     this.material.uniforms.uCraterToPatchRatio!.value = patchRadiusM > 0
-      ? state.craterRadiusM / patchRadiusM
+      ? displayCraterRadiusM / patchRadiusM
       : 0;
     this.material.uniforms.uCraterDepthRatio!.value = Math.min(
-      state.craterDepthM / state.targetRadiusM,
+      state.craterDepthM * presentationMultiplier / state.targetRadiusM,
       this.angularRadiusRad * 0.22,
     );
     this.material.uniforms.uRimHeightRatio!.value = Math.min(
-      state.craterDepthM * 0.18 / state.targetRadiusM,
+      state.craterDepthM * presentationMultiplier * 0.18 / state.targetRadiusM,
       this.angularRadiusRad * 0.04,
     );
     this.material.uniforms.uFormation!.value = this.formationProgress;

@@ -149,6 +149,10 @@ describe('Phase 8 ImpactLabPanel', () => {
 
     expect(requiredElement('[data-testid="impact-lab-panel"]').getAttribute('aria-labelledby'))
       .toBeTruthy();
+    expect(requiredElement<HTMLSelectElement>('[data-testid="impact-visibility-mode"]').value)
+      .toBe('enhanced');
+    expect(requiredElement('[data-testid="impact-visibility-badge"]').textContent)
+      .toMatch(/Enhanced event visibility.*16x drawn effects/i);
     expect(requiredElement('[data-testid="impact-educational-badge"]').textContent)
       .toMatch(/Educational approximation/i);
 
@@ -180,6 +184,22 @@ describe('Phase 8 ImpactLabPanel', () => {
       .toMatch(/educational approximations.*exaggerated for visibility/i);
     expect(requiredElement('[data-testid="impact-approximation-notes"]').textContent)
       .toContain('Crater radius is a simplified energy scaling.');
+    expect(requiredElement('[data-testid="impact-impactor-provenance"]').textContent)
+      .toMatch(/not a named asteroid or spacecraft-derived surface scan/i);
+    const references = requiredElement('[data-testid="impact-visual-reference-basis"]');
+    expect(references.textContent).toMatch(/NASA atmospheric-entry.*USGS crater and ejecta/i);
+    expect(references.querySelectorAll('a')).toHaveLength(2);
+  });
+
+  it('lets the user switch between clearly labeled physical and enhanced visibility', () => {
+    const onVisibilityModeChange = vi.fn();
+    renderPanel({ onVisibilityModeChange });
+    const select = requiredElement<HTMLSelectElement>('[data-testid="impact-visibility-mode"]');
+    act(() => {
+      select.value = 'physical';
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    expect(onVisibilityModeChange).toHaveBeenCalledWith('physical');
   });
 
   it('emits controlled parameter and event-camera updates without running a scenario', () => {
@@ -404,8 +424,11 @@ describe('Phase 8 ImpactLabPanel', () => {
       snapshot: IDLE_SNAPSHOT,
       disabled: false,
       reduceFlashes: true,
+      visibilityMode: 'enhanced',
+      visibilityMultiplier: 16,
       onParametersChange: () => undefined,
       onReduceFlashesChange: () => undefined,
+      onVisibilityModeChange: () => undefined,
       onConfirmRun: () => undefined,
       onClose: () => undefined,
       onPause: () => undefined,

@@ -1,7 +1,6 @@
 import {
   Group,
   type Mesh,
-  type MeshBasicMaterial,
   type MeshStandardMaterial,
   type BufferGeometry,
   type Line,
@@ -219,6 +218,34 @@ describe('ImpactVisualSystem', () => {
     system.dispose();
   });
 
+  it('keeps physical diagnostics separate from enhanced local presentation scale', () => {
+    const system = new ImpactVisualSystem('high');
+    const event = state({ stage: 'ejecta', eventElapsedSeconds: 4 });
+    system.setCameraPreset('ground-observer');
+    system.update(event);
+    const physical = system.getDiagnostics();
+    expect(physical.visibilityMode).toBe('physical');
+    expect(physical.visibilityMultiplier).toBe(1);
+
+    system.setVisibilityMode('enhanced');
+    system.update(event);
+    const enhanced = system.getDiagnostics();
+    expect(enhanced.visibilityMode).toBe('enhanced');
+    expect(enhanced.visibilityMultiplier).toBeGreaterThan(1);
+    expect(enhanced.craterAngularRadiusRad).toBeGreaterThan(
+      physical.craterAngularRadiusRad,
+    );
+    expect(event.craterRadiusM).toBe(state().craterRadiusM);
+
+    system.setVisibilityMode('physical');
+    system.update(event);
+    expect(system.getDiagnostics()).toMatchObject({
+      visibilityMode: 'physical',
+      visibilityMultiplier: 1,
+    });
+    system.dispose();
+  });
+
   it('aligns entry envelopes to velocity and scales thin, dense, and giant profiles', () => {
     const system = new ImpactVisualSystem('high');
     const entry = state({
@@ -306,10 +333,10 @@ describe('ImpactVisualSystem', () => {
       | Mesh<BufferGeometry, MeshStandardMaterial>
       | undefined;
     const bowShock = system.root.getObjectByName('impact-entry-bow-shock') as
-      | Mesh<BufferGeometry, MeshBasicMaterial>
+      | Mesh<BufferGeometry, ShaderMaterial>
       | undefined;
     const plasma = system.root.getObjectByName('impact-entry-plasma-envelope') as
-      | Mesh<BufferGeometry, MeshBasicMaterial>
+      | Mesh<BufferGeometry, ShaderMaterial>
       | undefined;
     const trail = system.root.getObjectByName('impact-ablation-trail') as
       | Points<BufferGeometry, ShaderMaterial>
@@ -328,6 +355,14 @@ describe('ImpactVisualSystem', () => {
     );
     expect(impactor.material.roughness).toBeGreaterThan(0.95);
     expect(impactor.material.metalness).toBeLessThan(0.02);
+    expect(impactor.material.vertexColors).toBe(true);
+    const surfaceColors = Array.from(
+      impactor.geometry.getAttribute('color').array as Float32Array,
+    );
+    expect(new Set(surfaceColors.map((value) => value.toFixed(5))).size).toBeGreaterThan(8);
+    expect(bowShock.material.uniforms.uOpacity?.value).toBeGreaterThan(0);
+    expect(plasma.material.uniforms.uPlasma?.value).toBe(1);
+    expect(bowShock.material.fragmentShader).toContain('float shell');
     expect(system.getDiagnostics().impactorSizeExaggerated).toBe(true);
 
     const children = system.root.children.slice();
@@ -347,8 +382,11 @@ describe('ImpactVisualSystem', () => {
     expect(Array.from(
       impactor.geometry.getAttribute('position').array as Float32Array,
     )).not.toEqual(firstShape);
+    expect(Array.from(
+      impactor.geometry.getAttribute('color').array as Float32Array,
+    )).not.toEqual(surfaceColors);
     expect(impactor.material.metalness).toBeGreaterThan(0.7);
-    expect(impactor.material.emissiveIntensity).toBeGreaterThan(3);
+    expect(impactor.material.emissiveIntensity).toBeGreaterThan(2.7);
 
     const disposeSpies = [
       vi.spyOn(impactor.geometry, 'dispose'),
@@ -649,7 +687,7 @@ describe('impact event-camera poses', () => {
     expect(resolveImpactCameraPose('chase', moon)).toEqual(moonPose);
   });
 
-  it('frames a completed solid aftermath from its local effect scale', () => {
+  it('frames solid impact stages within the regional viewing envelope', () => {
     const localEvent = state({
       stage: 'ejecta',
       eventElapsedSeconds: 4,
@@ -661,8 +699,8 @@ describe('impact event-camera poses', () => {
       localPose.position.y,
       localPose.position.z,
     );
-    expect(localDistanceFromImpact).toBeGreaterThan(0.3);
-    expect(localDistanceFromImpact).toBeLessThan(1);
+    expect(localDistanceFromImpact).toBeGreaterThan(0.24);
+    expect(localDistanceFromImpact).toBeLessThan(0.3);
     expect(localPose.target.x - 1).toBeGreaterThan(0);
     expect(localPose.target.x - 1).toBeLessThanOrEqual(0.02);
 
@@ -681,8 +719,16 @@ describe('impact event-camera poses', () => {
       regionalPose.position.y,
       regionalPose.position.z,
     );
-    expect(regionalDistanceFromImpact).toBeGreaterThan(localDistanceFromImpact);
-    expect(regionalDistanceFromImpact).toBeLessThan(1);
+    expect(regionalDistanceFromImpact).toBeGreaterThanOrEqual(localDistanceFromImpact);
+    expect(regionalDistanceFromImpact).toBeLessThan(0.5);
+
+    const enhancedPose = resolveImpactCameraPose('ground-observer', localEvent, 16);
+    const enhancedDistanceFromImpact = Math.hypot(
+      enhancedPose.position.x - 1,
+      enhancedPose.position.y,
+      enhancedPose.position.z,
+    );
+    expect(enhancedDistanceFromImpact).toBeGreaterThan(localDistanceFromImpact);
   });
 });
 

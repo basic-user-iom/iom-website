@@ -6,5 +6,6 @@ export * from './ImpactFlashRenderer';
 export * from './ImpactRenderTypes';
 export * from './ImpactSurfaceMath';
 export * from './ImpactVisualSystem';
+export * from './ImpactVisibility';
 export * from './SurfaceShockwaveRenderer';
 export * from './VolumetricPlumeRenderer';

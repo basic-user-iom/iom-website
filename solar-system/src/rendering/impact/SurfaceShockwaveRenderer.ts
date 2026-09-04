@@ -1,5 +1,4 @@
 import {
-  AdditiveBlending,
   Group,
   Mesh,
   ShaderMaterial,
@@ -21,8 +20,8 @@ export class SurfaceShockwaveRenderer {
   public activeObjectCount = 0;
 
   private readonly geometry = new SphereGeometry(1, 64, 32);
-  private readonly groundMaterial = createWaveMaterial(0xffb067, false);
-  private readonly atmosphericMaterial = createWaveMaterial(0xb8e9ff, true);
+  private readonly groundMaterial = createWaveMaterial(0xc58a56, false);
+  private readonly atmosphericMaterial = createWaveMaterial(0x9cc8d8, true);
   private readonly ground = new Mesh(this.geometry, this.groundMaterial);
   private readonly atmospheric = new Mesh(this.geometry, this.atmosphericMaterial);
   private disposed = false;
@@ -43,14 +42,15 @@ export class SurfaceShockwaveRenderer {
     state: Readonly<ImpactRenderState>,
     basis: Readonly<ImpactSurfaceBasis>,
     active: boolean,
+    presentationMultiplier = 1,
   ): void {
     this.groundAngularRadiusRad = Math.min(
       Math.PI * 0.94,
-      Math.max(0, state.groundShockwaveAngularRadiusRad),
+      Math.max(0, state.groundShockwaveAngularRadiusRad * presentationMultiplier),
     );
     this.atmosphericAngularRadiusRad = Math.min(
       Math.PI * 0.94,
-      Math.max(0, state.atmosphericShockwaveAngularRadiusRad),
+      Math.max(0, state.atmosphericShockwaveAngularRadiusRad * presentationMultiplier),
     );
     this.groundVisible = active
       && state.eventElapsedSeconds !== null
@@ -68,7 +68,7 @@ export class SurfaceShockwaveRenderer {
       state,
       basis,
       this.groundAngularRadiusRad,
-      state.groundShockwaveOpacity,
+      state.groundShockwaveOpacity * (presentationMultiplier > 1.001 ? 0.15 : 1),
       3 / state.targetRadiusM,
     );
     updateWaveMaterial(
@@ -76,7 +76,7 @@ export class SurfaceShockwaveRenderer {
       state,
       basis,
       this.atmosphericAngularRadiusRad,
-      state.atmosphericShockwaveOpacity,
+      state.atmosphericShockwaveOpacity * (presentationMultiplier > 1.001 ? 0.08 : 1),
       Math.max(12_000 / state.targetRadiusM, 0.002),
     );
     this.ground.visible = this.groundVisible;
@@ -114,7 +114,6 @@ export class SurfaceShockwaveRenderer {
 
 function createWaveMaterial(color: number, atmospheric: boolean): ShaderMaterial {
   return new ShaderMaterial({
-    blending: AdditiveBlending,
     depthTest: true,
     depthWrite: false,
     fragmentShader: `
@@ -128,7 +127,7 @@ function createWaveMaterial(color: number, atmospheric: boolean): ShaderMaterial
         float angularDistance = acos(clamp(
           dot(normalize(vBodyDirection), normalize(uImpactDirection)), -1.0, 1.0
         ));
-        float ringWidth = max(0.00065, uAngularRadius * mix(0.035, 0.075, uAtmospheric));
+        float ringWidth = max(0.00018, uAngularRadius * mix(0.035, 0.065, uAtmospheric));
         float ring = 1.0 - smoothstep(
           ringWidth,
           ringWidth * 1.8,
@@ -141,7 +140,7 @@ function createWaveMaterial(color: number, atmospheric: boolean): ShaderMaterial
         )) * 0.18;
         float alpha = (ring + wake) * uOpacity;
         if (alpha < 0.004) discard;
-        gl_FragColor = vec4(uColor * (0.72 + ring * 0.8), min(alpha, 0.78));
+        gl_FragColor = vec4(uColor * (0.68 + ring * 0.24), min(alpha, 0.32));
       }
     `,
     toneMapped: false,

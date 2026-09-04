@@ -17,6 +17,10 @@ import {
 } from '../../simulation/scenarios/impact/ImpactTypes';
 import { IMPACT_PARAMETER_LIMITS } from '../../simulation/scenarios/impact/ImpactConfiguration';
 import { getImpactTargetProfile } from '../../simulation/scenarios/impact/ImpactTargetProfiles';
+import {
+  formatImpactVisibilityMultiplier,
+  type ImpactVisibilityMode,
+} from '../../rendering/impact/ImpactVisibility';
 import { ObservatoryDialog } from './ObservatoryDialog';
 
 export interface ImpactLabPanelProps {
@@ -26,8 +30,11 @@ export interface ImpactLabPanelProps {
   readonly snapshot: Readonly<ImpactScenarioSnapshot>;
   readonly disabled?: boolean;
   readonly reduceFlashes: boolean;
+  readonly visibilityMode: ImpactVisibilityMode;
+  readonly visibilityMultiplier: number;
   readonly onParametersChange: (parameters: Readonly<ImpactParameters>) => void;
   readonly onReduceFlashesChange: (reduceFlashes: boolean) => void;
+  readonly onVisibilityModeChange: (mode: ImpactVisibilityMode) => void;
   readonly onConfirmRun: () => void;
   readonly onClose: () => void;
   readonly onPause: () => void;
@@ -149,7 +156,10 @@ const CAMERA_OPTIONS: readonly Readonly<{
   Object.freeze({ id: 'side-entry' as ImpactCameraMode, label: 'Side entry' }),
   Object.freeze({ id: 'horizon' as ImpactCameraMode, label: 'Horizon' }),
   Object.freeze({ id: 'chase' as ImpactCameraMode, label: 'Chase' }),
-  Object.freeze({ id: 'ground-observer' as ImpactCameraMode, label: 'Ground observer' }),
+  Object.freeze({
+    id: 'ground-observer' as ImpactCameraMode,
+    label: 'Regional event · recommended',
+  }),
   Object.freeze({ id: 'slow-motion-replay' as ImpactCameraMode, label: 'Slow-motion replay' }),
 ]);
 
@@ -172,8 +182,11 @@ export function ImpactLabPanel({
   snapshot,
   disabled = false,
   reduceFlashes,
+  visibilityMode,
+  visibilityMultiplier,
   onParametersChange,
   onReduceFlashesChange,
+  onVisibilityModeChange,
   onConfirmRun,
   onClose,
   onPause,
@@ -324,6 +337,10 @@ export function ImpactLabPanel({
             <option value="iron">Iron</option>
           </select>
         </label>
+        <p className="field-help" data-testid="impact-impactor-provenance">
+          Scenario impactor — deterministic material-informed shape, not a named asteroid or
+          spacecraft-derived surface scan.
+        </p>
 
         <div className="layer-controls impact-toggle-controls">
           <label>
@@ -381,6 +398,39 @@ export function ImpactLabPanel({
         targetName={targetName}
         targetProfile={targetProfile}
       />
+
+      <div className="impact-visibility-control">
+        <label className="field-stack" htmlFor={`${idPrefix}-impact-visibility`}>
+          <span>Effect visibility</span>
+          <select
+            id={`${idPrefix}-impact-visibility`}
+            value={visibilityMode}
+            disabled={disabled}
+            data-testid="impact-visibility-mode"
+            aria-describedby={`${idPrefix}-visibility-help`}
+            onChange={(event) => onVisibilityModeChange(
+              event.currentTarget.value as ImpactVisibilityMode,
+            )}
+          >
+            <option value="enhanced">Enhanced local view (recommended)</option>
+            <option value="physical">Physical scale</option>
+          </select>
+        </label>
+        <p
+          className={`mode-badge ${visibilityMode === 'enhanced' ? 'mode-badge-warning' : ''}`}
+          data-testid="impact-visibility-badge"
+          data-visibility-mode={visibilityMode}
+        >
+          {visibilityMode === 'enhanced'
+            ? `Enhanced event visibility \u00b7 ${formatImpactVisibilityMultiplier(visibilityMultiplier)} drawn effects`
+            : 'Physical effect scale'}
+        </p>
+        <p className="field-help" id={`${idPrefix}-visibility-help`}>
+          Enhanced mode enlarges only the rendered crater, plume, ejecta, flash, and wave.
+          Energy, trajectory, timing, and all reported dimensions remain physical. The target's
+          mapped surface and atmosphere remain unchanged throughout the event.
+        </p>
+      </div>
 
       <label className="field-stack" htmlFor={`${idPrefix}-impact-camera`}>
         <span>Event camera</span>
@@ -625,6 +675,26 @@ function VisualEstimate({
       <h3 id={`${idPrefix}-visual-estimate-heading`}>Approximate visual estimate</h3>
       <p className="scale-warning" data-testid="impact-visual-caveat">
         {caveat}
+      </p>
+      <p className="field-help" data-testid="impact-visual-reference-basis">
+        Visual reference basis:{' '}
+        <a
+          href="https://nas.nasa.gov/pubs/stories/2017/feature_asteroid_simulations.html"
+          target="_blank"
+          rel="noreferrer"
+        >
+          NASA atmospheric-entry breakup simulations
+        </a>
+        {' '}and{' '}
+        <a
+          href="https://www.usgs.gov/centers/astrogeology-science-center/science/meteor-crater-sample-collection"
+          target="_blank"
+          rel="noreferrer"
+        >
+          USGS crater and ejecta observations
+        </a>
+        . The renderer uses an elongated plasma wake, directional ejecta curtain, expanding
+        dust plume, and persistent crater/ejecta blanket.
       </p>
       <dl className="inspector-grid impact-visual-summary">
         {craterApplicable ? (

@@ -2039,6 +2039,17 @@ kbd {
   margin-top: 2px;
 }
 
+.impact-visibility-control {
+  padding: 11px;
+  border: 1px solid rgba(255, 177, 95, 0.24);
+  border-radius: 11px;
+  background: rgba(255, 177, 95, 0.045);
+}
+
+.impact-visibility-control .mode-badge {
+  margin-top: 9px;
+}
+
 .impact-physical-summary,
 .impact-visual-summary {
   grid-template-columns: repeat(2, minmax(0, 1fr));
