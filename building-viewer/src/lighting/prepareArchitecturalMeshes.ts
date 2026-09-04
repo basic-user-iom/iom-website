@@ -76,7 +76,8 @@ const _uvWorldNormal = new Vector3()
 const GLASS_NAME =
   /(?:^|[\s._-])(?:glass(?:ing)?|glas|fenster|scheib\w*|verglas\w*|vitrine|storefront|skylight|dachfenster|oberlicht|lichtkuppel)(?=$|[\s._-]|\d)|curtain[\s._-]*wall/i
 
-const NOT_GLASS_NAME = /frame|mullion|sash|rail|handle|seal|gasket|profil/i
+const NOT_GLASS_NAME =
+  /frame|mullion|sash|rail|handle|seal|gasket|profil|metal|metall|alum(?:inium)?|steel|stahl|chrome|chrom/i
 
 /** Pools / ponds — V-Ray water uses transmission like glass, but must keep its texture. */
 const WATER_NAME = /wasser|water|\bteich\b|\bsee\b|\bpond\b|\bpool\b|brunnen|fountain/i
@@ -109,9 +110,9 @@ const CEILING_NAME = /decke|ceiling|soffit|untersicht|plafond|unterdecke|abgehae
 const OPEN_ARCHITECTURAL_SHELL_NAME =
   /flugturm|fassad|facade|geb[aä]?ude|gebude|building|halle|(?:^|[\s._-])hall(?:$|[\s._-]|\d)|innenw[aä]nd|waende|wände|wnde|tragwand|trennwand|walls|(?:^|[\s._-])wand(?:$|[\s._-]|\d)|(?:^|[\s._-])wall(?:$|[\s._-]|\d)|dark[_\s-]?wall|wall[_\s-]?raster|wandfarbe|wellblech|cladding|wall[_\s-]?panel/i
 
-/** Audited exterior sheets whose source node names are lost after batching. */
+/** Audited open surfaces whose source node names are lost after batching. */
 const AUDITED_OPEN_SHELL_MATERIAL =
-  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu)$/i
+  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu|Floor_Wood_Vray(?:_\d+)?|Treppen all(?:\.\d+)?|Rang_Dunkel)$/i
 
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
@@ -152,6 +153,14 @@ const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'egdeckebergangaussen',
   'buhneaufbaudecke',
   'saal1deckenpaneelelftung001',
+  // Rear auditorium portal batches contain closed-looking but inconsistent
+  // CAD winding. glTF's single-sided default otherwise drops random leaves,
+  // frames, and wood panels when the doorway is approached from the foyer.
+  'tuerenholz001',
+  'tuer1',
+  'bt3glastuergeteilt',
+  'bt3glastuergeteilt001001',
+  'object010',
 ])
 
 const IOM_SURFACE_TOPOLOGY_REPAIRED = 'iomSurfaceTopologyRepaired'
@@ -160,8 +169,10 @@ const IOM_SURFACE_TOPOLOGY_REPAIR_VERSION =
   'weld-seams-recalculate-normals-v1'
 
 function isAuditedMixedWindingShellName(name: string): boolean {
-  return AUDITED_MIXED_WINDING_SHELL_NAMES.has(
-    name.toLowerCase().replace(/[^a-z0-9]/g, ''),
+  const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '')
+  return (
+    AUDITED_MIXED_WINDING_SHELL_NAMES.has(normalized) ||
+    /^tuerhinten\d*$/.test(normalized)
   )
 }
 
@@ -1037,7 +1048,7 @@ export function prepareArchitecturalMeshes(
   const lightmapped = Boolean(options?.lightmapped)
   /** Reuse cloned glass materials per (source, sides, bias). */
   const glassMatCache = new Map<string, Material>()
-  /** Keep the source V-Ray material intact for stairs/details that share it. */
+  /** Keep the source V-Ray material intact while replacing its invalid normal binding. */
   const woodFloorMatCache = new Map<string, Material>()
   /** Opaque: clone per (source uuid, side) so shared materials are not mutated last-wins. */
   const sideMatCache = new Map<string, Material>()
@@ -1329,7 +1340,6 @@ export function prepareArchitecturalMeshes(
       }
 
       if (
-        mesh.userData.interiorWoodFloorSurface &&
         mat.userData?.iomInteriorWoodFloorNormalPrepared !== true &&
         hasInvalidInteriorWoodFloorNormal(mat)
       ) {

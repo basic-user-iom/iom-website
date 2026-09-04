@@ -2,9 +2,11 @@ import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import {
   BoxGeometry,
+  BufferGeometry,
   ClampToEdgeWrapping,
   Color,
   DoubleSide,
+  Float32BufferAttribute,
   FrontSide,
   Group,
   InstancedMesh,
@@ -23,6 +25,17 @@ const vite = await createServer({
   appType: 'custom',
   logLevel: 'silent',
 })
+
+function duplicateWindingGeometry() {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute(
+    'position',
+    new Float32BufferAttribute([0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 4], 3),
+  )
+  geometry.setIndex([0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3, 0, 2, 1])
+  geometry.computeVertexNormals()
+  return geometry
+}
 
 try {
   const [
@@ -276,14 +289,17 @@ try {
     assert.equal(floor.material.userData.iomInteriorWoodFloorNormalPrepared, true)
   }
   assert.equal(excludedElectroWood.geometry, excludedElectroGeometry)
-  assert.equal(excludedElectroWood.material.normalMap, invalidWoodNormal)
-  assert.notEqual(excludedElectroWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(excludedElectroWood.material.normalMap, null)
+  assert.equal(excludedElectroWood.material.bumpMap, null)
+  assert.equal(excludedElectroWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
   assert.equal(excludedBaseboardWood.geometry, excludedBaseboardGeometry)
-  assert.equal(excludedBaseboardWood.material.normalMap, invalidWoodNormal)
-  assert.notEqual(excludedBaseboardWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(excludedBaseboardWood.material.normalMap, null)
+  assert.equal(excludedBaseboardWood.material.bumpMap, null)
+  assert.equal(excludedBaseboardWood.material.userData.iomInteriorWoodFloorNormalPrepared, true)
   assert.equal(mixedWoodAssembly.geometry, mixedWoodGeometry)
-  assert.equal(mixedWoodAssembly.material.normalMap, invalidWoodNormal)
-  assert.notEqual(mixedWoodAssembly.material.userData.iomInteriorWoodFloorNormalPrepared, true)
+  assert.equal(mixedWoodAssembly.material.normalMap, null)
+  assert.equal(mixedWoodAssembly.material.bumpMap, null)
+  assert.equal(mixedWoodAssembly.material.userData.iomInteriorWoodFloorNormalPrepared, true)
   assert.equal(sharedWoodFloor.normalMap, invalidWoodNormal)
 
   // A shared Texture must retain the strongest anisotropy request regardless
@@ -355,6 +371,50 @@ try {
   assert.ok(preparedPane.opacity <= 0.45)
   assert.equal(cabinet.userData.architecturalGlass, false)
   assert.equal(cabinet.userData.containsArchitecturalGlass, true)
+
+  // A glass-named door owner is a mixed assembly. Explicit metal slots must
+  // not inherit glass transparency from the ancestor path.
+  const doorAluminium = new MeshPhysicalMaterial({
+    name: 'm.metal.alum.r',
+    opacity: 1,
+    transparent: false,
+    side: FrontSide,
+  })
+  const doorGlass = new MeshPhysicalMaterial({
+    name: 'm.glass_white_standart',
+    opacity: 0.45,
+    transparent: true,
+    transmission: 1,
+    side: FrontSide,
+  })
+  const doorDarkMetal = new MeshPhysicalMaterial({
+    name: 'm.metal.dark-grey.r',
+    opacity: 1,
+    transparent: false,
+    side: FrontSide,
+  })
+  const glassDoorOwner = new Group()
+  glassDoorOwner.name = 'bt3_glas_tuer_geteilt001.001'
+  const glassDoor = new Mesh(
+    duplicateWindingGeometry(),
+    [doorAluminium, doorGlass, doorDarkMetal],
+  )
+  glassDoor.name = 'mesh_617'
+  glassDoorOwner.add(glassDoor)
+  const glassDoorRoot = new Group()
+  glassDoorRoot.add(glassDoorOwner)
+  prepareArchitecturalMeshes(glassDoorRoot, computeSceneBounds(glassDoorRoot), {
+    freezeStatic: false,
+  })
+  const [preparedDoorAluminium, preparedDoorGlass, preparedDoorDarkMetal] = glassDoor.material
+  assert.equal(preparedDoorAluminium.transparent, false)
+  assert.equal(preparedDoorAluminium.opacity, 1)
+  assert.equal(preparedDoorAluminium.side, DoubleSide)
+  assert.equal(preparedDoorGlass.transparent, true)
+  assert.equal(preparedDoorGlass.side, DoubleSide)
+  assert.equal(preparedDoorDarkMetal.transparent, false)
+  assert.equal(preparedDoorDarkMetal.opacity, 1)
+  assert.equal(preparedDoorDarkMetal.side, DoubleSide)
   assert.equal(cabinet.userData.visibilityCritical, true)
   assert.equal(cabinet.userData.detailLodIgnore, true)
   assert.equal(cabinet.userData.floorZoneAlways, true)

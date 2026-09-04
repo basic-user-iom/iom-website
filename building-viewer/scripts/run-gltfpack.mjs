@@ -400,7 +400,7 @@ const KEEP_DOUBLE_SIDED_MATERIAL =
 const OPEN_ARCHITECTURAL_SHELL_NAME =
   /flugturm|fassad|facade|geb[aä]?ude|gebude|building|halle|(?:^|[\s._-])hall(?:$|[\s._-]|\d)|innenw[aä]nd|waende|wände|wnde|tragwand|trennwand|walls|(?:^|[\s._-])wand(?:$|[\s._-]|\d)|(?:^|[\s._-])wall(?:$|[\s._-]|\d)|dark[_\s-]?wall|wall[_\s-]?raster|wandfarbe|wellblech|cladding|wall[_\s-]?panel|verbindung|walkway|footbridge|skybridge|connector|passage|uebergang|übergang/i
 const AUDITED_OPEN_SHELL_MATERIAL =
-  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu)$/i
+  /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu|Floor_Wood_Vray(?:_\d+)?|Treppen all(?:\.\d+)?|Rang_Dunkel)$/i
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
   'fassade003001',
@@ -440,12 +440,19 @@ const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'egdeckebergangaussen',
   'buhneaufbaudecke',
   'saal1deckenpaneelelftung001',
+  'tuerenholz001',
+  'tuer1',
+  'bt3glastuergeteilt',
+  'bt3glastuergeteilt001001',
+  'object010',
 ])
 const IOM_DOUBLE_SIDED_REASON = 'iomDoubleSidedReason'
 
 function isAuditedMixedWindingShellName(name) {
-  return AUDITED_MIXED_WINDING_SHELL_NAMES.has(
-    String(name || '').toLowerCase().replace(/[^a-z0-9]/g, ''),
+  const normalized = String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+  return (
+    AUDITED_MIXED_WINDING_SHELL_NAMES.has(normalized) ||
+    /^tuerhinten\d*$/.test(normalized)
   )
 }
 

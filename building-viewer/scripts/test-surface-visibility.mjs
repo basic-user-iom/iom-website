@@ -190,6 +190,70 @@ try {
   assert.equal(closedCampusRoof.material.side, FrontSide)
   assert.notEqual(campusRoof.material, closedCampusRoof.material)
 
+  // The auditorium aisle/tier batches lose their source node names during
+  // optimization. Their exact retained materials are the narrow semantic
+  // bridge to the topology audit; unrelated watertight uses stay FrontSide.
+  for (const materialName of ['Floor_Wood_Vray_001', 'Treppen all.001', 'Rang_Dunkel']) {
+    const sharedAuditoriumMaterial = new MeshStandardMaterial({
+      name: materialName,
+      side: FrontSide,
+    })
+    const openAuditoriumSurface = new Mesh(openCornerGeometry(), sharedAuditoriumMaterial)
+    const closedAuditoriumVolume = new Mesh(
+      new BoxGeometry(4, 3, 4),
+      sharedAuditoriumMaterial,
+    )
+    closedAuditoriumVolume.position.x = 8
+    const auditoriumRoot = new Group()
+    auditoriumRoot.add(openAuditoriumSurface, closedAuditoriumVolume)
+    prepareArchitecturalMeshes(auditoriumRoot, computeSceneBounds(auditoriumRoot), {
+      freezeStatic: false,
+    })
+    assert.equal(openAuditoriumSurface.material.side, DoubleSide, materialName)
+    assert.equal(
+      openAuditoriumSurface.userData.surfaceVisibilityReason,
+      'audited-open-shell',
+      materialName,
+    )
+    assert.equal(closedAuditoriumVolume.material.side, FrontSide, materialName)
+    assert.notEqual(openAuditoriumSurface.material, closedAuditoriumVolume.material)
+  }
+
+  // Exact rear-auditorium owners are known mixed-winding CAD assemblies.
+  // Include a numbered leaf batch and the boundary-free wood-panel batch.
+  for (const ownerName of [
+    'tuer_hinten_02.001',
+    'tuer_hinten_005',
+    'Tueren_Holz.001',
+    'tuer_1',
+    'bt3_glas_tuer_geteilt',
+    'bt3_glas_tuer_geteilt001.001',
+    'Object010',
+  ]) {
+    const portalPrimitive = new Mesh(
+      duplicateWindingGeometry(),
+      new MeshStandardMaterial({
+        name: ownerName.startsWith('bt3_glas_') ? 'm.metal.alum.r' : 'Generic portal finish',
+        side: FrontSide,
+      }),
+    )
+    portalPrimitive.name = 'mesh_617'
+    const portalOwner = new Group()
+    portalOwner.name = ownerName
+    portalOwner.add(portalPrimitive)
+    const portalRoot = new Group()
+    portalRoot.add(portalOwner)
+    prepareArchitecturalMeshes(portalRoot, computeSceneBounds(portalRoot), {
+      freezeStatic: false,
+    })
+    assert.equal(portalPrimitive.material.side, DoubleSide, ownerName)
+    assert.equal(
+      portalPrimitive.userData.surfaceVisibilityReason,
+      'audited-mixed-winding-shell',
+      ownerName,
+    )
+  }
+
   // Several interior roof/ceiling owners are closed in AABB terms but contain
   // duplicated or inconsistent winding. Their audited hierarchy name must
   // retain both faces without applying the rule to every roof-like object.
