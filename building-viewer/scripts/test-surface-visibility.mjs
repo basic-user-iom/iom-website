@@ -155,6 +155,60 @@ try {
     'audited-mixed-winding-shell',
   )
 
+  // The current optimized auditorium GLBs contain two unnamed instanced door
+  // aggregates, but Web and Quest assign different generated mesh ordinals.
+  // The exact retained primitive material is stable; topology must still prove
+  // the defect, and neither a clean use nor another damaged material is widened.
+  const sharedFoyerDoorMaterial = new MeshStandardMaterial({
+    name: 'wall_raster_wood_002',
+    side: FrontSide,
+  })
+  const unnamedAuditoriumAggregate = new Mesh(
+    duplicateWindingGeometry(),
+    sharedFoyerDoorMaterial,
+  )
+  unnamedAuditoriumAggregate.name = 'mesh_1153'
+  const profileShiftedAuditoriumAggregate = new Mesh(
+    duplicateWindingGeometry(),
+    sharedFoyerDoorMaterial,
+  )
+  profileShiftedAuditoriumAggregate.name = 'mesh_1155'
+  profileShiftedAuditoriumAggregate.position.x = 8
+  const cleanFoyerDoorUse = new Mesh(new BoxGeometry(4, 3, 4), sharedFoyerDoorMaterial)
+  cleanFoyerDoorUse.name = 'mesh_1154'
+  cleanFoyerDoorUse.position.x = 16
+  const unrelatedGeneratedMesh = new Mesh(
+    duplicateWindingGeometry(),
+    new MeshStandardMaterial({ name: 'Generic wall raster', side: FrontSide }),
+  )
+  unrelatedGeneratedMesh.name = 'mesh_1156'
+  unrelatedGeneratedMesh.position.x = 24
+  const unnamedAuditoriumRoot = new Group()
+  unnamedAuditoriumRoot.add(
+    unnamedAuditoriumAggregate,
+    profileShiftedAuditoriumAggregate,
+    cleanFoyerDoorUse,
+    unrelatedGeneratedMesh,
+  )
+  prepareArchitecturalMeshes(
+    unnamedAuditoriumRoot,
+    computeSceneBounds(unnamedAuditoriumRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(unnamedAuditoriumAggregate.material.side, DoubleSide)
+  assert.equal(
+    unnamedAuditoriumAggregate.userData.surfaceVisibilityReason,
+    'audited-mixed-winding-shell',
+  )
+  assert.equal(profileShiftedAuditoriumAggregate.material.side, DoubleSide)
+  assert.equal(
+    profileShiftedAuditoriumAggregate.userData.surfaceVisibilityReason,
+    'audited-mixed-winding-shell',
+  )
+  assert.equal(cleanFoyerDoorUse.material.side, FrontSide)
+  assert.equal(unrelatedGeneratedMesh.material.side, FrontSide)
+  assert.notEqual(unnamedAuditoriumAggregate.material, cleanFoyerDoorUse.material)
+
   // gltfpack batching drops the Flugturm node name. Its isolated source
   // material remains a deterministic bridge to the audited open shell.
   const tower = new Mesh(openCornerGeometry(), new MeshStandardMaterial({

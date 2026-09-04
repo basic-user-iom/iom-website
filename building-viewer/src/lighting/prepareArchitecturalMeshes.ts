@@ -114,6 +114,14 @@ const OPEN_ARCHITECTURAL_SHELL_NAME =
 const AUDITED_OPEN_SHELL_MATERIAL =
   /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu|Floor_Wood_Vray(?:_\d+)?|Treppen all(?:\.\d+)?|Rang_Dunkel)$/i
 
+/**
+ * Foyer-door faces whose owner names are lost, and whose generated mesh
+ * ordinals differ between Web and Quest. Only primitives with this exact
+ * retained material enter the mixed-winding audit; a topology proof is still
+ * required before clean/future uses can lose FrontSide culling.
+ */
+const AUDITED_MIXED_WINDING_PRIMITIVE_MATERIAL = /^wall_raster_wood_002$/i
+
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
   'fassade003001',
@@ -1145,7 +1153,11 @@ export function prepareArchitecturalMeshes(
     )
     const certifiedSurfaceTopologyRepair = hasCertifiedSurfaceTopologyRepair(mesh)
     const auditedMixedWindingShell =
-      hasAuditedMixedWindingShellName(mesh) && !certifiedSurfaceTopologyRepair
+      !certifiedSurfaceTopologyRepair &&
+      (hasAuditedMixedWindingShellName(mesh) ||
+        materialSlots.some((mat) =>
+          AUDITED_MIXED_WINDING_PRIMITIVE_MATERIAL.test(mat.name || ''),
+        ))
     const allMaterialsAuthoredDoubleSided =
       materialSlots.length > 0 && materialSlots.every(hasAuthoredDoubleSidedReason)
 

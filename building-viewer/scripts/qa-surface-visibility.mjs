@@ -25,6 +25,7 @@ const SURFACE_TARGETS = {
       { key: 'facade-shell', names: ['mat_fassade'], required: true },
       { key: 'material-30-facade', names: ['Material 30_002'], required: true },
       { key: 'sienna-facade', names: ['vray Paint - Sienna S_001'], required: true },
+      { key: 'campus-open-roof', names: ['dach allu'], required: true },
     ],
   },
   'icm-anim-2025': {
@@ -42,11 +43,26 @@ const SURFACE_TARGETS = {
       { key: 'load-bearing-compound-wall', names: ['obj_1_OG_s_13_tragwand_01'] },
       { key: 'first-floor-partition-s11', names: ['S11_trennwand'] },
       { key: 'first-floor-partition-s12', names: ['S12_trennwand'] },
-      { key: 'open-white-walls-aggregate', names: ['mesh_1154'] },
+      { key: 'foyer-door-aggregate-web-a', names: ['mesh_1153'], required: true },
+      { key: 'foyer-door-aggregate-web-b', names: ['mesh_1154'], required: true },
       { key: 'west-connector-north', names: ['Verbindung West002.001'] },
       { key: 'west-connector-south', names: ['Verbindung West.001'] },
       { key: 'west-connector-north-end', names: ['Verbindung West002.002'] },
       { key: 'west-connector-south-end', names: ['Verbindung West.002'] },
+      { key: 'foyer-exterior-roof', names: ['Foyer_Dach_aussen_1'], required: true },
+      { key: 'foyer-exterior-roof-002', names: ['Foyer_Dach_aussen_002'], required: true },
+      { key: 'ceiling-lights', names: ['Decken_Lampen'], required: true },
+      {
+        key: 'ground-floor-transition-ceiling',
+        names: ['EG_decke_bergang_aussen'],
+        required: true,
+      },
+      { key: 'stage-build-up-ceiling', names: ['Buhne_aufbau_decke'], required: true },
+      {
+        key: 'saal-ceiling-vent-panels',
+        names: ['Saal_1_deckenpaneele_lftung001'],
+        required: true,
+      },
     ],
     auditedMaterials: [],
   },
@@ -76,6 +92,18 @@ const EXTERIOR_SURFACE_VIEWS = [
     position: [57, 100, 190],
     target: [57, -0.3, 107],
     fov: 50,
+  },
+  {
+    name: 'campus-roof-above',
+    position: [-52, 85, 34],
+    target: [-52, 12, 34],
+    fov: 54,
+  },
+  {
+    name: 'campus-roof-below-oblique',
+    position: [75, 4, 145],
+    target: [-52, 12, 34],
+    fov: 52,
   },
 ]
 
@@ -309,6 +337,19 @@ const inspectRuntime = (layerId) => page.evaluate(({ id, targetConfig }) => {
     const matchingNodes = auditedNodes.filter((target) => (
       target.canonicalNames.some((name) => canonicalPath.includes(name))
     ))
+    const hasExactRepairCertificate = (candidate) => Boolean(
+      candidate?.userData?.iomSurfaceTopologyRepaired === true &&
+        candidate?.userData?.iomSurfaceTopologyRepair ===
+          'weld-seams-recalculate-normals-v1',
+    )
+    // Runtime independently re-audits every certificate before permitting
+    // FrontSide. Exact mesh certificates do not need a persisted group audit;
+    // direct-parent logical-mesh certificates do, and expose its result.
+    const certifiedSurfaceRepair = Boolean(
+      hasExactRepairCertificate(object) ||
+        (hasExactRepairCertificate(object.parent) &&
+          object.parent?.userData?.surfaceTopologyRepairAudit?.valid === true),
+    )
     const objectMaterials = Array.isArray(object.material) ? object.material : [object.material]
     for (const material of objectMaterials) {
       if (!material) continue
@@ -331,6 +372,7 @@ const inspectRuntime = (layerId) => page.evaluate(({ id, targetConfig }) => {
           reason,
           role,
           visibilityReason: object.userData?.surfaceVisibilityReason || null,
+          certifiedSurfaceRepair,
         })
       }
       const canonicalMaterial = canonicalName(material.name)
@@ -360,9 +402,15 @@ const inspectRuntime = (layerId) => page.evaluate(({ id, targetConfig }) => {
     const matches = auditedNodeObjects.filter((entry) => entry.target === target.key)
     return {
       key: target.key,
+      required: Boolean(target.required),
       runtimeNameRetained: matches.length > 0,
       matches: matches.length,
-      frontSide: matches.filter((entry) => entry.side !== 2),
+      frontSide: matches.filter(
+        (entry) => entry.side !== 2 && !entry.certifiedSurfaceRepair,
+      ),
+      certifiedFrontSide: matches.filter(
+        (entry) => entry.side !== 2 && entry.certifiedSurfaceRepair,
+      ),
     }
   })
   const auditedMaterialChecks = auditedMaterials.map((target) => {
@@ -385,7 +433,12 @@ const inspectRuntime = (layerId) => page.evaluate(({ id, targetConfig }) => {
     exteriorFloorDebugCheckerMaterials,
     auditedNodeChecks,
     auditedNodeObjects,
-    auditedNodeFrontSide: auditedNodeObjects.filter((target) => target.side !== 2),
+    auditedNodeFrontSide: auditedNodeObjects.filter(
+      (target) => target.side !== 2 && !target.certifiedSurfaceRepair,
+    ),
+    auditedNodeCertifiedFrontSide: auditedNodeObjects.filter(
+      (target) => target.side !== 2 && target.certifiedSurfaceRepair,
+    ),
     auditedMaterialChecks,
     auditedMaterialObjects,
     auditedMaterialFrontSide: auditedMaterialObjects.filter((target) => target.side !== 2),
@@ -494,6 +547,12 @@ try {
     const missingRequiredMaterials = state.auditedMaterialChecks
       .filter((target) => target.required && target.matches === 0)
       .map((target) => target.key)
+    const missingRequiredNodes = state.auditedNodeChecks
+      .filter((target) => target.required && target.matches === 0)
+      .map((target) => target.key)
+    if (missingRequiredNodes.length) {
+      failures.push(`${state.layerId}: required audited node(s) not found: ${missingRequiredNodes.join(', ')}`)
+    }
     if (missingRequiredMaterials.length) {
       failures.push(`${state.layerId}: required audited material(s) not found: ${missingRequiredMaterials.join(', ')}`)
     }
