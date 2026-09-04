@@ -109,14 +109,14 @@
       "transforms": [
         "Downloaded the official 21600 × 10800 JPEG with Invoke-WebRequest.",
         "Resampled to 8192 × 4096 with Sharp 0.35.3 using Lanczos3.",
-        "Encoded as WebP at quality 92 with smart chroma subsampling and effort 6."
+        "Encoded as WebP at quality 88 with smart chroma subsampling and effort 6."
       ],
       "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA Earth Observatory and NASA/GSFC; do not imply endorsement. The source credits Blue Marble data to Reto Stöckli and NASA Earth Observatory.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
+        "value": "0a609bdc1df3ef5e58b516151056e2a0bd9455ccd21d47660008eeb982df0049"
       },
-      "byte_length": 3121794,
+      "byte_length": 2270416,
       "dimensions": {
         "width": 8192,
         "height": 4096
@@ -148,14 +148,14 @@
       "transforms": [
         "Downloaded NASA's official 13500 × 6750 JPEG with Invoke-WebRequest.",
         "Resampled to 8192 × 4096 with the Sharp Lanczos3 kernel.",
-        "Encoded as quality-90 WebP with smart chroma subsampling and effort 6; no crop, reprojection, recoloring, or channel editing."
+        "Encoded as quality-88 WebP with smart chroma subsampling and effort 6; no crop, reprojection, recoloring, or channel editing."
       ],
       "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Credit NASA Earth Observatory and NASA/GSFC; do not imply endorsement. Detailed source credits are retained in THIRD_PARTY_NOTICES.md.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "698f45e7e332c7c668b7309d6dd72ff82b33c7efb132f0e494bd3d724d966358"
+        "value": "24a5715f1af0788a3dd1c2454cd4e094722dc77e213ee55494c4e3113e2cc38e"
       },
-      "byte_length": 1603956,
+      "byte_length": 1389526,
       "dimensions": {
         "width": 8192,
         "height": 4096
@@ -186,15 +186,15 @@
       "retrieved": "2026-09-04",
       "transforms": [
         "Downloaded the official 8192 × 4096 TIFF with Invoke-WebRequest.",
-        "Encoded as WebP with Sharp 0.35.3 at quality 82, smart chroma subsampling, and effort 6.",
+        "Encoded as WebP with Sharp 0.35.3 at quality 74, smart chroma subsampling, and effort 6.",
         "No resizing, cropping, recoloring, or density remapping."
       ],
       "license_note": "NASA content generally is not subject to copyright in the United States and may be used under NASA's Images and Media Usage Guidelines. Acknowledge NASA/GSFC; do not imply endorsement. The source credits Reto Stöckli and Robert Simmon with the MODIS and supporting teams.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "540357122b6211f9caf661de92a90e997e4a416096c072cb4eba2e640fdd1bfd"
+        "value": "06d0c4fef0fabb72f4bce6830a372cb01abda26563fbfa2a6c6e3426683b5839"
       },
-      "byte_length": 5792110,
+      "byte_length": 4295382,
       "dimensions": {
         "width": 8192,
         "height": 4096
@@ -467,9 +467,9 @@
         "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
+          "value": "0a609bdc1df3ef5e58b516151056e2a0bd9455ccd21d47660008eeb982df0049"
         },
-        "byte_length": 3121794,
+        "byte_length": 2270416,
         "dimensions": {
           "width": 8192,
           "height": 4096
@@ -488,9 +488,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This relief proxy is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "4cd5ef532510767449ccaa4ea1e1e105550ce96f3961f0503b89b806e1b1d054"
+        "value": "1f47978d1b1a2e08856fc23aa986a2ef66208e781b6f166caffa546811fe5722"
       },
-      "byte_length": 1118490,
+      "byte_length": 1114540,
       "dimensions": {
         "width": 2048,
         "height": 1024
@@ -520,9 +520,9 @@
         "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
+          "value": "0a609bdc1df3ef5e58b516151056e2a0bd9455ccd21d47660008eeb982df0049"
         },
-        "byte_length": 3121794,
+        "byte_length": 2270416,
         "dimensions": {
           "width": 8192,
           "height": 4096
@@ -540,9 +540,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This mask is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "50d9512582903640dff3e399f693bbaf7bf6e8ae88143b2198c91c8099c18f9d"
+        "value": "c6d9611e2e1ec86eed43d9139edfd9f12ce3867eacb75f6c47e55a367c66e3b3"
       },
-      "byte_length": 280423,
+      "byte_length": 268976,
       "dimensions": {
         "width": 2048,
         "height": 1024
@@ -572,9 +572,9 @@
         "download": "https://assets.science.nasa.gov/content/dam/science/esd/eo/images/bmng/bmng-topography/august/world.topo.200408.3x21600x10800.jpg",
         "checksum": {
           "algorithm": "SHA-256",
-          "value": "aea73acbefbdd5ccb3846b0af50d31e6be5439e22e29763a59b13980d845078d"
+          "value": "0a609bdc1df3ef5e58b516151056e2a0bd9455ccd21d47660008eeb982df0049"
         },
-        "byte_length": 3121794,
+        "byte_length": 2270416,
         "dimensions": {
           "width": 8192,
           "height": 4096
@@ -592,9 +592,9 @@
       "license_note": "NASA content generally is not subject to copyright in the United States and is subject to NASA's Images and Media Usage Guidelines. This material parameter is a project-generated heuristic derivative. Credit NASA/GSFC and Blue Marble's stated contributors; attribution does not imply endorsement.",
       "checksum": {
         "algorithm": "SHA-256",
-        "value": "f174c6e153db51c25314aa7ddce75df9483ebbf3e8b71b048602eaadec0ec0de"
+        "value": "ed9a2cdfa907edeacd5b84b00e5ccdd534a2e4a5474bde714ba72dbb55ac02f5"
       },
-      "byte_length": 494341,
+      "byte_length": 488853,
       "dimensions": {
         "width": 2048,
         "height": 1024
