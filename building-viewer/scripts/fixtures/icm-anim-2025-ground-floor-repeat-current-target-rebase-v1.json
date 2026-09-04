@@ -1,0 +1,703 @@
+{
+  "authority": {
+    "activationAuthorized": false,
+    "activationCapability": null,
+    "developmentEvaluationAllowed": true,
+    "humanCurrentTargetReapproval": false,
+    "productionRuntimeIntegrationAllowed": false
+  },
+  "baseAuthority": {
+    "approvedTarget": {
+      "activeSceneIndex": 0,
+      "instanceAccessors": {
+        "ROTATION": {
+          "componentType": 5122,
+          "count": 78,
+          "normalized": true,
+          "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+          "type": "VEC4"
+        },
+        "SCALE": {
+          "componentType": 5126,
+          "count": 78,
+          "normalized": false,
+          "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+          "type": "VEC3"
+        },
+        "TRANSLATION": {
+          "componentType": 5126,
+          "count": 78,
+          "normalized": false,
+          "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+          "type": "VEC3"
+        }
+      },
+      "intendedOwner": {
+        "activeScenePath": "scene/0/400",
+        "animationChannels": 0,
+        "identityRestMatrix": true,
+        "nodeName": "Ground Floor._anim1",
+        "sceneRoot": true
+      },
+      "productionInstancingRootPaths": [
+        "scene/0/258",
+        "scene/0/259",
+        "scene/0/260",
+        "scene/0/261"
+      ],
+      "productionModel": {
+        "bytes": 97549356,
+        "relativePath": "../public/models/icm-anim-2025/model-web.glb",
+        "sha256": "b96cf36f64a03d16047e3ff26aa93131481f636c184df80b5c7ea2032e4cb5e8"
+      },
+      "productionTransformSetSha256": "fe7adf799ecbfedbf84bcfcaa0557713728a36507573f846b52476891b66d36b"
+    },
+    "logicalMappingCertificate": {
+      "approvalStatus": "approved",
+      "bytes": 28050,
+      "relativePath": "scripts/fixtures/icm-anim-2025-ground-floor-repeat-logical-mapping-v1.json",
+      "schema": "IOM_REPEAT_SIX_PART_LOGICAL_MAPPING_CERTIFICATE_V1",
+      "sha256": "a802f11c3f9798168d8339c4c786036d36b7486c0c83a5fdad5931d5cff94b60",
+      "status": "approved-authoritative-logical-mapping"
+    },
+    "scope": "historical-approved-target-only"
+  },
+  "compatibility": {
+    "logicalCompatibilityProven": true,
+    "mapping": {
+      "bijective": true,
+      "mappingRowsSha256": "3a54e85a950682d0e668841c27038e6260b1170b9915bf6af9bd947878d1184a",
+      "metrics": {
+        "maxBestToRunnerUpRatio": 0.002992429035999764,
+        "maxMatchedDistanceMeters": 0.0028825632876861296,
+        "minProductionSeparationMeters": 0.9163632902334641,
+        "minReferenceSeparationMeters": 0.9174743971496261,
+        "minRunnerUpDistanceMeters": 0.9159603622112861,
+        "minRunnerUpMarginMeters": 0.9142217907076844
+      },
+      "orderCompatible": true,
+      "parity": {
+        "mirrored": 38,
+        "positive": 40
+      },
+      "parityCompatible": true,
+      "policy": {
+        "matchingMethod": "reciprocal-exhaustive-nearest-neighbor-owner-local-translation",
+        "maxBestToRunnerUpRatio": 0.01,
+        "maxMatchedDistanceMeters": 0.005,
+        "minRunnerUpMarginMeters": 0.5,
+        "requireBijection": true,
+        "requireExpectedProductionInstanceIndex": true,
+        "requireReciprocalNearest": true
+      },
+      "reciprocalNearestCompatible": true,
+      "sourceCount": 78
+    },
+    "physicalCompatibilityProven": true,
+    "rebaseRequired": true,
+    "rootTransformRowsIdenticalAndOrdered": true,
+    "rootWorldTransformsIdentity": true,
+    "staleApprovedTargetPins": [
+      "productionModel",
+      "productionInstancingRootPaths",
+      "intendedOwner"
+    ]
+  },
+  "currentTarget": {
+    "activeSceneIndex": 0,
+    "activeSceneRootCount": 402,
+    "instanceAccessors": {
+      "ROTATION": {
+        "componentType": 5122,
+        "count": 78,
+        "normalized": true,
+        "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+        "type": "VEC4"
+      },
+      "SCALE": {
+        "componentType": 5126,
+        "count": 78,
+        "normalized": false,
+        "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+        "type": "VEC3"
+      },
+      "TRANSLATION": {
+        "componentType": 5126,
+        "count": 78,
+        "normalized": false,
+        "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+        "type": "VEC3"
+      }
+    },
+    "intendedOwner": {
+      "activeScenePath": "scene/0/399",
+      "allTargetedChannelsNoOpAtRest": true,
+      "animationChannelCount": 1,
+      "identityRestMatrix": true,
+      "identityWorldRestMatrix": true,
+      "localRestMatrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ],
+      "nodeName": "Ground Floor._anim1",
+      "rotationRestValue": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "scaleRestValue": [
+        1,
+        1,
+        1
+      ],
+      "sceneRoot": true,
+      "targetedAnimationChannels": [
+        {
+          "analysis": {
+            "constant": true,
+            "cubicTangentsZero": true,
+            "equalsRestTransform": true,
+            "noOpAtRest": true
+          },
+          "animationIndex": 0,
+          "animationName": "Animation",
+          "channelIndex": 3,
+          "input": {
+            "componentType": 5126,
+            "count": 1,
+            "normalized": false,
+            "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+            "type": "SCALAR"
+          },
+          "interpolation": "STEP",
+          "keyframes": [
+            {
+              "time": 0,
+              "value": [
+                0,
+                0,
+                0
+              ]
+            }
+          ],
+          "output": {
+            "componentType": 5126,
+            "count": 1,
+            "normalized": false,
+            "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
+            "type": "VEC3"
+          },
+          "samplerIndex": 3,
+          "targetPath": "translation"
+        }
+      ],
+      "translationRestValue": [
+        0,
+        0,
+        0
+      ],
+      "translationTrackAssessment": {
+        "addedRelativeToPinnedCertificate": true,
+        "allConstant": true,
+        "allEqualRestTransform": true,
+        "allNoOpAtRest": true,
+        "count": 1
+      },
+      "uniqueNamedNodeCount": 1,
+      "worldRestMatrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1
+      ]
+    },
+    "productionInstancingRoots": [
+      {
+        "activeScenePath": "scene/0/257",
+        "animationChannelCount": 0,
+        "geometry": {
+          "indices": {
+            "componentType": 5123,
+            "count": 72639,
+            "normalized": false,
+            "sha256": "99e7fb827476375a9f566e765848bcb6e3ad92b3abfd3884f8e97dc36504e21f",
+            "type": "SCALAR"
+          },
+          "normal": {
+            "componentType": 5122,
+            "count": 20497,
+            "normalized": true,
+            "sha256": "2d3ca7d5a589c822c3083eeb67fe3cdcdc958822984dfb00eb863439a3123de4",
+            "type": "VEC3"
+          },
+          "position": {
+            "componentType": 5126,
+            "count": 20497,
+            "normalized": false,
+            "sha256": "7483938489d8e65fc7d42c1663219c315c0114b9f59372c538927f2a76322abe",
+            "type": "VEC3"
+          },
+          "semantics": [
+            "POSITION",
+            "NORMAL"
+          ],
+          "triangles": 24213
+        },
+        "instanceAccessors": {
+          "ROTATION": {
+            "componentType": 5122,
+            "count": 78,
+            "normalized": true,
+            "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+            "type": "VEC4"
+          },
+          "SCALE": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+            "type": "VEC3"
+          },
+          "TRANSLATION": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+            "type": "VEC3"
+          }
+        },
+        "localRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "material": {
+          "alphaMode": "OPAQUE",
+          "baseColorFactor": [
+            0.137254909,
+            0.137254909,
+            0.137254909,
+            1
+          ],
+          "doubleSided": false,
+          "emissiveFactor": [
+            0,
+            0,
+            0
+          ],
+          "metallicFactor": 0,
+          "name": "vray Stuhl_Plastik",
+          "roughnessFactor": 0.800000012
+        },
+        "nodeName": "",
+        "sceneRoot": true,
+        "slot": 0,
+        "worldRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "activeScenePath": "scene/0/258",
+        "animationChannelCount": 0,
+        "geometry": {
+          "indices": {
+            "componentType": 5123,
+            "count": 21306,
+            "normalized": false,
+            "sha256": "7fd18880c12c1031cb9dfb1a417c887e6e519199fcebd4f9a536a308545c36ed",
+            "type": "SCALAR"
+          },
+          "normal": {
+            "componentType": 5122,
+            "count": 7707,
+            "normalized": true,
+            "sha256": "f5006f41dcc700fa0820386be03af3de8c3bfe40e371f57620176b396ac37709",
+            "type": "VEC3"
+          },
+          "position": {
+            "componentType": 5126,
+            "count": 7707,
+            "normalized": false,
+            "sha256": "af04e842fd7b2873ee53d116f8d08ccec4b86d10f3096c744a59303a7fdeb9cf",
+            "type": "VEC3"
+          },
+          "semantics": [
+            "POSITION",
+            "NORMAL"
+          ],
+          "triangles": 7102
+        },
+        "instanceAccessors": {
+          "ROTATION": {
+            "componentType": 5122,
+            "count": 78,
+            "normalized": true,
+            "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+            "type": "VEC4"
+          },
+          "SCALE": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+            "type": "VEC3"
+          },
+          "TRANSLATION": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+            "type": "VEC3"
+          }
+        },
+        "localRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "material": {
+          "alphaMode": "OPAQUE",
+          "baseColorFactor": [
+            0.505882382,
+            0.505882382,
+            0.505882382,
+            1
+          ],
+          "doubleSided": false,
+          "emissiveFactor": [
+            0,
+            0,
+            0
+          ],
+          "metallicFactor": 0,
+          "name": "vray Stuhl_Plakete",
+          "roughnessFactor": 0.899999976
+        },
+        "nodeName": "",
+        "sceneRoot": true,
+        "slot": 1,
+        "worldRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "activeScenePath": "scene/0/259",
+        "animationChannelCount": 0,
+        "geometry": {
+          "indices": {
+            "componentType": 5123,
+            "count": 42123,
+            "normalized": false,
+            "sha256": "d70950f34732e4c37906dec273cf7a06e6b3ecf8aca52cdaeb785e426f8b23bd",
+            "type": "SCALAR"
+          },
+          "normal": {
+            "componentType": 5122,
+            "count": 15361,
+            "normalized": true,
+            "sha256": "df83db38249c30ceb38493bf1a028dfa64acd5dbf4dfd5a929001550eb4289de",
+            "type": "VEC3"
+          },
+          "position": {
+            "componentType": 5126,
+            "count": 15361,
+            "normalized": false,
+            "sha256": "b149490c1e754b99e769fb0da7944371f4a136ca42ad2fc4d9bc01fed3661cb3",
+            "type": "VEC3"
+          },
+          "semantics": [
+            "POSITION",
+            "NORMAL"
+          ],
+          "triangles": 14041
+        },
+        "instanceAccessors": {
+          "ROTATION": {
+            "componentType": 5122,
+            "count": 78,
+            "normalized": true,
+            "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+            "type": "VEC4"
+          },
+          "SCALE": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+            "type": "VEC3"
+          },
+          "TRANSLATION": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+            "type": "VEC3"
+          }
+        },
+        "localRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "material": {
+          "alphaMode": "OPAQUE",
+          "baseColorFactor": [
+            0.615686297,
+            0.615686297,
+            0.615686297,
+            1
+          ],
+          "doubleSided": false,
+          "emissiveFactor": [
+            0,
+            0,
+            0
+          ],
+          "metallicFactor": 0,
+          "name": "vray Stuhl_Metall",
+          "roughnessFactor": 0.689999998
+        },
+        "nodeName": "",
+        "sceneRoot": true,
+        "slot": 2,
+        "worldRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      },
+      {
+        "activeScenePath": "scene/0/260",
+        "animationChannelCount": 0,
+        "geometry": {
+          "indices": {
+            "componentType": 5123,
+            "count": 47739,
+            "normalized": false,
+            "sha256": "c89597153d29cfc8ff57ee42b5f5c3122cb1ad37cc86db2ed63adebddd0fa557",
+            "type": "SCALAR"
+          },
+          "normal": {
+            "componentType": 5122,
+            "count": 13055,
+            "normalized": true,
+            "sha256": "abb4b4e9b6acb14300981458b4d324720ea72333ceba8a788383b0e5674acfe9",
+            "type": "VEC3"
+          },
+          "position": {
+            "componentType": 5126,
+            "count": 13055,
+            "normalized": false,
+            "sha256": "a850c9ac4bc8bc43f1167588ceb9507824ba8eb57fee404601572ed60c0a32d4",
+            "type": "VEC3"
+          },
+          "semantics": [
+            "POSITION",
+            "NORMAL"
+          ],
+          "triangles": 15913
+        },
+        "instanceAccessors": {
+          "ROTATION": {
+            "componentType": 5122,
+            "count": 78,
+            "normalized": true,
+            "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286",
+            "type": "VEC4"
+          },
+          "SCALE": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5",
+            "type": "VEC3"
+          },
+          "TRANSLATION": {
+            "componentType": 5126,
+            "count": 78,
+            "normalized": false,
+            "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638",
+            "type": "VEC3"
+          }
+        },
+        "localRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "material": {
+          "alphaMode": "OPAQUE",
+          "baseColorFactor": [
+            0.403921574,
+            0.403921574,
+            0.403921574,
+            1
+          ],
+          "doubleSided": false,
+          "emissiveFactor": [
+            0,
+            0,
+            0
+          ],
+          "metallicFactor": 0,
+          "name": "vray Stuhl_Bezug",
+          "roughnessFactor": 0.649999976
+        },
+        "nodeName": "",
+        "sceneRoot": true,
+        "slot": 3,
+        "worldRestMatrix": [
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          0,
+          1
+        ]
+      }
+    ],
+    "productionModel": {
+      "bytes": 96803896,
+      "relativePath": "../public/models/icm-anim-2025/model-web.glb",
+      "sha256": "4786da86836ca2438196f2f4e216ec6188a21d8922612070e1c296d5c461596e"
+    },
+    "productionTransformSetSha256": "fe7adf799ecbfedbf84bcfcaa0557713728a36507573f846b52476891b66d36b"
+  },
+  "modelId": "icm-anim-2025",
+  "platform": "web",
+  "schema": "IOM_REPEAT_SIX_PART_CURRENT_TARGET_REBASE_CERTIFICATE_V1",
+  "status": "machine-verified-current-target-development-evaluation-only",
+  "version": 1
+}

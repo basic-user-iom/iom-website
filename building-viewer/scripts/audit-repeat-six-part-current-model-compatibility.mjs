@@ -13,14 +13,15 @@ import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Matrix4, Quaternion, Vector3 } from 'three'
 import { createGltfIO } from './lib/gltf-io.mjs'
 
 const HERE = resolve(import.meta.dirname)
 const PROJECT_ROOT = resolve(HERE, '..')
-const MODEL_PATH = resolve(PROJECT_ROOT, '../public/models/icm-anim-2025/model-web.glb')
+const DEFAULT_MODEL_PATH = resolve(PROJECT_ROOT, '../public/models/icm-anim-2025/model-web.glb')
 const CERTIFICATE_PATH = resolve(HERE, 'fixtures/icm-anim-2025-ground-floor-repeat-logical-mapping-v1.json')
-const REPORT_PATH = resolve(PROJECT_ROOT, 'tmp/repeat-six-part-current-model-compatibility/report.json')
+const DEFAULT_REPORT_PATH = resolve(PROJECT_ROOT, 'tmp/repeat-six-part-current-model-compatibility/report.json')
 
 const RELATIVE_MODEL_PATH = '../public/models/icm-anim-2025/model-web.glb'
 const RELATIVE_CERTIFICATE_PATH = 'scripts/fixtures/icm-anim-2025-ground-floor-repeat-logical-mapping-v1.json'
@@ -548,9 +549,16 @@ function comparePins(certificate, currentModel, roots, owner, logical) {
   return { comparisons, stalePins: stale, rebaseRequired: stale.length > 0 }
 }
 
-async function buildReport() {
-  const [modelBytes, certificateBytes] = await Promise.all([readFile(MODEL_PATH), readFile(CERTIFICATE_PATH)])
-  const currentModel = { relativePath: RELATIVE_MODEL_PATH, bytes: modelBytes.length, sha256: sha256(modelBytes) }
+export async function buildRepeatSixPartCurrentModelCompatibilityReport({
+  modelPath,
+  modelRelativePath = RELATIVE_MODEL_PATH,
+} = {}) {
+  assert.equal(typeof modelPath, 'string', 'modelPath must be an explicit filesystem path')
+  assert.ok(modelPath.length > 0, 'modelPath must not be empty')
+  assert.equal(typeof modelRelativePath, 'string', 'modelRelativePath must be a string')
+  assert.ok(modelRelativePath.length > 0, 'modelRelativePath must not be empty')
+  const [modelBytes, certificateBytes] = await Promise.all([readFile(resolve(modelPath)), readFile(CERTIFICATE_PATH)])
+  const currentModel = { relativePath: modelRelativePath, bytes: modelBytes.length, sha256: sha256(modelBytes) }
   const certificateInput = { relativePath: RELATIVE_CERTIFICATE_PATH, bytes: certificateBytes.length, sha256: sha256(certificateBytes) }
   const { certificate, referenceTranslations } = validateCertificate(certificateBytes)
   const io = await createGltfIO()
@@ -627,6 +635,7 @@ async function buildReport() {
     activeSceneIndex,
     discovery: {
       method: 'active-scene exhaustive match by exact material name, triangle count, primitive semantics, decoded POSITION/NORMAL/index fingerprints, and exact 78-row EXT_mesh_gpu_instancing accessor fingerprints; scene ordinals are not inputs',
+      activeSceneRootCount: root.listScenes()[activeSceneIndex].listChildren().length,
       expectedRootCount: ROOT_SIGNATURES.length,
       discoveredRootCount: roots.length,
       transformCompositionOrder: 'root world-rest matrix * EXT_mesh_gpu_instancing(TRS)',
@@ -648,20 +657,27 @@ async function buildReport() {
   }
 }
 
-async function writeReport(report) {
-  await mkdir(dirname(REPORT_PATH), { recursive: true })
-  await writeFile(REPORT_PATH, `${JSON.stringify(stableValue(report), null, 2)}\n`)
+async function writeReport(report, reportPath = DEFAULT_REPORT_PATH) {
+  await mkdir(dirname(reportPath), { recursive: true })
+  await writeFile(reportPath, `${JSON.stringify(stableValue(report), null, 2)}\n`)
 }
 
 async function main() {
+  const inputIndex = process.argv.indexOf('--input')
+  const reportIndex = process.argv.indexOf('--report')
+  const modelPath = inputIndex >= 0 ? resolve(process.argv[inputIndex + 1] ?? '') : DEFAULT_MODEL_PATH
+  const reportPath = reportIndex >= 0 ? resolve(process.argv[reportIndex + 1] ?? '') : DEFAULT_REPORT_PATH
   try {
-    const report = await buildReport()
-    await writeReport(report)
+    const report = await buildRepeatSixPartCurrentModelCompatibilityReport({
+      modelPath,
+      modelRelativePath: RELATIVE_MODEL_PATH,
+    })
+    await writeReport(report, reportPath)
     console.log(`Repeat six-part current-model compatibility audit: PASS (${report.rebaseRequired ? 'rebase required' : 'pins current'})`)
     console.log(`Physical compatibility: ${report.physicalCompatibilityProven ? 'proven' : 'not proven'}`)
     console.log(`Logical compatibility: ${report.logicalCompatibilityProven ? 'proven' : 'not proven'}`)
     console.log('Integration allowed: false')
-    console.log(`Report: ${RELATIVE_REPORT_PATH}`)
+    console.log(`Report: ${reportPath === DEFAULT_REPORT_PATH ? RELATIVE_REPORT_PATH : reportPath}`)
   } catch (error) {
     const failure = {
       schema: SCHEMA,
@@ -682,7 +698,7 @@ async function main() {
       },
     }
     try {
-      await writeReport(failure)
+      await writeReport(failure, reportPath)
     } catch (writeError) {
       console.error(`Could not write failure report: ${writeError instanceof Error ? writeError.message : String(writeError)}`)
     }
@@ -691,4 +707,5 @@ async function main() {
   }
 }
 
-await main()
+const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))
+if (IS_MAIN) await main()
