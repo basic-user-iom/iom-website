@@ -19,7 +19,9 @@ import argparse
 import hashlib
 import json
 import math
+import os
 import sys
+import tempfile
 import traceback
 from pathlib import Path
 
@@ -75,6 +77,22 @@ EXPECTED_ANIMATED_OBJECTS = {
     "Ceiling._anim1",
 }
 EXPECTED_ANIMATION_DURATION_SECONDS = 2.708333
+EXPECTED_TARGET_COUNT = 30
+EXPECTED_ACCEPTED_COUNT = 28
+EXPECTED_REJECTED_COUNT = 2
+EXPECTED_SOURCE_INVENTORY = {
+    "objects": 8140,
+    "meshObjects": 7889,
+    "meshes": 4274,
+    "materials": 424,
+    "images": 153,
+    "triangles": 13638673,
+    "actions": ["Animation"],
+}
+# glTF may split a logical vertex at an attribute or material seam. Rejoin only
+# byte-equivalent/round-off-equivalent positions for the exported logical-mesh
+# audit; never reuse the much larger repair tolerance here.
+EXPORT_LOGICAL_WELD_DISTANCE = 1e-7
 SIGNATURE_KEYS = (
     "objects",
     "meshObjects",
@@ -112,8 +130,16 @@ def parse_args():
     return parser.parse_args(argv)
 
 
+def require_operator_finished(label: str, result):
+    if "FINISHED" not in set(result or ()):
+        raise RuntimeError(f"Blender operator {label} did not finish: {result!r}")
+
+
 def reset_scene():
-    bpy.ops.wm.read_factory_settings(use_empty=True)
+    require_operator_finished(
+        "read_factory_settings",
+        bpy.ops.wm.read_factory_settings(use_empty=True),
+    )
     try:
         bpy.context.preferences.edit.undo_steps = 0
     except Exception:
@@ -125,6 +151,13 @@ def reset_scene():
 
 def mesh_objects():
     return [obj for obj in bpy.context.scene.objects if obj.type == "MESH"]
+
+
+def import_glb(path: Path):
+    require_operator_finished(
+        f"import_scene.gltf({path})",
+        bpy.ops.import_scene.gltf(filepath=str(path)),
+    )
 
 
 def count_triangles(mesh) -> int:
@@ -264,6 +297,44 @@ def sha256_rows(rows) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def action_fcurves(action) -> list:
+    """Return legacy and layered-action FCurves without creating channel bags."""
+    curves = []
+    seen = set()
+
+    def append_curve(curve):
+        pointer = curve.as_pointer()
+        if pointer not in seen:
+            seen.add(pointer)
+            curves.append(curve)
+
+    for curve in list(getattr(action, "fcurves", []) or []):
+        append_curve(curve)
+
+    slots = list(getattr(action, "slots", []) or [])
+    for layer in list(getattr(action, "layers", []) or []):
+        for strip in list(getattr(layer, "strips", []) or []):
+            channelbags = getattr(strip, "channelbags", None)
+            if channelbags is not None:
+                for channelbag in list(channelbags or []):
+                    for curve in list(getattr(channelbag, "fcurves", []) or []):
+                        append_curve(curve)
+                continue
+            channelbag_for_slot = getattr(strip, "channelbag", None)
+            if not callable(channelbag_for_slot):
+                continue
+            for slot in slots:
+                try:
+                    channelbag = channelbag_for_slot(slot, ensure=False)
+                except TypeError:
+                    channelbag = channelbag_for_slot(slot)
+                if channelbag is None:
+                    continue
+                for curve in list(getattr(channelbag, "fcurves", []) or []):
+                    append_curve(curve)
+    return curves
+
+
 def animation_details() -> list:
     fps = bpy.context.scene.render.fps / max(
         1e-9, bpy.context.scene.render.fps_base
@@ -271,7 +342,7 @@ def animation_details() -> list:
     details = []
     for action in bpy.data.actions:
         start, end = action.frame_range
-        curves = list(getattr(action, "fcurves", []) or [])
+        curves = action_fcurves(action)
         non_constant = 0
         for curve in curves:
             values = [point.co[1] for point in curve.keyframe_points]
@@ -355,12 +426,28 @@ def compare_signatures(label: str, expected: dict, actual: dict) -> list:
     return failures
 
 
+def validate_source_inventory(signature: dict) -> list:
+    failures = []
+    for key, expected in EXPECTED_SOURCE_INVENTORY.items():
+        actual = signature.get(key)
+        if actual != expected:
+            failures.append(
+                f"Source baseline mismatch for {key}: {actual!r} != {expected!r}"
+            )
+    return failures
+
+
 def validate_expected_animation(label: str, signature: dict) -> list:
     failures = []
-    owners = {row["object"] for row in signature["animatedObjects"]}
-    if owners != EXPECTED_ANIMATED_OBJECTS:
+    owner_actions = {
+        row["object"]: row["action"] for row in signature["animatedObjects"]
+    }
+    expected_owner_actions = {
+        owner: "Animation" for owner in EXPECTED_ANIMATED_OBJECTS
+    }
+    if owner_actions != expected_owner_actions:
         failures.append(
-            f"{label} animated owners mismatch: {sorted(owners)}"
+            f"{label} animated owner/action mapping mismatch: {owner_actions!r}"
         )
     details = [
         row for row in signature["animationDetails"] if row["name"] == "Animation"
@@ -377,6 +464,11 @@ def validate_expected_animation(label: str, signature: dict) -> list:
         failures.append(
             f"{label} Animation duration is {details[0]['durationSeconds']} seconds"
         )
+    elif details[0]["curves"] <= 0 or details[0]["nonConstantCurves"] <= 0:
+        failures.append(
+            f"{label} Animation has no preserved non-constant FCurve channels: "
+            f"{details[0]!r}"
+        )
     return failures
 
 
@@ -388,30 +480,50 @@ def clear_certificate(obj):
 
 def exact_certificate(obj) -> bool:
     return bool(
-        obj.get(CERTIFIED_FLAG) is True
+        obj is not None
+        and obj.get(CERTIFIED_FLAG) is True
         and obj.get(CERTIFIED_VERSION_KEY) == CERTIFIED_VERSION
     )
 
 
 def has_any_certificate(obj) -> bool:
-    return CERTIFIED_FLAG in obj or CERTIFIED_VERSION_KEY in obj
+    return bool(
+        obj is not None
+        and (CERTIFIED_FLAG in obj or CERTIFIED_VERSION_KEY in obj)
+    )
 
 
 def export_glb(path: Path):
     path.parent.mkdir(parents=True, exist_ok=True)
-    bpy.ops.export_scene.gltf(
-        filepath=str(path),
-        export_format="GLB",
-        export_texcoords=True,
-        export_normals=True,
-        export_tangents=True,
-        export_materials="EXPORT",
-        export_animations=True,
-        export_cameras=False,
-        export_lights=False,
-        export_extras=True,
-        export_apply=False,
+    require_operator_finished(
+        f"export_scene.gltf({path})",
+        bpy.ops.export_scene.gltf(
+            filepath=str(path),
+            export_format="GLB",
+            export_texcoords=True,
+            export_normals=True,
+            export_tangents=True,
+            export_materials="EXPORT",
+            export_animations=True,
+            export_cameras=False,
+            export_lights=False,
+            export_extras=True,
+            export_apply=False,
+        ),
     )
+
+
+def make_staged_output_path(output: Path) -> Path:
+    output.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, name = tempfile.mkstemp(
+        prefix=f".{output.stem}-validation-",
+        suffix=".glb",
+        dir=str(output.parent),
+    )
+    os.close(descriptor)
+    staged = Path(name)
+    staged.unlink()
+    return staged
 
 
 def write_report(path: Path, report: dict):
@@ -424,6 +536,8 @@ def main():
     source = Path(args.input).resolve()
     output = Path(args.output).resolve()
     report_path = Path(args.report).resolve()
+    staged_output = None
+    output_published = False
     report = {
         "schema": "iom-blender-architectural-surface-repair-v2",
         "ok": False,
@@ -437,26 +551,54 @@ def main():
             raise RuntimeError(f"Missing input: {source}")
         if source == output:
             raise RuntimeError("Input and output must differ")
+        if report_path in (source, output):
+            raise RuntimeError("Report, input, and output paths must all differ")
+        report["outputExistedBeforeRun"] = output.exists()
         specs_by_name = {spec["name"]: spec for spec in TARGET_SPECS}
         if len(specs_by_name) != len(TARGET_SPECS):
             raise RuntimeError("Duplicate exact object name in TARGET_SPECS")
+        if len(TARGET_SPECS) != EXPECTED_TARGET_COUNT:
+            raise RuntimeError(
+                f"TARGET_SPECS contains {len(TARGET_SPECS)} entries; "
+                f"expected {EXPECTED_TARGET_COUNT}"
+            )
+        configured_accepted = sum(
+            1 for spec in TARGET_SPECS if spec["accepted"]
+        )
+        configured_rejected = len(TARGET_SPECS) - configured_accepted
+        if (
+            configured_accepted != EXPECTED_ACCEPTED_COUNT
+            or configured_rejected != EXPECTED_REJECTED_COUNT
+        ):
+            raise RuntimeError(
+                "TARGET_SPECS disposition count mismatch: "
+                f"accepted={configured_accepted}, rejected={configured_rejected}"
+            )
         if args.target:
-            unknown = sorted(set(args.target) - set(specs_by_name))
+            requested = set(args.target)
+            unknown = sorted(requested - set(specs_by_name))
             if unknown:
                 raise RuntimeError(
                     f"Unknown exact audited target(s): {', '.join(unknown)}"
                 )
-            specs = [specs_by_name[name] for name in args.target]
-        else:
-            specs = list(TARGET_SPECS)
+            if len(requested) != len(args.target):
+                raise RuntimeError("Duplicate --target values are not allowed")
+            missing = sorted(set(specs_by_name) - requested)
+            if missing:
+                raise RuntimeError(
+                    "Partial --target runs cannot produce a certified output; "
+                    "missing exact targets: " + ", ".join(missing)
+                )
+        specs = list(TARGET_SPECS)
         target_names = {spec["name"] for spec in specs}
         report["targets"] = specs
 
         reset_scene()
         print(f"[iom-surface-repair] import {source}", flush=True)
-        bpy.ops.import_scene.gltf(filepath=str(source))
+        import_glb(source)
         before_signature = scene_signature()
         report["before"] = before_signature
+        report["failures"].extend(validate_source_inventory(before_signature))
         report["failures"].extend(
             validate_expected_animation("source", before_signature)
         )
@@ -484,8 +626,17 @@ def main():
         matched = [matches_by_name[spec["name"]][0] for spec in specs]
         fingerprints = []
         for spec, obj in zip(specs, matched):
+            if obj.type != "MESH" or getattr(obj, "data", None) is None:
+                fingerprints.append(
+                    {"name": obj.name, "type": obj.type, "vertices": None, "triangles": None}
+                )
+                report["failures"].append(
+                    f"Exact target {obj.name!r} is {obj.type}, expected MESH"
+                )
+                continue
             actual = {
                 "name": obj.name,
+                "type": obj.type,
                 "vertices": len(obj.data.vertices),
                 "triangles": count_triangles(obj.data),
             }
@@ -513,8 +664,21 @@ def main():
                 + ", ".join(stale_non_targets)
             )
             raise RuntimeError("Unexpected non-target certificates")
+        stale_target_certificates = sorted(
+            obj.name for obj in matched if has_any_certificate(obj)
+        )
         for obj in matched:
             clear_certificate(obj)
+        uncleared_target_certificates = sorted(
+            obj.name for obj in matched if has_any_certificate(obj)
+        )
+        report["staleTargetCertificatesRemoved"] = stale_target_certificates
+        if uncleared_target_certificates:
+            report["failures"].append(
+                "Could not clear stale target certificate(s): "
+                + ", ".join(uncleared_target_certificates)
+            )
+            raise RuntimeError("Stale target certificate removal failed")
 
         users_by_mesh = {}
         for obj in mesh_objects():
@@ -533,7 +697,6 @@ def main():
         accepted_objects = []
         rejected_objects = []
         processed_meshes = set()
-        merge_distance_by_owner = {}
         for obj in matched:
             mesh = obj.data
             if mesh in processed_meshes:
@@ -551,8 +714,6 @@ def main():
             )
             result = repair_mesh(mesh, merge_distance)
             result.update({"mesh": mesh.name, "objects": owners, "diagonal": diagonal})
-            for owner_name in owners:
-                merge_distance_by_owner[owner_name] = merge_distance
             if result["accepted"]:
                 for owner_name in owners:
                     owner = bpy.data.objects.get(owner_name)
@@ -585,6 +746,13 @@ def main():
         expected_rejected = sorted(
             spec["name"] for spec in specs if not spec["accepted"]
         )
+        if (
+            len(expected_accepted) != EXPECTED_ACCEPTED_COUNT
+            or len(expected_rejected) != EXPECTED_REJECTED_COUNT
+        ):
+            report["failures"].append(
+                "Expected repair disposition inventory changed unexpectedly"
+            )
         if sorted(accepted_objects) != expected_accepted:
             report["failures"].append(
                 f"Accepted object inventory mismatch: {sorted(accepted_objects)} "
@@ -612,9 +780,29 @@ def main():
                 f"Invalid pre-export certificates: {invalid_certificate_objects}"
             )
         for name in expected_rejected:
-            if has_any_certificate(bpy.data.objects.get(name)):
+            restored = bpy.data.objects.get(name)
+            if has_any_certificate(restored):
                 report["failures"].append(
                     f"Rejected target {name} retained a certificate"
+                )
+            spec = specs_by_name[name]
+            if restored is None or restored.type != "MESH":
+                report["failures"].append(
+                    f"Rejected target {name} was not restored as one mesh object"
+                )
+                continue
+            restored_fingerprint = {
+                "vertices": len(restored.data.vertices),
+                "triangles": count_triangles(restored.data),
+            }
+            expected_fingerprint = {
+                "vertices": spec["vertices"],
+                "triangles": spec["triangles"],
+            }
+            if restored_fingerprint != expected_fingerprint:
+                report["failures"].append(
+                    f"Rejected target {name} was not restored unchanged: "
+                    f"{restored_fingerprint} != {expected_fingerprint}"
                 )
 
         after_signature = scene_signature()
@@ -638,16 +826,20 @@ def main():
         if report["failures"]:
             raise RuntimeError("Post-repair fail-closed gate failed")
 
-        print(f"[iom-surface-repair] export {output}", flush=True)
-        export_glb(output)
-        if not output.exists() or output.stat().st_size <= 0:
+        staged_output = make_staged_output_path(output)
+        print(
+            f"[iom-surface-repair] validation export {staged_output}",
+            flush=True,
+        )
+        export_glb(staged_output)
+        if not staged_output.exists() or staged_output.stat().st_size <= 0:
             report["failures"].append("GLB export did not produce a non-empty file")
             raise RuntimeError("GLB export failed")
-        report["outputBytes"] = output.stat().st_size
+        report["outputBytes"] = staged_output.stat().st_size
 
         reset_scene()
-        print(f"[iom-surface-repair] re-import {output}", flush=True)
-        bpy.ops.import_scene.gltf(filepath=str(output))
+        print(f"[iom-surface-repair] re-import {staged_output}", flush=True)
+        import_glb(staged_output)
         exported_signature = scene_signature()
         report["exported"] = exported_signature
         report["failures"].extend(
@@ -665,6 +857,10 @@ def main():
             if len(objects) != 1:
                 report["failures"].append(
                     f"Exported exact target {name!r} matched {len(objects)} objects"
+                )
+            elif objects[0].type != "MESH":
+                report["failures"].append(
+                    f"Exported exact target {name!r} is {objects[0].type}, expected MESH"
                 )
         exported_certificates = sorted(
             obj.name for obj in bpy.context.scene.objects if exact_certificate(obj)
@@ -691,15 +887,24 @@ def main():
         exported_audits = []
         for name in expected_accepted:
             objects = exported_matches.get(name, [])
-            if len(objects) != 1:
+            if len(objects) != 1 or objects[0].type != "MESH":
                 continue
-            topology = audit_mesh(
-                objects[0].data, merge_distance_by_owner[name]
+            raw_topology = audit_mesh(objects[0].data)
+            logical_topology = audit_mesh(
+                objects[0].data, EXPORT_LOGICAL_WELD_DISTANCE
             )
-            exported_audits.append({"object": name, "topology": topology})
-            if not topology_clean(topology):
+            exported_audits.append(
+                {
+                    "object": name,
+                    "rawTopology": raw_topology,
+                    "logicalTopology": logical_topology,
+                    "logicalWeldDistance": EXPORT_LOGICAL_WELD_DISTANCE,
+                }
+            )
+            if not topology_clean(logical_topology):
                 report["failures"].append(
-                    f"Exported repaired topology failed for {name}: {topology}"
+                    f"Exported repaired logical topology failed for {name}: "
+                    f"{logical_topology} (raw={raw_topology})"
                 )
         for name in expected_rejected:
             objects = exported_matches.get(name, [])
@@ -717,13 +922,24 @@ def main():
             "meshValidateReaudited": True,
             "exportReimportAudited": True,
             "rejectedRepairsRestored": True,
+            "outputPublishedOnlyAfterValidation": True,
         }
-        report["ok"] = not report["failures"]
-        write_report(report_path, report)
-        if not report["ok"]:
+        if report["failures"]:
+            report["ok"] = False
+            write_report(report_path, report)
             raise RuntimeError(
                 f"Fail-closed validation reported {len(report['failures'])} failure(s)"
             )
+        # Only the byte-for-byte file that passed the re-import topology,
+        # inventory, animation, hierarchy, and certificate gates may replace
+        # the requested output. A failed run leaves any prior known-good output
+        # untouched and removes its private validation export in the handler.
+        os.replace(staged_output, output)
+        staged_output = None
+        output_published = True
+        report["outputPublished"] = True
+        report["ok"] = True
+        write_report(report_path, report)
         print(
             json.dumps(
                 {
@@ -739,11 +955,20 @@ def main():
         )
         print(f"[iom-surface-repair] report {report_path}", flush=True)
     except Exception as error:
+        if staged_output is not None and staged_output.exists():
+            try:
+                staged_output.unlink()
+            except OSError as cleanup_error:
+                report["failures"].append(
+                    f"Could not remove failed validation export {staged_output}: "
+                    f"{cleanup_error}"
+                )
         if (
             str(error) not in report["failures"]
             and not str(error).startswith("Fail-closed validation reported")
         ):
             report["failures"].append(str(error))
+        report["outputPublished"] = output_published
         report["ok"] = False
         write_report(report_path, report)
         raise

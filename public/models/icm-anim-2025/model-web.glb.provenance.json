@@ -38,8 +38,8 @@
     "-ac"
   ],
   "source": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\web-batched-ac.glb",
-    "sha256": "0b3e7236d34a4a9e9bec6b7be62543a4a23743655ffdce9ea38c6f04336bf03c"
+    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\web-batched-v3.glb",
+    "sha256": "83941ac4ee47007d318fad8e1cb9aecbda5cbc750248600f1fcbfad4526e35c6"
   },
   "sourcePreparation": {
     "normalizedEmptyScenes": 0,
@@ -59,12 +59,554 @@
     },
     "materialSidedness": {
       "madeSingleSided": 0,
-      "retainedDoubleSided": 87,
+      "retainedDoubleSided": 91,
       "promotedSingleSided": 2,
       "splitMaterials": 1,
-      "topologyScanned": 238,
+      "topologyScanned": 213,
       "openSurfacePrimitives": 3
     },
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "black_bhne",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "boden_eg_technik_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "brushed_metal_07",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "ChairFabric",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green_002",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_red",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Gitter_2",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grey_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": "fire-safety-glass",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "lift_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau2",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.cloth_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.cloth.transparent",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_blue_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Glass_dark_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_GREEN_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_milk_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart.out",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_chrome",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_grey",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal.alum.r",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal.dark-grey.r",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.neutral_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.black.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.white.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_Wand_Holz",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_wellblech",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Material 2097710551",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "neutral_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Rang_Dunkel",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Table_Glass",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Treppen all.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Display_Screen_logo",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_003",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_down",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass - Clear.002",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass_Milk_001",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Lamp_Light",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light ",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Rolltreppe_Sign_Gruen",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Rolltreppe_Sign_Red",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Back",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Raster_Wood_002.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Raster_Wood_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_decke",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Holz",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_022.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 2
+      },
+      {
+        "name": "vray Wand_Metall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Weiss_004",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Weiss.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray_fassade_2.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_002",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_007",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_008",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_014",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_rillen_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_rillen",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_Holz_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_logo",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wand_saal_1_rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_004",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_innen_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "WandLeisten",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_DACH",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "White Walls_Vray",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      }
+    ],
     "surfaceRepairCertificates": {
       "certificateCount": 28,
       "certifiedMeshCount": 20,
@@ -113,6 +655,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -131,6 +678,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -149,6 +701,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -170,6 +727,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -188,6 +750,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -206,6 +773,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -229,6 +801,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -247,6 +824,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -265,6 +847,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -283,6 +870,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -301,6 +893,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -319,6 +916,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -337,6 +939,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -355,6 +962,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -373,6 +985,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -391,6 +1008,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -409,6 +1031,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -427,6 +1054,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -445,6 +1077,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -463,6 +1100,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -529,14 +1171,14 @@
     "animationDurationSeconds": 2.7083334922790527
   },
   "output": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-web-v2.glb",
-    "sha256": "485e9b2c6d5e25483aa27a7cd4658dc1cbf499b47ae38ee5fe0947debbbdc6c3",
-    "bytes": 96716240,
+    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-web-v3.glb",
+    "sha256": "4786da86836ca2438196f2f4e216ec6188a21d8922612070e1c296d5c461596e",
+    "bytes": 96803896,
     "expandedWorkload": {
-      "triangles": 13585623,
-      "primitiveDraws": 3768,
-      "meshNodes": 2472,
-      "logicalInstances": 5133
+      "triangles": 13585632,
+      "primitiveDraws": 3755,
+      "meshNodes": 2463,
+      "logicalInstances": 5125
     },
     "semanticNames": {
       "fire-safety": [
@@ -573,6 +1215,548 @@
       {
         "name": "IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
         "role": "fire-safety-opaque"
+      }
+    ],
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "black_bhne",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "boden_eg_technik_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "brushed_metal_07",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "ChairFabric",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green_002",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_green",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "curtain_red",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Gitter_2",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grey_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": "fire-safety-glass",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "reason": "visibility-critical",
+        "role": "fire-safety-opaque",
+        "occurrences": 1
+      },
+      {
+        "name": "lift_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau2",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.cloth_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.cloth.transparent",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_blue_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Glass_dark_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_GREEN_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_milk_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart.out",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_chrome",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_grey",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal.alum.r",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal.dark-grey.r",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.neutral_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.black.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.white.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_Wand_Holz",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_wellblech",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Material 2097710551",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "neutral_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Rang_Dunkel",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Table_Glass",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Treppen all.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Display_Screen_logo",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_003",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign_down",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Exit_Sign",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass - Clear.002",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass_Milk_001",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Lamp_Light",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light ",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Rolltreppe_Sign_Gruen",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Rolltreppe_Sign_Red",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Back",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Raster_Wood_002.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wall_Raster_Wood_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_decke",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Holz",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_022.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 2
+      },
+      {
+        "name": "vray Wand_Metall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Weiss_004",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Weiss.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray_fassade_2.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_002",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_007",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_008",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_014",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_rillen_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_rillen",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_Holz_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_logo",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wand_saal_1_rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_004",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_innen_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "WandLeisten",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_DACH",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "White Walls_Vray",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
       }
     ],
     "surfaceRepairCertificates": {
@@ -623,6 +1807,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -641,6 +1830,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -659,6 +1853,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -680,6 +1879,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -698,6 +1902,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -716,6 +1925,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -739,6 +1953,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -757,6 +1976,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -775,6 +1999,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -793,6 +2022,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -811,6 +2045,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -829,6 +2068,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -847,6 +2091,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -865,6 +2114,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -883,6 +2137,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -901,6 +2160,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -919,6 +2183,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -937,6 +2206,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -955,6 +2229,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -973,6 +2252,11 @@
             "nonManifoldEdges": 0,
             "windingConflictEdges": 0,
             "looseEdges": 0,
+            "looseVertices": 0,
+            "degenerateTriangles": 0,
+            "invalidIndexReferences": 0,
+            "malformedPrimitives": 0,
+            "invalidPositionValues": 0,
             "unsupportedPrimitives": 0,
             "clean": true
           }
@@ -997,28 +2281,28 @@
   "nativeReport": {
     "generator": "gltfpack 1.2",
     "scene": {
-      "nodeCount": 3099,
-      "meshCount": 1680,
-      "materialCount": 460,
+      "nodeCount": 3095,
+      "meshCount": 1673,
+      "materialCount": 461,
       "textureCount": 140,
       "animationCount": 1
     },
     "render": {
-      "drawCount": 3768,
-      "instanceCount": 6429,
-      "triangleCount": 13585623
+      "drawCount": 3755,
+      "instanceCount": 6417,
+      "triangleCount": 13585632
     },
     "data": {
-      "json": 2275379,
-      "binary": 94440712,
+      "json": 2268514,
+      "binary": 94535232,
       "buffers": {
-        "vertex": 49329039,
-        "index": 6354048,
+        "vertex": 49428370,
+        "index": 6349243,
         "animation": 1001,
-        "transform": 25331,
+        "transform": 25320,
         "image": 38731085
       }
     }
   },
-  "createdAt": "2026-08-31T10:20:12.001Z"
+  "createdAt": "2026-09-04T20:02:39.169Z"
 }

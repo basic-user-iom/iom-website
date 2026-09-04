@@ -12,8 +12,13 @@ import { listTextureInfo, listTextureInfoByMaterial } from '@gltf-transform/func
 import { createGltfIO } from './lib/gltf-io.mjs'
 import {
   auditSurfaceRepairCertificates,
+  surfaceRepairCertificateExpectation,
   surfaceRepairAuditSummary,
 } from './lib/surface-repair-certificate.mjs'
+import {
+  assertDoubleSidedMaterialInventory,
+  doubleSidedMaterialInventory,
+} from './lib/optimizer-material-safety.mjs'
 
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url))
 const VIEWER_ROOT = join(SCRIPT_DIR, '..')
@@ -543,7 +548,7 @@ function primitiveSurfaceTopology(primitive) {
   }
 }
 
-function normalizeCadMaterialSidedness(document, certifiedMeshes = new Set()) {
+export function normalizeCadMaterialSidedness(document, certifiedMeshes = new Set()) {
   const root = document.getRoot()
   const owners = new Map()
   for (const node of root.listNodes()) {
@@ -879,12 +884,16 @@ async function main() {
   const sourceSurfaceRepairAudit = auditSurfaceRepairCertificates(sourceDocument, {
     mirrorMeshCertificates: true,
   })
+  const surfaceRepairExpectation = surfaceRepairCertificateExpectation(
+    sourceSurfaceRepairAudit,
+  )
   const exteriorFloorCheckerRepair = replaceExteriorFloorDebugChecker(sourceDocument)
   const criticalMaterialPreparation = prepareCriticalMaterialRoles(sourceDocument)
   const materialSidedness = normalizeCadMaterialSidedness(
     sourceDocument,
     sourceSurfaceRepairAudit.certifiedMeshes,
   )
+  const sourceDoubleSidedMaterials = doubleSidedMaterialInventory(sourceDocument)
   const sourceCriticalMaterialRoles = criticalMaterialRoles(sourceDocument)
   const sourceSemantics = semanticNameGroups(sourceDocument)
   const sourceAnimation = nonConstantAnimationTracks(sourceDocument)
@@ -1011,8 +1020,13 @@ async function main() {
     const io = await createGltfIO()
     const document = await io.read(tempOutput)
     const outputSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
-      expectedCertificateCount: sourceSurfaceRepairAudit.certificateCount,
+      ...surfaceRepairExpectation,
     })
+    const outputDoubleSidedMaterials = assertDoubleSidedMaterialInventory(
+      document,
+      sourceDoubleSidedMaterials,
+      'gltfpack output',
+    )
     const outputScenes = document.getRoot().listScenes()
     if (outputScenes.length !== 1 || outputScenes[0].listChildren().length === 0) {
       throw new Error(
@@ -1095,6 +1109,7 @@ async function main() {
         generatedTextureCoordinates,
         exteriorFloorCheckerRepair,
         materialSidedness,
+        protectedDoubleSidedMaterials: sourceDoubleSidedMaterials,
         surfaceRepairCertificates: surfaceRepairAuditSummary(sourceSurfaceRepairAudit),
         criticalMaterialPreparation,
         criticalMaterialRoles: sourceCriticalMaterialRoles,
@@ -1110,6 +1125,7 @@ async function main() {
         expandedWorkload: expandedWorkload(document),
         semanticNames: outputSemantics,
         criticalMaterialRoles: outputMaterialRoles,
+        protectedDoubleSidedMaterials: outputDoubleSidedMaterials,
         surfaceRepairCertificates: surfaceRepairAuditSummary(outputSurfaceRepairAudit),
         extensionsUsed: extensions,
         generator: document.getRoot().getAsset().generator || null,
@@ -1133,7 +1149,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error)
-  process.exit(1)
-})
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error)
+    process.exit(1)
+  })
+}

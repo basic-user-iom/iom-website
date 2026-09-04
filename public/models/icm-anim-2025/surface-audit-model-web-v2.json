@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "input": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-web-v2.glb",
-  "bytes": 96716240,
-  "nodes": 3099,
-  "meshes": 1680,
-  "materials": 460,
-  "primitiveInstances": 3768,
-  "triangleInstances": 7449759,
-  "mirroredNodes": 353,
-  "openPrimitiveInstances": 2357,
-  "openSingleSidedInstances": 1612,
+  "input": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-web-v3.glb",
+  "bytes": 96803896,
+  "nodes": 3095,
+  "meshes": 1673,
+  "materials": 461,
+  "primitiveInstances": 3755,
+  "triangleInstances": 7448103,
+  "mirroredNodes": 346,
+  "openPrimitiveInstances": 2354,
+  "openSingleSidedInstances": 1588,
   "expectedTwoSidedSingleInstances": 15,
   "risks": {
-    "high": 740,
-    "medium": 655,
-    "winding": 1774
+    "high": 726,
+    "medium": 643,
+    "winding": 1782
   },
   "candidates": [
     {
@@ -247,35 +247,6 @@
         0.77,
         1.52,
         1.32
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "Tr_bodenleisten",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 8,
-      "boundaryEdges": 16,
-      "boundaryRatio": 0.8,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -67.66,
-        10,
-        -13.14
-      ],
-      "worldMax": [
-        -42.52,
-        10,
-        -3.54
-      ],
-      "worldSize": [
-        25.14,
-        0,
-        9.6
       ]
     },
     {
@@ -2484,35 +2455,6 @@
     },
     {
       "risk": "high",
-      "node": "obj_1_OG_Boden_001",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 8,
-      "boundaryEdges": 10,
-      "boundaryRatio": 0.58824,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -62.39,
-        6,
-        -40.52
-      ],
-      "worldMax": [
-        -44.09,
-        6,
-        -24.85
-      ],
-      "worldSize": [
-        18.3,
-        0,
-        15.66
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Decken_lampe_Horizontal_1",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -2774,35 +2716,6 @@
     },
     {
       "risk": "high",
-      "node": "obj_1_OG_Boden_004",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 26,
-      "boundaryEdges": 28,
-      "boundaryRatio": 0.5283,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -80.01,
-        6,
-        -75.21
-      ],
-      "worldMax": [
-        -44.23,
-        6,
-        -35.18
-      ],
-      "worldSize": [
-        35.78,
-        0,
-        40.04
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Dach BT3",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -2828,35 +2741,6 @@
         21.02,
         0,
         32.82
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "T_trger028",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Treppen all.001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 1792,
-      "boundaryEdges": 1920,
-      "boundaryRatio": 0.52632,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 51,
-      "worldMin": [
-        -3.95,
-        6.4,
-        -100.24
-      ],
-      "worldMax": [
-        7.68,
-        6.42,
-        -83.6
-      ],
-      "worldSize": [
-        11.63,
-        0.02,
-        16.64
       ]
     },
     {
@@ -3093,35 +2977,6 @@
     },
     {
       "risk": "high",
-      "node": "Decke_2OG_A",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 58,
-      "boundaryEdges": 60,
-      "boundaryRatio": 0.51282,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -74.67,
-        10,
-        15.63
-      ],
-      "worldMax": [
-        -35.39,
-        10,
-        48.25
-      ],
-      "worldSize": [
-        39.28,
-        0,
-        32.62
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Saal14_Dach.001",
       "mesh": "(unnamed)",
       "primitive": 1,
@@ -3186,8 +3041,8 @@
       "material": "m.plastic.black.r",
       "doubleSided": false,
       "mirrored": false,
-      "triangles": 1792,
-      "boundaryEdges": 1824,
+      "triangles": 2240,
+      "boundaryEdges": 2280,
       "boundaryRatio": 0.50667,
       "nonManifoldEdges": 0,
       "windingConflictEdges": 0,
@@ -3205,6 +3060,35 @@
         8,
         1.16,
         3.35
+      ]
+    },
+    {
+      "risk": "high",
+      "node": "vitra_hreQ002",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "stasteel_001",
+      "doubleSided": false,
+      "mirrored": true,
+      "triangles": 896,
+      "boundaryEdges": 912,
+      "boundaryRatio": 0.50667,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 0,
+      "worldMin": [
+        -137.35,
+        3.17,
+        -47.57
+      ],
+      "worldMax": [
+        -134.4,
+        4.33,
+        -45.04
+      ],
+      "worldSize": [
+        2.95,
+        1.16,
+        2.53
       ]
     },
     {
@@ -3267,10 +3151,10 @@
     },
     {
       "risk": "high",
-      "node": "(unnamed)",
+      "node": "vitra_hreQ004",
       "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.plastic.black.r",
+      "primitive": 2,
+      "material": "v_zip3",
       "doubleSided": false,
       "mirrored": true,
       "triangles": 448,
@@ -3284,21 +3168,21 @@
         -21.47
       ],
       "worldMax": [
-        -28.61,
+        -24.81,
         7.33,
         -19.17
       ],
       "worldSize": [
-        0.03,
+        3.83,
         1.16,
-        2.3
+        2.29
       ]
     },
     {
       "risk": "high",
       "node": "vitra_hreQ002",
       "mesh": "(unnamed)",
-      "primitive": 2,
+      "primitive": 3,
       "material": "m.plastic.black.r",
       "doubleSided": false,
       "mirrored": true,
@@ -3350,64 +3234,6 @@
         1.86,
         1.16,
         2.49
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "v_zip3",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 224,
-      "boundaryEdges": 228,
-      "boundaryRatio": 0.50667,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -28.64,
-        6.17,
-        -21.46
-      ],
-      "worldMax": [
-        -28.62,
-        7.33,
-        -19.17
-      ],
-      "worldSize": [
-        0.02,
-        1.16,
-        2.29
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "vitra_hreQ005",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "v_zip3",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 224,
-      "boundaryEdges": 228,
-      "boundaryRatio": 0.50667,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -24.83,
-        6.17,
-        -21.47
-      ],
-      "worldMax": [
-        -24.81,
-        7.33,
-        -19.17
-      ],
-      "worldSize": [
-        0.02,
-        1.16,
-        2.29
       ]
     },
     {
@@ -3756,64 +3582,6 @@
         132.95,
         0.94,
         53.68
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "obj_1_OG_Boden_003",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 32,
-      "boundaryEdges": 32,
-      "boundaryRatio": 0.5,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -143.84,
-        6,
-        -56.9
-      ],
-      "worldMax": [
-        -98.24,
-        6,
-        -24.85
-      ],
-      "worldSize": [
-        45.6,
-        0,
-        32.05
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "fb_zwischengeschoss",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 30,
-      "boundaryEdges": 30,
-      "boundaryRatio": 0.5,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 0,
-      "worldMin": [
-        -143.84,
-        3,
-        -58.86
-      ],
-      "worldMax": [
-        -98.24,
-        3,
-        -30.85
-      ],
-      "worldSize": [
-        45.6,
-        0,
-        28
       ]
     },
     {
@@ -4195,35 +3963,6 @@
     },
     {
       "risk": "high",
-      "node": "floor_bt2_1og",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 148,
-      "boundaryEdges": 136,
-      "boundaryRatio": 0.46897,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 7,
-      "worldMin": [
-        -74.67,
-        5.4,
-        -13.7
-      ],
-      "worldMax": [
-        -35.41,
-        6,
-        49.12
-      ],
-      "worldSize": [
-        39.26,
-        0.6,
-        62.82
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Decke 2OG Info_TEMP.001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -4369,35 +4108,6 @@
     },
     {
       "risk": "high",
-      "node": "obj_1_OG_Boden_002",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 56,
-      "boundaryEdges": 46,
-      "boundaryRatio": 0.42991,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 7,
-      "worldMin": [
-        -152.31,
-        5.9,
-        -24.85
-      ],
-      "worldMax": [
-        -16.03,
-        6,
-        -11.48
-      ],
-      "worldSize": [
-        136.27,
-        0.1,
-        13.37
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Saal14_Dach.004",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -4423,35 +4133,6 @@
         45.87,
         0.87,
         0.54
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 4,
-      "material": "Rang_Dunkel",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 1220,
-      "boundaryEdges": 990,
-      "boundaryRatio": 0.42599,
-      "nonManifoldEdges": 1,
-      "windingConflictEdges": 204,
-      "worldMin": [
-        -47.5,
-        0.5,
-        -83
-      ],
-      "worldMax": [
-        -24.64,
-        3.81,
-        -55.95
-      ],
-      "worldSize": [
-        22.86,
-        3.31,
-        27.05
       ]
     },
     {
@@ -4601,38 +4282,9 @@
     },
     {
       "risk": "high",
-      "node": "tuer_1",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "WandLeisten",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 20,
-      "boundaryEdges": 14,
-      "boundaryRatio": 0.37838,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 6,
-      "worldMin": [
-        -44.99,
-        6,
-        -44.22
-      ],
-      "worldMax": [
-        -44.23,
-        6.1,
-        -43.07
-      ],
-      "worldSize": [
-        0.76,
-        0.1,
-        1.15
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "tuer_010",
-      "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 0,
       "material": "WandLeisten",
       "doubleSided": false,
       "mirrored": true,
@@ -13939,35 +13591,6 @@
     },
     {
       "risk": "high",
-      "node": "Laufband Boden002",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 38,
-      "boundaryEdges": 16,
-      "boundaryRatio": 0.24615,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 11,
-      "worldMin": [
-        -25.09,
-        5.7,
-        -15.24
-      ],
-      "worldMax": [
-        -18.23,
-        5.99,
-        22.86
-      ],
-      "worldSize": [
-        6.86,
-        0.29,
-        38.1
-      ]
-    },
-    {
-      "risk": "high",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -16922,35 +16545,6 @@
         55.13,
         2.47,
         0.89
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "Laufband Boden001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 72,
-      "boundaryEdges": 24,
-      "boundaryRatio": 0.2,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 16,
-      "worldMin": [
-        -24.43,
-        5.7,
-        22.76
-      ],
-      "worldMax": [
-        -17.09,
-        5.99,
-        88.41
-      ],
-      "worldSize": [
-        7.34,
-        0.29,
-        65.66
       ]
     },
     {
@@ -25684,7 +25278,7 @@
     },
     {
       "risk": "medium",
-      "node": "TR_Gelaender_Metall002",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "metal_gelnder",
@@ -26235,35 +25829,6 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "stasteel_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 5540,
-      "boundaryEdges": 982,
-      "boundaryRatio": 0.11163,
-      "nonManifoldEdges": 4,
-      "windingConflictEdges": 502,
-      "worldMin": [
-        -143.49,
-        3,
-        -48.39
-      ],
-      "worldMax": [
-        -133.8,
-        4.33,
-        -37.61
-      ],
-      "worldSize": [
-        9.69,
-        1.33,
-        10.78
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "Tueren_Glass002.001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -26318,35 +25883,6 @@
         7.47,
         2.1,
         0.2
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "floor_bt2_2OG_K",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 657,
-      "boundaryEdges": 110,
-      "boundaryRatio": 0.1069,
-      "nonManifoldEdges": 23,
-      "windingConflictEdges": 216,
-      "worldMin": [
-        -74.67,
-        6.12,
-        -13.2
-      ],
-      "worldMax": [
-        -35.42,
-        10.04,
-        15.63
-      ],
-      "worldSize": [
-        39.25,
-        3.91,
-        28.84
       ]
     },
     {
@@ -26759,7 +26295,7 @@
       "risk": "medium",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 0,
+      "primitive": 1,
       "material": "m.metal.dark-grey.r",
       "doubleSided": false,
       "mirrored": false,
@@ -27014,35 +26550,6 @@
         48.78,
         3.05,
         0.31
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Treppen all.001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 1444,
-      "boundaryEdges": 224,
-      "boundaryRatio": 0.09833,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 112,
-      "worldMin": [
-        -53.73,
-        0.58,
-        -91.63
-      ],
-      "worldMax": [
-        -19.79,
-        4.66,
-        -46.27
-      ],
-      "worldSize": [
-        33.94,
-        4.08,
-        45.37
       ]
     },
     {
@@ -31339,64 +30846,6 @@
     },
     {
       "risk": "medium",
-      "node": "TR_Stufen004",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 624,
-      "boundaryEdges": 75,
-      "boundaryRatio": 0.07788,
-      "nonManifoldEdges": 21,
-      "windingConflictEdges": 240,
-      "worldMin": [
-        -36.47,
-        6.12,
-        32.49
-      ],
-      "worldMax": [
-        -35.46,
-        10.35,
-        40.56
-      ],
-      "worldSize": [
-        1.01,
-        4.23,
-        8.06
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "TR_Stufen005",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 624,
-      "boundaryEdges": 75,
-      "boundaryRatio": 0.07788,
-      "nonManifoldEdges": 21,
-      "windingConflictEdges": 240,
-      "worldMin": [
-        -74.66,
-        6.2,
-        32.49
-      ],
-      "worldMax": [
-        -73.66,
-        10.43,
-        40.56
-      ],
-      "worldSize": [
-        1.01,
-        4.23,
-        8.06
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -31422,35 +30871,6 @@
         13.3,
         6,
         5.52
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 19824,
-      "boundaryEdges": 2207,
-      "boundaryRatio": 0.07506,
-      "nonManifoldEdges": 1476,
-      "windingConflictEdges": 6566,
-      "worldMin": [
-        -143.27,
-        -0.3,
-        -98.77
-      ],
-      "worldMax": [
-        -4.62,
-        6,
-        50.33
-      ],
-      "worldSize": [
-        138.64,
-        6.3,
-        149.1
       ]
     },
     {
@@ -31886,35 +31306,6 @@
         0.13,
         3.08,
         4.56
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 250,
-      "boundaryEdges": 28,
-      "boundaryRatio": 0.07198,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 40,
-      "worldMin": [
-        -133.31,
-        50.47,
-        -555
-      ],
-      "worldMax": [
-        128.34,
-        187.88,
-        433.81
-      ],
-      "worldSize": [
-        261.66,
-        137.41,
-        988.81
       ]
     },
     {
@@ -33137,35 +32528,6 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "Floor_Wood_Vray_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 162,
-      "boundaryEdges": 15,
-      "boundaryRatio": 0.06048,
-      "nonManifoldEdges": 5,
-      "windingConflictEdges": 64,
-      "worldMin": [
-        -960.81,
-        16.99,
-        -120.7
-      ],
-      "worldMax": [
-        -11.81,
-        105.34,
-        -4.24
-      ],
-      "worldSize": [
-        949,
-        88.35,
-        116.45
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "TR_Unterbau002_001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -33215,6 +32577,93 @@
         -127.13,
         4.82,
         -32.65
+      ],
+      "worldSize": [
+        0.3,
+        1.82,
+        2.09
+      ]
+    },
+    {
+      "risk": "medium",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "m.metal.alum.r",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 13544,
+      "boundaryEdges": 1224,
+      "boundaryRatio": 0.05849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 1484,
+      "worldMin": [
+        -117.43,
+        3,
+        -34.74
+      ],
+      "worldMax": [
+        -117.13,
+        4.82,
+        -32.65
+      ],
+      "worldSize": [
+        0.3,
+        1.82,
+        2.09
+      ]
+    },
+    {
+      "risk": "medium",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "m.metal.alum.r",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 13544,
+      "boundaryEdges": 1224,
+      "boundaryRatio": 0.05849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 1484,
+      "worldMin": [
+        -116.18,
+        3,
+        -34.74
+      ],
+      "worldMax": [
+        -115.88,
+        4.82,
+        -32.65
+      ],
+      "worldSize": [
+        0.3,
+        1.82,
+        2.09
+      ]
+    },
+    {
+      "risk": "medium",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "m.metal.alum.r",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 13544,
+      "boundaryEdges": 1224,
+      "boundaryRatio": 0.05849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 1484,
+      "worldMin": [
+        -105.04,
+        3,
+        -44.71
+      ],
+      "worldMax": [
+        -104.74,
+        4.82,
+        -42.62
       ],
       "worldSize": [
         0.3,
@@ -33352,35 +32801,6 @@
       "nonManifoldEdges": 0,
       "windingConflictEdges": 1484,
       "worldMin": [
-        -121.21,
-        3,
-        -34.74
-      ],
-      "worldMax": [
-        -120.91,
-        4.82,
-        -32.65
-      ],
-      "worldSize": [
-        0.3,
-        1.82,
-        2.09
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal.alum.r",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13544,
-      "boundaryEdges": 1224,
-      "boundaryRatio": 0.05849,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1484,
-      "worldMin": [
         -119.92,
         3,
         -34.74
@@ -33410,12 +32830,12 @@
       "nonManifoldEdges": 0,
       "windingConflictEdges": 1484,
       "worldMin": [
-        -116.18,
+        -118.7,
         3,
         -34.74
       ],
       "worldMax": [
-        -115.88,
+        -118.4,
         4.82,
         -32.65
       ],
@@ -33584,6 +33004,35 @@
       "nonManifoldEdges": 0,
       "windingConflictEdges": 1484,
       "worldMin": [
+        -107.79,
+        3,
+        -47.83
+      ],
+      "worldMax": [
+        -107.49,
+        4.82,
+        -45.74
+      ],
+      "worldSize": [
+        0.3,
+        1.82,
+        2.09
+      ]
+    },
+    {
+      "risk": "medium",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "m.metal.alum.r",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 13544,
+      "boundaryEdges": 1224,
+      "boundaryRatio": 0.05849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 1484,
+      "worldMin": [
         -109.13,
         3,
         -45.69
@@ -33613,101 +33062,14 @@
       "nonManifoldEdges": 0,
       "windingConflictEdges": 1484,
       "worldMin": [
-        -118.7,
+        -121.21,
         3,
         -34.74
       ],
       "worldMax": [
-        -118.4,
+        -120.91,
         4.82,
         -32.65
-      ],
-      "worldSize": [
-        0.3,
-        1.82,
-        2.09
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal.alum.r",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13544,
-      "boundaryEdges": 1224,
-      "boundaryRatio": 0.05849,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1484,
-      "worldMin": [
-        -117.43,
-        3,
-        -34.74
-      ],
-      "worldMax": [
-        -117.13,
-        4.82,
-        -32.65
-      ],
-      "worldSize": [
-        0.3,
-        1.82,
-        2.09
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal.alum.r",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13544,
-      "boundaryEdges": 1224,
-      "boundaryRatio": 0.05849,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1484,
-      "worldMin": [
-        -105.04,
-        3,
-        -44.71
-      ],
-      "worldMax": [
-        -104.74,
-        4.82,
-        -42.62
-      ],
-      "worldSize": [
-        0.3,
-        1.82,
-        2.09
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal.alum.r",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13544,
-      "boundaryEdges": 1224,
-      "boundaryRatio": 0.05849,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1484,
-      "worldMin": [
-        -107.79,
-        3,
-        -47.83
-      ],
-      "worldMax": [
-        -107.49,
-        4.82,
-        -45.74
       ],
       "worldSize": [
         0.3,
@@ -34906,7 +34268,7 @@
     },
     {
       "risk": "medium",
-      "node": "TR_Gelaender_Metall003",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "metal_gelnder",
@@ -37081,35 +36443,6 @@
     },
     {
       "risk": "medium",
-      "node": "tuer_hinten_02.001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal_chrome",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 25880,
-      "boundaryEdges": 1000,
-      "boundaryRatio": 0.02543,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 2305,
-      "worldMin": [
-        -49.1,
-        5.8,
-        -50.88
-      ],
-      "worldMax": [
-        -43.27,
-        8.01,
-        -44.85
-      ],
-      "worldSize": [
-        5.82,
-        2.22,
-        6.03
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "ArmchairOffice040",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -37690,35 +37023,6 @@
     },
     {
       "risk": "medium",
-      "node": "Object010",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "m.metal_chrome",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 19119,
-      "boundaryEdges": 689,
-      "boundaryRatio": 0.02374,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 2178,
-      "worldMin": [
-        -62.57,
-        5.8,
-        -74.14
-      ],
-      "worldMax": [
-        -57.15,
-        8.33,
-        -68.61
-      ],
-      "worldSize": [
-        5.42,
-        2.53,
-        5.52
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -37744,35 +37048,6 @@
         779.63,
         98.7,
         89.28
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "tuer_hinten_005",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "m.metal_chrome",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 6308,
-      "boundaryEdges": 216,
-      "boundaryRatio": 0.02257,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 710,
-      "worldMin": [
-        -59.68,
-        5.8,
-        -74.23
-      ],
-      "worldMax": [
-        -58.41,
-        8.01,
-        -72.23
-      ],
-      "worldSize": [
-        1.27,
-        2.22,
-        2
       ]
     },
     {
@@ -39140,6 +38415,35 @@
     },
     {
       "risk": "medium",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "m.plastic.black.r",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 77603,
+      "boundaryEdges": 1150,
+      "boundaryRatio": 0.01023,
+      "nonManifoldEdges": 4338,
+      "windingConflictEdges": 10442,
+      "worldMin": [
+        -154.25,
+        0,
+        -101.12
+      ],
+      "worldMax": [
+        -15.98,
+        11.25,
+        49.22
+      ],
+      "worldSize": [
+        138.27,
+        11.25,
+        150.34
+      ]
+    },
+    {
+      "risk": "medium",
       "node": "lfter_2_OG002",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -39401,35 +38705,6 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "stasteel_001",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13860,
-      "boundaryEdges": 166,
-      "boundaryRatio": 0.00795,
-      "nonManifoldEdges": 4,
-      "windingConflictEdges": 3561,
-      "worldMin": [
-        -32.92,
-        6,
-        -22.73
-      ],
-      "worldMax": [
-        -29.49,
-        7.34,
-        -17.57
-      ],
-      "worldSize": [
-        3.42,
-        1.34,
-        5.16
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "Lfter003",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -39459,38 +38734,38 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
+      "node": "vitra_hreQ004",
       "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.plastic.black.r",
+      "primitive": 1,
+      "material": "stasteel",
       "doubleSided": false,
-      "mirrored": false,
-      "triangles": 103091,
-      "boundaryEdges": 1150,
-      "boundaryRatio": 0.00764,
-      "nonManifoldEdges": 4412,
-      "windingConflictEdges": 13852,
+      "mirrored": true,
+      "triangles": 8480,
+      "boundaryEdges": 96,
+      "boundaryRatio": 0.00752,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 3022,
       "worldMin": [
-        -154.25,
-        0,
-        -101.12
+        -28.69,
+        6,
+        -21.51
       ],
       "worldMax": [
-        -15.98,
-        11.25,
-        49.22
+        -24.76,
+        7.34,
+        -19.12
       ],
       "worldSize": [
-        138.27,
-        11.25,
-        150.34
+        3.93,
+        1.34,
+        2.39
       ]
     },
     {
       "risk": "medium",
       "node": "vitra_hreQ002",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 2,
       "material": "v_zip3_002",
       "doubleSided": false,
       "mirrored": true,
@@ -39513,64 +38788,6 @@
         3.07,
         1.34,
         2.63
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "stasteel",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 4240,
-      "boundaryEdges": 48,
-      "boundaryRatio": 0.00752,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1511,
-      "worldMin": [
-        -28.69,
-        6,
-        -21.51
-      ],
-      "worldMax": [
-        -27.96,
-        7.34,
-        -19.12
-      ],
-      "worldSize": [
-        0.73,
-        1.34,
-        2.39
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "vitra_hreQ005",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "stasteel",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 4240,
-      "boundaryEdges": 48,
-      "boundaryRatio": 0.00752,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1511,
-      "worldMin": [
-        -25.49,
-        6,
-        -21.51
-      ],
-      "worldMax": [
-        -24.76,
-        7.34,
-        -19.12
-      ],
-      "worldSize": [
-        0.73,
-        1.34,
-        2.39
       ]
     },
     {
@@ -39780,7 +38997,7 @@
       "risk": "medium",
       "node": "vitra_hreA001",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 2,
       "material": "leather_",
       "doubleSided": false,
       "mirrored": false,
@@ -39803,6 +39020,35 @@
         2.8,
         0.02,
         0.88
+      ]
+    },
+    {
+      "risk": "medium",
+      "node": "vitra_hreA001",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "stasteel_001",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 9232,
+      "boundaryEdges": 96,
+      "boundaryRatio": 0.00691,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 3064,
+      "worldMin": [
+        -32.86,
+        6,
+        -22.49
+      ],
+      "worldMax": [
+        -29.89,
+        7.34,
+        -21.76
+      ],
+      "worldSize": [
+        2.97,
+        1.34,
+        0.73
       ]
     },
     {
@@ -42910,35 +42156,6 @@
     },
     {
       "risk": "winding",
-      "node": "BT_3_front_wand_021.001",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "m.metal_chrome",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 12,
-      "boundaryEdges": 16,
-      "boundaryRatio": 0.61538,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 2,
-      "worldMin": [
-        -71.25,
-        6,
-        -71.02
-      ],
-      "worldMax": [
-        -51.79,
-        6.1,
-        -38.14
-      ],
-      "worldSize": [
-        19.46,
-        0.1,
-        32.89
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "Sued_Glass.002",
       "mesh": "(unnamed)",
       "primitive": 1,
@@ -43428,6 +42645,35 @@
         1.14,
         0.03,
         0.05
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "T_trger028",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Treppen all.001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 1792,
+      "boundaryEdges": 1920,
+      "boundaryRatio": 0.52632,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 51,
+      "worldMin": [
+        -3.95,
+        6.4,
+        -100.24
+      ],
+      "worldMax": [
+        7.68,
+        6.42,
+        -83.6
+      ],
+      "worldSize": [
+        11.63,
+        0.02,
+        16.64
       ]
     },
     {
@@ -44244,6 +43490,35 @@
     },
     {
       "risk": "winding",
+      "node": "floor_bt2_1og",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 148,
+      "boundaryEdges": 136,
+      "boundaryRatio": 0.46897,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 7,
+      "worldMin": [
+        -74.67,
+        5.4,
+        -13.7
+      ],
+      "worldMax": [
+        -35.41,
+        6,
+        49.12
+      ],
+      "worldSize": [
+        39.26,
+        0.6,
+        62.82
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "BT3_innenwaende.004",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -44563,6 +43838,35 @@
     },
     {
       "risk": "winding",
+      "node": "obj_1_OG_Boden_002",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 56,
+      "boundaryEdges": 46,
+      "boundaryRatio": 0.42991,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 7,
+      "worldMin": [
+        -152.31,
+        5.9,
+        -24.85
+      ],
+      "worldMax": [
+        -16.03,
+        6,
+        -11.48
+      ],
+      "worldSize": [
+        136.27,
+        0.1,
+        13.37
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "Fasseden_fenster_204",
       "mesh": "(unnamed)",
       "primitive": 1,
@@ -44675,6 +43979,35 @@
         0.03,
         3.11,
         11.66
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 4,
+      "material": "Rang_Dunkel",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 1220,
+      "boundaryEdges": 990,
+      "boundaryRatio": 0.42599,
+      "nonManifoldEdges": 1,
+      "windingConflictEdges": 204,
+      "worldMin": [
+        -47.5,
+        0.5,
+        -83
+      ],
+      "worldMax": [
+        -24.64,
+        3.81,
+        -55.95
+      ],
+      "worldSize": [
+        22.86,
+        3.31,
+        27.05
       ]
     },
     {
@@ -45023,6 +44356,35 @@
         1.25,
         3.04,
         1.98
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "WandLeisten",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 20,
+      "boundaryEdges": 14,
+      "boundaryRatio": 0.37838,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 6,
+      "worldMin": [
+        -44.99,
+        6,
+        -44.22
+      ],
+      "worldMax": [
+        -44.23,
+        6.1,
+        -43.07
+      ],
+      "worldSize": [
+        0.76,
+        0.1,
+        1.15
       ]
     },
     {
@@ -45462,38 +44824,9 @@
     },
     {
       "risk": "winding",
-      "node": "tuer_hinten_00",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_005",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 1054,
-      "boundaryEdges": 624,
-      "boundaryRatio": 0.32964,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 205,
-      "worldMin": [
-        -62.18,
-        5.88,
-        -74.08
-      ],
-      "worldMax": [
-        -57.33,
-        9.13,
-        -68.83
-      ],
-      "worldSize": [
-        4.86,
-        3.25,
-        5.25
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "HT_Wand001",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 0,
       "material": "wall_raster_wood_005",
       "doubleSided": true,
       "mirrored": true,
@@ -45520,31 +44853,31 @@
     },
     {
       "risk": "winding",
-      "node": "(unnamed)",
+      "node": "Object010",
       "mesh": "(unnamed)",
       "primitive": 0,
-      "material": "wall_raster_wood_002",
+      "material": "wall_raster_wood_005",
       "doubleSided": true,
-      "mirrored": false,
-      "triangles": 56,
-      "boundaryEdges": 32,
-      "boundaryRatio": 0.32,
+      "mirrored": true,
+      "triangles": 1090,
+      "boundaryEdges": 624,
+      "boundaryRatio": 0.32049,
       "nonManifoldEdges": 0,
-      "windingConflictEdges": 16,
+      "windingConflictEdges": 221,
       "worldMin": [
-        -50.04,
-        0,
-        -83.2
+        -62.56,
+        5.88,
+        -74.12
       ],
       "worldMax": [
-        -30.51,
-        3.02,
-        -51.06
+        -57.16,
+        9.24,
+        -68.62
       ],
       "worldSize": [
-        19.54,
-        3.02,
-        32.13
+        5.4,
+        3.36,
+        5.5
       ]
     },
     {
@@ -46067,6 +45400,35 @@
         120.36,
         0.82,
         57.32
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "Laufband Boden002",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 38,
+      "boundaryEdges": 16,
+      "boundaryRatio": 0.24615,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 11,
+      "worldMin": [
+        -25.09,
+        5.7,
+        -15.24
+      ],
+      "worldMax": [
+        -18.23,
+        5.99,
+        22.86
+      ],
+      "worldSize": [
+        6.86,
+        0.29,
+        38.1
       ]
     },
     {
@@ -47666,35 +47028,6 @@
     },
     {
       "risk": "winding",
-      "node": "HT_Wand001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "m.metal_chrome",
-      "doubleSided": true,
-      "mirrored": true,
-      "triangles": 45,
-      "boundaryEdges": 17,
-      "boundaryRatio": 0.22368,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 13,
-      "worldMin": [
-        -48.18,
-        6.34,
-        -50.49
-      ],
-      "worldMax": [
-        -46.57,
-        8.33,
-        -49.17
-      ],
-      "worldSize": [
-        1.61,
-        1.99,
-        1.33
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "saal14_wand_aussen_2OG_2.010",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -49058,6 +48391,35 @@
     },
     {
       "risk": "winding",
+      "node": "Laufband Boden001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 72,
+      "boundaryEdges": 24,
+      "boundaryRatio": 0.2,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 16,
+      "worldMin": [
+        -24.43,
+        5.7,
+        22.76
+      ],
+      "worldMax": [
+        -17.09,
+        5.99,
+        88.41
+      ],
+      "worldSize": [
+        7.34,
+        0.29,
+        65.66
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "BT3_innenwaende.005",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -49402,35 +48764,6 @@
         138.88,
         6.13,
         130.11
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "door_zweifluegelig_038.001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": true,
-      "triangles": 68,
-      "boundaryEdges": 20,
-      "boundaryRatio": 0.17857,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 14,
-      "worldMin": [
-        -72.07,
-        6.01,
-        29.59
-      ],
-      "worldMax": [
-        -69.29,
-        8.95,
-        32.77
-      ],
-      "worldSize": [
-        2.79,
-        2.94,
-        3.18
       ]
     },
     {
@@ -51378,6 +50711,35 @@
     },
     {
       "risk": "winding",
+      "node": "floor_bt2_2OG_K",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 657,
+      "boundaryEdges": 110,
+      "boundaryRatio": 0.1069,
+      "nonManifoldEdges": 23,
+      "windingConflictEdges": 216,
+      "worldMin": [
+        -74.67,
+        6.12,
+        -13.2
+      ],
+      "worldMax": [
+        -35.42,
+        10.04,
+        15.63
+      ],
+      "worldSize": [
+        39.25,
+        3.91,
+        28.84
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "BT1_Kabinen_wnde15.001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -51606,6 +50968,35 @@
         77.09,
         6.01,
         94.01
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Treppen all.001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 1444,
+      "boundaryEdges": 224,
+      "boundaryRatio": 0.09833,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 112,
+      "worldMin": [
+        -53.73,
+        0.58,
+        -91.63
+      ],
+      "worldMax": [
+        -19.79,
+        4.66,
+        -46.27
+      ],
+      "worldSize": [
+        33.94,
+        4.08,
+        45.37
       ]
     },
     {
@@ -53234,6 +52625,64 @@
     },
     {
       "risk": "winding",
+      "node": "TR_Stufen004",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 624,
+      "boundaryEdges": 75,
+      "boundaryRatio": 0.07788,
+      "nonManifoldEdges": 21,
+      "windingConflictEdges": 240,
+      "worldMin": [
+        -36.47,
+        6.12,
+        32.49
+      ],
+      "worldMax": [
+        -35.46,
+        10.35,
+        40.56
+      ],
+      "worldSize": [
+        1.01,
+        4.23,
+        8.06
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "TR_Stufen005",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 624,
+      "boundaryEdges": 75,
+      "boundaryRatio": 0.07788,
+      "nonManifoldEdges": 21,
+      "windingConflictEdges": 240,
+      "worldMin": [
+        -74.66,
+        6.2,
+        32.49
+      ],
+      "worldMax": [
+        -73.66,
+        10.43,
+        40.56
+      ],
+      "worldSize": [
+        1.01,
+        4.23,
+        8.06
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -53259,6 +52708,35 @@
         11,
         293,
         150
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 19202,
+      "boundaryEdges": 2207,
+      "boundaryRatio": 0.0775,
+      "nonManifoldEdges": 1469,
+      "windingConflictEdges": 6495,
+      "worldMin": [
+        -143.27,
+        -0.05,
+        -86.55
+      ],
+      "worldMax": [
+        -21.3,
+        6,
+        10.98
+      ],
+      "worldSize": [
+        121.97,
+        6.05,
+        97.53
       ]
     },
     {
@@ -53440,6 +52918,35 @@
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 250,
+      "boundaryEdges": 28,
+      "boundaryRatio": 0.07198,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 40,
+      "worldMin": [
+        -133.31,
+        50.47,
+        -555
+      ],
+      "worldMax": [
+        128.34,
+        187.88,
+        433.81
+      ],
+      "worldSize": [
+        261.66,
+        137.41,
+        988.81
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
       "material": "vray_fassade_2.002",
       "doubleSided": true,
       "mirrored": false,
@@ -53466,60 +52973,31 @@
     },
     {
       "risk": "winding",
-      "node": "saal_13_tr_doppel_1",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 0,
+      "primitive": 1,
       "material": "wall_raster_wood_002",
       "doubleSided": true,
       "mirrored": false,
-      "triangles": 192,
-      "boundaryEdges": 20,
-      "boundaryRatio": 0.07018,
-      "nonManifoldEdges": 13,
-      "windingConflictEdges": 40,
+      "triangles": 296,
+      "boundaryEdges": 32,
+      "boundaryRatio": 0.07143,
+      "nonManifoldEdges": 12,
+      "windingConflictEdges": 93,
       "worldMin": [
-        -52.11,
-        6,
-        0.89
+        -131.41,
+        0,
+        -83.2
       ],
       "worldMax": [
-        -44.74,
-        8.95,
-        17.38
+        -30.52,
+        3.02,
+        53.32
       ],
       "worldSize": [
-        7.36,
-        2.95,
-        16.49
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "saal_13_tuer_doppelt_22",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 192,
-      "boundaryEdges": 20,
-      "boundaryRatio": 0.07018,
-      "nonManifoldEdges": 13,
-      "windingConflictEdges": 40,
-      "worldMin": [
-        -66.19,
-        6,
-        0.9
-      ],
-      "worldMax": [
-        -59.2,
-        8.95,
-        17.14
-      ],
-      "worldSize": [
-        6.99,
-        2.95,
-        16.24
+        100.89,
+        3.02,
+        136.52
       ]
     },
     {
@@ -53549,6 +53027,64 @@
         61.96,
         3,
         36.65
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "door_zweifluegelig_022.001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 188,
+      "boundaryEdges": 20,
+      "boundaryRatio": 0.06849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 39,
+      "worldMin": [
+        -40.77,
+        6,
+        29.54
+      ],
+      "worldMax": [
+        -37.97,
+        9,
+        32.78
+      ],
+      "worldSize": [
+        2.8,
+        3,
+        3.24
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "door_zweifluegelig_038.001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 188,
+      "boundaryEdges": 20,
+      "boundaryRatio": 0.06849,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 53,
+      "worldMin": [
+        -72.1,
+        6,
+        29.51
+      ],
+      "worldMax": [
+        -69.29,
+        9,
+        32.77
+      ],
+      "worldSize": [
+        2.81,
+        3,
+        3.26
       ]
     },
     {
@@ -53785,35 +53321,6 @@
     },
     {
       "risk": "winding",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 8,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 528,
-      "boundaryEdges": 48,
-      "boundaryRatio": 0.0625,
-      "nonManifoldEdges": 48,
-      "windingConflictEdges": 135,
-      "worldMin": [
-        -62.74,
-        0,
-        0.92
-      ],
-      "worldMax": [
-        -47.35,
-        2.25,
-        16.64
-      ],
-      "worldSize": [
-        15.39,
-        2.25,
-        15.72
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "HT_Sprecher_Fenster",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -53843,60 +53350,31 @@
     },
     {
       "risk": "winding",
-      "node": "Tuer_B_0_005",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
-      "material": "wall_raster_wood_002",
+      "material": "Floor_Wood_Vray_001",
       "doubleSided": true,
       "mirrored": false,
-      "triangles": 264,
-      "boundaryEdges": 24,
-      "boundaryRatio": 0.06122,
-      "nonManifoldEdges": 16,
-      "windingConflictEdges": 70,
+      "triangles": 162,
+      "boundaryEdges": 15,
+      "boundaryRatio": 0.06048,
+      "nonManifoldEdges": 5,
+      "windingConflictEdges": 64,
       "worldMin": [
-        -137.47,
-        6.01,
-        -13.72
+        -960.81,
+        16.99,
+        -120.7
       ],
       "worldMax": [
-        -130.47,
-        9.1,
-        -13.59
+        -11.81,
+        105.34,
+        -4.24
       ],
       "worldSize": [
-        7,
-        3.09,
-        0.13
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "Tuer_B_0_004",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 396,
-      "boundaryEdges": 36,
-      "boundaryRatio": 0.0604,
-      "nonManifoldEdges": 16,
-      "windingConflictEdges": 111,
-      "worldMin": [
-        -124.54,
-        6.01,
-        -13.72
-      ],
-      "worldMax": [
-        -108.12,
-        9.1,
-        -13.59
-      ],
-      "worldSize": [
-        16.42,
-        3.09,
-        0.13
+        949,
+        88.35,
+        116.45
       ]
     },
     {
@@ -54013,93 +53491,6 @@
         288.5,
         315,
         13.01
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "Tuer_B_0_006_001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 132,
-      "boundaryEdges": 12,
-      "boundaryRatio": 0.05882,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 41,
-      "worldMin": [
-        -108.12,
-        6.01,
-        -13.72
-      ],
-      "worldMax": [
-        -104.62,
-        9.1,
-        -13.59
-      ],
-      "worldSize": [
-        3.5,
-        3.09,
-        0.13
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "Tuer_B_0_010.001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": true,
-      "triangles": 132,
-      "boundaryEdges": 12,
-      "boundaryRatio": 0.05882,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 41,
-      "worldMin": [
-        -47.99,
-        10,
-        0.92
-      ],
-      "worldMax": [
-        -47.35,
-        12.25,
-        2.9
-      ],
-      "worldSize": [
-        0.65,
-        2.25,
-        1.98
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "Tuer_B_0_012",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 132,
-      "boundaryEdges": 12,
-      "boundaryRatio": 0.05882,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 41,
-      "worldMin": [
-        -62.74,
-        10,
-        0.92
-      ],
-      "worldMax": [
-        -62.09,
-        12.25,
-        2.9
-      ],
-      "worldSize": [
-        0.65,
-        2.25,
-        1.98
       ]
     },
     {
@@ -54278,6 +53669,35 @@
     },
     {
       "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 8,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 608,
+      "boundaryEdges": 48,
+      "boundaryRatio": 0.05479,
+      "nonManifoldEdges": 59,
+      "windingConflictEdges": 161,
+      "worldMin": [
+        -62.74,
+        0,
+        0.92
+      ],
+      "worldMax": [
+        -47.35,
+        2.25,
+        16.64
+      ],
+      "worldSize": [
+        15.39,
+        2.25,
+        15.72
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "bt2_innenwaende001_K.025",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -54303,6 +53723,93 @@
         14.18,
         3.4,
         14.68
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "door_zweifluegelig_036",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 252,
+      "boundaryEdges": 20,
+      "boundaryRatio": 0.05376,
+      "nonManifoldEdges": 15,
+      "windingConflictEdges": 59,
+      "worldMin": [
+        -49.26,
+        6,
+        0.92
+      ],
+      "worldMax": [
+        -44.3,
+        8.95,
+        16.94
+      ],
+      "worldSize": [
+        4.96,
+        2.95,
+        16.02
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "Tuer_B_0_010.001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 152,
+      "boundaryEdges": 12,
+      "boundaryRatio": 0.0515,
+      "nonManifoldEdges": 1,
+      "windingConflictEdges": 47,
+      "worldMin": [
+        -47.99,
+        10,
+        0.92
+      ],
+      "worldMax": [
+        -47.35,
+        12.25,
+        2.9
+      ],
+      "worldSize": [
+        0.65,
+        2.25,
+        1.98
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "Tuer_B_0_012",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 152,
+      "boundaryEdges": 12,
+      "boundaryRatio": 0.05128,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 49,
+      "worldMin": [
+        -62.74,
+        10,
+        0.92
+      ],
+      "worldMax": [
+        -62.09,
+        12.25,
+        2.9
+      ],
+      "worldSize": [
+        0.65,
+        2.25,
+        1.98
       ]
     },
     {
@@ -54829,6 +54336,35 @@
     },
     {
       "risk": "winding",
+      "node": "Tuer_B_0_005",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 344,
+      "boundaryEdges": 24,
+      "boundaryRatio": 0.04688,
+      "nonManifoldEdges": 16,
+      "windingConflictEdges": 102,
+      "worldMin": [
+        -137.47,
+        6.01,
+        -13.72
+      ],
+      "worldMax": [
+        -130.47,
+        9.1,
+        -12.11
+      ],
+      "worldSize": [
+        7,
+        3.09,
+        1.6
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "bt1_innenwaende_2og_3",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -54854,6 +54390,64 @@
         49.16,
         6.03,
         3.09
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "Tuer_B_0_004",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 516,
+      "boundaryEdges": 36,
+      "boundaryRatio": 0.04639,
+      "nonManifoldEdges": 16,
+      "windingConflictEdges": 159,
+      "worldMin": [
+        -124.54,
+        6.01,
+        -13.72
+      ],
+      "worldMax": [
+        -108.12,
+        9.1,
+        -12.11
+      ],
+      "worldSize": [
+        16.42,
+        3.09,
+        1.6
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "Tuer_B_0_006_001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 172,
+      "boundaryEdges": 12,
+      "boundaryRatio": 0.04545,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 57,
+      "worldMin": [
+        -108.12,
+        6.01,
+        -13.72
+      ],
+      "worldMax": [
+        -104.62,
+        9.1,
+        -12.11
+      ],
+      "worldSize": [
+        3.5,
+        3.09,
+        1.6
       ]
     },
     {
@@ -55086,6 +54680,35 @@
         29.88,
         2.67,
         34.48
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "door_zweifluegelig_037",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "wall_raster_wood_002",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 332,
+      "boundaryEdges": 20,
+      "boundaryRatio": 0.04016,
+      "nonManifoldEdges": 10,
+      "windingConflictEdges": 88,
+      "worldMin": [
+        -65.04,
+        6,
+        0.91
+      ],
+      "worldMax": [
+        -60.43,
+        9,
+        16.99
+      ],
+      "worldSize": [
+        4.61,
+        3,
+        16.09
       ]
     },
     {
@@ -56018,6 +55641,35 @@
     },
     {
       "risk": "winding",
+      "node": "HT_Wand001",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "m.metal_chrome",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 25835,
+      "boundaryEdges": 1019,
+      "boundaryRatio": 0.02595,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 2316,
+      "worldMin": [
+        -49.4,
+        5.8,
+        -50.99
+      ],
+      "worldMax": [
+        -43.37,
+        8.33,
+        -44.68
+      ],
+      "worldSize": [
+        6.03,
+        2.53,
+        6.31
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "bt2_innenwaende001_K.027",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -56076,6 +55728,35 @@
     },
     {
       "risk": "winding",
+      "node": "BT_3_front_wand_021.001",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "m.metal_chrome",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 18841,
+      "boundaryEdges": 705,
+      "boundaryRatio": 0.02464,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 2161,
+      "worldMin": [
+        -71.25,
+        5.8,
+        -72.77
+      ],
+      "worldMax": [
+        -51.79,
+        8.33,
+        -38.14
+      ],
+      "worldSize": [
+        19.46,
+        2.53,
+        34.64
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "BT_3_Fassade_Fenster_345645.001",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -56130,6 +55811,35 @@
         9.58,
         0.98,
         9.64
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "tuer_hinten_005",
+      "mesh": "(unnamed)",
+      "primitive": 1,
+      "material": "m.metal_chrome",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 6308,
+      "boundaryEdges": 216,
+      "boundaryRatio": 0.02257,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 710,
+      "worldMin": [
+        -59.68,
+        5.8,
+        -74.23
+      ],
+      "worldMax": [
+        -58.41,
+        8.01,
+        -72.23
+      ],
+      "worldSize": [
+        1.27,
+        2.22,
+        2
       ]
     },
     {
@@ -56610,26 +56320,26 @@
       "nonManifoldEdges": 4,
       "windingConflictEdges": 502,
       "worldMin": [
-        -37.23,
+        -30.3,
         6,
-        -18.19
+        -18.39
       ],
       "worldMax": [
-        -36.42,
+        -29.68,
         6.16,
-        -17.38
+        -17.77
       ],
       "worldSize": [
-        0.81,
+        0.62,
         0.16,
-        0.81
+        0.62
       ]
     },
     {
       "risk": "winding",
-      "node": "vitra_hre030",
+      "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 0,
       "material": "stasteel_005",
       "doubleSided": false,
       "mirrored": false,
@@ -56652,6 +56362,93 @@
         0.78,
         0.16,
         0.78
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "stasteel_001",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 4646,
+      "boundaryEdges": 70,
+      "boundaryRatio": 0.01,
+      "nonManifoldEdges": 4,
+      "windingConflictEdges": 502,
+      "worldMin": [
+        -37.23,
+        6,
+        -18.19
+      ],
+      "worldMax": [
+        -36.42,
+        6.16,
+        -17.38
+      ],
+      "worldSize": [
+        0.81,
+        0.16,
+        0.81
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "stasteel_005",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 4646,
+      "boundaryEdges": 70,
+      "boundaryRatio": 0.01,
+      "nonManifoldEdges": 4,
+      "windingConflictEdges": 502,
+      "worldMin": [
+        -33.08,
+        6,
+        -17.16
+      ],
+      "worldMax": [
+        -32.27,
+        6.16,
+        -16.35
+      ],
+      "worldSize": [
+        0.81,
+        0.16,
+        0.81
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "stasteel_001",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 4646,
+      "boundaryEdges": 70,
+      "boundaryRatio": 0.01,
+      "nonManifoldEdges": 4,
+      "windingConflictEdges": 502,
+      "worldMin": [
+        -142.57,
+        3,
+        -39.11
+      ],
+      "worldMax": [
+        -141.77,
+        3.16,
+        -38.3
+      ],
+      "worldSize": [
+        0.81,
+        0.16,
+        0.81
       ]
     },
     {
@@ -56681,35 +56478,6 @@
         0.62,
         0.16,
         0.62
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "vitra_hre034",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "stasteel_005",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 4646,
-      "boundaryEdges": 70,
-      "boundaryRatio": 0.01,
-      "nonManifoldEdges": 4,
-      "windingConflictEdges": 502,
-      "worldMin": [
-        -33.08,
-        6,
-        -17.16
-      ],
-      "worldMax": [
-        -32.27,
-        6.16,
-        -16.35
-      ],
-      "worldSize": [
-        0.81,
-        0.16,
-        0.81
       ]
     },
     {
@@ -57335,35 +57103,6 @@
       "nonManifoldEdges": 0,
       "windingConflictEdges": 834,
       "worldMin": [
-        -21.42,
-        6.34,
-        -20.36
-      ],
-      "worldMax": [
-        -20.31,
-        7.62,
-        -18.91
-      ],
-      "worldSize": [
-        1.11,
-        1.28,
-        1.45
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "curtain_red",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 22240,
-      "boundaryEdges": 176,
-      "boundaryRatio": 0.00526,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 834,
-      "worldMin": [
         -20.58,
         6.34,
         -18.55
@@ -57435,6 +57174,35 @@
         1.29,
         1.28,
         1.54
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "curtain_red",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 22240,
+      "boundaryEdges": 176,
+      "boundaryRatio": 0.00526,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 834,
+      "worldMin": [
+        -21.42,
+        6.34,
+        -20.36
+      ],
+      "worldMax": [
+        -20.31,
+        7.62,
+        -18.91
+      ],
+      "worldSize": [
+        1.11,
+        1.28,
+        1.45
       ]
     },
     {
@@ -57934,7 +57702,7 @@
       "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 2,
       "material": "m.metal_chrome",
       "doubleSided": false,
       "mirrored": false,
@@ -58253,7 +58021,7 @@
       "risk": "winding",
       "node": "saal_13_tuer_doppelt_22",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 0,
       "material": "m.metal.alum.r",
       "doubleSided": false,
       "mirrored": false,
@@ -58334,6 +58102,35 @@
         32.2,
         3.25,
         22.85
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "vitra_hreQ004",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "laser_re",
+      "doubleSided": false,
+      "mirrored": true,
+      "triangles": 47328,
+      "boundaryEdges": 0,
+      "boundaryRatio": 0,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 4480,
+      "worldMin": [
+        -28.68,
+        6.17,
+        -21.5
+      ],
+      "worldMax": [
+        -24.77,
+        7.37,
+        -19.13
+      ],
+      "worldSize": [
+        3.91,
+        1.21,
+        2.37
       ]
     },
     {
@@ -58545,7 +58342,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "vray Wand_Holz",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 32292,
       "boundaryEdges": 0,
@@ -58630,7 +58427,7 @@
       "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 1,
+      "primitive": 0,
       "material": "m.metal_chrome",
       "doubleSided": false,
       "mirrored": false,
@@ -58718,57 +58515,28 @@
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
-      "material": "laser_re",
+      "material": "m.plastic.black.r",
       "doubleSided": false,
-      "mirrored": true,
-      "triangles": 23664,
+      "mirrored": false,
+      "triangles": 24192,
       "boundaryEdges": 0,
       "boundaryRatio": 0,
       "nonManifoldEdges": 0,
-      "windingConflictEdges": 2240,
+      "windingConflictEdges": 1872,
       "worldMin": [
-        -25.66,
-        6.17,
-        -21.5
+        -0.81,
+        -53.87,
+        -40.44
       ],
       "worldMax": [
-        -24.77,
-        7.37,
-        -19.13
+        461.81,
+        1404.5,
+        540.31
       ],
       "worldSize": [
-        0.89,
-        1.21,
-        2.37
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "vitra_hreQ004",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "laser_re",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 23664,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 2240,
-      "worldMin": [
-        -28.68,
-        6.17,
-        -21.5
-      ],
-      "worldMax": [
-        -27.79,
-        7.37,
-        -19.13
-      ],
-      "worldSize": [
-        0.89,
-        1.21,
-        2.37
+        462.63,
+        1458.38,
+        580.75
       ]
     },
     {
@@ -59469,7 +59237,7 @@
     },
     {
       "risk": "winding",
-      "node": "(unnamed)",
+      "node": "TR_Gelaender_Metall002",
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "m.plastic.black.r",
@@ -59498,7 +59266,7 @@
     },
     {
       "risk": "winding",
-      "node": "(unnamed)",
+      "node": "TR_Gelaender_Metall003",
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "m.plastic.black.r",
@@ -64055,7 +63823,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 2776,
       "boundaryEdges": 0,
@@ -64954,7 +64722,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 2776,
       "boundaryEdges": 0,
@@ -64983,7 +64751,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 2776,
       "boundaryEdges": 0,
@@ -65012,7 +64780,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 2776,
       "boundaryEdges": 0,
@@ -65041,7 +64809,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 2776,
       "boundaryEdges": 0,
@@ -65592,7 +65360,7 @@
       "mesh": "(unnamed)",
       "primitive": 2,
       "material": "m.metal.dark-grey.r",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 1820,
       "boundaryEdges": 0,
@@ -65621,7 +65389,7 @@
       "mesh": "(unnamed)",
       "primitive": 2,
       "material": "m.metal.dark-grey.r",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 1820,
       "boundaryEdges": 0,
@@ -67788,6 +67556,35 @@
         29.34,
         4.19,
         33.17
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "Floor_Wood_Vray_001",
+      "doubleSided": false,
+      "mirrored": false,
+      "triangles": 622,
+      "boundaryEdges": 0,
+      "boundaryRatio": 0,
+      "nonManifoldEdges": 7,
+      "windingConflictEdges": 71,
+      "worldMin": [
+        -69.56,
+        -0.3,
+        -98.77
+      ],
+      "worldMax": [
+        -4.63,
+        0.01,
+        50.33
+      ],
+      "worldSize": [
+        64.93,
+        0.31,
+        149.1
       ]
     },
     {
@@ -70398,35 +70195,6 @@
         17.99,
         0.94,
         12.67
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 1,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 320,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 9,
-      "windingConflictEdges": 113,
-      "worldMin": [
-        -131.41,
-        0,
-        1.89
-      ],
-      "worldMax": [
-        -40.58,
-        2.15,
-        53.32
-      ],
-      "worldSize": [
-        90.83,
-        2.15,
-        51.43
       ]
     },
     {
@@ -74582,7 +74350,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "m.metal.alum.r",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 156,
       "boundaryEdges": 0,
@@ -74640,7 +74408,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "m.metal.alum.r",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 156,
       "boundaryEdges": 0,
@@ -74984,35 +74752,6 @@
     },
     {
       "risk": "winding",
-      "node": "door_zweifluegelig_037",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 140,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 47,
-      "worldMin": [
-        -64.94,
-        6,
-        1.88
-      ],
-      "worldMax": [
-        -60.78,
-        9,
-        16.99
-      ],
-      "worldSize": [
-        4.16,
-        3,
-        15.12
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "treppe_bt1_2.003",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -75241,93 +74980,6 @@
         1.75,
         2.2,
         4.93
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "tuer_foyer_saal_016",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 120,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 48,
-      "worldMin": [
-        -124.14,
-        6.01,
-        -13.59
-      ],
-      "worldMax": [
-        -108.27,
-        8.95,
-        -12.11
-      ],
-      "worldSize": [
-        15.87,
-        2.94,
-        1.47
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "door_zweifluegelig_041",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 120,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 39,
-      "worldMin": [
-        -72.03,
-        6,
-        29.57
-      ],
-      "worldMax": [
-        -70.05,
-        9,
-        30.22
-      ],
-      "worldSize": [
-        1.98,
-        3,
-        0.65
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "door_zweifluegelig_042",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 120,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 39,
-      "worldMin": [
-        -40.04,
-        6,
-        29.57
-      ],
-      "worldMax": [
-        -38.06,
-        9,
-        30.22
-      ],
-      "worldSize": [
-        1.98,
-        3,
-        0.65
       ]
     },
     {
@@ -79247,35 +78899,6 @@
     },
     {
       "risk": "winding",
-      "node": "tuer_foyer_saal_022",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 80,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 32,
-      "worldMin": [
-        -137.07,
-        6.01,
-        -13.59
-      ],
-      "worldMax": [
-        -130.87,
-        8.95,
-        -12.11
-      ],
-      "worldSize": [
-        6.2,
-        2.94,
-        1.47
-      ]
-    },
-    {
-      "risk": "winding",
       "node": "rahmen_001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -79512,7 +79135,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 80,
       "boundaryEdges": 0,
@@ -80142,35 +79765,6 @@
         50.45,
         0.05,
         62.82
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "door_zweifluegelig_036",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 60,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 20,
-      "worldMin": [
-        -47.73,
-        6,
-        1.89
-      ],
-      "worldMax": [
-        -44.3,
-        8.21,
-        16.77
-      ],
-      "worldSize": [
-        3.43,
-        2.21,
-        14.88
       ]
     },
     {
@@ -82702,7 +82296,7 @@
       "mesh": "(unnamed)",
       "primitive": 12,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -82731,7 +82325,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -82760,7 +82354,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83282,7 +82876,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83311,7 +82905,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83456,7 +83050,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83485,7 +83079,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83514,7 +83108,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -83564,35 +83158,6 @@
         51,
         2.97,
         0.74
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "tuer_foyer_saal_14_001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 40,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 16,
-      "worldMin": [
-        -107.97,
-        6.01,
-        -13.59
-      ],
-      "worldMax": [
-        -105.02,
-        8.95,
-        -12.11
-      ],
-      "worldSize": [
-        2.95,
-        2.94,
-        1.47
       ]
     },
     {
@@ -84210,7 +83775,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 40,
       "boundaryEdges": 0,
@@ -84782,35 +84347,6 @@
         4.04,
         4.99,
         2.88
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "Object010",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_005",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 36,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 16,
-      "worldMin": [
-        -59.57,
-        6.43,
-        -70.06
-      ],
-      "worldMax": [
-        -58.11,
-        9.24,
-        -68.7
-      ],
-      "worldSize": [
-        1.46,
-        2.81,
-        1.37
       ]
     },
     {
@@ -89923,7 +89459,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -89952,7 +89488,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90010,7 +89546,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90039,7 +89575,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90068,7 +89604,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90097,7 +89633,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90126,7 +89662,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90155,7 +89691,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90184,7 +89720,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90213,7 +89749,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90242,7 +89778,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90271,7 +89807,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90300,7 +89836,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90329,7 +89865,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90358,7 +89894,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90387,7 +89923,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 20,
       "boundaryEdges": 0,
@@ -90408,64 +89944,6 @@
         0.85,
         2.15,
         0.57
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "tuer_foyer_saal_023",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 20,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 8,
-      "worldMin": [
-        -47.73,
-        10,
-        1.89
-      ],
-      "worldMax": [
-        -47.37,
-        12.15,
-        2.8
-      ],
-      "worldSize": [
-        0.36,
-        2.15,
-        0.91
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "tuer_foyer_saal_027",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "wall_raster_wood_002",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 20,
-      "boundaryEdges": 0,
-      "boundaryRatio": 0,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 8,
-      "worldMin": [
-        -62.71,
-        10,
-        1.89
-      ],
-      "worldMax": [
-        -62.35,
-        12.15,
-        2.8
-      ],
-      "worldSize": [
-        0.36,
-        2.15,
-        0.91
       ]
     },
     {
@@ -90532,7 +90010,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_002",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 14,
       "boundaryEdges": 0,

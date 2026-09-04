@@ -12,6 +12,10 @@ import {
   PlaneGeometry,
 } from 'three'
 
+// Keep the offline optimizer/certificate handoff on the routine viewer build
+// path instead of relying on a manually invoked companion test.
+await import('./test-surface-repair-optimizer-integration.mjs')
+
 const vite = await createServer({
   root: process.cwd(),
   server: { middlewareMode: true },
@@ -66,6 +70,50 @@ function tetraPrimitiveGeometry(indices) {
   return geometry
 }
 
+function tetraWithLooseVertexGeometry() {
+  const geometry = new BufferGeometry()
+  geometry.setAttribute(
+    'position',
+    new Float32BufferAttribute(
+      [0, 0, 0, 0, 3, 0, 4, 0, 0, 0, 0, 4, 7, 7, 7],
+      3,
+    ),
+  )
+  geometry.setIndex([0, 2, 1, 0, 1, 3, 1, 2, 3, 2, 0, 3])
+  geometry.computeVertexNormals()
+  return geometry
+}
+
+function tetraWithMalformedIndexCountGeometry() {
+  const geometry = tetraPrimitiveGeometry([
+    0, 2, 1,
+    0, 1, 3,
+    1, 2, 3,
+    2, 0, 3,
+    0,
+  ])
+  return geometry
+}
+
+function tetraWithDegenerateTriangleGeometry() {
+  return tetraPrimitiveGeometry([
+    0, 2, 1,
+    0, 1, 3,
+    1, 2, 3,
+    2, 0, 3,
+    0, 0, 0,
+  ])
+}
+
+function tetraWithInvalidIndexGeometry() {
+  return tetraPrimitiveGeometry([
+    0, 2, 1,
+    0, 1, 3,
+    1, 2, 3,
+    2, 0, 99,
+  ])
+}
+
 const SURFACE_REPAIR_VERSION = 'weld-seams-recalculate-normals-v1'
 
 function certifySurface(obj, flag = true, version = SURFACE_REPAIR_VERSION) {
@@ -74,11 +122,17 @@ function certifySurface(obj, flag = true, version = SURFACE_REPAIR_VERSION) {
 }
 
 try {
-  const [{ prepareArchitecturalMeshes }, { computeSceneBounds }, surfaceVisibility] =
+  const [
+    { prepareArchitecturalMeshes },
+    { computeSceneBounds },
+    surfaceVisibility,
+    { registerGltfLogicalMeshAssociations },
+  ] =
     await Promise.all([
       vite.ssrLoadModule('/src/lighting/prepareArchitecturalMeshes.ts'),
       vite.ssrLoadModule('/src/scene/SceneBounds.ts'),
       vite.ssrLoadModule('/src/scene/surfaceVisibility.ts'),
+      vite.ssrLoadModule('/src/scene/GltfLogicalMeshAssociationRegistry.ts'),
     ])
 
   const closedGeometry = new BoxGeometry(4, 3, 4)
@@ -388,6 +442,18 @@ try {
   )
   assert.equal(validRepaired.material.side, FrontSide)
 
+  // Certificate validation must not reuse the application-wide topology
+  // cache. Mutating the same BufferGeometry instance after a clean pass must
+  // revoke the exemption on the next preparation pass.
+  validRepaired.geometry.setIndex([0, 1, 2, 0, 1, 2])
+  prepareArchitecturalMeshes(
+    validRepairedRoot,
+    computeSceneBounds(validRepairedRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(validRepaired.material.side, DoubleSide)
+  assert.equal(validRepaired.userData.surfaceTopologyRepairRejected, true)
+
   const thinValidRepaired = new Mesh(
     new BoxGeometry(4, 0.04, 4),
     new MeshStandardMaterial({ name: 'Thin repaired volume', side: DoubleSide }),
@@ -405,23 +471,45 @@ try {
     { label: 'missing', flag: undefined, version: undefined },
     { label: 'wrong-version', flag: true, version: 'weld-seams-v0' },
     { label: 'non-boolean', flag: 'true', version: SURFACE_REPAIR_VERSION },
+    { label: 'flag-only', flag: true, version: undefined },
+    { label: 'version-only', flag: undefined, version: SURFACE_REPAIR_VERSION },
   ]
   for (const variant of certificateVariants) {
     const candidate = new Mesh(
-      duplicateWindingGeometry(),
+      new BoxGeometry(4, 3, 4),
       new MeshStandardMaterial({ name: `Certificate ${variant.label}`, side: FrontSide }),
     )
     candidate.name = 'Wand_40.005'
-    if (variant.flag !== undefined) {
-      certifySurface(candidate, variant.flag, variant.version)
-    }
+    if (variant.flag !== undefined)
+      candidate.userData.iomSurfaceTopologyRepaired = variant.flag
+    if (variant.version !== undefined)
+      candidate.userData.iomSurfaceTopologyRepair = variant.version
     const candidateRoot = new Group()
     candidateRoot.add(candidate)
     prepareArchitecturalMeshes(candidateRoot, computeSceneBounds(candidateRoot), {
       freezeStatic: false,
     })
     assert.equal(candidate.material.side, DoubleSide, variant.label)
+    assert.equal(candidate.userData.surfaceTopologyRepairRejected, true, variant.label)
   }
+
+  const malformedGeneric = new Mesh(
+    new BoxGeometry(4, 3, 4),
+    new MeshStandardMaterial({ name: 'Malformed generic claim', side: FrontSide }),
+  )
+  malformedGeneric.userData.iomSurfaceTopologyRepaired = true
+  const malformedGenericRoot = new Group()
+  malformedGenericRoot.add(malformedGeneric)
+  prepareArchitecturalMeshes(
+    malformedGenericRoot,
+    computeSceneBounds(malformedGenericRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(malformedGeneric.material.side, DoubleSide)
+  assert.equal(
+    malformedGeneric.userData.surfaceTopologyRepairRejectionReason,
+    'malformed-certificate',
+  )
 
   const forgedDamagedRepair = new Mesh(
     duplicateWindingGeometry(),
@@ -442,21 +530,85 @@ try {
     'audited-mixed-winding-shell',
   )
 
+  // Runtime revalidation must reject every topology class rejected by the
+  // optimizer, even when the visible triangle shell itself looks closed.
+  for (const [label, geometry] of [
+    ['loose-vertex', tetraWithLooseVertexGeometry()],
+    ['malformed-index-count', tetraWithMalformedIndexCountGeometry()],
+    ['degenerate-triangle', tetraWithDegenerateTriangleGeometry()],
+    ['invalid-index-reference', tetraWithInvalidIndexGeometry()],
+  ]) {
+    const candidate = new Mesh(
+      geometry,
+      new MeshStandardMaterial({ name: `Certified ${label}`, side: FrontSide }),
+    )
+    candidate.name = 'Wand_40.005'
+    certifySurface(candidate)
+    const root = new Group()
+    root.add(candidate)
+    prepareArchitecturalMeshes(root, computeSceneBounds(root), {
+      freezeStatic: false,
+    })
+    assert.equal(candidate.material.side, DoubleSide, label)
+    assert.equal(candidate.userData.surfaceTopologyRepairRejected, true, label)
+    assert.equal(
+      candidate.userData.surfaceTopologyRepairRejectionReason,
+      'unbound-or-damaged-certificate',
+      label,
+    )
+  }
+
   // The two Blender-rejected targets must remain uncertified and on the old
   // conservative path.
-  const rejectedTarget = new Mesh(
-    duplicateWindingGeometry(),
-    new MeshStandardMaterial({ name: 'Rejected wall', side: FrontSide }),
-  )
-  rejectedTarget.name = 'BT3_innenwaende.002'
-  const rejectedRoot = new Group()
-  rejectedRoot.add(rejectedTarget)
-  prepareArchitecturalMeshes(rejectedRoot, computeSceneBounds(rejectedRoot), {
+  for (const rejectedTargetName of [
+    'BT3_innenwaende.002',
+    'BT3_innenwaende.006',
+  ]) {
+    const rejectedTarget = new Mesh(
+      new BoxGeometry(4, 3, 4),
+      new MeshStandardMaterial({ name: 'Rejected wall', side: FrontSide }),
+    )
+    rejectedTarget.name = rejectedTargetName
+    const rejectedRoot = new Group()
+    rejectedRoot.add(rejectedTarget)
+    prepareArchitecturalMeshes(rejectedRoot, computeSceneBounds(rejectedRoot), {
+      freezeStatic: false,
+    })
+    assert.equal(
+      rejectedTarget.userData.iomSurfaceTopologyRepaired,
+      undefined,
+      rejectedTargetName,
+    )
+    assert.equal(
+      rejectedTarget.userData.iomSurfaceTopologyRepair,
+      undefined,
+      rejectedTargetName,
+    )
+    assert.equal(rejectedTarget.material.side, DoubleSide, rejectedTargetName)
+  }
+
+  // The water material shortcut must not override the certificate fail-closed
+  // decision or share a FrontSide cache entry with ordinary water.
+  const sharedWater = new MeshStandardMaterial({ name: 'water', side: FrontSide })
+  const ordinaryWater = new Mesh(new BoxGeometry(4, 0.2, 4), sharedWater)
+  ordinaryWater.name = 'Pool surface'
+  const rejectedWater = new Mesh(new BoxGeometry(4, 3, 4), sharedWater)
+  rejectedWater.name = 'BT3_innenwaende.002'
+  rejectedWater.position.x = 8
+  rejectedWater.userData.iomSurfaceTopologyRepaired = true
+  const waterRoot = new Group()
+  waterRoot.add(ordinaryWater, rejectedWater)
+  prepareArchitecturalMeshes(waterRoot, computeSceneBounds(waterRoot), {
     freezeStatic: false,
   })
-  assert.equal(rejectedTarget.userData.iomSurfaceTopologyRepaired, undefined)
-  assert.equal(rejectedTarget.userData.iomSurfaceTopologyRepair, undefined)
-  assert.equal(rejectedTarget.material.side, DoubleSide)
+  assert.equal(ordinaryWater.material.side, FrontSide)
+  assert.equal(rejectedWater.material.side, DoubleSide)
+  assert.notEqual(ordinaryWater.material, rejectedWater.material)
+  assert.equal(rejectedWater.userData.surfaceTopologyRepairRejected, true)
+  assert.equal(
+    rejectedWater.material.userData.iomDoubleSidedReason,
+    'surface-topology-repair-fail-closed',
+  )
 
   // A certificate on an arbitrary ancestor never exempts nested unrelated
   // geometry, even when the ancestor carries an audited source name.
@@ -479,11 +631,62 @@ try {
   )
   assert.equal(unrelatedDescendant.material.side, DoubleSide)
 
+  // An ordinary glTF hierarchy group is not a logical multi-primitive mesh.
+  // Even unnamed direct Mesh children with a clean combined topology must not
+  // inherit a parent-only certificate. Child-node parser associations are not
+  // primitive-owner provenance either.
+  const ordinaryCertifiedParent = new Group()
+  ordinaryCertifiedParent.name = 'Wand_40.005'
+  ordinaryCertifiedParent.userData.name = ordinaryCertifiedParent.name
+  certifySurface(ordinaryCertifiedParent)
+  const unrelatedGeometryA = new BoxGeometry(4, 3, 4)
+  const unrelatedGeometryB = new BoxGeometry(4, 3, 4)
+  unrelatedGeometryB.translate(8, 0, 0)
+  const unrelatedDirectA = new Mesh(
+    unrelatedGeometryA,
+    new MeshStandardMaterial({ name: 'Unrelated child A', side: DoubleSide }),
+  )
+  const unrelatedDirectB = new Mesh(
+    unrelatedGeometryB,
+    new MeshStandardMaterial({ name: 'Unrelated child B', side: DoubleSide }),
+  )
+  for (const unrelatedDirect of [unrelatedDirectA, unrelatedDirectB]) {
+    ordinaryCertifiedParent.add(unrelatedDirect)
+  }
+  const ordinaryCertifiedRoot = new Group()
+  ordinaryCertifiedRoot.add(ordinaryCertifiedParent)
+  assert.equal(
+    registerGltfLogicalMeshAssociations({
+      scene: ordinaryCertifiedRoot,
+      scenes: [ordinaryCertifiedRoot],
+      parser: {
+        associations: new Map([
+          [ordinaryCertifiedParent, { nodes: 4, meshes: 7 }],
+          [unrelatedDirectA, { nodes: 5, meshes: 7, primitives: 0 }],
+          [unrelatedDirectB, { nodes: 6, meshes: 7, primitives: 1 }],
+        ]),
+      },
+    }),
+    0,
+  )
+  prepareArchitecturalMeshes(
+    ordinaryCertifiedRoot,
+    computeSceneBounds(ordinaryCertifiedRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(unrelatedDirectA.material.side, DoubleSide)
+  assert.equal(unrelatedDirectB.material.side, DoubleSide)
+  assert.equal(
+    unrelatedDirectA.userData.surfaceTopologyRepairRejectionReason,
+    'unbound-or-damaged-certificate',
+  )
+
   // Material primitives may each be open at their shared boundary. Their
   // strict glTF logical-mesh owner is eligible only when the combined topology
   // is closed and consistently wound.
   const multiMaterialOwner = new Group()
   multiMaterialOwner.name = 'S11_trennwand'
+  multiMaterialOwner.userData.name = multiMaterialOwner.name
   certifySurface(multiMaterialOwner)
   const multiMaterialA = new Mesh(
     tetraPrimitiveGeometry([0, 2, 1, 0, 1, 3]),
@@ -496,6 +699,24 @@ try {
   multiMaterialOwner.add(multiMaterialA, multiMaterialB)
   const multiMaterialRoot = new Group()
   multiMaterialRoot.add(multiMaterialOwner)
+  // These are the exact non-serializable associations GLTFLoader creates for
+  // one node owning a two-primitive glTF mesh.
+  assert.equal(
+    registerGltfLogicalMeshAssociations({
+      scene: multiMaterialRoot,
+      scenes: [multiMaterialRoot],
+      parser: {
+        associations: new Map([
+          [multiMaterialOwner, { nodes: 11, meshes: 19 }],
+          [multiMaterialA, { meshes: 19, primitives: 0 }],
+          [multiMaterialB, { meshes: 19, primitives: 1 }],
+        ]),
+      },
+    }),
+    1,
+  )
+  assert.equal(multiMaterialA.userData.iomSurfaceTopologyRepaired, undefined)
+  assert.equal(multiMaterialB.userData.iomSurfaceTopologyRepair, undefined)
   prepareArchitecturalMeshes(
     multiMaterialRoot,
     computeSceneBounds(multiMaterialRoot),
@@ -507,6 +728,18 @@ try {
     JSON.stringify(multiMaterialOwner.userData.surfaceTopologyRepairAudit),
   )
   assert.equal(multiMaterialB.material.side, FrontSide)
+
+  // A later preparation pass must re-audit the owner's current geometry. A
+  // once-valid certificate cannot survive a topology mutation via stale cache.
+  multiMaterialB.geometry = duplicateWindingGeometry()
+  prepareArchitecturalMeshes(
+    multiMaterialRoot,
+    computeSceneBounds(multiMaterialRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(multiMaterialA.material.side, DoubleSide)
+  assert.equal(multiMaterialB.material.side, DoubleSide)
+  assert.equal(multiMaterialOwner.userData.surfaceTopologyRepairAudit.valid, false)
 
   const explicitSheetMaterial = new MeshStandardMaterial({
     name: 'Explicit repaired sheet',
@@ -527,6 +760,49 @@ try {
     { freezeStatic: false },
   )
   assert.equal(explicitRepairedSheet.material.side, DoubleSide)
+
+  const explicitGlassMaterial = new MeshStandardMaterial({
+    name: 'architectural glass pane',
+    side: FrontSide,
+  })
+  explicitGlassMaterial.userData.iomDoubleSidedReason = 'explicit-glass'
+  const explicitRepairedGlass = new Mesh(
+    new BoxGeometry(4, 3, 0.1),
+    explicitGlassMaterial,
+  )
+  certifySurface(explicitRepairedGlass)
+  const explicitGlassRoot = new Group()
+  explicitGlassRoot.add(explicitRepairedGlass)
+  prepareArchitecturalMeshes(
+    explicitGlassRoot,
+    computeSceneBounds(explicitGlassRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(explicitRepairedGlass.material.side, DoubleSide)
+  assert.equal(explicitRepairedGlass.userData.architecturalGlass, true)
+
+  // Legacy production meshes have neither certificate key. Their existing
+  // topology-driven safety behavior remains unchanged.
+  const legacyDamagedWall = new Mesh(
+    openCornerGeometry(),
+    new MeshStandardMaterial({ name: 'Legacy wall', side: FrontSide }),
+  )
+  legacyDamagedWall.name = 'Legacy_innenwaende'
+  const legacyClosedWall = new Mesh(
+    new BoxGeometry(4, 3, 4),
+    new MeshStandardMaterial({ name: 'Legacy closed wall', side: FrontSide }),
+  )
+  legacyClosedWall.name = 'Legacy closed wall volume'
+  legacyClosedWall.position.x = 8
+  const legacyRoot = new Group()
+  legacyRoot.add(legacyDamagedWall, legacyClosedWall)
+  prepareArchitecturalMeshes(legacyRoot, computeSceneBounds(legacyRoot), {
+    freezeStatic: false,
+  })
+  assert.equal(legacyDamagedWall.material.side, DoubleSide)
+  assert.equal(legacyClosedWall.material.side, FrontSide)
+  assert.equal(legacyDamagedWall.userData.iomSurfaceTopologyRepaired, undefined)
+  assert.equal(legacyClosedWall.userData.iomSurfaceTopologyRepair, undefined)
 
   // Geometry alone is intentionally insufficient: arbitrary open props stay
   // culled unless they are thin or carry an architectural/safety semantic.

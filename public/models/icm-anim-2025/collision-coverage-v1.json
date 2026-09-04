@@ -61,15 +61,15 @@
         "id": "band-1",
         "minY": 3.6,
         "maxY": 7.2,
-        "requiredCells": 111,
-        "coveredCells": 105
+        "requiredCells": 110,
+        "coveredCells": 104
       },
       {
         "id": "band-2",
         "minY": 7.2,
         "maxY": 10.8,
-        "requiredCells": 78,
-        "coveredCells": 66
+        "requiredCells": 79,
+        "coveredCells": 67
       },
       {
         "id": "band-3",

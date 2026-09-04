@@ -10,6 +10,7 @@ import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js'
 import type { WebGLRenderer } from 'three'
 import type { LoadProgress, ModelLoadResult } from './types'
 import { disposeObject3D } from '../utils/disposeScene'
+import { registerGltfLogicalMeshAssociations } from './GltfLogicalMeshAssociationRegistry'
 
 export type ModelAssetIntegrity = {
   sha256: string
@@ -436,6 +437,7 @@ export class ModelLoader {
 
     try {
       const gltf = await this.gltf.parseAsync(buffer, url)
+      registerGltfLogicalMeshAssociations(gltf)
       if (signal?.aborted) {
         disposeObject3D(gltf.scene)
         throwIfAborted(signal)

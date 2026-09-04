@@ -43,8 +43,19 @@ const SURFACE_TARGETS = {
       { key: 'load-bearing-compound-wall', names: ['obj_1_OG_s_13_tragwand_01'] },
       { key: 'first-floor-partition-s11', names: ['S11_trennwand'] },
       { key: 'first-floor-partition-s12', names: ['S12_trennwand'] },
-      { key: 'foyer-door-aggregate-web-a', names: ['mesh_1153'], required: true },
-      { key: 'foyer-door-aggregate-web-b', names: ['mesh_1154'], required: true },
+      // Optimizer-generated mesh ordinals are unstable when preceding geometry
+      // changes. Keep these gates pinned to the authored logical door groups so
+      // a reordered, unrelated DoubleSide mesh cannot make the QA false-pass.
+      {
+        key: 'ground-floor-glass-door',
+        names: ['bt3_glas_tuer_geteilt'],
+        required: true,
+      },
+      {
+        key: 'first-floor-glass-door',
+        names: ['bt3_glas_tuer_geteilt001.001'],
+        required: true,
+      },
       { key: 'west-connector-north', names: ['Verbindung West002.001'] },
       { key: 'west-connector-south', names: ['Verbindung West.001'] },
       { key: 'west-connector-north-end', names: ['Verbindung West002.002'] },

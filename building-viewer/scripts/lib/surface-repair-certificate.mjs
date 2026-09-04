@@ -40,11 +40,26 @@ export function meshSurfaceTopology(mesh) {
   let maxY = -Infinity
   let maxZ = -Infinity
   let unsupportedPrimitives = 0
+  let malformedPrimitives = 0
+  let looseEdges = 0
+  let invalidPositionValues = 0
 
   for (const primitive of primitives) {
     const position = primitive.getAttribute('POSITION')
-    if (!position) continue
-    if (primitive.getMode() !== 4) unsupportedPrimitives += 1
+    if (!position || position.getElementSize() !== 3) {
+      unsupportedPrimitives += 1
+      continue
+    }
+    const mode = primitive.getMode()
+    const elementCount = primitive.getIndices()?.getCount() ?? position.getCount()
+    if (mode !== 4) {
+      unsupportedPrimitives += 1
+      if (mode === 1) looseEdges += Math.floor(elementCount / 2)
+      else if (mode === 2) looseEdges += elementCount > 1 ? elementCount : 0
+      else if (mode === 3) looseEdges += Math.max(0, elementCount - 1)
+    } else if (elementCount % 3 !== 0) {
+      malformedPrimitives += 1
+    }
     const values = position.getArray()
     const count = position.getCount()
     vertices += count
@@ -53,6 +68,10 @@ export function meshSurfaceTopology(mesh) {
       const x = values[offset]
       const y = values[offset + 1]
       const z = values[offset + 2]
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+        invalidPositionValues += 1
+        continue
+      }
       minX = Math.min(minX, x)
       minY = Math.min(minY, y)
       minZ = Math.min(minZ, z)
@@ -71,7 +90,12 @@ export function meshSurfaceTopology(mesh) {
       boundaryEdges: 0,
       nonManifoldEdges: 0,
       windingConflictEdges: 0,
-      looseEdges: 0,
+      looseEdges,
+      looseVertices: vertices,
+      degenerateTriangles: 0,
+      invalidIndexReferences: 0,
+      malformedPrimitives,
+      invalidPositionValues,
       unsupportedPrimitives,
       clean: false,
     }
@@ -105,6 +129,7 @@ export function meshSurfaceTopology(mesh) {
   }
 
   const edgeState = new Map()
+  const referencedVertices = new Set()
   const addEdge = (from, to) => {
     if (from === to) return
     const low = Math.min(from, to)
@@ -117,6 +142,8 @@ export function meshSurfaceTopology(mesh) {
   }
 
   let triangles = 0
+  let degenerateTriangles = 0
+  let invalidIndexReferences = 0
   for (const primitive of primitives) {
     if (primitive.getMode() !== 4) continue
     const position = primitive.getAttribute('POSITION')
@@ -129,11 +156,31 @@ export function meshSurfaceTopology(mesh) {
       const a = indexArray ? indexArray[offset] : offset
       const b = indexArray ? indexArray[offset + 1] : offset + 1
       const c = indexArray ? indexArray[offset + 2] : offset + 2
+      if (
+        !Number.isInteger(a) ||
+        !Number.isInteger(b) ||
+        !Number.isInteger(c) ||
+        a < 0 ||
+        b < 0 ||
+        c < 0 ||
+        a >= position.getCount() ||
+        b >= position.getCount() ||
+        c >= position.getCount()
+      ) {
+        invalidIndexReferences += 1
+        continue
+      }
       const wa = welded[a]
       const wb = welded[b]
       const wc = welded[c]
-      if (wa === wb || wb === wc || wc === wa) continue
+      if (wa === wb || wb === wc || wc === wa) {
+        degenerateTriangles += 1
+        continue
+      }
       triangles += 1
+      referencedVertices.add(wa)
+      referencedVertices.add(wb)
+      referencedVertices.add(wc)
       addEdge(wa, wb)
       addEdge(wb, wc)
       addEdge(wc, wa)
@@ -148,12 +195,19 @@ export function meshSurfaceTopology(mesh) {
     else if (state.count > 2) nonManifoldEdges += 1
     else if (Math.abs(state.balance) === 2) windingConflictEdges += 1
   }
+  const looseVertices = Math.max(0, weldedVertices - referencedVertices.size)
   const clean = Boolean(
     triangles > 0 &&
       unsupportedPrimitives === 0 &&
+      malformedPrimitives === 0 &&
+      invalidPositionValues === 0 &&
+      invalidIndexReferences === 0 &&
+      degenerateTriangles === 0 &&
       boundaryEdges === 0 &&
       nonManifoldEdges === 0 &&
-      windingConflictEdges === 0,
+      windingConflictEdges === 0 &&
+      looseEdges === 0 &&
+      looseVertices === 0,
   )
   return {
     vertices,
@@ -163,7 +217,12 @@ export function meshSurfaceTopology(mesh) {
     boundaryEdges,
     nonManifoldEdges,
     windingConflictEdges,
-    looseEdges: 0,
+    looseEdges,
+    looseVertices,
+    degenerateTriangles,
+    invalidIndexReferences,
+    malformedPrimitives,
+    invalidPositionValues,
     unsupportedPrimitives,
     clean,
   }
@@ -185,7 +244,11 @@ function auditError(audit) {
  */
 export function auditSurfaceRepairCertificates(
   document,
-  { expectedCertificateCount = null, mirrorMeshCertificates = false } = {},
+  {
+    expectedCertificateCount = null,
+    expectedCertificateOwnerNames = null,
+    mirrorMeshCertificates = false,
+  } = {},
 ) {
   const root = document.getRoot()
   const ownersByMesh = new Map()
@@ -200,10 +263,31 @@ export function auditSurfaceRepairCertificates(
   const exactNodes = root
     .listNodes()
     .filter((node) => hasExactSurfaceRepairCertificate(node.getExtras()))
-  const invalidClaims = []
+  const nonExactClaims = [
+    ...root
+      .listNodes()
+      .filter(
+        (node) =>
+          hasAnySurfaceRepairCertificate(node.getExtras()) &&
+          !hasExactSurfaceRepairCertificate(node.getExtras()),
+      )
+      .map((node) => ({ kind: 'node', name: node.getName() || '(unnamed)' })),
+    ...root
+      .listMeshes()
+      .filter(
+        (mesh) =>
+          hasAnySurfaceRepairCertificate(mesh.getExtras()) &&
+          !hasExactSurfaceRepairCertificate(mesh.getExtras()),
+      )
+      .map((mesh) => ({ kind: 'mesh', name: mesh.getName() || '(unnamed)' })),
+  ]
+  const invalidClaims = nonExactClaims.map((claim) => ({
+    kind: `non-exact-${claim.kind}-certificate`,
+    name: claim.name,
+  }))
   const certifiedMeshes = new Set()
   const meshes = []
-  let mirroredMeshCertificates = 0
+  const meshesToMirror = []
 
   for (const node of exactNodes) {
     if (!node.getMesh()) {
@@ -251,44 +335,21 @@ export function auditSurfaceRepairCertificates(
       owners: owners.map((node) => node.getName() || '(unnamed)').sort(),
       topology,
     })
-    if (mirrorMeshCertificates && !meshClaim) {
-      mesh.setExtras({
-        ...mesh.getExtras(),
-        [IOM_SURFACE_TOPOLOGY_REPAIRED]: true,
-        [IOM_SURFACE_TOPOLOGY_REPAIR]:
-          IOM_SURFACE_TOPOLOGY_REPAIR_VERSION,
-      })
-      mirroredMeshCertificates += 1
-    }
+    if (mirrorMeshCertificates && !meshClaim) meshesToMirror.push(mesh)
   }
 
-  const nonExactClaims = [
-    ...root
-      .listNodes()
-      .filter(
-        (node) =>
-          hasAnySurfaceRepairCertificate(node.getExtras()) &&
-          !hasExactSurfaceRepairCertificate(node.getExtras()),
-      )
-      .map((node) => ({ kind: 'node', name: node.getName() || '(unnamed)' })),
-    ...root
-      .listMeshes()
-      .filter(
-        (mesh) =>
-          hasAnySurfaceRepairCertificate(mesh.getExtras()) &&
-          !hasExactSurfaceRepairCertificate(mesh.getExtras()),
-      )
-      .map((mesh) => ({ kind: 'mesh', name: mesh.getName() || '(unnamed)' })),
-  ]
+  const ownerNames = exactNodes
+    .map((node) => node.getName() || '(unnamed)')
+    .sort()
   const audit = {
     certificateCount: exactNodes.length,
     certifiedMeshCount: certifiedMeshes.size,
     certifiedMeshes,
-    ownerNames: exactNodes.map((node) => node.getName() || '(unnamed)').sort(),
+    ownerNames,
     meshes,
     nonExactClaims,
     invalidClaims,
-    mirroredMeshCertificates,
+    mirroredMeshCertificates: 0,
   }
   if (
     expectedCertificateCount != null &&
@@ -299,8 +360,33 @@ export function auditSurfaceRepairCertificates(
       name: `${audit.certificateCount} != ${expectedCertificateCount}`,
     })
   }
+  if (expectedCertificateOwnerNames != null) {
+    const expected = [...expectedCertificateOwnerNames].sort()
+    if (JSON.stringify(ownerNames) !== JSON.stringify(expected)) {
+      invalidClaims.push({
+        kind: 'certificate-owner-inventory-mismatch',
+        name: `${JSON.stringify(ownerNames)} != ${JSON.stringify(expected)}`,
+      })
+    }
+  }
   if (invalidClaims.length > 0) throw auditError(audit)
+  for (const mesh of meshesToMirror) {
+    mesh.setExtras({
+      ...mesh.getExtras(),
+      [IOM_SURFACE_TOPOLOGY_REPAIRED]: true,
+      [IOM_SURFACE_TOPOLOGY_REPAIR]:
+        IOM_SURFACE_TOPOLOGY_REPAIR_VERSION,
+    })
+  }
+  audit.mirroredMeshCertificates = meshesToMirror.length
   return audit
+}
+
+export function surfaceRepairCertificateExpectation(audit) {
+  return {
+    expectedCertificateCount: audit.certificateCount,
+    expectedCertificateOwnerNames: [...audit.ownerNames],
+  }
 }
 
 export function surfaceRepairAuditSummary(audit) {

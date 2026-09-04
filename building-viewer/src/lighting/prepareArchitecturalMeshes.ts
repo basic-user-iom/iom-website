@@ -31,6 +31,7 @@ import {
   hasSurfaceVisibilityRisk,
   inspectSurfaceTopology,
 } from '../scene/surfaceVisibility'
+import { getGltfLogicalMeshBinding } from '../scene/GltfLogicalMeshAssociationRegistry'
 
 /** Color (sRGB) maps vs linear data maps — wrong space makes normals/ORM look black. */
 const COLOR_TEX_KEYS = new Set([
@@ -176,6 +177,45 @@ const IOM_SURFACE_TOPOLOGY_REPAIR = 'iomSurfaceTopologyRepair'
 const IOM_SURFACE_TOPOLOGY_REPAIR_VERSION =
   'weld-seams-recalculate-normals-v1'
 
+/** Exact Blender repair-pass object identities; do not fuzzy-normalize these. */
+const SURFACE_TOPOLOGY_REPAIR_TARGET_NAMES = new Set([
+  'BT1_Kabinen_wnde24',
+  'BT1_Kabinen_wnde31',
+  'BT1_Kabinen_wnde34',
+  'BT1_Kabinen_wnde43',
+  'BT1_Kabinen_wnde50',
+  'BT1_Kabinen_wnde57',
+  'BT3_innenwaende.002',
+  'BT3_innenwaende.006',
+  'Buhne_aufbau_decke',
+  'EG_decke_bergang_aussen',
+  'Foyer_Dach_aussen_002',
+  'Foyer_Dach_aussen_1',
+  'S11_trennwand',
+  'S12_trennwand',
+  'S21_trennwand',
+  'S22_trennwand',
+  'Wand_40.005',
+  'Wand_bt1_001.002',
+  'fassade003.001',
+  'fassade005.002',
+  'fassade008.002',
+  'fassade_001.001',
+  'fassade_001.003',
+  'fassade_003.001',
+  'fassade_buero_1',
+  'fassade_buero_1.001',
+  'fassade_buero_2',
+  'fassade_buero_2.001',
+  'og_waendeInnen_01',
+  'saal1_waende.004',
+])
+
+const REJECTED_SURFACE_TOPOLOGY_REPAIR_TARGET_NAMES = new Set([
+  'BT3_innenwaende.002',
+  'BT3_innenwaende.006',
+])
+
 function isAuditedMixedWindingShellName(name: string): boolean {
   const normalized = name.toLowerCase().replace(/[^a-z0-9]/g, '')
   return (
@@ -199,14 +239,70 @@ function hasExactSurfaceTopologyRepairCertificate(obj: Object3D): boolean {
   )
 }
 
+function hasAnySurfaceTopologyRepairClaim(obj: Object3D): boolean {
+  const userData = obj.userData
+  return Boolean(
+    userData &&
+      (Object.prototype.hasOwnProperty.call(
+        userData,
+        IOM_SURFACE_TOPOLOGY_REPAIRED,
+      ) ||
+        Object.prototype.hasOwnProperty.call(
+          userData,
+          IOM_SURFACE_TOPOLOGY_REPAIR,
+        )),
+  )
+}
+
+function hasSurfaceTopologyRepairClaimInHierarchy(obj: Object3D): boolean {
+  for (let current: Object3D | null = obj; current; current = current.parent) {
+    if (hasAnySurfaceTopologyRepairClaim(current)) return true
+  }
+  return false
+}
+
+function hasMalformedSurfaceTopologyRepairClaimInHierarchy(
+  obj: Object3D,
+): boolean {
+  for (let current: Object3D | null = obj; current; current = current.parent) {
+    if (
+      hasAnySurfaceTopologyRepairClaim(current) &&
+      !hasExactSurfaceTopologyRepairCertificate(current)
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
+function hasExactRepairTargetName(
+  obj: Object3D,
+  names: ReadonlySet<string>,
+): boolean {
+  for (let current: Object3D | null = obj; current; current = current.parent) {
+    const sourceName = current.userData?.name
+    if (typeof sourceName === 'string' && names.has(sourceName)) return true
+    if (names.has(current.name || '')) return true
+  }
+  return false
+}
+
 type LogicalSurfaceTopology = {
+  vertices: number
+  weldedVertices: number
   triangles: number
+  edges: number
   boundaryEdges: number
   nonManifoldEdges: number
   windingConflictEdges: number
+  looseEdges: number
+  looseVertices: number
+  degenerateTriangles: number
+  invalidIndexReferences: number
+  malformedPrimitives: number
+  invalidPositionValues: number
+  unsupportedPrimitives: number
 }
-
-const certifiedLogicalSurfaceCache = new WeakMap<Object3D, boolean>()
 
 function hasIdentityLocalTransform(obj: Object3D): boolean {
   const epsilon = 1e-8
@@ -223,20 +319,37 @@ function hasIdentityLocalTransform(obj: Object3D): boolean {
 }
 
 /** Audit all material primitives as one logical mesh owner. */
-function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
+function inspectLogicalSurfaceTopology(
+  meshes: readonly Mesh[],
+): LogicalSurfaceTopology {
+  let vertices = 0
   let minX = Infinity
   let minY = Infinity
   let minZ = Infinity
   let maxX = -Infinity
   let maxY = -Infinity
   let maxZ = -Infinity
+  let malformedPrimitives = 0
+  let invalidPositionValues = 0
+  let unsupportedPrimitives = 0
   for (const mesh of meshes) {
     const position = mesh.geometry.getAttribute('position')
-    if (!position) continue
+    if (!position || position.itemSize !== 3) {
+      unsupportedPrimitives += 1
+      continue
+    }
+    vertices += position.count
+    const index = mesh.geometry.getIndex()
+    const elementCount = index?.count ?? position.count
+    if (elementCount % 3 !== 0) malformedPrimitives += 1
     for (let vertex = 0; vertex < position.count; vertex += 1) {
       const x = position.getX(vertex)
       const y = position.getY(vertex)
       const z = position.getZ(vertex)
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) {
+        invalidPositionValues += 1
+        continue
+      }
       minX = Math.min(minX, x)
       minY = Math.min(minY, y)
       minZ = Math.min(minZ, z)
@@ -247,10 +360,20 @@ function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
   }
   if (!Number.isFinite(minX)) {
     return {
+      vertices,
+      weldedVertices: 0,
       triangles: 0,
+      edges: 0,
       boundaryEdges: 0,
       nonManifoldEdges: 0,
       windingConflictEdges: 0,
+      looseEdges: 0,
+      looseVertices: vertices,
+      degenerateTriangles: 0,
+      invalidIndexReferences: 0,
+      malformedPrimitives,
+      invalidPositionValues,
+      unsupportedPrimitives,
     }
   }
 
@@ -261,12 +384,17 @@ function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
   let weldedVertices = 0
   for (const mesh of meshes) {
     const position = mesh.geometry.getAttribute('position')
-    if (!position) continue
+    if (!position || position.itemSize !== 3) continue
     const welded = new Uint32Array(position.count)
+    welded.fill(0xffffffff)
     for (let vertex = 0; vertex < position.count; vertex += 1) {
-      const key = `${Math.round(position.getX(vertex) / tolerance)},${Math.round(
-        position.getY(vertex) / tolerance,
-      )},${Math.round(position.getZ(vertex) / tolerance)}`
+      const x = position.getX(vertex)
+      const y = position.getY(vertex)
+      const z = position.getZ(vertex)
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue
+      const key = `${Math.round(x / tolerance)},${Math.round(
+        y / tolerance,
+      )},${Math.round(z / tolerance)}`
       let canonical = vertexByPosition.get(key)
       if (canonical === undefined) {
         canonical = weldedVertices
@@ -279,6 +407,7 @@ function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
   }
 
   const edgeState = new Map<string, { count: number; balance: number }>()
+  const referencedVertices = new Set<number>()
   const addEdge = (from: number, to: number): void => {
     if (from === to) return
     const low = Math.min(from, to)
@@ -291,21 +420,48 @@ function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
   }
 
   let triangles = 0
+  let degenerateTriangles = 0
+  let invalidIndexReferences = 0
   for (const mesh of meshes) {
     const position = mesh.geometry.getAttribute('position')
     const welded = weldedByMesh.get(mesh)
-    if (!position || !welded) continue
+    if (!position || position.itemSize !== 3 || !welded) continue
     const index = mesh.geometry.getIndex()
     const count = index?.count ?? position.count
     for (let offset = 0; offset + 2 < count; offset += 3) {
       const a = index ? index.getX(offset) : offset
       const b = index ? index.getX(offset + 1) : offset + 1
       const c = index ? index.getX(offset + 2) : offset + 2
+      if (
+        !Number.isInteger(a) ||
+        !Number.isInteger(b) ||
+        !Number.isInteger(c) ||
+        a < 0 ||
+        b < 0 ||
+        c < 0 ||
+        a >= position.count ||
+        b >= position.count ||
+        c >= position.count
+      ) {
+        invalidIndexReferences += 1
+        continue
+      }
       const wa = welded[a]!
       const wb = welded[b]!
       const wc = welded[c]!
-      if (wa === wb || wb === wc || wc === wa) continue
+      if (
+        wa === 0xffffffff ||
+        wb === 0xffffffff ||
+        wc === 0xffffffff
+      ) continue
+      if (wa === wb || wb === wc || wc === wa) {
+        degenerateTriangles += 1
+        continue
+      }
       triangles += 1
+      referencedVertices.add(wa)
+      referencedVertices.add(wb)
+      referencedVertices.add(wc)
       addEdge(wa, wb)
       addEdge(wb, wc)
       addEdge(wc, wa)
@@ -320,11 +476,22 @@ function inspectLogicalSurfaceTopology(meshes: Mesh[]): LogicalSurfaceTopology {
     else if (state.count > 2) nonManifoldEdges += 1
     else if (Math.abs(state.balance) === 2) windingConflictEdges += 1
   }
+  const looseVertices = Math.max(0, weldedVertices - referencedVertices.size)
   return {
+    vertices,
+    weldedVertices,
     triangles,
+    edges: edgeState.size,
     boundaryEdges,
     nonManifoldEdges,
     windingConflictEdges,
+    looseEdges: 0,
+    looseVertices,
+    degenerateTriangles,
+    invalidIndexReferences,
+    malformedPrimitives,
+    invalidPositionValues,
+    unsupportedPrimitives,
   }
 }
 
@@ -333,7 +500,14 @@ function cleanCertifiedTopology(topology: LogicalSurfaceTopology): boolean {
     topology.triangles > 0 &&
       topology.boundaryEdges === 0 &&
       topology.nonManifoldEdges === 0 &&
-      topology.windingConflictEdges === 0,
+      topology.windingConflictEdges === 0 &&
+      topology.looseEdges === 0 &&
+      topology.looseVertices === 0 &&
+      topology.degenerateTriangles === 0 &&
+      topology.invalidIndexReferences === 0 &&
+      topology.malformedPrimitives === 0 &&
+      topology.invalidPositionValues === 0 &&
+      topology.unsupportedPrimitives === 0,
   )
 }
 
@@ -343,35 +517,36 @@ function cleanCertifiedTopology(topology: LogicalSurfaceTopology): boolean {
  * an arbitrary ancestor. The geometry is independently re-audited so a stale
  * or forged certificate cannot disable the conservative DoubleSide path.
  */
-function hasCertifiedSurfaceTopologyRepair(mesh: Mesh): boolean {
-  if (hasExactSurfaceTopologyRepairCertificate(mesh)) {
-    const topology = inspectSurfaceTopology(mesh.geometry)
-    return cleanCertifiedTopology(topology)
+function hasCertifiedSurfaceTopologyRepair(
+  mesh: Mesh,
+  logicalSurfaceCache: WeakMap<Object3D, boolean>,
+): boolean {
+  const logicalBinding = getGltfLogicalMeshBinding(mesh)
+  if (!logicalBinding) {
+    if (!hasExactSurfaceTopologyRepairCertificate(mesh)) return false
+    // Do not use inspectSurfaceTopology here: its application-wide cache is
+    // correct for immutable runtime visibility audits but a certificate must
+    // be revalidated against current geometry on every preparation pass.
+    return cleanCertifiedTopology(inspectLogicalSurfaceTopology([mesh]))
   }
 
-  const owner = mesh.parent
-  if (
-    !owner ||
-    (owner as Mesh).isMesh ||
-    !hasExactSurfaceTopologyRepairCertificate(owner) ||
-    mesh.parent !== owner
-  ) {
-    return false
-  }
-  const cached = certifiedLogicalSurfaceCache.get(owner)
+  const { owner, primitives: renderMeshes } = logicalBinding
+  if (!hasExactSurfaceTopologyRepairCertificate(owner)) return false
+  const cached = logicalSurfaceCache.get(owner)
   if (cached !== undefined) return cached
 
-  // GLTFLoader represents a multi-primitive glTF mesh as one group whose
-  // transform-free direct children are the render primitives. Nested groups,
-  // transformed children, or child subtrees are unrelated geometry.
-  const renderMeshes = owner.children.filter(
-    (child): child is Mesh => Boolean((child as Mesh).isMesh),
-  )
+  // The module-private binding comes directly from GLTFParser.associations:
+  // owner and children share one glTF mesh index, while the children have the
+  // complete unique primitive-index set and no node associations. Shape or
+  // serializable userData alone can never create this exemption.
   const structurallyScoped = Boolean(
-    renderMeshes.length > 0 &&
+    renderMeshes.length > 1 &&
       renderMeshes.length === owner.children.length &&
       renderMeshes.every(
-        (child) => child.parent === owner && child.children.length === 0 && hasIdentityLocalTransform(child),
+        (child) =>
+          child.parent === owner &&
+          child.children.length === 0 &&
+          hasIdentityLocalTransform(child),
       ),
   )
   const topology = structurallyScoped
@@ -383,7 +558,7 @@ function hasCertifiedSurfaceTopologyRepair(mesh: Mesh): boolean {
     valid,
     topology,
   }
-  certifiedLogicalSurfaceCache.set(owner, valid)
+  logicalSurfaceCache.set(owner, valid)
   return valid
 }
 
@@ -640,6 +815,7 @@ function wantsDoubleSide(
   mesh: Mesh,
   mat: Material,
   certifiedSurfaceTopologyRepair: boolean,
+  surfaceTopologyRepairFailClosed: boolean,
   isThinSheet: boolean,
   isLargeHorizontal: boolean,
   surfaceVisibilityRisk: boolean,
@@ -648,6 +824,7 @@ function wantsDoubleSide(
   _minDim: number,
 ): boolean {
   const name = `${mesh.name} ${objectPathName(mesh)} ${mat.name}`
+  if (surfaceTopologyRepairFailClosed) return true
   if (SHUTTER_NAME.test(name)) return false
   if (authoredDoubleSided) return true
   // A validated certificate proves this exact opaque logical mesh is closed
@@ -1060,6 +1237,8 @@ export function prepareArchitecturalMeshes(
   const woodFloorMatCache = new Map<string, Material>()
   /** Opaque: clone per (source uuid, side) so shared materials are not mutated last-wins. */
   const sideMatCache = new Map<string, Material>()
+  /** Share one logical-mesh audit only within this preparation pass. */
+  const certifiedLogicalSurfaceCache = new WeakMap<Object3D, boolean>()
 
   root.updateMatrixWorld(true)
   const visibilityCriticalHierarchy = collectVisibilityCriticalHierarchy(root)
@@ -1151,7 +1330,37 @@ export function prepareArchitecturalMeshes(
     const auditedOpenShellMaterial = materialSlots.some((mat) =>
       AUDITED_OPEN_SHELL_MATERIAL.test(mat.name || ''),
     )
-    const certifiedSurfaceTopologyRepair = hasCertifiedSurfaceTopologyRepair(mesh)
+    const certifiedSurfaceTopologyRepair = hasCertifiedSurfaceTopologyRepair(
+      mesh,
+      certifiedLogicalSurfaceCache,
+    )
+    const repairTarget = hasExactRepairTargetName(
+      mesh,
+      SURFACE_TOPOLOGY_REPAIR_TARGET_NAMES,
+    )
+    const rejectedRepairTarget = hasExactRepairTargetName(
+      mesh,
+      REJECTED_SURFACE_TOPOLOGY_REPAIR_TARGET_NAMES,
+    )
+    const hasSurfaceRepairClaim = hasSurfaceTopologyRepairClaimInHierarchy(mesh)
+    const malformedSurfaceRepairClaim =
+      hasMalformedSurfaceTopologyRepairClaimInHierarchy(mesh)
+    const surfaceTopologyRepairFailClosed = Boolean(
+      rejectedRepairTarget ||
+        malformedSurfaceRepairClaim ||
+        (hasSurfaceRepairClaim && !certifiedSurfaceTopologyRepair) ||
+        (repairTarget && !certifiedSurfaceTopologyRepair),
+    )
+    if (surfaceTopologyRepairFailClosed) {
+      mesh.userData.surfaceTopologyRepairRejected = true
+      mesh.userData.surfaceTopologyRepairRejectionReason = rejectedRepairTarget
+        ? 'blender-rejected-target'
+        : malformedSurfaceRepairClaim
+          ? 'malformed-certificate'
+          : hasSurfaceRepairClaim
+            ? 'unbound-or-damaged-certificate'
+            : 'missing-required-certificate'
+    }
     const auditedMixedWindingShell =
       !certifiedSurfaceTopologyRepair &&
       (hasAuditedMixedWindingShellName(mesh) ||
@@ -1310,13 +1519,30 @@ export function prepareArchitecturalMeshes(
 
     forEachMaterial(mesh, (mat) => {
       if (water) {
+        const requiredWaterSide = surfaceTopologyRepairFailClosed
+          ? DoubleSide
+          : FrontSide
+        const failClosedReason = 'surface-topology-repair-fail-closed'
         let target = mat
-        if (mat.userData?.iomArchitecturalWaterPrepared !== true) {
-          const key = `${mat.uuid}|water`
+        if (
+          mat.userData?.iomArchitecturalWaterPrepared !== true ||
+          mat.side !== requiredWaterSide ||
+          (surfaceTopologyRepairFailClosed &&
+            mat.userData?.iomDoubleSidedReason !== failClosedReason)
+        ) {
+          const key = `${mat.uuid}|water|${requiredWaterSide}`
           target = sideMatCache.get(key) ?? mat.clone()
           if (!sideMatCache.has(key)) {
             applyWaterMaterial(target)
-            target.userData = { ...target.userData, iomArchitecturalWaterPrepared: true }
+            target.side = requiredWaterSide
+            target.userData = {
+              ...target.userData,
+              iomArchitecturalWaterPrepared: true,
+              ...(surfaceTopologyRepairFailClosed
+                ? { iomDoubleSidedReason: failClosedReason }
+                : {}),
+            }
+            target.needsUpdate = true
             sideMatCache.set(key, target)
           }
         }
@@ -1396,6 +1622,7 @@ export function prepareArchitecturalMeshes(
                  mesh,
                  mat,
                  certifiedSurfaceTopologyRepair,
+                 surfaceTopologyRepairFailClosed,
                  isThinSheet,
                 isLargeHorizontal,
                 surfaceVisibilityRisk,

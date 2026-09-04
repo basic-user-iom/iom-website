@@ -15,15 +15,20 @@
 import { createHash } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { NodeIO, PropertyType } from '@gltf-transform/core'
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions'
 import { dedup, flatten, getBounds, instance, join, prune } from '@gltf-transform/functions'
 import { MeshoptDecoder, MeshoptEncoder } from 'meshoptimizer'
 import {
   auditSurfaceRepairCertificates,
-  hasExactSurfaceRepairCertificate,
+  surfaceRepairCertificateExpectation,
   surfaceRepairAuditSummary,
 } from './lib/surface-repair-certificate.mjs'
+import {
+  assertDoubleSidedMaterialInventory,
+  doubleSidedMaterialInventory,
+} from './lib/optimizer-material-safety.mjs'
 
 function parseArgs(argv) {
   const args = {
@@ -108,7 +113,7 @@ function nodeIsAnimatedTarget(node) {
  * direct child below an identity node preserves its transform and any animation
  * inherited from the existing parent (for example one of the five floor roots).
  */
-function partitionOpaqueSiblings(document, options) {
+function partitionOpaqueSiblings(document, options, certifiedMeshes = new Set()) {
   const root = document.getRoot()
   const parents = [...root.listScenes(), ...root.listNodes()]
   let groupsCreated = 0
@@ -122,7 +127,7 @@ function partitionOpaqueSiblings(document, options) {
     for (const node of [...parent.listChildren()]) {
       const mesh = node.getMesh()
       if (!mesh || nodeIsAnimatedTarget(node) || nodeHasTransparentPrimitive(node)) continue
-      if (hasExactSurfaceRepairCertificate(node.getExtras())) continue
+      if (certifiedMeshes.has(mesh)) continue
       if (node.getExtension('EXT_mesh_gpu_instancing')) continue
       const bounds = getBounds(node)
       if (!bounds?.min || !bounds?.max) continue
@@ -325,6 +330,70 @@ async function sha256(path) {
   return createHash('sha256').update(await readFile(path)).digest('hex')
 }
 
+export async function applyOfflineBatchTransforms(
+  document,
+  options,
+  sourceSurfaceRepairAudit,
+) {
+  const certificateExpectation = surfaceRepairCertificateExpectation(
+    sourceSurfaceRepairAudit,
+  )
+  await document.transform(
+    dedup({
+      // Material extras carry fire-safety semantics. Material deduplication
+      // would spread that role to unrelated visually-identical CAD parts.
+      propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.TEXTURE],
+    }),
+  )
+  if (options.flattenStatic) {
+    // glTF Transform retains animation targets and everything below animated
+    // ancestors, while lifting unrelated static meshes to the scene. This
+    // exposes more same-cell/material candidates without breaking floor motion.
+    await document.transform(flatten({ cleanup: false }))
+  }
+
+  // Rebuild the validated set after dedup/flatten. Raw node extras are not a
+  // sufficient batching exemption: dedup may have introduced a shared owner.
+  const validatedSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
+    ...certificateExpectation,
+  })
+  const partition = partitionOpaqueSiblings(
+    document,
+    options,
+    validatedSurfaceRepairAudit.certifiedMeshes,
+  )
+  // The glTF Transform instance pass intentionally refuses documents with
+  // animations. It is also disabled for certified documents so ownership
+  // cannot be rewritten between the two gltfpack passes.
+  if (
+    document.getRoot().listAnimations().length === 0 &&
+    validatedSurfaceRepairAudit.certificateCount === 0
+  ) {
+    await document.transform(instance({ min: options.minInstances }))
+  }
+  await document.transform(
+    join({
+      keepNamed: false,
+      cleanup: false,
+      filter: (node) => {
+        if (!options.joinSceneRoot && nodeIsDirectSceneChild(node)) return false
+        if (validatedSurfaceRepairAudit.certifiedMeshes.has(node.getMesh())) return false
+        return !nodeHasTransparentPrimitive(node)
+      },
+    }),
+    prune({ keepAttributes: true, keepIndices: true }),
+  )
+
+  const afterSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
+    ...certificateExpectation,
+  })
+  return {
+    partition,
+    validatedSurfaceRepairAudit,
+    afterSurfaceRepairAudit,
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv)
   await Promise.all([MeshoptDecoder.ready, MeshoptEncoder.ready])
@@ -340,60 +409,32 @@ async function main() {
     mirrorMeshCertificates: true,
   })
   const before = collectStats(document)
+  const beforeDoubleSidedMaterials = doubleSidedMaterialInventory(document)
 
   if (args.inspectOnly) {
     console.log(JSON.stringify({ path: args.input, stats: before }, null, 2))
     return
   }
 
-  await document.transform(
-    dedup({
-      // Material extras carry fire-safety semantics. Material deduplication
-      // would spread that role to unrelated visually-identical CAD parts.
-      propertyTypes: [PropertyType.ACCESSOR, PropertyType.MESH, PropertyType.TEXTURE],
-    }),
+  const { partition, afterSurfaceRepairAudit } =
+    await applyOfflineBatchTransforms(document, args, beforeSurfaceRepairAudit)
+  const afterDoubleSidedMaterials = assertDoubleSidedMaterialInventory(
+    document,
+    beforeDoubleSidedMaterials,
+    'Offline batching',
   )
-  auditSurfaceRepairCertificates(document, {
-    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
-  })
-  if (args.flattenStatic) {
-    // glTF Transform retains animation targets and everything below animated
-    // ancestors, while lifting unrelated static meshes to the scene. This
-    // exposes more same-cell/material candidates without breaking floor motion.
-    await document.transform(flatten({ cleanup: false }))
-  }
-  const partition = partitionOpaqueSiblings(document, args)
-  // The glTF Transform instance pass intentionally refuses documents with
-  // animations. Joining below animation roots remains safe and useful there.
-  if (
-    document.getRoot().listAnimations().length === 0 &&
-    beforeSurfaceRepairAudit.certificateCount === 0
-  ) {
-    await document.transform(instance({ min: args.minInstances }))
-  }
-  await document.transform(
-    join({
-      keepNamed: false,
-      cleanup: false,
-      filter: (node) => {
-        if (!args.joinSceneRoot && nodeIsDirectSceneChild(node)) return false
-        if (hasExactSurfaceRepairCertificate(node.getExtras())) return false
-        return !nodeHasTransparentPrimitive(node)
-      },
-    }),
-    prune({ keepAttributes: true, keepIndices: true }),
-  )
-
-  const afterSurfaceRepairAudit = auditSurfaceRepairCertificates(document, {
-    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
-  })
   const after = collectStats(document)
   assertAnimationPreserved(before, after, 'Offline batching')
   await io.write(args.out, document)
   const writtenDocument = await io.read(args.out)
   const writtenSurfaceRepairAudit = auditSurfaceRepairCertificates(writtenDocument, {
-    expectedCertificateCount: beforeSurfaceRepairAudit.certificateCount,
+    ...surfaceRepairCertificateExpectation(beforeSurfaceRepairAudit),
   })
+  const writtenDoubleSidedMaterials = assertDoubleSidedMaterialInventory(
+    writtenDocument,
+    beforeDoubleSidedMaterials,
+    'Written offline batch',
+  )
   const written = collectStats(writtenDocument)
   assertAnimationPreserved(before, written, 'Written offline batch')
   const inputBytes = (await readFile(args.input)).byteLength
@@ -416,6 +457,11 @@ async function main() {
         input: surfaceRepairAuditSummary(beforeSurfaceRepairAudit),
         transformed: surfaceRepairAuditSummary(afterSurfaceRepairAudit),
         written: surfaceRepairAuditSummary(writtenSurfaceRepairAudit),
+      },
+      protectedDoubleSidedMaterials: {
+        input: beforeDoubleSidedMaterials,
+        transformed: afterDoubleSidedMaterials,
+        written: writtenDoubleSidedMaterials,
       },
     },
     input: {
@@ -444,7 +490,9 @@ async function main() {
   console.log(JSON.stringify(report, null, 2))
 }
 
-main().catch((error) => {
-  console.error(error)
-  process.exit(1)
-})
+if (process.argv[1] && resolve(process.argv[1]) === resolve(fileURLToPath(import.meta.url))) {
+  main().catch((error) => {
+    console.error(error)
+    process.exit(1)
+  })
+}

@@ -73,18 +73,34 @@ try {
     const sourceNames = layerSources.flatMap((source) => source.sourceNames || [])
     const sourceMap = new Map(layerSources.map((source) => [source.name, source.sourceNames || []]))
     const animatedRoot = viewer.models.getLayer(animatedLayerId)?.root || null
-    const auditoriumSurface = animatedRoot?.getObjectByName('mesh_1005') || null
+    // gltfpack-generated mesh ordinals change whenever preceding geometry is
+    // split or reordered. Select the authored floor family instead so the
+    // rendered-height regression remains bound to the auditorium geometry.
+    const auditoriumSurfaces = []
+    animatedRoot?.traverse((object) => {
+      if (!object.isMesh) return
+      const materials = (Array.isArray(object.material)
+        ? object.material
+        : [object.material]
+      ).filter(Boolean)
+      if (
+        materials.length > 0 &&
+        materials.every((material) => material.name === 'Floor_Wood_Vray_001')
+      ) {
+        auditoriumSurfaces.push(object)
+      }
+    })
     const visualRaycaster = viewer.pegman.raycaster
 
     const renderedAuditoriumY = (x, z) => {
-      if (!auditoriumSurface || !visualRaycaster) return null
+      if (!auditoriumSurfaces.length || !visualRaycaster) return null
       const origin = controller.position.clone().set(x, 7, z)
       visualRaycaster.ray.origin.copy(origin)
       visualRaycaster.ray.direction.set(0, -1, 0)
       visualRaycaster.near = 0
       visualRaycaster.far = 8
       const hit = visualRaycaster
-        .intersectObject(auditoriumSurface, false)
+        .intersectObjects(auditoriumSurfaces, false)
         .find((entry) => entry.face && Math.abs(entry.face.normal.y) >= 0.4)
       return hit?.point.y ?? null
     }
@@ -466,6 +482,13 @@ try {
       exactEdgeSurface,
       sinkRegression,
       sourceNames,
+      auditoriumSurfaceCandidates: auditoriumSurfaces.map((surface) => ({
+        name: surface.name || '',
+        materials: (Array.isArray(surface.material)
+          ? surface.material
+          : [surface.material]
+        ).filter(Boolean).map((material) => material.name || ''),
+      })),
       aisleSupplementNames: sourceNames.filter((name) =>
         /^COLLIDER_walk_auditorium_aisle_[ab]_\d+$/i.test(name),
       ),
@@ -515,8 +538,12 @@ try {
 
   assert.ok(report.exactEdgeSurface, 'missing exact auditorium edge surface sample')
   assert.ok(
+    report.auditoriumSurfaceCandidates.length > 0,
+    'no Floor_Wood_Vray_001 rendered surface candidates were found',
+  )
+  assert.ok(
     report.exactEdgeSurface.renderedY != null,
-    'exact auditorium edge sample did not hit mesh_1005',
+    'exact auditorium edge sample did not hit the rendered wood floor',
   )
   assert.ok(
     Math.abs(
@@ -592,7 +619,7 @@ try {
     )
     assert.ok(
       route.minRenderedGap != null && route.minRenderedGap >= -0.04,
-      `${route.name}: feet fell ${Math.abs(route.minRenderedGap ?? 0).toFixed(3)} m below mesh_1005`,
+      `${route.name}: feet fell ${Math.abs(route.minRenderedGap ?? 0).toFixed(3)} m below the rendered wood floor`,
     )
     assert.ok(route.renderedSamples > 0, `${route.name}: no rendered stair samples were collected`)
   }
