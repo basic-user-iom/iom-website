@@ -1,0 +1,663 @@
+{
+  "schema": "IOM_REPEAT_SIX_PART_LOGICAL_MAPPING_CERTIFICATE_V1",
+  "version": 1,
+  "status": "approved-authoritative-logical-mapping",
+  "scope": {
+    "modelId": "icm-anim-2025",
+    "meshName": "Mesh.13786",
+    "ownerNodeName": "Ground Floor._anim1",
+    "descendantPath": "Ground Floor.BT_3",
+    "coordinateSpace": "owner-local",
+    "units": "meters",
+    "sourceCount": 78
+  },
+  "provenance": {
+    "evidenceKind": "named-authored-source-extraction-snapshot",
+    "namedSourceArtifact": {
+      "relativePath": "tmp/icm-anim-2025-cleaned.glb",
+      "bytes": 347323552,
+      "sha256": "d0e25ee93e609439242c553da99318d0f33f739c3a0fecf85c5e7bd01a8950ff",
+      "availability": "local-ignored-provenance-only"
+    },
+    "extractor": {
+      "relativePath": "scripts/build-ground-floor-repeat-instancing-pilot.mjs",
+      "bytes": 83592,
+      "sha256": "6b6dd0f6c0069bb6d3907d61e2f37915ff44db1fd7ae05cc325e43d0f5e81ad6",
+      "mappingSchema": "iom-ground-floor-repeat-instance-map-v1",
+      "method": "named Mesh.13786 users below Ground Floor._anim1 converted to owner-local matrices"
+    },
+    "historicalMigrationMap": {
+      "relativePath": "tmp/repeat-instancing-ground-floor/instance-map.json",
+      "bytes": 57332,
+      "sha256": "f5101fff6e773e5dffca2b07e88f6869106cf6ebc225df250c27146bd2f4116d",
+      "availability": "local-ignored-provenance-only"
+    },
+    "localVerificationEvidence": {
+      "relativePath": "tmp/repeat-six-part-production-source/current-mapping-verification.local.json",
+      "bytes": 823,
+      "sha256": "0cda312c771e56d4765a90f8911052fd2dde7eb44a546e1f6a27e7b734963182",
+      "availability": "local-ignored-provenance-only"
+    },
+    "authoredTransformSetSha256": "1555aa7164199d55e1fbbda6ffff82187a22c497006cdbe4a322e770011746e8",
+    "cleanBuildDependencyStatement": "Only this tracked certificate and the pinned production GLB are validator inputs; historical artifacts are provenance attestations and are not read."
+  },
+  "approval": {
+    "status": "approved",
+    "requiredAuthority": "human-dcc-source-path-to-production-row-semantic-review",
+    "approvedBy": "project-owner",
+    "approvedAt": "2026-08-30T16:37:38Z",
+    "approvalReference": "conversation:user-explicit-proceed-after-certificate-review"
+  },
+  "target": {
+    "productionModel": {
+      "relativePath": "../public/models/icm-anim-2025/model-web.glb",
+      "bytes": 97549356,
+      "sha256": "b96cf36f64a03d16047e3ff26aa93131481f636c184df80b5c7ea2032e4cb5e8"
+    },
+    "activeSceneIndex": 0,
+    "productionInstancingRootPaths": [
+      "scene/0/258",
+      "scene/0/259",
+      "scene/0/260",
+      "scene/0/261"
+    ],
+    "intendedOwner": {
+      "nodeName": "Ground Floor._anim1",
+      "activeScenePath": "scene/0/400",
+      "sceneRoot": true,
+      "identityRestMatrix": true,
+      "animationChannels": 0
+    },
+    "instanceAccessors": {
+      "TRANSLATION": {
+        "type": "VEC3",
+        "componentType": 5126,
+        "normalized": false,
+        "count": 78,
+        "sha256": "34987d98ceec9c58feba736616334ab8eae0573ab4e5ebcda298632a36a06638"
+      },
+      "ROTATION": {
+        "type": "VEC4",
+        "componentType": 5122,
+        "normalized": true,
+        "count": 78,
+        "sha256": "8763e4b72ce6409aff834aae8ff491078daeb22b48ad8162b03506a42c9b0286"
+      },
+      "SCALE": {
+        "type": "VEC3",
+        "componentType": 5126,
+        "normalized": false,
+        "count": 78,
+        "sha256": "d1db5799e962e30af5f9e9c0d8f39649e5c1fe96b1d5bbb3cfd9f9b6801a12a5"
+      }
+    },
+    "productionTransformSetSha256": "fe7adf799ecbfedbf84bcfcaa0557713728a36507573f846b52476891b66d36b"
+  },
+  "policy": {
+    "matchingMethod": "reciprocal-exhaustive-nearest-neighbor-owner-local-translation",
+    "maxMatchedDistanceMeters": 0.005,
+    "minRunnerUpMarginMeters": 0.5,
+    "maxBestToRunnerUpRatio": 0.01,
+    "requireBijection": true,
+    "requireReciprocalNearest": true,
+    "requireExpectedProductionInstanceIndex": true
+  },
+  "catalog": {
+    "sourceCount": 78,
+    "sourceIdsSha256": "d2883d11372b27f23ae8388db283195e13b979870cb5897e63a7971676a5189b",
+    "sourcePathsSha256": "72f559e1f08017caeb07b3c5577b0f2e3f2cf85a1886f781f9f5b863836d30bc",
+    "referenceTranslationsSha256": "ff2a1c361af5eefdf2cae44f5c79cf3e3bd040ffae8ad638b05116d81fc6ce21",
+    "expectedProductionInstanceIndicesSha256": "d2883d11372b27f23ae8388db283195e13b979870cb5897e63a7971676a5189b",
+    "rowRecordsSha256": "c626e042854bbbad6987b4d1a73c9615f14751a8b46097c5e09c8b8b1d1170e9",
+    "positive": 40,
+    "mirrored": 38
+  },
+  "sources": [
+    {
+      "sourceId": 0,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_134",
+      "expectedProductionInstanceIndex": 0,
+      "referenceOwnerLocalTranslationFloat64LEHex": "070000a02db041c00900006099b6223f040000009fca54c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 1,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_135",
+      "expectedProductionInstanceIndex": 1,
+      "referenceOwnerLocalTranslationFloat64LEHex": "ffffff3feb4941c0050000c0add67c3ffeffff1fdaf054c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 2,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_136",
+      "expectedProductionInstanceIndex": 2,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f6ffff5f8ffd3fc00a0000e03ab4223f00000060fc3155c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 3,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_137",
+      "expectedProductionInstanceIndex": 3,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0d0000e0da3a3fc0030000a09ad67c3f00000000165955c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 4,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_138",
+      "expectedProductionInstanceIndex": 4,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f3ffff1f25543ec0fbffff5fccb2223f010000c0747055c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 5,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_139",
+      "expectedProductionInstanceIndex": 5,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fdffff5f5d8b3dc0010000e08fd67c3f030000a0189455c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 6,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_140",
+      "expectedProductionInstanceIndex": 6,
+      "referenceOwnerLocalTranslationFloat64LEHex": "000000a0a7993cc00200000097b1223ffeffff1f32a555c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 7,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_141",
+      "expectedProductionInstanceIndex": 7,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0a000040d8ee3bc00500000083d67c3f04000000edd955c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 8,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_142",
+      "expectedProductionInstanceIndex": 8,
+      "referenceOwnerLocalTranslationFloat64LEHex": "080000c0bef13ac00000006023b0223fffffff3f89e455c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 9,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_143",
+      "expectedProductionInstanceIndex": 9,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0a0000a0f0463ac0fcffff7f77d67c3f02000080411956c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 10,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_144",
+      "expectedProductionInstanceIndex": 10,
+      "referenceOwnerLocalTranslationFloat64LEHex": "030000402a4b39c0f5ffff7fabae223ffdffffbf9d2456c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 11,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_145",
+      "expectedProductionInstanceIndex": 11,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f4ffff7f5da038c0040000c06bd67c3ffeffff7f585956c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 12,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_146",
+      "expectedProductionInstanceIndex": 12,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000c0c3aa37c0efffffbf1ead223f000000603c6856c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 13,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_147",
+      "expectedProductionInstanceIndex": 13,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f3ffffbf4cff36c0fcffff5f5fd67c3f02000080939c56c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 14,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_148",
+      "expectedProductionInstanceIndex": 14,
+      "referenceOwnerLocalTranslationFloat64LEHex": "050000803c1442c0ffffff7fcf5ae03f010000c04ca454c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 15,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_149",
+      "expectedProductionInstanceIndex": 15,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fbffffdf6b6c42c0fdffffff68cee73fffffff3fa17354c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 16,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_150",
+      "expectedProductionInstanceIndex": 16,
+      "referenceOwnerLocalTranslationFloat64LEHex": "070000a0a1e442c0fdffffff2348ef3f00000000526954c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 17,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_151",
+      "expectedProductionInstanceIndex": 17,
+      "referenceOwnerLocalTranslationFloat64LEHex": "07000000f64643c0f2ffff3f4a5bf33ffdffff5f0f4254c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 18,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_152",
+      "expectedProductionInstanceIndex": 18,
+      "referenceOwnerLocalTranslationFloat64LEHex": "06000040c9c243c0050000807d3cf73f02000080eb3654c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 19,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_153",
+      "expectedProductionInstanceIndex": 19,
+      "referenceOwnerLocalTranslationFloat64LEHex": "ffffffdf221944c0f2ffff7f87d6fa3f00000060380154c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 20,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_154",
+      "expectedProductionInstanceIndex": 20,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fdffffbffda044c0070000c008bbfe3f01000020850454c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 21,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_155",
+      "expectedProductionInstanceIndex": 21,
+      "referenceOwnerLocalTranslationFloat64LEHex": "feffff7faaf544c0070000e07a530140030000a030cf53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 22,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_156",
+      "expectedProductionInstanceIndex": 22,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fdffff5f255e45c0f7ffff5f46240340fdffff5f8fad53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 23,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_157",
+      "expectedProductionInstanceIndex": 23,
+      "referenceOwnerLocalTranslationFloat64LEHex": "faffffbf46b745c0fbffff7f3b26054000000060387d53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 24,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_158",
+      "expectedProductionInstanceIndex": 24,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000009f3b46c0fcffff7f69d7064000000000527b53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 25,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_159",
+      "expectedProductionInstanceIndex": 25,
+      "referenceOwnerLocalTranslationFloat64LEHex": "07000000a69546c00b0000a0c7f90840fdffffbfc74a53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 26,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_160",
+      "expectedProductionInstanceIndex": 26,
+      "referenceOwnerLocalTranslationFloat64LEHex": "01000020ed1a47c0000000a01eb50a4004000000a94853c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 27,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_161",
+      "expectedProductionInstanceIndex": 27,
+      "referenceOwnerLocalTranslationFloat64LEHex": "020000e0196547c0f5ffffff76730c4000000000400953c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 28,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_162",
+      "expectedProductionInstanceIndex": 28,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000007fbb48c003000020e7421040feffff1f2ebf52c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 29,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_163",
+      "expectedProductionInstanceIndex": 29,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f9ffff5f1e2349c0ffffffff48fb1040020000e0e39552c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 30,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_164",
+      "expectedProductionInstanceIndex": 30,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f9ffff5f0ea249c0030000c085c2114004000000a98b52c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 31,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_165",
+      "expectedProductionInstanceIndex": 31,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f9ffff5fae094ac0030000a04a921240010000c05e6252c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 32,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_166",
+      "expectedProductionInstanceIndex": 32,
+      "referenceOwnerLocalTranslationFloat64LEHex": "020000e059814ac0fcffff3fec4f1340fdffffbfc75952c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 33,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_167",
+      "expectedProductionInstanceIndex": 33,
+      "referenceOwnerLocalTranslationFloat64LEHex": "ffffffdfc2e14ac0fcffffdfba15144004000000692852c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 34,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_168",
+      "expectedProductionInstanceIndex": 34,
+      "referenceOwnerLocalTranslationFloat64LEHex": "010000c0b45a4bc0ffffffff01ea1440ffffffdf7a1752c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 35,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_171",
+      "expectedProductionInstanceIndex": 35,
+      "referenceOwnerLocalTranslationFloat64LEHex": "010000c0c8ad4bc00100000077a5154002000080ade251c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 36,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_172",
+      "expectedProductionInstanceIndex": 36,
+      "referenceOwnerLocalTranslationFloat64LEHex": "faffffbfba264cc0feffff3fd17a1640fdffff5fbfd151c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 37,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_172.001",
+      "expectedProductionInstanceIndex": 37,
+      "referenceOwnerLocalTranslationFloat64LEHex": "faffffbf8a934cc0010000a0a52e1740fdffff5f579b51c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 38,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_173",
+      "expectedProductionInstanceIndex": 38,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0500008094dc37c00f0000004b43233f040000601fcd4fc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 39,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_174",
+      "expectedProductionInstanceIndex": 39,
+      "referenceOwnerLocalTranslationFloat64LEHex": "020000e099f336c00300008055db7c3ffdffffbfb30050c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 40,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_175",
+      "expectedProductionInstanceIndex": 40,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0000000058ce34c0080000e01940233f03000040d87150c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 41,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_176",
+      "expectedProductionInstanceIndex": 41,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0700000016e733c0050000803cdb7c3fffffffdf6a8950c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 42,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_177",
+      "expectedProductionInstanceIndex": 42,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f6ffffbf5f2533c0fbffff3faa3e233f0200008081b050c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 43,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_178",
+      "expectedProductionInstanceIndex": 43,
+      "referenceOwnerLocalTranslationFloat64LEHex": "060000e0444732c0fbffff7f30db7c3f0400000017cb50c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 44,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_179",
+      "expectedProductionInstanceIndex": 44,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0a000040289631c005000000093d233f000000a09ff750c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 45,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_180",
+      "expectedProductionInstanceIndex": 45,
+      "referenceOwnerLocalTranslationFloat64LEHex": "06000040d58a30c00300002026db7c3f020000805b0351c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 46,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_181",
+      "expectedProductionInstanceIndex": 46,
+      "referenceOwnerLocalTranslationFloat64LEHex": "12000000bfd52fc0f8ffffbf9d3b233ffeffff1f883551c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 47,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_182",
+      "expectedProductionInstanceIndex": 47,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f0ffff7f32bf2dc0fdffffbf1adb7c3fffffff3f474151c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 48,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_183",
+      "expectedProductionInstanceIndex": 48,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0c0000804a7b2cc004000080363a233f00000000c87251c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 49,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_184",
+      "expectedProductionInstanceIndex": 49,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fcffffffac642ac0faffff7f0fdb7c3ffeffff7f867e51c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 50,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_185",
+      "expectedProductionInstanceIndex": 50,
+      "referenceOwnerLocalTranslationFloat64LEHex": "05000080140e29c000000000e138233ffeffff1ffaac51c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 51,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_186",
+      "expectedProductionInstanceIndex": 51,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f7ffff1fe8b030c0f9ffffff41d537bfffffff3f339e53c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 52,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_187",
+      "expectedProductionInstanceIndex": 52,
+      "referenceOwnerLocalTranslationFloat64LEHex": "00000060ec6b40c0faffffdfa5d67c3fffffffdf501c55c0",
+      "parity": "positive"
+    },
+    {
+      "sourceId": 53,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_188",
+      "expectedProductionInstanceIndex": 53,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000c0138435c0050000a047db7c3ffdffffbfa54c50c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 54,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_189",
+      "expectedProductionInstanceIndex": 54,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0a000040b8c338c0040000c0d85ae03ffbffffdfd79a4fc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 55,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_190",
+      "expectedProductionInstanceIndex": 55,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000c08bc339c0040000c071cee73ffcfffffffc7c4fc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 56,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_191",
+      "expectedProductionInstanceIndex": 56,
+      "referenceOwnerLocalTranslationFloat64LEHex": "070000004e5c3ac0fcffff5f2d48ef3ffbffff7fe71d4fc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 57,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_192",
+      "expectedProductionInstanceIndex": 57,
+      "referenceOwnerLocalTranslationFloat64LEHex": "050000200c453bc0100000e04e5bf33f060000e00cee4ec0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 58,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_193",
+      "expectedProductionInstanceIndex": 58,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0b00000039e43bc0f7ffff3f823cf73ffeffff1f9a8c4ec0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 59,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_194",
+      "expectedProductionInstanceIndex": 59,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f8ffff3fd9f33cc00e0000008cd6fa3ffeffff7f3e754ec0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 60,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_195",
+      "expectedProductionInstanceIndex": 60,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f3ffffbf346c3dc0f9ffff7f0dbbfe3fffffff3f43fb4dc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 61,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_196",
+      "expectedProductionInstanceIndex": 61,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f9ffff9fe9783ec0fcffffff7c53014004000060ffe44dc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 62,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_197",
+      "expectedProductionInstanceIndex": 62,
+      "referenceOwnerLocalTranslationFloat64LEHex": "f3ffff1ff5533fc00200008048240340040000604faa4dc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 63,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_198",
+      "expectedProductionInstanceIndex": 63,
+      "referenceOwnerLocalTranslationFloat64LEHex": "00000000c42940c0070000a03d260540fdffff5f518b4dc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 64,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_199",
+      "expectedProductionInstanceIndex": 64,
+      "referenceOwnerLocalTranslationFloat64LEHex": "05000020546d40c0f6ffffdf6bd706400000000070194dc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 65,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_200",
+      "expectedProductionInstanceIndex": 65,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fbffff7fe7ed40c0020000e0c9f90840feffff7fdaf94cc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 66,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_201",
+      "expectedProductionInstanceIndex": 66,
+      "referenceOwnerLocalTranslationFloat64LEHex": "feffff7f4e3241c0fcffff1f21b50a40feffff7f66874cc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 67,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_202",
+      "expectedProductionInstanceIndex": 67,
+      "referenceOwnerLocalTranslationFloat64LEHex": "0500008030c541c00300004079730c40ffffff3f1b844cc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 68,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_203",
+      "expectedProductionInstanceIndex": 68,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000c0e7ec42c0fcffff1fe842104002000080a9a04bc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 69,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_204",
+      "expectedProductionInstanceIndex": 69,
+      "referenceOwnerLocalTranslationFloat64LEHex": "feffff7f666743c0fdffff3f4afb1040ffffff3f276e4bc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 70,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_205",
+      "expectedProductionInstanceIndex": 70,
+      "referenceOwnerLocalTranslationFloat64LEHex": "ffffffdfe6b643c00100000087c21140fbffffdf17094bc0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 71,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_206",
+      "expectedProductionInstanceIndex": 71,
+      "referenceOwnerLocalTranslationFloat64LEHex": "04000060673144c0ffffffbf4b921240fcffffff94d64ac0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 72,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_207",
+      "expectedProductionInstanceIndex": 72,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fcffffff847a44c003000060ed4f1340070000a04d764ac0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 73,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_208",
+      "expectedProductionInstanceIndex": 73,
+      "referenceOwnerLocalTranslationFloat64LEHex": "05000020a4ff44c005000020bc15144002000080f1514ac0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 74,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_209",
+      "expectedProductionInstanceIndex": 74,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fbffff7ff35745c00600002003ea1440feffff1fa2f849c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 75,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_210",
+      "expectedProductionInstanceIndex": 75,
+      "referenceOwnerLocalTranslationFloat64LEHex": "030000409adc45c0feffff3f78a51540faffff1f43e349c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 76,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_211",
+      "expectedProductionInstanceIndex": 76,
+      "referenceOwnerLocalTranslationFloat64LEHex": "fdffffbfe93446c0fbffff7fd27a1640060000e0f08949c0",
+      "parity": "mirrored"
+    },
+    {
+      "sourceId": 77,
+      "sourcePath": "Ground Floor._anim1/Ground Floor.BT_3/Stuhl_Tisch_Rechts_Reihe_211.001",
+      "expectedProductionInstanceIndex": 77,
+      "referenceOwnerLocalTranslationFloat64LEHex": "040000601fcd46c0010000a0a52e1740ffffff3f836649c0",
+      "parity": "mirrored"
+    }
+  ]
+}
