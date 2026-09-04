@@ -155,7 +155,6 @@ export class CharacterController {
       if (
         missed ||
         this.detectStepAhead(_before, _tmp) ||
-        this.climbLock > 0 ||
         (inWell && this.volumeClimbLock > 0)
       ) {
         const moveLength = Math.hypot(_tmp.x, _tmp.z)
@@ -183,7 +182,7 @@ export class CharacterController {
         const knownDescending = continuingDescent || reversingVolumeAscent
         if (knownDescending) this.resetVolumeClimb()
 
-        if (!knownDescending && this.tryStepUp(_before, _tmp)) {
+        if (!knownDescending && this.tryStepUp(_before, _tmp, missed)) {
           this.resetVolumeClimb()
           if (this.velocity.y < 0) this.velocity.y = 0
           this.onGround = true
@@ -309,6 +308,7 @@ export class CharacterController {
       Math.max(p.playerRadius * 2.0, 0.36),
     ]
     const maxDrop = p.stepHeight + p.groundSnapDistance + 0.1
+    let descendingProbes = 0
     for (const forward of forwards) {
       // Start below the next ascending riser. A probe launched above the whole
       // step range can select the higher/current tread first while travelling
@@ -324,7 +324,14 @@ export class CharacterController {
       if (normal.dot(_up) < 0) normal = _nflip.copy(normal).negate()
       if (normal.dot(_up) < p.maxSlope) continue
       const rise = ground.point.y - from.y
-      if (rise < -0.025 && rise >= -maxDrop) return true
+      // Imported CAD treads contain narrow seams where one ray can land a few
+      // centimetres below its neighbours. Treating that single sample as a
+      // descent permanently suppresses step-up on oblique auditorium aisles.
+      // A real downhill route remains visible to multiple forward probes.
+      if (rise < -0.025 && rise >= -maxDrop) {
+        descendingProbes += 1
+        if (descendingProbes >= 2) return true
+      }
     }
     return false
   }
@@ -401,11 +408,10 @@ export class CharacterController {
     if (len < 1e-8) return false
     const nx = moveXZ.x / len
     const nz = moveXZ.z / len
-    const lookDistances = [
-      Math.max(p.playerRadius * 1.15, 0.2),
-      Math.max(p.playerRadius * 2.0, 0.36),
-      Math.max(p.playerRadius * 2.8, 0.5),
-    ]
+    // Only pre-emptively climb a tread within the capsule's immediate reach.
+    // Far probes are useful after an actual collision (tryStepUp still has
+    // them), but using them here lets every frame skip to the following tread.
+    const lookDistances = [Math.max(len, p.playerRadius * 0.9, 0.16)]
     for (const look of lookDistances) {
       _stepProbe.set(from.x + nx * look, from.y + p.stepHeight + 0.12, from.z + nz * look)
       const ground =
@@ -421,7 +427,7 @@ export class CharacterController {
     return false
   }
 
-  private tryStepUp(from: Vector3, moveXZ: Vector3): boolean {
+  private tryStepUp(from: Vector3, moveXZ: Vector3, allowForwardSnap = false): boolean {
     const world = this.world
     if (!world) return false
     const p = this.params
@@ -439,6 +445,7 @@ export class CharacterController {
       Math.max(p.playerRadius * 2.0, 0.36),
       Math.max(p.playerRadius * 2.7, 0.48),
     ]
+    const maxAdvance = allowForwardSnap ? Math.max(moveLen, 0.08) : moveLen
 
     let best: {
       x: number
@@ -449,6 +456,9 @@ export class CharacterController {
     } | null = null
 
     for (const forward of forwards) {
+      // Raising the capsule is safe only when its footprint can already reach
+      // the probed tread after the capped horizontal move.
+      if (forward - maxAdvance > p.playerRadius + 0.03) continue
       // Cast from above so we hit the tread, not the vertical riser / solid CAD face.
       _stepProbe.set(from.x + nx * forward, from.y + p.stepHeight + 0.12, from.z + nz * forward)
       const ground =
@@ -497,9 +507,32 @@ export class CharacterController {
 
     if (!best) return false
 
-    // Place on the tread. Resolving the capsule against solid stair CAD undoes the climb.
+    // The probe identifies the height of the next tread. During ordinary
+    // look-ahead, keep horizontal travel limited to this frame's requested
+    // motion. A collider that has actually blocked that motion may require a
+    // one-off placement onto the tread to clear malformed CAD risers.
+    const probedAdvance = Math.hypot(best.x - from.x, best.z - from.z)
+    const advance = Math.min(probedAdvance, maxAdvance)
+    const nextX = from.x + nx * advance
+    const nextZ = from.z + nz * advance
+    // The candidate's probe position can be ahead of the capped placement.
+    // Re-check the actual capsule location so a low beam behind the tread does
+    // not get bypassed by the successful-step early return.
+    _origin.set(nextX, best.y + 0.18, nextZ)
+    const placementHeadHit = world.raycast(_origin, _up, Math.max(0.55, p.playerHeight - 0.25))
+    if (
+      placementHeadHit &&
+      !placementHeadHit.stairZone &&
+      placementHeadHit.distance > 0.06 &&
+      placementHeadHit.distance < 0.35
+    ) {
+      log(`placement head clearance ${placementHeadHit.distance.toFixed(3)}`)
+      return false
+    }
+    // Commit cross-layer ownership only after all placement checks pass.
+    // Resolving the capsule against solid stair CAD would undo the climb.
     if (best.layerId) world.setQueryLayer?.(best.layerId)
-    this.position.set(best.x, best.y, best.z)
+    this.position.set(nextX, best.y, nextZ)
     this.onGround = true
     if (this.debugSteps) console.info(`[StepUp] ok rise=${best.rise.toFixed(3)}`)
     return true

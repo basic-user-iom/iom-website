@@ -111,8 +111,14 @@ async function testAuthoredStairTraversal(direction: 1 | -1): Promise<void> {
     assert.equal(controller.onGround, true, `${direction}: player should settle on the floor`)
 
     let sawAscentIntent = false
+    let ascentFrames = 0
+    let maxAscentFrameMove = 0
+    const ascentStart = direction * controller.position.x
     for (let i = 0; i < 360; i++) {
+      const beforeX = controller.position.x
       controller.update(DT, new Vector3(direction, 0, 0), 1.6)
+      ascentFrames += 1
+      maxAscentFrameMove = Math.max(maxAscentFrameMove, Math.abs(controller.position.x - beforeX))
       sawAscentIntent ||= controller.stairsIntent > 0
       if (direction * controller.position.x > 3.35) break
     }
@@ -121,6 +127,15 @@ async function testAuthoredStairTraversal(direction: 1 | -1): Promise<void> {
     assert.ok(Math.abs(controller.position.y - 1.8) < 0.07, `${direction}: wrong landing height ${controller.position.y}`)
     assert.equal(controller.onGround, true, `${direction}: player should remain grounded on landing`)
     assert.equal(sawAscentIntent, true, `${direction}: ascent intent was never reported`)
+    const ascentDistance = direction * controller.position.x - ascentStart
+    assert.ok(
+      ascentDistance / (ascentFrames * DT) <= 2.2,
+      `${direction}: stair traversal exceeded the requested speed`,
+    )
+    assert.ok(
+      maxAscentFrameMove <= 0.081,
+      `${direction}: stair traversal jumped ${maxAscentFrameMove.toFixed(3)} m in one frame`,
+    )
 
     let sawDescentIntent = false
     for (let i = 0; i < 420; i++) {
@@ -295,6 +310,83 @@ class SparseVolumeWorld implements ICollisionWorld {
   dispose(): void {}
 }
 
+/** One seam probe is 2.6 cm low; its neighbours still report level ground. */
+class NoisySingleProbeWorld implements ICollisionWorld {
+  async rebuild(): Promise<{ ms: number; triangles: number }> {
+    return { ms: 0, triangles: 1 }
+  }
+
+  raycast(): CollisionHit | null {
+    return null
+  }
+
+  raycastBestGround(origin: Vector3, maxDistance = 0): CollisionHit | null {
+    if (maxDistance > 1.14) {
+      const seamDrop = origin.x > 0.2 && origin.x < 0.3 ? 0.026 : 0
+      const y = origin.y - 0.08 - seamDrop
+      return { point: new Vector3(origin.x, y, origin.z), normal: UP.clone(), distance: origin.y - y }
+    }
+    if (maxDistance > 1) {
+      const y = origin.y - 0.47
+      return { point: new Vector3(origin.x, y, origin.z), normal: UP.clone(), distance: origin.y - y }
+    }
+    return null
+  }
+
+  stairWellAt(): { minY: number; maxY: number } {
+    return { minY: 0, maxY: 3 }
+  }
+
+  capsuleIntersect(): CapsuleQueryResult {
+    return { depth: 0.08, normal: new Vector3(-1, 0, 0), stairZone: true }
+  }
+
+  dispose(): void {}
+}
+
+/** The probe sees a clear tread, but the capped placement is under a low beam. */
+class CappedStepLowOverhangWorld implements ICollisionWorld {
+  private queryLayer = 'base-layer'
+
+  async rebuild(): Promise<{ ms: number; triangles: number }> {
+    return { ms: 0, triangles: 1 }
+  }
+
+  raycast(origin: Vector3, direction: Vector3): CollisionHit | null {
+    if (direction.y < 0.5 || origin.x >= 0.1) return null
+    return {
+      point: new Vector3(origin.x, origin.y + 0.1, origin.z),
+      normal: UP.clone(),
+      distance: 0.1,
+      stairZone: false,
+    }
+  }
+
+  raycastBestGround(origin: Vector3): CollisionHit {
+    const y = origin.x >= 0.14 ? 0.18 : 0
+    return {
+      point: new Vector3(origin.x, y, origin.z),
+      normal: UP.clone(),
+      distance: origin.y - y,
+      layerId: origin.x >= 0.14 ? 'upper-layer' : 'base-layer',
+    }
+  }
+
+  getQueryLayer(): string {
+    return this.queryLayer
+  }
+
+  setQueryLayer(layerId: string | null): void {
+    this.queryLayer = layerId ?? 'base-layer'
+  }
+
+  capsuleIntersect(): null {
+    return null
+  }
+
+  dispose(): void {}
+}
+
 /**
  * Models the ambiguous geometry at the top of a solid CAD stair flight.
  *
@@ -367,6 +459,81 @@ function testVolumeFallbackContinuesAcrossHollowRun(): void {
     `latched stair-volume ascent stopped over a hollow run (${controller.position.y})`,
   )
   assert.equal(controller.onGround, true)
+}
+
+function testSingleNoisyProbeDoesNotVetoAscent(): void {
+  const controller = new CharacterController()
+  controller.setWorld(new NoisySingleProbeWorld())
+  controller.setFeetPosition(new Vector3(0, 1, 0))
+  controller.onGround = true
+  controller.update(DT, new Vector3(1, 0, 0), 1)
+  assert.ok(
+    controller.position.y > 1.04,
+    `one low seam probe incorrectly vetoed stair ascent (Y=${controller.position.y})`,
+  )
+}
+
+function testCappedStepChecksPlacementHeadroom(): void {
+  const controller = new CharacterController()
+  const world = new CappedStepLowOverhangWorld()
+  controller.setWorld(world)
+  controller.setFeetPosition(new Vector3(0, 0, 0))
+  controller.onGround = true
+  controller.update(DT, new Vector3(1, 0, 0), 1)
+  assert.ok(
+    controller.position.y < 0.03,
+    `capped step bypassed the low overhang at its actual placement (Y=${controller.position.y})`,
+  )
+  assert.equal(world.getQueryLayer(), 'base-layer', 'rejected step changed collision layer ownership')
+}
+
+function testDedicatedDecorIsExcludedFromWalkCollision(): void {
+  const root = new Group()
+  const material = new MeshBasicMaterial()
+  const floor = new Mesh(new BoxGeometry(6, 0.1, 6), material)
+  floor.name = 'COLLIDER_RG_Teil_01'
+  root.add(floor)
+
+  const elevator = new Mesh(new BoxGeometry(2, 0.1, 2), material)
+  elevator.name = 'COLLIDER_Fahrstuhl'
+  root.add(elevator)
+
+  const signGroup = new Group()
+  signGroup.name = 'COLLIDER_Schild_Saal_01'
+  const sign = new Mesh(new BoxGeometry(3, 0.1, 2), material)
+  sign.name = 'COLLIDER_Mesh_1874'
+  signGroup.add(sign)
+  root.add(signGroup)
+
+  for (const name of [
+    'COLLIDER_BT3_innenwaende_003',
+    'COLLIDER_TU_Links_Hinten',
+    'COLLIDER_Kabine_S_D_Sprinkler',
+  ]) {
+    const fixture = new Mesh(new BoxGeometry(3, 0.1, 2), material)
+    fixture.name = name
+    root.add(fixture)
+  }
+  root.updateMatrixWorld(true)
+  const built = buildCollisionChunks(root, {
+    layerId: 'decor-filter-fixture',
+    verbose: false,
+    ignoreVisibility: true,
+    walkSurfacesOnly: true,
+  })
+
+  try {
+    const names = built.chunks.flatMap((chunk) => chunk.sourceNames ?? [])
+    assert.ok(names.includes('COLLIDER_RG_Teil_01'), 'auditorium support floor was removed')
+    assert.ok(names.includes('COLLIDER_Fahrstuhl'), 'chair filter removed Fahrstuhl elevator collision')
+    assert.ok(!names.includes('COLLIDER_Mesh_1874'), 'auditorium sign remained walk collision')
+    assert.ok(!names.includes('COLLIDER_BT3_innenwaende_003'), 'interior wall remained walk collision')
+    assert.ok(!names.includes('COLLIDER_TU_Links_Hinten'), 'obsolete aisle connector remained walk collision')
+    assert.ok(!names.includes('COLLIDER_Kabine_S_D_Sprinkler'), 'sprinkler remained walk collision')
+  } finally {
+    for (const chunk of built.chunks) chunk.geometry.dispose()
+    disposeFixture(root, material)
+  }
 }
 
 function testVolumeFallbackReversePrefersDescentOverStepUp(): void {
@@ -476,6 +643,9 @@ await testAuthoredStairTraversal(-1)
 await testCrossLayerStairHandoff()
 testVolumeFallbackDirectionGuard()
 testVolumeFallbackContinuesAcrossHollowRun()
+testSingleNoisyProbeDoesNotVetoAscent()
+testCappedStepChecksPlacementHeadroom()
+testDedicatedDecorIsExcludedFromWalkCollision()
 testVolumeFallbackReversePrefersDescentOverStepUp()
 testGroundAboveFeetIsNotGrounding()
 await testBestGroundLooksPastSteepHit()

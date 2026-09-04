@@ -6,8 +6,8 @@
     "sha256": "3f37a14c33a38362ddff0b1f0dcc76d15ca3b9f757fb4183799d9e6d70ee0b48",
     "bytes": 5111224,
     "runtime": {
-      "triangles": 120415,
-      "chunks": 304,
+      "triangles": 107771,
+      "chunks": 284,
       "boundsMin": [
         -176.39608764648438,
         -0.6586952805519104,
@@ -18,13 +18,13 @@
         22.88001823425293,
         88.41493225097656
       ],
-      "preferredColliderMeshes": 2525
+      "preferredColliderMeshes": 2309
     }
   },
   "coverageReport": {
     "url": "/models/icm-anim-2025/collision-coverage-v1.json",
-    "sha256": "594c6996db15331b42439d914a29a85b86f109e07b258777d252ee1389d384a9",
-    "bytes": 7111
+    "sha256": "93551fab8fe631a1d5f2c1fb595d6d7fc739272bb99a6252a32cd530e8911cfd",
+    "bytes": 7110
   },
   "requirements": {
     "spawnProbeId": "spawn-foyer-west",

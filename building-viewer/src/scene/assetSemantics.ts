@@ -58,6 +58,36 @@ export const ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS = [
   { name: 'TR_Stufen005_2OG_landing', centerX: -74.16, centerZ: 41.3 },
 ] as const
 
+/** Narrow collision guides for the two stepped auditorium aisles. */
+export const ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS = [
+  {
+    name: 'auditorium_aisle_a',
+    width: 2.2,
+    points: [
+      [-22.654, 0.507, -61.492],
+      [-24.468, 0.979, -60.31],
+      [-28.712, 2.275, -57.546],
+      [-34.39, 3.81, -53.848],
+      [-37.742, 4.534, -51.664],
+      [-41.09, 5.309, -49.484],
+      [-42.766, 5.8, -48.388],
+    ],
+  },
+  {
+    name: 'auditorium_aisle_b',
+    width: 2.2,
+    points: [
+      [-36.634, 0.507, -85.228],
+      [-38.544, 0.979, -84.214],
+      [-43.012, 2.275, -81.842],
+      [-49, 3.81, -78.662],
+      [-52.528, 4.534, -76.786],
+      [-56.06, 5.309, -74.91],
+      [-58.709, 5.8, -73.503],
+    ],
+  },
+] as const
+
 /** Known rendered stair surfaces missing from icm-anim-2025 collision.glb. */
 export function isIcmAnimatedWalkCollisionSupplement(object: Object3D): boolean {
   if (!(object as Mesh).isMesh) return false

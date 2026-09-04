@@ -40,7 +40,7 @@ const WALL_NAME =
 
 /** Never use for walking collision (glass, decor, ceilings, fixtures). */
 const SKIP_COLLISION_NAME =
-  /glass|window|glazing|fenster|scheib|sign|light|lamp|furniture|chair|table|desk|sofa|plant|foliage|curtain|decal|logo|icon|screen|monitor|decke|ceiling|soffit|abgehaengte|abhäng|abhang|fixture|cabinet|shelf|bookshelf|handrail.?detail|ornament|sculpture|artwork|picture|frame(?!work)|ausstellung|grundriss|lageplan|floorplan|bim[\s._-]?world|baum_position|^plane001(\.|$)|gebude_123/i
+  /glass|window|glazing|fenster|scheib|sign|schild|light|lamp|furniture|chair|(?:^|[^a-z])stuhl(?:$|[^a-z])|(?:^|[^a-z])sitz(?:$|[^a-z])|table|desk|sofa|plant|foliage|curtain|decal|logo|icon|screen|monitor|speaker|sprecher|sprinkler|decke|ceiling|soffit|abgehaengte|abhäng|abhang|fixture|cabinet|shelf|bookshelf|handrail.?detail|ornament|sculpture|artwork|picture|frame(?!work)|ausstellung|grundriss|lageplan|floorplan|bim[\s._-]?world|baum_position|^plane001(\.|$)|gebude_123|bt3_innenwaende|tu_(?:links|rechts)_hinten/i
 
 const COLLIDER_NAME = /^COLLIDER_/i
 const NO_WALK_NAME = /^NO_WALK_/i
@@ -333,7 +333,6 @@ export function buildCollisionChunks(
 
     if (
       !explicitWalkable &&
-      !isDedicated &&
       (SKIP_COLLISION_NAME.test(pathLabel) || SKIP_COLLISION_NAME.test(material))
     ) {
       skipped.push({

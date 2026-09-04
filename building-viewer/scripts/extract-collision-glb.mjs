@@ -22,10 +22,10 @@ const RAILING =
 const WALL =
   /wall|column|pillar|beam|corridor|railing|balustrade|wand|pfeiler|geländer|gelander|handlauf/i
 const SKIP =
-  /glass|window|glazing|fenster|scheib|sign|light|lamp|leuchte|furniture|möbel|moebel|mbel|chair|table|desk|sofa|plant|foliage|curtain|decal|logo|icon|screen|monitor|decke|ceiling|soffit|fixture|cabinet|shelf|door|tür|tuer|lüftung|lueftung|luftung|lftung|ventilation|duct/i
+  /glass|window|glazing|fenster|scheib|sign|schild|light|lamp|leuchte|furniture|möbel|moebel|mbel|chair|(?:^|[^a-z])stuhl(?:$|[^a-z])|(?:^|[^a-z])sitz(?:$|[^a-z])|table|desk|sofa|plant|foliage|curtain|decal|logo|icon|screen|monitor|speaker|sprecher|sprinkler|decke|ceiling|soffit|fixture|cabinet|shelf|door|tür|tuer|lüftung|lueftung|luftung|lftung|ventilation|duct|bt3_innenwaende|tu_(?:links|rechts)_hinten/i
 /** Explicit non-walk owners win over reused floor/stair materials. */
 const NON_WALK_OWNER =
-  /wall|wand|door|tür|tuer|window|fenster|ceiling|decke|soffit|light|lamp|leuchte|furniture|möbel|moebel|mbel|chair|table|desk|sofa|cabinet|shelf|lüftung|lueftung|luftung|lftung|ventilation|duct/i
+  /wall|wand|innenwände|innenwaende|door|tür|tuer|window|fenster|ceiling|decke|soffit|light|lamp|leuchte|furniture|möbel|moebel|mbel|chair|(?:^|[^a-z])stuhl(?:$|[^a-z])|(?:^|[^a-z])sitz(?:$|[^a-z])|table|desk|sofa|cabinet|shelf|lüftung|lueftung|luftung|lftung|ventilation|duct/i
 const STAIR_OR_RAMP =
   /stair|step|tread|riser|landing|treppe|stufe|stufen|podest|laufband|rolltreppe|escalator|ramp/i
 

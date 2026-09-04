@@ -1,4 +1,6 @@
 import {
+  BufferGeometry,
+  Float32BufferAttribute,
   Group,
   Mesh,
   PlaneGeometry,
@@ -67,6 +69,7 @@ import { disposeObject3D } from './utils/disposeScene'
 import { InspectPicker, type InspectPickInfo } from './controls/InspectPicker'
 import { isOrbitDuplicateMesh } from './scene/orbitDuplicatePolicy'
 import {
+  ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS,
   ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS,
   isIcmAnimatedWalkCollisionSupplement,
   isIcmBridgeCollisionSupplement,
@@ -1269,9 +1272,9 @@ export class ViewerEngine {
       isExplicitWalkable: needsVisualSupplement,
       doubleSided: true,
     })
-    let landingSupplement: ReturnType<typeof buildCollisionChunks> | null = null
+    let navigationSupplement: ReturnType<typeof buildCollisionChunks> | null = null
     if (layer.id === 'icm-anim-2025') {
-      const landingRoot = new Group()
+      const navigationRoot = new Group()
       for (const spec of ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS) {
         // The omitted source floor spans the entire stairwell. Merging it
         // wholesale creates an invisible upper floor over both flights, so
@@ -1281,10 +1284,54 @@ export class ViewerEngine {
         const landing = new Mesh(geometry)
         landing.name = `COLLIDER_stair_landing_${spec.name}`
         landing.position.set(spec.centerX, 10.00005, spec.centerZ)
-        landingRoot.add(landing)
+        navigationRoot.add(landing)
       }
-      landingRoot.updateMatrixWorld(true)
-      landingSupplement = buildCollisionChunks(landingRoot, {
+      for (const aisle of ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS) {
+        for (let index = 0; index + 1 < aisle.points.length; index += 1) {
+          const start = aisle.points[index]!
+          const end = aisle.points[index + 1]!
+          const dx = end[0] - start[0]
+          const dz = end[2] - start[2]
+          const length = Math.hypot(dx, dz)
+          if (length < 1e-6) continue
+          const sideX = (-dz / length) * aisle.width * 0.5
+          const sideZ = (dx / length) * aisle.width * 0.5
+          const rise = end[1] - start[1]
+          const stepCount = Math.max(1, Math.ceil(Math.abs(rise) / 0.19))
+          const overlap = Math.min(0.012, 0.04 / length)
+          const lift = 0.025
+          const vertices: number[] = []
+          // Horizontal tread-only strips remove the exported riser snags while
+          // retaining normal walking speed. A continuous ramp would trigger
+          // look-ahead step-up every frame and accelerate the controller.
+          for (let step = 0; step <= stepCount; step += 1) {
+            const startT = Math.max(0, step / stepCount - overlap)
+            const endT = Math.min(1 + 0.2 / length, (step + 1) / stepCount + overlap)
+            const y = start[1] + rise * (step / stepCount) + lift
+            const startX = start[0] + dx * startT
+            const startZ = start[2] + dz * startT
+            const endX = start[0] + dx * endT
+            const endZ = start[2] + dz * endT
+            vertices.push(
+              startX + sideX, y, startZ + sideZ,
+              endX + sideX, y, endZ + sideZ,
+              endX - sideX, y, endZ - sideZ,
+              startX + sideX, y, startZ + sideZ,
+              endX - sideX, y, endZ - sideZ,
+              startX - sideX, y, startZ - sideZ,
+            )
+          }
+          const geometry = new BufferGeometry()
+          geometry.setAttribute('position', new Float32BufferAttribute(vertices, 3))
+          const treads = new Mesh(geometry)
+          // Keep this a normal walk surface, not a stair-volume zone: the
+          // flight-wide AABB would otherwise latch the solid-volume fallback.
+          treads.name = `COLLIDER_walk_${aisle.name}_${index}`
+          navigationRoot.add(treads)
+        }
+      }
+      navigationRoot.updateMatrixWorld(true)
+      navigationSupplement = buildCollisionChunks(navigationRoot, {
         layerId: layer.id,
         verbose: false,
         ignoreVisibility: true,
@@ -1292,15 +1339,15 @@ export class ViewerEngine {
         isExplicitWalkable: () => true,
         doubleSided: true,
       })
-      disposeObject3D(landingRoot)
+      disposeObject3D(navigationRoot)
     }
-    const supplementReports = [supplemental.report, landingSupplement?.report].filter(
+    const supplementReports = [supplemental.report, navigationSupplement?.report].filter(
       (entry): entry is CollisionBuildReport => Boolean(entry),
     )
     const chunks = [
       ...dedicated,
       ...supplemental.chunks,
-      ...(landingSupplement?.chunks ?? []),
+      ...(navigationSupplement?.chunks ?? []),
     ]
     const report = {
       ...dedicatedReport,

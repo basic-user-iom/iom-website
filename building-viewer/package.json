@@ -29,6 +29,7 @@
     "test:stream-payload-offline": "node scripts/test-stream-payload-offline-gate.mjs",
     "test:verified-glb": "node scripts/test-verified-glb-boundary.mjs",
     "qa:surface-visibility": "node scripts/qa-surface-visibility.mjs",
+    "qa:auditorium-navigation": "node scripts/qa-auditorium-navigation.mjs",
     "qa:dual-layer-grounding": "node scripts/qa-dual-layer-grounding.mjs",
     "qa:lighting-calibration": "node scripts/qa-lighting-calibration.mjs",
     "model:validate": "node scripts/validate-model-assets.mjs",
