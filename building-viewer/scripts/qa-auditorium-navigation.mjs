@@ -280,6 +280,7 @@ try {
       let minSupportGap = Infinity
       let maxSupportGap = -Infinity
       let minRenderedGap = Infinity
+      let maxRenderedGap = -Infinity
       let renderedSamples = 0
 
       for (let pointIndex = 1; pointIndex < points.length; pointIndex += 1) {
@@ -378,6 +379,7 @@ try {
             const renderedGap = controller.position.y - renderedY
             renderedSamples += 1
             minRenderedGap = Math.min(minRenderedGap, renderedGap)
+            maxRenderedGap = Math.max(maxRenderedGap, renderedGap)
             if (renderedGap < -0.04 && belowRenderedSamples.length < 12) {
               belowRenderedSamples.push({
                 pointIndex,
@@ -429,6 +431,7 @@ try {
         minSupportGap: Number.isFinite(minSupportGap) ? minSupportGap : null,
         maxSupportGap: Number.isFinite(maxSupportGap) ? maxSupportGap : null,
         minRenderedGap: Number.isFinite(minRenderedGap) ? minRenderedGap : null,
+        maxRenderedGap: Number.isFinite(maxRenderedGap) ? maxRenderedGap : null,
         renderedSamples,
         wrongQueryLayerSamples,
         foreignSupportSamples,
@@ -460,6 +463,66 @@ try {
       }
     }
 
+    const stageFloorRoute = [
+      [-20.2617556, 0, -81.4699167],
+      [-23.3067315, 0, -86.6398413],
+    ]
+    const sampleStageFloorSurface = () => {
+      const x = -21.8857425625
+      const z = -84.2272101488
+      world.setQueryLayer(animatedLayerId)
+      world.setPlacementMode(false)
+      const origin = controller.position.clone().set(x, 7, z)
+      // Force a real regional refresh before comparing it with the all-resident
+      // diagnostic path. The defect originally reproduced in both modes.
+      world.setFocus(controller.position.clone().set(x + 100, 7, z + 100))
+      world.setFocus(origin)
+      const activeCollision = world.raycastBestGround(origin, 8, controller.params.maxSlope)
+      const active = activeCollision ? {
+        y: activeCollision.point.y,
+        layerId: activeCollision.layerId || null,
+        sourceName: activeCollision.sourceName || null,
+        sourceNames: sourceMap.get(activeCollision.sourceName) || [],
+      } : null
+      world.setFocus(origin, { forceAll: true })
+      const forceAllCollision = world.raycastBestGround(origin, 8, controller.params.maxSlope)
+      const forceAll = forceAllCollision ? {
+        y: forceAllCollision.point.y,
+        layerId: forceAllCollision.layerId || null,
+        sourceName: forceAllCollision.sourceName || null,
+        sourceNames: sourceMap.get(forceAllCollision.sourceName) || [],
+      } : null
+      const renderedY = renderedAuditoriumY(x, z)
+      const matchingSources = layerSources.filter((candidate) =>
+        candidate.sourceNames?.length === 1 &&
+        candidate.sourceNames[0] === 'COLLIDER_BD_Absenkung'
+      )
+      const source = matchingSources[0]
+      const matchingResidents = world.resident.filter(
+        (candidate) => candidate.sourceName === source?.name,
+      )
+      const resident = matchingResidents[0]
+      return {
+        x,
+        z,
+        expectedRenderedY: 0,
+        renderedY,
+        active,
+        forceAll,
+        activeDelta: active && renderedY != null ? active.y - renderedY : null,
+        forceAllDelta: forceAll && renderedY != null ? forceAll.y - renderedY : null,
+        matchingSourceCount: matchingSources.length,
+        matchingResidentCount: matchingResidents.length,
+        sourceTriangles: source?.triangles ?? null,
+        sourceBounds: source ? {
+          min: source.box.min.toArray(),
+          max: source.box.max.toArray(),
+        } : null,
+        sourceDoubleSided: source?.doubleSided ?? null,
+        runtimeMaterialSide: resident?.mesh?.material?.side ?? null,
+      }
+    }
+
     const results = []
     results.push(run('chair-side', inputRoutes.chairSide))
     for (const [name, points] of Object.entries(inputRoutes).filter(([name]) => name !== 'chairSide')) {
@@ -471,16 +534,23 @@ try {
     viewer.seekAnimationNormalized(0)
     animatedRoot?.updateMatrixWorld(true)
     const exactEdgeSurface = sampleExactEdgeSurface()
+    const stageFloorSurface = sampleStageFloorSurface()
     const sinkRegression = [0, -4, 4].map((driftDegrees) =>
       runContinuousApproach(
         `aisleA-edge-minus075-drift-${driftDegrees >= 0 ? 'plus' : 'minus'}${Math.abs(driftDegrees)}`,
         makeAisleAEdgeRoute(driftDegrees),
       ),
     )
+    const stageFloorRoutes = [
+      runContinuousApproach('stage-front-cross-aisle-forward', stageFloorRoute),
+      runContinuousApproach('stage-front-cross-aisle-reverse', [...stageFloorRoute].reverse()),
+    ]
     return {
       results,
       exactEdgeSurface,
       sinkRegression,
+      stageFloorSurface,
+      stageFloorRoutes,
       sourceNames,
       auditoriumSurfaceCandidates: auditoriumSurfaces.map((surface) => ({
         name: surface.name || '',
@@ -623,6 +693,98 @@ try {
     )
     assert.ok(route.renderedSamples > 0, `${route.name}: no rendered stair samples were collected`)
   }
+
+  assert.ok(report.stageFloorSurface, 'missing stage-side floor witness')
+  assert.equal(
+    report.stageFloorSurface.matchingSourceCount,
+    1,
+    'expected exactly one COLLIDER_BD_Absenkung source chunk',
+  )
+  assert.equal(
+    report.stageFloorSurface.matchingResidentCount,
+    1,
+    'expected exactly one resident COLLIDER_BD_Absenkung chunk',
+  )
+  assert.equal(
+    report.stageFloorSurface.sourceTriangles,
+    12,
+    'audited stage-floor collider triangle count changed',
+  )
+  const expectedStageFloorBounds = {
+    min: [-25.3938, -0.300041, -92.4871],
+    max: [-8.4663, 0.000017, -69.0419],
+  }
+  for (const edge of ['min', 'max']) {
+    assert.equal(report.stageFloorSurface.sourceBounds?.[edge]?.length, 3)
+    report.stageFloorSurface.sourceBounds[edge].forEach((value, index) => {
+      assert.ok(
+        Math.abs(value - expectedStageFloorBounds[edge][index]) <= 0.002,
+        `stage-floor ${edge}[${index}] changed: ${value}`,
+      )
+    })
+  }
+  assert.ok(
+    report.stageFloorSurface.renderedY != null &&
+      Math.abs(
+        report.stageFloorSurface.renderedY - report.stageFloorSurface.expectedRenderedY,
+      ) <= 0.01,
+    `stage-side rendered floor changed: ${report.stageFloorSurface.renderedY}`,
+  )
+  assert.equal(
+    report.stageFloorSurface.sourceDoubleSided,
+    true,
+    'COLLIDER_BD_Absenkung source was not protected as DoubleSide',
+  )
+  assert.equal(
+    report.stageFloorSurface.runtimeMaterialSide,
+    2,
+    'COLLIDER_BD_Absenkung runtime chunk is not using Three.DoubleSide',
+  )
+  for (const [mode, collision, delta] of [
+    ['active', report.stageFloorSurface.active, report.stageFloorSurface.activeDelta],
+    ['force-all', report.stageFloorSurface.forceAll, report.stageFloorSurface.forceAllDelta],
+  ]) {
+    assert.ok(collision, `stage-side ${mode} query found no support`)
+    assert.equal(
+      collision.layerId,
+      'icm-anim-2025',
+      `stage-side ${mode} support came from ${collision.layerId}`,
+    )
+    assert.deepEqual(
+      collision.sourceNames,
+      ['COLLIDER_BD_Absenkung'],
+      `stage-side ${mode} support came from ${collision.sourceNames.join(', ')}`,
+    )
+    assert.ok(
+      delta != null && Math.abs(delta) <= 0.04,
+      `stage-side ${mode} collision/render gap is ${delta?.toFixed(3)} m`,
+    )
+  }
+
+  assert.equal(report.stageFloorRoutes.length, 2, 'missing bidirectional stage-floor routes')
+  for (const route of report.stageFloorRoutes) {
+    assert.ok(route.startSupport, `${route.name}: no stage-floor support at route start`)
+    assert.equal(route.startSupport.layerId, 'icm-anim-2025')
+    assert.deepEqual(route.startSupport.sourceNames, ['COLLIDER_BD_Absenkung'])
+    assert.equal(route.initialGrounded, true, `${route.name}: did not settle grounded`)
+    assert.equal(route.initialQueryLayer, 'icm-anim-2025')
+    assert.equal(route.legs.length, 1, `${route.name}: route produced the wrong leg count`)
+    assert.equal(route.legs[0]?.reached, true, `${route.name}: failed to cross the stage floor`)
+    assert.ok(route.legs[0]?.maxFrameMove <= 0.2, `${route.name}: made an oversized frame move`)
+    assert.deepEqual(route.wrongQueryLayerSamples, [], `${route.name}: query layer changed`)
+    assert.deepEqual(route.foreignSupportSamples, [], `${route.name}: used foreign support`)
+    assert.equal(route.maxAirborneFrames, 0, `${route.name}: became airborne`)
+    assert.equal(route.maxUnsupportedFrames, 0, `${route.name}: lost floor support`)
+    assert.ok(
+      route.minRenderedGap != null && route.minRenderedGap >= -0.04,
+      `${route.name}: feet fell ${Math.abs(route.minRenderedGap ?? 0).toFixed(3)} m below the visible floor`,
+    )
+    assert.ok(
+      route.maxRenderedGap != null && route.maxRenderedGap <= 0.04,
+      `${route.name}: feet floated ${(route.maxRenderedGap ?? 0).toFixed(3)} m above the visible floor`,
+    )
+    assert.ok(route.renderedSamples > 0, `${route.name}: sampled no rendered floor`)
+  }
   assert.deepEqual(pageErrors, [], `page errors: ${pageErrors.join('\n')}`)
   report.ok = true
 } catch (error) {
@@ -658,6 +820,19 @@ console.log(JSON.stringify({
     maxUnsupportedFrames: route.maxUnsupportedFrames,
     minSupportGap: route.minSupportGap,
     minRenderedGap: route.minRenderedGap,
+    maxRenderedGap: route.maxRenderedGap,
+    wrongQueryLayerSamples: route.wrongQueryLayerSamples,
+    finalFeet: route.legs.at(-1)?.feet ?? null,
+  })) ?? [],
+  stageFloorSurface: report.stageFloorSurface,
+  stageFloorRoutes: report.stageFloorRoutes?.map((route) => ({
+    name: route.name,
+    legs: route.legs.length,
+    maxAirborneFrames: route.maxAirborneFrames,
+    maxUnsupportedFrames: route.maxUnsupportedFrames,
+    minSupportGap: route.minSupportGap,
+    minRenderedGap: route.minRenderedGap,
+    maxRenderedGap: route.maxRenderedGap,
     wrongQueryLayerSamples: route.wrongQueryLayerSamples,
     finalFeet: route.legs.at(-1)?.feet ?? null,
   })) ?? [],

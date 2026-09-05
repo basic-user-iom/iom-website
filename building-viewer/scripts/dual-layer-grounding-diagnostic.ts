@@ -21,6 +21,7 @@ import {
 } from '../src/controls/PegmanPlacement'
 import { DEFAULT_CHARACTER_PARAMS } from '../src/collision/types'
 import {
+  applyIcmDedicatedCollisionFacePolicy,
   ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS,
   isIcmAnimatedWalkCollisionSupplement,
   isIcmBridgeCollisionSupplement,
@@ -39,6 +40,29 @@ function floorChunk(name: string, y: number, size = 12, stairZone = false): Coll
     triangles: 2,
     name,
     stairZone,
+  }
+}
+
+function mirroredFloorPrismChunk(
+  name: string,
+  sourceNames: string[],
+): CollisionChunkSource {
+  const min = new Vector3(-25.3938, -0.300041, -92.4871)
+  const max = new Vector3(-8.4663, 0.000017, -69.0419)
+  const size = max.clone().sub(min)
+  const center = min.clone().add(max).multiplyScalar(0.5)
+  const geometry = new BoxGeometry(size.x, size.y, size.z)
+  geometry.applyMatrix4(new Matrix4().makeScale(-1, 1, 1))
+  geometry.translate(center.x, center.y, center.z)
+  geometry.computeBoundingBox()
+  const box = geometry.boundingBox?.clone()
+  if (!box) throw new Error(`Synthetic mirrored floor ${name} has no bounds`)
+  return {
+    geometry,
+    box,
+    triangles: 12,
+    name,
+    sourceNames,
   }
 }
 
@@ -143,6 +167,98 @@ assert.equal(
   'read-only bridge queries must not mutate layer ownership',
 )
 layerBridgeWorld.dispose()
+
+// The stage-side BD_Absenkung slab is mirrored in the dedicated collision GLB.
+// FrontSide sees its lower face at -0.30 m; the exact, sole-source policy must
+// preserve its authored DoubleSide intent without widening to fuzzy names,
+// mixed chunks, other layers, or unrelated auditorium collision.
+const unprotectedMirroredChunk = mirroredFloorPrismChunk(
+  'unprotected-stage-floor',
+  ['COLLIDER_BD_Absenkung'],
+)
+const unprotectedMirroredWorld = new CollisionWorld()
+unprotectedMirroredWorld.setLayerChunks('icm-anim-2025', [unprotectedMirroredChunk])
+await unprotectedMirroredWorld.rebuildFromLayers(['icm-anim-2025'])
+const stageFloorOrigin = new Vector3(-16.93005, 1, -80.7645)
+const unprotectedMirroredGround = unprotectedMirroredWorld.raycastBestGround(
+  stageFloorOrigin,
+  2,
+  0.7,
+)
+assert.ok(unprotectedMirroredGround)
+assert.ok(
+  Math.abs(unprotectedMirroredGround.point.y + 0.300041) < 1e-5,
+  'fixture must reproduce the 30 cm reverse-wound stage-floor sink',
+)
+unprotectedMirroredWorld.dispose()
+
+const protectedMirroredChunk = mirroredFloorPrismChunk(
+  'protected-stage-floor',
+  ['COLLIDER_BD_Absenkung'],
+)
+assert.equal(
+  applyIcmDedicatedCollisionFacePolicy('icm-anim-2025', [protectedMirroredChunk]),
+  1,
+)
+assert.equal(protectedMirroredChunk.doubleSided, true)
+const protectedMirroredWorld = new CollisionWorld()
+protectedMirroredWorld.setLayerChunks('icm-anim-2025', [protectedMirroredChunk])
+await protectedMirroredWorld.rebuildFromLayers(['icm-anim-2025'])
+const protectedMirroredGround = protectedMirroredWorld.raycastBestGround(
+  stageFloorOrigin,
+  2,
+  0.7,
+)
+assert.ok(protectedMirroredGround)
+assert.ok(
+  Math.abs(protectedMirroredGround.point.y - 0.000017) < 1e-5,
+  'audited DoubleSide policy must restore the mirrored stage-floor top',
+)
+protectedMirroredWorld.dispose()
+
+for (const [layerId, sourceNames] of [
+  ['icm-anim-2025', ['COLLIDER_BD_Absenkung_extra']],
+  ['icm-anim-2025', ['COLLIDER_BD_Absenkung', 'COLLIDER_other_floor']],
+  ['icm-ext', ['COLLIDER_BD_Absenkung']],
+] as const) {
+  const control = mirroredFloorPrismChunk('stage-floor-control', [...sourceNames])
+  assert.equal(applyIcmDedicatedCollisionFacePolicy(layerId, [control]), 0)
+  assert.notEqual(control.doubleSided, true)
+  control.geometry.dispose()
+}
+
+const changedTriangleCount = mirroredFloorPrismChunk(
+  'stage-floor-changed-triangles',
+  ['COLLIDER_BD_Absenkung'],
+)
+changedTriangleCount.triangles = 10
+assert.equal(
+  applyIcmDedicatedCollisionFacePolicy('icm-anim-2025', [changedTriangleCount]),
+  0,
+)
+changedTriangleCount.geometry.dispose()
+
+const changedBounds = mirroredFloorPrismChunk(
+  'stage-floor-changed-bounds',
+  ['COLLIDER_BD_Absenkung'],
+)
+changedBounds.box.min.x -= 0.01
+assert.equal(
+  applyIcmDedicatedCollisionFacePolicy('icm-anim-2025', [changedBounds]),
+  0,
+)
+changedBounds.geometry.dispose()
+
+const duplicateStageFloors = [
+  mirroredFloorPrismChunk('stage-floor-duplicate-a', ['COLLIDER_BD_Absenkung']),
+  mirroredFloorPrismChunk('stage-floor-duplicate-b', ['COLLIDER_BD_Absenkung']),
+]
+assert.equal(
+  applyIcmDedicatedCollisionFacePolicy('icm-anim-2025', duplicateStageFloors),
+  0,
+)
+assert.ok(duplicateStageFloors.every((chunk) => chunk.doubleSided !== true))
+duplicateStageFloors.forEach((chunk) => chunk.geometry.dispose())
 
 // Auditorium support is extracted from the rendered floor but must be clipped
 // to the aisle itself; the real source mesh also spans the seating platforms.

@@ -1,4 +1,5 @@
 import type { Material, Mesh, Object3D } from 'three'
+import type { CollisionChunkSource } from '../collision/buildCollisionChunks'
 
 export const IOM_MATERIAL_ROLE_KEY = 'iomMaterialRole'
 export const IOM_DOUBLE_SIDED_REASON_KEY = 'iomDoubleSidedReason'
@@ -9,6 +10,13 @@ const ICM_BRIDGE_FLOOR_NAMES = new Set(['Floor', 'Floor001', 'Floor_Mitte'])
 const ICM_BRIDGE_FLOOR_MATERIAL = 'vray Bruecke_Gitter'
 const ICM_GANGWAY_NAME = 'Gangway_Raster'
 const ICM_GANGWAY_MATERIAL = 'vray Bruecke_Gitter_saal_14'
+const ICM_ANIMATED_REVERSE_WOUND_FLOOR = {
+  sourceName: 'COLLIDER_BD_Absenkung',
+  triangles: 12,
+  min: [-25.3938, -0.300041, -92.4871],
+  max: [-8.4663, 0.000017, -69.0419],
+  boundsTolerance: 0.002,
+} as const
 
 function materialNames(mesh: Mesh): string[] {
   const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
@@ -42,6 +50,52 @@ export function isIcmBridgeCollisionSupplement(object: Object3D): boolean {
     ICM_BRIDGE_FLOOR_NAMES.has(mesh.name) &&
     materialNames(mesh).includes(ICM_BRIDGE_FLOOR_MATERIAL)
   )
+}
+
+/**
+ * Exact dedicated-collider owners whose authored top faces are reverse-wound.
+ * Keep this fail-closed: broad name matching can make ceilings or undersides
+ * eligible as walkable ground when a downward ray crosses the same chunk.
+ */
+export function isIcmAnimatedDoubleSidedCollisionSource(sourceName: string): boolean {
+  return sourceName === ICM_ANIMATED_REVERSE_WOUND_FLOOR.sourceName
+}
+
+function matchesIcmAnimatedReverseWoundFloor(chunk: CollisionChunkSource): boolean {
+  const sourceNames = chunk.sourceNames ?? []
+  if (
+    sourceNames.length !== 1 ||
+    !isIcmAnimatedDoubleSidedCollisionSource(sourceNames[0]!) ||
+    chunk.triangles !== ICM_ANIMATED_REVERSE_WOUND_FLOOR.triangles
+  ) {
+    return false
+  }
+  const { min, max, boundsTolerance } = ICM_ANIMATED_REVERSE_WOUND_FLOOR
+  const actual = [
+    chunk.box.min.x,
+    chunk.box.min.y,
+    chunk.box.min.z,
+    chunk.box.max.x,
+    chunk.box.max.y,
+    chunk.box.max.z,
+  ]
+  const expected = [...min, ...max]
+  return actual.every((value, index) =>
+    Math.abs(value - expected[index]!) <= boundsTolerance,
+  )
+}
+
+export function applyIcmDedicatedCollisionFacePolicy(
+  layerId: string,
+  chunks: readonly CollisionChunkSource[],
+): number {
+  if (layerId !== 'icm-anim-2025') return 0
+  const matches = chunks.filter(matchesIcmAnimatedReverseWoundFloor)
+  // Refuse to widen the workaround if the audited production collider is
+  // missing, duplicated, regrouped, or changes shape.
+  if (matches.length !== 1) return 0
+  matches[0]!.doubleSided = true
+  return 1
 }
 
 // Dedicated collision currently omits these authored circulation owners (or

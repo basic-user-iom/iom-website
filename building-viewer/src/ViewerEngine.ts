@@ -70,6 +70,7 @@ import { isOrbitDuplicateMesh } from './scene/orbitDuplicatePolicy'
 import {
   ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS,
   ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS,
+  applyIcmDedicatedCollisionFacePolicy,
   isIcmAnimatedWalkCollisionSupplement,
   isIcmBridgeCollisionSupplement,
 } from './scene/assetSemantics'
@@ -1247,6 +1248,15 @@ export class ViewerEngine {
     dedicated: CollisionChunkSource[],
     dedicatedReport: CollisionBuildReport,
   ): void {
+    const auditedDoubleSidedChunks = applyIcmDedicatedCollisionFacePolicy(
+      layer.id,
+      dedicated,
+    )
+    if (auditedDoubleSidedChunks > 0) {
+      console.info(
+        `[Collision] ${layer.id}: protected ${auditedDoubleSidedChunks} audited reverse-wound floor chunk(s)`,
+      )
+    }
     const dedicatedNames = dedicated.flatMap((chunk) => chunk.sourceNames ?? [])
     const missingBridgeDeck = (mesh: Mesh): boolean => {
       if (!isIcmBridgeCollisionSupplement(mesh)) return false
