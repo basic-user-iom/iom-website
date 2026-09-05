@@ -355,7 +355,11 @@ export function LinarProductInfo({
           {
             label: 'Felt colour',
             value: findFeltColour(config.feltColour).label,
-            hint: `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm; ${LINAR_FELT_METADATA.representativeVisualThicknessMm} mm visual layer; screen approximation`,
+            hint:
+              config.application === 'freestanding'
+                ? `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm; ${LINAR_FELT_METADATA.representativeVisualThicknessMm} mm visual layer; screen approximation`
+                : `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. Mounted cavity depth is a visual-only construction study; installed thickness is not specified.`,
+            status: config.application === 'freestanding' ? undefined : 'Not tested',
           },
         ] satisfies Row[])
       : []),

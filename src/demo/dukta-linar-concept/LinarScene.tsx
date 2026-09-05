@@ -14,9 +14,14 @@ import {
 import { createLinarPanel } from './LinarPanel'
 import { LINAR_FELT_BACKING_OBJECT_NAMES } from './feltBackingGeometry'
 import type { LinarTech } from './linarData'
-import { backingVisualProfile, clampLinarPanelCount } from './materialData'
+import {
+  backingVisualProfile,
+  clampLinarPanelCount,
+  findFeltColour,
+} from './materialData'
 import {
   createLinarSupportGrid,
+  SUPPORT_GRID_RENDER_GAP_M,
   SUPPORT_GRID_REFERENCE,
   type SupportPathPoint,
 } from './supportGrid'
@@ -307,6 +312,9 @@ type PlanBounds = {
   seamXM: readonly number[]
   supportPathXZ: readonly SupportPathPoint[]
   seamPathDistancesM: readonly number[]
+  rearSurfaceOffsetM: number
+  installationMinZ: number
+  installationMaxZ: number
 }
 
 type PanelPlacement = {
@@ -570,6 +578,13 @@ function panelPlanBounds(
     layout.thicknessM,
     config.backing !== 'none',
   )
+  // Mounted wool is rendered inside the timber cavities rather than as a
+  // continuous sheet behind the panel. The support therefore starts at the
+  // real panel rear; the broader safety AABB above remains conservative.
+  const supportRearSurfaceOffsetM =
+    config.backing === 'felt' && config.application !== 'freestanding'
+      ? layout.thicknessM * 0.5
+      : normalOffsetM
   const seamPose = { x: 0, z: 0, rotY: 0 }
   curveElement(
     layout.panelWidthM * 0.5,
@@ -580,6 +595,26 @@ function panelPlanBounds(
   const seamXM = placements.slice(0, -1).map((placement) =>
     transformPlanPoint(seamPose.x, seamPose.z, placement).x,
   )
+  let installationMinZ = minZ - normalOffsetM
+  let installationMaxZ = maxZ + normalOffsetM
+  const supportFrontOffsetM = supportRearSurfaceOffsetM + SUPPORT_GRID_RENDER_GAP_M
+  const supportBackOffsetM =
+    supportFrontOffsetM + SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
+  for (const point of supportPathXZ) {
+    const normalZ = Math.cos(point.rotY)
+    const supportFrontZ = point.z - normalZ * supportFrontOffsetM
+    const supportBackZ = point.z - normalZ * supportBackOffsetM
+    installationMinZ = Math.min(
+      installationMinZ,
+      supportFrontZ,
+      supportBackZ,
+    )
+    installationMaxZ = Math.max(
+      installationMaxZ,
+      supportFrontZ,
+      supportBackZ,
+    )
+  }
   // Distance is accumulated over the complete tangent-connected row, so a
   // seam is one mandatory anchor rather than the start of another grid.
   return {
@@ -591,6 +626,9 @@ function panelPlanBounds(
     seamXM,
     supportPathXZ,
     seamPathDistancesM,
+    rearSurfaceOffsetM: supportRearSurfaceOffsetM,
+    installationMinZ,
+    installationMaxZ,
   }
 }
 
@@ -801,6 +839,9 @@ function viewPlacement(
     seamXM: [],
     supportPathXZ: [],
     seamPathDistancesM: [],
+    rearSurfaceOffsetM: 0,
+    installationMinZ: -0.01,
+    installationMaxZ: 0.01,
   }
   const installationWidth = Math.max(
     bounds.maxX - bounds.minX,
@@ -1589,12 +1630,11 @@ export function LinarScene({
     const installationRoot = new THREE.Group()
     installationRoot.name = 'LinarInstallation'
     const supportGrid = createLinarSupportGrid()
-    // The host-side support shares the installation-wide path: planar for a
-    // flat panel, continuous profiled ribs for C/S curves. Both remain under
-    // presentationRoot so Wall and Ceiling use the same application transform
-    // and attachment plane; the support does not flip for side inspection.
-    presentationRoot.add(supportGrid.group)
+    // The host-side support and LINAR surface are one physical installation.
+    // Sharing this root preserves their local rear offset through application
+    // placement and Front/Back inspection instead of moving either in world Z.
     presentationRoot.add(installationRoot)
+    installationRoot.add(supportGrid.group)
     const backlightSpill = new THREE.RectAreaLight(0xffc77a, 0, 1, 1)
     backlightSpill.name = 'LinarBacklightRoomSpill'
     backlightSpill.position.set(
@@ -1622,6 +1662,7 @@ export function LinarScene({
       replica: THREE.Object3D
     }
     type FeltCapBinding = {
+      body: THREE.Object3D | null
       left: THREE.Object3D | null
       right: THREE.Object3D | null
     }
@@ -1629,6 +1670,7 @@ export function LinarScene({
     let replicaBindings: ReplicaBinding[] = []
 
     const feltCapsFor = (root: THREE.Object3D): FeltCapBinding => ({
+      body: root.getObjectByName(LINAR_FELT_BACKING_OBJECT_NAMES.body) ?? null,
       left: root.getObjectByName(LINAR_FELT_BACKING_OBJECT_NAMES.leftCap) ?? null,
       right: root.getObjectByName(LINAR_FELT_BACKING_OBJECT_NAMES.rightCap) ?? null,
     })
@@ -1640,11 +1682,14 @@ export function LinarScene({
 
     const applyFeltOuterCapVisibility = () => {
       const showFelt = configRef.current.backing === 'felt'
+      const showPanelAttachedFelt =
+        showFelt && configRef.current.application === 'freestanding'
       const lastPanel = panelFeltCaps.length - 1
       for (let index = 0; index < panelFeltCaps.length; index += 1) {
         const caps = panelFeltCaps[index]
-        if (caps.left) caps.left.visible = showFelt && index === 0
-        if (caps.right) caps.right.visible = showFelt && index === lastPanel
+        if (caps.body) caps.body.visible = showPanelAttachedFelt
+        if (caps.left) caps.left.visible = showPanelAttachedFelt && index === 0
+        if (caps.right) caps.right.visible = showPanelAttachedFelt && index === lastPanel
       }
     }
 
@@ -1982,25 +2027,31 @@ export function LinarScene({
         // Both wall and ceiling use the panel's local +Z as their room-facing
         // normal. Rotating the same physical installation for Back inspection
         // swaps the relevant extremum without moving the architectural plane.
-        const facingMinZ = inspectionFlip ? -bounds.maxZ : bounds.minZ
-        const clearance =
-          applicationFrame(application).installationClearanceM +
-          SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
-        installationRoot.position.z = clearance - facingMinZ
+        const facingMinZ = inspectionFlip
+          ? -bounds.installationMaxZ
+          : bounds.installationMinZ
+        installationRoot.position.z =
+          applicationFrame(application).installationClearanceM - facingMinZ
       }
 
       const extentX = Math.max(0.1, bounds.maxX - bounds.minX)
+      const showCavityInfill =
+        application !== 'freestanding' && configRef.current.backing === 'felt'
+      supportGrid.setCavityInfill(
+        showCavityInfill,
+        findFeltColour(configRef.current.feltColour).swatch,
+      )
       supportGrid.update({
         application,
         panelCount: configRef.current.panelCount,
         bounds,
       })
-      // Confirmed opaque felt hides the host-side internal lattice, while the
-      // installation-wide open perimeter remains visible as two edge rails
-      // plus shaped top and bottom ribs. Keep the root mounted and suppress
-      // only its internal members.
+      // Cavity infill is split around the timber lattice. Keep all members
+      // present so rear and oblique inspection shows the actual construction;
+      // the opaque infill itself blocks transmission through each open bay.
       supportGrid.group.visible = application !== 'freestanding'
-      supportGrid.setInternalMembersVisible(configRef.current.backing !== 'felt')
+      supportGrid.setInternalMembersVisible(true)
+      applyFeltOuterCapVisibility()
       backlightSpill.position.set(
         (bounds.minX + bounds.maxX) * 0.5,
         bounds.heightM * 0.5,
@@ -2033,9 +2084,12 @@ export function LinarScene({
       const frame = applicationFrame(configRef.current.application)
       installationRoot.updateWorldMatrix(true, false)
       let minimumSignedDistance = Number.POSITIVE_INFINITY
+      const mounted = configRef.current.application !== 'freestanding'
+      const localMinZ = mounted ? bounds.installationMinZ : bounds.minZ
+      const localMaxZ = mounted ? bounds.installationMaxZ : bounds.maxZ
       for (const x of [bounds.minX, bounds.maxX]) {
         for (const y of [0, bounds.heightM]) {
-          for (const z of [bounds.minZ, bounds.maxZ]) {
+          for (const z of [localMinZ, localMaxZ]) {
             applicationCorner.set(x, y, z).applyMatrix4(installationRoot.matrixWorld)
             minimumSignedDistance = Math.min(
               minimumSignedDistance,

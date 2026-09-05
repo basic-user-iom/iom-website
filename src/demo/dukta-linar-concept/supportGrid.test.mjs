@@ -1,8 +1,17 @@
 import assert from 'node:assert/strict'
 import * as THREE from 'three'
-import { createLinarSupportGrid } from './supportGrid.ts'
+import {
+  createLinarSupportGrid,
+  SUPPORT_GRID_CAVITY_INFILL_OBJECT_NAME,
+  SUPPORT_GRID_CAVITY_INFILL_VISUAL,
+  SUPPORT_GRID_REFERENCE,
+  SUPPORT_GRID_RENDER_GAP_M,
+} from './supportGrid.ts'
 
 const EPSILON = 1e-6
+const PANEL_REAR_OFFSET_M = 0.0045
+const SUPPORT_DEPTH_M = SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
+const PANEL_FACING_OFFSET_M = PANEL_REAR_OFFSET_M + SUPPORT_GRID_RENDER_GAP_M
 
 function childByName(group, name) {
   const child = group.getObjectByName(name)
@@ -45,9 +54,13 @@ function pointAtDistance(path, distanceM) {
   const end = path[Math.min(low + 1, path.length - 1)]
   const interval = Math.max(1e-9, end.distanceM - start.distanceM)
   const amount = THREE.MathUtils.clamp((distance - start.distanceM) / interval, 0, 1)
+  const rotationDelta =
+    THREE.MathUtils.euclideanModulo(end.rotY - start.rotY + Math.PI, Math.PI * 2) -
+    Math.PI
   return {
     x: THREE.MathUtils.lerp(start.x, end.x, amount),
     z: THREE.MathUtils.lerp(start.z, end.z, amount),
+    rotY: start.rotY + rotationDelta * amount,
   }
 }
 
@@ -55,7 +68,6 @@ function assertCurvedOuterRailTransforms(mesh, bounds, label) {
   const path = bounds.supportPathXZ
   const maximumDistance = path.at(-1).distanceM
   const terminalSpan = Math.min(0.04, maximumDistance * 0.5)
-  const pathMinimumZ = Math.min(...path.map((point) => point.z))
   const pairs = [
     [pointAtDistance(path, 0), pointAtDistance(path, terminalSpan)],
     [
@@ -65,33 +77,44 @@ function assertCurvedOuterRailTransforms(mesh, bounds, label) {
   ]
   for (let index = 0; index < pairs.length; index += 1) {
     const [start, end] = pairs[index]
-    const chordX = end.x - start.x
-    const chordZ = end.z - start.z
+    const frontStart = {
+      x: start.x - Math.sin(start.rotY) * PANEL_FACING_OFFSET_M,
+      z: start.z - Math.cos(start.rotY) * PANEL_FACING_OFFSET_M,
+    }
+    const frontEnd = {
+      x: end.x - Math.sin(end.rotY) * PANEL_FACING_OFFSET_M,
+      z: end.z - Math.cos(end.rotY) * PANEL_FACING_OFFSET_M,
+    }
+    const chordX = frontEnd.x - frontStart.x
+    const chordZ = frontEnd.z - frontStart.z
     const chordLength = Math.hypot(chordX, chordZ)
     const rotationY = Math.atan2(-chordZ, chordX)
     const tangentX = Math.cos(rotationY)
     const tangentZ = -Math.sin(rotationY)
     const normalX = Math.sin(rotationY)
     const normalZ = Math.cos(rotationY)
-    const frontMidpointX = (start.x + end.x) * 0.5
-    const frontMidpointZ = (start.z + end.z) * 0.5 - pathMinimumZ + 0.045
+    const frontMidpointX = (frontStart.x + frontEnd.x) * 0.5
+    const frontMidpointZ = (frontStart.z + frontEnd.z) * 0.5
     const rail = instanceTransform(mesh, index)
     approximate(rail.scale.x, chordLength, `${label} rail ${index + 1} width`)
-    assert.ok(rail.scale.x <= 0.040001, `${label} rail stays in its terminal cell`)
+    assert.ok(
+      rail.scale.x <= 0.060001,
+      `${label} rail stays within its normal-offset terminal interval`,
+    )
     approximate(
       rail.scale.y,
       bounds.heightM - 0.08,
       `${label} rail ${index + 1} fits between profile ribs`,
     )
-    approximate(rail.scale.z, 0.044, `${label} rail ${index + 1} depth`)
+    approximate(rail.scale.z, SUPPORT_DEPTH_M, `${label} rail ${index + 1} depth`)
     approximate(
       rail.position.x,
-      frontMidpointX - normalX * 0.022,
+      frontMidpointX - normalX * SUPPORT_DEPTH_M * 0.5,
       `${label} rail ${index + 1} centre X`,
     )
     approximate(
       rail.position.z,
-      frontMidpointZ - normalZ * 0.022,
+      frontMidpointZ - normalZ * SUPPORT_DEPTH_M * 0.5,
       `${label} rail ${index + 1} centre Z`,
     )
     const localX = new THREE.Vector3(1, 0, 0).applyQuaternion(rail.quaternion)
@@ -154,6 +177,25 @@ function assertFiniteActiveGeometry(geometry, label) {
   }
 }
 
+function assertActiveIndicesInRange(geometry, label) {
+  const position = geometry.getAttribute('position')
+  const index = geometry.index
+  assert.ok(position, `${label} has positions`)
+  assert.ok(index, `${label} has indices`)
+  assert.ok(
+    geometry.drawRange.count <= index.count,
+    `${label} draw range fits its index buffer`,
+  )
+  for (let offset = 0; offset < geometry.drawRange.count; offset += 1) {
+    const vertex = index.getX(offset)
+    assert.ok(Number.isInteger(vertex), `${label} index ${offset} is finite`)
+    assert.ok(
+      vertex >= 0 && vertex < position.count,
+      `${label} index ${offset} references an allocated vertex`,
+    )
+  }
+}
+
 function assertNonDegenerateActiveTriangles(geometry, label) {
   const position = geometry.getAttribute('position')
   const index = geometry.index
@@ -187,6 +229,29 @@ function assertGeometryContainsXZ(geometry, expectedX, expectedZ, label) {
   assert.ok(found, `${label}: expected (${expectedX}, ${expectedZ})`)
 }
 
+function assertProfileFollowsRearPath(geometry, bounds, label) {
+  const panelFacingOffset =
+    (bounds.rearSurfaceOffsetM ?? 0) + SUPPORT_GRID_RENDER_GAP_M
+  for (const [index, point] of bounds.supportPathXZ.entries()) {
+    const normalX = Math.sin(point.rotY)
+    const normalZ = Math.cos(point.rotY)
+    const frontX = point.x - normalX * panelFacingOffset
+    const frontZ = point.z - normalZ * panelFacingOffset
+    assertGeometryContainsXZ(
+      geometry,
+      frontX,
+      frontZ,
+      `${label} front sample ${index}`,
+    )
+    assertGeometryContainsXZ(
+      geometry,
+      frontX - normalX * SUPPORT_DEPTH_M,
+      frontZ - normalZ * SUPPORT_DEPTH_M,
+      `${label} back sample ${index}`,
+    )
+  }
+}
+
 function assertOuterFrameState({
   outerFrame,
   outerVerticalRails,
@@ -212,6 +277,7 @@ const flatBounds = {
   minX: -1.2,
   maxX: 1.2,
   heightM: 2.8,
+  rearSurfaceOffsetM: PANEL_REAR_OFFSET_M,
   seamXM: [0],
   supportPathXZ: [
     { x: -1.2, z: 0, rotY: 0, distanceM: 0 },
@@ -228,6 +294,10 @@ const flatHorizontal = childByName(
 const curvedProfiles = childByName(
   support.group,
   'LinarSupportContinuousCurvedProfileRibs',
+)
+const cavityInfill = childByName(
+  support.group,
+  SUPPORT_GRID_CAVITY_INFILL_OBJECT_NAME,
 )
 const outerFrame = childByName(
   support.group,
@@ -254,6 +324,7 @@ const outerCurvedProfileRibs = childByName(
 const sharedBoxGeometry = vertical.geometry
 const sharedMaterial = vertical.material
 const sharedProfileGeometry = curvedProfiles.geometry
+const sharedCavityGeometry = cavityInfill.geometry
 assert.equal(flatHorizontal.geometry, sharedBoxGeometry)
 assert.equal(outerVerticalRails.geometry, sharedBoxGeometry)
 assert.equal(outerFlatProfileRibs.geometry, sharedBoxGeometry)
@@ -263,6 +334,9 @@ assert.equal(curvedProfiles.material, sharedMaterial)
 assert.equal(outerVerticalRails.material, sharedMaterial)
 assert.equal(outerFlatProfileRibs.material, sharedMaterial)
 assert.equal(outerCurvedProfileRibs.material, sharedMaterial)
+assert.notEqual(cavityInfill.material, sharedMaterial)
+assert.notEqual(sharedCavityGeometry, sharedBoxGeometry)
+assert.notEqual(sharedCavityGeometry, sharedProfileGeometry)
 
 const flatStats = support.update({
   application: 'wall',
@@ -297,9 +371,13 @@ const flatRightRail = instanceTransform(outerVerticalRails, 1)
 for (const [index, rail] of [flatLeftRail, flatRightRail].entries()) {
   approximate(rail.scale.x, 0.04, `flat outer rail ${index + 1} width`)
   approximate(rail.scale.y, 2.72, `flat outer rail ${index + 1} height`)
-  approximate(rail.scale.z, 0.044, `flat outer rail ${index + 1} depth`)
+  approximate(rail.scale.z, SUPPORT_DEPTH_M, `flat outer rail ${index + 1} depth`)
   approximate(rail.position.y, 1.4, `flat outer rail ${index + 1} centre Y`)
-  approximate(rail.position.z, 0.023, `flat outer rail ${index + 1} centre Z`)
+  approximate(
+    rail.position.z,
+    -PANEL_FACING_OFFSET_M - SUPPORT_DEPTH_M * 0.5,
+    `flat outer rail ${index + 1} centre Z`,
+  )
 }
 approximate(flatLeftRail.position.x, -1.18, 'left rail is inset within boundary')
 approximate(flatRightRail.position.x, 1.18, 'right rail is inset within boundary')
@@ -308,9 +386,37 @@ for (let index = 0; index < 2; index += 1) {
   const rib = instanceTransform(outerFlatProfileRibs, index)
   approximate(rib.scale.x, 2.4, `flat outer rib ${index + 1} width`)
   approximate(rib.scale.y, 0.04, `flat outer rib ${index + 1} thickness`)
-  approximate(rib.scale.z, 0.045, `flat outer rib ${index + 1} depth`)
+  approximate(rib.scale.z, SUPPORT_DEPTH_M, `flat outer rib ${index + 1} depth`)
+  approximate(
+    rib.position.z,
+    -PANEL_FACING_OFFSET_M - SUPPORT_DEPTH_M * 0.5,
+    `flat outer rib ${index + 1} centre Z`,
+  )
   approximate(rib.position.y, index === 0 ? 0.02 : 2.78, `flat outer rib ${index + 1} Y`)
 }
+
+// Camera-fit padding is not a physical construction endpoint. A flat support
+// must keep using the same centreline path that the curved branch consumes.
+support.update({
+  application: 'wall',
+  panelCount: 2,
+  bounds: { ...flatBounds, minX: -1.25, maxX: 1.25 },
+})
+approximate(
+  instanceTransform(outerVerticalRails, 0).position.x,
+  -1.18,
+  'padded flat bounds do not move the left rail',
+)
+approximate(
+  instanceTransform(outerVerticalRails, 1).position.x,
+  1.18,
+  'padded flat bounds do not move the right rail',
+)
+approximate(
+  instanceTransform(outerFlatProfileRibs, 0).scale.x,
+  2.4,
+  'padded flat bounds do not widen the profile ribs',
+)
 
 const curvedBounds = {
   ...flatBounds,
@@ -322,6 +428,49 @@ const curvedBounds = {
     { x: 1.2, z: 0.24, rotY: 0.45, distanceM: 2.5 },
   ],
   seamPathDistancesM: [1.25],
+}
+
+// The runtime contributes 57 samples for one panel and 56 additional samples
+// for every tangent-connected repeat. Exercise the full 1-4 module range: the
+// closed rib uses both a front and reverse outline, so its active draw range
+// must never outgrow the preallocated buffers.
+function sampledInstallationBounds(panelCount) {
+  const sampleCount = 1 + 56 * panelCount
+  const points = []
+  const seamPathDistancesM = []
+  let distanceM = 0
+  let previous = null
+  for (let index = 0; index < sampleCount; index += 1) {
+    const amount = index / (sampleCount - 1)
+    const x = THREE.MathUtils.lerp(-0.6 * panelCount, 0.6 * panelCount, amount)
+    const z = 0.12 * Math.cos(Math.PI * amount)
+    const dzdx =
+      (-0.12 * Math.PI * Math.sin(Math.PI * amount)) / (1.2 * panelCount)
+    const rotY = Math.atan2(-dzdx, 1)
+    if (previous) distanceM += Math.hypot(x - previous.x, z - previous.z)
+    points.push({ x, z, rotY, distanceM })
+    previous = { x, z }
+    if (index > 0 && index < sampleCount - 1 && index % 56 === 0) {
+      seamPathDistancesM.push(distanceM)
+    }
+  }
+  return {
+    ...flatBounds,
+    minX: -0.6 * panelCount,
+    maxX: 0.6 * panelCount,
+    supportPathXZ: points,
+    seamPathDistancesM,
+  }
+}
+
+for (const panelCount of [1, 2, 3, 4]) {
+  const sampledBounds = sampledInstallationBounds(panelCount)
+  for (const application of ['wall', 'ceiling']) {
+    support.update({ application, panelCount, bounds: sampledBounds })
+    const label = `${application}, ${panelCount}-module curved profile`
+    assertActiveIndicesInRange(sharedProfileGeometry, label)
+    assertFiniteActiveGeometry(sharedProfileGeometry, label)
+  }
 }
 
 const curvedCases = [
@@ -399,6 +548,11 @@ for (const curvedCase of curvedCases) {
     stats.totalInstances,
     'reported total matches all active support instances',
   )
+  assertProfileFollowsRearPath(
+    sharedProfileGeometry,
+    curvedBounds,
+    `${curvedCase.application} curve`,
+  )
   const railMatrices = instanceMatrixValues(outerVerticalRails)
   const ribMatrices = instanceMatrixValues(outerCurvedProfileRibs)
   if (canonicalOuterRailMatrices) {
@@ -430,9 +584,9 @@ assertCurvedOuterRailTransforms(outerVerticalRails, curvedBounds, 'curved')
 
 for (let index = 0; index < 2; index += 1) {
   const rail = instanceTransform(outerVerticalRails, index)
-  assert.ok(rail.scale.x <= 0.040001, `curved outer rail ${index + 1} width`)
+  assert.ok(rail.scale.x <= 0.060001, `curved outer rail ${index + 1} width`)
   approximate(rail.scale.y, 2.72, `curved outer rail ${index + 1} height`)
-  approximate(rail.scale.z, 0.044, `curved outer rail ${index + 1} depth`)
+  approximate(rail.scale.z, SUPPORT_DEPTH_M, `curved outer rail ${index + 1} depth`)
   assert.ok(Number.isFinite(rail.position.x))
   assert.ok(Number.isFinite(rail.position.z))
 }
@@ -455,6 +609,7 @@ const forwardC = {
   })),
 }
 support.update({ application: 'wall', panelCount: 2, bounds: forwardC })
+assertProfileFollowsRearPath(sharedProfileGeometry, forwardC, 'mirrored C')
 assertCurvedOuterRailTransforms(outerVerticalRails, forwardC, 'mirrored C')
 assertOuterFrameState({
   outerFrame,
@@ -476,6 +631,7 @@ const sCurveBounds = {
   seamPathDistancesM: [0.65, 1.3, 1.95],
 }
 support.update({ application: 'ceiling', panelCount: 4, bounds: sCurveBounds })
+assertProfileFollowsRearPath(sharedProfileGeometry, sCurveBounds, 'S curve')
 assertOuterFrameState({
   outerFrame,
   outerVerticalRails,
@@ -501,6 +657,11 @@ support.update({
   panelCount: 4,
   bounds: mirroredSCurveBounds,
 })
+assertProfileFollowsRearPath(
+  sharedProfileGeometry,
+  mirroredSCurveBounds,
+  'mirrored S curve',
+)
 assertCurvedOuterRailTransforms(
   outerVerticalRails,
   mirroredSCurveBounds,
@@ -530,11 +691,13 @@ const hairpinBounds = {
   minX: 0,
   maxX: hairpinRadiusM,
   heightM: 2.8,
+  rearSurfaceOffsetM: PANEL_REAR_OFFSET_M,
   seamXM: [],
   supportPathXZ: hairpinPath,
   seamPathDistancesM: [],
 }
 support.update({ application: 'wall', panelCount: 1, bounds: hairpinBounds })
+assertProfileFollowsRearPath(sharedProfileGeometry, hairpinBounds, '180 mm hairpin')
 assertCurvedOuterRailTransforms(outerVerticalRails, hairpinBounds, '180 mm hairpin')
 assertFiniteActiveGeometry(sharedProfileGeometry, '180 mm hairpin profile')
 assertNonDegenerateActiveTriangles(sharedProfileGeometry, '180 mm hairpin profile')
@@ -542,20 +705,25 @@ assertClosedGeometry(sharedProfileGeometry, '180 mm hairpin profile')
 sharedProfileGeometry.computeBoundingBox()
 assert.ok(sharedProfileGeometry.boundingBox)
 assert.ok(
-  sharedProfileGeometry.boundingBox.min.x >= -0.044001 &&
-    sharedProfileGeometry.boundingBox.max.x <= hairpinRadiusM + 0.044001,
+  sharedProfileGeometry.boundingBox.min.x >= -SUPPORT_DEPTH_M - PANEL_FACING_OFFSET_M - 0.000001 &&
+    sharedProfileGeometry.boundingBox.max.x <=
+      hairpinRadiusM + SUPPORT_DEPTH_M + PANEL_FACING_OFFSET_M + 0.000001,
   'hairpin profile remains a compact curve-following rib in X',
 )
 assert.ok(
-  sharedProfileGeometry.boundingBox.min.z >= 0.000999 &&
-    sharedProfileGeometry.boundingBox.max.z <= hairpinRadiusM * 2 + 0.089001,
+  sharedProfileGeometry.boundingBox.max.z -
+      sharedProfileGeometry.boundingBox.min.z <=
+    (hairpinRadiusM + SUPPORT_DEPTH_M + PANEL_FACING_OFFSET_M) * 2 + 0.000001,
   'hairpin profile never expands to a receiver-depth sheet',
 )
 for (let index = 0; index < outerVerticalRails.count; index += 1) {
   const rail = instanceTransform(outerVerticalRails, index)
-  assert.ok(rail.scale.x <= 0.040001, 'hairpin rail remains one terminal cell long')
+  assert.ok(
+    rail.scale.x <= 0.060001,
+    'hairpin rail remains within its normal-offset terminal interval',
+  )
   approximate(rail.scale.y, 2.72, 'hairpin rail fits between outer profile ribs')
-  approximate(rail.scale.z, 0.044, 'hairpin rail keeps fixed support depth')
+  approximate(rail.scale.z, SUPPORT_DEPTH_M, 'hairpin rail keeps fixed support depth')
 }
 
 // The production 180 mm preview contains straight tails joined by a
@@ -599,18 +767,19 @@ const tightCBounds = {
   minX: -hairpinRadiusM,
   maxX: hairpinRadiusM,
   heightM: 2.8,
+  rearSurfaceOffsetM: PANEL_REAR_OFFSET_M,
   seamXM: [],
   supportPathXZ: tightCPath,
   seamPathDistancesM: [],
 }
 support.update({ application: 'wall', panelCount: 1, bounds: tightCBounds })
+assertProfileFollowsRearPath(sharedProfileGeometry, tightCBounds, '180 mm preview C')
 assertFiniteActiveGeometry(sharedProfileGeometry, '180 mm preview C profile')
 assertNonDegenerateActiveTriangles(sharedProfileGeometry, '180 mm preview C profile')
 assertClosedGeometry(sharedProfileGeometry, '180 mm preview C profile')
-const tightCMinimumZ = Math.min(...tightCPath.map((point) => point.z))
 for (const point of tightCPath.filter((_, index) => index % 16 === 0)) {
-  const frontX = point.x
-  const frontZ = point.z - tightCMinimumZ + 0.045
+  const frontX = point.x - Math.sin(point.rotY) * PANEL_FACING_OFFSET_M
+  const frontZ = point.z - Math.cos(point.rotY) * PANEL_FACING_OFFSET_M
   assertGeometryContainsXZ(
     sharedProfileGeometry,
     frontX,
@@ -619,8 +788,8 @@ for (const point of tightCPath.filter((_, index) => index % 16 === 0)) {
   )
   assertGeometryContainsXZ(
     sharedProfileGeometry,
-    frontX - Math.sin(point.rotY) * 0.044,
-    frontZ - Math.cos(point.rotY) * 0.044,
+    frontX - Math.sin(point.rotY) * SUPPORT_DEPTH_M,
+    frontZ - Math.cos(point.rotY) * SUPPORT_DEPTH_M,
     'preview C contains its compact reverse profile edge',
   )
 }
@@ -629,8 +798,9 @@ for (let index = 0; index < outerVerticalRails.count; index += 1) {
   approximate(rail.scale.y, 2.72, 'preview C rail terminates between profile ribs')
 }
 
-// Opaque felt hides only interior members. The open four-sided perimeter stays
-// present for flat, C/S and repeated Wall/Ceiling installations.
+// The visibility API remains independent from construction generation. The
+// mounted wool study no longer calls this with false; its internal timber must
+// remain visible around the cavity infill.
 support.setInternalMembersVisible(false)
 assert.equal(vertical.visible, false)
 assert.equal(flatHorizontal.visible, false)
@@ -657,6 +827,106 @@ assert.equal(vertical.visible, true)
 assert.equal(flatHorizontal.visible, true)
 assert.equal(curvedProfiles.visible, true)
 assert.equal(outerFrame.visible, true)
+
+// Mounted wool is split into the open bays of the timber lattice, never one
+// opaque sheet in front of it. Each pathwise bay is now one stitched, closed
+// sweep and the completed path geometry is instanced only over the horizontal
+// cavity rows. This prevents the diagonal rear-face cuts produced by the old
+// chain of independently rotated chord boxes.
+support.setCavityInfill(true, '#982a32')
+const infillCases = [
+  { application: 'wall', panelCount: 2, bounds: flatBounds, curved: false },
+  { application: 'ceiling', panelCount: 4, bounds: sCurveBounds, curved: true },
+]
+const expectedInfillDepthM =
+  SUPPORT_DEPTH_M -
+  SUPPORT_GRID_CAVITY_INFILL_VISUAL.frontRecessMm / 1000 -
+  SUPPORT_GRID_CAVITY_INFILL_VISUAL.rearRevealMm / 1000
+for (const infillCase of infillCases) {
+  support.update(infillCase)
+  assert.equal(support.group.visible, true)
+  assert.equal(vertical.visible, true)
+  assert.equal(flatHorizontal.visible, true)
+  assert.equal(curvedProfiles.visible, true)
+  assert.equal(cavityInfill.visible, true)
+  assert.equal(cavityInfill.count, 7, 'mounted wool creates one instance per cavity row')
+  assert.equal(cavityInfill.geometry, sharedCavityGeometry)
+  assert.equal(cavityInfill.material.color.getHexString(), '982a32')
+  assert.ok(
+    sharedCavityGeometry.drawRange.count > 0 &&
+      sharedCavityGeometry.drawRange.count % 3 === 0,
+    'mounted wool contains triangulated swept cavity volumes',
+  )
+  assertActiveIndicesInRange(sharedCavityGeometry, 'mounted wool')
+  assertFiniteActiveGeometry(sharedCavityGeometry, 'mounted wool')
+  assertNonDegenerateActiveTriangles(sharedCavityGeometry, 'mounted wool')
+  assertClosedGeometry(sharedCavityGeometry, 'mounted wool')
+  for (let index = 0; index < cavityInfill.count; index += 1) {
+    const row = instanceTransform(cavityInfill, index)
+    approximate(row.scale.x, 1, 'cavity row keeps baked path width')
+    approximate(row.scale.z, 1, 'cavity row keeps baked visual depth')
+    assert.ok(row.scale.y > 0, 'cavity row has a positive bay height')
+    for (const value of [
+      ...row.position.toArray(),
+      ...row.quaternion.toArray(),
+      ...row.scale.toArray(),
+    ]) {
+      assert.ok(Number.isFinite(value), 'cavity transform is finite')
+    }
+  }
+  if (!infillCase.curved) {
+    sharedCavityGeometry.computeBoundingBox()
+    assert.ok(sharedCavityGeometry.boundingBox)
+    approximate(
+      sharedCavityGeometry.boundingBox.max.z -
+        sharedCavityGeometry.boundingBox.min.z,
+      expectedInfillDepthM,
+      'flat cavity sweep keeps the recessed visual depth',
+    )
+  }
+  assertOuterFrameState({
+    outerFrame,
+    outerVerticalRails,
+    outerFlatProfileRibs,
+    outerCurvedProfileRibs,
+    curved: infillCase.curved,
+  })
+}
+
+// The production sampler contributes up to 225 path points for four modules.
+// Exercise both mounted orientations over the complete repetition range so a
+// future topology change cannot silently overflow or return to per-chord boxes.
+for (const panelCount of [1, 2, 3, 4]) {
+  const sampledBounds = sampledInstallationBounds(panelCount)
+  for (const application of ['wall', 'ceiling']) {
+    support.update({ application, panelCount, bounds: sampledBounds })
+    const label = `${application}, ${panelCount}-module swept wool`
+    assert.equal(cavityInfill.count, 7, `${label} keeps one instance per row`)
+    assertActiveIndicesInRange(sharedCavityGeometry, label)
+    assertFiniteActiveGeometry(sharedCavityGeometry, label)
+    assertNonDegenerateActiveTriangles(sharedCavityGeometry, label)
+    assertClosedGeometry(sharedCavityGeometry, label)
+  }
+}
+
+for (const [label, application, bounds] of [
+  ['180 mm hairpin wool', 'wall', hairpinBounds],
+  ['180 mm preview C wool', 'ceiling', tightCBounds],
+  ['S-curve wool', 'wall', sCurveBounds],
+]) {
+  support.update({ application, panelCount: 1, bounds })
+  assert.equal(cavityInfill.count, 7, `${label} keeps one instance per row`)
+  assertActiveIndicesInRange(sharedCavityGeometry, label)
+  assertFiniteActiveGeometry(sharedCavityGeometry, label)
+  assertNonDegenerateActiveTriangles(sharedCavityGeometry, label)
+  assertClosedGeometry(sharedCavityGeometry, label)
+}
+
+support.setCavityInfill(false, '#dedbd1')
+support.update({ application: 'wall', panelCount: 2, bounds: flatBounds })
+assert.equal(cavityInfill.visible, false)
+assert.equal(cavityInfill.count, 0)
+assert.equal(sharedCavityGeometry.drawRange.count, 0)
 
 const hiddenStats = support.update({
   application: 'freestanding',
@@ -704,6 +974,43 @@ const shortCurvedBounds = {
 }
 support.update({ application: 'wall', panelCount: 2, bounds: curvedBounds })
 support.update({ application: 'wall', panelCount: 2, bounds: shortCurvedBounds })
+
+const activePositionAttribute = sharedProfileGeometry.getAttribute('position')
+const beforeSubMillimetreUpdate = Array.from(
+  activePositionAttribute.array.slice(0, shortCurvedBounds.supportPathXZ.length * 3),
+)
+const subMillimetreMovedBounds = {
+  ...shortCurvedBounds,
+  supportPathXZ: shortCurvedBounds.supportPathXZ.map((point, index) =>
+    index === 1 ? { ...point, z: point.z + 0.001 } : point,
+  ),
+}
+support.update({
+  application: 'wall',
+  panelCount: 2,
+  bounds: subMillimetreMovedBounds,
+})
+const afterSubMillimetreUpdate = Array.from(
+  activePositionAttribute.array.slice(0, shortCurvedBounds.supportPathXZ.length * 3),
+)
+assert.notDeepEqual(
+  afterSubMillimetreUpdate,
+  beforeSubMillimetreUpdate,
+  'a 1 mm animated path change updates the support instead of freezing in cache',
+)
+
+const thickBackedBounds = {
+  ...shortCurvedBounds,
+  rearSurfaceOffsetM: 0.0097,
+}
+support.update({ application: 'wall', panelCount: 2, bounds: thickBackedBounds })
+assertProfileFollowsRearPath(
+  sharedProfileGeometry,
+  thickBackedBounds,
+  'thick backed panel',
+)
+
+support.update({ application: 'wall', panelCount: 2, bounds: shortCurvedBounds })
 const reusedNormals = Array.from(
   sharedProfileGeometry.getAttribute('normal').array,
 )
@@ -741,12 +1048,16 @@ freshSupport.dispose()
 
 let boxDisposeCount = 0
 let profileDisposeCount = 0
+let cavityDisposeCount = 0
 let materialDisposeCount = 0
 sharedBoxGeometry.addEventListener('dispose', () => {
   boxDisposeCount += 1
 })
 sharedProfileGeometry.addEventListener('dispose', () => {
   profileDisposeCount += 1
+})
+sharedCavityGeometry.addEventListener('dispose', () => {
+  cavityDisposeCount += 1
 })
 sharedMaterial.addEventListener('dispose', () => {
   materialDisposeCount += 1
@@ -755,6 +1066,7 @@ support.dispose()
 support.dispose()
 assert.equal(boxDisposeCount, 1, 'shared box geometry is disposed once')
 assert.equal(profileDisposeCount, 1, 'shared profile geometry is disposed once')
+assert.equal(cavityDisposeCount, 1, 'shared cavity geometry is disposed once')
 assert.equal(materialDisposeCount, 1, 'shared support material is disposed once')
 
 console.log('LINAR open perimeter-frame support checks passed.')

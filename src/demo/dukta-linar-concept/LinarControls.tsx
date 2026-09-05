@@ -681,9 +681,11 @@ export function LinarControls({
               />
               <p className="linar-note">
                 Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–
-                {LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed range. The renderer uses a
-                {` ${LINAR_FELT_METADATA.representativeVisualThicknessMm} mm`} representative
-                layer. Swatches are screen approximations.
+                {LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. In Wall and
+                Ceiling views, a visually thickened cavity study is recessed between the timber
+                members so the construction remains inspectable. Its installed cavity thickness
+                is not specified and is not technical product data. Swatches are screen
+                approximations.
               </p>
             </>
           ) : null}

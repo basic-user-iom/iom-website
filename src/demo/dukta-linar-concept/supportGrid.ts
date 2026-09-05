@@ -13,6 +13,29 @@ export const SUPPORT_GRID_REFERENCE = Object.freeze({
   authority: 'application-manual-reference' as const,
 })
 
+/**
+ * Render-only separation between the finished rear surface/backing and its
+ * support. This prevents coincident faces without claiming a construction
+ * tolerance or changing the referenced 45 mm batten depth.
+ */
+export const SUPPORT_GRID_RENDER_GAP_M = 0.0005
+
+/**
+ * Visual-only cavity infill used for the mounted wool study. The application
+ * sheet identifies thick sound-insulating wool between the timber members but
+ * does not provide an installed thickness. Keep a small reveal at both faces
+ * of the referenced 45 mm battens so the construction remains legible and do
+ * not expose this derived render depth as validated product data.
+ */
+export const SUPPORT_GRID_CAVITY_INFILL_VISUAL = Object.freeze({
+  frontRecessMm: 2,
+  rearRevealMm: 3,
+  memberClearanceMm: 2,
+  authority: 'application-diagram-visual-study' as const,
+})
+
+export const SUPPORT_GRID_CAVITY_INFILL_OBJECT_NAME = 'LinarSupportCavityInfill'
+
 export type SupportPathPoint = {
   x: number
   z: number
@@ -24,6 +47,8 @@ export type SupportGridBounds = {
   minX: number
   maxX: number
   heightM: number
+  /** Furthest rendered surface behind the panel centreline. */
+  rearSurfaceOffsetM?: number
   seamXM?: readonly number[]
   supportPathXZ?: readonly SupportPathPoint[]
   seamPathDistancesM?: readonly number[]
@@ -47,6 +72,7 @@ export type LinarSupportGrid = {
   group: THREE.Group
   update: (next: SupportGridUpdate) => SupportGridStats
   setInternalMembersVisible: (visible: boolean) => void
+  setCavityInfill: (visible: boolean, colour: THREE.ColorRepresentation) => void
   getStats: () => SupportGridStats
   dispose: () => void
 }
@@ -54,20 +80,38 @@ export type LinarSupportGrid = {
 const BATTEN_WIDTH_M = SUPPORT_GRID_REFERENCE.battenWidthMm / 1000
 const BATTEN_DEPTH_M = SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
 const MAXIMUM_SPACING_M = SUPPORT_GRID_REFERENCE.maximumSpacingMm / 1000
-const BOUNDS_KEY_QUANTUM_M = 0.005
+// A 5 mm / 0.5 degree cache quantum made the support remain still and then
+// jump while the panel animated. Sub-millimetre keys retain the allocation
+// cache without allowing a visible panel/support desynchronisation.
+const BOUNDS_KEY_QUANTUM_M = 0.00025
 const ANCHOR_DEDUPLICATION_M = BATTEN_WIDTH_M * 1.1
 const SPACING_ROUNDING_TOLERANCE_M = 1e-9
 const MAX_INSTANCES_PER_AXIS = 64
 const MAX_SUPPORT_PATH_POINTS = 257
 const CURVED_PATH_DEPTH_THRESHOLD_M = 0.003
 const CURVED_PATH_TURN_THRESHOLD_RAD = THREE.MathUtils.degToRad(0.75)
-const PATH_ROTATION_KEY_QUANTUM_RAD = THREE.MathUtils.degToRad(0.5)
-const CURVED_PROFILE_RECEIVER_CLEARANCE_M = 0.001
+const PATH_ROTATION_KEY_QUANTUM_RAD = THREE.MathUtils.degToRad(0.05)
 const OUTER_FRAME_MEMBER_COUNT = 4
-const MAX_CURVED_PROFILE_OUTLINE_POINTS = MAX_SUPPORT_PATH_POINTS + 2
+// The closed curved rib outline contains the complete panel-facing path and
+// the complete reverse path. Capacity therefore has to cover two vertices per
+// support-path sample. The previous one-path allocation overflowed from three
+// repeated modules onward (four modules wrote 5,388 active indices into a
+// 3,096-index buffer), which appeared as missing sections in the outer frame.
+const MAX_CURVED_PROFILE_OUTLINE_POINTS = MAX_SUPPORT_PATH_POINTS * 2
 const MAX_CURVED_PROFILE_VERTEX_COUNT = MAX_CURVED_PROFILE_OUTLINE_POINTS * 6
 const MAX_CURVED_PROFILE_INDEX_COUNT = MAX_CURVED_PROFILE_OUTLINE_POINTS * 12 - 12
+// One cavity-row geometry contains every pathwise wool bay as an independent,
+// watertight swept volume. The path samples can be repeated at both ends of
+// every bay because timber clearances usually fall between source samples.
+const MAX_CAVITY_PATH_CELLS = MAX_INSTANCES_PER_AXIS - 1
+const MAX_CAVITY_PATH_SAMPLES =
+  MAX_SUPPORT_PATH_POINTS + MAX_CAVITY_PATH_CELLS * 2
+const MAX_CAVITY_OUTLINE_POINTS = MAX_CAVITY_PATH_SAMPLES * 2
+const MAX_CAVITY_VERTEX_COUNT = MAX_CAVITY_OUTLINE_POINTS * 6
+const MAX_CAVITY_INDEX_COUNT =
+  MAX_CAVITY_OUTLINE_POINTS * 12 - MAX_CAVITY_PATH_CELLS * 12
 const PROFILE_POINT_EPSILON_SQ = 1e-12
+const PATH_DISTANCE_EPSILON_M = 1e-9
 
 type SupportAnchor = {
   positionM: number
@@ -240,6 +284,16 @@ function pointAtPathDistance(
   }
 }
 
+function rearOffsetPoint(
+  point: Pick<SupportPathPoint, 'x' | 'z' | 'rotY'>,
+  offsetM: number,
+): ProfileOutlinePoint {
+  return {
+    x: point.x - Math.sin(point.rotY) * offsetM,
+    z: point.z - Math.cos(point.rotY) * offsetM,
+  }
+}
+
 function createCurvedProfileGeometry(): THREE.BufferGeometry {
   const geometry = new THREE.BufferGeometry()
   geometry.name = 'LinarSupportCurvedProfileSharedGeometry'
@@ -255,6 +309,20 @@ function createCurvedProfileGeometry(): THREE.BufferGeometry {
   return geometry
 }
 
+function createCavityInfillGeometry(): THREE.BufferGeometry {
+  const geometry = new THREE.BufferGeometry()
+  geometry.name = 'LinarSupportCavityInfillSweptGeometry'
+  geometry.setAttribute(
+    'position',
+    new THREE.BufferAttribute(new Float32Array(MAX_CAVITY_VERTEX_COUNT * 3), 3),
+  )
+  geometry.setIndex(
+    new THREE.BufferAttribute(new Uint16Array(MAX_CAVITY_INDEX_COUNT), 1),
+  )
+  geometry.setDrawRange(0, 0)
+  return geometry
+}
+
 type ProfileOutlinePoint = {
   x: number
   z: number
@@ -263,6 +331,7 @@ type ProfileOutlinePoint = {
 function updateCurvedProfileGeometry(
   geometry: THREE.BufferGeometry,
   points: readonly SupportPathPoint[],
+  rearSurfaceOffsetM: number,
 ): number {
   if (points.length < 2) {
     geometry.setDrawRange(0, 0)
@@ -271,8 +340,6 @@ function updateCurvedProfileGeometry(
   const position = geometry.getAttribute('position') as THREE.BufferAttribute
   const geometryIndex = geometry.index
   if (!geometryIndex) return 0
-  const pathMinZ = points.reduce((minimum, point) => Math.min(minimum, point.z), Infinity)
-
   // Build one simple cross-section rather than projecting every path segment
   // independently to the receiver plane. The old strip construction became
   // degenerate when a tight C/U bend had adjacent samples with the same X and
@@ -289,10 +356,11 @@ function updateCurvedProfileGeometry(
     }
     outline.push(next)
   }
-  const frontOutline = points.map((point) => ({
-      x: point.x,
-      z: point.z - pathMinZ + BATTEN_DEPTH_M,
-  }))
+  const panelFacingOffsetM = rearSurfaceOffsetM + SUPPORT_GRID_RENDER_GAP_M
+  const hostFacingOffsetM = panelFacingOffsetM + BATTEN_DEPTH_M
+  const frontOutline = points.map((point) =>
+    rearOffsetPoint(point, panelFacingOffsetM),
+  )
   for (const point of frontOutline) {
     appendDistinct(point)
   }
@@ -304,15 +372,9 @@ function updateCurvedProfileGeometry(
   // Offset the reverse edge by the reference batten depth along each sampled
   // local normal. The vertical rails use the same section, so all four outer
   // members meet as one restrained perimeter frame.
-  const profileDepthM =
-    BATTEN_DEPTH_M - CURVED_PROFILE_RECEIVER_CLEARANCE_M
   for (let index = points.length - 1; index >= 0; index -= 1) {
     const point = points[index]
-    const front = frontOutline[index]
-    appendDistinct({
-      x: front.x - Math.sin(point.rotY) * profileDepthM,
-      z: front.z - Math.cos(point.rotY) * profileDepthM,
-    })
+    appendDistinct(rearOffsetPoint(point, hostFacingOffsetM))
   }
   if (
     outline.length > 1 &&
@@ -404,6 +466,191 @@ function updateCurvedProfileGeometry(
 }
 
 /**
+ * Return the exact path portion inside one timber bay. The interpolated bay
+ * endpoints preserve the specified member clearance, while all original path
+ * samples inside the interval keep tight C and S bends visually smooth.
+ */
+function pathIntervalPoints(
+  points: readonly SupportPathPoint[],
+  startDistanceM: number,
+  endDistanceM: number,
+): SupportPathPoint[] {
+  const sampled = [pointAtPathDistance(points, startDistanceM)]
+  for (const point of points) {
+    if (
+      point.distanceM > startDistanceM + PATH_DISTANCE_EPSILON_M &&
+      point.distanceM < endDistanceM - PATH_DISTANCE_EPSILON_M
+    ) {
+      sampled.push(point)
+    }
+  }
+  sampled.push(pointAtPathDistance(points, endDistanceM))
+  return sampled
+}
+
+/**
+ * Build every pathwise wool bay as one closed swept solid. Earlier revisions
+ * approximated the same volume with independent 22 mm boxes. Their front
+ * chord endpoints nearly met, but their differently rotated rear faces opened
+ * into millimetre-scale diagonal cuts on tight bends. A single outline per bay
+ * shares every internal curve sample and creates end caps only where the wool
+ * actually meets a longitudinal timber member.
+ */
+function updateCavityInfillGeometry(
+  geometry: THREE.BufferGeometry,
+  points: readonly SupportPathPoint[],
+  pathSupportPositionsM: readonly number[],
+  panelFacingOffsetM: number,
+  frontRecessM: number,
+  infillDepthM: number,
+  memberClearanceM: number,
+): number {
+  const position = geometry.getAttribute('position') as THREE.BufferAttribute
+  const geometryIndex = geometry.index
+  if (!geometryIndex || points.length < 2 || pathSupportPositionsM.length < 2) {
+    geometry.setDrawRange(0, 0)
+    return 0
+  }
+
+  let vertexCursor = 0
+  let indexCursor = 0
+  let cellCount = 0
+  let firstActivePoint: ProfileOutlinePoint | null = null
+  const frontOffsetM = panelFacingOffsetM + frontRecessM
+  const rearOffsetM = frontOffsetM + infillDepthM
+
+  const writeTriangle = (a: number, b: number, c: number) => {
+    if (indexCursor + 3 > geometryIndex.count) {
+      throw new Error('LINAR support cavity-infill index capacity exceeded')
+    }
+    geometryIndex.setX(indexCursor, a)
+    geometryIndex.setX(indexCursor + 1, b)
+    geometryIndex.setX(indexCursor + 2, c)
+    indexCursor += 3
+  }
+
+  for (let pathIndex = 1; pathIndex < pathSupportPositionsM.length; pathIndex += 1) {
+    const cavityStartDistanceM =
+      pathSupportPositionsM[pathIndex - 1] +
+      BATTEN_WIDTH_M * 0.5 +
+      memberClearanceM
+    const cavityEndDistanceM =
+      pathSupportPositionsM[pathIndex] -
+      BATTEN_WIDTH_M * 0.5 -
+      memberClearanceM
+    if (cavityEndDistanceM - cavityStartDistanceM <= 0.001) continue
+
+    const interval = pathIntervalPoints(
+      points,
+      cavityStartDistanceM,
+      cavityEndDistanceM,
+    )
+    const outline: ProfileOutlinePoint[] = []
+    const appendDistinct = (next: ProfileOutlinePoint) => {
+      const previous = outline[outline.length - 1]
+      if (
+        previous &&
+        (next.x - previous.x) ** 2 + (next.z - previous.z) ** 2 <=
+          PROFILE_POINT_EPSILON_SQ
+      ) {
+        return
+      }
+      outline.push(next)
+    }
+    for (const point of interval) {
+      appendDistinct(rearOffsetPoint(point, frontOffsetM))
+    }
+    for (let index = interval.length - 1; index >= 0; index -= 1) {
+      appendDistinct(rearOffsetPoint(interval[index], rearOffsetM))
+    }
+    if (
+      outline.length > 1 &&
+      (outline[0].x - outline[outline.length - 1].x) ** 2 +
+        (outline[0].z - outline[outline.length - 1].z) ** 2 <=
+        PROFILE_POINT_EPSILON_SQ
+    ) {
+      outline.pop()
+    }
+    if (outline.length < 4) continue
+
+    const signedArea = outline.reduce((area, point, index) => {
+      const next = outline[(index + 1) % outline.length]
+      return area + point.x * next.z - next.x * point.z
+    }, 0)
+    if (signedArea < 0) outline.reverse()
+
+    const requiredVertices = outline.length * 6
+    if (vertexCursor + requiredVertices > position.count) {
+      throw new Error('LINAR support cavity-infill vertex capacity exceeded')
+    }
+    if (!firstActivePoint) firstActivePoint = outline[0]
+
+    const topOffset = vertexCursor
+    const bottomOffset = topOffset + outline.length
+    const sideOffset = bottomOffset + outline.length
+    for (let index = 0; index < outline.length; index += 1) {
+      const point = outline[index]
+      const next = outline[(index + 1) % outline.length]
+      position.setXYZ(topOffset + index, point.x, 0.5, point.z)
+      position.setXYZ(bottomOffset + index, point.x, -0.5, point.z)
+      const sideVertex = sideOffset + index * 4
+      position.setXYZ(sideVertex, point.x, -0.5, point.z)
+      position.setXYZ(sideVertex + 1, point.x, 0.5, point.z)
+      position.setXYZ(sideVertex + 2, next.x, 0.5, next.z)
+      position.setXYZ(sideVertex + 3, next.x, -0.5, next.z)
+    }
+
+    const faceTriangles = THREE.ShapeUtils.triangulateShape(
+      outline.map((point) => new THREE.Vector2(point.x, point.z)),
+      [],
+    )
+    for (const [a, b, c] of faceTriangles) {
+      const first = outline[a]
+      const second = outline[b]
+      const third = outline[c]
+      const triangleArea =
+        (second.x - first.x) * (third.z - first.z) -
+        (second.z - first.z) * (third.x - first.x)
+      if (Math.abs(triangleArea) <= PROFILE_POINT_EPSILON_SQ) continue
+      if (triangleArea < 0) {
+        writeTriangle(topOffset + a, topOffset + b, topOffset + c)
+        writeTriangle(bottomOffset + a, bottomOffset + c, bottomOffset + b)
+      } else {
+        writeTriangle(topOffset + a, topOffset + c, topOffset + b)
+        writeTriangle(bottomOffset + a, bottomOffset + b, bottomOffset + c)
+      }
+    }
+    for (let index = 0; index < outline.length; index += 1) {
+      const sideVertex = sideOffset + index * 4
+      writeTriangle(sideVertex, sideVertex + 1, sideVertex + 2)
+      writeTriangle(sideVertex, sideVertex + 2, sideVertex + 3)
+    }
+    vertexCursor += requiredVertices
+    cellCount += 1
+  }
+
+  if (!firstActivePoint || cellCount === 0) {
+    geometry.setDrawRange(0, 0)
+    return 0
+  }
+  const activeIndexCount = indexCursor
+  for (let vertex = vertexCursor; vertex < position.count; vertex += 1) {
+    position.setXYZ(vertex, firstActivePoint.x, 0.5, firstActivePoint.z)
+  }
+  while (indexCursor < geometryIndex.count) {
+    geometryIndex.setX(indexCursor, 0)
+    indexCursor += 1
+  }
+  position.needsUpdate = true
+  geometryIndex.needsUpdate = true
+  geometry.setDrawRange(0, activeIndexCount)
+  geometry.computeVertexNormals()
+  geometry.computeBoundingBox()
+  geometry.computeBoundingSphere()
+  return cellCount
+}
+
+/**
  * One coherent rear support lattice shared by the complete repeated
  * installation. Flat panels retain a conventional planar grid. A bent or
  * compound installation uses continuous profile ribs following its complete
@@ -463,10 +710,30 @@ export function createLinarSupportGrid(): LinarSupportGrid {
   curvedProfileBattens.frustumCulled = false
   group.add(curvedProfileBattens)
 
-  // Keep the real perimeter independent from the interior lattice. Opaque
-  // wool felt can therefore hide internal supports while retaining a readable
-  // four-member outer frame: two longitudinal edge rails and two transverse
-  // profile ribs. No member fills the wall-to-panel cavity as a solid wing.
+  const cavityInfillMaterial = new THREE.MeshStandardMaterial({
+    name: 'LinarSupportCavityInfillMaterial',
+    color: 0xdedbd1,
+    roughness: 1,
+    metalness: 0,
+  })
+  const cavityInfillGeometry = createCavityInfillGeometry()
+  const cavityInfill = new THREE.InstancedMesh(
+    cavityInfillGeometry,
+    cavityInfillMaterial,
+    MAX_INSTANCES_PER_AXIS,
+  )
+  cavityInfill.name = SUPPORT_GRID_CAVITY_INFILL_OBJECT_NAME
+  cavityInfill.count = 0
+  cavityInfill.castShadow = true
+  cavityInfill.receiveShadow = true
+  cavityInfill.frustumCulled = false
+  cavityInfill.visible = false
+  group.add(cavityInfill)
+
+  // Keep the real perimeter independent from the interior lattice. The four
+  // outer members and the internal construction stay individually inspectable
+  // when the optional cavity infill is present; no member becomes a solid
+  // wall-to-panel wing.
   const outerFrame = new THREE.Group()
   outerFrame.name = 'LinarSupportOuterPerimeterFrames'
   outerFrame.visible = false
@@ -512,6 +779,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
   let lastUpdateKey = ''
   let stats = emptyStats()
   let internalMembersVisible = true
+  let cavityInfillEnabled = false
   let disposed = false
 
   const setInternalMembersVisible = (visible: boolean) => {
@@ -522,12 +790,30 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     curvedProfileBattens.visible = internalMembersVisible
   }
 
+  const setCavityInfill = (
+    visible: boolean,
+    colour: THREE.ColorRepresentation,
+  ) => {
+    if (disposed) return
+    if (cavityInfillEnabled !== visible) {
+      cavityInfillEnabled = visible
+      lastUpdateKey = ''
+    }
+    cavityInfillMaterial.color.set(colour)
+    cavityInfillMaterial.needsUpdate = true
+    cavityInfill.visible = cavityInfillEnabled && group.visible
+  }
+
   const update = ({ application, panelCount, bounds }: SupportGridUpdate) => {
     if (disposed) return stats
     const mounted = application === 'wall' || application === 'ceiling'
     const minX = finite(bounds.minX, -0.6)
     const maxX = finite(bounds.maxX, 0.6)
     const heightM = Math.max(0.04, finite(bounds.heightM, 2.8))
+    const rearSurfaceOffsetM = Math.max(
+      0,
+      finite(bounds.rearSurfaceOffsetM ?? 0, 0),
+    )
     const seamXM = (bounds.seamXM ?? []).filter(Number.isFinite)
     const supportPath = validSupportPath(bounds.supportPathXZ)
     const seamPathDistancesM = (bounds.seamPathDistancesM ?? []).filter(
@@ -539,9 +825,11 @@ export function createLinarSupportGrid(): LinarSupportGrid {
           minX,
         )}:${quantizedKey(maxX)}:${quantizedKey(heightM)}:${seamXM
           .map(quantizedKey)
-          .join(',')}:${curved ? pathKey(supportPath) : 'planar'}:${seamPathDistancesM
+          .join(',')}:${quantizedKey(rearSurfaceOffsetM)}:${
+          curved ? pathKey(supportPath) : 'planar'
+        }:${seamPathDistancesM
           .map(quantizedKey)
-          .join(',')}`
+          .join(',')}:${cavityInfillEnabled ? 1 : 0}`
       : 'freestanding'
 
     if (nextKey === lastUpdateKey) return stats
@@ -552,6 +840,9 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       verticalBattens.count = 0
       horizontalBattens.count = 0
       curvedProfileBattens.count = 0
+      cavityInfill.count = 0
+      cavityInfillGeometry.setDrawRange(0, 0)
+      cavityInfill.visible = false
       outerVerticalRails.count = 0
       outerFlatProfileRibs.count = 0
       outerCurvedProfileRibs.count = 0
@@ -562,9 +853,18 @@ export function createLinarSupportGrid(): LinarSupportGrid {
 
     const horizontalPositions = supportPositions(0, heightM)
     const maximumPathDistance = supportPath[supportPath.length - 1]?.distanceM ?? 0
+    // Flat and curved states use the same physical centreline endpoints. The
+    // panel AABB is deliberately padded for rendering/camera fit and must not
+    // become the construction width when the curve happens to be planar.
+    const planarMinX = supportPath.length
+      ? Math.min(...supportPath.map((point) => point.x))
+      : minX
+    const planarMaxX = supportPath.length
+      ? Math.max(...supportPath.map((point) => point.x))
+      : maxX
     const verticalPositions = curved
       ? supportPositions(0, maximumPathDistance, seamPathDistancesM)
-      : supportPositions(minX, maxX, seamXM)
+      : supportPositions(planarMinX, planarMaxX, seamXM)
     const internalVerticalPositions = verticalPositions.slice(1, -1)
     const internalHorizontalPositions = horizontalPositions.slice(1, -1)
     // Longitudinal members butt into the two 40 mm profile ribs instead of
@@ -583,9 +883,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     }
 
     verticalBattens.count = internalVerticalPositions.length
-    const pathMinZ = curved
-      ? supportPath.reduce((minimum, point) => Math.min(minimum, point.z), Infinity)
-      : 0
+    const panelFacingOffsetM = rearSurfaceOffsetM + SUPPORT_GRID_RENDER_GAP_M
     for (let index = 0; index < internalVerticalPositions.length; index += 1) {
       if (curved) {
         const point = pointAtPathDistance(
@@ -594,18 +892,17 @@ export function createLinarSupportGrid(): LinarSupportGrid {
         )
         const normalX = Math.sin(point.rotY)
         const normalZ = Math.cos(point.rotY)
-        const frontZ = point.z - pathMinZ + BATTEN_DEPTH_M
         transform.position.set(
-          point.x - normalX * BATTEN_DEPTH_M * 0.5,
+          point.x - normalX * (panelFacingOffsetM + BATTEN_DEPTH_M * 0.5),
           heightM * 0.5,
-          frontZ - normalZ * BATTEN_DEPTH_M * 0.5,
+          point.z - normalZ * (panelFacingOffsetM + BATTEN_DEPTH_M * 0.5),
         )
         transform.rotation.set(0, point.rotY, 0)
       } else {
         transform.position.set(
           internalVerticalPositions[index],
           heightM * 0.5,
-          BATTEN_DEPTH_M * 0.5,
+          -panelFacingOffsetM - BATTEN_DEPTH_M * 0.5,
         )
         transform.rotation.set(0, 0, 0)
       }
@@ -619,13 +916,62 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     }
     verticalBattens.instanceMatrix.needsUpdate = true
 
+    cavityInfill.count = 0
+    cavityInfillGeometry.setDrawRange(0, 0)
+    cavityInfill.visible = false
+    if (cavityInfillEnabled && supportPath.length >= 2 && maximumPathDistance > 0) {
+      const pathSupportPositions = supportPositions(
+        0,
+        maximumPathDistance,
+        seamPathDistancesM,
+      )
+      const memberClearanceM =
+        SUPPORT_GRID_CAVITY_INFILL_VISUAL.memberClearanceMm / 1000
+      const frontRecessM = SUPPORT_GRID_CAVITY_INFILL_VISUAL.frontRecessMm / 1000
+      const rearRevealM = SUPPORT_GRID_CAVITY_INFILL_VISUAL.rearRevealMm / 1000
+      const infillDepthM = Math.max(
+        0.001,
+        BATTEN_DEPTH_M - frontRecessM - rearRevealM,
+      )
+      const pathCellCount = updateCavityInfillGeometry(
+        cavityInfillGeometry,
+        supportPath,
+        pathSupportPositions,
+        panelFacingOffsetM,
+        frontRecessM,
+        infillDepthM,
+        memberClearanceM,
+      )
+      let rowIndex = 0
+
+      for (let yIndex = 1; yIndex < horizontalPositions.length; yIndex += 1) {
+        const yStart =
+          horizontalPositions[yIndex - 1] + BATTEN_WIDTH_M * 0.5 + memberClearanceM
+        const yEnd =
+          horizontalPositions[yIndex] - BATTEN_WIDTH_M * 0.5 - memberClearanceM
+        const infillHeightM = yEnd - yStart
+        if (infillHeightM <= 0.001) continue
+        if (rowIndex >= MAX_INSTANCES_PER_AXIS) {
+          throw new Error('LINAR support cavity-infill row capacity exceeded')
+        }
+        transform.position.set(0, (yStart + yEnd) * 0.5, 0)
+        transform.rotation.set(0, 0, 0)
+        transform.scale.set(1, infillHeightM, 1)
+        transform.updateMatrix()
+        cavityInfill.setMatrixAt(rowIndex, transform.matrix)
+        rowIndex += 1
+      }
+      cavityInfill.count = pathCellCount > 0 ? rowIndex : 0
+      cavityInfill.instanceMatrix.needsUpdate = true
+      cavityInfill.visible = cavityInfill.count > 0
+    }
+
     // The two global endpoint members are narrow closed rails, not cavity-
     // filling side sheets. Sample each real terminal 40 mm path cell so a
     // near-vertical or folded endpoint cannot create a tangent wedge.
     outerVerticalRails.count = 2
     const outerRailHeightM = longitudinalMemberHeightM
-    const outerRailDepthM =
-      BATTEN_DEPTH_M - CURVED_PROFILE_RECEIVER_CLEARANCE_M
+    const outerRailDepthM = BATTEN_DEPTH_M
     if (curved) {
       const terminalSpanM = Math.min(BATTEN_WIDTH_M, maximumPathDistance * 0.5)
       const terminalPairs = [
@@ -640,15 +986,16 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       ] as const
       for (let index = 0; index < terminalPairs.length; index += 1) {
         const [start, end] = terminalPairs[index]
-        const chordX = end.x - start.x
-        const chordZ = end.z - start.z
+        const frontStart = rearOffsetPoint(start, panelFacingOffsetM)
+        const frontEnd = rearOffsetPoint(end, panelFacingOffsetM)
+        const chordX = frontEnd.x - frontStart.x
+        const chordZ = frontEnd.z - frontStart.z
         const chordLengthM = Math.max(0.001, Math.hypot(chordX, chordZ))
         const rotationY = Math.atan2(-chordZ, chordX)
         const normalX = Math.sin(rotationY)
         const normalZ = Math.cos(rotationY)
-        const frontMidpointX = (start.x + end.x) * 0.5
-        const frontMidpointZ =
-          (start.z + end.z) * 0.5 - pathMinZ + BATTEN_DEPTH_M
+        const frontMidpointX = (frontStart.x + frontEnd.x) * 0.5
+        const frontMidpointZ = (frontStart.z + frontEnd.z) * 0.5
         transform.position.set(
           frontMidpointX - normalX * outerRailDepthM * 0.5,
           heightM * 0.5,
@@ -664,17 +1011,20 @@ export function createLinarSupportGrid(): LinarSupportGrid {
         outerVerticalRails.setMatrixAt(index, transform.matrix)
       }
     } else {
-      const installationWidthM = Math.max(0.001, Math.abs(maxX - minX))
+      const installationWidthM = Math.max(
+        0.001,
+        Math.abs(planarMaxX - planarMinX),
+      )
       const outerRailWidthM = Math.min(BATTEN_WIDTH_M, installationWidthM * 0.5)
       const outerRailPositions = [
-        minX + outerRailWidthM * 0.5,
-        maxX - outerRailWidthM * 0.5,
+        planarMinX + outerRailWidthM * 0.5,
+        planarMaxX - outerRailWidthM * 0.5,
       ]
       for (let index = 0; index < outerRailPositions.length; index += 1) {
         transform.position.set(
           outerRailPositions[index],
           heightM * 0.5,
-          CURVED_PROFILE_RECEIVER_CLEARANCE_M + outerRailDepthM * 0.5,
+          -panelFacingOffsetM - outerRailDepthM * 0.5,
         )
         transform.rotation.set(0, 0, 0)
         transform.scale.set(
@@ -691,7 +1041,11 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     if (curved) {
       horizontalBattens.count = 0
       outerFlatProfileRibs.count = 0
-      updateCurvedProfileGeometry(curvedProfileGeometry, supportPath)
+      updateCurvedProfileGeometry(
+        curvedProfileGeometry,
+        supportPath,
+        rearSurfaceOffsetM,
+      )
       curvedProfileBattens.count = internalHorizontalPositions.length
       for (let index = 0; index < internalHorizontalPositions.length; index += 1) {
         transform.position.set(0, internalHorizontalPositions[index], 0)
@@ -717,11 +1071,12 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     } else {
       curvedProfileBattens.count = 0
       outerCurvedProfileRibs.count = 0
-      const centreX = (minX + maxX) * 0.5
-      const widthM = Math.max(BATTEN_WIDTH_M, Math.abs(maxX - minX))
-      // Horizontal members form the rear layer of the simple lattice. A 2 mm
-      // setback prevents coincident front faces at every crossing.
-      const horizontalCentreZ = BATTEN_DEPTH_M * 0.5 - 0.002
+      const centreX = (planarMinX + planarMaxX) * 0.5
+      const widthM = Math.max(
+        BATTEN_WIDTH_M,
+        Math.abs(planarMaxX - planarMinX),
+      )
+      const horizontalCentreZ = -panelFacingOffsetM - BATTEN_DEPTH_M * 0.5
       horizontalBattens.count = internalHorizontalPositions.length
       for (let index = 0; index < internalHorizontalPositions.length; index += 1) {
         transform.position.set(
@@ -752,6 +1107,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
 
     outerFrame.visible = true
     group.visible = true
+    cavityInfill.visible = cavityInfillEnabled && cavityInfill.count > 0
     stats = {
       verticalBattens: internalVerticalPositions.length,
       horizontalBattens: internalHorizontalPositions.length,
@@ -769,6 +1125,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     group,
     update,
     setInternalMembersVisible,
+    setCavityInfill,
     getStats: () => stats,
     dispose: () => {
       if (disposed) return
@@ -776,7 +1133,9 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       group.clear()
       geometry.dispose()
       curvedProfileGeometry.dispose()
+      cavityInfillGeometry.dispose()
       material.dispose()
+      cavityInfillMaterial.dispose()
       stats = emptyStats()
       lastUpdateKey = ''
     },
