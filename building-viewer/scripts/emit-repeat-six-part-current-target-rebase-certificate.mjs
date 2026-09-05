@@ -38,8 +38,8 @@ const EXPECTED_HUMAN_CERTIFICATE = Object.freeze({
 
 const EXPECTED_CURRENT_MODEL = Object.freeze({
   relativePath: DEFAULT_CURRENT_TARGET_MODEL_RELATIVE_PATH,
-  bytes: 96_803_896,
-  sha256: '4786da86836ca2438196f2f4e216ec6188a21d8922612070e1c296d5c461596e',
+  bytes: 96_803_584,
+  sha256: 'a9ddb5030af1a1aa087aeb87aaf1fc66c1a868cf6fd797400617d90a1061ad28',
 })
 
 const EXPECTED_ROOTS = Object.freeze([

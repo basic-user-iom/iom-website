@@ -263,6 +263,97 @@ try {
   assert.equal(unrelatedGeneratedMesh.material.side, FrontSide)
   assert.notEqual(unnamedAuditoriumAggregate.material, cleanFoyerDoorUse.material)
 
+  // The optimized auditorium safety rail loses its authored owner and retains
+  // the misspelled `metal_gelnder` material. Its confirmed winding failure
+  // must stay visible from the aisle and seating sides, while a clean shared
+  // use and a fuzzy material name retain ordinary FrontSide culling.
+  const sharedAuditoriumRailingMaterial = new MeshStandardMaterial({
+    name: 'metal_gelnder',
+    side: FrontSide,
+  })
+  const damagedAuditoriumRailing = new Mesh(
+    duplicateWindingGeometry(),
+    sharedAuditoriumRailingMaterial,
+  )
+  damagedAuditoriumRailing.name = 'mesh_1121_3'
+  const cleanAuditoriumRailingUse = new Mesh(
+    new BoxGeometry(4, 3, 4),
+    sharedAuditoriumRailingMaterial,
+  )
+  cleanAuditoriumRailingUse.position.x = 8
+  const fuzzyAuditoriumRailing = new Mesh(
+    duplicateWindingGeometry(),
+    new MeshStandardMaterial({ name: 'metal_gelnder_copy', side: FrontSide }),
+  )
+  fuzzyAuditoriumRailing.position.x = 16
+  const auditoriumRailingRoot = new Group()
+  auditoriumRailingRoot.add(
+    damagedAuditoriumRailing,
+    cleanAuditoriumRailingUse,
+    fuzzyAuditoriumRailing,
+  )
+  prepareArchitecturalMeshes(
+    auditoriumRailingRoot,
+    computeSceneBounds(auditoriumRailingRoot),
+    { freezeStatic: false },
+  )
+  assert.equal(damagedAuditoriumRailing.material.side, DoubleSide)
+  assert.equal(
+    damagedAuditoriumRailing.userData.surfaceVisibilityReason,
+    'audited-mixed-winding-shell',
+  )
+  assert.equal(cleanAuditoriumRailingUse.material.side, FrontSide)
+  assert.equal(fuzzyAuditoriumRailing.material.side, FrontSide)
+  assert.notEqual(
+    damagedAuditoriumRailing.material,
+    cleanAuditoriumRailingUse.material,
+  )
+
+  // The long auditorium fence uses building-wide chrome plus a shared wood
+  // material, so only descendants of the exact RG_Gelaender owner may inherit
+  // its confirmed mixed-winding exception.
+  const sharedRailingChrome = new MeshStandardMaterial({
+    name: 'm.metal_chrome',
+    side: FrontSide,
+  })
+  const sharedRailingWood = new MeshStandardMaterial({
+    name: 'vray Gelaender_Holz',
+    side: FrontSide,
+  })
+  const railingOwner = new Group()
+  railingOwner.name = 'RG_Gelaender'
+  const damagedRailingChrome = new Mesh(
+    duplicateWindingGeometry(),
+    sharedRailingChrome,
+  )
+  const damagedRailingWood = new Mesh(
+    duplicateWindingGeometry(),
+    sharedRailingWood,
+  )
+  railingOwner.add(damagedRailingChrome, damagedRailingWood)
+  const cleanSharedChrome = new Mesh(new BoxGeometry(4, 3, 4), sharedRailingChrome)
+  cleanSharedChrome.position.x = 8
+  const cleanSharedWood = new Mesh(new BoxGeometry(4, 3, 4), sharedRailingWood)
+  cleanSharedWood.position.x = 16
+  const ownerScopedRailingRoot = new Group()
+  ownerScopedRailingRoot.add(railingOwner, cleanSharedChrome, cleanSharedWood)
+  prepareArchitecturalMeshes(
+    ownerScopedRailingRoot,
+    computeSceneBounds(ownerScopedRailingRoot),
+    { freezeStatic: false },
+  )
+  for (const damagedRailingPart of [damagedRailingChrome, damagedRailingWood]) {
+    assert.equal(damagedRailingPart.material.side, DoubleSide)
+    assert.equal(
+      damagedRailingPart.userData.surfaceVisibilityReason,
+      'audited-mixed-winding-shell',
+    )
+  }
+  assert.equal(cleanSharedChrome.material.side, FrontSide)
+  assert.equal(cleanSharedWood.material.side, FrontSide)
+  assert.notEqual(damagedRailingChrome.material, cleanSharedChrome.material)
+  assert.notEqual(damagedRailingWood.material, cleanSharedWood.material)
+
   // gltfpack batching drops the Flugturm node name. Its isolated source
   // material remains a deterministic bridge to the audited open shell.
   const tower = new Mesh(openCornerGeometry(), new MeshStandardMaterial({

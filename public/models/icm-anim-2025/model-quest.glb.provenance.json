@@ -42,8 +42,8 @@
     "-ac"
   ],
   "source": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\quest-batched-v3.glb",
-    "sha256": "0140d8d3247c7d64bd46747c7148ef1bbdcb8ec4be4b33eda7e38e5576ab2376"
+    "path": "F:\\iom_website\\building-viewer\\tmp\\auditorium-railing-fix\\quest\\quest-batched.glb",
+    "sha256": "12795a56c4ad8a370614a5b684234affa359fcf4cbb6f6245038a172c1066e74"
   },
   "sourcePreparation": {
     "normalizedEmptyScenes": 0,
@@ -63,7 +63,7 @@
     },
     "materialSidedness": {
       "madeSingleSided": 0,
-      "retainedDoubleSided": 91,
+      "retainedDoubleSided": 93,
       "promotedSingleSided": 2,
       "splitMaterials": 1,
       "topologyScanned": 212,
@@ -317,6 +317,12 @@
         "occurrences": 1
       },
       {
+        "name": "metal_gelnder",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
         "name": "neutral_005",
         "reason": "open-architectural-shell",
         "role": null,
@@ -367,6 +373,12 @@
       {
         "name": "vray Exit_Sign",
         "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Gelaender_Holz",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -1175,11 +1187,11 @@
     "animationDurationSeconds": 2.7083334922790527
   },
   "output": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-quest-v3.glb",
-    "sha256": "dcaebbb25791329292e58c24a2b9ff204a9cd56c536510f4bd4406aaca484484",
-    "bytes": 57383212,
+    "path": "F:\\iom_website\\building-viewer\\tmp\\auditorium-railing-fix\\quest\\model-quest.glb",
+    "sha256": "4f9af326b490f21d49878d31241ac7141d92dbbe79cf6be68c3991775a473d71",
+    "bytes": 57380016,
     "expandedWorkload": {
-      "triangles": 6147426,
+      "triangles": 6147314,
       "primitiveDraws": 3747,
       "meshNodes": 2459,
       "logicalInstances": 5121
@@ -1469,6 +1481,12 @@
         "occurrences": 1
       },
       {
+        "name": "metal_gelnder",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
         "name": "neutral_005",
         "reason": "open-architectural-shell",
         "role": null,
@@ -1519,6 +1537,12 @@
       {
         "name": "vray Exit_Sign",
         "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Gelaender_Holz",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -2287,26 +2311,26 @@
     "scene": {
       "nodeCount": 3090,
       "meshCount": 1673,
-      "materialCount": 461,
+      "materialCount": 462,
       "textureCount": 140,
       "animationCount": 1
     },
     "render": {
       "drawCount": 3747,
       "instanceCount": 6409,
-      "triangleCount": 6147426
+      "triangleCount": 6147314
     },
     "data": {
-      "json": 2260119,
-      "binary": 55122944,
+      "json": 2260501,
+      "binary": 55119364,
       "buffers": {
-        "vertex": 34542411,
-        "index": 3259994,
+        "vertex": 34538953,
+        "index": 3259871,
         "animation": 1001,
         "transform": 25320,
         "image": 17293988
       }
     }
   },
-  "createdAt": "2026-09-04T20:02:38.023Z"
+  "createdAt": "2026-09-05T16:15:52.342Z"
 }

@@ -32,6 +32,10 @@ const TETRA_FACES = new Uint16Array([
   ...TETRA_FACES_A,
   ...TETRA_FACES_B,
 ])
+const TETRA_DUPLICATE_WINDING_FACES = new Uint16Array([
+  ...TETRA_FACES,
+  0, 2, 1,
+])
 
 function fixtureDocument() {
   const document = new Document()
@@ -268,6 +272,95 @@ for (const extras of [
   assert.equal(materials.foliage.getExtras().iomDoubleSidedReason, 'explicit-sheet')
   assert.equal(materials.sheet.getExtras().iomDoubleSidedReason, 'authored-thin-sheet')
   assert.equal(materials.safety.getExtras().iomDoubleSidedReason, 'visibility-critical')
+}
+
+// The auditorium railing owner is erased by optimization, so its exact
+// retained material is the narrow bridge to the mixed-winding audit. A
+// damaged use stays two-sided through a material split; a clean shared use and
+// a near-match remain single-sided.
+{
+  const { document, scene } = fixtureDocument()
+  const railing = document.createMaterial('metal_gelnder').setDoubleSided(true)
+  const damagedMesh = document.createMesh('generated-railing-damaged')
+  const damagedPrimitive = addPrimitive(document, damagedMesh, {
+    name: 'generated-railing-damaged',
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: railing,
+  })
+  scene.addChild(document.createNode('mesh_1121_3').setMesh(damagedMesh))
+
+  const cleanMesh = tetraMesh(document, 'generated-railing-clean', [railing])
+  const cleanPrimitive = cleanMesh.listPrimitives()[0]
+  scene.addChild(document.createNode('mesh_1121_4').setMesh(cleanMesh))
+
+  const nearMatch = document.createMaterial('metal_gelnder_copy').setDoubleSided(false)
+  const nearMatchMesh = document.createMesh('generated-railing-near-match')
+  const nearMatchPrimitive = addPrimitive(document, nearMatchMesh, {
+    name: 'generated-railing-near-match',
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: nearMatch,
+  })
+  scene.addChild(document.createNode('mesh_1121_5').setMesh(nearMatchMesh))
+
+  const result = normalizeCadMaterialSidedness(document)
+  const damagedMaterial = damagedPrimitive.getMaterial()
+  const cleanMaterial = cleanPrimitive.getMaterial()
+  assert.equal(damagedMaterial.getDoubleSided(), true)
+  assert.equal(
+    damagedMaterial.getExtras().iomDoubleSidedReason,
+    'audited-mixed-winding-shell',
+  )
+  assert.equal(cleanMaterial.getDoubleSided(), false)
+  assert.notEqual(damagedMaterial, cleanMaterial)
+  assert.equal(nearMatchPrimitive.getMaterial().getDoubleSided(), false)
+  assert.equal(result.splitMaterials, 1)
+}
+
+// The photographed auditorium fence is the exact RG_Gelaender owner. Its
+// chrome and wood materials are shared by clean geometry elsewhere, so the
+// optimizer must split both damaged owner uses without widening the policy to
+// either material name globally.
+{
+  const { document, scene } = fixtureDocument()
+  const chrome = document.createMaterial('m.metal_chrome').setDoubleSided(true)
+  const wood = document.createMaterial('vray Gelaender_Holz').setDoubleSided(true)
+  const railingMesh = document.createMesh('Mesh.1877')
+  const railingChromePrimitive = addPrimitive(document, railingMesh, {
+    name: 'rg-gelaender-chrome',
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: chrome,
+  })
+  const railingWoodPrimitive = addPrimitive(document, railingMesh, {
+    name: 'rg-gelaender-wood',
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: wood,
+  })
+  scene.addChild(document.createNode('RG_Gelaender').setMesh(railingMesh))
+
+  const cleanChromeMesh = tetraMesh(document, 'clean-shared-chrome', [chrome])
+  const cleanChromePrimitive = cleanChromeMesh.listPrimitives()[0]
+  scene.addChild(document.createNode('clean-chrome-owner').setMesh(cleanChromeMesh))
+  const cleanWoodMesh = tetraMesh(document, 'clean-shared-wood', [wood])
+  const cleanWoodPrimitive = cleanWoodMesh.listPrimitives()[0]
+  scene.addChild(document.createNode('clean-wood-owner').setMesh(cleanWoodMesh))
+
+  const result = normalizeCadMaterialSidedness(document)
+  for (const primitive of [railingChromePrimitive, railingWoodPrimitive]) {
+    assert.equal(primitive.getMaterial().getDoubleSided(), true)
+    assert.equal(
+      primitive.getMaterial().getExtras().iomDoubleSidedReason,
+      'audited-mixed-winding-shell',
+    )
+  }
+  assert.equal(cleanChromePrimitive.getMaterial().getDoubleSided(), false)
+  assert.equal(cleanWoodPrimitive.getMaterial().getDoubleSided(), false)
+  assert.notEqual(railingChromePrimitive.getMaterial(), cleanChromePrimitive.getMaterial())
+  assert.notEqual(railingWoodPrimitive.getMaterial(), cleanWoodPrimitive.getMaterial())
+  assert.equal(result.splitMaterials, 2)
 }
 
 // Exercise the actual offline transform function and a GLB memory round trip.

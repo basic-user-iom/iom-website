@@ -116,12 +116,14 @@ const AUDITED_OPEN_SHELL_MATERIAL =
   /^(?:mat_24 - Default(?:_\d+)?|Material 30_002|vray Paint - Sienna S_001|dach allu|Floor_Wood_Vray(?:_\d+)?|Treppen all(?:\.\d+)?|Rang_Dunkel)$/i
 
 /**
- * Foyer-door faces whose owner names are lost, and whose generated mesh
- * ordinals differ between Web and Quest. Only primitives with this exact
- * retained material enter the mixed-winding audit; a topology proof is still
- * required before clean/future uses can lose FrontSide culling.
+ * Exact primitive families whose source owner names are lost, and whose
+ * generated mesh ordinals differ between Web and Quest. This covers the foyer
+ * door faces and the misspelled auditorium railing material retained by the
+ * optimizer. A topology proof is still required before clean/future uses can
+ * lose FrontSide culling.
  */
-const AUDITED_MIXED_WINDING_PRIMITIVE_MATERIAL = /^wall_raster_wood_002$/i
+const AUDITED_MIXED_WINDING_PRIMITIVE_MATERIAL =
+  /^(?:wall_raster_wood_002|metal_gelnder)$/i
 
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',
@@ -162,6 +164,9 @@ const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'egdeckebergangaussen',
   'buhneaufbaudecke',
   'saal1deckenpaneelelftung001',
+  // Auditorium aisle safety railing. Its chrome and wood materials are shared
+  // elsewhere, so the exact authored owner is the safe two-sided boundary.
+  'rggelaender',
   // Rear auditorium portal batches contain closed-looking but inconsistent
   // CAD winding. glTF's single-sided default otherwise drops random leaves,
   // frames, and wood panels when the doorway is approached from the foyer.

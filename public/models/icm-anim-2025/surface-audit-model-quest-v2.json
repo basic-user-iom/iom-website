@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "input": "F:\\iom_website\\building-viewer\\tmp\\blender-surface-cleanup\\release\\model-quest-v3.glb",
-  "bytes": 57383212,
+  "input": "F:\\iom_website\\building-viewer\\tmp\\auditorium-railing-fix\\quest\\model-quest.glb",
+  "bytes": 57380016,
   "nodes": 3090,
   "meshes": 1673,
-  "materials": 461,
+  "materials": 462,
   "primitiveInstances": 3747,
-  "triangleInstances": 3877757,
+  "triangleInstances": 3877645,
   "mirroredNodes": 344,
   "openPrimitiveInstances": 2351,
-  "openSingleSidedInstances": 1585,
+  "openSingleSidedInstances": 1578,
   "expectedTwoSidedSingleInstances": 15,
   "risks": {
-    "high": 919,
-    "medium": 453,
-    "winding": 1778
+    "high": 917,
+    "medium": 448,
+    "winding": 1785
   },
   "candidates": [
     {
@@ -14809,64 +14809,6 @@
     },
     {
       "risk": "high",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 2828,
-      "boundaryEdges": 1404,
-      "boundaryRatio": 0.28398,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 620,
-      "worldMin": [
-        -5.04,
-        -0.78,
-        -1.33
-      ],
-      "worldMax": [
-        -0.02,
-        1.6,
-        -0.04
-      ],
-      "worldSize": [
-        5.02,
-        2.38,
-        1.3
-      ]
-    },
-    {
-      "risk": "high",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 2828,
-      "boundaryEdges": 1404,
-      "boundaryRatio": 0.28398,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 620,
-      "worldMin": [
-        0.02,
-        -1.6,
-        0.04
-      ],
-      "worldMax": [
-        5.04,
-        0.78,
-        1.33
-      ],
-      "worldSize": [
-        5.02,
-        2.38,
-        1.3
-      ]
-    },
-    {
-      "risk": "high",
       "node": "Sued_Gang_Front001.001",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -27018,35 +26960,6 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 1244,
-      "boundaryEdges": 288,
-      "boundaryRatio": 0.14328,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 236,
-      "worldMin": [
-        -279.62,
-        -111.66,
-        192.25
-      ],
-      "worldMax": [
-        679.75,
-        -107.34,
-        374.53
-      ],
-      "worldSize": [
-        959.38,
-        4.31,
-        182.28
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "Saal-_4_Buhne",
       "mesh": "(unnamed)",
       "primitive": 2,
@@ -31313,35 +31226,6 @@
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 4144,
-      "boundaryEdges": 828,
-      "boundaryRatio": 0.12492,
-      "nonManifoldEdges": 2,
-      "windingConflictEdges": 1556,
-      "worldMin": [
-        -38.37,
-        6,
-        31.99
-      ],
-      "worldMax": [
-        -35.4,
-        11.31,
-        41.45
-      ],
-      "worldSize": [
-        2.97,
-        5.31,
-        9.46
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
       "material": "m.metal.alum.r",
       "doubleSided": false,
       "mirrored": false,
@@ -35170,35 +35054,6 @@
       "node": "(unnamed)",
       "mesh": "(unnamed)",
       "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 8812,
-      "boundaryEdges": 876,
-      "boundaryRatio": 0.06416,
-      "nonManifoldEdges": 2,
-      "windingConflictEdges": 2742,
-      "worldMin": [
-        -74.73,
-        6.08,
-        31.99
-      ],
-      "worldMax": [
-        -71.75,
-        11.39,
-        41.45
-      ],
-      "worldSize": [
-        2.98,
-        5.31,
-        9.46
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 0,
       "material": "vray Drehtuer_Metall_001",
       "doubleSided": false,
       "mirrored": false,
@@ -35950,35 +35805,6 @@
     },
     {
       "risk": "medium",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
-      "primitive": 3,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": false,
-      "triangles": 13160,
-      "boundaryEdges": 1168,
-      "boundaryRatio": 0.05821,
-      "nonManifoldEdges": 257,
-      "windingConflictEdges": 3708,
-      "worldMin": [
-        -53.7,
-        -0.01,
-        -91.55
-      ],
-      "worldMax": [
-        -19.91,
-        4.55,
-        -46.3
-      ],
-      "worldSize": [
-        33.79,
-        4.57,
-        45.26
-      ]
-    },
-    {
-      "risk": "medium",
       "node": "atika",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -36681,11 +36507,11 @@
       "material": "m.metal_chrome",
       "doubleSided": false,
       "mirrored": false,
-      "triangles": 110194,
-      "boundaryEdges": 6581,
-      "boundaryRatio": 0.04664,
-      "nonManifoldEdges": 26257,
-      "windingConflictEdges": 27312,
+      "triangles": 103209,
+      "boundaryEdges": 6195,
+      "boundaryRatio": 0.04744,
+      "nonManifoldEdges": 26097,
+      "windingConflictEdges": 24665,
       "worldMin": [
         -174.69,
         -6,
@@ -39484,35 +39310,6 @@
         13.25,
         7.02,
         5.52
-      ]
-    },
-    {
-      "risk": "medium",
-      "node": "TR_Gitter002_001",
-      "mesh": "(unnamed)",
-      "primitive": 0,
-      "material": "metal_gelnder",
-      "doubleSided": false,
-      "mirrored": true,
-      "triangles": 4714,
-      "boundaryEdges": 48,
-      "boundaryRatio": 0.00677,
-      "nonManifoldEdges": 0,
-      "windingConflictEdges": 1186,
-      "worldMin": [
-        -36.53,
-        6,
-        32.02
-      ],
-      "worldMax": [
-        -35.39,
-        11.21,
-        41.43
-      ],
-      "worldSize": [
-        1.14,
-        5.2,
-        9.41
       ]
     },
     {
@@ -43898,35 +43695,6 @@
       "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
-      "primitive": 2,
-      "material": "m.metal_chrome",
-      "doubleSided": true,
-      "mirrored": false,
-      "triangles": 5073,
-      "boundaryEdges": 4347,
-      "boundaryRatio": 0.45061,
-      "nonManifoldEdges": 144,
-      "windingConflictEdges": 744,
-      "worldMin": [
-        -153.81,
-        0,
-        -80.98
-      ],
-      "worldMax": [
-        10.06,
-        6.1,
-        54.23
-      ],
-      "worldSize": [
-        163.88,
-        6.1,
-        135.22
-      ]
-    },
-    {
-      "risk": "winding",
-      "node": "(unnamed)",
-      "mesh": "(unnamed)",
       "primitive": 0,
       "material": "wall_raster_wood_007",
       "doubleSided": true,
@@ -45491,6 +45259,64 @@
     },
     {
       "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 2828,
+      "boundaryEdges": 1404,
+      "boundaryRatio": 0.28398,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 620,
+      "worldMin": [
+        -5.04,
+        -0.78,
+        -1.33
+      ],
+      "worldMax": [
+        -0.02,
+        1.6,
+        -0.04
+      ],
+      "worldSize": [
+        5.02,
+        2.38,
+        1.3
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 2828,
+      "boundaryEdges": 1404,
+      "boundaryRatio": 0.28398,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 620,
+      "worldMin": [
+        0.02,
+        -1.6,
+        0.04
+      ],
+      "worldMax": [
+        5.04,
+        0.78,
+        1.33
+      ],
+      "worldSize": [
+        5.02,
+        2.38,
+        1.3
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "Fassade_BT7_33",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -46589,6 +46415,35 @@
         2.49,
         2.92,
         2.01
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 2,
+      "material": "m.metal_chrome",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 11946,
+      "boundaryEdges": 4733,
+      "boundaryRatio": 0.23637,
+      "nonManifoldEdges": 293,
+      "windingConflictEdges": 3393,
+      "worldMin": [
+        -153.81,
+        0,
+        -86.77
+      ],
+      "worldMax": [
+        10.06,
+        6.1,
+        54.23
+      ],
+      "worldSize": [
+        163.88,
+        6.1,
+        141.01
       ]
     },
     {
@@ -51061,6 +50916,35 @@
       "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 1244,
+      "boundaryEdges": 288,
+      "boundaryRatio": 0.14328,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 236,
+      "worldMin": [
+        -279.62,
+        -111.66,
+        192.25
+      ],
+      "worldMax": [
+        679.75,
+        -107.34,
+        374.53
+      ],
+      "worldSize": [
+        959.38,
+        4.31,
+        182.28
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
       "primitive": 14,
       "material": "Wand_logo",
       "doubleSided": true,
@@ -51896,6 +51780,35 @@
         0.13,
         2.2,
         0.95
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 4144,
+      "boundaryEdges": 828,
+      "boundaryRatio": 0.12492,
+      "nonManifoldEdges": 2,
+      "windingConflictEdges": 1556,
+      "worldMin": [
+        -38.37,
+        6,
+        31.99
+      ],
+      "worldMax": [
+        -35.4,
+        11.31,
+        41.45
+      ],
+      "worldSize": [
+        2.97,
+        5.31,
+        9.46
       ]
     },
     {
@@ -54599,6 +54512,35 @@
       "risk": "winding",
       "node": "(unnamed)",
       "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 8812,
+      "boundaryEdges": 876,
+      "boundaryRatio": 0.06416,
+      "nonManifoldEdges": 2,
+      "windingConflictEdges": 2742,
+      "worldMin": [
+        -74.73,
+        6.08,
+        31.99
+      ],
+      "worldMax": [
+        -71.75,
+        11.39,
+        41.45
+      ],
+      "worldSize": [
+        2.98,
+        5.31,
+        9.46
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
       "primitive": 1,
       "material": "m.glass_white_standart",
       "doubleSided": true,
@@ -54767,6 +54709,35 @@
         17.96,
         3.4,
         24.68
+      ]
+    },
+    {
+      "risk": "winding",
+      "node": "(unnamed)",
+      "mesh": "(unnamed)",
+      "primitive": 3,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": false,
+      "triangles": 13160,
+      "boundaryEdges": 1168,
+      "boundaryRatio": 0.05821,
+      "nonManifoldEdges": 257,
+      "windingConflictEdges": 3708,
+      "worldMin": [
+        -53.7,
+        -0.01,
+        -91.55
+      ],
+      "worldMax": [
+        -19.91,
+        4.55,
+        -46.3
+      ],
+      "worldSize": [
+        33.79,
+        4.57,
+        45.26
       ]
     },
     {
@@ -57236,6 +57207,35 @@
     },
     {
       "risk": "winding",
+      "node": "TR_Gitter002_001",
+      "mesh": "(unnamed)",
+      "primitive": 0,
+      "material": "metal_gelnder",
+      "doubleSided": true,
+      "mirrored": true,
+      "triangles": 4714,
+      "boundaryEdges": 48,
+      "boundaryRatio": 0.00677,
+      "nonManifoldEdges": 0,
+      "windingConflictEdges": 1186,
+      "worldMin": [
+        -36.53,
+        6,
+        32.02
+      ],
+      "worldMax": [
+        -35.39,
+        11.21,
+        41.43
+      ],
+      "worldSize": [
+        1.14,
+        5.2,
+        9.41
+      ]
+    },
+    {
+      "risk": "winding",
       "node": "bt2_innenwaende001_K.028",
       "mesh": "(unnamed)",
       "primitive": 0,
@@ -59125,7 +59125,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "metal_gelnder",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": true,
       "triangles": 6284,
       "boundaryEdges": 0,
@@ -61126,7 +61126,7 @@
       "mesh": "(unnamed)",
       "primitive": 0,
       "material": "metal_gelnder",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 2498,
       "boundaryEdges": 0,
@@ -66201,7 +66201,7 @@
       "mesh": "(unnamed)",
       "primitive": 1,
       "material": "vray Gelaender_Holz",
-      "doubleSided": false,
+      "doubleSided": true,
       "mirrored": false,
       "triangles": 600,
       "boundaryEdges": 0,

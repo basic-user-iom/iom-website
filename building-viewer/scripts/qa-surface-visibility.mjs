@@ -75,7 +75,13 @@ const SURFACE_TARGETS = {
         required: true,
       },
     ],
-    auditedMaterials: [],
+    auditedMaterials: [
+      {
+        key: 'auditorium-railing-metal',
+        names: ['metal_gelnder'],
+        required: true,
+      },
+    ],
   },
 }
 
@@ -178,6 +184,18 @@ const INTERIOR_SURFACE_VIEWS = [
     position: [-3, 20, -14],
     target: [-14.88, 10.08, -27.86],
     fov: 46,
+  },
+  {
+    name: 'auditorium-railing-witness-front',
+    position: [-41.57594274146503, 5.156139322916666, -57.782667975700356],
+    target: [-39.75390625, 4.876139322916666, -59.015625],
+    fov: 38,
+  },
+  {
+    name: 'auditorium-railing-witness-reverse',
+    position: [-37.93186975853497, 5.156139322916666, -60.248582024299644],
+    target: [-39.75390625, 4.876139322916666, -59.015625],
+    fov: 38,
   },
 ]
 
