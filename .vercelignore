@@ -7,6 +7,7 @@ debug.log
 /_source/
 /360/
 /video/
+/docs/
 scripts/probe-*.mjs
 supabase/*.sql
 /.deploy-park-wip/
