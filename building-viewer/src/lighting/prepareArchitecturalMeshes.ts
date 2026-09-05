@@ -118,12 +118,12 @@ const AUDITED_OPEN_SHELL_MATERIAL =
 /**
  * Exact primitive families whose source owner names are lost, and whose
  * generated mesh ordinals differ between Web and Quest. This covers the foyer
- * door faces and the misspelled auditorium railing material retained by the
- * optimizer. A topology proof is still required before clean/future uses can
- * lose FrontSide culling.
+ * door faces, the misspelled auditorium railing material, and the stage-shell
+ * material families retained by the optimizer. A topology proof is still
+ * required before clean/future uses can lose FrontSide culling.
  */
 const AUDITED_MIXED_WINDING_PRIMITIVE_MATERIAL =
-  /^(?:wall_raster_wood_002|metal_gelnder)$/i
+  /^(?:wall_raster_wood_002|metal_gelnder|wandfarbe_002|black_bhne)$/i
 
 const AUDITED_MIXED_WINDING_SHELL_NAMES = new Set([
   'fassade003',

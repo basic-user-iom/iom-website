@@ -318,6 +318,51 @@ for (const extras of [
   assert.equal(result.splitMaterials, 1)
 }
 
+// Ground-level stage primitives lose their owner names during optimization,
+// but the two exact stage materials remain stable in Web and Quest. Split only
+// the damaged mixed-winding primitive from a clean shared use, and keep fuzzy
+// material names outside the exception.
+for (const materialName of ['wandfarbe_002', 'black_bhne']) {
+  const { document, scene } = fixtureDocument()
+  const stageMaterial = document.createMaterial(materialName).setDoubleSided(false)
+  const damagedMesh = document.createMesh(`${materialName}-damaged`)
+  const damagedPrimitive = addPrimitive(document, damagedMesh, {
+    name: `${materialName}-damaged`,
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: stageMaterial,
+  })
+  scene.addChild(document.createNode(`${materialName}-generated`).setMesh(damagedMesh))
+
+  const cleanMesh = tetraMesh(document, `${materialName}-clean`, [stageMaterial])
+  const cleanPrimitive = cleanMesh.listPrimitives()[0]
+  scene.addChild(document.createNode(`${materialName}-clean`).setMesh(cleanMesh))
+
+  const nearMatch = document
+    .createMaterial(`${materialName}_copy`)
+    .setDoubleSided(false)
+  const nearMatchMesh = document.createMesh(`${materialName}-near-match`)
+  const nearMatchPrimitive = addPrimitive(document, nearMatchMesh, {
+    name: `${materialName}-near-match`,
+    positions: TETRA_POSITIONS,
+    indices: TETRA_DUPLICATE_WINDING_FACES,
+    material: nearMatch,
+  })
+  scene.addChild(document.createNode(`${materialName}-near-match`).setMesh(nearMatchMesh))
+
+  const result = normalizeCadMaterialSidedness(document)
+  assert.equal(damagedPrimitive.getMaterial().getDoubleSided(), true, materialName)
+  assert.equal(
+    damagedPrimitive.getMaterial().getExtras().iomDoubleSidedReason,
+    'audited-mixed-winding-shell',
+    materialName,
+  )
+  assert.equal(cleanPrimitive.getMaterial().getDoubleSided(), false, materialName)
+  assert.equal(nearMatchPrimitive.getMaterial().getDoubleSided(), false, materialName)
+  assert.notEqual(damagedPrimitive.getMaterial(), cleanPrimitive.getMaterial())
+  assert.equal(result.splitMaterials, 1, materialName)
+}
+
 // The photographed auditorium fence is the exact RG_Gelaender owner. Its
 // chrome and wood materials are shared by clean geometry elsewhere, so the
 // optimizer must split both damaged owner uses without widening the policy to

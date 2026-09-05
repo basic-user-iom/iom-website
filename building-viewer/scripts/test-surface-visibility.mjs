@@ -309,6 +309,48 @@ try {
     cleanAuditoriumRailingUse.material,
   )
 
+  // Optimized ground-level stage walls lose their source owners but retain
+  // exact `wandfarbe_002` / `black_bhne` materials in both Web and Quest.
+  // Promote only topology-proven mixed-winding uses; a watertight shared use
+  // and fuzzy material name must retain ordinary FrontSide culling.
+  for (const materialName of ['wandfarbe_002', 'black_bhne']) {
+    const sharedStageMaterial = new MeshStandardMaterial({
+      name: materialName,
+      side: FrontSide,
+    })
+    const damagedStageShell = new Mesh(
+      duplicateWindingGeometry(),
+      sharedStageMaterial,
+    )
+    const cleanStageUse = new Mesh(
+      new BoxGeometry(4, 3, 4),
+      sharedStageMaterial,
+    )
+    cleanStageUse.position.x = 8
+    const fuzzyStageShell = new Mesh(
+      duplicateWindingGeometry(),
+      new MeshStandardMaterial({
+        name: `${materialName}_copy`,
+        side: FrontSide,
+      }),
+    )
+    fuzzyStageShell.position.x = 16
+    const stageRoot = new Group()
+    stageRoot.add(damagedStageShell, cleanStageUse, fuzzyStageShell)
+    prepareArchitecturalMeshes(stageRoot, computeSceneBounds(stageRoot), {
+      freezeStatic: false,
+    })
+    assert.equal(damagedStageShell.material.side, DoubleSide, materialName)
+    assert.equal(
+      damagedStageShell.userData.surfaceVisibilityReason,
+      'audited-mixed-winding-shell',
+      materialName,
+    )
+    assert.equal(cleanStageUse.material.side, FrontSide, materialName)
+    assert.equal(fuzzyStageShell.material.side, FrontSide, materialName)
+    assert.notEqual(damagedStageShell.material, cleanStageUse.material)
+  }
+
   // The long auditorium fence uses building-wide chrome plus a shared wood
   // material, so only descendants of the exact RG_Gelaender owner may inherit
   // its confirmed mixed-winding exception.

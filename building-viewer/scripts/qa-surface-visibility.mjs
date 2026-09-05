@@ -81,6 +81,18 @@ const SURFACE_TARGETS = {
         names: ['metal_gelnder'],
         required: true,
       },
+      {
+        key: 'stage-wall-shell',
+        names: ['wandfarbe_002'],
+        required: true,
+        visibilityReason: 'audited-mixed-winding-shell',
+      },
+      {
+        key: 'stage-black-shell',
+        names: ['black_bhne'],
+        required: true,
+        visibilityReason: 'audited-mixed-winding-shell',
+      },
     ],
   },
 }
@@ -196,6 +208,18 @@ const INTERIOR_SURFACE_VIEWS = [
     position: [-37.93186975853497, 5.156139322916666, -60.248582024299644],
     target: [-39.75390625, 4.876139322916666, -59.015625],
     fov: 38,
+  },
+  {
+    name: 'stage-ground-shell-south',
+    position: [-10, 2.3, -84],
+    target: [-10, 2.3, -99],
+    fov: 58,
+  },
+  {
+    name: 'stage-ground-shell-north',
+    position: [-10, 2.3, -84],
+    target: [-10, 2.3, -69],
+    fov: 58,
   },
 ]
 
@@ -407,6 +431,12 @@ const inspectRuntime = (layerId) => page.evaluate(({ id, targetConfig }) => {
       const canonicalMaterial = canonicalName(material.name)
       for (const target of auditedMaterials) {
         if (!target.canonicalNames.includes(canonicalMaterial)) continue
+        if (
+          target.visibilityReason &&
+          target.visibilityReason !== object.userData?.surfaceVisibilityReason
+        ) {
+          continue
+        }
         auditedMaterialObjects.push({
           target: target.key,
           object: object.name || '',
