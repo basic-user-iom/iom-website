@@ -46,76 +46,6 @@ function demoDirectoryIndexPlugin() {
   }
 }
 
-/**
- * Built CSS is render-blocking by default. Load it async so the critical
- * inline shell in index.html can paint FCP/LCP without waiting on the bundle.
- * Defer *executing* the module entry until after first paint, but keep
- * modulepreload so the ~1MB JS download starts immediately (hard reload
- * otherwise leaves a non-scrollable boot shell while the network is idle).
- */
-function nonBlockingCssPlugin() {
-  return {
-    name: 'non-blocking-css',
-    enforce: 'post',
-    transformIndexHtml(html, ctx) {
-      const file = String(ctx?.filename || ctx?.path || '').replace(/\\/g, '/')
-      if (
-        file.includes('dukta-linar-concept') ||
-        file.includes('demos/dukta') ||
-        file.includes('kelly-kettle') ||
-        file.includes('precision-object') ||
-        file.includes('floating-stone')
-      ) {
-        return html
-      }
-      let next = html.replace(
-        /<link(\s[^>]*?)rel="stylesheet"([^>]*?)>/g,
-        (match, before = '', after = '') => {
-          if (/media=/.test(match) || /onload=/.test(match)) return match
-          const hrefMatch = match.match(/href="([^"]+\.css)"/)
-          if (!hrefMatch) return match
-          const href = hrefMatch[1]
-          return `<link${before}rel="stylesheet"${after} media="print" onload="this.media='all';document.documentElement.classList.add('css-ready')"><noscript><link rel="stylesheet" href="${href}"></noscript>`
-        },
-      )
-
-      next = next.replace(
-        /<script type="module" crossorigin src="([^"]+)"><\/script>/,
-        (_m, src) => {
-          const href = String(src)
-          return `<link rel="modulepreload" crossorigin href="${href}">
-    <script>
-      (function () {
-        var src = ${JSON.stringify(href)};
-        // Failsafe if the async stylesheet never fires onload.
-        setTimeout(function () {
-          document.documentElement.classList.add('css-ready');
-        }, 1800);
-        function load() {
-          var s = document.createElement('script');
-          s.type = 'module';
-          s.crossOrigin = '';
-          s.src = src;
-          document.body.appendChild(s);
-        }
-        // Two rAFs: after style/layout + first paint of the LCP poster.
-        if (typeof requestAnimationFrame === 'function') {
-          requestAnimationFrame(function () {
-            requestAnimationFrame(load);
-          });
-        } else {
-          setTimeout(load, 0);
-        }
-      })();
-    </script>`
-        },
-      )
-
-      return next
-    },
-  }
-}
-
 function projectCostsPrerenderPlugin() {
   return {
     name: 'emit-project-costs-html',
@@ -131,7 +61,6 @@ export default defineConfig({
     react(),
     demoDirectoryIndexPlugin(),
     blogApiDevPlugin(),
-    nonBlockingCssPlugin(),
     projectCostsPrerenderPlugin(),
   ],
   build: {

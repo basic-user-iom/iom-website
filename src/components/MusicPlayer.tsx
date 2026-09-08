@@ -14,6 +14,7 @@ import {
 } from '../utils/audioFocus'
 import { getDeviceProfile } from '../utils/device'
 import { lockBodyScroll } from '../utils/lockBodyScroll'
+import { mountMusicPlayerVisualizer } from '../utils/musicPlayerVisualizerLifecycle'
 import type { MusicPlayerVisualizerLike } from '../utils/musicPlayerVisualizerTypes'
 import { useCardOrbPointerProps, useSiteOrbsOptional } from './SiteOrbZone'
 
@@ -408,8 +409,11 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   const visualContainerRef = useRef<HTMLDivElement>(null)
   const visualizerRef = useRef<MusicPlayerVisualizerLike | null>(null)
   const visualizerMountedRef = useRef(false)
+  const visualizerListenerCleanupRef = useRef<(() => void) | null>(null)
+  const visualizerFailedRef = useRef(false)
   const fsCursorOrbRef = useRef<HTMLSpanElement>(null)
   const [visualizerReady, setVisualizerReady] = useState(false)
+  const [visualizerError, setVisualizerError] = useState<string | null>(null)
   const audioARef = useRef<HTMLAudioElement | null>(null)
   const audioBRef = useRef<HTMLAudioElement | null>(null)
   const activeSlotRef = useRef<'a' | 'b'>('a')
@@ -450,21 +454,61 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     viewportEngaged &&
     (isFullscreen || isPlaying || deviceProfile.visualizerIdleWhenVisible)
 
+  const failVisualizer = useCallback((stage: string, error: unknown) => {
+    console.error(`[music-player] visualizer ${stage} failed`, error)
+    visualizerFailedRef.current = true
+    if (rafRef.current != null) {
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = null
+    }
+    visualizerListenerCleanupRef.current?.()
+    visualizerListenerCleanupRef.current = null
+    const visualizer = visualizerRef.current
+    visualizerRef.current = null
+    if (visualizer) {
+      try {
+        visualizer.dispose()
+      } catch (disposeError) {
+        console.error('[music-player] visualizer cleanup failed', disposeError)
+      }
+    }
+    visualizerMountedRef.current = false
+    setVisualizerReady(false)
+    setVisualizerError('Visualizer unavailable. Audio controls remain available.')
+    visualRef.current?.removeAttribute('data-visualizer-kind')
+  }, [])
+
   const resizeVisualizer = useCallback(() => {
     const container = visualRef.current
     const visualizer = visualizerRef.current
     if (!container || !visualizer) return
     const rect = container.getBoundingClientRect()
-    visualizer.resize(rect.width, rect.height)
-  }, [])
+    try {
+      visualizer.resize(rect.width, rect.height)
+    } catch (error) {
+      failVisualizer('resize', error)
+    }
+  }, [failVisualizer])
 
   const drawVisualizer = useCallback((delta: number, time: number) => {
-    visualizerRef.current?.update(delta, time, isPlaying, analyserRef.current)
-  }, [isPlaying])
+    const visualizer = visualizerRef.current
+    if (!visualizer) return !visualizerFailedRef.current
+    try {
+      visualizer.update(delta, time, isPlaying, analyserRef.current)
+      return true
+    } catch (error) {
+      failVisualizer('update', error)
+      return false
+    }
+  }, [failVisualizer, isPlaying])
 
   const notifyVisualizerTrackChange = useCallback((trackId: string) => {
-    visualizerRef.current?.setActiveTrackId?.(trackId)
-  }, [])
+    try {
+      visualizerRef.current?.setActiveTrackId?.(trackId)
+    } catch (error) {
+      failVisualizer('track update', error)
+    }
+  }, [failVisualizer])
 
   const visualizerTargetFps =
     isFullscreen && !deviceProfile.isMobile
@@ -499,7 +543,10 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
 
       const delta = Math.min(0.05, (now - lastFrameRef.current) / 1000)
       lastFrameRef.current = now
-      drawVisualizer(delta, now / 1000)
+      if (!drawVisualizer(delta, now / 1000)) {
+        rafRef.current = null
+        return
+      }
       rafRef.current = requestAnimationFrame(tick)
     }
 
@@ -1173,13 +1220,14 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
   }, [])
 
   useEffect(() => {
-    if (!viewportEngaged) return
+    if (!viewportEngaged || visualizerError) return
     if (visualizerRef.current) {
       setVisualizerReady(true)
       return
     }
 
     let cancelled = false
+    visualizerFailedRef.current = false
     void import('../utils/createMusicPlayerVisualizer')
       .then(({ createMusicPlayerVisualizer }) => createMusicPlayerVisualizer())
       .then(({ visualizer, kind }) => {
@@ -1193,33 +1241,50 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
         if (mount) mount.dataset.visualizerKind = kind
         setVisualizerReady(true)
       })
+      .catch((error) => {
+        if (!cancelled) failVisualizer('load', error)
+      })
     return () => {
       cancelled = true
     }
-  }, [viewportEngaged])
+  }, [failVisualizer, viewportEngaged, visualizerError])
 
   useEffect(() => {
     return () => {
-      visualizerRef.current?.dispose()
+      visualizerListenerCleanupRef.current?.()
+      visualizerListenerCleanupRef.current = null
+      try {
+        visualizerRef.current?.dispose()
+      } catch (error) {
+        console.error('[music-player] visualizer cleanup failed', error)
+      }
       visualizerRef.current = null
-      setVisualizerReady(false)
+      visualizerMountedRef.current = false
     }
   }, [])
 
   useEffect(() => {
-    if (shouldAnimateVisualizer) {
-      visualizerRef.current?.resume()
-      startVisualizer()
-    } else {
-      stopVisualizer()
-      visualizerRef.current?.pause()
+    try {
+      if (shouldAnimateVisualizer) {
+        visualizerRef.current?.resume()
+        startVisualizer()
+      } else {
+        stopVisualizer()
+        visualizerRef.current?.pause()
+      }
+    } catch (error) {
+      failVisualizer('animation state', error)
     }
     return stopVisualizer
-  }, [shouldAnimateVisualizer, startVisualizer, stopVisualizer, activeTrack?.id])
+  }, [failVisualizer, shouldAnimateVisualizer, startVisualizer, stopVisualizer, activeTrack?.id])
 
   useEffect(() => {
-    visualizerRef.current?.setFullscreenMode(isFullscreen)
-  }, [isFullscreen, visualizerReady])
+    try {
+      visualizerRef.current?.setFullscreenMode(isFullscreen)
+    } catch (error) {
+      failVisualizer('fullscreen resize', error)
+    }
+  }, [failVisualizer, isFullscreen, visualizerReady])
 
   useEffect(() => {
     if (!visualizerReady) return
@@ -1229,23 +1294,47 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
     if (!container || !visualizer) return
 
     let cancelled = false
-    void Promise.resolve(visualizer.mount(container)).then(() => {
-      if (cancelled) return
-      visualizerMountedRef.current = true
-      const trackId = playingTrackIdRef.current ?? activeTrackRef.current?.id
-      if (trackId) visualizer.setActiveTrackId?.(trackId)
-      resizeVisualizer()
-      visualizer.update(0.016, performance.now() / 1000, false, null)
+    let observer: ResizeObserver | null = null
+    void mountMusicPlayerVisualizer({
+      visualizer,
+      container,
+      onContextLost: (error) => {
+        if (!cancelled) failVisualizer('context', error)
+      },
     })
+      .then((removeContextListener) => {
+        if (cancelled) {
+          removeContextListener()
+          try {
+            visualizer.dispose()
+          } catch (error) {
+            console.error('[music-player] visualizer cleanup failed', error)
+          }
+          return
+        }
+        visualizerListenerCleanupRef.current?.()
+        visualizerListenerCleanupRef.current = removeContextListener
+        visualizerMountedRef.current = true
+        const trackId = playingTrackIdRef.current ?? activeTrackRef.current?.id
+        if (trackId) notifyVisualizerTrackChange(trackId)
+        observer = new ResizeObserver(resizeVisualizer)
+        observer.observe(container)
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          if (visualizerRef.current === visualizer) visualizerRef.current = null
+          failVisualizer('mount', error)
+        }
+      })
 
-    const observer = new ResizeObserver(resizeVisualizer)
-    observer.observe(container)
     return () => {
       cancelled = true
-      observer.disconnect()
+      observer?.disconnect()
+      visualizerListenerCleanupRef.current?.()
+      visualizerListenerCleanupRef.current = null
       visualizerMountedRef.current = false
     }
-  }, [visualizerReady, resizeVisualizer])
+  }, [failVisualizer, notifyVisualizerTrackChange, visualizerReady, resizeVisualizer])
 
   useEffect(() => {
     const syncNativeFullscreen = () => {
@@ -1473,10 +1562,16 @@ export function MusicPlayer({ tracks, activeTrackId, onActiveTrackChange }: Musi
               ) : null}
               <div
                 ref={visualContainerRef}
-                className={`music-player-visual${isPlaying ? ' is-live' : ''}`}
+                className={`music-player-visual${isPlaying ? ' is-live' : ''}${visualizerError ? ' is-fallback' : ''}`}
               >
                 <div ref={visualRef} className="music-player-visual-mount" aria-hidden="true" />
-                {!isPlaying ? (
+                {visualizerError ? (
+                  <div className="music-player-visual-fallback" role="status">
+                    <strong>Static audio mode</strong>
+                    <span>{visualizerError}</span>
+                  </div>
+                ) : null}
+                {!isPlaying && !visualizerError ? (
                   <div className="music-player-visual-overlay">
                     <p className="music-player-visual-note">Press play to sync the sea</p>
                   </div>

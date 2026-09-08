@@ -1,7 +1,18 @@
-import { lazy, memo, Suspense, useEffect, useRef, useState } from 'react'
+import {
+  Component,
+  lazy,
+  memo,
+  Suspense,
+  useEffect,
+  useRef,
+  useState,
+  type ErrorInfo,
+  type ReactNode,
+} from 'react'
 import { type ProjectSection } from '../data/projects'
 import { useSiteI18n } from '../i18n'
 import { localizedProjectsForSection } from '../i18n/projects/localize'
+import { parseLocationHash } from '../utils/homeHashScroll'
 import { ProjectCard } from './ProjectCard'
 
 const MusicSection = lazy(() =>
@@ -15,6 +26,40 @@ interface ProjectSectionBlockProps {
   blurb: string
 }
 
+class MusicSectionErrorBoundary extends Component<
+  { children: ReactNode; fallback: ReactNode },
+  { failed: boolean }
+> {
+  state = { failed: false }
+
+  static getDerivedStateFromError() {
+    return { failed: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error('[music] section chunk failed', error, info.componentStack)
+  }
+
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children
+  }
+}
+
+function MusicSectionFallback({ index, label, blurb }: Pick<ProjectSectionBlockProps, 'index' | 'label' | 'blurb'>) {
+  return (
+    <section className="section-block section-block--music" id="music" aria-labelledby="music-heading">
+      <header className="section-header">
+        <span className="section-index" aria-hidden="true">{index}</span>
+        <div>
+          <h2 className="section-title" id="music-heading">{label}</h2>
+          <p className="section-blurb">{blurb}</p>
+          <p role="status">The music player could not be downloaded. Reload the page to try again.</p>
+        </div>
+      </header>
+    </section>
+  )
+}
+
 /** Mount music player JS only when the section is near the viewport. */
 function DeferredMusicSection({
   index,
@@ -26,23 +71,36 @@ function DeferredMusicSection({
   blurb: string
 }) {
   const anchorRef = useRef<HTMLDivElement>(null)
-  const [ready, setReady] = useState(false)
+  const [ready, setReady] = useState(() => parseLocationHash() === 'music')
 
   useEffect(() => {
+    if (ready) return
     const el = anchorRef.current
     if (!el) return
 
+    const prepare = () => {
+      setReady(true)
+      observer.disconnect()
+      window.removeEventListener('hashchange', onHashChange)
+    }
+    const onHashChange = () => {
+      if (parseLocationHash() === 'music') prepare()
+    }
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (!entry?.isIntersecting) return
-        setReady(true)
-        observer.disconnect()
+        prepare()
       },
       { rootMargin: '240px 0px', threshold: 0.01 },
     )
     observer.observe(el)
-    return () => observer.disconnect()
-  }, [])
+    window.addEventListener('hashchange', onHashChange)
+    onHashChange()
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('hashchange', onHashChange)
+    }
+  }, [ready])
 
   return (
     <div ref={anchorRef}>
@@ -52,7 +110,9 @@ function DeferredMusicSection({
             <section className="section-block section-block--music" id="music" aria-busy="true" />
           }
         >
-          <MusicSection index={index} label={label} blurb={blurb} />
+          <MusicSectionErrorBoundary fallback={<MusicSectionFallback index={index} label={label} blurb={blurb} />}>
+            <MusicSection index={index} label={label} blurb={blurb} />
+          </MusicSectionErrorBoundary>
         </Suspense>
       ) : (
         <section className="section-block section-block--music" id="music" aria-busy="true" />

@@ -53,6 +53,7 @@ export function Hero() {
   const useStaticHero = profile.prefersReducedMotion
   const [liveRequested, setLiveRequested] = useState(false)
   const [sceneReady, setSceneReady] = useState(false)
+  const [sceneLoadError, setSceneLoadError] = useState(false)
   const [motionStatus, setMotionStatus] = useState<MotionParallaxStatus>('disabled')
   const [nativeFullscreen, setNativeFullscreen] = useState(false)
   const [pseudoFullscreen, setPseudoFullscreen] = useState(false)
@@ -65,8 +66,8 @@ export function Hero() {
   const [hasLcpPoster] = useState(() => Boolean(document.getElementById('lcp-poster')))
   const isFullscreen = nativeFullscreen || pseudoFullscreen
   const loaderLineCount = LOADER_KEYS.length
-  const showPoster = useStaticHero || !liveRequested
-  const showLiveScene = !useStaticHero && liveRequested && sceneReady
+  const showPoster = useStaticHero || !liveRequested || sceneLoadError
+  const showLiveScene = !useStaticHero && liveRequested && sceneReady && !sceneLoadError
 
   const onSceneStatus = useCallback((status: HeroSceneLoadStatus) => {
     setLoadStatus(status)
@@ -77,6 +78,7 @@ export function Hero() {
 
   const startLiveScene = useCallback(() => {
     if (useStaticHero || liveRequested) return
+    setSceneLoadError(false)
     setLiveRequested(true)
     setLoaderVisible(true)
     setLoadStatus({ progress: 0, phase: 'boot' })
@@ -136,9 +138,17 @@ export function Hero() {
   useEffect(() => {
     if (useStaticHero || !liveRequested) return
     let cancelled = false
-    void import('./HeroSceneMount').then(() => {
-      if (!cancelled) setSceneReady(true)
-    })
+    void import('./HeroSceneMount')
+      .then(() => {
+        if (!cancelled) setSceneReady(true)
+      })
+      .catch((error) => {
+        console.error('[hero] interactive scene failed to load', error)
+        if (cancelled) return
+        setSceneLoadError(true)
+        setLoaderVisible(false)
+        window.dispatchEvent(new CustomEvent('iom:hero-live', { detail: { live: false } }))
+      })
     return () => {
       cancelled = true
     }
@@ -289,7 +299,7 @@ export function Hero() {
                   fetchPriority="high"
                 />
               ) : null}
-              {!useStaticHero ? (
+              {!useStaticHero && !liveRequested ? (
                 <button
                   type="button"
                   className="hero-start-btn"
@@ -307,6 +317,14 @@ export function Hero() {
                 </button>
               ) : null}
             </>
+          ) : null}
+          {sceneLoadError ? (
+            <div className="hero-scene-fallback" role="status">
+              <p>Interactive view unavailable. The static preview remains available.</p>
+              <button type="button" onClick={() => window.location.reload()}>
+                Reload page
+              </button>
+            </div>
           ) : null}
           {showLiveScene && (
             <Suspense fallback={null}>

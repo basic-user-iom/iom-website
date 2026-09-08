@@ -62,6 +62,13 @@
       type="font/woff2"
       crossorigin
     />
+    <link
+      rel="preload"
+      href="/fonts/ibm-plex-sans-latin-400-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
 
     <style>
       @font-face {
@@ -80,6 +87,13 @@
         font-weight: 600;
         src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
       }
+      @font-face {
+        font-family: 'IBM Plex Sans';
+        font-style: normal;
+        font-display: swap;
+        font-weight: 400;
+        src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
+      }
       html,
       body {
         margin: 0;
@@ -88,7 +102,8 @@
         color: #ececf2;
       }
       body {
-        font-family: system-ui, sans-serif;
+        font-family: 'IBM Plex Sans', system-ui, sans-serif;
+        line-height: 1.6;
         -webkit-font-smoothing: antialiased;
       }
       /* Critical resets — async CSS must not flash default blue links / bare UI */
@@ -104,16 +119,9 @@
         color: inherit;
       }
       /*
-        Full stylesheet loads non-blocking (PageSpeed). Until it applies, hide
-        React chrome so we never flash unstyled header/nav; boot shell + LCP
-        poster stay visible from this inline CSS.
-
-        Once JS mounts (`app-ready`), stop hiding — otherwise mobile/slow 3G can
-        replace the boot shell before CSS onload and leave a blank viewport.
+        Static first paint while the production stylesheet loads normally.
+        The application mounts only after the stylesheet's CSS marker is present.
       */
-      html:not(.css-ready):not(.app-ready) #root > :not(#boot-shell):not(#boot-pending) {
-        visibility: hidden !important;
-      }
       .site-header {
         position: fixed;
         top: 0;
@@ -129,12 +137,61 @@
         background: rgba(8, 8, 10, 0.92);
         color: #ececf2;
       }
-      .header-brand,
+      .header-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+      .raven-mascot-wrap {
+        width: 44px;
+        height: 44px;
+        flex: 0 0 auto;
+        overflow: hidden;
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        border-radius: 50%;
+      }
+      .raven-mascot {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .brand-text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.1;
+      }
+      .header-nav {
+        display: flex;
+        align-items: center;
+        gap: clamp(0.65rem, 1.6vw, 1.25rem);
+        margin-left: auto;
+        margin-right: 0.85rem;
+      }
       .header-nav a,
-      .header-tools a,
-      .header-mute,
+      .boot-header-contact,
       .nav-toggle {
         color: #8b8b9a;
+      }
+      .header-nav a,
+      .boot-header-contact {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .boot-header-contact {
+        padding: 0.55rem 0.9rem;
+        border: 1px solid rgba(0, 229, 255, 0.25);
+        border-radius: 4px;
+      }
+      .nav-toggle {
+        display: none;
+        width: 44px;
+        height: 44px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
       }
       .brand-name {
         font-family: Syne, system-ui, sans-serif;
@@ -181,24 +238,6 @@
         min-height: min(42vh, 360px);
         border-top: 1px solid rgba(255, 255, 255, 0.06);
       }
-      .boot-brand {
-        display: flex;
-        flex-direction: column;
-        line-height: 1.1;
-        margin-bottom: 1.25rem;
-      }
-      .boot-brand-name {
-        font-family: Syne, system-ui, sans-serif;
-        font-weight: 800;
-        font-size: 1.1rem;
-        letter-spacing: 0.04em;
-      }
-      .boot-brand-tag {
-        font-size: 0.65rem;
-        text-transform: uppercase;
-        letter-spacing: 0.14em;
-        color: #8b8b9a;
-      }
       .boot-eyebrow {
         margin: 0 0 1rem;
         font-size: 0.7rem;
@@ -223,13 +262,42 @@
         margin-top: 0.35em;
       }
       .boot-lead {
-        margin: 0;
+        margin: 0 0 2rem;
         max-width: 44ch;
         color: #8b8b9a;
         font-size: clamp(1rem, 2vw, 1.15rem);
         line-height: 1.6;
       }
-      @media (min-width: 901px) {
+      .boot-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .boot-actions a {
+        display: inline-flex;
+        padding: 0.75rem 1.25rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 4px;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .boot-actions a:first-child {
+        border-color: #00e5ff;
+        background: #00e5ff;
+        color: #08080a;
+        font-weight: 600;
+      }
+      @media (max-width: 1200px) {
+        .boot-header-nav,
+        .boot-header-contact {
+          display: none;
+        }
+        .boot-nav-toggle {
+          display: flex;
+        }
+      }
+      @media (min-width: 1201px) {
         #lcp-poster {
           top: calc(72px + 2rem);
           left: calc(50% + clamp(1rem, 4vw, 3rem) / 2);
@@ -255,11 +323,33 @@
       fetchpriority="high"
     />
     <div id="root">
-      <div id="boot-shell" aria-hidden="true">
-        <div class="boot-brand">
-          <span class="boot-brand-name">IOM</span>
-          <span class="boot-brand-tag">Interactive Object Media</span>
-        </div>
+      <header class="site-header" data-boot-header>
+        <a href="#top" class="header-brand">
+          <span class="raven-mascot-wrap">
+            <img
+              class="raven-mascot"
+              src="/assets/raven_mascot.webp?v=20260728"
+              alt=""
+              width="44"
+              height="44"
+              decoding="async"
+            />
+          </span>
+          <span class="brand-text">
+            <span class="brand-name">IOM</span>
+            <span class="brand-tag">Interactive Object Media</span>
+          </span>
+        </a>
+        <nav class="header-nav boot-header-nav" aria-label="Primary navigation">
+          <a href="#software">Software</a>
+          <a href="#3d">3D</a>
+          <a href="#music">Music</a>
+          <a href="#about">About</a>
+        </nav>
+        <a class="boot-header-contact" href="#contact">Contact</a>
+        <span class="nav-toggle boot-nav-toggle" aria-hidden="true">&#9776;</span>
+      </header>
+      <div id="boot-shell">
         <p class="boot-eyebrow">Agency · Archive · Objects</p>
         <h1 class="boot-title">
           Interactive
@@ -269,6 +359,10 @@
           We build software, 3D experiences, immersive tours, and creative experiments — tools and
           worlds where digital objects become stories you can explore.
         </p>
+        <div class="boot-actions">
+          <a href="#software">Selected work</a>
+          <a href="#contact">Start a project</a>
+        </div>
       </div>
       <!-- Keep document scrollable before JS mounts (hard reload otherwise feels frozen). -->
       <div id="boot-pending" aria-hidden="true">

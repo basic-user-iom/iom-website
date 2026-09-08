@@ -281,10 +281,8 @@ export default function App() {
               />
             ))}
             <Clients />
-          </DeferredHomeBody>
-          <Suspense fallback={null}>
             <About />
-          </Suspense>
+          </DeferredHomeBody>
         </SiteOrbZone>
       </main>
       <Footer />

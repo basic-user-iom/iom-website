@@ -44,6 +44,7 @@
 }
 
 :root {
+  --iom-css-loaded: 1;
   --bg: #08080a;
   --bg-elevated: #101014;
   --bg-card: #12121a;
@@ -142,7 +143,7 @@ body.hero-live #lcp-poster {
   display: none !important;
 }
 
-@media (min-width: 901px) {
+@media (min-width: 1201px) {
   #lcp-poster:not(.hero-poster) {
     top: calc(var(--header-h) + 2rem);
     left: calc(50% + clamp(1rem, 4vw, 3rem) / 2);
@@ -1147,6 +1148,33 @@ a.header-cta:focus-visible {
   color: var(--muted);
 }
 
+.hero-scene-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  text-align: center;
+  background: rgba(4, 8, 12, 0.62);
+  color: var(--text);
+}
+
+.hero-scene-fallback p {
+  margin: 0;
+  max-width: 34ch;
+}
+
+.hero-scene-fallback button {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hero-start-label::after {
     animation: none;
@@ -2005,6 +2033,52 @@ html.is-hash-scrolling {
 
 .music-player-visual-mount canvas {
   pointer-events: none;
+}
+
+.music-player-visual-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 1.25rem;
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 70%, rgba(0, 229, 255, 0.12), transparent 58%),
+    linear-gradient(180deg, #091018, #040406);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+.music-player-visual-fallback strong {
+  color: var(--text);
+  font-family: var(--display);
+  font-size: 0.9rem;
+  letter-spacing: 0.03em;
+}
+
+.app-load-error {
+  min-height: 100vh;
+  padding: calc(var(--header-h) + 4rem) clamp(1rem, 4vw, 3rem) 4rem;
+}
+
+.app-load-error p {
+  max-width: 48ch;
+  color: var(--text-muted);
+}
+
+.app-load-home {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius);
+  color: var(--accent);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .music-player-visual.is-live .music-player-visual-overlay {
