@@ -89,6 +89,7 @@ const PROJECT_SCOPE_RULES = {
   'dukta-linar-concept': [
     'demos/dukta-linar-concept/',
     'scripts/deploy-scope.mjs',
+    'src/crm/DemosView.tsx',
     'src/demo/dukta-linar-concept/',
   ],
   'precision-object': [

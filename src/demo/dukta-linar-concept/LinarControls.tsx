@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { VISUAL_FALLBACK_RADIUS_MM } from './bendMath'
 import { JANUS_THICKNESS_NOTE, type LinarTech } from './linarData'
 import {
@@ -45,6 +45,15 @@ type Props = {
   onResetPanel: () => void
 }
 
+function SectionSummary({ label, value }: { label: string; value: string }) {
+  return (
+    <summary className="linar-acc__sum">
+      <span>{label}</span>
+      <span className="linar-acc__value">{value}</span>
+    </summary>
+  )
+}
+
 function SwatchGroup<T extends string>({
   labelId,
   label,
@@ -60,9 +69,7 @@ function SwatchGroup<T extends string>({
 }) {
   return (
     <div className="linar-field linar-field--swatches">
-      <p className="linar-label" id={labelId}>
-        {label}
-      </p>
+      <p className="linar-label" id={labelId}>{label}</p>
       <div className="linar-swatches" role="group" aria-labelledby={labelId}>
         {items.map((item) => {
           const active = item.id === value
@@ -95,7 +102,6 @@ function RangeRow({
   max,
   step,
   display,
-  dataTourId,
   onChange,
 }: {
   id: string
@@ -105,15 +111,12 @@ function RangeRow({
   max: number
   step: number
   display: string
-  dataTourId?: string
   onChange: (value: number) => void
 }) {
   return (
-    <div className="linar-range" data-tour-id={dataTourId}>
+    <div className="linar-range">
       <div className="linar-control__head">
-        <label className="linar-label" htmlFor={id}>
-          {label}
-        </label>
+        <label className="linar-label" htmlFor={id}>{label}</label>
         <span className="linar-percent">{display}</span>
       </div>
       <input
@@ -139,21 +142,17 @@ function ChipGroup<T extends string>({
   label,
   items,
   value,
-  dataTourId,
   onChange,
 }: {
   labelId: string
   label: string
   items: readonly { id: T; label: string; disabled?: boolean }[]
   value: T
-  dataTourId?: string
   onChange: (id: T) => void
 }) {
   return (
-    <div className="linar-field" data-tour-id={dataTourId}>
-      <p className="linar-label" id={labelId}>
-        {label}
-      </p>
+    <div className="linar-field">
+      <p className="linar-label" id={labelId}>{label}</p>
       <div className="linar-materials" role="group" aria-labelledby={labelId}>
         {items.map((item) => {
           const active = item.id === value
@@ -181,7 +180,6 @@ function SegmentedGroup<T extends string>({
   label,
   items,
   value,
-  dataTourId,
   descriptionId,
   onChange,
 }: {
@@ -189,15 +187,12 @@ function SegmentedGroup<T extends string>({
   label: string
   items: readonly { id: T; label: string; disabled?: boolean }[]
   value: T
-  dataTourId?: string
   descriptionId?: string
   onChange: (id: T) => void
 }) {
   return (
-    <div className="linar-field linar-segmented" data-tour-id={dataTourId}>
-      <p className="linar-label" id={labelId}>
-        {label}
-      </p>
+    <div className="linar-field linar-segmented">
+      <p className="linar-label" id={labelId}>{label}</p>
       <div
         className="linar-materials linar-materials--segmented"
         role="radiogroup"
@@ -224,30 +219,23 @@ function SegmentedGroup<T extends string>({
               onKeyDown={(event) => {
                 let nextIndex = index
                 let direction = 0
-                if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
-                  direction = -1
-                } else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
-                  direction = 1
-                } else if (event.key === 'Home') {
-                  nextIndex = items.findIndex((item) => !item.disabled)
-                } else if (event.key === 'End') {
+                if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') direction = -1
+                else if (event.key === 'ArrowRight' || event.key === 'ArrowDown') direction = 1
+                else if (event.key === 'Home') nextIndex = items.findIndex((candidate) => !candidate.disabled)
+                else if (event.key === 'End') {
                   nextIndex = items.length - 1
                   while (nextIndex >= 0 && items[nextIndex].disabled) nextIndex -= 1
-                } else {
-                  return
-                }
+                } else return
 
                 event.preventDefault()
                 if (nextIndex < 0) return
                 if (direction !== 0) {
-                  do {
-                    nextIndex = (nextIndex + direction + items.length) % items.length
-                  } while (items[nextIndex].disabled && nextIndex !== index)
+                  do nextIndex = (nextIndex + direction + items.length) % items.length
+                  while (items[nextIndex].disabled && nextIndex !== index)
                 }
                 if (items[nextIndex].disabled) return
                 onChange(items[nextIndex].id)
-                const buttons = event.currentTarget.parentElement?.querySelectorAll('button')
-                buttons?.item(nextIndex).focus()
+                event.currentTarget.parentElement?.querySelectorAll('button').item(nextIndex).focus()
               }}
             >
               <span className="linar-chip__name">{item.label}</span>
@@ -259,9 +247,24 @@ function SegmentedGroup<T extends string>({
   )
 }
 
+function selectedLabel<T extends string>(
+  items: readonly { id: T; label: string }[],
+  value: T,
+): string {
+  return items.find((item) => item.id === value)?.label ?? value
+}
+
+function InlineTechnicalNote({ children }: { children: ReactNode }) {
+  return (
+    <details className="linar-inline-details">
+      <summary>Technical note</summary>
+      <div className="linar-inline-details__body">{children}</div>
+    </details>
+  )
+}
+
 function formatRadius(radiusMm: number | null): string {
-  if (radiusMm == null) return 'Flat'
-  return `${Math.round(radiusMm).toLocaleString('en-US')} mm`
+  return radiusMm == null ? 'Flat' : `${Math.round(radiusMm).toLocaleString('en-US')} mm`
 }
 
 function directionLabel(direction: LinarBendDirection): string {
@@ -285,19 +288,9 @@ export function LinarControls({
   onResetPanel,
 }: Props) {
   const radiusText = formatRadius(previewRadiusMm)
-  const bendValueText = `${radiusText} · ${directionLabel(bendDirection)}`
-  const safeSecondaryCurveAmount = Math.max(
-    0,
-    Math.min(100, Math.round(secondaryCurveAmount)),
-  )
-  const secondaryCurveText =
-    safeSecondaryCurveAmount === 0 ? 'Off' : `${safeSecondaryCurveAmount}%`
-  const secondaryCurveValueText =
-    safeSecondaryCurveAmount === 0
-      ? 'Off'
-      : `${safeSecondaryCurveAmount} percent toward a continuous serpentine S curve`
-  const secondaryCurveIsDormant =
-    safeSecondaryCurveAmount > 0 && bendDirection === 'flat'
+  const safeSecondaryCurveAmount = Math.max(0, Math.min(100, Math.round(secondaryCurveAmount)))
+  const secondaryCurveText = safeSecondaryCurveAmount === 0 ? 'Off' : `${safeSecondaryCurveAmount}%`
+  const secondaryCurveIsDormant = safeSecondaryCurveAmount > 0 && bendDirection === 'flat'
   const secondaryCurveBelowReferenceMinimum =
     safeSecondaryCurveAmount > 0 &&
     bendDirection !== 'flat' &&
@@ -310,26 +303,27 @@ export function LinarControls({
       : tech.physicalEvidence === 'physical-sample'
         ? `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm physical-sample minimum.`
         : `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm ${tech.radiusAuthority.label.toLowerCase()}.`
+  const rearLightAvailable = config.application !== 'freestanding' && config.backing !== 'felt'
+  const rearLightSummary = rearLightAvailable
+    ? config.backlightMode === 'on' ? `${config.backlightIntensity}% visual` : 'Off'
+    : 'Unavailable'
 
   return (
     <div className="linar-controls">
+      <p className="linar-controls__group-title">Shape &amp; construction</p>
+
       <details className="linar-acc linar-acc--bending" data-tour-id="bending" open>
-        <summary className="linar-acc__sum">Bending radius</summary>
+        <SectionSummary label="Bending radius" value={radiusText} />
         <div className="linar-acc__body">
-          <div className="linar-range linar-bend-control">
+          <div className="linar-range linar-bend-control" data-tour-id="radius">
             <div className="linar-control__head linar-control__head--bend">
-              <label className="linar-label" htmlFor="linar-bend">
-                Primary selected radius
-              </label>
+              <label className="linar-label" htmlFor="linar-bend">Primary selected radius</label>
               <span className="linar-bend-value">{radiusText}</span>
             </div>
-            <span className="linar-bend-direction" aria-live="polite">
-              {directionLabel(bendDirection)}
-            </span>
+            <span className="linar-bend-direction" aria-live="polite">{directionLabel(bendDirection)}</span>
             <p className="linar-instruction">
-              Centre is flat. Move left or right to bend in opposite directions. Large radii use
-              the complete incised width; the active curved area reduces progressively toward
-              π × R as the radius becomes smaller.
+              Centre is flat. Move left or right to bend in opposite directions. As radius becomes
+              smaller, the active curved area reduces progressively toward π × R.
             </p>
             <div className="linar-bend-slider-wrap">
               <input
@@ -343,392 +337,182 @@ export function LinarControls({
                 aria-valuemin={-100}
                 aria-valuemax={100}
                 aria-valuenow={Math.round(bend)}
-                aria-valuetext={bendValueText}
+                aria-valuetext={`${radiusText} · ${directionLabel(bendDirection)}`}
                 aria-label="Bending radius and direction"
                 onInput={(event) => onBendInput(Number(event.currentTarget.value))}
               />
             </div>
-            <div className="linar-bend-scale" aria-hidden="true">
-              <span>Left</span>
-              <span>Flat</span>
-              <span>Right</span>
-            </div>
+            <div className="linar-bend-scale" aria-hidden="true"><span>Left</span><span>Flat</span><span>Right</span></div>
             <p className="linar-note">{referenceText}</p>
           </div>
-
-          <details className="linar-secondary-curve" data-tour-id="s-curve">
-            <summary className="linar-secondary-curve__summary">Advanced shape preview</summary>
-            <div className="linar-secondary-curve__body">
-              <div className="linar-range">
-                <div className="linar-control__head linar-secondary-curve__head">
-                  <label className="linar-label" htmlFor="linar-secondary-curve">
-                    S-curve progression
-                  </label>
-                  <output
-                    className="linar-percent"
-                    htmlFor="linar-secondary-curve"
-                    aria-live="polite"
-                  >
-                    {secondaryCurveText}
-                  </output>
-                </div>
-                <input
-                  id="linar-secondary-curve"
-                  className="linar-slider"
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={1}
-                  value={safeSecondaryCurveAmount}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-valuenow={safeSecondaryCurveAmount}
-                  aria-valuetext={secondaryCurveValueText}
-                  aria-describedby={
-                    [
-                      'linar-secondary-curve-description',
-                      secondaryCurveIsDormant ? 'linar-secondary-curve-flat-status' : '',
-                      secondaryCurveSafetyLimited ? 'linar-secondary-curve-safety-status' : '',
-                      secondaryCurveBelowReferenceMinimum
-                        ? 'linar-secondary-curve-reference-status'
-                        : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ')
-                  }
-                  onInput={(event) =>
-                    onSecondaryCurveInput(Number(event.currentTarget.value))
-                  }
-                />
-              </div>
-              <p className="linar-note">
-                0 keeps the existing C curve. Progression morphs it continuously toward two
-                broad opposing lobes. At 100 the incised area forms one continuously changing
-                wave without straight shelves; any unincised side zones remain rigid. The shape
-                proportions are a visual reference; the primary radius and open-area calculations
-                remain independent.
-              </p>
-              {safeSecondaryCurveAmount > 0 && bendDirection !== 'flat' ? (
-                <p className="linar-secondary-curve__status" role="status" aria-live="polite">
-                  Minimum local radius:{' '}
-                  {minimumLocalRadiusMm == null
-                    ? 'Not available'
-                    : `${minimumLocalRadiusMm.toFixed(0)} mm`}
-                  . S-curve shown as a visual design study; feasibility must be confirmed with the
-                  responsible manufacturing partner.
-                </p>
-              ) : null}
-              {secondaryCurveIsDormant ? (
-                <p
-                  id="linar-secondary-curve-flat-status"
-                  className="linar-secondary-curve__status"
-                  role="status"
-                  aria-live="polite"
-                >
-                  Move the primary radius control away from centre to see the opposing curve.
-                </p>
-              ) : null}
-              {secondaryCurveSafetyLimited ? (
-                <p
-                  id="linar-secondary-curve-safety-status"
-                  className="linar-secondary-curve__status"
-                  role="status"
-                  aria-live="polite"
-                >
-                  Visual safety limit: the rendered S turn is moderated to prevent surface or
-                  backing overlap at this partial coverage. Visual reference only; Not tested.
-                </p>
-              ) : null}
-              {secondaryCurveBelowReferenceMinimum ? (
-                <p
-                  id="linar-secondary-curve-reference-status"
-                  className="linar-secondary-curve__status"
-                  role="status"
-                  aria-live="polite"
-                >
-                  Reference overtravel: the rendered S curve reaches{' '}
-                  {minimumLocalRadiusMm?.toFixed(0) ?? 'Not available'} mm locally, below the{' '}
-                  {tech.referenceMinimumRadiusMm?.toFixed(0) ?? 'Not available'} mm chart minimum for the primary
-                  C-bend. Visual study only; do not treat this pose as approved or feasible.
-                </p>
-              ) : null}
-              <p id="linar-secondary-curve-description" className="linar-note">
-                The supplied sample footage visually demonstrates an opposing S-shaped pose. It
-                does not provide a measured counter-curve radius, transition position, load limit,
-                spring-back value or manufacturing envelope. Visual reference only · Not tested.
-              </p>
-            </div>
-          </details>
         </div>
       </details>
 
-      <details className="linar-acc" open>
-        <summary className="linar-acc__sum">Panel</summary>
+      <details className="linar-acc" data-tour-id="s-curve" open>
+        <SectionSummary label="S-curve" value={secondaryCurveText} />
         <div className="linar-acc__body">
-          <ChipGroup
-            labelId="linar-material-label"
-            label="Base material"
-            items={LINAR_MATERIALS}
-            value={config.material}
-            dataTourId="materials"
-            onChange={(id: LinarMaterialId) => onConfig({ material: id })}
-          />
-          <div data-tour-id="colours">
-            {config.material === 'mdf' ? (
-              <>
-                <ChipGroup
-                  labelId="linar-mdf-variant-label"
-                  label="MDF type"
-                  items={LINAR_MDF_VARIANTS}
-                  value={config.mdfVariant}
-                  onChange={(id: LinarMdfVariant) => onConfig({ mdfVariant: id })}
-                />
-                {config.mdfVariant === 'valchromat' ? (
-                  <>
-                    <SwatchGroup
-                      labelId="linar-mdf-colour-label"
-                      label="Valchromat colour"
-                      items={LINAR_MDF_COLOURS}
-                      value={config.mdfColour}
-                      onChange={(id: LinarMdfColourId) => onConfig({ mdfColour: id })}
-                    />
-                    <p className="linar-note">
-                      Names and codes follow the official Valchromat catalogue. On-screen colours
-                      are replaceable approximations, not colour-accurate production values.
-                    </p>
-                  </>
-                ) : (
-                  <p className="linar-note">
-                    MDF Natural uses a neutral through-coloured fibre-board appearance.
-                  </p>
-                )}
-              </>
-            ) : null}
-            <ChipGroup
-              labelId="linar-veneer-label"
-              label="Optional veneer"
-              items={LINAR_VENEERS}
-              value={config.veneer}
-              onChange={(id: LinarVeneerId) => onConfig({ veneer: id })}
-            />
-            <p className="linar-note">
-              Veneer is an additional appearance layer of approximately 1 mm. It does not alter
-              the configured base thickness or bending-radius calculation in this revision.
-            </p>
-          </div>
           <RangeRow
-            id="linar-thickness"
-            label="Base panel thickness"
-            value={config.thicknessMm}
-            min={4}
-            max={15}
+            id="linar-secondary-curve"
+            label="S-curve progression"
+            value={safeSecondaryCurveAmount}
+            min={0}
+            max={100}
             step={1}
-            display={`${config.thicknessMm} mm`}
-            onChange={(value) => onConfig({ thicknessMm: value })}
+            display={secondaryCurveText}
+            onChange={onSecondaryCurveInput}
           />
-          <p className="linar-note">{JANUS_THICKNESS_NOTE}</p>
-          <button
-            type="button"
-            className="linar-text-btn"
-            data-tour-id="reset"
-            onClick={onResetPanel}
-          >
-            Reset panel
-          </button>
+          <p className="linar-note">
+            0 keeps the C curve. Higher values form one continuous opposing wave; unincised side
+            zones remain rigid. This is a visual shape study independent of the open-area data.
+          </p>
+          {safeSecondaryCurveAmount > 0 && bendDirection !== 'flat' ? (
+            <p className="linar-secondary-curve__status" role="status" aria-live="polite">
+              Minimum local radius: {minimumLocalRadiusMm == null ? 'Not available' : `${minimumLocalRadiusMm.toFixed(0)} mm`}.
+              Manufacturing feasibility must be confirmed.
+            </p>
+          ) : null}
+          {secondaryCurveIsDormant ? (
+            <p className="linar-secondary-curve__status" role="status">Move the primary radius away from centre to see the opposing curve.</p>
+          ) : null}
+          {secondaryCurveSafetyLimited ? (
+            <p className="linar-secondary-curve__status" role="status">Visual safety limit is moderating this pose to avoid rendered overlap · Not tested.</p>
+          ) : null}
+          {secondaryCurveBelowReferenceMinimum ? (
+            <p className="linar-secondary-curve__status" role="status">
+              Local radius {minimumLocalRadiusMm?.toFixed(0) ?? 'not available'} mm is below the
+              primary C-bend reference. Visual study only · Not tested.
+            </p>
+          ) : null}
+          <InlineTechnicalNote>
+            <p className="linar-note">
+              Supplied footage confirms the visual idea, but not a counter-radius, transition,
+              load limit, spring-back value or manufacturing envelope · Not tested.
+            </p>
+          </InlineTechnicalNote>
         </div>
       </details>
 
       <details className="linar-acc" data-tour-id="incision">
-        <summary className="linar-acc__sum">Incision</summary>
+        <SectionSummary
+          label="Incisions"
+          value={`${config.incisionLengthMm} mm · ${config.cutWidthMm}/${config.slatWidthMm} · ${config.incisedTwelfths}/12`}
+        />
         <div className="linar-acc__body">
-          <RangeRow
-            id="linar-incision"
-            label="Incision length"
-            value={config.incisionLengthMm}
-            min={40}
-            max={400}
-            step={1}
-            display={`${config.incisionLengthMm} mm`}
-            onChange={(value) => onConfig({ incisionLengthMm: value })}
-          />
-          <RangeRow
-            id="linar-cut"
-            label="Cut width / spacing"
-            value={config.cutWidthMm}
-            min={2}
-            max={8}
-            step={1}
-            display={`${config.cutWidthMm} mm`}
-            onChange={(value) => onConfig({ cutWidthMm: value })}
-          />
-          <RangeRow
-            id="linar-lamella"
-            label="Lamella width"
-            value={config.slatWidthMm}
-            min={2}
-            max={8}
-            step={1}
-            display={`${config.slatWidthMm} mm`}
-            onChange={(value) => onConfig({ slatWidthMm: value })}
-          />
+          <RangeRow id="linar-incision" label="Incision length" value={config.incisionLengthMm} min={40} max={400} step={1} display={`${config.incisionLengthMm} mm`} onChange={(value) => onConfig({ incisionLengthMm: value })} />
+          <RangeRow id="linar-cut" label="Cut width / spacing" value={config.cutWidthMm} min={2} max={8} step={1} display={`${config.cutWidthMm} mm`} onChange={(value) => onConfig({ cutWidthMm: value })} />
+          <RangeRow id="linar-lamella" label="Lamella width" value={config.slatWidthMm} min={2} max={8} step={1} display={`${config.slatWidthMm} mm`} onChange={(value) => onConfig({ slatWidthMm: value })} />
+          <RangeRow id="linar-coverage" label="Incised area coverage" value={config.incisedTwelfths} min={1} max={12} step={1} display={`${config.incisedTwelfths}/12`} onChange={(value) => onConfig({ incisedTwelfths: value })} />
           <p className="linar-note">
             {config.cutWidthMm}/{config.slatWidthMm} mm means a {config.cutWidthMm} mm perforating
-            cut and a {config.slatWidthMm} mm uncut lamella. Incision and bridge lengths repeat
-            across the incised area.
-          </p>
-          <RangeRow
-            id="linar-coverage"
-            label="Incised area coverage"
-            value={config.incisedTwelfths}
-            min={1}
-            max={12}
-            step={1}
-            display={`${config.incisedTwelfths}/12`}
-            onChange={(value) => onConfig({ incisedTwelfths: value })}
-          />
-          <p className="linar-note">
-            Coverage expands symmetrically from the panel centre. The remaining left and right
-            areas stay solid and unincised.
+            cut and a {config.slatWidthMm} mm uncut lamella. Coverage expands symmetrically from centre.
           </p>
           {tech.feasibility === 'blocked' ? (
-            <p className="linar-secondary-curve__status" role="alert">
-              Not recommended. {tech.blockedReason} Change the material, thickness, cut width or
-              lamella width before using the result as a valid configuration.
-            </p>
+            <p className="linar-secondary-curve__status" role="alert">Not recommended. {tech.blockedReason}</p>
           ) : null}
         </div>
       </details>
 
-      <details className="linar-acc">
-        <summary className="linar-acc__sum">Application</summary>
+      <details className="linar-acc" data-tour-id="thickness">
+        <SectionSummary label="Base panel thickness" value={`${config.thicknessMm} mm`} />
         <div className="linar-acc__body">
-          <SegmentedGroup
-            labelId="linar-application-label"
-            label="Application"
-            items={LINAR_APPLICATIONS}
-            value={config.application}
-            dataTourId="application"
-            onChange={(id: LinarApplication) => onConfig({ application: id })}
-          />
-          <ChipGroup
-            labelId="linar-backing-label"
-            label="Backing material"
-            items={LINAR_VISIBLE_BACKINGS}
-            value={config.backing}
-            onChange={(id: LinarBacking) => onConfig({ backing: id })}
-          />
-          {config.application !== 'freestanding' ? (
+          <RangeRow id="linar-thickness" label="Base panel thickness" value={config.thicknessMm} min={4} max={15} step={1} display={`${config.thicknessMm} mm`} onChange={(value) => onConfig({ thicknessMm: value })} />
+          <p className="linar-note">{JANUS_THICKNESS_NOTE}</p>
+        </div>
+      </details>
+
+      <details className="linar-acc" data-tour-id="repetition">
+        <SectionSummary label="Addition / repetition" value={`${config.panelCount} ${config.panelCount === 1 ? 'module' : 'modules'}`} />
+        <div className="linar-acc__body">
+          <RangeRow id="linar-panel-count" label="Addition / repetition" value={config.panelCount} min={LINAR_PRESENTATION_LIMITS.minimumPanelCount} max={LINAR_PRESENTATION_LIMITS.maximumPanelCount} step={1} display={`${config.panelCount} ${config.panelCount === 1 ? 'module' : 'modules'}`} onChange={(value) => onConfig({ panelCount: value })} />
+          <p className="linar-note">Modules form one tangent-connected row without duplicated seam frames. The 1–4 range is a visual-configurator limit, not a manufacturing maximum.</p>
+        </div>
+      </details>
+
+      <details className="linar-acc" data-tour-id="application">
+        <SectionSummary label="Application" value={selectedLabel(LINAR_APPLICATIONS, config.application)} />
+        <div className="linar-acc__body">
+          <SegmentedGroup labelId="linar-application-label" label="Application" items={LINAR_APPLICATIONS} value={config.application} onChange={(id: LinarApplication) => onConfig({ application: id })} />
+          <p className="linar-note">
+            Wall and Ceiling show the back-construction. The client-directed display uses one
+            centred longitudinal member per module, four profile ribs and a closed outer frame.
+            This is illustrative, not a structural specification.
+          </p>
+        </div>
+      </details>
+
+      <p className="linar-controls__group-title">Materials &amp; appearance</p>
+
+      <details className="linar-acc" data-tour-id="materials">
+        <SectionSummary label="Base material" value={selectedLabel(LINAR_MATERIALS, config.material)} />
+        <div className="linar-acc__body">
+          <ChipGroup labelId="linar-material-label" label="Base material" items={LINAR_MATERIALS} value={config.material} onChange={(id: LinarMaterialId) => onConfig({ material: id })} />
+          {config.material === 'mdf' ? (
             <>
-              <SegmentedGroup
-                labelId="linar-backlight-label"
-                label="Concept rear-light study"
-                items={LINAR_BACKLIGHT_MODES.map((item) => ({
-                  ...item,
-                  disabled: item.id === 'on' && config.backing === 'felt',
-                }))}
-                value={config.backlightMode}
-                dataTourId="backlight"
-                descriptionId={
-                  config.backing !== 'felt'
-                    ? 'linar-backlight-description'
-                    : 'linar-backlight-description linar-backlight-backing-status'
-                }
-                onChange={(id: LinarBacklightMode) => onConfig({ backlightMode: id })}
-              />
-              {config.backlightMode === 'on' ? (
-                <RangeRow
-                  id="linar-backlight-intensity"
-                  label="Visual preview brightness"
-                  value={config.backlightIntensity}
-                  min={10}
-                  max={100}
-                  step={5}
-                  display={`${config.backlightIntensity}% visual`}
-                  onChange={(value) => onConfig({ backlightIntensity: value })}
-                />
-              ) : null}
-              <p className="linar-note" id="linar-backlight-description">
-                Conceptual, non-photometric study outside the current technical product scope.
-                Diffuser construction, cavity depth, electrical output, thermal/fire performance
-                and mounting are not specified - Not tested. Shown in room-facing front and side
-                views; hidden in Top shape and Back inspection views.
-              </p>
-              {config.backing === 'felt' ? (
-                <p
-                  className="linar-note"
-                  id="linar-backlight-backing-status"
-                  role="status"
-                  aria-live="polite"
-                >
-                  Rear illumination is off because wool felt is opaque. Choose None or acoustic
-                  fleece to inspect a visual transmission study through the LINAR openings.
-                </p>
-              ) : null}
+              <ChipGroup labelId="linar-mdf-variant-label" label="MDF type" items={LINAR_MDF_VARIANTS} value={config.mdfVariant} onChange={(id: LinarMdfVariant) => onConfig({ mdfVariant: id })} />
+              {config.mdfVariant === 'valchromat' ? (
+                <div data-tour-id="colours">
+                  <SwatchGroup labelId="linar-mdf-colour-label" label="Valchromat colour" items={LINAR_MDF_COLOURS} value={config.mdfColour} onChange={(id: LinarMdfColourId) => onConfig({ mdfColour: id })} />
+                  <p className="linar-note">Catalogue names and codes are authoritative; screen colours are approximations.</p>
+                </div>
+              ) : <p className="linar-note">MDF Natural uses a neutral through-coloured board appearance.</p>}
             </>
-          ) : (
-            <p className="linar-note">
-              The conceptual rear-light study is available in Wall and Ceiling applications.
-            </p>
-          )}
+          ) : null}
+        </div>
+      </details>
+
+      <details className="linar-acc" data-tour-id="veneer">
+        <SectionSummary label="Veneer" value={selectedLabel(LINAR_VENEERS, config.veneer)} />
+        <div className="linar-acc__body">
+          <ChipGroup labelId="linar-veneer-label" label="Optional veneer" items={LINAR_VENEERS} value={config.veneer} onChange={(id: LinarVeneerId) => onConfig({ veneer: id })} />
+          <p className="linar-note">Veneer is an appearance layer of approximately 1 mm and does not alter configured base thickness or bending-radius calculation in this revision.</p>
+        </div>
+      </details>
+
+      <details className="linar-acc" data-tour-id="backing">
+        <SectionSummary label="Backing material" value={selectedLabel(LINAR_VISIBLE_BACKINGS, config.backing)} />
+        <div className="linar-acc__body">
+          <ChipGroup labelId="linar-backing-label" label="Backing material" items={LINAR_VISIBLE_BACKINGS} value={config.backing} onChange={(id: LinarBacking) => onConfig({ backing: id })} />
           {config.backing === 'felt' ? (
             <>
-              <SwatchGroup
-                labelId="linar-felt-colour-label"
-                label="Felt colour"
-                items={LINAR_FELT_COLOURS}
-                value={config.feltColour}
-                onChange={(id: LinarFeltColourId) => onConfig({ feltColour: id })}
-              />
-              <p className="linar-note">
-                Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–
-                {LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. In Wall and
-                Ceiling views, a visually thickened cavity study is recessed between the timber
-                members so the construction remains inspectable. Its installed cavity thickness
-                is not specified and is not technical product data. Swatches are screen
-                approximations.
-              </p>
+              <SwatchGroup labelId="linar-felt-colour-label" label="Felt colour" items={LINAR_FELT_COLOURS} value={config.feltColour} onChange={(id: LinarFeltColourId) => onConfig({ feltColour: id })} />
+              <p className="linar-note">Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–{LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. Mounted cavity depth remains a visual study. Swatches are approximations.</p>
             </>
           ) : null}
           {config.backing === 'acoustic-fleece' ? (
             <>
-              <SwatchGroup
-                labelId="linar-fleece-colour-label"
-                label="Acoustic fleece"
-                items={LINAR_FLEECE_COLOURS}
-                value={config.fleeceColour}
-                onChange={(id: LinarFleeceColourId) => onConfig({ fleeceColour: id })}
-              />
-              <p className="linar-note">
-                {LINAR_FLEECE_METADATA.thicknessRangeMm[0]}–
-                {LINAR_FLEECE_METADATA.thicknessRangeMm[1]} mm confirmed range; the renderer uses
-                {` ${LINAR_FLEECE_METADATA.representativeVisualThicknessMm} mm`}. Translucent uses
-                an approximate 80% visual reference, not a certified optical value. Black and
-                white transmission remain visual assumptions.
-              </p>
+              <SwatchGroup labelId="linar-fleece-colour-label" label="Acoustic fleece" items={LINAR_FLEECE_COLOURS} value={config.fleeceColour} onChange={(id: LinarFleeceColourId) => onConfig({ fleeceColour: id })} />
+              <p className="linar-note">{LINAR_FLEECE_METADATA.thicknessRangeMm[0]}–{LINAR_FLEECE_METADATA.thicknessRangeMm[1]} mm confirmed range; renderer uses {LINAR_FLEECE_METADATA.representativeVisualThicknessMm} mm. Transmission is a non-certified visual estimate.</p>
             </>
           ) : null}
-          <RangeRow
-            id="linar-panel-count"
-            label="Addition / repetition"
-            value={config.panelCount}
-            min={LINAR_PRESENTATION_LIMITS.minimumPanelCount}
-            max={LINAR_PRESENTATION_LIMITS.maximumPanelCount}
-            step={1}
-            display={`${config.panelCount} ${config.panelCount === 1 ? 'module' : 'modules'}`}
-            dataTourId="repetition"
-            onChange={(value) => onConfig({ panelCount: value })}
-          />
-          <p className="linar-note">
-            Application, backing and repetition change the presentation only. They do not change
-            the LINAR open-area or single-module radius/status calculations. Repeated trimmed
-            modules remain in one tangent-connected row and use a phase-compatible pattern width;
-            no shipping/cutting frame is inserted at a seam. The selected visual turn is
-            distributed over the complete installation so modules do not loop or overlap. The
-            current 1–4 range is the selected visual-configurator range for this version, not a
-            manufacturing maximum.
-          </p>
         </div>
       </details>
+
+      <details className="linar-acc" data-tour-id="backlight">
+        <SectionSummary label="Rear light study" value={rearLightSummary} />
+        <div className="linar-acc__body">
+          {config.application !== 'freestanding' ? (
+            <>
+              <SegmentedGroup
+                labelId="linar-backlight-label"
+                label="Rear light study"
+                items={LINAR_BACKLIGHT_MODES.map((item) => ({ ...item, disabled: item.id === 'on' && config.backing === 'felt' }))}
+                value={config.backlightMode}
+                descriptionId="linar-backlight-description"
+                onChange={(id: LinarBacklightMode) => onConfig({ backlightMode: id })}
+              />
+              {config.backlightMode === 'on' ? (
+                <RangeRow id="linar-backlight-intensity" label="Visual preview brightness" value={config.backlightIntensity} min={10} max={100} step={5} display={`${config.backlightIntensity}% visual`} onChange={(value) => onConfig({ backlightIntensity: value })} />
+              ) : null}
+              {config.backing === 'felt' ? (
+                <p className="linar-note" role="status" aria-live="polite">Rear illumination is off because wool felt is opaque. Choose None or acoustic fleece to inspect transmission.</p>
+              ) : null}
+            </>
+          ) : <p className="linar-note">Rear light is available in Wall and Ceiling applications.</p>}
+          <p className="linar-note" id="linar-backlight-description">Conceptual, non-photometric study. Diffuser, cavity, electrical output, heat/fire performance and mounting are unspecified · Not tested.</p>
+        </div>
+      </details>
+
+      <button type="button" className="linar-text-btn" data-tour-id="reset" onClick={onResetPanel}>Reset panel</button>
     </div>
   )
 }

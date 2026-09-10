@@ -2,8 +2,8 @@ import {
   BufferGeometry,
   BoxGeometry,
   DynamicDrawUsage,
-  DoubleSide,
   Float32BufferAttribute,
+  FrontSide,
   InstancedMesh,
   Mesh,
   MeshBasicMaterial,
@@ -31,6 +31,10 @@ import {
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
 import { backingVisualProfile } from './materialData'
 import {
+  SUPPORT_GRID_REFERENCE,
+  SUPPORT_GRID_RENDER_GAP_M,
+} from './supportGrid'
+import {
   createFeltBackingGeometry,
   LINAR_FELT_BACKING_OBJECT_NAMES,
 } from './feltBackingGeometry'
@@ -53,9 +57,9 @@ const SOLID_BAND_SEGMENTS = MAX_SLATS
 // close-up while avoiding millions of redundant triangles in repeated panels.
 const BRIDGE_PROFILE_STEPS = 16
 const pose = { x: 0, z: 0, rotY: 0 }
-// Render-only separation from the physical rear face. It prevents coplanar
-// flicker without representing a measured LED cavity or mounting depth.
-const BACKLIGHT_RENDER_OFFSET_M = 0.00025
+// Render-only reveal inside the host-side face of the existing 45 mm support
+// cavity. It is not a measured LED position or a photometric construction.
+const BACKLIGHT_DIFFUSER_REAR_REVEAL_M = 0.003
 const BACKING_RENDER_GAP_M = 0.0001
 const BACKLIGHT_VISIBLE_EPSILON = 0.002
 
@@ -427,6 +431,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let currentCadGeometry = initial.tech.cadGeometry
   let fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
   const backingRibbon = createBackingRibbonGeometry()
+  const backlightRibbon = createBackingRibbonGeometry()
   const feltBacking = createFeltBackingGeometry(SOLID_BAND_SEGMENTS)
   // The left panel side has its finished outer edge on the left and its
   // routed incision boundary on the right; the right side is the inverse.
@@ -464,6 +469,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   const backingMesh = new Mesh(backingRibbon.geometry, materials.backing)
   backingMesh.name = 'LinarBacking'
+  // Transparent fleece must blend after the recessed visual diffuser. Without
+  // an explicit order, object-centre sorting can reverse them on deep bends.
+  backingMesh.renderOrder = 2
   backingMesh.castShadow = false
   backingMesh.receiveShadow = true
   backingMesh.frustumCulled = false
@@ -502,14 +510,15 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     opacity: 0,
     depthTest: true,
     depthWrite: false,
-    side: DoubleSide,
+    side: FrontSide,
     toneMapped: false,
   })
   // Replicas share this material. Keeping visibility here, rather than on the
   // source mesh, removes every diffuser draw call without synchronising clones.
   backlightMaterial.visible = false
-  const backlightMesh = new Mesh(backingRibbon.geometry, backlightMaterial)
+  const backlightMesh = new Mesh(backlightRibbon.geometry, backlightMaterial)
   backlightMesh.name = 'LinarBacklightDiffuser'
+  backlightMesh.renderOrder = 1
   backlightMesh.castShadow = false
   backlightMesh.receiveShadow = false
   backlightMesh.frustumCulled = false
@@ -825,9 +834,21 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       thickness * 0.5 +
       backingProfile.thicknessMm / 2000 +
       BACKING_RENDER_GAP_M
-    const backZ = showBacking
-      ? -backingMidSurfaceOffsetM
-      : -thickness * 0.5 - BACKLIGHT_RENDER_OFFSET_M
+    const backingZ = -backingMidSurfaceOffsetM
+    // Match the construction offset used by panelPlanBounds/supportGrid. The
+    // diffuser is a separate surface near the host-side rear of that cavity,
+    // so every timber member sits between it and the visible LINAR panel.
+    // Mounted wool starts directly behind the panel and fully blocks this
+    // mode; its branch is retained here only to keep the geometry finite.
+    const supportRearSurfaceOffsetM = showFelt
+      ? thickness * 0.5
+      : maxRenderedNormalOffsetM(thickness, showBacking)
+    const diffuserOffsetM =
+      supportRearSurfaceOffsetM +
+      SUPPORT_GRID_RENDER_GAP_M +
+      SUPPORT_GRID_REFERENCE.battenDepthMm / 1000 -
+      BACKLIGHT_DIFFUSER_REAR_REVEAL_M
+    const diffuserZ = -diffuserOffsetM
     for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {
       const originalX =
         -layout.panelWidthM * 0.5 +
@@ -838,17 +859,35 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       backingPoseX[i] = pose.x
       backingPoseZ[i] = pose.z
       backingPoseRotY[i] = pose.rotY
-      const x = pose.x + nx * backZ
-      const z = pose.z + nz * backZ
+      const backingX = pose.x + nx * backingZ
+      const backingZPosition = pose.z + nz * backingZ
+      const diffuserX = pose.x + nx * diffuserZ
+      const diffuserZPosition = pose.z + nz * diffuserZ
       const lower = i * 2
       const upper = lower + 1
-      backingRibbon.position.setXYZ(lower, x, 0, z)
-      backingRibbon.position.setXYZ(upper, x, layout.panelHeightM, z)
+      backingRibbon.position.setXYZ(lower, backingX, 0, backingZPosition)
+      backingRibbon.position.setXYZ(
+        upper,
+        backingX,
+        layout.panelHeightM,
+        backingZPosition,
+      )
       backingRibbon.normal.setXYZ(lower, nx, 0, nz)
       backingRibbon.normal.setXYZ(upper, nx, 0, nz)
+      backlightRibbon.position.setXYZ(lower, diffuserX, 0, diffuserZPosition)
+      backlightRibbon.position.setXYZ(
+        upper,
+        diffuserX,
+        layout.panelHeightM,
+        diffuserZPosition,
+      )
+      backlightRibbon.normal.setXYZ(lower, nx, 0, nz)
+      backlightRibbon.normal.setXYZ(upper, nx, 0, nz)
     }
     backingRibbon.position.needsUpdate = true
     backingRibbon.normal.needsUpdate = true
+    backlightRibbon.position.needsUpdate = true
+    backlightRibbon.normal.needsUpdate = true
 
     if (showFelt) {
       feltBacking.update(
@@ -950,6 +989,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       bridgesMesh.dispose()
       clearPartialBridgeBatches()
       backingRibbon.geometry.dispose()
+      backlightRibbon.geometry.dispose()
       feltBacking.dispose()
       backlightMaterial.dispose()
       unitBox.dispose()

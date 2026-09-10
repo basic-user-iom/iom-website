@@ -401,7 +401,7 @@ export function LinarProductInfo({
         </li>
       </ul>
 
-      <details className="linar-acc linar-acc--tech" data-tour-id="technical-data" open>
+      <details className="linar-acc linar-acc--tech" data-tour-id="technical-data">
         <summary className="linar-acc__sum">Technical data</summary>
         <dl className="linar-spec">
           {rows.map((row, index) => (

@@ -13,6 +13,10 @@ import {
 } from './bendMath'
 import { createLinarPanel } from './LinarPanel'
 import { LINAR_FELT_BACKING_OBJECT_NAMES } from './feltBackingGeometry'
+import {
+  linarLightSurfaceClearanceM,
+  setLinarLightLocalPosition,
+} from './lightRig'
 import type { LinarTech } from './linarData'
 import {
   backingVisualProfile,
@@ -114,10 +118,12 @@ const STUDIO_FLOOR_SHADOW_OPACITY = 0.3
 const STUDIO_WALL_SHADOW_OPACITY = 0.14
 const STUDIO_SHADOW_INTENSITY = 0.76
 const LIGHT_STUDY_SHADOW_INTENSITY = 0.86
-// Non-photometric bounce from the visual diffuser. This light never casts a
-// second shadow map; the real apertures are revealed by the diffuser geometry.
-const BACKLIGHT_SPILL_INTENSITY = 3.2
-const BACKLIGHT_HOST_OFFSET_M = 0.00045
+// The conceptual rear-light study reuses the one shadow-casting key. These
+// render-only coordinates keep its source behind the installation so the real
+// LINAR openings, felt and timber support grid all participate in one shadow.
+const BACKLIGHT_KEY_U = 0
+const BACKLIGHT_KEY_V = 1
+const BACKLIGHT_KEY_RADIUS = 1
 const LIGHT_STUDY_MIN_CONE_ANGLE = 0.38
 const LIGHT_STUDY_MAX_CONE_ANGLE = 0.82
 const STUDIO_MIN_SHADOW_CONE_ANGLE = 0.2
@@ -134,9 +140,6 @@ const CEILING_CLOSEUP_UP = new THREE.Vector3(0, 0, 1)
 // within a few centimetres of the visible wood instead of metres from its
 // centre. The default/far clearances keep the complete fixture reachable in
 // the viewport while still producing distinctly different light falloff.
-const LIGHT_NEAR_SURFACE_CLEARANCE_M = 0.04
-const LIGHT_DEFAULT_SURFACE_CLEARANCE_M = 0.45
-const LIGHT_FAR_SURFACE_CLEARANCE_M = 4.2
 const LIGHT_NEAR_INTENSITY_FACTOR = 0.0015
 const LIGHT_DEFAULT_INTENSITY_FACTOR = 0.02
 const LIGHT_FAR_INTENSITY_FACTOR = 0.7
@@ -149,14 +152,10 @@ const LIGHT_ORB_HORIZONTAL_DRAG_GAIN = 2
 const LIGHT_ORB_VERTICAL_DRAG_GAIN = 2.6
 const LIGHT_ORB_VERTICAL_DRAG_REFERENCE_PX = 640
 const LIGHT_ORB_AXIS_LOCK_THRESHOLD_PX = 6
-// Near and Default otherwise follow such a tight envelope that their highest
-// spherical position still sits around the panel centre. Only the upper end
-// of the orbit opens toward the panel-height axis; Far keeps its existing 18°
-// limit because its 4.2 m clearance already provides ample vertical reach.
-const LIGHT_ORB_HIGH_ELEVATION_START_V = 0.6
-const LIGHT_ORB_NEAR_MIN_POLAR_DEG = 2
-const LIGHT_ORB_DEFAULT_MIN_POLAR_DEG = 12
-const LIGHT_ORB_FAR_MIN_POLAR_DEG = 18
+// Point-source safety only. Stable mounted positions are measured from the
+// complete installation envelope; this epsilon merely prevents a source from
+// crossing the architectural plane while the application frame is moving.
+const LIGHT_HOST_HALF_SPACE_EPSILON_M = 0.001
 
 const FLOOR_APPLICATION_FRAME: ApplicationFrame = {
   planePoint: new THREE.Vector3(0, 0, 0),
@@ -181,24 +180,6 @@ function applicationFrame(application: LinarApplication): ApplicationFrame {
   if (application === 'wall') return WALL_APPLICATION_FRAME
   if (application === 'ceiling') return CEILING_APPLICATION_FRAME
   return FLOOR_APPLICATION_FRAME
-}
-
-function lightSurfaceClearanceM(radiusControl: number): number {
-  const radius = THREE.MathUtils.clamp(radiusControl, -1, 1)
-  const from =
-    radius < 0
-      ? LIGHT_NEAR_SURFACE_CLEARANCE_M
-      : LIGHT_DEFAULT_SURFACE_CLEARANCE_M
-  const to =
-    radius < 0
-      ? LIGHT_DEFAULT_SURFACE_CLEARANCE_M
-      : LIGHT_FAR_SURFACE_CLEARANCE_M
-  const progress = radius < 0 ? radius + 1 : radius
-  // Geometric interpolation makes direct dragging feel even across the large
-  // 40 mm -> 4.2 m range and gives useful precision close to the surface.
-  return Math.exp(
-    THREE.MathUtils.lerp(Math.log(from), Math.log(to), progress),
-  )
 }
 
 function lightStudyIntensityFactor(radiusControl: number): number {
@@ -702,6 +683,61 @@ function fitDistance(
   return Math.max(fitH, fitW, 2.4)
 }
 
+function fitCeilingOverviewDistance(
+  camera: THREE.PerspectiveCamera,
+  direction: THREE.Vector3,
+  bounds: PlanBounds,
+  padY = 1.15,
+  padX = 1.2,
+): number {
+  const halfTan = Math.tan(THREE.MathUtils.degToRad(camera.fov) * 0.5)
+  const horizontalTan = halfTan * Math.max(camera.aspect, 0.2)
+  const viewDirection = direction.clone().normalize()
+  const forward = viewDirection.clone().negate()
+  // `viewPlacement` runs before a Close-up camera's special up axis is reset.
+  // Fit against the destination overview axis so Close-up -> Front/Back cannot
+  // inherit the ceiling detail view's projection basis.
+  const right = new THREE.Vector3().crossVectors(forward, WORLD_UP)
+  if (right.lengthSq() < 1e-8) right.set(1, 0, 0)
+  else right.normalize()
+  const screenUp = new THREE.Vector3().crossVectors(right, forward).normalize()
+  const halfExtents = new THREE.Vector3(
+    Math.max(0.04, bounds.maxX - bounds.minX) * 0.5,
+    Math.max(
+      0.02,
+      bounds.installationMaxZ - bounds.installationMinZ,
+    ) * 0.5,
+    Math.max(0.04, bounds.heightM) * 0.5,
+  )
+  const offset = new THREE.Vector3()
+  let requiredDistance = 2.4
+
+  // Once mounted to the ceiling, local X remains world X, the installation's
+  // complete front/back envelope becomes world Y, and panel height becomes
+  // world Z. At an oblique camera angle both large panel axes contribute to
+  // both screen axes, so fitting width and height independently can crop a
+  // repeated installation in short viewports.
+  for (const xSign of [-1, 1]) {
+    for (const ySign of [-1, 1]) {
+      for (const zSign of [-1, 1]) {
+        offset.set(
+          xSign * halfExtents.x,
+          ySign * halfExtents.y,
+          zSign * halfExtents.z,
+        )
+        const towardCamera = offset.dot(viewDirection)
+        requiredDistance = Math.max(
+          requiredDistance,
+          towardCamera + (Math.abs(offset.dot(screenUp)) * padY) / halfTan,
+          towardCamera + (Math.abs(offset.dot(right)) * padX) / horizontalTan,
+        )
+      }
+    }
+  }
+
+  return requiredDistance
+}
+
 function planDepthAllowance(bounds: PlanBounds | undefined, direction: THREE.Vector3): number {
   if (!bounds) return 0
   const extentX = Math.max(0, bounds.maxX - bounds.minX)
@@ -893,7 +929,6 @@ function viewPlacement(
   }
   if (application === 'ceiling') {
     const target = mid.clone()
-    const dist = fitDistance(camera, 1.15, 1.2, installationWidth, installationHeight)
     if (id === 'closeup') {
       return {
         // Inspect from the occupied-room side of the ceiling. This dedicated
@@ -921,7 +956,10 @@ function viewPlacement(
       return {
         dir,
         target,
-        dist: Math.max(2.6, dist * 0.76) + planDepthAllowance(planBounds, dir),
+        dist: Math.max(
+          2.6,
+          fitCeilingOverviewDistance(camera, dir, bounds, 1.12, 1.1),
+        ),
         bg: BG,
       }
     }
@@ -932,7 +970,7 @@ function viewPlacement(
       return {
         dir,
         target,
-        dist: dist + planDepthAllowance(planBounds, dir),
+        dist: fitCeilingOverviewDistance(camera, dir, bounds),
         bg: BG,
       }
     }
@@ -940,7 +978,7 @@ function viewPlacement(
     return {
       dir,
       target,
-      dist: dist + planDepthAllowance(planBounds, dir),
+      dist: fitCeilingOverviewDistance(camera, dir, bounds),
       bg: BG,
     }
   }
@@ -1208,13 +1246,17 @@ export function LinarScene({
       configRef.current.backing,
       configRef.current.fleeceColour,
     )
-    const initialBacklightEnabled =
+    const initialBacklightStrength =
       configRef.current.application !== 'freestanding' &&
       initialBackingProfile.lightTransmission > 0 &&
-      configRef.current.backlightMode === 'on' &&
-      viewPresetRef.current !== 'top' &&
-      viewPresetRef.current !== 'reverse' &&
-      sideRef.current !== 'back'
+      configRef.current.backlightMode === 'on'
+        ? THREE.MathUtils.clamp(
+            configRef.current.backlightIntensity / 100,
+            0.1,
+            1,
+          ) * initialBackingProfile.lightTransmission
+        : 0
+    const initialBacklightEnabled = initialBacklightStrength > 0.002
     const initialLightingStudy = initialOrbLightEnabled || initialBacklightEnabled
     const initialBackground = initialLightingStudy ? LIGHT_STUDY_BG : BG
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
@@ -1341,20 +1383,26 @@ export function LinarScene({
       lightStateRef.current.placement === 'behind'
         ? initialBackingProfile.lightTransmission
         : 1
-    const initialLightStudyKeyIntensity =
+    const initialOrbKeyIntensity =
       initialLightStudyBaseIntensity *
       lightStudyIntensityFactor(lightStateRef.current.radius) *
-      initialOrbTransmission
+      initialOrbTransmission *
+      (THREE.MathUtils.clamp(lightStateRef.current.intensity, 10, 100) /
+        DEFAULT_LINAR_LIGHT.intensity)
+    const initialBacklightKeyIntensity =
+      initialLightStudyBaseIntensity *
+      lightStudyIntensityFactor(BACKLIGHT_KEY_RADIUS) *
+      initialBacklightStrength
     const key = new THREE.SpotLight(
       0xfff7e8,
       initialOrbLightEnabled
-        ? initialLightStudyKeyIntensity
+        ? initialOrbKeyIntensity
         : initialBacklightEnabled
-          ? 0
+          ? initialBacklightKeyIntensity
           : STUDIO_KEY_INTENSITY,
       0,
-      initialOrbLightEnabled ? 1.28 : 0.98,
-      0.84,
+      initialLightingStudy ? 1.28 : 0.98,
+      initialLightingStudy ? 0.38 : 0.84,
       2,
     )
     key.name = 'LinarInteractiveKeyLight'
@@ -1400,14 +1448,14 @@ export function LinarScene({
     // keeping clip-depth unbiased restores a physically attached contact edge.
     key.shadow.bias = 0
     key.shadow.normalBias = 0.00018
-    key.shadow.radius = initialOrbLightEnabled
+    key.shadow.radius = initialLightingStudy
       ? compactShadowMap
         ? 0.6
         : 0.7
       : compactShadowMap
         ? 0.55
         : 0.75
-    key.shadow.intensity = initialOrbLightEnabled
+    key.shadow.intensity = initialLightingStudy
       ? LIGHT_STUDY_SHADOW_INTENSITY
       : STUDIO_SHADOW_INTENSITY
     key.shadow.autoUpdate = false
@@ -1635,17 +1683,6 @@ export function LinarScene({
     // placement and Front/Back inspection instead of moving either in world Z.
     presentationRoot.add(installationRoot)
     installationRoot.add(supportGrid.group)
-    const backlightSpill = new THREE.RectAreaLight(0xffc77a, 0, 1, 1)
-    backlightSpill.name = 'LinarBacklightRoomSpill'
-    backlightSpill.position.set(
-      0,
-      PANEL_HEIGHT_M * 0.5,
-      -configRef.current.thicknessMm / 2000 - BACKLIGHT_HOST_OFFSET_M,
-    )
-    // RectAreaLight emits along local -Z; mounted LINAR uses local +Z as the
-    // room-facing normal in both Wall and Ceiling applications.
-    backlightSpill.rotation.y = Math.PI
-    presentationRoot.add(backlightSpill)
     scene.add(presentationRoot)
 
     // Shared links and restored sessions should render and frame their selected
@@ -1905,12 +1942,7 @@ export function LinarScene({
         activeConfig.backing,
         activeConfig.fleeceColour,
       )
-      const inspectionHidden =
-        currentPreset === 'top' ||
-        currentPreset === 'reverse' ||
-        sideRef.current === 'back'
       if (
-        inspectionHidden ||
         activeConfig.application === 'freestanding' ||
         backingProfile.lightTransmission <= 0 ||
         activeConfig.backlightMode !== 'on'
@@ -1927,9 +1959,9 @@ export function LinarScene({
       const technicalTop = currentPreset === 'top'
       const application = configRef.current.application
       const mountedTechnicalTop = technicalTop && application !== 'freestanding'
+      const backlightEnabled = backlightStrengthForState() > 0.002
       const behindLightStudy =
         lightStateRef.current.enabled && isMountedBehindLight(lightStateRef.current)
-      const backlightEnabled = backlightStrengthForState() > 0.002
       const lightingStudyEnabled = lightStateRef.current.enabled || backlightEnabled
       const installationHeight = PANEL_HEIGHT_M
       presentationTargetPosition.set(0, 0, 0)
@@ -1988,9 +2020,6 @@ export function LinarScene({
         key.target.position.copy(keyTargetGoal)
         displayedBacklightStrength = backlightStrengthForState()
         panel.setBacklightStrength(displayedBacklightStrength)
-        backlightSpill.intensity =
-          displayedBacklightStrength * BACKLIGHT_SPILL_INTENSITY
-        backlightSpill.visible = displayedBacklightStrength > 0.002
         invalidateKeyShadow()
       }
     }
@@ -2052,13 +2081,6 @@ export function LinarScene({
       supportGrid.group.visible = application !== 'freestanding'
       supportGrid.setInternalMembersVisible(true)
       applyFeltOuterCapVisibility()
-      backlightSpill.position.set(
-        (bounds.minX + bounds.maxX) * 0.5,
-        bounds.heightM * 0.5,
-        -configRef.current.thicknessMm / 2000 - BACKLIGHT_HOST_OFFSET_M,
-      )
-      backlightSpill.width = Math.max(0.05, extentX * 0.96)
-      backlightSpill.height = Math.max(0.05, bounds.heightM * 0.96)
       if (application === 'wall') {
         contextWall.scale.set(
           Math.max(CONTEXT_RECEIVER_MIN_SIZE_M, extentX + 1.8) /
@@ -2117,9 +2139,14 @@ export function LinarScene({
     const lightTargetWorld = new THREE.Vector3()
     const lightPositionGoal = new THREE.Vector3()
     const lightLocalCentre = new THREE.Vector3()
-    const lightDirectionWorld = new THREE.Vector3()
-    const lightDirectionLocal = new THREE.Vector3()
-    const lightInstallationWorldQuaternion = new THREE.Quaternion()
+    const lightLocalSource = new THREE.Vector3()
+    const mountedLightEnvelopeBounds = {
+      minX: 0,
+      maxX: 0,
+      minZ: 0,
+      maxZ: 0,
+      heightM: 0,
+    }
     const lightRaycaster = new THREE.Raycaster()
     const lightPointer = new THREE.Vector2()
     let displayedLightU = lightStateRef.current.u
@@ -2127,12 +2154,16 @@ export function LinarScene({
     let displayedLightRadius = lightStateRef.current.radius
     let lightDragPointerId: number | null = null
     let lightDragState: LinarLightState | null = null
+    let lightDragOriginState: LinarLightState | null = null
+    let pendingLightDragState: LinarLightState | null = null
+    let lightDragPublishFrame: number | null = null
     let lightDragStartX = 0
     let lightDragStartY = 0
     let lightDragStartU = displayedLightU
     let lightDragStartV = displayedLightV
     let lightDragStartRadius = displayedLightRadius
     let lightDragMode: 'orbit' | 'distance' = 'orbit'
+    let lightDragPreviousControlsEnabled = true
     let lightWheelCapturedUntil = 0
     let lightOrbHovered = false
     let lightOrbHasMoved = false
@@ -2149,7 +2180,51 @@ export function LinarScene({
     }
 
     const safeLightU = (value: number, fallback: number) =>
-      wrappedLightCoordinate(value, fallback)
+      configRef.current.application === 'freestanding'
+        ? wrappedLightCoordinate(value, fallback)
+        : safeLightCoordinate(value, fallback)
+
+    const normalizedInteractiveLightState = (
+      state: LinarLightState,
+      fallback: LinarLightState = lightStateRef.current,
+    ): LinarLightState => ({
+      enabled: true,
+      placement: effectiveLightPlacement(state),
+      u: safeLightU(state.u, fallback.u),
+      v: safeLightCoordinate(state.v, fallback.v),
+      radius: safeLightCoordinate(state.radius, fallback.radius),
+      intensity: THREE.MathUtils.clamp(state.intensity, 10, 100),
+    })
+
+    const cancelPendingLightDragPublish = () => {
+      if (lightDragPublishFrame != null) {
+        cancelAnimationFrame(lightDragPublishFrame)
+        lightDragPublishFrame = null
+      }
+      pendingLightDragState = null
+    }
+
+    const publishLightState = (state: LinarLightState) => {
+      const nextState = normalizedInteractiveLightState(state, state)
+      lightStateRef.current = nextState
+      onLightChangeRef.current(nextState)
+      return nextState
+    }
+
+    const scheduleLightDragPublish = (state: LinarLightState) => {
+      pendingLightDragState = normalizedInteractiveLightState(state)
+      // Keep the renderer and every subsequent drag event on the same state as
+      // the React controls. Publishing at most once per display frame prevents
+      // pointer-event bursts from triggering redundant component renders.
+      lightStateRef.current = pendingLightDragState
+      if (lightDragPublishFrame != null) return
+      lightDragPublishFrame = requestAnimationFrame(() => {
+        lightDragPublishFrame = null
+        const nextState = pendingLightDragState
+        pendingLightDragState = null
+        if (nextState) onLightChangeRef.current(nextState)
+      })
+    }
 
     const updateLightTargetWorld = (bounds = currentPlanBounds()) => {
       lightLocalCentre.set(
@@ -2177,124 +2252,40 @@ export function LinarScene({
       position.needsUpdate = true
     }
 
-    const lightEnvelopeSourceDistance = (
-      worldDirection: THREE.Vector3,
-      bounds: PlanBounds,
-      surfaceClearance: number,
-    ) => {
-      // Transform only the direction: the target is the exact centre of this
-      // local envelope. The first AABB face hit from that centre is the safe
-      // exterior point along the selected orbit ray.
-      installationRoot.getWorldQuaternion(lightInstallationWorldQuaternion)
-      lightInstallationWorldQuaternion.invert()
-      lightDirectionLocal
-        .copy(worldDirection)
-        .applyQuaternion(lightInstallationWorldQuaternion)
-
-      const halfX = Math.max(0.02, (bounds.maxX - bounds.minX) * 0.5)
-      const halfY = Math.max(0.02, bounds.heightM * 0.5)
-      const halfZ = Math.max(0.01, (bounds.maxZ - bounds.minZ) * 0.5)
-      let exitDistance = Number.POSITIVE_INFINITY
-      let exitNormalComponent = 1
-      if (Math.abs(lightDirectionLocal.x) > 0.000001) {
-        const candidate = halfX / Math.abs(lightDirectionLocal.x)
-        if (candidate < exitDistance) {
-          exitDistance = candidate
-          exitNormalComponent = Math.abs(lightDirectionLocal.x)
-        }
-      }
-      if (Math.abs(lightDirectionLocal.y) > 0.000001) {
-        const candidate = halfY / Math.abs(lightDirectionLocal.y)
-        if (candidate < exitDistance) {
-          exitDistance = candidate
-          exitNormalComponent = Math.abs(lightDirectionLocal.y)
-        }
-      }
-      if (Math.abs(lightDirectionLocal.z) > 0.000001) {
-        const candidate = halfZ / Math.abs(lightDirectionLocal.z)
-        if (candidate < exitDistance) {
-          exitDistance = candidate
-          exitNormalComponent = Math.abs(lightDirectionLocal.z)
-        }
-      }
-      if (!Number.isFinite(exitDistance)) return halfZ + surfaceClearance
-      // A radial 40 mm step is not necessarily 40 mm normal to the face that
-      // the ray exits. Divide by that face-normal component so the closest
-      // AABB surface is genuinely the requested distance from the source.
-      return exitDistance + surfaceClearance / Math.max(0.001, exitNormalComponent)
-    }
-
     const lightPositionForState = (
       state: Pick<LinarLightState, 'placement' | 'u' | 'v' | 'radius'>,
       bounds = currentPlanBounds(),
     ) => {
-      const target = updateLightTargetWorld(bounds)
-      const u = safeLightU(state.u, 0)
-      const v = safeLightCoordinate(state.v, 0)
-      const radiusControl = safeLightCoordinate(state.radius, 0)
       const application = configRef.current.application
-      const behindMountedPanel = isMountedBehindLight(state)
-      const mountedNormalSign = behindMountedPanel ? -1 : 1
-      const azimuth = u * Math.PI
-      // v controls latitude within the selected mounted hemisphere. u retains
-      // the complete tangent-plane ring, so Room and Behind both preserve the
-      // same 360-degree drag and Near/Far distance semantics.
-      const basePolarDeg = THREE.MathUtils.lerp(72, 18, (v + 1) * 0.5)
-      const highElevationMinPolarDeg =
-        radiusControl < 0
-          ? THREE.MathUtils.lerp(
-              LIGHT_ORB_NEAR_MIN_POLAR_DEG,
-              LIGHT_ORB_DEFAULT_MIN_POLAR_DEG,
-              radiusControl + 1,
-            )
-          : THREE.MathUtils.lerp(
-              LIGHT_ORB_DEFAULT_MIN_POLAR_DEG,
-              LIGHT_ORB_FAR_MIN_POLAR_DEG,
-              radiusControl,
-            )
-      const highElevationBlend = THREE.MathUtils.smoothstep(
-        v,
-        LIGHT_ORB_HIGH_ELEVATION_START_V,
-        1,
-      )
-      const polar = THREE.MathUtils.degToRad(
-        basePolarDeg +
-          (highElevationMinPolarDeg - LIGHT_ORB_FAR_MIN_POLAR_DEG) *
-            highElevationBlend,
-      )
-      const tangentWeight = Math.sin(polar)
-      const normalWeight = Math.cos(polar)
-      const tangentSin = Math.sin(azimuth) * tangentWeight
-      const tangentCos = Math.cos(azimuth) * tangentWeight
-
-      if (application === 'wall') {
-        lightDirectionWorld.set(
-          tangentSin,
-          tangentCos,
-          normalWeight * mountedNormalSign,
-        )
-      } else if (application === 'ceiling') {
-        // The ceiling room normal points down; X/Z form its complete ring.
-        lightDirectionWorld.set(
-          tangentSin,
-          -normalWeight * mountedNormalSign,
-          tangentCos,
-        )
-      } else {
-        // Freestanding uses a conventional horizontal azimuth around Y.
-        lightDirectionWorld.set(tangentSin, normalWeight, tangentCos)
+      const mounted = application !== 'freestanding'
+      const inspectionFlipped =
+        mounted && (sideRef.current === 'back' || currentPreset === 'reverse')
+      // Mounted light distance is measured from the complete installed
+      // assembly, including its rear construction, rather than from a panel
+      // face that may sit several centimetres in front of the host plane.
+      // Freestanding has no support assembly, so its panel envelope is exact.
+      if (mounted) {
+        mountedLightEnvelopeBounds.minX = bounds.minX
+        mountedLightEnvelopeBounds.maxX = bounds.maxX
+        mountedLightEnvelopeBounds.minZ = bounds.installationMinZ
+        mountedLightEnvelopeBounds.maxZ = bounds.installationMaxZ
+        mountedLightEnvelopeBounds.heightM = bounds.heightM
       }
-      lightDirectionWorld.normalize()
-
-      const surfaceClearance = lightSurfaceClearanceM(radiusControl)
-      const sourceDistance = lightEnvelopeSourceDistance(
-        lightDirectionWorld,
-        bounds,
-        surfaceClearance,
+      const lightEnvelopeBounds = mounted ? mountedLightEnvelopeBounds : bounds
+      setLinarLightLocalPosition(
+        lightLocalSource,
+        {
+          placement: effectiveLightPlacement(state),
+          u: safeLightU(state.u, 0),
+          v: safeLightCoordinate(state.v, 0),
+          radius: safeLightCoordinate(state.radius, 0),
+        },
+        lightEnvelopeBounds,
+        mounted,
+        inspectionFlipped,
       )
-      lightPositionGoal
-        .copy(target)
-        .addScaledVector(lightDirectionWorld, sourceDistance)
+      installationRoot.updateWorldMatrix(true, false)
+      lightPositionGoal.copy(lightLocalSource).applyMatrix4(installationRoot.matrixWorld)
 
       // Numerical protection for both mounted hemispheres. Room placement must
       // remain in front of the fixed host; Behind must clear its far side. The
@@ -2307,9 +2298,10 @@ export function LinarScene({
           lightPositionGoal,
           frame,
         )
+        const behindMountedPanel = isMountedBehindLight(state)
         const hostLimit = behindMountedPanel
-          ? -surfaceClearance
-          : frame.installationClearanceM + surfaceClearance
+          ? -LIGHT_HOST_HALF_SPACE_EPSILON_M
+          : frame.installationClearanceM + LIGHT_HOST_HALF_SPACE_EPSILON_M
         const violatesHostHalfSpace = behindMountedPanel
           ? signedHostDistance > hostLimit
           : signedHostDistance < hostLimit
@@ -2321,6 +2313,43 @@ export function LinarScene({
         }
       }
       return lightPositionGoal
+    }
+
+    if (initialLightingStudy) {
+      // Start a shared/restored lighting study at its real source position.
+      // Otherwise the persistent key begins at the studio coordinates and can
+      // visibly sweep through the panel before the first animation settles.
+      const initialKeyState: Pick<
+        LinarLightState,
+        'placement' | 'u' | 'v' | 'radius'
+      > = initialOrbLightEnabled
+        ? {
+            placement: effectiveLightPlacement(lightStateRef.current),
+            u: lightStateRef.current.u,
+            v: lightStateRef.current.v,
+            radius: lightStateRef.current.radius,
+          }
+        : {
+            placement: 'behind',
+            u: BACKLIGHT_KEY_U,
+            v: BACKLIGHT_KEY_V,
+            radius: BACKLIGHT_KEY_RADIUS,
+          }
+      const initialLightBounds = currentPlanBounds()
+      const initialKeyPosition = lightPositionForState(
+        initialKeyState,
+        initialLightBounds,
+      )
+      const initialKeyTarget = updateLightTargetWorld(initialLightBounds)
+      key.position.copy(initialKeyPosition)
+      key.target.position.copy(initialKeyTarget)
+      if (initialOrbLightEnabled) {
+        updateLightOrbPosition(
+          initialKeyTarget,
+          initialKeyPosition,
+          initialLightBounds,
+        )
+      }
     }
 
     const pointerNdc = (event: { clientX: number; clientY: number }) => {
@@ -2392,6 +2421,7 @@ export function LinarScene({
       const position = lightPositionForState(lightDragState, dragBounds)
       key.position.copy(position)
       updateLightOrbPosition(updateLightTargetWorld(dragBounds), position, dragBounds)
+      scheduleLightDragPublish(lightDragState)
       invalidateKeyShadow()
     }
 
@@ -2400,30 +2430,30 @@ export function LinarScene({
       const pointerId = lightDragPointerId
       lightDragPointerId = null
       const committed = lightDragState
+      const origin = lightDragOriginState
       lightDragState = null
-      controls.enabled = true
+      lightDragOriginState = null
+      controls.enabled = lightDragPreviousControlsEnabled
       renderer.domElement.style.cursor =
         lightStateRef.current.enabled && lightOrbHovered ? 'grab' : ''
-      if (renderer.domElement.hasPointerCapture(pointerId)) {
-        renderer.domElement.releasePointerCapture(pointerId)
-      }
-      if (commit && committed) {
-        const nextLightState = {
-          enabled: true,
-          placement: effectiveLightPlacement(committed),
-          u: safeLightU(committed.u, lightStateRef.current.u),
-          v: safeLightCoordinate(committed.v, lightStateRef.current.v),
-          radius: safeLightCoordinate(committed.radius, lightStateRef.current.radius),
+      try {
+        if (renderer.domElement.hasPointerCapture(pointerId)) {
+          renderer.domElement.releasePointerCapture(pointerId)
         }
-        lightStateRef.current = nextLightState
-        onLightChangeRef.current(nextLightState)
-      } else if (!commit) {
-        displayedLightU = safeLightU(lightStateRef.current.u, displayedLightU)
-        displayedLightV = safeLightCoordinate(lightStateRef.current.v, displayedLightV)
-        displayedLightRadius = safeLightCoordinate(
-          lightStateRef.current.radius,
-          displayedLightRadius,
-        )
+      } catch {
+        // Capture can already be gone after a lost-capture or browser blur.
+      }
+      cancelPendingLightDragPublish()
+      if (commit && committed) {
+        const nextLightState = publishLightState(committed)
+        displayedLightU = nextLightState.u
+        displayedLightV = nextLightState.v
+        displayedLightRadius = nextLightState.radius
+      } else if (!commit && origin) {
+        const restoredLightState = publishLightState(origin)
+        displayedLightU = restoredLightState.u
+        displayedLightV = restoredLightState.v
+        displayedLightRadius = restoredLightState.radius
       }
       event?.preventDefault()
     }
@@ -2434,10 +2464,11 @@ export function LinarScene({
       if (!pointerHitsLightOrb(event)) return
       event.preventDefault()
       event.stopImmediatePropagation()
-      // The guided Light step explicitly invites this drag. Preserve the tour
-      // while the orb is handled; ordinary canvas orbiting still interrupts it.
-      if (!tourActiveRef.current) onUserInteractRef.current()
+      // Direct manipulation owns the camera until release. The page keeps a
+      // guided tour active while this cancels only the conflicting camera tween.
+      claimUserCameraAuthority()
       lightDragPointerId = event.pointerId
+      lightDragOriginState = { ...lightStateRef.current }
       const nextLightDragState: LinarLightState = {
         enabled: true,
         placement: effectiveLightPlacement(lightStateRef.current),
@@ -2447,6 +2478,7 @@ export function LinarScene({
           lightStateRef.current.radius,
           lightStateRef.current.radius,
         ),
+        intensity: THREE.MathUtils.clamp(lightStateRef.current.intensity, 10, 100),
       }
       lightDragState = nextLightDragState
       lightDragStartX = event.clientX
@@ -2455,8 +2487,18 @@ export function LinarScene({
       lightDragStartV = nextLightDragState.v
       lightDragStartRadius = nextLightDragState.radius
       lightDragMode = event.shiftKey || event.altKey ? 'distance' : 'orbit'
+      lightDragPreviousControlsEnabled = controls.enabled
       controls.enabled = false
-      renderer.domElement.setPointerCapture(event.pointerId)
+      try {
+        renderer.domElement.setPointerCapture(event.pointerId)
+      } catch {
+        lightDragPointerId = null
+        lightDragState = null
+        lightDragOriginState = null
+        controls.enabled = lightDragPreviousControlsEnabled
+        renderer.domElement.style.cursor = lightOrbHovered ? 'grab' : ''
+        return
+      }
       renderer.domElement.style.cursor =
         lightDragMode === 'distance' ? 'ns-resize' : 'grabbing'
     }
@@ -2470,19 +2512,27 @@ export function LinarScene({
       }
       if (lightDragPointerId == null && event.isPrimary) updateLightOrbHover(event)
     }
-    const onLightPointerEnd = (event: PointerEvent) => {
+    const onLightPointerUp = (event: PointerEvent) => {
       if (lightDragPointerId !== event.pointerId) return
       event.stopImmediatePropagation()
-      finishLightDrag(event, event.type !== 'pointercancel')
+      finishLightDrag(event, true)
+    }
+    const onLightPointerCancel = (event: PointerEvent) => {
+      if (lightDragPointerId !== event.pointerId) return
+      event.stopImmediatePropagation()
+      finishLightDrag(event, false)
     }
     const onLightEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape' && lightDragPointerId != null) finishLightDrag(undefined, false)
     }
-    const onLightPointerLeave = () => {
-      if (lightDragPointerId != null) return
+    const onLightPointerLeave = (event: PointerEvent) => {
+      if (lightDragPointerId === event.pointerId) {
+        finishLightDrag(event, true)
+      }
       lightOrbHovered = false
       renderer.domElement.style.cursor = ''
     }
+    const onLightWindowBlur = () => finishLightDrag(undefined, false)
 
     const normalizedWheelPixelDelta = (event: WheelEvent) => {
       let delta = event.deltaY
@@ -2524,6 +2574,7 @@ export function LinarScene({
           u: safeLightU(displayedLightU, lightStateRef.current.u),
           v: safeLightCoordinate(displayedLightV, lightStateRef.current.v),
           radius: nextRadius,
+          intensity: THREE.MathUtils.clamp(lightStateRef.current.intensity, 10, 100),
         }
         lightStateRef.current = nextLightState
         onLightChangeRef.current(nextLightState)
@@ -2565,15 +2616,16 @@ export function LinarScene({
 
     renderer.domElement.addEventListener('pointerdown', onLightPointerDown, true)
     renderer.domElement.addEventListener('pointermove', onLightPointerMove, true)
-    renderer.domElement.addEventListener('pointerup', onLightPointerEnd, true)
-    renderer.domElement.addEventListener('pointercancel', onLightPointerEnd, true)
-    renderer.domElement.addEventListener('lostpointercapture', onLightPointerEnd, true)
+    renderer.domElement.addEventListener('pointerup', onLightPointerUp, true)
+    renderer.domElement.addEventListener('pointercancel', onLightPointerCancel, true)
+    renderer.domElement.addEventListener('lostpointercapture', onLightPointerCancel, true)
     renderer.domElement.addEventListener('pointerleave', onLightPointerLeave, true)
     renderer.domElement.addEventListener('wheel', onCanvasWheel, {
       capture: true,
       passive: false,
     })
     window.addEventListener('keydown', onLightEscape)
+    window.addEventListener('blur', onLightWindowBlur)
 
     const captureCinematicAnchor = () => {
       cinematicAnchor = {
@@ -2623,7 +2675,7 @@ export function LinarScene({
       cameraAuthority = 'preset'
     }
 
-    const transitionToFrame = () => {
+    const transitionToFrame = (ensureOverviewDistanceAtStart = false) => {
       smoothCameraZoomTargetRadius = null
       // An explicit preset/application/count frame supersedes any delayed
       // technical Top refit queued by a slider change.
@@ -2685,6 +2737,23 @@ export function LinarScene({
       )
       controls.minDistance = Math.max(0.18, placement.dist * 0.22)
       controls.maxDistance = placement.dist * 4.5
+
+      if (ensureOverviewDistanceAtStart) {
+        // The first manual Wall/Ceiling selection can interrupt a close-up or
+        // the post-intro handoff. A normal multi-second camera tween would then
+        // leave only a detail visible until most of the transition had elapsed.
+        // Establish the authored full-object radius immediately, while keeping
+        // the direction and target transition smooth. Subsequent manual zoom
+        // and explicit Close-up views remain untouched.
+        const currentOffset = camera.position.clone().sub(controls.target)
+        const currentRadius = currentOffset.length()
+        if (currentRadius < placement.dist) {
+          if (currentRadius < 0.0001) currentOffset.copy(placement.dir)
+          currentOffset.setLength(placement.dist)
+          camera.position.copy(controls.target).add(currentOffset)
+          camera.lookAt(controls.target)
+        }
+      }
 
       const destinationUp = placement.up ?? WORLD_UP
       const changesCameraAxis = camera.up.distanceToSquared(destinationUp) > 0.01
@@ -2841,11 +2910,14 @@ export function LinarScene({
     let lastApplication = configRef.current.application
     let lastReset = resetViewTokenRef.current
     let lastView = viewTokenRef.current
+    let authoredTourBendTarget: number | null = null
+    let authoredTourSecondaryTarget: number | null = null
     let raf = 0
     let lastT = performance.now()
     let visible = document.visibilityState !== 'hidden'
     let hiddenAt = visible ? null : performance.now()
     let lightingStudyWasEnabled = initialLightingStudy
+    let rearKeyWasActive = initialBacklightEnabled && !initialOrbLightEnabled
     let lastActiveLightPlacement: LinarLightState['placement'] = initialOrbLightEnabled
       ? effectiveLightPlacement(lightStateRef.current)
       : 'room'
@@ -2900,6 +2972,16 @@ export function LinarScene({
 
       if (viewTokenRef.current !== lastView) {
         lastView = viewTokenRef.current
+        // A guided step deliberately coordinates its camera and panel pose.
+        // Keep the gentler authored interpolation only for that exact target;
+        // the first manual shape edit no longer inherits tour-wide lag.
+        if (tourActiveRef.current && !reducedMotion) {
+          authoredTourBendTarget = targetBendRef.current
+          authoredTourSecondaryTarget = targetSecondaryCurveRef.current
+        } else {
+          authoredTourBendTarget = null
+          authoredTourSecondaryTarget = null
+        }
         currentPreset = viewPresetRef.current
         hasOrbited = false
         setPresentationTarget(reducedMotion || currentPreset === 'top')
@@ -2911,6 +2993,7 @@ export function LinarScene({
       const applicationChangedThisFrame = nextApplication !== lastApplication
       if (nextPanelCount !== lastPanelCount) {
         lastPanelCount = nextPanelCount
+        currentPreset = viewPresetRef.current
         rebuildPanelReplicas()
         panel.setBend(
           installationPanelBend(
@@ -2924,16 +3007,21 @@ export function LinarScene({
           displayedSecondaryCurve,
         )
         applyPanelArrangement()
-        setPresentationTarget(reducedMotion)
+        setPresentationTarget(reducedMotion || currentPreset === 'top')
         hasOrbited = false
-        transitionToFrame()
+        transitionToFrame(
+          !cinematicActiveRef.current && !tourActiveRef.current,
+        )
       }
       if (applicationChangedThisFrame) {
         lastApplication = nextApplication
+        currentPreset = viewPresetRef.current
         applyPanelArrangement()
         setPresentationTarget(reducedMotion || currentPreset === 'top')
         hasOrbited = false
-        transitionToFrame()
+        transitionToFrame(
+          !cinematicActiveRef.current && !tourActiveRef.current,
+        )
       }
 
       const nextGeom = geometryKey(configRef.current, techRef.current)
@@ -3048,6 +3136,27 @@ export function LinarScene({
         goal = activeStartupPose.bend
         secondaryGoal = activeStartupPose.secondary
       }
+      if (
+        !tourActiveRef.current ||
+        (authoredTourBendTarget != null &&
+          (Math.abs(targetBendRef.current - authoredTourBendTarget) > 0.0001 ||
+            Math.abs(
+              targetSecondaryCurveRef.current -
+                (authoredTourSecondaryTarget ?? targetSecondaryCurveRef.current),
+            ) > 0.0001))
+      ) {
+        // Once live input diverges from a step target, do not re-arm the slow
+        // response merely because the slider later crosses that value again.
+        // Only the next tour-step token may author another slow transition.
+        authoredTourBendTarget = null
+        authoredTourSecondaryTarget = null
+      }
+      const authoredTourTransitionActive =
+        !activeStartupPose &&
+        authoredTourBendTarget != null &&
+        authoredTourSecondaryTarget != null &&
+        (Math.abs(displayedBend - authoredTourBendTarget) > 0.005 ||
+          Math.abs(displayedSecondaryCurve - authoredTourSecondaryTarget) > 0.005)
       const topAutoFrameTargetKey = `${targetBendRef.current}:${targetSecondaryCurveRef.current}`
       if (topAutoFrameTargetKey !== lastTopAutoFrameTargetKey) {
         lastTopAutoFrameTargetKey = topAutoFrameTargetKey
@@ -3059,7 +3168,7 @@ export function LinarScene({
       }
       const bendResponse = activeStartupPose
         ? 5.5
-        : tourActiveRef.current && !reducedMotion
+        : authoredTourTransitionActive
           ? 1.25
           : 11
       const lambda = 1 - Math.exp(-lightMotionDt * bendResponse)
@@ -3142,9 +3251,18 @@ export function LinarScene({
         displayedBacklightStrength = targetBacklightStrength
       }
       panel.setBacklightStrength(displayedBacklightStrength)
-      backlightSpill.intensity =
-        displayedBacklightStrength * BACKLIGHT_SPILL_INTENSITY
-      backlightSpill.visible = displayedBacklightStrength > 0.002
+      // Orb mode owns the one physical key when both studies are enabled. The
+      // diffuser remains visible, while rear-light shadowing resumes as soon
+      // as the orb is turned off.
+      const rearKeyStrength = orbLightEnabled ? 0 : displayedBacklightStrength
+      const rearKeyActive =
+        rearKeyStrength > 0.002 || (!orbLightEnabled && backlightEnabled)
+      const lightStudyKeyActive = orbLightEnabled || rearKeyActive
+      const rearKeyChanged = rearKeyActive !== rearKeyWasActive
+      if (rearKeyChanged) {
+        rearKeyWasActive = rearKeyActive
+        invalidateKeyShadow()
+      }
       lightStudyFloorOpacityGoal =
         lightingStudyEnabled &&
         (configRef.current.application !== 'ceiling' ||
@@ -3188,25 +3306,55 @@ export function LinarScene({
       rim.intensity += ((lightingStudyEnabled ? 0 : 0.42) - rim.intensity) * lightModeLambda
       rearFill.intensity +=
         ((lightingStudyEnabled ? 0 : 0.22) - rearFill.intensity) * lightModeLambda
+      // Slider state, direct manipulation, and the real SpotLight now share one
+      // coordinate system. The former pair of exponential easings let the UI
+      // report a new value while the source was still travelling from an older
+      // spherical pose, which made the controls appear disconnected.
+      if (activeStartupPose && !lightDragState) {
+        displayedLightU = activeStartupPose.lightU
+        displayedLightV = activeStartupPose.lightV
+      } else if (!lightDragState) {
+        displayedLightU = safeLightU(lightStateRef.current.u, displayedLightU)
+        displayedLightV = safeLightCoordinate(
+          lightStateRef.current.v,
+          displayedLightV,
+        )
+        displayedLightRadius = safeLightCoordinate(
+          lightStateRef.current.radius,
+          displayedLightRadius,
+        )
+      }
       const displayedRadiusControl = safeLightCoordinate(displayedLightRadius, 0)
       // Outside the interactive study, return the one shadow-casting key to a
       // canonical distant studio rig. Reusing a 40 mm Near source at the old
       // studio intensity would overexpose the panel as LIGHT fades out.
       const activeKeyU = orbLightEnabled
         ? displayedLightU
-        : DEFAULT_LINAR_LIGHT.u
+        : rearKeyActive
+          ? BACKLIGHT_KEY_U
+          : DEFAULT_LINAR_LIGHT.u
       const activeKeyV = orbLightEnabled
         ? displayedLightV
-        : DEFAULT_LINAR_LIGHT.v
-      const activeKeyRadiusControl = orbLightEnabled ? displayedRadiusControl : 1
+        : rearKeyActive
+          ? BACKLIGHT_KEY_V
+          : DEFAULT_LINAR_LIGHT.v
+      const activeKeyRadiusControl = orbLightEnabled
+        ? displayedRadiusControl
+        : rearKeyActive
+          ? BACKLIGHT_KEY_RADIUS
+          : 1
       // The normal studio rig always remains on the room side. Behind is an
       // explicit LIGHT-study placement and never leaks into normal viewing.
       const activeKeyPlacement: LinarLightState['placement'] = orbLightEnabled
         ? activeLightPlacement
-        : 'room'
-      const activeKeySurfaceClearance = lightSurfaceClearanceM(activeKeyRadiusControl)
+        : rearKeyActive
+          ? 'behind'
+          : 'room'
+      const activeKeySurfaceClearance = linarLightSurfaceClearanceM(
+        activeKeyRadiusControl,
+      )
       const lightRadiusIntensityFactor = lightStudyIntensityFactor(
-        displayedRadiusControl,
+        activeKeyRadiusControl,
       )
       // Recalibrate emitted power for the new physical source distances. The
       // previous 200/72.5 values assumed a hidden source several metres away;
@@ -3223,13 +3371,19 @@ export function LinarScene({
             ).lightTransmission
           : 1
       const targetKeyIntensity = orbLightEnabled
-        ? lightStudyBaseIntensity * lightRadiusIntensityFactor * activeOrbTransmission
-        : backlightEnabled
-          ? 0
+        ? lightStudyBaseIntensity *
+          lightRadiusIntensityFactor *
+          activeOrbTransmission *
+          (THREE.MathUtils.clamp(lightStateRef.current.intensity, 10, 100) /
+            DEFAULT_LINAR_LIGHT.intensity)
+        : rearKeyActive
+          ? lightStudyBaseIntensity *
+            lightRadiusIntensityFactor *
+            rearKeyStrength
           : STUDIO_KEY_INTENSITY
       key.intensity += (targetKeyIntensity - key.intensity) * lightModeLambda
       key.shadow.intensity +=
-        ((orbLightEnabled
+        ((lightStudyKeyActive
           ? LIGHT_STUDY_SHADOW_INTENSITY
           : STUDIO_SHADOW_INTENSITY) -
           key.shadow.intensity) *
@@ -3263,26 +3417,6 @@ export function LinarScene({
         lightStudyReceiverMaterial.opacity > 0.004 || lightStudyFloorOpacityGoal > 0
       if (presentationMoving) invalidateKeyShadow()
 
-      if (activeStartupPose && !lightDragState) {
-        displayedLightU = activeStartupPose.lightU
-        displayedLightV = activeStartupPose.lightV
-      } else if (!lightDragState) {
-        const lightLambda = 1 - Math.exp(-lightMotionDt * (reducedMotion ? 80 : 6.5))
-        const targetLightU = safeLightU(lightStateRef.current.u, displayedLightU)
-        const lightUDelta =
-          THREE.MathUtils.euclideanModulo(targetLightU - displayedLightU + 1, 2) - 1
-        displayedLightU = wrappedLightCoordinate(
-          displayedLightU + lightUDelta * lightLambda,
-          targetLightU,
-        )
-        displayedLightV +=
-          (safeLightCoordinate(lightStateRef.current.v, displayedLightV) - displayedLightV) *
-          lightLambda
-        displayedLightRadius +=
-          (safeLightCoordinate(lightStateRef.current.radius, displayedLightRadius) -
-            displayedLightRadius) *
-          lightLambda
-      }
       const lightBounds = currentPlanBounds(displayedBend, displayedSecondaryCurve)
       // The architectural planes are fixed. Re-anchor the one installation
       // root from its complete deformed bounds on every geometry update.
@@ -3300,8 +3434,10 @@ export function LinarScene({
       )
       const lightPositionMoving = key.position.distanceToSquared(nextLightPosition) > 1e-10
       const lightPositionLambda =
+        orbLightEnabled ||
         lightDragState ||
         lightPlacementChanged ||
+        rearKeyChanged ||
         (applicationChangedThisFrame && activeKeyPlacement === 'behind')
         ? 1
         : 1 -
@@ -3315,8 +3451,8 @@ export function LinarScene({
         const signedHostDistance = signedDistanceToApplicationPlane(key.position, frame)
         const behindMountedPanel = activeKeyPlacement === 'behind'
         const hostLimit = behindMountedPanel
-          ? -activeKeySurfaceClearance
-          : frame.installationClearanceM + activeKeySurfaceClearance
+          ? -LIGHT_HOST_HALF_SPACE_EPSILON_M
+          : frame.installationClearanceM + LIGHT_HOST_HALF_SPACE_EPSILON_M
         const violatesHostHalfSpace = behindMountedPanel
           ? signedHostDistance > hostLimit
           : signedHostDistance < hostLimit
@@ -3367,8 +3503,8 @@ export function LinarScene({
       // documented SpotLightShadow focus crops only the shadow-camera field of
       // view around the real caster. This gives the 4 mm openings enough texel
       // coverage without changing the visible studio illumination.
-      const targetKeyAngle = orbLightEnabled ? fittedLightStudyAngle : 0.98
-      const targetShadowFocus = orbLightEnabled
+      const targetKeyAngle = lightStudyKeyActive ? fittedLightStudyAngle : 0.98
+      const targetShadowFocus = lightStudyKeyActive
         ? 1
         : THREE.MathUtils.clamp(
             fittedStudioShadowAngle / Math.max(targetKeyAngle, 0.001),
@@ -3381,8 +3517,8 @@ export function LinarScene({
       // of the fitted cone and made most transmitted detail disappear before
       // it reached the floor. Normal studio presentation retains that softer
       // falloff.
-      const targetKeyPenumbra = orbLightEnabled ? 0.38 : 0.84
-      const targetShadowRadius = orbLightEnabled
+      const targetKeyPenumbra = lightStudyKeyActive ? 0.38 : 0.84
+      const targetShadowRadius = lightStudyKeyActive
         ? compactShadowMap
           ? 0.6
           : 0.7
@@ -3708,6 +3844,7 @@ export function LinarScene({
       const now = performance.now()
       const nextVisible = document.visibilityState !== 'hidden'
       if (!nextVisible) {
+        finishLightDrag(undefined, false)
         if (visible) hiddenAt = now
         visible = false
         return
@@ -3732,15 +3869,17 @@ export function LinarScene({
     return () => {
       disposed = true
       cancelAnimationFrame(raf)
+      cancelPendingLightDragPublish()
       finishLightDrag(undefined, false)
       renderer.domElement.removeEventListener('pointerdown', onLightPointerDown, true)
       renderer.domElement.removeEventListener('pointermove', onLightPointerMove, true)
-      renderer.domElement.removeEventListener('pointerup', onLightPointerEnd, true)
-      renderer.domElement.removeEventListener('pointercancel', onLightPointerEnd, true)
-      renderer.domElement.removeEventListener('lostpointercapture', onLightPointerEnd, true)
+      renderer.domElement.removeEventListener('pointerup', onLightPointerUp, true)
+      renderer.domElement.removeEventListener('pointercancel', onLightPointerCancel, true)
+      renderer.domElement.removeEventListener('lostpointercapture', onLightPointerCancel, true)
       renderer.domElement.removeEventListener('pointerleave', onLightPointerLeave, true)
       renderer.domElement.removeEventListener('wheel', onCanvasWheel, true)
       window.removeEventListener('keydown', onLightEscape)
+      window.removeEventListener('blur', onLightWindowBlur)
       ro.disconnect()
       for (const idleId of materialWarmupIdleIds) {
         window.cancelIdleCallback(idleId)
@@ -3772,7 +3911,6 @@ export function LinarScene({
       lightGuideGeometry.dispose()
       lightGuideMaterial.dispose()
       key.dispose()
-      backlightSpill.dispose()
       renderer.dispose()
       if (lightOrbCue.parentElement === mount) {
         mount.removeChild(lightOrbCue)

@@ -344,14 +344,14 @@ const flatStats = support.update({
   bounds: flatBounds,
 })
 assert.deepEqual(flatStats, {
-  verticalBattens: 5,
-  horizontalBattens: 6,
+  verticalBattens: 3,
+  horizontalBattens: 4,
   outerFrameMembers: 4,
-  totalInstances: 15,
+  totalInstances: 11,
   visible: true,
 })
-assert.equal(vertical.count, 5)
-assert.equal(flatHorizontal.count, 6)
+assert.equal(vertical.count, 3)
+assert.equal(flatHorizontal.count, 4)
 assert.equal(curvedProfiles.count, 0)
 for (let index = 0; index < vertical.count; index += 1) {
   const member = instanceTransform(vertical, index)
@@ -393,6 +393,64 @@ for (let index = 0; index < 2; index += 1) {
     `flat outer rib ${index + 1} centre Z`,
   )
   approximate(rib.position.y, index === 0 ? 0.02 : 2.78, `flat outer rib ${index + 1} Y`)
+}
+
+function flatInstallationBounds(panelCount) {
+  const minimumX = -0.6 * panelCount
+  const maximumX = 0.6 * panelCount
+  const seamXM = Array.from(
+    { length: Math.max(0, panelCount - 1) },
+    (_, index) => minimumX + (index + 1) * 1.2,
+  )
+  return {
+    minX: minimumX,
+    maxX: maximumX,
+    heightM: 2.8,
+    rearSurfaceOffsetM: PANEL_REAR_OFFSET_M,
+    seamXM,
+    supportPathXZ: [
+      { x: minimumX, z: 0, rotY: 0, distanceM: 0 },
+      { x: maximumX, z: 0, rotY: 0, distanceM: 1.2 * panelCount },
+    ],
+    seamPathDistancesM: seamXM.map((_, index) => (index + 1) * 1.2),
+  }
+}
+
+for (const panelCount of [1, 2, 3, 4]) {
+  const bounds = flatInstallationBounds(panelCount)
+  const expectedVerticalCount = panelCount * 2 - 1
+  const expectedTotalCount = expectedVerticalCount + 4 + 4
+  const expectedVerticalX = Array.from(
+    { length: expectedVerticalCount },
+    (_, index) =>
+      Number((-0.6 * (panelCount - 1) + index * 0.6).toFixed(6)),
+  )
+  for (const application of ['wall', 'ceiling']) {
+    const stats = support.update({ application, panelCount, bounds })
+    const label = `${application}, ${panelCount}-module flat grid`
+    assert.deepEqual(stats, {
+      verticalBattens: expectedVerticalCount,
+      horizontalBattens: 4,
+      outerFrameMembers: 4,
+      totalInstances: expectedTotalCount,
+      visible: true,
+    })
+    assert.deepEqual(
+      Array.from({ length: vertical.count }, (_, index) =>
+        Number(instanceTransform(vertical, index).position.x.toFixed(6)),
+      ),
+      expectedVerticalX,
+      `${label} uses one midpoint per module and each seam once`,
+    )
+    const expectedProfileY = [0.572, 1.124, 1.676, 2.228]
+    for (let index = 0; index < flatHorizontal.count; index += 1) {
+      approximate(
+        instanceTransform(flatHorizontal, index).position.y,
+        expectedProfileY[index],
+        `${label} profile rib ${index + 1} Y`,
+      )
+    }
+  }
 }
 
 // Camera-fit padding is not a physical construction endpoint. A flat support
@@ -466,8 +524,15 @@ function sampledInstallationBounds(panelCount) {
 for (const panelCount of [1, 2, 3, 4]) {
   const sampledBounds = sampledInstallationBounds(panelCount)
   for (const application of ['wall', 'ceiling']) {
-    support.update({ application, panelCount, bounds: sampledBounds })
+    const stats = support.update({ application, panelCount, bounds: sampledBounds })
     const label = `${application}, ${panelCount}-module curved profile`
+    assert.deepEqual(stats, {
+      verticalBattens: panelCount * 2 - 1,
+      horizontalBattens: 4,
+      outerFrameMembers: 4,
+      totalInstances: panelCount * 2 + 7,
+      visible: true,
+    })
     assertActiveIndicesInRange(sharedProfileGeometry, label)
     assertFiniteActiveGeometry(sharedProfileGeometry, label)
   }
@@ -478,22 +543,22 @@ const curvedCases = [
     application: 'wall',
     panelCount: 1,
     seams: [],
-    internalVerticals: 6,
-    totalInstances: 16,
+    internalVerticals: 1,
+    totalInstances: 9,
   },
   {
     application: 'ceiling',
     panelCount: 2,
     seams: [1.25],
-    internalVerticals: 7,
-    totalInstances: 17,
+    internalVerticals: 3,
+    totalInstances: 11,
   },
   {
     application: 'wall',
     panelCount: 4,
     seams: [0.625, 1.25, 1.875],
     internalVerticals: 7,
-    totalInstances: 17,
+    totalInstances: 15,
   },
 ]
 
@@ -510,14 +575,14 @@ for (const curvedCase of curvedCases) {
   })
   assert.deepEqual(stats, {
     verticalBattens: curvedCase.internalVerticals,
-    horizontalBattens: 6,
+    horizontalBattens: 4,
     outerFrameMembers: 4,
     totalInstances: curvedCase.totalInstances,
     visible: true,
   })
   assert.equal(vertical.count, curvedCase.internalVerticals)
   assert.equal(flatHorizontal.count, 0)
-  assert.equal(curvedProfiles.count, 6)
+  assert.equal(curvedProfiles.count, 4)
   for (let index = 0; index < vertical.count; index += 1) {
     const member = instanceTransform(vertical, index)
     approximate(
@@ -849,7 +914,7 @@ for (const infillCase of infillCases) {
   assert.equal(flatHorizontal.visible, true)
   assert.equal(curvedProfiles.visible, true)
   assert.equal(cavityInfill.visible, true)
-  assert.equal(cavityInfill.count, 7, 'mounted wool creates one instance per cavity row')
+  assert.equal(cavityInfill.count, 5, 'mounted wool creates one instance per cavity row')
   assert.equal(cavityInfill.geometry, sharedCavityGeometry)
   assert.equal(cavityInfill.material.color.getHexString(), '982a32')
   assert.ok(
@@ -901,7 +966,7 @@ for (const panelCount of [1, 2, 3, 4]) {
   for (const application of ['wall', 'ceiling']) {
     support.update({ application, panelCount, bounds: sampledBounds })
     const label = `${application}, ${panelCount}-module swept wool`
-    assert.equal(cavityInfill.count, 7, `${label} keeps one instance per row`)
+    assert.equal(cavityInfill.count, 5, `${label} keeps one instance per row`)
     assertActiveIndicesInRange(sharedCavityGeometry, label)
     assertFiniteActiveGeometry(sharedCavityGeometry, label)
     assertNonDegenerateActiveTriangles(sharedCavityGeometry, label)
@@ -915,7 +980,7 @@ for (const [label, application, bounds] of [
   ['S-curve wool', 'wall', sCurveBounds],
 ]) {
   support.update({ application, panelCount: 1, bounds })
-  assert.equal(cavityInfill.count, 7, `${label} keeps one instance per row`)
+  assert.equal(cavityInfill.count, 5, `${label} keeps one instance per row`)
   assertActiveIndicesInRange(sharedCavityGeometry, label)
   assertFiniteActiveGeometry(sharedCavityGeometry, label)
   assertNonDegenerateActiveTriangles(sharedCavityGeometry, label)

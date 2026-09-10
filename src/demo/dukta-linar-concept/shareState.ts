@@ -246,6 +246,13 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     // Version 1 links have no radius. They intentionally restore the current
     // safe default rather than guessing an absolute legacy world distance.
     radius: parseLightCoordinate('lr', DEFAULT_LINAR_LIGHT.radius),
+    intensity: parseInteger(
+      params,
+      'li',
+      10,
+      100,
+      DEFAULT_LINAR_LIGHT.intensity,
+    ),
   }
 
   return { config, bend, secondaryCurveAmount, side, view, light, isShared: true }
@@ -336,6 +343,9 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
   const lightRadius = Number.isFinite(safeLight.radius)
     ? Math.max(-1, Math.min(1, safeLight.radius))
     : DEFAULT_LINAR_LIGHT.radius
+  const lightIntensity = Number.isFinite(safeLight.intensity)
+    ? Math.max(10, Math.min(100, Math.round(safeLight.intensity)))
+    : DEFAULT_LINAR_LIGHT.intensity
   if (safeLight.enabled) params.set('light', '1')
   if (lightPlacement === 'behind') params.set('lp', 'behind')
   if (
@@ -347,6 +357,12 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
     params.set('lu', String(Math.round(lightU * 100)))
     params.set('lv', String(Math.round(lightV * 100)))
     params.set('lr', String(Math.round(lightRadius * 100)))
+  }
+  if (
+    safeLight.enabled ||
+    Math.abs(lightIntensity - DEFAULT_LINAR_LIGHT.intensity) >= 1
+  ) {
+    params.set('li', String(lightIntensity))
   }
   url.hash = params.toString()
   return url.toString()

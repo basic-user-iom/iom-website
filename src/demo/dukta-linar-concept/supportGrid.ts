@@ -14,6 +14,18 @@ export const SUPPORT_GRID_REFERENCE = Object.freeze({
 })
 
 /**
+ * Client-directed presentation counts for the configurator. These describe the
+ * authored visual arrangement, not a certified structural spacing schedule.
+ * The historical application-sheet spacing reference above remains useful
+ * metadata, but no longer drives this simplified display grid.
+ */
+export const SUPPORT_GRID_VISUAL_DEFAULTS = Object.freeze({
+  longitudinalMembersPerModule: 1,
+  transverseProfileMembers: 4,
+  authority: 'direct-client-feedback' as const,
+})
+
+/**
  * Render-only separation between the finished rear surface/backing and its
  * support. This prevents coincident faces without claiming a construction
  * tolerance or changing the referenced 45 mm batten depth.
@@ -79,13 +91,11 @@ export type LinarSupportGrid = {
 
 const BATTEN_WIDTH_M = SUPPORT_GRID_REFERENCE.battenWidthMm / 1000
 const BATTEN_DEPTH_M = SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
-const MAXIMUM_SPACING_M = SUPPORT_GRID_REFERENCE.maximumSpacingMm / 1000
 // A 5 mm / 0.5 degree cache quantum made the support remain still and then
 // jump while the panel animated. Sub-millimetre keys retain the allocation
 // cache without allowing a visible panel/support desynchronisation.
 const BOUNDS_KEY_QUANTUM_M = 0.00025
 const ANCHOR_DEDUPLICATION_M = BATTEN_WIDTH_M * 1.1
-const SPACING_ROUNDING_TOLERANCE_M = 1e-9
 const MAX_INSTANCES_PER_AXIS = 64
 const MAX_SUPPORT_PATH_POINTS = 257
 const CURVED_PATH_DEPTH_THRESHOLD_M = 0.003
@@ -112,11 +122,6 @@ const MAX_CAVITY_INDEX_COUNT =
   MAX_CAVITY_OUTLINE_POINTS * 12 - MAX_CAVITY_PATH_CELLS * 12
 const PROFILE_POINT_EPSILON_SQ = 1e-12
 const PATH_DISTANCE_EPSILON_M = 1e-9
-
-type SupportAnchor = {
-  positionM: number
-  priority: number
-}
 
 function finite(value: number, fallback: number): number {
   return Number.isFinite(value) ? value : fallback
@@ -148,63 +153,82 @@ function pathKey(points: readonly SupportPathPoint[]): string {
   return `${points.length}:${hash >>> 0}`
 }
 
+function deduplicateSupportPositions(positionsM: readonly number[]): number[] {
+  const sorted = [...positionsM].filter(Number.isFinite).sort((a, b) => a - b)
+  const result: number[] = []
+  for (const position of sorted) {
+    const previous = result[result.length - 1]
+    if (previous == null || position - previous > ANCHOR_DEDUPLICATION_M) {
+      result.push(position)
+    }
+  }
+  return result
+}
+
 /**
- * Keep module seams as mandatory support positions, merge any seam/edge pair
- * that would physically overlap, then subdivide every remaining interval so
- * the reference maximum spacing is never exceeded.
+ * Return the two installation ends, every shared module seam exactly once,
+ * and one centred longitudinal member inside each module. This follows the
+ * client-confirmed visual count instead of interpreting the older approximate
+ * spacing reference as a structural rule.
  */
-function supportPositions(
+function moduleSupportPositions(
   minimumM: number,
   maximumM: number,
-  mandatoryPositionsM: readonly number[] = [],
+  seamPositionsM: readonly number[],
+  panelCount: number,
 ): number[] {
   const minimum = Math.min(minimumM, maximumM)
   const maximum = Math.max(minimumM, maximumM)
   if (maximum - minimum < 0.001) return [(minimum + maximum) * 0.5]
 
-  const anchors: SupportAnchor[] = [
-    { positionM: minimum, priority: 1 },
-    { positionM: maximum, priority: 1 },
-  ]
-  for (const value of mandatoryPositionsM) {
-    if (!Number.isFinite(value) || value <= minimum || value >= maximum) continue
-    anchors.push({ positionM: value, priority: 2 })
-  }
-  anchors.sort((a, b) => a.positionM - b.positionM)
-
-  const deduplicated: SupportAnchor[] = []
-  for (const anchor of anchors) {
-    const previous = deduplicated[deduplicated.length - 1]
-    if (!previous || anchor.positionM - previous.positionM > ANCHOR_DEDUPLICATION_M) {
-      deduplicated.push(anchor)
-      continue
+  const modules = Math.max(1, Math.round(panelCount))
+  const suppliedSeams = deduplicateSupportPositions(
+    seamPositionsM.filter((value) => value > minimum && value < maximum),
+  )
+  const seams =
+    suppliedSeams.length === modules - 1
+      ? suppliedSeams
+      : Array.from({ length: modules - 1 }, (_, index) =>
+          THREE.MathUtils.lerp(minimum, maximum, (index + 1) / modules),
+        )
+  const boundaries = [minimum, ...seams, maximum]
+  const positions = [...boundaries]
+  for (let index = 1; index < boundaries.length; index += 1) {
+    for (
+      let memberIndex = 1;
+      memberIndex <= SUPPORT_GRID_VISUAL_DEFAULTS.longitudinalMembersPerModule;
+      memberIndex += 1
+    ) {
+      positions.push(
+        THREE.MathUtils.lerp(
+          boundaries[index - 1],
+          boundaries[index],
+          memberIndex /
+            (SUPPORT_GRID_VISUAL_DEFAULTS.longitudinalMembersPerModule + 1),
+        ),
+      )
     }
-    // A module seam is more useful than a nearby generic edge/spacing point.
-    // Equal-priority anchors merge at their midpoint to avoid a visible bias.
-    if (anchor.priority > previous.priority) {
-      deduplicated[deduplicated.length - 1] = anchor
-    } else if (anchor.priority === previous.priority) {
-      previous.positionM = (previous.positionM + anchor.positionM) * 0.5
-    }
   }
+  return deduplicateSupportPositions(positions)
+}
 
-  const positions: number[] = [deduplicated[0].positionM]
-  for (let index = 1; index < deduplicated.length; index += 1) {
-    const start = deduplicated[index - 1].positionM
-    const end = deduplicated[index].positionM
-    // Avoid an extra batten when a nominal 400 mm interval lands a few ULPs
-    // above the limit after repeated-module transforms.
-    const divisions = Math.max(
-      1,
-      Math.ceil(
-        (end - start - SPACING_ROUNDING_TOLERANCE_M) / MAXIMUM_SPACING_M,
+/** Four equal interior profile ribs plus the two perimeter-member centres. */
+function profileSupportPositions(minimumM: number, maximumM: number): number[] {
+  const minimum = Math.min(minimumM, maximumM)
+  const maximum = Math.max(minimumM, maximumM)
+  if (maximum - minimum < 0.001) return [(minimum + maximum) * 0.5]
+  const inset = Math.min(BATTEN_WIDTH_M * 0.5, (maximum - minimum) * 0.25)
+  const first = minimum + inset
+  const last = maximum - inset
+  return Array.from(
+    { length: SUPPORT_GRID_VISUAL_DEFAULTS.transverseProfileMembers + 2 },
+    (_, index) =>
+      THREE.MathUtils.lerp(
+        first,
+        last,
+        index / (SUPPORT_GRID_VISUAL_DEFAULTS.transverseProfileMembers + 1),
       ),
-    )
-    for (let division = 1; division <= divisions; division += 1) {
-      positions.push(THREE.MathUtils.lerp(start, end, division / divisions))
-    }
-  }
-  return positions
+  )
 }
 
 function emptyStats(): SupportGridStats {
@@ -851,7 +875,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       return stats
     }
 
-    const horizontalPositions = supportPositions(0, heightM)
+    const horizontalPositions = profileSupportPositions(0, heightM)
     const maximumPathDistance = supportPath[supportPath.length - 1]?.distanceM ?? 0
     // Flat and curved states use the same physical centreline endpoints. The
     // panel AABB is deliberately padded for rendering/camera fit and must not
@@ -862,9 +886,15 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     const planarMaxX = supportPath.length
       ? Math.max(...supportPath.map((point) => point.x))
       : maxX
+    const pathVerticalPositions = moduleSupportPositions(
+      0,
+      maximumPathDistance,
+      seamPathDistancesM,
+      panelCount,
+    )
     const verticalPositions = curved
-      ? supportPositions(0, maximumPathDistance, seamPathDistancesM)
-      : supportPositions(planarMinX, planarMaxX, seamXM)
+      ? pathVerticalPositions
+      : moduleSupportPositions(planarMinX, planarMaxX, seamXM, panelCount)
     const internalVerticalPositions = verticalPositions.slice(1, -1)
     const internalHorizontalPositions = horizontalPositions.slice(1, -1)
     // Longitudinal members butt into the two 40 mm profile ribs instead of
@@ -920,11 +950,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     cavityInfillGeometry.setDrawRange(0, 0)
     cavityInfill.visible = false
     if (cavityInfillEnabled && supportPath.length >= 2 && maximumPathDistance > 0) {
-      const pathSupportPositions = supportPositions(
-        0,
-        maximumPathDistance,
-        seamPathDistancesM,
-      )
+      const pathSupportPositions = pathVerticalPositions
       const memberClearanceM =
         SUPPORT_GRID_CAVITY_INFILL_VISUAL.memberClearanceMm / 1000
       const frontRecessM = SUPPORT_GRID_CAVITY_INFILL_VISUAL.frontRecessMm / 1000

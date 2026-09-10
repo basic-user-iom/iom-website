@@ -50,9 +50,10 @@ export type LinarLightPlacement = 'room' | 'behind'
 
 /**
  * Normalised position of the single interactive presentation light.
- * `u` selects azimuth, `v` selects elevation and `radius` selects distance
- * (`-1` nearest, `0` default, `1` farthest). The scene maps this stable
- * application-independent state to a safe rig around the current installation.
+ * `u` selects the panel-local orbit position, `v` selects panel-local height,
+ * and `radius` selects surface clearance (`-1` nearest, `0` default,
+ * `1` farthest). The scene maps this stable application-independent state to
+ * a safe rig around the current installation.
  */
 export type LinarLightState = {
   enabled: boolean
@@ -60,6 +61,8 @@ export type LinarLightState = {
   u: number
   v: number
   radius: number
+  /** Visual presentation output, not a photometric or manufacturer value. */
+  intensity: number
 }
 
 export const DEFAULT_LINAR_LIGHT: LinarLightState = {
@@ -71,6 +74,7 @@ export const DEFAULT_LINAR_LIGHT: LinarLightState = {
   u: 0,
   v: 0.6,
   radius: 0,
+  intensity: 50,
 }
 
 /**

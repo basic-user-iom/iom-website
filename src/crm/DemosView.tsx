@@ -177,6 +177,18 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     ],
   },
   {
+    id: 'dukta-linar-concept',
+    name: 'Dukta LINAR',
+    client: 'Client concept — interactive LINAR panel configurator',
+    status: 'preview',
+    path: '/demos/dukta-linar-concept/',
+    password: 'linar',
+    blurb:
+      'Private demo: an interactive Dukta LINAR configurator for exploring panel materials, dimensions, mounting, lighting, and curved installations. Not linked from the public homepage.',
+    tags: ['Product', 'WebGL', 'Configurator'],
+    images: [],
+  },
+  {
     id: 'superbright-rock',
     name: 'Superbright rock',
     client: 'Capability study — photoreal stone hero with orbiting light probes',
