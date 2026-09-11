@@ -183,6 +183,7 @@ export function DuktaLinarConceptPage() {
   const [config, setConfig] = useState<LinarConfig>(() =>
     cloneConfig(initialShareState.config),
   )
+  const [findLightToken, setFindLightToken] = useState(0)
   const [resetViewToken, setResetViewToken] = useState(0)
   const [viewPreset, setViewPreset] = useState<LinarViewId>(initialShareState.view)
   const [side, setSide] = useState<LinarSide>(initialShareState.side)
@@ -983,6 +984,7 @@ export function DuktaLinarConceptPage() {
     const next = {
       ...DEFAULT_LINAR_LIGHT,
       enabled: lightStateRef.current.enabled,
+      placement: lightStateRef.current.placement,
     }
     lightStateRef.current = next
     setLightState(next)
@@ -1096,6 +1098,7 @@ export function DuktaLinarConceptPage() {
                 targetSecondaryCurveRef={targetSecondaryCurveRef}
                 config={config}
                 tech={tech}
+                findLightToken={findLightToken}
                 resetViewToken={resetViewToken}
                 viewPreset={viewPreset}
                 side={side}
@@ -1124,12 +1127,12 @@ export function DuktaLinarConceptPage() {
                     ? lightState.placement === 'behind' &&
                       config.application !== 'freestanding' &&
                       !backingBlocksRearLight(config.backing)
-                      ? `Drag the light orb behind the panel for position and height. Scroll over it or use Advanced lighting for distance and brightness. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
+                      ? `Use LIGHTING for positions and distance, or drag the labelled handles beside the light. Scroll zooms the view. Virtual rear-source study: source cavity, output, heat, wiring and mounting are unspecified · Not tested.${
                           config.backlightMode === 'on'
                             ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
                             : ''
                         }`
-                      : `Drag the light orb on the room side for position and height. Scroll over it or use Advanced lighting for distance and brightness.${
+                      : `Use LIGHTING for positions, distance and brightness. Drag Around or Height beside the light; scroll zooms the view.${
                           config.backlightMode === 'on'
                             ? ' Diffuse rear illumination is also active, so both visual sources contribute.'
                             : ''
@@ -1258,6 +1261,7 @@ export function DuktaLinarConceptPage() {
             onToggleBacklight={onToggleBacklight}
             onLightPlacementChange={setLightPlacement}
             onLightChange={onLightPatch}
+            onFindLight={() => setFindLightToken((value) => value + 1)}
             onResetLight={onResetLight}
             onUserInteract={markInteracted}
             onShare={onShare}

@@ -82,6 +82,18 @@ export function linarLightSurfaceClearanceM(value: number): number {
   return Math.exp(Math.log(from) + (Math.log(to) - Math.log(from)) * progress)
 }
 
+/** Inverse of the logarithmic distance slider, for direct centimetre entry. */
+export function linarLightValueForSurfaceClearanceM(distanceM: number): number {
+  if (!Number.isFinite(distanceM)) return 0
+  const distance = Math.max(LINAR_LIGHT_NEAR_SURFACE_CLEARANCE_M,
+    Math.min(LINAR_LIGHT_FAR_SURFACE_CLEARANCE_M, distanceM))
+  const near = distance < LINAR_LIGHT_DEFAULT_SURFACE_CLEARANCE_M
+  const from = near ? LINAR_LIGHT_NEAR_SURFACE_CLEARANCE_M : LINAR_LIGHT_DEFAULT_SURFACE_CLEARANCE_M
+  const to = near ? LINAR_LIGHT_DEFAULT_SURFACE_CLEARANCE_M : LINAR_LIGHT_FAR_SURFACE_CLEARANCE_M
+  const progress = (Math.log(distance) - Math.log(from)) / (Math.log(to) - Math.log(from))
+  return clampLinarLightCoordinate(near ? progress - 1 : progress)
+}
+
 export function formatLinarLightSurfaceClearance(value: number): string {
   const distanceM = linarLightSurfaceClearanceM(value)
   if (distanceM < 1) return `${Math.round(distanceM * 100)} cm`

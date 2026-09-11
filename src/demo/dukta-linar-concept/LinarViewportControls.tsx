@@ -9,15 +9,7 @@ import {
   type LinarSide,
   type LinarViewId,
 } from './types'
-import {
-  formatLinarLightSurfaceClearance,
-  LINAR_LIGHT_MAX_HEIGHT_PERCENT,
-  LINAR_LIGHT_MIN_HEIGHT_PERCENT,
-  linarLightHeightPercent,
-  linarLightOrbitDegrees,
-  linarLightValueForHeightPercent,
-  linarLightValueForOrbitDegrees,
-} from './lightRig'
+import { LinarLightControls } from './LinarLightControls'
 
 type Props = {
   viewPreset: LinarViewId
@@ -43,50 +35,13 @@ type Props = {
   onToggleBacklight: () => void
   onLightPlacementChange: (placement: LinarLightPlacement) => void
   onLightChange: (patch: Partial<LinarLightState>) => void
+  onFindLight: () => void
   onResetLight: () => void
   onUserInteract: () => void
   onShare: () => Promise<boolean>
 }
 
 type ShareFeedback = 'idle' | 'copying' | 'copied' | 'failed'
-
-function LightRange({
-  id,
-  label,
-  value,
-  min,
-  max,
-  display,
-  onInput,
-}: {
-  id: string
-  label: string
-  value: number
-  min: number
-  max: number
-  display: string
-  onInput: (value: number) => void
-}) {
-  return (
-    <div className="linar-viewport-light-range">
-      <div className="linar-control__head">
-        <label htmlFor={id}>{label}</label>
-        <output htmlFor={id}>{display}</output>
-      </div>
-      <input
-        id={id}
-        className="linar-slider"
-        type="range"
-        min={min}
-        max={max}
-        step={1}
-        value={value}
-        aria-valuetext={display}
-        onInput={(event) => onInput(Number(event.currentTarget.value))}
-      />
-    </div>
-  )
-}
 
 export function LinarViewportControls({
   viewPreset,
@@ -113,6 +68,7 @@ export function LinarViewportControls({
   onLightPlacementChange,
   onLightChange,
   onResetLight,
+  onFindLight,
   onUserInteract,
   onShare,
 }: Props) {
@@ -157,12 +113,6 @@ export function LinarViewportControls({
       : opaqueBacking
         ? 'Wool felt is opaque. Remove it or use acoustic fleece to use rear light.'
         : undefined
-  const mountedLight = application !== 'freestanding'
-  const positionLimit = mountedLight ? 90 : 180
-  const positionValue = Math.round(linarLightOrbitDegrees(lightState.u, mountedLight))
-  const heightValue = Math.round(linarLightHeightPercent(lightState.v))
-  const distanceValue = Math.round(lightState.radius * 100)
-
   const changeLight = (patch: Partial<LinarLightState>) => {
     onUserInteract()
     onLightChange(patch)
@@ -233,67 +183,20 @@ export function LinarViewportControls({
         >
           <summary className={lightState.enabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}>LIGHTING</summary>
           <div className="linar-viewport-menu__panel linar-viewport-light-panel">
-            <div className="linar-viewport-light-panel__head">
-              <div>
-                <strong>Movable orb</strong>
-                <span>Visual lighting study</span>
-              </div>
-              <button
-                type="button"
-                className={lightState.enabled ? 'is-active' : ''}
-                aria-pressed={lightState.enabled}
-                onClick={() => {
-                  onUserInteract()
-                  onToggleLight()
-                }}
-              >
-                {lightState.enabled ? 'ON' : 'OFF'}
-              </button>
-            </div>
-
-            {lightState.enabled ? (
-              <>
-                {application !== 'freestanding' ? (
-                  <fieldset className="linar-viewport-menu__group">
-                    <legend>Side</legend>
-                    <div className="linar-viewport-menu__choices">
-                      {(['room', 'behind'] as const).map((placement) => (
-                        <button
-                          key={placement}
-                          type="button"
-                          className={lightState.placement === placement ? 'is-active' : ''}
-                          disabled={placement === 'behind' && opaqueBacking}
-                          aria-pressed={lightState.placement === placement}
-                          aria-describedby={placement === 'behind' && opaqueBacking ? 'linar-orb-behind-unavailable' : undefined}
-                          onClick={() => {
-                            onUserInteract()
-                            onLightPlacementChange(placement)
-                          }}
-                        >
-                          {placement === 'room' ? 'Room side' : 'Behind panel'}
-                        </button>
-                      ))}
-                    </div>
-                    {opaqueBacking ? (
-                      <p id="linar-orb-behind-unavailable" className="linar-viewport-menu__hint">
-                        Behind-panel placement is unavailable because wool felt is opaque.
-                      </p>
-                    ) : null}
-                  </fieldset>
-                ) : null}
-                <LightRange id="linar-light-position" label="Position" value={positionValue} min={-positionLimit} max={positionLimit} display={`${positionValue}°`} onInput={(value) => changeLight({ u: linarLightValueForOrbitDegrees(value, mountedLight) })} />
-                <LightRange id="linar-light-height" label="Height" value={heightValue} min={LINAR_LIGHT_MIN_HEIGHT_PERCENT} max={LINAR_LIGHT_MAX_HEIGHT_PERCENT} display={`${heightValue}%`} onInput={(value) => changeLight({ v: linarLightValueForHeightPercent(value) })} />
-                <LightRange id="linar-light-distance" label="Distance from surface" value={distanceValue} min={-100} max={100} display={formatLinarLightSurfaceClearance(lightState.radius)} onInput={(value) => changeLight({ radius: value / 100 })} />
-                <LightRange id="linar-light-brightness" label="Brightness" value={Math.round(lightState.intensity)} min={10} max={100} display={`${Math.round(lightState.intensity)}% visual`} onInput={(value) => changeLight({ intensity: value })} />
-                <p className="linar-viewport-menu__hint">Position moves around the panel without changing height. Height follows the panel-local vertical axis. Scroll over the orb for distance from the surface; Shift-drag also changes it.</p>
-                <button type="button" className="linar-viewport-menu__reset" onClick={() => {
-                  onUserInteract()
-                  onResetLight()
-                }}>Reset light</button>
-              </>
-            ) : (
-              <p className="linar-viewport-menu__hint">Enable the orb to reveal its direct manipulation handle and controls.</p>
-            )}
+            <LinarLightControls
+              light={lightState}
+              application={application}
+              backing={backing}
+              onChange={changeLight}
+              onToggle={() => { onUserInteract(); onToggleLight() }}
+              onPlacement={(placement) => { onUserInteract(); onLightPlacementChange(placement) }}
+              onReset={() => { onUserInteract(); onResetLight() }}
+              onFind={() => {
+                onUserInteract()
+                if (lightingMenuRef.current) lightingMenuRef.current.open = false
+                onFindLight()
+              }}
+            />
           </div>
         </details>
       ) : null}

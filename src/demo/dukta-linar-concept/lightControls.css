@@ -1,0 +1,77 @@
+/* Movable-light controls share LINAR's paper, ink and timber palette. */
+.linar-viewport-menu--lighting .linar-viewport-light-panel {
+  max-height: min(44rem, calc(100dvh - 7rem));
+  gap: 0.75rem;
+}
+.linar-light-presets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.linar-light-presets button {
+  display: flex; align-items: center; gap: 0.55rem;
+  min-height: 44px; padding: 0.45rem 0.65rem;
+  border: 1px solid var(--linar-line); border-radius: 3px;
+  background: transparent; color: var(--linar-ink);
+  font: inherit; font-size: 0.75rem; text-align: left; cursor: pointer;
+}
+.linar-light-presets button span { color: var(--linar-wood-deep); font-size: 1.1rem; }
+.linar-light-presets button:hover,
+.linar-light-presets button.is-active { border-color: var(--linar-wood-deep); background: #f0e7da; }
+.linar-light-map-wrap { display: grid; justify-items: center; gap: 0.1rem; }
+.linar-light-map {
+  width: min(100%, 240px); aspect-ratio: 6 / 5;
+  border-radius: 5px; background: #f1ece4; cursor: crosshair;
+  touch-action: none; user-select: none;
+}
+.linar-light-map svg { display: block; width: 100%; height: 100%; }
+.linar-light-map__inactive { fill: none; stroke: #d6cbbb; stroke-dasharray: 2 5; }
+.linar-light-map__track { fill: none; stroke: #9a6330; stroke-width: 2; }
+.linar-light-map__beam { stroke: #9a6330; stroke-width: 1; stroke-dasharray: 3 4; }
+.linar-light-map__panel { fill: #b28c60; stroke: #6f5135; stroke-width: 1; }
+.linar-light-map__label { fill: #665d52; text-anchor: middle; font-size: 9px; letter-spacing: 0.09em; }
+.linar-light-map__halo { fill: #9a6330; opacity: 0.15; }
+.linar-light-map__orb { fill: #9a6330; stroke: #fffaf1; stroke-width: 2; }
+.linar-light-map-wrap .linar-viewport-menu__hint { margin: 0; text-align: center; font-size: 0.72rem; }
+.linar-light-number { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--linar-wood-deep); font-size: 0.75rem; }
+.linar-light-number input {
+  width: 4.4rem; min-height: 44px; padding: 0.4rem;
+  border: 1px solid var(--linar-line); border-radius: 3px;
+  background: var(--linar-paper); color: var(--linar-ink);
+  font: inherit; font-size: 0.82rem; text-align: right; font-variant-numeric: tabular-nums;
+}
+.linar-viewport-menu--lighting .linar-viewport-light-range { padding-top: 0.45rem; }
+.linar-viewport-menu--lighting .linar-viewport-light-range .linar-slider { height: 44px; margin: 0; }
+.linar-viewport-menu--lighting .linar-viewport-menu__choices button,
+.linar-viewport-menu--lighting .linar-viewport-light-panel__head button,
+.linar-light-actions .linar-viewport-menu__reset { min-height: 44px; }
+.linar-light-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
+.linar-light-actions .linar-viewport-menu__reset { margin: 0; }
+.linar-light-actions button:hover { background: #f0e7da; }
+.linar-viewport-menu--lighting .linar-light-note { margin: 0; font-size: 0.68rem; }
+.linar-light-orb-cue.linar-light-handles {
+  flex-wrap: wrap; gap: 3px; width: 174px; padding: 4px;
+  pointer-events: auto; touch-action: none; text-transform: none;
+  background: rgba(250, 247, 242, 0.97);
+}
+.linar-light-handles button {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex: 1 1 0; min-height: 44px; padding: 0.4rem;
+  border: 1px solid transparent; border-radius: 2px;
+  background: transparent; color: inherit; cursor: grab;
+  font: inherit; font-size: 0.7rem; letter-spacing: 0.01em; touch-action: none;
+}
+.linar-light-handles button[aria-pressed="true"] { border-color: #9a6330; background: rgba(154, 99, 48, 0.12); }
+.linar-light-handles button:active { cursor: grabbing; }
+.linar-light-handles button:focus-visible { outline: 2px solid #9a6330; outline-offset: -2px; }
+.linar-light-handles__value { flex-basis: 100%; padding: 2px 3px; text-align: center; font-size: 0.64rem; font-variant-numeric: tabular-nums; }
+.linar-viewport.is-light-study .linar-light-orb-cue.linar-light-handles { background: rgba(18, 19, 20, 0.96); }
+.linar-viewport.is-light-study .linar-light-handles button[aria-pressed="true"] { border-color: #e3b070; background: rgba(227, 176, 112, 0.15); }
+@media (max-width: 600px) {
+  .linar-viewport-menu--lighting { position: static; }
+  .linar-viewport-menu--lighting .linar-viewport-menu__panel { right: 0; width: min(22rem, calc(100vw - 1.5rem)); }
+  .linar-light-number input { font-size: 16px; }
+}
+
+.linar-light-orb-cue.linar-light-handles::before { display: none; }
