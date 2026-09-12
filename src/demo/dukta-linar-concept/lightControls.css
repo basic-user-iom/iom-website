@@ -22,17 +22,50 @@
 .linar-light-map-wrap { display: grid; justify-items: center; gap: 0.1rem; }
 .linar-light-map {
   width: min(100%, 240px); aspect-ratio: 6 / 5;
-  border-radius: 5px; background: #f1ece4; cursor: crosshair;
+  background: transparent; cursor: crosshair;
   touch-action: none; user-select: none;
 }
 .linar-light-map svg { display: block; width: 100%; height: 100%; }
-.linar-light-map__inactive { fill: none; stroke: #d6cbbb; stroke-dasharray: 2 5; }
-.linar-light-map__track { fill: none; stroke: #9a6330; stroke-width: 2; }
-.linar-light-map__beam { stroke: #9a6330; stroke-width: 1; stroke-dasharray: 3 4; }
-.linar-light-map__panel { fill: #b28c60; stroke: #6f5135; stroke-width: 1; }
-.linar-light-map__label { fill: #665d52; text-anchor: middle; font-size: 9px; letter-spacing: 0.09em; }
-.linar-light-map__halo { fill: #9a6330; opacity: 0.15; }
-.linar-light-map__orb { fill: #9a6330; stroke: #fffaf1; stroke-width: 2; }
+.linar-light-map svg * { vector-effect: non-scaling-stroke; }
+.linar-light-map__inactive {
+  fill: none; stroke: var(--linar-line); stroke-width: 1; stroke-dasharray: 1 5;
+}
+.linar-light-map__track {
+  fill: none; stroke: var(--linar-muted); stroke-width: 1; opacity: 0.65;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.linar-light-map__ticks {
+  fill: none; stroke: var(--linar-muted); stroke-width: 1; opacity: 0.4;
+}
+.linar-light-map__beam {
+  stroke: var(--linar-wood-deep); stroke-width: 1; stroke-dasharray: 2 4; opacity: 0.55;
+}
+.linar-light-map__panel-face {
+  fill: color-mix(in srgb, var(--linar-wood) 30%, var(--linar-paper));
+  stroke: var(--linar-wood-deep); stroke-width: 0.75;
+}
+.linar-light-map__panel-edge {
+  fill: none; stroke: var(--linar-wood-deep); stroke-width: 0.65; opacity: 0.22;
+}
+.linar-light-map__panel-cut {
+  stroke: var(--linar-wood-deep); stroke-width: 1; opacity: 0.65;
+}
+.linar-light-map__label {
+  fill: var(--linar-muted); text-anchor: middle;
+  font-family: var(--sans); font-size: 9px; letter-spacing: 0.12em;
+}
+.linar-light-map__label--panel {
+  fill: var(--linar-ink); font-family: var(--display);
+  font-size: 10px; font-weight: 600; letter-spacing: 0.16em;
+}
+.linar-light-map__halo { fill: var(--linar-wood); opacity: 0.08; }
+.linar-light-map__orb-ring {
+  fill: var(--linar-paper); fill-opacity: 0.75;
+  stroke: var(--linar-wood); stroke-width: 0.75; stroke-opacity: 0.45;
+}
+.linar-light-map__orb {
+  fill: var(--linar-wood-deep); stroke: var(--linar-paper); stroke-width: 1.5;
+}
 .linar-light-map-wrap .linar-viewport-menu__hint { margin: 0; text-align: center; font-size: 0.72rem; }
 .linar-light-number { display: inline-flex; align-items: center; gap: 0.35rem; color: var(--linar-wood-deep); font-size: 0.75rem; }
 .linar-light-number input {

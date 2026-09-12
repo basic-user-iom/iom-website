@@ -136,13 +136,25 @@ function LightPositionMap({ light, mounted, onChange }: {
         <svg viewBox="0 0 240 200" aria-hidden="true">
           <circle className="linar-light-map__inactive" cx="120" cy="91" r="67" />
           <path className="linar-light-map__track" d={path} />
+          <path className="linar-light-map__ticks" d="M120 18v3 M120 161v3 M47 91h3 M190 91h3" />
           <line className="linar-light-map__beam" x1={orb.x} y1={orb.y} x2="120" y2="91" />
-          <rect className="linar-light-map__panel" x="78" y="86" width="84" height="10" rx="2" />
-          <text className="linar-light-map__label" x="120" y="76">PANEL</text>
+          {/* Schematic panel edge: alternating incisions retain a continuous central bridge. */}
+          <g className="linar-light-map__panel">
+            <rect className="linar-light-map__panel-face" x="76" y="83" width="88" height="16" rx="1" />
+            <path className="linar-light-map__panel-edge" d="M77 96.5h86" />
+            {Array.from({ length: 21 }, (_, index) => {
+              const x = 80 + index * 4
+              const fromBack = index % 2 === 0
+              return <line key={index} className="linar-light-map__panel-cut"
+                x1={x} x2={x} y1={fromBack ? 83.5 : 92} y2={fromBack ? 90 : 98.5} />
+            })}
+          </g>
+          <text className="linar-light-map__label linar-light-map__label--panel" x="120" y="73">LINAR</text>
           <text className="linar-light-map__label" x="120" y="12">BACK</text>
           <text className="linar-light-map__label" x="120" y="186">FRONT / ROOM</text>
-          <circle className="linar-light-map__halo" cx={orb.x} cy={orb.y} r="16" />
-          <circle className="linar-light-map__orb" cx={orb.x} cy={orb.y} r="6" />
+          <circle className="linar-light-map__halo" cx={orb.x} cy={orb.y} r="13" />
+          <circle className="linar-light-map__orb-ring" cx={orb.x} cy={orb.y} r="9" />
+          <circle className="linar-light-map__orb" cx={orb.x} cy={orb.y} r="5" />
         </svg>
       </div>
       <p className="linar-viewport-menu__hint">Click the path or drag the dot. Diagram stays aligned with the panel.</p>
