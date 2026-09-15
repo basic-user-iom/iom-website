@@ -105,14 +105,6 @@ export function LinarViewportControls({
   }
 
   const shareLabel = shareFeedback === 'copying' ? 'COPYING' : shareFeedback === 'copied' ? 'COPIED' : shareFeedback === 'failed' ? 'RETRY' : 'SHARE'
-  const opaqueBacking = backing === 'felt'
-  const backlightAvailable = application !== 'freestanding' && !opaqueBacking
-  const backlightUnavailableReason =
-    application === 'freestanding'
-      ? 'Rear light is available in Wall and Ceiling applications.'
-      : opaqueBacking
-        ? 'Wool felt is opaque. Remove it or use acoustic fleece to use rear light.'
-        : undefined
   const changeLight = (patch: Partial<LinarLightState>) => {
     onUserInteract()
     onLightChange(patch)
@@ -154,23 +146,6 @@ export function LinarViewportControls({
         INTRO
       </button>
 
-      {application !== 'freestanding' ? (
-        <button
-          type="button"
-          className={['linar-viewport-tools__button', backlightEnabled ? 'is-active' : '', !backlightAvailable ? 'is-unavailable' : ''].filter(Boolean).join(' ')}
-          disabled={!viewAvailable || !backlightAvailable}
-          aria-pressed={backlightEnabled}
-          aria-label={backlightUnavailableReason ?? (backlightEnabled ? 'Turn off rear light' : 'Turn on rear light')}
-          title={backlightUnavailableReason}
-          onClick={() => {
-            onUserInteract()
-            onToggleBacklight()
-          }}
-        >
-          REAR LIGHT
-        </button>
-      ) : null}
-
       {viewAvailable ? (
         <details
           ref={lightingMenuRef}
@@ -181,12 +156,14 @@ export function LinarViewportControls({
             viewMenuRef.current && (viewMenuRef.current.open = false)
           }}
         >
-          <summary className={lightState.enabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}>LIGHTING</summary>
+          <summary className={lightState.enabled || backlightEnabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}>LIGHTING</summary>
           <div className="linar-viewport-menu__panel linar-viewport-light-panel">
             <LinarLightControls
               light={lightState}
               application={application}
               backing={backing}
+              backlightEnabled={backlightEnabled}
+              onToggleBacklight={() => { onUserInteract(); onToggleBacklight() }}
               onChange={changeLight}
               onToggle={() => { onUserInteract(); onToggleLight() }}
               onPlacement={(placement) => { onUserInteract(); onLightPlacementChange(placement) }}

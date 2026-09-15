@@ -135,7 +135,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Application and back-construction',
     description:
-      'Wall and Ceiling use the same panel-local grid: one midpoint member per module, each seam once, four internal profile ribs and the unchanged outer frame.',
+      'The panel stays in its installed position. Move behind the wall or ceiling to inspect the supporting construction through a 90% transparent host. The application label remains visible.',
     target: 'application',
     durationMs: 0,
     view: 'reverse',
@@ -185,7 +185,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Backing material',
     description:
-      'Acoustic fleece remains a translucent visual study while wool felt is opaque. Backing changes do not reset the selected panel geometry.',
+      'Every felt colour forms a continuous opaque layer between the panel and its supports. Acoustic fleece remains a separate translucent option. Backing changes keep the selected panel geometry.',
     target: 'backing',
     durationMs: 0,
     view: 'closeup',
@@ -203,18 +203,18 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Rear light study',
     description:
-      'The rear source uses the real openings and support geometry. Ribs occlude it while the recessed diffuser remains a non-photometric visual study.',
+      'Find rear light in LIGHTING. A gentle curve reveals more of the illuminated openings. Brightness is fixed at 100%; this remains a non-photometric visual study.',
     target: 'backlight',
     durationMs: 0,
     view: 'hero',
     side: 'front',
-    bend: 18,
+    bend: 8,
     secondaryCurveAmount: 0,
     config: {
       application: 'ceiling',
       backing: 'none',
       backlightMode: 'on',
-      backlightIntensity: 60,
+      backlightIntensity: 100,
       panelCount: 1,
     },
     light: { ...DEFAULT_LINAR_LIGHT },
@@ -222,7 +222,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Advanced lighting',
     description:
-      'Enable the orb only when needed. Drag it for position and height, scroll over it for distance, adjust brightness, or reset this light without changing the panel.',
+      'Choose a light position, use the direction map or the Around and Height handles, and adjust distance in LIGHTING. Scroll or pinch always zooms the view.',
     target: 'advanced-lighting',
     durationMs: 0,
     view: 'bent',
@@ -269,7 +269,7 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
       application: 'wall',
       backing: 'none',
       backlightMode: 'on',
-      backlightIntensity: 60,
+      backlightIntensity: 100,
       panelCount: 1,
     },
     light: { ...DEFAULT_LINAR_LIGHT, enabled: true, placement: 'behind' },

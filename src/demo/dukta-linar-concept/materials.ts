@@ -52,7 +52,7 @@ function smoothNoise(x: number, y: number): number {
 }
 
 function paintFace(look: LinarMaterialLook, baseColor: string): HTMLCanvasElement {
-  const size = look.grain === 'fine' ? 256 : 512
+  const size = look.grain === 'fine' ? 256 : 768
   const canvas = document.createElement('canvas')
   canvas.width = size
   canvas.height = size
@@ -63,6 +63,11 @@ function paintFace(look: LinarMaterialLook, baseColor: string): HTMLCanvasElemen
   const image = ctx.getImageData(0, 0, size, size)
   const data = image.data
   const contrast = look.grainContrast
+  // Normalised locations on the uncut sheet; small elongated spruce knots.
+  const knots = look.knots ? [
+    [0.16, 0.18, 0.023], [0.43, 0.31, 0.019], [0.76, 0.46, 0.027],
+    [0.29, 0.67, 0.021], [0.86, 0.79, 0.025], [0.57, 0.91, 0.017],
+  ] : []
   for (let y = 0; y < size; y++) {
     const along = y / size
     // Slow phase drift keeps the grain continuous along a full slat. The
@@ -74,22 +79,35 @@ function paintFace(look: LinarMaterialLook, baseColor: string): HTMLCanvasElemen
       const i = (y * size + x) * 4
       const across = x / size
       let n = 0
+      let knotTone = 0
+      let knotWarp = 0
+      for (const [kx, ky, radius] of knots) {
+        const dx = (across - kx) / radius
+        const dy = (along - ky) / (radius * 0.65)
+        const r = Math.hypot(dx, dy)
+        if (r > 3.6) continue
+        const envelope = Math.exp(-r * r * 0.5)
+        knotWarp += dx * envelope * 1.8
+        knotTone -= Math.exp(-r * r * 3.5) * 0.24
+        knotTone -= (0.5 + 0.5 * Math.cos(r * 13 + dy * 0.5)) * envelope * 0.065
+      }
       if (look.grain === 'fine') {
         const fine = smoothNoise(x * 0.22, y * 0.22) - 0.5
         const broad = smoothNoise(x * 0.035, y * 0.035) - 0.5
         n = fine * contrast * 0.58 + broad * contrast * 0.42
       } else if (look.grain === 'linear') {
-        const vein = Math.sin(across * Math.PI * 10 + rowJitter)
+        const vein = Math.sin(across * Math.PI * 24 + rowJitter * 4)
         const broad = Math.sin(across * Math.PI * 3.4 + along * 0.24 + 0.7)
         const fibre = smoothNoise(x * 0.085, y * 0.018) - 0.5
         n = vein * contrast * 0.34 + broad * contrast * 0.2 + fibre * contrast * 0.34
       } else {
-        const vein = Math.sin(across * Math.PI * 8 + along * 1.8 + rowJitter)
+        const vein = Math.sin(across * Math.PI * 30 + along * 1.8 + rowJitter * 3 + knotWarp)
         const broad = Math.sin(across * Math.PI * 3.2 - along * 0.7 + 0.45)
         const fibre = smoothNoise(x * 0.065, y * 0.022) - 0.5
         const pore = smoothNoise(x * 0.34, y * 0.1) > 0.82 ? -0.028 : 0
         n = vein * contrast * 0.46 + broad * contrast * 0.24 + fibre * contrast * 0.34 + pore
       }
+      n += knotTone
       data[i] = Math.max(0, Math.min(255, data[i] + n * 255))
       data[i + 1] = Math.max(0, Math.min(255, data[i + 1] + n * 215))
       data[i + 2] = Math.max(0, Math.min(255, data[i + 2] + n * 175))
@@ -284,6 +302,25 @@ function attachInstanceGrainPhase(
     `${previousCacheKey}|linar-instance-grain-v1:${s}:${t}:${shaderSalt}`
 }
 
+/** Surface UVs follow original sheet coordinates, never the animated world pose. */
+function attachPanelFaceGrain(material: MeshStandardMaterial): void {
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = `
+      #ifdef USE_INSTANCING
+        attribute vec2 linarFaceUv;
+      #endif
+    ` + shader.vertexShader
+    shader.vertexShader = shader.vertexShader.replace('#include <uv_vertex>', `
+      #include <uv_vertex>
+      #if defined(USE_INSTANCING) && defined(USE_MAP)
+        float sheetU = linarFaceUv.x + position.x * linarFaceUv.y;
+        vMapUv = (mapTransform * vec3(sheetU, uv.y, 1.0)).xy;
+      #endif
+    `)
+  }
+  material.customProgramCacheKey = () => 'linar-continuous-sheet-grain-v1'
+}
+
 export type LinarMaterialSet = {
   face: MeshStandardMaterial
   reverse: MeshStandardMaterial
@@ -320,8 +357,7 @@ export function createLinarMaterials(): LinarMaterialSet {
     let map = faceMaps.get(id)
     if (!map) {
       map = makeMap(paintFace(LOOKS[id], LOOKS[id].face))
-      // A single procedural sample spans each complete lamella. Avoiding a
-      // longitudinal repeat also avoids a visible join in close-up views.
+      // One sheet sample spans the complete panel, shared across lamellas.
       map.repeat.set(1, 1)
       faceMaps.set(id, map)
     }
@@ -450,7 +486,7 @@ export function createLinarMaterials(): LinarMaterialSet {
   attachThicknessLayers(end, plyLayers, plyMix)
   // Face grain shifts only across its width so no longitudinal repeat seam is
   // moved into view. Routed and end surfaces receive a smaller two-axis phase.
-  attachInstanceGrainPhase(face, 0.78, 0, 0.17)
+  attachPanelFaceGrain(face)
   attachInstanceGrainPhase(reverse, 0.78, 0, 7.31)
   attachInstanceGrainPhase(cut, 0.42, 0.28, 13.19)
   attachInstanceGrainPhase(bridgeCut, 0.58, 0.36, 19.73)

@@ -18,6 +18,7 @@ type SerpentinePathOptions = {
   serpentineWidthM: number
   radiusM: number
   bendAngleRad: number
+  serpentineTurnRad?: number
   directionSign: -1 | 1
   progression: number
   maxNormalOffsetM?: number
@@ -38,6 +39,20 @@ function clamp01(value: number): number {
 function smoothstep(value: number): number {
   const t = clamp01(value)
   return t * t * (3 - 2 * t)
+}
+
+/**
+ * Release the net C turn before introducing a repeating S wave. Mixing both
+ * tangent fields at once adds a little yaw at every module seam, lifting all
+ * but one crest away from a flat host. A flat handover preserves arc length
+ * and continuity while every visible S period has equal endpoint tangents.
+ */
+function progressionWeights(progression: number) {
+  const flatHandover = 0.25
+  return {
+    primary: 1 - smoothstep(progression / flatHandover),
+    serpentine: smoothstep((progression - flatHandover) / (1 - flatHandover)),
+  }
 }
 
 /**
@@ -109,8 +124,8 @@ function serpentineTangentAt(
  * The lookup parameter is arc length, so planar centreline curvature is
  * `|d theta / ds|`. The primary field contributes a constant `1 / radius`
  * inside its active span. The S target contributes
- * `turn * PI / width * sin(2 PI u)` inside its support. Progression blends
- * those derivatives by the same smoothstep used for the rendered path.
+ * `turn * PI / width * sin(2 PI u)` inside its support. The same staged
+ * weights as the rendered path release C before growing the periodic S.
  *
  * Each smooth interval is therefore a constant plus one sine. Its absolute
  * maximum can occur only at an interval edge or at the sine extrema. Evaluating
@@ -136,19 +151,19 @@ function minimumLocalRadiusMmForTangentField({
   const panelWidth = Math.max(0, panelWidthM)
   if (panelWidth <= 0) return null
 
-  const blend = smoothstep(progression)
+  const weights = progressionWeights(progression)
   const primaryWidth = Math.max(0, activeWidthM)
   const primaryLeft = (panelWidth - primaryWidth) * 0.5
   const primaryRight = primaryLeft + primaryWidth
   const primaryCurvature =
-    primaryWidth > 0 ? (1 - blend) / Math.max(radiusM, 0.000001) : 0
+    primaryWidth > 0 ? weights.primary / Math.max(radiusM, 0.000001) : 0
 
   const serpentineWidth = Math.max(0, Math.min(panelWidth, serpentineWidthM))
   const serpentineLeft = (panelWidth - serpentineWidth) * 0.5
   const serpentineRight = serpentineLeft + serpentineWidth
   const serpentineCurvatureAmplitude =
     serpentineWidth > 0
-      ? (blend * Math.max(0, renderedTurnRad) * Math.PI) / serpentineWidth
+      ? (weights.serpentine * Math.max(0, renderedTurnRad) * Math.PI) / serpentineWidth
       : 0
 
   const breakpoints = [
@@ -222,6 +237,7 @@ export function makeSerpentinePathLookup({
   serpentineWidthM,
   radiusM,
   bendAngleRad,
+  serpentineTurnRad = bendAngleRad,
   directionSign,
   progression,
   maxNormalOffsetM = 0,
@@ -230,15 +246,15 @@ export function makeSerpentinePathLookup({
   const x = new Float32Array(steps + 1)
   const z = new Float32Array(steps + 1)
   const tangent = new Float32Array(steps + 1)
-  const blend = smoothstep(progression)
+  const weights = progressionWeights(progression)
   const stepLength = panelWidthM / steps
   const safeSerpentineWidthM = Math.max(0, Math.min(panelWidthM, serpentineWidthM))
   const renderedBendAngleRad = safeRenderedSerpentineTurnRad(
-    bendAngleRad,
+    serpentineTurnRad,
     safeSerpentineWidthM,
     maxNormalOffsetM,
   )
-  const visualSafetyLimited = renderedBendAngleRad < bendAngleRad - 0.000001
+  const visualSafetyLimited = renderedBendAngleRad < serpentineTurnRad - 0.000001
   const minimumLocalRadiusMm = minimumLocalRadiusMmForTangentField({
     panelWidthM,
     activeWidthM,
@@ -264,7 +280,7 @@ export function makeSerpentinePathLookup({
       renderedBendAngleRad,
       directionSign,
     )
-    return primary + (serpentine - primary) * blend
+    return primary * weights.primary + serpentine * weights.serpentine
   }
 
   for (let i = 0; i <= steps; i += 1) {
@@ -317,7 +333,7 @@ export function makeSerpentinePathLookup({
     steps,
     startTangent: tangent[0],
     endTangent: tangent[steps],
-    requestedBendAngleRad: bendAngleRad,
+    requestedBendAngleRad: serpentineTurnRad,
     renderedBendAngleRad,
     visualSafetyLimited,
     minimumLocalRadiusMm,

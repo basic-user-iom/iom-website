@@ -13,12 +13,10 @@ import {
 } from './materialData'
 import {
   LINAR_APPLICATIONS,
-  LINAR_BACKLIGHT_MODES,
   LINAR_MATERIALS,
   LINAR_VENEERS,
   LINAR_VISIBLE_BACKINGS,
   type LinarApplication,
-  type LinarBacklightMode,
   type LinarBacking,
   type LinarBendDirection,
   type LinarConfig,
@@ -303,10 +301,6 @@ export function LinarControls({
       : tech.physicalEvidence === 'physical-sample'
         ? `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm physical-sample minimum.`
         : `The endpoint reaches the ${tech.referenceMinimumRadiusMm} mm ${tech.radiusAuthority.label.toLowerCase()}.`
-  const rearLightAvailable = config.application !== 'freestanding' && config.backing !== 'felt'
-  const rearLightSummary = rearLightAvailable
-    ? config.backlightMode === 'on' ? `${config.backlightIntensity}% visual` : 'Off'
-    : 'Unavailable'
 
   return (
     <div className="linar-controls">
@@ -362,12 +356,13 @@ export function LinarControls({
             onChange={onSecondaryCurveInput}
           />
           <p className="linar-note">
-            0 keeps the C curve. Higher values form one continuous opposing wave; unincised side
-            zones remain rigid. This is a visual shape study independent of the open-area data.
+            0 keeps the C curve; 25 is the flat transition; 100 is the full S wave.
+            Waves repeat along a straight baseline. Unincised side zones remain rigid.
+            This is a visual shape study independent of the open-area data.
           </p>
           {safeSecondaryCurveAmount > 0 && bendDirection !== 'flat' ? (
             <p className="linar-secondary-curve__status" role="status" aria-live="polite">
-              Minimum local radius: {minimumLocalRadiusMm == null ? 'Not available' : `${minimumLocalRadiusMm.toFixed(0)} mm`}.
+              Minimum local radius: {minimumLocalRadiusMm == null ? 'Flat' : `${minimumLocalRadiusMm.toFixed(0)} mm`}.
               Manufacturing feasibility must be confirmed.
             </p>
           ) : null}
@@ -475,7 +470,7 @@ export function LinarControls({
           {config.backing === 'felt' ? (
             <>
               <SwatchGroup labelId="linar-felt-colour-label" label="Felt colour" items={LINAR_FELT_COLOURS} value={config.feltColour} onChange={(id: LinarFeltColourId) => onConfig({ feltColour: id })} />
-              <p className="linar-note">Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–{LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. Mounted cavity depth remains a visual study. Swatches are approximations.</p>
+              <p className="linar-note">Opaque wool felt; {LINAR_FELT_METADATA.thicknessRangeMm[0]}–{LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. A continuous opaque layer covers the panel rear, in front of the supporting battens. Swatches are approximations.</p>
             </>
           ) : null}
           {config.backing === 'acoustic-fleece' ? (
@@ -484,31 +479,6 @@ export function LinarControls({
               <p className="linar-note">{LINAR_FLEECE_METADATA.thicknessRangeMm[0]}–{LINAR_FLEECE_METADATA.thicknessRangeMm[1]} mm confirmed range; renderer uses {LINAR_FLEECE_METADATA.representativeVisualThicknessMm} mm. Transmission is a non-certified visual estimate.</p>
             </>
           ) : null}
-        </div>
-      </details>
-
-      <details className="linar-acc" data-tour-id="backlight">
-        <SectionSummary label="Rear light study" value={rearLightSummary} />
-        <div className="linar-acc__body">
-          {config.application !== 'freestanding' ? (
-            <>
-              <SegmentedGroup
-                labelId="linar-backlight-label"
-                label="Rear light study"
-                items={LINAR_BACKLIGHT_MODES.map((item) => ({ ...item, disabled: item.id === 'on' && config.backing === 'felt' }))}
-                value={config.backlightMode}
-                descriptionId="linar-backlight-description"
-                onChange={(id: LinarBacklightMode) => onConfig({ backlightMode: id })}
-              />
-              {config.backlightMode === 'on' ? (
-                <RangeRow id="linar-backlight-intensity" label="Visual preview brightness" value={config.backlightIntensity} min={10} max={100} step={5} display={`${config.backlightIntensity}% visual`} onChange={(value) => onConfig({ backlightIntensity: value })} />
-              ) : null}
-              {config.backing === 'felt' ? (
-                <p className="linar-note" role="status" aria-live="polite">Rear illumination is off because wool felt is opaque. Choose None or acoustic fleece to inspect transmission.</p>
-              ) : null}
-            </>
-          ) : <p className="linar-note">Rear light is available in Wall and Ceiling applications.</p>}
-          <p className="linar-note" id="linar-backlight-description">Conceptual, non-photometric study. Diffuser, cavity, electrical output, heat/fire performance and mounting are unspecified · Not tested.</p>
         </div>
       </details>
 

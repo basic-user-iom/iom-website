@@ -6,10 +6,10 @@ import {
 } from './auth'
 import {
   REST_BEND,
-  makeBendState,
   maxRenderedNormalOffsetM,
   slatLayout,
 } from './bendMath'
+import { makeInstallationBendState } from './installationBend'
 import { LinarControls } from './LinarControls'
 import { LinarProductInfo } from './LinarProductInfo'
 import {
@@ -183,19 +183,19 @@ export function DuktaLinarConceptPage() {
   const [config, setConfig] = useState<LinarConfig>(() =>
     cloneConfig(initialShareState.config),
   )
-  const [findLightToken, setFindLightToken] = useState(0)
-  const [resetViewToken, setResetViewToken] = useState(0)
+  const [findLightRevision, setFindLightRevision] = useState(0)
+  const [resetViewRevision, setResetViewRevision] = useState(0)
   const [viewPreset, setViewPreset] = useState<LinarViewId>(initialShareState.view)
   const [side, setSide] = useState<LinarSide>(initialShareState.side)
   const [lightState, setLightState] = useState<LinarLightState>(() => ({
     ...initialShareState.light,
   }))
-  const [viewToken, setViewToken] = useState(0)
+  const [viewRevision, setViewRevision] = useState(0)
   const [webglFailed, setWebglFailed] = useState(false)
   const [showHint, setShowHint] = useState(!reducedMotion)
   const [tourStepIndex, setTourStepIndex] = useState<number | null>(null)
   const [experienceMode, setExperienceMode] = useState<LinarExperienceMode>('idle')
-  const [cinematicToken, setCinematicToken] = useState(0)
+  const [cinematicRevision, setCinematicRevision] = useState(0)
   const [cinematicHandoffPhase, setCinematicHandoffPhase] =
     useState<LinarCinematicHandoffPhase>(null)
   const [sceneReady, setSceneReady] = useState(false)
@@ -236,8 +236,9 @@ export function DuktaLinarConceptPage() {
   const layout = useMemo(() => slatLayout(config), [config])
   const currentBendState = useMemo(
     () =>
-      makeBendState(
+      makeInstallationBendState(
         targetBend,
+        config.panelCount,
         layout.panelWidthM,
         tech.referenceMinimumRadiusMm,
         layout.incisedWidthM,
@@ -246,6 +247,7 @@ export function DuktaLinarConceptPage() {
       ),
     [
       config.backing,
+      config.panelCount,
       layout.incisedWidthM,
       layout.panelWidthM,
       layout.thicknessM,
@@ -294,7 +296,7 @@ export function DuktaLinarConceptPage() {
     }
     lightStateRef.current = nextLight
     setLightState(nextLight)
-    setViewToken((value) => value + 1)
+    setViewRevision((value) => value + 1)
     setTourStepIndex(index)
   }, [])
 
@@ -334,7 +336,7 @@ export function DuktaLinarConceptPage() {
       setSide(snapshot.side)
       setViewPreset(snapshot.view)
       setLightState({ ...snapshot.light })
-      if (!preserveCamera) setViewToken((value) => value + 1)
+      if (!preserveCamera) setViewRevision((value) => value + 1)
     },
     [],
   )
@@ -391,7 +393,7 @@ export function DuktaLinarConceptPage() {
     setShowHint(false)
     interactedRef.current = true
     markCinematicSeen()
-    setCinematicToken((value) => value + 1)
+    setCinematicRevision((value) => value + 1)
   }, [stopExperience])
 
   const cancelExperienceForInteraction = useCallback(
@@ -570,7 +572,7 @@ export function DuktaLinarConceptPage() {
       setSide(shared.side)
       setViewPreset(shared.view)
       setLightState({ ...shared.light })
-      setViewToken((value) => value + 1)
+      setViewRevision((value) => value + 1)
     }
 
     window.addEventListener('hashchange', restoreSharedHash)
@@ -752,10 +754,7 @@ export function DuktaLinarConceptPage() {
       }
       setConfig((prev) => {
         const next = { ...prev, ...patch }
-        next.backlightIntensity = Math.max(
-          10,
-          Math.min(100, Math.round(next.backlightIntensity)),
-        )
+        next.backlightIntensity = 100
         if (next.application === 'freestanding' || backingBlocksRearLight(next.backing)) {
           next.backlightMode = 'off'
         }
@@ -770,7 +769,7 @@ export function DuktaLinarConceptPage() {
         viewPresetRef.current = 'hero'
         setSide('front')
         setViewPreset('hero')
-        setViewToken((value) => value + 1)
+        setViewRevision((value) => value + 1)
       } else if (panelCountChanged && viewPresetRef.current === 'closeup') {
         // A 0.52 m Close-up describes one local surface detail and cannot frame
         // a wider repeated installation. Return to the matching side overview,
@@ -779,7 +778,7 @@ export function DuktaLinarConceptPage() {
         const overviewPreset = sideRef.current === 'back' ? 'reverse' : 'hero'
         viewPresetRef.current = overviewPreset
         setViewPreset(overviewPreset)
-        setViewToken((value) => value + 1)
+        setViewRevision((value) => value + 1)
       }
     },
     [markInteracted],
@@ -801,7 +800,7 @@ export function DuktaLinarConceptPage() {
     viewPresetRef.current = 'hero'
     setSide('front')
     setViewPreset('hero')
-    setViewToken((value) => value + 1)
+    setViewRevision((value) => value + 1)
   }, [markInteracted])
 
   const onLightChange = useCallback((next: LinarLightState) => {
@@ -847,7 +846,7 @@ export function DuktaLinarConceptPage() {
     const setCinematicView = (nextView: LinarViewId, nextSide: LinarSide = 'front') => {
       setSide(nextSide)
       setViewPreset(nextView)
-      setViewToken((value) => value + 1)
+      setViewRevision((value) => value + 1)
     }
 
     if (stage === 0) {
@@ -875,7 +874,7 @@ export function DuktaLinarConceptPage() {
         panelCount: 1,
         backing: 'none',
         backlightMode: 'off',
-        backlightIntensity: 60,
+        backlightIntensity: 100,
       })
       setCinematicView('hero')
     } else if (stage === LINAR_CINEMATIC_BACKLIGHT_STAGE) {
@@ -883,7 +882,7 @@ export function DuktaLinarConceptPage() {
         application: 'wall',
         backing: 'none',
         backlightMode: 'on',
-        backlightIntensity: 60,
+        backlightIntensity: 100,
       })
     } else if (stage === LINAR_CINEMATIC_COMBINED_LIGHT_STAGE) {
       setCinematicConfig({ backlightMode: 'on' })
@@ -959,6 +958,7 @@ export function DuktaLinarConceptPage() {
         previous.application !== 'freestanding' && !backingBlocksRearLight(previous.backing)
       const next = {
         ...previous,
+        backlightIntensity: 100,
         backlightMode:
           available && previous.backlightMode === 'off' ? ('on' as const) : ('off' as const),
       }
@@ -1086,6 +1086,10 @@ export function DuktaLinarConceptPage() {
           data-tour-id="viewport"
           aria-label="LINAR panel preview"
         >
+          <p className="linar-application-status" aria-live="polite">
+            <span>Application</span>
+            <strong>{config.application === 'wall' ? 'Wall' : config.application === 'ceiling' ? 'Ceiling' : 'Freestanding'}</strong>
+          </p>
           {webglFailed ? (
             <p className="linar-fallback">
               The interactive 3D preview is not available on this device. You can still review
@@ -1098,14 +1102,14 @@ export function DuktaLinarConceptPage() {
                 targetSecondaryCurveRef={targetSecondaryCurveRef}
                 config={config}
                 tech={tech}
-                findLightToken={findLightToken}
-                resetViewToken={resetViewToken}
+                findLightRevision={findLightRevision}
+                resetViewRevision={resetViewRevision}
                 viewPreset={viewPreset}
                 side={side}
-                viewToken={viewToken}
+                viewRevision={viewRevision}
                 tourActive={tourActive}
                 cinematicActive={cinematicActive}
-                cinematicToken={cinematicToken}
+                cinematicRevision={cinematicRevision}
                 lightState={lightState}
                 introStarted={false}
                 interactedRef={interactedRef}
@@ -1138,7 +1142,7 @@ export function DuktaLinarConceptPage() {
                             : ''
                         }`
                     : backlightVisible
-                      ? 'Rear light is on and the movable orb is off. Open Advanced lighting to add the orb, or turn Rear light off to restore the standard studio view. Visual rear-illumination study · Not tested.'
+                      ? 'Rear light is on and the movable orb is off. Open LIGHTING to add the orb, or turn Rear light off to restore the standard studio view. Visual rear-illumination study · Not tested.'
                       : 'Drag to rotate. Scroll or pinch to zoom.'}
                 </p>
               ) : null}
@@ -1232,20 +1236,20 @@ export function DuktaLinarConceptPage() {
               markInteracted()
               setSide('front')
               setViewPreset('hero')
-              setResetViewToken((n) => n + 1)
+              setResetViewRevision((n) => n + 1)
             }}
             onViewPreset={(id) => {
               markInteracted()
               if (id === 'hero') setSide('front')
               if (id === 'reverse') setSide('back')
               setViewPreset(id)
-              setViewToken((n) => n + 1)
+              setViewRevision((n) => n + 1)
             }}
             onSideChange={(next) => {
               markInteracted()
               setSide(next)
               setViewPreset(next === 'back' ? 'reverse' : 'hero')
-              setViewToken((n) => n + 1)
+              setViewRevision((n) => n + 1)
             }}
             onToggleMusic={onToggleMusic}
             onMusicVolumeChange={onMusicVolumeChange}
@@ -1261,7 +1265,7 @@ export function DuktaLinarConceptPage() {
             onToggleBacklight={onToggleBacklight}
             onLightPlacementChange={setLightPlacement}
             onLightChange={onLightPatch}
-            onFindLight={() => setFindLightToken((value) => value + 1)}
+            onFindLight={() => setFindLightRevision((value) => value + 1)}
             onResetLight={onResetLight}
             onUserInteract={markInteracted}
             onShare={onShare}
