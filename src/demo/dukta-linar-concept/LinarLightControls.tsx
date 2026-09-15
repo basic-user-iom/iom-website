@@ -17,6 +17,8 @@ type Props = {
   light: LinarLightState
   application: LinarApplication
   backing: LinarBacking
+  backlightEnabled: boolean
+  onToggleBacklight: () => void
   onChange: (patch: Partial<LinarLightState>) => void
   onPlacement: (placement: LinarLightPlacement) => void
   onToggle: () => void
@@ -169,7 +171,7 @@ const PRESETS = [
   { id: 'grazing', label: 'Grazing', degrees: -78, height: 55, distance: 0.15, intensity: 60 },
 ] as const
 
-export function LinarLightControls({ light, application, backing, onChange, onPlacement, onToggle, onReset, onFind }: Props) {
+export function LinarLightControls({ light, application, backing, backlightEnabled, onToggleBacklight, onChange, onPlacement, onToggle, onReset, onFind }: Props) {
   const mounted = application !== 'freestanding'
   const height = Math.round(linarLightHeightPercent(light.v))
   const angle = Math.round(linarLightOrbitDegrees(light.u, mounted))
@@ -177,6 +179,22 @@ export function LinarLightControls({ light, application, backing, onChange, onPl
   const heightLabel = application === 'ceiling' ? 'Along panel' : 'Height'
   return (
     <>
+      <section className="linar-rear-light" data-tour-id="backlight" aria-labelledby="linar-rear-light-title">
+        <div className="linar-viewport-light-panel__head">
+          <div><strong id="linar-rear-light-title">Rear light study</strong><span>Light through the incisions</span></div>
+          <button type="button" className={backlightEnabled ? 'is-active' : ''}
+            aria-label="Rear light study" aria-pressed={backlightEnabled}
+            aria-describedby="linar-rear-light-description"
+            disabled={!mounted || backing === 'felt'} onClick={onToggleBacklight}>
+            {backlightEnabled ? 'ON' : 'OFF'}
+          </button>
+        </div>
+        <p id="linar-rear-light-description" className="linar-viewport-menu__hint">
+          {!mounted ? 'Choose Wall or Ceiling to explore rear illumination.'
+            : backing === 'felt' ? 'Opaque felt blocks rear light. Choose None or acoustic fleece.'
+            : 'Fixed brightness · 100%. A visual study, not a measured lighting specification.'}
+        </p>
+      </section>
       <div className="linar-viewport-light-panel__head">
         <div><strong>Movable light</strong><span>Explore light and shadow</span></div>
         <button type="button" className={light.enabled ? 'is-active' : ''} aria-label="Movable light" aria-pressed={light.enabled} onClick={onToggle}>{light.enabled ? 'ON' : 'OFF'}</button>

@@ -19,6 +19,7 @@ export type LinarMaterialLook = {
   cutBumpScale: number
   grain: 'fine' | 'linear' | 'open'
   grainContrast: number
+  knots?: boolean
   plyLayers: number
   evidence: 'Reference-calibrated procedural' | 'Provisional procedural'
   reference: string
@@ -62,9 +63,9 @@ export const LINAR_MATERIAL_LOOKS: Record<LinarMaterialId, LinarMaterialLook> = 
     reference: 'Supplied LINAR MDF colour photograph and dukta brochure 2026, page 8',
   },
   plywood: {
-    // The supplied birch photographs show an almost ivory face. The warmer
-    // laminated core belongs on machined walls and ends, not on the veneer.
-    face: '#f0e9dc',
+    // Warmer birch and a readable, restrained grain per client review.
+    // The laminated core remains distinct on machined walls and ends.
+    face: '#ddc9a7',
     reverse: '#e8decc',
     cut: '#d2b486',
     end: '#d8bf94',
@@ -73,7 +74,7 @@ export const LINAR_MATERIAL_LOOKS: Record<LinarMaterialId, LinarMaterialLook> = 
     faceBumpScale: 0.006,
     cutBumpScale: 0.016,
     grain: 'linear',
-    grainContrast: 0.026,
+    grainContrast: 0.085,
     plyLayers: 7,
     evidence: 'Reference-calibrated procedural',
     reference: 'Supplied LINAR 4/4 birch plywood photographs and dukta brochure 2026, page 8',
@@ -90,7 +91,8 @@ export const LINAR_MATERIAL_LOOKS: Record<LinarMaterialId, LinarMaterialLook> = 
     faceBumpScale: 0.01,
     cutBumpScale: 0.018,
     grain: 'open',
-    grainContrast: 0.042,
+    grainContrast: 0.095,
+    knots: true,
     plyLayers: 3,
     evidence: 'Reference-calibrated procedural',
     reference: 'Supplied LINAR 4/4 three-layer spruce photograph and dukta brochure 2026, page 8',
@@ -126,7 +128,7 @@ export const LINAR_VENEER_LOOKS: Record<VeneerId, LinarMaterialLook> = {
     faceBumpScale: 0.007,
     cutBumpScale: 0.012,
     grain: 'linear',
-    grainContrast: 0.024,
+    grainContrast: 0.065,
     plyLayers: 0,
     evidence: 'Reference-calibrated procedural',
     reference: 'Supplied maple-veneered LINAR product photograph',
@@ -178,7 +180,7 @@ export const LINAR_MDF_COLOURS: readonly LinarColourOption<LinarMdfColourId>[] =
   { id: 'white-grey', label: 'White Grey', manufacturerCode: 'WG', swatch: '#c9c7bf', source: 'Official manufacturer name/code', isScreenApproximation: true },
   { id: 'light-grey', label: 'Light Grey', manufacturerCode: 'LG', swatch: '#aaa9a4', source: 'Official manufacturer name/code', isScreenApproximation: true },
   { id: 'grey', label: 'Grey', manufacturerCode: 'CZ', swatch: '#777774', source: 'Official manufacturer name/code', isScreenApproximation: true },
-  { id: 'black', label: 'Black', manufacturerCode: 'BL', swatch: '#292a29', source: 'Official manufacturer name/code', isScreenApproximation: true },
+  { id: 'black', label: 'Black', manufacturerCode: 'BL', swatch: '#484b4b', source: 'Official manufacturer name/code', isScreenApproximation: true },
   { id: 'chocolate-brown', label: 'Chocolate Brown', manufacturerCode: 'CB', swatch: '#6c4a3b', source: 'Official manufacturer name/code', isScreenApproximation: true },
   { id: 'red', label: 'Red', manufacturerCode: 'SC', swatch: '#a54842', source: 'Official manufacturer name/code', isScreenApproximation: true },
   { id: 'yellow', label: 'Yellow', manufacturerCode: 'YW', swatch: '#c3a340', source: 'Official manufacturer name/code', isScreenApproximation: true },

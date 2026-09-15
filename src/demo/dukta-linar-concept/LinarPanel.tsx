@@ -5,6 +5,7 @@ import {
   Float32BufferAttribute,
   FrontSide,
   InstancedMesh,
+  InstancedBufferAttribute,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
@@ -15,7 +16,6 @@ import {
   MAX_SLATS,
   bridgeSegsFor,
   curveElement,
-  makeBendState,
   maxRenderedNormalOffsetM,
   slatLayout,
   type BendState,
@@ -23,6 +23,7 @@ import {
   type PanelLayout,
   type SlatSpec,
 } from './bendMath'
+import { makeInstallationBendState } from './installationBend'
 import type { LinarTech } from './linarData'
 import {
   cadBridgeProfileHeightMm,
@@ -69,6 +70,7 @@ export type LinarPanelHandle = {
     percent: number,
     referenceRadiusMm: number | null,
     secondaryCurveAmount?: number,
+    panelCount?: number,
   ) => BendState
   setConfig: (config: LinarConfig, tech: LinarTech) => void
   setMaterial: (
@@ -428,6 +430,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   const materials = createLinarMaterials()
   const unitBox = new BoxGeometry(1, 1, 1)
+  const faceSheetUv = new InstancedBufferAttribute(new Float32Array(MAX_SLATS * 2), 2)
+  faceSheetUv.setUsage(DynamicDrawUsage)
+  unitBox.setAttribute('linarFaceUv', faceSheetUv)
   let currentCadGeometry = initial.tech.cadGeometry
   let fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
   const backingRibbon = createBackingRibbonGeometry()
@@ -564,6 +569,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
   let backing: LinarBacking = initial.config.backing
   let fleeceColour: LinarFleeceColourId = initial.config.fleeceColour
   let topCutDepthM = Math.max(0, initial.tech.topCutDepthMm / 1000)
+  let currentPanelCount = initial.config.panelCount
   let lastPercent = 0
   let lastSecondaryCurveAmount = 0
   let lastRadius: number | null = initial.tech.referenceMinimumRadiusMm
@@ -694,10 +700,12 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
       const heightUvFactor = band.heightUvFactors[vertex]
       if (heightUvFactor >= 0) {
+        band.uv.setX(vertex, (x0 + solidWidth * sample / SOLID_BAND_SEGMENTS) / layout.panelWidthM + 0.5)
         band.uv.setY(vertex, heightUvFactor)
       }
     }
 
+    band.uv.needsUpdate = true
     band.position.needsUpdate = true
     band.normal.needsUpdate = true
   }
@@ -840,9 +848,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     // so every timber member sits between it and the visible LINAR panel.
     // Mounted wool starts directly behind the panel and fully blocks this
     // mode; its branch is retained here only to keep the geometry finite.
-    const supportRearSurfaceOffsetM = showFelt
-      ? thickness * 0.5
-      : maxRenderedNormalOffsetM(thickness, showBacking)
+    const supportRearSurfaceOffsetM = maxRenderedNormalOffsetM(thickness, showBacking)
     const diffuserOffsetM =
       supportRearSurfaceOffsetM +
       SUPPORT_GRID_RENDER_GAP_M +
@@ -904,9 +910,15 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   const applyConfig = (config: LinarConfig, tech: LinarTech) => {
     const next = cloneConfig(config)
+    currentPanelCount = next.panelCount
     layout = slatLayout(next)
     boundingSize.set(layout.panelWidthM, layout.panelHeightM, layout.thicknessM)
     slats = layout.slats
+    for (let i = 0; i < slats.length; i += 1) {
+      faceSheetUv.setXY(i, slats[i].originalX / layout.panelWidthM + 0.5,
+        slats[i].width / layout.panelWidthM)
+    }
+    faceSheetUv.needsUpdate = true
     currentCadGeometry = tech.cadGeometry
     const previousFullBridgeGeometry = fullBridgeGeo
     fullBridgeGeo = createBridgeAssemblyGeometry(currentCadGeometry)
@@ -919,8 +931,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     materials.applyBacking(next.backing, next.fleeceColour, next.feltColour)
     lastRadius = tech.referenceMinimumRadiusMm
     writeWithState(
-      makeBendState(
+      makeInstallationBendState(
         lastPercent,
+        currentPanelCount,
         layout.panelWidthM,
         lastRadius,
         layout.incisedWidthM,
@@ -941,12 +954,14 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
 
   return {
     group,
-    setBend: (percent, referenceRadiusMm, secondaryCurveAmount = 0) => {
+    setBend: (percent, referenceRadiusMm, secondaryCurveAmount = 0, panelCount = currentPanelCount) => {
+      currentPanelCount = panelCount
       lastPercent = percent
       lastSecondaryCurveAmount = secondaryCurveAmount
       lastRadius = referenceRadiusMm
-      const state = makeBendState(
+      const state = makeInstallationBendState(
         percent,
+        currentPanelCount,
         layout.panelWidthM,
         referenceRadiusMm,
         layout.incisedWidthM,
@@ -964,8 +979,9 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
       fleeceColour = nextFleeceColour
       materials.applyBacking(nextBacking, nextFleeceColour, feltColour)
       writeWithState(
-        makeBendState(
+        makeInstallationBendState(
           lastPercent,
+          currentPanelCount,
           layout.panelWidthM,
           lastRadius,
           layout.incisedWidthM,

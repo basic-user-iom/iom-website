@@ -293,6 +293,7 @@ export function makeBendState(
   bendableWidthM = panelWidthM,
   secondaryCurveAmount = 0,
   secondaryCurveMaxNormalOffsetM = 0,
+  primaryBendControl = control,
 ): BendState {
   const clampedControl = Math.max(-100, Math.min(100, control))
   const t = Math.abs(clampedControl) / 100
@@ -344,17 +345,22 @@ export function makeBendState(
   const alpha = Math.min(Math.PI, activeWidthM / Math.max(radiusM, 0.000001))
   const arcLen = activeWidthM
   const leftFlat = Math.max(0, (panelWidthM - arcLen) * 0.5)
+  // Repeated modules share the S curvature, but distribute their net C turn.
+  const primary = primaryBendControl === control ? null : makeBendState(
+    primaryBendControl, panelWidthM, referenceRadiusMm, bendableWidthM,
+  )
   const compoundCurve =
     clampedSecondaryCurveAmount > 0 && activeWidthM > 0
       ? makeSerpentinePathLookup({
           panelWidthM,
-          activeWidthM,
+          activeWidthM: primary?.activeWidthM ?? activeWidthM,
           // The advanced target is confined to the actual incised strip.
           // Solid side zones remain straight tangent extensions when coverage
           // is partial instead of being silently treated as flexible material.
           serpentineWidthM: bendableWidthM,
-          radiusM,
-          bendAngleRad: alpha,
+          radiusM: primary?.radiusM ?? radiusM,
+          bendAngleRad: primary?.alpha ?? alpha,
+          serpentineTurnRad: alpha,
           directionSign,
           progression: clampedSecondaryCurveAmount / 100,
           maxNormalOffsetM: secondaryCurveMaxNormalOffsetM,
@@ -375,7 +381,7 @@ export function makeBendState(
     secondaryCurveAmount: clampedSecondaryCurveAmount,
     secondaryCurveRenderedTurnRad: compoundCurve?.renderedBendAngleRad ?? 0,
     secondaryCurveSafetyLimited: compoundCurve?.visualSafetyLimited ?? false,
-    minimumLocalRadiusMm: compoundCurve?.minimumLocalRadiusMm ?? selectedRadiusMm,
+    minimumLocalRadiusMm: compoundCurve ? compoundCurve.minimumLocalRadiusMm : selectedRadiusMm,
     compoundCurve,
   }
 }

@@ -195,7 +195,7 @@ export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   application: 'freestanding',
   backing: 'none',
   backlightMode: 'off',
-  backlightIntensity: 60,
+  backlightIntensity: 100,
   panelCount: 1,
   bendDirection: 'flat',
   bendRadiusMm: null,

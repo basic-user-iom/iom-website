@@ -196,16 +196,7 @@ export function parseLinarShareState(fragment: string): LinarShareState {
     LINAR_BACKLIGHT_MODES,
     config.backlightMode,
   )
-  config.backlightIntensity = parseInteger(
-    params,
-    'bli',
-    10,
-    100,
-    config.backlightIntensity,
-  )
-  if (config.application === 'freestanding' || !backingAllowsRearTransmission(config)) {
-    config.backlightMode = 'off'
-  }
+  config.backlightIntensity = 100
   config.panelCount = parseInteger(
     params,
     'count',
@@ -318,7 +309,7 @@ export function buildLinarShareUrl(baseHref: string, selection: LinarShareSelect
     params.set('backlight', 'on')
     params.set(
       'bli',
-      String(Math.max(10, Math.min(100, Math.round(config.backlightIntensity)))),
+      '100',
     )
   }
   params.set(

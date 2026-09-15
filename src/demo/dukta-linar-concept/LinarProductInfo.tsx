@@ -112,7 +112,7 @@ export function LinarProductInfo({
       ? 'Not tested'
       : formatMm(tech.referenceMinimumRadiusMm)
   const minimumLocalRadiusValue =
-    minimumLocalRadiusMm == null ? 'Not available' : formatMm(minimumLocalRadiusMm)
+    minimumLocalRadiusMm == null ? 'Flat' : formatMm(minimumLocalRadiusMm)
   const selectedAtReferenceMinimum =
     selectedRadiusMm != null &&
     tech.referenceMinimumRadiusMm != null &&
@@ -161,6 +161,7 @@ export function LinarProductInfo({
       : []),
     {
       label: 'Production classification',
+      status: tech.productionClassification === 'standard' ? 'Standard' : tech.productionClassification === 'possible' ? 'Possible' : 'Not tested',
       value:
         tech.productionClassification === 'standard'
           ? 'Standard'
@@ -184,7 +185,7 @@ export function LinarProductInfo({
       label: 'Feasibility',
       value: tech.feasibility === 'blocked' ? 'Not recommended' : tech.feasibility === 'allowed' ? 'Allowed by current record' : 'Requires confirmation',
       hint: tech.blockedReason ?? undefined,
-      status: tech.feasibility === 'blocked' ? 'Not recommended' : undefined,
+      status: tech.feasibility === 'blocked' ? 'Not recommended' : tech.feasibility === 'allowed' ? 'Standard' : 'Not tested',
     },
     {
       label: 'Veneer',
@@ -340,7 +341,7 @@ export function LinarProductInfo({
             label: 'Rear illumination study',
             value:
               config.backlightMode === 'on'
-                ? `Concept preview - ${config.backlightIntensity}%`
+                ? 'On · fixed 100%'
                 : 'Off',
             hint:
               config.backlightMode === 'on'
@@ -358,7 +359,7 @@ export function LinarProductInfo({
             hint:
               config.application === 'freestanding'
                 ? `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm; ${LINAR_FELT_METADATA.representativeVisualThicknessMm} mm visual layer; screen approximation`
-                : `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. Mounted cavity depth is a visual-only construction study; installed thickness is not specified.`,
+                : `Opaque wool felt; ${LINAR_FELT_METADATA.thicknessRangeMm[0]}–${LINAR_FELT_METADATA.thicknessRangeMm[1]} mm confirmed product range. Continuous full-panel backing between the wood and the support battens; 2 mm visual layer.`,
             status: config.application === 'freestanding' ? undefined : 'Not tested',
           },
         ] satisfies Row[])
@@ -379,12 +380,35 @@ export function LinarProductInfo({
     },
   ]
 
+  const groups = [
+    { title: 'Dimensions & material', rows: [] as Row[] },
+    { title: 'Bending & open area', rows: [] as Row[] },
+    { title: 'Construction & backing', rows: [] as Row[] },
+    { title: 'Cutting details', rows: [] as Row[] },
+    { title: 'Evidence & production', rows: [] as Row[] },
+  ]
+  for (const row of rows) {
+    const group = /Production|Physical evidence|Feasibility|status/i.test(row.label) ? 4
+      : /radius|bending|curve|open area/i.test(row.label) ? 1
+      : /Backing|Felt|Fleece|Support|Application|illumination|repetition/i.test(row.label) ? 2
+      : /bridge|cutting|Blade|overcut|Incision|Cut \/ lamella/i.test(row.label) ? 3 : 0
+    groups[group].rows.push(row)
+  }
+
   return (
     <section className="linar-info" aria-labelledby="linar-info-title">
       <h2 id="linar-info-title" className="linar-info__title">
-        LINAR
+        Technical status
       </h2>
-      <ul className="linar-info__list">
+      <div className="linar-tech-overview">
+        <p><span>{hasSecondaryCurve ? 'Base sample' : 'Selected configuration'}</span><strong className={statusClass(tech.status)}>{tech.status}</strong></p>
+        {hasSecondaryCurve ? <p><span>S-curve</span><strong className={statusClass('Not tested')}>Visual study · Not tested</strong></p> : null}
+        <p><span>Selected radius</span><strong>{selectedRadiusMm == null ? 'Flat' : formatMm(selectedRadiusMm)}</strong></p>
+        <p><span>Open area · incised</span><strong>{formatPct(tech.displayedIncisedOpenAreaPercent)}</strong></p>
+      </div>
+      <details className="linar-inline-details">
+        <summary>About these values</summary>
+        <ul className="linar-info__list">
         <li>
           Minimum bending radius depends on material, thickness and incision geometry. Reference
           values are shown where a matching authoritative record is available; physical evidence
@@ -399,29 +423,35 @@ export function LinarProductInfo({
           installed repetition represents the trimmed usable area. Actual dimensions vary by base
           material and manufacturing partner.
         </li>
-      </ul>
+        </ul>
+      </details>
 
       <details className="linar-acc linar-acc--tech" data-tour-id="technical-data">
         <summary className="linar-acc__sum">Technical data</summary>
-        <dl className="linar-spec">
-          {rows.map((row, index) => (
-            <div
-              className="linar-spec__row"
-              data-tour-id={row.tourId}
-              key={`${row.label}-${index}`}
-            >
-              <dt>{row.label}</dt>
-              <dd>
-                {row.status ? (
-                  <span className={statusClass(row.status)}>{row.value}</span>
-                ) : (
-                  row.value
-                )}
-                {row.hint ? <span className="linar-spec__hint">{row.hint}</span> : null}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {groups.map((group) => group.rows.length > 0 ? (
+          <section className="linar-tech-group" key={group.title}>
+            <h3>{group.title}</h3>
+            <dl className="linar-spec">
+              {group.rows.map((row, index) => (
+                <div className="linar-spec__row" data-tour-id={row.tourId} key={`${row.label}-${index}`}>
+                  <dt>{row.label}</dt>
+                  <dd>
+                    {row.status ? <span className={statusClass(row.status)}>{row.value}</span> : row.value}
+                    {row.hint ? (
+                      <details className="linar-spec__note">
+                        <summary aria-label={`Details: ${row.label}`}>Details</summary>
+                        <p>{row.hint}</p>
+                      </details>
+                    ) : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ) : null)}
+        <details className="linar-inline-details linar-tech-notes">
+          <summary>Sources &amp; additional notes</summary>
+          <div className="linar-inline-details__body">
         {tech.referenceOpenAreaPercent != null ? (
           <p className="linar-note">
             Approximate chart reference for the incised area:{' '}
@@ -446,6 +476,8 @@ export function LinarProductInfo({
           </p>
         ) : null}
         <p className="linar-note">{PARTNER_CONFIRMATION_NOTE}</p>
+          </div>
+        </details>
       </details>
 
       <a className="linar-info__link" href={LINAR_URL} target="_blank" rel="noopener noreferrer">

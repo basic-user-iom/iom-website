@@ -108,3 +108,11 @@
 }
 
 .linar-light-orb-cue.linar-light-handles::before { display: none; }
+
+.linar-rear-light {
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--linar-line);
+}
+.linar-rear-light .linar-viewport-menu__hint { margin-top: 0.65rem; text-align: left; }
+.linar-viewport-light-panel__head button:disabled { opacity: 0.4; cursor: not-allowed; }

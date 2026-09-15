@@ -11,7 +11,9 @@ import {
   maxRenderedNormalOffsetM,
   slatLayout,
 } from './bendMath'
+import { makeInstallationBendState } from './installationBend'
 import { createLinarPanel } from './LinarPanel'
+import { createLinarAntialiasRenderer } from './LinarAntialiasRenderer'
 import { LINAR_FELT_BACKING_OBJECT_NAMES } from './feltBackingGeometry'
 import {
   linarLightSurfaceClearanceM,
@@ -47,14 +49,14 @@ type Props = {
   targetSecondaryCurveRef: { current: number }
   config: LinarConfig
   tech: LinarTech
-  findLightToken: number
-  resetViewToken: number
+  findLightRevision: number
+  resetViewRevision: number
   viewPreset: LinarViewId
   side: LinarSide
-  viewToken: number
+  viewRevision: number
   tourActive: boolean
   cinematicActive: boolean
-  cinematicToken: number
+  cinematicRevision: number
   lightState: LinarLightState
   introStarted: boolean
   interactedRef: { current: boolean }
@@ -206,13 +208,14 @@ function signedDistanceToApplicationPlane(
   return frame.roomNormal.dot(point) - frame.roomNormal.dot(frame.planePoint)
 }
 
-/** Keep both camera and orbit target in the room-side half-space. */
+/** Keep the camera above the floor while permitting both sides of mounted hosts. */
 function constrainCameraToApplication(
   camera: THREE.PerspectiveCamera,
   controls: OrbitControls,
   application: LinarApplication,
 ): boolean {
-  const frame = applicationFrame(application)
+  const frame = application === 'freestanding'
+    ? applicationFrame(application) : FLOOR_APPLICATION_FRAME
   let changed = false
   const targetMinimum = Math.max(0.004, frame.installationClearanceM * 0.5)
   const targetDistance = signedDistanceToApplicationPlane(controls.target, frame)
@@ -222,10 +225,18 @@ function constrainCameraToApplication(
   }
   const cameraDistance = signedDistanceToApplicationPlane(camera.position, frame)
   if (cameraDistance < frame.cameraClearanceM) {
-    camera.position.addScaledVector(
-      frame.roomNormal,
-      frame.cameraClearanceM - cameraDistance,
-    )
+    // Retain the fitted distance when a ceiling overview reaches the floor.
+    const radius = camera.position.distanceTo(controls.target)
+    const dx = camera.position.x - controls.target.x
+    const dz = camera.position.z - controls.target.z
+    camera.position.addScaledVector(frame.roomNormal, frame.cameraClearanceM - cameraDistance)
+    const horizontal = Math.hypot(dx, dz)
+    const dy = camera.position.y - controls.target.y
+    const fittedHorizontal = Math.sqrt(Math.max(0, radius * radius - dy * dy))
+    if (horizontal > 0.000001) {
+      camera.position.x = controls.target.x + dx * fittedHorizontal / horizontal
+      camera.position.z = controls.target.z + dz * fittedHorizontal / horizontal
+    }
     changed = true
   }
   if (changed) camera.lookAt(controls.target)
@@ -242,11 +253,9 @@ function setApplicationOrbitLimits(
     controls.maxPolarAngle = Math.PI
     return
   }
-  if (application === 'ceiling') {
-    // OrbitControls measures phi from +Y. Ceiling cameras live below the
-    // ceiling plane, so their valid authored hemisphere is the lower one.
-    controls.minPolarAngle = Math.PI / 2 + 0.06
-    controls.maxPolarAngle = Math.PI - 0.18
+  if (application !== 'freestanding') {
+    controls.minPolarAngle = 0.02
+    controls.maxPolarAngle = Math.PI - 0.02
     return
   }
   controls.minPolarAngle = DEFAULT_MIN_POLAR_ANGLE
@@ -325,54 +334,6 @@ const SUPPORT_PATH_SAMPLES_PER_PANEL = 56
 
 function clampedPanelCount(value: number): number {
   return clampLinarPanelCount(value)
-}
-
-/**
- * Repetition represents one continuous installation rather than N complete
- * copies of the same turn laid over one another. Distribute the requested
- * visual turn across the modules so the whole row retains the selected overall
- * gesture, remains tangent-connected, and never collapses into stacked loops.
- * Technical radius/status values remain the single-panel references shown in
- * the information panel.
- */
-function installationPanelBend(
-  bend: number,
-  panelCount: number,
-  referenceRadiusMm: number | null,
-  bendableWidthM: number,
-  panelWidthM = PANEL_WIDTH_M,
-): number {
-  const count = clampedPanelCount(panelCount)
-  if (count === 1 || Math.abs(bend) < 0.000001) return bend
-
-  // The controller is not angular: at tighter radii the active width reduces
-  // and the turn caps at a half-circle. Dividing the controller value by the
-  // panel count can therefore turn a four-panel row through almost 360 degrees.
-  // Instead, solve for the controller value that gives every module one Nth
-  // of the selected single-panel turn. The connected installation preserves
-  // the requested overall gesture without wrapping modules over one another.
-  const direction = Math.sign(bend)
-  const requestedState = makeBendState(
-    bend,
-    panelWidthM,
-    referenceRadiusMm,
-    bendableWidthM,
-  )
-  const targetModuleAngle = requestedState.alpha / count
-  let low = 0
-  let high = Math.abs(bend)
-  for (let step = 0; step < 24; step += 1) {
-    const candidate = (low + high) * 0.5
-    const candidateAngle = makeBendState(
-      candidate * direction,
-      panelWidthM,
-      referenceRadiusMm,
-      bendableWidthM,
-    ).alpha
-    if (candidateAngle < targetModuleAngle) low = candidate
-    else high = candidate
-  }
-  return direction * (low + high) * 0.5
 }
 
 function transformPlanPoint(
@@ -484,19 +445,9 @@ function panelPlanBounds(
   secondaryCurveAmount: number,
 ): PlanBounds {
   const layout = slatLayout(config)
-  const effectiveBend = installationPanelBend(
-    bend,
-    config.panelCount,
-    tech.referenceMinimumRadiusMm,
-    layout.incisedWidthM,
-    layout.panelWidthM,
-  )
-  const state = makeBendState(
-    effectiveBend,
-    layout.panelWidthM,
-    tech.referenceMinimumRadiusMm,
-    layout.incisedWidthM,
-    secondaryCurveAmount,
+  const state = makeInstallationBendState(
+    bend, config.panelCount, layout.panelWidthM, tech.referenceMinimumRadiusMm,
+    layout.incisedWidthM, secondaryCurveAmount,
     maxRenderedNormalOffsetM(layout.thicknessM, config.backing !== 'none'),
   )
   const placements = panelPlacementsForState(
@@ -558,13 +509,8 @@ function panelPlanBounds(
     layout.thicknessM,
     config.backing !== 'none',
   )
-  // Mounted wool is rendered inside the timber cavities rather than as a
-  // continuous sheet behind the panel. The support therefore starts at the
-  // real panel rear; the broader safety AABB above remains conservative.
-  const supportRearSurfaceOffsetM =
-    config.backing === 'felt' && config.application !== 'freestanding'
-      ? layout.thicknessM * 0.5
-      : normalOffsetM
+  // The continuous backing sits between the panel and every support member.
+  const supportRearSurfaceOffsetM = normalOffsetM
   const seamPose = { x: 0, z: 0, rotY: 0 }
   curveElement(
     layout.panelWidthM * 0.5,
@@ -903,6 +849,7 @@ function viewPlacement(
           )
         : new THREE.Vector3(centreX, installationHeight * 0.5, localCentreZ)
 
+  const rearInspection = side === 'back' || id === 'reverse'
   if (id === 'top') {
     const topDirection =
       application === 'ceiling'
@@ -935,7 +882,7 @@ function viewPlacement(
         // for freestanding and wall installations without crossing the host.
         dir: new THREE.Vector3(
           side === 'back' ? -0.035 : 0.035,
-          -1,
+          rearInspection ? 1 : -1,
           0.012,
         ).normalize(),
         target,
@@ -963,9 +910,8 @@ function viewPlacement(
       }
     }
     if (id === 'reverse') {
-      // Back-side inspection flips the same installation toward the room;
-      // the camera itself never crosses above the ceiling plane.
-      const dir = new THREE.Vector3(-0.2, -0.88, -0.42).normalize()
+      // Inspect the stationary installation from above its ghosted ceiling.
+      const dir = new THREE.Vector3(-0.2, 0.88, -0.42).normalize()
       return {
         dir,
         target,
@@ -973,7 +919,7 @@ function viewPlacement(
         bg: BG,
       }
     }
-    const dir = new THREE.Vector3(0.28, -0.9, 0.34).normalize()
+    const dir = new THREE.Vector3(0.28, rearInspection ? 0.9 : -0.9, 0.34).normalize()
     return {
       dir,
       target,
@@ -985,7 +931,7 @@ function viewPlacement(
     const dist = fitDistance(camera, 1.15, 1.2, installationWidth, installationHeight)
     if (id === 'closeup') {
       return {
-        dir: new THREE.Vector3(side === 'back' ? -0.035 : 0.035, 0.012, 1).normalize(),
+        dir: new THREE.Vector3(side === 'back' ? -0.035 : 0.035, 0.012, rearInspection ? -1 : 1).normalize(),
         target: mid.clone(),
         dist: 0.52,
         bg: 0xc7c8c6,
@@ -1006,7 +952,7 @@ function viewPlacement(
       }
     }
     if (id === 'reverse') {
-      const dir = new THREE.Vector3(-0.16, 0.035, 1).normalize()
+      const dir = new THREE.Vector3(-0.16, 0.035, -1).normalize()
       return {
         dir,
         target: mid.clone(),
@@ -1015,7 +961,7 @@ function viewPlacement(
       }
     }
     if (id === 'bent') {
-      const dir = new THREE.Vector3(0.48, 0.25, 0.84).normalize()
+      const dir = new THREE.Vector3(0.48, 0.25, rearInspection ? -0.84 : 0.84).normalize()
       return {
         dir,
         target: mid.clone(),
@@ -1023,7 +969,7 @@ function viewPlacement(
         bg: BG,
       }
     }
-    const dir = new THREE.Vector3(side === 'back' ? -0.12 : 0.12, 0.05, 1).normalize()
+    const dir = new THREE.Vector3(side === 'back' ? -0.12 : 0.12, 0.05, rearInspection ? -1 : 1).normalize()
     return {
       dir,
       target: mid.clone(),
@@ -1147,8 +1093,9 @@ function applyView(
   camera.position.copy(place.target).addScaledVector(place.dir, place.dist)
   controls.target.copy(place.target)
   camera.lookAt(place.target)
-  controls.minDistance = Math.max(0.18, place.dist * 0.22)
-  controls.maxDistance = place.dist * 4.5
+  const overview = viewPlacement('hero', camera, side, application, planBounds, panelCount)
+  controls.minDistance = preset === 'top' ? Math.max(0.18, place.dist * 0.22) : 0.18
+  controls.maxDistance = Math.max(place.dist, overview.dist) * 4.5
   controls.update()
   constrainCameraToApplication(camera, controls, application)
   controls.enableDamping = damping
@@ -1160,14 +1107,14 @@ export function LinarScene({
   targetSecondaryCurveRef,
   config,
   tech,
-  resetViewToken,
-  findLightToken,
+  resetViewRevision,
+  findLightRevision,
   viewPreset,
   side,
-  viewToken,
+  viewRevision,
   tourActive,
   cinematicActive,
-  cinematicToken,
+  cinematicRevision,
   lightState,
   introStarted,
   interactedRef,
@@ -1188,14 +1135,14 @@ export function LinarScene({
   const onIntroBendRef = useRef(onIntroBend)
   const onIntroCompleteRef = useRef(onIntroComplete)
   const onUnavailableRef = useRef(onUnavailable)
-  const findLightTokenRef = useRef(findLightToken)
-  const resetViewTokenRef = useRef(resetViewToken)
+  const findLightRevisionRef = useRef(findLightRevision)
+  const resetViewRevisionRef = useRef(resetViewRevision)
   const viewPresetRef = useRef(viewPreset)
   const sideRef = useRef(side)
-  const viewTokenRef = useRef(viewToken)
+  const viewRevisionRef = useRef(viewRevision)
   const tourActiveRef = useRef(tourActive)
   const cinematicActiveRef = useRef(cinematicActive)
-  const cinematicTokenRef = useRef(cinematicToken)
+  const cinematicRevisionRef = useRef(cinematicRevision)
   const lightStateRef = useRef(lightState)
   const introStartedRef = useRef(introStarted)
   const onLightChangeRef = useRef(onLightChange)
@@ -1203,20 +1150,20 @@ export function LinarScene({
   const onCinematicStageRef = useRef(onCinematicStage)
   const onCinematicCompleteRef = useRef(onCinematicComplete)
 
-  findLightTokenRef.current = findLightToken
+  findLightRevisionRef.current = findLightRevision
   configRef.current = config
   techRef.current = tech
   onUserInteractRef.current = onUserInteract
   onIntroBendRef.current = onIntroBend
   onIntroCompleteRef.current = onIntroComplete
   onUnavailableRef.current = onUnavailable
-  resetViewTokenRef.current = resetViewToken
+  resetViewRevisionRef.current = resetViewRevision
   viewPresetRef.current = viewPreset
   sideRef.current = side
-  viewTokenRef.current = viewToken
+  viewRevisionRef.current = viewRevision
   tourActiveRef.current = tourActive
   cinematicActiveRef.current = cinematicActive
-  cinematicTokenRef.current = cinematicToken
+  cinematicRevisionRef.current = cinematicRevision
   lightStateRef.current = lightState
   introStartedRef.current = introStarted
   onLightChangeRef.current = onLightChange
@@ -1232,7 +1179,7 @@ export function LinarScene({
     let renderer: THREE.WebGLRenderer
     try {
       renderer = new THREE.WebGLRenderer({
-        antialias: true,
+        antialias: false,
         alpha: false,
         powerPreference: 'high-performance',
         stencil: false,
@@ -1252,11 +1199,7 @@ export function LinarScene({
       configRef.current.application !== 'freestanding' &&
       initialBackingProfile.lightTransmission > 0 &&
       configRef.current.backlightMode === 'on'
-        ? THREE.MathUtils.clamp(
-            configRef.current.backlightIntensity / 100,
-            0.1,
-            1,
-          ) * initialBackingProfile.lightTransmission
+        ? initialBackingProfile.lightTransmission
         : 0
     const initialBacklightEnabled = initialBacklightStrength > 0.002
     const initialLightingStudy = initialOrbLightEnabled || initialBacklightEnabled
@@ -1432,21 +1375,29 @@ export function LinarScene({
       coarsePointer ||
       window.innerWidth < 900 ||
       (navigator.hardwareConcurrency ?? 4) < 8
-    const maximumPixelRatio = softwareRenderer ? 0.65 : compactShadowMap ? 1.15 : 1.5
-    const devicePixelRatio = window.devicePixelRatio || 1
-    const basePixelRatio = Math.min(devicePixelRatio, maximumPixelRatio)
-    // Keep the long INTRO at a stable camera cadence. The model and 2048 px
-    // shadow map retain their detail; only the temporary canvas supersample is
-    // capped, then the normal device-aware ratio returns after the cinematic.
-    const cinematicPixelRatio = Math.min(basePixelRatio, 1.15)
-    renderer.setPixelRatio(basePixelRatio)
+    // Keep one quality level during INTRO and interaction. Bound both total
+    // pixels and target dimensions so large/high-DPI screens stay affordable.
+    const preferredPixelRatio = softwareRenderer ? 0.85 : compactShadowMap ? 1.25 : 2
+    const maximumRenderPixels = softwareRenderer ? 750_000 : compactShadowMap ? 2_000_000 : 6_000_000
+    const renderPixelRatio = () => {
+      const width = Math.max(mount.clientWidth, 1)
+      const height = Math.max(mount.clientHeight, 1)
+      const maxEdge = Math.min(renderer.capabilities.maxTextureSize, 4096)
+      return Math.min(preferredPixelRatio, Math.sqrt(maximumRenderPixels / (width * height)),
+        maxEdge / width, maxEdge / height)
+    }
+    renderer.setPixelRatio(renderPixelRatio())
+    const antialias = createLinarAntialiasRenderer(renderer, {
+      software: softwareRenderer, compact: compactShadowMap,
+    })
+    scene.userData.linarRendering = antialias.diagnostics
     // Software WebGL cannot sustain a live, perforation-accurate shadow pass
     // over thousands of manufactured elements. Preserve the full geometry and
     // lighting, but omit the shadow map on that fallback renderer so the
     // configurator remains interactive. Hardware WebGL always keeps it on.
     renderer.shadowMap.enabled = !softwareRenderer
     key.castShadow = !softwareRenderer
-    const shadowMapSize = compactShadowMap ? 1024 : 2048
+    const shadowMapSize = compactShadowMap ? 1024 : 4096
     key.shadow.mapSize.set(shadowMapSize, shadowMapSize)
     key.shadow.camera.near = 0.15
     key.shadow.camera.far = 44
@@ -1458,12 +1409,8 @@ export function LinarScene({
     key.shadow.bias = 0
     key.shadow.normalBias = 0.00018
     key.shadow.radius = initialLightingStudy
-      ? compactShadowMap
-        ? 0.6
-        : 0.7
-      : compactShadowMap
-        ? 0.55
-        : 0.75
+      ? compactShadowMap ? 1 : 1.5
+      : compactShadowMap ? 1.25 : 2
     key.shadow.intensity = initialLightingStudy
       ? LIGHT_STUDY_SHADOW_INTENSITY
       : STUDIO_SHADOW_INTENSITY
@@ -1743,8 +1690,7 @@ export function LinarScene({
 
     const applyFeltOuterCapVisibility = () => {
       const showFelt = configRef.current.backing === 'felt'
-      const showPanelAttachedFelt =
-        showFelt && configRef.current.application === 'freestanding'
+      const showPanelAttachedFelt = showFelt
       const lastPanel = panelFeltCaps.length - 1
       for (let index = 0; index < panelFeltCaps.length; index += 1) {
         const caps = panelFeltCaps[index]
@@ -1807,22 +1753,11 @@ export function LinarScene({
 
     const applyPanelArrangement = () => {
       const arrangementConfig = configRef.current
-      const arrangementState = makeBendState(
-        installationPanelBend(
-          displayedBend,
-          arrangementConfig.panelCount,
-          techRef.current.referenceMinimumRadiusMm,
-          arrangementLayout.incisedWidthM,
-          arrangementLayout.panelWidthM,
-        ),
-        arrangementLayout.panelWidthM,
-        techRef.current.referenceMinimumRadiusMm,
-        arrangementLayout.incisedWidthM,
+      const arrangementState = makeInstallationBendState(
+        displayedBend, arrangementConfig.panelCount, arrangementLayout.panelWidthM,
+        techRef.current.referenceMinimumRadiusMm, arrangementLayout.incisedWidthM,
         displayedSecondaryCurve,
-        maxRenderedNormalOffsetM(
-          arrangementLayout.thicknessM,
-          arrangementConfig.backing !== 'none',
-        ),
+        maxRenderedNormalOffsetM(arrangementLayout.thicknessM, arrangementConfig.backing !== 'none'),
       )
       const placements = panelPlacementsForState(
         arrangementConfig.panelCount,
@@ -1852,6 +1787,7 @@ export function LinarScene({
       opacity: 0,
       depthWrite: false,
     })
+    contextWallMaterial.side = THREE.DoubleSide
     const contextWall = new THREE.Mesh(contextWallGeometry, contextWallMaterial)
     contextWall.name = 'LinarWallContext'
     contextWall.position.set(0, PANEL_HEIGHT_M * 0.5, WALL_PLANE_Z)
@@ -1892,16 +1828,11 @@ export function LinarScene({
     let introElapsed = 0
     let lastIntroEmit = -1
     panel.setBend(
-      installationPanelBend(
-        displayedBend,
-        configRef.current.panelCount,
-        techRef.current.referenceMinimumRadiusMm,
-        arrangementLayout.incisedWidthM,
-        arrangementLayout.panelWidthM,
-      ),
-      techRef.current.referenceMinimumRadiusMm,
-      displayedSecondaryCurve,
-    )
+          displayedBend,
+          techRef.current.referenceMinimumRadiusMm,
+          displayedSecondaryCurve,
+          configRef.current.panelCount,
+        )
     applyPanelArrangement()
     panel.setMaterial(
       configRef.current.material,
@@ -1929,7 +1860,7 @@ export function LinarScene({
     let cameraDriftElapsed = 0
     let startupCinematicElapsed = 0
     let startupCinematicStartedAt = performance.now()
-    let startupCinematicRunToken = cinematicTokenRef.current
+    let startupCinematicRunRevision = cinematicRevisionRef.current
     let startupCinematicWasActive = cinematicActiveRef.current
     let startupCinematicStage = -1
     let startupCinematicCompleted = false
@@ -1973,10 +1904,7 @@ export function LinarScene({
       ) {
         return 0
       }
-      return (
-        THREE.MathUtils.clamp(activeConfig.backlightIntensity / 100, 0.1, 1) *
-        backingProfile.lightTransmission
-      )
+      return backingProfile.lightTransmission
     }
 
     const setPresentationTarget = (immediate = false) => {
@@ -2008,16 +1936,13 @@ export function LinarScene({
 
       if (application === 'wall') {
         presentationTargetPosition.z = WALL_PLANE_Z
-        // In Behind mode the fixed opaque host would conceal the real orb and
-        // make its depth-tested handle impossible to use. LIGHT already turns
-        // the room black, so hide only this contextual receiver for the visual
-        // rear-source study; installation anchoring itself never changes.
-        wallOpacityGoal = technicalTop || behindLightStudy ? 0 : 1
+        // The host stays opaque in front and ghosts when the camera moves behind it.
+        wallOpacityGoal = technicalTop ? 0 : 1
         floorShadowOpacityGoal = technicalTop ? 0 : STUDIO_WALL_SHADOW_OPACITY
       } else if (application === 'ceiling') {
         presentationTargetPosition.set(0, CEILING_PLANE_Y, -installationHeight * 0.5)
         presentationTargetEuler.x = Math.PI / 2
-        ceilingOpacityGoal = technicalTop || behindLightStudy ? 0 : 1
+        ceilingOpacityGoal = technicalTop ? 0 : 1
         ceilingLightGoal = technicalTop ? 0 : 0.62
         // Ceiling mode has its own contact-shadow receiver. Keeping the studio
         // floor receiver active creates a second, physically unrelated shadow.
@@ -2070,38 +1995,22 @@ export function LinarScene({
 
     const applyInstallationFrame = (bounds = currentPlanBounds()) => {
       const application = configRef.current.application
-      const inspectionFlip =
-        application !== 'freestanding' &&
-        (sideRef.current === 'back' || currentPreset === 'reverse')
-      installationRoot.rotation.set(0, inspectionFlip ? Math.PI : 0, 0)
+      installationRoot.rotation.set(0, 0, 0)
       installationRoot.position.set(0, 0, 0)
-
       if (application !== 'freestanding') {
-        // Both wall and ceiling use the panel's local +Z as their room-facing
-        // normal. Rotating the same physical installation for Back inspection
-        // swaps the relevant extremum without moving the architectural plane.
-        const facingMinZ = inspectionFlip
-          ? -bounds.installationMaxZ
-          : bounds.installationMinZ
         installationRoot.position.z =
-          applicationFrame(application).installationClearanceM - facingMinZ
+          applicationFrame(application).installationClearanceM - bounds.installationMinZ
       }
 
       const extentX = Math.max(0.1, bounds.maxX - bounds.minX)
-      const showCavityInfill =
-        application !== 'freestanding' && configRef.current.backing === 'felt'
-      supportGrid.setCavityInfill(
-        showCavityInfill,
-        findFeltColour(configRef.current.feltColour).swatch,
-      )
+      // Felt is a continuous panel-attached layer, not infill between battens.
+      supportGrid.setCavityInfill(false, findFeltColour(configRef.current.feltColour).swatch)
       supportGrid.update({
         application,
         panelCount: configRef.current.panelCount,
         bounds,
       })
-      // Cavity infill is split around the timber lattice. Keep all members
-      // present so rear and oblique inspection shows the actual construction;
-      // the opaque infill itself blocks transmission through each open bay.
+      // Supports remain behind the opaque felt and can be inspected from the rear.
       supportGrid.group.visible = application !== 'freestanding'
       supportGrid.setInternalMembersVisible(true)
       applyFeltOuterCapVisibility()
@@ -2773,8 +2682,10 @@ export function LinarScene({
         currentPreset,
         configRef.current.application,
       )
-      controls.minDistance = Math.max(0.18, placement.dist * 0.22)
-      controls.maxDistance = placement.dist * 4.5
+      const overview = viewPlacement('hero', camera, sideRef.current,
+        configRef.current.application, planBounds, configRef.current.panelCount)
+      controls.minDistance = currentPreset === 'top' ? Math.max(0.18, placement.dist * 0.22) : 0.18
+      controls.maxDistance = Math.max(placement.dist, overview.dist) * 4.5
 
       if (ensureOverviewDistanceAtStart) {
         // The first manual Wall/Ceiling selection can interrupt a close-up or
@@ -2875,7 +2786,7 @@ export function LinarScene({
       if (!disposed && !hasOrbited) applyFrame()
     })
     renderer.compile(scene, camera)
-    renderer.render(scene, camera)
+    antialias.render(scene, camera, true, performance.now())
     requestAnimationFrame(() => {
       if (!disposed) onSceneReadyRef.current()
     })
@@ -2925,9 +2836,7 @@ export function LinarScene({
       if (disposed) return
       const w = mount.clientWidth || 1
       const h = mount.clientHeight || 1
-      renderer.setPixelRatio(
-        cinematicActiveRef.current ? cinematicPixelRatio : basePixelRatio,
-      )
+      renderer.setPixelRatio(renderPixelRatio())
       renderer.setSize(w, h, false)
       controlsChangedSinceRender = true
       if (!hasOrbited) {
@@ -2988,9 +2897,9 @@ export function LinarScene({
       controlsChangedSinceRender = true
     }
 
-    let lastFindLight = findLightTokenRef.current
-    let lastReset = resetViewTokenRef.current
-    let lastView = viewTokenRef.current
+    let lastFindLight = findLightRevisionRef.current
+    let lastReset = resetViewRevisionRef.current
+    let lastView = viewRevisionRef.current
     let authoredTourBendTarget: number | null = null
     let authoredTourSecondaryTarget: number | null = null
     let raf = 0
@@ -3002,7 +2911,6 @@ export function LinarScene({
     let lastActiveLightPlacement: LinarLightState['placement'] = initialOrbLightEnabled
       ? effectiveLightPlacement(lightStateRef.current)
       : 'room'
-    let cinematicRenderScaleWasActive = cinematicActiveRef.current
     let idleRenderElapsed = Number.POSITIVE_INFINITY
     const transitionSpherical = new THREE.Spherical()
     const transitionOffset = new THREE.Vector3()
@@ -3021,14 +2929,6 @@ export function LinarScene({
       const lightModeDt = Math.min(1, elapsedSeconds)
       lastT = now
       shadowRefreshElapsed += elapsedSeconds
-      if (cinematicActiveRef.current !== cinematicRenderScaleWasActive) {
-        cinematicRenderScaleWasActive = cinematicActiveRef.current
-        renderer.setPixelRatio(
-          cinematicRenderScaleWasActive ? cinematicPixelRatio : basePixelRatio,
-        )
-        renderer.setSize(mount.clientWidth || 1, mount.clientHeight || 1, false)
-        controlsChangedSinceRender = true
-      }
       const orbLightEnabled = lightStateRef.current.enabled
       const activeLightPlacement: LinarLightState['placement'] = orbLightEnabled
         ? effectiveLightPlacement(lightStateRef.current)
@@ -3044,15 +2944,15 @@ export function LinarScene({
         invalidateKeyShadow()
       }
 
-      if (resetViewTokenRef.current !== lastReset) {
-        lastReset = resetViewTokenRef.current
+      if (resetViewRevisionRef.current !== lastReset) {
+        lastReset = resetViewRevisionRef.current
         currentPreset = 'hero'
         setPresentationTarget(reducedMotion)
         transitionToFrame()
       }
 
-      if (viewTokenRef.current !== lastView) {
-        lastView = viewTokenRef.current
+      if (viewRevisionRef.current !== lastView) {
+        lastView = viewRevisionRef.current
         // A guided step deliberately coordinates its camera and panel pose.
         // Keep the gentler authored interpolation only for that exact target;
         // the first manual shape edit no longer inherits tour-wide lag.
@@ -3077,15 +2977,10 @@ export function LinarScene({
         currentPreset = viewPresetRef.current
         rebuildPanelReplicas()
         panel.setBend(
-          installationPanelBend(
-            displayedBend,
-            configRef.current.panelCount,
-            techRef.current.referenceMinimumRadiusMm,
-            arrangementLayout.incisedWidthM,
-            arrangementLayout.panelWidthM,
-          ),
+          displayedBend,
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
+          configRef.current.panelCount,
         )
         applyPanelArrangement()
         setPresentationTarget(reducedMotion || currentPreset === 'top')
@@ -3114,15 +3009,10 @@ export function LinarScene({
         lastAppliedBend = displayedBend
         lastAppliedSecondaryCurve = displayedSecondaryCurve
         panel.setBend(
-          installationPanelBend(
-            displayedBend,
-            configRef.current.panelCount,
-            techRef.current.referenceMinimumRadiusMm,
-            arrangementLayout.incisedWidthM,
-            arrangementLayout.panelWidthM,
-          ),
+          displayedBend,
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
+          configRef.current.panelCount,
         )
         rebuildPanelReplicas()
         applyPanelArrangement()
@@ -3166,10 +3056,10 @@ export function LinarScene({
 
       const startupCinematicIsActive = cinematicActiveRef.current
       if (
-        cinematicTokenRef.current !== startupCinematicRunToken ||
+        cinematicRevisionRef.current !== startupCinematicRunRevision ||
         (startupCinematicIsActive && !startupCinematicWasActive)
       ) {
-        startupCinematicRunToken = cinematicTokenRef.current
+        startupCinematicRunRevision = cinematicRevisionRef.current
         startupCinematicElapsed = 0
         startupCinematicStartedAt = now
         startupCinematicStage = -1
@@ -3269,15 +3159,10 @@ export function LinarScene({
         lastAppliedBend = displayedBend
         lastAppliedSecondaryCurve = displayedSecondaryCurve
         panel.setBend(
-          installationPanelBend(
-            displayedBend,
-            configRef.current.panelCount,
-            techRef.current.referenceMinimumRadiusMm,
-            arrangementLayout.incisedWidthM,
-            arrangementLayout.panelWidthM,
-          ),
+          displayedBend,
           techRef.current.referenceMinimumRadiusMm,
           displayedSecondaryCurve,
+          configRef.current.panelCount,
         )
         applyPanelArrangement()
       }
@@ -3354,9 +3239,16 @@ export function LinarScene({
           : 0
       const targetShadowReceiverOpacity =
         lightingStudyEnabled || mountedTechnicalTop ? 0 : floorShadowOpacityGoal
+      const hostOpacity = (application: LinarApplication) => 0.1 + 0.9 *
+        THREE.MathUtils.smoothstep(
+          signedDistanceToApplicationPlane(camera.position, applicationFrame(application)),
+          -0.12, 0.12,
+        )
+      const wallViewOpacityGoal = wallOpacityGoal * hostOpacity('wall')
+      const ceilingViewOpacityGoal = ceilingOpacityGoal * hostOpacity('ceiling')
       const presentationVisualsMoving =
-        Math.abs(contextWallMaterial.opacity - wallOpacityGoal) > 0.001 ||
-        Math.abs(contextCeilingMaterial.opacity - ceilingOpacityGoal) > 0.001 ||
+        Math.abs(contextWallMaterial.opacity - wallViewOpacityGoal) > 0.001 ||
+        Math.abs(contextCeilingMaterial.opacity - ceilingViewOpacityGoal) > 0.001 ||
         Math.abs(shadowReceiverMaterial.opacity - targetShadowReceiverOpacity) > 0.001 ||
         Math.abs(lightStudyReceiverMaterial.opacity - lightStudyFloorOpacityGoal) > 0.001 ||
         Math.abs(targetBacklightStrength - displayedBacklightStrength) > 0.001 ||
@@ -3369,9 +3261,9 @@ export function LinarScene({
         presentationLambda,
       )
       contextWallMaterial.opacity +=
-        (wallOpacityGoal - contextWallMaterial.opacity) * presentationLambda
+        (wallViewOpacityGoal - contextWallMaterial.opacity) * presentationLambda
       contextCeilingMaterial.opacity +=
-        (ceilingOpacityGoal - contextCeilingMaterial.opacity) * presentationLambda
+        (ceilingViewOpacityGoal - contextCeilingMaterial.opacity) * presentationLambda
       shadowReceiverMaterial.opacity +=
         (targetShadowReceiverOpacity - shadowReceiverMaterial.opacity) *
           lightModeLambda
@@ -3600,12 +3492,8 @@ export function LinarScene({
       // falloff.
       const targetKeyPenumbra = lightStudyKeyActive ? 0.38 : 0.84
       const targetShadowRadius = lightStudyKeyActive
-        ? compactShadowMap
-          ? 0.6
-          : 0.7
-        : compactShadowMap
-          ? 0.55
-          : 0.75
+        ? compactShadowMap ? 1 : 1.5
+        : compactShadowMap ? 1.25 : 2
       // Changing the cone and PCF kernel instantly re-quantises every narrow
       // aperture in the shadow map. Ease both values with the light crossfade.
       const nextKeyAngle = THREE.MathUtils.lerp(key.angle, targetKeyAngle, lightModeLambda)
@@ -3667,8 +3555,8 @@ export function LinarScene({
       lightOrb.visible = lightOrbShouldShow || lightOrbVisibility > 0.002
       if (lightDragPointerId != null &&
         (!lightStateRef.current.enabled || lightDragContext !== lightInteractionContext())) finishLightDrag(undefined, false)
-      if (findLightTokenRef.current !== lastFindLight) {
-        lastFindLight = findLightTokenRef.current
+      if (findLightRevisionRef.current !== lastFindLight) {
+        lastFindLight = findLightRevisionRef.current
         frameLightAndPanel()
       }
       const lightOrbSelected = lightDragPointerId != null
@@ -3794,7 +3682,7 @@ export function LinarScene({
       renderer.setClearColor(background, 1)
 
       // Keep the panel/camera on every available RAF while limiting the costly
-      // perforation-accurate 2048 px shadow pass to 30 Hz. This preserves a
+      // perforation-accurate shadow pass to 30 Hz. This preserves a
       // stable silhouette without making the dolly wait for a shadow redraw.
       const shadowRefreshInterval = activeStartupPose
         ? 1 / 30
@@ -3842,8 +3730,8 @@ export function LinarScene({
         configRef.current.application,
       )
       if (cameraConstrained && smoothCameraZoomTargetRadius != null) {
-        // Do not keep pushing against a wall/ceiling half-space after the safe
-        // clamp has become the effective nearest camera position.
+        // Stop accumulating zoom input after the floor becomes the nearest
+        // permitted camera position.
         smoothCameraZoomTargetRadius = camera.position.distanceTo(controls.target)
       }
 
@@ -3923,8 +3811,9 @@ export function LinarScene({
       // Keep the RAF authority alive for immediate input, but stop sending the
       // 400k–1.7m triangle scene to the GPU while it is visually unchanged.
       // A slow safety refresh covers external canvas exposure/occlusion events.
-      if (sceneMoving || idleRenderElapsed >= 0.5) {
-        renderer.render(scene, camera)
+      const renderChanged = sceneMoving || (key.castShadow && key.shadow.needsUpdate)
+      if (renderChanged || antialias.needsRefinement(now) || idleRenderElapsed >= 0.5) {
+        antialias.render(scene, camera, renderChanged, now)
         idleRenderElapsed = 0
         controlsChangedSinceRender = false
       }
@@ -3953,7 +3842,7 @@ export function LinarScene({
     }
     document.addEventListener('visibilitychange', onVisibility)
 
-    resetViewTokenRef.current = resetViewToken
+    resetViewRevisionRef.current = resetViewRevision
     raf = requestAnimationFrame(tick)
 
     return () => {
@@ -4003,6 +3892,7 @@ export function LinarScene({
       lightGuideGeometry.dispose()
       lightGuideMaterial.dispose()
       key.dispose()
+      antialias.dispose()
       renderer.dispose()
       if (lightOrbCue.parentElement === mount) {
         mount.removeChild(lightOrbCue)
