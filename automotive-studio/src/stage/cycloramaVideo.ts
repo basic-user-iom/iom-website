@@ -8,6 +8,7 @@ import {
   SRGBColorSpace,
   VideoTexture,
   type Material,
+  type Object3D,
 } from 'three'
 import type { CycloramaVideoFit } from '../persistence/schema'
 import { idbGetAssetBlob } from '../persistence/localDb'
@@ -17,6 +18,67 @@ export type CycloramaVideoHandle = {
   video: HTMLVideoElement
   texture: VideoTexture
   objectUrl: string
+  /** User/author intends playback; may still be paused for visibility. */
+  preferPlaying: boolean
+  /** Bound wall mesh — used to detect hidden / inactive cyclorama. */
+  mesh: Mesh | null
+}
+
+const HAVE_CURRENT_DATA = 2
+
+function isCycloramaWallActive(mesh: Mesh | null): boolean {
+  if (!mesh) return false
+  let obj: Object3D | null = mesh
+  while (obj) {
+    if (!obj.visible) return false
+    obj = obj.parent
+  }
+  return true
+}
+
+/**
+ * Pause decode + skip GPU uploads when the tab is hidden, the wall is hidden,
+ * or the user paused. VideoTexture.update is invoked every render frame.
+ */
+function syncCycloramaVideoRuntime(handle: CycloramaVideoHandle) {
+  const active = !document.hidden && isCycloramaWallActive(handle.mesh)
+  const shouldPlay = handle.preferPlaying && active
+  if (shouldPlay) {
+    if (handle.video.paused) {
+      void handle.video.play().catch(() => {
+        /* gesture / autoplay policy */
+      })
+    }
+  } else if (!handle.video.paused) {
+    handle.video.pause()
+  }
+}
+
+function attachCycloramaVideoRuntime(handle: CycloramaVideoHandle) {
+  const onVisibility = () => {
+    syncCycloramaVideoRuntime(handle)
+  }
+  document.addEventListener('visibilitychange', onVisibility)
+  ;(handle as CycloramaVideoHandle & { _onVisibility?: () => void })._onVisibility = onVisibility
+
+  // Replace Three's always-upload VideoTexture.update.
+  handle.texture.update = function updateCycloramaVideoTexture(this: VideoTexture) {
+    syncCycloramaVideoRuntime(handle)
+    if (handle.video.paused || document.hidden || !isCycloramaWallActive(handle.mesh)) {
+      return
+    }
+    if (handle.video.readyState >= HAVE_CURRENT_DATA) {
+      this.needsUpdate = true
+    }
+  }
+}
+
+function detachCycloramaVideoRuntime(handle: CycloramaVideoHandle) {
+  const extended = handle as CycloramaVideoHandle & { _onVisibility?: () => void }
+  if (extended._onVisibility) {
+    document.removeEventListener('visibilitychange', extended._onVisibility)
+    extended._onVisibility = undefined
+  }
 }
 
 export type CycloramaVideoRect = {
@@ -203,6 +265,9 @@ function clearContainLetterboxShader(mat: MeshBasicMaterial) {
 
 export function disposeCycloramaVideoHandle(handle: CycloramaVideoHandle | null) {
   if (!handle) return
+  detachCycloramaVideoRuntime(handle)
+  handle.preferPlaying = false
+  handle.mesh = null
   try {
     handle.video.pause()
   } catch {
@@ -254,7 +319,16 @@ export async function loadCycloramaVideoHandle(assetId: string): Promise<Cyclora
   texture.generateMipmaps = false
   // Avoid anisotropic shimmer when the big wall updates every frame.
   texture.anisotropy = 1
-  return { assetId, video, texture, objectUrl }
+  const handle: CycloramaVideoHandle = {
+    assetId,
+    video,
+    texture,
+    objectUrl,
+    preferPlaying: false,
+    mesh: null,
+  }
+  attachCycloramaVideoRuntime(handle)
+  return handle
 }
 
 /** Project video onto the cyclorama as an unlit screen (stable while frames update). */
@@ -272,8 +346,10 @@ export function bindCycloramaVideoToMesh(
     letterboxColor?: number
   },
 ) {
+  handle.mesh = mesh
   handle.video.muted = opts.muted
   handle.video.loop = opts.loop
+  syncCycloramaVideoRuntime(handle)
 
   const vw = handle.video.videoWidth || 16
   const vh = handle.video.videoHeight || 9
@@ -327,15 +403,17 @@ export function bindCycloramaVideoToMesh(
 
 export async function toggleCycloramaPlayback(handle: CycloramaVideoHandle | null): Promise<boolean> {
   if (!handle) return false
-  const { video } = handle
-  if (video.paused) {
-    try {
-      await video.play()
-      return true
-    } catch {
-      return false
-    }
+  if (handle.preferPlaying && !handle.video.paused) {
+    handle.preferPlaying = false
+    handle.video.pause()
+    return true
   }
-  video.pause()
-  return true
+  handle.preferPlaying = true
+  syncCycloramaVideoRuntime(handle)
+  try {
+    if (handle.video.paused) await handle.video.play()
+    return true
+  } catch {
+    return false
+  }
 }

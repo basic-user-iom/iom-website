@@ -389,6 +389,10 @@ export class VehicleLightsController {
   private sequenceId: VehicleLightSequenceId | null = null
   private sequenceElapsed = 0
   private onSequenceCommit: ((groups: Record<VehicleLightGroupId, boolean>) => void) | null = null
+  /** Last blink half-cycle published to emissives / proxies — skip redundant work. */
+  private lastBlinkLeftLit: boolean | null = null
+  private lastBlinkRightLit: boolean | null = null
+  private lastSequenceApplyAt = -1
 
   setOnSequenceCommit(cb: ((groups: Record<VehicleLightGroupId, boolean>) => void) | null) {
     this.onSequenceCommit = cb
@@ -692,6 +696,8 @@ export class VehicleLightsController {
       Boolean(nextState.groups.indicatorRight)
     // Start in the ON half so the first frame after toggling is visibly lit.
     if (nextBlink && !prevBlink) this.blinkPhase = 0
+    this.lastBlinkLeftLit = null
+    this.lastBlinkRightLit = null
     const nextTargets = JSON.stringify(nextState.targets ?? {})
     const nextBeams = JSON.stringify(nextState.beamProxies ?? [])
     const nextIds = cleanedProxies.map((p) => p.id).join('|')
@@ -756,11 +762,13 @@ export class VehicleLightsController {
     if (signals.indicatorLeft != null && signals.indicatorLeft !== this.routeIndicatorLeft) {
       if (signals.indicatorLeft) this.blinkPhase = 0
       this.routeIndicatorLeft = signals.indicatorLeft
+      this.lastBlinkLeftLit = null
       changed = true
     }
     if (signals.indicatorRight != null && signals.indicatorRight !== this.routeIndicatorRight) {
       if (signals.indicatorRight) this.blinkPhase = 0
       this.routeIndicatorRight = signals.indicatorRight
+      this.lastBlinkRightLit = null
       changed = true
     }
     if (changed && this.state) {
@@ -781,21 +789,27 @@ export class VehicleLightsController {
     if (!this.state) return false
     this.sequenceId = id
     this.sequenceElapsed = 0
+    this.lastSequenceApplyAt = -1
     // Start from all-off for welcome, keep current for farewell then fade.
     if (id === 'welcome') {
       for (const g of VEHICLE_LIGHT_GROUP_IDS) this.state.groups[g] = false
     }
     this.applySequenceAt(0)
+    this.lastSequenceApplyAt = 0
+    this.applyEmissive()
+    this.syncProxyVisibility()
     return true
   }
 
   stopSequence(commit = true) {
     if (!this.sequenceId || !this.state) {
       this.sequenceId = null
+      this.lastSequenceApplyAt = -1
       return
     }
     if (commit) this.onSequenceCommit?.({ ...this.state.groups })
     this.sequenceId = null
+    this.lastSequenceApplyAt = -1
   }
 
   isSequencePlaying() {
@@ -807,12 +821,24 @@ export class VehicleLightsController {
 
     if (this.sequenceId) {
       this.sequenceElapsed += dt
-      this.applySequenceAt(this.sequenceElapsed)
+      // Only re-apply when we cross a step boundary (or first tick).
       const steps = this.sequenceId === 'welcome' ? WELCOME_STEPS : FAREWELL_STEPS
+      let applyAt = -1
+      for (const step of steps) {
+        if (step.at > this.sequenceElapsed) break
+        applyAt = step.at
+      }
+      if (applyAt !== this.lastSequenceApplyAt) {
+        this.lastSequenceApplyAt = applyAt
+        this.applySequenceAt(this.sequenceElapsed)
+        this.applyEmissive()
+        this.syncProxyVisibility()
+      }
       const end = steps[steps.length - 1].at + 0.35
       if (this.sequenceElapsed >= end) {
         this.stopSequence(true)
       }
+      return
     }
 
     const blink =
@@ -821,11 +847,18 @@ export class VehicleLightsController {
       this.state.groups.indicatorRight ||
       this.routeIndicatorLeft ||
       this.routeIndicatorRight
-    if (blink || this.sequenceId) {
-      this.blinkPhase += dt
-      this.applyEmissive()
-      this.syncProxyVisibility()
-    }
+    // Steady lamps (or all off): emissives/proxies already synced on setState / setRouteSignals.
+    // Do not touch beams or materials every frame when nothing is blinking.
+    if (!blink) return
+
+    this.blinkPhase += dt
+    const leftLit = this.blinkLit('indicatorLeft')
+    const rightLit = this.blinkLit('indicatorRight')
+    if (leftLit === this.lastBlinkLeftLit && rightLit === this.lastBlinkRightLit) return
+    this.lastBlinkLeftLit = leftLit
+    this.lastBlinkRightLit = rightLit
+    this.applyEmissive()
+    this.syncProxyVisibility()
   }
 
   dispose() {

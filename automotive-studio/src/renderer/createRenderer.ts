@@ -433,7 +433,8 @@ export async function createStudioRenderer(
   const sun = new DirectionalLight(0xfff2e0, 1.15)
   sun.position.set(4, 8, 3)
   sun.castShadow = true
-  sun.shadow.mapSize.set(4096, 4096)
+  // 2048 is enough for product shots; 4096 was a large fill-rate / bandwidth cost.
+  sun.shadow.mapSize.set(2048, 2048)
   // Tight orthographic window around the focus point (vehicle) — not the whole floor.
   // Expanding with floor size made shadows vanish or pixelate far from the origin.
   const SHADOW_HALF = 16
@@ -452,11 +453,12 @@ export async function createStudioRenderer(
   scene.add(sun)
   scene.add(sun.target)
 
-  // Soft fill — also casts so cabin gets a second soft shade pass through open glass.
+  // Soft fill — lighting only. A second shadow map is expensive and rarely worth it;
+  // applyLightsBudget may re-enable for studio Present quality.
   const fill = new DirectionalLight(0xa8c0ff, 0.32)
   fill.position.set(-5, 3, -2)
-  fill.castShadow = true
-  fill.shadow.mapSize.set(1024, 1024)
+  fill.castShadow = false
+  fill.shadow.mapSize.set(512, 512)
   fill.shadow.camera.near = 0.5
   fill.shadow.camera.far = 60
   fill.shadow.camera.left = -10
@@ -501,6 +503,13 @@ export async function createStudioRenderer(
   let renderer: WebGLRenderer
   let backend: RenderBackend = probe.preferred
 
+  const glOpts = {
+    canvas,
+    antialias: true,
+    alpha: false,
+    powerPreference: 'high-performance' as const,
+  }
+
   if (probe.preferred === 'webgpu') {
     try {
       const { WebGPURenderer } = await import('three/webgpu')
@@ -508,6 +517,7 @@ export async function createStudioRenderer(
         canvas,
         antialias: true,
         forceWebGL: false,
+        powerPreference: 'high-performance',
       })
       await gpuRenderer.init()
       renderer = gpuRenderer as unknown as WebGLRenderer
@@ -515,21 +525,22 @@ export async function createStudioRenderer(
     } catch (err) {
       console.warn('[automotive-studio] WebGPU init failed; falling back to WebGL2', err)
       const { WebGLRenderer } = await import('three')
-      renderer = new WebGLRenderer({ canvas, antialias: true, alpha: false })
+      renderer = new WebGLRenderer(glOpts)
       backend = 'webgl2'
       probe.note = `${probe.note} WebGPU init failed; using WebGL2.`
     }
   } else if (probe.preferred === 'webgl2') {
     const { WebGLRenderer } = await import('three')
-    renderer = new WebGLRenderer({ canvas, antialias: true, alpha: false })
+    renderer = new WebGLRenderer(glOpts)
     backend = 'webgl2'
   } else {
     const { WebGLRenderer } = await import('three')
-    renderer = new WebGLRenderer({ canvas, antialias: true, alpha: false })
+    renderer = new WebGLRenderer(glOpts)
     backend = 'unavailable'
   }
 
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
+  // Cap DPR so 4K / high-DPI panels stay readable without 2× fill-rate cost.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
   renderer.shadowMap.enabled = true
   setStageTextureAnisotropy(
     (renderer as WebGLRenderer).capabilities?.getMaxAnisotropy?.() ?? 1,
@@ -714,6 +725,11 @@ export async function createStudioRenderer(
     })
   }
 
+  // Reused across free-drive frames — avoid allocating a maps array / Vector2 each tick.
+  const infiniteFloorMaps: (import('three').Texture | null)[] = []
+  const infiniteFloorUv = new Vector2()
+  let infiniteFloorRepeatCached = -1
+
   const syncInfiniteFloorTextures = (worldX: number, worldZ: number) => {
     const mat = floor.material as MeshStandardMaterial
     const size = INFINITE_FLOOR_METRES
@@ -722,7 +738,8 @@ export async function createStudioRenderer(
     const stageFloorMetres = Math.max(8, Math.min(500, lastStage.floorSize || 28))
     const tiles = Math.max(0.0625, Math.min(1024, lastStage.floor.mapRepeat || 4))
     const repeat = Math.min(4096, (size / stageFloorMetres) * tiles)
-    const maps = [
+    infiniteFloorMaps.length = 0
+    infiniteFloorMaps.push(
       mat.map,
       mat.normalMap,
       mat.roughnessMap,
@@ -730,20 +747,25 @@ export async function createStudioRenderer(
       mat.displacementMap,
       mat.aoMap,
       mat.emissiveMap,
-    ]
-    const world = infiniteFloorTextureOffset(worldX, worldZ, repeat, size)
-    maps.forEach((tex) => {
-      if (!tex) return
-      tex.wrapS = RepeatWrapping
-      tex.wrapT = RepeatWrapping
-      tex.repeat.set(repeat, repeat)
-      tex.center.set(0.5, 0.5)
-      // Break-tiling UV spin/offset rotates the road relative to the car while the
-      // plane follows — world-lock only. Shader detile (uTileVariation) still runs.
-      tex.rotation = 0
+    )
+    const world = infiniteFloorTextureOffset(worldX, worldZ, repeat, size, infiniteFloorUv)
+    const repeatChanged = infiniteFloorRepeatCached !== repeat
+    infiniteFloorRepeatCached = repeat
+    for (let i = 0; i < infiniteFloorMaps.length; i++) {
+      const tex = infiniteFloorMaps[i]
+      if (!tex) continue
+      if (repeatChanged) {
+        tex.wrapS = RepeatWrapping
+        tex.wrapT = RepeatWrapping
+        tex.repeat.set(repeat, repeat)
+        tex.center.set(0.5, 0.5)
+        // Break-tiling UV spin/offset rotates the road relative to the car while the
+        // plane follows — world-lock only. Shader detile (uTileVariation) still runs.
+        tex.rotation = 0
+      }
       tex.offset.copy(world)
-      tex.needsUpdate = true
-    })
+      // Offset-only updates: do not set needsUpdate (that re-uploads pixel data).
+    }
   }
 
   const setInfiniteFloor = (enabled: boolean) => {
@@ -819,7 +841,7 @@ export async function createStudioRenderer(
     enabled: defaults.bloomEnabled,
     strength: defaults.bloomStrength,
     threshold: defaults.bloomThreshold,
-    radius: 0.18,
+    radius: 0.12,
   })
 
   const setSize = (width: number, height: number) => {
@@ -879,11 +901,11 @@ export async function createStudioRenderer(
   }
 
   const applyLightsBudget = (opts: { lite: boolean }) => {
-    // Exterior presets keep fill off (single sun key). Only studio uses fill shadows.
+    // Default: sun key only. Studio Present may add a cheap fill shadow map.
     const visual =
       lastEnv.presetId !== 'custom' ? lastEnv.presetId : lastEnv.basePresetId ?? 'studio'
     fill.castShadow = !opts.lite && visual === 'studio'
-    const sunSize = opts.lite ? 2048 : 4096
+    const sunSize = opts.lite ? 1024 : 2048
     if (sun.shadow.mapSize.x !== sunSize) {
       sun.shadow.mapSize.set(sunSize, sunSize)
       const map = sun.shadow.map
@@ -911,7 +933,7 @@ export async function createStudioRenderer(
         enabled: cfg.bloomEnabled,
         strength: cfg.bloomStrength,
         threshold: cfg.bloomThreshold,
-        radius: 0.18,
+        radius: 0.12,
       })
     },
     applyLightsBudget,

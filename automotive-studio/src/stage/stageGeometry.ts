@@ -12,15 +12,17 @@ export function stageSurfaceNeedsDisplacement(surface: StageSurface): boolean {
  * `CircleGeometry` is only a centre fan (no interior rings), so displacement maps
  * have almost nothing to move and height looks “broken”. This disk keeps the same
  * planar UV convention (`u/v = 0.5 + xy/(2r)`) so albedo/normal packs stay aligned.
+ *
+ * Caps keep displacement usable without a 5k+ vert pad when callers pass studio defaults.
  */
 export function createTessellatedCircleGeometry(
   radius: number,
-  radialSegments = 96,
-  ringCount = 48,
+  radialSegments = 64,
+  ringCount = 32,
 ): BufferGeometry {
   const r = Math.max(0.05, radius)
-  const radials = Math.max(12, Math.floor(radialSegments))
-  const rings = Math.max(4, Math.floor(ringCount))
+  const radials = Math.max(12, Math.min(72, Math.floor(radialSegments)))
+  const rings = Math.max(4, Math.min(36, Math.floor(ringCount)))
 
   const positions: number[] = []
   const normals: number[] = []
@@ -72,6 +74,7 @@ export function createTessellatedCircleGeometry(
 
 /** Infinite-drive plane — dense grid only when height displacement is active. */
 export function createInfiniteFloorGeometry(size: number, displace: boolean): PlaneGeometry {
-  const segs = displace ? 128 : 1
+  // 64² is enough for soft height at drive scale; 128² was ~4× the vertex cost.
+  const segs = displace ? 64 : 1
   return new PlaneGeometry(size, size, segs, segs)
 }

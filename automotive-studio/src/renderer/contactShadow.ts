@@ -21,17 +21,20 @@ export function createContactShadow(): {
 } {
   const size = 4.2
   const geo = new PlaneGeometry(size, size)
+  // 128 is plenty for a soft radial falloff; 256 was mostly free bandwidth.
+  const TEX = 128
   const canvas = document.createElement('canvas')
-  canvas.width = 256
-  canvas.height = 256
+  canvas.width = TEX
+  canvas.height = TEX
   const ctx = canvas.getContext('2d')!
-  const g = ctx.createRadialGradient(128, 128, 6, 128, 128, 118)
+  const mid = TEX * 0.5
+  const g = ctx.createRadialGradient(mid, mid, 3, mid, mid, mid * 0.92)
   g.addColorStop(0, 'rgba(0,0,0,0.42)')
   g.addColorStop(0.4, 'rgba(0,0,0,0.18)')
   g.addColorStop(0.75, 'rgba(0,0,0,0.05)')
   g.addColorStop(1, 'rgba(0,0,0,0)')
   ctx.fillStyle = g
-  ctx.fillRect(0, 0, 256, 256)
+  ctx.fillRect(0, 0, TEX, TEX)
 
   const map = new CanvasTexture(canvas)
   map.colorSpace = SRGBColorSpace
@@ -50,13 +53,29 @@ export function createContactShadow(): {
   mesh.frustumCulled = false
 
   const _pos = new Vector3()
+  let followFrame = 0
+  // Contact blob barely moves visually — skip most world-position reads.
+  const FOLLOW_EVERY = 2
+  const MOVE_EPS_SQ = 0.0004 // ~2 cm
+  let lastX = Number.NaN
+  let lastZ = Number.NaN
+
   const follow = (target: Object3D | null) => {
     if (!target) {
       mesh.visible = false
+      lastX = Number.NaN
+      lastZ = Number.NaN
       return
     }
     mesh.visible = true
+    followFrame++
+    if (followFrame % FOLLOW_EVERY !== 0 && Number.isFinite(lastX)) return
     target.getWorldPosition(_pos)
+    const dx = _pos.x - lastX
+    const dz = _pos.z - lastZ
+    if (Number.isFinite(lastX) && dx * dx + dz * dz < MOVE_EPS_SQ) return
+    lastX = _pos.x
+    lastZ = _pos.z
     mesh.position.x = _pos.x
     mesh.position.z = _pos.z
   }

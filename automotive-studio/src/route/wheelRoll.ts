@@ -22,6 +22,17 @@ const _centre = new Vector3()
 const _invPivot = new Matrix4()
 const _meshToPivot = new Matrix4()
 const _vert = new Vector3()
+const _hubFL = new Vector3()
+const _hubFR = new Vector3()
+const _hubRL = new Vector3()
+const _hubRR = new Vector3()
+const _axleFront = new Vector3()
+const _axleRear = new Vector3()
+const _axleForward = new Vector3()
+const _axleTrack = new Vector3()
+const _axleCentre = new Vector3()
+const _probeFwd = new Vector3()
+const _calibForward = new Vector3()
 
 export type WheelRuntimeBinding = {
   id: WheelBinding['id']
@@ -164,7 +175,7 @@ export function calibrateWheelBindings(
   bindings: WheelRuntimeBinding[],
   forwardWorld: Vector3,
 ): void {
-  const forward = forwardWorld.clone().setY(0)
+  const forward = _calibForward.copy(forwardWorld).setY(0)
   if (forward.lengthSq() < 1e-8) return
   forward.normalize()
 
@@ -216,7 +227,7 @@ export function calibrateWheelBindings(
   const axles = measureAxleGeometry(bindings)
   const probeForward =
     axles && axles.forward.lengthSq() > 1e-8
-      ? axles.forward.clone().setY(0).normalize()
+      ? _probeFwd.copy(axles.forward).setY(0).normalize()
       : forward
   const aimRight = _desired.crossVectors(UP, forward).normalize()
 
@@ -328,33 +339,47 @@ export type AxleGeometry = {
  * The nose is perpendicular to the axle line, so any sideways component is stripped.
  */
 export function measureAxleGeometry(bindings: WheelRuntimeBinding[]): AxleGeometry | null {
-  const hub = (id: WheelRuntimeBinding['id']) => {
+  const hubInto = (id: WheelRuntimeBinding['id'], out: Vector3) => {
     const node = bindings.find((b) => b.id === id && b.rolling)?.rolling
-    return node ? node.getWorldPosition(new Vector3()) : null
+    return node ? node.getWorldPosition(out) : null
   }
-  const fl = hub('FL')
-  const fr = hub('FR')
-  const rl = hub('RL')
-  const rr = hub('RR')
+  const fl = hubInto('FL', _hubFL)
+  const fr = hubInto('FR', _hubFR)
+  const rl = hubInto('RL', _hubRL)
+  const rr = hubInto('RR', _hubRR)
 
-  const axleCentre = (left: Vector3 | null, right: Vector3 | null) =>
-    left && right ? left.clone().add(right).multiplyScalar(0.5) : (left ?? right)
-  const front = axleCentre(fl, fr)
-  const rear = axleCentre(rl, rr)
+  const axleCentre = (
+    left: Vector3 | null,
+    right: Vector3 | null,
+    out: Vector3,
+  ): Vector3 | null => {
+    if (left && right) return out.copy(left).add(right).multiplyScalar(0.5)
+    if (left) return out.copy(left)
+    if (right) return out.copy(right)
+    return null
+  }
+  const front = axleCentre(fl, fr, _axleFront)
+  const rear = axleCentre(rl, rr, _axleRear)
   if (!front || !rear) return null
 
-  const forward = front.clone().sub(rear).setY(0)
-  const track = fl && fr ? fr.clone().sub(fl).setY(0) : rl && rr ? rr.clone().sub(rl).setY(0) : null
-  if (track && track.lengthSq() > 1e-8) {
-    track.normalize()
-    forward.addScaledVector(track, -forward.dot(track))
+  _axleForward.copy(front).sub(rear).setY(0)
+  if (fl && fr) {
+    _axleTrack.copy(fr).sub(fl).setY(0)
+  } else if (rl && rr) {
+    _axleTrack.copy(rr).sub(rl).setY(0)
+  } else {
+    _axleTrack.set(0, 0, 0)
+  }
+  if (_axleTrack.lengthSq() > 1e-8) {
+    _axleTrack.normalize()
+    _axleForward.addScaledVector(_axleTrack, -_axleForward.dot(_axleTrack))
   }
 
   const trackWidth = fl && fr ? fl.distanceTo(fr) : rl && rr ? rl.distanceTo(rr) : 0
   return {
-    forward,
-    centre: front.clone().add(rear).multiplyScalar(0.5),
-    wheelbaseMetres: forward.length(),
+    forward: _axleForward,
+    centre: _axleCentre.copy(front).add(rear).multiplyScalar(0.5),
+    wheelbaseMetres: _axleForward.length(),
     halfTrackMetres: trackWidth / 2,
   }
 }

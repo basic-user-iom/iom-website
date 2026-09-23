@@ -36,19 +36,28 @@ export function qualityLabel(role: VehicleQualityRole): string {
   }
 }
 
+/** Balanced/Mobile LODs are disabled — never decode or activate them. */
+export function isDisabledLodRole(role: string): boolean {
+  return role === 'vehicle-balanced' || role === 'vehicle-mobile'
+}
+
+/** Coerce disabled LODs to High so boot/import never loads those GLBs. */
+export function preferActiveQualityRole(role: VehicleQualityRole): VehicleQualityRole {
+  return isDisabledLodRole(role) ? 'vehicle-high' : role
+}
+
 /** Infer quality slot from offline pipeline filenames. */
 export function inferQualityRoleFromFilename(filename: string): VehicleQualityRole {
   const n = filename.toLowerCase()
   if (n.includes('presentation-high') || /(^|[_\-.])high([_\-.]|$)/.test(n)) return 'vehicle-high'
-  if (n.includes('balanced')) return 'vehicle-balanced'
-  if (n.includes('mobile')) return 'vehicle-mobile'
+  // Balanced/Mobile filenames still map to High — those slots are not loaded.
+  if (n.includes('balanced') || n.includes('mobile')) return 'vehicle-high'
   return 'vehicle-master'
 }
 
 /**
- * Multi-file import: largest → High, mid → Balanced, smallest → Mobile.
- * 2 files → High + Mobile. 1 file → Auto/filename (caller handles).
- * Extra files beyond 3 are tagged Master (largest leftover first).
+ * Multi-file import: largest → High, extras → Master.
+ * Balanced/Mobile slots are not assigned (disabled — High only).
  */
 export function assignQualityRolesByFileSize(
   files: File[],
@@ -58,16 +67,9 @@ export function assignQualityRolesByFileSize(
   if (sorted.length === 1) {
     return [{ file: sorted[0], quality: inferQualityRoleFromFilename(sorted[0].name) }]
   }
-  if (sorted.length === 2) {
-    return [
-      { file: sorted[0], quality: 'vehicle-high' },
-      { file: sorted[1], quality: 'vehicle-mobile' },
-    ]
-  }
-  const roles: VehicleQualityRole[] = ['vehicle-high', 'vehicle-balanced', 'vehicle-mobile']
   return sorted.map((file, i) => ({
     file,
-    quality: i < 3 ? roles[i] : 'vehicle-master',
+    quality: i === 0 ? 'vehicle-high' : 'vehicle-master',
   }))
 }
 
@@ -196,5 +198,5 @@ export function assetRoleForImport(
 ): AssetRecord['role'] {
   if (asProp) return 'prop'
   if (quality === 'auto') return inferQualityRoleFromFilename(filename)
-  return quality
+  return preferActiveQualityRole(quality)
 }

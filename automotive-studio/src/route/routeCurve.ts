@@ -4,6 +4,14 @@ import type { RouteSample } from './routeMath'
 
 const _point = new Vector3()
 const _tangent = new Vector3()
+/** Reused sample — callers must read fields immediately (do not stash across sample/curvatureAt). */
+const _samplePos: [number, number, number] = [0, 0, 0]
+const _sample: RouteSample = {
+  position: _samplePos,
+  yaw: 0,
+  distanceAlong: 0,
+  totalLength: 0,
+}
 
 /**
  * Arc-length parameterized spline through the route points.
@@ -29,26 +37,46 @@ export class RouteCurve {
     return this.length
   }
 
+  private wrapDistance(distanceMetres: number): number {
+    const total = this.length
+    if (!Number.isFinite(total) || total < 1e-6) return 0
+    if (this.closed) return ((distanceMetres % total) + total) % total
+    return Math.min(Math.max(0, distanceMetres), total)
+  }
+
+  /** Yaw only — used by curvature so it never clobbers a live `sample()` result. */
+  private yawAt(distanceMetres: number): number {
+    const total = this.length
+    if (!Number.isFinite(total) || total < 1e-6) return 0
+    const d = this.wrapDistance(distanceMetres)
+    this.curve.getTangentAt(d / total, _tangent)
+    return Math.atan2(_tangent.x, _tangent.z)
+  }
+
   sample(distanceMetres: number): RouteSample {
     const total = this.length
     if (!Number.isFinite(total) || total < 1e-6) {
-      return { position: [0, 0, 0], yaw: 0, distanceAlong: 0, totalLength: 0 }
+      _samplePos[0] = 0
+      _samplePos[1] = 0
+      _samplePos[2] = 0
+      _sample.yaw = 0
+      _sample.distanceAlong = 0
+      _sample.totalLength = 0
+      return _sample
     }
 
-    let d = distanceMetres
-    if (this.closed) d = ((d % total) + total) % total
-    else d = Math.min(Math.max(0, d), total)
-
+    const d = this.wrapDistance(distanceMetres)
     const u = d / total
     this.curve.getPointAt(u, _point)
     this.curve.getTangentAt(u, _tangent)
 
-    return {
-      position: [_point.x, _point.y, _point.z],
-      yaw: Math.atan2(_tangent.x, _tangent.z),
-      distanceAlong: d,
-      totalLength: total,
-    }
+    _samplePos[0] = _point.x
+    _samplePos[1] = _point.y
+    _samplePos[2] = _point.z
+    _sample.yaw = Math.atan2(_tangent.x, _tangent.z)
+    _sample.distanceAlong = d
+    _sample.totalLength = total
+    return _sample
   }
 
   /**
@@ -57,8 +85,8 @@ export class RouteCurve {
    */
   curvatureAt(distanceMetres: number, halfSpanMetres = 0.4): number {
     const span = Math.max(0.05, halfSpanMetres)
-    const behind = this.sample(distanceMetres - span).yaw
-    const ahead = this.sample(distanceMetres + span).yaw
+    const behind = this.yawAt(distanceMetres - span)
+    const ahead = this.yawAt(distanceMetres + span)
     let delta = ahead - behind
     while (delta > Math.PI) delta -= Math.PI * 2
     while (delta < -Math.PI) delta += Math.PI * 2

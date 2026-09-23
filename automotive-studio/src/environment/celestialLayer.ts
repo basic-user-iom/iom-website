@@ -346,7 +346,7 @@ function smoothstep(edge0: number, edge1: number, x: number) {
  * geometry never reads as nested gray squares (the 3e1f7b1 shader falloff
  * still left ~10–25% alpha at mid-edges).
  */
-function createSunGlowTexture(resolution = 256): DataTexture {
+function createSunGlowTexture(resolution = 128): DataTexture {
   const size = Math.max(64, resolution)
   const data = new Uint8Array(size * size * 4)
   const mid = (size - 1) * 0.5
@@ -387,16 +387,14 @@ function createSunGlowBillboard(): Group {
   root.frustumCulled = false
   root.userData.selectiveBloom = false
 
-  const glowMap = createSunGlowTexture(256)
+  const glowMap = createSunGlowTexture(128)
   // Shared across layers — dispose once via celestial dispose Set.
   root.userData.glowTexture = glowMap
 
-  // Nested soft discs (not opaque squares): core → warm bloom → haze → scatter.
+  // Two soft discs (core + wide haze) keep the circular look at half the prior draw cost.
   const layers: Array<{ size: number; opacity: number; color: number }> = [
-    { size: 1.2, opacity: 1, color: 0xfff6e8 },
-    { size: 2.8, opacity: 0.55, color: 0xffe2b0 },
-    { size: 6.2, opacity: 0.22, color: 0xffc878 },
-    { size: 13, opacity: 0.09, color: 0xffb060 },
+    { size: 1.35, opacity: 1, color: 0xfff6e8 },
+    { size: 9.5, opacity: 0.2, color: 0xffc070 },
   ]
 
   for (let i = 0; i < layers.length; i++) {

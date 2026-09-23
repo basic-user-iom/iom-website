@@ -140,6 +140,18 @@ export class HotspotSession {
     polygonOffsetFactor: -1,
     polygonOffsetUnits: -1,
   })
+  private haloSelectedMat = new MeshBasicMaterial({
+    color: 0xd2b48c,
+    transparent: true,
+    opacity: 0.32,
+    blending: AdditiveBlending,
+    side: DoubleSide,
+    depthTest: true,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -1,
+    polygonOffsetUnits: -1,
+  })
   private pickMat = new MeshBasicMaterial({
     transparent: true,
     opacity: 0,
@@ -162,6 +174,8 @@ export class HotspotSession {
   private readonly _basis = new Matrix4()
   private readonly _invMat = new Matrix4()
   private labelTextures = new Map<string, CanvasTexture>()
+  /** Marker-layout fingerprint — content-only hotspot edits must not rebuild meshes. */
+  private markersLayoutKey = ''
 
   bind(
     scene: Scene,
@@ -176,12 +190,14 @@ export class HotspotSession {
     this.camera = camera
     this.canvas = canvas
     canvas.addEventListener('click', this.handleClick)
+    this.markersLayoutKey = hotspotMarkersLayoutKey(this.hotspots)
     this.rebuildMarkers()
   }
 
   setVehiclePlacement(placement: Object3D | null) {
     this.placement = placement
     this.modelRoot = findModelRoot(placement)
+    this.markersLayoutKey = hotspotMarkersLayoutKey(this.hotspots)
     this.rebuildMarkers()
   }
 
@@ -219,6 +235,11 @@ export class HotspotSession {
     if (this.selectedId && !this.hotspots.some((item) => item.id === this.selectedId)) {
       this.selectedId = null
     }
+    const layoutKey = hotspotMarkersLayoutKey(this.hotspots)
+    if (layoutKey === this.markersLayoutKey && this.markers.length === this.hotspots.length) {
+      return
+    }
+    this.markersLayoutKey = layoutKey
     this.rebuildMarkers()
   }
 
@@ -228,6 +249,7 @@ export class HotspotSession {
       const selected = marker.root.userData.hotspotId === id
       marker.core.material = selected ? this.coreSelectedMat : this.coreMat
       marker.ring.material = selected ? this.ringSelectedMat : this.ringMat
+      marker.halo.material = selected ? this.haloSelectedMat : this.haloMat
       const metre = typeof marker.root.userData.metreScale === 'number'
         ? marker.root.userData.metreScale
         : 1
@@ -241,19 +263,20 @@ export class HotspotSession {
     return this.selectedId
   }
 
-  /** Soft pulse only — orientation stays locked to the door surface. */
+  /** Soft pulse only — no canvas/texture rebuilds; orientation stays surface-locked. */
   update() {
     this.pulsePhase += 0.045
     const pulse = 0.55 + 0.35 * Math.sin(this.pulsePhase)
     const ringScale = 1 + 0.12 * Math.sin(this.pulsePhase * 1.15)
+    // Shared materials — one opacity write covers all markers in that state.
+    this.ringMat.opacity = 0.45 + 0.3 * pulse
+    this.ringSelectedMat.opacity = 0.9 + 0.08 * Math.sin(this.pulsePhase)
+    this.haloMat.opacity = 0.12 + 0.14 * pulse
+    this.haloSelectedMat.opacity = 0.32
+    const haloScale = 0.95 + 0.1 * pulse
     for (const marker of this.markers) {
-      const selected = marker.root.userData.hotspotId === this.selectedId
-      const ringMat = marker.ring.material as MeshBasicMaterial
-      const haloMat = marker.halo.material as MeshBasicMaterial
-      ringMat.opacity = selected ? 0.9 + 0.08 * Math.sin(this.pulsePhase) : 0.45 + 0.3 * pulse
-      haloMat.opacity = selected ? 0.32 : 0.12 + 0.14 * pulse
       marker.ring.scale.setScalar(ringScale)
-      marker.halo.scale.setScalar(0.95 + 0.1 * pulse)
+      marker.halo.scale.setScalar(haloScale)
     }
   }
 
@@ -261,6 +284,7 @@ export class HotspotSession {
     this.setPickMeshMode(false)
     this.unbindCanvas()
     this.clearMarkers()
+    this.markersLayoutKey = ''
     this.coreGeo.dispose()
     this.ringGeo.dispose()
     this.haloGeo.dispose()
@@ -271,6 +295,7 @@ export class HotspotSession {
     this.ringMat.dispose()
     this.ringSelectedMat.dispose()
     this.haloMat.dispose()
+    this.haloSelectedMat.dispose()
     this.pickMat.dispose()
     for (const tex of this.labelTextures.values()) tex.dispose()
     this.labelTextures.clear()
@@ -296,12 +321,9 @@ export class HotspotSession {
 
       const core = new Mesh(this.coreGeo, selected ? this.coreSelectedMat : this.coreMat)
       core.renderOrder = 3
-      const ring = new Mesh(
-        this.ringGeo,
-        (selected ? this.ringSelectedMat : this.ringMat).clone(),
-      )
+      const ring = new Mesh(this.ringGeo, selected ? this.ringSelectedMat : this.ringMat)
       ring.renderOrder = 2
-      const halo = new Mesh(this.haloGeo, this.haloMat.clone())
+      const halo = new Mesh(this.haloGeo, selected ? this.haloSelectedMat : this.haloMat)
       halo.renderOrder = 1
       const pick = new Mesh(this.pickGeo, this.pickMat)
       pick.userData.hotspotId = hotspot.id
@@ -412,19 +434,19 @@ export class HotspotSession {
     let tex = this.labelTextures.get(text)
     if (!tex) {
       const canvas = document.createElement('canvas')
-      canvas.width = 512
-      canvas.height = 128
+      canvas.width = 256
+      canvas.height = 64
       const ctx = canvas.getContext('2d')!
-      ctx.clearRect(0, 0, 512, 128)
+      ctx.clearRect(0, 0, 256, 64)
       ctx.fillStyle = 'rgba(12, 14, 18, 0.78)'
-      roundRect(ctx, 16, 24, 480, 80, 18)
+      roundRect(ctx, 8, 12, 240, 40, 10)
       ctx.fill()
-      ctx.font = '600 36px "Segoe UI", system-ui, sans-serif'
+      ctx.font = '600 18px "Segoe UI", system-ui, sans-serif'
       ctx.fillStyle = '#f3e6d4'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       const clipped = text.length > 28 ? `${text.slice(0, 27)}…` : text
-      ctx.fillText(clipped, 256, 64)
+      ctx.fillText(clipped, 128, 32)
       tex = new CanvasTexture(canvas)
       this.labelTextures.set(text, tex)
     }
@@ -446,8 +468,7 @@ export class HotspotSession {
   private clearMarkers() {
     for (const marker of this.markers) {
       marker.root.parent?.remove(marker.root)
-      ;(marker.ring.material as MeshBasicMaterial).dispose()
-      ;(marker.halo.material as MeshBasicMaterial).dispose()
+      // Ring/halo/core use shared session materials — only dispose label mats.
       if (marker.label) {
         const mat = marker.label.material as MeshBasicMaterial
         mat.dispose()
@@ -526,6 +547,30 @@ function findHotspotId(obj: Object3D): string | null {
     cur = cur.parent
   }
   return null
+}
+
+/** Only fields that affect marker meshes / labels — card body edits must not rebuild. */
+function hotspotMarkersLayoutKey(hotspots: Hotspot[]): string {
+  return hotspots
+    .map((h) =>
+      [
+        h.id,
+        h.name,
+        h.markerLabel ?? '',
+        h.markerScale ?? '',
+        h.markerLabelScale ?? '',
+        (h.markerLabelOffset ?? []).join(','),
+        (h.markerRotationDeg ?? []).join(','),
+        h.anchor.offset ?? '',
+        (h.anchor.localPosition ?? []).join(','),
+        (h.anchor.localNormal ?? []).join(','),
+        (h.anchor.fallbackVehicleCoordinate ?? []).join(','),
+        h.anchor.node?.name ?? '',
+        h.anchor.node?.path ?? '',
+        h.anchor.node?.iomId ?? '',
+      ].join('|'),
+    )
+    .join(';')
 }
 
 function roundRect(

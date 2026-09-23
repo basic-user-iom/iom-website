@@ -34,6 +34,8 @@ import {
 
 const _forward = new Vector3()
 const _delta = new Vector3()
+const _size = new Vector3()
+const _prevRot = { x: 0, y: 0, z: 0 }
 const UP = new Vector3(0, 1, 0)
 
 /** Distance over which steer eases toward its target — frame-rate independent. */
@@ -122,6 +124,10 @@ export class RouteSession {
   private activeMarkerIndex = -1
   private onFloorSize: ((metres: number) => void) | null = null
   private lastStress: RouteStressReport | null = null
+  private lastAppliedRollDistance = Number.NaN
+  private lastAppliedSteer = Number.NaN
+  private lastAppliedYaw = Number.NaN
+  private lastAppliedDistKey = Number.NaN
 
   constructor() {
     this.markers.name = 'VehicleRouteWaypoints'
@@ -613,6 +619,10 @@ export class RouteSession {
       this.lastSampledDistance = null
       this.lastSteer = 0
       this.velocityMps = 0
+      this.lastAppliedRollDistance = Number.NaN
+      this.lastAppliedSteer = Number.NaN
+      this.lastAppliedYaw = Number.NaN
+      this.lastAppliedDistKey = Number.NaN
       this.resetBodyRoll()
     } else {
       const len = this.curve?.totalLength ?? 0
@@ -840,41 +850,66 @@ export class RouteSession {
   private applyAtDistance(distanceMetres: number) {
     if (!this.curve || !this.placement) return null
     const sample = this.curve.sample(distanceMetres)
+    // Snapshot before updateSteer → curvatureAt (must not rely on shared sample buffer).
+    const sx = sample.position[0]
+    const sy = sample.position[1]
+    const sz = sample.position[2]
+    const sampleYaw = sample.yaw
+    const sampleDist = sample.distanceAlong
+    const sampleTotal = sample.totalLength
 
     const alignment = this.alignment ?? (this.alignment = this.measureAlignment(this.placement))
     const travelSign =
       Math.abs(this.velocityMps) > 0.05
         ? (Math.sign(this.velocityMps) as 1 | -1)
         : this.direction
-    const yaw =
-      sample.yaw + alignment.yawOffset + (travelSign < 0 ? Math.PI : 0)
-    this.placement.rotation.set(0, yaw, 0)
+    const yaw = sampleYaw + alignment.yawOffset + (travelSign < 0 ? Math.PI : 0)
 
-    const travelled = this.accumulateRollDistance(sample.distanceAlong, sample.totalLength)
+    const travelled = this.accumulateRollDistance(sampleDist, sampleTotal)
     this.updateSteer(distanceMetres, alignment.wheelbaseMetres, travelled, travelSign)
     this.updateBodyRoll(travelled)
 
-    const lift =
+    const poseChanged =
+      distanceMetres !== this.lastAppliedDistKey ||
+      yaw !== this.lastAppliedYaw ||
       Math.abs(this.lastBodyRoll) > 1e-5
-        ? Math.abs(Math.sin(this.lastBodyRoll)) * Math.max(0.55, alignment.halfTrackMetres)
-        : 0
+    let graphDirty = false
+    if (poseChanged) {
+      this.placement.rotation.set(0, yaw, 0)
 
-    _delta.copy(alignment.anchorLocal).applyAxisAngle(UP, yaw)
-    this.placement.position.set(
-      sample.position[0] - _delta.x,
-      sample.position[1] + lift,
-      sample.position[2] - _delta.z,
-    )
-    this.placement.updateWorldMatrix(false, true)
+      const lift =
+        Math.abs(this.lastBodyRoll) > 1e-5
+          ? Math.abs(Math.sin(this.lastBodyRoll)) * Math.max(0.55, alignment.halfTrackMetres)
+          : 0
+
+      _delta.copy(alignment.anchorLocal).applyAxisAngle(UP, yaw)
+      this.placement.position.set(sx - _delta.x, sy + lift, sz - _delta.z)
+      this.lastAppliedYaw = yaw
+      this.lastAppliedDistKey = distanceMetres
+      graphDirty = true
+    }
 
     if (this.bindings.some((b) => b.rolling && !b.calibrated)) {
-      calibrateWheelBindings(this.bindings, worldForwardFromYaw(sample.yaw + (travelSign < 0 ? Math.PI : 0), _forward))
+      this.placement.updateWorldMatrix(false, true)
+      calibrateWheelBindings(
+        this.bindings,
+        worldForwardFromYaw(sampleYaw + (travelSign < 0 ? Math.PI : 0), _forward),
+      )
       this.calibrationNote = describeBindings(this.bindings)
+      graphDirty = false
     }
-    if (this.wheelRollEnabled) {
-      applyWheelRoll(this.bindings, this.rollDistanceMetres * this.tireRollRate)
+    const rollDist = this.rollDistanceMetres * this.tireRollRate
+    if (this.wheelRollEnabled && rollDist !== this.lastAppliedRollDistance) {
+      applyWheelRoll(this.bindings, rollDist)
+      this.lastAppliedRollDistance = rollDist
+      graphDirty = true
     }
-    applyFrontSteer(this.bindings, this.lastSteer)
+    if (this.lastSteer !== this.lastAppliedSteer) {
+      applyFrontSteer(this.bindings, this.lastSteer)
+      this.lastAppliedSteer = this.lastSteer
+      graphDirty = true
+    }
+    if (graphDirty) this.placement.updateWorldMatrix(false, true)
 
     return sample
   }
@@ -940,7 +975,9 @@ export class RouteSession {
   }
 
   private measureAlignment(placement: Object3D): VehicleAlignment {
-    const prev = placement.rotation.clone()
+    _prevRot.x = placement.rotation.x
+    _prevRot.y = placement.rotation.y
+    _prevRot.z = placement.rotation.z
     placement.rotation.set(0, 0, 0)
     placement.updateWorldMatrix(true, true)
 
@@ -950,7 +987,8 @@ export class RouteSession {
     if (axles) {
       const { forward } = axles
       const yawOffset = forward.lengthSq() > 1e-8 ? -Math.atan2(forward.x, forward.z) : 0
-      const anchorLocal = placement.worldToLocal(axles.centre.clone())
+      const anchorLocal = new Vector3().copy(axles.centre)
+      placement.worldToLocal(anchorLocal)
       anchorLocal.y = 0
       result = {
         yawOffset,
@@ -962,19 +1000,21 @@ export class RouteSession {
       }
     } else {
       const box = measureCarBounds(placement)
-      const anchorLocal = placement.worldToLocal(box.getCenter(new Vector3()))
+      const anchorLocal = new Vector3()
+      box.getCenter(anchorLocal)
+      placement.worldToLocal(anchorLocal)
       anchorLocal.y = 0
-      const size = box.getSize(new Vector3())
+      box.getSize(_size)
       result = {
-        yawOffset: headingOffsetForLengthAxis(size.x >= size.z ? 'x' : 'z'),
+        yawOffset: headingOffsetForLengthAxis(_size.x >= _size.z ? 'x' : 'z'),
         anchorLocal,
-        wheelbaseMetres: Math.max(size.x, size.z) * 0.6 || DEFAULT_WHEELBASE_METRES,
-        halfTrackMetres: Math.max(0.55, Math.min(size.x, size.z) * 0.45),
+        wheelbaseMetres: Math.max(_size.x, _size.z) * 0.6 || DEFAULT_WHEELBASE_METRES,
+        halfTrackMetres: Math.max(0.55, Math.min(_size.x, _size.z) * 0.45),
         source: 'bounds',
       }
     }
 
-    placement.rotation.copy(prev)
+    placement.rotation.set(_prevRot.x, _prevRot.y, _prevRot.z)
     placement.updateWorldMatrix(true, true)
     return result
   }

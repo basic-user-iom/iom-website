@@ -319,6 +319,15 @@ export class ChaseCamera {
       return
     }
 
+    // Parked + framing settled: skip lerp/lookAt (no matrix churn while idle).
+    if (
+      !this.orbitTransition &&
+      this.camera.position.distanceToSquared(_desired) < 1e-6 &&
+      (!this.controls || this.controls.target.distanceToSquared(_look) < 1e-6)
+    ) {
+      return
+    }
+
     const alpha = 1 - Math.exp(-dtSeconds / Math.max(0.04, this.smoothing))
     this.camera.position.lerp(_desired, alpha)
     if (this.controls) {

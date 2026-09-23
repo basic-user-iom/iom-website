@@ -31,8 +31,10 @@ import type {
 import {
   assetRoleForImport,
   inferQualityRoleFromFilename,
+  isDisabledLodRole,
   isVehicleQualityRole,
   parseRigManifestJson,
+  preferActiveQualityRole,
   qualityLabel,
   validateRigBindings,
   type VehicleQualityRole,
@@ -223,9 +225,9 @@ export class VehicleSession {
     }
 
     if (role === 'replace-vehicle') {
-      const qualityRole: VehicleQualityRole = isVehicleQualityRole(assetRole)
-        ? assetRole
-        : inferQualityRoleFromFilename(file.name)
+      const qualityRole: VehicleQualityRole = preferActiveQualityRole(
+        isVehicleQualityRole(assetRole) ? assetRole : inferQualityRoleFromFilename(file.name),
+      )
       const preserveNorm = this.normalization ? { ...this.normalization } : null
       const preserveRig = this.rig
       const prevSlot = this.variants.get(qualityRole)
@@ -320,7 +322,7 @@ export class VehicleSession {
     onProgress?: (ratio: number, label: string) => void,
   ): Promise<{ asset: AssetRecord; vehicle: VehicleState; report: AssetCompatibilityReport }> {
     if (!this.scene) throw new Error('Scene not bound')
-    if (role === 'vehicle-balanced' || role === 'vehicle-mobile') {
+    if (isDisabledLodRole(role)) {
       throw new Error(`${qualityLabel(role)} LOD is temporarily disabled — use High only`)
     }
     const slot = this.variants.get(role)
@@ -415,8 +417,8 @@ export class VehicleSession {
     this.variants.clear()
     for (const record of project.assets) {
       if (!isVehicleQualityRole(record.role)) continue
-      // Keep High (and Master) slots only — Balanced/Mobile still need work.
-      if (record.role === 'vehicle-balanced' || record.role === 'vehicle-mobile') continue
+      // Keep High (and Master) slots only — never register Balanced/Mobile.
+      if (isDisabledLodRole(record.role)) continue
       this.variants.set(record.role, {
         role: record.role,
         assetId: record.id,
@@ -425,33 +427,19 @@ export class VehicleSession {
       })
     }
 
+    const usableAsset = (a: { role: string }) =>
+      isVehicleQualityRole(a.role) && !isDisabledLodRole(a.role)
+
     const highAsset =
       project.assets.find((a) => a.role === 'vehicle-high') ??
       (project.activeVehicleId
-        ? project.assets.find(
-            (a) =>
-              a.id === project.activeVehicleId &&
-              isVehicleQualityRole(a.role) &&
-              a.role !== 'vehicle-balanced' &&
-              a.role !== 'vehicle-mobile',
-          )
+        ? project.assets.find((a) => a.id === project.activeVehicleId && usableAsset(a))
         : null) ??
       (project.vehicle?.assetId
-        ? project.assets.find(
-            (a) =>
-              a.id === project.vehicle!.assetId &&
-              isVehicleQualityRole(a.role) &&
-              a.role !== 'vehicle-balanced' &&
-              a.role !== 'vehicle-mobile',
-          )
+        ? project.assets.find((a) => a.id === project.vehicle!.assetId && usableAsset(a))
         : null) ??
       project.assets.find((a) => a.role === 'vehicle-master') ??
-      project.assets.find(
-        (a) =>
-          isVehicleQualityRole(a.role) &&
-          a.role !== 'vehicle-balanced' &&
-          a.role !== 'vehicle-mobile',
-      ) ??
+      project.assets.find((a) => usableAsset(a)) ??
       null
     const asset = highAsset
     if (!asset) return null
@@ -465,8 +453,7 @@ export class VehicleSession {
     if (!blob) {
       // Last resort: High/Master only — never pull Balanced/Mobile LODs.
       for (const record of project.assets) {
-        if (!isVehicleQualityRole(record.role)) continue
-        if (record.role === 'vehicle-balanced' || record.role === 'vehicle-mobile') continue
+        if (!usableAsset(record)) continue
         const key = record.blobKey ?? record.id
         blob = await idbGetAssetBlob(key)
         if (!blob && key !== record.id) blob = await idbGetAssetBlob(record.id)
@@ -530,9 +517,11 @@ export class VehicleSession {
     this.normalization = normalization
     this.report = report
     this.role = 'replace-vehicle'
-    this.activeQuality = isVehicleQualityRole(asset.role)
-      ? asset.role
-      : inferQualityRoleFromFilename(asset.filename)
+    this.activeQuality = preferActiveQualityRole(
+      isVehicleQualityRole(asset.role)
+        ? asset.role
+        : inferQualityRoleFromFilename(asset.filename),
+    )
     this.activeClipIndex = 0
 
     if (!this.variants.has(this.activeQuality)) {

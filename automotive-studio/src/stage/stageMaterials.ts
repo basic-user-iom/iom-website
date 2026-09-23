@@ -17,20 +17,29 @@ const textureLoader = new TextureLoader()
 const textureCache = new Map<string, Texture>()
 const inflightLoads = new Map<string, Promise<Texture | null>>()
 const objectUrls = new Map<string, string>()
+/** Cap below GPU max — 16× on dense asphalt tiles is a large sample-cost tax. */
+const MAX_STAGE_ANISOTROPY = 8
 let stageAnisotropy = 1
 
 /**
  * Renderer-dependent, so `createRenderer` reports it once. Without it, heavily
- * tiled floors turn to noise at grazing angles.
+ * tiled floors turn to noise at grazing angles. Hard-capped for stage cost.
  */
 export function setStageTextureAnisotropy(value: number) {
-  const next = Math.max(1, Math.floor(value) || 1)
+  const next = Math.max(1, Math.min(MAX_STAGE_ANISOTROPY, Math.floor(value) || 1))
   if (next === stageAnisotropy) return
   stageAnisotropy = next
   for (const tex of textureCache.values()) {
     tex.anisotropy = stageAnisotropy
     tex.needsUpdate = true
   }
+}
+
+/** Effective anisotropy for a given UV tile density (high repeat → lower AF). */
+function anisotropyForRepeat(repeat: number): number {
+  if (repeat >= 32) return Math.min(stageAnisotropy, 2)
+  if (repeat >= 12) return Math.min(stageAnisotropy, 4)
+  return stageAnisotropy
 }
 
 async function loadStageTextureSource(assetId: string): Promise<Texture | null> {
@@ -234,7 +243,26 @@ const EMISSIVE_FRAGMENT_DETILE = /* glsl */ `
 #endif
 `
 
+function clearTileVariation(mat: MeshStandardMaterial) {
+  if (!tileVariationUniforms.has(mat)) {
+    mat.onBeforeCompile = () => {}
+    mat.customProgramCacheKey = () => ''
+    return
+  }
+  tileVariationUniforms.delete(mat)
+  mat.onBeforeCompile = () => {}
+  mat.customProgramCacheKey = () => ''
+  mat.needsUpdate = true
+}
+
 function applyTileVariation(mat: MeshStandardMaterial, strength: number, seed: number) {
+  const amount = Math.max(0, Math.min(1, strength || 0))
+  // Idle asphalt/ice with variation at 0 must stay on stock Standard — the detile
+  // path doubles several map samples even when the mix weight is zero at runtime.
+  if (amount <= 0.001) {
+    clearTileVariation(mat)
+    return
+  }
   let uniforms = tileVariationUniforms.get(mat)
   if (!uniforms) {
     uniforms = { uTileVariation: { value: 0 }, uTileSeed: { value: 0 } }
@@ -259,7 +287,7 @@ function applyTileVariation(mat: MeshStandardMaterial, strength: number, seed: n
         .replace('#include <emissivemap_fragment>', EMISSIVE_FRAGMENT_DETILE)
   }
   mat.customProgramCacheKey = () => 'iom-stage-detile-v4-blend'
-  uniforms.uTileVariation.value = Math.max(0, Math.min(1, strength || 0))
+  uniforms.uTileVariation.value = amount
   uniforms.uTileSeed.value = Number.isFinite(seed) ? seed : 1
 }
 
@@ -313,9 +341,11 @@ export async function applyStageSurfaceMaterial(
   }
   mat.emissive.copy(emissive)
   mat.emissiveIntensity = intensity
-  mat.displacementScale = Math.max(0, Math.min(1, surface.displacementScale))
+  const displacementScale = Math.max(0, Math.min(1, surface.displacementScale))
+  const useDisplacement = displacementScale > 0.001
+  mat.displacementScale = useDisplacement ? displacementScale : 0
   // Mid-grey (0.5) → zero offset so ambientCG / PH height maps sit around the mesh.
-  mat.displacementBias = mat.displacementScale > 0 ? -mat.displacementScale * 0.5 : 0
+  mat.displacementBias = useDisplacement ? -mat.displacementScale * 0.5 : 0
   if (opts?.polygonOffset) {
     mat.polygonOffset = true
     mat.polygonOffsetFactor = -2
@@ -331,7 +361,9 @@ export async function applyStageSurfaceMaterial(
     mat.polygonOffsetUnits = -1
   }
 
+  // Authoring allows up to 1024 via the tile slider; GPU AF cost grows with density.
   const repeat = Math.max(0.0625, Math.min(1024, surface.mapRepeat || 1))
+  const mapAnisotropy = anisotropyForRepeat(repeat)
   const maps = surface.maps ?? {}
 
   const [
@@ -347,7 +379,8 @@ export async function applyStageSurfaceMaterial(
     loadStageTexture(maps.normalMapAssetId),
     loadStageTexture(maps.roughnessMapAssetId),
     loadStageTexture(maps.metalnessMapAssetId),
-    loadStageTexture(maps.displacementMapAssetId),
+    // Skip height upload/bind when scale is zero — keeps USE_DISPLACEMENTMAP off.
+    useDisplacement ? loadStageTexture(maps.displacementMapAssetId) : Promise.resolve(null),
     loadStageTexture(maps.aoMapAssetId),
     loadStageTexture(maps.emissiveMapAssetId),
   ])
@@ -370,7 +403,7 @@ export async function applyStageSurfaceMaterial(
     if (tex) {
       tex.repeat.set(repeat, repeat)
       applyTileVariationTransform(tex, seed, variation, slot)
-      tex.anisotropy = stageAnisotropy
+      tex.anisotropy = mapAnisotropy
       tex.needsUpdate = true
       if (srgb) tex.colorSpace = SRGBColorSpace
     }
@@ -382,7 +415,7 @@ export async function applyStageSurfaceMaterial(
   setMap('normalMap', normalMap, 1)
   setMap('roughnessMap', roughnessMap, 2)
   setMap('metalnessMap', metalnessMap, 3)
-  setMap('displacementMap', displacementMap, 4)
+  setMap('displacementMap', useDisplacement ? displacementMap : null, 4)
   setMap('aoMap', aoMap, 5)
   setMap('emissiveMap', emissiveMap, 6, true)
 

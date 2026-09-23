@@ -18,6 +18,10 @@ import {
 
 const _forward = new Vector3()
 const _probe = new Vector3()
+const _size = new Vector3()
+const _centre = new Vector3()
+const _guess = new Vector3()
+const _prevRot = { x: 0, y: 0, z: 0 }
 
 const STEER_RESPONSE_PER_SEC = 14
 /** Arcade bicycle yaw felt too snappy — scale path turn rate (1 = full model). */
@@ -70,6 +74,9 @@ export class FreeDriveSession {
   private input: FreeDriveInput = { throttle: 0, steer: 0 }
   /** Extra π on yawOffset when W still drives toward the tail (saved with the project). */
   private headingFlip = false
+  /** Last published wheel / body values — skip redundant quaternion writes. */
+  private lastAppliedRollDistance = Number.NaN
+  private lastAppliedSteer = Number.NaN
 
   /** Toggle when W goes toward the rear; spins the body so keys stay W=forward. */
   setHeadingFlip(on: boolean) {
@@ -126,10 +133,14 @@ export class FreeDriveSession {
       this.velocityMps = 0
       this.lastSteer = 0
       this.rollDistanceMetres = 0
+      this.lastAppliedRollDistance = Number.NaN
+      this.lastAppliedSteer = Number.NaN
       this.resetBodyRoll()
       if (this.bindings.length) {
         applyWheelRoll(this.bindings, 0)
         applyFrontSteer(this.bindings, 0)
+        this.lastAppliedRollDistance = 0
+        this.lastAppliedSteer = 0
       }
     } else if (this.placement) {
       // Remeasure + recalibrate so HMR / Flip 180 / heading fixes take effect.
@@ -140,6 +151,8 @@ export class FreeDriveSession {
       }
       const yawOffset = this.ensureAlignment().yawOffset
       this.headingYaw = this.placement.rotation.y - yawOffset
+      this.lastAppliedRollDistance = Number.NaN
+      this.lastAppliedSteer = Number.NaN
     }
   }
 
@@ -147,9 +160,13 @@ export class FreeDriveSession {
   resetWheelPoseOnly() {
     this.rollDistanceMetres = 0
     this.lastSteer = 0
+    this.lastAppliedRollDistance = Number.NaN
+    this.lastAppliedSteer = Number.NaN
     if (this.bindings.length) {
       applyWheelRoll(this.bindings, 0)
       applyFrontSteer(this.bindings, 0)
+      this.lastAppliedRollDistance = 0
+      this.lastAppliedSteer = 0
     }
   }
 
@@ -159,6 +176,8 @@ export class FreeDriveSession {
     this.velocityMps = 0
     this.lastSteer = 0
     this.rollDistanceMetres = 0
+    this.lastAppliedRollDistance = Number.NaN
+    this.lastAppliedSteer = Number.NaN
     this.resetBodyRoll()
     this.headingYaw = -this.ensureAlignment().yawOffset
     if (this.placement) {
@@ -169,6 +188,8 @@ export class FreeDriveSession {
     if (this.bindings.length) {
       applyWheelRoll(this.bindings, 0)
       applyFrontSteer(this.bindings, 0)
+      this.lastAppliedRollDistance = 0
+      this.lastAppliedSteer = 0
     }
   }
 
@@ -305,38 +326,55 @@ export class FreeDriveSession {
     const travelSign = this.velocityMps >= -0.05 ? 1 : -1
     this.headingYaw += travelSign * yawRate * dt
 
-    // Travel uses headingYaw; placement adds yawOffset so authored model-forward matches.
-    // When lamps sit opposite the axle FL→nose, yawOffset includes +π so the visual
-    // hood (and tire roll) face the same way as travel — no key-invert hack.
-    worldForwardFromYaw(this.headingYaw, _forward)
-    this.placement.position.x += _forward.x * this.velocityMps * dt
-    this.placement.position.z += _forward.z * this.velocityMps * dt
+    const moving = speedAbs > 1e-4 || Math.abs(this.lastSteer - (this.lastAppliedSteer || 0)) > 1e-5
+    let graphDirty = false
+    if (moving || Number.isNaN(this.lastAppliedRollDistance)) {
+      // Travel uses headingYaw; placement adds yawOffset so authored model-forward matches.
+      worldForwardFromYaw(this.headingYaw, _forward)
+      this.placement.position.x += _forward.x * this.velocityMps * dt
+      this.placement.position.z += _forward.z * this.velocityMps * dt
 
-    const lift =
-      Math.abs(this.lastBodyRoll) > 1e-5
-        ? Math.abs(Math.sin(this.lastBodyRoll)) * Math.max(0.55, alignment.halfTrackMetres)
-        : 0
-    this.placement.position.y = lift
-    this.placement.rotation.set(0, this.headingYaw + alignment.yawOffset, 0)
-    this.placement.updateWorldMatrix(false, true)
+      const lift =
+        Math.abs(this.lastBodyRoll) > 1e-5
+          ? Math.abs(Math.sin(this.lastBodyRoll)) * Math.max(0.55, alignment.halfTrackMetres)
+          : 0
+      this.placement.position.y = lift
+      this.placement.rotation.set(0, this.headingYaw + alignment.yawOffset, 0)
+      graphDirty = true
 
-    this.rollDistanceMetres += this.velocityMps * dt
-    this.updateBodyRoll(Math.max(speedAbs * dt, dt * 2), pathSteer)
+      this.rollDistanceMetres += this.velocityMps * dt
+      this.updateBodyRoll(Math.max(speedAbs * dt, dt * 2), pathSteer)
+    }
 
     if (this.bindings.some((b) => b.rolling && !b.calibrated)) {
+      this.placement.updateWorldMatrix(false, true)
       // Calibrate against actual travel (flip when reversing) so rollSign matches motion.
       const calibYaw = this.headingYaw + (travelSign < 0 ? Math.PI : 0)
       calibrateWheelBindings(this.bindings, worldForwardFromYaw(calibYaw, _forward))
       this.calibrationNote = describeBindings(this.bindings)
+      graphDirty = false // already fresh
     }
     // Identical to RouteSession: roll then front steer (separate pivots from manifesto).
-    if (this.wheelRollEnabled) {
-      applyWheelRoll(this.bindings, this.rollDistanceMetres * this.tireRollRate)
+    const rollDist = this.rollDistanceMetres * this.tireRollRate
+    if (this.wheelRollEnabled && rollDist !== this.lastAppliedRollDistance) {
+      applyWheelRoll(this.bindings, rollDist)
+      this.lastAppliedRollDistance = rollDist
+      graphDirty = true
     }
-    applyFrontSteer(this.bindings, this.lastSteer)
+    if (this.lastSteer !== this.lastAppliedSteer) {
+      applyFrontSteer(this.bindings, this.lastSteer)
+      this.lastAppliedSteer = this.lastSteer
+      graphDirty = true
+    }
+    // Only force a recursive matrix pass when pose/wheels changed — idle frames stay cheap.
+    if (graphDirty) this.placement.updateWorldMatrix(false, true)
   }
 
   getStatus() {
+    return this.buildStatus()
+  }
+
+  private buildStatus() {
     return {
       enabled: this.enabled,
       speedKmh: this.cruiseKmh,
@@ -398,7 +436,9 @@ export class FreeDriveSession {
   }
 
   private measureAlignment(placement: Object3D): VehicleAlignment {
-    const prev = placement.rotation.clone()
+    _prevRot.x = placement.rotation.x
+    _prevRot.y = placement.rotation.y
+    _prevRot.z = placement.rotation.z
     placement.rotation.set(0, 0, 0)
     placement.updateWorldMatrix(true, true)
 
@@ -423,23 +463,23 @@ export class FreeDriveSession {
       }
     } else {
       const box = measureCarBounds(placement)
-      const size = box.getSize(new Vector3())
-      let yawOffset = headingOffsetForLengthAxis(size.x >= size.z ? 'x' : 'z')
-      const centre = box.getCenter(new Vector3())
-      const guess = worldForwardFromYaw(-yawOffset, _forward).clone()
-      if (bodyFacesOppositeAxles(placement, guess, centre)) {
+      box.getSize(_size)
+      let yawOffset = headingOffsetForLengthAxis(_size.x >= _size.z ? 'x' : 'z')
+      box.getCenter(_centre)
+      worldForwardFromYaw(-yawOffset, _guess)
+      if (bodyFacesOppositeAxles(placement, _guess, _centre)) {
         yawOffset += Math.PI
       }
       if (this.headingFlip) yawOffset += Math.PI
       result = {
         yawOffset,
-        wheelbaseMetres: Math.max(size.x, size.z) * 0.6 || DEFAULT_WHEELBASE_METRES,
-        halfTrackMetres: Math.max(0.55, Math.min(size.x, size.z) * 0.45),
+        wheelbaseMetres: Math.max(_size.x, _size.z) * 0.6 || DEFAULT_WHEELBASE_METRES,
+        halfTrackMetres: Math.max(0.55, Math.min(_size.x, _size.z) * 0.45),
         source: 'bounds',
       }
     }
 
-    placement.rotation.copy(prev)
+    placement.rotation.set(_prevRot.x, _prevRot.y, _prevRot.z)
     placement.updateWorldMatrix(true, true)
     return result
   }

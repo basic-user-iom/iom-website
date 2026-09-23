@@ -33,6 +33,9 @@ const lightCache = new Map<Light, number>()
 const visibilityCache = new Map<Object3D, boolean>()
 const _black = new Color(0x000000)
 
+/** Below this, selective bloom cost outweighs visible glow — plain render. */
+const BLOOM_STRENGTH_SKIP = 0.04
+
 /**
  * Selective bloom (WebGL2): only meshes with `userData.selectiveBloom === true`
  * (vehicle lamps) feed the bloom extract. Sun / moon / paint / soft-glow cards stay out.
@@ -62,8 +65,8 @@ export function createBloomComposer(
 
   const size = new Vector2()
   renderer.getSize(size)
-  // Bloom extract at half res — selective darken pass is the heavy cost; blur is fine softer.
-  const BLOOM_SCALE = 0.5
+  // Quarter-ish extract: selective darken pass dominates cost; softer blur is fine.
+  const BLOOM_SCALE = 0.33
   const bloomW = Math.max(1, Math.floor(size.x * BLOOM_SCALE))
   const bloomH = Math.max(1, Math.floor(size.y * BLOOM_SCALE))
   const prevTone = (renderer as WebGLRenderer & { toneMapping?: number }).toneMapping
@@ -72,10 +75,10 @@ export function createBloomComposer(
   const renderScene = new RenderPass(scene, camera)
 
   // Tight radius — large radius smears lamp emissives into tall “portal” streaks on the cyclorama.
-  const bloomPass = new UnrealBloomPass(new Vector2(bloomW, bloomH), 0.22, 0.18, 1.05)
-  bloomPass.threshold = 1.05
-  bloomPass.strength = 0.22
-  bloomPass.radius = 0.18
+  const bloomPass = new UnrealBloomPass(new Vector2(bloomW, bloomH), 0.18, 0.12, 1.1)
+  bloomPass.threshold = 1.1
+  bloomPass.strength = 0.18
+  bloomPass.radius = 0.12
 
   const bloomTarget = new WebGLRenderTarget(bloomW, bloomH, { type: HalfFloatType })
   const bloomComposer = new EffectComposer(renderer, bloomTarget)
@@ -121,6 +124,9 @@ export function createBloomComposer(
   finalComposer.addPass(new OutputPass())
 
   let enabled = false
+  let strength = 0
+  let frame = 0
+  let bloomBufferValid = false
 
   const prepareBloomExtract = (obj: Object3D) => {
     // Soft volumetric cards must never feed the bloom buffer — they read as
@@ -167,33 +173,54 @@ export function createBloomComposer(
     }
   }
 
+  const clearCaches = () => {
+    materialCache.clear()
+    lightCache.clear()
+    visibilityCache.clear()
+  }
+
+  const runBloomExtract = () => {
+    mixPass.material.uniforms.bloomTexture.value = bloomComposer.renderTarget2.texture
+
+    const prevBg = scene.background
+    clearCaches()
+    scene.traverse(prepareBloomExtract)
+    scene.background = _black
+    bloomComposer.render()
+    scene.background = prevBg
+    scene.traverse(restoreBloomExtract)
+    clearCaches()
+    bloomBufferValid = true
+  }
+
+  const plainRender = () => {
+    if (prevTone != null) {
+      ;(renderer as WebGLRenderer & { toneMapping?: number }).toneMapping = prevTone
+    }
+    renderer.render(scene, camera)
+  }
+
   return {
     supported: true,
     render() {
-      if (!enabled) {
-        if (prevTone != null) {
-          ;(renderer as WebGLRenderer & { toneMapping?: number }).toneMapping = prevTone
-        }
-        renderer.render(scene, camera)
+      frame++
+      // Skip entire selective-bloom pipeline when off or visually negligible.
+      if (!enabled || strength < BLOOM_STRENGTH_SKIP) {
+        plainRender()
         return
       }
 
       ;(renderer as WebGLRenderer & { toneMapping?: number }).toneMapping = NoToneMapping
 
-      mixPass.material.uniforms.bloomTexture.value = bloomComposer.renderTarget2.texture
-
-      const prevBg = scene.background
-      materialCache.clear()
-      lightCache.clear()
-      visibilityCache.clear()
-      scene.traverse(prepareBloomExtract)
-      scene.background = _black
-      bloomComposer.render()
-      scene.background = prevBg
-      scene.traverse(restoreBloomExtract)
-      materialCache.clear()
-      lightCache.clear()
-      visibilityCache.clear()
+      // Modest strength: refresh extract every other frame (reuse prior bloom RT).
+      // High strength (lamp showcases): keep full-rate extract.
+      const throttleExtract = strength < 0.45
+      const needExtract = !bloomBufferValid || !throttleExtract || frame % 2 === 0
+      if (needExtract) {
+        runBloomExtract()
+      } else {
+        mixPass.material.uniforms.bloomTexture.value = bloomComposer.renderTarget2.texture
+      }
 
       finalComposer.render()
     },
@@ -203,13 +230,17 @@ export function createBloomComposer(
       bloomComposer.setSize(bw, bh)
       bloomPass.resolution.set(bw, bh)
       finalComposer.setSize(w, h)
+      bloomBufferValid = false
     },
     apply(cfg) {
       enabled = Boolean(cfg.enabled)
       // Keep strength modest — high values smear into cyclorama ghosts.
-      bloomPass.strength = Math.max(0, Math.min(1.2, cfg.strength))
+      strength = Math.max(0, Math.min(1.2, cfg.strength))
+      bloomPass.strength = strength
       bloomPass.threshold = Math.max(0.6, Math.min(1.5, cfg.threshold))
-      bloomPass.radius = Math.max(0, Math.min(0.55, cfg.radius ?? 0.18))
+      // Slightly tighter default radius = fewer visible smear mips.
+      bloomPass.radius = Math.max(0, Math.min(0.45, cfg.radius ?? 0.12))
+      if (!enabled || strength < BLOOM_STRENGTH_SKIP) bloomBufferValid = false
     },
     dispose() {
       if (prevTone != null) {
