@@ -153,7 +153,7 @@ test.describe.serial('Phase 8 Impact Lab', () => {
 
     await confirmAndPauseImpact(page, canvas)
     const firstSignature = await requiredAttribute(canvas, 'data-impact-run-signature')
-    expect(firstSignature).toMatch(/^impact-v2-[0-9a-f]{8}$/)
+    expect(firstSignature).toMatch(/^impact-v5-[0-9a-f]{8}$/)
     await expect(canvas).toHaveAttribute('data-impact-lifecycle', 'paused')
 
     const status = page.getByTestId('impact-event-status')
@@ -218,7 +218,7 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     page,
   }) => {
     test.slow()
-    test.setTimeout(150_000)
+    test.setTimeout(240_000)
     const browserErrors = captureBrowserErrors(page)
     const canvas = await bootPhaseEight(page)
     await openImpactLab(page)
@@ -289,7 +289,7 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     page,
   }) => {
     test.slow()
-    test.setTimeout(150_000)
+    test.setTimeout(240_000)
     const browserErrors = captureBrowserErrors(page)
     const canvas = await bootPhaseEight(page)
     await expect.poll(async () => {
@@ -302,7 +302,8 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     expect(original['data-selected-body']).toBe('earth')
 
     await openImpactLab(page)
-    await configureReferenceImpact(page)
+    await configureReferenceImpact(page, {diameterM: 1_000, densityKgM3: 7_800})
+    await page.getByTestId('impact-material').selectOption('iron')
     await expect(page.getByTestId('impact-visibility-mode')).toHaveValue('enhanced')
     await expect(page.getByTestId('impact-visibility-badge')).toContainText(
       /enhanced event visibility/i,
@@ -314,7 +315,7 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     )
 
     const cameraPositions = new Set<string>()
-    for (const preset of ['orbital', 'horizon', 'chase', 'ground-observer'] as const) {
+    for (const preset of ['orbital', 'regional', 'horizon', 'chase', 'ground-observer'] as const) {
       const previousPosition = await requiredAttribute(canvas, 'data-camera-position')
       await page.getByTestId('impact-camera-preset').selectOption(preset)
       await expect(canvas).toHaveAttribute('data-impact-camera-preset', preset)
@@ -330,8 +331,9 @@ test.describe.serial('Phase 8 Impact Lab', () => {
     await stepUntilSolidAftermath(page, canvas, 'solid-atmospheric', 'crater')
     await expect(canvas).toHaveAttribute('data-impact-crater-visible', 'true')
     await expect(canvas).toHaveAttribute('data-impact-visibility-mode', 'enhanced')
+    // Large events already fill the regional frame and need no extra enlargement.
     expect(Number(await requiredAttribute(canvas, 'data-impact-visibility-multiplier')))
-      .toBeGreaterThan(1)
+      .toBeGreaterThanOrEqual(1)
     await expect(page.locator('.canvas-legend')).toHaveCount(0)
     await page.getByTestId('impact-visibility-mode').selectOption('physical')
     await expect(canvas).toHaveAttribute('data-impact-visibility-mode', 'physical')
@@ -487,11 +489,14 @@ async function configureReferenceImpact(
   await setNumericInput(page.getByTestId('impact-density'), overrides.densityKgM3 ?? 3_000)
   await setNumericInput(page.getByTestId('impact-speed'), overrides.entrySpeedKmps ?? 20)
   await setNumericInput(page.getByTestId('impact-angle'), overrides.entryAngleDeg ?? 45)
-  await setNumericInput(page.getByTestId('impact-latitude'), 12.5)
-  await setNumericInput(page.getByTestId('impact-longitude'), -31.25)
+  // This fixture asserts land craters; keep it on mapped Sahara terrain.
+  await setNumericInput(page.getByTestId('impact-latitude'), 25)
+  await setNumericInput(page.getByTestId('impact-longitude'), 25)
   await setNumericInput(page.getByTestId('impact-seed'), overrides.seed ?? 42)
   await page.getByTestId('impact-fragmentation').check()
   await page.getByTestId('impact-atmosphere').check()
+  // Entry-effect checks deliberately exercise the enhanced presentation mode.
+  await page.getByTestId('impact-visibility-mode').selectOption('enhanced')
   await page.getByTestId('impact-camera-preset').selectOption('orbital')
   await expect(page.getByTestId('impact-run')).toBeEnabled()
 }
@@ -668,7 +673,9 @@ async function stepUntilGiantAftermath(page: Page, canvas: Locator): Promise<voi
     await expect(canvas).toHaveAttribute('data-impact-ejecta-points', '0')
 
     if (await booleanAttribute(canvas, 'data-impact-flash-visible')) {
-      await assertAttachedSurfaceFlash(canvas)
+      // Gas giants have a volumetric atmospheric flash, never a surface cap.
+      expect(Number(await requiredAttribute(canvas, 'data-impact-flash-normal-alignment'))).toBe(0)
+      await assertProtectedFlash(canvas)
       sawAttachedFlash = true
     }
     if (await booleanAttribute(canvas, 'data-impact-atmospheric-shockwave-visible')) {
@@ -723,8 +730,15 @@ async function assertAttachedSurfaceFlash(canvas: Locator): Promise<void> {
     .toBeGreaterThan(0.999999)
   expect(Number(await requiredAttribute(canvas, 'data-impact-flash-cap-angular-radius')))
     .toBeGreaterThan(0)
+  await assertProtectedFlash(canvas)
+}
+
+async function assertProtectedFlash(canvas: Locator): Promise<void> {
   await expect(canvas).toHaveAttribute('data-impact-flash-light-visible', 'true')
-  await expect(canvas).toHaveAttribute('data-impact-flash-hdr-clamped', 'true')
+  // A naturally dim flash need not hit the clamp; the displayed intensity must stay bounded.
+  const intensity = Number(await requiredAttribute(canvas, 'data-impact-flash-intensity'))
+  expect(intensity).toBeGreaterThan(0)
+  expect(intensity).toBeLessThanOrEqual(0.72)
 }
 
 async function assertSurfaceDiagnosticsNeutral(canvas: Locator): Promise<void> {

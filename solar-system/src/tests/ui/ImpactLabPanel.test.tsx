@@ -188,7 +188,8 @@ describe('Phase 8 ImpactLabPanel', () => {
       .toMatch(/not a named asteroid or spacecraft-derived surface scan/i);
     const references = requiredElement('[data-testid="impact-visual-reference-basis"]');
     expect(references.textContent).toMatch(/NASA atmospheric-entry.*USGS crater and ejecta/i);
-    expect(references.querySelectorAll('a')).toHaveLength(2);
+    expect(references.textContent).toContain('Collins, Melosh and Marcus (2005)');
+    expect(references.querySelector('a[href*="2005M%26PS"]')).not.toBeNull();
   });
 
   it('lets the user switch between clearly labeled physical and enhanced visibility', () => {
@@ -225,6 +226,9 @@ describe('Phase 8 ImpactLabPanel', () => {
     changeSelect(requiredElement('[data-testid="impact-camera-preset"]'), 'chase');
     expect(onParametersChange).toHaveBeenCalledWith({ ...PARAMETERS, cameraMode: 'chase' });
     expect(onCameraModeChange).toHaveBeenCalledWith('chase');
+    changeSelect(requiredElement('[data-testid="impact-camera-preset"]'), 'regional');
+    expect(onParametersChange).toHaveBeenCalledWith({ ...PARAMETERS, cameraMode: 'regional' });
+    expect(onCameraModeChange).toHaveBeenCalledWith('regional');
   });
 
   it('selects target profiles and disables atmospheric effects for airless bodies', () => {

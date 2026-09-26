@@ -32,7 +32,7 @@ test('boots the generated ephemeris observatory without browser errors', async (
   ).toBeVisible()
 
   await timeControls.getByLabel('Target body').selectOption('earth')
-  await timeControls.getByRole('button', { name: 'Rebase Earth' }).click()
+  await timeControls.getByRole('button', { name: 'Move render origin to Earth' }).click()
   await expect(page.getByText(/earth .* revision [1-9]\d*/i)).toBeVisible()
 
   await timeControls.getByRole('button', { name: 'Reverse' }).click()

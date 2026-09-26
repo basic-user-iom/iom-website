@@ -1,4 +1,4 @@
-import { Texture, Vector3, type TextureLoader } from 'three';
+import { Texture, Vector3, type TextureLoader, type Points, type ShaderMaterial } from 'three';
 
 import {
   PHASE_SIX_BRIGHT_STARS,
@@ -50,6 +50,8 @@ describe('Phase 6 celestial-background assets', () => {
       '/sky-8k.webp',
     ]);
     expect(supported.getDiagnostics().textureTier).toBe('8k');
+    const stars = supported.root.getObjectByName('bright-star-point-catalog-layer') as Points;
+    expect((stars.material as ShaderMaterial).depthTest).toBe(true);
     supported.dispose();
 
     const limitedLoader = createTextureLoaderStub();
@@ -101,6 +103,16 @@ describe('Phase 6 celestial-background assets', () => {
         positionAttribute.getZ(0),
       ]).toEqual(originalStarPosition);
     }
+
+    background.updateCameraPosition(new Vector3(1, 2, 3), 40);
+    // Far-plane argument is accepted but no longer shrinks the sky — depth is
+    // pinned in the vertex shader so distant craft framing cannot facet-clip it.
+    expect(background.skyMesh.scale.x).toBe(1);
+    expect(background.starPoints.scale.x).toBe(1);
+    expect(background.skyMesh.material.vertexShader).toContain('vec4(clip.xy, clip.w, clip.w)');
+    expect(background.skyMesh.material.fragmentShader).toContain('texture2D(uMap, vUv)');
+    expect(background.skyMesh.material.fragmentShader).not.toContain('softSample');
+    expect(background.skyMesh.material.fragmentShader).toContain('float band');
 
     expect(() => background.updateCameraPosition(new Vector3(Number.NaN, 0, 0))).toThrow(
       RangeError,

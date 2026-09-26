@@ -43,3 +43,12 @@ describe('ImpactVisibility', () => {
     })).toBe(1);
   });
 });
+
+it('keeps enhancement fixed as the current plume grows and fades', () => {
+  const reference = { ...SMALL_EVENT, visibilityReferenceSizeM: 40_000 };
+  const initial = impactVisibilityMultiplier('enhanced', reference);
+  expect(initial).toBeGreaterThan(1);
+  expect(initial).toBeLessThan(16);
+  expect(impactVisibilityMultiplier('enhanced', { ...reference, plumeHeightM: 0 })).toBe(initial);
+  expect(impactVisibilityMultiplier('enhanced', { ...reference, plumeHeightM: 40_000 })).toBe(initial);
+});

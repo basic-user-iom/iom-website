@@ -55,9 +55,27 @@ export function calculateDistantPathIntensity(
     throw new RangeError('Normalized path distance must be finite.');
   }
   const bounded = Math.min(Math.max(normalizedDistance, 0), 1);
+  // Ease toward the body so the near arc reads clearly, then settle to a
+  // starfield-safe floor instead of vanishing into a single flat stroke.
   const smoothDistance = bounded * bounded * (3 - 2 * bounded);
-  const farIntensity = kind === 'trail' ? 0.42 : 0.08;
+  const farIntensity = kind === 'trail' ? 0.55 : 0.34;
   return 1 - (1 - farIntensity) * smoothDistance;
+}
+
+/**
+ * Soft hue lift toward cooler starfield-readable tones on distant vertices so
+ * paths are not a single flat paint that disappears against the Milky Way.
+ */
+export function calculatePathVertexTint(
+  intensity: number,
+  kind: EphemerisPathKind,
+): number {
+  if (!Number.isFinite(intensity)) {
+    throw new RangeError('Path vertex intensity must be finite.');
+  }
+  const bounded = Math.min(Math.max(intensity, 0), 1);
+  const coolLift = kind === 'trail' ? 0.14 : 0.1;
+  return 1 + coolLift * (1 - bounded);
 }
 
 /**
@@ -107,9 +125,12 @@ export function writeDistanceFadedPathColors(
     const normalizedDistance =
       distanceRange > 0 ? (distance - minimumDistance) / distanceRange : 0;
     const intensity = calculateDistantPathIntensity(normalizedDistance, kind);
-    output[offset] = color.r * intensity;
-    output[offset + 1] = color.g * intensity;
-    output[offset + 2] = color.b * intensity;
+    const tint = calculatePathVertexTint(intensity, kind);
+    // Push faded segments slightly cooler/brighter so they keep a readable
+    // hue gradient instead of collapsing to one flat desaturated stroke.
+    output[offset] = color.r * intensity * (tint * 0.92);
+    output[offset + 1] = color.g * intensity * tint;
+    output[offset + 2] = color.b * intensity * Math.min(1.35, tint * 1.08);
   }
   return output;
 }

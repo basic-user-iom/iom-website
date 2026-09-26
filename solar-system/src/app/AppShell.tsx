@@ -1,3 +1,7 @@
+import type { SolarFateCameraView } from '../rendering/solar-fate/SolarFateCamera';
+import { loadLocalEarthTerrain } from '../simulation/scenarios/impact/LocalEarthTerrain';
+import { getRegionalEarthSurfaceSampler, installLocalEarthSurface } from '../simulation/scenarios/impact/EarthSurface';
+import { loadEarthSurface, getEarthSurfaceSampler } from '../simulation/scenarios/impact/EarthSurface';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
@@ -488,6 +492,7 @@ export function AppShell() {
   const [provenanceOpen, setProvenanceOpen] = useState(false);
   const [impactLabOpen, setImpactLabOpen] = useState(false);
   const [solarFateOpen, setSolarFateOpen] = useState(false);
+  const [solarFateCameraView, setSolarFateCameraView] = useState<SolarFateCameraView>('auto');
   const [blackHoleEncounterOpen, setBlackHoleEncounterOpen] = useState(false);
   const [naturalSatelliteVisible, setNaturalSatelliteVisible] = useState(true);
   const [majorMoonsVisible, setMajorMoonsVisible] = useState(true);
@@ -578,9 +583,33 @@ export function AppShell() {
   const updateKuiperBeltVisible = useAppStore(selectSetKuiperBeltVisible);
   const updateSelectedTrailInterval = useAppStore(selectSetSelectedTrailInterval);
 
+  const terrainParametersKey = JSON.stringify(impactParameters);
+  const [earthSurfaceResult, setEarthSurfaceResult] = useState<{key:string;status:'ready'|'error'} | null>(null);
+  const earthSurfaceStatus = earthSurfaceResult?.key === terrainParametersKey ? earthSurfaceResult.status : 'loading';
+  useEffect(() => {
+    if (!impactLabOpen || impactSnapshot.state !== 'idle' || impactParameters.targetBodyId !== 'earth') return;
+    let mounted = true;
+    const abort = new AbortController();
+    const timer = window.setTimeout(() => {
+      void loadEarthSurface().then(async () => {
+        const base = getRegionalEarthSurfaceSampler();
+        if (!base || !mounted) return;
+        const result = simulateImpactEntry(impactParameters, base);
+        const n = result.impactFrame.normalBodyLocal;
+        const timeout = window.setTimeout(() => abort.abort(), 6500);
+        try {
+          const local = await loadLocalEarthTerrain(Math.asin(n.z) * 180 / Math.PI,
+            Math.atan2(n.y, n.x) * 180 / Math.PI, base, abort.signal);
+          if (mounted) { installLocalEarthSurface(local.sample); setEarthSurfaceResult({key:terrainParametersKey,status:'ready'}); }
+        } finally { window.clearTimeout(timeout); }
+      }).catch(() => { if (mounted) setEarthSurfaceResult({key:terrainParametersKey,status:getEarthSurfaceSampler() ? 'ready' : 'error'}); });
+    }, 250);
+    return () => { mounted = false; window.clearTimeout(timer); abort.abort(); };
+  }, [impactLabOpen, impactParameters, impactSnapshot.state, terrainParametersKey]);
   const impactPreview = useMemo(() => {
     try {
-      const simulation = simulateImpactEntry(impactParameters);
+      const simulation = simulateImpactEntry(impactParameters, earthSurfaceStatus === 'ready'
+        ? getEarthSurfaceSampler() : getRegionalEarthSurfaceSampler());
       return Object.freeze({
         parameters: impactParameters,
         simulation,
@@ -593,7 +622,7 @@ export function AppShell() {
         visualProfile: DEFAULT_IMPACT_VISUAL_PROFILE,
       });
     }
-  }, [impactParameters]);
+  }, [impactParameters, earthSurfaceStatus]);
   const impactPhysicalSummary =
     impactSnapshot.physicalSummary ?? impactPreview.simulation.physicalSummary;
   const impactVisualProfile =
@@ -1264,7 +1293,8 @@ export function AppShell() {
               runtime.selectedBodyId = targetBodyId;
               runtime.focusedBodyId = targetBodyId;
               runtime.cameraMode = scenarioCameraMode;
-              runtime.renderScaleMode = 'presentation';
+              const scenarioScaleMode = runtime.renderScaleMode;
+              runtime.renderScaleMode = scenarioScaleMode;
               const renderer = rendererRef.current;
               impactPreviewEnvironmentRef.current = null;
               impactPreviewPublishedRef.current = false;
@@ -1277,8 +1307,8 @@ export function AppShell() {
               renderer?.resetBlackHoleVisuals();
               renderer?.setSelectedBody(targetBodyId);
               renderer?.setCameraMode(scenarioCameraMode);
-              renderer?.setScaleMode('presentation');
-              setPresentationWarningRequired(true);
+              renderer?.setScaleMode(scenarioScaleMode);
+              setPresentationWarningRequired(scenarioScaleMode === 'presentation');
               setImpactLabOpen(impactMode);
               setSolarFateOpen(solarFateMode);
               setBlackHoleEncounterOpen(blackHoleMode);
@@ -2205,6 +2235,10 @@ export function AppShell() {
   );
 
   const handleImpactStart = useCallback(() => {
+    if (impactParameters.targetBodyId === 'earth' && (earthSurfaceStatus !== 'ready' || getEarthSurfaceSampler() === null)) {
+      setImpactError('Earth terrain is still unavailable. Wait for loading or reload to retry.');
+      return;
+    }
     cancelTourForManualInput();
     const manager = scenarioManagerRef.current;
     const scenario = impactScenarioRef.current;
@@ -2220,7 +2254,7 @@ export function AppShell() {
         );
         setImpactSnapshot(scenario.getSnapshot());
       });
-  }, [cancelTourForManualInput, impactParameters, synchronizeImpactPresentation]);
+  }, [cancelTourForManualInput, earthSurfaceStatus, impactParameters, synchronizeImpactPresentation]);
 
   const handleImpactPause = useCallback(() => {
     scenarioManagerRef.current?.pause();
@@ -2364,6 +2398,22 @@ export function AppShell() {
       solarEvolutionScenarioRef.current?.skipToNextPhase();
     } else if (manager?.activeScenarioId === fictionalSupernovaScenarioRef.current?.id) {
       fictionalSupernovaScenarioRef.current?.skipToNextStage();
+    }
+    synchronizeSolarFatePresentation();
+  }, [synchronizeSolarFatePresentation]);
+
+  const handleSolarFateCamera = useCallback((view: SolarFateCameraView) => {
+    setSolarFateCameraView(view);
+    rendererRef.current?.setSolarFateCameraView(view);
+    runtimeRef.current?.renderNow();
+  }, []);
+
+  const handleSolarFateStage = useCallback((stage: string) => {
+    const manager = scenarioManagerRef.current;
+    if (manager?.activeScenarioId === solarEvolutionScenarioRef.current?.id) {
+      solarEvolutionScenarioRef.current?.skipToPhase(stage as SolarEvolutionPhaseId);
+    } else if (manager?.activeScenarioId === fictionalSupernovaScenarioRef.current?.id) {
+      fictionalSupernovaScenarioRef.current?.skipToStage(stage as FictionalSolarSupernovaStage);
     }
     synchronizeSolarFatePresentation();
   }, [synchronizeSolarFatePresentation]);
@@ -2863,9 +2913,23 @@ export function AppShell() {
                   renderer?.selectNaturalSatellite(target.id);
                   if (isObservatoryBodyId(satellite.parentId)) controls.focusBody(satellite.parentId);
                   window.setTimeout(() => {
-                    rendererRef.current?.focusNaturalSatellite(target.id);
-                    runtimeRef.current?.renderNow();
-                  }, 80);
+                    const runtime = runtimeRef.current;
+                    const activeRenderer = rendererRef.current;
+                    if (runtime === null || activeRenderer === null) return;
+                    // Parent focus sets body-follow; switch to free-orbit before moon framing.
+                    updateCameraMode('free-orbit');
+                    runtime.cameraMode = 'free-orbit';
+                    // Two renders: first applies selection orbit scale, second frames the moon.
+                    runtime.renderNow();
+                    runtime.renderNow();
+                    const focused = activeRenderer.focusNaturalSatellite(target.id);
+                    if (!focused) {
+                      runtime.renderNow();
+                      activeRenderer.focusNaturalSatellite(target.id);
+                    }
+                    runtime.renderNow();
+                    runtime.forcePublish();
+                  }, 280);
                   return;
                 }
                 setSelectedNaturalSatelliteId(null);
@@ -2969,9 +3033,20 @@ export function AppShell() {
                 }
                 setSelectedNaturalSatelliteId(id);
                 window.setTimeout(() => {
-                  rendererRef.current?.focusNaturalSatellite(id);
-                  runtimeRef.current?.renderNow();
-                }, 80);
+                  const runtime = runtimeRef.current;
+                  const activeRenderer = rendererRef.current;
+                  if (runtime === null || activeRenderer === null) return;
+                  updateCameraMode('free-orbit');
+                  runtime.cameraMode = 'free-orbit';
+                  runtime.renderNow();
+                  const focused = activeRenderer.focusNaturalSatellite(id);
+                  if (!focused) {
+                    runtime.renderNow();
+                    activeRenderer.focusNaturalSatellite(id);
+                  }
+                  runtime.renderNow();
+                  runtime.forcePublish();
+                }, 220);
               }}
               onFocusParent={(parentId) => {
                 if (isObservatoryBodyId(parentId)) controls.focusBody(parentId);
@@ -3160,12 +3235,15 @@ export function AppShell() {
               data-testid="impact-event-hud"
             >
               <span className="eyebrow">Educational approximation · Impact Lab</span>
-              <strong>{formatImpactStage(impactSnapshot.stage)}</strong>
+              {impactSnapshot.eventElapsedSeconds !== null && impactSnapshot.physicalSummary?.outcomeKind === 'airburst' ? (
+                <span>Atmospheric burst at {((impactSnapshot.physicalSummary.estimatedAirburstAltitudeM ?? 0) / 1000).toFixed(1)} km</span>
+              ) : null}
+              <strong>{impactSnapshot.stage === 'plume' && impactSnapshot.physicalSummary?.outcomeKind === 'airburst'
+                ? 'Airburst cloud' : formatImpactStage(impactSnapshot.stage)}</strong>
               <span>
                 Scenario-local time {impactSnapshot.scenarioTimeSeconds.toFixed(2)} s ·{' '}
                 {Math.round(impactSnapshot.progress * 100)}% · {impactSnapshot.playbackRate}x
               </span>
-              <span>Entry, breakup, impact, and aftermath visuals are simplified for this target.</span>
               <span>
                 {impactVisibilityMode === 'enhanced'
                   ? `Enhanced event visibility ${formatImpactVisibilityMultiplier(impactVisibilityScale)} \u00b7 physical results unchanged`
@@ -3285,6 +3363,7 @@ export function AppShell() {
                   visualProfile={impactVisualProfile}
                   snapshot={impactSnapshot}
                   disabled={observatoryUnavailable}
+                  surfaceStatus={earthSurfaceStatus}
                   reduceFlashes={reduceFlashes}
                   visibilityMode={impactVisibilityMode}
                   visibilityMultiplier={impactVisibilityScale}
@@ -3310,6 +3389,9 @@ export function AppShell() {
                 )}
                 <SolarFatePanel
                   activeScenario={solarFatePanelState}
+                  cameraView={solarFateCameraView}
+                  onCameraViewChange={handleSolarFateCamera}
+                  onSelectStage={handleSolarFateStage}
                   disabled={observatoryUnavailable}
                   reduceFlashes={reduceFlashes}
                   onReduceFlashesChange={updateReduceFlashes}
@@ -3415,6 +3497,7 @@ export function AppShell() {
           <a href={surfaceAssetManifestUrl} target="_blank" rel="noreferrer">
             Surface source manifest
           </a>
+          {' · '}
           <a href={moonSurfaceAssetManifestUrl} target="_blank" rel="noreferrer">
             Moon texture manifest
           </a>
@@ -3602,6 +3685,7 @@ function createSolarEvolutionRenderState(
   return Object.freeze({
     lifecycleState: snapshot.state,
     phase: solarEvolutionRenderPhaseFor(snapshot.phaseId, snapshot.phaseProgress),
+    phaseProgress: snapshot.phaseProgress,
     scenarioTimeSeconds: snapshot.scenarioTimeSeconds,
     progress: snapshot.progress,
     stellarRadiusM: snapshot.physicalRadiusM,
@@ -3731,6 +3815,8 @@ function createImpactRenderState(
     progress: snapshot.progress,
     targetBodyId: parameters.targetBodyId,
     targetRadiusM: physical.targetRadiusM,
+    earthSurface: physical.earthSurface,
+    surfaceImpactEnergyJ: physical.impactEnergyJ,
     targetEquatorialRadiusM: targetRenderRadii.equatorialRadiusM,
     targetPolarRadiusM: targetRenderRadii.polarRadiusM,
     targetClass: physical.targetClass,
@@ -3744,7 +3830,7 @@ function createImpactRenderState(
       parameters.atmosphereEnabled && targetProfile.supportsCloudScar,
     outcomeKind: physical.outcomeKind,
     surfaceEffectProfile,
-    aftermathKind,
+    aftermathKind: physical.outcomeKind === 'ocean-surface-impact' ? 'none' : aftermathKind,
     impactNormalBodyLocal: impactFrame.normalBodyLocal,
     impactEastBodyLocal: impactFrame.eastBodyLocal,
     impactNorthBodyLocal: impactFrame.northBodyLocal,
@@ -3778,6 +3864,10 @@ function createImpactRenderState(
     eventElapsedSeconds: snapshot.eventElapsedSeconds,
     flashIntensity: snapshot.flashIntensity,
     flashRadiusM: visual.flashRadiusM,
+    visibilityReferenceSizeM: Math.max(visual.flashRadiusM, visual.craterRadiusM * 2.4,
+      visual.scorchRadiusM, visual.ejectaRadiusM, visual.plumeHeightM, visual.plumeRadiusM),
+    seafloorCraterRadiusM: visual.seafloorCraterRadiusM,
+    seafloorCraterDepthM: visual.seafloorCraterDepthM,
     craterRadiusM: visual.craterRadiusM,
     craterDepthM: visual.craterDepthM,
     scorchRadiusM: visual.scorchRadiusM,
@@ -3825,6 +3915,8 @@ function createImpactPreviewRenderState(
     progress: 0,
     targetBodyId: physical.targetBodyId,
     targetRadiusM: physical.targetRadiusM,
+    earthSurface: physical.earthSurface,
+    surfaceImpactEnergyJ: physical.impactEnergyJ,
     targetEquatorialRadiusM: targetRenderRadii.equatorialRadiusM,
     targetPolarRadiusM: targetRenderRadii.polarRadiusM,
     targetClass: physical.targetClass,
@@ -3880,8 +3972,8 @@ function createImpactPreviewRenderState(
     cloudScarOpacity: 0,
     cloudScarAdvectionRad: 0,
     runSignature: impactRunSignature(parameters).replace(
-      'impact-v2-',
-      'impact-preview-v2-',
+      'impact-v4-',
+      'impact-preview-v5-',
     ),
   });
 }
@@ -3915,6 +4007,7 @@ function impactAftermathKindFor(
   supportsCrater: boolean,
   supportsCloudScar: boolean,
 ): ImpactRenderState['aftermathKind'] {
+  if (outcomeKind === 'no-impact') return 'none';
   if (outcomeKind === 'deep-atmosphere-breakup') {
     return supportsCloudScar ? 'cloud-scar' : 'none';
   }

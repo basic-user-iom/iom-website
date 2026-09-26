@@ -71,6 +71,7 @@ export function SpaceObjectsPanel({
     <section className="control-panel space-objects-panel" data-testid="space-objects-panel">
       <div className="panel-heading-row">
         <div>
+          <p className="eyebrow">Artificial objects</p>
           <h2>Space objects</h2>
         </div>
         <span className="panel-count">{EARTH_SATELLITE_DEFINITIONS.length + SPACECRAFT_DEFINITIONS.length}</span>
@@ -90,7 +91,11 @@ export function SpaceObjectsPanel({
           enabled={visible && earthSatellitesVisible}
           checked={earthSatellitesVisible}
           disabled={disabled || !visible}
-          label={`Earth satellites · ${EARTH_SATELLITE_CATALOG_METADATA.objectCount}`}
+          label={
+            normalizedQuery.length === 0
+              ? `Earth satellites · ${EARTH_SATELLITE_CATALOG_METADATA.objectCount}`
+              : `Earth satellites · ${satellites.length} of ${EARTH_SATELLITE_CATALOG_METADATA.objectCount}`
+          }
           items={satellites.map((item) => ({ id: item.id, name: item.name, detail: `${item.catalogId} · ${formatAge(sampleEarthSatellite(item, currentJdTdb).dataAgeDays)}` }))}
           selectedId={selectedObjectId}
           onCheckedChange={onEarthSatellitesVisibleChange}
@@ -101,7 +106,11 @@ export function SpaceObjectsPanel({
           enabled={visible && spacecraftVisible}
           checked={spacecraftVisible}
           disabled={disabled || !visible}
-          label={`Spacecraft & probes · ${SPACECRAFT_CATALOG_METADATA.missionCount}`}
+          label={
+            normalizedQuery.length === 0
+              ? `Spacecraft & probes · ${SPACECRAFT_CATALOG_METADATA.missionCount}`
+              : `Spacecraft & probes · ${missions.length} of ${SPACECRAFT_CATALOG_METADATA.missionCount}`
+          }
           items={missions.map((item) => {
             const state = sampleSpacecraftTrajectory(item, currentJdTdb);
             return { id: item.id, name: item.name, detail: `${item.status} · ${state.valid ? 'trajectory valid' : 'outside validity'}` };
@@ -151,6 +160,11 @@ function ObjectList({
             <span>{item.name}</span><small>{item.detail}</small>
           </button>
         ))}
+        {items.length === 0 ? (
+          <p className="panel-empty" role="status" data-testid="space-objects-empty">
+            No satellite or spacecraft matches this search.
+          </p>
+        ) : null}
       </div>
     </>
   );

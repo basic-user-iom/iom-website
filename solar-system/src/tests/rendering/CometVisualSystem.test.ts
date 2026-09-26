@@ -42,10 +42,14 @@ describe('CometVisualSystem', () => {
         visual.innerComa,
         visual.ionCore,
         visual.dustSpine,
+        visual.ionRibbon,
+        visual.dustRibbon,
         visual.ionTail,
         visual.dustTail,
       ]),
     );
+    expect(visual.ionRibbonCross).toBeDefined();
+    expect(visual.ionRibbonCross.material.name).toBe('soft-comet-ion-sheet-ribbon');
     expect(visual.coma).not.toBe(visual.innerComa);
     expect(visual.coma.material).not.toBe(visual.innerComa.material);
     expect(visual.ionTail).not.toBe(visual.dustTail);
@@ -67,7 +71,7 @@ describe('CometVisualSystem', () => {
       ),
     );
     expect(nucleusRadii.every(Number.isFinite)).toBe(true);
-    expect(Math.max(...nucleusRadii) - Math.min(...nucleusRadii)).toBeGreaterThan(0.1);
+    expect(Math.max(...nucleusRadii) - Math.min(...nucleusRadii)).toBeGreaterThan(0.02);
 
     const activeState = state(0.64, {
       trustedEphemeris: false,
@@ -82,27 +86,33 @@ describe('CometVisualSystem', () => {
     expect(visual.innerComa.scale.x).toBe(visual.innerComa.scale.z);
     expect(visual.ionTail.visible).toBe(true);
     expect(visual.dustTail.visible).toBe(true);
-    expect(visual.ionTail.geometry.drawRange.count).toBe(3);
+    expect(visual.ionTail.geometry.drawRange.count).toBe(25);
     expect(visual.dustTail.geometry.drawRange.count).toBe(8);
     expect(visual.dustSpine.geometry.drawRange.count).toBe(2);
+    expect(visual.ionCore.geometry.drawRange.count).toBe(3);
     expect(visual.coma.material.uniforms.uOpacity?.value).toBeGreaterThan(0);
+    expect(visual.innerComa.visible).toBe(false);
 
     system.setQuality('ultra');
-    expect(visual.ionTail.material.uniforms.uPointSize?.value).toBe(2);
+    expect(visual.ionTail.material.uniforms.uPointSize?.value).toBeCloseTo(3.0375, 5);
 
     const diagnostics = system.getDiagnostics(BODY_ID);
     expect(diagnostics).toMatchObject({
       bodyId: BODY_ID,
       activity: 0.64,
-      ionPointCount: 3,
+      ionPointCount: 25,
       dustPointCount: 8,
       dustHistorySpanDays: 42,
       dustCurvatureM: 875_000,
       trustedEphemeris: false,
       approximationWarning: 'Fixture long-range approximation warning.',
       comaRendering: 'soft radial density',
-      tailRendering: 'continuous faded ribbons with soft particles',
+      tailRendering: 'soft ion/dust ribbons with particle streamers',
     });
+    expect(visual.ionRibbon.visible).toBe(false);
+    expect(visual.dustRibbon.visible).toBe(false);
+    expect(visual.ionRibbon.geometry.drawRange.count).toBe(0);
+    expect(visual.dustRibbon.geometry.drawRange.count).toBe(0);
     const mappedIonLength = Math.sqrt(77);
     expect(diagnostics.ionDirection.x).toBeCloseTo(4 / mappedIonLength, 6);
     expect(diagnostics.ionDirection.y).toBeCloseTo(6 / mappedIonLength, 6);

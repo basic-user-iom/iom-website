@@ -54,7 +54,7 @@ export function CanvasLegend({
     <div
       className="canvas-legend"
       role="group"
-      aria-label="Solar System locations and overlays"
+      aria-label="Solar System locations and overlays. Scroll horizontally for more bodies."
       data-testid="canvas-legend"
     >
       {CANVAS_LEGEND_BODY_SHORTCUTS.map(({ id, label, color }) => (

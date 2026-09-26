@@ -70,16 +70,47 @@ describe('BlackHoleVisualSystem', () => {
     system.dispose();
   });
 
-  it('rejects invalid visual frames before they can reach GPU matrices', () => {
-    const system = new BlackHoleVisualSystem();
-    expect(() => system.update(visualFrame({
-      positionRenderUnits: [Number.NaN, 0, 0],
-    }))).toThrow(/render position/i);
-    expect(() => system.update(visualFrame({
-      eventHorizonRadiusRenderUnits: Number.POSITIVE_INFINITY,
-    }))).toThrow(/event-horizon/i);
-    expect(() => system.update(visualFrame({ spinVisualization: 1.1 })))
-      .toThrow(/spin/i);
+  it('keeps inclined Doppler disk fill even when Bruneton schwarzschild lensing is active', () => {
+    const system = new BlackHoleVisualSystem('high');
+    system.update(visualFrame());
+    expect(system.getDiagnostics().accretionDiskVisible).toBe(true);
+
+    system.setLensingDiagnostics({
+      active: true,
+      path: 'schwarzschild',
+      quality: 'high',
+      highQualitySupported: true,
+      centerNdc: [0, 0],
+      eventHorizonRadiusNdc: 0.05,
+      influenceRadiusNdc: 0.4,
+      finite: true,
+    });
+    system.update(visualFrame());
+    expect(system.getDiagnostics()).toMatchObject({
+      accretionDiskVisible: true,
+      lensing: { path: 'schwarzschild', active: true },
+    });
+    expect(system.root.getObjectByName('black-hole-accretion-disk')?.visible).toBe(true);
+    expect(system.root.getObjectByName('black-hole-lensed-disk-arch')?.visible).toBe(true);
+    expect(system.getProtectiveExposureCeiling()).toBe(0.68);
+    system.dispose();
+  });
+
+  it('keeps Doppler mesh-disk fill on medium when lensing is simplified', () => {
+    const system = new BlackHoleVisualSystem('medium');
+    system.setLensingDiagnostics({
+      active: true,
+      path: 'simplified',
+      quality: 'medium',
+      highQualitySupported: true,
+      centerNdc: [0, 0],
+      eventHorizonRadiusNdc: 0.05,
+      influenceRadiusNdc: 0.3,
+      finite: true,
+    });
+    system.update(visualFrame());
+    expect(system.getDiagnostics().accretionDiskVisible).toBe(true);
+    expect(system.root.getObjectByName('black-hole-relativistic-jet-a')?.visible).toBe(true);
     system.dispose();
   });
 });

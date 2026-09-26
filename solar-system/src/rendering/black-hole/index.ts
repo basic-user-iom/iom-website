@@ -27,7 +27,10 @@ export type {
   BrunetonLookupTableUrls,
   LoadBrunetonLookupTablesOptions,
 } from './BrunetonLensingTables';
-export { BlackHoleVisualSystem } from './BlackHoleVisualSystem';
+export {
+  BLACK_HOLE_OVERLAY_LAYER,
+  BlackHoleVisualSystem,
+} from './BlackHoleVisualSystem';
 export {
   EMPTY_BLACK_HOLE_LENSING_DIAGNOSTICS,
   EMPTY_BLACK_HOLE_VISUAL_DIAGNOSTICS,

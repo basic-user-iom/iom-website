@@ -1,3 +1,4 @@
+import { getEarthSurfaceSampler, getEarthSurfaceRevision } from '../../simulation/scenarios/impact/EarthSurface';
 import {
   BufferGeometry,
   DoubleSide,
@@ -79,6 +80,7 @@ export class CraterPatchRenderer {
     side: DoubleSide,
     transparent: true,
     uniforms: {
+      uExcavated: { value: 0 },
       uAxisScale: { value: new Vector3(1, 1, 1) },
       uCraterDepthRatio: { value: 0 },
       uCraterToPatchRatio: { value: 0.5 },
@@ -94,6 +96,8 @@ export class CraterPatchRenderer {
       uSurfaceBias: { value: 0 },
     },
     vertexShader: `
+      uniform float uExcavated;
+      attribute float aTerrainHeight;
       uniform vec3 uAxisScale;
       uniform vec3 uImpactDirection;
       uniform vec3 uEast;
@@ -125,25 +129,28 @@ export class CraterPatchRenderer {
         vec3 surface = ellipsoidPoint(direction);
         vec3 surfaceNormal = ellipsoidNormal(surface);
         vCraterRadius = patchRadius / max(uCraterToPatchRatio, 0.0001);
-        float bowl = -uCraterDepthRatio * pow(max(1.0 - vCraterRadius, 0.0), 2.2);
+        float bowl = -uCraterDepthRatio * pow(max(1.0 - vCraterRadius*vCraterRadius, 0.0), 2.0);
         vRim = exp(-pow((vCraterRadius - 1.0) / 0.16, 2.0));
-        float boundedDisplacement = max(-uSurfaceBias * 0.45, bowl * 0.06)
+        float boundedDisplacement = (uExcavated > 0.5 ? bowl : max(-uSurfaceBias*0.45,bowl*0.06))
           + vRim * uRimHeightRatio;
-        surface += surfaceNormal * (uSurfaceBias + boundedDisplacement * uFormation);
+        surface += surfaceNormal * (aTerrainHeight + uSurfaceBias + boundedDisplacement * uFormation);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(surface, 1.0);
       }
     `,
   });
   private readonly patch = new Mesh(this.geometry, this.material);
   private readonly anchor = new Vector3();
+  private terrainKey = '';
+  private readonly terrainDirection = new Vector3();
   private disposed = false;
 
   public constructor() {
     this.vertexCount = this.geometry.getAttribute('position').count;
+    this.geometry.setAttribute('aTerrainHeight', new Float32BufferAttribute(new Float32Array(this.vertexCount), 1));
     this.root.name = 'impact-crater-patch-renderer';
     this.patch.name = 'impact-curved-crater-patch';
     this.patch.frustumCulled = false;
-    this.patch.renderOrder = 6;
+    this.patch.renderOrder = 5;
     this.root.add(this.patch);
     this.reset();
   }
@@ -169,6 +176,7 @@ export class CraterPatchRenderer {
       && this.angularRadiusRad > 0
       && (this.formationProgress > 0 || state.surfaceScorchOpacity > 0);
 
+    this.material.uniforms.uExcavated!.value = state.targetBodyId === 'earth' && getEarthSurfaceSampler() ? 1 : 0;
     const axis = this.material.uniforms.uAxisScale!.value as Vector3;
     axis.set(
       state.targetEquatorialRadiusM / state.targetRadiusM,
@@ -184,11 +192,11 @@ export class CraterPatchRenderer {
       : 0;
     this.material.uniforms.uCraterDepthRatio!.value = Math.min(
       state.craterDepthM * presentationMultiplier / state.targetRadiusM,
-      this.angularRadiusRad * 0.22,
+      this.angularRadiusRad * 0.5,
     );
     this.material.uniforms.uRimHeightRatio!.value = Math.min(
       state.craterDepthM * presentationMultiplier * 0.18 / state.targetRadiusM,
-      this.angularRadiusRad * 0.04,
+      this.angularRadiusRad * 0.09,
     );
     this.material.uniforms.uFormation!.value = this.formationProgress;
     this.material.uniforms.uScorchOpacity!.value = clampImpactUnit(
@@ -196,14 +204,29 @@ export class CraterPatchRenderer {
     );
     this.material.uniforms.uDusty!.value = state.aftermathKind === 'dusty-crater' ? 1 : 0;
     this.material.uniforms.uSeedPhase!.value = hashPhase(state.runSignature);
-    this.material.uniforms.uSurfaceBias!.value = 1.5 / state.targetRadiusM;
+    this.material.uniforms.uSurfaceBias!.value = (state.earthSurface ? 0.7 : 1.5) / state.targetRadiusM;
+    const key = [state.targetBodyId, basis.normal.x, basis.normal.y, basis.normal.z, patchAngularRadius, getEarthSurfaceRevision()].join(',');
+    if (key !== this.terrainKey) {
+      this.terrainKey = key;
+      const positions = this.geometry.getAttribute('position'), heights = this.geometry.getAttribute('aTerrainHeight');
+      const sample = state.earthSurface ? getEarthSurfaceSampler() : null;
+      for (let i = 0; i < positions.count; i++) {
+        const x = positions.getX(i), y = positions.getY(i), r = Math.hypot(x, y), a = r * patchAngularRadius;
+        this.terrainDirection.copy(basis.normal).multiplyScalar(Math.cos(a))
+          .addScaledVector(basis.east, r > 0 ? x / r * Math.sin(a) : 0)
+          .addScaledVector(basis.north, r > 0 ? y / r * Math.sin(a) : 0).normalize();
+        const height = sample?.(Math.asin(this.terrainDirection.y) * 180 / Math.PI, Math.atan2(-this.terrainDirection.z, this.terrainDirection.x) * 180 / Math.PI).surfaceAltitudeM ?? 0;
+        heights.setX(i, height / state.targetRadiusM);
+      }
+      heights.needsUpdate = true;
+    }
 
     setEllipsoidSurfacePoint(this.anchor, basis.normal, state);
     this.attachmentErrorM = this.visible
       ? ellipsoidSurfaceAttachmentErrorM(this.anchor, state)
       : 0;
     this.persistent = this.visible && state.supportsPersistentSurfaceDecal;
-    this.patch.visible = this.visible;
+    this.patch.visible = this.visible && !this.root.parent?.getObjectByName('impact-earth-relief-mesh')?.visible;
     this.root.visible = this.visible;
     this.activeObjectCount = Number(this.visible);
   }

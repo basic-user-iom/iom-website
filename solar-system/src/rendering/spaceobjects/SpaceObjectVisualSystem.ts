@@ -1,7 +1,6 @@
 import {
   Box3,
   BufferGeometry,
-  Color,
   Float32BufferAttribute,
   Group,
   InstancedMesh,
@@ -9,9 +8,10 @@ import {
   LineBasicMaterial,
   Matrix4,
   Mesh,
+  MeshBasicMaterial,
   Object3D,
+  OctahedronGeometry,
   Sphere,
-  SphereGeometry,
   MeshStandardMaterial,
   Texture,
   Vector3,
@@ -30,6 +30,8 @@ import {
   bodyRelativePhysicalScale,
   earthSatelliteMarkerRadius,
   physicalModelScale,
+  screenAwareMarkerRadius,
+  spacecraftMarkerRadius,
 } from './SpaceObjectRenderScale';
 
 export type IssModelState = 'idle' | 'loading' | 'ready' | 'fallback';
@@ -57,6 +59,7 @@ export interface SpaceObjectVisualDiagnostics {
   readonly issScalePolicy: 'physical-earth-relative';
   readonly selectedRenderRadius: number | null;
   readonly selectedOnScreen: boolean;
+  readonly coverageLabelCount: number;
 }
 
 const ZERO: PhysicalPosition = Object.freeze({ x: 0, y: 0, z: 0 });
@@ -73,6 +76,7 @@ const ISS_BOUNDS = new Box3();
 const ISS_CENTER = new Vector3();
 const ISS_SPHERE = new Sphere();
 const ISS_SIZE = new Vector3();
+const PROJECTED = new Vector3();
 const EARTH_RADIUS_M = 6_371_008.4;
 const ISS_INDEX = EARTH_SATELLITE_DEFINITIONS.findIndex((item) => item.id === ISS_MODEL_ASSET.objectId);
 const ISS_REFERENCE_SCALE = physicalModelScale(
@@ -81,15 +85,19 @@ const ISS_REFERENCE_SCALE = physicalModelScale(
 );
 const ISS_SPAN_TO_EARTH_DIAMETER = ISS_MODEL_ASSET.physicalSpanMeters / (EARTH_RADIUS_M * 2);
 
+const EARTH_SATELLITE_MARKER_COLOR = 0x6fd8ff;
+const SPACECRAFT_MARKER_COLOR = 0xffb14a;
+
 export class SpaceObjectVisualSystem {
   public readonly root = new Group();
-  private readonly earthSatelliteMesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
-  private readonly spacecraftMesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
+  private readonly earthSatelliteMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
+  private readonly spacecraftMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
   private readonly issModelAnchor = new Group();
   private readonly earthSatelliteTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly spacecraftTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly worldPositions = new Map<string, Vector3>();
   private readonly renderedRadii = new Map<string, number>();
+  private readonly coverageLabels = new Map<string, HTMLSpanElement>();
   private visible = true;
   private earthSatellitesVisible = true;
   private spacecraftVisible = true;
@@ -98,6 +106,7 @@ export class SpaceObjectVisualSystem {
   private inspectionSuppressedMarkerCount = 0;
   private renderedEarthSatelliteCount = 0;
   private renderedSpacecraftCount = 0;
+  private coverageLabelCount = 0;
   private selectedTrajectoryPointCount = 0;
   private workerClient: SpaceObjectWorkerClient | null = null;
   private workerResult: SpaceObjectWorkerResultResponse | null = null;
@@ -116,22 +125,24 @@ export class SpaceObjectVisualSystem {
   public constructor() {
     this.root.name = 'space-objects-layer';
     this.root.renderOrder = 5;
-    const earthSatelliteGeometry = new SphereGeometry(1, 8, 6);
+    const earthSatelliteGeometry = new OctahedronGeometry(1, 0);
     this.earthSatelliteMesh = new InstancedMesh(
       earthSatelliteGeometry,
-      new MeshStandardMaterial({ color: 0x9ce4ff, emissive: new Color(0x1e6b91), emissiveIntensity: 0.24, roughness: 0.55 }),
+      createMarkerMaterial(EARTH_SATELLITE_MARKER_COLOR),
       EARTH_SATELLITE_DEFINITIONS.length,
     );
     this.earthSatelliteMesh.name = 'earth-satellite-markers';
     this.earthSatelliteMesh.frustumCulled = false;
-    const spacecraftGeometry = new SphereGeometry(1, 8, 6);
+    this.earthSatelliteMesh.renderOrder = 6;
+    const spacecraftGeometry = new OctahedronGeometry(1, 0);
     this.spacecraftMesh = new InstancedMesh(
       spacecraftGeometry,
-      new MeshStandardMaterial({ color: 0xffc86c, emissive: new Color(0xa84a13), emissiveIntensity: 0.3, roughness: 0.55 }),
+      createMarkerMaterial(SPACECRAFT_MARKER_COLOR),
       SPACECRAFT_DEFINITIONS.length,
     );
     this.spacecraftMesh.name = 'spacecraft-probe-markers';
     this.spacecraftMesh.frustumCulled = false;
+    this.spacecraftMesh.renderOrder = 6;
     this.issModelAnchor.name = 'iss-nasa-jsc-igoal-model';
     this.issModelAnchor.visible = false;
     this.earthSatelliteTrajectory = createTrajectoryLine('earth-satellite-selected-orbit', 96, 0x6ecfff);
@@ -162,6 +173,8 @@ export class SpaceObjectVisualSystem {
     this.selectionIndicator?.remove();
     this.selectionLabel = null;
     this.selectionIndicator = null;
+    for (const label of this.coverageLabels.values()) label.remove();
+    this.coverageLabels.clear();
     if (container === null) return;
 
     const label = document.createElement('span');
@@ -176,6 +189,18 @@ export class SpaceObjectVisualSystem {
     indicator.setAttribute('aria-hidden', 'true');
     container.append(indicator);
     this.selectionIndicator = indicator;
+
+    for (const satellite of EARTH_SATELLITE_DEFINITIONS) {
+      const coverage = document.createElement('span');
+      coverage.className = 'space-object-screen-label space-object-coverage-label';
+      coverage.dataset.objectId = satellite.id;
+      coverage.dataset.kind = 'earth-satellite';
+      coverage.textContent = satellite.name;
+      coverage.setAttribute('aria-hidden', 'true');
+      coverage.style.opacity = '0';
+      container.append(coverage);
+      this.coverageLabels.set(satellite.id, coverage);
+    }
   }
 
   public setEarthSatellitesVisible(visible: boolean): void {
@@ -215,26 +240,65 @@ export class SpaceObjectVisualSystem {
     viewportHeight: number,
     suppressed = false,
   ): void {
+    this.coverageLabelCount = 0;
     const id = this.selectedObjectId;
     const position = id === null ? undefined : this.worldPositions.get(id);
     const earthSatelliteSelected = id !== null && EARTH_SATELLITE_DEFINITIONS.some((item) => item.id === id);
     const categoryVisible = earthSatelliteSelected ? this.earthSatellitesVisible : this.spacecraftVisible;
+
+    let coverageIndex = 0;
+    for (const [objectId, label] of this.coverageLabels) {
+      if (
+        suppressed
+        || !this.visible
+        || !this.earthSatellitesVisible
+        || objectId === this.selectedObjectId
+        || this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId
+      ) {
+        label.style.opacity = '0';
+        continue;
+      }
+      const world = this.worldPositions.get(objectId);
+      if (world === undefined) {
+        label.style.opacity = '0';
+        continue;
+      }
+      PROJECTED.copy(world).project(camera);
+      const onScreen = PROJECTED.z >= -1 && PROJECTED.z <= 1
+        && PROJECTED.x >= -1.05 && PROJECTED.x <= 1.05
+        && PROJECTED.y >= -1.05 && PROJECTED.y <= 1.05;
+      if (!onScreen) {
+        label.style.opacity = '0';
+        continue;
+      }
+      const x = (PROJECTED.x * 0.5 + 0.5) * viewportWidth;
+      const y = (-PROJECTED.y * 0.5 + 0.5) * viewportHeight;
+      // Fan labels slightly so LEO/MEO clusters stay readable.
+      const fanX = 10 + (coverageIndex % 3) * 14;
+      const fanY = -10 - Math.floor(coverageIndex / 3) * 14 - (coverageIndex % 2) * 8;
+      label.dataset.selected = 'false';
+      label.style.opacity = '0.82';
+      label.style.transform = `translate(${x + fanX}px, ${y + fanY}px)`;
+      this.coverageLabelCount += 1;
+      coverageIndex += 1;
+    }
+
     if (suppressed || !this.visible || !categoryVisible || id === null || position === undefined) {
       this.hideSelectionUi();
       return;
     }
 
-    const projected = position.clone().project(camera);
-    const onScreen = projected.z >= -1 && projected.z <= 1
-      && projected.x >= -1.05 && projected.x <= 1.05
-      && projected.y >= -1.05 && projected.y <= 1.05;
+    PROJECTED.copy(position).project(camera);
+    const onScreen = PROJECTED.z >= -1 && PROJECTED.z <= 1
+      && PROJECTED.x >= -1.05 && PROJECTED.x <= 1.05
+      && PROJECTED.y >= -1.05 && PROJECTED.y <= 1.05;
     this.selectedOnScreen = onScreen;
     if (!onScreen) {
       this.hideSelectionUi(false);
       return;
     }
-    const x = (projected.x * 0.5 + 0.5) * viewportWidth;
-    const y = (-projected.y * 0.5 + 0.5) * viewportHeight;
+    const x = (PROJECTED.x * 0.5 + 0.5) * viewportWidth;
+    const y = (-PROJECTED.y * 0.5 + 0.5) * viewportHeight;
     const definition = EARTH_SATELLITE_DEFINITIONS.find((item) => item.id === id)
       ?? SPACECRAFT_DEFINITIONS.find((item) => item.id === id);
     if (this.selectionLabel !== null) {
@@ -255,6 +319,7 @@ export class SpaceObjectVisualSystem {
     frame: Readonly<DebugRenderFrame>,
     scaleModel: Readonly<RenderScaleModel>,
     originM: Readonly<PhysicalPosition>,
+    camera: Camera | null = null,
   ): void {
     if (!this.visible) {
       this.root.visible = false;
@@ -292,10 +357,14 @@ export class SpaceObjectVisualSystem {
         OBJECT.position.copy(EARTH).add(LOCAL);
         const isIss = index === ISS_INDEX;
         const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId && !isIss;
-        const markerRadius = isIss
+        const baseRadius = isIss
           ? this.issModelPhysicalRadiusMeters * earthRelativeScale.metersToRenderUnits
           : earthSatelliteMarkerRadius(this.selectedObjectId === satellite.id, scaleModel.mode);
         const useIssModel = isIss && this.issModelState === 'ready';
+        // Keep ISS framing on its physical radius; inflate only non-ISS locators.
+        const displayRadius = useIssModel || isIss || camera === null
+          ? baseRadius
+          : screenAwareMarkerRadius(baseRadius, OBJECT.position, camera);
         if (useIssModel) {
           this.hideInstance(this.earthSatelliteMesh, index);
           this.updateIssModel(
@@ -308,12 +377,12 @@ export class SpaceObjectVisualSystem {
           this.hideInstance(this.earthSatelliteMesh, index);
           this.inspectionSuppressedMarkerCount += 1;
         } else {
-          OBJECT.scale.setScalar(markerRadius);
+          OBJECT.scale.setScalar(displayRadius);
           OBJECT.updateMatrix();
           MATRIX.copy(OBJECT.matrix);
           this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
         }
-        this.recordObjectPosition(satellite.id, OBJECT.position, markerRadius);
+        this.recordObjectPosition(satellite.id, OBJECT.position, baseRadius);
         if (!suppressLocator) this.renderedEarthSatelliteCount += 1;
       });
       const selectedSatellite = EARTH_SATELLITE_DEFINITIONS.find((satellite) => satellite.id === this.selectedObjectId);
@@ -345,18 +414,24 @@ export class SpaceObjectVisualSystem {
         }
         scaleModel.mapPosition(LOCAL, state.positionM, originM);
         OBJECT.position.copy(LOCAL);
-        const markerRadius = this.selectedObjectId === mission.id ? 0.0006 : 0.00022;
+        const baseRadius = spacecraftMarkerRadius(
+          this.selectedObjectId === mission.id,
+          scaleModel.mode,
+        );
+        const displayRadius = camera === null
+          ? baseRadius
+          : screenAwareMarkerRadius(baseRadius, OBJECT.position, camera);
         const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId;
         if (suppressLocator) {
           this.hideInstance(this.spacecraftMesh, index);
           this.inspectionSuppressedMarkerCount += 1;
         } else {
-          OBJECT.scale.setScalar(markerRadius);
+          OBJECT.scale.setScalar(displayRadius);
           OBJECT.updateMatrix();
           MATRIX.copy(OBJECT.matrix);
           this.spacecraftMesh.setMatrixAt(index, MATRIX);
         }
-        this.recordObjectPosition(mission.id, OBJECT.position, markerRadius);
+        this.recordObjectPosition(mission.id, OBJECT.position, baseRadius);
         if (!suppressLocator) this.renderedSpacecraftCount += 1;
       });
       const selectedMission = SPACECRAFT_DEFINITIONS.find((mission) => mission.id === this.selectedObjectId);
@@ -396,6 +471,7 @@ export class SpaceObjectVisualSystem {
         ? null
         : this.renderedRadii.get(this.selectedObjectId) ?? null,
       selectedOnScreen: this.selectedOnScreen,
+      coverageLabelCount: this.coverageLabelCount,
     });
   }
 
@@ -404,7 +480,7 @@ export class SpaceObjectVisualSystem {
     this.root.traverse((object) => {
       const renderable = object as typeof object & {
         geometry?: { dispose(): void };
-        material?: MeshStandardMaterial | MeshStandardMaterial[];
+        material?: MeshBasicMaterial | MeshStandardMaterial | Array<MeshBasicMaterial | MeshStandardMaterial>;
       };
       renderable.geometry?.dispose();
       const materials = Array.isArray(renderable.material)
@@ -418,6 +494,8 @@ export class SpaceObjectVisualSystem {
     this.selectionIndicator?.remove();
     this.selectionLabel = null;
     this.selectionIndicator = null;
+    for (const label of this.coverageLabels.values()) label.remove();
+    this.coverageLabels.clear();
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.root.clear();
@@ -591,7 +669,7 @@ export class SpaceObjectVisualSystem {
     };
   }
 
-  private hideInstance(mesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>, index: number): void {
+  private hideInstance(mesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>, index: number): void {
     // Keep OBJECT intact: the ISS path hides its fallback instance after
     // calculating the station position, then reuses that position for the
     // detailed model and camera framing.
@@ -658,6 +736,16 @@ export class SpaceObjectVisualSystem {
   }
 }
 
+function createMarkerMaterial(color: number): MeshBasicMaterial {
+  return new MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: 0.96,
+    depthWrite: false,
+    toneMapped: false,
+  });
+}
+
 function createTrajectoryLine(name: string, points: number, color: number): Line<BufferGeometry, LineBasicMaterial> {
   const geometry = new BufferGeometry();
   geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(points * 3), 3));
@@ -668,7 +756,7 @@ function createTrajectoryLine(name: string, points: number, color: number): Line
   return line;
 }
 
-function disposeMaterial(material: MeshStandardMaterial): void {
+function disposeMaterial(material: MeshBasicMaterial | MeshStandardMaterial): void {
   const textures = new Set<Texture>();
   for (const value of Object.values(material)) {
     if (value instanceof Texture) textures.add(value);

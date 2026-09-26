@@ -246,14 +246,14 @@ function appearanceFor(bodyId: CometBodyId): Readonly<{
 }> {
   switch (bodyId) {
     case '1p-halley':
-      return Object.freeze({ nucleusColor: '#34302b', dustColor: '#e7c18e', ionColor: '#72c9ff', elongation: [1.35, 0.74, 0.72] as const, dustBeta: 0.085 });
+      return Object.freeze({ nucleusColor: '#1c1a18', dustColor: '#f2d9a8', ionColor: '#3aa8ff', elongation: [1.22, 0.82, 0.78] as const, dustBeta: 0.085 });
     case '2p-encke':
-      return Object.freeze({ nucleusColor: '#2d2b28', dustColor: '#d9b27d', ionColor: '#68bde9', elongation: [1.12, 0.82, 0.74] as const, dustBeta: 0.075 });
+      return Object.freeze({ nucleusColor: '#1a1917', dustColor: '#ecd2a0', ionColor: '#36a0f0', elongation: [1.1, 0.88, 0.8] as const, dustBeta: 0.075 });
     case '67p-churyumov-gerasimenko':
-      return Object.freeze({ nucleusColor: '#393531', dustColor: '#d9b98c', ionColor: '#6dc8f6', elongation: [1.28, 0.9, 0.78] as const, dustBeta: 0.065 });
+      return Object.freeze({ nucleusColor: '#1e1c19', dustColor: '#efd4a4', ionColor: '#3eacf4', elongation: [1.2, 0.9, 0.82] as const, dustBeta: 0.065 });
     case 'c-1995-o1-hale-bopp':
-      return Object.freeze({ nucleusColor: '#332e29', dustColor: '#f0c78c', ionColor: '#78d3ff', elongation: [1.08, 0.9, 0.82] as const, dustBeta: 0.1 });
+      return Object.freeze({ nucleusColor: '#1b1916', dustColor: '#f5deb0', ionColor: '#44b4ff', elongation: [1.08, 0.9, 0.84] as const, dustBeta: 0.1 });
     case 'c-2020-f3-neowise':
-      return Object.freeze({ nucleusColor: '#302d2a', dustColor: '#edc391', ionColor: '#71cbff', elongation: [1.18, 0.83, 0.76] as const, dustBeta: 0.095 });
+      return Object.freeze({ nucleusColor: '#1a1816', dustColor: '#f0d6a6', ionColor: '#3cb0ff', elongation: [1.12, 0.88, 0.82] as const, dustBeta: 0.095 });
   }
 }

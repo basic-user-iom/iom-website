@@ -36,6 +36,11 @@ export const itProjects: ProjectsLocalePack = {
       tags: ['mappe', 'integrazione', 'osm', 'webgl', 'open-source'],
       referenceLabels: ['Mappa live', 'OSM wiki — Simple 3D Buildings'],
     },
+    'solar-system': {
+      title: 'Sistema solare: Osservatorio vivente',
+      description: 'Esplora pianeti, lune e comete in un osservatorio 3D interattivo con dati orbitali JPL e dimensioni in scala reale. Sperimenta impatti, l’evoluzione del Sole e incontri con buchi neri. Le approssimazioni didattiche e gli scenari di fantasia sono chiaramente indicati.',
+      tags: ['web', 'three.js', 'astronomia', 'simulazione'],
+    },
     'panorama-360-tour': {
       title: 'Editor di tour panoramico 360°',
       description: 'Editor di tour virtuali a 360° nel browser — apre The Black Witness di default. Carica panorami equirettangolari (JPG, PNG, WebP, HDR, EXR, KTX2), posiziona hotspot link/info/URL con popup iframe opzionali, costruisci tour multi-scena, aggiungi un effetto stormo di uccelli WebGPU e salva o carica file .360project.',

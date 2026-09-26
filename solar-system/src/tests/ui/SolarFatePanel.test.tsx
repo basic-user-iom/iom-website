@@ -252,6 +252,20 @@ describe('Phase 9 SolarFatePanel', () => {
     expect(requiredElement('[data-testid="fictional-supernova-reset"]')).toBeTruthy();
   });
 
+  it('allows jumping backward to a phase and changing framing without transport actions', () => {
+    const onSelectStage = vi.fn();
+    const onCameraViewChange = vi.fn();
+    const onPause = vi.fn();
+    renderPanel({activeScenario: SCIENTIFIC_RUNNING, onSelectStage, onCameraViewChange, onPause});
+    expect(requiredElement('[data-testid="solar-fate-stage-red-giant"]').getAttribute('aria-current')).toBe('step');
+    click('[data-testid="solar-fate-stage-present"]');
+    expect(onSelectStage).toHaveBeenCalledWith('present');
+    const select = requiredElement<HTMLSelectElement>('[data-testid="solar-fate-camera"]');
+    act(() => { select.value = 'wide'; select.dispatchEvent(new Event('change', {bubbles: true})); });
+    expect(onCameraViewChange).toHaveBeenCalledWith('wide');
+    expect(onPause).not.toHaveBeenCalled();
+  });
+
   function renderPanel(overrides: Partial<SolarFatePanelProps> = {}) {
     const props: SolarFatePanelProps = {
       activeScenario: null,

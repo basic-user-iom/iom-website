@@ -65,6 +65,7 @@ export function NaturalSatellitePanel({
     <section className="control-panel natural-satellite-panel" data-testid="natural-satellite-panel">
       <div className="panel-heading-row">
         <div>
+          <p className="eyebrow">Moon catalog</p>
           <h2>Natural satellites</h2>
         </div>
         <span className="panel-count" aria-label={`${totalCount} generated satellite records`}>
@@ -107,10 +108,16 @@ export function NaturalSatellitePanel({
             <small>{query.trim() === '' ? formatPeriod(moon.orbitalPeriodSeconds) : `${formatParentName(moon.parentId)} · ${moon.tier === 'major' ? 'major' : 'point'}`}</small>
           </button>
         ))}
-        {filteredMajorMoons.length === 0 ? <p className="field-help">No moon matches this search.</p> : null}
+        {filteredMajorMoons.length === 0 ? (
+          <p className="panel-empty" role="status" data-testid="natural-satellites-empty">
+            No moon matches this search.
+          </p>
+        ) : null}
       </div>
       {selected === undefined ? (
-        <p className="field-help">Select a major moon to inspect its parent-relative orbit.</p>
+        <p className="field-help" data-testid="natural-satellites-idle-hint">
+          Select a major moon to inspect its parent-relative orbit.
+        </p>
       ) : (
         <SatelliteSelectionSummary satellite={selected} onFocusParent={onFocusParent} onFocusSatellite={onFocusSatellite} />
       )}

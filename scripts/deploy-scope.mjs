@@ -98,6 +98,15 @@ const PROJECT_SCOPE_RULES = {
     'src/demo/precision-object/',
   ],
   'solar-system': [
+    // The Solar System publication includes its localized Software card and posters.
+    'src/data/projects.ts',
+    'src/i18n/projects/de.ts',
+    'src/i18n/projects/nl.ts',
+    'src/i18n/projects/fr.ts',
+    'src/i18n/projects/it.ts',
+    'src/i18n/projects/es.ts',
+    'public/assets/posters/solar-system.webp',
+    'public/assets/posters/solar-system-400.webp',
     '.vercelignore',
     'solar-system/',
     'public/demos/solar-system/',

@@ -34,6 +34,18 @@ describe('solar evolution profile', () => {
     expect(JSON.stringify(SOLAR_EVOLUTION_PROFILE)).not.toMatch(/supernova/i);
   });
 
+  it('holds the present Sun steady and keeps radius continuous at every chapter boundary', () => {
+    const sample = (time: number) => sampleSolarEvolutionProfile(SOLAR_EVOLUTION_PROFILE, time);
+    const presentEnd = SOLAR_EVOLUTION_PROFILE.phases[0]!.durationSeconds;
+    expect(sample(presentEnd - 0.001).radiusSolarRadii).toBe(sample(0).radiusSolarRadii);
+    expect(sample(presentEnd - 0.001).effectiveTemperatureK).toBe(sample(0).effectiveTemperatureK);
+    let boundary = 0;
+    for (const phase of SOLAR_EVOLUTION_PROFILE.phases.slice(0, -1)) {
+      boundary += phase.durationSeconds;
+      expect(sample(boundary - 0.00001).radiusSolarRadii).toBeCloseTo(sample(boundary).radiusSolarRadii, 6);
+    }
+  });
+
   it('samples every boundary and clamps the final state to finite values', () => {
     let elapsedSeconds = 0;
     for (const expectedPhase of SOLAR_EVOLUTION_PROFILE.phases) {

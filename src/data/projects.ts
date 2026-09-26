@@ -166,6 +166,18 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0033',
   },
   {
+    id: 'solar-system',
+    title: 'Solar System: Living Observatory',
+    description: 'Explore planets, moons, and comets in an interactive 3D observatory with JPL orbital data and true scale. Experiment with Impact Lab, the Sun’s evolution, and black-hole encounters, with educational approximations and fictional scenarios clearly labeled.',
+    tags: ['web', 'three.js', 'astronomy', 'simulation'],
+    section: 'software',
+    year: '2026',
+    url: '/demos/solar-system/',
+    posterUrl: '/assets/posters/solar-system.webp?v=20260926',
+    mobilePosterUrl: '/assets/posters/solar-system-400.webp?v=20260926',
+    archiveId: 'OBJ-0161',
+  },
+  {
     id: 'panorama-360-tour',
     title: '360° Panorama Tour Editor',
     section: 'software',

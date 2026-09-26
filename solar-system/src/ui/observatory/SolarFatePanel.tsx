@@ -1,6 +1,8 @@
 import { type RefObject, useId, useRef, useState } from 'react';
 
 import type { ScenarioPlaybackState } from '../../simulation/scenarios/ScenarioModule';
+import { SolarFateNavigation } from './SolarFateNavigation';
+import type { SolarFateCameraView } from '../../rendering/solar-fate/SolarFateCamera';
 import { ObservatoryDialog } from './ObservatoryDialog';
 
 export const SCIENTIFIC_SOLAR_EVOLUTION_CAVEAT =
@@ -46,6 +48,9 @@ export type SolarFateActiveScenario =
 
 export interface SolarFatePanelProps {
   readonly activeScenario: Readonly<SolarFateActiveScenario> | null;
+  readonly cameraView?: SolarFateCameraView;
+  readonly onCameraViewChange?: (view: SolarFateCameraView) => void;
+  readonly onSelectStage?: (stage: string) => void;
   readonly disabled?: boolean;
   readonly reduceFlashes: boolean;
   readonly onReduceFlashesChange: (reduceFlashes: boolean) => void;
@@ -63,6 +68,9 @@ export interface SolarFatePanelProps {
 export function SolarFatePanel({
   activeScenario,
   disabled = false,
+  cameraView = 'auto',
+  onCameraViewChange,
+  onSelectStage,
   reduceFlashes,
   onReduceFlashesChange,
   onStartScientificEvolution,
@@ -119,6 +127,12 @@ export function SolarFatePanel({
           Close
         </button>
       </div>
+
+      {activeScenario !== null && onSelectStage && onCameraViewChange ? (
+        <SolarFateNavigation fictional={activeScenario.mode === 'fictional-supernova'}
+          stageId={activeScenario.stageId} disabled={disabled} cameraView={cameraView}
+          onSelectStage={onSelectStage} onCameraViewChange={onCameraViewChange} />
+      ) : null}
 
       {activeScenario === null ? (
         <SolarFateChoices

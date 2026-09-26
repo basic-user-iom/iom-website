@@ -246,8 +246,8 @@ export function DebugTimeControls({
         </div>
       </div>
 
-      <fieldset className="focus-controls" disabled={disabled}>
-        <legend>Camera and render origin</legend>
+      <fieldset className="focus-controls" disabled={disabled} aria-describedby="focus-controls-help">
+        <legend>Camera framing</legend>
         <label className="field-stack body-target-field" htmlFor="debug-body-target">
           <span>Target body</span>
           <select
@@ -262,14 +262,27 @@ export function DebugTimeControls({
             ))}
           </select>
         </label>
-        <div className="segmented-row">
-          <button type="button" onClick={() => controls.focusBody(activeBodyId)}>
-            Focus {activeBodyName}
+        <div className="segmented-row focus-action-row">
+          <button
+            type="button"
+            title={`Point the camera at ${activeBodyName} without changing the render origin.`}
+            aria-label={`Frame camera on ${activeBodyName}`}
+            onClick={() => controls.focusBody(activeBodyId)}
+          >
+            Frame {activeBodyName}
           </button>
-          <button type="button" onClick={() => controls.rebaseToBody(activeBodyId)}>
-            Rebase {activeBodyName}
+          <button
+            type="button"
+            title={`Move the render origin to ${activeBodyName} so nearby motion stays numerically stable.`}
+            aria-label={`Move render origin to ${activeBodyName}`}
+            onClick={() => controls.rebaseToBody(activeBodyId)}
+          >
+            Origin → {activeBodyName}
           </button>
         </div>
+        <p className="field-help" id="focus-controls-help">
+          Frame only moves the camera. Origin relocates the scene center for numerical precision near the target.
+        </p>
       </fieldset>
     </section>
   );

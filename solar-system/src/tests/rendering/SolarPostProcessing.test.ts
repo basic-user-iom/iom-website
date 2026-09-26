@@ -78,6 +78,8 @@ describe('SolarPostProcessing', () => {
 
     pipeline.setExposurePreset('solar-closeup');
     expect(renderer.toneMappingExposure).toBe(solarExposureForPreset('solar-closeup'));
+    // Near-Sun views attenuate bloom so authored corona lobes are not washed out.
+    expect(pipeline.getState().strength).toBe(0);
     expect(() => pipeline.setExposure(0)).toThrow(RangeError);
 
     pipeline.dispose();
@@ -149,9 +151,11 @@ function createRendererStub(
 ): WebGLRenderer {
   const renderer = {
     toneMappingExposure: 1,
+    autoClear: true,
     getPixelRatio: () => pixelRatio,
     getSize: (target: Vector2) => target.set(width, height),
     render: vi.fn(),
+    clearDepth: vi.fn(),
     setPixelRatio: vi.fn(),
     setSize: vi.fn(),
   };

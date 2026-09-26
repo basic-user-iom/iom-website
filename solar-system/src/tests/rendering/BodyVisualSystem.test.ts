@@ -1,6 +1,9 @@
-import { DoubleSide, SphereGeometry, type DataTexture, type ShaderMaterial } from 'three';
+import { CustomBlending, DoubleSide, SphereGeometry, type DataTexture, type ShaderMaterial } from 'three';
 
+import { EARTH_ATMOSPHERE_PARAMETERS } from '../../rendering/bodies/AtmosphereLut';
+import { EARTH_ATMOSPHERE_SHELL_RADIUS } from '../../rendering/bodies/AtmosphereScattering';
 import { PhaseFourBodyVisualSystem } from '../../rendering/bodies/BodyVisualSystem';
+import { RING_HALF_THICKNESS } from '../../rendering/bodies/GiantPlanetMaterials';
 import {
   getGiantAtmosphereProfile,
   getRingSystemProfile,
@@ -69,7 +72,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     geometry.dispose();
   });
 
-  it('quality-gates fine Sun detail and fades the corona outward without clipping rings', () => {
+  it('quality-gates Sun detail and keeps the corona envelope bounded and depth-occluded', () => {
     const geometry = new SphereGeometry(1, 8, 6);
     const system = new PhaseFourBodyVisualSystem(geometry, {
       maximumAnisotropy: 1,
@@ -100,11 +103,18 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     );
     expect(sun.surface.material.fragmentShader).toContain('color * 1.48');
     expect(sun.surface.material.fragmentShader).not.toContain('color * 2.15');
-    expect(sun.coronaShells).toHaveLength(3);
+    expect(sun.coronaShells).toHaveLength(1);
+    expect(sun.boundingRadiusMultiplier).toBeCloseTo(2.4, 5);
     for (const shell of sun.coronaShells) {
-      expect(shell.material.fragmentShader).toContain('float radialFade');
-      expect(shell.material.fragmentShader).not.toContain('float rim =');
+      expect(shell.material.side).toBe(1); // BackSide: also visible from inside the envelope.
+      expect(shell.material.transparent).toBe(true);
+      expect(shell.material.depthWrite).toBe(false);
+      expect(shell.material.depthTest).toBe(true);
+      expect(uniformNumber(shell.material, 'uShellScale')).toBe(shell.scale.x);
+      expect(shell.scale.x).toBeLessThanOrEqual(sun.boundingRadiusMultiplier);
+      expect(shell.geometry).toBe(system['coronaGeometry']);
     }
+    expect(sun.coronaShells[0]?.scale.x).toBeCloseTo(2.4, 5);
 
     system.setQuality('ultra');
     expect(uniformNumber(sun.surface.material, 'uQuality')).toBe(3);
@@ -123,6 +133,53 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
 
     expect(earth.atmosphere?.material.uniforms.uOcclusion?.value).toBe(1);
     expect(earth.atmosphere?.material.uniforms.uRelativeIrradiance?.value).toBe(1);
+    expect(earth.atmosphere?.material.uniforms.uEclipseScatterFloor?.value).toBeCloseTo(0.24, 12);
+    expect(earth.atmosphere?.material.fragmentShader).toContain('uEclipseScatterFloor');
+    expect(earth.atmosphere?.material.depthTest).toBe(true);
+    expect(earth.atmosphere?.material.depthWrite).toBe(false);
+    expect(earth.atmosphere?.material.blending).toBe(CustomBlending);
+    expect(earth.atmosphere?.material.premultipliedAlpha).toBe(true);
+    expect(earth.atmosphere?.scale.x).toBeCloseTo(EARTH_ATMOSPHERE_SHELL_RADIUS, 10);
+    expect(earth.atmosphere?.scale.x).toBeLessThan(1.01);
+    expect(earth.clouds!.scale.x).toBeGreaterThan(1);
+    expect(earth.clouds!.scale.x).toBeLessThan(earth.atmosphere!.scale.x);
+    expect(earth.boundingRadiusMultiplier).toBe(EARTH_ATMOSPHERE_SHELL_RADIUS);
+    expect(uniformNumber(earth.atmosphere!.material, 'uRayleighHeight')).toBeCloseTo(
+      EARTH_ATMOSPHERE_PARAMETERS.rayleighScaleHeightM / EARTH_ATMOSPHERE_PARAMETERS.planetRadiusM, 12,
+    );
+    expect(uniformTexture(earth.atmosphere!.material, 'uTransmittanceLut').image.width).toBe(96);
+    expect(uniformNumber(earth.atmosphere!.material, 'uUseAtmosphereLut')).toBe(1);
+    const atmosphereGeometry = earth.atmosphere!.geometry;
+    system.setQuality('low');
+    expect(uniformNumber(earth.atmosphere!.material, 'uUseAtmosphereLut')).toBe(0);
+    expect(earth.atmosphere!.geometry).toBe(atmosphereGeometry);
+    expect(earth.atmosphere!.scale.x).toBeCloseTo(EARTH_ATMOSPHERE_SHELL_RADIUS, 10);
+    system.setQuality('ultra');
+    expect(uniformNumber(earth.atmosphere!.material, 'uUseAtmosphereLut')).toBe(1);
+
+    system.dispose();
+    geometry.dispose();
+  });
+
+  it('attaches planet-tinted limb shells to giant atmospheres', () => {
+    const geometry = new SphereGeometry(1, 8, 6);
+    const system = new PhaseFourBodyVisualSystem(geometry, {
+      maximumAnisotropy: 1,
+    });
+
+    const jupiter = system.create(body('jupiter'));
+    expect(jupiter.atmosphere).not.toBeNull();
+    expect(jupiter.atmosphere?.material.name).toBe('phase-5-jupiter-limb-atmosphere');
+    expect(jupiter.atmosphere?.scale.x).toBeGreaterThan(jupiter.surface.scale.x);
+    expect(jupiter.atmosphere!.scale.x / jupiter.surface.scale.x).toBeLessThan(1.02);
+    expect(uniformNumber(jupiter.atmosphere!.material, 'uEarthLike')).toBe(0);
+
+    const neptune = system.create(body('neptune'));
+    expect(neptune.atmosphere?.material.name).toBe('phase-5-neptune-limb-atmosphere');
+    expect(neptune.atmosphere!.scale.x / neptune.surface.scale.x).toBeLessThan(1.02);
+    expect(uniformNumber(neptune.atmosphere!.material, 'uDensity')).toBeGreaterThan(
+      uniformNumber(jupiter.atmosphere!.material, 'uDensity'),
+    );
 
     system.dispose();
     geometry.dispose();
@@ -159,7 +216,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
       'float terminator = smoothstep(-0.012, 0.012, solarCosine)',
     );
     expect(jupiter.surface.material.fragmentShader).toContain(
-      'albedo * (0.012 + direct * 0.988)',
+      'albedo * (0.014 + direct * 0.986)',
     );
     expect(jupiter.surface.material.vertexShader).toContain(
       'vWorldNormal = normalize(viewNormal * mat3(viewMatrix))',
@@ -191,7 +248,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
       expect(visual.rings).toHaveLength(1);
       expect(visual.root.children).toContain(visual.rings[0]);
       expect(visual.boundingRadiusMultiplier).toBeCloseTo(
-        rings.outerRadiusKm / atmosphere.meanRadiusKm,
+        Math.hypot(rings.outerRadiusKm / atmosphere.meanRadiusKm, RING_HALF_THICKNESS),
         12,
       );
       if (bodyId === 'saturn') {
@@ -251,20 +308,35 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(saturn.surface.material.fragmentShader).toContain(
       'smoothstep(0.0, 0.24',
     );
-    expect(rings.material.fragmentShader).toContain('return mix(0.08, 1.0, visibility)');
+    expect(rings.material.fragmentShader).toContain('return mix(0.01, 1.0, visibility)');
+    expect(rings.material.fragmentShader).toContain('gapOpen');
+    expect(rings.material.fragmentShader).toContain('opticalDepth < 0.028');
     expect(rings.material.vertexShader).toContain(
       'vWorldNormal = normalize(viewNormal * mat3(viewMatrix))',
     );
+    expect(rings.material.vertexShader).toContain('vWallFactor');
     expect(rings.material.vertexShader).not.toContain(
       'vWorldNormal = normalize(normalMatrix * normal)',
     );
 
     const positions = rings.geometry.getAttribute('position');
     let maximumAbsoluteY = 0;
+    let maximumRadius = 0;
     for (let index = 0; index < positions.count; index += 1) {
       maximumAbsoluteY = Math.max(maximumAbsoluteY, Math.abs(positions.getY(index)));
+      maximumRadius = Math.max(
+        maximumRadius,
+        Math.hypot(positions.getX(index), positions.getZ(index)),
+      );
     }
-    expect(maximumAbsoluteY).toBeLessThan(1e-6);
+    // Educational thin slab: measurable thickness, still tiny vs radial extent.
+    expect(maximumAbsoluteY).toBeGreaterThan(0.02);
+    expect(maximumAbsoluteY).toBeLessThan(0.05);
+    expect(maximumAbsoluteY / maximumRadius).toBeLessThan(0.025);
+    expect(rings.material.fragmentShader).toContain('uRingHalfThickness');
+    expect(rings.material.fragmentShader).toContain('transmitted');
+    expect(rings.material.fragmentShader).toContain('litWeight');
+    expect(rings.material.fragmentShader).toContain('direct');
     rings.geometry.computeBoundingSphere();
     expect(rings.geometry.boundingSphere?.radius).toBeCloseTo(
       saturn.boundingRadiusMultiplier,
@@ -290,12 +362,20 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBe(0);
     expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(false);
     system.setQuality('high');
-    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(0.18, 12);
+    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(0.85, 12);
     expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(true);
     expect(ringMaterial.fragmentShader).toContain('localizedFilaments');
+    expect(ringMaterial.fragmentShader).toContain('spokeDark');
+    expect(ringMaterial.fragmentShader).toContain('spokeBright');
+    expect(ringMaterial.fragmentShader).toContain('highPhase');
+    expect(ringMaterial.fragmentShader).toContain('gapOpen');
+    expect(ringMaterial.fragmentShader).toContain('opticalDepth < 0.028');
+    expect(ringMaterial.fragmentShader).toContain('litAnsa');
+    expect(ringMaterial.fragmentShader).toContain('mix(0.42, 1.0');
     expect(ringMaterial.fragmentShader).not.toContain('angle * 431.0');
+    expect(ringMaterial.fragmentShader).not.toContain('angle * 43.0 + radius * 19.0');
     system.setQuality('ultra');
-    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(0.28, 12);
+    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(1.35, 12);
     system.setQuality('low');
     expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBe(0);
     expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(false);
@@ -417,3 +497,16 @@ function uniformTexture(material: ShaderMaterial, name: string): DataTexture {
   expect(value, `uniform ${name}`).toHaveProperty('isDataTexture', true);
   return value as DataTexture;
 }
+
+it('shares the terrain opening with the atmosphere and restores it without replacing uniforms', () => {
+  const geometry = new SphereGeometry(1, 12, 8);
+  const system = new PhaseFourBodyVisualSystem(geometry, { maximumAnisotropy: 1 });
+  const earth = system.create(body('earth'));
+  const cut = earth.surface.material.uniforms.uImpactCut!;
+  expect(earth.atmosphere!.material.uniforms.uGroundCut).toBe(cut);
+  cut.value.set(1, 0, 0, 0.998);
+  expect(earth.atmosphere!.material.uniforms.uGroundCut!.value.w).toBe(0.998);
+  cut.value.w = 2;
+  expect(earth.atmosphere!.material.uniforms.uGroundCut!.value.w).toBe(2);
+  system.dispose(); geometry.dispose();
+});

@@ -53,7 +53,7 @@ export const DEFAULT_APP_PREFERENCES: Readonly<PersistedAppPreferencesV1> =
   Object.freeze({
     selectedBodyId: 'earth',
     cameraMode: 'overview',
-    renderScaleMode: 'presentation',
+    renderScaleMode: 'true',
     visualQuality: 'high',
     venusSurfaceMode: 'clouds',
     orbitLinesVisible: true,

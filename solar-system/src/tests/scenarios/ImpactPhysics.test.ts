@@ -56,14 +56,14 @@ describe('Impact Lab physical summaries', () => {
   });
 
   it('keeps authored visual scaling separate and explicitly labeled', () => {
-    const summary = simulateImpactEntry(DEFAULT_IMPACT_PARAMETERS).physicalSummary;
+    const summary = simulateImpactEntry(parameters({ diameterM: 250 })).physicalSummary;
     const before = { ...summary };
     const visual = deriveImpactVisualProfile(summary);
 
     expect(summary).toEqual(before);
     expect(visual.flashIntensity).toBeGreaterThan(0);
     expect(visual.craterRadiusM).toBeGreaterThan(0);
-    expect(visual.approximationNotes.join(' ')).toMatch(/artistically tuned/i);
+    expect(visual.approximationNotes.join(' ')).toMatch(/Collins, Melosh and Marcus/i);
     expect(Object.isFrozen(visual)).toBe(true);
   });
 });
@@ -76,7 +76,7 @@ describe('Impact Lab parameter validation', () => {
     expect(serializeImpactParameters(validated)).toBe(
       serializeImpactParameters({ ...DEFAULT_IMPACT_PARAMETERS }),
     );
-    expect(impactRunSignature(validated)).toMatch(/^impact-v2-[0-9a-f]{8}$/);
+    expect(impactRunSignature(validated)).toMatch(/^impact-v5-[0-9a-f]{8}$/);
   });
 
   it.each([
@@ -203,6 +203,11 @@ describe('Impact Lab target profiles and spherical frames', () => {
     expect(dot(normal, east)).toBeCloseTo(0, 14);
     expect(dot(normal, north)).toBeCloseTo(0, 14);
     expect(dot(east, north)).toBeCloseTo(0, 14);
+    expect(east.y * north.z - east.z * north.y).toBeCloseTo(normal.x, 14);
+    expect(east.z * north.x - east.x * north.z).toBeCloseTo(normal.y, 14);
+    expect(east.x * north.y - east.y * north.x).toBeCloseTo(normal.z, 14);
+    expect(createImpactFrame(90, 0).normalBodyLocal.z).toBeCloseTo(1, 14);
+    expect(createImpactFrame(0, 90).normalBodyLocal.y).toBeCloseTo(1, 14);
   });
 
   it('interprets entry azimuth clockwise from north', () => {
@@ -310,14 +315,14 @@ describe('Impact Lab target profiles and spherical frames', () => {
 });
 
 describe('Impact Lab fixed-step entry approximation', () => {
-  it('produces a visible deterministic breakup and surface impact for defaults', () => {
+  it('produces a deterministic fragmented airburst for defaults', () => {
     const first = simulateImpactEntry(DEFAULT_IMPACT_PARAMETERS);
     const second = simulateImpactEntry({ ...DEFAULT_IMPACT_PARAMETERS });
 
-    expect(first.physicalSummary.reachedSurface).toBe(true);
-    expect(first.physicalSummary.outcomeKind).toBe('solid-surface-impact');
-    expect(first.physicalSummary.estimatedAirburstAltitudeM).toBeUndefined();
-    expect(first.physicalSummary.impactMassKg).toBeGreaterThan(0);
+    expect(first.physicalSummary.reachedSurface).toBe(false);
+    expect(first.physicalSummary.outcomeKind).toBe('airburst');
+    expect(first.physicalSummary.estimatedAirburstAltitudeM).toBeGreaterThan(0);
+    expect(first.physicalSummary.impactMassKg).toBe(0);
     expect(first.fragmentation.count).toBeGreaterThanOrEqual(3);
     expect(first.fragmentation.eventAltitudeM).toBeGreaterThan(0);
     expect(first).toEqual(second);
@@ -382,6 +387,53 @@ describe('Impact Lab fixed-step entry approximation', () => {
         expect(Number.isFinite(sample.positionEnuM.y)).toBe(true);
         expect(Number.isFinite(sample.positionEnuM.z)).toBe(true);
         expect(Number.isFinite(sample.massKg)).toBe(true);
+      }
+    }
+  });
+});
+
+describe('Earth terminal-event regression cases', () => {
+  it.each([true, false])('does not invent an explosion for a shallow flyby (atmosphere %s)', atmosphereEnabled => {
+    const run = simulateImpactEntry(parameters({ entryAngleDeg: 5, atmosphereEnabled }));
+    expect(run.physicalSummary.outcomeKind).toBe('no-impact');
+    expect(run.physicalSummary.estimatedAirburstAltitudeM).toBeUndefined();
+    expect(run.physicalSummary.atmosphericEnergyLossJ).toBe(0);
+    const visual = deriveImpactVisualProfile(run.physicalSummary);
+    for (const value of Object.values(visual)) if (typeof value === 'number') expect(value).toBe(0);
+    expect(run.terminalEventTimeSeconds).toBeLessThan(100);
+  });
+  it.each([1, 20])('ends luminous flight of a %s m stone in the atmosphere', diameterM => {
+    const run = simulateImpactEntry(parameters({ diameterM }));
+    const summary = run.physicalSummary;
+    expect(summary.outcomeKind).toBe('airburst');
+    expect(summary.impactEnergyJ).toBe(0);
+    expect(summary.atmosphericEnergyLossJ / summary.kineticEnergyJ).toBeGreaterThan(0.9);
+    const event = sampleImpactTrajectory(run, run.terminalEventTimeSeconds);
+    expect(event.altitudeM).toBeCloseTo(summary.estimatedAirburstAltitudeM!, 5);
+    expect(event.positionEnuM.x).toBeCloseTo(0, 5);
+    expect(event.positionEnuM.y).toBeCloseTo(0, 5);
+    expect(event.positionEnuM.z).toBeCloseTo(event.altitudeM, 5);
+    expect(deriveImpactVisualProfile(summary).craterRadiusM).toBe(0);
+  });
+  it('distinguishes atmospheric breakup from vacuum and disabled fragmentation', () => {
+    const atmospheric = simulateImpactEntry(parameters({ diameterM: 20 }));
+    const intact = simulateImpactEntry(parameters({ diameterM: 20, fragmentationEnabled: false }));
+    const vacuum = simulateImpactEntry(parameters({ diameterM: 20, atmosphereEnabled: false }));
+    expect(atmospheric.physicalSummary.outcomeKind).toBe('airburst');
+    expect(intact.physicalSummary.outcomeKind).toBe('solid-surface-impact');
+    expect(vacuum.physicalSummary.outcomeKind).toBe('solid-surface-impact');
+    expect(vacuum.physicalSummary.atmosphericEnergyLossJ).toBe(0);
+  });
+  it('keeps extreme entries finite with a bounded energy budget', () => {
+    for (const diameterM of [1, 20, 140, 5_000]) for (const entrySpeedKmps of [5, 20, 72]) {
+      for (const entryAngleDeg of [5, 35, 90]) {
+        const run = simulateImpactEntry(parameters({ diameterM, entrySpeedKmps, entryAngleDeg }));
+        const summary = run.physicalSummary;
+        const gravityBudget = summary.massKg * 9.80665 * 160_000;
+        expect(summary.impactEnergyJ + summary.atmosphericEnergyLossJ).toBeLessThan(
+          (summary.kineticEnergyJ + gravityBudget) * 1.03);
+        expect(run.samples.every(p => Object.values(p.positionEnuM).every(Number.isFinite))).toBe(true);
+        expect(run.samples.every(p => p.massKg >= 0 && p.massKg <= summary.massKg)).toBe(true);
       }
     }
   });

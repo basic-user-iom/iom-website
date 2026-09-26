@@ -106,36 +106,38 @@ export function sampleSolarEvolutionProfile(
   const phaseProgress = phaseIndex === profile.phases.length - 1 && boundedTime >= profile.totalDurationSeconds
     ? 1
     : clamp((boundedTime - phaseStartSeconds) / phase.durationSeconds, 0, 1);
-  const blend = phaseProgress * phaseProgress * (3 - 2 * phaseProgress);
+  // Keep today's Sun stable; expansion begins in the red-giant chapter.
+  const from = phaseIndex === 1 ? requiredPhase(profile.phases[0]) : phase;
+  const blend = phaseIndex === 0 ? 0 : phaseProgress * phaseProgress * (3 - 2 * phaseProgress);
 
   return Object.freeze({
     phaseId: phase.id,
     phaseLabel: phase.label,
     phaseProgress,
-    radiusSolarRadii: lerp(phase.radiusSolarRadii, next.radiusSolarRadii, blend),
-    luminositySolar: lerp(phase.luminositySolar, next.luminositySolar, blend),
-    massSolarMasses: lerp(phase.massSolarMasses, next.massSolarMasses, blend),
+    radiusSolarRadii: lerp(from.radiusSolarRadii, next.radiusSolarRadii, blend),
+    luminositySolar: lerp(from.luminositySolar, next.luminositySolar, blend),
+    massSolarMasses: lerp(from.massSolarMasses, next.massSolarMasses, blend),
     effectiveTemperatureK: lerp(
-      phase.effectiveTemperatureK,
+      from.effectiveTemperatureK,
       next.effectiveTemperatureK,
       blend,
     ),
     radiusLabel: phase.radiusLabel,
     luminosityLabel: phase.luminosityLabel,
     massLossLabel: phase.massLossLabel,
-    innerSystemHeating: lerp(phase.innerSystemHeating, next.innerSystemHeating, blend),
+    innerSystemHeating: lerp(from.innerSystemHeating, next.innerSystemHeating, blend),
     massLossShellOpacity: lerp(
-      phase.massLossShellOpacity,
+      from.massLossShellOpacity,
       next.massLossShellOpacity,
       blend,
     ),
-    nebulaOpacity: lerp(phase.nebulaOpacity, next.nebulaOpacity, blend),
+    nebulaOpacity: lerp(from.nebulaOpacity, next.nebulaOpacity, blend),
     nebulaDisplayRadiusSolarRadii: lerp(
-      phase.nebulaDisplayRadiusSolarRadii,
+      from.nebulaDisplayRadiusSolarRadii,
       next.nebulaDisplayRadiusSolarRadii,
       blend,
     ),
-    whiteDwarfBlend: lerp(phase.whiteDwarfBlend, next.whiteDwarfBlend, blend),
+    whiteDwarfBlend: lerp(from.whiteDwarfBlend, next.whiteDwarfBlend, blend),
     engulfedBodyIds: phase.engulfedBodyIds,
     uncertainBodyIds: phase.uncertainBodyIds,
     caveats: Object.freeze([...profile.globalCaveats, ...phase.caveats]),

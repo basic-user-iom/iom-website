@@ -158,7 +158,7 @@ export function ObjectNavigator({
           </button>
         ))}
         {resultCount === 0 ? (
-          <p className="navigator-empty" role="status">
+          <p className="panel-empty navigator-empty" role="status" data-testid="navigator-empty">
             No planet, moon, satellite, or spacecraft matches this search.
           </p>
         ) : null}

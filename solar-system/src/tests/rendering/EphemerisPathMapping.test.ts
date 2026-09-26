@@ -1,5 +1,6 @@
 import {
   calculateDistantPathIntensity,
+  calculatePathVertexTint,
   writeCameraRelativePathPositions,
   writeDistanceFadedPathColors,
 } from '../../rendering/EphemerisPathMapping';
@@ -87,8 +88,8 @@ describe('camera-relative ephemeris path mapping', () => {
 describe('distance-based path fading', () => {
   it('is monotonic and keeps selected trails clearer than orbit lines', () => {
     expect(calculateDistantPathIntensity(0, 'orbit')).toBe(1);
-    expect(calculateDistantPathIntensity(1, 'orbit')).toBeCloseTo(0.08, 12);
-    expect(calculateDistantPathIntensity(1, 'trail')).toBeCloseTo(0.42, 12);
+    expect(calculateDistantPathIntensity(1, 'orbit')).toBeCloseTo(0.34, 12);
+    expect(calculateDistantPathIntensity(1, 'trail')).toBeCloseTo(0.55, 12);
     expect(calculateDistantPathIntensity(0.75, 'orbit')).toBeLessThan(
       calculateDistantPathIntensity(0.25, 'orbit'),
     );
@@ -107,11 +108,18 @@ describe('distance-based path fading', () => {
       'orbit',
     );
 
-    expect(colors[0]).toBe(1);
-    expect(colors[1]).toBe(0.5);
-    expect(colors[2]).toBe(0.25);
-    expect(colors[6]).toBeCloseTo(0.08, 6);
-    expect(colors[7]).toBeCloseTo(0.04, 6);
-    expect(colors[8]).toBeCloseTo(0.02, 6);
+    expect(colors[0]).toBeCloseTo(0.92, 6);
+    expect(colors[1]).toBeCloseTo(0.5, 6);
+    expect(colors[2]).toBeCloseTo(0.25 * 1.08, 6);
+    expect(colors[6]).toBeGreaterThan(0.2);
+    expect(colors[6]).toBeLessThan(colors[0]!);
+    expect(colors[7]).toBeGreaterThan(0.1);
+    expect(colors[8]).toBeGreaterThan(0.05);
+  });
+
+  it('applies a cool tint lift on distant vertices', () => {
+    expect(calculatePathVertexTint(1, 'orbit')).toBe(1);
+    expect(calculatePathVertexTint(0, 'orbit')).toBeCloseTo(1.1, 12);
+    expect(calculatePathVertexTint(0, 'trail')).toBeCloseTo(1.14, 12);
   });
 });

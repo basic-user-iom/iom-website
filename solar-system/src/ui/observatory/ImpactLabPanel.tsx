@@ -29,6 +29,7 @@ export interface ImpactLabPanelProps {
   readonly visualProfile: Readonly<ImpactVisualProfile>;
   readonly snapshot: Readonly<ImpactScenarioSnapshot>;
   readonly disabled?: boolean;
+  readonly surfaceStatus?: 'loading' | 'ready' | 'error';
   readonly reduceFlashes: boolean;
   readonly visibilityMode: ImpactVisibilityMode;
   readonly visibilityMultiplier: number;
@@ -155,11 +156,12 @@ const CAMERA_OPTIONS: readonly Readonly<{
   Object.freeze({ id: 'orbital' as ImpactCameraMode, label: 'Orbital' }),
   Object.freeze({ id: 'side-entry' as ImpactCameraMode, label: 'Side entry' }),
   Object.freeze({ id: 'horizon' as ImpactCameraMode, label: 'Horizon' }),
-  Object.freeze({ id: 'chase' as ImpactCameraMode, label: 'Chase' }),
+  Object.freeze({ id: 'chase' as ImpactCameraMode, label: 'Cinematic chase' }),
   Object.freeze({
-    id: 'ground-observer' as ImpactCameraMode,
+    id: 'regional' as ImpactCameraMode,
     label: 'Regional event · recommended',
   }),
+  Object.freeze({ id: 'ground-observer' as ImpactCameraMode, label: 'Ground observer (2 m)' }),
   Object.freeze({ id: 'slow-motion-replay' as ImpactCameraMode, label: 'Slow-motion replay' }),
 ]);
 
@@ -181,6 +183,7 @@ export function ImpactLabPanel({
   visualProfile,
   snapshot,
   disabled = false,
+  surfaceStatus = 'ready',
   reduceFlashes,
   visibilityMode,
   visibilityMultiplier,
@@ -391,7 +394,11 @@ export function ImpactLabPanel({
         ))}
       </fieldset>
 
+      {parameters.targetBodyId === 'earth' && surfaceStatus !== 'ready' && (
+        <p role="status">{surfaceStatus === 'loading' ? 'Loading Earth terrain and ocean depths...' : 'Earth terrain could not be loaded. Reload to retry.'}</p>
+      )}
       <PhysicalSummary summary={summary} idPrefix={idPrefix} />
+      {parameters.targetBodyId === 'earth' && <p className="impact-model-note">Terrain: <a href="https://github.com/tilezen/joerd/blob/master/docs/attribution.md" target="_blank" rel="noreferrer">Mapzen terrain tiles and source attribution</a>; regional fallback and ocean depths: NOAA ETOPO1.</p>}
       <VisualEstimate
         visualProfile={visualProfile}
         idPrefix={idPrefix}
@@ -501,7 +508,7 @@ export function ImpactLabPanel({
             className="button button-primary"
             type="button"
             data-testid="impact-run"
-            disabled={disabled || !valid}
+            disabled={disabled || !valid || (parameters.targetBodyId === 'earth' && surfaceStatus !== 'ready')}
             aria-describedby={`${idPrefix}-model-caveat`}
             onClick={() => setConfirmationOpen(true)}
           >
@@ -609,6 +616,13 @@ function PhysicalSummary({
     <section aria-labelledby={`${idPrefix}-physical-summary-heading`}>
       <p className="eyebrow">Calculated quantities</p>
       <h3 id={`${idPrefix}-physical-summary-heading`}>Physical summary</h3>
+      {summary.earthSurface && <p data-testid="impact-earth-surface">
+        {summary.earthSurface.kind === 'ocean' ? 'Ocean - depth ' + formatNumber(summary.earthSurface.waterDepthM) + ' m' : 'Land - elevation ' + formatNumber(summary.earthSurface.surfaceAltitudeM) + ' m'}
+        {summary.earthSurface.source === 'local'
+          ? ' | Local terrain grid ~' + formatNumber(summary.earthSurface.resolutionM ?? 0) + ' m (source resolution varies)'
+          : ' | NOAA ETOPO1 regional terrain, 5 arcmin (~9 km)'}
+        {summary.earthSurface.coastal ? ' | Coastline approximate' : ''}
+      </p>}
       <dl className="inspector-grid impact-physical-summary" aria-live="polite" aria-atomic="true">
         <SummaryValue
           testId="impact-mass"
@@ -618,13 +632,13 @@ function PhysicalSummary({
         />
         <SummaryValue
           testId="impact-energy"
-          label="Kinetic energy"
+          label="Entry kinetic energy"
           value={summary.kineticEnergyJ}
           display={formatScientific(summary.kineticEnergyJ, 'J')}
         />
         <SummaryValue
           testId="impact-tnt"
-          label="TNT equivalent"
+          label="Entry TNT equivalent"
           value={summary.tntMegatons}
           display={`${formatNumber(summary.tntMegatons)} Mt TNT`}
         />
@@ -640,6 +654,22 @@ function PhysicalSummary({
             {impactOutcomeLabel(summary)}
           </dd>
         </div>
+        {summary.reachedSurface ? (
+          <SummaryValue
+            testId="impact-surface-energy"
+            label="Kinetic energy at surface"
+            value={summary.impactEnergyJ}
+            display={formatScientific(summary.impactEnergyJ, 'J')}
+          />
+        ) : null}
+        {summary.atmosphericEnergyLossJ > 0 ? (
+          <SummaryValue
+            testId="impact-atmospheric-energy"
+            label="Energy deposited in atmosphere"
+            value={summary.atmosphericEnergyLossJ}
+            display={formatScientific(summary.atmosphericEnergyLossJ, 'J')}
+          />
+        ) : null}
         {summary.estimatedAirburstAltitudeM === undefined ? null : (
           <SummaryValue
             testId="impact-airburst-altitude"
@@ -671,7 +701,7 @@ function VisualEstimate({
   const caveat = visualEstimateCaveat(targetProfile);
   return (
     <section aria-labelledby={`${idPrefix}-visual-estimate-heading`}>
-      <p className="eyebrow">Artistically scaled effects</p>
+      <p className="eyebrow">Estimated dimensions and visual models</p>
       <h3 id={`${idPrefix}-visual-estimate-heading`}>Approximate visual estimate</h3>
       <p className="scale-warning" data-testid="impact-visual-caveat">
         {caveat}
@@ -693,8 +723,7 @@ function VisualEstimate({
         >
           USGS crater and ejecta observations
         </a>
-        . The renderer uses an elongated plasma wake, directional ejecta curtain, expanding
-        dust plume, and persistent crater/ejecta blanket.
+        . Crater diameter follows <a href="https://adsabs.harvard.edu/pdf/2005M%26PS...40..817C" target="_blank" rel="noreferrer">Collins, Melosh and Marcus (2005)</a>; cloud shape, flash and ejecta remain visual approximations. Ocean impacts include a cavity, collapse, rebound jet and dispersive waves.
       </p>
       <dl className="inspector-grid impact-visual-summary">
         {craterApplicable ? (
@@ -712,6 +741,10 @@ function VisualEstimate({
             </dd>
           </div>
         )}
+        {(visualProfile.seafloorCraterRadiusM ?? 0) > 0 && <SummaryValue
+          testId="impact-seafloor-crater-radius" label="Seafloor crater radius (upper estimate)"
+          value={visualProfile.seafloorCraterRadiusM ?? 0}
+          display={formatScientific(visualProfile.seafloorCraterRadiusM ?? 0, 'm')} />}
         {giantTarget ? null : (
           <SummaryValue
             testId="impact-ejecta-radius"
@@ -911,7 +944,7 @@ function impactAftermathPresentation(
   summary: Readonly<ImpactPhysicalSummary>,
   stage: string,
 ): Readonly<{ kind: 'crater' | 'dusty-crater' | 'cloud-scar'; label: string }> | null {
-  if (!POST_EVENT_STAGES.has(stage)) return null;
+  if (!POST_EVENT_STAGES.has(stage) || summary.outcomeKind === 'no-impact') return null;
   if (summary.outcomeKind === 'solid-surface-impact' && target.supportsCrater) {
     return target.targetClass === 'thin-atmosphere-rocky'
       ? Object.freeze({
@@ -945,7 +978,9 @@ function formatNumber(value: number): string {
 function impactOutcomeLabel(summary: Readonly<ImpactPhysicalSummary>): string {
   switch (summary.outcomeKind) {
     case 'solid-surface-impact': return 'Surface impact';
+    case 'ocean-surface-impact': return 'Ocean impact � splash, steam and waves';
     case 'airburst': return 'Atmospheric airburst';
+    case 'no-impact': return 'No impact in simulated interval';
     case 'deep-atmosphere-breakup': return 'Deep-atmosphere cloud-top encounter';
   }
 }

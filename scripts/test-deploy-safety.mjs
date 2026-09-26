@@ -88,4 +88,11 @@ assert.equal(
   'crm',
 )
 
+for (const file of ['src/data/projects.ts', ...['de', 'nl', 'fr', 'it', 'es'].map(lang => 'src/i18n/projects/' + lang + '.ts'), 'public/assets/posters/solar-system.webp', 'public/assets/posters/solar-system-400.webp']) {
+  assert.equal(matchesDeployScope(file, 'project:solar-system'), true)
+}
+for (const file of ['src/crm/DemosView.tsx', 'public/assets/posters/streets-gl.webp', 'public/demos/automotive-studio/index.html']) {
+  assert.equal(matchesDeployScope(file, 'project:solar-system'), false)
+}
+
 console.log('Deploy scope safety tests passed.')

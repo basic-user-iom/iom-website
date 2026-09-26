@@ -211,8 +211,8 @@ test('selected trails support previous and next intervals with honest coverage d
   await bootPhaseThree(page)
   const app = page.getByTestId('solar-system-app')
   const trailControls = page.getByTestId('trail-interval-controls')
-  const previous = trailControls.getByRole('button', { name: 'Previous' })
-  const next = trailControls.getByRole('button', { name: 'Next' })
+  const previous = trailControls.getByRole('button', { name: 'Show trail before the current epoch' })
+  const next = trailControls.getByRole('button', { name: 'Show trail after the current epoch' })
 
   await expect(previous).toHaveAttribute('aria-pressed', 'true')
   await expect(app).toHaveAttribute('data-trail-interval', 'previous')

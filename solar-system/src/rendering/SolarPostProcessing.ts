@@ -1,3 +1,4 @@
+import { ImpactDepthPass } from './impact/ImpactDepthPass';
 import { Camera, Scene, Vector2, type WebGLRenderer } from 'three';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
@@ -6,6 +7,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 
 import type { VisualQuality } from './bodies/VisualQuality';
 import {
+  BLACK_HOLE_OVERLAY_LAYER,
   BlackHoleLensingPass,
   EMPTY_BLACK_HOLE_LENSING_DIAGNOSTICS,
   type BlackHoleLensingDiagnostics,
@@ -113,6 +115,9 @@ export class SolarPostProcessing {
   private resolutionScale = 1;
   private effectivePixelRatio: number;
   private disposed = false;
+  private readonly impactDepthPass = new ImpactDepthPass();
+  /** Scales bloom strength/radius; lowered for solar-closeup so corona lobes stay readable. */
+  private bloomAttenuation = 1;
 
   public constructor(renderer: WebGLRenderer, options: SolarPostProcessingOptions = {}) {
     this.renderer = renderer;
@@ -179,13 +184,39 @@ export class SolarPostProcessing {
     ) {
       throw new RangeError('Post-processing delta time must be finite and non-negative.');
     }
+    this.impactDepthPass.render(this.renderer, scene, camera, this.width * this.effectivePixelRatio,
+      this.height * this.effectivePixelRatio, this.hdrRenderTargetSupported);
     if (this.composer === null || this.renderPass === null) {
+      // Direct path: enable overlay layer so educational BH meshes still draw.
+      const previousMask = camera.layers.mask;
+      camera.layers.enable(0);
+      camera.layers.enable(BLACK_HOLE_OVERLAY_LAYER);
       this.renderer.render(scene, camera);
+      camera.layers.mask = previousMask;
       return;
     }
     this.renderPass.scene = scene;
     this.renderPass.camera = camera;
-    this.composer.render(deltaTimeSeconds);
+    const lensingActive = this.blackHoleLensingPass?.pass.enabled === true;
+    const previousMask = camera.layers.mask;
+    if (lensingActive) {
+      // Bruneton warps only the base scene (sky + silhouette). Overlay meshes
+      // (inclined disk, photon ring, soft jets) composite afterward so they are
+      // not turned into concentric moiré bands.
+      camera.layers.set(0);
+      this.composer.render(deltaTimeSeconds);
+      camera.layers.set(BLACK_HOLE_OVERLAY_LAYER);
+      const previousAutoClear = this.renderer.autoClear;
+      this.renderer.autoClear = false;
+      this.renderer.clearDepth();
+      this.renderer.render(scene, camera);
+      this.renderer.autoClear = previousAutoClear;
+    } else {
+      camera.layers.enable(0);
+      camera.layers.enable(BLACK_HOLE_OVERLAY_LAYER);
+      this.composer.render(deltaTimeSeconds);
+    }
+    camera.layers.mask = previousMask;
   }
 
   /** Resizes composer buffers in logical CSS pixels and applies the tier's DPR cap. */
@@ -227,6 +258,21 @@ export class SolarPostProcessing {
 
   public setExposurePreset(preset: SolarExposurePreset): void {
     this.setExposure(solarExposureForPreset(preset));
+    this.setBloomAttenuation(preset === 'solar-closeup' ? 0.0 : 1);
+  }
+
+  /**
+   * Attenuates bloom strength/radius (and raises threshold when reduced) so near-Sun
+   * views keep authored corona lobes from being washed into a circular halo.
+   */
+  public setBloomAttenuation(factor: number): void {
+    this.assertNotDisposed();
+    if (!Number.isFinite(factor) || factor < 0 || factor > 1) {
+      throw new RangeError('Bloom attenuation must be a finite number in [0, 1].');
+    }
+    if (factor === this.bloomAttenuation) return;
+    this.bloomAttenuation = factor;
+    this.applyQualityProfile();
   }
 
   public setBlackHoleLensing(
@@ -247,8 +293,16 @@ export class SolarPostProcessing {
 
   public getState(): Readonly<SolarPostProcessingState> {
     const profile = solarBloomProfile(this.quality);
+    const attenuation = this.bloomAttenuation;
+    const strength = profile.strength * attenuation;
+    const radius = profile.radius * Math.max(attenuation, 0.35);
+    const threshold =
+      attenuation < 0.999 ? Math.max(profile.threshold, 1.35) : profile.threshold;
     return Object.freeze({
       ...profile,
+      strength,
+      radius,
+      threshold,
       quality: this.quality,
       exposure: this.renderer.toneMappingExposure,
       width: this.width,
@@ -257,7 +311,7 @@ export class SolarPostProcessing {
       resolutionScale: this.resolutionScale,
       effectivePixelRatio: this.effectivePixelRatio,
       hdrRenderTargetSupported: this.hdrRenderTargetSupported,
-      enabled: profile.enabled && this.hdrRenderTargetSupported,
+      enabled: profile.enabled && this.hdrRenderTargetSupported && attenuation > 0.001,
       blackHoleLensing: this.getBlackHoleLensingDiagnostics(),
     });
   }
@@ -276,6 +330,7 @@ export class SolarPostProcessing {
   public dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.impactDepthPass.dispose();
     this.blackHoleLensingPass?.dispose();
     this.bloomPass?.dispose();
     this.outputPass?.dispose();
@@ -285,10 +340,14 @@ export class SolarPostProcessing {
   private applyQualityProfile(): void {
     const profile = solarBloomProfile(this.quality);
     if (this.bloomPass === null) return;
-    this.bloomPass.enabled = profile.enabled;
-    this.bloomPass.strength = profile.strength;
-    this.bloomPass.radius = profile.radius;
-    this.bloomPass.threshold = profile.threshold;
+    const attenuation = this.bloomAttenuation;
+    this.bloomPass.enabled = profile.enabled && attenuation > 0.001;
+    this.bloomPass.strength = profile.strength * attenuation;
+    this.bloomPass.radius = profile.radius * Math.max(attenuation, 0.35);
+    this.bloomPass.threshold =
+      attenuation < 0.999
+        ? Math.max(profile.threshold, 1.35)
+        : profile.threshold;
   }
 
   private applyEffectivePixelRatio(): void {

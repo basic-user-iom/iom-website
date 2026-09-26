@@ -10,7 +10,7 @@ export interface ImpactSurfaceBasis {
 
 type SurfaceShapeState = Pick<
   ImpactRenderState,
-  'targetRadiusM' | 'targetEquatorialRadiusM' | 'targetPolarRadiusM'
+  'targetRadiusM' | 'targetEquatorialRadiusM' | 'targetPolarRadiusM' | 'earthSurface'
 >;
 
 export function clampImpactUnit(value: number): number {
@@ -36,6 +36,7 @@ export function setEllipsoidSurfacePoint(
       + output.y * output.y / (polarRatio * polarRatio),
   );
   output.multiplyScalar(1 / Math.max(denominator, 1e-12));
+  outwardOffsetM += shape.earthSurface?.surfaceAltitudeM ?? 0;
   if (outwardOffsetM !== 0) {
     const surfaceNormal = normalScratch ?? new Vector3();
     setEllipsoidSurfaceNormal(surfaceNormal, output, shape);
@@ -68,7 +69,7 @@ export function ellipsoidSurfaceAttachmentErrorM(
     (point.x * point.x + point.z * point.z) / (equatorialRatio * equatorialRatio)
       + point.y * point.y / (polarRatio * polarRatio),
   );
-  return Math.abs(normalizedRadius - 1) * shape.targetRadiusM;
+  return Math.abs((normalizedRadius - 1) * shape.targetRadiusM - (shape.earthSurface?.surfaceAltitudeM ?? 0));
 }
 
 export function mapImpactEnuToBodyLocal(
@@ -81,7 +82,8 @@ export function mapImpactEnuToBodyLocal(
   surfaceScratch: Vector3,
   normalScratch: Vector3,
 ): Vector3 {
-  setEllipsoidSurfacePoint(surfaceScratch, basis.normal, shape);
+  // ENU trajectory positions are relative to the mean-radius sphere.
+  setEllipsoidSurfacePoint(surfaceScratch, basis.normal, shape, -(shape.earthSurface?.surfaceAltitudeM ?? 0));
   setEllipsoidSurfaceNormal(normalScratch, surfaceScratch, shape);
   return output.copy(surfaceScratch)
     .addScaledVector(basis.east, eastM / shape.targetRadiusM)

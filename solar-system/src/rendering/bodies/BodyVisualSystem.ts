@@ -1,3 +1,4 @@
+import { EARTH_OCEAN_REFLECTION_GLSL } from './EarthOceanReflection';
 import {
   AdditiveBlending,
   BackSide,
@@ -16,17 +17,17 @@ import {
   TextureLoader,
   UnsignedByteType,
   Vector3,
+  Vector4,
   type IUniform,
   type BufferGeometry,
   type Material,
-  type RingGeometry,
   type Texture,
 } from 'three';
 
+import { createAtmosphereMaterial, EARTH_ATMOSPHERE_SHELL_RADIUS } from './AtmosphereScattering';
 import { BODY_TEXTURE_ASSETS, textureAssetsForBody, type BodyTextureChannel } from './AssetCatalog';
 import {
   createAtmosphereLutBundle,
-  type AtmosphereLutBundle,
 } from './AtmosphereLut';
 import {
   coronaShellCount,
@@ -75,7 +76,7 @@ export interface PhaseFourBodyVisual {
   readonly atmosphere: Mesh<SphereGeometry, ShaderMaterial> | null;
   readonly clouds: Mesh<SphereGeometry, ShaderMaterial> | null;
   readonly secondaryClouds: Mesh<SphereGeometry, ShaderMaterial> | null;
-  readonly rings: readonly Mesh<RingGeometry, ShaderMaterial>[];
+  readonly rings: readonly Mesh<BufferGeometry, ShaderMaterial>[];
   readonly boundingRadiusMultiplier: number;
   readonly textureBindings: ReadonlyMap<BodyTextureChannel, readonly ShaderMaterial[]>;
 }
@@ -135,6 +136,8 @@ const MATERIAL_LABELS: Readonly<Record<string, string>> = Object.freeze({
  */
 export class PhaseFourBodyVisualSystem {
   private geometry: SphereGeometry;
+  /** Shared corona envelope geometry (not quality-swapped). */
+  private readonly coronaGeometry: SphereGeometry;
   private readonly qualityGeometries: Readonly<Record<VisualQuality, SphereGeometry>>;
   private readonly textureLoader = new TextureLoader();
   private readonly maximumAnisotropy: number;
@@ -151,6 +154,7 @@ export class PhaseFourBodyVisualSystem {
     NEUTRAL_NORMAL_PIXEL,
     'phase-4-neutral-normal-fallback',
   );
+  private readonly atmosphereGeometry = new SphereGeometry(1, 128, 96);
   private readonly atmosphereLuts = createAtmosphereLutBundle();
   private readonly earthSunDirection = new Vector3(-1, 0, 0);
   private readonly sceneFromInertial = new Quaternion().setFromAxisAngle(X_AXIS, -Math.PI / 2);
@@ -185,9 +189,13 @@ export class PhaseFourBodyVisualSystem {
       high: geometry,
       ultra: ultraGeometry,
     });
+    this.generatedGeometries.add(this.atmosphereGeometry);
     this.generatedGeometries.add(lowGeometry);
     this.generatedGeometries.add(mediumGeometry);
     this.generatedGeometries.add(ultraGeometry);
+    this.coronaGeometry = new SphereGeometry(1, 96, 64);
+    this.coronaGeometry.name = 'phase-4-corona-sphere';
+    this.generatedGeometries.add(this.coronaGeometry);
     this.maximumAnisotropy = Math.max(1, options.maximumAnisotropy);
     this.quality = options.initialQuality ?? 'high';
     this.geometry = this.qualityGeometries[this.quality];
@@ -318,9 +326,8 @@ export class PhaseFourBodyVisualSystem {
           frame.currentJdTdb,
         );
       }
-      visual.coronaShells.forEach((shell, index) => {
+      visual.coronaShells.forEach((shell) => {
         setUniformNumber(shell.material, 'uTimeDays', frame.currentJdTdb - 2_451_545);
-        setUniformNumber(shell.material, 'uShellIndex', index);
       });
       if (bodyId === 'earth') {
         this.earthSunDirection.set(
@@ -425,11 +432,13 @@ export class PhaseFourBodyVisualSystem {
     surface.renderOrder = 2;
     root.add(surface);
 
-    const coronaShells = [1.045, 1.09, 1.16].map((scale, index) => {
-      const material = createCoronaMaterial(index);
-      const shell = namedMesh(this.geometry, material, `phase-4-corona-${index + 1}`);
+    // A faint radial emission envelope, occluded by the opaque photosphere.
+    // Its geometric extent matches the clipping bounds; intensity fades before the edge.
+    const coronaShells = [2.4].map((scale, index) => {
+      const material = createCoronaMaterial(index, scale);
+      const shell = namedMesh(this.coronaGeometry, material, `phase-4-corona-${index + 1}`);
       shell.scale.setScalar(scale);
-      shell.renderOrder = 1 - index;
+      shell.renderOrder = 3 + index;
       root.add(shell);
       return shell;
     });
@@ -443,7 +452,7 @@ export class PhaseFourBodyVisualSystem {
       clouds: null,
       secondaryClouds: null,
       rings: [],
-      boundingRadiusMultiplier: 1.16,
+      boundingRadiusMultiplier: 2.4,
       textureBindings: new Map([['observation', [surfaceMaterial]]]),
     };
   }
@@ -471,18 +480,26 @@ export class PhaseFourBodyVisualSystem {
       whiteTexture: this.whiteTexture,
     });
     const clouds = namedMesh(this.geometry, cloudMaterial, 'phase-4-earth-clouds');
-    clouds.scale.setScalar(1.011);
+    clouds.scale.setScalar(1.0012);
     clouds.renderOrder = 5;
     root.add(clouds);
 
-    const atmosphereMaterial = createAtmosphereMaterial(
-      0x5da9ff,
-      this.atmosphereLuts,
-      true,
-    );
-    const atmosphere = namedMesh(this.geometry, atmosphereMaterial, 'phase-4-earth-atmosphere');
-    atmosphere.scale.setScalar(1.035);
-    atmosphere.renderOrder = 6;
+    const atmosphereMaterial = createAtmosphereMaterial({
+      color: 0x7ec8ff,
+      luts: this.atmosphereLuts,
+      earthLike: true,
+      shellRadius: EARTH_ATMOSPHERE_SHELL_RADIUS,
+      density: 0.62,
+      limbPower: 0.45,
+      innerFade: 0.0,
+      eclipseScatterFloor: 0.24,
+      name: 'phase-4-earth-atmosphere-lut',
+    });
+    // The atmosphere shares the exact terrain cutout, including reset.
+    atmosphereMaterial.uniforms.uGroundCut = surfaceMaterial.uniforms.uImpactCut!;
+    const atmosphere = namedMesh(this.atmosphereGeometry, atmosphereMaterial, 'phase-4-earth-atmosphere');
+    atmosphere.scale.setScalar(EARTH_ATMOSPHERE_SHELL_RADIUS);
+    atmosphere.renderOrder = 10;
     root.add(atmosphere);
 
     return {
@@ -495,7 +512,7 @@ export class PhaseFourBodyVisualSystem {
       clouds,
       secondaryClouds: null,
       rings: [],
-      boundingRadiusMultiplier: 1.035,
+      boundingRadiusMultiplier: EARTH_ATMOSPHERE_SHELL_RADIUS,
       textureBindings: new Map([
         ['albedo', [surfaceMaterial]],
         ['night', [surfaceMaterial]],
@@ -550,13 +567,20 @@ export class PhaseFourBodyVisualSystem {
     secondaryClouds.renderOrder = 5;
     root.add(secondaryClouds);
 
-    const atmosphereMaterial = createAtmosphereMaterial(
-      0xf2ad5a,
-      this.atmosphereLuts,
-      false,
-    );
+    const atmosphereMaterial = createAtmosphereMaterial({
+      color: 0xf3d09a,
+      luts: this.atmosphereLuts,
+      earthLike: false,
+      density: 0.85,
+      limbPower: 1.52,
+      innerFade: 0.28,
+      eclipseScatterFloor: 0.3,
+      shellRadius: 1.028,
+      groundRadius: 1.012,
+      name: 'phase-4-venus-pale-haze',
+    });
     const atmosphere = namedMesh(this.geometry, atmosphereMaterial, 'phase-4-venus-atmosphere');
-    atmosphere.scale.setScalar(1.032);
+    atmosphere.scale.setScalar(1.028);
     atmosphere.renderOrder = 6;
     root.add(atmosphere);
 
@@ -570,7 +594,7 @@ export class PhaseFourBodyVisualSystem {
       clouds,
       secondaryClouds,
       rings: [],
-      boundingRadiusMultiplier: 1.032,
+      boundingRadiusMultiplier: 1.028,
       textureBindings: new Map([['radar', [surfaceMaterial]]]),
     };
   }
@@ -589,15 +613,26 @@ export class PhaseFourBodyVisualSystem {
     dustClouds.scale.setScalar(1.009);
     dustClouds.renderOrder = 4;
     visual.root.add(dustClouds);
-    const hazeMaterial = createAtmosphereMaterial(0xd87c4d, this.atmosphereLuts, false);
-    const haze = namedMesh(this.geometry, hazeMaterial, 'phase-4-mars-dust-haze');
-    haze.scale.setScalar(1.018);
+    const hazeMaterial = createAtmosphereMaterial({
+      color: 0xe08a55,
+      luts: this.atmosphereLuts,
+      earthLike: false,
+      density: 0.38,
+      limbPower: 1.9,
+      innerFade: 0.5,
+      eclipseScatterFloor: 0.16,
+      shellRadius: 1.025,
+      name: 'phase-4-mars-dust-haze',
+    });
+    const haze = namedMesh(this.atmosphereGeometry, hazeMaterial, 'phase-4-mars-dust-haze');
+    haze.scale.setScalar(1.025);
     haze.renderOrder = 5;
     visual.root.add(haze);
     return {
       ...visual,
       materials: [...visual.materials, dustMaterial, hazeMaterial],
       atmosphere: haze,
+      boundingRadiusMultiplier: 1.025,
       clouds: dustClouds,
     };
   }
@@ -628,6 +663,32 @@ export class PhaseFourBodyVisualSystem {
     );
     root.add(surface);
 
+    const limbShell = giantAtmosphereShell(body.bodyId);
+    const atmosphereMaterial = createAtmosphereMaterial({
+      color: limbShell.color,
+      luts: this.atmosphereLuts,
+      earthLike: false,
+      density: limbShell.density,
+      limbPower: limbShell.limbPower,
+      innerFade: limbShell.innerFade,
+      eclipseScatterFloor: 0.2,
+      shellRadius: limbShell.scale,
+      name: `phase-5-${body.bodyId}-limb-atmosphere`,
+    });
+    const atmosphere = namedMesh(
+      this.atmosphereGeometry,
+      atmosphereMaterial,
+      `phase-5-${body.bodyId}-limb-atmosphere`,
+    );
+    const atmosphereScale = limbShell.scale;
+    atmosphere.scale.set(
+      (atmosphereProfile.equatorialRadiusKm / atmosphereProfile.meanRadiusKm) * atmosphereScale,
+      (atmosphereProfile.polarRadiusKm / atmosphereProfile.meanRadiusKm) * atmosphereScale,
+      (atmosphereProfile.equatorialRadiusKm / atmosphereProfile.meanRadiusKm) * atmosphereScale,
+    );
+    atmosphere.renderOrder = 6;
+    root.add(atmosphere);
+
     const ringBundle = ringProfile === null
       ? null
       : createRingSystemVisualBundle(
@@ -641,8 +702,8 @@ export class PhaseFourBodyVisualSystem {
     }
     const rings = ringBundle === null ? [] : [ringBundle.mesh];
     const materials = ringBundle === null
-      ? [materialBundle.material]
-      : [materialBundle.material, ringBundle.material];
+      ? [materialBundle.material, atmosphereMaterial]
+      : [materialBundle.material, ringBundle.material, atmosphereMaterial];
     const textureBindings = new Map<BodyTextureChannel, readonly ShaderMaterial[]>();
     if (textureAssetsForBody(body.bodyId).some((asset) => asset.channel === 'albedo')) {
       textureBindings.set('albedo', [materialBundle.material]);
@@ -651,18 +712,22 @@ export class PhaseFourBodyVisualSystem {
       textureBindings.set('grs-detail', [materialBundle.material]);
     }
 
+    const surfaceBound =
+      atmosphereProfile.equatorialRadiusKm / atmosphereProfile.meanRadiusKm * atmosphereScale;
     return {
       bodyId: body.bodyId,
       root,
       surface,
       materials,
       coronaShells: [],
-      atmosphere: null,
+      atmosphere,
       clouds: null,
       secondaryClouds: null,
       rings,
-      boundingRadiusMultiplier: ringBundle?.boundingRadiusMultiplier ??
-        atmosphereProfile.equatorialRadiusKm / atmosphereProfile.meanRadiusKm,
+      boundingRadiusMultiplier: Math.max(
+        ringBundle?.boundingRadiusMultiplier ?? surfaceBound,
+        surfaceBound,
+      ),
       textureBindings,
     };
   }
@@ -848,8 +913,8 @@ export class PhaseFourBodyVisualSystem {
 
   private applyGeometryToVisual(visual: PhaseFourBodyVisual): void {
     visual.surface.geometry = this.geometry;
-    for (const shell of visual.coronaShells) shell.geometry = this.geometry;
-    if (visual.atmosphere !== null) visual.atmosphere.geometry = this.geometry;
+    for (const shell of visual.coronaShells) shell.geometry = this.coronaGeometry;
+    if (visual.atmosphere !== null) visual.atmosphere.geometry = this.atmosphereGeometry;
     if (visual.clouds !== null) visual.clouds.geometry = this.geometry;
     if (visual.secondaryClouds !== null) {
       visual.secondaryClouds.geometry = this.geometry;
@@ -902,6 +967,7 @@ function createSurfaceMaterial(options: SurfaceMaterialOptions): ShaderMaterial 
     transparent: false,
     depthWrite: true,
     uniforms: {
+      uImpactCut: { value: new Vector4(0, 0, 0, 2) },
       uMap: { value: options.whiteTexture },
       uNightMap: { value: options.blackTexture },
       uNormalMap: { value: options.neutralNormalTexture },
@@ -965,36 +1031,56 @@ function createCloudMaterial(options: CloudMaterialOptions): ShaderMaterial {
   });
 }
 
-function createAtmosphereMaterial(
-  color: number,
-  luts: AtmosphereLutBundle,
-  earthLike: boolean,
-): ShaderMaterial {
-  return new ShaderMaterial({
-    name: earthLike ? 'phase-4-earth-atmosphere-lut' : 'phase-4-analytic-haze',
-    side: BackSide,
-    blending: AdditiveBlending,
-    transparent: true,
-    depthWrite: false,
-    uniforms: {
-      uTransmittanceLut: { value: luts.transmittance.texture },
-      uMultiScatteringLut: { value: luts.multiScattering.texture },
-      uSkyViewLut: { value: luts.skyView.texture },
-      uUseAtmosphereLut: { value: earthLike ? 1 : 0 },
-      uLutCapable: { value: earthLike ? 1 : 0 },
-      uSunPositionWorld: { value: new Vector3() },
-      uSunDirectionWorld: { value: new Vector3(-1, 0, 0) },
-      uSunDirectionBodyLocal: { value: new Vector3(-1, 0, 0) },
-      uAtmosphereColor: { value: new Color(color) },
-      uDensity: { value: earthLike ? 0.72 : 0.34 },
-      uOcclusion: { value: 1 },
-      uRelativeIrradiance: { value: 1 },
-      uTimeDays: { value: 0 },
-      uQuality: { value: 2 },
-    },
-    vertexShader: BODY_VERTEX_SHADER,
-    fragmentShader: ATMOSPHERE_FRAGMENT_SHADER,
-  });
+function giantAtmosphereShell(bodyId: string): {
+  readonly color: number;
+  readonly density: number;
+  readonly limbPower: number;
+  readonly innerFade: number;
+  readonly scale: number;
+} {
+  switch (bodyId) {
+    case 'jupiter':
+      return {
+        color: 0xffd7a0,
+        density: 0.95,
+        limbPower: 1.4,
+        innerFade: 0.26,
+        scale: 1.008,
+      };
+    case 'saturn':
+      return {
+        color: 0xf0dfb0,
+        density: 0.85,
+        limbPower: 1.38,
+        innerFade: 0.24,
+        scale: 1.01,
+      };
+    case 'uranus':
+      return {
+        color: 0x6fe8e2,
+        density: 1.35,
+        limbPower: 1.05,
+        innerFade: 0.14,
+        scale: 1.014,
+      };
+    case 'neptune':
+      return {
+        color: 0x6aa8ff,
+        density: 1.55,
+        limbPower: 0.75,
+        innerFade: 0.0,
+        // Thin haze above the cloud tops.
+        scale: 1.015,
+      };
+    default:
+      return {
+        color: 0xa0b4c8,
+        density: 0.5,
+        limbPower: 1.7,
+        innerFade: 0.4,
+        scale: 1.03,
+      };
+  }
 }
 
 function createSunMaterial(): ShaderMaterial {
@@ -1014,19 +1100,20 @@ function createSunMaterial(): ShaderMaterial {
   });
 }
 
-function createCoronaMaterial(index: number): ShaderMaterial {
+function createCoronaMaterial(index: number, shellScale: number): ShaderMaterial {
   return new ShaderMaterial({
     name: `phase-4-sun-corona-${index + 1}`,
     side: BackSide,
     blending: AdditiveBlending,
     transparent: true,
     depthWrite: false,
+    depthTest: true,
     uniforms: {
       uTimeDays: { value: 0 },
-      uShellIndex: { value: index },
+      uShellScale: { value: shellScale },
       uQuality: { value: 2 },
     },
-    vertexShader: BODY_VERTEX_SHADER,
+    vertexShader: CORONA_VERTEX_SHADER,
     fragmentShader: CORONA_FRAGMENT_SHADER,
   });
 }
@@ -1146,7 +1233,10 @@ export function disposeBodyVisualMaterials(visual: { readonly materials: readonl
 }
 
 const BODY_VERTEX_SHADER = /* glsl */ `
+  varying vec3 vSurfaceViewPosition;
+  varying vec3 vObjectPosition;
   varying vec2 vUv;
+  varying float vCameraRadius;
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying vec3 vObjectNormal;
@@ -1154,12 +1244,15 @@ const BODY_VERTEX_SHADER = /* glsl */ `
 
   void main() {
     vUv = uv;
+    vObjectPosition = position;
+    vCameraRadius = length(cameraPosition - modelMatrix[3].xyz) / length(modelMatrix[0].xyz);
     vObjectNormal = normalize(normal);
     vBodyNormal = normalize(vec3(normal.x, -normal.z, normal.y));
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
     vWorldNormal = normalize(mat3(modelMatrix) * normal);
-    gl_Position = projectionMatrix * viewMatrix * worldPosition;
+    vSurfaceViewPosition = (modelViewMatrix * vec4(position, 1.0)).xyz;
+    gl_Position = projectionMatrix * vec4(vSurfaceViewPosition, 1.0);
   }
 `;
 
@@ -1196,6 +1289,9 @@ const GLSL_NOISE = /* glsl */ `
 `;
 
 const SURFACE_FRAGMENT_SHADER = /* glsl */ `
+  varying vec3 vSurfaceViewPosition;
+  uniform vec4 uImpactCut;
+  varying vec3 vObjectPosition;
   uniform sampler2D uMap;
   uniform sampler2D uNightMap;
   uniform sampler2D uNormalMap;
@@ -1223,6 +1319,8 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
   varying vec3 vObjectNormal;
   varying vec3 vBodyNormal;
   ${GLSL_NOISE}
+
+  ${EARTH_OCEAN_REFLECTION_GLSL}
 
   vec3 fallbackAlbedo() {
     float detail = fbm(vObjectNormal * 8.0 + vec3(0.0, uTimeDays * 0.00001, 0.0));
@@ -1259,8 +1357,9 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
   }
 
   void main() {
+    if(uImpactCut.w < 1.5 && dot(normalize(vObjectPosition),uImpactCut.xyz)>uImpactCut.w) discard;
     vec3 mapColor = texture2D(uMap, vUv).rgb;
-    vec3 albedo = mix(fallbackAlbedo(), mapColor, uHasMap);
+    vec3 albedo = uHasMap > 0.5 ? mapColor : fallbackAlbedo();
     if (uProfile > 2.5 && uHasMap > 0.5) {
       float radarReturn = dot(mapColor, vec3(0.299, 0.587, 0.114));
       albedo = mix(uBaseColor, uSecondaryColor, smoothstep(0.06, 0.92, radarReturn));
@@ -1274,7 +1373,11 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
     }
     vec3 normal = reliefNormal(normalize(vWorldNormal));
     vec3 lightDirection = normalize(uSunDirectionWorld);
-    vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
+    // Interpolate camera-space distances before rotating back to world space.
+    // Subtracting AU-scale positions per fragment quantizes a metre-high view.
+    vec3 eyeView = normalize(-vSurfaceViewPosition);
+    vec3 viewDirection = normalize(vec3(dot(viewMatrix[0].xyz, eyeView),
+      dot(viewMatrix[1].xyz, eyeView), dot(viewMatrix[2].xyz, eyeView)));
     vec3 halfDirection = normalize(lightDirection + viewDirection);
     float geometricSolarCosine = dot(normalize(vBodyNormal), normalize(uSunDirectionBodyLocal));
     float nDotL = dot(normal, lightDirection);
@@ -1282,7 +1385,7 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
     float day = max(nDotL, 0.0) * step(0.0, geometricSolarCosine) * clamp(uOcclusion, 0.0, 1.0) * irradianceScale;
     float ambient = uProfile > 1.5 && uProfile < 3.5 ? 0.075 : 0.028;
     float diffuse = ambient + day * 0.97;
-    float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 5.0);
+    float fresnel = pow(1.0 - clamp(dot(normal, viewDirection), 0.0, 1.0), 5.0);
     float sampledRoughness = texture2D(uRoughnessMap, vUv).r;
     float surfaceRoughness = mix(uRoughness, sampledRoughness, uHasRoughnessMap);
     float specPower = mix(180.0, 18.0, surfaceRoughness);
@@ -1291,8 +1394,11 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
     float oceanMask = 0.0;
     if (uProfile > 0.5 && uProfile < 1.5) {
       float blueDominance = albedo.b - max(albedo.r, albedo.g) * 0.72;
-      float derivedOcean = smoothstep(0.035, 0.19, blueDominance);
-      oceanMask = mix(derivedOcean, texture2D(uOceanMap, vUv).r, uHasOceanMap);
+      // Relative blue dominance also recognizes the almost-black deep ocean.
+      // An absolute brightness threshold suppresses its sky reflection.
+      float derivedOcean = smoothstep(0.25, 0.55, blueDominance / max(albedo.b, 0.0001))
+        * (1.0 - smoothstep(0.05, 0.20, albedo.b));
+      oceanMask = max(derivedOcean, texture2D(uOceanMap, vUv).r * uHasOceanMap);
       specular *= oceanMask * 2.8;
       specular += fresnel * oceanMask * day * 0.20;
     } else {
@@ -1300,6 +1406,7 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
     }
 
     vec3 color = albedo * diffuse + vec3(1.0, 0.92, 0.72) * specular;
+    color += oceanMask * earthOceanSkyReflection(normal, viewDirection, geometricSolarCosine, uOcclusion, irradianceScale);
     if (uProfile > 0.5 && uProfile < 1.5) {
       vec3 night = texture2D(uNightMap, vUv).rgb;
       float nightSide = 1.0 - smoothstep(-0.22, 0.13, geometricSolarCosine);
@@ -1326,6 +1433,7 @@ const CLOUD_FRAGMENT_SHADER = /* glsl */ `
   uniform float uTimeDays;
   uniform float uQuality;
   varying vec2 vUv;
+  varying float vCameraRadius;
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying vec3 vObjectNormal;
@@ -1417,68 +1525,13 @@ const CLOUD_FRAGMENT_SHADER = /* glsl */ `
           density
         )
       : density * uOpacity * (uIsMars > 0.5 ? 0.72 : 0.88);
+    // The Earth cloud map is a distant shell, not volumetric cloud interiors.
+    // Fade it before a close camera intersects its triangles; the atmosphere
+    // continues to render the local sky and horizon at these altitudes.
+    if (uIsVenus < 0.5 && uIsMars < 0.5) {
+      alpha *= smoothstep(1.015, 1.08, vCameraRadius);
+    }
     gl_FragColor = vec4(color, alpha);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }
-`;
-
-const ATMOSPHERE_FRAGMENT_SHADER = /* glsl */ `
-  uniform sampler2D uTransmittanceLut;
-  uniform sampler2D uMultiScatteringLut;
-  uniform sampler2D uSkyViewLut;
-  uniform float uUseAtmosphereLut;
-  uniform vec3 uSunPositionWorld;
-  uniform vec3 uSunDirectionWorld;
-  uniform vec3 uSunDirectionBodyLocal;
-  uniform vec3 uAtmosphereColor;
-  uniform float uDensity;
-  uniform float uOcclusion;
-  uniform float uRelativeIrradiance;
-  varying vec3 vWorldPosition;
-  varying vec3 vWorldNormal;
-  varying vec3 vBodyNormal;
-
-  vec3 decodeExponential(vec3 encodedValue, float scale) {
-    return -log(max(vec3(1.0) - encodedValue, vec3(1.0 / 255.0))) / scale;
-  }
-
-  void main() {
-    vec3 normal = normalize(vWorldNormal);
-    vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-    float viewCosine = abs(dot(normal, viewDirection));
-    float solarCosine = dot(normalize(vBodyNormal), normalize(uSunDirectionBodyLocal));
-    vec2 skyUv = vec2(
-      clamp(viewCosine, 0.0, 1.0),
-      clamp(solarCosine * 0.5 + 0.5, 0.0, 1.0)
-    );
-    vec4 skySample = texture2D(uSkyViewLut, skyUv);
-    vec4 multiSample = texture2D(
-      uMultiScatteringLut,
-      vec2(clamp(solarCosine * 0.5 + 0.5, 0.0, 1.0), 0.0)
-    );
-    vec3 transmittance = texture2D(
-      uTransmittanceLut,
-      vec2(clamp(viewCosine * 0.5 + 0.5, 0.0, 1.0), 0.0)
-    ).rgb;
-    vec3 skyRadiance = decodeExponential(skySample.rgb, 12.0);
-    vec3 multiScattering = decodeExponential(multiSample.rgb, 12.0);
-    float analyticDepth = pow(1.0 - viewCosine, 2.15);
-    float day = smoothstep(-0.28, 0.16, solarCosine);
-    float twilight = exp(-pow((solarCosine + 0.08) * 5.0, 2.0));
-    float physicalOpacity = clamp(skySample.a * (1.08 - dot(transmittance, vec3(0.3333)) * 0.18), 0.0, 1.0);
-    float analyticOpacity = analyticDepth * (0.25 + day * 0.75 + twilight * 0.3);
-    float depth = mix(analyticOpacity, physicalOpacity, uUseAtmosphereLut);
-    vec3 sunset = vec3(1.0, 0.34, 0.08) * twilight * 0.35;
-    vec3 analyticColor = uAtmosphereColor * (0.36 + day * 0.64) + sunset;
-    vec3 physicalColor = (skyRadiance + multiScattering * 0.42) * vec3(0.72, 0.92, 1.28) * 4.8;
-    vec3 color = mix(analyticColor, physicalColor, uUseAtmosphereLut);
-    float irradianceScale = clamp(pow(max(uRelativeIrradiance, 0.0001), 0.25), 0.55, 1.8);
-    float directLightVisible = clamp(uOcclusion, 0.0, 1.0);
-    gl_FragColor = vec4(
-      color * 0.62 * irradianceScale * directLightVisible,
-      depth * uDensity
-    );
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
@@ -1572,21 +1625,60 @@ const SUN_FRAGMENT_SHADER = /* glsl */ `
   }
 `;
 
+const CORONA_VERTEX_SHADER = /* glsl */ `
+  uniform float uShellScale;
+  varying vec3 vPointSolar;
+  varying vec3 vCameraSolar;
+
+  void main() {
+    // Work in photosphere radii, with camera-relative transforms. A deformed
+    // shell normal is not the distance of a viewing ray from the Sun.
+    float solarRadiusView = length(modelViewMatrix[0].xyz) / uShellScale;
+    vec3 cameraFromCenter = -modelViewMatrix[3].xyz;
+    vCameraSolar = vec3(
+      dot(cameraFromCenter, normalize(modelViewMatrix[0].xyz)),
+      dot(cameraFromCenter, normalize(modelViewMatrix[1].xyz)),
+      dot(cameraFromCenter, normalize(modelViewMatrix[2].xyz))
+    ) / max(solarRadiusView, 1e-12);
+    vPointSolar = position * uShellScale;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
 const CORONA_FRAGMENT_SHADER = /* glsl */ `
   uniform float uTimeDays;
-  uniform float uShellIndex;
-  varying vec3 vWorldPosition;
-  varying vec3 vWorldNormal;
-  varying vec3 vObjectNormal;
+  uniform float uShellScale;
+  uniform float uQuality;
+  varying vec3 vPointSolar;
+  varying vec3 vCameraSolar;
   ${GLSL_NOISE}
 
   void main() {
-    vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-    float shellCosine = abs(dot(normalize(vWorldNormal), viewDirection));
-    float radialFade = pow(shellCosine, 1.15 + uShellIndex * 0.28);
-    float structure = 0.55 + 0.45 * fbm(vObjectNormal * (4.0 + uShellIndex * 2.0) + vec3(uTimeDays * 0.004, 0.0, 0.0));
-    float alpha = radialFade * structure * (0.18 / (1.0 + uShellIndex * 0.92));
-    gl_FragColor = vec4(vec3(1.0, 0.39, 0.10) * 1.18, alpha);
+    vec3 ray = normalize(vPointSolar - vCameraSolar);
+    vec3 perpendicular = cross(vCameraSolar, ray);
+    float radiusSolar = length(perpendicular);
+    if (radiusSolar < 1.0) discard;
+
+    // Radial structures are anchored to the Sun, rather than to the screen.
+    vec3 radial = normalize(cross(ray, perpendicular));
+    float time = uTimeDays * 0.0005;
+    float equatorial = exp(-abs(radial.y) * 3.8);
+    float structure = uQuality > 1.5
+      ? fbm(radial * 9.0 + vec3(time, 0.0, 0.0))
+      : valueNoise(radial * 9.0 + vec3(time, 0.0, 0.0));
+    float streamers = 0.22 + 0.5 * equatorial
+      + 1.8 * pow(smoothstep(0.3, 0.78, structure), 3.0);
+
+    float height = radiusSolar - 1.0;
+    float limbFade = smoothstep(1.0, 1.018, radiusSolar);
+    float outerFade = 1.0 - smoothstep(1.65, uShellScale, radiusSolar);
+    float innerGlow = 0.18 * exp(-height * 13.0);
+    float outerGlow = 0.065 * exp(-height * 3.3) * streamers;
+    float intensity = (innerGlow + outerGlow) * limbFade * outerFade;
+    vec3 color = mix(vec3(1.0, 0.91, 0.76), vec3(0.78, 0.87, 1.0),
+      smoothstep(0.0, 0.8, height));
+
+    gl_FragColor = vec4(color * intensity, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }

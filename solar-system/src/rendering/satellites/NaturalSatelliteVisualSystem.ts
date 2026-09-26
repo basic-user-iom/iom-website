@@ -8,6 +8,7 @@ import {
   Group,
   InstancedMesh,
   LinearFilter,
+  LinearMipmapLinearFilter,
   Line,
   LineBasicMaterial,
   Matrix4,
@@ -16,11 +17,11 @@ import {
   MeshBasicMaterial,
   RepeatWrapping,
   RingGeometry,
-  RGBAFormat,
+  ShaderMaterial,
   SphereGeometry,
   SRGBColorSpace,
   TextureLoader,
-  UnsignedByteType,
+  Vector2,
   Vector3,
   type Camera,
   type Material,
@@ -44,6 +45,13 @@ import {
   selectionCueOpacityForProjectedRadius,
 } from '../SelectionCueVisibility';
 import { NATURAL_SATELLITE_TEXTURE_ASSETS } from './NaturalSatelliteAssetCatalog';
+import {
+  PROFILE_COLORS,
+  createMoonBodyGeometry,
+  createProceduralMoonMaps,
+  materialRoughnessForProfile,
+  shapeAxesFor,
+} from './ProceduralMoonSurface';
 
 export interface NaturalSatelliteVisualDiagnostics {
   readonly visible: boolean;
@@ -74,109 +82,16 @@ export interface NaturalSatelliteVisualDiagnostics {
   readonly selectionHaloVisible: boolean;
 }
 
-function shapeAxesFor(id: string): Readonly<Vector3> {
-  switch (id) {
-    case 'phobos': return new Vector3(1, 0.83, 0.72);
-    case 'deimos': return new Vector3(1, 0.86, 0.76);
-    case 'mimas': return new Vector3(1, 0.96, 0.92);
-    case 'hyperion': return new Vector3(1, 0.81, 0.72);
-    case 'phoebe': return new Vector3(1, 0.94, 0.89);
-    case 'proteus': return new Vector3(1, 0.91, 0.84);
-    case 'nereid': return new Vector3(1, 0.96, 0.91);
-    default: return new Vector3(1, 1, 1);
-  }
-}
-
-function createProceduralMoonTexture(definition: Readonly<NaturalSatelliteDefinition>): DataTexture {
-  const width = 256;
-  const height = 128;
-  const pixels = new Uint8Array(width * height * 4);
-  let seed = hashText(definition.id);
-  const craters = Array.from({ length: 16 }, () => {
-    seed = nextSeed(seed);
-    const longitude = seed / 0xffffffff * Math.PI * 2 - Math.PI;
-    seed = nextSeed(seed);
-    const latitude = (seed / 0xffffffff - 0.5) * Math.PI * 0.9;
-    seed = nextSeed(seed);
-    const radius = 0.035 + seed / 0xffffffff * 0.16;
-    return { longitude, latitude, radius };
-  });
-  const baseHex = PROFILE_COLORS[definition.visualProfile] ?? 0x9bb4c2;
-  const base = [
-    (baseHex >> 16) & 0xff,
-    (baseHex >> 8) & 0xff,
-    baseHex & 0xff,
-  ] as const;
-  for (let y = 0; y < height; y += 1) {
-    const latitude = (0.5 - (y + 0.5) / height) * Math.PI;
-    for (let x = 0; x < width; x += 1) {
-      const longitude = ((x + 0.5) / width - 0.5) * Math.PI * 2;
-      const broad = Math.sin(longitude * 3.1 + latitude * 5.7 + seed * 1e-7) * 0.08;
-      const fine = hash2d(x, y, seed) * 0.17 - 0.085;
-      let shade = 0.92 + broad + fine;
-      for (const crater of craters) {
-        const dx = wrappedLongitude(longitude - crater.longitude) * Math.cos(latitude);
-        const dy = latitude - crater.latitude;
-        const distance = Math.hypot(dx, dy);
-        const rimWidth = crater.radius * 0.18;
-        const rim = Math.exp(-((distance - crater.radius) ** 2) / Math.max(rimWidth ** 2, 1e-6));
-        const bowl = Math.max(0, 1 - distance / crater.radius);
-        shade += rim * 0.13 - bowl * 0.17;
-      }
-      const offset = (y * width + x) * 4;
-      pixels[offset] = clampByte(base[0] * shade);
-      pixels[offset + 1] = clampByte(base[1] * shade);
-      pixels[offset + 2] = clampByte(base[2] * shade);
-      pixels[offset + 3] = 255;
-    }
-  }
-  const texture = new DataTexture(pixels, width, height, RGBAFormat, UnsignedByteType);
-  texture.name = `procedural-coverage-fallback-${definition.id}`;
-  texture.colorSpace = SRGBColorSpace;
-  texture.wrapS = RepeatWrapping;
-  texture.minFilter = LinearFilter;
-  texture.magFilter = LinearFilter;
-  texture.generateMipmaps = false;
-  texture.needsUpdate = true;
-  return texture;
-}
-
-function hashText(value: string): number {
-  let hash = 2_166_136_261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16_777_619);
-  }
-  return hash >>> 0;
-}
-
-function nextSeed(value: number): number {
-  return (Math.imul(value, 1_664_525) + 1_013_904_223) >>> 0;
-}
-
-function hash2d(x: number, y: number, seed: number): number {
-  let value = Math.imul(x + 1, 374_761_393) ^ Math.imul(y + 1, 668_265_263) ^ seed;
-  value = Math.imul(value ^ (value >>> 13), 1_274_126_177);
-  return ((value ^ (value >>> 16)) >>> 0) / 0xffffffff;
-}
-
-function wrappedLongitude(value: number): number {
-  return ((value + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
-}
-
 function normalizeRotation(value: number): number {
   return ((value % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
 }
 
-function clampByte(value: number): number {
-  return Math.max(0, Math.min(255, Math.round(value)));
-}
-
 interface MajorResource {
   readonly definition: NaturalSatelliteDefinition;
-  readonly mesh: Mesh<SphereGeometry, MeshStandardMaterial>;
+  readonly mesh: Mesh<BufferGeometry, MeshStandardMaterial>;
   readonly orbit: Line<BufferGeometry, LineBasicMaterial>;
   readonly shapeAxes: Readonly<Vector3>;
+  readonly ownsGeometry: boolean;
   label: HTMLSpanElement | null;
 }
 
@@ -204,33 +119,8 @@ const SUN_DIRECTION = new Vector3();
 const SHADOW_PERPENDICULAR = new Vector3();
 const SHADOW_SURFACE = new Vector3();
 const SHADOW_NORMAL = new Vector3(0, 0, 1);
-const PROFILE_COLORS: Readonly<Record<string, number>> = Object.freeze({
-  'lunar-rocky': 0xb9b8b0,
-  'phobos-irregular': 0x5a4e46,
-  'deimos-irregular': 0x76645b,
-  'io-sulfurous': 0xd5a62e,
-  'europa-ice': 0xbac8d6,
-  'ganymede-grooved-ice': 0x8e8274,
-  'callisto-cratered': 0x625b55,
-  'mimas-ice': 0xcbd5dd,
-  'enceladus-ice-plume': 0xe1eef4,
-  'tethys-ice': 0xcad3dc,
-  'dione-ice': 0xbac5ce,
-  'rhea-ice': 0xc3c9d1,
-  'titan-haze': 0xc79455,
-  'hyperion-irregular': 0x765f52,
-  'iapetus-two-tone': 0x5e5a50,
-  'phoebe-irregular': 0x514c48,
-  'miranda-varied-terrain': 0x9b9a94,
-  'ariel-ice': 0xadc1c6,
-  'umbriel-dark-ice': 0x777d80,
-  'titania-ice': 0xa5b9be,
-  'oberon-ice': 0x929da2,
-  'triton-nitrogen-ice': 0xb7d2dc,
-  'proteus-irregular': 0x555e68,
-  'nereid-irregular': 0x9a9ca0,
-  'minor-point-fallback': 0x8ac9df,
-});
+const BASIN_AXIS = new Vector3(1, 0, 0);
+const MAX_ANISOTROPY = 8;
 
 /** Draws natural satellites without allocating one React object or DOM label per moon. */
 export class NaturalSatelliteVisualSystem {
@@ -245,7 +135,7 @@ export class NaturalSatelliteVisualSystem {
   private readonly officialTextureStates = new Map<string, 'loading' | 'ready' | 'fallback'>();
   private readonly loadedTextures = new Set<Texture>();
   private readonly proceduralTextures = new Set<DataTexture>();
-  private readonly transitShadows = new Map<string, Mesh<CircleGeometry, MeshBasicMaterial>>();
+  private readonly transitShadows = new Map<string, Mesh<CircleGeometry, ShaderMaterial>>();
   private readonly selectionHalo: Mesh<RingGeometry, MeshBasicMaterial>;
   private compactSelectionLabel: HTMLSpanElement | null = null;
   private selectionScreenIndicator: HTMLSpanElement | null = null;
@@ -253,6 +143,7 @@ export class NaturalSatelliteVisualSystem {
   private majorVisible = true;
   private minorVisible = true;
   private orbitsVisible = true;
+  private scenarioOverlaysSuppressed = false;
   private labelsVisible = true;
   private selectedSatelliteId: string | null = null;
   private localScaleApplied = false;
@@ -308,15 +199,39 @@ export class NaturalSatelliteVisualSystem {
     this.root.add(this.selectionHalo);
     for (const satelliteId of ['io', 'europa', 'ganymede', 'callisto']) {
       const shadow = new Mesh(
-        new CircleGeometry(1, 32),
-        new MeshBasicMaterial({
-          color: 0x020508,
+        new CircleGeometry(1, 48),
+        new ShaderMaterial({
+          name: `jupiter-transit-shadow-${satelliteId}`,
           transparent: true,
-          opacity: 0.62,
           depthWrite: false,
+          toneMapped: false,
           polygonOffset: true,
           polygonOffsetFactor: -2,
           polygonOffsetUnits: -2,
+          uniforms: {
+            uOpacity: { value: 0.58 },
+          },
+          vertexShader: /* glsl */ `
+            varying vec2 vLocal;
+            void main() {
+              vLocal = position.xy;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: /* glsl */ `
+            uniform float uOpacity;
+            varying vec2 vLocal;
+            void main() {
+              float radius = length(vLocal);
+              // Soft penumbra: dark core with gradual falloff instead of a hard disc.
+              float umbra = 1.0 - smoothstep(0.42, 0.72, radius);
+              float penumbra = 1.0 - smoothstep(0.55, 1.0, radius);
+              float shade = mix(penumbra * 0.55, 1.0, umbra);
+              float alpha = shade * uOpacity * (1.0 - smoothstep(0.92, 1.0, radius));
+              if (alpha < 0.01) discard;
+              gl_FragColor = vec4(vec3(0.015, 0.02, 0.03), alpha);
+            }
+          `,
         }),
       );
       shadow.name = `jupiter-transit-shadow-${satelliteId}`;
@@ -369,6 +284,10 @@ export class NaturalSatelliteVisualSystem {
     this.minorVisible = visible;
   }
 
+  public setScenarioOverlaysSuppressed(suppressed: boolean): void {
+    this.scenarioOverlaysSuppressed = suppressed;
+  }
+
   public setOrbitsVisible(visible: boolean): void {
     this.orbitsVisible = visible;
   }
@@ -380,7 +299,11 @@ export class NaturalSatelliteVisualSystem {
   public selectSatellite(id: string | null): void {
     this.selectedSatelliteId = id;
     for (const resource of this.major.values()) {
-      resource.mesh.material.emissiveIntensity = resource.definition.id === id ? 0.34 : 0.04;
+      const selected = resource.definition.id === id;
+      const official = resource.mesh.userData.surfaceMode === 'official-vtad-map';
+      resource.mesh.material.emissiveIntensity = selected
+        ? (official ? 0.01 : 0.02)
+        : (official ? 0.018 : 0.045);
     }
   }
 
@@ -430,10 +353,14 @@ export class NaturalSatelliteVisualSystem {
         : { x: sun.positionM.x - parent.positionM.x, y: sun.positionM.y - parent.positionM.y, z: sun.positionM.z - parent.positionM.z };
       const eclipsed = sun !== undefined && isNaturalSatelliteInParentShadow(state, parent.meanRadiusM, parentToSun);
       if (eclipsed) this.eclipsedMajorCount += 1;
-      resource.mesh.material.color.copy(WHITE).multiplyScalar(eclipsed ? 0.16 : 1);
+      resource.mesh.material.color.copy(WHITE).multiplyScalar(eclipsed ? 0.18 : 1);
+      const official = resource.mesh.userData.surfaceMode === 'official-vtad-map';
+      const selected = resource.definition.id === this.selectedSatelliteId;
       resource.mesh.material.emissiveIntensity = eclipsed
         ? 0.004
-        : resource.definition.id === this.selectedSatelliteId ? 0.055 : 0.008;
+        : selected
+          ? (official ? 0.01 : 0.02)
+          : (official ? 0.018 : 0.04);
       this.mapLocalOffset(LOCAL, state.positionM, scaleModel, localScale);
       resource.mesh.position.copy(PARENT_POSITION).add(LOCAL);
       const markerRadius = this.displayedMajorRadius(resource.definition, parent, scaleModel, selectedParentId);
@@ -445,6 +372,19 @@ export class NaturalSatelliteVisualSystem {
       resource.mesh.rotation.y = normalizeRotation(
         (frame.currentJdTdb - 2_451_545) * 86_400 / resource.definition.rotationPeriodSeconds * Math.PI * 2,
       );
+      // Face Mimas's authored +X basin toward the sun so the lit inspection
+      // camera sees Herschel instead of the night side.
+      if (selected && resource.definition.id === 'mimas' && sun !== undefined) {
+        SUN_DIRECTION.set(
+          sun.positionM.x - (parent.positionM.x + state.positionM.x),
+          sun.positionM.y - (parent.positionM.y + state.positionM.y),
+          sun.positionM.z - (parent.positionM.z + state.positionM.z),
+        );
+        if (SUN_DIRECTION.lengthSq() > 1e-16) {
+          SUN_DIRECTION.normalize();
+          resource.mesh.quaternion.setFromUnitVectors(BASIN_AXIS, SUN_DIRECTION);
+        }
+      }
       resource.mesh.visible = this.majorVisible;
       if (resource.mesh.visible) {
         this.recordWorldPosition(resource.definition.id, resource.mesh.position);
@@ -546,6 +486,12 @@ export class NaturalSatelliteVisualSystem {
       const x = (projected.x * 0.5 + 0.5) * viewportWidth + 8;
       const y = (-projected.y * 0.5 + 0.5) * viewportHeight;
       const selected = resource.definition.id === this.selectedSatelliteId;
+      // During moon close-ups, only the inspected moon keeps a label.
+      if (!selected && projectedRadiusPx > 70) {
+        resource.label.style.opacity = '0';
+        this.suppressedLabelCount += 1;
+        continue;
+      }
       candidates.push({
         resource,
         x,
@@ -636,11 +582,17 @@ export class NaturalSatelliteVisualSystem {
   public dispose(): void {
     this.root.traverse((object) => {
       const renderable = object as typeof object & { geometry?: BufferGeometry; material?: Material | Material[] };
-      renderable.geometry?.dispose();
       if (Array.isArray(renderable.material)) renderable.material.forEach((material) => material.dispose());
       else renderable.material?.dispose();
     });
-    for (const resource of this.major.values()) resource.label?.remove();
+    for (const resource of this.major.values()) {
+      if (resource.ownsGeometry) resource.mesh.geometry.dispose();
+      resource.orbit.geometry.dispose();
+      resource.label?.remove();
+    }
+    this.geometry.dispose();
+    this.selectionHalo.geometry.dispose();
+    for (const shadow of this.transitShadows.values()) shadow.geometry.dispose();
     this.compactSelectionLabel?.remove();
     this.selectionScreenIndicator?.remove();
     this.compactSelectionLabel = null;
@@ -711,23 +663,32 @@ export class NaturalSatelliteVisualSystem {
   }
 
   private createMajor(definition: NaturalSatelliteDefinition): void {
-    const fallbackTexture = createProceduralMoonTexture(definition);
-    this.proceduralTextures.add(fallbackTexture);
+    const maps = createProceduralMoonMaps(definition);
+    this.proceduralTextures.add(maps.color);
+    this.proceduralTextures.add(maps.normal);
     const material = new MeshStandardMaterial({
       color: 0xffffff,
-      map: fallbackTexture,
-      roughness: definition.visualProfile.includes('ice') ? 0.72 : 0.88,
+      map: maps.color,
+      normalMap: maps.normal,
+      normalScale: new Vector2(maps.normalScale, maps.normalScale),
+      roughness: maps.roughness,
       metalness: 0,
-      emissive: new Color(0x161616),
-      emissiveIntensity: 0.008,
+      emissive: new Color(0xffffff),
+      emissiveMap: maps.color,
+      // Tiny albedo-linked fill so dark procedural limbs stay readable without washing maps.
+      emissiveIntensity: 0.045,
     });
-    const mesh = new Mesh(this.geometry, material);
+    material.name = `natural-satellite-material-${definition.id}`;
+    const bodyGeometry = createMoonBodyGeometry(definition, this.geometry);
+    const ownsGeometry = bodyGeometry !== this.geometry;
+    const mesh = new Mesh(bodyGeometry, material);
     mesh.name = `natural-satellite-${definition.id}`;
     mesh.userData.satelliteId = definition.id;
+    mesh.userData.surfaceMode = ownsGeometry ? 'procedural-irregular' : 'procedural-sphere';
     mesh.frustumCulled = false;
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(96 * 3), 3));
-    const orbit = new Line(geometry, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
+    const orbitGeometry = new BufferGeometry();
+    orbitGeometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(96 * 3), 3));
+    const orbit = new Line(orbitGeometry, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
     orbit.name = `natural-satellite-orbit-${definition.id}`;
     orbit.frustumCulled = false;
     this.root.add(orbit, mesh);
@@ -736,6 +697,7 @@ export class NaturalSatelliteVisualSystem {
       mesh,
       orbit,
       shapeAxes: shapeAxesFor(definition.id),
+      ownsGeometry,
       label: this.labelContainer === null ? null : this.createLabel(definition),
     });
   }
@@ -748,25 +710,41 @@ export class NaturalSatelliteVisualSystem {
       this.textureLoader.load(
         asset.file,
         (texture) => {
-          const fallbackTexture = resource.mesh.material.map;
-          if (fallbackTexture instanceof DataTexture && this.proceduralTextures.has(fallbackTexture)) {
-            fallbackTexture.dispose();
-            this.proceduralTextures.delete(fallbackTexture);
-          }
+          this.disposeProceduralMaps(resource.mesh.material);
           texture.name = asset.assetId;
           texture.colorSpace = SRGBColorSpace;
           texture.wrapS = RepeatWrapping;
-          texture.minFilter = LinearFilter;
+          texture.wrapT = RepeatWrapping;
+          texture.generateMipmaps = true;
+          texture.minFilter = LinearMipmapLinearFilter;
           texture.magFilter = LinearFilter;
+          texture.anisotropy = MAX_ANISOTROPY;
           texture.needsUpdate = true;
           this.loadedTextures.add(texture);
           resource.mesh.material.map = texture;
+          // Official VTAD maps are base-color only; clear authored normals so we do not invent relief.
+          resource.mesh.material.normalMap = null;
+          resource.mesh.material.normalScale.set(1, 1);
+          resource.mesh.material.emissiveMap = texture;
+          resource.mesh.material.emissive.set(0xffffff);
+          resource.mesh.material.emissiveIntensity = 0.016;
+          resource.mesh.material.roughness = materialRoughnessForProfile(resource.definition.visualProfile);
           resource.mesh.material.needsUpdate = true;
+          resource.mesh.userData.surfaceMode = 'official-vtad-map';
           this.officialTextureStates.set(asset.satelliteId, 'ready');
         },
         undefined,
         () => this.officialTextureStates.set(asset.satelliteId, 'fallback'),
       );
+    }
+  }
+
+  private disposeProceduralMaps(material: MeshStandardMaterial): void {
+    for (const slot of [material.map, material.normalMap] as const) {
+      if (slot instanceof DataTexture && this.proceduralTextures.has(slot)) {
+        slot.dispose();
+        this.proceduralTextures.delete(slot);
+      }
     }
   }
 
@@ -789,9 +767,9 @@ export class NaturalSatelliteVisualSystem {
       Math.max(parent.meanRadiusM * scaleModel.metersToRenderUnits, 1e-12);
     const relativeRadius = physicalRadius * parentExaggeration;
     const minimumFraction = definition.id === this.selectedSatelliteId
-      ? 0.018
-      : selectedParentId === parent.bodyId ? 0.009 : 0.0035;
-    return Math.min(parentRadius * 0.065, Math.max(relativeRadius, parentRadius * minimumFraction));
+      ? 0.1
+      : selectedParentId === parent.bodyId ? 0.014 : 0.005;
+    return Math.min(parentRadius * 0.16, Math.max(relativeRadius, parentRadius * minimumFraction));
   }
 
   private createLabel(definition: NaturalSatelliteDefinition): HTMLSpanElement {
@@ -828,7 +806,7 @@ export class NaturalSatelliteVisualSystem {
       array[index * 3 + 2] = PARENT_POSITION.z + LOCAL.z;
     }
     attribute.needsUpdate = true;
-    orbit.visible = this.majorVisible && this.orbitsVisible && this.visible;
+    orbit.visible = this.majorVisible && this.orbitsVisible && this.visible && !this.scenarioOverlaysSuppressed;
   }
 
   private updateJupiterTransitShadow(
@@ -877,7 +855,17 @@ export class NaturalSatelliteVisualSystem {
   ): number {
     const parentRadius = scaleModel.radiusFor(parent);
     const physicalOrbit = definition.semiMajorAxisM * scaleModel.metersToRenderUnits;
-    const minimumOrbit = parentRadius * (selectedParentId === parent.bodyId ? 1.85 : 1.45);
+    const inspectingThisMoon = this.selectedSatelliteId === definition.id;
+    const inspectingSibling = this.selectedSatelliteId !== null &&
+      definition.parentId === parent.bodyId &&
+      (NATURAL_SATELLITE_DEFINITIONS.find((item) => item.id === this.selectedSatelliteId)?.parentId === parent.bodyId);
+    // Pull selected inner moons outside the exaggerated parent so close-ups
+    // do not end up staring into Saturn's disc.
+    const minimumOrbit = parentRadius * (
+      inspectingThisMoon ? 2.85 :
+      inspectingSibling ? 2.35 :
+      selectedParentId === parent.bodyId ? 1.85 : 1.45
+    );
     return Math.max(1, minimumOrbit / Math.max(physicalOrbit, 1e-8));
   }
 }

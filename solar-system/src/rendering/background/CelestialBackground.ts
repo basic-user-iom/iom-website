@@ -1,3 +1,4 @@
+import { impactDepthUniforms } from '../impact/ImpactDepthContext';
 import {
   AdditiveBlending,
   BackSide,
@@ -6,7 +7,6 @@ import {
   Float32BufferAttribute,
   Group,
   Mesh,
-  MeshBasicMaterial,
   Points,
   RepeatWrapping,
   ShaderMaterial,
@@ -63,7 +63,7 @@ const MEAN_OBLIQUITY_J2000_RAD = 23.439_291_111 * Math.PI / 180;
 export class CelestialBackground {
   public readonly root = new Group();
   public readonly celestialOrientation = new Group();
-  public readonly skyMesh: Mesh<SphereGeometry, MeshBasicMaterial>;
+  public readonly skyMesh: Mesh<SphereGeometry, ShaderMaterial>;
   public readonly starPoints: Points<BufferGeometry, ShaderMaterial>;
 
   private readonly textureUrls: Readonly<Record<SkyTextureTier, string>>;
@@ -97,18 +97,52 @@ export class CelestialBackground {
     this.celestialOrientation.rotation.x = -MEAN_OBLIQUITY_J2000_RAD;
     this.root.add(this.celestialOrientation);
 
-    const skyGeometry = new SphereGeometry(SKY_RADIUS, 64, 32);
+    // Higher tessellation so any residual foreshortening never reads as giant
+    // black polygon facets (seen when the sky was shrunk to fit a tight far).
+    const skyGeometry = new SphereGeometry(SKY_RADIUS, 96, 64);
     skyGeometry.name = 'nasa-svs-milky-way-sphere';
-    const skyMaterial = new MeshBasicMaterial({
-      color: new Color(0x162235),
+    const skyMaterial = new ShaderMaterial({
+      name: 'nasa-svs-milky-way-stable-exposure',
+      side: BackSide,
       depthTest: false,
       depthWrite: false,
-      opacity: 0.72,
-      side: BackSide,
       toneMapped: false,
       transparent: false,
+      uniforms: {
+        uImpactSkyVisibility: impactDepthUniforms.uImpactSkyVisibility,
+        uMap: { value: null },
+        uHasMap: { value: 0 },
+        uFallbackColor: { value: new Color(0x05070d) },
+      },
+      vertexShader: /* glsl */ `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          // Project a camera-centered sky direction, then pin clip depth to the
+          // far plane (xyww). Without this, adaptive near/far clipping chops the
+          // sphere into large black polygonal holes when framing distant craft.
+          vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          gl_Position = vec4(clip.xy, clip.w, clip.w);
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform float uImpactSkyVisibility;
+        uniform sampler2D uMap;
+        uniform float uHasMap;
+        uniform vec3 uFallbackColor;
+        varying vec2 vUv;
+
+        void main() {
+          // The NASA plate is already a display-referred star field. A wide
+          // shader blur plus a contrast stretch turned the bulge into a brown
+          // column with a visible sampling grid.
+          vec3 sampleColor = texture2D(uMap, vUv).rgb;
+          float band = uHasMap;
+          vec3 color = mix(uFallbackColor, sampleColor, band);
+          gl_FragColor = vec4(color * uImpactSkyVisibility, 1.0);
+        }
+      `,
     });
-    skyMaterial.name = 'nasa-svs-milky-way-stable-exposure';
     this.skyMesh = new Mesh(skyGeometry, skyMaterial);
     this.skyMesh.name = 'milky-way-deep-star-map';
     this.skyMesh.frustumCulled = false;
@@ -121,13 +155,29 @@ export class CelestialBackground {
     this.loadTier(this.requestedTier);
   }
 
-  /** Copies the camera position exactly, eliminating translation parallax. */
-  public updateCameraPosition(cameraPosition: Readonly<Vector3>): void {
+  /**
+   * Copies the camera position exactly, eliminating translation parallax.
+   * `cameraFar` is accepted for API compatibility but no longer shrinks the
+   * sky mesh — depth is pinned in the vertex shader instead.
+   */
+  public updateCameraPosition(
+    cameraPosition: Readonly<Vector3>,
+    _cameraFar?: number,
+  ): void {
+    void _cameraFar;
     this.assertNotDisposed();
     if (![cameraPosition.x, cameraPosition.y, cameraPosition.z].every(Number.isFinite)) {
       throw new RangeError('Celestial-background camera position must be finite.');
     }
     this.root.position.copy(cameraPosition);
+  }
+
+  /** @deprecated Depth pinning replaced far-plane shrinking; kept as a no-op. */
+  public applySkyRadiusForFarPlane(cameraFar: number): void {
+    this.assertNotDisposed();
+    if (!Number.isFinite(cameraFar) || cameraFar <= 0) {
+      throw new RangeError('Celestial-background far plane must be finite and positive.');
+    }
   }
 
   public setQuality(quality: VisualQuality): void {
@@ -193,8 +243,9 @@ export class CelestialBackground {
         texture.needsUpdate = true;
         this.activeTexture?.dispose();
         this.activeTexture = texture;
-        this.skyMesh.material.map = texture;
-        this.skyMesh.material.color.setRGB(0.72, 0.72, 0.72);
+        const uniforms = this.skyMesh.material.uniforms;
+        uniforms.uMap!.value = texture;
+        uniforms.uHasMap!.value = 1;
         this.skyMesh.material.needsUpdate = true;
         this.assetState = 'ready';
       },
@@ -203,8 +254,9 @@ export class CelestialBackground {
         if (this.disposed || revision !== this.requestRevision) return;
         this.activeTexture?.dispose();
         this.activeTexture = null;
-        this.skyMesh.material.map = null;
-        this.skyMesh.material.color.set(0x101a2a);
+        const uniforms = this.skyMesh.material.uniforms;
+        uniforms.uMap!.value = null;
+        uniforms.uHasMap!.value = 0;
         this.skyMesh.material.needsUpdate = true;
         this.assetState = 'fallback';
       },
@@ -261,8 +313,8 @@ export function brightStarDisplayProperties(
     throw new RangeError('Bright-star visual magnitude must be finite.');
   }
   const flux = 10 ** (-0.4 * visualMagnitude);
-  const intensity = Math.min(Math.max(flux / 3.9, 0.035), 1.35);
-  const sizePx = Math.min(Math.max(1.15 + Math.sqrt(flux) * 1.28, 1.2), 8.5);
+  const intensity = Math.min(Math.max(flux / 2.6, 0.07), 1.7);
+  const sizePx = Math.min(Math.max(1.5 + Math.sqrt(flux) * 1.65, 1.5), 10.5);
   return Object.freeze({
     sizePx,
     intensity,
@@ -299,19 +351,24 @@ function createBrightStarLayer(
   geometry.setAttribute('aSize', new Float32BufferAttribute(sizes, 1));
   geometry.setAttribute('aIntensity', new Float32BufferAttribute(intensities, 1));
   const material = new ShaderMaterial({
+    uniforms: { uImpactSkyVisibility: impactDepthUniforms.uImpactSkyVisibility },
     blending: AdditiveBlending,
-    depthTest: false,
+    // Transparent stars render after opaque bodies; test far-plane depth so
+    // they cannot shine through Earth's ground during a local impact view.
+    depthTest: true,
     depthWrite: false,
     fragmentShader: `
+      uniform float uImpactSkyVisibility;
       varying vec3 vColor;
       varying float vIntensity;
       void main() {
         vec2 centered = gl_PointCoord * 2.0 - 1.0;
         float radius2 = dot(centered, centered);
         if (radius2 > 1.0) discard;
-        float core = exp(-radius2 * 3.8);
-        float halo = max(0.0, 1.0 - radius2) * 0.34;
-        gl_FragColor = vec4(vColor * (core + halo) * vIntensity, (core + halo) * vIntensity);
+        float core = exp(-radius2 * 3.4);
+        float halo = max(0.0, 1.0 - radius2) * 0.42;
+        float sparkle = core + halo;
+        gl_FragColor = vec4(vColor * sparkle * vIntensity * uImpactSkyVisibility, sparkle * vIntensity * uImpactSkyVisibility);
       }
     `,
     transparent: true,
@@ -326,7 +383,8 @@ function createBrightStarLayer(
         vColor = aColor;
         vIntensity = aIntensity;
         gl_PointSize = aSize;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        vec4 clip = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        gl_Position = vec4(clip.xy, clip.w, clip.w);
       }
     `,
   });

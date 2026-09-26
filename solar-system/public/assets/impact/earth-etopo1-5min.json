@@ -1,0 +1,17 @@
+{
+  "source": "NOAA NGDC ETOPO1 ice surface",
+  "url": "https://oceanwatch.aoml.noaa.gov/erddap/griddap/etopo180.html",
+  "query": "altitude[0:5:10800][0:5:21600]",
+  "width": 4321,
+  "height": 2161,
+  "origin": {
+    "latitude": -90,
+    "longitude": -180
+  },
+  "spacingDegrees": 0.08333333333333333,
+  "verticalUnits": "metres relative to mean sea level",
+  "format": "gzip: uint32le width,height; int16le heights; uint8 connected-ocean mask (row-major south to north)",
+  "oceanMask": "Flood fill of below-sea-level cells connected to the Pacific; enclosed depressions remain land. Five arcminute coastlines are approximate.",
+  "sha256": "b2f52f2e255081f4106bcc731944c8afea9d8cec69624939d24c39e6c11aa89e",
+  "bytes": 14885685
+}

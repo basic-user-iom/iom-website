@@ -10,7 +10,7 @@ import {
   IMPACT_TARGET_BODY_IDS,
 } from './ImpactTypes';
 
-export const IMPACT_MODEL_VERSION = 'impact-target-sphere-v2';
+export const IMPACT_MODEL_VERSION = 'impact-earth-surface-v5';
 export const IMPACT_FIXED_STEP_SECONDS = 1 / 120;
 export const IMPACT_TRAJECTORY_SAMPLE_SECONDS = 1 / 30;
 
@@ -70,7 +70,10 @@ export const IMPACT_ENTRY_CONFIGURATION = Object.freeze({
   minimumSurvivingMassFraction: 1e-7,
   minimumSurvivingMassKg: 0.05,
   maximumAblationFractionPerStep: 0.03,
-  fragmentationAreaExponent: 1 / 3,
+  // Bounded pancake-cloud approximation, NASA NTRS 20180003387, section 2.3.
+  maximumFragmentCloudRadiusRatio: 7,
+  fragmentDispersionCoefficient: 3.5,
+  luminousFlightMinimumSpeedMps: 3_000,
   tntMegatonJoules: 4.184e15,
 });
 
@@ -86,7 +89,7 @@ export const DEFAULT_IMPACT_PARAMETERS: Readonly<ImpactParameters> = Object.free
   material: 'stone',
   fragmentationEnabled: true,
   atmosphereEnabled: true,
-  cameraMode: 'ground-observer',
+  cameraMode: 'chase',
   seed: 0x1a2b_3c4d,
 });
 
@@ -181,7 +184,7 @@ export function impactRunSignature(parameters: Readonly<ImpactParameters>): stri
     hash ^= serialized.charCodeAt(index);
     hash = Math.imul(hash, 0x0100_0193) >>> 0;
   }
-  return `impact-v2-${hash.toString(16).padStart(8, '0')}`;
+  return `impact-v5-${hash.toString(16).padStart(8, '0')}`;
 }
 
 export function isImpactTargetBodyId(value: unknown): value is ImpactTargetBodyId {

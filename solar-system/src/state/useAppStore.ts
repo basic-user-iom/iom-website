@@ -184,7 +184,11 @@ export function createAppStore(
       },
       migrate: migrateAppPreferences,
       merge: (persistedState, currentState) => {
-        durablePreferences = sanitizePersistedAppPreferences(persistedState);
+        durablePreferences = {
+          ...sanitizePersistedAppPreferences(persistedState),
+          // Begin each visit at true scale, including browsers with older saved settings.
+          renderScaleMode: DEFAULT_APP_PREFERENCES.renderScaleMode,
+        };
         return {
           ...currentState,
           ...durablePreferences,

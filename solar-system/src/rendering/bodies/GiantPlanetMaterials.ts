@@ -1,4 +1,6 @@
 import {
+  BufferAttribute,
+  BufferGeometry,
   ClampToEdgeWrapping,
   Color,
   DataTexture,
@@ -8,7 +10,6 @@ import {
   Mesh,
   NoColorSpace,
   RGBAFormat,
-  RingGeometry,
   ShaderMaterial,
   UnsignedByteType,
   Vector3,
@@ -35,9 +36,9 @@ export interface GiantPlanetMaterialBundle {
 }
 
 export interface RingSystemVisualBundle {
-  readonly mesh: Mesh<RingGeometry, ShaderMaterial>;
+  readonly mesh: Mesh<BufferGeometry, ShaderMaterial>;
   readonly material: ShaderMaterial;
-  readonly geometry: RingGeometry;
+  readonly geometry: BufferGeometry;
   readonly profileTexture: DataTexture;
   readonly boundingRadiusMultiplier: number;
 }
@@ -45,6 +46,9 @@ export interface RingSystemVisualBundle {
 const JET_TEXTURE_WIDTH = 256;
 const RING_TEXTURE_WIDTH = 4096;
 const MAX_RING_OPTICAL_DEPTH = 5;
+/** Educational ring half-thickness in mean-radius units (real rings are far thinner). */
+export const RING_HALF_THICKNESS = 0.036;
+const RING_THETA_SEGMENTS = 768;
 
 export function createGiantPlanetMaterialBundle(
   profile: GiantAtmosphereProfile,
@@ -142,8 +146,12 @@ export function createRingSystemVisualBundle(
 ): RingSystemVisualBundle {
   const innerRatio = profile.innerRadiusKm / atmosphere.meanRadiusKm;
   const outerRatio = profile.outerRadiusKm / atmosphere.meanRadiusKm;
-  const geometry = new RingGeometry(innerRatio, outerRatio, 768, 1);
-  geometry.rotateX(-Math.PI / 2);
+  const geometry = createThinRingAnnulusGeometry(
+    innerRatio,
+    outerRatio,
+    RING_THETA_SEGMENTS,
+    RING_HALF_THICKNESS,
+  );
   geometry.name = `phase-5-${profile.bodyId}-annulus-geometry`;
   const profileTexture = sharedProfileTexture ?? createRingProfileTexture(profile);
   const spokes = profile.spokes;
@@ -160,6 +168,7 @@ export function createRingSystemVisualBundle(
       uRingOuterRatio: { value: outerRatio },
       uRingDisplayGain: { value: profile.displayOpticalDepthGain },
       uRingKind: { value: ringSystemKind(profile.bodyId) },
+      uRingHalfThickness: { value: RING_HALF_THICKNESS },
       uSunDirectionWorld: { value: new Vector3(-1, 0, 0) },
       uSunDirectionBodyLocal: { value: new Vector3(-1, 0, 0) },
       uOcclusion: { value: 1 },
@@ -189,7 +198,7 @@ export function createRingSystemVisualBundle(
     material,
     geometry,
     profileTexture,
-    boundingRadiusMultiplier: outerRatio,
+    boundingRadiusMultiplier: Math.hypot(outerRatio, RING_HALF_THICKNESS),
   };
 }
 
@@ -227,7 +236,8 @@ export function applyGiantPlanetQuality(
     setUniformNumber(
       material,
       'uSpokeStrength',
-      quality === 'ultra' ? 0.28 : quality === 'high' ? 0.18 : 0,
+      // Ultra needs still-frame-readable B-ring streaks; high stays softer.
+      quality === 'ultra' ? 1.35 : quality === 'high' ? 0.85 : 0,
     );
   }
 }
@@ -295,6 +305,108 @@ export function createRingProfileTexture(profile: RingSystemProfile | null): Dat
     );
   }
   return configureDataTexture(data, RING_TEXTURE_WIDTH, `phase-5-${profile.bodyId}-ring-profile`);
+}
+
+/**
+ * Thin annular slab in the visual equatorial (XZ) plane. Height is intentionally
+ * exaggerated for educational readability; real ring vertical extent is far smaller.
+ */
+export function createThinRingAnnulusGeometry(
+  innerRadius: number,
+  outerRadius: number,
+  thetaSegments: number,
+  halfHeight: number,
+): BufferGeometry {
+  if (!(innerRadius > 0) || !(outerRadius > innerRadius) || thetaSegments < 3 || !(halfHeight > 0)) {
+    throw new RangeError('Thin ring annulus requires positive radii, segments, and thickness.');
+  }
+  const positions: number[] = [];
+  const normals: number[] = [];
+  const indices: number[] = [];
+
+  const pushVertex = (x: number, y: number, z: number, nx: number, ny: number, nz: number): number => {
+    const index = positions.length / 3;
+    positions.push(x, y, z);
+    normals.push(nx, ny, nz);
+    return index;
+  };
+
+  const pushQuad = (
+    a: number,
+    b: number,
+    c: number,
+    d: number,
+    flip: boolean,
+  ): void => {
+    if (flip) {
+      indices.push(a, b, c, a, c, d);
+    } else {
+      indices.push(a, c, b, a, d, c);
+    }
+  };
+
+  // Top (+Y) and bottom (-Y) faces.
+  for (const face of [
+    { y: halfHeight, ny: 1, flip: false },
+    { y: -halfHeight, ny: -1, flip: true },
+  ] as const) {
+    const faceStart = positions.length / 3;
+    for (let i = 0; i <= thetaSegments; i += 1) {
+      const theta = (i / thetaSegments) * Math.PI * 2;
+      const cos = Math.cos(theta);
+      const sin = Math.sin(theta);
+      pushVertex(cos * innerRadius, face.y, sin * innerRadius, 0, face.ny, 0);
+      pushVertex(cos * outerRadius, face.y, sin * outerRadius, 0, face.ny, 0);
+    }
+    for (let i = 0; i < thetaSegments; i += 1) {
+      const inner0 = faceStart + i * 2;
+      const outer0 = inner0 + 1;
+      const inner1 = inner0 + 2;
+      const outer1 = outer0 + 2;
+      pushQuad(inner0, outer0, outer1, inner1, face.flip);
+    }
+  }
+
+  // Outer cylindrical wall.
+  const outerWallStart = positions.length / 3;
+  for (let i = 0; i <= thetaSegments; i += 1) {
+    const theta = (i / thetaSegments) * Math.PI * 2;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+    pushVertex(cos * outerRadius, halfHeight, sin * outerRadius, cos, 0, sin);
+    pushVertex(cos * outerRadius, -halfHeight, sin * outerRadius, cos, 0, sin);
+  }
+  for (let i = 0; i < thetaSegments; i += 1) {
+    const top0 = outerWallStart + i * 2;
+    const bottom0 = top0 + 1;
+    const top1 = top0 + 2;
+    const bottom1 = bottom0 + 2;
+    pushQuad(top0, bottom0, bottom1, top1, false);
+  }
+
+  // Inner cylindrical wall (normals point inward toward the planet).
+  const innerWallStart = positions.length / 3;
+  for (let i = 0; i <= thetaSegments; i += 1) {
+    const theta = (i / thetaSegments) * Math.PI * 2;
+    const cos = Math.cos(theta);
+    const sin = Math.sin(theta);
+    pushVertex(cos * innerRadius, halfHeight, sin * innerRadius, -cos, 0, -sin);
+    pushVertex(cos * innerRadius, -halfHeight, sin * innerRadius, -cos, 0, -sin);
+  }
+  for (let i = 0; i < thetaSegments; i += 1) {
+    const top0 = innerWallStart + i * 2;
+    const bottom0 = top0 + 1;
+    const top1 = top0 + 2;
+    const bottom1 = bottom0 + 2;
+    pushQuad(top0, top1, bottom1, bottom0, false);
+  }
+
+  const geometry = new BufferGeometry();
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
+  geometry.setAttribute('normal', new BufferAttribute(new Float32Array(normals), 3));
+  geometry.setIndex(indices);
+  geometry.computeBoundingSphere();
+  return geometry;
 }
 
 function configureDataTexture(data: Uint8Array, width: number, name: string): DataTexture {
@@ -502,12 +614,27 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     color *= 0.88 + broadNoise * 0.18 +
       (fineNoise - 0.5) * (uQuality > 1.5 ? fineStrength : fineStrength * 0.4);
     if (uPlanetKind > 1.5 && uPlanetKind < 2.5) {
-      float polarHaze = smoothstep(0.42, 0.94, abs(sin(latitude)));
-      color = mix(color, uZoneColor, polarHaze * 0.2);
+      // Uranus has no bundled global map. Voyager/Hubble show a pale, almost
+      // featureless disk with a brighter polar hood and only faint zones.
+      float polarHood = smoothstep(0.48, 1.2, abs(latitude));
+      float zonal = 0.5 + 0.5 * sin(latitude * 9.0 + broadNoise);
+      color = mix(color, uZoneColor, polarHood * 0.34 + (zonal - 0.5) * 0.06);
+      float discreteCloud = smoothstep(0.9, 0.985, fineNoise) * (1.0 - polarHood);
+      color += vec3(0.86, 0.96, 0.97) * discreteCloud * (uQuality > 1.5 ? 0.16 : 0.08);
     }
     if (uPlanetKind > 2.5) {
-      float methaneCloud = smoothstep(0.76, 0.94, fineNoise + 0.12 * sin(longitude * 12.0));
-      color += uHazeColor * methaneCloud * 0.24;
+      // Neptune also has no bundled equirectangular map. Keep the deep blue,
+      // a darker equatorial belt, and bright methane streaks above it.
+      float equatorialBelt = exp(-pow(latitude / 0.28, 2.0));
+      color = mix(color, uBaseColor * vec3(0.62, 0.78, 1.05), equatorialBelt * 0.28);
+      float streak = smoothstep(
+        0.7,
+        0.94,
+        fineNoise + 0.2 * sin(longitude * 8.0 + latitude * 16.0)
+      );
+      color += vec3(0.78, 0.9, 1.0) * streak * 0.34;
+      float methaneCloud = smoothstep(0.82, 0.97, broadNoise + 0.1 * sin(longitude * 5.0));
+      color += uHazeColor * methaneCloud * 0.22;
     }
     return color;
   }
@@ -683,11 +810,14 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     float terminator = smoothstep(-0.012, 0.012, solarCosine);
     float direct = max(solarCosine, 0.0) * terminator *
       clamp(uOcclusion, 0.0, 1.0) * irradianceScale * ringTransmittance;
-    float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 3.4);
+    float fresnel = pow(1.0 - max(dot(normal, viewDirection), 0.0), 2.35);
     float specular = pow(max(dot(normal, halfDirection), 0.0), 44.0) * direct * 0.14;
-    float dayHaze = smoothstep(-0.025, 0.08, solarCosine);
-    vec3 color = albedo * (0.012 + direct * 0.988);
-    color += uHazeColor * fresnel * (0.018 + dayHaze * 0.035 + direct * 0.24) +
+    float dayHaze = smoothstep(-0.04, 0.12, solarCosine);
+    float eclipseLight = mix(0.14, 1.0, clamp(uOcclusion, 0.0, 1.0));
+    vec3 color = albedo * (0.014 + direct * 0.986);
+    // Stronger planet-tinted limb so giants keep a warm/cyan/blue rim even when
+    // the separate atmosphere shell is thin against exaggerated body scales.
+    color += uHazeColor * fresnel * (0.06 + dayHaze * 0.12 + direct * 0.48) * eclipseLight +
       vec3(1.0, 0.92, 0.78) * specular;
     gl_FragColor = vec4(color, 1.0);
     #include <tonemapping_fragment>
@@ -700,15 +830,15 @@ const RING_VERTEX_SHADER = /* glsl */ `
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying float vRingRadius;
+  varying float vWallFactor;
 
   void main() {
     vVisualPosition = position;
     vRingRadius = length(position.xz);
+    // Local normals: faces have |ny|~1, cylindrical walls have ny~0.
+    vWallFactor = 1.0 - abs(normalize(normal).y);
     vec4 worldPosition = modelMatrix * vec4(position, 1.0);
     vWorldPosition = worldPosition.xyz;
-    // Match the planet shader's world-space lighting contract. The inverse
-    // view rotation is expressed as row-vector multiplication so the
-    // normalMatrix can still provide the required inverse-transpose scale.
     vec3 viewNormal = normalize(normalMatrix * normal);
     vWorldNormal = normalize(viewNormal * mat3(viewMatrix));
     gl_Position = projectionMatrix * viewMatrix * worldPosition;
@@ -721,6 +851,7 @@ const RING_FRAGMENT_SHADER = /* glsl */ `
   uniform float uRingOuterRatio;
   uniform float uRingDisplayGain;
   uniform float uRingKind;
+  uniform float uRingHalfThickness;
   uniform vec3 uSunDirectionWorld;
   uniform vec3 uSunDirectionBodyLocal;
   uniform float uOcclusion;
@@ -736,6 +867,7 @@ const RING_FRAGMENT_SHADER = /* glsl */ `
   varying vec3 vWorldPosition;
   varying vec3 vWorldNormal;
   varying float vRingRadius;
+  varying float vWallFactor;
   ${SHARED_NOISE_GLSL}
 
   const float MAX_RING_TAU = 5.0;
@@ -759,25 +891,44 @@ const RING_FRAGMENT_SHADER = /* glsl */ `
     float travel = -dot(scaledPoint, scaledDirection) / max(denominator, 0.00001);
     if (travel <= 0.0) return 1.0;
     float clearance = length(scaledPoint + scaledDirection * travel);
-    float penumbra = 0.025 + min(travel, 3.0) * 0.006;
-    float visibility = smoothstep(1.0 - penumbra, 1.0 + penumbra, clearance);
-    return mix(0.08, 1.0, visibility);
+    float penumbra = 0.018 + min(travel, 3.0) * 0.004;
+    float visibility = smoothstep(1.0 - penumbra, 1.0 + penumbra * 0.7, clearance);
+    return mix(0.01, 1.0, visibility);
   }
 
-  float saturnSpokes(float radius, float angle) {
+  // Dark radial B-ring streaks on ONE lit ansa — still-frame readable.
+  float saturnSpokes(float radius, float angle, float sunAngle) {
     if (uSpokeStrength <= 0.0) return 0.0;
-    float inner = smoothstep(uSpokeInnerRatio, uSpokeInnerRatio + 0.08, radius);
-    float outer = 1.0 - smoothstep(uSpokeOuterRatio - 0.08, uSpokeOuterRatio, radius);
-    float drift = uTimeDays * 0.12;
-    float primaryWindow = exp(-pow(wrappedAngleDelta(angle, drift) / 0.34, 2.0));
-    float secondaryWindow = exp(-pow(wrappedAngleDelta(angle, drift + 2.42) / 0.24, 2.0)) * 0.58;
-    float filament = 0.5 + 0.5 * sin(
-      angle * 43.0 + radius * 19.0 - uTimeDays * 0.8
-    );
-    float localizedFilaments = (primaryWindow + secondaryWindow) *
-      mix(0.26, 1.0, filament);
-    float envelope = 0.55 + 0.45 * sin(uTimeDays * 0.31 + 1.7);
-    return inner * outer * localizedFilaments * envelope * uSpokeStrength;
+    // Strict B-ring band with soft radial fade at the ends (not a solid bar).
+    float inner = smoothstep(uSpokeInnerRatio + 0.015, uSpokeInnerRatio + 0.06, radius);
+    float outer = 1.0 - smoothstep(uSpokeOuterRatio - 0.09, uSpokeOuterRatio - 0.04, radius);
+    float radialGate = inner * outer;
+    if (radialGate <= 0.001) return 0.0;
+
+    // Prefer the morning ansa (+90° from sun). Soft-reject the opposite ansa.
+    float ansaPlus = abs(wrappedAngleDelta(angle, sunAngle + 1.5707963));
+    float ansaMinus = abs(wrappedAngleDelta(angle, sunAngle - 1.5707963));
+    float ansaSide = ansaPlus <= ansaMinus ? 1.5707963 : -1.5707963;
+    float ansaDist = min(ansaPlus, ansaMinus);
+    float litAnsa = 1.0 - smoothstep(0.55, 0.95, ansaDist);
+    if (litAnsa <= 0.001) return 0.0;
+
+    float drift = uTimeDays * 0.28;
+    float localizedFilaments = 0.0;
+    // Five separated fingers: longer than wide, bright ring between them.
+    for (int spoke = 0; spoke < 5; spoke++) {
+      float spokeIndex = float(spoke);
+      float slot = spokeIndex - 2.0;
+      float center = sunAngle + ansaSide + slot * 0.32 + 0.02 * sin(drift + spokeIndex * 1.4);
+      float ang = abs(wrappedAngleDelta(angle, center));
+      float halfWidth = 0.055;
+      float t = ang / halfWidth;
+      // Soft peak, fade at angular edges — not a flat rectangular blotch.
+      float wedge = t < 1.45 ? exp(-t * t * 1.1) * (1.0 - smoothstep(0.75, 1.45, t)) : 0.0;
+      localizedFilaments = max(localizedFilaments, wedge);
+    }
+
+    return clamp(radialGate * litAnsa * localizedFilaments * max(uSpokeStrength, 1.2), 0.0, 1.0);
   }
 
   float neptuneArcGain(float radiusUv, float angle) {
@@ -798,31 +949,62 @@ const RING_FRAGMENT_SHADER = /* glsl */ `
     );
     vec4 profile = texture2D(uRingProfile, vec2(radiusUv, 0.5));
     float opticalDepth = profile.a * profile.a * MAX_RING_TAU;
-    if (opticalDepth <= 0.000001) discard;
+    // Soft-open slender divisions (Cassini-class OD → dark thin gap).
+    float gapOpen = 1.0 - smoothstep(0.03, 0.12, opticalDepth);
+    if (opticalDepth < 0.028) discard;
+    if (gapOpen > 0.001) {
+      opticalDepth *= mix(1.0, 0.03, gapOpen);
+    }
 
     vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
     vec3 lightDirection = normalize(uSunDirectionWorld);
     vec3 sunVisual = bodySunToVisual(uSunDirectionBodyLocal);
     vec3 ringNormal = normalize(vWorldNormal);
-    float viewMu = max(abs(dot(ringNormal, viewDirection)), 0.055);
-    float sunMu = max(abs(dot(ringNormal, lightDirection)), 0.035);
+    float nDotL = dot(ringNormal, lightDirection);
+    float nDotV = dot(ringNormal, viewDirection);
+    float sunMu = max(abs(nDotL), 0.08);
+    float viewMu = max(abs(nDotV), 0.035);
+    float litWeight = clamp(nDotL * 0.5 + 0.5, 0.0, 1.0);
     float angle = atan(vVisualPosition.z, vVisualPosition.x);
     float arcGain = neptuneArcGain(radiusUv, angle);
-    float effectiveDepth = opticalDepth * uRingDisplayGain * arcGain;
-    float alpha = min(0.94, 1.0 - exp(-effectiveDepth / viewMu));
+    float slabPath = 1.0 + (2.0 * uRingHalfThickness) / viewMu;
+    float effectiveDepth = opticalDepth * uRingDisplayGain * arcGain * mix(1.0, slabPath, 0.5);
+    float alpha = min(0.97, 1.0 - exp(-effectiveDepth / viewMu));
     float shadow = planetShadow(vVisualPosition, sunVisual);
     float irradianceScale = clamp(pow(max(uRelativeIrradiance, 0.0001), 0.25), 0.5, 1.55);
-    float forwardPhase = pow(max(dot(-lightDirection, viewDirection), 0.0), 9.0);
-    // The sampled optical-depth profile already carries radial structure.
-    // A second high-frequency carrier creates moire at oblique views.
-    float stableSparkle = 1.0;
-    float spoke = uRingKind < 0.5 ? saturnSpokes(vRingRadius, angle) : 0.0;
-    vec3 color = profile.rgb * stableSparkle;
-    color *= (0.055 + sunMu * 0.945 * shadow * clamp(uOcclusion, 0.0, 1.0) * irradianceScale);
-    color += profile.rgb * forwardPhase * (0.18 + 0.35 * (1.0 - sunMu));
-    color *= 1.0 - spoke * 0.72;
-    alpha *= 1.0 - spoke * 0.28;
-    gl_FragColor = vec4(color * alpha, alpha);
+    float occlusion = clamp(uOcclusion, 0.0, 1.0);
+    float phaseCos = clamp(dot(-lightDirection, viewDirection), -1.0, 1.0);
+    float forwardPhase = pow(max(phaseCos, 0.0), 7.5);
+    float highPhase = smoothstep(-0.15, 0.8, phaseCos);
+
+    float direct = sunMu * mix(0.5, 1.28, litWeight) * shadow * occlusion * irradianceScale;
+    float transmitted = exp(-effectiveDepth / max(sunMu, 0.05)) *
+      mix(1.15, 0.06, litWeight) * shadow * occlusion * irradianceScale;
+    float fill = (0.11 + 0.04 * (1.0 - litWeight)) * mix(0.08, 1.0, shadow);
+    float faceRim = pow(1.0 - viewMu, 1.45) * (0.5 + 0.85 * sunMu);
+    float wallRim = vWallFactor * (0.55 + 0.9 * sunMu);
+    float rim = (faceRim * 0.7 + wallRim) * mix(0.2, 1.0, shadow);
+
+    float spoke = 0.0;
+    if (uRingKind < 0.5 && uSpokeStrength > 0.0) {
+      float sunAngle = atan(sunVisual.z, sunVisual.x);
+      spoke = saturnSpokes(vRingRadius, angle, sunAngle);
+      // Lit face only — kill spokes inside the planet umbra.
+      spoke *= smoothstep(0.55, 0.92, shadow);
+    }
+
+    vec3 baseColor = profile.rgb;
+    float faceLift = mix(1.0, 1.18, litWeight * max(shadow, 0.35));
+    vec3 litColor = baseColor * (fill + direct + transmitted * 0.95 + rim * 1.05) * faceLift;
+    litColor += baseColor * forwardPhase * mix(0.5, 0.08, litWeight);
+    float spokeDark = clamp(spoke, 0.0, 1.0);
+    float spokeBright = 0.0;
+    // ~half the lit-ring brightness on spoke cores (not a 5% tint).
+    litColor *= mix(0.42, 1.0, 1.0 - spokeDark);
+    alpha = clamp(alpha * (1.0 - gapOpen * 0.72), 0.0, 0.98);
+    litColor *= mix(vec3(0.04, 0.045, 0.07), vec3(1.0), shadow);
+
+    gl_FragColor = vec4(litColor * alpha, alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }

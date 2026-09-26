@@ -1,8 +1,20 @@
+import type { Vector3 } from 'three';
+import type { Camera } from 'three';
+
 import type { RenderScaleMode } from '../RenderScaleModel';
 
-const SELECTED_MARKER_RADIUS_RENDER_UNITS = 0.00018;
-const PRESENTATION_MARKER_RADIUS_RENDER_UNITS = 0.000065;
-const TRUE_SCALE_MARKER_RADIUS_RENDER_UNITS = 0.00000008;
+/** Presentation locators stay small but readable next to an exaggerated Earth. */
+const SELECTED_EARTH_SATELLITE_MARKER_RADIUS = 0.0004;
+const PRESENTATION_EARTH_SATELLITE_MARKER_RADIUS = 0.00018;
+const TRUE_SCALE_EARTH_SATELLITE_MARKER_RADIUS = 0.00000008;
+
+const SELECTED_SPACECRAFT_MARKER_RADIUS = 0.0009;
+const PRESENTATION_SPACECRAFT_MARKER_RADIUS = 0.00045;
+const TRUE_SCALE_SPACECRAFT_MARKER_RADIUS = 0.00016;
+
+/** ~24′ floor / ~60′ ceiling — readable diamonds, still far from billboards. */
+const MIN_MARKER_ANGULAR_RADIUS = 0.007;
+const MAX_MARKER_ANGULAR_RADIUS = 0.018;
 
 export interface BodyRelativePhysicalScale {
   readonly metersToRenderUnits: number;
@@ -19,10 +31,39 @@ export function earthSatelliteMarkerRadius(
   selected: boolean,
   mode: RenderScaleMode,
 ): number {
-  if (selected) return SELECTED_MARKER_RADIUS_RENDER_UNITS;
+  if (selected) return SELECTED_EARTH_SATELLITE_MARKER_RADIUS;
   return mode === 'presentation'
-    ? PRESENTATION_MARKER_RADIUS_RENDER_UNITS
-    : TRUE_SCALE_MARKER_RADIUS_RENDER_UNITS;
+    ? PRESENTATION_EARTH_SATELLITE_MARKER_RADIUS
+    : TRUE_SCALE_EARTH_SATELLITE_MARKER_RADIUS;
+}
+
+export function spacecraftMarkerRadius(
+  selected: boolean,
+  mode: RenderScaleMode,
+): number {
+  if (selected) return SELECTED_SPACECRAFT_MARKER_RADIUS;
+  return mode === 'presentation'
+    ? PRESENTATION_SPACECRAFT_MARKER_RADIUS
+    : TRUE_SCALE_SPACECRAFT_MARKER_RADIUS;
+}
+
+/**
+ * Inflates only the drawn mesh so distant probes stay findable.
+ * Camera framing still uses the unclamped base radius from renderedRadii.
+ */
+export function screenAwareMarkerRadius(
+  baseRadius: number,
+  worldPosition: Readonly<Vector3>,
+  camera: Camera,
+): number {
+  if (!Number.isFinite(baseRadius) || baseRadius < 0) {
+    throw new RangeError('Marker base radius must be finite and non-negative.');
+  }
+  const distance = camera.position.distanceTo(worldPosition as Vector3);
+  if (!Number.isFinite(distance) || distance <= 1e-12) return baseRadius;
+  const minRadius = distance * MIN_MARKER_ANGULAR_RADIUS;
+  const maxRadius = distance * MAX_MARKER_ANGULAR_RADIUS;
+  return Math.min(maxRadius, Math.max(baseRadius, minRadius));
 }
 
 /** Keeps local positions and detailed geometry proportional to a rendered parent body. */

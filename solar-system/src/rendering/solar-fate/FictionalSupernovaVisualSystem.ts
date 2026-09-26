@@ -1,12 +1,13 @@
 import {
   AdditiveBlending,
   BackSide,
-  Color,
+  ConeGeometry,
   DoubleSide,
   Group,
   Mesh,
-  MeshBasicMaterial,
+  ShaderMaterial,
   SphereGeometry,
+  Uniform,
   type Object3D,
 } from 'three';
 
@@ -20,7 +21,9 @@ import {
 import {
   PlanetHeatOverlayLayer,
   clamp01,
+  createSoftShellMaterial,
   createSolarPoints,
+  createStellarCoreMaterial,
   isActiveLifecycle,
   particleBudget,
   physicalRadiusToLocal,
@@ -28,6 +31,8 @@ import {
   requireFiniteNonNegative,
   requirePositive,
   requireUnitInterval,
+  setShaderOpacity,
+  setShaderTint,
   validateLifecycle,
   validateProgress,
   writeDeterministicShellParticles,
@@ -48,21 +53,25 @@ export class FictionalSupernovaVisualSystem {
   public readonly root = new Group();
 
   private readonly sphereGeometry = new SphereGeometry(1, 64, 40);
-  private readonly coreMaterial = new MeshBasicMaterial({ color: 0xff8a39 });
+  private readonly coreMaterial = createStellarCoreMaterial(0xff8a39);
   private readonly core = new Mesh(this.sphereGeometry, this.coreMaterial);
-  private readonly flashMaterial = shellMaterial(0xffffff, 0, BackSide);
+  private readonly flashMaterial = createSoftShellMaterial(0xffffff, 0, BackSide, 'halo');
   private readonly flash = new Mesh(this.sphereGeometry, this.flashMaterial);
-  private readonly shockMaterial = shellMaterial(0xffb24f, 0, DoubleSide);
+  private readonly shockMaterial = createSoftShellMaterial(0xffb24f, 0, DoubleSide, 'nebula');
   private readonly shock = new Mesh(this.sphereGeometry, this.shockMaterial);
-  private readonly radiationMaterial = shellMaterial(0xa9d9ff, 0, DoubleSide);
+  private readonly radiationMaterial = createSoftShellMaterial(0xa9d9ff, 0, DoubleSide);
   private readonly radiation = new Mesh(this.sphereGeometry, this.radiationMaterial);
-  private readonly nebulaMaterial = shellMaterial(0xc768d4, 0, DoubleSide);
+  private readonly nebulaMaterial = createSoftShellMaterial(0xc768d4, 0, DoubleSide, 'nebula');
   private readonly nebula = new Mesh(this.sphereGeometry, this.nebulaMaterial);
-  private readonly remnantMaterial = new MeshBasicMaterial({
-    color: new Color().setRGB(2.2, 2.7, 3.4),
-    toneMapped: false,
-  });
+  private readonly remnantMaterial = createStellarCoreMaterial(0xb9dcff);
   private readonly remnant = new Mesh(this.sphereGeometry, this.remnantMaterial);
+  private readonly remnantHaloMaterial = createSoftShellMaterial(0x9ec8ff, 0, BackSide, 'halo');
+  private readonly remnantHalo = new Mesh(this.sphereGeometry, this.remnantHaloMaterial);
+  private readonly beamGeometry = new ConeGeometry(1, 1, 24, 1, true);
+  private readonly beamMaterialA = createBeamMaterial();
+  private readonly beamMaterialB = createBeamMaterial();
+  private readonly beamA = new Mesh(this.beamGeometry, this.beamMaterialA);
+  private readonly beamB = new Mesh(this.beamGeometry, this.beamMaterialB);
   private readonly debris = createSolarPoints(
     'fictional-supernova-debris',
     MAX_DEBRIS_POINTS,
@@ -94,6 +103,12 @@ export class FictionalSupernovaVisualSystem {
     this.nebula.renderOrder = 7;
     this.remnant.name = 'fictional-supernova-remnant';
     this.remnant.renderOrder = 10;
+    this.remnantHalo.name = 'fictional-supernova-remnant-halo';
+    this.remnantHalo.renderOrder = 11;
+    this.beamA.name = 'fictional-supernova-remnant-beam-a';
+    this.beamB.name = 'fictional-supernova-remnant-beam-b';
+    this.beamA.renderOrder = 11;
+    this.beamB.renderOrder = 11;
     this.root.add(
       this.core,
       this.flash,
@@ -102,6 +117,9 @@ export class FictionalSupernovaVisualSystem {
       this.debris.points,
       this.nebula,
       this.remnant,
+      this.remnantHalo,
+      this.beamA,
+      this.beamB,
     );
     this.applyQuality();
     this.reset();
@@ -132,6 +150,13 @@ export class FictionalSupernovaVisualSystem {
     const active = isActiveLifecycle(state.lifecycleState);
     this.setBaseSunHidden(active);
     this.root.visible = active;
+    const materialTime = this.reducedMotion ? 0 : state.scenarioTimeSeconds;
+    this.root.traverse((object) => {
+      if (object instanceof Mesh && !Array.isArray(object.material) && 'uniforms' in object.material) {
+        const material = object.material as ShaderMaterial;
+        if (material.uniforms.time !== undefined) material.uniforms.time.value = materialTime;
+      }
+    });
 
     const coreLocal = physicalRadiusToLocal(state.coreRadiusM, context);
     const coreRender = physicalRadiusToRenderUnits(state.coreRadiusM, context);
@@ -148,7 +173,12 @@ export class FictionalSupernovaVisualSystem {
 
     this.core.visible = active && state.phase !== 'remnant';
     this.core.scale.setScalar(Math.max(coreLocal, 1e-9));
-    this.coreMaterial.color.set(state.phase === 'core-flash' ? 0xfff4d5 : 0xff8738);
+    setShaderTint(
+      this.coreMaterial,
+      state.phase === 'core-flash' ? 0xfff4d5 : 0xff8738,
+    );
+    (this.coreMaterial.uniforms.glowBoost as { value: number }).value =
+      state.phase === 'core-flash' ? 1.8 : 1.15;
 
     const effectiveFlashIntensity = this.reduceFlashes
       ? Math.min(state.flashIntensity, 0.68)
@@ -156,15 +186,17 @@ export class FictionalSupernovaVisualSystem {
     const flashVisible = active && effectiveFlashIntensity > 0.001;
     this.flash.visible = flashVisible;
     this.flash.scale.setScalar(Math.max(coreLocal * 1.85, 1e-9));
-    this.flashMaterial.opacity = Math.min(0.92, effectiveFlashIntensity * 0.34);
+    setShaderOpacity(this.flashMaterial, Math.min(0.92, effectiveFlashIntensity * 0.34));
 
-    this.shock.visible = active && state.shockRadiusM > 0;
+    // Keep the late debris readable after the initial shock passes.
+    const shockFade = Math.exp(-Math.max(0, state.scenarioTimeSeconds - 8) * 0.3);
+    this.shock.visible = active && state.shockRadiusM > 0 && shockFade > 0.015;
     this.shock.scale.setScalar(Math.max(shockLocal, 1e-9));
-    this.shockMaterial.opacity = 0.48 * (1 - state.progress * 0.42);
+    setShaderOpacity(this.shockMaterial, 0.48 * (1 - state.progress * 0.42) * shockFade);
 
-    this.radiation.visible = active && state.radiationFrontRadiusM > 0;
+    this.radiation.visible = active && state.radiationFrontRadiusM > 0 && shockFade > 0.015;
     this.radiation.scale.setScalar(Math.max(radiationLocal, 1e-9));
-    this.radiationMaterial.opacity = this.reduceFlashes ? 0.08 : 0.2;
+    setShaderOpacity(this.radiationMaterial, (this.reduceFlashes ? 0.08 : 0.2) * shockFade);
 
     const requestedDebris = active && state.debrisRadiusM > 0
       ? particleBudget(this.quality, MAX_DEBRIS_POINTS, this.reducedMotion)
@@ -181,17 +213,51 @@ export class FictionalSupernovaVisualSystem {
           this.reducedMotion ? 0 : 0.000025,
         );
     this.debris.points.visible = debrisPointCount > 0;
-    this.debris.points.material.opacity = clamp01(state.debrisOpacity) * 0.74;
+    this.debris.setOpacity(clamp01(state.debrisOpacity) * 0.74);
 
     this.nebula.visible = active && state.nebulaRadiusM > 0 && state.nebulaOpacity > 0;
     this.nebula.scale.setScalar(Math.max(nebulaLocal, 1e-9));
-    this.nebulaMaterial.opacity = clamp01(state.nebulaOpacity) * 0.2;
+    setShaderOpacity(this.nebulaMaterial, clamp01(state.nebulaOpacity) * 0.2);
 
-    this.remnant.visible = active && state.phase === 'remnant' && state.remnantRadiusM > 0;
+    const remnantVisible = active && state.phase === 'remnant' && state.remnantRadiusM > 0;
+    this.remnant.visible = remnantVisible;
     this.remnant.scale.setScalar(Math.max(remnantLocal, 1e-9));
-    this.remnantMaterial.color.set(
-      state.remnantKind === 'neutron-star' ? 0xb9dcff : 0xe4edff,
+    const remnantTint = state.remnantKind === 'neutron-star' ? 0xb9dcff : 0xe4edff;
+    setShaderTint(this.remnantMaterial, remnantTint);
+    (this.remnantMaterial.uniforms.glowBoost as { value: number }).value =
+      state.remnantKind === 'neutron-star' ? 1.85 : 1.35;
+
+    this.remnantHalo.visible = remnantVisible;
+    this.remnantHalo.scale.setScalar(Math.max(remnantLocal * 2.4, 1e-9));
+    setShaderOpacity(
+      this.remnantHaloMaterial,
+      state.remnantKind === 'neutron-star' ? 0.28 : 0.16,
     );
+
+    const beamsVisible =
+      remnantVisible &&
+      state.remnantKind === 'neutron-star' &&
+      this.quality !== 'low';
+    this.beamA.visible = beamsVisible;
+    this.beamB.visible = beamsVisible;
+    if (beamsVisible) {
+      const beamLength = remnantLocal * (this.reducedMotion ? 7 : 11);
+      const beamRadius = remnantLocal * 0.55;
+      this.beamA.scale.set(beamRadius, beamLength, beamRadius);
+      this.beamB.scale.set(beamRadius * 0.9, beamLength * 0.92, beamRadius * 0.9);
+      this.beamA.position.set(0, beamLength * 0.52, 0);
+      this.beamB.position.set(0, -beamLength * 0.48, 0);
+      const spin = this.reducedMotion ? 0 : state.scenarioTimeSeconds * 1.7;
+      this.beamA.rotation.y = spin;
+      this.beamB.rotation.y = spin + Math.PI;
+      const beamOpacity = this.reducedMotion ? 0.18 : 0.3;
+      (this.beamMaterialA.uniforms.opacity as Uniform<number>).value = beamOpacity;
+      (this.beamMaterialB.uniforms.opacity as Uniform<number>).value = beamOpacity * 0.85;
+      (this.beamMaterialA.uniforms.time as Uniform<number>).value =
+        state.scenarioTimeSeconds;
+      (this.beamMaterialB.uniforms.time as Uniform<number>).value =
+        state.scenarioTimeSeconds;
+    }
 
     const heatedBodyCount = this.heating.update(
       state.heatingByBody,
@@ -205,6 +271,7 @@ export class FictionalSupernovaVisualSystem {
       radiationRender,
       debrisPointCount > 0 ? debrisRender * 1.5 : debrisRender,
       nebulaRender,
+      beamsVisible ? remnantRender * 12 : 0,
     );
     this.diagnostics = Object.freeze({
       active,
@@ -225,8 +292,8 @@ export class FictionalSupernovaVisualSystem {
     this.root.visible = false;
     this.root.children.forEach((child) => { child.visible = false; });
     this.debris.points.geometry.setDrawRange(0, 0);
-    this.debris.points.material.opacity = 0;
-    this.flashMaterial.opacity = 0;
+    this.debris.setOpacity(0);
+    setShaderOpacity(this.flashMaterial, 0);
     this.heating.reset();
     this.setBaseSunHidden(false);
     this.diagnostics = EMPTY_SUPERNOVA_DIAGNOSTICS;
@@ -272,6 +339,10 @@ export class FictionalSupernovaVisualSystem {
     this.radiationMaterial.dispose();
     this.nebulaMaterial.dispose();
     this.remnantMaterial.dispose();
+    this.remnantHaloMaterial.dispose();
+    this.beamGeometry.dispose();
+    this.beamMaterialA.dispose();
+    this.beamMaterialB.dispose();
     this.sphereGeometry.dispose();
     this.root.clear();
   }
@@ -294,8 +365,9 @@ export class FictionalSupernovaVisualSystem {
   }
 
   private applyQuality(): void {
-    this.debris.points.material.size =
-      this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : this.quality === 'high' ? 4 : 5;
+    this.debris.setPointSize(
+      this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : this.quality === 'high' ? 4 : 5,
+    );
   }
 
   private assertNotDisposed(): void {
@@ -303,15 +375,39 @@ export class FictionalSupernovaVisualSystem {
   }
 }
 
-function shellMaterial(color: number, opacity: number, side: typeof BackSide | typeof DoubleSide) {
-  return new MeshBasicMaterial({
+function createBeamMaterial(): ShaderMaterial {
+  return new ShaderMaterial({
     blending: AdditiveBlending,
-    color,
     depthWrite: false,
-    opacity,
-    side,
+    side: DoubleSide,
     toneMapped: false,
     transparent: true,
+    uniforms: {
+      time: new Uniform(0),
+      opacity: new Uniform(0.25),
+    },
+    vertexShader: /* glsl */ `
+      varying float vAlong;
+      varying vec2 vUv;
+      void main() {
+        vAlong = uv.y;
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: /* glsl */ `
+      uniform float time;
+      uniform float opacity;
+      varying float vAlong;
+      varying vec2 vUv;
+      void main() {
+        float core = 1.0 - smoothstep(0.0, 0.5, abs(vUv.x - 0.5) * 2.0);
+        float taper = pow(1.0 - vAlong, 1.4);
+        float pulse = 0.82 + 0.18 * sin(vAlong * 22.0 - time * 3.2);
+        vec3 color = mix(vec3(0.55, 0.8, 1.5), vec3(1.7, 1.9, 2.5), core) * pulse;
+        gl_FragColor = vec4(color, core * taper * opacity);
+      }
+    `,
   });
 }
 

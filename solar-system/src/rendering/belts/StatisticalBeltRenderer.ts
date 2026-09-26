@@ -1,3 +1,4 @@
+import { impactDepthUniforms } from '../impact/ImpactDepthContext';
 import {
   BufferGeometry,
   Color,
@@ -58,6 +59,8 @@ export interface StatisticalBeltParticle {
   readonly markerScale: number;
   readonly paletteIndex: number;
   readonly albedoScale: number;
+  /** Presentation density weight in [~0.35, 1]; brighter toward belt peaks. */
+  readonly densityScale: number;
 }
 
 export interface StatisticalBeltDiagnostics {
@@ -103,8 +106,9 @@ interface SampledElements {
 
 const TWO_PI = Math.PI * 2;
 const QUALITY_SIZE_EXPONENT = 0.18;
-const ASTEROID_REFERENCE_OPACITY = 0.13;
-const KUIPER_REFERENCE_OPACITY = 0.09;
+/** Reference opacities keep integrated weight stable across quality tiers. */
+const ASTEROID_REFERENCE_OPACITY = 0.20;
+const KUIPER_REFERENCE_OPACITY = 0.16;
 const MAX_TIER_OPACITY = 0.72;
 
 const ASTEROID_GAPS: readonly Readonly<{
@@ -325,8 +329,18 @@ export function createStatisticalBeltDistribution(
         Math.asin(zAu / Math.max(measuredRadiusAu, 1e-12)) * 180 / Math.PI,
       population: elements.population,
       markerScale: 0.80 + random() * 0.40,
-      paletteIndex: Math.min(paletteSize - 1, Math.floor(random() * paletteSize)),
-      albedoScale: 0.70 + random() * 0.28,
+      paletteIndex: pickPaletteIndex(
+        profile.id,
+        elements.population,
+        paletteSize,
+        random,
+      ),
+      albedoScale: 0.55 + random() * 0.50,
+      densityScale: densityFalloffScale(
+        profile.id,
+        elements.semimajorAxisAu,
+        elements.population,
+      ),
     }));
   }
   return Object.freeze(particles);
@@ -542,19 +556,33 @@ function createPointGeometry(
   geometry.setAttribute('position', new Float32BufferAttribute(particles.length * 3, 3));
   const colors = new Float32Array(particles.length * 3);
   const markerScales = new Float32Array(particles.length);
+  const densityScales = new Float32Array(particles.length);
   const palette = profile.colorPalette?.length ? profile.colorPalette : [profile.color];
   const color = new Color();
   particles.forEach((particle, index) => {
     const offset = index * 3;
     color.set(palette[particle.paletteIndex % palette.length] ?? profile.color);
-    color.multiplyScalar(particle.albedoScale);
+    // Mild per-particle stretch so neighboring points are not identical.
+    const lift = 0.75 + particle.albedoScale * 0.55;
+    if (profile.id === 'kuiper-belt') {
+      // Keep Kuiper cool (ice gray / blue-gray), not ochre-warmed.
+      color.r = clamp(color.r * lift * 0.88, 0, 1);
+      color.g = clamp(color.g * lift * 0.96, 0, 1);
+      color.b = clamp(color.b * lift * 1.05, 0, 1);
+    } else {
+      color.r = clamp(color.r * lift, 0, 1);
+      color.g = clamp(color.g * lift * 0.94, 0, 1);
+      color.b = clamp(color.b * lift * 0.88, 0, 1);
+    }
     colors[offset] = color.r;
     colors[offset + 1] = color.g;
     colors[offset + 2] = color.b;
     markerScales[index] = particle.markerScale;
+    densityScales[index] = particle.densityScale;
   });
   geometry.setAttribute('aColor', new Float32BufferAttribute(colors, 3));
   geometry.setAttribute('aMarkerScale', new Float32BufferAttribute(markerScales, 1));
+  geometry.setAttribute('aDensityScale', new Float32BufferAttribute(densityScales, 1));
   writeMappedPositions(geometry, particles, metersPerRenderUnit);
   return geometry;
 }
@@ -584,20 +612,36 @@ function createDensityMaterial(
   profile: Readonly<StatisticalBeltProfile>,
   style: Readonly<BeltVisualStyle>,
 ): ShaderMaterial {
+  const isKuiper = profile.id === 'kuiper-belt';
   const material = new ShaderMaterial({
     depthTest: true,
     depthWrite: false,
     fragmentShader: `
       precision highp float;
       uniform float uOpacity;
+      uniform float uImpactSkyVisibility;
+      uniform vec3 uUmbraTint;
+      uniform vec3 uLitTint;
       varying vec3 vColor;
+      varying float vDensityScale;
       void main() {
         vec2 centered = gl_PointCoord * 2.0 - 1.0;
         float radiusSquared = dot(centered, centered);
         if (radiusSquared > 1.0) discard;
-        float softEdge = 1.0 - smoothstep(0.44, 1.0, radiusSquared);
-        float density = exp(-radiusSquared * 1.7) * softEdge;
-        gl_FragColor = vec4(vColor, density * uOpacity);
+        // Spherical height so ~1–2 px markers still show a lit face vs umbra.
+        float height = sqrt(max(0.0, 1.0 - radiusSquared));
+        vec3 sphereNormal = normalize(vec3(centered.x, centered.y, height));
+        vec3 lightDir = normalize(vec3(-0.48, 0.30, 0.82));
+        float NdotL = clamp(dot(sphereNormal, lightDir), 0.0, 1.0);
+        float wrap = clamp(NdotL * 0.82 + 0.18, 0.0, 1.0);
+        float specular = pow(NdotL, 12.0) * 0.85;
+        vec3 shadeTint = mix(uUmbraTint, uLitTint, wrap);
+        float shade = 0.34 + 0.90 * wrap + specular;
+        // Hard core: soft edges must not erase sub-2px marks.
+        float softEdge = 1.0 - smoothstep(0.94, 1.0, radiusSquared);
+        float alpha = softEdge * uOpacity * vDensityScale * uImpactSkyVisibility;
+        vec3 lit = vColor * shadeTint * shade;
+        gl_FragColor = vec4(lit, alpha);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
       }
@@ -605,19 +649,34 @@ function createDensityMaterial(
     transparent: true,
     toneMapped: true,
     uniforms: {
+      uImpactSkyVisibility: impactDepthUniforms.uImpactSkyVisibility,
       uMarkerCapPx: { value: profile.maximumMarkerSizePx },
       uMarkerSizePx: { value: style.markerSizePx },
       uOpacity: { value: style.opacity },
+      // Asteroid: warm rocky. Kuiper: cool ice so populations separate on-screen.
+      uUmbraTint: {
+        value: isKuiper
+          ? [0.40, 0.44, 0.52]
+          : [0.48, 0.44, 0.40],
+      },
+      uLitTint: {
+        value: isKuiper
+          ? [1.02, 1.08, 1.22]
+          : [1.38, 1.12, 0.82],
+      },
     },
     vertexShader: `
       precision highp float;
       attribute vec3 aColor;
       attribute float aMarkerScale;
+      attribute float aDensityScale;
       uniform float uMarkerCapPx;
       uniform float uMarkerSizePx;
       varying vec3 vColor;
+      varying float vDensityScale;
       void main() {
         vColor = aColor;
+        vDensityScale = aDensityScale;
         gl_PointSize = min(uMarkerCapPx, uMarkerSizePx * aMarkerScale);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
@@ -753,6 +812,94 @@ function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+/**
+ * Presentation-only radial density: brighter toward the modeled belt peak,
+ * dimmer at the edges. Does not change sample counts or orbital elements.
+ */
+function densityFalloffScale(
+  id: StatisticalBeltId,
+  semimajorAxisAu: number,
+  population: StatisticalBeltPopulation,
+): number {
+  let peakAu: number;
+  let sigmaAu: number;
+  if (id === 'asteroid-belt') {
+    peakAu = population === 'asteroid-family' ? semimajorAxisAu : 2.70;
+    sigmaAu = population === 'asteroid-family' ? 0.10 : 0.42;
+  } else if (population === 'kuiper-cold-classical') {
+    peakAu = 44.5;
+    sigmaAu = 2.2;
+  } else if (population === 'kuiper-resonant') {
+    peakAu = 39.5;
+    sigmaAu = 3.5;
+  } else if (population === 'kuiper-hot-classical') {
+    peakAu = 44.0;
+    sigmaAu = 3.8;
+  } else {
+    peakAu = 48.0;
+    sigmaAu = 2.6;
+  }
+  const normalized = (semimajorAxisAu - peakAu) / Math.max(sigmaAu, 1e-6);
+  const gaussian = Math.exp(-0.5 * normalized * normalized);
+  const floor = id === 'asteroid-belt' ? 0.34 : 0.30;
+  return clamp(floor + gaussian * (1 - floor), 0.30, 1);
+}
+
+/**
+ * Bias palette picks by population so belts read as mixed classes, not one flat tint.
+ * Consumes exactly one random sample to keep marker-scale streams stable across tiers.
+ */
+function pickPaletteIndex(
+  id: StatisticalBeltId,
+  population: StatisticalBeltPopulation,
+  paletteSize: number,
+  random: () => number,
+): number {
+  if (paletteSize <= 1) return 0;
+  let preferred: readonly number[];
+  if (id === 'asteroid-belt') {
+    switch (population) {
+      case 'asteroid-inner':
+        preferred = [0, 1, 5];
+        break;
+      case 'asteroid-middle':
+        preferred = [1, 2, 4];
+        break;
+      case 'asteroid-outer':
+        preferred = [2, 3, 4];
+        break;
+      default:
+        preferred = [1, 2, 3];
+        break;
+    }
+  } else {
+    switch (population) {
+      case 'kuiper-cold-classical':
+        preferred = [2, 3, 4];
+        break;
+      case 'kuiper-hot-classical':
+        preferred = [1, 2, 5];
+        break;
+      case 'kuiper-resonant':
+        preferred = [0, 1, 5];
+        break;
+      default:
+        preferred = [0, 3, 4];
+        break;
+    }
+  }
+  const roll = random();
+  if (roll < 0.72) {
+    const pick = preferred[Math.min(
+      preferred.length - 1,
+      Math.floor((roll / 0.72) * preferred.length),
+    )] ?? 0;
+    return Math.min(paletteSize - 1, pick);
+  }
+  const remainder = (roll - 0.72) / 0.28;
+  return Math.min(paletteSize - 1, Math.floor(remainder * paletteSize));
+}
+
 function createRandom(seed: number): () => number {
   let state = seed >>> 0;
   return () => {
@@ -771,9 +918,17 @@ export const DEFAULT_BELT_PROFILES: readonly Readonly<StatisticalBeltProfile>[] 
       maximumEccentricity: 0.18,
       maximumInclinationDeg: 18,
       deterministicSeed: 0x41_53_54_36,
-      color: '#766b60',
-      colorPalette: Object.freeze(['#675f58', '#75695e', '#806e5f', '#6d6963']),
-      markerSizePx: 1.25,
+      color: '#7a6a58',
+      colorPalette: Object.freeze([
+        '#5a5048', // C-type charcoal (kept above black sky)
+        '#7a5a40', // dusky brown
+        '#d4a06a', // bright S-type ochre
+        '#9a8a78', // stony gray-brown
+        '#e0b078', // warm silicate highlight
+        '#6a6058', // dark carbonaceous (readable on black)
+        '#b87848', // mid belt clay
+      ]),
+      markerSizePx: 1.35,
       maximumMarkerSizePx: 2.20,
       qualityCounts: Object.freeze({ low: 900, medium: 1_800, high: 3_600, ultra: 6_400 }),
       excludedNamedBodies: Object.freeze(['ceres', 'vesta', 'pallas', 'hygiea']),
@@ -786,9 +941,16 @@ export const DEFAULT_BELT_PROFILES: readonly Readonly<StatisticalBeltProfile>[] 
       maximumEccentricity: 0.24,
       maximumInclinationDeg: 28,
       deterministicSeed: 0x4b_42_4f_36,
-      color: '#746966',
-      colorPalette: Object.freeze(['#686464', '#756a67', '#806b65', '#8a7068']),
-      markerSizePx: 1.15,
+      color: '#7a8890',
+      colorPalette: Object.freeze([
+        '#6a7880', // dim ice gray
+        '#7a8a94', // cool slate
+        '#8a9aa8', // faint blue-gray
+        '#5c6870', // shadowed ice
+        '#9aa8b0', // pale frost
+        '#708088', // muted steel-ice
+      ]),
+      markerSizePx: 1.25,
       maximumMarkerSizePx: 2.00,
       qualityCounts: Object.freeze({ low: 700, medium: 1_400, high: 2_800, ultra: 4_800 }),
       excludedNamedBodies: Object.freeze(['pluto', 'eris', 'haumea', 'makemake']),

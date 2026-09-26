@@ -66,6 +66,24 @@ describe('ObjectNavigator complete-catalog search', () => {
     expect(onSelectCatalogTarget).toHaveBeenLastCalledWith(catalogTargets[2]);
   });
 
+  it('exposes an empty catalog search state', () => {
+    act(() => root.render(
+      <ObjectNavigator
+        bodies={[{ id: 'earth', displayName: 'Earth', kind: 'planet' }]}
+        selectedBodyId="earth"
+        orbitLinesVisible
+        bodyLabelsVisible
+        onSelectBody={() => undefined}
+        onOrbitLinesVisibleChange={() => undefined}
+        onBodyLabelsVisibleChange={() => undefined}
+      />,
+    ));
+
+    searchFor('zzzz-no-match');
+    const empty = container.querySelector('[data-testid="navigator-empty"]');
+    expect(empty?.textContent).toMatch(/No planet, moon, satellite, or spacecraft matches/i);
+  });
+
   function searchFor(value: string): void {
     const search = container.querySelector<HTMLInputElement>('#body-search');
     if (search === null) throw new Error('Expected complete-catalog search input.');

@@ -1,12 +1,11 @@
 import {
-  AdditiveBlending,
   BackSide,
   DoubleSide,
   Group,
   Mesh,
-  MeshBasicMaterial,
   SphereGeometry,
   type Object3D,
+  type ShaderMaterial,
 } from 'three';
 
 import { coronaShellCount, type VisualQuality } from '../bodies/VisualQuality';
@@ -19,7 +18,9 @@ import {
 import {
   PlanetHeatOverlayLayer,
   clamp01,
+  createSoftShellMaterial,
   createSolarPoints,
+  createStellarCoreMaterial,
   isActiveLifecycle,
   particleBudget,
   physicalRadiusToLocal,
@@ -27,6 +28,8 @@ import {
   requireFiniteNonNegative,
   requirePositive,
   requireUnitInterval,
+  setShaderOpacity,
+  setShaderTint,
   validateLifecycle,
   validateProgress,
   writeDeterministicShellParticles,
@@ -47,23 +50,25 @@ export class SolarEvolutionVisualSystem {
   public readonly root = new Group();
 
   private readonly sphereGeometry = new SphereGeometry(1, 64, 40);
-  private readonly coreMaterial = new MeshBasicMaterial({ color: 0xffb067 });
+  private readonly coreMaterial = createStellarCoreMaterial(0xffb067);
   private readonly core = new Mesh(this.sphereGeometry, this.coreMaterial);
-  private readonly chromosphereMaterial = shellMaterial(0xff6f35, 0.34, BackSide);
+  private readonly coreHaloMaterial = createSoftShellMaterial(0xd8ecff, 0, BackSide, 'halo');
+  private readonly coreHalo = new Mesh(this.sphereGeometry, this.coreHaloMaterial);
+  private readonly chromosphereMaterial = createSoftShellMaterial(0xff6f35, 0.34, BackSide);
   private readonly chromosphere = new Mesh(
     this.sphereGeometry,
     this.chromosphereMaterial,
   );
   private readonly massLossMaterials = [
-    shellMaterial(0xff9a5a, 0.2, DoubleSide),
-    shellMaterial(0xffc58a, 0.12, DoubleSide),
+    createSoftShellMaterial(0xff9a5a, 0.2, DoubleSide, 'nebula'),
+    createSoftShellMaterial(0xffc58a, 0.12, DoubleSide, 'nebula'),
   ];
   private readonly massLossShells = this.massLossMaterials.map(
     (material) => new Mesh(this.sphereGeometry, material),
   );
   private readonly nebulaMaterials = [
-    shellMaterial(0x5bb9c9, 0.15, DoubleSide),
-    shellMaterial(0xd477c5, 0.1, DoubleSide),
+    createSoftShellMaterial(0x5bb9c9, 0.15, DoubleSide, 'nebula'),
+    createSoftShellMaterial(0xd477c5, 0.1, DoubleSide, 'nebula'),
   ];
   private readonly nebulaShells = this.nebulaMaterials.map(
     (material) => new Mesh(this.sphereGeometry, material),
@@ -89,18 +94,21 @@ export class SolarEvolutionVisualSystem {
     this.root.name = 'scientific-solar-evolution-layer';
     this.core.name = 'solar-evolution-stellar-core';
     this.core.renderOrder = 3;
+    this.coreHalo.name = 'solar-evolution-stellar-halo';
+    this.coreHalo.renderOrder = 4;
     this.chromosphere.name = 'solar-evolution-chromosphere';
-    this.chromosphere.renderOrder = 4;
+    this.chromosphere.renderOrder = 5;
     this.massLossShells.forEach((shell, index) => {
       shell.name = `solar-evolution-mass-loss-shell-${index + 1}`;
-      shell.renderOrder = 5 + index;
+      shell.renderOrder = 6 + index;
     });
     this.nebulaShells.forEach((shell, index) => {
       shell.name = `solar-evolution-nebula-shell-${index + 1}`;
-      shell.renderOrder = 7 + index;
+      shell.renderOrder = 8 + index;
     });
     this.root.add(
       this.core,
+      this.coreHalo,
       this.chromosphere,
       ...this.massLossShells,
       ...this.nebulaShells,
@@ -137,23 +145,50 @@ export class SolarEvolutionVisualSystem {
     const stellarRender = physicalRadiusToRenderUnits(state.stellarRadiusM, context);
     const nebulaLocal = physicalRadiusToLocal(state.nebulaRadiusM, context);
     const nebulaRender = physicalRadiusToRenderUnits(state.nebulaRadiusM, context);
-    const replacementCore = active && !['present', 'brightening'].includes(state.phase);
+    const replacementCore = active && state.phase !== 'present';
     this.setBaseSunHidden(replacementCore);
     this.root.visible = active;
+    const materialTime = this.reducedMotion ? 0 : state.scenarioTimeSeconds;
+    this.root.traverse((object) => {
+      if (object instanceof Mesh && !Array.isArray(object.material) && 'uniforms' in object.material) {
+        const material = object.material as ShaderMaterial;
+        if (material.uniforms.time !== undefined) material.uniforms.time.value = materialTime;
+      }
+    });
 
     this.core.visible = replacementCore;
     this.core.scale.setScalar(Math.max(stellarLocal, 1e-9));
-    this.coreMaterial.color.set(stellarColor(state.effectiveTemperatureK, state.phase));
+    setShaderTint(this.coreMaterial, stellarColor(state.effectiveTemperatureK));
+    const glowBoost = state.phase === 'white-dwarf' || state.phase === 'cooling'
+      ? 1.55
+      : state.phase === 'red-giant' || state.phase === 'mass-loss'
+        ? 0.95
+        : 1.1;
+    (this.coreMaterial.uniforms.glowBoost as { value: number }).value = glowBoost;
+
+    const compactRemnant = replacementCore &&
+      (state.phase === 'white-dwarf' || state.phase === 'cooling');
+    this.coreHalo.visible = compactRemnant;
+    this.coreHalo.scale.setScalar(Math.max(stellarLocal * (compactRemnant ? 2.2 : 1.6), 1e-9));
+    setShaderOpacity(
+      this.coreHaloMaterial,
+      compactRemnant ? 0.12 : 0,
+    );
+    setShaderTint(
+      this.coreHaloMaterial,
+      state.effectiveTemperatureK > 12_000 ? 0xcfe8ff : 0xffe1b5,
+    );
 
     const brightening = active && state.phase === 'brightening';
     const giantLike = active && ['red-giant', 'mass-loss'].includes(state.phase);
     this.chromosphere.visible = brightening || giantLike;
     this.chromosphere.scale.setScalar(
-      brightening ? 1.08 : Math.max(stellarLocal * 1.035, 1e-9),
+      Math.max(stellarLocal * 1.035, 1e-9),
     );
-    this.chromosphereMaterial.opacity = brightening
-      ? Math.min(0.36, 0.08 + state.progress * 0.28)
-      : 0.28;
+    setShaderOpacity(
+      this.chromosphereMaterial,
+      brightening ? Math.min(0.36, 0.08 + state.progress * 0.28) : 0.28,
+    );
 
     const massLoss = active && ['mass-loss', 'planetary-nebula'].includes(state.phase);
     this.massLossShells.forEach((shell, index) => {
@@ -161,7 +196,10 @@ export class SolarEvolutionVisualSystem {
       shell.scale.setScalar(
         Math.max(stellarLocal, nebulaLocal * (0.32 + index * 0.2), 1e-9),
       );
-      shell.material.opacity = clamp01(state.massLossOpacity) * (0.22 - index * 0.07);
+      setShaderOpacity(
+        shell.material as ShaderMaterial,
+        clamp01(state.massLossOpacity) * (0.22 - index * 0.07),
+      );
     });
 
     const nebulaVisible =
@@ -169,7 +207,10 @@ export class SolarEvolutionVisualSystem {
     this.nebulaShells.forEach((shell, index) => {
       shell.visible = nebulaVisible && state.nebulaOpacity > 0;
       shell.scale.setScalar(Math.max(nebulaLocal * (0.78 + index * 0.22), 1e-9));
-      shell.material.opacity = clamp01(state.nebulaOpacity) * (0.18 - index * 0.06);
+      setShaderOpacity(
+        shell.material as ShaderMaterial,
+        clamp01(state.nebulaOpacity) * (0.18 - index * 0.06),
+      );
     });
 
     const requestedParticles = massLoss || nebulaVisible
@@ -188,10 +229,10 @@ export class SolarEvolutionVisualSystem {
           this.reducedMotion ? 0 : 0.00004,
         );
     this.outflow.points.visible = particleCount > 0;
-    this.outflow.points.material.opacity = Math.max(
+    this.outflow.setOpacity(Math.max(
       clamp01(state.massLossOpacity) * 0.6,
       clamp01(state.nebulaOpacity) * 0.34,
-    );
+    ));
 
     const heatedBodyCount = this.heating.update(
       state.heatingByBody,
@@ -223,7 +264,7 @@ export class SolarEvolutionVisualSystem {
     this.root.visible = false;
     this.root.children.forEach((child) => { child.visible = false; });
     this.outflow.points.geometry.setDrawRange(0, 0);
-    this.outflow.points.material.opacity = 0;
+    this.outflow.setOpacity(0);
     this.heating.reset();
     this.setBaseSunHidden(false);
     this.diagnostics = EMPTY_SOLAR_EVOLUTION_DIAGNOSTICS;
@@ -259,6 +300,7 @@ export class SolarEvolutionVisualSystem {
     this.outflow.points.geometry.dispose();
     this.outflow.points.material.dispose();
     this.coreMaterial.dispose();
+    this.coreHaloMaterial.dispose();
     this.chromosphereMaterial.dispose();
     this.massLossMaterials.forEach((material) => material.dispose());
     this.nebulaMaterials.forEach((material) => material.dispose());
@@ -284,8 +326,9 @@ export class SolarEvolutionVisualSystem {
   }
 
   private applyQuality(): void {
-    this.outflow.points.material.size =
-      this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : this.quality === 'high' ? 4 : 5;
+    this.outflow.setPointSize(
+      this.quality === 'low' ? 2 : this.quality === 'medium' ? 3 : this.quality === 'high' ? 4 : 5,
+    );
   }
 
   private assertNotDisposed(): void {
@@ -293,24 +336,11 @@ export class SolarEvolutionVisualSystem {
   }
 }
 
-function shellMaterial(color: number, opacity: number, side: typeof BackSide | typeof DoubleSide) {
-  return new MeshBasicMaterial({
-    blending: AdditiveBlending,
-    color,
-    depthWrite: false,
-    opacity,
-    side,
-    toneMapped: false,
-    transparent: true,
-  });
-}
-
-function stellarColor(temperatureK: number, phase: SolarEvolutionRenderState['phase']): number {
-  if (phase === 'red-giant' || phase === 'mass-loss') return 0xff6a2b;
-  if (phase === 'white-dwarf' || phase === 'cooling') {
-    return temperatureK > 12_000 ? 0xcfe8ff : 0xffe1b5;
-  }
-  return 0xffc46b;
+function stellarColor(temperatureK: number): number {
+  if (temperatureK < 4_000) return 0xff8648;
+  if (temperatureK < 7_000) return 0xffd5a0;
+  if (temperatureK < 12_000) return 0xfff1dd;
+  return 0xbddcff;
 }
 
 function validateEvolutionState(

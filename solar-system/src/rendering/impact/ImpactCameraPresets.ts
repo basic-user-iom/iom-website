@@ -1,4 +1,7 @@
+import { airburstWakeLengthM, sampleAirburstWake } from './AirburstPlumeShape';
+import { localTerrainTriangleHeightM } from './ImpactTerrainHeight';
 import { Vector3 } from 'three';
+import { getEarthSurfaceSampler } from '../../simulation/scenarios/impact/EarthSurface';
 
 import {
   IMPACT_CAMERA_PRESET_IDS,
@@ -6,8 +9,10 @@ import {
   type ImpactCameraPresetId,
   type ImpactRenderState,
 } from './ImpactRenderTypes';
+import { impactorVisualRadiusRatio } from './ImpactVisibility';
+import { mapImpactEnuToBodyLocal, setEllipsoidSurfacePoint } from './ImpactSurfaceMath';
 
-const MINIMUM_RADIUS = 1e-9;
+const MINIMUM_RADIUS = 1e-18;
 const NORMAL = new Vector3();
 const EAST = new Vector3();
 const NORTH = new Vector3();
@@ -17,12 +22,15 @@ const MOTION = new Vector3();
 const POSITION = new Vector3();
 const TARGET = new Vector3();
 const UP = new Vector3();
+const SURFACE_NORMAL = new Vector3();
+const WAKE = new Vector3();
 
 /** Resolves a deterministic event-camera pose in target-visual-root-local units. */
 export function resolveImpactCameraPose(
   presetId: ImpactCameraPresetId,
   state: Readonly<ImpactRenderState>,
   presentationMultiplier = 1,
+  viewportAspect = 1,
 ): Readonly<ImpactCameraPose> {
   if (!IMPACT_CAMERA_PRESET_IDS.includes(presetId)) {
     throw new RangeError(`Unsupported impact camera preset "${String(presetId)}".`);
@@ -31,8 +39,8 @@ export function resolveImpactCameraPose(
   setNormalized(NORMAL, state.impactNormalBodyLocal, 'impact normal');
   setNormalized(EAST, state.impactEastBodyLocal, 'impact east');
   setNormalized(NORTH, state.impactNorthBodyLocal, 'impact north');
-  SURFACE.copy(NORMAL);
-  setImpactorPosition(IMPACTOR, state, radiusM);
+  setEllipsoidSurfacePoint(SURFACE, NORMAL, state);
+  setImpactorPosition(IMPACTOR, state);
 
   switch (presetId) {
     case 'overview':
@@ -68,66 +76,45 @@ export function resolveImpactCameraPose(
       break;
     case 'chase': {
       resolveApproachMotion(MOTION, state, radiusM);
-      const chaseDistance = Math.max(
-        state.physicalDiameterM / radiusM * 36,
-        0.006,
-      );
+      const visualRadius = presentationMultiplier > 1 ? impactorVisualRadiusRatio(state.physicalDiameterM, radiusM) : state.physicalDiameterM * 0.5 / radiusM;
+      if (state.eventElapsedSeconds !== null && state.outcomeKind !== 'no-impact' &&
+        ['airburst', 'impact', 'impact-flash', 'ejecta', 'plume', 'haze', 'aftermath', 'complete'].includes(state.stage)) {
+        frameTerminalEvent(state, radiusM, presentationMultiplier, false, viewportAspect);
+        break;
+      }
+      // Prefer a side-oblique chase during bright entry so the air-cap reads as a
+      // lens/crescent and the wake as a ribbon — not a face-on disc fog ball.
+      const chaseDistance = Math.max(visualRadius * 10, 200 / radiusM);
       POSITION.copy(IMPACTOR)
-        .addScaledVector(MOTION, -chaseDistance)
-        .addScaledVector(NORTH, chaseDistance * 0.36);
-      TARGET.copy(IMPACTOR).addScaledVector(MOTION, chaseDistance * 0.25);
+        .addScaledVector(MOTION, -chaseDistance * 0.72)
+        .addScaledVector(NORTH, chaseDistance * 0.42)
+        .addScaledVector(EAST, chaseDistance * 0.55);
+      TARGET.copy(IMPACTOR).addScaledVector(MOTION, visualRadius * 2.4);
       UP.copy(NORTH);
       break;
     }
+    case 'regional': {
+      frameTerminalEvent(state, radiusM, presentationMultiplier, true, viewportAspect);
+      break;
+    }
     case 'ground-observer': {
-      // Frame the local event rather than using one planet-wide offset. A
-      // kilometre-scale crater on Earth otherwise becomes unreadable from a
-      // camera hundreds of kilometres away, while the same fixed offset can
-      // look entirely away from a small airless target.
-      const localEffectRadius = Math.max(
-        state.craterRadiusM,
-        state.scorchRadiusM,
-        state.flashRadiusM,
-        state.plumeRadiusM * 0.35,
-      ) * Math.max(1, presentationMultiplier) / radiusM;
-      const enhancedPresentation = presentationMultiplier > 1.001;
-      // The renderer's adaptive near plane supports a genuinely local view.
-      // Keep the observer several effect radii away while retaining a small
-      // floor for low-energy events and a regional ceiling for giant events.
-      // Earth and Venus use visual atmosphere shells that extend to roughly
-      // 1.03 body radii. Keep the local camera outside those shells; placing
-      // it below them turns the entire frame into opaque atmospheric fog and
-      // magnifies even an 8K global map beyond its honest ground resolution.
-      // The floor therefore gives a regional, rather than ground-level, view.
-      const observerDistance = enhancedPresentation
-        ? clamp(localEffectRadius * 4, 0.28, 0.44)
-        : clamp(localEffectRadius * 7, 0.24, 0.5);
-      const observerAltitude = enhancedPresentation
-        ? clamp(observerDistance * 0.68, 0.18, 0.3)
-        : clamp(observerDistance * 0.82, 0.18, 0.36);
-      POSITION.copy(NORMAL).multiplyScalar(1 + observerAltitude)
-        .addScaledVector(EAST, -observerDistance * (enhancedPresentation ? 0.84 : 0.68))
-        .addScaledVector(NORTH, -observerDistance * (enhancedPresentation ? 0.18 : 0.22));
-      if (
-        state.eventElapsedSeconds === null
-        || state.outcomeKind === 'airburst'
-      ) {
-        TARGET.copy(IMPACTOR);
-      } else {
-        const targetHeight = clamp(
-          Math.max(
-            localEffectRadius * 0.25,
-            Math.min(
-              state.plumeHeightM * Math.max(1, presentationMultiplier) / radiusM * 0.18,
-              localEffectRadius * 2.5,
-            ),
-          ),
-          0.00015,
-          0.02,
-        );
-        TARGET.copy(SURFACE).addScaledVector(NORMAL, targetHeight);
-      }
-      UP.copy(NORTH);
+      // A fixed observer two metres above the measured surface. Normalizing the
+      // direction avoids the hidden altitude caused by a tangent-plane offset.
+      const requestedDistanceM = Math.max(600, (state.visibilityReferenceSizeM ?? state.physicalDiameterM * 30) * 1.4);
+      // Keep Earth observers inside the dense regional terrain. At two metres,
+      // the coarse orbital globe cannot provide a continuous ground horizon.
+      const distanceM = state.targetBodyId === 'earth' ? Math.min(200000, requestedDistanceM) : requestedDistanceM;
+      POSITION.copy(NORMAL).addScaledVector(EAST, -distanceM / radiusM)
+        .addScaledVector(NORTH, distanceM * 0.35 / radiusM).normalize();
+      const sample = state.targetBodyId === 'earth' ? getEarthSurfaceSampler() : null;
+      const altitudeM = sample ? localTerrainTriangleHeightM(POSITION, NORMAL, EAST, NORTH, radiusM, sample)
+        : state.earthSurface?.surfaceAltitudeM ?? 0;
+      UP.copy(POSITION);
+      setEllipsoidSurfacePoint(POSITION, UP, { ...state, earthSurface: undefined });
+      POSITION.addScaledVector(UP, (altitudeM + 2) / radiusM);
+      TARGET.copy(state.eventElapsedSeconds === null || state.outcomeKind === 'airburst' || state.outcomeKind === 'deep-atmosphere-breakup' ? IMPACTOR : SURFACE);
+      if (state.eventElapsedSeconds !== null) TARGET.addScaledVector(NORMAL,
+        Math.max(10, Math.min(distanceM * 0.12, state.plumeHeightM * 0.35)) / radiusM);
       break;
     }
   }
@@ -143,20 +130,49 @@ export function resolveImpactCameraPose(
   });
 }
 
+function frameTerminalEvent(
+  state: Readonly<ImpactRenderState>, radiusM: number, multiplier: number, observer: boolean, viewportAspect: number,
+): void {
+  const scale = Math.max(1, multiplier) / radiusM;
+  const height = Math.max(60 / radiusM, Math.max(state.flashRadiusM * 3, state.craterRadiusM * 4, state.physicalDiameterM * 20, state.plumeHeightM * state.plumeOpacity * 0.85) * scale);
+  const width = Math.max(40 / radiusM, height * 0.7);
+  const airborne = state.outcomeKind === 'airburst' || state.outcomeKind === 'deep-atmosphere-breakup';
+  const wakeLengthM = airborne ? airburstWakeLengthM(state) : 0;
+  const distance = Math.max(150 / radiusM, height * 2.7, width * 3.2, wakeLengthM * scale * 1.6)
+    * Math.max(1, 0.85 / Math.max(0.1, viewportAspect));
+  resolveApproachMotion(MOTION, state, radiusM);
+  MOTION.addScaledVector(NORMAL, -MOTION.dot(NORMAL));
+  if (MOTION.lengthSq() < MINIMUM_RADIUS) MOTION.copy(EAST);
+  MOTION.normalize();
+  UP.copy(NORMAL).cross(MOTION).normalize();
+  SURFACE.copy(NORMAL).multiplyScalar(1 + (state.earthSurface?.surfaceAltitudeM ?? 0) / radiusM);
+  const anchor = (state.outcomeKind === 'solid-surface-impact' || state.outcomeKind === 'ocean-surface-impact') ? SURFACE : IMPACTOR;
+  POSITION.copy(anchor).addScaledVector(MOTION, -distance * (observer ? 0.9 : 0.72))
+    .addScaledVector(UP, distance * (observer ? 0.35 : 0.7))
+    .addScaledVector(NORMAL, distance * (observer ? 0.32 : 0.5));
+  TARGET.copy(anchor).addScaledVector(NORMAL, height * 0.42)
+    .addScaledVector(MOTION, width * 0.12);
+  if (airborne && wakeLengthM > 0) {
+    sampleAirburstWake(WAKE, state, wakeLengthM * 0.35);
+    TARGET.addScaledVector(EAST, WAKE.x * scale)
+      .addScaledVector(NORTH, WAKE.y * scale)
+      .addScaledVector(NORMAL, WAKE.z * scale);
+    // Look across the wake, with sky and horizon still in frame.
+    POSITION.addScaledVector(NORMAL, -distance * 0.3);
+  }
+  UP.copy(NORMAL);
+}
 function setImpactorPosition(
   output: Vector3,
   state: Readonly<ImpactRenderState>,
-  radiusM: number,
 ): void {
   const position = state.impactorLocalEnuM;
   if (position === null) {
     output.copy(SURFACE).addScaledVector(NORMAL, 0.08);
     return;
   }
-  output.copy(SURFACE)
-    .addScaledVector(EAST, position.eastM / radiusM)
-    .addScaledVector(NORTH, position.northM / radiusM)
-    .addScaledVector(NORMAL, position.upM / radiusM);
+  mapImpactEnuToBodyLocal(output, position.eastM, position.northM, position.upM,
+    state, { normal: NORMAL, east: EAST, north: NORTH }, SURFACE, SURFACE_NORMAL);
 }
 
 function resolveApproachMotion(
@@ -226,8 +242,4 @@ function requirePositive(value: number, label: string): number {
     throw new RangeError(`Impact ${label} must be finite and positive.`);
   }
   return value;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.min(maximum, Math.max(minimum, value));
 }

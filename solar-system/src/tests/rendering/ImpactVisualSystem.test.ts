@@ -1,11 +1,11 @@
 import {
   Group,
   type Mesh,
+  type Points,
   type MeshStandardMaterial,
   type BufferGeometry,
   type Line,
   type LineBasicMaterial,
-  type Points,
   type ShaderMaterial,
 } from 'three';
 
@@ -17,6 +17,28 @@ import {
 } from '../../rendering/impact';
 
 describe('ImpactVisualSystem', () => {
+  it('renders deterministic water and steam, suppresses land effects, and clears on reset', () => {
+    const system = new ImpactVisualSystem('high');
+    const event = state({ outcomeKind: 'ocean-surface-impact', eventElapsedSeconds: 3,
+      earthSurface: { kind: 'ocean', elevationM: -4000, surfaceAltitudeM: 0, waterDepthM: 4000, coastal: false }, aftermathKind: 'none' });
+    system.update(event);
+    const water = system.root.getObjectByName('impact-water-column-and-crown') as Mesh<BufferGeometry, ShaderMaterial>;
+    const waves = system.root.getObjectByName('impact-ocean-wave-train')!;
+    const steam = system.root.getObjectByName('impact-layered-volumetric-plume') as Mesh<BufferGeometry, ShaderMaterial>;
+    expect(water.visible).toBe(true); expect(waves.visible).toBe(true);
+    expect(steam.material.uniforms.uProfile!.value).toBe(2);
+    expect(system.getDiagnostics().craterVisible).toBe(false);
+    expect(system.getDiagnostics().ejectaActiveCount).toBe(0);
+    expect(system.getDiagnostics().groundShockwaveVisible).toBe(false);
+    const positions = Array.from(water.geometry.getAttribute('position').array);
+    system.update({ ...event, lifecycleState: 'paused' });
+    expect(Array.from(water.geometry.getAttribute('position').array)).toEqual(positions);
+    system.reset(); expect(water.visible).toBe(false); expect(waves.visible).toBe(false);
+    system.update(event); expect(Array.from(water.geometry.getAttribute('position').array)).toEqual(positions);
+    system.update({ ...event, lifecycleState: 'complete' }); expect(waves.visible).toBe(true); // The water surface must continue to cover the excavated globe.
+    system.update({ ...event, outcomeKind: 'airburst' }); expect(water.visible).toBe(false);
+    system.dispose();
+  });
   it('renders a complete target-local event from preallocated deterministic resources', () => {
     const system = new ImpactVisualSystem('high');
     const target = new Group();
@@ -33,7 +55,7 @@ describe('ImpactVisualSystem', () => {
       stage: 'impact-flash',
       runSignature: 'fixture:42',
       trailPointCount: 0,
-      fragmentCount: 2,
+      fragmentCount: 0,
       ejectaPointCount: 160,
       plumePointCount: 128,
       impactorVisible: false,
@@ -63,6 +85,48 @@ describe('ImpactVisualSystem', () => {
     system.dispose();
     system.dispose();
     expect(system.root.children).toHaveLength(0);
+  });
+
+
+  it('grows spatial dust during ejecta and freezes the cloud when playback is paused', () => {
+    const system = new ImpactVisualSystem('medium');
+    const event = state({ stage: 'ejecta', eventElapsedSeconds: 3 });
+    system.update(event);
+    expect(system.getDiagnostics().plumeVisible).toBe(true);
+    const cloud = system.root.getObjectByName('impact-layered-volumetric-plume') as Mesh<BufferGeometry, ShaderMaterial>;
+    const centers = pointPositions(system, cloud.name);
+    // A spatial cloud must extend in both surface-tangent directions.
+    const ys = centers.filter((_, i) => i % 3 === 1);
+    const zs = centers.filter((_, i) => i % 3 === 2);
+    expect(Math.max(...ys) - Math.min(...ys)).toBeGreaterThan(0.001);
+    expect(Math.max(...zs) - Math.min(...zs)).toBeGreaterThan(0.001);
+    expect(cloud.geometry.drawRange.count).toBe(64 * 6);
+    system.update({ ...event, lifecycleState: 'paused' });
+    expect(pointPositions(system, cloud.name)).toEqual(centers);
+    expect(cloud.material.uniforms.uTime?.value).toBe(3);
+    system.reset();
+    expect(cloud.visible).toBe(false);
+    system.update(event);
+    expect(pointPositions(system, cloud.name)).toEqual(centers);
+    system.dispose();
+  });
+
+  it('places the visible airburst fireball at altitude and clears it on reset', () => {
+    const system = new ImpactVisualSystem('high');
+    system.update(state({
+      stage: 'airburst',
+      outcomeKind: 'airburst',
+      impactorLocalEnuM: { eastM: 0, northM: 0, upM: 30_000 },
+    }));
+    const fireball = system.root.getObjectByName('impact-expanding-fireball')!;
+    const light = system.root.getObjectByName('impact-bounded-flash-light')!;
+    expect(fireball.visible).toBe(true);
+    expect(fireball.position.toArray()).toEqual(light.position.toArray());
+    expect(fireball.position.length()).toBeGreaterThan(1.004);
+    expect(fireball.scale.x).toBeGreaterThan(0);
+    system.reset();
+    expect(fireball.visible).toBe(false);
+    system.dispose();
   });
 
   it('renders setup preview as only a constant-screen reticle and projected trajectory', () => {
@@ -321,7 +385,7 @@ describe('ImpactVisualSystem', () => {
     expect(system.root.getObjectByName('impact-entry-bow-shock')?.visible).toBe(false);
     expect(system.root.getObjectByName('impact-entry-plasma-envelope')?.visible).toBe(false);
     const trail = system.root.getObjectByName('impact-ablation-trail') as
-      | Points<BufferGeometry, ShaderMaterial>
+      | Mesh<BufferGeometry, ShaderMaterial>
       | undefined;
     expect(trail?.geometry.drawRange.count).toBe(0);
     system.dispose();
@@ -339,7 +403,7 @@ describe('ImpactVisualSystem', () => {
       | Mesh<BufferGeometry, ShaderMaterial>
       | undefined;
     const trail = system.root.getObjectByName('impact-ablation-trail') as
-      | Points<BufferGeometry, ShaderMaterial>
+      | Mesh<BufferGeometry, ShaderMaterial>
       | undefined;
     expect(impactor).toBeDefined();
     expect(bowShock).toBeDefined();
@@ -353,9 +417,9 @@ describe('ImpactVisualSystem', () => {
     const firstShape = Array.from(
       impactor.geometry.getAttribute('position').array as Float32Array,
     );
-    expect(impactor.material.roughness).toBeGreaterThan(0.95);
-    expect(impactor.material.metalness).toBeLessThan(0.02);
+    expect(impactor.material.type).toBe('MeshBasicMaterial');
     expect(impactor.material.vertexColors).toBe(true);
+    expect(impactor.material.toneMapped).toBe(false);
     const surfaceColors = Array.from(
       impactor.geometry.getAttribute('color').array as Float32Array,
     );
@@ -363,7 +427,7 @@ describe('ImpactVisualSystem', () => {
     expect(bowShock.material.uniforms.uOpacity?.value).toBeGreaterThan(0);
     expect(plasma.material.uniforms.uPlasma?.value).toBe(1);
     expect(bowShock.material.fragmentShader).toContain('float shell');
-    expect(system.getDiagnostics().impactorSizeExaggerated).toBe(true);
+    expect(system.getDiagnostics().impactorSizeExaggerated).toBe(false);
 
     const children = system.root.children.slice();
     system.reset();
@@ -385,8 +449,13 @@ describe('ImpactVisualSystem', () => {
     expect(Array.from(
       impactor.geometry.getAttribute('color').array as Float32Array,
     )).not.toEqual(surfaceColors);
-    expect(impactor.material.metalness).toBeGreaterThan(0.7);
-    expect(impactor.material.emissiveIntensity).toBeGreaterThan(2.7);
+    expect(impactor.material.type).toBe('MeshBasicMaterial');
+    // Leading-face ablation: windward vertices glow; lee face stays dark rock/metal.
+    const heatedColors = Array.from(
+      impactor.geometry.getAttribute('color').array as Float32Array,
+    );
+    expect(Math.max(...heatedColors)).toBeGreaterThan(0.55);
+    expect(Math.max(...heatedColors) - Math.min(...heatedColors)).toBeGreaterThan(0.25);
 
     const disposeSpies = [
       vi.spyOn(impactor.geometry, 'dispose'),
@@ -401,6 +470,46 @@ describe('ImpactVisualSystem', () => {
     system.dispose();
     system.dispose();
     disposeSpies.forEach((spy) => { expect(spy).toHaveBeenCalledTimes(1); });
+  });
+
+  it('heats only the windward face during entry and keeps lee-side rock dark', () => {
+    const system = new ImpactVisualSystem('high');
+    const impactor = system.root.getObjectByName('impact-impactor') as
+      | Mesh<BufferGeometry, MeshStandardMaterial>
+      | undefined;
+    expect(impactor).toBeDefined();
+    if (impactor === undefined) throw new Error('Missing impactor mesh.');
+
+    system.update(state({
+      stage: 'atmospheric-entry',
+      impactorMaterial: 'stone',
+      normalizedHeating: 0.95,
+      normalizedDynamicPressure: 0.8,
+    }));
+
+    const colors = impactor.geometry.getAttribute('color').array as Float32Array;
+    let maxLuma = 0;
+    let minLuma = 1;
+    for (let offset = 0; offset < colors.length; offset += 3) {
+      const luma = (colors[offset] ?? 0) * 0.4
+        + (colors[offset + 1] ?? 0) * 0.45
+        + (colors[offset + 2] ?? 0) * 0.15;
+      maxLuma = Math.max(maxLuma, luma);
+      minLuma = Math.min(minLuma, luma);
+    }
+
+    expect(maxLuma).toBeGreaterThan(0.55);
+    expect(maxLuma - minLuma).toBeGreaterThan(0.18);
+    expect(impactor.material.type).toBe('MeshBasicMaterial');
+    expect(system.getDiagnostics()).toMatchObject({
+      bowShockVisible: true,
+      plasmaVisible: true,
+      entryTrailVisible: true,
+      impactorVisible: true,
+      velocityAlignmentDot: expect.any(Number),
+    });
+    expect(system.getDiagnostics().velocityAlignmentDot).toBeGreaterThan(0.98);
+    system.dispose();
   });
 
   it('rejects malformed render snapshots at the subsystem boundary', () => {
@@ -451,15 +560,15 @@ describe('ImpactVisualSystem', () => {
     expect(diagnostics).toMatchObject({
       surfaceEffectProfile: 'solid-atmospheric',
       aftermathKind: 'crater',
-      flashVisible: true,
-      flashLightVisible: true,
+      flashVisible: false,
+      flashLightVisible: false,
       craterVisible: true,
       craterPersistent: true,
       groundShockwaveVisible: true,
       atmosphericShockwaveVisible: true,
       shockwaveSurfaceConforming: true,
       plumeVisible: true,
-      plumeLayerCount: 3,
+      plumeLayerCount: 1,
       cloudScarVisible: false,
       solidSurfaceEffectsSuppressed: false,
       aftermathPersistent: true,
@@ -471,7 +580,7 @@ describe('ImpactVisualSystem', () => {
       5_200 / 6_371_008.4,
       10,
     );
-    expect(diagnostics.activeObjectCount).toBeGreaterThan(6);
+    expect(diagnostics.activeObjectCount).toBeGreaterThanOrEqual(4);
 
     const geometryTypes: string[] = [];
     system.root.traverse((object) => {
@@ -613,6 +722,7 @@ describe('ImpactVisualSystem', () => {
 
     const resourceNames = [
       'impact-surface-flash-cap',
+      'impact-expanding-fireball',
       'impact-curved-crater-patch',
       'impact-curved-ground-shockwave',
       'impact-curved-atmospheric-shockwave',
@@ -687,6 +797,56 @@ describe('impact event-camera poses', () => {
     expect(resolveImpactCameraPose('chase', moon)).toEqual(moonPose);
   });
 
+  it('keeps the chase camera outside the drawn impactor and aimed at it', () => {
+    const event = state({
+      stage: 'atmospheric-entry',
+      physicalDiameterM: 80,
+      targetRadiusM: 6_371_008.4,
+    });
+    const pose = resolveImpactCameraPose('chase', event);
+    const radiusM = event.targetRadiusM;
+    const impactor = event.impactorLocalEnuM;
+    if (impactor === null) throw new Error('Fixture impactor position is missing.');
+    const body = {
+      x: 1 + impactor.upM / radiusM,
+      y: impactor.northM / radiusM,
+      z: impactor.eastM / radiusM,
+    };
+    const cameraDistance = Math.hypot(
+      pose.position.x - body.x,
+      pose.position.y - body.y,
+      pose.position.z - body.z,
+    );
+    const visualRadius = event.physicalDiameterM * 0.5 / radiusM;
+    expect(cameraDistance).toBeGreaterThan(visualRadius * 4);
+    expect(cameraDistance).toBeLessThan(visualRadius * 12);
+    const lookDistance = Math.hypot(
+      pose.target.x - body.x,
+      pose.target.y - body.y,
+      pose.target.z - body.z,
+    );
+    expect(lookDistance).toBeLessThan(visualRadius * 4);
+  });
+
+  it('frames plume chase with surface-up so the column rises on screen', () => {
+    const event = state({
+      stage: 'plume',
+      eventElapsedSeconds: 48,
+      plumeHeightM: 780_000,
+      plumeRadiusM: 240_000,
+      plumeOpacity: 0.72,
+      flashIntensity: 0,
+    });
+    const pose = resolveImpactCameraPose('chase', event, 16);
+    // Normal is +X in the fixture body frame → camera up should stay near +X.
+    expect(pose.up.x).toBeGreaterThan(0.85);
+    expect(Math.abs(pose.up.y)).toBeLessThan(0.35);
+    expect(Math.abs(pose.up.z)).toBeLessThan(0.35);
+    // Aim mid-column above the surface, not along the limb horizon.
+    expect(pose.target.x).toBeGreaterThan(1.002);
+    expect(pose.position.x).toBeGreaterThan(1);
+  });
+
   it('frames solid impact stages within the regional viewing envelope', () => {
     const localEvent = state({
       stage: 'ejecta',
@@ -699,8 +859,9 @@ describe('impact event-camera poses', () => {
       localPose.position.y,
       localPose.position.z,
     );
-    expect(localDistanceFromImpact).toBeGreaterThan(0.24);
-    expect(localDistanceFromImpact).toBeLessThan(0.3);
+    expect(localDistanceFromImpact).toBeGreaterThan(0);
+    expect((Math.hypot(localPose.position.x,localPose.position.y,localPose.position.z)-1)*localEvent.targetRadiusM).toBeCloseTo(2,5);
+    expect(localDistanceFromImpact).toBeLessThan(0.15);
     expect(localPose.target.x - 1).toBeGreaterThan(0);
     expect(localPose.target.x - 1).toBeLessThanOrEqual(0.02);
 
@@ -728,15 +889,24 @@ describe('impact event-camera poses', () => {
       enhancedPose.position.y,
       enhancedPose.position.z,
     );
-    expect(enhancedDistanceFromImpact).toBeGreaterThan(localDistanceFromImpact);
+    expect(enhancedDistanceFromImpact).toBeCloseTo(localDistanceFromImpact,12);
+    expect(resolveImpactCameraPose('ground-observer',{...localEvent,plumeHeightM:100000} ).position).toEqual(localPose.position);
   });
 });
 
 function pointPositions(system: ImpactVisualSystem, name: string): readonly number[] {
-  const points = system.root.getObjectByName(name) as Points<BufferGeometry> | undefined;
-  if (points === undefined) throw new Error(`Missing test points "${name}".`);
-  const count = points.geometry.drawRange.count;
-  const values = points.geometry.getAttribute('position').array as Float32Array;
+  const object = system.root.getObjectByName(name) as
+    | { geometry: BufferGeometry; userData: { ballisticSampleCount?: number } }
+    | undefined;
+  if (object === undefined) throw new Error(`Missing test points "${name}".`);
+  const sampleAttribute = object.geometry.getAttribute('aBallisticCenter');
+  const positionAttribute = sampleAttribute ?? object.geometry.getAttribute('position');
+  if (positionAttribute === undefined) {
+    throw new Error(`Missing position attribute on "${name}".`);
+  }
+  const count = object.userData.ballisticSampleCount
+    ?? (sampleAttribute !== undefined ? sampleAttribute.count : object.geometry.drawRange.count);
+  const values = positionAttribute.array as Float32Array;
   return Array.from(values.slice(0, count * 3));
 }
 
@@ -816,3 +986,96 @@ function state(overrides: Partial<ImpactRenderState> = {}): Readonly<ImpactRende
     ...overrides,
   });
 }
+
+it('keeps airborne plume, pressure wave and camera anchored above the burst', () => {
+  const system = new ImpactVisualSystem('high');
+  const event = state({ stage: 'plume', outcomeKind: 'airburst', eventElapsedSeconds: 3,
+    impactorLocalEnuM: { eastM: 0, northM: 0, upM: 30_000 },
+    plumeHeightM: 1_000, plumeRadiusM: 400, craterRadiusM: 0, craterFormationProgress: 0,
+    ejectaOpacity: 0, groundShockwaveOpacity: 0, flashIntensity: 0 });
+  system.update(event);
+  const centers = pointPositions(system, 'impact-layered-volumetric-plume');
+  expect(Math.min(...centers.filter((_, i) => i % 3 === 0))).toBeGreaterThan(1 + 30_000 / event.targetRadiusM);
+  const wave = system.root.getObjectByName('impact-curved-atmospheric-shockwave')!;
+  expect(wave.visible).toBe(true);
+  expect(wave.position.x).toBeCloseTo(1 + 30_000 / event.targetRadiusM, 8);
+  expect(system.getDiagnostics().groundShockwaveVisible).toBe(false);
+  for (const preset of ['chase', 'ground-observer'] as const) {
+    const pose = resolveImpactCameraPose(preset, event);
+    expect(pose.target.x).toBeGreaterThan(1 + 30_000 / event.targetRadiusM);
+    if(preset==='chase')expect(pose.position.x).toBeGreaterThan(pose.target.x);
+    else expect((Math.hypot(pose.position.x,pose.position.y,pose.position.z)-1)*event.targetRadiusM).toBeCloseTo(2,5);
+  }
+  system.dispose();
+});
+it('reports the actual world-space impactor radius for entry clipping', () => {
+  const system = new ImpactVisualSystem('high');
+  const target = new Group();
+  target.scale.setScalar(0.00004);
+  system.attachToTarget(target);
+  system.update(state({ stage: 'entry', eventElapsedSeconds: null }));
+  const impactor = system.root.getObjectByName('impact-impactor')!;
+  expect(system.getImpactorClipSphere()?.radius).toBeCloseTo(impactor.scale.x * target.scale.x, 14);
+  system.dispose();
+});
+it('keeps a ground wave attached to an oblate rocky target',()=>{
+  const system=new ImpactVisualSystem('high');
+  const event=state({targetBodyId:'mars',targetRadiusM:3000000,targetEquatorialRadiusM:3100000,
+    targetPolarRadiusM:2900000,stage:'ejecta',eventElapsedSeconds:3,craterFormationProgress:0});
+  system.update(event);
+  const mesh=system.root.getObjectByName('impact-curved-ground-shockwave') as Mesh<BufferGeometry,ShaderMaterial>;
+  expect(mesh.visible).toBe(true);
+  const p=mesh.geometry.getAttribute('position');
+  for(let i=0;i<p.count;i+=17){
+    const radius=Math.sqrt((p.getX(i)**2+p.getZ(i)**2)/(31/30)**2+p.getY(i)**2/(29/30)**2);
+    expect(radius).toBeGreaterThan(1);
+    expect(radius).toBeLessThan(1.000005);
+  }
+  system.dispose();
+});
+
+it('reduces ocean draw work at low quality without changing physical water dimensions',()=>{
+  const system=new ImpactVisualSystem('high');
+  const event=state({outcomeKind:'ocean-surface-impact',eventElapsedSeconds:3,
+    earthSurface:{kind:'ocean',elevationM:-4000,surfaceAltitudeM:0,waterDepthM:4000,coastal:false}});
+  system.update(event);
+  const mesh=system.root.getObjectByName('impact-ocean-wave-train') as Mesh<BufferGeometry,ShaderMaterial>;
+  const highCount=mesh.geometry.getIndex()!.count,cavity=mesh.material.uniforms.uCavity!.value;
+  system.setQuality('low');system.update(event);
+  expect(mesh.geometry.getIndex()!.count).toBeLessThan(highCount/3);
+  expect(mesh.material.uniforms.uCavity!.value).toBe(cavity);
+  system.dispose();
+});
+
+it('pulls the terminal camera back on a portrait viewport while keeping the event target', () => {
+  const event = state({ stage:'plume', outcomeKind:'airburst', eventElapsedSeconds:10 });
+  const wide = resolveImpactCameraPose('chase', event, 1, 16/9);
+  const portrait = resolveImpactCameraPose('chase', event, 1, 390/844);
+  expect(portrait.target).toEqual(wide.target);
+  const distance = (pose: typeof wide) => Math.hypot(pose.position.x-pose.target.x,
+    pose.position.y-pose.target.y,pose.position.z-pose.target.z);
+  expect(distance(portrait)).toBeGreaterThan(distance(wide)*1.5);
+  expect(resolveImpactCameraPose('ground-observer',event,1,390/844).position)
+    .toEqual(resolveImpactCameraPose('ground-observer',event,1,16/9).position);
+});
+
+it('keeps the regional event camera above the ocean instead of using the distant ground observer', () => {
+  const event = state({stage:'plume', outcomeKind:'ocean-surface-impact', eventElapsedSeconds:10,
+    physicalDiameterM:1000, visibilityReferenceSizeM:392381, plumeHeightM:45000, plumeRadiusM:18000,
+    earthSurface:{kind:'ocean',elevationM:-4642,surfaceAltitudeM:0,waterDepthM:4642,coastal:false}});
+  for(const multiplier of [1, 4]) {
+    const regional=resolveImpactCameraPose('regional',event,multiplier);
+    const altitude=(Math.hypot(regional.position.x,regional.position.y,regional.position.z)-1)*event.targetRadiusM;
+    expect(altitude).toBeGreaterThan(10000);
+    expect(regional.position.x).toBeGreaterThan(regional.target.x);
+  }
+  const ground=resolveImpactCameraPose('ground-observer',event);
+  const groundRadius = Math.hypot(ground.position.x,ground.position.y,ground.position.z);
+  expect((groundRadius-1)*event.targetRadiusM).toBeCloseTo(2,5);
+  const normal = event.impactNormalBodyLocal;
+  const distanceM = Math.acos((ground.position.x*normal.x+ground.position.y*normal.y+ground.position.z*normal.z)/groundRadius)*event.targetRadiusM;
+  expect(distanceM).toBeLessThan(250000);
+  expect(distanceM).toBeGreaterThan(50000);
+  const targetHeightM = (ground.target.x*normal.x+ground.target.y*normal.y+ground.target.z*normal.z-1)*event.targetRadiusM;
+  expect(targetHeightM).toBeLessThan(30000);
+});

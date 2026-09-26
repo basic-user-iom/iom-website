@@ -1,3 +1,4 @@
+import { getEarthSurfaceSampler, type EarthSurfaceSampler } from './EarthSurface';
 import { DeterministicRandom } from '../../core/DeterministicRandom';
 import type { Vec3d } from '../../core/Vec3d';
 import {
@@ -27,6 +28,7 @@ import type {
 } from './ImpactTypes';
 
 interface ImpactPhysicalOutcome {
+  readonly outcomeKind?: ImpactOutcomeKind;
   readonly estimatedAirburstAltitudeM?: number;
   readonly reachedSurface: boolean;
   readonly impactMassKg: number;
@@ -65,10 +67,12 @@ const EMPTY_FRAGMENT_MODEL: Readonly<ImpactFragmentModel> = Object.freeze({
 });
 
 const VISUAL_APPROXIMATION_NOTES = Object.freeze([
-  'Educational approximation: crater, ejecta, shockwave, plume, and haze scales are artistically tuned.',
+  'Crater diameter uses gravity-regime scaling (Collins, Melosh and Marcus, 2005); fragmented clouds are represented by their surviving equivalent mass. Plume, ejecta and flash remain bounded visual approximations.',
   'Visual effect dimensions do not feed back into the entry trajectory or reported kinetic energy.',
-  'Atmospheres use static exponential profiles; weather, winds, lift, chemistry, and terrain are omitted.',
-  'Fragmentation is a one-event dynamic-pressure approximation, not a hydrocode or damage forecast.',
+  'Atmospheres use static exponential profiles; weather, winds, lift, and chemistry are omitted; Earth uses a five-arcminute regional terrain grid when loaded.',
+  'Fragmentation uses a bounded expanding debris cloud after a pressure threshold; it is not a hydrocode or damage forecast.',
+  'Airburst ends luminous flight after dominant atmospheric energy loss; slow surviving meteorites are not traced.',
+  'No impact means no terminal event occurred within the simulated trajectory interval.',
 ]);
 
 export function calculateImpactPhysicalSummary(
@@ -94,7 +98,7 @@ export function calculateImpactPhysicalSummary(
   return Object.freeze({
     targetBodyId: target.bodyId,
     targetClass: target.targetClass,
-    outcomeKind: classifyImpactOutcome(target.targetClass, outcome.reachedSurface),
+    outcomeKind: outcome.outcomeKind ?? classifyImpactOutcome(target.targetClass, outcome.reachedSurface),
     targetRadiusM: impactTargetCollisionRadiusM(target),
     diameterM: normalized.diameterM,
     densityKgM3: normalized.densityKgM3,
@@ -143,6 +147,7 @@ export function atmosphereDensityAtAltitudeM(
  */
 export function simulateImpactEntry(
   parameters: Readonly<ImpactParameters>,
+  earthSampler: EarthSurfaceSampler | null = getEarthSurfaceSampler(),
 ): Readonly<ImpactSimulationResult> {
   const normalized = validateImpactParameters(parameters);
   const target = getImpactTargetProfile(normalized.targetBodyId);
@@ -150,6 +155,9 @@ export function simulateImpactEntry(
     ? getImpactAtmosphereProfile(target)
     : null;
   const collisionRadiusM = impactTargetCollisionRadiusM(target);
+  const surfaceAt = (p: { x: number; y: number; z: number }) => target.bodyId === 'earth' && earthSampler !== null
+    ? earthSampler(Math.atan2(p.z, Math.hypot(p.x, p.y)) * 180 / Math.PI, Math.atan2(p.y, p.x) * 180 / Math.PI) : undefined;
+  const clearance = (p: { x: number; y: number; z: number }) => altitudeAboveTargetM(p, collisionRadiusM) - (surfaceAt(p)?.surfaceAltitudeM ?? 0);
   const initialSummary = calculateImpactPhysicalSummary(normalized);
   const material = IMPACT_MATERIAL_PROFILES[normalized.material];
   const angleRad = initialSummary.entryAngleRad;
@@ -208,8 +216,11 @@ export function simulateImpactEntry(
   let maximumEnergyLossRateW = 0;
   let maximumEnergyLossAltitudeM = initialAltitudeM;
   let maximumEnergyLossState: MutableEntryState | null = null;
+  let maximumEnergyLossSample: Readonly<BodyTrajectorySample> | null = null;
   let atmosphericEnergyLossJ = 0;
   let reachedSurface = false;
+  let atmosphericTermination = false;
+  let fragmentCloudRadiusM = initialSummary.radiusM;
 
   const minimumMassKg = Math.max(
     IMPACT_ENTRY_CONFIGURATION.minimumSurvivingMassKg,
@@ -224,7 +235,7 @@ export function simulateImpactEntry(
 
   while (
     state.timeSeconds < maximumDurationSeconds &&
-    altitudeAboveTargetM(state, collisionRadiusM) > 0 &&
+    clearance(state) > 0 &&
     state.massKg > minimumMassKg
   ) {
     const previous = { ...state };
@@ -244,11 +255,20 @@ export function simulateImpactEntry(
       fragmentation = createFragmentModel(random, state.timeSeconds, altitudeM);
     }
 
-    const fragmentAreaMultiplier = fragmentation.count === 0
-      ? 1
-      : fragmentation.count ** IMPACT_ENTRY_CONFIGURATION.fragmentationAreaExponent;
     const impactorRadiusM = radiusForMass(state.massKg, normalized.densityKgM3);
-    const effectiveAreaM2 = Math.PI * impactorRadiusM ** 2 * fragmentAreaMultiplier;
+    if (fragmentation.count > 0) {
+      // Continue lateral spreading after breakup, capped at seven initial radii.
+      fragmentCloudRadiusM = Math.min(
+        initialSummary.radiusM * IMPACT_ENTRY_CONFIGURATION.maximumFragmentCloudRadiusRatio,
+        fragmentCloudRadiusM + speedMps * Math.sqrt(
+          IMPACT_ENTRY_CONFIGURATION.fragmentDispersionCoefficient *
+          atmosphereDensity / normalized.densityKgM3,
+        ) * IMPACT_FIXED_STEP_SECONDS,
+      );
+    }
+    const effectiveRadiusM = fragmentation.count > 0
+      ? Math.max(impactorRadiusM, fragmentCloudRadiusM) : impactorRadiusM;
+    const effectiveAreaM2 = Math.PI * effectiveRadiusM ** 2;
     const dragAccelerationMps2 = speedMps === 0 || state.massKg <= 0
       ? 0
       : 0.5 * atmosphereDensity * material.dragCoefficient * effectiveAreaM2 *
@@ -274,11 +294,13 @@ export function simulateImpactEntry(
     const dragPowerW = dragAccelerationMps2 * state.massKg * speedMps;
     const dissipationPowerW = dragPowerW + 0.5 *
       massLossKg / IMPACT_FIXED_STEP_SECONDS * speedMps ** 2;
-    atmosphericEnergyLossJ += dissipationPowerW * IMPACT_FIXED_STEP_SECONDS;
     if (dissipationPowerW > maximumEnergyLossRateW) {
       maximumEnergyLossRateW = dissipationPowerW;
       maximumEnergyLossAltitudeM = Math.max(0, altitudeM);
       maximumEnergyLossState = { ...state };
+      maximumEnergyLossSample = createBodyTrajectorySample(
+        state, collisionRadiusM, dynamicPressurePa, heatingPowerW,
+      );
     }
 
     state.vx += ax * IMPACT_FIXED_STEP_SECONDS;
@@ -291,15 +313,35 @@ export function simulateImpactEntry(
     state.timeSeconds += IMPACT_FIXED_STEP_SECONDS;
     assertFiniteState(state);
 
-    if (altitudeAboveTargetM(state, collisionRadiusM) <= 0) {
-      interpolateSphereCrossing(state, previous, collisionRadiusM);
+    if (clearance(state) <= 0) {
+      if (target.bodyId === 'earth' && earthSampler !== null) {
+        const end = { ...state }; let low = 0, high = 1;
+        for (let i = 0; i < 28; i++) {
+          const t = (low + high) / 2;
+          const p = { x: lerp(previous.x, end.x, t), y: lerp(previous.y, end.y, t), z: lerp(previous.z, end.z, t) };
+          if (clearance(p) > 0) low = t; else high = t;
+        }
+        for (const key of Object.keys(state) as (keyof MutableEntryState)[]) state[key] = lerp(previous[key], end[key], high);
+      } else interpolateSphereCrossing(state, previous, collisionRadiusM);
       reachedSurface = state.massKg > minimumMassKg;
     }
 
+    atmosphericEnergyLossJ += dissipationPowerW * (state.timeSeconds - previous.timeSeconds);
+    const remainingEnergyJ = 0.5 * state.massKg *
+      (state.vx ** 2 + state.vy ** 2 + state.vz ** 2);
+    // End luminous flight before slow meteorites are misrepresented as a blast.
+    atmosphericTermination = atmosphere !== null && !reachedSurface &&
+      maximumEnergyLossRateW > 0 &&
+      (state.massKg <= minimumMassKg || (
+        Math.hypot(state.vx, state.vy, state.vz) <
+          IMPACT_ENTRY_CONFIGURATION.luminousFlightMinimumSpeedMps &&
+        remainingEnergyJ < initialSummary.kineticEnergyJ * 0.1
+      ));
+
     if (
       state.timeSeconds + Number.EPSILON >= nextSampleTime ||
-      altitudeAboveTargetM(state, collisionRadiusM) <= 0 ||
-      state.massKg <= minimumMassKg
+      reachedSurface ||
+      state.massKg <= minimumMassKg || atmosphericTermination
     ) {
       const sampleAltitudeM = altitudeAboveTargetM(state, collisionRadiusM);
       const sampleSpeedMps = Math.hypot(state.vx, state.vy, state.vz);
@@ -316,6 +358,10 @@ export function simulateImpactEntry(
         nextSampleTime += IMPACT_TRAJECTORY_SAMPLE_SECONDS;
       }
     }
+    if (atmosphericTermination || reachedSurface) break;
+    // Departing flybys do not explode when the integration budget expires.
+    if (altitudeAboveTargetM(state, collisionRadiusM) >= initialAltitudeM &&
+      state.x * state.vx + state.y * state.vy + state.z * state.vz > 0) break;
   }
 
   if (bodySamples.at(-1)?.timeSeconds !== state.timeSeconds) {
@@ -338,8 +384,13 @@ export function simulateImpactEntry(
   const impactEnergyJ = reachedSurface
     ? 0.5 * impactMassKg * impactSpeedMps ** 2
     : 0;
-  const physicalSummary = calculateImpactPhysicalSummary(normalized, {
-    ...(reachedSurface
+  const eventState = atmosphericTermination ? maximumEnergyLossState ?? state : state;
+  const earthSurface = surfaceAt(eventState);
+  const baseSummary = calculateImpactPhysicalSummary(normalized, {
+    outcomeKind: !reachedSurface && !atmosphericTermination
+      ? 'no-impact'
+      : classifyImpactOutcome(target.targetClass, reachedSurface),
+    ...(reachedSurface || !atmosphericTermination
       ? {}
       : {
           estimatedAirburstAltitudeM: maximumEnergyLossRateW > 0
@@ -352,7 +403,17 @@ export function simulateImpactEntry(
     impactEnergyJ,
     atmosphericEnergyLossJ: atmosphere === null ? 0 : atmosphericEnergyLossJ,
   });
-  const eventState = reachedSurface ? state : maximumEnergyLossState ?? state;
+  const physicalSummary: Readonly<ImpactPhysicalSummary> = Object.freeze({ ...baseSummary,
+    ...(earthSurface === undefined ? {} : { earthSurface }),
+    outcomeKind: reachedSurface && earthSurface?.kind === 'ocean' ? 'ocean-surface-impact' : baseSummary.outcomeKind,
+  });
+  if (atmosphericTermination && maximumEnergyLossSample !== null) {
+    const index = bodySamples.findIndex(sample => sample.timeSeconds >= eventState.timeSeconds);
+    if (index < 0) bodySamples.push(maximumEnergyLossSample);
+    else if (bodySamples[index]?.timeSeconds === eventState.timeSeconds) {
+      bodySamples[index] = maximumEnergyLossSample;
+    } else bodySamples.splice(index, 0, maximumEnergyLossSample);
+  }
   const terminalNormal = normalizedVector(immutableVec3d(
     eventState.x,
     eventState.y,
@@ -374,9 +435,44 @@ export function simulateImpactEntry(
   });
 }
 
+/** Collins et al. (2005), Eq. 21 and simple/complex collapse scaling.
+ * SI units, equivalent surviving diameter; homogeneous competent-rock target. */
+export function estimateCraterRadiusM(summary: Readonly<ImpactPhysicalSummary>, gravity: number, targetDensity: number): number {
+  if(summary.impactMassKg<=0 || summary.impactSpeedMps<=0)return 0;
+  const diameter=2*radiusForMass(summary.impactMassKg,summary.densityKgM3);
+  const transient=1.161*Math.cbrt(summary.densityKgM3/targetDensity)*diameter**0.78
+    *summary.impactSpeedMps**0.44*gravity**(-0.22)*Math.cbrt(Math.sin(summary.entryAngleRad));
+  const transition=3200*9.80665/gravity;
+  const finalDiameter=transient*1.25<transition ? transient*1.25 : 1.17*transient**1.13/transition**0.13;
+  return clamp(finalDiameter*0.5,1,100000);
+}
+
 export function deriveImpactVisualProfile(
   summary: Readonly<ImpactPhysicalSummary>,
 ): Readonly<ImpactVisualProfile> {
+  if (summary.outcomeKind === 'ocean-surface-impact') {
+    const land = deriveImpactVisualProfile({ ...summary, outcomeKind: 'solid-surface-impact' });
+    const depth = summary.earthSurface?.waterDepthM ?? 10000;
+    const diameter = 2 * radiusForMass(summary.impactMassKg, summary.densityKgM3);
+    // Drag through the water column, C_D=1, constant area/mass: an upper-bound
+    // substrate coupling estimate; breakup and water vaporization are omitted.
+    const speed = summary.impactSpeedMps * Math.exp(-3 * 1000 * depth
+      / Math.max(1, 4 * summary.densityKgM3 * diameter * Math.sin(summary.entryAngleRad)));
+    const seafloorRadius = speed > 3000 ? estimateCraterRadiusM({ ...summary, impactSpeedMps: speed },
+      getImpactTargetProfile(summary.targetBodyId).surfaceGravityMps2, 2700) : 0;
+    return Object.freeze({ ...land, seafloorCraterRadiusM: seafloorRadius, seafloorCraterDepthM: seafloorRadius * 0.2, craterRadiusM: 0, craterDepthM: 0, craterFormationSeconds: 0,
+      scorchRadiusM: 0, ejectaRadiusM: 0, ejectaLaunchSpeedMps: 0, ejectaLifetimeSeconds: 0,
+      groundShockwaveSpeedMps: 0, groundShockwaveLifetimeSeconds: 0,
+      approximationNotes: Object.freeze([...land.approximationNotes,
+        'Ocean cavity, collapse, rebound jet and dispersive waves use bounded approximations. Shallow-water substrate cratering uses a constant-drag upper-bound estimate; coastal inundation and tsunami hazard are not predicted.']),
+    });
+  }
+  if (summary.outcomeKind === 'no-impact') {
+    const template = deriveImpactVisualProfile({ ...summary, outcomeKind: 'airburst' });
+    return Object.freeze(Object.fromEntries(Object.entries(template).map(
+      ([key, value]) => [key, typeof value === 'number' ? 0 : value],
+    )) as unknown as ImpactVisualProfile);
+  }
   const target = getImpactTargetProfile(summary.targetBodyId);
   const tuning = getImpactVisualTuningProfile(target.visualProfileId);
   const eventEnergyJ = summary.reachedSurface
@@ -400,7 +496,7 @@ export function deriveImpactVisualProfile(
     hasAtmosphericEnergy && target.supportsAtmosphericShockwave;
   const supportsCloudScar = hasAtmosphericEnergy && target.supportsCloudScar;
   const craterRadiusM = supportsSurfaceEffects
-    ? clamp(80 * eventMegatons ** 0.28, 8, 100_000)
+    ? estimateCraterRadiusM(summary, target.surfaceGravityMps2, target.surfaceDensityKgM3 ?? 2700)
     : 0;
   const flashRadiusM = clamp(
     320 * eventMegatons ** 0.2 * tuning.flashRadiusMultiplier,
@@ -482,8 +578,8 @@ export function deriveImpactVisualProfile(
     ejectaLifetimeSeconds,
     plumeHeightM,
     plumeRadiusM,
-    plumeRiseSeconds: tuning.plumeRiseSeconds,
-    plumeLifetimeSeconds: tuning.plumeLifetimeSeconds,
+    plumeRiseSeconds: Math.max(tuning.plumeRiseSeconds, Math.min(60, plumeHeightM / 350)),
+    plumeLifetimeSeconds: Math.max(tuning.plumeLifetimeSeconds, Math.min(160, plumeHeightM / 350 * 2.4)),
     shockwaveVisualSpeedMps: Math.max(
       groundShockwaveSpeedMps,
       atmosphericShockwaveSpeedMps,
@@ -562,7 +658,7 @@ export function sampleImpactTrajectory(
   });
 }
 
-/** Creates the body-local ENU basis for a configured spherical target point. */
+/** Right-handed ENU basis in the body's +Z-north frame, matching body rotation and sunlight. */
 export function createImpactFrame(
   latitudeDeg: number,
   longitudeDeg: number,
@@ -578,8 +674,8 @@ export function createImpactFrame(
   const cosLatitude = Math.cos(latitudeRad);
   const normal = immutableVec3d(
     cosLatitude * Math.cos(longitudeRad),
-    Math.sin(latitudeRad),
     cosLatitude * Math.sin(longitudeRad),
+    Math.sin(latitudeRad),
   );
   return createImpactFrameFromNormal(normal, longitudeDeg);
 }
@@ -589,12 +685,12 @@ function createImpactFrameFromNormal(
   fallbackLongitudeDeg: number,
 ): Readonly<ImpactFrame> {
   const normal = normalizedVector(normalInput);
-  const horizontalLength = Math.hypot(normal.x, normal.z);
+  const horizontalLength = Math.hypot(normal.x, normal.y);
   const fallbackLongitudeRad = fallbackLongitudeDeg * Math.PI / 180;
   const east = horizontalLength > 1e-12
-    ? immutableVec3d(-normal.z / horizontalLength, 0, normal.x / horizontalLength)
-    : immutableVec3d(-Math.sin(fallbackLongitudeRad), 0, Math.cos(fallbackLongitudeRad));
-  const north = normalizedVector(cross(east, normal));
+    ? immutableVec3d(-normal.y / horizontalLength, normal.x / horizontalLength, 0)
+    : immutableVec3d(-Math.sin(fallbackLongitudeRad), Math.cos(fallbackLongitudeRad), 0);
+  const north = normalizedVector(cross(normal, east));
   return Object.freeze({
     normalBodyLocal: normal,
     eastBodyLocal: east,

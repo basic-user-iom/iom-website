@@ -444,7 +444,9 @@ function deriveSurfaceEventChannels(
   profile: Readonly<ImpactVisualProfile>,
   eventElapsedSeconds: number | null,
 ): Readonly<ImpactSurfaceEventChannels> {
-  if (eventElapsedSeconds === null) return EMPTY_SURFACE_EVENT_CHANNELS;
+  if (eventElapsedSeconds === null || simulation.physicalSummary.outcomeKind === 'no-impact') {
+    return EMPTY_SURFACE_EVENT_CHANNELS;
+  }
   const elapsed = eventElapsedSeconds;
   const target = getImpactTargetProfile(simulation.physicalSummary.targetBodyId);
   const targetRadiusM = simulation.physicalSummary.targetRadiusM;
@@ -545,15 +547,15 @@ function deriveSurfaceEventChannels(
   const plumeDecay = plumeActive
     ? 1 - smoothstep(0.62, 1, plumeLifetimeProgress)
     : 0;
-  const plumeOpacity = clamp(plumeRise * plumeDecay, 0, 1);
-  const plumeHeightM = profile.plumeHeightM * plumeRise * plumeDecay;
+  const plumeOpacity = clamp((1 - Math.exp(-elapsed / 1.2)) * plumeDecay, 0, 1);
+  const plumeHeightM = profile.plumeHeightM * plumeRise;
   const plumeRadiusM = plumeActive
     ? profile.plumeRadiusM *
-      easeOutCubic(progressOverDuration(elapsed, profile.plumeRiseSeconds * 2)) *
-      plumeDecay
+      easeOutCubic(progressOverDuration(elapsed, profile.plumeRiseSeconds * 2))
     : 0;
   const plumeCoolingProgress = plumeActive
-    ? plumeLifetimeProgress
+    // Incandescence ends much earlier than the dust cloud disperses.
+    ? 1 - Math.exp(-elapsed / 1.8)
     : elapsed >= profile.plumeLifetimeSeconds
       ? 1
       : 0;
@@ -645,6 +647,7 @@ function stageAtTime(
     return 'atmospheric-entry';
   }
 
+  if (simulation.physicalSummary.outcomeKind === 'no-impact') return 'complete';
   const afterEventSeconds = scenarioTimeSeconds - simulation.terminalEventTimeSeconds;
   const hasPersistentSurfaceAftermath =
     channels.craterFormationProgress > 0 || channels.surfaceScorchOpacity > 0;
@@ -653,6 +656,7 @@ function stageAtTime(
   }
   if (
     simulation.physicalSummary.outcomeKind !== 'solid-surface-impact' &&
+    simulation.physicalSummary.outcomeKind !== 'ocean-surface-impact' &&
     afterEventSeconds < profile.flashDurationSeconds
   ) {
     return 'airburst';

@@ -1,3 +1,4 @@
+import type { EarthSurfaceSample } from '../../simulation/scenarios/impact/EarthSurface';
 import type { CameraCloseUpPresetId } from '../camera/CameraCloseUpPresets';
 import type { CameraMode } from '../camera/CameraTypes';
 import type { ImpactVisibilityMode } from './ImpactVisibility';
@@ -69,8 +70,10 @@ export type ImpactRenderTargetClass = (typeof IMPACT_RENDER_TARGET_CLASSES)[numb
 
 export const IMPACT_RENDER_OUTCOME_KINDS = [
   'solid-surface-impact',
+  'ocean-surface-impact',
   'airburst',
   'deep-atmosphere-breakup',
+  'no-impact',
 ] as const;
 
 export type ImpactRenderOutcomeKind = (typeof IMPACT_RENDER_OUTCOME_KINDS)[number];
@@ -102,6 +105,10 @@ export type ImpactAftermathKind = (typeof IMPACT_AFTERMATH_KINDS)[number];
  * authored visual profile.
  */
 export interface ImpactRenderState {
+  readonly surfaceImpactEnergyJ?: number;
+  readonly seafloorCraterRadiusM?: number;
+  readonly seafloorCraterDepthM?: number;
+  readonly earthSurface?: EarthSurfaceSample;
   /** Preview exposes only setup guidance; playback exposes the simulated event. */
   readonly presentationMode: ImpactPresentationMode;
   readonly lifecycleState: ImpactLifecycleState;
@@ -143,6 +150,8 @@ export interface ImpactRenderState {
   readonly eventElapsedSeconds: number | null;
   readonly flashIntensity: number;
   readonly flashRadiusM: number;
+  /** Full-run authored envelope, used to keep enhancement constant during playback. */
+  readonly visibilityReferenceSizeM?: number;
   readonly craterRadiusM: number;
   readonly craterDepthM: number;
   readonly scorchRadiusM: number;
@@ -177,6 +186,7 @@ export const IMPACT_CAMERA_PRESET_IDS = [
   'side-entry',
   'horizon',
   'chase',
+  'regional',
   'ground-observer',
 ] as const;
 

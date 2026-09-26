@@ -1,3 +1,4 @@
+import { impactDepthUniforms } from '../../rendering/impact/ImpactDepthContext';
 import { Points, ShaderMaterial } from 'three';
 
 import {
@@ -138,6 +139,7 @@ describe('StatisticalBeltRenderer', () => {
     expect(material.fragmentShader).toContain('gl_PointCoord');
     expect(material.fragmentShader).toContain('discard');
     expect(material.vertexShader).toContain('min(uMarkerCapPx');
+    expect(material.uniforms.uImpactSkyVisibility).toBe(impactDepthUniforms.uImpactSkyVisibility);
     expect(material.depthWrite).toBe(false);
     expect(material.toneMapped).toBe(true);
     const metrics = renderer.getVisualMetrics('asteroid-belt');

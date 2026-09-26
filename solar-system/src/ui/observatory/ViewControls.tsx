@@ -233,26 +233,30 @@ export function ViewControls({
         disabled={disabled}
         aria-describedby="trail-interval-help"
       >
-        <legend>Selected-body trail interval</legend>
+        <legend>Selected-body trail</legend>
         <div className="segmented-row" data-testid="trail-interval-controls">
           <button
             type="button"
             aria-pressed={selectedTrailInterval === 'previous'}
+            aria-label="Show trail before the current epoch"
+            title="Draw the sampled path immediately before the current epoch."
             onClick={() => onSelectedTrailIntervalChange('previous')}
           >
-            Previous
+            Before epoch
           </button>
           <button
             type="button"
             aria-pressed={selectedTrailInterval === 'next'}
+            aria-label="Show trail after the current epoch"
+            title="Draw the sampled path immediately after the current epoch."
             onClick={() => onSelectedTrailIntervalChange('next')}
           >
-            Next
+            After epoch
           </button>
         </div>
       </fieldset>
       <p className="field-help" id="trail-interval-help">
-        Draw the sampled interval immediately before or after the current epoch.
+        Choose whether the selected path draws the interval before or after the current date.
       </p>
 
       {presentationWarningRequired ? (
@@ -262,8 +266,8 @@ export function ViewControls({
           role="status"
           data-testid="presentation-scale-warning"
         >
-          Body sizes are exaggerated. Earth and Moon share a 40× radius scale; all orbital
-          positions remain linearly scaled.
+          Body sizes are exaggerated (Earth/Moon share a 40× radius scale). Orbital
+          positions stay linearly scaled.
         </p>
       ) : (
         <p className="true-scale-note" id="scale-mode-help" data-testid="true-scale-note">

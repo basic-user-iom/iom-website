@@ -1,28 +1,25 @@
+﻿import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
 import {
   ACESFilmicToneMapping,
   AmbientLight,
-  BufferGeometry,
+  type BufferGeometry,
   Color,
-  Float32BufferAttribute,
   GridHelper,
   Group,
-  Line,
-  LineBasicMaterial,
   PerspectiveCamera,
   PointLight,
   Quaternion,
   Scene,
   SphereGeometry,
   SRGBColorSpace,
+  Vector2,
   Vector3,
   WebGLRenderer,
-  type BufferAttribute,
   type Material,
   type Object3D,
 } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-import type { EphemerisPathKind } from './EphemerisOrbitGeometry';
 import {
   SolarPostProcessing,
   type SolarExposurePreset,
@@ -41,6 +38,15 @@ import {
   writeCameraRelativePathPositions,
   writeDistanceFadedPathColors,
 } from './EphemerisPathMapping';
+import {
+  applyEphemerisOrbitPathRole,
+  createEphemerisOrbitPath,
+  disposeEphemerisOrbitPath,
+  resolveEphemerisOrbitPathEmphasis,
+  setEphemerisOrbitPathResolution,
+  syncEphemerisOrbitPathGeometry,
+  type EphemerisOrbitPathResources,
+} from './EphemerisOrbitPathVisual';
 import { PresentationRenderScale } from './PresentationRenderScale';
 import type {
   DebugBodyRenderState,
@@ -136,6 +142,7 @@ import {
   NaturalSatelliteVisualSystem,
   type NaturalSatelliteVisualDiagnostics,
 } from './satellites';
+import { NATURAL_SATELLITE_DEFINITIONS } from '../simulation/satellites/NaturalSatelliteCatalog';
 import {
   SpaceObjectVisualSystem,
   type SpaceObjectVisualDiagnostics,
@@ -234,23 +241,14 @@ interface MutableSolarFateScaleContext {
   baseSunRadiusRenderUnits: number;
 }
 
-interface PathResources {
-  readonly line: Line<BufferGeometry, LineBasicMaterial>;
-  readonly source: Float64Array;
-  readonly centerBodyId: string | null;
-  readonly kind: EphemerisPathKind;
-  readonly mappedPositions: Float32Array;
-  readonly mappedColors: Float32Array;
-  readonly positionAttribute: BufferAttribute;
-  readonly colorAttribute: BufferAttribute;
-  readonly color: Color;
-}
+type PathResources = EphemerisOrbitPathResources;
 
 const HELIOCENTRIC_ORIGIN: PhysicalPosition = Object.freeze({ x: 0, y: 0, z: 0 });
 const MAX_DEVICE_PIXEL_RATIO = 2;
 const SYSTEM_RADIUS_FLOOR = 4;
 const BACKGROUND_FAR_PLANE = 800;
 const VISUAL_NORTH = new Vector3(0, 1, 0);
+const PATH_VIEWPORT = new Vector2(1, 1);
 
 /**
  * Phase 3 renderer. Simulation state stays Float64/SI; astronomical positions
@@ -274,6 +272,7 @@ export class DebugSolarSystemRenderer {
     minimumNear: 1e-12,
     minimumFar: BACKGROUND_FAR_PLANE,
   });
+  private readonly referenceGrid = new GridHelper(80, 40, 0x214563, 0x102338);
   private readonly pathLayer = new Group();
   private readonly markerLayer = new Group();
   private readonly sphereGeometry = new SphereGeometry(1, 128, 96);
@@ -307,6 +306,7 @@ export class DebugSolarSystemRenderer {
   private readonly mappedHeliocentricCenter = new Vector3();
   private readonly scratchMapped = new Vector3();
   private readonly scratchProjected = new Vector3();
+  private readonly scratchFocus = new Vector3();
   private readonly visualFeatureRotation = new Quaternion();
   private readonly impactCameraPosition = new Vector3();
   private readonly impactCameraTarget = new Vector3();
@@ -360,6 +360,8 @@ export class DebugSolarSystemRenderer {
   private bodyLabelsVisible = true;
   private freeOrbitNeedsInitialization = false;
   private auxiliaryFocusRadiusRenderUnits: number | null = null;
+  /** True while freerorbiting a natural satellite; bloom is suppressed so ice moons stay sharp. */
+  private naturalSatelliteCloseupActive = false;
   private reducedMotion: boolean;
   private reduceFlashes = true;
   private viewportWidth = 1;
@@ -377,6 +379,7 @@ export class DebugSolarSystemRenderer {
   private cometFrameStates: readonly Readonly<CometFrameState>[] = Object.freeze([]);
   private cometsVisible = true;
   private impactRenderState: Readonly<ImpactRenderState> | null = null;
+  private solarFateCameraView: SolarFateCameraView = 'auto';
   private solarEvolutionRenderState: Readonly<SolarEvolutionRenderState> | null = null;
   private fictionalSupernovaRenderState:
     | Readonly<FictionalSupernovaRenderState>
@@ -461,12 +464,16 @@ export class DebugSolarSystemRenderer {
     this.scene.add(this.solarPointLight);
     this.scene.add(this.ambientLight);
 
-    const grid = new GridHelper(80, 40, 0x214563, 0x102338);
+    const grid = this.referenceGrid;
+    grid.name = 'observatory-reference-grid';
     grid.material.transparent = true;
     grid.material.opacity = 0.18;
+    grid.material.depthWrite = false;
     this.scene.add(grid);
 
     this.camera.position.set(0, 32, 62);
+    // Educational BH overlays (disk / photon ring) live on layer 1.
+    this.camera.layers.enable(1);
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = !this.reducedMotion;
     this.controls.dampingFactor = 0.075;
@@ -500,10 +507,13 @@ export class DebugSolarSystemRenderer {
 
     this.updateCamera(context.frame, deltaSeconds);
     this.updateBlackHoleLensing();
-    this.celestialBackground.updateCameraPosition(this.camera.position);
+    this.celestialBackground.updateCameraPosition(
+      this.camera.position,
+      this.camera.far,
+    );
     this.updateScreenSpaceLabels();
     const labelsSuppressed = this.cameraController.status.closeUpPresetId !== null
-      || this.impactPlaybackActive();
+      || this.scenarioOverlaysSuppressed();
     this.naturalSatelliteVisualSystem.updateLabels(
       this.camera,
       this.viewportWidth,
@@ -518,6 +528,21 @@ export class DebugSolarSystemRenderer {
     );
     this.updateExposurePreset();
     this.updateScenarioExposureProtection();
+    // Impact chase / moon close-ups / Saturn rings / comet focus: kill bloom so
+    // thin educational detail is not washed into a fog ball (coma especially).
+    const saturnRingsCloseUp =
+      this.cameraController.status.closeUpPresetId === 'saturn-rings';
+    const cometFocusActive = this.markers.get(this.selectedBodyId)?.isComet === true;
+    if (
+      this.impactPlaybackActive() ||
+      this.naturalSatelliteCloseupActive ||
+      saturnRingsCloseUp ||
+      cometFocusActive
+    ) {
+      this.postProcessing.setBloomAttenuation(0);
+    } else if (this.exposurePreset !== 'solar-closeup') {
+      this.postProcessing.setBloomAttenuation(1);
+    }
     const resolutionChanged = this.adaptiveResolution.sampleFrame(
       deltaSeconds,
       this.activeHeavyRenderEffect(),
@@ -593,13 +618,19 @@ export class DebugSolarSystemRenderer {
 
     this.overviewRadiusRenderUnits = maximumHeliocentricDistance * 1.08;
     this.bodyVisualSystem.updateFrame(frame);
+    this.naturalSatelliteVisualSystem.setScenarioOverlaysSuppressed(this.scenarioOverlaysSuppressed());
     this.naturalSatelliteVisualSystem.updateFrame(
       frame,
       this.scaleModel,
       this.currentOriginM,
       this.selectedBodyId,
     );
-    this.spaceObjectVisualSystem.updateFrame(frame, this.scaleModel, this.currentOriginM);
+    this.spaceObjectVisualSystem.updateFrame(
+      frame,
+      this.scaleModel,
+      this.currentOriginM,
+      this.camera,
+    );
     if (this.impactRenderState !== null) {
       this.impactVisualSystem.update(this.impactRenderState);
     }
@@ -661,6 +692,10 @@ export class DebugSolarSystemRenderer {
     );
     this.updateCameraTargetOrientations(frame.currentJdTdb);
     this.updatePaths(frame.trails, frame.bodies);
+    const suppressReferences = this.scenarioOverlaysSuppressed();
+    this.referenceGrid.visible = !suppressReferences;
+    this.statisticalBelts.root.visible = !suppressReferences;
+    this.pathLayer.visible = this.orbitLinesVisible && !suppressReferences;
   }
 
   public resize(widthCssPixels: number, heightCssPixels: number, devicePixelRatio: number): void {
@@ -681,6 +716,18 @@ export class DebugSolarSystemRenderer {
     this.camera.aspect = width / height;
     this.camera.fov = verticalFovForViewport(width, height);
     this.camera.updateProjectionMatrix();
+    PATH_VIEWPORT.set(width * pixelRatio, height * pixelRatio);
+    for (const resources of this.paths.values()) {
+      setEphemerisOrbitPathResolution(resources, width * pixelRatio, height * pixelRatio);
+    }
+    // Fullscreen / layout changes must re-seat the encounter close-up so the
+    // silhouette stays large and centered instead of a thin edge crescent.
+    if (
+      this.blackHoleCameraFraming
+      && this.blackHoleVisualSystem.getDiagnostics().active
+    ) {
+      this.frameBlackHole();
+    }
   }
 
   public setSelectedBody(bodyId: string): void {
@@ -688,7 +735,7 @@ export class DebugSolarSystemRenderer {
     if (bodyId.trim().length === 0) throw new RangeError('Selected body ID cannot be empty.');
     this.selectedBodyId = bodyId;
     this.spaceObjectVisualSystem.setDetailedInspectionObject(null);
-    this.auxiliaryFocusRadiusRenderUnits = null;
+    this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     if (this.markers.get(bodyId)?.isComet !== true) this.bodyVisualSystem.ensureAssets(bodyId);
     this.cameraController.setTargetBody(bodyId);
@@ -705,7 +752,7 @@ export class DebugSolarSystemRenderer {
 
     this.selectedBodyId = bodyId;
     this.spaceObjectVisualSystem.setDetailedInspectionObject(null);
-    this.auxiliaryFocusRadiusRenderUnits = null;
+    this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     if (body.kind !== 'comet') this.bodyVisualSystem.ensureAssets(bodyId);
     this.cameraController.focusBody(bodyId, mode);
@@ -723,7 +770,7 @@ export class DebugSolarSystemRenderer {
       this.bodyVisualSystem.ensureAssets('moon');
     }
     this.cameraController.setTargetBody(this.selectedBodyId);
-    this.auxiliaryFocusRadiusRenderUnits = null;
+    this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     this.cameraController.setMode(mode);
     this.controls.enabled = mode === 'free-orbit';
@@ -734,7 +781,7 @@ export class DebugSolarSystemRenderer {
   public interruptCameraToFreeOrbit(): void {
     this.assertNotDisposed();
     this.cameraController.interruptToFreeOrbit();
-    this.auxiliaryFocusRadiusRenderUnits = null;
+    this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     this.cameraController.rig.applyTo(this.camera, this.controls.target);
     this.controls.enabled = true;
@@ -754,13 +801,15 @@ export class DebugSolarSystemRenderer {
     const body = this.lastFrame?.bodies.find((candidate) => candidate.bodyId === preset.bodyId);
     if (body === undefined || !body.visible) return false;
     this.selectedBodyId = preset.bodyId;
-    this.auxiliaryFocusRadiusRenderUnits = null;
+    this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     this.bodyVisualSystem.ensureAssets(preset.bodyId);
     this.cameraController.applyCloseUpPreset(presetId);
     this.controls.enabled = false;
     this.freeOrbitNeedsInitialization = false;
     this.updateExposurePreset();
+    // Saturn-rings close-up: UnrealBloom washes thin B-ring spoke contrast.
+    this.postProcessing.setBloomAttenuation(presetId === 'saturn-rings' ? 0 : 1);
     return true;
   }
 
@@ -834,6 +883,7 @@ export class DebugSolarSystemRenderer {
     this.impactVisualSystem.attachToTarget(target.root);
     this.impactVisualSystem.update(state);
     this.impactRenderState = state;
+    this.referenceGrid.visible = !this.impactPlaybackActive();
     this.pathLayer.visible = this.orbitLinesVisible && !this.impactPlaybackActive();
     this.synchronizeAdaptiveResolutionEffect();
     this.updateScenarioExposureProtection();
@@ -938,6 +988,7 @@ export class DebugSolarSystemRenderer {
   public resetImpactVisuals(): void {
     if (this.disposed) return;
     this.impactRenderState = null;
+    this.referenceGrid.visible = true;
     this.impactCameraPresetId = null;
     this.impactCameraOverrideInitialized = false;
     this.impactVisualSystem.reset();
@@ -972,6 +1023,16 @@ export class DebugSolarSystemRenderer {
     this.updateScenarioExposureProtection(true);
     this.postProcessing.setExposure(this.exposureAdaptation.state.exposure);
     this.updateCanvasDiagnostics();
+  }
+
+  public setSolarFateCameraView(view: SolarFateCameraView): void {
+    this.solarFateCameraView = view;
+    this.extendSunScenarioBounds(0);
+  }
+
+  private scenarioOverlaysSuppressed(): boolean {
+    return this.impactPlaybackActive() || this.solarEvolutionRenderState !== null
+      || this.fictionalSupernovaRenderState !== null || this.blackHoleRenderState !== null;
   }
 
   public setSolarEvolutionRenderState(
@@ -1134,10 +1195,14 @@ export class DebugSolarSystemRenderer {
     this.cameraController.setTargetBody(null);
     this.blackHoleCameraFraming = true;
     this.blackHoleCameraTrackedCenter.copy(center);
+    // Pull back enough for Milky Way / bright stars around the silhouette while
+    // keeping the hole large and centered (~1/4â€“1/3 of the vertical FOV).
+    // Slight elevation so the inclined disk reads as a band with a far-side arch.
+    const distance = radius * 12.2;
     this.camera.position.set(
-      center.x + radius * 5.8,
-      center.y + radius * 3.2,
-      center.z + radius * 10.5,
+      center.x + distance * 0.12,
+      center.y + distance * 0.38,
+      center.z + distance * 0.91,
     );
     this.controls.target.copy(center);
     this.camera.up.set(0, 1, 0);
@@ -1207,18 +1272,62 @@ export class DebugSolarSystemRenderer {
     if (position === null) return false;
     const radius = this.naturalSatelliteVisualSystem.getSatelliteRenderRadius(id) ?? 0.0005;
     this.auxiliaryFocusRadiusRenderUnits = radius;
-    const distance = Math.max(radius * 8.5, 0.003);
+    this.naturalSatelliteCloseupActive = true;
+    // Pale ice moons bloom into a soft ball at inspection distances — kill bloom.
+    this.postProcessing.setBloomAttenuation(0);
+    this.adaptiveResolution.reset();
+    this.postProcessing.setResolutionScale(1);
+    // Close enough that the moon disc fills most of the canvas; stay outside the
+    // Herschel cavity so the surface map (not a dark basin floor) is the subject.
+    const distance = Math.max(radius * 2.45, 0.0007);
     this.clippingController.reset();
+    // Stay in free-orbit; do not re-seed free-orbit from the parent body-follow pose.
+    this.freeOrbitNeedsInitialization = false;
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
-    this.camera.position.set(position.x + distance * 0.72, position.y + distance * 0.4, position.z + distance);
+
+    // Prefer a sunlit look while keeping the parent mostly behind the subject.
+    // Pure anti-parent framing puts the camera on the night side for outer moons.
+    const definition = NATURAL_SATELLITE_DEFINITIONS.find((item) => item.id === id);
+    const parentMarker = definition === undefined ? undefined : this.markers.get(definition.parentId);
+    const sunMarker = this.markers.get('sun');
+    this.scratchMapped.copy(position);
+    if (parentMarker !== undefined) {
+      this.scratchMapped.sub(parentMarker.root.position);
+    }
+    if (this.scratchMapped.lengthSq() < 1e-16) {
+      this.scratchMapped.set(0.85, 0.2, 0.45);
+    }
+    this.scratchMapped.normalize();
+    if (sunMarker !== undefined) {
+      // Camera on the sunlit hemisphere (moon - sun), blended with anti-parent
+      // so Saturn stays mostly behind the subject instead of filling the lens.
+      this.scratchFocus.copy(position).sub(sunMarker.root.position);
+      if (this.scratchFocus.lengthSq() > 1e-16) {
+        this.scratchFocus.normalize();
+        this.scratchMapped.multiplyScalar(0.55).addScaledVector(this.scratchFocus, 0.9);
+        if (this.scratchMapped.lengthSq() < 1e-16) {
+          this.scratchMapped.copy(this.scratchFocus);
+        } else {
+          this.scratchMapped.normalize();
+        }
+      }
+    }
+    this.camera.position.copy(position).addScaledVector(this.scratchMapped, distance);
     this.controls.target.copy(position);
     this.camera.up.set(0, 1, 0);
     this.camera.lookAt(position);
     this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
     this.controls.enabled = true;
-    this.controls.minDistance = Math.max(radius * 1.2, 1e-6);
+    // Must beat the previous parent-body minDistance or OrbitControls pushes the
+    // camera back out to planet scale on the next update().
+    this.controls.minDistance = Math.max(radius * 1.6, 1e-6);
+    this.controls.maxDistance = Math.max(radius * 60, this.overviewRadiusRenderUnits * 6, 0.05);
     this.controls.update();
+    this.enforceAuxiliaryMoonFraming();
+    this.canvas.dataset.naturalSatelliteFocusDistanceRatio = (
+      this.camera.position.distanceTo(this.controls.target) / Math.max(radius, 1e-12)
+    ).toFixed(3);
     this.updateCanvasDiagnostics();
     return true;
   }
@@ -1253,6 +1362,11 @@ export class DebugSolarSystemRenderer {
     if (position === null) return false;
     const renderRadius = this.spaceObjectVisualSystem.getObjectRenderRadius(id);
     this.spaceObjectVisualSystem.setDetailedInspectionObject(id);
+    // Leaving a moon close-up: restore bloom even though auxiliary radius stays in use.
+    if (this.naturalSatelliteCloseupActive) {
+      this.naturalSatelliteCloseupActive = false;
+      this.postProcessing.setBloomAttenuation(this.exposurePreset === 'solar-closeup' ? 0 : 1);
+    }
     this.auxiliaryFocusRadiusRenderUnits = renderRadius;
     const focusDirection = this.spaceObjectVisualSystem.getObjectFocusDirection(id);
     const distance = focusDirection === null
@@ -1423,7 +1537,7 @@ export class DebugSolarSystemRenderer {
     const comet = this.cometVisualSystem.getDiagnostics(this.selectedBodyId);
     return {
       ...this.bodyVisualSystem.getDiagnostics('sun'),
-      selectedMaterial: 'Deterministic irregular rough nucleus · soft radial-density coma · tapered ion ribbon · curved multi-grain dust fan',
+      selectedMaterial: 'Deterministic irregular rough nucleus Â· soft radial-density coma Â· soft ion/dust ribbons Â· particle streamers',
       selectedAssetState: 'procedural',
       selectedOcclusionVisibleFraction: 1,
       selectedOcclusionKind: 'none',
@@ -1588,9 +1702,8 @@ export class DebugSolarSystemRenderer {
       let resources = this.paths.get(key);
       if (resources === undefined || resources.source !== pathState.positionsM) {
         if (resources !== undefined) {
-          this.pathLayer.remove(resources.line);
-          resources.line.geometry.dispose();
-          resources.line.material.dispose();
+          this.pathLayer.remove(resources.root);
+          disposeEphemerisOrbitPath(resources);
         }
         resources = this.createPath(pathState);
         this.paths.set(key, resources);
@@ -1602,7 +1715,7 @@ export class DebugSolarSystemRenderer {
           : bodies.find((body) => body.bodyId === resources.centerBodyId)?.positionM;
       const currentBody = bodies.find((body) => body.bodyId === pathState.bodyId);
       if (center === undefined || currentBody === undefined) {
-        resources.line.visible = false;
+        resources.root.visible = false;
         continue;
       }
       writeCameraRelativePathPositions(
@@ -1617,15 +1730,52 @@ export class DebugSolarSystemRenderer {
         pathState.positionsM,
         center,
         currentBody.positionM,
-        resources.color,
+        resources.baseColor,
         resources.kind,
       );
-      resources.positionAttribute.needsUpdate = true;
-      resources.colorAttribute.needsUpdate = true;
+      syncEphemerisOrbitPathGeometry(resources);
+      const hasSelectedTrail =
+        pathState.bodyId === this.selectedBodyId &&
+        pathStates.some(
+          (candidate) =>
+            candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'trail',
+        );
+      const hasSelectedOrbit =
+        pathState.bodyId === this.selectedBodyId &&
+        pathStates.some(
+          (candidate) =>
+            candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'orbit',
+        );
+      // Planets: prefer the selected trail over the overlapping full loop.
+      // Comets: prefer the long ephemeris orbit â€” trails are short history
+      // dashes that read as a 10-pixel speck when the camera is on the nucleus.
+      if (pathState.bodyId === this.selectedBodyId) {
+        if (currentBody.kind === 'comet' && hasSelectedOrbit && resources.kind === 'trail') {
+          resources.root.visible = false;
+          continue;
+        }
+        if (
+          currentBody.kind !== 'comet' &&
+          hasSelectedTrail &&
+          resources.kind === 'orbit'
+        ) {
+          resources.root.visible = false;
+          continue;
+        }
+      }
+      const emphasis = resolveEphemerisOrbitPathEmphasis(
+        pathState.bodyId,
+        this.selectedBodyId,
+        resources.kind,
+      );
+      applyEphemerisOrbitPathRole(resources, {
+        kind: resources.kind,
+        emphasis,
+      });
       // Every vertex is already relative to the current floating origin. A
       // second object translation would reintroduce GPU cancellation.
-      resources.line.position.set(0, 0, 0);
-      resources.line.visible =
+      resources.root.position.set(0, 0, 0);
+      resources.root.visible =
         this.orbitLinesVisible &&
         !this.impactPlaybackActive() &&
         !this.blackHoleVisualSystem.getDiagnostics().active &&
@@ -1633,7 +1783,7 @@ export class DebugSolarSystemRenderer {
     }
 
     for (const [key, resources] of this.paths) {
-      if (!this.visiblePathIds.has(key)) resources.line.visible = false;
+      if (!this.visiblePathIds.has(key)) resources.root.visible = false;
     }
   }
 
@@ -1656,51 +1806,23 @@ export class DebugSolarSystemRenderer {
   }
 
   private createPath(path: DebugOrbitTrailRenderState): PathResources {
-    if (path.positionsM.length < 6 || path.positionsM.length % 3 !== 0) {
-      throw new RangeError(`Ephemeris path "${path.bodyId}" requires at least two xyz samples.`);
-    }
-
-    const positionAttribute = new Float32BufferAttribute(
-      new Float32Array(path.positionsM.length),
-      3,
+    const pixelRatio = this.renderer.getPixelRatio();
+    PATH_VIEWPORT.set(
+      this.viewportWidth * pixelRatio,
+      this.viewportHeight * pixelRatio,
     );
-    const colorAttribute = new Float32BufferAttribute(
-      new Float32Array(path.positionsM.length),
-      3,
-    );
-    // Float32BufferAttribute normalizes/copies constructor inputs. Always
-    // mutate the arrays owned by the attributes that are actually uploaded.
-    const mappedPositions = positionAttribute.array as Float32Array;
-    const mappedColors = colorAttribute.array as Float32Array;
-    const geometry = new BufferGeometry();
-    geometry.setAttribute('position', positionAttribute);
-    geometry.setAttribute('color', colorAttribute);
-    const kind = path.kind ?? 'orbit';
     const color = new Color(bodyColor(path.bodyId));
-    const line = new Line(
-      geometry,
-      new LineBasicMaterial({
-        color: 0xffffff,
-        opacity: kind === 'trail' ? 0.78 : path.bodyId === 'moon' ? 0.46 : 0.38,
-        transparent: true,
-        vertexColors: true,
-      }),
-    );
-    line.name = `ephemeris-${kind}-${path.bodyId}`;
-    line.frustumCulled = false;
-    line.renderOrder = kind === 'trail' ? 2 : 1;
-    this.pathLayer.add(line);
-    return {
-      line,
-      source: path.positionsM,
-      centerBodyId: path.centerBodyId ?? null,
-      kind,
-      mappedPositions,
-      mappedColors,
-      positionAttribute,
-      colorAttribute,
-      color,
-    };
+    const resources = createEphemerisOrbitPath(path, color, PATH_VIEWPORT);
+    applyEphemerisOrbitPathRole(resources, {
+      kind: resources.kind,
+      emphasis: resolveEphemerisOrbitPathEmphasis(
+        path.bodyId,
+        this.selectedBodyId,
+        resources.kind,
+      ),
+    });
+    this.pathLayer.add(resources.root);
+    return resources;
   }
 
   private updateCamera(frame: DebugRenderFrame, deltaSeconds: number): void {
@@ -1750,6 +1872,7 @@ export class DebugSolarSystemRenderer {
     this.applyBlackHoleCameraTracking();
     this.applyImpactCameraOverride(deltaSeconds);
     this.updateScaleAwareNavigation();
+    this.enforceAuxiliaryMoonFraming();
     this.updateClipping(deltaSeconds);
     this.camera.updateMatrixWorld();
   }
@@ -1786,6 +1909,7 @@ export class DebugSolarSystemRenderer {
       this.impactCameraPresetId,
       this.impactRenderState,
       this.impactVisualSystem.getDiagnostics().visibilityMultiplier,
+      this.viewportWidth / Math.max(1, this.viewportHeight),
     );
     const localEnhanced = this.impactCameraPresetId === 'ground-observer'
       && this.impactVisibilityMode === 'enhanced';
@@ -1825,9 +1949,53 @@ export class DebugSolarSystemRenderer {
       this.impactCameraTarget,
       this.impactCameraUp,
     );
-    this.impactCameraRig.advance(deltaSeconds, 0.24, this.reducedMotion);
+    this.impactCameraRig.advance(deltaSeconds, 0.24, this.reducedMotion ||
+      (this.impactCameraPresetId === 'chase' && this.impactRenderState.eventElapsedSeconds === null));
     this.impactCameraRig.applyTo(this.camera, this.controls.target);
     this.controls.enabled = false;
+  }
+
+  /**
+   * Keeps free-orbit moon inspection from being dolly-clamped back to the
+   * parent planet's previous minDistance (which leaves Saturn filling the frame).
+   */
+  private clearNaturalSatelliteCloseup(): void {
+    this.auxiliaryFocusRadiusRenderUnits = null;
+    if (!this.naturalSatelliteCloseupActive) return;
+    this.naturalSatelliteCloseupActive = false;
+    this.postProcessing.setBloomAttenuation(this.exposurePreset === 'solar-closeup' ? 0 : 1);
+  }
+
+  private enforceAuxiliaryMoonFraming(): void {
+    if (
+      this.cameraController.mode !== 'free-orbit' ||
+      this.auxiliaryFocusRadiusRenderUnits === null
+    ) {
+      return;
+    }
+    const radius = this.auxiliaryFocusRadiusRenderUnits;
+    const ideal = Math.max(radius * 2.35, 1e-6);
+    const maxKeep = Math.max(radius * 4.5, ideal);
+    const offset = this.scratchMapped
+      .copy(this.camera.position)
+      .sub(this.controls.target);
+    const distance = offset.length();
+    if (!Number.isFinite(distance) || (distance <= maxKeep && distance >= radius * 1.6)) {
+      return;
+    }
+    if (distance < 1e-12) {
+      offset.set(0.82, 0.22, 0.55);
+    }
+    offset.normalize().multiplyScalar(distance > maxKeep ? ideal : Math.max(ideal, radius * 1.8));
+    this.camera.position.copy(this.controls.target).add(offset);
+    this.camera.lookAt(this.controls.target);
+    this.controls.minDistance = Math.max(radius * 1.6, 1e-6);
+    this.controls.maxDistance = Math.max(radius * 60, this.overviewRadiusRenderUnits * 6, 0.05);
+    this.cameraController.synchronizeFreeOrbitPose(
+      this.camera.position,
+      this.controls.target,
+      this.camera.up,
+    );
   }
 
   private updateScaleAwareNavigation(): void {
@@ -1916,9 +2084,21 @@ export class DebugSolarSystemRenderer {
   }
 
   private updateClipping(deltaSeconds: number): void {
-    const marker = this.impactCameraPresetId === null
-      ? this.markers.get(this.selectedBodyId) ?? this.markers.get('sun')
-      : this.markers.get('earth');
+    const impactState = this.impactCameraPresetId === null ? null : this.impactRenderState;
+    const marker = impactState !== null
+      ? this.markers.get(impactState.targetBodyId) ?? this.markers.get('earth')
+      : this.markers.get(this.selectedBodyId) ?? this.markers.get('sun');
+    const impactorClip = impactState !== null
+      ? this.impactVisualSystem.getImpactorClipSphere()
+      : null;
+    const localImpactFocus = impactState !== null && impactorClip === null &&
+      impactState.eventElapsedSeconds !== null && impactState.outcomeKind !== 'no-impact';
+    const eventRadius = localImpactFocus && marker !== undefined
+      ? Math.max(impactState.flashRadiusM, impactState.plumeHeightM,
+          impactState.plumeRadiusM, impactState.ejectaRadiusM, impactState.scorchRadiusM)
+        * this.impactVisualSystem.getDiagnostics().visibilityMultiplier
+        / impactState.targetRadiusM * marker.cameraTarget.radiusRenderUnits
+      : 0;
     const blackHoleDiagnostics = this.blackHoleVisualSystem.getDiagnostics();
     const blackHoleFocus =
       this.blackHoleCameraFraming && blackHoleDiagnostics.active;
@@ -1928,7 +2108,11 @@ export class DebugSolarSystemRenderer {
     const overviewFocus =
       this.impactCameraPresetId === null && this.cameraController.mode === 'overview';
     const focusCenter =
-      blackHoleFocus
+      impactorClip !== null
+        ? impactorClip.center
+        : localImpactFocus
+        ? this.controls.target
+        : blackHoleFocus
         ? this.blackHoleVisualSystem.root.position
         : auxiliaryFocus
         ? this.controls.target
@@ -1936,7 +2120,11 @@ export class DebugSolarSystemRenderer {
         ? this.mappedHeliocentricCenter
         : marker.root.position;
     const focusRadius =
-      blackHoleFocus
+      impactorClip !== null
+        ? impactorClip.radius
+        : localImpactFocus
+        ? Math.min(eventRadius, this.camera.position.distanceTo(this.controls.target) * 0.8)
+        : blackHoleFocus
         ? blackHoleDiagnostics.visualRadiusRenderUnits
         : auxiliaryFocus
         ? this.auxiliaryFocusRadiusRenderUnits ?? 0
@@ -1953,6 +2141,10 @@ export class DebugSolarSystemRenderer {
       deltaSeconds,
     );
     this.clippingController.applyTo(this.camera);
+    if(impactState!==null && marker!==undefined && this.impactCameraPresetId==='ground-observer'){
+      this.camera.near=Math.max(1e-15,0.2/impactState.targetRadiusM*marker.cameraTarget.radiusRenderUnits);
+      this.camera.updateProjectionMatrix();
+    }
   }
 
   private createBodyLabel(body: DebugBodyRenderState): HTMLSpanElement | null {
@@ -2001,7 +2193,7 @@ export class DebugSolarSystemRenderer {
     // normal camera mode.
     if (
       this.cameraController.status.closeUpPresetId !== null
-      || this.impactPlaybackActive()
+      || this.scenarioOverlaysSuppressed()
     ) {
       for (const marker of this.markers.values()) {
         if (marker.label !== null) marker.label.style.opacity = '0';
@@ -2064,7 +2256,10 @@ export class DebugSolarSystemRenderer {
         break;
       }
     }
-    const shown = this.bodyLabelsVisible && marker.onScreen && (selected || !overlaps);
+    const inspectingMoon = this.auxiliaryFocusRadiusRenderUnits !== null &&
+      this.cameraController.mode === 'free-orbit' &&
+      this.naturalSatelliteVisualSystem.getDiagnostics().selectedSatelliteId !== null;
+    const shown = this.bodyLabelsVisible && marker.onScreen && (selected || !overlaps) && !inspectingMoon;
     marker.label.style.opacity = shown ? (selected ? '1' : '0.76') : '0';
     marker.label.style.transform = `translate(${x}px, ${y}px) translate(0, -50%)`;
     if (shown) occupied.push(x, y);
@@ -2123,6 +2318,7 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.spaceObjectInspectionSuppressedMarkers = String(spaceObjects.inspectionSuppressedMarkerCount);
     this.canvas.dataset.spaceObjectTrajectoryPoints = String(spaceObjects.selectedTrajectoryPointCount);
     this.canvas.dataset.spaceObjectSelectedOnScreen = String(spaceObjects.selectedOnScreen);
+    this.canvas.dataset.spaceObjectCoverageLabelCount = String(spaceObjects.coverageLabelCount);
     this.canvas.dataset.spaceObjectPropagationExecution = spaceObjects.propagationExecution;
     this.canvas.dataset.issModelState = spaceObjects.issModelState;
     this.canvas.dataset.issModelAssetId = spaceObjects.issModelAssetId;
@@ -2522,7 +2718,11 @@ export class DebugSolarSystemRenderer {
       (!evolution.active || !evolution.baseSunHidden) &&
       (!supernova.active || !supernova.baseSunHidden);
     const visibleBaseRadius = baseSunVisible ? baseRadius : 0;
-    sun.cameraTarget.radiusRenderUnits = Math.max(visibleBaseRadius, coreRadius);
+    const framingRadius = solarFateFramingRadius(
+      this.solarFateCameraView, this.solarEvolutionRenderState, this.fictionalSupernovaRenderState,
+    ) / this.scaleModel.metersPerRenderUnit;
+    const portraitMargin = Math.max(1, 0.9 * this.viewportHeight / Math.max(1, this.viewportWidth));
+    sun.cameraTarget.radiusRenderUnits = Math.max(visibleBaseRadius, coreRadius, framingRadius) * portraitMargin;
     sun.clipSphere.radius = Math.max(
       visibleBaseRadius * (sun.visual as PhaseFourBodyVisual).boundingRadiusMultiplier,
       boundingRadius,
@@ -2840,6 +3040,7 @@ export class DebugSolarSystemRenderer {
     if (nextPreset === this.exposurePreset && !immediate) return;
     this.exposurePreset = nextPreset;
     this.exposureAdaptation.setPreset(nextPreset, immediate);
+    this.postProcessing.setBloomAttenuation(nextPreset === 'solar-closeup' ? 0.0 : 1);
     if (immediate) this.postProcessing.setExposure(this.exposureAdaptation.state.exposure);
   }
 

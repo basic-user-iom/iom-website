@@ -19,6 +19,7 @@ export interface SolarEvolutionRenderState {
   readonly phase: SolarEvolutionPhase;
   readonly scenarioTimeSeconds: number;
   readonly progress: number;
+  readonly phaseProgress?: number;
   readonly stellarRadiusM: number;
   readonly luminositySolar: number;
   readonly effectiveTemperatureK: number;

@@ -110,8 +110,11 @@ describe('AsteroidImpactScenario deterministic playback', () => {
 
 describe('AsteroidImpactScenario lifecycle', () => {
   it('publishes target-relative curved waves and persistent Earth aftermath', () => {
-    const simulation = simulateImpactEntry(DEFAULT_IMPACT_PARAMETERS);
-    const scenario = createStartedScenario();
+    const input = { ...DEFAULT_IMPACT_PARAMETERS, diameterM: 250 };
+    const simulation = simulateImpactEntry(input);
+    const scenario = new AsteroidImpactScenario();
+    scenario.init(createContext());
+    scenario.start(input);
     scenario.advance(simulation.terminalEventTimeSeconds + 1);
     const event = scenario.getSnapshot();
 
@@ -267,7 +270,7 @@ describe('AsteroidImpactScenario lifecycle', () => {
     scenario.advance(scenario.getSnapshot().totalDurationSeconds * 2);
     expect(scenario.state).toBe('complete');
     expect(scenario.getSnapshot().progress).toBe(1);
-    expect(scenario.getSnapshot().stage).toBe('aftermath');
+    expect(scenario.getSnapshot().stage).toBe('complete');
 
     scenario.reset();
     const reset = scenario.getSnapshot();
@@ -345,4 +348,31 @@ describe('AsteroidImpactScenario lifecycle', () => {
     idle.pause();
     expect(() => idle.frameStep(0)).toThrow(/positive/);
   });
+});
+
+it('completes a flyby without emitting any terminal effects', () => {
+  const scenario = new AsteroidImpactScenario();
+  scenario.init(createContext());
+  scenario.start({ ...DEFAULT_IMPACT_PARAMETERS, entryAngleDeg: 5 });
+  scenario.advance(1_000);
+  const snapshot = scenario.getSnapshot();
+  expect(snapshot.state).toBe('complete');
+  expect(snapshot.physicalSummary?.outcomeKind).toBe('no-impact');
+  for (const key of ['flashIntensity', 'plumeOpacity', 'ejectaOpacity', 'hazeOpacity',
+    'groundShockwaveOpacity', 'atmosphericShockwaveOpacity', 'craterFormationProgress'] as const) {
+    expect(snapshot[key]).toBe(0);
+  }
+});
+it('cools the default airburst while its detached dust cloud is still visible', () => {
+  const scenario = new AsteroidImpactScenario();
+  const simulation = simulateImpactEntry(DEFAULT_IMPACT_PARAMETERS);
+  scenario.start(DEFAULT_IMPACT_PARAMETERS);
+  scenario.advance(simulation.terminalEventTimeSeconds + 10);
+  const cloud = scenario.getSnapshot();
+  expect(cloud.physicalSummary?.outcomeKind).toBe('airburst');
+  expect(cloud.plumeOpacity).toBeGreaterThan(0.5);
+  expect(cloud.plumeCoolingProgress).toBeGreaterThan(0.99);
+  expect(cloud.craterFormationProgress).toBe(0);
+  scenario.pause(); scenario.advance(10);
+  expect(scenario.getSnapshot().plumeCoolingProgress).toBe(cloud.plumeCoolingProgress);
 });

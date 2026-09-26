@@ -147,7 +147,7 @@ function createIonTailPositions(
 ): Float64Array {
   const positions = new Float64Array(pointCount * 3);
   const tailLengthM =
-    profile.ionTailLengthAu * ASTRONOMICAL_UNIT_M * Math.max(0.025, activity ** 0.62);
+    profile.ionTailLengthAu * ASTRONOMICAL_UNIT_M * Math.max(0.04, activity ** 0.55);
   const tangent = orthogonalUnit(direction);
   for (let index = 0; index < pointCount; index += 1) {
     const fraction = index / (pointCount - 1);
@@ -155,7 +155,7 @@ function createIonTailPositions(
     // Solar-wind structure gives the narrow ribbon a restrained low-frequency
     // waver without turning the anti-solar tail into a hooked neon stroke.
     const ripple = Math.sin(fraction * Math.PI * 2.4 + profile.deterministicSeed * 1e-4);
-    const lateral = tailLengthM * 0.00065 * ripple * fraction;
+    const lateral = tailLengthM * 0.00055 * ripple * fraction;
     const offset = index * 3;
     positions[offset] = direction.x * distance + tangent.x * lateral;
     positions[offset + 1] = direction.y * distance + tangent.y * lateral;
@@ -191,9 +191,12 @@ function createDustTailPositions(
   const emitted = createEphemerisStateVector();
   const random = createDeterministicRandom(profile.deterministicSeed ^ hashString(bodyId));
   const basePhase = random() * Math.PI * 2;
+  // Lane speeds stay educational; a mild spread boost keeps the dust fan
+  // broader than the ion ribbon without claiming a measured ejection law.
+  const dustFanSpread = 1.35;
   const laneSpeedScales = Array.from(
     { length: grainsPerAgeBin },
-    (_, lane) => 0.48 + lane * 0.13 + random() * 0.08,
+    (_, lane) => 0.42 + lane * 0.18 + random() * 0.1,
   );
 
   for (let ageIndex = 0; ageIndex < ageBinCount; ageIndex += 1) {
@@ -236,17 +239,23 @@ function createDustTailPositions(
       const phase =
         basePhase +
         lane * Math.PI * 2 / grainsPerAgeBin +
-        Math.sin(fraction * Math.PI * 1.6) * 0.22;
+        Math.sin(fraction * Math.PI * 1.6) * 0.28;
       const ejectionSpeed =
         profile.dustEjectionSpeedMps *
+        dustFanSpread *
         (laneSpeedScales[lane] ?? 0.65) *
-        (0.92 + 0.08 * Math.cos(fraction * Math.PI * 2 + lane));
+        (0.88 + 0.12 * Math.cos(fraction * Math.PI * 2 + lane));
+      // Prefer the orbital plane so the fan reads as a curved sheet, not a cone.
+      const inPlane = 0.72 + 0.28 * Math.abs(Math.cos(phase));
       const ejectionX =
-        (transverse.x * Math.cos(phase) + binormal.x * Math.sin(phase)) * ejectionSpeed;
+        (transverse.x * Math.cos(phase) * inPlane + binormal.x * Math.sin(phase) * 0.55) *
+        ejectionSpeed;
       const ejectionY =
-        (transverse.y * Math.cos(phase) + binormal.y * Math.sin(phase)) * ejectionSpeed;
+        (transverse.y * Math.cos(phase) * inPlane + binormal.y * Math.sin(phase) * 0.55) *
+        ejectionSpeed;
       const ejectionZ =
-        (transverse.z * Math.cos(phase) + binormal.z * Math.sin(phase)) * ejectionSpeed;
+        (transverse.z * Math.cos(phase) * inPlane + binormal.z * Math.sin(phase) * 0.55) *
+        ejectionSpeed;
       const index = ageIndex * grainsPerAgeBin + lane;
       const offset = index * 3;
       births[index] = birthJdTdb;

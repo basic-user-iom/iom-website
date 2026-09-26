@@ -1,3 +1,4 @@
+import type { EarthSurfaceSample } from './EarthSurface';
 import type { Vec3d } from '../../core/Vec3d';
 import type { ScenarioPlaybackState } from '../ScenarioModule';
 
@@ -26,8 +27,10 @@ export type ImpactTargetClass =
 
 export type ImpactOutcomeKind =
   | 'solid-surface-impact'
+  | 'ocean-surface-impact'
   | 'airburst'
-  | 'deep-atmosphere-breakup';
+  | 'deep-atmosphere-breakup'
+  | 'no-impact';
 
 /** Data-driven physical and effect capabilities for one supported target. */
 export interface ImpactTargetProfile {
@@ -67,6 +70,7 @@ export const IMPACT_CAMERA_MODES = [
   'side-entry',
   'horizon',
   'chase',
+  'regional',
   'ground-observer',
   'slow-motion-replay',
 ] as const;
@@ -91,6 +95,7 @@ export interface ImpactParameters {
 }
 
 export interface ImpactPhysicalSummary {
+  readonly earthSurface?: EarthSurfaceSample;
   readonly targetBodyId: ImpactTargetBodyId;
   readonly targetClass: ImpactTargetClass;
   readonly outcomeKind: ImpactOutcomeKind;
@@ -115,6 +120,8 @@ export interface ImpactPhysicalSummary {
 
 /** Artistically tuned display scales. None feed back into physical integration. */
 export interface ImpactVisualProfile {
+  readonly seafloorCraterRadiusM?: number;
+  readonly seafloorCraterDepthM?: number;
   readonly flashIntensity: number;
   readonly flashRadiusM: number;
   readonly flashDurationSeconds: number;

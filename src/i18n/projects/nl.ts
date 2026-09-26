@@ -36,6 +36,11 @@ export const nlProjects: ProjectsLocalePack = {
       tags: ['kaarten', 'integratie', 'osm', 'webgl', 'open-source'],
       referenceLabels: ['Live kaart', 'OSM wiki — Simple 3D Buildings'],
     },
+    'solar-system': {
+      title: 'Zonnestelsel: Levend observatorium',
+      description: 'Verken planeten, manen en kometen in een interactief 3D-observatorium met JPL-baangegevens en weergave op ware schaal. Experimenteer met inslagen, de evolutie van de zon en ontmoetingen met zwarte gaten. Educatieve benaderingen en fictieve scenario’s zijn duidelijk gemarkeerd.',
+      tags: ['web', 'three.js', 'astronomie', 'simulatie'],
+    },
     'panorama-360-tour': {
       title: '360° panoramatour-editor',
       description: '360° virtuele-tour-editor in de browser — opent standaard The Black Witness. Laad equirectangular panorama\'s (JPG, PNG, WebP, HDR, EXR, KTX2), plaats link-/info-/URL-hotspots met optionele iframe-popups, bouw multi-scene tours, voeg een WebGPU-vogelzwerm toe, en sla .360project-bestanden op of laad ze.',
