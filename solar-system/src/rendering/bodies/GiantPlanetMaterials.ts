@@ -526,12 +526,52 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     return mix(authored, neighboringBand, sourceSpot);
   }
 
+  // Illustrative cloud tops, not a measured global map or a weather forecast.
+  // Keep the low-saturation visible-light palette independent of cloud contrast.
+  vec3 iceGiantCloudTops(float latitude, float longitude) {
+    float neptune = step(2.5, uPlanetKind);
+    vec3 n = vec3(cos(longitude) * cos(latitude), sin(latitude),
+      sin(longitude) * cos(latitude));
+    float broad = fbm31(n * 5.0 + vec3(3.4, 1.7, 8.2));
+    float cloudLatitude = latitude + (broad - 0.5) * 0.025;
+    // Unequal, gently sheared zones rather than equally spaced painted stripes.
+    float zones = 0.5 + 0.30 * sin(cloudLatitude * 10.0 + 0.6) +
+      0.17 * sin(cloudLatitude * 23.0 - 0.7);
+    float zoneMix = mix(0.18, 0.12, neptune) + zones * mix(0.38, 0.74, neptune);
+    vec3 color = mix(uBaseColor, uZoneColor, zoneMix);
+    color *= 1.0 + (zones - 0.5) * mix(0.045, 0.12, neptune);
+
+    // Smooth polar haze on Uranus, weighted toward the illuminated summer pole.
+    // This is a seasonal appearance cue, not a reconstructed cloud observation.
+    float summerPole = smoothstep(-0.1, 0.45,
+      sin(latitude) * uSunDirectionBodyLocal.z);
+    float hood = smoothstep(0.78, 1.36, abs(latitude));
+    color = mix(color, uZoneColor, hood * mix(0.12 + summerPole * 0.50, 0.07, neptune));
+
+    // Methane cloud filaments extend along latitude. Using a 3D unit direction
+    // makes both longitude wrapping and the poles continuous at every time.
+    float filaments = fbm31(n * vec3(4.0, 48.0, 4.0) + vec3(8.1, 2.6, 4.7));
+    float brokenCloud = smoothstep(0.37, 0.68, filaments);
+    float southBelt = exp(-pow((cloudLatitude + 0.55) / 0.036, 2.0));
+    float northBelt = exp(-pow((cloudLatitude - 0.38) / 0.027, 2.0));
+    float cloudEnvelope = smoothstep(0.43, 0.64,
+      fbm31(n * vec3(3.8, 1.2, 3.8) + vec3(21.7, 9.2, 13.4)));
+    float cloudMask = (southBelt + northBelt * 0.55) * brokenCloud * cloudEnvelope;
+    vec3 cloudColor = mix(uHazeColor, vec3(0.82, 0.88, 0.90), neptune * 0.55);
+    color = mix(color, cloudColor, cloudMask * mix(0.08, 0.55, neptune));
+    if (uQuality > 1.5) {
+      color *= 1.0 + (filaments - 0.5) * mix(0.012, 0.035, neptune);
+    }
+    return color;
+  }
+
   vec3 proceduralBands(float latitude, float longitude, float jetSpeed) {
     float bandFrequency = uPlanetKind < 0.5
       ? 43.0
       : (uPlanetKind < 1.5 ? 34.0 : (uPlanetKind < 2.5 ? 18.0 : 25.0));
     float flow = jetSpeed / max(uMaximumJetSpeedMps, 1.0);
     float flowLongitude = longitude + flow * uAtmosphereTimeDays * 0.011;
+    if (uPlanetKind > 1.5) return iceGiantCloudTops(latitude, flowLongitude);
     vec3 flowPoint = vec3(cos(flowLongitude) * cos(latitude), sin(latitude),
       sin(flowLongitude) * cos(latitude)) * (uPlanetKind < 1.5 ? 8.5 : 6.0);
     float broadNoise = fbm31(flowPoint);
@@ -544,20 +584,6 @@ const GIANT_PLANET_FRAGMENT_SHADER = /* glsl */ `
     float fineStrength = uPlanetKind < 0.5 ? 0.09 : (uPlanetKind < 1.5 ? 0.045 : 0.055);
     color *= 0.88 + broadNoise * 0.18 +
       (fineNoise - 0.5) * (uQuality > 1.5 ? fineStrength : fineStrength * 0.4);
-    if (uPlanetKind > 1.5) {
-      // Modeled visible-light cloud tops, informed by the 2024 color reanalysis.
-      // Neither ice giant has a bundled measured global color map.
-      float isNeptune = step(2.5, uPlanetKind);
-      float zonal = 0.5 + 0.5 * sin(latitude * mix(9.0, 16.0, isNeptune) + broadNoise * 0.3);
-      color = mix(uBaseColor, uZoneColor, 0.3 + zonal * mix(0.035, 0.09, isNeptune));
-      color *= 0.985 + broadNoise * 0.03;
-      float polarHood = smoothstep(0.65, 1.4, abs(latitude));
-      color = mix(color, uZoneColor, polarHood * mix(0.22, 0.06, isNeptune));
-      float cloudBelt = exp(-pow((latitude + 0.55) / 0.035, 2.0)) +
-        0.45 * exp(-pow((latitude - 0.38) / 0.025, 2.0));
-      float wisps = smoothstep(0.5, 0.9, broadNoise);
-      color = mix(color, uHazeColor, cloudBelt * wisps * isNeptune * 0.10);
-    }
     return color;
   }
 

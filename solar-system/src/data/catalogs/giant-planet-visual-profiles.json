@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "profileVersion": "2026-09-26.visible-light.4",
+  "profileVersion": "2026-09-27.ice-clouds.5",
   "classification": "dated scientific visualization inputs; not a live-weather product",
   "atmospheres": {
     "jupiter": {
