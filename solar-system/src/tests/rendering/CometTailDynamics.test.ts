@@ -10,6 +10,7 @@ import {
   cometActivityAtDistance,
   qualityTailPointBudget,
   sampleCometTail,
+  propagateDustGrain,
   type CometActivityProfile,
 } from '../../rendering/comets/CometTailDynamics';
 
@@ -68,6 +69,25 @@ describe('CometTailDynamics', () => {
       first.ionPositionsM[lastIonOffset + 1]! * first.ionDirection.y +
       first.ionPositionsM[lastIonOffset + 2]! * first.ionDirection.z;
     expect(antiSolarDot).toBeGreaterThan(0);
+  });
+
+  it('includes solar gravity and preserves the beta=1 ballistic limit', () => {
+    const radius = ASTRONOMICAL_UNIT_M;
+    const mu = 1.327_124_400_18e20;
+    const speed = Math.sqrt(mu / radius);
+    const age = 60 * SECONDS_PER_DAY;
+    const angle = age * speed / radius;
+    const orbit = propagateDustGrain({ x: radius, y: 0, z: 0 },
+      { x: 0, y: speed, z: 0 }, age, 0);
+    const error = Math.hypot(orbit.x - radius * Math.cos(angle),
+      orbit.y - radius * Math.sin(angle), orbit.z);
+    expect(error / radius).toBeLessThan(0.00001);
+    const ballistic = propagateDustGrain({ x: radius, y: 0, z: 0 },
+      { x: 0, y: speed, z: 0 }, age, 1);
+    expect(ballistic.x).toBe(radius);
+    expect(ballistic.y / (speed * age)).toBeCloseTo(1, 12);
+    expect(() => propagateDustGrain({ x: radius, y: 0, z: 0 },
+      { x: 0, y: speed, z: 0 }, -1, 0.1)).toThrow(/non-negative/);
   });
 
   it('uses a bounded smooth activity curve and validates its distance contract', () => {

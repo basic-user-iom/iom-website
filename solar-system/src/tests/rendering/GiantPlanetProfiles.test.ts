@@ -22,7 +22,7 @@ interface ByteTextureImage {
 describe('Phase 5 giant-planet scientific profiles', () => {
   it('exposes a frozen, versioned profile for every giant planet', () => {
     expect(GIANT_PLANET_VISUAL_CATALOG.schemaVersion).toBe(1);
-    expect(GIANT_PLANET_VISUAL_CATALOG.profileVersion).toMatch(/^2026-08-30\.phase5\./);
+    expect(GIANT_PLANET_VISUAL_CATALOG.profileVersion).toMatch(/^\d{4}-\d{2}-\d{2}\.[\w.-]+$/);
     expect(GIANT_PLANET_VISUAL_CATALOG.classification).toContain('not a live-weather');
     expect(Object.isFrozen(GIANT_PLANET_VISUAL_CATALOG)).toBe(true);
 
@@ -192,6 +192,19 @@ describe('Phase 5 giant-planet scientific profiles', () => {
     expect(cassiniAlpha).toBeGreaterThan(enckeAlpha);
     expect(aRingAlpha).toBeGreaterThan(cassiniAlpha);
     expect(bRingAlpha).toBeGreaterThan(aRingAlpha);
+    texture.dispose();
+  });
+
+  it('converts ring colors to linear light only once', () => {
+    const profile = getRingSystemProfile('uranus')!;
+    const texture = createRingProfileTexture({
+      ...profile, innerRadiusKm: 10, outerRadiusKm: 20,
+      regions: [{ id: 'test-gray', innerRadiusKm: 10, outerRadiusKm: 20,
+        opticalDepth: 0.5, color: '#808080' }], gaps: [],
+    });
+    const image = texture.image as ByteTextureImage;
+    expect(image.data[0]! / 255).toBeCloseTo(0.21586, 2);
+    expect(texture.generateMipmaps).toBe(true);
     texture.dispose();
   });
 

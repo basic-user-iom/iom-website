@@ -87,7 +87,7 @@ describe('CometVisualSystem', () => {
     expect(visual.ionTail.visible).toBe(true);
     expect(visual.dustTail.visible).toBe(true);
     expect(visual.ionTail.geometry.drawRange.count).toBe(25);
-    expect(visual.dustTail.geometry.drawRange.count).toBe(8);
+    expect(visual.dustTail.geometry.drawRange.count).toBe(48);
     expect(visual.dustSpine.geometry.drawRange.count).toBe(2);
     expect(visual.ionCore.geometry.drawRange.count).toBe(3);
     expect(visual.coma.material.uniforms.uOpacity?.value).toBeGreaterThan(0);
@@ -101,18 +101,24 @@ describe('CometVisualSystem', () => {
       bodyId: BODY_ID,
       activity: 0.64,
       ionPointCount: 25,
-      dustPointCount: 8,
+      dustPointCount: 48,
       dustHistorySpanDays: 42,
       dustCurvatureM: 875_000,
       trustedEphemeris: false,
       approximationWarning: 'Fixture long-range approximation warning.',
       comaRendering: 'soft radial density',
-      tailRendering: 'soft ion/dust ribbons with particle streamers',
+      tailRendering: 'diffuse ion and dust particle tails',
     });
     expect(visual.ionRibbon.visible).toBe(false);
     expect(visual.dustRibbon.visible).toBe(false);
     expect(visual.ionRibbon.geometry.drawRange.count).toBe(0);
     expect(visual.dustRibbon.geometry.drawRange.count).toBe(0);
+    const ionEnd = visual.ionSpinePositionAttribute;
+    const dustEnd = visual.dustSpinePositionAttribute;
+    const ionLength = Math.hypot(ionEnd.getX(2), ionEnd.getY(2), ionEnd.getZ(2));
+    const dustLength = Math.hypot(dustEnd.getX(1), dustEnd.getY(1), dustEnd.getZ(1));
+    // A short physical dust tail must remain short beside the ion tail.
+    expect(dustLength / ionLength).toBeCloseTo(Math.sqrt(14 / 77), 6);
     const mappedIonLength = Math.sqrt(77);
     expect(diagnostics.ionDirection.x).toBeCloseTo(4 / mappedIonLength, 6);
     expect(diagnostics.ionDirection.y).toBeCloseTo(6 / mappedIonLength, 6);

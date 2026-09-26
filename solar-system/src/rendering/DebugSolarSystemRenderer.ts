@@ -808,7 +808,7 @@ export class DebugSolarSystemRenderer {
     this.controls.enabled = false;
     this.freeOrbitNeedsInitialization = false;
     this.updateExposurePreset();
-    // Saturn-rings close-up: UnrealBloom washes thin B-ring spoke contrast.
+    // Keep Saturn ring gaps and shadow boundaries free of bloom.
     this.postProcessing.setBloomAttenuation(presetId === 'saturn-rings' ? 0 : 1);
     return true;
   }
@@ -1537,7 +1537,7 @@ export class DebugSolarSystemRenderer {
     const comet = this.cometVisualSystem.getDiagnostics(this.selectedBodyId);
     return {
       ...this.bodyVisualSystem.getDiagnostics('sun'),
-      selectedMaterial: 'Deterministic irregular rough nucleus Â· soft radial-density coma Â· soft ion/dust ribbons Â· particle streamers',
+      selectedMaterial: 'Deterministic rough nucleus · soft coma · diffuse ion/dust tails · common compressed display scale',
       selectedAssetState: 'procedural',
       selectedOcclusionVisibleFraction: 1,
       selectedOcclusionKind: 'none',

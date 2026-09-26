@@ -49,7 +49,7 @@ export interface CometVisualDiagnostics {
   readonly trustedEphemeris: boolean;
   readonly approximationWarning: string | null;
   readonly comaRendering: 'soft radial density';
-  readonly tailRendering: 'soft ion/dust ribbons with particle streamers';
+  readonly tailRendering: 'diffuse ion and dust particle tails';
 }
 
 export interface CometVisual {
@@ -98,9 +98,9 @@ export interface CometVisual {
 const MAX_ION_SPINE_POINTS = 160;
 const ION_STREAMER_COUNT = 5;
 const MAX_ION_POINTS = MAX_ION_SPINE_POINTS * ION_STREAMER_COUNT;
-const MAX_DUST_POINTS = 288;
+const MAX_DUST_POINTS = 288 * 12;
 const DUST_GRAINS_PER_AGE_BIN = 4;
-const MAX_DUST_SPINE_POINTS = MAX_DUST_POINTS / DUST_GRAINS_PER_AGE_BIN;
+const MAX_DUST_SPINE_POINTS = 288 / DUST_GRAINS_PER_AGE_BIN;
 const SCENE_NORTH = new Vector3(0, 1, 0);
 const MAPPED_ION_DIRECTION = new Vector3();
 const VIEW_LOCAL = new Vector3();
@@ -350,7 +350,7 @@ export class CometVisualSystem {
         presentationComaFloor,
         physicalComaRadius * Math.max(0.02, state.tail.activity ** 0.65),
       );
-      const comaRadius = Math.min(uncappedComa, nucleusRadius * 1.95);
+      const comaRadius = Math.min(uncappedComa, nucleusRadius * 5.5);
       const nucleusExtent =
         nucleusRadius *
         Math.max(elongation[0], elongation[1], elongation[2]);
@@ -388,12 +388,12 @@ export class CometVisualSystem {
         metersPerRenderUnit,
         visual.profile.activity.deterministicSeed,
       );
-      visual.dustPointCount = writeMappedTail(
+      visual.dustPointCount = writeMappedDustCloud(
         visual.dustPositionAttribute,
         visual.dustPhaseAttribute,
         state.tail.dustPositionsM,
         metersPerRenderUnit,
-        DUST_GRAINS_PER_AGE_BIN,
+        visual.profile.activity.deterministicSeed,
       );
       visual.dustSpinePointCount = writeMappedDustSpine(
         visual.dustSpinePositionAttribute,
@@ -401,42 +401,24 @@ export class CometVisualSystem {
         state.tail.dustPositionsM,
         metersPerRenderUnit,
       );
-      // Presentation nuclei are ~1e-4 AU while physical tails are ~0.3 AU, so a
-      // body-follow close-up never sees AU-scale streamers. Remap near-field tails
-      // to nucleus-relative lengths (same educational exaggeration as body sizes).
-      // Long thin educational streaks (not a packed peanut of additive sprites).
-      const ionDisplayLength = nucleusRadius * (160 + state.tail.activity * 80);
-      const dustDisplayLength = nucleusRadius * (120 + state.tail.activity * 90);
-      scaleMappedTailToLength(visual.ionPositionAttribute, visual.ionPointCount, ionDisplayLength);
-      scaleMappedTailToLength(visual.ionSpinePositionAttribute, visual.ionSpinePointCount, ionDisplayLength);
-      scaleMappedTailToLength(visual.dustPositionAttribute, visual.dustPointCount, dustDisplayLength);
-      scaleMappedTailToLength(
-        visual.dustSpinePositionAttribute,
-        visual.dustSpinePointCount,
-        dustDisplayLength,
-      );
-      // Presentation-only width. Physical dust lanes stay in CometTailDynamics.
-      spreadDustPresentationFan(
-        visual.dustPositionAttribute,
-        visual.dustPhaseAttribute,
-        visual.dustPointCount,
-      );
-      // Keep sprites off the dark nucleus so they don't paint a white peanut over it.
-      clearMappedTailInsideRadius(
-        visual.ionPositionAttribute,
-        visual.ionPointCount,
-        nucleusExtent * 3.5,
-      );
-      clearMappedTailInsideRadius(
-        visual.dustPositionAttribute,
-        visual.dustPointCount,
-        nucleusExtent * 3.0,
-      );
-      // Frame nucleus + near ion/dust streaks (controller uses ≈ radius × 8).
+      // Apply one presentation scale to both physical tails. Independently
+      // normalizing each tail inflated a few hours of dust into giant tendrils.
+      const physicalIonLength = maximumTailLength(visual.ionSpinePositionAttribute,
+        visual.ionSpinePointCount);
+      const physicalDustLength = maximumTailLength(visual.dustPositionAttribute,
+        visual.dustPointCount);
+      const extent = Math.max(physicalIonLength, physicalDustLength, 1e-12);
+      const displayExtent = nucleusRadius * (160 + state.tail.activity * 80);
+      const tailScale = displayExtent / extent;
+      for (const [attribute, count] of [
+        [visual.ionPositionAttribute, visual.ionPointCount],
+        [visual.ionSpinePositionAttribute, visual.ionSpinePointCount],
+        [visual.dustPositionAttribute, visual.dustPointCount],
+        [visual.dustSpinePositionAttribute, visual.dustSpinePointCount],
+      ] as const) scaleMappedTail(attribute, count, tailScale);
       visual.focusRadiusRenderUnits = Math.max(
-        ionDisplayLength * 0.55,
-        dustDisplayLength * 0.5,
-        comaVisible ? comaRadius * 4.2 : nucleusRadius * 8,
+        displayExtent * 0.32,
+        comaVisible ? comaRadius * 2 : nucleusRadius * 8,
       );
       visual.ionTail.geometry.setDrawRange(0, visual.ionPointCount);
       visual.ionCore.geometry.setDrawRange(0, visual.ionSpinePointCount);
@@ -503,12 +485,12 @@ export class CometVisualSystem {
       setMaterialUniform(
         visual.ionTail.material,
         'uOpacity',
-        0.98,
+        0.08 + state.tail.activity * 0.12,
       );
       setMaterialUniform(
         visual.dustTail.material,
         'uOpacity',
-        0.07 + state.tail.activity * 0.03,
+        0.02 + state.tail.activity * 0.025,
       );
       setMaterialUniform(visual.ionCore.material, 'uOpacity', 0);
       setMaterialUniform(visual.dustSpine.material, 'uOpacity', 0);
@@ -556,7 +538,7 @@ export class CometVisualSystem {
       trustedEphemeris: visual.trustedEphemeris,
       approximationWarning: visual.approximationWarning,
       comaRendering: 'soft radial density',
-      tailRendering: 'soft ion/dust ribbons with particle streamers',
+      tailRendering: 'diffuse ion and dust particle tails',
     });
   }
 
@@ -615,116 +597,56 @@ function createIrregularNucleusGeometry(seed: number): IcosahedronGeometry {
   return geometry;
 }
 
-/** Compress AU-scale tails into a nucleus-relative streak readable in body-follow. */
-function scaleMappedTailToLength(
-  attribute: BufferAttribute,
-  pointCount: number,
-  targetLengthRU: number,
-): void {
-  if (pointCount <= 0 || !Number.isFinite(targetLengthRU) || targetLengthRU <= 0) return;
-  const output = attribute.array as Float32Array;
-  let maxLength = 0;
-  for (let index = 0; index < pointCount; index += 1) {
-    const offset = index * 3;
-    const length = Math.hypot(
-      output[offset] ?? 0,
-      output[offset + 1] ?? 0,
-      output[offset + 2] ?? 0,
-    );
-    if (length > maxLength) maxLength = length;
+function maximumTailLength(attribute: BufferAttribute, count: number): number {
+  let maximum = 0;
+  for (let index = 0; index < count; index += 1) {
+    maximum = Math.max(maximum,
+      Math.hypot(attribute.getX(index), attribute.getY(index), attribute.getZ(index)));
   }
-  if (maxLength < 1e-12) return;
-  const scale = targetLengthRU / maxLength;
-  for (let index = 0; index < pointCount; index += 1) {
-    const offset = index * 3;
-    output[offset] = (output[offset] ?? 0) * scale;
-    output[offset + 1] = (output[offset + 1] ?? 0) * scale;
-    output[offset + 2] = (output[offset + 2] ?? 0) * scale;
+  return maximum;
+}
+
+function scaleMappedTail(attribute: BufferAttribute, count: number, scale: number): void {
+  for (let index = 0; index < count; index += 1) {
+    attribute.setXYZ(index, attribute.getX(index) * scale,
+      attribute.getY(index) * scale, attribute.getZ(index) * scale);
   }
   attribute.needsUpdate = true;
 }
 
-/** Park near-nucleus samples far away so additive sprites cannot form a white core. */
-function clearMappedTailInsideRadius(
-  attribute: BufferAttribute,
-  pointCount: number,
-  minRadiusRU: number,
-): void {
-  if (pointCount <= 0 || !Number.isFinite(minRadiusRU) || minRadiusRU <= 0) return;
-  const output = attribute.array as Float32Array;
-  const min2 = minRadiusRU * minRadiusRU;
-  for (let index = 0; index < pointCount; index += 1) {
-    const offset = index * 3;
-    const x = output[offset] ?? 0;
-    const y = output[offset + 1] ?? 0;
-    const z = output[offset + 2] ?? 0;
-    if (x * x + y * y + z * z < min2) {
-      output[offset] = 1e5;
-      output[offset + 1] = 1e5;
-      output[offset + 2] = 1e5;
-    }
-  }
-  attribute.needsUpdate = true;
-}
-
-/**
- * Push dust grains off the spine in screen-independent presentation space.
- * The age bins and radiation-pressure curve stay as CometTailDynamics wrote them.
- */
-function spreadDustPresentationFan(
+/** Fill between beta samples and adjacent emission times, not four separate strands. */
+function writeMappedDustCloud(
   attribute: BufferAttribute,
   phaseAttribute: BufferAttribute,
-  pointCount: number,
-): void {
-  if (pointCount < 2) return;
-  const output = attribute.array as Float32Array;
-  const phases = phaseAttribute.array as Float32Array;
-  let axisX = 0;
-  let axisY = 0;
-  let axisZ = 1;
-  let maxLength = 0;
-  for (let index = 0; index < pointCount; index += 1) {
-    const offset = index * 3;
-    const x = output[offset] ?? 0;
-    const y = output[offset + 1] ?? 0;
-    const z = output[offset + 2] ?? 0;
-    const length = Math.hypot(x, y, z);
-    if (length > 1e4) continue;
-    if (length > maxLength) {
-      maxLength = length;
-      axisX = x;
-      axisY = y;
-      axisZ = z;
+  positionsM: Float64Array,
+  metersPerRenderUnit: number,
+  seed: number,
+): number {
+  const bins = positionsM.length / (DUST_GRAINS_PER_AGE_BIN * 3);
+  if (!Number.isInteger(bins) || bins < 2) return 0;
+  const count = Math.min(attribute.count, (bins - 1) * 48);
+  const random = createRandom(seed ^ 0x44_55_53);
+  for (let index = 0; index < count; index += 1) {
+    const age = (index + random()) / count * (bins - 1);
+    const bin = Math.min(bins - 2, Math.floor(age));
+    const ageMix = age - bin;
+    const grain = random() * (DUST_GRAINS_PER_AGE_BIN - 1);
+    const left = Math.floor(grain);
+    const grainMix = grain - left;
+    const point: number[] = [];
+    for (let axis = 0; axis < 3; axis += 1) {
+      const sample = (row: number, column: number): number =>
+        positionsM[(row * DUST_GRAINS_PER_AGE_BIN + column) * 3 + axis] ?? 0;
+      const before = sample(bin, left) * (1 - grainMix) + sample(bin, left + 1) * grainMix;
+      const after = sample(bin + 1, left) * (1 - grainMix) + sample(bin + 1, left + 1) * grainMix;
+      point.push((before * (1 - ageMix) + after * ageMix) / metersPerRenderUnit);
     }
-  }
-  if (maxLength < 1e-8) return;
-  axisX /= maxLength;
-  axisY /= maxLength;
-  axisZ /= maxLength;
-  const refX = Math.abs(axisX) < 0.8 ? 1 : 0;
-  const refY = Math.abs(axisX) < 0.8 ? 0 : 1;
-  let sideX = axisY * 0 - axisZ * refY;
-  let sideY = axisZ * refX - axisX * 0;
-  let sideZ = axisX * refY - axisY * refX;
-  const sideLength = Math.hypot(sideX, sideY, sideZ) || 1;
-  sideX /= sideLength;
-  sideY /= sideLength;
-  sideZ /= sideLength;
-
-  for (let index = 0; index < pointCount; index += 1) {
-    const offset = index * 3;
-    const x = output[offset] ?? 0;
-    const y = output[offset + 1] ?? 0;
-    const z = output[offset + 2] ?? 0;
-    if (x * x + y * y + z * z > 1e8) continue;
-    const phase = phases[index] ?? 0;
-    const lane = (index % DUST_GRAINS_PER_AGE_BIN) / (DUST_GRAINS_PER_AGE_BIN - 1) - 0.5;
-    const extra = maxLength * 0.16 * (0.2 + 0.8 * phase) * lane * 2;
-    output[offset] = x + sideX * extra;
-    output[offset + 1] = y + sideY * extra;
-    output[offset + 2] = z + sideZ * extra;
+    attribute.setXYZ(index, point[0]!, point[2]!, -point[1]!);
+    phaseAttribute.setX(index, age / (bins - 1));
   }
   attribute.needsUpdate = true;
+  phaseAttribute.needsUpdate = true;
+  return count;
 }
 
 function createTailGeometry(maxPointCount: number, seed: number): {
@@ -878,10 +800,10 @@ function writeMappedIonStreamers(
     const by = dirZ * tx - dirX * tz;
     const bz = dirX * ty - dirY * tx;
     // Narrow filament envelope — readable as a blue streak, not a sheet.
-    const halfWidth = spineLength * (0.008 + fraction * 0.018);
+    const halfWidth = spineLength * (0.0015 + fraction * 0.002);
     for (let streamer = 0; streamer < streamerCount; streamer += 1) {
       if (written >= maxPoints) return;
-      const lane = streamerCount === 1 ? 0 : streamer / (streamerCount - 1) - 0.5;
+      const lane = random() - 0.5;
       const wobble = Math.sin(fraction * Math.PI * 3.1 + streamer * 1.7 + seed * 1e-4) * 0.28;
       const lateral = halfWidth * (lane * 2.4 + wobble * (0.16 + random() * 0.1));
       const outOffset = written * 3;
@@ -1244,6 +1166,7 @@ function createComaMaterial(
         float alpha = uOpacity * radialDensity * directionalDensity * wisp;
         if (alpha < 0.002) discard;
         gl_FragColor = vec4(uColor, alpha);
+        #include <colorspace_fragment>
       }
     `,
   });
@@ -1278,12 +1201,6 @@ function createTailParticleMaterial(
       void main() {
         vTailPhase = aTailPhase;
         vBrightness = aBrightness;
-        // Hide samples parked far away by clearMappedTailInsideRadius.
-        if (length(position) > 1e4) {
-          gl_PointSize = 0.0;
-          gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
-          return;
-        }
         vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
         float depth = max(0.04, -mvPosition.z);
         float perspective = clamp(0.1 / depth, 0.75, 2.8);
@@ -1304,11 +1221,12 @@ function createTailParticleMaterial(
         float radius2 = dot(centered, centered);
         if (radius2 > 1.0) discard;
         float softness = exp(-radius2 * mix(6.4, 2.6, uTailKind));
-        float longitudinalFade = mix(0.35, 1.0, pow(1.0 - vTailPhase, mix(0.95, 0.4, uTailKind)));
-        float midBoost = smoothstep(0.04, 0.18, vTailPhase);
+        float longitudinalFade = pow(max(0.0, 1.0 - vTailPhase), mix(1.1, 0.65, uTailKind));
+        float midBoost = smoothstep(0.0, 0.025, vTailPhase);
         float alpha = uOpacity * softness * longitudinalFade * max(0.5, vBrightness) * midBoost;
         if (alpha < 0.00035) discard;
         gl_FragColor = vec4(uColor, alpha);
+        #include <colorspace_fragment>
       }
     `,
   });
@@ -1382,5 +1300,5 @@ const EMPTY_DIAGNOSTICS: Readonly<CometVisualDiagnostics> = Object.freeze({
   trustedEphemeris: false,
   approximationWarning: null,
   comaRendering: 'soft radial density',
-  tailRendering: 'soft ion/dust ribbons with particle streamers',
+  tailRendering: 'diffuse ion and dust particle tails',
 });

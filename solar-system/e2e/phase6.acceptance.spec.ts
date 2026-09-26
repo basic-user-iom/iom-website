@@ -51,7 +51,7 @@ test('comet diagnostics expose changing unit anti-solar direction and curved dus
   await expect(canvas).toHaveAttribute('data-comet-coma-rendering', 'soft radial density')
   await expect(canvas).toHaveAttribute(
     'data-comet-tail-rendering',
-    'soft ion/dust ribbons with particle streamers',
+    'diffuse ion and dust particle tails',
   )
   await expect(page.getByTestId('comet-approximation-warning')).toContainText(
     /Horizons vector is \d+ years from JPL orbit solution K273\/11;.*uncertain/i,

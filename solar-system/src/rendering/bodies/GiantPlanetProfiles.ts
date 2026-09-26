@@ -75,6 +75,8 @@ export interface GiantAtmosphereProfile {
   readonly baseColor: string;
   readonly zoneColor: string;
   readonly hazeColor: string;
+  readonly colorSourceRef?: string;
+  readonly colorNotes?: string;
   readonly maximumJetSpeedMps: number;
   readonly jetProfileSource: string;
   readonly jetProfileRef: string;

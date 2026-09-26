@@ -1057,7 +1057,7 @@ function giantAtmosphereShell(bodyId: string): {
       };
     case 'uranus':
       return {
-        color: 0x6fe8e2,
+        color: 0xa4d2cc,
         density: 1.35,
         limbPower: 1.05,
         innerFade: 0.14,
@@ -1065,7 +1065,7 @@ function giantAtmosphereShell(bodyId: string): {
       };
     case 'neptune':
       return {
-        color: 0x6aa8ff,
+        color: 0x82b8ca,
         density: 1.55,
         limbPower: 0.75,
         innerFade: 0.0,
@@ -1360,12 +1360,13 @@ const SURFACE_FRAGMENT_SHADER = /* glsl */ `
     if(uImpactCut.w < 1.5 && dot(normalize(vObjectPosition),uImpactCut.xyz)>uImpactCut.w) discard;
     vec3 mapColor = texture2D(uMap, vUv).rgb;
     vec3 albedo = uHasMap > 0.5 ? mapColor : fallbackAlbedo();
-    if (uProfile > 2.5 && uHasMap > 0.5) {
+    if (uProfile > 2.5 && uProfile < 3.5 && uHasMap > 0.5) {
       float radarReturn = dot(mapColor, vec3(0.299, 0.587, 0.114));
       albedo = mix(uBaseColor, uSecondaryColor, smoothstep(0.06, 0.92, radarReturn));
     }
-    if (uProfile > 3.5) {
-      float polarCap = smoothstep(0.78, 0.94, abs(vBodyNormal.z));
+    // The Viking mosaic already contains the observed polar caps.
+    if (uProfile > 3.5 && uHasMap < 0.5) {
+      float polarCap = smoothstep(0.978, 0.995, abs(vBodyNormal.z));
       albedo = mix(albedo, vec3(0.82, 0.76, 0.66), polarCap * 0.82);
     }
     if (uProfile < 0.5) {

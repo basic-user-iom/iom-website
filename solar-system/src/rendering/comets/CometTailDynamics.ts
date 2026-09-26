@@ -46,8 +46,8 @@ export interface CometTailSamplingOptions {
  *
  * The ion tail is tied to the instantaneous anti-solar direction. Dust is
  * reconstructed from time-stamped historical nucleus states, retains its
- * emission velocity, and receives a simple radiation-pressure-like outward
- * acceleration. It is intentionally not a dust-plasma or N-body simulation.
+ * emission velocity, and follows solar gravity reduced by radiation pressure.
+ * It is a two-body dust approximation, not a dust-plasma or N-body simulation.
  */
 export function sampleCometTail(
   provider: EphemerisProvider,
@@ -190,78 +190,40 @@ function createDustTailPositions(
   const spinePositions = new Float64Array(ageBinCount * 3);
   const emitted = createEphemerisStateVector();
   const random = createDeterministicRandom(profile.deterministicSeed ^ hashString(bodyId));
-  const basePhase = random() * Math.PI * 2;
-  // Lane speeds stay educational; a mild spread boost keeps the dust fan
-  // broader than the ion ribbon without claiming a measured ejection law.
-  const dustFanSpread = 1.35;
-  const laneSpeedScales = Array.from(
-    { length: grainsPerAgeBin },
-    (_, lane) => 0.42 + lane * 0.18 + random() * 0.1,
-  );
-
+  // A range of grain sizes fills a dust fan; these are illustrative beta
+  // samples, not four coherent rotating jets.
+  const betas = [0.35, 0.7, 1.2, 2.0].map((scale) =>
+    profile.dustRadiationPressureBeta * scale);
   for (let ageIndex = 0; ageIndex < ageBinCount; ageIndex += 1) {
-    const fraction = ageIndex / (ageBinCount - 1);
-    const ageDays = fraction * historySpanDays;
+    const ageDays = ageIndex / (ageBinCount - 1) * historySpanDays;
     const birthJdTdb = jdTdb - ageDays;
     provider.sample(bodyId, birthJdTdb, emitted);
-    const ageSeconds = ageDays * SECONDS_PER_DAY;
     const radialAtBirth = subtract(emitted.positionM, sunPositionM);
-    const radialDistance = Math.max(length(radialAtBirth), MINIMUM_HELIOCENTRIC_DISTANCE_M);
     const outward = normalize(radialAtBirth);
-    const transverse = orthogonalUnit(outward);
-    const binormal = normalize(cross(outward, transverse));
-    const radiationAcceleration =
-      profile.dustRadiationPressureBeta *
-      SOLAR_GRAVITATIONAL_PARAMETER_M3_S2 /
-      (radialDistance * radialDistance);
-    const radiationDisplacement = 0.5 * radiationAcceleration * ageSeconds * ageSeconds;
-    const spineX =
-      emitted.positionM.x +
-      emitted.velocityMps.x * ageSeconds +
-      outward.x * radiationDisplacement -
-      current.positionM.x;
-    const spineY =
-      emitted.positionM.y +
-      emitted.velocityMps.y * ageSeconds +
-      outward.y * radiationDisplacement -
-      current.positionM.y;
-    const spineZ =
-      emitted.positionM.z +
-      emitted.velocityMps.z * ageSeconds +
-      outward.z * radiationDisplacement -
-      current.positionM.z;
-    const spineOffset = ageIndex * 3;
-    spinePositions[spineOffset] = spineX;
-    spinePositions[spineOffset + 1] = spineY;
-    spinePositions[spineOffset + 2] = spineZ;
-
-    for (let lane = 0; lane < grainsPerAgeBin; lane += 1) {
-      const phase =
-        basePhase +
-        lane * Math.PI * 2 / grainsPerAgeBin +
-        Math.sin(fraction * Math.PI * 1.6) * 0.28;
-      const ejectionSpeed =
-        profile.dustEjectionSpeedMps *
-        dustFanSpread *
-        (laneSpeedScales[lane] ?? 0.65) *
-        (0.88 + 0.12 * Math.cos(fraction * Math.PI * 2 + lane));
-      // Prefer the orbital plane so the fan reads as a curved sheet, not a cone.
-      const inPlane = 0.72 + 0.28 * Math.abs(Math.cos(phase));
-      const ejectionX =
-        (transverse.x * Math.cos(phase) * inPlane + binormal.x * Math.sin(phase) * 0.55) *
-        ejectionSpeed;
-      const ejectionY =
-        (transverse.y * Math.cos(phase) * inPlane + binormal.y * Math.sin(phase) * 0.55) *
-        ejectionSpeed;
-      const ejectionZ =
-        (transverse.z * Math.cos(phase) * inPlane + binormal.z * Math.sin(phase) * 0.55) *
-        ejectionSpeed;
-      const index = ageIndex * grainsPerAgeBin + lane;
-      const offset = index * 3;
+    const orbitalNormal = normalize(cross(radialAtBirth, emitted.velocityMps));
+    const transverse = normalize(cross(orbitalNormal, outward));
+    for (let grain = 0; grain < grainsPerAgeBin; grain += 1) {
+      const phase = random() * Math.PI * 2;
+      const speed = profile.dustEjectionSpeedMps * (0.4 + random() * 0.6);
+      const velocity = {
+        x: emitted.velocityMps.x + speed * (transverse.x * Math.cos(phase) +
+          orbitalNormal.x * Math.sin(phase) * 0.25),
+        y: emitted.velocityMps.y + speed * (transverse.y * Math.cos(phase) +
+          orbitalNormal.y * Math.sin(phase) * 0.25),
+        z: emitted.velocityMps.z + speed * (transverse.z * Math.cos(phase) +
+          orbitalNormal.z * Math.sin(phase) * 0.25),
+      };
+      const position = propagateDustGrain(radialAtBirth, velocity,
+        ageDays * SECONDS_PER_DAY, betas[grain] ?? profile.dustRadiationPressureBeta);
+      const index = ageIndex * grainsPerAgeBin + grain;
       births[index] = birthJdTdb;
-      positions[offset] = spineX + ejectionX * ageSeconds;
-      positions[offset + 1] = spineY + ejectionY * ageSeconds;
-      positions[offset + 2] = spineZ + ejectionZ * ageSeconds;
+      const relative = subtract(position, subtract(current.positionM, sunPositionM));
+      positions[index * 3] = relative.x;
+      positions[index * 3 + 1] = relative.y;
+      positions[index * 3 + 2] = relative.z;
+      spinePositions[ageIndex * 3] = (spinePositions[ageIndex * 3] ?? 0) + relative.x / grainsPerAgeBin;
+      spinePositions[ageIndex * 3 + 1] = (spinePositions[ageIndex * 3 + 1] ?? 0) + relative.y / grainsPerAgeBin;
+      spinePositions[ageIndex * 3 + 2] = (spinePositions[ageIndex * 3 + 2] ?? 0) + relative.z / grainsPerAgeBin;
     }
   }
 
@@ -271,6 +233,43 @@ function createDustTailPositions(
     historySpanDays,
     curvatureM: polylineCurvature(spinePositions),
   };
+}
+
+/** Velocity Verlet in heliocentric metres; beta=0 is ordinary solar gravity. */
+export function propagateDustGrain(
+  initialPosition: Readonly<Vec3d>,
+  initialVelocity: Readonly<Vec3d>,
+  ageSeconds: number,
+  beta: number,
+): Vec3d {
+  assertFiniteVector(initialPosition, 'Dust position');
+  assertFiniteVector(initialVelocity, 'Dust velocity');
+  if (!Number.isFinite(ageSeconds) || ageSeconds < 0 || !Number.isFinite(beta) || beta < 0) {
+    throw new RangeError('Dust age and beta must be finite and non-negative.');
+  }
+  const steps = Math.min(512, Math.max(1, Math.ceil(ageSeconds / 21_600)));
+  const dt = ageSeconds / steps;
+  const mu = SOLAR_GRAVITATIONAL_PARAMETER_M3_S2 * (1 - beta);
+  let { x, y, z } = initialPosition;
+  let { x: vx, y: vy, z: vz } = initialVelocity;
+  const accelerationScale = (): number => {
+    const radius = Math.max(Math.hypot(x, y, z), MINIMUM_HELIOCENTRIC_DISTANCE_M);
+    return -mu / (radius * radius * radius);
+  };
+  let factor = accelerationScale();
+  let ax = x * factor, ay = y * factor, az = z * factor;
+  for (let step = 0; step < steps; step += 1) {
+    x += vx * dt + 0.5 * ax * dt * dt;
+    y += vy * dt + 0.5 * ay * dt * dt;
+    z += vz * dt + 0.5 * az * dt * dt;
+    factor = accelerationScale();
+    const nextAx = x * factor, nextAy = y * factor, nextAz = z * factor;
+    vx += 0.5 * (ax + nextAx) * dt;
+    vy += 0.5 * (ay + nextAy) * dt;
+    vz += 0.5 * (az + nextAz) * dt;
+    ax = nextAx; ay = nextAy; az = nextAz;
+  }
+  return { x, y, z };
 }
 
 function polylineCurvature(points: Float64Array): number {

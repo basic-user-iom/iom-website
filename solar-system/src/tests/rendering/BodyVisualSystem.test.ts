@@ -264,9 +264,6 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
         expect(visual.surface.material.fragmentShader).toContain(
           'vec4 observedSample = texture2D(uMap, vUv)',
         );
-        expect(visual.surface.material.fragmentShader).toContain(
-          'observedSample.a * 0.86',
-        );
       } else {
         expect(visual.textureBindings.size).toBe(0);
       }
@@ -276,7 +273,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     geometry.dispose();
   });
 
-  it('uses a one-pass premultiplied annulus with depth testing and Saturn mutual shadows', () => {
+  it('uses a one-pass planar annulus with depth testing and Saturn mutual shadows', () => {
     const geometry = new SphereGeometry(1, 8, 6);
     const system = new PhaseFourBodyVisualSystem(geometry, {
       maximumAnisotropy: 1,
@@ -291,7 +288,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(rings.material.transparent).toBe(true);
     expect(rings.material.depthTest).toBe(true);
     expect(rings.material.depthWrite).toBe(false);
-    expect(rings.material.premultipliedAlpha).toBe(true);
+    expect(rings.material.premultipliedAlpha).toBe(false);
     expect(rings.material.forceSinglePass).toBe(true);
     expect(rings.frustumCulled).toBe(false);
     expect(uniformNumber(saturn.surface.material, 'uHasRingShadow')).toBe(1);
@@ -308,17 +305,6 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     expect(saturn.surface.material.fragmentShader).toContain(
       'smoothstep(0.0, 0.24',
     );
-    expect(rings.material.fragmentShader).toContain('return mix(0.01, 1.0, visibility)');
-    expect(rings.material.fragmentShader).toContain('gapOpen');
-    expect(rings.material.fragmentShader).toContain('opticalDepth < 0.028');
-    expect(rings.material.vertexShader).toContain(
-      'vWorldNormal = normalize(viewNormal * mat3(viewMatrix))',
-    );
-    expect(rings.material.vertexShader).toContain('vWallFactor');
-    expect(rings.material.vertexShader).not.toContain(
-      'vWorldNormal = normalize(normalMatrix * normal)',
-    );
-
     const positions = rings.geometry.getAttribute('position');
     let maximumAbsoluteY = 0;
     let maximumRadius = 0;
@@ -329,14 +315,9 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
         Math.hypot(positions.getX(index), positions.getZ(index)),
       );
     }
-    // Educational thin slab: measurable thickness, still tiny vs radial extent.
-    expect(maximumAbsoluteY).toBeGreaterThan(0.02);
-    expect(maximumAbsoluteY).toBeLessThan(0.05);
-    expect(maximumAbsoluteY / maximumRadius).toBeLessThan(0.025);
-    expect(rings.material.fragmentShader).toContain('uRingHalfThickness');
-    expect(rings.material.fragmentShader).toContain('transmitted');
-    expect(rings.material.fragmentShader).toContain('litWeight');
-    expect(rings.material.fragmentShader).toContain('direct');
+    // No vertical walls: even an unresolved narrow ring cannot become a hoop.
+    expect(maximumAbsoluteY).toBe(0);
+    expect(maximumRadius).toBeCloseTo(saturn.boundingRadiusMultiplier, 5);
     rings.geometry.computeBoundingSphere();
     expect(rings.geometry.boundingSphere?.radius).toBeCloseTo(
       saturn.boundingRadiusMultiplier,
@@ -348,7 +329,7 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
     geometry.dispose();
   });
 
-  it('quality-gates transient Saturn spokes at high and ultra only', () => {
+  it('keeps unobserved transient Saturn spokes disabled at every quality', () => {
     const geometry = new SphereGeometry(1, 8, 6);
     const system = new PhaseFourBodyVisualSystem(geometry, {
       maximumAnisotropy: 1,
@@ -361,24 +342,11 @@ describe('PhaseFourBodyVisualSystem shell contracts', () => {
 
     expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBe(0);
     expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(false);
-    system.setQuality('high');
-    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(0.85, 12);
-    expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(true);
-    expect(ringMaterial.fragmentShader).toContain('localizedFilaments');
-    expect(ringMaterial.fragmentShader).toContain('spokeDark');
-    expect(ringMaterial.fragmentShader).toContain('spokeBright');
-    expect(ringMaterial.fragmentShader).toContain('highPhase');
-    expect(ringMaterial.fragmentShader).toContain('gapOpen');
-    expect(ringMaterial.fragmentShader).toContain('opticalDepth < 0.028');
-    expect(ringMaterial.fragmentShader).toContain('litAnsa');
-    expect(ringMaterial.fragmentShader).toContain('mix(0.42, 1.0');
-    expect(ringMaterial.fragmentShader).not.toContain('angle * 431.0');
-    expect(ringMaterial.fragmentShader).not.toContain('angle * 43.0 + radius * 19.0');
-    system.setQuality('ultra');
-    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBeCloseTo(1.35, 12);
-    system.setQuality('low');
-    expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBe(0);
-    expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(false);
+    for (const quality of ['low', 'medium', 'high', 'ultra'] as const) {
+      system.setQuality(quality);
+      expect(uniformNumber(ringMaterial, 'uSpokeStrength')).toBe(0);
+      expect(system.getDiagnostics('saturn').selectedSpokesEnabled).toBe(false);
+    }
 
     system.dispose();
     geometry.dispose();

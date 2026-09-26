@@ -70,7 +70,7 @@ test('Jupiter close-up tracks observed OPAL detail with modeled Great Red Spot f
   expect(browserErrors, browserErrors.join('\n')).toEqual([])
 })
 
-test('Saturn close-up exposes translucent optical-depth rings, shadows, and quality-gated spokes', async ({
+test('Saturn close-up exposes translucent optical-depth rings, mutual shadows, and no fabricated transient spokes', async ({
   page,
 }) => {
   const browserErrors = captureBrowserErrors(page)
@@ -84,7 +84,7 @@ test('Saturn close-up exposes translucent optical-depth rings, shadows, and qual
   await expect(canvas).toHaveAttribute('data-close-up-preset', 'saturn-rings')
   await expect(canvas).toHaveAttribute('data-ring-mesh-count', '1')
   await expect(canvas).toHaveAttribute('data-ring-shadow-enabled', 'true')
-  await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'true')
+  await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'false')
   await expect(canvas).toHaveAttribute('data-asset-state', 'ready', { timeout: 15_000 })
   await expect(canvas).toHaveAttribute(
     'data-visual-material',
@@ -95,7 +95,7 @@ test('Saturn close-up exposes translucent optical-depth rings, shadows, and qual
   await quality.selectOption('medium')
   await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'false')
   await quality.selectOption('ultra')
-  await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'true')
+  await expect(canvas).toHaveAttribute('data-ring-spokes-enabled', 'false')
 
   const frame = await canvas.screenshot()
   expect(frame.byteLength).toBeGreaterThan(10_000)
@@ -145,7 +145,7 @@ async function bootPhaseFive(page: Page): Promise<Locator> {
   await expect(page.locator('.canvas-topbar')).not.toContainText(/Phase\s+\d+/i)
   const canvas = page.locator('canvas[data-testid="solar-system-canvas"]')
   await expect(canvas).toBeVisible()
-  await expect(canvas).toHaveAttribute('data-giant-profile-version', /phase5/i)
+  await expect(canvas).toHaveAttribute('data-giant-profile-version', /^\d{4}-\d{2}-\d{2}\.[\w.-]+$/)
   return canvas
 }
 
