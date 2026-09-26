@@ -27,3 +27,21 @@ export const ISS_MODEL_ASSET: Readonly<SpaceObjectModelAsset> = Object.freeze({
   materials: 42,
   lazyLoaded: true,
 });
+
+
+export const VOYAGER_MODEL_ASSET = Object.freeze({
+  assetId: 'voyager-nasa-carbajal-2025-web',
+  objectIds: Object.freeze(['voyager-1', 'voyager-2'] as const),
+  file: SPACE_OBJECT_ASSET_ROOT + 'voyager/voyager-nasa-web.glb',
+  sourcePage: 'https://science.nasa.gov/3d-resources/voyager-probe-b/',
+  sourceOrganization: 'NASA / Michael D. Carbajal',
+  triangles: 20_390,
+  // Source meters retained; full bounds include the extended magnetometer boom.
+  boundingRadiusMeters: 16.1,
+  dishRadiusMeters: 1.85,
+  lazyLoaded: true,
+});
+
+export function isVoyager(id: string | null): boolean {
+  return id === 'voyager-1' || id === 'voyager-2';
+}

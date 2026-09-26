@@ -1,0 +1,15 @@
+{
+  "assetId": "voyager-nasa-carbajal-2025-web",
+  "sourcePage": "https://science.nasa.gov/3d-resources/voyager-probe-b/",
+  "sourceUrl": "https://assets.science.nasa.gov/content/dam/science/cds/3d/resources/model/voyager-probe-%28b%29/Voyager%20Probe%20%28B%29.glb",
+  "credit": "NASA / Michael D. Carbajal",
+  "sourcePublishedUtc": "2025-04-18",
+  "retrievedAtUtc": "2026-09-26T22:56:48.975Z",
+  "sourceSha256": "bd86ded828dd3f459293aee4ffc3cd0998d8db67439317c8299650a1174c3289",
+  "outputSha256": "af36e4fa00bb7138c435ed9b401feb731b4424d5f76186fa8cb31e8344e90641",
+  "processing": "Draco decoded and reordered and meshopt-quantized/compressed; authored materials, embedded textures, geometry and meter units retained. Shared design for Voyager 1 and 2.",
+  "geometryTriangles": 20390,
+  "usage": "NASA 3D Resources are free and without copyright; no NASA endorsement implied.",
+  "usageRef": "https://github.com/nasa/NASA-3D-Resources",
+  "attitude": "Illustrative Earth-pointing attitude; not SPICE attitude telemetry."
+}

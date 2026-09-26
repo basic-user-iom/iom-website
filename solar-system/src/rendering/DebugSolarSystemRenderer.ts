@@ -1,4 +1,5 @@
 ﻿import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
+import { calculateRebaseShift } from './CameraRelativeTransform';
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -360,6 +361,10 @@ export class DebugSolarSystemRenderer {
   private bodyLabelsVisible = true;
   private freeOrbitNeedsInitialization = false;
   private auxiliaryFocusRadiusRenderUnits: number | null = null;
+  private inspectedSpaceObjectId: string | null = null;
+  private readonly inspectedSpaceObjectPosition = new Vector3();
+  private readonly inspectedSpaceObjectOrigin = new Vector3();
+  private readonly spaceObjectTrackingDelta = new Vector3();
   /** True while freerorbiting a natural satellite; bloom is suppressed so ice moons stay sharp. */
   private naturalSatelliteCloseupActive = false;
   private reducedMotion: boolean;
@@ -1353,6 +1358,10 @@ export class DebugSolarSystemRenderer {
 
   public selectSpaceObject(id: string | null): void {
     this.spaceObjectVisualSystem.selectObject(id);
+    if (this.inspectedSpaceObjectId !== null && this.inspectedSpaceObjectId !== id) {
+      this.inspectedSpaceObjectId = null;
+      this.auxiliaryFocusRadiusRenderUnits = null;
+    }
     this.updateCanvasDiagnostics();
   }
 
@@ -1368,10 +1377,15 @@ export class DebugSolarSystemRenderer {
       this.postProcessing.setBloomAttenuation(this.exposurePreset === 'solar-closeup' ? 0 : 1);
     }
     this.auxiliaryFocusRadiusRenderUnits = renderRadius;
+    this.inspectedSpaceObjectId = id;
+    this.inspectedSpaceObjectPosition.copy(position);
+    this.inspectedSpaceObjectOrigin.set(this.currentOriginM.x, this.currentOriginM.y, this.currentOriginM.z);
+    this.freeOrbitNeedsInitialization = false;
+    const navigationRadius = this.spaceObjectVisualSystem.getObjectNavigationRadius(id);
     const focusDirection = this.spaceObjectVisualSystem.getObjectFocusDirection(id);
     const distance = focusDirection === null
       ? Math.max(renderRadius * 1.8, 0.00045)
-      : Math.max(renderRadius * 3.5, 1e-12);
+      : Math.max(renderRadius * (id.startsWith('voyager-') ? 2.2 : 3.5), 1e-12);
     this.clippingController.reset();
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
@@ -1385,16 +1399,33 @@ export class DebugSolarSystemRenderer {
       this.camera.position.copy(position).addScaledVector(focusDirection, distance);
     }
     this.controls.target.copy(position);
-    this.camera.up.set(0, 1, 0);
+    this.camera.up.copy(this.spaceObjectVisualSystem.getObjectFocusUp(id));
     this.camera.lookAt(position);
     this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
     this.controls.enabled = true;
     this.controls.minDistance = focusDirection === null
       ? Math.max(renderRadius * 1.2, 1e-6)
-      : Math.max(renderRadius * 1.2, 1e-12);
+      : Math.max(navigationRadius * 1.2, 1e-12);
+    this.updateScaleAwareNavigation();
     this.controls.update();
     this.updateCanvasDiagnostics();
     return true;
+  }
+
+  public zoomSpaceObject(factor: number, id: string | null = this.inspectedSpaceObjectId): void {
+    if (id !== null && this.inspectedSpaceObjectId !== id) this.focusSpaceObject(id);
+    if (this.inspectedSpaceObjectId === null || this.cameraController.mode !== 'free-orbit' ||
+        !Number.isFinite(factor) || factor <= 0) return;
+    this.updateScaleAwareNavigation();
+    const offset = this.scratchMapped.copy(this.camera.position).sub(this.controls.target);
+    const distance = offset.length();
+    if (distance === 0) return;
+    offset.multiplyScalar(Math.max(this.controls.minDistance,
+      Math.min(this.controls.maxDistance, distance * factor)) / distance);
+    this.camera.position.copy(this.controls.target).add(offset);
+    this.controls.update();
+    this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
+    this.updateCanvasDiagnostics();
   }
 
   public getSpaceObjectDiagnostics(): Readonly<SpaceObjectVisualDiagnostics> {
@@ -1869,12 +1900,32 @@ export class DebugSolarSystemRenderer {
       this.cameraController.update(cameraFrame);
     }
     this.cameraController.rig.applyTo(this.camera, this.controls.target);
+    this.applySpaceObjectCameraTracking();
     this.applyBlackHoleCameraTracking();
     this.applyImpactCameraOverride(deltaSeconds);
     this.updateScaleAwareNavigation();
     this.enforceAuxiliaryMoonFraming();
     this.updateClipping(deltaSeconds);
     this.camera.updateMatrixWorld();
+  }
+
+  /** Follow the spacecraft translation while preserving the user's zoom, orbit and pan. */
+  private applySpaceObjectCameraTracking(): void {
+    if (this.inspectedSpaceObjectId === null || this.cameraController.mode !== 'free-orbit') return;
+    const position = this.spaceObjectVisualSystem.getObjectWorldPosition(this.inspectedSpaceObjectId);
+    if (position === null) return;
+    // CameraController already rebases the camera on origin changes. Express the
+    // previous spacecraft center in that same origin before measuring its motion.
+    this.inspectedSpaceObjectPosition.add(calculateRebaseShift(
+      this.spaceObjectTrackingDelta, this.inspectedSpaceObjectOrigin,
+      this.currentOriginM, this.scaleModel.metersPerRenderUnit,
+    ));
+    this.spaceObjectTrackingDelta.copy(position).sub(this.inspectedSpaceObjectPosition);
+    this.camera.position.add(this.spaceObjectTrackingDelta);
+    this.controls.target.add(this.spaceObjectTrackingDelta);
+    this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
+    this.inspectedSpaceObjectPosition.copy(position);
+    this.inspectedSpaceObjectOrigin.set(this.currentOriginM.x, this.currentOriginM.y, this.currentOriginM.z);
   }
 
   /** Keeps a user-orbitable close-up translated with the moving encounter. */
@@ -1961,6 +2012,7 @@ export class DebugSolarSystemRenderer {
    */
   private clearNaturalSatelliteCloseup(): void {
     this.auxiliaryFocusRadiusRenderUnits = null;
+    this.inspectedSpaceObjectId = null;
     if (!this.naturalSatelliteCloseupActive) return;
     this.naturalSatelliteCloseupActive = false;
     this.postProcessing.setBloomAttenuation(this.exposurePreset === 'solar-closeup' ? 0 : 1);
@@ -1968,6 +2020,7 @@ export class DebugSolarSystemRenderer {
 
   private enforceAuxiliaryMoonFraming(): void {
     if (
+      !this.naturalSatelliteCloseupActive ||
       this.cameraController.mode !== 'free-orbit' ||
       this.auxiliaryFocusRadiusRenderUnits === null
     ) {
@@ -2034,7 +2087,9 @@ export class DebugSolarSystemRenderer {
     }
     if (this.cameraController.mode === 'free-orbit' && this.auxiliaryFocusRadiusRenderUnits !== null) {
       const distance = Math.max(this.camera.position.distanceTo(this.controls.target), 1e-12);
-      const radius = this.auxiliaryFocusRadiusRenderUnits;
+      const radius = this.inspectedSpaceObjectId === null
+        ? this.auxiliaryFocusRadiusRenderUnits
+        : this.spaceObjectVisualSystem.getObjectNavigationRadius(this.inspectedSpaceObjectId);
       const metrics = calculateScaleAwareNavigation({
         cameraDistanceRenderUnits: distance,
         targetRadiusM: radius * this.scaleModel.metersPerRenderUnit,
@@ -2320,6 +2375,9 @@ export class DebugSolarSystemRenderer {
     this.canvas.dataset.spaceObjectSelectedOnScreen = String(spaceObjects.selectedOnScreen);
     this.canvas.dataset.spaceObjectCoverageLabelCount = String(spaceObjects.coverageLabelCount);
     this.canvas.dataset.spaceObjectPropagationExecution = spaceObjects.propagationExecution;
+    this.canvas.dataset.voyagerModelState = spaceObjects.voyagerModelState;
+    this.canvas.dataset.voyagerModelAssetId = spaceObjects.voyagerModelAssetId;
+    this.canvas.dataset.voyagerModelMeshCount = String(spaceObjects.voyagerModelMeshCount);
     this.canvas.dataset.issModelState = spaceObjects.issModelState;
     this.canvas.dataset.issModelAssetId = spaceObjects.issModelAssetId;
     this.canvas.dataset.issModelMeshCount = String(spaceObjects.issModelMeshCount);

@@ -58,7 +58,7 @@ import type { DebugBodyRenderState, DebugRenderFrame } from '../rendering/Render
 import { sampleCometTail } from '../rendering/comets/CometTailDynamics';
 import type { CometFrameState } from '../rendering/comets/CometVisualSystem';
 import type { RenderScaleMode } from '../rendering/RenderScaleModel';
-import { ISS_MODEL_ASSET } from '../rendering/spaceobjects/SpaceObjectAssetCatalog';
+import { ISS_MODEL_ASSET, isVoyager } from '../rendering/spaceobjects/SpaceObjectAssetCatalog';
 import {
   CINEMATIC_TOUR_ROUTE,
   CinematicTourController,
@@ -1990,17 +1990,24 @@ export function AppShell() {
 
   const focusSpaceObjectForInspection = useCallback(
     (id: string): boolean => {
-      if (id === ISS_MODEL_ASSET.objectId) {
-        // Detailed ISS inspection keeps the station and nearby bodies on one
+      if (id === ISS_MODEL_ASSET.objectId || isVoyager(id)) {
+        // Detailed spacecraft inspection keeps models and nearby bodies on one
         // physical scale. The visual system also suppresses nonphysical
         // locator spheres such as the nearby JWST marker in this close-up.
         controls.setRenderScaleMode('true', true);
       }
       const focused = rendererRef.current?.focusSpaceObject(id) ?? false;
+      if (focused) {
+        updateCameraMode('free-orbit');
+        const runtime = runtimeRef.current;
+        if (runtime !== null) runtime.cameraMode = 'free-orbit';
+        setActiveCloseUpPresetId(null);
+      }
       runtimeRef.current?.renderNow();
+      runtimeRef.current?.forcePublish();
       return focused;
     },
-    [controls],
+    [controls, updateCameraMode, setActiveCloseUpPresetId],
   );
 
   const handleLegendBodyFocus = useCallback(
@@ -3095,6 +3102,13 @@ export function AppShell() {
                   }
                 }
                 focusSpaceObjectForInspection(id);
+              }}
+              onZoomObject={(factor) => {
+                if (selectedSpaceObjectId !== null && rendererRef.current?.getSpaceObjectDiagnostics().detailedInspectionObjectId !== selectedSpaceObjectId) {
+                  focusSpaceObjectForInspection(selectedSpaceObjectId);
+                }
+                rendererRef.current?.zoomSpaceObject(factor, selectedSpaceObjectId);
+                runtimeRef.current?.renderNow();
               }}
               onFocusEarth={() => controls.focusBody('earth')}
               onFocusSun={() => controls.focusBody('sun')}

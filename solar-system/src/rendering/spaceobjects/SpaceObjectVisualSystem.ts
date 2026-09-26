@@ -25,7 +25,8 @@ import { sampleEarthSatellite, sampleEarthSatelliteOrbitPath } from '../../simul
 import { SPACECRAFT_DEFINITIONS } from '../../simulation/spacecraft';
 import { sampleSpacecraftTrajectory, sampleSpacecraftTrajectoryPath } from '../../simulation/spacecraft';
 import { SpaceObjectWorkerClient, type SpaceObjectWorkerResultResponse } from '../../workers/space-objects';
-import { ISS_MODEL_ASSET } from './SpaceObjectAssetCatalog';
+import { ISS_MODEL_ASSET, VOYAGER_MODEL_ASSET, isVoyager } from './SpaceObjectAssetCatalog';
+import { VoyagerModelVisual } from './VoyagerModelVisual';
 import {
   bodyRelativePhysicalScale,
   earthSatelliteMarkerRadius,
@@ -50,6 +51,9 @@ export interface SpaceObjectVisualDiagnostics {
   readonly markersNotToScale: boolean;
   readonly selectedTrajectoryPointCount: number;
   readonly propagationExecution: 'module-worker' | 'direct-fallback';
+  readonly voyagerModelState: IssModelState;
+  readonly voyagerModelMeshCount: number;
+  readonly voyagerModelAssetId: string;
   readonly issModelState: IssModelState;
   readonly issModelAssetId: string;
   readonly issModelMeshCount: number;
@@ -93,6 +97,8 @@ export class SpaceObjectVisualSystem {
   private readonly earthSatelliteMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
   private readonly spacecraftMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
   private readonly issModelAnchor = new Group();
+  private readonly voyagerModels = new VoyagerModelVisual();
+  private metersToRenderUnits = 1 / 149_597_870_700;
   private readonly earthSatelliteTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly spacecraftTrajectory: Line<BufferGeometry, LineBasicMaterial>;
   private readonly worldPositions = new Map<string, Vector3>();
@@ -153,6 +159,7 @@ export class SpaceObjectVisualSystem {
       this.earthSatelliteMesh,
       this.spacecraftMesh,
       this.issModelAnchor,
+      this.voyagerModels.root,
     );
     if (typeof Worker === 'function') {
       try {
@@ -215,10 +222,11 @@ export class SpaceObjectVisualSystem {
     if (id !== this.detailedInspectionObjectId) this.detailedInspectionObjectId = null;
     this.selectedObjectId = id;
     if (id === ISS_MODEL_ASSET.objectId) void this.requestIssModel();
+    if (isVoyager(id)) void this.voyagerModels.request();
   }
 
   public setDetailedInspectionObject(id: string | null): void {
-    this.detailedInspectionObjectId = id === ISS_MODEL_ASSET.objectId ? id : null;
+    this.detailedInspectionObjectId = id === ISS_MODEL_ASSET.objectId || isVoyager(id) ? id : null;
   }
 
   public getObjectWorldPosition(id: string): Vector3 | null {
@@ -226,10 +234,20 @@ export class SpaceObjectVisualSystem {
   }
 
   public getObjectRenderRadius(id: string): number {
+    if (isVoyager(id)) return VOYAGER_MODEL_ASSET.boundingRadiusMeters * this.metersToRenderUnits;
     return this.renderedRadii.get(id) ?? 0.0003;
   }
 
+  public getObjectNavigationRadius(id: string): number {
+    return isVoyager(id) ? VOYAGER_MODEL_ASSET.dishRadiusMeters * this.metersToRenderUnits : this.getObjectRenderRadius(id);
+  }
+
+  public getObjectFocusUp(id: string): Vector3 {
+    return isVoyager(id) ? this.voyagerModels.focusUp(id) : new Vector3(0, 1, 0);
+  }
+
   public getObjectFocusDirection(id: string): Vector3 | null {
+    if (isVoyager(id)) return this.voyagerModels.focusDirection(id);
     if (id !== ISS_MODEL_ASSET.objectId || this.issModelState !== 'ready') return null;
     return ISS_FOCUS_DIRECTION.clone().applyQuaternion(this.issModelAnchor.quaternion).normalize();
   }
@@ -253,7 +271,7 @@ export class SpaceObjectVisualSystem {
         || !this.visible
         || !this.earthSatellitesVisible
         || objectId === this.selectedObjectId
-        || this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId
+        || this.detailedInspectionObjectId !== null
       ) {
         label.style.opacity = '0';
         continue;
@@ -310,7 +328,8 @@ export class SpaceObjectVisualSystem {
     }
     if (this.selectionIndicator !== null) {
       this.selectionIndicator.dataset.objectId = id;
-      this.selectionIndicator.style.opacity = '1';
+      this.selectionIndicator.style.opacity = isVoyager(id) && this.voyagerModels.state === 'ready' &&
+        this.detailedInspectionObjectId === id ? '0' : '1';
       this.selectionIndicator.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
     }
   }
@@ -329,6 +348,8 @@ export class SpaceObjectVisualSystem {
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.issModelAnchor.visible = false;
+    this.voyagerModels.hide();
+    this.metersToRenderUnits = scaleModel.metersToRenderUnits;
     this.inspectionSuppressedMarkerCount = 0;
     this.requestWorkerSample(frame.currentJdTdb);
     const earth = frame.bodies.find((body) => body.bodyId === 'earth');
@@ -356,11 +377,11 @@ export class SpaceObjectVisualSystem {
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
         const isIss = index === ISS_INDEX;
-        const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId && !isIss;
+        const suppressLocator = this.detailedInspectionObjectId !== null && satellite.id !== this.detailedInspectionObjectId;
         const baseRadius = isIss
           ? this.issModelPhysicalRadiusMeters * earthRelativeScale.metersToRenderUnits
           : earthSatelliteMarkerRadius(this.selectedObjectId === satellite.id, scaleModel.mode);
-        const useIssModel = isIss && this.issModelState === 'ready';
+        const useIssModel = isIss && this.issModelState === 'ready' && !suppressLocator;
         // Keep ISS framing on its physical radius; inflate only non-ISS locators.
         const displayRadius = useIssModel || isIss || camera === null
           ? baseRadius
@@ -414,15 +435,19 @@ export class SpaceObjectVisualSystem {
         }
         scaleModel.mapPosition(LOCAL, state.positionM, originM);
         OBJECT.position.copy(LOCAL);
-        const baseRadius = spacecraftMarkerRadius(
-          this.selectedObjectId === mission.id,
-          scaleModel.mode,
+        const detailedVoyager = isVoyager(mission.id) && this.selectedObjectId === mission.id;
+        const baseRadius = detailedVoyager ? this.getObjectRenderRadius(mission.id) : spacecraftMarkerRadius(
+          this.selectedObjectId === mission.id, scaleModel.mode,
         );
-        const displayRadius = camera === null
+        const modelShown = isVoyager(mission.id) && this.voyagerModels.update(mission.id, OBJECT.position,
+          earth?.positionM, state.positionM, scaleModel.metersToRenderUnits, detailedVoyager);
+        const displayRadius = detailedVoyager || camera === null
           ? baseRadius
           : screenAwareMarkerRadius(baseRadius, OBJECT.position, camera);
-        const suppressLocator = this.detailedInspectionObjectId === ISS_MODEL_ASSET.objectId;
-        if (suppressLocator) {
+        const suppressLocator = this.detailedInspectionObjectId !== null && mission.id !== this.detailedInspectionObjectId;
+        if (modelShown) {
+          this.hideInstance(this.spacecraftMesh, index);
+        } else if (suppressLocator) {
           this.hideInstance(this.spacecraftMesh, index);
           this.inspectionSuppressedMarkerCount += 1;
         } else {
@@ -460,6 +485,9 @@ export class SpaceObjectVisualSystem {
       markersNotToScale: true,
       selectedTrajectoryPointCount: this.selectedTrajectoryPointCount,
       propagationExecution: this.workerClient === null ? 'direct-fallback' : 'module-worker',
+      voyagerModelState: this.voyagerModels.state,
+      voyagerModelMeshCount: this.voyagerModels.meshCount,
+      voyagerModelAssetId: VOYAGER_MODEL_ASSET.assetId,
       issModelState: this.issModelState,
       issModelAssetId: ISS_MODEL_ASSET.assetId,
       issModelMeshCount: this.issModelMeshCount,
@@ -477,6 +505,7 @@ export class SpaceObjectVisualSystem {
 
   public dispose(): void {
     this.disposed = true;
+    this.voyagerModels.dispose();
     this.root.traverse((object) => {
       const renderable = object as typeof object & {
         geometry?: { dispose(): void };

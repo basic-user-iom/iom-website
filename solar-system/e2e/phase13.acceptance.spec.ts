@@ -18,7 +18,8 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(canvas).toHaveAttribute('data-natural-satellite-suppressed-label-count', /^\d+$/)
     await expect(canvas).toHaveAttribute('data-natural-satellite-official-texture-ready-count', '16', { timeout: 30_000 })
     await expect(canvas).toHaveAttribute('data-natural-satellite-official-texture-fallback-count', '0')
-    await expect(canvas).toHaveAttribute('data-natural-satellite-procedural-texture-count', '7')
+    // Seven procedural moons each own a color map and a normal map.
+    await expect(canvas).toHaveAttribute('data-natural-satellite-procedural-texture-count', String(7 * 2))
     await expect.poll(async () => Number(await canvas.getAttribute('data-natural-satellite-selected-radius-to-parent'))).toBeLessThanOrEqual(0.03)
     await expect.poll(() => canvas.getAttribute('data-camera-mode')).toBe('free-orbit')
     await expect(page.locator('.natural-satellite-screen-label[data-satellite-id="io"]')).toHaveCount(1)
@@ -29,7 +30,7 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
   })
 
   test('guards stale OMM data and draws selected object trajectories', async ({ page }) => {
-    test.setTimeout(60_000)
+    test.setTimeout(120_000)
     const browserErrors: string[] = []
     page.on('pageerror', (error) => browserErrors.push(error.message))
     page.on('console', (message) => { if (message.type() === 'error') browserErrors.push(message.text()) })
@@ -38,6 +39,9 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect(panel.getByRole('status')).toContainText('outside its hard validity window')
     await panel.getByRole('button', { name: 'Return to satellite epoch' }).click()
     await expect(canvas).toHaveAttribute('data-earth-satellite-rendered-count', '5')
+    // Explicitly test the presentation-to-physical transition; true scale is now the default.
+    await page.getByTestId('render-scale-controls').getByRole('button', { name: 'Presentation', exact: true }).click()
+    await expect(canvas).toHaveAttribute('data-presentation-mix', '1')
     await panel.getByRole('option', { name: /ISS/ }).click()
     await expect(canvas).toHaveAttribute('data-space-object-selected', 'earth-satellite-25544')
     await expect(canvas).toHaveAttribute('data-space-object-trajectory-points', '96')
@@ -61,15 +65,18 @@ test.describe.serial('Extension phases 2–4 acceptance', () => {
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-inspection-suppressed-markers'))).toBeGreaterThan(0)
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeLessThan(5e-10)
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-selected-render-radius'))).toBeGreaterThan(4e-10)
-    await expect.poll(async () => {
+    // The Earth-centered target must lie in low Earth orbit in physical units.
+    const targetDistanceMeters = async () => {
       const target = (await canvas.getAttribute('data-camera-world-target'))?.split(',').map(Number) ?? []
-      return target.length === 3 ? Math.hypot(target[0] ?? 0, target[1] ?? 0, target[2] ?? 0) : 0
-    }).toBeGreaterThan(0.001)
+      return Math.hypot(target[0] ?? 0, target[1] ?? 0, target[2] ?? 0) * 149_597_870_700
+    }
+    await expect.poll(targetDistanceMeters).toBeGreaterThan(6_400_000)
+    await expect.poll(targetDistanceMeters).toBeLessThan(7_400_000)
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-focus-distance-ratio'))).toBeGreaterThan(3)
     await expect.poll(async () => Number(await canvas.getAttribute('data-space-object-focus-distance-ratio'))).toBeLessThan(4)
     await expect.poll(async () => Number(await canvas.getAttribute('data-camera-near'))).toBeLessThan(1e-9)
     await expect(canvas).toHaveAttribute('data-space-object-selected-on-screen', 'true')
-    await expect(page.locator('.space-object-screen-label[data-object-id="earth-satellite-25544"]')).toBeVisible()
+    await expect(page.locator('.space-object-screen-label[data-object-id="earth-satellite-25544"][data-selected="true"]')).toBeVisible()
     await expect(page.getByTestId('selected-space-object-marker')).toBeVisible()
     await panel.getByRole('tab', { name: /Spacecraft/ }).click()
     await panel.getByRole('option', { name: /Voyager 1/ }).click()

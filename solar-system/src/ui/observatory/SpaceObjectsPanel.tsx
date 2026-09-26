@@ -10,7 +10,7 @@ import {
   SPACECRAFT_DEFINITIONS,
   sampleSpacecraftTrajectory,
 } from '../../simulation/spacecraft';
-import { ISS_MODEL_ASSET } from '../../rendering/spaceobjects/SpaceObjectAssetCatalog';
+import { ISS_MODEL_ASSET, VOYAGER_MODEL_ASSET, isVoyager } from '../../rendering/spaceobjects/SpaceObjectAssetCatalog';
 
 export interface SpaceObjectsPanelProps {
   readonly currentJdTdb: number;
@@ -24,6 +24,7 @@ export interface SpaceObjectsPanelProps {
   readonly onSpacecraftVisibleChange: (visible: boolean) => void;
   readonly onSelectObject: (id: string | null) => void;
   readonly onFocusObject: (id: string) => void;
+  readonly onZoomObject?: (factor: number) => void;
   readonly onFocusEarth: () => void;
   readonly onFocusSun: () => void;
   readonly onReturnToSatelliteEpoch: () => void;
@@ -44,6 +45,7 @@ export function SpaceObjectsPanel({
   onSelectObject,
   onFocusObject,
   onFocusEarth,
+  onZoomObject,
   onFocusSun,
   onReturnToSatelliteEpoch,
 }: SpaceObjectsPanelProps) {
@@ -128,6 +130,18 @@ export function SpaceObjectsPanel({
       ) : null}
       {selectedSatellite !== undefined ? <SelectedObjectSummary name={selectedSatellite.name} detail={`${selectedSatellite.catalogId} · OMM/TEME · ${formatAge(sampleEarthSatellite(selectedSatellite, currentJdTdb).dataAgeDays)}${selectedSatellite.id === ISS_MODEL_ASSET.objectId ? ` · ${ISS_MODEL_ASSET.physicalSpanMeters} m span · true physical scale on frame` : ''}`} frameLabel="Frame selected satellite" onFrame={() => onFocusObject(selectedSatellite.id)} actionLabel="Focus Earth" onAction={onFocusEarth} /> : null}
       {selectedMission !== undefined ? <SelectedObjectSummary name={selectedMission.name} detail={`${selectedMission.operator} · ${selectedMission.trajectorySource} · ${sampleSpacecraftTrajectory(selectedMission, currentJdTdb).valid ? 'inside validity' : 'outside validity'}`} frameLabel="Frame selected spacecraft" onFrame={() => onFocusObject(selectedMission.id)} actionLabel="Focus Sun" onAction={onFocusSun} /> : null}
+      {isVoyager(selectedObjectId) ? (
+        <div className="natural-satellite-summary" data-testid="voyager-inspection-controls">
+          <strong>Explore the spacecraft</strong>
+          <p className="field-help">Drag to orbit. Scroll or pinch to zoom into the dish, instruments and booms.</p>
+          <div className="space-object-tabs">
+            <button type="button" disabled={disabled} onClick={() => onZoomObject?.(0.7)}>Zoom in</button>
+            <button type="button" disabled={disabled} onClick={() => onZoomObject?.(1 / 0.7)}>Zoom out</button>
+          </div>
+          <p className="field-help">NASA model at physical scale, with inspection lighting. Earth-pointing attitude is illustrative.</p>
+          <a href={VOYAGER_MODEL_ASSET.sourcePage} target="_blank" rel="noreferrer">Model: NASA / Michael D. Carbajal</a>
+        </div>
+      ) : null}
     </section>
   );
 }
