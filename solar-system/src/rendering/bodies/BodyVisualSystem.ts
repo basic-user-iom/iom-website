@@ -1,3 +1,4 @@
+import { createSeamRepairedImage } from './TextureSeamRepair';
 import { EARTH_OCEAN_REFLECTION_GLSL } from './EarthOceanReflection';
 import {
   AdditiveBlending,
@@ -243,10 +244,15 @@ export class PhaseFourBodyVisualSystem {
       this.assetStates.set(asset.assetId, 'loading');
       this.textureLoader.load(
         asset.file,
-        (texture) => {
+        (texture: Texture<HTMLImageElement | HTMLCanvasElement>) => {
           if (this.disposed) {
             texture.dispose();
             return;
+          }
+          if (asset.invalidLeftGutterPixels !== undefined) {
+            texture.image = createSeamRepairedImage(
+              texture.image as HTMLImageElement, asset.invalidLeftGutterPixels,
+            );
           }
           texture.name = asset.assetId;
           texture.colorSpace = asset.colorSpace === 'srgb' ? SRGBColorSpace : NoColorSpace;

@@ -23,6 +23,8 @@ export interface BodyTextureAsset {
   readonly channel: BodyTextureChannel;
   readonly file: string;
   readonly colorSpace: 'srgb' | 'linear';
+  /** Known invalid left-edge columns in the source image; repaired before mipmapping. */
+  readonly invalidLeftGutterPixels?: number;
 }
 
 const PHASE_FOUR_ASSET_ROOT = `${import.meta.env.BASE_URL}assets/phase4/`;
@@ -120,6 +122,7 @@ export const BODY_TEXTURE_ASSETS: readonly BodyTextureAsset[] = Object.freeze([
     channel: 'albedo',
     file: `${PHASE_FOUR_ASSET_ROOT}mars.jpg`,
     colorSpace: 'srgb',
+    invalidLeftGutterPixels: 1,
   }),
   Object.freeze({
     assetId: 'mars-mola-megdr-normal-2k',
