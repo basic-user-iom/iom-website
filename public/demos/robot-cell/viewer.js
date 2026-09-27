@@ -26,7 +26,6 @@ function applyLanguage() {
   document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t[node.dataset.i18n]; });
   document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label', t[node.dataset.i18nAria]); });
   document.querySelector('#language').value = language;
-  document.querySelector('.brand').href = language === 'en' ? '/#robot-cell' : '/' + language + '/#robot-cell';
   renderer?.domElement.setAttribute('aria-label', t.canvas);
   ui.status.textContent = t[ui.viewer.dataset.state] || t.loading;
   if (!ready) ui['loading-label'].textContent = ui.viewer.dataset.state === 'error' ? t.errorMessage : t.preparing;
@@ -41,6 +40,8 @@ function updateTime() {
   const time = duration > 0 && actions[0] ? actions[0].time % duration : 0;
   ui.elapsed.textContent = formatTime(time);
   ui.timeline.value = time;
+  ui.timeline.style.setProperty('--timeline-progress', `${duration ? time / duration * 100 : 0}%`);
+  ui.timeline.setAttribute('aria-valuetext', `${formatTime(time)} / ${formatTime(duration)}`);
   ui.viewer.dataset.time = time.toFixed(4);
   if (diagnosticOutput) {
     model?.updateMatrixWorld(true);
@@ -68,6 +69,16 @@ function restart() {
   updateTime();
   needsRender = true;
   setPlaying(true);
+}
+
+function seek(seconds) {
+  if (!ready || !Number.isFinite(seconds)) return;
+  // Stay just inside the repeat boundary so choosing the end does not wrap to zero.
+  mixer.setTime(Math.max(0, Math.min(seconds, duration - 0.000001)));
+  previousTime = performance.now();
+  needsRender = true;
+  if (!playing) setPlaying(false);
+  updateTime();
 }
 
 function fitCamera() {
@@ -149,6 +160,32 @@ function inspectLoop() {
   mixer.setTime(0);
   ui.viewer.dataset.loopError = String(maxDifference);
   return maxDifference;
+}
+
+function stabilizeWalkway(root) {
+  // Exported paint sits only 0.4 to 0.95 mm above the slab. Give the paint layers
+  // distinct depth bias and cull their undersides instead of drawing coplanar backs.
+  const materials = new Map();
+  let surfaces = 0;
+  root.traverse(node => {
+    if (!node.isMesh || !node.name.startsWith('EXPORT10_WALKWAY_')) return;
+    const layer = node.name.includes('Green_Strip') ? 1 : node.name.includes('Edge_Line') ? 2 : 3;
+    const prepare = source => {
+      const key = source.uuid + ':' + layer;
+      if (!materials.has(key)) {
+        const material = source.clone();
+        material.side = THREE.FrontSide;
+        material.polygonOffset = true;
+        material.polygonOffsetFactor = -layer;
+        material.polygonOffsetUnits = -layer;
+        materials.set(key, material);
+      }
+      return materials.get(key);
+    };
+    node.material = Array.isArray(node.material) ? node.material.map(prepare) : prepare(node.material);
+    surfaces++;
+  });
+  ui.viewer.dataset.walkwaySurfaces = String(surfaces);
 }
 
 function batchRigidParts(root, clips) {
@@ -262,6 +299,7 @@ async function init() {
       }
     });
     if (!gltf.animations.length) throw new Error('The model has no animation clip.');
+    stabilizeWalkway(model);
     const savedDraws = batchRigidParts(model, gltf.animations);
     ui.viewer.dataset.savedDraws = String(savedDraws);
     mixer = new THREE.AnimationMixer(model);
@@ -286,6 +324,7 @@ async function init() {
     renderer.render(scene, camera);
     ui.loading.hidden = true;
     ready = true;
+    ui.timeline.disabled = false;
     setPlaying(false);
     ui.status.textContent = t.ready;
     ui.viewer.dataset.state = 'ready';
@@ -306,11 +345,22 @@ async function init() {
 ui.play.addEventListener('click', () => setPlaying(true));
 ui.pause.addEventListener('click', () => setPlaying(false));
 ui.restart.addEventListener('click', restart);
+ui.timeline.addEventListener('input', () => seek(Number(ui.timeline.value)));
+ui.timeline.addEventListener('keydown', event => {
+  const step = event.shiftKey ? 10 : 1;
+  const time = Number(ui.timeline.value);
+  const positions = { ArrowLeft: time - step, ArrowDown: time - step, ArrowRight: time + step,
+    ArrowUp: time + step, PageDown: time - 10, PageUp: time + 10, Home: 0, End: duration };
+  if (Object.hasOwn(positions, event.key)) {
+    event.preventDefault();
+    seek(positions[event.key]);
+  }
+});
 ui.retry.addEventListener('click', () => location.reload());
 window.addEventListener('resize', resize);
 document.addEventListener('visibilitychange', () => { previousTime = performance.now(); needsRender = true; });
 document.addEventListener('keydown', event => {
-  if (event.code === 'Space' && !['BUTTON', 'INPUT', 'TEXTAREA', 'A'].includes(event.target.tagName)) {
+  if (event.code === 'Space' && !['BUTTON', 'INPUT', 'SELECT', 'TEXTAREA', 'A'].includes(event.target.tagName)) {
     event.preventDefault();
     setPlaying(!playing);
   }
