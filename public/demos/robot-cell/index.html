@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f3f4f0">
+  <meta name="description" content="Explore a robot palletizing cell in 3D. Follow the conveyor, vacuum gripper and autonomous forklift, with play, pause and restart controls in your browser.">
+  <title>Robot Cell 01 — Interactive 3D Palletizing | IOM</title>
+  <link rel="canonical" href="https://iobjectm.com/demos/robot-cell/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="IOM">
+  <meta property="og:title" content="Robot Cell 01 — Interactive 3D Palletizing">
+  <meta property="og:description" content="Explore an animated factory cell with a robot, vacuum gripper and autonomous forklift. Play, pause and restart the complete cycle.">
+  <meta property="og:url" content="https://iobjectm.com/demos/robot-cell/">
+  <meta property="og:image" content="https://iobjectm.com/demos/robot-cell/poster.jpg">
+  <meta property="og:image:alt" content="Robot palletizing cartons inside a guarded industrial cell, with an autonomous forklift beside it.">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Robot Cell 01 — Interactive 3D Palletizing">
+  <meta name="twitter:description" content="Explore the complete animated factory cycle in your browser.">
+  <meta name="twitter:image" content="https://iobjectm.com/demos/robot-cell/poster.jpg">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./viewer.css">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"CreativeWork","name":"Robot Cell 01","description":"Interactive 3D animation of an automated palletizing cell.","url":"https://iobjectm.com/demos/robot-cell/","image":"https://iobjectm.com/demos/robot-cell/poster.jpg","creator":{"@type":"Organization","name":"IOM","url":"https://iobjectm.com"},"inLanguage":["en","de","fr","nl","it","es"]}</script>
+  <script type="importmap">
+    {"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.181.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.181.0/examples/jsm/"}}
+  </script>
+</head>
+<body>
+  <main id="viewer" data-state="loading" data-i18n-aria="viewer" aria-label="Robot cell 3D viewer">
+    <div id="canvas-host" data-i18n-aria="canvas" aria-label="Interactive robot cell. Drag to orbit; scroll or pinch to zoom."></div>
+    <header class="topbar">
+      <a class="brand" href="/" data-i18n-aria="home" aria-label="IOM homepage">IOM<span>.</span></a>
+      <div class="heading"><h1>Robot Cell <span>01</span></h1><p data-i18n="subtitle">Automated palletizing</p></div>
+      <div class="state"><span class="status-dot" aria-hidden="true"></span><span id="status" role="status" aria-live="polite">Loading</span></div>
+      <select id="language" data-i18n-aria="language" aria-label="Language">
+        <option value="en" lang="en">EN</option><option value="de" lang="de">DE</option><option value="fr" lang="fr">FR</option><option value="nl" lang="nl">NL</option><option value="it" lang="it">IT</option><option value="es" lang="es">ES</option>
+      </select>
+    </header>
+    <section id="loading" class="loading" data-i18n-aria="loading" aria-label="Loading">
+      <div class="loading-mark" aria-hidden="true">01</div>
+      <p id="loading-label">Preparing the scene…</p>
+      <progress id="load-progress" max="1" value="0" data-i18n-aria="loadProgress" aria-label="Loading progress"></progress>
+      <button id="retry" type="button" data-i18n="retry" hidden>Try again</button>
+    </section>
+    <footer class="player">
+      <div class="timeline-row"><span id="elapsed">00:00</span><progress id="timeline" max="1" value="0" data-i18n-aria="animationProgress" aria-label="Animation progress"></progress><span id="duration">00:00</span></div>
+      <div class="player-row">
+        <span class="hint" data-i18n="hint">Drag to orbit · scroll to zoom</span>
+        <div class="controls" role="group" data-i18n-aria="controls" aria-label="Animation controls">
+          <button id="play" type="button" class="primary" disabled data-i18n-aria="playAria" aria-label="Play animation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5 19 12 8 19Z" fill="currentColor" stroke="none"/></svg><span data-i18n="play">Play</span></button>
+          <button id="pause" type="button" disabled data-i18n-aria="pauseAria" aria-label="Pause animation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5v14M15 5v14" stroke-width="3"/></svg><span data-i18n="pause">Pause</span></button>
+          <button id="restart" type="button" disabled data-i18n-aria="restartAria" aria-label="Restart animation"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10a8 8 0 1 1 1 8M4 4v6h6"/></svg><span data-i18n="restart">Restart</span></button>
+        </div>
+        <span class="loop-note"><span aria-hidden="true">↻</span> <span data-i18n="loop">Continuous loop</span></span>
+      </div>
+    </footer>
+  </main>
+  <noscript>JavaScript is required to explore the 3D scene. <a href="/blog/robot-cell-browser-palletizing">Read the project story.</a></noscript>
+  <script type="module" src="./viewer.js"></script>
+</body>
+</html>

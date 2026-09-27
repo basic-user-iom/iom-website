@@ -10,6 +10,20 @@ export const nlProjects: ProjectsLocalePack = {
     experiments: { label: 'Experimenten', blurb: 'WebGPU realtime rendering R&D — compute-particles, belichting, mist, curves en bewegingsstudies.' },
   },
   projects: {
+    'robot-cell': {
+      "title": "Robot Cell 01 — Geautomatiseerde palletisering",
+      "description": "Een interactieve robotcel: volg dozen van de transportband naar de pallet en het autonome transport. Draai de scène en start, pauzeer of herstart de volledige animatie.",
+      "tags": [
+        "webgl",
+        "three.js",
+        "robotica",
+        "animatie",
+        "glb"
+      ],
+      "referenceLabels": [
+        "Lees het verhaal"
+      ]
+    },
     '3d-viewer': {
       title: '3D Viewer',
       description: 'Browser-3D-modelviewer voor web en Windows-desktop. Laad GLTF, FBX, OBJ, IFC en meer — inspecteer met orbit controls, GPU path tracing, HDR-belichting, hotspots, en exporteer zelfstandige webpresentaties.',

@@ -10,6 +10,20 @@ export const deProjects: ProjectsLocalePack = {
     experiments: { label: 'Experimente', blurb: 'WebGPU-Echtzeit-Rendering-R&D — Compute-Partikel, Beleuchtung, Nebel, Kurven und Bewegungsstudien.' },
   },
   projects: {
+    'robot-cell': {
+      "title": "Robot Cell 01 — Automatisierte Palettierung",
+      "description": "Eine interaktive Roboterzelle: Kartons vom Förderband über die Palette bis zum autonomen Transport verfolgen. Szene drehen und den gesamten Ablauf starten, pausieren oder neu beginnen.",
+      "tags": [
+        "webgl",
+        "three.js",
+        "robotik",
+        "animation",
+        "glb"
+      ],
+      "referenceLabels": [
+        "Zum Artikel"
+      ]
+    },
     '3d-viewer': {
       title: '3D Viewer',
       description: 'Browser-3D-Modellviewer fürs Web und Windows-Desktop. GLTF, FBX, OBJ, IFC und mehr laden — inspizieren mit Orbit-Controls, GPU-Path-Tracing, HDR-Beleuchtung, Hotspots und als eigenständige Web-Präsentationen exportieren.',

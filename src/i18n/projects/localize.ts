@@ -5,6 +5,7 @@ import {
 } from '../../data/projects'
 import { SECTIONS } from '../../data/sections'
 import type { SiteLang } from '../types'
+import { localePath } from '../routing'
 import { deProjects } from './de'
 import { esProjects } from './es'
 import { frProjects } from './fr'
@@ -53,6 +54,9 @@ export function localizeProject(project: Project, lang: SiteLang): Project {
       ? project.referenceUrls.map((ref, i) => ({
           ...ref,
           label: o.referenceLabels?.[i] ?? ref.label,
+          url: project.id === 'robot-cell' && ref.url === '/blog/robot-cell-browser-palletizing'
+            ? localePath(lang, ref.url)
+            : ref.url,
         }))
       : project.referenceUrls
 

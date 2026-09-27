@@ -810,6 +810,23 @@ export const PROJECTS: Project[] = [
     archiveId: 'OBJ-0150',
   },
   {
+    id: 'robot-cell',
+    title: 'Robot Cell 01 — Automated Palletizing',
+    section: '3d',
+    tags: ['webgl', 'three.js', 'robotics', 'animation', 'glb'],
+    description:
+      'An interactive industrial robot cell: follow cartons from the conveyor to a pallet and autonomous transport. Orbit the scene and play, pause or restart the complete animation.',
+    year: '2026',
+    url: '/demos/robot-cell/',
+    embedUrl: '/demos/robot-cell/',
+    hoverEmbed: false,
+    posterUrl: '/demos/robot-cell/poster.jpg',
+    mobilePosterUrl: '/demos/robot-cell/poster.jpg',
+    thumbnail: '/demos/robot-cell/poster.jpg',
+    referenceUrls: [{ label: 'Read the story', url: '/blog/robot-cell-browser-palletizing' }],
+    archiveId: 'OBJ-0162',
+  },
+  {
     id: 'ssr-denoise',
     title: 'Art Gallery Space — WebGPU SSR + Denoise',
     section: '3d',

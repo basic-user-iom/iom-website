@@ -66,6 +66,22 @@
       "destination": "/demos/dukta/index.html"
     },
     {
+      "source": "/blog/robot-cell-browser-palletizing",
+      "destination": "/blog/robot-cell-browser-palletizing/index.html"
+    },
+    {
+      "source": "/blog/robot-cell-browser-palletizing/",
+      "destination": "/blog/robot-cell-browser-palletizing/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/robot-cell-browser-palletizing",
+      "destination": "/:lang/blog/robot-cell-browser-palletizing/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/robot-cell-browser-palletizing/",
+      "destination": "/:lang/blog/robot-cell-browser-palletizing/index.html"
+    },
+    {
       "source": "/blog/solar-system-living-observatory",
       "destination": "/blog/solar-system-living-observatory/index.html"
     },
@@ -82,7 +98,7 @@
       "destination": "/:lang/blog/solar-system-living-observatory/index.html"
     },
     {
-      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)).*)",
+      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)|(?:de|fr|nl|it|es)/blog/robot-cell-browser-palletizing(?:/|$)|blog/robot-cell-browser-palletizing(?:/|$)).*)",
       "destination": "/index.html"
     }
   ],

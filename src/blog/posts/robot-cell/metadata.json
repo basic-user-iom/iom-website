@@ -1,0 +1,51 @@
+{
+  "id": "site-blog-robot-cell",
+  "slug": "robot-cell-browser-palletizing",
+  "published_at": "2026-09-27T18:00:00.000Z",
+  "cover_image_url": "/demos/robot-cell/poster.jpg",
+  "author_name": "IOM",
+  "tags": [
+    "ROBOTICS",
+    "3D",
+    "BLENDER",
+    "GLB"
+  ],
+  "locales": {
+    "en": {
+      "title": "Robot Cell 01: explore an automated factory cycle in 3D",
+      "excerpt": "From conveyor to pallet and autonomous transport: a browser-based look at industrial choreography, built in Blender and delivered as an interactive GLB scene.",
+      "seo_title": "Robot Cell 01: Interactive 3D Palletizing Demo | IOM",
+      "seo_description": "Explore a robot palletizing cell in 3D. Follow the conveyor, vacuum gripper and autonomous forklift, with play, pause and restart controls in your browser."
+    },
+    "de": {
+      "title": "Robot Cell 01: einen automatisierten Fabrikzyklus in 3D erkunden",
+      "excerpt": "Vom Förderband zur Palette und zum autonomen Transport: eine interaktive Industrieanimation aus Blender, als GLB-Szene direkt im Browser erlebbar.",
+      "seo_title": "Robot Cell 01: Interaktive 3D-Palettierung | IOM",
+      "seo_description": "Eine Roboterzelle in 3D erkunden: Förderband, Vakuumgreifer und autonomer Stapler. Die Animation im Browser starten, pausieren und neu beginnen."
+    },
+    "fr": {
+      "title": "Robot Cell 01 : explorer un cycle industriel automatisé en 3D",
+      "excerpt": "Du convoyeur à la palette puis au transport autonome : une chorégraphie industrielle créée dans Blender et présentée dans une scène GLB interactive.",
+      "seo_title": "Robot Cell 01 : palettisation interactive en 3D | IOM",
+      "seo_description": "Explorez une cellule robotisée en 3D : convoyeur, préhenseur à ventouses et chariot autonome. Lancez, mettez en pause ou relancez l’animation."
+    },
+    "nl": {
+      "title": "Robot Cell 01: verken een geautomatiseerde fabriekscyclus in 3D",
+      "excerpt": "Van transportband naar pallet en autonoom vervoer: een industriële animatie uit Blender, als interactieve GLB-scène te bekijken in de browser.",
+      "seo_title": "Robot Cell 01: interactieve 3D-palletisering | IOM",
+      "seo_description": "Verken een robotcel in 3D met transportband, vacuümgrijper en autonome heftruck. Start, pauzeer en herstart de animatie rechtstreeks in je browser."
+    },
+    "it": {
+      "title": "Robot Cell 01: esplorare un ciclo industriale automatizzato in 3D",
+      "excerpt": "Dal trasportatore al pallet e al trasporto autonomo: una coreografia industriale creata in Blender e resa esplorabile nel browser come scena GLB interattiva.",
+      "seo_title": "Robot Cell 01: pallettizzazione interattiva 3D | IOM",
+      "seo_description": "Esplora una cella robotizzata in 3D con trasportatore, presa a ventose e carrello autonomo. Avvia, metti in pausa e riavvia l’animazione nel browser."
+    },
+    "es": {
+      "title": "Robot Cell 01: explora un ciclo industrial automatizado en 3D",
+      "excerpt": "Del transportador al palé y al transporte autónomo: una coreografía industrial creada en Blender y presentada como una escena GLB interactiva en el navegador.",
+      "seo_title": "Robot Cell 01: paletización interactiva en 3D | IOM",
+      "seo_description": "Explora una célula robotizada en 3D con transportador, ventosas y carretilla autónoma. Inicia, pausa y reinicia la animación desde el navegador."
+    }
+  }
+}

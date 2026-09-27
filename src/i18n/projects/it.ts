@@ -10,6 +10,20 @@ export const itProjects: ProjectsLocalePack = {
     experiments: { label: 'Esperimenti', blurb: 'R&D di rendering WebGPU in tempo reale — particelle compute, illuminazione, nebbia, curve e studi di motion.' },
   },
   projects: {
+    'robot-cell': {
+      "title": "Robot Cell 01 — Pallettizzazione automatizzata",
+      "description": "Una cella robotizzata interattiva: segui le scatole dal trasportatore al pallet e al trasporto autonomo. Ruota la scena, avvia, metti in pausa o riavvia l’intera animazione.",
+      "tags": [
+        "webgl",
+        "three.js",
+        "robotica",
+        "animazione",
+        "glb"
+      ],
+      "referenceLabels": [
+        "Leggi l’articolo"
+      ]
+    },
     '3d-viewer': {
       title: '3D Viewer',
       description: 'Viewer di modelli 3D nel browser per il web e Windows desktop. Carica GLTF, FBX, OBJ, IFC e altro — ispeziona con orbit controls, GPU path tracing, illuminazione HDR, hotspot ed esporta presentazioni web standalone.',
