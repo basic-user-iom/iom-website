@@ -32,6 +32,7 @@ import { ownerDisplayName } from './types'
 import {
   normalizeScheduledSend,
   scheduledSendDue,
+  SCHEDULED_SEND_MAX_ATTEMPTS,
   type ScheduledSend,
 } from './scheduledSend'
 import { normalizeLeadTags, hasNeedsReview, withoutNeedsReview } from './leadTags'
@@ -141,6 +142,14 @@ function matchesFilters(lead: Lead, filters: LeadFilters): boolean {
     if (lead.initial_email_sent_at) return false
   } else if (filters.status === 'needs_review') {
     if (!hasNeedsReview(lead.tags)) return false
+  } else if (filters.status === 'scheduled') {
+    const schedule = normalizeScheduledSend(lead.scheduled_send)
+    if (
+      !schedule ||
+      schedule.fired ||
+      schedule.attempts >= SCHEDULED_SEND_MAX_ATTEMPTS ||
+      (schedule.kind !== 'reply' && lead.initial_email_sent_at)
+    ) return false
   } else if (filters.status !== 'all' && lead.status !== filters.status) {
     return false
   }
@@ -2138,7 +2147,8 @@ export async function listLeads(
         filters.status !== 'all' &&
         filters.status !== 'not_contacted' &&
         filters.status !== 'client_replied' &&
-        filters.status !== 'needs_review'
+        filters.status !== 'needs_review' &&
+        filters.status !== 'scheduled'
       ) {
         next = next.eq('status', filters.status)
       }
@@ -2216,7 +2226,8 @@ export async function listLeads(
     const specialStatus =
       filters.status === 'not_contacted' ||
       filters.status === 'client_replied' ||
-      filters.status === 'needs_review'
+      filters.status === 'needs_review' ||
+      filters.status === 'scheduled'
         ? filters.status
         : 'all'
     const effectiveSort: LeadSort =

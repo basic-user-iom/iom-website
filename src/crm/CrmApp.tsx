@@ -981,6 +981,8 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
     filterSummaryParts.push(t('toolbar.clientReplied'))
   } else if (filters.status === 'needs_review') {
     filterSummaryParts.push(t('toolbar.needsReview'))
+  } else if (filters.status === 'scheduled') {
+    filterSummaryParts.push(t('list.scheduled'))
   } else if (filters.status !== 'all') {
     filterSummaryParts.push(statusLabel(filters.status))
   }
@@ -1444,6 +1446,7 @@ function CrmAppInner({ demo = false }: CrmAppProps) {
             >
               <option value="all">{t('toolbar.allStages')}</option>
               <option value="needs_review">{t('toolbar.needsReview')}</option>
+              <option value="scheduled">{t('list.scheduled')}</option>
               <option value="not_contacted">{t('toolbar.notContacted')}</option>
               <option value="client_replied">{t('toolbar.clientReplied')}</option>
               {LEAD_STATUS_VALUES.map((value) => (

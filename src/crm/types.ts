@@ -368,6 +368,7 @@ export type LeadStatusFilter =
   | 'not_contacted'
   | 'client_replied'
   | 'needs_review'
+  | 'scheduled'
 
 export interface LeadFilters {
   search: string
