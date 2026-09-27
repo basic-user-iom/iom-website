@@ -202,7 +202,7 @@ async function init() {
     const gl = renderer.getContext();
     const debugRenderer = gl.getExtension('WEBGL_debug_renderer_info');
     const gpuName = debugRenderer ? String(gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL)) : '';
-    const softwareRenderer = /swiftshader|llvmpipe|software|basic render/i.test(gpuName);
+    const softwareRenderer = /swiftshader|llvmpipe|software|basic[ ]render/i.test(gpuName);
     renderer.setPixelRatio(softwareRenderer ? .7 : Math.min(window.devicePixelRatio || 1, 1.5));
     ui.viewer.dataset.softwareRenderer = String(softwareRenderer);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
