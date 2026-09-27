@@ -1,4 +1,15 @@
 const NAMED_SCOPES = {
+  'media-assets': [
+    'config/website-r2.json',
+    'scripts/r2-assets-client.mjs',
+    'scripts/r2-release-manifest.mjs',
+    'scripts/prepare-r2-release.mjs',
+    'scripts/finalize-r2-build.mjs',
+    'scripts/test-r2-release.mjs',
+    'scripts/deploy-production.mjs',
+    'scripts/deploy-scope.mjs',
+    'docs/r2-assets.md',
+  ],
   'automotive-studio': [
     'automotive-studio/',
     'public/demos/automotive-studio/',

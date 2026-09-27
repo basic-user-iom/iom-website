@@ -352,14 +352,14 @@ function demoSlugForScope(scope) {
   return null
 }
 
-function verifyUploadManifest(stage, scopes) {
+function verifyUploadManifest(stage, scopes, _scanOptions, preparingAssets = false) {
   const output = packageCommand(
     npx,
     ['--yes', 'vercel', 'deploy', '--dry', '--format=json', '--cwd', stage],
     { cwd: stage, capture: true },
   )
   const manifest = parseJsonOutput(output, 'Vercel deployment dry-run')
-  if (manifest.totalSize > MAX_SOURCE_BYTES) {
+  if (manifest.totalSize > MAX_SOURCE_BYTES && !preparingAssets) {
     console.error('\nLargest deployment directories:')
     for (const directory of (manifest.directories || []).slice(0, 20)) {
       console.error(`  ${(Number(directory.size || 0) / 1_000_000).toFixed(1).padStart(7)} MB  ${directory.path} (${directory.fileCount} files)`)
@@ -446,6 +446,15 @@ function main() {
   try {
     snapshot = composeSnapshot(state, scopes, head)
     buildSnapshot(snapshot.stage)
+    if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
+      // Check the complete source before moving public media out of the package.
+      // The final reduced upload still passes the normal size and content gates.
+      verifyUploadManifest(snapshot.stage, scopes, undefined, true)
+      command(process.execPath, [
+        join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
+        ...(verifyOnly ? ['--verify-only'] : []),
+      ])
+    }
     verifyUploadManifest(snapshot.stage, scopes)
     if (verifyOnly) {
       console.log('Verification complete. Nothing was pushed or deployed.\n')
