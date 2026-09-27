@@ -75,6 +75,26 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'robot-cell': [
+    // Robot Cell viewer, 3D card and six-language article publication.
+    'public/demos/robot-cell/',
+    'src/blog/posts/robot-cell/',
+    'src/blog/posts/robotCellPost.ts',
+    'src/blog/posts/index.ts',
+    'src/blog/sitePublishedPosts.ts',
+    'scripts/emit-robot-cell-blog.mjs',
+    'src/data/projects.ts',
+    'src/i18n/projects/localize.ts',
+    'src/i18n/projects/de.ts',
+    'src/i18n/projects/fr.ts',
+    'src/i18n/projects/nl.ts',
+    'src/i18n/projects/it.ts',
+    'src/i18n/projects/es.ts',
+    'vite.config.ts',
+    'vercel.json',
+    'docs/ROBOT-CELL-PUBLISH-READY.md',
+    'scripts/deploy-scope.mjs',
+  ],
   'harp-configurator-demo': [
     '.vercelignore',
     'harp-configurator-demo/',
