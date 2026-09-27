@@ -25,6 +25,11 @@ export async function loadGltf(url, onProgress) {
     for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; }
     buffer = combined.buffer;
   }
+  // The transport is gzip; decoding restores the original GLB byte for byte.
+  const signature = new Uint8Array(buffer, 0, Math.min(2, buffer.byteLength));
+  if (signature[0] === 0x1f && signature[1] === 0x8b) {
+    buffer = await new Response(new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+  }
   onProgress(.95, buffer.byteLength);
   const gltf = await new GLTFLoader().parseAsync(buffer, new URL('.', url).href);
   return gltf;

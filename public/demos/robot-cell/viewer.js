@@ -230,7 +230,7 @@ async function init() {
     resize();
     requestAnimationFrame(animate);
 
-    const modelUrl = new URL('./models/scene_01_robot_cell_v012.glb', import.meta.url);
+    const modelUrl = new URL('./models/scene_01_robot_cell_v012.glb.gz', import.meta.url);
     const gltf = await loadGltf(modelUrl, (progress, bytes) => {
       if (progress !== null) ui['load-progress'].value = progress;
       ui['loading-label'].textContent = progress >= .95 ? t.materials : `${t.loading} · ${(bytes / 1048576).toFixed(1)} MB`;
