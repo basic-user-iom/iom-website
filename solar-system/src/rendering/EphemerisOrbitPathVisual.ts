@@ -1,11 +1,12 @@
 import {
-  Color,
+  type Color,
   Group,
   NormalBlending,
-  Vector2,
+  type Vector2,
 } from 'three';
-import { Line2 } from 'three/addons/lines/Line2.js';
-import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { PrecisionPath, registerPrecisionPath } from './PrecisionPath';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
 import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
 
 import type { EphemerisPathKind } from './EphemerisOrbitGeometry';
@@ -26,13 +27,16 @@ export interface EphemerisOrbitPathPresentation {
 
 export interface EphemerisOrbitPathResources {
   readonly root: Group;
-  readonly core: Line2;
+  readonly core: LineSegments2;
   readonly kind: EphemerisPathKind;
   readonly bodyId: string;
   readonly centerBodyId: string | null;
   readonly source: Float64Array;
   readonly spinePointCount: number;
-  readonly mappedPositions: Float32Array;
+  readonly mappedPositions: Float64Array;
+  readonly precision: PrecisionPath;
+  readonly anchoredPositionsM: Float64Array;
+  activePointCount: number;
   readonly mappedColors: Float32Array;
   readonly uploadPositions: Float32Array;
   readonly uploadColors: Float32Array;
@@ -41,7 +45,7 @@ export interface EphemerisOrbitPathResources {
 }
 
 /**
- * Single fat Line2 stroke per ephemeris path. Replaces 1px LineBasicMaterial
+ * Single fat LineSegments2 stroke per ephemeris path. Replaces 1px LineBasicMaterial
  * so orbits stay readable without a doubled glow rail.
  */
 export function createEphemerisOrbitPath(
@@ -60,16 +64,30 @@ export function createEphemerisOrbitPath(
 
   const kind = path.kind ?? 'orbit';
   const spinePointCount = path.positionsM.length / 3;
-  const mappedPositions = new Float32Array(path.positionsM.length);
-  const mappedColors = new Float32Array(path.positionsM.length);
-  const uploadPositions = new Float32Array(path.positionsM.length);
-  const uploadColors = new Float32Array(path.positionsM.length);
+  const precision = new PrecisionPath(spinePointCount + 1);
+  precision.pointCount = spinePointCount;
+  const mappedPositions = precision.positions;
+  const mappedColors = precision.colors;
+  const uploadPositions = precision.segments;
+  const uploadColors = precision.segmentColors;
 
-  const coreGeometry = new LineGeometry();
-  coreGeometry.setPositions(mappedPositions);
-  coreGeometry.setColors(mappedColors);
+  const coreGeometry = new LineSegmentsGeometry();
+  coreGeometry.setPositions(uploadPositions);
+  coreGeometry.setColors(uploadColors);
   const coreMaterial = createLineMaterial(kind, viewportCssPixels);
-  const core = new Line2(coreGeometry, coreMaterial);
+  const core = new LineSegments2(coreGeometry, coreMaterial);
+  coreMaterial.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('modelViewMatrix * vec4( instanceStart, 1.0 )', 'vec4( instanceStart, 1.0 )')
+      .replace('modelViewMatrix * vec4( instanceEnd, 1.0 )', 'vec4( instanceEnd, 1.0 )');
+  };
+  coreMaterial.customProgramCacheKey = () => 'precision-fat-path-view-space-v1';
+  registerPrecisionPath(core, (camera) => {
+    coreGeometry.instanceCount = precision.prepare(camera);
+    // Interleaved buffers already reference the reusable output arrays.
+    coreGeometry.getAttribute('instanceStart').needsUpdate = true;
+    coreGeometry.getAttribute('instanceColorStart').needsUpdate = true;
+  });
   core.name = `ephemeris-${kind}-${path.bodyId}`;
   core.frustumCulled = false;
   core.computeLineDistances();
@@ -87,6 +105,9 @@ export function createEphemerisOrbitPath(
     centerBodyId: path.centerBodyId ?? null,
     source: path.positionsM,
     spinePointCount,
+    precision,
+    anchoredPositionsM: new Float64Array(path.positionsM.length + 3),
+    activePointCount: spinePointCount,
     mappedPositions,
     mappedColors,
     uploadPositions,
@@ -103,13 +124,7 @@ export function createEphemerisOrbitPath(
 export function syncEphemerisOrbitPathGeometry(
   resources: EphemerisOrbitPathResources,
 ): void {
-  resources.uploadPositions.set(resources.mappedPositions);
-  resources.uploadColors.set(resources.mappedColors);
-
-  const coreGeometry = resources.core.geometry as LineGeometry;
-  coreGeometry.setPositions(resources.uploadPositions);
-  coreGeometry.setColors(resources.uploadColors);
-  resources.core.computeLineDistances();
+  resources.precision.pointCount = resources.activePointCount;
 }
 
 export function applyEphemerisOrbitPathRole(

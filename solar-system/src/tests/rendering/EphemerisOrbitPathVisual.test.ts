@@ -11,7 +11,7 @@ import {
 } from '../../rendering/EphemerisOrbitPathVisual';
 
 describe('ephemeris orbit path visual', () => {
-  it('builds a single Line2 stroke per path', () => {
+  it('builds a single LineSegments2 stroke per path', () => {
     const positionsM = new Float64Array([0, 0, 0, 1, 0, 0, 2, 0.5, 0]);
     const resources = createEphemerisOrbitPath(
       { bodyId: 'earth', kind: 'orbit', positionsM },
@@ -23,7 +23,7 @@ describe('ephemeris orbit path visual', () => {
     expect(resources.root.children).toHaveLength(1);
     expect(resources.core.material.transparent).toBe(true);
     expect(resources.core.material.depthWrite).toBe(false);
-    expect(resources.core.isLine2).toBe(true);
+    expect(resources.core.isLineSegments2).toBe(true);
 
     disposeEphemerisOrbitPath(resources);
   });

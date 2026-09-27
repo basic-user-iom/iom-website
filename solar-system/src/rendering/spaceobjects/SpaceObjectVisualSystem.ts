@@ -1,10 +1,8 @@
+import { PrecisionLine } from '../PrecisionPath';
 import {
   Box3,
-  BufferGeometry,
-  Float32BufferAttribute,
   Group,
   InstancedMesh,
-  Line,
   LineBasicMaterial,
   Matrix4,
   Mesh,
@@ -99,8 +97,8 @@ export class SpaceObjectVisualSystem {
   private readonly issModelAnchor = new Group();
   private readonly voyagerModels = new VoyagerModelVisual();
   private metersToRenderUnits = 1 / 149_597_870_700;
-  private readonly earthSatelliteTrajectory: Line<BufferGeometry, LineBasicMaterial>;
-  private readonly spacecraftTrajectory: Line<BufferGeometry, LineBasicMaterial>;
+  private readonly earthSatelliteTrajectory: PrecisionLine;
+  private readonly spacecraftTrajectory: PrecisionLine;
   private readonly worldPositions = new Map<string, Vector3>();
   private readonly renderedRadii = new Map<string, number>();
   private readonly coverageLabels = new Map<string, HTMLSpanElement>();
@@ -634,7 +632,7 @@ export class SpaceObjectVisualSystem {
   }
 
   private requestWorkerSample(jdTdb: number): void {
-    if (this.workerClient === null || this.workerRequestPending) return;
+    if (this.workerClient === null || this.workerRequestPending || this.workerResult?.jdTdb === jdTdb) return;
     this.workerRequestPending = true;
     void this.workerClient.sample(jdTdb).then((result) => {
       this.workerResult = result;
@@ -653,7 +651,7 @@ export class SpaceObjectVisualSystem {
   ): ReturnType<typeof sampleEarthSatellite> {
     const workerResult = this.workerResult;
     const workerState = workerResult?.earthSatellites.find((item) => item.id === satellite.id);
-    if (workerState === undefined || workerResult === null || Math.abs(workerResult.jdTdb - jdTdb) > 0.05) {
+    if (workerState === undefined || workerResult === null || workerResult.jdTdb !== jdTdb) {
       return sampleEarthSatellite(satellite, jdTdb);
     }
     return {
@@ -680,7 +678,7 @@ export class SpaceObjectVisualSystem {
   ): ReturnType<typeof sampleSpacecraftTrajectory> {
     const workerResult = this.workerResult;
     const workerState = workerResult?.spacecraft.find((item) => item.id === mission.id);
-    if (workerState === undefined || workerResult === null || Math.abs(workerResult.jdTdb - jdTdb) > 0.05) {
+    if (workerState === undefined || workerResult === null || workerResult.jdTdb !== jdTdb) {
       return sampleSpacecraftTrajectory(mission, jdTdb);
     }
     const positionM = { x: workerState.positionM[0], y: workerState.positionM[1], z: workerState.positionM[2] };
@@ -720,21 +718,21 @@ export class SpaceObjectVisualSystem {
     scaleModel: Readonly<RenderScaleModel>,
     positionMultiplier: number,
   ): void {
-    const attribute = this.earthSatelliteTrajectory.geometry.getAttribute('position');
-    if (!(attribute instanceof Float32BufferAttribute)) return;
-    const output = attribute.array as Float32Array;
+    const current = this.earthSatelliteState(satellite, jdTdb).positionEarthCenteredM;
+    const precision = this.earthSatelliteTrajectory.path;
+    const output = precision.positions;
+    scaleModel.mapPosition(LOCAL, {
+      x: current.x * positionMultiplier, y: current.y * positionMultiplier, z: current.z * positionMultiplier,
+    }, ZERO);
+    precision.anchor.copy(earthPosition).add(LOCAL);
     const path = sampleEarthSatelliteOrbitPath(satellite, jdTdb, 96, 1);
+    // Subtract in physical doubles before converting to the rendered scale.
+    const unit = positionMultiplier / scaleModel.metersPerRenderUnit;
     for (let index = 0; index < 96; index += 1) {
-      scaleModel.mapPosition(LOCAL, {
-        x: (path[index * 3] ?? 0) * positionMultiplier,
-        y: (path[index * 3 + 1] ?? 0) * positionMultiplier,
-        z: (path[index * 3 + 2] ?? 0) * positionMultiplier,
-      }, ZERO);
-      output[index * 3] = earthPosition.x + LOCAL.x;
-      output[index * 3 + 1] = earthPosition.y + LOCAL.y;
-      output[index * 3 + 2] = earthPosition.z + LOCAL.z;
+      output[index * 3] = (path[index * 3]! - current.x) * unit;
+      output[index * 3 + 1] = (path[index * 3 + 2]! - current.z) * unit;
+      output[index * 3 + 2] = (current.y - path[index * 3 + 1]!) * unit;
     }
-    attribute.needsUpdate = true;
     this.earthSatelliteTrajectory.visible = true;
     this.selectedTrajectoryPointCount = 96;
   }
@@ -745,21 +743,17 @@ export class SpaceObjectVisualSystem {
     scaleModel: Readonly<RenderScaleModel>,
     originM: Readonly<PhysicalPosition>,
   ): void {
-    const attribute = this.spacecraftTrajectory.geometry.getAttribute('position');
-    if (!(attribute instanceof Float32BufferAttribute)) return;
-    const output = attribute.array as Float32Array;
+    const current = this.spacecraftState(mission, jdTdb).positionM;
+    const precision = this.spacecraftTrajectory.path;
+    const output = precision.positions;
+    scaleModel.mapPosition(precision.anchor, current, originM);
     const path = sampleSpacecraftTrajectoryPath(mission, jdTdb, 128);
+    const unit = scaleModel.metersPerRenderUnit;
     for (let index = 0; index < 128; index += 1) {
-      scaleModel.mapPosition(LOCAL, {
-        x: path[index * 3] ?? 0,
-        y: path[index * 3 + 1] ?? 0,
-        z: path[index * 3 + 2] ?? 0,
-      }, originM);
-      output[index * 3] = LOCAL.x;
-      output[index * 3 + 1] = LOCAL.y;
-      output[index * 3 + 2] = LOCAL.z;
+      output[index * 3] = (path[index * 3]! - current.x) / unit;
+      output[index * 3 + 1] = (path[index * 3 + 2]! - current.z) / unit;
+      output[index * 3 + 2] = (current.y - path[index * 3 + 1]!) / unit;
     }
-    attribute.needsUpdate = true;
     this.spacecraftTrajectory.visible = true;
     this.selectedTrajectoryPointCount = 128;
   }
@@ -775,10 +769,8 @@ function createMarkerMaterial(color: number): MeshBasicMaterial {
   });
 }
 
-function createTrajectoryLine(name: string, points: number, color: number): Line<BufferGeometry, LineBasicMaterial> {
-  const geometry = new BufferGeometry();
-  geometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(points * 3), 3));
-  const line = new Line(geometry, new LineBasicMaterial({ color, transparent: true, opacity: 0.7 }));
+function createTrajectoryLine(name: string, points: number, color: number): PrecisionLine {
+  const line = new PrecisionLine(points, new LineBasicMaterial({ color, transparent: true, opacity: 0.7 }));
   line.name = name;
   line.frustumCulled = false;
   line.visible = false;

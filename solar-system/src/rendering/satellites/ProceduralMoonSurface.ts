@@ -4,7 +4,7 @@ import {
   LinearFilter,
   RepeatWrapping,
   RGBAFormat,
-  SphereGeometry,
+  type SphereGeometry,
   SRGBColorSpace,
   UnsignedByteType,
   Vector3,

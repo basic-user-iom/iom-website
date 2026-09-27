@@ -19,6 +19,8 @@ export interface DebugOrbitTrailRenderState {
   readonly kind?: 'orbit' | 'trail';
   /** Interleaved x/y/z values in metres. */
   readonly positionsM: Float64Array;
+  readonly sampleJdTdb?: Float64Array;
+  readonly trailDirection?: 'previous' | 'next';
 }
 
 export interface DebugRenderFrame {

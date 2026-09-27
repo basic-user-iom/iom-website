@@ -4215,13 +4215,14 @@ function createSelectedBodyTrail(
   if (availableDays <= 0) return null;
   const durationDays = Math.min(selectedTrailDurationDays(bodyId), availableDays);
   const endJdTdb = interval === 'previous' ? epochJdTdb : epochJdTdb + durationDays;
-  return createEphemerisTrailGeometry(provider, bodyId, {
+  const geometry = createEphemerisTrailGeometry(provider, bodyId, {
     endJdTdb,
     durationDays,
     centerBodyId: null,
     maxPoints: 513,
     samplesPerSourceInterval: 2,
   });
+  return Object.freeze({ ...geometry, trailDirection: interval });
 }
 
 function orbitRefreshCadenceDays(bodyId: ObservatoryBodyId): number {

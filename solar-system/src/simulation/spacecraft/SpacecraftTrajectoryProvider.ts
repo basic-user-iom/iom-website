@@ -1,3 +1,4 @@
+import { sampleEpochsThroughCurrent } from '../core/PathSampling';
 import type { Vec3d } from '../core/Vec3d';
 import { createVec3d } from '../core/Vec3d';
 import type { SpacecraftDefinition } from './SpacecraftCatalog';
@@ -79,8 +80,9 @@ export function sampleSpacecraftTrajectoryPath(
   const start = Math.max(mission.validStartJdTdb, center - visibleSpan * 0.5);
   const end = Math.min(mission.validEndJdTdb, start + visibleSpan);
   const adjustedStart = Math.max(mission.validStartJdTdb, end - visibleSpan);
+  const epochs = sampleEpochsThroughCurrent(adjustedStart, end, center, samples);
   for (let index = 0; index < samples; index += 1) {
-    const jdTdb = adjustedStart + (end - adjustedStart) * index / (samples - 1);
+    const jdTdb = epochs[index]!;
     const state = sampleSpacecraftTrajectory(mission, jdTdb);
     output[index * 3] = state.positionM.x;
     output[index * 3 + 1] = state.positionM.y;

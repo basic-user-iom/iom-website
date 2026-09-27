@@ -1,15 +1,14 @@
+import { PrecisionLine } from '../PrecisionPath';
 import {
-  BufferGeometry,
+  type BufferGeometry,
   CircleGeometry,
   Color,
   DataTexture,
   DoubleSide,
-  Float32BufferAttribute,
   Group,
   InstancedMesh,
   LinearFilter,
   LinearMipmapLinearFilter,
-  Line,
   LineBasicMaterial,
   Matrix4,
   Mesh,
@@ -89,7 +88,7 @@ function normalizeRotation(value: number): number {
 interface MajorResource {
   readonly definition: NaturalSatelliteDefinition;
   readonly mesh: Mesh<BufferGeometry, MeshStandardMaterial>;
-  readonly orbit: Line<BufferGeometry, LineBasicMaterial>;
+  readonly orbit: PrecisionLine;
   readonly shapeAxes: Readonly<Vector3>;
   readonly ownsGeometry: boolean;
   label: HTMLSpanElement | null;
@@ -686,9 +685,7 @@ export class NaturalSatelliteVisualSystem {
     mesh.userData.satelliteId = definition.id;
     mesh.userData.surfaceMode = ownsGeometry ? 'procedural-irregular' : 'procedural-sphere';
     mesh.frustumCulled = false;
-    const orbitGeometry = new BufferGeometry();
-    orbitGeometry.setAttribute('position', new Float32BufferAttribute(new Float32Array(96 * 3), 3));
-    const orbit = new Line(orbitGeometry, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
+    const orbit = new PrecisionLine(96, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
     orbit.name = `natural-satellite-orbit-${definition.id}`;
     orbit.frustumCulled = false;
     this.root.add(orbit, mesh);
@@ -783,7 +780,7 @@ export class NaturalSatelliteVisualSystem {
   }
 
   private updateOrbit(
-    orbit: Line<BufferGeometry, LineBasicMaterial>,
+    orbit: PrecisionLine,
     definition: NaturalSatelliteDefinition,
     parent: Readonly<DebugBodyRenderState>,
     jdTdb: number,
@@ -791,21 +788,18 @@ export class NaturalSatelliteVisualSystem {
     originM: Readonly<PhysicalPosition>,
     localScale: number,
   ): void {
-    const attribute = orbit.geometry.getAttribute('position') as Float32BufferAttribute;
-    const array = attribute.array as Float32Array;
+    const current = sampleNaturalSatellite(definition, jdTdb).positionM;
     const positions = sampleNaturalSatelliteOrbit(definition, jdTdb, definition.id === 'nereid' || definition.id === 'phoebe' ? 0.35 : 1, 96);
     scaleModel.mapPosition(PARENT_POSITION, parent.positionM, originM);
+    this.mapLocalOffset(LOCAL, current, scaleModel, localScale);
+    orbit.path.anchor.copy(PARENT_POSITION).add(LOCAL);
+    const array = orbit.path.positions;
+    const unit = localScale / scaleModel.metersPerRenderUnit;
     for (let index = 0; index < 96; index += 1) {
-      this.mapLocalOffset(LOCAL, {
-        x: positions[index * 3] ?? 0,
-        y: positions[index * 3 + 1] ?? 0,
-        z: positions[index * 3 + 2] ?? 0,
-      }, scaleModel, localScale);
-      array[index * 3] = PARENT_POSITION.x + LOCAL.x;
-      array[index * 3 + 1] = PARENT_POSITION.y + LOCAL.y;
-      array[index * 3 + 2] = PARENT_POSITION.z + LOCAL.z;
+      array[index * 3] = (positions[index * 3]! - current.x) * unit;
+      array[index * 3 + 1] = (positions[index * 3 + 2]! - current.z) * unit;
+      array[index * 3 + 2] = (current.y - positions[index * 3 + 1]!) * unit;
     }
-    attribute.needsUpdate = true;
     orbit.visible = this.majorVisible && this.orbitsVisible && this.visible && !this.scenarioOverlaysSuppressed;
   }
 

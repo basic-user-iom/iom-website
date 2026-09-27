@@ -1,3 +1,4 @@
+import { sampleEpochsThroughCurrent } from '../core/PathSampling';
 import {
   SatRecError,
   json2satrec,
@@ -142,11 +143,18 @@ export function sampleEarthSatelliteOrbitPath(
   }
   const output = new Float64Array(samples * 3);
   const periodDays = 1 / satellite.meanMotionRevolutionsPerDay;
-  const startJd = centerJdTdb - periodDays * spanPeriods * 0.5;
-  const spanDays = periodDays * spanPeriods;
+  const halfSpan = periodDays * spanPeriods * 0.5;
+  const startJd = Math.max(centerJdTdb - halfSpan, satellite.elementEpochJdTdb - satellite.hardMaximumWindowDays);
+  const endJd = Math.min(centerJdTdb + halfSpan, satellite.elementEpochJdTdb + satellite.hardMaximumWindowDays);
+  if (startJd > endJd) return output.fill(Number.NaN);
+  const epochs = sampleEpochsThroughCurrent(startJd, endJd, centerJdTdb, samples);
   for (let index = 0; index < samples; index += 1) {
-    const jd = startJd + spanDays * index / (samples - 1);
+    const jd = epochs[index]!;
     const state = sampleEarthSatellite(satellite, jd);
+    if (state.propagationStatus !== 'ok') {
+      output.fill(Number.NaN, index * 3, index * 3 + 3);
+      continue;
+    }
     output[index * 3] = state.positionEarthCenteredM.x;
     output[index * 3 + 1] = state.positionEarthCenteredM.y;
     output[index * 3 + 2] = state.positionEarthCenteredM.z;

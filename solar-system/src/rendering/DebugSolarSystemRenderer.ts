@@ -1,4 +1,6 @@
-﻿import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
+import { writeEpochAnchoredPath } from './EpochAnchoredPath';
+import { preparePrecisionPaths } from './PrecisionPath';
+import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
 import { calculateRebaseShift } from './CameraRelativeTransform';
 import {
   ACESFilmicToneMapping,
@@ -459,6 +461,7 @@ export class DebugSolarSystemRenderer {
     this.ambientLight.name = 'comet-ambient-fill';
 
     this.scene.background = new Color(0x02050b);
+    this.scene.onBeforeRender = (_renderer, scene, camera) => preparePrecisionPaths(scene, camera);
     this.scene.add(this.celestialBackground.root);
     this.scene.add(this.statisticalBelts.root);
     this.scene.add(this.blackHoleVisualSystem.root);
@@ -696,7 +699,7 @@ export class DebugSolarSystemRenderer {
       this.mappedHeliocentricCenter.z,
     );
     this.updateCameraTargetOrientations(frame.currentJdTdb);
-    this.updatePaths(frame.trails, frame.bodies);
+    this.updatePaths(frame.trails, frame.bodies, frame.currentJdTdb);
     const suppressReferences = this.scenarioOverlaysSuppressed();
     this.referenceGrid.visible = !suppressReferences;
     this.statisticalBelts.root.visible = !suppressReferences;
@@ -1725,6 +1728,7 @@ export class DebugSolarSystemRenderer {
   private updatePaths(
     pathStates: readonly DebugOrbitTrailRenderState[],
     bodies: readonly DebugBodyRenderState[],
+    jdTdb: number,
   ): void {
     this.visiblePathIds.clear();
     for (const pathState of pathStates) {
@@ -1749,16 +1753,28 @@ export class DebugSolarSystemRenderer {
         resources.root.visible = false;
         continue;
       }
+      resources.activePointCount = writeEpochAnchoredPath(
+        resources.anchoredPositionsM, pathState.positionsM, pathState.sampleJdTdb, jdTdb,
+        { x: currentBody.positionM.x - center.x, y: currentBody.positionM.y - center.y, z: currentBody.positionM.z - center.z },
+        pathState.trailDirection,
+      );
+      if (resources.activePointCount < 2) {
+        resources.root.visible = false;
+        continue;
+      }
+      const components = resources.activePointCount * 3;
+      const anchored = resources.anchoredPositionsM.subarray(0, components);
+      this.scaleModel.mapPosition(resources.precision.anchor, currentBody.positionM, this.currentOriginM);
       writeCameraRelativePathPositions(
-        resources.mappedPositions,
-        pathState.positionsM,
+        resources.mappedPositions.subarray(0, components),
+        anchored,
         center,
-        this.currentOriginM,
+        currentBody.positionM,
         this.scaleModel.metersPerRenderUnit,
       );
       writeDistanceFadedPathColors(
-        resources.mappedColors,
-        pathState.positionsM,
+        resources.mappedColors.subarray(0, components),
+        anchored,
         center,
         currentBody.positionM,
         resources.baseColor,
@@ -1769,7 +1785,11 @@ export class DebugSolarSystemRenderer {
         pathState.bodyId === this.selectedBodyId &&
         pathStates.some(
           (candidate) =>
-            candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'trail',
+            candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'trail' &&
+            (candidate.sampleJdTdb === undefined || candidate.trailDirection === undefined ||
+              (candidate.trailDirection === 'previous'
+                ? candidate.sampleJdTdb[0]! < jdTdb
+                : candidate.sampleJdTdb[candidate.sampleJdTdb.length - 1]! > jdTdb)),
         );
       const hasSelectedOrbit =
         pathState.bodyId === this.selectedBodyId &&
@@ -1803,8 +1823,8 @@ export class DebugSolarSystemRenderer {
         kind: resources.kind,
         emphasis,
       });
-      // Every vertex is already relative to the current floating origin. A
-      // second object translation would reintroduce GPU cancellation.
+      // The scene pre-render hook clips these body-relative doubles into view
+      // space after the final camera pose, before Three uploads any buffers.
       resources.root.position.set(0, 0, 0);
       resources.root.visible =
         this.orbitLinesVisible &&

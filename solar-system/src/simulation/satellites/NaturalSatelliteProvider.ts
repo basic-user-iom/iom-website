@@ -1,3 +1,4 @@
+import { sampleEpochsThroughCurrent } from '../core/PathSampling';
 import type { Vec3d } from '../core/Vec3d';
 import { createVec3d } from '../core/Vec3d';
 import type { BodyRuntimeState } from '../bodies/BodyRuntimeState';
@@ -286,8 +287,9 @@ export function sampleNaturalSatelliteOrbit(
   const output = new Float64Array(samples * 3);
   const spanSeconds = satellite.orbitalPeriodSeconds * spanPeriods;
   const startJd = centerJdTdb - spanSeconds / 172_800;
+  const epochs = sampleEpochsThroughCurrent(startJd, centerJdTdb + spanSeconds / 172_800, centerJdTdb, samples);
   for (let index = 0; index < samples; index += 1) {
-    const jd = startJd + (spanSeconds / 86_400) * (index / (samples - 1));
+    const jd = epochs[index]!;
     const state = sampleNaturalSatellite(satellite, jd);
     output[index * 3] = state.positionM.x;
     output[index * 3 + 1] = state.positionM.y;

@@ -9,17 +9,18 @@ export interface LinearRgb {
 
 /**
  * Combines each Float64 path point with its physical center, subtracts the
- * current Float64 floating origin, and only then narrows to Float32. This is
+ * current Float64 anchor. The precision renderer retains doubles until view
+ * clipping; legacy callers may explicitly request Float32 output. This is
  * the path equivalent of camera-relative body mapping: no +30 AU/-30 AU sum
  * is deferred to a GPU matrix.
  */
-export function writeCameraRelativePathPositions(
-  output: Float32Array,
+export function writeCameraRelativePathPositions<T extends Float32Array | Float64Array>(
+  output: T,
   positionsM: Float64Array,
   centerPositionM: PhysicalPosition,
   renderOriginM: PhysicalPosition,
   metersPerRenderUnit: number,
-): Float32Array {
+): T {
   assertPathArrays(output, positionsM, 3, 'position');
   assertFinitePosition(centerPositionM, 'Path center');
   assertFinitePosition(renderOriginM, 'Render origin');
@@ -150,7 +151,7 @@ function pointDistance(
 }
 
 function assertPathArrays(
-  output: Float32Array,
+  output: Float32Array | Float64Array,
   positionsM: Float64Array,
   componentCount: number,
   label: string,

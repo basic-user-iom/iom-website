@@ -1,3 +1,5 @@
+import { writeEpochAnchoredPath } from '../../rendering/EpochAnchoredPath';
+import type { ObservatoryBodyId } from '../../simulation/bodies/ObservatoryBodyCatalog';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -455,3 +457,30 @@ function expectStrictlyIncreasing(values: Float64Array): void {
     expect(values[index]).toBeGreaterThan(values[index - 1] ?? Number.POSITIVE_INFINITY);
   }
 }
+
+// Uses the actual bundled vectors: a synthetically straight orbit hides the
+// chord-to-body gaps that become obvious at planet and comet close-up scales.
+it('attaches every bundled planet, Moon and comet path at live epochs between cached vertices', () => {
+  let checked = 0;
+  for (const provider of [loadBundledProvider(), loadBundledCometProvider()]) {
+    for (const id of provider.bodyIds.filter(id => id !== 'sun')) {
+      const coverage = requiredCoverage(provider, id);
+      const epoch = coverage.startJdTdb + (coverage.endJdTdb - coverage.startJdTdb) * 0.43;
+      const centerId = id === 'moon' ? 'earth' : provider.hasBody('sun') ? 'sun' : null;
+      const geometry = createEphemerisOrbitGeometry(provider, id as ObservatoryBodyId, { epochJdTdb: epoch, spanDays: 20, centerBodyId: centerId, maxPoints: 128 });
+      for (const delta of [-7.8765, 0.1234, 8.4567]) {
+        const now = epoch + delta;
+        const body = provider.sample(id, now, createEphemerisStateVector()).positionM;
+        const center = centerId === null ? { x: 0, y: 0, z: 0 } : provider.sample(centerId, now, createEphemerisStateVector()).positionM;
+        const relative = { x: body.x - center.x, y: body.y - center.y, z: body.z - center.z };
+        const output = new Float64Array(geometry.positionsM.length + 3);
+        const count = writeEpochAnchoredPath(output, geometry.positionsM, geometry.sampleJdTdb, now, relative);
+        let closest = Infinity;
+        for (let i = 0; i < count * 3; i += 3) closest = Math.min(closest, Math.hypot(output[i]! - relative.x, output[i + 1]! - relative.y, output[i + 2]! - relative.z));
+        expect(closest).toBe(0);
+      }
+      checked += 1;
+    }
+  }
+  expect(checked).toBe(14);
+});

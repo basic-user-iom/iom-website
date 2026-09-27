@@ -23,6 +23,7 @@ export interface EphemerisPathGeometry {
   readonly truncatedEnd: boolean;
   /** One value per point, matching positionsM by point index. */
   readonly sampleJdTdb: Float64Array;
+  readonly trailDirection?: 'previous' | 'next';
   /** Interleaved x/y/z SI metres; never converted or flattened here. */
   readonly positionsM: Float64Array;
   readonly warning: string | null;
