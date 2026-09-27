@@ -1,6 +1,7 @@
 // @ts-nocheck — Vite config; blog API plugin is plain .mjs
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { solarSystemBlogPages } from './scripts/emit-solar-system-blog.mjs'
 import { blogApiDevPlugin } from './scripts/vite-blog-api-plugin.mjs'
 import { execSync } from 'node:child_process'
 import path from 'node:path'
@@ -62,6 +63,7 @@ export default defineConfig({
     demoDirectoryIndexPlugin(),
     blogApiDevPlugin(),
     projectCostsPrerenderPlugin(),
+    solarSystemBlogPages(),
   ],
   build: {
     rollupOptions: {

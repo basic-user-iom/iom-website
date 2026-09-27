@@ -66,7 +66,23 @@
       "destination": "/demos/dukta/index.html"
     },
     {
-      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs).*)",
+      "source": "/blog/solar-system-living-observatory",
+      "destination": "/blog/solar-system-living-observatory/index.html"
+    },
+    {
+      "source": "/blog/solar-system-living-observatory/",
+      "destination": "/blog/solar-system-living-observatory/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/solar-system-living-observatory",
+      "destination": "/:lang/blog/solar-system-living-observatory/index.html"
+    },
+    {
+      "source": "/:lang(de|fr|nl|it|es)/blog/solar-system-living-observatory/",
+      "destination": "/:lang/blog/solar-system-living-observatory/index.html"
+    },
+    {
+      "source": "/((?!assets/|demos/|demo/evly/|api/|fonts/|models/|env/|textures/|(?:de|fr|nl|es|it)/project-costs|project-costs|(?:de|fr|nl|it|es)/blog/solar-system-living-observatory(?:/|$)|blog/solar-system-living-observatory(?:/|$)).*)",
       "destination": "/index.html"
     }
   ],

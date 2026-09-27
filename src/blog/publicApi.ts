@@ -1,4 +1,5 @@
 import { getBlogSupabase, isBlogSupabaseReady } from './supabaseClient'
+import { SITE_PUBLISHED_POSTS, mergeSitePublishedPosts } from './sitePublishedPosts'
 import { SAMPLE_PUBLISHED_POSTS } from './samplePosts'
 import { mergeCatalogTranslations } from './catalogTranslations'
 import {
@@ -98,7 +99,7 @@ export async function fetchPublishedPosts(
     if (error) throw error
     const posts = (data || []).map((r: Record<string, unknown>) => rowToPost(r))
     const withTr = await attachTranslations(posts)
-    return localizeList(withTr, lang)
+    return localizeList(mergeSitePublishedPosts(withTr), lang)
   } catch {
     return localizeList(SAMPLE_PUBLISHED_POSTS, lang)
   }
@@ -127,7 +128,8 @@ export async function fetchPublishedPostBySlug(
         const [withTr] = await attachTranslations([post], { includeBody: true })
         return applyBlogLocale(withTr ?? post, lang)
       }
-      return null
+      const editorial = SITE_PUBLISHED_POSTS.find(post => post.slug === slug)
+      return editorial ? applyBlogLocale(editorial, lang) : null
     } catch {
       /* fall through to samples when Supabase errors */
     }

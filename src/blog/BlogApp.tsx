@@ -1,3 +1,4 @@
+import { isSitePublishedPost } from './sitePublishedPosts'
 import { useEffect, useMemo, useState } from 'react'
 import { Footer } from '../components/Footer'
 import { Header } from '../components/Header'
@@ -230,6 +231,22 @@ function BlogPostPage({ slug }: { slug: string }) {
     const canonicalPath = localePath(lang, `/blog/${post.slug}`)
     const canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement | null
     if (canonical) canonical.href = `${SITE_ORIGIN}${canonicalPath}`
+    const image = post.cover_image_url.startsWith('/')
+      ? SITE_ORIGIN + post.cover_image_url : post.cover_image_url
+    for (const [attribute, key, value] of [
+      ['property', 'og:type', 'article'], ['property', 'og:title', title],
+      ['property', 'og:description', description], ['property', 'og:url', SITE_ORIGIN + canonicalPath],
+      ['property', 'og:image', image], ['name', 'twitter:title', title],
+      ['name', 'twitter:description', description], ['name', 'twitter:image', image],
+    ]) {
+      let node = document.head.querySelector('meta[' + attribute + '="' + key + '"]') as HTMLMetaElement | null
+      if (!node) {
+        node = document.createElement('meta')
+        node.setAttribute(attribute, key)
+        document.head.appendChild(node)
+      }
+      node.content = value
+    }
 
     document.head.querySelectorAll('script[data-iom-blog-jsonld]').forEach((n) => n.remove())
     const script = document.createElement('script')
@@ -241,7 +258,7 @@ function BlogPostPage({ slug }: { slug: string }) {
       headline: post.title,
       description,
       inLanguage: lang,
-      image: post.cover_image_url || undefined,
+      image: image || undefined,
       datePublished: post.published_at || undefined,
       dateModified: post.updated_at || undefined,
       author: { '@type': 'Organization', name: post.author_name || 'IOM' },
@@ -329,7 +346,7 @@ function BlogPostPage({ slug }: { slug: string }) {
           />
         )}
         <div className="blog-prose" dangerouslySetInnerHTML={{ __html: html }} />
-        <aside className="blog-cta">
+        {!isSitePublishedPost(post) && <aside className="blog-cta">
           <p>
             Exploring immersive web, 360°, or interactive 3D for your project?
             <br />
@@ -344,12 +361,12 @@ function BlogPostPage({ slug }: { slug: string }) {
             </a>
             <a href={href('/#3d')}>See our work</a>
           </p>
-        </aside>
-        <BlogComments
+        </aside>}
+        {!isSitePublishedPost(post) && <BlogComments
           key={commentKey}
           postId={post.id}
           onSubmitted={() => setCommentKey((k) => k + 1)}
-        />
+        />}
       </div>
     </article>
   )

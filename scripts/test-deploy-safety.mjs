@@ -95,4 +95,11 @@ for (const file of ['src/crm/DemosView.tsx', 'public/assets/posters/streets-gl.w
   assert.equal(matchesDeployScope(file, 'project:solar-system'), false)
 }
 
+
+// Solar System article release includes its editorial, screenshots and generated SEO pages.
+for (const file of ['src/blog/posts/solar-system/en.md', 'src/blog/posts/solarSystemPost.ts', 'src/blog/posts/index.ts', 'src/blog/sitePublishedPosts.ts', 'src/blog/publicApi.ts', 'src/blog/BlogApp.tsx', 'public/assets/blog/solar-system/earth.webp', 'scripts/emit-solar-system-blog.mjs', 'vercel.json', 'scripts/test-solar-system-blog.mjs', 'vite.config.ts']) {
+  assert.equal(matchesDeployScope(file, 'project:solar-system'), true)
+}
+assert.equal(matchesDeployScope('src/blog/posts/unrelated.ts', 'project:solar-system'), false)
+
 console.log('Deploy scope safety tests passed.')

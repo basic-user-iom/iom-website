@@ -1,0 +1,50 @@
+{
+  "id": "site-blog-solar-system",
+  "slug": "solar-system-living-observatory",
+  "published_at": "2026-09-27T16:00:00.000Z",
+  "cover_image_url": "/assets/blog/solar-system/earth.webp",
+  "author_name": "IOM",
+  "tags": [
+    "SOLAR SYSTEM",
+    "JPL HORIZONS",
+    "3D"
+  ],
+  "locales": {
+    "en": {
+      "title": "Solar System — an astronomer’s guide to Living Observatory",
+      "excerpt": "Explore JPL-based orbits, planetary maps, Voyager and three scenario labs. A practical guide to the data, scale and scientific limits behind the demo, with eight original screenshots.",
+      "seo_title": "Solar System: an astronomer’s guide to the demo | IOM",
+      "seo_description": "Explore the Solar System demo: JPL ephemerides, planets, Voyager, Impact Lab, Solar Fate and black-hole encounters. Eight screenshots and scientific context."
+    },
+    "de": {
+      "title": "Solar System — ein astronomischer Leitfaden für Living Observatory",
+      "excerpt": "JPL-basierte Bahnen, Planetenkarten, Voyager und drei Szenariolabore: ein praktischer Leitfaden zu Daten, Maßstab und wissenschaftlichen Grenzen mit acht eigenen Bildschirmaufnahmen.",
+      "seo_title": "Solar System: astronomischer Leitfaden zum Demo | IOM",
+      "seo_description": "Das Solar-System-Demo erkunden: JPL-Ephemeriden, Planeten, Voyager, Impact Lab, Solar Fate und Schwarze Löcher. Acht Bilder mit astronomischen Erklärungen."
+    },
+    "fr": {
+      "title": "Solar System — le guide astronomique de Living Observatory",
+      "excerpt": "Orbites issues de JPL, cartes planétaires, Voyager et trois laboratoires de scénarios : un guide des données, des échelles et des limites scientifiques, avec huit captures originales.",
+      "seo_title": "Solar System : guide astronomique de la démo | IOM",
+      "seo_description": "Explorez la démo Solar System : éphémérides JPL, planètes, Voyager, Impact Lab, Solar Fate et trous noirs. Huit captures et leur contexte scientifique."
+    },
+    "nl": {
+      "title": "Solar System — een astronomische gids voor Living Observatory",
+      "excerpt": "Ontdek banen op basis van JPL, planeetkaarten, Voyager en drie scenariolabs. Een praktische gids over gegevens, schaal en wetenschappelijke grenzen, met acht eigen schermafbeeldingen.",
+      "seo_title": "Solar System: astronomische gids voor de demo | IOM",
+      "seo_description": "Verken de Solar System-demo: JPL-efemeriden, planeten, Voyager, Impact Lab, Solar Fate en zwarte gaten. Acht beelden met wetenschappelijke toelichting."
+    },
+    "it": {
+      "title": "Solar System — una guida astronomica a Living Observatory",
+      "excerpt": "Orbite basate su JPL, mappe planetarie, Voyager e tre laboratori di scenari: una guida pratica a dati, scala e limiti scientifici della demo, con otto schermate originali.",
+      "seo_title": "Solar System: guida astronomica alla demo | IOM",
+      "seo_description": "Esplora la demo Solar System: effemeridi JPL, pianeti, Voyager, Impact Lab, Solar Fate e buchi neri. Otto schermate e spiegazioni scientifiche."
+    },
+    "es": {
+      "title": "Solar System — una guía astronómica de Living Observatory",
+      "excerpt": "Órbitas basadas en JPL, mapas planetarios, Voyager y tres laboratorios de escenarios. Una guía de datos, escala y límites científicos de la demo, con ocho capturas originales.",
+      "seo_title": "Solar System: guía astronómica de la demo | IOM",
+      "seo_description": "Explora la demo Solar System: efemérides JPL, planetas, Voyager, Impact Lab, Solar Fate y agujeros negros. Ocho capturas con contexto científico."
+    }
+  }
+}

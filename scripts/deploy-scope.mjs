@@ -98,7 +98,18 @@ const PROJECT_SCOPE_RULES = {
     'src/demo/precision-object/',
   ],
   'solar-system': [
-    // The Solar System publication includes its localized Software card and posters.
+    // The Solar System publication includes its Software card and localized astronomy article.
+    'src/blog/posts/solar-system/',
+    'src/blog/posts/solarSystemPost.ts',
+    'src/blog/posts/index.ts',
+    'src/blog/sitePublishedPosts.ts',
+    'src/blog/publicApi.ts',
+    'src/blog/BlogApp.tsx',
+    'public/assets/blog/solar-system/',
+    'scripts/emit-solar-system-blog.mjs',
+    'vercel.json',
+    'scripts/test-solar-system-blog.mjs',
+    'vite.config.ts',
     'src/data/projects.ts',
     'src/i18n/projects/de.ts',
     'src/i18n/projects/nl.ts',
