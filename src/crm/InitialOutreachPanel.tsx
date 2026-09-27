@@ -19,6 +19,7 @@ import {
 import { renderOutreachEmailHtml } from './outreachEmailHtml'
 import { persistOutboundMessage } from './persistOutboundMessage'
 import { formatClientLocalTime } from './clientWeather'
+import { advanceSchedulePart } from './schedulePickerFocus'
 import { applyPingLeadUpdates, enqueuePingScheduledSends } from './pingScheduledSends'
 import {
   buildScheduledSend,
@@ -876,6 +877,7 @@ export function InitialOutreachPanel({
                       </span>
                       <div
                         className="crm-schedule-parts"
+                        onInput={advanceSchedulePart}
                         role="group"
                         aria-label={
                           hasContactTz

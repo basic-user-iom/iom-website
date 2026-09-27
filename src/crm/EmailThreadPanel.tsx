@@ -11,6 +11,7 @@ import {
   updateLead,
 } from './api'
 import { formatClientLocalTime } from './clientWeather'
+import { advanceSchedulePart } from './schedulePickerFocus'
 import { isCrmDemoMode } from './demoMode'
 import { replyThreadingFromMessages, suggestReplySubject } from './emailThread'
 import { useCrmI18n } from './i18n'
@@ -791,6 +792,7 @@ export function EmailThreadPanel({
           </span>
           <div
             className="crm-schedule-parts"
+            onInput={advanceSchedulePart}
             role="group"
             aria-label={
               hasContactTz
