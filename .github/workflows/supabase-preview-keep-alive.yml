@@ -9,8 +9,11 @@ name: Supabase preview keep-alive
 
 on:
   schedule:
-    - cron: '17 6 * * *'
+    - cron: '17 */6 * * *'
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: supabase-preview-keep-alive
@@ -35,8 +38,12 @@ jobs:
           base="${SUPABASE_PREVIEW_URL:-https://ijjnstbwvuwwznfagxut.supabase.co}"
           base="${base%/}"
           restore_url="https://supabase.com/dashboard/project/ijjnstbwvuwwznfagxut"
-          # Execute a database query without retrieving staff records.
-          path="/rest/v1/crm_staff_profiles?select=id&limit=0"
+          if [ "$base" != "https://ijjnstbwvuwwznfagxut.supabase.co" ]; then
+            echo "::error::Preview URL does not match the expected preview project."
+            exit 1
+          fi
+          # Dedicated read-only SQL function; no CRM records or privileged keys.
+          path="/rest/v1/rpc/iom_preview_health"
 
           body_file=$(mktemp)
           trap 'rm -f "$body_file"' EXIT
@@ -52,6 +59,7 @@ jobs:
               --connect-timeout 10 --max-time 20 \
               "${base}${path}" \
               -H "apikey: ${SUPABASE_PREVIEW_ANON_KEY}" \
+              -H "Cache-Control: no-cache" \
               -H "Accept: application/json") || curl_exit=$?
             bytes=$(wc -c < "$body_file" | tr -d '[:space:]')
             echo "attempt=${attempt}/${max_attempts} HTTP ${http:-000} curl_exit=${curl_exit} bytes=${bytes}"
@@ -62,23 +70,20 @@ jobs:
               # Log only a bounded error code, never response data or credentials.
               api_code=$(jq -er '.code | select(type == "string") | select(test("^[A-Za-z0-9_]{1,40}$"))' "$body_file" 2>/dev/null || true)
               case "$http" in
-                200|206)
-                  if jq -e 'type == "array"' "$body_file" >/dev/null 2>&1; then
-                    echo "Keep-alive OK: database query completed."
+                200)
+                  if jq -e 'type == "object" and .ok == true and (.checked_at | type == "string")' "$body_file" >/dev/null 2>&1; then
+                    echo "Keep-alive OK: read-only database health query completed."
                     exit 0
                   fi
-                  echo "::error::Unexpected successful response: expected a PostgREST JSON array."
+                  echo "::error::Unexpected successful response: expected the database health response."
                   exit 1
                   ;;
                 401|403)
-                  # PostgREST forwards PostgreSQL insufficient_privilege as SQLSTATE 42501.
-                  # This proves the database was reached without granting access to staff data.
-                  # Gateway/JWT errors (including PGRST301/302/303) do not prove database activity.
-                  if [ "$api_code" = "42501" ]; then
-                    echo "Keep-alive OK: database reached; read blocked by existing permissions (SQLSTATE 42501)."
-                    exit 0
-                  fi
                   echo "::error::Preview API authentication failed (HTTP $http, code=${api_code:-unknown}). Check SUPABASE_PREVIEW_ANON_KEY and SUPABASE_PREVIEW_URL."
+                  exit 1
+                  ;;
+                404)
+                  echo "::error::Health function missing. Apply supabase/preview_keep_alive.sql to the preview project."
                   exit 1
                   ;;
                 540)
