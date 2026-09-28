@@ -1,9 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import {
-  isLinarDemoUnlocked,
-  tryCrmEmbedUnlock,
-  unlockLinarDemo,
-} from './auth'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { LinarMusicControls } from './useLinarMusic'
+import { LinarLoading } from './LinarLoading'
 import {
   REST_BEND,
   maxRenderedNormalOffsetM,
@@ -53,11 +50,6 @@ function isEmbeddedWindow(): boolean {
   }
 }
 
-const LINAR_MUSIC_URL = '/media/dukta-linar-bach-cello-suite-no1-prelude.mp3'
-const LINAR_MUSIC_START_SECONDS = 8
-const LINAR_MUSIC_DEFAULT_VOLUME = 0.29
-const LINAR_MUSIC_FADE_IN_MS = 2200
-const LINAR_MUSIC_FADE_OUT_MS = 2800
 const LINAR_CINEMATIC_SESSION_KEY = 'dukta-linar-startup-cinematic-v3'
 const LINAR_CINEMATIC_REVEAL_MS = 2200
 
@@ -125,57 +117,10 @@ function copyTextFallback(value: string): boolean {
   return copied
 }
 
-function PasswordGate({ onUnlock }: { onUnlock: () => void }) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
-
-  const submit = (event: FormEvent) => {
-    event.preventDefault()
-    if (unlockLinarDemo(password)) {
-      setError(false)
-      onUnlock()
-      return
-    }
-    setError(true)
-  }
-
-  return (
-    <div className="linar-page linar-page--gate">
-      <div className="linar-gate">
-        <div className="linar-gate__panel">
-          <p className="linar-gate__brand">dukta · LINAR concept</p>
-          <p className="linar-gate__hint">Private preview. Enter the password to continue.</p>
-          <form className="linar-gate__form" onSubmit={submit}>
-            <input
-              className="linar-gate__input"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="Password"
-              value={password}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                setError(false)
-              }}
-              autoFocus
-            />
-            <button className="linar-gate__submit" type="submit">
-              Enter
-            </button>
-            {error ? <p className="linar-gate__error">Incorrect password.</p> : null}
-          </form>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export function DuktaLinarConceptPage() {
+export function DuktaLinarConceptPage({ music }: { music: LinarMusicControls }) {
+  const { musicEnabled, musicVolume, startMusic, onToggleMusic, onMusicVolumeChange } = music
   const reducedMotion = useRef(prefersReducedMotion()).current
   const [initialShareState] = useState(() => parseLinarShareState(window.location.hash))
-  const [unlocked, setUnlocked] = useState(
-    () => isLinarDemoUnlocked() || tryCrmEmbedUnlock(),
-  )
   const [targetBend, setTargetBend] = useState(initialShareState.bend)
   const [secondaryCurveAmount, setSecondaryCurveAmount] = useState(
     initialShareState.secondaryCurveAmount,
@@ -199,15 +144,19 @@ export function DuktaLinarConceptPage() {
   const [cinematicHandoffPhase, setCinematicHandoffPhase] =
     useState<LinarCinematicHandoffPhase>(null)
   const [sceneReady, setSceneReady] = useState(false)
-  const [musicEnabled, setMusicEnabled] = useState(false)
-  const [musicVolume, setMusicVolume] = useState(
-    Math.round(LINAR_MUSIC_DEFAULT_VOLUME * 100),
-  )
-  const musicRef = useRef<HTMLAudioElement | null>(null)
-  const musicFadeFrameRef = useRef<number | null>(null)
-  const musicOperationRef = useRef(0)
-  const musicShouldPlayRef = useRef(false)
-  const musicVolumeRef = useRef(LINAR_MUSIC_DEFAULT_VOLUME)
+  const [sceneMountReady, setSceneMountReady] = useState(false)
+
+  useEffect(() => {
+    // Let the loading message paint before synchronous geometry/shader preparation.
+    let secondFrame = 0
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => setSceneMountReady(true))
+    })
+    return () => {
+      window.cancelAnimationFrame(firstFrame)
+      window.cancelAnimationFrame(secondFrame)
+    }
+  }, [])
   const shareModeRef = useRef(initialShareState.isShared)
   const targetBendRef = useRef(targetBend)
   const targetSecondaryCurveRef = useRef(secondaryCurveAmount)
@@ -460,7 +409,7 @@ export function DuktaLinarConceptPage() {
   }, [activeTourStep, reducedMotion, tourActive])
 
   useEffect(() => {
-    if (!unlocked || !sceneReady || experienceStartHandledRef.current) return
+    if (!sceneReady || experienceStartHandledRef.current) return
     experienceStartHandledRef.current = true
     const debugMode = requestedTourDebugMode()
     if (debugMode === 'reset') clearCinematicSeen()
@@ -478,7 +427,7 @@ export function DuktaLinarConceptPage() {
       return
     }
     if (!cinematicWasSeen()) startCinematic()
-  }, [initialShareState.isShared, reducedMotion, sceneReady, startCinematic, startTour, unlocked])
+  }, [initialShareState.isShared, reducedMotion, sceneReady, startCinematic, startTour])
 
   useEffect(
     () => () => {
@@ -512,7 +461,6 @@ export function DuktaLinarConceptPage() {
 
   useEffect(() => {
     if (
-      !unlocked ||
       !shareModeRef.current ||
       experienceMode !== 'idle' ||
       isEmbeddedWindow() ||
@@ -521,7 +469,7 @@ export function DuktaLinarConceptPage() {
       return
     }
     window.history.replaceState(window.history.state, '', shareUrl)
-  }, [experienceMode, shareUrl, unlocked])
+  }, [experienceMode, shareUrl])
 
   const onShare = useCallback(async (): Promise<boolean> => {
     const urlToShare = shareUrl
@@ -578,129 +526,6 @@ export function DuktaLinarConceptPage() {
     window.addEventListener('hashchange', restoreSharedHash)
     return () => window.removeEventListener('hashchange', restoreSharedHash)
   }, [stopExperience])
-
-  const cancelMusicFade = useCallback(() => {
-    if (musicFadeFrameRef.current != null) {
-      window.cancelAnimationFrame(musicFadeFrameRef.current)
-      musicFadeFrameRef.current = null
-    }
-  }, [])
-
-  const fadeMusicTo = useCallback(
-    (audio: HTMLAudioElement, targetVolume: number, durationMs: number, onDone?: () => void) => {
-      cancelMusicFade()
-      const initialVolume = audio.volume
-      const safeTargetVolume = Math.max(0, Math.min(1, targetVolume))
-      const startedAt = performance.now()
-
-      const update = (now: number) => {
-        const progress = Math.max(0, Math.min(1, (now - startedAt) / durationMs))
-        const eased = 1 - (1 - progress) ** 3
-        audio.volume = Math.max(
-          0,
-          Math.min(1, initialVolume + (safeTargetVolume - initialVolume) * eased),
-        )
-        if (progress >= 1) {
-          musicFadeFrameRef.current = null
-          onDone?.()
-          return
-        }
-        musicFadeFrameRef.current = window.requestAnimationFrame(update)
-      }
-
-      musicFadeFrameRef.current = window.requestAnimationFrame(update)
-    },
-    [cancelMusicFade],
-  )
-
-  const createMusic = useCallback((): HTMLAudioElement => {
-    if (musicRef.current) return musicRef.current
-    const audio = new Audio(LINAR_MUSIC_URL)
-    audio.loop = false
-    audio.preload = 'auto'
-    audio.volume = 0
-    audio.onended = () => {
-      if (!musicShouldPlayRef.current || musicRef.current !== audio) return
-      audio.currentTime = LINAR_MUSIC_START_SECONDS
-      audio.volume = musicVolumeRef.current
-      void audio.play()
-    }
-    musicRef.current = audio
-    return audio
-  }, [])
-
-  const startMusic = useCallback((restartFromCue = false) => {
-    const audio = createMusic()
-    const operation = ++musicOperationRef.current
-    musicShouldPlayRef.current = true
-    setMusicEnabled(true)
-    cancelMusicFade()
-
-    if (!audio.paused && !restartFromCue) {
-      fadeMusicTo(audio, musicVolumeRef.current, LINAR_MUSIC_FADE_IN_MS)
-      return
-    }
-
-    if (restartFromCue || audio.currentTime < LINAR_MUSIC_START_SECONDS) {
-      try {
-        audio.currentTime = LINAR_MUSIC_START_SECONDS
-      } catch {
-        audio.addEventListener(
-          'loadedmetadata',
-          () => {
-            audio.currentTime = LINAR_MUSIC_START_SECONDS
-          },
-          { once: true },
-        )
-      }
-    }
-    audio.volume = 0
-    void audio
-      .play()
-      .then(() => {
-        if (musicOperationRef.current !== operation || !musicShouldPlayRef.current) {
-          audio.pause()
-          return
-        }
-        fadeMusicTo(audio, musicVolumeRef.current, LINAR_MUSIC_FADE_IN_MS)
-      })
-      .catch(() => {
-        if (musicOperationRef.current !== operation) return
-        musicShouldPlayRef.current = false
-        setMusicEnabled(false)
-      })
-  }, [cancelMusicFade, createMusic, fadeMusicTo])
-
-  const stopMusic = useCallback(() => {
-    const operation = ++musicOperationRef.current
-    const audio = musicRef.current
-    musicShouldPlayRef.current = false
-    setMusicEnabled(false)
-    cancelMusicFade()
-    if (!audio || audio.paused) {
-      return
-    }
-    fadeMusicTo(audio, 0, LINAR_MUSIC_FADE_OUT_MS, () => {
-      if (musicOperationRef.current !== operation) return
-      audio.pause()
-      audio.volume = musicVolumeRef.current
-    })
-  }, [cancelMusicFade, fadeMusicTo])
-
-  const onMusicVolumeChange = useCallback(
-    (percent: number) => {
-      const clampedPercent = Math.min(100, Math.max(0, Math.round(percent)))
-      const normalized = clampedPercent / 100
-      musicVolumeRef.current = normalized
-      setMusicVolume(clampedPercent)
-      const audio = musicRef.current
-      if (audio && musicShouldPlayRef.current) {
-        cancelMusicFade()
-        audio.volume = normalized
-      }
-    },
-    [cancelMusicFade],
-  )
 
   const markInteracted = useCallback(() => {
     cancelExperienceForInteraction(false)
@@ -936,14 +761,6 @@ export function DuktaLinarConceptPage() {
     markCinematicSeen()
   }, [])
 
-  const onToggleMusic = useCallback(() => {
-    if (musicShouldPlayRef.current) {
-      stopMusic()
-    } else {
-      startMusic()
-    }
-  }, [startMusic, stopMusic])
-
   const onToggleLight = useCallback(() => {
     const base = lightStateRef.current
     const next = { ...base, enabled: !base.enabled }
@@ -1011,28 +828,6 @@ export function DuktaLinarConceptPage() {
     setLightState(next)
   }, [])
 
-  useEffect(() => {
-    document.body.classList.add('linar-route')
-    document.documentElement.classList.add('linar-route')
-    return () => {
-      musicShouldPlayRef.current = false
-      musicOperationRef.current += 1
-      if (musicFadeFrameRef.current != null) {
-        window.cancelAnimationFrame(musicFadeFrameRef.current)
-        musicFadeFrameRef.current = null
-      }
-      const audio = musicRef.current
-      if (audio) {
-        audio.pause()
-        audio.onended = null
-        audio.removeAttribute('src')
-        audio.load()
-        musicRef.current = null
-      }
-      document.body.classList.remove('linar-route')
-      document.documentElement.classList.remove('linar-route')
-    }
-  }, [])
 
   const backlightVisible =
     config.application !== 'freestanding' &&
@@ -1042,19 +837,6 @@ export function DuktaLinarConceptPage() {
     viewPreset !== 'reverse' &&
     viewPreset !== 'top'
   const lightingStudyEnabled = lightState.enabled || backlightVisible
-
-  if (!unlocked) {
-    return (
-      <PasswordGate
-        onUnlock={() => {
-          // Password submission is a trusted user gesture. Start playback
-          // synchronously here so browser autoplay policies permit it.
-          startMusic()
-          setUnlocked(true)
-        }}
-      />
-    )
-  }
 
   return (
     <div
@@ -1086,9 +868,9 @@ export function DuktaLinarConceptPage() {
           data-tour-id="viewport"
           aria-label="LINAR panel preview"
         >
-          <p className="linar-application-status" aria-live="polite">
-            <span>Application</span>
-            <strong>{config.application === 'wall' ? 'Wall' : config.application === 'ceiling' ? 'Ceiling' : 'Freestanding'}</strong>
+          <p className="linar-application-status" aria-live="polite" aria-atomic="true">
+            <span className="linar-sr-only">Application: </span>
+            {config.application}
           </p>
           {webglFailed ? (
             <p className="linar-fallback">
@@ -1097,34 +879,37 @@ export function DuktaLinarConceptPage() {
             </p>
           ) : (
             <>
-              <LinarScene
-                targetBendRef={targetBendRef}
-                targetSecondaryCurveRef={targetSecondaryCurveRef}
-                config={config}
-                tech={tech}
-                findLightRevision={findLightRevision}
-                resetViewRevision={resetViewRevision}
-                viewPreset={viewPreset}
-                side={side}
-                viewRevision={viewRevision}
-                tourActive={tourActive}
-                cinematicActive={cinematicActive}
-                cinematicRevision={cinematicRevision}
-                lightState={lightState}
-                introStarted={false}
-                interactedRef={interactedRef}
-                reducedMotion={reducedMotion}
-                onUnavailable={() => {
-                  stopExperience(true)
-                  setWebglFailed(true)
-                }}
-                onUserInteract={markSceneInteracted}
-                onLightChange={onLightChange}
-                onSceneReady={() => setSceneReady(true)}
-                onCinematicStage={onCinematicStage}
-                onCinematicComplete={onCinematicComplete}
-                onIntroBend={() => undefined}
-              />
+              {!sceneReady ? <LinarLoading viewport /> : null}
+              {sceneMountReady ? (
+                <LinarScene
+                  targetBendRef={targetBendRef}
+                  targetSecondaryCurveRef={targetSecondaryCurveRef}
+                  config={config}
+                  tech={tech}
+                  findLightRevision={findLightRevision}
+                  resetViewRevision={resetViewRevision}
+                  viewPreset={viewPreset}
+                  side={side}
+                  viewRevision={viewRevision}
+                  tourActive={tourActive}
+                  cinematicActive={cinematicActive}
+                  cinematicRevision={cinematicRevision}
+                  lightState={lightState}
+                  introStarted={false}
+                  interactedRef={interactedRef}
+                  reducedMotion={reducedMotion}
+                  onUnavailable={() => {
+                    stopExperience(true)
+                    setWebglFailed(true)
+                  }}
+                  onUserInteract={markSceneInteracted}
+                  onLightChange={onLightChange}
+                  onSceneReady={() => setSceneReady(true)}
+                  onCinematicStage={onCinematicStage}
+                  onCinematicComplete={onCinematicComplete}
+                  onIntroBend={() => undefined}
+                />
+              ) : null}
               {showHint || lightingStudyEnabled ? (
                 <p className="linar-viewport__hint" aria-live="polite">
                   {lightState.enabled

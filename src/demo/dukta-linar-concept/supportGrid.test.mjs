@@ -4,13 +4,13 @@ import {
   createLinarSupportGrid,
   SUPPORT_GRID_CAVITY_INFILL_OBJECT_NAME,
   SUPPORT_GRID_CAVITY_INFILL_VISUAL,
-  SUPPORT_GRID_REFERENCE,
+  SUPPORT_GRID_VISUAL_DEFAULTS,
   SUPPORT_GRID_RENDER_GAP_M,
 } from './supportGrid.ts'
 
 const EPSILON = 1e-6
 const PANEL_REAR_OFFSET_M = 0.0045
-const SUPPORT_DEPTH_M = SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
+const SUPPORT_DEPTH_M = SUPPORT_GRID_VISUAL_DEFAULTS.battenDepthMm / 1000
 const PANEL_FACING_OFFSET_M = PANEL_REAR_OFFSET_M + SUPPORT_GRID_RENDER_GAP_M
 
 function childByName(group, name) {
@@ -67,7 +67,7 @@ function pointAtDistance(path, distanceM) {
 function assertCurvedOuterRailTransforms(mesh, bounds, label) {
   const path = bounds.supportPathXZ
   const maximumDistance = path.at(-1).distanceM
-  const terminalSpan = Math.min(0.04, maximumDistance * 0.5)
+  const terminalSpan = Math.min(0.024, maximumDistance * 0.5)
   const pairs = [
     [pointAtDistance(path, 0), pointAtDistance(path, terminalSpan)],
     [
@@ -103,7 +103,7 @@ function assertCurvedOuterRailTransforms(mesh, bounds, label) {
     )
     approximate(
       rail.scale.y,
-      bounds.heightM - 0.08,
+      bounds.heightM - 0.048,
       `${label} rail ${index + 1} fits between profile ribs`,
     )
     approximate(rail.scale.z, SUPPORT_DEPTH_M, `${label} rail ${index + 1} depth`)
@@ -355,7 +355,7 @@ assert.equal(flatHorizontal.count, 4)
 assert.equal(curvedProfiles.count, 0)
 for (let index = 0; index < vertical.count; index += 1) {
   const member = instanceTransform(vertical, index)
-  approximate(member.scale.y, 2.72, `flat longitudinal member ${index + 1} height`)
+  approximate(member.scale.y, 2.752, `flat longitudinal member ${index + 1} height`)
   approximate(member.position.y, 1.4, `flat longitudinal member ${index + 1} centre Y`)
 }
 assertOuterFrameState({
@@ -369,8 +369,8 @@ assertOuterFrameState({
 const flatLeftRail = instanceTransform(outerVerticalRails, 0)
 const flatRightRail = instanceTransform(outerVerticalRails, 1)
 for (const [index, rail] of [flatLeftRail, flatRightRail].entries()) {
-  approximate(rail.scale.x, 0.04, `flat outer rail ${index + 1} width`)
-  approximate(rail.scale.y, 2.72, `flat outer rail ${index + 1} height`)
+  approximate(rail.scale.x, 0.024, `flat outer rail ${index + 1} width`)
+  approximate(rail.scale.y, 2.752, `flat outer rail ${index + 1} height`)
   approximate(rail.scale.z, SUPPORT_DEPTH_M, `flat outer rail ${index + 1} depth`)
   approximate(rail.position.y, 1.4, `flat outer rail ${index + 1} centre Y`)
   approximate(
@@ -379,20 +379,20 @@ for (const [index, rail] of [flatLeftRail, flatRightRail].entries()) {
     `flat outer rail ${index + 1} centre Z`,
   )
 }
-approximate(flatLeftRail.position.x, -1.18, 'left rail is inset within boundary')
-approximate(flatRightRail.position.x, 1.18, 'right rail is inset within boundary')
+approximate(flatLeftRail.position.x, -1.188, 'left rail is inset within boundary')
+approximate(flatRightRail.position.x, 1.188, 'right rail is inset within boundary')
 
 for (let index = 0; index < 2; index += 1) {
   const rib = instanceTransform(outerFlatProfileRibs, index)
   approximate(rib.scale.x, 2.4, `flat outer rib ${index + 1} width`)
-  approximate(rib.scale.y, 0.04, `flat outer rib ${index + 1} thickness`)
+  approximate(rib.scale.y, 0.024, `flat outer rib ${index + 1} thickness`)
   approximate(rib.scale.z, SUPPORT_DEPTH_M, `flat outer rib ${index + 1} depth`)
   approximate(
     rib.position.z,
     -PANEL_FACING_OFFSET_M - SUPPORT_DEPTH_M * 0.5,
     `flat outer rib ${index + 1} centre Z`,
   )
-  approximate(rib.position.y, index === 0 ? 0.02 : 2.78, `flat outer rib ${index + 1} Y`)
+  approximate(rib.position.y, index === 0 ? 0.012 : 2.788, `flat outer rib ${index + 1} Y`)
 }
 
 function flatInstallationBounds(panelCount) {
@@ -442,7 +442,7 @@ for (const panelCount of [1, 2, 3, 4]) {
       expectedVerticalX,
       `${label} uses one midpoint per module and each seam once`,
     )
-    const expectedProfileY = [0.572, 1.124, 1.676, 2.228]
+    const expectedProfileY = [0.5672, 1.1224, 1.6776, 2.2328]
     for (let index = 0; index < flatHorizontal.count; index += 1) {
       approximate(
         instanceTransform(flatHorizontal, index).position.y,
@@ -462,12 +462,12 @@ support.update({
 })
 approximate(
   instanceTransform(outerVerticalRails, 0).position.x,
-  -1.18,
+  -1.188,
   'padded flat bounds do not move the left rail',
 )
 approximate(
   instanceTransform(outerVerticalRails, 1).position.x,
-  1.18,
+  1.188,
   'padded flat bounds do not move the right rail',
 )
 approximate(
@@ -587,7 +587,7 @@ for (const curvedCase of curvedCases) {
     const member = instanceTransform(vertical, index)
     approximate(
       member.scale.y,
-      2.72,
+      2.752,
       `curved longitudinal member ${index + 1} fits between profile ribs`,
     )
   }
@@ -650,7 +650,7 @@ assertCurvedOuterRailTransforms(outerVerticalRails, curvedBounds, 'curved')
 for (let index = 0; index < 2; index += 1) {
   const rail = instanceTransform(outerVerticalRails, index)
   assert.ok(rail.scale.x <= 0.060001, `curved outer rail ${index + 1} width`)
-  approximate(rail.scale.y, 2.72, `curved outer rail ${index + 1} height`)
+  approximate(rail.scale.y, 2.752, `curved outer rail ${index + 1} height`)
   approximate(rail.scale.z, SUPPORT_DEPTH_M, `curved outer rail ${index + 1} depth`)
   assert.ok(Number.isFinite(rail.position.x))
   assert.ok(Number.isFinite(rail.position.z))
@@ -658,9 +658,9 @@ for (let index = 0; index < 2; index += 1) {
 for (let index = 0; index < 2; index += 1) {
   const rib = instanceTransform(outerCurvedProfileRibs, index)
   approximate(rib.scale.x, 1, `curved outer rib ${index + 1} X scale`)
-  approximate(rib.scale.y, 0.04, `curved outer rib ${index + 1} thickness`)
+  approximate(rib.scale.y, 0.024, `curved outer rib ${index + 1} thickness`)
   approximate(rib.scale.z, 1, `curved outer rib ${index + 1} Z scale`)
-  approximate(rib.position.y, index === 0 ? 0.02 : 2.78, `curved outer rib ${index + 1} Y`)
+  approximate(rib.position.y, index === 0 ? 0.012 : 2.788, `curved outer rib ${index + 1} Y`)
 }
 
 // Reversing a C bend must only mirror/reposition the fixed-section edge rails;
@@ -787,7 +787,7 @@ for (let index = 0; index < outerVerticalRails.count; index += 1) {
     rail.scale.x <= 0.060001,
     'hairpin rail remains within its normal-offset terminal interval',
   )
-  approximate(rail.scale.y, 2.72, 'hairpin rail fits between outer profile ribs')
+  approximate(rail.scale.y, 2.752, 'hairpin rail fits between outer profile ribs')
   approximate(rail.scale.z, SUPPORT_DEPTH_M, 'hairpin rail keeps fixed support depth')
 }
 
@@ -860,7 +860,7 @@ for (const point of tightCPath.filter((_, index) => index % 16 === 0)) {
 }
 for (let index = 0; index < outerVerticalRails.count; index += 1) {
   const rail = instanceTransform(outerVerticalRails, index)
-  approximate(rail.scale.y, 2.72, 'preview C rail terminates between profile ribs')
+  approximate(rail.scale.y, 2.752, 'preview C rail terminates between profile ribs')
 }
 
 // The visibility API remains independent from construction generation. The

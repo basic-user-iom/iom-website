@@ -32,7 +32,7 @@ import {
 import { createLinarMaterials, type LinarMaterialSet } from './materials'
 import { backingVisualProfile } from './materialData'
 import {
-  SUPPORT_GRID_REFERENCE,
+  SUPPORT_GRID_VISUAL_DEFAULTS,
   SUPPORT_GRID_RENDER_GAP_M,
 } from './supportGrid'
 import {
@@ -852,7 +852,7 @@ export function createLinarPanel(initial: { config: LinarConfig; tech: LinarTech
     const diffuserOffsetM =
       supportRearSurfaceOffsetM +
       SUPPORT_GRID_RENDER_GAP_M +
-      SUPPORT_GRID_REFERENCE.battenDepthMm / 1000 -
+      SUPPORT_GRID_VISUAL_DEFAULTS.battenDepthMm / 1000 -
       BACKLIGHT_DIFFUSER_REAR_REVEAL_M
     const diffuserZ = -diffuserOffsetM
     for (let i = 0; i <= SOLID_BAND_SEGMENTS; i += 1) {

@@ -111,141 +111,153 @@ export function LinarViewportControls({
   }
 
   return (
-    <div className="linar-viewport-tools" aria-label="Share, lighting, view and sound controls">
-      <button
-        type="button"
-        className={shareFeedback === 'copied' ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
-        disabled={shareFeedback === 'copying'}
-        data-tour-id="share"
-        aria-label={shareFeedback === 'copied' ? 'Share link copied' : 'Copy share link'}
-        onClick={() => void copyShareLink()}
-      >
-        {shareLabel}
-      </button>
-      <span className="linar-sr-only" role="status" aria-live="polite">
-        {shareFeedback === 'copied' ? 'Share link copied to clipboard.' : shareFeedback === 'failed' ? 'Automatic copy failed. The URL is shown for manual copying.' : ''}
-      </span>
-
-      <button
-        type="button"
-        className={tourActive ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
-        disabled={!viewAvailable}
-        aria-pressed={tourActive}
-        onClick={onToggleTour}
-      >
-        {tourActive ? 'EXIT TOUR' : 'TOUR'}
-      </button>
-
-      <button
-        type="button"
-        className={cinematicActive ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
-        disabled={!viewAvailable}
-        aria-pressed={cinematicActive}
-        onClick={onReplayCinematic}
-      >
-        INTRO
-      </button>
-
-      {viewAvailable ? (
-        <details
-          ref={lightingMenuRef}
-          className="linar-viewport-menu linar-viewport-menu--lighting"
-          data-tour-id="advanced-lighting"
-          onToggle={(event) => {
-            if (!event.currentTarget.open) return
-            viewMenuRef.current && (viewMenuRef.current.open = false)
-          }}
+    <>
+      <div className="linar-viewport-tools" aria-label="Share, lighting and view controls">
+        <button
+          type="button"
+          className={shareFeedback === 'copied' ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
+          disabled={shareFeedback === 'copying'}
+          data-tour-id="share"
+          aria-label={shareFeedback === 'copied' ? 'Share link copied' : 'Copy share link'}
+          onClick={() => void copyShareLink()}
         >
-          <summary className={lightState.enabled || backlightEnabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}>LIGHTING</summary>
-          <div className="linar-viewport-menu__panel linar-viewport-light-panel">
-            <LinarLightControls
-              light={lightState}
-              application={application}
-              backing={backing}
-              backlightEnabled={backlightEnabled}
-              onToggleBacklight={() => { onUserInteract(); onToggleBacklight() }}
-              onChange={changeLight}
-              onToggle={() => { onUserInteract(); onToggleLight() }}
-              onPlacement={(placement) => { onUserInteract(); onLightPlacementChange(placement) }}
-              onReset={() => { onUserInteract(); onResetLight() }}
-              onFind={() => {
-                onUserInteract()
-                if (lightingMenuRef.current) lightingMenuRef.current.open = false
-                onFindLight()
-              }}
-            />
-          </div>
-        </details>
-      ) : null}
+          {shareLabel}
+        </button>
+        <span className="linar-sr-only" role="status" aria-live="polite">
+          {shareFeedback === 'copied' ? 'Share link copied to clipboard.' : shareFeedback === 'failed' ? 'Automatic copy failed. The URL is shown for manual copying.' : ''}
+        </span>
 
+        <button
+          type="button"
+          className={tourActive ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
+          disabled={!viewAvailable}
+          aria-pressed={tourActive}
+          onClick={onToggleTour}
+        >
+          {tourActive ? 'EXIT TOUR' : 'TOUR'}
+        </button>
+
+        <button
+          type="button"
+          className={cinematicActive ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
+          disabled={!viewAvailable}
+          aria-pressed={cinematicActive}
+          onClick={onReplayCinematic}
+        >
+          INTRO
+        </button>
+
+        {viewAvailable ? (
+          <details
+            ref={lightingMenuRef}
+            className="linar-viewport-menu linar-viewport-menu--lighting"
+            data-tour-id="advanced-lighting"
+            onToggle={(event) => {
+              if (!event.currentTarget.open) return
+              viewMenuRef.current && (viewMenuRef.current.open = false)
+            }}
+          >
+            <summary className={lightState.enabled || backlightEnabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}>LIGHTING</summary>
+            <div className="linar-viewport-menu__panel linar-viewport-light-panel">
+              <LinarLightControls
+                light={lightState}
+                application={application}
+                backing={backing}
+                backlightEnabled={backlightEnabled}
+                onToggleBacklight={() => { onUserInteract(); onToggleBacklight() }}
+                onChange={changeLight}
+                onToggle={() => { onUserInteract(); onToggleLight() }}
+                onPlacement={(placement) => { onUserInteract(); onLightPlacementChange(placement) }}
+                onReset={() => { onUserInteract(); onResetLight() }}
+                onFind={() => {
+                  onUserInteract()
+                  if (lightingMenuRef.current) lightingMenuRef.current.open = false
+                  onFindLight()
+                }}
+              />
+            </div>
+          </details>
+        ) : null}
+
+        {viewAvailable ? (
+          <details
+            ref={viewMenuRef}
+            className="linar-viewport-menu"
+            onToggle={(event) => {
+              if (!event.currentTarget.open) return
+              lightingMenuRef.current && (lightingMenuRef.current.open = false)
+            }}
+          >
+            <summary className="linar-viewport-tools__button">VIEW</summary>
+            <div className="linar-viewport-menu__panel">
+              <p className="linar-viewport-menu__hint">Drag to rotate. Scroll or pinch to zoom.</p>
+              <fieldset className="linar-viewport-menu__group">
+                <legend>Surface side</legend>
+                <div className="linar-viewport-menu__choices">
+                  {LINAR_SIDES.map((item) => (
+                    <button key={item.id} type="button" className={item.id === side ? 'is-active' : ''} aria-pressed={item.id === side} onClick={() => {
+                      onUserInteract()
+                      onSideChange(item.id)
+                    }}>{item.label}</button>
+                  ))}
+                </div>
+              </fieldset>
+              <fieldset className="linar-viewport-menu__group">
+                <legend>Inspection</legend>
+                <div className="linar-viewport-menu__choices linar-viewport-menu__choices--views">
+                  {LINAR_VIEWS.map((item) => (
+                    <button key={item.id} type="button" className={item.id === viewPreset ? 'is-active' : ''} aria-pressed={item.id === viewPreset} onClick={() => {
+                      onUserInteract()
+                      onViewPreset(item.id)
+                    }}>{item.label}</button>
+                  ))}
+                </div>
+              </fieldset>
+              <button type="button" className="linar-viewport-menu__reset" onClick={() => {
+                onUserInteract()
+                onResetView()
+              }}>Reset view</button>
+              <div className="linar-viewport-menu__sound">
+                <div className="linar-control__head"><label htmlFor="linar-music-volume">Bach · Cello Suite No. 1</label><span>{musicVolume}%</span></div>
+                <input id="linar-music-volume" className="linar-slider" type="range" min={0} max={100} step={1} value={musicVolume} aria-valuetext={`${musicVolume} percent`} onInput={(event) => {
+                  onUserInteract()
+                  onMusicVolumeChange(Number(event.currentTarget.value))
+                }} />
+              </div>
+            </div>
+          </details>
+        ) : null}
+
+        {shareFeedback === 'failed' ? (
+          <div className="linar-share-manual">
+            <label htmlFor="linar-share-url">Copy this configuration URL</label>
+            <input id="linar-share-url" type="text" readOnly value={shareUrl} onFocus={(event) => event.currentTarget.select()} onClick={(event) => event.currentTarget.select()} />
+          </div>
+        ) : null}
+      </div>
       <button
         type="button"
-        className={musicEnabled ? 'linar-viewport-tools__button is-active' : 'linar-viewport-tools__button'}
+        className="linar-sound-toggle"
         aria-pressed={musicEnabled}
         aria-label={musicEnabled ? 'Mute music' : 'Unmute music'}
+        title={musicEnabled ? 'Mute music' : 'Unmute music'}
         onClick={() => {
-          onUserInteract()
+          if (!cinematicActive) onUserInteract()
           onToggleMusic()
         }}
       >
-        {musicEnabled ? 'MUTE' : 'UNMUTE'}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+          <path d="M11 5 6 9H3v6h3l5 4V5Z" />
+          {musicEnabled ? (
+            <>
+              <path d="M15 8.5a5 5 0 0 1 0 7" />
+              <path d="M18 5.5a9 9 0 0 1 0 13" />
+            </>
+          ) : (
+            <path d="m16 9 5 6m0-6-5 6" />
+          )}
+        </svg>
       </button>
-
-      {viewAvailable ? (
-        <details
-          ref={viewMenuRef}
-          className="linar-viewport-menu"
-          onToggle={(event) => {
-            if (!event.currentTarget.open) return
-            lightingMenuRef.current && (lightingMenuRef.current.open = false)
-          }}
-        >
-          <summary className="linar-viewport-tools__button">VIEW</summary>
-          <div className="linar-viewport-menu__panel">
-            <p className="linar-viewport-menu__hint">Drag to rotate. Scroll or pinch to zoom.</p>
-            <fieldset className="linar-viewport-menu__group">
-              <legend>Surface side</legend>
-              <div className="linar-viewport-menu__choices">
-                {LINAR_SIDES.map((item) => (
-                  <button key={item.id} type="button" className={item.id === side ? 'is-active' : ''} aria-pressed={item.id === side} onClick={() => {
-                    onUserInteract()
-                    onSideChange(item.id)
-                  }}>{item.label}</button>
-                ))}
-              </div>
-            </fieldset>
-            <fieldset className="linar-viewport-menu__group">
-              <legend>Inspection</legend>
-              <div className="linar-viewport-menu__choices linar-viewport-menu__choices--views">
-                {LINAR_VIEWS.map((item) => (
-                  <button key={item.id} type="button" className={item.id === viewPreset ? 'is-active' : ''} aria-pressed={item.id === viewPreset} onClick={() => {
-                    onUserInteract()
-                    onViewPreset(item.id)
-                  }}>{item.label}</button>
-                ))}
-              </div>
-            </fieldset>
-            <button type="button" className="linar-viewport-menu__reset" onClick={() => {
-              onUserInteract()
-              onResetView()
-            }}>Reset view</button>
-            <div className="linar-viewport-menu__sound">
-              <div className="linar-control__head"><label htmlFor="linar-music-volume">Bach · Cello Suite No. 1</label><span>{musicVolume}%</span></div>
-              <input id="linar-music-volume" className="linar-slider" type="range" min={0} max={100} step={1} value={musicVolume} aria-valuetext={`${musicVolume} percent`} onInput={(event) => {
-                onUserInteract()
-                onMusicVolumeChange(Number(event.currentTarget.value))
-              }} />
-            </div>
-          </div>
-        </details>
-      ) : null}
-
-      {shareFeedback === 'failed' ? (
-        <div className="linar-share-manual">
-          <label htmlFor="linar-share-url">Copy this configuration URL</label>
-          <input id="linar-share-url" type="text" readOnly value={shareUrl} onFocus={(event) => event.currentTarget.select()} onClick={(event) => event.currentTarget.select()} />
-        </div>
-      ) : null}
-    </div>
+    </>
   )
 }

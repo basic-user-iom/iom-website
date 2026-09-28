@@ -30,7 +30,7 @@ import {
 import {
   createLinarSupportGrid,
   SUPPORT_GRID_RENDER_GAP_M,
-  SUPPORT_GRID_REFERENCE,
+  SUPPORT_GRID_VISUAL_DEFAULTS,
   type SupportPathPoint,
 } from './supportGrid'
 import {
@@ -525,7 +525,7 @@ function panelPlanBounds(
   let installationMaxZ = maxZ + normalOffsetM
   const supportFrontOffsetM = supportRearSurfaceOffsetM + SUPPORT_GRID_RENDER_GAP_M
   const supportBackOffsetM =
-    supportFrontOffsetM + SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
+    supportFrontOffsetM + SUPPORT_GRID_VISUAL_DEFAULTS.battenDepthMm / 1000
   for (const point of supportPathXZ) {
     const normalZ = Math.cos(point.rotY)
     const supportFrontZ = point.z - normalZ * supportFrontOffsetM

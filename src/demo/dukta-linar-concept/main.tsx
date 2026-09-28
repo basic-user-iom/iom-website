@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client'
-import { DuktaLinarConceptPage } from './DuktaLinarConceptPage'
+import { LinarApp } from './LinarApp'
 
 document.documentElement.classList.add('app-ready', 'linar-route')
 document.body.classList.add('linar-route')
@@ -7,4 +7,4 @@ document.body.classList.add('linar-route')
 const root = document.getElementById('root')
 if (!root) throw new Error('#root missing')
 
-createRoot(root).render(<DuktaLinarConceptPage />)
+createRoot(root).render(<LinarApp />)

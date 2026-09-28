@@ -14,12 +14,14 @@ export const SUPPORT_GRID_REFERENCE = Object.freeze({
 })
 
 /**
- * Client-directed presentation counts for the configurator. These describe the
- * authored visual arrangement, not a certified structural spacing schedule.
- * The historical application-sheet spacing reference above remains useful
- * metadata, but no longer drives this simplified display grid.
+ * Client-directed presentation proportions and counts for the configurator.
+ * The lighter 24 x 30 mm section is a visual study, not a certified mounting
+ * specification. Keep the application-sheet dimensions above as reference
+ * metadata; the scene, diffuser and grid share these display dimensions.
  */
 export const SUPPORT_GRID_VISUAL_DEFAULTS = Object.freeze({
+  battenWidthMm: 24,
+  battenDepthMm: 30,
   longitudinalMembersPerModule: 1,
   transverseProfileMembers: 4,
   authority: 'direct-client-feedback' as const,
@@ -28,7 +30,7 @@ export const SUPPORT_GRID_VISUAL_DEFAULTS = Object.freeze({
 /**
  * Render-only separation between the finished rear surface/backing and its
  * support. This prevents coincident faces without claiming a construction
- * tolerance or changing the referenced 45 mm batten depth.
+ * tolerance. It is independent of the selected presentation batten section.
  */
 export const SUPPORT_GRID_RENDER_GAP_M = 0.0005
 
@@ -36,7 +38,7 @@ export const SUPPORT_GRID_RENDER_GAP_M = 0.0005
  * Visual-only cavity infill used for the mounted wool study. The application
  * sheet identifies thick sound-insulating wool between the timber members but
  * does not provide an installed thickness. Keep a small reveal at both faces
- * of the referenced 45 mm battens so the construction remains legible and do
+ * of the presentation battens so the construction remains legible and do
  * not expose this derived render depth as validated product data.
  */
 export const SUPPORT_GRID_CAVITY_INFILL_VISUAL = Object.freeze({
@@ -89,8 +91,8 @@ export type LinarSupportGrid = {
   dispose: () => void
 }
 
-const BATTEN_WIDTH_M = SUPPORT_GRID_REFERENCE.battenWidthMm / 1000
-const BATTEN_DEPTH_M = SUPPORT_GRID_REFERENCE.battenDepthMm / 1000
+const BATTEN_WIDTH_M = SUPPORT_GRID_VISUAL_DEFAULTS.battenWidthMm / 1000
+const BATTEN_DEPTH_M = SUPPORT_GRID_VISUAL_DEFAULTS.battenDepthMm / 1000
 // A 5 mm / 0.5 degree cache quantum made the support remain still and then
 // jump while the panel animated. Sub-millimetre keys retain the allocation
 // cache without allowing a visible panel/support desynchronisation.
@@ -393,7 +395,7 @@ function updateCurvedProfileGeometry(
   // must never be expanded into a filled sheet between the complete curve and
   // the receiver plane: at a tight C/U bend that construction looks like a
   // cabinet side rather than the repeated profile ribs in the client sample.
-  // Offset the reverse edge by the reference batten depth along each sampled
+  // Offset the reverse edge by the presentation depth along each sampled
   // local normal. The vertical rails use the same section, so all four outer
   // members meet as one restrained perimeter frame.
   for (let index = points.length - 1; index >= 0; index -= 1) {
@@ -692,7 +694,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
   geometry.name = 'LinarSupportBattenSharedGeometry'
   const material = new THREE.MeshStandardMaterial({
     name: 'LinarSupportBattenSharedMaterial',
-    color: 0x5b4c3c,
+    color: 0xc3b49a,
     roughness: 0.92,
     metalness: 0,
   })
@@ -897,7 +899,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
       : moduleSupportPositions(planarMinX, planarMaxX, seamXM, panelCount)
     const internalVerticalPositions = verticalPositions.slice(1, -1)
     const internalHorizontalPositions = horizontalPositions.slice(1, -1)
-    // Longitudinal members butt into the two 40 mm profile ribs instead of
+    // Longitudinal members butt into the two outer profile ribs instead of
     // passing through them. Besides matching a fabricated open frame, this
     // prevents their end faces from appearing as wedges outside the smooth
     // profile in Top shape inspection.
@@ -993,7 +995,7 @@ export function createLinarSupportGrid(): LinarSupportGrid {
     }
 
     // The two global endpoint members are narrow closed rails, not cavity-
-    // filling side sheets. Sample each real terminal 40 mm path cell so a
+    // filling side sheets. Sample each terminal batten-width path cell so a
     // near-vertical or folded endpoint cannot create a tangent wedge.
     outerVerticalRails.count = 2
     const outerRailHeightM = longitudinalMemberHeightM

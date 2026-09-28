@@ -23,11 +23,35 @@
       #root {
         height: 100%;
       }
+      .linar-boot {
+        box-sizing: border-box;
+        min-height: 100%;
+        display: grid;
+        place-content: center;
+        gap: 1rem;
+        padding: 2rem;
+        text-align: center;
+        font: 0.95rem/1.5 system-ui, sans-serif;
+      }
+      .linar-boot p { margin: 0; }
+      .linar-boot__brand {
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+      }
+      .linar-boot__hint { color: #6d675f; }
+      body.linar-route a.iom-back { display: none !important; }
     </style>
   </head>
   <body class="linar-route">
-    <script src="/demos/iom-back.js"></script>
-    <div id="root"></div>
+    <script defer src="/demos/iom-back.js"></script>
+    <div id="root">
+      <div class="linar-boot" role="status">
+        <p class="linar-boot__brand">dukta · LINAR concept</p>
+        <p class="linar-boot__hint">Opening LINAR…</p>
+      </div>
+    </div>
     <script type="module" src="/src/demo/dukta-linar-concept/main.tsx"></script>
   </body>
 </html>

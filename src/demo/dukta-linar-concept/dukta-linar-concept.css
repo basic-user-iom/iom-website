@@ -1,172 +1,3 @@
-@font-face {
-  font-family: 'Syne';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 600;
-  src: url('/fonts/syne-latin-600-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Syne';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 700;
-  src: url('/fonts/syne-latin-700-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'Syne';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 800;
-  src: url('/fonts/syne-latin-800-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 400;
-  src: url('/fonts/ibm-plex-sans-latin-400-normal.woff2') format('woff2');
-}
-@font-face {
-  font-family: 'IBM Plex Sans';
-  font-style: normal;
-  font-display: swap;
-  font-weight: 500;
-  src: url('/fonts/ibm-plex-sans-latin-500-normal.woff2') format('woff2');
-}
-
-html.linar-route,
-body.linar-route {
-  margin: 0;
-  height: 100%;
-  overflow: hidden;
-  background: #f3efe8;
-  color: #2a2622;
-  font-family: 'IBM Plex Sans', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-/*
- * dukta-linar-concept only: hide the shared iom-back.js chip.
- * Injected on <body> (outside .linar-page); linar-route scope keeps other demos unchanged.
- */
-html.linar-route a.iom-back,
-body.linar-route a.iom-back {
-  display: none !important;
-}
-
-.linar-page {
-  --linar-bg: #f3efe8;
-  --linar-paper: #faf7f2;
-  --linar-ink: #2a2622;
-  --linar-muted: #6d675f;
-  --linar-line: rgba(42, 38, 34, 0.12);
-  --linar-wood: #a67c52;
-  --linar-wood-deep: #7a5636;
-  --display: 'Syne', system-ui, sans-serif;
-  --sans: 'IBM Plex Sans', system-ui, sans-serif;
-  box-sizing: border-box;
-  height: 100dvh;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  overflow: hidden;
-  background: var(--linar-bg);
-  color: var(--linar-ink);
-}
-
-.linar-page--gate {
-  display: block;
-  min-height: 100dvh;
-}
-
-.linar-gate {
-  min-height: 100vh;
-  min-height: 100dvh;
-  display: grid;
-  place-items: center;
-  padding: max(2rem, env(safe-area-inset-top)) max(1.25rem, env(safe-area-inset-right))
-    max(2rem, env(safe-area-inset-bottom)) max(1.25rem, env(safe-area-inset-left));
-  background:
-    radial-gradient(ellipse at 30% 20%, rgba(166, 124, 82, 0.12), transparent 55%),
-    var(--linar-bg);
-}
-
-.linar-gate__panel {
-  width: min(360px, 100%);
-  display: flex;
-  flex-direction: column;
-  gap: 1.15rem;
-  padding: 1.75rem 1.5rem;
-  border: 1px solid var(--linar-line);
-  background: var(--linar-paper);
-}
-
-.linar-gate__brand {
-  margin: 0;
-  font-family: var(--display);
-  font-size: 0.78rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.linar-gate__hint {
-  margin: 0;
-  color: var(--linar-muted);
-  font-size: 0.95rem;
-  line-height: 1.5;
-}
-
-.linar-gate__form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.linar-gate__input {
-  width: 100%;
-  border: 1px solid var(--linar-line);
-  background: #fff;
-  color: var(--linar-ink);
-  padding: 0.85rem 1rem;
-  font: inherit;
-  font-size: 1rem;
-  outline: none;
-}
-
-.linar-gate__input:focus {
-  border-color: var(--linar-wood-deep);
-}
-
-.linar-gate__submit {
-  border: 1px solid var(--linar-ink);
-  background: var(--linar-ink);
-  color: var(--linar-paper);
-  padding: 0.85rem 1rem;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 500;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.linar-gate__submit:hover {
-  border-color: var(--linar-wood-deep);
-  background: var(--linar-wood-deep);
-}
-
-.linar-gate__error {
-  margin: 0;
-  color: #8a1f1f;
-  font-size: 0.85rem;
-}
-
-.linar-page *,
-.linar-page *::before,
-.linar-page *::after {
-  box-sizing: border-box;
-}
-
 .linar-header {
   display: flex;
   align-items: baseline;
@@ -1308,7 +1139,7 @@ body.linar-route a.iom-back {
   position: absolute;
   z-index: 20;
   left: 1rem;
-  bottom: 1rem;
+  bottom: calc(3.5rem + env(safe-area-inset-bottom));
   margin: 0;
   padding: 0.35rem 0.55rem;
   max-width: calc(100% - 2rem);
@@ -1473,7 +1304,7 @@ body.linar-route a.iom-back {
 }
 
 .is-tour-running .linar-tour-card {
-  max-height: calc(100% - 2rem);
+  max-height: calc(100% - 5rem);
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -1849,16 +1680,22 @@ body.linar-route a.iom-back {
 .linar-cinematic-hud {
   position: absolute;
   z-index: 45;
-  right: max(1rem, env(safe-area-inset-right));
-  bottom: max(1rem, env(safe-area-inset-bottom));
-  left: max(1rem, env(safe-area-inset-left));
+  right: max(var(--linar-cinematic-gutter), env(safe-area-inset-right));
+  bottom: max(var(--linar-cinematic-gutter), env(safe-area-inset-bottom));
+  left: max(var(--linar-cinematic-gutter), env(safe-area-inset-left));
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 1.5rem;
+  min-height: 44px;
+  padding-right: calc(44px + var(--linar-cinematic-control-gap));
   color: var(--linar-ink);
   pointer-events: none;
   animation: linar-cinematic-hud-in 1.2s ease both;
+}
+
+.linar-cinematic-hud > div {
+  min-width: 0;
 }
 
 .linar-viewport.is-light-study .linar-cinematic-hud {
@@ -1886,12 +1723,19 @@ body.linar-route a.iom-back {
 
 .linar-cinematic-hud p {
   max-width: 33rem;
-  margin: 0.25rem 0 0;
+  margin: 0;
   line-height: 1.45;
 }
 
+.linar-cinematic-hud p + p {
+  margin-top: 0.35rem;
+}
+
 .linar-cinematic-hud button {
+  flex-shrink: 0;
+  height: 44px;
   min-height: 44px;
+  white-space: nowrap;
   padding: 0.68rem 0.9rem;
   border: 1px solid rgba(42, 38, 34, 0.28);
   border-radius: 2px;
@@ -1925,6 +1769,8 @@ body.linar-route a.iom-back {
 }
 
 .linar-page.is-cinematic-running {
+  --linar-cinematic-gutter: clamp(1rem, 2vw, 2rem);
+  --linar-cinematic-control-gap: 0.75rem;
   grid-template-rows: minmax(0, 1fr);
 }
 
@@ -2000,12 +1846,15 @@ body.linar-route a.iom-back {
     left: max(0.5rem, env(safe-area-inset-left));
     right: max(0.5rem, env(safe-area-inset-right));
     display: grid;
-    grid-template-columns: repeat(3, minmax(4.1rem, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     max-width: none;
   }
 
   .linar-viewport-tools__button {
     min-width: 0;
+    padding-inline: 0.25rem;
+    font-size: 0.6rem;
+    letter-spacing: 0.05em;
   }
 
   .linar-viewport-menu {
@@ -2033,16 +1882,12 @@ body.linar-route a.iom-back {
   }
 
   .linar-cinematic-hud {
-    align-items: flex-start;
+    gap: 0.75rem;
   }
 
-  .linar-cinematic-hud > div {
-    max-width: calc(100% - 6.5rem);
-  }
-
-  .linar-tour-card {
-    top: 7rem;
-    max-height: calc(100% - 7.7rem);
+  .is-tour-running .linar-tour-card {
+    top: 4rem;
+    max-height: calc(100% - 8rem);
   }
 
   .linar-viewport:has(.linar-viewport-tools > [aria-label*='rear light' i]) .linar-tour-card {
@@ -2096,23 +1941,93 @@ body.linar-route a.iom-back {
 /* Client review: readable technical hierarchy and persistent application context. */
 .linar-application-status {
   position: absolute;
-  top: 4.1rem;
-  right: 1rem;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
   z-index: 19;
   display: flex;
-  gap: 0.55rem;
-  align-items: baseline;
+  align-items: center;
+  min-height: 44px;
   margin: 0;
-  padding: 0.4rem 0.65rem;
-  border: 1px solid var(--linar-line);
-  border-radius: 2px;
-  background: color-mix(in srgb, var(--linar-paper) 94%, transparent);
+  padding: 0;
+  color: var(--linar-ink);
+  font-family: var(--sans);
   font-size: 0.76rem;
+  font-weight: 500;
+  letter-spacing: 0.025em;
+  text-shadow: 0 1px 4px rgba(250, 247, 242, 0.8);
   pointer-events: none;
 }
-.linar-application-status span { color: var(--linar-muted); }
-.linar-application-status strong { color: var(--linar-ink); font-weight: 600; }
+
+.linar-sound-toggle {
+  position: absolute;
+  right: max(0.5rem, env(safe-area-inset-right));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  z-index: 30;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--linar-ink);
+  cursor: pointer;
+  touch-action: manipulation;
+  animation: linar-sound-pulse 3.6s ease-in-out infinite;
+}
+
+.linar-sound-toggle svg {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 3px rgba(250, 247, 242, 0.8));
+}
+
+@keyframes linar-sound-pulse {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+
+.linar-sound-toggle:hover,
+.linar-sound-toggle:focus-visible {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .linar-sound-toggle { animation: none; }
+}
+
+.linar-sound-toggle:hover { color: var(--linar-wood-deep); }
+.linar-sound-toggle:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+.linar-viewport.is-light-study .linar-application-status,
+.linar-viewport.is-light-study .linar-sound-toggle { color: #f5f1e9; }
+.linar-viewport.is-light-study .linar-application-status { text-shadow: 0 1px 4px #07080a; }
+.linar-viewport.is-light-study .linar-sound-toggle svg { filter: drop-shadow(0 1px 3px #07080a); }
 .is-cinematic-running .linar-application-status { display: none; }
+.is-cinematic-running .linar-sound-toggle {
+  right: max(var(--linar-cinematic-gutter), env(safe-area-inset-right));
+  bottom: max(var(--linar-cinematic-gutter), env(safe-area-inset-bottom));
+  z-index: 45;
+}
+
+@media (max-width: 600px) {
+  .linar-cinematic-hud {
+    flex-wrap: wrap;
+    padding-right: 0;
+  }
+
+  .linar-cinematic-hud > div {
+    flex: 1 0 100%;
+  }
+
+  .linar-cinematic-hud button {
+    margin-left: auto;
+    margin-right: calc(44px + var(--linar-cinematic-control-gap));
+  }
+}
 .linar-info__title { font-size: 1.35rem; letter-spacing: 0; text-transform: none; }
 .linar-tech-overview { margin: 1rem 0; }
 .linar-tech-overview p {
@@ -2146,6 +2061,6 @@ body.linar-route a.iom-back {
 .linar-status--not-tested { color: #845018; border-color: #d1b486; background: #f7f0e4; }
 .linar-tech-notes { margin-top: 1.2rem; }
 @media (max-width: 600px) {
-  .linar-application-status { top: 7rem; right: 0.65rem; font-size: 0.7rem; }
+  .linar-application-status { left: max(0.85rem, env(safe-area-inset-left)); font-size: 0.72rem; }
   .linar-spec__row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
