@@ -614,6 +614,12 @@ function introBendAt(elapsed: number): { value: number; done: boolean } {
   return { value: REST_BEND, done: true }
 }
 
+function overviewViewportPadding(): number {
+  // Mobile controls have their own strips; leave additional breathing room in
+  // automatic overview fits without changing manual zoom or Close-up distance.
+  return typeof window !== 'undefined' && window.innerWidth <= 860 ? 1.1 : 1
+}
+
 function fitDistance(
   camera: THREE.PerspectiveCamera,
   padY: number,
@@ -625,7 +631,7 @@ function fitDistance(
   const halfTan = Math.tan(fov / 2)
   const fitH = (objectHeightM * padY) / 2 / halfTan
   const fitW = (objectWidthM * padX) / 2 / halfTan / Math.max(camera.aspect, 0.2)
-  return Math.max(fitH, fitW, 2.4)
+  return Math.max(fitH, fitW, 2.4) * overviewViewportPadding()
 }
 
 function fitCeilingOverviewDistance(
@@ -680,7 +686,7 @@ function fitCeilingOverviewDistance(
     }
   }
 
-  return requiredDistance
+  return requiredDistance * overviewViewportPadding()
 }
 
 function planDepthAllowance(bounds: PlanBounds | undefined, direction: THREE.Vector3): number {
@@ -2156,7 +2162,12 @@ export function LinarScene({
         lightDragPublishFrame = null
         const nextState = pendingLightDragState
         pendingLightDragState = null
-        if (nextState) onLightChangeRef.current(nextState)
+        if (
+          nextState &&
+          !disposed &&
+          lightStateRef.current.enabled &&
+          lightDragContext === lightInteractionContext()
+        ) onLightChangeRef.current(nextState)
       })
     }
 
@@ -2189,11 +2200,15 @@ export function LinarScene({
     const lightPositionForState = (
       state: Pick<LinarLightState, 'placement' | 'u' | 'v' | 'radius'>,
       bounds = currentPlanBounds(),
+      followInspection = true,
     ) => {
       const application = configRef.current.application
       const mounted = application !== 'freestanding'
+      // Only the interactive orb follows the inspection side. The studio and
+      // rear-study sources stay fixed when the camera moves behind the host.
       const inspectionFlipped =
-        mounted && (sideRef.current === 'back' || currentPreset === 'reverse')
+        followInspection && mounted &&
+        (sideRef.current === 'back' || currentPreset === 'reverse')
       // Mounted light distance is measured from the complete installed
       // assembly, including its rear construction, rather than from a panel
       // face that may sit several centimetres in front of the host plane.
@@ -2273,6 +2288,7 @@ export function LinarScene({
       const initialKeyPosition = lightPositionForState(
         initialKeyState,
         initialLightBounds,
+        initialOrbLightEnabled,
       )
       const initialKeyTarget = updateLightTargetWorld(initialLightBounds)
       key.position.copy(initialKeyPosition)
@@ -2411,12 +2427,18 @@ export function LinarScene({
         // Capture can already be gone after a lost-capture or browser blur.
       }
       cancelPendingLightDragPublish()
-      if (commit && committed) {
+      // A toggle, tour step, side/application change or unmount owns the new
+      // state. Finishing a stale drag must never restore and re-enable its orb.
+      const canPublish =
+        !disposed &&
+        lightStateRef.current.enabled &&
+        lightDragContext === lightInteractionContext()
+      if (canPublish && commit && committed) {
         const nextLightState = publishLightState(committed)
         displayedLightU = nextLightState.u
         displayedLightV = nextLightState.v
         displayedLightRadius = nextLightState.radius
-      } else if (!commit && origin) {
+      } else if (canPublish && !commit && origin) {
         const restoredLightState = publishLightState(origin)
         displayedLightU = restoredLightState.u
         displayedLightV = restoredLightState.v
@@ -3404,6 +3426,7 @@ export function LinarScene({
           radius: activeKeyRadiusControl,
         },
         lightBounds,
+        orbLightEnabled,
       )
       const lightPositionMoving = key.position.distanceToSquared(nextLightPosition) > 1e-10
       const lightPositionLambda =
@@ -3548,11 +3571,15 @@ export function LinarScene({
       lightOrbVisibility +=
         ((lightOrbShouldShow ? 1 : 0) - lightOrbVisibility) *
         lightOrbVisibilityLambda
+      // Off is immediate during normal use; preserve the authored intro fade.
+      if (!lightOrbShouldShow && !activeStartupPose) lightOrbVisibility = 0
       if (!lightStateRef.current.enabled && lightDragPointerId == null) {
         lightOrbHovered = false
         renderer.domElement.style.cursor = ''
       }
-      lightOrb.visible = lightOrbShouldShow || lightOrbVisibility > 0.002
+      const nextOrbVisible = lightOrbShouldShow || lightOrbVisibility > 0.002
+      if (lightOrb.visible !== nextOrbVisible) controlsChangedSinceRender = true
+      lightOrb.visible = nextOrbVisible
       if (lightDragPointerId != null &&
         (!lightStateRef.current.enabled || lightDragContext !== lightInteractionContext())) finishLightDrag(undefined, false)
       if (findLightRevisionRef.current !== lastFindLight) {

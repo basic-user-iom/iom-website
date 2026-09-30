@@ -173,11 +173,9 @@ export const LINAR_VIEWS: { id: LinarViewId; label: string }[] = [
 export const LINAR_REFERENCE_OPENING_LENGTH_MM = 40
 
 /**
- * Birch plywood 9 mm 4/4 visual calibration panel.
- *
- * The 40 mm opening reproduces the supplied plan reference. Rendered bridge
- * geometry follows the CAD cut model and does not inherit the 70 mm-incision
- * sample's measurements; this exact selection remains marked Not tested.
+ * Client-selected presentation default: birch plywood 9 mm, 4/4, 60 mm incisions.
+ * This does not change the 40 mm drawing reference or inherit measurements
+ * from the separate 70 mm physical sample; feasibility is evaluated as usual.
  */
 export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   material: 'plywood',
@@ -187,7 +185,7 @@ export const DEFAULT_LINAR_CONFIG: LinarConfig = {
   fleeceColour: 'black',
   feltColour: 'raw-white',
   thicknessMm: 9,
-  incisionLengthMm: LINAR_REFERENCE_OPENING_LENGTH_MM,
+  incisionLengthMm: 60,
   cutWidthMm: 4,
   slatWidthMm: 4,
   incisedTwelfths: 12,
