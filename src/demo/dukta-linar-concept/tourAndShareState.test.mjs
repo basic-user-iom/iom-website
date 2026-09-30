@@ -114,12 +114,43 @@ const parsedShare = parseLinarShareState(new URL(shareUrl).hash)
 assert.equal(parsedShare.isShared, true)
 assert.equal(parsedShare.config.panelCount, 4)
 assert.equal(parsedShare.config.backlightMode, 'on')
-assert.equal(parsedShare.config.backlightIntensity, 70)
+assert.equal(parsedShare.config.backlightIntensity, 100, 'rear-light brightness is fixed at 100%')
 assert.equal(parsedShare.bend, -48)
 assert.equal(parsedShare.secondaryCurveAmount, 37)
 assert.equal(parsedShare.side, 'back')
 assert.equal(parsedShare.view, 'top')
 assert.deepEqual(parsedShare.light, shareLight)
+
+// The client's share-tour example must reset a previous advanced-light study
+// and preserve the repeated S-curve through a real share URL.
+const shareStep = LINAR_TOUR_STEPS.find((step) => step.target === 'share')
+assert.ok(shareStep)
+const shareTourState = mergeLinarTourStepState(shareConfig, shareLight, shareStep)
+assert.equal(shareTourState.light.enabled, false)
+assert.equal(shareTourState.config.backlightMode, 'off')
+assert.ok(shareTourState.config.panelCount > 1)
+assert.notEqual(shareStep.bend, 0)
+assert.ok(shareStep.secondaryCurveAmount > 0)
+const restoredTour = parseLinarShareState(new URL(buildLinarShareUrl('https://example.test/demo', {
+  ...shareTourState,
+  bend: shareStep.bend,
+  secondaryCurveAmount: shareStep.secondaryCurveAmount,
+  side: shareStep.side,
+  view: shareStep.view,
+})).hash)
+assert.equal(restoredTour.config.panelCount, shareTourState.config.panelCount)
+assert.equal(restoredTour.secondaryCurveAmount, shareStep.secondaryCurveAmount)
+assert.equal(restoredTour.bend, shareStep.bend)
+assert.equal(restoredTour.light.enabled, false)
+assert.equal(restoredTour.config.backlightMode, 'off')
+
+assert.equal(parseLinarShareState('').config.incisionLengthMm, 60)
+const oldIncisionUrl = buildLinarShareUrl('https://example.test/demo', {
+  ...restoredTour,
+  config: { ...restoredTour.config, incisionLengthMm: 40 },
+})
+assert.equal(parseLinarShareState(new URL(oldIncisionUrl).hash).config.incisionLengthMm, 40,
+  'an explicitly shared 40 mm selection must not change with the new default')
 
 const legacyLight = parseLinarShareState('#linar=2&light=1&lu=12&lv=-25&lr=40')
 assert.equal(

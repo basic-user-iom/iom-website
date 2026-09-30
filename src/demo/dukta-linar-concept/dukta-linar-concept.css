@@ -922,21 +922,35 @@
 .linar-text-btn {
   display: inline-flex;
   align-items: center;
-  min-height: 44px;
-  padding: 0.5rem 0;
-  border: 0;
-  border-bottom: 1px solid var(--linar-ink);
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  min-height: 48px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--linar-ink);
   border-radius: 0;
-  background: none;
-  color: inherit;
+  background: var(--linar-ink);
+  color: var(--linar-paper);
   font: inherit;
   font-size: 0.88rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .linar-text-btn:hover {
-  color: var(--linar-wood-deep);
-  border-bottom-color: var(--linar-wood-deep);
+  background: var(--linar-wood-deep);
+  border-color: var(--linar-wood-deep);
+}
+
+.linar-text-btn:focus-visible {
+  outline: 2px solid var(--linar-wood-deep);
+  outline-offset: 3px;
+}
+
+.linar-text-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .linar-info {
@@ -1843,18 +1857,35 @@
 
 @media (max-width: 860px) {
   .linar-viewport-tools {
+    top: max(0.5rem, env(safe-area-inset-top));
     left: max(0.5rem, env(safe-area-inset-left));
     right: max(0.5rem, env(safe-area-inset-right));
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
+    align-items: stretch;
     max-width: none;
   }
 
   .linar-viewport-tools__button {
+    box-sizing: border-box;
+    width: 100%;
     min-width: 0;
-    padding-inline: 0.25rem;
+    height: 44px;
+    min-height: 44px;
+    padding: 0.25rem;
     font-size: 0.6rem;
     letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+
+  /* Fit the model inside its own area, clear of the toolbar and footer. */
+  .linar-page:not(.is-cinematic-running) .linar-viewport__canvas {
+    top: calc(max(0.5rem, env(safe-area-inset-top)) + 44px + 0.75rem);
+    bottom: calc(max(0.5rem, env(safe-area-inset-bottom)) + 44px + 0.5rem);
+  }
+
+  .linar-viewport__hint {
+    display: none;
   }
 
   .linar-viewport-menu {

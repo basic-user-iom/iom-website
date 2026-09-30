@@ -482,7 +482,12 @@ export function LinarControls({
         </div>
       </details>
 
-      <button type="button" className="linar-text-btn" data-tour-id="reset" onClick={onResetPanel}>Reset panel</button>
+      <button type="button" className="linar-text-btn" data-tour-id="reset" onClick={onResetPanel}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
+          <path d="M3 10a9 9 0 1 1 2 8M3 4v6h6" />
+        </svg>
+        Reset panel
+      </button>
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import {
+  DEFAULT_LINAR_CONFIG,
   DEFAULT_LINAR_LIGHT,
   type LinarConfig,
   type LinarLightState,
@@ -258,21 +259,18 @@ export const LINAR_TOUR_STEPS: readonly LinarTourStep[] = [
   {
     title: 'Share this selection',
     description:
-      'Share preserves material, geometry, application, backing, repetition and both lighting states in one versioned URL. Restored feasibility is checked again.',
+      'This repeated S-curve uses standard lighting. Share preserves the complete selection in one versioned URL, including geometry, materials and lighting. Restored feasibility is checked again.',
     target: 'share',
     durationMs: 0,
-    view: 'hero',
+    view: 'bent',
     side: 'front',
-    bend: 16,
-    secondaryCurveAmount: 0,
+    bend: 68,
+    secondaryCurveAmount: 70,
     config: {
-      application: 'wall',
-      backing: 'none',
-      backlightMode: 'on',
-      backlightIntensity: 100,
-      panelCount: 1,
+      ...DEFAULT_LINAR_CONFIG,
+      panelCount: 3,
     },
-    light: { ...DEFAULT_LINAR_LIGHT, enabled: true, placement: 'behind' },
+    light: { ...DEFAULT_LINAR_LIGHT },
   },
   {
     title: 'Reset panel',
