@@ -1,0 +1,1266 @@
+{
+  "generatedAt": "2026-09-30T23:58:47.937Z",
+  "scope": "demo:dukta",
+  "productionUrl": "https://iobjectm.com/demos/dukta/",
+  "sourceProject": "F:/Projects/dukta-website",
+  "gateSourceSha256": "57d3b1c596c0d0e874d77752afeaec4cc4a6a8c1209370bce267f8eee1628389",
+  "publicIndexing": false,
+  "audit": {
+    "routes": 72,
+    "internalLinks": 2580,
+    "localAssets": 928
+  },
+  "entry": "demos/dukta/index.html",
+  "files": [
+    {
+      "path": "demos/dukta/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/website/assets/index-ChjYMCDb.css",
+      "sha256": "fd91fe0666c64083f1d27784c2fb491f0d88ff26068cd9dfd65d1e2762212602",
+      "bytes": 120515
+    },
+    {
+      "path": "public/demos/dukta/website/assets/index-FFxvBcFT.js",
+      "sha256": "91c54ae4e7e3cf6ef42828d123087cc7dab8f5805f8724fc6d6a7dd95ddbd9a8",
+      "bytes": 422005
+    },
+    {
+      "path": "public/demos/dukta/website/assets/partnerWorldMap-CmH8rvIC.js",
+      "sha256": "a8bf7b705495e6f60a2fce79471a250cd09f6c4877524b3cabaccab27e7c61a2",
+      "bytes": 358314
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-acoustics-2026.pdf",
+      "sha256": "7abf459c7189ef9431cb797e223324486103c2659494f1ab0dd35dc2b5f44fbb",
+      "bytes": 984432
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-applications-en.pdf",
+      "sha256": "2ec16be2125c3a7adedacbd72e47972bed36ae45842ecdf5bf64b2f29f700be0",
+      "bytes": 3858087
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-brochure-2026.pdf",
+      "sha256": "aa2273b1f8fe158513bdf552af007a5c2be98bcd882182e466253663e4cc1f31",
+      "bytes": 4957237
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-empa-report.pdf",
+      "sha256": "892d4c1f4e28bdbadf2d56a31caf642d2a3d415d9cbd766f646f4ca07a841203",
+      "bytes": 1529437
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-lighting-2026.pdf",
+      "sha256": "4c6a6182ef0c8460236f8236123ef4b18f3eab87c91e295f89f4a6517ff0b105",
+      "bytes": 15885813
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-modus-acoustic-panels.pdf",
+      "sha256": "7aeb326743a256d3477a465a9ec4e1b05d97bda748f7651e1f289a05106f7429",
+      "bytes": 1393283
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-processing-mounting.pdf",
+      "sha256": "31b9dd79a6c02f0ab0cd580d0f9fafa268e585f5e9a69a6f0fb9c41d0b4f0bd9",
+      "bytes": 746969
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/dukta-screen-structures.pdf",
+      "sha256": "ee9109a7d8c67e0559f62f2e53351f387a67c704ffde366f10fe6ffcef75e765",
+      "bytes": 875679
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-flexible-wood-collection.pdf",
+      "sha256": "770c50edb9caa2c5078e018e5dafa1bd24975a9c1f67d947f3851ac5af3551b6",
+      "bytes": 12007792
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-flexible-wood-cutting-recommendations.pdf",
+      "sha256": "efe757a485939a93133c899247f98345bf767fb3f4d0d6c05971ce9e8f172b01",
+      "bytes": 106581
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-flow-installation-instructions.pdf",
+      "sha256": "58cd12486f21f19624190f67a36bcb1fde3fa3c81590b2c377b653db9e142732",
+      "bytes": 238175
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-flow.pdf",
+      "sha256": "3bb2fc47bee0823655d387647fd5f1652d06d4e8027629ea8021beb9f5aa388a",
+      "bytes": 1535268
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-foli-flexible-wood.pdf",
+      "sha256": "bd2abfdf7820513dc2f4e676b675c3a96e504aed1966065a2dcd2dadf6a96688",
+      "bytes": 1237956
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-janus-flexible-wood.pdf",
+      "sha256": "50a225cca2cf28e796972b8575a39f7afd57f770664703ff3c7c29f9339ae326",
+      "bytes": 1182948
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-linar-flexible-wood.pdf",
+      "sha256": "2a4326749a188e63045356744c1e47b298eea804d48f110a2d58246c6941a558",
+      "bytes": 1474347
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-sonar-flexible-wood.pdf",
+      "sha256": "4d016af33176e146ee507df66969f9c58efdf2ab613c2f5ba2a811e0b35dbdcc",
+      "bytes": 1205335
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-still-installation-instructions.pdf",
+      "sha256": "5c25272f74b038c49c8d4937e3d37d24ab094eee3d02d78e17bd81029880c8bc",
+      "bytes": 129994
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-still.pdf",
+      "sha256": "082781bdab78a9f07f1d2f2c563cedb36e05f997ce923e37f0e98b0efcd489ec",
+      "bytes": 1654723
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-wave-installation-instructions.pdf",
+      "sha256": "39449e8fa4b599dfac35961c051b2327461141cb1590d635394b85faf8dead68",
+      "bytes": 410822
+    },
+    {
+      "path": "public/demos/dukta/website/client-documents/spinneybeck-wave.pdf",
+      "sha256": "fa2d1d3a47bde49331bb891f9f4c43a11c47be890b72402939c10dd86037835b",
+      "bytes": 1592362
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/loading-knot.svg",
+      "sha256": "49fa2a8a8a0eeb6c9b73bb809beaf17d80f2513dbd0b5604099b64e993ddafa2",
+      "bytes": 50886
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/london-design-biennale.jpg",
+      "sha256": "a2ea8b657b915aa238a42ce65a6aa9d0872d29dbbe95c15c14b21bd158b75500",
+      "bytes": 370712
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/mainz-student-project.jpg",
+      "sha256": "9e26da928e63cf796df123c1241d91c6914425ecce806f91d0402567b4beb4c7",
+      "bytes": 363953
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/pablo-serge.jpg",
+      "sha256": "bf9963d212d7fc136fabe4155d523c10b48aa6851b40cde07aacc30bffb0d81d",
+      "bytes": 333552
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/pablo.jpg",
+      "sha256": "31e81bcf176322f8a2936cf10d8f33ad6e5af83705134573cf775f8c2c211df8",
+      "bytes": 236315
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/serge.jpg",
+      "sha256": "5dbb2d11ffbbb6f585db0b4e77ef435fb68ead680b7dfc93df9d6fc866bfa7dd",
+      "bytes": 441825
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/sinta-cut-spacing.jpg",
+      "sha256": "b8d72f45df8496eef3aeed4f57d52bed18277bd0acab9057294e970deb809945",
+      "bytes": 592176
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/about/sonar-first-cuts.jpg",
+      "sha256": "fa6323511a73fdfb8118c0dd796acdfed5d45dd7b87e6615042fd626f231e40f",
+      "bytes": 535936
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/acoustic-detail.jpg",
+      "sha256": "4d5302d3b9f1ea70a90241f82811653bf50558fb74b65d1f365d0bc5b8c0912e",
+      "bytes": 659112
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/acoustic-wall.jpg",
+      "sha256": "36f88877d049b4a931aa4a16b82ed123ebcb87b0a29a0d8e19d5288275dbf56c",
+      "bytes": 492800
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/cinema.jpg",
+      "sha256": "dbd921542c9523efac618ad3ce4088ea0c89088a58f056a4235cdb8bb7d427c1",
+      "bytes": 935248
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/custom-trophy.jpg",
+      "sha256": "021444fb02a0b584f17fa91a0a2e5bb05dc97b5454f5e744fdfecabe9f303671",
+      "bytes": 496446
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/givaudan-detail.jpg",
+      "sha256": "b80a534c43997903c324e3ffda0f5e23781e6410cf50a6b01aa04b4d4e8b451d",
+      "bytes": 520924
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/partitions.jpg",
+      "sha256": "051e68030aec60ea32e7dadc168007417e9d0ec52027b0788e47ffdbc9d069b5",
+      "bytes": 344845
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/applications/spruce-wall.jpg",
+      "sha256": "f8501bf187dcc40501479d70d546013a5b45be00859b64a4c7bfadd5d7d6b5c6",
+      "bytes": 366742
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/brand/dukta-logo-color.png",
+      "sha256": "abe189e96120dcf03806fcef876d07f5d88d4fa1f4a666d9958f8b61f798d8f3",
+      "bytes": 29409
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/brand/dukta-logo.png",
+      "sha256": "d002d0314ec4f0d8ce5e134e43b576a7f0c0f16e6685421f3bc3ec7c0316f7b0",
+      "bytes": 29379
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-bend-detail.jpg",
+      "sha256": "921057646e0f64d8fa424eb7773eae52add902530e846c98c8c24c36d1874c7d",
+      "bytes": 428370
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-bend.jpg",
+      "sha256": "4d5302d3b9f1ea70a90241f82811653bf50558fb74b65d1f365d0bc5b8c0912e",
+      "bytes": 659112
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-curve.jpg",
+      "sha256": "11440295c14e32c6101d89112bd3a83b7474b21df3500388fcdebcc136b2e1b3",
+      "bytes": 200073
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-front.jpg",
+      "sha256": "a61e1e025abccd741bd2472a0b8bca7cd80e6ee07e973fc6290b76255f217edb",
+      "bytes": 428354
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-ribbon.jpg",
+      "sha256": "3bc5650fb28cd823573427f777dd16855e837fd7ef44dd173a792bab38ef444d",
+      "bytes": 335013
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-sample.jpg",
+      "sha256": "9eea88363e351c4f77f993e884bc994a6ccdc49e49e071f16d4ecf80b19cabef",
+      "bytes": 346388
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-veneer.jpg",
+      "sha256": "7297a80a0fbf3b3d0d1151edf2927ef12cbd34883c97a75c3576bd19cc3451a4",
+      "bytes": 349896
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/linar-white.jpg",
+      "sha256": "e9566137111204639f172df5dd28b5c81be00534ef69219ba277a7c32b316657",
+      "bytes": 367419
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/material/sonar-white.jpg",
+      "sha256": "2cbb64f47ab4d2ca760b8f3408580c4d05455428cb0d1068b20584b7d1de42d3",
+      "bytes": 285307
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/creatop.jpg",
+      "sha256": "5755b223eeefc66dd99807722a09e01f8a9e985bccecafdf934fe66d8d21db73",
+      "bytes": 38923
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/decustik.png",
+      "sha256": "7951ce09eddf8df44a984b9a4b68055d6b4e4241b0eb8a7c1c73524fdea5b8da",
+      "bytes": 28108
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/gommans.png",
+      "sha256": "53bd3a6daa98ff1d20bc96543248850593c7835ffca2a097fe354185651b573b",
+      "bytes": 105783
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/kolar.jpg",
+      "sha256": "4e376795fa7e8b9029f5b9d33e9ad68eb5d94c360ffd511355f6f3bbeed1f4b4",
+      "bytes": 55541
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/richter.png",
+      "sha256": "4ba4e2089643e2f7083dfcc54c70fc010498cc845e29aa4175b8a2d785ea27af",
+      "bytes": 12597
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/partners/spinneybeck.jpg",
+      "sha256": "a0a9295f33ec1c2d1491624286819feffe09a27c61881879fd3b1c9abc564aba",
+      "bytes": 19752
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/products/lumbra.jpg",
+      "sha256": "ac7e123c5aa0ed79158a5ac4fdf4254d197198add5103f6bd7b0bf36e206950f",
+      "bytes": 280821
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/products/ora.jpg",
+      "sha256": "ed35ab0b7859d8f6acd2baa710c8729da66b6e15239efc4882be18590cb7ce91",
+      "bytes": 226490
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/products/pop-up-stool.jpg",
+      "sha256": "c563d70df9a9d512969795686b1bce52a5e371a1ed9dfd9d0ad5d1891b3700b9",
+      "bytes": 226576
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/products/raya.jpg",
+      "sha256": "12c1c1393443007243a69c98af1050feee612725266b1c22de07acd1e9c0ca25",
+      "bytes": 117071
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/allemannenschule/02.jpg",
+      "sha256": "3b07da4440fc6daa17db37a821c5ec1aee48f28c600d44d4db98117296fdcbda",
+      "bytes": 342053
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/allemannenschule/03.jpg",
+      "sha256": "690ecd43557a851468f8b8096d2c56491f41deea14f49e972e4b41e59d14ad53",
+      "bytes": 623527
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/allemannenschule/04.jpg",
+      "sha256": "a2d0386fadbdf96446d88ae8d6b4df0c20fb649fa64016a9e3927093edc5628a",
+      "bytes": 547255
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/allemannenschule/hero.jpg",
+      "sha256": "6682f4fb2fcc8cb5d5d1d09cf09e4e3ca7bc057e835bc629a6f83dd9670328cb",
+      "bytes": 447668
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/bamuster/workshop.jpg",
+      "sha256": "cdd83fb143dab184e958831e46ad4b46129ef602d7676ca8a26661d8d1656769",
+      "bytes": 306651
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/barcelona/02.jpg",
+      "sha256": "083dde4d1d41b8a88803e5d8e541b069a4544e7df4359a1d8742f5678d3a7986",
+      "bytes": 339485
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/barcelona/03.jpg",
+      "sha256": "0b61d43bdfb001bf43ad332f8b116f6a29fb116d70a64d665cc5def4a3a7c2fd",
+      "bytes": 331454
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/barcelona/hero.jpg",
+      "sha256": "75906d1957e7875d7e85a1e09d4cfe1e827e51fe358bce39d43f7a211ed25be3",
+      "bytes": 246900
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/cinema/hero.jpg",
+      "sha256": "ff453e57cde0957fd81442cf092f4be97ba817775a27ff307cee2667881757a9",
+      "bytes": 479870
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/concert-hall/02.jpg",
+      "sha256": "1565839a391e0c9ab94b4773116beb9cbf13a3db9c20fc5b1798c42b8ac900e9",
+      "bytes": 446800
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/concert-hall/03.jpg",
+      "sha256": "f82e92348c0b3c50e3a42704dd90b90685d3834d3aa8a2b42eb48340a26fb6e1",
+      "bytes": 766714
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/concert-hall/hero.jpg",
+      "sha256": "03432e29f04bc3c1acdbb7284db7b9a62ec53fc43d08eb3259abbdb5058aacd6",
+      "bytes": 504716
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/euroshop/hero.jpg",
+      "sha256": "864a24b376b21f458efa880d8c885c7a999d9d36b46a91a96bf3395296674b52",
+      "bytes": 686923
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/givaudan/02.jpg",
+      "sha256": "49ca167047eb939e4b3b90af5e7dde5887925c1c4b9ac0f912e18d61a5263b73",
+      "bytes": 438817
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/givaudan/03.jpg",
+      "sha256": "c50ee062ee00f3da3b4234b958fdd075d800e98b71733dbaf5efd572972476cc",
+      "bytes": 673313
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/givaudan/04.jpg",
+      "sha256": "2ff6c8156fc017916810edff88094dd1f4dda86d874dfabcf339fd15e21176d5",
+      "bytes": 269201
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/givaudan/hero.jpg",
+      "sha256": "9339a0a4bd9a699c728feb48e1d09dd9135b82007b87ff28b502c732854e658d",
+      "bytes": 647160
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/kosmos/02.jpg",
+      "sha256": "a36884e41e5ae654d13d8dda75d3bae077f594e09a99023f94291f59df1f9c2b",
+      "bytes": 639592
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/kosmos/03.jpg",
+      "sha256": "80a2e70a380426e35f55bcc23141dbaa609a44d70476404210a1d728ec8caffb",
+      "bytes": 654072
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/kosmos/04.jpg",
+      "sha256": "53abc795d49949464c20b771f78077f05f78553877c381cdb71c710e160a6adc",
+      "bytes": 692929
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/kosmos/hero.jpg",
+      "sha256": "0ae6ace2b1b237c0584dcbf6ae2ef0be926bf32a68c063e99d01e0446c3f128f",
+      "bytes": 717176
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/planetarium/hero.jpg",
+      "sha256": "e1362e98d1198d8e6191416740c5d73656f284f3fe3fcc952b6ccb11b09f4ac9",
+      "bytes": 480964
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/practice/02.jpg",
+      "sha256": "8a09db602a8a0c7a449fae42c5128e3618b0f5f0b98772a113e7d0f90e7555ab",
+      "bytes": 402788
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/practice/03.jpg",
+      "sha256": "393a36e8a894bf9228020b76094e748cc094cc628a3e1b021470a546bf5f4b43",
+      "bytes": 374460
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/projects/practice/hero.jpg",
+      "sha256": "f6d595a39b0a9a9534379095a57bafe6d96c508ba56bd3ae93b003d37e4abfdd",
+      "bytes": 384934
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/duna-detail.jpg",
+      "sha256": "86f3320f96ea60af14e07cb383cf8db9de6c46f8e06b084accc4e7d6d67c753e",
+      "bytes": 296910
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/duna-flat.jpg",
+      "sha256": "fbfe81594f5c97b18d4d484f911abef82edb10653c1b4196fbbe0f6af3d19d0c",
+      "bytes": 196283
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/duna.jpg",
+      "sha256": "d3a2fb4445d8a5707a530b6404505548eb385ce0323c41374619ae7281ca52f8",
+      "bytes": 512782
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/foli-black.jpg",
+      "sha256": "5c380b02e0e4ff761e6f054369d70c0db7c424199e8f05b8a7d5751a828230be",
+      "bytes": 173872
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/foli-oak.jpg",
+      "sha256": "63805dabed1014f69ad69d459b3c94644e0122303c65f3e5ebf387b8888dbc02",
+      "bytes": 545100
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/foli.jpg",
+      "sha256": "9a76191ee2759ceef03ab7cfd3c9b1b66f416247cd157e22781e0cc443224385",
+      "bytes": 262879
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus-birch.jpg",
+      "sha256": "99e633384f3599db599bc1d960ba49fb38468c9900770c6b010ee06d26649c91",
+      "bytes": 494730
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus-mdf.jpg",
+      "sha256": "76fe51422c8e1cf4bbe66a0a9db73edba1d01f0469cd249d893971e2a32a23fe",
+      "bytes": 247726
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus-tex-flat.jpg",
+      "sha256": "dee3a6c258291e0446ae70420cd669431432b9ab300d9c061d181a808df4a946",
+      "bytes": 175038
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus-tex-red.jpg",
+      "sha256": "3fae0577d7129f054a0b089f3c3c59cfe178f98fd7be3e280d0f819aaa95537a",
+      "bytes": 256924
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus-tex.jpg",
+      "sha256": "2508cb343fbb1d5a6baf5a7407a704ddfa087c2e866c3334c84940c794538886",
+      "bytes": 145929
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/janus.jpg",
+      "sha256": "c090adcf04478cae90a645e4ca0394d493ea3cd43ece7d8d6c31d577d94b76e0",
+      "bytes": 129616
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/linar.jpg",
+      "sha256": "6a3a52521dadd0ff54c1301cacc379602dfda9b198df71c36fb9e629168c9b8a",
+      "bytes": 305807
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/sonar-black.jpg",
+      "sha256": "eb44c41c9feecd7ae42c8f97682de198c2548d0ea3e0c9621b0615d3adafba2b",
+      "bytes": 302628
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/sonar-plywood.jpg",
+      "sha256": "5a643eaff5a3a2dd52f1466e69f0e7cc9be65c895d4f127c661f0b683abacd1b",
+      "bytes": 266898
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/systems/sonar.jpg",
+      "sha256": "a75671193a754b5c3eed516d644b5fcaf02ddf6f2d2d60401d6361187779f575",
+      "bytes": 321513
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/technical/empa-test.jpg",
+      "sha256": "f99a9f1361eb854d1292e5e598fb6e11e3d8f6a425ea2fa289e863eab6d01d8a",
+      "bytes": 584098
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/technical/incision-patterns.jpg",
+      "sha256": "bb47ccedad35cf13200ae15b6425fcf5bee03e252f4e93a3bb96ac2ceb2be382",
+      "bytes": 619126
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/technical/laser-patterns.jpg",
+      "sha256": "c00472723455be180ea9e220c499214aaf1ca3df510d93476ee0f72c8e0e9eda",
+      "bytes": 756982
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/video/dukta-recap-mobile.mp4",
+      "sha256": "55aec796a3c59d4bc767d5ae422a822ea7bb68f2ee2e396dc78bd2774e80ddaf",
+      "bytes": 13881222
+    },
+    {
+      "path": "public/demos/dukta/website/client-media/video/dukta-recap.mp4",
+      "sha256": "6cfacbb3135931cfdd35cd6eab617a5700b85712ee0b551b5f429639973e9980",
+      "bytes": 32226744
+    },
+    {
+      "path": "public/demos/dukta/website/favicon.svg",
+      "sha256": "91fcabf324d6483a2ea7c459e853a350ecb07253bc8a94babde58b2971f84409",
+      "bytes": 1751
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/ibm-plex-sans-latin-400-normal.woff2",
+      "sha256": "3b646991d30055a93a4ecc499713d4347953a74a947ecab435ab72070cbdab0e",
+      "bytes": 22588
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/ibm-plex-sans-latin-500-normal.woff2",
+      "sha256": "0717336fb31fcdcde4b8deb3675bb4a0f7f6d484864afcd6751ac29975962203",
+      "bytes": 24184
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/itc-avant-garde-bold.otf",
+      "sha256": "a817decec45fa129f540a7e16825ca9286f6f3573a8bdefa5dd460ca2d5e4126",
+      "bytes": 32160
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/itc-avant-garde-book.otf",
+      "sha256": "b60ea2a2181045376116681373485a4ad93cf476018568b448909eb2cc2512eb",
+      "bytes": 31960
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/itc-avant-garde-demi.otf",
+      "sha256": "2ad9936a795e7603f15eda1620d570a401469aa647594ac6c281f0b3de005cbd",
+      "bytes": 32820
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/itc-avant-garde-medium.otf",
+      "sha256": "f7035f6697a366f0ec087c49326d211b6c9a3a8031d1cf4e8b977eb2a22e4d9d",
+      "bytes": 32236
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/syne-latin-600-normal.woff2",
+      "sha256": "5d05fe3edd932bb59064627125c070767c7428a52a3581a379ef9e77fc9b5ce9",
+      "bytes": 14416
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/syne-latin-700-normal.woff2",
+      "sha256": "ad2cd81a184b955e6654faf0f9e19fbb0cb7cdc850c3e12802404b3901b705b7",
+      "bytes": 14152
+    },
+    {
+      "path": "public/demos/dukta/website/fonts/syne-latin-800-normal.woff2",
+      "sha256": "7b4158162173409a5f4a10f955d36a7a05c22750dde82125f3f0426bfc2549ff",
+      "bytes": 13724
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/acoustic-wall.jpg",
+      "sha256": "98202c5171711802959e5591512df1c7a6ef164fe9377e5dc98f5a6b198e4595",
+      "bytes": 123862
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/acoustic.jpg",
+      "sha256": "f85aa03859753cfbc849244e9c1ec9821e4eaffa5574299bc5d521a535bd4bfd",
+      "bytes": 120738
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/cinema.jpg",
+      "sha256": "129ffcd0c80cf532884d8d24c2cf022740edb58338fd12da5f7f42329516bd28",
+      "bytes": 633797
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/empa.jpg",
+      "sha256": "87f217a967d9a641528d14a946faf998347f16f22264fc8f9bd858b83aa9b0ba",
+      "bytes": 461090
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/furniture.jpg",
+      "sha256": "faf281ec452aaf925e9f6f6a9362ef597352e19db18eb1716aab18b9fcdbfe26",
+      "bytes": 247151
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/handrail-wall-hi.jpg",
+      "sha256": "37fa80f06a28f02941ac7ef12b4c57d5a23f702d6a9591abf219f1b032d46218",
+      "bytes": 341599
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/lighting.jpg",
+      "sha256": "22d66f6392d63f079398389a616c67bddd2dd882118f796791b7a1f953b672ba",
+      "bytes": 39906
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/lumbra.jpg",
+      "sha256": "70ad154c107549f49ff8adfb9ccedbedfcb4ff72f3c7ea87785013d556b93467",
+      "bytes": 81863
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/ora.jpg",
+      "sha256": "782dc9631d29b443b5bcf23e54979726785d7e09a5e98ae75e0ab7078d42c43a",
+      "bytes": 17810
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/partitions.jpg",
+      "sha256": "69f7810c07e47b365920967f367f57476c6ab9fec6aa6aaabf7dae076d52eb10",
+      "bytes": 301349
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/products.jpg",
+      "sha256": "b0eb603cd68cfdb0a09fcf2228fab294a015cfff0b323c01302b995f52eb65b7",
+      "bytes": 390335
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/solsito.jpg",
+      "sha256": "d98004df921d0dce0a979ebda2e535184f0b9505bf2bc248e517b78eeff5f3d4",
+      "bytes": 52138
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/sonar-wall.jpg",
+      "sha256": "8de85ceedee1183a35b601221ea2ead16b04019f12fc6f6c09ffa1e568ea8336",
+      "bytes": 111339
+    },
+    {
+      "path": "public/demos/dukta/website/media/applications/spruce-wall.jpg",
+      "sha256": "132df8bc4ff1e2d383d3fd888d43335dd92f683f1fe4e29586423531493b78cf",
+      "bytes": 73019
+    },
+    {
+      "path": "public/demos/dukta/website/media/brand/logo-wordmark.jpg",
+      "sha256": "13165d5073172ae91350e947a6d62f267a69b1fe3e79ca97a1509b0249718ee2",
+      "bytes": 7995
+    },
+    {
+      "path": "public/demos/dukta/website/media/brand/logo.jpg",
+      "sha256": "528084ad6588a12592247cab741e0953eace7ebca9ef3bf38d2c865e0e398953",
+      "bytes": 13480
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/akustik-lang.jpg",
+      "sha256": "a68373b83a3733aa3a56ec2a4e02444b67010898229124512bdfa2f3b3850df9",
+      "bytes": 223026
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/brio.jpg",
+      "sha256": "64a60d6ab0050e86d270acf76433cbbaed06d842be5ff2ce38509069b372a969",
+      "bytes": 50304
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/das-material.jpg",
+      "sha256": "18e968ad1deb65f80e3d7d8793bdce9e62134b0300365d1b89a38e5cb5aea5ac",
+      "bytes": 100694
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/flexible-ribbon.jpg",
+      "sha256": "bb7cf5995e2094b76ef582f01b9ea99645f8c098846fe657d72a6a8a9a229aa0",
+      "bytes": 237553
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/flexible-ribbon.webp",
+      "sha256": "a0e6c01f457c937c2b0248f231dd9415a9de06bc3016983d71e7f72a6924960d",
+      "bytes": 162110
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-10mm-hi.jpg",
+      "sha256": "46f60552cb920aa7a0ab77fad2d2e9c25eb4568e404eaaad55a5ef1359b61f4a",
+      "bytes": 476976
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-10mm.jpg",
+      "sha256": "7197081b98403c48c93122fc081aed13ed018906aea49214d7437c95d8da1818",
+      "bytes": 49748
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-10mm.webp",
+      "sha256": "6873f92c79dbfc8d9743489a4b6b234c34778a952be6eafc1ffbf8b371592b19",
+      "bytes": 66062
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-bend-detail.jpg",
+      "sha256": "7891f972b57fb611a8717987d38075ff3cfd691730fede59816e08a8b1859da0",
+      "bytes": 167846
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-bend-hi.jpg",
+      "sha256": "19594e7ce558b4cd5469a31b30352fec6c68cec761c4945ea156dd387953c324",
+      "bytes": 155296
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-bend-hi.webp",
+      "sha256": "cb77b591a00ec10ea6a0d4409c27995aa98f9281893d7b40df5738a792527c6a",
+      "bytes": 80290
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-curve.jpg",
+      "sha256": "868b47b74f4eeac97e5e9a15e3eebdded362ad8bd66e3fa0f78b51f628fc08ab",
+      "bytes": 114120
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-front.jpg",
+      "sha256": "b21a3bd3560d3d980e88a59afc38466b3ed831625443da6d4851a8597feda45a",
+      "bytes": 334450
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-front.webp",
+      "sha256": "6c3e8c16392b9c6f30fbdec6afe665059085e4a1ef6334dad4f085f16f757f76",
+      "bytes": 137572
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-sample.jpg",
+      "sha256": "8dabe7a40a561c1891414a706dcc19584a88cb6de55658057ffe72288ce1c588",
+      "bytes": 105302
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-veneer.jpg",
+      "sha256": "552f2e78d3164ebeb2f2c7aca4c1968eb7745350825341de287593dace084364",
+      "bytes": 95814
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/linar-white.jpg",
+      "sha256": "2fb54201aa2ee96df78c32e252c7b85c406618b992ac86fc2cc6b1b387085e25",
+      "bytes": 103346
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/schnittabstand.jpg",
+      "sha256": "76cfc8f9fa229aba6b116c596cc0b31e5c4a14168c6d69c11afda5df886ca42c",
+      "bytes": 233050
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/sonar-white.jpg",
+      "sha256": "bdd98ad846617f029e2ab34612857d29218ceb5f9a2777bda33637a821617425",
+      "bytes": 178363
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/toni-konzertsaal.jpg",
+      "sha256": "7a37dfef1373240e041729aa0b5354c35662850c73ebb854c5560729e3c53a4f",
+      "bytes": 282267
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/werkstatt.jpg",
+      "sha256": "38c3f5cc01298b450219fd0c901d6732e70c74b4d6a5219c0ded879c40ad681d",
+      "bytes": 47759
+    },
+    {
+      "path": "public/demos/dukta/website/media/material/woodloop.jpg",
+      "sha256": "fc09fc7d820041d98b52fd634d136588a8d1b018b87881050580aeebac1a5fb1",
+      "bytes": 114199
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/allemannenschule.webp",
+      "sha256": "48443689a4bf77541ef2e3e01615f60810bf5cdd6c2bcbd5ce353628a398d36b",
+      "bytes": 41250
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/barcelona.jpg",
+      "sha256": "20564606ded37ff8b5161aba4b851701c88f9e3200092c2b7b3794bc48118206",
+      "bytes": 38336
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/boutique.jpg",
+      "sha256": "718b1881653dac08cafe60e09a2edf2052b6f8b284a970d18dc103f12c320dad",
+      "bytes": 164419
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/cinema.jpg",
+      "sha256": "11ea4dbfb87d442d3d2587836f85e1038c73d36e6b6daff0fdd25d886841857c",
+      "bytes": 298442
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/concert-hall.jpg",
+      "sha256": "dd7ecfee2dcdaa5aadbf28c960d98723385ec66665f25c5ee9abdc0455858d6f",
+      "bytes": 246708
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/euroshop.jpg",
+      "sha256": "ad3592dc7bf275c1165a9408c455fd2730368997a0fc2f29a1bb59c09796895b",
+      "bytes": 189664
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/givaudan.webp",
+      "sha256": "0893eeba2bbc32d37e62025fcfafc92b498b84c06aaef3bd714476333de93240",
+      "bytes": 49572
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/kosmos.jpg",
+      "sha256": "f91a05904c1f24de6894a7e3efc7549317ccfae88b30c43b37495fb0c5a3e987",
+      "bytes": 211281
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/maple.jpg",
+      "sha256": "46127af117fd2a71aadf27e3ad62d386350075271899607445d9618d2d70805f",
+      "bytes": 245929
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/planetarium.jpg",
+      "sha256": "dc44f1340576796c0b4c9c7ab919866aa9a4100d2ef9f6c992f20169c92b8e53",
+      "bytes": 178760
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/practice.jpg",
+      "sha256": "5ddcd70c6966176ca4c55a70bc7001789056c90caafe060b344a945b952004e7",
+      "bytes": 85942
+    },
+    {
+      "path": "public/demos/dukta/website/media/projects/woodloop.jpg",
+      "sha256": "fc09fc7d820041d98b52fd634d136588a8d1b018b87881050580aeebac1a5fb1",
+      "bytes": 114199
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/duna-flat.jpg",
+      "sha256": "964de5aa5989cc847866b001a220339af57d2074bda37d8d07eb134a244e0433",
+      "bytes": 77523
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/duna.jpg",
+      "sha256": "3d97779ba17bbb1e6db6e1ae87c329c35e68237143a781eee8a91b28ab6491e6",
+      "bytes": 94316
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/foli.jpg",
+      "sha256": "120797abf2815fb346f43b06c413bd5b0c229357c5237138d624022088f1f339",
+      "bytes": 64647
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/janus-tex.jpg",
+      "sha256": "e6c61457abf71b1668c01ca3e36074667d4b0a39575b85af29c9afa47b87ad65",
+      "bytes": 51593
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/janus.jpg",
+      "sha256": "92d14b97e8e29f4a1c76f2397d40a46ae8fa6e6fcaa0881b56663598f69e53a8",
+      "bytes": 75007
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/linar.jpg",
+      "sha256": "8e53c27f23132f8f5fd73c4fe2eae6be74f44821c336cda4cf32c6f1a53274e4",
+      "bytes": 52386
+    },
+    {
+      "path": "public/demos/dukta/website/media/systems/sonar.jpg",
+      "sha256": "603373392c12f32a29e0e2ea228a7f56359d3b72907116b958a49b8e9a645c95",
+      "bytes": 73952
+    },
+    {
+      "path": "public/demos/dukta/website/media/technical/bending-radius-area.jpg",
+      "sha256": "40e84d858ecb8188e785fbcf6ccadadd767fd0255657418a406498e8bc3e83e6",
+      "bytes": 403786
+    },
+    {
+      "path": "public/demos/dukta/website/media/technical/curve-diagram.jpg",
+      "sha256": "f27fdeb719b1fe3c09692efdef0dfd3491b85d2b919c71644f69d4d3ce3d1c73",
+      "bytes": 160309
+    },
+    {
+      "path": "public/demos/dukta/website/media/technical/linar-cutting-depth.jpg",
+      "sha256": "37913319a5c337bc29456788924e05c25cae05581ba80f90a64113f630466eea",
+      "bytes": 364180
+    },
+    {
+      "path": "public/demos/dukta/website/media/technical/linar-pattern.jpg",
+      "sha256": "58c27b617d8784517a4eeb1dc72b723fe9cff96595bf425de4f2a8ea41164903",
+      "bytes": 403818
+    },
+    {
+      "path": "public/demos/dukta/website/media/technical/linar-side.jpg",
+      "sha256": "8e56ca5635c24bbd85d7e773019ed9a61e93d33a6d25c2aba4e217f8c466ff05",
+      "bytes": 343345
+    },
+    {
+      "path": "public/demos/dukta/de/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/acoustics/acoustic-result/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/acoustics/backing-cavity/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/acoustics/flat/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/acoustics/formed/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/downloads/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/journal/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/journal/from-cut-to-curve/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/journal/light-through-wood/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/manufacturing-partners/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/products/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/products/furniture/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/products/lights/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/products/objects/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/products/partitions/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/allemannenschule/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/bernerhofsaal/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/boutique/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/cinema/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/concert-hall/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/euroshop/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/givaudan/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/kosmos/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/medical-practice/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/planetarium/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/upf-bsm-barcelona/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/projects/wood-loop/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/samples/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/duna/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/foli/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/janus-tex/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/janus/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/linar/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/de/systems/sonar/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/acoustics/acoustic-result/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/acoustics/backing-cavity/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/acoustics/flat/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/acoustics/formed/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/downloads/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/journal/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/journal/from-cut-to-curve/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/journal/light-through-wood/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/manufacturing-partners/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/products/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/products/furniture/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/products/lights/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/products/objects/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/products/partitions/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/allemannenschule/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/bernerhofsaal/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/boutique/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/cinema/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/concert-hall/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/euroshop/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/givaudan/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/kosmos/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/medical-practice/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/planetarium/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/upf-bsm-barcelona/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/projects/wood-loop/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/samples/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/duna/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/foli/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/janus-tex/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/janus/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/linar/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    },
+    {
+      "path": "public/demos/dukta/en/systems/sonar/index.html",
+      "sha256": "602a76c861723eaa660107d034cb80013566acbbbbc3460c6a7f7c7036479497",
+      "bytes": 1077
+    }
+  ]
+}
