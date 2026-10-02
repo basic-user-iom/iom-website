@@ -377,3 +377,8 @@ Spacecraft trajectory records follow the JPL Horizons mission-data contract; NAI
 - Units: meters, meters per second, and unit quaternion
 - Scientific authority: none
 - Runtime status: superseded by the generated provider; retained only where isolated tests need an architecture fixture
+
+## Saturn orientation and Earth-view validation (2026-10-02)
+
+- NASA/JPL NAIF [pck00011.tpc](https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/pck00011.tpc), IAU 2015 Saturn pole and prime-meridian constants, analytic ICRF to ECLIPJ2000 conversion. This is an orientation model, not a new planetary ephemeris or a runtime SPICE integration.
+- NASA [Hubble Views Saturn Ring-Plane Crossing](https://science.nasa.gov/missions/hubble/hubble-views-saturn-ring-plane-crossing/), independent date check for the Earth crossing on 23 March 2025. The magnified Earth-view preset remains geometric and omits apparent-place corrections.

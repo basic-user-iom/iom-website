@@ -447,8 +447,15 @@ export class CameraController {
       preset.upDirectionVisualLocal.y,
       preset.upDirectionVisualLocal.z,
     );
+    const observer = preset.observerBodyId === undefined ? undefined : frame.bodies.get(preset.observerBodyId);
     const orientation = targetBody.visualLocalToScene;
-    if (orientation !== undefined) {
+    if (observer !== undefined) {
+      // Subtract physical Float64 positions before mapping to scene axes. Camera
+      // distance is magnified for inspection; the viewing direction remains geocentric.
+      mapCameraRelativePosition(this.presetDirection, observer.positionM, targetBody.positionM, 1).normalize();
+      const obliquity = 23.439291111111 * Math.PI / 180;
+      this.presetUp.set(0, Math.cos(obliquity), -Math.sin(obliquity));
+    } else if (orientation !== undefined) {
       this.presetOrientation
         .set(orientation.x, orientation.y, orientation.z, orientation.w)
         .normalize();

@@ -3,6 +3,7 @@ import type { Vec3d } from '../../simulation/core/Vec3d';
 export const CAMERA_CLOSE_UP_PRESET_IDS = [
   'jupiter-great-red-spot',
   'saturn-rings',
+  'saturn-from-earth',
 ] as const;
 
 export type CameraCloseUpPresetId = (typeof CAMERA_CLOSE_UP_PRESET_IDS)[number];
@@ -11,6 +12,7 @@ export interface CameraCloseUpPreset {
   readonly id: CameraCloseUpPresetId;
   readonly bodyId: 'jupiter' | 'saturn';
   readonly label: string;
+  readonly observerBodyId?: 'earth';
   readonly description: string;
   /** Camera distance from body center, in rendered equatorial radii. */
   readonly distanceRadiusMultiplier: number;
@@ -42,12 +44,22 @@ export const CAMERA_CLOSE_UP_PRESETS: readonly Readonly<CameraCloseUpPreset>[] =
       id: 'saturn-rings',
       bodyId: 'saturn',
       label: 'Saturn · rings',
-      description: 'Frame the complete rings at 20° latitude so Saturn’s physical oblateness remains visible.',
+      description: 'Illustrative ring inspection at 20 degrees latitude; this is not the view from Earth.',
       distanceRadiusMultiplier: 6.2,
       cameraDirectionVisualLocal: visualLocalSurfaceDirection(
         SATURN_RING_PRESET_VISUAL_LATITUDE_DEG,
         90,
       ),
+      upDirectionVisualLocal: frozenDirection(0, 1, 0),
+    }),
+    Object.freeze({
+      id: 'saturn-from-earth',
+      bodyId: 'saturn',
+      observerBodyId: 'earth',
+      label: 'Saturn · Earth view',
+      description: 'Magnified geometric view along the Earth-to-Saturn sightline at the selected date; no light-time or topocentric corrections.',
+      distanceRadiusMultiplier: 6.2,
+      cameraDirectionVisualLocal: frozenDirection(1, 0, 0),
       upDirectionVisualLocal: frozenDirection(0, 1, 0),
     }),
   ]);

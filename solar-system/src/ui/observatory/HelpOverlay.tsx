@@ -54,7 +54,7 @@ export function HelpOverlay({
       </section>
       <section aria-labelledby="pointer-controls-heading">
         <h3 id="pointer-controls-heading">Pointer controls</h3>
-        <p>In free-orbit mode, drag to rotate, use the wheel to dolly, and right-drag to pan.</p>
+        <p>In free-orbit mode, drag to rotate, use the wheel to dolly, and right-drag to pan. Hold Shift while scrolling for 4× faster zoom.</p>
       </section>
       <section aria-labelledby="scientific-terms-heading">
         <h3 id="scientific-terms-heading">Scientific terms</h3>

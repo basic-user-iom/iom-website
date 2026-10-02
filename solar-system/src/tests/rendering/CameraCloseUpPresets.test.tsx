@@ -20,9 +20,11 @@ describe('Phase 5 close-up camera presets', () => {
     expect(CAMERA_CLOSE_UP_PRESETS.map((preset) => preset.id)).toEqual([
       'jupiter-great-red-spot',
       'saturn-rings',
+      'saturn-from-earth',
     ]);
     expect(CAMERA_CLOSE_UP_PRESETS.map((preset) => preset.bodyId)).toEqual([
       'jupiter',
+      'saturn',
       'saturn',
     ]);
     for (const preset of CAMERA_CLOSE_UP_PRESETS) {
@@ -101,7 +103,28 @@ describe('Phase 5 close-up camera presets', () => {
     expect(offset.z).toBeGreaterThan(0);
   });
 
-  it('renders accessible controls for both presets', () => {
+  it('follows the geometric Earth sightline independently of Saturn spin and scene origin', () => {
+    const orientation = new Quaternion();
+    const saturn = bodyTarget('saturn', 1.5, orientation);
+    const earth = bodyTarget('earth', 0.1, new Quaternion());
+    Object.assign(earth.positionM, { x: 0, y: ASTRONOMICAL_UNIT_M, z: ASTRONOMICAL_UNIT_M / 2 });
+    const bodies = new Map([['saturn', saturn], ['earth', earth]]);
+    const controller = new CameraController();
+    controller.applyCloseUpPreset('saturn-from-earth');
+    controller.update(frame(bodies));
+    const direction = () => controller.rig.position.clone().sub(controller.rig.target).normalize();
+    const initial = new Vector3(-1, 0.5, -1).normalize();
+    expect(direction().distanceTo(initial)).toBeLessThan(1e-12);
+    orientation.setFromAxisAngle(new Vector3(0, 1, 0), 2);
+    controller.update({ ...frame(bodies), originM: saturn.positionM, originRevision: 1 });
+    expect(direction().distanceTo(initial)).toBeLessThan(1e-12);
+    Object.assign(earth.positionM, { y: -ASTRONOMICAL_UNIT_M });
+    controller.update(frame(bodies));
+    expect(direction().distanceTo(new Vector3(-1, 0.5, 1).normalize())).toBeLessThan(1e-12);
+    expect(controller.status.closeUpPresetId).toBe('saturn-from-earth');
+  });
+
+  it('renders accessible controls for all presets', () => {
     const markup = renderToStaticMarkup(
       <ViewControls
         cameraMode="body-follow"
@@ -117,6 +140,8 @@ describe('Phase 5 close-up camera presets', () => {
     );
 
     expect(markup).toContain('data-testid="camera-close-up-presets"');
+    expect(markup).toContain('data-testid="camera-preset-saturn-from-earth"');
+    expect(markup).toContain('follows the selected date, not today');
     expect(markup).toContain('data-testid="camera-preset-jupiter-great-red-spot"');
     expect(markup).toContain(
       'aria-pressed="true" data-testid="camera-preset-saturn-rings"',

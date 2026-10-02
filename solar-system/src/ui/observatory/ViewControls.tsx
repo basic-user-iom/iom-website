@@ -143,16 +143,16 @@ export function ViewControls({
               aria-pressed={activeCloseUpPresetId === preset.id}
               data-testid={`camera-preset-${preset.id}`}
               title={preset.description}
-              aria-label={`${preset.id === 'jupiter-great-red-spot' ? 'Jupiter Great Red Spot' : 'Saturn rings'} close-up: ${preset.description}`}
+              aria-label={`${preset.label} close-up: ${preset.description}`}
               onClick={() => onCloseUpPresetSelect(preset.id)}
             >
-              {preset.id === 'jupiter-great-red-spot' ? 'Jupiter GRS' : 'Saturn rings'}
+              {preset.id === 'jupiter-great-red-spot' ? 'Jupiter GRS' : preset.id === 'saturn-from-earth' ? 'Saturn from Earth' : 'Saturn rings'}
             </button>
           ))}
         </div>
       </fieldset>
       <p className="field-help" id="close-up-preset-help">
-        Frame Earth with its Moon, track Jupiter's body-fixed storm, or view Saturn's ring plane.
+        Saturn from Earth follows the selected date, not today. Saturn rings is a separate 20° inspection view.
       </p>
 
       <label className="field-stack" htmlFor="visual-quality">

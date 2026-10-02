@@ -48,8 +48,8 @@ export function DebugCanvas({
   const cameraHint = manualCameraInteractionLocked
     ? 'Camera controlled by the active scenario'
     : cameraMode === 'free-orbit'
-      ? 'Free orbit: drag to rotate · wheel to dolly · right-drag to pan'
-      : 'Drag or wheel to enter free orbit · right-drag to pan';
+      ? 'Free orbit: drag to rotate · wheel to dolly · Shift + wheel: 4× faster · right-drag to pan'
+      : 'Drag or wheel to enter free orbit · Shift + wheel: 4× faster zoom';
 
   useEffect(() => {
     let effectActive = true;

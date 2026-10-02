@@ -1,3 +1,4 @@
+import { installWheelZoomModifier } from './camera/WheelZoomModifier';
 import { writeEpochAnchoredPath } from './EpochAnchoredPath';
 import { preparePrecisionPaths } from './PrecisionPath';
 import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
@@ -334,6 +335,7 @@ export class DebugSolarSystemRenderer {
   private readonly blackHoleIncludedBodyIds = new Set<string>();
   private readonly orderedMarkerIds: string[] = [];
   private readonly occupiedLabelPositions: number[] = [];
+  private readonly disposeWheelZoomModifier: () => void;
   private readonly adaptiveResolution = new AdaptiveResolutionController('high');
   private readonly mutableCameraFrame = {
     realDeltaSeconds: 0,
@@ -483,6 +485,7 @@ export class DebugSolarSystemRenderer {
     // Educational BH overlays (disk / photon ring) live on layer 1.
     this.camera.layers.enable(1);
     this.controls = new OrbitControls(this.camera, canvas);
+    this.disposeWheelZoomModifier = installWheelZoomModifier(canvas, this.controls);
     this.controls.enableDamping = !this.reducedMotion;
     this.controls.dampingFactor = 0.075;
     this.controls.enablePan = true;
@@ -1594,6 +1597,7 @@ export class DebugSolarSystemRenderer {
     if (this.disposed) return;
     this.disposed = true;
 
+    this.disposeWheelZoomModifier();
     this.controls.dispose();
     // Remove and dispose the scenario-owned subtree before the generic scene
     // traversal so its resources have one clear owner.

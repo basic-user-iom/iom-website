@@ -1,3 +1,4 @@
+import { SaturnRotationModel } from './SaturnRotationModel';
 import {
   ConstantRateRotationModel,
   SynchronousRotationModel,
@@ -13,7 +14,9 @@ for (const definition of EPHEMERIS_BODY_DEFINITIONS) {
   const bodyId = definition.id as EphemerisBodyId;
   models.set(
     bodyId,
-    bodyId === 'moon'
+    bodyId === 'saturn'
+      ? new SaturnRotationModel()
+      : bodyId === 'moon'
       ? new SynchronousRotationModel({
           bodyId,
           parentBodyId: 'earth',
@@ -28,7 +31,7 @@ for (const definition of EPHEMERIS_BODY_DEFINITIONS) {
   );
 }
 
-/** Seed models only; generated authoritative pole/prime-meridian data remains pending. */
+/** Saturn uses IAU/NAIF orientation; other bodies retain the documented seed models. */
 export const EPHEMERIS_ROTATION_MODELS: ReadonlyMap<EphemerisBodyId, RotationModel> =
   models;
 

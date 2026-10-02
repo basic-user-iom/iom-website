@@ -1,3 +1,4 @@
+import { SATURN_SPIN_DEG_PER_DAY } from './SaturnRotationModel';
 import { kilometersToMeters, SECONDS_PER_DAY } from '../core/Units';
 import { createVec3d } from '../core/Vec3d';
 import type { BodyDefinition } from './BodyDefinition';
@@ -107,7 +108,7 @@ export const EPHEMERIS_BODY_DEFINITIONS: readonly BodyDefinition[] = Object.free
     parentId: 'sun',
     massKg: 568.317e24,
     meanRadiusKm: 58_232,
-    rotationDays: 0.444_01,
+    rotationDays: 360 / SATURN_SPIN_DEG_PER_DAY,
     axialTiltRad: degreesToRadians(26.73),
   }),
   body({
