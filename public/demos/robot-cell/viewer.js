@@ -13,6 +13,10 @@ const camera = new THREE.PerspectiveCamera(40, 1, .05, 180);
 let renderer, controls, model, mixer, actions = [], duration = 0;
 let playing = false, ready = false, needsRender = true, previousTime = 0, uiTime = 0;
 let frames = 0, disposed = false;
+// Coarse-pointer detection also covers tablets and phones in desktop-site mode.
+const mobileRendering = matchMedia('(pointer: coarse)').matches || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const frameInterval = mobileRendering ? 1000 / 30 : 0;
+let frameTime = 0;
 const diagnosticOutput = new URLSearchParams(location.search).has('inspect') ? document.createElement('output') : null;
 if (diagnosticOutput) {
   diagnosticOutput.id = 'diagnostics';
@@ -47,7 +51,7 @@ function updateTime() {
     model?.updateMatrixWorld(true);
     let pose = 0;
     model?.traverse(node => { for (let i = 0; i < 16; i++) pose += node.matrixWorld.elements[i] * (i + 1); });
-    diagnosticOutput.textContent = JSON.stringify({ ...ui.viewer.dataset, pose: +pose.toFixed(7), camera: camera.position.toArray(), target: controls.target.toArray(), calls: renderer.info.render.calls, renderTriangles: renderer.info.render.triangles });
+    diagnosticOutput.textContent = JSON.stringify({ ...ui.viewer.dataset, pose: +pose.toFixed(7), camera: camera.position.toArray(), target: controls.target.toArray(), calls: renderer.info.render.calls, renderTriangles: renderer.info.render.triangles, pixelRatio: renderer.getPixelRatio(), shadows: renderer.shadowMap.enabled, antialias: renderer.getContext().getContextAttributes().antialias });
   }
 }
 
@@ -126,9 +130,13 @@ function resize() {
 function animate(now) {
   if (disposed) return;
   requestAnimationFrame(animate);
+  if (document.hidden || !renderer) { previousTime = now; frameTime = now; return; }
+  // Keep the animation clock independent of skipped display refreshes (e.g. 120 Hz).
+  const frameElapsed = now - frameTime;
+  if (frameInterval && frameElapsed < frameInterval - .5) return;
+  frameTime = frameInterval ? frameTime + frameInterval * Math.max(1, Math.floor((frameElapsed + .5) / frameInterval)) : now;
   const dt = previousTime ? Math.max((now - previousTime) / 1000, 0) : 0;
   previousTime = now;
-  if (document.hidden || !renderer) return;
   if (ready && playing) { mixer.update(dt); needsRender = true; }
   if (controls?.update()) needsRender = true;
   if (needsRender) {
@@ -235,24 +243,26 @@ function batchRigidParts(root, clips) {
 
 async function init() {
   try {
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ antialias: !mobileRendering, alpha: true, powerPreference: 'high-performance' });
     const gl = renderer.getContext();
     const debugRenderer = gl.getExtension('WEBGL_debug_renderer_info');
     const gpuName = debugRenderer ? String(gl.getParameter(debugRenderer.UNMASKED_RENDERER_WEBGL)) : '';
     const softwareRenderer = /swiftshader|llvmpipe|software|basic[ ]render/i.test(gpuName);
-    renderer.setPixelRatio(softwareRenderer ? .7 : Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(softwareRenderer ? .7 : Math.min(window.devicePixelRatio || 1, mobileRendering ? 1 : 1.5));
     ui.viewer.dataset.softwareRenderer = String(softwareRenderer);
+    ui.viewer.dataset.renderProfile = mobileRendering ? 'mobile' : 'desktop';
+    ui.viewer.dataset.targetFps = mobileRendering ? '30' : 'display';
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.AgXToneMapping;
     renderer.toneMappingExposure = .95;
-    renderer.shadowMap.enabled = !softwareRenderer;
+    renderer.shadowMap.enabled = !softwareRenderer && !mobileRendering;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setClearColor(0xf3f4f0, 0);
     renderer.domElement.setAttribute('aria-label', t.canvas);
     ui['canvas-host'].append(renderer.domElement);
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.dampingFactor = .08;
+    controls.dampingFactor = mobileRendering ? 1 - (1 - .08) ** 2 : .08;
     controls.maxPolarAngle = Math.PI * .485;
     controls.screenSpacePanning = true;
     controls.addEventListener('change', () => { needsRender = true; });
@@ -260,10 +270,10 @@ async function init() {
     const room = new RoomEnvironment();
     const environment = pmrem.fromScene(room, .04);
     scene.environment = environment.texture;
-    scene.environmentIntensity = .3;
+    scene.environmentIntensity = mobileRendering ? .45 : .3;
     room.dispose();
     pmrem.dispose();
-    scene.add(new THREE.HemisphereLight(0xdce8fa, 0x687159, .18));
+    scene.add(new THREE.HemisphereLight(0xdce8fa, 0x687159, mobileRendering ? .3 : .18));
     resize();
     requestAnimationFrame(animate);
 
@@ -280,12 +290,14 @@ async function init() {
         meshCount++;
         triangleCount += (node.geometry.index?.count || node.geometry.attributes.position.count) / 3;
         node.receiveShadow = true;
-        node.castShadow = /ROBOT_|AGV_|CASE_|PALLET_|CONVEYOR_/.test(node.name);
+        node.castShadow = !mobileRendering && /ROBOT_|AGV_|CASE_|PALLET_|CONVEYOR_/.test(node.name);
       }
       if (node.isLight) {
-        lightCount++;
+        // The two daylight lights and environment retain shape without six spotlights per pixel.
+        if (mobileRendering && node.isSpotLight) node.visible = false;
+        if (node.visible) lightCount++;
         if (node.isDirectionalLight && node.name.includes('Daylight_Key')) {
-          node.castShadow = true;
+          node.castShadow = !mobileRendering;
           node.shadow.mapSize.set(2048, 2048);
           node.shadow.camera.left = -9;
           node.shadow.camera.right = 9;
