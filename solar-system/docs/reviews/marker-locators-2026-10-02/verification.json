@@ -1,0 +1,32 @@
+{
+  "url": "http://127.0.0.1:5194/demos/solar-system/",
+  "browser": "Playwright Chromium",
+  "viewports": [
+    {
+      "width": 1366,
+      "height": 768
+    },
+    {
+      "width": 390,
+      "height": 844
+    }
+  ],
+  "physicalDeviceTested": false,
+  "checks": {
+    "mercuryBeforeAfter": true,
+    "trueScale": true,
+    "presentationScale": true,
+    "zoomOut": true,
+    "voyagerModelReady": true,
+    "voyagerModelMeshes": 4,
+    "voyagerOnScreen": true,
+    "pageErrors": []
+  },
+  "unitTests": {
+    "passed": 8
+  },
+  "typecheck": "passed",
+  "eslint": "passed (changed files)",
+  "build": "passed",
+  "deployment": "local only"
+}

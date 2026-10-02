@@ -1,5 +1,4 @@
-import type { Vector3 } from 'three';
-import type { Camera } from 'three';
+import { Vector3, type Camera } from 'three';
 
 import type { RenderScaleMode } from '../RenderScaleModel';
 
@@ -12,9 +11,11 @@ const SELECTED_SPACECRAFT_MARKER_RADIUS = 0.0009;
 const PRESENTATION_SPACECRAFT_MARKER_RADIUS = 0.00045;
 const TRUE_SCALE_SPACECRAFT_MARKER_RADIUS = 0.00016;
 
-/** ~24′ floor / ~60′ ceiling — readable diamonds, still far from billboards. */
-const MIN_MARKER_ANGULAR_RADIUS = 0.007;
-const MAX_MARKER_ANGULAR_RADIUS = 0.018;
+// CSS pixel radii: locators remain discreet at every zoom and viewport size.
+const MIN_MARKER_PIXEL_RADIUS = 1.25;
+const MAX_MARKER_PIXEL_RADIUS = 2;
+const SELECTED_MARKER_PIXEL_RADIUS = 3;
+const MARKER_VIEW_POSITION = new Vector3();
 
 export interface BodyRelativePhysicalScale {
   readonly metersToRenderUnits: number;
@@ -48,21 +49,28 @@ export function spacecraftMarkerRadius(
 }
 
 /**
- * Inflates only the drawn mesh so distant probes stay findable.
- * Camera framing still uses the unclamped base radius from renderedRadii.
+ * Caps only the drawn locator in CSS pixels; physical/navigation radii stay intact.
+ * Call after updating the camera matrices so zooming cannot inflate a stale frame.
  */
 export function screenAwareMarkerRadius(
   baseRadius: number,
   worldPosition: Readonly<Vector3>,
   camera: Camera,
+  viewportHeight: number,
+  selected = false,
 ): number {
   if (!Number.isFinite(baseRadius) || baseRadius < 0) {
     throw new RangeError('Marker base radius must be finite and non-negative.');
   }
-  const distance = camera.position.distanceTo(worldPosition as Vector3);
-  if (!Number.isFinite(distance) || distance <= 1e-12) return baseRadius;
-  const minRadius = distance * MIN_MARKER_ANGULAR_RADIUS;
-  const maxRadius = distance * MAX_MARKER_ANGULAR_RADIUS;
+  if (!Number.isFinite(viewportHeight) || viewportHeight <= 0) return 0;
+  MARKER_VIEW_POSITION.copy(worldPosition).applyMatrix4(camera.matrixWorldInverse);
+  const projection = camera.projectionMatrix.elements;
+  const clipW = projection[11]! * MARKER_VIEW_POSITION.z + projection[15]!;
+  const verticalScale = Math.abs(projection[5]!);
+  if (!Number.isFinite(clipW) || clipW <= 0 || verticalScale <= 0) return 0;
+  const unitsPerPixel = 2 * clipW / (viewportHeight * verticalScale);
+  const minRadius = unitsPerPixel * (selected ? SELECTED_MARKER_PIXEL_RADIUS : MIN_MARKER_PIXEL_RADIUS);
+  const maxRadius = unitsPerPixel * (selected ? SELECTED_MARKER_PIXEL_RADIUS : MAX_MARKER_PIXEL_RADIUS);
   return Math.min(maxRadius, Math.max(baseRadius, minRadius));
 }
 

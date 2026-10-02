@@ -646,7 +646,6 @@ export class DebugSolarSystemRenderer {
       frame,
       this.scaleModel,
       this.currentOriginM,
-      this.camera,
     );
     if (this.impactRenderState !== null) {
       this.impactVisualSystem.update(this.impactRenderState);

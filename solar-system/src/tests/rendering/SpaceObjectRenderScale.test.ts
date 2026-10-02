@@ -1,4 +1,4 @@
-import { PerspectiveCamera, Vector3 } from 'three';
+import { OrthographicCamera, PerspectiveCamera, Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 
 import {
@@ -50,21 +50,46 @@ describe('earth satellite render scale', () => {
     expect(spacecraftMarkerRadius(false, 'true')).toBe(0.00016);
   });
 
-  it('inflates distant markers for readability without exceeding a billboard ceiling', () => {
-    const camera = new PerspectiveCamera(50, 1, 0.0001, 100);
-    camera.position.set(0, 0, 1);
-    const far = new Vector3(0, 0, -4);
-    const near = new Vector3(0, 0, 0.95);
+  it('keeps locators within 1.25-2 CSS pixels through zoom, resize, and scale changes', () => {
+    for (const height of [280, 768, 2160]) {
+      for (const fov of [30, 50, 90]) {
+        const camera = new PerspectiveCamera(fov, 1, 0.0001, 100);
+        camera.position.set(0, 0, 1);
+        camera.updateMatrixWorld();
+        for (const depth of [0.00001, 0.05, 5, 80]) {
+          for (const baseRadius of [0.00000008, 0.00018, 0.00045, 0.0009]) {
+            const position = new Vector3(0, 0, 1 - depth);
+            const radius = screenAwareMarkerRadius(baseRadius, position, camera, height);
+            const center = position.clone().project(camera);
+            const edge = position.clone().add(new Vector3(0, radius, 0)).project(camera);
+            const pixels = (edge.y - center.y) * height / 2;
+            expect(pixels).toBeGreaterThanOrEqual(1.25 - 1e-8);
+            expect(pixels).toBeLessThanOrEqual(2 + 1e-8);
+          }
+        }
+      }
+    }
+  });
 
-    const farRadius = screenAwareMarkerRadius(0.00018, far, camera);
-    const nearRadius = screenAwareMarkerRadius(0.00018, near, camera);
+  it('gives selected locators a compact three-pixel radius, including orthographic views', () => {
+    for (const camera of [new PerspectiveCamera(50, 1, 0.001, 100), new OrthographicCamera(-2, 2, 2, -2)]) {
+      camera.position.set(2, 3, 8);
+      camera.lookAt(0, 0, 0);
+      camera.updateMatrixWorld();
+      const position = new Vector3();
+      const radius = screenAwareMarkerRadius(0.00045, position, camera, 800, true);
+      const cameraUp = new Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      const center = position.clone().project(camera);
+      const edge = position.clone().addScaledVector(cameraUp, radius).project(camera);
+      expect((edge.y - center.y) * 400).toBeCloseTo(3, 8);
+    }
+  });
 
-    expect(farRadius).toBeGreaterThan(0.00018);
-    expect(farRadius).toBeLessThanOrEqual(5 * 0.018 + 1e-12);
-    // Mid-range beads still inflate to the angular floor.
-    expect(nearRadius).toBeCloseTo(0.05 * 0.007, 12);
-    // Close enough that the base locator wins over the angular floor.
-    expect(screenAwareMarkerRadius(0.00018, new Vector3(0, 0, 0.98), camera))
-      .toBeCloseTo(0.00018, 12);
+  it('hides markers at or behind a perspective camera and in a collapsed viewport', () => {
+    const camera = new PerspectiveCamera();
+    camera.updateMatrixWorld();
+    expect(screenAwareMarkerRadius(0.001, new Vector3(0, 0, 1), camera, 800)).toBe(0);
+    expect(screenAwareMarkerRadius(0.001, new Vector3(), camera, 800)).toBe(0);
+    expect(screenAwareMarkerRadius(0.001, new Vector3(0, 0, -1), camera, 0)).toBe(0);
   });
 });

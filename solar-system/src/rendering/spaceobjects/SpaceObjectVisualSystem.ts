@@ -8,7 +8,7 @@ import {
   Mesh,
   MeshBasicMaterial,
   Object3D,
-  OctahedronGeometry,
+  SphereGeometry,
   Sphere,
   MeshStandardMaterial,
   Texture,
@@ -92,8 +92,8 @@ const SPACECRAFT_MARKER_COLOR = 0xffb14a;
 
 export class SpaceObjectVisualSystem {
   public readonly root = new Group();
-  private readonly earthSatelliteMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
-  private readonly spacecraftMesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>;
+  private readonly earthSatelliteMesh: InstancedMesh<SphereGeometry, MeshBasicMaterial>;
+  private readonly spacecraftMesh: InstancedMesh<SphereGeometry, MeshBasicMaterial>;
   private readonly issModelAnchor = new Group();
   private readonly voyagerModels = new VoyagerModelVisual();
   private metersToRenderUnits = 1 / 149_597_870_700;
@@ -101,6 +101,11 @@ export class SpaceObjectVisualSystem {
   private readonly spacecraftTrajectory: PrecisionLine;
   private readonly worldPositions = new Map<string, Vector3>();
   private readonly renderedRadii = new Map<string, number>();
+  private readonly visibleLocators: Array<{
+    id: string;
+    mesh: InstancedMesh<SphereGeometry, MeshBasicMaterial>;
+    index: number;
+  }> = [];
   private readonly coverageLabels = new Map<string, HTMLSpanElement>();
   private visible = true;
   private earthSatellitesVisible = true;
@@ -129,7 +134,7 @@ export class SpaceObjectVisualSystem {
   public constructor() {
     this.root.name = 'space-objects-layer';
     this.root.renderOrder = 5;
-    const earthSatelliteGeometry = new OctahedronGeometry(1, 0);
+    const earthSatelliteGeometry = new SphereGeometry(1, 16, 12);
     this.earthSatelliteMesh = new InstancedMesh(
       earthSatelliteGeometry,
       createMarkerMaterial(EARTH_SATELLITE_MARKER_COLOR),
@@ -138,7 +143,7 @@ export class SpaceObjectVisualSystem {
     this.earthSatelliteMesh.name = 'earth-satellite-markers';
     this.earthSatelliteMesh.frustumCulled = false;
     this.earthSatelliteMesh.renderOrder = 6;
-    const spacecraftGeometry = new OctahedronGeometry(1, 0);
+    const spacecraftGeometry = new SphereGeometry(1, 16, 12);
     this.spacecraftMesh = new InstancedMesh(
       spacecraftGeometry,
       createMarkerMaterial(SPACECRAFT_MARKER_COLOR),
@@ -256,6 +261,7 @@ export class SpaceObjectVisualSystem {
     viewportHeight: number,
     suppressed = false,
   ): void {
+    this.updateMarkerSizes(camera, viewportHeight);
     this.coverageLabelCount = 0;
     const id = this.selectedObjectId;
     const position = id === null ? undefined : this.worldPositions.get(id);
@@ -336,13 +342,13 @@ export class SpaceObjectVisualSystem {
     frame: Readonly<DebugRenderFrame>,
     scaleModel: Readonly<RenderScaleModel>,
     originM: Readonly<PhysicalPosition>,
-    camera: Camera | null = null,
   ): void {
     if (!this.visible) {
       this.root.visible = false;
       return;
     }
     this.root.visible = true;
+    this.visibleLocators.length = 0;
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.issModelAnchor.visible = false;
@@ -380,10 +386,6 @@ export class SpaceObjectVisualSystem {
           ? this.issModelPhysicalRadiusMeters * earthRelativeScale.metersToRenderUnits
           : earthSatelliteMarkerRadius(this.selectedObjectId === satellite.id, scaleModel.mode);
         const useIssModel = isIss && this.issModelState === 'ready' && !suppressLocator;
-        // Keep ISS framing on its physical radius; inflate only non-ISS locators.
-        const displayRadius = useIssModel || isIss || camera === null
-          ? baseRadius
-          : screenAwareMarkerRadius(baseRadius, OBJECT.position, camera);
         if (useIssModel) {
           this.hideInstance(this.earthSatelliteMesh, index);
           this.updateIssModel(
@@ -396,10 +398,11 @@ export class SpaceObjectVisualSystem {
           this.hideInstance(this.earthSatelliteMesh, index);
           this.inspectionSuppressedMarkerCount += 1;
         } else {
-          OBJECT.scale.setScalar(displayRadius);
+          OBJECT.scale.setScalar(baseRadius);
           OBJECT.updateMatrix();
           MATRIX.copy(OBJECT.matrix);
           this.earthSatelliteMesh.setMatrixAt(index, MATRIX);
+          if (!isIss) this.visibleLocators.push({ id: satellite.id, mesh: this.earthSatelliteMesh, index });
         }
         this.recordObjectPosition(satellite.id, OBJECT.position, baseRadius);
         if (!suppressLocator) this.renderedEarthSatelliteCount += 1;
@@ -439,9 +442,6 @@ export class SpaceObjectVisualSystem {
         );
         const modelShown = isVoyager(mission.id) && this.voyagerModels.update(mission.id, OBJECT.position,
           earth?.positionM, state.positionM, scaleModel.metersToRenderUnits, detailedVoyager);
-        const displayRadius = detailedVoyager || camera === null
-          ? baseRadius
-          : screenAwareMarkerRadius(baseRadius, OBJECT.position, camera);
         const suppressLocator = this.detailedInspectionObjectId !== null && mission.id !== this.detailedInspectionObjectId;
         if (modelShown) {
           this.hideInstance(this.spacecraftMesh, index);
@@ -449,10 +449,11 @@ export class SpaceObjectVisualSystem {
           this.hideInstance(this.spacecraftMesh, index);
           this.inspectionSuppressedMarkerCount += 1;
         } else {
-          OBJECT.scale.setScalar(displayRadius);
+          OBJECT.scale.setScalar(baseRadius);
           OBJECT.updateMatrix();
           MATRIX.copy(OBJECT.matrix);
           this.spacecraftMesh.setMatrixAt(index, MATRIX);
+          if (!detailedVoyager) this.visibleLocators.push({ id: mission.id, mesh: this.spacecraftMesh, index });
         }
         this.recordObjectPosition(mission.id, OBJECT.position, baseRadius);
         if (!suppressLocator) this.renderedSpacecraftCount += 1;
@@ -696,7 +697,24 @@ export class SpaceObjectVisualSystem {
     };
   }
 
-  private hideInstance(mesh: InstancedMesh<OctahedronGeometry, MeshBasicMaterial>, index: number): void {
+  private updateMarkerSizes(camera: Camera, viewportHeight: number): void {
+    if (!this.visible) return;
+    camera.updateMatrixWorld();
+    for (const { id, mesh, index } of this.visibleLocators) {
+      const position = this.worldPositions.get(id);
+      const baseRadius = this.renderedRadii.get(id);
+      if (position === undefined || baseRadius === undefined) continue;
+      OBJECT.position.copy(position);
+      OBJECT.scale.setScalar(screenAwareMarkerRadius(
+        baseRadius, position, camera, viewportHeight, id === this.selectedObjectId,
+      ));
+      OBJECT.updateMatrix();
+      mesh.setMatrixAt(index, OBJECT.matrix);
+      mesh.instanceMatrix.needsUpdate = true;
+    }
+  }
+
+  private hideInstance(mesh: InstancedMesh<SphereGeometry, MeshBasicMaterial>, index: number): void {
     // Keep OBJECT intact: the ISS path hides its fallback instance after
     // calculating the station position, then reuses that position for the
     // detailed model and camera framing.
@@ -763,7 +781,7 @@ function createMarkerMaterial(color: number): MeshBasicMaterial {
   return new MeshBasicMaterial({
     color,
     transparent: true,
-    opacity: 0.96,
+    opacity: 0.78,
     depthWrite: false,
     toneMapped: false,
   });
