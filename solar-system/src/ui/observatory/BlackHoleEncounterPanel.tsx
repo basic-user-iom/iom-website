@@ -299,11 +299,11 @@ export function BlackHoleEncounterPanel({
           className="button button-secondary"
           type="button"
           data-testid="black-hole-encounter-close"
-          aria-label="Close Black-Hole Encounter"
-          disabled={disabled || active}
+          aria-label={active ? 'Exit scenario' : 'Close Black-Hole Encounter'}
+          disabled={disabled}
           onClick={onClose}
         >
-          Close
+          {active ? 'Exit scenario' : 'Close'}
         </button>
       </div>
 

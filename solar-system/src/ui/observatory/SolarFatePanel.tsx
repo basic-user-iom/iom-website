@@ -120,11 +120,11 @@ export function SolarFatePanel({
           className="button button-secondary"
           type="button"
           data-testid="solar-fate-close"
-          aria-label="Close Solar Fate"
-          disabled={disabled || active}
+          aria-label={active ? 'Exit scenario' : 'Close Solar Fate'}
+          disabled={disabled}
           onClick={onClose}
         >
-          Close
+          {active ? 'Exit scenario' : 'Close'}
         </button>
       </div>
 

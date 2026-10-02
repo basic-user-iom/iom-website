@@ -48,6 +48,8 @@ import {
   PROFILE_COLORS,
   createMoonBodyGeometry,
   createProceduralMoonMaps,
+  createPlaceholderMoonMaps,
+  isProceduralMajorMoon,
   materialRoughnessForProfile,
   shapeAxesFor,
 } from './ProceduralMoonSurface';
@@ -297,6 +299,8 @@ export class NaturalSatelliteVisualSystem {
 
   public selectSatellite(id: string | null): void {
     this.selectedSatelliteId = id;
+    const selectedResource = id === null ? undefined : this.major.get(id);
+    if (selectedResource !== undefined) this.ensureSurfaceDetail(selectedResource);
     for (const resource of this.major.values()) {
       const selected = resource.definition.id === id;
       const official = resource.mesh.userData.surfaceMode === 'official-vtad-map';
@@ -454,6 +458,13 @@ export class NaturalSatelliteVisualSystem {
     viewportHeight: number,
     suppressed = false,
   ): void {
+    for (const resource of this.major.values()) {
+      if (!resource.mesh.visible || resource.mesh.userData.surfaceDetailReady || !isProceduralMajorMoon(resource.definition.id)) continue;
+      const radius = this.renderedRadii.get(resource.definition.id) ?? 0;
+      if (projectedSphereRadiusPx(camera, resource.mesh.position, radius, viewportWidth, viewportHeight) > 12) {
+        this.ensureSurfaceDetail(resource);
+      }
+    }
     const selectedPosition = this.selectedSatelliteId === null
       ? undefined
       : this.worldPositions.get(this.selectedSatelliteId);
@@ -670,8 +681,20 @@ export class NaturalSatelliteVisualSystem {
     if (this.selectionScreenIndicator !== null) this.selectionScreenIndicator.style.opacity = '0';
   }
 
+  private ensureSurfaceDetail(resource: MajorResource): void {
+    if (!isProceduralMajorMoon(resource.definition.id) || resource.mesh.userData.surfaceDetailReady) return;
+    const maps = createProceduralMoonMaps(resource.definition);
+    this.disposeProceduralMaps(resource.mesh.material);
+    this.proceduralTextures.add(maps.color);
+    this.proceduralTextures.add(maps.normal);
+    Object.assign(resource.mesh.material, { map: maps.color, normalMap: maps.normal, emissiveMap: maps.color, roughness: maps.roughness });
+    resource.mesh.material.normalScale.setScalar(maps.normalScale);
+    resource.mesh.material.needsUpdate = true;
+    resource.mesh.userData.surfaceDetailReady = true;
+  }
+
   private createMajor(definition: NaturalSatelliteDefinition): void {
-    const maps = createProceduralMoonMaps(definition);
+    const maps = createPlaceholderMoonMaps(definition);
     this.proceduralTextures.add(maps.color);
     this.proceduralTextures.add(maps.normal);
     const material = new MeshStandardMaterial({

@@ -41,6 +41,7 @@
         box-sizing: border-box;
         display: grid;
         min-height: 100vh;
+        min-height: 100dvh;
         place-content: center;
         padding: 2rem;
         text-align: center;
@@ -56,7 +57,8 @@
     <div id="root">
       <main class="boot-shell" aria-live="polite">
         <strong>Solar System: Living Observatory</strong>
-        <p>Loading and verifying the observatory and scenarios…</p>
+        <p>0% · Loading application</p>
+        <progress max="100" value="0" aria-label="Observatory loading progress"></progress>
       </main>
     </div>
     <noscript>

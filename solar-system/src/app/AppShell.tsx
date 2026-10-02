@@ -1,3 +1,5 @@
+import { StartupProgressTracker, downloadBinary, type StartupProgress } from './StartupProgress';
+import { StartupScreen } from '../ui/observatory/StartupScreen';
 import type { SolarFateCameraView } from '../rendering/solar-fate/SolarFateCamera';
 import { loadLocalEarthTerrain } from '../simulation/scenarios/impact/LocalEarthTerrain';
 import { getRegionalEarthSurfaceSampler, installLocalEarthSurface } from '../simulation/scenarios/impact/EarthSurface';
@@ -476,6 +478,11 @@ export function AppShell() {
     typeof document === 'undefined' || document.visibilityState === 'visible',
   );
   const [ephemeris, setEphemeris] = useState(INITIAL_EPHEMERIS_DIAGNOSTICS);
+  const [startupProgress, setStartupProgress] = useState<StartupProgress>({ percent: 5, stage: 'Starting the observatory', loadedBytes: 0 });
+  const [initialSurfaceReady, setInitialSurfaceReady] = useState(false);
+  const [scenarioExiting, setScenarioExiting] = useState(false);
+  const scenarioExitingRef = useRef(false);
+  const [scenarioExitError, setScenarioExitError] = useState<string | null>(null);
   const [cometShortcutAvailable, setCometShortcutAvailable] = useState(false);
   const [selectedBodyTelemetry, setSelectedBodyTelemetry] = useState(
     INITIAL_SELECTED_BODY_TELEMETRY,
@@ -706,6 +713,7 @@ export function AppShell() {
     (renderer: DebugSolarSystemRenderer | null = rendererRef.current): void => {
       if (renderer === null) return;
       const diagnostics = renderer.getVisualDiagnostics();
+      setInitialSurfaceReady(diagnostics.selectedAssetState === 'ready' || diagnostics.selectedAssetState === 'fallback' || diagnostics.selectedAssetState === 'procedural');
       const next: SelectedVisualStatus = {
         materialLabel: diagnostics.selectedMaterial,
         assetState: formatVisualAssetState(diagnostics.selectedAssetState),
@@ -764,24 +772,35 @@ export function AppShell() {
     let disposeRuntime = (): void => undefined;
 
     const start = async (): Promise<void> => {
+      const progress = new StartupProgressTracker((next) => {
+        if (effectActive) setStartupProgress((current) => current.percent === next.percent && current.stage === next.stage && Math.floor(current.loadedBytes / 1_000_000) === Math.floor(next.loadedBytes / 1_000_000) ? current : next);
+      });
+      // Start both full downloads together. Settle the optional bundle immediately so
+      // a rejection cannot become unhandled while the required planets are decoded.
+      const smallBundle = Promise.all([
+        fetch(smallBodyEphemerisManifestUrl, { signal: abortController.signal }),
+        downloadBinary(smallBodyEphemerisBinaryUrl, abortController.signal, (value) => progress.download(1, value)),
+        fetch(smallBodySegmentsUrl, { signal: abortController.signal }),
+        fetch(smallBodyValidationUrl, { signal: abortController.signal }),
+      ]).then((value) => ({ value, error: null }), (error: unknown) => ({ value: null, error }));
       try {
-        const [manifestResponse, binaryResponse] = await Promise.all([
+        const [manifestResponse, binary] = await Promise.all([
           fetch(ephemerisManifestUrl, { signal: abortController.signal }),
-          fetch(ephemerisBinaryUrl, { signal: abortController.signal }),
+          downloadBinary(ephemerisBinaryUrl, abortController.signal, (value) => progress.download(0, value)),
         ]);
         assertSuccessfulAssetResponse(manifestResponse, 'ephemeris manifest');
-        assertSuccessfulAssetResponse(binaryResponse, 'ephemeris binary');
         const manifest = (await manifestResponse.json()) as GeneratedEphemerisManifest;
         if (manifest.binaryFile !== EXPECTED_BINARY_FILE) {
           throw new Error(
             `Manifest names "${manifest.binaryFile}" but this build bundles "${EXPECTED_BINARY_FILE}".`,
           );
         }
-        const binary = await binaryResponse.arrayBuffer();
         await verifyBinaryHash(binary, manifest.binarySha256);
+        progress.checkpoint('Planetary data verified');
 
         decoder = createEphemerisDecoder();
         const dataset = await decoder.decode(binary);
+        progress.checkpoint('Preparing orbital paths');
         const coreProvider = new GeneratedEphemerisProvider(dataset, manifest, {
           outOfRangeBehavior: 'throw',
         });
@@ -794,20 +813,10 @@ export function AppShell() {
         let provider: EphemerisProvider = coreProvider;
         let smallBodyBundleWarning: string | null = null;
         try {
-          const [
-            smallManifestResponse,
-            smallBinaryResponse,
-            segmentsResponse,
-            smallValidationResponse,
-          ] =
-            await Promise.all([
-              fetch(smallBodyEphemerisManifestUrl, { signal: abortController.signal }),
-              fetch(smallBodyEphemerisBinaryUrl, { signal: abortController.signal }),
-              fetch(smallBodySegmentsUrl, { signal: abortController.signal }),
-              fetch(smallBodyValidationUrl, { signal: abortController.signal }),
-            ]);
+          const result = await smallBundle;
+          if (result.value === null) throw result.error;
+          const [smallManifestResponse, smallBinary, segmentsResponse, smallValidationResponse] = result.value;
           assertSuccessfulAssetResponse(smallManifestResponse, 'small-body ephemeris manifest');
-          assertSuccessfulAssetResponse(smallBinaryResponse, 'small-body ephemeris binary');
           assertSuccessfulAssetResponse(segmentsResponse, 'small-body segment routing');
           assertSuccessfulAssetResponse(smallValidationResponse, 'small-body validation');
           const smallManifest =
@@ -817,7 +826,6 @@ export function AppShell() {
               `Small-body manifest names "${smallManifest.binaryFile}" but this build bundles "${EXPECTED_SMALL_BODY_BINARY_FILE}".`,
             );
           }
-          const smallBinary = await smallBinaryResponse.arrayBuffer();
           await verifyBinaryHash(smallBinary, smallManifest.binarySha256);
           const [segmentRouting, smallValidation] = await Promise.all([
             segmentsResponse.json() as Promise<unknown>,
@@ -828,7 +836,9 @@ export function AppShell() {
             smallValidation,
             segmentRouting,
           );
+          progress.checkpoint('Comet data verified');
           const smallDataset = await decoder.decode(smallBinary);
+          progress.checkpoint('Preparing the first 3D view');
           const segmentSource = new GeneratedEphemerisProvider(
             smallDataset,
             smallManifest,
@@ -848,6 +858,7 @@ export function AppShell() {
           }
           provider = new CompositeEphemerisProvider([coreProvider, cometProvider]);
         } catch (error) {
+          progress.optionalBundleUnavailable();
           smallBodyBundleWarning =
             error instanceof Error
               ? `Comet bundle unavailable: ${error.message}`
@@ -856,6 +867,7 @@ export function AppShell() {
         decoder.dispose();
         decoder = null;
         if (!effectActive) return;
+        setStartupProgress((current) => ({ ...current, percent: 95, stage: 'Preparing the first 3D view' }));
         setCometShortcutAvailable(
           COMET_BODY_IDS.some((bodyId) => provider.hasBody(bodyId)),
         );
@@ -2586,6 +2598,30 @@ export function AppShell() {
       });
   }, [synchronizeBlackHolePresentation]);
 
+  // One exit path for the toolbar and every scenario panel, including completed events.
+  const handleExitScenario = useCallback(() => {
+    const manager = scenarioManagerRef.current;
+    if (manager === null || scenarioExitingRef.current) return;
+    scenarioExitingRef.current = true;
+    setScenarioExiting(true);
+    setScenarioExitError(null);
+    void manager.reset().then(() => {
+      synchronizeSolarFatePresentation();
+      synchronizeBlackHolePresentation();
+      runtimeRef.current?.forcePublish();
+      setImpactLabOpen(false);
+      setSolarFateOpen(false);
+      setBlackHoleEncounterOpen(false);
+      setPanel(null);
+      requestAnimationFrame(() => document.querySelector<HTMLButtonElement>('[data-testid="system-overview"]')?.focus());
+    }).catch((error: unknown) => {
+      setScenarioExitError(error instanceof Error ? error.message : 'Could not exit the scenario. Please try again.');
+    }).finally(() => {
+      scenarioExitingRef.current = false;
+      setScenarioExiting(false);
+    });
+  }, [setPanel, synchronizeSolarFatePresentation, synchronizeBlackHolePresentation]);
+
   const observatoryUnavailable =
     !preferencesHydrated || ephemeris.status === 'loading' || ephemeris.status === 'error';
   const controlsDisabled = observatoryUnavailable || scenarioActive;
@@ -2891,6 +2927,9 @@ export function AppShell() {
         Skip 3D view
       </a>
 
+      <StartupScreen progress={startupProgress}
+        ready={ephemeris.status === 'ready' && webglStatus === 'ready' && initialSurfaceReady}
+        error={ephemeris.status === 'error' ? ephemeris.message : webglStatus === 'error' || webglStatus === 'unavailable' ? (webglMessage ?? 'This browser cannot start the 3D view.') : null} />
       <header className="observatory-header">
         <BackToIom />
         <div className="brand-lockup" aria-label="Solar System: Living Observatory">
@@ -3177,7 +3216,14 @@ export function AppShell() {
 
             <ObservatoryViewport
               toolbar={<>
-                <button type="button" data-testid="system-overview" disabled={controlsDisabled} onClick={() => { controls.setCameraMode('overview'); if (compact) setPanel(null); }}>System overview</button>
+                {scenarioActive ? (
+                  <button type="button" className="scenario-exit-button" data-testid="scenario-exit" disabled={scenarioExiting} onClick={handleExitScenario}>
+                    {scenarioExiting ? 'Exiting…' : 'Exit scenario'}
+                  </button>
+                ) : (
+                  <button type="button" data-testid="system-overview" disabled={controlsDisabled} onClick={() => { controls.setCameraMode('overview'); if (compact) setPanel(null); }}>System overview</button>
+                )}
+                {scenarioExitError !== null ? <span role="alert" className="scenario-exit-error">{scenarioExitError}</span> : null}
                 <button type="button" id="desktop-toggle-time" className="desktop-time-toggle" aria-controls="workspace-time" aria-expanded={panel === 'time'} onClick={() => setPanel(panel === 'time' ? null : 'time')}>Time &amp; date</button>
               </>}
               closeUpActive={activeCloseUpPresetId !== null}
@@ -3433,7 +3479,7 @@ export function AppShell() {
                   onReduceFlashesChange={updateReduceFlashes}
                   onVisibilityModeChange={handleImpactVisibilityMode}
                   onConfirmRun={handleImpactStart}
-                  onClose={() => setImpactLabOpen(false)}
+                  onClose={() => { if (scenarioActive) handleExitScenario(); else setImpactLabOpen(false); }}
                   onPause={handleImpactPause}
                   onResume={handleImpactResume}
                   onFrameStep={handleImpactFrameStep}
@@ -3459,7 +3505,7 @@ export function AppShell() {
                   onReduceFlashesChange={updateReduceFlashes}
                   onStartScientificEvolution={handleSolarEvolutionStart}
                   onStartFictionalSupernova={handleFictionalSupernovaStart}
-                  onClose={() => setSolarFateOpen(false)}
+                  onClose={() => { if (scenarioActive) handleExitScenario(); else setSolarFateOpen(false); }}
                   onPause={handleSolarFatePause}
                   onResume={handleSolarFateResume}
                   onFrameStep={handleSolarFateFrameStep}
@@ -3487,7 +3533,7 @@ export function AppShell() {
                   onReduceFlashesChange={updateReduceFlashes}
                   onStartPhysicsFlyby={handleBlackHolePhysicsStart}
                   onStartCompleteConsumption={handleCompleteConsumptionStart}
-                  onClose={() => setBlackHoleEncounterOpen(false)}
+                  onClose={() => { if (scenarioActive) handleExitScenario(); else setBlackHoleEncounterOpen(false); }}
                   onPause={handleBlackHolePause}
                   onResume={handleBlackHoleResume}
                   onFrameStep={handleBlackHoleFrameStep}

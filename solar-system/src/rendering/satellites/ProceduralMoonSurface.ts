@@ -100,7 +100,7 @@ export function createProceduralMoonMaps(
   return createRichProceduralMoonMaps(definition);
 }
 
-function createPlaceholderMoonMaps(
+export function createPlaceholderMoonMaps(
   definition: Readonly<NaturalSatelliteDefinition>,
 ): ProceduralMoonMaps {
   const width = 64;

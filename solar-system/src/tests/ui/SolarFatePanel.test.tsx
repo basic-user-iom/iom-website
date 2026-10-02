@@ -266,6 +266,20 @@ describe('Phase 9 SolarFatePanel', () => {
     expect(onPause).not.toHaveBeenCalled();
   });
 
+  it('keeps a working exit available while either scenario is running, paused or complete', () => {
+    for (const scenario of [SCIENTIFIC_RUNNING, FICTIONAL_RUNNING]) {
+      for (const state of ['running', 'paused', 'complete'] as const) {
+        const onClose = vi.fn();
+        renderPanel({ activeScenario: { ...scenario, playbackState: state }, onClose });
+        const exit = requiredElement<HTMLButtonElement>('[data-testid="solar-fate-close"]');
+        expect(exit.disabled).toBe(false);
+        expect(exit.textContent).toContain('Exit scenario');
+        act(() => exit.click());
+        expect(onClose).toHaveBeenCalledOnce();
+      }
+    }
+  });
+
   function renderPanel(overrides: Partial<SolarFatePanelProps> = {}) {
     const props: SolarFatePanelProps = {
       activeScenario: null,

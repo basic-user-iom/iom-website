@@ -420,6 +420,18 @@ describe('Phase 8 ImpactLabPanel', () => {
       .toBe(false);
   });
 
+  it('keeps its exit usable during playback and after completion', () => {
+    for (const state of ['running', 'paused', 'complete'] as const) {
+      const onClose = vi.fn();
+      renderPanel({ snapshot: scenarioSnapshot(state, 'plume', 0.7), onClose });
+      const exit = requiredElement<HTMLButtonElement>('[data-testid="impact-lab-close"]');
+      expect(exit.disabled).toBe(false);
+      expect(exit.textContent).toContain('Exit scenario');
+      act(() => exit.click());
+      expect(onClose).toHaveBeenCalledOnce();
+    }
+  });
+
   function renderPanel(overrides: Partial<ImpactLabPanelProps> = {}) {
     const props: ImpactLabPanelProps = {
       parameters: PARAMETERS,

@@ -399,6 +399,20 @@ describe('Phase 10 BlackHoleEncounterPanel', () => {
     expect(actions.onReset).toHaveBeenCalledOnce();
   });
 
+  it('keeps a working exit available while either scenario is running, paused or complete', () => {
+    for (const scenario of [PHYSICS_RUNNING, CINEMATIC_RUNNING]) {
+      for (const state of ['running', 'paused', 'complete'] as const) {
+        const onClose = vi.fn();
+        renderPanel({ activeScenario: { ...scenario, state: state }, onClose });
+        const exit = requiredElement<HTMLButtonElement>('[data-testid="black-hole-encounter-close"]');
+        expect(exit.disabled).toBe(false);
+        expect(exit.textContent).toContain('Exit scenario');
+        act(() => exit.click());
+        expect(onClose).toHaveBeenCalledOnce();
+      }
+    }
+  });
+
   function renderPanel(overrides: Partial<BlackHoleEncounterPanelProps> = {}) {
     const props: BlackHoleEncounterPanelProps = {
       parameters: PARAMETERS,

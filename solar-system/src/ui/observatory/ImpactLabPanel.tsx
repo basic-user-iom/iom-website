@@ -258,11 +258,11 @@ export function ImpactLabPanel({
           className="button button-secondary"
           type="button"
           data-testid="impact-lab-close"
-          aria-label="Close Impact Lab"
-          disabled={disabled || active}
+          aria-label={active ? 'Exit scenario' : 'Close Impact Lab'}
+          disabled={disabled}
           onClick={onClose}
         >
-          Close
+          {active ? 'Exit scenario' : 'Close'}
         </button>
       </div>
 

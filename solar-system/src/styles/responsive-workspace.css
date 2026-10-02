@@ -720,3 +720,22 @@ body {
   max-height: none;
   overflow: visible;
 }
+
+/* Exit stays with the viewport controls, also in full screen and with drawers shut. */
+.viewport-toolbar .scenario-exit-button { border-color: var(--accent, #79d9ff); color: #d4f4ff; }
+.viewport-toolbar .scenario-exit-error { flex-basis: 100%; font-size: 12px; color: #ffcbab; }
+.viewport-fullscreen-icon { width: 20px; height: 20px; flex: 0 0 20px; }
+
+.startup-screen {
+  position: fixed; inset: 0; z-index: 10000; display: grid; place-items: center;
+  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  background: radial-gradient(ellipse at top, #11263c, #040a13 75%); overflow: auto;
+}
+.startup-card { width: min(100%, 420px); text-align: center; }
+.startup-card h1 { font-size: clamp(24px, 5vw, 32px); margin: 12px 0 24px; }
+.startup-card .startup-percent { font-size: 40px; color: #91dfff; margin: 12px 0; font-variant-numeric: tabular-nums; }
+.startup-card progress { display: block; width: 100%; height: 10px; border: 0; border-radius: 8px; overflow: hidden; background: #162d41; accent-color: #80d8ff; }
+.startup-card progress::-webkit-progress-bar { background: #162d41; }
+.startup-card progress::-webkit-progress-value { background: #80d8ff; }
+.startup-card progress::-moz-progress-bar { background: #80d8ff; }
+.startup-detail { color: #93aabc; font-size: 13px; line-height: 1.6; }

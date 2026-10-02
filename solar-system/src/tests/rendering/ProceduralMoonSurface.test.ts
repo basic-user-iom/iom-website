@@ -100,6 +100,14 @@ describe('ProceduralMoonSurface', () => {
       const io = system.root.getObjectByName('natural-satellite-io') as
         | { material: { map: { name: string }; normalMap: unknown }; userData: { surfaceMode: string } }
         | undefined;
+      expect(hyperion?.material.map.name).toContain('procedural-moon-placeholder-hyperion');
+      const previousMap = hyperion?.material.map;
+      system.selectSatellite('hyperion');
+      expect(hyperion?.material.map).not.toBe(previousMap);
+      const detailedMap = hyperion?.material.map;
+      system.selectSatellite(null);
+      system.selectSatellite('hyperion');
+      expect(hyperion?.material.map).toBe(detailedMap);
       expect(hyperion?.material.map.name).toContain('procedural-moon-color-hyperion');
       expect(hyperion?.material.normalMap?.name).toContain('procedural-moon-normal-hyperion');
       expect(hyperion?.userData.surfaceMode).toBe('procedural-irregular');

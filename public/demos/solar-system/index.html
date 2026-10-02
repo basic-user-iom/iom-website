@@ -41,6 +41,7 @@
         box-sizing: border-box;
         display: grid;
         min-height: 100vh;
+        min-height: 100dvh;
         place-content: center;
         padding: 2rem;
         text-align: center;
@@ -51,7 +52,7 @@
         color: #9ba9c2;
       }
     </style>
-    <script type="module" crossorigin src="/demos/solar-system/assets/main-Bg8c1-AX.js"></script>
+    <script type="module" crossorigin src="/demos/solar-system/assets/main-D4V5Sjr0.js"></script>
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/app-vendor-ChYqlhHx.js">
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/three-DWNDesJr.js">
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/impact-studio-Bxj6ElM8.js">
@@ -60,13 +61,14 @@
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/moon-anchor-data-BR6eL6pP.js">
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/orbital-propagation-BdNVO2ip.js">
     <link rel="modulepreload" crossorigin href="/demos/solar-system/assets/spacecraft-data-BAKJSIXU.js">
-    <link rel="stylesheet" crossorigin href="/demos/solar-system/assets/main-BlZMS2Qr.css">
+    <link rel="stylesheet" crossorigin href="/demos/solar-system/assets/main-CtL0UTiu.css">
   </head>
   <body>
     <div id="root">
       <main class="boot-shell" aria-live="polite">
         <strong>Solar System: Living Observatory</strong>
-        <p>Loading and verifying the observatory and scenarios…</p>
+        <p>0% · Loading application</p>
+        <progress max="100" value="0" aria-label="Observatory loading progress"></progress>
       </main>
     </div>
     <noscript>
