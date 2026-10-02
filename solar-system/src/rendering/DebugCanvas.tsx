@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+import { SelectionGesture } from './SelectionGesture';
+import type { ObservatoryBodyId } from '../simulation/bodies/ObservatoryBodyCatalog';
 import { DebugSolarSystemRenderer } from './DebugSolarSystemRenderer';
 import type { EarthTideDebugMode } from './tides/EarthTideDebugOverlay';
 import { detectWebGL2Support } from './WebGLCapability';
@@ -15,6 +17,7 @@ export interface DebugCanvasProps {
   readonly onStatusChange: (status: WebGLStatus, message?: string | null) => void;
   readonly onVisibilityChange: (visible: boolean) => void;
   readonly onInteractionStart?: () => void;
+  readonly onSelectBody?: (bodyId: ObservatoryBodyId) => void;
 }
 
 interface LocalStatus {
@@ -32,9 +35,12 @@ export function DebugCanvas({
   onStatusChange,
   onVisibilityChange,
   onInteractionStart = () => undefined,
+  onSelectBody,
 }: DebugCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const labelLayerRef = useRef<HTMLDivElement>(null);
+  const selectionRef = useRef(onSelectBody);
+  useEffect(() => { selectionRef.current = onSelectBody; }, [onSelectBody]);
   const rendererRef = useRef<DebugSolarSystemRenderer | null>(null);
   const [capability] = useState(() => detectWebGL2Support());
   const [localStatus, setLocalStatus] = useState<LocalStatus>(() => {
@@ -155,6 +161,47 @@ export function DebugCanvas({
     rendererRef.current?.setReduceFlashes(reduceFlashes);
   }, [reduceFlashes]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    const labels = labelLayerRef.current;
+    if (!canvas || manualCameraInteractionLocked) return;
+    const gesture = new SelectionGesture();
+    const targets = [canvas, ...(labels ? [labels] : [])];
+    const down = (event: PointerEvent) => gesture.down(event.pointerId, event.clientX, event.clientY, event.timeStamp, event.isPrimary && event.button === 0);
+    const move = (event: PointerEvent) => gesture.move(event.pointerId, event.clientX, event.clientY);
+    const cancel = (event: PointerEvent) => gesture.cancel(event.pointerId);
+    const wheel = () => gesture.cancel();
+    const up = (event: PointerEvent) => {
+      if (!gesture.up(event.pointerId, event.clientX, event.clientY, event.timeStamp)) return;
+      const label = (event.target as Element).closest<HTMLElement>('[data-body-id]');
+      const bodyId = label?.dataset.bodyId ?? rendererRef.current?.pickBodyAt(event.clientX, event.clientY, event.pointerType === 'touch' ? 22 : 8);
+      if (bodyId) selectionRef.current?.(bodyId as ObservatoryBodyId);
+    };
+    const keyboardClick = (event: MouseEvent) => {
+      if (event.detail !== 0) return;
+      const id = (event.target as Element).closest<HTMLElement>('[data-body-id]')?.dataset.bodyId;
+      if (id) selectionRef.current?.(id as ObservatoryBodyId);
+    };
+    for (const target of targets) {
+      target.addEventListener('pointerdown', down as EventListener, true);
+      target.addEventListener('wheel', wheel, { passive: true });
+    }
+    window.addEventListener('pointermove', move, true);
+    window.addEventListener('pointerup', up, true);
+    window.addEventListener('pointercancel', cancel, true);
+    labels?.addEventListener('click', keyboardClick);
+    return () => {
+      for (const target of targets) {
+        target.removeEventListener('pointerdown', down as EventListener, true);
+        target.removeEventListener('wheel', wheel);
+      }
+      window.removeEventListener('pointermove', move, true);
+      window.removeEventListener('pointerup', up, true);
+      window.removeEventListener('pointercancel', cancel, true);
+      labels?.removeEventListener('click', keyboardClick);
+    };
+  }, [manualCameraInteractionLocked, localStatus.status]);
+
   if (localStatus.status === 'unavailable' || localStatus.status === 'error') {
     return (
       <div className="observatory-canvas-frame">
@@ -190,7 +237,7 @@ export function DebugCanvas({
         onPointerDownCapture={onInteractionStart}
         onWheelCapture={onInteractionStart}
       />
-      <div ref={labelLayerRef} className="body-label-layer" aria-hidden="true" />
+      <div ref={labelLayerRef} className="body-label-layer" aria-label="Objects in the scene" />
       <p className="sr-only" id="canvas-keyboard-help">
         The Sun, eight planets, and Moon are positioned from generated JPL Horizons state
         vectors. Planetary surfaces use body-local sunlight; true and presentation render scales

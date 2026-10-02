@@ -21,6 +21,8 @@ import smallBodyEphemerisBinaryUrl from '../data/generated/small-body-ephemeris.
 import smallBodyEphemerisManifestUrl from '../data/generated/small-body-ephemeris.manifest.json?url';
 import smallBodySegmentsUrl from '../data/generated/small-body-segments.json?url';
 import smallBodyValidationUrl from '../data/generated/small-body-ephemeris.validation.json?url';
+import { BackToIom } from '../ui/observatory/BackToIom';
+import { useWorkspacePanels } from '../ui/observatory/useWorkspacePanels';
 import { DebugCanvas } from '../rendering/DebugCanvas';
 import {
   getGiantAtmosphereProfile,
@@ -448,6 +450,7 @@ function captureScenarioEnvironmentSnapshot(
 }
 
 export function AppShell() {
+  const { compact, panel, setPanel, closePanel } = useWorkspacePanels();
   const experimentalTideMode = useMemo(() => readExperimentalTideMode(), []);
   const [activeTideMode, setActiveTideMode] = useState(experimentalTideMode);
   const activeTideModeRef = useRef(experimentalTideMode);
@@ -2012,16 +2015,25 @@ export function AppShell() {
     [controls, updateCameraMode, setActiveCloseUpPresetId],
   );
 
-  const handleLegendBodyFocus = useCallback(
+  const handleBodySelectAndFocus = useCallback(
     (bodyId: ObservatoryBodyId) => {
       if (scenarioActive) return;
+      setImpactLabOpen(false);
+      setSolarFateOpen(false);
+      setBlackHoleEncounterOpen(false);
       setSelectedNaturalSatelliteId(null);
       setSelectedSpaceObjectId(null);
       rendererRef.current?.selectNaturalSatellite(null);
       rendererRef.current?.selectSpaceObject(null);
+      if (getObservatoryBodyDefinition(bodyId)?.kind === 'comet') {
+        updateCometsVisible(true);
+        rendererRef.current?.setCometsVisible(true);
+      }
       controls.focusBody(bodyId);
+      document.getElementById('workspace-view')?.scrollTo({ top: 0 });
+      if (compact) closePanel();
     },
-    [controls, scenarioActive],
+    [controls, scenarioActive, compact, closePanel, updateCometsVisible],
   );
 
   const handleLegendCometFocus = useCallback(() => {
@@ -2030,14 +2042,8 @@ export function AppShell() {
     if (runtime === null) return;
     const target = COMET_BODY_IDS.find((bodyId) => runtime.provider.hasBody(bodyId));
     if (target === undefined) return;
-    updateCometsVisible(true);
-    rendererRef.current?.setCometsVisible(true);
-    setSelectedNaturalSatelliteId(null);
-    setSelectedSpaceObjectId(null);
-    rendererRef.current?.selectNaturalSatellite(null);
-    rendererRef.current?.selectSpaceObject(null);
-    controls.focusBody(target);
-  }, [controls, scenarioActive, updateCometsVisible]);
+    handleBodySelectAndFocus(target);
+  }, [handleBodySelectAndFocus, scenarioActive]);
 
   const handleLegendTideToggle = useCallback(
     (component: ExperimentalTideComponent) => {
@@ -2721,42 +2727,9 @@ export function AppShell() {
     return () => window.removeEventListener('keydown', handler);
   }, [handleShortcutAction, helpOpen, provenanceOpen]);
 
-  return (
-    <div
-      className="observatory-app"
-      data-testid="solar-system-app"
-      data-trail-interval={selectedTrailInterval}
-      data-visual-quality={visualQuality}
-      data-venus-surface-mode={venusSurfaceMode}
-      data-motion-preference={motionPreference}
-      data-reduce-flashes={String(reduceFlashes)}
-      data-tour-state={tourSummary?.state ?? 'idle'}
-      data-impact-state={impactSnapshot.state}
-      data-impact-stage={impactSnapshot.stage}
-      data-impact-signature={impactSnapshot.runSignature ?? ''}
-      data-impact-visibility-mode={impactVisibilityMode}
-      data-impact-visibility-multiplier={impactVisibilityScale.toFixed(3)}
-      data-active-scenario={activeScenarioId}
-      data-solar-fate-mode={solarFateMode}
-      data-solar-fate-state={solarFateState}
-      data-solar-fate-stage={solarFateStage}
-      data-black-hole-mode={blackHoleMode}
-      data-black-hole-state={blackHoleState}
-      data-black-hole-stage={blackHoleStage}
-    >
-      <a className="skip-link" href="#observatory-controls">
-        Skip 3D view
-      </a>
-
-      <header className="observatory-header">
-        <div className="brand-lockup" aria-label="Solar System: Living Observatory">
-          <span className="brand-orbit" aria-hidden="true" />
-          <span>
-            <span className="brand-kicker">Solar System</span>
-            <span className="brand-title">Living Observatory</span>
-          </span>
-        </div>
+  const toolActions = (
         <div className="header-actions">
+          <div className="compact-panel-heading"><strong>Tools &amp; laboratories</strong><button type="button" onClick={closePanel} aria-label="Close tools">Close</button></div>
           <div className="header-status" aria-label="Observatory release status">
             <span className="status-pip" aria-hidden="true" />
             <span className="header-meta">Scientific 3D observatory</span>
@@ -2769,6 +2742,8 @@ export function AppShell() {
             aria-pressed={impactLabOpen}
             aria-controls="impact-lab-workspace"
             onClick={() => {
+              setPanel('view');
+              document.getElementById('workspace-view')?.scrollTo({ top: 0 });
               setSolarFateOpen(false);
               setBlackHoleEncounterOpen(false);
               setImpactLabOpen((open) => {
@@ -2792,6 +2767,8 @@ export function AppShell() {
             aria-pressed={solarFateOpen}
             aria-controls="solar-fate-workspace"
             onClick={() => {
+              setPanel('view');
+              document.getElementById('workspace-view')?.scrollTo({ top: 0 });
               setImpactLabOpen(false);
               setBlackHoleEncounterOpen(false);
               setSolarFateOpen((open) => (solarFateActive ? true : !open));
@@ -2807,6 +2784,8 @@ export function AppShell() {
             aria-pressed={blackHoleEncounterOpen}
             aria-controls="black-hole-encounter-workspace"
             onClick={() => {
+              setPanel('view');
+              document.getElementById('workspace-view')?.scrollTo({ top: 0 });
               setImpactLabOpen(false);
               setSolarFateOpen(false);
               setBlackHoleEncounterOpen((open) => (blackHoleActive ? true : !open));
@@ -2858,6 +2837,70 @@ export function AppShell() {
             Help <span aria-hidden="true">?</span>
           </button>
         </div>
+  );
+  const sourceFooter = (
+      <footer className="observatory-footer">
+        <p>Camera-relative ephemerides · isolated scenario clocks · 2000–2100 TDB observatory data</p>
+        <p>
+          <a href={ephemerisValidationUrl} target="_blank" rel="noreferrer">
+            Planetary validation
+          </a>
+          {' · '}
+          <a href={smallBodyValidationUrl} target="_blank" rel="noreferrer">
+            Comet validation
+          </a>
+          {' · '}
+          <a href={surfaceAssetManifestUrl} target="_blank" rel="noreferrer">
+            Surface source manifest
+          </a>
+          {' · '}
+          <a href={moonSurfaceAssetManifestUrl} target="_blank" rel="noreferrer">
+            Moon texture manifest
+          </a>
+          {' · '}giant-atmosphere and ring profiles are versioned visualization data
+        </p>
+      </footer>
+  );
+
+  return (
+    <div
+      className="observatory-app"
+      data-compact={compact}
+      data-workspace-panel={panel ?? "none"}
+      data-testid="solar-system-app"
+      data-trail-interval={selectedTrailInterval}
+      data-visual-quality={visualQuality}
+      data-venus-surface-mode={venusSurfaceMode}
+      data-motion-preference={motionPreference}
+      data-reduce-flashes={String(reduceFlashes)}
+      data-tour-state={tourSummary?.state ?? 'idle'}
+      data-impact-state={impactSnapshot.state}
+      data-impact-stage={impactSnapshot.stage}
+      data-impact-signature={impactSnapshot.runSignature ?? ''}
+      data-impact-visibility-mode={impactVisibilityMode}
+      data-impact-visibility-multiplier={impactVisibilityScale.toFixed(3)}
+      data-active-scenario={activeScenarioId}
+      data-solar-fate-mode={solarFateMode}
+      data-solar-fate-state={solarFateState}
+      data-solar-fate-stage={solarFateStage}
+      data-black-hole-mode={blackHoleMode}
+      data-black-hole-state={blackHoleState}
+      data-black-hole-stage={blackHoleStage}
+    >
+      <a className="skip-link" href="#observatory-controls">
+        Skip 3D view
+      </a>
+
+      <header className="observatory-header">
+        <div className="brand-lockup" aria-label="Solar System: Living Observatory">
+          <span className="brand-orbit" aria-hidden="true" />
+          <span>
+            <span className="brand-kicker">Solar System</span>
+            <span className="brand-title">Living Observatory</span>
+          </span>
+        </div>
+        <BackToIom />
+        {!compact ? toolActions : null}
       </header>
 
       <main
@@ -2877,7 +2920,9 @@ export function AppShell() {
         </p>
 
         <div className="observatory-workspace" id="observatory-controls">
-          <div className="workspace-rail workspace-rail-left">
+          <div className="workspace-rail workspace-rail-tools" id="workspace-tools">{compact ? <>{toolActions}{sourceFooter}</> : null}</div>
+          <div className="workspace-rail workspace-rail-left" id="workspace-objects">
+            <div className="compact-panel-heading"><strong>Objects &amp; layers</strong><button type="button" onClick={closePanel} aria-label="Close objects">Close</button></div>
             <ObjectNavigator
               bodies={BODY_OPTIONS}
               catalogTargets={CATALOG_TARGETS}
@@ -2890,18 +2935,7 @@ export function AppShell() {
               asteroidBeltVisible={asteroidBeltVisible}
               kuiperBeltVisible={kuiperBeltVisible}
               disabled={controlsDisabled}
-              onSelectBody={(bodyId) => {
-                setSelectedNaturalSatelliteId(null);
-                setSelectedSpaceObjectId(null);
-                rendererRef.current?.selectNaturalSatellite(null);
-                rendererRef.current?.selectSpaceObject(null);
-                const body = getObservatoryBodyDefinition(bodyId);
-                if (body?.kind === 'comet') {
-                  updateCometsVisible(true);
-                  rendererRef.current?.setCometsVisible(true);
-                }
-                controls.focusBody(bodyId);
-              }}
+              onSelectBody={handleBodySelectAndFocus}
               onSelectCatalogTarget={(target) => {
                 const renderer = rendererRef.current;
                 if (target.kind === 'natural-satellite') {
@@ -3139,10 +3173,15 @@ export function AppShell() {
             </div>
 
             <ObservatoryViewport
+              toolbar={<>
+                <button type="button" data-testid="system-overview" disabled={controlsDisabled} onClick={() => { controls.setCameraMode('overview'); if (compact) setPanel(null); }}>System overview</button>
+                <button type="button" id="desktop-toggle-time" className="desktop-time-toggle" aria-controls="workspace-time" aria-expanded={panel === 'time'} onClick={() => setPanel(panel === 'time' ? null : 'time')}>Time &amp; date</button>
+              </>}
               closeUpActive={activeCloseUpPresetId !== null}
               ariaLabel="Interactive Solar System observatory with catastrophe labs, adaptive performance, and optional experimental equilibrium-tide forcing"
             >
           <DebugCanvas
+            onSelectBody={handleBodySelectAndFocus}
             reducedMotion={reducedMotion}
             reduceFlashes={reduceFlashes}
             cameraMode={cameraMode}
@@ -3155,7 +3194,7 @@ export function AppShell() {
               manualCameraInteractionLocked ? undefined : handleCanvasInteractionStart
             }
           />
-          <div className="canvas-topbar">
+          <details className="canvas-topbar" name="scene-controls"><summary>Scene information</summary>
             <div className="badge-stack">
               <span
                 className={`mode-badge ${ephemeris.status === 'ready' ? '' : 'mode-badge-warning'}`}
@@ -3197,8 +3236,8 @@ export function AppShell() {
               ) : null}
               <span className="mode-badge">Positions linear · 1 AU / unit</span>
             </div>
-          </div>
-          {!impactActive ? <CanvasLegend
+          </details>
+          {!impactActive ? <details className="canvas-quick-picks" name="scene-controls"><summary>Planets</summary><CanvasLegend
             selectedBodyId={selectedBodyId}
             selectedBodyIsComet={selectedCometDefinition !== null}
             cometsVisible={cometsVisible}
@@ -3206,10 +3245,10 @@ export function AppShell() {
             experimentalTidesEnabled={experimentalTideMode !== 'off'}
             activeTideMode={activeTideMode}
             disabled={controlsDisabled}
-            onFocusBody={handleLegendBodyFocus}
+            onFocusBody={handleBodySelectAndFocus}
             onFocusComet={handleLegendCometFocus}
             onToggleTideComponent={handleLegendTideToggle}
-          /> : null}
+          /></details> : null}
           {ephemeris.status === 'loading' ? (
             <div className="observatory-load-state" role="status" data-testid="ephemeris-loading-state">
               <span className="loading-orbit" aria-hidden="true" />
@@ -3356,6 +3395,8 @@ export function AppShell() {
           ) : null}
         </ObservatoryViewport>
 
+            <div className="workspace-time" id="workspace-time">
+            <div className="time-panel-heading"><strong>Time &amp; camera</strong><button type="button" onClick={closePanel} aria-label="Close time controls">Close</button></div>
             <DebugTimeControls
               snapshot={snapshot}
               controls={controls}
@@ -3363,9 +3404,11 @@ export function AppShell() {
               selectedBodyId={selectedBodyId}
               disabled={controlsDisabled}
             />
+            </div>
           </section>
 
-          <div className="workspace-rail workspace-rail-right">
+          <div className="workspace-rail workspace-rail-right" id="workspace-view">
+            <div className="compact-panel-heading"><strong>View &amp; details</strong><button type="button" onClick={closePanel} aria-label="Close view">Close</button></div>
             {impactLabOpen ? (
               <div className="impact-lab-workspace" id="impact-lab-workspace">
                 {impactError === null ? null : (
@@ -3499,28 +3542,13 @@ export function AppShell() {
         </div>
       </main>
 
-      <footer className="observatory-footer">
-        <p>Camera-relative ephemerides · isolated scenario clocks · 2000–2100 TDB observatory data</p>
-        <p>
-          <a href={ephemerisValidationUrl} target="_blank" rel="noreferrer">
-            Planetary validation
-          </a>
-          {' · '}
-          <a href={smallBodyValidationUrl} target="_blank" rel="noreferrer">
-            Comet validation
-          </a>
-          {' · '}
-          <a href={surfaceAssetManifestUrl} target="_blank" rel="noreferrer">
-            Surface source manifest
-          </a>
-          {' · '}
-          <a href={moonSurfaceAssetManifestUrl} target="_blank" rel="noreferrer">
-            Moon texture manifest
-          </a>
-          {' · '}giant-atmosphere and ring profiles are versioned visualization data
-        </p>
-      </footer>
+      {!compact ? sourceFooter : null}
 
+      <nav className="workspace-dock" aria-label="Observatory panels">
+        {(['objects', 'time', 'view', 'tools'] as const).map((item) => (
+          <button key={item} id={`toggle-${item}`} type="button" aria-controls={`workspace-${item}`} aria-expanded={panel === item} onClick={() => setPanel(panel === item ? null : item)}>{item === 'objects' ? 'Objects' : item === 'time' ? 'Time' : item === 'view' ? 'View' : 'Tools'}</button>
+        ))}
+      </nav>
       <HelpOverlay
         open={helpOpen}
         onClose={() => setHelpOpen(false)}

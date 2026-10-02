@@ -1,0 +1,722 @@
+/* One bounded workspace. Controls participate in layout, never cover the scene. */
+.observatory-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  max-height: 100dvh;
+  overflow: hidden;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+    env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.observatory-header, .observatory-main, .observatory-footer {
+  width: min(calc(100% - 24px), 1800px);
+  min-width: 0;
+}
+.observatory-header {
+  flex: none;
+  min-height: 60px;
+  gap: 12px;
+  padding-block: 6px;
+}
+.brand-lockup {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.brand-title {
+  font-size: 18px;
+}
+.header-actions {
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.header-status {
+  display: none;
+}
+.observatory-back-slot {
+  flex: none;
+}
+#iom-back-link.observatory-back-link {
+  position: static !important;
+  inset: auto !important;
+  z-index: auto !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 1px solid #304a5c !important;
+  border-radius: 10px !important;
+  background: #091520 !important;
+  color: #b8d4e4 !important;
+  font-weight: 600;
+  line-height: 1.3;
+  font-family: inherit !important;
+  font-size: 12px !important;
+  text-decoration: none !important;
+  box-shadow: none !important;
+}
+#iom-back-link.observatory-back-link::after {
+  content: none !important;
+}
+.observatory-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding-bottom: 6px;
+}
+.workspace-title-row {
+  flex: none;
+  margin: 0;
+  padding: 0 0 8px;
+}
+.workspace-title-row h1 {
+  font-size: clamp(14px, 1.35vw, 21px);
+}
+.workspace-title-row p {
+  display: none;
+}
+.observatory-workspace {
+  flex: 1;
+  display: grid;
+  align-items: stretch;
+  grid-template-columns: minmax(200px, 224px) minmax(0, 1fr) minmax(260px, 294px);
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+  gap: 10px;
+  overflow: hidden;
+}
+.workspace-rail {
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+.workspace-rail-right {
+  grid-column: auto;
+}
+.workspace-rail > * + * {
+  margin-top: 10px;
+}
+.observatory-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.stage-heading {
+  flex: none;
+  min-height: 48px;
+  padding: 8px 12px;
+  gap: 8px;
+}
+.stage-heading-primary, .stage-heading-primary > span:last-child {
+  min-width: 0;
+}
+.stage-heading-primary strong {
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.stage-heading-actions {
+  min-width: 0;
+  font-size: 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.observatory-stage > .canvas-section, .canvas-section {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+}
+.viewport-toolbar {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #08121d;
+  border-bottom: 1px solid #253948;
+}
+.viewport-toolbar > button {
+  font-size: 12px;
+  padding: 8px 10px;
+}
+.viewport-toolbar .viewport-fullscreen-button {
+  position: static;
+  margin-left: auto;
+  transform: none;
+  flex: 0 0 auto;
+  border-radius: 9px;
+}
+.viewport-surface {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  background: #03070c;
+}
+.viewport-surface .observatory-canvas-frame {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  position: relative;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.viewport-surface .observatory-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  touch-action: none;
+}
+.viewport-surface .webgl-fallback {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+.viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
+  position: static;
+  inset: auto;
+  display: block;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  grid-row: 1;
+  background: #08131e;
+  border-bottom: 1px solid #253948;
+  z-index: auto;
+  max-height: 28dvh;
+  overflow: auto;
+}
+.viewport-surface .canvas-topbar {
+  grid-column: 1;
+}
+.viewport-surface .canvas-quick-picks {
+  grid-column: 2;
+}
+.canvas-topbar > summary, .canvas-quick-picks > summary {
+  padding: 12px;
+  color: #a3cbdc;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.viewport-surface .badge-stack {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 6px;
+  margin: 0;
+  max-width: 100%;
+  gap: 6px;
+}
+.viewport-surface .mode-badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+  font-size: 10px;
+}
+.viewport-surface .canvas-legend {
+  position: static;
+  inset: auto;
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 6px;
+  overflow: visible;
+  border: none;
+  border-radius: 0;
+  transform: none;
+  gap: 4px;
+}
+.viewport-surface .canvas-legend-action {
+  flex: 1 1 70px;
+  min-height: 44px;
+  padding: 8px;
+  font-size: 12px;
+  justify-content: center;
+}
+.viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud, .cinematic-tour-status) {
+  position: static;
+  inset: auto;
+  grid-column: 1 / -1;
+  width: auto;
+  max-width: 100%;
+  max-height: 22dvh;
+  overflow: auto;
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 0;
+  font-size: 11px;
+}
+.canvas-hint {
+  max-width: calc(100% - 24px);
+  font-size: 10px;
+  bottom: 8px;
+  left: 12px;
+  pointer-events: none;
+}
+.body-label-layer .body-screen-label {
+  display: block;
+  pointer-events: auto;
+  min-width: 44px;
+  min-height: 44px;
+  max-width: min(180px, 80%);
+  padding: 6px 8px;
+  font-weight: 600;
+  line-height: 1.3;
+  font-family: inherit;
+  font-size: 11px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  background: #07121ec9;
+  border: 1px solid #547688;
+  border-radius: 10px;
+  touch-action: none;
+}
+.body-screen-label[data-selected='true'] {
+  background: #153b50db;
+  border-color: #83d7fb;
+}
+.workspace-time {
+  display: none;
+  min-height: 0;
+  min-width: 0;
+  max-height: 44dvh;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.observatory-app[data-workspace-panel='time'] .workspace-time {
+  display: block;
+  flex: 0 1 44dvh;
+}
+.compact-panel-heading {
+  display: none;
+}
+.time-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  background: #102334;
+}
+.workspace-dock {
+  display: none;
+}
+.observatory-footer {
+  flex: none;
+  padding: 3px 0;
+}
+.observatory-footer p {
+  font-size: 10px;
+  margin: 0;
+}
+.observatory-footer a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+}
+.observatory-app :is(button, select, input:not([type='checkbox']):not([type='radio']), summary) {
+  min-width: 44px;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.observatory-app button {
+  cursor: pointer;
+  line-height: 1.35;
+}
+.observatory-app button:disabled {
+  cursor: not-allowed;
+}
+.observatory-app :is(button, a, input, select, summary):focus-visible {
+  outline: 2px solid #99e1ff !important;
+  outline-offset: -3px;
+}
+.observatory-app :is(input, select, fieldset, .field-stack, .input-action-row) {
+  min-width: 0;
+  max-width: 100%;
+}
+.observatory-app label:has(input[type='checkbox']), .observatory-app label:has(input[type='radio']) {
+  min-height: 44px;
+  align-items: center;
+}
+.observatory-app .segmented-row {
+  flex-wrap: wrap;
+}
+.observatory-app .segmented-row > button {
+  white-space: normal;
+  flex: 1 1 100px;
+}
+.observatory-app .body-list-item {
+  min-height: 52px;
+}
+.observatory-app .body-list-item strong {
+  overflow-wrap: anywhere;
+}
+.observatory-app .body-list {
+  max-height: min(50dvh, 420px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.observatory-dialog-backdrop {
+  padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+}
+.observatory-dialog {
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 16px);
+  width: min(100%, 1000px);
+  min-width: 0;
+}
+.observatory-dialog-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.canvas-section[data-fullscreen-active='true'] {
+  height: 100dvh;
+  max-height: 100dvh;
+  min-height: 0;
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+}
+.canvas-section[data-fullscreen-active='true'] .viewport-fullscreen-button {
+  position: static;
+}
+.canvas-section[data-fullscreen-active='true'] :is(.observatory-canvas-frame, .observatory-canvas) {
+  height: 100%;
+  min-height: 0;
+}
+@media (max-width: 1100px), (max-height: 600px) {
+  .observatory-header, .observatory-main, .observatory-footer {
+    width: calc(100% - 16px);
+  }
+  .observatory-header {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 54px;
+    padding-block: 4px;
+  }
+  .brand-lockup {
+    flex: 1;
+    gap: 8px;
+  }
+  .brand-orbit {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+  }
+  .brand-title {
+    font-size: 15px;
+  }
+  .brand-kicker {
+    font-size: 9px;
+    letter-spacing: .14em;
+  }
+  .header-actions {
+    display: none;
+    flex: 0 0 100%;
+    max-height: 35dvh;
+    overflow: auto;
+    padding: 8px;
+    background: #0b1927;
+    border: 1px solid #30495b;
+    border-radius: 12px;
+  }
+  .observatory-app[data-workspace-panel='tools'] .header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .header-actions .compact-panel-heading {
+    grid-column: 1 / -1;
+  }
+  .workspace-title-row {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .observatory-workspace {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .workspace-rail {
+    display: none;
+    max-height: 42dvh;
+    grid-column: 1;
+    grid-row: 2;
+    border: 1px solid #30495b;
+    border-radius: 12px;
+    background: #0b1725;
+  }
+  .observatory-app[data-workspace-panel='objects'] .workspace-rail-left,
+  .observatory-app[data-workspace-panel='view'] .workspace-rail-right {
+    display: block;
+  }
+  .observatory-app:is([data-workspace-panel='objects'], [data-workspace-panel='view'], [data-workspace-panel='tools']) .observatory-workspace {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 42dvh);
+  }
+  .observatory-stage {
+    grid-column: 1;
+    grid-row: 1;
+    gap: 5px;
+  }
+  .stage-heading {
+    min-height: 44px;
+    padding: 5px 10px;
+  }
+  .stage-heading-primary strong {
+    font-size: 13px;
+  }
+  .stage-heading-primary small {
+    font-size: 9px;
+  }
+  .stage-heading-actions {
+    display: none;
+  }
+  .compact-panel-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 6px 12px;
+    font-size: 13px;
+    background: #102334;
+  }
+  .workspace-rail > .compact-panel-heading {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+  .workspace-dock {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    flex: none;
+    gap: 5px;
+    padding: 4px 8px 6px;
+    background: #060d15;
+  }
+  .workspace-dock button {
+    padding: 8px 3px;
+    font-size: 12px;
+    border-radius: 10px;
+  }
+  .workspace-dock button[aria-expanded='true'] {
+    background: #16445d;
+    border-color: #89dfff;
+    color: #effaff;
+  }
+  .desktop-time-toggle {
+    display: none;
+  }
+  .viewport-toolbar {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+  .viewport-toolbar .viewport-fullscreen-label {
+    display: inline;
+    position: static;
+    width: auto;
+    height: auto;
+    clip: auto;
+    clip-path: none;
+  }
+  .viewport-toolbar .viewport-fullscreen-button {
+    width: auto;
+    min-width: 44px;
+  }
+  .viewport-fullscreen-icon {
+    width: 14px;
+    height: 14px;
+  }
+  .canvas-hint {
+    display: none;
+  }
+  .workspace-time .time-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .workspace-time .focus-controls {
+    display: flex;
+    flex-direction: column;
+  }
+  .workspace-time .input-action-row {
+    display: flex;
+    flex-wrap: wrap;
+  }
+  .workspace-time input[type='datetime-local'] {
+    flex: 1 1 180px;
+    width: 100%;
+  }
+  .observatory-footer {
+    display: none;
+    max-height: 15dvh;
+    overflow: auto;
+  }
+  .observatory-app[data-workspace-panel='tools'] .observatory-footer {
+    display: block;
+  }
+  .control-panel, .workspace-rail .control-panel {
+    padding: 12px;
+  }
+  .observatory-dialog-header {
+    align-items: start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .observatory-dialog-header h2 {
+    font-size: 20px;
+    overflow-wrap: anywhere;
+  }
+  .observatory-dialog-content {
+    padding: 12px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .brand-kicker {
+    display: none;
+  }
+  .observatory-header {
+    min-height: 48px;
+  }
+  .observatory-app:is([data-workspace-panel='objects'], [data-workspace-panel='time'], [data-workspace-panel='view'], [data-workspace-panel='tools']) .observatory-workspace {
+    grid-template-columns: minmax(0, 1fr) min(340px, 42%);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .observatory-stage {
+    display: contents;
+  }
+  .stage-heading {
+    grid-row: 1;
+    grid-column: 1;
+    min-height: 32px;
+  }
+  .observatory-stage > .canvas-section {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .observatory-workspace {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .observatory-app .workspace-rail, .observatory-app .workspace-time {
+    grid-row: 1 / 3;
+    grid-column: 2;
+    max-height: 100%;
+  }
+  .viewport-toolbar {
+    padding-block: 2px;
+  }
+  .canvas-topbar > summary, .canvas-quick-picks > summary {
+    padding-block: 12px;
+  }
+}
+.viewport-toolbar > button, .workspace-dock > button, .compact-panel-heading > button, .time-panel-heading > button {
+  background: #0b1b2b;
+  border: 1px solid #37566c;
+  color: #dcebf4;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 8px 12px;
+}
+.viewport-toolbar > button:hover:not(:disabled), .workspace-dock > button:hover, .compact-panel-heading > button:hover, .time-panel-heading > button:hover {
+  background: #17384e;
+  border-color: #82cde9;
+}
+body {
+  min-height: 100dvh;
+}
+.observatory-dialog :is(button, select, input:not([type='checkbox']), summary) {
+  min-width: 44px;
+  min-height: 44px;
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud, .cinematic-tour-status) {
+    max-height: 48px;
+  }
+}
+@media (min-width: 1101px) and (min-height: 601px) {
+  .observatory-app[data-workspace-panel='time'] .workspace-time {
+    flex-basis: 34dvh;
+    max-height: 34dvh;
+  }
+}
+.workspace-rail-tools {
+  display: none;
+}
+@media (max-width: 1100px), (max-height: 600px) {
+  .observatory-app[data-workspace-panel='tools'] .workspace-rail-tools {
+    display: block;
+  }
+  .workspace-rail-tools .header-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-height: none;
+    margin: 0;
+    padding: 6px;
+    border: none;
+    overflow: visible;
+  }
+  .workspace-rail-tools .observatory-footer {
+    display: block;
+    max-height: none;
+    width: 100%;
+    padding: 12px;
+    overflow: visible;
+  }
+  .workspace-rail-tools .observatory-footer a {
+    font-size: 12px;
+  }
+  .observatory-app :is(input:not([type='range']):not([type='checkbox']), select) {
+    font-size: 16px;
+  }
+}
+@media (max-width: 1100px), (max-height: 600px) {
+  .viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
+    max-height: min(18dvh, 120px);
+  }
+  .viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud) {
+    max-height: 88px;
+  }
+}
+@media (orientation: landscape) and (max-height: 600px) {
+  .viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud) {
+    max-height: 48px;
+  }
+}
+.viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
+  pointer-events: auto;
+}
+.observatory-app[data-compact='true'] .body-list {
+  max-height: none;
+  overflow: visible;
+}

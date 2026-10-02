@@ -1,0 +1,32 @@
+{
+  "checks": [
+    "Selected/focused saturn",
+    "Complete ring extent fits desktop",
+    "Drag preserves selection and hands off to manual orbit",
+    "Selected/focused saturn",
+    "Scene label uses the same focus",
+    "Selected/focused saturn",
+    "Ray-picked planet disc selects and focuses",
+    "Selected/focused mars",
+    "Selected/focused earth",
+    "Selected/focused saturn",
+    "Selected/focused saturn",
+    "Inspector and repeated selection agree",
+    "Presentation scale",
+    "True scale",
+    "Complete ring extent fits portrait",
+    "Complete ring extent fits with open panel",
+    "Selected/focused earth",
+    "Moving Earth remains centered at one day per second",
+    "Emulated two-finger pinch does not select",
+    "Selected/focused earth",
+    "Touch label selects",
+    "UI tap does not reach scene",
+    "Escape closes panel and restores keyboard focus",
+    "System overview",
+    "Full screen enter/exit",
+    "Selected/focused 67p-churyumov-gerasimenko",
+    "Long comet name selected with keyboard"
+  ],
+  "errors": []
+}

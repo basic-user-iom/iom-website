@@ -10,6 +10,21 @@ import { ASTRONOMICAL_UNIT_M } from '../../simulation/core/Units';
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 });
 
 describe('CameraController', () => {
+  it.each([1, 40])('fits Saturn rings in a narrow viewport at render multiplier %s', (scale) => {
+    const radius = 0.001 * scale;
+    const body = { ...bodyTarget('saturn', ORIGIN, ORIGIN, radius), framingRadiusRenderUnits: radius * 2.4 };
+    const bodies = new Map([['saturn', body]]);
+    const controller = new CameraController();
+    controller.focusBody('saturn');
+    const cameraFrame = frame({ bodies, viewportAspect: 0.45, verticalFovRadians: Math.PI / 3, reducedMotion: true });
+    controller.update(cameraFrame);
+    const halfHorizontal = Math.atan(Math.tan(Math.PI / 6) * 0.45);
+    const distance = controller.rig.position.distanceTo(controller.rig.target);
+    expect(Math.asin(body.framingRadiusRenderUnits / distance)).toBeLessThan(halfHorizontal);
+    controller.update({ ...cameraFrame, viewportAspect: 2 });
+    expect(controller.rig.position.distanceTo(controller.rig.target)).toBeLessThan(distance);
+  });
+
   it('produces overview, follow, top-down, chase, and free-orbit poses', () => {
     const bodies = new Map<string, CameraBodyTarget>([
       [

@@ -11,6 +11,8 @@ import {
   GridHelper,
   Group,
   PerspectiveCamera,
+  Raycaster,
+  Sphere,
   PointLight,
   Quaternion,
   Scene,
@@ -198,6 +200,7 @@ interface MutableCameraBodyTarget {
   velocityMps: DebugBodyRenderState['velocityMps'];
   radiusM: number;
   radiusRenderUnits: number;
+  framingRadiusRenderUnits?: number;
   visualLocalToScene: Quaternion;
   visible: boolean;
 }
@@ -213,7 +216,7 @@ interface MarkerResources {
   readonly isComet: boolean;
   readonly cameraTarget: MutableCameraBodyTarget;
   readonly clipSphere: MutableClipSphere;
-  readonly label: HTMLSpanElement | null;
+  readonly label: HTMLButtonElement | null;
   readonly scenarioPositionM: { x: number; y: number; z: number };
   readonly scenarioVelocityMps: { x: number; y: number; z: number };
   bodyState: DebugBodyRenderState;
@@ -344,6 +347,8 @@ export class DebugSolarSystemRenderer {
     metersPerRenderUnit: 1,
     bodies: this.cameraBodies as ReadonlyMap<string, CameraBodyTarget>,
     overviewRadiusRenderUnits: 32,
+    viewportAspect: 1,
+    verticalFovRadians: Math.PI / 4,
     reducedMotion: false,
   };
   private readonly mutableBlackHoleLensingFrame: MutableBlackHoleLensingFrame = {
@@ -604,6 +609,7 @@ export class DebugSolarSystemRenderer {
           marker.cameraTarget.radiusRenderUnits *
           (marker.visual as PhaseFourBodyVisual).boundingRadiusMultiplier;
       }
+      marker.cameraTarget.framingRadiusRenderUnits = marker.clipSphere.radius;
       this.cameraBodies.set(body.bodyId, marker.cameraTarget);
 
       if (!body.visible || !layerVisible) {
@@ -766,6 +772,13 @@ export class DebugSolarSystemRenderer {
     this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     if (body.kind !== 'comet') this.bodyVisualSystem.ensureAssets(bodyId);
+    // Consume residual OrbitControls damping before a programmatic focus. Otherwise
+    // the old drag resumes when the user next touches the newly focused body.
+    const damping = this.controls.enableDamping;
+    this.controls.enableDamping = false;
+    this.controls.update(0);
+    this.controls.enableDamping = damping;
+    this.cameraController.rig.applyTo(this.camera, this.controls.target);
     this.cameraController.focusBody(bodyId, mode);
     this.controls.enabled = mode === 'free-orbit';
     this.freeOrbitNeedsInitialization = mode === 'free-orbit';
@@ -1888,6 +1901,8 @@ export class DebugSolarSystemRenderer {
     cameraFrame.metersPerRenderUnit = this.scaleModel.metersPerRenderUnit;
     cameraFrame.overviewRadiusRenderUnits = this.overviewRadiusRenderUnits;
     cameraFrame.reducedMotion = this.reducedMotion;
+    cameraFrame.viewportAspect = this.camera.aspect;
+    cameraFrame.verticalFovRadians = this.camera.fov * Math.PI / 180;
     const initializingFreeOrbit =
       this.cameraController.mode === 'free-orbit' &&
       this.freeOrbitNeedsInitialization;
@@ -2226,14 +2241,41 @@ export class DebugSolarSystemRenderer {
     }
   }
 
-  private createBodyLabel(body: DebugBodyRenderState): HTMLSpanElement | null {
+  /** Ray/sphere intersection uses the same rendered positions and radii as the visible bodies. */
+  public pickBodyAt(clientX: number, clientY: number, hitSlopPx = 8): string | null {
+    const rect = this.canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+    const point = new Vector2((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2);
+    const ray = new Raycaster();
+    ray.setFromCamera(point, this.camera);
+    const intersection = new Vector3();
+    let nearest = Infinity;
+    let picked: string | null = null;
+    let fallback: string | null = null;
+    let pixelDistance = hitSlopPx;
+    for (const [id, marker] of this.markers) {
+      if (!marker.root.visible) continue;
+      if (ray.ray.intersectSphere(new Sphere(marker.root.position, marker.cameraTarget.radiusRenderUnits), intersection)) {
+        const distance = intersection.distanceTo(this.camera.position);
+        if (distance < nearest) { nearest = distance; picked = id; }
+      }
+      if (marker.onScreen) {
+        const distance = Math.hypot(clientX - rect.left - marker.screenX, clientY - rect.top - marker.screenY);
+        if (distance < pixelDistance) { pixelDistance = distance; fallback = id; }
+      }
+    }
+    return picked ?? fallback;
+  }
+
+  private createBodyLabel(body: DebugBodyRenderState): HTMLButtonElement | null {
     if (this.labelContainer === null) return null;
-    const label = document.createElement('span');
+    const label = document.createElement('button');
+    label.type = 'button';
     label.className = 'body-screen-label';
     label.textContent = body.displayName;
     label.dataset.bodyId = body.bodyId;
     label.dataset.testid = `body-label-${body.bodyId}`;
-    label.setAttribute('aria-hidden', 'true');
+    label.setAttribute('aria-label', `Focus ${body.displayName}`);
     this.labelContainer.append(label);
     return label;
   }
@@ -2275,7 +2317,7 @@ export class DebugSolarSystemRenderer {
       || this.scenarioOverlaysSuppressed()
     ) {
       for (const marker of this.markers.values()) {
-        if (marker.label !== null) marker.label.style.opacity = '0';
+        if (marker.label !== null) { marker.label.style.opacity = '0'; marker.label.style.visibility = 'hidden'; }
       }
       if (this.selectionIndicator !== null) {
         this.selectionIndicator.style.opacity = '0';
@@ -2306,6 +2348,14 @@ export class DebugSolarSystemRenderer {
         this.viewportHeight,
       );
       const cueOpacity = selectionCueOpacityForProjectedRadius(projectedRadiusPx);
+      this.canvas.dataset.selectedScreenX = String(selectedMarker.screenX);
+      this.canvas.dataset.selectedScreenY = String(selectedMarker.screenY);
+      this.canvas.dataset.selectedRadiusPx = String(projectedRadiusPx);
+      this.canvas.dataset.selectedVisualRadiusPx = String(projectedSphereRadiusPx(
+        this.camera, selectedMarker.root.position,
+        selectedMarker.cameraTarget.framingRadiusRenderUnits ?? selectedMarker.cameraTarget.radiusRenderUnits,
+        this.viewportWidth, this.viewportHeight,
+      ));
       this.selectionIndicator.dataset.bodyId = this.selectedBodyId;
       this.selectionIndicator.dataset.projectedRadiusPx = projectedRadiusPx.toFixed(2);
       this.selectionIndicator.dataset.proximityHidden = String(cueOpacity <= 0.001);
@@ -2324,13 +2374,14 @@ export class DebugSolarSystemRenderer {
     selected: boolean,
   ): void {
     if (marker.label === null) return;
-    const x = marker.screenX + 14;
-    const y = marker.screenY + labelVerticalOffset(bodyId);
+    const width = marker.label.offsetWidth || 80;
+    const x = Math.max(4, Math.min(this.viewportWidth - width - 4, marker.screenX + 14));
+    const y = Math.max(26, Math.min(this.viewportHeight - 26, marker.screenY + labelVerticalOffset(bodyId)));
     let overlaps = false;
     for (let index = 0; index < occupied.length; index += 2) {
       const occupiedX = occupied[index] ?? 0;
       const occupiedY = occupied[index + 1] ?? 0;
-      if (Math.abs(occupiedX - x) < 68 && Math.abs(occupiedY - y) < 20) {
+      if (Math.abs(occupiedX - x) < 184 && Math.abs(occupiedY - y) < 48) {
         overlaps = true;
         break;
       }
@@ -2340,6 +2391,8 @@ export class DebugSolarSystemRenderer {
       this.naturalSatelliteVisualSystem.getDiagnostics().selectedSatelliteId !== null;
     const shown = this.bodyLabelsVisible && marker.onScreen && (selected || !overlaps) && !inspectingMoon;
     marker.label.style.opacity = shown ? (selected ? '1' : '0.76') : '0';
+    marker.label.style.visibility = shown ? 'visible' : 'hidden';
+    marker.label.setAttribute('aria-pressed', String(selected));
     marker.label.style.transform = `translate(${x}px, ${y}px) translate(0, -50%)`;
     if (shown) occupied.push(x, y);
   }

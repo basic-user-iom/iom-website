@@ -296,7 +296,8 @@ export class CameraController {
   ): void {
     switch (this.modeValue) {
       case 'overview':
-        this.setOverviewPose(overviewRadius);
+        this.setOverviewPose(Math.max(overviewRadius, this.fitRadius(overviewRadius, frame) /
+          Math.hypot(this.options.overviewElevationMultiplier, this.options.overviewDistanceMultiplier)));
         return;
       case 'free-orbit':
         this.setFreeOrbitPose(targetBody, frame);
@@ -465,6 +466,7 @@ export class CameraController {
     const distance = Math.max(
       this.options.minimumFocusDistanceRenderUnits,
       this.renderRadius(targetBody, frame) * preset.distanceRadiusMultiplier,
+      this.fitDistance(targetBody, frame),
     );
     this.desiredPosition
       .copy(this.mappedBody)
@@ -582,7 +584,19 @@ export class CameraController {
     return Math.max(
       this.options.minimumFocusDistanceRenderUnits,
       this.renderRadius(targetBody, frame) * this.options.focusRadiusMultiplier,
+      this.fitDistance(targetBody, frame),
     );
+  }
+
+  private fitDistance(targetBody: CameraBodyTarget, frame: CameraUpdateFrame): number {
+    return this.fitRadius(targetBody.framingRadiusRenderUnits ?? this.renderRadius(targetBody, frame), frame);
+  }
+
+  private fitRadius(radius: number, frame: CameraUpdateFrame): number {
+    if (frame.viewportAspect === undefined || frame.verticalFovRadians === undefined) return 0;
+    const halfVertical = frame.verticalFovRadians / 2;
+    const halfHorizontal = Math.atan(Math.tan(halfVertical) * Math.max(0.01, frame.viewportAspect));
+    return radius * 1.15 / Math.sin(Math.min(halfVertical, halfHorizontal));
   }
 
   private renderRadius(

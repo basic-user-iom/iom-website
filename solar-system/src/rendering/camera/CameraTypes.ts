@@ -35,6 +35,8 @@ export interface CameraBodyTarget {
    * the visibly exaggerated body, rather than its true physical radius.
    */
   readonly radiusRenderUnits?: number;
+  /** Visible extent, including rings; only used for camera framing. */
+  readonly framingRadiusRenderUnits?: number;
   /** Visual sphere local (+Y north) to scene rotation, normally the visual root quaternion. */
   readonly visualLocalToScene?: Readonly<CameraOrientation>;
   readonly visible?: boolean;
@@ -49,6 +51,8 @@ export interface CameraUpdateFrame {
   /** Bounding radius of the orbit/trail layer in current render units. */
   readonly overviewRadiusRenderUnits?: number;
   readonly reducedMotion?: boolean;
+  readonly viewportAspect?: number;
+  readonly verticalFovRadians?: number;
 }
 
 export interface CameraControllerStatus {

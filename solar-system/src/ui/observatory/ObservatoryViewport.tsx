@@ -13,6 +13,7 @@ type FullscreenMode = 'idle' | 'native' | 'fallback';
 
 export interface ObservatoryViewportProps {
   readonly children: ReactNode;
+  readonly toolbar?: ReactNode;
   readonly closeUpActive: boolean;
   readonly ariaLabel: string;
 }
@@ -25,6 +26,7 @@ export interface ObservatoryViewportProps {
  */
 export function ObservatoryViewport({
   children,
+  toolbar,
   closeUpActive,
   ariaLabel,
 }: ObservatoryViewportProps) {
@@ -118,7 +120,8 @@ export function ObservatoryViewport({
       data-fullscreen-mode={fullscreenMode}
       aria-label={ariaLabel}
     >
-      {children}
+      <div className="viewport-toolbar">
+      {toolbar}
       <button
         className="viewport-fullscreen-button"
         type="button"
@@ -134,6 +137,8 @@ export function ObservatoryViewport({
           {fullscreenActive ? 'Exit full screen' : 'Full screen'}
         </span>
       </button>
+      </div>
+      <div className="viewport-surface">{children}</div>
     </section>
   );
 }
