@@ -1,3 +1,4 @@
+import { ViewportMenus } from '../ui/observatory/ViewportMenus';
 import { StartupProgressTracker, downloadBinary, type StartupProgress } from './StartupProgress';
 import { StartupScreen } from '../ui/observatory/StartupScreen';
 import type { SolarFateCameraView } from '../rendering/solar-fate/SolarFateCamera';
@@ -3243,7 +3244,7 @@ export function AppShell() {
               manualCameraInteractionLocked ? undefined : handleCanvasInteractionStart
             }
           />
-          <details className="canvas-topbar" name="scene-controls"><summary>Scene information</summary>
+          <ViewportMenus key={activeScenarioId ?? 'observatory'} onOpen={() => setPanel(null)} information={
             <div className="badge-stack">
               <span
                 className={`mode-badge ${ephemeris.status === 'ready' ? '' : 'mode-badge-warning'}`}
@@ -3286,8 +3287,7 @@ export function AppShell() {
               <span className="mode-badge">Dots mark distant bodies · dot sizes are not to scale</span>
               <span className="mode-badge">Positions linear · 1 AU / unit</span>
             </div>
-          </details>
-          {!impactActive ? <details className="canvas-quick-picks" name="scene-controls"><summary>Planets</summary><CanvasLegend
+          } renderPlanets={impactActive ? undefined : (closeMenu) => <CanvasLegend
             selectedBodyId={selectedBodyId}
             selectedBodyIsComet={selectedCometDefinition !== null}
             cometsVisible={cometsVisible}
@@ -3295,10 +3295,10 @@ export function AppShell() {
             experimentalTidesEnabled={experimentalTideMode !== 'off'}
             activeTideMode={activeTideMode}
             disabled={controlsDisabled}
-            onFocusBody={handleBodySelectAndFocus}
-            onFocusComet={handleLegendCometFocus}
-            onToggleTideComponent={handleLegendTideToggle}
-          /></details> : null}
+            onFocusBody={(bodyId) => { handleBodySelectAndFocus(bodyId); closeMenu(); }}
+            onFocusComet={() => { handleLegendCometFocus(); closeMenu(); }}
+            onToggleTideComponent={(component) => { handleLegendTideToggle(component); closeMenu(); }}
+          />} />
           {ephemeris.status === 'loading' ? (
             <div className="observatory-load-state" role="status" data-testid="ephemeris-loading-state">
               <span className="loading-orbit" aria-hidden="true" />

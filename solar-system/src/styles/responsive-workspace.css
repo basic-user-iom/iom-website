@@ -195,33 +195,26 @@
   min-height: 0;
   overflow: auto;
 }
-.viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
-  position: static;
-  inset: auto;
-  display: block;
-  width: auto;
-  min-width: 0;
-  margin: 0;
-  grid-row: 1;
-  background: #08131e;
-  border-bottom: 1px solid #253948;
-  z-index: auto;
-  max-height: 28dvh;
-  overflow: auto;
+.viewport-menus {
+  grid-column: 1 / -1; grid-row: 1;
+  display: flex; flex-direction: column; min-width: 0; min-height: 44px;
+  max-height: min(40dvh, 260px); overflow: hidden;
+  background: #08131e; border-bottom: 1px solid #253948;
 }
-.viewport-surface .canvas-topbar {
-  grid-column: 1;
+.viewport-menu-tabs { display: flex; flex: none; min-height: 44px; }
+.viewport-menu-tabs > button {
+  flex: 1; min-width: 0; min-height: 44px; padding: 10px 12px;
+  border: 0; border-radius: 0; background: transparent;
+  color: #a3cbdc; font-size: 12px; font-weight: 600; text-align: left;
 }
-.viewport-surface .canvas-quick-picks {
-  grid-column: 2;
+.viewport-menu-tabs > button[aria-expanded='true'] { background: #11293a; color: #d9f5ff; }
+.viewport-menu-tabs > button:focus-visible { outline-offset: -3px; }
+.viewport-menus .viewport-menu-content {
+  position: static; inset: auto; display: block; width: 100%; min-width: 0; min-height: 0;
+  margin: 0; max-height: none; overflow: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: #4c7189 #08131e; pointer-events: auto;
 }
-.canvas-topbar > summary, .canvas-quick-picks > summary {
-  padding: 12px;
-  color: #a3cbdc;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-}
+.viewport-menus .viewport-menu-content[hidden] { display: none; }
 .viewport-surface .badge-stack {
   display: flex;
   flex-wrap: wrap;
@@ -239,8 +232,8 @@
 .viewport-surface .canvas-legend {
   position: static;
   inset: auto;
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
   width: 100%;
   max-width: 100%;
   margin: 0;
@@ -635,9 +628,11 @@
   .viewport-toolbar {
     padding-block: 2px;
   }
-  .canvas-topbar > summary, .canvas-quick-picks > summary {
+  .viewport-menu-tabs > button {
     padding-block: 12px;
   }
+  /* Keep a scrollable row of targets and leave room for the scene on short screens. */
+  .viewport-menus { max-height: 100px; }
 }
 .viewport-toolbar > button, .workspace-dock > button, .compact-panel-heading > button, .time-panel-heading > button {
   background: #0b1b2b;
@@ -701,9 +696,6 @@ body {
   }
 }
 @media (max-width: 1100px), (max-height: 600px) {
-  .viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
-    max-height: min(18dvh, 120px);
-  }
   .viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud) {
     max-height: 88px;
   }
@@ -712,9 +704,6 @@ body {
   .viewport-surface :is(.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud) {
     max-height: 48px;
   }
-}
-.viewport-surface .canvas-topbar, .viewport-surface .canvas-quick-picks {
-  pointer-events: auto;
 }
 .observatory-app[data-compact='true'] .body-list {
   max-height: none;

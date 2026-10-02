@@ -20,7 +20,7 @@ describe('interactive canvas legend', () => {
     const markup = renderLegend({ selectedBodyId: 'earth' });
 
     expect(markup).toContain('role="group"');
-    expect(markup).toContain('aria-label="Solar System locations and overlays. Scroll horizontally for more bodies."');
+    expect(markup).toContain('aria-label="Choose a Solar System object or overlay"');
     expect(markup).not.toContain('aria-hidden="true"><button');
     for (const [id, label] of BODY_SHORTCUTS) {
       expect(markup).toContain(`data-testid="legend-body-${id}"`);
