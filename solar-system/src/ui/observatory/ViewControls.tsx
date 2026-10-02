@@ -152,7 +152,7 @@ export function ViewControls({
         </div>
       </fieldset>
       <p className="field-help" id="close-up-preset-help">
-        Saturn from Earth follows the selected date, not today. Saturn rings is a separate 20° inspection view.
+        Saturn from Earth follows the date on the timeline. Saturn rings is a separate 20° inspection view.
       </p>
 
       <label className="field-stack" htmlFor="visual-quality">

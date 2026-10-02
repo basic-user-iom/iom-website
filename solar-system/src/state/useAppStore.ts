@@ -1,3 +1,4 @@
+import { dateUtcToApproximateTdb } from '../simulation/core/JulianDate';
 import { create } from 'zustand';
 import { persist, type PersistStorage } from 'zustand/middleware';
 
@@ -92,11 +93,14 @@ export interface AppState {
   setSelectedTrailInterval(selectedTrailInterval: SelectedTrailInterval): void;
 }
 
+// Read the browser clock on each page load, including the loading-state UI.
+const startupDateUtc = new Date();
+
 export const INITIAL_SIMULATION_SNAPSHOT: Readonly<SimulationUiSnapshot> = Object.freeze({
   sequence: 0,
   publishedAtMs: 0,
-  currentJdTdb: 2_451_545,
-  currentUtcIso: '2000-01-01T12:00:00.000Z',
+  currentJdTdb: dateUtcToApproximateTdb(startupDateUtc),
+  currentUtcIso: startupDateUtc.toISOString(),
   paused: true,
   direction: 1,
   timeScale: 1,

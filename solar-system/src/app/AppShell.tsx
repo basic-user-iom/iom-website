@@ -103,7 +103,7 @@ import {
   nearestSpacecraftCoverageJdTdb,
 } from '../simulation/spacecraft';
 import { FloatingOrigin } from '../simulation/core/FloatingOrigin';
-import { approximateTdbToDateUtc } from '../simulation/core/JulianDate';
+import { approximateTdbToDateUtc, dateUtcToApproximateTdb } from '../simulation/core/JulianDate';
 import {
   SimulationClock,
   type SimulationClockSnapshot,
@@ -878,7 +878,9 @@ export function AppShell() {
             } satisfies EarthTideDebugRenderSample;
         let tidalDebugSamplePublished = false;
 
-        const clock = new SimulationClock();
+        const clock = new SimulationClock({
+          initialJdTdb: dateUtcToApproximateTdb(new Date()),
+        });
         const floatingOrigin = new FloatingOrigin();
         const context = new SimulationContext({
           clock,

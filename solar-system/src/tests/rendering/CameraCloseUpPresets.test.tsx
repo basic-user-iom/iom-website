@@ -141,7 +141,7 @@ describe('Phase 5 close-up camera presets', () => {
 
     expect(markup).toContain('data-testid="camera-close-up-presets"');
     expect(markup).toContain('data-testid="camera-preset-saturn-from-earth"');
-    expect(markup).toContain('follows the selected date, not today');
+    expect(markup).toContain('follows the date on the timeline');
     expect(markup).toContain('data-testid="camera-preset-jupiter-great-red-spot"');
     expect(markup).toContain(
       'aria-pressed="true" data-testid="camera-preset-saturn-rings"',
