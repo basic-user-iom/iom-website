@@ -14,7 +14,7 @@ export class PrecisionPath {
   private readonly view: Float64Array;
   private readonly planes = new Float64Array(24);
 
-  constructor(capacity: number) {
+  constructor(capacity: number, private readonly topology: 'strip' | 'segments' = 'strip') {
     this.positions = new Float64Array(capacity * 3);
     this.colors = new Float32Array(capacity * 3);
     this.view = new Float64Array(capacity * 3);
@@ -47,7 +47,7 @@ export class PrecisionPath {
       0, p[5]!, p[9]! - 1.01, 0, 0, -p[5]!, -p[9]! - 1.01, 0,
     ]);
     let count = 0;
-    for (let i = 3; i < this.pointCount * 3; i += 3) {
+    for (let i = 3; i < this.pointCount * 3; i += this.topology === 'segments' ? 6 : 3) {
       const a = i - 3;
       let start = 0;
       let end = 1;
@@ -90,10 +90,11 @@ function stableLerp(a: number, b: number, t: number): number {
 export class PrecisionLine extends LineSegments<BufferGeometry, LineBasicMaterial> {
   readonly path: PrecisionPath;
 
-  constructor(points: number, material: LineBasicMaterial) {
-    const path = new PrecisionPath(points);
+  constructor(points: number, material: LineBasicMaterial, topology: 'strip' | 'segments' = 'strip') {
+    const path = new PrecisionPath(points, topology);
     const geometry = new BufferGeometry();
     geometry.setAttribute('position', new BufferAttribute(path.segments, 3));
+    if (material.vertexColors) geometry.setAttribute('color', new BufferAttribute(path.segmentColors, 3));
     geometry.setDrawRange(0, 0);
     material.depthWrite = false;
     material.toneMapped = false;
@@ -109,6 +110,7 @@ export class PrecisionLine extends LineSegments<BufferGeometry, LineBasicMateria
       const segments = path.prepare(camera);
       geometry.setDrawRange(0, segments * 2);
       geometry.getAttribute('position').needsUpdate = true;
+      if (material.vertexColors) geometry.getAttribute('color').needsUpdate = true;
     });
   }
 }

@@ -10,6 +10,23 @@ import { ASTRONOMICAL_UNIT_M } from '../../simulation/core/Units';
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 });
 
 describe('CameraController', () => {
+  it('keeps an enlarged Earth out of the Moon inspection sightline', () => {
+    const towardEarth = new Vector3(1, 0.42, 1).normalize();
+    const earthPosition = { x: towardEarth.x * 0.0026 * ASTRONOMICAL_UNIT_M,
+      y: -towardEarth.z * 0.0026 * ASTRONOMICAL_UNIT_M,
+      z: towardEarth.y * 0.0026 * ASTRONOMICAL_UNIT_M };
+    const bodies = new Map([
+      ['moon', bodyTarget('moon', ORIGIN, ORIGIN, 0.000465)],
+      ['earth', bodyTarget('earth', earthPosition, ORIGIN, 0.001704)],
+    ]);
+    const controller = new CameraController();
+    controller.focusBody('moon');
+    controller.update(frame({ bodies, reducedMotion: true }));
+    const cameraDirection = controller.rig.position.clone().sub(controller.rig.target).normalize();
+    expect(cameraDirection.dot(towardEarth)).toBeLessThan(-0.99);
+    expect(controller.rig.target.length()).toBeCloseTo(0, 12);
+  });
+
   it.each([1, 40])('fits Saturn rings in a narrow viewport at render multiplier %s', (scale) => {
     const radius = 0.001 * scale;
     const body = { ...bodyTarget('saturn', ORIGIN, ORIGIN, radius), framingRadiusRenderUnits: radius * 2.4 };

@@ -1,0 +1,109 @@
+{
+  "results": [
+    {
+      "name": "390x844-True-scale-saturn",
+      "projected": null
+    },
+    {
+      "name": "390x844-True-scale-phobos",
+      "projected": {
+        "margin": 1.1499999999999966,
+        "distance": 2.927715617768402e-7
+      }
+    },
+    {
+      "name": "390x844-True-scale-hyperion",
+      "projected": {
+        "margin": 1.1499999999995747,
+        "distance": 0.000004099976133257108
+      }
+    },
+    {
+      "name": "390x844-True-scale-earth-satellite-25544",
+      "projected": null
+    },
+    {
+      "name": "390x844-True-scale-voyager-1",
+      "projected": null
+    },
+    {
+      "name": "390x844-Presentation-saturn",
+      "projected": null
+    },
+    {
+      "name": "390x844-Presentation-phobos",
+      "projected": {
+        "margin": 1.15,
+        "distance": 0.002235020740186043
+      }
+    },
+    {
+      "name": "390x844-Presentation-hyperion",
+      "projected": {
+        "margin": 1.1500000000000006,
+        "distance": 0.044212927813317836
+      }
+    },
+    {
+      "name": "390x844-Presentation-earth-satellite-25544",
+      "projected": null
+    },
+    {
+      "name": "390x844-Presentation-voyager-1",
+      "projected": null
+    },
+    {
+      "name": "844x390-True-scale-saturn",
+      "projected": null
+    },
+    {
+      "name": "844x390-True-scale-phobos",
+      "projected": {
+        "margin": 1.1500000000000064,
+        "distance": 2.6140295622452993e-7
+      }
+    },
+    {
+      "name": "844x390-True-scale-hyperion",
+      "projected": {
+        "margin": 1.1499999999994208,
+        "distance": 0.000003660689840156645
+      }
+    },
+    {
+      "name": "844x390-True-scale-earth-satellite-25544",
+      "projected": null
+    },
+    {
+      "name": "844x390-True-scale-voyager-1",
+      "projected": null
+    },
+    {
+      "name": "844x390-Presentation-saturn",
+      "projected": null
+    },
+    {
+      "name": "844x390-Presentation-phobos",
+      "projected": {
+        "margin": 1.1499999999999997,
+        "distance": 0.001995552522799638
+      }
+    },
+    {
+      "name": "844x390-Presentation-hyperion",
+      "projected": {
+        "margin": 1.1500000000000012,
+        "distance": 0.03947579458742766
+      }
+    },
+    {
+      "name": "844x390-Presentation-earth-satellite-25544",
+      "projected": null
+    },
+    {
+      "name": "844x390-Presentation-voyager-1",
+      "projected": null
+    }
+  ],
+  "errors": []
+}

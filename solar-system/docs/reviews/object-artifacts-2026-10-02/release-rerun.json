@@ -1,0 +1,84 @@
+{
+  "catalogCount": 489,
+  "results": [
+    {
+      "id": "mercury",
+      "name": "Mercury",
+      "group": "body",
+      "kind": "planet",
+      "status": "captured",
+      "selected": "mercury",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "ready"
+    },
+    {
+      "id": "earth",
+      "name": "Earth",
+      "group": "body",
+      "kind": "planet",
+      "status": "captured",
+      "selected": "earth",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "ready"
+    },
+    {
+      "id": "moon",
+      "name": "Moon",
+      "group": "body",
+      "kind": "moon",
+      "status": "captured",
+      "selected": "moon",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "ready"
+    },
+    {
+      "id": "mars",
+      "name": "Mars",
+      "group": "body",
+      "kind": "planet",
+      "status": "captured",
+      "selected": "mars",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "ready"
+    },
+    {
+      "id": "saturn",
+      "name": "Saturn",
+      "group": "body",
+      "kind": "planet",
+      "status": "captured",
+      "selected": "saturn",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "ready"
+    },
+    {
+      "id": "67p-churyumov-gerasimenko",
+      "name": "67P/Churyumov-Gerasimenko",
+      "group": "body",
+      "kind": "comet",
+      "status": "captured",
+      "selected": "67p-churyumov-gerasimenko",
+      "natural": "",
+      "space": "",
+      "spacecraftRendered": "0",
+      "satellitesRendered": "0",
+      "assetState": "procedural"
+    }
+  ],
+  "errors": []
+}

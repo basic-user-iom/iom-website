@@ -634,11 +634,11 @@ function createDensityMaterial(
         vec3 lightDir = normalize(vec3(-0.48, 0.30, 0.82));
         float NdotL = clamp(dot(sphereNormal, lightDir), 0.0, 1.0);
         float wrap = clamp(NdotL * 0.82 + 0.18, 0.0, 1.0);
-        float specular = pow(NdotL, 12.0) * 0.85;
+        float specular = pow(NdotL, 12.0) * 0.06;
         vec3 shadeTint = mix(uUmbraTint, uLitTint, wrap);
         float shade = 0.34 + 0.90 * wrap + specular;
-        // Hard core: soft edges must not erase sub-2px marks.
-        float softEdge = 1.0 - smoothstep(0.94, 1.0, radiusSquared);
+        // Soft density samples avoid isolated square-looking glints.
+        float softEdge = 1.0 - smoothstep(0.25, 1.0, radiusSquared);
         float alpha = softEdge * uOpacity * vDensityScale * uImpactSkyVisibility;
         vec3 lit = vColor * shadeTint * shade;
         gl_FragColor = vec4(lit, alpha);
@@ -662,7 +662,7 @@ function createDensityMaterial(
       uLitTint: {
         value: isKuiper
           ? [1.02, 1.08, 1.22]
-          : [1.38, 1.12, 0.82],
+          : [1.04, 1.02, 0.98],
       },
     },
     vertexShader: `
@@ -921,12 +921,12 @@ export const DEFAULT_BELT_PROFILES: readonly Readonly<StatisticalBeltProfile>[] 
       color: '#7a6a58',
       colorPalette: Object.freeze([
         '#5a5048', // C-type charcoal (kept above black sky)
-        '#7a5a40', // dusky brown
-        '#d4a06a', // bright S-type ochre
+        '#77716a', // muted rocky gray
+        '#8b847b', // subdued silicate tone
         '#9a8a78', // stony gray-brown
-        '#e0b078', // warm silicate highlight
+        '#9a958b', // restrained silicate highlight
         '#6a6058', // dark carbonaceous (readable on black)
-        '#b87848', // mid belt clay
+        '#82796f', // mid belt gray-brown
       ]),
       markerSizePx: 1.35,
       maximumMarkerSizePx: 2.20,

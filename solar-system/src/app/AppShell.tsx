@@ -2937,6 +2937,7 @@ export function AppShell() {
               disabled={controlsDisabled}
               onSelectBody={handleBodySelectAndFocus}
               onSelectCatalogTarget={(target) => {
+                if (compact) closePanel();
                 const renderer = rendererRef.current;
                 if (target.kind === 'natural-satellite') {
                   const satellite = getNaturalSatelliteDefinition(target.id);
@@ -3058,6 +3059,7 @@ export function AppShell() {
                 rendererRef.current?.selectNaturalSatellite(id);
               }}
               onFocusSatellite={(id) => {
+                if (compact) closePanel();
                 if (id === 'moon') {
                   setSelectedNaturalSatelliteId(null);
                   rendererRef.current?.selectNaturalSatellite(null);
@@ -3112,6 +3114,7 @@ export function AppShell() {
                 rendererRef.current?.selectSpaceObject(id);
               }}
               onFocusObject={(id) => {
+                if (compact) closePanel();
                 setSpaceObjectsVisible(true);
                 rendererRef.current?.setSpaceObjectsVisible(true);
                 const satellite = getEarthSatelliteDefinition(id);

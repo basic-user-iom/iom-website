@@ -1,6 +1,8 @@
 import { installWheelZoomModifier } from './camera/WheelZoomModifier';
 import { writeEpochAnchoredPath } from './EpochAnchoredPath';
 import { preparePrecisionPaths } from './PrecisionPath';
+import { createReferenceGrid } from './ReferenceGrid';
+import { inspectionDistance, sunlitInspectionDirection } from './camera/ObjectInspectionFraming';
 import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
 import { calculateRebaseShift } from './CameraRelativeTransform';
 import {
@@ -8,7 +10,6 @@ import {
   AmbientLight,
   type BufferGeometry,
   Color,
-  GridHelper,
   Group,
   PerspectiveCamera,
   Raycaster,
@@ -279,7 +280,7 @@ export class DebugSolarSystemRenderer {
     minimumNear: 1e-12,
     minimumFar: BACKGROUND_FAR_PLANE,
   });
-  private readonly referenceGrid = new GridHelper(80, 40, 0x214563, 0x102338);
+  private readonly referenceGrid = createReferenceGrid();
   private readonly pathLayer = new Group();
   private readonly markerLayer = new Group();
   private readonly sphereGeometry = new SphereGeometry(1, 128, 96);
@@ -313,7 +314,6 @@ export class DebugSolarSystemRenderer {
   private readonly mappedHeliocentricCenter = new Vector3();
   private readonly scratchMapped = new Vector3();
   private readonly scratchProjected = new Vector3();
-  private readonly scratchFocus = new Vector3();
   private readonly visualFeatureRotation = new Quaternion();
   private readonly impactCameraPosition = new Vector3();
   private readonly impactCameraTarget = new Vector3();
@@ -729,8 +729,16 @@ export class DebugSolarSystemRenderer {
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);
     this.postProcessing.resize(width, height, pixelRatio);
+    const previousInspectionFit = inspectionDistance(1, this.camera.fov, this.camera.aspect);
     this.camera.aspect = width / height;
     this.camera.fov = verticalFovForViewport(width, height);
+    if (this.naturalSatelliteCloseupActive || this.inspectedSpaceObjectId !== null) {
+      // Preserve the user's zoom ratio and orbit when a drawer or rotation changes the canvas.
+      const fitRatio = inspectionDistance(1, this.camera.fov, this.camera.aspect) / previousInspectionFit;
+      this.scratchMapped.copy(this.camera.position).sub(this.controls.target).multiplyScalar(fitRatio);
+      this.camera.position.copy(this.controls.target).add(this.scratchMapped);
+      this.cameraController.synchronizeFreeOrbitPose(this.camera.position, this.controls.target, this.camera.up);
+    }
     this.camera.updateProjectionMatrix();
     PATH_VIEWPORT.set(width * pixelRatio, height * pixelRatio);
     for (const resources of this.paths.values()) {
@@ -1293,7 +1301,7 @@ export class DebugSolarSystemRenderer {
     this.naturalSatelliteVisualSystem.selectSatellite(id);
     const position = this.naturalSatelliteVisualSystem.getSatelliteWorldPosition(id);
     if (position === null) return false;
-    const radius = this.naturalSatelliteVisualSystem.getSatelliteRenderRadius(id) ?? 0.0005;
+    const radius = this.naturalSatelliteVisualSystem.getSatelliteFramingRadius(id) ?? 0.0005;
     this.auxiliaryFocusRadiusRenderUnits = radius;
     this.naturalSatelliteCloseupActive = true;
     // Pale ice moons bloom into a soft ball at inspection distances — kill bloom.
@@ -1302,40 +1310,18 @@ export class DebugSolarSystemRenderer {
     this.postProcessing.setResolutionScale(1);
     // Close enough that the moon disc fills most of the canvas; stay outside the
     // Herschel cavity so the surface map (not a dark basin floor) is the subject.
-    const distance = Math.max(radius * 2.45, 0.0007);
+    const distance = inspectionDistance(radius, this.camera.fov, this.camera.aspect);
     this.clippingController.reset();
     // Stay in free-orbit; do not re-seed free-orbit from the parent body-follow pose.
     this.freeOrbitNeedsInitialization = false;
     this.cameraController.interruptToFreeOrbit();
     this.cameraController.setTargetBody(null);
 
-    // Prefer a sunlit look while keeping the parent mostly behind the subject.
-    // Pure anti-parent framing puts the camera on the night side for outer moons.
     const definition = NATURAL_SATELLITE_DEFINITIONS.find((item) => item.id === id);
     const parentMarker = definition === undefined ? undefined : this.markers.get(definition.parentId);
-    const sunMarker = this.markers.get('sun');
-    this.scratchMapped.copy(position);
-    if (parentMarker !== undefined) {
-      this.scratchMapped.sub(parentMarker.root.position);
-    }
-    if (this.scratchMapped.lengthSq() < 1e-16) {
-      this.scratchMapped.set(0.85, 0.2, 0.45);
-    }
-    this.scratchMapped.normalize();
-    if (sunMarker !== undefined) {
-      // Camera on the sunlit hemisphere (moon - sun), blended with anti-parent
-      // so Saturn stays mostly behind the subject instead of filling the lens.
-      this.scratchFocus.copy(position).sub(sunMarker.root.position);
-      if (this.scratchFocus.lengthSq() > 1e-16) {
-        this.scratchFocus.normalize();
-        this.scratchMapped.multiplyScalar(0.55).addScaledVector(this.scratchFocus, 0.9);
-        if (this.scratchMapped.lengthSq() < 1e-16) {
-          this.scratchMapped.copy(this.scratchFocus);
-        } else {
-          this.scratchMapped.normalize();
-        }
-      }
-    }
+    this.scratchMapped.copy(sunlitInspectionDirection(
+      position, this.mappedHeliocentricCenter, parentMarker?.root.position,
+    ));
     this.camera.position.copy(position).addScaledVector(this.scratchMapped, distance);
     this.controls.target.copy(position);
     this.camera.up.set(0, 1, 0);
@@ -1344,10 +1330,9 @@ export class DebugSolarSystemRenderer {
     this.controls.enabled = true;
     // Must beat the previous parent-body minDistance or OrbitControls pushes the
     // camera back out to planet scale on the next update().
-    this.controls.minDistance = Math.max(radius * 1.6, 1e-6);
+    this.controls.minDistance = Math.max(radius * 1.2, 1e-12);
     this.controls.maxDistance = Math.max(radius * 60, this.overviewRadiusRenderUnits * 6, 0.05);
     this.controls.update();
-    this.enforceAuxiliaryMoonFraming();
     this.canvas.dataset.naturalSatelliteFocusDistanceRatio = (
       this.camera.position.distanceTo(this.controls.target) / Math.max(radius, 1e-12)
     ).toFixed(3);
@@ -1942,7 +1927,6 @@ export class DebugSolarSystemRenderer {
     this.applyBlackHoleCameraTracking();
     this.applyImpactCameraOverride(deltaSeconds);
     this.updateScaleAwareNavigation();
-    this.enforceAuxiliaryMoonFraming();
     this.updateClipping(deltaSeconds);
     this.camera.updateMatrixWorld();
   }
@@ -2054,39 +2038,6 @@ export class DebugSolarSystemRenderer {
     if (!this.naturalSatelliteCloseupActive) return;
     this.naturalSatelliteCloseupActive = false;
     this.postProcessing.setBloomAttenuation(this.exposurePreset === 'solar-closeup' ? 0 : 1);
-  }
-
-  private enforceAuxiliaryMoonFraming(): void {
-    if (
-      !this.naturalSatelliteCloseupActive ||
-      this.cameraController.mode !== 'free-orbit' ||
-      this.auxiliaryFocusRadiusRenderUnits === null
-    ) {
-      return;
-    }
-    const radius = this.auxiliaryFocusRadiusRenderUnits;
-    const ideal = Math.max(radius * 2.35, 1e-6);
-    const maxKeep = Math.max(radius * 4.5, ideal);
-    const offset = this.scratchMapped
-      .copy(this.camera.position)
-      .sub(this.controls.target);
-    const distance = offset.length();
-    if (!Number.isFinite(distance) || (distance <= maxKeep && distance >= radius * 1.6)) {
-      return;
-    }
-    if (distance < 1e-12) {
-      offset.set(0.82, 0.22, 0.55);
-    }
-    offset.normalize().multiplyScalar(distance > maxKeep ? ideal : Math.max(ideal, radius * 1.8));
-    this.camera.position.copy(this.controls.target).add(offset);
-    this.camera.lookAt(this.controls.target);
-    this.controls.minDistance = Math.max(radius * 1.6, 1e-6);
-    this.controls.maxDistance = Math.max(radius * 60, this.overviewRadiusRenderUnits * 6, 0.05);
-    this.cameraController.synchronizeFreeOrbitPose(
-      this.camera.position,
-      this.controls.target,
-      this.camera.up,
-    );
   }
 
   private updateScaleAwareNavigation(): void {
@@ -2346,7 +2297,8 @@ export class DebugSolarSystemRenderer {
         this.viewportWidth,
         this.viewportHeight,
       );
-      const cueOpacity = selectionCueOpacityForProjectedRadius(projectedRadiusPx);
+      const cueOpacity = this.naturalSatelliteCloseupActive || this.inspectedSpaceObjectId !== null
+        ? 0 : selectionCueOpacityForProjectedRadius(projectedRadiusPx);
       this.canvas.dataset.selectedScreenX = String(selectedMarker.screenX);
       this.canvas.dataset.selectedScreenY = String(selectedMarker.screenY);
       this.canvas.dataset.selectedRadiusPx = String(projectedRadiusPx);

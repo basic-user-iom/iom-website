@@ -314,6 +314,15 @@ export class NaturalSatelliteVisualSystem {
     return this.renderedRadii.get(id) ?? null;
   }
 
+  /** Includes irregular silhouettes without changing the catalogue's mean radius. */
+  public getSatelliteFramingRadius(id: string): number | null {
+    const resource = this.major.get(id);
+    if (resource === undefined) return this.getSatelliteRenderRadius(id);
+    resource.mesh.geometry.computeBoundingSphere();
+    return (resource.mesh.geometry.boundingSphere?.radius ?? 1)
+      * Math.max(resource.mesh.scale.x, resource.mesh.scale.y, resource.mesh.scale.z);
+  }
+
   public updateFrame(
     frame: Readonly<DebugRenderFrame>,
     scaleModel: Readonly<RenderScaleModel>,

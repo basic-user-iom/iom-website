@@ -340,6 +340,7 @@ export class CameraController {
       this.rig.setDesiredPose(this.rig.position, this.rig.target, this.rig.up);
     } else {
       this.prepareFocusDirection('free-orbit');
+      this.avoidObstructedFocus(targetBody, frame);
       const distance = this.focusDistance(targetBody, frame);
       this.desiredPosition
         .copy(this.mappedBody)
@@ -368,6 +369,7 @@ export class CameraController {
     }
     this.prepareFocusDirection('body-follow');
     this.applyGiantPlanetPhaseView(targetBody, frame);
+    this.avoidObstructedFocus(targetBody, frame);
     this.desiredPosition
       .copy(this.mappedBody)
       .addScaledVector(this.focusDirection, this.focusDistance(targetBody, frame));
@@ -575,6 +577,23 @@ export class CameraController {
       .multiplyScalar(Math.cos(GIANT_FOCUS_PHASE_ANGLE_RAD))
       .addScaledVector(this.phaseTangent, Math.sin(GIANT_FOCUS_PHASE_ANGLE_RAD))
       .normalize();
+  }
+
+  /** Enlarged presentation bodies must not sit between the inspection camera and its target. */
+  private avoidObstructedFocus(targetBody: CameraBodyTarget, frame: CameraUpdateFrame): void {
+    const distance = this.focusDistance(targetBody, frame);
+    for (const other of frame.bodies.values()) {
+      if (other.bodyId === targetBody.bodyId || other.visible === false) continue;
+      mapCameraRelativePosition(this.extentScratch, other.positionM, targetBody.positionM, frame.metersPerRenderUnit);
+      const separation = this.extentScratch.length();
+      const radius = this.renderRadius(other, frame) * 1.08;
+      if (separation <= radius || separation - radius > distance) continue;
+      const along = Math.max(0, Math.min(distance, this.extentScratch.dot(this.focusDirection)));
+      this.scratch.copy(this.extentScratch).addScaledVector(this.focusDirection, -along);
+      if (this.scratch.lengthSq() < radius * radius) {
+        this.focusDirection.copy(this.extentScratch).multiplyScalar(-1 / separation);
+      }
+    }
   }
 
   private focusDistance(

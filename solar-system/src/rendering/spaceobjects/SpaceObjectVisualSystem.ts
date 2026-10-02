@@ -106,7 +106,6 @@ export class SpaceObjectVisualSystem {
     mesh: InstancedMesh<SphereGeometry, MeshBasicMaterial>;
     index: number;
   }> = [];
-  private readonly coverageLabels = new Map<string, HTMLSpanElement>();
   private visible = true;
   private earthSatellitesVisible = true;
   private spacecraftVisible = true;
@@ -115,7 +114,6 @@ export class SpaceObjectVisualSystem {
   private inspectionSuppressedMarkerCount = 0;
   private renderedEarthSatelliteCount = 0;
   private renderedSpacecraftCount = 0;
-  private coverageLabelCount = 0;
   private selectedTrajectoryPointCount = 0;
   private workerClient: SpaceObjectWorkerClient | null = null;
   private workerResult: SpaceObjectWorkerResultResponse | null = null;
@@ -183,8 +181,6 @@ export class SpaceObjectVisualSystem {
     this.selectionIndicator?.remove();
     this.selectionLabel = null;
     this.selectionIndicator = null;
-    for (const label of this.coverageLabels.values()) label.remove();
-    this.coverageLabels.clear();
     if (container === null) return;
 
     const label = document.createElement('span');
@@ -200,17 +196,6 @@ export class SpaceObjectVisualSystem {
     container.append(indicator);
     this.selectionIndicator = indicator;
 
-    for (const satellite of EARTH_SATELLITE_DEFINITIONS) {
-      const coverage = document.createElement('span');
-      coverage.className = 'space-object-screen-label space-object-coverage-label';
-      coverage.dataset.objectId = satellite.id;
-      coverage.dataset.kind = 'earth-satellite';
-      coverage.textContent = satellite.name;
-      coverage.setAttribute('aria-hidden', 'true');
-      coverage.style.opacity = '0';
-      container.append(coverage);
-      this.coverageLabels.set(satellite.id, coverage);
-    }
   }
 
   public setEarthSatellitesVisible(visible: boolean): void {
@@ -251,7 +236,7 @@ export class SpaceObjectVisualSystem {
 
   public getObjectFocusDirection(id: string): Vector3 | null {
     if (isVoyager(id)) return this.voyagerModels.focusDirection(id);
-    if (id !== ISS_MODEL_ASSET.objectId || this.issModelState !== 'ready') return null;
+    if (id !== ISS_MODEL_ASSET.objectId) return null;
     return ISS_FOCUS_DIRECTION.clone().applyQuaternion(this.issModelAnchor.quaternion).normalize();
   }
 
@@ -262,48 +247,10 @@ export class SpaceObjectVisualSystem {
     suppressed = false,
   ): void {
     this.updateMarkerSizes(camera, viewportHeight);
-    this.coverageLabelCount = 0;
     const id = this.selectedObjectId;
     const position = id === null ? undefined : this.worldPositions.get(id);
     const earthSatelliteSelected = id !== null && EARTH_SATELLITE_DEFINITIONS.some((item) => item.id === id);
     const categoryVisible = earthSatelliteSelected ? this.earthSatellitesVisible : this.spacecraftVisible;
-
-    let coverageIndex = 0;
-    for (const [objectId, label] of this.coverageLabels) {
-      if (
-        suppressed
-        || !this.visible
-        || !this.earthSatellitesVisible
-        || objectId === this.selectedObjectId
-        || this.detailedInspectionObjectId !== null
-      ) {
-        label.style.opacity = '0';
-        continue;
-      }
-      const world = this.worldPositions.get(objectId);
-      if (world === undefined) {
-        label.style.opacity = '0';
-        continue;
-      }
-      PROJECTED.copy(world).project(camera);
-      const onScreen = PROJECTED.z >= -1 && PROJECTED.z <= 1
-        && PROJECTED.x >= -1.05 && PROJECTED.x <= 1.05
-        && PROJECTED.y >= -1.05 && PROJECTED.y <= 1.05;
-      if (!onScreen) {
-        label.style.opacity = '0';
-        continue;
-      }
-      const x = (PROJECTED.x * 0.5 + 0.5) * viewportWidth;
-      const y = (-PROJECTED.y * 0.5 + 0.5) * viewportHeight;
-      // Fan labels slightly so LEO/MEO clusters stay readable.
-      const fanX = 10 + (coverageIndex % 3) * 14;
-      const fanY = -10 - Math.floor(coverageIndex / 3) * 14 - (coverageIndex % 2) * 8;
-      label.dataset.selected = 'false';
-      label.style.opacity = '0.82';
-      label.style.transform = `translate(${x + fanX}px, ${y + fanY}px)`;
-      this.coverageLabelCount += 1;
-      coverageIndex += 1;
-    }
 
     if (suppressed || !this.visible || !categoryVisible || id === null || position === undefined) {
       this.hideSelectionUi();
@@ -381,7 +328,7 @@ export class SpaceObjectVisualSystem {
         }, ZERO);
         OBJECT.position.copy(EARTH).add(LOCAL);
         const isIss = index === ISS_INDEX;
-        const suppressLocator = this.detailedInspectionObjectId !== null && satellite.id !== this.detailedInspectionObjectId;
+        const suppressLocator = satellite.id !== this.selectedObjectId;
         const baseRadius = isIss
           ? this.issModelPhysicalRadiusMeters * earthRelativeScale.metersToRenderUnits
           : earthSatelliteMarkerRadius(this.selectedObjectId === satellite.id, scaleModel.mode);
@@ -396,7 +343,7 @@ export class SpaceObjectVisualSystem {
           );
         } else if (suppressLocator) {
           this.hideInstance(this.earthSatelliteMesh, index);
-          this.inspectionSuppressedMarkerCount += 1;
+          if (this.detailedInspectionObjectId !== null) this.inspectionSuppressedMarkerCount += 1;
         } else {
           OBJECT.scale.setScalar(baseRadius);
           OBJECT.updateMatrix();
@@ -442,12 +389,12 @@ export class SpaceObjectVisualSystem {
         );
         const modelShown = isVoyager(mission.id) && this.voyagerModels.update(mission.id, OBJECT.position,
           earth?.positionM, state.positionM, scaleModel.metersToRenderUnits, detailedVoyager);
-        const suppressLocator = this.detailedInspectionObjectId !== null && mission.id !== this.detailedInspectionObjectId;
+        const suppressLocator = mission.id !== this.selectedObjectId;
         if (modelShown) {
           this.hideInstance(this.spacecraftMesh, index);
         } else if (suppressLocator) {
           this.hideInstance(this.spacecraftMesh, index);
-          this.inspectionSuppressedMarkerCount += 1;
+          if (this.detailedInspectionObjectId !== null) this.inspectionSuppressedMarkerCount += 1;
         } else {
           OBJECT.scale.setScalar(baseRadius);
           OBJECT.updateMatrix();
@@ -498,7 +445,7 @@ export class SpaceObjectVisualSystem {
         ? null
         : this.renderedRadii.get(this.selectedObjectId) ?? null,
       selectedOnScreen: this.selectedOnScreen,
-      coverageLabelCount: this.coverageLabelCount,
+      coverageLabelCount: 0,
     });
   }
 
@@ -522,8 +469,6 @@ export class SpaceObjectVisualSystem {
     this.selectionIndicator?.remove();
     this.selectionLabel = null;
     this.selectionIndicator = null;
-    for (const label of this.coverageLabels.values()) label.remove();
-    this.coverageLabels.clear();
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.root.clear();
