@@ -2892,6 +2892,7 @@ export function AppShell() {
       </a>
 
       <header className="observatory-header">
+        <BackToIom />
         <div className="brand-lockup" aria-label="Solar System: Living Observatory">
           <span className="brand-orbit" aria-hidden="true" />
           <span>
@@ -2899,7 +2900,6 @@ export function AppShell() {
             <span className="brand-title">Living Observatory</span>
           </span>
         </div>
-        <BackToIom />
         {!compact ? toolActions : null}
       </header>
 
@@ -4146,7 +4146,7 @@ function formatStageUtc(iso: string): string {
     dateStyle: 'medium',
     timeStyle: 'medium',
     timeZone: 'UTC',
-  }).format(date);
+  }).format(date) + ' UTC';
 }
 
 function synchronizeBodiesFromProvider(

@@ -1,0 +1,172 @@
+{
+  "results": [
+    {
+      "timezoneId": "UTC",
+      "q": [
+        0.08477654632161025,
+        0.8924459486402989,
+        -0.18458577831069017,
+        -0.4028414779969081
+      ],
+      "sun": [
+        0.7609764728503009,
+        -0.6455060389982965,
+        -0.0650904093169366
+      ],
+      "daylightBody": 0.3555949226948588,
+      "daylightWorld": 0.355594922694858,
+      "jd": "2461316.105349",
+      "header": "← Back to IOM\nSOLAR SYSTEM\nLiving Observatory\nImpact Lab\nSolar Fate\nBlack-Hole Encounter\nStart tour\nData & provenance\nHelp ?"
+    },
+    {
+      "check": "manual UTC update",
+      "sun": [
+        0.5518783229554522,
+        -0.8313568525803804,
+        -0.06539189796542466
+      ]
+    },
+    {
+      "width": 360,
+      "height": 800,
+      "layout": {
+        "back": {
+          "x": 8,
+          "right": 110.796875,
+          "y": 5,
+          "width": 102.796875,
+          "height": 44
+        },
+        "brand": {
+          "x": 116.796875,
+          "right": 352,
+          "y": 9.5
+        },
+        "overflow": false,
+        "utcLabel": true,
+        "count": 1
+      }
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "layout": {
+        "back": {
+          "x": 8,
+          "right": 110.796875,
+          "y": 5,
+          "width": 102.796875,
+          "height": 44
+        },
+        "brand": {
+          "x": 116.796875,
+          "right": 382,
+          "y": 9.5
+        },
+        "overflow": false,
+        "utcLabel": true,
+        "count": 1
+      }
+    },
+    {
+      "width": 768,
+      "height": 1024,
+      "layout": {
+        "back": {
+          "x": 8,
+          "right": 110.796875,
+          "y": 5,
+          "width": 102.796875,
+          "height": 44
+        },
+        "brand": {
+          "x": 116.796875,
+          "right": 760,
+          "y": 9.5
+        },
+        "overflow": false,
+        "utcLabel": true,
+        "count": 1
+      }
+    },
+    {
+      "width": 1366,
+      "height": 768,
+      "layout": {
+        "back": {
+          "x": 12,
+          "right": 114.796875,
+          "y": 8,
+          "width": 102.796875,
+          "height": 44
+        },
+        "brand": {
+          "x": 126.796875,
+          "right": 340.03125,
+          "y": 9
+        },
+        "overflow": false,
+        "utcLabel": true,
+        "count": 1
+      }
+    },
+    {
+      "width": 844,
+      "height": 390,
+      "layout": {
+        "back": {
+          "x": 8,
+          "right": 110.796875,
+          "y": 4,
+          "width": 102.796875,
+          "height": 44
+        },
+        "brand": {
+          "x": 116.796875,
+          "right": 836,
+          "y": 11
+        },
+        "overflow": false,
+        "utcLabel": true,
+        "count": 1
+      }
+    },
+    {
+      "timezoneId": "America/Los_Angeles",
+      "q": [
+        0.08477654632161025,
+        0.8924459486402989,
+        -0.18458577831069017,
+        -0.4028414779969081
+      ],
+      "sun": [
+        0.7609764728503009,
+        -0.6455060389982965,
+        -0.0650904093169366
+      ],
+      "daylightBody": 0.3555949226948588,
+      "daylightWorld": 0.355594922694858,
+      "jd": "2461316.105349",
+      "header": "← Back to IOM\nSOLAR SYSTEM\nLiving Observatory\nImpact Lab\nSolar Fate\nBlack-Hole Encounter\nStart tour\nData & provenance\nHelp ?"
+    },
+    {
+      "timezoneId": "Asia/Tokyo",
+      "q": [
+        0.08477654632161025,
+        0.8924459486402989,
+        -0.18458577831069017,
+        -0.4028414779969081
+      ],
+      "sun": [
+        0.7609764728503009,
+        -0.6455060389982965,
+        -0.0650904093169366
+      ],
+      "daylightBody": 0.3555949226948588,
+      "daylightWorld": 0.355594922694858,
+      "jd": "2461316.105349",
+      "header": "← Back to IOM\nSOLAR SYSTEM\nLiving Observatory\nImpact Lab\nSolar Fate\nBlack-Hole Encounter\nStart tour\nData & provenance\nHelp ?"
+    }
+  ],
+  "errors": []
+}

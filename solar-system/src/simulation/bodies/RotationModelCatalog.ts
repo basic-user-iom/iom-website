@@ -1,3 +1,4 @@
+import { EarthRotationModel } from './EarthRotationModel';
 import { SaturnRotationModel } from './SaturnRotationModel';
 import {
   ConstantRateRotationModel,
@@ -14,7 +15,9 @@ for (const definition of EPHEMERIS_BODY_DEFINITIONS) {
   const bodyId = definition.id as EphemerisBodyId;
   models.set(
     bodyId,
-    bodyId === 'saturn'
+    bodyId === 'earth'
+      ? new EarthRotationModel()
+      : bodyId === 'saturn'
       ? new SaturnRotationModel()
       : bodyId === 'moon'
       ? new SynchronousRotationModel({
@@ -31,7 +34,7 @@ for (const definition of EPHEMERIS_BODY_DEFINITIONS) {
   );
 }
 
-/** Saturn uses IAU/NAIF orientation; other bodies retain the documented seed models. */
+/** Earth is UTC/Greenwich anchored; Saturn uses IAU/NAIF; other bodies retain seed models. */
 export const EPHEMERIS_ROTATION_MODELS: ReadonlyMap<EphemerisBodyId, RotationModel> =
   models;
 

@@ -25,11 +25,12 @@ function expectVectorClose(
 }
 
 describe('constant-rate rotation models', () => {
-  it('preserves the Earth seed tilt and advances at its sidereal rate', () => {
-    const earth = getEphemerisRotationModel('earth');
-    if (!(earth instanceof ConstantRateRotationModel)) {
-      throw new Error('Earth must use a constant-rate rotation model.');
-    }
+  it('preserves a configured seed tilt and advances at its sidereal rate', () => {
+    const earth = new ConstantRateRotationModel({
+      bodyId: 'seed-example',
+      rotationPeriodSeconds: 0.99726968 * SECONDS_PER_DAY,
+      axialTiltRad: 23.439291111111 * Math.PI / 180,
+    });
     const state = createRotationState();
     const originalOrientation = state.orientation;
     const originalAngularVelocity = state.angularVelocityRadPerSec;
