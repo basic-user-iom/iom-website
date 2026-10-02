@@ -739,3 +739,13 @@ body {
 .startup-card progress::-webkit-progress-value { background: #80d8ff; }
 .startup-card progress::-moz-progress-bar { background: #80d8ff; }
 .startup-detail { color: #93aabc; font-size: 13px; line-height: 1.6; }
+
+/* Round, constant-size location aids for bodies too small to resolve at true scale. */
+.body-location-dot {
+  position: absolute; top: 0; left: 0; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--body-dot-color, #d7eaff);
+  box-shadow: 0 0 4px var(--body-dot-color, #d7eaff);
+  opacity: 0; pointer-events: none;
+}
+
+.body-label-layer .body-screen-label { z-index: 1; }

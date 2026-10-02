@@ -1,3 +1,4 @@
+import { bodyLocationCueOpacity, bodyLocationOccluded } from './BodyLocationCue';
 import { installWheelZoomModifier } from './camera/WheelZoomModifier';
 import { writeEpochAnchoredPath } from './EpochAnchoredPath';
 import { preparePrecisionPaths } from './PrecisionPath';
@@ -218,6 +219,7 @@ interface MarkerResources {
   readonly cameraTarget: MutableCameraBodyTarget;
   readonly clipSphere: MutableClipSphere;
   readonly label: HTMLButtonElement | null;
+  readonly locationDot: HTMLSpanElement | null;
   readonly scenarioPositionM: { x: number; y: number; z: number };
   readonly scenarioVelocityMps: { x: number; y: number; z: number };
   bodyState: DebugBodyRenderState;
@@ -1704,6 +1706,7 @@ export class DebugSolarSystemRenderer {
         (isComet ? 2.5 : (visual as PhaseFourBodyVisual).boundingRadiusMultiplier),
     };
     const label = this.createBodyLabel(body);
+    const locationDot = isComet ? null : this.createBodyLocationDot(body);
     const resources = {
       root,
       visual,
@@ -1711,6 +1714,7 @@ export class DebugSolarSystemRenderer {
       cameraTarget,
       clipSphere,
       label,
+      locationDot,
       scenarioPositionM: { ...body.positionM },
       scenarioVelocityMps: { ...body.velocityMps },
       bodyState: body,
@@ -2217,6 +2221,17 @@ export class DebugSolarSystemRenderer {
     return picked ?? fallback;
   }
 
+  private createBodyLocationDot(body: DebugBodyRenderState): HTMLSpanElement | null {
+    if (this.labelContainer === null) return null;
+    const dot = document.createElement('span');
+    dot.className = 'body-location-dot';
+    dot.dataset.testid = 'body-location-' + body.bodyId;
+    dot.setAttribute('aria-hidden', 'true');
+    dot.style.setProperty('--body-dot-color', '#' + bodyColor(body.bodyId).toString(16).padStart(6, '0'));
+    this.labelContainer.append(dot);
+    return dot;
+  }
+
   private createBodyLabel(body: DebugBodyRenderState): HTMLButtonElement | null {
     if (this.labelContainer === null) return null;
     const label = document.createElement('button');
@@ -2268,11 +2283,34 @@ export class DebugSolarSystemRenderer {
     ) {
       for (const marker of this.markers.values()) {
         if (marker.label !== null) { marker.label.style.opacity = '0'; marker.label.style.visibility = 'hidden'; }
+        if (marker.locationDot !== null) marker.locationDot.style.opacity = '0';
       }
       if (this.selectionIndicator !== null) {
         this.selectionIndicator.style.opacity = '0';
       }
       return;
+    }
+
+    for (const marker of this.markers.values()) {
+      const dot = marker.locationDot;
+      if (dot === null) continue;
+      const radiusPx = projectedSphereRadiusPx(this.camera, marker.root.position,
+        marker.cameraTarget.radiusRenderUnits, this.viewportWidth, this.viewportHeight);
+      let opacity = this.bodyLabelsVisible && marker.onScreen && !this.naturalSatelliteCloseupActive && this.inspectedSpaceObjectId === null
+        ? bodyLocationCueOpacity(radiusPx) : 0;
+      if (opacity > 0) {
+        for (const foreground of this.markers.values()) {
+          if (foreground === marker || foreground.isComet || !foreground.root.visible) continue;
+          if (bodyLocationOccluded(this.camera.position, marker.root.position,
+            foreground.root.position, foreground.cameraTarget.radiusRenderUnits)) {
+            opacity = 0;
+            break;
+          }
+        }
+      }
+      dot.dataset.projectedRadiusPx = radiusPx.toFixed(3);
+      dot.style.opacity = opacity.toFixed(3);
+      dot.style.transform = 'translate(' + marker.screenX + 'px, ' + marker.screenY + 'px) translate(-50%, -50%)';
     }
 
     const occupied = this.occupiedLabelPositions;

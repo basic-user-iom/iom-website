@@ -3283,6 +3283,7 @@ export function AppShell() {
                   <span className="sr-only"> {Object.values(pathCoverageWarnings).join(' ')}</span>
                 </span>
               ) : null}
+              <span className="mode-badge">Dots mark distant bodies · dot sizes are not to scale</span>
               <span className="mode-badge">Positions linear · 1 AU / unit</span>
             </div>
           </details>

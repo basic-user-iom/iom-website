@@ -20,6 +20,8 @@ test('can leave every running scenario with the drawer hidden, including full sc
     await page.getByTestId(scenario.toggle).click()
     await page.getByTestId(scenario.start).click()
     if (scenario.confirm) await page.getByTestId(scenario.confirm).click()
+    await expect.poll(() => page.locator('.body-location-dot').evaluateAll(dots =>
+      dots.every(dot => Number(getComputedStyle(dot).opacity) === 0))).toBe(true)
     await page.getByTestId(`${scenario.prefix}-pause`).click()
     await page.getByTestId(`${scenario.prefix}-step`).click()
     await page.getByTestId(`${scenario.prefix}-resume`).click()
