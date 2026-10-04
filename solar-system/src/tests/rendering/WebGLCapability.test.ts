@@ -21,6 +21,6 @@ describe('detectWebGL2Support', () => {
 
     const result = detectWebGL2Support(() => canvas);
     expect(result.supported).toBe(false);
-    expect(result.reason).toContain('hardware acceleration');
+    expect(result.reason).toContain('data and text lessons');
   });
 });

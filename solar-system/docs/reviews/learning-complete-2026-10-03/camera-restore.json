@@ -1,0 +1,692 @@
+[
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "sizes",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "seasons",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "moon",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151561,99.009724,137.017947",
+      "worldTarget": "-33.151561,99.009724,137.017947",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001509,-0.000109,0.002425",
+      "worldTarget": "-0.001519,-0.000108,0.002389",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "sizes",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "seasons",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "moon",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000550",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000208,0.004508,-0.001201",
+      "worldTarget": "-0.000208,0.000083,-0.001201",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.151559,99.009730,137.017971",
+      "worldTarget": "-33.151559,99.009730,137.017971",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.001501,-0.000109,0.002430",
+      "worldTarget": "-0.001510,-0.000108,0.002394",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  }
+]

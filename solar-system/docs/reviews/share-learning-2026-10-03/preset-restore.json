@@ -1,0 +1,3692 @@
+[
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "sizes",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "seasons",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "lesson": "moon",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001181",
+      "worldTarget": "-0.000309,0.000077,-0.001181",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150840,99.011667,137.026410",
+      "worldTarget": "-33.150840,99.011667,137.026410",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001712,-0.000058,0.002289",
+      "worldTarget": "0.001689,-0.000058,0.002260",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "sizes",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "seasons",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "lesson": "moon",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002830,0.000137,0.000549",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000309,0.004505,-0.001180",
+      "worldTarget": "-0.000309,0.000077,-0.001180",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000226,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000184,-0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.150837,99.011675,137.026445",
+      "worldTarget": "-33.150837,99.011675,137.026445",
+      "spaceObject": "voyager-1",
+      "moon": "",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "sizes",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "seasons",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "lesson": "moon",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "0.001724,-0.000058,0.002281",
+      "worldTarget": "0.001700,-0.000057,0.002252",
+      "spaceObject": "",
+      "moon": "io",
+      "layers": [
+        [
+          "Ephemeris orbit lines",
+          true
+        ],
+        [
+          "Screen-space labels",
+          true
+        ],
+        [
+          "NASA Milky Way / deep-sky map",
+          true
+        ],
+        [
+          "HEASARC bright-star catalog",
+          true
+        ],
+        [
+          "Named comets and tails",
+          true
+        ],
+        [
+          "Asteroid belt · statistical",
+          true
+        ],
+        [
+          "Kuiper belt · statistical",
+          false
+        ],
+        [
+          "Natural satellites",
+          true
+        ],
+        [
+          "Major moons",
+          true
+        ],
+        [
+          "Minor point layer",
+          false
+        ],
+        [
+          "Moon orbits",
+          true
+        ],
+        [
+          "Moon labels",
+          true
+        ]
+      ]
+    }
+  }
+]

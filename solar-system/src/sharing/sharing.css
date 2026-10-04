@@ -1,0 +1,16 @@
+﻿.share-link-label { display: block; margin-bottom: 8px; }
+#shared-view-link { width: 100%; min-width: 0; margin-bottom: 12px; font-size: 16px; }
+.share-image-result { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.share-image-result img { display: block; width: 100%; height: auto; border: 1px solid #37566c; border-radius: 6px; }
+.share-image-result a { min-height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+.shared-view-notice { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #37566c; background: #091521; }
+.shared-view-notice p { flex: 1; margin: 0; }
+.shared-view-notice button { min-width: 44px; min-height: 44px; }
+.viewport-share-icon { width: 18px; height: 18px; }
+.viewport-toolbar .viewport-share-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+@media (max-width: 700px) {
+  .viewport-share-label, .overview-long-label { display: none; }
+  .viewport-toolbar .viewport-share-button { padding: 8px 10px; }
+}
+.viewport-toolbar .shared-view-notice { flex: 1 0 100%; min-width: 0; font-size: 12px; padding: 4px 8px; overflow-wrap: anywhere; }
+.lesson-framing-caption { color: #a9def1; font-size: 12px; border-left: 2px solid #67cdec; padding-left: 9px; }

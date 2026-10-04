@@ -1,0 +1,210 @@
+[
+  {
+    "browser": "chromium",
+    "blocked": false,
+    "width": 1366,
+    "height": 768,
+    "loadMs": 6269,
+    "preservedDrawingBuffer": false,
+    "telemetry": {
+      "median": "100.000",
+      "p95": "100.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "66"
+    },
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": false,
+    "width": 768,
+    "height": 1024,
+    "loadMs": 6147,
+    "preservedDrawingBuffer": false,
+    "telemetry": {
+      "median": "100.000",
+      "p95": "100.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "67"
+    },
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": false,
+    "width": 360,
+    "height": 800,
+    "loadMs": 6207,
+    "preservedDrawingBuffer": false,
+    "telemetry": {
+      "median": "83.300",
+      "p95": "100.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "67"
+    },
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": false,
+    "width": 844,
+    "height": 390,
+    "loadMs": 6064,
+    "preservedDrawingBuffer": false,
+    "telemetry": {
+      "median": "83.300",
+      "p95": "100.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "66"
+    },
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": true,
+    "width": 1366,
+    "height": 768,
+    "loadMs": 351,
+    "preservedDrawingBuffer": false,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": true,
+    "width": 768,
+    "height": 1024,
+    "loadMs": 302,
+    "preservedDrawingBuffer": false,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": true,
+    "width": 360,
+    "height": 800,
+    "loadMs": 306,
+    "preservedDrawingBuffer": false,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "chromium",
+    "blocked": true,
+    "width": 844,
+    "height": 390,
+    "loadMs": 302,
+    "preservedDrawingBuffer": false,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": false,
+    "width": 1366,
+    "height": 768,
+    "loadMs": 4994,
+    "preservedDrawingBuffer": true,
+    "telemetry": {
+      "median": "46.000",
+      "p95": "77.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "66"
+    },
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": false,
+    "width": 768,
+    "height": 1024,
+    "loadMs": 5015,
+    "preservedDrawingBuffer": true,
+    "telemetry": {
+      "median": "32.000",
+      "p95": "63.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "67"
+    },
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": false,
+    "width": 360,
+    "height": 800,
+    "loadMs": 4856,
+    "preservedDrawingBuffer": true,
+    "telemetry": {
+      "median": "27.000",
+      "p95": "46.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "67"
+    },
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": false,
+    "width": 844,
+    "height": 390,
+    "loadMs": 4897,
+    "preservedDrawingBuffer": true,
+    "telemetry": {
+      "median": "17.000",
+      "p95": "69.000",
+      "drawCalls": "1",
+      "triangles": "1",
+      "gpu": "66"
+    },
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": true,
+    "width": 1366,
+    "height": 768,
+    "loadMs": 509,
+    "preservedDrawingBuffer": true,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": true,
+    "width": 768,
+    "height": 1024,
+    "loadMs": 468,
+    "preservedDrawingBuffer": true,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": true,
+    "width": 360,
+    "height": 800,
+    "loadMs": 467,
+    "preservedDrawingBuffer": true,
+    "telemetry": {},
+    "errors": []
+  },
+  {
+    "browser": "webkit",
+    "blocked": true,
+    "width": 844,
+    "height": 390,
+    "loadMs": 448,
+    "preservedDrawingBuffer": true,
+    "telemetry": {},
+    "errors": []
+  }
+]

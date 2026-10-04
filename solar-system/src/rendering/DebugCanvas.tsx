@@ -13,6 +13,7 @@ export interface DebugCanvasProps {
   readonly cameraMode: ObservatoryCameraMode;
   readonly earthTideDebugMode: EarthTideDebugMode;
   readonly manualCameraInteractionLocked: boolean;
+  readonly cameraLockReason?: string;
   readonly onRendererReady: (renderer: DebugSolarSystemRenderer | null) => void;
   readonly onStatusChange: (status: WebGLStatus, message?: string | null) => void;
   readonly onVisibilityChange: (visible: boolean) => void;
@@ -31,6 +32,7 @@ export function DebugCanvas({
   cameraMode,
   earthTideDebugMode,
   manualCameraInteractionLocked,
+  cameraLockReason = 'Camera controlled by the active scenario',
   onRendererReady,
   onStatusChange,
   onVisibilityChange,
@@ -52,7 +54,7 @@ export function DebugCanvas({
         };
   });
   const cameraHint = manualCameraInteractionLocked
-    ? 'Camera controlled by the active scenario'
+    ? cameraLockReason
     : cameraMode === 'free-orbit'
       ? 'Free orbit: drag to rotate · wheel to dolly · Shift + wheel: 4× faster · right-drag to pan'
       : 'Drag or wheel to enter free orbit · Shift + wheel: 4× faster zoom';

@@ -1,3 +1,5 @@
+import { lessonCameraPose, lessonRelevantBodies, type LessonFraming } from './camera/LessonCamera';
+import { placeScreenLabelBounds, type ScreenLabelBounds } from './ScreenLabelLayout';
 import { bodyLocationCueOpacity, bodyLocationOccluded } from './BodyLocationCue';
 import { installWheelZoomModifier } from './camera/WheelZoomModifier';
 import { writeEpochAnchoredPath } from './EpochAnchoredPath';
@@ -339,7 +341,7 @@ export class DebugSolarSystemRenderer {
     new Map<string, MutableBlackHoleMappedBodyRenderState>();
   private readonly blackHoleIncludedBodyIds = new Set<string>();
   private readonly orderedMarkerIds: string[] = [];
-  private readonly occupiedLabelPositions: number[] = [];
+  private readonly occupiedLabelPositions: ScreenLabelBounds[] = [];
   private readonly disposeWheelZoomModifier: () => void;
   private readonly adaptiveResolution = new AdaptiveResolutionController('high');
   private readonly mutableCameraFrame = {
@@ -367,6 +369,8 @@ export class DebugSolarSystemRenderer {
   private readonly labelContainer: HTMLElement | null;
   private readonly selectionIndicator: HTMLSpanElement | null;
   private lastFrame: DebugRenderFrame | null = null;
+  private lessonFraming: LessonFraming | null = null;
+  private lessonBodyIds: readonly string[] | null = null;
   private selectedBodyId = 'earth';
   private orbitLinesVisible = true;
   private bodyLabelsVisible = true;
@@ -531,12 +535,13 @@ export class DebugSolarSystemRenderer {
     );
     this.updateScreenSpaceLabels();
     const labelsSuppressed = this.cameraController.status.closeUpPresetId !== null
-      || this.scenarioOverlaysSuppressed();
+      || this.scenarioOverlaysSuppressed() || this.lessonFraming !== null;
     this.naturalSatelliteVisualSystem.updateLabels(
       this.camera,
       this.viewportWidth,
       this.viewportHeight,
       labelsSuppressed,
+      this.occupiedLabelPositions,
     );
     this.spaceObjectVisualSystem.updateLabels(
       this.camera,
@@ -571,6 +576,10 @@ export class DebugSolarSystemRenderer {
     this.postProcessing.setExposure(
       this.exposureAdaptation.advance(deltaSeconds, this.reduceFlashes),
     );
+    if (this.lessonFraming) {
+      this.naturalSatelliteVisualSystem.root.visible = false;
+      this.spaceObjectVisualSystem.root.visible = false;
+    }
     this.postProcessing.render(this.scene, this.camera, deltaSeconds);
     this.updateFps(deltaSeconds);
     this.diagnosticsElapsedSeconds += deltaSeconds;
@@ -874,6 +883,7 @@ export class DebugSolarSystemRenderer {
 
   public setBodyLabelsVisible(visible: boolean): void {
     this.bodyLabelsVisible = visible;
+    if (this.labelContainer) this.labelContainer.dataset.namesVisible = String(visible);
     if (!visible) {
       for (const marker of this.markers.values()) {
         if (marker.label !== null) marker.label.style.opacity = '0';
@@ -961,6 +971,33 @@ export class DebugSolarSystemRenderer {
     this.updateCanvasDiagnostics();
   }
 
+  public getAuxiliaryInspection(): Readonly<{ moonId: string | null; spaceObjectId: string | null }> {
+    return {
+      moonId: this.naturalSatelliteCloseupActive ? this.naturalSatelliteVisualSystem.getDiagnostics().selectedSatelliteId : null,
+      spaceObjectId: this.inspectedSpaceObjectId,
+    };
+  }
+
+  /** Temporary framing only; the lesson boundary restores the prior camera. */
+  public setLessonFraming(framing: LessonFraming | null): void {
+    this.lessonFraming = framing;
+    this.lessonBodyIds = framing ? lessonRelevantBodies(framing) : null;
+    this.canvas.dataset.lessonFraming = framing ? framing.kind : '';
+  }
+
+  /** Copy synchronously before browser buffer invalidation; no preserveDrawingBuffer cost. */
+  public captureSceneCanvas(): HTMLCanvasElement {
+    this.assertNotDisposed();
+    if (!this.contextAvailable || !this.visible) throw new Error('The 3D view is not available.');
+    this.postProcessing.render(this.scene, this.camera, 0);
+    const copy = document.createElement('canvas');
+    copy.width = this.canvas.width; copy.height = this.canvas.height;
+    const context = copy.getContext('2d');
+    if (!context) throw new Error('Image export is unavailable in this browser.');
+    context.drawImage(this.canvas, 0, 0);
+    return copy;
+  }
+
   public captureCameraState(): Readonly<RendererCameraSnapshot> {
     this.assertNotDisposed();
     return Object.freeze({
@@ -985,7 +1022,7 @@ export class DebugSolarSystemRenderer {
     });
   }
 
-  public restoreCameraState(snapshot: Readonly<RendererCameraSnapshot>): void {
+  public restoreCameraState(snapshot: Readonly<RendererCameraSnapshot>, preserveAuxiliaryInspection = false): void {
     this.assertNotDisposed();
     validateCameraSnapshot(snapshot);
     this.impactCameraPresetId = null;
@@ -999,7 +1036,7 @@ export class DebugSolarSystemRenderer {
     if (snapshot.closeUpPresetId !== null) {
       this.cameraController.applyCloseUpPreset(snapshot.closeUpPresetId);
     } else {
-      this.cameraController.setTargetBody(snapshot.selectedBodyId);
+      this.cameraController.setTargetBody(preserveAuxiliaryInspection ? null : snapshot.selectedBodyId);
       this.cameraController.setMode(snapshot.mode);
     }
     this.camera.position.fromArray(snapshot.position);
@@ -1725,7 +1762,7 @@ export class DebugSolarSystemRenderer {
     this.markers.set(body.bodyId, resources);
     this.orderedMarkerIds.push(body.bodyId);
     this.orderedMarkerIds.sort(
-      (leftId, rightId) => bodyRenderOrder(rightId) - bodyRenderOrder(leftId),
+      (leftId, rightId) => bodyRenderOrder(leftId) - bodyRenderOrder(rightId),
     );
     return resources;
   }
@@ -1835,7 +1872,8 @@ export class DebugSolarSystemRenderer {
         this.orbitLinesVisible &&
         !this.impactPlaybackActive() &&
         !this.blackHoleVisualSystem.getDiagnostics().active &&
-        (currentBody.kind !== 'comet' || this.cometsVisible);
+        (currentBody.kind !== 'comet' || this.cometsVisible) &&
+        (this.lessonBodyIds === null || (this.lessonFraming?.kind === 'orbits' && this.lessonBodyIds.includes(pathState.bodyId)));
     }
 
     for (const [key, resources] of this.paths) {
@@ -1930,6 +1968,15 @@ export class DebugSolarSystemRenderer {
     this.applySpaceObjectCameraTracking();
     this.applyBlackHoleCameraTracking();
     this.applyImpactCameraOverride(deltaSeconds);
+    if (this.lessonFraming) {
+      const bodies = new Map([...this.markers].map(([id, marker]) => [id, { position: marker.root.position, radius: marker.cameraTarget.radiusRenderUnits }]));
+      const pose = lessonCameraPose(this.lessonFraming, bodies, this.scaleModel.metersPerRenderUnit, this.camera.fov, this.camera.aspect);
+      if (pose) {
+        this.camera.position.copy(pose.position); this.controls.target.copy(pose.target); this.camera.up.copy(pose.up);
+        this.camera.lookAt(pose.target);
+        this.cameraController.rig.synchronizePose(pose.position, pose.target, pose.up);
+      }
+    }
     this.updateScaleAwareNavigation();
     this.updateClipping(deltaSeconds);
     this.camera.updateMatrixWorld();
@@ -2237,7 +2284,10 @@ export class DebugSolarSystemRenderer {
     const label = document.createElement('button');
     label.type = 'button';
     label.className = 'body-screen-label';
-    label.textContent = body.displayName;
+    const text = document.createElement('span');
+    text.textContent = body.displayName;
+    label.append(text);
+    label.title = body.displayName;
     label.dataset.bodyId = body.bodyId;
     label.dataset.testid = `body-label-${body.bodyId}`;
     label.setAttribute('aria-label', `Focus ${body.displayName}`);
@@ -2256,6 +2306,7 @@ export class DebugSolarSystemRenderer {
   }
 
   private updateScreenSpaceLabels(): void {
+    this.occupiedLabelPositions.length = 0;
     for (const [bodyId, marker] of this.markers) {
       const projected = this.scratchProjected.copy(marker.root.position).project(this.camera);
       marker.onScreen =
@@ -2296,7 +2347,7 @@ export class DebugSolarSystemRenderer {
       if (dot === null) continue;
       const radiusPx = projectedSphereRadiusPx(this.camera, marker.root.position,
         marker.cameraTarget.radiusRenderUnits, this.viewportWidth, this.viewportHeight);
-      let opacity = this.bodyLabelsVisible && marker.onScreen && !this.naturalSatelliteCloseupActive && this.inspectedSpaceObjectId === null
+      let opacity = marker.onScreen && (this.lessonBodyIds === null || this.lessonBodyIds.includes(marker.bodyState.bodyId)) && !this.naturalSatelliteCloseupActive && this.inspectedSpaceObjectId === null
         ? bodyLocationCueOpacity(radiusPx) : 0;
       if (opacity > 0) {
         for (const foreground of this.markers.values()) {
@@ -2319,7 +2370,11 @@ export class DebugSolarSystemRenderer {
     if (selectedMarker !== undefined) {
       this.placeScreenLabel(selectedMarker, this.selectedBodyId, occupied, true);
     }
-    for (const bodyId of this.orderedMarkerIds) {
+    if (this.lessonBodyIds) for (const [id, marker] of this.markers) {
+      if (!this.lessonBodyIds.includes(id) && marker.label) { marker.label.style.opacity = '0'; marker.label.style.visibility = 'hidden'; }
+    }
+    const labelOrder = this.lessonBodyIds ?? this.orderedMarkerIds;
+    for (const bodyId of labelOrder) {
       const marker = this.markers.get(bodyId);
       if (marker === undefined) continue;
       if (bodyId !== this.selectedBodyId) {
@@ -2359,31 +2414,31 @@ export class DebugSolarSystemRenderer {
   private placeScreenLabel(
     marker: MarkerResources,
     bodyId: string,
-    occupied: number[],
+    occupied: ScreenLabelBounds[],
     selected: boolean,
   ): void {
-    if (marker.label === null) return;
-    const width = marker.label.offsetWidth || 80;
-    const x = Math.max(4, Math.min(this.viewportWidth - width - 4, marker.screenX + 14));
-    const y = Math.max(26, Math.min(this.viewportHeight - 26, marker.screenY + labelVerticalOffset(bodyId)));
-    let overlaps = false;
-    for (let index = 0; index < occupied.length; index += 2) {
-      const occupiedX = occupied[index] ?? 0;
-      const occupiedY = occupied[index + 1] ?? 0;
-      if (Math.abs(occupiedX - x) < 184 && Math.abs(occupiedY - y) < 48) {
-        overlaps = true;
-        break;
-      }
-    }
+    const label = marker.label;
+    if (label === null) return;
     const inspectingMoon = this.auxiliaryFocusRadiusRenderUnits !== null &&
       this.cameraController.mode === 'free-orbit' &&
       this.naturalSatelliteVisualSystem.getDiagnostics().selectedSatelliteId !== null;
-    const shown = this.bodyLabelsVisible && marker.onScreen && (selected || !overlaps) && !inspectingMoon;
-    marker.label.style.opacity = shown ? (selected ? '1' : '0.76') : '0';
-    marker.label.style.visibility = shown ? 'visible' : 'hidden';
-    marker.label.setAttribute('aria-pressed', String(selected));
-    marker.label.style.transform = `translate(${x}px, ${y}px) translate(0, -50%)`;
-    if (shown) occupied.push(x, y);
+    const earth = this.markers.get('earth');
+    // At system scale the Earth and Moon may share a pixel. Keep the planet's
+    // identity instead of offering a Moon label on what appears to be Earth.
+    const unresolvedMoon = bodyId === 'moon' && !selected && earth?.onScreen === true &&
+      Math.hypot(marker.screenX - earth.screenX, marker.screenY - earth.screenY) < 48;
+    const eligible = this.bodyLabelsVisible && (this.lessonBodyIds === null || this.lessonBodyIds.includes(bodyId)) && marker.onScreen && !inspectingMoon && !unresolvedMoon;
+    const box = eligible ? placeScreenLabelBounds(
+      marker.screenX, marker.screenY, label.offsetWidth || 44, label.offsetHeight || 44,
+      this.viewportWidth, this.viewportHeight, occupied,
+    ) : null;
+    label.style.opacity = box ? (selected ? '1' : '0.88') : '0';
+    label.style.visibility = box ? 'visible' : 'hidden';
+    label.setAttribute('aria-pressed', String(selected));
+    if (box) {
+      label.style.transform = 'translate(' + box.left + 'px, ' + box.top + 'px)';
+      occupied.push(box);
+    }
   }
 
   private updateCanvasDiagnostics(force = true): void {
@@ -3205,11 +3260,6 @@ export class DebugSolarSystemRenderer {
 
 function pathKey(path: DebugOrbitTrailRenderState): string {
   return `${path.kind ?? 'orbit'}:${path.bodyId}`;
-}
-
-function labelVerticalOffset(bodyId: string): number {
-  const index = bodyRenderOrder(bodyId);
-  return -12 + ((index % 3) - 1) * 13;
 }
 
 function bodyRenderOrder(bodyId: string): number {

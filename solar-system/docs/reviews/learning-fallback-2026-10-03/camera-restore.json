@@ -1,0 +1,222 @@
+[
+  {
+    "browser": "chromium",
+    "mode": "saturn-from-earth",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000552",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000552",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "earth-moon-system",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000020,0.004512,-0.001216",
+      "worldTarget": "-0.000020,0.000093,-0.001216",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000020,0.004512,-0.001216",
+      "worldTarget": "-0.000020,0.000093,-0.001216",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "free-orbit",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "voyager-1",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.152788,99.006178,137.002487",
+      "worldTarget": "-33.152788,99.006178,137.002487",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.152788,99.006178,137.002487",
+      "worldTarget": "-33.152788,99.006178,137.002487",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "chromium",
+    "mode": "io",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.000988,0.000081,-0.002609",
+      "worldTarget": "-0.001022,0.000080,-0.002624",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.000988,0.000081,-0.002609",
+      "worldTarget": "-0.001022,0.000080,-0.002624",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "saturn-from-earth",
+    "before": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000552",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "saturn-from-earth",
+      "mode": "body-follow",
+      "target": "saturn",
+      "position": "-0.002829,0.000137,0.000552",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "earth-moon-system",
+    "before": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000021,0.004512,-0.001216",
+      "worldTarget": "-0.000021,0.000093,-0.001216",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "earth-moon-system",
+      "target": "earth",
+      "position": "-0.000021,0.004512,-0.001216",
+      "worldTarget": "-0.000021,0.000093,-0.001216",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "free-orbit",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "earth",
+      "position": "-0.000000,0.000278,0.000000",
+      "worldTarget": "0.000000,0.000000,0.000000",
+      "spaceObject": "",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "voyager-1",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.152787,99.006180,137.002498",
+      "worldTarget": "-33.152787,99.006180,137.002498",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-33.152787,99.006180,137.002498",
+      "worldTarget": "-33.152787,99.006180,137.002498",
+      "spaceObject": "voyager-1",
+      "moon": ""
+    }
+  },
+  {
+    "browser": "webkit",
+    "mode": "io",
+    "before": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.000992,0.000081,-0.002608",
+      "worldTarget": "-0.001026,0.000080,-0.002622",
+      "spaceObject": "",
+      "moon": "io"
+    },
+    "after": {
+      "preset": "",
+      "mode": "free-orbit",
+      "target": "",
+      "position": "-0.000992,0.000081,-0.002608",
+      "worldTarget": "-0.001026,0.000080,-0.002622",
+      "spaceObject": "",
+      "moon": "io"
+    }
+  }
+]

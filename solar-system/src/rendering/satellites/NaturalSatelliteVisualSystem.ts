@@ -1,3 +1,4 @@
+import type { ScreenLabelBounds } from '../ScreenLabelLayout';
 import { PrecisionLine } from '../PrecisionPath';
 import {
   type BufferGeometry,
@@ -457,6 +458,7 @@ export class NaturalSatelliteVisualSystem {
     viewportWidth: number,
     viewportHeight: number,
     suppressed = false,
+    bodyLabelBounds: readonly ScreenLabelBounds[] = [],
   ): void {
     for (const resource of this.major.values()) {
       if (!resource.mesh.visible || resource.mesh.userData.surfaceDetailReady || !isProceduralMajorMoon(resource.definition.id)) continue;
@@ -521,7 +523,7 @@ export class NaturalSatelliteVisualSystem {
       });
     }
     candidates.sort((left, right) => right.priority - left.priority || left.resource.definition.id.localeCompare(right.resource.definition.id));
-    const occupied: Array<Readonly<{ left: number; right: number; top: number; bottom: number }>> = [];
+    const occupied: ScreenLabelBounds[] = [...bodyLabelBounds];
     for (const candidate of candidates) {
       const selected = candidate.resource.definition.id === this.selectedSatelliteId;
       const bounds = {

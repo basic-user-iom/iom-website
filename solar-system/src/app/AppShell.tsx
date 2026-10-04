@@ -1,3 +1,15 @@
+import type { LessonFraming } from '../rendering/camera/LessonCamera';
+import { applyViewLayers } from '../sharing/ViewLayers';
+import { ShareDialog } from '../sharing/ShareDialog';
+import { parseSharedView, sharedViewUrl, SHARED_LAYER_KEYS, type SharedView } from '../sharing/SharedView';
+import { exportSceneImage } from '../sharing/SceneImage';
+import type { Vec3d } from '../simulation/core/Vec3d';
+import { DataModePanel } from '../learning/DataModePanel';
+import { LessonPanel } from '../learning/LessonPanel';
+import { LESSONS } from '../learning/LessonCatalog';
+import type { LessonId } from '../learning/LessonTypes';
+import { LessonPicker } from '../learning/LessonPicker';
+import { calculateLessonMeasurements, type LessonMeasurements } from '../learning/LessonMeasurements';
 import { ViewportMenus } from '../ui/observatory/ViewportMenus';
 import { StartupProgressTracker, downloadBinary, type StartupProgress } from './StartupProgress';
 import { StartupScreen } from '../ui/observatory/StartupScreen';
@@ -458,6 +470,43 @@ export function AppShell() {
   const [activeTideMode, setActiveTideMode] = useState(experimentalTideMode);
   const activeTideModeRef = useRef(experimentalTideMode);
   const rendererRef = useRef<DebugSolarSystemRenderer | null>(null);
+  const [incomingShare] = useState(() => parseSharedView(window.location.hash));
+  useEffect(() => {
+    // Following another shared URL in this same tab must also restore it.
+    // A navigation boundary cleanly exits any lesson/scenario and releases its renderer.
+    const followSharedView = () => { if (window.location.hash.startsWith('#view=')) window.location.reload(); };
+    window.addEventListener('hashchange', followSharedView);
+    return () => window.removeEventListener('hashchange', followSharedView);
+  }, []);
+  const appliedShareData = useRef(false);
+  const sharedCameraRestored = useRef(false);
+  const appliedShareRenderer = useRef<DebugSolarSystemRenderer | null>(null);
+  const [shareNotice, setShareNotice] = useState(incomingShare.error);
+  const [shareDialog, setShareDialog] = useState<{ url: string | null; note: string } | null>(null);
+  const [rendererAttempt, setRendererAttempt] = useState(0);
+  const [graphicsRetrying, setGraphicsRetrying] = useState(false);
+  const [lessonId, setLessonId] = useState<LessonId>('sizes');
+  const [lessonPickerOpen, setLessonPickerOpen] = useState(false);
+  const [lessonMeasurements, setLessonMeasurements] = useState<LessonMeasurements | null>(null);
+  const [lessonStep, setLessonStep] = useState<number | null>(null);
+  const [lessonRun, setLessonRun] = useState(0);
+  const [lessonDistances, setLessonDistances] = useState<Record<string, number | null>>({});
+  const [lessonMotionPaused, setLessonMotionPaused] = useState(true);
+  const lessonActiveRef = useRef(false);
+  const lessonFramingRef = useRef<LessonFraming | null>(null);
+  const lessonMotionPausedRef = useRef(true);
+  const lessonSavedRef = useRef<{
+    environment: Readonly<ScenarioEnvironmentSnapshot> | null;
+    ui: Pick<ReturnType<typeof useAppStore.getState>, 'selectedBodyId' | 'cameraMode' | 'renderScaleMode' | 'preferencesPersistenceSuspended'>;
+    layers: SharedView['layers'];
+    originM: Readonly<Vec3d> | null;
+    originBodyId: string;
+    focusedBodyId: string;
+    selectedMoon: string | null;
+    selectedSpaceObject: string | null;
+    preset: CameraCloseUpPresetId | null;
+    auxiliaryInspection: Readonly<{ moonId: string | null; spaceObjectId: string | null }> | null;
+  } | null>(null);
   const runtimeRef = useRef<ObservatoryRuntime | null>(null);
   const impactScenarioRef = useRef<AsteroidImpactScenario | null>(null);
   const solarEvolutionScenarioRef = useRef<ScientificSolarEvolutionScenario | null>(null);
@@ -753,6 +802,11 @@ export function AppShell() {
   const handleWebGLStatusChange = useCallback(
     (status: Parameters<typeof setWebGLStatus>[0], message?: string | null) => {
       setWebGLStatus(status, message);
+      if (status !== 'checking') setGraphicsRetrying(false);
+      if (lessonActiveRef.current && (status === 'lost' || status === 'error' || status === 'unavailable')) {
+        lessonMotionPausedRef.current = true; setLessonMotionPaused(true);
+        runtimeRef.current?.context.clock.setPaused(true);
+      }
       const runtime = runtimeRef.current;
       if (runtime !== null) {
         if (status === 'ready' && runtime.documentVisible) runtime.engine.start();
@@ -1083,6 +1137,23 @@ export function AppShell() {
             force,
           );
           if (published) {
+            const sun = context.getBody('sun');
+            const distances: Record<string, number | null> = {};
+            for (const id of OBSERVATORY_BODY_IDS) {
+              const body = context.getBody(id);
+              distances[id] = body && sun && body.visible && provider.hasBody(id)
+                ? Math.hypot(body.positionM.x - sun.positionM.x, body.positionM.y - sun.positionM.y, body.positionM.z - sun.positionM.z) / 149597870700 : null;
+            }
+            setLessonDistances(current => OBSERVATORY_BODY_IDS.every(id => current[id] === distances[id]) ? current : distances);
+            if (lessonActiveRef.current) {
+              const earth = context.getBody('earth');
+              const moon = context.getBody('moon');
+              const jdTdb = context.clock.snapshot().currentJdTdb;
+              if (sun && earth && moon) {
+                const measurements = calculateLessonMeasurements(jdTdb, sun.positionM, earth.positionM, moon.positionM);
+                setLessonMeasurements(current => current?.jdTdb === jdTdb ? current : measurements);
+              }
+            }
             lastSnapshotFrameMs = frameNowMs;
             const selectedBody = context.getBody(runtime.selectedBodyId);
             if (selectedBody !== undefined) {
@@ -1533,7 +1604,7 @@ export function AppShell() {
           if (synchronizeEphemeris()) {
             runtime.synchronizeTrackedOrigin();
             runtime.refreshDynamicPaths(false);
-            renderContext.realDeltaSeconds = frame.dtRealSeconds;
+            renderContext.realDeltaSeconds = lessonActiveRef.current && lessonMotionPausedRef.current ? 0 : frame.dtRealSeconds;
             renderNow();
           }
           publishSnapshot(false);
@@ -1720,6 +1791,7 @@ export function AppShell() {
     rendererRef.current = renderer;
     if (renderer === null) return;
     const ui = useAppStore.getState();
+    renderer.setLessonFraming(lessonFramingRef.current);
     renderer.setSelectedBody(ui.selectedBodyId);
     renderer.setCameraMode(ui.cameraMode);
     renderer.setScaleMode(ui.renderScaleMode);
@@ -1767,7 +1839,7 @@ export function AppShell() {
     const runtime = runtimeRef.current;
     if (runtime === null) return;
     runtime.documentVisible = visible;
-    if (visible) runtime.engine.start();
+    if (visible && useAppStore.getState().webglStatus === 'ready') runtime.engine.start();
     else runtime.engine.stop();
     runtime.forcePublish();
   }, []);
@@ -2623,11 +2695,216 @@ export function AppShell() {
     });
   }, [setPanel, synchronizeSolarFatePresentation, synchronizeBlackHolePresentation]);
 
+  const lessonActive = lessonStep !== null;
+  const dataMode = graphicsRetrying || webglStatus === 'unavailable' || webglStatus === 'error' || webglStatus === 'lost' || ephemeris.status === 'error';
+  const applyLessonStep = (index: number, id: LessonId = lessonId) => {
+    const step = LESSONS[id].steps[index];
+    if (!step) return;
+    setLessonStep(index);
+    lessonMotionPausedRef.current = true; setLessonMotionPaused(true);
+    runtimeRef.current?.context.clock.setPaused(true);
+    rendererRef.current?.setReducedMotion(true);
+    lessonFramingRef.current = step.framing ?? null;
+    rendererRef.current?.setLessonFraming(lessonFramingRef.current);
+    if (step.utc) controls.setExactDateUtc(step.utc);
+    controls.setRenderScaleMode(step.scale, true);
+    if (step.camera) controls.setCameraMode(step.camera);
+    else if (step.body) controls.focusBody(step.body);
+    else { controls.selectBody('sun'); controls.setCameraMode('overview'); }
+    runtimeRef.current?.renderNow();
+    runtimeRef.current?.forcePublish();
+  };
+  const startLesson = (id: LessonId) => {
+    if (scenarioActive || lessonActiveRef.current) return;
+    cancelTourForManualInput();
+    restoreIdleImpactPreviewEnvironment();
+    const runtime = runtimeRef.current;
+    const ui = useAppStore.getState();
+    lessonSavedRef.current = {
+      environment: runtime ? captureScenarioEnvironmentSnapshot(runtime, rendererRef.current) : null,
+      ui: { selectedBodyId: ui.selectedBodyId, cameraMode: ui.cameraMode, renderScaleMode: ui.renderScaleMode, preferencesPersistenceSuspended: ui.preferencesPersistenceSuspended },
+      layers: Object.fromEntries(SHARED_LAYER_KEYS.map(key => [key, ui[key]])) as SharedView['layers'],
+      originM: runtime?.context.floatingOrigin.snapshot().originM ?? null,
+      originBodyId: runtime?.originBodyId ?? 'sun', focusedBodyId: runtime?.focusedBodyId ?? ui.selectedBodyId,
+      selectedMoon: selectedNaturalSatelliteId, selectedSpaceObject: selectedSpaceObjectId, preset: activeCloseUpPresetId,
+      auxiliaryInspection: rendererRef.current?.getAuxiliaryInspection() ?? null,
+    };
+    setLessonPickerOpen(false);
+    setLessonId(id);
+    lessonActiveRef.current = true;
+    lessonMotionPausedRef.current = true;
+    setLessonMotionPaused(true);
+    setPreferencesPersistenceSuspended(true);
+    applyViewLayers(rendererRef.current, { orbitLinesVisible: true, bodyLabelsVisible: true, skyBackgroundVisible: false, brightStarsVisible: false, cometsVisible: false, asteroidBeltVisible: false, kuiperBeltVisible: false });
+    runtime?.context.clock.setPaused(true);
+    rendererRef.current?.setReducedMotion(true);
+    setSelectedNaturalSatelliteId(null); setSelectedSpaceObjectId(null);
+    rendererRef.current?.selectNaturalSatellite(null); rendererRef.current?.selectSpaceObject(null);
+    setImpactLabOpen(false); setSolarFateOpen(false); setBlackHoleEncounterOpen(false); setPanel(null);
+    setLessonRun(value => value + 1);
+    applyLessonStep(0, id);
+  };
+  const exitLesson = () => {
+    const saved = lessonSavedRef.current;
+    if (!saved) return;
+    lessonSavedRef.current = null; lessonActiveRef.current = false;
+    lessonFramingRef.current = null;
+    rendererRef.current?.setLessonFraming(null);
+    applyViewLayers(rendererRef.current, saved.layers);
+    setLessonStep(null);
+    const runtime = runtimeRef.current;
+    const environment = saved.environment;
+    updateSelectedBodyId(saved.ui.selectedBodyId); updateCameraMode(saved.ui.cameraMode); updateRenderScaleMode(saved.ui.renderScaleMode);
+    setActiveCloseUpPresetId(saved.preset);
+    setSelectedNaturalSatelliteId(saved.selectedMoon); setSelectedSpaceObjectId(saved.selectedSpaceObject);
+    const renderer = rendererRef.current;
+    renderer?.setReducedMotion(useAppStore.getState().reducedMotion);
+    renderer?.setSelectedBody(saved.ui.selectedBodyId); renderer?.setCameraMode(saved.ui.cameraMode); renderer?.setScaleMode(saved.ui.renderScaleMode, true);
+    if (runtime && environment) {
+      const clock = runtime.context.clock;
+      clock.setCurrentJdTdb(environment.clock.currentJdTdb); clock.setTimeScale(environment.clock.timeScale); clock.setDirection(environment.clock.direction);
+      if (environment.clock.scrubTargetJdTdb === null) clock.clearScrubTarget(); else clock.setScrubTargetJdTdb(environment.clock.scrubTargetJdTdb);
+      clock.setPaused(environment.clock.paused);
+      runtime.selectedBodyId = saved.ui.selectedBodyId; runtime.focusedBodyId = saved.focusedBodyId;
+      runtime.cameraMode = saved.ui.cameraMode; runtime.renderScaleMode = saved.ui.renderScaleMode;
+      runtime.originBodyId = saved.originBodyId;
+      runtime.synchronizeEphemeris(); runtime.refreshDynamicPaths(true);
+      if (saved.originM) runtime.context.rebaseOriginTo(saved.originM);
+      runtime.renderNow(); runtime.forcePublish();
+    }
+    setPreferencesPersistenceSuspended(saved.ui.preferencesPersistenceSuspended);
+    // Restore navigation bounds and tracking before the pose (Voyager needs metre-scale bounds).
+    // Wait until the lesson panel has released its layout space.
+    requestAnimationFrame(() => {
+      if (lessonActiveRef.current || runtime !== runtimeRef.current) return;
+      if (renderer === rendererRef.current && environment?.rendererCamera) {
+        if (saved.auxiliaryInspection?.moonId) renderer?.focusNaturalSatellite(saved.auxiliaryInspection.moonId);
+        if (saved.auxiliaryInspection?.spaceObjectId) renderer?.focusSpaceObject(saved.auxiliaryInspection.spaceObjectId);
+        renderer?.restoreCameraState(environment.rendererCamera, Boolean(saved.auxiliaryInspection?.moonId || saved.auxiliaryInspection?.spaceObjectId));
+        if (environment.rendererExposure) renderer?.restoreExposureState(environment.rendererExposure);
+        runtime?.renderNow();
+      }
+      if (runtime?.documentVisible && useAppStore.getState().webglStatus === 'ready') runtime.engine.start();
+      document.querySelector<HTMLButtonElement>('[data-testid="learn-start"]')?.focus({ preventScroll: true });
+    });
+  };
+  const toggleLessonMotion = () => {
+    const paused = !lessonMotionPausedRef.current;
+    lessonMotionPausedRef.current = paused; setLessonMotionPaused(paused);
+    rendererRef.current?.setReducedMotion(paused || reducedMotion);
+    if (!paused) { controls.setTimeScale(86400); controls.setDirection(1); }
+    controls.setPaused(paused);
+    runtimeRef.current?.renderNow();
+  };
+  const retryGraphics = () => {
+    if (graphicsRetrying) return;
+    setGraphicsRetrying(true); setWebGLStatus('checking', null);
+    setRendererAttempt(value => value + 1);
+  };
   const observatoryUnavailable =
     !preferencesHydrated || ephemeris.status === 'loading' || ephemeris.status === 'error';
-  const controlsDisabled = observatoryUnavailable || scenarioActive;
+  const controlsDisabled = observatoryUnavailable || scenarioActive || lessonActive || webglStatus !== 'ready';
+  useEffect(() => {
+    const view = incomingShare.view;
+    const runtime = runtimeRef.current;
+    if (!view || !runtime || sharedCameraRestored.current || ephemeris.status !== 'ready') return;
+    const renderer = webglStatus === 'ready' ? rendererRef.current : null;
+    if (appliedShareData.current && (!renderer || appliedShareRenderer.current === renderer)) return;
+    // The user may have chosen another object/date in text mode before retrying 3D.
+    // That newer choice takes precedence over a previously deferred shared camera.
+    const ui = useAppStore.getState();
+    if (appliedShareData.current && (ui.selectedBodyId !== view.camera.selectedBodyId || runtime.context.clock.currentJdTdb !== view.jdTdb || ui.renderScaleMode !== view.scale || ui.cameraMode !== view.camera.mode)) {
+      sharedCameraRestored.current = true;
+      return;
+    }
+    const restoreFrame = requestAnimationFrame(() => {
+      try {
+        const jd = view.jdTdb;
+        const coverage = runtime.provider.getCoverage('earth');
+        if (!coverage || jd < coverage.startJdTdb || jd > coverage.endJdTdb) throw new Error('This shared date is outside the available ephemeris coverage.');
+        if (view.auxiliary.moonId && !getNaturalSatelliteDefinition(view.auxiliary.moonId)) throw new Error('The shared moon is not in this catalog.');
+        if (view.auxiliary.spaceObjectId && !getSpacecraftDefinition(view.auxiliary.spaceObjectId) && !getEarthSatelliteDefinition(view.auxiliary.spaceObjectId)) throw new Error('The shared spacecraft is not in this catalog.');
+        if (!appliedShareData.current) {
+          appliedShareData.current = true;
+          controls.setPaused(true);
+          runtime.context.clock.setCurrentJdTdb(view.jdTdb);
+          runtime.synchronizeEphemeris();
+          controls.selectBody(view.camera.selectedBodyId);
+          controls.setCameraMode(view.camera.mode);
+          controls.setRenderScaleMode(view.scale, true);
+          const ui = useAppStore.getState();
+          applyViewLayers(renderer, view.layers);
+          ui.setVenusSurfaceMode(view.venus);
+          setShareNotice('Shared view opened at ' + view.utc.replace('T', ' ').replace(/(?:\.\d+)?Z$/, ' UTC') + ' · Time paused.');
+        }
+        if (!renderer) return;
+        appliedShareRenderer.current = renderer;
+        renderer.setScaleMode(view.scale, true);
+        applyViewLayers(renderer, view.layers); renderer.setVenusSurfaceMode(view.venus);
+        runtime.context.rebaseOriginTo({ x: view.origin[0], y: view.origin[1], z: view.origin[2] });
+        runtime.originBodyId = view.originBodyId;
+        runtime.renderNow();
+        if (view.auxiliary.moonId) { renderer.focusNaturalSatellite(view.auxiliary.moonId); setSelectedNaturalSatelliteId(view.auxiliary.moonId); }
+        if (view.auxiliary.spaceObjectId) { renderer.focusSpaceObject(view.auxiliary.spaceObjectId); setSelectedSpaceObjectId(view.auxiliary.spaceObjectId); }
+        renderer.restoreCameraState(view.camera, Boolean(view.auxiliary.moonId || view.auxiliary.spaceObjectId));
+        sharedCameraRestored.current = true;
+        setActiveCloseUpPresetId(view.camera.closeUpPresetId);
+        runtime.renderNow(); runtime.forcePublish();
+      } catch (error) {
+        appliedShareData.current = true;
+        appliedShareRenderer.current = renderer;
+        setShareNotice(error instanceof Error ? error.message : 'This shared view could not be opened.');
+      }
+    });
+    return () => cancelAnimationFrame(restoreFrame);
+  }, [incomingShare, ephemeris.status, webglStatus, controls]);
+
+  const openShare = () => {
+    const runtime = runtimeRef.current, renderer = rendererRef.current;
+    if (!runtime || !renderer || webglStatus !== 'ready') {
+      setShareDialog({ url: null, note: 'Sharing a camera view requires the 3D renderer. Object data and text lessons remain available in this browser.' });
+      return;
+    }
+    if (scenarioActive || lessonActive || (tourSummary?.state === 'running' || tourSummary?.state === 'paused')) {
+      setShareDialog({ url: null, note: 'A view link is available in the observatory. Exit the lesson, tour or scenario to share a navigable view; you can save an image of this example below.' });
+      return;
+    }
+    const ui = useAppStore.getState();
+    const origin = runtime.context.floatingOrigin.snapshot().originM;
+    const view: SharedView = {
+      version: 1, utc: approximateTdbToDateUtc(runtime.context.clock.currentJdTdb).toISOString(), jdTdb: runtime.context.clock.currentJdTdb,
+      scale: ui.renderScaleMode, camera: renderer.captureCameraState(),
+      origin: [origin.x, origin.y, origin.z], originBodyId: runtime.originBodyId,
+      layers: Object.fromEntries(SHARED_LAYER_KEYS.map(key => [key, ui[key]])) as SharedView['layers'],
+      venus: ui.venusSurfaceMode, auxiliary: renderer.getAuxiliaryInspection(),
+    };
+    setShareDialog({ url: sharedViewUrl(window.location.href, view), note: 'The link saves this UTC moment, selected object, scale, camera and reference layers. It opens paused. The visible area may differ on another screen.' });
+  };
+  const saveSceneImage = async () => {
+    const renderer = rendererRef.current, runtime = runtimeRef.current;
+    const canvas = document.querySelector<HTMLCanvasElement>('[data-testid="solar-system-canvas"]');
+    if (!renderer || !runtime || !canvas || webglStatus !== 'ready') throw new Error('A ready 3D scene is required for image export.');
+    runtime.renderNow();
+    const utc = approximateTdbToDateUtc(runtime.context.clock.currentJdTdb).toISOString();
+    const notes = ['Solar System · Living Observatory · iobjectm.com', 'UTC ' + utc, renderScaleMode === 'true' ? 'True physical scale · location dots are not to scale' : 'Presentation scale · body sizes enlarged · orbital distances remain linear'];
+    const auxiliary = renderer.getAuxiliaryInspection();
+    const objectName = auxiliary.moonId ? getNaturalSatelliteDefinition(auxiliary.moonId)?.name : auxiliary.spaceObjectId ? (getSpacecraftDefinition(auxiliary.spaceObjectId)?.name ?? getEarthSatelliteDefinition(auxiliary.spaceObjectId)?.name) : selectedBodyDefinition.displayName;
+    if (objectName) notes.push('Focus: ' + objectName);
+    if (activeCloseUpPresetId) notes.push(getCameraCloseUpPreset(activeCloseUpPresetId).description);
+    if (lessonActive && lessonStep !== null) {
+      notes.push('Teaching example: ' + LESSONS[lessonId].title + ' — ' + LESSONS[lessonId].steps[lessonStep]!.title);
+      const caption = LESSONS[lessonId].steps[lessonStep]?.framingCaption;
+      if (caption) notes.push(caption);
+    }
+    if (scenarioActive) {
+      const hud = document.querySelector<HTMLElement>('.impact-event-hud, .solar-fate-event-hud, .black-hole-event-hud');
+      notes.push('Scenario · ' + (hud?.innerText.replace(/\s+/g, ' ').slice(0, 480) ?? 'Educational approximation'));
+    }
+    return exportSceneImage(renderer.captureSceneCanvas(), canvas, notes);
+  };
+
   const manualCameraInteractionLocked =
-    observatoryUnavailable || (scenarioActive && cameraMode !== 'free-orbit');
+    observatoryUnavailable || lessonActive || (scenarioActive && cameraMode !== 'free-orbit');
   const selectedBodyDefinition = getRequiredBodyDefinition(selectedBodyId);
   const selectedPathCoverageWarning = pathCoverageWarnings[selectedBodyId] ?? null;
   const limitedPathCount = Object.keys(pathCoverageWarnings).length;
@@ -2643,7 +2920,7 @@ export function AppShell() {
           ? 'Black-Hole Physics Flyby · Newtonian educational approximation'
           : completeConsumptionActive
             ? 'Complete Consumption · nonphysical cinematic'
-            : `${classificationLabelForStage(selectedBodyDefinition)} · live scientific view`;
+            : `${classificationLabelForStage(selectedBodyDefinition)} · ${dataMode ? 'data & text view' : lessonActive ? 'learning example' : 'live scientific view'}`;
 
   const resetSavedPreferences = useCallback(() => {
     if (scenarioActive) return;
@@ -2758,11 +3035,11 @@ export function AppShell() {
 
   useEffect(() => {
     const handler = createObservatoryShortcutHandler(handleShortcutAction, {
-      enabled: () => !helpOpen && !provenanceOpen,
+      enabled: () => !helpOpen && !provenanceOpen && !lessonPickerOpen,
     });
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [handleShortcutAction, helpOpen, provenanceOpen]);
+  }, [handleShortcutAction, helpOpen, provenanceOpen, lessonPickerOpen]);
 
   const toolActions = (
         <div className="header-actions">
@@ -2775,7 +3052,7 @@ export function AppShell() {
             className="command-button"
             type="button"
             data-testid="scenario-drawer-toggle"
-            disabled={observatoryUnavailable || (scenarioActive && !impactActive)}
+            disabled={observatoryUnavailable || lessonActive || webglStatus !== 'ready' || (scenarioActive && !impactActive)}
             aria-pressed={impactLabOpen}
             aria-controls="impact-lab-workspace"
             onClick={() => {
@@ -2800,7 +3077,7 @@ export function AppShell() {
             className="command-button"
             type="button"
             data-testid="solar-fate-drawer-toggle"
-            disabled={observatoryUnavailable || (scenarioActive && !solarFateActive)}
+            disabled={observatoryUnavailable || lessonActive || webglStatus !== 'ready' || (scenarioActive && !solarFateActive)}
             aria-pressed={solarFateOpen}
             aria-controls="solar-fate-workspace"
             onClick={() => {
@@ -2817,7 +3094,7 @@ export function AppShell() {
             className="command-button"
             type="button"
             data-testid="black-hole-encounter-drawer-toggle"
-            disabled={observatoryUnavailable || (scenarioActive && !blackHoleActive)}
+            disabled={observatoryUnavailable || lessonActive || webglStatus !== 'ready' || (scenarioActive && !blackHoleActive)}
             aria-pressed={blackHoleEncounterOpen}
             aria-controls="black-hole-encounter-workspace"
             onClick={() => {
@@ -2905,6 +3182,9 @@ export function AppShell() {
       data-compact={compact}
       data-workspace-panel={panel ?? "none"}
       data-testid="solar-system-app"
+      data-data-mode={String(dataMode)}
+      data-lesson-active={String(lessonActive)}
+      data-lesson-step={lessonStep ?? "none"}
       data-trail-interval={selectedTrailInterval}
       data-visual-quality={visualQuality}
       data-venus-surface-mode={venusSurfaceMode}
@@ -2930,7 +3210,7 @@ export function AppShell() {
 
       <StartupScreen progress={startupProgress}
         ready={ephemeris.status === 'ready' && webglStatus === 'ready' && initialSurfaceReady}
-        error={ephemeris.status === 'error' ? ephemeris.message : webglStatus === 'error' || webglStatus === 'unavailable' ? (webglMessage ?? 'This browser cannot start the 3D view.') : null} />
+        error={ephemeris.status === 'error' ? ephemeris.message : webglStatus === 'error' || webglStatus === 'unavailable' || webglStatus === 'lost' ? (webglMessage ?? 'This browser cannot start the 3D view.') : null} />
       <header className="observatory-header">
         <BackToIom />
         <div className="brand-lockup" aria-label="Solar System: Living Observatory">
@@ -3196,6 +3476,7 @@ export function AppShell() {
           </div>
 
           <section className="observatory-stage" aria-label="Interactive observatory stage">
+
             <div className="stage-heading">
               <div className="stage-heading-primary">
                 <span className="body-list-marker" data-body-id={selectedBodyId} aria-hidden="true" />
@@ -3217,26 +3498,31 @@ export function AppShell() {
 
             <ObservatoryViewport
               toolbar={<>
-                {scenarioActive ? (
+                {lessonActive ? <button type="button" data-testid="lesson-exit" onClick={exitLesson}>Exit lesson</button> : scenarioActive ? (
                   <button type="button" className="scenario-exit-button" data-testid="scenario-exit" disabled={scenarioExiting} onClick={handleExitScenario}>
                     {scenarioExiting ? 'Exiting…' : 'Exit scenario'}
                   </button>
                 ) : (
-                  <button type="button" data-testid="system-overview" disabled={controlsDisabled} onClick={() => { controls.setCameraMode('overview'); if (compact) setPanel(null); }}>System overview</button>
+                  <button type="button" data-testid="system-overview" aria-describedby={dataMode ? "graphics-unavailable-help" : undefined} title={dataMode ? "Requires an available WebGL 2 renderer" : undefined} disabled={controlsDisabled} onClick={() => { controls.setCameraMode('overview'); if (compact) setPanel(null); }}><span className="overview-long-label">System </span>overview</button>
                 )}
+                {!lessonActive ? <button type="button" data-testid="learn-start" disabled={scenarioActive || !preferencesHydrated || ephemeris.status === 'loading'} aria-haspopup="dialog" onClick={() => setLessonPickerOpen(true)}>Learn</button> : null}
+                {!dataMode && !scenarioActive && !lessonActive ? <button type="button" className="object-names-toggle" data-testid="object-names-toggle" aria-label="Object names" aria-pressed={bodyLabelsVisible} title="Show or hide object names (L). Position dots stay visible." disabled={controlsDisabled} onClick={() => controls.setBodyLabelsVisible(!bodyLabelsVisible)}>Names {bodyLabelsVisible ? 'on' : 'off'}</button> : null}
+                <button type="button" className="viewport-share-button" data-testid="share-view" aria-label="Share and save view" title="Share a view or save an image" disabled={observatoryUnavailable} onClick={openShare}><svg className="viewport-share-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"/></svg><span className="viewport-share-label">Share</span></button>
+            {shareNotice ? <div className="shared-view-notice" role="status"><p>{shareNotice}</p><button type="button" onClick={() => setShareNotice(null)} aria-label="Dismiss shared view message">Close</button></div> : null}
                 {scenarioExitError !== null ? <span role="alert" className="scenario-exit-error">{scenarioExitError}</span> : null}
                 <button type="button" id="desktop-toggle-time" className="desktop-time-toggle" aria-controls="workspace-time" aria-expanded={panel === 'time'} onClick={() => setPanel(panel === 'time' ? null : 'time')}>Time &amp; date</button>
               </>}
               closeUpActive={activeCloseUpPresetId !== null}
               ariaLabel="Interactive Solar System observatory with catastrophe labs, adaptive performance, and optional experimental equilibrium-tide forcing"
             >
-          <DebugCanvas
+          <DebugCanvas key={rendererAttempt}
             onSelectBody={handleBodySelectAndFocus}
-            reducedMotion={reducedMotion}
+            reducedMotion={reducedMotion || (lessonActive && lessonMotionPaused)}
             reduceFlashes={reduceFlashes}
             cameraMode={cameraMode}
             earthTideDebugMode={experimentalTideMode}
             manualCameraInteractionLocked={manualCameraInteractionLocked}
+            cameraLockReason={lessonActive ? 'Lesson framing · Previous and Next change the view' : undefined}
             onRendererReady={handleRendererReady}
             onStatusChange={handleWebGLStatusChange}
             onVisibilityChange={handleVisibilityChange}
@@ -3244,6 +3530,10 @@ export function AppShell() {
               manualCameraInteractionLocked ? undefined : handleCanvasInteractionStart
             }
           />
+          {dataMode ? <DataModePanel message={webglMessage} loading={ephemeris.status === 'loading'} dataError={ephemeris.status === 'error' ? ephemeris.message : null} progress={startupProgress} selected={selectedBodyId} utc={snapshot.currentUtcIso} distanceAu={lessonDistances[selectedBodyId] ?? null} retrying={graphicsRetrying} onRetry={retryGraphics} onSelect={controls.selectBody} onDate={controls.setExactDateUtc} onSources={() => setProvenanceOpen(true)} /> : null}
+          {shareDialog ? <ShareDialog url={shareDialog.url} linkNote={shareDialog.note} canExport={webglStatus === 'ready'} onImage={saveSceneImage} onClose={() => setShareDialog(null)} /> : null}
+          <LessonPicker open={lessonPickerOpen} onClose={() => setLessonPickerOpen(false)} onSelect={startLesson} />
+          {lessonActive ? <LessonPanel key={lessonRun} lesson={LESSONS[lessonId]} measurements={lessonMeasurements} dataAvailable={ephemeris.status === 'ready'} stepIndex={lessonStep} textOnly={dataMode} utc={snapshot.currentUtcIso} distances={lessonDistances} motionPaused={lessonMotionPaused} onMotionToggle={toggleLessonMotion} onStep={applyLessonStep} onRestart={() => { setLessonRun(value => value + 1); applyLessonStep(0); }} onExit={exitLesson} /> : null}
           <ViewportMenus key={activeScenarioId ?? 'observatory'} onOpen={() => setPanel(null)} information={
             <div className="badge-stack">
               <span

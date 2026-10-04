@@ -6,6 +6,7 @@ import './styles/tokens.css';
 import './styles/base.css';
 import './styles/observatory.css';
 import './styles/responsive-workspace.css';
+import './styles/learning.css';
 
 const rootElement = document.getElementById('root');
 if (rootElement === null) {

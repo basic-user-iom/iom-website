@@ -26,7 +26,7 @@ export function detectWebGL2Support(
       return {
         supported: false,
         reason:
-          'WebGL 2 is unavailable. Enable hardware acceleration or use a current browser and graphics driver.',
+          'WebGL 2 is unavailable in this browser session. You can continue with data and text lessons.',
       };
     }
 
