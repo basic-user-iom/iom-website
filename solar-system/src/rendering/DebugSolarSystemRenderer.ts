@@ -28,6 +28,7 @@ import {
   type Material,
   type Object3D,
 } from 'three';
+import { installTouchPanGuard } from './camera/TouchPanGuard';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 import {
@@ -163,6 +164,7 @@ export interface DebugSolarSystemRendererOptions {
   readonly initialScaleMode?: RenderScaleMode;
   readonly reducedMotion?: boolean;
   readonly labelContainer?: HTMLElement | null;
+  readonly interactionElement?: HTMLElement;
   readonly earthTideDebugMode?: EarthTideDebugMode;
 }
 
@@ -343,6 +345,7 @@ export class DebugSolarSystemRenderer {
   private readonly orderedMarkerIds: string[] = [];
   private readonly occupiedLabelPositions: ScreenLabelBounds[] = [];
   private readonly disposeWheelZoomModifier: () => void;
+  private readonly disposeTouchPanGuard: () => void;
   private readonly adaptiveResolution = new AdaptiveResolutionController('high');
   private readonly mutableCameraFrame = {
     realDeltaSeconds: 0,
@@ -495,8 +498,10 @@ export class DebugSolarSystemRenderer {
     this.camera.position.set(0, 32, 62);
     // Educational BH overlays (disk / photon ring) live on layer 1.
     this.camera.layers.enable(1);
-    this.controls = new OrbitControls(this.camera, canvas);
-    this.disposeWheelZoomModifier = installWheelZoomModifier(canvas, this.controls);
+    const interactionElement = options.interactionElement ?? canvas;
+    this.controls = new OrbitControls(this.camera, interactionElement);
+    this.disposeWheelZoomModifier = installWheelZoomModifier(interactionElement, this.controls);
+    this.disposeTouchPanGuard = installTouchPanGuard(interactionElement, this.controls);
     this.controls.enableDamping = !this.reducedMotion;
     this.controls.dampingFactor = 0.075;
     this.controls.enablePan = true;
@@ -1634,6 +1639,7 @@ export class DebugSolarSystemRenderer {
     this.disposed = true;
 
     this.disposeWheelZoomModifier();
+    this.disposeTouchPanGuard();
     this.controls.dispose();
     // Remove and dispose the scenario-owned subtree before the generic scene
     // traversal so its resources have one clear owner.

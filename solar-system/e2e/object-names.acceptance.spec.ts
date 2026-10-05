@@ -14,7 +14,8 @@ test('compact names prefer Earth over its unresolved Moon; master switch preserv
  await expect(page.getByTestId('body-label-moon')).toBeHidden();
  const all=await page.locator('.body-screen-label').evaluateAll(es=>es.filter(e=>getComputedStyle(e).visibility==='visible').map(e=>({id:(e as HTMLElement).dataset.bodyId,rect:e.getBoundingClientRect().toJSON(),bg:getComputedStyle(e).backgroundColor})));
  for(let i=0;i<all.length;i++){
-  expect(all[i]!.bg).toBe('rgba(0, 0, 0, 0)');const a=all[i]!.rect;expect(a.width).toBeGreaterThanOrEqual(44);expect(a.height).toBeGreaterThanOrEqual(44);
+  expect(all[i]!.bg).toBe('rgba(0, 0, 0, 0)');const a=all[i]!.rect;// Transformed DOMRects can round a 44px CSS box down by ~0.00003px.
+  expect(a.width).toBeGreaterThanOrEqual(43.999);expect(a.height).toBeGreaterThanOrEqual(43.999);
   for(let j=i+1;j<all.length;j++){const b=all[j]!.rect;expect(a.left>=b.right||a.right<=b.left||a.top>=b.bottom||a.bottom<=b.top).toBe(true);}
  }
  await page.screenshot({path:'tmp/labels/'+testInfo.project.name+'-mobile-after.png'});

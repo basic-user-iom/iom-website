@@ -102,4 +102,16 @@ for (const file of ['src/blog/posts/solar-system/en.md', 'src/blog/posts/solarSy
 }
 assert.equal(matchesDeployScope('src/blog/posts/unrelated.ts', 'project:solar-system'), false)
 
+
+
+// Night Grid can ship without unrelated homepage, CRM or demo work.
+assert.equal(matchesDeployScope('src/components/GalleryLightbox.tsx', 'project:night-grid'), true)
+assert.equal(matchesDeployScope('src/components/GalleryLightbox.css', 'project:night-grid'), true)
+assert.equal(matchesDeployScope('src/components/Hero.tsx', 'project:night-grid'), false)
+assert.equal(matchesDeployScope('src/index.css', 'project:night-grid'), false)
+assert.equal(matchesDeployScope('src/crm/CrmApp.tsx', 'project:night-grid'), false)
+assert.equal(matchesDeployScope('solar-system/src/app/AppShell.tsx', 'project:night-grid'), false)
+assert.equal(inferDeployScope(['src/components/GalleryLightbox.tsx', 'src/components/GalleryLightbox.css']), 'project:night-grid')
+assert.equal(inferDeployScope(['src/components/GalleryLightbox.tsx', 'solar-system/src/app/AppShell.tsx']), null)
+
 console.log('Deploy scope safety tests passed.')

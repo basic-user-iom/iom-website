@@ -76,6 +76,7 @@ export function DebugCanvas({
     try {
       renderer = new DebugSolarSystemRenderer(canvas, {
         labelContainer: labelLayerRef.current,
+        interactionElement: canvas.parentElement ?? canvas,
         earthTideDebugMode,
       });
       rendererRef.current = renderer;
@@ -169,14 +170,18 @@ export function DebugCanvas({
     if (!canvas || manualCameraInteractionLocked) return;
     const gesture = new SelectionGesture();
     const targets = [canvas, ...(labels ? [labels] : [])];
-    const down = (event: PointerEvent) => gesture.down(event.pointerId, event.clientX, event.clientY, event.timeStamp, event.isPrimary && event.button === 0);
+    let pressedBodyId: string | undefined;
+    const down = (event: PointerEvent) => {
+      pressedBodyId = (event.target as Element).closest<HTMLElement>('[data-body-id]')?.dataset.bodyId;
+      gesture.down(event.pointerId, event.clientX, event.clientY, event.timeStamp, event.isPrimary && event.button === 0);
+    };
     const move = (event: PointerEvent) => gesture.move(event.pointerId, event.clientX, event.clientY);
     const cancel = (event: PointerEvent) => gesture.cancel(event.pointerId);
     const wheel = () => gesture.cancel();
     const up = (event: PointerEvent) => {
       if (!gesture.up(event.pointerId, event.clientX, event.clientY, event.timeStamp)) return;
       const label = (event.target as Element).closest<HTMLElement>('[data-body-id]');
-      const bodyId = label?.dataset.bodyId ?? rendererRef.current?.pickBodyAt(event.clientX, event.clientY, event.pointerType === 'touch' ? 22 : 8);
+      const bodyId = pressedBodyId ?? label?.dataset.bodyId ?? rendererRef.current?.pickBodyAt(event.clientX, event.clientY, event.pointerType === 'touch' ? 22 : 8);
       if (bodyId) selectionRef.current?.(bodyId as ObservatoryBodyId);
     };
     const keyboardClick = (event: MouseEvent) => {
@@ -220,7 +225,7 @@ export function DebugCanvas({
   }
 
   return (
-    <div className="observatory-canvas-frame">
+    <div className="observatory-canvas-frame" onPointerDownCapture={onInteractionStart} onWheelCapture={onInteractionStart}>
       <canvas
         ref={canvasRef}
         className="observatory-canvas"
@@ -236,8 +241,6 @@ export function DebugCanvas({
               ? 'free-orbit'
               : 'handoff-to-free-orbit'
         }
-        onPointerDownCapture={onInteractionStart}
-        onWheelCapture={onInteractionStart}
       />
       <div ref={labelLayerRef} className="body-label-layer" aria-label="Objects in the scene" />
       <p className="sr-only" id="canvas-keyboard-help">

@@ -86,6 +86,13 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'night-grid': [
+    // Shared photography lightbox: publish this requested UI fix independently.
+    'src/components/GalleryLightbox.tsx',
+    'src/components/GalleryLightbox.css',
+    'scripts/verify-gallery-mobile.mjs',
+    'docs/night-grid-mobile-fix-2026-10-05.md',
+  ],
   'robot-cell': [
     // Robot Cell viewer, 3D card and six-language article publication.
     'public/demos/robot-cell/',
