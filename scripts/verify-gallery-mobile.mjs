@@ -1,0 +1,20 @@
+﻿import {chromium,webkit}from'playwright';import assert from'node:assert/strict';import{mkdir,writeFile}from'node:fs/promises';
+const base=process.env.IOM_REVIEW_URL??'http://127.0.0.1:5192/';const out=process.env.IOM_REVIEW_OUTPUT??'tmp/gallery-review-2026-10-05';await mkdir(out,{recursive:true});const results=[];
+for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser=await engine.launch();try{
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.addInitScript(()=>{window.reviewAudio=[];const Original=window.Audio;window.Audio=class extends Original{constructor(...args){super(...args);window.reviewAudio.push(this);}};});
+ await page.goto(base+'#night-grid');await page.locator('#night-grid').click();await page.getByRole('dialog',{name:'Night Grid gallery'}).waitFor();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
+ const play=page.getByRole('button',{name:'Play gallery audio',exact:true});if(await play.isEnabled())await play.click();await page.waitForFunction(()=>window.reviewAudio.some(a=>a.src.includes('night-grid')&&!a.paused&&a.currentTime>0),null,{timeout:20000});
+ const initial=await page.evaluate(()=>{const a=window.reviewAudio.findLast(a=>a.src.includes('night-grid'));window.activeGalleryAudio=a;return a.currentTime;});
+ for(const[width,height]of[[390,844],[844,390],[667,320],[768,1024],[1366,768],[390,844]]){
+  await page.setViewportSize({width,height});await page.waitForTimeout(300);
+  const layout=await page.evaluate(()=>{const box=e=>{const r=e.getBoundingClientRect();const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2);return{x:r.x,y:r.y,w:r.width,h:r.height,hit:e.contains(hit)}};const wrap=document.querySelector('.gallery-lightbox-image-wrap');const stage=document.querySelector('.gallery-lightbox-stage');return{controls:[...document.querySelectorAll('.gallery-lightbox button')].map(box),image:box(wrap),stage:box(stage),audio:{same:window.reviewAudio.findLast(a=>a.src.includes('night-grid'))===window.activeGalleryAudio,paused:window.activeGalleryAudio.paused,time:window.activeGalleryAudio.currentTime},overflow:document.querySelector('.gallery-lightbox-panel').scrollWidth>document.querySelector('.gallery-lightbox-panel').clientWidth};});
+  assert.equal(layout.overflow,false);assert.ok(layout.image.h>100);assert.ok(layout.image.y>=layout.stage.y-1);assert.ok(layout.image.y+layout.image.h<=layout.stage.y+layout.stage.h+1);
+  for(const c of layout.controls){assert.ok(c.w>=44&&c.h>=44);assert.ok(c.x>=0&&c.y>=0&&c.x+c.w<=width+1&&c.y+c.h<=height+1);assert.ok(c.hit);}
+  assert.equal(layout.audio.same,true);assert.equal(layout.audio.paused,false);assert.ok(layout.audio.time>=initial);
+  await page.getByRole('button',{name:'Next image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();await page.getByRole('button',{name:'Previous image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
+  await page.screenshot({path:`${out}/${name}-${width}.png`});results.push({name,width,height,...layout});
+ }
+ await page.getByRole('button',{name:'Pause gallery audio',exact:true}).click();assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));await play.click();await page.getByRole('button',{name:'Close gallery',exact:true}).click();await page.getByRole('dialog',{name:'Night Grid gallery'}).waitFor({state:'hidden'});assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));assert.deepEqual(errors,[]);console.log(name,'gallery resize, controls and audio continuity passed');
+}finally{await browser.close();}}
+await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));
