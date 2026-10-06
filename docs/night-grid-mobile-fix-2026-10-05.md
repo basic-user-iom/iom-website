@@ -13,3 +13,13 @@ Checks cover visible and reachable controls, next/previous images, no horizontal
 This is browser emulation, not a physical iPhone test. Physical speaker/stereo behaviour has not been measured; the fix addresses layout and playback continuity. A real-device follow-up from Ingo remains useful.
 
 The narrow `project:night-grid` release contains the shared lightbox component, its scoped stylesheet and this regression script/report only.
+
+## Fullscreen follow-up (2026-10-06)
+
+Added a Full screen button to the shared photo gallery. The photo fills the available display without cropping, with reachable previous/next, Close and Exit full screen controls. Audio controls can be shown on demand, and the same audio element keeps playing through fullscreen and orientation changes.
+
+Native fullscreen is requested from the user's button/keyboard action where available; an expanded in-page photo view handles missing or denied APIs. That fallback visibly notes that browser bars may remain. Native fullscreen changes are synchronized, owned fullscreen is released on close, and keyboard focus remains inside the gallery. Reference: [MDN requestFullscreen](https://developer.mozilla.org/en-US/docs/Web/API/Element/requestFullscreen) and [fullscreenchange](https://developer.mozilla.org/en-US/docs/Web/API/Document/fullscreenchange_event).
+
+Validation passed in Chromium and WebKit: the original 12 viewport checks plus 6 fullscreen availability/denial/missing-API cases, photo navigation, rotation, playing-audio identity, play/pause, keyboard entry, Escape, close and reopen. Chromium exercised native fullscreen; WebKit automation used the expanded fallback. Chromium native fullscreen rotation uses CDP device metrics because the window-resize API rejects resizing a fullscreen host window. No physical iPhone or Safari browser-chrome behaviour is claimed.
+
+Artifacts: `tmp/gallery-fullscreen-final-2026-10-06/` and `tmp/gallery-fullscreen-final.log`. TypeScript passed. Public-site checks follow the same verification script via `IOM_REVIEW_URL`.

@@ -15,6 +15,59 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
   await page.getByRole('button',{name:'Next image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();await page.getByRole('button',{name:'Previous image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
   await page.screenshot({path:`${out}/${name}-${width}.png`});results.push({name,width,height,...layout});
  }
- await page.getByRole('button',{name:'Pause gallery audio',exact:true}).click();assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));await play.click();await page.getByRole('button',{name:'Close gallery',exact:true}).click();await page.getByRole('dialog',{name:'Night Grid gallery'}).waitFor({state:'hidden'});assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));assert.deepEqual(errors,[]);console.log(name,'gallery resize, controls and audio continuity passed');
+ await page.setViewportSize({width:667,height:320});
+ const gallery=page.getByRole('dialog',{name:'Night Grid gallery'});
+ for(const mode of ['available','denied','missing']) {
+  if(mode!=='available')await page.evaluate(mode=>{
+   Object.defineProperty(HTMLElement.prototype,'requestFullscreen',{configurable:true,value:mode==='denied'?()=>Promise.reject(new Error('Test fullscreen denial')):undefined});
+   Object.defineProperty(HTMLElement.prototype,'webkitRequestFullscreen',{configurable:true,value:undefined});
+  },mode);
+  const before=await page.locator('.gallery-lightbox-image-wrap').boundingBox();
+  await page.getByRole('button',{name:'Open full screen gallery view',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.gallery-lightbox').dataset.expanded==='true'&&!document.querySelector('.gallery-lightbox-fullscreen').disabled);
+  const actual=await gallery.getAttribute('data-fullscreen-mode');
+  if(mode!=='available')assert.equal(actual,'expanded');
+  if(mode==='available'&&name==='chromium')assert.equal(actual,'native');
+  const after=await page.locator('.gallery-lightbox-image-wrap').boundingBox();assert.ok(after.height>before.height*1.3);
+  await page.getByRole('button',{name:'Next image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
+  await page.getByRole('button',{name:'Previous image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
+  const previousSrc=await page.locator('.gallery-lightbox-image').getAttribute('src');
+  await page.keyboard.press('ArrowRight');await page.waitForFunction(src=>document.querySelector('.gallery-lightbox-image').getAttribute('src')!==src,previousSrc);
+  await page.keyboard.press('ArrowLeft');await page.waitForFunction(src=>document.querySelector('.gallery-lightbox-image').getAttribute('src')===src,previousSrc);
+  await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
+  assert.ok(await page.evaluate(()=>window.reviewAudio.findLast(a=>a.src.includes('night-grid'))===window.activeGalleryAudio&&!window.activeGalleryAudio.paused));
+  await page.screenshot({path:out+'/'+name+'-fullscreen-'+mode+'.png'});
+  for(const viewport of [{width:390,height:844},{width:844,height:390}]){
+   if(actual==='native'&&name==='chromium'){
+    const cdp=await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setDeviceMetricsOverride',{...viewport,screenWidth:viewport.width,screenHeight:viewport.height,deviceScaleFactor:1,mobile:true});await cdp.detach();
+   }else await page.setViewportSize(viewport);
+   const exit=page.getByRole('button',{name:'Exit full screen gallery view',exact:true});const r=await exit.boundingBox();
+   assert.ok(r.width>=44&&r.height>=44&&r.x>=0&&r.y>=0&&r.x+r.width<=viewport.width+1&&r.y+r.height<=viewport.height+1);
+  }
+  await page.getByRole('button',{name:'Show gallery controls',exact:true}).click();
+  await page.getByRole('button',{name:'Pause gallery audio',exact:true}).click();assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));await play.click();
+  await page.getByRole('button',{name:'Hide gallery controls',exact:true}).click();
+  if(mode==='missing')await page.keyboard.press('Escape');
+  else await page.getByRole('button',{name:'Exit full screen gallery view',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('.gallery-lightbox').dataset.expanded==='false');
+  assert.ok(await gallery.isVisible());assert.ok(await page.evaluate(()=>!document.fullscreenElement));
+  await page.setViewportSize({width:667,height:320});
+  results.push({name,fullscreen:mode,actual,result:'passed'});
+ }
+ // Closing directly from the expanded view releases audio and fullscreen ownership.
+ await page.getByRole('button',{name:'Open full screen gallery view',exact:true}).click();
+ await page.getByRole('button',{name:'Show gallery controls',exact:true}).click();
+ await page.getByRole('button',{name:'Pause gallery audio',exact:true}).click();assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));await play.click();await page.getByRole('button',{name:'Close gallery',exact:true}).click();await page.getByRole('dialog',{name:'Night Grid gallery'}).waitFor({state:'hidden'});assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));assert.deepEqual(errors,[]);
+ await page.reload();await page.locator('#night-grid').click();await gallery.waitFor();
+ await page.waitForFunction(()=>window.reviewAudio.some(a=>a.src.includes('night-grid')));
+ await page.evaluate(()=>{window.reopenedGalleryAudio=window.reviewAudio.findLast(a=>a.src.includes('night-grid'));});
+ await page.getByRole('button',{name:'Open full screen gallery view',exact:true}).focus();await page.keyboard.press('Enter');
+ await page.waitForFunction(()=>document.querySelector('.gallery-lightbox').dataset.expanded==='true'&&!document.querySelector('.gallery-lightbox-fullscreen').disabled);
+ await page.getByRole('button',{name:'Next image',exact:true}).focus();await page.keyboard.press('Tab');
+ assert.ok(await page.evaluate(()=>document.querySelector('.gallery-lightbox').contains(document.activeElement)));
+ await page.getByRole('button',{name:'Close gallery',exact:true}).focus();await page.keyboard.press('Enter');await gallery.waitFor({state:'hidden'});
+ assert.ok(await page.evaluate(()=>!document.fullscreenElement&&window.reopenedGalleryAudio.paused&&window.reopenedGalleryAudio.getAttribute('src')===''));
+ assert.deepEqual(errors,[]);console.log(name,'gallery resize, native/fallback fullscreen, keyboard, exit and audio continuity passed');
 }finally{await browser.close();}}
 await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));

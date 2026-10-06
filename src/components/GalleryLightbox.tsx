@@ -24,6 +24,21 @@ interface GalleryLightboxProps {
   audioUrl?: string
 }
 
+type GalleryFullscreenElement = HTMLDivElement & { webkitRequestFullscreen?: () => Promise<void> | void }
+type GalleryFullscreenDocument = Document & {
+  webkitFullscreenElement?: Element | null
+  webkitFullscreenEnabled?: boolean
+  webkitExitFullscreen?: () => Promise<void> | void
+}
+function activeFullscreenElement() {
+  return document.fullscreenElement ?? (document as GalleryFullscreenDocument).webkitFullscreenElement
+}
+async function leaveNativeFullscreen(element: Element) {
+  if (activeFullscreenElement() !== element) return
+  if (document.fullscreenElement === element && document.exitFullscreen) await document.exitFullscreen()
+  else await (document as GalleryFullscreenDocument).webkitExitFullscreen?.()
+}
+
 const preloaded = new Set<string>()
 
 function preloadSrc(src: string) {
@@ -55,6 +70,62 @@ export function GalleryLightbox({
   const [volume, setVolume] = useState(() => readStoredVolume('gallery'))
   const [isPlaying, setIsPlaying] = useState(false)
   const audioRef = useRef<HTMLAudioElement | null>(null)
+  const galleryRef = useRef<GalleryFullscreenElement | null>(null)
+  const closeRef = useRef<HTMLButtonElement | null>(null)
+  const fullscreenRef = useRef<HTMLButtonElement | null>(null)
+  const [fullscreenMode, setFullscreenMode] = useState<'idle' | 'native' | 'expanded'>('idle')
+  const [fullscreenPending, setFullscreenPending] = useState(false)
+  const [viewingControls, setViewingControls] = useState(false)
+  const expanded = fullscreenMode !== 'idle'
+
+  const exitFullscreen = useCallback(async () => {
+    const element = galleryRef.current
+    if (!element) return
+    try { await leaveNativeFullscreen(element) } catch { return }
+    setFullscreenMode('idle')
+    setViewingControls(false)
+    fullscreenRef.current?.focus({ preventScroll: true })
+  }, [])
+
+  const toggleFullscreen = useCallback(async () => {
+    if (fullscreenPending) return
+    if (expanded) { await exitFullscreen(); return }
+    const element = galleryRef.current
+    if (!element) return
+    setFullscreenPending(true)
+    setViewingControls(false)
+    setFullscreenMode('expanded')
+    try {
+      if (element.requestFullscreen && document.fullscreenEnabled !== false) {
+        await element.requestFullscreen({ navigationUI: 'hide' })
+      } else if (element.webkitRequestFullscreen && (document as GalleryFullscreenDocument).webkitFullscreenEnabled !== false) {
+        await element.webkitRequestFullscreen()
+      }
+      if (element.isConnected && activeFullscreenElement() === element) setFullscreenMode('native')
+    } catch {
+      // Keep the expanded photo view when native fullscreen is absent or denied.
+    } finally {
+      if (element.isConnected) setFullscreenPending(false)
+    }
+  }, [expanded, exitFullscreen, fullscreenPending])
+
+  useEffect(() => {
+    const element = galleryRef.current
+    const previouslyFocused = document.activeElement as HTMLElement | null
+    closeRef.current?.focus({ preventScroll: true })
+    const onChange = () => {
+      if (activeFullscreenElement() === element) setFullscreenMode('native')
+      else setFullscreenMode(current => current === 'native' ? 'idle' : current)
+    }
+    document.addEventListener('fullscreenchange', onChange)
+    document.addEventListener('webkitfullscreenchange', onChange)
+    return () => {
+      document.removeEventListener('fullscreenchange', onChange)
+      document.removeEventListener('webkitfullscreenchange', onChange)
+      if (element) void leaveNativeFullscreen(element).catch(() => {})
+      if (previouslyFocused?.isConnected) previouslyFocused.focus({ preventScroll: true })
+    }
+  }, [])
 
   const goPrev = useCallback(() => {
     onIndexChange((index - 1 + count) % count)
@@ -185,9 +256,28 @@ export function GalleryLightbox({
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
-      else if (event.key === 'ArrowLeft') goPrev()
-      else if (event.key === 'ArrowRight') goNext()
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        if (expanded) void exitFullscreen()
+        else onClose()
+        return
+      }
+      if (event.key === 'Tab') {
+        const available = [...(galleryRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled)') ?? [])]
+          .filter(el => el.getClientRects().length > 0)
+        const first = available[0], last = available[available.length - 1]
+        if (first && last && (!galleryRef.current?.contains(document.activeElement) || (event.shiftKey ? document.activeElement === first : document.activeElement === last))) {
+          event.preventDefault()
+          ;(event.shiftKey ? last : first).focus()
+        }
+        return
+      }
+      // Keep native button activation and slider keys without losing gallery arrows.
+      const target = event.target as Element
+      if (target.closest('input, select, textarea') || (event.key === ' ' && target.closest('button'))) return
+      if (event.key === 'ArrowLeft') { event.preventDefault(); goPrev() }
+      else if (event.key === 'ArrowRight') { event.preventDefault(); goNext() }
       else if (event.key === 'm' || event.key === 'M') toggleMute()
       else if (audioUrl && event.key === ' ') {
         event.preventDefault()
@@ -197,7 +287,7 @@ export function GalleryLightbox({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [audioUrl, goNext, goPrev, handlePause, handlePlay, isPlaying, onClose, toggleMute])
+  }, [audioUrl, expanded, exitFullscreen, goNext, goPrev, handlePause, handlePlay, isPlaying, onClose, toggleMute])
 
   const handleBackdropClick = (event: React.MouseEvent<HTMLDivElement>) => {
     if (event.target === event.currentTarget) onClose()
@@ -210,21 +300,26 @@ export function GalleryLightbox({
 
   return createPortal(
     <div
+      ref={galleryRef}
       className="gallery-lightbox"
+      data-fullscreen-mode={fullscreenMode}
+      data-expanded={expanded}
+      data-viewing-controls={viewingControls}
       role="dialog"
       aria-modal="true"
       aria-label={`${title} gallery`}
       onClick={handleBackdropClick}
     >
+      {fullscreenMode === 'expanded' ? <p className="gallery-lightbox-fullscreen-note" role="status">Expanded view. Browser bars may remain visible</p> : null}
       <div className="gallery-lightbox-panel">
         <header className="gallery-lightbox-header">
-          <div>
+          <div className="gallery-lightbox-heading">
             <p className="gallery-lightbox-eyebrow">Gallery</p>
             <h2 className="gallery-lightbox-title">{title}</h2>
           </div>
           <div className="gallery-lightbox-actions">
             {audioUrl ? (
-              <div className="gallery-lightbox-audio-controls" role="group" aria-label="Gallery audio controls">
+              <div id="gallery-audio-controls" className="gallery-lightbox-audio-controls" role="group" aria-label="Gallery audio controls">
                 <button
                   type="button"
                   className="gallery-lightbox-audio"
@@ -283,7 +378,21 @@ export function GalleryLightbox({
                 </label>
               </div>
             ) : null}
+            <div className="gallery-lightbox-view-actions">
+            {expanded && audioUrl ? <button type="button" className="gallery-lightbox-audio"
+              aria-label={viewingControls ? 'Hide gallery controls' : 'Show gallery controls'}
+              aria-expanded={viewingControls} aria-controls="gallery-audio-controls"
+              onClick={() => setViewingControls(value => !value)}>Controls</button> : null}
+            <button ref={fullscreenRef} type="button" className="gallery-lightbox-audio gallery-lightbox-fullscreen"
+              onClick={() => { void toggleFullscreen() }} disabled={fullscreenPending}
+              aria-pressed={expanded} aria-label={expanded ? 'Exit full screen gallery view' : 'Open full screen gallery view'}
+              title={expanded ? 'Exit full screen' : 'Full screen'}>
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                <path d={expanded ? 'M3 8h5V3m8 0v5h5M3 16h5v5m8 0v-5h5' : 'M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5'} />
+              </svg>
+            </button>
             <button
+              ref={closeRef}
               type="button"
               className="gallery-lightbox-close"
               onClick={onClose}
@@ -291,6 +400,7 @@ export function GalleryLightbox({
             >
               Close
             </button>
+            </div>
           </div>
         </header>
 
