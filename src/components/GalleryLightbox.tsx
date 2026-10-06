@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import './GalleryLightbox.css'
 import type { ProjectImage } from '../data/projects'
@@ -254,6 +254,20 @@ export function GalleryLightbox({
     return lockBodyScroll()
   }, [])
 
+  useLayoutEffect(() => {
+    // On iPhone the non-video Fullscreen API may be unavailable. Its browser
+    // toolbar can still collapse on a real document scroll, unlike a fixed,
+    // scroll-locked modal. Keep the existing lock's saved page position intact.
+    if (fullscreenMode !== 'expanded' || fullscreenPending) return
+    const html = document.documentElement
+    html.classList.add('is-gallery-scroll-view')
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    return () => {
+      html.classList.remove('is-gallery-scroll-view')
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [fullscreenMode, fullscreenPending])
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -310,7 +324,7 @@ export function GalleryLightbox({
       aria-label={`${title} gallery`}
       onClick={handleBackdropClick}
     >
-      {fullscreenMode === 'expanded' ? <p className="gallery-lightbox-fullscreen-note" role="status">Expanded view. Browser bars may remain visible</p> : null}
+      {fullscreenMode === 'expanded' ? <p className="gallery-lightbox-fullscreen-note" role="status">Swipe up for more space. In Safari: Page Menu, then Hide Toolbar if needed.</p> : null}
       <div className="gallery-lightbox-panel">
         <header className="gallery-lightbox-header">
           <div className="gallery-lightbox-heading">

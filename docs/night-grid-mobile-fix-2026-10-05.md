@@ -23,3 +23,16 @@ Native fullscreen is requested from the user's button/keyboard action where avai
 Validation passed in Chromium and WebKit: the original 12 viewport checks plus 6 fullscreen availability/denial/missing-API cases, photo navigation, rotation, playing-audio identity, play/pause, keyboard entry, Escape, close and reopen. Chromium exercised native fullscreen; WebKit automation used the expanded fallback. Chromium native fullscreen rotation uses CDP device metrics because the window-resize API rejects resizing a fullscreen host window. No physical iPhone or Safari browser-chrome behaviour is claimed.
 
 Artifacts: `tmp/gallery-fullscreen-final-2026-10-06/` and `tmp/gallery-fullscreen-final.log`. TypeScript passed. Public-site checks follow the same verification script via `IOM_REVIEW_URL`.
+
+
+## Safari toolbar follow-up (2026-10-07)
+
+The expanded fallback still inherited the fixed-body modal scroll lock. Unlike the homepage, swiping on it could not scroll the document, preventing Safari from using its normal scroll-driven toolbar collapse. Native fullscreen is still requested first; no browser API guarantees hidden chrome when that request is unavailable or denied.
+
+The fallback now temporarily isolates the mounted gallery, uses a sticky dynamic-viewport photo and a small document scroll range. A vertical gesture scrolls the real page while the image and controls remain pinned. The underlying page is hidden only during this mode, with its existing saved scroll position retained. Exit/close restores the normal modal/page layout; audio is not recreated. A short visible hint explains swiping and Safari's Page Menu / Hide Toolbar option.
+
+References: [Apple's Safari toolbar controls](https://support.apple.com/en-ie/guide/iphone/iphb3100d149/27/ios/27) and [WebKit's Home Screen web-app support](https://webkit.org/blog/17333/webkit-features-in-safari-26-0/). A Home Screen web app remains an optional way to view without a normal tab's address bar; this release does not add a new install flow.
+
+Validation: Chromium and WebKit passed 12 viewport checks and six native/missing/denied fullscreen cases, plus real document scrolling, pinned-image geometry, no horizontal overflow, hidden background, exit/close/reopen, original page-scroll restoration, keyboard focus, and audio continuity. Chromium uses browser-dispatched touch for fallback scrolling; WebKit checks document scrolling programmatically. TypeScript passed. Screenshots and results: `tmp/gallery-review-2026-10-05/`; log: `tmp/gallery-scroll-2026-10-07.log`.
+
+These are desktop-hosted engines and do not include iOS Safari's browser toolbar. Actual automatic toolbar collapse needs confirmation on Ingo's physical iPhone; do not describe it as verified or guaranteed.

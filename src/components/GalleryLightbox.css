@@ -146,3 +146,35 @@
   position: absolute; z-index: 3; bottom: max(6px, env(safe-area-inset-bottom)); left: max(8px, env(safe-area-inset-left));
   max-width: calc(100% - 16px); margin: 0; padding: 4px 8px; font-size: 11px; color: #ddd; background: rgba(0, 0, 0, .8); pointer-events: none;
 }
+
+/* Native document scrolling lets mobile Safari retract its browser chrome.
+   Only the fallback uses this temporary layout. The page remains mounted and
+   its scroll lock restores the original position on exit, including nested overlays. */
+html.is-gallery-scroll-view {
+  overflow-y: auto !important;
+  overscroll-behavior-y: auto !important;
+  scroll-behavior: auto !important;
+  background: #000;
+}
+html.is-gallery-scroll-view body {
+  position: static !important;
+  overflow: visible !important;
+  background: #000;
+}
+html.is-gallery-scroll-view body > :not(.gallery-lightbox) { display: none !important; }
+html.is-gallery-scroll-view body::after {
+  content: '';
+  display: block;
+  height: max(160px, calc(100lvh - 100svh));
+}
+html.is-gallery-scroll-view .gallery-lightbox {
+  position: sticky;
+  inset: 0 auto auto;
+  height: 100dvh;
+  min-height: 0;
+  overscroll-behavior: auto;
+  touch-action: pan-y pinch-zoom;
+}
+.gallery-lightbox[data-fullscreen-mode='expanded'] .gallery-lightbox-fullscreen-note {
+  max-width: min(390px, calc(100% - 16px));
+}

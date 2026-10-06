@@ -17,6 +17,7 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
  }
  await page.setViewportSize({width:667,height:320});
  const gallery=page.getByRole('dialog',{name:'Night Grid gallery'});
+ const savedPageY=await page.evaluate(()=>-parseFloat(document.body.style.top||'0'));
  for(const mode of ['available','denied','missing']) {
   if(mode!=='available')await page.evaluate(mode=>{
    Object.defineProperty(HTMLElement.prototype,'requestFullscreen',{configurable:true,value:mode==='denied'?()=>Promise.reject(new Error('Test fullscreen denial')):undefined});
@@ -29,6 +30,23 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
   if(mode!=='available')assert.equal(actual,'expanded');
   if(mode==='available'&&name==='chromium')assert.equal(actual,'native');
   const after=await page.locator('.gallery-lightbox-image-wrap').boundingBox();assert.ok(after.height>before.height*1.3);
+  if(actual==='expanded') {
+   await page.waitForFunction(()=>document.documentElement.classList.contains('is-gallery-scroll-view'));
+   assert.ok(await page.evaluate(()=>document.scrollingElement.scrollHeight>innerHeight+100));
+   assert.equal(await page.evaluate(()=>getComputedStyle(document.getElementById('root')).display),'none');
+   if(name==='chromium') {
+    const cdp=await page.context().newCDPSession(page);
+    const r=await page.locator('.gallery-lightbox-image-wrap').boundingBox();const x=r.x+r.width/2,y=r.y+r.height*.7;
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y,id:1}]});
+    for(let i=1;i<=8;i++)await cdp.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-i*10,id:1}]});
+    await cdp.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await cdp.detach();
+   } else await page.evaluate(()=>window.scrollTo(0,90));
+   await page.waitForFunction(()=>window.scrollY>30);
+   const pinned=await gallery.boundingBox();assert.ok(Math.abs(pinned.y)<1,'Expanded photo remains pinned while document scrolls');
+   assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+   await page.screenshot({path:out+'/'+name+'-scroll-view-'+mode+'.png'});
+  }
+
   await page.getByRole('button',{name:'Next image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
   await page.getByRole('button',{name:'Previous image',exact:true}).click();await page.locator('.gallery-lightbox-image.is-loaded').waitFor();
   const previousSrc=await page.locator('.gallery-lightbox-image').getAttribute('src');
@@ -52,6 +70,7 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
   else await page.getByRole('button',{name:'Exit full screen gallery view',exact:true}).click();
   await page.waitForFunction(()=>document.querySelector('.gallery-lightbox').dataset.expanded==='false');
   assert.ok(await gallery.isVisible());assert.ok(await page.evaluate(()=>!document.fullscreenElement));
+  assert.ok(await page.evaluate(()=>!document.documentElement.classList.contains('is-gallery-scroll-view')&&getComputedStyle(document.body).position==='fixed'&&getComputedStyle(document.getElementById('root')).display!=='none'));
   await page.setViewportSize({width:667,height:320});
   results.push({name,fullscreen:mode,actual,result:'passed'});
  }
@@ -59,6 +78,8 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
  await page.getByRole('button',{name:'Open full screen gallery view',exact:true}).click();
  await page.getByRole('button',{name:'Show gallery controls',exact:true}).click();
  await page.getByRole('button',{name:'Pause gallery audio',exact:true}).click();assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));await play.click();await page.getByRole('button',{name:'Close gallery',exact:true}).click();await page.getByRole('dialog',{name:'Night Grid gallery'}).waitFor({state:'hidden'});assert.ok(await page.evaluate(()=>window.activeGalleryAudio.paused));assert.deepEqual(errors,[]);
+ await page.waitForFunction(y=>Math.abs(scrollY-y)<3,savedPageY);
+ assert.equal(await page.evaluate(()=>document.documentElement.classList.contains('is-gallery-scroll-view')),false);
  await page.reload();await page.locator('#night-grid').click();await gallery.waitFor();
  await page.waitForFunction(()=>window.reviewAudio.some(a=>a.src.includes('night-grid')));
  await page.evaluate(()=>{window.reopenedGalleryAudio=window.reviewAudio.findLast(a=>a.src.includes('night-grid'));});
@@ -68,6 +89,6 @@ for(const[name,engine]of[['chromium',chromium],['webkit',webkit]]){const browser
  assert.ok(await page.evaluate(()=>document.querySelector('.gallery-lightbox').contains(document.activeElement)));
  await page.getByRole('button',{name:'Close gallery',exact:true}).focus();await page.keyboard.press('Enter');await gallery.waitFor({state:'hidden'});
  assert.ok(await page.evaluate(()=>!document.fullscreenElement&&window.reopenedGalleryAudio.paused&&window.reopenedGalleryAudio.getAttribute('src')===''));
- assert.deepEqual(errors,[]);console.log(name,'gallery resize, native/fallback fullscreen, keyboard, exit and audio continuity passed');
+ assert.deepEqual(errors,[]);console.log(name,'gallery resize, native/fallback fullscreen, document scroll, position restore, keyboard, exit and audio continuity passed');
 }finally{await browser.close();}}
 await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));
