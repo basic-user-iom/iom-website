@@ -2245,7 +2245,11 @@ export function AppShell() {
     updateCameraMode('free-orbit');
     const renderer = rendererRef.current;
     const runtime = runtimeRef.current;
-    renderer?.setSelectedBody(restoredBodyId);
+    // Retain preset metadata until handoff so Earth-Moon / Saturn observer views
+    // keep their own pivot. A tour restoration may still change the selection.
+    if (renderer?.getCameraDiagnostics().targetBodyId !== restoredBodyId) {
+      renderer?.setSelectedBody(restoredBodyId);
+    }
     renderer?.interruptCameraToFreeOrbit();
     if (runtime !== null) {
       runtime.selectedBodyId = restoredBodyId;

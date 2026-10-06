@@ -7,7 +7,7 @@ import { preparePrecisionPaths } from './PrecisionPath';
 import { createReferenceGrid } from './ReferenceGrid';
 import { inspectionDistance, sunlitInspectionDirection } from './camera/ObjectInspectionFraming';
 import { solarFateFramingRadius, type SolarFateCameraView } from './solar-fate/SolarFateCamera';
-import { calculateRebaseShift } from './CameraRelativeTransform';
+import { calculateRebaseShift, mapCameraRelativePosition } from './CameraRelativeTransform';
 import {
   ACESFilmicToneMapping,
   AmbientLight,
@@ -827,7 +827,17 @@ export class DebugSolarSystemRenderer {
 
   public interruptCameraToFreeOrbit(): void {
     this.assertNotDisposed();
-    this.cameraController.interruptToFreeOrbit();
+    const mode = this.cameraController.mode;
+    const useSelectedPivot = mode === 'overview' ||
+      (mode === 'body-follow' && this.cameraController.status.closeUpPresetId === null);
+    const selected = useSelectedPivot
+      ? this.lastFrame?.bodies.find(body => body.bodyId === this.selectedBodyId && body.visible)
+      : undefined;
+    if (selected && this.lastFrame) {
+      mapCameraRelativePosition(this.scratchMapped, selected.positionM,
+        this.lastFrame.originM, this.scaleModel.metersPerRenderUnit);
+    }
+    this.cameraController.interruptToFreeOrbit(selected ? this.scratchMapped : undefined);
     this.clearNaturalSatelliteCloseup();
     this.blackHoleCameraFraming = false;
     this.cameraController.rig.applyTo(this.camera, this.controls.target);

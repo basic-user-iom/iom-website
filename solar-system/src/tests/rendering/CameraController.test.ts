@@ -212,6 +212,22 @@ describe('CameraController', () => {
     expect(finalOffset.distanceTo(stableOffset)).toBeLessThan(1e-12);
   });
 
+  it('anchors an interrupted planet focus without changing its current viewing offset', () => {
+    const bodies = new Map([['jupiter', bodyTarget('jupiter', { x: 5 * ASTRONOMICAL_UNIT_M, y: 0, z: 0 }, ORIGIN, 0.00048)]]);
+    const controller = new CameraController();
+    controller.update(frame({ bodies }));
+    controller.focusBody('jupiter');
+    controller.update(frame({ bodies })); // interrupt well before the smooth flight arrives
+    const offset = controller.rig.position.clone().sub(controller.rig.target);
+    const anchor = new Vector3(5, 0, 0);
+    controller.interruptToFreeOrbit(anchor);
+    expect(controller.rig.target.distanceTo(anchor)).toBeLessThan(1e-12);
+    expect(controller.rig.position.clone().sub(controller.rig.target).distanceTo(offset)).toBeLessThan(1e-12);
+    controller.update(frame({ bodies, originM: { x: 5 * ASTRONOMICAL_UNIT_M, y: 0, z: 0 }, originRevision: 2 }));
+    expect(controller.rig.target.length()).toBeLessThan(1e-12);
+    expect(controller.rig.position.clone().sub(controller.rig.target).distanceTo(offset)).toBeLessThan(1e-12);
+  });
+
   it('focuses every giant planet at a physical three-quarter phase angle', () => {
     const sun = bodyTarget('sun', ORIGIN, ORIGIN);
     for (const [index, bodyId] of ['jupiter', 'saturn', 'uranus', 'neptune'].entries()) {

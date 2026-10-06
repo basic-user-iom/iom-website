@@ -62,3 +62,29 @@ test('mouse orbit, right-drag pan and Shift wheel still work on the shared scene
  await expect.poll(async()=>(await pose()).target).not.toBe(beforePan.target);
  await expect(canvas).toHaveAttribute('data-camera-target','sun');
 });
+
+test('selected planets become the zoom pivot during focus and after overview', async ({page,browserName,context}) => {
+ test.setTimeout(180000);
+ await page.setViewportSize({width:390,height:844});
+ // Keep real focus animation: reduced-motion previously hid the interrupted-flight bug.
+ await page.emulateMedia({reducedMotion:'no-preference'});
+ if(browserName==='webkit')await page.addInitScript(()=>{const set=Element.prototype.setPointerCapture,release=Element.prototype.releasePointerCapture;Element.prototype.setPointerCapture=function(id){if(id<900)set.call(this,id);};Element.prototype.releasePointerCapture=function(id){if(id<900)release.call(this,id);};});
+ await page.goto('./');await expect(page.getByTestId('startup-screen')).toBeHidden({timeout:90000});
+ const cdp=browserName==='chromium'?await context.newCDPSession(page):null;
+ const canvas=page.getByTestId('solar-system-canvas');
+ const assertPivot=async(id:string)=>{
+  await expect(canvas).toHaveAttribute('data-camera-target',id);
+  await expect(canvas).toHaveAttribute('data-camera-mode','free-orbit');
+  const p=await canvas.evaluate(c=>({x:Number(c.dataset.selectedScreenX)/c.clientWidth,y:Number(c.dataset.selectedScreenY)/c.clientHeight}));
+  expect(p.x).toBeCloseTo(.5,2);expect(p.y).toBeCloseTo(.5,2);
+ };
+ for(const id of ['jupiter','earth','saturn']){
+  await page.getByTestId('planets-menu-toggle').click();await page.getByTestId(`legend-body-${id}`).click();
+  await pinch(page,cdp,false,false);await assertPivot(id);
+  await page.getByTestId('system-overview').click();await page.waitForTimeout(600);
+  await pinch(page,cdp,false,false);await assertPivot(id);
+  await pinch(page,cdp,true,false);await assertPivot(id);
+ }
+ // A tap on a scene name uses the same focus path as the menu.
+ await page.getByTestId('body-label-saturn').tap();await pinch(page,cdp,false,false);await assertPivot('saturn');
+});

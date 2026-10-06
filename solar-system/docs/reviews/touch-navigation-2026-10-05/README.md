@@ -23,3 +23,13 @@ Selecting Sun, opening System overview, then repeatedly pinching could shift the
 Browser results: 9 passing cases across Chromium and WebKit. Logs are under `solar-system/tmp/pinch-*.log`, `touch-desktop.log`, `touch-unit.log`, and `touch-build.log`. No physical phone was available for verification. Real-device feedback remains useful.
 
 The label touch-target assertion permits 0.001 CSS px of DOMRect rounding; the actual CSS target remains at least 44 px.
+
+## Follow-up: selected planet zoom pivot (2026-10-06)
+
+Reproduced the client's Jupiter case with normal camera animation: manual zoom could inherit the Sun pivot from overview, or a partially interpolated pivot when the user interrupted a focus flight. The previous reduced-motion regression did not expose the latter case.
+
+The first manual gesture now anchors overview/plain planet-follow views to the selected body's mapped position, translating the camera and pivot together so the viewing direction and distance are retained. Close-up presets keep their own pivot metadata during handoff. Astronomy data, body sizes and orbital parameters are unchanged.
+
+Validation: Chromium selected Jupiter/Earth/Saturn through menus, interrupted focus immediately, returned to overview, pinched in/out, and reselected a scene label; desktop orbit, right-drag pan and Shift wheel also passed. WebKit repeated the selected-planet flow and the Sun overview pinch case. Chromium uses native CDP touch input; WebKit uses synthetic multi-pointer events. All 21 focused camera/touch unit tests, targeted lint, TypeScript and the demo build passed. These are desktop-hosted browser checks, not physical iPhone tests.
+
+Logs: `solar-system/tmp/selected-planet-chromium.log`, `pivot-webkit.log`, `pivot-unit.log`, `pivot-build.log`. The original failing three-path probe is in `selected-planet-before.log`.

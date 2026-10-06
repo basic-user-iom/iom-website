@@ -170,7 +170,10 @@ export class CameraController {
    * Current and desired poses are synchronized so interruption never snaps to
    * a newly calculated focus pose.
    */
-  public interruptToFreeOrbit(): void {
+  public interruptToFreeOrbit(anchor?: Readonly<Vector3>): void {
+    // A gesture during a planet focus must orbit that planet, not the old or
+    // partially interpolated pivot. Translate both ends to retain zoom/orientation.
+    if (anchor) this.rig.transport(this.scratch.copy(anchor).sub(this.rig.target));
     this.closeUpPresetValue = null;
     this.modeValue = 'free-orbit';
     this.capturedFocusKey = '';
