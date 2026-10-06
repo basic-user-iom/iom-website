@@ -1839,38 +1839,18 @@ export class DebugSolarSystemRenderer {
         resources.kind,
       );
       syncEphemerisOrbitPathGeometry(resources);
-      const hasSelectedTrail =
-        pathState.bodyId === this.selectedBodyId &&
-        pathStates.some(
-          (candidate) =>
-            candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'trail' &&
-            (candidate.sampleJdTdb === undefined || candidate.trailDirection === undefined ||
-              (candidate.trailDirection === 'previous'
-                ? candidate.sampleJdTdb[0]! < jdTdb
-                : candidate.sampleJdTdb[candidate.sampleJdTdb.length - 1]! > jdTdb)),
-        );
       const hasSelectedOrbit =
         pathState.bodyId === this.selectedBodyId &&
         pathStates.some(
           (candidate) =>
             candidate.bodyId === pathState.bodyId && (candidate.kind ?? 'orbit') === 'orbit',
         );
-      // Planets: prefer the selected trail over the overlapping full loop.
-      // Comets: prefer the long ephemeris orbit â€” trails are short history
-      // dashes that read as a 10-pixel speck when the camera is on the nucleus.
-      if (pathState.bodyId === this.selectedBodyId) {
-        if (currentBody.kind === 'comet' && hasSelectedOrbit && resources.kind === 'trail') {
-          resources.root.visible = false;
-          continue;
-        }
-        if (
-          currentBody.kind !== 'comet' &&
-          hasSelectedTrail &&
-          resources.kind === 'orbit'
-        ) {
-          resources.root.visible = false;
-          continue;
-        }
+      // Selection retains the available orbit, not a short history arc. A single
+      // stroke avoids overlap during zoom. Coverage-limited arcs stay open;
+      // do not fabricate a closing segment beyond the ephemeris coverage.
+      if (hasSelectedOrbit && resources.kind === 'trail') {
+        resources.root.visible = false;
+        continue;
       }
       const emphasis = resolveEphemerisOrbitPathEmphasis(
         pathState.bodyId,
@@ -1895,6 +1875,9 @@ export class DebugSolarSystemRenderer {
     for (const [key, resources] of this.paths) {
       if (!this.visiblePathIds.has(key)) resources.root.visible = false;
     }
+    const selectedPaths = [...this.paths.values()].filter(path => path.bodyId === this.selectedBodyId);
+    this.canvas.dataset.selectedOrbitVisible = String(selectedPaths.some(path => path.kind === 'orbit' && path.root.visible));
+    this.canvas.dataset.selectedTrailVisible = String(selectedPaths.some(path => path.kind === 'trail' && path.root.visible));
   }
 
   private updateCameraTargetOrientations(jdTdb: number): void {
