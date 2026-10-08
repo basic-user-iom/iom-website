@@ -6,7 +6,7 @@
     "executableSha256": "ff64f45e84aac9a1f58880e40934b3f29277413e2d0b3ed257322261ec021d2b",
     "releaseUrl": "https://github.com/zeux/meshoptimizer/releases/tag/v1.2"
   },
-  "profile": "web",
+  "profile": "review-web",
   "arguments": [
     "-cc",
     "-tc",
@@ -33,13 +33,14 @@
     "-vtf",
     "-vn",
     "10",
+    "-kn",
     "-af",
     "24",
     "-ac"
   ],
   "source": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\auditorium-railing-fix\\web\\web-batched.glb",
-    "sha256": "33d480c7fd13a624b6e4cc70311e7efe6b87702d13ee77f9dbfb783d78227105"
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\building-viewer\\integration-assets\\icm-interior-batched-v5.glb",
+    "sha256": "3cbed54493a9d632dcb2ebc15ea885b449e0d476142b2133f8d24cb72caa4a36"
   },
   "sourcePreparation": {
     "normalizedEmptyScenes": 0,
@@ -58,17 +59,17 @@
       "reason": "exact placeholder material absent"
     },
     "materialSidedness": {
-      "madeSingleSided": 0,
+      "madeSingleSided": 6,
       "retainedDoubleSided": 93,
       "promotedSingleSided": 2,
-      "splitMaterials": 1,
-      "topologyScanned": 213,
-      "openSurfacePrimitives": 3
+      "splitMaterials": 2,
+      "topologyScanned": 236,
+      "openSurfacePrimitives": 2
     },
     "protectedDoubleSidedMaterials": [
       {
         "name": "black_bhne",
-        "reason": "open-architectural-shell",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -133,37 +134,37 @@
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "name": "IOM_FIRE_SAFETY_GLASS__IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
         "reason": "explicit-glass",
         "role": "fire-safety-glass",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
@@ -274,7 +275,7 @@
         "name": "m.plastic.white.r",
         "reason": "open-architectural-shell",
         "role": null,
-        "occurrences": 1
+        "occurrences": 2
       },
       {
         "name": "m.wall.white",
@@ -454,7 +455,7 @@
         "name": "vray Wand_Metall_022.001",
         "reason": "open-architectural-shell",
         "role": null,
-        "occurrences": 2
+        "occurrences": 1
       },
       {
         "name": "vray Wand_Metall",
@@ -560,7 +561,7 @@
       },
       {
         "name": "wandfarbe_002",
-        "reason": "open-architectural-shell",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -1126,14 +1127,63 @@
       "mirroredMeshCertificates": 0
     },
     "criticalMaterialPreparation": {
-      "fireNodes": 0,
-      "fireMeshes": 0,
-      "materialRoles": []
+      "fireNodes": 10,
+      "fireMeshes": 1,
+      "materialRoles": [
+        {
+          "name": "IOM_FIRE_SAFETY_GLASS__IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+          "role": "fire-safety-glass"
+        },
+        {
+          "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+          "role": "fire-safety-opaque"
+        },
+        {
+          "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+          "role": "fire-safety-opaque"
+        },
+        {
+          "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+          "role": "fire-safety-opaque"
+        },
+        {
+          "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+          "role": "fire-safety-opaque"
+        },
+        {
+          "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+          "role": "fire-safety-opaque"
+        }
+      ]
     },
     "criticalMaterialRoles": [
       {
+        "name": "IOM_FIRE_SAFETY_GLASS__IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "role": "fire-safety-glass"
+      },
+      {
         "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
         "role": "fire-safety-glass"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "role": "fire-safety-opaque"
       },
       {
         "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
@@ -1158,13 +1208,26 @@
     ],
     "semanticNames": {
       "fire-safety": [
-        "Fire"
+        "Fire",
+        "FireHoseHousing006",
+        "FireHoseHousing007",
+        "FireHoseHousing008",
+        "FireHoseHousing009",
+        "SD_Feuermelder",
+        "FireHoseHousing",
+        "FireHoseHousing001",
+        "FireHoseHousing002",
+        "FireHoseHousing003",
+        "FireHoseHousing004",
+        "FireHoseHousing005"
       ],
       "building-connection": [
         "Verbindung West002.001",
         "Verbindung West.002",
         "Verbindung West.001",
-        "Verbindung West002.002"
+        "Verbindung West002.002",
+        "Verbindung West",
+        "Verbindung West002"
       ]
     },
     "nonConstantAnimationTracks": [
@@ -1183,30 +1246,67 @@
     "animationDurationSeconds": 2.7083334922790527
   },
   "output": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\auditorium-railing-fix\\web\\model-web.glb",
-    "sha256": "a9ddb5030af1a1aa087aeb87aaf1fc66c1a868cf6fd797400617d90a1061ad28",
-    "bytes": 96803584,
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\public\\models\\icm-anim-2025\\model-web-review-v5.glb",
+    "sha256": "2095992af2ead2d43c9ec245511ce119c7f85ffef04adca268fc771697a5dc6e",
+    "bytes": 105893488,
     "expandedWorkload": {
-      "triangles": 13585632,
-      "primitiveDraws": 3755,
-      "meshNodes": 2463,
-      "logicalInstances": 5125
+      "triangles": 13600813,
+      "primitiveDraws": 5077,
+      "meshNodes": 3188,
+      "logicalInstances": 3188
     },
     "semanticNames": {
       "fire-safety": [
-        "Fire"
+        "Fire",
+        "FireHoseHousing006",
+        "FireHoseHousing007",
+        "FireHoseHousing008",
+        "FireHoseHousing009",
+        "SD_Feuermelder",
+        "FireHoseHousing",
+        "FireHoseHousing001",
+        "FireHoseHousing002",
+        "FireHoseHousing003",
+        "FireHoseHousing004",
+        "FireHoseHousing005"
       ],
       "building-connection": [
         "Verbindung West002.001",
         "Verbindung West.002",
         "Verbindung West.001",
-        "Verbindung West002.002"
+        "Verbindung West002.002",
+        "Verbindung West",
+        "Verbindung West002"
       ]
     },
     "criticalMaterialRoles": [
       {
+        "name": "IOM_FIRE_SAFETY_GLASS__IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "role": "fire-safety-glass"
+      },
+      {
         "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
         "role": "fire-safety-glass"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "role": "fire-safety-opaque"
+      },
+      {
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "role": "fire-safety-opaque"
       },
       {
         "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
@@ -1232,7 +1332,7 @@
     "protectedDoubleSidedMaterials": [
       {
         "name": "black_bhne",
-        "reason": "open-architectural-shell",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -1297,37 +1397,37 @@
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
+        "name": "IOM_FIRE_SAFETY_GLASS__IOM_FIRE_SAFETY_GLASS__m.glass_white_standart",
         "reason": "explicit-glass",
         "role": "fire-safety-glass",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_chrome",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.metal_grey",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.black.r",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__m.plastic.white.r",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
       },
       {
-        "name": "IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
+        "name": "IOM_FIRE_SAFETY_OPAQUE__IOM_FIRE_SAFETY_OPAQUE__RedMain_001.001",
         "reason": "visibility-critical",
         "role": "fire-safety-opaque",
         "occurrences": 1
@@ -1438,7 +1538,7 @@
         "name": "m.plastic.white.r",
         "reason": "open-architectural-shell",
         "role": null,
-        "occurrences": 1
+        "occurrences": 2
       },
       {
         "name": "m.wall.white",
@@ -1618,7 +1718,7 @@
         "name": "vray Wand_Metall_022.001",
         "reason": "open-architectural-shell",
         "role": null,
-        "occurrences": 2
+        "occurrences": 1
       },
       {
         "name": "vray Wand_Metall",
@@ -1724,7 +1824,7 @@
       },
       {
         "name": "wandfarbe_002",
-        "reason": "open-architectural-shell",
+        "reason": "audited-mixed-winding-shell",
         "role": null,
         "occurrences": 1
       },
@@ -2290,7 +2390,6 @@
       "mirroredMeshCertificates": 0
     },
     "extensionsUsed": [
-      "EXT_mesh_gpu_instancing",
       "EXT_meshopt_compression",
       "KHR_materials_emissive_strength",
       "KHR_materials_ior",
@@ -2305,28 +2404,28 @@
   "nativeReport": {
     "generator": "gltfpack 1.2",
     "scene": {
-      "nodeCount": 3095,
-      "meshCount": 1673,
-      "materialCount": 462,
+      "nodeCount": 4020,
+      "meshCount": 1909,
+      "materialCount": 468,
       "textureCount": 140,
       "animationCount": 1
     },
     "render": {
-      "drawCount": 3755,
-      "instanceCount": 6417,
-      "triangleCount": 13585632
+      "drawCount": 5077,
+      "instanceCount": 5077,
+      "triangleCount": 13600813
     },
     "data": {
-      "json": 2268890,
-      "binary": 94534544,
+      "json": 2606712,
+      "binary": 103286624,
       "buffers": {
-        "vertex": 49427682,
-        "index": 6349244,
+        "vertex": 57310537,
+        "index": 7243793,
         "animation": 1001,
-        "transform": 25320,
+        "transform": 0,
         "image": 38731085
       }
     }
   },
-  "createdAt": "2026-09-05T16:17:57.627Z"
+  "createdAt": "2026-10-04T00:16:55.247Z"
 }

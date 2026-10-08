@@ -35,8 +35,8 @@
     "10"
   ],
   "source": {
-    "path": "F:\\iom_website\\building-viewer\\tmp\\icm-ext-cleaned.glb",
-    "sha256": "2a485514e7e704718273d76a8aef6788ad1cd558b7ce0bcb0533cd5971e89111"
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\building-viewer\\integration-assets\\icm-ext-review-source-v4.glb",
+    "sha256": "c8e1a8586148168289b17e23afde84b6261e63d8c521860c719926f4f98950e4"
   },
   "sourcePreparation": {
     "normalizedEmptyScenes": 7,
@@ -62,12 +62,208 @@
       "replacementMaterial": "fb_c5_c6"
     },
     "materialSidedness": {
-      "madeSingleSided": 66,
-      "retainedDoubleSided": 27,
+      "madeSingleSided": 59,
+      "retainedDoubleSided": 32,
       "promotedSingleSided": 0,
-      "splitMaterials": 5,
-      "topologyScanned": 177,
-      "openSurfacePrimitives": 53
+      "splitMaterials": 3,
+      "topologyScanned": 179,
+      "openSurfacePrimitives": 56
+    },
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "dach allu",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Dark_Wall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 2
+      },
+      {
+        "name": "Flower.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "glas",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grass_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grass",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Leaves_v1x4.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Leaves_v1x8",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "logo2",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.facade.dark-grey",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.flags1",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_blue_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_22 - Default",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_fassade",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Material 30_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Stalk.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass - Satin",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Metal - Stainles.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Anthraci.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light Gr_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light Gr",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Sienna S_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Stucco - White R_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Stucco - White R_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      }
+    ],
+    "surfaceRepairCertificates": {
+      "certificateCount": 0,
+      "certifiedMeshCount": 0,
+      "ownerNames": [],
+      "meshes": [],
+      "nonExactClaims": [],
+      "mirroredMeshCertificates": 0
     },
     "criticalMaterialPreparation": {
       "fireNodes": 0,
@@ -80,15 +276,16 @@
       "building-connection": []
     },
     "nonConstantAnimationTracks": [],
+    "animationTracks": [],
     "animationDurationSeconds": 0
   },
   "output": {
-    "path": "F:\\iom_website\\public\\models\\icm-ext\\model-web.glb",
-    "sha256": "d3893267dcf825f4a18673571e08735972081c5cf0b7b6528a0dcd896742583f",
-    "bytes": 17577384,
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\public\\models\\icm-ext\\model-web-review-v4.glb",
+    "sha256": "27c074156ca91ab0bae8a6c892a95fc22f495b89b6f8a8158b9b0840d3a8b57b",
+    "bytes": 17574960,
     "expandedWorkload": {
-      "triangles": 1195062,
-      "primitiveDraws": 130,
+      "triangles": 1193762,
+      "primitiveDraws": 128,
       "meshNodes": 50,
       "logicalInstances": 665
     },
@@ -97,6 +294,202 @@
       "building-connection": []
     },
     "criticalMaterialRoles": [],
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "dach allu",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Dark_Wall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 2
+      },
+      {
+        "name": "Flower.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "glas",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grass_001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "grass",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Leaves_v1x4.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Leaves_v1x8",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "logo2",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.facade.dark-grey",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.flags1",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_blue_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.glass_white_standart",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_22 - Default",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_24 - Default",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_fassade",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Material 30_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Stalk.001",
+        "reason": "explicit-sheet",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Glass - Satin",
+        "reason": "explicit-glass",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Metal - Stainles.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Anthraci.002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light Gr_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Light Gr",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Paint - Sienna S_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Stucco - White R_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Stucco - White R_003",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      }
+    ],
+    "surfaceRepairCertificates": {
+      "certificateCount": 0,
+      "certifiedMeshCount": 0,
+      "ownerNames": [],
+      "meshes": [],
+      "nonExactClaims": [],
+      "mirroredMeshCertificates": 0
+    },
     "extensionsUsed": [
       "EXT_mesh_gpu_instancing",
       "EXT_meshopt_compression",
@@ -115,26 +508,26 @@
     "scene": {
       "nodeCount": 50,
       "meshCount": 50,
-      "materialCount": 93,
+      "materialCount": 91,
       "textureCount": 27,
       "animationCount": 0
     },
     "render": {
-      "drawCount": 130,
-      "instanceCount": 745,
-      "triangleCount": 1195062
+      "drawCount": 128,
+      "instanceCount": 743,
+      "triangleCount": 1193762
     },
     "data": {
-      "json": 130070,
-      "binary": 17447164,
+      "json": 128542,
+      "binary": 17446268,
       "buffers": {
-        "vertex": 5433440,
-        "index": 472322,
+        "vertex": 5433517,
+        "index": 471344,
         "animation": 0,
         "transform": 3904,
         "image": 11537437
       }
     }
   },
-  "createdAt": "2026-08-28T23:54:10.262Z"
+  "createdAt": "2026-10-03T22:43:32.997Z"
 }

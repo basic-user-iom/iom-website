@@ -9,8 +9,8 @@
     {
       "id": "icm-ext",
       "name": "ICM Exterior",
-      "web": "/models/icm-ext/model-web-review-v4.glb",
-      "quest": "/models/icm-ext/model-web-review-v4.glb",
+      "web": "/models/icm-ext/model-web.glb",
+      "quest": "/models/icm-ext/model-web.glb",
       "collision": "/models/icm-ext/collision.glb",
       "spatialMeta": "/models/icm-ext/spatial-meta.json",
       "collisionMergeVisual": false,
@@ -20,8 +20,8 @@
     {
       "id": "icm-anim-2025",
       "name": "ICM 2025 Animated",
-      "web": "/models/icm-anim-2025/model-web-review-v5.glb",
-      "quest": "/models/icm-anim-2025/model-web-review-v5.glb",
+      "web": "/models/icm-anim-2025/model-web.glb",
+      "quest": "/models/icm-anim-2025/model-web.glb",
       "collision": "/models/icm-anim-2025/collision-review-v5-exact.glb",
       "spatialMeta": "/models/icm-anim-2025/spatial-meta.json",
       "animation": "/models/icm-anim-2025/animations.glb",
