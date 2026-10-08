@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "datasetId": "jpl-horizons-1176688f930951ae",
+  "binaryFile": "solar-system-ephemeris.v1.bin",
+  "binarySha256": "39d88a20b2b209081a7f6ab722525526b5fc0b99b656924628c196b9e6a40785",
+  "format": {
+    "id": "IOMEPH",
+    "versionMajor": 1,
+    "versionMinor": 0,
+    "byteOrder": "little-endian",
+    "scalarType": "float64",
+    "componentOrder": [
+      "px",
+      "py",
+      "pz",
+      "vx",
+      "vy",
+      "vz"
+    ],
+    "units": [
+      "m",
+      "m",
+      "m",
+      "m/s",
+      "m/s",
+      "m/s"
+    ]
+  },
+  "generatedAtIso": "2026-10-08T12:41:19.956Z",
+  "bodies": [
+    {
+      "bodyId": "neptune",
+      "displayName": "Neptune",
+      "provenance": {
+        "provider": "JPL_HORIZONS",
+        "sourceName": "NASA/JPL Horizons vector ephemeris",
+        "targetId": "899",
+        "centerId": "10",
+        "referenceFrame": "ICRF",
+        "referencePlane": "ECLIPTIC",
+        "timeScale": "TDB",
+        "units": "m and m/s",
+        "startJd": 2421229.5,
+        "endJd": 2518384.5,
+        "sampleStepSeconds": 86400,
+        "retrievedAtIso": "2026-10-08T12:41:19.893Z",
+        "generatorVersion": "iom-ephemeris-generator/1.0.0",
+        "sourceHash": "5c5bfaedd104a4b58918d936a89fbe8fd29f9a2753cdfa5a368cc09ef622b927",
+        "notes": [
+          "Source response units KM-S; converted to SI exactly once during parsing.",
+          "Geometric states relative to Horizons center 500@10; no aberration correction.",
+          "Horizons response signature NASA/JPL Horizons API 1.2.",
+          "Horizons source solution(s): nep098_merged."
+        ]
+      }
+    }
+  ]
+}

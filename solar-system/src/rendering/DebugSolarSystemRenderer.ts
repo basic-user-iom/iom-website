@@ -698,11 +698,9 @@ export class DebugSolarSystemRenderer {
       if (!marker.isComet) continue;
       const cometVisual = marker.visual as CometVisual;
       if (!this.cometsVisible) cometVisual.root.visible = false;
-      marker.cameraTarget.radiusRenderUnits = Math.max(
-        this.scaleModel.radiusFor(marker.bodyState),
-        cometVisual.focusRadiusRenderUnits,
-      );
-      marker.clipSphere.radius = marker.cameraTarget.radiusRenderUnits * 1.25;
+      marker.cameraTarget.radiusRenderUnits = cometVisual.nucleusRadiusRenderUnits;
+      marker.cameraTarget.framingRadiusRenderUnits = cometVisual.focusRadiusRenderUnits;
+      marker.clipSphere.radius = cometVisual.nucleusRadiusRenderUnits * 1.25;
     }
     // Apply scenario-local body authority after ordinary body/comet systems so
     // no ephemeris presentation pass can overwrite capture/fade state.
@@ -1875,6 +1873,10 @@ export class DebugSolarSystemRenderer {
     for (const [key, resources] of this.paths) {
       if (!this.visiblePathIds.has(key)) resources.root.visible = false;
     }
+    const selectedOrbitState = pathStates.find(path => path.bodyId === this.selectedBodyId && (path.kind ?? 'orbit') === 'orbit');
+    const epochs = selectedOrbitState?.sampleJdTdb;
+    this.canvas.dataset.selectedOrbitSpanDays = epochs && epochs.length > 1
+      ? String(epochs[epochs.length - 1]! - epochs[0]!) : '';
     const selectedPaths = [...this.paths.values()].filter(path => path.bodyId === this.selectedBodyId);
     this.canvas.dataset.selectedOrbitVisible = String(selectedPaths.some(path => path.kind === 'orbit' && path.root.visible));
     this.canvas.dataset.selectedTrailVisible = String(selectedPaths.some(path => path.kind === 'trail' && path.root.visible));

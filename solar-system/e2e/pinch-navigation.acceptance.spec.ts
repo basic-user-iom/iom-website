@@ -88,3 +88,40 @@ test('selected planets become the zoom pivot during focus and after overview', a
  // A tap on a scene name uses the same focus path as the menu.
  await page.getByTestId('body-label-saturn').tap();await pinch(page,cdp,false,false);await assertPivot('saturn');
 });
+
+
+test('Halley can be inspected with pinch zoom in both scales and mobile orientations', async ({page,browserName,context},info) => {
+ test.setTimeout(180000);
+ await page.setViewportSize({width:390,height:844});
+ await page.emulateMedia({reducedMotion:'reduce'});
+ if(browserName==='webkit')await page.addInitScript(()=>{const set=Element.prototype.setPointerCapture,release=Element.prototype.releasePointerCapture;Element.prototype.setPointerCapture=function(id){if(id<900)set.call(this,id);};Element.prototype.releasePointerCapture=function(id){if(id<900)release.call(this,id);};});
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('./');
+ await expect(page.getByTestId('startup-screen')).toBeHidden({timeout:90000});
+ const canvas=page.getByTestId('solar-system-canvas');
+ const cdp=browserName==='chromium'?await context.newCDPSession(page):null;
+ const radius=async()=>Number(await canvas.getAttribute('data-selected-radius-px'));
+ for(const scale of ['True scale','Presentation']) {
+   await page.locator('#toggle-view').click();
+   await page.getByTestId('render-scale-controls').getByRole('button',{name:scale,exact:true}).click();
+   await page.getByRole('button',{name:'Close view',exact:true}).click();
+   await page.getByTestId('planets-menu-toggle').click();await page.getByTestId('legend-comets').click();
+   await expect.poll(radius).toBeGreaterThan(15);
+   const before=await radius();
+   await pinch(page,cdp,false,false);
+   await expect.poll(radius).toBeGreaterThan(before*1.8);
+   await expect(canvas).toHaveAttribute('data-camera-target','1p-halley');
+   const close=await radius();
+   await page.screenshot({path:info.outputPath(`halley-${scale}-mobile.png`)});
+   await pinch(page,cdp,true,false);
+   await expect.poll(radius).toBeLessThan(close*.7);
+   await page.setViewportSize({width:844,height:390});
+   await pinch(page,cdp,false,false);
+   await expect(canvas).toHaveAttribute('data-camera-target','1p-halley');
+   await page.screenshot({path:info.outputPath(`halley-${scale}-landscape.png`)});
+   await page.setViewportSize({width:390,height:844});
+ }
+ await page.getByTestId('system-overview').click();
+ await expect(canvas).toHaveAttribute('data-selected-orbit-visible','true');
+ expect(errors).toEqual([]);
+});

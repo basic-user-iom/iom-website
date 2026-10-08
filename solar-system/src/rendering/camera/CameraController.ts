@@ -51,7 +51,7 @@ const HELIOCENTRIC_ORIGIN_M = Object.freeze({ x: 0, y: 0, z: 0 });
 const DEFAULT_OPTIONS: ResolvedCameraControllerOptions = Object.freeze({
   responseTimeSeconds: 0.22,
   focusRadiusMultiplier: 8,
-  minimumFocusDistanceRenderUnits: 1e-6,
+  minimumFocusDistanceRenderUnits: 1e-12,
   overviewDistanceMultiplier: 2.2,
   overviewElevationMultiplier: 0.55,
   topDownDistanceMultiplier: 1.45,

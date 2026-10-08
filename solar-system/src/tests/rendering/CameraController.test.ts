@@ -10,6 +10,17 @@ import { ASTRONOMICAL_UNIT_M } from '../../simulation/core/Units';
 const ORIGIN = Object.freeze({ x: 0, y: 0, z: 0 });
 
 describe('CameraController', () => {
+  it('frames a physical comet nucleus without the former 150 km minimum', () => {
+    const radius = 5500 / ASTRONOMICAL_UNIT_M;
+    const body = { ...bodyTarget('1p-halley', ORIGIN, ORIGIN, radius), framingRadiusRenderUnits: radius };
+    const controller = new CameraController();
+    controller.focusBody('1p-halley');
+    controller.update(frame({ bodies: new Map([['1p-halley', body]]), reducedMotion: true, viewportAspect: .6, verticalFovRadians: Math.PI / 3 }));
+    const distance = controller.rig.position.distanceTo(controller.rig.target);
+    expect(distance / radius).toBeGreaterThan(2);
+    expect(distance / radius).toBeLessThan(10);
+  });
+
   it('keeps an enlarged Earth out of the Moon inspection sightline', () => {
     const towardEarth = new Vector3(1, 0.42, 1).normalize();
     const earthPosition = { x: towardEarth.x * 0.0026 * ASTRONOMICAL_UNIT_M,

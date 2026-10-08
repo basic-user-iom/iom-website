@@ -30,6 +30,19 @@ const PROFILE: Readonly<CometVisualProfile> = Object.freeze({
 });
 
 describe('CometVisualSystem', () => {
+  it('keeps the solid zoom boundary independent of activity and frames a dormant nucleus', () => {
+    const system = new CometVisualSystem([PROFILE]);
+    const comet = body(true), visual = system.create(comet);
+    system.updateFrame(frame([comet]), [state(0)], 1_000_000, () => 2);
+    const nucleus = visual.nucleusRadiusRenderUnits;
+    expect(nucleus).toBeGreaterThan(visual.nucleus.scale.x);
+    expect(visual.focusRadiusRenderUnits).toBe(nucleus);
+    system.updateFrame(frame([comet]), [state(1)], 1_000_000, () => 2);
+    expect(visual.nucleusRadiusRenderUnits).toBe(nucleus);
+    expect(visual.focusRadiusRenderUnits).toBeGreaterThan(nucleus * 10);
+    system.dispose();
+  });
+
   it('creates layered irregular comet visuals and updates tails, diagnostics, and visibility', () => {
     const system = new CometVisualSystem([PROFILE]);
     const comet = body(true);

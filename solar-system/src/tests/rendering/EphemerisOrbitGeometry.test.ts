@@ -1,3 +1,4 @@
+import { OrbitDisplayProvider } from '../../rendering/OrbitDisplayProvider';
 import { writeEpochAnchoredPath } from '../../rendering/EpochAnchoredPath';
 import type { ObservatoryBodyId } from '../../simulation/bodies/ObservatoryBodyCatalog';
 import { readFileSync } from 'node:fs';
@@ -483,4 +484,40 @@ it('attaches every bundled planet, Moon and comet path at live epochs between ca
     }
   }
   expect(checked).toBe(14);
+});
+
+
+describe('extended and close-up orbit geometry', () => {
+  it('uses validated extended Neptune data only for the path outside the original clock coverage', () => {
+    const live = loadBundledProvider();
+    const folder = resolve(process.cwd(), 'src/data/generated/neptune-orbit');
+    const manifest = JSON.parse(readFileSync(resolve(folder, 'solar-system-ephemeris.manifest.json'), 'utf8')) as GeneratedEphemerisManifest;
+    const bytes = new Uint8Array(readFileSync(resolve(folder, manifest.binaryFile)));
+    const display = new OrbitDisplayProvider(live, GeneratedEphemerisProvider.fromBinary(bytes.buffer, manifest));
+    for (const jd of [2451544.5, 2461322.123456, 2488069.5]) {
+      expect(display.sample('neptune', jd, createEphemerisStateVector())).toEqual(live.sample('neptune', jd, createEphemerisStateVector()));
+      const orbit = createEphemerisOrbitGeometry(display, 'neptune', { epochJdTdb: jd, focusEpochJdTdb: jd, centerBodyId: null, maxPoints: 2049 });
+      expect(orbit.warning).toBeNull();
+      expect(orbit.endJdTdb - orbit.startJdTdb).toBe(60190);
+      const p = orbit.positionsM, n = p.length;
+      expect(Math.hypot(p[0]! - p[n-3]!, p[1]! - p[n-2]!, p[2]! - p[n-1]!)).toBeLessThan(5e10);
+    }
+    expect(live.getCoverage('neptune')!.startJdTdb).toBe(2451544.5);
+  });
+  it.each(['1p-halley', 'neptune'] as const)('preserves close-up curvature around %s without fabricating vertices', id => {
+    const provider = id === 'neptune' ? loadBundledProvider() : loadBundledCometProvider();
+    const now = 2461322.123456;
+    const geometry = createEphemerisOrbitGeometry(provider, id, { epochJdTdb: now, focusEpochJdTdb: now, centerBodyId: null, maxPoints: 2049 });
+    const epochs = [...geometry.sampleJdTdb];
+    const index = epochs.indexOf(now);
+    expect(index).toBeGreaterThan(0);
+    expect((now - epochs[index-1]!) * 86400).toBeLessThan(2);
+    expect((epochs[index+1]! - now) * 86400).toBeLessThan(2);
+    expect(epochs.length).toBeLessThanOrEqual(2049);
+    expectStrictlyIncreasing(geometry.sampleJdTdb);
+    for (const i of [index - 1, index, index + 1]) {
+      const state = provider.sample(id, epochs[i]!, createEphemerisStateVector());
+      expect([...geometry.positionsM.slice(i * 3, i * 3 + 3)]).toEqual([state.positionM.x, state.positionM.y, state.positionM.z]);
+    }
+  });
 });

@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "generatedAtIso": "2026-10-08T12:52:37.100Z",
+  "passed": true,
+  "structuralPassed": true,
+  "independentValidationPerformed": true,
+  "independentSource": "NASA/JPL Horizons withheld TLIST reference samples",
+  "datasetChecks": [
+    {
+      "bodyId": "neptune",
+      "passed": true,
+      "errors": []
+    }
+  ],
+  "referenceChecks": [
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2425464.75,
+      "passed": true,
+      "positionErrorM": 170.88412588713175,
+      "velocityErrorMps": 0.011017932180725415,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2425465,
+      "passed": true,
+      "positionErrorM": 311.67066220234915,
+      "velocityErrorMps": 0.00008678651835574768,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2425465.25,
+      "passed": true,
+      "positionErrorM": 171.08713506133614,
+      "velocityErrorMps": 0.010899789167999958,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2445204.75,
+      "passed": true,
+      "positionErrorM": 112.49962140984978,
+      "velocityErrorMps": 0.006720437589119956,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2445205,
+      "passed": true,
+      "positionErrorM": 203.65937767966204,
+      "velocityErrorMps": 0.0020505502843503713,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2445205.25,
+      "passed": true,
+      "positionErrorM": 126.28379276197037,
+      "velocityErrorMps": 0.007233461152086773,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2450862.75,
+      "passed": true,
+      "positionErrorM": 123.62715646651581,
+      "velocityErrorMps": 0.008266947869447882,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2450863,
+      "passed": true,
+      "positionErrorM": 236.742300331673,
+      "velocityErrorMps": 0.000659213438397089,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2450863.25,
+      "passed": true,
+      "positionErrorM": 141.79271249011225,
+      "velocityErrorMps": 0.008321879154974732,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2460985.75,
+      "passed": true,
+      "positionErrorM": 170.77304636866563,
+      "velocityErrorMps": 0.010970538600453843,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2460986,
+      "passed": true,
+      "positionErrorM": 316.39974444330494,
+      "velocityErrorMps": 0.0004967381760169435,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2460986.25,
+      "passed": true,
+      "positionErrorM": 179.78497760735922,
+      "velocityErrorMps": 0.01116679413881977,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2479448.75,
+      "passed": true,
+      "positionErrorM": 106.66381127531209,
+      "velocityErrorMps": 0.006361235157089732,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2479449,
+      "passed": true,
+      "positionErrorM": 183.37757710921983,
+      "velocityErrorMps": 0.0013572232277240597,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2479449.25,
+      "passed": true,
+      "positionErrorM": 104.75095132890075,
+      "velocityErrorMps": 0.0063324041296196135,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2484186.75,
+      "passed": true,
+      "positionErrorM": 151.52689935241816,
+      "velocityErrorMps": 0.00913045044028634,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2484187,
+      "passed": true,
+      "positionErrorM": 243.945156616614,
+      "velocityErrorMps": 0.0016556685582667437,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2484187.25,
+      "passed": true,
+      "positionErrorM": 120.46597872094146,
+      "velocityErrorMps": 0.008073086866652309,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2496639.75,
+      "passed": true,
+      "positionErrorM": 170.61995694678834,
+      "velocityErrorMps": 0.010670032851786594,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2496640,
+      "passed": true,
+      "positionErrorM": 303.0888159330437,
+      "velocityErrorMps": 0.0005466799280243486,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2496640.25,
+      "passed": true,
+      "positionErrorM": 157.67925206226008,
+      "velocityErrorMps": 0.010853636003258478,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2506250.75,
+      "passed": true,
+      "positionErrorM": 182.5922026208637,
+      "velocityErrorMps": 0.011284708229951692,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2506251,
+      "passed": true,
+      "positionErrorM": 315.96053125137706,
+      "velocityErrorMps": 0.0007965859253373119,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    },
+    {
+      "bodyId": "neptune",
+      "jdTdb": 2506251.25,
+      "passed": true,
+      "positionErrorM": 167.34073162835142,
+      "velocityErrorMps": 0.01086543818680089,
+      "positionToleranceM": 2000,
+      "velocityToleranceMps": 0.05,
+      "error": null
+    }
+  ],
+  "warnings": [],
+  "datasetId": "jpl-horizons-1176688f930951ae",
+  "binarySha256": "39d88a20b2b209081a7f6ab722525526b5fc0b99b656924628c196b9e6a40785"
+}

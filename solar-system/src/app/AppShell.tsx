@@ -1,3 +1,7 @@
+import { OrbitDisplayProvider } from '../rendering/OrbitDisplayProvider';
+import neptuneOrbitBinaryUrl from '../data/generated/neptune-orbit/solar-system-ephemeris.v1.bin?url';
+import neptuneOrbitManifestUrl from '../data/generated/neptune-orbit/solar-system-ephemeris.manifest.json?url';
+import neptuneOrbitValidationUrl from '../data/generated/neptune-orbit/solar-system-ephemeris.validation.json?url';
 import type { LessonFraming } from '../rendering/camera/LessonCamera';
 import { applyViewLayers } from '../sharing/ViewLayers';
 import { ShareDialog } from '../sharing/ShareDialog';
@@ -832,6 +836,24 @@ export function AppShell() {
       });
       // Start both full downloads together. Settle the optional bundle immediately so
       // a rejection cannot become unhandled while the required planets are decoded.
+      const orbitAbortController = new AbortController();
+      const abortOrbitDownload = () => orbitAbortController.abort();
+      abortController.signal.addEventListener('abort', abortOrbitDownload, { once: true });
+      const orbitDownloadTimeout = window.setTimeout(abortOrbitDownload, 12_000);
+      const neptuneOrbitBundle = Promise.all([
+        fetch(neptuneOrbitManifestUrl, { signal: orbitAbortController.signal }),
+        fetch(neptuneOrbitBinaryUrl, { signal: orbitAbortController.signal }),
+      ]).then(async ([manifestResponse, binaryResponse]) => {
+        assertSuccessfulAssetResponse(manifestResponse, 'Neptune orbit manifest');
+        assertSuccessfulAssetResponse(binaryResponse, 'Neptune orbit data');
+        const manifest = await manifestResponse.json() as GeneratedEphemerisManifest;
+        const binary = await binaryResponse.arrayBuffer();
+        await verifyBinaryHash(binary, manifest.binarySha256);
+        return GeneratedEphemerisProvider.fromBinary(binary, manifest);
+      }).catch(() => null).finally(() => {
+        window.clearTimeout(orbitDownloadTimeout);
+        abortController.signal.removeEventListener('abort', abortOrbitDownload);
+      }); // Original coverage and its warning remain usable on failure/timeout.
       const smallBundle = Promise.all([
         fetch(smallBodyEphemerisManifestUrl, { signal: abortController.signal }),
         downloadBinary(smallBodyEphemerisBinaryUrl, abortController.signal, (value) => progress.download(1, value)),
@@ -966,7 +988,10 @@ export function AppShell() {
         if (initialSelectedBodyId !== initialUi.selectedBodyId) {
           updateSelectedBodyId(initialSelectedBodyId);
         }
-        let orbitPaths = createObservatoryOrbitPaths(provider, clock.currentJdTdb);
+        const orbitExtension = await neptuneOrbitBundle;
+        if (!effectActive) return;
+        const orbitProvider = orbitExtension === null ? provider : new OrbitDisplayProvider(provider, orbitExtension);
+        let orbitPaths = createObservatoryOrbitPaths(orbitProvider, clock.currentJdTdb);
         const orbitEpochsJdTdb = new Map<ObservatoryBodyId, number>(
           orbitPaths.map((path) => [path.bodyId, clock.currentJdTdb]),
         );
@@ -1290,7 +1315,9 @@ export function AppShell() {
             let pathsChanged = false;
             orbitPaths = orbitPaths.map((path) => {
               const previousEpochJdTdb = orbitEpochsJdTdb.get(path.bodyId);
-              const refreshCadenceDays = orbitRefreshCadenceDays(path.bodyId);
+              const refreshCadenceDays = path.bodyId === runtime.selectedBodyId
+                ? Math.min(orbitRefreshCadenceDays(path.bodyId), 1 / 86_400)
+                : orbitRefreshCadenceDays(path.bodyId);
               if (
                 !force &&
                 previousEpochJdTdb !== undefined &&
@@ -1300,7 +1327,7 @@ export function AppShell() {
               }
               pathsChanged = true;
               orbitEpochsJdTdb.set(path.bodyId, clock.currentJdTdb);
-              return createObservatoryOrbitPath(provider, path.bodyId, clock.currentJdTdb);
+              return createObservatoryOrbitPath(orbitProvider, path.bodyId, clock.currentJdTdb);
             });
 
             const trailCadenceDays = selectedTrailRefreshCadenceDays(
@@ -3167,6 +3194,10 @@ export function AppShell() {
           <a href={smallBodyValidationUrl} target="_blank" rel="noreferrer">
             Comet validation
           </a>
+          {' \u00b7 '}
+          <a href={neptuneOrbitValidationUrl} target="_blank" rel="noreferrer">
+            Neptune extended orbit validation
+          </a>
           {' · '}
           <a href={surfaceAssetManifestUrl} target="_blank" rel="noreferrer">
             Surface source manifest
@@ -4564,6 +4595,10 @@ function createObservatoryOrbitPath(
   return createEphemerisOrbitGeometry(provider, bodyId, {
     epochJdTdb,
     spanDays,
+    focusEpochJdTdb: requestedEpochJdTdb,
+    // The extended bundle is already heliocentric; the finite Sun table
+    // must not clip this display-only Neptune path back to 2000-2100.
+    centerBodyId: bodyId === 'neptune' ? null : undefined,
     maxPoints: 2_049,
     samplesPerSourceInterval: 2,
   });

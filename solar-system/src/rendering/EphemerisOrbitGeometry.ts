@@ -33,6 +33,8 @@ interface EphemerisPathSamplingOptions {
   readonly centerBodyId?: ObservatoryBodyId | null;
   readonly maxPoints?: number;
   readonly samplesPerSourceInterval?: number;
+  /** Additional true samples around a close-up; never extrapolated. */
+  readonly focusEpochJdTdb?: number;
 }
 
 export interface EphemerisOrbitGeometryOptions extends EphemerisPathSamplingOptions {
@@ -73,8 +75,8 @@ export const EPHEMERIS_ORBIT_DISPLAY_SPAN_DAYS: Readonly<
 const DEFAULT_MAX_POINTS = 4_097;
 const DEFAULT_SAMPLES_PER_SOURCE_INTERVAL = 4;
 const ADAPTIVE_SEED_INTERVAL_COUNT = 64;
-const MAX_ADAPTIVE_TURN_ANGLE_RAD = Math.PI / 90;
-const MAX_ADAPTIVE_SAGITTA_FRACTION = 0.0002;
+const MAX_ADAPTIVE_TURN_ANGLE_RAD = Math.PI / 900;
+const MAX_ADAPTIVE_SAGITTA_FRACTION = 0.000002;
 
 interface SampledPathPoint {
   readonly jdTdb: number;
@@ -113,6 +115,7 @@ export function createEphemerisOrbitGeometry(
         : options.centerBodyId,
     maxPoints: options.maxPoints,
     samplesPerSourceInterval: options.samplesPerSourceInterval,
+    focusEpochJdTdb: options.focusEpochJdTdb,
   });
 }
 
@@ -131,6 +134,7 @@ export function createEphemerisTrailGeometry(
     centerBodyId: options.centerBodyId ?? null,
     maxPoints: options.maxPoints,
     samplesPerSourceInterval: options.samplesPerSourceInterval,
+    focusEpochJdTdb: options.focusEpochJdTdb,
   });
 }
 
@@ -198,9 +202,27 @@ function createEphemerisPathGeometry(
       bodyState,
       centerState,
     );
-  const sampledPoints = desiredPointCount <= maxPoints
+  // A global angular tolerance is insufficient near a kilometre-sized comet:
+  // the chord between distant samples can miss the close-up by millions of km.
+  // Reserve a bounded set of progressively closer, actual provider samples.
+  const focus = options.focusEpochJdTdb;
+  const localEpochs: number[] = [];
+  if (focus !== undefined && focus >= startJdTdb && focus <= endJdTdb && maxPoints > 128) {
+    localEpochs.push(focus);
+    for (let span = (endJdTdb - startJdTdb) / ADAPTIVE_SEED_INTERVAL_COUNT;
+      span > 1 / SECONDS_PER_DAY; span /= 2) {
+      if (focus - span > startJdTdb) localEpochs.push(focus - span);
+      if (focus + span < endJdTdb) localEpochs.push(focus + span);
+    }
+  }
+  const globalBudget = maxPoints - localEpochs.length;
+  const sampledPoints = desiredPointCount <= globalBudget
     ? sampleUniformPathPoints(startJdTdb, endJdTdb, desiredPointCount, samplePoint)
-    : sampleAdaptivePathPoints(startJdTdb, endJdTdb, maxPoints, samplePoint);
+    : sampleAdaptivePathPoints(startJdTdb, endJdTdb, globalBudget, samplePoint);
+  for (const epoch of localEpochs) {
+    if (!sampledPoints.some(point => point.jdTdb === epoch)) sampledPoints.push(samplePoint(epoch));
+  }
+  sampledPoints.sort((a, b) => a.jdTdb - b.jdTdb);
   const sampleJdTdb = new Float64Array(sampledPoints.length);
   const positionsM = new Float64Array(sampledPoints.length * 3);
   for (let pointIndex = 0; pointIndex < sampledPoints.length; pointIndex += 1) {

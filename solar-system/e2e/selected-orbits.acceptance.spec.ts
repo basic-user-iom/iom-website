@@ -14,6 +14,7 @@ test('selected planets keep their full available orbit instead of a short trail'
     await page.getByTestId(`legend-body-${id}`).click();
     await expect(canvas).toHaveAttribute('data-selected-orbit-visible', 'true');
     await expect(canvas).toHaveAttribute('data-selected-trail-visible', 'false');
+    if (id === 'neptune') await expect(canvas).toHaveAttribute('data-selected-orbit-span-days', '60190');
     await page.getByTestId('system-overview').click();
     await expect(canvas).toHaveAttribute('data-selected-orbit-visible', 'true');
   }
@@ -35,4 +36,18 @@ test('selected planets keep their full available orbit instead of a short trail'
   await page.setViewportSize({ width: 1366, height: 768 });
   await expect(canvas).toHaveAttribute('data-selected-orbit-visible', 'true');
   expect(errors).toEqual([]);
+});
+
+
+test('an unavailable Neptune extension leaves the original data and coverage warning usable', async ({page}) => {
+  test.setTimeout(120_000);
+  await page.setViewportSize({width:390,height:844});
+  await page.route('**/neptune-orbit/**', route => route.request().resourceType() === 'fetch' ? route.abort('failed') : route.continue());
+  await page.goto('./');
+  await expect(page.getByTestId('startup-screen')).toBeHidden({timeout:90_000});
+  await page.getByTestId('planets-menu-toggle').click();
+  await page.getByTestId('legend-body-neptune').click();
+  const canvas = page.getByTestId('solar-system-canvas');
+  await expect(canvas).toHaveAttribute('data-selected-orbit-span-days', '36525');
+  await expect(canvas).toHaveAttribute('data-selected-orbit-visible', 'true');
 });

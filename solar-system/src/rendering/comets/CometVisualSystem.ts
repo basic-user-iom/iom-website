@@ -83,6 +83,7 @@ export interface CometVisual {
   readonly dustRibbonPositionAttribute: BufferAttribute;
   readonly dustRibbonSideAttribute: BufferAttribute;
   readonly dustRibbonPhaseAttribute: BufferAttribute;
+  nucleusRadiusRenderUnits: number;
   focusRadiusRenderUnits: number;
   activity: number;
   ionPointCount: number;
@@ -296,6 +297,7 @@ export class CometVisualSystem {
       dustRibbonPositionAttribute: dustRibbonResources.positionAttribute,
       dustRibbonSideAttribute: dustRibbonResources.sideAttribute,
       dustRibbonPhaseAttribute: dustRibbonResources.phaseAttribute,
+      nucleusRadiusRenderUnits: 0,
       focusRadiusRenderUnits: 0,
       activity: 0,
       ionPointCount: 0,
@@ -416,10 +418,11 @@ export class CometVisualSystem {
         [visual.dustPositionAttribute, visual.dustPointCount],
         [visual.dustSpinePositionAttribute, visual.dustSpinePointCount],
       ] as const) scaleMappedTail(attribute, count, tailScale);
-      visual.focusRadiusRenderUnits = Math.max(
-        displayExtent * 0.32,
-        comaVisible ? comaRadius * 2 : nucleusRadius * 8,
-      );
+      // Navigation collides with the solid nucleus, never the coma or tail.
+      visual.nucleusRadiusRenderUnits = nucleusExtent * 1.15;
+      visual.focusRadiusRenderUnits = comaVisible
+        ? Math.max(displayExtent * 0.32, comaRadius * 2)
+        : visual.nucleusRadiusRenderUnits;
       visual.ionTail.geometry.setDrawRange(0, visual.ionPointCount);
       visual.ionCore.geometry.setDrawRange(0, visual.ionSpinePointCount);
       visual.dustTail.geometry.setDrawRange(0, visual.dustPointCount);

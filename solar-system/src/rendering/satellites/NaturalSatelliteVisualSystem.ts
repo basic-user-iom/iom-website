@@ -719,7 +719,7 @@ export class NaturalSatelliteVisualSystem {
     mesh.userData.satelliteId = definition.id;
     mesh.userData.surfaceMode = ownsGeometry ? 'procedural-irregular' : 'procedural-sphere';
     mesh.frustumCulled = false;
-    const orbit = new PrecisionLine(96, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
+    const orbit = new PrecisionLine(definition.id === 'nereid' || definition.id === 'phoebe' ? 384 : 96, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
     orbit.name = `natural-satellite-orbit-${definition.id}`;
     orbit.frustumCulled = false;
     this.root.add(orbit, mesh);
@@ -823,13 +823,13 @@ export class NaturalSatelliteVisualSystem {
     localScale: number,
   ): void {
     const current = sampleNaturalSatellite(definition, jdTdb).positionM;
-    const positions = sampleNaturalSatelliteOrbit(definition, jdTdb, definition.id === 'nereid' || definition.id === 'phoebe' ? 0.35 : 1, 96);
+    const positions = sampleNaturalSatelliteOrbit(definition, jdTdb, 1, orbit.path.pointCount);
     scaleModel.mapPosition(PARENT_POSITION, parent.positionM, originM);
     this.mapLocalOffset(LOCAL, current, scaleModel, localScale);
     orbit.path.anchor.copy(PARENT_POSITION).add(LOCAL);
     const array = orbit.path.positions;
     const unit = localScale / scaleModel.metersPerRenderUnit;
-    for (let index = 0; index < 96; index += 1) {
+    for (let index = 0; index < orbit.path.pointCount; index += 1) {
       array[index * 3] = (positions[index * 3]! - current.x) * unit;
       array[index * 3 + 1] = (positions[index * 3 + 2]! - current.z) * unit;
       array[index * 3 + 2] = (current.y - positions[index * 3 + 1]!) * unit;
