@@ -1,5 +1,5 @@
 import { impactDepthUniforms } from '../../rendering/impact/ImpactDepthContext';
-import { Points, ShaderMaterial } from 'three';
+import { Points, ShaderMaterial, Vector4, type WebGLRenderer, Scene, PerspectiveCamera } from 'three';
 
 import {
   DEFAULT_BELT_PROFILES,
@@ -157,6 +157,24 @@ describe('StatisticalBeltRenderer', () => {
 
     renderer.dispose();
     expect(() => renderer.setSunRenderPosition(0, 0, 0)).toThrow(/disposed/);
+  });
+
+  it('keeps dot sizes in CSS pixels through Retina and adaptive-resolution targets', () => {
+    const renderer = new StatisticalBeltRenderer([ASTEROID_PROFILE]);
+    renderer.setViewportHeight(600);
+    const points = renderer.root.getObjectByName('asteroid-belt-statistical-instances') as Points;
+    const material = points.material as ShaderMaterial;
+    const particles = renderer.getParticles('asteroid-belt');
+    const metrics = renderer.getVisualMetrics('asteroid-belt');
+    for (const targetHeight of [600, 1200, 1500, 480]) {
+      const gpu = { getCurrentViewport: (out: Vector4) => out.set(0, 0, 800, targetHeight) } as WebGLRenderer;
+      points.onBeforeRender(gpu, new Scene(), new PerspectiveCamera(), points.geometry, material, renderer.root);
+      expect(material.uniforms.uPixelsPerCssPixel!.value).toBe(targetHeight / 600);
+      expect(renderer.getParticles('asteroid-belt')).toBe(particles);
+      expect(renderer.getVisualMetrics('asteroid-belt')).toEqual(metrics);
+    }
+    expect(() => renderer.setViewportHeight(0)).toThrow();
+    renderer.dispose();
   });
 
   it('normalizes aggregate point weight across quality tiers without exceeding marker caps', () => {

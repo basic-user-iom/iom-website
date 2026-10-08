@@ -747,6 +747,7 @@ export class DebugSolarSystemRenderer {
 
     this.viewportWidth = width;
     this.viewportHeight = height;
+    this.statisticalBelts.setViewportHeight(height);
     this.requestedPixelRatio = pixelRatio;
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(width, height, false);

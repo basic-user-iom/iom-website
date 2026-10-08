@@ -1,3 +1,4 @@
+import { PerspectiveCamera, Vector3 } from 'three';
 import { OrbitDisplayProvider } from '../../rendering/OrbitDisplayProvider';
 import { writeEpochAnchoredPath } from '../../rendering/EpochAnchoredPath';
 import type { ObservatoryBodyId } from '../../simulation/bodies/ObservatoryBodyCatalog';
@@ -519,5 +520,54 @@ describe('extended and close-up orbit geometry', () => {
       const state = provider.sample(id, epochs[i]!, createEphemerisStateVector());
       expect([...geometry.positionsM.slice(i * 3, i * 3 + 3)]).toEqual([state.positionM.x, state.positionM.y, state.positionM.z]);
     }
+  });
+});
+
+
+describe('Saturn orbit under close-up perspective', () => {
+  it('keeps projected curve error below half a CSS pixel near the apparent turn', () => {
+    const provider = loadBundledProvider();
+    const now = 2461322.123456;
+    const orbit = createEphemerisOrbitGeometry(provider, 'saturn', {
+      epochJdTdb: now, focusEpochJdTdb: now, maxPoints: 2049, samplesPerSourceInterval: 2,
+    });
+    const origin = provider.sample('saturn', now, createEphemerisStateVector()).positionM;
+    const center = provider.sample('sun', now, createEphemerisStateVector()).positionM;
+    const samples: Vector3[][] = [];
+    for (let i = 1; i < orbit.sampleJdTdb.length; i++) {
+      const left = orbit.sampleJdTdb[i - 1]!, right = orbit.sampleJdTdb[i]!;
+      samples.push([0, .25, .5, .75, 1].map(t => {
+        const jd = left + (right - left) * t;
+        const b = provider.sample('saturn', jd, createEphemerisStateVector()).positionM;
+        const sun = provider.sample('sun', jd, createEphemerisStateVector()).positionM;
+        return new Vector3(b.x - sun.x + center.x - origin.x,
+          b.z - sun.z + center.z - origin.z, -(b.y - sun.y + center.y - origin.y));
+      }));
+    }
+    let maximumError = 0, checked = 0;
+    for (const [width, height] of [[390, 580], [1366, 768]]) {
+      const camera = new PerspectiveCamera(50, width! / height!, 1, 1e15);
+      for (const distance of [1.2e8, 4.8e8, 1.9e9]) for (const azimuth of [5, 17, 18]) {
+        camera.position.set(Math.cos(azimuth * Math.PI / 12) * Math.cos(.3),
+          Math.sin(.3), Math.sin(azimuth * Math.PI / 12) * Math.cos(.3)).multiplyScalar(distance);
+        camera.lookAt(0, 0, 0); camera.updateMatrixWorld();
+        for (const vertices of samples) {
+          const view = vertices.map(v => v.clone().applyMatrix4(camera.matrixWorldInverse));
+          if (view.some(v => v.z >= -camera.near)) continue;
+          const screen = view.map(v => new Vector3(v.x / -v.z * camera.projectionMatrix.elements[0]! * width! / 2,
+            v.y / -v.z * camera.projectionMatrix.elements[5]! * height! / 2, 0));
+          const a = screen[0]!, b = screen[4]!, chord = b.clone().sub(a), lengthSq = chord.lengthSq();
+          if (lengthSq === 0) continue;
+          for (const point of screen.slice(1, 4)) {
+            if (Math.abs(point.x) > width! / 2 || Math.abs(point.y) > height! / 2) continue;
+            const fraction = Math.max(0, Math.min(1, point.clone().sub(a).dot(chord) / lengthSq));
+            maximumError = Math.max(maximumError, point.distanceTo(a.clone().addScaledVector(chord, fraction)));
+            checked++;
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
+    expect(maximumError).toBeLessThan(.5);
   });
 });

@@ -6,6 +6,7 @@ import {
   Group,
   Points,
   ShaderMaterial,
+  Vector4,
 } from 'three';
 
 import type { VisualQuality } from '../bodies/VisualQuality';
@@ -34,7 +35,7 @@ export interface StatisticalBeltProfile {
   readonly color: string;
   /** Muted display palette; these are statistical classes, not measured colors. */
   readonly colorPalette?: readonly string[];
-  /** Reference point diameter in framebuffer pixels at the maximum quality count. */
+  /** Reference point diameter in CSS pixels at the maximum quality count. */
   readonly markerSizePx: number;
   /** Hard screen-space diameter cap. It is never presented as a physical radius. */
   readonly maximumMarkerSizePx: number;
@@ -133,6 +134,8 @@ export class StatisticalBeltRenderer {
   private quality: VisualQuality;
   private metersPerRenderUnit: number;
   private disposed = false;
+  private viewportHeightCss: number | null = null;
+  private readonly renderViewport = new Vector4();
 
   public constructor(
     profiles: readonly Readonly<StatisticalBeltProfile>[] = DEFAULT_BELT_PROFILES,
@@ -155,6 +158,14 @@ export class StatisticalBeltRenderer {
       const points = new Points(geometry, material);
       points.name = `${profile.id}-statistical-instances`;
       points.renderOrder = 0;
+      points.onBeforeRender = renderer => {
+        // Account for both display density and the active post-processing target.
+        // A 1.5 CSS-pixel dot must not shrink to half a pixel on a Retina display.
+        renderer.getCurrentViewport(this.renderViewport);
+        material.uniforms.uPixelsPerCssPixel!.value = this.viewportHeightCss === null
+          ? 1 : this.renderViewport.w / this.viewportHeightCss;
+        material.uniformsNeedUpdate = true;
+      };
       geometry.setDrawRange(0, initialCount);
       const visible = profile.id === 'asteroid-belt';
       points.visible = visible;
@@ -168,6 +179,12 @@ export class StatisticalBeltRenderer {
         style,
       });
     }
+  }
+
+  public setViewportHeight(heightCssPixels: number): void {
+    this.assertNotDisposed();
+    requirePositiveFinite(heightCssPixels, 'Statistical belt viewport height');
+    this.viewportHeightCss = heightCssPixels;
   }
 
   /** Positions the heliocentric belt root after floating-origin subtraction. */
@@ -563,7 +580,7 @@ function createPointGeometry(
     const offset = index * 3;
     color.set(palette[particle.paletteIndex % palette.length] ?? profile.color);
     // Mild per-particle stretch so neighboring points are not identical.
-    const lift = 0.75 + particle.albedoScale * 0.55;
+    const lift = 1.05 + particle.albedoScale * 0.65;
     if (profile.id === 'kuiper-belt') {
       // Keep Kuiper cool (ice gray / blue-gray), not ochre-warmed.
       color.r = clamp(color.r * lift * 0.88, 0, 1);
@@ -636,7 +653,7 @@ function createDensityMaterial(
         float wrap = clamp(NdotL * 0.82 + 0.18, 0.0, 1.0);
         float specular = pow(NdotL, 12.0) * 0.06;
         vec3 shadeTint = mix(uUmbraTint, uLitTint, wrap);
-        float shade = 0.34 + 0.90 * wrap + specular;
+        float shade = 0.45 + 0.95 * wrap + specular;
         // Soft density samples avoid isolated square-looking glints.
         float softEdge = 1.0 - smoothstep(0.25, 1.0, radiusSquared);
         float alpha = softEdge * uOpacity * vDensityScale * uImpactSkyVisibility;
@@ -650,6 +667,7 @@ function createDensityMaterial(
     toneMapped: true,
     uniforms: {
       uImpactSkyVisibility: impactDepthUniforms.uImpactSkyVisibility,
+      uPixelsPerCssPixel: { value: 1 },
       uMarkerCapPx: { value: profile.maximumMarkerSizePx },
       uMarkerSizePx: { value: style.markerSizePx },
       uOpacity: { value: style.opacity },
@@ -672,12 +690,13 @@ function createDensityMaterial(
       attribute float aDensityScale;
       uniform float uMarkerCapPx;
       uniform float uMarkerSizePx;
+      uniform float uPixelsPerCssPixel;
       varying vec3 vColor;
       varying float vDensityScale;
       void main() {
         vColor = aColor;
         vDensityScale = aDensityScale;
-        gl_PointSize = min(uMarkerCapPx, uMarkerSizePx * aMarkerScale);
+        gl_PointSize = min(uMarkerCapPx, uMarkerSizePx * aMarkerScale) * uPixelsPerCssPixel;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }
     `,

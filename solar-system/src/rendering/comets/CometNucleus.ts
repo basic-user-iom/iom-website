@@ -139,8 +139,9 @@ export function createNucleusMaterial(seed: number): ShaderMaterial {
         float inspection = max(dot(n,normalize(vec3(-0.45,0.65,1.0))),0.0);
         float variation = 0.60 + broad*0.36 + middle*0.25 + fine*0.12;
         vec3 dust = mix(vec3(0.070,0.065,0.059),vec3(0.115,0.106,0.095),broad) * variation;
-        // Restrained camera fill keeps the charcoal surface legible on the night side.
-        vec3 color = dust * (0.075 + 1.25*diffuse + 0.30*inspection);
+        // View-facing inspection fill retains readable relief even opposite the Sun.
+        float facing = max(dot(n,normalize(-vViewPosition)),0.0);
+        vec3 color = dust * (0.16 + 1.25*diffuse + 0.65*facing + 0.25*inspection);
         gl_FragColor = vec4(color,1.0);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>

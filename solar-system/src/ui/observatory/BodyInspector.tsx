@@ -146,9 +146,15 @@ export function BodyInspector({
       ) : null}
       <p className="technical-note">
         {body.kind === 'comet'
-          ? 'Identity and orbit are JPL-sourced. Surface detail, rotation, coma and tails are illustrative. Exposure and a soft inspection fill reveal the dark nucleus; brightness is not calibrated photometry.'
+          ? 'Identity and orbit are JPL-sourced. Surface detail, rotation, coma and tails are illustrative. Exposure and view-facing inspection lighting reveal the dark nucleus; brightness is not calibrated photometry.'
           : 'Surface assets are provenance-tracked; a procedural fallback remains available if an optional map cannot load.'}
       </p>
+      {body.id === 'c-1995-o1-hale-bopp' || body.id === 'c-2020-f3-neowise' ? (
+        <p className="technical-note" data-testid="comet-orbit-window-note">
+          The orbit line shows the bundled 2000–2100 interval, not a complete revolution.
+          These long-period comets travel beyond that time window; the displayed arc stays open.
+        </p>
+      ) : null}
       {body.kind === 'comet' && body.id === ROSETTA_BODY_ID ? (
         <p className="technical-note" data-testid="comet-shape-credit">
           Shape: <a href={COMET_SHAPE_SOURCE.sourcePage} target="_blank" rel="noreferrer">ESA/Rosetta/NAVCAM</a>
