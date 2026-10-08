@@ -30,3 +30,12 @@ public/models/icm-golden-int/
 public/models/golden-slice-report.json
 /dist/
 CRM_EMAIL_FAILURE_ANALYSIS_AND_FIX_PLAN.md
+
+# Offline ICM export/audit reports; never requested by runtime code or demo manifests.
+/public/models/icm-anim-2025/surface-audit-model-quest-v2.json
+/public/models/icm-anim-2025/surface-audit-model-web-v2.json
+/public/models/icm-anim-2025/blender-report-v2.json
+/public/models/icm-anim-2025/model-quest.glb.provenance.json
+/public/models/icm-anim-2025/model-web.glb.provenance.json
+/public/models/icm-ext/model-web.glb.provenance.json
+/public/models/icm-ext/model-quest.glb.provenance.json
