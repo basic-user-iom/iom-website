@@ -1,0 +1,461 @@
+{
+  "schemaVersion": 1,
+  "tool": {
+    "name": "gltfpack",
+    "version": "1.2",
+    "executableSha256": "ff64f45e84aac9a1f58880e40934b3f29277413e2d0b3ed257322261ec021d2b",
+    "releaseUrl": "https://github.com/zeux/meshoptimizer/releases/tag/v1.2"
+  },
+  "profile": "review-collision-exact",
+  "arguments": [
+    "-cc",
+    "-kn",
+    "-km",
+    "-ke",
+    "-kv",
+    "-noq"
+  ],
+  "source": {
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\building-viewer\\integration-assets\\icm-collision-restored-v5.glb",
+    "sha256": "e03b879e8864265fc757e93e8da207b981b0e1bc17e31d05b66646d51610cbb2"
+  },
+  "sourcePreparation": {
+    "normalizedEmptyScenes": 0,
+    "textureCoordinateRepairs": {
+      "textureInfos": 0,
+      "transforms": 0,
+      "total": 0
+    },
+    "generatedTextureCoordinates": {
+      "primitives": 0,
+      "accessors": 0
+    },
+    "exteriorFloorCheckerRepair": {
+      "applied": false,
+      "reassignedPrimitives": 0,
+      "reason": "exact placeholder material absent"
+    },
+    "materialSidedness": {
+      "madeSingleSided": 1,
+      "retainedDoubleSided": 31,
+      "promotedSingleSided": 0,
+      "splitMaterials": 0,
+      "topologyScanned": 71,
+      "openSurfacePrimitives": 0
+    },
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "black_bhne",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "boden_eg_technik_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "brushed_metal_07",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 3
+      },
+      {
+        "name": "grey_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_chrome",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.neutral_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.black.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 4
+      },
+      {
+        "name": "mat_24 - Default_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_wellblech",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Treppen all.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_022.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_010",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_Holz_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wand_saal_1_rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_DACH",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "White Walls_Vray",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      }
+    ],
+    "surfaceRepairCertificates": {
+      "certificateCount": 0,
+      "certifiedMeshCount": 0,
+      "ownerNames": [],
+      "meshes": [],
+      "nonExactClaims": [],
+      "mirroredMeshCertificates": 0
+    },
+    "criticalMaterialPreparation": {
+      "fireNodes": 0,
+      "fireMeshes": 0,
+      "materialRoles": []
+    },
+    "criticalMaterialRoles": [],
+    "semanticNames": {
+      "fire-safety": [
+        "COLLIDER_Fire"
+      ],
+      "building-connection": [
+        "COLLIDER_Verbindung_West002_001",
+        "COLLIDER_Verbindung_West002_001_walk",
+        "COLLIDER_Verbindung_West002_001_walk_1",
+        "COLLIDER_Verbindung_West002_001_walk_2",
+        "COLLIDER_Verbindung_West_002",
+        "COLLIDER_Verbindung_West_002_walk",
+        "COLLIDER_Verbindung_West_002_walk_1"
+      ]
+    },
+    "nonConstantAnimationTracks": [],
+    "animationTracks": [],
+    "animationDurationSeconds": 0
+  },
+  "output": {
+    "path": "F:\\Projects\\lpa-tripo-2.8.1-download-20260929\\viewer-integration-20261004\\site\\public\\models\\icm-anim-2025\\collision-review-v5-exact.glb",
+    "sha256": "de076b49611971edc02f6baec95791c6d7ec2effeb04fd560723d1ca0c0750c8",
+    "bytes": 4360352,
+    "expandedWorkload": {
+      "triangles": 403142,
+      "primitiveDraws": 2687,
+      "meshNodes": 2687,
+      "logicalInstances": 2687
+    },
+    "semanticNames": {
+      "fire-safety": [
+        "COLLIDER_Fire"
+      ],
+      "building-connection": [
+        "COLLIDER_Verbindung_West002_001",
+        "COLLIDER_Verbindung_West002_001_walk",
+        "COLLIDER_Verbindung_West002_001_walk_1",
+        "COLLIDER_Verbindung_West002_001_walk_2",
+        "COLLIDER_Verbindung_West_002",
+        "COLLIDER_Verbindung_West_002_walk",
+        "COLLIDER_Verbindung_West_002_walk_1"
+      ]
+    },
+    "criticalMaterialRoles": [],
+    "protectedDoubleSidedMaterials": [
+      {
+        "name": "black_bhne",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "boden_eg_technik_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "brushed_metal_07",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Floor_Wood_Vray_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 3
+      },
+      {
+        "name": "grey_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.Asphalt_grau",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.metal_chrome",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.neutral_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.plastic.black.r",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "m.wall.white",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 4
+      },
+      {
+        "name": "mat_24 - Default_006",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "mat_wellblech",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Treppen all.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall_022.001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "vray Wand_Metall",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_005",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wall_raster_wood_010",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "Wand_Holz_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wand_saal_1_rot",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wandfarbe_002",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_DACH",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat_001",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "wellblech_flat",
+        "reason": "audited-mixed-winding-shell",
+        "role": null,
+        "occurrences": 1
+      },
+      {
+        "name": "White Walls_Vray",
+        "reason": "open-architectural-shell",
+        "role": null,
+        "occurrences": 1
+      }
+    ],
+    "surfaceRepairCertificates": {
+      "certificateCount": 0,
+      "certifiedMeshCount": 0,
+      "ownerNames": [],
+      "meshes": [],
+      "nonExactClaims": [],
+      "mirroredMeshCertificates": 0
+    },
+    "extensionsUsed": [
+      "EXT_meshopt_compression",
+      "KHR_materials_ior",
+      "KHR_materials_specular"
+    ],
+    "generator": "glTF-Transform v4.4.2"
+  },
+  "nativeReport": {
+    "generator": "gltfpack 1.2",
+    "scene": {
+      "nodeCount": 2847,
+      "meshCount": 2413,
+      "materialCount": 83,
+      "textureCount": 0,
+      "animationCount": 0
+    },
+    "render": {
+      "drawCount": 2687,
+      "instanceCount": 2687,
+      "triangleCount": 403142
+    },
+    "data": {
+      "json": 1798557,
+      "binary": 2561648,
+      "buffers": {
+        "vertex": 2358381,
+        "index": 203264,
+        "animation": 0,
+        "transform": 0,
+        "image": 0
+      }
+    }
+  },
+  "createdAt": "2026-10-04T00:19:40.253Z"
+}

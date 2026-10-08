@@ -111,11 +111,28 @@ function poseKey(mesh: Mesh): string {
   ].join(',')
 }
 
+/** Plaza / floor / ground sheets must never be pose-culled — repeats are real CAD copies. */
+function isGroundOrFloorSurface(mesh: Mesh): boolean {
+  const u = mesh.userData
+  return Boolean(
+    u?.floorSurface ||
+      u?.paperThinGround ||
+      u?.groundUnderlay ||
+      u?.iomExplicitWalkable,
+  )
+}
+
 function dropPoseDuplicates(items: Candidate[]): { keep: Candidate[]; drop: Candidate[] } {
   const seen = new Set<string>()
   const keep: Candidate[] = []
   const drop: Candidate[] = []
   for (const item of items) {
+    // Real repeated ground/plaza/floor meshes share poses by design; hiding or
+    // removing them opens holes. Leave them out of the duplicate filter entirely.
+    if (isGroundOrFloorSurface(item.mesh)) {
+      keep.push(item)
+      continue
+    }
     const key = poseKey(item.mesh)
     if (seen.has(key)) drop.push(item)
     else {
@@ -172,10 +189,18 @@ const PACKED_USER_DATA_KEYS = [
   'iomExplicitWalkable',
   'surfaceVisibilityRisk',
   'surfaceVisibilityReason',
+  // Offset / side contracts — never merge louvers with opaque façade, or
+  // lightmapped/underlay sheets with unmarked siblings of the same geom×mat.
+  'shutter',
+  'orbitDuplicateRole',
+  'groundUnderlay',
+  'lightmappedSlice',
 ] as const
 
 function packingSemanticKey(mesh: Mesh): string {
-  return PACKED_USER_DATA_KEYS.map((key) => (mesh.userData?.[key] ? '1' : '0')).join('')
+  // Shadow participation is per draw, so packing must preserve both flags.
+  return PACKED_USER_DATA_KEYS.map((key) => (mesh.userData?.[key] ? '1' : '0')).join('') +
+    '|shadow:' + Number(mesh.castShadow) + ':' + Number(mesh.receiveShadow)
 }
 
 function copyPackingSemantics(source: Mesh, target: InstancedMesh | BatchedMesh): void {
@@ -610,6 +635,7 @@ export function applyProceduralInstancing(
     if (!(obj as Mesh).isMesh) return
     if ((obj as InstancedMesh).isInstancedMesh) return
     if ((obj as BatchedMesh).isBatchedMesh) return
+    if (obj.userData?.reviewedSeatLod) return
     if (obj.userData?.collisionOnly) return
     if (obj.userData?.compareVisual) return
     if (obj.userData?.hlodPackageResourceScope) return
@@ -704,9 +730,10 @@ export function applyProceduralInstancing(
     skippedNegativeTransforms += rawItems.length - hostSafeItems.length
     const { keep: items, drop } = dropPoseDuplicates(hostSafeItems)
     for (const d of drop) {
+      // Hide only — never detach. Real CAD repeats can share a pose key; removing
+      // them from the graph permanently deletes geometry from the scene.
       d.mesh.visible = false
       d.mesh.userData.cadDuplicate = true
-      d.mesh.removeFromParent()
       used.add(d.mesh)
     }
     poseDuplicatesDropped += drop.length
@@ -943,7 +970,7 @@ export function applyProceduralInstancing(
     noteParts.push(`batched ${batchedSources} unique parts into ${batchedMeshes} BatchedMesh`)
   }
   if (poseDuplicatesDropped > 0) {
-    noteParts.push(`dropped ${poseDuplicatesDropped} overlapping CAD copies`)
+    noteParts.push(`hid ${poseDuplicatesDropped} overlapping CAD copies`)
   }
   if (importedSplit.sourcesSplit > 0) {
     noteParts.push(

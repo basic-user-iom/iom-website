@@ -98,19 +98,24 @@ export function applyIcmDedicatedCollisionFacePolicy(
   return 1
 }
 
-// Dedicated collision currently omits these authored circulation owners (or
-// covers only a small fraction of their visible tread faces). Keep this list
-// intentionally ICM-specific: generic ancestor matching can otherwise turn
-// handrails and decorative stair hardware into blocking collision.
-const ICM_MISSING_STAIR_COLLISION_RE =
-  /treppen_aussen|treppe_stufen_holz_001|bu_treppe_links001|(?:^|[\s._-])treppe_og(?:$|[\s._-])|treppen all\.001/i
+// Dedicated collision is regenerated from the current visual GLB, so the old
+// "missing stair owner" visual supplements are no longer required. Keep the
+// helpers fail-closed (never match) so stale mesh names cannot double-collide.
+const ICM_MISSING_STAIR_COLLISION_RE = /$^/
 const ICM_STAIR_COLLISION_REJECT_RE =
   /handlauf|handrail|gelaender|gel[aä]nder|balustrade|baluster|railing|banister|guardrail|gitter|grille|unterbau|sockel|schraube|tr[aä]ger/i
 
-export const ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS = [
-  { name: 'TR_Stufen004_2OG_landing', centerX: -35.962, centerZ: 41.3 },
-  { name: 'TR_Stufen005_2OG_landing', centerX: -74.16, centerZ: 41.3 },
-] as const
+/** Verified exit patches on the reverse-wound Decke_2OG_A slab.
+ * The regenerated collider still omits this ceiling-labelled walking surface.
+ * Restrict support to the two exits; the full slab would seal the stairwells. */
+export const ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS: readonly {
+  name: string
+  centerX: number
+  centerZ: number
+}[] = [
+  { name: 'TR_Stufen004', centerX: -35.96, centerZ: 41.305 },
+  { name: 'TR_Stufen005', centerX: -74.16, centerZ: 41.305 },
+]
 
 /** Narrow collision guides for the two stepped auditorium aisles. */
 export const ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS = [
@@ -118,6 +123,8 @@ export const ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS = [
     name: 'auditorium_aisle_a',
     width: 2.2,
     points: [
+      // The first three reverse-wound treads start before the old guide.
+      [-21.313470, 0, -62.365487],
       [-22.654, 0.507, -61.492],
       [-24.468, 0.979, -60.31],
       [-28.712, 2.275, -57.546],
@@ -131,6 +138,8 @@ export const ICM_ANIMATED_AUDITORIUM_AISLE_SUPPLEMENTS = [
     name: 'auditorium_aisle_b',
     width: 2.2,
     points: [
+      // The first three reverse-wound treads start before the old guide.
+      [-35.220804, 0, -85.978252],
       [-36.634, 0.507, -85.228],
       [-38.544, 0.979, -84.214],
       [-43.012, 2.275, -81.842],

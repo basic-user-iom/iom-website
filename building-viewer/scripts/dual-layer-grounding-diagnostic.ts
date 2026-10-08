@@ -374,7 +374,11 @@ assert.equal(
   false,
   'the broad 2OG floor must not cover the stairwell',
 )
-assert.equal(ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS.length, 2)
+assert.deepEqual(
+  ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS.map(({ name }) => name),
+  ['TR_Stufen004', 'TR_Stufen005'],
+  'only the two verified exit gaps may receive narrow support patches',
+)
 
 const outsideStairOwner = new Group()
 outsideStairOwner.name = 'treppen_aussen'
@@ -384,7 +388,11 @@ const missingOutsideTread = new Mesh(
 )
 missingOutsideTread.name = 'Stufen'
 outsideStairOwner.add(missingOutsideTread)
-assert.equal(isIcmAnimatedWalkCollisionSupplement(missingOutsideTread), true)
+assert.equal(
+  isIcmAnimatedWalkCollisionSupplement(missingOutsideTread),
+  false,
+  'visual stair supplements disabled once dedicated collision matches the visual',
+)
 const outsideHandrail = new Mesh(
   new BoxGeometry(1, 0.05, 0.05),
   new MeshBasicMaterial({ name: 'Handlauf Metall' }),

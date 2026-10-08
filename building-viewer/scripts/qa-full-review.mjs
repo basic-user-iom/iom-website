@@ -1,0 +1,6 @@
+import{chromium}from'playwright';import{writeFile}from'node:fs/promises';
+const browser=await chromium.launch({headless:true,channel:'msedge'});const page=await browser.newPage({viewport:{width:1440,height:900}});const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});await page.addInitScript(()=>sessionStorage.setItem('building-viewer-demo-unlocked','1'));
+try{await page.goto('http://127.0.0.1:5204/');await page.waitForFunction(()=>document.querySelector('.bv-loading')?.classList.contains('hidden'),{},{timeout:180000});
+const result=await page.evaluate(async()=>{const mod=await import('/scripts/full-viewer-review.ts');return await mod.runFullReview(window.__iomBuildingViewer)});await writeFile('../../evidence/full-viewer-routes-v4.json',JSON.stringify({result,errors},null,2));console.log(JSON.stringify({summary:result.summary,failed:result.routes.filter(r=>!r.ok).map(r=>[r.name,r.speed,r.distance,r.heightError,r.airborne]),errors}));
+await writeFile('../../evidence/full-viewer-paths-v4.json',JSON.stringify(await page.evaluate(()=>window.__reviewPaths),null,2));
+}catch(e){console.error(e);process.exitCode=1}finally{await browser.close()}

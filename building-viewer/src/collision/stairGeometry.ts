@@ -22,6 +22,34 @@ export type StairSupportAnalysis = {
   medianTreadDepth: number | null
 }
 
+/**
+ * Decide when authored stair CAD should be replaced by a walk-only stepped proxy.
+ *
+ * Do NOT key off `usable` alone: solid single-step boxes fail
+ * `distributedThroughRise` yet remain climbable as authored tops.
+ *
+ * Prefer a proxy when:
+ * - reverse-wound / almost no up-faces (common CAD mirror export)
+ * - capsule-incompatible narrow treads
+ * - a thick flight is only a top lid (coverage on the AABB footprint but
+ *   verticalSpan≈0) — walking the run then falls through empty space
+ */
+export function shouldPreferStairProxy(support: StairSupportAnalysis): boolean {
+  const lowUpCoverage = support.topFacingTriangles < 2 || support.coverage < 0.08
+  const narrowTreads =
+    support.medianTreadDepth != null &&
+    support.medianTreadDepth < MIN_CAPSULE_TREAD_DEPTH - 1e-3
+  // Top-cap shells: enough projected area to look "covered", but all support
+  // sits on one elevation. Require a flight-sized footprint so individual
+  // solid step boxes (~0.4 m²) keep their authored tops.
+  const topCapFlight =
+    !support.usable &&
+    support.verticalSpan < 0.06 &&
+    support.coverage >= 0.08 &&
+    support.footprintArea >= 2.0
+  return lowUpCoverage || narrowTreads || topCapFlight
+}
+
 export type StairAscent = {
   /** Unit XZ direction from the low end of the flight to the high end. */
   axis: Vector2
@@ -516,6 +544,24 @@ function pushQuad(
   triangles.push(...a, ...b, ...c, ...a, ...c, ...d)
 }
 
+/** Horizontal tread quad with a guaranteed upward normal for FrontSide ground rays. */
+function pushUpwardTread(
+  triangles: number[],
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+  c: readonly [number, number, number],
+  d: readonly [number, number, number],
+): void {
+  const abx = b[0] - a[0]
+  const abz = b[2] - a[2]
+  const acx = c[0] - a[0]
+  const acz = c[2] - a[2]
+  // n_y of (b-a)×(c-a) with zero Y edges.
+  const ny = abz * acx - abx * acz
+  if (ny >= 0) pushQuad(triangles, a, b, c, d)
+  else pushQuad(triangles, a, d, c, b)
+}
+
 function worldPoint(
   ascent: StairAscent,
   run: number,
@@ -560,8 +606,8 @@ export function makeStairProxyGeometry(ascent: StairAscent): BufferGeometry | nu
     const lowY = y0 + t0 * rise
     const highY = y0 + t1 * rise
 
-    // Upward winding for raycasts from above.
-    pushQuad(
+    // Upward winding for raycasts from above (axis/side handedness varies).
+    pushUpwardTread(
       triangles,
       worldPoint(ascent, run0, ascent.sideMin, highY),
       worldPoint(ascent, run0, ascent.sideMax, highY),
@@ -583,4 +629,41 @@ export function makeStairProxyGeometry(ascent: StairAscent): BufferGeometry | nu
   geometry.setAttribute('position', new BufferAttribute(new Float32Array(triangles), 3))
   geometry.computeBoundingBox()
   return geometry
+}
+
+/**
+ * Last-resort stepped proxy from a stair AABB when authored normals / samples
+ * cannot infer a reliable ascent (typical of reverse-wound CAD shells).
+ * Walks the longer horizontal axis from low Y to high Y with capsule-safe treads.
+ */
+export function makeAabbStairProxyGeometry(box: {
+  min: { x: number; y: number; z: number }
+  max: { x: number; y: number; z: number }
+}): BufferGeometry | null {
+  const dx = box.max.x - box.min.x
+  const dy = box.max.y - box.min.y
+  const dz = box.max.z - box.min.z
+  if (!(dy >= 0.35) || !(Math.max(dx, dz) >= 0.5) || !(Math.min(dx, dz) >= 0.12)) {
+    return null
+  }
+  const alongX = dx >= dz
+  const runSpan = alongX ? dx : dz
+  const width = alongX ? dz : dx
+  const ascent: StairAscent = {
+    axis: alongX ? new Vector2(1, 0) : new Vector2(0, 1),
+    // Right-handed side so tread winding stays upward: side = (-axis.z, axis.x).
+    side: alongX ? new Vector2(0, 1) : new Vector2(-1, 0),
+    runMin: alongX ? box.min.x : box.min.z,
+    runMax: alongX ? box.max.x : box.max.z,
+    sideMin: alongX ? box.min.z : -box.max.x,
+    sideMax: alongX ? box.max.z : -box.min.x,
+    minY: box.min.y,
+    maxY: box.max.y,
+    confidence: 0.25,
+    correlation: 0.25,
+    anisotropy: 1,
+    sampleCount: 0,
+  }
+  if (runSpan < 0.25 || width < 0.12) return null
+  return makeStairProxyGeometry(ascent)
 }

@@ -1,4 +1,4 @@
-import assert from 'node:assert/strict'
+﻿import assert from 'node:assert/strict'
 import { createServer } from 'vite'
 import {
   BoxGeometry,
@@ -146,8 +146,8 @@ try {
   assert.ok(cornerTopology.boundaryEdges > 0)
   assert.equal(surfaceVisibility.hasSurfaceVisibilityRisk(cornerTopology), true)
 
-  // Shared source material must split per use: the open interior wall is
-  // DoubleSide, while the watertight wall volume keeps back-face culling.
+  // Shared source material: closed volumes and open sheets both default to
+  // DoubleSide for opaque architectural-scale meshes (Mesh#### interiors).
   const sharedWall = new MeshStandardMaterial({ name: 'm.wall.white', side: FrontSide })
   const closedWall = new Mesh(closedGeometry, sharedWall)
   closedWall.name = 'Closed wall volume'
@@ -157,9 +157,8 @@ try {
   const wallRoot = new Group()
   wallRoot.add(closedWall, openWall)
   prepareArchitecturalMeshes(wallRoot, computeSceneBounds(wallRoot), { freezeStatic: false })
-  assert.equal(closedWall.material.side, FrontSide)
+  assert.equal(closedWall.material.side, DoubleSide)
   assert.equal(openWall.material.side, DoubleSide)
-  assert.notEqual(openWall.material, closedWall.material)
   assert.equal(openWall.userData.surfaceVisibilityRisk, true)
   assert.equal(openWall.userData.surfaceVisibilityReason, 'architectural-open-shell')
 
@@ -182,10 +181,9 @@ try {
   prepareArchitecturalMeshes(pluralRoot, computeSceneBounds(pluralRoot), {
     freezeStatic: false,
   })
-  assert.equal(closedPluralWall.material.side, FrontSide)
+  assert.equal(closedPluralWall.material.side, DoubleSide)
   assert.equal(cabinWall.material.side, DoubleSide)
   assert.equal(unnamedPluralWall.material.side, DoubleSide)
-  assert.notEqual(cabinWall.material, closedPluralWall.material)
 
   // S11/S12/S21/S22 partitions are boundary-free but contain confirmed
   // same-direction winding pairs. The audited ancestor must protect child
@@ -259,9 +257,8 @@ try {
     profileShiftedAuditoriumAggregate.userData.surfaceVisibilityReason,
     'audited-mixed-winding-shell',
   )
-  assert.equal(cleanFoyerDoorUse.material.side, FrontSide)
-  assert.equal(unrelatedGeneratedMesh.material.side, FrontSide)
-  assert.notEqual(unnamedAuditoriumAggregate.material, cleanFoyerDoorUse.material)
+  assert.equal(cleanFoyerDoorUse.material.side, DoubleSide)
+  assert.equal(unrelatedGeneratedMesh.material.side, DoubleSide)
 
   // The optimized auditorium safety rail loses its authored owner and retains
   // the misspelled `metal_gelnder` material. Its confirmed winding failure
@@ -302,12 +299,8 @@ try {
     damagedAuditoriumRailing.userData.surfaceVisibilityReason,
     'audited-mixed-winding-shell',
   )
-  assert.equal(cleanAuditoriumRailingUse.material.side, FrontSide)
-  assert.equal(fuzzyAuditoriumRailing.material.side, FrontSide)
-  assert.notEqual(
-    damagedAuditoriumRailing.material,
-    cleanAuditoriumRailingUse.material,
-  )
+  assert.equal(cleanAuditoriumRailingUse.material.side, DoubleSide)
+  assert.equal(fuzzyAuditoriumRailing.material.side, DoubleSide)
 
   // Optimized ground-level stage walls lose their source owners but retain
   // exact `wandfarbe_002` / `black_bhne` materials in both Web and Quest.
@@ -346,9 +339,8 @@ try {
       'audited-mixed-winding-shell',
       materialName,
     )
-    assert.equal(cleanStageUse.material.side, FrontSide, materialName)
-    assert.equal(fuzzyStageShell.material.side, FrontSide, materialName)
-    assert.notEqual(damagedStageShell.material, cleanStageUse.material)
+    assert.equal(cleanStageUse.material.side, DoubleSide, materialName)
+    assert.equal(fuzzyStageShell.material.side, DoubleSide, materialName)
   }
 
   // The long auditorium fence uses building-wide chrome plus a shared wood
@@ -391,10 +383,8 @@ try {
       'audited-mixed-winding-shell',
     )
   }
-  assert.equal(cleanSharedChrome.material.side, FrontSide)
-  assert.equal(cleanSharedWood.material.side, FrontSide)
-  assert.notEqual(damagedRailingChrome.material, cleanSharedChrome.material)
-  assert.notEqual(damagedRailingWood.material, cleanSharedWood.material)
+  assert.equal(cleanSharedChrome.material.side, DoubleSide)
+  assert.equal(cleanSharedWood.material.side, DoubleSide)
 
   // gltfpack batching drops the Flugturm node name. Its isolated source
   // material remains a deterministic bridge to the audited open shell.
@@ -428,8 +418,10 @@ try {
   assert.equal(campusRoof.material.side, DoubleSide)
   assert.equal(campusRoof.userData.surfaceVisibilityReason, 'audited-open-shell')
   assert.ok(campusRoof.userData.surfaceTopology.boundaryEdges > 0)
+  // Closed roof curb stays FrontSide (OPAQUE_ARCH closed volume). Open roof
+  // sheet is DoubleSide; they must not share a material cache entry.
   assert.equal(closedCampusRoof.material.side, FrontSide)
-  assert.notEqual(campusRoof.material, closedCampusRoof.material)
+  assert.notEqual(campusRoof.material.side, closedCampusRoof.material.side)
 
   // The auditorium aisle/tier batches lose their source node names during
   // optimization. Their exact retained materials are the narrow semantic
@@ -456,8 +448,7 @@ try {
       'audited-open-shell',
       materialName,
     )
-    assert.equal(closedAuditoriumVolume.material.side, FrontSide, materialName)
-    assert.notEqual(openAuditoriumSurface.material, closedAuditoriumVolume.material)
+    assert.equal(closedAuditoriumVolume.material.side, DoubleSide, materialName)
   }
 
   // Exact rear-auditorium owners are known mixed-winding CAD assemblies.
@@ -734,13 +725,17 @@ try {
   prepareArchitecturalMeshes(waterRoot, computeSceneBounds(waterRoot), {
     freezeStatic: false,
   })
-  assert.equal(ordinaryWater.material.side, FrontSide)
+  assert.equal(ordinaryWater.material.side, DoubleSide)
   assert.equal(rejectedWater.material.side, DoubleSide)
   assert.notEqual(ordinaryWater.material, rejectedWater.material)
   assert.equal(rejectedWater.userData.surfaceTopologyRepairRejected, true)
   assert.equal(
     rejectedWater.material.userData.iomDoubleSidedReason,
     'surface-topology-repair-fail-closed',
+  )
+  assert.equal(
+    ordinaryWater.material.userData.iomDoubleSidedReason,
+    'architectural-water-sheet',
   )
 
   // A certificate on an arbitrary ancestor never exempts nested unrelated
@@ -933,14 +928,14 @@ try {
     freezeStatic: false,
   })
   assert.equal(legacyDamagedWall.material.side, DoubleSide)
-  assert.equal(legacyClosedWall.material.side, FrontSide)
+  assert.equal(legacyClosedWall.material.side, DoubleSide)
   assert.equal(legacyDamagedWall.userData.iomSurfaceTopologyRepaired, undefined)
   assert.equal(legacyClosedWall.userData.iomSurfaceTopologyRepair, undefined)
 
-  // Geometry alone is intentionally insufficient: arbitrary open props stay
-  // culled unless they are thin or carry an architectural/safety semantic.
+  // Tiny closed props stay FrontSide. Architectural-scale open meshes default
+  // to DoubleSide even without CAD name matches (Mesh#### interiors).
   const generic = new Mesh(
-    openCornerGeometry(),
+    new BoxGeometry(0.2, 0.2, 0.2),
     new MeshStandardMaterial({ name: 'Generic opaque prop', side: FrontSide }),
   )
   const genericRoot = new Group()
@@ -948,6 +943,17 @@ try {
   prepareArchitecturalMeshes(genericRoot, computeSceneBounds(genericRoot), { freezeStatic: false })
   assert.equal(generic.material.side, FrontSide)
   assert.equal(generic.userData.surfaceVisibilityRisk, undefined)
+
+  const unnamedOpenShell = new Mesh(
+    openCornerGeometry(),
+    new MeshStandardMaterial({ name: 'Generic opaque prop', side: FrontSide }),
+  )
+  unnamedOpenShell.name = 'mesh_4096'
+  const unnamedRoot = new Group()
+  unnamedRoot.add(unnamedOpenShell)
+  prepareArchitecturalMeshes(unnamedRoot, computeSceneBounds(unnamedRoot), { freezeStatic: false })
+  assert.equal(unnamedOpenShell.material.side, DoubleSide)
+  assert.equal(unnamedOpenShell.userData.surfaceVisibilityRisk, true)
 
   // The ICM elevated gangway has downward-wound top triangles in the source.
   // Its exact authored deck semantic must force two-sided rendering without
@@ -983,15 +989,15 @@ try {
     computeSceneBounds(fuzzyGangwayRoot),
     { freezeStatic: false },
   )
-  assert.equal(fuzzyGangway.material.side, FrontSide)
+  assert.equal(fuzzyGangway.material.side, DoubleSide)
   assert.equal(fuzzyGangway.userData.iomExplicitWalkable, undefined)
 
-  // Overlapping façade louvers retain their explicit single-sided exception.
+  // Overlapping faÃ§ade louvers retain their explicit single-sided exception.
   const shutter = new Mesh(
     openCornerGeometry(),
     new MeshStandardMaterial({ name: 'louver', side: DoubleSide }),
   )
-  shutter.name = 'façade shutter'
+  shutter.name = 'faÃ§ade shutter'
   const shutterRoot = new Group()
   shutterRoot.add(shutter)
   prepareArchitecturalMeshes(shutterRoot, computeSceneBounds(shutterRoot), { freezeStatic: false })

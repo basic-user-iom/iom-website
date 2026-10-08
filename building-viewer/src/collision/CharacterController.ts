@@ -17,7 +17,8 @@ const _nflip = new Vector3()
 
 const FIXED_DT = 1 / 60
 const MAX_SUBSTEPS = 3
-const DESCENT_GUARD_STEPS = 36
+// Retain downhill intent over adjacent treads, not a speed-dependent distance.
+const DESCENT_GUARD_DISTANCE = 0.8
 
 export class CharacterController {
   params: CharacterParams
@@ -38,6 +39,8 @@ export class CharacterController {
   private jumpQueued = false
   private climbScore = 0
   private climbLock = 0
+  private edgeSupport: Vector3 | null = null
+  private readonly edgeSupportDirection = new Vector3()
   private volumeClimbLock = 0
   private readonly volumeClimbDirection = new Vector3()
   private descentGuard = 0
@@ -75,6 +78,7 @@ export class CharacterController {
     this.jumpQueued = false
     this.climbScore = 0
     this.climbLock = 0
+    this.edgeSupport = null
     this.resetVolumeClimb()
     this.resetDescentGuard()
     this.stairsIntent = 0
@@ -125,6 +129,7 @@ export class CharacterController {
     this.velocity.z = _wish.z
 
     if (this.jumpQueued && this.onGround) {
+      this.edgeSupport = null
       this.velocity.y = p.jumpSpeed
       this.onGround = false
       this.jumpQueued = false
@@ -136,7 +141,7 @@ export class CharacterController {
     _tmp.set(this.velocity.x * dt, 0, this.velocity.z * dt)
     const moving = _tmp.lengthSq() > 1e-10
     if (moving && this.descentGuard > 0) {
-      this.descentGuard -= 1
+      this.descentGuard = Math.max(0, this.descentGuard - Math.hypot(_tmp.x, _tmp.z))
       if (this.descentGuard === 0) this.descentDirection.set(0, 0, 0)
     }
 
@@ -345,7 +350,7 @@ export class CharacterController {
     const length = Math.hypot(moveXZ.x, moveXZ.z)
     if (length < 1e-8) return
     this.descentDirection.set(moveXZ.x / length, 0, moveXZ.z / length)
-    this.descentGuard = DESCENT_GUARD_STEPS
+    this.descentGuard = DESCENT_GUARD_DISTANCE
   }
 
   private resetDescentGuard(): void {
@@ -455,12 +460,18 @@ export class CharacterController {
       layerId?: string
     } | null = null
 
-    for (const forward of forwards) {
+    // A capsule can touch a diagonal tread at either edge while its centre ray
+    // still sees the lower floor/seam. Probe that footprint after a real block;
+    // centre-only tests make ordinary walking stick where running gets through.
+    const lateralOffsets = allowForwardSnap ? [0, -p.playerRadius * 0.75, p.playerRadius * 0.75] : [0]
+    for (const { forward, lateral } of forwards.flatMap((forward) =>
+      lateralOffsets.map((lateral) => ({ forward, lateral })),
+    )) {
       // Raising the capsule is safe only when its footprint can already reach
       // the probed tread after the capped horizontal move.
-      if (forward - maxAdvance > p.playerRadius + 0.03) continue
+      if (Math.hypot(Math.max(0, forward - maxAdvance), lateral) > p.playerRadius + 0.030001) continue
       // Cast from above so we hit the tread, not the vertical riser / solid CAD face.
-      _stepProbe.set(from.x + nx * forward, from.y + p.stepHeight + 0.12, from.z + nz * forward)
+      _stepProbe.set(from.x + nx * forward - nz * lateral, from.y + p.stepHeight + 0.12, from.z + nz * forward + nx * lateral)
       const ground =
         world.raycastBestGround?.(_stepProbe, p.stepHeight + 0.45, p.maxSlope) ??
         world.raycast(_stepProbe, _down, p.stepHeight + 0.45)
@@ -482,7 +493,13 @@ export class CharacterController {
         continue
       }
 
-      _origin.set(ground.point.x, ground.point.y + 0.18, ground.point.z)
+      // CollisionWorld reuses its hit vectors. A following head ray can mutate
+      // ground.point, so retain the validated tread coordinates before querying.
+      const groundX = ground.point.x
+      const groundY = ground.point.y
+      const groundZ = ground.point.z
+      const groundLayerId = ground.layerId
+      _origin.set(groundX, groundY + 0.18, groundZ)
       const headHit = world.raycast(_origin, _up, Math.max(0.55, p.playerHeight - 0.25))
       if (
         headHit &&
@@ -496,11 +513,11 @@ export class CharacterController {
 
       if (!best || rise < best.rise - 0.01) {
         best = {
-          x: ground.point.x,
-          y: ground.point.y,
-          z: ground.point.z,
+          x: groundX,
+          y: groundY,
+          z: groundZ,
           rise,
-          layerId: ground.layerId,
+          layerId: groundLayerId,
         }
       }
     }
@@ -533,9 +550,28 @@ export class CharacterController {
     // Resolving the capsule against solid stair CAD would undo the climb.
     if (best.layerId) world.setQueryLayer?.(best.layerId)
     this.position.set(nextX, best.y, nextZ)
+    this.edgeSupport = new Vector3(best.x, best.y, best.z)
+    this.edgeSupportDirection.set(nx, 0, nz)
     this.onGround = true
     if (this.debugSteps) console.info(`[StepUp] ok rise=${best.rise.toFixed(3)}`)
     return true
+  }
+
+  /**
+   * Adopt collision-layer ownership from a ground hit only for same-layer
+   * confirmation or an explicit stair/bridge handoff. Ordinary foreign
+   * fallback support may keep the capsule grounded without stealing the
+   * session placement layer.
+   */
+  private adoptGroundQueryLayer(
+    world: ICollisionWorld,
+    hit: { layerId?: string; stairZone?: boolean; layerBridge?: boolean },
+  ): void {
+    if (!hit.layerId || !world.setQueryLayer) return
+    const current = world.getQueryLayer?.() ?? null
+    if (!current || hit.layerId === current || hit.stairZone || hit.layerBridge) {
+      world.setQueryLayer(hit.layerId)
+    }
   }
 
   private snapToGround(): void {
@@ -557,9 +593,39 @@ export class CharacterController {
     const probeLift = this.climbLock > 0 ? p.stepHeight + 0.05 : 0.05
     _origin.set(this.position.x, this.position.y + probeLift, this.position.z)
     const searchDist = probeLift + p.groundSnapDistance + 0.25
-    const hit =
+    const groundHit =
       world.raycastBestGround?.(_origin, searchDist, p.maxSlope) ??
       world.raycast(_origin, _down, searchDist)
+    // The edge recheck below is another world query and may overwrite shared vectors.
+    const hit = groundHit ? { ...groundHit, point: groundHit.point.clone(), normal: groundHit.normal.clone() } : null
+    // Keep a reachable, verified tread edge under the capsule while its centre
+    // crosses the nosing. A fixed ten-frame lock expires before a slow walker
+    // has traversed the capsule radius, causing a false descent and a stall.
+    // This support is bounded by the actual capsule footprint, re-probed every
+    // frame, and cancelled on stop, reversal, jump, teleport or absent geometry.
+    const edge = this.edgeSupport
+    if (edge) {
+      const speedXZ = Math.hypot(this.velocity.x, this.velocity.z)
+      const aligned = speedXZ > 1e-6 &&
+        (this.velocity.x * this.edgeSupportDirection.x + this.velocity.z * this.edgeSupportDirection.z) / speedXZ > 0.55
+      const reachable = Math.hypot(edge.x - this.position.x, edge.z - this.position.z) <= p.playerRadius + 0.030001
+      const centreSupported = hit && Math.abs(hit.point.y - edge.y) < 0.025
+      if (!aligned || !reachable || centreSupported || Math.abs(this.position.y - edge.y) > 0.045) {
+        this.edgeSupport = null
+      } else {
+        _stepProbe.set(edge.x, edge.y + 0.02, edge.z)
+        const verified = world.raycastBestGround?.(_stepProbe, 0.045, p.maxSlope) ?? world.raycast(_stepProbe, _down, 0.045)
+        if (verified && Math.abs(verified.point.y - edge.y) < 0.025) {
+          this.position.y = verified.point.y
+          if (this.velocity.y < 0) this.velocity.y = 0
+          this.onGround = true
+          this.climbLock = Math.max(this.climbLock, 2)
+          this.adoptGroundQueryLayer(world, verified)
+          return
+        }
+        this.edgeSupport = null
+      }
+    }
     if (hit) {
       let normal = hit.normal
       if (normal.dot(_up) < 0) normal = _nflip.copy(normal).negate()
@@ -572,7 +638,7 @@ export class CharacterController {
           if (feetY >= this.position.y - 0.05 && feetY <= this.position.y + 0.12) {
             this.position.y = feetY
             if (this.velocity.y < 0) this.velocity.y = 0
-            if (hit.layerId) world.setQueryLayer?.(hit.layerId)
+            this.adoptGroundQueryLayer(world, hit)
           }
           this.onGround = true
           return
@@ -581,21 +647,35 @@ export class CharacterController {
           this.position.y = feetY
           if (this.velocity.y < 0) this.velocity.y = 0
           this.onGround = true
-          if (hit.layerId) world.setQueryLayer?.(hit.layerId)
+          this.adoptGroundQueryLayer(world, hit)
           return
         }
         // A surface above the feet is an obstruction, not ground. The former
         // one-sided comparison marked any negative gap (even metres) grounded.
         this.onGround = gap >= -0.05 && gap <= 0.08
-        if (this.onGround && hit.layerId) world.setQueryLayer?.(hit.layerId)
-        return
+        if (this.onGround) {
+          this.adoptGroundQueryLayer(world, hit)
+          return
+        }
+        // A lower floor beyond snap range must not suppress a genuine
+        // capsule contact with the current tread's edge.
       }
     }
-    if (this.climbLock > 0) {
+    // A centre ray may miss a real seam although the rounded capsule still
+    // touches a tread edge. Verify that contact with a 3 mm query tolerance,
+    // matching the 2 mm depenetration bias. No support is synthesized.
+    const capsule = this.getCapsule(_start, _end)
+    const edgeContact = world.capsuleIntersect(capsule.start, capsule.end, capsule.radius + 0.003)
+    if (edgeContact && edgeContact.depth > 0 && edgeContact.depth <= 0.0051 && edgeContact.normal.y >= p.maxSlope) {
       this.onGround = true
+      if (this.velocity.y < 0) this.velocity.y = 0
+      this.adoptGroundQueryLayer(world, edgeContact)
       return
     }
-    this.onGround = false
+    // No walkable hit: only invent ground while a volume-climb latch is active
+    // (hollow CAD flights). Ordinary climbLock without support must go airborne
+    // so reverse-wound shells cannot fake a floor.
+    this.onGround = this.volumeClimbLock > 0 && this.climbLock > 0
   }
 
   private resolveCollisions(horizontalOnly: boolean): CapsuleQueryResult | null {

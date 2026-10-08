@@ -376,6 +376,8 @@ export async function applyOfflineBatchTransforms(
       keepNamed: false,
       cleanup: false,
       filter: (node) => {
+        // Preserve reviewed owners so their source placement remains verifiable.
+        if (node.getExtras().iomReviewSeatRow || node.getExtras().iomOriginalPlacement) return false
         if (!options.joinSceneRoot && nodeIsDirectSceneChild(node)) return false
         if (validatedSurfaceRepairAudit.certifiedMeshes.has(node.getMesh())) return false
         return !nodeHasTransparentPrimitive(node)

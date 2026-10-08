@@ -2,6 +2,7 @@ import {
   Box3,
   BufferGeometry,
   InstancedMesh,
+  Matrix4,
   Mesh,
   SkinnedMesh,
   Vector3,
@@ -11,10 +12,14 @@ import {
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js'
 import {
   analyzeStairSupport,
+  shouldPreferStairProxy,
   inferStairAscent,
   inferStairAscentFromTreads,
+  makeAabbStairProxyGeometry,
   makeStairProxyGeometry,
 } from './stairGeometry'
+
+import { isIcmCirculationCollider } from './icmCirculationPolicy'
 
 const CELL_SIZE = 12
 const Y_BAND = 4
@@ -218,7 +223,28 @@ export function buildCollisionChunks(
   const candidates: Candidate[] = []
   const skipped: CollisionCandidateLog[] = []
 
-  root.traverse((obj) => {
+  const inputs: Mesh[] = []
+  root.traverse((object) => {
+    const mesh = object as Mesh
+    if (!mesh.isMesh) return
+    if (!strictBroadVolumeFilter && (mesh as InstancedMesh).isInstancedMesh) {
+      const instanced = mesh as InstancedMesh
+      const instanceMatrix = new Matrix4()
+      for (let index = 0; index < instanced.count; index++) {
+        instanced.getMatrixAt(index, instanceMatrix)
+        const item = new Mesh(mesh.geometry, mesh.material)
+        item.name = mesh.name + '__instance_' + index
+        item.userData = { ...mesh.userData }
+        item.visible = mesh.visible
+        item.matrixAutoUpdate = false
+        item.matrix.multiplyMatrices(mesh.matrix, instanceMatrix)
+        item.parent = mesh.parent
+        item.updateWorldMatrix(true, false)
+        inputs.push(item)
+      }
+    } else inputs.push(mesh)
+  })
+  inputs.forEach((obj) => {
     if (!(obj as Mesh).isMesh) return
     if ((obj as SkinnedMesh).isSkinnedMesh) return
     const mesh = obj as Mesh
@@ -311,8 +337,13 @@ export function buildCollisionChunks(
       })
       return
     }
+    // Extracted collision often keeps COLLIDER_* on the parent node while
+    // child primitives are named mesh_####. Treat those children as dedicated
+    // so walkSurfacesOnly does not drop the only stair/floor triangles.
     const isDedicated =
-      COLLIDER_NAME.test(name) || Boolean(mesh.userData?.collisionOnly || mesh.userData?.collisionMesh)
+      COLLIDER_NAME.test(name) ||
+      COLLIDER_NAME.test(parentName) ||
+      Boolean(mesh.userData?.collisionOnly || mesh.userData?.collisionMesh)
 
     // Railings / handles / grilles — even COLLIDER_* and names like Treppe_handlauf.
     // Keeping them as walk surfaces blocks mid-stair climb.
@@ -469,7 +500,13 @@ export function buildCollisionChunks(
     addLimited(walls)
   }
 
-  type CellBucket = { geos: BufferGeometry[]; names: string[]; stairZone: boolean }
+  type CellBucket = {
+    geos: BufferGeometry[]
+    names: string[]
+    stairZone: boolean
+    layerBridge: boolean
+    doubleSided: boolean
+  }
   const byCell = new Map<string, CellBucket>()
 
   for (const c of pool) {
@@ -482,35 +519,59 @@ export function buildCollisionChunks(
     const dy = c.box.max.y - c.box.min.y
     const maxXZ = Math.max(dx, dz)
     const minXZ = Math.min(dx, dz)
-    // Only synthesize for narrow single flights. Wide U-stairs / wells
+    // Only synthesize for narrow single-run flights. Wide U-stairs / wells
     // (foyer Mesh2148 ~12×9 m) already have tread tops around the void —
     // dual AABB proxies fill that well and block climb at floor Y.
+    // Long single runs (BU_Treppe_Show_time ~20×1.9 m) must still qualify:
+    // minXZ (width) is the U-stair guard, not a short maxXZ cap.
     const thickFlight =
       stairZone &&
       dy > 0.45 &&
       maxXZ >= 1 &&
-      maxXZ <= 16 &&
+      maxXZ <= 28 &&
       minXZ <= 3.2 &&
       dx * dz <= 48
+    const layerBridge = c.dedicated && isIcmCirculationCollider(c.mesh, options?.layerId)
     const authoredGeometry = prepareWorldCollisionGeometry(c.mesh)
     let geo = authoredGeometry
-    if (thickFlight && authoredGeometry) {
+    let forceDoubleSided = Boolean(options?.doubleSided) || layerBridge
+    // Reviewed circulation keeps its exact treads, including mirrored CAD faces.
+    // Synthesized envelopes can erase landings and the void between flights.
+    if (thickFlight && authoredGeometry && !layerBridge) {
       const support = analyzeStairSupport(authoredGeometry)
-      if (support.usable) {
+      // Prefer a walk-only stepped proxy when authored CAD has too few
+      // upward-facing tread tops (common after mirror/export reverse winding).
+      // Do not proxy solid volumes that fail `usable` only due to a single top
+      // cap — those keep authored geometry and remain climbable.
+      const preferProxy = shouldPreferStairProxy(support)
+      if (!preferProxy) {
         c.reason += c.dedicated ? ' + authored-stair-support' : ' + authored-visual-support'
       } else {
         const envelopeAscent = inferStairAscent(authoredGeometry)
         const ascent = envelopeAscent ?? inferStairAscentFromTreads(authoredGeometry)
-        const proxy = ascent ? makeStairProxyGeometry(ascent) : null
+        let proxy = ascent ? makeStairProxyGeometry(ascent) : null
+        let proxyKind = ascent
+          ? `${envelopeAscent ? 'envelope' : 'treads'}/${support.usable ? 'low-up-coverage' : 'unusable-support'}`
+          : null
+        if (!proxy) {
+          proxy = makeAabbStairProxyGeometry(c.box)
+          if (proxy) proxyKind = 'aabb-fallback'
+        }
         if (proxy) {
           authoredGeometry.dispose()
           geo = proxy
-          const source = envelopeAscent ? 'envelope' : 'treads'
-          c.reason += ` + inferred-stair-proxy:${source}(${ascent!.axis.x.toFixed(2)},${ascent!.axis.y.toFixed(2)};${ascent!.confidence.toFixed(2)})`
+          const axisNote = ascent
+            ? `(${ascent.axis.x.toFixed(2)},${ascent.axis.y.toFixed(2)};${ascent.confidence.toFixed(2)})`
+            : ''
+          c.reason += ` + inferred-stair-proxy:${proxyKind}${axisNote}`
+        } else if (support.usable) {
+          // Sparse up-faces: keep authored but allow backface hits on the rest.
+          if (support.coverage < 0.2) forceDoubleSided = true
+          c.reason += c.dedicated ? ' + authored-stair-support' : ' + authored-visual-support'
         } else {
-          // Ambiguous single-flight geometry is safer than an AABB proxy that
-          // can rise backwards or bridge a multi-flight stair well.
-          c.reason += ' + stair-proxy-skipped-ambiguous'
+          // Kept reverse-wound authored faces — enable backface ground hits.
+          forceDoubleSided = true
+          c.reason += ' + stair-proxy-skipped-ambiguous+doubleside'
           if (verbose) {
             console.warn(
               `[Collision] preserving ambiguous authored stair geometry: ${c.mesh.name || '(unnamed)'}`,
@@ -537,16 +598,25 @@ export function buildCollisionChunks(
     }
     // Keep stair assemblies in dedicated chunks so tread/riser queries stay local.
     // Unique per mesh — duplicate CAD names (Mesh870 at two landings) must not merge.
+    // Include parent so COLLIDER_BU_Treppe_Links001/mesh_37 stays identifiable.
     const key = stairZone
-      ? `stair:${c.mesh.name || 'm'}_${c.mesh.uuid}`
-      : cellKey(_center.x, _center.y, _center.z)
+      ? `stair:${c.mesh.parent?.name || 'p'}_${c.mesh.name || 'm'}_${c.mesh.uuid}`
+      : `${layerBridge ? 'circulation:' : ''}${cellKey(_center.x, _center.y, _center.z)}`
 
+    const ownerLabel = [c.mesh.parent?.name, c.mesh.name].filter(Boolean).join('/') || '(unnamed)'
     const bucket = byCell.get(key)
     if (bucket) {
       bucket.geos.push(geo)
-      bucket.names.push(c.mesh.name || '(unnamed)')
+      bucket.names.push(ownerLabel)
+      bucket.doubleSided = bucket.doubleSided || forceDoubleSided
     } else {
-      byCell.set(key, { geos: [geo], names: [c.mesh.name || '(unnamed)'], stairZone })
+      byCell.set(key, {
+        geos: [geo],
+        names: [ownerLabel],
+        stairZone,
+        layerBridge,
+        doubleSided: forceDoubleSided,
+      })
     }
   }
 
@@ -585,7 +655,8 @@ export function buildCollisionChunks(
             triangles: tris,
             name: `chunk_${key}_${i}_${bucket.names[i]}`,
             stairZone: bucket.stairZone,
-            doubleSided: Boolean(options?.doubleSided),
+      layerBridge: bucket.layerBridge,
+            doubleSided: Boolean(options?.doubleSided) || bucket.doubleSided,
             sourceNames: [bucket.names[i] ?? '(unnamed)'],
           })
         }
@@ -616,7 +687,8 @@ export function buildCollisionChunks(
       triangles: triangleCount(merged),
       name: `chunk_${key}`,
       stairZone: bucket.stairZone,
-      doubleSided: Boolean(options?.doubleSided),
+      layerBridge: bucket.layerBridge,
+      doubleSided: Boolean(options?.doubleSided) || bucket.doubleSided,
       sourceNames: [...new Set(bucket.names)],
     })
   }

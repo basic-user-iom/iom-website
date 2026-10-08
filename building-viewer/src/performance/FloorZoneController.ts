@@ -37,9 +37,9 @@ const _box = new Box3()
 const _size = new Vector3()
 const _center = new Vector3()
 
-/** Entrance / facade parts that must stay resident (visible through glass). */
+/** Entrance / facade / shell parts that must stay resident while orbiting. */
 const KEEP_NAME =
-  /door|portal|entrance|lobby|foyer|fassade|facade|mullion|storefront|vestibule|eingang|haustür|haustuer|tor|decke|ceiling|soffit|untersicht|plafond/i
+  /door|portal|entrance|lobby|foyer|fassad|facade|mullion|storefront|vestibule|eingang|haustür|haustuer|tor|decke|ceiling|soffit|untersicht|plafond|wall|wand|floor|boden|stair|treppe|stufe|podest|landing|ramp/i
 
 /**
  * Floor-band visual residency — keep current floor ± neighbors + exterior shell.
@@ -136,6 +136,10 @@ export class FloorZoneController {
       if (!(obj as Mesh).isMesh) return
       const mesh = obj as Mesh
       if (mesh.userData?.collisionOnly || mesh.userData?.cadOverlay) return
+      // Persistent exact catalogs own their own per-unit visibility and bounds.
+      // Registering them here would let floor zoning overwrite an atomic
+      // catalog publication and make its counters/ownership evidence false.
+      if (mesh.userData?.externallyManagedVisibility === 'repeat-six-part-catalog') return
       if (!mesh.geometry) return
 
       _box.setFromObject(mesh)
@@ -166,7 +170,9 @@ export class FloorZoneController {
         thinVertical ||
         namedKeep ||
         Boolean(mesh.userData?.floorZoneAlways) ||
-        Boolean(mesh.userData?.floorSurface)
+        Boolean(mesh.userData?.floorSurface) ||
+        Boolean(mesh.userData?.surfaceVisibilityRisk) ||
+        Boolean(mesh.userData?.visibilityCritical)
 
       const residency = computeMeshSpatial(mesh, this.spatial, { alwaysOn: heuristicAlways })
       const alwaysOn = residency.alwaysOn || heuristicAlways

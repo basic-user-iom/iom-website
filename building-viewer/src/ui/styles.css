@@ -61,6 +61,7 @@ body,
 }
 
 .bv-top,
+.bv-review-toolbar,
 .bv-layers-rail,
 .bv-views-rail,
 .bv-inspect-rail,
@@ -1273,4 +1274,128 @@ html.bv-inspecting #viewer-canvas,
   .bv-transport-label {
     display: none;
   }
+}
+
+/* Review menus share a scrollable flow instead of competing absolute offsets. */
+.bv-menu-stack {
+  position: absolute;
+  top: var(--bv-safe-top);
+  left: var(--bv-safe-left);
+  right: var(--bv-safe-right);
+  max-height: calc(100% - var(--bv-safe-top) - var(--bv-safe-bottom) - 140px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.bv-menu-stack > * {
+  flex-shrink: 0;
+}
+
+.bv-menu-stack .bv-top {
+  position: static;
+  flex-wrap: wrap;
+}
+
+.bv-menu-stack .bv-brand-block {
+  max-width: 100%;
+  width: fit-content;
+}
+
+.bv-menu-stack .bv-dock {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+}
+
+.bv-menu-stack .bv-seg {
+  flex-wrap: wrap;
+}
+
+.bv-review-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid var(--bv-border);
+  border-radius: var(--bv-radius);
+  background: var(--bv-panel-strong);
+  color: var(--bv-text);
+  font: 12px/1.4 var(--bv-font);
+}
+
+.bv-review-title {
+  font-weight: 600;
+}
+
+.bv-review-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.bv-review-field select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 26px;
+}
+
+.bv-review-note {
+  flex-basis: 100%;
+  overflow-wrap: anywhere;
+  color: var(--bv-muted);
+}
+
+.bv-review-note:empty {
+  display: none;
+}
+
+.bv-menu-panels {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.bv-menu-panels > .bv-layers-rail,
+.bv-menu-panels > .bv-views-rail,
+.bv-menu-panels > .bv-inspect-rail,
+.bv-menu-panels > .bv-stats-cluster {
+  position: static;
+  inset: auto;
+  max-width: 100%;
+  flex-shrink: 0;
+}
+
+.bv-menu-panels > .bv-stats-cluster {
+  margin-left: auto;
+}
+/* Leave a separate column for Walk beside the transport on compact screens. */
+@media (max-width: 900px) {
+  .bv-transport {
+    left: calc(var(--bv-safe-left) + 86px);
+    right: var(--bv-safe-right);
+    bottom: var(--bv-safe-bottom);
+    width: auto;
+    transform: none;
+  }
+}
+
+.bv-walk-hint {
+  max-width: calc(100vw - 28px);
+  white-space: normal;
+  text-align: center;
+}
+
+.bv-mode-walk .bv-menu-stack {
+  max-height: calc(100% - var(--bv-safe-top) - var(--bv-safe-bottom) - 220px);
 }

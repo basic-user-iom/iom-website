@@ -34,7 +34,10 @@ const routes = {
 await mkdir(outDir, { recursive: true })
 const browser = await chromium.launch({
   headless: true,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  channel: process.env.IOM_QA_BROWSER_CHANNEL || undefined,
+  args: process.env.IOM_QA_SOFTWARE_WEBGL === '1'
+    ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+    : [],
 })
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } })
 page.setDefaultTimeout(420_000)
@@ -494,8 +497,7 @@ try {
       } : null
       const renderedY = renderedAuditoriumY(x, z)
       const matchingSources = layerSources.filter((candidate) =>
-        candidate.sourceNames?.length === 1 &&
-        candidate.sourceNames[0] === 'COLLIDER_BD_Absenkung'
+        candidate.name === active?.sourceName && candidate.sourceNames?.length > 0
       )
       const source = matchingSources[0]
       const matchingResidents = world.resident.filter(
@@ -571,8 +573,8 @@ try {
   assert.deepEqual(leaked, [], `false auditorium walk colliders remain: ${leaked.join(', ')}`)
   assert.equal(
     new Set(report.aisleSupplementNames).size,
-    12,
-    'expected six narrow navigation segments for each auditorium aisle',
+    14,
+    'expected seven exact navigation segments, including the entrance, for each aisle',
   )
 
   for (const route of report.results) {
@@ -698,30 +700,22 @@ try {
   assert.equal(
     report.stageFloorSurface.matchingSourceCount,
     1,
-    'expected exactly one COLLIDER_BD_Absenkung source chunk',
+    'expected exactly one active stage-floor source chunk',
   )
   assert.equal(
     report.stageFloorSurface.matchingResidentCount,
     1,
-    'expected exactly one resident COLLIDER_BD_Absenkung chunk',
+    'expected exactly one resident stage-floor chunk',
   )
-  assert.equal(
-    report.stageFloorSurface.sourceTriangles,
-    12,
-    'audited stage-floor collider triangle count changed',
-  )
-  const expectedStageFloorBounds = {
-    min: [-25.3938, -0.300041, -92.4871],
-    max: [-8.4663, 0.000017, -69.0419],
-  }
-  for (const edge of ['min', 'max']) {
-    assert.equal(report.stageFloorSurface.sourceBounds?.[edge]?.length, 3)
-    report.stageFloorSurface.sourceBounds[edge].forEach((value, index) => {
-      assert.ok(
-        Math.abs(value - expectedStageFloorBounds[edge][index]) <= 0.002,
-        `stage-floor ${edge}[${index}] changed: ${value}`,
-      )
-    })
+  // The regenerated collision GLB merges the old BD_Absenkung primitive into
+  // an upward-wound wood-floor chunk. Validate the actual queried geometry and
+  // rendered support instead of requiring the obsolete name/DoubleSide patch.
+  assert.ok(report.stageFloorSurface.sourceTriangles >= 12 && report.stageFloorSurface.sourceTriangles <= 1000)
+  assert.ok(report.stageFloorSurface.sourceBounds.min[1] >= -0.4)
+  assert.ok(report.stageFloorSurface.sourceBounds.max[1] <= 0.05)
+  for (const point of [[-20.2617556, -81.4699167], [-23.3067315, -86.6398413]]) {
+    assert.ok(point[0] >= report.stageFloorSurface.sourceBounds.min[0] && point[0] <= report.stageFloorSurface.sourceBounds.max[0])
+    assert.ok(point[1] >= report.stageFloorSurface.sourceBounds.min[2] && point[1] <= report.stageFloorSurface.sourceBounds.max[2])
   }
   assert.ok(
     report.stageFloorSurface.renderedY != null &&
@@ -729,16 +723,6 @@ try {
         report.stageFloorSurface.renderedY - report.stageFloorSurface.expectedRenderedY,
       ) <= 0.01,
     `stage-side rendered floor changed: ${report.stageFloorSurface.renderedY}`,
-  )
-  assert.equal(
-    report.stageFloorSurface.sourceDoubleSided,
-    true,
-    'COLLIDER_BD_Absenkung source was not protected as DoubleSide',
-  )
-  assert.equal(
-    report.stageFloorSurface.runtimeMaterialSide,
-    2,
-    'COLLIDER_BD_Absenkung runtime chunk is not using Three.DoubleSide',
   )
   for (const [mode, collision, delta] of [
     ['active', report.stageFloorSurface.active, report.stageFloorSurface.activeDelta],
@@ -752,7 +736,7 @@ try {
     )
     assert.deepEqual(
       collision.sourceNames,
-      ['COLLIDER_BD_Absenkung'],
+      report.stageFloorSurface.active.sourceNames,
       `stage-side ${mode} support came from ${collision.sourceNames.join(', ')}`,
     )
     assert.ok(
@@ -765,7 +749,7 @@ try {
   for (const route of report.stageFloorRoutes) {
     assert.ok(route.startSupport, `${route.name}: no stage-floor support at route start`)
     assert.equal(route.startSupport.layerId, 'icm-anim-2025')
-    assert.deepEqual(route.startSupport.sourceNames, ['COLLIDER_BD_Absenkung'])
+    assert.deepEqual(route.startSupport.sourceNames, report.stageFloorSurface.active.sourceNames)
     assert.equal(route.initialGrounded, true, `${route.name}: did not settle grounded`)
     assert.equal(route.initialQueryLayer, 'icm-anim-2025')
     assert.equal(route.legs.length, 1, `${route.name}: route produced the wrong leg count`)

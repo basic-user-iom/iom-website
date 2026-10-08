@@ -1,0 +1,1 @@
+import {build} from 'esbuild';const r=await build({entryPoints:['scripts/floor-transition-diagnostic-v8.ts'],bundle:true,platform:'node',format:'esm',write:false});try{await import('data:text/javascript;base64,'+Buffer.from(r.outputFiles[0].contents).toString('base64'))}catch(e){console.error(e.message);process.exitCode=1}

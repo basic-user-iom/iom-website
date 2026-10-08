@@ -716,9 +716,11 @@ function materialLooksGlass(mat: Material): boolean {
     opacity?: number
     transparent?: boolean
   }
-  // Transmission-only: real glass. Don't treat every translucent ceramic/paint as glass.
-  if ((any.transmission ?? 0) > 0.02) return true
-  return false
+  // Tiny authored transmission on opaque CAD paint must not become see-through
+  // holes. Require a glass name (above) or strong transmission plus low opacity.
+  const transmission = any.transmission ?? 0
+  const opacity = any.opacity ?? 1
+  return transmission >= 0.35 && opacity < 0.92
 }
 
 function isWaterMesh(mesh: Mesh): boolean {
@@ -740,6 +742,11 @@ function isGlassMaterial(mesh: Mesh, mat: Material): boolean {
   const materialName = mat.name || ''
   if (NOT_GLASS_NAME.test(materialName)) return false
   if (GLASS_NAME.test(materialName)) return true
+
+  // A glazing assembly also owns painted panels and plastic door parts.
+  // An explicitly opaque finish must not inherit glass from an ancestor name.
+  const opaqueFinish = /(?:^|[\s._-])(?:plastic|plastik|paint|lack|farbe)(?=$|[\s._-]|\d)/i.test(materialName)
+  if (opaqueFinish && !mat.transparent && mat.opacity >= 0.98 && ((mat as GlassMat).transmission ?? 0) < 0.01) return false
 
   const path = `${mesh.name || ''} ${objectPathName(mesh)}`
   // Fire cabinets are mixed-material safety assemblies. Only an explicitly
@@ -812,9 +819,10 @@ function isCadOverlayObject(obj: Object3D): boolean {
 }
 
 /**
- * Non-glass: DoubleSide only when needed (open sheets, cutouts, foliage).
- * Closed thin volumes (roof edges, frames) stay FrontSide — DoubleSide z-fights
- * the inner/outer faces and reads as a flickering black slab.
+ * Non-glass opaque architecture. Generic Mesh#### / English export names are
+ * common, so this is intentionally NOT a CAD-name allowlist. Shutters stay
+ * FrontSide. Closed roof volumes stay FrontSide only when topology is closed.
+ * Glass/water keep their own side rules.
  */
 function wantsDoubleSide(
   mesh: Mesh,
@@ -826,6 +834,7 @@ function wantsDoubleSide(
   surfaceVisibilityRisk: boolean,
   authoredDoubleSided: boolean,
   treatOpaque: boolean,
+  architecturalScale: boolean,
   _minDim: number,
 ): boolean {
   const name = `${mesh.name} ${objectPathName(mesh)} ${mat.name}`
@@ -836,21 +845,19 @@ function wantsDoubleSide(
   // and consistently wound. It supersedes generic thin/AABB heuristics, while
   // authored sheet, glass, foliage, and safety reasons above remain two-sided.
   if (certifiedSurfaceTopologyRepair) return false
-  // A combined CAD primitive can occupy all three axes while still being a
-  // collection of open wall/façade sheets. Position-welded topology catches
-  // those cases (including Flugturm) without disabling culling on closed boxes.
+  // Open / mixed-winding shells — including unnamed Mesh#### walls — must read
+  // from either side. Topology is inspected for all opaque meshes above size.
   if (surfaceVisibilityRisk) return true
-  // Roof-edge boxes: winding is repaired; DoubleSide still z-fights at some zooms.
-  if (OPAQUE_ARCH_NAME.test(name)) return false
-  // Floors, plaza, and ceilings must read from above and below.
-  // FrontSide + "faces up" hid foyer slabs when looking at the ceiling.
+  // Closed roof volumes z-fight when double-sided. Open roof sheets (thin or
+  // topology-risk) still need both faces — do not blanket-cull by "dach" name.
+  if (OPAQUE_ARCH_NAME.test(name) && !surfaceVisibilityRisk && !isThinSheet) return false
   if (mesh.userData?.paperThinGround) return true
   if (isLargeHorizontal) return true
   if (isThinSheet) return true
   if (!treatOpaque && (mat.transparent || mat.opacity < 0.98)) return true
-  // CAD exporters mark the entire document double-sided. Treat authored side
-  // as a hint only through the semantic/geometry tests above and below; keeping
-  // it unconditionally disables back-face culling for every closed wall/object.
+  // Default for opaque architectural-scale meshes: DoubleSide. CAD often winds
+  // only one face; FrontSide makes thick walls/floors/stairs vanish from behind.
+  if (treatOpaque && architecturalScale) return true
   const alphaTest = (mat as Material & { alphaTest?: number }).alphaTest ?? 0
   if (alphaTest > 0) return true
   return /curtain|panel|plane|sign|fence|rail|leaf|foliage|double|twosided|2sided|decal|logo|icon/.test(
@@ -1120,7 +1127,8 @@ function applyWaterMaterial(mat: Material): void {
   mat.opacity = 1
   mat.depthTest = true
   mat.depthWrite = true
-  mat.side = FrontSide
+  // Pool / pond sheets are single-sided in CAD; show both faces.
+  mat.side = DoubleSide
   g.forceSinglePass = true
   if ((g.transmission ?? 0) > 0) g.transmission = 0
   if (g.thickness != null) g.thickness = 0
@@ -1383,24 +1391,19 @@ export function prepareArchitecturalMeshes(
       mesh.userData.detailLodIgnore = true
       mesh.userData.floorZoneAlways = true
     }
-    // Cheap bbox/semantic rules already cover ordinary planar sheets, campus
-    // decks, glass, and lightmapped slices. Inspect topology for 3D-looking
-    // semantic CAD assemblies and for the narrowly audited thin/large shells
-    // whose source winding is known to be damaged. Closed roof boxes still
-    // fail the topology-risk test and retain back-face culling.
+    // Inspect topology for every opaque mesh above a size threshold — not only
+    // CAD-name matches. Batched interiors use Mesh#### / English names, so a
+    // name allowlist leaves thick walls and stairs FrontSide and invisible
+    // from behind. Closed boxes fail the risk test and keep FrontSide.
+    const maxDim = Math.max(_boxSize.x, _boxSize.y, _boxSize.z)
+    const architecturalScale = maxDim >= 0.75 || footprint >= 0.2
     const topology =
       !water &&
       !glass &&
       !shutter &&
       !lightmapped &&
       !certifiedSurfaceTopologyRepair &&
-      ((!isThinSheet && !isLargeHorizontal) ||
-        auditedOpenShellMaterial ||
-        auditedMixedWindingShell) &&
-      (openShellSemantic ||
-        auditedOpenShellMaterial ||
-        auditedMixedWindingShell ||
-        visibilityCritical) &&
+      architecturalScale &&
       !allMaterialsAuthoredDoubleSided
         ? inspectSurfaceTopology(mesh.geometry)
         : null
@@ -1432,20 +1435,26 @@ export function prepareArchitecturalMeshes(
           (hasSurfaceVisibilityRisk(topology) &&
             (visibilityCritical ||
               auditedOpenShellMaterial ||
-              (openShellSemantic && meaningfulSurface)))),
+              auditedMixedWindingShell ||
+              openShellSemantic ||
+              meaningfulSurface))),
     )
     if (topology) topologyInspected += 1
     if (surfaceVisibilityRisk && topology) {
       topologyRiskMeshes += 1
       topologyRiskTriangles += topology.triangles
       mesh.userData.surfaceVisibilityRisk = true
-      mesh.userData.surfaceVisibilityReason = visibilityCritical
+      mesh.userData.surfaceVisibilityReason = persistedSurfaceVisibilityRisk && mesh.userData.surfaceVisibilityReason
+        ? mesh.userData.surfaceVisibilityReason
+        : visibilityCritical
         ? 'visibility-critical'
         : auditedWindingRisk
           ? 'audited-mixed-winding-shell'
         : auditedOpenShellMaterial
           ? 'audited-open-shell'
-          : 'architectural-open-shell'
+          : openShellSemantic
+            ? 'architectural-open-shell'
+            : 'opaque-open-topology'
       mesh.userData.surfaceTopology = {
         triangles: topology.triangles,
         boundaryEdges: topology.boundaryEdges,
@@ -1512,6 +1521,12 @@ export function prepareArchitecturalMeshes(
         mesh.userData.detailLodIgnore = true
         mesh.userData.floorZoneAlways = true
       }
+      // Open shells must survive floor-band / detail LOD — orbiting otherwise
+      // deletes walls that look like missing faces. Floors already keep above.
+      if (surfaceVisibilityRisk) {
+        mesh.userData.detailLodIgnore = true
+        mesh.userData.floorZoneAlways = true
+      }
       // Never mutate triangle winding at runtime. A global-centroid test is
       // invalid for open/concave CAD assemblies and can flip correct front
       // faces. Winding repair belongs in the offline Blender/source pass.
@@ -1524,9 +1539,8 @@ export function prepareArchitecturalMeshes(
 
     forEachMaterial(mesh, (mat) => {
       if (water) {
-        const requiredWaterSide = surfaceTopologyRepairFailClosed
-          ? DoubleSide
-          : FrontSide
+        // Water sheets are single-sided in CAD; always show both faces.
+        const requiredWaterSide = DoubleSide
         const failClosedReason = 'surface-topology-repair-fail-closed'
         let target = mat
         if (
@@ -1535,7 +1549,7 @@ export function prepareArchitecturalMeshes(
           (surfaceTopologyRepairFailClosed &&
             mat.userData?.iomDoubleSidedReason !== failClosedReason)
         ) {
-          const key = `${mat.uuid}|water|${requiredWaterSide}`
+          const key = `${mat.uuid}|water|${requiredWaterSide}|fc${surfaceTopologyRepairFailClosed ? 1 : 0}`
           target = sideMatCache.get(key) ?? mat.clone()
           if (!sideMatCache.has(key)) {
             applyWaterMaterial(target)
@@ -1543,9 +1557,9 @@ export function prepareArchitecturalMeshes(
             target.userData = {
               ...target.userData,
               iomArchitecturalWaterPrepared: true,
-              ...(surfaceTopologyRepairFailClosed
-                ? { iomDoubleSidedReason: failClosedReason }
-                : {}),
+              iomDoubleSidedReason: surfaceTopologyRepairFailClosed
+                ? failClosedReason
+                : 'architectural-water-sheet',
             }
             target.needsUpdate = true
             sideMatCache.set(key, target)
@@ -1618,6 +1632,9 @@ export function prepareArchitecturalMeshes(
       const groundFill =
         Boolean(mesh.userData.paperThinGround) && !(mat as CadMat).map
       const bridgeGratingMaterial = isIcmWalkableBridgeGrating(mesh, mat)
+      const slotOpaque =
+        cadBlend ||
+        (!(mat.transparent) && (mat.opacity ?? 1) >= 0.98 && physicalTransmission < 0.02)
       const nextSide =
         bridgeGratingMaterial
           ? DoubleSide
@@ -1632,7 +1649,8 @@ export function prepareArchitecturalMeshes(
                 isLargeHorizontal,
                 surfaceVisibilityRisk,
                 hasAuthoredDoubleSidedReason(mat),
-                cadBlend,
+                slotOpaque,
+                architecturalScale,
                 minDim,
               )
             ? DoubleSide

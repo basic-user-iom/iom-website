@@ -13,7 +13,7 @@
  *   node scripts/validate-collision-coverage.mjs --id icm-anim-2025 \
  *     --collision tmp/rebuild-probe/icm-anim-collision-stairs-v9.glb
  */
-import { access, readFile } from 'node:fs/promises'
+import { access, readFile, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PropertyType } from '@gltf-transform/core'
@@ -44,26 +44,33 @@ const REJECT_MATERIAL =
   /glass|window|glazing|fenster|scheib|sign|schild|light|lamp|furniture|chair|table|desk|sofa|plant|foliage|curtain|decal|logo|icon|screen|monitor|decke|ceiling|soffit|fixture|cabinet|shelf|handrail|handlauf|gelaender|geländer|gelander|gitter|grille|trager|träger|unterbau|sockel|schraube|borsten/i
 
 export const REQUIRED_ANIMATED_STAIRS = [
-  'Podest',
-  'TR_Stufen001',
-  'TR_Stufen008',
-  'TR_Stufen010',
-  'Boden_2_Tafeln_Foyer_Treppe',
-  'Boden_2_Tafeln_Foyer_Treppe001',
-  'TR_Stufen',
-  'TR_Stufen_001',
-  'TR_Stufen_002',
-  'TR_Stufen_003',
+  // Current visual/collision owners after regenerating collision.glb from
+  // model-web.glb (batched Mesh#### names + retained semantic stair nodes).
   'TR_Stufen004',
   'TR_Stufen004_001',
   'TR_Stufen005',
+  'treppe_og',
+  'BU_Treppe_Links001',
+  'Etagentreppen_276',
+  'Etagentreppen_277',
+  'Etagentreppen__34_001',
+  'Etagentreppen_34535_001',
+  'Etagentreppen_7676_001',
+  'Etagentreppen_262_001',
+  'treppe_bt1_1_001',
+  'treppe_bt1_2_001',
+  'treppe_bt1_5_003',
+  'treppe_bt1_6_001',
 ]
 
 function parseArgs(argv) {
-  const args = { id: 'icm-anim-2025', collision: null }
+  const args = { id: 'icm-anim-2025', collision: null, manifest: MANIFEST_PATH, report: null }
   for (let i = 2; i < argv.length; i++) {
     if (argv[i] === '--id') args.id = argv[++i]
     else if (argv[i] === '--collision') args.collision = argv[++i]
+    else if (argv[i] === '--manifest') args.manifest = resolve(process.cwd(), argv[++i])
+    else if (argv[i] === '--report') args.report = resolve(process.cwd(), argv[++i])
+    else throw new Error(`Unknown argument: ${argv[i]}`)
   }
   return args
 }
@@ -188,7 +195,14 @@ function semanticInfo(node, mesh, material) {
 }
 
 function rejectedSemantic(info) {
-  return REJECT_OWNER.test(info.ownerText) || REJECT_MATERIAL.test(info.materialName)
+  // Named fixtures were being promoted to floors by their Ground Floor ancestor.
+  // Keep unknown members and actual platforms in scope; only these audited
+  // aluminium canopy members in ICM Pylons 1 are structural hardware.
+  const fixture = /stuhl|stuehle|tisch|bnke|baenke|bänke|(?:^|[_/ ])sule(?:[_0-9]|$)/i.test(info.ownerText)
+  const canopyHardware = /(?:^|\/)ICM Pylons 1(?:\/|$)/i.test(info.owner) &&
+    /^(?:Dreieck(?:Schnalle)?|Stamm|Line)\d*(?:[._]\d+)?$/i.test(info.nodeName) &&
+    /^m\.metal\.alum\.r$/i.test(info.materialName)
+  return fixture || canopyHardware || REJECT_OWNER.test(info.ownerText) || REJECT_MATERIAL.test(info.materialName)
 }
 
 function primSize(prim) {
@@ -243,6 +257,11 @@ function normalizedOwnerNames(node) {
   const names = []
   let current = node
   while (current) {
+    // Exact split supports retain their authored identity in reviewed extras.
+    const extras = current.getExtras()
+    if (extras.candidateScope === 'exact-source-walk-support' && typeof extras.sourceObject === 'string') {
+      names.push(extras.sourceObject.replace(/\./g, '_'))
+    }
     const raw = current.getName()?.trim()
     if (raw) names.push(raw.replace(/^COLLIDER_/i, ''))
     current = nodeParent(current)
@@ -499,7 +518,7 @@ function formatRange(range) {
 
 async function main() {
   const args = parseArgs(process.argv)
-  const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'))
+  const manifest = JSON.parse(await readFile(args.manifest, 'utf8'))
   const entry = manifest.models.find((model) => model.id === args.id)
   if (!entry) throw new Error(`Unknown model id: ${args.id}`)
   if (!entry.collision && !args.collision) throw new Error(`${args.id} has no collision route`)
@@ -626,6 +645,7 @@ async function main() {
     failures.push(`${missing.length} empty walk cells; limit is ${MAX_MISSING_CELLS}`)
   }
 
+  if (args.report) await writeFile(args.report, JSON.stringify({modelId:args.id,manifest:args.manifest,visual:web,collision:collisionPath,limits:{maxMissingCells:MAX_MISSING_CELLS,minStairCoverage:MIN_STAIR_COVERAGE},missingCells:missing,stairs:stairRows,ownerFailures,failures,passed:failures.length===0},null,2)+'\n')
   if (failures.length) {
     console.error('\nCollision coverage FAILED:')
     for (const failure of failures) console.error(`  - ${failure}`)

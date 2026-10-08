@@ -61,9 +61,10 @@ async function main() {
     const activationModule = await vite.ssrLoadModule('/src/collision/collisionActivationContract.ts')
     const dedicatedModule = await vite.ssrLoadModule('/src/collision/dedicatedCollisionValidation.ts')
     root = await loadCollisionGlbRoot(args.collision)
+    if (typeof coverageFile.value.modelId !== 'string') throw new Error('Coverage report must identify its runtime model layer')
     const validation = dedicatedModule.validateDedicatedCollisionRoot(
       root,
-      'activation-packaging',
+      coverageFile.value.modelId,
       false,
     )
     if (!validation.valid || !validation.collision) {

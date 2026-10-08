@@ -1,0 +1,1 @@
+﻿import {build} from 'esbuild';const r=await build({entryPoints:['scripts/foot-ik-diagnostic-v7.ts'],bundle:true,platform:'node',format:'esm',write:false});await import('data:text/javascript;base64,'+Buffer.from(r.outputFiles[0].contents).toString('base64'));

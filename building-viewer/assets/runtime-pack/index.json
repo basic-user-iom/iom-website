@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "assets": [
+    {
+      "packed": "model-web-review-v5.glb.gz",
+      "packedSha256": "d952fe9f4ac9930622465d3242974024e83d64be9e767faea92e49454737f8a2",
+      "target": "public/models/icm-anim-2025/model-web-review-v5.glb",
+      "bytes": 105893488,
+      "sha256": "2095992af2ead2d43c9ec245511ce119c7f85ffef04adca268fc771697a5dc6e"
+    }
+  ]
+}

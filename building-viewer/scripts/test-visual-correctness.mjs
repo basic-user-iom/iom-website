@@ -884,6 +884,88 @@ try {
   assert.equal(floorBatch.userData.floorZoneAlways, true)
   assert.equal(floorBatch.userData.floorSurface, true)
 
+  // Offset/side packing contracts: louvers, lightmapped slices, and ground
+  // underlays must never share an InstancedMesh with unmarked siblings.
+  const offsetPackRoot = new Group()
+  const offsetGeom = new BoxGeometry(1, 2, 0.05)
+  const offsetMat = new MeshStandardMaterial({ name: 'Façade shared' })
+  for (let i = 0; i < 3; i++) {
+    const louver = new Mesh(offsetGeom, offsetMat)
+    louver.position.set(i * 2, 1, 0)
+    louver.userData.shutter = true
+    louver.userData.orbitDuplicateRole = 'facade-shutter'
+    offsetPackRoot.add(louver)
+  }
+  for (let i = 0; i < 3; i++) {
+    const panel = new Mesh(offsetGeom, offsetMat)
+    panel.position.set(i * 2, 1, 3)
+    offsetPackRoot.add(panel)
+  }
+  for (let i = 0; i < 3; i++) {
+    const underlay = new Mesh(offsetGeom, offsetMat)
+    underlay.position.set(i * 2, 0, 6)
+    underlay.userData.groundUnderlay = true
+    offsetPackRoot.add(underlay)
+  }
+  for (let i = 0; i < 3; i++) {
+    const slice = new Mesh(offsetGeom, offsetMat)
+    slice.position.set(i * 2, 2, 9)
+    slice.userData.lightmappedSlice = true
+    offsetPackRoot.add(slice)
+  }
+  applyProceduralInstancing(offsetPackRoot, { minInstances: 3, minBatchSize: 99 })
+  const offsetPacks = offsetPackRoot.children.filter((child) => child.isInstancedMesh)
+  assert.equal(offsetPacks.length, 4)
+  assert.equal(offsetPacks.filter((m) => m.userData.shutter === true).length, 1)
+  assert.equal(
+    offsetPacks.filter((m) => m.userData.orbitDuplicateRole === 'facade-shutter').length,
+    1,
+  )
+  assert.equal(offsetPacks.filter((m) => m.userData.groundUnderlay === true).length, 1)
+  assert.equal(offsetPacks.filter((m) => m.userData.lightmappedSlice === true).length, 1)
+
+  // Pose-duplicate filter may hide extras, but must not detach them — and must
+  // never cull real ground/plaza/floor repeats that share a pose key.
+  const poseDupRoot = new Group()
+  const poseDupGeom = new BoxGeometry(1, 1, 1)
+  const poseDupMat = new MeshStandardMaterial({ name: 'Pose dup' })
+  const poseDupA = new Mesh(poseDupGeom, poseDupMat)
+  const poseDupB = new Mesh(poseDupGeom, poseDupMat)
+  poseDupA.position.set(0, 0, 0)
+  poseDupB.position.set(0, 0, 0)
+  const poseDupC = new Mesh(poseDupGeom, poseDupMat)
+  poseDupC.position.set(4, 0, 0)
+  const poseDupD = new Mesh(poseDupGeom, poseDupMat)
+  poseDupD.position.set(8, 0, 0)
+  poseDupRoot.add(poseDupA, poseDupB, poseDupC, poseDupD)
+  applyProceduralInstancing(poseDupRoot, { minInstances: 3, minBatchSize: 99 })
+  assert.equal(poseDupB.parent, poseDupRoot)
+  assert.equal(poseDupB.visible, false)
+  assert.equal(poseDupB.userData.cadDuplicate, true)
+  const poseDupInstanced = poseDupRoot.children.find((child) => child.isInstancedMesh)
+  assert.ok(poseDupInstanced)
+  assert.equal(poseDupInstanced.count, 3)
+
+  const floorPoseRoot = new Group()
+  const floorPoseGeom = new BoxGeometry(2, 0.05, 2)
+  const floorPoseMat = new MeshStandardMaterial({ name: 'Plaza tile' })
+  for (let i = 0; i < 4; i++) {
+    const tile = new Mesh(floorPoseGeom, floorPoseMat)
+    // Identical poses — real CAD plaza copies, not disposable overlaps.
+    tile.position.set(0, 0, 0)
+    tile.userData.floorSurface = true
+    floorPoseRoot.add(tile)
+  }
+  applyProceduralInstancing(floorPoseRoot, { minInstances: 3, minBatchSize: 99 })
+  const floorPoseInstanced = floorPoseRoot.children.find((child) => child.isInstancedMesh)
+  assert.ok(floorPoseInstanced)
+  assert.equal(floorPoseInstanced.count, 4)
+  assert.equal(floorPoseInstanced.userData.floorSurface, true)
+  assert.equal(
+    floorPoseRoot.children.filter((child) => child.isMesh && child.userData.cadDuplicate).length,
+    0,
+  )
+
   // Audited open-shell sidedness is a rendering contract, not disposable
   // source-mesh metadata. It must survive BatchedMesh packing and a later
   // architectural refresh, when source names are no longer available.
@@ -916,6 +998,22 @@ try {
   assert.equal(visibilityBatch.material.side, DoubleSide)
   assert.equal(visibilityBatch.userData.surfaceVisibilityReason, 'audited-open-shell')
 
+  for (const kind of ['batch', 'instance']) {
+    const root = new Group(), material = new MeshStandardMaterial({ name: 'Shared floor wood' })
+    const sharedGeometry = new BoxGeometry(4, 1, 4)
+    for (let flags = 0; flags < 4; flags++) for (let i = 0; i < 4; i++) {
+      const geometry = kind === 'instance' ? sharedGeometry : new BoxGeometry(4 + i * .03, 1, 4)
+      const mesh = new Mesh(geometry, material)
+      mesh.position.set(i * 6, 0, flags * 6)
+      mesh.castShadow = Boolean(flags & 1)
+      mesh.receiveShadow = Boolean(flags & 2)
+      root.add(mesh)
+    }
+    applyProceduralInstancing(root, { minInstances: kind === 'instance' ? 3 : 99, minBatchSize: 4 })
+    const packs = root.children.filter(mesh => kind === 'instance' ? mesh.isInstancedMesh : mesh.isBatchedMesh)
+    assert.equal(packs.length, 4, kind + ': preserve all four shadow contracts')
+    assert.equal(new Set(packs.map(mesh => Number(mesh.castShadow) + 2 * Number(mesh.receiveShadow))).size, 4)
+  }
   console.log('Visual correctness regression checks passed')
 } finally {
   await vite.close()

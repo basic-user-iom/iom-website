@@ -282,6 +282,7 @@ export class DetailLodController {
     const cands: Cand[] = []
 
     root.traverse((obj) => {
+      if (obj.userData?.reviewedSeatLod) return
       if (!(obj as Mesh).isMesh) return
       const mesh = obj as Mesh
       if (mesh.userData?.collisionOnly) return
@@ -300,8 +301,18 @@ export class DetailLodController {
         mesh.userData.detailLodIgnore = true
         return
       }
+      // Open shells / architectural masses must not vanish when orbiting —
+      // DetailLod distance hides look like missing walls and floors.
       if (
-        /door|window|portal|entrance|mullion|storefront|fassade|facade|lobby|fahne|flag|hedge|hecke|banner|zaun|fence|schild/i.test(
+        mesh.userData?.surfaceVisibilityRisk ||
+        mesh.userData?.floorZoneAlways ||
+        mesh.userData?.visibilityCritical
+      ) {
+        mesh.userData.detailLodIgnore = true
+        return
+      }
+      if (
+        /door|window|portal|entrance|mullion|storefront|fassad|facade|lobby|fahne|flag|hedge|hecke|banner|zaun|fence|schild|wall|wand|floor|boden|stair|treppe|stufe|ceiling|decke/i.test(
           mesh.name || '',
         )
       ) {

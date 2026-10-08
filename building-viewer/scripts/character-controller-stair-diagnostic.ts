@@ -234,8 +234,8 @@ async function testCrossLayerStairHandoff(): Promise<void> {
     assert.ok(Math.abs(controller.position.y) < 0.07)
     assert.equal(
       world.getQueryLayer(),
-      'exterior-layer',
-      'ordinary support fallback must transfer back after leaving the stair',
+      'interior-layer',
+      'ordinary support fallback must not steal ownership after leaving the stair',
     )
   } finally {
     world.dispose()
@@ -699,6 +699,66 @@ async function testBestGroundLooksPastSteepHit(): Promise<void> {
   }
 }
 
+
+/** The capsule clips a tread edge while its centreline still sees the low slab. */
+class OffsetTreadWorld implements ICollisionWorld {
+  async rebuild() { return { ms: 0, triangles: 4 } }
+  raycast(): CollisionHit | null { return null }
+  raycastBestGround(origin: Vector3): CollisionHit {
+    const y = origin.x >= 0.08 && origin.z > 0.06 ? 0.18 : 0
+    return { point: new Vector3(origin.x, y, origin.z), normal: UP.clone(), distance: origin.y - y }
+  }
+  capsuleIntersect(start: Vector3): CapsuleQueryResult | null {
+    return start.x > 0 && start.y < 0.3
+      ? { depth: start.x + 0.002, normal: new Vector3(-1, 0, 0), stairZone: false }
+      : null
+  }
+  dispose() {}
+}
+function testOffsetTreadSupport(): void {
+  const controller = new CharacterController()
+  controller.setWorld(new OffsetTreadWorld())
+  controller.setFeetPosition(new Vector3(-0.02, 0, 0))
+  controller.update(DT, new Vector3(), 0)
+  controller.update(DT, new Vector3(1, 0, 0), 1.6)
+  assert.ok(controller.position.x > 0.05, 'centreline seam must not block a reachable tread edge: ' + controller.position.toArray().join(','))
+  assert.ok(controller.position.y >= 0.17, 'capsule must step onto the lateral tread support')
+  assert.equal(controller.position.z, 0, 'step correction must not teleport sideways')
+}
+
+/** A descent followed by a flat exit patch must allow the next positive step at every speed. */
+async function testDescentAcrossLanding(): Promise<void> {
+  const root = new Group()
+  const material = new MeshBasicMaterial()
+  addBox(root, material, 'COLLIDER_floor_upper', -2, 0, -0.3, 0.4)
+  addBox(root, material, 'COLLIDER_floor_exit', 0, 1.4, -0.3, 0)
+  addBox(root, material, 'COLLIDER_floor_exit_upper', 1.4, 4, -0.3, 0.35)
+  root.updateMatrixWorld(true)
+  const built = buildCollisionChunks(root, { layerId: 'exit', verbose: false, ignoreVisibility: true, walkSurfacesOnly: true })
+  const world = new CollisionWorld()
+  world.setLayerChunks('exit', built.chunks, built.report)
+  await world.rebuildFromLayers(['exit'], new Vector3())
+  try {
+    for (const speed of [1.6, 3.2, 6.5]) {
+      const controller = new CharacterController()
+      controller.setWorld(world)
+      controller.setFeetPosition(new Vector3(-0.4, 0.4, 0))
+      for (let i = 0; i < 4; i++) controller.update(DT, new Vector3(), 0)
+      for (let i = 0; i < 240 && controller.position.x < 2; i++) {
+        controller.update(DT, new Vector3(1, 0, 0), speed)
+      }
+      assert.ok(controller.position.x >= 2, 'descent latch blocked next step at speed ' + speed)
+      assert.ok(Math.abs(controller.position.y - 0.35) < 0.03, 'wrong exit height at speed ' + speed + ': ' + controller.position.toArray())
+      assert.equal(controller.onGround, true, 'exit lost support at speed ' + speed)
+    }
+  } finally {
+    world.dispose()
+    disposeFixture(root, material)
+  }
+}
+
+await testDescentAcrossLanding()
+testOffsetTreadSupport()
 await testAuthoredStairTraversal(1)
 await testAuthoredStairTraversal(-1)
 await testCrossLayerStairHandoff()

@@ -14,7 +14,7 @@
  */
 import { createHash } from 'node:crypto'
 import { access, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createServer } from 'vite'
 
@@ -47,6 +47,8 @@ const STAIR_NAME = /stair|step|tread|riser|landing|treppe|stufe|stufen|podest/i
 function parseArgs(argv) {
   const args = {
     id: 'icm-anim-2025',
+    manifest: MANIFEST_PATH,
+    diagnostic: null,
     spec: null,
     coverage: null,
     contract: null,
@@ -57,6 +59,8 @@ function parseArgs(argv) {
   for (let index = 2; index < argv.length; index += 1) {
     const value = argv[index]
     if (value === '--id') args.id = argv[++index]
+    else if (value === '--manifest') args.manifest = resolve(argv[++index])
+    else if (value === '--diagnostic') args.diagnostic = resolve(argv[++index])
     else if (value === '--spec') args.spec = resolve(argv[++index])
     else if (value === '--coverage') args.coverage = resolve(argv[++index])
     else if (value === '--contract') args.contract = resolve(argv[++index])
@@ -338,7 +342,7 @@ async function compareOrWrite(path, content, write) {
 
 async function main() {
   const args = parseArgs(process.argv)
-  const manifest = JSON.parse(await readFile(MANIFEST_PATH, 'utf8'))
+  const manifest = JSON.parse(await readFile(args.manifest, 'utf8'))
   const entry = manifest.models.find((candidate) => candidate.id === args.id)
   if (!entry?.collision || !entry.web) throw new Error(`${args.id} requires Web visual and collision routes`)
   const collisionPath = publicPath(entry.collision)
@@ -433,7 +437,7 @@ async function main() {
         runtime: collision.runtimeMetrics,
       },
       coverageReport: {
-        url: `/models/${args.id}/collision-coverage-v1.json`,
+        url: `/models/${args.id}/${basename(args.coverage)}`,
         ...coveragePin,
       },
       requirements: {
@@ -458,6 +462,7 @@ async function main() {
       runtime: collision.runtimeMetrics,
     }
     const result = activationModule.validateCollisionActivationEvidence(contract, coverage, evidence)
+    if (args.diagnostic) await writeFile(args.diagnostic, stableJson({manifest:args.manifest,visual:visualPath,coverage,validation:result}))
     if (!result.valid) {
       throw new Error(`Generated activation evidence is invalid:\n${result.errors.map((error) => `  - ${error}`).join('\n')}`)
     }

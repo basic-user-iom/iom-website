@@ -319,6 +319,9 @@ function composeSnapshot(state, scopes, head) {
 }
 
 function buildSnapshot(stage) {
+  // Restore the exact committed ICM GLB before the static build and R2 upload.
+  const viewerAssets = join(stage, 'building-viewer', 'scripts', 'prepare-runtime-assets.mjs')
+  if (existsSync(viewerAssets)) command(process.execPath, [viewerAssets], { cwd: stage })
   const sourceModules = join(root, 'node_modules')
   if (!existsSync(sourceModules)) fail('Root node_modules is missing. Run npm install first.')
   const stageModules = join(stage, 'node_modules')

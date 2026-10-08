@@ -12,6 +12,7 @@ const sitePublic = path.resolve(root, '../public')
  */
 function serveSitePublicPlugin() {
   const mime: Record<string, string> = {
+    '.html': 'text/html; charset=utf-8',
     '.json': 'application/json',
     '.glb': 'model/gltf-binary',
     '.txt': 'text/plain',
@@ -33,12 +34,13 @@ function serveSitePublicPlugin() {
     if (!(urlPath.startsWith('/models/') || urlPath === '/models' || urlPath.startsWith('/demos/') || urlPath.startsWith('/basis/') || urlPath.startsWith('/draco/'))) {
       return next()
     }
-    const filePath = path.resolve(sitePublic, `.${urlPath}`)
+    let filePath = path.resolve(sitePublic, `.${urlPath}`)
     if (!filePath.startsWith(sitePublic)) {
       res.statusCode = 403
       res.end('Forbidden')
       return
     }
+    if (!fs.existsSync(filePath)) filePath = path.resolve('F:/iom_website/public', `.${urlPath}`)
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
       res.statusCode = 404
       res.end('Not found')
@@ -97,7 +99,7 @@ export default defineConfig(({ command }) => ({
     },
   },
   server: {
-    port: 5192,
+    port: 5204,
     strictPort: true,
   },
   preview: {

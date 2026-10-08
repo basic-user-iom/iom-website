@@ -30,6 +30,8 @@ export type HlodStreamingConfig = {
 }
 
 export type ModelManifestEntry = {
+  /** Isolated reviewed collider already supplies the exact stairs and aisle tops. */
+  exactStairSupports?: boolean
   id: string
   name: string
   web: string

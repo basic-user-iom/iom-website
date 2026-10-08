@@ -129,6 +129,23 @@ interior targets, active packed-item determinant signs, WebGL errors, and
 focused opposing-angle captures. Do not replace these selective rules with a
 global `DoubleSide` mutation.
 
+### Development-only exact repeat catalog
+
+The loopback-only real-scene integration route verifies the dormant exact
+six-part repeat catalog against the pinned production GLB. Its selector proof
+uses closed 3.5 m entry and 5.5 m exit boundaries, exercises rapid sequential
+hysteresis churn, and forces an after-publication cancellation to prove that
+all 48 persistent lists and logical handles are restored before ownership
+handoff.
+
+```bash
+npm run test:repeat-six-part-development-contracts
+```
+
+Open `/development/repeat-six-part-real-scene-integration/` only on a local
+development server. This evidence does not grant production activation
+authority and is not imported by the viewer runtime.
+
 ### Cell streaming (Phase C)
 
 **Do not enable in production until bake validation passes.** The old whole-mesh bake duplicated geometry (~4.7 GiB). The current baker uses **triangle ownership** (centroid → one cell).

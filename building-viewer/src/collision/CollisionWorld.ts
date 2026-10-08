@@ -182,6 +182,9 @@ export class CollisionWorld implements ICollisionWorld {
     this.queryLayerId = layerId
   }
 
+  private revision = 0
+  getRevision(): number { return this.revision }
+
   getQueryLayer(): string | null {
     return this.queryLayerId
   }
@@ -225,6 +228,7 @@ export class CollisionWorld implements ICollisionWorld {
   }
 
   clearAllLayers(): void {
+    this.revision++
     this.clearDebugMeshes()
     this.chunks.length = 0
     this.resident.length = 0
@@ -306,6 +310,7 @@ export class CollisionWorld implements ICollisionWorld {
       return { ms: performance.now() - t0, triangles: Math.round(this.residentTriangles) }
     }
 
+    this.revision++
     this.resident = nextResident
     this.residentTriangles = nextTris
     this.chunks = []
@@ -520,7 +525,7 @@ export class CollisionWorld implements ICollisionWorld {
    * Cast straight down and keep the highest walkable hit across chunks.
    * Needed when exterior + animated layers both contribute floor slabs at different Y.
    */
-  raycastBestGround(origin: Vector3, maxDistance = 8, minUpDot = 0.45): CollisionHit | null {
+  raycastBestGround(origin: Vector3, maxDistance = 8, minUpDot = 0.45, requiredLayerId?: string): CollisionHit | null {
     const t0 = performance.now()
     this.frameRaycasts += 1
     if (this.chunks.length === 0) {
@@ -555,6 +560,8 @@ export class CollisionWorld implements ICollisionWorld {
     let fallbackLayerBridge = false
 
     for (const chunk of this.chunks) {
+      // Placement verifies the exact visible owner before walking can hand off.
+      if (requiredLayerId && chunk.layerId !== requiredLayerId) continue
       const foreignOrdinary = Boolean(
         this.queryLayerId &&
           chunk.layerId !== this.queryLayerId &&

@@ -1,10 +1,18 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import { chromium } from 'playwright'
+
+const collisionContract = JSON.parse(await readFile(new URL('../../public/models/icm-anim-2025/collision-activation-v1.json', import.meta.url), 'utf8'))
 
 const baseUrl = process.argv[2] || 'http://127.0.0.1:5192/'
 const browser = await chromium.launch({
   headless: true,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  channel: process.env.IOM_QA_BROWSER_CHANNEL || undefined,
+  // Exercise the normal GPU path by default. Software WebGL on this large
+  // model can spend >15 s per frame, starving RAF-based readiness checks.
+  args: process.env.IOM_QA_SOFTWARE_WEBGL === '1'
+    ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+    : [],
 })
 const page = await browser.newPage({ viewport: { width: 2048, height: 1024 } })
 page.setDefaultTimeout(420_000)
@@ -12,6 +20,7 @@ await page.addInitScript(() => sessionStorage.setItem('building-viewer-demo-unlo
 const pageErrors = []
 page.on('pageerror', (error) => pageErrors.push(error.stack || error.message))
 
+try {
 await page.goto(baseUrl, { waitUntil: 'domcontentloaded' })
 await page.waitForFunction(() => {
   const viewer = window.__iomBuildingViewer
@@ -95,7 +104,7 @@ const bridge = await page.evaluate(() => {
 })
 
 assert.ok(
-  bridge.layerTriangles >= 121_140 && bridge.layerTriangles <= 150_000,
+  bridge.layerTriangles >= collisionContract.collision.runtime.triangles + 302 && bridge.layerTriangles <= 150_000,
   `animated runtime collision must retain bridge/stair support within budget (${bridge.layerTriangles})`,
 )
 for (const [name, triangles] of [['Floor', 144], ['Floor001', 144], ['Floor_Mitte', 14]]) {
@@ -183,11 +192,21 @@ async function dropAt(cameraPosition, cameraTarget, clientX, clientY) {
     `authoritative visible drop failed: ${JSON.stringify(placement)}`,
   )
   assert.equal(placement.mode, 'walk', 'successful drop must enter Walk immediately')
+  console.log("  drop", JSON.stringify(placement))
+  try {
   await page.waitForFunction(
     () => window.__iomBuildingViewer.controller.onGround === true,
     undefined,
-    { timeout: 15_000 },
+    { polling: 100, timeout: 15_000 },
   )
+  } catch(error) {
+    console.log('  grounding timeout diagnostics', JSON.stringify(await page.evaluate(() => {
+      const v=window.__iomBuildingViewer,c=v.controller;
+      const hit=v.collision.raycastBestGround(c.position.clone().setY(c.position.y+.5),2,.45);
+      return {feet:c.position.toArray(),velocity:c.velocity.toArray(),grounded:c.onGround,mode:v.mode,walkEnabled:v.walk.enabled,hidden:document.hidden,pageVisible:v.pageVisible,contextLost:v.contextLost,clock:v.clock,now:performance.now(),support:hit?{y:hit.point.y,layer:hit.layerId}:null};
+    })), 'errors', JSON.stringify(pageErrors))
+    throw error
+  }
   // Let the entry transition finish so we measure the actual idle pose rather
   // than a one-frame walk/idle blend.
   await page.waitForTimeout(500)
@@ -276,8 +295,11 @@ assert.deepEqual(interior.final.visualRoot, interior.final.feet)
 assert.ok(interior.dropMs < 2_000, `interior visible-surface correction was too slow (${interior.dropMs.toFixed(1)} ms)`)
 
 assert.deepEqual(pageErrors, [], `browser page errors:\n${pageErrors.join('\n')}`)
-await browser.close()
 
 console.log('Dual-layer browser grounding: PASS')
 console.log(`  exterior: ${exterior.final.queryLayer}, feet Y=${exterior.final.feet[1].toFixed(3)}, drop ${exterior.dropMs.toFixed(1)} ms`)
 console.log(`  interior: ${interior.final.queryLayer}, feet Y=${interior.final.feet[1].toFixed(3)}, drop ${interior.dropMs.toFixed(1)} ms`)
+
+} finally {
+  await browser.close()
+}

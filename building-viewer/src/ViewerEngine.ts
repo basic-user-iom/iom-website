@@ -1,3 +1,7 @@
+import { CameraObstructionProbe } from './controls/CameraObstructionProbe'
+import { StairTeleports } from './controls/StairTeleports'
+import { buildIcmMissingFloorSupports, buildIcmExteriorPavingSupports } from './collision/icmMissingFloorSupports'
+import { ReviewedSeatLod } from './performance/ReviewedSeatLod'
 import {
   Group,
   Mesh,
@@ -113,6 +117,7 @@ type ModelLoadRequest = {
 }
 
 export class ViewerEngine {
+  readonly reviewSeats = new ReviewedSeatLod()
   readonly scene = new Scene()
   readonly camera: PerspectiveCamera
   readonly renderer: WebGLRenderer
@@ -133,6 +138,7 @@ export class ViewerEngine {
   readonly cameraViews = new CameraViewsManager()
   readonly inspect: InspectPicker
 
+  readonly stairTeleports: StairTeleports
   private walk: WalkMode
   private pegman: PegmanPlacement
   private mode: ViewerMode = 'orbit'
@@ -254,13 +260,22 @@ export class ViewerEngine {
     }
 
     this.orbit = new OrbitMode(this.camera, this.renderer.domElement)
+    const cameraObstruction = new CameraObstructionProbe(this.models.root)
     this.walk = new WalkMode(
       this.camera,
       this.renderer.domElement,
       this.controller,
       this.character,
       (locked) => this.events.onWalkLock?.(locked),
+      (origin, distance) => this.collision.raycastBestGround(origin, distance, this.controller.params.maxSlope)?.point.y ?? null,
+      (origin, desired) => cameraObstruction.distance(origin, desired),
     )
+    this.stairTeleports = new StairTeleports(
+      this.collision, this.controller, this.walk,
+      id => Boolean(this.models.getLayer(id)?.visible),
+      this.character.root, this.renderer.domElement.parentElement!,
+    )
+    this.scene.add(this.stairTeleports.root)
     this.pegman = new PegmanPlacement(
       this.camera,
       this.renderer.domElement,
@@ -734,6 +749,7 @@ export class ViewerEngine {
 
   exitWalk(): void {
     if (this.mode !== 'walk') return
+    this.stairTeleports.update(false)
     this.walk.deactivate()
     this.collision.setQueryLayer(null)
     this.orbit.setEnabled(true)
@@ -751,6 +767,25 @@ export class ViewerEngine {
       this.events.onError?.(result.reason ?? 'Cannot place character here')
       return
     }
+    const collisionLayerCount = this.models
+      .listLayers()
+      .filter((layer) => this.collision.hasLayerChunks(layer.id)).length
+    if (collisionLayerCount > 1 && !result.layerId) {
+      // Refuse placement without an owning layer. Do not clear an active walk
+      // session's query filter — pegman drag already exits walk before drop.
+      if (this.mode !== 'walk') {
+        this.collision.setQueryLayer(null)
+        this.orbit.setEnabled(true)
+      }
+      this.events.onError?.(
+        'Cannot place character: drop must identify a collision layer when more than one is loaded',
+      )
+      return
+    }
+    // Collision BVHs are authored at the animation rest pose. Freeze the
+    // building there for the whole walk session so floors stay under the character.
+    this.modelAnim.stop()
+    this.emitAnimation()
     if (!placeCharacterFromPegman(this.controller, result)) {
       this.collision.setQueryLayer(null)
       this.orbit.setEnabled(true)
@@ -760,6 +795,7 @@ export class ViewerEngine {
     this.collision.setFocus(this.controller.position)
     this.orbit.saveState()
     this.orbit.setEnabled(false)
+    this.stairTeleports.update(false)
     this.walk.activate(true)
     this.mode = 'walk'
     if (this.inspect.isEnabled()) this.inspect.setEnabled(false)
@@ -810,20 +846,19 @@ export class ViewerEngine {
   }
 
   playAnimation(): void {
-    if (this.mode === 'walk') {
-      this.events.onError?.('Exit Walk mode before playing the building animation.')
-      return
-    }
+    if (this.mode === 'walk') return
     this.modelAnim.play()
     this.emitAnimation()
   }
 
   pauseAnimation(): void {
+    if (this.mode === 'walk') return
     this.modelAnim.pause()
     this.emitAnimation()
   }
 
   stopAnimation(): void {
+    if (this.mode === 'walk') return
     this.modelAnim.stop()
     this.emitAnimation()
   }
@@ -1282,7 +1317,7 @@ export class ViewerEngine {
       doubleSided: true,
     })
     let navigationSupplement: ReturnType<typeof buildCollisionChunks> | null = null
-    if (layer.id === 'icm-anim-2025') {
+    if (layer.id === 'icm-anim-2025' && !layer.entry.exactStairSupports) {
       const navigationRoot = new Group()
       for (const spec of ICM_ANIMATED_STAIR_LANDING_SUPPLEMENTS) {
         // The omitted source floor spans the entire stairwell. Merging it
@@ -1335,8 +1370,13 @@ export class ViewerEngine {
     const supplementReports = [supplemental.report, navigationSupplement?.report].filter(
       (entry): entry is CollisionBuildReport => Boolean(entry),
     )
+    const exactMissingFloors = layer.id === 'icm-anim-2025' && layer.entry.exactStairSupports
+      ? buildIcmMissingFloorSupports(layer.root)
+      : layer.id === 'icm-ext' ? buildIcmExteriorPavingSupports(layer.root) : []
+    const exactMissingSourceCount = new Set(exactMissingFloors.flatMap(chunk => chunk.sourceNames ?? [])).size
     const chunks = [
       ...dedicated,
+      ...exactMissingFloors,
       ...supplemental.chunks,
       ...(navigationSupplement?.chunks ?? []),
     ]
@@ -1344,10 +1384,10 @@ export class ViewerEngine {
       ...dedicatedReport,
       preferredColliders: true,
       sourceMeshes:
-        dedicatedReport.sourceMeshes +
+        dedicatedReport.sourceMeshes + exactMissingSourceCount +
         supplementReports.reduce((sum, entry) => sum + entry.sourceMeshes, 0),
       usedMeshes:
-        dedicatedReport.usedMeshes +
+        dedicatedReport.usedMeshes + exactMissingSourceCount +
         supplementReports.reduce((sum, entry) => sum + entry.usedMeshes, 0),
       chunks: chunks.length,
       triangles: chunks.reduce((s, c) => s + c.triangles, 0),
@@ -1400,6 +1440,7 @@ export class ViewerEngine {
     this.spatialMeta = spatialMeta
     this.wireStreamLoaders(layers)
 
+    this.reviewSeats.retainRoots(this.models.listLayers().map(layer => layer.root))
     this.clipHostPatches(layers)
 
     for (let i = 0; i < layers.length; i++) {
@@ -1411,6 +1452,7 @@ export class ViewerEngine {
         })
         continue
       }
+      await this.reviewSeats.attach(layer.root)
       const layerAnimatedNames = collectAnimatedNodeNames(layer.result.animations ?? [])
       const matDedupe = dedupeSceneMaterials(layer.root)
       if (matDedupe.merged > 0) {
@@ -2210,6 +2252,7 @@ export class ViewerEngine {
       this.orbit.update(dt)
       if (this.bounds) this.applyCameraNearFar(this.bounds)
     }
+    this.stairTeleports.update(this.mode === 'walk' && !this.xr.isActive(), dt)
     this.perf.markSection('walk')
 
     // Nearby collision + floor residency follow the player (walk/XR) or orbit target.
@@ -2227,9 +2270,11 @@ export class ViewerEngine {
       void this.flushStreamingFocus(overview ? this.camera.position : focus)
     }
 
-    this.modelAnim.update(dt)
+    // Walk collision is authored at rest. Never advance the building while walking.
+    if (this.mode !== 'walk') this.modelAnim.update(dt)
     this.perf.markSection('anim')
 
+    if (this.reviewSeats.update(this.camera, this.renderer.domElement.height, now)) this.shadowFramesLeft = 2
     this.detailLod.update(this.camera, now)
     this.applyOrbitDuplicateHide()
     this.inspect.update()
@@ -2368,6 +2413,7 @@ export class ViewerEngine {
     document.removeEventListener('visibilitychange', this.onVisibility)
     this.renderer.domElement.removeEventListener('webglcontextlost', this.onContextLost)
     this.renderer.domElement.removeEventListener('webglcontextrestored', this.onContextRestored)
+    this.stairTeleports.dispose()
     this.walk.dispose()
     this.orbit.dispose()
     this.pegman.dispose()
@@ -2377,6 +2423,7 @@ export class ViewerEngine {
     this.modelAnim.dispose()
     this.detailLod.dispose()
     this.floorZones.dispose()
+    this.reviewSeats.dispose()
     this.models.dispose()
     this.lighting.dispose()
     this.runtimeAntialias.dispose()

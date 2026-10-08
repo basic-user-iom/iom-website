@@ -85,6 +85,7 @@ export class ViewerToolbar {
     this.orbitBtn = el('button', 'is-active', 'Orbit')
     this.orbitBtn.type = 'button'
     this.orbitBtn.title = 'Orbit camera'
+    this.orbitBtn.addEventListener('click', () => this.engine.exitWalk())
     this.walkExitBtn = el('button', undefined, 'Exit Walk')
     this.walkExitBtn.type = 'button'
     this.walkExitBtn.disabled = true
@@ -406,8 +407,11 @@ export class ViewerToolbar {
     document.documentElement.classList.toggle('bv-has-transport', state.available)
     if (!state.available) return
     this.animLabel.textContent = state.label || 'Animation'
-    this.animPlayBtn.disabled = state.playing
-    this.animPauseBtn.disabled = !state.playing
+    const walkLocked = this.engine.getMode() === 'walk'
+    this.animPlayBtn.disabled = walkLocked || state.playing
+    this.animPauseBtn.disabled = walkLocked || !state.playing
+    this.animStopBtn.disabled = walkLocked
+    this.animSlider.disabled = walkLocked
     this.animTime.textContent = `${state.time.toFixed(1)} / ${state.duration.toFixed(1)} s`
     if (!this.scrubbing && state.duration > 0) {
       this.animSlider.value = String(Math.round((state.time / state.duration) * 1000))
@@ -421,13 +425,15 @@ export class ViewerToolbar {
     this.walkHint.classList.toggle('show', mode === 'walk')
     document.documentElement.classList.toggle('bv-mode-walk', mode === 'walk')
     if (mode === 'walk') this.setInspectMode(false)
+    // Refresh transport enabled state (walk freezes the building at rest).
+    this.setAnimation(this.engine.getAnimationState())
   }
 
   setWalkLock(locked: boolean): void {
     this.walkHint.classList.toggle('is-locked', locked)
     this.walkHint.textContent = locked
-      ? 'WASD · Space jump · Shift run · V first/third · Esc unlock'
-      : 'Click view to look · WASD walk · Space jump · Exit Walk to return'
+      ? 'WASD · Space jump · Shift run · V first/third · Circles teleport · Esc unlock'
+      : 'Click view to look · WASD walk · Space jump · Circles teleport · Exit Walk to return'
   }
 
   setDaylight(id: DaylightPresetId): void {

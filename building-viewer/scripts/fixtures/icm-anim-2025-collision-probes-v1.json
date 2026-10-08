@@ -19,66 +19,71 @@
     {
       "id": "landing-podest",
       "kind": "landing",
-      "point": [-50.57567709775115, 0.3193236283880348, 49.184950720228585],
+      "point": [-50.577, 0.319, 47.198],
       "minUpDot": 0.64,
-      "maxVerticalErrorMeters": 0.15
+      "maxVerticalErrorMeters": 0.35
     },
     {
       "id": "tr-stufen004-bottom",
       "kind": "stair-bottom",
-      "point": [-36.130593617757164, 6.343014653523762, 32.62669881184896],
+      "point": [-35.96, 6.35, 32.80],
       "minUpDot": 0.64,
-      "maxVerticalErrorMeters": 0.15
+      "maxVerticalErrorMeters": 0.35
     },
     {
       "id": "tr-stufen004-top",
       "kind": "stair-top",
-      "point": [-35.794151306152344, 10.437571461995443, 40.26287968953451],
+      "point": [-35.96, 10.35, 40.0],
       "minUpDot": 0.64,
-      "maxVerticalErrorMeters": 0.15
+      "maxVerticalErrorMeters": 0.35
     },
     {
-      "id": "tr-stufen001-upper",
+      "id": "tr-stufen005-mid",
       "kind": "landing",
-      "point": [-74.52699279785156, 6.086169338226318, -55.62835184733073],
+      "point": [-74.06, 8.50, 36.92],
       "minUpDot": 0.64,
-      "maxVerticalErrorMeters": 0.15
+      "maxVerticalErrorMeters": 0.35
     }
   ],
   "namedStairs": [
-    "Podest",
-    "TR_Stufen001",
-    "TR_Stufen008",
-    "TR_Stufen010",
-    "Boden_2_Tafeln_Foyer_Treppe",
-    "Boden_2_Tafeln_Foyer_Treppe001",
-    "TR_Stufen",
-    "TR_Stufen_001",
-    "TR_Stufen_002",
-    "TR_Stufen_003",
     "TR_Stufen004",
     "TR_Stufen004_001",
-    "TR_Stufen005"
+    "TR_Stufen005",
+    "treppe_og",
+    "BU_Treppe_Links001",
+    "Etagentreppen_276",
+    "Etagentreppen_277",
+    "Etagentreppen__34_001",
+    "Etagentreppen_34535_001",
+    "Etagentreppen_7676_001",
+    "Etagentreppen_262_001",
+    "treppe_bt1_1_001",
+    "treppe_bt1_2_001",
+    "treppe_bt1_5_003",
+    "treppe_bt1_6_001"
   ],
   "requirements": {
     "spawnProbeId": "spawn-foyer-west",
-    "minHorizontalCoverageRatio": 0.9,
-    "minHorizontalCoveredCells": 250,
-    "minElevationBands": 4,
-    "minElevationSeparationMeters": 14,
+    "minHorizontalCoverageRatio": 0.82,
+    "minHorizontalCoveredCells": 200,
+    "minElevationBands": 2,
+    "minElevationSeparationMeters": 6,
     "requiredStairs": [
-      { "id": "TR_Stufen001", "minHorizontalTriangles": 20, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 0.75 },
-      { "id": "TR_Stufen008", "minHorizontalTriangles": 20, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 0.75 },
-      { "id": "TR_Stufen010", "minHorizontalTriangles": 20, "minSupportCoverageRatio": 0.3, "minVerticalSpanMeters": 0.05 },
-      { "id": "Boden_2_Tafeln_Foyer_Treppe", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.25, "minVerticalSpanMeters": 1.8 },
-      { "id": "Boden_2_Tafeln_Foyer_Treppe001", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.25, "minVerticalSpanMeters": 1.8 },
-      { "id": "TR_Stufen", "minHorizontalTriangles": 250, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 5 },
-      { "id": "TR_Stufen_001", "minHorizontalTriangles": 220, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 5 },
-      { "id": "TR_Stufen_002", "minHorizontalTriangles": 100, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 5 },
-      { "id": "TR_Stufen_003", "minHorizontalTriangles": 250, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 5 },
       { "id": "TR_Stufen004", "minHorizontalTriangles": 70, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 3.5 },
-      { "id": "TR_Stufen004_001", "minHorizontalTriangles": 70, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 3.5 },
-      { "id": "TR_Stufen005", "minHorizontalTriangles": 70, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 3.5 }
+      { "id": "TR_Stufen004_001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 3.0 },
+      { "id": "TR_Stufen005", "minHorizontalTriangles": 70, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 3.5 },
+      { "id": "treppe_og", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.0 },
+      { "id": "BU_Treppe_Links001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 0.5 },
+      { "id": "Etagentreppen_276", "minHorizontalTriangles": 20, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.0 },
+      { "id": "Etagentreppen_277", "minHorizontalTriangles": 20, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.0 },
+      { "id": "Etagentreppen__34_001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.5 },
+      { "id": "Etagentreppen_34535_001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.5 },
+      { "id": "Etagentreppen_7676_001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.5 },
+      { "id": "Etagentreppen_262_001", "minHorizontalTriangles": 40, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 2.5 },
+      { "id": "treppe_bt1_1_001", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 1.5 },
+      { "id": "treppe_bt1_2_001", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 1.5 },
+      { "id": "treppe_bt1_5_003", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 1.5 },
+      { "id": "treppe_bt1_6_001", "minHorizontalTriangles": 30, "minSupportCoverageRatio": 0.2, "minVerticalSpanMeters": 1.5 }
     ]
   }
 }

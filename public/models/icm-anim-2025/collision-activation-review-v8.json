@@ -1,0 +1,160 @@
+{
+  "version": 1,
+  "modelId": "icm-anim-2025",
+  "collision": {
+    "url": "/models/icm-anim-2025/collision-review-v5-exact.glb",
+    "sha256": "de076b49611971edc02f6baec95791c6d7ec2effeb04fd560723d1ca0c0750c8",
+    "bytes": 4360352,
+    "runtime": {
+      "triangles": 114555,
+      "chunks": 1866,
+      "boundsMin": [
+        -176.39630126953125,
+        -0.65875244140625,
+        -107.49124908447266
+      ],
+      "boundsMax": [
+        10.07237434387207,
+        16.20558738708496,
+        88.4186019897461
+      ],
+      "preferredColliderMeshes": 2683
+    }
+  },
+  "coverageReport": {
+    "url": "/models/icm-anim-2025/collision-coverage-review-v8.json",
+    "sha256": "572e2b0774a196e6fd6a5c2f67a5420c97d605c860fce89255ee1d7e07532065",
+    "bytes": 7032
+  },
+  "requirements": {
+    "spawnProbeId": "spawn-foyer-west",
+    "minHorizontalCoverageRatio": 0.82,
+    "minHorizontalCoveredCells": 200,
+    "minElevationBands": 2,
+    "minElevationSeparationMeters": 6,
+    "requiredProbes": [
+      {
+        "id": "spawn-foyer-west",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "walk-foyer-upper",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.15
+      },
+      {
+        "id": "landing-podest",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.35
+      },
+      {
+        "id": "tr-stufen004-bottom",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.35
+      },
+      {
+        "id": "tr-stufen004-top",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.35
+      },
+      {
+        "id": "tr-stufen005-mid",
+        "minUpDot": 0.64,
+        "maxVerticalErrorMeters": 0.35
+      }
+    ],
+    "requiredStairs": [
+      {
+        "id": "TR_Stufen004",
+        "minHorizontalTriangles": 70,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3.5
+      },
+      {
+        "id": "TR_Stufen004_001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3
+      },
+      {
+        "id": "TR_Stufen005",
+        "minHorizontalTriangles": 70,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 3.5
+      },
+      {
+        "id": "treppe_og",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2
+      },
+      {
+        "id": "BU_Treppe_Links001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 0.5
+      },
+      {
+        "id": "Etagentreppen_276",
+        "minHorizontalTriangles": 20,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2
+      },
+      {
+        "id": "Etagentreppen_277",
+        "minHorizontalTriangles": 20,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2
+      },
+      {
+        "id": "Etagentreppen__34_001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2.5
+      },
+      {
+        "id": "Etagentreppen_34535_001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2.5
+      },
+      {
+        "id": "Etagentreppen_7676_001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2.5
+      },
+      {
+        "id": "Etagentreppen_262_001",
+        "minHorizontalTriangles": 40,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 2.5
+      },
+      {
+        "id": "treppe_bt1_1_001",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 1.5
+      },
+      {
+        "id": "treppe_bt1_2_001",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 1.5
+      },
+      {
+        "id": "treppe_bt1_5_003",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 1.5
+      },
+      {
+        "id": "treppe_bt1_6_001",
+        "minHorizontalTriangles": 30,
+        "minSupportCoverageRatio": 0.2,
+        "minVerticalSpanMeters": 1.5
+      }
+    ]
+  }
+}

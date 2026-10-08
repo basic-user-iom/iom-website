@@ -77,6 +77,8 @@ export interface ICollisionWorld {
     origin: Vector3,
     maxDistance?: number,
     minUpDot?: number,
+    /** Strict rendered-layer check for placement; locomotion may cross layers. */
+    requiredLayerId?: string,
   ): CollisionHit | null
   /** Stair-chunk AABB containing this point (hollow flights still count). */
   stairWellAt?(x: number, y: number, z: number): { minY: number; maxY: number } | null

@@ -225,7 +225,12 @@ const INTERIOR_SURFACE_VIEWS = [
 
 const browser = await chromium.launch({
   headless: true,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  channel: process.env.IOM_QA_BROWSER_CHANNEL || undefined,
+  // Exercise the normal GPU path by default. Software WebGL on this large
+  // model can spend >15 s per frame, starving RAF-based readiness checks.
+  args: process.env.IOM_QA_SOFTWARE_WEBGL === '1'
+    ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist']
+    : [],
 })
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } })
 page.setDefaultTimeout(420_000)
@@ -540,6 +545,7 @@ const setCamera = (view) => page.evaluate(({ position: p, target: t, fov }) => {
 const captureViews = async (prefix, views) => {
   const captures = []
   for (const view of views) {
+    console.log('Capture', prefix, view.name)
     const actualCamera = await setCamera(view)
     await page.waitForTimeout(600)
     const filename = `${prefix}-${view.name}.png`
@@ -567,19 +573,23 @@ try {
   // the exact walls being inspected.
   await page.addStyleTag({ content: '#viewer-ui { visibility: hidden !important; }' })
   await waitForLayer('icm-ext')
+  console.log('Exterior ready')
   // Always install an explicit camera after a load/layer switch. Otherwise an
   // old orbit camera can make an "interior" screenshot an exterior overview.
   await setCamera(EXTERIOR_SURFACE_VIEWS[0])
   await page.waitForTimeout(1200)
   const exterior = await inspectRuntime('icm-ext')
   const exteriorCaptures = await captureViews('exterior', EXTERIOR_SURFACE_VIEWS)
+  console.log('Exterior captures complete; loading interior')
 
   await page.evaluate(async () => {
     const viewer = window.__iomBuildingViewer
     await viewer.ensureLayer('icm-anim-2025', true)
     await viewer.ensureLayer('icm-ext', false)
   })
+  console.log('Interior ensureLayer returned')
   await waitForLayer('icm-anim-2025')
+  console.log('Interior ready')
   await page.waitForFunction(() => {
     const viewer = window.__iomBuildingViewer
     const interior = viewer.models.getLayer('icm-anim-2025')

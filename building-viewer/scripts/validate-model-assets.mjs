@@ -10,7 +10,7 @@
 import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { access, readFile, readdir, stat } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listTextureInfo } from '@gltf-transform/functions'
 import { createGltfIO } from './lib/gltf-io.mjs'
@@ -39,6 +39,7 @@ const EXTERIOR_FLOOR_DEBUG_CHECKER = Object.freeze({
 
 function parseArgs(argv) {
   const args = {
+    manifest: MANIFEST_PATH,
     requireCells: false,
     failOnWarn: false,
     requireCurrentReports: false,
@@ -46,7 +47,8 @@ function parseArgs(argv) {
   }
   for (let i = 2; i < argv.length; i++) {
     const value = argv[i]
-    if (value === '--require-cells') args.requireCells = true
+    if (value === '--manifest') args.manifest = resolve(process.cwd(), argv[++i])
+    else if (value === '--require-cells') args.requireCells = true
     else if (value === '--fail-on-warn') args.failOnWarn = true
     else if (value === '--require-current-reports') args.requireCurrentReports = true
     else if (value === '--enforce-budgets') args.enforceBudgets = true
@@ -397,7 +399,7 @@ async function main() {
   const io = await createGltfIO()
   const visualCache = new Map()
 
-  const raw = await readFile(MANIFEST_PATH, 'utf8')
+  const raw = await readFile(args.manifest, 'utf8')
   const manifest = JSON.parse(raw)
   if (!Array.isArray(manifest.models) || manifest.models.length === 0) {
     errors.push('manifest.models is empty')

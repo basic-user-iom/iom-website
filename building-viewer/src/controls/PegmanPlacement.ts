@@ -94,6 +94,7 @@ export function validateVisiblePlacementSurface(
         _supportOrigin,
         tolerance * 2 + 0.08,
         params.maxSlope,
+        surface.layerId,
       ) ??
       world.raycast(_supportOrigin, _down, tolerance * 2 + 0.08)
     if (!support) {
@@ -229,12 +230,15 @@ export class PegmanPlacement {
     _ndc.y = -((e.clientY - rect.top) / Math.max(rect.height, 1)) * 2 + 1
     this.raycaster.setFromCamera(_ndc, this.camera)
 
+    // Prefer the same visual pick used on drop so the green marker matches
+    // the surface that will actually accept placement.
     const hit =
+      this.raycastVisualSurface() ??
       this.world.raycast(
         this.raycaster.ray.origin,
         this.raycaster.ray.direction,
         2000,
-      ) ?? this.raycastVisualSurface()
+      )
     if (!hit) {
       this.setValidity(false, 'No surface under cursor')
       this.preview.visible = false
@@ -266,8 +270,8 @@ export class PegmanPlacement {
 
   /**
    * Pick the surface that is actually rendered and preserve its model-layer owner.
-   * This runs as a fallback during drag and once on pointer-up for authoritative
-   * placement; the latter prevents invisible overlapping collision from winning.
+   * Used for drag preview (when model root is available) and on pointer-up for
+   * authoritative placement so invisible overlapping collision cannot win.
    */
   private raycastVisualSurface(): PlacementSurface | null {
     if (!this.modelRoot) return null
@@ -358,8 +362,7 @@ export class PegmanPlacement {
   private handleUp(_e: PointerEvent): void {
     if (!this.dragging) return
 
-    // Collision is intentionally the fast drag preview. On release, anchor to
-    // the rendered surface and retain its layer for the whole walk session.
+    // Anchor to the rendered surface and retain its layer for the walk session.
     const visibleResult = this.resolveVisibleDrop()
     const result = finalizeVisiblePegmanDrop(visibleResult)
 
