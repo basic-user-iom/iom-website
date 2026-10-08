@@ -246,7 +246,7 @@ function appearanceFor(bodyId: CometBodyId): Readonly<{
 }> {
   switch (bodyId) {
     case '1p-halley':
-      return Object.freeze({ nucleusColor: '#1c1a18', dustColor: '#f2d9a8', ionColor: '#3aa8ff', elongation: [1.22, 0.82, 0.78] as const, dustBeta: 0.085 });
+      return Object.freeze({ nucleusColor: '#1c1a18', dustColor: '#f2d9a8', ionColor: '#3aa8ff', elongation: [1.63, 0.7824, 0.7824] as const, dustBeta: 0.085 });
     case '2p-encke':
       return Object.freeze({ nucleusColor: '#1a1917', dustColor: '#ecd2a0', ionColor: '#36a0f0', elongation: [1.1, 0.88, 0.8] as const, dustBeta: 0.075 });
     case '67p-churyumov-gerasimenko':

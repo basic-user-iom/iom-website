@@ -1,3 +1,9 @@
+import { createNucleusGeometry, loadNavcamGeometry, ROSETTA_BODY_ID } from '../../rendering/comets/CometNucleus';
+import { Vector3 } from 'three';
+vi.mock('../../rendering/comets/CometNucleus', async importOriginal => ({
+  ...await importOriginal<typeof import('../../rendering/comets/CometNucleus')>(),
+  loadNavcamGeometry: vi.fn(),
+}));
 import type {
   DebugBodyRenderState,
   DebugRenderFrame,
@@ -30,6 +36,49 @@ const PROFILE: Readonly<CometVisualProfile> = Object.freeze({
 });
 
 describe('CometVisualSystem', () => {
+
+  it('uses the physical Sun direction even with a distant moving render origin', () => {
+    const system = new CometVisualSystem([PROFILE]);
+    const comet = body(true), visual = system.create(comet);
+    const sun = {...comet,bodyId:'sun',kind:'star' as const,positionM:{x:1e6,y:2e6,z:3e6}};
+    system.updateFrame({...frame([comet,sun]),originM:comet.positionM},[state(0)],1e6,()=>2);
+    const expected = new Vector3(1e6-comet.positionM.x,3e6,-2e6).normalize();
+    expect(visual.nucleus.material.uniforms.uSunDirection!.value.distanceTo(expected)).toBeLessThan(1e-12);
+    system.dispose();
+  });
+
+  it('replaces the 67P fallback only once and never attaches a model after disposal', async () => {
+    let finish!: (geometry: ReturnType<typeof createNucleusGeometry>) => void;
+    vi.mocked(loadNavcamGeometry).mockImplementation(() => new Promise(resolve => {finish=resolve;}));
+    const system = new CometVisualSystem([{...PROFILE,bodyId:ROSETTA_BODY_ID}]);
+    const comet = {...body(true),bodyId:ROSETTA_BODY_ID}, visual = system.create(comet);
+    const initial = visual.nucleus.geometry;
+    const initialDispose = vi.spyOn(initial,'dispose');
+    expect(system.create(comet)).toBe(visual);
+    const measured = createNucleusGeometry(10);
+    finish(measured);
+    await vi.waitFor(() => expect(visual.nucleusShape).toBe('navcam'));
+    expect(visual.nucleus.geometry).toBe(measured);
+    expect(initialDispose).toHaveBeenCalledOnce();
+    system.dispose();
+    const lateSystem = new CometVisualSystem([{...PROFILE,bodyId:ROSETTA_BODY_ID}]);
+    lateSystem.create(comet); lateSystem.dispose();
+    const late = createNucleusGeometry(11), lateDispose = vi.spyOn(late,'dispose');
+    finish(late);
+    await vi.waitFor(() => expect(lateDispose).toHaveBeenCalledOnce());
+  });
+
+  it('retains an inspectable closed nucleus after a failed shape download', async () => {
+    vi.mocked(loadNavcamGeometry).mockRejectedValue(new Error('offline'));
+    const system = new CometVisualSystem([{...PROFILE,bodyId:ROSETTA_BODY_ID}]);
+    const visual = system.create({...body(true),bodyId:ROSETTA_BODY_ID});
+    const initial = visual.nucleus.geometry;
+    await vi.waitFor(() => expect(visual.nucleusShape).toBe('fallback'));
+    expect(visual.nucleus.geometry).toBe(initial);
+    expect(visual.nucleus.geometry.index!.count).toBeGreaterThan(30000);
+    system.dispose();
+  });
+
   it('keeps the solid zoom boundary independent of activity and frames a dormant nucleus', () => {
     const system = new CometVisualSystem([PROFILE]);
     const comet = body(true), visual = system.create(comet);

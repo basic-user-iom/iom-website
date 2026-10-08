@@ -477,7 +477,15 @@ export class DebugSolarSystemRenderer {
     this.ambientLight.name = 'comet-ambient-fill';
 
     this.scene.background = new Color(0x02050b);
-    this.scene.onBeforeRender = (_renderer, scene, camera) => preparePrecisionPaths(scene, camera);
+    this.scene.onBeforeRender = (_renderer, scene, camera) => {
+      for (const path of this.paths.values()) {
+        const marker = this.markers.get(path.bodyId);
+        path.precision.exclusionSphere = marker?.isComet && marker.root.visible
+          ? { center: marker.root.position, radius: marker.cameraTarget.radiusRenderUnits }
+          : null;
+      }
+      preparePrecisionPaths(scene, camera);
+    };
     this.scene.add(this.celestialBackground.root);
     this.scene.add(this.statisticalBelts.root);
     this.scene.add(this.blackHoleVisualSystem.root);
@@ -1623,8 +1631,12 @@ export class DebugSolarSystemRenderer {
     const comet = this.cometVisualSystem.getDiagnostics(this.selectedBodyId);
     return {
       ...this.bodyVisualSystem.getDiagnostics('sun'),
-      selectedMaterial: 'Deterministic rough nucleus · soft coma · diffuse ion/dust tails · common compressed display scale',
-      selectedAssetState: 'procedural',
+      selectedMaterial: (comet.nucleusShape === 'navcam'
+        ? 'ESA Rosetta NAVCAM shape'
+        : this.selectedBodyId === '1p-halley' ? 'Giotto-informed illustrative shape' : 'Illustrative nucleus shape') +
+        ' \u00b7 dust relief \u00b7 exposure-enhanced sunlight and inspection fill \u00b7 diffuse tails',
+      selectedAssetState: comet.nucleusShape === 'navcam' ? 'ready' :
+        comet.nucleusShape === 'loading' ? 'loading' : comet.nucleusShape === 'fallback' ? 'fallback' : 'procedural',
       selectedOcclusionVisibleFraction: 1,
       selectedOcclusionKind: 'none',
       atmosphereFlowTimeDays: comet.dustHistorySpanDays,

@@ -1,3 +1,4 @@
+import { COMET_SHAPE_SOURCE, ROSETTA_BODY_ID } from '../../rendering/comets/CometNucleusSources';
 import type { ObservatoryBodyDefinition } from '../../simulation/bodies/ObservatoryBodyCatalog';
 import { NOMINAL_SOLAR_IRRADIANCE_AT_1_AU_W_M2 } from '../../simulation/lighting/BodySunLighting';
 import { ASTRONOMICAL_UNIT_M, SECONDS_PER_DAY } from '../../simulation/core/Units';
@@ -93,7 +94,7 @@ export function BodyInspector({
           <div>
             <dt>Asset state</dt>
             <dd data-testid="body-asset-state" aria-live="polite">
-              {assetState}
+              {body.id === ROSETTA_BODY_ID ? assetState.replace('map', 'shape') : assetState}
             </dd>
           </div>
         )}
@@ -145,9 +146,22 @@ export function BodyInspector({
       ) : null}
       <p className="technical-note">
         {body.kind === 'comet'
-          ? 'Identity and orbit are JPL-sourced. Nucleus shape, coma, dust, and plasma appearance are deterministic educational visualizations.'
+          ? 'Identity and orbit are JPL-sourced. Surface detail, rotation, coma and tails are illustrative. Exposure and a soft inspection fill reveal the dark nucleus; brightness is not calibrated photometry.'
           : 'Surface assets are provenance-tracked; a procedural fallback remains available if an optional map cannot load.'}
       </p>
+      {body.kind === 'comet' && body.id === ROSETTA_BODY_ID ? (
+        <p className="technical-note" data-testid="comet-shape-credit">
+          Shape: <a href={COMET_SHAPE_SOURCE.sourcePage} target="_blank" rel="noreferrer">ESA/Rosetta/NAVCAM</a>
+          {' '}(simplified and uniformly scaled to the catalog radius).{' '}
+          <a href={COMET_SHAPE_SOURCE.licenseUrl} target="_blank" rel="noreferrer">CC BY-SA 3.0 IGO</a>.
+          {' '}An illustrative shape is retained if the model cannot load. No ESA endorsement.
+        </p>
+      ) : body.kind === 'comet' && body.id === '1p-halley' ? (
+        <p className="technical-note">
+          Elongation follows <a href="https://www.esa.int/ESA_Multimedia/Images/2016/03/Giotto_approaching_Comet_Halley" target="_blank" rel="noreferrer">Giotto observations</a>;
+          {' '}this is an illustrative reconstruction, not a measured surface map.
+        </p>
+      ) : null}
     </aside>
   );
 }

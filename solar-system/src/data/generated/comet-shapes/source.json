@@ -1,0 +1,20 @@
+{
+  "assetId": "67p-esa-navcam-mtp019-web-v1",
+  "credit": "ESA/Rosetta/NAVCAM",
+  "citation": "ESA/RMOC, SPC-ESA MTP019 CARTESIAN TRIPLATE MODEL FOR COMET 67P/C-G OBJ FORMAT LOW RES, RO-C-MULTI-5-67P-SHAPE-V2.0:CSHP_DV_130_01_LORES_OBJ, NASA Planetary Data System and ESA Planetary Science Archive, 2017.",
+  "sourceUrl": "https://pds-smallbodies.astro.umd.edu/holdings/ro-c-multi-5-67p-shape-v2.0/data/triplate/spc_esa/mtp019/cshp_dv_130_01_lores_obj.obj",
+  "sourceLabelUrl": "https://pds-smallbodies.astro.umd.edu/holdings/ro-c-multi-5-67p-shape-v2.0/data/triplate/spc_esa/mtp019/cshp_dv_130_01_lores_obj.lbl",
+  "sourcePage": "https://blogs.esa.int/rosetta/2015/11/30/new-comet-shape-model/",
+  "license": "CC BY-SA 3.0 IGO",
+  "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/igo/",
+  "sourceSha256": "e90fd0b7d86bc826cf967e2e0234a945c55be7dfd2f710c00e11ed953b14f801",
+  "outputSha256": "6aa84c867f725abb085242497eeb880500d7d37bae815034abcc0271e60aa153",
+  "outputBytes": 432036,
+  "sourceVertices": 52098,
+  "sourceTriangles": 104192,
+  "vertices": 12002,
+  "triangles": 24000,
+  "simplificationRelativeError": 0.0008096831734292209,
+  "sourceVolumeRadiusKm": 1.6496654469652874,
+  "processing": "Meshoptimizer simplification, shared vertices, outward winding, uniform normalization to unit volume-equivalent radius. Original axis proportions and CHEOPS origin retained. App scales uniformly to its existing catalog radius; spin is illustrative. No photographic texture. Added material detail and exposure/fill are illustrative. This derived mesh retains CC BY-SA 3.0 IGO; no ESA endorsement."
+}

@@ -11,6 +11,9 @@ export class PrecisionPath {
   readonly segments: Float32Array;
   readonly segmentColors: Float32Array;
   pointCount: number;
+  /** Optional display-only gap inside a solid comet nucleus. */
+  exclusionSphere: { readonly center: Readonly<Vector3>; readonly radius: number } | null = null;
+  private readonly exclusionView = new Vector3();
   private readonly view: Float64Array;
   private readonly planes = new Float64Array(24);
 
@@ -18,7 +21,7 @@ export class PrecisionPath {
     this.positions = new Float64Array(capacity * 3);
     this.colors = new Float32Array(capacity * 3);
     this.view = new Float64Array(capacity * 3);
-    this.segments = new Float32Array(Math.max(1, capacity - 1) * 6);
+    this.segments = new Float32Array(Math.max(1, capacity - 1) * 12);
     this.segmentColors = new Float32Array(this.segments.length);
     this.pointCount = capacity;
   }
@@ -46,6 +49,8 @@ export class PrecisionPath {
       p[0]!, 0, p[8]! - 1.01, 0, -p[0]!, 0, -p[8]! - 1.01, 0,
       0, p[5]!, p[9]! - 1.01, 0, 0, -p[5]!, -p[9]! - 1.01, 0,
     ]);
+    const exclusion = this.exclusionSphere;
+    if (exclusion !== null) this.exclusionView.copy(exclusion.center).applyMatrix4(camera.matrixWorldInverse);
     let count = 0;
     for (let i = 3; i < this.pointCount * 3; i += this.topology === 'segments' ? 6 : 3) {
       const a = i - 3;
@@ -66,20 +71,42 @@ export class PrecisionPath {
         if (start > end) break;
       }
       if (start > end) continue;
-      for (let component = 0; component < 3; component += 1) {
-        const av = this.view[a + component]!;
-        const bv = this.view[i + component]!;
-        const ac = this.colors[a + component]!;
-        const bc = this.colors[i + component]!;
-        this.segments[count * 6 + component] = stableLerp(av, bv, start);
-        this.segments[count * 6 + 3 + component] = stableLerp(av, bv, end);
-        this.segmentColors[count * 6 + component] = stableLerp(ac, bc, start);
-        this.segmentColors[count * 6 + 3 + component] = stableLerp(ac, bc, end);
-      }
-      count += 1;
+      if (exclusion === null || exclusion.radius <= 0) { count = this.emitSegment(a,i,start,end,count); continue; }
+      const ax = this.view[a]! - this.exclusionView.x;
+      const ay = this.view[a+1]! - this.exclusionView.y;
+      const az = this.view[a+2]! - this.exclusionView.z;
+      const vx = this.view[i]! - this.view[a]!;
+      const vy = this.view[i+1]! - this.view[a+1]!;
+      const vz = this.view[i+2]! - this.view[a+2]!;
+      const length = Math.hypot(vx,vy,vz);
+      if (length === 0) { count = this.emitSegment(a,i,start,end,count); continue; }
+      const ux = vx/length, uy = vy/length, uz = vz/length;
+      const along = -(ax*ux+ay*uy+az*uz);
+      const closest = Math.hypot(ax+along*ux,ay+along*uy,az+along*uz);
+      if (closest >= exclusion.radius) { count = this.emitSegment(a,i,start,end,count); continue; }
+      const half = Math.sqrt((exclusion.radius-closest)*(exclusion.radius+closest));
+      const enter = (along-half)/length, leave = (along+half)/length;
+      if (leave <= start || enter >= end) count = this.emitSegment(a,i,start,end,count);
+      else { count = this.emitSegment(a,i,start,Math.min(end,enter),count); count = this.emitSegment(a,i,Math.max(start,leave),end,count); }
+
     }
     return count;
   }
+  private emitSegment(a: number, i: number, from: number, to: number, count: number): number {
+    if (to <= from) return count;
+    for (let component = 0; component < 3; component += 1) {
+      const av = this.view[a + component]!;
+      const bv = this.view[i + component]!;
+      const ac = this.colors[a + component]!;
+      const bc = this.colors[i + component]!;
+      this.segments[count * 6 + component] = stableLerp(av, bv, from);
+      this.segments[count * 6 + 3 + component] = stableLerp(av, bv, to);
+      this.segmentColors[count * 6 + component] = stableLerp(ac, bc, from);
+      this.segmentColors[count * 6 + 3 + component] = stableLerp(ac, bc, to);
+    }
+    return count + 1;
+  }
+
 }
 
 function stableLerp(a: number, b: number, t: number): number {

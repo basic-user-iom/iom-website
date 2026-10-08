@@ -6,10 +6,8 @@ import {
   Float32BufferAttribute,
   FrontSide,
   Group,
-  IcosahedronGeometry,
   Line,
   Mesh,
-  MeshBasicMaterial,
   NormalBlending,
   Points,
   ShaderMaterial,
@@ -17,6 +15,8 @@ import {
   Vector3,
   type BufferAttribute,
 } from 'three';
+
+import { createNucleusGeometry, createNucleusMaterial, loadNavcamGeometry, ROSETTA_BODY_ID, type NucleusShapeState } from './CometNucleus';
 
 import type { DebugBodyRenderState, DebugRenderFrame } from '../RenderContext';
 import type { VisualQuality } from '../bodies/VisualQuality';
@@ -48,6 +48,7 @@ export interface CometVisualDiagnostics {
   readonly dustCurvatureM: number;
   readonly trustedEphemeris: boolean;
   readonly approximationWarning: string | null;
+  readonly nucleusShape: NucleusShapeState;
   readonly comaRendering: 'soft radial density';
   readonly tailRendering: 'diffuse ion and dust particle tails';
 }
@@ -55,7 +56,8 @@ export interface CometVisualDiagnostics {
 export interface CometVisual {
   readonly bodyId: string;
   readonly root: Group;
-  readonly nucleus: Mesh<IcosahedronGeometry, MeshBasicMaterial>;
+  readonly nucleus: Mesh<BufferGeometry, ShaderMaterial>;
+  nucleusShape: NucleusShapeState;
   readonly coma: Mesh<SphereGeometry, ShaderMaterial>;
   readonly innerComa: Mesh<SphereGeometry, ShaderMaterial>;
   readonly ionCore: Line<BufferGeometry, ShaderMaterial>;
@@ -106,7 +108,7 @@ const SCENE_NORTH = new Vector3(0, 1, 0);
 const MAPPED_ION_DIRECTION = new Vector3();
 const VIEW_LOCAL = new Vector3();
 
-/** Procedural nucleus/coma/tail renderer. No downloaded comet imagery is used. */
+/** Measured 67P shape plus illustrative nuclei, coma and tail materials. */
 export class CometVisualSystem {
   private readonly profiles = new Map<string, Readonly<CometVisualProfile>>();
   private readonly visuals = new Map<string, CometVisual>();
@@ -114,6 +116,7 @@ export class CometVisualSystem {
   private readonly viewWorldPosition = new Vector3(0, 8, 12);
   private quality: VisualQuality;
   private disposed = false;
+  private readonly modelAbort = new AbortController();
 
   public constructor(
     profiles: readonly Readonly<CometVisualProfile>[],
@@ -142,11 +145,8 @@ export class CometVisualSystem {
 
     const root = new Group();
     root.name = `comet-${body.bodyId}`;
-    const nucleusGeometry = createIrregularNucleusGeometry(profile.activity.deterministicSeed);
-    const nucleusMaterial = new MeshBasicMaterial({
-      color: new Color(profile.nucleusColor),
-    });
-    nucleusMaterial.name = 'rough-irregular-comet-nucleus';
+    const nucleusGeometry = createNucleusGeometry(profile.activity.deterministicSeed, body.bodyId === ROSETTA_BODY_ID);
+    const nucleusMaterial = createNucleusMaterial(profile.activity.deterministicSeed);
     const nucleus = new Mesh(nucleusGeometry, nucleusMaterial);
     nucleus.name = `comet-nucleus-${body.bodyId}`;
     nucleus.castShadow = false;
@@ -270,6 +270,7 @@ export class CometVisualSystem {
       bodyId: body.bodyId,
       root,
       nucleus,
+      nucleusShape: body.bodyId === ROSETTA_BODY_ID ? 'loading' : 'illustrative',
       coma,
       innerComa,
       ionCore,
@@ -310,6 +311,17 @@ export class CometVisualSystem {
       approximationWarning: 'Comet ephemeris has not loaded.',
     };
     this.visuals.set(body.bodyId, visual);
+    if (body.bodyId === ROSETTA_BODY_ID) {
+      const timeout = setTimeout(() => this.modelAbort.abort(), 15_000);
+      void loadNavcamGeometry(this.modelAbort.signal).then(geometry => {
+        if (this.disposed) { geometry.dispose(); return; }
+        visual.nucleus.geometry.dispose();
+        visual.nucleus.geometry = geometry;
+        visual.nucleusShape = 'navcam';
+      }).catch(() => {
+        if (!this.disposed) visual.nucleusShape = 'fallback';
+      }).finally(() => clearTimeout(timeout));
+    }
     return visual;
   }
 
@@ -333,16 +345,23 @@ export class CometVisualSystem {
       }
       visual.root.visible = body.visible;
       const nucleusRadius = radiusForBody(body);
-      const elongation = visual.profile.nucleusElongation;
+      const elongation = visual.nucleusShape === 'navcam' ? [1, 1, 1] : visual.profile.nucleusElongation;
       visual.nucleus.scale.set(
-        nucleusRadius * elongation[0],
-        nucleusRadius * elongation[1],
-        nucleusRadius * elongation[2],
+        nucleusRadius * elongation[0]!,
+        nucleusRadius * elongation[1]!,
+        nucleusRadius * elongation[2]!,
       );
       const days = frame.currentJdTdb - 2_451_545;
       visual.nucleus.quaternion
         .setFromAxisAngle(SCENE_NORTH, days * 0.43 + visual.profile.activity.deterministicSeed)
         .normalize();
+
+      const sun = frame.bodies.find(candidate => candidate.bodyId === 'sun');
+      const sunDirection = visual.nucleus.material.uniforms.uSunDirection!.value as Vector3;
+      if (sun) sunDirection.set(sun.positionM.x - body.positionM.x,
+        sun.positionM.z - body.positionM.z, -(sun.positionM.y - body.positionM.y)).normalize();
+      else sunDirection.set(-state.tail.ionDirection.x, -state.tail.ionDirection.z, state.tail.ionDirection.y).normalize();
+      visual.nucleus.material.uniforms.uRenderRadius!.value = nucleusRadius;
 
       const physicalComaRadius =
         visual.profile.activity.comaRadiusKm * 1_000 / metersPerRenderUnit;
@@ -355,7 +374,9 @@ export class CometVisualSystem {
       const comaRadius = Math.min(uncappedComa, nucleusRadius * 5.5);
       const nucleusExtent =
         nucleusRadius *
-        Math.max(elongation[0], elongation[1], elongation[2]);
+        Math.max(elongation[0]!, elongation[1]!, elongation[2]!) *
+        ((visual.nucleus.geometry.boundingSphere?.radius ?? 1) +
+         (visual.nucleus.geometry.boundingSphere?.center.length() ?? 0));
       visual.coma.scale.setScalar(comaRadius);
       visual.innerComa.scale.setScalar(Math.max(nucleusExtent * 1.12, comaRadius * 0.58));
     // Soft limb haze from a faint non-additive shell (particles carry the streak mass).
@@ -540,6 +561,7 @@ export class CometVisualSystem {
       dustCurvatureM: visual.dustCurvatureM,
       trustedEphemeris: visual.trustedEphemeris,
       approximationWarning: visual.approximationWarning,
+      nucleusShape: visual.nucleusShape,
       comaRendering: 'soft radial density',
       tailRendering: 'diffuse ion and dust particle tails',
     });
@@ -548,6 +570,7 @@ export class CometVisualSystem {
   public dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
+    this.modelAbort.abort();
     for (const visual of this.visuals.values()) {
       visual.nucleus.geometry.dispose();
       visual.nucleus.material.dispose();
@@ -575,29 +598,6 @@ export class CometVisualSystem {
   private assertNotDisposed(): void {
     if (this.disposed) throw new Error('Comet visual system is disposed.');
   }
-}
-
-function createIrregularNucleusGeometry(seed: number): IcosahedronGeometry {
-  // One smooth dark body — mild potato, never a jagged shard cluster.
-  const geometry = new IcosahedronGeometry(1, 1);
-  const positions = geometry.getAttribute('position');
-  const random = createRandom(seed);
-  for (let index = 0; index < positions.count; index += 1) {
-    const x = positions.getX(index);
-    const y = positions.getY(index);
-    const z = positions.getZ(index);
-    const ridge =
-      Math.sin(x * 3.1 + seed * 0.0001) *
-      Math.cos(y * 2.7 - z * 2.2) *
-      0.012;
-    const displacement = 0.97 + random() * 0.035 + ridge;
-    positions.setXYZ(index, x * displacement, y * displacement, z * displacement);
-  }
-  positions.needsUpdate = true;
-  geometry.computeVertexNormals();
-  geometry.computeBoundingSphere();
-  geometry.name = `deterministic-irregular-comet-${seed}`;
-  return geometry;
 }
 
 function maximumTailLength(attribute: BufferAttribute, count: number): number {
@@ -1302,6 +1302,7 @@ const EMPTY_DIAGNOSTICS: Readonly<CometVisualDiagnostics> = Object.freeze({
   dustCurvatureM: 0,
   trustedEphemeris: false,
   approximationWarning: null,
+  nucleusShape: 'illustrative',
   comaRendering: 'soft radial density',
   tailRendering: 'diffuse ion and dust particle tails',
 });
