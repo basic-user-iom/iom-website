@@ -76,7 +76,7 @@ export function NaturalSatellitePanel({
         Dated JPL/NASA snapshot · {NATURAL_SATELLITE_CATALOG_METADATA.officialSnapshotDateUtc} · parent-relative positions.
       </p>
       <p className="field-help">
-        Tap a moon name or dot to inspect it. Orbit lines are closed, instantaneous two-body guides through each moon's current position, not a prediction of its complete path over time.{' '}
+        Tap a moon name or dot to inspect it. Surface brightness is adjusted for viewing; sunlight direction and parent eclipses follow the model. Orbit lines are closed, instantaneous two-body guides through each moon's current position, not a prediction of its complete path over time.{' '}
         <a href="https://ssd.jpl.nasa.gov/orbits_doc.html" target="_blank" rel="noreferrer">JPL: orbits and ephemerides</a>
       </p>
       <div className="layer-controls" role="group" aria-label="Natural satellite layers">

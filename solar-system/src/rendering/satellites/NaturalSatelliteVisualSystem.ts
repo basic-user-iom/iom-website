@@ -1,3 +1,4 @@
+import { attachMoonSunlight, updateMoonSunlight, type MoonSunlight } from './MoonSunlight';
 import type { PickableSceneBody } from '../SceneBodyPicking';
 import { bodyLocationCueOpacity, bodyLocationOccluded } from '../BodyLocationCue';
 import type { ScreenLabelBounds } from '../ScreenLabelLayout';
@@ -92,6 +93,7 @@ function normalizeRotation(value: number): number {
 
 interface MajorResource {
   readonly definition: NaturalSatelliteDefinition;
+  readonly sunlight: MoonSunlight;
   readonly mesh: Mesh<BufferGeometry, MeshStandardMaterial>;
   readonly orbit: PrecisionLine;
   readonly shapeAxes: Readonly<Vector3>;
@@ -101,6 +103,7 @@ interface MajorResource {
 }
 
 interface MinorResource {
+  readonly sunlight: MoonSunlight;
   readonly definitions: readonly NaturalSatelliteDefinition[];
   readonly mesh: InstancedMesh<SphereGeometry, MeshStandardMaterial>;
 }
@@ -189,7 +192,7 @@ export class NaturalSatelliteVisualSystem {
       mesh.name = `natural-satellites-${parentId}-minor-points`;
       mesh.frustumCulled = false;
       this.root.add(mesh);
-      this.minor.set(parentId, { definitions, mesh });
+      this.minor.set(parentId, { definitions, mesh, sunlight: attachMoonSunlight(mesh.material) });
     }
     this.selectionHalo = new Mesh(
       new RingGeometry(1.2, 1.3, 48),
@@ -403,7 +406,12 @@ export class NaturalSatelliteVisualSystem {
         : { x: sun.positionM.x - parent.positionM.x, y: sun.positionM.y - parent.positionM.y, z: sun.positionM.z - parent.positionM.z };
       const eclipsed = sun !== undefined && isNaturalSatelliteInParentShadow(state, parent.meanRadiusM, parentToSun);
       if (eclipsed) this.eclipsedMajorCount += 1;
-      resource.mesh.material.color.copy(WHITE).multiplyScalar(eclipsed ? 0.18 : 1);
+      resource.mesh.material.color.copy(WHITE);
+      updateMoonSunlight(resource.sunlight, {
+        x: parentToSun.x - state.positionM.x,
+        y: parentToSun.y - state.positionM.y,
+        z: parentToSun.z - state.positionM.z,
+      }, sun === undefined || eclipsed);
       const official = resource.mesh.userData.surfaceMode === 'official-vtad-map';
       const selected = resource.definition.id === this.selectedSatelliteId;
       resource.mesh.material.emissiveIntensity = eclipsed
@@ -425,11 +433,7 @@ export class NaturalSatelliteVisualSystem {
       // Face Mimas's authored +X basin toward the sun so the lit inspection
       // camera sees Herschel instead of the night side.
       if (selected && resource.definition.id === 'mimas' && sun !== undefined) {
-        SUN_DIRECTION.set(
-          sun.positionM.x - (parent.positionM.x + state.positionM.x),
-          sun.positionM.y - (parent.positionM.y + state.positionM.y),
-          sun.positionM.z - (parent.positionM.z + state.positionM.z),
-        );
+        SUN_DIRECTION.copy(resource.sunlight.directionWorld.value);
         if (SUN_DIRECTION.lengthSq() > 1e-16) {
           SUN_DIRECTION.normalize();
           resource.mesh.quaternion.setFromUnitVectors(BASIN_AXIS, SUN_DIRECTION);
@@ -451,6 +455,11 @@ export class NaturalSatelliteVisualSystem {
         resource.mesh.visible = false;
         continue;
       }
+      updateMoonSunlight(resource.sunlight, sun === undefined ? ZERO : {
+        x: sun.positionM.x - parent.positionM.x,
+        y: sun.positionM.y - parent.positionM.y,
+        z: sun.positionM.z - parent.positionM.z,
+      }, sun === undefined);
       const localScale = this.localOrbitScale(resource.definitions[0]!, parent, scaleModel, selectedParentId);
       this.parentRenderedRadii.set(parent.bodyId, scaleModel.radiusFor(parent));
       this.localScaleApplied ||= localScale > 1.0001;
@@ -769,6 +778,7 @@ export class NaturalSatelliteVisualSystem {
     this.root.add(orbit, mesh);
     this.major.set(definition.id, {
       definition,
+      sunlight: attachMoonSunlight(material),
       mesh,
       orbit,
       shapeAxes: shapeAxesFor(definition.id),
