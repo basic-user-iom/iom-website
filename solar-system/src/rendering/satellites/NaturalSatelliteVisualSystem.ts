@@ -1,3 +1,4 @@
+import { bodyLocationCueOpacity, bodyLocationOccluded } from '../BodyLocationCue';
 import type { ScreenLabelBounds } from '../ScreenLabelLayout';
 import { PrecisionLine } from '../PrecisionPath';
 import {
@@ -95,6 +96,7 @@ interface MajorResource {
   readonly shapeAxes: Readonly<Vector3>;
   readonly ownsGeometry: boolean;
   label: HTMLSpanElement | null;
+  locationDot: HTMLSpanElement | null;
 }
 
 interface MinorResource {
@@ -140,6 +142,10 @@ export class NaturalSatelliteVisualSystem {
   private readonly transitShadows = new Map<string, Mesh<CircleGeometry, ShaderMaterial>>();
   private readonly selectionHalo: Mesh<RingGeometry, MeshBasicMaterial>;
   private compactSelectionLabel: HTMLSpanElement | null = null;
+  private compactLocationDot: HTMLSpanElement | null = null;
+  private readonly cueOccluders = new Map<string, { position: Vector3; radius: number }>();
+  private readonly cueProjection = new Vector3();
+  private readonly cueParentProjection = new Vector3();
   private selectionScreenIndicator: HTMLSpanElement | null = null;
   private visible = true;
   private majorVisible = true;
@@ -248,13 +254,17 @@ export class NaturalSatelliteVisualSystem {
 
   public setLabelContainer(container: HTMLElement | null): void {
     this.compactSelectionLabel?.remove();
+    this.compactLocationDot?.remove();
     this.selectionScreenIndicator?.remove();
     this.labelContainer = container;
     for (const resource of this.major.values()) {
       resource.label?.remove();
+      resource.locationDot?.remove();
+      resource.locationDot = container === null ? null : this.createLocationDot(resource.definition);
       resource.label = this.labelContainer === null ? null : this.createLabel(resource.definition);
     }
     this.compactSelectionLabel = null;
+    this.compactLocationDot = null;
     this.selectionScreenIndicator = null;
     if (container !== null) {
       const label = document.createElement('span');
@@ -263,6 +273,7 @@ export class NaturalSatelliteVisualSystem {
       label.setAttribute('aria-hidden', 'true');
       container.append(label);
       this.compactSelectionLabel = label;
+      this.compactLocationDot = this.createLocationDot();
 
       const indicator = document.createElement('span');
       indicator.className = 'body-selection-indicator auxiliary-selection-indicator natural-satellite-selection-indicator';
@@ -341,6 +352,17 @@ export class NaturalSatelliteVisualSystem {
     this.root.visible = true;
     const parentById = new Map(frame.bodies.map((body) => [body.bodyId, body]));
     const sun = parentById.get('sun');
+    for (const occluder of this.cueOccluders.values()) occluder.radius = 0;
+    for (const body of frame.bodies) {
+      if (!body.visible || body.kind === 'comet') continue;
+      let occluder = this.cueOccluders.get(body.bodyId);
+      if (occluder === undefined) {
+        occluder = { position: new Vector3(), radius: 0 };
+        this.cueOccluders.set(body.bodyId, occluder);
+      }
+      scaleModel.mapPosition(occluder.position, body.positionM, originM);
+      occluder.radius = scaleModel.radiusFor(body);
+    }
     this.selectedParentId = selectedParentId;
     this.eclipsedMajorCount = 0;
     this.transitShadowCount = 0;
@@ -460,6 +482,7 @@ export class NaturalSatelliteVisualSystem {
     suppressed = false,
     bodyLabelBounds: readonly ScreenLabelBounds[] = [],
   ): void {
+    this.updateLocationDots(camera, viewportWidth, viewportHeight, suppressed);
     for (const resource of this.major.values()) {
       if (!resource.mesh.visible || resource.mesh.userData.surfaceDetailReady || !isProceduralMajorMoon(resource.definition.id)) continue;
       const radius = this.renderedRadii.get(resource.definition.id) ?? 0;
@@ -610,13 +633,16 @@ export class NaturalSatelliteVisualSystem {
       if (resource.ownsGeometry) resource.mesh.geometry.dispose();
       resource.orbit.geometry.dispose();
       resource.label?.remove();
+      resource.locationDot?.remove();
     }
     this.geometry.dispose();
     this.selectionHalo.geometry.dispose();
     for (const shadow of this.transitShadows.values()) shadow.geometry.dispose();
     this.compactSelectionLabel?.remove();
+    this.compactLocationDot?.remove();
     this.selectionScreenIndicator?.remove();
     this.compactSelectionLabel = null;
+    this.compactLocationDot = null;
     this.selectionScreenIndicator = null;
     for (const texture of this.loadedTextures) texture.dispose();
     for (const texture of this.proceduralTextures) texture.dispose();
@@ -625,6 +651,7 @@ export class NaturalSatelliteVisualSystem {
     this.worldPositions.clear();
     this.renderedRadii.clear();
     this.parentRenderedRadii.clear();
+    this.cueOccluders.clear();
     this.root.clear();
     this.major.clear();
     this.minor.clear();
@@ -730,6 +757,7 @@ export class NaturalSatelliteVisualSystem {
       shapeAxes: shapeAxesFor(definition.id),
       ownsGeometry,
       label: this.labelContainer === null ? null : this.createLabel(definition),
+      locationDot: this.labelContainer === null ? null : this.createLocationDot(definition),
     });
   }
 
@@ -801,6 +829,72 @@ export class NaturalSatelliteVisualSystem {
       ? 0.1
       : selectedParentId === parent.bodyId ? 0.014 : 0.005;
     return Math.min(parentRadius * 0.16, Math.max(relativeRadius, parentRadius * minimumFraction));
+  }
+
+  private createLocationDot(definition?: NaturalSatelliteDefinition): HTMLSpanElement {
+    const dot = document.createElement('span');
+    // Reuse constant CSS-pixel sizing, round edges and PNG export from planet cues.
+    dot.className = 'body-location-dot natural-satellite-location-dot';
+    dot.dataset.testid = definition ? `moon-location-dot-${definition.id}` : 'selected-minor-moon-location-dot';
+    dot.setAttribute('aria-hidden', 'true');
+    if (definition) this.setDotIdentity(dot, definition);
+    this.labelContainer?.append(dot);
+    return dot;
+  }
+
+  private setDotIdentity(dot: HTMLSpanElement, definition: NaturalSatelliteDefinition): void {
+    if (dot.dataset.satelliteId === definition.id) return;
+    dot.dataset.satelliteId = definition.id;
+    dot.dataset.parentBodyId = definition.parentId;
+    dot.style.setProperty('--body-dot-color', `#${new Color(PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9).getHexString()}`);
+  }
+
+  private updateLocationDots(camera: Camera, width: number, height: number, suppressed: boolean): void {
+    const hidden = suppressed || !this.visible || !this.root.visible || this.scenarioOverlaysSuppressed;
+    for (const resource of this.major.values()) {
+      if (resource.locationDot === null) continue;
+      this.placeLocationDot(resource.locationDot, resource.mesh.position,
+        this.renderedRadii.get(resource.definition.id) ?? 0, camera, width, height,
+        !hidden && resource.mesh.visible && this.majorVisible);
+    }
+    if (this.compactLocationDot === null) return;
+    const definition = this.selectedSatelliteId === null ? undefined
+      : NATURAL_SATELLITE_DEFINITIONS.find(body => body.id === this.selectedSatelliteId && body.tier !== 'major');
+    const position = definition && this.worldPositions.get(definition.id);
+    if (definition && position) {
+      this.setDotIdentity(this.compactLocationDot, definition);
+      this.placeLocationDot(this.compactLocationDot, position, this.renderedRadii.get(definition.id) ?? 0,
+        camera, width, height, !hidden && this.minorVisible);
+    } else this.compactLocationDot.style.opacity = '0';
+  }
+
+  private placeLocationDot(dot: HTMLSpanElement, position: Vector3, radius: number,
+    camera: Camera, width: number, height: number, visible: boolean): void {
+    const p = this.cueProjection.copy(position).project(camera);
+    const onScreen = p.z >= -1 && p.z <= 1 && Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1;
+    const radiusPx = projectedSphereRadiusPx(camera, position, radius, width, height);
+    let opacity = visible && onScreen && radius > 0 ? bodyLocationCueOpacity(radiusPx) : 0;
+    const parent = this.cueOccluders.get(dot.dataset.parentBodyId ?? '');
+    if (opacity > 0 && parent && dot.dataset.satelliteId !== this.selectedSatelliteId) {
+      const parentNdc = this.cueParentProjection.copy(parent.position).project(camera);
+      // Keep the planet's identity when its whole moon system fits into one dot.
+      if (parentNdc.z >= -1 && parentNdc.z <= 1 &&
+        Math.hypot((p.x - parentNdc.x) * width * .5, (p.y - parentNdc.y) * height * .5) < 8) opacity = 0;
+    }
+    if (opacity > 0) for (const occluder of this.cueOccluders.values()) {
+      if (bodyLocationOccluded(camera.position, position, occluder.position, occluder.radius)) {
+        opacity = 0;
+        break;
+      }
+    }
+    if (opacity > 0) for (const other of this.major.values()) {
+      if (other.definition.id === dot.dataset.satelliteId || !other.mesh.visible) continue;
+      if (bodyLocationOccluded(camera.position, position, other.mesh.position,
+        this.renderedRadii.get(other.definition.id) ?? 0)) { opacity = 0; break; }
+    }
+    dot.dataset.projectedRadiusPx = radiusPx.toFixed(3);
+    dot.style.opacity = opacity.toFixed(3);
+    dot.style.transform = `translate(${(p.x * .5 + .5) * width}px, ${(-p.y * .5 + .5) * height}px) translate(-50%, -50%)`;
   }
 
   private createLabel(definition: NaturalSatelliteDefinition): HTMLSpanElement {
