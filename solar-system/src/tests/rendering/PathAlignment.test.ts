@@ -1,6 +1,6 @@
 import { NaturalSatelliteVisualSystem } from '../../rendering/satellites/NaturalSatelliteVisualSystem';
 import { TrueRenderScale } from '../../rendering/TrueRenderScale';
-import { PrecisionLine } from '../../rendering/PrecisionPath';
+import type { PrecisionLine } from '../../rendering/PrecisionPath';
 import { PerspectiveCamera, Vector3 } from 'three';
 import { PrecisionPath } from '../../rendering/PrecisionPath';
 import { writeEpochAnchoredPath } from '../../rendering/EpochAnchoredPath';
@@ -140,7 +140,7 @@ describe('camera-space line precision', () => {
 });
 
 
-it('renders a full sampled period of Nereid and Phoebe instead of a 35% arc', () => {
+it('renders a closed full orbit guide of Nereid and Phoebe instead of a partial arc', () => {
   const system = new NaturalSatelliteVisualSystem();
   const scale = new TrueRenderScale();
   const zero = { x: 0, y: 0, z: 0 }, jd = 2461322.123456;
@@ -152,10 +152,12 @@ it('renders a full sampled period of Nereid and Phoebe instead of a 35% arc', ()
       const id = parentId === 'saturn' ? 'phoebe' : 'nereid';
       const definition = getNaturalSatellitesByParent(parentId).find(moon => moon.id === id)!;
       const orbit = system.root.getObjectByName(`natural-satellite-orbit-${id}`) as PrecisionLine;
-      const start = sampleNaturalSatellite(definition, jd - definition.orbitalPeriodSeconds / 172800).positionM;
-      const end = sampleNaturalSatellite(definition, jd + definition.orbitalPeriodSeconds / 172800).positionM;
+      const start = sampleNaturalSatellite(definition, jd).positionM;
+      const end = start;
       expect(orbit.visible).toBe(true);
       const points = orbit.path.positions;
+      // A complete ellipse reaches the far side as well as returning to its start.
+      expect(Math.max(...Array.from({ length: orbit.path.pointCount }, (_, i) => Math.hypot(points[i * 3]!, points[i * 3 + 1]!, points[i * 3 + 2]!)))).toBeGreaterThan(definition.semiMajorAxisM / scale.metersPerRenderUnit);
       for (const [index, expected] of [[0, start], [orbit.path.pointCount - 1, end]] as const) {
         const actual = new Vector3(points[index * 3], points[index * 3 + 1], points[index * 3 + 2]).add(orbit.path.anchor).multiplyScalar(scale.metersPerRenderUnit);
         expect(actual.distanceTo(new Vector3(expected.x, expected.z, -expected.y))).toBeLessThan(0.01);

@@ -298,6 +298,44 @@ export function sampleNaturalSatelliteOrbit(
   return output;
 }
 
+/**
+ * Closed instantaneous two-body guide through the current state. This is an
+ * osculating ellipse, not a sampled prediction over a rounded catalogue period.
+ * Positions and propagation stay in sampleNaturalSatellite; only the guide is
+ * frozen to one epoch. See https://ssd.jpl.nasa.gov/orbits_doc.html.
+ */
+export function sampleNaturalSatelliteOrbitGuide(
+  satellite: Readonly<NaturalSatelliteDefinition>, jdTdb: number, samples = 192,
+): Float64Array {
+  if (!Number.isInteger(samples) || samples < 8) throw new RangeError('Moon guide samples must be an integer >= 8.');
+  const state = sampleNaturalSatellite(satellite, jdTdb);
+  const p = state.positionM, v = state.velocityMps;
+  const position: [number, number, number] = [p.x, p.y, p.z];
+  const velocity: [number, number, number] = [v.x, v.y, v.z];
+  const mu = gravitationalParameterFor(satellite.parentId);
+  const r = magnitude(position), h = cross(position, velocity), hLength = magnitude(h);
+  const a = 1 / (2 / r - dot(velocity, velocity) / mu);
+  if (!(a > 0) || !(hLength > 0)) throw new RangeError('Moon guide requires a bound non-degenerate state.');
+  const vxh = cross(velocity, h);
+  const eVector = vxh.map((value, i) => value / mu - position[i]! / r) as [number, number, number];
+  const e = magnitude(eVector);
+  const axis = (e > 1e-10 ? eVector.map(value => value / e) : position.map(value => value / r)) as [number, number, number];
+  const normal = h.map(value => value / hLength) as [number, number, number];
+  const transverse = cross(normal, axis);
+  const b = a * Math.sqrt(Math.max(0, 1 - e * e));
+  const eccentricAnomaly = Math.atan2(dot(position, transverse) / b, dot(position, axis) / a + e);
+  const output = new Float64Array(samples * 3);
+  for (let i = 1; i < samples - 1; i += 1) {
+    const angle = eccentricAnomaly + Math.PI * 2 * i / (samples - 1);
+    const x = a * (Math.cos(angle) - e), y = b * Math.sin(angle);
+    for (let j = 0; j < 3; j += 1) output[i * 3 + j] = axis[j]! * x + transverse[j]! * y;
+  }
+  // The seam is exactly the current state, including floating-point rounding.
+  output.set(position, 0);
+  output.set(position, (samples - 1) * 3);
+  return output;
+}
+
 /** Returns whether a moon lies inside the parent body's geometric umbra. */
 export function isNaturalSatelliteInParentShadow(
   state: Readonly<NaturalSatelliteState>,

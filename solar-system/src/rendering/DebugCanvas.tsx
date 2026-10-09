@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { SelectionGesture } from './SelectionGesture';
-import type { ObservatoryBodyId } from '../simulation/bodies/ObservatoryBodyCatalog';
+import { isObservatoryBodyId, type ObservatoryBodyId } from '../simulation/bodies/ObservatoryBodyCatalog';
 import { DebugSolarSystemRenderer } from './DebugSolarSystemRenderer';
 import type { EarthTideDebugMode } from './tides/EarthTideDebugOverlay';
 import { detectWebGL2Support } from './WebGLCapability';
@@ -19,6 +19,7 @@ export interface DebugCanvasProps {
   readonly onVisibilityChange: (visible: boolean) => void;
   readonly onInteractionStart?: () => void;
   readonly onSelectBody?: (bodyId: ObservatoryBodyId) => void;
+  readonly onSelectNaturalSatellite?: (id: string) => void;
 }
 
 interface LocalStatus {
@@ -38,9 +39,12 @@ export function DebugCanvas({
   onVisibilityChange,
   onInteractionStart = () => undefined,
   onSelectBody,
+  onSelectNaturalSatellite,
 }: DebugCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const labelLayerRef = useRef<HTMLDivElement>(null);
+  const moonSelectionRef = useRef(onSelectNaturalSatellite);
+  useEffect(() => { moonSelectionRef.current = onSelectNaturalSatellite; }, [onSelectNaturalSatellite]);
   const selectionRef = useRef(onSelectBody);
   useEffect(() => { selectionRef.current = onSelectBody; }, [onSelectBody]);
   const rendererRef = useRef<DebugSolarSystemRenderer | null>(null);
@@ -170,9 +174,17 @@ export function DebugCanvas({
     if (!canvas || manualCameraInteractionLocked) return;
     const gesture = new SelectionGesture();
     const targets = [canvas, ...(labels ? [labels] : [])];
+    const labelId = (target: EventTarget | null) => {
+      const label = target instanceof Element ? target.closest<HTMLElement>('[data-body-id],button[data-satellite-id]') : null;
+      return label?.dataset.bodyId ?? label?.dataset.satelliteId;
+    };
+    const select = (id: string) => {
+      if (isObservatoryBodyId(id)) selectionRef.current?.(id);
+      else moonSelectionRef.current?.(id);
+    };
     let pressedBodyId: string | undefined;
     const down = (event: PointerEvent) => {
-      pressedBodyId = (event.target as Element).closest<HTMLElement>('[data-body-id]')?.dataset.bodyId;
+      pressedBodyId = labelId(event.target);
       gesture.down(event.pointerId, event.clientX, event.clientY, event.timeStamp, event.isPrimary && event.button === 0);
     };
     const move = (event: PointerEvent) => gesture.move(event.pointerId, event.clientX, event.clientY);
@@ -180,14 +192,13 @@ export function DebugCanvas({
     const wheel = () => gesture.cancel();
     const up = (event: PointerEvent) => {
       if (!gesture.up(event.pointerId, event.clientX, event.clientY, event.timeStamp)) return;
-      const label = (event.target as Element).closest<HTMLElement>('[data-body-id]');
-      const bodyId = pressedBodyId ?? label?.dataset.bodyId ?? rendererRef.current?.pickBodyAt(event.clientX, event.clientY, event.pointerType === 'touch' ? 22 : 8);
-      if (bodyId) selectionRef.current?.(bodyId as ObservatoryBodyId);
+      const bodyId = pressedBodyId ?? labelId(event.target) ?? rendererRef.current?.pickBodyAt(event.clientX, event.clientY, event.pointerType === 'touch' ? 22 : 8);
+      if (bodyId) select(bodyId);
     };
     const keyboardClick = (event: MouseEvent) => {
       if (event.detail !== 0) return;
-      const id = (event.target as Element).closest<HTMLElement>('[data-body-id]')?.dataset.bodyId;
-      if (id) selectionRef.current?.(id as ObservatoryBodyId);
+      const id = labelId(event.target);
+      if (id) select(id);
     };
     for (const target of targets) {
       target.addEventListener('pointerdown', down as EventListener, true);

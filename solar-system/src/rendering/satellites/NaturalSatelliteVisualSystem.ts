@@ -1,3 +1,4 @@
+import type { PickableSceneBody } from '../SceneBodyPicking';
 import { bodyLocationCueOpacity, bodyLocationOccluded } from '../BodyLocationCue';
 import type { ScreenLabelBounds } from '../ScreenLabelLayout';
 import { PrecisionLine } from '../PrecisionPath';
@@ -36,7 +37,7 @@ import {
 } from '../../simulation/satellites/NaturalSatelliteCatalog';
 import {
   sampleNaturalSatellite,
-  sampleNaturalSatelliteOrbit,
+  sampleNaturalSatelliteOrbitGuide,
   isNaturalSatelliteInParentShadow,
 } from '../../simulation/satellites/NaturalSatelliteProvider';
 import type { DebugBodyRenderState, DebugRenderFrame, PhysicalPosition } from '../RenderContext';
@@ -95,7 +96,7 @@ interface MajorResource {
   readonly orbit: PrecisionLine;
   readonly shapeAxes: Readonly<Vector3>;
   readonly ownsGeometry: boolean;
-  label: HTMLSpanElement | null;
+  label: HTMLButtonElement | null;
   locationDot: HTMLSpanElement | null;
 }
 
@@ -322,6 +323,20 @@ export class NaturalSatelliteVisualSystem {
     }
   }
 
+  public getPickableBodies(): PickableSceneBody[] {
+    if (!this.visible || !this.root.visible || this.scenarioOverlaysSuppressed) return [];
+    const bodies: PickableSceneBody[] = [];
+    for (const [id, position] of this.worldPositions) {
+      const resource = this.major.get(id);
+      const visible = resource ? this.majorVisible && resource.mesh.visible : this.minorVisible;
+      if (!visible) continue;
+      const dot = resource?.locationDot ?? this.compactLocationDot;
+      bodies.push({ id, position, radius: this.renderedRadii.get(id) ?? 0,
+        allowPointPick: dot !== null && Number(dot.style.opacity) > 0 });
+    }
+    return bodies;
+  }
+
   public getSatelliteWorldPosition(id: string): Vector3 | null {
     return this.worldPositions.get(id)?.clone() ?? null;
   }
@@ -517,6 +532,7 @@ export class NaturalSatelliteVisualSystem {
     const candidates: LabelCandidate[] = [];
     for (const resource of this.major.values()) {
       if (resource.label === null) continue;
+      resource.label.style.visibility = 'hidden';
       if (suppressed || !this.labelsVisible || !resource.mesh.visible) {
         resource.label.style.opacity = '0';
         continue;
@@ -540,8 +556,8 @@ export class NaturalSatelliteVisualSystem {
         resource,
         x,
         y,
-        width: Math.max(42, resource.definition.name.length * 7 + 18),
-        height: 22,
+        width: Math.max(44, resource.definition.name.length * 6 + 12),
+        height: 44,
         priority: selected ? 2 : resource.definition.parentId === this.selectedParentId ? 1 : 0,
       });
     }
@@ -563,6 +579,7 @@ export class NaturalSatelliteVisualSystem {
         continue;
       }
       occupied.push(bounds);
+      candidate.resource.label!.style.visibility = 'visible';
       candidate.resource.label!.style.opacity = selected ? '1' : '0.72';
       candidate.resource.label!.style.transform = `translate(${candidate.x}px, ${candidate.y}px) translate(0, -50%)`;
       candidate.resource.label!.dataset.selected = String(selected);
@@ -746,7 +763,7 @@ export class NaturalSatelliteVisualSystem {
     mesh.userData.satelliteId = definition.id;
     mesh.userData.surfaceMode = ownsGeometry ? 'procedural-irregular' : 'procedural-sphere';
     mesh.frustumCulled = false;
-    const orbit = new PrecisionLine(definition.id === 'nereid' || definition.id === 'phoebe' ? 384 : 96, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
+    const orbit = new PrecisionLine(definition.id === 'nereid' || definition.id === 'phoebe' ? 384 : 192, new LineBasicMaterial({ color: PROFILE_COLORS[definition.visualProfile] ?? 0x7fbfd9, transparent: true, opacity: 0.38 }));
     orbit.name = `natural-satellite-orbit-${definition.id}`;
     orbit.frustumCulled = false;
     this.root.add(orbit, mesh);
@@ -897,12 +914,15 @@ export class NaturalSatelliteVisualSystem {
     dot.style.transform = `translate(${(p.x * .5 + .5) * width}px, ${(-p.y * .5 + .5) * height}px) translate(-50%, -50%)`;
   }
 
-  private createLabel(definition: NaturalSatelliteDefinition): HTMLSpanElement {
-    const label = document.createElement('span');
+  private createLabel(definition: NaturalSatelliteDefinition): HTMLButtonElement {
+    const label = document.createElement('button');
+    label.type = 'button';
+    label.title = `Focus ${definition.name}`;
+    label.setAttribute('aria-label', `Focus ${definition.name}`);
+    label.style.visibility = 'hidden';
     label.className = 'natural-satellite-screen-label';
     label.textContent = definition.name;
     label.dataset.satelliteId = definition.id;
-    label.setAttribute('aria-hidden', 'true');
     this.labelContainer?.append(label);
     return label;
   }
@@ -917,7 +937,7 @@ export class NaturalSatelliteVisualSystem {
     localScale: number,
   ): void {
     const current = sampleNaturalSatellite(definition, jdTdb).positionM;
-    const positions = sampleNaturalSatelliteOrbit(definition, jdTdb, 1, orbit.path.pointCount);
+    const positions = sampleNaturalSatelliteOrbitGuide(definition, jdTdb, orbit.path.pointCount);
     scaleModel.mapPosition(PARENT_POSITION, parent.positionM, originM);
     this.mapLocalOffset(LOCAL, current, scaleModel, localScale);
     orbit.path.anchor.copy(PARENT_POSITION).add(LOCAL);

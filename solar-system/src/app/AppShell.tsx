@@ -2148,6 +2148,42 @@ export function AppShell() {
     [controls, scenarioActive, compact, closePanel, updateCometsVisible],
   );
 
+  const handleNaturalSatelliteSelectAndFocus = useCallback((id: string) => {
+    if (scenarioActive || lessonActiveRef.current) return;
+    if (id === 'moon') { handleBodySelectAndFocus('moon'); return; }
+    const satellite = getNaturalSatelliteDefinition(id);
+    if (!satellite) return;
+    if (compact) closePanel();
+    const renderer = rendererRef.current;
+    setSelectedSpaceObjectId(null);
+    renderer?.selectSpaceObject(null);
+    setNaturalSatelliteVisible(true);
+    renderer?.setNaturalSatellitesVisible(true);
+    if (satellite.tier === 'major') {
+      setMajorMoonsVisible(true); renderer?.setMajorMoonsVisible(true);
+    } else {
+      setMinorMoonsVisible(true); renderer?.setMinorMoonsVisible(true);
+    }
+    setActiveCloseUpPresetId(null);
+    setSelectedNaturalSatelliteId(id);
+    renderer?.selectNaturalSatellite(id);
+    if (isObservatoryBodyId(satellite.parentId)) controls.focusBody(satellite.parentId);
+    window.setTimeout(() => {
+      const runtime = runtimeRef.current, activeRenderer = rendererRef.current;
+      // A later planet/moon selection or a scenario must not be overwritten.
+      if (!runtime || !activeRenderer || lessonActiveRef.current || scenarioManagerRef.current?.activeScenarioId != null
+        || activeRenderer.getNaturalSatelliteDiagnostics().selectedSatelliteId !== id) return;
+      updateCameraMode('free-orbit');
+      runtime.cameraMode = 'free-orbit';
+      runtime.renderNow();
+      runtime.renderNow();
+      if (!activeRenderer.focusNaturalSatellite(id)) {
+        runtime.renderNow(); activeRenderer.focusNaturalSatellite(id);
+      }
+      runtime.renderNow(); runtime.forcePublish();
+    }, 280);
+  }, [scenarioActive, compact, closePanel, controls, updateCameraMode, handleBodySelectAndFocus, setActiveCloseUpPresetId]);
+
   const handleLegendCometFocus = useCallback(() => {
     if (scenarioActive) return;
     const runtime = runtimeRef.current;
@@ -3295,40 +3331,7 @@ export function AppShell() {
                 if (compact) closePanel();
                 const renderer = rendererRef.current;
                 if (target.kind === 'natural-satellite') {
-                  const satellite = getNaturalSatelliteDefinition(target.id);
-                  if (satellite === undefined) return;
-                  setNaturalSatelliteVisible(true);
-                  renderer?.setNaturalSatellitesVisible(true);
-                  if (satellite.tier === 'major') {
-                    setMajorMoonsVisible(true);
-                    renderer?.setMajorMoonsVisible(true);
-                  } else {
-                    setMinorMoonsVisible(true);
-                    renderer?.setMinorMoonsVisible(true);
-                  }
-                  setSelectedSpaceObjectId(null);
-                  renderer?.selectSpaceObject(null);
-                  setSelectedNaturalSatelliteId(target.id);
-                  renderer?.selectNaturalSatellite(target.id);
-                  if (isObservatoryBodyId(satellite.parentId)) controls.focusBody(satellite.parentId);
-                  window.setTimeout(() => {
-                    const runtime = runtimeRef.current;
-                    const activeRenderer = rendererRef.current;
-                    if (runtime === null || activeRenderer === null) return;
-                    // Parent focus sets body-follow; switch to free-orbit before moon framing.
-                    updateCameraMode('free-orbit');
-                    runtime.cameraMode = 'free-orbit';
-                    // Two renders: first applies selection orbit scale, second frames the moon.
-                    runtime.renderNow();
-                    runtime.renderNow();
-                    const focused = activeRenderer.focusNaturalSatellite(target.id);
-                    if (!focused) {
-                      runtime.renderNow();
-                      activeRenderer.focusNaturalSatellite(target.id);
-                    }
-                    runtime.renderNow();
-                    runtime.forcePublish();
-                  }, 280);
+                  handleNaturalSatelliteSelectAndFocus(target.id);
                   return;
                 }
                 setSelectedNaturalSatelliteId(null);
@@ -3413,41 +3416,7 @@ export function AppShell() {
                 setSelectedNaturalSatelliteId(id);
                 rendererRef.current?.selectNaturalSatellite(id);
               }}
-              onFocusSatellite={(id) => {
-                if (compact) closePanel();
-                if (id === 'moon') {
-                  setSelectedNaturalSatelliteId(null);
-                  rendererRef.current?.selectNaturalSatellite(null);
-                  controls.focusBody('moon');
-                  return;
-                }
-                const satellite = getNaturalSatelliteDefinition(id);
-                setNaturalSatelliteVisible(true);
-                rendererRef.current?.setNaturalSatellitesVisible(true);
-                if (satellite?.tier === 'major') {
-                  setMajorMoonsVisible(true);
-                  rendererRef.current?.setMajorMoonsVisible(true);
-                } else {
-                  setMinorMoonsVisible(true);
-                  rendererRef.current?.setMinorMoonsVisible(true);
-                }
-                setSelectedNaturalSatelliteId(id);
-                window.setTimeout(() => {
-                  const runtime = runtimeRef.current;
-                  const activeRenderer = rendererRef.current;
-                  if (runtime === null || activeRenderer === null) return;
-                  updateCameraMode('free-orbit');
-                  runtime.cameraMode = 'free-orbit';
-                  runtime.renderNow();
-                  const focused = activeRenderer.focusNaturalSatellite(id);
-                  if (!focused) {
-                    runtime.renderNow();
-                    activeRenderer.focusNaturalSatellite(id);
-                  }
-                  runtime.renderNow();
-                  runtime.forcePublish();
-                }, 220);
-              }}
+              onFocusSatellite={handleNaturalSatelliteSelectAndFocus}
               onFocusParent={(parentId) => {
                 if (isObservatoryBodyId(parentId)) controls.focusBody(parentId);
               }}
@@ -3552,6 +3521,7 @@ export function AppShell() {
             >
           <DebugCanvas key={rendererAttempt}
             onSelectBody={handleBodySelectAndFocus}
+            onSelectNaturalSatellite={handleNaturalSatelliteSelectAndFocus}
             reducedMotion={reducedMotion || (lessonActive && lessonMotionPaused)}
             reduceFlashes={reduceFlashes}
             cameraMode={cameraMode}

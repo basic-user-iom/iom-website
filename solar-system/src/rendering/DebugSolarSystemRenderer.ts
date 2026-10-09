@@ -1,3 +1,4 @@
+import { pickSceneBody } from './SceneBodyPicking';
 import { lessonCameraPose, lessonRelevantBodies, type LessonFraming } from './camera/LessonCamera';
 import { placeScreenLabelBounds, type ScreenLabelBounds } from './ScreenLabelLayout';
 import { bodyLocationCueOpacity, bodyLocationOccluded } from './BodyLocationCue';
@@ -15,8 +16,6 @@ import {
   Color,
   Group,
   PerspectiveCamera,
-  Raycaster,
-  Sphere,
   PointLight,
   Quaternion,
   Scene,
@@ -2259,27 +2258,11 @@ export class DebugSolarSystemRenderer {
   /** Ray/sphere intersection uses the same rendered positions and radii as the visible bodies. */
   public pickBodyAt(clientX: number, clientY: number, hitSlopPx = 8): string | null {
     const rect = this.canvas.getBoundingClientRect();
-    if (!rect.width || !rect.height || clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
-    const point = new Vector2((clientX - rect.left) / rect.width * 2 - 1, 1 - (clientY - rect.top) / rect.height * 2);
-    const ray = new Raycaster();
-    ray.setFromCamera(point, this.camera);
-    const intersection = new Vector3();
-    let nearest = Infinity;
-    let picked: string | null = null;
-    let fallback: string | null = null;
-    let pixelDistance = hitSlopPx;
-    for (const [id, marker] of this.markers) {
-      if (!marker.root.visible) continue;
-      if (ray.ray.intersectSphere(new Sphere(marker.root.position, marker.cameraTarget.radiusRenderUnits), intersection)) {
-        const distance = intersection.distanceTo(this.camera.position);
-        if (distance < nearest) { nearest = distance; picked = id; }
-      }
-      if (marker.onScreen) {
-        const distance = Math.hypot(clientX - rect.left - marker.screenX, clientY - rect.top - marker.screenY);
-        if (distance < pixelDistance) { pixelDistance = distance; fallback = id; }
-      }
-    }
-    return picked ?? fallback;
+    const bodies = [...this.markers].filter(([, marker]) => marker.root.visible).map(([id, marker]) => ({
+      id, position: marker.root.position, radius: marker.cameraTarget.radiusRenderUnits, allowPointPick: marker.onScreen,
+    }));
+    bodies.push(...this.naturalSatelliteVisualSystem.getPickableBodies());
+    return pickSceneBody(this.camera, bodies, clientX - rect.left, clientY - rect.top, rect.width, rect.height, hitSlopPx);
   }
 
   private createBodyLocationDot(body: DebugBodyRenderState): HTMLSpanElement | null {
