@@ -13,6 +13,7 @@ import { createClassicalSculptureMaterial } from './classical-sculpture-material
 import { createSculptureInformation } from './sculpture-information.js';
 import { initializeStudies } from './studies.js';
 import { createGalleryTour } from './tour.js';
+import { createGalleryWalk } from './gallery-walk.js';
 import { createGalleryRoof } from './gallery-roof.js';
 import { createViewportFullscreen } from './viewport-fullscreen.js';
 import { GLTFLoader } from './vendor/loaders/GLTFLoader.js';
@@ -24,9 +25,9 @@ const ORIGIN=[4.492431640625,.7928047180175781,.020121637731790543];
 const toGLTF=([x,y,z])=>new THREE.Vector3(x-ORIGIN[0],z-ORIGIN[2],-(y-ORIGIN[1]));
 const el=id=>document.getElementById(id),viewport=el('viewport'),canvas=el('scene');
 const soundtrack=initializeSoundtrack({viewport});
-let musicScreen=null,websiteScreen=null,sculpturePicker=null;
+let musicScreen=null,websiteScreen=null,sculpturePicker=null,walk=null;
 const intro=window.galleryIntro;
-const fullscreen=createViewportFullscreen({viewport,button:el('viewport-fullscreen')});
+const fullscreen=createViewportFullscreen({viewport,button:el('viewport-fullscreen'),onSkipTour:()=>skipTourToEntry()});
 const sculptureInformation=createSculptureInformation({viewport});
 const state=window.__ai66={status:'loading',galleryStatus:'loading',sculptureStatus:'loading',modelURL:MODEL,sculptureURL:SCULPTURES,
   loadMs:null,fileBytes:0,environmentBytes:0,sculptureBytes:0,camera:'overview',selectedSculpture:null,roofVisible:false,
@@ -53,10 +54,14 @@ intro?.bind({
       // transition. play() retains this trusted gesture for requestFullscreen.
       viewport.append(element);
       if(!tour?.play())throw new Error('The tour is not ready');
+    }else if(walk?.state.ready){
+      if(!skipTourToEntry()&&!walk.enter({pose:entryWalkPose()}))selectCamera('interior');
+    }else{
+      selectCamera('interior');
     }
   },
   complete(){
-    (fullscreen.state.active?el('viewport-fullscreen'):canvas).focus({preventScroll:true});
+    (fullscreen.state.active&&!walk?.state.active?el('viewport-fullscreen'):canvas).focus({preventScroll:true});
   },
 });
 function updateIntro(frameRendered=false){
@@ -130,7 +135,7 @@ function setPose(position,target,fov=45){
   const damping=controls.enableDamping;controls.enableDamping=false;controls.update();
   camera.position.fromArray(position);controls.target.fromArray(target);camera.fov=fov;camera.lookAt(controls.target);camera.updateProjectionMatrix();controls.update();controls.enableDamping=damping;keepCameraAboveGround();updateCameraClipping();state.frameMs=[];snapshot();
 }
-function syncCameraUI(){el('overview').setAttribute('aria-pressed',String(state.camera==='overview'));el('interior').setAttribute('aria-pressed',String(state.camera==='interior'));el('sculpture-select').value=['music-screen','website-screen'].includes(state.camera)?state.camera:state.selectedSculpture??'';el('sculpture-select').dataset.viewLabel=state.camera==='interior'?'Gallery interior':state.camera==='floor-fog'?'Gallery floor':'Gallery overview';sculpturePicker?.sync();sculptureInformation.select(state.selectedSculpture);websiteScreen?.select(state.camera);const index=presets.findIndex(p=>p.id===state.selectedSculpture),preset=presets[index];el('focus-label').textContent=preset?`${preset.label} · ${index+1} / ${presets.length}`:state.camera==='overview'?'Full gallery':state.camera==='floor-fog'?'Gallery floor':state.camera==='music-screen'?'Music · Light in motion':state.camera==='website-screen'?'IOM · Experiments':'Gallery interior';}
+function syncCameraUI(){el('overview').setAttribute('aria-pressed',String(state.camera==='overview'));el('interior').setAttribute('aria-pressed',String(state.camera==='interior'));el('sculpture-select').value=['music-screen','website-screen'].includes(state.camera)?state.camera:state.selectedSculpture??'';el('sculpture-select').dataset.viewLabel=state.camera==='walk'?'Walking through the gallery':state.camera==='interior'?'Gallery interior':state.camera==='floor-fog'?'Gallery floor':'Gallery overview';sculpturePicker?.sync();sculptureInformation.select(state.selectedSculpture);websiteScreen?.select(state.camera);const index=presets.findIndex(p=>p.id===state.selectedSculpture),preset=presets[index];el('focus-label').textContent=preset?`${preset.label} · ${index+1} / ${presets.length}`:state.camera==='overview'?'Full gallery':state.camera==='floor-fog'?'Gallery floor':state.camera==='music-screen'?'Music · Light in motion':state.camera==='website-screen'?'IOM · Experiments':state.camera==='walk'?'Walking · Eye height 1.70 m':'Gallery interior';}
 function getPose(id){
   if(id===undefined)return{position:camera.position.toArray(),target:controls.target.toArray(),fov:camera.fov,aspect:camera.aspect};
   if(['music-screen','website-screen'].includes(id)&&musicScreen){
@@ -165,9 +170,34 @@ function fitPoseFov(fov,fromAspect,toAspect){
   const factor=Math.min(1,fromAspect)/Math.min(1,toAspect);
   return THREE.MathUtils.clamp(THREE.MathUtils.radToDeg(2*Math.atan(Math.tan(THREE.MathUtils.degToRad(fov)/2)*factor)),15,110);
 }
-function applyCurrentPose(){const pose=getPose(state.selectedSculpture??state.camera);setPose(pose.position,pose.target,pose.fov);}
-function selectCamera(mode,{move=true,preserveRoof=false}={}){if(mode!=='music-screen')musicScreen?.setAmount(0);state.camera=mode;state.selectedSculpture=null;if(!preserveRoof){el('roof').checked=mode==='interior'||mode==='floor-fog'||mode==='music-screen'||mode==='website-screen';updateRoof();}if(move)applyCurrentPose();syncCameraUI();studies?.onSelectSculpture(mode==='floor-fog'?'floor-fog':null);}
-function selectSculpture(id,{move=true,preserveRoof=false}={}){if(!id){selectCamera('overview',{move,preserveRoof});return;}if(state.sculptureStatus!=='ready'||!presets.some(p=>p.id===id))return;musicScreen?.setAmount(0);state.camera='sculpture';state.selectedSculpture=id;if(!preserveRoof){el('roof').checked=true;updateRoof();}if(move)applyCurrentPose();syncCameraUI();studies?.onSelectSculpture(state.selectedSculpture);}
+function applyCurrentPose(){walk?.exit();const pose=getPose(state.selectedSculpture??state.camera);setPose(pose.position,pose.target,pose.fov);}
+function selectCamera(mode,{move=true,preserveRoof=false}={}){walk?.exit();if(mode!=='music-screen')musicScreen?.setAmount(0);state.camera=mode;state.selectedSculpture=null;if(!preserveRoof){el('roof').checked=mode==='interior'||mode==='floor-fog'||mode==='music-screen'||mode==='website-screen';updateRoof();}if(move)applyCurrentPose();syncCameraUI();studies?.onSelectSculpture(mode==='floor-fog'?'floor-fog':null);}
+function selectSculpture(id,{move=true,preserveRoof=false}={}){walk?.exit();if(!id){selectCamera('overview',{move,preserveRoof});return;}if(state.sculptureStatus!=='ready'||!presets.some(p=>p.id===id))return;musicScreen?.setAmount(0);state.camera='sculpture';state.selectedSculpture=id;if(!preserveRoof){el('roof').checked=true;updateRoof();}if(move)applyCurrentPose();syncCameraUI();studies?.onSelectSculpture(state.selectedSculpture);}
+function entryWalkPose(){return {...getPose('interior'),fov:60};}
+function skipTourToEntry(){
+  if(!walk?.state.ready||!tour?.state.ready)return false;
+  walk.exit();
+  if(!tour.skip())return false;
+  return walk.enter({pose:entryWalkPose()});
+}
+function initializeWalk(){
+  walk=createGalleryWalk({camera,controls,canvas,viewport,navigation:tour.navigation,
+    getEntryPose:entryWalkPose,button:el('walk-toggle'),
+    onEnter(){
+      if(tour.state.reason!=='skipped')tour.pause('manual');
+      sculpturePicker?.close();musicScreen?.setAmount(0);
+      state.camera='walk';state.selectedSculpture=null;roof?.setAmount(1);
+      syncCameraUI();studies?.onSelectSculpture(null);
+      canvas.setAttribute('aria-label','3D gallery walking view; WASD or arrow keys to move, drag to look');
+      snapshot();
+    },
+    onExit(){
+      if(state.camera==='walk'){state.camera='interior';syncCameraUI();}
+      canvas.setAttribute('aria-label','3D gallery; drag to orbit and scroll to zoom');
+    }
+  });
+  state.walk=walk.state;el('walk-toggle').disabled=!walk.state.ready;
+}
 const cameraRig={getPose,
   applyPose(pose){
     // Clear pending orbit motion before the guided path supplies the next pose.
@@ -183,7 +213,7 @@ function stepSculpture(step){if(!presets.length||state.sculptureStatus!=='ready'
 el('overview').addEventListener('click',()=>selectCamera('overview'));el('interior').addEventListener('click',()=>selectCamera('interior'));el('roof').addEventListener('change',()=>{updateRoof();tour?.noteRoofManualChange?.();state.frameMs=[];});
 el('sculpture-select').addEventListener('change',e=>{if(e.target.value==='music-screen')musicScreen?.show();else if(e.target.value==='website-screen'){tour?.pause('manual');selectCamera('website-screen');}else selectSculpture(e.target.value);});el('previous-sculpture').addEventListener('click',()=>stepSculpture(-1));el('next-sculpture').addEventListener('click',()=>stepSculpture(1));el('reset-view').addEventListener('click',applyCurrentPose);
 // Keep native navigation available if the optional thumbnail enhancement fails.
-import('./sculpture-picker.js').then(({createSculpturePicker})=>{sculpturePicker=createSculpturePicker({select:el('sculpture-select')});}).catch(()=>{});
+import('./sculpture-picker.js').then(({createSculpturePicker})=>{sculpturePicker=createSculpturePicker({select:el('sculpture-select'),viewport,walkButton:el('walk-toggle')});}).catch(()=>{});
 function resize(){
   const{width,height}=viewport.getBoundingClientRect();if(width<=0||height<=0)return;
   const previousAspect=camera.aspect,nextAspect=width/height;
@@ -194,7 +224,7 @@ function resize(){
   state.viewport={width:Math.round(width),height:Math.round(height),pixelRatio:renderer.getPixelRatio()};
 }
 new ResizeObserver(resize).observe(viewport);resize();selectCamera('overview',{preserveRoof:true});
-window.galleryPreview={scene,camera,controls,ground,fullscreen,intro,soundtrack,get musicScreen(){return musicScreen;},get websiteScreen(){return websiteScreen;},get sculpturePicker(){return sculpturePicker;},sculptureInformation,cameraRig,selectCamera,selectSculpture,reset:applyCurrentPose,snapshot,get roof(){return roof;},get galleryModel(){return model;},get sculptureModel(){return sculptureModel;},get presets(){return presets;},get studies(){return studies;},get tour(){return tour;}};
+window.galleryPreview={scene,camera,controls,ground,fullscreen,intro,soundtrack,get walk(){return walk;},skipTourToEntry,get musicScreen(){return musicScreen;},get websiteScreen(){return websiteScreen;},get sculpturePicker(){return sculpturePicker;},sculptureInformation,cameraRig,selectCamera,selectSculpture,reset:applyCurrentPose,snapshot,get roof(){return roof;},get galleryModel(){return model;},get sculptureModel(){return sculptureModel;},get presets(){return presets;},get studies(){return studies;},get tour(){return tour;}};
 function updateStatus(){
   state.sceneTriangles=countTriangles(false);state.visibleTriangles=countTriangles(true);state.fileBytes=state.environmentBytes+state.sculptureBytes;
   if(state.fileBytes)el('file-size').textContent=(state.fileBytes/1e6).toFixed(2)+' MB';
@@ -202,7 +232,7 @@ function updateStatus(){
   for(const id of ['sculpture-select','previous-sculpture','next-sculpture'])el(id).disabled=state.sculptureStatus!=='ready'||state.galleryStatus!=='ready';
   if(state.galleryStatus==='error'){state.status='error';el('status').className='error';el('status').textContent='The gallery could not load. Refresh the page and check the local preview server.';}
   else if(state.galleryStatus==='ready'&&state.sculptureStatus==='error'){state.status='partial';el('status').className='error';el('status').textContent='The gallery is available, but the sculptures could not load. Refresh the page to try again.';}
-  else if(state.galleryStatus==='ready'&&state.sculptureStatus==='ready'){state.status='ready';state.loadMs=performance.now()-start;el('load-time').textContent=(state.loadMs/1000).toFixed(2)+' s';el('status').textContent='The gallery and sculptures are ready';el('status').className='ready';if(!studies){studies=initializeStudies({renderer,scene,camera,galleryModel:model,sculptureModel,groundReceiver:ground.mesh,selectSculpture,selectCamera});state.studies=studies.state;websiteScreen=createWebsiteScreen({scene,galleryModel:model,camera,canvas,viewport,pauseTour:()=>tour?.pause('manual'),getOccluders:()=>[model,sculptureModel].filter(Boolean)});state.websiteScreen=websiteScreen.state;musicScreen=createMusicScreen({scene,galleryModel:model,renderer,getStudies:()=>studies,player:soundtrack.player,focus:id=>selectCamera(id),pauseTour:()=>tour?.pause('manual'),viewport});state.musicScreen=musicScreen.state;tour=createGalleryTour({getStudies:()=>studies,getMusicScreen:()=>musicScreen,onPlayMusic:()=>soundtrack.player.play(),selectCamera,selectSculpture,cameraRig,galleryModel:model,sculptureModel,roof,fullscreen,canvas,manualInteraction:manualBeforeTour,autoStart:false});state.tour=tour.state;manualEvents.forEach(type=>document.querySelector('main').removeEventListener(type,rememberEarlyInput,{capture:true}));}}
+  else if(state.galleryStatus==='ready'&&state.sculptureStatus==='ready'){state.status='ready';state.loadMs=performance.now()-start;el('load-time').textContent=(state.loadMs/1000).toFixed(2)+' s';el('status').textContent='The gallery and sculptures are ready';el('status').className='ready';if(!studies){studies=initializeStudies({renderer,scene,camera,galleryModel:model,sculptureModel,groundReceiver:ground.mesh,selectSculpture,selectCamera});state.studies=studies.state;websiteScreen=createWebsiteScreen({scene,galleryModel:model,camera,canvas,viewport,pauseTour:()=>tour?.pause('manual'),getOccluders:()=>[model,sculptureModel].filter(Boolean)});state.websiteScreen=websiteScreen.state;musicScreen=createMusicScreen({scene,galleryModel:model,renderer,getStudies:()=>studies,player:soundtrack.player,focus:id=>selectCamera(id),pauseTour:()=>tour?.pause('manual'),viewport});state.musicScreen=musicScreen.state;tour=createGalleryTour({getStudies:()=>studies,getMusicScreen:()=>musicScreen,onPlayMusic:()=>soundtrack.player.play(),onBeforePlay:()=>{walk?.exit();sculpturePicker?.close();},onSkip:()=>skipTourToEntry(),selectCamera,selectSculpture,cameraRig,galleryModel:model,sculptureModel,roof,fullscreen,canvas,manualInteraction:manualBeforeTour,autoStart:false});state.tour=tour.state;initializeWalk();manualEvents.forEach(type=>document.querySelector('main').removeEventListener(type,rememberEarlyInput,{capture:true}));}}
   else el('status').textContent=state.galleryStatus==='ready'?'Loading sculptures…':'Loading gallery…';
 }
 new GLTFLoader().load(MODEL,gltf=>{
@@ -222,5 +252,5 @@ Promise.all([new Promise((resolve,reject)=>sculptureLoader.load(SCULPTURES,resol
   for(const preset of presets){const option=document.createElement('option');option.value=preset.id;option.textContent=preset.label;el('sculpture-select').append(option);}const musicOption=document.createElement('option');musicOption.value='music-screen';musicOption.textContent='Music screen';el('sculpture-select').append(musicOption);const secondMusicOption=document.createElement('option');secondMusicOption.value='website-screen';secondMusicOption.textContent='Second gallery · IOM Experiments';el('sculpture-select').append(secondMusicOption);state.sculptureStatus='ready';updateStatus();snapshot();
 }).catch(error=>{state.sculptureStatus='error';state.errors.push(String(error));updateStatus();});
 let previous=performance.now(),lastStats=0;
-function animate(now){requestAnimationFrame(animate);if(intro?.state.mode!=='leaving')tour?.update(now);fullscreen.update?.(tour);controls.update();keepCameraAboveGround();updateCameraClipping();studies?.update(now/1000);musicScreen?.update(now/1000);const previousAutoReset=renderer.info.autoReset;renderer.info.autoReset=false;renderer.info.reset();try{if(!studies?.render(camera))renderer.render(scene,camera);}finally{renderer.info.autoReset=previousAutoReset;}const dt=now-previous;previous=now;if(state.status==='ready'&&dt>0&&dt<1000){state.frameMs.push(dt);if(state.frameMs.length>180)state.frameMs.shift();}state.frames++;updateIntro(true);state.drawCalls=renderer.info.render.calls;state.renderedTriangles=renderer.info.render.triangles;if(now-lastStats>400){lastStats=now;el('draw-calls').textContent=number.format(state.drawCalls);el('triangles').textContent=number.format(state.renderedTriangles);state.memory={...renderer.info.memory};snapshot();const sorted=[...state.frameMs].sort((a,b)=>a-b);state.medianFrameMs=sorted.length?sorted[Math.floor(sorted.length/2)]:null;state.fps=state.medianFrameMs?1000/state.medianFrameMs:null;const error=gl.getError();if(error!==gl.NO_ERROR)state.webglErrors.push(error);}}
+function animate(now){requestAnimationFrame(animate);if(intro?.state.mode!=='leaving')tour?.update(now);fullscreen.update?.(tour);if(walk?.state.active)walk.update(now);else controls.update();keepCameraAboveGround();updateCameraClipping();studies?.update(now/1000);musicScreen?.update(now/1000);const previousAutoReset=renderer.info.autoReset;renderer.info.autoReset=false;renderer.info.reset();try{if(!studies?.render(camera))renderer.render(scene,camera);}finally{renderer.info.autoReset=previousAutoReset;}const dt=now-previous;previous=now;if(state.status==='ready'&&dt>0&&dt<1000){state.frameMs.push(dt);if(state.frameMs.length>180)state.frameMs.shift();}state.frames++;updateIntro(true);state.drawCalls=renderer.info.render.calls;state.renderedTriangles=renderer.info.render.triangles;if(now-lastStats>400){lastStats=now;el('draw-calls').textContent=number.format(state.drawCalls);el('triangles').textContent=number.format(state.renderedTriangles);state.memory={...renderer.info.memory};snapshot();const sorted=[...state.frameMs].sort((a,b)=>a-b);state.medianFrameMs=sorted.length?sorted[Math.floor(sorted.length/2)]:null;state.fps=state.medianFrameMs?1000/state.medianFrameMs:null;const error=gl.getError();if(error!==gl.NO_ERROR)state.webglErrors.push(error);}}
 requestAnimationFrame(animate);

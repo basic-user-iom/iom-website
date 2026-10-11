@@ -9,6 +9,7 @@ const clamp=t=>Math.max(0,Math.min(1,t));
 const ease=t=>{t=clamp(t);return t*t*(3-2*t);};
 const smoother=t=>{t=clamp(t);return t*t*t*(t*(t*6-15)+10);};
 const distance=(a,b)=>Math.hypot(a[0]-b[0],a[2]-b[2]);
+const finitePoint=p=>p!=null&&p.length>=3&&Number.isFinite(p[0])&&Number.isFinite(p[1])&&Number.isFinite(p[2]);
 const lerp=(a,b,t)=>a+(b-a)*t;
 function segmentDistance(x,z,a,b){const dx=b[0]-a[0],dz=b[2]-a[2],t=clamp(((x-a[0])*dx+(z-a[2])*dz)/(dx*dx+dz*dz||1));return Math.hypot(x-a[0]-dx*t,z-a[2]-dz*t);}
 function inside(x,z,p){let yes=false;for(let i=0,j=p.length-1;i<p.length;j=i++){const a=p[i],b=p[j];if(((a[2]>z)!==(b[2]>z))&&x<(b[0]-a[0])*(z-a[2])/(b[2]-a[2])+a[0])yes=!yes;}return yes;}
@@ -21,14 +22,15 @@ class Heap{
 export function createGalleryNavigation({galleryModel,sculptureModel}){
  const started=performance.now(),floorPolys=[],obstacles=[],bounds=new Box3(),v=new Vector3(),instance=new Matrix4(),matrix=new Matrix4();
  galleryModel.updateMatrixWorld(true);sculptureModel.updateMatrixWorld(true);
- let inputTriangles=0,obstacleTriangles=0,instances=0;
+ let inputTriangles=0,obstacleTriangles=0,instances=0,sculptureObstacles=0;
+ const obstacleMeshes=[],floorMeshes=[];
  galleryModel.traverse(mesh=>{
   if(!mesh.isMesh)return;const geom=mesh.geometry,position=geom.attributes.position,index=geom.index;
   let floor=false;for(let p=mesh;p;p=p.parent)if(p.name==='gallery_floors')floor=true;
-  const localBox=new Box3().setFromBufferAttribute(position),count=mesh.isInstancedMesh?mesh.count:1;
+  const localBox=new Box3().setFromBufferAttribute(position),count=mesh.isInstancedMesh?mesh.count:1;let included=0;
   for(let n=0;n<count;n++){
    if(mesh.isInstancedMesh){mesh.getMatrixAt(n,instance);matrix.multiplyMatrices(mesh.matrixWorld,instance);}else matrix.copy(mesh.matrixWorld);
-   const box=localBox.clone().applyMatrix4(matrix);if(!floor&&(box.max.y<LOW||box.min.y>HIGH))continue;instances++;
+   const box=localBox.clone().applyMatrix4(matrix);if(!floor&&(box.max.y<LOW||box.min.y>HIGH))continue;instances++;included++;
    for(let i=0;i<(index?.count??position.count);i+=3){
     const points=[];for(let j=0;j<3;j++){v.fromBufferAttribute(position,index?index.getX(i+j):i+j).applyMatrix4(matrix);points.push(v.toArray());}inputTriangles++;
     if(floor){
@@ -39,16 +41,17 @@ export function createGalleryNavigation({galleryModel,sculptureModel}){
     }
    }
   }
+  if(included)(floor?floorMeshes:obstacleMeshes).push({name:mesh.name,instances:included});
  });
  sculptureModel.traverse(root=>{
   if(!/^AI66_002_Sculpture_[A-F]\d*$/.test(root.name)&&root.name!=='runtime_Doryphoros'&&!root.userData.galleryExhibitRoot)return;
   const box=new Box3().setFromObject(root);if(box.max.y<LOW||box.min.y>HIGH)return;
-  obstacles.push([[box.min.x,LOW,box.min.z],[box.max.x,LOW,box.min.z],[box.max.x,LOW,box.max.z],[box.min.x,LOW,box.max.z]]);
+  obstacles.push([[box.min.x,LOW,box.min.z],[box.max.x,LOW,box.min.z],[box.max.x,LOW,box.max.z],[box.min.x,LOW,box.max.z]]);sculptureObstacles++;
  });
  if(bounds.isEmpty())throw new Error('No measured gallery floor is available for the walking tour.');
  const origin=[bounds.min.x,0,bounds.min.z],width=Math.ceil((bounds.max.x-bounds.min.x)/CELL)+1,depth=Math.ceil((bounds.max.z-bounds.min.z)/CELL)+1,size=width*depth,walkable=new Uint8Array(size);
  const point=id=>[origin[0]+(id%width+.5)*CELL,HEIGHT,origin[2]+(Math.floor(id/width)+.5)*CELL];
- const cell=p=>{const x=Math.floor((p[0]-origin[0])/CELL),z=Math.floor((p[2]-origin[2])/CELL);return x<0||z<0||x>=width||z>=depth?-1:z*width+x;};
+ const cell=p=>{if(!finitePoint(p))return-1;const x=Math.floor((p[0]-origin[0])/CELL),z=Math.floor((p[2]-origin[2])/CELL);return x<0||z<0||x>=width||z>=depth?-1:z*width+x;};
  function raster(poly,padding,value){
   const xs=poly.map(p=>p[0]),zs=poly.map(p=>p[2]);
   const x0=Math.max(0,Math.floor((Math.min(...xs)-padding-origin[0])/CELL)),x1=Math.min(width-1,Math.floor((Math.max(...xs)+padding-origin[0])/CELL));
@@ -63,14 +66,29 @@ export function createGalleryNavigation({galleryModel,sculptureModel}){
  const floorMask=new Uint8Array(size);floorPolys.forEach(poly=>{const xs=poly.map(p=>p[0]),zs=poly.map(p=>p[2]);for(let z=Math.max(0,Math.floor((Math.min(...zs)-origin[2])/CELL));z<=Math.min(depth-1,Math.ceil((Math.max(...zs)-origin[2])/CELL));z++)for(let x=Math.max(0,Math.floor((Math.min(...xs)-origin[0])/CELL));x<=Math.min(width-1,Math.ceil((Math.max(...xs)-origin[0])/CELL));x++){const p=point(z*width+x);if(inside(p[0],p[2],poly))floorMask[z*width+x]=1;}});
  for(let id=0;id<size;id++)if(walkable[id]){const x=id%width,z=Math.floor(id/width);for(let dz=-2;dz<=2;dz++)for(let dx=-2;dx<=2;dx++){if(dx*dx+dz*dz>4)continue;const xx=x+dx,zz=z+dz;if(xx<0||zz<0||xx>=width||zz>=depth||!floorMask[zz*width+xx])walkable[id]=0;}}
  obstacles.length=0;floorPolys.length=0;
+ // Seats can leave tiny, fully enclosed pockets between their supports. Both
+ // gallery wings and the central passage share one continuous walking area;
+ // keep that component so an orbit-to-walk spawn cannot enter a trapped pocket.
+ const labels=new Int32Array(size),queue=new Int32Array(size);let components=0,largestComponent=0,largestSize=0,discardedCells=0;
+ for(let seed=0;seed<size;seed++){
+  if(!walkable[seed]||labels[seed])continue;
+  const label=++components;let head=0,tail=1;queue[0]=seed;labels[seed]=label;
+  while(head<tail){
+   const id=queue[head++],x=id%width,z=Math.floor(id/width);
+   for(const next of [x?id-1:-1,x+1<width?id+1:-1,z?id-width:-1,z+1<depth?id+width:-1])if(next>=0&&walkable[next]&&!labels[next]){labels[next]=label;queue[tail++]=next;}
+  }
+  if(tail>largestSize){largestSize=tail;largestComponent=label;}
+ }
+ for(let id=0;id<size;id++)if(walkable[id]&&labels[id]!==largestComponent){walkable[id]=0;discardedCells++;}
  // Prefer room to turn, rather than the mathematically shortest line grazing
  // every partition. The original blocked cells remain the hard safety limit.
  const margin=new Float32Array(size);for(let i=0;i<size;i++)margin[i]=walkable[i]?1000:0;
  for(let z=0;z<depth;z++)for(let x=0;x<width;x++){const i=z*width+x;if(!walkable[i])continue;let d=margin[i];if(x)d=Math.min(d,margin[i-1]+CELL);if(z)d=Math.min(d,margin[i-width]+CELL);if(x&&z)d=Math.min(d,margin[i-width-1]+CELL*Math.SQRT2);if(x+1<width&&z)d=Math.min(d,margin[i-width+1]+CELL*Math.SQRT2);margin[i]=d;}
  for(let z=depth-1;z>=0;z--)for(let x=width-1;x>=0;x--){const i=z*width+x;if(!walkable[i])continue;let d=margin[i];if(x+1<width)d=Math.min(d,margin[i+1]+CELL);if(z+1<depth)d=Math.min(d,margin[i+width]+CELL);if(x+1<width&&z+1<depth)d=Math.min(d,margin[i+width+1]+CELL*Math.SQRT2);if(x&&z+1<depth)d=Math.min(d,margin[i+width-1]+CELL*Math.SQRT2);margin[i]=d;}
  const weight=id=>1+1.6*Math.exp(-margin[id]/.55);
- const state={ready:true,method:'Triangle-derived body-height footprint grid, conservative clearance, A* and collision-checked line-of-sight smoothing',cellSize:CELL,clearance:CLEARANCE,eyeHeight:HEIGHT,bodyHeight:[LOW,HIGH],bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()},grid:[width,depth],walkableCells:walkable.reduce((a,b)=>a+b,0),inputTriangles,obstacleTriangles,instances,buildMs:performance.now()-started,plans:0,failures:0,lastRoute:null};
+ const state={ready:true,method:'Triangle-derived body-height footprint grid, conservative clearance, A* and collision-checked line-of-sight smoothing',cellSize:CELL,clearance:CLEARANCE,eyeHeight:HEIGHT,bodyHeight:[LOW,HIGH],bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()},grid:[width,depth],walkableCells:walkable.reduce((a,b)=>a+b,0),discardedIsolatedCells:discardedCells,inputComponents:components,inputTriangles,obstacleTriangles,instances,sculptureObstacles,floorMeshes,obstacleMeshes,buildMs:performance.now()-started,plans:0,failures:0,lastRoute:null};
  function clear(a,b){
+  if(!state.ready||!finitePoint(a)||!finitePoint(b))return false;
   // Supercover traversal visits every touched cell, including short corner
   // crossings that fixed-distance samples can miss at a partition edge.
   const first=cell(a),last=cell(b);if(first<0||last<0)return false;
@@ -82,10 +100,23 @@ export function createGalleryNavigation({galleryModel,sculptureModel}){
    else if(mx<mz){x+=sx;mx+=tx;}else{z+=sz;mz+=tz;}
   }return false;
  }
- function nearest(p,max=.8){const id=cell(p);if(id>=0&&walkable[id])return{id,point:[p[0],HEIGHT,p[2]],adjustment:0};let best=null;for(let z=-Math.ceil(max/CELL);z<=Math.ceil(max/CELL);z++)for(let x=-Math.ceil(max/CELL);x<=Math.ceil(max/CELL);x++){const candidate=[p[0]+x*CELL,HEIGHT,p[2]+z*CELL],n=cell(candidate);if(n<0||!walkable[n])continue;const q=point(n),d=distance(q,p);if(d<=max&&(!best||d<best.adjustment))best={id:n,point:q,adjustment:d};}return best;}
- function visitorPose(pose){const valid=nearest(pose.position);return valid?{position:valid.point,target:[...pose.target],fov:pose.fov,aspect:pose.aspect,adjustment:valid.adjustment}:null;}
+ function nearest(p,max=.8){
+  if(!state.ready||!finitePoint(p)||!Number.isFinite(max)||max<0)return null;
+  const id=cell(p);if(id>=0&&walkable[id])return{id,point:[p[0],HEIGHT,p[2]],adjustment:0};
+  // Scan each candidate cell once, clipped to the measured slab. This remains
+  // bounded even for a distant overview camera or a very large search radius.
+  const x0=Math.max(0,Math.ceil((p[0]-max-origin[0])/CELL-.5)),x1=Math.min(width-1,Math.floor((p[0]+max-origin[0])/CELL-.5));
+  const z0=Math.max(0,Math.ceil((p[2]-max-origin[2])/CELL-.5)),z1=Math.min(depth-1,Math.floor((p[2]+max-origin[2])/CELL-.5));
+  let best=null,bestDistance=max*max;
+  for(let z=z0;z<=z1;z++)for(let x=x0;x<=x1;x++){
+   const n=z*width+x;if(!walkable[n])continue;const dx=origin[0]+(x+.5)*CELL-p[0],dz=origin[2]+(z+.5)*CELL-p[2],squared=dx*dx+dz*dz;
+   if(squared<=bestDistance){bestDistance=squared;best={id:n,point:point(n),adjustment:Math.sqrt(squared)};}
+  }return best;
+ }
+ function nearestWalkable(position,{maxDistance=.8}={}){const result=nearest(position,maxDistance);return result?{position:result.point,adjustment:result.adjustment}:null;}
+ function visitorPose(pose){if(!pose||!finitePoint(pose.target))return null;const valid=nearest(pose.position);return valid?{position:valid.point,target:[...pose.target],fov:pose.fov,aspect:pose.aspect,adjustment:valid.adjustment}:null;}
  function plan(from,to){
-  state.plans++;const end=visitorPose(to),start=nearest(from.position,.05);
+  state.plans++;if(!state.ready||!from||!finitePoint(from.position)||!finitePoint(from.target)){state.failures++;return null;}const end=visitorPose(to),start=nearest(from.position,.05);
   if(!start||!end||from.position[1]<.8||from.position[1]>2.4){state.failures++;return null;}
   const goal=cell(end.position),startID=start.id,heap=new Heap(),cost=new Float32Array(size),parents=new Int32Array(size),closed=new Uint8Array(size);cost.fill(Infinity);parents.fill(-1);cost[startID]=0;heap.push(startID,distance(start.point,end.position));
   let found=false;
@@ -176,5 +207,5 @@ export function createGalleryNavigation({galleryModel,sculptureModel}){
   }};
   state.lastRoute={length,duration,motion,points:rounded.map(p=>[...p]),destinationAdjustment:end.adjustment,valid:rounded.every((p,i)=>i===0||clear(rounded[i-1],p))};return route;
  }
- return{state,plan,visitorPose,contains:position=>{const id=cell(position);return id>=0&&!!walkable[id];},segmentClear:clear,dispose(){state.ready=false;}};
+ return{state,plan,visitorPose,nearestWalkable,contains:position=>{const id=cell(position);return state.ready&&id>=0&&!!walkable[id];},segmentClear:clear,dispose(){state.ready=false;}};
 }

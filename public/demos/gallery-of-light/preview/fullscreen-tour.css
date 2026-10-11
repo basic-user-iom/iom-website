@@ -137,7 +137,7 @@ body #viewport.is-expanded #fullscreen-tour-controls:not([hidden]) {
   #fullscreen-tour-title { font-size: 13px; }
   .fullscreen-tour-actions {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
   }
   .fullscreen-tour-actions button {

@@ -30,7 +30,7 @@ const strengthOf=(config,id)=>clamp(config?.strength?.[id]??(config?.enabled?.[i
 const lightBlend=config=>config?.environment?.enabled?(config.environment.blend??1):0;
 const warmColor=new Color(WARM_METAL.color),blueColor=new Color(MATTE_BLUE.color),mixedColor=new Color();
 
-export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusic=()=>{},selectCamera,selectSculpture,canvas,manualInteraction=false,autoStart=true,galleryModel,sculptureModel,cameraRig,roof,fullscreen}) {
+export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusic=()=>{},onBeforePlay=()=>{},onSkip=()=>{},selectCamera,selectSculpture,canvas,manualInteraction=false,autoStart=true,galleryModel,sculptureModel,cameraRig,roof,fullscreen}) {
   const navigation=createGalleryNavigation({galleryModel,sculptureModel});
   const entryFlight=createGalleryEntryFlight({galleryModel,sculptureModel});
   const RELOCATION_DURATION=1.2,ROOF_DURATION=1.5,baseDuration=STOPS.reduce((sum,stop)=>sum+stop.duration,0);
@@ -45,7 +45,7 @@ export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusi
   let savedScreenAmount=0;
   const panel=document.createElement('section');panel.className='tour-bar';panel.id='guided-tour';panel.setAttribute('aria-label','Guided gallery tour');
   panel.innerHTML=`<div class="tour-heading"><span class="tour-eyebrow" id="tour-duration">GUIDED TOUR · ABOUT ${Math.floor(approximateDuration/60)} MIN ${approximateDuration%60} SEC</span><strong id="tour-title">Preparing your tour</strong></div>
-    <div class="tour-controls"><button id="tour-toggle" type="button" disabled>Loading tour…</button><button id="tour-restart" type="button" disabled>Restart tour</button><label><input id="tour-repeat" type="checkbox"> Repeat</label></div>
+    <div class="tour-controls"><button id="tour-toggle" type="button" disabled>Loading tour…</button><button id="tour-skip" type="button" disabled>Skip tour</button><button id="tour-restart" type="button" disabled>Restart tour</button><label><input id="tour-repeat" type="checkbox"> Repeat</label></div>
     <p id="tour-description" role="status" aria-live="polite">${autoStart?'The tour will start automatically. Manual controls remain available.':'The tour waits for you. Choose Enter tour, or explore at your own pace.'}</p>
     <progress id="tour-progress" max="${totalDuration}" value="0" aria-label="Tour progress"></progress>`;
   const viewport=document.getElementById('viewport');(viewport.closest('.viewer-layout')??viewport).before(panel);document.body.classList.add('has-guided-tour');
@@ -53,10 +53,10 @@ export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusi
   state.description=el('tour-description').textContent;
   function label(text){state.description=text;if(el('tour-description').textContent!==text)el('tour-description').textContent=text;}
   function updateUI(){
-    el('tour-toggle').disabled=!state.ready;el('tour-restart').disabled=!state.ready;
+    el('tour-toggle').disabled=!state.ready;el('tour-restart').disabled=!state.ready;el('tour-skip').disabled=!state.ready;
     el('tour-toggle').textContent=state.mode==='playing'?'Pause tour':state.mode==='complete'?'Replay tour':state.mode==='paused'&&state.index>=0?'Resume tour':'Play tour';
     el('tour-toggle').setAttribute('aria-pressed',String(state.mode==='playing'));
-    el('tour-title').textContent=state.index>=0?`${state.index+1} / ${STOPS.length} · ${state.title}`:'Welcome to the gallery';
+    el('tour-title').textContent=state.index>=0?`${state.index+1} / ${STOPS.length} · ${state.title}`:state.reason==='skipped'?'Explore at your own pace':'Welcome to the gallery';
     el('tour-progress').max=state.totalDuration;el('tour-progress').value=state.elapsed;panel.dataset.mode=state.mode;
     const seconds=Math.ceil(state.totalDuration/10)*10;el('tour-duration').textContent=`GUIDED WALK · ABOUT ${Math.floor(seconds/60)} MIN ${seconds%60} SEC`;
   }
@@ -268,6 +268,7 @@ export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusi
   }
   function play({restart=false,repeatCycle=false}={}){
     if(disposed||!state.ready)return false;
+    onBeforePlay();
     void onPlayMusic();
     const fresh=restart||state.index<0||state.mode==='complete';
     if(fresh){
@@ -310,6 +311,23 @@ export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusi
     const repeat=state.repeat&&!document.hidden;
     if(!repeat&&savedFullscreen&&!savedFullscreen.active&&fullscreen?.state.active)fullscreen.exit();
     label('Tour complete. Explore freely, or replay the guided tour.');updateUI();if(repeat)play({restart:true,repeatCycle:true});
+  }
+  function skip(){
+    if(disposed||!state.ready)return false;
+    const studies=getStudies();
+    animation?.cancel();animation=null;
+    travel=relocation=flight=roofTransition=returnTransition=null;
+    state.travel=state.relocation=state.flight=state.roofTransition=null;
+    canvas.style.opacity='1';lastFrame=null;manualBeforeStart=true;
+    studies.clearTourSunOffset({immediate:true});
+    if(savedConfiguration)studies.restoreConfiguration(structuredClone(savedConfiguration));
+    getMusicScreen()?.setAmount(0);
+    savedConfiguration=null;savedGlobals={};savedRoof=null;savedFullscreen=null;
+    state.mode='paused';state.reason='skipped';state.phase='skipped';state.index=-1;
+    state.stop=null;state.title='Explore at your own pace';state.elapsed=0;state.stepElapsed=0;state.effectProgress=0;
+    state.history.push({event:'skipped',camera:'interior',at:0});
+    label('Tour skipped. Explore from the gallery entrance, or press Play tour to start again.');updateUI();
+    return true;
   }
   function update(now){
     if(disposed||!Number.isFinite(now))return;
@@ -371,6 +389,6 @@ export function createGalleryTour({getStudies,getMusicScreen=()=>null,onPlayMusi
   main.addEventListener('input',rememberSunEdit);main.addEventListener('click',rememberSunEdit);
   document.addEventListener('visibilitychange',visibility);media.addEventListener('change',motionChange);
   function setRepeat(value){state.repeat=Boolean(value);el('tour-repeat').checked=state.repeat;}
-  el('tour-toggle').addEventListener('click',()=>state.mode==='playing'?pause():play());el('tour-restart').addEventListener('click',()=>play({restart:true}));el('tour-repeat').addEventListener('change',event=>setRepeat(event.target.checked));
-  return{state,update,play,pause,setRepeat,restart:()=>play({restart:true}),noteRoofManualChange(){roofManuallyChanged=true;savedRoof=roof?.capture();},get navigation(){return navigation;},get entryFlight(){return entryFlight;},get stops(){return STOPS.map(({id,camera,effect,duration},i)=>({id,camera,effect,duration,travelDuration:plannedLegs[i]??0}));},dispose(){if(disposed)return;getStudies()?.clearTourSunOffset({immediate:true});disposed=true;animation?.cancel();canvas.style.opacity='1';if(roof&&savedRoof&&!roofManuallyChanged)roof.restore(savedRoof);getMusicScreen()?.restore(savedScreenAmount);navigation.dispose();entryFlight.dispose();events.forEach(type=>main.removeEventListener(type,manualInput,{capture:true}));document.removeEventListener('visibilitychange',visibility);media.removeEventListener('change',motionChange);main.removeEventListener('input',rememberSunEdit);main.removeEventListener('click',rememberSunEdit);panel.remove();document.body.classList.remove('has-guided-tour');}};
+  el('tour-toggle').addEventListener('click',()=>state.mode==='playing'?pause():play());el('tour-skip').addEventListener('click',onSkip);el('tour-restart').addEventListener('click',()=>play({restart:true}));el('tour-repeat').addEventListener('change',event=>setRepeat(event.target.checked));
+  return{state,update,play,pause,skip,setRepeat,restart:()=>play({restart:true}),noteRoofManualChange(){roofManuallyChanged=true;savedRoof=roof?.capture();},get navigation(){return navigation;},get entryFlight(){return entryFlight;},get stops(){return STOPS.map(({id,camera,effect,duration},i)=>({id,camera,effect,duration,travelDuration:plannedLegs[i]??0}));},dispose(){if(disposed)return;getStudies()?.clearTourSunOffset({immediate:true});disposed=true;animation?.cancel();canvas.style.opacity='1';if(roof&&savedRoof&&!roofManuallyChanged)roof.restore(savedRoof);getMusicScreen()?.restore(savedScreenAmount);navigation.dispose();entryFlight.dispose();events.forEach(type=>main.removeEventListener(type,manualInput,{capture:true}));document.removeEventListener('visibilitychange',visibility);media.removeEventListener('change',motionChange);main.removeEventListener('input',rememberSunEdit);main.removeEventListener('click',rememberSunEdit);panel.remove();document.body.classList.remove('has-guided-tour');}};
 }

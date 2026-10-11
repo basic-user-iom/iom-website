@@ -164,7 +164,7 @@ export function initializeSoundtrack({ viewport }) {
     const tourBounds = tour && !tour.hidden ? tour.getBoundingClientRect() : null;
     let topClearance = 12, bottomClearance = 14;
     if (expanded) {
-      for (const id of ['viewport-fullscreen', 'focus-label']) {
+      for (const id of ['viewport-fullscreen', 'focus-label', 'fullscreen-navigation']) {
         const element = document.getElementById(id);
         const rect = element?.getBoundingClientRect();
         if (rect?.height) topClearance = Math.max(topClearance, rect.bottom - bounds.top + 10);
@@ -178,14 +178,26 @@ export function initializeSoundtrack({ viewport }) {
         panel.style.removeProperty('--soundtrack-tour-width');
       }
     }
+    const walkControls = document.getElementById('gallery-walk-controls');
+    if (walkControls && !walkControls.hidden) {
+      const rect = walkControls.getBoundingClientRect();
+      if (rect.height) topClearance = Math.max(topClearance, rect.bottom - bounds.top + 10);
+    }
+    for (const id of ['fullscreen-navigation', 'gallery-walk-controls']) {
+      const element = document.getElementById(id);
+      if (element && !observed.has(element)) { observed.add(element); resize.observe(element); }
+    }
     panel.style.setProperty('--soundtrack-top-clearance', `${topClearance}px`);
     panel.style.setProperty('--soundtrack-bottom-clearance', `${bottomClearance}px`);
   }
-  const resize = new ResizeObserver(updateLayout);
+  const observed = new WeakSet(), resize = new ResizeObserver(updateLayout);
   resize.observe(viewport);
   const tourPanel = document.getElementById('fullscreen-tour-controls');
   if (tourPanel) resize.observe(tourPanel);
   listen(document, 'fullscreenchange', updateLayout);
+  listen(viewport, 'gallery:fullscreenchange', updateLayout);
+  const layoutState = new MutationObserver(updateLayout);
+  layoutState.observe(viewport, { attributes: true, attributeFilter: ['class'] });
   updateLayout();
 
   return {
@@ -194,7 +206,7 @@ export function initializeSoundtrack({ viewport }) {
       if (disposed) return;
       disposed = true;
       events.forEach(remove => remove());
-      resize.disconnect(); player.dispose(); panel.remove();
+      resize.disconnect(); layoutState.disconnect(); player.dispose(); panel.remove();
       viewport.classList.remove('has-soundtrack', 'soundtrack-mixer-open');
     },
   };

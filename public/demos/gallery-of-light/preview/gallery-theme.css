@@ -178,6 +178,19 @@ h1 span { color: var(--ink); }
 #focus-label { font-size: 12px; }
 .gesture-hint { font-size: 11px; }
 #viewport-fullscreen { font-size: 12px; box-shadow: none; }
+/* Contextual actions sit below the actual fullscreen navigation row, including
+   wrapped labels and safe-area offsets, rather than a fixed top position. */
+body #viewport:is(:fullscreen,.is-expanded) :is(.sculpture-information-button,.website-screen-action) {
+  top: calc(var(--fullscreen-navigation-bottom, 56px) + 8px);
+  left: max(14px, env(safe-area-inset-left));
+  max-width: calc(100% - 28px);
+}
+@media(max-width:600px) {
+  body #viewport:is(:fullscreen,.is-expanded) :is(.sculpture-information-button,.website-screen-action) {
+    left: max(8px, env(safe-area-inset-left));
+    max-width: calc(100% - 16px);
+  }
+}
 #gallery-soundtrack { width: 320px; padding: 5px; border-radius: 7px; box-shadow: 0 4px 20px #30455015; }
 .soundtrack-toolbar button { font-size: 12px; }
 .soundtrack-mixer-body, .soundtrack-stem { border-color: var(--line); }
@@ -246,10 +259,6 @@ h1 span { color: var(--ink); }
   #focus-label { font-size: 11px; }
   .gesture-hint { font-size: 10px; }
   #viewport-fullscreen { font-size: 11px; }
-  body #viewport:fullscreen .sculpture-information-button, body #viewport.is-expanded .sculpture-information-button,
-  body #viewport:fullscreen .website-screen-action, body #viewport.is-expanded .website-screen-action {
-    top: max(64px,calc(env(safe-area-inset-top) + 56px)); left: max(8px,env(safe-area-inset-left));
-  }
 }
 @media(max-width:480px) {
   .toolbar { gap: 4px; }

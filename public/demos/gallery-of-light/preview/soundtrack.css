@@ -4,6 +4,7 @@
   left: max(14px, env(safe-area-inset-left));
   bottom: max(66px, calc(env(safe-area-inset-bottom) + 60px));
   display: flex;
+  min-height: 58px;
   flex-direction: column;
   width: 360px;
   max-width: calc(100% - max(14px, env(safe-area-inset-left)) - max(14px, env(safe-area-inset-right)));
@@ -150,6 +151,7 @@ body #viewport.is-expanded #gallery-soundtrack {
 }
 @media (max-width: 600px) {
   #gallery-soundtrack {
+    min-height: 56px;
     left: max(8px, env(safe-area-inset-left));
     max-width: calc(100% - max(8px, env(safe-area-inset-left)) - max(8px, env(safe-area-inset-right)));
     width: 360px;

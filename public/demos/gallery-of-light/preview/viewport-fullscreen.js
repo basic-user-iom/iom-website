@@ -1,5 +1,5 @@
 /** Fullscreen only the 3D viewport; native API first, in-page expansion fallback. */
-export function createViewportFullscreen({ viewport, button }) {
+export function createViewportFullscreen({ viewport, button, onSkipTour }) {
   if (!viewport || !button) throw new Error('Fullscreen control requires its viewport and button.');
   const state = { active: false, mode: 'inline', pending: false, disposed: false };
   const text = button.querySelector('[data-fullscreen-label]');
@@ -13,6 +13,7 @@ export function createViewportFullscreen({ viewport, button }) {
   const tourProgress = viewport.querySelector('#fullscreen-tour-progress');
   const tourRestart = viewport.querySelector('#fullscreen-tour-restart');
   const tourRepeat = viewport.querySelector('#fullscreen-tour-repeat');
+  const tourSkip = viewport.querySelector('#fullscreen-tour-skip');
   let currentTour = null;
   let previousOverflow = null;
   let previousFocus = null;
@@ -71,8 +72,15 @@ export function createViewportFullscreen({ viewport, button }) {
     if (announcement) announcement.textContent = state.active
       ? 'Full-screen gallery. Press Escape to return.' : '';
     update(currentTour);
-    if (state.active) beginFocusSession();
-    else endFocusSession();
+    if (state.active) {
+      // Move navigation into the viewport before outside branches become inert.
+      viewport.dispatchEvent(new CustomEvent('gallery:fullscreenchange', { detail: { active: true, mode: state.mode } }));
+      beginFocusSession();
+    } else {
+      // Clear outside inertness before restoring the original toolbar controls.
+      endFocusSession();
+      viewport.dispatchEvent(new CustomEvent('gallery:fullscreenchange', { detail: { active: false, mode: state.mode } }));
+    }
   }
 
   function expand() {
@@ -131,13 +139,13 @@ export function createViewportFullscreen({ viewport, button }) {
     currentTour = tour ?? null;
     if (!tourControls || !tourTitle || !tourToggle) return;
     const available = Boolean(currentTour?.state.ready);
-    const hidden = !state.active || !currentTour;
+    const hidden = !state.active || !currentTour || viewport.classList.contains('is-walking');
     if (tourControls.hidden !== hidden) tourControls.hidden = hidden;
     const mode = currentTour?.state.mode;
     const tourState = currentTour?.state;
     const title = tourState?.index >= 0
       ? `${tourState.index + 1} / ${tourState.totalStops} · ${tourState.title}`
-      : 'Welcome to the gallery';
+      : tourState?.reason === 'skipped' ? 'Explore at your own pace' : 'Welcome to the gallery';
     if (tourTitle.textContent !== title) tourTitle.textContent = title;
     const seconds = Math.ceil((tourState?.totalDuration ?? 0) / 10) * 10;
     const duration = `GUIDED WALK · ABOUT ${Math.floor(seconds / 60)} MIN ${seconds % 60} SEC`;
@@ -149,6 +157,7 @@ export function createViewportFullscreen({ viewport, button }) {
       tourProgress.value = Math.max(0, tourState?.elapsed ?? 0);
     }
     if (tourRestart) tourRestart.disabled = !available;
+    if (tourSkip) tourSkip.disabled = !available;
     if (tourRepeat) {
       tourRepeat.disabled = !available;
       tourRepeat.checked = Boolean(tourState?.repeat);
@@ -173,10 +182,26 @@ export function createViewportFullscreen({ viewport, button }) {
     if (!currentTour?.state.ready) return;
     currentTour.setRepeat(event.target.checked); update(currentTour);
   }
+  function skipTour() {
+    if (!currentTour?.state.ready) return;
+    if (typeof onSkipTour === 'function') onSkipTour();
+    else currentTour.skipToEntry?.();
+    update(currentTour);
+  }
   function click(event) { event.preventDefault(); void toggle(); }
   function escape(event) {
+    if (event.defaultPrevented) return;
     // Let a native modal own its focus loop and Escape dismissal.
     if (viewport.querySelector('dialog[open]')) return;
+    if (state.active && (event.key === 'Escape' || event.key === 'Tab')) {
+      const navigationEvent = new CustomEvent('gallery:fullscreen-keydown', {
+        cancelable: true, detail: { key: event.key, shiftKey: event.shiftKey },
+      });
+      if (!viewport.dispatchEvent(navigationEvent)) {
+        event.preventDefault(); event.stopPropagation();
+        return;
+      }
+    }
     if (event.key === 'Tab' && state.active) {
       const controls = focusableControls();
       const first = controls[0], last = controls.at(-1);
@@ -200,6 +225,7 @@ export function createViewportFullscreen({ viewport, button }) {
   tourToggle?.addEventListener('click', toggleTour);
   tourRestart?.addEventListener('click', restartTour);
   tourRepeat?.addEventListener('change', repeatTour);
+  tourSkip?.addEventListener('click', skipTour);
   document.addEventListener('fullscreenchange', change);
   document.addEventListener('keydown', escape, true);
   sync();
@@ -213,6 +239,7 @@ export function createViewportFullscreen({ viewport, button }) {
     tourToggle?.removeEventListener('click', toggleTour);
     tourRestart?.removeEventListener('click', restartTour);
     tourRepeat?.removeEventListener('change', repeatTour);
+    tourSkip?.removeEventListener('click', skipTour);
     document.removeEventListener('fullscreenchange', change);
     document.removeEventListener('keydown', escape, true);
     state.disposed = true;

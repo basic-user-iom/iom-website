@@ -18,3 +18,25 @@
 .sculpture-picker-option .sculpture-picker-copy>span{font-size:12px}
 @media(max-width:600px){.sculpture-picker{width:100%;flex-basis:auto}.sculpture-picker-popup{width:100%;padding:7px}.sculpture-picker-option{gap:7px;padding:6px;min-height:65px}.sculpture-picker-option .sculpture-picker-thumbnail{width:40px;height:40px;flex-basis:40px}.sculpture-picker-option .sculpture-picker-copy>small{font-size:9px}}
 @media(max-width:350px){.sculpture-picker-list{grid-template-columns:1fr}.sculpture-picker-option{min-height:58px}.sculpture-picker-option .sculpture-picker-copy>small{font-size:10px}}
+
+/* One navigation control, moved here from the toolbar during fullscreen. */
+#fullscreen-navigation{position:absolute;top:66px;left:max(14px,env(safe-area-inset-left));z-index:16;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:start;gap:8px;width:min(450px,calc(100% - 28px));color:var(--ink,#304550);pointer-events:auto}
+#fullscreen-navigation .sculpture-picker{width:100%;min-width:0}
+#fullscreen-navigation .sculpture-picker-trigger{min-height:52px;padding:5px 9px 5px 5px;background:var(--surface,#f6f7f4);box-shadow:0 2px 12px #243d5020}
+#fullscreen-navigation .sculpture-picker-trigger:hover:not(:disabled){background:var(--hover,#e0e8eb)}
+#fullscreen-navigation .sculpture-picker-trigger>.sculpture-picker-thumbnail{width:40px;height:40px;flex-basis:40px}
+#fullscreen-navigation #walk-toggle{min-height:52px;max-width:108px;padding:8px 12px;font-size:13px;line-height:1.25;box-shadow:0 2px 12px #243d5020}
+#fullscreen-navigation .sculpture-picker-popup{width:min(450px,calc(100vw - 28px));touch-action:pan-y;scrollbar-gutter:stable;box-shadow:0 10px 32px #243d5040}
+@media(max-width:600px){
+  #fullscreen-navigation{left:max(8px,env(safe-area-inset-left));width:calc(100% - max(8px,env(safe-area-inset-left)) - max(8px,env(safe-area-inset-right)));gap:6px}
+  #fullscreen-navigation .sculpture-picker-trigger{gap:8px;min-height:50px}
+  #fullscreen-navigation .sculpture-picker-trigger .sculpture-picker-copy>small{display:none}
+  #fullscreen-navigation #walk-toggle{min-height:50px;max-width:100px;padding:8px 10px}
+  #fullscreen-navigation .sculpture-picker-popup{width:calc(100vw - max(8px,env(safe-area-inset-left)) - max(8px,env(safe-area-inset-right)))}
+}
+@media(max-height:520px) and (min-width:601px){
+  #fullscreen-navigation{width:420px;gap:6px}
+  #fullscreen-navigation .sculpture-picker-trigger,#fullscreen-navigation #walk-toggle{min-height:44px}
+  #fullscreen-navigation .sculpture-picker-trigger>.sculpture-picker-thumbnail{width:32px;height:32px;flex-basis:32px}
+  #fullscreen-navigation .sculpture-picker-popup{width:420px}
+}

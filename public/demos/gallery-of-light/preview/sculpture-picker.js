@@ -5,7 +5,7 @@ const details={
 };
 
 /** Enhance the native navigation select without replacing its change contract. */
-export function createSculpturePicker({select}) {
+export function createSculpturePicker({select,viewport=null,walkButton=null}) {
   if(!select)throw new Error('A gallery view selector is required');
   const original={hidden:select.hidden,tabIndex:select.getAttribute('tabindex')};
   const label=document.querySelector(`label[for="${select.id}"]`),oldFor=label?.htmlFor;
@@ -21,6 +21,14 @@ export function createSculpturePicker({select}) {
   const heading=document.createElement('p');heading.className='sculpture-picker-heading';heading.id='sculpture-picker-heading';heading.textContent='Choose a view';
   const list=document.createElement('div');list.id='sculpture-picker-list';list.className='sculpture-picker-list';list.tabIndex=-1;list.setAttribute('role','listbox');list.setAttribute('aria-labelledby',heading.id);
   popup.append(heading,list);wrapper.append(trigger,popup);select.after(wrapper);
+  // Keep the original controls and their listeners; anchors restore their exact
+  // toolbar positions after either native or in-page fullscreen.
+  const pickerAnchor=document.createComment('gallery picker toolbar position');
+  wrapper.before(pickerAnchor);
+  const walkAnchor=walkButton?document.createComment('gallery walk toolbar position'):null;
+  if(walkAnchor)walkButton.before(walkAnchor);
+  const fullscreenHost=viewport?document.createElement('div'):null;
+  if(fullscreenHost){fullscreenHost.id='fullscreen-navigation';fullscreenHost.hidden=true;fullscreenHost.setAttribute('role','group');fullscreenHost.setAttribute('aria-label','Gallery navigation');fullscreenHost.dataset.preserveTour='';viewport.append(fullscreenHost);}
   let options=[],activeIndex=0,fingerprint='',open=false,query='',queryTime=0,disposed=false;
   const imageURL=id=>(id==='website-screen'?'../assets/navigation/iom-website.webp':id?`../assets/navigation/${id}.webp`:'../assets/intro/gallery-interior.webp');
   const help=id=>id?details[id]??'Sculpture study':'Explore sculpture, sound and light';
@@ -32,17 +40,51 @@ export function createSculpturePicker({select}) {
   }
   function positionPopup(){
     if(!open)return;
-    const box=trigger.getBoundingClientRect(),viewport=window.visualViewport;
-    const viewportTop=viewport?.offsetTop??0,viewportHeight=viewport?.height??window.innerHeight;
+    const box=trigger.getBoundingClientRect(),visualViewport=window.visualViewport;
+    const viewportTop=visualViewport?.offsetTop??0,viewportHeight=visualViewport?.height??window.innerHeight;
     const below=viewportTop+viewportHeight-box.bottom-12,above=box.top-viewportTop-12;
     const upwards=below<200&&above>below;
     popup.classList.toggle('opens-up',upwards);
-    popup.style.maxHeight=`${Math.max(96,Math.min(450,upwards?above:below))}px`;
+    popup.style.maxHeight=`${Math.max(40,Math.min(450,upwards?above:below))}px`;
   }
   function close({focus=false}={}){
     open=false;popup.hidden=true;trigger.setAttribute('aria-expanded','false');wrapper.classList.remove('is-open');query='';
     if(focus&&!trigger.disabled)trigger.focus({preventScroll:true});
   }
+  function positionFullscreen(){
+    if(!fullscreenHost||fullscreenHost.hidden)return;
+    const bounds=viewport.getBoundingClientRect();
+    const context=viewport.querySelector('#focus-label'),exit=viewport.querySelector('#viewport-fullscreen');
+    const bottoms=[context,exit].filter(element=>element&&element.getClientRects().length>0).map(element=>element.getBoundingClientRect().bottom-bounds.top);
+    fullscreenHost.style.top=`${Math.max(44,...bottoms)+8}px`;
+    viewport.style.setProperty('--fullscreen-navigation-bottom',`${Math.ceil(fullscreenHost.getBoundingClientRect().bottom-bounds.top)}px`);
+    positionPopup();
+  }
+  function moveFullscreen(active){
+    if(!fullscreenHost||disposed)return;
+    const focused=popup.contains(document.activeElement)?trigger:document.activeElement;
+    const preserveFocus=wrapper.contains(focused)||walkButton===focused;
+    close();
+    if(active){
+      fullscreenHost.hidden=false;
+      if(wrapper.parentElement!==fullscreenHost)fullscreenHost.append(wrapper);
+      if(walkButton&&walkButton.parentElement!==fullscreenHost)fullscreenHost.append(walkButton);
+      positionFullscreen();
+    }else{
+      if(wrapper.parentElement===fullscreenHost)pickerAnchor.after(wrapper);
+      if(walkButton&&walkButton.parentElement===fullscreenHost)walkAnchor.after(walkButton);
+      fullscreenHost.hidden=true;
+      viewport.style.removeProperty('--fullscreen-navigation-bottom');
+    }
+    if(preserveFocus&&focused.isConnected&&!focused.closest('[inert]'))focused.focus({preventScroll:true});
+  }
+  const fullscreenChange=event=>moveFullscreen(Boolean(event.detail?.active));
+  const fullscreenKeydown=event=>{
+    if(!open)return;
+    if(event.detail?.key==='Escape'){close({focus:true});event.preventDefault();}
+    // Move focus back to the trigger before fullscreen calculates its tab loop.
+    else if(event.detail?.key==='Tab')close({focus:true});
+  };
   function show(index){
     if(trigger.disabled||!options.length)return;
     open=true;popup.hidden=false;trigger.setAttribute('aria-expanded','true');wrapper.classList.add('is-open');
@@ -112,11 +154,16 @@ export function createSculpturePicker({select}) {
   const clickOption=event=>{const row=event.target.closest('[role="option"]');if(row&&list.contains(row))choose(Number(row.dataset.index));};
   const outside=event=>{if(open&&!wrapper.contains(event.target))close();};
   const lostFocus=event=>{if(open&&event.relatedTarget&&!wrapper.contains(event.relatedTarget))close();};
-  const resize=()=>{positionPopup();};
+  const resize=()=>{positionFullscreen();positionPopup();};
   trigger.addEventListener('click',toggle);wrapper.addEventListener('keydown',keydown);list.addEventListener('click',clickOption);wrapper.addEventListener('focusout',lostFocus);
   document.addEventListener('pointerdown',outside);window.addEventListener('resize',resize);window.addEventListener('scroll',resize,true);window.visualViewport?.addEventListener('resize',resize);
   select.addEventListener('change',sync);
+  viewport?.addEventListener('gallery:fullscreenchange',fullscreenChange);
+  viewport?.addEventListener('gallery:fullscreen-keydown',fullscreenKeydown);
+  const fullscreenResize=viewport&&typeof ResizeObserver==='function'?new ResizeObserver(positionFullscreen):null;
+  for(const element of [fullscreenHost,viewport?.querySelector('#focus-label'),viewport?.querySelector('#viewport-fullscreen')])if(element)fullscreenResize?.observe(element);
   const observer=new MutationObserver(sync);observer.observe(select,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled'],characterData:true});
   sync();select.hidden=true;select.tabIndex=-1;if(label)label.htmlFor=trigger.id;
-  return{sync,close,element:wrapper,get value(){return select.value;},dispose(){if(disposed)return;disposed=true;observer.disconnect();trigger.removeEventListener('click',toggle);wrapper.removeEventListener('keydown',keydown);list.removeEventListener('click',clickOption);wrapper.removeEventListener('focusout',lostFocus);document.removeEventListener('pointerdown',outside);window.removeEventListener('resize',resize);window.removeEventListener('scroll',resize,true);window.visualViewport?.removeEventListener('resize',resize);select.removeEventListener('change',sync);wrapper.remove();select.hidden=original.hidden;if(original.tabIndex===null)select.removeAttribute('tabindex');else select.setAttribute('tabindex',original.tabIndex);if(label)label.htmlFor=oldFor;}};
+  moveFullscreen(document.fullscreenElement===viewport||Boolean(viewport?.classList.contains('is-expanded')));
+  return{sync,close,element:wrapper,get value(){return select.value;},dispose(){if(disposed)return;moveFullscreen(false);disposed=true;observer.disconnect();fullscreenResize?.disconnect();trigger.removeEventListener('click',toggle);wrapper.removeEventListener('keydown',keydown);list.removeEventListener('click',clickOption);wrapper.removeEventListener('focusout',lostFocus);document.removeEventListener('pointerdown',outside);window.removeEventListener('resize',resize);window.removeEventListener('scroll',resize,true);window.visualViewport?.removeEventListener('resize',resize);select.removeEventListener('change',sync);viewport?.removeEventListener('gallery:fullscreenchange',fullscreenChange);viewport?.removeEventListener('gallery:fullscreen-keydown',fullscreenKeydown);wrapper.remove();pickerAnchor.remove();walkAnchor?.remove();fullscreenHost?.remove();select.hidden=original.hidden;if(original.tabIndex===null)select.removeAttribute('tabindex');else select.setAttribute('tabindex',original.tabIndex);if(label)label.htmlFor=oldFor;}};
 }
