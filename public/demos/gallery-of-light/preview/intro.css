@@ -48,34 +48,8 @@ body.intro-open{overflow:hidden}
 #gallery-intro .intro-art-caption{margin:0;text-align:center;font-size:10px;line-height:1.5;letter-spacing:.2em;text-transform:uppercase;color:#526671}
 #gallery-intro .intro-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;padding-top:18px;border-top:1px solid #cbd5d9;font-size:11px;line-height:1.5;color:#526671;margin:0}
 
-/* The blue letterforms remain readable beneath the decorative light. */
-#gallery-intro #intro-title em.intro-light{
-  position:relative;display:inline-block;isolation:isolate;color:#4e6879;
-  text-shadow:0 0 2px #fff,0 0 13px #d7e7ef,0 0 30px #9dbbd166;
-}
-#gallery-intro #intro-title .intro-light::before{
-  content:'';position:absolute;z-index:-1;inset:8% -12% -4%;pointer-events:none;
-  background:radial-gradient(ellipse,rgba(174,205,226,.65),rgba(210,230,244,.28) 48%,transparent 73%);
-  filter:blur(12px);animation:intro-light-breath 7s ease-in-out infinite;
-}
-#gallery-intro #intro-title .intro-light-glint{
-  position:absolute;inset:0;display:block;color:transparent;-webkit-text-fill-color:transparent;
-  font:inherit;letter-spacing:inherit;pointer-events:none;
-  background:linear-gradient(110deg,transparent 34%,rgba(231,246,255,.45) 44%,#fff 50%,rgba(226,244,255,.45) 56%,transparent 66%);
-  background-size:270% 100%;background-repeat:no-repeat;background-position:140% 0;
-  -webkit-background-clip:text;background-clip:text;
-  text-shadow:none;filter:drop-shadow(0 0 5px #d7eeff);animation:intro-light-glint 7s ease-in-out infinite;
-}
-@keyframes intro-light-breath{0%,100%{opacity:.45}50%{opacity:.95}}
-@keyframes intro-light-glint{0%,12%{background-position:140% 0;opacity:0}24%{opacity:.9}76%{opacity:.9}88%,100%{background-position:-40% 0;opacity:0}}
-
-/* The intro stays in the DOM after dismissal; stop its decorative work. */
-#gallery-intro:is(.is-leaving,[hidden]) #intro-title .intro-light::before,
-#gallery-intro:is(.is-leaving,[hidden]) #intro-title .intro-light-glint{
-  animation:none;visibility:hidden;
-}
 @media(min-width:1000px) and (max-height:800px){#gallery-intro .intro-shell{padding-top:28px;padding-bottom:18px}#gallery-intro .intro-layout{padding-top:28px;padding-bottom:28px}#gallery-intro #intro-title{font-size:70px}#gallery-intro .intro-kicker{margin-bottom:14px}#gallery-intro .intro-description{margin-bottom:22px}#gallery-intro .intro-art{min-height:430px}}
 @media(max-width:760px){#gallery-intro .intro-shell{padding:28px 26px 20px}#gallery-intro .intro-layout{grid-template-columns:minmax(0,1fr);padding:42px 0 32px}#gallery-intro .intro-copy{max-width:480px;width:100%;margin:0 auto}#gallery-intro .intro-art{display:none}#gallery-intro #intro-title{font-size:66px}#gallery-intro .intro-brand{justify-content:center}#gallery-intro .intro-footer{font-size:10px}#gallery-intro .intro-description{font-size:15px}}
 @media(max-width:380px){#gallery-intro .intro-shell{padding:20px 20px 16px}#gallery-intro .intro-layout{padding:26px 0 24px}#gallery-intro #intro-title{font-size:54px;margin-bottom:18px}#gallery-intro .intro-kicker{font-size:10px;margin-bottom:15px}#gallery-intro .intro-description{font-size:13px;margin-bottom:24px}#gallery-intro .intro-actions{gap:8px}#gallery-intro .intro-actions button{padding:12px 10px;font-size:13px}#gallery-intro #intro-enter{gap:10px}#gallery-intro #intro-status{font-size:13px}#gallery-intro #intro-progress-label{font-size:11px}#gallery-intro #intro-steps{gap:7px 12px;font-size:10px}#gallery-intro .intro-footer span{display:none}}
 @media(max-height:560px) and (min-width:600px){#gallery-intro .intro-shell{padding:20px 34px 16px}#gallery-intro .intro-brand>span:first-child{font-size:22px}#gallery-intro .intro-layout{grid-template-columns:minmax(0,1fr);padding:24px 0}#gallery-intro .intro-copy{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:30px;max-width:860px;align-items:start}#gallery-intro .intro-kicker{grid-column:1;margin-bottom:14px;font-size:9px}#gallery-intro #intro-title{grid-column:1;font-size:48px;margin-bottom:16px}#gallery-intro .intro-description{grid-column:1;font-size:12px;margin-bottom:0}#gallery-intro .intro-loading{grid-column:2;grid-row:1/3;margin:0 0 15px;padding-top:4px}#gallery-intro .intro-actions{grid-column:2;grid-row:3;gap:7px}#gallery-intro .intro-actions button{padding:11px 12px;font-size:12px}#gallery-intro #intro-enter{gap:12px}#gallery-intro #intro-note{grid-column:2;grid-row:4;font-size:10px;margin-top:12px}#gallery-intro .intro-art{display:none}#gallery-intro .intro-brand{justify-content:flex-start}#gallery-intro .intro-footer{padding-top:12px}}
-@media(prefers-reduced-motion:reduce){#gallery-intro,#gallery-intro .intro-actions button,#gallery-intro #intro-progress::-webkit-progress-value{transition:none}#gallery-intro #intro-title .intro-light::before{animation:none;opacity:.7}#gallery-intro #intro-title .intro-light-glint{animation:none;background-position:50% 0;opacity:.35}}
+@media(prefers-reduced-motion:reduce){#gallery-intro,#gallery-intro .intro-actions button,#gallery-intro #intro-progress::-webkit-progress-value{transition:none}}

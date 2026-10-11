@@ -36,7 +36,7 @@ Vers la fin du parcours, un écran devient le centre de l'attention. Une lumièr
 
 Les modèles d'origine de la galerie et des sculptures ont nécessité une préparation pour un usage interactif. Leur géométrie a été examinée et optimisée hors ligne dans Blender, puis exportée sous forme de fichiers compressés pour le web. Les objets distincts et les commandes utiles ont été conservés pour que l'éclairage, les matériaux et les points de vue restent réglables.
 
-Un écran de chargement prépare la scène avant l'entrée. Les commandes s'adaptent aux petits écrans. Les préférences de réduction des mouvements arrêtent l'animation décorative du titre et le mouvement de certains effets du parcours ; les visiteurs peuvent toujours choisir de lancer la visite guidée. L'interface donne la priorité aux œuvres tout en gardant les outils à portée de main.
+Un écran de chargement prépare la scène avant l'entrée. Les commandes s'adaptent aux petits écrans. Les préférences de réduction des mouvements arrêtent le mouvement de certains effets du parcours ; les visiteurs peuvent toujours choisir de lancer la visite guidée. L'interface donne la priorité aux œuvres tout en gardant les outils à portée de main.
 
 Gallery of Light montre comment une présentation spatiale peut inviter à participer : suivre un récit, s'arrêter devant un objet, modifier une condition et en entendre ou en voir le résultat. C'est une étude de la présentation des formes par l'interaction, qui laisse place à une première impression paisible comme à un examen attentif.
 

@@ -36,7 +36,7 @@ Tegen het einde van de rondleiding staat een scherm centraal. Vloeiend licht rea
 
 De oorspronkelijke galerie- en sculptuurmodellen moesten worden voorbereid op interactief gebruik. De geometrie werd offline in Blender onderzocht en geoptimaliseerd, en daarna geëxporteerd als gecomprimeerde bestanden voor het web. Afzonderlijke objecten en zinvolle bediening bleven behouden, zodat licht, materialen en standpunten instelbaar konden blijven.
 
-Een laadscherm bereidt de scène voor voordat de bezoeker binnenkomt. De bediening past zich aan kleinere schermen aan. De voorkeur voor minder beweging stopt de decoratieve titelanimatie en beweging in bepaalde effecten van de rondleiding; bezoekers kunnen nog steeds zelf de rondleiding starten. De interface houdt de kunstwerken op de voorgrond en het gereedschap binnen bereik.
+Een laadscherm bereidt de scène voor voordat de bezoeker binnenkomt. De bediening past zich aan kleinere schermen aan. De voorkeur voor minder beweging stopt beweging in bepaalde effecten van de rondleiding; bezoekers kunnen nog steeds zelf de rondleiding starten. De interface houdt de kunstwerken op de voorgrond en het gereedschap binnen bereik.
 
 Gallery of Light laat zien hoe een ruimtelijke presentatie kan uitnodigen tot deelname: een bezoeker volgt een verhaal, stopt bij een object, verandert een voorwaarde en hoort of ziet het resultaat. Het is een studie naar het presenteren van vorm door interactie, met ruimte voor zowel een rustige eerste indruk als nauwkeurig onderzoek.
 

@@ -36,7 +36,7 @@ Gegen Ende des Rundgangs rückt eine Leinwand in den Mittelpunkt. Fließendes Li
 
 Die ursprünglichen Galerie- und Skulpturmodelle mussten für die interaktive Nutzung vorbereitet werden. Ihre Geometrie wurde offline in Blender geprüft und optimiert und anschließend in komprimierten Webformaten exportiert. Getrennte Objekte und sinnvolle Bedienelemente blieben erhalten, damit Beleuchtung, Materialien und Blickwinkel weiterhin veränderbar sind.
 
-Eine Ladeansicht bereitet die Szene vor dem Betreten vor. Die Bedienelemente passen sich kleineren Bildschirmen an. Die Einstellung für reduzierte Bewegung stoppt die dekorative Titelanimation und Bewegungen in ausgewählten Effekten des Rundgangs; Besucher können den geführten Rundgang weiterhin bewusst starten. Die Oberfläche stellt die Werke in den Vordergrund und hält die Werkzeuge zugleich in Reichweite.
+Eine Ladeansicht bereitet die Szene vor dem Betreten vor. Die Bedienelemente passen sich kleineren Bildschirmen an. Die Einstellung für reduzierte Bewegung stoppt Bewegungen in ausgewählten Effekten des Rundgangs; Besucher können den geführten Rundgang weiterhin bewusst starten. Die Oberfläche stellt die Werke in den Vordergrund und hält die Werkzeuge zugleich in Reichweite.
 
 Gallery of Light zeigt, wie eine räumliche Präsentation zur Beteiligung einladen kann: Besucher folgen einer Erzählung, halten an einem Objekt inne, verändern eine Bedingung und hören oder sehen das Ergebnis. Es ist eine Studie darüber, wie sich Form durch Interaktion vermitteln lässt, mit Raum für einen ruhigen ersten Eindruck und eine genauere Betrachtung.
 

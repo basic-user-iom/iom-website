@@ -36,7 +36,7 @@ Near the end of the tour, a screen becomes the focus. Flowing light responds to 
 
 The original gallery and sculpture assets needed preparation for interactive use. Geometry was inspected and optimised offline in Blender, then exported as compressed web assets. Separate objects and meaningful controls were preserved so that lighting, materials and viewpoints could remain adjustable.
 
-A loading introduction prepares the scene before entry. Controls adapt to smaller screens. Reduced-motion preferences stop the decorative title animation and movement in selected tour effects; visitors can still choose to start the guided tour. The interface keeps the artwork prominent while leaving the tools within reach.
+A loading introduction prepares the scene before entry. Controls adapt to smaller screens. Reduced-motion preferences stop movement in selected tour effects; visitors can still choose to start the guided tour. The interface keeps the artwork prominent while leaving the tools within reach.
 
 Gallery of Light demonstrates how a spatial presentation can invite participation: a visitor can follow a narrative, stop at an object, change a condition and hear or see the result. It is a study in presenting form through interaction, with room for both a quiet first impression and closer examination.
 
