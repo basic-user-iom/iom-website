@@ -70,7 +70,7 @@ export function createGalleryWalk({ camera, controls, canvas, viewport, navigati
     hud.hidden = viewport.classList.contains('soundtrack-mixer-open');
     hud.classList.toggle('is-compact', area.width < 600 && area.height < 480);
     let top = 12;
-    for (const selector of ['#fullscreen-navigation', '#focus-label', '#viewport-fullscreen']) {
+    for (const selector of ['#fullscreen-navigation', '#focus-label', '#viewport-fullscreen', '#gallery-return-view']) {
       const element = viewport.querySelector(selector);
       if (!element || element.hidden || !element.getClientRects().length) continue;
       const box = element.getBoundingClientRect();

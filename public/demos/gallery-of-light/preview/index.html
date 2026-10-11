@@ -26,12 +26,16 @@
   <link rel="stylesheet" href="./gallery-theme.css">
   <link rel="stylesheet" href="./gallery-walk.css">
   <link rel="stylesheet" href="./publication.css">
+  <link rel="stylesheet" href="./gallery-return.css">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
 </head>
 <body class="intro-open">
   <section id="gallery-intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" aria-describedby="intro-note" aria-busy="true" tabindex="-1">
     <div class="intro-shell">
+      <div class="intro-topbar">
       <div class="intro-brand"><span><a href="/#gallery-of-light" aria-label="Back to IOM — Gallery of Light project">IOM</a></span><span>Spatial studies</span></div>
+        <a class="gallery-return-link" id="gallery-return-intro" href="https://iobjectm.com/#gallery-of-light" target="_top">← Back to IOM</a>
+      </div>
       <div class="intro-layout">
         <div class="intro-copy">
           <p class="intro-kicker">An invitation to look closer</p>
@@ -95,6 +99,7 @@
       </div>
     </div>
     <section id="viewport" aria-label="Three-dimensional gallery preview">
+      <a class="gallery-return-link" id="gallery-return-view" href="https://iobjectm.com/#gallery-of-light" target="_top" data-preserve-tour>← Back to IOM</a>
       <canvas id="scene" aria-label="3D gallery; drag to orbit and scroll to zoom" tabindex="0"></canvas>
       <p id="status" role="status" aria-live="polite">Loading gallery…</p>
       <p id="focus-label" aria-live="polite">Entire gallery</p>
@@ -164,6 +169,7 @@
     </footer>
   </main>
   <script defer src="./intro.js" onerror="document.getElementById('intro-status').textContent='The gallery could not start. Please reload.';document.getElementById('intro-retry').hidden=false;document.getElementById('gallery-intro').classList.add('has-error');document.getElementById('gallery-intro').setAttribute('aria-busy','false')"></script>
+  <script type="module" src="./gallery-return.js"></script>
   <script type="module" src="./viewer.js"></script>
 </body>
 </html>

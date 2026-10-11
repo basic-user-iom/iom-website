@@ -1,0 +1,39 @@
+.intro-topbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+a.gallery-return-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 13px;
+  border: 1px solid var(--line, #b9c8d1);
+  border-radius: 5px;
+  background: var(--surface, #f4f6f5);
+  color: var(--ink, #304550);
+  font: 600 12px/1.25 'Source Sans 3', sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+  flex: none;
+}
+a.gallery-return-link:hover { background: var(--hover, #dce6ec); }
+a.gallery-return-link:focus-visible { outline: 2px solid var(--focus, #50748b); outline-offset: 3px; }
+#gallery-return-view {
+  position: absolute;
+  z-index: 16;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  background: var(--panel, #405563);
+  color: var(--on-panel, #f2f5f4);
+  border-color: var(--panel-line, #81929d);
+}
+#gallery-return-view:hover { background: var(--raised, #536c7b); }
+#viewport:not(:fullscreen):not(.is-expanded) #focus-label { max-width: calc(100% - 156px); }
+/* The selected view is already named in the fullscreen thumbnail picker. */
+body #viewport:fullscreen #focus-label,
+body #viewport.is-expanded #focus-label { display: none; }
+@media(max-width:600px) {
+  #gallery-return-view { top: max(8px, env(safe-area-inset-top)); left: max(8px, env(safe-area-inset-left)); }
+  a.gallery-return-link { font-size: 11px; padding: 9px 11px; }
+}
+@media(max-width:420px) {
+  #gallery-intro .intro-topbar .intro-brand>span:last-child { display: none; }
+}

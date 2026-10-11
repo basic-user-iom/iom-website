@@ -69,7 +69,7 @@
 #gallery-walk-controls .walk-exit:focus-visible,
 #gallery-walk-pad button:focus-visible { outline: 3px solid #f2f5f4; outline-offset: 2px; }
 #viewport.is-walking canvas { cursor: grab; touch-action: none; }
-#viewport.is-walking:not(:fullscreen):not(.is-expanded) { min-height: 300px; }
+#viewport.is-walking:not(:fullscreen):not(.is-expanded) { min-height: 310px; }
 #viewport.is-walking canvas.is-walk-looking { cursor: grabbing; }
 #viewport.is-walking .gesture-hint { display: none; }
 @media (pointer: coarse), (max-width: 600px) {
@@ -78,6 +78,9 @@
   .walk-touch-help { display: inline; }
   .walk-instructions strong { font-size: 12px; }
   .walk-instructions span { font-size: 11px; }
+}
+@media (max-width: 600px) {
+  #viewport.is-walking:not(:fullscreen):not(.is-expanded) { min-height: 350px; }
 }
 @media (max-height: 480px) {
   #gallery-walk-controls { top: 58px; }
