@@ -2,6 +2,48 @@ import type { CaseStudiesLocalePack } from './types'
 
 export const frCaseStudies: CaseStudiesLocalePack = {
   studies: {
+    'gallery-of-light': {
+      "eyebrow": "Étude de cas · 3D interactive",
+      "title": "Gallery of Light — sculpture, lumière et son",
+      "lead": "Cette étude indépendante d’IOM réunit treize sculptures dans deux ailes de galerie, avec une visite guidée, des comparaisons de matériaux et une bande sonore que les visiteurs peuvent mixer.",
+      "impact": "Accessible par un simple lien, cette galerie permet d’explorer une exposition et de comparer l’influence de la lumière, des surfaces et du son sur son atmosphère, sans installer d’application.",
+      "primaryCtaLabel": "Entrer dans la galerie",
+      "secondaryCtaLabel": "Lire l’article",
+      "deliverables": [
+        "Galerie interactive dans le navigateur, avec treize sculptures réparties dans deux ailes",
+        "Visite guidée d’environ cinq minutes, avec pause et exploration libre",
+        "Éclairage, ombres et études de matériaux réglables",
+        "Mixeur de six pistes musicales et écran réagissant au son",
+        "Vue plein écran, commandes tactiles et panneaux adaptatifs",
+        "Notices des œuvres et sources des moulages de sculptures classiques ajoutés"
+      ],
+      "stages": {
+        "brief": {
+          "title": "Défi — l’exposition",
+          "summary": "Découvrir la sculpture à travers les variations de lumière et de son.",
+          "detail": "Gallery of Light est un concept indépendant d’IOM qui explore ce qu’une exposition dans le navigateur peut apporter au-delà des images fixes. Treize sculptures occupent deux ailes. Leurs formes et leur environnement doivent rester faciles à explorer, avec une entrée claire et des commandes au service de la visite.",
+          "mediaAlt": "Gallery of Light — sculptures classiques, socles rouges et lumière naturelle sous la toiture"
+        },
+        "tour": {
+          "title": "Solution — le parcours de visite",
+          "summary": "Une visite guidée présente le lieu ; chacun peut reprendre la main à tout moment.",
+          "detail": "La visite descend d’une vue d’ensemble vers l’intérieur, puis emprunte les ouvertures entre les salles. Pendant environ cinq minutes, les arrêts de caméra présentent les sculptures et révèlent progressivement leurs effets. Il est possible de faire une pause, de choisir une sculpture ou de tourner librement autour d’elle. En plein écran, la description et les commandes restent accessibles.",
+          "mediaAlt": "Vue en plongée des deux ailes de la galerie et de leur liaison centrale"
+        },
+        "light": {
+          "title": "Solution — lumière et matériaux",
+          "summary": "Comparer les surfaces d’origine à différentes études de lumière et de matériaux.",
+          "detail": "Un éclairage HDR et un soleil réglable définissent la lumière de la galerie. Les ombres, les reflets au sol et une brume basse donnent de la profondeur. Certaines sculptures illustrent la réfraction, le maillage filaire, la déformation et les matériaux translucides. Les effets apparaissent progressivement pendant la visite et restent réglables manuellement. Ce sont des études visuelles en temps réel ; les caustiques du verre et la diffusion utilisent des approximations pratiques.",
+          "mediaAlt": "Relief mural translucide éclairé d’une lumière chaude"
+        },
+        "sound": {
+          "title": "Livrables — une galerie sonore",
+          "summary": "Six pistes musicales et un écran réactif complètent la visite.",
+          "detail": "La musique commence lorsque le visiteur choisit de la lancer. Six pistes séparées peuvent être équilibrées, coupées ou écoutées seules. L’écran de la galerie réagit au mixage réel et retrouve une image fixe à la pause. L’expérience livrée associe cette dimension sonore à la visite guidée, à la navigation libre et à une interface adaptative. Des réglages de rendu allégés limitent la charge sur les petits appareils.",
+          "mediaAlt": "Rubans lumineux sur l’écran de l’auditorium"
+        }
+      }
+    },
     '3d-viewer': {
       eyebrow: 'Étude de cas · Logiciel',
       title: '3D Viewer — du brief au WebGL',

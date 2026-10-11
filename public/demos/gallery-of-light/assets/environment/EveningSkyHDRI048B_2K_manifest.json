@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "sourceId": "EveningSkyHDRI048B",
+  "title": "Evening Sky HDRI 048B — 2K FastHDR assets",
+  "source": {
+    "page": "https://ambientcg.com/view?id=EveningSkyHDRI048B",
+    "api": "https://ambientcg.com/api/v2/full_json?id=EveningSkyHDRI048B&include=downloadData,tagData,displayData",
+    "download": "https://ambientcg.com/get?file=EveningSkyHDRI048B_2K.zip",
+    "archive": {
+      "file": "EveningSkyHDRI048B_2K.zip",
+      "bytes": 5952284,
+      "sha256": "74ed4dce457f68efbe380dbb4d46b84ceb486d2c92ddef23e812e0a4304776a6"
+    },
+    "license": "CC0-1.0",
+    "licenseURL": "https://docs.ambientcg.com/license/",
+    "attribution": "Evening Sky HDRI 048B by ambientCG (CC0).",
+    "originalExtractedWithoutModification": "EveningSkyHDRI048B_2K_HDR.exr"
+  },
+  "payloads": [
+    {
+      "file": "EveningSkyHDRI048B_2K_HDR.exr",
+      "bytes": 3894073,
+      "sha256": "748afb7c9072e167889ee50a6e8ae09a2365b8fa2675e5f0238d5b866fc71fce"
+    },
+    {
+      "file": "EveningSkyHDRI048B_2K_panorama.ktx2",
+      "bytes": 1303152,
+      "sha256": "59f37a7d0c83b9e8d0b3426dcdd6594b290e929ef0979f2cbfb2954c3b376d87"
+    },
+    {
+      "file": "EveningSkyHDRI048B_2K_sky.pmrem.ktx2",
+      "bytes": 1531727,
+      "sha256": "1b66e01d7f569563995c146371ca4450f3773ea71ae4c1efa0e79f9f70e1a943"
+    },
+    {
+      "file": "EveningSkyHDRI048B_2K_sun.json",
+      "bytes": 644,
+      "sha256": "0c8cd905669cca9b32e45bfbd6307a8d3ea7051671dd39f50dc561407ef1137d"
+    }
+  ],
+  "runtime": {
+    "textureLoader": "THREE.KTX2Loader from Three.js 0.186.1",
+    "decoderPath": "./vendor/basis/",
+    "requireDetectSupport": true,
+    "panorama": {
+      "width": 2048,
+      "height": 1024,
+      "mapping": "EquirectangularReflectionMapping",
+      "flipY": false,
+      "colorSpace": "srgb-linear",
+      "minFilter": "LinearFilter",
+      "magFilter": "LinearFilter",
+      "mipLevels": 1
+    },
+    "sky": {
+      "width": 1536,
+      "height": 2048,
+      "cubeFaceSize": 512,
+      "mapping": "CubeUVReflectionMapping",
+      "isPMREMTexture": true,
+      "flipY": false,
+      "colorSpace": "srgb-linear",
+      "minFilter": "LinearFilter",
+      "magFilter": "LinearFilter",
+      "mipLevels": 1,
+      "roughnessLevelsPackedInAtlas": true
+    },
+    "fallback": {
+      "loader": "EXRLoader",
+      "file": "EveningSkyHDRI048B_2K_HDR.exr",
+      "note": "The original 2K EXR remains available. Fallback needs runtime PMREM generation."
+    },
+    "sun": {
+      "metadata": "EveningSkyHDRI048B_2K_sun.json",
+      "hasDirectSun": false,
+      "extractedEnergyRGB": [
+        0,
+        0,
+        0
+      ],
+      "note": "No distinct direct sun was found. The sky pixels were not altered. Any separate shadow light is supplemental, not an extracted HDR sun."
+    },
+    "ownership": "Loader owns panorama and prefiltered sky textures. The prepared HDR-lighting helper borrows the sky texture."
+  },
+  "preparation": {
+    "threeVersion": "0.186.1",
+    "bake": "EXRLoader → analyzeHDRSun → PMREMGenerator.fromEquirectangular → EXRExporter HalfFloat",
+    "encoder": "Basis Universal v2.10 WASI single-thread encoder",
+    "encoderURL": "https://raw.githubusercontent.com/BinomialLLC/basis_universal/v2_1_0r/bin/basisu_st.wasm",
+    "encoderBinary": {
+      "file": "basisu_st.wasm",
+      "bytes": 6859756,
+      "sha256": "7b8837e020e48239ab3085697a16334649c07ef121f5a6556d8b17919938a143"
+    },
+    "encoding": "UASTC HDR 4×4 in KTX2 with Zstandard supercompression",
+    "arguments": "-hdr_4x4 -uastc_level 1 -linear -y_flip",
+    "orientation": "Vertical flip is baked during encoding. GPU comparison against EXRLoader and fresh PMREM verified flipY=false for both compressed textures.",
+    "scripts": [
+      "qa/bake-fasthdr.mjs",
+      "tools/run-basis.mjs",
+      "qa/verify-fasthdr.mjs"
+    ],
+    "example": "https://threejs.org/examples/?q=hdr#webgl_materials_envmaps_fasthdr"
+  },
+  "measurements": {
+    "compressedTextureDownloadBytes": 2834879,
+    "compressedGPUBytesOnBC6H": 5242880,
+    "correspondingRGBAHalfFloatGPUBytes": 41943040,
+    "textureGPUMemoryReductionFraction": 0.875,
+    "localFixtureLoadAndTranscodeMilliseconds": 130.09999999776483,
+    "note": "Local Chrome measurement, not a network benchmark. GPU format and memory depend on device support; half-float fallback can use more memory. Lighting PMREM is precomputed; background blur or refraction may require separate runtime GPU work."
+  },
+  "validation": {
+    "report": "qa/fasthdr-verification.json",
+    "passed": 9,
+    "total": 9,
+    "panoramaNormalizedAbsoluteRadianceError": 0.0038740804438697845,
+    "skyNormalizedAbsoluteRadianceError": 0.003822450057002027,
+    "comparisonMeanAbsoluteChannelDifference255": 0.1365888888888656,
+    "comparisonPixelsChangedAbove4RGBFraction": 0,
+    "GPUFormatTested": "BC6H RGB unsigned floating point (WebGL enum 36495)",
+    "errors": []
+  },
+  "vendor": {
+    "copiedFrom": "three@0.186.1/examples/jsm",
+    "dependencies": [
+      {
+        "file": "loaders/KTX2Loader.js",
+        "bytes": 36567,
+        "sha256": "3a3233ce3409443076d3414b78832e1405fcfac5ecb34d367365fd0781127d6c"
+      },
+      {
+        "file": "loaders/EXRLoader.js",
+        "bytes": 86154,
+        "sha256": "1355b32a2ee1226bffd0f96558f3d21e300832813ab70d51ec971025ebc34d5d"
+      },
+      {
+        "file": "libs/fflate.module.js",
+        "bytes": 89384,
+        "sha256": "209a4412eb48ce609edb4391992a792ffcc3983d30ee7e2b0b89a8c470f3cd8a"
+      },
+      {
+        "file": "libs/ktx-parse.module.js",
+        "bytes": 19932,
+        "sha256": "f40c491f6c44dde511268121f778a0050e73b1a15fd844c1ae2c78c73213eafc"
+      },
+      {
+        "file": "libs/zstddec.module.js",
+        "bytes": 39754,
+        "sha256": "5cbf818e842628a4464e748594a6deae18ceddda3c2f541e7b3a0ff5fc7611e2"
+      },
+      {
+        "file": "libs/fflate.LICENSE",
+        "bytes": 1069,
+        "sha256": "805f6cb28bb8b6d3a0badd83c93bccd9671fa01a3b4b92b7042b0743325ac243"
+      },
+      {
+        "file": "libs/ktx-parse.LICENSE",
+        "bytes": 1078,
+        "sha256": "79847431f9ecef9cf399085cb863452e71a6dab99738f4f0c1ea06c6484b5692"
+      },
+      {
+        "file": "libs/zstddec.LICENSE",
+        "bytes": 2617,
+        "sha256": "8d078b49fc02bd63c1beaf4ddc629a8b48e4ba6a435415408c8209e2a5c3aacf"
+      },
+      {
+        "file": "utils/WorkerPool.js",
+        "bytes": 3110,
+        "sha256": "5ac7095fd566bc9ae48376055fd66edf27cb9ebbf9e1269dc206bfd4933ae9eb"
+      },
+      {
+        "file": "math/ColorSpaces.js",
+        "bytes": 4290,
+        "sha256": "cc35c01c793cd17ccded7bc8142abffd3ce0d60dd6de8d5d216983bd05aee262"
+      },
+      {
+        "file": "basis/basis_transcoder.js",
+        "bytes": 57529,
+        "sha256": "8478b5b6d6b74e7d3082b89f6417321d8d1dc0307f2b30d4484bb11b441696a1"
+      },
+      {
+        "file": "basis/basis_transcoder.wasm",
+        "bytes": 527333,
+        "sha256": "6cf17dc889352c42e9acf8897107978d127005fe3386c36a0e3845e27967630a"
+      },
+      {
+        "file": "basis/README.md",
+        "bytes": 1388,
+        "sha256": "a578df416c1e0852e9c36a1cf91b4d28d91a251294f87ce610a3bc7ca4df15e0"
+      },
+      {
+        "file": "basis/LICENSE",
+        "bytes": 11347,
+        "sha256": "065fcf48d6af21c0b75e23be5ed5753aee75c892e1c2cf178fa6736305614a5c"
+      }
+    ],
+    "dependencyBytes": 881552,
+    "licenses": {
+      "three": "MIT (existing vendor/LICENSE)",
+      "basis": "Apache-2.0 (vendor/basis/LICENSE)",
+      "fflate": "MIT (vendor/libs/fflate.LICENSE)",
+      "ktxParse": "MIT (vendor/libs/ktx-parse.LICENSE)",
+      "zstddec": "MIT and BSD-3-Clause (vendor/libs/zstddec.LICENSE)"
+    }
+  }
+}

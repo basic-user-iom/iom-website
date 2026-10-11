@@ -10,6 +10,21 @@ export const nlProjects: ProjectsLocalePack = {
     experiments: { label: 'Experimenten', blurb: 'WebGPU realtime rendering R&D — compute-particles, belichting, mist, curves en bewegingsstudies.' },
   },
   projects: {
+    "gallery-of-light": {
+      "title": "Gallery of Light — sculptuur, geluid en ruimte",
+      "description": "Ontdek dertien sculpturen in twee galerijvleugels. Volg de rondleiding, vergelijk licht- en materiaalstudies en maak de muziekmix die het scherm tot leven brengt.",
+      "referenceLabels": [
+            "Lees het verhaal"
+      ]
+},
+    "case-study-gallery-of-light": {
+      "title": "Gallery of Light — van ruimte naar ervaring",
+      "description": "Hoe IOM een gedetailleerde galerijscène omzet in een tentoonstelling in de browser: een bezoekersroute, interactieve lichtstudies, gelaagde muziek en een rustige interface.",
+      "referenceLabels": [
+            "Lees het verhaal",
+            "Betreed de galerie"
+      ]
+},
     'robot-cell': {
       "title": "Robot Cell 01 — Geautomatiseerde palletisering",
       "description": "Een interactieve robotcel: volg dozen van de transportband naar de pallet en het autonome transport. Draai de scène en start, pauzeer of herstart de volledige animatie.",

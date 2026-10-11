@@ -93,6 +93,37 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'gallery-of-light': [
+    "public/demos/gallery-of-light/",
+    "public/assets/blog/gallery-of-light/",
+    "src/blog/posts/gallery-of-light/",
+    "src/blog/posts/galleryOfLightPost.ts",
+    "src/blog/posts/index.ts",
+    "src/blog/sitePublishedPosts.ts",
+    "scripts/emit-gallery-of-light-blog.mjs",
+    "src/data/projects.ts",
+    "src/case-studies/CaseStudyApp.tsx",
+    "src/case-studies/galleryOfLight.ts",
+    "src/i18n/projects/localize.ts",
+    "src/seo/pageMeta.ts",
+    "scripts/generate-sitemap.mjs",
+    "scripts/patch-demo-back-links.mjs",
+    "vite.config.ts",
+    "vercel.json",
+    "scripts/deploy-scope.mjs",
+    "scripts/test-gallery-of-light.mjs",
+    "docs/GALLERY-OF-LIGHT-RELEASE.md",
+    "src/i18n/projects/de.ts",
+    "src/i18n/projects/fr.ts",
+    "src/i18n/projects/nl.ts",
+    "src/i18n/projects/it.ts",
+    "src/i18n/projects/es.ts",
+    "src/i18n/caseStudies/de.ts",
+    "src/i18n/caseStudies/fr.ts",
+    "src/i18n/caseStudies/nl.ts",
+    "src/i18n/caseStudies/it.ts",
+    "src/i18n/caseStudies/es.ts"
+],
   'night-grid': [
     // Shared photography lightbox: publish this requested UI fix independently.
     'src/components/GalleryLightbox.tsx',

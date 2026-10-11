@@ -32,6 +32,61 @@ type CaseStudySpec = {
   deliverables: string[]
 }
 
+const GALLERY_OF_LIGHT_STAGES: Stage[] = [
+  {
+    "id": "brief",
+    "index": "01",
+    "framework": "challenge",
+    "title": "Challenge — the exhibition",
+    "summary": "Let visitors experience sculpture through changing light and sound.",
+    "detail": "Gallery of Light is an independent IOM concept, developed to explore how a browser exhibition can offer more than still images. Thirteen sculptures occupy two gallery wings. The aim is to make their form and setting easy to explore, with a clear entrance and controls that support the visit.",
+    "media": {
+      "type": "image",
+      "src": "/assets/blog/gallery-of-light/gallery.webp",
+      "alt": "Gallery of Light — classical sculptures, red plinths and daylight beneath the gallery roof"
+    }
+  },
+  {
+    "id": "tour",
+    "index": "02",
+    "framework": "solution",
+    "title": "Solution — the visitor journey",
+    "summary": "A guided walk introduces the space; visitors can take over at any point.",
+    "detail": "The tour descends from an overview into the gallery and follows routes through the openings between rooms. Over about five minutes, camera stops introduce the sculptures and gradually reveal their effects. Pause, choose a sculpture or use the orbit controls to explore freely; fullscreen keeps the tour description and controls within reach.",
+    "media": {
+      "type": "image",
+      "src": "/assets/blog/gallery-of-light/tour.webp",
+      "alt": "Overhead cutaway of the two gallery wings and their central connection"
+    }
+  },
+  {
+    "id": "light",
+    "index": "03",
+    "framework": "solution",
+    "title": "Solution — light and materials",
+    "summary": "Compare the original surfaces with a series of lighting and material studies.",
+    "detail": "HDR illumination and an adjustable sun establish the gallery light. Shadows, floor reflections and low fog give the space depth, while selected sculptures demonstrate refraction, wireframe, deformation and translucent materials. Effects blend gradually during the tour and remain adjustable by hand. These are real-time visual studies; glass caustics and scattering use practical approximations.",
+    "media": {
+      "type": "image",
+      "src": "/assets/blog/gallery-of-light/light-study.webp",
+      "alt": "Warm translucent wall relief in a gallery light study"
+    }
+  },
+  {
+    "id": "sound",
+    "index": "04",
+    "framework": "deliverables",
+    "title": "Deliverables — a gallery with sound",
+    "summary": "Six musical stems and a responsive screen complete the visit.",
+    "detail": "The soundtrack starts after a visitor chooses to play it. Six separate stems can be balanced, muted or heard individually, while the gallery screen responds to the actual mix. When playback pauses, the screen returns to a still image. The delivered experience combines this sound layer with the guided tour, manual navigation and responsive controls; lighter rendering settings help limit the workload on smaller devices.",
+    "media": {
+      "type": "image",
+      "src": "/assets/blog/gallery-of-light/music-screen.webp",
+      "alt": "Luminous ribbons on the auditorium screen"
+    }
+  }
+]
+
 const VIEWER_STAGES: Stage[] = [
   {
     id: 'brief',
@@ -270,6 +325,7 @@ const LABELLED_CURSOR_STAGES: Stage[] = [
 
 /** Homepage project-card hashes — keep in sync with public/demos/iom-back.js DEMO_CARD. */
 const CASE_STUDY_HOME_CARD: Record<string, string> = {
+  'gallery-of-light': 'case-study-gallery-of-light',
   '3d-viewer': 'case-study-3d-viewer',
   'black-witness': 'panorama-suite',
   'message-in-a-bottle': 'case-study-message-in-a-bottle',
@@ -282,6 +338,30 @@ function caseStudyBackHref(slug: string): string {
 }
 
 const STUDIES: Record<string, CaseStudySpec> = {
+  'gallery-of-light': {
+    "slug": "gallery-of-light",
+    "eyebrow": "Case study · Interactive 3D",
+    "title": "Gallery of Light — sculpture, light and sound",
+    "lead": "An independent IOM study brings thirteen sculptures into two gallery wings, with a guided walk, material comparisons and a soundtrack visitors can shape.",
+    "impact": "A shareable browser gallery lets visitors explore an exhibition and compare how light, surface and sound change its atmosphere, without installing an app.",
+    "primaryCta": {
+      "label": "Enter the gallery",
+      "href": "/demos/gallery-of-light/"
+    },
+    "secondaryCta": {
+      "label": "Read the story",
+      "href": "/blog/gallery-of-light-sculpture-sound"
+    },
+    "stages": GALLERY_OF_LIGHT_STAGES,
+    "deliverables": [
+      "Interactive browser gallery with thirteen sculptures across two wings",
+      "Guided tour of about five minutes, with pause and free exploration",
+      "Adjustable lighting, shadows and sculpture material studies",
+      "Six-stem soundtrack mixer and an audio-reactive gallery screen",
+      "Fullscreen view, touch controls and responsive panels",
+      "Artwork information and source credits for the added classical casts"
+    ]
+  },
   '3d-viewer': {
     slug: '3d-viewer',
     eyebrow: 'Case study · Software',
@@ -458,7 +538,10 @@ function CaseStudyView({ spec }: { spec: CaseStudySpec }) {
             {localized.primaryCta.label}
           </a>
           {localized.secondaryCta ? (
-            <a className="btn btn-ghost" href={localized.secondaryCta.href}>
+            <a
+              className="btn btn-ghost"
+              href={spec.slug === 'gallery-of-light' ? href(localized.secondaryCta.href) : localized.secondaryCta.href}
+            >
               {localized.secondaryCta.label}
             </a>
           ) : null}
@@ -596,7 +679,10 @@ export function CaseStudyApp({ path: pathProp }: { path?: string } = {}) {
               <h1 className="case-study-title">{t('case.listTitle')}</h1>
               <p className="case-study-lead">{t('case.listLead')}</p>
               <div className="case-study-hero-actions">
-                <a className="btn btn-primary" href={href('/case-studies/3d-viewer')}>
+                <a className="btn btn-primary" href={href('/case-studies/gallery-of-light')}>
+                  {localizeSpec(STUDIES['gallery-of-light']!, lang).title}
+                </a>
+                <a className="btn btn-ghost" href={href('/case-studies/3d-viewer')}>
                   {localizeSpec(STUDIES['3d-viewer']!, lang).title}
                 </a>
                 <a className="btn btn-ghost" href={href('/case-studies/black-witness')}>

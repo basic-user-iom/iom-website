@@ -10,6 +10,21 @@ export const deProjects: ProjectsLocalePack = {
     experiments: { label: 'Experimente', blurb: 'WebGPU-Echtzeit-Rendering-R&D — Compute-Partikel, Beleuchtung, Nebel, Kurven und Bewegungsstudien.' },
   },
   projects: {
+    "gallery-of-light": {
+      "title": "Gallery of Light — Skulptur, Klang und Raum",
+      "description": "Dreizehn Skulpturen in zwei Galerietrakten entdecken. Einer Führung folgen, Licht- und Materialstudien vergleichen und eine Musikmischung gestalten, die die Leinwand zum Leben erweckt.",
+      "referenceLabels": [
+            "Zum Artikel"
+      ]
+},
+    "case-study-gallery-of-light": {
+      "title": "Gallery of Light — vom Raum zum Erlebnis",
+      "description": "Wie IOM aus einer detaillierten Galerieszene eine Ausstellung im Browser gestaltet: Besucherführung, interaktive Lichtstudien, mehrspurige Musik und eine zurückhaltende Oberfläche.",
+      "referenceLabels": [
+            "Zum Artikel",
+            "Galerie betreten"
+      ]
+},
     'robot-cell': {
       "title": "Robot Cell 01 — Automatisierte Palettierung",
       "description": "Eine interaktive Roboterzelle: Kartons vom Förderband über die Palette bis zum autonomen Transport verfolgen. Szene drehen und den gesamten Ablauf starten, pausieren oder neu beginnen.",

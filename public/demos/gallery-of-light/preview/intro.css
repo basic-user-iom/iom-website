@@ -1,0 +1,81 @@
+body.intro-open{overflow:hidden}
+#gallery-intro{position:fixed;inset:0;z-index:20000;overflow-x:hidden;overflow-y:auto;background:#eef0ef;color:#304550;font-family:'Source Sans 3',Arial,sans-serif;opacity:1;transition:opacity .6s ease;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#gallery-intro:focus{outline:none}
+#gallery-intro.is-leaving{opacity:0;pointer-events:none}
+#gallery-intro .intro-shell{width:min(100%,1440px);min-height:100vh;min-height:100dvh;margin:0 auto;padding:clamp(24px,4vw,60px) clamp(24px,6.5vw,100px) 24px;display:flex;flex-direction:column}
+#gallery-intro .intro-brand{display:flex;align-items:center;gap:17px;color:#304550}
+#gallery-intro .intro-brand>span:first-child{font:400 28px/1 'Newsreader',Georgia,serif;font-optical-sizing:auto;letter-spacing:.02em}
+#gallery-intro .intro-brand>span:last-child{padding-left:17px;border-left:1px solid #cbd5d9;font-size:11px;line-height:1.7;letter-spacing:.2em;text-transform:uppercase}
+#gallery-intro .intro-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:clamp(24px,5vw,80px);flex:1;padding:40px 0 44px}
+#gallery-intro .intro-copy{max-width:520px;position:relative;z-index:1}
+#gallery-intro .intro-kicker{font-size:11px;line-height:1.6;letter-spacing:.17em;text-transform:uppercase;margin:0 0 20px;color:#526671}
+#gallery-intro #intro-title{font:400 clamp(52px,6.8vw,92px)/1 'Newsreader',Georgia,serif;font-optical-sizing:auto;letter-spacing:-.035em;margin:0 0 24px;color:#304550}
+#gallery-intro #intro-title em{font-family:'Newsreader',Georgia,serif;font-weight:400;color:#647e8e}
+#gallery-intro .intro-description{font-size:16px;line-height:1.7;color:#526671;margin:0 0 30px}
+#gallery-intro .intro-loading{margin:0 0 23px;max-width:450px}
+#gallery-intro .intro-loading-heading{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:12px}
+#gallery-intro #intro-status{font-size:15px;line-height:1.5;margin:0;font-weight:500;color:#304550}
+#gallery-intro #intro-progress-label{font-size:12px;line-height:1.5;color:#526671;white-space:nowrap;font-variant-numeric:tabular-nums}
+#gallery-intro #intro-progress{display:block;width:100%;height:3px;border:0;border-radius:0;background:#cbd5d9;appearance:none;-webkit-appearance:none;overflow:hidden;accent-color:#647e8e}
+#gallery-intro #intro-progress::-webkit-progress-bar{background:#cbd5d9;border-radius:0}
+#gallery-intro #intro-progress::-webkit-progress-value{background:#647e8e;border-radius:0;transition:width .4s ease}
+#gallery-intro #intro-progress::-moz-progress-bar{background:#647e8e;border-radius:0}
+#gallery-intro #intro-detail{font-size:12px;line-height:1.6;color:#526671;margin:11px 0 13px;min-height:18px}
+#gallery-intro #intro-steps{display:flex;flex-wrap:wrap;gap:8px 15px;list-style:none;padding:0;margin:0;color:#526671;font-size:11px;line-height:1.5}
+#gallery-intro #intro-steps li{display:flex;gap:6px;align-items:center}
+#gallery-intro #intro-steps li::before{content:"";width:5px;height:5px;flex:none;border:1px solid #8196a2;border-radius:50%;background:transparent}
+#gallery-intro #intro-steps li[data-state="loading"]{color:#405563}
+#gallery-intro #intro-steps li[data-state="loading"]::before{background:#647e8e;box-shadow:0 0 0 3px #647e8e20}
+#gallery-intro #intro-steps li:is([data-state="ready"],[data-state="complete"]){color:#405563}
+#gallery-intro #intro-steps li:is([data-state="ready"],[data-state="complete"])::before{background:#647e8e;border-color:#647e8e}
+#gallery-intro #intro-steps li[data-state="error"]{color:#8b3e2a}
+#gallery-intro #intro-steps li[data-state="error"]::before{background:#a66448;border-color:#a66448}
+#gallery-intro .intro-actions{display:flex;flex-wrap:wrap;gap:10px;max-width:450px}
+#gallery-intro .intro-actions button{min-height:48px;border-radius:5px;font-family:'Source Sans 3',Arial,sans-serif;font-size:14px;font-weight:500;line-height:1.4;padding:13px 20px;transition:background-color .18s ease,border-color .18s ease,color .18s ease}
+#gallery-intro #intro-enter{display:flex;align-items:center;justify-content:space-between;gap:30px;background:#405563;border-color:#405563;color:#f2f5f4;flex:1}
+#gallery-intro #intro-enter:hover:not(:disabled){background:#304550;border-color:#304550}
+#gallery-intro #intro-enter:disabled{background:#d9e2e5;border-color:#d9e2e5;color:#526671;opacity:1}
+#gallery-intro #intro-explore{background:#f6f7f4;border-color:#b6c6cf;color:#304550;flex:1}
+#gallery-intro #intro-explore:hover:not(:disabled){background:#e0e8eb;border-color:#8196a2}
+#gallery-intro #intro-explore:disabled{color:#657b87;border-color:#cbd5d9;opacity:1}
+#gallery-intro #intro-retry{background:#405563;color:#f2f5f4;border-color:#405563}
+#gallery-intro #intro-retry:hover:not(:disabled){background:#304550;border-color:#304550}
+#gallery-intro #intro-note{font-size:12px;line-height:1.7;color:#526671;margin:15px 0 0;max-width:430px}
+#gallery-intro .intro-no-script{font-size:13px;line-height:1.6;padding:14px 16px;background:#eae4d9;border:1px solid #d5c5ae;border-radius:4px;color:#664c2d}
+#gallery-intro.has-error #intro-status{color:#854932}
+#gallery-intro .intro-art{position:relative;min-height:460px;height:min(66vh,640px);display:flex;flex-direction:column;gap:18px}
+#gallery-intro .intro-gallery-image{display:block;min-height:0;flex:1;width:100%;height:calc(100% - 32px);object-fit:cover;object-position:50% 58%;border-radius:3px;background:#cbd5d9;box-shadow:0 12px 32px #30455012}
+#gallery-intro .intro-art-caption{margin:0;text-align:center;font-size:10px;line-height:1.5;letter-spacing:.2em;text-transform:uppercase;color:#526671}
+#gallery-intro .intro-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px 24px;padding-top:18px;border-top:1px solid #cbd5d9;font-size:11px;line-height:1.5;color:#526671;margin:0}
+
+/* The blue letterforms remain readable beneath the decorative light. */
+#gallery-intro #intro-title em.intro-light{
+  position:relative;display:inline-block;isolation:isolate;color:#4e6879;
+  text-shadow:0 0 2px #fff,0 0 13px #d7e7ef,0 0 30px #9dbbd166;
+}
+#gallery-intro #intro-title .intro-light::before{
+  content:'';position:absolute;z-index:-1;inset:8% -12% -4%;pointer-events:none;
+  background:radial-gradient(ellipse,rgba(174,205,226,.65),rgba(210,230,244,.28) 48%,transparent 73%);
+  filter:blur(12px);animation:intro-light-breath 7s ease-in-out infinite;
+}
+#gallery-intro #intro-title .intro-light-glint{
+  position:absolute;inset:0;display:block;color:transparent;-webkit-text-fill-color:transparent;
+  font:inherit;letter-spacing:inherit;pointer-events:none;
+  background:linear-gradient(110deg,transparent 34%,rgba(231,246,255,.45) 44%,#fff 50%,rgba(226,244,255,.45) 56%,transparent 66%);
+  background-size:270% 100%;background-repeat:no-repeat;background-position:140% 0;
+  -webkit-background-clip:text;background-clip:text;
+  text-shadow:none;filter:drop-shadow(0 0 5px #d7eeff);animation:intro-light-glint 7s ease-in-out infinite;
+}
+@keyframes intro-light-breath{0%,100%{opacity:.45}50%{opacity:.95}}
+@keyframes intro-light-glint{0%,12%{background-position:140% 0;opacity:0}24%{opacity:.9}76%{opacity:.9}88%,100%{background-position:-40% 0;opacity:0}}
+
+/* The intro stays in the DOM after dismissal; stop its decorative work. */
+#gallery-intro:is(.is-leaving,[hidden]) #intro-title .intro-light::before,
+#gallery-intro:is(.is-leaving,[hidden]) #intro-title .intro-light-glint{
+  animation:none;visibility:hidden;
+}
+@media(min-width:1000px) and (max-height:800px){#gallery-intro .intro-shell{padding-top:28px;padding-bottom:18px}#gallery-intro .intro-layout{padding-top:28px;padding-bottom:28px}#gallery-intro #intro-title{font-size:70px}#gallery-intro .intro-kicker{margin-bottom:14px}#gallery-intro .intro-description{margin-bottom:22px}#gallery-intro .intro-art{min-height:430px}}
+@media(max-width:760px){#gallery-intro .intro-shell{padding:28px 26px 20px}#gallery-intro .intro-layout{grid-template-columns:minmax(0,1fr);padding:42px 0 32px}#gallery-intro .intro-copy{max-width:480px;width:100%;margin:0 auto}#gallery-intro .intro-art{display:none}#gallery-intro #intro-title{font-size:66px}#gallery-intro .intro-brand{justify-content:center}#gallery-intro .intro-footer{font-size:10px}#gallery-intro .intro-description{font-size:15px}}
+@media(max-width:380px){#gallery-intro .intro-shell{padding:20px 20px 16px}#gallery-intro .intro-layout{padding:26px 0 24px}#gallery-intro #intro-title{font-size:54px;margin-bottom:18px}#gallery-intro .intro-kicker{font-size:10px;margin-bottom:15px}#gallery-intro .intro-description{font-size:13px;margin-bottom:24px}#gallery-intro .intro-actions{gap:8px}#gallery-intro .intro-actions button{padding:12px 10px;font-size:13px}#gallery-intro #intro-enter{gap:10px}#gallery-intro #intro-status{font-size:13px}#gallery-intro #intro-progress-label{font-size:11px}#gallery-intro #intro-steps{gap:7px 12px;font-size:10px}#gallery-intro .intro-footer span{display:none}}
+@media(max-height:560px) and (min-width:600px){#gallery-intro .intro-shell{padding:20px 34px 16px}#gallery-intro .intro-brand>span:first-child{font-size:22px}#gallery-intro .intro-layout{grid-template-columns:minmax(0,1fr);padding:24px 0}#gallery-intro .intro-copy{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:30px;max-width:860px;align-items:start}#gallery-intro .intro-kicker{grid-column:1;margin-bottom:14px;font-size:9px}#gallery-intro #intro-title{grid-column:1;font-size:48px;margin-bottom:16px}#gallery-intro .intro-description{grid-column:1;font-size:12px;margin-bottom:0}#gallery-intro .intro-loading{grid-column:2;grid-row:1/3;margin:0 0 15px;padding-top:4px}#gallery-intro .intro-actions{grid-column:2;grid-row:3;gap:7px}#gallery-intro .intro-actions button{padding:11px 12px;font-size:12px}#gallery-intro #intro-enter{gap:12px}#gallery-intro #intro-note{grid-column:2;grid-row:4;font-size:10px;margin-top:12px}#gallery-intro .intro-art{display:none}#gallery-intro .intro-brand{justify-content:flex-start}#gallery-intro .intro-footer{padding-top:12px}}
+@media(prefers-reduced-motion:reduce){#gallery-intro,#gallery-intro .intro-actions button,#gallery-intro #intro-progress::-webkit-progress-value{transition:none}#gallery-intro #intro-title .intro-light::before{animation:none;opacity:.7}#gallery-intro #intro-title .intro-light-glint{animation:none;background-position:50% 0;opacity:.35}}

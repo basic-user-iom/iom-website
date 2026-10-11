@@ -1,0 +1,46 @@
+{
+  "id": "site-blog-gallery-of-light",
+  "slug": "gallery-of-light-sculpture-sound",
+  "published_at": "2026-10-11T12:00:00.000Z",
+  "cover_image_url": "/assets/blog/gallery-of-light/gallery.webp",
+  "author_name": "IOM",
+  "tags": ["GALLERY OF LIGHT", "INTERACTIVE 3D", "SOUND"],
+  "locales": {
+    "en": {
+      "title": "Gallery of Light: sculpture, space and sound",
+      "excerpt": "Thirteen sculptures, changing materials and a layered soundtrack: an independent IOM study that invites visitors to explore how light transforms a gallery.",
+      "seo_title": "Gallery of Light — Sculpture, Space and Sound | IOM",
+      "seo_description": "Explore IOM's interactive gallery: thirteen sculptures, eight light and material studies, a guided tour and a six-layer soundtrack with its own mixer."
+    },
+    "de": {
+      "title": "Gallery of Light: Skulptur, Raum und Klang",
+      "excerpt": "Dreizehn Skulpturen, wechselnde Materialien und ein vielschichtiger Soundtrack: eine unabhängige IOM-Studie darüber, wie Licht einen Galerieraum verändert.",
+      "seo_title": "Gallery of Light — Skulptur, Raum und Klang | IOM",
+      "seo_description": "IOMs interaktive Galerie: dreizehn Skulpturen, acht Licht- und Materialstudien, ein geführter Rundgang und ein Soundtrack mit sechs getrennten Spuren."
+    },
+    "fr": {
+      "title": "Gallery of Light : sculpture, espace et son",
+      "excerpt": "Treize sculptures, des matières changeantes et une bande-son à plusieurs voix : une étude indépendante d'IOM sur la façon dont la lumière transforme une galerie.",
+      "seo_title": "Gallery of Light — Sculpture, espace et son | IOM",
+      "seo_description": "Explorez la galerie interactive d'IOM : treize sculptures, huit études de lumière et de matière, une visite guidée et une bande-son à six pistes."
+    },
+    "nl": {
+      "title": "Gallery of Light: sculptuur, ruimte en geluid",
+      "excerpt": "Dertien sculpturen, veranderende materialen en een gelaagde soundtrack: een onafhankelijke IOM-studie naar de manier waarop licht een galerie verandert.",
+      "seo_title": "Gallery of Light — Sculptuur, ruimte en geluid | IOM",
+      "seo_description": "Ontdek de interactieve galerie van IOM: dertien sculpturen, acht licht- en materiaalstudies, een rondleiding en een soundtrack met zes aparte lagen."
+    },
+    "it": {
+      "title": "Gallery of Light: scultura, spazio e suono",
+      "excerpt": "Tredici sculture, materiali che cambiano e una colonna sonora a più livelli: uno studio indipendente di IOM su come la luce trasforma una galleria.",
+      "seo_title": "Gallery of Light — Scultura, spazio e suono | IOM",
+      "seo_description": "Esplora la galleria interattiva di IOM: tredici sculture, otto studi su luce e materiali, una visita guidata e una colonna sonora a sei tracce."
+    },
+    "es": {
+      "title": "Gallery of Light: escultura, espacio y sonido",
+      "excerpt": "Trece esculturas, materiales cambiantes y una banda sonora por capas: un estudio independiente de IOM sobre cómo la luz transforma una galería.",
+      "seo_title": "Gallery of Light — Escultura, espacio y sonido | IOM",
+      "seo_description": "Explora la galería interactiva de IOM: trece esculturas, ocho estudios de luz y materiales, una visita guiada y una banda sonora de seis pistas."
+    }
+  }
+}

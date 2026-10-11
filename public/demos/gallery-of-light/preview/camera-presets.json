@@ -1,0 +1,597 @@
+{
+  "coordinateSystem": "glTF: metres, +Y up, +X right; imported GLB world coordinates; root transforms identity",
+  "sourceAssets": [
+    {
+      "path": "F:\\Projects\\iom-studioex-studies\\handoff\\AI66_002-gallery-web-v1\\AI66_002-gallery-web-v1.glb",
+      "bytes": 9084952,
+      "sha256": "0ac0fecdb4b567a69dd92f1c3b7aef9bc6f0644713ead2d75a488104dd6dd1ff",
+      "sceneRootTransforms": [
+        {
+          "name": "gallery_root",
+          "identity": true
+        }
+      ]
+    },
+    {
+      "path": "F:\\Projects\\iom-studioex-studies\\handoff\\AI66_002-sculptures-web-v1\\AI66_002-sculptures-web-v1.glb",
+      "bytes": 10720444,
+      "sha256": "afe3b565606770ef2ae819fd13f1dbed4ecfbdd9722fb0593d929cd29640bb08",
+      "sceneRootTransforms": [
+        {
+          "name": "sculptures_root",
+          "identity": true
+        }
+      ]
+    }
+  ],
+  "sourceOriginShiftBlenderM": [
+    4.492431640625,
+    0.7928047180175781,
+    0.020121637731790543
+  ],
+  "framing": "Perspective whole-object AABB fit, 13 percent distance margin; desktop aspect 1.8 / fov45, portrait aspect0.8 / fov65. Duplicate B/C/F facing rotated180 degrees. All other sculpture instances remain present during visibility checks.",
+  "visibilityMethod": "49 projected rays per camera; only rays intersecting selected sculpture count; environment and all other sculptures tested before sculpture surface. Camera nearest environment and downward floor ray checked. This is sampled visibility, not exhaustive per-pixel proof.",
+  "presets": [
+    {
+      "id": "A",
+      "name": "AI66_002_Sculpture_A",
+      "label": "Reljef A",
+      "position": [
+        15.878525,
+        3.283649,
+        -11.468216
+      ],
+      "target": [
+        22.636864,
+        2.687325,
+        -12.859639
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 6.925807,
+      "visibility": {
+        "sampledSculptureRays": 44,
+        "unobstructedSculptureRays": 44,
+        "blockers": {},
+        "environmentClearanceM": 2.411186456680298,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          14.375379,
+          3.41628,
+          -11.158746
+        ],
+        "target": [
+          22.636864,
+          2.687325,
+          -12.859639
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 8.4662,
+        "visibility": {
+          "sampledSculptureRays": 45,
+          "unobstructedSculptureRays": 45,
+          "blockers": {},
+          "environmentClearanceM": 2.086381435394287,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          22.101318359375,
+          0.6625140309333801,
+          -16.16069984436035
+        ],
+        "max": [
+          23.172407150268555,
+          4.712136745452881,
+          -9.558578491210938
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0
+    },
+    {
+      "id": "B001",
+      "name": "AI66_002_Sculpture_B001",
+      "label": "Skulptura B 1",
+      "position": [
+        3.948685,
+        2.147322,
+        -16.635775
+      ],
+      "target": [
+        6.550257,
+        1.871862,
+        -17.24791
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 2.686776,
+      "visibility": {
+        "sampledSculptureRays": 39,
+        "unobstructedSculptureRays": 39,
+        "blockers": {},
+        "environmentClearanceM": 1.7402856349945068,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          4.692801,
+          2.068533,
+          -16.810862
+        ],
+        "target": [
+          6.550257,
+          1.871862,
+          -17.24791
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 1.918289,
+        "visibility": {
+          "sampledSculptureRays": 38,
+          "unobstructedSculptureRays": 38,
+          "blockers": {},
+          "environmentClearanceM": 1.632383942604065,
+          "floorBelow": "Mesh.008_web.003"
+        }
+      },
+      "bounds": {
+        "min": [
+          6.292113780975342,
+          1.0304515361785889,
+          -17.708858489990234
+        ],
+        "max": [
+          6.808399677276611,
+          2.7132716178894043,
+          -16.78696060180664
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0
+    },
+    {
+      "id": "B002",
+      "name": "AI66_002_Sculpture_B002",
+      "label": "Skulptura B 2",
+      "position": [
+        -6.810001,
+        2.147322,
+        -17.860075
+      ],
+      "target": [
+        -9.411572,
+        1.871862,
+        -17.24794
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 2.686775,
+      "visibility": {
+        "sampledSculptureRays": 39,
+        "unobstructedSculptureRays": 39,
+        "blockers": {},
+        "environmentClearanceM": 1.8900505304336548,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -7.554117,
+          2.068533,
+          -17.684988
+        ],
+        "target": [
+          -9.411572,
+          1.871862,
+          -17.24794
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 1.918289,
+        "visibility": {
+          "sampledSculptureRays": 38,
+          "unobstructedSculptureRays": 38,
+          "blockers": {},
+          "environmentClearanceM": 1.9154675006866455,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -9.66971492767334,
+          1.0304515361785889,
+          -17.70888900756836
+        ],
+        "max": [
+          -9.153429985046387,
+          2.7132716178894043,
+          -16.786991119384766
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 180
+    },
+    {
+      "id": "C001",
+      "name": "AI66_002_Sculpture_C001",
+      "label": "Skulptura C 1",
+      "position": [
+        -6.060034,
+        2.329804,
+        -6.449468
+      ],
+      "target": [
+        -9.121407,
+        1.936064,
+        -8.470751
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 30,
+      "distanceM": 3.689528,
+      "visibility": {
+        "sampledSculptureRays": 19,
+        "unobstructedSculptureRays": 19,
+        "blockers": {},
+        "environmentClearanceM": 0.6321377754211426,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -7.95348,
+          2.216366,
+          -6.134897
+        ],
+        "target": [
+          -9.121407,
+          1.936064,
+          -8.470751
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 2.626563,
+        "visibility": {
+          "sampledSculptureRays": 25,
+          "unobstructedSculptureRays": 25,
+          "blockers": {},
+          "environmentClearanceM": 0.3175663948059082,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -9.670193672180176,
+          0.928901195526123,
+          -9.023933410644531
+        ],
+        "max": [
+          -8.572619438171387,
+          2.9432265758514404,
+          -7.917568206787109
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0
+    },
+    {
+      "id": "C002",
+      "name": "AI66_002_Sculpture_C002",
+      "label": "Skulptura C 2",
+      "position": [
+        4.631753,
+        2.326398,
+        -11.593737
+      ],
+      "target": [
+        6.258145,
+        1.936064,
+        -8.340952
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 3.657612,
+      "visibility": {
+        "sampledSculptureRays": 23,
+        "unobstructedSculptureRays": 23,
+        "blockers": {},
+        "environmentClearanceM": 2.2281532287597656,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          5.090219,
+          2.216366,
+          -10.676805
+        ],
+        "target": [
+          6.258145,
+          1.936064,
+          -8.340952
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 2.626563,
+        "visibility": {
+          "sampledSculptureRays": 25,
+          "unobstructedSculptureRays": 25,
+          "blockers": {},
+          "environmentClearanceM": 1.719698429107666,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          5.709358215332031,
+          0.928901195526123,
+          -8.894134521484375
+        ],
+        "max": [
+          6.80693244934082,
+          2.9432265758514404,
+          -7.787769317626953
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 180
+    },
+    {
+      "id": "D",
+      "name": "AI66_002_Sculpture_D",
+      "label": "Skulptura D",
+      "position": [
+        -3.252583,
+        1.481895,
+        -15.470274
+      ],
+      "target": [
+        -4.368392,
+        1.116721,
+        -18.919136
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 3.643217,
+      "visibility": {
+        "sampledSculptureRays": 26,
+        "unobstructedSculptureRays": 26,
+        "blockers": {},
+        "environmentClearanceM": 1.481894612312317,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -3.572821,
+          1.377089,
+          -16.4601
+        ],
+        "target": [
+          -4.368392,
+          1.116721,
+          -18.919136
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 2.59761,
+        "visibility": {
+          "sampledSculptureRays": 26,
+          "unobstructedSculptureRays": 26,
+          "blockers": {},
+          "environmentClearanceM": 1.0699282884597778,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -4.874451160430908,
+          -0.001627600286155939,
+          -19.307584762573242
+        ],
+        "max": [
+          -3.8623318672180176,
+          2.235069513320923,
+          -18.53068733215332
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0
+    },
+    {
+      "id": "E",
+      "name": "AI66_002_Sculpture_E",
+      "label": "Skulptura E",
+      "position": [
+        -5.490899,
+        1.466991,
+        -10.28971
+      ],
+      "target": [
+        -4.358461,
+        1.096375,
+        -6.789449
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": 0,
+      "distanceM": 3.697513,
+      "visibility": {
+        "sampledSculptureRays": 28,
+        "unobstructedSculptureRays": 28,
+        "blockers": {},
+        "environmentClearanceM": 1.4669913053512573,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -5.164564,
+          1.360191,
+          -9.281039
+        ],
+        "target": [
+          -4.358461,
+          1.096375,
+          -6.789449
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": 0,
+        "distanceM": 2.632,
+        "visibility": {
+          "sampledSculptureRays": 27,
+          "unobstructedSculptureRays": 27,
+          "blockers": {},
+          "environmentClearanceM": 0.9448749423027039,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -4.77022647857666,
+          -0.0016033061547204852,
+          -7.289072036743164
+        ],
+        "max": [
+          -3.9466962814331055,
+          2.1943540573120117,
+          -6.289824962615967
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0
+    },
+    {
+      "id": "F001",
+      "name": "AI66_002_Sculpture_F001",
+      "label": "Skulptura F 1",
+      "position": [
+        0.303091,
+        1.499981,
+        -10.811793
+      ],
+      "target": [
+        -3.504455,
+        1.123403,
+        -12.0976
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": -70,
+      "distanceM": 4.03639925937966,
+      "visibility": {
+        "sampledSculptureRays": 24,
+        "unobstructedSculptureRays": 24,
+        "blockers": {},
+        "environmentClearanceM": 1.49998140335083,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -0.812097,
+          1.394259,
+          -13.149483
+        ],
+        "target": [
+          -3.504455,
+          1.123403,
+          -12.0976
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": -30,
+        "distanceM": 2.903207,
+        "visibility": {
+          "sampledSculptureRays": 25,
+          "unobstructedSculptureRays": 25,
+          "blockers": {},
+          "environmentClearanceM": 1.394258975982666,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -4.108343601226807,
+          -0.020120620727539062,
+          -12.690342903137207
+        ],
+        "max": [
+          -2.900566577911377,
+          2.266925811767578,
+          -11.504857063293457
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 0,
+      "compositionNote": "Desktop oblique front angle retains chest detail while reducing neighboring torso foreground dominance. Portrait retains the original checked frontal view."
+    },
+    {
+      "id": "F002",
+      "name": "AI66_002_Sculpture_F002",
+      "label": "Skulptura F 2",
+      "position": [
+        -6.632865,
+        1.499981,
+        -14.969251
+      ],
+      "target": [
+        -2.825319,
+        1.123403,
+        -13.683444
+      ],
+      "fov": 45,
+      "aspectChecked": 1.8,
+      "directionYawAdjustmentDegrees": -70,
+      "distanceM": 4.03639925937966,
+      "visibility": {
+        "sampledSculptureRays": 24,
+        "unobstructedSculptureRays": 24,
+        "blockers": {},
+        "environmentClearanceM": 1.4999815225601196,
+        "floorBelow": "ai66_Floor_A"
+      },
+      "portrait": {
+        "position": [
+          -5.517677,
+          1.394259,
+          -12.631561
+        ],
+        "target": [
+          -2.825319,
+          1.123403,
+          -13.683444
+        ],
+        "fov": 65,
+        "aspectChecked": 0.8,
+        "directionYawAdjustmentDegrees": -30,
+        "distanceM": 2.903207,
+        "visibility": {
+          "sampledSculptureRays": 25,
+          "unobstructedSculptureRays": 25,
+          "blockers": {},
+          "environmentClearanceM": 1.394258975982666,
+          "floorBelow": "ai66_Floor_A"
+        }
+      },
+      "bounds": {
+        "min": [
+          -3.4292075634002686,
+          -0.020120620727539062,
+          -14.2761869430542
+        ],
+        "max": [
+          -2.221430540084839,
+          2.266925811767578,
+          -13.09070110321045
+        ]
+      },
+      "duplicateRotationDeltaDegrees": 180,
+      "compositionNote": "Desktop oblique front angle retains chest detail while reducing neighboring torso foreground dominance. Portrait retains the original checked frontal view."
+    }
+  ],
+  "portraitResizeGuidance": "At aspect below 0.8 retain the checked camera position and target; increase vertical FOV to 2*atan(tan(65 degrees/2)*0.8/actualAspect), expressed in degrees. At intermediate desktop aspects below1.8 the same principle preserves framing without moving through walls."
+}

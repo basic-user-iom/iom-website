@@ -10,6 +10,21 @@ export const esProjects: ProjectsLocalePack = {
     experiments: { label: 'Experimentos', blurb: 'I+D de renderizado WebGPU en tiempo real — partículas compute, iluminación, niebla, curvas y estudios de movimiento.' },
   },
   projects: {
+    "gallery-of-light": {
+      "title": "Gallery of Light — escultura, sonido y espacio",
+      "description": "Explora trece esculturas en dos alas de la galería. Sigue la visita, compara estudios de luz y materiales y crea la mezcla musical que da vida a la pantalla.",
+      "referenceLabels": [
+            "Leer el artículo"
+      ]
+},
+    "case-study-gallery-of-light": {
+      "title": "Gallery of Light — del espacio a la experiencia",
+      "description": "Cómo IOM convierte una galería detallada en una exposición en el navegador: recorrido de visita, estudios de luz interactivos, música por capas y una interfaz discreta.",
+      "referenceLabels": [
+            "Leer el artículo",
+            "Entrar en la galería"
+      ]
+},
     'robot-cell': {
       "title": "Robot Cell 01 — Paletización automatizada",
       "description": "Una célula robotizada interactiva: sigue las cajas del transportador al palé y al transporte autónomo. Gira la escena e inicia, pausa o reinicia toda la animación.",

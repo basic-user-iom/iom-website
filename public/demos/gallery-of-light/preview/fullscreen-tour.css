@@ -1,0 +1,201 @@
+/* Keep the tour's context and controls inside both fullscreen modes. */
+#fullscreen-tour-controls {
+  top: auto;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: max(14px, env(safe-area-inset-left));
+  right: max(14px, env(safe-area-inset-right));
+  width: auto;
+  max-width: 1100px;
+  max-height: calc(100dvh - 140px);
+  margin-inline: auto;
+  padding: 12px 14px 10px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 18px;
+  align-items: center;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: #e8eddf;
+  color: #34472c;
+  border-color: #c6cebb;
+  border-radius: 8px;
+  box-shadow: 0 3px 18px #1823181c;
+}
+
+body #viewport:fullscreen #fullscreen-tour-controls:not([hidden]),
+body #viewport.is-expanded #fullscreen-tour-controls:not([hidden]) {
+  display: grid;
+}
+
+.fullscreen-tour-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+#fullscreen-tour-duration {
+  color: #53634a;
+  font-size: 10px;
+  line-height: 1.5;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+#fullscreen-tour-title {
+  max-width: none;
+  font-size: 14px;
+  line-height: 1.4;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.fullscreen-tour-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.fullscreen-tour-actions button {
+  min-height: 44px;
+  font-size: 13px;
+  padding: 10px 13px;
+  white-space: nowrap;
+  background: #f6f7f1;
+}
+
+#fullscreen-tour-toggle {
+  min-width: 104px;
+  color: #fff;
+  background: #455b39;
+  border-color: #455b39;
+}
+
+#fullscreen-tour-toggle:hover:not(:disabled) {
+  background: #364a2e;
+}
+
+.fullscreen-tour-repeat {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 2px;
+  color: #34472c;
+  font-size: 12px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+#fullscreen-tour-description {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: #4c5f40;
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+#fullscreen-tour-progress {
+  grid-column: 1 / -1;
+  appearance: none;
+  width: 100%;
+  min-width: 0;
+  height: 4px;
+  border: 0;
+  border-radius: 3px;
+  background: #d0dac5;
+  accent-color: #627b51;
+}
+
+#fullscreen-tour-progress::-webkit-progress-bar {
+  background: #d0dac5;
+  border-radius: 3px;
+}
+
+#fullscreen-tour-progress::-webkit-progress-value {
+  background: #627b51;
+  border-radius: 3px;
+}
+
+#fullscreen-tour-progress::-moz-progress-bar {
+  background: #627b51;
+  border-radius: 3px;
+}
+
+@media (max-width: 700px) {
+  #fullscreen-tour-controls {
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    left: max(8px, env(safe-area-inset-left));
+    right: max(8px, env(safe-area-inset-right));
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 10px 11px;
+  }
+  .fullscreen-tour-heading { gap: 3px; }
+  #fullscreen-tour-duration { font-size: 9px; }
+  #fullscreen-tour-title { font-size: 13px; }
+  .fullscreen-tour-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 6px;
+  }
+  .fullscreen-tour-actions button {
+    padding: 9px 7px;
+    font-size: 12px;
+  }
+  #fullscreen-tour-toggle { min-width: 0; }
+  .fullscreen-tour-repeat { gap: 5px; }
+  #fullscreen-tour-description { font-size: 11px; }
+}
+
+@media (max-height: 520px) and (min-width: 601px) {
+  #fullscreen-tour-controls {
+    top: auto;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 4px 12px;
+    padding: 8px 10px;
+  }
+  #fullscreen-tour-duration { font-size: 9px; }
+  #fullscreen-tour-title { font-size: 12px; }
+  .fullscreen-tour-actions { display: flex; }
+  .fullscreen-tour-actions button {
+    padding: 9px 10px;
+    font-size: 12px;
+  }
+  #fullscreen-tour-description { font-size: 11px; }
+}
+
+/* Reserve the top corners for context and a persistent fullscreen exit. */
+body #viewport:fullscreen #viewport-fullscreen,
+body #viewport.is-expanded #viewport-fullscreen {
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  bottom: auto;
+}
+body #viewport:fullscreen #focus-label,
+body #viewport.is-expanded #focus-label {
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+  right: auto;
+  bottom: auto;
+  max-width: calc(100% - 190px);
+  margin: 0;
+}
+body #viewport:fullscreen .gesture-hint,
+body #viewport.is-expanded .gesture-hint { display: none; }
+
+@media (max-width: 600px) {
+  body #viewport:fullscreen #viewport-fullscreen,
+  body #viewport.is-expanded #viewport-fullscreen {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+  }
+  body #viewport:fullscreen #focus-label,
+  body #viewport.is-expanded #focus-label {
+    top: max(8px, env(safe-area-inset-top));
+    left: max(8px, env(safe-area-inset-left));
+    max-width: calc(100% - 162px);
+  }
+}

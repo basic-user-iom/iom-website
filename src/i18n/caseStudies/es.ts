@@ -2,6 +2,48 @@ import type { CaseStudiesLocalePack } from './types'
 
 export const esCaseStudies: CaseStudiesLocalePack = {
   studies: {
+    'gallery-of-light': {
+      "eyebrow": "Caso de estudio · 3D interactivo",
+      "title": "Gallery of Light — escultura, luz y sonido",
+      "lead": "Un estudio independiente de IOM reúne trece esculturas en dos alas de una galería, con una visita guiada, comparaciones de materiales y música que los visitantes pueden mezclar.",
+      "impact": "Una galería en el navegador, que se comparte mediante un enlace, permite explorar la exposición y comparar cómo la luz, las superficies y el sonido cambian su atmósfera, sin instalar una aplicación.",
+      "primaryCtaLabel": "Entrar en la galería",
+      "secondaryCtaLabel": "Leer el artículo",
+      "deliverables": [
+        "Galería interactiva en el navegador con trece esculturas en dos alas",
+        "Visita guiada de unos cinco minutos, con pausa y exploración libre",
+        "Iluminación, sombras y estudios de materiales ajustables",
+        "Mezclador de seis pistas musicales y pantalla que reacciona al sonido",
+        "Vista a pantalla completa, controles táctiles y paneles adaptables",
+        "Información sobre las obras y fuentes de los vaciados clásicos añadidos"
+      ],
+      "stages": {
+        "brief": {
+          "title": "Reto — la exposición",
+          "summary": "Descubrir la escultura a través de cambios de luz y sonido.",
+          "detail": "Gallery of Light es un concepto independiente de IOM que explora cómo una exposición en el navegador puede ofrecer algo más que imágenes fijas. Trece esculturas ocupan dos alas de la galería. El objetivo es facilitar la exploración de sus formas y su entorno, con una entrada clara y controles que acompañen la visita.",
+          "mediaAlt": "Gallery of Light — esculturas clásicas, pedestales rojos y luz natural bajo la cubierta"
+        },
+        "tour": {
+          "title": "Solución — el recorrido",
+          "summary": "La visita guiada presenta el espacio; el visitante puede tomar el control en cualquier momento.",
+          "detail": "El recorrido desciende desde una vista general hasta el interior y pasa por las aberturas entre las salas. Durante unos cinco minutos, las paradas de cámara presentan las esculturas y revelan sus efectos de forma gradual. Se puede pausar, elegir una escultura o girar la vista libremente. A pantalla completa, la descripción y los controles siguen al alcance.",
+          "mediaAlt": "Vista desde arriba de las dos alas de la galería y su conexión central"
+        },
+        "light": {
+          "title": "Solución — luz y materiales",
+          "summary": "Comparar las superficies originales con estudios de iluminación y materiales.",
+          "detail": "La iluminación HDR y un sol ajustable definen la luz de la galería. Las sombras, los reflejos del suelo y una niebla baja aportan profundidad. Algunas esculturas muestran refracción, malla de alambre, deformación y materiales translúcidos. Los efectos cambian gradualmente durante la visita y también se pueden ajustar a mano. Son estudios visuales en tiempo real; las cáusticas del vidrio y la dispersión de luz usan aproximaciones prácticas.",
+          "mediaAlt": "Relieve mural translúcido iluminado con luz cálida"
+        },
+        "sound": {
+          "title": "Entregables — una galería con sonido",
+          "summary": "Seis pistas musicales y una pantalla reactiva completan la visita.",
+          "detail": "La música comienza cuando el visitante decide reproducirla. Seis pistas separadas se pueden equilibrar, silenciar o escuchar por separado. La pantalla de la galería responde a la mezcla real y vuelve a una imagen fija al pausar. La experiencia combina este componente sonoro con la visita guiada, la navegación libre y controles adaptables. Los ajustes de renderizado más ligeros limitan la carga en dispositivos pequeños.",
+          "mediaAlt": "Cintas luminosas en la pantalla del auditorio"
+        }
+      }
+    },
     '3d-viewer': {
       eyebrow: 'Caso de estudio · Software',
       title: '3D Viewer — del brief al WebGL',

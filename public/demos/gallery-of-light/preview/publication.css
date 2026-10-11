@@ -1,0 +1,93 @@
+/* Publication links sit outside the exhibition controls and keep its blue palette. */
+#gallery-intro .intro-brand a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: 2px;
+}
+.gallery-publication-nav {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px 20px;
+}
+.gallery-publication-nav a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 40px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  text-decoration: none;
+  text-underline-offset: 4px;
+  border-radius: 2px;
+}
+.gallery-publication-nav a:hover,
+#gallery-intro .intro-brand a:hover {
+  color: var(--ink);
+  text-decoration: underline;
+}
+#gallery-intro .gallery-intro-footer {
+  align-items: center;
+  gap: 4px 24px;
+  padding-top: 10px;
+}
+#gallery-intro .gallery-intro-footer > p {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.gallery-publication-footer {
+  margin-top: 18px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+.gallery-credits {
+  margin-top: 3px;
+  max-width: 900px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.gallery-credits > summary {
+  width: fit-content;
+  min-height: 40px;
+  padding: 10px 0;
+  cursor: pointer;
+  border-radius: 2px;
+  color: var(--muted);
+}
+.gallery-credits > summary:hover {
+  color: var(--ink);
+  background: transparent;
+}
+.gallery-credits-content {
+  padding: 2px 0 10px;
+  overflow-wrap: anywhere;
+}
+.gallery-credits-content p { margin: 0 0 12px; }
+.gallery-credits-content strong { font-weight: 600; color: var(--ink); }
+.gallery-credits-content a { color: var(--ink); text-underline-offset: 3px; }
+#gallery-intro .intro-brand a:focus-visible,
+.gallery-publication-nav a:focus-visible,
+.gallery-credits :is(summary, a):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 4px;
+}
+@media (max-width: 600px) {
+  #gallery-intro .gallery-intro-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  .gallery-publication-nav { gap: 2px 18px; }
+  .gallery-publication-footer { margin-top: 14px; }
+}
+@media (pointer: coarse) {
+  .gallery-publication-nav a,
+  .gallery-credits > summary,
+  #gallery-intro .intro-brand a { min-height: 44px; }
+}

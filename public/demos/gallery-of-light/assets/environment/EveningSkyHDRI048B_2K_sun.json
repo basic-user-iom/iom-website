@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "hasDirectSun": false,
+  "textureSize": [
+    2048,
+    1024
+  ],
+  "copiedBytes": 16777216,
+  "sourceFlipY": false,
+  "peakPixel": [
+    1026,
+    567
+  ],
+  "peakLuminance": 3.6745734375,
+  "peakToMean": 19.606362683242864,
+  "hotPixels": 0,
+  "editedPixels": 0,
+  "sourceDirection": null,
+  "defaultAzimuth": null,
+  "defaultElevation": null,
+  "integratedRGB": [
+    0,
+    0,
+    0
+  ],
+  "normalizedSunColor": [
+    0,
+    0,
+    0
+  ],
+  "radianceFractionRemoved": 0,
+  "skyFillRGB": null,
+  "coreRadiusDegrees": 0,
+  "outerRadiusDegrees": 0,
+  "analysisMilliseconds": 11.5,
+  "sourceId": "EveningSkyHDRI048B"
+}

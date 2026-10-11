@@ -166,6 +166,23 @@ export function pageMetaForPath(pathname: string, lang: SiteLang = 'en'): PageMe
     }
   }
 
+  if (path === '/case-studies/gallery-of-light') {
+    const descriptions: Record<SiteLang, string> = {
+      en: 'How IOM built an interactive gallery for sculpture, light and sound: visitor routes, material studies, audio-reactive visuals and a responsive browser interface.',
+      de: 'Wie IOM eine interaktive Galerie für Skulptur, Licht und Klang entwickelt: Besucherführung, Materialstudien, Musikvisualisierung und responsive Bedienung.',
+      fr: 'Comment IOM crée une galerie interactive de sculpture, lumière et son : parcours de visite, matériaux, visuels réactifs à la musique et interface responsive.',
+      nl: 'Hoe IOM een interactieve galerie voor sculptuur, licht en geluid bouwt: bezoekersroutes, materiaalstudies, muziekvisualisatie en een responsieve interface.',
+      it: 'Come IOM crea una galleria interattiva di scultura, luce e suono: percorsi di visita, materiali, immagini reattive alla musica e interfaccia responsive.',
+      es: 'Cómo IOM crea una galería interactiva de escultura, luz y sonido: recorridos, materiales, imágenes reactivas a la música e interfaz adaptable.',
+    }
+    return {
+      title: 'Gallery of Light — Case Study | IOM',
+      description: descriptions[lang], canonical,
+      ogImage: `${SITE_ORIGIN}/assets/blog/gallery-of-light/gallery.webp`,
+      keywords: ['virtual gallery', 'interactive exhibition', 'sculpture', 'Three.js', 'WebGL', 'audio reactive', 'case study'],
+    }
+  }
+
   if (path === '/case-studies' || path.startsWith('/case-studies/')) {
     const isViewer = path === '/case-studies/3d-viewer'
     const isWitness = path === '/case-studies/black-witness'

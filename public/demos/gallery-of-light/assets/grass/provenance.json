@@ -1,0 +1,95 @@
+{
+  "asset": "Grass005",
+  "provider": "ambientCG",
+  "sourcePage": "https://ambientcg.com/view?id=Grass005",
+  "license": "CC0-1.0",
+  "licensePage": "https://docs.ambientcg.com/license/",
+  "licenseLegalCode": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "downloaded": "2026-10-11",
+  "download": {
+    "url": "https://ambientcg.com/get?file=Grass005_1K-JPG.zip",
+    "resolvedUrl": "https://acg-download.struffelproductions.com/file/ambientCG-Web/download/Grass005_MPzT24Bl/Grass005_1K-JPG.zip",
+    "archiveBytes": 10442657,
+    "archiveSha256": "58a7fb7f32c44a86879483325b62781d04e0ab8f70b0f70ede36c8f1726f8a22"
+  },
+  "usage": "Exterior runtime ground surrounding the gallery; source gallery models and original soil files retained.",
+  "maps": [
+    {
+      "file": "Grass005_Color_1024.jpg",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 356383,
+      "sha256": "bdaeb4520e8e201acdabfd133a6476b51befd3a45035d7449c6e73ab0759ad93",
+      "colorSpace": "sRGB",
+      "conversion": "JPEG quality 88",
+      "original": {
+        "file": "Grass005_1K-JPG_Color.jpg",
+        "bytes": 1875015,
+        "sha256": "5fd8edc1a04e2b9b093229dd0ec41f29668dda9fc698f6610b12cdd83b7690cb"
+      }
+    },
+    {
+      "file": "Grass005_NormalGL_512.png",
+      "width": 512,
+      "height": 512,
+      "bytes": 634214,
+      "sha256": "04b59c00dd8fdab6d6c385568d4b526ca8dba41e1d41afc05304b1dc153e337a",
+      "colorSpace": "linear",
+      "conversion": "High-quality bicubic 512px reduction, lossless PNG; OpenGL +Y, no green-channel inversion",
+      "original": {
+        "file": "Grass005_1K-JPG_NormalGL.jpg",
+        "bytes": 2137845,
+        "sha256": "f89e3a1701511d379a9772774ec6b9d7b7ccf3e944fdcc2b98c09dee4cfd804f"
+      }
+    },
+    {
+      "file": "Grass005_Roughness_512.jpg",
+      "width": 512,
+      "height": 512,
+      "bytes": 86192,
+      "sha256": "c4cc174ac432b3ecea578445e83baf07627e217ca6a272e6776c187cc86f19ba",
+      "colorSpace": "linear",
+      "conversion": "High-quality bicubic 512px reduction, JPEG quality 85",
+      "original": {
+        "file": "Grass005_1K-JPG_Roughness.jpg",
+        "bytes": 851896,
+        "sha256": "04ca3a66eee6105cac9754ac773ffd4ee63ca2222984554c4c04b0cdca80da26"
+      }
+    }
+  ],
+  "loadedTextureBytes": 1076789,
+  "material": {
+    "metalness": 0,
+    "roughnessMultiplier": 1,
+    "normalStrength": [
+      0.5,
+      0.5
+    ],
+    "normalConvention": "OpenGL +Y",
+    "opaque": true,
+    "receivesShadows": true,
+    "colorGrade": {
+      "saturation": 0.55,
+      "brightness": 0.88,
+      "tintLinear": [
+        1.03,
+        1,
+        0.92
+      ],
+      "space": "linear RGB albedo only",
+      "appearance": "Muted natural olive green; source image files unchanged."
+    }
+  },
+  "mapping": {
+    "tileMetres": [
+      2,
+      2
+    ],
+    "sourceGroundUVUnchanged": true,
+    "antiTiling": "Deterministic three-sample triangular stochastic blending with shared offsets and cubic weights across color, normal, and roughness. Explicit UV gradients preserve mip selection at cell boundaries. No random rotations; tangent-space normal directions remain valid.",
+    "samplesPerMap": 3,
+    "extraDrawCalls": 0,
+    "extraTriangles": 0
+  },
+  "limitations": "Flat, lightweight textured lawn; no individual grass blades or displacement geometry. Repetition is broken by stochastic blending rather than expanding the image size."
+}

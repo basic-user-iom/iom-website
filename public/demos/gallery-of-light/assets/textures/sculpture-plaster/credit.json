@@ -1,0 +1,32 @@
+{
+  "title": "Fine ivory plaster for the SMK casts",
+  "sourceAsset": "Plaster001",
+  "author": "ambientCG / Lennart Demes",
+  "sourceURL": "https://ambientcg.com/view?id=Plaster001",
+  "downloadURL": "https://ambientcg.com/get?file=Plaster001_1K-JPG.zip",
+  "license": "CC0 1.0 Universal",
+  "licenseURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "licenseEvidence": "https://docs.ambientcg.com/license/",
+  "credit": "Created using Plaster001 from ambientCG.com, licensed under CC0 1.0 Universal.",
+  "scope": ["Doryphoros_sculpture", "Venus_sculpture", "Discobolus_sculpture", "Apollo_sculpture"],
+  "interpretation": "A restrained visualization of fine plaster, matching the material recorded for the SMK casts. The added texture is not measured color or a texture scan of these museum objects.",
+  "runtimeFile": "plaster-packed.webp",
+  "resolution": [512, 512],
+  "compression": "WebP quality 90; the original source ZIP and extracted maps remain unchanged.",
+  "channels": {
+    "R": "Source albedo luminance normalized around 0.5, used for restrained ±8% maximum modulation of the ivory base color",
+    "G": "Source roughness, used for gentle variation around matte roughness 0.83",
+    "B": "Fine source displacement with coarse relief removed by a periodic blur subtraction, used as a 0.20 mm bump signal"
+  },
+  "mapping": "Three smoothly blended object-space projections with a 0.28 m repeat; one shared texture and three texture samples per fragment.",
+  "material": {
+    "type": "Opaque MeshStandardMaterial",
+    "baseColorLinearRGB": [0.70, 0.678, 0.635],
+    "roughness": 0.83,
+    "metalness": 0,
+    "bumpDepthM": 0.0002,
+    "displacementGeometry": false
+  },
+  "fallback": "Plain opaque ivory plaster if the map cannot load. No sculpture UVs, geometry, GLB assets or plinth materials are modified.",
+  "retrieved": "2026-10-11"
+}

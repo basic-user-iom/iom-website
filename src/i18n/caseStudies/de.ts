@@ -2,6 +2,48 @@ import type { CaseStudiesLocalePack } from './types'
 
 export const deCaseStudies: CaseStudiesLocalePack = {
   studies: {
+    'gallery-of-light': {
+      "eyebrow": "Fallstudie · Interaktives 3D",
+      "title": "Gallery of Light — Skulptur, Licht und Klang",
+      "lead": "Eine unabhängige IOM-Studie versammelt dreizehn Skulpturen in zwei Galerieflügeln: mit geführtem Rundgang, Materialvergleichen und einer Musik, die Besucher selbst mischen können.",
+      "impact": "Die per Link teilbare Browsergalerie macht eine Ausstellung erkundbar und zeigt, wie Licht, Oberflächen und Klang ihre Atmosphäre verändern — ohne eine App zu installieren.",
+      "primaryCtaLabel": "Galerie betreten",
+      "secondaryCtaLabel": "Den Beitrag lesen",
+      "deliverables": [
+        "Interaktive Browsergalerie mit dreizehn Skulpturen in zwei Flügeln",
+        "Etwa fünfminütiger Rundgang mit Pause und freier Erkundung",
+        "Einstellbare Beleuchtung, Schatten und Materialstudien an Skulpturen",
+        "Mischpult mit sechs Musikspuren und klangreaktiver Galeriebildschirm",
+        "Vollbildansicht, Touch-Steuerung und responsive Bedienfelder",
+        "Werkangaben und Quellen für die ergänzten Abgüsse klassischer Skulpturen"
+      ],
+      "stages": {
+        "brief": {
+          "title": "Aufgabe — die Ausstellung",
+          "summary": "Skulpturen durch wechselndes Licht und Klang erfahrbar machen.",
+          "detail": "Gallery of Light ist ein unabhängiges IOM-Konzept. Es untersucht, wie eine Ausstellung im Browser mehr als Standbilder bieten kann. Dreizehn Skulpturen verteilen sich auf zwei Galerieflügel. Ihre Form und ihr räumlicher Kontext sollen leicht erkundbar sein, mit einem klaren Einstieg und einer Bedienung, die den Besuch unterstützt.",
+          "mediaAlt": "Gallery of Light — klassische Skulpturen, rote Sockel und Tageslicht unter dem Galeriedach"
+        },
+        "tour": {
+          "title": "Lösung — der Rundgang",
+          "summary": "Ein geführter Rundgang erschließt den Raum; Besucher können jederzeit übernehmen.",
+          "detail": "Die Tour führt aus der Übersicht hinunter in die Galerie und durch die Durchgänge zwischen den Räumen. In etwa fünf Minuten stellen Kamerastopps die Skulpturen vor und blenden ihre Effekte schrittweise ein. Besucher können pausieren, eine Skulptur auswählen oder die Ansicht frei drehen. Im Vollbild bleiben Beschreibung und Tour-Steuerung erreichbar.",
+          "mediaAlt": "Blick von oben in die beiden Galerieflügel und auf ihre zentrale Verbindung"
+        },
+        "light": {
+          "title": "Lösung — Licht und Materialien",
+          "summary": "Die ursprünglichen Oberflächen mit Licht- und Materialstudien vergleichen.",
+          "detail": "HDR-Beleuchtung und eine verstellbare Sonne bestimmen das Galerielicht. Schatten, Bodenreflexionen und bodennaher Nebel geben dem Raum Tiefe. Ausgewählte Skulpturen zeigen Lichtbrechung, Drahtgitter, Verformung und lichtdurchlässige Materialien. Die Effekte gehen während der Tour sanft ineinander über und lassen sich auch von Hand einstellen. Es sind Echtzeitstudien; Glaskaustiken und Lichtstreuung nutzen praktische Näherungen.",
+          "mediaAlt": "Lichtdurchlässiges Wandrelief in warmem Licht"
+        },
+        "sound": {
+          "title": "Ergebnis — eine Galerie mit Klang",
+          "summary": "Sechs Musikspuren und ein reagierender Bildschirm ergänzen den Besuch.",
+          "detail": "Die Musik beginnt erst, wenn Besucher sie starten. Sechs getrennte Spuren lassen sich mischen, stummschalten oder einzeln anhören. Der Galeriebildschirm reagiert auf die tatsächliche Mischung und kehrt bei einer Pause zu einem Standbild zurück. Das fertige Erlebnis verbindet Klang, Rundgang, freie Navigation und responsive Bedienung. Reduzierte Render-Einstellungen begrenzen die Belastung auf kleineren Geräten.",
+          "mediaAlt": "Leuchtende Bänder auf der Leinwand im Auditorium"
+        }
+      }
+    },
     '3d-viewer': {
       eyebrow: 'Case Study · Software',
       title: '3D Viewer — vom Briefing zu WebGL',

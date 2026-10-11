@@ -1,3 +1,4 @@
+import { GALLERY_OF_LIGHT_BLOG_POST } from './galleryOfLightPost'
 import { ROBOT_CELL_BLOG_POST } from './robotCellPost'
 import { SOLAR_SYSTEM_BLOG_POST } from './solarSystemPost'
 import type { BlogPost } from '../types'
@@ -6,6 +7,7 @@ import { VOLUME_LIGHTING_BLOG_POST } from './volumeLightingPost'
 
 /** All demo-card blog posts for local / empty-DB review. */
 export const ALL_DEMO_BLOG_POSTS: BlogPost[] = [
+  GALLERY_OF_LIGHT_BLOG_POST,
   ROBOT_CELL_BLOG_POST,
   SOLAR_SYSTEM_BLOG_POST,
   VOLUME_LIGHTING_BLOG_POST,

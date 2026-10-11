@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IOM — Gallery of Light</title>
+  <meta name="description" content="Explore thirteen sculptures across two gallery wings. Follow a guided tour, compare light and materials, and shape a six-track soundtrack in your browser.">
+  <link rel="canonical" href="https://iobjectm.com/demos/gallery-of-light/">
+  <meta name="theme-color" content="#405563">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="IOM — Interactive Object Media">
+  <meta property="og:title" content="IOM — Gallery of Light">
+  <meta property="og:description" content="Sculpture, sound and studies in light. Explore an interactive gallery, take the guided tour or find your own view.">
+  <meta property="og:url" content="https://iobjectm.com/demos/gallery-of-light/">
+  <meta property="og:image" content="https://iobjectm.com/assets/blog/gallery-of-light/gallery.webp">
+  <meta property="og:image:alt" content="Sculptures and daylight inside IOM’s Gallery of Light">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="IOM — Gallery of Light">
+  <meta name="twitter:description" content="Explore an interactive gallery of sculpture, sound and light, with a guided tour and room to discover your own view.">
+  <meta name="twitter:image" content="https://iobjectm.com/assets/blog/gallery-of-light/gallery.webp">
+  <meta name="twitter:image:alt" content="Sculptures and daylight inside IOM’s Gallery of Light">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="./style.css"><link rel="stylesheet" href="./studies.css"><link rel="stylesheet" href="./tour.css"><link rel="stylesheet" href="./intro.css"><link rel="stylesheet" href="./fullscreen-tour.css"><link rel="stylesheet" href="./soundtrack.css"><link rel="stylesheet" href="./sculpture-picker.css">
+  <link rel="stylesheet" href="./sculpture-information.css">
+  <link rel="stylesheet" href="./website-screen.css">
+  <link rel="stylesheet" href="./gallery-theme.css">
+  <link rel="stylesheet" href="./publication.css">
+  <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+</head>
+<body class="intro-open">
+  <section id="gallery-intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" aria-describedby="intro-note" aria-busy="true" tabindex="-1">
+    <div class="intro-shell">
+      <div class="intro-brand"><span><a href="/#gallery-of-light" aria-label="Back to IOM — Gallery of Light project">IOM</a></span><span>Spatial studies</span></div>
+      <div class="intro-layout">
+        <div class="intro-copy">
+          <p class="intro-kicker">An invitation to look closer</p>
+          <h2 id="intro-title">Gallery<br>of <em class="intro-light">Light<span class="intro-light-glint" aria-hidden="true">Light</span></em></h2>
+          <p class="intro-description">Sculpture, sound and studies in light.<br>A space to slow down and explore.</p>
+          <div class="intro-loading">
+            <div class="intro-loading-heading"><p id="intro-status" role="status" aria-live="polite" aria-atomic="true">Preparing your gallery</p><span id="intro-progress-label" aria-hidden="true">Preparing</span></div>
+            <progress id="intro-progress" max="5" value="0" aria-label="Loading progress"></progress>
+            <p id="intro-detail">Gallery, sculptures and light</p>
+            <ol id="intro-steps" aria-label="Gallery preparation">
+              <li data-stage="gallery" data-state="pending">Gallery</li>
+              <li data-stage="sculptures" data-state="pending">Sculptures</li>
+              <li data-stage="surfaces" data-state="pending">Surfaces</li>
+              <li data-stage="lighting" data-state="pending">Lighting</li>
+              <li data-stage="view" data-state="pending">First view</li>
+            </ol>
+          </div>
+          <div class="intro-actions">
+            <button id="intro-enter" type="button" disabled><span>Enter tour</span><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            <button id="intro-explore" type="button" disabled>Explore gallery</button>
+            <button id="intro-retry" type="button" hidden onclick="location.reload()">Reload gallery</button>
+          </div>
+          <p id="intro-note">A guided journey of about five minutes.<br>Enter tour starts music. You can mute it at any time.</p>
+          <noscript><p class="intro-no-script">This interactive gallery needs JavaScript. Enable it in your browser, then reload this page.</p></noscript>
+        </div>
+        <div class="intro-art" aria-hidden="true">
+          <img class="intro-gallery-image" src="../assets/intro/gallery-interior.webp" width="1000" height="1226" alt="" loading="eager" decoding="async" fetchpriority="high">
+          <p class="intro-art-caption">Form / light / perception</p>
+        </div>
+      </div>
+      <div class="intro-footer gallery-intro-footer">
+        <p>An interactive spatial exhibition</p>
+        <nav class="gallery-publication-nav" aria-label="About this exhibition">
+          <a href="/case-studies/gallery-of-light">Case study</a>
+          <a href="/blog/gallery-of-light-sculpture-sound">Story</a>
+          <a href="/#gallery-of-light">Back to 3D <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </div>
+  </section>
+  <header inert>
+    <div><p class="eyebrow">IOM · SPATIAL STUDIES</p><h1>IOM <span>— Gallery of Light</span></h1></div>
+    <p class="intro">Sculpture, sound and light</p>
+  </header>
+  <main inert aria-busy="true">
+    <div class="toolbar" aria-label="View controls">
+      <div class="view-buttons" role="group" aria-label="Camera position">
+        <button id="overview" type="button" aria-pressed="true">Room overview</button>
+        <button id="interior" type="button" aria-pressed="false">Interior</button>
+      </div>
+      <label class="roof-toggle"><input id="roof" type="checkbox" checked> Show roof</label>
+    </div>
+    <div class="sculpture-toolbar" aria-label="Gallery destinations">
+      <label for="sculpture-select" class="visually-hidden">Choose a gallery view</label>
+      <select id="sculpture-select" disabled><option value="">Gallery overview</option></select>
+      <div class="sculpture-navigation">
+        <button id="previous-sculpture" type="button" aria-label="Previous sculpture" disabled>← Previous</button>
+        <button id="next-sculpture" type="button" aria-label="Next sculpture" disabled>Next →</button>
+        <button id="reset-view" type="button">Reset view</button>
+      </div>
+    </div>
+    <section id="viewport" aria-label="Three-dimensional gallery preview">
+      <canvas id="scene" aria-label="3D gallery; drag to orbit and scroll to zoom" tabindex="0"></canvas>
+      <p id="status" role="status" aria-live="polite">Loading gallery…</p>
+      <p id="focus-label" aria-live="polite">Entire gallery</p>
+      <p class="gesture-hint"><span class="pointer-help">Drag to orbit · scroll to zoom</span><span class="touch-help">Drag to orbit · pinch to zoom</span><span id="fullscreen-help" hidden> · Esc to exit</span></p>
+      <button id="viewport-fullscreen" type="button" data-preserve-tour aria-label="Enter full screen" aria-pressed="false" aria-controls="viewport"><svg aria-hidden="true" viewBox="0 0 24 24" width="17" height="17"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg><span data-fullscreen-label>Full screen</span></button>
+      <div id="fullscreen-tour-controls" class="fullscreen-tour-controls" data-preserve-tour hidden role="group" aria-label="Guided tour controls">
+        <div class="fullscreen-tour-heading">
+          <span id="fullscreen-tour-duration">Guided walk</span>
+          <strong id="fullscreen-tour-title" aria-live="polite">Guided gallery tour</strong>
+        </div>
+        <div class="fullscreen-tour-actions">
+          <button id="fullscreen-tour-toggle" type="button" aria-pressed="false" disabled>Play tour</button>
+          <button id="fullscreen-tour-restart" type="button" disabled>Restart tour</button>
+          <label class="fullscreen-tour-repeat"><input id="fullscreen-tour-repeat" type="checkbox" disabled> Repeat</label>
+        </div>
+        <p id="fullscreen-tour-description" role="status" aria-live="polite" aria-atomic="true">Explore the gallery's light and material studies.</p>
+        <progress id="fullscreen-tour-progress" max="1" value="0" aria-label="Tour progress"></progress>
+      </div>
+      <span id="fullscreen-status" class="visually-hidden" role="status" aria-live="polite"></span>
+    </section>
+    <details class="performance-details"><summary>Performance details</summary><section class="metrics" aria-label="Preview statistics">
+      <div><span>Gallery and sculptures</span><strong id="file-size">—</strong></div>
+      <div><span>Load time</span><strong id="load-time">—</strong></div>
+      <div><span>Draw calls</span><strong id="draw-calls">—</strong></div>
+      <div><span>Rendered triangles</span><strong id="triangles">—</strong></div>
+      <div><span>Separate partitions</span><strong id="partitions">—</strong></div>
+    </section></details>
+    <p class="footnote">Choose a sculpture for an individual view in the gallery. Drag to orbit or zoom in on a detail; “Reset view” restores the selected view.</p>
+    <footer class="gallery-publication-footer">
+      <nav class="gallery-publication-nav" aria-label="More about Gallery of Light">
+          <a href="/case-studies/gallery-of-light">Case study</a>
+          <a href="/blog/gallery-of-light-sculpture-sound">Story</a>
+          <a href="/#gallery-of-light">Back to 3D <span aria-hidden="true">↗</span></a>
+        </nav>
+      <details class="gallery-credits">
+        <summary>Credits &amp; sources</summary>
+        <div class="gallery-credits-content">
+          <p><strong>Exhibition experience.</strong> Interface, guided tour and interactive studies by IOM. This independent study combines supplied scene assets with credited museum scans, textures and software.</p>
+          <p><strong>Original gallery and collection.</strong> Adapted from the gallery scene supplied by the project owner. The original models and materials remain the work of their respective creators.</p>
+          <p><strong>Additional classical casts.</strong> Digitizations from SMK — National Gallery of Denmark, Royal Cast Collection. The source notices identify public-domain material under Public Domain Mark 1.0 or CC0, as specified for each asset:
+            <a href="/demos/gallery-of-light/assets/sculptures/doryphoros-credit.json" target="_blank" rel="noopener">Doryphoros</a>,
+            <a href="/demos/gallery-of-light/assets/sculptures/venus-de-milo-credit.json" target="_blank" rel="noopener">Venus de Milo</a>,
+            <a href="/demos/gallery-of-light/assets/sculptures/discobolus-credit.json" target="_blank" rel="noopener">Discobolus</a> and
+            <a href="/demos/gallery-of-light/assets/sculptures/apollo-belvedere-credit.json" target="_blank" rel="noopener">Apollo Belvedere</a>.
+          </p>
+          <p><strong>Environment and surfaces.</strong> CC0 assets by ambientCG:
+            <a href="/demos/gallery-of-light/assets/environment/EveningSkyHDRI048B_2K_manifest.json" target="_blank" rel="noopener">Evening Sky HDRI 048B</a>,
+            <a href="/demos/gallery-of-light/assets/grass/provenance.json" target="_blank" rel="noopener">Grass005</a> and
+            <a href="/demos/gallery-of-light/assets/textures/sculpture-plaster/credit.json" target="_blank" rel="noopener">Plaster001</a>.
+          </p>
+          <p><strong>Music.</strong> Suno soundtrack stems supplied by the project owner, prepared for interactive playback and mixing.</p>
+          <p><strong>Software.</strong>
+            <a href="/demos/gallery-of-light/preview/vendor/LICENSE" target="_blank" rel="noopener">Three.js</a> and included decoder notices:
+            <a href="/demos/gallery-of-light/preview/vendor/draco/LICENSE" target="_blank" rel="noopener">Draco</a>,
+            <a href="/demos/gallery-of-light/preview/vendor/basis/LICENSE" target="_blank" rel="noopener">Basis Universal</a>,
+            <a href="/demos/gallery-of-light/preview/vendor/libs/zstddec.LICENSE" target="_blank" rel="noopener">zstddec</a>,
+            <a href="/demos/gallery-of-light/preview/vendor/libs/ktx-parse.LICENSE" target="_blank" rel="noopener">ktx-parse</a> and
+            <a href="/demos/gallery-of-light/preview/vendor/libs/fflate.LICENSE" target="_blank" rel="noopener">fflate</a>.
+          </p>
+          <p><strong>Typefaces.</strong>
+            <a href="/demos/gallery-of-light/assets/fonts/newsreader-OFL.txt" target="_blank" rel="noopener">Newsreader</a> and
+            <a href="/demos/gallery-of-light/assets/fonts/source-sans-3-OFL.txt" target="_blank" rel="noopener">Source Sans 3</a>, self-hosted under the SIL Open Font License.
+          </p>
+        </div>
+      </details>
+    </footer>
+  </main>
+  <script defer src="./intro.js" onerror="document.getElementById('intro-status').textContent='The gallery could not start. Please reload.';document.getElementById('intro-retry').hidden=false;document.getElementById('gallery-intro').classList.add('has-error');document.getElementById('gallery-intro').setAttribute('aria-busy','false')"></script>
+  <script type="module" src="./viewer.js"></script>
+</body>
+</html>

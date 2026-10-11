@@ -54,7 +54,7 @@ export function localizeProject(project: Project, lang: SiteLang): Project {
       ? project.referenceUrls.map((ref, i) => ({
           ...ref,
           label: o.referenceLabels?.[i] ?? ref.label,
-          url: project.id === 'robot-cell' && ref.url === '/blog/robot-cell-browser-palletizing'
+          url: ((project.id === 'robot-cell' && ref.url === '/blog/robot-cell-browser-palletizing') || (['gallery-of-light', 'case-study-gallery-of-light'].includes(project.id) && ref.url === '/blog/gallery-of-light-sculpture-sound'))
             ? localePath(lang, ref.url)
             : ref.url,
         }))

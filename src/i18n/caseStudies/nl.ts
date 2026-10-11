@@ -2,6 +2,48 @@ import type { CaseStudiesLocalePack } from './types'
 
 export const nlCaseStudies: CaseStudiesLocalePack = {
   studies: {
+    'gallery-of-light': {
+      "eyebrow": "Casestudy · Interactieve 3D",
+      "title": "Gallery of Light — sculptuur, licht en geluid",
+      "lead": "Deze onafhankelijke IOM-studie brengt dertien sculpturen samen in twee galerievleugels, met een rondleiding, materiaalvergelijkingen en muziek die bezoekers zelf kunnen mixen.",
+      "impact": "De browsergalerie is via een link te delen. Bezoekers verkennen de tentoonstelling en vergelijken hoe licht, oppervlakken en geluid de sfeer veranderen, zonder een app te installeren.",
+      "primaryCtaLabel": "Ga de galerie binnen",
+      "secondaryCtaLabel": "Lees het verhaal",
+      "deliverables": [
+        "Interactieve browsergalerie met dertien sculpturen in twee vleugels",
+        "Rondleiding van ongeveer vijf minuten, met pauze en vrije verkenning",
+        "Instelbare belichting, schaduwen en materiaalstudies op sculpturen",
+        "Mixer met zes muzieksporen en een scherm dat op geluid reageert",
+        "Volledig scherm, aanraakbediening en responsieve panelen",
+        "Werkinformatie en bronvermeldingen voor de toegevoegde klassieke afgietsels"
+      ],
+      "stages": {
+        "brief": {
+          "title": "Uitdaging — de tentoonstelling",
+          "summary": "Sculptuur laten ervaren via veranderend licht en geluid.",
+          "detail": "Gallery of Light is een onafhankelijk IOM-concept dat onderzoekt hoe een tentoonstelling in de browser meer kan bieden dan stilstaande beelden. Dertien sculpturen staan verspreid over twee galerievleugels. Hun vorm en omgeving moeten eenvoudig te verkennen zijn, met een duidelijke entree en bediening die het bezoek ondersteunt.",
+          "mediaAlt": "Gallery of Light — klassieke sculpturen, rode sokkels en daglicht onder het galeriedak"
+        },
+        "tour": {
+          "title": "Oplossing — de bezoekersroute",
+          "summary": "Een rondleiding introduceert de ruimte; bezoekers kunnen op elk moment overnemen.",
+          "detail": "De rondleiding daalt vanuit een overzicht af naar de galerie en volgt de doorgangen tussen de zalen. Gedurende ongeveer vijf minuten tonen camerastops de sculpturen en verschijnen hun effecten geleidelijk. Bezoekers kunnen pauzeren, een sculptuur kiezen of de camera vrij ronddraaien. In volledig scherm blijven de toelichting en tourbediening bereikbaar.",
+          "mediaAlt": "Bovenaanzicht van de twee galerievleugels en hun centrale verbinding"
+        },
+        "light": {
+          "title": "Oplossing — licht en materialen",
+          "summary": "Vergelijk de oorspronkelijke oppervlakken met licht- en materiaalstudies.",
+          "detail": "HDR-belichting en een instelbare zon bepalen het galerielicht. Schaduwen, vloerreflecties en lage mist geven de ruimte diepte. Geselecteerde sculpturen tonen lichtbreking, draadmodellen, vervorming en doorschijnende materialen. De effecten lopen tijdens de rondleiding geleidelijk in elkaar over en zijn ook handmatig instelbaar. Het zijn realtime visuele studies; glascaustiek en lichtverstrooiing gebruiken praktische benaderingen.",
+          "mediaAlt": "Doorschijnend wandreliëf in warm licht"
+        },
+        "sound": {
+          "title": "Resultaat — een galerie met geluid",
+          "summary": "Zes muzieksporen en een reagerend scherm maken het bezoek compleet.",
+          "detail": "De muziek begint pas wanneer de bezoeker die start. Zes afzonderlijke sporen zijn te mixen, te dempen of apart te beluisteren. Het galerijscherm reageert op de daadwerkelijke mix en keert bij een pauze terug naar een stilstaand beeld. Het resultaat combineert geluid met de rondleiding, vrije navigatie en responsieve bediening. Lichtere renderinstellingen beperken de belasting op kleinere apparaten.",
+          "mediaAlt": "Lichtgevende linten op het scherm in het auditorium"
+        }
+      }
+    },
     '3d-viewer': {
       eyebrow: 'Case study · Software',
       title: '3D Viewer — van brief tot WebGL',

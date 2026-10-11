@@ -1,0 +1,15 @@
+{
+  "title": "Doryphoros — The Spear Bearer",
+  "originalDesign": "Polykleitos, c. 450 BCE",
+  "depictedObject": "Plaster cast in the Royal Cast Collection, SMK — National Gallery of Denmark, KAS11",
+  "museumRecord": "https://open.smk.dk/en/artwork/image/KAS11",
+  "metadataSource": "https://api.smk.dk/api/v1/art/?object_number=KAS11",
+  "sourceAsset": "https://api.smk.dk/api/v1/download-3d/pc289q07k_smk-doryphoros.glb",
+  "sourceBytes": 4954404,
+  "sourceSha256": "a2f08ec699d7afc8b168357c8e699b83ee696e0aef1fb03e2754782b34c031f1",
+  "rights": "Public Domain Mark 1.0, as recorded by SMK",
+  "rightsURL": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "preparation": "Blender simplification to 54,999 sculpture triangles; smooth normals; texture-free plaster material; Draco-compressed glTF. A separate 10 cm display plinth is added at runtime.",
+  "derivativeBytes": 127836,
+  "derivativeSha256": "3b3004e32095af456b238f2a643baf5b972ea5f28b27a36f21ba6175873ddca6"
+}

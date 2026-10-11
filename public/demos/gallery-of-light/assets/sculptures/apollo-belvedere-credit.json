@@ -1,0 +1,71 @@
+{
+  "title": "Apollo Belvedere",
+  "originalDesign": "Traditionally attributed to Leochares, c. 330 BCE",
+  "depictedObject": "Plaster cast in the Royal Cast Collection, SMK - National Gallery of Denmark, KAS353",
+  "originalStatue": "Roman marble copy after an ancient Greek design; Museo Pio Clementino, Vatican Museums",
+  "museumRecord": "https://open.smk.dk/en/artwork/image/KAS353",
+  "metadataSource": "https://api.smk.dk/api/v1/art/?object_number=KAS353",
+  "sourceAsset": "https://api.smk.dk/api/v1/download-3d/wm117v118_smk-apollo-belvedere.stl",
+  "sourceBytes": 14512784,
+  "sourceSha256": "fbab1e3e57a919953b225923912ca02cfb411342b99d7574a4ac4b6a838bd953",
+  "rights": "Public Domain Mark 1.0, as recorded by SMK for this official museum download",
+  "rightsURL": "https://creativecommons.org/publicdomain/mark/1.0/",
+  "selectedListing": "https://sketchfab.com/3d-models/apollo-belvedere-fe5c0cffdc2a4f3985872212c692af0c",
+  "selectedListingRights": "CC0 Public Domain, published by SMK - National Gallery of Denmark",
+  "selectedListingRightsURL": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "sourceEquivalence": "The museum record KAS353 directly links the selected Sketchfab Apollo model. This derivative uses the same museum object from the official SMK STL download; it is not an extraction of the Sketchfab viewer.",
+  "preparation": "Blender 5.2 reduction from 290,254 to 55,000 triangles; smooth unit normals; single-sided opaque texture-free plaster PBR material; Draco-compressed glTF. Source proportions preserved with uniform height calibration. Integral scanned base retained; no additional display pedestal included.",
+  "mesh": "Apollo_sculpture",
+  "material": "apollo_plaster",
+  "triangles": 55000,
+  "coordinates": {
+    "unit": "metres",
+    "up": "+Y",
+    "front": "+Z",
+    "pivot": "bottom centre",
+    "baseY": 0,
+    "heightM": 2.32,
+    "rootTransform": "identity, positive scale",
+    "widthM": 1.4705775976,
+    "depthM": 1.0125294924
+  },
+  "dimensionNote": "Height is calibrated to the SMK cast catalogue height of 232 cm. Scan proportions are preserved rather than stretched to catalogue width/depth measurements.",
+  "deviationAfterDraco": {
+    "sampleCount": 24000,
+    "maxM": 0.0013134998735040426,
+    "p95M": 0.0005638000293401999,
+    "meanM": 0.00023129563643863805,
+    "method": "Bidirectional nearest-surface samples compared to normalized museum source after reimport of the final Draco GLB."
+  },
+  "derivativeBytes": 139432,
+  "derivativeSha256": "5c84c88544d477c7d106d175abb2bf16666a67e6d80ba94ed618f7ba6b03f9bd",
+  "visualInspection": "Front and back inspected in Blender source/optimized comparisons and in the actual Three.js Draco render. The chest faces +Z; the head turns toward the outstretched left arm.",
+  "curatorial": {
+    "eyebrow": "Grace after action",
+    "description": "Apollo pauses after releasing an arrow. Follow the turn of his head, the outstretched arm and the sweep of drapery. This digital scan records the SMK plaster cast of the celebrated Vatican statue, a Roman marble version after an ancient Greek design.",
+    "lookFor": "The contrast between the relaxed torso and extended arm, and the deep folds hanging from the shoulder.",
+    "facts": [
+      {
+        "label": "Cast collection",
+        "value": "SMK Royal Cast Collection, Copenhagen - KAS353"
+      },
+      {
+        "label": "Material of scanned object",
+        "value": "Plaster"
+      },
+      {
+        "label": "Cast height",
+        "value": "2.32 m"
+      },
+      {
+        "label": "Ancient design",
+        "value": "Traditionally attributed to Leochares, c. 330 BCE"
+      },
+      {
+        "label": "Original marble",
+        "value": "Museo Pio Clementino, Vatican Museums"
+      }
+    ],
+    "sourceNote": "Description paraphrased from the KAS353 catalogue text by Henrik Holm and the official SMK Sketchfab description; dates refer to the ancient design, not the modern plaster cast."
+  }
+}

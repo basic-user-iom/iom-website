@@ -1,0 +1,267 @@
+/* Self-hosted, unmodified Google Fonts subsets. OFL notices are in assets/fonts. */
+/* Newsreader · italic · latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../assets/fonts/newsreader-italic-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Newsreader · italic · latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url(../assets/fonts/newsreader-italic-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Newsreader · normal · latin-ext */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(../assets/fonts/newsreader-normal-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Newsreader · normal · latin */
+@font-face {
+  font-family: 'Newsreader';
+  font-style: normal;
+  font-weight: 400 500;
+  font-display: swap;
+  src: url(../assets/fonts/newsreader-normal-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Source Sans 3 · normal · latin-ext */
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(../assets/fonts/source-sans-3-normal-latin-ext.woff2) format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Source Sans 3 · normal · latin */
+@font-face {
+  font-family: 'Source Sans 3';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url(../assets/fonts/source-sans-3-normal-latin.woff2) format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Evening sky identity. Layout and rendering remain in their existing modules. */
+:root {
+  --ui-font: 'Source Sans 3', Arial, sans-serif;
+  --display-font: 'Newsreader', Georgia, serif;
+  --page: #eef0ef;
+  --ink: #304550;
+  --muted: #526671;
+  --surface: #f6f7f4;
+  --line: #cbd5d9;
+  --accent: #405563;
+  --hover: #e0e8eb;
+  --focus: #386984;
+  --panel: #405563;
+  --raised: #4e6574;
+  --panel-line: #8196a2;
+  --control-border: #a5b6c0;
+  --progress-track: #607986;
+  --on-panel: #f2f5f4;
+  --muted-on-panel: #d6e0e4;
+  --pale-button: #e5edf0;
+  font-family: var(--ui-font);
+  font-optical-sizing: auto;
+  color-scheme: light;
+  background: var(--page);
+  color: var(--ink);
+}
+body { background: var(--page); color: var(--ink); }
+button, input, select { font-family: var(--ui-font); }
+button, select { border-radius: 5px; font-size: 14px; font-weight: 500; }
+button:hover:not(:disabled), summary:hover { background-color: var(--hover); border-color: var(--focus); }
+button[aria-pressed=true]:hover:not(:disabled) { background: #344c5b; }
+:is(button,input,select,summary,canvas):focus-visible { outline-color: var(--focus); }
+body>header { padding: 26px 28px 22px; align-items: center; }
+h1 { font-family: var(--display-font); font-size: 40px; font-weight: 400; line-height: 1.16; letter-spacing: -.018em; }
+h1 span { color: var(--ink); }
+.eyebrow { font-weight: 500; margin-bottom: 8px; letter-spacing: .19em; }
+.intro { font-size: 12px; letter-spacing: .02em; }
+.toolbar { margin-bottom: 12px; flex-wrap: wrap; }
+.view-buttons { gap: 8px; flex-wrap: wrap; }
+.roof-toggle { margin-left: auto; font-size: 14px; }
+.roof-toggle:hover { background: var(--hover); }
+.sculpture-toolbar { margin-bottom: 16px; }
+.sculpture-navigation { gap: 8px; }
+#viewport { border-color: var(--line); border-radius: 5px; }
+#viewport::backdrop { background: var(--panel); }
+
+/* Dark blue surfaces use their own contrast-safe control palette. */
+.studies-panel, .tour-bar, #fullscreen-tour-controls, #gallery-soundtrack {
+  --surface: var(--raised);
+  --line: var(--panel-line);
+  --muted: var(--muted-on-panel);
+  --accent: var(--pale-button);
+  --hover: #5a7281;
+  --focus: #e0f1fb;
+  color-scheme: dark;
+  background: var(--panel);
+  color: var(--on-panel);
+  border-color: var(--line);
+  border-radius: 5px;
+}
+.studies-panel :is(button,select), .tour-controls button,
+.fullscreen-tour-actions button, .soundtrack-toolbar button,
+#gallery-soundtrack button {
+  background: var(--surface); color: var(--on-panel); border-color: var(--control-border);
+}
+.studies-panel button:hover:not(:disabled), .tour-controls button:hover:not(:disabled),
+.fullscreen-tour-actions button:hover:not(:disabled), #gallery-soundtrack button:hover:not(:disabled) {
+  background: var(--hover); border-color: var(--focus); color: var(--on-panel);
+}
+.tour-controls #tour-toggle, #fullscreen-tour-toggle, #gallery-soundtrack #soundtrack-play,
+#gallery-soundtrack button[aria-pressed=true] {
+  background: var(--pale-button); border-color: var(--pale-button); color: var(--ink); font-weight: 600;
+}
+.tour-controls #tour-toggle:hover:not(:disabled), #fullscreen-tour-toggle:hover:not(:disabled),
+#gallery-soundtrack #soundtrack-play:hover:not(:disabled), #gallery-soundtrack button[aria-pressed=true]:hover:not(:disabled) {
+  background: #f3f8fa; border-color: #f3f8fa; color: var(--ink);
+}
+.tour-bar { padding: 14px 16px 12px; gap: 7px 18px; margin-bottom: 16px; }
+.tour-eyebrow, #fullscreen-tour-duration { font-size: 10px; letter-spacing: .1em; color: var(--muted); }
+.tour-heading strong, #fullscreen-tour-title { font-size: 14px; font-weight: 600; color: var(--on-panel); }
+.tour-controls button { font-size: 14px; }
+#tour-description, #fullscreen-tour-description { color: var(--muted); font-size: 13px; }
+.fullscreen-tour-repeat { color: var(--on-panel); }
+#tour-progress, #fullscreen-tour-progress {
+  background: var(--progress-track); accent-color: var(--pale-button); height: 3px; border-radius: 0;
+}
+#tour-progress::-webkit-progress-bar, #fullscreen-tour-progress::-webkit-progress-bar { background: var(--progress-track); border-radius: 0; }
+#tour-progress::-webkit-progress-value, #fullscreen-tour-progress::-webkit-progress-value { background: var(--pale-button); border-radius: 0; }
+#tour-progress::-moz-progress-bar, #fullscreen-tour-progress::-moz-progress-bar { background: var(--pale-button); border-radius: 0; }
+
+.studies-panel { padding: 22px 20px; }
+.studies-panel h2, .soundtrack-heading h3 { font-family: var(--display-font); font-weight: 400; }
+.studies-panel h2 { font-size: 29px; line-height: 1.2; letter-spacing: -.02em; margin-bottom: 9px; }
+.studies-intro, #study-description, #study-context { font-size: 13px; line-height: 1.55; }
+.studies-intro { margin-bottom: 22px; }
+.study-picker { font-size: 12px; }
+.studies-panel select { font-size: 14px; }
+#study-context, .study-range output, .sculpture-studies h3 { color: var(--on-panel); }
+#study-context { font-weight: 500; }
+#studies-active { font-size: 11px; }
+.study-section, .study-section:last-of-type, .effect-strength { border-color: var(--line); }
+.study-section>summary { color: var(--on-panel); font-size: 13px; font-weight: 500; padding-block: 15px; }
+.study-section>summary::marker { color: var(--pale-button); }
+.study-color input { background: var(--raised); }
+#studies-status.error { color: #ffd1bd; }
+
+/* Context, audio and fullscreen overlays retain existing safe-area positioning. */
+#focus-label, .gesture-hint, #viewport-fullscreen,
+.sculpture-information-button, .website-screen-action {
+  background: var(--panel); color: var(--on-panel); border-color: var(--panel-line);
+  border-radius: 5px; --focus: #e0f1fb;
+}
+#viewport-fullscreen[aria-pressed=true] { background: var(--panel); color: var(--on-panel); border-color: var(--panel-line); }
+#viewport-fullscreen:hover:not(:disabled), .sculpture-information-button:hover:not(:disabled), .website-screen-action:hover {
+  background: var(--raised); color: var(--on-panel); border-color: var(--panel-line);
+}
+#focus-label { font-size: 12px; }
+.gesture-hint { font-size: 11px; }
+#viewport-fullscreen { font-size: 12px; box-shadow: none; }
+#gallery-soundtrack { width: 320px; padding: 5px; border-radius: 7px; box-shadow: 0 4px 20px #30455015; }
+.soundtrack-toolbar button { font-size: 12px; }
+.soundtrack-mixer-body, .soundtrack-stem { border-color: var(--line); }
+.soundtrack-heading h3 { font-size: 25px; }
+.soundtrack-heading p, #soundtrack-status, #gallery-soundtrack output,
+.soundtrack-stems legend, .soundtrack-layer-note { color: var(--muted); }
+#gallery-soundtrack input[type=range] { accent-color: var(--pale-button); }
+#gallery-soundtrack[data-status=error] #soundtrack-status { color: #ffd1bd; }
+
+/* Thumbnail menu and information dialogs use the quiet, light surface. */
+.sculpture-picker-trigger { padding: 7px 12px 7px 7px; }
+.sculpture-picker-thumbnail { background: #d7e0e4; border-radius: 2px; }
+.sculpture-picker-copy>span { color: var(--ink); font-size: 13px; }
+.sculpture-picker-copy>small { color: var(--muted); font-size: 11px; }
+.sculpture-picker-chevron, .sculpture-picker-heading { color: var(--muted); }
+.sculpture-picker-popup { background: var(--surface); border-color: var(--line); box-shadow: 0 12px 32px #30455026; border-radius: 7px; }
+.sculpture-picker-option:hover { background: var(--hover); }
+.sculpture-picker-option[aria-selected=true] { background: #dce6ec; border-color: #91a8b5; }
+.sculpture-picker-option.is-active { background: var(--hover); outline-color: var(--focus); }
+.sculpture-information-dialog, .website-screen-dialog {
+  background: var(--surface); color: var(--ink); border-color: var(--line); font-family: var(--ui-font); border-radius: 7px;
+}
+.sculpture-information-dialog h2, .website-screen-header h2 { font-family: var(--display-font); font-weight: 400; }
+.sculpture-information-top>span, .sculpture-information-kicker, .sculpture-information-subtitle,
+.sculpture-information-dialog footer { color: var(--muted); }
+.sculpture-information-dialog details, .sculpture-information-dialog footer, .website-screen-dialog .website-screen-header { border-color: var(--line); }
+.sculpture-information-dialog a, .website-screen-header a { color: #365f77; }
+.sculpture-information-dialog::backdrop { background: #243d5066; }
+.website-screen-dialog::backdrop { background: #243d50aa; }
+.website-screen-action { font-family: var(--ui-font); }
+.website-screen-action:focus-visible, .website-screen-dialog a:focus-visible, .sculpture-information-dialog :focus-visible { outline-color: var(--focus); }
+
+.performance-details { border-color: var(--line); margin-top: 16px; }
+.performance-details>summary, .footnote { font-size: 12px; }
+.footnote { margin-top: 12px; }
+
+@media(min-width:981px) {
+  body>header { padding-inline: 32px; }
+  body>main { padding-inline: 32px; }
+  .viewer-layout { gap: 20px; }
+}
+@media(max-width:980px) {
+  body>header { padding: 18px 20px 16px; }
+  h1 { font-size: 34px; }
+}
+@media(max-width:700px) {
+  .tour-bar { padding: 10px 11px; gap: 7px; margin-bottom: 12px; }
+  .tour-controls button, .fullscreen-tour-actions button { font-size: 13px; }
+  .tour-heading strong, #fullscreen-tour-title { font-size: 13px; }
+  .tour-eyebrow, #fullscreen-tour-duration { font-size: 10px; }
+  #tour-description, #fullscreen-tour-description { font-size: 12px; }
+}
+@media(max-width:600px) {
+  body>header { padding: 16px 12px 14px; }
+  h1 { font-size: clamp(25px,6.8vw,32px); }
+  .view-buttons { gap: 5px; }
+  .view-buttons button { font-size: 13px; }
+  .roof-toggle { font-size: 13px; }
+  .sculpture-navigation { gap: 6px; }
+  .sculpture-navigation button { font-size: 13px; }
+  .studies-panel { padding: 16px; }
+  .studies-panel h2 { font-size: 27px; }
+  .studies-panel select { font-size: 16px; }
+  #study-parameters { column-gap: 16px; }
+  .sculpture-picker-option .sculpture-picker-copy>small { font-size: 10px; }
+  #focus-label { font-size: 11px; }
+  .gesture-hint { font-size: 10px; }
+  #viewport-fullscreen { font-size: 11px; }
+  body #viewport:fullscreen .sculpture-information-button, body #viewport.is-expanded .sculpture-information-button,
+  body #viewport:fullscreen .website-screen-action, body #viewport.is-expanded .website-screen-action {
+    top: max(64px,calc(env(safe-area-inset-top) + 56px)); left: max(8px,env(safe-area-inset-left));
+  }
+}
+@media(max-width:480px) {
+  .toolbar { gap: 4px; }
+  .view-buttons { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); width: 100%; }
+  .view-buttons button { padding-inline: 6px; }
+}
+@media(max-height:520px) and (min-width:601px) {
+  body>header { padding-top: 10px; padding-bottom: 10px; }
+  h1 { font-size: 28px; }
+  .tour-bar { padding: 8px 10px; gap: 4px 12px; margin-bottom: 10px; }
+  .tour-heading strong, #fullscreen-tour-title { font-size: 12px; }
+  .tour-controls button, .fullscreen-tour-actions button { font-size: 12px; }
+  #tour-description, #fullscreen-tour-description { font-size: 11px; }
+}
+
