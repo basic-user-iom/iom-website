@@ -1,0 +1,51 @@
+{
+  "id": "monochrome_studio_02",
+  "title": "Monochrome Studio 02",
+  "author": "Grzegorz Wronkowski",
+  "sourceUrl": "https://polyhaven.com/a/monochrome_studio_02",
+  "downloadUrl": "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/2k/monochrome_studio_02_2k.hdr",
+  "license": "CC0-1.0",
+  "licenseUrl": "https://polyhaven.com/license",
+  "localFile": "public/assets/environment/monochrome_studio_02_2k.hdr",
+  "bytes": 6228677,
+  "md5": "3306623dcc8408d50fca4106e4a57bc6",
+  "sha256": "d0b4d290fafd689e018ccaedb5f74f0954f5862c6face8baa3100eee93f34a76",
+  "width": 2048,
+  "height": 1024,
+  "format": "Radiance RGBE HDR",
+  "colorSpace": "linear sRGB",
+  "usage": "Scene environment for PBR lighting/reflections through PMREM; CSS backdrop retained",
+  "rawDynamicRange": {
+    "maxChannelMean": 50.02875900268555,
+    "averageChannelMean": 0.7134921236253993
+  },
+  "webEnvironment": {
+    "id": "monochrome_studio_02",
+    "status": "ready",
+    "intensity": 0.65,
+    "rotationY": 4.71238898038469
+  },
+  "previewFiles": [
+    {
+      "file": "assets/preview/stradivari_amantes_s3_hero_v05_studio02.png",
+      "width": 1600,
+      "height": 1000,
+      "byteSize": 277939,
+      "renderer": "Actual Three.js browser render with Monochrome Studio 02; no overlays"
+    },
+    {
+      "file": "assets/preview/stradivari_amantes_s3_driver_v05_studio02.png",
+      "width": 1600,
+      "height": 1000,
+      "byteSize": 349011,
+      "renderer": "Actual Three.js browser render with Monochrome Studio 02; no overlays"
+    },
+    {
+      "file": "assets/preview/stradivari_amantes_s3_mobile_v05_studio02.png",
+      "width": 900,
+      "height": 1200,
+      "byteSize": 265484,
+      "renderer": "Actual Three.js browser render with Monochrome Studio 02; no overlays"
+    }
+  ]
+}

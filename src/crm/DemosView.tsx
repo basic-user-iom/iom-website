@@ -41,6 +41,17 @@ function assetUrl(path: string): string {
 /** Private client demos — not listed on the public site. */
 export const CLIENT_DEMOS: ClientDemo[] = [
   {
+    id: 'stradivari-amantes-s3',
+    name: 'Stradivari Amantes S3',
+    client: 'Client concept — interactive loudspeaker presentation',
+    status: 'preview',
+    path: '/demos/stradivari-amantes-s3/',
+    blurb:
+      'Interactive loudspeaker concept with PBR materials, studio reflections, an animated driver cutaway, and frequency exploration. Available in Dutch and English.',
+    tags: ['Product', 'WebGL', 'Audio'],
+    images: [],
+  },
+  {
     id: 'icm',
     name: 'ICM',
     client: 'Client pitch — photographer & film director',

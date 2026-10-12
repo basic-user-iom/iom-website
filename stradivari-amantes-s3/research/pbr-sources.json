@@ -1,0 +1,177 @@
+{
+  "license": "CC0-1.0",
+  "licenseUrl": "https://docs.ambientcg.com/license/",
+  "sources": [
+    {
+      "id": "Paper001",
+      "url": "https://ambientcg.com/view?id=Paper001",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.ambientcg.com/license/",
+      "usage": "Charcoal-tinted base colour, OpenGL normal and packed roughness for illustrative paper cones",
+      "download": "Paper001_1K-PNG.zip",
+      "archiveSha256": "6d2e474684bd6701434d2a811af2868a356b17fe3e22c43188d7494e25853874"
+    },
+    {
+      "id": "Metal050A",
+      "url": "https://ambientcg.com/view?id=Metal050A",
+      "license": "CC0-1.0",
+      "licenseUrl": "https://docs.ambientcg.com/license/",
+      "usage": "OpenGL normal and packed roughness for exposed steel and badge; source aluminium maps used as generic subtle metal microdetail",
+      "download": "Metal050A_1K-PNG.zip",
+      "archiveSha256": "98a9b7b81a50237c4019f59ebb42b37831e1c5bbc7a7f03b9e547ce8a992be31"
+    }
+  ],
+  "processing": {
+    "sourceVersion": "v04",
+    "sourceSha256": "062886939f277f9d1727d58bfdded02a9465bd0c0e037e94c18aea9fc905a335",
+    "textureSources": [
+      {
+        "id": "Paper001",
+        "url": "https://ambientcg.com/view?id=Paper001",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://docs.ambientcg.com/license/",
+        "usage": "Charcoal-tinted base colour, OpenGL normal and packed roughness for illustrative paper cones",
+        "download": "Paper001_1K-PNG.zip",
+        "archiveSha256": "6d2e474684bd6701434d2a811af2868a356b17fe3e22c43188d7494e25853874"
+      },
+      {
+        "id": "Metal050A",
+        "url": "https://ambientcg.com/view?id=Metal050A",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://docs.ambientcg.com/license/",
+        "usage": "OpenGL normal and packed roughness for exposed steel and badge; source aluminium maps used as generic subtle metal microdetail",
+        "download": "Metal050A_1K-PNG.zip",
+        "archiveSha256": "98a9b7b81a50237c4019f59ebb42b37831e1c5bbc7a7f03b9e547ce8a992be31"
+      }
+    ],
+    "maps": [
+      {
+        "file": "assets/textures/pbr_v05/Paper001_Charcoal_BaseColor.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 166069,
+        "sha256": "40dfeb6fde2327602274d6e09dc07640a1f92c32997dd2fbf35dbe1d44c6606f"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Paper001_NormalGL.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 1364629,
+        "sha256": "ce93306d72cd3dd1f76f4c0dc48a29071cccdfd1f417bf34430b5daa301ba727"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Paper001_ORM.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 355844,
+        "sha256": "6c97a3216114632b8822a2e9152eb59ec45f4f3147b2d1f5df6fb86442fac3ee"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Metal050A_NormalGL.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 340644,
+        "sha256": "a1eb310f59fd7252d4d1a9feac946e0bc722929496776886743be2131c3cd449"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Metal050A_ORM.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 99351,
+        "sha256": "7527d88434e51c675995af4b48cb6852f4a528cb6a96b8bf7387cb0c98951e6e"
+      }
+    ],
+    "materialChoices": {
+      "SD_BlackAluminium": {
+        "metalness": 0,
+        "roughness": 0.34,
+        "surface": "dark coated aluminium; top surface is dielectric"
+      },
+      "SD_Ferrite": {
+        "metalness": 0,
+        "roughness": 0.78,
+        "surface": "ceramic ferrite surface"
+      },
+      "SD_CoilFormer": {
+        "metalness": 0,
+        "roughness": 0.5,
+        "surface": "illustrative amber polymer former"
+      },
+      "SD_Copper": {
+        "metalness": 1,
+        "roughness": 0.29,
+        "surface": "bare copper conductor"
+      },
+      "SD_BrushedSteel": {
+        "metalness": 1,
+        "roughness": 0.34,
+        "surface": "exposed satin steel with directional reflection"
+      },
+      "SD_BadgeSilver": {
+        "metalness": 1,
+        "roughness": 0.3,
+        "surface": "exposed silver-coloured metal"
+      }
+    },
+    "uvReport": "assets/validation/pbr-authoring-v05.json",
+    "normalConvention": "OpenGL +Y; tangent space",
+    "texturePacking": "base colour sRGB; normal and ORM linear; ORM R=1 (no baked AO), G=roughness, B=metalness",
+    "tileMeters": {
+      "paper": [
+        0.15,
+        0.087890625
+      ],
+      "metal": [
+        0.06,
+        0.06
+      ]
+    },
+    "roughnessRemap": {
+      "paper": "0.72 + 0.22 * source",
+      "metal": "0.25 + 0.18 * source"
+    },
+    "normalStrength": {
+      "paper": 0.8,
+      "steel": 0.12,
+      "badge": 0.08
+    },
+    "geometryDisplacement": false
+  },
+  "maps": [
+    {
+      "file": "assets/textures/pbr_v05/Paper001_Charcoal_BaseColor.png",
+      "width": 1024,
+      "height": 600,
+      "bytes": 166069,
+      "sha256": "40dfeb6fde2327602274d6e09dc07640a1f92c32997dd2fbf35dbe1d44c6606f"
+    },
+    {
+      "file": "assets/textures/pbr_v05/Paper001_NormalGL.png",
+      "width": 1024,
+      "height": 600,
+      "bytes": 1364629,
+      "sha256": "ce93306d72cd3dd1f76f4c0dc48a29071cccdfd1f417bf34430b5daa301ba727"
+    },
+    {
+      "file": "assets/textures/pbr_v05/Paper001_ORM.png",
+      "width": 1024,
+      "height": 600,
+      "bytes": 355844,
+      "sha256": "6c97a3216114632b8822a2e9152eb59ec45f4f3147b2d1f5df6fb86442fac3ee"
+    },
+    {
+      "file": "assets/textures/pbr_v05/Metal050A_NormalGL.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 340644,
+      "sha256": "a1eb310f59fd7252d4d1a9feac946e0bc722929496776886743be2131c3cd449"
+    },
+    {
+      "file": "assets/textures/pbr_v05/Metal050A_ORM.png",
+      "width": 1024,
+      "height": 1024,
+      "bytes": 99351,
+      "sha256": "7527d88434e51c675995af4b48cb6852f4a528cb6a96b8bf7387cb0c98951e6e"
+    }
+  ]
+}

@@ -6,5 +6,6 @@ Disallow: /demo/
 Disallow: /demos/kelly-kettle
 Disallow: /demos/icm-building
 Disallow: /demos/harp-configurator-demo
+Disallow: /demos/stradivari-amantes-s3
 
 Sitemap: https://iobjectm.com/sitemap.xml

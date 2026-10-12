@@ -1,0 +1,4370 @@
+{
+  "schemaVersion": "iom.stradivari.amantes-s3.demo.v1",
+  "assetVersion": "v05",
+  "modelLabel": "Stradivari Amantes S3 — private concept reconstruction",
+  "createdAt": "2026-10-12T15:20:00.272Z",
+  "assetFile": "stradivari_amantes_s3_demo_v05.glb",
+  "sha256": "71af1397edcae28ad0fee34c0ddc9e81363823749ab629197782a12dadf42e9a",
+  "byteSize": 6821548,
+  "units": "m",
+  "coordinateSystem": {
+    "blenderUp": "+Z",
+    "blenderFront": "-Y",
+    "gltfUp": "+Y",
+    "gltfFront": "+Z",
+    "conversion": "(x,y,z) Blender -> (x,z,-y) glTF",
+    "rootNode": "SD_Root",
+    "anyExporterRootTransform": null,
+    "verifiedNoAdditional90DegreeRotationNeeded": true
+  },
+  "productBounds": {
+    "coordinateSpace": "glTF world, rest pose",
+    "min": [
+      -0.09749999642372131,
+      0,
+      -0.17499999981373549
+    ],
+    "max": [
+      0.09749999642372131,
+      1.0700000524520874,
+      0.17499999701976776
+    ],
+    "size": [
+      0.19499999284744263,
+      1.0700000524520874,
+      0.34999999683350325
+    ]
+  },
+  "publishedDimensions": {
+    "height": 1.07,
+    "maxWidth": 0.195,
+    "frontWidth": 0.17,
+    "depth": 0.35,
+    "unit": "m",
+    "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+    "status": "manufacturer_spec"
+  },
+  "requiredNodes": [
+    "SD_Root",
+    "SD_Product",
+    "SD_Cabinet",
+    "SD_Tweeter",
+    "SD_Midrange",
+    "SD_Woofer_Upper",
+    "SD_Woofer_Lower",
+    "SD_Port",
+    "SD_Terminals",
+    "SD_Badge",
+    "HS_Tweeter",
+    "HS_Midrange",
+    "HS_Woofers",
+    "HS_Port",
+    "SD_EduDriver",
+    "SD_Basket",
+    "SD_Magnet",
+    "SD_PolePiece",
+    "SD_Surround",
+    "SD_Spider",
+    "SD_MovingAssembly",
+    "SD_Cone",
+    "SD_DustCap",
+    "SD_VoiceCoil",
+    "HS_Cone",
+    "HS_Basket",
+    "HS_VoiceCoil"
+  ],
+  "nodes": [
+    {
+      "name": "HS_Basket",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        0.05700000002980232,
+        -0.02799999713897705,
+        -0.03099999949336052
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.05700000002980232,
+        0.5220000147819519,
+        -0.03099999949336052
+      ]
+    },
+    {
+      "name": "HS_Cone",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        -0.0430000014603138,
+        0.02499997615814209,
+        0.006000000052154064
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0430000014603138,
+        0.574999988079071,
+        0.006000000052154064
+      ]
+    },
+    {
+      "name": "HS_VoiceCoil",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        0.014000000432133675,
+        0.0059999823570251465,
+        -0.06700000166893005
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.014000000432133675,
+        0.5559999942779541,
+        -0.06700000166893005
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_1",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_2",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_3",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_4",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_5",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_OpenSpoke_6",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_RearSeat",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket_Rim",
+      "parent": "SD_Basket",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Basket",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Magnet",
+      "parent": "SD_EduDriver",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Cone",
+      "parent": "SD_MovingAssembly",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_DustCap",
+      "parent": "SD_MovingAssembly",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_VoiceCoil_CopperWinding",
+      "parent": "SD_VoiceCoil",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_VoiceCoil_Former",
+      "parent": "SD_VoiceCoil",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_VoiceCoil",
+      "parent": "SD_MovingAssembly",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_MovingAssembly",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_PolePiece_BackPlate",
+      "parent": "SD_PolePiece",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_PolePiece_CentrePole",
+      "parent": "SD_PolePiece",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_PolePiece_TopPlate",
+      "parent": "SD_PolePiece",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_PolePiece",
+      "parent": "SD_EduDriver",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Spider",
+      "parent": "SD_EduDriver",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_Surround",
+      "parent": "SD_EduDriver",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "SD_EduDriver",
+      "parent": "SD_Root",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.550000011920929,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.550000011920929,
+        0
+      ]
+    },
+    {
+      "name": "HS_Midrange",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.8370000123977661,
+        0.1899999976158142
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "HS_Port",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.3019999861717224,
+        0.1899999976158142
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.3019999861717224,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "HS_Tweeter",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.9789999723434448,
+        0.1899999976158142
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9789999723434448,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "HS_Woofers",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.5649999976158142,
+        0.1899999976158142
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.5649999976158142,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "SD_Badge",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.05000000074505806,
+        0.17430000007152557
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.05000000074505806,
+        0.17430000007152557
+      ]
+    },
+    {
+      "name": "SD_Badge_Inset",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.05000000074505806,
+        0.17470000684261322
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.05000000074505806,
+        0.17470000684261322
+      ]
+    },
+    {
+      "name": "SD_Cabinet",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_0.022_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        0.02199999988079071,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        0.02199999988079071,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_0.022_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        0.02199999988079071,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        0.02199999988079071,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_0.559_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        0.5590000152587891,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        0.5590000152587891,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_0.559_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        0.5590000152587891,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        0.5590000152587891,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_1.048_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        1.0479999780654907,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        1.0479999780654907,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocket_1.048_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        1.0479999780654907,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        1.0479999780654907,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_0.022_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        0.02199999988079071,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        0.02199999988079071,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_0.022_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        0.02199999988079071,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        0.02199999988079071,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_0.559_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        0.5590000152587891,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        0.5590000152587891,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_0.559_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        0.5590000152587891,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        0.5590000152587891,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_1.048_0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        0.0689999982714653,
+        1.0479999780654907,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.0689999982714653,
+        1.0479999780654907,
+        0
+      ]
+    },
+    {
+      "name": "SD_GrilleSocketCore_1.048_-0.069",
+      "parent": "SD_Product",
+      "type": "mesh",
+      "restPosition": [
+        -0.0689999982714653,
+        1.0479999780654907,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.0689999982714653,
+        1.0479999780654907,
+        0
+      ]
+    },
+    {
+      "name": "SD_Midrange_DustCap",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_1",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.056541427969932556,
+        0.023420214653015137,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.056541427969932556,
+        0.8604202270507812,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_2",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.023420225828886032,
+        0.05654144287109375,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.023420225828886032,
+        0.8935414552688599,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_3",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.023420225828886032,
+        0.05654144287109375,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.023420225828886032,
+        0.8935414552688599,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_4",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.056541427969932556,
+        0.023420214653015137,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.056541427969932556,
+        0.8604202270507812,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_5",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.056541427969932556,
+        -0.023420214653015137,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.056541427969932556,
+        0.813579797744751,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_6",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.023420225828886032,
+        -0.05654144287109375,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.023420225828886032,
+        0.7804585695266724,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_7",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.023420225828886032,
+        -0.05654144287109375,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.023420225828886032,
+        0.7804585695266724,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_Fastener_8",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.056541427969932556,
+        -0.023420214653015137,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.056541427969932556,
+        0.813579797744751,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_1",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.056541427969932556,
+        0.023420214653015137,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.056541427969932556,
+        0.8604202270507812,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_2",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.023420225828886032,
+        0.05654144287109375,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.023420225828886032,
+        0.8935414552688599,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_3",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.023420225828886032,
+        0.05654144287109375,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.023420225828886032,
+        0.8935414552688599,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_4",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.056541427969932556,
+        0.023420214653015137,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.056541427969932556,
+        0.8604202270507812,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_5",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.056541427969932556,
+        -0.023420214653015137,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.056541427969932556,
+        0.813579797744751,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_6",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        -0.023420225828886032,
+        -0.05654144287109375,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.023420225828886032,
+        0.7804585695266724,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_7",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.023420225828886032,
+        -0.05654144287109375,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.023420225828886032,
+        0.7804585695266724,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_FastenerSlot_8",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0.056541427969932556,
+        -0.023420214653015137,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.056541427969932556,
+        0.813579797744751,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Midrange_MountingFlange",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Midrange_PaperCone",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Midrange_RollSurround",
+      "parent": "SD_Midrange",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Midrange",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.8370000123977661,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Port_FlaredMouth",
+      "parent": "SD_Port",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.3019999861717224,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Port_Shadow",
+      "parent": "SD_Port",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.3019999861717224,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Port",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.3019999861717224,
+        0.17499999701976776
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.3019999861717224,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Terminals_Collar_1",
+      "parent": "SD_Terminals",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        -0.017999999225139618,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.0560000017285347,
+        -0.16899999976158142
+      ]
+    },
+    {
+      "name": "SD_Terminals_Collar_2",
+      "parent": "SD_Terminals",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.017999999225139618,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.09200000017881393,
+        -0.16899999976158142
+      ]
+    },
+    {
+      "name": "SD_Terminals_Post_1",
+      "parent": "SD_Terminals",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        -0.017999999225139618,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.0560000017285347,
+        -0.16899999976158142
+      ]
+    },
+    {
+      "name": "SD_Terminals_Post_2",
+      "parent": "SD_Terminals",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.017999999225139618,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.09200000017881393,
+        -0.16899999976158142
+      ]
+    },
+    {
+      "name": "SD_Terminals",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.07400000095367432,
+        -0.16899999976158142
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.07400000095367432,
+        -0.16899999976158142
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_1",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0.040010374039411545,
+        0.02310001850128174,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.040010374039411545,
+        1.0020999908447266,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_2",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.04620003700256348,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        1.0252000093460083,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_3",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        -0.040010374039411545,
+        0.02310001850128174,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.040010374039411545,
+        1.0020999908447266,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_4",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        -0.040010374039411545,
+        -0.02310001850128174,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.040010374039411545,
+        0.9558999538421631,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_5",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        -0.0461999773979187,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9327999949455261,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Fastener_6",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0.040010374039411545,
+        -0.02310001850128174,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.040010374039411545,
+        0.9558999538421631,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_1",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0.040010374039411545,
+        0.02310001850128174,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.040010374039411545,
+        1.0020999908447266,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_2",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0.04620003700256348,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        1.0252000093460083,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_3",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        -0.040010374039411545,
+        0.02310001850128174,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.040010374039411545,
+        1.0020999908447266,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_4",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        -0.040010374039411545,
+        -0.02310001850128174,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.040010374039411545,
+        0.9558999538421631,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_5",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        -0.0461999773979187,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9327999949455261,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_FastenerSlot_6",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0.040010374039411545,
+        -0.02310001850128174,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.040010374039411545,
+        0.9558999538421631,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Tweeter_MountingFlange",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9789999723434448,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Tweeter_SoftDome",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9789999723434448,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Tweeter_Waveguide",
+      "parent": "SD_Tweeter",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9789999723434448,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Tweeter",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.9789999723434448,
+        0.17499999701976776
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.9789999723434448,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_DustCap",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_1",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.4983951151371002,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_2",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        0.06855186820030212,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.5385518670082092,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_3",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        0.06855186820030212,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.5385518670082092,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_4",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.4983951151371002,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_5",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        -0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.441604882478714,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_6",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        -0.06855186820030212,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.401448130607605,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_7",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        -0.06855186820030212,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.401448130607605,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_Fastener_8",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        -0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.441604882478714,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_1",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.4983951151371002,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_2",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        0.06855186820030212,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.5385518670082092,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_3",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        0.06855186820030212,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.5385518670082092,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_4",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.4983951151371002,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_5",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        -0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.441604882478714,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_6",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        -0.06855186820030212,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.401448130607605,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_7",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        -0.06855186820030212,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.401448130607605,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_FastenerSlot_8",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        -0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.441604882478714,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_MountingFlange",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_PaperCone",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower_RollSurround",
+      "parent": "SD_Woofer_Lower",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Lower",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.4699999988079071,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_DustCap",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_1",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.6883951425552368,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_2",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        0.06855183839797974,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.7285518646240234,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_3",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        0.06855183839797974,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.7285518646240234,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_4",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.6883951425552368,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_5",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        -0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.6316049098968506,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_6",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        -0.06855183839797974,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.591448187828064,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_7",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        -0.06855183839797974,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.591448187828064,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_Fastener_8",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        -0.028395116329193115,
+        -0.00010000169277191162
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.6316049098968506,
+        0.17489999532699585
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_1",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.6883951425552368,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_2",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        0.06855183839797974,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.7285518646240234,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_3",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        0.06855183839797974,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.7285518646240234,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_4",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.6883951425552368,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_5",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.06855186074972153,
+        -0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.06855186074972153,
+        0.6316049098968506,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_6",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        -0.028395110741257668,
+        -0.06855183839797974,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        -0.028395110741257668,
+        0.591448187828064,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_7",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.028395110741257668,
+        -0.06855183839797974,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.028395110741257668,
+        0.591448187828064,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_FastenerSlot_8",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0.06855186074972153,
+        -0.028395116329193115,
+        -0.00020000338554382324
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0.06855186074972153,
+        0.6316049098968506,
+        0.17479999363422394
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_MountingFlange",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_PaperCone",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper_RollSurround",
+      "parent": "SD_Woofer_Upper",
+      "type": "mesh",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Woofer_Upper",
+      "parent": "SD_Product",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0.6600000262260437,
+        0.17499999701976776
+      ]
+    },
+    {
+      "name": "SD_Product",
+      "parent": "SD_Root",
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "name": "SD_Root",
+      "parent": null,
+      "type": "empty",
+      "restPosition": [
+        0,
+        0,
+        0
+      ],
+      "restQuaternion": [
+        0,
+        0,
+        0,
+        1
+      ],
+      "restScale": [
+        1,
+        1,
+        1
+      ],
+      "worldPosition": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "hotspots": [
+    {
+      "node": "HS_Tweeter",
+      "stage": [
+        1,
+        3
+      ],
+      "label": "Soft-dome tweeter",
+      "factualStatus": "manufacturer_spec",
+      "anchorStatus": "photo_estimate",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/"
+    },
+    {
+      "node": "HS_Midrange",
+      "stage": [
+        1,
+        3
+      ],
+      "label": "13 cm middentoner",
+      "factualStatus": "manufacturer_spec",
+      "anchorStatus": "photo_estimate",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/"
+    },
+    {
+      "node": "HS_Woofers",
+      "stage": [
+        1,
+        3
+      ],
+      "label": "2 × 16,5 cm woofers",
+      "factualStatus": "manufacturer_spec",
+      "anchorStatus": "photo_estimate",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/"
+    },
+    {
+      "node": "HS_Port",
+      "stage": [
+        1,
+        3
+      ],
+      "label": "Bassreflexopening",
+      "factualStatus": "manufacturer_spec",
+      "anchorStatus": "photo_estimate",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/"
+    },
+    {
+      "node": "HS_Cone",
+      "stage": [
+        2
+      ],
+      "label": "Papieren membraan",
+      "factualStatus": "illustrative",
+      "sourceUrl": null
+    },
+    {
+      "node": "HS_Basket",
+      "stage": [
+        2
+      ],
+      "label": "Open korf",
+      "factualStatus": "illustrative",
+      "sourceUrl": null
+    },
+    {
+      "node": "HS_VoiceCoil",
+      "stage": [
+        2
+      ],
+      "label": "Koperen spreekspoel",
+      "factualStatus": "illustrative",
+      "sourceUrl": null
+    }
+  ],
+  "visibility": {
+    "stage1": [
+      "SD_Product"
+    ],
+    "stage2": [
+      "SD_EduDriver"
+    ],
+    "stage3": [
+      "SD_Product"
+    ]
+  },
+  "animation": {
+    "clipName": "SD_ConeMotion",
+    "durationSeconds": 2,
+    "movingNodes": [
+      "SD_MovingAssembly",
+      "SD_Cone",
+      "SD_DustCap",
+      "SD_VoiceCoil"
+    ],
+    "morphNodes": [
+      "SD_Surround",
+      "SD_Spider"
+    ],
+    "illustrativeAmplitudeMeters": 0.0015,
+    "motionAxis": [
+      0,
+      0,
+      1
+    ],
+    "motionAxisSpace": "glTF parent-local; parallel to glTF world +Z",
+    "defaultPlaying": false,
+    "status": "illustrative",
+    "loop": true,
+    "channels": [
+      {
+        "node": "SD_MovingAssembly",
+        "path": "translation",
+        "interpolation": "LINEAR",
+        "sampleCount": 61,
+        "startSeconds": 0,
+        "endSeconds": 2
+      },
+      {
+        "node": "SD_Spider",
+        "path": "weights",
+        "interpolation": "LINEAR",
+        "sampleCount": 61,
+        "startSeconds": 0,
+        "endSeconds": 2
+      },
+      {
+        "node": "SD_Surround",
+        "path": "weights",
+        "interpolation": "LINEAR",
+        "sampleCount": 61,
+        "startSeconds": 0,
+        "endSeconds": 2
+      }
+    ],
+    "verifiedAfterReimport": true
+  },
+  "cameras": [
+    {
+      "stage": 1,
+      "position": [
+        0.72,
+        0.9,
+        1.97
+      ],
+      "target": [
+        0,
+        0.535,
+        0
+      ],
+      "FOV": 35,
+      "fovAxis": "vertical",
+      "coordinateSpace": "glTF world",
+      "mobile": {
+        "position": [
+          0.78,
+          0.93,
+          2.08
+        ],
+        "target": [
+          0,
+          0.535,
+          0
+        ],
+        "FOV": 35,
+        "testedAspectRatio": 0.75
+      }
+    },
+    {
+      "stage": 2,
+      "position": [
+        0.245,
+        0.72,
+        0.193
+      ],
+      "target": [
+        0,
+        0.55,
+        -0.03
+      ],
+      "FOV": 35,
+      "fovAxis": "vertical",
+      "coordinateSpace": "glTF world"
+    },
+    {
+      "stage": 3,
+      "position": [
+        0.02,
+        0.58,
+        1.95
+      ],
+      "target": [
+        0,
+        0.535,
+        0
+      ],
+      "FOV": 35,
+      "fovAxis": "vertical",
+      "coordinateSpace": "glTF world"
+    }
+  ],
+  "cameraFramingNote": "Starting camera suggestions only. Fit actual world bounds for viewport aspect ratio without scaling the asset.",
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "SD_BlackAluminium",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.014000000432133675,
+          0.017000000923871994,
+          0.02199999988079071,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.3400000035762787
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_Ferrite",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0430000014603138,
+          0.04699999839067459,
+          0.05299999937415123,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.7799999713897705
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_Paper",
+      "normalTexture": {
+        "index": 0,
+        "scale": 0.800000011920929
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_Copper",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.949999988079071,
+          0.6399999856948853,
+          0.5400000214576721,
+          1
+        ],
+        "roughnessFactor": 0.28999999165534973
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_CoilFormer",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.23000000417232513,
+          0.11500000208616257,
+          0.03999999910593033,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.5
+      }
+    },
+    {
+      "doubleSided": true,
+      "extensions": {
+        "KHR_materials_anisotropy": {
+          "anisotropyStrength": 0.3499999940395355
+        }
+      },
+      "name": "SD_BrushedSteel",
+      "normalTexture": {
+        "index": 3,
+        "scale": 0.11999999731779099
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.5199999809265137,
+          0.5400000214576721,
+          0.5600000023841858,
+          1
+        ],
+        "metallicRoughnessTexture": {
+          "index": 4
+        }
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_SpiderFabric",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.18000000715255737,
+          0.09600000083446503,
+          0.03799999877810478,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.800000011920929
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_Rubber",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.014000000432133675,
+          0.01600000075995922,
+          0.019999999552965164,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.6800000071525574
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_BadgeSilver",
+      "normalTexture": {
+        "index": 5,
+        "scale": 0.07999999821186066
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.5799999833106995,
+          0.6000000238418579,
+          0.6200000047683716,
+          1
+        ],
+        "metallicRoughnessTexture": {
+          "index": 6
+        }
+      }
+    },
+    {
+      "doubleSided": true,
+      "extensions": {
+        "KHR_materials_clearcoat": {
+          "clearcoatFactor": 0.6499999761581421,
+          "clearcoatRoughnessFactor": 0.10000000149011612
+        }
+      },
+      "name": "SD_BlackLacquer",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.009999999776482582,
+          0.012000000104308128,
+          0.01600000075995922,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.18000000715255737
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_DarkCavity",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0020000000949949026,
+          0.003000000026077032,
+          0.004000000189989805,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.9700000286102295
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_TerminalRed",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.2800000011920929,
+          0.008999999612569809,
+          0.014000000432133675,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.3700000047683716
+      }
+    },
+    {
+      "doubleSided": true,
+      "name": "SD_SoftDome",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.00800000037997961,
+          0.009999999776482582,
+          0.014000000432133675,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.3100000023841858
+      }
+    }
+  ],
+  "textures": [
+    {
+      "name": "Paper001_NormalGL",
+      "embedded": true,
+      "mimeType": "image/png",
+      "byteSize": 1364629,
+      "width": 1024,
+      "height": 600,
+      "colorSpace": "linear data"
+    },
+    {
+      "name": "Paper001_Charcoal_BaseColor",
+      "embedded": true,
+      "mimeType": "image/png",
+      "byteSize": 166069,
+      "width": 1024,
+      "height": 600,
+      "colorSpace": "sRGB"
+    },
+    {
+      "name": "Paper001_ORM",
+      "embedded": true,
+      "mimeType": "image/png",
+      "byteSize": 355844,
+      "width": 1024,
+      "height": 600,
+      "colorSpace": "linear data"
+    },
+    {
+      "name": "Metal050A_NormalGL",
+      "embedded": true,
+      "mimeType": "image/png",
+      "byteSize": 340644,
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "linear data"
+    },
+    {
+      "name": "Metal050A_ORM",
+      "embedded": true,
+      "mimeType": "image/png",
+      "byteSize": 99351,
+      "width": 1024,
+      "height": 1024,
+      "colorSpace": "linear data"
+    }
+  ],
+  "triangleCount": 84944,
+  "vertexCount": 74913,
+  "meshCount": 114,
+  "nodeCount": 134,
+  "warnings": [
+    "Public-information reconstruction; outer details and positions are photo estimates, not production CAD.",
+    "Educational cutaway and slow motion are schematic. Do not infer production S3 motor dimensions, Xmax, acoustic response or internal cabinet construction.",
+    "Both SD_Product and SD_EduDriver are present at overlapping positions in GLB. The consumer must set stage visibility before its first frame and leave animation paused by default.",
+    "Generic CC0 textures and selected surface finishes are illustrative; not measured S3 materials.",
+    "UV0 and tangents are included on every primitive. Original v04 positions, morph deltas, transforms, clip samples and triangle count are preserved."
+  ],
+  "facts": {
+    "height": {
+      "value": 1.07,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "maxWidth": {
+      "value": 0.195,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "frontWidth": {
+      "value": 0.17,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "depth": {
+      "value": 0.35,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "system": {
+      "value": "3-way bass reflex",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "wooferCount": {
+      "value": 2,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "wooferNominalDiameter": {
+      "value": 0.165,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "midrangeNominalDiameter": {
+      "value": 0.13,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "wooferWindingWidth": {
+      "value": 0.024,
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "m"
+    },
+    "wooferCone": {
+      "value": "air-dried paper",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "midrangeCone": {
+      "value": "air-dried paper",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "baskets": {
+      "value": "open aluminium",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "tweeter": {
+      "value": "soft dome",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec"
+    },
+    "bassRange": {
+      "value": [
+        20,
+        180
+      ],
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "Hz"
+    },
+    "midrangeRange": {
+      "value": [
+        180,
+        3500
+      ],
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "Hz"
+    },
+    "trebleRange": {
+      "value": [
+        3500,
+        40000
+      ],
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "manufacturer_spec",
+      "unit": "Hz"
+    },
+    "driverCentreHeights": {
+      "value": {
+        "SD_Tweeter": 0.979,
+        "SD_Midrange": 0.837,
+        "SD_Woofer_Upper": 0.66,
+        "SD_Woofer_Lower": 0.47,
+        "SD_Port": 0.302
+      },
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "photo_estimate",
+      "unit": "m"
+    },
+    "visibleOuterDiameters": {
+      "value": {
+        "SD_Tweeter": 0.1,
+        "SD_Midrange": 0.13,
+        "SD_Woofer_Upper": 0.156,
+        "SD_Woofer_Lower": 0.156,
+        "SD_Port": 0.096
+      },
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "photo_estimate",
+      "unit": "m"
+    },
+    "cabinetContour": {
+      "value": "Flat narrow front, bowed sides, rounded rear. Reconstruction, not CAD.",
+      "sourceUrl": "https://www.stradivariaudio.nl/amantes/",
+      "status": "photo_estimate"
+    },
+    "eduCutaway": {
+      "value": "Pre-modelled 90 degree removed sector. Schematic anatomy, not confirmed S3 construction.",
+      "sourceUrl": "https://www.stradivariaudio.com/basket-3d/",
+      "status": "illustrative"
+    },
+    "motionAmplitude": {
+      "value": 0.0015,
+      "sourceUrl": null,
+      "status": "illustrative",
+      "unit": "m"
+    },
+    "motionPeriod": {
+      "value": 2,
+      "sourceUrl": null,
+      "status": "illustrative",
+      "unit": "s"
+    }
+  },
+  "validation": [
+    {
+      "test": "Khronos glTF Validator",
+      "result": "PASS",
+      "errors": 0,
+      "warnings": 0,
+      "infos": 150,
+      "evidence": "assets/validation/khronos_v05.json"
+    },
+    {
+      "test": "Geometry, hierarchy, morphs and animation invariant vs v04",
+      "result": "PASS",
+      "evidence": "assets/validation/pbr-asset-v05.json"
+    },
+    {
+      "test": "UV coverage and no collapsed UV triangles",
+      "result": "PASS",
+      "primitives": 114,
+      "collapsedUVTriangles": 0,
+      "evidence": "assets/validation/pbr-authoring-v05.json"
+    },
+    {
+      "test": "Local browser PBR maps and visible shading",
+      "result": "PASS",
+      "checks": 9,
+      "evidence": "web/qa/pbr-v05-verification.json"
+    },
+    {
+      "test": "Blender source readability, packed maps and GLB reimport deformation",
+      "result": "PASS",
+      "evidence": "assets/validation/reimport_v05.json"
+    }
+  ],
+  "requiredDemoLabels": {
+    "general": "Conceptvisualisatie op basis van openbare informatie. De driverdoorsnede en beweging zijn schematisch.",
+    "publishedFigures": "Volgens de fabrikant",
+    "cutaway": "Illustratieve doorsnede",
+    "animation": "Vertraagd en schematisch; geen meetdata"
+  },
+  "previewFiles": [
+    {
+      "file": "assets/preview/stradivari_amantes_s3_hero_v05.png",
+      "width": 1600,
+      "height": 1000,
+      "byteSize": 268938,
+      "renderer": "Actual Three.js browser render; no overlays"
+    },
+    {
+      "file": "assets/preview/stradivari_amantes_s3_driver_v05.png",
+      "width": 1600,
+      "height": 1000,
+      "byteSize": 330196,
+      "renderer": "Actual Three.js browser render; no overlays"
+    },
+    {
+      "file": "assets/preview/stradivari_amantes_s3_mobile_v05.png",
+      "width": 900,
+      "height": 1200,
+      "byteSize": 264055,
+      "renderer": "Actual Three.js browser render; no overlays"
+    }
+  ],
+  "sourceFile": "assets/source/stradivari_amantes_s3_demo_v05.blend",
+  "validationReport": "assets/validation/pbr-asset-v05.json",
+  "documentation": {
+    "blenderVersion": "5.2.0 LTS",
+    "exporter": "Khronos glTF Blender I/O v5.2.39",
+    "manualUrl": "https://docs.blender.org/manual/en/5.2/addons/scene_gltf2.html",
+    "glTFStandard": "https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html",
+    "validator": "https://github.com/KhronosGroup/glTF-Validator"
+  },
+  "references": {
+    "privateFolder": "references/private/stradivari_reference_private_v01",
+    "inspected": [
+      "Stradivari_Amantes-.jpg",
+      "Amantes-2.jpg",
+      "millon-Amantes-achterkant7.jpg",
+      "Scannen0004.jpg"
+    ],
+    "redistributedInAsset": false
+  },
+  "pbr": {
+    "sourceVersion": "v04",
+    "sourceSha256": "062886939f277f9d1727d58bfdded02a9465bd0c0e037e94c18aea9fc905a335",
+    "textureSources": [
+      {
+        "id": "Paper001",
+        "url": "https://ambientcg.com/view?id=Paper001",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://docs.ambientcg.com/license/",
+        "usage": "Charcoal-tinted base colour, OpenGL normal and packed roughness for illustrative paper cones",
+        "download": "Paper001_1K-PNG.zip",
+        "archiveSha256": "6d2e474684bd6701434d2a811af2868a356b17fe3e22c43188d7494e25853874"
+      },
+      {
+        "id": "Metal050A",
+        "url": "https://ambientcg.com/view?id=Metal050A",
+        "license": "CC0-1.0",
+        "licenseUrl": "https://docs.ambientcg.com/license/",
+        "usage": "OpenGL normal and packed roughness for exposed steel and badge; source aluminium maps used as generic subtle metal microdetail",
+        "download": "Metal050A_1K-PNG.zip",
+        "archiveSha256": "98a9b7b81a50237c4019f59ebb42b37831e1c5bbc7a7f03b9e547ce8a992be31"
+      }
+    ],
+    "maps": [
+      {
+        "file": "assets/textures/pbr_v05/Paper001_Charcoal_BaseColor.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 166069,
+        "sha256": "40dfeb6fde2327602274d6e09dc07640a1f92c32997dd2fbf35dbe1d44c6606f"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Paper001_NormalGL.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 1364629,
+        "sha256": "ce93306d72cd3dd1f76f4c0dc48a29071cccdfd1f417bf34430b5daa301ba727"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Paper001_ORM.png",
+        "width": 1024,
+        "height": 600,
+        "bytes": 355844,
+        "sha256": "6c97a3216114632b8822a2e9152eb59ec45f4f3147b2d1f5df6fb86442fac3ee"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Metal050A_NormalGL.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 340644,
+        "sha256": "a1eb310f59fd7252d4d1a9feac946e0bc722929496776886743be2131c3cd449"
+      },
+      {
+        "file": "assets/textures/pbr_v05/Metal050A_ORM.png",
+        "width": 1024,
+        "height": 1024,
+        "bytes": 99351,
+        "sha256": "7527d88434e51c675995af4b48cb6852f4a528cb6a96b8bf7387cb0c98951e6e"
+      }
+    ],
+    "materialChoices": {
+      "SD_BlackAluminium": {
+        "metalness": 0,
+        "roughness": 0.34,
+        "surface": "dark coated aluminium; top surface is dielectric"
+      },
+      "SD_Ferrite": {
+        "metalness": 0,
+        "roughness": 0.78,
+        "surface": "ceramic ferrite surface"
+      },
+      "SD_CoilFormer": {
+        "metalness": 0,
+        "roughness": 0.5,
+        "surface": "illustrative amber polymer former"
+      },
+      "SD_Copper": {
+        "metalness": 1,
+        "roughness": 0.29,
+        "surface": "bare copper conductor"
+      },
+      "SD_BrushedSteel": {
+        "metalness": 1,
+        "roughness": 0.34,
+        "surface": "exposed satin steel with directional reflection"
+      },
+      "SD_BadgeSilver": {
+        "metalness": 1,
+        "roughness": 0.3,
+        "surface": "exposed silver-coloured metal"
+      }
+    },
+    "uvReport": "assets/validation/pbr-authoring-v05.json",
+    "normalConvention": "OpenGL +Y; tangent space",
+    "texturePacking": "base colour sRGB; normal and ORM linear; ORM R=1 (no baked AO), G=roughness, B=metalness",
+    "tileMeters": {
+      "paper": [
+        0.15,
+        0.087890625
+      ],
+      "metal": [
+        0.06,
+        0.06
+      ]
+    },
+    "roughnessRemap": {
+      "paper": "0.72 + 0.22 * source",
+      "metal": "0.25 + 0.18 * source"
+    },
+    "normalStrength": {
+      "paper": 0.8,
+      "steel": 0.12,
+      "badge": 0.08
+    },
+    "geometryDisplacement": false
+  }
+}

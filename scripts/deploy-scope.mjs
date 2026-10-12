@@ -93,6 +93,18 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'stradivari-amantes-s3': [
+    'stradivari-amantes-s3/',
+    'public/demos/stradivari-amantes-s3/',
+    'scripts/build-stradivari-amantes-s3.mjs',
+    'scripts/verify-stradivari-crm.mjs',
+    'scripts/deploy-scope.mjs',
+    'scripts/generate-sitemap.mjs',
+    'scripts/patch-demo-back-links.mjs',
+    'src/crm/DemosView.tsx',
+    'public/robots.txt',
+    '.vercelignore',
+  ],
   'gallery-of-light': [
     "public/demos/gallery-of-light/",
     "public/assets/blog/gallery-of-light/",

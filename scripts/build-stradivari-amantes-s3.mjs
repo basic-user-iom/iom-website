@@ -1,0 +1,20 @@
+﻿import { build } from 'vite';
+import { cpSync, existsSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const root = fileURLToPath(new URL('../', import.meta.url));
+const app = resolve(root, 'stradivari-amantes-s3');
+const output = resolve(root, 'public/demos/stradivari-amantes-s3');
+if (!output.startsWith(resolve(root, 'public/demos') + sep) || output === app) throw new Error('Unexpected build destination');
+mkdirSync(resolve(app, 'qa'), { recursive: true });
+execFileSync(process.execPath, [resolve(root, 'node_modules/typescript/bin/tsc'), '-p', resolve(app, 'tsconfig.json')], { cwd: root, stdio: 'inherit' });
+execFileSync(process.execPath, [resolve(app, 'scripts/verify-asset.mjs')], { cwd: app, stdio: 'inherit' });
+await build({ configFile: resolve(app, 'vite.config.mjs') });
+const dist = resolve(app, 'dist');
+const html = readFileSync(resolve(dist, 'index.html'), 'utf8');
+if (!html.includes('/demos/stradivari-amantes-s3/assets/') || !html.includes('noindex')) throw new Error('Build is missing subpath assets or noindex');
+if (existsSync(output)) rmSync(output, { recursive: true });
+cpSync(dist, output, { recursive: true });
+console.log('Built /demos/stradivari-amantes-s3/ for CRM Preview and Expand.');
