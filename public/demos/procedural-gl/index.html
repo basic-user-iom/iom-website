@@ -93,6 +93,16 @@
         pointer-events: none;
         white-space: nowrap;
       }
+
+      .map-help { margin-left: auto; position: relative; pointer-events: auto; color: #f3f5f7; font-size: 12px; }
+      .map-help summary { cursor: pointer; padding: 7px 10px; border: 1px solid #ffffff40; border-radius: 5px; background: #101117; }
+      .map-help-panel { position: absolute; top: 38px; right: 0; width: min(320px, calc(100vw - 24px)); padding: 16px; border: 1px solid #ffffff35; border-radius: 7px; background: #11131cf5; box-shadow: 0 10px 30px #0007; line-height: 1.6; }
+      .map-help-panel p { margin: 0 0 12px; color: #cbd1d8; }
+      .map-help-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .map-help-actions button, .map-help-actions a { font: inherit; color: #e6faff; background: #172e38; border: 1px solid #5c8593; padding: 9px 11px; border-radius: 5px; cursor: pointer; text-decoration: none; }
+      .map-help :focus-visible { outline: 2px solid #7bd6ff; outline-offset: 3px; }
+      .hint { max-width: calc(100vw - 28px); white-space: normal; text-align: center; }
+      @media (max-width: 600px) { .hint { bottom: 10px; font-size: 10px; } .map-help summary { font-size: 11px; } }
     </style>
   </head>
   <body>
@@ -101,6 +111,17 @@
     <link rel="stylesheet" href="../demo-mobile.css" />
     <header class="demo-chrome" aria-label="Demo navigation">
       <a class="back-link" href="/#procedural-gl">← Back to IOM</a>
+      <details class="map-help">
+        <summary>Map not loading?</summary>
+        <div class="map-help-panel">
+          <p>This page embeds the official map hosted by procedural.eu. The map needs an internet connection and WebGL. If the embedded view is blank, retry or open the official map in a new tab.</p>
+          <div class="map-help-actions">
+            <button type="button" id="retry-map">Retry map</button>
+            <a href="https://www.procedural.eu/map/" target="_blank" rel="noopener noreferrer">Open map directly ↗</a>
+          </div>
+          <p id="map-retry-status" role="status" style="margin:12px 0 0"></p>
+        </div>
+      </details>
     </header>
     <aside class="demo-attribution" aria-label="Attribution">
       <p class="demo-attribution-title">
@@ -136,6 +157,14 @@
       loading="eager"
       referrerpolicy="no-referrer-when-downgrade"
     ></iframe>
-    <p class="hint">Drag to orbit · scroll to zoom · official procedural.eu map embed · pinch on mobile</p>
+    <p class="hint">Right-drag to rotate · scroll to zoom · official procedural.eu map embed · two fingers on mobile</p>
+    <script>
+      // Cross-origin iframe load events cannot prove the map rendered successfully.
+      // Keep recovery user-triggered; do not change credentials or browser policies.
+      document.getElementById('retry-map').addEventListener('click', function () {
+        document.getElementById('map-retry-status').textContent = 'Reloading the external map…';
+        document.getElementById('map-frame').src = 'https://www.procedural.eu/map/';
+      });
+    </script>
   </body>
 </html>
