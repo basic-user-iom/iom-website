@@ -33,6 +33,7 @@
         background: #08080c;
         font-family: system-ui, -apple-system, sans-serif;
       }
+      :root { --demo-nav-height: calc(68px + env(safe-area-inset-top, 0px)); }
       /* Reserve a top strip for IOM chrome so the back link does not cover
          procedural.eu's search + rotation controls inside the iframe. */
       .demo-chrome {
@@ -41,25 +42,21 @@
         left: 0;
         right: 0;
         z-index: 1000;
-        height: 44px;
+        height: var(--demo-nav-height);
         display: flex;
         align-items: center;
-        padding: 0 12px;
-        background: linear-gradient(
-          180deg,
-          rgba(8, 8, 12, 0.94) 0%,
-          rgba(8, 8, 12, 0.72) 72%,
-          rgba(8, 8, 12, 0) 100%
-        );
+        gap: 12px;
+        padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 max(12px, env(safe-area-inset-left, 0px));
+        background: #08080c;
         pointer-events: none;
       }
       #map-frame {
         position: fixed;
-        top: 44px;
+        top: var(--demo-nav-height);
         left: 0;
         display: block;
         width: 100%;
-        height: calc(100% - 44px);
+        height: calc(100% - var(--demo-nav-height));
         border: 0;
         background: #08080c;
       }
@@ -76,6 +73,13 @@
         border-radius: 4px;
         background: rgba(0, 0, 0, 0.35);
         backdrop-filter: blur(6px);
+      }
+      /* Keep the shared back control in this demo's reserved navigation row. */
+      .demo-chrome a.back-link.iom-back {
+        position: relative !important;
+        top: auto !important;
+        left: auto !important;
+        flex-shrink: 0;
       }
       .back-link:hover {
         color: #fff;
@@ -95,8 +99,8 @@
       }
 
       .map-help { margin-left: auto; position: relative; pointer-events: auto; color: #f3f5f7; font-size: 12px; }
-      .map-help summary { cursor: pointer; padding: 7px 10px; border: 1px solid #ffffff40; border-radius: 5px; background: #101117; }
-      .map-help-panel { position: absolute; top: 38px; right: 0; width: min(320px, calc(100vw - 24px)); padding: 16px; border: 1px solid #ffffff35; border-radius: 7px; background: #11131cf5; box-shadow: 0 10px 30px #0007; line-height: 1.6; }
+      .map-help summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; padding: 7px 10px; border: 1px solid #ffffff40; border-radius: 5px; background: #101117; }
+      .map-help-panel { position: absolute; top: calc(100% + 8px); right: 0; width: min(320px, calc(100vw - 24px)); padding: 16px; border: 1px solid #ffffff35; border-radius: 7px; background: #11131cf5; box-shadow: 0 10px 30px #0007; line-height: 1.6; }
       .map-help-panel p { margin: 0 0 12px; color: #cbd1d8; }
       .map-help-actions { display: flex; gap: 8px; flex-wrap: wrap; }
       .map-help-actions button, .map-help-actions a { font: inherit; color: #e6faff; background: #172e38; border: 1px solid #5c8593; padding: 9px 11px; border-radius: 5px; cursor: pointer; text-decoration: none; }
