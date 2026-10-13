@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <base href="%BASE_URL%">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow, noarchive" />
+  <meta name="theme-color" content="#fafafa" /><link rel="stylesheet" href="./brand/fonts.css" />
+  <title>MOBO / Finish and light study</title>
+  <link rel="icon" href="data:," />
+</head>
+<body>
+  <main>
+    <header class="masthead"><a class="brand" href="https://loboatelier.com/" target="_blank" rel="noopener noreferrer"><img src="./brand/lobo-logo.png" alt="LOBO — Patrícia Lobo Atelier" /></a><div class="brand-context"><span>LIGHTING COLLECTION / MOBO</span><span class="private">PRIVATE STUDY</span></div></header>
+    <div class="intro"><h1>MOBO <span>/ Finish and light study</span></h1><p>Handmade form. Individual character.</p></div>
+    <section class="tour" id="tour" aria-label="Guided tour">
+      <button id="tour-start" disabled>Start tour</button><p class="tour-intro">About 90 seconds with music. Exit restores your settings.</p>
+      <div id="tour-copy" class="tour-copy" hidden aria-live="polite"><span id="tour-step" class="tour-step"></span><h2 id="tour-title"></h2><p id="tour-description"></p></div>
+      <div id="tour-controls" class="tour-controls" hidden><button id="tour-prev">Previous</button><button id="tour-pause">Pause</button><button id="tour-next">Next</button><button id="tour-exit">Exit</button><span id="tour-note">Manual changes pause the tour.</span></div>
+      <div id="tour-audio" class="tour-audio" hidden><button id="tour-mute" aria-pressed="false">Mute</button><label for="tour-volume">Volume <input id="tour-volume" type="range" min="0" max="100" value="18" aria-label="Tour music volume"><output id="tour-volume-value">18%</output></label><p id="tour-audio-status" role="status"></p></div>
+    </section>
+    <section class="study" aria-label="MOBO finish and light study">
+      <div class="stage-column">
+        <div id="stage" class="stage" data-view="room" aria-busy="true">
+          <div class="stage-note" aria-hidden="true">FORM &amp; FINISH <span>MOBO</span></div>
+          <img id="poster" src="./posters/shell-white-unlit.webp" alt="02. Shell White — Light off. Rendered concept poster." />
+          <div id="canvas-host"></div>
+          <p id="poster-unavailable" hidden>Preview unavailable for this selection.</p>
+          <div id="explore-pad" hidden role="group" aria-label="Move through the room"><button data-explore="left" aria-label="Move left" title="Move left">←</button><button data-explore="forward" aria-label="Move forward" title="Move forward">↑</button><button data-explore="back" aria-label="Move back" title="Move back">↓</button><button data-explore="right" aria-label="Move right" title="Move right">→</button><button data-explore="out" aria-label="Zoom room out" title="Zoom out">−</button><button data-explore="in" aria-label="Zoom room in" title="Zoom in">+</button><button data-explore="up" aria-label="Fly up" title="Fly up (E)">Up</button><button data-explore="down" aria-label="Fly down" title="Fly down (Q)">Down</button></div>
+          <span class="stage-mode" id="stage-mode">RENDERED PREVIEW</span>
+        </div>
+        <div class="stage-bottom"><p id="status" role="status" aria-live="polite">Loading interactive view…</p><button id="retry" hidden>Retry 3D view</button></div>
+      </div>
+      <aside class="controls" aria-label="Study controls">
+        <div class="control-section"><h2><span>01</span> Glaze</h2><div class="finishes" role="group" aria-label="Glaze">
+          <button data-finish="shell-white" aria-pressed="true"><span class="swatch" aria-hidden="true"></span><span>02. Shell White</span><span class="selected-mark" aria-hidden="true">✓</span></button>
+          <button data-finish="burnt-orange" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>07. Burnt Orange</span><span class="selected-mark" aria-hidden="true">✓</span></button>
+          <button data-finish="midnight-green" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>09. Midnight Green</span><span class="selected-mark" aria-hidden="true">✓</span></button>
+        </div><p class="finish-group-label">Photo references</p><div class="finishes photo-finishes" role="group" aria-label="Photo reference finishes"><button data-finish="reference-white" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>White</span><span class="selected-mark" aria-hidden="true">&#10003;</span></button><button data-finish="reference-black" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>Black</span><span class="selected-mark" aria-hidden="true">&#10003;</span></button><button data-finish="reference-olive" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>Olive</span><span class="selected-mark" aria-hidden="true">&#10003;</span></button><button data-finish="reference-terracotta" aria-pressed="false"><span class="swatch" aria-hidden="true"></span><span>Terracotta</span><span class="selected-mark" aria-hidden="true">&#10003;</span></button></div><p class="finish-note">Photo references are visual studies, without official colour codes.</p></div>
+        <div class="control-section"><h2><span>02</span> Light</h2><div class="light-controls" role="group" aria-label="Illustrative light"><button data-light="unlit" aria-pressed="true">Light off</button><button data-light="lit" aria-pressed="false">Light on</button></div><label class="range-label" for="brightness-slider">Lamp brightness <output id="brightness-value" for="brightness-slider">70%</output></label><input id="brightness-slider" type="range" min="0" max="100" step="1" value="70" aria-label="Lamp brightness" /><p class="light-note">Warm pendant light. Brightness applies in both views.</p><div id="cabinet-controls"><button id="cabinet-toggle" aria-pressed="true" aria-label="Under-cabinet light">Under-cabinet light <span id="cabinet-state">On</span></button><label class="range-label" for="cabinet-brightness">LED brightness <output id="cabinet-value" for="cabinet-brightness">45%</output></label><input id="cabinet-brightness" type="range" min="0" max="100" step="1" value="45" aria-label="Under-cabinet brightness" /></div></div>
+        <div class="control-section" id="daynight-controls"><h2><span>03</span> Day / Night</h2><div class="time-buttons" role="group" aria-label="Time of day"><button data-time="0" aria-pressed="true">Day</button><button data-time="1" aria-pressed="false">Night</button><button id="play-transition" aria-label="Play day to night transition" aria-pressed="false">Play</button></div><label class="range-label" for="time-slider">Time of day <output id="time-value" for="time-slider">Day</output></label><input id="time-slider" type="range" min="0" max="100" step="0.1" value="0" aria-label="Day to night" /><p class="light-note">A slow 24-second transition. Pendant and under-cabinet lights have separate controls.</p></div>
+        <div class="control-section camera-section"><h2><span>04</span> View</h2><button id="view-toggle" disabled>View lamp</button><button id="dof-toggle" aria-pressed="true">Depth of field <span id="dof-state">On</span></button><button id="explore-room" hidden disabled aria-pressed="false">Free fly</button><p id="explore-help" hidden></p><div class="view-controls" role="group" aria-label="Camera"><button data-camera="left" aria-label="Rotate left" disabled>↶</button><button data-camera="right" aria-label="Rotate right" disabled>↷</button><button data-camera="out" aria-label="Zoom out" disabled>−</button><button data-camera="in" aria-label="Zoom in" disabled>+</button><button data-camera="reset" disabled>Reset</button></div><p id="view-help">Fixed room view. Switch to the lamp to rotate and zoom.</p></div>
+      </aside>
+    </section>
+    <footer><p>Concept visualisation. Glaze colour and lighting are illustrative; handmade pieces vary.</p><a href="https://loboatelier.com/lighting-collection/mobo" target="_blank" rel="noopener noreferrer">MOBO at LOBO Atelier <span aria-hidden="true">↗</span></a></footer>
+  </main>
+  <noscript><p class="noscript">JavaScript is disabled. Showing the Shell White / Light off concept poster; interactive controls are unavailable.</p></noscript>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>
+
+
+
+

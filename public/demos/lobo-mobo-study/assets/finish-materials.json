@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "defaultFinish": "shell-white",
+  "defaultLightState": "unlit",
+  "appliesOnlyTo": "Ceramic_Exterior",
+  "colourSpace": "glTF baseColorFactor is linear; author hex is approximate sRGB",
+  "finishes": [
+    {
+      "id": "shell-white",
+      "label": "02. Shell White",
+      "materialName": "Ceramic_Exterior",
+      "actualExportedMaterial": {
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatFactor": 0.10000000149011612,
+            "clearcoatRoughnessFactor": 0.28999999165534973
+          }
+        },
+        "name": "Ceramic_Exterior",
+        "normalTexture": {
+          "index": 0,
+          "scale": 0.2800000011920929
+        },
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [
+            0.7230551242828369,
+            0.637596845626831,
+            0.4969329833984375,
+            1
+          ],
+          "metallicFactor": 0,
+          "roughnessFactor": 0.3700000047683716
+        }
+      },
+      "normalTextureUri": "textures/glaze-micronormal.png",
+      "approximateAuthorSRGB": "#DDD1BB",
+      "calibrated": false
+    },
+    {
+      "id": "burnt-orange",
+      "label": "07. Burnt Orange",
+      "materialName": "Ceramic_Exterior",
+      "actualExportedMaterial": {
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatFactor": 0.20000000298023224,
+            "clearcoatRoughnessFactor": 0.23000000417232513
+          }
+        },
+        "name": "Ceramic_Exterior",
+        "normalTexture": {
+          "index": 0,
+          "scale": 0.2800000011920929
+        },
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [
+            0.48514994978904724,
+            0.07818742096424103,
+            0.02518685907125473,
+            1
+          ],
+          "metallicFactor": 0,
+          "roughnessFactor": 0.26499998569488525
+        }
+      },
+      "normalTextureUri": "textures/glaze-micronormal.png",
+      "approximateAuthorSRGB": "#B94F2C",
+      "calibrated": false
+    },
+    {
+      "id": "midnight-green",
+      "label": "09. Midnight Green",
+      "materialName": "Ceramic_Exterior",
+      "actualExportedMaterial": {
+        "extensions": {
+          "KHR_materials_clearcoat": {
+            "clearcoatFactor": 0.23999999463558197,
+            "clearcoatRoughnessFactor": 0.20999999344348907
+          }
+        },
+        "name": "Ceramic_Exterior",
+        "normalTexture": {
+          "index": 0,
+          "scale": 0.2800000011920929
+        },
+        "pbrMetallicRoughness": {
+          "baseColorFactor": [
+            0.002124688820913434,
+            0.04970656707882881,
+            0.04666508734226227,
+            1
+          ],
+          "metallicFactor": 0,
+          "roughnessFactor": 0.23499999940395355
+        }
+      },
+      "normalTextureUri": "textures/glaze-micronormal.png",
+      "approximateAuthorSRGB": "#073F3D",
+      "calibrated": false
+    }
+  ],
+  "fixedMaterials": [
+    {
+      "name": "Bulb_Illustrative",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.9046611785888672,
+          0.838798999786377,
+          0.715693473815918,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.3799999952316284
+      }
+    },
+    {
+      "name": "Ceramic_Interior",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.8148465752601624,
+          0.7529422044754028,
+          0.6307571530342102,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.47999998927116394
+      }
+    },
+    {
+      "name": "Cord_Textile",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.2917706370353699,
+          0.24228112399578094,
+          0.19806931912899017,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.8399999737739563
+      }
+    },
+    {
+      "name": "CordGrip_Metal",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.46207699179649353,
+          0.35640013217926025,
+          0.2015562504529953,
+          1
+        ],
+        "roughnessFactor": 0.2800000011920929
+      }
+    }
+  ],
+  "lightAnchor": {
+    "node": "Light_Origin",
+    "blenderXYZ": [
+      0.0,
+      0.0,
+      -0.44915664196014404
+    ],
+    "gltfXYZ": [
+      0.0,
+      -0.44915664196014404,
+      -0.0
+    ]
+  },
+  "runtimeLightNote": "Use a runtime light at the anchor. The GLB intentionally contains no KHR_lights_punctual light. Bulb emission may be changed separately for an illustrative lit state.",
+  "approximationNotes": [
+    "Private visual concept; not approved manufacturer CAD and not a validated MOBO M SKU.",
+    "Product-page and technical-sheet proportions/dimensions conflict. Product-image silhouette takes precedence for this concept.",
+    "Maximum ceramic width is 1.0 viewer unit. This is not physical scale; no AR, dimension labels, or size promises.",
+    "Axisymmetric form is inferred from photographs. Exact side and underside geometry has not been supplied.",
+    "Wall thickness, interior cavity, lamp source, unseen socket arrangement, textile cord, and one brass-tone grip are illustrative.",
+    "Interior, cord, and grip remain fixed across all three finishes, unlike variations in the source photographs.",
+    "Glaze colour, clearcoat, roughness, and subtle micronormal texture are approximate, not calibrated or measured.",
+    "The ceramic has no transmission, subsurface scattering, or emission. Only the illustrative source and stage light change with lamp state.",
+    "Lighting is illustrative, not photometric or an electrical specification. The runtime must provide its own light at Light_Origin.",
+    "Reference comparison cameras are photographic-silhouette matches, not recovered or calibrated source cameras.",
+    "Official photographs appear only in private review comparisons, never in web posters, textures, or GLB assets."
+  ]
+}

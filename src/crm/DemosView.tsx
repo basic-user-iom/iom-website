@@ -41,6 +41,16 @@ function assetUrl(path: string): string {
 /** Private client demos — not listed on the public site. */
 export const CLIENT_DEMOS: ClientDemo[] = [
   {
+    id: 'lobo-mobo-study',
+    name: 'LOBO Atelier / MOBO',
+    client: 'Client preview - pendant finish and light study',
+    status: 'preview',
+    path: '/demos/lobo-mobo-study/',
+    blurb: 'Unlisted MOBO configurator with seven finish studies, a modelled kitchen, day and night lighting, and a guided musical tour. Direct link; no password.',
+    tags: ['Product', 'WebGL', 'Lighting'],
+    images: ['/demos/lobo-mobo-study/posters/reference-white-unlit.webp'],
+  },
+  {
     id: 'stradivari-amantes-s3',
     name: 'Stradivari Amantes S3',
     client: 'Client concept — interactive loudspeaker presentation',

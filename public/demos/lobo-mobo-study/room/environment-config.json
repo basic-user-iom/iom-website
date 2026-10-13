@@ -1,0 +1,34 @@
+{
+  "asset": "DayEnvironmentHDRI108",
+  "rotationY": -2.7,
+  "backgroundIntensity": 1.0,
+  "environmentIntensity": 1.5,
+  "sunDirection": [
+    -0.6823403090023141,
+    0.6566505457294289,
+    0.3212814397127064
+  ],
+  "sunIntensity": 2.8,
+  "sunPixel": [
+    1024,
+    745
+  ],
+  "sourceSize": [
+    2048,
+    1024
+  ],
+  "linearLuminance": {
+    "min": -0.005008310317993163,
+    "median": 0.06146772766113281,
+    "max": 59906.3936
+  },
+  "panoramaParallax": false,
+  "webLightingMap": [
+    1024,
+    512
+  ],
+  "webBackgroundMap": [
+    2048,
+    1024
+  ]
+}
