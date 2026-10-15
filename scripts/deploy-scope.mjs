@@ -94,6 +94,7 @@ const NAMED_SCOPES = {
 
 const PROJECT_SCOPE_RULES = {
   'stradivari-cable': [
+    '.vercelignore',
     'stradivari-cable/',
     'public/demos/stradivari-cable/',
     'scripts/deploy-scope.mjs',
