@@ -166,8 +166,14 @@ export function createGalleryReflections({ renderer, scene, galleryModel, camera
     mirroredCamera.projectionMatrixInverse.copy(projection).invert();
     return true;
   }
+  let lastCapture = -Infinity;
   function render(realCamera = camera) {
     if (state.disposed || !state.ready || !state.enabled || state.intensity === 0 || inCapture) return;
+    // Keep the old projector matrix with its cached texture between captures.
+    // Mobile reflections update at 10 Hz; the main camera remains continuous.
+    const now = performance.now();
+    if (getGalleryQuality(renderer.domElement).mobile && now - lastCapture < 100) return;
+    lastCapture = now;
     realCamera.updateMatrixWorld();
     viewProjection.multiplyMatrices(realCamera.projectionMatrix,realCamera.matrixWorldInverse);
     frustum.setFromProjectionMatrix(viewProjection);

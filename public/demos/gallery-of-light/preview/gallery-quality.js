@@ -1,6 +1,6 @@
 // Use the window's short side, not the 3D panel's height: a phone stays within
 // its GPU budget when rotated or expanded. A short desktop panel is not mobile.
-// These are render-resolution limits only; every gallery effect stays available.
+// Mobile budgets preserve all studies; desktop keeps its original assets and quality.
 const coarsePointer = window.matchMedia('(pointer: coarse)');
 
 export function getGalleryQuality(canvas = null) {
@@ -12,10 +12,10 @@ export function getGalleryQuality(canvas = null) {
   return {
     profile: mobile ? 'mobile' : compact ? 'compact' : 'desktop',
     mobile,
-    pixelRatioCap: mobile ? 1.5 : 1.75,
-    transmissionScale: mobile ? .6 : 1,
-    shadowMapSize: mobile || canvasWidth <= 700 ? 2048 : 4096,
-    reflectionCap: mobile || compact ? 512 : 1024,
+    pixelRatioCap: mobile ? 1.25 : 1.75,
+    transmissionScale: mobile ? .35 : 1,
+    shadowMapSize: mobile ? 1024 : canvasWidth <= 700 ? 2048 : 4096,
+    reflectionCap: mobile ? 256 : compact ? 512 : 1024,
   };
 }
 

@@ -1,0 +1,19 @@
+{
+  "purpose": "Mobile-only lower-detail sculptures. Architecture and desktop use original assets. Sculpture hierarchy and material assignments preserved.",
+  "generated": "2026-10-15",
+  "tools": "glTF Transform weld + meshoptimizer simplify + Draco; error relative to each primitive bounds",
+  "assets": [
+    {
+      "source": "assets/AI66_002-sculptures-web-v1.glb",
+      "output": "sculptures-v1.glb",
+      "ratio": 0.3,
+      "error": 0.001,
+      "lockBorder": true,
+      "uniqueTrianglesBefore": 645295,
+      "uniqueTrianglesAfter": 240887,
+      "sourceBytes": 10720444,
+      "outputBytes": 4356356,
+      "nodesPreserved": true
+    }
+  ]
+}

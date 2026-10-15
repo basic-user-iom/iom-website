@@ -1,0 +1,42 @@
+/* Touch-only budget and controls; a desktop window keeps the desktop UI. */
+#mobile-tour-more { display: none; }
+@media (pointer: coarse) and (max-width: 900px), (pointer: coarse) and (max-height: 900px) {
+  body #viewport:is(:fullscreen,.is-expanded) #viewport-fullscreen {
+    top: max(8px, env(safe-area-inset-top)); right: max(8px, env(safe-area-inset-right));
+    min-height: 44px; min-width: 70px; padding: 8px; gap: 5px;
+  }
+  #viewport:is(:fullscreen,.is-expanded) #viewport-fullscreen [data-fullscreen-label] { display:none; }
+  #viewport:is(:fullscreen,.is-expanded) #viewport-fullscreen::after { content:'Exit'; font-size:14px; }
+  body #viewport.mobile-tour-active #gallery-return-view { display:none; }
+  body #viewport.mobile-tour-active #fullscreen-navigation { display:none; }
+  body #viewport.mobile-tour-active.mobile-tour-details-open #fullscreen-navigation { display:flex; top:max(68px,calc(env(safe-area-inset-top) + 60px)); }
+  body #viewport:is(:fullscreen,.is-expanded) #gallery-soundtrack {
+    top: max(8px, env(safe-area-inset-top)); bottom:auto; left:max(8px, env(safe-area-inset-left));
+    right:auto; width:min(290px,calc(100% - 96px - env(safe-area-inset-left) - env(safe-area-inset-right)));
+    min-height:44px; padding:3px; max-height:calc(100dvh - 150px); z-index:17;
+  }
+  body #viewport:is(:fullscreen,.is-expanded) #gallery-return-view { display:none; }
+  #viewport:is(:fullscreen,.is-expanded) .soundtrack-toolbar { gap:3px; }
+  #viewport:is(:fullscreen,.is-expanded) .soundtrack-toolbar button { min-height:44px; padding:7px 6px; font-size:13px; }
+  body #viewport:is(:fullscreen,.is-expanded) #fullscreen-navigation { top:max(68px,calc(env(safe-area-inset-top) + 60px)); }
+  body #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-controls {
+    bottom:max(8px,env(safe-area-inset-bottom)); left:max(8px,env(safe-area-inset-left)); right:max(8px,env(safe-area-inset-right));
+    grid-template-columns:minmax(0,1fr); padding:8px; gap:5px; max-height:55dvh;
+  }
+  #viewport:is(:fullscreen,.is-expanded) .fullscreen-tour-heading { gap:0; }
+  #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-title { font-size:14px; line-height:1.3; }
+  #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-duration { display:none; }
+  #viewport:is(:fullscreen,.is-expanded) .fullscreen-tour-actions { display:grid; grid-template-columns:1fr 1fr 70px; gap:6px; }
+  #viewport:is(:fullscreen,.is-expanded) .fullscreen-tour-actions button { min-height:44px; min-width:0; padding:8px 5px; font-size:14px; }
+  #viewport:is(:fullscreen,.is-expanded) #mobile-tour-more { display:block; }
+  #viewport:is(:fullscreen,.is-expanded):not(.mobile-tour-details-open) :is(#fullscreen-tour-description,#fullscreen-tour-restart,.fullscreen-tour-repeat) { display:none; }
+  #viewport:is(:fullscreen,.is-expanded).mobile-tour-details-open #fullscreen-tour-description { font-size:14px; }
+  #viewport:is(:fullscreen,.is-expanded).mobile-tour-details-open #fullscreen-tour-restart { grid-row:2; }
+  #viewport:is(:fullscreen,.is-expanded).mobile-tour-details-open .fullscreen-tour-repeat { grid-row:2; font-size:14px; }
+  #viewport:is(:fullscreen,.is-expanded) .fullscreen-tour-repeat input { width:22px; height:22px; }
+  #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-progress { margin:0; }
+  @media (orientation: landscape) {
+    body #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-controls { grid-template-columns:minmax(0,1fr) minmax(300px,auto); }
+    #viewport:is(:fullscreen,.is-expanded) #fullscreen-tour-progress { grid-column:1 / -1; }
+  }
+}

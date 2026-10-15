@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { initializeSoundtrack } from './soundtrack.js';
 import { createMusicScreen } from './music-screen.js';
 import { createWebsiteScreen } from './website-screen.js';
-import { applyGalleryQuality } from './gallery-quality.js';
+import { applyGalleryQuality, getGalleryQuality } from './gallery-quality.js';
 import { createGalleryGround } from './gallery-ground.js';
 import { addMatchingGalleryWindow } from './gallery-window.js';
 import { addSecondWingFixtures } from './gallery-second-wing.js';
@@ -20,7 +20,8 @@ import { GLTFLoader } from './vendor/loaders/GLTFLoader.js';
 import { DRACOLoader } from './vendor/loaders/DRACOLoader.js';
 import { OrbitControls } from './vendor/controls/OrbitControls.js';
 
-const MODEL='../AI66_002-gallery-web-v1.glb',SCULPTURES='../assets/AI66_002-sculptures-web-v1.glb';
+const mobileAssets=getGalleryQuality().mobile;
+const MODEL='../AI66_002-gallery-web-v1.glb',SCULPTURES=mobileAssets?'../assets/mobile/sculptures-v1.glb':'../assets/AI66_002-sculptures-web-v1.glb';
 const ORIGIN=[4.492431640625,.7928047180175781,.020121637731790543];
 const toGLTF=([x,y,z])=>new THREE.Vector3(x-ORIGIN[0],z-ORIGIN[2],-(y-ORIGIN[1]));
 const el=id=>document.getElementById(id),viewport=el('viewport'),canvas=el('scene');
@@ -35,7 +36,7 @@ const state=window.__ai66={status:'loading',galleryStatus:'loading',sculptureSta
   sculptureRootIdentity:false,errors:[],webglErrors:[],instanceBatches:[],frameMs:[],fps:null,renderer:'',materialCount:0,meshCount:0,sculptures:[],cameraPresets:[]};
 window.addEventListener('error',e=>state.errors.push(e.message));window.addEventListener('unhandledrejection',e=>state.errors.push(String(e.reason)));
 canvas.addEventListener('webglcontextlost',()=>{state.errors.push('WebGL context lost');state.status='error';intro?.fail('The graphics connection was interrupted. Reload the gallery to try again.');});
-const renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});
+const renderer=new THREE.WebGLRenderer({canvas,antialias:!mobileAssets,alpha:false,powerPreference:'high-performance'});
 state.quality=applyGalleryQuality(renderer);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1;
 const castMaterial=createClassicalSculptureMaterial({renderer});state.castMaterial=castMaterial.state;
 const gl=renderer.getContext(),debug=gl.getExtension('WEBGL_debug_renderer_info');state.renderer=debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER);
@@ -235,12 +236,13 @@ function updateStatus(){
   else if(state.galleryStatus==='ready'&&state.sculptureStatus==='ready'){state.status='ready';state.loadMs=performance.now()-start;el('load-time').textContent=(state.loadMs/1000).toFixed(2)+' s';el('status').textContent='The gallery and sculptures are ready';el('status').className='ready';if(!studies){studies=initializeStudies({renderer,scene,camera,galleryModel:model,sculptureModel,groundReceiver:ground.mesh,selectSculpture,selectCamera});state.studies=studies.state;websiteScreen=createWebsiteScreen({scene,galleryModel:model,camera,canvas,viewport,pauseTour:()=>tour?.pause('manual'),getOccluders:()=>[model,sculptureModel].filter(Boolean)});state.websiteScreen=websiteScreen.state;musicScreen=createMusicScreen({scene,galleryModel:model,renderer,getStudies:()=>studies,player:soundtrack.player,focus:id=>selectCamera(id),pauseTour:()=>tour?.pause('manual'),viewport});state.musicScreen=musicScreen.state;tour=createGalleryTour({getStudies:()=>studies,getMusicScreen:()=>musicScreen,onPlayMusic:()=>soundtrack.player.play(),onBeforePlay:()=>{walk?.exit();sculpturePicker?.close();},onSkip:()=>skipTourToEntry(),selectCamera,selectSculpture,cameraRig,galleryModel:model,sculptureModel,roof,fullscreen,canvas,manualInteraction:manualBeforeTour,autoStart:false});state.tour=tour.state;initializeWalk();manualEvents.forEach(type=>document.querySelector('main').removeEventListener(type,rememberEarlyInput,{capture:true}));}}
   else el('status').textContent=state.galleryStatus==='ready'?'Loading sculptures…':'Loading gallery…';
 }
-new GLTFLoader().load(MODEL,gltf=>{
+const draco=new DRACOLoader();draco.setDecoderPath('./vendor/draco/');draco.setWorkerLimit(mobileAssets?1:2);const sculptureLoader=new GLTFLoader().setDRACOLoader(draco);
+new GLTFLoader().setDRACOLoader(draco).load(MODEL,gltf=>{
   model=gltf.scene;scene.add(model);state.matchingWindow=addMatchingGalleryWindow(model).state;state.secondWing=addSecondWingFixtures(model).state;state.secondWingChairs=addSecondWingChairs(model).state;refreshCameraBounds();state.galleryStatus='ready';const root=model.getObjectByName('gallery_root');state.rootIdentity=identity(root);state.rootName=root?.name??null;
   const materials=new Set();model.traverse(o=>{if(o.name==='roof_structure'||o.name==='roof_glazing')roofGroups.push(o);if(/^layout_partition_ai66_\d+$/.test(o.name))state.partitionNames.push(o.name);if(o.isMesh){state.meshCount++;(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));if(o.isInstancedMesh)state.instanceBatches.push({name:o.name,count:o.count});}});
   state.materialCount=materials.size;state.partitionNames.sort();const bounds=new THREE.Box3().setFromObject(model);state.bounds={min:bounds.min.toArray(),max:bounds.max.toArray(),size:bounds.getSize(new THREE.Vector3()).toArray()};state.roofGroups=roofGroups.map(o=>o.name);state.extensions=gltf.parser.json.extensionsUsed??[];state.environmentTriangles=countTriangles(false,model);el('partitions').textContent=String(state.partitionNames.length);roof=createGalleryRoof({galleryModel:model,scene,onChange:syncRoof});updateRoof();updateStatus();
 },event=>{state.galleryLoaded=event.loaded;if(event.total){state.environmentBytes=event.total;updateStatus();}updateIntro();},error=>{state.galleryStatus='error';state.errors.push(String(error));updateStatus();});
-const draco=new DRACOLoader();draco.setDecoderPath('./vendor/draco/');draco.setWorkerLimit(2);const sculptureLoader=new GLTFLoader();sculptureLoader.setDRACOLoader(draco);
+
 Promise.all([new Promise((resolve,reject)=>sculptureLoader.load(SCULPTURES,resolve,event=>{state.sculptureLoaded=event.loaded;if(event.total){state.sculptureBytes=event.total;updateStatus();}updateIntro();},reject)),fetch('./camera-presets.json').then(response=>{if(!response.ok)throw new Error('Camera presets unavailable');return response.json();}),createDoryphoros({loader:sculptureLoader}).catch(error=>{state.doryphoros={ready:false,error:String(error)};return null;}),loadClassicalSculptures({loader:sculptureLoader}),castMaterial.ready]).then(([gltf,config,doryphoros,classical])=>{
   sculptureModel=gltf.scene;presets=config.presets.map(p=>({...p,label:p.id==='A'?'Relief A':'Sculpture '+p.id.replace(/00([12])$/,'$1')}));sculptureModel.traverse(o=>{if(/^AI66_002_Sculpture_[A-F]\d*$/.test(o.name))sculptures.push(o);});
   if(sculptures.length!==9||presets.length!==9||presets.some(p=>!sculptures.some(o=>o.name===p.name)))throw new Error('Sculpture/camera mapping is incomplete');
@@ -251,6 +253,20 @@ Promise.all([new Promise((resolve,reject)=>sculptureLoader.load(SCULPTURES,resol
   scene.add(sculptureModel);sculptureModel.updateMatrixWorld(true);refreshCameraBounds();state.sculptures=sculptures.map(o=>({name:o.name,scale:o.scale.toArray(),position:o.position.toArray(),triangles:countTriangles(false,o)}));state.sculptureTriangles=countTriangles(false,sculptureModel);state.cameraPresets=presets;state.sculptureExtensions=gltf.parser.json.extensionsUsed??[];
   for(const preset of presets){const option=document.createElement('option');option.value=preset.id;option.textContent=preset.label;el('sculpture-select').append(option);}const musicOption=document.createElement('option');musicOption.value='music-screen';musicOption.textContent='Music screen';el('sculpture-select').append(musicOption);const secondMusicOption=document.createElement('option');secondMusicOption.value='website-screen';secondMusicOption.textContent='Second gallery · IOM Experiments';el('sculpture-select').append(secondMusicOption);state.sculptureStatus='ready';updateStatus();snapshot();
 }).catch(error=>{state.sculptureStatus='error';state.errors.push(String(error));updateStatus();});
-let previous=performance.now(),lastStats=0;
-function animate(now){requestAnimationFrame(animate);if(intro?.state.mode!=='leaving')tour?.update(now);fullscreen.update?.(tour);if(walk?.state.active)walk.update(now);else controls.update();keepCameraAboveGround();updateCameraClipping();studies?.update(now/1000);musicScreen?.update(now/1000);const previousAutoReset=renderer.info.autoReset;renderer.info.autoReset=false;renderer.info.reset();try{if(!studies?.render(camera))renderer.render(scene,camera);}finally{renderer.info.autoReset=previousAutoReset;}const dt=now-previous;previous=now;if(state.status==='ready'&&dt>0&&dt<1000){state.frameMs.push(dt);if(state.frameMs.length>180)state.frameMs.shift();}state.frames++;updateIntro(true);state.drawCalls=renderer.info.render.calls;state.renderedTriangles=renderer.info.render.triangles;if(now-lastStats>400){lastStats=now;el('draw-calls').textContent=number.format(state.drawCalls);el('triangles').textContent=number.format(state.renderedTriangles);state.memory={...renderer.info.memory};snapshot();const sorted=[...state.frameMs].sort((a,b)=>a-b);state.medianFrameMs=sorted.length?sorted[Math.floor(sorted.length/2)]:null;state.fps=state.medianFrameMs?1000/state.medianFrameMs:null;const error=gl.getError();if(error!==gl.NO_ERROR)state.webglErrors.push(error);}}
+let previous=performance.now(),lastStats=0,lastUI=0,lastRender=0,awakeUntil=0;
+// Render continuously for interaction and animated studies. Static mobile views
+// refresh twice a second for asynchronous assets, without running full GPU passes.
+function wake(){awakeUntil=performance.now()+1500;}
+for(const type of ['pointerdown','pointermove','wheel','keydown','input','change','click'])document.addEventListener(type,wake,{passive:true,capture:true});
+controls.addEventListener('change',wake);window.addEventListener('resize',wake);
+document.addEventListener('visibilitychange',()=>{previous=performance.now();wake();});
+function mobileIsAnimating(){
+  const effects=state.studies?.effects;
+  return tour?.state.mode==='playing'||walk?.state.active||intro?.state.mode==='leaving'||
+    (musicScreen?.state.amount??0)>0||(musicScreen?.state.requested??0)>0||
+    ['fog','deform'].some(id=>(effects?.strength?.[id]??0)>0&&(effects?.settings?.[id]?.speed??0)>0);
+}
+function animate(now){requestAnimationFrame(animate);if(document.hidden)return;
+if(state.quality.mobile&&state.status==='ready'&&intro?.state.canExplore&&!mobileIsAnimating()&&now>awakeUntil&&now-lastRender<500)return;
+lastRender=now;if(intro?.state.mode!=='leaving')tour?.update(now);if(!state.quality.mobile||now-lastUI>100){fullscreen.update?.(tour);lastUI=now;}if(walk?.state.active)walk.update(now);else controls.update();keepCameraAboveGround();updateCameraClipping();studies?.update(now/1000);musicScreen?.update(now/1000);const previousAutoReset=renderer.info.autoReset;renderer.info.autoReset=false;renderer.info.reset();try{if(!studies?.render(camera))renderer.render(scene,camera);}finally{renderer.info.autoReset=previousAutoReset;}const dt=now-previous;previous=now;if(state.status==='ready'&&dt>0&&dt<1000){state.frameMs.push(dt);if(state.frameMs.length>180)state.frameMs.shift();}state.frames++;updateIntro(true);state.drawCalls=renderer.info.render.calls;state.renderedTriangles=renderer.info.render.triangles;if(now-lastStats>400){lastStats=now;el('draw-calls').textContent=number.format(state.drawCalls);el('triangles').textContent=number.format(state.renderedTriangles);state.memory={...renderer.info.memory};if(!state.quality.mobile)snapshot();const sorted=[...state.frameMs].sort((a,b)=>a-b);state.medianFrameMs=sorted.length?sorted[Math.floor(sorted.length/2)]:null;state.fps=state.medianFrameMs?1000/state.medianFrameMs:null;const error=gl.getError();if(error!==gl.NO_ERROR)state.webglErrors.push(error);}}
 requestAnimationFrame(animate);

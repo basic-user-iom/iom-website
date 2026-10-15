@@ -134,6 +134,14 @@ export function createViewportFullscreen({ viewport, button, onSkipTour }) {
     if (snapshot.mode === 'expanded') { expand(); return true; }
     return enter({ automatic: true });
   }
+  const mobileMore = document.createElement('button');
+  mobileMore.id='mobile-tour-more';mobileMore.type='button';mobileMore.textContent='More';
+  mobileMore.setAttribute('aria-expanded','false');mobileMore.setAttribute('aria-controls','fullscreen-tour-description fullscreen-tour-restart fullscreen-navigation');
+  tourControls?.querySelector('.fullscreen-tour-actions')?.append(mobileMore);
+  mobileMore.addEventListener('click',()=>{
+    const open=viewport.classList.toggle('mobile-tour-details-open');
+    mobileMore.setAttribute('aria-expanded',String(open));mobileMore.textContent=open?'Less':'More';
+  });
   function update(tour) {
     if (state.disposed) return;
     currentTour = tour ?? null;
@@ -142,6 +150,8 @@ export function createViewportFullscreen({ viewport, button, onSkipTour }) {
     const hidden = !state.active || !currentTour || viewport.classList.contains('is-walking');
     if (tourControls.hidden !== hidden) tourControls.hidden = hidden;
     const mode = currentTour?.state.mode;
+    const mobileTour = state.active && !viewport.classList.contains('is-walking') && (mode === 'playing' || mode === 'paused') && currentTour?.state.reason !== 'skipped';
+    if(viewport.classList.contains('mobile-tour-active')!==mobileTour)viewport.classList.toggle('mobile-tour-active', mobileTour);
     const tourState = currentTour?.state;
     const title = tourState?.index >= 0
       ? `${tourState.index + 1} / ${tourState.totalStops} · ${tourState.title}`

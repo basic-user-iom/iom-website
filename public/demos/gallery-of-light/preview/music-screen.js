@@ -7,7 +7,7 @@ export function createMusicScreen({scene,galleryModel,renderer,getStudies,player
   };
   const state={requested:0,amount:0,ready:true,screen:'music-screen',analysis:{},artwork:artworks['music-screen'].state,screens:Object.fromEntries(Object.entries(artworks).map(([id,artwork])=>[id,artwork.state]))};
   const listeners=[],buttons=[];
-  let disposed=false,lastTime=null;
+  let disposed=false,lastTime=null,wasInactive=false;
   function setAmount(value,screen='music-screen'){
     state.requested=Math.min(1,Math.max(0,Number(value)||0));
     if(state.requested>0&&artworks[screen]){state.screen=screen;state.artwork=artworks[screen].state;}
@@ -44,6 +44,9 @@ export function createMusicScreen({scene,galleryModel,renderer,getStudies,player
       const delta=lastTime===null?0:Math.min(.1,Math.max(0,seconds-lastTime));lastTime=seconds;
       state.amount+=(state.requested-state.amount)*(1-Math.exp(-delta*2.5));
       if(Math.abs(state.requested-state.amount)<.0005)state.amount=state.requested;
+      const inactive=state.requested===0&&state.amount===0;
+      if(inactive&&wasInactive)return;
+      wasInactive=inactive;
       const analysis=player.getAnalysis?.()??{bass:0,mid:0,treble:0,energy:0,playing:false};state.analysis=analysis;
       getStudies()?.setCinemaAmount?.(state.amount);
       for(const[id,artwork]of Object.entries(artworks))artwork.update(seconds,analysis,id===state.screen?state.amount:0);

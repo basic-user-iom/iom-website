@@ -247,8 +247,12 @@ export function createGalleryShadows({ renderer, scene, galleryModel, sculptureM
     shadow.intensity = state.intensity; shadow.radius = state.softness;
     return true;
   }
+  let lastUpdate = -Infinity;
   function update() {
     if (disposed) return;
+    const now = performance.now();
+    if (getGalleryQuality(renderer.domElement).mobile && now - lastUpdate < 50) return;
+    lastUpdate = now;
     setQuality();
     // Update matrices before reading the signature: UI visibility/transform edits
     // must affect the shadow in this frame, not one renderer update later.

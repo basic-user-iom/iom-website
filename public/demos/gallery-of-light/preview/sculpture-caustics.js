@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { getGalleryQuality } from './gallery-quality.js';
 
 /** A bounded, cached two-surface photon projection for the F1 glass study.
  * Samples the actual sculpture and its smooth normals. Snell refraction is traced
@@ -7,7 +8,8 @@ import * as THREE from 'three';
  * All acceleration data, textures and geometry belong to this runtime helper.
  */
 export function createSculptureCaustics({ stoneMeshes, opaqueMeshes, floorY, floorBounds, light, runtime, ior = 1.45 }) {
-  const resolution = 384, sampleSide = 256;
+  const mobile = getGalleryQuality().mobile;
+  const resolution = mobile ? 192 : 384, sampleSide = mobile ? 96 : 256;
   const state = {
     method: 'Cached geometry-sampled two-surface refraction, with opaque-pedestal blocking; approximate single-light floor projection.',
     samples: sampleSide * sampleSide, surfaceSamples: 0, tracedRays: 0, floorHits: 0,

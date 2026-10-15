@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <base href="/demos/gallery-of-light/preview/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>IOM — Gallery of Light</title>
   <meta name="description" content="Explore thirteen sculptures across two gallery wings. Follow a guided tour, compare light and materials, and shape a six-track soundtrack in your browser.">
   <link rel="canonical" href="https://iobjectm.com/demos/gallery-of-light/">
@@ -29,6 +29,7 @@
   <link rel="stylesheet" href="./publication.css">
   <link rel="stylesheet" href="./gallery-return.css">
   <script type="importmap">{"imports":{"three":"./vendor/three.module.js"}}</script>
+  <link rel="stylesheet" href="./mobile-gallery.css?v=20261015-mobile-1">
 </head>
 <body class="intro-open">
   <section id="gallery-intro" role="dialog" aria-modal="true" aria-labelledby="intro-title" aria-describedby="intro-note" aria-busy="true" tabindex="-1">
@@ -171,6 +172,6 @@
   </main>
   <script defer src="./intro.js" onerror="document.getElementById('intro-status').textContent='The gallery could not start. Please reload.';document.getElementById('intro-retry').hidden=false;document.getElementById('gallery-intro').classList.add('has-error');document.getElementById('gallery-intro').setAttribute('aria-busy','false')"></script>
   <script type="module" src="./gallery-return.js"></script>
-  <script type="module" src="./viewer.js"></script>
+  <script type="module" src="./viewer.js?v=20261015-mobile-1"></script>
 </body>
 </html>

@@ -161,7 +161,7 @@ export function createSculptureFog({renderer, floorMeshes = [], bounds, floorY =
   function render(scene) {
     if(disposed||uniforms.iomFloorFogDensity.value<=0) return false;
     const compact=renderer.domElement.clientWidth<700||globalThis.matchMedia?.('(pointer: coarse)').matches;
-    state.steps=compact?4:6;uniforms.iomFloorFogSteps.value=state.steps;
+    state.steps=globalThis.matchMedia?.('(pointer: coarse)').matches?3:compact?4:6;uniforms.iomFloorFogSteps.value=state.steps;
     // Effects can swap live materials after initialization. Patch each new one
     // once; stable materials require no allocations or recompilation per frame.
     scene.traverse(object=>{
