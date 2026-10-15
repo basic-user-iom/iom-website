@@ -1,0 +1,55 @@
+{
+  "scannerPassed": true,
+  "scannerFiles": 6,
+  "scannerBytes": 57889262,
+  "objects": [
+    {
+      "source": "/demos/stradivari-cable/assets/overview.bin",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/44f8ffff445a439a931bc11a5ccd254947f3ea08c832bc8a877085d9b8b48f14/overview.glb.gz",
+      "sha256": "44f8ffff445a439a931bc11a5ccd254947f3ea08c832bc8a877085d9b8b48f14",
+      "bytes": 15852517,
+      "contentType": "application/gzip",
+      "verified": true
+    },
+    {
+      "source": "/demos/stradivari-cable/assets/detail-1.bin",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/fd50cb30d04a5dea74acf3840a696985316558e1a1e82f173eeeb98d85ae233d/detail-1.glb.gz",
+      "sha256": "fd50cb30d04a5dea74acf3840a696985316558e1a1e82f173eeeb98d85ae233d",
+      "bytes": 7642411,
+      "contentType": "application/gzip",
+      "verified": true
+    },
+    {
+      "source": "/demos/stradivari-cable/assets/detail-2.bin",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/3182972ccd29532a5b851f700e3ff87e164bb7dee1be3bd85149308b3dd13a75/detail-2.glb.gz",
+      "sha256": "3182972ccd29532a5b851f700e3ff87e164bb7dee1be3bd85149308b3dd13a75",
+      "bytes": 7649422,
+      "contentType": "application/gzip",
+      "verified": true
+    },
+    {
+      "source": "/demos/stradivari-cable/assets/detail-3.bin",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/3a763fa8f5d056036838f510b49a5932eeb1e4393485dc75983a80a202b9ce75/detail-3.glb.gz",
+      "sha256": "3a763fa8f5d056036838f510b49a5932eeb1e4393485dc75983a80a202b9ce75",
+      "bytes": 7794436,
+      "contentType": "application/gzip",
+      "verified": true
+    },
+    {
+      "source": "/demos/stradivari-cable/assets/detail-4.bin",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/6182ec208da24a9fdd27b22fe3e5ac1cc5b603ccd6738a090e8fe23821f88cb7/detail-4.glb.gz",
+      "sha256": "6182ec208da24a9fdd27b22fe3e5ac1cc5b603ccd6738a090e8fe23821f88cb7",
+      "bytes": 12466762,
+      "contentType": "application/gzip",
+      "verified": true
+    },
+    {
+      "source": "/demos/stradivari-cable/assets/metro-vijzelgracht.hdr",
+      "destination": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "contentType": "application/octet-stream",
+      "verified": true
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+Production media uses the six immutable, separately scanned and hash-verified URLs in media-manifest.json through exact Vercel rewrites. Scanner code and aggregate limits are unchanged.
+Build deployment output: node build.cjs ../public/demos/stradivari-cable
+Build a standalone local copy including model files: node build.cjs dist --local-media
+Original model bytes are preserved in media-source/.
