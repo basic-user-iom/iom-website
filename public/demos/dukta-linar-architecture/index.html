@@ -1,9 +1,18 @@
 <!doctype html>
-<html lang="en"><head>
-  <meta name="robots" content="noindex, nofollow, noarchive" /><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f2f0eb"><link rel="icon" href="data:,"><title>dukta LINAR | Flexible wood in architecture</title>  <script type="module" crossorigin src="./assets/index-DJFVxSDU.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-BxRaIGH3.css">
+<html lang="en" data-load-state="loading"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f2f0eb"><link rel="icon" href="data:,"><title>dukta LINAR | Flexible wood in architecture</title><meta name="robots" content="noindex, nofollow, noarchive">
+<style>
+[data-load-state]:not([data-load-state="ready"]) #app{visibility:hidden}#loading-screen[hidden]{display:none!important}
+#loading-screen{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px;background:#f8f8f2;color:#273b30;font-family:"Segoe UI",Arial,sans-serif;overflow:auto;box-sizing:border-box}
+.loading-card{width:min(390px,100%);text-align:center}.loading-brand{font-size:48px;font-weight:650;letter-spacing:-3px;line-height:1.1}.loading-label{font-size:10px;letter-spacing:2.6px;margin:17px 0 32px;text-transform:uppercase}.loading-lines{height:66px;width:138px;margin:0 auto 32px;background:repeating-linear-gradient(90deg,#54745b 0 2px,transparent 2px 11px);border-radius:45% 45% 14% 14%;opacity:.45}
+#loading-title{font-size:20px;font-weight:500;letter-spacing:-.3px;margin:0 0 12px}#loading-detail{font-size:13px;color:#607164;line-height:1.6;min-height:42px;margin:0 0 24px}#loading-progress{width:100%;height:3px;display:block;border:0;appearance:none;background:#dce2d8;border-radius:3px;overflow:hidden}#loading-progress::-webkit-progress-bar{background:#dce2d8}#loading-progress::-webkit-progress-value{background:#36533f}#loading-progress::-moz-progress-bar{background:#36533f}#loading-count{font-size:11px;color:#617363;margin:13px 0 0;letter-spacing:.3px}#loading-retry{margin-top:23px;min-height:44px;padding:0 24px;border:1px solid #adbdac;border-radius:7px;color:#273b30;background:transparent;font:inherit;cursor:pointer}#loading-retry:focus-visible{outline:3px solid #387452;outline-offset:4px}.loading-footnote{font-size:11px;letter-spacing:.4px;margin-top:42px;color:#6d7b6e}
+@media(max-width:420px){#loading-screen{padding:24px}.loading-brand{font-size:42px}#loading-title{font-size:18px}}@media(max-height:500px){.loading-lines{height:32px;margin-bottom:18px}.loading-label{margin-bottom:18px}.loading-footnote{margin-top:18px}.loading-brand{font-size:32px}}
+</style><script>window.addEventListener('error',event=>{if(event.target instanceof HTMLScriptElement&&event.target.type==='module'){window.__viewerScriptFailed=true;window.dispatchEvent(new Event('viewer-startup-error'));}},true);</script>  <script type="module" crossorigin src="./assets/index-DigU4Vwt.js"></script>
 </head>
-<body><div id="app">
+<body><section id="loading-screen" aria-label="Loading Dukta LINAR">
+ <div class="loading-card"><div class="loading-brand">dukta</div><p class="loading-label">LINAR · ARCHITECTURAL EXPERIENCE</p><div class="loading-lines" aria-hidden="true"></div>
+ <div role="status" aria-live="polite" aria-atomic="true"><h1 id="loading-title">Preparing your visit</h1><p id="loading-detail">Starting the 3D viewer.</p><progress id="loading-progress" max="8" value="0" aria-label="Completed loading stages" aria-valuetext="0 of 8 stages complete"></progress><p id="loading-count">0 of 8 stages complete</p></div>
+ <button id="loading-retry" hidden>Try again</button><p class="loading-footnote">Flexible wood in architecture</p><noscript><p>Please enable JavaScript to explore this experience.</p></noscript></div>
+ </section><div id="app" inert aria-hidden="true" aria-busy="true">
  <header><a class="brand" href="./" aria-label="dukta LINAR configurator home"><span class="brand-mark">dukta</span><span class="brand-copy">LINAR CONFIGURATOR<small>Flexible wood in architecture</small></span></a><span class="badge">LOCAL PREVIEW</span></header>
  <main id="stage" aria-label="Interactive 3D building"><canvas id="canvas" tabindex="0" aria-label="3D view. Drag to orbit, scroll to zoom, or use the view and zoom buttons."></canvas>
   <div class="caption"><span class="eyebrow">EXPLORE THE SPACE</span><h1 id="view-title">Exterior</h1><p id="view-description">The building in its original street setting.</p></div>
@@ -26,4 +35,6 @@
   </section>
   <div class="hint">DRAG TO ORBIT <i>·</i> SCROLL TO ZOOM</div>
  </main><footer><span>Existing architecture &amp; interior</span><span id="load-note">Building first · Interior on demand</span></footer>
-</div></body></html>
+</div><script>
+(()=>{let waiting=true,elapsed=0,last=performance.now();const retry=document.getElementById('loading-retry');retry.onclick=()=>location.reload();const fail=()=>{if(!waiting)return;waiting=false;clearInterval(timer);document.documentElement.dataset.loadState='error';document.getElementById('loading-title').textContent='Unable to start the viewer';document.getElementById('loading-detail').textContent='Check your connection and try again. If the problem continues, use a browser with WebGL enabled.';document.getElementById('loading-progress').hidden=true;retry.hidden=false;};const timer=setInterval(()=>{const now=performance.now();if(!document.hidden)elapsed+=Math.min(now-last,2000);last=now;if(elapsed>=180000)fail();},1000);window.addEventListener('viewer-loader-attached',()=>{waiting=false;clearInterval(timer);},{once:true});window.addEventListener('viewer-startup-error',fail);if(window.__viewerScriptFailed)fail();})();
+</script></body></html>

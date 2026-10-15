@@ -1,3 +1,4 @@
+import {startup} from './LoadingScreen';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
@@ -146,15 +147,15 @@ async function boot(){
  }
  let active:View='exterior',request=0,environmentTask:Promise<void>|null=null,fixturesLoaded=false;
  const setStatus=(message:string)=>{status.textContent=message;status.hidden=!message;};
- async function loadEnvironment(){
+ async function loadEnvironment(strict=false){
   if(environmentTask)return environmentTask;
-  environmentTask=(async()=>{environmentRetry.hidden=true;try{
+  environmentTask=(async()=>{environmentRetry.hidden=true;try{startup.step(1);
    environmentStatus.textContent='Loading original sky…';await lighting.setQuality(quality);diagnostics.hdrSize=lighting.hdrSize;requestRender();
-   if(!fixturesLoaded){await lighting.loadFixtures();fixturesLoaded=true;requestRender();}
+   startup.step(2);if(!fixturesLoaded){await lighting.loadFixtures();fixturesLoaded=true;requestRender();}
    const titles:Record<string,string>={street:'Street & furnishings',context:'Surrounding buildings',vegetation:'Trees & planting','upper-interior':'Existing upper-floor interiors'};
-   for(const layer of ['street','context','vegetation','upper-interior']){if(document.hidden)await new Promise<void>(resolve=>{const resume=()=>{if(!document.hidden){document.removeEventListener('visibilitychange',resume);resolve();}};document.addEventListener('visibilitychange',resume);});environmentStatus.textContent=`Loading ${titles[layer].toLowerCase()}…`;await loadLayer(layer);}
+   for(const [index,layer] of ['street','context','vegetation','upper-interior'].entries()){if(strict&&startup.failed)throw new Error('Startup interrupted');startup.step(index+3);if(document.hidden)await new Promise<void>(resolve=>{const resume=()=>{if(!document.hidden){document.removeEventListener('visibilitychange',resume);resolve();}};document.addEventListener('visibilitychange',resume);});environmentStatus.textContent=`Loading ${titles[layer].toLowerCase()}…`;await loadLayer(layer);}
    diagnostics.environmentReady=true;environmentStatus.textContent='Full street · Daylight HDR';$('load-note').textContent='Daylight street environment';
-  }catch(error){diagnostics.errors.push(String(error));environmentStatus.textContent='Some surroundings could not load.';environmentRetry.hidden=false;}finally{environmentTask=null;}})();return environmentTask;
+  }catch(error){diagnostics.errors.push(String(error));environmentStatus.textContent='Some surroundings could not load.';environmentRetry.hidden=false;if(strict)throw error;}finally{environmentTask=null;}})();return environmentTask;
  }
  function frame(view:View,animate=true){
   tour.setAvailable(view!=='plan');linarUI.flush();walking?.stop();walking?.setAvailable(view==='reception'||view==='ceiling');walkButton.hidden=view==='exterior'||view==='plan';linarCamera.suspend();orbit.cancelTransition();
@@ -192,13 +193,14 @@ async function boot(){
  new ResizeObserver(resize).observe(stage);
  $('quality').addEventListener('change',resize);
  renderer.info.autoReset=false;
+ let startupFrame:(()=>void)|undefined;
  let frameHandle=0,dirty=false,lastUpdate=performance.now(),lastRender=-Infinity;
  function requestRender(){dirty=true;if(!frameHandle&&!document.hidden)frameHandle=requestAnimationFrame(renderFrame);}
  if(new URLSearchParams(location.search).has('perf-review'))installPerformanceReview(scene,renderer,effects,requestRender);
  if(new URLSearchParams(location.search).has('lighting-review'))installLightingReview(scene,renderer,lighting,effects,requestRender);
  const renderStudy=new URLSearchParams(location.search).has('render-study')?new RenderStudy(renderer,resourceStats,requestRender):undefined;
  function renderFrame(now:number){
-  frameHandle=0;if(document.hidden)return;
+  frameHandle=0;if(document.hidden||!diagnostics.environmentReady||startup.failed)return;
   if(now-lastRender<1000/(effects.interacting?Math.max(60,resourceStats.frameLimit):resourceStats.frameLimit)-.5){frameHandle=requestAnimationFrame(renderFrame);return;}
   const frameStarted=performance.now();renderStudy?.begin();if(renderStudy?.freezeShadows)renderer.shadowMap.needsUpdate=false;
   const dt=Math.min((now-lastUpdate)/1000,.1);lastUpdate=now;dirty=false;
@@ -208,16 +210,26 @@ async function boot(){
   const renderCamera=plan.active?plan.camera:camera;traffic.update(dt,renderCamera);
   linar.update(renderCamera,renderer.shadowMap.needsUpdate);
   const shadowRefresh=renderer.shadowMap.needsUpdate;if(shadowRefresh)resourceStats.shadowRefreshes++;lighting.update(renderCamera);visibility.update(renderCamera,shadowRefresh);diagnostics.visibleInstances=visibility.visible;diagnostics.totalInstances=visibility.total;
-  renderer.info.reset();const renderStarted=performance.now();effects.render();const renderEnded=performance.now();renderStudy?.end(now,frameStarted,renderStarted,renderEnded,shadowRefresh);resourceStats.renderCpuMs.push(renderEnded-renderStarted);if(resourceStats.renderCpuMs.length>180)resourceStats.renderCpuMs.shift();resourceStats.frames++;resourceStats.totalDrawCalls+=renderer.info.render.calls;resourceStats.totalTriangles+=renderer.info.render.triangles;resourceStats.textures=renderer.info.memory.textures;resourceStats.geometries=renderer.info.memory.geometries;resourceStats.programs=renderer.info.programs?.length??0;resourceStats.pixelRatio=renderer.getPixelRatio();resourceStats.drawingBuffer=[canvas.width,canvas.height];resourceStats.hidden=document.hidden;diagnostics.camera=renderCamera.position.toArray();diagnostics.target=(plan.active?plan.controls.target:orbit.controls.target).toArray();diagnostics.animating=!plan.active&&orbit.isAnimating();diagnostics.triangles=renderer.info.render.triangles;diagnostics.drawCalls=renderer.info.render.calls;
+  renderer.info.reset();const renderStarted=performance.now();try{effects.render();}catch(error){startup.fail('The first view could not be rendered. Try again or use a browser with WebGL enabled.');throw error;}const renderEnded=performance.now();renderStudy?.end(now,frameStarted,renderStarted,renderEnded,shadowRefresh);resourceStats.renderCpuMs.push(renderEnded-renderStarted);if(resourceStats.renderCpuMs.length>180)resourceStats.renderCpuMs.shift();resourceStats.frames++;resourceStats.totalDrawCalls+=renderer.info.render.calls;resourceStats.totalTriangles+=renderer.info.render.triangles;resourceStats.textures=renderer.info.memory.textures;resourceStats.geometries=renderer.info.memory.geometries;resourceStats.programs=renderer.info.programs?.length??0;resourceStats.pixelRatio=renderer.getPixelRatio();resourceStats.drawingBuffer=[canvas.width,canvas.height];resourceStats.hidden=document.hidden;diagnostics.camera=renderCamera.position.toArray();diagnostics.target=(plan.active?plan.controls.target:orbit.controls.target).toArray();diagnostics.animating=!plan.active&&orbit.isAnimating();diagnostics.triangles=renderer.info.render.triangles;diagnostics.drawCalls=renderer.info.render.calls;
+  if(startupFrame){const resolve=startupFrame;startupFrame=undefined;resolve();}
   if(shadowRefresh||(!plan.active&&orbit.isAnimating())||dirty||traffic.running||walking?.moving||entranceAuto.running&&!(tour.active&&tour.inspect().paused))requestRender();
  }
  orbit.controls.addEventListener('change',requestRender);
  document.addEventListener('visibilitychange',()=>{resourceStats.hidden=document.hidden;if(document.hidden){if(frameHandle)cancelAnimationFrame(frameHandle);frameHandle=0;}else{lastUpdate=performance.now();requestRender();}});
- canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();setStatus('Graphics connection interrupted. Reload to continue.');retry.textContent='Reload viewer';retry.hidden=false;retry.onclick=()=>location.reload();});
- async function initialLoad(){try{setStatus('Loading building…');retry.hidden=true;await loadLayer('building');diagnostics.ready=true;frame('exterior',false);setStatus('');document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>b.disabled=false);void loadEnvironment();}catch(error){diagnostics.errors.push(String(error));setStatus('The building could not be loaded. Please retry.');retry.hidden=false;retry.onclick=()=>void initialLoad();}}
+ canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();startup.fail('The graphics connection was interrupted. Try again.');setStatus('Graphics connection interrupted. Reload to continue.');retry.textContent='Reload viewer';retry.hidden=false;retry.onclick=()=>location.reload();});
+ async function initialLoad(){
+  try{
+   startup.step(0);retry.hidden=true;setStatus('');await loadLayer('building');
+   if(startup.failed)return;await loadEnvironment(true);if(startup.failed)return;startup.step(7);
+   await new Promise<void>(resolve=>{startupFrame=resolve;frame('exterior',false);});
+   await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
+   diagnostics.ready=startup.complete();
+   if(diagnostics.ready)document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>b.disabled=false);
+  }catch(error){diagnostics.errors.push(String(error));startup.fail();}
+ }
  await initialLoad();
 }
-boot().catch(error=>{diagnostics.errors.push(String(error));status.textContent='This browser could not start the 3D viewer. Enable WebGL and reload.';retry.hidden=false;retry.textContent='Reload viewer';retry.onclick=()=>location.reload();});
+boot().catch(error=>{diagnostics.errors.push(String(error));startup.fail('This browser could not start the 3D viewer. Enable WebGL and try again.');status.textContent='This browser could not start the 3D viewer. Enable WebGL and reload.';retry.hidden=false;retry.textContent='Reload viewer';retry.onclick=()=>location.reload();});
 
 
 

@@ -11,7 +11,7 @@ export class StreetLighting{
  private sources:LightSource[]=[];
  private hdrTargets=new Map<number,{texture:THREE.DataTexture;environment:THREE.WebGLRenderTarget}>();
  private hdrTasks=new Map<number,Promise<void>>();
- private token=0;
+ private qualityRevision=0;
  private overview:boolean|null=null;
  private interior=false;
  private sunData:{rotationY:number;worldDirection:number[];uv:number[];elevation:number}|null=null;
@@ -36,13 +36,13 @@ export class StreetLighting{
  setReceptionEnabled(enabled:boolean){this.receptionEnabled=enabled;for(const light of this.receptionLights)light.visible=enabled;this.renderer.shadowMap.needsUpdate=true;}
  async setQuality(quality:Quality){
   if(!this.sunData){this.sunData=await (await fetch(`${import.meta.env.BASE_URL}environment/daylight-sun.json`)).json();this.scene.backgroundRotation.y=this.sunData!.rotationY;this.scene.environmentRotation.y=this.sunData!.rotationY;this.positionSun();}
-  const token=++this.token,size=quality==='high'?2048:1024,resolution=quality==='high'?4096:innerWidth<600?1024:2048;
+  const revision=++this.qualityRevision,size=quality==='high'?2048:1024,resolution=quality==='high'?4096:innerWidth<600?1024:2048;
   this.sun.shadow.mapSize.set(resolution,resolution);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
   if(!this.hdrTargets.has(size)){
    if(!this.hdrTasks.has(size))this.hdrTasks.set(size,(async()=>{const texture=await new HDRLoader().loadAsync(`${import.meta.env.BASE_URL}environment/daylight_sky_${size}.hdr`);texture.mapping=THREE.EquirectangularReflectionMapping;const pmrem=new THREE.PMREMGenerator(this.renderer);const environment=pmrem.fromEquirectangular(texture);pmrem.dispose();this.hdrTargets.set(size,{texture,environment});})());
    try{await this.hdrTasks.get(size);}finally{this.hdrTasks.delete(size);}
   }
-  if(token!==this.token)return;
+  if(revision!==this.qualityRevision)return;
   const hdr=this.hdrTargets.get(size)!;this.scene.background=this.overview?new THREE.Color('#c6ced1'):hdr.texture;this.scene.environment=hdr.environment.texture;this.scene.environmentIntensity=.35;this.scene.traverse(o=>{if(!(o instanceof THREE.Mesh))return;for(const m of Array.isArray(o.material)?o.material:[o.material])if(m instanceof THREE.MeshPhysicalMaterial&&m.userData.entranceFinish){m.envMap=hdr.environment.texture;m.envMapRotation.copy(this.scene.environmentRotation);m.envMapIntensity=.55;m.needsUpdate=true;}});this.scene.backgroundIntensity=.8;this.scene.backgroundBlurriness=.015;this.hdrSize=size;this.renderer.shadowMap.needsUpdate=true;
   // A settled quality switch needs only its active HDR and PMREM on the GPU.
   for(const [otherSize,other] of this.hdrTargets)if(otherSize!==size){other.texture.dispose();other.environment.dispose();this.hdrTargets.delete(otherSize);}
