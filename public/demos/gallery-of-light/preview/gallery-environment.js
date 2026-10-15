@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { KTX2Loader } from './vendor/loaders/KTX2Loader.js';
+import { KTX2Loader } from './vendor/loaders/KTX2Loader.js?v=20261015-zstd-fallback-1';
 
 const PREFIX = '../assets/environment/EveningSkyHDRI048B_2K';
 const url = suffix => new URL(PREFIX + suffix, import.meta.url).href;

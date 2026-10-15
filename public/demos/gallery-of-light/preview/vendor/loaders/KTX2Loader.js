@@ -1119,13 +1119,14 @@ async function createRawTexture( container ) {
 
 		if ( ! _zstd ) {
 
-			_zstd = new Promise( async ( resolve ) => {
+			// Propagate decoder initialization failures to the gallery EXR fallback.
+			_zstd = ( async () => {
 
 				const zstd = new ZSTDDecoder();
 				await zstd.init();
-				resolve( zstd );
+				return zstd;
 
-			} );
+			} )();
 
 		}
 
