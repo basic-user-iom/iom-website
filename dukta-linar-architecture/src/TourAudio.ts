@@ -1,14 +1,45 @@
-/** Original synthesized ambient pad. No recordings, downloads or licensed music. */
-export class TourAudio{
- muted=false;private context?:AudioContext;private master?:GainNode;private analyser?:AnalyserNode;private voices:OscillatorNode[]=[];private pauseTimer=0;private generation=0;private playing=false;private error='';
- private create(){if(this.context)return;const context=this.context=new AudioContext(),master=this.master=context.createGain(),filter=context.createBiquadFilter();filter.type='lowpass';filter.frequency.value=900;master.gain.value=0;const analyser=this.analyser=context.createAnalyser();analyser.fftSize=256;filter.connect(master);master.connect(analyser);analyser.connect(context.destination);
-  for(const frequency of [130.8128,195.9977,293.6648])for(const detune of [-3,3]){const voice=context.createOscillator(),gain=context.createGain();voice.type='sine';voice.frequency.value=frequency;voice.detune.value=detune;gain.gain.value=.035;voice.connect(gain);gain.connect(filter);voice.start();this.voices.push(voice);}
+/** Gallery of Light's owner-supplied soundtrack, mixed once into one continuous stream. */
+export class TourAudio {
+ muted=false;
+ private media?:HTMLAudioElement;
+ private desiredPlaying=false;
+ private generation=0;
+ private error='';
+ private starts=0;
+ constructor(private changed:()=>void=()=>{}) {}
+ private create() {
+  if(this.media)return this.media;
+  const media=this.media=new Audio();
+  media.preload='none';media.loop=true;media.muted=this.muted;
+  media.setAttribute('playsinline','');
+  media.src=new URL('audio/gallery-of-light-tour.m4a',document.baseURI).href;
+  media.addEventListener('error',()=>{this.desiredPlaying=false;this.error='Music could not load. Try again.';this.changed();});
+  return media;
  }
- private fade(value:number){if(!this.context||!this.master)return;const gain=this.master.gain,t=this.context.currentTime;gain.cancelAndHoldAtTime(t);gain.linearRampToValueAtTime(value,t+.22);}
- play(){this.playing=true;const generation=++this.generation;clearTimeout(this.pauseTimer);try{this.create();void this.context!.resume().then(()=>{if(generation!==this.generation||!this.playing)return;if(this.muted)this.pauseSound();else this.fade(.12);}).catch(e=>{this.error=String(e);});}catch(e){this.error=String(e);}}
- private pauseSound(){this.fade(0);clearTimeout(this.pauseTimer);const generation=this.generation;this.pauseTimer=window.setTimeout(()=>{if(generation===this.generation&&(!this.playing||this.muted))void this.context?.suspend();},260);}
- pause(){this.playing=false;this.generation++;this.pauseSound();}
- toggleMute(){this.muted=!this.muted;if(this.playing){if(this.muted)this.pauseSound();else this.play();}return this.muted;}
- chord(index:number){if(!this.context)return;const notes=[[130.8128,195.9977,293.6648],[110,164.8138,261.6256],[146.8324,220,329.6276],[130.8128,195.9977,293.6648]][Math.floor(index/4)%4];this.voices.forEach((v,i)=>v.frequency.setTargetAtTime(notes[Math.floor(i/2)],this.context!.currentTime,1.5));}
- inspect(){const data=new Float32Array(256);this.analyser?.getFloatTimeDomainData(data);return{muted:this.muted,playing:this.playing,contextState:this.context?.state??'not-created',contexts:this.context?1:0,voices:this.voices.length,rms:Math.sqrt(data.reduce((sum,v)=>sum+v*v,0)/data.length),error:this.error};}
+ /** A new tour/replay starts the full track; resume never seeks or recreates it. */
+ start() {
+  if(this.media){this.media.pause();this.media.currentTime=0;}
+  this.play();
+ }
+ play() {
+  this.desiredPlaying=true;const generation=++this.generation;this.error='';
+  try {
+   const media=this.create();if(media.error)media.load();
+   // Keep this call synchronous with the Start/Resume/Retry user gesture.
+   const playing=media.play();this.starts++;
+   void playing.then(()=>{if(generation===this.generation)this.changed();}).catch(error=>{
+    if(generation!==this.generation||!this.desiredPlaying)return;
+    this.desiredPlaying=false;this.error=error?.name==='NotAllowedError'?'Press Retry music to enable sound.':'Music could not play. Try again.';this.changed();
+   });
+  } catch {this.desiredPlaying=false;this.error='Music could not start. Try again.';this.changed();}
+ }
+ pause() {this.desiredPlaying=false;this.generation++;this.media?.pause();}
+ toggleMute() {this.muted=!this.muted;if(this.media)this.media.muted=this.muted;return this.muted;}
+ inspect() {
+  const media=this.media;
+  return {track:'Gallery of Light',muted:this.muted,playing:!!media&&!media.paused&&this.desiredPlaying,
+   paused:media?.paused??true,mediaInstances:media?1:0,currentTime:media?.currentTime??0,
+   duration:media&&Number.isFinite(media.duration)?media.duration:0,readyState:media?.readyState??0,
+   loop:media?.loop??false,playCalls:this.starts,source:media?.currentSrc??'',error:this.error};
+ }
 }

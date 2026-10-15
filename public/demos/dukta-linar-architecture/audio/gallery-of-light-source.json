@@ -1,0 +1,42 @@
+{
+  "title": "Gallery of Light",
+  "sourceDemo": "https://iobjectm.com/demos/gallery-of-light/",
+  "provenance": "Suno soundtrack stems supplied by the project owner (existing Gallery of Light credits). Reused in Dukta at the owner’s explicit request.",
+  "durationSeconds": 213.624,
+  "mix": "All six original stems at unity gain; Gallery default headroom 0.707 × master volume 0.35, baked into a single AAC stream. No per-stem normalization, trimming, rearrangement, or short looping.",
+  "file": "gallery-of-light-tour.m4a",
+  "bytes": 5215315,
+  "sha256": "f09a7845ce1b6ab9413117ed1600d99a8903ebe0e250842c5250d89573a53a38",
+  "stems": [
+    {
+      "id": "bass",
+      "sha256": "92fb06a8b1b1509c44e89abc922c3a82a29d2bf5d65942576c7d3dd11a4ae8a4",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/bass.m4a"
+    },
+    {
+      "id": "guitar",
+      "sha256": "f4ecb214ddf516d32162a6e86dd6f2c952bcb7be685dcecff8fc27c9697a5d1f",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/guitar.m4a"
+    },
+    {
+      "id": "keyboard",
+      "sha256": "64337cfba882415a969d7babad503583bf5d266b5bc8c877f4c0335ca51f65fb",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/keyboard.m4a"
+    },
+    {
+      "id": "strings",
+      "sha256": "1e38935ef7c02526b49603756735f845da91b5e266279c302ee695a9ae7b5f8d",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/strings.m4a"
+    },
+    {
+      "id": "synth",
+      "sha256": "c2fe3a5351017ef87bdd5da960ee8935ffbad825bad30b9f1bc74a92c4817f71",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/synth.m4a"
+    },
+    {
+      "id": "brass",
+      "sha256": "a74960c8976843e2e21c209261f9a5bc93c6e51005caadf91bd048ae0bca93e2",
+      "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/brass.m4a"
+    }
+  ]
+}
