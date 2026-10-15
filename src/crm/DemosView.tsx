@@ -263,7 +263,7 @@ export function DemosView() {
       </header>
 
       <ul className="crm-demos-list">
-        {CLIENT_DEMOS.map((demo) => {
+        {CLIENT_DEMOS.filter((demo) => demo.id !== 'dukta-linar-architecture' || !/^\/crm-demo(?:\/|$)/.test(window.location.pathname)).map((demo) => {
           const url = demoUrl(demo.path)
           const external = demo.external === true || isAbsoluteUrl(demo.path)
           const cover = demo.images[0] ? assetUrl(demo.images[0]) : ''
