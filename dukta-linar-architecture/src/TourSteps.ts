@@ -1,0 +1,27 @@
+import type {LinarTarget} from './LinarCamera';import type {LinarSettings} from './LinarWalls';
+export type TourStep={title:string;id:LinarTarget;view:0|1;settings?:Partial<LinarSettings>;light?:boolean;duration?:number};
+export const tourSteps:TourStep[]=[
+ {title:'Wall · the complete room',id:'wall',view:0},
+ {title:'Wall · cut detail',id:'wall',view:1,settings:{bend:0,sCurve:0}},
+ {title:'Wall · C curve',id:'wall',view:1,settings:{bend:-75,sCurve:0}},
+ {title:'Wall · flowing S curve',id:'wall',view:1,settings:{bend:95,sCurve:100}},
+ {title:'Wall · fine cuts & thin wood',id:'wall',view:1,settings:{incision:40,thicknessMm:4}},
+ {title:'Wall · oak & felt',id:'wall',view:1,settings:{finish:'birch',veneer:'oak',backing:'felt',feltColour:'raw-white',thicknessMm:9,incision:100}},
+ {title:'Wall · compact panel areas',id:'wall',view:0,settings:{coverage:'both',width:1.8,height:2.4,bend:0,sCurve:0}},
+ {title:'Ceiling · overhead canopy',id:'ceiling',view:0},
+ {title:'Ceiling · a closer view',id:'ceiling',view:1,settings:{bend:0,sCurve:0}},
+ {title:'Ceiling · four spruce modules',id:'ceiling',view:1,settings:{panels:4,width:4.8,finish:'spruce',bend:-75,sCurve:100}},
+ {title:'Ceiling · one ash module',id:'ceiling',view:1,settings:{panels:1,width:1.2,veneer:'ash',bend:60,sCurve:0}},
+ {title:'Ceiling · LED off',id:'ceiling',view:1,light:false},
+ {title:'Ceiling · light through the cuts',id:'ceiling',view:1,light:true},
+ {title:'Divider · freestanding form',id:'freestanding',view:0},
+ {title:'Divider · reverse view',id:'freestanding',view:1,settings:{bend:0,sCurve:0}},
+ {title:'Divider · walnut C curve',id:'freestanding',view:1,settings:{panels:1,width:1.2,finish:'birch',veneer:'walnut',bend:-75,sCurve:0}},
+ {title:'Divider · repeating S curve',id:'freestanding',view:1,settings:{panels:4,width:4.8,veneer:'none',finish:'mdf',mdfVariant:'valchromat',colour:'mint-green',bend:85,sCurve:100}},
+ {title:'Divider · compact, open cuts',id:'freestanding',view:0,settings:{height:1.8,incision:200,backing:'none',thicknessMm:15}},
+ {title:'Furniture · reception desk',id:'desk',view:0},
+ {title:'Furniture · another angle',id:'desk',view:1},
+ {title:'Furniture · maple veneer',id:'desk',view:1,settings:{finish:'birch',veneer:'maple',thicknessMm:4,incision:100}},
+ {title:'Furniture · natural MDF',id:'desk',view:1,settings:{finish:'mdf',veneer:'none',mdfVariant:'natural',thicknessMm:9,incision:60}},
+ {title:'Furniture · coloured MDF',id:'desk',view:0,settings:{mdfVariant:'valchromat',colour:'mint-green'}},
+];

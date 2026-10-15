@@ -210,6 +210,16 @@ export const CLIENT_DEMOS: ClientDemo[] = [
     images: [],
   },
   {
+    id: 'dukta-linar-architecture',
+    name: 'Dukta LINAR — Architectural Experience',
+    client: 'Client preview - architectural interior and exterior',
+    status: 'preview',
+    path: '/demos/dukta-linar-architecture/',
+    blurb: 'Explore Dukta LINAR in a complete architectural setting, from the exterior plaza to the interior reception and lounge. Configure flexible wood panels and lighting, or follow the guided tour.',
+    tags: ['Architecture', 'WebGL', 'Guided tour'],
+    images: [],
+  },
+  {
     id: 'superbright-rock',
     name: 'Superbright rock',
     client: 'Capability study — photoreal stone hero with orbiting light probes',

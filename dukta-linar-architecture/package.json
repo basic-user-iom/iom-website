@@ -1,0 +1,26 @@
+{
+  "name": "dukta-linar-architecture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build --configLoader runner",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/entrance-auto-close.test.mjs tests/tour-completion.test.mjs",
+    "preview": "vite preview --configLoader runner"
+  },
+  "dependencies": {
+    "three": "0.181.2"
+  },
+  "devDependencies": {
+    "@types/three": "0.181.0",
+    "typescript": "5.7.3",
+    "vite": "6.4.3",
+    "playwright": "1.61.1",
+    "sharp": "0.35.3",
+    "@gltf-transform/core": "4.4.2",
+    "@gltf-transform/extensions": "4.4.2",
+    "@gltf-transform/functions": "4.4.2",
+    "meshoptimizer": "1.2.0"
+  }
+}

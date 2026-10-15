@@ -1,0 +1,70 @@
+[
+  {
+    "material": "AE35_010_034_009_AE35_010_tree_A_leaf_diff_01_CC5",
+    "vertices": 14486,
+    "firstUV": [
+      5.482138633728027,
+      -47.687721252441406
+    ],
+    "file": "tree-uv-41642eb52c89.bin",
+    "originalLayer": "UVMap_1",
+    "mesh": "AE35_010_tree_A",
+    "maxError": 0,
+    "ambiguous": 0,
+    "range": [
+      -0.02316296100616455,
+      1.0103930234909058
+    ]
+  },
+  {
+    "material": "AE35_010_034_012_AE35_010_tree_A_trunk_diffuse_CC1",
+    "vertices": 14077,
+    "firstUV": [
+      7.457089424133301,
+      -48.007225036621094
+    ],
+    "file": "tree-uv-121050decef7.bin",
+    "originalLayer": "UVMap_1",
+    "mesh": "AE35_010_tree_A",
+    "maxError": 0,
+    "ambiguous": 0,
+    "range": [
+      -0.02499532699584961,
+      1.010393500328064
+    ]
+  },
+  {
+    "material": "AE35_010_tree_C_leafs_AE35_010_tree_C_leafs_diff",
+    "vertices": 12421,
+    "firstUV": [
+      56.0491943359375,
+      -120.64848327636719
+    ],
+    "file": "tree-uv-8c922507c71c.bin",
+    "originalLayer": "UVMap_3",
+    "mesh": "AE35_010_tree_C_005",
+    "maxError": 0,
+    "ambiguous": 0,
+    "range": [
+      -0.10824215412139893,
+      1.062605619430542
+    ]
+  },
+  {
+    "material": "AE35_010_tree_C_leafs_AE35_010_tree_C_leafs_diff",
+    "vertices": 7388,
+    "firstUV": [
+      -116.64216613769531,
+      25.605548858642578
+    ],
+    "file": "tree-uv-f19412ad736d.bin",
+    "originalLayer": "UVMap_3",
+    "mesh": "AE35_010_tree_C_014",
+    "maxError": 0,
+    "ambiguous": 0,
+    "range": [
+      -0.10824215412139893,
+      1.062605619430542
+    ]
+  }
+]

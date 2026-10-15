@@ -1,0 +1,2469 @@
+{
+  "generated": "2026-10-13T20:14:34.556Z",
+  "scope": "Private local review; distribution rights not confirmed",
+  "assets": [
+    {
+      "name": "building",
+      "sourceBytes": 40881776,
+      "bytes": 4974288,
+      "triangles": 105078,
+      "vertices": 122507,
+      "nodes": 153,
+      "materials": 11,
+      "textures": [
+        {
+          "name": "AE35_010_building_A_black_color",
+          "size": null,
+          "bytes": 38616
+        },
+        {
+          "name": "roughness-0",
+          "size": null,
+          "bytes": 344634
+        },
+        {
+          "name": "AE35_010_Corten_steel_Normal",
+          "size": null,
+          "bytes": 561246
+        },
+        {
+          "name": "AE35_010_Corten_steel_Diffuse",
+          "size": null,
+          "bytes": 210676
+        },
+        {
+          "name": "roughness-4",
+          "size": null,
+          "bytes": 603396
+        },
+        {
+          "name": "AE35_010_metal_linear_bump",
+          "size": null,
+          "bytes": 204194
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_Normal",
+          "size": null,
+          "bytes": 540774
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_color",
+          "size": null,
+          "bytes": 226330
+        },
+        {
+          "name": "roughness-5",
+          "size": null,
+          "bytes": 354802
+        },
+        {
+          "name": "AE35_010_window_E_frame_diffuse",
+          "size": null,
+          "bytes": 7890
+        },
+        {
+          "name": "roughness-2",
+          "size": null,
+          "bytes": 223592
+        },
+        {
+          "name": "AE35_010_window_C_Normal",
+          "size": null,
+          "bytes": 21608
+        },
+        {
+          "name": "AE35_010_window_C_frame_color",
+          "size": null,
+          "bytes": 12118
+        },
+        {
+          "name": "roughness-1",
+          "size": null,
+          "bytes": 142576
+        },
+        {
+          "name": "AE35_010_window_F_Normal",
+          "size": null,
+          "bytes": 80690
+        },
+        {
+          "name": "AE35_010_window_F_frame_diffuse",
+          "size": null,
+          "bytes": 9832
+        },
+        {
+          "name": "roughness-3",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 160050
+        }
+      ],
+      "extensions": [
+        "EXT_texture_webp",
+        "KHR_mesh_quantization",
+        "EXT_meshopt_compression"
+      ],
+      "sha256": "A01A00EE3A083CFD56E063D33833B8C21B31BDE1155BEA6E4C794D97F07F3C1B"
+    },
+    {
+      "name": "lobby",
+      "sourceBytes": 28893760,
+      "bytes": 6158904,
+      "triangles": 89889,
+      "vertices": 62104,
+      "nodes": 34,
+      "materials": 23,
+      "textures": [
+        {
+          "name": "AE35_010_metal_linear_bump",
+          "size": null,
+          "bytes": 204194
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_Normal",
+          "size": null,
+          "bytes": 540774
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_color",
+          "size": null,
+          "bytes": 226330
+        },
+        {
+          "name": "roughness-5",
+          "size": null,
+          "bytes": 354802
+        },
+        {
+          "name": "AE35_010_Female_01_Body_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 980170
+        },
+        {
+          "name": "AE35_010_Female_01_Body_color",
+          "size": null,
+          "bytes": 67878
+        },
+        {
+          "name": "AE35_010_Female_01_Head_normal",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 760004
+        },
+        {
+          "name": "AE35_010_Female_01_Head_color",
+          "size": null,
+          "bytes": 135134
+        },
+        {
+          "name": "AE35_010_pillow_brown",
+          "size": null,
+          "bytes": 130590
+        },
+        {
+          "name": "AE35_010_bwzebra",
+          "size": null,
+          "bytes": 30932
+        },
+        {
+          "name": "AE35_010_pillow_stripes",
+          "size": null,
+          "bytes": 264356
+        },
+        {
+          "name": "roughness-6",
+          "size": [
+            1024,
+            1024
+          ],
+          "bytes": 640782
+        },
+        {
+          "name": "AE35_010_reception_wood",
+          "size": null,
+          "bytes": 358268
+        },
+        {
+          "name": "AE35_010_reception_Marble_pattern",
+          "size": null,
+          "bytes": 207536
+        },
+        {
+          "name": "AE35_010_Chair_Leather_Bump",
+          "size": null,
+          "bytes": 57440
+        },
+        {
+          "name": "AE35_010_fabric_refract",
+          "size": null,
+          "bytes": 411902
+        }
+      ],
+      "extensions": [
+        "EXT_texture_webp",
+        "KHR_mesh_quantization",
+        "EXT_meshopt_compression"
+      ],
+      "sha256": "305B9C171B2FAFA57C92B244CD7A0BBB16E16038C4ACC9A1C45542FF95AE8EDC"
+    },
+    {
+      "name": "street",
+      "sourceBytes": 99526868,
+      "bytes": 6525636,
+      "uniqueTriangles": 323789,
+      "nodes": 86,
+      "instancedBatches": 7,
+      "materials": 64,
+      "textures": [
+        {
+          "name": "AE35_010_bench_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 38606
+        },
+        {
+          "name": "AE35_010_bench_Diffuse",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 177404
+        },
+        {
+          "name": "roughness-50",
+          "width": 256,
+          "height": 256,
+          "bytes": 35604
+        },
+        {
+          "name": "AE35_010_everlogo",
+          "width": 478,
+          "height": 104,
+          "bytes": 2742
+        },
+        {
+          "name": "AE35_010_car_B_felgi_ref",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 329040
+        },
+        {
+          "name": "AE35_010_car_B_Tire_NM",
+          "width": 256,
+          "height": 256,
+          "bytes": 97186
+        },
+        {
+          "name": "AE35_010_car_B_Tire_Color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 94460
+        },
+        {
+          "name": "AE35_010_car_B_Tire_Color",
+          "width": 256,
+          "height": 256,
+          "bytes": 28780
+        },
+        {
+          "name": "AE35_010_car_brake_rotor",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 329040
+        },
+        {
+          "name": "AE35_010_car_tyre_sidewall",
+          "width": 256,
+          "height": 256,
+          "bytes": 22784
+        },
+        {
+          "name": "AE35_010_concrete_001",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 137110
+        },
+        {
+          "name": "AE35_010_pavement_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 67448
+        },
+        {
+          "name": "roughness-44",
+          "width": 256,
+          "height": 256,
+          "bytes": 37784
+        },
+        {
+          "name": "AE35_010_people_Body_02_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 64382
+        },
+        {
+          "name": "AE35_010_people_Body_02_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 200764
+        },
+        {
+          "name": "AE35_010_people_head_02_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 62366
+        },
+        {
+          "name": "AE35_010_people_head_02_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 221552
+        },
+        {
+          "name": "AE35_010_people_Body_03_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 68184
+        },
+        {
+          "name": "AE35_010_people_Body_03_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 138490
+        },
+        {
+          "name": "AE35_010_people_head_03_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 62072
+        },
+        {
+          "name": "AE35_010_people_head_03_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 220972
+        },
+        {
+          "name": "AE35_010_people_male_body_03_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 69662
+        },
+        {
+          "name": "AE35_010_people_male_body_03_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 66350
+        },
+        {
+          "name": "AE35_010_people_male_Head_03_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 44770
+        },
+        {
+          "name": "AE35_010_people_male_Head_03_color",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 86850
+        },
+        {
+          "name": "AE35_010_people_Case_01_color",
+          "width": 512,
+          "height": 512,
+          "bytes": 32856
+        },
+        {
+          "name": "AE35_010_road_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 50632
+        },
+        {
+          "name": "AE35_010_road_Diffuse",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 246646
+        },
+        {
+          "name": "roughness-92",
+          "width": 256,
+          "height": 256,
+          "bytes": 23190
+        },
+        {
+          "name": "AE35_010_road_parking_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 63254
+        },
+        {
+          "name": "AE35_010_road_parking_Diffuse",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 146358
+        },
+        {
+          "name": "roughness-75",
+          "width": 256,
+          "height": 256,
+          "bytes": 31668
+        },
+        {
+          "name": "AE35_010_tree_shield_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 26926
+        },
+        {
+          "name": "AE35_010_tree_shield_Diffuse",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 185184
+        },
+        {
+          "name": "roughness-17",
+          "width": 256,
+          "height": 256,
+          "bytes": 31640
+        },
+        {
+          "name": "AE35_010_tree_shield_B_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 57740
+        },
+        {
+          "name": "AE35_010_tree_shield_B_Diffuse-AE35_010_tree_shield_B_Opacity",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 17192
+        },
+        {
+          "name": "roughness-45",
+          "width": 256,
+          "height": 256,
+          "bytes": 42466
+        },
+        {
+          "name": "AE35_010_van_felgi_ref",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 329040
+        },
+        {
+          "name": "AE35_010_van_headlight_bump",
+          "width": 44,
+          "height": 44,
+          "bytes": 110
+        },
+        {
+          "name": "AE35_010_van_light_red",
+          "width": 512,
+          "height": 512,
+          "bytes": 40874
+        },
+        {
+          "name": "AE35_010_van_tire",
+          "width": 215,
+          "height": 530,
+          "bytes": 13600
+        },
+        {
+          "name": "AE35_010_waste_bin_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 12232
+        },
+        {
+          "name": "AE35_010_waste_bin_Diffuse",
+          "width": 1024,
+          "height": 1024,
+          "bytes": 40162
+        },
+        {
+          "name": "roughness-70",
+          "width": 256,
+          "height": 256,
+          "bytes": 23090
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ],
+      "sha256": "3994DE131051DE479168C615618CCD6762B22FECDB6D48820C4AA5F857209DD1"
+    },
+    {
+      "name": "context",
+      "sourceBytes": 270600012,
+      "bytes": 15595636,
+      "uniqueTriangles": 545391,
+      "nodes": 187,
+      "instancedBatches": 99,
+      "materials": 109,
+      "textures": [
+        {
+          "name": "AE35_010_building_BCD_blind_01_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 38354
+        },
+        {
+          "name": "AE35_010_building_BCD_blind_01_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 22186
+        },
+        {
+          "name": "roughness-97",
+          "width": 256,
+          "height": 256,
+          "bytes": 12514
+        },
+        {
+          "name": "AE35_010_Curtain_black_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 66532
+        },
+        {
+          "name": "AE35_010_Curtain_black_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 79880
+        },
+        {
+          "name": "roughness-13",
+          "width": 256,
+          "height": 256,
+          "bytes": 41194
+        },
+        {
+          "name": "AE35_010_Curtain_blue_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 1240
+        },
+        {
+          "name": "AE35_010_Curtain_blue_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 45880
+        },
+        {
+          "name": "roughness-22",
+          "width": 256,
+          "height": 256,
+          "bytes": 1292
+        },
+        {
+          "name": "AE35_010_Curtain_Gray_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 71118
+        },
+        {
+          "name": "AE35_010_Curtain_Gray_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 64916
+        },
+        {
+          "name": "roughness-74",
+          "width": 256,
+          "height": 256,
+          "bytes": 9608
+        },
+        {
+          "name": "AE35_010_building_BCD_Curtain_white_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 114214
+        },
+        {
+          "name": "roughness-68",
+          "width": 256,
+          "height": 256,
+          "bytes": 450
+        },
+        {
+          "name": "AE35_010_building_BCD_Curtain_black_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 77812
+        },
+        {
+          "name": "AE35_010_building_BCD_Curtain_red_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 113826
+        },
+        {
+          "name": "roughness-21",
+          "width": 256,
+          "height": 256,
+          "bytes": 12374
+        },
+        {
+          "name": "AE35_010_building_BCD_Curtain_Gray_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 65140
+        },
+        {
+          "name": "roughness-4",
+          "width": 256,
+          "height": 256,
+          "bytes": 9616
+        },
+        {
+          "name": "AE35_010_building_BCD_Curtain_blue_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 44204
+        },
+        {
+          "name": "roughness-77",
+          "width": 256,
+          "height": 256,
+          "bytes": 1280
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 52050
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 39686
+        },
+        {
+          "name": "roughness-31",
+          "width": 256,
+          "height": 256,
+          "bytes": 38678
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 52242
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30800
+        },
+        {
+          "name": "roughness-41",
+          "width": 256,
+          "height": 256,
+          "bytes": 38068
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 67246
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 31670
+        },
+        {
+          "name": "roughness-51",
+          "width": 256,
+          "height": 256,
+          "bytes": 34824
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 43106
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V4_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 35588
+        },
+        {
+          "name": "roughness-26",
+          "width": 256,
+          "height": 256,
+          "bytes": 36076
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 51442
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 69960
+        },
+        {
+          "name": "roughness-8",
+          "width": 256,
+          "height": 256,
+          "bytes": 44596
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V8_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 8612
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V8_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 9136
+        },
+        {
+          "name": "roughness-18",
+          "width": 256,
+          "height": 256,
+          "bytes": 10644
+        },
+        {
+          "name": "AE35_010_building_C_entrance_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 49500
+        },
+        {
+          "name": "AE35_010_building_C_entrance_V1_001_Diffuse-AE35_010_building_C_entrance_V1_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 3892
+        },
+        {
+          "name": "roughness-25",
+          "width": 256,
+          "height": 256,
+          "bytes": 38262
+        },
+        {
+          "name": "AE35_010_building_C_wall_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 30962
+        },
+        {
+          "name": "AE35_010_building_C_wall_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 27498
+        },
+        {
+          "name": "roughness-76",
+          "width": 256,
+          "height": 256,
+          "bytes": 29210
+        },
+        {
+          "name": "AE35_010_building_C_wall_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 38486
+        },
+        {
+          "name": "AE35_010_building_C_wall_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 33638
+        },
+        {
+          "name": "roughness-86",
+          "width": 256,
+          "height": 256,
+          "bytes": 38948
+        },
+        {
+          "name": "AE35_010_building_C_wall_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 37014
+        },
+        {
+          "name": "AE35_010_building_C_wall_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 25832
+        },
+        {
+          "name": "roughness-60",
+          "width": 256,
+          "height": 256,
+          "bytes": 32584
+        },
+        {
+          "name": "AE35_010_building_C_wall_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 33884
+        },
+        {
+          "name": "AE35_010_building_C_wall_V4_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 25350
+        },
+        {
+          "name": "roughness-3",
+          "width": 256,
+          "height": 256,
+          "bytes": 29610
+        },
+        {
+          "name": "AE35_010_building_C_wall_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 13206
+        },
+        {
+          "name": "AE35_010_building_C_wall_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 11654
+        },
+        {
+          "name": "roughness-71",
+          "width": 256,
+          "height": 256,
+          "bytes": 9062
+        },
+        {
+          "name": "AE35_010_building_C_wall_V6_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 11230
+        },
+        {
+          "name": "AE35_010_building_C_wall_V6_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 10268
+        },
+        {
+          "name": "roughness-30",
+          "width": 256,
+          "height": 256,
+          "bytes": 9258
+        },
+        {
+          "name": "AE35_010_building_C_wall_V7_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 10156
+        },
+        {
+          "name": "AE35_010_building_C_wall_V7_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 11442
+        },
+        {
+          "name": "roughness-38",
+          "width": 256,
+          "height": 256,
+          "bytes": 10316
+        },
+        {
+          "name": "AE35_010_building_C_wall_V8_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 14882
+        },
+        {
+          "name": "AE35_010_building_C_wall_V8_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 6872
+        },
+        {
+          "name": "roughness-9",
+          "width": 256,
+          "height": 256,
+          "bytes": 14182
+        },
+        {
+          "name": "AE35_010_building_C_window_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 48008
+        },
+        {
+          "name": "AE35_010_building_C_window_V1_001_Diffuse-AE35_010_building_C_window_V1_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 15304
+        },
+        {
+          "name": "roughness-7",
+          "width": 256,
+          "height": 256,
+          "bytes": 28108
+        },
+        {
+          "name": "AE35_010_building_C_window_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 34692
+        },
+        {
+          "name": "AE35_010_building_C_window_V2_001_Diffuse-AE35_010_building_C_window_V2_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 19228
+        },
+        {
+          "name": "roughness-96",
+          "width": 256,
+          "height": 256,
+          "bytes": 11718
+        },
+        {
+          "name": "AE35_010_building_C_window_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 47790
+        },
+        {
+          "name": "AE35_010_building_C_window_V3_001_Diffuse-AE35_010_building_C_window_V3_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 17896
+        },
+        {
+          "name": "roughness-80",
+          "width": 256,
+          "height": 256,
+          "bytes": 27524
+        },
+        {
+          "name": "AE35_010_building_C_window_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 47364
+        },
+        {
+          "name": "AE35_010_building_C_window_V4_001_Diffuse-AE35_010_building_C_window_V4_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 46890
+        },
+        {
+          "name": "roughness-61",
+          "width": 256,
+          "height": 256,
+          "bytes": 14028
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V6_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 27234
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V6_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30460
+        },
+        {
+          "name": "roughness-81",
+          "width": 256,
+          "height": 256,
+          "bytes": 29484
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V7_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 48734
+        },
+        {
+          "name": "AE35_010_building_C_cornice_V7_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 40108
+        },
+        {
+          "name": "roughness-36",
+          "width": 256,
+          "height": 256,
+          "bytes": 39212
+        },
+        {
+          "name": "AE35_010_building_BCD_interior_V5_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 30364
+        },
+        {
+          "name": "AE35_010_building_BCD_interior_V4_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 28306
+        },
+        {
+          "name": "AE35_010_building_BCD_interior_V2_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 39478
+        },
+        {
+          "name": "AE35_010_building_BCD_interior_V3_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 24816
+        },
+        {
+          "name": "AE35_010_building_BCD_interior_V1_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 29244
+        },
+        {
+          "name": "AE35_010_building_D_props_door_handle_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 13636
+        },
+        {
+          "name": "AE35_010_building_D_props_door_handle_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 2704
+        },
+        {
+          "name": "roughness-32",
+          "width": 256,
+          "height": 256,
+          "bytes": 8320
+        },
+        {
+          "name": "AE35_010_building_C_props_metal_construction_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 23110
+        },
+        {
+          "name": "AE35_010_building_C_props_metal_construction_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 24796
+        },
+        {
+          "name": "roughness-93",
+          "width": 256,
+          "height": 256,
+          "bytes": 22612
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 43956
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 43742
+        },
+        {
+          "name": "roughness-72",
+          "width": 256,
+          "height": 256,
+          "bytes": 32874
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 51558
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30142
+        },
+        {
+          "name": "roughness-73",
+          "width": 256,
+          "height": 256,
+          "bytes": 29902
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_003_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 36926
+        },
+        {
+          "name": "AE35_010_building_CD_props_stairs_V1_003_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30970
+        },
+        {
+          "name": "roughness-67",
+          "width": 256,
+          "height": 256,
+          "bytes": 26896
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 16164
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 23826
+        },
+        {
+          "name": "roughness-19",
+          "width": 256,
+          "height": 256,
+          "bytes": 27374
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 16330
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 7534
+        },
+        {
+          "name": "roughness-54",
+          "width": 256,
+          "height": 256,
+          "bytes": 20372
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 14186
+        },
+        {
+          "name": "AE35_010_building_BCD_props_ventilation_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 18484
+        },
+        {
+          "name": "roughness-12",
+          "width": 256,
+          "height": 256,
+          "bytes": 32232
+        },
+        {
+          "name": "AE35_010_building_C_roof_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 27462
+        },
+        {
+          "name": "AE35_010_building_C_roof_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 41500
+        },
+        {
+          "name": "roughness-42",
+          "width": 256,
+          "height": 256,
+          "bytes": 35956
+        },
+        {
+          "name": "AE35_010_building_C_roof_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 25842
+        },
+        {
+          "name": "AE35_010_building_C_roof_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 41636
+        },
+        {
+          "name": "roughness-90",
+          "width": 256,
+          "height": 256,
+          "bytes": 34516
+        },
+        {
+          "name": "AE35_010_building_J_NRM",
+          "width": 256,
+          "height": 256,
+          "bytes": 56374
+        },
+        {
+          "name": "AE35_010_building_J_Diff",
+          "width": 512,
+          "height": 512,
+          "bytes": 69130
+        },
+        {
+          "name": "AE35_010_cornice_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 11792
+        },
+        {
+          "name": "AE35_010_cornice_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 9220
+        },
+        {
+          "name": "roughness-40",
+          "width": 256,
+          "height": 256,
+          "bytes": 8974
+        },
+        {
+          "name": "AE35_010_cornice_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 11868
+        },
+        {
+          "name": "AE35_010_cornice_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 9524
+        },
+        {
+          "name": "roughness-24",
+          "width": 256,
+          "height": 256,
+          "bytes": 8994
+        },
+        {
+          "name": "AE35_010_cornice_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 31952
+        },
+        {
+          "name": "AE35_010_cornice_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 77286
+        },
+        {
+          "name": "roughness-6",
+          "width": 256,
+          "height": 256,
+          "bytes": 38248
+        },
+        {
+          "name": "AE35_010_cornice_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 33648
+        },
+        {
+          "name": "AE35_010_cornice_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 57720
+        },
+        {
+          "name": "roughness-94",
+          "width": 256,
+          "height": 256,
+          "bytes": 29032
+        },
+        {
+          "name": "AE35_010_cornice_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 33010
+        },
+        {
+          "name": "AE35_010_cornice_V4_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 53032
+        },
+        {
+          "name": "roughness-79",
+          "width": 256,
+          "height": 256,
+          "bytes": 28964
+        },
+        {
+          "name": "AE35_010_cornice_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 21864
+        },
+        {
+          "name": "AE35_010_cornice_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30334
+        },
+        {
+          "name": "roughness-58",
+          "width": 256,
+          "height": 256,
+          "bytes": 17402
+        },
+        {
+          "name": "AE35_010_curbs_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 46728
+        },
+        {
+          "name": "AE35_010_curbs_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 18262
+        },
+        {
+          "name": "roughness-27",
+          "width": 256,
+          "height": 256,
+          "bytes": 29202
+        },
+        {
+          "name": "AE35_010_interior_V4_001",
+          "width": 512,
+          "height": 512,
+          "bytes": 17698
+        },
+        {
+          "name": "AE35_010_ornaments_A_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 49172
+        },
+        {
+          "name": "AE35_010_ornaments_A_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 24544
+        },
+        {
+          "name": "roughness-28",
+          "width": 256,
+          "height": 256,
+          "bytes": 42722
+        },
+        {
+          "name": "AE35_010_ornaments_B_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 49158
+        },
+        {
+          "name": "AE35_010_ornaments_B_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 34740
+        },
+        {
+          "name": "roughness-10",
+          "width": 256,
+          "height": 256,
+          "bytes": 41874
+        },
+        {
+          "name": "AE35_010_ornaments_C_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 55424
+        },
+        {
+          "name": "AE35_010_ornaments_C_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30406
+        },
+        {
+          "name": "roughness-98",
+          "width": 256,
+          "height": 256,
+          "bytes": 39072
+        },
+        {
+          "name": "AE35_010_ornaments_D_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 50672
+        },
+        {
+          "name": "AE35_010_ornaments_D_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 22090
+        },
+        {
+          "name": "roughness-83",
+          "width": 256,
+          "height": 256,
+          "bytes": 38050
+        },
+        {
+          "name": "AE35_010_pebbles_normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 158132
+        },
+        {
+          "name": "AE35_010_pebbles_dry_color",
+          "width": 512,
+          "height": 512,
+          "bytes": 115694
+        },
+        {
+          "name": "AE35_010_props_billboard_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 68678
+        },
+        {
+          "name": "AE35_010_props_billboard_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 35726
+        },
+        {
+          "name": "roughness-23",
+          "width": 256,
+          "height": 256,
+          "bytes": 34680
+        },
+        {
+          "name": "AE35_010_props_blind_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 39034
+        },
+        {
+          "name": "AE35_010_props_blind_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 19934
+        },
+        {
+          "name": "roughness-5",
+          "width": 256,
+          "height": 256,
+          "bytes": 28370
+        },
+        {
+          "name": "AE35_010_Cables_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 30084
+        },
+        {
+          "name": "AE35_010_Cables_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 34958
+        },
+        {
+          "name": "roughness-39",
+          "width": 256,
+          "height": 256,
+          "bytes": 42358
+        },
+        {
+          "name": "AE35_010_Cables_boxes_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 114674
+        },
+        {
+          "name": "AE35_010_Cables_boxes_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 11016
+        },
+        {
+          "name": "roughness-2",
+          "width": 256,
+          "height": 256,
+          "bytes": 49278
+        },
+        {
+          "name": "AE35_010_props_door_handle_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 10606
+        },
+        {
+          "name": "AE35_010_props_door_handle_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 2698
+        },
+        {
+          "name": "roughness-95",
+          "width": 256,
+          "height": 256,
+          "bytes": 8676
+        },
+        {
+          "name": "AE35_010_props_metal_construction_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 25992
+        },
+        {
+          "name": "AE35_010_props_metal_construction_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 10794
+        },
+        {
+          "name": "roughness-78",
+          "width": 256,
+          "height": 256,
+          "bytes": 23126
+        },
+        {
+          "name": "AE35_010_props_metal_construction_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 23110
+        },
+        {
+          "name": "AE35_010_props_metal_construction_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 24796
+        },
+        {
+          "name": "AE35_010_props_Shop_exposition_V2",
+          "width": 512,
+          "height": 512,
+          "bytes": 22744
+        },
+        {
+          "name": "AE35_010_props_Shop_exposition_V4",
+          "width": 512,
+          "height": 512,
+          "bytes": 59554
+        },
+        {
+          "name": "AE35_010_props_Shop_exposition_V5",
+          "width": 512,
+          "height": 512,
+          "bytes": 41834
+        },
+        {
+          "name": "AE35_010_props_signboard_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 13360
+        },
+        {
+          "name": "AE35_010_props_signboard_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 20254
+        },
+        {
+          "name": "roughness-99",
+          "width": 256,
+          "height": 256,
+          "bytes": 27036
+        },
+        {
+          "name": "AE35_010_props_signboard_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 8272
+        },
+        {
+          "name": "AE35_010_props_signboard_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 22354
+        },
+        {
+          "name": "roughness-84",
+          "width": 256,
+          "height": 256,
+          "bytes": 32100
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 43956
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 43742
+        },
+        {
+          "name": "roughness-64",
+          "width": 256,
+          "height": 256,
+          "bytes": 31100
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 51558
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30142
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_003_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 36926
+        },
+        {
+          "name": "AE35_010_props_stairs_V1_003_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 30970
+        },
+        {
+          "name": "AE35_010_props_ventilation_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 57622
+        },
+        {
+          "name": "AE35_010_props_ventilation_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 48696
+        },
+        {
+          "name": "roughness-14",
+          "width": 256,
+          "height": 256,
+          "bytes": 42616
+        },
+        {
+          "name": "AE35_010_props_ventilation_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 57214
+        },
+        {
+          "name": "AE35_010_props_ventilation_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 62380
+        },
+        {
+          "name": "roughness-0",
+          "width": 256,
+          "height": 256,
+          "bytes": 43554
+        },
+        {
+          "name": "AE35_010_props_ventilation_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 56376
+        },
+        {
+          "name": "AE35_010_props_ventilation_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 45648
+        },
+        {
+          "name": "roughness-88",
+          "width": 256,
+          "height": 256,
+          "bytes": 40300
+        },
+        {
+          "name": "AE35_010_props_ventilation_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 55910
+        },
+        {
+          "name": "AE35_010_props_ventilation_V4_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 50760
+        },
+        {
+          "name": "roughness-46",
+          "width": 256,
+          "height": 256,
+          "bytes": 37452
+        },
+        {
+          "name": "AE35_010_props_ventilation_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 52454
+        },
+        {
+          "name": "AE35_010_props_ventilation_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 56740
+        },
+        {
+          "name": "roughness-53",
+          "width": 256,
+          "height": 256,
+          "bytes": 40170
+        },
+        {
+          "name": "AE35_010_roof_top_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 75760
+        },
+        {
+          "name": "AE35_010_roof_top_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 41002
+        },
+        {
+          "name": "roughness-56",
+          "width": 256,
+          "height": 256,
+          "bytes": 33126
+        },
+        {
+          "name": "AE35_010_roof_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 57868
+        },
+        {
+          "name": "AE35_010_roof_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 35798
+        },
+        {
+          "name": "roughness-43",
+          "width": 256,
+          "height": 256,
+          "bytes": 27984
+        },
+        {
+          "name": "AE35_010_roof_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 55952
+        },
+        {
+          "name": "AE35_010_roof_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 34504
+        },
+        {
+          "name": "roughness-29",
+          "width": 256,
+          "height": 256,
+          "bytes": 27132
+        },
+        {
+          "name": "AE35_010_Shop_interior_V1",
+          "width": 512,
+          "height": 512,
+          "bytes": 24774
+        },
+        {
+          "name": "AE35_010_steps_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 34674
+        },
+        {
+          "name": "AE35_010_steps_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 34074
+        },
+        {
+          "name": "roughness-82",
+          "width": 256,
+          "height": 256,
+          "bytes": 26342
+        },
+        {
+          "name": "AE35_010_stone_slab_normal2",
+          "width": 256,
+          "height": 256,
+          "bytes": 113592
+        },
+        {
+          "name": "AE35_010_stone_slab_color",
+          "width": 512,
+          "height": 512,
+          "bytes": 32766
+        },
+        {
+          "name": "roughness-62",
+          "width": 256,
+          "height": 256,
+          "bytes": 22920
+        },
+        {
+          "name": "AE35_010_wall_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 77046
+        },
+        {
+          "name": "AE35_010_wall_V1_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 32160
+        },
+        {
+          "name": "roughness-11",
+          "width": 256,
+          "height": 256,
+          "bytes": 25398
+        },
+        {
+          "name": "AE35_010_wall_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 68074
+        },
+        {
+          "name": "AE35_010_wall_V1_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 37088
+        },
+        {
+          "name": "roughness-100",
+          "width": 256,
+          "height": 256,
+          "bytes": 27412
+        },
+        {
+          "name": "AE35_010_wall_V2_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 70152
+        },
+        {
+          "name": "AE35_010_wall_V2_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 31928
+        },
+        {
+          "name": "roughness-85",
+          "width": 256,
+          "height": 256,
+          "bytes": 27284
+        },
+        {
+          "name": "AE35_010_wall_V2_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 73976
+        },
+        {
+          "name": "AE35_010_wall_V2_002_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 29496
+        },
+        {
+          "name": "roughness-63",
+          "width": 256,
+          "height": 256,
+          "bytes": 25440
+        },
+        {
+          "name": "AE35_010_wall_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 79526
+        },
+        {
+          "name": "AE35_010_wall_V3_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 31684
+        },
+        {
+          "name": "roughness-47",
+          "width": 256,
+          "height": 256,
+          "bytes": 25414
+        },
+        {
+          "name": "AE35_010_wall_V4_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 102716
+        },
+        {
+          "name": "AE35_010_wall_V4_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 51312
+        },
+        {
+          "name": "roughness-34",
+          "width": 256,
+          "height": 256,
+          "bytes": 36760
+        },
+        {
+          "name": "AE35_010_wall_V5_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 102710
+        },
+        {
+          "name": "AE35_010_wall_V5_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 51766
+        },
+        {
+          "name": "roughness-16",
+          "width": 256,
+          "height": 256,
+          "bytes": 36678
+        },
+        {
+          "name": "AE35_010_wall_V6_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 23674
+        },
+        {
+          "name": "AE35_010_wall_V6_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 19000
+        },
+        {
+          "name": "roughness-57",
+          "width": 256,
+          "height": 256,
+          "bytes": 21738
+        },
+        {
+          "name": "AE35_010_wall_V7_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 14630
+        },
+        {
+          "name": "AE35_010_wall_V7_001_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 9286
+        },
+        {
+          "name": "roughness-89",
+          "width": 256,
+          "height": 256,
+          "bytes": 8854
+        },
+        {
+          "name": "AE35_010_walls_A_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 51100
+        },
+        {
+          "name": "AE35_010_walls_A_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 24376
+        },
+        {
+          "name": "roughness-66",
+          "width": 256,
+          "height": 256,
+          "bytes": 38354
+        },
+        {
+          "name": "AE35_010_walls_B_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 50936
+        },
+        {
+          "name": "AE35_010_walls_B_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 27050
+        },
+        {
+          "name": "roughness-52",
+          "width": 256,
+          "height": 256,
+          "bytes": 36538
+        },
+        {
+          "name": "AE35_010_walls_C_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 38614
+        },
+        {
+          "name": "AE35_010_walls_C_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 22624
+        },
+        {
+          "name": "roughness-37",
+          "width": 256,
+          "height": 256,
+          "bytes": 36152
+        },
+        {
+          "name": "AE35_010_walls_D_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 39358
+        },
+        {
+          "name": "AE35_010_walls_D_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 19328
+        },
+        {
+          "name": "roughness-20",
+          "width": 256,
+          "height": 256,
+          "bytes": 36802
+        },
+        {
+          "name": "AE35_010_walls_E_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 38504
+        },
+        {
+          "name": "AE35_010_walls_E_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 20452
+        },
+        {
+          "name": "roughness-1",
+          "width": 256,
+          "height": 256,
+          "bytes": 36590
+        },
+        {
+          "name": "AE35_010_walls_F_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 34124
+        },
+        {
+          "name": "AE35_010_walls_F_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 17234
+        },
+        {
+          "name": "roughness-91",
+          "width": 256,
+          "height": 256,
+          "bytes": 32496
+        },
+        {
+          "name": "AE35_010_window_V1_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 69234
+        },
+        {
+          "name": "AE35_010_window_V1_001_Diffuse-AE35_010_window_V1_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 47166
+        },
+        {
+          "name": "roughness-33",
+          "width": 256,
+          "height": 256,
+          "bytes": 29742
+        },
+        {
+          "name": "AE35_010_window_V1_002_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 59454
+        },
+        {
+          "name": "AE35_010_window_V1_002_Diffuse-AE35_010_window_V1_002_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 34992
+        },
+        {
+          "name": "roughness-15",
+          "width": 256,
+          "height": 256,
+          "bytes": 25730
+        },
+        {
+          "name": "AE35_010_window_V3_001_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 62784
+        },
+        {
+          "name": "AE35_010_window_V3_001_Diffuse-AE35_010_window_V3_001_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 48166
+        },
+        {
+          "name": "roughness-101",
+          "width": 256,
+          "height": 256,
+          "bytes": 28758
+        },
+        {
+          "name": "AE35_010_windows_bottom_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 40048
+        },
+        {
+          "name": "AE35_010_windows_bottom_Diffuse-AE35_010_windows_bottom_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 52310
+        },
+        {
+          "name": "roughness-87",
+          "width": 256,
+          "height": 256,
+          "bytes": 21370
+        },
+        {
+          "name": "AE35_010_windows_middle_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 43430
+        },
+        {
+          "name": "AE35_010_windows_middle_Diffuse-AE35_010_windows_middle_Opacity",
+          "width": 512,
+          "height": 512,
+          "bytes": 43758
+        },
+        {
+          "name": "roughness-69",
+          "width": 256,
+          "height": 256,
+          "bytes": 19664
+        },
+        {
+          "name": "AE35_010_windows_ornaments_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 57374
+        },
+        {
+          "name": "AE35_010_windows_ornaments_Diffuse",
+          "width": 512,
+          "height": 512,
+          "bytes": 29694
+        },
+        {
+          "name": "roughness-55",
+          "width": 256,
+          "height": 256,
+          "bytes": 38732
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ],
+      "sha256": "91388AA0CD5CFD004A23091BEFEA04745A2DABAF460BA5DA57C4B6B1F60901DD"
+    },
+    {
+      "name": "vegetation",
+      "sourceBytes": 112466452,
+      "bytes": 7711184,
+      "uniqueTriangles": 379820,
+      "nodes": 26,
+      "instancedBatches": 21,
+      "materials": 23,
+      "textures": [
+        {
+          "name": "AE35_010_flower_bark_2",
+          "width": 512,
+          "height": 512,
+          "bytes": 89896
+        },
+        {
+          "name": "AE35_010_flower_leaf_18",
+          "width": 339,
+          "height": 512,
+          "bytes": 25356
+        },
+        {
+          "name": "AE35_010_flower_dirt_1",
+          "width": 512,
+          "height": 512,
+          "bytes": 62730
+        },
+        {
+          "name": "AE35_010_grass_blade_color2cc-AE35_010_grass_blade_opacity",
+          "width": 256,
+          "height": 512,
+          "bytes": 37316
+        },
+        {
+          "name": "AE35_010_lamp_street_head_metal_color_v2",
+          "width": 512,
+          "height": 403,
+          "bytes": 8300
+        },
+        {
+          "name": "AE35_010_lamp_dirt",
+          "width": 512,
+          "height": 410,
+          "bytes": 67008
+        },
+        {
+          "name": "AE35_010_tree_A_leaf_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 64032
+        },
+        {
+          "name": "AE35_010_tree_A_leaf_diff_01_CC5-AE35_010_tree_A_leaf_opacity_01",
+          "width": 512,
+          "height": 512,
+          "bytes": 33020
+        },
+        {
+          "name": "AE35_010_tree_A_trunk_normal",
+          "width": 64,
+          "height": 256,
+          "bytes": 31912
+        },
+        {
+          "name": "AE35_010_tree_A_trunk_diffuse_CC1",
+          "width": 128,
+          "height": 512,
+          "bytes": 17938
+        },
+        {
+          "name": "roughness-65",
+          "width": 64,
+          "height": 256,
+          "bytes": 10520
+        },
+        {
+          "name": "AE35_010_tree_A_gradient_color",
+          "width": 512,
+          "height": 512,
+          "bytes": 1536
+        },
+        {
+          "name": "AE35_010_tree_B_normal_2",
+          "width": 64,
+          "height": 256,
+          "bytes": 33078
+        },
+        {
+          "name": "AE35_010_tree_B_diffuse",
+          "width": 128,
+          "height": 512,
+          "bytes": 17638
+        },
+        {
+          "name": "AE35_010_tree_B_leaf_diff-AE35_010_tree_B_leaf_opacity_01",
+          "width": 512,
+          "height": 512,
+          "bytes": 31790
+        },
+        {
+          "name": "AE35_010_tree_B_leaf_diff_01-AE35_010_tree_B_leaf_opacity_01",
+          "width": 512,
+          "height": 512,
+          "bytes": 29682
+        },
+        {
+          "name": "AE35_010_tree_C_Trunk_seed_01_NRM",
+          "width": 256,
+          "height": 256,
+          "bytes": 112792
+        },
+        {
+          "name": "AE35_010_tree_C_Trunk_seed_01",
+          "width": 512,
+          "height": 512,
+          "bytes": 39680
+        },
+        {
+          "name": "AE35_010_tree_C_leafs_NRM",
+          "width": 256,
+          "height": 256,
+          "bytes": 39678
+        },
+        {
+          "name": "AE35_010_tree_C_leafs_diff-AE35_010_tree_C_leafs_alpha",
+          "width": 512,
+          "height": 512,
+          "bytes": 14600
+        },
+        {
+          "name": "AE35_010_tree_L_bark_Diffuse",
+          "width": 92,
+          "height": 512,
+          "bytes": 15738
+        },
+        {
+          "name": "AE35_010_tree_L_leaf_Diffuse-AE35_010_tree_L_leaf_Opacity",
+          "width": 216,
+          "height": 512,
+          "bytes": 13804
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ],
+      "sha256": "D66A11AEECAF00084F22476EFA264CA9BE2FB90B6FA095A0A1F3E6E0A7207CE7"
+    },
+    {
+      "name": "upper-interior",
+      "sourceBytes": 25629264,
+      "bytes": 738744,
+      "uniqueTriangles": 38441,
+      "nodes": 13,
+      "instancedBatches": 9,
+      "materials": 11,
+      "textures": [
+        {
+          "name": "AE35_010_metal_linear_bump",
+          "width": 512,
+          "height": 512,
+          "bytes": 44216
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_Reflection",
+          "width": 512,
+          "height": 512,
+          "bytes": 528
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_Normal",
+          "width": 256,
+          "height": 256,
+          "bytes": 23300
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_color",
+          "width": 512,
+          "height": 512,
+          "bytes": 44900
+        },
+        {
+          "name": "AE35_010_building_A_wood_A_Glossiness_CC18",
+          "width": 256,
+          "height": 256,
+          "bytes": 22304
+        },
+        {
+          "name": "AE35_010_carpet_height",
+          "width": 256,
+          "height": 256,
+          "bytes": 31334
+        },
+        {
+          "name": "AE35_010_pillow_brown",
+          "width": 512,
+          "height": 512,
+          "bytes": 53108
+        },
+        {
+          "name": "AE35_010_bwzebra",
+          "width": 512,
+          "height": 341,
+          "bytes": 29368
+        },
+        {
+          "name": "AE35_010_pillow_stripes",
+          "width": 512,
+          "height": 512,
+          "bytes": 43408
+        },
+        {
+          "name": "AE35_010_fabric_refract",
+          "width": 512,
+          "height": 512,
+          "bytes": 84794
+        }
+      ],
+      "extensions": [
+        "EXT_meshopt_compression",
+        "EXT_texture_webp",
+        "KHR_mesh_quantization"
+      ],
+      "sha256": "35ACFD2E9039C73C1274CEFFDC080157A38D5A06F0E7718AB30663A93DEC6A05"
+    }
+  ]
+}

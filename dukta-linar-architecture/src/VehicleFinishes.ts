@@ -1,0 +1,6 @@
+import * as T from 'three';
+/** Only verified body-paint slots change. All geometry, maps and other slots are shared. */
+export function applyVehicleFinishes(street:T.Group){
+ const specifications=[{root:'TRAFFIC_Original_Car_B',material:'AE35_010_car_B_237',name:'Deep steel blue',hex:'#27455b'},{root:'TRAFFIC_Opposing_Car_B',material:'AE35_010_car_B_237',name:'Muted burgundy',hex:'#62393e'},{root:'AE35_010_carpaint',material:'REC_Carpaint_Graphite',name:'Graphite',hex:'#40484d'},{root:'AE35_010_van',material:'AE35_010_van_silver',name:'Silver',hex:'#b0b4b0'}];
+ return specifications.map(spec=>{const root=street.getObjectByName(spec.root),cache=new Map<T.Material,T.Material>();let slots=0;root?.traverse(o=>{if(!(o instanceof T.Mesh))return;const apply=(m:T.Material)=>{if(m.name!==spec.material||!(m instanceof T.MeshStandardMaterial))return m;if(!cache.has(m)){const paint=m.clone();paint.color.set(spec.hex);paint.metalness=spec.name==='Silver'?.25:.35;paint.roughness=spec.name==='Silver'?.32:.27;if(paint instanceof T.MeshPhysicalMaterial){paint.clearcoat=.65;paint.clearcoatRoughness=.16;}cache.set(m,paint);}slots++;return cache.get(m)!;};o.material=Array.isArray(o.material)?o.material.map(apply):apply(o.material);});return{...spec,slots,newMaterials:cache.size,newTextures:0};});
+}

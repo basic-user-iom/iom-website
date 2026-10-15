@@ -1,0 +1,11 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {readFileSync} from 'node:fs';import {resolve,dirname} from 'node:path';import {createRequire} from 'node:module';import ts from 'typescript';
+const require=createRequire(import.meta.url),T=require('three'),cache=new Map(),fakeContext={fillStyle:'',fillRect(){},getImageData(){return{data:new Uint8ClampedArray(128*512*4)};},putImageData(){}};globalThis.document={createElement:()=>({width:128,height:512,getContext:()=>fakeContext})};
+function load(file){file=resolve(file.endsWith('.ts')?file:file+'.ts');if(cache.has(file))return cache.get(file);const e={};cache.set(file,e);new Function('require','exports',ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText)(id=>id.startsWith('.')?load(resolve(dirname(file),id)):require(id),e);return e;}
+const {LinarWalls}=load('src/LinarWalls.ts');
+test('divider meets the floor without feet or clamps through shape, panel, backing changes and both resets',()=>{
+ const linar=new LinarWalls();
+ const check=()=>{linar.root.updateMatrixWorld(true);const installation=linar.root.getObjectByName('LINAR_freestanding');assert.deepEqual(installation.children.map(o=>o.name),['LINAR_panel_module']);installation.traverse(o=>assert.doesNotMatch(o.name,/Support|Base|Clamp|Fastener|Foot|Feet|Liner/));const box=new T.Box3().setFromObject(installation);assert.ok(Math.abs(box.min.y-.30035)<1e-6);assert.equal(installation.children[0].position.x,40.2);assert.equal(installation.children[0].position.z,-33.4);assert.equal(installation.children[0].rotation.y,Math.PI/2);};
+ for(const panels of [1,2,3,4])for(const bend of [-100,0,100])for(const thicknessMm of [4,15]){Object.assign(linar.states.freestanding,{panels,width:panels*1.2,bend,sCurve:bend>0?100:0,thicknessMm,height:panels===1?1.2:2.8,backing:thicknessMm===4?'felt':'none'});linar.rebuild('freestanding');check();assert.equal(linar.inspect().applications.freestanding.shape.moduleCount,panels);}
+ linar.selected='freestanding';linar.reset();check();linar.reset(true);check();
+ assert.equal(linar.root.children.filter(g=>g.name==='LINAR_freestanding').length,1);
+});

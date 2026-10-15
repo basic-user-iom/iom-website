@@ -1,0 +1,10 @@
+import * as T from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+export class SitePlan{
+ readonly camera=new T.OrthographicCamera(-1,1,1,-1,.1,1200);readonly controls:OrbitControls;active=false;private bounds=new T.Box3();
+ constructor(canvas:HTMLElement,changed:()=>void){this.controls=new OrbitControls(this.camera,canvas);this.controls.enabled=false;this.controls.enableRotate=false;this.controls.enableDamping=false;this.controls.screenSpacePanning=true;this.controls.mouseButtons.LEFT=T.MOUSE.PAN;this.controls.mouseButtons.RIGHT=T.MOUSE.PAN;this.controls.touches.ONE=T.TOUCH.PAN;this.controls.touches.TWO=T.TOUCH.DOLLY_PAN;this.controls.minZoom=.35;this.controls.maxZoom=25;this.controls.addEventListener('change',changed);}
+ frame(bounds:T.Box3,aspect:number){this.bounds.copy(bounds);const center=bounds.getCenter(new T.Vector3());this.camera.position.set(center.x,bounds.max.y+300,center.z);this.camera.up.set(...(aspect>=1?[1,0,0]:[0,0,-1]) as [number,number,number]);this.controls.target.set(center.x,0,center.z);this.camera.zoom=1;this.resize(aspect);this.camera.lookAt(this.controls.target);this.controls.update();}
+ resize(aspect:number){if(this.bounds.isEmpty())return;const size=this.bounds.getSize(new T.Vector3()),landscape=this.camera.up.x===1,w=landscape?size.z:size.x,h=landscape?size.x:size.z,half=Math.max(h,w/aspect)*.54;this.camera.left=-half*aspect;this.camera.right=half*aspect;this.camera.top=half;this.camera.bottom=-half;this.camera.updateProjectionMatrix();}
+ setActive(active:boolean){this.active=active;this.controls.enabled=active;}
+ zoom(factor:number){this.camera.zoom=T.MathUtils.clamp(this.camera.zoom/factor,.35,25);this.camera.updateProjectionMatrix();this.controls.update();}
+ inspect(){return{active:this.active,orthographic:this.camera.isOrthographicCamera,position:this.camera.position.toArray(),target:this.controls.target.toArray(),zoom:this.camera.zoom,bounds:{min:this.bounds.min.toArray(),max:this.bounds.max.toArray()}};}
+}

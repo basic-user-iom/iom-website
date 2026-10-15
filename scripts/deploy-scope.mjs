@@ -93,6 +93,15 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'dukta-linar-architecture': [
+    'dukta-linar-architecture/',
+    'public/demos/dukta-linar-architecture/',
+    'scripts/deploy-scope.mjs',
+    'scripts/generate-sitemap.mjs',
+    'scripts/patch-demo-back-links.mjs',
+    'src/crm/DemosView.tsx',
+    'vercel.json',
+  ],
   'lobo-mobo-study': [
     'lobo-mobo-study/',
     'public/demos/lobo-mobo-study/',

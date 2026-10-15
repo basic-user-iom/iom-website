@@ -64,6 +64,7 @@ function parseProjectUrls() {
 }
 
 const PRIVATE_DEMO_FOLDERS = new Set([
+  'dukta-linar-architecture',
   'lobo-mobo-study',
   'stradivari-amantes-s3',
   'kelly-kettle',

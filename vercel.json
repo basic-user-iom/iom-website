@@ -13,6 +13,8 @@
     }
   ],
   "rewrites": [
+    { "source": "/demos/dukta-linar-architecture", "destination": "/demos/dukta-linar-architecture/index.html" },
+    { "source": "/demos/dukta-linar-architecture/", "destination": "/demos/dukta-linar-architecture/index.html" },
     {
       "source": "/demos/lobo-mobo-study",
       "destination": "/demos/lobo-mobo-study/index.html"
@@ -135,6 +137,10 @@
     }
   ],
   "headers": [
+    {
+      "source": "/demos/dukta-linar-architecture(.*)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }]
+    },
     {
       "source": "/(.*)",
       "headers": [

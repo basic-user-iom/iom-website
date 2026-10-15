@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><head>
+  <meta name="robots" content="noindex, nofollow, noarchive" /><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f2f0eb"><link rel="icon" href="data:,"><title>dukta LINAR | Flexible wood in architecture</title></head>
+<body><div id="app">
+ <header><a class="brand" href="./" aria-label="dukta LINAR configurator home"><span class="brand-mark">dukta</span><span class="brand-copy">LINAR CONFIGURATOR<small>Flexible wood in architecture</small></span></a><span class="badge">LOCAL PREVIEW</span></header>
+ <main id="stage" aria-label="Interactive 3D building"><canvas id="canvas" tabindex="0" aria-label="3D view. Drag to orbit, scroll to zoom, or use the view and zoom buttons."></canvas>
+  <div class="caption"><span class="eyebrow">EXPLORE THE SPACE</span><h1 id="view-title">Exterior</h1><p id="view-description">The building in its original street setting.</p></div>
+  <div id="status" role="status" aria-live="polite">Loading building…</div><button id="retry" hidden>Retry loading</button>
+  <aside class="tools" aria-label="Camera controls"><button id="zoom-in" aria-label="Zoom in" title="Zoom in">+</button><button id="zoom-out" aria-label="Zoom out" title="Zoom out">−</button><button id="reset" aria-label="Reset current view" title="Reset current view">↺</button><button id="help" aria-label="Show navigation help" aria-expanded="false" title="Navigation help">?</button></aside>
+  <div id="help-panel" hidden><strong>Move around</strong><p>Drag to orbit · Scroll to zoom<br>Right-drag to pan<br>Touch: one finger to orbit, two to zoom or pan.</p><p>Use a view below to return to a known position. Choose Walk in reception to unlock the camera. Use WASD to walk, drag to look, and Esc to exit. Walking stays on the floor and stops at obstacles.</p><button id="close-help">Got it</button></div>
+  <div class="environment"><span id="environment-status" role="status" aria-live="polite">Preparing surroundings</span><button id="environment-retry" hidden>Retry surroundings</button><label class="reception-light"><input id="reception-light" type="checkbox" checked> Reception lights</label><label for="quality">Quality</label><select id="quality"><option value="balanced">Balanced</option><option value="high">High</option></select></div>
+  <nav class="views" aria-label="Saved views"><button data-view="exterior" aria-pressed="true"><span>01</span>Exterior</button><button data-view="reception" aria-pressed="false"><span>02</span>Reception</button><button data-view="ceiling" aria-pressed="false"><span>03</span>Wall &amp; ceiling</button><button data-view="plan" aria-pressed="false"><span>04</span>Site plan</button></nav>
+  <button id="traffic" class="traffic-control" aria-pressed="true">Pause traffic</button>
+  <button id="linar-toggle" class="traffic-control" aria-expanded="false" aria-controls="linar-panel" hidden>LINAR wall settings</button>
+  <section id="linar-panel" aria-label="LINAR wall settings" hidden>
+   <h2>dukta LINAR</h2><p>Wall concept · regular 4/4 pattern</p>
+   <label class="check"><input id="linar-enabled" type="checkbox" checked> Show wall panels</label>
+   <label>Material<select id="linar-finish"><option value="birch">Birch plywood</option><option value="spruce">Three-layer spruce</option><option value="mdf">MDF · muted grey</option></select></label>
+   <label>Coverage<select id="linar-coverage"><option value="both">Both sides of reception</option><option value="front">Left wall area only</option></select></label>
+   <label>Width per area <output id="linar-width-value">2.4 m</output><input id="linar-width" type="range" min="1.2" max="2.6" step="0.1" value="2.4"></label>
+   <label>Height <output id="linar-height-value">2.8 m</output><input id="linar-height" type="range" min="1.5" max="3.6" step="0.1" value="2.8"></label>
+   <label>Curve depth <output id="linar-curve-value">12 cm</output><input id="linar-curve" type="range" min="0" max="0.2" step="0.01" value="0.12"></label>
+   <button id="linar-reset">Reset panels</button><small>Visual concept. Installation, dimensions and bending require manufacturer confirmation.</small>
+  </section>
+  <div class="hint">DRAG TO ORBIT <i>·</i> SCROLL TO ZOOM</div>
+ </main><footer><span>Existing architecture &amp; interior</span><span id="load-note">Building first · Interior on demand</span></footer>
+</div><script type="module" src="/src/main.ts"></script></body></html>
