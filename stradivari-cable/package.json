@@ -1,0 +1,14 @@
+{
+  "name": "stradivari-cable-client-demo",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build": "node build.cjs"
+  },
+  "dependencies": {
+    "three": "0.181.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  }
+}

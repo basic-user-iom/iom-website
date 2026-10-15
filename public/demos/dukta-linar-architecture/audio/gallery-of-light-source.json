@@ -1,12 +1,12 @@
 {
   "title": "Gallery of Light",
   "sourceDemo": "https://iobjectm.com/demos/gallery-of-light/",
-  "provenance": "Suno soundtrack stems supplied by the project owner (existing Gallery of Light credits). Reused in Dukta at the owner’s explicit request.",
-  "durationSeconds": 213.624,
-  "mix": "All six original stems at unity gain; Gallery default headroom 0.707 × master volume 0.35, baked into a single AAC stream. No per-stem normalization, trimming, rearrangement, or short looping.",
-  "file": "gallery-of-light-tour.m4a",
-  "bytes": 5215315,
-  "sha256": "f09a7845ce1b6ab9413117ed1600d99a8903ebe0e250842c5250d89573a53a38",
+  "provenance": "Suno soundtrack stems supplied by the project owner (existing Gallery of Light credits). Reused in Dukta at the owner\u2019s explicit request.",
+  "durationSeconds": 209.624,
+  "mix": "Same six-stem Gallery mix and master level. A four-second raised-cosine end/start overlap is baked into this separate Dukta copy; complementary gains sum to one. The loop starts at source second 4; those first four seconds are heard in the ending overlap. No live duplicate players, normalization, or change to Gallery.",
+  "file": "gallery-of-light-tour-loop.m4a",
+  "bytes": 5128916,
+  "sha256": "287b77f51dd6bb4461170c852887e6e4b99b0cda0324ee81b926a8f0749f4720",
   "stems": [
     {
       "id": "bass",
@@ -38,5 +38,7 @@
       "sha256": "a74960c8976843e2e21c209261f9a5bc93c6e51005caadf91bd048ae0bca93e2",
       "source": "https://iobjectm.com/demos/gallery-of-light/assets/audio/gallery-of-light/brass.m4a"
     }
-  ]
+  ],
+  "crossfadeSeconds": 4,
+  "originalMixDurationSeconds": 213.624
 }

@@ -41,6 +41,16 @@ function assetUrl(path: string): string {
 /** Private client demos — not listed on the public site. */
 export const CLIENT_DEMOS: ClientDemo[] = [
   {
+    id: 'stradivari-cable',
+    name: 'Stradivari Speaker Cable',
+    client: 'Client preview - cable construction and materials',
+    status: 'preview',
+    path: '/demos/stradivari-cable/',
+    blurb: 'Interactive stepped cable cutaway with nine material layers, curved and straight views, cross-section, and metal reflections.',
+    tags: ['Product', 'WebGL', 'Audio'],
+    images: ['/demos/stradivari-cable/assets/preview.png'],
+  },
+  {
     id: 'lobo-mobo-study',
     name: 'LOBO Atelier / MOBO',
     client: 'Client preview - pendant finish and light study',
@@ -263,7 +273,7 @@ export function DemosView() {
       </header>
 
       <ul className="crm-demos-list">
-        {CLIENT_DEMOS.filter((demo) => demo.id !== 'dukta-linar-architecture' || !/^\/crm-demo(?:\/|$)/.test(window.location.pathname)).map((demo) => {
+        {CLIENT_DEMOS.filter((demo) => !['dukta-linar-architecture', 'stradivari-cable'].includes(demo.id) || !/^\/crm-demo(?:\/|$)/.test(window.location.pathname)).map((demo) => {
           const url = demoUrl(demo.path)
           const external = demo.external === true || isAbsoluteUrl(demo.path)
           const cover = demo.images[0] ? assetUrl(demo.images[0]) : ''

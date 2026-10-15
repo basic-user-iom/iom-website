@@ -1,4 +1,4 @@
-/** Gallery of Light's owner-supplied soundtrack, mixed once into one continuous stream. */
+/** Gallery of Light mix with a baked four-second complementary-gain loop crossfade. */
 export class TourAudio {
  muted=false;
  private media?:HTMLAudioElement;
@@ -12,7 +12,7 @@ export class TourAudio {
   const media=this.media=new Audio();
   media.preload='none';media.loop=true;media.muted=this.muted;
   media.setAttribute('playsinline','');
-  media.src=new URL('audio/gallery-of-light-tour.m4a',document.baseURI).href;
+  media.src=new URL('audio/gallery-of-light-tour-loop.m4a',document.baseURI).href;
   media.addEventListener('error',()=>{this.desiredPlaying=false;this.error='Music could not load. Try again.';this.changed();});
   return media;
  }
@@ -40,6 +40,6 @@ export class TourAudio {
   return {track:'Gallery of Light',muted:this.muted,playing:!!media&&!media.paused&&this.desiredPlaying,
    paused:media?.paused??true,mediaInstances:media?1:0,currentTime:media?.currentTime??0,
    duration:media&&Number.isFinite(media.duration)?media.duration:0,readyState:media?.readyState??0,
-   loop:media?.loop??false,playCalls:this.starts,source:media?.currentSrc??'',error:this.error};
+   loop:media?.loop??false,loopCrossfadeSeconds:4,playCalls:this.starts,source:media?.currentSrc??'',error:this.error};
  }
 }

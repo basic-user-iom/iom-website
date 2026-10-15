@@ -12,7 +12,9 @@
       "schedule": "0 8 * * *"
     }
   ],
+  "redirects": [{ "source": "/demos/stradivari-cable", "destination": "/demos/stradivari-cable/", "permanent": true }],
   "rewrites": [
+    { "source": "/demos/stradivari-cable/", "destination": "/demos/stradivari-cable/index.html" },
     { "source": "/demos/dukta-linar-architecture", "destination": "/demos/dukta-linar-architecture/index.html" },
     { "source": "/demos/dukta-linar-architecture/", "destination": "/demos/dukta-linar-architecture/index.html" },
     {
@@ -137,6 +139,7 @@
     }
   ],
   "headers": [
+    { "source": "/demos/stradivari-cable(.*)", "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }] },
     {
       "source": "/demos/dukta-linar-architecture(.*)",
       "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }]

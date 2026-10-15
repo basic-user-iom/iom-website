@@ -93,6 +93,15 @@ const NAMED_SCOPES = {
 }
 
 const PROJECT_SCOPE_RULES = {
+  'stradivari-cable': [
+    'stradivari-cable/',
+    'public/demos/stradivari-cable/',
+    'scripts/deploy-scope.mjs',
+    'scripts/generate-sitemap.mjs',
+    'scripts/patch-demo-back-links.mjs',
+    'src/crm/DemosView.tsx',
+    'vercel.json',
+  ],
   'dukta-linar-architecture': [
     'dukta-linar-architecture/',
     'public/demos/dukta-linar-architecture/',

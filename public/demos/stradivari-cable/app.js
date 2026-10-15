@@ -1,0 +1,1 @@
+document.querySelector("#retry").onclick=()=>location.reload();import("./chunks/viewer-EBU7KVAC.js").catch(e=>{document.querySelector("#status").textContent="The 3D preview is unavailable in this browser. The render is shown above.",document.querySelector("#retry").hidden=!1,console.warn("3D preview unavailable:",e.message)});
