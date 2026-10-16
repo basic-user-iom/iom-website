@@ -37,3 +37,24 @@
 /* Keep the dukta title legible without crowding the compact cream header. */
 .brand{min-width:0}.brand-mark{flex-shrink:0;letter-spacing:-1.2px}.brand-copy{min-width:0}.brand small{line-height:1.2}
 @media(max-width:600px){header>.badge{display:none}.brand small{font-size:14px;letter-spacing:-.15px}}
+
+/* Phone controls preserve a usable scene in portrait and landscape. */
+#walk-touch{position:absolute;left:14px;bottom:calc(var(--dock-height,150px) + 30px);display:grid;grid-template-columns:repeat(3,44px);gap:5px;touch-action:none;z-index:3}
+#walk-touch button{min-width:44px;min-height:44px;border-radius:8px;font-size:22px;touch-action:none;user-select:none;background:#f9fbf4ed}
+#walk-touch [data-direction=KeyW]{grid-column:2}#walk-touch [data-direction=KeyA]{grid-column:1;grid-row:2}#walk-touch [data-direction=KeyS]{grid-column:2;grid-row:2}#walk-touch [data-direction=KeyD]{grid-column:3;grid-row:2}
+@media(pointer:coarse){
+ #app{min-height:0}header{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}footer{padding-bottom:env(safe-area-inset-bottom)}
+ #viewer-dock{bottom:max(10px,env(safe-area-inset-bottom))}.environment select,#viewer-dock .environment select,#linar-panel select{min-height:44px}#linar-panel input[type=range]{min-height:44px}.linar-heading button{min-width:44px;min-height:44px}
+ #stage[data-touring=true] #linar-panel,#stage[data-touring=true] .caption,#stage[data-touring=true] .dock-actions,#stage[data-touring=true] .environment,#stage[data-touring=true] .dock-views{display:none}
+ #stage[data-touring=true] #viewer-dock{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));grid-template-columns:1fr}
+ #stage[data-touring=true] #tour-panel{grid-row:1;width:min(100%,650px)}.tour-actions button{min-height:44px!important}
+ #linar-panel{scroll-padding-top:54px}.linar-heading{position:sticky;top:-14px;background:#f9fbf4;z-index:1;padding:4px 0}
+ #viewer-dock .environment{font-size:10px}#environment-status{display:none}.hint{font-size:8px!important}
+ #help-panel p{font-size:12px}
+}
+@media(pointer:coarse) and (max-height:500px){
+ header{height:48px}.brand small{font-size:12px}header .badge,footer,.caption p,.caption .eyebrow,#viewer-dock .hint{display:none}.caption{top:10px;padding:5px 10px}.caption h1{font-size:20px;margin:5px 0}
+ .tools button{width:44px;min-height:44px}.tools{top:8px}.dock-views{gap:0}#viewer-dock .environment{padding:0 6px}.dock-actions{gap:5px}#viewer-dock{gap:4px}
+ #linar-panel{top:60px;bottom:10px}#help-panel{top:60px;max-height:calc(100% - 70px)}#tour-panel .tour-copy small{display:none}
+ #walk-touch{left:auto;right:14px;bottom:12px}
+}

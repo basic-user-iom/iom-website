@@ -1,3 +1,4 @@
+import {loadAsset} from './DeviceProfile';
 import * as T from 'three';
 import {repairRoofTexture} from './RoofTexture';
 import {isEntranceFrame,entranceFinish} from './EntranceMetal';
@@ -11,7 +12,7 @@ export class DaylightMaterials{
  readonly uvAssignments:{mesh:string;tileMetres:number[];channel:string;vertices:number;uvRange:number[][]}[]=[];
  readonly soffits:{mesh:string;triangles:number;heights:number[];tileMetres:number[]}[]=[];
  readonly roofs:NonNullable<ReturnType<typeof repairRoofTexture>>[]=[];
- private map(id:string,kind:string,channel=0){const key=`${id}-${kind}-${channel}`;if(!this.textures.has(key))this.textures.set(key,new T.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}materials/daylight/${id}-${kind}.webp`).then(t=>{t.name=`${id}-${kind}`;t.colorSpace=kind==='Color'?T.SRGBColorSpace:T.NoColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.channel=channel;t.anisotropy=4;return t;}));return this.textures.get(key)!;}
+ private map(id:string,kind:string,channel=0){const key=`${id}-${kind}-${channel}`;if(!this.textures.has(key))this.textures.set(key,loadAsset(`materials/daylight/${id}-${kind}.webp`,url=>new T.TextureLoader().loadAsync(url)).then(t=>{t.name=`${id}-${kind}`;t.colorSpace=kind==='Color'?T.SRGBColorSpace:T.NoColorSpace;t.wrapS=t.wrapT=T.RepeatWrapping;t.channel=channel;t.anisotropy=4;return t;}));return this.textures.get(key)!;}
  private physical(old:T.MeshStandardMaterial){const m=new T.MeshPhysicalMaterial();T.MeshStandardMaterial.prototype.copy.call(m,old);if(old instanceof T.MeshPhysicalMaterial)m.copy(old);m.userData={...old.userData,daylight:true};return m;}
  private metricUV(mesh:T.Mesh,width:number,height:number,channel='uv',horizontal=false){
   const g=mesh.geometry.clone(),a=g.getAttribute('position'),n=g.getAttribute('normal'),uv=new Float32Array(a.count*2),normalMatrix=new T.Matrix3().getNormalMatrix(mesh.matrixWorld);

@@ -1,3 +1,4 @@
+import {mobileProfile} from './DeviceProfile';
 import {defaults,type LinarWalls,type LinarSettings} from './LinarWalls';
 import {deskDefaults,type ReceptionDesk} from './ReceptionDesk';
 import type {LinarCamera,LinarTarget} from './LinarCamera';
@@ -25,6 +26,7 @@ export class ConfiguratorTour{
  get active(){return !!this.snapshot;}
  setAvailable(value:boolean){this.available=value;if(!value&&this.active)this.stop('navigation');this.sync();}
  private sync(){
+  document.getElementById('stage')!.dataset.touring=String(this.active);
   const completed=this.phase==='completed';this.startButton.hidden=!this.available||this.active||completed;this.panel.hidden=!this.active&&!completed;for(const id of ['tour-previous','tour-next','tour-pause','tour-mute','tour-stop'])(this.panel.querySelector('#'+id) as HTMLButtonElement).hidden=completed;(this.panel.querySelector('#tour-replay') as HTMLButtonElement).hidden=!completed;this.pauseButton.textContent=this.paused?'Resume':'Pause';this.muteButton.textContent=this.audio.inspect().error?'Retry music':this.audio.muted?'Unmute':'Mute';this.muteButton.setAttribute('aria-pressed',String(this.audio.muted));this.muteButton.setAttribute('aria-label',this.audio.inspect().error?'Retry tour music':this.audio.muted?'Unmute tour music':'Mute tour music');
   const travelling=this.phase==='loading'||this.phase==='entry';this.previousButton.disabled=travelling||this.index===0||this.phase==='error';this.nextButton.disabled=travelling||this.phase==='error';this.pauseButton.disabled=this.phase==='error';
   this.status.textContent=completed?'Tour complete':travelling?'Welcome · entering reception':'Step '+(this.index+1)+' of '+tourSteps.length+' · '+tourSteps[Math.min(this.index,tourSteps.length-1)].title;
@@ -74,6 +76,7 @@ export class ConfiguratorTour{
   this.snapshot=undefined;this.serial++;this.reason='completed';this.phase='completed';this.index=tourSteps.length-1;this.remaining=0;this.paused=false;
   if(this.frame)cancelAnimationFrame(this.frame);this.frame=0;this.tween=undefined;this.layout=undefined;
   this.audio.pause();this.o.camera.endTour();this.o.orbit.cancelTransition();
+  if(mobileProfile){document.getElementById('linar-panel')!.hidden=true;document.getElementById('linar-toggle')!.setAttribute('aria-expanded','false');}
   // Release route ownership without restoring the entry snapshot or rebuilding
   // the final scene. Unlocking controls leaves position, target and FOV intact.
   this.o.journey?.complete?.();this.o.camera.setUnlocked(true);this.o.ui.sync();this.o.changed(true);this.sync();

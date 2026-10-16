@@ -1,3 +1,4 @@
+import {mobileProfile} from './DeviceProfile';
 import * as THREE from 'three';
 import {HDRLoader} from 'three/addons/loaders/HDRLoader.js';
 import {RectAreaLightUniformsLib} from 'three/addons/lights/RectAreaLightUniformsLib.js';
@@ -25,7 +26,7 @@ export class StreetLighting{
   renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;
   // Street and office lamps are disabled by request; no shader light slots allocated.
   RectAreaLightUniformsLib.init();this.frame(false);
-  this.lobbyKey.position.set(33,6.15,-33);this.lobbyKey.target.position.set(32,.3,-34);this.lobbyKey.castShadow=true;this.lobbyKey.shadow.mapSize.set(2048,2048);this.lobbyKey.shadow.camera.near=.1;this.lobbyKey.shadow.camera.far=15;this.lobbyKey.shadow.bias=-.0001;this.lobbyKey.shadow.normalBias=.008;scene.add(this.lobbyKey,this.lobbyKey.target);this.receptionLights.push(this.lobbyKey);
+  this.lobbyKey.position.set(33,6.15,-33);this.lobbyKey.target.position.set(32,.3,-34);this.lobbyKey.castShadow=true;this.lobbyKey.shadow.mapSize.set(mobileProfile?1024:2048,mobileProfile?1024:2048);this.lobbyKey.shadow.camera.near=.1;this.lobbyKey.shadow.camera.far=15;this.lobbyKey.shadow.bias=-.0001;this.lobbyKey.shadow.normalBias=.008;scene.add(this.lobbyKey,this.lobbyKey.target);this.receptionLights.push(this.lobbyKey);
  }
  async loadFixtures(){
   const response=await fetch(`${import.meta.env.BASE_URL}environment/lighting.json`);if(!response.ok)throw Error('Fixture data unavailable');
@@ -36,7 +37,7 @@ export class StreetLighting{
  setReceptionEnabled(enabled:boolean){this.receptionEnabled=enabled;for(const light of this.receptionLights)light.visible=enabled;this.renderer.shadowMap.needsUpdate=true;}
  async setQuality(quality:Quality){
   if(!this.sunData){this.sunData=await (await fetch(`${import.meta.env.BASE_URL}environment/daylight-sun.json`)).json();this.scene.backgroundRotation.y=this.sunData!.rotationY;this.scene.environmentRotation.y=this.sunData!.rotationY;this.positionSun();}
-  const revision=++this.qualityRevision,size=quality==='high'?2048:1024,resolution=quality==='high'?4096:innerWidth<600?1024:2048;
+  const revision=++this.qualityRevision,size=quality==='high'?2048:1024,resolution=mobileProfile?1024:quality==='high'?4096:innerWidth<600?1024:2048;
   this.sun.shadow.mapSize.set(resolution,resolution);this.sun.shadow.map?.dispose();this.sun.shadow.map=null;
   if(!this.hdrTargets.has(size)){
    if(!this.hdrTasks.has(size))this.hdrTasks.set(size,(async()=>{const texture=await new HDRLoader().loadAsync(`${import.meta.env.BASE_URL}environment/daylight_sky_${size}.hdr`);texture.mapping=THREE.EquirectangularReflectionMapping;const pmrem=new THREE.PMREMGenerator(this.renderer);const environment=pmrem.fromEquirectangular(texture);pmrem.dispose();this.hdrTargets.set(size,{texture,environment});})());

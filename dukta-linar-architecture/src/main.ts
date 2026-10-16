@@ -1,3 +1,4 @@
+import {mobileProfile,assetDiagnostics,loadAsset,renderPixelRatio} from './DeviceProfile';
 import {startup} from './LoadingScreen';
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -47,7 +48,7 @@ Object.assign(window,{__viewer:diagnostics});
 const removedPeople:string[]=[];
 const removedOriginProps:{name:string;center:number[]}[]=[];
 const resourceStats={frames:0,totalDrawCalls:0,totalTriangles:0,renderCpuMs:[] as number[],textures:0,geometries:0,programs:0,pixelRatio:0,drawingBuffer:[0,0],hidden:false,frameLimit:30,shadowRefreshes:0};
-Object.assign(window,{__resources:resourceStats});
+Object.assign(window,{__resources:resourceStats,__assetProfile:assetDiagnostics});
 async function boot(){
  // The canvas receives a full-screen composite; geometry MSAA lives in VisualEffects.
  const renderer=new THREE.WebGLRenderer({canvas,antialias:false,powerPreference:'high-performance'});renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.AgXToneMapping;renderer.toneMappingExposure=.85;renderer.transmissionResolutionScale=.75;
@@ -82,7 +83,8 @@ async function boot(){
  const linarUI=setupLinarControls(linar,configChanged,id=>{if(linarCamera.focus(id))return;const presets={freestanding:{p:[37,2.15,-33.4],t:[40.2,1.73,-33.4]},ceiling:{p:[37,2.8,-30.8],t:[31.055,4.8,-35.35]}};if(id!=='freestanding'&&id!=='ceiling')return;const v=presets[id];orbit.goTo(new THREE.Vector3(...v.p),new THREE.Vector3(...v.t),{fov:60,duration:.5});diagnostics.animating=orbit.isAnimating();requestRender();},linarCamera,desk);
  const walkButton=document.createElement('button');walkButton.id='walk-toggle';walkButton.className='traffic-control';walkButton.hidden=true;walkButton.title='Unlock camera and walk with WASD';walkButton.textContent='Walk - WASD';stage.append(walkButton);
  const walkHelp=document.createElement('div');walkHelp.id='walk-help';walkHelp.className='walk-help';walkHelp.hidden=true;walkHelp.textContent='WASD to walk - drag to look - Esc to exit';walkHelp.setAttribute('role','status');stage.append(walkHelp);
- walking=new WalkMode(camera,orbit,canvas,()=>['building','lobby'].flatMap(id=>loaded.has(id)?[loaded.get(id)!]:[]),()=>[linar.root,desk.root],()=>{walkButton.textContent=walking?.active?'Exit walk':'Walk - WASD';walkButton.setAttribute('aria-pressed',String(!!walking?.active));walkHelp.hidden=!walking?.active;requestRender();});
+ walking=new WalkMode(camera,orbit,canvas,()=>['building','lobby'].flatMap(id=>loaded.has(id)?[loaded.get(id)!]:[]),()=>[linar.root,desk.root],()=>{walkButton.textContent=walking?.active?'Exit walk':mobileProfile?'Walk':'Walk - WASD';walkButton.setAttribute('aria-pressed',String(!!walking?.active));walkHelp.hidden=!walking?.active;requestRender();});
+ if(mobileProfile){walkButton.textContent='Walk';walkHelp.textContent='Hold the arrows to walk · Drag to look';document.querySelector('.hint')!.textContent='DRAG TO ORBIT · PINCH TO ZOOM';}
  const dock=document.createElement('div');dock.id='viewer-dock';const dockViews=document.createElement('div');dockViews.className='dock-views';dockViews.append(document.querySelector('.views')!,document.querySelector('.hint')!);const dockActions=document.createElement('div');dockActions.className='dock-actions';dockActions.append(walkButton,$('linar-toggle'),$('traffic'));dock.append(document.querySelector('.environment')!,dockViews,dockActions,walkHelp);stage.append(dock);new ResizeObserver(()=>stage.style.setProperty('--dock-height',`${dock.getBoundingClientRect().height}px`)).observe(dock);
  const entrance=new TourEntrance(),tourWorld=new TourClearance();let tourOrigin:View='exterior',journeyGeneration=0,entryPhase='none',entryElapsed=0,entryMove:TourMotion|undefined,insideMove:TourMotion|undefined,savedDoor=0;
  const entranceAuto=new EntranceAutoClose(entrance);Object.assign(window,{__inspectEntrance:()=>({door:entrance.inspect(),automatic:entranceAuto.inspect()})});
@@ -113,6 +115,7 @@ async function boot(){
  let pointerStart={x:0,y:0};canvas.addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY};});canvas.addEventListener('pointerup',e=>{if(walking?.active||diagnostics.activeView==='plan'||diagnostics.activeView==='exterior'||Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>5)return;const r=canvas.getBoundingClientRect(),ray=new THREE.Raycaster();ray.setFromCamera(new THREE.Vector2((e.clientX-r.left)/r.width*2-1,1-(e.clientY-r.top)/r.height*2),camera);for(const hit of ray.intersectObjects([linar.root,desk.root],true)){let o:THREE.Object3D|null=hit.object;while(o&&!o.userData.application)o=o.parent;if(o?.visible&&o.userData.application){linarUI.selectApplication(o.userData.application);requestRender();break;}}});
  Object.assign(window,{__reviewWorldRay:(p:number[],d:number[],distance=100)=>{const ray=new THREE.Raycaster(new THREE.Vector3(...p),new THREE.Vector3(...d).normalize(),0,distance);return ray.intersectObjects([...loaded.values()],true).slice(0,12).map(h=>({name:h.object.name,point:h.point.toArray(),material:((h.object as THREE.Mesh).material as THREE.Material)?.name}));}});
  const signReport:Awaited<ReturnType<typeof replaceReceptionSigns>>=[];Object.assign(window,{__inspectSigns:()=>signReport.map(s=>({...s,instances:scene.getObjectsByProperty('name',s.name).length}))});
+ await MeshoptDecoder.ready;
  const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder),loaded=new Map<string,THREE.Group>(),pending=new Map<string,Promise<void>>();
  const materials=new Set<THREE.Material>();let quality:Quality='balanced';
  function prepareMaterial(material:THREE.Material){
@@ -129,7 +132,7 @@ async function boot(){
  }
  async function loadLayer(name:string):Promise<void>{
   if(loaded.has(name))return;if(pending.has(name))return pending.get(name);
-  const task=(async()=>{const started=performance.now(),gltf=await loader.loadAsync(`${import.meta.env.BASE_URL}models/${name}.glb`);
+  const task=(async()=>{const started=performance.now(),gltf=await loadAsset(`models/${name}.glb`,url=>loader.loadAsync(url));
    removedPeople.push(...excludePeople(gltf.scene));
    if(name==='context'&&!new URLSearchParams(location.search).has('source-review')){removedOriginProps.push(...excludeOriginProps(gltf.scene));repairContextStorefront(gltf.scene);}
    if(name==='context'&&!new URLSearchParams(location.search).has('envelope-review'))addUpperEnvelope(gltf.scene);
@@ -182,14 +185,14 @@ async function boot(){
  }
  document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>{b.disabled=true;b.onclick=()=>void select(b.dataset.view as View);});
  environmentRetry.onclick=()=>void loadEnvironment();
- $<HTMLSelectElement>('quality').onchange=async()=>{const select=$<HTMLSelectElement>('quality');quality=select.value as Quality;renderer.transmissionResolutionScale=quality==='high'?1:.75;diagnostics.quality=quality;resourceStats.frameLimit=quality==='high'?60:30;select.disabled=true;environmentStatus.textContent='Adjusting sky & shadows…';try{await lighting.setQuality(quality);diagnostics.hdrSize=lighting.hdrSize;environmentStatus.textContent=diagnostics.environmentReady?'Full street · Daylight HDR':'Loading surroundings…';requestRender();}catch(error){diagnostics.errors.push(String(error));environmentStatus.textContent='Sky could not load. Retry surroundings.';environmentRetry.hidden=false;}finally{select.disabled=false;}};
+ $<HTMLSelectElement>('quality').onchange=async()=>{const select=$<HTMLSelectElement>('quality');quality=select.value as Quality;renderer.transmissionResolutionScale=quality==='high'?1:.75;diagnostics.quality=quality;resourceStats.frameLimit=!mobileProfile&&quality==='high'?60:30;select.disabled=true;environmentStatus.textContent='Adjusting sky & shadows…';try{await lighting.setQuality(quality);diagnostics.hdrSize=lighting.hdrSize;environmentStatus.textContent=diagnostics.environmentReady?'Full street · Daylight HDR':'Loading surroundings…';requestRender();}catch(error){diagnostics.errors.push(String(error));environmentStatus.textContent='Sky could not load. Retry surroundings.';environmentRetry.hidden=false;}finally{select.disabled=false;}};
  const resetView=()=>{walking?.stop();if(!linarCamera.resetView())frame(active);};$('reset').onclick=resetView;
  const zoom=(factor:number)=>{if(plan.active){plan.zoom(factor);requestRender();return;}if(walking?.active||linarCamera.locked||orbit.isAnimating())return;const offset=camera.position.clone().sub(orbit.controls.target);camera.position.copy(orbit.controls.target).add(offset.setLength(THREE.MathUtils.clamp(offset.length()*factor,orbit.controls.minDistance,orbit.controls.maxDistance)));orbit.controls.update();};
  $('zoom-in').onclick=()=>zoom(.8);$('zoom-out').onclick=()=>zoom(1.25);
  function help(open:boolean){if(open){$('linar-panel').hidden=true;$('linar-toggle').setAttribute('aria-expanded','false');linarCamera.suspend();}$('help-panel').hidden=!open;$('help').setAttribute('aria-expanded',String(open));(open?$('close-help'):$('help')).focus();}
  $('help').onclick=()=>help($('help-panel').hidden);$('close-help').onclick=()=>help(false);document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('help-panel').hidden)help(false);});
  canvas.addEventListener('keydown',e=>{if(e.key==='+'||e.key==='='){zoom(.8);e.preventDefault();}if(e.key==='-'){zoom(1.25);e.preventDefault();}if(e.key.toLowerCase()==='r')resetView();});
- function resize(){const {width,height}=stage.getBoundingClientRect();camera.aspect=width/height;camera.updateProjectionMatrix();if(plan.active)plan.resize(camera.aspect);renderer.setPixelRatio(effects.interiorActive&&!plan.active?2:Math.min(devicePixelRatio,quality==='high'?2:1));renderer.transmissionResolutionScale=(quality==='high'?1:.75)*Math.min(devicePixelRatio,quality==='high'?2:1)/renderer.getPixelRatio();renderer.setSize(width,height,false);effects.resize(width,height,quality==='high');diagnostics.canvas=[width,height];requestRender();}
+ function resize(){const {width,height}=stage.getBoundingClientRect();camera.aspect=width/height;camera.updateProjectionMatrix();if(plan.active)plan.resize(camera.aspect);renderer.setPixelRatio(renderPixelRatio(effects.interiorActive&&!plan.active,quality==='high',width,height));renderer.transmissionResolutionScale=(quality==='high'?1:.75)*Math.min(devicePixelRatio,quality==='high'?2:1)/renderer.getPixelRatio();renderer.setSize(width,height,false);effects.resize(width,height,quality==='high');diagnostics.canvas=[width,height];requestRender();}
  new ResizeObserver(resize).observe(stage);
  $('quality').addEventListener('change',resize);
  renderer.info.autoReset=false;
@@ -201,7 +204,7 @@ async function boot(){
  const renderStudy=new URLSearchParams(location.search).has('render-study')?new RenderStudy(renderer,resourceStats,requestRender):undefined;
  function renderFrame(now:number){
   frameHandle=0;if(document.hidden||!diagnostics.environmentReady||startup.failed)return;
-  if(now-lastRender<1000/(effects.interacting?Math.max(60,resourceStats.frameLimit):resourceStats.frameLimit)-.5){frameHandle=requestAnimationFrame(renderFrame);return;}
+  if(now-lastRender<1000/(effects.interacting&&!mobileProfile?Math.max(60,resourceStats.frameLimit):resourceStats.frameLimit)-.5){frameHandle=requestAnimationFrame(renderFrame);return;}
   const frameStarted=performance.now();renderStudy?.begin();if(renderStudy?.freezeShadows)renderer.shadowMap.needsUpdate=false;
   const dt=Math.min((now-lastUpdate)/1000,.1);lastUpdate=now;dirty=false;
   if(now-lastRender<1000){diagnostics.frameTimes.push(now-lastRender);if(diagnostics.frameTimes.length>180)diagnostics.frameTimes.shift();}lastRender=now;
@@ -210,6 +213,7 @@ async function boot(){
   const renderCamera=plan.active?plan.camera:camera;traffic.update(dt,renderCamera);
   linar.update(renderCamera,renderer.shadowMap.needsUpdate);
   const shadowRefresh=renderer.shadowMap.needsUpdate;if(shadowRefresh)resourceStats.shadowRefreshes++;lighting.update(renderCamera);visibility.update(renderCamera,shadowRefresh);diagnostics.visibleInstances=visibility.visible;diagnostics.totalInstances=visibility.total;
+  if(mobileProfile&&tour.active){const state=tour.inspect();effects.setInteracting(!state.paused&&['entry','camera','layout','shape'].includes(state.phase));}
   renderer.info.reset();const renderStarted=performance.now();try{effects.render();}catch(error){startup.fail('The first view could not be rendered. Try again or use a browser with WebGL enabled.');throw error;}const renderEnded=performance.now();renderStudy?.end(now,frameStarted,renderStarted,renderEnded,shadowRefresh);resourceStats.renderCpuMs.push(renderEnded-renderStarted);if(resourceStats.renderCpuMs.length>180)resourceStats.renderCpuMs.shift();resourceStats.frames++;resourceStats.totalDrawCalls+=renderer.info.render.calls;resourceStats.totalTriangles+=renderer.info.render.triangles;resourceStats.textures=renderer.info.memory.textures;resourceStats.geometries=renderer.info.memory.geometries;resourceStats.programs=renderer.info.programs?.length??0;resourceStats.pixelRatio=renderer.getPixelRatio();resourceStats.drawingBuffer=[canvas.width,canvas.height];resourceStats.hidden=document.hidden;diagnostics.camera=renderCamera.position.toArray();diagnostics.target=(plan.active?plan.controls.target:orbit.controls.target).toArray();diagnostics.animating=!plan.active&&orbit.isAnimating();diagnostics.triangles=renderer.info.render.triangles;diagnostics.drawCalls=renderer.info.render.calls;
   if(startupFrame){const resolve=startupFrame;startupFrame=undefined;resolve();}
   if(shadowRefresh||(!plan.active&&orbit.isAnimating())||dirty||traffic.running||walking?.moving||entranceAuto.running&&!(tour.active&&tour.inspect().paused))requestRender();

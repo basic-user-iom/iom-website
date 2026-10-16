@@ -1,3 +1,4 @@
+import {loadAsset} from './DeviceProfile';
 import * as T from 'three';
 import uvRecovery from './treeUVRecovery.json';
 import {restoreBranchUV} from './BranchUV';
@@ -31,7 +32,7 @@ export class TreeLeaves{
     if(!/tree_[ABCL]_leaf/i.test(m.name)||this.corrected.has(m))return m;
     this.corrected.add(m);
     if(/tree_C_leafs/.test(m.name)){
-     const old=m.map;const map=await (this.treeC??=new T.TextureLoader().loadAsync(`${import.meta.env.BASE_URL}materials/foliage/TreeC-ColorAlpha.webp`));map.name='TreeC-ColorAlpha';map.colorSpace=T.SRGBColorSpace;map.flipY=false;map.wrapS=old?.wrapS??T.RepeatWrapping;map.wrapT=old?.wrapT??T.RepeatWrapping;map.anisotropy=4;if(old){map.offset.copy(old.offset);map.repeat.copy(old.repeat);map.rotation=old.rotation;map.center.copy(old.center);}m.map=map;m.alphaMap=null;
+     const old=m.map;const map=await (this.treeC??=loadAsset(`materials/foliage/TreeC-ColorAlpha.webp`,url=>new T.TextureLoader().loadAsync(url)));map.name='TreeC-ColorAlpha';map.colorSpace=T.SRGBColorSpace;map.flipY=false;map.wrapS=old?.wrapS??T.RepeatWrapping;map.wrapT=old?.wrapT??T.RepeatWrapping;map.anisotropy=4;if(old){map.offset.copy(old.offset);map.repeat.copy(old.repeat);map.rotation=old.rotation;map.center.copy(old.center);}m.map=map;m.alphaMap=null;
     }
     m.side=T.DoubleSide;m.shadowSide=T.DoubleSide;m.alphaTest=.4;m.transparent=false;m.opacity=1;m.depthWrite=true;m.metalness=0;m.roughness=.65;m.normalScale.setScalar(.35);if(m instanceof T.MeshPhysicalMaterial){m.clearcoat=0;m.transmission=0;}m.needsUpdate=true;m.userData.treeLeafCorrected=true;return m;
    }));mesh.material=Array.isArray(mesh.material)?next:next[0];
