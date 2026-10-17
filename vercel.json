@@ -14,6 +14,8 @@
   ],
   "redirects": [{ "source": "/demos/stradivari-cable", "destination": "/demos/stradivari-cable/", "permanent": true }],
   "rewrites": [
+    { "source": "/api/crm-email-live-mcp", "destination": "/api/crm-email-oauth" },
+    { "source": "/api/crm-email-live-workflow", "destination": "/api/crm-email-oauth" },
     { "source": "/.well-known/oauth-authorization-server/crm-email-identity", "destination": "/api/crm-email-oauth?action=metadata" },
     { "source": "/.well-known/oauth-protected-resource/api/crm-email-live-mcp", "destination": "/api/crm-email-oauth?action=resource" },
     {"source": "/demos/stradivari-cable/assets/overview.bin", "destination": "https://assets.iobjectm.com/iom-website/v1/44f8ffff445a439a931bc11a5ccd254947f3ea08c832bc8a877085d9b8b48f14/overview.glb.gz"},

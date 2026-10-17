@@ -1,5 +1,5 @@
-import {createEmailMcpHandler,createEmailVerifier} from './_lib/crm-email-mcp.mjs'
-import {assertProductionTarget,getProductionEmailRuntime,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN} from './_lib/crm-email-production.mjs'
+import {createEmailMcpHandler,createEmailVerifier} from './crm-email-mcp.mjs'
+import {assertProductionTarget,getProductionEmailRuntime,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN} from './crm-email-production.mjs'
 let handler
 export default async function(req,res) {
   res.setHeader('Cache-Control','no-store')

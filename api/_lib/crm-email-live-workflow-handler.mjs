@@ -1,6 +1,6 @@
-import {requireStaffUser,setAllowedOriginCors} from './_lib/blog-helpers.js'
-import {assertProductionTarget,getProductionEmailRuntime} from './_lib/crm-email-production.mjs'
-import {createEmailToolExecutor} from './_lib/crm-email-tools.mjs'
+import {requireStaffUser,setAllowedOriginCors} from './blog-helpers.js'
+import {assertProductionTarget,getProductionEmailRuntime} from './crm-email-production.mjs'
+import {createEmailToolExecutor} from './crm-email-tools.mjs'
 export default async function(req,res) {
   setAllowedOriginCors(res,req.headers.origin,{allowAuth:true,methods:'POST, OPTIONS'})
   res.setHeader('Cache-Control','no-store')
