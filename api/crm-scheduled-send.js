@@ -22,6 +22,7 @@ import {
 } from './_lib/blog-helpers.js'
 import { processDueScheduledSends } from './_lib/crm-process-scheduled-sends.js'
 import { listProtonIdentities } from './_lib/proton-identities.js'
+import {runReviewedEmailQueue} from './_lib/crm-email-legacy-bridge.mjs'
 
 let warnedCronSecretMismatch = false
 
@@ -79,8 +80,10 @@ export default async function handler(req, res) {
 
   try {
     const result = await processDueScheduledSends({ supabaseUrl, serviceKey })
+    const reviewedEmail=await runReviewedEmailQueue().catch(()=>({ok:false,error:'reviewed_email_worker_unavailable'}))
     return res.status(200).json({
       ...result,
+      ...(reviewedEmail?{reviewedEmail}:{}),
       health: buildSchedulerHealth(),
       trigger: auth.mode,
     })

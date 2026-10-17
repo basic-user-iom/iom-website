@@ -11,6 +11,7 @@
  */
 
 import nodemailer from 'nodemailer'
+import {routeReviewedLegacyEmail} from './_lib/crm-email-legacy-bridge.mjs'
 import {
   clientIp,
   publicError,
@@ -122,6 +123,15 @@ export default async function handler(req, res) {
   }
   const mailAttachments = toNodemailerAttachments(parsedAttachments)
   const attachMeta = attachmentMeta(parsedAttachments)
+
+  try {
+    const reviewed=await routeReviewedLegacyEmail({to,subject,body:textBody,leadId,fromIdentity,
+      ...(inReplyToRaw?{inReplyTo:inReplyToRaw}:{}),...(referencesRaw?{references:referencesRaw}:{}),
+      attachments:body.attachments||[]},{kind:'staff',ownerId:authUser.id})
+    if(reviewed)return res.status(200).json(reviewed)
+  } catch(error) {
+    return res.status(409).json(publicError('Reviewed email delivery blocked; inspect the email job status before retrying.',error.code||'EMAIL_REVIEW_UNAVAILABLE'))
+  }
 
   const identity = resolveProtonIdentity(fromIdentity)
   if (!identity) {

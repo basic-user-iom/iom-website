@@ -4,6 +4,7 @@
  */
 
 import { hasOutboundLeadMessage } from './crm-lead-messages.js'
+import {isProtectedEmailTarget} from './crm-email-production.mjs'
 import {
   notifyScheduledSendFailure,
   sendCrmOutreachEmail,
@@ -73,6 +74,10 @@ export async function processDueScheduledSends(opts) {
 
   const results = []
   for (const { row, schedule } of due) {
+    if(isProtectedEmailTarget({leadId:row.id,to:schedule.to||row.email})) {
+      results.push({id:row.id,ok:false,code:'email_pilot_schedule_requires_review'})
+      continue // No claim, retry counter or schedule rewrite in the old worker.
+    }
     // Isolate each lead — never break the loop on one failure.
     try {
       if (schedule.fired) {

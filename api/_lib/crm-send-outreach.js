@@ -3,6 +3,7 @@
  */
 
 import nodemailer from 'nodemailer'
+import {rejectProtectedLegacySchedule} from './crm-email-legacy-bridge.mjs'
 import {
   insertLeadMessage,
   normalizeMessageId,
@@ -37,6 +38,7 @@ import { EMAIL_RE, resolveProtonIdentity } from './proton-identities.js'
  * @param {unknown} [opts.attachments]
  */
 export async function sendCrmOutreachEmail(opts) {
+  rejectProtectedLegacySchedule(opts)
   const host = process.env.PROTON_SMTP_HOST
   const port = Number(process.env.PROTON_SMTP_PORT || 587)
   if (!host) throw new Error('Email sending is not configured')

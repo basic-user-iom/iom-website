@@ -318,7 +318,8 @@ function composeSnapshot(state, scopes, head) {
   }
 }
 
-function buildSnapshot(stage) {
+function buildSnapshot(stage, scopes) {
+  const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   // Restore the exact committed ICM GLB before the static build and R2 upload.
   const viewerAssets = join(stage, 'building-viewer', 'scripts', 'prepare-runtime-assets.mjs')
   if (existsSync(viewerAssets)) command(process.execPath, [viewerAssets], { cwd: stage })
@@ -337,7 +338,8 @@ function buildSnapshot(stage) {
     process.platform === 'win32' ? 'junction' : 'dir',
   )
   try {
-    packageCommand(npm, ['run', 'build'], { cwd: stage })
+    packageCommand(npm, ['run', 'build'], { cwd: stage,
+      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -399,6 +401,7 @@ function verifyUploadManifest(stage, scopes, _scanOptions, preparingAssets = fal
 }
 
 function deploySnapshot(snapshot, head, scopes) {
+  const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const scopeMap = Buffer.from(JSON.stringify(snapshot.overlays), 'utf8').toString('base64url')
   packageCommand(npx, [
     '--yes',
@@ -408,6 +411,7 @@ function deploySnapshot(snapshot, head, scopes) {
     '--logs',
     '--cwd',
     snapshot.stage,
+    ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
     '--meta',
     `githubCommitRef=master`,
     '--meta',
@@ -448,7 +452,7 @@ function main() {
   let snapshot
   try {
     snapshot = composeSnapshot(state, scopes, head)
-    buildSnapshot(snapshot.stage)
+    buildSnapshot(snapshot.stage, scopes)
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.

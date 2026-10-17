@@ -13,6 +13,12 @@ import { readFileSync, unlinkSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createClient } from '@supabase/supabase-js'
+
+// Scoped CRM releases must not write unrelated blog data during either build.
+if (process.env.IOM_SKIP_BLOG_SYNC === 'true') {
+  console.log('[sync-3d-viewer-blog] Skipping: scoped CRM email build')
+  process.exit(0)
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
