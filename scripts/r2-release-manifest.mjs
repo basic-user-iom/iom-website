@@ -19,7 +19,14 @@ const TYPES = {
   '.zip': 'application/zip', '.gz': 'application/gzip', '.br': 'application/octet-stream', '.rar': 'application/vnd.rar',
   '.7z': 'application/x-7z-compressed', '.iomcar': 'application/octet-stream', '.dat': 'application/octet-stream',
 }
-export const mediaType = name => TYPES[extname(name).toLowerCase()]
+// Reviewed, already-public astronomical datasets. Do not externalize arbitrary JSON:
+// application config, private records and other demos require their own access review.
+const PUBLIC_DATA_PATHS = new Set([
+  '/demos/solar-system/assets/phase6/bright-stars.bsc5p.v1.json',
+  '/demos/solar-system/assets/small-body-ephemeris.manifest-B7FFgHF2.json',
+  '/demos/solar-system/assets/small-body-ephemeris.validation-B55youGz.json',
+])
+export const mediaType = name => PUBLIC_DATA_PATHS.has(name) ? 'application/json' : TYPES[extname(name).toLowerCase()]
 export const objectKey = (path, hash) => `iom-website/v1/${hash}/${basename(path).replace(/[^A-Za-z0-9._-]/g, '-')}`
 
 export function inside(root, path) {

@@ -4,7 +4,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { finalizeBuild } from './finalize-r2-build.mjs'
-import { MANIFEST_FILE, PUBLIC_ORIGIN, objectKey, releaseConfig, routeSource, sha256, validateManifest } from './r2-release-manifest.mjs'
+import { MANIFEST_FILE, PUBLIC_ORIGIN, mediaType, objectKey, releaseConfig, routeSource, sha256, validateManifest } from './r2-release-manifest.mjs'
 function fixture() {
   const prefix = resolve(tmpdir(), 'iom-r2-release-test-')
   const root = mkdtempSync(prefix)
@@ -63,3 +63,22 @@ assert.equal(matchesDeployScope('public/demos/dukta/index.html', 'media-assets')
 
 // Request paths are percent encoded by the edge router (not decoded filesystem names).
 assert.equal(routeSource("/panoramas/The Black Witness.jpeg"), "/panoramas/The%20Black%20Witness.jpeg")
+
+// Only the reviewed public dataset URLs gain externalization; no JSON wildcard.
+test('public astronomy data is eligible without broadening private JSON publication', () => {
+  for (const path of [
+    '/demos/solar-system/assets/phase6/bright-stars.bsc5p.v1.json',
+    '/demos/solar-system/assets/small-body-ephemeris.manifest-B7FFgHF2.json',
+    '/demos/solar-system/assets/small-body-ephemeris.validation-B55youGz.json',
+  ]) {
+    assert.equal(mediaType(path), 'application/json')
+    const hash = sha256(Buffer.from('{}'))
+    const manifest = { version: 1, origin: PUBLIC_ORIGIN, files: [{ path, sha256: hash, bytes: 2, key: objectKey(path, hash) }] }
+    assert.equal(releaseConfig({ rewrites: [] }, manifest).rewrites[0].destination, PUBLIC_ORIGIN + '/' + objectKey(path, hash))
+  }
+  for (const path of ['/private/customer.json', '/api/config.json', '/demos/private/bright-stars.bsc5p.v1.json', '/demos/solar-system/assets/unreviewed.json']) {
+    assert.equal(mediaType(path), undefined)
+    const hash = sha256(Buffer.from('{}'))
+    assert.throws(() => validateManifest({ version: 1, origin: PUBLIC_ORIGIN, files: [{ path, sha256: hash, bytes: 2, key: objectKey(path, hash) }] }), /Invalid/)
+  }
+})

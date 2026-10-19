@@ -20,3 +20,7 @@ Upload credentials are read locally from the git-ignored `.env.r2-assets.local`.
 - `node --test scripts/test-r2-release.mjs` checks that altered content or invalid paths cannot cause partial cleanup, originals remain intact, and route/cache constraints are enforced.
 
 Initial migration release scope: `media-assets`. Production is always published through `npm run deploy`, with preview and public URL checks completed first.
+
+## Reviewed public data
+
+Three existing Solar System astronomy JSON files (the BSC5P bright-star catalogue and the published small-body ephemeris manifest/validation) are explicitly allowlisted by exact URL in `r2-release-manifest.mjs`. They use the same immutable hash, source-preservation, CORS, range, and build-copy checks as media. Arbitrary JSON, private records, app code and runtime decoder libraries remain ineligible. A newly hashed dataset filename needs an explicit public-access review before adding it.
