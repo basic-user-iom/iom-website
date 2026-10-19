@@ -20,7 +20,7 @@ export function createProductionOAuthStore(acquire,ownerId) {
     consumeRequest:(digest,requestId)=>tx(async c=>(await one(c,`update crm_email_private.oauth_requests set consumed=true where owner_id=$1 and digest=$2 and request_id=$3 and not consumed and expires_at>statement_timestamp() returning data`,[ownerId,digest,requestId]))?.data||null),
     saveCode:row=>tx(async c=>{
       if(row.ownerId!==ownerId)throw Error('owner_mismatch')
-      await c.query(`insert into crm_email_private.grant_families(id,owner_id,scopes,expires_at) values($1,$2,$3,statement_timestamp()+interval '14 days')`,[row.familyId,ownerId,row.scope.split(' ')])
+      await c.query(`insert into crm_email_private.grant_families(id,owner_id,scopes,expires_at) values($1,$2,$3,least(statement_timestamp()+interval '14 days',$4::timestamptz))`,[row.familyId,ownerId,row.scope.split(' '),row.grantExpiresAt||null])
       await c.query('insert into crm_email_private.oauth_codes(digest,family_id,owner_id,data,expires_at) values($1,$2,$3,$4,$5)',[row.digest,row.familyId,ownerId,JSON.stringify(row),row.expiresAt])
     }),
     exchangeCode:({codeDigest,challenge,refreshDigest,refreshExpires})=>tx(async c=>{

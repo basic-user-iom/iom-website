@@ -15,7 +15,7 @@ export default async function(req,res) {
     if(!await runtime.rateLimit('staff',30,60000))return res.status(429).json({ok:false,error:'rate_limited'})
     const body=typeof req.body==='string'?JSON.parse(req.body):req.body
     if(!body || typeof body.name!=='string' || Object.keys(body).some(k=>!['name','arguments'].includes(k)))return res.status(400).json({ok:false,error:'invalid_request'})
-    const result=await createEmailToolExecutor(runtime.workflow,{live:true,reviewOnly:pin.accessMode==='review-only'})(actor,body.name,body.arguments)
+    const result=await createEmailToolExecutor(runtime.workflow,{live:true,reviewOnly:pin.accessMode==='review-only',singleSend:pin.accessMode==='single-send'})(actor,body.name,body.arguments)
     return res.status(result.isError?409:200).json(result.structuredContent)
   }catch{return res.status(503).json({ok:false,error:'email_production_unavailable'})}
 }

@@ -13,21 +13,22 @@ const definitions = [
     schema({jobId:str,scheduledLocal:{type:'string'},utcOffset:{type:'string',enum:['+01:00','+02:00']}},['jobId','scheduledLocal'])],
 ]
 // Registered only on the separately gated email resource, never on import Preview.
-export const emailTools = (live=false,{reviewOnly=false}={})=>definitions.filter(([,operation])=>!reviewOnly||['preview','list'].includes(operation)).map(([name,operation,description,inputSchema]) => ({
-  name,description:(reviewOnly?'DRAFT REVIEW ONLY: saves a private review; cannot send, schedule, reschedule or cancel email. ':live?'LIVE EMAIL: confirmation may deliver a real email to the approved pilot recipient. ':'STAGING SIMULATION ONLY: no real email is delivered. ')+(reviewOnly&&operation==='preview'?'Review the approved contact and sender with the exact subject and body using the CRM template. Keep the same messageIntentId for the same content.':description),
-  inputSchema:reviewOnly&&operation==='preview'?{...inputSchema,properties:Object.fromEntries(Object.entries(inputSchema.properties).filter(([key])=>!['scheduledLocal','utcOffset','replaceLegacySchedule'].includes(key)))}:inputSchema, annotations:{readOnlyHint:operation==='list',destructiveHint:['confirm','cancel'].includes(operation),idempotentHint:!['preview','previewReschedule'].includes(operation),openWorldHint:operation==='confirm'},
-  securitySchemes:(operation==='confirm'?['send','schedule']: [operation==='cancel'?'cancel':operation==='previewReschedule'?'schedule':'read'])
+export const emailTools = (live=false,{reviewOnly=false,singleSend=false}={})=>definitions.filter(([,operation])=>reviewOnly?['preview','list'].includes(operation):!singleSend||['preview','list','confirm'].includes(operation)).map(([name,operation,description,inputSchema]) => ({
+  name,description:(reviewOnly?'DRAFT REVIEW ONLY: saves a private review; cannot send, schedule, reschedule or cancel email. ':singleSend?'ONE APPROVED MESSAGE ONLY: confirmation may deliver the immutable pilot once before its deadline; no scheduling. ':live?'LIVE EMAIL: confirmation may deliver a real email to the approved pilot recipient. ':'STAGING SIMULATION ONLY: no real email is delivered. ')+(singleSend&&operation==='confirm'?'Send the one immutable reviewed pilot only after explicit human confirmation. No scheduling; never retry an uncertain delivery.':(reviewOnly||singleSend)&&operation==='preview'?'Review the approved contact and sender with the exact subject and body using the CRM template. Keep the same messageIntentId for the same content.':description),
+  inputSchema:(reviewOnly||singleSend)&&operation==='preview'?{...inputSchema,properties:Object.fromEntries(Object.entries(inputSchema.properties).filter(([key])=>!['scheduledLocal','utcOffset','replaceLegacySchedule'].includes(key)))}:inputSchema, annotations:{readOnlyHint:operation==='list',destructiveHint:['confirm','cancel'].includes(operation),idempotentHint:!['preview','previewReschedule'].includes(operation),openWorldHint:operation==='confirm'},
+  securitySchemes:(operation==='confirm'?(singleSend?['send']:['send','schedule']): [operation==='cancel'?'cancel':operation==='previewReschedule'?'schedule':'read'])
     .map(action=>({type:'oauth2',scopes:[...new Set(['iom:crm:email:read',`iom:crm:email:${action}`])]})),
 }))
 export const EMAIL_TOOLS=emailTools()
-export function createEmailToolExecutor(workflow,{live=false,reviewOnly=false}={}) {
+export function createEmailToolExecutor(workflow,{live=false,reviewOnly=false,singleSend=false}={}) {
   return async (actor, name, args) => {
     const operation = definitions.find(d => d[0] === name)?.[1]
     try {
       if (!operation) throw new EmailWorkflowError('email_tool_not_allowed')
       if(reviewOnly && !['preview','list'].includes(operation)) throw new EmailWorkflowError('email_review_only')
+      if(singleSend && !['preview','list','confirm'].includes(operation)) throw new EmailWorkflowError('email_single_send_only')
       const result = await workflow[operation](actor,args ?? {})
-      return {isError:false,content:[{type:'text',text:JSON.stringify(result)}],structuredContent:{ok:true,deliveryMode:reviewOnly?'review-only':live?'live':'simulation',result}}
+      return {isError:false,content:[{type:'text',text:JSON.stringify(result)}],structuredContent:{ok:true,deliveryMode:reviewOnly?'review-only':singleSend?'single-send':live?'live':'simulation',result}}
     } catch (error) {
       const code = error instanceof EmailWorkflowError ? error.code : 'email_temporarily_unavailable'
       return {isError:true,content:[{type:'text',text:code}],structuredContent:{ok:false,error:code}}

@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { importJWK, jwtVerify, SignJWT } from 'jose'
 export class EmailOAuthError extends Error { constructor(code,status=400){super(code);this.code=code;this.status=status} }
 import {EMAIL_SCOPES} from './crm-email-runtime.mjs'
-import {assertProductionTarget,reviewOnlyApproval,EMAIL_PRODUCTION_APPROVAL,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN,EMAIL_PRODUCTION_REF} from './crm-email-production.mjs'
+import {assertProductionTarget,reviewOnlyApproval,singleSendApproval,EMAIL_PRODUCTION_APPROVAL,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN,EMAIL_PRODUCTION_REF} from './crm-email-production.mjs'
 import {createProductionOAuthStore,acquireEmailOAuthConnection} from './crm-email-oauth-store.mjs'
 const EMAIL_SCOPE_LIST=Object.values(EMAIL_SCOPES)
 
@@ -24,9 +24,10 @@ const same = (left, right) => {
   const b = Buffer.from(right)
   return a.length === b.length && timingSafeEqual(a, b)
 }
-const supportedScopes = config => config?.reviewOnly ? [EMAIL_SCOPES.review] : EMAIL_SCOPE_LIST
+const supportedScopes = config => config?.reviewOnly ? [EMAIL_SCOPES.review] : config?.singleSend ? [EMAIL_SCOPES.review,EMAIL_SCOPES.send] : EMAIL_SCOPE_LIST
 const scopesOf = (value, config) => {
   const scopes = [...new Set(String(value ?? '').split(' ').filter(Boolean))]
+  if(config?.singleSend && scopes.includes(EMAIL_SCOPES.send) && Date.now()>=Date.parse(config.sendExpiresAt)) throw new EmailOAuthError('invalid_scope',400)
   if (!scopes.length || !scopes.includes('iom:crm:email:read') || scopes.some(scope => !supportedScopes(config).includes(scope))) {
     throw new EmailOAuthError('invalid_scope', 400)
   }
@@ -62,7 +63,7 @@ export function issuerConfig(env = process.env,pin=EMAIL_PRODUCTION_APPROVAL) {
       resource: resource.href,
       redirectUri: env.CRM_EMAIL_OAUTH_REDIRECT_URI,
       clientId, subject, ownerId, staffEmail:approved.staffEmail, signingJwk: signing, kid: 'iom-email-oauth-1',
-      reviewOnly:reviewOnlyApproval(approved),
+      reviewOnly:reviewOnlyApproval(approved),singleSend:singleSendApproval(approved),sendExpiresAt:approved.sendExpiresAt,
     })
   } catch (error) {
     if (error instanceof EmailOAuthError) throw error
@@ -157,6 +158,7 @@ function consentPage(config, query, authRef = '') {
   const scopes = String(query.scope).split(' ').filter(Boolean).map(scope => `<li>${escapeHtml(scope)}</li>`).join('')
   const accessDescription = config.reviewOnly
     ? 'This connection can display and save private draft reviews for the approved pilot contact and read job status. It cannot send, schedule, reschedule or cancel email.'
+    : config.singleSend ? 'This connection can review the approved pilot draft and confirm one immediate delivery to mirjan.foto@gmail.com from projects@iobjectm.com before 10:00 Europe/Belgrade on 19 October 2026. It cannot schedule, reschedule or cancel email. All other messages are blocked.'
     : 'This connection can review, send, schedule and cancel email for the approved pilot contact. Each email needs an explicit review and confirmation.'
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>IOM CRM email consent</title><body><main id="consent" data-issuer="${escapeHtml(config.issuer)}" data-redirect="${escapeHtml(config.redirectUri)}" data-resource="${escapeHtml(config.resource)}" data-client="${escapeHtml(config.clientId)}" data-state="${escapeHtml(query.state)}" data-scope="${escapeHtml(query.scope)}" data-challenge="${escapeHtml(query.code_challenge)}" data-login="${escapeHtml(login)}" data-auth-ref="${escapeHtml(authRef)}"><h1>Connect ChatGPT to IOM CRM email</h1><p>${accessDescription}</p><ul>${scopes}</ul><p id="status">Checking the existing CRM sign-in.</p><p><a id="login" href="${escapeHtml(login)}">Sign in at the CRM</a></p><button id="allow" type="button" hidden>Allow</button><button id="deny" type="button">Deny</button></main><script>
 const root=document.getElementById('consent'),status=document.getElementById('status'),login=document.getElementById('login'),allow=document.getElementById('allow')
@@ -232,6 +234,7 @@ export async function createIssuer(config, store, options = {}) {
         digest: digest(code), familyId, clientId: config.clientId, redirectUri: config.redirectUri,
         resource: config.resource, scope: pending.scope, codeChallenge: pending.codeChallenge,
         ownerId: config.ownerId, expiresAt: at(CODE_SECONDS),
+        ...(config.singleSend && pending.scope.split(' ').includes(EMAIL_SCOPES.send)?{grantExpiresAt:config.sendExpiresAt}:{}),
       }))
       const redirect = new URL(config.redirectUri)
       redirect.searchParams.set('code', code)

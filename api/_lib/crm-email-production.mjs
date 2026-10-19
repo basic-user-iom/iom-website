@@ -1,4 +1,4 @@
-import {fail} from './crm-email-workflow.mjs'
+import {fail,emailDigest} from './crm-email-workflow.mjs'
 import {createEmailStore} from './crm-email-store.mjs'
 import {createEmailRuntime} from './crm-email-runtime.mjs'
 import {listProtonIdentities} from './proton-identities.js'
@@ -16,8 +16,14 @@ export const EMAIL_REVIEW_APPROVAL = Object.freeze({
   subject:'iom-crm-email-review:1add2cb0-a00a-4f92-a20a-7d90cb23afdd',
   messageKind:'followup',messageIntentId:'ae0811f0-869e-49ac-80cc-8516940559fa',
 })
+// Candidate only: publishing this pin and enabling SEND require explicit owner approval.
+export const EMAIL_SINGLE_SEND_APPROVAL = Object.freeze({...EMAIL_REVIEW_APPROVAL,
+  accessMode:'single-send',reviewDigest:'a8004fa84d190566be72ad01b2753f1f039790b4696043c084d468343392fbc4',
+  sendExpiresAt:'2026-10-19T08:00:00.000Z',
+})
+export const singleSendApproval = pin => pin?.accessMode === 'single-send'
 export const reviewOnlyApproval = pin => pin?.accessMode === 'review-only'
-export const EMAIL_PRODUCTION_APPROVAL = EMAIL_REVIEW_APPROVAL
+export const EMAIL_PRODUCTION_APPROVAL = EMAIL_SINGLE_SEND_APPROVAL
 export const EMAIL_PRODUCTION_REF = 'werfdsobddsijqckymip'
 export const EMAIL_PRODUCTION_ORIGIN = 'https://iobjectm.com'
 export const EMAIL_PRODUCTION_RESOURCE = EMAIL_PRODUCTION_ORIGIN+'/api/crm-email-live-mcp'
@@ -25,12 +31,14 @@ export const EMAIL_PRODUCTION_ISSUER = EMAIL_PRODUCTION_ORIGIN+'/crm-email-ident
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const address=/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/
 export function productionApproval(pin=EMAIL_PRODUCTION_APPROVAL) {
-  if(pin?.accessMode!==undefined && !reviewOnlyApproval(pin)) fail('email_production_not_approved')
+  if(pin?.accessMode!==undefined && !reviewOnlyApproval(pin) && !singleSendApproval(pin)) fail('email_production_not_approved')
   if(!pin || !uuid.test(pin.ownerId||'') || !uuid.test(pin.leadId||'') || !address.test(pin.recipient||'') ||
     !address.test(pin.fromEmail||'') || !['contact','visual','projects'].includes(pin.fromIdentity) ||
     !pin.fromHeader || /[\r\n]/.test(pin.fromHeader) || !address.test(pin.staffEmail||'') || !pin.clientId || !pin.subject) fail('email_production_not_approved')
   if(!['initial','followup'].includes(pin.messageKind||'initial') ||
     ((pin.messageKind==='followup') ? !uuid.test(pin.messageIntentId||'') : pin.messageIntentId!==undefined)) fail('email_production_not_approved')
+  if(singleSendApproval(pin) && (pin.messageKind!=='followup' || !/^[a-f0-9]{64}$/.test(pin.reviewDigest||'') ||
+    !Number.isFinite(Date.parse(pin.sendExpiresAt)))) fail('email_production_not_approved')
   let redirect
   try {redirect=new URL(pin.redirectUri)} catch {fail('email_production_not_approved')}
   if(redirect.protocol!=='https:' || redirect.username || redirect.password || redirect.hash || pin.redirectUri.includes('*')) fail('email_production_not_approved')
@@ -69,6 +77,7 @@ export function createSmtpDependencies({env,identities=listProtonIdentities,crea
   return {simulated:false,resolveIdentity:async id=>id===pin.fromIdentity?selected():undefined,
     createTransport:()=>{
       if(reviewOnlyApproval(pin)) fail('email_review_only')
+      if(singleSendApproval(pin) && Date.now()>=Date.parse(pin.sendExpiresAt)) fail('email_single_send_expired')
       assertProductionTarget(env,pin)
       if(env.CRM_EMAIL_SEND_ENABLED!=='true') fail('email_delivery_paused')
       const identity=selected(),port=Number(env.PROTON_SMTP_PORT||587)
@@ -81,7 +90,16 @@ export function createSmtpDependencies({env,identities=listProtonIdentities,crea
 }
 export function createProductionRuntime({store,pin,dependencies,env,now=Date.now}) {
   const enabled=()=>{assertProductionTarget(env,pin);return true}
-  const scopedStore={...store,lead:async(owner,id)=>{
+  const exactReview=review=>{
+    if(singleSendApproval(pin) && (review.schedule!==null || review.replaceJobId ||
+      emailDigest({snapshot:review.snapshot,schedule:null})!==pin.reviewDigest)) fail('email_pilot_content_mismatch')
+    return review
+  }
+  const scopedStore={...store,
+    review:(owner,review)=>store.review(owner,exactReview(review)),
+    getReview:async(owner,id)=>{const review=await store.getReview(owner,id);return review?exactReview(review):review},
+    enqueue:(owner,review,...rest)=>store.enqueue(owner,exactReview(review),...rest),
+    lead:async(owner,id)=>{
     if(owner!==pin.ownerId || id!==pin.leadId) fail('email_pilot_only')
     const lead=await store.lead(owner,id)
     if(lead?.scheduled_send) fail('legacy_schedule_requires_separate_review')
@@ -89,11 +107,16 @@ export function createProductionRuntime({store,pin,dependencies,env,now=Date.now
   }}
   const service=createEmailRuntime({store:scopedStore,ownerId:pin.ownerId,identities:dependencies.identities,enabled,now,
     providerDependencies:dependencies,
-    authorizeAction:(_actor,action)=>reviewOnlyApproval(pin) ? action==='review'
+    authorizeAction:(actor,action)=>reviewOnlyApproval(pin) ? action==='review'
+      : singleSendApproval(pin) ? action==='review' || (action==='send' && actor.kind==='oauth' && env.CRM_EMAIL_SEND_ENABLED==='true' && now()<Date.parse(pin.sendExpiresAt))
       : !['send','schedule','worker'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true',
     beforeDelivery:async(snapshot,context)=>{
       if(reviewOnlyApproval(pin)) fail('email_review_only')
       enabled()
+      if(singleSendApproval(pin)){
+        if(now()>=Date.parse(pin.sendExpiresAt)) fail('email_single_send_expired')
+        exactReview({snapshot,schedule:null})
+      }
       if(env.CRM_EMAIL_SEND_ENABLED!=='true') fail('email_delivery_paused')
       if(snapshot.leadId!==pin.leadId || snapshot.to!==pin.recipient || snapshot.from!==pin.fromEmail || snapshot.kind!==(pin.messageKind||'initial') || (snapshot.kind==='followup' && snapshot.messageIntentId!==pin.messageIntentId)) fail('email_pilot_only')
       await store.assertProductionDelivery(context.ownerId,context.jobId)
@@ -102,7 +125,7 @@ export function createProductionRuntime({store,pin,dependencies,env,now=Date.now
   // Restrict every preview and old-route send, including reply and recipient overrides.
   service.workflow={...workflow,
     preview:(actor,args)=>{
-      if(reviewOnlyApproval(pin) && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined)) fail('email_review_only')
+      if((reviewOnlyApproval(pin)||singleSendApproval(pin)) && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined)) fail('email_review_only')
       if(args?.leadId!==pin.leadId || args?.to!==pin.recipient || args?.fromIdentity!==pin.fromIdentity || args?.replaceLegacySchedule || (args?.kind||'initial')!==(pin.messageKind||'initial') || (pin.messageKind==='followup' && args?.messageIntentId!==pin.messageIntentId)) fail('email_pilot_only')
       return workflow.preview(actor,args)
     },
