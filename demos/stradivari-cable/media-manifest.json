@@ -1,0 +1,276 @@
+{
+  "scannerPassed": true,
+  "scannerFiles": 9,
+  "scannerBytes": 108279141,
+  "entries": [
+    {
+      "variant": "original-20",
+      "name": "overview.bin",
+      "sha256": "722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421",
+      "bytes": 16550591,
+      "url": "https://assets.iobjectm.com/iom-website/v1/722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421/overview.bin"
+    },
+    {
+      "variant": "original-20",
+      "name": "detail-1.bin",
+      "sha256": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f",
+      "bytes": 7273496,
+      "url": "https://assets.iobjectm.com/iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin"
+    },
+    {
+      "variant": "original-20",
+      "name": "detail-2.bin",
+      "sha256": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04",
+      "bytes": 7270070,
+      "url": "https://assets.iobjectm.com/iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin"
+    },
+    {
+      "variant": "original-20",
+      "name": "detail-3.bin",
+      "sha256": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e",
+      "bytes": 7868099,
+      "url": "https://assets.iobjectm.com/iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin"
+    },
+    {
+      "variant": "original-20",
+      "name": "detail-4.bin",
+      "sha256": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a",
+      "bytes": 12472855,
+      "url": "https://assets.iobjectm.com/iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin"
+    },
+    {
+      "variant": "original-20",
+      "name": "metro-vijzelgracht.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "url": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr"
+    },
+    {
+      "variant": "original-30",
+      "name": "overview.bin",
+      "sha256": "d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb",
+      "bytes": 16902857,
+      "url": "https://assets.iobjectm.com/iom-website/v1/d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb/overview.bin"
+    },
+    {
+      "variant": "original-30",
+      "name": "detail-1.bin",
+      "sha256": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f",
+      "bytes": 7273496,
+      "url": "https://assets.iobjectm.com/iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin"
+    },
+    {
+      "variant": "original-30",
+      "name": "detail-2.bin",
+      "sha256": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04",
+      "bytes": 7270070,
+      "url": "https://assets.iobjectm.com/iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin"
+    },
+    {
+      "variant": "original-30",
+      "name": "detail-3.bin",
+      "sha256": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e",
+      "bytes": 7868099,
+      "url": "https://assets.iobjectm.com/iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin"
+    },
+    {
+      "variant": "original-30",
+      "name": "detail-4.bin",
+      "sha256": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a",
+      "bytes": 12472855,
+      "url": "https://assets.iobjectm.com/iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin"
+    },
+    {
+      "variant": "original-30",
+      "name": "metro-vijzelgracht.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "url": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "overview.bin",
+      "sha256": "441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12",
+      "bytes": 16551870,
+      "url": "https://assets.iobjectm.com/iom-website/v1/441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12/overview.bin"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "detail-1.bin",
+      "sha256": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f",
+      "bytes": 7273496,
+      "url": "https://assets.iobjectm.com/iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "detail-2.bin",
+      "sha256": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04",
+      "bytes": 7270070,
+      "url": "https://assets.iobjectm.com/iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "detail-3.bin",
+      "sha256": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e",
+      "bytes": 7868099,
+      "url": "https://assets.iobjectm.com/iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "detail-4.bin",
+      "sha256": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a",
+      "bytes": 12472855,
+      "url": "https://assets.iobjectm.com/iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin"
+    },
+    {
+      "variant": "gradual-20",
+      "name": "metro-vijzelgracht.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "url": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "overview.bin",
+      "sha256": "9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461",
+      "bytes": 16905589,
+      "url": "https://assets.iobjectm.com/iom-website/v1/9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461/overview.bin"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "detail-1.bin",
+      "sha256": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f",
+      "bytes": 7273496,
+      "url": "https://assets.iobjectm.com/iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "detail-2.bin",
+      "sha256": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04",
+      "bytes": 7270070,
+      "url": "https://assets.iobjectm.com/iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "detail-3.bin",
+      "sha256": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e",
+      "bytes": 7868099,
+      "url": "https://assets.iobjectm.com/iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "detail-4.bin",
+      "sha256": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a",
+      "bytes": 12472855,
+      "url": "https://assets.iobjectm.com/iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin"
+    },
+    {
+      "variant": "gradual-30",
+      "name": "metro-vijzelgracht.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "url": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr"
+    }
+  ],
+  "objects": [
+    {
+      "key": "iom-website/v1/722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421/overview.bin",
+      "name": "overview.bin",
+      "local": "722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421.bin",
+      "sha256": "722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421",
+      "bytes": 16550591,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/722c17bc85f7529599b4717937ec8262cd8d09db637072f556ca8a8d29dba421/overview.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin",
+      "name": "detail-1.bin",
+      "local": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f.bin",
+      "sha256": "4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f",
+      "bytes": 7273496,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/4ce1ca015ab937e45ee4a71fdd2a22cc3258cd69b492ba6e39583c563cd52e5f/detail-1.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin",
+      "name": "detail-2.bin",
+      "local": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04.bin",
+      "sha256": "0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04",
+      "bytes": 7270070,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/0f0e8bb8148d262e6d0dedb6c0060d603832059a44db75ff82f9c0109014ca04/detail-2.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin",
+      "name": "detail-3.bin",
+      "local": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e.bin",
+      "sha256": "82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e",
+      "bytes": 7868099,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/82d79c4617fb6d89b9cebd3846a2293729ca0c4a85c0da3c659204a38b5cce2e/detail-3.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin",
+      "name": "detail-4.bin",
+      "local": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a.bin",
+      "sha256": "08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a",
+      "bytes": 12472855,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/08c4dae8225a1a1bbdb5d3cc5b92151856db1a7d945740d2b5541ec7011d532a/detail-4.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr",
+      "name": "metro-vijzelgracht.hdr",
+      "local": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b.hdr",
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "bytes": 6483714,
+      "contentType": "application/octet-stream",
+      "url": "https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr",
+      "uploaded": false,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb/overview.bin",
+      "name": "overview.bin",
+      "local": "d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb.bin",
+      "sha256": "d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb",
+      "bytes": 16902857,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/d1ce763a0650591c3cd0a2f54206815bb11ce1318dc28fc44a044f4045973efb/overview.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12/overview.bin",
+      "name": "overview.bin",
+      "local": "441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12.bin",
+      "sha256": "441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12",
+      "bytes": 16551870,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/441001d38351cb50f34a5cdabd61b321f719cd922458a0a05af436158fe43a12/overview.bin",
+      "uploaded": true,
+      "verified": true
+    },
+    {
+      "key": "iom-website/v1/9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461/overview.bin",
+      "name": "overview.bin",
+      "local": "9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461.bin",
+      "sha256": "9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461",
+      "bytes": 16905589,
+      "contentType": "application/gzip",
+      "url": "https://assets.iobjectm.com/iom-website/v1/9bcfd9a1d88a8474e5a380c1e89322af5aace78e297922fb5f8f16726265a461/overview.bin",
+      "uploaded": true,
+      "verified": true
+    }
+  ]
+}

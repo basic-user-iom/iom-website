@@ -7,7 +7,7 @@ const originalLights=[
  {intensity:1.3,width:150,height:90,position:[-35,50,-100],target:[-10,0,0],color:0xe9efff}
 ];
 export const profiles={
- Metro:{label:'Metro HDR reflections',hdr:'./assets/metro-vijzelgracht.hdr',rotation:90,intensity:.5,exposure:1.10,hemisphere:.14,lights:originalLights},
+ Metro:{label:'Metro HDR reflections',hdr:'https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr',rotation:90,intensity:.5,exposure:1.10,hemisphere:.14,lights:originalLights},
 
 };
 export const selectedProfile='Metro';
