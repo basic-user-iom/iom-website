@@ -1,6 +1,7 @@
 const NAMED_SCOPES = {
   // Reviewed email pilot only. Existing CRM/Globe/demo scopes stay unchanged.
   'crm-email': [
+    'scripts/deploy-reviewed-public-data.json',
     'scripts/validate-crm-email-build.mjs',
     'api/crm-email-live-mcp.js',
     'api/crm-email-live-workflow.js',

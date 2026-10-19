@@ -19,7 +19,7 @@ export const EMAIL_REVIEW_APPROVAL = Object.freeze({
 // Candidate only: publishing this pin and enabling SEND require explicit owner approval.
 export const EMAIL_SINGLE_SEND_APPROVAL = Object.freeze({...EMAIL_REVIEW_APPROVAL,
   accessMode:'single-send',reviewDigest:'a8004fa84d190566be72ad01b2753f1f039790b4696043c084d468343392fbc4',
-  sendExpiresAt:'2026-10-19T08:00:00.000Z',
+  sendExpiresAt:'2026-10-19T19:00:00.000Z',
 })
 export const singleSendApproval = pin => pin?.accessMode === 'single-send'
 export const reviewOnlyApproval = pin => pin?.accessMode === 'review-only'
