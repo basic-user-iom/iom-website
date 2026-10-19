@@ -198,12 +198,13 @@ async function boot(){
  renderer.info.autoReset=false;
  let startupFrame:(()=>void)|undefined;
  let frameHandle=0,dirty=false,lastUpdate=performance.now(),lastRender=-Infinity;
- function requestRender(){dirty=true;if(!frameHandle&&!document.hidden)frameHandle=requestAnimationFrame(renderFrame);}
+ function requestRender(){dirty=true;if(!frameHandle&&!document.hidden&&document.documentElement.dataset.loadState!=='choosing')frameHandle=requestAnimationFrame(renderFrame);}
+ window.addEventListener('viewer-entered',()=>{lastUpdate=performance.now();requestRender();});
  if(new URLSearchParams(location.search).has('perf-review'))installPerformanceReview(scene,renderer,effects,requestRender);
  if(new URLSearchParams(location.search).has('lighting-review'))installLightingReview(scene,renderer,lighting,effects,requestRender);
  const renderStudy=new URLSearchParams(location.search).has('render-study')?new RenderStudy(renderer,resourceStats,requestRender):undefined;
  function renderFrame(now:number){
-  frameHandle=0;if(document.hidden||!diagnostics.environmentReady||startup.failed)return;
+  frameHandle=0;if(document.hidden||document.documentElement.dataset.loadState==='choosing'||!diagnostics.environmentReady||startup.failed)return;
   if(now-lastRender<1000/(effects.interacting&&!mobileProfile?Math.max(60,resourceStats.frameLimit):resourceStats.frameLimit)-.5){frameHandle=requestAnimationFrame(renderFrame);return;}
   const frameStarted=performance.now();renderStudy?.begin();if(renderStudy?.freezeShadows)renderer.shadowMap.needsUpdate=false;
   const dt=Math.min((now-lastUpdate)/1000,.1);lastUpdate=now;dirty=false;
@@ -227,7 +228,7 @@ async function boot(){
    if(startup.failed)return;await loadEnvironment(true);if(startup.failed)return;startup.step(7);
    await new Promise<void>(resolve=>{startupFrame=resolve;frame('exterior',false);});
    await new Promise<void>(resolve=>requestAnimationFrame(()=>resolve()));
-   diagnostics.ready=startup.complete();
+   diagnostics.ready=startup.complete(() => { void tour.start(); });
    if(diagnostics.ready)document.querySelectorAll<HTMLButtonElement>('[data-view]').forEach(b=>b.disabled=false);
   }catch(error){diagnostics.errors.push(String(error));startup.fail();}
  }

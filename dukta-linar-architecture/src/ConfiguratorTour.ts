@@ -16,7 +16,7 @@ export class ConfiguratorTour{
  private layout?:{id:Exclude<LinarTarget,'desk'>;elapsed:number;duration:number;started:boolean;from:LinarSettings;to:LinarSettings};
  private snapshot?:Snapshot;private frame=0;private remaining=0;private tween?:Tween;private available=false;private index=0;private paused=false;private reason='not-started';private phase:Phase='idle';private last=0;private serial=0;private error='';
  constructor(private o:Options){
-  const start=this.startButton=document.createElement('button');start.id='tour-start';start.className='traffic-control';start.textContent='Start tour';start.hidden=true;start.title='Explore the configurator with the Gallery of Light soundtrack. Finish on the final view, or end early to restore your settings.';document.querySelector('.dock-actions')!.prepend(start);
+  const start=this.startButton=document.createElement('button');start.id='tour-start';start.className='traffic-control';start.textContent='Start guided tour';start.hidden=true;start.title='Explore the configurator with the Gallery of Light soundtrack. Finish on the final view, or end early to restore your settings.';document.querySelector('.dock-actions')!.prepend(start);
   const panel=this.panel=document.createElement('section');panel.id='tour-panel';panel.hidden=true;panel.setAttribute('aria-label','Configurator tour');panel.innerHTML='<div class="tour-copy"><strong id="tour-step" role="status" aria-live="polite"></strong><small id="tour-detail"></small></div><div class="tour-actions"><button id="tour-previous" aria-label="Previous tour step">Previous</button><button id="tour-next" aria-label="Next tour step">Next</button><button id="tour-pause">Pause</button><button id="tour-mute" aria-pressed="false" aria-label="Mute tour music">Mute</button><button id="tour-stop" title="Restore your settings">End tour</button><button id="tour-replay" hidden>Replay tour</button></div>';document.getElementById('viewer-dock')!.prepend(panel);
   this.pauseButton=panel.querySelector('#tour-pause')!;this.muteButton=panel.querySelector('#tour-mute')!;this.status=panel.querySelector('#tour-step')!;this.detail=panel.querySelector('#tour-detail')!;this.previousButton=panel.querySelector('#tour-previous')!;this.nextButton=panel.querySelector('#tour-next')!;
   start.onclick=()=>void this.start();(panel.querySelector('#tour-replay') as HTMLButtonElement).onclick=()=>void this.start();this.previousButton.onclick=()=>this.previous();this.nextButton.onclick=()=>this.advance();this.pauseButton.onclick=()=>this.paused?this.resume():this.pause();this.muteButton.onclick=()=>{if(this.audio.inspect().error)this.audio.play();else this.audio.toggleMute();this.sync();};(panel.querySelector('#tour-stop') as HTMLButtonElement).onclick=()=>this.stop('ended');
@@ -25,7 +25,15 @@ export class ConfiguratorTour{
  }
  get active(){return !!this.snapshot;}
  setAvailable(value:boolean){this.available=value;if(!value&&this.active)this.stop('navigation');this.sync();}
+ private lastUIState = '';
  private sync(){
+  // Animation ticks need DOM updates only when the displayed state changes.
+  // Keep geometry/camera cadence intact, including live layout percentages.
+  const audio = this.audio.inspect();
+  const progress = this.phase==='layout' ? Math.round(100*(this.layout?.elapsed??0)/(this.layout?.duration??1)) : this.phase==='shape' ? Math.round(100*(this.tween?.elapsed??0)/(this.tween?.duration??1)) : 0;
+  const uiState = JSON.stringify([this.active,this.available,this.phase,this.paused,this.index,!!this.tween,progress,this.error,audio.error,audio.muted]);
+  if(uiState===this.lastUIState)return;
+  this.lastUIState=uiState;
   document.getElementById('stage')!.dataset.touring=String(this.active);
   const completed=this.phase==='completed';this.startButton.hidden=!this.available||this.active||completed;this.panel.hidden=!this.active&&!completed;for(const id of ['tour-previous','tour-next','tour-pause','tour-mute','tour-stop'])(this.panel.querySelector('#'+id) as HTMLButtonElement).hidden=completed;(this.panel.querySelector('#tour-replay') as HTMLButtonElement).hidden=!completed;this.pauseButton.textContent=this.paused?'Resume':'Pause';this.muteButton.textContent=this.audio.inspect().error?'Retry music':this.audio.muted?'Unmute':'Mute';this.muteButton.setAttribute('aria-pressed',String(this.audio.muted));this.muteButton.setAttribute('aria-label',this.audio.inspect().error?'Retry tour music':this.audio.muted?'Unmute tour music':'Mute tour music');
   const travelling=this.phase==='loading'||this.phase==='entry';this.previousButton.disabled=travelling||this.index===0||this.phase==='error';this.nextButton.disabled=travelling||this.phase==='error';this.pauseButton.disabled=this.phase==='error';

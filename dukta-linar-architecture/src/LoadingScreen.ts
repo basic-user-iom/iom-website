@@ -49,13 +49,29 @@ export class LoadingScreen {
   this.title.textContent = 'Unable to load your view'; this.detail.textContent = navigator.onLine ? message : 'You appear to be offline. Reconnect, then try again.';
   this.detail.setAttribute('role', 'alert'); this.progress.hidden = true; this.retry.hidden = false;
  }
- complete() {
+ complete(startTour: () => void) {
   if(this.state !== 'loading') return false;
   this.state = 'ready'; this.completed = phases.length; this.progress.value = phases.length; this.dispose();
-  const focusInside = this.screen.contains(document.activeElement);
-  const app = document.getElementById('app')!; app.inert = false; app.removeAttribute('aria-hidden'); app.removeAttribute('aria-busy');
-  document.documentElement.dataset.loadState = 'ready'; this.screen.hidden = true;
-  if(focusInside) document.getElementById('canvas')?.focus({preventScroll:true});
+  this.title.textContent = 'How would you like to explore?';
+  this.detail.textContent = 'Your visit is ready. Choose a guided introduction or explore at your own pace.';
+  this.progress.hidden = true; this.count.hidden = true; this.retry.hidden = true;
+  document.documentElement.dataset.loadState = 'choosing';
+  const guided = document.getElementById('visit-guided') as HTMLButtonElement;
+  const free = document.getElementById('visit-free') as HTMLButtonElement;
+  const enter = (tour: boolean) => {
+   if(this.screen.hidden) return;
+   const app = document.getElementById('app')!;
+   app.inert = false; app.removeAttribute('aria-hidden'); app.removeAttribute('aria-busy');
+   document.documentElement.dataset.loadState = 'ready';
+   document.documentElement.dataset.visitMode = tour ? 'guided' : 'free';
+   this.screen.hidden = true;
+   window.dispatchEvent(new Event('viewer-entered'));
+   if(tour) { startTour(); document.getElementById('tour-pause')?.focus({preventScroll:true}); }
+   else document.getElementById('canvas')?.focus({preventScroll:true});
+  };
+  guided.disabled = false; free.disabled = false;
+  guided.onclick = () => enter(true); free.onclick = () => enter(false);
+  if(this.screen.contains(document.activeElement) || document.activeElement === document.body) guided.focus({preventScroll:true});
   return true;
  }
  private dispose() { clearInterval(this.timer); document.removeEventListener('visibilitychange', this.visibility); }

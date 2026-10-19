@@ -58,3 +58,11 @@
  #linar-panel{top:60px;bottom:10px}#help-panel{top:60px;max-height:calc(100% - 70px)}#tour-panel .tour-copy small{display:none}
  #walk-touch{left:auto;right:14px;bottom:12px}
 }
+
+/* A calm, visible invitation while exploring; hidden during the guided tour. */
+#viewer-dock #tour-start{background:#315c46;color:#fff;border:1px solid #244a36;font-weight:650;padding:0 18px;min-height:46px;white-space:nowrap}
+#viewer-dock #tour-start:hover{background:#244a36}#viewer-dock #tour-start:focus-visible{outline:3px solid #e7bd68;outline-offset:3px}
+html[data-load-state="ready"] #tour-start:not([hidden]){animation:tour-invitation 3.2s ease-in-out infinite}
+@keyframes tour-invitation{0%,100%{box-shadow:0 0 0 0 rgb(49 92 70 / .12)}50%{box-shadow:0 0 0 5px rgb(49 92 70 / .22)}}
+@media(prefers-reduced-motion:reduce){html[data-load-state="ready"] #tour-start:not([hidden]){animation:none}}
+@media(max-width:700px){#viewer-dock #tour-start{padding:0 14px;font-size:12px}}
