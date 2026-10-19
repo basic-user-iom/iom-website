@@ -52,7 +52,7 @@ export function createEmailStore(acquire) {
       validateLead(row,review.snapshot)
       await validateIntent(c,owner,review.snapshot)
       if (Date.parse(review.expiresAt)<=now) fail('review_expired')
-      const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes}}
+      const data={snapshot:review.snapshot,schedule:review.schedule,authorization:{kind:actor?.kind || 'staff',grantFamily:actor?.grantFamily,scopes:actor?.scopes,...(actor?.accessRevision?{accessRevision:actor.accessRevision}:{})}}
       const due=review.schedule?.at || new Date(now).toISOString()
       let job
       if (replace) {
@@ -82,7 +82,21 @@ export function createEmailStore(acquire) {
     if(!r || emailContentDigest(r.snapshot)!==emailContentDigest(snapshot))fail('message_intent_content_mismatch')
   }
   return {
+    async regularBinding(pin,url) {
+      return (await query(pin.ownerId,`select 1 from crm_email_private.regular_access a
+        join crm_email_private.target_binding t using(owner_id)
+        where a.owner_id=$1 and a.revision=$2 and a.from_identity=$3 and a.from_email=$4
+          and a.from_header=$5 and a.enabled and t.supabase_url=$6`,
+        [pin.ownerId,pin.accessRevision,pin.fromIdentity,pin.fromEmail,pin.fromHeader,url])).rows.length===1
+    },
+    async assertRegularDelivery(owner,id,revision) {
+      const r=await query(owner,`select 1 from crm_email_private.jobs j where j.owner_id=$1 and j.id=$2
+        and j.status='sending' and not j.delivery_started and j.data->'authorization'->>'accessRevision'=$3
+        and crm_email_private.regular_job_authorized(j)`,[owner,id,revision])
+      if(r.rows.length!==1)fail('email_delivery_authorization_changed')
+    },
     async productionBinding(pin,url) {
+      if(pin.accessMode==='regular-projects')return this.regularBinding(pin,url)
       return (await query(pin.ownerId,`select 1 from crm_email_private.pilot p
         join crm_email_private.target_binding t on t.owner_id=p.owner_id
         where p.owner_id=$1 and p.lead_id=$2 and p.recipient=$3 and p.from_identity=$4 and p.from_email=$5

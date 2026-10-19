@@ -23,7 +23,16 @@ export const EMAIL_SINGLE_SEND_APPROVAL = Object.freeze({...EMAIL_REVIEW_APPROVA
 })
 export const singleSendApproval = pin => pin?.accessMode === 'single-send'
 export const reviewOnlyApproval = pin => pin?.accessMode === 'review-only'
-export const EMAIL_PRODUCTION_APPROVAL = EMAIL_SINGLE_SEND_APPROVAL
+// LOCAL PREPARATION ONLY. Switching the active pin requires separate approval.
+export const EMAIL_REGULAR_APPROVAL = Object.freeze({
+  accessMode:'regular-projects',accessRevision:'regular-projects-v1',
+  ownerId:EMAIL_REVIEW_APPROVAL.ownerId,fromIdentity:'projects',
+  fromEmail:EMAIL_REVIEW_APPROVAL.fromEmail,fromHeader:EMAIL_REVIEW_APPROVAL.fromHeader,
+  staffEmail:EMAIL_REVIEW_APPROVAL.staffEmail,clientId:EMAIL_REVIEW_APPROVAL.clientId,
+  redirectUri:EMAIL_REVIEW_APPROVAL.redirectUri,subject:EMAIL_REVIEW_APPROVAL.subject,
+})
+export const regularApproval = pin => pin?.accessMode === 'regular-projects'
+export const EMAIL_PRODUCTION_APPROVAL = EMAIL_REGULAR_APPROVAL
 export const EMAIL_PRODUCTION_REF = 'werfdsobddsijqckymip'
 export const EMAIL_PRODUCTION_ORIGIN = 'https://iobjectm.com'
 export const EMAIL_PRODUCTION_RESOURCE = EMAIL_PRODUCTION_ORIGIN+'/api/crm-email-live-mcp'
@@ -31,14 +40,16 @@ export const EMAIL_PRODUCTION_ISSUER = EMAIL_PRODUCTION_ORIGIN+'/crm-email-ident
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const address=/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/
 export function productionApproval(pin=EMAIL_PRODUCTION_APPROVAL) {
-  if(pin?.accessMode!==undefined && !reviewOnlyApproval(pin) && !singleSendApproval(pin)) fail('email_production_not_approved')
-  if(!pin || !uuid.test(pin.ownerId||'') || !uuid.test(pin.leadId||'') || !address.test(pin.recipient||'') ||
+  if(pin?.accessMode!==undefined && !reviewOnlyApproval(pin) && !singleSendApproval(pin) && !regularApproval(pin)) fail('email_production_not_approved')
+  if(!pin || !uuid.test(pin.ownerId||'') || (!regularApproval(pin) && (!uuid.test(pin.leadId||'') || !address.test(pin.recipient||''))) ||
     !address.test(pin.fromEmail||'') || !['contact','visual','projects'].includes(pin.fromIdentity) ||
     !pin.fromHeader || /[\r\n]/.test(pin.fromHeader) || !address.test(pin.staffEmail||'') || !pin.clientId || !pin.subject) fail('email_production_not_approved')
   if(!['initial','followup'].includes(pin.messageKind||'initial') ||
     ((pin.messageKind==='followup') ? !uuid.test(pin.messageIntentId||'') : pin.messageIntentId!==undefined)) fail('email_production_not_approved')
   if(singleSendApproval(pin) && (pin.messageKind!=='followup' || !/^[a-f0-9]{64}$/.test(pin.reviewDigest||'') ||
     !Number.isFinite(Date.parse(pin.sendExpiresAt)))) fail('email_production_not_approved')
+  if(regularApproval(pin) && (pin.fromIdentity!=='projects' || pin.accessRevision!=='regular-projects-v1' ||
+    ['leadId','recipient','messageKind','messageIntentId','reviewDigest','sendExpiresAt'].some(key=>pin[key]!==undefined))) fail('email_production_not_approved')
   let redirect
   try {redirect=new URL(pin.redirectUri)} catch {fail('email_production_not_approved')}
   if(redirect.protocol!=='https:' || redirect.username || redirect.password || redirect.hash || pin.redirectUri.includes('*')) fail('email_production_not_approved')
@@ -47,6 +58,7 @@ export function productionApproval(pin=EMAIL_PRODUCTION_APPROVAL) {
 // Pin-based, not flag-based: disabling delivery must NEVER reopen the legacy sender.
 export function isProtectedEmailTarget(input,pin=EMAIL_PRODUCTION_APPROVAL) {
   if(!pin) return false
+  if(regularApproval(pin)) return input?.fromIdentity==='projects' || isProtectedEmailTarget(input,EMAIL_REVIEW_APPROVAL)
   return input?.leadId===pin.leadId || String(input?.to||'').trim().toLowerCase()===String(pin.recipient).toLowerCase()
 }
 export function productionDatabase(env,role) {
@@ -89,6 +101,7 @@ export function createSmtpDependencies({env,identities=listProtonIdentities,crea
   }
 }
 export function createProductionRuntime({store,pin,dependencies,env,now=Date.now}) {
+  if(regularApproval(pin)) return createRegularRuntime({store,pin,dependencies,env,now})
   const enabled=()=>{assertProductionTarget(env,pin);return true}
   const exactReview=review=>{
     if(singleSendApproval(pin) && (review.schedule!==null || review.replaceJobId ||
@@ -135,6 +148,67 @@ export function createProductionRuntime({store,pin,dependencies,env,now=Date.now
     }}
   // createEmailRuntime's runDue closes over the original workflow; both share the
   // same scoped store and beforeDelivery boundary. No cron gets a send super-grant.
+  return service
+}
+// Owner-scoped operation remains inaccessible until both code and DB approval agree.
+function createRegularRuntime({store,pin,dependencies,env,now}) {
+  productionApproval(pin)
+  const binding=()=>store.regularBinding(pin,'https://'+EMAIL_PRODUCTION_REF+'.supabase.co')
+  const grantFor=async actor=>{
+    if(actor?.kind!=='oauth' || actor.ownerId!==pin.ownerId)return null
+    const grant=await store.grant(pin.ownerId,actor.grantFamily)
+    return grant?.access_revision===pin.accessRevision && !grant.revoked_at && Date.parse(grant.expires_at)>now()?grant:null
+  }
+  const validateSchedule=async(actor,schedule)=>{
+    if(!schedule)return
+    const grant=await grantFor(actor)
+    if(!grant || !actor.scopes?.includes('iom:crm:email:schedule') || !grant.scopes.includes('iom:crm:email:schedule'))fail('email_access_denied')
+    if(Date.parse(schedule.at)>=Date.parse(grant.expires_at))fail('schedule_exceeds_connection_expiry')
+  }
+  const scopedStore={...store,lead:async(owner,id)=>{
+    if(owner!==pin.ownerId)fail('email_access_denied')
+    const lead=await store.lead(owner,id)
+    if(lead?.scheduled_send)fail('legacy_schedule_requires_separate_review')
+    return lead
+  }}
+  const service=createEmailRuntime({store:scopedStore,ownerId:pin.ownerId,identities:dependencies.identities,now,
+    enabled:()=>{assertProductionTarget(env,pin);return true},providerDependencies:dependencies,validateSchedule,
+    authorizeAction:async(actor,action)=>{
+      if(!await binding())return false
+      if(actor.kind==='worker')return action==='worker' && env.CRM_EMAIL_SEND_ENABLED==='true'
+      if(!await grantFor(actor))return false
+      return !['send','schedule'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true'
+    },
+    beforeDelivery:async(snapshot,context)=>{
+      assertProductionTarget(env,pin)
+      if(env.CRM_EMAIL_SEND_ENABLED!=='true' || !await binding())fail('email_delivery_paused')
+      if(snapshot.fromIdentity!==pin.fromIdentity || snapshot.from!==pin.fromEmail || snapshot.fromHeader!==pin.fromHeader ||
+        !['initial','followup'].includes(snapshot.kind) || snapshot.inReplyTo || snapshot.attachments?.length)fail('email_sender_binding_mismatch')
+      await store.assertRegularDelivery(context.ownerId,context.jobId,pin.accessRevision)
+    }})
+  const flow=service.workflow
+  // Revision is taken from the approved server pin and checked against the grant
+  // in the DB on every action. It is never accepted as authority from tool arguments.
+  const bound=actor=>({...actor,accessRevision:pin.accessRevision})
+  service.workflow={...flow,
+    confirm:(actor,args)=>flow.confirm(bound(actor),args),
+    previewReschedule:(actor,args)=>flow.previewReschedule(bound(actor),args),
+    preview:async(actor,args)=>{
+      if(args?.fromIdentity!==pin.fromIdentity || args?.replaceLegacySchedule)fail('email_regular_scope_only')
+      const review=await flow.preview(bound(actor),args)
+      return {...review,authorizationExpiresAt:(await grantFor(actor))?.expires_at,
+        schedulingNote:'Delivery uses the next successful CRM scheduler run after the selected Europe/Belgrade time.'}
+    },
+    sendLegacy:async()=>fail('email_explicit_review_required'),
+    list:async(actor,args)=>{
+      const jobs=await flow.list(actor,args)
+      return Promise.all(jobs.map(async job=>{
+        if(job.status!=='queued')return job
+        const grant=await store.grant(pin.ownerId,job.authorization?.grantFamily)
+        const valid=grant?.access_revision===pin.accessRevision && !grant.revoked_at && Date.parse(grant.expires_at)>now()
+        return {...job,authorizationExpiresAt:grant?.expires_at||null,...(!valid?{warning:'authorization_expired_or_revoked_new_review_required'}:{})}
+      }))
+    }}
   return service
 }
 let service,pool

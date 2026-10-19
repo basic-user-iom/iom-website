@@ -39,7 +39,7 @@ export function belgradeSchedule(local, offset, now) {
 
 // No credentials, network, environment loading, or production fallback in this module.
 // authorize is REQUIRED on each operation and again before a worker claims a job.
-export function createEmailWorkflow({ store, identities, send, authorize, enabled = () => false, now = Date.now }) {
+export function createEmailWorkflow({ store, identities, send, authorize, enabled = () => false, now = Date.now, validateSchedule = async()=>{} }) {
   async function gate(actor, action) {
     if (!enabled()) fail('email_workflow_disabled')
     if (!actor || !UUID.test(actor.ownerId || '') || typeof authorize !== 'function' || await authorize(actor, action) !== true) fail('email_access_denied')
@@ -123,6 +123,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       if (args.utcOffset !== undefined && args.scheduledLocal === undefined) fail('offset_requires_schedule')
       const content = await snapshot(actor, args)
       const schedule = args.scheduledLocal === undefined ? null : belgradeSchedule(args.scheduledLocal, args.utcOffset, now())
+      await validateSchedule(actor,schedule)
       const reviewed = { snapshot: content, schedule }
       const digest = hash(reviewed)
       const review = await store.review(actor.ownerId, { ...reviewed, digest, expiresAt: new Date(now() + 15 * 60000).toISOString() })
@@ -140,6 +141,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
         if ((existing.commandReviewId || existing.reviewId) !== args.reviewId) fail('idempotency_conflict')
         return existing
       }
+      await validateSchedule(actor,review.schedule)
       if (+new Date(review.expiresAt) <= now()) fail('review_expired')
       if (review.schedule && +new Date(review.schedule.at) <= now()) fail('schedule_must_be_future')
       try {
@@ -174,6 +176,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       if (job.status !== 'queued') fail('cannot_reschedule_delivery_started_or_finished')
       if (emailContentDigest(await snapshot(actor,job.snapshot)) !== emailContentDigest(job.snapshot)) fail('review_stale')
       const schedule = belgradeSchedule(args.scheduledLocal,args.utcOffset,now())
+      await validateSchedule(actor,schedule)
       const reviewed = {snapshot:job.snapshot,schedule,replaceJobId:job.id,expectedVersion:job.version}
       return {...await store.review(actor.ownerId,{...reviewed,digest:hash(reviewed),expiresAt:new Date(now()+15*60000).toISOString()}),status:'review',requiresExplicitConfirmation:true}
     },

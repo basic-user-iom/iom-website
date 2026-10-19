@@ -63,7 +63,7 @@ export function issuerConfig(env = process.env,pin=EMAIL_PRODUCTION_APPROVAL) {
       resource: resource.href,
       redirectUri: env.CRM_EMAIL_OAUTH_REDIRECT_URI,
       clientId, subject, ownerId, staffEmail:approved.staffEmail, signingJwk: signing, kid: 'iom-email-oauth-1',
-      reviewOnly:reviewOnlyApproval(approved),singleSend:singleSendApproval(approved),sendExpiresAt:approved.sendExpiresAt,
+      reviewOnly:reviewOnlyApproval(approved),singleSend:singleSendApproval(approved),sendExpiresAt:approved.sendExpiresAt,accessRevision:approved.accessRevision,
     })
   } catch (error) {
     if (error instanceof EmailOAuthError) throw error
@@ -159,6 +159,7 @@ function consentPage(config, query, authRef = '') {
   const accessDescription = config.reviewOnly
     ? 'This connection can display and save private draft reviews for the approved pilot contact and read job status. It cannot send, schedule, reschedule or cancel email.'
     : config.singleSend ? 'This connection can review the approved pilot draft and confirm one immediate delivery to mirjan.foto@gmail.com from projects@iobjectm.com before 23:00 Europe/Belgrade on 19 October 2026. It cannot schedule, reschedule or cancel email. All other messages are blocked.'
+    : config.accessRevision ? 'This connection can review and send email from projects@iobjectm.com to addresses already stored on your own CRM contacts, schedule in Europe/Belgrade, reschedule and cancel queued messages. Each send or schedule requires your explicit confirmation of recipient, sender, content and time. The connection lasts at most 14 days; schedules must fall within its expiry. It cannot import or edit contact addresses, use other senders, or send bulk messages.'
     : 'This connection can review, send, schedule and cancel email for the approved pilot contact. Each email needs an explicit review and confirmation.'
   return `<!doctype html><html lang="en"><meta charset="utf-8"><title>IOM CRM email consent</title><body><main id="consent" data-issuer="${escapeHtml(config.issuer)}" data-redirect="${escapeHtml(config.redirectUri)}" data-resource="${escapeHtml(config.resource)}" data-client="${escapeHtml(config.clientId)}" data-state="${escapeHtml(query.state)}" data-scope="${escapeHtml(query.scope)}" data-challenge="${escapeHtml(query.code_challenge)}" data-login="${escapeHtml(login)}" data-auth-ref="${escapeHtml(authRef)}"><h1>Connect ChatGPT to IOM CRM email</h1><p>${accessDescription}</p><ul>${scopes}</ul><p id="status">Checking the existing CRM sign-in.</p><p><a id="login" href="${escapeHtml(login)}">Sign in at the CRM</a></p><button id="allow" type="button" hidden>Allow</button><button id="deny" type="button">Deny</button></main><script>
 const root=document.getElementById('consent'),status=document.getElementById('status'),login=document.getElementById('login'),allow=document.getElementById('allow')
@@ -193,6 +194,7 @@ export async function createIssuer(config, store, options = {}) {
     return new SignJWT({
       client_id: config.clientId, scope: row.scope, iom_crm_access: 'email_workflow',
       role: 'iom_email_oauth', grant_family: row.familyId, owner_id:config.ownerId,
+      ...(config.accessRevision?{email_access_revision:config.accessRevision}:{}),
     }).setProtectedHeader({ alg: 'ES256', kid: config.kid, typ: 'JWT' })
       .setIssuer(config.issuer).setSubject(config.subject).setAudience(config.resource)
       .setIssuedAt(iat).setExpirationTime(iat + ACCESS_SECONDS).sign(privateKey)
@@ -218,6 +220,7 @@ export async function createIssuer(config, store, options = {}) {
         digest: digest(consent), requestId, clientId: config.clientId, redirectUri: config.redirectUri,
         resource: config.resource, scope, state: String(input.state), codeChallenge: input.code_challenge,
         ownerId: config.ownerId, expiresAt: at(CONSENT_SECONDS),
+        ...(config.accessRevision?{accessRevision:config.accessRevision}:{}),
       }))
       return { request_id: requestId, consent_token: consent }
     },
@@ -226,7 +229,8 @@ export async function createIssuer(config, store, options = {}) {
       if(!await store.staffActive())throw new EmailOAuthError('consent_denied',403)
       if (typeof input?.consent_token !== 'string' || typeof input?.request_id !== 'string') throw new EmailOAuthError('invalid_request', 400)
       const pending = rowFrom(await stored(() => store.consumeRequest(digest(input.consent_token), input.request_id)))
-      if (!pending || pending.redirectUri !== config.redirectUri || pending.ownerId!==config.ownerId) throw new EmailOAuthError('invalid_grant', 400)
+      if (!pending || pending.redirectUri !== config.redirectUri || pending.ownerId!==config.ownerId ||
+        (pending.accessRevision||null)!==(config.accessRevision||null)) throw new EmailOAuthError('invalid_grant', 400)
       scopesOf(pending.scope,config)
       const code = secret()
       const familyId = randomUUID()
@@ -234,6 +238,7 @@ export async function createIssuer(config, store, options = {}) {
         digest: digest(code), familyId, clientId: config.clientId, redirectUri: config.redirectUri,
         resource: config.resource, scope: pending.scope, codeChallenge: pending.codeChallenge,
         ownerId: config.ownerId, expiresAt: at(CODE_SECONDS),
+        ...(config.accessRevision?{accessRevision:config.accessRevision}:{}),
         ...(config.singleSend && pending.scope.split(' ').includes(EMAIL_SCOPES.send)?{grantExpiresAt:config.sendExpiresAt}:{}),
       }))
       const redirect = new URL(config.redirectUri)
@@ -293,6 +298,7 @@ export async function createIssuer(config, store, options = {}) {
     return tokenResponse(row, refresh)
   }
   async function tokenResponse(row, refresh) {
+    if((row.accessRevision||null)!==(config.accessRevision||null))throw new EmailOAuthError('invalid_grant',400)
     scopesOf(row.scope,config)
     if(row.ownerId!==config.ownerId || row.clientId!==config.clientId || row.resource!==config.resource || !await store.grantActive(row.familyId))throw new EmailOAuthError('invalid_grant',400)
     return {
@@ -338,7 +344,7 @@ export async function readOauthBody(req) {
   throw new EmailOAuthError('invalid_request', 400)
 }
 
-export function createEmailIssuerHttp({configure=issuerConfig,storeFactory=config=>createProductionOAuthStore(acquireEmailOAuthConnection,config.ownerId),
+export function createEmailIssuerHttp({configure=issuerConfig,storeFactory=config=>createProductionOAuthStore(acquireEmailOAuthConnection,config.ownerId,{accessRevision:config.accessRevision}),
   staffAuth=async req=>(await import('./blog-helpers.js')).requireStaffUser(req),fetchMetadata=globalThis.fetch}={}) {
 return async function emailIssuerHttp(req,res) {
   res.setHeader('Cache-Control','no-store');res.setHeader('Referrer-Policy','no-referrer')

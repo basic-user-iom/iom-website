@@ -74,7 +74,7 @@ export async function processDueScheduledSends(opts) {
 
   const results = []
   for (const { row, schedule } of due) {
-    if(isProtectedEmailTarget({leadId:row.id,to:schedule.to||row.email})) {
+    if(isProtectedEmailTarget({leadId:row.id,to:schedule.to||row.email,fromIdentity:schedule.from||'contact'})) {
       results.push({id:row.id,ok:false,code:'email_pilot_schedule_requires_review'})
       continue // No claim, retry counter or schedule rewrite in the old worker.
     }

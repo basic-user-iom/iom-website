@@ -1,7 +1,7 @@
 // Server build only. Never expose this module through an HTTP route or frontend import.
 import { X509Certificate, createPrivateKey, createPublicKey, randomBytes, sign, verify } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
-import { EMAIL_REVIEW_APPROVAL, EMAIL_SINGLE_SEND_APPROVAL, EMAIL_PRODUCTION_RESOURCE, EMAIL_PRODUCTION_ISSUER } from '../api/_lib/crm-email-production.mjs'
+import { EMAIL_REVIEW_APPROVAL, EMAIL_SINGLE_SEND_APPROVAL, EMAIL_REGULAR_APPROVAL, EMAIL_PRODUCTION_RESOURCE, EMAIL_PRODUCTION_ISSUER } from '../api/_lib/crm-email-production.mjs'
 import { emailDigest } from '../api/_lib/crm-email-workflow.mjs'
 
 const PROJECT = 'werfdsobddsijqckymip'
@@ -60,7 +60,7 @@ function safeFailure(error) {
   return 'CHECK'
 }
 
-async function validateDatabase(env, role, createClient, reviewOnly = false, singleSend = false) {
+async function validateDatabase(env, role, createClient, reviewOnly = false, singleSend = false, regular = false) {
   const client = await createClient(databaseOptions(env, role))
   client.on('error', () => {}) // Never log pg errors: they may contain credentials or SQL context.
   let timer
@@ -79,7 +79,28 @@ async function validateDatabase(env, role, createClient, reviewOnly = false, sin
       SELECT 1 FROM public.crm_staff_profiles WHERE id = $1 AND active
     ) AS staff_active`, [OWNER])).rows[0]
     requireTrue(binding?.owner_matches === true && binding.staff_active === true)
-    if (role === 'iom_email_gateway') {
+    if (regular) {
+      const access = (await client.query(`SELECT EXISTS (
+        SELECT 1 FROM crm_email_private.regular_access WHERE owner_id=$1 AND revision=$2
+        AND from_identity='projects' AND from_email='projects@iobjectm.com'
+        AND from_header='IOM Projects <projects@iobjectm.com>' AND enabled
+      ) AS regular_matches, NOT EXISTS (
+        SELECT 1 FROM crm_email_private.grant_families WHERE owner_id=$1
+        AND revoked_at IS NULL AND expires_at>statement_timestamp() AND access_revision=$2
+        AND (NOT scopes <@ ARRAY['iom:crm:email:read','iom:crm:email:send','iom:crm:email:schedule','iom:crm:email:cancel']::text[]
+          OR NOT scopes @> ARRAY['iom:crm:email:read']::text[]
+          OR expires_at>statement_timestamp()+interval '336 hours')
+      ) AS regular_grants_safe`, [OWNER, EMAIL_REGULAR_APPROVAL.accessRevision])).rows[0]
+      requireTrue(access?.regular_matches===true && access.regular_grants_safe===true)
+      if(role==='iom_email_gateway') {
+        const target=(await client.query(`SELECT EXISTS (SELECT 1 FROM crm_email_private.target_binding
+          WHERE owner_id=$1 AND supabase_url=$2) AS regular_target_matches,
+          EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname='crm_email_private' AND indexname='email_exact_content_one_attempt') AS content_guard_present,
+          EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid='crm_email_private.jobs'::regclass
+            AND tgname='email_regular_review_boundary' AND tgenabled='O') AS review_guard_present`,[OWNER,`https://${PROJECT}.supabase.co`])).rows[0]
+        requireTrue(target?.regular_target_matches===true && target.content_guard_present===true && target.review_guard_present===true)
+      }
+    } else if (role === 'iom_email_gateway') {
       const target = (await client.query(`SELECT EXISTS (
         SELECT 1 FROM crm_email_private.target_binding WHERE owner_id = $1 AND supabase_url = $2
       ) AS target_matches, EXISTS (
@@ -128,14 +149,17 @@ export async function runBuildValidation({ env, approvalPin, createClient, ident
   }
   const reviewOnly = approvalPin?.accessMode === 'review-only'
   const singleSend = approvalPin?.accessMode === 'single-send'
-  const expectedPin = singleSend ? EMAIL_SINGLE_SEND_APPROVAL : EMAIL_REVIEW_APPROVAL
-  const controls = await check(singleSend ? 'SINGLE_SEND_CONTROLS' : reviewOnly ? 'REVIEW_ONLY_CONTROLS' : 'CONTROLS_OFF', () => {
-    if (reviewOnly || singleSend) {
+  const regular = approvalPin?.accessMode === 'regular-projects'
+  const expectedPin = regular ? EMAIL_REGULAR_APPROVAL : singleSend ? EMAIL_SINGLE_SEND_APPROVAL : EMAIL_REVIEW_APPROVAL
+  const controls = await check(regular ? 'REGULAR_PROJECTS_CONTROLS' : singleSend ? 'SINGLE_SEND_CONTROLS' : reviewOnly ? 'REVIEW_ONLY_CONTROLS' : 'CONTROLS_OFF', () => {
+    if (reviewOnly || singleSend || regular) {
       requireTrue(Object.keys(approvalPin).length === Object.keys(expectedPin).length &&
         Object.entries(expectedPin).every(([key,value]) => approvalPin[key] === value))
       if(singleSend) requireTrue(Date.now()<Date.parse(expectedPin.sendExpiresAt))
-      const enabled = [...(singleSend?['CRM_EMAIL_SEND_ENABLED']:[]),'CRM_EMAIL_PRODUCTION_ENABLED','CRM_EMAIL_OAUTH_ISSUER_ENABLED','CRM_EMAIL_LIVE_MCP_ENABLED']
-      requireTrue(enabled.every(key=>env[key]==='true') && env.CRM_EMAIL_SEND_ENABLED===(singleSend?'true':'false') &&
+      if(regular)requireTrue(['true','false'].includes(env.CRM_EMAIL_SEND_ENABLED))
+      const sendOn = singleSend || (regular && env.CRM_EMAIL_SEND_ENABLED==='true')
+      const enabled = [...(sendOn?['CRM_EMAIL_SEND_ENABLED']:[]),'CRM_EMAIL_PRODUCTION_ENABLED','CRM_EMAIL_OAUTH_ISSUER_ENABLED','CRM_EMAIL_LIVE_MCP_ENABLED']
+      requireTrue(enabled.every(key=>env[key]==='true') && env.CRM_EMAIL_SEND_ENABLED===(sendOn?'true':'false') &&
         OFF_FLAGS.filter(key=>!enabled.includes(key)).every(key=>!env[key]||env[key]==='false'))
       const bindings = {CRM_EMAIL_PROVIDER:'smtp',CRM_EMAIL_SUPABASE_URL:`https://${PROJECT}.supabase.co`,
         CRM_EMAIL_MCP_RESOURCE_URL:EMAIL_PRODUCTION_RESOURCE,CRM_EMAIL_OAUTH_ISSUER:EMAIL_PRODUCTION_ISSUER,
@@ -149,8 +173,8 @@ export async function runBuildValidation({ env, approvalPin, createClient, ident
   if (!controls) return { ok: false, skipped: false, results }
   const ca = await check('PUBLIC_CA', () => validateCa(env))
   if (ca) {
-    await check('GATEWAY_DB', () => validateDatabase(env, 'iom_email_gateway', createClient, reviewOnly, singleSend))
-    await check('OAUTH_DB', () => validateDatabase(env, 'iom_email_oauth', createClient, reviewOnly, singleSend))
+    await check('GATEWAY_DB', () => validateDatabase(env, 'iom_email_gateway', createClient, reviewOnly, singleSend, regular))
+    await check('OAUTH_DB', () => validateDatabase(env, 'iom_email_oauth', createClient, reviewOnly, singleSend, regular))
   }
   await check('SIGNING_JWK', () => validateSigningKey(env.CRM_EMAIL_OAUTH_SIGNING_JWK))
   await check('PROJECTS_SENDER', () => {
