@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
 /**
  * Scoped production deployment.
  *
@@ -18,6 +18,7 @@ import {
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { assertReleaseManifestSecrets, knownValuesFromEnvironment, SecretScanError, withScannedRelease } from './deploy-secret-scan.mjs'
 import {
   inferDeployScope,
   isValidDemoSlug,
@@ -34,7 +35,7 @@ const npm = process.platform === 'win32'
 const npx = process.platform === 'win32'
   ? { file: process.execPath, prefix: [join(nodeBin, 'node_modules', 'npm', 'bin', 'npx-cli.js')] }
   : { file: 'npx', prefix: [] }
-const MAX_SOURCE_BYTES = 800_000_000
+const MAX_SOURCE_BYTES = 1_000_000_000
 const FORBIDDEN_UPLOAD_PREFIXES = [
   '.env',
   '.qa-out/',
@@ -250,7 +251,8 @@ function newAlternateIndex(stage, commit, suffix) {
   return { indexFile, env }
 }
 
-function checkoutPaths(stage, commit, paths, suffix) {
+function checkoutPaths(stage, commit, paths, suffix, omitted = new Set()) {
+  paths = paths.filter(path => !omitted.has(path))
   if (paths.length === 0) return
   const { indexFile, env } = newAlternateIndex(stage, commit, suffix)
   const prefix = `${stage.replaceAll('\\', '/')}/`
@@ -269,17 +271,25 @@ function checkoutPaths(stage, commit, paths, suffix) {
   }
 }
 
-function exportBase(stage, commit) {
+function exportBase(stage, commit, omitted = new Set()) {
   const { indexFile, env } = newAlternateIndex(stage, commit, 'base')
   const prefix = `${stage.replaceAll('\\', '/')}/`
   try {
+    // Development configuration is not a release asset. Remove the env template
+    // and editor/CI tooling from the isolated export BEFORE reading their bytes.
+    // The real repository/index remain untouched; credential-path scanning of
+    // the complete upload manifest remains mandatory and has no exception.
+    const developmentOnly = listCommitFiles(commit).filter(file =>
+      omitted.has(file) || file === '.env.example' || file.startsWith('.cursor/') || file.startsWith('.github/'))
+    for (let offset = 0; offset < developmentOnly.length; offset += 100)
+      command('git', ['update-index', '--force-remove', '--', ...developmentOnly.slice(offset, offset + 100)], { env })
     command('git', ['checkout-index', '--all', '--force', `--prefix=${prefix}`], { env })
   } finally {
     rmSync(indexFile, { force: true })
   }
 }
 
-function applyScope(stage, activeFiles, scope, commit, sequence) {
+function applyScope(stage, activeFiles, scope, commit, sequence, omitted = new Set()) {
   const previous = [...activeFiles].filter((file) => matchesDeployScope(file, scope))
   for (const file of previous) {
     rmSync(join(stage, ...file.split('/')), { force: true })
@@ -287,23 +297,31 @@ function applyScope(stage, activeFiles, scope, commit, sequence) {
   }
 
   const next = listCommitFiles(commit).filter((file) => matchesDeployScope(file, scope))
-  checkoutPaths(stage, commit, next, `overlay-${sequence}`)
+  checkoutPaths(stage, commit, next, `overlay-${sequence}`, omitted)
   for (const file of next) activeFiles.add(file)
 }
 
-function composeSnapshot(state, scopes, head) {
+function composeSnapshot(state, scopes, head, productionManifest, deploymentId) {
   const stage = mkdtempSync(join(tmpdir(), 'iom-website-deploy-'))
   try {
     const fullSite = scopes.includes('site')
     const base = fullSite ? head : state.base
     const overlays = fullSite ? {} : { ...state.overlays }
-    if (!fullSite) for (const scope of scopes) overlays[scope] = head
-
-    exportBase(stage, base)
+    if (!fullSite) for (const scope of scopes) {
+      // The requested scope wins overlaps; unrelated scope commits remain unchanged.
+      delete overlays[scope]
+      overlays[scope] = head
+    }
+    const reuse = createReusePlan({ root, deploymentId, manifest: productionManifest,
+      files: snapshotFiles(root, base, overlays), previousFiles: snapshotFiles(root, state.base, state.overlays),
+      knownValues: knownValuesFromEnvironment(process.env) })
+    const omitted = new Set(reuse.omitted)
+    console.log(`Reusing ${reuse.files.length} media paths (${(reuse.reusedBytes / 1_000_000).toFixed(2)} MB) without staging their payloads.`)
+    exportBase(stage, base, omitted)
     const activeFiles = new Set(listCommitFiles(base))
     let sequence = 0
     for (const [scope, commit] of Object.entries(overlays)) {
-      applyScope(stage, activeFiles, scope, commit, sequence++)
+      applyScope(stage, activeFiles, scope, commit, sequence++, omitted)
     }
 
     const projectFile = join(root, '.vercel', 'project.json')
@@ -311,18 +329,19 @@ function composeSnapshot(state, scopes, head) {
     mkdirSync(join(stage, '.vercel'), { recursive: true })
     copyFileSync(projectFile, join(stage, '.vercel', 'project.json'))
 
-    return { stage, base, overlays }
+    const reuseIdentity = prepareStagedReuse(stage, reuse)
+    return { stage, base, overlays, reuse, reuseIdentity }
   } catch (error) {
     cleanupStage(stage)
     throw error
   }
 }
 
-function buildSnapshot(stage, scopes) {
+function buildSnapshot(stage, scopes, reuse) {
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   // Restore the exact committed ICM GLB before the static build and R2 upload.
   const viewerAssets = join(stage, 'building-viewer', 'scripts', 'prepare-runtime-assets.mjs')
-  if (existsSync(viewerAssets)) command(process.execPath, [viewerAssets], { cwd: stage })
+  if (existsSync(viewerAssets) && !reuse?.runtimeComplete) command(process.execPath, [viewerAssets], { cwd: stage })
   const sourceModules = join(root, 'node_modules')
   if (!existsSync(sourceModules)) fail('Root node_modules is missing. Run npm install first.')
   const stageModules = join(stage, 'node_modules')
@@ -357,7 +376,8 @@ function demoSlugForScope(scope) {
   return null
 }
 
-function verifyUploadManifest(stage, scopes, _scanOptions, preparingAssets = false) {
+function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = false) {
+  scanOptions = { ...scanOptions, phase: preparingAssets ? 'pre-r2' : 'upload' }
   const output = packageCommand(
     npx,
     ['--yes', 'vercel', 'deploy', '--dry', '--format=json', '--cwd', stage],
@@ -397,7 +417,10 @@ function verifyUploadManifest(stage, scopes, _scanOptions, preparingAssets = fal
       fail(`${publishedIndex} is missing from the upload manifest for scope "${scope}".`)
     }
   }
-  console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB\n`)
+  const scan = assertReleaseManifestSecrets(stage, manifest, scanOptions)
+  console.log(`\nUpload manifest: ${manifest.fileCount} files, ${(manifest.totalSize / 1_000_000).toFixed(1)} MB; configured secret checks passed.\n`)
+  console.log(JSON.stringify({ phase: preparingAssets ? 'pre-r2' : 'upload', files: manifest.fileCount, bytes: manifest.totalSize }))
+  return scan
 }
 
 function deploySnapshot(snapshot, head, scopes) {
@@ -438,7 +461,12 @@ function main() {
     ensureAncestor(origin, head, 'Target must be a descendant of origin/master; refusing a non-fast-forward release.')
     ensureAncestor(head, workspaceHead, 'Target must be an ancestor of the current local master branch.')
   }
-  const state = productionState(productionMetadata())
+  const deployment = productionMetadata()
+  const state = productionState(deployment)
+  const productionManifest = readProductionManifest(root, deployment, route => {
+    const output = packageCommand(npx, ['--no-install', 'vercel', 'api', route], { capture: true })
+    return JSON.parse(output.slice(Math.min(...[output.indexOf('['), output.indexOf('{')].filter(n => n >= 0))))
+  })
   const scopes = resolveScopes(requestedScopes(argv), state.base, head)
   const unpushed = validateUnpushedFiles(scopes, head)
 
@@ -451,30 +479,34 @@ function main() {
 
   let snapshot
   try {
-    snapshot = composeSnapshot(state, scopes, head)
-    buildSnapshot(snapshot.stage, scopes)
+    snapshot = composeSnapshot(state, scopes, head, productionManifest, deployment.id)
+    buildSnapshot(snapshot.stage, scopes, snapshot.reuse)
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.
-      verifyUploadManifest(snapshot.stage, scopes, undefined, true)
+      verifyUploadManifest(snapshot.stage, scopes, { knownValues: knownValuesFromEnvironment(process.env) }, true)
       command(process.execPath, [
         join(root, 'scripts/prepare-r2-release.mjs'), '--stage', snapshot.stage,
+        ...(snapshot.reuseIdentity ? ['--reuse-identity', snapshot.reuseIdentity] : []),
         ...(verifyOnly ? ['--verify-only'] : []),
       ])
     }
-    verifyUploadManifest(snapshot.stage, scopes)
-    if (verifyOnly) {
-      console.log('Verification complete. Nothing was pushed or deployed.\n')
-      return
-    }
-    command('git', [
-      '-c', 'http.version=HTTP/1.1',
-      '-c', 'http.postBuffer=209715200',
-      '-c', 'http.lowSpeedLimit=1',
-      '-c', 'http.lowSpeedTime=30',
-      'push', 'origin', `${head}:refs/heads/master`,
-    ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } })
-    deploySnapshot(snapshot, head, scopes)
+    const knownValues = knownValuesFromEnvironment(process.env)
+    withScannedRelease({
+      verifyOnly,
+      // Git hooks may run during push. Re-enumerate and re-scan the exact upload
+      // before publication; changed paths/bytes refuse instead of reusing a pass.
+      scan: expectedIdentity => verifyUploadManifest(snapshot.stage, scopes, { knownValues, expectedIdentity }),
+      push: () => command('git', [
+        '-c', 'http.version=HTTP/1.1',
+        '-c', 'http.postBuffer=209715200',
+        '-c', 'http.lowSpeedLimit=1',
+        '-c', 'http.lowSpeedTime=30',
+        'push', 'origin', `${head}:refs/heads/master`,
+      ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }),
+      publish: () => deploySnapshot(snapshot, head, scopes),
+    })
+    if (verifyOnly) console.log('Verification complete. Nothing was pushed or deployed.\n')
   } finally {
     cleanupStage(snapshot?.stage)
   }
@@ -483,7 +515,12 @@ function main() {
 try {
   main()
 } catch (error) {
-  if (error?.name === 'DeployBlockedError') {
+  if (error instanceof SecretScanError) {
+    console.error(`\nDeploy blocked: ${error.code}. No matched content was printed.\n`)
+    if (error.fileCheck) console.error(JSON.stringify({ fileCheck: error.fileCheck }))
+    if (error.contentChecks) console.error(JSON.stringify({ contentChecks: error.contentChecks }))
+    else if (error.contentCheck) console.error(JSON.stringify({ contentCheck: error.contentCheck }))
+  } else if (error?.name === 'DeployBlockedError') {
     console.error(`\nDeploy blocked: ${error.message}\n`)
   } else {
     console.error(error)

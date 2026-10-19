@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "purpose": "Exact public response challenge classification; only the pinned match and context are exempted from the HTTP authentication signature. All other scans remain active.",
+  "files": {
+    "api/_lib/crm-email-mcp.mjs": [
+      {
+        "fileDigest": "44efd98f3181a3ead4b034fe5e4d61f105e8d89d411ac07e66c64e4f691f1a7a",
+        "sourceOffset": 2948,
+        "contextStart": 2914,
+        "contextEnd": 2996
+      },
+      {
+        "fileDigest": "81825f96a601cae847bc0c3b1310ecdffccb7b11d15b74baa290ec5df84d7b5d",
+        "sourceOffset": 2983,
+        "contextStart": 2949,
+        "contextEnd": 3031
+      },
+      {
+        "fileDigest": "32f59f5410be4f1d57fc3c680202a34899316bbeb29c6a6dcd8b18fff1c4cdf6",
+        "sourceOffset": 3000,
+        "contextStart": 2966,
+        "contextEnd": 3048
+      },
+      {
+        "fileDigest": "53455c37ab98be0d23193b525d4cfc23784fb2e98cfaae1dac5e1165c95b39d5",
+        "sourceOffset": 2982,
+        "contextStart": 2948,
+        "contextEnd": 3030
+      },
+      {
+        "fileDigest": "663568654914455ef84bba890218849ca5e0e41a019c8f7c7c1aa58f2ee2b4eb",
+        "sourceOffset": 3017,
+        "contextStart": 2983,
+        "contextEnd": 3065
+      }
+    ]
+  }
+}

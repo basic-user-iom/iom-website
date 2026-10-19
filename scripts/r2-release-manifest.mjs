@@ -58,22 +58,32 @@ export function validateManifest(manifest) {
   for (const entry of manifest.files) {
     sourcePath(resolve('validation-only'), entry.path)
     if (paths.has(entry.path) || !mediaType(entry.path) || !/^[a-f0-9]{64}$/.test(entry.sha256) || !Number.isSafeInteger(entry.bytes) || entry.bytes < 1 || entry.key !== objectKey(entry.path, entry.sha256)) throw new Error('Invalid R2 release asset')
+    if (entry.access && entry.access !== 'public') throw new Error('Private media cannot use public R2 delivery')
+    if (entry.delivery && !['legacy', 'canonical'].includes(entry.delivery)) throw new Error('Unknown asset delivery mode')
+    if (entry.delivery === 'canonical' && !/^[a-f0-9]{64}$/.test(entry.rangeSha256 || '')) throw new Error('Missing canonical asset integrity')
     paths.add(entry.path)
   }
   return manifest
 }
+export function canonicalAssetUrl(entry) {
+  return `/_assets/${entry.sha256}/${entry.key.split('/').at(-1)}`
+}
+export const CANONICAL_ROUTE = '/_assets/:hash([a-f0-9]{64})/:name([A-Za-z0-9._-]+)'
 export function routeSource(path) {
   // Vercel sources use path-to-regexp. Escape its token syntax in literal filenames.
   return encodeURI(path).replace(/[():*+?{}[\]\\]/g, '\\$&')
 }
 export function releaseConfig(config, manifest) {
   validateManifest(manifest)
-  const rewrites = manifest.files.map(entry => ({ source: routeSource(entry.path), destination: `${PUBLIC_ORIGIN}/${entry.key}` }))
-  const headers = manifest.files.map(entry => ({ source: routeSource(entry.path), headers: [
+  const legacy = manifest.files.filter(entry => (entry.delivery ?? 'legacy') === 'legacy')
+  const rewrites = legacy.map(entry => ({ source: routeSource(entry.path), destination: `${PUBLIC_ORIGIN}/${entry.key}` }))
+  const headers = legacy.map(entry => ({ source: routeSource(entry.path), headers: [
     { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
     { key: 'CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
     { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
   ] }))
+  rewrites.push({ source: CANONICAL_ROUTE, destination: `${PUBLIC_ORIGIN}/iom-website/v1/:hash/:name` })
+  headers.push({ source: CANONICAL_ROUTE, headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] })
   const result = { ...config, buildCommand: 'npm run build && node scripts/finalize-r2-build.mjs',
     rewrites: [...rewrites, ...(config.rewrites || [])], headers: [...(config.headers || []), ...headers] }
   if (result.routes) throw new Error('Legacy routes cannot be combined with R2 rewrites')
