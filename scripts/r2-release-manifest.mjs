@@ -73,15 +73,39 @@ export function routeSource(path) {
   // Vercel sources use path-to-regexp. Escape its token syntax in literal filenames.
   return encodeURI(path).replace(/[():*+?{}[\]\\]/g, '\\$&')
 }
+// One header rule may match multiple exact public paths. Bound pattern size and
+// escape REGEX syntax inside the custom path-to-regexp parameter; routeSource's
+// top-level path escaping is not sufficient here (notably dots, dollar and pipe).
+export const MAX_HEADER_SOURCE_LENGTH = 3000
+export function groupedLegacyHeaders(entries) {
+  const groups = []
+  let alternatives = []
+  const sourceFor = values => `/:iomAsset(${values.join('|')})`
+  const emit = () => {
+    if (!alternatives.length) return
+    groups.push({ source: sourceFor(alternatives), headers: [
+      { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+      { key: 'CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
+      { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
+    ] })
+    alternatives = []
+  }
+  for (const entry of entries) {
+    const literal = encodeURI(entry.path).slice(1).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    if (sourceFor([literal]).length > MAX_HEADER_SOURCE_LENGTH) throw new Error('Legacy media path exceeds header pattern budget')
+    if (sourceFor([...alternatives, literal]).length > MAX_HEADER_SOURCE_LENGTH) emit()
+    alternatives.push(literal)
+  }
+  emit()
+  return groups
+}
+
+
 export function releaseConfig(config, manifest) {
   validateManifest(manifest)
   const legacy = manifest.files.filter(entry => (entry.delivery ?? 'legacy') === 'legacy')
   const rewrites = legacy.map(entry => ({ source: routeSource(entry.path), destination: `${PUBLIC_ORIGIN}/${entry.key}` }))
-  const headers = legacy.map(entry => ({ source: routeSource(entry.path), headers: [
-    { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
-    { key: 'CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
-    { key: 'Vercel-CDN-Cache-Control', value: 'public, max-age=0, must-revalidate' },
-  ] }))
+  const headers = groupedLegacyHeaders(legacy)
   rewrites.push({ source: CANONICAL_ROUTE, destination: `${PUBLIC_ORIGIN}/iom-website/v1/:hash/:name` })
   headers.push({ source: CANONICAL_ROUTE, headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }] })
   const result = { ...config, buildCommand: 'npm run build && node scripts/finalize-r2-build.mjs',

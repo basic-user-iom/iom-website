@@ -38,6 +38,7 @@ const NAMED_SCOPES = {
     'scripts/incremental-r2-release.mjs',
     'scripts/create-demo-media-manifest.mjs',
     'scripts/test-incremental-r2.mjs',
+    'scripts/test-r2-header-groups.mjs',
     'scripts/deploy-secret-scan.mjs',
     'scripts/deploy-secret-containers.mjs',
     'scripts/deploy-reviewed-public-data.mjs',
