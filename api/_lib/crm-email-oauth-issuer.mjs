@@ -2,7 +2,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypt
 import { importJWK, jwtVerify, SignJWT } from 'jose'
 export class EmailOAuthError extends Error { constructor(code,status=400){super(code);this.code=code;this.status=status} }
 import {EMAIL_SCOPES} from './crm-email-runtime.mjs'
-import {assertProductionTarget,EMAIL_PRODUCTION_APPROVAL,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN,EMAIL_PRODUCTION_REF} from './crm-email-production.mjs'
+import {assertProductionTarget,reviewOnlyApproval,EMAIL_PRODUCTION_APPROVAL,EMAIL_PRODUCTION_RESOURCE,EMAIL_PRODUCTION_ISSUER,EMAIL_PRODUCTION_ORIGIN,EMAIL_PRODUCTION_REF} from './crm-email-production.mjs'
 import {createProductionOAuthStore,acquireEmailOAuthConnection} from './crm-email-oauth-store.mjs'
 const EMAIL_SCOPE_LIST=Object.values(EMAIL_SCOPES)
 
@@ -24,9 +24,10 @@ const same = (left, right) => {
   const b = Buffer.from(right)
   return a.length === b.length && timingSafeEqual(a, b)
 }
-const scopesOf = value => {
+const supportedScopes = config => config?.reviewOnly ? [EMAIL_SCOPES.review] : EMAIL_SCOPE_LIST
+const scopesOf = (value, config) => {
   const scopes = [...new Set(String(value ?? '').split(' ').filter(Boolean))]
-  if (!scopes.length || !scopes.includes('iom:crm:email:read') || scopes.some(scope => !EMAIL_SCOPE_LIST.includes(scope))) {
+  if (!scopes.length || !scopes.includes('iom:crm:email:read') || scopes.some(scope => !supportedScopes(config).includes(scope))) {
     throw new EmailOAuthError('invalid_scope', 400)
   }
   return scopes.join(' ')
@@ -61,6 +62,7 @@ export function issuerConfig(env = process.env,pin=EMAIL_PRODUCTION_APPROVAL) {
       resource: resource.href,
       redirectUri: env.CRM_EMAIL_OAUTH_REDIRECT_URI,
       clientId, subject, ownerId, staffEmail:approved.staffEmail, signingJwk: signing, kid: 'iom-email-oauth-1',
+      reviewOnly:reviewOnlyApproval(approved),
     })
   } catch (error) {
     if (error instanceof EmailOAuthError) throw error
@@ -91,7 +93,7 @@ export function discoveryDocument(config) {
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code', 'refresh_token'],
     code_challenge_methods_supported: ['S256'],
-    scopes_supported: [...EMAIL_SCOPE_LIST],
+    scopes_supported: [...supportedScopes(config)],
     token_endpoint_auth_methods_supported: ['none'],
     authorization_response_iss_parameter_supported: true,
   }
@@ -141,7 +143,7 @@ function assertAuthorizeRequest(config, input) {
   if (typeof input.code_challenge !== 'string' || input.code_challenge.length < 43 || input.code_challenge.length > 128) {
     throw new EmailOAuthError('invalid_request', 400)
   }
-  return scopesOf(input.scope)
+  return scopesOf(input.scope, config)
 }
 
 function consentPage(config, query, authRef = '') {
@@ -153,7 +155,10 @@ function consentPage(config, query, authRef = '') {
   }).toString()}`
   const login = `/client-login?next=${encodeURIComponent(next)}`
   const scopes = String(query.scope).split(' ').filter(Boolean).map(scope => `<li>${escapeHtml(scope)}</li>`).join('')
-  return `<!doctype html><html lang="en"><meta charset="utf-8"><title>IOM CRM email consent</title><body><main id="consent" data-issuer="${escapeHtml(config.issuer)}" data-redirect="${escapeHtml(config.redirectUri)}" data-resource="${escapeHtml(config.resource)}" data-client="${escapeHtml(config.clientId)}" data-state="${escapeHtml(query.state)}" data-scope="${escapeHtml(query.scope)}" data-challenge="${escapeHtml(query.code_challenge)}" data-login="${escapeHtml(login)}" data-auth-ref="${escapeHtml(authRef)}"><h1>Connect ChatGPT to IOM CRM email</h1><p>This connection can review, send, schedule and cancel email for the approved pilot contact. Each email needs an explicit review and confirmation.</p><ul>${scopes}</ul><p id="status">Checking the existing CRM sign-in.</p><p><a id="login" href="${escapeHtml(login)}">Sign in at the CRM</a></p><button id="allow" type="button" hidden>Allow</button><button id="deny" type="button">Deny</button></main><script>
+  const accessDescription = config.reviewOnly
+    ? 'This connection can display and save private draft reviews for the approved pilot contact and read job status. It cannot send, schedule, reschedule or cancel email.'
+    : 'This connection can review, send, schedule and cancel email for the approved pilot contact. Each email needs an explicit review and confirmation.'
+  return `<!doctype html><html lang="en"><meta charset="utf-8"><title>IOM CRM email consent</title><body><main id="consent" data-issuer="${escapeHtml(config.issuer)}" data-redirect="${escapeHtml(config.redirectUri)}" data-resource="${escapeHtml(config.resource)}" data-client="${escapeHtml(config.clientId)}" data-state="${escapeHtml(query.state)}" data-scope="${escapeHtml(query.scope)}" data-challenge="${escapeHtml(query.code_challenge)}" data-login="${escapeHtml(login)}" data-auth-ref="${escapeHtml(authRef)}"><h1>Connect ChatGPT to IOM CRM email</h1><p>${accessDescription}</p><ul>${scopes}</ul><p id="status">Checking the existing CRM sign-in.</p><p><a id="login" href="${escapeHtml(login)}">Sign in at the CRM</a></p><button id="allow" type="button" hidden>Allow</button><button id="deny" type="button">Deny</button></main><script>
 const root=document.getElementById('consent'),status=document.getElementById('status'),login=document.getElementById('login'),allow=document.getElementById('allow')
 function readSession(){const ref=root.dataset.authRef;if(!/^[a-z0-9]{20}$/.test(ref||''))return null;try{const parsed=JSON.parse(localStorage.getItem('sb-'+ref+'-auth-token')||'');const token=parsed&&(parsed.access_token||(parsed.currentSession&&parsed.currentSession.access_token));if(!token||token.split('.').length!==3)return null;const payload=JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));if(payload.iss!=='https://'+ref+'.supabase.co/auth/v1')return null;return{token,aal:payload.aal}}catch(e){return null}}
 function deny(){const url=new URL(root.dataset.redirect);url.searchParams.set('error','access_denied');url.searchParams.set('state',root.dataset.state);url.searchParams.set('iss',root.dataset.issuer);location.assign(url.toString())}
@@ -220,6 +225,7 @@ export async function createIssuer(config, store, options = {}) {
       if (typeof input?.consent_token !== 'string' || typeof input?.request_id !== 'string') throw new EmailOAuthError('invalid_request', 400)
       const pending = rowFrom(await stored(() => store.consumeRequest(digest(input.consent_token), input.request_id)))
       if (!pending || pending.redirectUri !== config.redirectUri || pending.ownerId!==config.ownerId) throw new EmailOAuthError('invalid_grant', 400)
+      scopesOf(pending.scope,config)
       const code = secret()
       const familyId = randomUUID()
       await stored(() => store.saveCode({
@@ -284,6 +290,7 @@ export async function createIssuer(config, store, options = {}) {
     return tokenResponse(row, refresh)
   }
   async function tokenResponse(row, refresh) {
+    scopesOf(row.scope,config)
     if(row.ownerId!==config.ownerId || row.clientId!==config.clientId || row.resource!==config.resource || !await store.grantActive(row.familyId))throw new EmailOAuthError('invalid_grant',400)
     return {
       access_token: await accessToken(row), token_type: 'Bearer', expires_in: ACCESS_SECONDS,
@@ -347,7 +354,7 @@ return async function emailIssuerHttp(req,res) {
     if(['metadata','keys','resource'].includes(action)) {
       if(req.method!=='GET')throw new EmailOAuthError('method_not_allowed',405)
       return res.status(200).json(action==='metadata'?discoveryDocument(config):action==='keys'?{keys:[publicJwk(config)]}:{
-        resource:config.resource,authorization_servers:[config.issuer],scopes_supported:EMAIL_SCOPE_LIST,bearer_methods_supported:['header']})
+        resource:config.resource,authorization_servers:[config.issuer],scopes_supported:supportedScopes(config),bearer_methods_supported:['header']})
     }
     if(!['authorize','token','revoke'].includes(action))throw new EmailOAuthError('invalid_request',400)
     const store=storeFactory(config)

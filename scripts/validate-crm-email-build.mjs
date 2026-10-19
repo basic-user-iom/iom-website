@@ -1,6 +1,7 @@
 // Server build only. Never expose this module through an HTTP route or frontend import.
 import { X509Certificate, createPrivateKey, createPublicKey, randomBytes, sign, verify } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
+import { EMAIL_REVIEW_APPROVAL, EMAIL_PRODUCTION_RESOURCE, EMAIL_PRODUCTION_ISSUER } from '../api/_lib/crm-email-production.mjs'
 
 const PROJECT = 'werfdsobddsijqckymip'
 const OWNER = '1add2cb0-a00a-4f92-a20a-7d90cb23afdd'
@@ -58,7 +59,7 @@ function safeFailure(error) {
   return 'CHECK'
 }
 
-async function validateDatabase(env, role, createClient) {
+async function validateDatabase(env, role, createClient, reviewOnly = false) {
   const client = await createClient(databaseOptions(env, role))
   client.on('error', () => {}) // Never log pg errors: they may contain credentials or SQL context.
   let timer
@@ -82,11 +83,21 @@ async function validateDatabase(env, role, createClient) {
         SELECT 1 FROM crm_email_private.target_binding WHERE owner_id = $1 AND supabase_url = $2
       ) AS target_matches, EXISTS (
         SELECT 1 FROM crm_email_private.pilot WHERE owner_id = $1 AND lead_id = $3
-        AND enabled = false AND recipient = $4 AND from_identity = $5 AND from_email = $6
+        AND enabled = $9 AND recipient = $4 AND from_identity = $5 AND from_email = $6
         AND message_kind = $7 AND message_intent_id = $8
-      ) AS pilot_disabled`, [OWNER, `https://${PROJECT}.supabase.co`, LEAD,
-        'mirjan.foto@gmail.com', 'projects', 'projects@iobjectm.com', 'followup', INTENT])).rows[0]
-      requireTrue(target?.target_matches === true && target.pilot_disabled === true)
+      ) AS pilot_matches`, [OWNER, `https://${PROJECT}.supabase.co`, LEAD,
+        'mirjan.foto@gmail.com', 'projects', 'projects@iobjectm.com', 'followup', INTENT, reviewOnly])).rows[0]
+      requireTrue(target?.target_matches === true && target.pilot_matches === true)
+      if (reviewOnly) {
+        const boundary = (await client.query(`SELECT NOT EXISTS (
+          SELECT 1 FROM crm_email_private.grant_families WHERE owner_id=$1
+          AND revoked_at IS NULL AND expires_at>statement_timestamp()
+          AND scopes<>ARRAY['iom:crm:email:read']::text[]
+        ) AS read_grants_only, NOT EXISTS (
+          SELECT 1 FROM crm_email_private.jobs WHERE owner_id=$1 AND lead_id=$2
+        ) AS no_pilot_jobs`, [OWNER, LEAD])).rows[0]
+        requireTrue(boundary?.read_grants_only === true && boundary.no_pilot_jobs === true)
+      }
     }
     await client.query('ROLLBACK')
   } finally {
@@ -110,16 +121,28 @@ export async function runBuildValidation({ env, approvalPin, createClient, ident
     try { await task(); record(name, 'PASS'); return true }
     catch (error) { record(name, 'FAIL', safeFailure(error)); return false }
   }
-  const controls = await check('CONTROLS_OFF', () => {
-    requireTrue(approvalPin === null && OFF_FLAGS.every(name => !env[name] || env[name] === 'false'))
+  const reviewOnly = approvalPin?.accessMode === 'review-only'
+  const controls = await check(reviewOnly ? 'REVIEW_ONLY_CONTROLS' : 'CONTROLS_OFF', () => {
+    if (reviewOnly) {
+      requireTrue(Object.keys(approvalPin).length === Object.keys(EMAIL_REVIEW_APPROVAL).length &&
+        Object.entries(EMAIL_REVIEW_APPROVAL).every(([key,value]) => approvalPin[key] === value))
+      const enabled = ['CRM_EMAIL_PRODUCTION_ENABLED','CRM_EMAIL_OAUTH_ISSUER_ENABLED','CRM_EMAIL_LIVE_MCP_ENABLED']
+      requireTrue(enabled.every(key=>env[key]==='true') && env.CRM_EMAIL_SEND_ENABLED==='false' &&
+        OFF_FLAGS.filter(key=>!enabled.includes(key)).every(key=>!env[key]||env[key]==='false'))
+      const bindings = {CRM_EMAIL_PROVIDER:'smtp',CRM_EMAIL_SUPABASE_URL:`https://${PROJECT}.supabase.co`,
+        CRM_EMAIL_MCP_RESOURCE_URL:EMAIL_PRODUCTION_RESOURCE,CRM_EMAIL_OAUTH_ISSUER:EMAIL_PRODUCTION_ISSUER,
+        CRM_EMAIL_OWNER_ID:EMAIL_REVIEW_APPROVAL.ownerId,CRM_EMAIL_OAUTH_CLIENT_ID:EMAIL_REVIEW_APPROVAL.clientId,
+        CRM_EMAIL_OAUTH_REDIRECT_URI:EMAIL_REVIEW_APPROVAL.redirectUri,CRM_EMAIL_OAUTH_SUBJECT:EMAIL_REVIEW_APPROVAL.subject}
+      requireTrue(Object.entries(bindings).every(([key,value])=>env[key]===value))
+    } else requireTrue(approvalPin === null && OFF_FLAGS.every(name => !env[name] || env[name] === 'false'))
     const expected = `https://${PROJECT}.supabase.co`
     requireTrue(env.VITE_SUPABASE_URL === expected && (!env.SUPABASE_URL || env.SUPABASE_URL === expected))
   })
   if (!controls) return { ok: false, skipped: false, results }
   const ca = await check('PUBLIC_CA', () => validateCa(env))
   if (ca) {
-    await check('GATEWAY_DB', () => validateDatabase(env, 'iom_email_gateway', createClient))
-    await check('OAUTH_DB', () => validateDatabase(env, 'iom_email_oauth', createClient))
+    await check('GATEWAY_DB', () => validateDatabase(env, 'iom_email_gateway', createClient, reviewOnly))
+    await check('OAUTH_DB', () => validateDatabase(env, 'iom_email_oauth', createClient, reviewOnly))
   }
   await check('SIGNING_JWK', () => validateSigningKey(env.CRM_EMAIL_OAUTH_SIGNING_JWK))
   await check('PROJECTS_SENDER', () => {

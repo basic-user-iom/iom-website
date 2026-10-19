@@ -6,7 +6,18 @@ import {listProtonIdentities} from './proton-identities.js'
 // Secure handoff: only a separately approved code change may populate this pin.
 // Required fields: ownerId, leadId, recipient, fromIdentity, fromEmail, fromHeader,
 // staffEmail, clientId, redirectUri, subject (OAuth subject). No secrets belong here.
-export const EMAIL_PRODUCTION_APPROVAL = null
+// Non-secret proposal; inactive until the separate activation patch is approved.
+export const EMAIL_REVIEW_APPROVAL = Object.freeze({
+  accessMode:'review-only',ownerId:'1add2cb0-a00a-4f92-a20a-7d90cb23afdd',
+  leadId:'5e474e0e-2bbf-4233-97f8-9a71428e6aa8',recipient:'mirjan.foto@gmail.com',
+  fromIdentity:'projects',fromEmail:'projects@iobjectm.com',fromHeader:'IOM Projects <projects@iobjectm.com>',
+  staffEmail:'projects@iobjectm.com',clientId:'https://chatgpt.com/oauth/client.json',
+  redirectUri:'https://chatgpt.com/connector_platform_oauth_redirect',
+  subject:'iom-crm-email-review:1add2cb0-a00a-4f92-a20a-7d90cb23afdd',
+  messageKind:'followup',messageIntentId:'ae0811f0-869e-49ac-80cc-8516940559fa',
+})
+export const reviewOnlyApproval = pin => pin?.accessMode === 'review-only'
+export const EMAIL_PRODUCTION_APPROVAL = EMAIL_REVIEW_APPROVAL
 export const EMAIL_PRODUCTION_REF = 'werfdsobddsijqckymip'
 export const EMAIL_PRODUCTION_ORIGIN = 'https://iobjectm.com'
 export const EMAIL_PRODUCTION_RESOURCE = EMAIL_PRODUCTION_ORIGIN+'/api/crm-email-live-mcp'
@@ -14,6 +25,7 @@ export const EMAIL_PRODUCTION_ISSUER = EMAIL_PRODUCTION_ORIGIN+'/crm-email-ident
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i
 const address=/^[^\s@<>,;\r\n]+@[^\s@<>,;\r\n]+\.[^\s@<>,;\r\n]+$/
 export function productionApproval(pin=EMAIL_PRODUCTION_APPROVAL) {
+  if(pin?.accessMode!==undefined && !reviewOnlyApproval(pin)) fail('email_production_not_approved')
   if(!pin || !uuid.test(pin.ownerId||'') || !uuid.test(pin.leadId||'') || !address.test(pin.recipient||'') ||
     !address.test(pin.fromEmail||'') || !['contact','visual','projects'].includes(pin.fromIdentity) ||
     !pin.fromHeader || /[\r\n]/.test(pin.fromHeader) || !address.test(pin.staffEmail||'') || !pin.clientId || !pin.subject) fail('email_production_not_approved')
@@ -40,6 +52,7 @@ export function productionDatabase(env,role) {
 }
 export function assertProductionTarget(env=process.env,pin=EMAIL_PRODUCTION_APPROVAL) {
   productionApproval(pin)
+  if(reviewOnlyApproval(pin) && env.CRM_EMAIL_SEND_ENABLED!=='false') fail('email_review_only')
   if(env.CRM_EMAIL_PRODUCTION_ENABLED!=='true' || env.VERCEL_ENV!=='production' || env.CRM_EMAIL_PROVIDER!=='smtp') fail('email_production_disabled')
   const expected=`https://${EMAIL_PRODUCTION_REF}.supabase.co`
   if(env.CRM_EMAIL_SUPABASE_URL!==expected || (env.VITE_SUPABASE_URL||env.SUPABASE_URL)!==expected ||
@@ -55,6 +68,7 @@ export function createSmtpDependencies({env,identities=listProtonIdentities,crea
   }
   return {simulated:false,resolveIdentity:async id=>id===pin.fromIdentity?selected():undefined,
     createTransport:()=>{
+      if(reviewOnlyApproval(pin)) fail('email_review_only')
       assertProductionTarget(env,pin)
       if(env.CRM_EMAIL_SEND_ENABLED!=='true') fail('email_delivery_paused')
       const identity=selected(),port=Number(env.PROTON_SMTP_PORT||587)
@@ -75,8 +89,10 @@ export function createProductionRuntime({store,pin,dependencies,env,now=Date.now
   }}
   const service=createEmailRuntime({store:scopedStore,ownerId:pin.ownerId,identities:dependencies.identities,enabled,now,
     providerDependencies:dependencies,
-    authorizeAction:(_actor,action)=>!['send','schedule','worker'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true',
+    authorizeAction:(_actor,action)=>reviewOnlyApproval(pin) ? action==='review'
+      : !['send','schedule','worker'].includes(action)||env.CRM_EMAIL_SEND_ENABLED==='true',
     beforeDelivery:async(snapshot,context)=>{
+      if(reviewOnlyApproval(pin)) fail('email_review_only')
       enabled()
       if(env.CRM_EMAIL_SEND_ENABLED!=='true') fail('email_delivery_paused')
       if(snapshot.leadId!==pin.leadId || snapshot.to!==pin.recipient || snapshot.from!==pin.fromEmail || snapshot.kind!==(pin.messageKind||'initial') || (snapshot.kind==='followup' && snapshot.messageIntentId!==pin.messageIntentId)) fail('email_pilot_only')
@@ -86,6 +102,7 @@ export function createProductionRuntime({store,pin,dependencies,env,now=Date.now
   // Restrict every preview and old-route send, including reply and recipient overrides.
   service.workflow={...workflow,
     preview:(actor,args)=>{
+      if(reviewOnlyApproval(pin) && ['scheduledLocal','utcOffset','replaceLegacySchedule'].some(key=>args?.[key]!==undefined)) fail('email_review_only')
       if(args?.leadId!==pin.leadId || args?.to!==pin.recipient || args?.fromIdentity!==pin.fromIdentity || args?.replaceLegacySchedule || (args?.kind||'initial')!==(pin.messageKind||'initial') || (pin.messageKind==='followup' && args?.messageIntentId!==pin.messageIntentId)) fail('email_pilot_only')
       return workflow.preview(actor,args)
     },

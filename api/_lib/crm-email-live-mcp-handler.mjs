@@ -6,7 +6,7 @@ export default async function(req,res) {
   try {
     const pin=assertProductionTarget()
     if(process.env.CRM_EMAIL_LIVE_MCP_ENABLED!=='true')throw Error()
-    if(!handler)handler=createEmailMcpHandler({live:true,
+    if(!handler)handler=createEmailMcpHandler({live:true,reviewOnly:pin.accessMode==='review-only',
       resourceMetadata:EMAIL_PRODUCTION_ORIGIN+'/api/crm-email-oauth?action=resource',
       enabled:()=>{assertProductionTarget();return process.env.CRM_EMAIL_LIVE_MCP_ENABLED==='true'},
       verifyAccessToken:createEmailVerifier({resource:EMAIL_PRODUCTION_RESOURCE,issuer:EMAIL_PRODUCTION_ISSUER,

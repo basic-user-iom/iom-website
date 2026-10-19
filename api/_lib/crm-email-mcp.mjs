@@ -29,7 +29,7 @@ export function createEmailVerifier(config,keys=createRemoteJWKSet(new URL(confi
     } catch { fail('invalid_email_access') }
   }
 }
-export function createEmailMcpHandler({enabled=()=>false,verifyAccessToken,runtime,limit,live=false,resourceMetadata}) {
+export function createEmailMcpHandler({enabled=()=>false,verifyAccessToken,runtime,limit,live=false,reviewOnly=false,resourceMetadata}) {
   return async (req,res)=>{
     res.setHeader('Cache-Control','no-store');res.setHeader('X-Content-Type-Options','nosniff')
     let server,transport
@@ -57,9 +57,9 @@ export function createEmailMcpHandler({enabled=()=>false,verifyAccessToken,runti
       server=new Server({name:'iom-reviewed-crm-email',version:'1.0.0'},{capabilities:{tools:{}}})
       server.setRequestHandler(ListToolsRequestSchema,async()=>{
         if(!(await service.authorize(actor,'review'))) throw Error('email_access_denied')
-        return {tools:emailTools(live)}
+        return {tools:emailTools(live,{reviewOnly})}
       })
-      const execute=createEmailToolExecutor(service.workflow,{live})
+      const execute=createEmailToolExecutor(service.workflow,{live,reviewOnly})
       server.setRequestHandler(CallToolRequestSchema,async request=>{
         if(!enabled() || !(await service.authorize(actor,'review'))) return {isError:true,content:[{type:'text',text:'email_access_denied'}]}
         return execute(actor,request.params.name,request.params.arguments)
