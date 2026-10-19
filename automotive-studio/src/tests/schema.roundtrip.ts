@@ -12,7 +12,7 @@ import { ProjectStore, renameProject, setEnvironmentPreset } from '../persistenc
 
 const empty = createEmptyProject('Roundtrip')
 assert.equal(empty.schemaVersion, AUTOMOTIVE_SCHEMA_VERSION)
-assert.equal(empty.presentation.accessPolicy, 'local-only')
+assert.equal(empty.presentation.accessPolicy, 'unlisted')
 assert.equal(empty.environment.presetId, 'studio')
 assert.equal(empty.vehicle, null)
 assert.equal(empty.stage.pedestalVisible, true)
