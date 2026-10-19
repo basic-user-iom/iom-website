@@ -1,3 +1,4 @@
+import { usePhoneProfile } from '../runtime/deviceProfile'
 import {
   AdditiveBlending,
   AmbientLight,
@@ -540,7 +541,8 @@ export async function createStudioRenderer(
   }
 
   // Cap DPR so 4K / high-DPI panels stay readable without 2× fill-rate cost.
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5))
+  const phoneProfile = usePhoneProfile()
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, phoneProfile ? 1 : 1.5))
   renderer.shadowMap.enabled = true
   setStageTextureAnisotropy(
     (renderer as WebGLRenderer).capabilities?.getMaxAnisotropy?.() ?? 1,
@@ -904,8 +906,9 @@ export async function createStudioRenderer(
     // Default: sun key only. Studio Present may add a cheap fill shadow map.
     const visual =
       lastEnv.presetId !== 'custom' ? lastEnv.presetId : lastEnv.basePresetId ?? 'studio'
-    fill.castShadow = !opts.lite && visual === 'studio'
-    const sunSize = opts.lite ? 1024 : 2048
+    const lite = phoneProfile || opts.lite
+    fill.castShadow = !lite && visual === 'studio'
+    const sunSize = lite ? 1024 : 2048
     if (sun.shadow.mapSize.x !== sunSize) {
       sun.shadow.mapSize.set(sunSize, sunSize)
       const map = sun.shadow.map
@@ -915,6 +918,8 @@ export async function createStudioRenderer(
       }
     }
   }
+
+  if (phoneProfile) applyLightsBudget({ lite: true })
 
   return {
     backend,
@@ -930,7 +935,7 @@ export async function createStudioRenderer(
     applyAccentLights,
     applyBloom(cfg) {
       bloom.apply({
-        enabled: cfg.bloomEnabled,
+        enabled: !phoneProfile && cfg.bloomEnabled,
         strength: cfg.bloomStrength,
         threshold: cfg.bloomThreshold,
         radius: 0.12,

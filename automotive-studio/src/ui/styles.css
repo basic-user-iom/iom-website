@@ -1753,8 +1753,8 @@ html[data-theme='light'] .as-viewport-badge {
 
 @media (max-width: 980px) {
   .as-app--studio {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(260px, 1fr) auto auto;
     grid-template-areas:
       "top"
       "rail"
@@ -1800,4 +1800,15 @@ html[data-theme='light'] .as-viewport-badge {
   .as-brand span {
     max-width: 40vw;
   }
+}
+
+@media (max-width: 980px) {
+  .as-app--studio > * { min-width: 0; max-width: 100%; }
+  .as-inspector dd { overflow-wrap: anywhere; }
+  .as-top { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .as-top-actions { min-width: 0; }
+  .as-btn-group { flex-wrap: wrap; }
+  .as-transport { flex-wrap: wrap; gap: 8px; padding: 8px 12px; }
+  .as-transport input[type='range'] { min-width: 0; flex: 1 1 100px; }
+  .as-drive-pad { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 36px); padding: 6px; gap: 4px; }
 }

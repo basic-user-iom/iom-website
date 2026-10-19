@@ -15,9 +15,12 @@ export const BUNDLED_DEFAULT_SEED_VERSION = '2026-08-21-starter-4'
 
 export const BUNDLED_DEFAULT_SEED_KEY = 'iom-automotive-default-seed-version'
 
-export function bundledDefaultIomcarUrl(): string {
-  const base = import.meta.env.BASE_URL || '/demos/automotive-studio/'
-  return new URL('defaults/starter.iomcar', base.endsWith('/') ? base : `${base}/`).href
+export function bundledDefaultIomcarUrl(
+  base = import.meta.env?.BASE_URL || '/demos/automotive-studio/',
+  pageUrl = window.location.href,
+): string {
+  const absoluteBase = new URL(base.endsWith('/') ? base : `${base}/`, pageUrl)
+  return new URL('defaults/starter.iomcar', absoluteBase).href
 }
 
 function readSeedVersion(): string | null {

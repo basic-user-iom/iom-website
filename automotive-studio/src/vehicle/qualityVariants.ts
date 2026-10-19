@@ -36,28 +36,30 @@ export function qualityLabel(role: VehicleQualityRole): string {
   }
 }
 
-/** Balanced/Mobile LODs are disabled — never decode or activate them. */
-export function isDisabledLodRole(role: string): boolean {
-  return role === 'vehicle-balanced' || role === 'vehicle-mobile'
+/** Preserve explicit user-selected slots during imports and switches. */
+export function preferActiveQualityRole(role: VehicleQualityRole): VehicleQualityRole {
+  return role
 }
 
-/** Coerce disabled LODs to High so boot/import never loads those GLBs. */
-export function preferActiveQualityRole(role: VehicleQualityRole): VehicleQualityRole {
-  return isDisabledLodRole(role) ? 'vehicle-high' : role
+/** Select only an available slot, with safe fallbacks for single-model projects. */
+export function preferredVehicleQuality(available: VehicleQualityRole[], phone: boolean): VehicleQualityRole | null {
+  const order: VehicleQualityRole[] = phone
+    ? ['vehicle-balanced', 'vehicle-mobile', 'vehicle-high', 'vehicle-master']
+    : ['vehicle-high', 'vehicle-master', 'vehicle-balanced', 'vehicle-mobile']
+  return order.find(role => available.includes(role)) ?? null
 }
 
 /** Infer quality slot from offline pipeline filenames. */
 export function inferQualityRoleFromFilename(filename: string): VehicleQualityRole {
   const n = filename.toLowerCase()
   if (n.includes('presentation-high') || /(^|[_\-.])high([_\-.]|$)/.test(n)) return 'vehicle-high'
-  // Balanced/Mobile filenames still map to High — those slots are not loaded.
-  if (n.includes('balanced') || n.includes('mobile')) return 'vehicle-high'
+  if (n.includes('balanced')) return 'vehicle-balanced'
+  if (n.includes('mobile')) return 'vehicle-mobile'
   return 'vehicle-master'
 }
 
 /**
- * Multi-file import: largest → High, extras → Master.
- * Balanced/Mobile slots are not assigned (disabled — High only).
+ * Respect named quality variants; use file size for unnamed multi-file imports.
  */
 export function assignQualityRolesByFileSize(
   files: File[],
@@ -69,7 +71,9 @@ export function assignQualityRolesByFileSize(
   }
   return sorted.map((file, i) => ({
     file,
-    quality: i === 0 ? 'vehicle-high' : 'vehicle-master',
+    quality: inferQualityRoleFromFilename(file.name) !== 'vehicle-master'
+      ? inferQualityRoleFromFilename(file.name)
+      : i === 0 ? 'vehicle-high' : 'vehicle-master',
   }))
 }
 

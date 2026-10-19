@@ -1,3 +1,4 @@
+import { usePhoneProfile } from '../runtime/deviceProfile'
 import type { AnimationClip, Object3D, Scene, WebGLRenderer } from 'three'
 import { Group, Vector3 } from 'three'
 import { analyzeGltfScene, type AssetCompatibilityReport } from '../assets/analyzeAsset'
@@ -31,7 +32,7 @@ import type {
 import {
   assetRoleForImport,
   inferQualityRoleFromFilename,
-  isDisabledLodRole,
+  preferredVehicleQuality,
   isVehicleQualityRole,
   parseRigManifestJson,
   preferActiveQualityRole,
@@ -322,9 +323,6 @@ export class VehicleSession {
     onProgress?: (ratio: number, label: string) => void,
   ): Promise<{ asset: AssetRecord; vehicle: VehicleState; report: AssetCompatibilityReport }> {
     if (!this.scene) throw new Error('Scene not bound')
-    if (isDisabledLodRole(role)) {
-      throw new Error(`${qualityLabel(role)} LOD is temporarily disabled — use High only`)
-    }
     const slot = this.variants.get(role)
     if (!slot) throw new Error(`No ${qualityLabel(role)} variant imported yet`)
     if (this.activeQuality === role && this.roots) {
@@ -417,8 +415,6 @@ export class VehicleSession {
     this.variants.clear()
     for (const record of project.assets) {
       if (!isVehicleQualityRole(record.role)) continue
-      // Keep High (and Master) slots only — never register Balanced/Mobile.
-      if (isDisabledLodRole(record.role)) continue
       this.variants.set(record.role, {
         role: record.role,
         assetId: record.id,
@@ -427,42 +423,28 @@ export class VehicleSession {
       })
     }
 
-    const usableAsset = (a: { role: string }) =>
-      isVehicleQualityRole(a.role) && !isDisabledLodRole(a.role)
-
-    const highAsset =
-      project.assets.find((a) => a.role === 'vehicle-high') ??
-      (project.activeVehicleId
-        ? project.assets.find((a) => a.id === project.activeVehicleId && usableAsset(a))
-        : null) ??
-      (project.vehicle?.assetId
-        ? project.assets.find((a) => a.id === project.vehicle!.assetId && usableAsset(a))
-        : null) ??
-      project.assets.find((a) => a.role === 'vehicle-master') ??
-      project.assets.find((a) => usableAsset(a)) ??
-      null
-    const asset = highAsset
+    const candidates = project.assets.filter(a => isVehicleQualityRole(a.role))
+    const preferred = preferredVehicleQuality(
+      candidates.map(a => a.role as VehicleQualityRole), usePhoneProfile(),
+    )
+    let asset = candidates.find(a => a.role === preferred) ?? candidates[0]
     if (!asset) return null
 
-    const blobKey = asset.blobKey ?? asset.id
-    onProgress?.(0.05, `Restoring ${asset.filename}…`)
-    let blob = await idbGetAssetBlob(blobKey)
-    if (!blob && asset.id !== blobKey) {
-      blob = await idbGetAssetBlob(asset.id)
-    }
-    if (!blob) {
-      // Last resort: High/Master only — never pull Balanced/Mobile LODs.
-      for (const record of project.assets) {
-        if (!usableAsset(record)) continue
-        const key = record.blobKey ?? record.id
-        blob = await idbGetAssetBlob(key)
-        if (!blob && key !== record.id) blob = await idbGetAssetBlob(record.id)
-        if (blob) break
+    // Fall back to an available blob without mislabelling its quality or filename.
+    let blobKey = asset.blobKey ?? asset.id
+    let blob: Blob | null = null
+    for (const candidate of [asset, ...candidates.filter(a => a !== asset)]) {
+      const key = candidate.blobKey ?? candidate.id
+      blob = await idbGetAssetBlob(key)
+      if (!blob && key !== candidate.id) blob = await idbGetAssetBlob(candidate.id)
+      if (blob) {
+        asset = candidate
+        blobKey = key
+        break
       }
     }
-    if (!blob) {
-      throw new Error(`Missing IndexedDB blob for ${asset.filename}`)
-    }
+    if (!blob) throw new Error(`Missing IndexedDB blob for ${asset.filename}`)
+    onProgress?.(0.05, `Restoring ${asset.filename}.`)
     const file = new File([blob], asset.filename, { type: 'model/gltf-binary' })
 
     const saved = project.vehicle

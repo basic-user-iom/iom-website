@@ -1,3 +1,4 @@
+import { qualityLabel } from '../vehicle/qualityVariants'
 import type {
   AccentLightState,
   AssetRecord,
@@ -596,13 +597,15 @@ export function mountStudioShell(
             <option value="auto">Auto (filename)</option>
             <option value="vehicle-master">Master / source</option>
             <option value="vehicle-high" selected>High</option>
+            <option value="vehicle-balanced">Balanced</option>
+            <option value="vehicle-mobile">Mobile</option>
           </select>
         </div>
-        <p class="as-hint">Balanced / Mobile LODs are temporarily disabled — Studio loads High only.</p>
+        <p class="as-hint">Phones start with Balanced when available; desktop starts with High. You can change quality below.</p>
         <div class="as-field">
           <label for="as-active-quality">Active quality</label>
           <select id="as-active-quality" data-active-quality disabled>
-            <option value="">High quality only</option>
+            <option value="">No vehicle loaded</option>
           </select>
         </div>
         <p class="as-hint" data-import-progress hidden></p>
@@ -3712,15 +3715,13 @@ export function mountStudioShell(
       }
 
       syncingQuality = true
-      const usableVariants = snap.variants.filter(
-        (v) => v.role !== 'vehicle-balanced' && v.role !== 'vehicle-mobile',
-      )
+      const usableVariants = snap.variants
       if (usableVariants.length) {
         activeQuality.disabled = usableVariants.length < 2
         activeQuality.innerHTML = usableVariants
           .map((v) => {
-            const label = v.role === 'vehicle-high' ? 'High' : 'Master'
-            return `<option value="${v.role}">${label} — ${v.filename} (${formatBytes(v.byteSize)})</option>`
+            const label = qualityLabel(v.role)
+            return `<option value="${v.role}">${label} — ${escapeHtml(v.filename)} (${formatBytes(v.byteSize)})</option>`
           })
           .join('')
         if (snap.activeQuality && usableVariants.some((v) => v.role === snap.activeQuality)) {
@@ -3730,7 +3731,7 @@ export function mountStudioShell(
         }
       } else {
         activeQuality.disabled = true
-        activeQuality.innerHTML = `<option value="">High quality only</option>`
+        activeQuality.innerHTML = `<option value="">No vehicle loaded</option>`
       }
       syncingQuality = false
 

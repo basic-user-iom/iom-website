@@ -1,3 +1,5 @@
+import { usePhoneProfile } from './runtime/deviceProfile'
+import { preferredVehicleQuality } from './vehicle/qualityVariants'
 import './ui/styles.css'
 import { ensureAutomotiveStudioAccess } from './auth'
 import { Vector3 } from 'three'
@@ -563,28 +565,9 @@ const shell = mountStudioShell(root, {
     try {
       if (!files.length) return
 
-      let batch: Array<{ file: File; quality: VehicleQualityRole }> =
-        files.length > 1
-          ? assignQualityRolesByFileSize(files).filter(
-              (item) => item.quality === 'vehicle-high' || item.quality === 'vehicle-master',
-            )
-          : [
-              {
-                file: files[0],
-                quality:
-                  quality === 'auto'
-                    ? inferQualityRoleFromFilename(files[0].name)
-                    : quality === 'vehicle-balanced' || quality === 'vehicle-mobile'
-                      ? 'vehicle-high'
-                      : quality,
-              },
-            ]
-
-      // Balanced/Mobile LODs are disabled — if multi-import filtered everything, keep largest as High.
-      if (!batch.length && files.length) {
-        const largest = [...files].sort((a, b) => b.size - a.size)[0]
-        batch = [{ file: largest, quality: 'vehicle-high' }]
-      }
+      const batch: Array<{ file: File; quality: VehicleQualityRole }> = files.length > 1
+        ? assignQualityRolesByFileSize(files)
+        : [{ file: files[0], quality: quality === 'auto' ? inferQualityRoleFromFilename(files[0].name) : quality }]
 
       const labels: string[] = []
       let lastVehicleResult: Awaited<ReturnType<typeof vehicleSession.importFile>> | null = null
@@ -611,9 +594,9 @@ const shell = mountStudioShell(root, {
 
       if (role === 'replace-vehicle' && lastVehicleResult?.vehicle) {
         const snap = vehicleSession.getSnapshot()
-        const preferHigh = snap.variants.some((v) => v.role === 'vehicle-high')
-        if (files.length > 1 && preferHigh && snap.activeQuality !== 'vehicle-high') {
-          const switched = await vehicleSession.switchQuality('vehicle-high', (ratio, label) => {
+        const preferred = preferredVehicleQuality(snap.variants.map(v => v.role), usePhoneProfile())
+        if (files.length > 1 && preferred && snap.activeQuality !== preferred) {
+          const switched = await vehicleSession.switchQuality(preferred, (ratio, label) => {
             shell.setImportProgress(ratio, label)
           })
           store.dispatch(setActiveVehicle(switched.vehicle, switched.asset))
@@ -2597,7 +2580,7 @@ function applyVehicleLightsGpuBudget(
   >,
 ) {
   if (!studioRenderer) return
-  const lite = vl.performanceMode === 'lite'
+  const lite = usePhoneProfile() || vl.performanceMode === 'lite'
   const bloomOn = !lite && Boolean(vl.bloomEnabled)
   const key = `${lite}|${bloomOn}|${vl.bloomStrength}|${vl.bloomThreshold}`
   if (key === lastVehicleLightsGpuKey) return

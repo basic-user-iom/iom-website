@@ -11,7 +11,9 @@
     "optimize": "node scripts/optimize-model.mjs",
     "test:schema": "npx --yes tsx src/tests/schema.roundtrip.ts",
     "test:lixiang": "npx --yes tsx src/tests/inspect-lixiang.ts",
-    "test:freedrive": "npx --yes tsx src/tests/freeDrive.heading.ts"
+    "test:freedrive": "npx --yes tsx src/tests/freeDrive.heading.ts",
+    "test:startup": "npx --no-install tsx startup-responsive.test.ts",
+    "test:browser": "node scripts/test-startup-responsive.cjs"
   },
   "dependencies": {
     "jszip": "^3.10.1",
