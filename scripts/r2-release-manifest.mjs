@@ -26,7 +26,14 @@ const PUBLIC_DATA_PATHS = new Set([
   '/demos/solar-system/assets/small-body-ephemeris.manifest-B7FFgHF2.json',
   '/demos/solar-system/assets/small-body-ephemeris.validation-B55youGz.json',
 ])
-export const mediaType = name => PUBLIC_DATA_PATHS.has(name) ? 'application/json' : TYPES[extname(name).toLowerCase()]
+// These generated modules contain only public numerical tables and exports;
+// ordinary JavaScript application code remains in the deployment.
+const PUBLIC_DATA_MODULE_PATHS = new Set([
+  '/demos/solar-system/assets/spacecraft-data-BAKJSIXU.js',
+  '/demos/solar-system/assets/moon-anchor-data-BR6eL6pP.js',
+])
+export const mediaType = name => PUBLIC_DATA_PATHS.has(name) ? 'application/json'
+  : PUBLIC_DATA_MODULE_PATHS.has(name) ? 'application/javascript' : TYPES[extname(name).toLowerCase()]
 export const objectKey = (path, hash) => `iom-website/v1/${hash}/${basename(path).replace(/[^A-Za-z0-9._-]/g, '-')}`
 
 export function inside(root, path) {

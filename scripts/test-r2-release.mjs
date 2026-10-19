@@ -82,3 +82,13 @@ test('public astronomy data is eligible without broadening private JSON publicat
     assert.throws(() => validateManifest({ version: 1, origin: PUBLIC_ORIGIN, files: [{ path, sha256: hash, bytes: 2, key: objectKey(path, hash) }] }), /Invalid/)
   }
 })
+
+test('only reviewed numerical data modules qualify; application JavaScript stays local', () => {
+  for (const path of ['/demos/solar-system/assets/spacecraft-data-BAKJSIXU.js', '/demos/solar-system/assets/moon-anchor-data-BR6eL6pP.js']) {
+    assert.equal(mediaType(path), 'application/javascript')
+    const hash = sha256(Buffer.from('export {}'))
+    const manifest = { version: 1, origin: PUBLIC_ORIGIN, files: [{ path, sha256: hash, bytes: 9, key: objectKey(path, hash) }] }
+    assert.equal(releaseConfig({ rewrites: [] }, manifest).rewrites[0].source, path)
+  }
+  for (const path of ['/demos/solar-system/assets/main-XDcfWXa4.js', '/demos/private/spacecraft-data-BAKJSIXU.js', '/api/private.js']) assert.equal(mediaType(path), undefined)
+})

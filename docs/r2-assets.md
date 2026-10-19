@@ -24,3 +24,5 @@ Initial migration release scope: `media-assets`. Production is always published 
 ## Reviewed public data
 
 Three existing Solar System astronomy JSON files (the BSC5P bright-star catalogue and the published small-body ephemeris manifest/validation) are explicitly allowlisted by exact URL in `r2-release-manifest.mjs`. They use the same immutable hash, source-preservation, CORS, range, and build-copy checks as media. Arbitrary JSON, private records, app code and runtime decoder libraries remain ineligible. A newly hashed dataset filename needs an explicit public-access review before adding it.
+
+Two large generated Solar System numerical-data modules (`spacecraft-data-BAKJSIXU.js` and `moon-anchor-data-BR6eL6pP.js`) are also explicitly reviewed by exact URL. They contain public Horizons tables and exports, with no imports or engine logic. They retain JavaScript MIME type and their existing same-origin URLs through the R2 rewrite; general JavaScript remains excluded.
