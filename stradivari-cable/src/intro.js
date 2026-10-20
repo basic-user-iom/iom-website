@@ -57,7 +57,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   const mobile=host.clientWidth<700;
   shots=[
    {title:'The complete cable',target:[2.5,1,0],width:170,travel:1600,hold:900},
-   {title:'Backside \u00b7 Textile braid',target:[-52,3,-4.5],offset:[-230,160,380],width:mobile?38:45,travel:4000,hold:2600},
+   {title:'Backside \u00b7 Textile braid',target:[-61,4,-3.5],offset:[-450,160,120],width:mobile?24:30,travel:4000,hold:2600},
    {title:'The complete cable',target:[2.5,1,0],width:170,travel:3200,hold:500},
    {title:'OCC copper \u00b7 30 strands per conductor',target:[65,0,0],width:mobile?16:20,travel:3600,hold:2700},
    {title:'The complete cable',target:[2.5,1,0],width:170,travel:3200,hold:500},
