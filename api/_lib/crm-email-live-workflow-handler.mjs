@@ -1,6 +1,7 @@
 import {requireStaffUser,setAllowedOriginCors} from './blog-helpers.js'
 import {assertProductionTarget,getProductionEmailRuntime} from './crm-email-production.mjs'
 import {createEmailToolExecutor} from './crm-email-tools.mjs'
+import {getStaffEmailRuntime} from './crm-email-staff.mjs'
 export default async function(req,res) {
   setAllowedOriginCors(res,req.headers.origin,{allowAuth:true,methods:'POST, OPTIONS'})
   res.setHeader('Cache-Control','no-store')
@@ -11,7 +12,8 @@ export default async function(req,res) {
     const auth=await requireStaffUser(req)
     if(!auth.ok)return res.status(auth.status).json({ok:false,error:auth.code})
     if(auth.aal!=='aal2')return res.status(403).json({ok:false,error:'MFA_REQUIRED'})
-    const runtime=await getProductionEmailRuntime(),actor={kind:'staff',ownerId:auth.user.id,aal:auth.aal,verifiedStaff:true}
+    const runtime=await (pin.accessMode==='regular-projects'?getStaffEmailRuntime():getProductionEmailRuntime()),
+      actor={kind:'staff',ownerId:auth.user.id,aal:auth.aal,verifiedStaff:true}
     if(!await runtime.authorize(actor,'review'))return res.status(403).json({ok:false,error:'email_access_denied'})
     if(!await runtime.rateLimit('staff',30,60000))return res.status(429).json({ok:false,error:'rate_limited'})
     const body=typeof req.body==='string'?JSON.parse(req.body):req.body

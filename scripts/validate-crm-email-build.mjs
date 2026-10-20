@@ -99,6 +99,16 @@ async function validateDatabase(env, role, createClient, reviewOnly = false, sin
           EXISTS (SELECT 1 FROM pg_trigger WHERE tgrelid='crm_email_private.jobs'::regclass
             AND tgname='email_regular_review_boundary' AND tgenabled='O') AS review_guard_present`,[OWNER,`https://${PROJECT}.supabase.co`])).rows[0]
         requireTrue(target?.regular_target_matches===true && target.content_guard_present===true && target.review_guard_present===true)
+        if(env.CRM_EMAIL_STAFF_REVIEW_ENABLED==='true') {
+          const staff=(await client.query(`SELECT from_identity,revision,from_email,from_header,
+            expires_at>statement_timestamp() AS valid_expiry
+            FROM crm_email_private.staff_access WHERE owner_id=$1 ORDER BY from_identity`,[OWNER])).rows
+          requireTrue(staff.length===2 && ['projects','visual'].every((sender,i)=>
+            staff[i].from_identity===sender && staff[i].revision===`staff-${sender}-v1` &&
+            staff[i].from_email===`${sender}@iobjectm.com` &&
+            staff[i].from_header===`IOM ${sender==='projects'?'Projects':'Visual'} <${sender}@iobjectm.com>` &&
+            staff[i].valid_expiry===true))
+        }
       }
     } else if (role === 'iom_email_gateway') {
       const target = (await client.query(`SELECT EXISTS (
@@ -182,6 +192,13 @@ export async function runBuildValidation({ env, approvalPin, createClient, ident
     requireTrue(identity?.configured === true && identity.email === 'projects@iobjectm.com' &&
       identity.fromHeader === 'IOM Projects <projects@iobjectm.com>')
   })
+  if(regular && env.CRM_EMAIL_STAFF_REVIEW_ENABLED==='true') {
+    await check('VISUAL_SENDER', () => {
+      const identity = identities().find(item => item.id === 'visual')
+      requireTrue(identity?.configured === true && identity.email === 'visual@iobjectm.com' &&
+        identity.fromHeader === 'IOM Visual <visual@iobjectm.com>')
+    })
+  }
   return { ok: results.every(row => row.status === 'PASS'), skipped: false, results }
 }
 

@@ -45,6 +45,7 @@ import {
   filesToOutreachAttachments,
 } from './emailAttachments'
 import { sendOutreachEmail } from './sendOutreachEmail'
+import { usesReviewedStaffEmail } from './reviewedStaffSender'
 import { useLiveCrmBackend } from './supabaseClient'
 import { isValidIanaTimezone } from './timezones'
 import type { Lead, LeadInput } from './types'
@@ -127,6 +128,7 @@ export function InitialOutreachPanel({
   const pending = initialEmailPending(lead)
   const alreadySent = !!lead.initial_email_sent_at
   const demoMode = isCrmDemoMode()
+  const reviewedSender = !demoMode && usesReviewedStaffEmail(fromIdentity, lead.owner_id)
   /** Live Proton send, or simulated send in /crm-demo (fake data only). */
   const sendUiOk = demoMode || useLiveCrmBackend()
 
@@ -311,8 +313,8 @@ export function InitialOutreachPanel({
   }
 
   const sendViaCrm = async (mode: SendMode) => {
-    if (!demoMode && fromIdentity === 'projects' && mode === 'resend') {
-      setError('Reviewed Projects sending does not resend an existing email. Check its delivery status; write a new follow-up in the thread if needed.')
+    if (reviewedSender && mode === 'resend') {
+      setError('Reviewed sending does not resend an existing email. Check its delivery status; write a new follow-up in the thread if needed.')
       return
     }
     const to = toEmail.trim()
@@ -1143,9 +1145,9 @@ export function InitialOutreachPanel({
                       <button
                         type="button"
                         className="btn btn-primary"
-                        disabled={busy || (!demoMode && fromIdentity === 'projects')}
-                        title={!demoMode && fromIdentity === 'projects'
-                          ? 'Reviewed Projects sending does not resend an existing email. Check its status or write a new follow-up in the thread.'
+                        disabled={busy || reviewedSender}
+                        title={reviewedSender
+                          ? 'Reviewed sending does not resend an existing email. Check its status or write a new follow-up in the thread.'
                           : undefined}
                         onClick={() => void sendViaCrm('resend')}
                       >

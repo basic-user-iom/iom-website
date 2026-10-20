@@ -27,7 +27,7 @@ async function api<T>(token: string, name: string, args: object): Promise<T> {
 export function showReviewedEmail(review: Review): Promise<boolean> {
   return new Promise(resolve => {
     const dialog = document.createElement('dialog')
-    dialog.style.cssText = 'width:min(900px,94vw);max-height:92vh;padding:24px;color:#eee;background:#141922;border:1px solid #566070;border-radius:12px'
+    dialog.style.cssText = 'box-sizing:border-box;width:min(900px,94vw);max-width:94vw;max-height:92vh;padding:24px;color:#eee;background:#141922;border:1px solid #566070;border-radius:12px'
     const title = document.createElement('h2')
     title.textContent = 'Review email before sending'
     const details = document.createElement('pre')
@@ -72,12 +72,15 @@ export function showReviewedEmail(review: Review): Promise<boolean> {
   })
 }
 
-function result(job: Job): SendOutreachEmailResult {
+function result(job: Job, fromIdentity: 'projects' | 'visual'): SendOutreachEmailResult {
   if (job.status !== 'sent' || !job.snapshot) {
     throw new Error(`Email status: ${job.status}. Delivery is not confirmed. Do not retry or create another send; inspect its status.${job.id ? ` Job: ${job.id}` : ''}`)
   }
+  if (job.snapshot.fromIdentity !== fromIdentity || job.snapshot.from !== `${fromIdentity}@iobjectm.com`) {
+    throw new Error('Email sender status mismatch. Stop and inspect the recorded job.')
+  }
   return { ok: true, messageId: job.messageId || null, storedMessageId: job.storedMessageId || null,
-    from: job.snapshot.from, fromIdentity: 'projects', to: job.snapshot.to,
+    from: job.snapshot.from, fromIdentity, to: job.snapshot.to,
     inReplyTo: job.snapshot.inReplyTo || null, references: job.snapshot.references || null }
 }
 
@@ -85,11 +88,13 @@ export async function sendReviewedStaffEmail(
   input: SendOutreachEmailInput, token: string, ownerId: string,
 ): Promise<SendOutreachEmailResult> {
   if (!input.leadId) throw new Error('A CRM lead is required for reviewed sending.')
+  const fromIdentity = input.fromIdentity
+  if (fromIdentity !== 'projects' && fromIdentity !== 'visual') throw new Error('Sender is not enabled for reviewed sending.')
   if (!navigator.locks) throw new Error('This browser cannot safely coordinate reviewed sending across tabs.')
   // Hash only identifies this local intent. Server authority comes solely from the
   // authenticated immutable review, never from this hash or browser storage.
   const normalized = {
-    leadId: input.leadId, kind: input.reviewKind || 'followup', fromIdentity: 'projects',
+    leadId: input.leadId, kind: input.reviewKind || 'followup', fromIdentity,
     to: input.to.trim().toLowerCase(), subject: input.subject.trim(), body: input.body.trim(),
     inReplyTo: input.inReplyTo || '', references: input.references || '',
     attachments: (input.attachments || []).map(a => ({
@@ -106,16 +111,17 @@ export async function sendReviewedStaffEmail(
     if (!pending.intent || !pending.key || typeof pending.confirmed !== 'boolean') throw new Error('Invalid local email status. Stop and inspect before sending.')
     localStorage.setItem(storageKey, JSON.stringify(pending))
     if (pending.confirmed) {
-      return result(await api<Job>(token, 'get_staff_email_status', { idempotencyKey: pending.key }))
+      return result(await api<Job>(token, 'get_staff_email_status', { idempotencyKey: pending.key }), fromIdentity)
     }
     const kind = input.reviewKind || 'followup'
     const review = await api<Review>(token, 'preview_staff_email', {
-      kind, leadId: input.leadId, to: normalized.to, fromIdentity: 'projects',
+      kind, leadId: input.leadId, to: normalized.to, fromIdentity,
       ...(kind === 'followup' ? { messageIntentId: pending.intent, subject: normalized.subject, body: normalized.body } : {}),
       ...(input.inReplyTo ? { inReplyTo: input.inReplyTo, references: input.references || '' } : {}),
       ...(input.attachments?.length ? { attachments: input.attachments } : {}),
     })
-    if (review.snapshot.to !== normalized.to || review.snapshot.fromIdentity !== 'projects' ||
+    if (review.snapshot.to !== normalized.to || review.snapshot.fromIdentity !== fromIdentity ||
+      review.snapshot.from !== `${fromIdentity}@iobjectm.com` ||
       review.snapshot.subject !== normalized.subject || review.snapshot.body !== normalized.body) {
       throw new Error('The saved CRM draft changed. Review the current draft before sending.')
     }
@@ -136,6 +142,6 @@ export async function sendReviewedStaffEmail(
         throw new Error(`Email delivery is unconfirmed. Do not resend. Keep this status key: ${pending.key}`)
       }
     }
-    return result(job)
+    return result(job, fromIdentity)
   })
 }
