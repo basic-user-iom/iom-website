@@ -6,12 +6,14 @@ const mapJob = row => row && ({id:row.id,ownerId:row.owner_id,reviewId:row.revie
   ...row.data,status:row.status,...(row.result || {}),
   ...(row.status==='sending' ? {warning:'delivery_in_progress_or_unknown_do_not_retry'} : {}),
 })
-export function createEmailStore(acquire) {
+export function createEmailStore(acquire,{staffPair=false,staffSender=''}={}) {
   async function transaction(owner,work) {
     const c = await acquire()
     try {
       await c.query('begin')
       await c.query("select set_config('iom.email_owner',$1,true)",[owner])
+      // Transaction-local server mode. Never accept this context from request JSON.
+      await c.query("select set_config('iom.email_staff_pair',$1,true),set_config('iom.email_staff_sender',$2,true),set_config('iom.email_receipt_job','',true)",[staffPair?'v1':'',staffSender])
       await c.query("set local lock_timeout='5s'")
       await c.query("set local statement_timeout='10s'")
       const result=await work(c)
@@ -24,7 +26,8 @@ export function createEmailStore(acquire) {
   const lead = async (c,owner,id,lock=false) => (await c.query(`select l.id,l.owner_id,l.email,l.emails,l.initial_email_subject,l.initial_email_body,
     l.initial_email_sent_at,l.initial_email_drafted_at,l.scheduled_send,l.status,l.contact_priority,l.updated_at,
     exists(select 1 from public.crm_lead_messages m where m.lead_id=l.id and m.direction='outbound') as has_outbound
-    from public.crm_leads l where l.owner_id=$1 and l.id=$2 ${lock?'for update of l':''}`,[owner,id])).rows[0]
+    ${staffPair?",crm_email_private.staff_pair_scope(l.owner_id) as staff_scope":""}
+    from public.crm_leads l where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 ${lock?'for update of l':''}`,[owner,id])).rows[0]
   function validateLead(row,snapshot) {
     if (!row) fail('lead_not_found')
     if (snapshot.kind==='initial') {
@@ -83,10 +86,11 @@ export function createEmailStore(acquire) {
     if(!r || emailContentDigest(r.snapshot)!==emailContentDigest(snapshot))fail('message_intent_content_mismatch')
   }
   return {
+    forStaffPair:sender=>createEmailStore(acquire,{staffPair:true,staffSender:sender||''}),
     async replyParent(owner,leadId,messageId) {
       return (await query(owner,`select 1 from public.crm_lead_messages m
         join public.crm_leads l on l.id=m.lead_id
-        where l.owner_id=$1 and l.id=$2 and lower(m.message_id)=$3 limit 1`,
+        where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_lead_allowed(l.id,l.owner_id))":"l.owner_id=$1"} and l.id=$2 and lower(m.message_id)=$3 limit 1`,
         [owner,leadId,messageId])).rows.length===1
     },
     async staffBinding(pin,revision) {
@@ -176,6 +180,8 @@ export function createEmailStore(acquire) {
     async finish(owner,id,status,result) {
       if(!['sent','unknown'].includes(status)) fail('invalid_status_transition')
       return transaction(owner,async c=>{
+        // A revoked grant must not prevent recording an already-started attempt.
+        if(staffPair)await c.query("select set_config('iom.email_receipt_job',$1,true)",[id])
         const before=(await c.query('select lead_id from crm_email_private.jobs where owner_id=$1 and id=$2',[owner,id])).rows[0]
         if(!before) fail('receipt_state_conflict')
         await lead(c,owner,before.lead_id,true)
@@ -201,7 +207,7 @@ export function createEmailStore(acquire) {
         if(status==='sent' && job.data.snapshot.kind==='initial') await c.query(`update public.crm_leads set initial_email_sent_at=coalesce(initial_email_sent_at,now()),
           initial_email_drafted_at=coalesce(initial_email_drafted_at,now()),contact_priority=false,
           status=case when status='new' then 'contacted' else status end,updated_at=now()
-          where owner_id=$1 and id=$2`,[owner,before.lead_id])
+          where ${staffPair?"($1::uuid IS NOT NULL AND crm_email_private.staff_pair_receipt_lead(id,owner_id))":"owner_id=$1"} and id=$2`,[owner,before.lead_id])
         return mapJob(r)
       })
     },

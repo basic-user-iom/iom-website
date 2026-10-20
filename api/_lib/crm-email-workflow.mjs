@@ -83,6 +83,7 @@ export function createEmailWorkflow({ store, identities, send, authorize, enable
       leadId: lead.id, to, from, fromHeader: identity.fromHeader, fromIdentity: identity.id,
       subject, body, text: renderOutreachPlainText(body), html: renderOutreachEmailHtml({subject, body}),
       template: 'crm-outreach-v1', kind,
+      ...(lead.staff_scope ? {staffScope:lead.staff_scope} : {}),
       ...(kind === 'followup' ? {messageIntentId:args.messageIntentId.toLowerCase()} : {}),
       ...(kind === 'reply' ? {inReplyTo:(legacyInput || args).inReplyTo,references:(legacyInput || args).references || ''} : {}),
       ...(parent ? {inReplyTo:parent,references:buildReferencesHeader(args.references || '',parent)} : {}),

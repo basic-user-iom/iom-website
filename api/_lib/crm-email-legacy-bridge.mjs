@@ -1,10 +1,11 @@
-import {isProtectedEmailTarget,getProductionEmailRuntime,EMAIL_REGULAR_APPROVAL} from './crm-email-production.mjs'
+import {isProtectedEmailTarget,getProductionEmailRuntime} from './crm-email-production.mjs'
 import {fail} from './crm-email-workflow.mjs'
+import {isStaffPairAccount} from './crm-email-staff-pair.mjs'
 
 export async function routeReviewedLegacyEmail(input,actor,{protect=isProtectedEmailTarget,runtime=getProductionEmailRuntime}={}) {
   // Immediate browser route only; shared scheduler classification stays unchanged.
-  // Revocation/feature pause must never reopen the owner's direct Visual SMTP.
-  if(actor?.kind==='staff' && actor.ownerId===EMAIL_REGULAR_APPROVAL.ownerId && input?.fromIdentity==='visual')
+  // Revocation/feature pause must never reopen either login's direct sender.
+  if(actor?.kind==='staff' && isStaffPairAccount(actor.ownerId))
     fail('email_explicit_review_required')
   if(!protect(input))return null
   const service=await runtime() // Any failure is terminal. NEVER fall back to SMTP.

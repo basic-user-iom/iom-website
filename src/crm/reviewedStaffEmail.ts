@@ -72,7 +72,7 @@ export function showReviewedEmail(review: Review): Promise<boolean> {
   })
 }
 
-function result(job: Job, fromIdentity: 'projects' | 'visual'): SendOutreachEmailResult {
+function result(job: Job, fromIdentity: 'projects' | 'visual' | 'contact'): SendOutreachEmailResult {
   if (job.status !== 'sent' || !job.snapshot) {
     throw new Error(`Email status: ${job.status}. Delivery is not confirmed. Do not retry or create another send; inspect its status.${job.id ? ` Job: ${job.id}` : ''}`)
   }
@@ -89,7 +89,7 @@ export async function sendReviewedStaffEmail(
 ): Promise<SendOutreachEmailResult> {
   if (!input.leadId) throw new Error('A CRM lead is required for reviewed sending.')
   const fromIdentity = input.fromIdentity
-  if (fromIdentity !== 'projects' && fromIdentity !== 'visual') throw new Error('Sender is not enabled for reviewed sending.')
+  if (fromIdentity !== 'projects' && fromIdentity !== 'visual' && fromIdentity !== 'contact') throw new Error('Sender is not enabled for reviewed sending.')
   if (!navigator.locks) throw new Error('This browser cannot safely coordinate reviewed sending across tabs.')
   // Hash only identifies this local intent. Server authority comes solely from the
   // authenticated immutable review, never from this hash or browser storage.

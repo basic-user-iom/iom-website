@@ -15,7 +15,7 @@ export default async function(req,res) {
     const runtime=await (pin.accessMode==='regular-projects'?getStaffEmailRuntime():getProductionEmailRuntime()),
       actor={kind:'staff',ownerId:auth.user.id,aal:auth.aal,verifiedStaff:true}
     if(!await runtime.authorize(actor,'review'))return res.status(403).json({ok:false,error:'email_access_denied'})
-    if(!await runtime.rateLimit('staff',30,60000))return res.status(429).json({ok:false,error:'rate_limited'})
+    if(!await runtime.rateLimit('staff',30,60000,actor))return res.status(429).json({ok:false,error:'rate_limited'})
     const body=typeof req.body==='string'?JSON.parse(req.body):req.body
     if(!body || typeof body.name!=='string' || Object.keys(body).some(k=>!['name','arguments'].includes(k)))return res.status(400).json({ok:false,error:'invalid_request'})
     // Staff browser actions are separate from MCP tool scopes and scheduling.

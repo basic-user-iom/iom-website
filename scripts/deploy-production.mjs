@@ -1,4 +1,6 @@
 import { snapshotFiles, readProductionManifest, createReusePlan, prepareStagedReuse } from './incremental-r2-release.mjs'
+import { requestedEmailReleasePhase } from './crm-email-release-phase.mjs'
+import {protectedRelease, releaseOperation, RELEASE_TARGET} from './crm-email-protected-release.mjs'
 /**
  * Scoped production deployment.
  *
@@ -114,6 +116,15 @@ function requestedScopes(argv) {
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--verify-only') continue
+    if (arg === '--crm-email-access-phase') {
+      if (!argv[index + 1] || argv[index + 1].startsWith('--')) fail('--crm-email-access-phase requires PREPARED or ACTIVE.')
+      index += 1
+      continue
+    }
+    if (arg.startsWith('--crm-email-access-phase=')) {
+      if (!arg.slice('--crm-email-access-phase='.length)) fail('--crm-email-access-phase requires PREPARED or ACTIVE.')
+      continue
+    }
     if (arg === '--target') {
       if (!argv[index + 1] || argv[index + 1].startsWith('--')) fail('--target requires a commit SHA.')
       index += 1
@@ -337,7 +348,7 @@ function composeSnapshot(state, scopes, head, productionManifest, deploymentId) 
   }
 }
 
-function buildSnapshot(stage, scopes, reuse) {
+function buildSnapshot(stage, scopes, reuse, emailPhase) {
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   // Restore the exact committed ICM GLB before the static build and R2 upload.
   const viewerAssets = join(stage, 'building-viewer', 'scripts', 'prepare-runtime-assets.mjs')
@@ -358,7 +369,7 @@ function buildSnapshot(stage, scopes, reuse) {
   )
   try {
     packageCommand(npm, ['run', 'build'], { cwd: stage,
-      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true' } : process.env })
+      env: emailOnly ? { ...process.env, IOM_SKIP_BLOG_SYNC: 'true', CRM_EMAIL_RELEASE_PHASE: emailPhase } : process.env })
   } finally {
     rmSync(stageViewerModules, { force: true })
     rmSync(stageModules, { force: true })
@@ -423,7 +434,7 @@ function verifyUploadManifest(stage, scopes, scanOptions, preparingAssets = fals
   return scan
 }
 
-function deploySnapshot(snapshot, head, scopes) {
+function deploySnapshot(snapshot, head, scopes, emailPhase) {
   const emailOnly = scopes.length === 1 && scopes[0] === 'crm-email'
   const scopeMap = Buffer.from(JSON.stringify(snapshot.overlays), 'utf8').toString('base64url')
   packageCommand(npx, [
@@ -434,7 +445,7 @@ function deploySnapshot(snapshot, head, scopes) {
     '--logs',
     '--cwd',
     snapshot.stage,
-    ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true'] : []),
+    ...(emailOnly ? ['--build-env', 'IOM_SKIP_BLOG_SYNC=true', '--build-env', `CRM_EMAIL_RELEASE_PHASE=${emailPhase}`] : []),
     '--meta',
     `githubCommitRef=master`,
     '--meta',
@@ -450,6 +461,8 @@ function deploySnapshot(snapshot, head, scopes) {
 
 function main() {
   const argv = process.argv.slice(2)
+  const protectedOperation = releaseOperation(argv)
+  if(protectedOperation) return runProtectedRelease(protectedOperation)
   const verifyOnly = argv.includes('--verify-only')
   command(process.execPath, [join(root, 'scripts', 'pre-deploy-check.mjs')])
   const workspaceHead = git(['rev-parse', 'HEAD'])
@@ -468,19 +481,22 @@ function main() {
     return JSON.parse(output.slice(Math.min(...[output.indexOf('['), output.indexOf('{')].filter(n => n >= 0))))
   })
   const scopes = resolveScopes(requestedScopes(argv), state.base, head)
+  if(!verifyOnly && scopes.includes('crm-email'))fail('CRM release requires --scope=crm-email --crm-email-release=stage|inspect|promote|prepared|active')
+  const emailPhase = requestedEmailReleasePhase(argv, scopes)
   const unpushed = validateUnpushedFiles(scopes, head)
 
   console.log(`\nProduction base:  ${state.base.slice(0, 8)}`)
   console.log(`Committed target: ${head.slice(0, 8)}`)
   if (workspaceHead !== head) console.log(`Workspace HEAD:    ${workspaceHead.slice(0, 8)} (newer commits remain local)`)
   console.log(`Release scope:    ${scopes.join(', ')}`)
+  if(scopes.length===1 && scopes[0]==='crm-email')console.log(`CRM access phase: ${emailPhase}`)
   console.log(`Unpushed files:   ${unpushed.length}`)
   console.log('Workspace-only files are excluded from the release snapshot.\n')
 
   let snapshot
   try {
     snapshot = composeSnapshot(state, scopes, head, productionManifest, deployment.id)
-    buildSnapshot(snapshot.stage, scopes, snapshot.reuse)
+    buildSnapshot(snapshot.stage, scopes, snapshot.reuse, emailPhase)
     if (existsSync(join(snapshot.stage, 'config/website-r2.json'))) {
       // Check the complete source before moving public media out of the package.
       // The final reduced upload still passes the normal size and content gates.
@@ -504,12 +520,76 @@ function main() {
         '-c', 'http.lowSpeedTime=30',
         'push', 'origin', `${head}:refs/heads/master`,
       ], { env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } }),
-      publish: () => deploySnapshot(snapshot, head, scopes),
+      publish: () => deploySnapshot(snapshot, head, scopes, emailPhase),
     })
     if (verifyOnly) console.log('Verification complete. Nothing was pushed or deployed.\n')
   } finally {
     cleanupStage(snapshot?.stage)
   }
+}
+
+function runProtectedRelease(operation) {
+  // Existing local authentication only. Suppress raw remote errors/logs, which
+  // can contain private source or environment diagnostics.
+  const cli = (args, options={}) => {
+    const result=spawnSync(npx.file,[...npx.prefix,'--no-install','vercel',...args,
+      '--scope',RELEASE_TARGET.team,'--non-interactive'],{
+      cwd:options.cwd||root,env:{...process.env,NO_UPDATE_NOTIFIER:'1'},
+      encoding:'utf8',stdio:['ignore','pipe','pipe'],shell:false,
+      timeout:args[0]==='deploy'?300_000:args[0]==='promote'?190_000:60_000,maxBuffer:32*1024*1024})
+    if(result.status!==0)fail('protected_cli_failed_or_unknown; inspect existing operation before retrying')
+    return args[0]==='inspect'?String(result.stdout||'')+'\n'+String(result.stderr||''):String(result.stdout||'')
+  }
+  const api = route => parseJsonOutput(cli(['api',route]),'Protected metadata')
+  const result=protectedRelease({root,operation,head:git(['rev-parse','HEAD']),api,cli,
+    preflight:()=>command(process.execPath,[join(root,'scripts','pre-deploy-check.mjs')]),
+    checkUrl:url=>{
+      const r=spawnSync(process.platform==='win32'?'curl.exe':'curl',
+        ['--disable','--head','--silent','--max-time','15','--output',process.platform==='win32'?'NUL':'/dev/null',
+          '--write-out','%{http_code}\n%{redirect_url}','https://'+url],
+        {encoding:'utf8',shell:false,timeout:20_000,stdio:['ignore','pipe','pipe']})
+      if(r.status!==0)return {status:0}
+      const [status,location]=String(r.stdout).split(/\r?\n/)
+      let redirect
+      try{redirect=new URL(location)}catch{}
+      return {status:Number(status),locationOrigin:redirect?.origin,locationPath:redirect?.pathname}
+    },
+    prepare:({baseline,state:releaseState,publish})=>{
+      const head=git(['rev-parse','HEAD']),scopes=['crm-email']
+      const liveState=productionState(baseline)
+      const phase=operation==='active'?'ACTIVE':'PREPARED'
+      const unpushed=validateUnpushedFiles(scopes,head)
+      if(releaseState && unpushed.length)fail('protected_check_cannot_push_new_source')
+      const manifest=readProductionManifest(root,baseline,route=>JSON.parse(cli(['api',route])))
+      let snapshot,publicationResult
+      try {
+        snapshot=composeSnapshot(liveState,scopes,head,manifest,baseline.id)
+        // Preserve the current complete configuration, including cable routing
+        // and cron definitions. A CRM scope must not replace a newer config.
+        const configCommit=Object.entries(liveState.overlays).reduce((chosen,[scope,commit])=>
+          matchesDeployScope('vercel.json',scope)?commit:chosen,liveState.base)
+        const oldConfig=execFileSync('git',['show',`${configCommit}:vercel.json`],{cwd:root})
+        const newConfig=execFileSync('git',['show',`${head}:vercel.json`],{cwd:root})
+        if(!oldConfig.equals(newConfig))fail('protected_vercel_config_drift')
+        buildSnapshot(snapshot.stage,scopes,snapshot.reuse,phase)
+        if(existsSync(join(snapshot.stage,'config/website-r2.json'))) {
+          verifyUploadManifest(snapshot.stage,scopes,{knownValues:knownValuesFromEnvironment(process.env)},true)
+          command(process.execPath,[join(root,'scripts/prepare-r2-release.mjs'),'--stage',snapshot.stage,
+            ...(snapshot.reuseIdentity?['--reuse-identity',snapshot.reuseIdentity]:[])])
+        }
+        const knownValues=knownValuesFromEnvironment(process.env)
+        withScannedRelease({verifyOnly:false,
+          scan:expectedIdentity=>verifyUploadManifest(snapshot.stage,scopes,{knownValues,expectedIdentity}),
+          push:()=>command('git',['-c','http.version=HTTP/1.1','-c','http.postBuffer=209715200',
+            '-c','http.lowSpeedLimit=1','-c','http.lowSpeedTime=30',
+            'push','origin',`${head}:refs/heads/master`],{env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}),
+          publish:()=>{publicationResult=publish(snapshot)},
+        })
+        return publicationResult
+      } finally {cleanupStage(snapshot?.stage)}
+    },
+  })
+  console.log('[crm-protected-release] '+JSON.stringify(result))
 }
 
 try {
