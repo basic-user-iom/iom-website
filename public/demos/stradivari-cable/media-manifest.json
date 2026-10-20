@@ -3,6 +3,42 @@
   "visibility": "public",
   "files": [
     {
+      "path": "/demos/stradivari-cable/assets/fast-detail-1.bin",
+      "bytes": 12847604,
+      "sha256": "26aac21971c36efee1f81574d7600e3fcf83411d3df475db55409ef7659b5da2",
+      "url": "/_assets/26aac21971c36efee1f81574d7600e3fcf83411d3df475db55409ef7659b5da2/fast-detail-1.bin"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/fast-detail-2.bin",
+      "bytes": 12847992,
+      "sha256": "da8c7bc4e9e33c043243331fa628c7f2507f72e7b28410ce3020c02206a54217",
+      "url": "/_assets/da8c7bc4e9e33c043243331fa628c7f2507f72e7b28410ce3020c02206a54217/fast-detail-2.bin"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/fast-detail-3.bin",
+      "bytes": 14368572,
+      "sha256": "8d7e4fe9ae9675b4ccafa0c8b0fa83de6d00d62d2855ce9b3f3615667a07ae7a",
+      "url": "/_assets/8d7e4fe9ae9675b4ccafa0c8b0fa83de6d00d62d2855ce9b3f3615667a07ae7a/fast-detail-3.bin"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/fast-detail-4.bin",
+      "bytes": 19596220,
+      "sha256": "8dce977f017689a0cbc2f7ed2cc695921cce8b50e40253a872cc509129cfcf33",
+      "url": "/_assets/8dce977f017689a0cbc2f7ed2cc695921cce8b50e40253a872cc509129cfcf33/fast-detail-4.bin"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/fast-metro-vijzelgracht.hdr",
+      "bytes": 6483714,
+      "sha256": "41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b",
+      "url": "/_assets/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/fast-metro-vijzelgracht.hdr"
+    },
+    {
+      "path": "/demos/stradivari-cable/assets/fast-overview.bin",
+      "bytes": 34107124,
+      "sha256": "fd81f53d1014018632d2ef78ce12fe111b9493620ae4f3bfc69981022599cd23",
+      "url": "/_assets/fd81f53d1014018632d2ef78ce12fe111b9493620ae4f3bfc69981022599cd23/fast-overview.bin"
+    },
+    {
       "path": "/demos/stradivari-cable/assets/overview-final.bin",
       "bytes": 17184695,
       "sha256": "66a719c3bf9c3cee3171e5cb9872a2801571547c980fc0919954fb48db3d2c3d",

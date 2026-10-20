@@ -8,7 +8,7 @@ export function createBackdrop(scene,renderer,requestRender){
  const frame=new THREE.WebGLRenderTarget(1,1,{type:THREE.HalfFloatType,depthBuffer:false});
  frame.texture.name='Metro background only';
  async function use(name){const id=++generation;if(name==='metro'){
-  promise??=new HDRLoader().loadAsync('https://assets.iobjectm.com/iom-website/v1/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/metro-vijzelgracht.hdr').then(hdr=>{const pmrem=new THREE.PMREMGenerator(renderer);target=pmrem.fromEquirectangular(hdr);hdr.dispose();pmrem.dispose();builds++;return target.texture});
+  promise??=new HDRLoader().loadAsync('/_assets/41dc861f3ae18a9961d3d5a3b48429b1ac2832e5862ad25f8e95c43d3296fb7b/fast-metro-vijzelgracht.hdr').then(hdr=>{const pmrem=new THREE.PMREMGenerator(renderer);target=pmrem.fromEquirectangular(hdr);hdr.dispose();pmrem.dispose();builds++;return target.texture});
   const texture=await promise;if(id!==generation)return;sky.background=texture;sky.backgroundRotation.set(0,THREE.MathUtils.degToRad(rotation),0);sky.backgroundIntensity=intensity;sky.backgroundBlurriness=.025;scene.background=frame.texture;
  }else scene.background=null;
  active=name;for(const b of document.querySelectorAll('[data-background]'))b.setAttribute('aria-pressed',String(b.dataset.background===active));requestRender();}

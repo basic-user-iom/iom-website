@@ -31,10 +31,12 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
   serial++;if(frame)cancelAnimationFrame(frame);frame=0;phase='idle';reason=why;controls.enabled=true;
   ui(reduced.matches?'Explore freely · reduced motion':'Explore freely');
  }
- function move(i){
+ async function move(i){
   if(i>=shots.length){stop('completed');return;}
+  const generation=serial;if(i>0){phase='preparing';ui('Loading the next detail.');await prepare(i);if(generation!==serial)return;}
   index=i;from=capture();to=pose(shots[i]);elapsed=0;last=performance.now();phase=reduced.matches?'static':'moving';ui(shots[i].title);
   if(reduced.matches){apply(from,to,1);return;}
+  if(i+1<shots.length)void prepare(i+1);
   frame=requestAnimationFrame(tick);
  }
  function tick(now){
@@ -51,7 +53,7 @@ export function createIntroduction({host,canvas,controls,getCamera,render,prepar
  }
  async function start(){
   stop('restarting');const generation=serial;phase='preparing';ui('Preparing introduction…');
-  await prepare();if(generation!==serial)return;
+  await prepare(0);if(generation!==serial)return;
   const mobile=host.clientWidth<700;
   shots=[
    {title:'The complete cable',target:[2.5,1,0],width:170,travel:1600,hold:900},
