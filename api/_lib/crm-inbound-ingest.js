@@ -7,6 +7,7 @@ import {
   normalizeMessageId,
 } from './crm-lead-messages.js'
 import { isAutoReplyEmail } from './crm-auto-reply.js'
+import { normalizeEmailReferences } from '../../src/crm/emailReferences.mjs'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -44,9 +45,12 @@ export async function ingestInboundEmail({
     normalizeMessageId(message.messageId || message.message_id) || null
   const inReplyTo =
     normalizeMessageId(message.inReplyTo || message.in_reply_to) || null
-  const references = String(
-    message.references || message.references_header || '',
-  ).trim()
+  let references
+  try {
+    references = normalizeEmailReferences(message.references || message.references_header || '')
+  } catch {
+    return { status: 400, body: { error: 'Invalid References header', code: 'invalid_reply_references' } }
+  }
   const headers =
     message.headers &&
     typeof message.headers === 'object' &&
@@ -301,6 +305,7 @@ export function headerValue(headers, name) {
   const wanted = String(name).toLowerCase()
   for (const [k, v] of Object.entries(headers)) {
     if (String(k).toLowerCase() === wanted) {
+      if (wanted === 'references' && Array.isArray(v)) return normalizeEmailReferences(v)
       if (Array.isArray(v)) return String(v[0] || '')
       return String(v || '')
     }

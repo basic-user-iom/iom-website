@@ -1,4 +1,5 @@
 import type { LeadMessage } from './types'
+import { normalizeEmailReferences } from './emailReferences.mjs'
 
 /** Suggest a reply subject from the last message in the thread. */
 export function suggestReplySubject(messages: LeadMessage[], fallback = ''): string {
@@ -21,9 +22,15 @@ export function replyThreadingFromMessages(messages: LeadMessage[]): {
     return { inReplyTo: null, references: null }
   }
   const parent = withId.message_id.trim()
-  const prior = withId.references_header?.trim() || ''
+  let prior = withId.references_header?.trim() || ''
+  try {
+    prior = normalizeEmailReferences(prior)
+  } catch {
+    // Keep invalid input intact for the existing server rejection. Never
+    // silently drop a malformed chain or turn it into an unthreaded message.
+  }
   const refs = prior
-    ? prior.includes(parent)
+    ? prior.split(/\s+/).some((id) => id.toLowerCase() === parent.toLowerCase())
       ? prior
       : `${prior} ${parent}`.trim()
     : parent
