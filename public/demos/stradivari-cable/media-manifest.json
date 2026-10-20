@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "visibility": "public",
+  "files": [
+    {
+      "path": "/demos/stradivari-cable/assets/overview-final.bin",
+      "bytes": 17184695,
+      "sha256": "66a719c3bf9c3cee3171e5cb9872a2801571547c980fc0919954fb48db3d2c3d",
+      "url": "/_assets/66a719c3bf9c3cee3171e5cb9872a2801571547c980fc0919954fb48db3d2c3d/overview-final.bin"
+    }
+  ]
+}

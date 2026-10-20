@@ -1,8 +1,8 @@
-Stradivari cable visual study, revision 08.
+Stradivari cable visual study, revision 10, 30-strand option.
 Environment: Metro Vijzelgracht, Greg Zaal / Poly Haven, CC0. https://polyhaven.com/a/metro_vijzelgracht
 Three.js r181, MIT. Meshoptimizer decoder, MIT. fflate, MIT. See bundled license comments.
 Geometry and procedural surface maps authored for this cable visualization. No external reference photographs are included.
-Visual study: two OCC conductors, explicit diameter 2.1 mm; nominal specification 2 x 4 mm2. Circular area of 2.1 mm is 3.464 mm2. Dimensions are visual reference, not manufacturing CAD. PET designation comes from the supplied sketch.
+Visual study: two OCC conductors, explicit diameter 2.1 mm; nominal specification 2 x 4 mm2. A solid 2.1 mm circle has area 3.464 mm2. This 30-strand illustration retains a 2.1 mm envelope. Strand count and inner foil thickness are visual proposals; neither resolves the nominal 4 mm2 discrepancy. See the V10 handoff for calculated model copper area. Dimensions are visual reference, not manufacturing CAD. PET designation comes from the supplied sketch.
 
 Third-party licenses
 

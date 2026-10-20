@@ -1,4 +1,1 @@
-Production media uses the six immutable, separately scanned and hash-verified URLs in media-manifest.json through exact Vercel rewrites. Scanner code and aggregate limits are unchanged.
-Build deployment output: node build.cjs ../public/demos/stradivari-cable
-Build a standalone local copy including model files: node build.cjs dist --local-media
-Original model bytes are preserved in media-source/.
+Final Design A, 30 strands in 1/6/11/12 groups. Copper STRADIVARI registered mark and supplied S logo. 26.5-second guided intro; Skip, Replay, interaction interruption, reduced-motion static steps. Studio intensity 0.5, exposure 1.1, SSR preserved. Existing detail/HDR media reused without modification. Build: node stradivari-cable/build.cjs. Publish only with npm run deploy -- --scope project:stradivari-cable --target <commit>.
