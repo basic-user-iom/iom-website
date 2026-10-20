@@ -72,9 +72,15 @@ export function proofFromLogs(logs, d, state, build, now=Date.now()) {
 }
 export function validateLive(live, state, promoted) {
   requireRelease(live.id===(promoted?state.builds[0].id:state.baseline.id),'release_live_drift')
-  requireRelease(live.readyState==='READY' && live.alias?.includes(RELEASE_TARGET.domain),'release_live_not_ready')
+  requireRelease(live.readyState==='READY' && live.domainBinding?.alias===RELEASE_TARGET.domain &&
+    live.domainBinding.deploymentId===live.id && live.domainBinding.projectId===RELEASE_TARGET.project,'release_live_not_ready')
   requireRelease(live.meta?.iomSnapshotBaseSha===(promoted?state.base:state.baseline.base) &&
     live.meta?.iomScopeMap===(promoted?state.scopeMap:state.baseline.scopeMap), 'release_live_composition_drift')
+}
+export function bindDomain(deployment,alias) {
+  requireRelease(alias.alias===RELEASE_TARGET.domain && alias.projectId===RELEASE_TARGET.project &&
+    alias.deploymentId===deployment.id && !alias.redirect && !alias.deletedAt,'release_domain_binding_mismatch')
+  return {...deployment,domainBinding:{alias:alias.alias,projectId:alias.projectId,deploymentId:alias.deploymentId}}
 }
 export function nextBuild(state, operation, now=Date.now()) {
   requireRelease(now<RELEASE_TARGET.expires, 'release_approval_expired')
@@ -104,7 +110,8 @@ export function protectedRelease({root, operation, head, api, cli, checkUrl, pre
   try{fd=openSync(lock,'wx')}catch{requireRelease(false,'release_already_locked')}
   let state
   const save=()=>{writeFileSync(statePath+'.tmp',JSON.stringify(state,null,2));renameSync(statePath+'.tmp',statePath)}
-  const live=()=>api('/v13/deployments/'+RELEASE_TARGET.domain)
+  const live=()=>bindDomain(api('/v13/deployments/'+RELEASE_TARGET.domain),
+    api('/v4/aliases/'+RELEASE_TARGET.domain+'?projectId='+RELEASE_TARGET.project))
   const project=()=>api('/v9/projects/'+RELEASE_TARGET.project)
   const idle=()=> {
     for(const status of ['BUILDING','INITIALIZING','QUEUED']) {
@@ -175,10 +182,16 @@ export function protectedRelease({root, operation, head, api, cli, checkUrl, pre
         iomSnapshotBaseSha:state.base,iomScopeMap:state.scopeMap,iomReleaseRun:state.run,
         iomReleaseBuild:b.letter,iomReleasePhase:b.phase,iomVerifierSha:state.verifier}))
         args.push('--meta',`${key}=${value}`)
-      const output=cli(args,{capture:true,cwd:snapshot.stage})
-      const urls=String(output).trim().split(/\s+/).filter(v=>/^https:\/\/[a-z0-9-]+\.vercel\.app\/?$/.test(v))
-      requireRelease(urls.length===1,'release_creation_outcome_unknown')
-      const d=api('/v13/deployments/'+new URL(urls[0]).hostname)
+      cli(args,{capture:true,cwd:snapshot.stage})
+      // Agent-mode CLI output may be structured JSON. Resolve the one already
+      // created deployment by immutable run/build metadata, never by free text.
+      const listing=api(`/v6/deployments?projectId=${RELEASE_TARGET.project}&since=${b.started-1000}&limit=100`)
+      requireRelease(Array.isArray(listing.deployments) && !listing.pagination?.next,'release_creation_outcome_unknown')
+      const matches=listing.deployments.filter(d=>d.meta?.iomReleaseRun===state.run && d.meta?.iomReleaseBuild===b.letter)
+      requireRelease(matches.length===1,'release_creation_outcome_unknown')
+      const id=matches[0].uid||matches[0].id
+      requireRelease(/^dpl_[A-Za-z0-9]+$/.test(id),'release_creation_outcome_unknown')
+      const d=api('/v13/deployments/'+id)
       boundDeployment(d,state,b)
       b.id=d.id;b.url=d.url;b.status=d.readyState;save()
       validateLive(live(),state,state.promoted===true)

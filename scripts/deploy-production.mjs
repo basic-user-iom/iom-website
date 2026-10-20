@@ -14,6 +14,7 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
+  readFileSync,
   rmSync,
   symlinkSync,
 } from 'node:fs'
@@ -529,6 +530,14 @@ function main() {
 }
 
 function runProtectedRelease(operation) {
+  const workspaceHead=git(['rev-parse','HEAD'])
+  const record=join(root,'.qa-out','crm-protected-release-20261020','state.json')
+  const applicationHead=operation==='stage'?workspaceHead:JSON.parse(readFileSync(record,'utf8')).head
+  ensureCommit(applicationHead,'Pinned CRM application')
+  ensureAncestor(applicationHead,workspaceHead,'Pinned application is not an ancestor of the launcher.')
+  const launcherFiles=['scripts/deploy-production.mjs','scripts/crm-email-protected-release.mjs']
+  if(changedFiles(applicationHead,workspaceHead).some(path=>!launcherFiles.includes(path)))
+    fail('Runtime source changed after build A; pinned checks cannot continue.')
   // Existing local authentication only. Suppress raw remote errors/logs, which
   // can contain private source or environment diagnostics.
   const cli = (args, options={}) => {
@@ -541,7 +550,7 @@ function runProtectedRelease(operation) {
     return args[0]==='inspect'?String(result.stdout||'')+'\n'+String(result.stderr||''):String(result.stdout||'')
   }
   const api = route => parseJsonOutput(cli(['api',route]),'Protected metadata')
-  const result=protectedRelease({root,operation,head:git(['rev-parse','HEAD']),api,cli,
+  const result=protectedRelease({root,operation,head:applicationHead,api,cli,
     preflight:()=>command(process.execPath,[join(root,'scripts','pre-deploy-check.mjs')]),
     checkUrl:url=>{
       const r=spawnSync(process.platform==='win32'?'curl.exe':'curl',
@@ -555,11 +564,11 @@ function runProtectedRelease(operation) {
       return {status:Number(status),locationOrigin:redirect?.origin,locationPath:redirect?.pathname}
     },
     prepare:({baseline,state:releaseState,publish})=>{
-      const head=git(['rev-parse','HEAD']),scopes=['crm-email']
+      const head=applicationHead,scopes=['crm-email']
       const liveState=productionState(baseline)
       const phase=operation==='active'?'ACTIVE':'PREPARED'
-      const unpushed=validateUnpushedFiles(scopes,head)
-      if(releaseState && unpushed.length)fail('protected_check_cannot_push_new_source')
+      const unpushed=validateUnpushedFiles(scopes,workspaceHead)
+      if(releaseState && unpushed.some(path=>!launcherFiles.includes(path)))fail('protected_check_cannot_push_new_source')
       const manifest=readProductionManifest(root,baseline,route=>JSON.parse(cli(['api',route])))
       let snapshot,publicationResult
       try {
@@ -582,7 +591,7 @@ function runProtectedRelease(operation) {
           scan:expectedIdentity=>verifyUploadManifest(snapshot.stage,scopes,{knownValues,expectedIdentity}),
           push:()=>command('git',['-c','http.version=HTTP/1.1','-c','http.postBuffer=209715200',
             '-c','http.lowSpeedLimit=1','-c','http.lowSpeedTime=30',
-            'push','origin',`${head}:refs/heads/master`],{env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}),
+            'push','origin',`${workspaceHead}:refs/heads/master`],{env:{...process.env,GIT_TERMINAL_PROMPT:'0'}}),
           publish:()=>{publicationResult=publish(snapshot)},
         })
         return publicationResult
