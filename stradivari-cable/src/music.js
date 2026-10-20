@@ -1,5 +1,5 @@
 export function createMusic(){
- const audio=document.createElement('audio');audio.preload='none';audio.dataset.cableMusic='true';audio.hidden=true;document.body.append(audio);
+ const audio=document.createElement('audio');audio.preload='none';audio.loop=true;audio.dataset.cableMusic='true';audio.hidden=true;document.body.append(audio);
  const panel=document.createElement('section');panel.className='cable-music';panel.setAttribute('aria-label','Music');
  panel.innerHTML='<p>Gymnopédie No. 1</p><div class="music-actions"><button type="button" data-music="toggle" aria-pressed="false">Music: Off · Turn on</button><button type="button" data-music="mute" aria-pressed="false" disabled>Mute</button></div><p role="status" aria-live="polite">Music starts only when you choose.</p>';
  document.querySelector('aside h2').after(panel);
